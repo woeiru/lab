@@ -4,7 +4,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Source config.sh using the absolute path
-source "$DIR/../var/func"
+source "$DIR/../var/alle"
 
 # list all Functions in a given File
 f() {

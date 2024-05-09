@@ -58,8 +58,8 @@ install_packages() {
 # Function to set global git configurations
 configure_git() {
     local function_name="configure_git"
-    git config --global user.name "maxwagne"
-    git config --global user.email "maxwagne@outlook.de"
+    git config --global user.name "woeiru"
+    git config --global user.email "169383590+woeiru@users.noreply.github.com"
     notify_status "$function_name" "Git configurations set"
 }
 
@@ -75,13 +75,6 @@ remove_subscription_notice() {
         n|N ) notify_status "$function_name" "Service not restarted.";;
         * ) notify_status "$function_name" "Invalid choice. Service not restarted.";;
     esac
-}
-
-notify_status() {
-    local function_name="$1"
-    local status="$2"
-
-    echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
 
 # Function to execute Section 1
