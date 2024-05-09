@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Define the Proxmox configuration file path
+CONF_PATH_QEMU="/etc/pve/qemu-server"
+
+# Source path on the host
+sy_vlv_source="/var/lib/vz"
+
+# Destination path on the external drive
+sy_vlv_destination="/mnt/pve"
+
+# Commit Message when no input is given to Fn
+ commit_message="standard"
+
+# Make a check of all other nodes in the cluster to get hostnames
+cluster_nodes=("x1" "x2")  # Add all hostnames of the cluster nodes here
+
+ # Configuration for x1
+    x1_node_pci0="0000:09:00.0"
+    x1_node_pci1="0000:09:00.1"
+    x1_core_count_on=12
+    x1_core_count_off=8
+
+    x2_node_pci0="0000:0c:00.0"
+    x2_node_pci1="0000:0c:00.1"
+    x2_core_count_on=16
+    x2_core_count_off=10
+
+    w1_node_pci0="0000:09:00.0"
+    w1_node_pci1="0000:09:00.1"
+    w1_core_count_on=8
+    w1_core_count_off=8
+
+# Default values for storage configuration for adding nfs
+storage_id="syno"
+path="/mnt/syno"
+server="192.168.178.34"
+nfs_export="/volume1/pmox"

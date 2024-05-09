@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Commit Message when no input is given to Fn
+ commit_message="standard"

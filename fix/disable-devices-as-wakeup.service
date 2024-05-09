@@ -1,0 +1,9 @@
+[Unit]
+Description=Disable devices as wakeup
+
+[Service]
+ExecStart=/etc/systemd/system/disable-devices-as-wakeup.sh
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target

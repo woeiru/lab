@@ -1,0 +1,36 @@
+#
+DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
+
+source "$DIR/../lib/func.sh"
+source "$DIR/../lib/osus.sh"
+source "$DIR/../lib/pmox.sh"
+
+alias a='alias'
+
+alias ali='bash "/lab/too/ali.sh"'
+
+alias cb='cat /lab/dot/bashrc'
+alias cf='cat /etc/fstab'
+
+alias d='cd'
+
+alias dl='cd /lab'
+alias dlc='cd /lab/con'
+alias dld='cd /lab/dot'
+alias dlf='cd /lab/fix'
+alias dll='cd /lab/lib'
+alias dls='cd /lab/set'
+alias dlt='cd /lab/too'
+alias dlv='cd /lab/var'
+
+alias ds='cd /etc/snapper/configs'
+alias dp='cd /usr/lib/pam_snapper'
+
+alias s='sudo'
+alias t='tree'
+
+alias v='vim'
+alias vb='vim /lab/dot/bashrc'
+
+alias eb='exec bash'
+
