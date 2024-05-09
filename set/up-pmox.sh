@@ -55,13 +55,6 @@ install_packages() {
     notify_status "$function_name" "Additional Packages installed"
 }
 
-# Function to set global git configurations
-configure_git() {
-    local function_name="configure_git"
-    git config --global user.name "woeiru"
-    git config --global user.email "169383590+woeiru@users.noreply.github.com"
-    notify_status "$function_name" "Git configurations set"
-}
 
 # Function to remove subscription notice
 remove_subscription_notice() {
@@ -174,8 +167,7 @@ display_menu() {
     echo "a2. Add repository"
     echo "a3. Update and upgrade packages"
     echo "a4. Install git and vim"
-    echo "a5. Configure git"
-    echo "a6. Remove subscription notice"
+    echo "a5. Remove subscription notice"
     echo "b1. Enable gpu-pt Part 1"
     echo "b2. Enable gpu-pt Part 2"
     echo "b3. Enable gpu-pt Part 3"
@@ -196,8 +188,7 @@ execute_choice() {
         a2) add_repo;;
         a3) update_upgrade;;
         a4) install_packages;;
-        a5) configure_git;;
-        a6) remove_subscription_notice;;
+        a5) remove_subscription_notice;;
         b1) gpupt_part_1;;
         b2) gpupt_part_2;;
         b3) gpupt_part_3;;
@@ -213,7 +204,6 @@ execute_a_options() {
     add_repo
     update_upgrade
     install_packages
-    configure_git
     remove_subscription_notice
 }
 
