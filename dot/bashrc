@@ -5,8 +5,6 @@ source "$DIR/../lib/alle.sh"
 source "$DIR/../lib/osus.sh"
 source "$DIR/../lib/pmox.sh"
 
-alias a='alias'
-
 alias ali='bash "$DIR/../too/ali.sh"'
 
 alias cb='cat $DIR/../dot/bashrc'

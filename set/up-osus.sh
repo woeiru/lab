@@ -8,12 +8,19 @@ notify_status() {
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
 
-# Function to set global git configurations
-configure_git() {
-    local function_name="configure_git"
-    git config --global user.name "woeiru"
-    git config --global user.email "169383590+woeiru@users.noreply.github.com"
-    notify_status "$function_name" "Git configurations set"
+# Function to update package lists and upgrade packages
+update_upgrade() {
+    local function_name="update_upgrade"
+    zypper update
+    zypper upgrade -y
+    notify_status "$function_name" "Package lists updated and packages upgraded"
+}
+
+# Function to install git and vim
+install_packages() {
+    local function_name="install_packages"
+    zypper install -y git vim tree corosync-qnetd
+    notify_status "$function_name" "Additional Packages installed"
 }
 
 # Main function to execute based on command-line arguments or display main menu
@@ -29,7 +36,8 @@ main() {
 # Function to display main menu
 display_menu() {
     echo "Choose an option:"
-    echo "a1. Configure git"
+    echo "a1. Update and upgrade packages"
+    echo "a2. Install git and vim"
     echo "a. Run all a options"
     echo "b. Run all b options"
 }
@@ -43,7 +51,8 @@ read_user_choice() {
 # Function to execute based on user choice
 execute_choice() {
     case "$1" in
-        a1) configure_git;;
+        a1) update_upgrade;;
+        a2) install_packages;;
         a) execute_a_options;;
         b) execute_b_options;;
         *) echo "Invalid choice";;
@@ -52,7 +61,8 @@ execute_choice() {
 
 # Function to execute all a options
 execute_a_options() {
-    configure_git
+    update_upgrade
+    install_packages
 }
 
 # Function to execute all b options

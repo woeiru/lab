@@ -7,7 +7,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source "$DIR/../var/alle"
 
 # list all Functions in a given File
-f() {
+a() {
     local file_name="${1:-${BASH_SOURCE[0]}}"
     printf "%-20s | %-10s | %-10s | %-20s\n" "Function Name" "Size" "Header" "Comment"
     printf "%-20s | %-10s | %-10s | %-20s\n" "--------------------" "----------" "----------" "-------"
@@ -51,14 +51,14 @@ f() {
 
 
 # count files in parent folder
-f-c() {
+a-c() {
     local path="$1"
     find . -mindepth 1 -maxdepth 1 -type d -exec sh -c 'printf "%s\t" "$1"; find "$1" -type f | wc -l' sh {} \;
 }
 
 
 # selects a file in current folder and saves it as var 'sel'
-b-s() {
+a-s() {
     files=($(ls))
     echo "Select a file by entering its index:"
     for i in "${!files[@]}"; do
