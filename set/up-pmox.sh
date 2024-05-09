@@ -166,7 +166,7 @@ display_menu() {
     echo "a1. Disable repository"
     echo "a2. Add repository"
     echo "a3. Update and upgrade packages"
-    echo "a4. Install git and vim"
+    echo "a4. Install packages"
     echo "a5. Remove subscription notice"
     echo "b1. Enable gpu-pt Part 1"
     echo "b2. Enable gpu-pt Part 2"

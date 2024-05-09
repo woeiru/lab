@@ -19,7 +19,7 @@ update_upgrade() {
 # Function to install git and vim
 install_packages() {
     local function_name="install_packages"
-    zypper install -y git vim tree corosync-qnetd
+    zypper install -y git vim tree podman corosync-qnetd
     notify_status "$function_name" "Additional Packages installed"
 }
 
@@ -37,7 +37,7 @@ main() {
 display_menu() {
     echo "Choose an option:"
     echo "a1. Update and upgrade packages"
-    echo "a2. Install git and vim"
+    echo "a2. Install packages"
     echo "a. Run all a options"
     echo "b. Run all b options"
 }
