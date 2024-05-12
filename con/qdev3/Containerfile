@@ -1,9 +1,6 @@
 # Stage 1: Base stage
 FROM debian:buster-slim AS base
 
-LABEL description="Corosync Qdevice Network daemon"
-LABEL documentation="man:corosync-qnetd"
-
 # Install necessary dependencies
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \

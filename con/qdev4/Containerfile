@@ -1,0 +1,55 @@
+# Stage 1: Base Image
+FROM debian:buster-slim AS base
+
+# Install required dependencies and setup environment
+RUN apt-get update && apt-get install -y \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Stage 2: Setup Corosync Qdevice Network daemon
+FROM base AS setup
+
+# Install the Proxmox repository signing key
+ADD "https://enterprise.proxmox.com/debian/proxmox-ve-release-6.x.gpg" /etc/apt/trusted.gpg.d/proxmox-ve-release-6.x.gpg
+
+# Create the coroqnetd user and group
+RUN adduser --quiet --system --disabled-login --no-create-home \
+    --home /etc/corosync/qnetd --group --uid=903 coroqnetd \
+    && chmod 1777 /var/run \
+    && chmod a+r /etc/apt/trusted.gpg.d/proxmox-ve-release-6.x.gpg \
+    && echo "deb http://download.proxmox.com/debian/pve buster pve-no-subscription" \
+    > /etc/apt/sources.list.d/corosync3.list
+
+# Stage 3: Install and configure Corosync Qdevice Network daemon
+FROM setup AS install
+
+# Install corosync-qnetd from the Proxmox repository
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y corosync-qnetd \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create necessary directories and files
+RUN mkdir -p /etc/corosync/qnetd/nssdb \
+    && touch /etc/corosync/qnetd/nssdb/cert9.db
+
+# Stage 4: Finalize image
+FROM install AS final
+
+# Health check to ensure the daemon is running
+HEALTHCHECK CMD corosync-qnetd-tool -s
+
+# Set user and group to run as
+USER 903:903
+
+# Define Corosync settings
+VOLUME /etc/corosync
+EXPOSE 5403
+ENV UMASK=
+ENV COROSYNC_QNETD_OPTIONS=
+
+# Default command to start the daemon
+CMD []
+ENTRYPOINT ["start-coroqnetd"]
+
+# Copy start script
+COPY start-coroqnetd.sh /usr/local/bin/start-coroqnetd

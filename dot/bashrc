@@ -27,6 +27,8 @@ alias dp='cd /usr/lib/pam_snapper'
 alias s='sudo'
 alias t='tree'
 
+alias tu='transactional-update'
+
 alias v='vim'
 alias vb='vim $DIR/../dot/bashrc'
 
