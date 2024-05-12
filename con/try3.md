@@ -20,4 +20,4 @@ docker run -d -it \
 --cap-drop=ALL \
 -v /etc/corosync:/etc/corosync \
 --restart=always \
-idebqd:latest
+modelrockettier/corosync-qnetd
