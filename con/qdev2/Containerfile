@@ -1,0 +1,51 @@
+# Use the base image
+FROM debian:bookworm
+
+# Set debconf frontend to teletype for non-interactive installation
+RUN echo 'debconf debconf/frontend select teletype' | debconf-set-selections
+
+# Update package lists
+RUN apt-get update
+
+# Upgrade the distribution
+RUN apt-get dist-upgrade -qy
+
+# Install necessary packages
+RUN apt-get install -qy --no-install-recommends systemd systemd-sysv corosync-qnetd openssh-server
+
+# Clean up after installation
+RUN apt-get clean
+
+# Remove unnecessary logs and lists to reduce image size
+RUN rm -rf /var/lib/apt/lists/* /var/log/alternatives.log /var/log/apt/history.log /var/log/apt/term.log /var/log/dpkg.log
+
+# Permit root login via SSH and set root password
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    echo 'root:password' | chpasswd
+
+# Change ownership of corosync configuration directory
+RUN chown -R coroqnetd:coroqnetd /etc/corosync/
+
+# Mask unnecessary systemd units
+RUN systemctl mask -- dev-hugepages.mount sys-fs-fuse-connections.mount
+
+# Remove machine IDs to be generated on container startup
+RUN rm -f /etc/machine-id /var/lib/dbus/machine-id
+
+# Start a new stage from the same base image
+FROM debian:bookworm
+
+# Copy the contents of the previous stage into this stage
+COPY --from=0 / /
+
+# Set environment variable to indicate running in a container
+ENV container docker
+
+# Set the stop signal for the container
+STOPSIGNAL SIGRTMIN+3
+
+# Define volumes to be mounted
+VOLUME [ "/sys/fs/cgroup", "/run", "/run/lock", "/tmp" ]
+
+# Set the default command to run on container startup
+CMD [ "/sbin/init" ]
