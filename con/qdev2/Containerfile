@@ -30,7 +30,7 @@ RUN chown -R coroqnetd:coroqnetd /etc/corosync/
 RUN systemctl mask -- dev-hugepages.mount sys-fs-fuse-connections.mount
 
 # Remove machine IDs to be generated on container startup
-RUN rm -f /etc/machine-id /var/lib/dbus/machine-id
+#RUN rm -f /etc/machine-id /var/lib/dbus/machine-id
 
 # Start a new stage from the same base image
 FROM debian:bookworm
