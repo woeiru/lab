@@ -1,17 +1,21 @@
 ## On QDEVICE Host
 
-### Preparing Workspace
-mkdir -p $HOME/lab/con/qdev3/corosync-data
-cd $HOME/lab/con/qdev3
+### Installation
+tu pkg in corosync-qnetd
 
 ### Preparing Network
-podman network create -d macvlan --subnet=192.168.178.0/24 --gateway=192.168.178.1 -o parent=eno1 macvlan
+podman network create -d macvlan --subnet=192.168.178.0/24 --gateway=192.168.178.1 -o parent=wlp3s0 macvlan
 
-### Build Container
-podman build . -t idebqd
+### Setup SELinux
+chcon -R -t container_file_t /etc/corosync
+or
+chcon -Rt svirt_sandbox_file_t /etc/corosync
+
+troubleshooting:
+ausearch -m avc -ts recent
 
 ### Run Container
-docker run -d -it \
+podman run -d -it \
 --name=debqd \
 --net=macvlan \
 --ip=192.168.178.231 \
@@ -19,5 +23,4 @@ docker run -d -it \
 -p 22:22 \
 --cap-drop=ALL \
 -v /etc/corosync:/etc/corosync \
---restart=always \
 modelrockettier/corosync-qnetd
