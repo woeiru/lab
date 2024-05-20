@@ -41,10 +41,6 @@ podman run -d \
 ### Re-enable sshd on the host
 systemctl start sshd
 
-# Troubleshooting
-
-#!/bin/bash  
-
 
 # Troubleshooting  
 
