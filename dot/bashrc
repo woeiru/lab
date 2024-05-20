@@ -7,8 +7,9 @@ source "$DIR/../lib/pmox.sh"
 
 alias ali='bash "$DIR/../too/ali.sh"'
 
-alias cb='cat $DIR/../dot/bashrc'
-alias cf='cat /etc/fstab'
+alias b='bash'
+
+alias c='cat'
 
 alias d='cd'
 
@@ -24,6 +25,10 @@ alias dlv='cd $DIR/../var'
 alias ds='cd /etc/snapper/configs'
 alias dp='cd /usr/lib/pam_snapper'
 
+alias eb='exec bash'
+
+alias h='history'
+
 alias s='sudo'
 alias t='tree'
 
@@ -32,5 +37,8 @@ alias tu='transactional-update'
 alias v='vim'
 alias vb='vim $DIR/../dot/bashrc'
 
-alias eb='exec bash'
+alias vsa='vim /etc/samba/smb.conf'
+alias vfw='vim /etc/firewalld/firewalld.conf'
+alias vfs='vim /etc/fstab'
 
+alias y='systemctl'

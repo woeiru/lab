@@ -4,7 +4,6 @@
 notify_status() {
     local function_name="$1"
     local status="$2"
-
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
 
@@ -20,7 +19,84 @@ update_upgrade() {
 install_packages() {
     local function_name="install_packages"
     zypper install -y git vim tree podman corosync-qnetd
-    notify_status "$function_name" "Additional Packages installed"
+    notify_status "$function_name" "Additional packages installed"
+}
+
+# Function to load configuration from file
+load_config() {
+    local config_file="$1"
+    if [ -f "$config_file" ]; then
+        source "$config_file"
+    else
+        echo "Configuration file not found: $config_file"
+        exit 1
+    fi
+}
+
+# Function to prompt for input if a variable is not set
+prompt_for_input() {
+    local var_name="$1"
+    local prompt_message="$2"
+    local default_value="$3"
+    read -p "$prompt_message [$default_value]: " input_value
+    eval "$var_name=${input_value:-$default_value}"
+}
+
+# Function to apply Samba configuration
+apply_samba_config() {
+    local SHARED_FOLDER="$1"
+    local username="$2"
+    local smb_password="$3"
+
+    # Check if the shared folder exists, create it if not
+    if [ ! -d "$SHARED_FOLDER" ]; then
+        sudo mkdir -p "$SHARED_FOLDER"
+        sudo chmod -R 777 "$SHARED_FOLDER"
+        echo "Shared folder created: $SHARED_FOLDER"
+    fi
+
+    # Check if the Samba configuration block already exists in smb.conf
+    if grep -qF "[shared]" /etc/samba/smb.conf; then
+        echo "Samba configuration block already exists in smb.conf. Skipping addition."
+    else
+        # Append Samba configuration lines to smb.conf
+        echo "[shared]" | sudo tee -a /etc/samba/smb.conf > /dev/null
+        echo "    path = $SHARED_FOLDER" | sudo tee -a /etc/samba/smb.conf > /dev/null
+        echo "    writable = $WRITABLE_YESNO" | sudo tee -a /etc/samba/smb.conf > /dev/null
+        echo "    guest ok = $GUESTOK_YESNO" | sudo tee -a /etc/samba/smb.conf > /dev/null
+        echo "    browseable = $BROWSABLE_YESNO" | sudo tee -a /etc/samba/smb.conf > /dev/null
+        echo "Samba configuration block added to smb.conf."
+    fi
+
+    # Restart Samba
+    sudo systemctl restart smb
+
+    # Open firewall ports
+    sudo firewall-cmd --permanent --add-service=samba
+    sudo firewall-cmd --reload
+
+    # Set Samba user password
+    echo -e "$smb_password\n$smb_password" | sudo smbpasswd -a -s "$username"
+
+    # Print confirmation message
+    echo "Samba server configured. Shared folder: $SHARED_FOLDER"
+}
+
+# Function to configure Samba
+setup_samba() {
+    local DIR="$(dirname "$0")"
+    local CONFIG_FILE="$DIR/../var/osus.conf"
+
+    # Load configuration
+    load_config "$CONFIG_FILE"
+
+    # Prompt for missing inputs
+    prompt_for_input "SHARED_FOLDER" "Enter path to shared folder" "$SHARED_FOLDER"
+    prompt_for_input "USERNAME" "Enter Samba username" "$USERNAME"
+    prompt_for_input "SMB_PASSWORD" "Enter Samba password" "$SMB_PASSWORD"
+
+    # Apply the Samba configuration
+    apply_samba_config "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" "$SAMBA_CONFIG_BLOCK"
 }
 
 # Main function to execute based on command-line arguments or display main menu
@@ -39,6 +115,7 @@ display_menu() {
     echo "a1. Update and upgrade packages"
     echo "a2. Install packages"
     echo "a. Run all a options"
+    echo "b1. Configure Samba server"
     echo "b. Run all b options"
 }
 
@@ -54,6 +131,7 @@ execute_choice() {
         a1) update_upgrade;;
         a2) install_packages;;
         a) execute_a_options;;
+        b1) setup_samba;;
         b) execute_b_options;;
         *) echo "Invalid choice";;
     esac
@@ -67,7 +145,7 @@ execute_a_options() {
 
 # Function to execute all b options
 execute_b_options() {
-    echo "nothing to do"
+    setup_samba
 }
 
 # Function to execute based on command-line arguments
