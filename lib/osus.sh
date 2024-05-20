@@ -104,7 +104,7 @@ o-sub-chk() {
 
     # Check if arguments are provided
     if [ -z "$path" ] || [ -z "$folder_type" ] || [ -z "$filter" ]; then
-        echo "Usage: o-sub-chk <path> <foldertype> <yes|no>"
+        echo "Usage: o-sub-chk <path> <1|2|3> <yes|no|all>"
         return 1
     fi
 
