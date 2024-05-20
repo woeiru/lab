@@ -1,5 +1,4 @@
 # Qdevice setup
-
 ## On qdevice host
 ### Disable ssh to liberate the port 22
 systemctl stop sshd
@@ -29,7 +28,7 @@ pvecm qdevice setup <IP QDEVICE HOST> -f
 ### Save Container to new image after setting up cluster qdevice
 podman commit qd iqdx
 
-### Run container this time without ssh the port 22
+### Run container this time without port forwarding the ssh port
 podman run -d \  
   --name=qdx \  
   --cap-drop=ALL \  
@@ -41,9 +40,7 @@ podman run -d \
 ### Re-enable sshd on the host
 systemctl start sshd
 
-
 # Troubleshooting  
-
 ## On qdevice host - In case SELinux is blocking container folders  
 chcon -R -t container_file_t /etc/corosync  
 sudo chcon -Rt svirt_sandbox_file_t /etc/corosync  
@@ -92,6 +89,5 @@ exit
 ssh-copy-id root@"$node1_ip"  
 ssh-copy-id root@"$qdevice_ip"  
 
-## On Both Nodes, after Step 4 is completed on each of them.
-
+## On both nodes after Step 4 is completed on each of them
 pvecm qdevice setup "$qdevice_ip" -f  
