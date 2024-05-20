@@ -1,0 +1,53 @@
+# Use the Debian Buster slim base image
+FROM debian:buster-slim
+
+# Add the Proxmox VE repository GPG key
+ADD "https://enterprise.proxmox.com/debian/proxmox-ve-release-6.x.gpg" \
+        /etc/apt/trusted.gpg.d/proxmox-ve-release-6.x.gpg
+
+# Create a system user for Corosync without login capabilities
+RUN adduser --quiet --system --disabled-login --no-create-home \
+                --home /etc/corosync/qnetd --group --uid=701 coroqnetd \
+        # Adjust permissions
+        && chmod 1777 /var/run \
+        && chmod a+r /etc/apt/trusted.gpg.d/proxmox-ve-release-6.x.gpg \
+        # Set up Proxmox VE repository
+        && echo "deb http://download.proxmox.com/debian/pve buster pve-no-subscription" \
+                > /etc/apt/sources.list.d/corosync3.list \
+        # Create directories
+        && mkdir -p /etc/corosync/qnetd/nssdb \
+        && touch /etc/corosync/qnetd/nssdb/cert9.db \
+        # Update package list and install necessary packages
+        && apt-get update \
+        && apt-get install --no-install-recommends -y corosync-qnetd openssh-server iproute2 iputils-ping lsof tcpdump traceroute \
+        # Clean up unnecessary files
+        && rm -rf /etc/corosync /var/lib/apt/lists/* \
+        # Configure SSH to allow root login with password
+        && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+        && echo 'root:password' | chpasswd
+
+# Health check command for the container
+HEALTHCHECK CMD corosync-qnetd-tool -s
+
+# Set user and group for the container
+USER 701:701
+
+# Define a volume
+VOLUME /etc/corosync
+
+# Expose port 5403
+EXPOSE 5403
+
+# Set environment variables
+ENV UMASK=
+ENV COROSYNC_QNETD_OPTIONS=
+
+# Define the default command to execute when the container starts
+CMD []
+
+# Set the entrypoint script
+ENTRYPOINT ["startcqd"]
+
+# Copy the entrypoint script to the container
+COPY startcqd.sh /usr/local/bin/startcqd
+
