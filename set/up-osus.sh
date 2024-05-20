@@ -1,5 +1,19 @@
 #!/bin/bash
 
+# Load configuration from file
+load_config() {
+    local config_file="$1"
+    if [ -f "$config_file" ]; then
+        source "$config_file"
+    else
+        echo "Configuration file not found: $config_file"
+        exit 1
+    fi
+}
+
+# Invoke load_config directly under its definition
+load_config "$(dirname "$0")/../var/osus.conf"
+
 # Function to display status notification
 notify_status() {
     local function_name="$1"
@@ -20,17 +34,6 @@ install_packages() {
     local function_name="install_packages"
     zypper install -y git vim tree podman corosync-qnetd
     notify_status "$function_name" "Additional packages installed"
-}
-
-# Function to load configuration from file
-load_config() {
-    local config_file="$1"
-    if [ -f "$config_file" ]; then
-        source "$config_file"
-    else
-        echo "Configuration file not found: $config_file"
-        exit 1
-    fi
 }
 
 # Function to prompt for input if a variable is not set
@@ -84,12 +87,6 @@ apply_samba_config() {
 
 # Function to configure Samba
 setup_samba() {
-    local DIR="$(dirname "$0")"
-    local CONFIG_FILE="$DIR/../var/osus.conf"
-
-    # Load configuration
-    load_config "$CONFIG_FILE"
-
     # Prompt for missing inputs
     prompt_for_input "SHARED_FOLDER" "Enter path to shared folder" "$SHARED_FOLDER"
     prompt_for_input "USERNAME" "Enter Samba username" "$USERNAME"
