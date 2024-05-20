@@ -1,7 +1,0 @@
-#!/bin/bash
-
-# Define default values for rsync podm backup
-default_source_path_cifs="//192.168.178.34/podm"
-default_destination_path_cifs="/home/es/syn"
-default_username_cifs="guest"
-default_source_path_rsync="/home/es/podm"

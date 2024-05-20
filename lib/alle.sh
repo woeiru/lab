@@ -4,7 +4,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Source config.sh using the absolute path
-source "$DIR/../var/alle"
+source "$DIR/../var/alle.conf"
 
 # list all Functions in a given File
 a() {
@@ -120,5 +120,4 @@ g() {
         echo "Usage: g [file/folder] [commit message]"
     fi
 }
-
 
