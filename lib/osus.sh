@@ -96,3 +96,49 @@ o-trans() {
     eval "$cmd6"
 }
 
+# list folders and checks if they are subvolumes
+   o-sub-chk() {
+    local path="$1"
+    local folder_type="$2"
+
+    # Check if arguments are provided
+    if [ -z "$path" ] || [ -z "$folder_type" ]; then
+	    echo "Usage: o-sub-chk <path> <foldertype(1/2/3)>"
+        return 1
+    fi
+
+    # Check if the path exists and is a directory
+    if [ ! -d "$path" ]; then
+        echo "Error: $path is not a valid directory."
+        return 1
+    fi
+
+    # Get the output of 'btrfs sub list' in the specified directory
+    local subvol_output
+    subvol_output=$(btrfs sub list -o "$path")
+
+    # Get the list of folders based on folder type and sort alphabetically
+    local all_folders
+    if [ "$folder_type" -eq 1 ]; then
+        all_folders=$(find "$path" -mindepth 1 -maxdepth 1 ! -name ".*" -type d -exec basename {} \; | sort)
+    elif [ "$folder_type" -eq 2 ]; then
+        all_folders=$(find "$path" -mindepth 1 -maxdepth 1 -name ".*" -type d -exec basename {} \; | sort)
+    elif [ "$folder_type" -eq 3 ]; then
+        all_folders=$(find "$path" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
+    else
+        echo "Error: Invalid folder type argument. Please specify 1, 2, or 3."
+        return 1
+    fi
+
+    # Iterate over each folder
+    local folder_name
+    for folder_name in $all_folders; do
+        # Check if the folder is a subvolume
+        if echo "$subvol_output" | grep -q "$path/$folder_name"; then
+            printf "%-40s %-3s\n" "$path/$folder_name" "yes"
+        else
+            printf "%-40s %-3s\n" "$path/$folder_name" "no"
+        fi
+    done
+}
+ 
