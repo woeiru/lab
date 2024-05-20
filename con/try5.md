@@ -7,7 +7,7 @@ systemctl stop sshd
 ### Build container
 podman build . -t iq --format docker
 
-### Run Container
+### Run container
 podman run -d \  
   --name=qd \  
   --cap-drop=ALL \ 
@@ -43,55 +43,62 @@ systemctl start sshd
 
 # Troubleshooting
 
-## On qdevice host - In case SELinux is blocking container folders
-chcon -R -t container_file_t /etc/corosync
+#!/bin/bash  
 
-sudo chcon -Rt svirt_sandbox_file_t /etc/corosync
 
-## On Nodes -  In case pvecm qdevice setup dont work 
-### Step 1: Remove existing host keys for Node 2 and QDevice IPs
-ssh-keygen -R 192.168.178.210  
-ssh-keygen -R 192.168.178.230  
+# Troubleshooting  
 
-### Step 2: Re-scan and add current host keys for Node 2 and QDevice
-ssh-keyscan -H 192.168.178.210 >> ~/.ssh/known_hosts  
-ssh-keyscan -H 192.168.178.230 >> ~/.ssh/known_hosts  
+## On qdevice host - In case SELinux is blocking container folders  
+chcon -R -t container_file_t /etc/corosync  
+sudo chcon -Rt svirt_sandbox_file_t /etc/corosync  
 
-### Step 3: Verify SSH access to Node 2 and QDevice
-ssh root@192.168.178.210  
+## On Node 1 - In case pvecm qdevice setup don't work  
+qdevice_ip="192.168.178.230"  
+node1_ip="192.168.178.210"  
+
+### Step 1: Remove existing host keys for Node 2 and QDevice IPs  
+ssh-keygen -R "$node1_ip"  
+ssh-keygen -R "$qdevice_ip"  
+
+### Step 2: Re-scan and add current host keys for Node 2 and QDevice  
+ssh-keyscan -H "$node1_ip" >> ~/.ssh/known_hosts  
+ssh-keyscan -H "$qdevice_ip" >> ~/.ssh/known_hosts  
+
+### Step 3: Verify SSH access to Node 2 and QDevice  
+ssh root@"$node1_ip"  
 exit  
-ssh root@192.168.178.230  
+ssh root@"$qdevice_ip"  
 exit  
 
-### Step 4: Copy SSH key to Node 2 and QDevice
-ssh-copy-id root@192.168.178.210  
-ssh-copy-id root@192.168.178.230
+### Step 4: Copy SSH key to Node 2 and QDevice  
+ssh-copy-id root@"$node1_ip"  
+ssh-copy-id root@"$qdevice_ip"  
 
-### Step 5: Set up QDevice
-pvecm qdevice setup 192.168.178.230 -f
+### Step 5: Set up QDevice  
+pvecm qdevice setup "$qdevice_ip" -f  
 
-## Node 2 Commands
+## On Node 2 - In case pvecm qdevice setup don't work  
+qdevice_ip="192.168.178.230"  
+node2_ip="192.168.178.220"  
 
-### Step 1: Remove existing host keys for Node 1 and QDevice IPs
-ssh-keygen -R 192.168.178.220  
-ssh-keygen -R 192.168.178.230 
+### Step 1: Remove existing host keys for Node 1 and QDevice IPs  
+ssh-keygen -R "$node2_ip"  
+ssh-keygen -R "$qdevice_ip"  
 
-### Step 2: Re-scan and add current host keys for Node 1 and QDevice
-ssh-keyscan -H 192.168.178.220 >> ~/.ssh/known_hosts  
-ssh-keyscan -H 192.168.178.230 >> ~/.ssh/known_hosts  
+### Step 2: Re-scan and add current host keys for Node 1 and QDevice  
+ssh-keyscan -H "$node2_ip" >> ~/.ssh/known_hosts  
+ssh-keyscan -H "$qdevice_ip" >> ~/.ssh/known_hosts  
 
-### Step 3: Verify SSH access to Node 1 and QDevice
-ssh root@192.168.178.220  
+### Step 3: Verify SSH access to Node 1 and QDevice  
+ssh root@"$node2_ip"  
 exit  
-ssh root@192.168.178.230  
-exit
+ssh root@"$qdevice_ip"  
+exit  
 
-### Step 4: Copy SSH key to Node 1 and QDevice
-ssh-copy-id root@192.168.178.220  
-ssh-copy-id root@192.168.178.230  
+### Step 4: Copy SSH key to Node 1 and QDevice  
+ssh-copy-id root@"$node2_ip"  
+ssh-copy-id root@"$qdevice_ip"  
 
-### Step 5: Set up QDevice
-pvecm qdevice setup 192.168.178.230 -f
-
-
+### Step 5: Set up QDevice  
+pvecm qdevice setup "$qdevice_ip" -f  
 
