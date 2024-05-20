@@ -5,9 +5,12 @@ source "$DIR/../lib/alle.sh"
 source "$DIR/../lib/osus.sh"
 source "$DIR/../lib/pmox.sh"
 
-alias ali='bash "$DIR/../too/ali.sh"'
 
 alias b='bash'
+alias b.up-alle='bash $DIR/../set/up-alle.sh'
+alias b.up-osus='bash $DIR/../set/up-osus.sh'
+alias b.up-pmox='bash $DIR/../set/up-pmox.sh'
+alias b.bup='bash "$DIR/../too/bup.sh"'
 
 alias c='cat'
 
@@ -24,7 +27,6 @@ alias dllib='cd $DIR/../lib'
 alias dlset='cd $DIR/../set'
 alias dltoo='cd $DIR/../too'
 alias dlvar='cd $DIR/../var'
-
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
 alias d.pam='cd /usr/lib/pam_snapper'
@@ -42,9 +44,7 @@ alias v='vim'
 alias va='vim $DIR/../lib/alle.sh'
 alias vo='vim $DIR/../lib/osus.sh'
 alias vp='vim $DIR/../lib/pmox.sh'
-
 alias vb='vim $DIR/../dot/bashrc'
-
 alias v.smb.conf='vim /etc/samba/smb.conf'
 alias v.smbusers='vim /etc/samba/smbusers'
 alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
