@@ -47,9 +47,10 @@ prompt_for_input() {
 
 # Function to apply Samba configuration
 apply_samba_config() {
-    local SHARED_FOLDER="$1"
-    local username="$2"
-    local smb_password="$3"
+    local SMB_HEADER="$1"
+    local SHARED_FOLDER="$2"
+    local username="$3"
+    local smb_password="$4"
 
     # Check if the shared folder exists, create it if not
     if [ ! -d "$SHARED_FOLDER" ]; then
@@ -59,11 +60,11 @@ apply_samba_config() {
     fi
 
     # Check if the Samba configuration block already exists in smb.conf
-    if grep -qF "[shared]" /etc/samba/smb.conf; then
+    if grep -qF "[$SMB_HEADER]" /etc/samba/smb.conf; then
         echo "Samba configuration block already exists in smb.conf. Skipping addition."
     else
         # Append Samba configuration lines to smb.conf
-        echo "[shared]" | sudo tee -a /etc/samba/smb.conf > /dev/null
+        echo "[$SMB_HEADER]" | sudo tee -a /etc/samba/smb.conf > /dev/null
         echo "    path = $SHARED_FOLDER" | sudo tee -a /etc/samba/smb.conf > /dev/null
         echo "    writable = $WRITABLE_YESNO" | sudo tee -a /etc/samba/smb.conf > /dev/null
         echo "    guest ok = $GUESTOK_YESNO" | sudo tee -a /etc/samba/smb.conf > /dev/null
@@ -78,8 +79,12 @@ apply_samba_config() {
     sudo firewall-cmd --permanent --add-service=samba
     sudo firewall-cmd --reload
 
-    # Set Samba user password
-    echo -e "$smb_password\n$smb_password" | sudo smbpasswd -a -s "$username"
+    # Set Samba user password only if SMB_HEADER is not "nobody"
+    if [ "$SMB_HEADER" != "nobody" ]; then
+        echo -e "$smb_password\n$smb_password" | sudo smbpasswd -a -s "$username"
+    else
+        echo "Skipping password setup for the nobody section."
+    fi
 
     # Print confirmation message
     echo "Samba server configured. Shared folder: $SHARED_FOLDER"
@@ -88,13 +93,21 @@ apply_samba_config() {
 # Function to configure Samba
 setup_samba() {
     # Prompt for missing inputs
+    prompt_for_input "SMB_HEADER" "Enter Samba header" "$SMB_HEADER"
     prompt_for_input "SHARED_FOLDER" "Enter path to shared folder" "$SHARED_FOLDER"
-    prompt_for_input "USERNAME" "Enter Samba username" "$USERNAME"
-    prompt_for_input "SMB_PASSWORD" "Enter Samba password" "$SMB_PASSWORD"
+    
+    # Prompt for password only if SMB_HEADER is not "nobody"
+    if [ "$SMB_HEADER" != "nobody" ]; then
+    		prompt_for_input "USERNAME" "Enter Samba username" "$USERNAME"
+        while [ -z "$SMB_PASSWORD" ]; do
+            prompt_for_input "SMB_PASSWORD" "Enter Samba password (cannot be empty)" "$SMB_PASSWORD"
+        done
+    fi
 
     # Apply the Samba configuration
-    apply_samba_config "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" "$SAMBA_CONFIG_BLOCK"
+    apply_samba_config "$SMB_HEADER" "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" 
 }
+
 
 # Main function to execute based on command-line arguments or display main menu
 main() {
