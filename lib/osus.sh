@@ -97,13 +97,14 @@ o-trans() {
 }
 
 # list folders and checks if they are subvolumes
-   o-sub-chk() {
+o-sub-chk() {
     local path="$1"
     local folder_type="$2"
+    local filter="$3"
 
     # Check if arguments are provided
-    if [ -z "$path" ] || [ -z "$folder_type" ]; then
-	    echo "Usage: o-sub-chk <path> <foldertype(1/2/3)>"
+    if [ -z "$path" ] || [ -z "$folder_type" ] || [ -z "$filter" ]; then
+        echo "Usage: o-sub-chk <path> <foldertype> <yes|no>"
         return 1
     fi
 
@@ -130,15 +131,22 @@ o-trans() {
         return 1
     fi
 
-    # Iterate over each folder
+    # Iterate over each folder and filter based on the third argument
     local folder_name
     for folder_name in $all_folders; do
-        # Check if the folder is a subvolume
+        local is_subvol="no"
         if echo "$subvol_output" | grep -q "$path/$folder_name"; then
-            printf "%-40s %-3s\n" "$path/$folder_name" "yes"
-        else
-            printf "%-40s %-3s\n" "$path/$folder_name" "no"
+            is_subvol="yes"
+        fi
+
+        # Print the folder path and whether it is a subvolume based on the filter
+        if [ "$filter" == "yes" ] && [ "$is_subvol" == "yes" ]; then
+            printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
+        elif [ "$filter" == "no" ] && [ "$is_subvol" == "no" ]; then
+            printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
+        elif [ "$filter" == "all" ]; then
+            printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
         fi
     done
 }
- 
+
