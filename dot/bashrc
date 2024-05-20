@@ -25,8 +25,9 @@ alias dlset='cd $DIR/../set'
 alias dltoo='cd $DIR/../too'
 alias dlvar='cd $DIR/../var'
 
-alias ds='cd /etc/snapper/configs'
-alias dp='cd /usr/lib/pam_snapper'
+alias d.samba='cd /etc/samba/'
+alias d.snapper='cd /etc/snapper/configs'
+alias d.pam='cd /usr/lib/pam_snapper'
 
 alias eb='exec bash'
 
@@ -44,8 +45,9 @@ alias vp='vim $DIR/../lib/pmox.sh'
 
 alias vb='vim $DIR/../dot/bashrc'
 
-alias vsa='vim /etc/samba/smb.conf'
-alias vfi='vim /etc/firewalld/firewalld.conf'
-alias vfs='vim /etc/fstab'
+alias v.smb.conf='vim /etc/samba/smb.conf'
+alias v.smbusers='vim /etc/samba/smbusers'
+alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
+alias v.fstab='vim /etc/fstab'
 
 alias y='systemctl'
