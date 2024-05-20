@@ -38,6 +38,10 @@ alias t='tree'
 alias tu='transactional-update'
 
 alias v='vim'
+alias va='vim $DIR/../lib/alle.sh'
+alias vo='vim $DIR/../lib/osus.sh'
+alias vp='vim $DIR/../lib/pmox.sh'
+
 alias vb='vim $DIR/../dot/bashrc'
 
 alias vsa='vim /etc/samba/smb.conf'
