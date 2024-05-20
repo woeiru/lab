@@ -13,6 +13,9 @@ alias c='cat'
 
 alias d='cd'
 
+alias g='git'
+alias gl='git ls-files | xargs cat | wc -l'
+
 alias dl='cd $DIR/..'
 alias dlc='cd $DIR/../con'
 alias dld='cd $DIR/../dot'
@@ -38,7 +41,7 @@ alias v='vim'
 alias vb='vim $DIR/../dot/bashrc'
 
 alias vsa='vim /etc/samba/smb.conf'
-alias vfw='vim /etc/firewalld/firewalld.conf'
+alias vfi='vim /etc/firewalld/firewalld.conf'
 alias vfs='vim /etc/fstab'
 
 alias y='systemctl'
