@@ -51,7 +51,12 @@ a() {
 
 
 # count files in parent folder
-a-c() {
+a-count() {
+    if [ $# -ne 2 ]; then
+        echo "Usage: a-count <path> <1|2|3>"
+        return 1
+    fi
+
     local path="$1"
     local folder_type="$2"
     
@@ -92,7 +97,7 @@ a-c() {
 }
 
 # selects a file in current folder and saves it as var 'sel'
-a-s() {
+a-select() {
     files=($(ls))
     echo "Select a file by entering its index:"
     for i in "${!files[@]}"; do
