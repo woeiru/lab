@@ -48,7 +48,6 @@ systemctl start sshd
 chcon -R -t container_file_t /etc/corosync  
 sudo chcon -Rt svirt_sandbox_file_t /etc/corosync  
 
-
 ## On Node 1 - In case pvecm qdevice setup don't work  
 node2_ip="192.168.178.220"  
 qdevice_ip="192.168.178.230"  
@@ -70,9 +69,6 @@ exit
 ### Step 4: Copy SSH key
 ssh-copy-id root@"$node2_ip"  
 ssh-copy-id root@"$qdevice_ip"  
-
-### Step 5: Set up QDevice  
-pvecm qdevice setup "$qdevice_ip" -f  
 
 ## On Node 2 - In case pvecm qdevice setup don't work  
 node1_ip="192.168.178.210"  
@@ -96,5 +92,6 @@ exit
 ssh-copy-id root@"$node1_ip"  
 ssh-copy-id root@"$qdevice_ip"  
 
-### Step 5: Set up QDevice  
+## On Both Nodes, after Step 4 is completed on each of them.
+
 pvecm qdevice setup "$qdevice_ip" -f  
