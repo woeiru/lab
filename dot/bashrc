@@ -15,23 +15,15 @@ alias b.bup='bash "$DIR/../too/bup.sh"'
 alias c='cat'
 
 alias d='cd'
-
-alias g='git'
-alias gl='git ls-files | xargs cat | wc -l'
-
-alias dl='cd $DIR/..'
-alias dlcon='cd $DIR/../con'
-alias dldot='cd $DIR/../dot'
-alias dlfix='cd $DIR/../fix'
-alias dllib='cd $DIR/../lib'
-alias dlset='cd $DIR/../set'
-alias dltoo='cd $DIR/../too'
-alias dlvar='cd $DIR/../var'
+alias d.l='cd $DIR/..'
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
 alias d.pam='cd /usr/lib/pam_snapper'
 
 alias eb='exec bash'
+
+alias g='git'
+alias gl='git ls-files | xargs cat | wc -l'
 
 alias h='history'
 
@@ -57,3 +49,8 @@ alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
 alias v.fstab='vim /etc/fstab'
 
 alias y='systemctl'
+alias yu='systemctl status'
+alias ya='systemctl start'
+alias ye='systemctl enable'
+alias yl='systemctl reload'
+alias ys='systemctl restart'
