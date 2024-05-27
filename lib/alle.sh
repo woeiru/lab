@@ -115,7 +115,7 @@ a-fstab() {
   if [ $# -eq 0 ]; then
     # List blkid output with line numbers
     echo "Available devices:"
-    blkid | nl -v 0
+    blkid | nl -v 1
     echo "Usage: a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
     return 0
   elif [ $# -ne 6 ]; then
