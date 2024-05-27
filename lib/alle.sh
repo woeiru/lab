@@ -94,6 +94,10 @@ a-count() {
     esac | sort
 }
 
+# Add an entry to fstab
+
+
+
 # selects a file in current folder and saves it as var 'sel'
 a-select() {
     files=($(ls))
@@ -106,6 +110,42 @@ a-select() {
     echo "$selected_file"
 }
 
+# Add a entry to fstab
+a-fstab() {
+  if [ $# -eq 0 ]; then
+    # List blkid output with line numbers
+    echo "Available devices:"
+    blkid | nl -v 0
+    echo "Usage: a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
+    return 0
+  elif [ $# -ne 6 ]; then
+    echo "Usage: a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
+    return 1
+  fi
+
+  line_number=$1
+  mount_point=$2
+  filesystem=$3
+  mount_options=$4
+  fsck_pass_number=$5
+  mount_at_boot_priority=$6
+
+  # Extract the UUID based on the specified line number
+  uuid=$(blkid | sed -n "${line_number}s/.*UUID=\"\([^\"]*\)\".*/\1/p")
+  if [ -z "$uuid" ]; then
+    echo "Error: No UUID found at line $line_number"
+    return 1
+  fi
+
+  # Create the fstab entry
+  fstab_entry="UUID=${uuid} ${mount_point} ${filesystem} ${mount_options} ${fsck_pass_number} ${mount_at_boot_priority}"
+
+  # Append the entry to /etc/fstab
+  echo "$fstab_entry" >> /etc/fstab
+
+  echo "Entry added to /etc/fstab:"
+  echo "$fstab_entry"
+}
 
 # optimal Git
 go() {
