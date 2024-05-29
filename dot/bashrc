@@ -1,15 +1,15 @@
 #
 DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
 
-source "$DIR/../lib/alle.sh"
-source "$DIR/../lib/osus.sh"
-source "$DIR/../lib/pmox.sh"
+source "$DIR/../lib/all.sh"
+source "$DIR/../lib/stw.sh"
+source "$DIR/../lib/pve.sh"
 
 
 alias b='bash'
-alias b.up-alle='bash $DIR/../set/up-alle.sh'
-alias b.up-osus='bash $DIR/../set/up-osus.sh'
-alias b.up-pmox='bash $DIR/../set/up-pmox.sh'
+alias b.up-all='bash $DIR/../set/up-all.sh'
+alias b.up-stw='bash $DIR/../set/up-stw.sh'
+alias b.up-pve='bash $DIR/../set/up-pve.sh'
 alias b.bup='bash "$DIR/../too/bup.sh"'
 
 alias c='cat'
@@ -34,15 +34,15 @@ alias tu='transactional-update'
 
 alias v='vim'
 alias v.b='vim $DIR/../dot/bashrc'
-alias v.alle.sh='vim $DIR/../lib/alle.sh'
-alias v.osus.sh='vim $DIR/../lib/osus.sh'
-alias v.pmox.sh='vim $DIR/../lib/pmox.sh'
-alias v.up-alle.sh='vim $DIR/../set/up-alle.sh'
-alias v.up-osus.sh='vim $DIR/../set/up-osus.sh'
-alias v.up-pmox.sh='vim $DIR/../set/up-pmox.sh'
-alias v.alle.conf='vim $DIR/../var/alle.conf'
-alias v.osus.conf='vim $DIR/../var/osus.conf'
-alias v.pmox.conf='vim $DIR/../var/pmox.conf'
+alias v.all.sh='vim $DIR/../lib/all.sh'
+alias v.stw.sh='vim $DIR/../lib/stw.sh'
+alias v.pve.sh='vim $DIR/../lib/pve.sh'
+alias v.up-all.sh='vim $DIR/../set/up-all.sh'
+alias v.up-stw.sh='vim $DIR/../set/up-stw.sh'
+alias v.up-pve.sh='vim $DIR/../set/up-pve.sh'
+alias v.all.conf='vim $DIR/../var/all.conf'
+alias v.stw.conf='vim $DIR/../var/stw.conf'
+alias v.pve.conf='vim $DIR/../var/pve.conf'
 alias v.smb.conf='vim /etc/samba/smb.conf'
 alias v.smbusers='vim /etc/samba/smbusers'
 alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
