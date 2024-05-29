@@ -9,6 +9,32 @@ notify_status() {
 }
 
 # Function to disable repository by commenting out lines starting with "deb" in specified files
+
+verify_proxmox_gpg() {
+    # Download the GPG key
+    wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
+
+    # Verify SHA512 checksum
+    sha512_expected="7da6fe34168adc6e479327ba517796d4702fa2f8b4f0a9833f5ea6e6b48f6507a6da403a274fe201595edc86a84463d50383d07f64bdde2e3658108db7d6dc87"
+    sha512_actual=$(sha512sum /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg | awk '{print $1}')
+
+    if [ "$sha512_actual" == "$sha512_expected" ]; then
+        echo "SHA512 checksum verified successfully."
+    else
+        echo "SHA512 checksum verification failed."
+    fi
+
+    # Verify MD5 checksum
+    md5_expected="41558dc019ef90bd0f6067644a51cf5b"
+    md5_actual=$(md5sum /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg | awk '{print $1}')
+
+    if [ "$md5_actual" == "$md5_expected" ]; then
+        echo "MD5 checksum verified successfully."
+    else
+        echo "MD5 checksum verification failed."
+    fi
+}
+
 disable_repo() {
     local function_name="${FUNCNAME[0]}"
     files=(
@@ -88,8 +114,8 @@ display_menu() {
     echo "a3. Update and upgrade packages"
     echo "a4. Install packages"
     echo "a5. Remove subscription notice"
-    echo "a. Run all a options"
-    echo "b. Run all b options"
+    echo "a. Run section"
+    echo "b. Run section"
 }
 
 # Function to read user choice
