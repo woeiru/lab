@@ -140,17 +140,16 @@ execute_choice() {
 
 # Function to execute all a options
 execute_a_options() {
-    disable_repo
-    add_repo
-    update_upgrade
-    install_packages
-    remove_subscription_notice
+    	disable_repo
+    	add_repo
+    	update_upgrade
+    	install_packages
+    	remove_subscription_notice
 }
 
 # Function to execute all b options
 execute_b_options() {
-	# Placeholder
-	
+	disable_repo	
 }
 
 # Function to execute based on command-line arguments
