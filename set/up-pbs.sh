@@ -107,6 +107,7 @@ main() {
 # Function to display main menu
 display_menu() {
     echo "Choose an option:"
+    echo "a0. Setup GPG Key"
     echo "a1. Disable repository"
     echo "a2. Add repository"
     echo "a3. Update and upgrade packages"
