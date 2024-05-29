@@ -3,6 +3,9 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE=$(basename "$BASH_SOURCE")
 BASE="${FILE%.*}"
 
+# Source config.sh using the absolute path
+source "$DIR/../var/${BASE}.conf"
+
 #list all Functions in a given File
 p() {
     local file_name="${1:-${BASH_SOURCE[0]}}"
@@ -233,36 +236,6 @@ vm-chk() {
     fi
 }
 
-# show backup notes
-p-sbn() {
-    # Get the absolute path of the specified folder or use the current directory if no argument is provided
-    local folder="${1:-.}"
-    local abs_path=$(realpath "$folder")
-
-    # Check if the folder exists
-    if [ ! -d "$abs_path" ]; then
-        echo "Error: Directory '$folder' not found."
-        return 1
-    fi
-
-    # Find all .notes files in the specified folder
-    local note_files=$(find "$abs_path" -type f -name "*.notes")
-
-    # If no .notes files are found, print a message and return
-    if [ -z "$note_files" ]; then
-        echo "No .notes files found in the specified directory."
-        return
-    fi
-
-    # Iterate over each .notes file, print its contents followed by the filename
-    while IFS= read -r note_file; do
-        echo "----------"
-        cat "$note_file"
-        echo "File: $note_file"
-        done <<< "$note_files"
-}
-
-
 # rysnc /var/lib/vz to an external location
 p-rv() {
     # Check if the argument is provided
@@ -302,12 +275,8 @@ p-rv() {
 }
 
 
-# add nfs
+# add nfs remote
 p-an() {
-    local storage_config_file="../var/$BASE"
-
-    # Load existing values from the config file
-    source "$storage_config_file"
 
     # Prompt user for storage ID
     read -p "Enter storage ID [$storage_id]: " new_storage_id
@@ -420,3 +389,35 @@ p-uni() {
         echo "System reboot was not executed. Please manually restart the system to apply the changes."
     fi
 }
+
+# show backup notes
+p-sbn() {
+    # Get the absolute path of the specified folder or use the current directory if no argument is provided
+    local folder="${1:-.}"
+    local abs_path=$(realpath "$folder")
+
+    # Check if the folder exists
+    if [ ! -d "$abs_path" ]; then
+        echo "Error: Directory '$folder' not found."
+        return 1
+    fi
+
+    # Find all .notes files in the specified folder
+    local note_files=$(find "$abs_path" -type f -name "*.notes")
+
+    # If no .notes files are found, print a message and return
+    if [ -z "$note_files" ]; then
+        echo "No .notes files found in the specified directory."
+        return
+    fi
+
+    # Iterate over each .notes file, print its contents followed by the filename
+    while IFS= read -r note_file; do
+        echo "----------"
+        cat "$note_file"
+        echo "File: $note_file"
+        done <<< "$note_files"
+}
+
+
+
