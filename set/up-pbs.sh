@@ -60,7 +60,7 @@ update_upgrade() {
 # Function for installing packages
 install_packages() {
     local function_name="${FUNCNAME[0]}"
-    apt install -y git vim tree proxmox-backup-server
+    apt install -y vim tree proxmox-backup-server
     notify_status "$function_name" "Additional Packages installed"
 }
 
