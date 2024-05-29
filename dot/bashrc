@@ -7,9 +7,9 @@ source "$DIR/../lib/pve.sh"
 
 
 alias b='bash'
-alias b.up-all='bash $DIR/../set/up-all.sh'
-alias b.up-stw='bash $DIR/../set/up-stw.sh'
-alias b.up-pve='bash $DIR/../set/up-pve.sh'
+alias b.up-all.sh='bash $DIR/../set/up-all.sh'
+alias b.up-stw.sh='bash $DIR/../set/up-stw.sh'
+alias b.up-pve.sh='bash $DIR/../set/up-pve.sh'
 alias b.bup='bash "$DIR/../too/bup.sh"'
 
 alias c='cat'
@@ -34,6 +34,7 @@ alias tu='transactional-update'
 
 alias v='vim'
 alias v.b='vim $DIR/../dot/bashrc'
+
 alias v.all.sh='vim $DIR/../lib/all.sh'
 alias v.stw.sh='vim $DIR/../lib/stw.sh'
 alias v.pve.sh='vim $DIR/../lib/pve.sh'
@@ -43,6 +44,7 @@ alias v.up-pve.sh='vim $DIR/../set/up-pve.sh'
 alias v.all.conf='vim $DIR/../var/all.conf'
 alias v.stw.conf='vim $DIR/../var/stw.conf'
 alias v.pve.conf='vim $DIR/../var/pve.conf'
+
 alias v.smb.conf='vim /etc/samba/smb.conf'
 alias v.smbusers='vim /etc/samba/smbusers'
 alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
