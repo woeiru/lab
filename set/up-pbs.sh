@@ -10,7 +10,7 @@ notify_status() {
 
 # Function to disable repository by commenting out lines starting with "deb" in specified files
 
-verify_proxmox_gpg() {
+setup_gpg() {
     # Download the GPG key
     wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
 
@@ -77,7 +77,7 @@ update_upgrade() {
 # Function for installing packages
 install_packages() {
     local function_name="${FUNCNAME[0]}"
-    apt install -y git vim tree
+    apt install -y git vim tree proxmox-backup-server
     notify_status "$function_name" "Additional Packages installed"
 }
 
@@ -125,6 +125,7 @@ read_user_choice() {
 # Function to execute based on user choice
 execute_choice() {
     case "$1" in
+	a0) setup_gpg;;
         a1) disable_repo;;
         a2) add_repo;;
         a3) update_upgrade;;
@@ -138,6 +139,7 @@ execute_choice() {
 
 # Function to execute all a options
 execute_a_options() {
+	setup_gpg
     	disable_repo
     	add_repo
     	update_upgrade
