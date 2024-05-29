@@ -84,8 +84,6 @@ install_packages() {
 # Function to remove subscription notice
 remove_subscription_notice() {
     local function_name="${FUNCNAME[0]}"
-    sed -Ezi.bak "s/(Ext\.Msg\.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
-
     # Prompt user whether to restart the service
     read -p "Do you want to restart the pveproxy.service now? (y/n): " choice
     case "$choice" in
@@ -149,7 +147,7 @@ execute_a_options() {
 
 # Function to execute all b options
 execute_b_options() {
-	disable_repo	
+	echo "placeholder"
 }
 
 # Function to execute based on command-line arguments
