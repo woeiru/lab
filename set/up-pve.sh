@@ -10,7 +10,7 @@ notify_status() {
 
 # Function to disable repository by commenting out lines starting with "deb" in specified files
 disable_repo() {
-    local function_name="disable_repo"
+    local function_name="${FUNCNAME[0]}"
     files=(
         "/etc/apt/sources.list.d/pve-enterprise.list"
         "/etc/apt/sources.list.d/ceph.list"
@@ -28,7 +28,7 @@ disable_repo() {
 
 # Function to add a line to sources.list if it doesn't already exist
 add_repo() {
-    local function_name="add_repo"
+    local function_name="${FUNCNAME[0]}"
     line_to_add="deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription"
     file="/etc/apt/sources.list"
 
@@ -42,23 +42,36 @@ add_repo() {
 
 # Function to update package lists and upgrade packages
 update_upgrade() {
-    local function_name="update_upgrade"
+    local function_name="${FUNCNAME[0]}"
     apt update
     apt upgrade -y
     notify_status "$function_name" "Package lists updated and packages upgraded"
 }
 
-# Function to install git and vim
+# Function for installing packages
 install_packages() {
-    local function_name="install_packages"
+    local function_name="${FUNCNAME[0]}"
     apt install -y git vim tree corosync-qdevice
     notify_status "$function_name" "Additional Packages installed"
 }
 
+# Function to update container lists
+update_containers() {
+    local function_name="${FUNCNAME[0]}"
+    pveam update
+    notify_status "$function_name" "Container lists updated"
+}
+
+# Function for installing container
+install_container() {
+    local function_name="${FUNCNAME[0]}"
+    pveam download local debian-12-standard_12.2-1_amd64.tar.zst
+    notify_status "$function_name" "Container installed"
+}
 
 # Function to remove subscription notice
 remove_subscription_notice() {
-    local function_name="remove_subscription_notice"
+    local function_name="${FUNCNAME[0]}"
     sed -Ezi.bak "s/(Ext\.Msg\.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
 
     # Prompt user whether to restart the service
@@ -72,6 +85,7 @@ remove_subscription_notice() {
 
 # Function to execute Section 1
 gpupt_part_1() {
+    local function_name="${FUNCNAME[0]}"
     echo "Executing section 1:"
 
     # Display EFI boot information
@@ -85,12 +99,16 @@ gpupt_part_1() {
     # Install grub-efi-amd64
     apt install grub-efi-amd64 -y
 
+    # Notify status
+    notify_status "$function_name" "Completed section 1, system will reboot now."
+
     # Perform system reboot without prompting
     reboot
 }
 
 # Function to execute Section 2
 gpupt_part_2() {
+    local function_name="${FUNCNAME[0]}"
     echo "Executing section 2:"
 
     # Add modules to /etc/modules
@@ -101,12 +119,16 @@ gpupt_part_2() {
     # Update initramfs
     update-initramfs -u -k all
 
+    # Notify status
+    notify_status "$function_name" "Completed section 2, system will reboot now."
+
     # Perform system reboot without prompting
     reboot
 }
 
 # Function to execute Section 3
 gpupt_part_3() {
+    local function_name="${FUNCNAME[0]}"
     echo "Executing section 3:"
 
     # Check for vfio-related logs in kernel messages after reboot
@@ -146,9 +168,13 @@ gpupt_part_3() {
     echo "blacklist radeon" >> /etc/modprobe.d/blacklist.conf
     echo "blacklist amdgpu" >> /etc/modprobe.d/blacklist.conf
 
+    # Notify status
+    notify_status "$function_name" "Completed section 3, system will reboot now."
+
     # Perform system reboot without prompting
     reboot
 }
+
 
 # Main function to execute based on command-line arguments or display main menu
 main() {

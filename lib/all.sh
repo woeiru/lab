@@ -1,8 +1,10 @@
-# Get the directory of the current script
+# Get dirname and filename and basename
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE=$(basename "$BASH_SOURCE")
+BASE="${FILE%.*}"
 
 # Source config.sh using the absolute path
-source "$DIR/../var/alle.conf"
+source "$DIR/../var/${BASE}.conf"
 
 # list all Functions in a given File
 a() {
