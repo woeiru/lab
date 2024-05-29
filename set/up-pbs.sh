@@ -76,6 +76,10 @@ remove_subscription_notice() {
     esac
 }
 
+# Setting Bindmount
+create_bindmount() {
+	pct set 112 -mp0 /alpha/pbspace mp=/pbspace
+}
 
 # Main function to execute based on command-line arguments or display main menu
 main() {
@@ -130,7 +134,7 @@ execute_a_options() {
 
 # Function to execute all b options
 execute_b_options() {
-	echo "placeholder"
+	create_bindmount
 }
 
 # Function to execute based on command-line arguments
