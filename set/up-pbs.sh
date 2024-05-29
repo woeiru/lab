@@ -35,27 +35,10 @@ setup_gpg() {
     fi
 }
 
-disable_repo() {
-    local function_name="${FUNCNAME[0]}"
-    files=(
-        "/etc/apt/sources.list.d/pve-enterprise.list"
-        "/etc/apt/sources.list.d/ceph.list"
-    )
-
-    for file in "${files[@]}"; do
-        if [ -f "$file" ]; then
-            sed -i '/^deb/ s/^/#/' "$file"
-            notify_status "$function_name" "Changes applied to $file"
-        else
-            notify_status "$function_name" "File $file not found."
-        fi
-    done
-}
-
 # Function to add a line to sources.list if it doesn't already exist
 add_repo() {
     local function_name="${FUNCNAME[0]}"
-    line_to_add="deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription"
+    line_to_add="deb http://download.proxmox.com/debian/pve bookworm pbs-no-subscription"
     file="/etc/apt/sources.list"
 
     if grep -Fxq "$line_to_add" "$file"; then
@@ -107,8 +90,7 @@ main() {
 # Function to display main menu
 display_menu() {
     echo "Choose an option:"
-    echo "a0. Setup GPG Key"
-    echo "a1. Disable repository"
+    echo "a1. Setup GPG Key"
     echo "a2. Add repository"
     echo "a3. Update and upgrade packages"
     echo "a4. Install packages"
@@ -126,8 +108,7 @@ read_user_choice() {
 # Function to execute based on user choice
 execute_choice() {
     case "$1" in
-	a0) setup_gpg;;
-        a1) disable_repo;;
+	a1) setup_gpg;;
         a2) add_repo;;
         a3) update_upgrade;;
         a4) install_packages;;
@@ -141,7 +122,6 @@ execute_choice() {
 # Function to execute all a options
 execute_a_options() {
 	setup_gpg
-    	disable_repo
     	add_repo
     	update_upgrade
     	install_packages
