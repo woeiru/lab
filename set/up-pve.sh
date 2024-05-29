@@ -51,7 +51,7 @@ update_upgrade() {
 # Function for installing packages
 install_packages() {
     local function_name="${FUNCNAME[0]}"
-    apt install -y git vim tree corosync-qdevice
+    apt install -y vim tree corosync-qdevice
     notify_status "$function_name" "Additional Packages installed"
 }
 
