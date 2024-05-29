@@ -55,20 +55,6 @@ install_packages() {
     notify_status "$function_name" "Additional Packages installed"
 }
 
-# Function to update container lists
-update_containers() {
-    local function_name="${FUNCNAME[0]}"
-    pveam update
-    notify_status "$function_name" "Container lists updated"
-}
-
-# Function for installing container
-install_container() {
-    local function_name="${FUNCNAME[0]}"
-    pveam download local debian-12-standard_12.2-1_amd64.tar.zst
-    notify_status "$function_name" "Container installed"
-}
-
 # Function to remove subscription notice
 remove_subscription_notice() {
     local function_name="${FUNCNAME[0]}"
@@ -83,7 +69,21 @@ remove_subscription_notice() {
     esac
 }
 
-# Function to execute Section 1
+# Function to update container lists
+update_containers() {
+    local function_name="${FUNCNAME[0]}"
+    pveam update
+    notify_status "$function_name" "Container lists updated"
+}
+
+# Function for installing container
+install_containers() {
+    local function_name="${FUNCNAME[0]}"
+    pveam download local debian-12-standard_12.2-1_amd64.tar.zst
+    notify_status "$function_name" "Container installed"
+}
+
+# Function to execute Section 1 of gpu-pt
 gpupt_part_1() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 1:"
@@ -94,7 +94,7 @@ gpupt_part_1() {
     # Edit GRUB configuration
     sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt"/' /etc/default/grub
     update-grub
-    update-grub2
+    update-grug2
 
     # Install grub-efi-amd64
     apt install grub-efi-amd64 -y
@@ -106,7 +106,8 @@ gpupt_part_1() {
     reboot
 }
 
-# Function to execute Section 2
+# Function to execute Section 2 of gpu-pt
+
 gpupt_part_2() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 2:"
@@ -126,7 +127,7 @@ gpupt_part_2() {
     reboot
 }
 
-# Function to execute Section 3
+# Function to execute Section 3 of gpu-pt
 gpupt_part_3() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 3:"
@@ -194,11 +195,14 @@ display_menu() {
     echo "a3. Update and upgrade packages"
     echo "a4. Install packages"
     echo "a5. Remove subscription notice"
-    echo "b1. Enable gpu-pt Part 1"
-    echo "b2. Enable gpu-pt Part 2"
-    echo "b3. Enable gpu-pt Part 3"
-    echo "a. Run all a options"
-    echo "b. Run all b options"
+    echo "c1. Update Containers"
+    echo "c2. Install Containers"
+    echo "g1. Enable gpu-pt Part 1"
+    echo "g2. Enable gpu-pt Part 2"
+    echo "g3. Enable gpu-pt Part 3"
+    echo "a. Run section"
+    echo "c. Run section"
+    echo "g. Run section"
 }
 
 # Function to read user choice
@@ -215,29 +219,38 @@ execute_choice() {
         a3) update_upgrade;;
         a4) install_packages;;
         a5) remove_subscription_notice;;
-        b1) gpupt_part_1;;
-        b2) gpupt_part_2;;
-        b3) gpupt_part_3;;
+        c1) update_containers;;
+        c2) install_containers;;
+        g1) gpupt_part_1;;
+        g2) gpupt_part_2;;
+        g3) gpupt_part_3;;
         a) execute_a_options;;
-        b) execute_b_options;;
+        c) execute_b_options;;
+        g) execute_g_options;;
         *) echo "Invalid choice";;
     esac
 }
 
 # Function to execute all a options
 execute_a_options() {
-    disable_repo
-    add_repo
-    update_upgrade
-    install_packages
-    remove_subscription_notice
+	disable_repo
+    	add_repo
+    	update_upgrade
+    	install_packages
+    	remove_subscription_notice
 }
 
 # Function to execute all b options
-execute_b_options() {
-    gpupt_part_1
-    gpupt_part_2
-    gpupt_part_3
+execute_c_options() {
+   	update_containers 
+	install_containers
+}
+
+# Function to execute all b options
+execute_g_options() {
+    	gpupt_part_1
+    	gpupt_part_2
+    	gpupt_part_3
 }
 
 # Function to execute based on command-line arguments
