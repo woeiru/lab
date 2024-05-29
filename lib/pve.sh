@@ -304,7 +304,7 @@ p-rv() {
 
 # add nfs
 p-an() {
-    local storage_config_file="$DIR/../var/$BASE"
+    local storage_config_file="../var/$BASE"
 
     # Load existing values from the config file
     source "$storage_config_file"
