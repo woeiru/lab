@@ -38,7 +38,7 @@ setup_gpg() {
 # Function to add a line to sources.list if it doesn't already exist
 add_repo() {
     local function_name="${FUNCNAME[0]}"
-    line_to_add="deb http://download.proxmox.com/debian/pve bookworm pbs-no-subscription"
+    line_to_add="deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription"
     file="/etc/apt/sources.list"
 
     if grep -Fxq "$line_to_add" "$file"; then
