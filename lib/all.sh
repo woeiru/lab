@@ -149,7 +149,7 @@ a-fstab() {
   echo "$fstab_entry"
 }
 
-# optimal Git
+# Git one
 go() {
     # Navigate to the git folder
     cd "$DIR/.." || return
@@ -180,23 +180,5 @@ go() {
 
     # Return to the previous directory
     cd - || return
-}
-
-# modular Git
-gm() {
-    if [ $# -eq 0 ]; then
-        git status
-    elif [ $# -eq 1 ]; then
-        local commit_message="$commit_message"  # Use default commit message if not provided
-        git status && git add "$1" && git commit -m "$commit_message"
-    elif [ $# -eq 2 ]; then
-        local commit_message="$2"  # Use provided commit message
-        git status && git add "$1" && git commit -m "$commit_message"
-    elif [ $# -eq 3 ]; then
-        local commit_message="$2"  # Use provided commit message
-        git status && git add "$1" && git commit -m "$commit_message" && git push origin master
-    else
-        echo "Usage: g [file/folder] [commit message]"
-    fi
 }
 
