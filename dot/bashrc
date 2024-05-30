@@ -11,6 +11,7 @@ alias b='bash'
 alias b.up-all.sh='bash $DIR/../set/up-all.sh'
 alias b.up-stw.sh='bash $DIR/../set/up-stw.sh'
 alias b.up-pve.sh='bash $DIR/../set/up-pve.sh'
+alias b.up-pbs.sh='bash $DIR/../set/up-pbs.sh'
 alias b.bup='bash "$DIR/../too/bup.sh"'
 
 alias c='cat'

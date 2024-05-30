@@ -66,14 +66,15 @@ install_packages() {
 
 # Function to remove subscription notice
 remove_subscription_notice() {
-    local function_name="${FUNCNAME[0]}"
-    # Prompt user whether to restart the service
-    read -p "Do you want to restart the pveproxy.service now? (y/n): " choice
-    case "$choice" in
-        y|Y ) systemctl restart pveproxy.service && notify_status "$function_name" "Service restarted successfully.";;
-        n|N ) notify_status "$function_name" "Service not restarted.";;
-        * ) notify_status "$function_name" "Invalid choice. Service not restarted.";;
-    esac
+echo "placeholder"
+#    local function_name="${FUNCNAME[0]}"
+#    # Prompt user whether to restart the service
+#    read -p "Do you want to restart the pveproxy.service now? (y/n): " choice
+#    case "$choice" in
+#        y|Y ) systemctl restart pveproxy.service && notify_status "$function_name" "Service restarted successfully.";;
+#        n|N ) notify_status "$function_name" "Service not restarted.";;
+#        * ) notify_status "$function_name" "Invalid choice. Service not restarted.";;
+#    esac
 }
 
 # Function to restore datastore
@@ -125,6 +126,7 @@ display_menu() {
     echo "a3. Update and upgrade packages"
     echo "a4. Install packages"
     echo "a5. Remove subscription notice"
+    echo "b1. Restore Datatstore"
     echo "a. Execute options"
     echo "b. Execute options"
 }
@@ -143,6 +145,7 @@ execute_choice() {
         a3) update_upgrade;;
         a4) install_packages;;
         a5) remove_subscription_notice;;
+        b1) restore_datastore;;
         a) execute_a_options;;
         b) execute_b_options;;
         *) echo "Invalid choice";;
