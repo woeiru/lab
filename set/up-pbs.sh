@@ -99,6 +99,7 @@ display_menu() {
     echo "a3. Update and upgrade packages"
     echo "a4. Install packages"
     echo "a5. Remove subscription notice"
+    echo "b1. Create Bindmount"
     echo "a. Run section"
     echo "b. Run section"
 }
@@ -117,6 +118,7 @@ execute_choice() {
         a3) update_upgrade;;
         a4) install_packages;;
         a5) remove_subscription_notice;;
+	b1) create_bindmount;;
         a) execute_a_options;;
         b) execute_b_options;;
         *) echo "Invalid choice";;
