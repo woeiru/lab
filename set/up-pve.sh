@@ -86,8 +86,8 @@ install_containers() {
 
 # Function to bindmount containers
 bindmount_containers() {
-	pct set 112 -mp0 /alpha/pbspace,mp=/pbspace
-	pct set 115 -mp0 /alpha/share,mp=/alpha/share
+	pct set 112 -mp0 /alpha/backup,mp=/mnt/backup
+	pct set 115 -mp0 /alpha/share,mp=/mnt/share
 }
 
 # Function to execute Section 1 of gpu-pt
