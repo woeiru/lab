@@ -83,7 +83,7 @@ restore_datastore () {
  # Define the file path to the configuration file
     local file="/etc/proxmox-backup/datastore.cfg"
     # Define the combined lines to be checked within the file
-    local combined_lines="datastore: pbspace\npath /pbspace"
+    local combined_lines="datastore: pbspace\n\tpath /pbspace"
 
     # Check if the file exists
     if [[ -f "$file" ]]; then
