@@ -27,8 +27,8 @@ setup_user() {
     done
 
     # Create the user
-    sudo useradd -m "$NEW_USERNAME"
-    echo "$NEW_USERNAME:$NEW_PASSWORD" | sudo chpasswd
+    useradd -m "$NEW_USERNAME"
+    echo "$NEW_USERNAME:$NEW_PASSWORD" | chpasswd
 
     # Check if user creation was successful
     if id -u "$NEW_USERNAME" > /dev/null 2>&1; then
