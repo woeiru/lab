@@ -61,25 +61,6 @@ setup_sshd_firewalld() {
     notify_status "$function_name" "SSHD firewalld setup complete"
 }
 
-# Function to configure Samba
-setup_smb() {
-    local function_name="${FUNCNAME[0]}"
-    # Prompt for missing inputs
-    prompt_for_input "SMB_HEADER" "Enter Samba header" "$SMB_HEADER"
-    prompt_for_input "SHARED_FOLDER" "Enter path to shared folder" "$SHARED_FOLDER"
-
-    if [ "$SMB_HEADER" != "nobody" ]; then
-        prompt_for_input "USERNAME" "Enter Samba username" "$USERNAME"
-        while [ -z "$SMB_PASSWORD" ]; do
-            prompt_for_input "SMB_PASSWORD" "Enter Samba password (cannot be empty)" "$SMB_PASSWORD"
-        done
-    fi
-
-    # Apply the Samba configuration
-    setup_smb_apply "$SMB_HEADER" "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" "$WRITABLE_YESNO" "$GUESTOK_YESNO" "$BROWSABLE_YESNO"
-    notify_status "$function_name" "Samba setup complete"
-}
-
 install_smb() {
     local function_name="${FUNCNAME[0]}"
     
@@ -94,6 +75,38 @@ install_smb() {
         notify_status "$function_name" "Failed to install Samba"
         return 1
     fi
+}
+   
+setup_smb() {
+    local function_name="${FUNCNAME[0]}"
+    # Read config file into variables
+    source /path/to/config_file.conf
+
+    # Prompt for missing inputs
+    prompt_for_input "SMB_HEADER" "Enter Samba header" "$SMB_HEADER"
+    if [ -z "$SMB_HEADER" ]; then
+        SMB_HEADER="$DEFAULT_SMB_HEADER"  # Set default from config if not provided
+    fi
+    
+    prompt_for_input "SHARED_FOLDER" "Enter path to shared folder" "$SHARED_FOLDER"
+    if [ -z "$SHARED_FOLDER" ]; then
+        SHARED_FOLDER="$DEFAULT_SHARED_FOLDER"  # Set default from config if not provided
+    fi
+
+    if [ "$SMB_HEADER" != "nobody" ]; then
+        prompt_for_input "USERNAME" "Enter Samba username" "$USERNAME"
+        if [ -z "$USERNAME" ]; then
+            USERNAME="$DEFAULT_USERNAME"  # Set default from config if not provided
+        fi
+
+        while [ -z "$SMB_PASSWORD" ]; do
+            prompt_for_input "SMB_PASSWORD" "Enter Samba password (cannot be empty)" "$SMB_PASSWORD"
+        done
+    fi
+
+    # Apply the Samba configuration
+    setup_smb_apply "$SMB_HEADER" "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" "$WRITABLE_YESNO" "$GUESTOK_YESNO" "$BROWSABLE_YESNO"
+    notify_status "$function_name" "Samba setup complete"
 }
 
 # Function to apply Samba configuration
