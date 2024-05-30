@@ -77,6 +77,32 @@ install_smb() {
     fi
 }
    
+systemd_smb() {
+    local function_name="${FUNCNAME[0]}"
+    
+    # Enable and start smbd service
+    systemctl enable smbd
+    systemctl start smbd
+    
+    # Check if service is active
+    systemctl is-active --quiet smbd
+    if [ $? -eq 0 ]; then
+        notify_status "$function_name" "Samba service is active"
+    else
+        read -p "Samba service is not active. Do you want to continue anyway? [Y/n] " choice
+        case "$choice" in 
+            [yY]|[yY][eE][sS])
+                notify_status "$function_name" "Samba service is not active"
+                ;;
+            *)
+                notify_status "$function_name" "Samba service is not active. Exiting."
+                return 1
+                ;;
+        esac
+    fi
+}
+
+
 setup_smb() {
     local function_name="${FUNCNAME[0]}"
     # Read config file into variables
