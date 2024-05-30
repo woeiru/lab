@@ -76,11 +76,6 @@ remove_subscription_notice() {
     esac
 }
 
-# Setting Bindmount
-create_bindmount() {
-	pct set 112 -mp0 /alpha/pbspace mp=/pbspace
-}
-
 # Main function to execute based on command-line arguments or display main menu
 main() {
     if [ "$#" -eq 0 ]; then
@@ -99,7 +94,6 @@ display_menu() {
     echo "a3. Update and upgrade packages"
     echo "a4. Install packages"
     echo "a5. Remove subscription notice"
-    echo "b1. Create Bindmount"
     echo "a. Run section"
     echo "b. Run section"
 }
@@ -118,7 +112,6 @@ execute_choice() {
         a3) update_upgrade;;
         a4) install_packages;;
         a5) remove_subscription_notice;;
-	b1) create_bindmount;;
         a) execute_a_options;;
         b) execute_b_options;;
         *) echo "Invalid choice";;
@@ -136,7 +129,7 @@ execute_a_options() {
 
 # Function to execute all b options
 execute_b_options() {
-	create_bindmount
+	echo "placeholder"
 }
 
 # Function to execute based on command-line arguments

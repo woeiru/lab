@@ -78,9 +78,15 @@ update_containers() {
 
 # Function for installing container
 install_containers() {
-    local function_name="${FUNCNAME[0]}"
-    pveam download local debian-12-standard_12.2-1_amd64.tar.zst
-    notify_status "$function_name" "Container installed"
+    	local function_name="${FUNCNAME[0]}"
+    	pveam download local debian-12-standard_12.2-1_amd64.tar.zst
+	pveam download local opensuse-15.5-default_20231118_amd64.tar.xz
+    	notify_status "$function_name" "Container installed"
+}
+
+# Function to bindmount containers
+bindmount_containers() {
+	pct set 112 -mp0 /alpha/pbspace mp=/pbspace
 }
 
 # Function to execute Section 1 of gpu-pt
@@ -197,6 +203,7 @@ display_menu() {
     echo "a5. Remove subscription notice"
     echo "c1. Update Containers"
     echo "c2. Install Containers"
+    echo "c3. Bindmount Containers"
     echo "g1. Enable gpu-pt Part 1"
     echo "g2. Enable gpu-pt Part 2"
     echo "g3. Enable gpu-pt Part 3"
@@ -221,6 +228,7 @@ execute_choice() {
         a5) remove_subscription_notice;;
         c1) update_containers;;
         c2) install_containers;;
+        c3) bindmount_containers;;
         g1) gpupt_part_1;;
         g2) gpupt_part_2;;
         g3) gpupt_part_3;;
