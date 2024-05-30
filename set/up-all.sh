@@ -168,6 +168,7 @@ read_user_choice() {
 # Function to execute based on user choice
 execute_choice() {
     case "$1" in
+	git) exe_all_git;;
         git1) configure_git;;
         ssh) exe_all_ssh;;
         ssh1) setup_sshd;;
