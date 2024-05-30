@@ -19,27 +19,17 @@ configure_git() {
 setup_sshd() {
     # Enable the sshd service to start at boot
     sudo systemctl enable sshd
-
     # Start the sshd service
     sudo systemctl start sshd
-
     # Check the status of the sshd service
     sudo systemctl status sshd
 
     # Check the current firewall state
     sudo firewall-cmd --state
-
-    # Get the active zones
-    active_zones=$(sudo firewall-cmd --get-active-zones | awk 'NR==1{print $1}')
-
     # Allow SSH service in the active zone
-    sudo firewall-cmd --zone=$active_zones --add-service=ssh --permanent
-
+    sudo firewall-cmd --add-service=ssh --permanent
     # Reload the firewall to apply changes
     sudo firewall-cmd --reload
-
-    # Verify that SSH is allowed
-    sudo firewall-cmd --zone=$active_zones --list-all
 }
 
 # Main function to execute based on command-line arguments or display main menu
