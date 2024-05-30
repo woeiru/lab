@@ -23,6 +23,7 @@ alias d.pam='cd /usr/lib/pam_snapper'
 alias eb='exec bash'
 
 alias g='git'
+alias gc'git clone https://github.com/woeiru/lab.git'
 alias gl='git ls-files | xargs cat | wc -l'
 
 alias h='history'
