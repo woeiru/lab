@@ -16,6 +16,29 @@ configure_git() {
     notify_status "$function_name" "Git configurations set"
 }
 
+# Function to setup user
+setup_user() {
+    local function_name="${FUNCNAME[0]}"
+
+    # Prompt for user details
+    prompt_for_input "NEW_USERNAME" "Enter new username" "$NEW_USERNAME"
+    while [ -z "$NEW_PASSWORD" ]; do
+        prompt_for_input "NEW_PASSWORD" "Enter password for $NEW_USERNAME" "$NEW_PASSWORD"
+    done
+
+    # Create the user
+    sudo useradd -m "$NEW_USERNAME"
+    echo "$NEW_USERNAME:$NEW_PASSWORD" | sudo chpasswd
+
+    # Check if user creation was successful
+    if id -u "$NEW_USERNAME" > /dev/null 2>&1; then
+        notify_status "$function_name" "User $NEW_USERNAME created successfully"
+    else
+        notify_status "$function_name" "Failed to create user $NEW_USERNAME"
+        return 1
+    fi
+}
+  
 setup_sshd() {
     local function_name="${FUNCNAME[0]}"
     # Enable the sshd service to start at boot
@@ -167,6 +190,8 @@ display_menu() {
     echo "Choose an option:"
     echo "git. Run all"
     echo "git1. Configure git"
+    echo "user. Run all"
+    echo "user1. setup user"
     echo "ssh. Run all"
     echo "ssh1. setup sshd"
     echo "ssh2. setup sshd firewalld"
@@ -186,6 +211,8 @@ execute_choice() {
     case "$1" in
 	git) exe_all_git;;
         git1) configure_git;;
+	user) exe_all_user;;
+        user1) setup_user;;
         ssh) exe_all_ssh;;
         ssh1) setup_sshd;;
         ssh2) setup_sshd_firewalld;;
@@ -202,6 +229,10 @@ exe_all_git() {
     	configure_git
 }
 
+# Function to execute all user options
+exe_all_user() {
+    	setup_user
+}
 # Function to execute all ssh options
 exe_all_ssh() {
     	setup_sshd
