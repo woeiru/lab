@@ -57,6 +57,22 @@ setup_smb() {
     notify_status "$function_name" "Samba setup complete"
 }
 
+install_smb() {
+    local function_name="${FUNCNAME[0]}"
+    
+    # Install Samba
+    sudo apt update
+    sudo apt install -y samba
+
+    # Check if installation was successful
+    if [ $? -eq 0 ]; then
+        notify_status "$function_name" "Samba installed successfully"
+    else
+        notify_status "$function_name" "Failed to install Samba"
+        return 1
+    fi
+}
+
 # Function to apply Samba configuration
 setup_smb_apply() {
     local function_name="${FUNCNAME[0]}"
@@ -174,7 +190,8 @@ execute_choice() {
         ssh1) setup_sshd;;
         ssh2) setup_sshd_firewalld;;
         smb) exe_all_smb;;
-        smb1) setup_smb;;
+        smb1) install_smb;;
+        smb2) setup_smb;;
         smb2) setup_smb_firewalld;;
         *) echo "Invalid choice";;
     esac
@@ -182,19 +199,20 @@ execute_choice() {
 
 # Function to execute all git options
 exe_all_git() {
-    configure_git
+    	configure_git
 }
 
 # Function to execute all ssh options
 exe_all_ssh() {
-    setup_sshd
-    setup_sshd_firewalld
+    	setup_sshd
+    	setup_sshd_firewalld
 }
 
 # Function to execute all smb options
 exe_all_smb() {
-    setup_smb
-    setup_smb_firewalld
+	install_smb
+    	setup_smb
+    	setup_smb_firewalld
 }
 
 # Function to execute based on command-line arguments
