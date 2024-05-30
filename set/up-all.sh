@@ -10,31 +10,37 @@ notify_status() {
 
 # Function to set global git configurations
 configure_git() {
-    local function_name="configure_git"
+    local function_name="${FUNCNAME[0]}"
     git config --global user.name "woeiru"
     git config --global user.email "169383590+woeiru@users.noreply.github.com"
     notify_status "$function_name" "Git configurations set"
 }
 
 setup_sshd() {
+    local function_name="${FUNCNAME[0]}"
     # Enable the sshd service to start at boot
     sudo systemctl enable sshd
     # Start the sshd service
     sudo systemctl start sshd
     # Check the status of the sshd service
     sudo systemctl status sshd
+    notify_status "$function_name" "SSHD setup complete"
 }
+
 setup_sshd_firewalld() {
+    local function_name="${FUNCNAME[0]}"
     # Check the current firewall state
     sudo firewall-cmd --state
     # Allow SSH service in the active zone
     sudo firewall-cmd --add-service=ssh --permanent
     # Reload the firewall to apply changes
     sudo firewall-cmd --reload
+    notify_status "$function_name" "SSHD firewalld setup complete"
 }
 
 # Function to configure Samba
 setup_smb() {
+    local function_name="${FUNCNAME[0]}"
     # Prompt for missing inputs
     prompt_for_input "SMB_HEADER" "Enter Samba header" "$SMB_HEADER"
     prompt_for_input "SHARED_FOLDER" "Enter path to shared folder" "$SHARED_FOLDER"
@@ -48,11 +54,12 @@ setup_smb() {
 
     # Apply the Samba configuration
     setup_smb_apply "$SMB_HEADER" "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" "$WRITABLE_YESNO" "$GUESTOK_YESNO" "$BROWSABLE_YESNO"
-
+    notify_status "$function_name" "Samba setup complete"
 }
 
 # Function to apply Samba configuration
 setup_smb_apply() {
+    local function_name="${FUNCNAME[0]}"
     local SMB_HEADER="$1"
     local SHARED_FOLDER="$2"
     local username="$3"
@@ -99,14 +106,17 @@ setup_smb_apply() {
 
     # Print confirmation message
     echo "Samba server configured. Shared folder: $SHARED_FOLDER"
+    notify_status "$function_name" "Samba configuration applied"
 }
 
 # Function to setup Samba firewall rules
 setup_smb_firewalld() {
+    local function_name="${FUNCNAME[0]}"
     # Open firewall ports
     if command -v firewall-cmd > /dev/null; then
         sudo firewall-cmd --permanent --add-service=samba
         sudo firewall-cmd --reload
+        notify_status "$function_name" "Samba firewalld setup complete"
     else
         echo "firewall-cmd not found, skipping firewall configuration."
     fi
@@ -118,7 +128,7 @@ prompt_for_input() {
     local prompt_message="$2"
     local current_value="$3"
 
-    if [ -z "$current_value" ]; then
+    if [ -z "$current_value"] ; then
         read -p "$prompt_message: " input
         eval "$var_name=\$input"
     else
@@ -159,35 +169,35 @@ read_user_choice() {
 execute_choice() {
     case "$1" in
         git1) configure_git;;
+        ssh) exe_all_ssh;;
         ssh1) setup_sshd;;
         ssh2) setup_sshd_firewalld;;
-        git) exe_all_git;;
-        ssh) exe_all_ssh;;
         smb) exe_all_smb;;
-
+        smb1) setup_smb;;
+        smb2) setup_smb_firewalld;;
         *) echo "Invalid choice";;
     esac
 }
 
-# Function to execute all a options
+# Function to execute all git options
 exe_all_git() {
-    	configure_git
+    configure_git
 }
 
-# Function to execute all b options
+# Function to execute all ssh options
 exe_all_ssh() {
-    	setup_sshd
-    	setup_sshd_firewalld
+    setup_sshd
+    setup_sshd_firewalld
 }
 
-# Function to execute all b options
+# Function to execute all smb options
 exe_all_smb() {
-	setup_smb
-    	setup_smb_firewalld
+    setup_smb
+    setup_smb_firewalld
 }
 
 # Function to execute based on command-line arguments
-execute_argument() {
+execute_arguments() {
     for arg in "$@"; do
         execute_choice "$arg"
     done
