@@ -76,6 +76,37 @@ remove_subscription_notice() {
     esac
 }
 
+# Function to restore datastore
+restore_datastore () {
+    
+ # Define the file path to the configuration file
+    local file="/etc/proxmox-backup/datastore.cfg"
+    # Define the combined lines to be checked within the file
+    local combined_lines="datastore: pbspace\npath /pbspace"
+
+    # Check if the file exists
+    if [[ -f "$file" ]]; then
+        echo "$file exists."
+
+        # Check if the combined lines are present in the file in sequence
+        if grep -Pzo "(?s)$combined_lines" "$file"; then
+            echo "The lines are present in sequence in $file."
+        else
+            echo "The lines are not present in sequence in $file. Adding the lines."
+            # Append the combined lines to the file
+            echo -e "$combined_lines" >> "$file"
+            echo "Lines added to $file."
+        fi
+    else
+        echo "$file does not exist. Creating the file and adding the lines."
+        # Create the file and add the combined lines
+        echo -e "$combined_lines" > "$file"
+        echo "File created and lines added."
+    fi
+
+}
+
+
 # Main function to execute based on command-line arguments or display main menu
 main() {
     if [ "$#" -eq 0 ]; then
@@ -94,8 +125,8 @@ display_menu() {
     echo "a3. Update and upgrade packages"
     echo "a4. Install packages"
     echo "a5. Remove subscription notice"
-    echo "a. Run section"
-    echo "b. Run section"
+    echo "a. Execute options"
+    echo "b. Execute options"
 }
 
 # Function to read user choice
@@ -129,7 +160,7 @@ execute_a_options() {
 
 # Function to execute all b options
 execute_b_options() {
-	echo "placeholder"
+	restore_datastore
 }
 
 # Function to execute based on command-line arguments
