@@ -23,7 +23,8 @@ setup_sshd() {
     sudo systemctl start sshd
     # Check the status of the sshd service
     sudo systemctl status sshd
-
+}
+setup_sshd_firewalld() {
     # Check the current firewall state
     sudo firewall-cmd --state
     # Allow SSH service in the active zone
@@ -60,9 +61,10 @@ read_user_choice() {
 execute_choice() {
     case "$1" in
         a1) configure_git;;
-        b1) configure_git;;
-        a) execute_a_options;;
-        b) execute_b_options;;
+        b1) setup_sshd;;
+        b1) setup_sshd_firewalld;;
+        a) Run section;;
+        b) Run section;;
         *) echo "Invalid choice";;
     esac
 }
@@ -75,6 +77,7 @@ execute_a_options() {
 # Function to execute all b options
 execute_b_options() {
     setup_sshd
+    setup_sshd_firewalld
 }
 
 # Function to execute based on command-line arguments

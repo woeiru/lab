@@ -24,11 +24,16 @@ alias eb='exec bash'
 
 alias g='git'
 alias gl='git ls-files | xargs cat | wc -l'
+alias gs='git status'
 
 alias h='history'
 
 alias s='sudo'
+
 alias t='tree'
+alias t1='tree -L 1'
+alias t2='tree -L 2'
+alias t3='tree -L 3'
 
 alias tu='transactional-update'
 
@@ -52,8 +57,3 @@ alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
 alias v.fstab='vim /etc/fstab'
 
 alias y='systemctl'
-alias yu='systemctl status'
-alias ya='systemctl start'
-alias ye='systemctl enable'
-alias yl='systemctl reload'
-alias ys='systemctl restart'
