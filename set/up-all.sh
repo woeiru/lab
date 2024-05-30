@@ -16,6 +16,32 @@ configure_git() {
     notify_status "$function_name" "Git configurations set"
 }
 
+setup_sshd() {
+    # Enable the sshd service to start at boot
+    sudo systemctl enable sshd
+
+    # Start the sshd service
+    sudo systemctl start sshd
+
+    # Check the status of the sshd service
+    sudo systemctl status sshd
+
+    # Check the current firewall state
+    sudo firewall-cmd --state
+
+    # Get the active zones
+    active_zones=$(sudo firewall-cmd --get-active-zones | awk 'NR==1{print $1}')
+
+    # Allow SSH service in the active zone
+    sudo firewall-cmd --zone=$active_zones --add-service=ssh --permanent
+
+    # Reload the firewall to apply changes
+    sudo firewall-cmd --reload
+
+    # Verify that SSH is allowed
+    sudo firewall-cmd --zone=$active_zones --list-all
+}
+
 # Main function to execute based on command-line arguments or display main menu
 main() {
     if [ "$#" -eq 0 ]; then
@@ -44,6 +70,7 @@ read_user_choice() {
 execute_choice() {
     case "$1" in
         a1) configure_git;;
+        b1) configure_git;;
         a) execute_a_options;;
         b) execute_b_options;;
         *) echo "Invalid choice";;
@@ -57,7 +84,7 @@ execute_a_options() {
 
 # Function to execute all b options
 execute_b_options() {
-    echo "nothing to do"
+    setup_sshd
 }
 
 # Function to execute based on command-line arguments
