@@ -5,6 +5,7 @@ source "$DIR/../lib/all.sh"
 source "$DIR/../lib/stw.sh"
 source "$DIR/../lib/pve.sh"
 
+alias ..='cd ..'
 
 alias b='bash'
 alias b.up-all.sh='bash $DIR/../set/up-all.sh'
