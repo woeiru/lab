@@ -19,22 +19,22 @@ configure_git() {
 setup_sshd() {
     local function_name="${FUNCNAME[0]}"
     # Enable the sshd service to start at boot
-    sudo systemctl enable sshd
+    systemctl enable sshd
     # Start the sshd service
-    sudo systemctl start sshd
+    systemctl start sshd
     # Check the status of the sshd service
-    sudo systemctl status sshd
+    systemctl status sshd
     notify_status "$function_name" "SSHD setup complete"
 }
 
 setup_sshd_firewalld() {
     local function_name="${FUNCNAME[0]}"
     # Check the current firewall state
-    sudo firewall-cmd --state
+    firewall-cmd --state
     # Allow SSH service in the active zone
-    sudo firewall-cmd --add-service=ssh --permanent
+    firewall-cmd --add-service=ssh --permanent
     # Reload the firewall to apply changes
-    sudo firewall-cmd --reload
+    firewall-cmd --reload
     notify_status "$function_name" "SSHD firewalld setup complete"
 }
 
@@ -61,8 +61,8 @@ install_smb() {
     local function_name="${FUNCNAME[0]}"
     
     # Install Samba
-    sudo apt update
-    sudo apt install -y samba
+    apt update
+    apt install -y samba
 
     # Check if installation was successful
     if [ $? -eq 0 ]; then
@@ -86,8 +86,8 @@ setup_smb_apply() {
 
     # Check if the shared folder exists, create it if not
     if [ ! -d "$SHARED_FOLDER" ]; then
-        sudo mkdir -p "$SHARED_FOLDER"
-        sudo chmod -R 777 "$SHARED_FOLDER"
+        mkdir -p "$SHARED_FOLDER"
+        chmod -R 777 "$SHARED_FOLDER"
         echo "Shared folder created: $SHARED_FOLDER"
     fi
 
@@ -102,17 +102,17 @@ setup_smb_apply() {
             echo "    writable = $WRITABLE_YESNO"
             echo "    guest ok = $GUESTOK_YESNO"
             echo "    browseable = $BROWSABLE_YESNO"
-        } | sudo tee -a /etc/samba/smb.conf > /dev/null
+        } | tee -a /etc/samba/smb.conf > /dev/null
         echo "Samba configuration block added to smb.conf."
     fi
 
     # Restart Samba
-    sudo systemctl restart smb
+    systemctl restart smb
 
     # Set Samba user password only if SMB_HEADER is not "nobody"
     if [ "$SMB_HEADER" != "nobody" ]; then
         if id -u "$username" > /dev/null 2>&1; then
-            echo -e "$smb_password\n$smb_password" | sudo smbpasswd -a -s "$username"
+            echo -e "$smb_password\n$smb_password" | smbpasswd -a -s "$username"
         else
             echo "User $username does not exist. Please create the user before setting Samba password."
         fi
@@ -130,8 +130,8 @@ setup_smb_firewalld() {
     local function_name="${FUNCNAME[0]}"
     # Open firewall ports
     if command -v firewall-cmd > /dev/null; then
-        sudo firewall-cmd --permanent --add-service=samba
-        sudo firewall-cmd --reload
+        firewall-cmd --permanent --add-service=samba
+        firewall-cmd --reload
         notify_status "$function_name" "Samba firewalld setup complete"
     else
         echo "firewall-cmd not found, skipping firewall configuration."
