@@ -32,7 +32,7 @@ alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
 alias d.pam='cd /usr.bash/pam_snapper'
 
-alias ex='exit'
+alias ee='exit'
 alias eb='exec bash'
 
 alias g='git'
