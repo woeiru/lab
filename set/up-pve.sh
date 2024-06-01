@@ -69,6 +69,15 @@ remove_subscription_notice() {
     esac
 }
 
+
+# Function to create ZFS dataset and mount it
+zfs_create_mount() {
+
+    sudo zfs create "rpool/$dataset_name1"  # Create ZFS dataset
+    sudo zfs set mountpoint="/$dataset_name1" "rpool/$dataset_name1"
+}
+
+
 # Function to update container lists
 container_list_update() {
     local function_name="${FUNCNAME[0]}"
