@@ -214,20 +214,22 @@ main() {
 # Function to display main menu
 display_menu() {
     echo "Choose an option:"
+    echo "a. -------------------"
     echo "a1. Disable repository"
     echo "a2. Add repository"
     echo "a3. Update and upgrade packages"
     echo "a4. Install packages"
     echo "a5. Remove subscription notice"
+    echo "b. -------------------"
+    echo "b1. Zfs create and mount dataset"
+    echo "c. -------------------"
     echo "c1. Update Containers"
     echo "c2. Install Containers"
     echo "c3. Bindmount Containers"
+    echo "g. -------------------"
     echo "g1. Enable gpu-pt Part 1"
     echo "g2. Enable gpu-pt Part 2"
     echo "g3. Enable gpu-pt Part 3"
-    echo "a. Run section"
-    echo "c. Run section"
-    echo "g. Run section"
 }
 
 # Function to read user choice
@@ -239,20 +241,22 @@ read_user_choice() {
 # Function to execute based on user choice
 execute_choice() {
     case "$1" in
+        a) execute_a_options;;
         a1) disable_repo;;
         a2) add_repo;;
         a3) update_upgrade;;
         a4) install_packages;;
         a5) remove_subscription_notice;;
+        b) execute_b_options;;
+        b1) zfs_create_mount;;
+        c) execute_c_options;;
         c1) container_list_update;;
         c2) container_download;;
         c3) container_bindmount;;
+        g) execute_g_options;;
         g1) gpupt_part_1;;
         g2) gpupt_part_2;;
         g3) gpupt_part_3;;
-        a) execute_a_options;;
-        c) execute_b_options;;
-        g) execute_g_options;;
         *) echo "Invalid choice";;
     esac
 }
@@ -265,7 +269,10 @@ execute_a_options() {
     	install_packages
     	remove_subscription_notice
 }
-
+# Function to execute all b options
+execute_c_options() {
+	zfs_create_mount	
+}
 # Function to execute all b options
 execute_c_options() {
    	container_list_update
