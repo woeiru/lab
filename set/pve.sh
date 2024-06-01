@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Get dirname and filename and basename
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE=$(basename "$BASH_SOURCE")
+BASE="${FILE%.*}"
+
+# Source config.sh using the absolute path
+source "$DIR/../var/${BASE}.conf"
+
 # Function to display status notification
 notify_status() {
     local function_name="$1"
@@ -69,35 +77,35 @@ remove_subscription_notice() {
     esac
 }
 
-# Function to create ZFS dataset and mount i
+# ZFS options
 zfs_create_mount() {
-    local dataset_name1="$1"  # Parameter specifying the dataset name
-    
+    local pool_name="$1"
+    local dataset_name="$2"
     # Check if the dataset exists, create it if not
-    if ! zfs list "rpool/$dataset_name1" &>/dev/null; then
-        echo "Creating ZFS dataset 'rpool/$dataset_name1'."
-        zfs create "rpool/$dataset_name1"
-        echo "ZFS dataset 'rpool/$dataset_name1' created."
+    if ! zfs list "$pool_name/$dataset_name" &>/dev/null; then
+        echo "Creating ZFS dataset '$pool_name/$dataset_name'."
+        zfs create "$pool_name/$dataset_name" || { echo "Failed to create ZFS dataset '$pool_name/$dataset_name'"; exit 1; }
+        echo "ZFS dataset '$pool_name/$dataset_name' created."
     else
-        echo "ZFS dataset 'rpool/$dataset_name1' already exists."
+        echo "ZFS dataset '$pool_name/$dataset_name' already exists."
     fi
-    
+
     # Check if the mountpoint directory exists, create it if not
-    if [ ! -d "/$dataset_name1" ]; then
-        mkdir -p "/$dataset_name1"
-        echo "Mountpoint directory '/$dataset_name1' created."
+    if [ ! -d "/mnt/$dataset_name" ]; then
+        mkdir -p "/mnt/$dataset_name" || { echo "Failed to create mountpoint directory '/mnt/$dataset_name'"; exit 1; }
+        echo "Mountpoint directory '/mnt/$dataset_name' created."
     fi
-    
+
     # Set mountpoint only if it's not already set
-    if [ "$(zfs get -H -o value mountpoint "rpool/$dataset_name1")" != "/$dataset_name1" ]; then
-        zfs set mountpoint="/$dataset_name1" "rpool/$dataset_name1"
-        echo "ZFS dataset 'rpool/$dataset_name1' mounted at '/$dataset_name1'."
+    if [ "$(zfs get -H -o value mountpoint "$pool_name/$dataset_name")" != "/mnt/$dataset_name" ]; then
+        zfs set mountpoint="/mnt/$dataset_name" "$pool_name/$dataset_name" || { echo "Failed to set mountpoint for ZFS dataset '$pool_name/$dataset_name'"; exit 1; }
+        echo "ZFS dataset '$pool_name/$dataset_name' mounted at '/mnt/$dataset_name'."
     else
-        echo "ZFS dataset 'rpool/$dataset_name1' is already mounted at '/$dataset_name1'."
+        echo "ZFS dataset '$pool_name/$dataset_name' is already mounted at '/mnt/$dataset_name'."
     fi
 }
 
-# Function to update container lists
+# Container options 
 container_list_update() {
     local function_name="${FUNCNAME[0]}"
 
@@ -114,8 +122,6 @@ container_download() {
     notify_status "$function_name" "executed"
 }
 
-
-# Function to bindmount containers
 container_bindmount() {
     local function_name="${FUNCNAME[0]}"
 
@@ -126,7 +132,7 @@ container_bindmount() {
 }
 
 
-# Function to execute Section 1 of gpu-pt
+# GPU Passthrough options
 gpupt_part_1() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 1:"
@@ -149,8 +155,6 @@ gpupt_part_1() {
     reboot
 }
 
-# Function to execute Section 2 of gpu-pt
-
 gpupt_part_2() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 2:"
@@ -170,7 +174,6 @@ gpupt_part_2() {
     reboot
 }
 
-# Function to execute Section 3 of gpu-pt
 gpupt_part_3() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 3:"
@@ -280,7 +283,8 @@ execute_choice() {
     esac
 }
 
-# Function to execute all a options
+# Functions for multiple calls
+
 execute_a_options() {
 	disable_repo
     	add_repo
@@ -288,17 +292,14 @@ execute_a_options() {
     	install_packages
     	remove_subscription_notice
 }
-# Function to execute all b options
 execute_b_options() {
-	zfs_create_mount	
+	zfs_create_mount "$ZFS_POOL_NAME1" "$ZFS_DATASET_NAME1"
 }
-# Function to execute all b options
 execute_c_options() {
    	container_list_update
 	container_download
 }
 
-# Function to execute all b options
 execute_g_options() {
     	gpupt_part_1
     	gpupt_part_2
