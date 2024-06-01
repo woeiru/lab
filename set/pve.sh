@@ -82,29 +82,41 @@ zfs_create_mount() {
     local function_name="${FUNCNAME[0]}"
     local pool_name="$1"
     local dataset_name="$2"
+    local dataset_path="$pool_name/$dataset_name"
+    local mountpoint_path="/$dataset_path"
+    local newly_created=false
+
     # Check if the dataset exists, create it if not
-    if ! zfs list "$pool_name/$dataset_name" &>/dev/null; then
-        echo "Creating ZFS dataset '$pool_name/$dataset_name'."
-        zfs create "$pool_name/$dataset_name" || { echo "Failed to create ZFS dataset '$pool_name/$dataset_name'"; exit 1; }
-        echo "ZFS dataset '$pool_name/$dataset_name' created."
+    if ! zfs list "$dataset_path" &>/dev/null; then
+        echo "Creating ZFS dataset '$dataset_path'."
+        zfs create "$dataset_path" || { echo "Failed to create ZFS dataset '$dataset_path'"; exit 1; }
+        echo "ZFS dataset '$dataset_path' created."
+        newly_created=true
     else
-        echo "ZFS dataset '$pool_name/$dataset_name' already exists."
+        echo "ZFS dataset '$dataset_path' already exists."
     fi
 
     # Check if the mountpoint directory exists, create it if not
-    if [ ! -d "/$pool_name/$dataset_name" ]; then
-        mkdir -p "/$pool_name/$dataset_name" || { echo "Failed to create mountpoint directory '/$pool_name/$dataset_name'"; exit 1; }
-        echo "Mountpoint directory '/$pool_name/$dataset_name' created."
+    if [ ! -d "$mountpoint_path" ]; then
+        mkdir -p "$mountpoint_path" || { echo "Failed to create mountpoint directory '$mountpoint_path'"; exit 1; }
+        echo "Mountpoint directory '$mountpoint_path' created."
     fi
 
-    # Set mountpoint only if it's not already set
-    if [ "$(zfs get -H -o value mountpoint "$pool_name/$dataset_name")" != "/$pool_name/$dataset_name" ]; then
-        zfs set mountpoint="/$pool_name/$dataset_name" "$pool_name/$dataset_name" || { echo "Failed to set mountpoint for ZFS dataset '$pool_name/$dataset_name'"; exit 1; }
-        echo "ZFS dataset '$pool_name/$dataset_name' mounted at '/$pool_name/$dataset_name'."
+    # Get the current mountpoint and compare with the expected mountpoint
+    current_mountpoint=$(zfs get -H -o value mountpoint "$dataset_path")
+    expected_mountpoint="$mountpoint_path"
+
+    if [ "$current_mountpoint" != "$expected_mountpoint" ]; then
+        zfs set mountpoint="$expected_mountpoint" "$dataset_path" || { echo "Failed to set mountpoint for ZFS dataset '$dataset_path'"; exit 1; }
+        echo "ZFS dataset '$dataset_path' mounted at '$expected_mountpoint'."
+    elif [ "$newly_created" = true ]; then
+        echo "ZFS dataset '$dataset_path' newly mounted at '$expected_mountpoint'."
     else
-        echo "ZFS dataset '$pool_name/$dataset_name' is already mounted at '/$pool_name/$dataset_name'."
+        echo "ZFS dataset '$dataset_path' is already mounted at '$expected_mountpoint'."
     fi
-	notify_status "$function_name" "executed ( $pool_name / $dataset_name )"
+
+    zfs list
+    notify_status "$function_name" "executed ( $pool_name / $dataset_name )"
 }
 
 # Container options 
