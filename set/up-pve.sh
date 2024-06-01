@@ -99,8 +99,8 @@ container_download() {
 container_bindmount() {
     local function_name="${FUNCNAME[0]}"
 
-    pct set "$PCT_SET_IDCT_1" -mp0 "$PCT_SET_MPHOST_1,mp=$PCT_SET_MPCT_1"
-    pct set "$PCT_SET_IDCT_2" -mp0 "$PCT_SET_MPHOST_2,mp=$PCT_SET_MPCT_2"
+    pct set "$PCT_SET_IDCT_1" -mp0 "$PCT_SET_MPHOST_1",mp="$PCT_SET_MPCT_1"
+    pct set "$PCT_SET_IDCT_2" -mp0 "$PCT_SET_MPHOST_2",mp="$PCT_SET_MPCT_2"
 
     notify_status "$function_name" "Container bindmounted"
 }
