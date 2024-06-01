@@ -92,17 +92,17 @@ zfs_create_mount() {
     fi
 
     # Check if the mountpoint directory exists, create it if not
-    if [ ! -d "/mnt/$dataset_name" ]; then
-        mkdir -p "/mnt/$dataset_name" || { echo "Failed to create mountpoint directory '/mnt/$dataset_name'"; exit 1; }
-        echo "Mountpoint directory '/mnt/$dataset_name' created."
+    if [ ! -d "/$pool_name/$dataset_name" ]; then
+        mkdir -p "/$pool_name/$dataset_name" || { echo "Failed to create mountpoint directory '/$pool_name/$dataset_name'"; exit 1; }
+        echo "Mountpoint directory '/$pool_name/$dataset_name' created."
     fi
 
     # Set mountpoint only if it's not already set
-    if [ "$(zfs get -H -o value mountpoint "$pool_name/$dataset_name")" != "/mnt/$dataset_name" ]; then
-        zfs set mountpoint="/mnt/$dataset_name" "$pool_name/$dataset_name" || { echo "Failed to set mountpoint for ZFS dataset '$pool_name/$dataset_name'"; exit 1; }
-        echo "ZFS dataset '$pool_name/$dataset_name' mounted at '/mnt/$dataset_name'."
+    if [ "$(zfs get -H -o value mountpoint "$pool_name/$dataset_name")" != "/$pool_name/$dataset_name" ]; then
+        zfs set mountpoint="/$pool_name/$dataset_name" "$pool_name/$dataset_name" || { echo "Failed to set mountpoint for ZFS dataset '$pool_name/$dataset_name'"; exit 1; }
+        echo "ZFS dataset '$pool_name/$dataset_name' mounted at '/$pool_name/$dataset_name'."
     else
-        echo "ZFS dataset '$pool_name/$dataset_name' is already mounted at '/mnt/$dataset_name'."
+        echo "ZFS dataset '$pool_name/$dataset_name' is already mounted at '/$pool_name/$dataset_name'."
     fi
 	notify_status "$function_name" "executed ( $pool_name / $dataset_name )"
 }
