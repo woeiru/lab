@@ -70,7 +70,7 @@ remove_subscription_notice() {
 }
 
 # Function to update container lists
-containers_list_update() {
+container_list_update() {
     local function_name="${FUNCNAME[0]}"
     pveam update
     notify_status "$function_name" "Container lists updated"
