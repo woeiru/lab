@@ -69,11 +69,13 @@ remove_subscription_notice() {
     esac
 }
 
-# Function to create ZFS dataset and mount it
+# Function to create ZFS dataset and mount i
 zfs_create_mount() {
-
+    local dataset_name1="$1"  # Parameter specifying the dataset name
+    
     # Check if the dataset exists, create it if not
     if ! zfs list "rpool/$dataset_name1" &>/dev/null; then
+        echo "Creating ZFS dataset 'rpool/$dataset_name1'."
         zfs create "rpool/$dataset_name1"
         echo "ZFS dataset 'rpool/$dataset_name1' created."
     else
@@ -94,7 +96,6 @@ zfs_create_mount() {
         echo "ZFS dataset 'rpool/$dataset_name1' is already mounted at '/$dataset_name1'."
     fi
 }
-
 
 # Function to update container lists
 container_list_update() {
