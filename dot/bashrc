@@ -1,27 +1,27 @@
 #
 DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
 
-source "$DIR/../lib/all.sh"
-source "$DIR/../lib/stw.sh"
-source "$DIR/../lib/pve.sh"
+source "$DIR/../fnc/all.lib"
+source "$DIR/../fnc/stw.lib"
+source "$DIR/../fnc/pve.lib"
 
 alias ..='cd ..'
 
 alias b='bash'
-alias b.up-all.sh='bash $DIR/../set/up-all.sh'
-alias b.up-stw.sh='bash $DIR/../set/up-stw.sh'
-alias b.up-pve.sh='bash $DIR/../set/up-pve.sh'
-alias b.up-pbs.sh='bash $DIR/../set/up-pbs.sh'
+alias b.all.sh='bash $DIR/../set/all.sh'
+alias b.stw.sh='bash $DIR/../set/stw.sh'
+alias b.pve.sh='bash $DIR/../set/pve.sh'
+alias b.pbs.sh='bash $DIR/../set/pbs.sh'
 alias b.bup='bash "$DIR/../too/bup.sh"'
 
 alias c='cat'
-alias c.all.sh='cat $DIR/../lib/all.sh'
-alias c.stw.sh='cat $DIR/../lib/stw.sh'
-alias c.pve.sh='cat $DIR/../lib/pve.sh'
-alias c.up-all.sh='cat $DIR/../set/up-all.sh'
-alias c.up-stw.sh='cat $DIR/../set/up-stw.sh'
-alias c.up-pve.sh='cat $DIR/../set/up-pve.sh'
-alias c.up-pbs.sh='cat $DIR/../set/up-pbs.sh'
+alias c.all.lib='cat $DIR/../fnc/all.sh'
+alias c.stw.lib='cat $DIR/../fnc/stw.sh'
+alias c.pve.lib='cat $DIR/../fnc/pve.sh'
+alias c.all.sh='cat $DIR/../set/all.sh'
+alias c.stw.sh='cat $DIR/../set/stw.sh'
+alias c.pve.sh='cat $DIR/../set/pve.sh'
+alias c.pbs.sh='cat $DIR/../set/pbs.sh'
 alias c.all.conf='cat $DIR/../var/all.conf'
 alias c.stw.conf='cat $DIR/../var/stw.conf'
 alias c.pve.conf='cat $DIR/../var/pve.conf'
