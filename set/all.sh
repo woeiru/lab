@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Get dirname and filename and basename
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE=$(basename "$BASH_SOURCE")
+BASE="${FILE%.*}"
+
+# Source config.sh using the absolute path
+source "$DIR/../var/${BASE}.conf"
+
 # Function to display status notification
 notify_status() {
     local function_name="$1"
