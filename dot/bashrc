@@ -1,9 +1,9 @@
 #
 DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
 
-source "$DIR/../fnc/all.lib"
-source "$DIR/../fnc/stw.lib"
-source "$DIR/../fnc/pve.lib"
+source "$DIR/../lib/all.bash"
+source "$DIR/../lib/stw.bash"
+source "$DIR/../lib/pve.bash"
 
 alias ..='cd ..'
 
@@ -15,9 +15,9 @@ alias b.pbs.sh='bash $DIR/../set/pbs.sh'
 alias b.bup='bash "$DIR/../too/bup.sh"'
 
 alias c='cat'
-alias c.all.lib='cat $DIR/../fnc/all.lib'
-alias c.stw.lib='cat $DIR/../fnc/stw.lib'
-alias c.pve.lib='cat $DIR/../fnc/pve.lib'
+alias c.all.bash='cat $DIR/../lib/all.bash'
+alias c.stw.bash='cat $DIR/../lib/stw.bash'
+alias c.pve.bash='cat $DIR/../lib/pve.bash'
 alias c.all.sh='cat $DIR/../set/all.sh'
 alias c.stw.sh='cat $DIR/../set/stw.sh'
 alias c.pve.sh='cat $DIR/../set/pve.sh'
@@ -30,7 +30,7 @@ alias d='cd'
 alias d.l='cd $DIR/..'
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
-alias d.pam='cd /usr/lib/pam_snapper'
+alias d.pam='cd /usr.bash/pam_snapper'
 
 alias ex='exit'
 alias eb='exec bash'
@@ -54,9 +54,9 @@ alias tu='transactional-update'
 alias v='vim'
 alias v.b='vim $DIR/../dot/bashrc'
 
-alias v.all.lib='vim $DIR/../fnc/all.lib'
-alias v.stw.lib='vim $DIR/../fnc/stw.lib'
-alias v.pve.lib='vim $DIR/../fnc/pve.lib'
+alias v.all.bash='vim $DIR/../lib/all.bash'
+alias v.stw.bash='vim $DIR/../lib/stw.bash'
+alias v.pve.bash='vim $DIR/../lib/pve.bash'
 alias v.all.sh='vim $DIR/../set/all.sh'
 alias v.stw.sh='vim $DIR/../set/stw.sh'
 alias v.pve.sh='vim $DIR/../set/pve.sh'
