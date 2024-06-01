@@ -78,16 +78,21 @@ update_containers() {
 
 # Function for installing container
 install_containers() {
-    	local function_name="${FUNCNAME[0]}"
-    	pveam download local debian-12-standard_12.2-1_amd64.tar.zst
-	pveam download local opensuse-15.5-default_20231118_amd64.tar.xz
-    	notify_status "$function_name" "Container installed"
+    local function_name="${FUNCNAME[0]}"
+
+    pveam download local "$INSTALL_CT"
+
+    notify_status "$function_name" "Container installed"
 }
 
 # Function to bindmount containers
 bindmount_containers() {
-	pct set 112 -mp0 /alpha/backup,mp=/mnt/backup
-	pct set 115 -mp0 /alpha/share,mp=/mnt/share
+    local function_name="${FUNCNAME[0]}"
+
+    pct set "$PCT_SET_IDCT_1" -mp0 "$PCT_SET_MPHOST_1,mp=$PCT_SET_MPCT_1"
+    pct set "$PCT_SET_IDCT_2" -mp0 "$PCT_SET_MPHOST_2,mp=$PCT_SET_MPCT_2"
+
+    notify_status "$function_name" "Container bindmounted"
 }
 
 # Function to execute Section 1 of gpu-pt
