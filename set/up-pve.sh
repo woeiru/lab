@@ -45,14 +45,14 @@ update_upgrade() {
     local function_name="${FUNCNAME[0]}"
     apt update
     apt upgrade -y
-    notify_status "$function_name" "Package lists updated and packages upgraded"
+    notify_status "$function_name" "executed"
 }
 
 # Function for installing packages
 install_packages() {
     local function_name="${FUNCNAME[0]}"
     apt install -y vim tree corosync-qdevice
-    notify_status "$function_name" "Additional Packages installed"
+    notify_status "$function_name" "executed"
 }
 
 # Function to remove subscription notice
@@ -72,26 +72,18 @@ remove_subscription_notice() {
 # Function to update container lists
 container_list_update() {
     local function_name="${FUNCNAME[0]}"
-    pveam update
-    notify_status "$function_name" "Container lists updated"
+
+    	pveam update
+
+    notify_status "$function_name" "executed"
 }
 
 container_download() {
     local function_name="${FUNCNAME[0]}"
-    
-    # Redirect STDERR to a file
-    local error_log="/tmp/error_log.txt"
 
-    # Execute the command and capture errors
-    pveam download local "$CT_DL" 2>> "$error_log"
+    	pveam download local debian-12-standard_12.2-1_amd64.tar.zst
 
-    # Check if there were any errors
-    if [ $? -ne 0 ]; then
-        echo "Error occurred while executing pveam command. Check $error_log for details."
-        exit 1
-    fi
-
-    notify_status "$function_name" "Container downloaded"
+    notify_status "$function_name" "executed"
 }
 
 
@@ -99,11 +91,12 @@ container_download() {
 container_bindmount() {
     local function_name="${FUNCNAME[0]}"
 
-    pct set "$PCT_SET_IDCT_1" -mp0 "$PCT_SET_MPHOST_1",mp="$PCT_SET_MPCT_1"
-    pct set "$PCT_SET_IDCT_2" -mp0 "$PCT_SET_MPHOST_2",mp="$PCT_SET_MPCT_2"
+	pct set 112 -mp0 /seta/backup,mp=/backup
+	pct set 113 -mp0 /seta/share,mp=/share
 
-    notify_status "$function_name" "Container bindmounted"
+    notify_status "$function_name" "executed"
 }
+
 
 # Function to execute Section 1 of gpu-pt
 gpupt_part_1() {
