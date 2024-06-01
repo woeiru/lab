@@ -79,6 +79,7 @@ remove_subscription_notice() {
 
 # ZFS options
 zfs_create_mount() {
+    local function_name="${FUNCNAME[0]}"
     local pool_name="$1"
     local dataset_name="$2"
     # Check if the dataset exists, create it if not
@@ -103,6 +104,7 @@ zfs_create_mount() {
     else
         echo "ZFS dataset '$pool_name/$dataset_name' is already mounted at '/mnt/$dataset_name'."
     fi
+	notify_status "$function_name" "executed ( $pool_name / $dataset_name )"
 }
 
 # Container options 
@@ -116,19 +118,22 @@ container_list_update() {
 
 container_download() {
     local function_name="${FUNCNAME[0]}"
+    local ct_dl="$1"
 
-    	pveam download local debian-12-standard_12.2-1_amd64.tar.zst
+    	pveam download local "$ct_dl" 
 
-    notify_status "$function_name" "executed"
+	notify_status "$function_name" "executed ( $ct_dl )"
 }
 
 container_bindmount() {
     local function_name="${FUNCNAME[0]}"
+    local vmid="$1"
+    local mphost="$2"
+    local mpcontainer="$3"
 
-	pct set 112 -mp0 /seta/backup,mp=/backup
-	pct set 113 -mp0 /seta/share,mp=/share
+	pct set $vmid "-mp0 $mphost,mp=$mpcontainer"
 
-    notify_status "$function_name" "executed"
+	notify_status "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
 
 
@@ -298,6 +303,7 @@ execute_b_options() {
 execute_c_options() {
    	container_list_update
 	container_download
+   	container_bindmount $CT_ID_1 "$CT_MPH_1" "$CT_MPC_1"
 }
 
 execute_g_options() {
