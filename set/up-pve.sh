@@ -69,12 +69,30 @@ remove_subscription_notice() {
     esac
 }
 
-
 # Function to create ZFS dataset and mount it
 zfs_create_mount() {
 
-    sudo zfs create "rpool/$dataset_name1"  # Create ZFS dataset
-    sudo zfs set mountpoint="/$dataset_name1" "rpool/$dataset_name1"
+    # Check if the dataset exists, create it if not
+    if ! sudo zfs list "rpool/$dataset_name1" &>/dev/null; then
+        sudo zfs create "rpool/$dataset_name1"
+        echo "ZFS dataset 'rpool/$dataset_name1' created."
+    else
+        echo "ZFS dataset 'rpool/$dataset_name1' already exists."
+    fi
+    
+    # Check if the mountpoint directory exists, create it if not
+    if [ ! -d "/$dataset_name1" ]; then
+        sudo mkdir -p "/$dataset_name1"
+        echo "Mountpoint directory '/$dataset_name1' created."
+    fi
+    
+    # Set mountpoint only if it's not already set
+    if [ "$(sudo zfs get -H -o value mountpoint "rpool/$dataset_name1")" != "/$dataset_name1" ]; then
+        sudo zfs set mountpoint="/$dataset_name1" "rpool/$dataset_name1"
+        echo "ZFS dataset 'rpool/$dataset_name1' mounted at '/$dataset_name1'."
+    else
+        echo "ZFS dataset 'rpool/$dataset_name1' is already mounted at '/$dataset_name1'."
+    fi
 }
 
 
@@ -270,7 +288,7 @@ execute_a_options() {
     	remove_subscription_notice
 }
 # Function to execute all b options
-execute_c_options() {
+execute_b_options() {
 	zfs_create_mount	
 }
 # Function to execute all b options
