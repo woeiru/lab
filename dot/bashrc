@@ -17,8 +17,8 @@ source "$LIB_DIR/pve.bash"
 
 # Define arrays for constructing aliases
 #
-files=(all stw pve pbs smb)
-bash_files=(all stw pve pbs smb)
+files=(all stw pve pbs shr)
+bash_files=(all stw pve pbs shr)
 
 # Generate bash execution aliases
 for file in "${bash_files[@]}"; do
@@ -48,6 +48,7 @@ alias b='bash'
 alias c='cat'
 alias d='cd'
 alias g='git'
+alias v='vim'
 
 # directory selection
 alias ..='cd ..'
