@@ -86,7 +86,7 @@ echo "placeholder"
 }
 
 # Function to restore datastore
-restore_datastore () {
+add_datastore () {
     
  # Define the file path to the configuration file
     local file="/etc/proxmox-backup/datastore.cfg"
@@ -133,7 +133,6 @@ display_menu() {
     echo "a2. Add repository"
     echo "a3. Update and upgrade packages"
     echo "a4. Install packages"
-    echo "a5. Remove subscription notice"
     echo "b............................."
     echo "b1. Restore Datatstore"
 }
@@ -151,8 +150,7 @@ execute_choice() {
         a2) add_repo;;
         a3) update_upgrade;;
         a4) install_packages;;
-        a5) remove_subscription_notice;;
-        b1) restore_datastore;;
+        b1) add_datastore;;
         a) execute_a_options;;
         b) execute_b_options;;
         *) echo "Invalid choice";;
@@ -170,7 +168,7 @@ execute_a_options() {
 
 # Function to execute all b options
 execute_b_options() {
-	restore_datastore
+	add_datastore
 }
 
 # Function to execute based on command-line arguments
