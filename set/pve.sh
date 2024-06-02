@@ -324,6 +324,7 @@ execute_a_options() {
 }
 execute_b_options() {
 	zfs_create_mount "$ZFS_POOL_NAME1" "$ZFS_DATASET_NAME1"
+	zfs_create_mount "$ZFS_POOL_NAME2" "$ZFS_DATASET_NAME2"
 }
 execute_c_options() {
    	container_list_update
