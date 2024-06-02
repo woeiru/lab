@@ -110,11 +110,10 @@ display_menu() {
     echo "Choose an option:"
 
     echo "a.......................( include config )"
-    echo "a1. source dotfiles"
-    echo "a2. install pakages"
-    echo ""
-    echo "git.......................( include config )"
+    echo "dot1. source dotfiles"
+    echo "ins1. install pakages"
     echo "git1. setup git"
+    echo ""
     echo "ssh.......................( include config )"
     echo "ssh1. setup sshd"
     echo "ssh2. setup sshd firewalld"
@@ -130,9 +129,8 @@ read_user_choice() {
 execute_choice() {
     case "$1" in
         a) 	a_xall;;
-        a1) 	check_and_append;;
-        a2) 	install_pakages;;
-	git) 	git_xall;;
+	dot1) 	check_and_append;;
+	ins1) 	install_pakages;;
         git1) 	configure_git;;
         ssh) 	ssh_xall;;
         ssh1) 	setup_sshd;;
@@ -146,11 +144,8 @@ execute_choice() {
 a_xall() {
 	check_and_append "$DOT_FILE1" "$DOT_SOURCE1"
     	install_pakages "$PM1" "$PM1P2" "$PM1P3" 
-	exec bash
-}
-
-git_xall() {
     	git_setup "$GIT_USERNAME1" "$GIT_USERMAIL1"
+	exec bash
 }
 
 ssh_xall() {
