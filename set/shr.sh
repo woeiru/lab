@@ -72,25 +72,26 @@ install_pakages () {
     fi
 }
    
-systemd_smb() {
+systemd_check() {
     local function_name="${FUNCNAME[0]}"
+    local service="$1"
     
     # Enable and start smbd service
-    systemctl enable smbd
-    systemctl start smbd
+    systemctl enable "$service"
+    systemctl start "$service"
     
     # Check if service is active
-    systemctl is-active --quiet smbd
+    systemctl is-active --quiet "$service"
     if [ $? -eq 0 ]; then
-        notify_status "$function_name" "Samba service is active"
+        notify_status "$function_name" "$service is active"
     else
-        read -p "Samba service is not active. Do you want to continue anyway? [Y/n] " choice
+        read -p "$service is not active. Do you want to continue anyway? [Y/n] " choice
         case "$choice" in 
             [yY]|[yY][eE][sS])
-                notify_status "$function_name" "Samba service is not active"
+                notify_status "$function_name" "$service is not active"
                 ;;
             *)
-                notify_status "$function_name" "Samba service is not active. Exiting."
+                notify_status "$function_name" "$service is not active. Exiting."
                 return 1
                 ;;
         esac
@@ -204,7 +205,8 @@ main() {
 display_menu() {
     echo "Choose an option:"
     echo "a......................( include config )"
-    echo "user1. setup user"
+    echo "ins1. install pakages"
+    echo "usr1. setup user"
     echo "smb1. setup smb"
     echo "smb2. setup smb firewalld"
     echo ""
@@ -220,7 +222,8 @@ read_user_choice() {
 execute_choice() {
     case "$1" in
         a) 	a_xall;;
-        user1) 	user_setup;;
+        ins1) 	install_pakages;;
+        usr1) 	user_setup;;
         smb1) 	setup_smb;;
         smb2) 	setup_smb_firewalld;;
         *) echo "Invalid choice";;
@@ -230,8 +233,9 @@ execute_choice() {
 # Function to execute all
 
 a_xall() {
+    	install_pakages "$PM1" "$PM1P2"
+	systemd_check "$SYSD_CHECK"
     	user_setup "$USERNAME1" "$PASSWORD1"
-    	install_pakages "$PM2" "$PM2P2"
     	setup_smb  "$SMB_HEADER" "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" "$WRITABLE_YESNO" "$GUESTOK_YESNO" "$BROWSABLE_YESNO" 
     	setup_smb_firewalld
 }
