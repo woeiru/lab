@@ -154,6 +154,9 @@ gg() {
     # Navigate to the git folder
     cd "$DIR/.." || return
 
+    # Fetch the latest changes from the remote repository
+    git fetch origin
+
     # Display the current status of the repository
     status_output=$(git status)
 
