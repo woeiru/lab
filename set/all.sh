@@ -86,7 +86,7 @@ setup_sshd_firewalld() {
     notify_status "$function_name" "executed"
 }
 
-install_pakages {
+install_pakages () {
     local function_name="${FUNCNAME[0]}"
     local pakm="$1"
     local p1="$2"
