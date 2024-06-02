@@ -68,8 +68,8 @@ update_upgrade() {
 # Function for installing packages
 install_packages() {
     local function_name="${FUNCNAME[0]}"
-    apt install -y vim tree proxmox-backup-server
-    notify_status "$function_name" "Additional Packages installed"
+    apt install -y proxmox-backup-server
+    notify_status "$function_name" "executed"
 }
 
 # Function to remove subscription notice
@@ -91,7 +91,7 @@ restore_datastore () {
  # Define the file path to the configuration file
     local file="/etc/proxmox-backup/datastore.cfg"
     # Define the combined lines to be checked within the file
-    local combined_lines="datastore: pbspace\n\tpath /pbspace"
+    local combined_lines="datastore: pobas\n\tpath /pobas"
 
     # Check if the file exists
     if [[ -f "$file" ]]; then
@@ -114,7 +114,6 @@ restore_datastore () {
     fi
 
 }
-
 
 # Main function to execute based on command-line arguments or display main menu
 main() {
