@@ -1,75 +1,90 @@
-#
+# Define the directory of the script
 DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
 
-source "$DIR/../lib/all.bash"
-source "$DIR/../lib/stw.bash"
-source "$DIR/../lib/pve.bash"
+# Common directories
+LIB_DIR="$DIR/../lib"
+SET_DIR="$DIR/../set"
+VAR_DIR="$DIR/../var"
+DOT_DIR="$DIR/../dot"
+TOO_DIR="$DIR/../too"
 
+# Source necessary scripts
+source "$LIB_DIR/all.bash"
+source "$LIB_DIR/stw.bash"
+source "$LIB_DIR/pve.bash"
+
+# Directory navigation aliases
 alias ..='cd ..'
-
-alias b='bash'
-alias b.all.sh='bash $DIR/../set/all.sh'
-alias b.stw.sh='bash $DIR/../set/stw.sh'
-alias b.pve.sh='bash $DIR/../set/pve.sh'
-alias b.pbs.sh='bash $DIR/../set/pbs.sh'
-alias b.bup='bash "$DIR/../too/bup.sh"'
-
-alias c='cat'
-alias c.b='cat $DIR/../dot/bashrc'
-
-alias c.all.bash='cat $DIR/../lib/all.bash'
-alias c.stw.bash='cat $DIR/../lib/stw.bash'
-alias c.pve.bash='cat $DIR/../lib/pve.bash'
-alias c.all.sh='cat $DIR/../set/all.sh'
-alias c.stw.sh='cat $DIR/../set/stw.sh'
-alias c.pve.sh='cat $DIR/../set/pve.sh'
-alias c.pbs.sh='cat $DIR/../set/pbs.sh'
-alias c.all.conf='cat $DIR/../var/all.conf'
-alias c.stw.conf='cat $DIR/../var/stw.conf'
-alias c.pve.conf='cat $DIR/../var/pve.conf'
-
 alias d='cd'
-alias d.l='cd $DIR/..'
+alias d.l="cd $DIR/.."
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
 alias d.pam='cd /usr.bash/pam_snapper'
 
-alias ee='exit'
-alias eb='exec bash'
+# Bash and script execution aliases
+alias b='bash'
 
+# Define array for bash scripts
+bash_files=(all stw pve)
+
+# Generate bash execution aliases
+for file in "${bash_files[@]}"; do
+  alias "b.$file.sh"="bash $SET_DIR/$file.sh"
+done
+
+# Special Bash execution aliases
+alias b.pbs.sh="bash $SET_DIR/pbs.sh"
+alias b.bup="bash $TOO_DIR/bup.sh"
+
+# Define arrays for different file types
+files=(all stw pve pbs)
+
+# Generate cat aliases
+for file in "${files[@]}"; do
+  alias "c.$file.bash"="cat $LIB_DIR/$file.bash"
+  alias "c.$file.sh"="cat $SET_DIR/$file.sh"
+  alias "c.$file.conf"="cat $VAR_DIR/$file.conf"
+done
+alias c.b="cat $DOT_DIR/bashrc"
+
+# Generate vim aliases
+for file in "${files[@]}"; do
+  alias "v.$file.bash"="vim $LIB_DIR/$file.bash"
+  alias "v.$file.sh"="vim $SET_DIR/$file.sh"
+  alias "v.$file.conf"="vim $VAR_DIR/$file.conf"
+done
+alias v.b="vim $DOT_DIR/bashrc"
+
+# Edit system configuration files
+alias v.smb.conf='vim /etc/samba/smb.conf'
+alias v.smbusers='vim /etc/samba/smbusers'
+alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
+alias v.fstab='vim /etc/fstab'
+
+# Git aliases
 alias g='git'
 alias gl='git ls-files | xargs cat | wc -l'
+alias ga='git add .'
+alias gc='git commit -m "standard"'
+alias gp='git push origin master'
 alias gs='git status'
 
+# System control aliases
+alias s='sudo'
+alias y='systemctl'
+
+# Utility aliases
+alias ee='exit'
+alias eb='exec bash'
 alias h='history'
 
-alias s='sudo'
-
+# Tree view aliases
 alias t='tree'
 alias tt='tree -L 2'
 alias ttt='tree -L 3'
 alias tttt='tree -L 4'
 alias ttttt='tree -L 5'
 
+# Transactional update alias
 alias tu='transactional-update'
 
-alias v='vim'
-alias v.b='vim $DIR/../dot/bashrc'
-
-alias v.all.bash='vim $DIR/../lib/all.bash'
-alias v.stw.bash='vim $DIR/../lib/stw.bash'
-alias v.pve.bash='vim $DIR/../lib/pve.bash'
-alias v.all.sh='vim $DIR/../set/all.sh'
-alias v.stw.sh='vim $DIR/../set/stw.sh'
-alias v.pve.sh='vim $DIR/../set/pve.sh'
-alias v.pbs.sh='vim $DIR/../set/pbs.sh'
-alias v.all.conf='vim $DIR/../var/all.conf'
-alias v.stw.conf='vim $DIR/../var/stw.conf'
-alias v.pve.conf='vim $DIR/../var/pve.conf'
-
-alias v.smb.conf='vim /etc/samba/smb.conf'
-alias v.smbusers='vim /etc/samba/smbusers'
-alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
-alias v.fstab='vim /etc/fstab'
-
-alias y='systemctl'
