@@ -1,6 +1,8 @@
 # Define the directory of the script
 DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
 
+# alias contruction
+#
 # Common directories
 LIB_DIR="$DIR/../lib"
 SET_DIR="$DIR/../set"
@@ -13,31 +15,15 @@ source "$LIB_DIR/all.bash"
 source "$LIB_DIR/stw.bash"
 source "$LIB_DIR/pve.bash"
 
-# Directory navigation aliases
-alias ..='cd ..'
-alias d='cd'
-alias d.l="cd $DIR/.."
-alias d.samba='cd /etc/samba/'
-alias d.snapper='cd /etc/snapper/configs'
-alias d.pam='cd /usr.bash/pam_snapper'
-
-# Bash and script execution aliases
-alias b='bash'
-
-# Define array for bash scripts
-bash_files=(all stw pve)
+# Define arrays for constructing aliases
+#
+files=(all stw pve)
+bash_files=(all stw pve pbs smb)
 
 # Generate bash execution aliases
 for file in "${bash_files[@]}"; do
   alias "b.$file.sh"="bash $SET_DIR/$file.sh"
 done
-
-# Special Bash execution aliases
-alias b.pbs.sh="bash $SET_DIR/pbs.sh"
-alias b.bup="bash $TOO_DIR/bup.sh"
-
-# Define arrays for different file types
-files=(all stw pve)
 
 # Generate cat aliases
 for file in "${files[@]}"; do
@@ -55,14 +41,28 @@ for file in "${files[@]}"; do
 done
 alias v.b="vim $DOT_DIR/bashrc"
 
-# Edit system configuration files
+# hardcoded section
+#
+# standard
+alias b='bash'
+alias c='cat'
+alias d='cd'
+alias g='git'
+
+# directory selection
+alias ..='cd ..'
+alias d.l="cd $DIR/.."
+alias d.samba='cd /etc/samba/'
+alias d.snapper='cd /etc/snapper/configs'
+alias d.pam='cd /usr.bash/pam_snapper'
+
+# system configuration
 alias v.smb.conf='vim /etc/samba/smb.conf'
 alias v.smbusers='vim /etc/samba/smbusers'
 alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
 alias v.fstab='vim /etc/fstab'
 
-# Git aliases
-alias g='git'
+# git management
 alias gl='git ls-files | xargs cat | wc -l'
 alias ga='git add .'
 alias gc='git commit -m "standard"'
