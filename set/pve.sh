@@ -143,9 +143,22 @@ container_bindmount() {
     local mphost="$2"
     local mpcontainer="$3"
 
-	pct set "$vmid" -mp0 "$mphost,mp=$mpcontainer"
+    # Debugging output to check the parameters
+    echo "Function: $function_name"
+    echo "VMID: $vmid"
+    echo "MPHOST: $mphost"
+    echo "MPCONTAINER: $mpcontainer"
 
-	notify_status "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
+    # Ensure all arguments are provided
+    if [[ -z "$vmid" || -z "$mphost" || -z "$mpcontainer" ]]; then
+        echo "Error: Missing arguments."
+        return 1
+    fi
+
+    # Properly quote the entire argument for -mp0
+    pct set "$vmid" -mp0 "$mphost,mp=$mpcontainer"
+
+    notify_status "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
 
 
