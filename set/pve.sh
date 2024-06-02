@@ -115,7 +115,6 @@ zfs_create_mount() {
         echo "ZFS dataset '$dataset_path' is already mounted at '$expected_mountpoint'."
     fi
 
-    zfs list
     notify_status "$function_name" "executed ( $pool_name / $dataset_name )"
 }
 
@@ -325,6 +324,7 @@ execute_a_options() {
 execute_b_options() {
 	zfs_create_mount "$ZFS_POOL_NAME1" "$ZFS_DATASET_NAME1" "$ZFS_MOUNTPOINT_NAME1"
 	zfs_create_mount "$ZFS_POOL_NAME2" "$ZFS_DATASET_NAME2" "$ZFS_MOUNTPOINT_NAME2"
+	zfs list
 }
 execute_c_options() {
    	container_list_update
