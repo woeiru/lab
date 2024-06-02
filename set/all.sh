@@ -29,6 +29,21 @@ prompt_for_input() {
     fi
 }
 
+check_and_append() {
+    local file="$1"
+    local line="$2"
+
+    # Check if the line is already present in the file
+    if ! grep -Fxq "$line" "$file"; then
+        # If not, append the line to the file
+        echo "$line" >> "$file"
+        echo "Line appended to $file"
+    else
+        echo "Line already present in $file"
+    fi
+}
+
+
 # Function to set global git configurations
 git_setup() {
     local function_name="${FUNCNAME[0]}"
@@ -42,7 +57,7 @@ git_setup() {
 }
 
 # Function to setup user
-setup_user() {
+user_setup() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local password="$2"
@@ -89,17 +104,16 @@ setup_sshd_firewalld() {
 install_pakages () {
     local function_name="${FUNCNAME[0]}"
     local pm="$1"
-    local p1="$2"
-    local p2="$3"
-    local p3="$4"
+    local p2="$2"
+    local p3="$3"
    
     "$pm" update
     "$pm" upgrade -y
-    "$pm" install -y "$p1" "$p2" "$p3"
+    "$pm" install -y "$p2" "$p3"
 
     # Check if installation was successful
     if [ $? -eq 0 ]; then
-	    notify_status "$function_name" "executed ( $p1 $p2 $p3 )"
+	    notify_status "$function_name" "executed ( $p2 $p3 )"
     else
         notify_status "$function_name" "Failed to install Samba"
         return 1
@@ -238,16 +252,21 @@ main() {
 display_menu() {
     echo "Choose an option:"
 
-    echo "a........................"
-    echo "a1. install pakages"
-    echo "git........................"
+    echo "a.......................( include config )"
+    echo "a1. source dotfiles"
+    echo "a2. install pakages"
+    echo ""
+    echo "git.......................( include config )"
     echo "git1. setup git"
-    echo "user......................."
+    echo ""
+    echo "user......................( include config )"
     echo "user1. setup user"
-    echo "smb........................"
+    echo ""
+    echo "smb.......................( include config )"
     echo "smb1. setup smb"
     echo "smb2. setup smb firewalld"
-    echo "ssh........................"
+    echo ""
+    echo "ssh.......................( include config )"
     echo "ssh1. setup sshd"
     echo "ssh2. setup sshd firewalld"
 }
@@ -262,11 +281,12 @@ read_user_choice() {
 execute_choice() {
     case "$1" in
         a) 	a_xall;;
-        a1) 	install_pakages;;
+        a1) 	check_and_append;;
+        a2) 	install_pakages;;
 	git) 	git_xall;;
         git1) 	configure_git;;
 	user) 	user_xall;;
-        user1) 	setup_user;;
+        user1) 	user_setup;;
         smb) 	smb_xall;;
         smb1) 	setup_smb;;
         smb2) 	setup_smb_firewalld;;
@@ -280,14 +300,16 @@ execute_choice() {
 # Function to execute all
 
 a_xall() {
-    	install_pakages "$PM" "$P1" "$P2" "$P3" 
+	check_and_append "$DOT_FILE1" "$DOT_SOURCE1"
+	exec bash
+    	install_pakages "$PM1" "$PM1P2" "$PM1P3" 
 }
 git_xall() {
     	git_setup "$GIT_USERNAME1" "$GIT_USERMAIL1"
 }
 
 user_xall() {
-    	setup_user "$USERNAME1" "$PASSWORD1"
+    	user_setup "$USERNAME1" "$PASSWORD1"
 }
 
 ssh_xall() {
@@ -296,6 +318,7 @@ ssh_xall() {
 }
 
 smb_xall() {
+    	install_pakages "$PM2" "$PM2P2"
     	setup_smb  "$SMB_HEADER" "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" "$WRITABLE_YESNO" "$GUESTOK_YESNO" "$BROWSABLE_YESNO" 
     	setup_smb_firewalld
 }
