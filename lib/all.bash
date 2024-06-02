@@ -155,31 +155,40 @@ gg() {
     cd "$DIR/.." || return
 
     # Display the current status of the repository
-    git status
+    status_output=$(git status)
+
+    # Check if the working tree is clean
+    if echo "$status_output" | grep -q "nothing to commit, working tree clean"; then
+        echo "Nothing to commit, working tree clean. Exiting..."
+        cd - || return
+        return
+    fi
 
     # Check if the branch is behind
-    if git status | grep -q "Your branch is behind"; then
+    if echo "$status_output" | grep -q "Your branch is behind"; then
         # If the branch is behind, pull the changes and return
         echo "Branch is behind, pulling changes..."
         git pull origin master
-    else
-        # Define commit message
-        local commit_message="$GIT_COMMITMESSAGE"
+        cd - || return
+        return
+    fi
 
-        # Stage all changes
-        git add .
+    # Define commit message
+    local commit_message="$GIT_COMMITMESSAGE"
 
-        # Commit the changes with the provided commit message
-        git commit -m "$commit_message"
+    # Stage all changes
+    git add .
 
-        # Push changes to remote
+    # Commit the changes with the provided commit message
+    git commit -m "$commit_message"
+
+    # Push changes to remote
+    git push origin master
+
+    # Check if the branch is ahead of the remote
+    if git status | grep -q "Your branch is ahead"; then
+        # If there are changes ahead of the master branch, push them
         git push origin master
-
-        # Check if the branch is ahead of the remote
-        if git status | grep -q "Your branch is ahead"; then
-            # If there are changes ahead of the master branch, push them
-            git push origin master
-        fi
     fi
 
     # Return to the previous directory
