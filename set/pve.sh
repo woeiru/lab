@@ -143,7 +143,7 @@ container_bindmount() {
     local mphost="$2"
     local mpcontainer="$3"
 
-	pct set $vmid "-mp0 $mphost,mp=$mpcontainer"
+	pct set "$vmid" -mp0 "$mphost,mp=$mpcontainer"
 
 	notify_status "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
@@ -316,6 +316,7 @@ execute_c_options() {
    	container_list_update
 	container_download
    	container_bindmount $CT_ID_1 "$CT_MPH_1" "$CT_MPC_1"
+   	container_bindmount $CT_ID_2 "$CT_MPH_2" "$CT_MPC_2"
 }
 
 execute_g_options() {
