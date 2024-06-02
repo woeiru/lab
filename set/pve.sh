@@ -328,8 +328,8 @@ execute_b_options() {
 execute_c_options() {
    	container_list_update
 	container_download
-   	container_bindmount $CT_ID_1 "$CT_MPH_1" "$CT_MPC_1"
-   	container_bindmount $CT_ID_2 "$CT_MPH_2" "$CT_MPC_2"
+   	container_bindmount "$CT_ID_1" "$CT_MPH_1" "$CT_MPC_1"
+   	container_bindmount "$CT_ID_2" "$CT_MPH_2" "$CT_MPC_2"
 }
 
 execute_g_options() {
