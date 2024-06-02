@@ -301,8 +301,8 @@ execute_choice() {
 
 a_xall() {
 	check_and_append "$DOT_FILE1" "$DOT_SOURCE1"
-	exec bash
     	install_pakages "$PM1" "$PM1P2" "$PM1P3" 
+	exec bash
 }
 git_xall() {
     	git_setup "$GIT_USERNAME1" "$GIT_USERMAIL1"
