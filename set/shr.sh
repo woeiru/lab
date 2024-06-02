@@ -205,10 +205,11 @@ main() {
 display_menu() {
     echo "Choose an option:"
     echo "a......................( include config )"
-    echo "ins1. install pakages"
-    echo "usr1. setup user"
-    echo "smb1. setup smb"
-    echo "smb2. setup smb firewalld"
+    echo "a1. install pakages"
+    echo "a2. setup user"
+    echo "a3. setup smb firewalld"
+    echo "b......................( include config )"
+    echo "b1. setup smb"
     echo ""
 }
 
@@ -222,10 +223,11 @@ read_user_choice() {
 execute_choice() {
     case "$1" in
         a) 	a_xall;;
-        ins1) 	install_pakages;;
-        usr1) 	user_setup;;
-        smb1) 	setup_smb;;
-        smb2) 	setup_smb_firewalld;;
+        a1) 	install_pakages;;
+        a2) 	user_setup;;
+        a3) 	setup_smb_firewalld;;
+        b) 	b_xall;;
+        b1) 	setup_smb;;
         *) echo "Invalid choice";;
     esac
 }
@@ -236,9 +238,12 @@ a_xall() {
     	install_pakages "$PM1" "$PM1P2"
 	systemd_check "$SYSD_CHECK"
     	user_setup "$USERNAME1" "$PASSWORD1"
+    	setup_smb_firewalld
+}
+
+b_xall() {
     	setup_smb  "$SMB_HEADER_1" "$SHARED_FOLDER_1" "$USERNAME_1" "$SMB_PASSWORD_1" "$WRITABLE_YESNO_1" "$GUESTOK_YESNO_1" "$BROWSABLE_YESNO_1" 
     	setup_smb  "$SMB_HEADER_2" "$SHARED_FOLDER_2" "$USERNAME_2" "$SMB_PASSWORD_2" "$WRITABLE_YESNO_2" "$GUESTOK_YESNO_2" "$BROWSABLE_YESNO_2" 
-    	setup_smb_firewalld
 }
 
 # Function to execute based on command-line arguments
