@@ -149,7 +149,7 @@ a-fstab() {
   echo "$fstab_entry"
 }
 
-# Git optimal
+# git optimal push
 go() {
     # Navigate to the git folder
     cd "$DIR/.." || return
@@ -174,16 +174,20 @@ go() {
         echo "No changes to commit."
     fi
 
+    # Push changes to remote
+    git push origin master || return
+
+    # Pull changes from remote
+    git pull || return
+
     # Check if the branch is ahead of the remote
     if git status | grep -q "Your branch is ahead"; then
         # If there are changes ahead of the master branch, push them
         git push origin master || return
-    else
-        # Pull changes from remote
-        git pull || return
     fi
 
     # Return to the previous directory
     cd - || return
 }
+
 
