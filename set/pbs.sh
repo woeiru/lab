@@ -129,14 +129,14 @@ main() {
 # Function to display main menu
 display_menu() {
     echo "Choose an option:"
+    echo "a............................."
     echo "a1. Setup GPG Key"
     echo "a2. Add repository"
     echo "a3. Update and upgrade packages"
     echo "a4. Install packages"
     echo "a5. Remove subscription notice"
+    echo "b............................."
     echo "b1. Restore Datatstore"
-    echo "a. Execute options"
-    echo "b. Execute options"
 }
 
 # Function to read user choice
