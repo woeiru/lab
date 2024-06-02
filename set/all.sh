@@ -96,7 +96,7 @@ install_pakages () {
     # Install Samba
     "$pakm" update
     "$pakm" upgrade -y
-    "$pakm" install -y "$p1 $p2 $p4"
+    "$pakm" install -y "$p1" "$p2" "$p3"
 
     # Check if installation was successful
     if [ $? -eq 0 ]; then
