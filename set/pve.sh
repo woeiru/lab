@@ -82,8 +82,8 @@ zfs_create_mount() {
     local function_name="${FUNCNAME[0]}"
     local pool_name="$1"
     local dataset_name="$2"
+    local mountpoint_path="$3"
     local dataset_path="$pool_name/$dataset_name"
-    local mountpoint_path="/$dataset_path"
     local newly_created=false
 
     # Check if the dataset exists, create it if not
@@ -323,8 +323,8 @@ execute_a_options() {
     	remove_subscription_notice
 }
 execute_b_options() {
-	zfs_create_mount "$ZFS_POOL_NAME1" "$ZFS_DATASET_NAME1"
-	zfs_create_mount "$ZFS_POOL_NAME2" "$ZFS_DATASET_NAME2"
+	zfs_create_mount "$ZFS_POOL_NAME1" "$ZFS_DATASET_NAME1" "$ZFS_MOUNTPOINT_NAME1"
+	zfs_create_mount "$ZFS_POOL_NAME2" "$ZFS_DATASET_NAME2" "$ZFS_MOUNTPOINT_NAME2"
 }
 execute_c_options() {
    	container_list_update
