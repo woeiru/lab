@@ -108,6 +108,8 @@ setup_smb() {
 	local writable_yesno="$5"
 	local guestok_yesno="$6"
 	local browseable_yesno="$7"
+	local create_mask="$8"
+	local dir_mask="$9"
 
     # Prompt for missing inputs
     prompt_for_input "smb_header" "Enter Samba header" "$smb_header"
@@ -122,7 +124,7 @@ setup_smb() {
     fi
 
     # Apply the Samba configuration
-    setup_smb_apply "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno"
+    setup_smb_apply "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
     notify_status "$function_name" "Samba setup complete"
 }
 
@@ -136,6 +138,10 @@ setup_smb_apply() {
     	local writable_yesno="$5"
     	local guestok_yesno="$6"
     	local browseable_yesno="$7"
+	local create_mask="$8"
+	local dir_mask="$9"
+	local force_user="$10"
+	local force_group="$11"
 
     # Check if the shared folder exists, create it if not
     if [ ! -d "$shared_folder" ]; then
@@ -155,6 +161,10 @@ setup_smb_apply() {
             echo "    writable = $writable_yesno"
             echo "    guest ok = $guestok_yesno"
             echo "    browseable = $browseable_yesno"
+            echo "    create mask = $create_mask"
+            echo "    dir mask = $dir_mask"
+            echo "    force user = $force_user"
+            echo "    force group = $force_group"
         } | tee -a /etc/samba/smb.conf > /dev/null
         echo "Samba configuration block added to smb.conf."
     fi
@@ -242,8 +252,8 @@ a_xall() {
 }
 
 b_xall() {
-    	setup_smb  "$SMB_HEADER_1" "$SHARED_FOLDER_1" "$USERNAME_1" "$SMB_PASSWORD_1" "$WRITABLE_YESNO_1" "$GUESTOK_YESNO_1" "$BROWSABLE_YESNO_1" 
-    	setup_smb  "$SMB_HEADER_2" "$SHARED_FOLDER_2" "$USERNAME_2" "$SMB_PASSWORD_2" "$WRITABLE_YESNO_2" "$GUESTOK_YESNO_2" "$BROWSABLE_YESNO_2" 
+    	setup_smb  "$SMB_HEADER_1" "$SHARED_FOLDER_1" "$USERNAME_1" "$SMB_PASSWORD_1" "$WRITABLE_YESNO_1" "$GUESTOK_YESNO_1" "$BROWSABLE_YESNO_1" "$CREATE_MASK_1" "$DIR_MASK_1" "$FORCE_USER_1" "$FORCE_GROUP1"
+    	setup_smb  "$SMB_HEADER_2" "$SHARED_FOLDER_2" "$USERNAME_2" "$SMB_PASSWORD_2" "$WRITABLE_YESNO_2" "$GUESTOK_YESNO_2" "$BROWSABLE_YESNO_2" "$CREATE_MASK_2" "$DIR_MASK_2" "$FORCE_USER_2" "$FORCE_GROUP2"
 }
 
 # Function to execute based on command-line arguments
