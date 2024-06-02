@@ -296,7 +296,6 @@ ssh_xall() {
 }
 
 smb_xall() {
-	install_smb "$PAKAGE_MANAGER"
     	setup_smb  "$SMB_HEADER" "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" "$WRITABLE_YESNO" "$GUESTOK_YESNO" "$BROWSABLE_YESNO" 
     	setup_smb_firewalld
 }
