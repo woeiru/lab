@@ -155,39 +155,30 @@ go() {
     cd "$DIR/.." || return
 
     # Define commit message
-    local commit_message="$1"
+    local commit_message="$GIT_COMMITMESSAGE"
 
     # Display the current status of the repository
     git status
 
-    # Check if there are any changes in the working directory
-    if ! git diff --quiet; then
-        # Check if there are changes staged for commit
-        if ! git diff --cached --quiet; then
-            # If there are staged changes, commit them
-            git commit -m "$commit_message" || return
-        else
-            # If there are changes but not staged, stage them and commit
-            git add . && git commit -m "$commit_message" || return
-        fi
-    else
-        echo "No changes to commit."
-    fi
+    # Stage all changes
+    git add .
+
+    # Commit the changes with the provided commit message
+    git commit -m "$commit_message"
 
     # Push changes to remote
-    git push origin master || return
+    git push origin master
 
     # Pull changes from remote
-    git pull || return
+    git pull origin master
 
     # Check if the branch is ahead of the remote
     if git status | grep -q "Your branch is ahead"; then
         # If there are changes ahead of the master branch, push them
-        git push origin master || return
+        git push origin master
     fi
 
     # Return to the previous directory
     cd - || return
 }
-
 
