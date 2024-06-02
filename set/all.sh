@@ -100,7 +100,7 @@ install_pakages () {
 
     # Check if installation was successful
     if [ $? -eq 0 ]; then
-	    notify_status "$function_name" "executed ( $pak1 )"
+	    notify_status "$function_name" "executed ( $p1 $p2 $p3 )"
     else
         notify_status "$function_name" "Failed to install Samba"
         return 1
