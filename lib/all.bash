@@ -154,15 +154,13 @@ gg() {
     # Navigate to the git folder
     cd "$DIR/.." || return
 
-    # Fetch the latest changes from the remote repository
-    git fetch origin
-
     # Display the current status of the repository
     status_output=$(git status)
 
     # Check if the working tree is clean
     if echo "$status_output" | grep -q "nothing to commit, working tree clean"; then
-        echo "Nothing to commit, working tree clean. Exiting..."
+        echo "Nothing to commit, working tree clean..."
+	git pull
         cd - || return
         return
     fi
