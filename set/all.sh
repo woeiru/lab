@@ -86,17 +86,21 @@ setup_sshd_firewalld() {
     notify_status "$function_name" "executed"
 }
 
-install_smb() {
+install_pakages {
     local function_name="${FUNCNAME[0]}"
-    local pak="$1"
+    local pakm="$1"
+    local p1="$2"
+    local p2="$3"
+    local p3="$4"
     
     # Install Samba
-    pak update
-    pak install -y samba
+    "$pakm" update
+    "$pakm" upgrade -y
+    "$pakm" install -y "$p1 $p2 $p4"
 
     # Check if installation was successful
     if [ $? -eq 0 ]; then
-        notify_status "$function_name" "Samba installed successfully"
+	    notify_status "$function_name" "executed ( $pak1 )"
     else
         notify_status "$function_name" "Failed to install Samba"
         return 1
@@ -234,6 +238,9 @@ main() {
 # Function to display main menu
 display_menu() {
     echo "Choose an option:"
+
+    echo "a........................"
+    echo "a1. install pakages"
     echo "git........................"
     echo "git1. setup git"
     echo "user......................."
@@ -255,13 +262,14 @@ read_user_choice() {
 # Function to execute based on user choice
 execute_choice() {
     case "$1" in
+        a) 	a_xall;;
+        a1) 	install_pakages;;
 	git) 	git_xall;;
         git1) 	configure_git;;
 	user) 	user_xall;;
         user1) 	setup_user;;
         smb) 	smb_xall;;
-        smb1) 	install_smb;;
-        smb2) 	setup_smb;;
+        smb1) 	setup_smb;;
         smb2) 	setup_smb_firewalld;;
         ssh) 	ssh_xall;;
         ssh1) 	setup_sshd;;
@@ -272,6 +280,9 @@ execute_choice() {
 
 # Function to execute all
 
+a_xall() {
+    	install_pakages "$PAKAGE_MANAGER" "$PAKAGE1" "$PAKAGE3" "$PAKAGE2" 
+}
 git_xall() {
     	git_setup "$GIT_USERNAME1" "$GIT_USERMAIL1"
 }
