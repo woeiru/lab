@@ -16,6 +16,19 @@ notify_status() {
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
 
+prompt_for_input() {
+    local var_name=$1
+    local prompt_message=$2
+    local current_value=$3
+
+    read -p "$prompt_message [$current_value]: " input
+    if [ -n "$input" ]; then
+        eval "$var_name=\"$input\""
+    else
+        eval "$var_name=\"$current_value\""
+    fi
+}
+
 # Function to set global git configurations
 git_setup() {
     local function_name="${FUNCNAME[0]}"
@@ -60,7 +73,7 @@ setup_sshd() {
     systemctl start sshd
     systemctl status sshd
 
-    notify_status "$function_name" "SSHD setup complete"
+    notify_status "$function_name" "executed"
 }
 
 setup_sshd_firewalld() {
@@ -70,15 +83,16 @@ setup_sshd_firewalld() {
     firewall-cmd --add-service=ssh --permanent
     firewall-cmd --reload
 
-    notify_status "$function_name" "SSHD firewalld setup complete"
+    notify_status "$function_name" "executed"
 }
 
 install_smb() {
     local function_name="${FUNCNAME[0]}"
+    local pak="$1"
     
     # Install Samba
-    apt update
-    apt install -y samba
+    pak update
+    pak install -y samba
 
     # Check if installation was successful
     if [ $? -eq 0 ]; then
@@ -114,68 +128,63 @@ systemd_smb() {
     fi
 }
 
-
+# Unified function to set up Samba
 setup_smb() {
     local function_name="${FUNCNAME[0]}"
-    # Read config file into variables
-    source /path/to/config_file.conf
+	local smb_header="$1"
+	local shared_folder="$2"
+	local username="$3"
+	local smb_password="$4"
+	local writable_yesno="$5"
+	local guestok_yesno="$6"
+	local browseable_yesno="$7"
 
     # Prompt for missing inputs
-    prompt_for_input "SMB_HEADER" "Enter Samba header" "$SMB_HEADER"
-    if [ -z "$SMB_HEADER" ]; then
-        SMB_HEADER="$DEFAULT_SMB_HEADER"  # Set default from config if not provided
-    fi
-    
-    prompt_for_input "SHARED_FOLDER" "Enter path to shared folder" "$SHARED_FOLDER"
-    if [ -z "$SHARED_FOLDER" ]; then
-        SHARED_FOLDER="$DEFAULT_SHARED_FOLDER"  # Set default from config if not provided
-    fi
+    prompt_for_input "smb_header" "Enter Samba header" "$smb_header"
+    prompt_for_input "shared_folder" "Enter path to shared folder" "$shared_folder"
 
-    if [ "$SMB_HEADER" != "nobody" ]; then
-        prompt_for_input "USERNAME" "Enter Samba username" "$USERNAME"
-        if [ -z "$USERNAME" ]; then
-            USERNAME="$DEFAULT_USERNAME"  # Set default from config if not provided
-        fi
+    if [ "$smb_header" != "nobody" ]; then
+        prompt_for_input "username" "Enter Samba username" "$username"
 
-        while [ -z "$SMB_PASSWORD" ]; do
-            prompt_for_input "SMB_PASSWORD" "Enter Samba password (cannot be empty)" "$SMB_PASSWORD"
+        while [ -z "$smb_password" ]; do
+            prompt_for_input "smb_password" "Enter Samba password (cannot be empty)" "$smb_password"
         done
     fi
 
     # Apply the Samba configuration
-    setup_smb_apply "$SMB_HEADER" "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" "$WRITABLE_YESNO" "$GUESTOK_YESNO" "$BROWSABLE_YESNO"
+    setup_smb_apply "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno"
     notify_status "$function_name" "Samba setup complete"
 }
 
 # Function to apply Samba configuration
 setup_smb_apply() {
     local function_name="${FUNCNAME[0]}"
-    local SMB_HEADER="$1"
-    local SHARED_FOLDER="$2"
-    local username="$3"
-    local smb_password="$4"
-    local WRITABLE_YESNO="$5"
-    local GUESTOK_YESNO="$6"
-    local BROWSABLE_YESNO="$7"
+	local smb_header="$1"
+	local shared_folder="$2"
+    	local username="$3"
+    	local smb_password="$4"
+    	local writable_yesno="$5"
+    	local guestok_yesno="$6"
+    	local browseable_yesno="$7"
 
     # Check if the shared folder exists, create it if not
-    if [ ! -d "$SHARED_FOLDER" ]; then
-        mkdir -p "$SHARED_FOLDER"
-        chmod -R 777 "$SHARED_FOLDER"
-        echo "Shared folder created: $SHARED_FOLDER"
+    if [ ! -d "$shared_folder" ]; then
+        mkdir -p "$shared_folder"
+        chmod -R 777 "$shared_folder"
+        echo "Shared folder created: $shared_folder"
     fi
 
     # Check if the Samba configuration block already exists in smb.conf
-    if grep -qF "[$SMB_HEADER]" /etc/samba/smb.conf; then
+    if grep -qF "[$smb_header]" /etc/samba/smb.conf; then
         echo "Samba configuration block already exists in smb.conf. Skipping addition."
     else
         # Append Samba configuration lines to smb.conf
         {
-            echo "[$SMB_HEADER]"
-            echo "    path = $SHARED_FOLDER"
-            echo "    writable = $WRITABLE_YESNO"
-            echo "    guest ok = $GUESTOK_YESNO"
-            echo "    browseable = $BROWSABLE_YESNO"
+            echo "[$smb_header]"
+            echo "    path = $shared_folder"
+            echo "    writable = $writable_yesno"
+            echo "    guest ok = $guestok_yesno"
+            echo "    browseable = $browseable_yesno"
         } | tee -a /etc/samba/smb.conf > /dev/null
         echo "Samba configuration block added to smb.conf."
     fi
@@ -183,8 +192,8 @@ setup_smb_apply() {
     # Restart Samba
     systemctl restart smb
 
-    # Set Samba user password only if SMB_HEADER is not "nobody"
-    if [ "$SMB_HEADER" != "nobody" ]; then
+    # Set Samba user password only if smb_header is not "nobody"
+    if [ "$smb_header" != "nobody" ]; then
         if id -u "$username" > /dev/null 2>&1; then
             echo -e "$smb_password\n$smb_password" | smbpasswd -a -s "$username"
         else
@@ -195,7 +204,7 @@ setup_smb_apply() {
     fi
 
     # Print confirmation message
-    echo "Samba server configured. Shared folder: $SHARED_FOLDER"
+    echo "Samba server configured. Shared folder: $shared_folder"
     notify_status "$function_name" "Samba configuration applied"
 }
 
@@ -209,20 +218,6 @@ setup_smb_firewalld() {
         notify_status "$function_name" "Samba firewalld setup complete"
     else
         echo "firewall-cmd not found, skipping firewall configuration."
-    fi
-}
-
-# Function to prompt for input if not already set
-prompt_for_input() {
-    local var_name="$1"
-    local prompt_message="$2"
-    local current_value="$3"
-
-    if [ -z "$current_value"] ; then
-        read -p "$prompt_message: " input
-        eval "$var_name=\$input"
-    else
-        eval "$var_name=\$current_value"
     fi
 }
 
@@ -291,8 +286,8 @@ ssh_xall() {
 }
 
 smb_xall() {
-	install_smb
-    	setup_smb
+	install_smb "$PAKAGE_MANAGER"
+    	setup_smb  "$SMB_HEADER" "$SHARED_FOLDER" "$USERNAME" "$SMB_PASSWORD" "$WRITABLE_YESNO" "$GUESTOK_YESNO" "$BROWSABLE_YESNO" 
     	setup_smb_firewalld
 }
 
