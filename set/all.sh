@@ -17,55 +17,59 @@ notify_status() {
 }
 
 # Function to set global git configurations
-configure_git() {
+git_setup() {
     local function_name="${FUNCNAME[0]}"
-    git config --global user.name "woeiru"
-    git config --global user.email "169383590+woeiru@users.noreply.github.com"
-    notify_status "$function_name" "Git configurations set"
+    local username="$1"
+    local usermail="$2"
+
+    git config --global user.name "$username"
+    git config --global user.email "$usermail"
+
+    notify_status "$function_name" "executed ( $username / $usermail )"
 }
 
 # Function to setup user
 setup_user() {
     local function_name="${FUNCNAME[0]}"
+    local username="$1"
+    local password="$2"
 
     # Prompt for user details
-    prompt_for_input "NEW_USERNAME" "Enter new username" "$NEW_USERNAME"
-    while [ -z "$NEW_PASSWORD" ]; do
-        prompt_for_input "NEW_PASSWORD" "Enter password for $NEW_USERNAME" "$NEW_PASSWORD"
+    prompt_for_input "username" "Enter new username" "$username"
+    while [ -z "$password" ]; do
+        prompt_for_input "password" "Enter password for $username" "$password"
     done
 
     # Create the user
-    useradd -m "$NEW_USERNAME"
-    echo "$NEW_USERNAME:$NEW_PASSWORD" | chpasswd
+    useradd -m "$username"
+    echo "$username:$password" | chpasswd
 
     # Check if user creation was successful
-    if id -u "$NEW_USERNAME" > /dev/null 2>&1; then
-        notify_status "$function_name" "User $NEW_USERNAME created successfully"
+    if id -u "$username" > /dev/null 2>&1; then
+        notify_status "$function_name" "User $username created successfully"
     else
-        notify_status "$function_name" "Failed to create user $NEW_USERNAME"
+        notify_status "$function_name" "Failed to create user $username"
         return 1
     fi
 }
   
 setup_sshd() {
     local function_name="${FUNCNAME[0]}"
-    # Enable the sshd service to start at boot
+
     systemctl enable sshd
-    # Start the sshd service
     systemctl start sshd
-    # Check the status of the sshd service
     systemctl status sshd
+
     notify_status "$function_name" "SSHD setup complete"
 }
 
 setup_sshd_firewalld() {
     local function_name="${FUNCNAME[0]}"
-    # Check the current firewall state
+
     firewall-cmd --state
-    # Allow SSH service in the active zone
     firewall-cmd --add-service=ssh --permanent
-    # Reload the firewall to apply changes
     firewall-cmd --reload
+
     notify_status "$function_name" "SSHD firewalld setup complete"
 }
 
@@ -235,16 +239,16 @@ main() {
 # Function to display main menu
 display_menu() {
     echo "Choose an option:"
-    echo "git. Run all"
-    echo "git1. Configure git"
-    echo "user. Run all"
+    echo "git........................"
+    echo "git1. setup git"
+    echo "user......................."
     echo "user1. setup user"
-    echo "ssh. Run all"
-    echo "ssh1. setup sshd"
-    echo "ssh2. setup sshd firewalld"
-    echo "smb. Run all"
+    echo "smb........................"
     echo "smb1. setup smb"
     echo "smb2. setup smb firewalld"
+    echo "ssh........................"
+    echo "ssh1. setup sshd"
+    echo "ssh2. setup sshd firewalld"
 }
 
 # Function to read user choice
@@ -256,38 +260,37 @@ read_user_choice() {
 # Function to execute based on user choice
 execute_choice() {
     case "$1" in
-	git) exe_all_git;;
-        git1) configure_git;;
-	user) exe_all_user;;
-        user1) setup_user;;
-        ssh) exe_all_ssh;;
-        ssh1) setup_sshd;;
-        ssh2) setup_sshd_firewalld;;
-        smb) exe_all_smb;;
-        smb1) install_smb;;
-        smb2) setup_smb;;
-        smb2) setup_smb_firewalld;;
+	git) 	git_xall;;
+        git1) 	configure_git;;
+	user) 	user_xall;;
+        user1) 	setup_user;;
+        smb) 	smb_xall;;
+        smb1) 	install_smb;;
+        smb2) 	setup_smb;;
+        smb2) 	setup_smb_firewalld;;
+        ssh) 	ssh_xall;;
+        ssh1) 	setup_sshd;;
+        ssh2) 	setup_sshd_firewalld;;
         *) echo "Invalid choice";;
     esac
 }
 
-# Function to execute all git options
-exe_all_git() {
-    	configure_git
+# Function to execute all
+
+git_xall() {
+    	git_setup "$GIT_USERNAME1" "$GIT_USERMAIL1"
 }
 
-# Function to execute all user options
-exe_all_user() {
-    	setup_user
+user_xall() {
+    	setup_user "$USERNAME1" "$PASSWORD1"
 }
-# Function to execute all ssh options
-exe_all_ssh() {
+
+ssh_xall() {
     	setup_sshd
     	setup_sshd_firewalld
 }
 
-# Function to execute all smb options
-exe_all_smb() {
+smb_xall() {
 	install_smb
     	setup_smb
     	setup_smb_firewalld
