@@ -17,7 +17,7 @@ source "$LIB_DIR/pve.bash"
 
 # Define arrays for constructing aliases
 #
-files=(all stw pve)
+files=(all stw pve pbs smb)
 bash_files=(all stw pve pbs smb)
 
 # Generate bash execution aliases
@@ -64,10 +64,11 @@ alias v.fstab='vim /etc/fstab'
 
 # git management
 alias gl='git ls-files | xargs cat | wc -l'
+alias gs='git status'
 alias ga='git add .'
 alias gc='git commit -m "standard"'
-alias gp='git push origin master'
-alias gs='git status'
+alias gg='git push origin master'
+alias gp='git pull'
 
 # System control aliases
 alias s='sudo'
