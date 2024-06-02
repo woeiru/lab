@@ -88,15 +88,14 @@ setup_sshd_firewalld() {
 
 install_pakages () {
     local function_name="${FUNCNAME[0]}"
-    local pakm="$1"
+    local pm="$1"
     local p1="$2"
     local p2="$3"
     local p3="$4"
-    
-    # Install Samba
-    "$pakm" update
-    "$pakm" upgrade -y
-    "$pakm" install -y "$p1" "$p2" "$p3"
+   
+    "$pm" update
+    "$pm" upgrade -y
+    "$pm" install -y "$p1" "$p2" "$p3"
 
     # Check if installation was successful
     if [ $? -eq 0 ]; then
@@ -281,7 +280,7 @@ execute_choice() {
 # Function to execute all
 
 a_xall() {
-    	install_pakages "$PAKAGE_MANAGER" "$PAKAGE1" "$PAKAGE3" "$PAKAGE2" 
+    	install_pakages "$PM" "$P1" "$P2" "$P3" 
 }
 git_xall() {
     	git_setup "$GIT_USERNAME1" "$GIT_USERMAIL1"
