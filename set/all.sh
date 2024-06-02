@@ -53,7 +53,7 @@ git_setup() {
     git config --global user.name "$username"
     git config --global user.email "$usermail"
 
-    notify_status "$function_name" "executed ( $username / $usermail )"
+    notify_status "$function_name" "executed ( $1 $2 )"
 }
   
 setup_sshd() {
@@ -88,9 +88,9 @@ install_pakages () {
 
     # Check if installation was successful
     if [ $? -eq 0 ]; then
-	    notify_status "$function_name" "executed ( $p2 $p3 )"
+	    notify_status "$function_name" "executed ( $1 $2 $3 )"
     else
-        notify_status "$function_name" "Failed to install  ( $p2 $p3 )"
+        notify_status "$function_name" "Failed to install  ( $1 $2 $3 )"
         return 1
     fi
 }
@@ -143,8 +143,8 @@ execute_choice() {
 
 a_xall() {
 	check_and_append "$DOT_FILE1" "$DOT_SOURCE1"
+    	git_setup "$GIT_USERNAME" "$GIT_USERMAIL"
     	install_pakages "$PM1" "$PM1P2" "$PM1P3" 
-    	git_setup "$GIT_USERNAME1" "$GIT_USERMAIL1"
 	exec bash
 }
 
