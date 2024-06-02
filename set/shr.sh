@@ -110,6 +110,8 @@ setup_smb() {
 	local browseable_yesno="$7"
 	local create_mask="$8"
 	local dir_mask="$9"
+	local force_user="${10}"
+	local force_group="${11}"
 
     # Prompt for missing inputs
     prompt_for_input "smb_header" "Enter Samba header" "$smb_header"
@@ -140,8 +142,8 @@ setup_smb_apply() {
     	local browseable_yesno="$7"
 	local create_mask="$8"
 	local dir_mask="$9"
-	local force_user="$10"
-	local force_group="$11"
+	local force_user="${10}"
+	local force_group="${11}"
 
     # Check if the shared folder exists, create it if not
     if [ ! -d "$shared_folder" ]; then
