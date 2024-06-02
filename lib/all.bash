@@ -149,8 +149,8 @@ a-fstab() {
   echo "$fstab_entry"
 }
 
-# git optimal push
-go() {
+# git all in one
+gg() {
     # Navigate to the git folder
     cd "$DIR/.." || return
 
