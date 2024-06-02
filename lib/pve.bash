@@ -274,33 +274,6 @@ p-rv() {
     esac
 }
 
-
-# add nfs remote
-p-an() {
-
-    # Prompt user for storage ID
-    read -p "Enter storage ID [$storage_id]: " new_storage_id
-    storage_id=${new_storage_id:-$storage_id}
-
-    # Prompt user for path
-    read -p "Enter path [$path]: " new_path
-    path=${new_path:-$path}
-
-    # Prompt user for server
-    read -p "Enter server [$server]: " new_server
-    server=${new_server:-$server}
-
-    # Prompt user for export
-    read -p "Enter export [$nfs_export]: " new_nfs_export
-    nfs_export=${new_nfs_export:-$nfs_export}
-
-    # Add the NFS storage with user-provided parameters
-    pvesm add nfs "$storage_id" --path "$path" --server "$server" --export "$nfs_export"
-
-    # Set the content types for the NFS storage
-    pvesm set "$storage_id" --content backup,snippets,iso,images,rootdir,vztmpl
-}
-
 # automount usb
 p-au() {
     # Perform blkid and filter entries with sd*
