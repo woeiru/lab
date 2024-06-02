@@ -67,7 +67,7 @@ alias gl='git ls-files | xargs cat | wc -l'
 alias gs='git status'
 alias ga='git add .'
 alias gc='git commit -m "standard"'
-alias gg='git push origin master'
+alias go='git push origin master'
 alias gp='git pull'
 
 # System control aliases
