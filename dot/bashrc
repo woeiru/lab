@@ -15,6 +15,8 @@ alias b.pbs.sh='bash $DIR/../set/pbs.sh'
 alias b.bup='bash "$DIR/../too/bup.sh"'
 
 alias c='cat'
+alias c.b='cat $DIR/../dot/bashrc'
+
 alias c.all.bash='cat $DIR/../lib/all.bash'
 alias c.stw.bash='cat $DIR/../lib/stw.bash'
 alias c.pve.bash='cat $DIR/../lib/pve.bash'
