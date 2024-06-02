@@ -51,6 +51,7 @@ user_setup() {
         notify_status "$function_name" "Failed to create user $username"
         return 1
     fi
+}
 
 install_pakages () {
     local function_name="${FUNCNAME[0]}"
@@ -244,4 +245,3 @@ execute_arguments() {
 
 # Call the main function with command-line arguments
 main "$@"
-
