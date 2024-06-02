@@ -149,33 +149,38 @@ a-fstab() {
   echo "$fstab_entry"
 }
 
-# Git one
+# Git optimal
 go() {
     # Navigate to the git folder
     cd "$DIR/.." || return
 
     # Define commit message
-    local commit_message="$commit_message"
+    local commit_message="$1"
 
     # Display the current status of the repository
     git status
 
-    # Check if the branch is ahead of the remote
-    git status | grep "Your branch is ahead" > /dev/null
-    if [ $? -eq 0 ]; then
-        # If there are staged changes ahead of the master branch, push them
-        git add . && git commit -m "$commit_message" && git push origin master || return
-    else
-        # Check if there are changes not staged for commit
-        git status | grep "Changes not staged for commit" > /dev/null
-        if [ $? -eq 0 ]; then
-            # If there are unstaged changes, stage them, commit, and push
-            echo "Changes not staged for commit. Staging changes..."
-            git add . && git commit -m "$commit_message" && git push origin master || return
+    # Check if there are any changes in the working directory
+    if ! git diff --quiet; then
+        # Check if there are changes staged for commit
+        if ! git diff --cached --quiet; then
+            # If there are staged changes, commit them
+            git commit -m "$commit_message" || return
         else
-            # If there are no staged changes and no unstaged changes, pull changes from remote
-            git pull || return
+            # If there are changes but not staged, stage them and commit
+            git add . && git commit -m "$commit_message" || return
         fi
+    else
+        echo "No changes to commit."
+    fi
+
+    # Check if the branch is ahead of the remote
+    if git status | grep -q "Your branch is ahead"; then
+        # If there are changes ahead of the master branch, push them
+        git push origin master || return
+    else
+        # Pull changes from remote
+        git pull || return
     fi
 
     # Return to the previous directory
