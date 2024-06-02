@@ -37,7 +37,7 @@ alias b.pbs.sh="bash $SET_DIR/pbs.sh"
 alias b.bup="bash $TOO_DIR/bup.sh"
 
 # Define arrays for different file types
-files=(all stw pve pbs)
+files=(all stw pve)
 
 # Generate cat aliases
 for file in "${files[@]}"; do
