@@ -294,12 +294,6 @@ p-an() {
     read -p "Enter export [$nfs_export]: " new_nfs_export
     nfs_export=${new_nfs_export:-$nfs_export}
 
-    # Replace existing values in the config file
-    sed -i "s/^storage_id=.*/storage_id=\"$storage_id\"/" "$storage_config_file"
-    sed -i "s/^path=.*/path=\"$path\"/" "$storage_config_file"
-    sed -i "s/^server=.*/server=\"$server\"/" "$storage_config_file"
-    sed -i "s/^nfs_export=.*/nfs_export=\"$nfs_export\"/" "$storage_config_file"
-
     # Add the NFS storage with user-provided parameters
     pvesm add nfs "$storage_id" --path "$path" --server "$server" --export "$nfs_export"
 
