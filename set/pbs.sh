@@ -87,11 +87,14 @@ echo "placeholder"
 
 # Function to restore datastore
 add_datastore () {
-    
+	local datastore_config="$1"
+	local datastore_name="$2"
+	local datastore_path="$3"
+
  # Define the file path to the configuration file
     local file="/etc/proxmox-backup/datastore.cfg"
     # Define the combined lines to be checked within the file
-    local combined_lines="datastore: pobas\n\tpath /pobas"
+    local combined_lines="datastore: $datstore_name\n\tpath $datastore_path"
 
     # Check if the file exists
     if [[ -f "$file" ]]; then
@@ -168,7 +171,7 @@ execute_a_options() {
 
 # Function to execute all b options
 execute_b_options() {
-	add_datastore
+	add_datastore "$DATASTORE_CONFIG" "$DATASTORE_NAME" "$DATASTORE_PATH"
 }
 
 # Function to execute based on command-line arguments
