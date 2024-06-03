@@ -77,6 +77,34 @@ remove_subscription_notice() {
     esac
 }
 
+# BTRFS options
+btrfs_setup_raid1() {
+    local device1="$1"
+    local device2="$2"
+    local mount_point="$3"
+
+    # Update package lists and install btrfs-progs
+    sudo apt update
+    sudo apt install -y btrfs-progs
+
+    # Create Btrfs RAID 1 filesystem
+    sudo mkfs.btrfs -m raid1 -d raid1 "$device1" "$device2"
+
+    # Create mount point and mount the filesystem
+    sudo mkdir -p "$mount_point"
+    sudo mount "$device1" "$mount_point"
+
+    # Verify the RAID 1 setup
+    sudo btrfs filesystem df "$mount_point"
+
+    # Optionally add to fstab
+    local uuid
+    uuid=$(sudo blkid -s UUID -o value "$device1")
+    echo "UUID=$uuid $mount_point btrfs defaults 0 0" | sudo tee -a /etc/fstab
+}
+
+
+
 # ZFS options
 zfs_create_mount() {
     local function_name="${FUNCNAME[0]}"
@@ -293,20 +321,22 @@ read_user_choice() {
 # Function to execute based on user choice
 execute_choice() {
     case "$1" in
-        a) execute_a_options;;
+        a) a_xall;;
         a1) disable_repo;;
         a2) add_repo;;
         a3) update_upgrade;;
         a4) install_packages;;
         a5) remove_subscription_notice;;
-        b) execute_b_options;;
-        b1) zfs_create_mount;;
-        c) execute_c_options;;
-        c1) container_list_update;;
-        c2) container_download;;
-        c) execute_d_options;;
-        d1) container_bindmount;;
-        g) execute_g_options;;
+        b) b_xall;;
+        b1) btrfs_setup_raid1;;
+        c) c_xall;;
+        c1) zfs_create_mount;;
+        d) c_xall;;
+        d1) container_list_update;;
+        d2) container_download;;
+        e) d_xall;;
+        e1) container_bindmount;;
+        g) g_xall;;
         g1) gpupt_part_1;;
         g2) gpupt_part_2;;
         g3) gpupt_part_3;;
@@ -316,29 +346,32 @@ execute_choice() {
 
 # Functions for multiple calls
 
-execute_a_options() {
+a_xall() {
 	disable_repo
     	add_repo
     	update_upgrade
     	install_packages
     	remove_subscription_notice
 }
-execute_b_options() {
+b_xall() {
+	btrfs_setup_raid1 "$BTRFS_DEVICE_1" "$BTRFS_DEVICE2"
+}
+
+c_xall() {
 	zfs_create_mount "$ZFS_POOL_NAME1" "$ZFS_DATASET_NAME1" "$ZFS_MOUNTPOINT_NAME1"
 	zfs_create_mount "$ZFS_POOL_NAME2" "$ZFS_DATASET_NAME2" "$ZFS_MOUNTPOINT_NAME2"
 	zfs list
 }
-
-execute_c_options() {
+d_xall() {
    	container_list_update
 	container_download
 }
 
-execute_d_options() {
+e_xall() {
    	container_bindmount "$CT_ID_1" "$CT_MPH_1" "$CT_MPC_1"
    	container_bindmount "$CT_ID_2" "$CT_MPH_2" "$CT_MPC_2"
 }
-execute_g_options() {
+g_xall() {
     	gpupt_part_1
     	gpupt_part_2
     	gpupt_part_3
