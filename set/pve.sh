@@ -274,9 +274,10 @@ display_menu() {
     echo "b. -------------------"
     echo "b1. Zfs create and mount dataset"
     echo "c. -------------------"
-    echo "c1. Update Containers"
-    echo "c2. Install Containers"
-    echo "c3. Bindmount Containers"
+    echo "c1. Update  Container List"
+    echo "c2. Download Containers"
+    echo "d. -------------------"
+    echo "d1. Bindmount Containers"
     echo "g. -------------------"
     echo "g1. Enable gpu-pt Part 1"
     echo "g2. Enable gpu-pt Part 2"
@@ -303,7 +304,8 @@ execute_choice() {
         c) execute_c_options;;
         c1) container_list_update;;
         c2) container_download;;
-        c3) container_bindmount;;
+        c) execute_d_options;;
+        d1) container_bindmount;;
         g) execute_g_options;;
         g1) gpupt_part_1;;
         g2) gpupt_part_2;;
@@ -326,13 +328,16 @@ execute_b_options() {
 	zfs_create_mount "$ZFS_POOL_NAME2" "$ZFS_DATASET_NAME2" "$ZFS_MOUNTPOINT_NAME2"
 	zfs list
 }
+
 execute_c_options() {
    	container_list_update
 	container_download
+}
+
+execute_d_options() {
    	container_bindmount "$CT_ID_1" "$CT_MPH_1" "$CT_MPC_1"
    	container_bindmount "$CT_ID_2" "$CT_MPH_2" "$CT_MPC_2"
 }
-
 execute_g_options() {
     	gpupt_part_1
     	gpupt_part_2
