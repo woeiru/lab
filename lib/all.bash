@@ -98,20 +98,6 @@ a-count() {
 
 # Add an entry to fstab
 
-
-
-# selects a file in current folder and saves it as var 'sel'
-a-select() {
-    files=($(ls))
-    echo "Select a file by entering its index:"
-    for i in "${!files[@]}"; do
-        echo "$i: ${files[$i]}"
-    done
-    read -p "Enter the index of the file you want: " index
-    sel="${files[$index]}"
-    echo "$selected_file"
-}
-
 # Add a entry to fstab
 a-fstab() {
   if [ $# -eq 0 ]; then
@@ -147,6 +133,20 @@ a-fstab() {
 
   echo "Entry added to /etc/fstab:"
   echo "$fstab_entry"
+}
+
+
+
+# selects a file in current folder and saves it as var 'sel'
+a-select() {
+    files=($(ls))
+    echo "Select a file by entering its index:"
+    for i in "${!files[@]}"; do
+        echo "$i: ${files[$i]}"
+    done
+    read -p "Enter the index of the file you want: " index
+    sel="${files[$index]}"
+    echo "$selected_file"
 }
 
 # git all in one
@@ -196,3 +196,57 @@ gg() {
     cd - || return
 }
 
+zfs_dset_backup() {
+    local sourcepoolname="$1"
+    local destinationpoolname="$2"
+    local datasetname="$3"
+    
+    # Generate a unique snapshot name based on the current date and hour
+    local snapshot_name="$(date +%Y%m%d_%H)"
+    local full_snapshot_name="${sourcepoolname}/${datasetname}@${snapshot_name}"
+    
+    # Check if the snapshot already exists
+    if zfs list -t snapshot -o name | grep -q "^${full_snapshot_name}$"; then
+        echo "Snapshot ${full_snapshot_name} already exists."
+        read -p "Do you want to delete the existing snapshot? [y/N]: " delete_snapshot
+        
+        if [[ "$delete_snapshot" =~ ^[Yy]$ ]]; then
+            # Delete the existing snapshot
+            local delete_snapshot_cmd="zfs destroy ${full_snapshot_name}"
+            echo "Deleting snapshot: ${delete_snapshot_cmd}"
+            eval "${delete_snapshot_cmd}"
+        else
+            echo "Aborting backup to avoid overwriting existing snapshot."
+            return 1
+        fi
+    fi
+    
+    # Create the snapshot
+    local create_snapshot_cmd="zfs snapshot ${full_snapshot_name}"
+    echo "Creating snapshot: ${create_snapshot_cmd}"
+    eval "${create_snapshot_cmd}"
+    
+    # Determine the correct send and receive commands
+    if zfs list -H -t snapshot -o name | grep -q "^${destinationpoolname}/${datasetname}@"; then
+        # Get the name of the most recent snapshot in the destination pool
+        local last_snapshot=$(zfs list -H -t snapshot -o name | grep "^${destinationpoolname}/${datasetname}@" | tail -1)
+        
+        # Prepare the incremental send and receive commands
+        local send_cmd="zfs send -i ${last_snapshot} ${full_snapshot_name}"
+        local receive_cmd="zfs receive ${destinationpoolname}/${datasetname}"
+        
+        echo "Incremental send command: ${send_cmd} | ${receive_cmd}"
+    else
+        # Prepare the initial full send and receive commands
+        local send_cmd="zfs send ${full_snapshot_name}"
+        local receive_cmd="zfs receive ${destinationpoolname}/${datasetname}"
+        
+        echo "Initial send command: ${send_cmd} | ${receive_cmd}"
+    fi
+    
+    # Wait for user confirmation before executing the commands
+    read -p "Press enter to execute the above command..."
+    
+    # Execute the send and receive commands
+    eval "${send_cmd} | ${receive_cmd}"
+}
