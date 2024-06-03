@@ -84,23 +84,23 @@ btrfs_setup_raid1() {
     local mount_point="$3"
 
     # Update package lists and install btrfs-progs
-    sudo apt update
-    sudo apt install -y btrfs-progs
+    apt update
+    apt install -y btrfs-progs
 
     # Create Btrfs RAID 1 filesystem
-    sudo mkfs.btrfs -m raid1 -d raid1 "$device1" "$device2"
+    mkfs.btrfs -m raid1 -d raid1 "$device1" "$device2"
 
     # Create mount point and mount the filesystem
-    sudo mkdir -p "$mount_point"
-    sudo mount "$device1" "$mount_point"
+    mkdir -p "$mount_point"
+    mount "$device1" "$mount_point"
 
     # Verify the RAID 1 setup
-    sudo btrfs filesystem df "$mount_point"
+    btrfs filesystem df "$mount_point"
 
     # Optionally add to fstab
     local uuid
-    uuid=$(sudo blkid -s UUID -o value "$device1")
-    echo "UUID=$uuid $mount_point btrfs defaults 0 0" | sudo tee -a /etc/fstab
+    uuid=$(blkid -s UUID -o value "$device1")
+    echo "UUID=$uuid $mount_point btrfs defaults 0 0" | tee -a /etc/fstab
 }
 
 
