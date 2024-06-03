@@ -374,7 +374,7 @@ c_xall() {
 }
 d_xall() {
    	container_list_update
-	container_download
+	container_download "$CT_DL_1"
 }
 
 e_xall() {
