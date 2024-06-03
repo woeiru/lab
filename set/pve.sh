@@ -79,13 +79,10 @@ remove_subscription_notice() {
 
 # BTRFS options
 btrfs_setup_raid1() {
+    local function_name="${FUNCNAME[0]}"
     local device1="$1"
     local device2="$2"
     local mount_point="$3"
-
-    # Update package lists and install btrfs-progs
-    apt update
-    apt install -y btrfs-progs
 
     # Create Btrfs RAID 1 filesystem
     mkfs.btrfs -m raid1 -d raid1 "$device1" "$device2"
@@ -101,6 +98,8 @@ btrfs_setup_raid1() {
     local uuid
     uuid=$(blkid -s UUID -o value "$device1")
     echo "UUID=$uuid $mount_point btrfs defaults 0 0" | tee -a /etc/fstab
+
+    notify_status "$function_name" "executed ( $1 $2 $3 )"
 }
 
 
@@ -333,10 +332,10 @@ execute_choice() {
         b1) btrfs_setup_raid1;;
         c) c_xall;;
         c1) zfs_create_mount;;
-        d) c_xall;;
+        d) d_xall;;
         d1) container_list_update;;
         d2) container_download;;
-        e) d_xall;;
+        e) e_xall;;
         e1) container_bindmount;;
         g) g_xall;;
         g1) gpupt_part_1;;
@@ -356,7 +355,7 @@ a_xall() {
     	remove_subscription_notice
 }
 b_xall() {
-	btrfs_setup_raid1 "$BTRFS_DEVICE_1" "$BTRFS_DEVICE2"
+	btrfs_setup_raid1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
 c_xall() {
