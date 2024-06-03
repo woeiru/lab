@@ -97,8 +97,18 @@ btrfs_setup_raid1() {
 
     # Optionally add to fstab
     local uuid
-    uuid=$(blkid -s UUID -o value "$device1")
-    echo "UUID=$uuid $mount_point btrfs defaults 0 0" | tee -a /etc/fstab
+    uuid=$(sudo blkid -s UUID -o value "$device1")
+    local fstab_entry="UUID=$uuid $mount_point btrfs defaults,degraded 0 0"
+
+    echo "The following line will be added to /etc/fstab:"
+    echo "$fstab_entry"
+    read -p "Do you want to add this line to /etc/fstab? [y/N]: " response
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        echo "$fstab_entry" | sudo tee -a /etc/fstab
+        echo "Entry added to /etc/fstab."
+    else
+        echo "Entry not added to /etc/fstab."
+    fi
 
     notify_status "$function_name" "executed ( $1 $2 $3 )"
 }
