@@ -95,6 +95,20 @@ install_pakages () {
     fi
 }
    
+setup_sysstat() {
+  # Step 1: Install sysstat
+  install_pakages sysstat
+
+  # Step 2: Enable sysstat
+  sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
+
+  # Step 3: Start the sysstat service
+  systemctl enable sysstat
+  systemctl start sysstat
+
+  echo "sysstat has been installed, enabled, and started."
+}
+
 # Main function to execute based on command-line arguments or display main menu
 main() {
     if [ "$#" -eq 0 ]; then
@@ -129,9 +143,9 @@ read_user_choice() {
 execute_choice() {
     case "$1" in
         a) 	a_xall;;
-	dot1) 	check_and_append;;
-	ins1) 	install_pakages;;
-        git1) 	configure_git;;
+	a1) 	check_and_append;;
+	a2) 	install_pakages;;
+	t1) 	setup_sysstat;;
         ssh) 	ssh_xall;;
         ssh1) 	setup_sshd;;
         ssh2) 	setup_sshd_firewalld;;
@@ -146,6 +160,10 @@ a_xall() {
     	git_setup "$GIT_USERNAME" "$GIT_USERMAIL"
     	install_pakages "$PM1" "$PM1P2" "$PM1P3" 
 	exec bash
+}
+
+t_xall() {
+	setup_sysstat
 }
 
 ssh_xall() {
