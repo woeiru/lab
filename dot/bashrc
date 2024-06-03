@@ -57,6 +57,10 @@ alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
 alias d.pam='cd /usr.bash/pam_snapper'
 
+# filesystem management
+alias b='btrfs'
+alias bf='btrfs filesystem'
+
 # system configuration
 alias v.smb.conf='vim /etc/samba/smb.conf'
 alias v.smbusers='vim /etc/samba/smbusers'
