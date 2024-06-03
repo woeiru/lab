@@ -92,6 +92,7 @@ btrfs_setup_raid1() {
     mount "$device1" "$mount_point"
 
     # Verify the RAID 1 setup
+    btrfs filesystem show "$mount_point"
     btrfs filesystem df "$mount_point"
 
     # Optionally add to fstab
@@ -101,8 +102,6 @@ btrfs_setup_raid1() {
 
     notify_status "$function_name" "executed ( $1 $2 $3 )"
 }
-
-
 
 # ZFS options
 zfs_create_mount() {
