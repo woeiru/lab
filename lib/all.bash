@@ -267,7 +267,7 @@ du-c() {
     process_du() {
         local path=$1
         local depth=$2
-        du -bh -d "$depth" "$path" | sed "s|^$path/||" | sort -k2
+        du -bh -d "$depth" "$path" | sed "s|$path/||" | sort -k2
     }
 
     # Process and sort du output for both paths
@@ -275,13 +275,13 @@ du-c() {
     output2=$(process_du "$path2" "$depth")
 
     # Join the results on the common subpath
-    join -j 1 <(echo "$output1") <(echo "$output2") | awk '
+    join -j 2 <(echo "$output1") <(echo "$output2") | awk '
     BEGIN { OFS="\t"; print "Path", "Size1", "Size2", "Difference" }
     {
-        size1 = $2
-        path = $1
-        size2 = $3
-        diff = (substr(size1, 1, length(size1)-1) - substr(size2, 1, length(size2)-1))
-        print path, size1, size2, diff
+        size1 = substr($1, 1, length($1)-1)
+        size2 = substr($3, 1, length($3)-1)
+        diff = size1 - size2
+        print $2, $1, $3, diff
     }'
 }
+
