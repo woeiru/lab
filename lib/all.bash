@@ -249,4 +249,40 @@ zfs_dset_backup() {
     
     # Execute the send and receive commands
     eval "${send_cmd} | ${receive_cmd}"
+
+# data usage comparison
+du-c() {
+    local path1=$1
+    local path2=$2
+    local depth=$3
+
+    # Check if required arguments are provided
+    if [ -z "$path1" ] || [ -z "$path2" ] || [ -z "$depth" ]; then
+        echo "Usage: compare_du <path1> <path2> <depth>"
+        return 1
+    fi
+
+    # Function to remove base path and sort by subpath
+    process_du() {
+        local path=$1
+        local depth=$2
+        du -bh -d "$depth" "$path" | sed "s|^$path/||" | sort -k2
+    }
+
+    # Process and sort du output for both paths
+    output1=$(process_du "$path1" "$depth")
+    output2=$(process_du "$path2" "$depth")
+
+    # Join the results on the common subpath
+    join -j 1 <(echo "$output1") <(echo "$output2") | awk '
+    BEGIN { OFS="\t"; print "Path", "Size1", "Size2", "Difference" }
+    {
+        size1 = $2
+        path = $1
+        size2 = $3
+        diff = (substr(size1, 1, length(size1)-1) - substr(size2, 1, length(size2)-1))
+        print path, size1, size2, diff
+    }'
+}
+
 }
