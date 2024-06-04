@@ -303,9 +303,9 @@ du-c() {
             size2 = $3 + 0
             diff = abs(size1 - size2)
             if (size1 < size2) {
-                print subpath, red hr(size1), hr(size2) nc, hr(diff)
+                print subpath, red hr(size1) nc, hr(size2), hr(diff)
             } else if (size2 < size1) {
-                print subpath, hr(size1) nc, red hr(size2), hr(diff)
+                print subpath, hr(size1), red hr(size2) nc, hr(diff)
             } else {
                 print subpath, hr(size1), hr(size2), hr(diff)
             }
