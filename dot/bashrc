@@ -84,6 +84,11 @@ alias ee='exit'
 alias eb='exec bash'
 alias h='history'
 
+# Disk usage aliases
+alias u='du -bh -d1'
+alias uu='du -bh -d2'
+alias uuu='du -bh -d3'
+
 # Tree view aliases
 alias t='tree'
 alias tt='tree -L 2'
