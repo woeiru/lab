@@ -273,8 +273,12 @@ du-c() {
     output1=$(process_du "$path1" "$depth")
     output2=$(process_du "$path2" "$depth")
 
+    # Define ANSI color codes
+    RED='\033[0;31m'
+    NC='\033[0m'  # No Color
+
     # Join the results on the common subpath
-    join -j 2 <(echo "$output1") <(echo "$output2") | awk -v p1="$path1" -v p2="$path2" '
+    join -j 2 <(echo "$output1") <(echo "$output2") | awk -v p1="$path1" -v p2="$path2" -v red="$RED" -v nc="$NC" '
         BEGIN {
             OFS = "\t";
             print "Path", p1, p2, "Difference"
@@ -298,7 +302,13 @@ du-c() {
             size1 = $2 + 0
             size2 = $3 + 0
             diff = abs(size1 - size2)
-            print subpath, hr(size1), hr(size2), hr(diff)
+            if (size1 < size2) {
+                print subpath, red hr(size1), hr(size2) nc, hr(diff)
+            } else if (size2 < size1) {
+                print subpath, hr(size1) nc, red hr(size2), hr(diff)
+            } else {
+                print subpath, hr(size1), hr(size2), hr(diff)
+            }
         }' | column -t
 }
 
