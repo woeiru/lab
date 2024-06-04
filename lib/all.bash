@@ -249,6 +249,7 @@ zfs_dset_backup() {
     
     # Execute the send and receive commands
     eval "${send_cmd} | ${receive_cmd}"
+}
 
 # data usage comparison
 du-c() {
@@ -283,6 +284,4 @@ du-c() {
         diff = (substr(size1, 1, length(size1)-1) - substr(size2, 1, length(size2)-1))
         print path, size1, size2, diff
     }'
-}
-
 }
