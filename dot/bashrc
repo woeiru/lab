@@ -99,3 +99,6 @@ alias ttttt='tree -L 5'
 # Transactional update alias
 alias tu='transactional-update'
 
+# Sysstat
+alias sar='sar -d 1'
+alias ios='iostat -x 1'
