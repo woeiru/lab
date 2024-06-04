@@ -22,7 +22,7 @@ a() {
     while IFS= read -r line; do
         ((line_number++))
         if [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
-            comments[$line_number]="$line"
+            comments[$line_number]="${line:1}"  # Remove leading '#'
         fi
     done < "$file_name"
 
@@ -31,8 +31,8 @@ a() {
     while IFS= read -r line; do
         ((line_number++))
         if [[ $line =~ ^[a-zA-Z_][a-zA-Z0-9_-]*\(\) ]]; then
-            # Extract function name
-            func_name=$(echo "$line" | awk '{print $1}')
+            # Extract function name without parentheses
+            func_name=$(echo "$line" | awk -F '[(|)]' '{print $1}')
             # Calculate function size
             func_start_line=$line_number
             func_size=0
@@ -49,6 +49,7 @@ a() {
         fi
     done < "$file_name"
 }
+
 # count files in parent folder
 wc-f() {
     if [ $# -ne 2 ]; then
