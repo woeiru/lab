@@ -9,8 +9,9 @@ source "$DIR/../var/${BASE}.conf"
 # list all Functions in a given File
 a() {
     local file_name="${1:-${BASH_SOURCE[0]}}"
-    printf "%-20s | %-10s | %-10s | %-20s\n" "Function Name" "Size" "Header" "Comment"
-    printf "%-20s | %-10s | %-10s | %-20s\n" "--------------------" "----------" "----------" "-------"
+    printf "%-20s | %-60s | %-15s | %-15s\n" "Function Name" "Description" "Size ( Lines )" "Location ( Line )"
+    printf "%-20s | %-60s | %-15s | %-15s\n" "--------------------" "------------------------------------------------------" "---------------" "---------------"
+    printf "%-20s | %-60s | %-15s | %-15s\n" "--------------------" "------------------------------------------------------" "---------------" "---------------"
 
     # Initialize variables
     local last_comment_line=0
@@ -42,16 +43,14 @@ a() {
                 fi
             done < <(tail -n +$func_start_line "$file_name")
             # Print function name, function size, comment line number, and comment
-            printf "%-20s | %-10s | %-10s | %s\n" "$func_name" "$func_size" "${last_comment_line:-N/A}" "${comments[$last_comment_line]:-N/A}"
+            printf "%20s | %-60s | %-15s | %s\n" "$func_name" "${comments[$last_comment_line]:-N/A}" "$func_size" "${last_comment_line:-N/A}"
         elif [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
             last_comment_line=$line_number
         fi
     done < "$file_name"
 }
-
-
 # count files in parent folder
-a-count() {
+wc-f() {
     if [ $# -ne 2 ]; then
         echo "Usage: a-count <path> <1|2|3>"
         return 1
