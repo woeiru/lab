@@ -274,13 +274,31 @@ du-c() {
     output2=$(process_du "$path2" "$depth")
 
     # Join the results on the common subpath
-    join -j 2 <(echo "$output1") <(echo "$output2") | awk '
-    BEGIN { OFS="\t"; print "Path", "Size1", "Size2", "Difference" }
-    {
-        size1 = substr($1, 1, length($1)-1)
-        size2 = substr($3, 1, length($3)-1)
-        diff = size1 - size2
-        print $1, $2, $3, diff
-    }' | column -t
+    join -j 2 <(echo "$output1") <(echo "$output2") | awk -v p1="$path1" -v p2="$path2" '
+        BEGIN {
+            OFS = "\t";
+            print "Path", p1, p2, "Difference"
+        }
+        function abs(value) {
+            return (value < 0) ? -value : value
+        }
+        function hr(bytes) {
+            if (bytes >= 1073741824) {
+                return sprintf("%.2fG", bytes / 1073741824)
+            } else if (bytes >= 1048576) {
+                return sprintf("%.2fM", bytes / 1048576)
+            } else if (bytes >= 1024) {
+                return sprintf("%.2fK", bytes / 1024)
+            } else {
+                return bytes "B"
+            }
+        }
+        {
+            subpath = $1
+            size1 = $2 + 0
+            size2 = $3 + 0
+            diff = abs(size1 - size2)
+            print subpath, hr(size1), hr(size2), hr(diff)
+        }' | column -t
 }
 
