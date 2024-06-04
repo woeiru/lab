@@ -96,8 +96,6 @@ a-count() {
     esac | sort
 }
 
-# Add an entry to fstab
-
 # Add a entry to fstab
 a-fstab() {
   if [ $# -eq 0 ]; then
@@ -196,6 +194,7 @@ gg() {
     cd - || return
 }
 
+# zfs snapshot and send helper
 zfs_dset_backup() {
     local sourcepoolname="$1"
     local destinationpoolname="$2"
@@ -267,7 +266,7 @@ du-c() {
     process_du() {
         local path=$1
         local depth=$2
-        du -bh -d "$depth" "$path" | sed "s|$path/||" | sort -k2
+        du -b -d "$depth" "$path" | sed "s|$path/||" | sort -k2
     }
 
     # Process and sort du output for both paths
@@ -281,7 +280,7 @@ du-c() {
         size1 = substr($1, 1, length($1)-1)
         size2 = substr($3, 1, length($3)-1)
         diff = size1 - size2
-        print $2, $1, $3, diff
-    }'
+        print $1, $2, $3, diff
+    }' | column -t
 }
 
