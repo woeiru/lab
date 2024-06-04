@@ -8,11 +8,10 @@ source "$DIR/../var/${BASE}.conf"
 
 # list all Functions in a given File
 a() {
+    printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
+    printf "| %-18s | %-62s | %-15s | %-15s |\n" "Function Name" "Description" "Size - Lines" "Location - Line"
+    printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
     local file_name="${1:-${BASH_SOURCE[0]}}"
-    printf "%-20s | %-60s | %-15s | %-15s\n" "Function Name" "Description" "Size ( Lines )" "Location ( Line )"
-    printf "%-20s | %-60s | %-15s | %-15s\n" "--------------------" "------------------------------------------------------" "---------------" "---------------"
-    printf "%-20s | %-60s | %-15s | %-15s\n" "--------------------" "------------------------------------------------------" "---------------" "---------------"
-
     # Initialize variables
     local last_comment_line=0
     local line_number=0
@@ -22,7 +21,7 @@ a() {
     while IFS= read -r line; do
         ((line_number++))
         if [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
-            comments[$line_number]="${line:1}"  # Remove leading '#'
+            comments[$line_number]="${line:2}"  # Remove leading '# '
         fi
     done < "$file_name"
 
@@ -42,14 +41,16 @@ a() {
                     break
                 fi
             done < <(tail -n +$func_start_line "$file_name")
+            # Truncate the description if it's longer than 60 characters
+            truncated_desc=$(echo "${comments[$last_comment_line]:-N/A}" | awk '{ if (length($0) > 60) print substr($0, 1, 57) "..."; else print $0 }')
             # Print function name, function size, comment line number, and comment
-            printf "%20s | %-60s | %-15s | %s\n" "$func_name" "${comments[$last_comment_line]:-N/A}" "$func_size" "${last_comment_line:-N/A}"
+            printf "%20s | %-62s | %-15s | %s\n" "$func_name" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}"
         elif [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
             last_comment_line=$line_number
         fi
     done < "$file_name"
+    printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
 }
-
 # count files in parent folder
 wc-f() {
     if [ $# -ne 2 ]; then
