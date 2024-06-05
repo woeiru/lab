@@ -51,103 +51,6 @@ a() {
     done < "$file_name"
     printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
 }
-# count files in parent folder
-wc-f() {
-    if [ $# -ne 2 ]; then
-        echo "Usage: a-count <path> <1|2|3>"
-        return 1
-    fi
-
-    local path="$1"
-    local folder_type="$2"
-    
-    # Function to count files in a directory
-    count_files() {
-        local dir="$1"
-        find "$dir" -type f | wc -l
-    }
-    
-    # Function to print directory information
-    print_directory_info() {
-        local dir="$1"
-        local file_count=$(count_files "$dir")
-        printf "%-20s %5s\n" "$dir" "$file_count"
-    }
-    
-    # Main function logic
-    case "$folder_type" in
-        1)
-            find "$path" -mindepth 1 -maxdepth 1 -type d -name '[^.]*' | while read -r dir; do
-                print_directory_info "$dir"
-            done
-            ;;
-        2)
-            find "$path" -mindepth 1 -maxdepth 1 -type d -name '.*' | while read -r dir; do
-                print_directory_info "$dir"
-            done
-            ;;
-        3)
-            find "$path" -mindepth 1 -maxdepth 1 -type d \( -name '[^.]*' -o -name '.*' \) | while read -r dir; do
-                print_directory_info "$dir"
-            done
-            ;;
-        *)
-            echo "Invalid folder type. Please provide either 1, 2, or 3."
-            ;;
-    esac | sort
-}
-
-# Add a entry to fstab
-a-fstab() {
-  if [ $# -eq 0 ]; then
-    # List blkid output with line numbers
-    echo "Available devices:"
-    blkid | nl -v 1
-    echo "Usage: a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
-    return 0
-  elif [ $# -ne 6 ]; then
-    echo "Usage: a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
-    return 1
-  fi
-
-  line_number=$1
-  mount_point=$2
-  filesystem=$3
-  mount_options=$4
-  fsck_pass_number=$5
-  mount_at_boot_priority=$6
-
-  # Extract the UUID based on the specified line number
-  uuid=$(blkid | sed -n "${line_number}s/.*UUID=\"\([^\"]*\)\".*/\1/p")
-  if [ -z "$uuid" ]; then
-    echo "Error: No UUID found at line $line_number"
-    return 1
-  fi
-
-  # Create the fstab entry
-  fstab_entry="UUID=${uuid} ${mount_point} ${filesystem} ${mount_options} ${fsck_pass_number} ${mount_at_boot_priority}"
-
-  # Append the entry to /etc/fstab
-  echo "$fstab_entry" >> /etc/fstab
-
-  echo "Entry added to /etc/fstab:"
-  echo "$fstab_entry"
-}
-
-
-
-# selects a file in current folder and saves it as var 'sel'
-a-select() {
-    files=($(ls))
-    echo "Select a file by entering its index:"
-    for i in "${!files[@]}"; do
-        echo "$i: ${files[$i]}"
-    done
-    read -p "Enter the index of the file you want: " index
-    sel="${files[$index]}"
-    echo "$selected_file"
-}
-
 # git all in one
 gg() {
     # Navigate to the git folder
@@ -195,8 +98,139 @@ gg() {
     cd - || return
 }
 
+# count files in folder
+a-cff() {
+    if [ $# -ne 2 ]; then
+        echo "Usage: a-count <path> <1|2|3>"
+        return 1
+    fi
+
+    local path="$1"
+    local folder_type="$2"
+    
+    # Function to count files in a directory
+    count_files() {
+        local dir="$1"
+        find "$dir" -type f | wc -l
+    }
+    
+    # Function to print directory information
+    print_directory_info() {
+        local dir="$1"
+        local file_count=$(count_files "$dir")
+        printf "%-20s %5s\n" "$dir" "$file_count"
+    }
+    
+    # Main function logic
+    case "$folder_type" in
+        1)
+            find "$path" -mindepth 1 -maxdepth 1 -type d -name '[^.]*' | while read -r dir; do
+                print_directory_info "$dir"
+            done
+            ;;
+        2)
+            find "$path" -mindepth 1 -maxdepth 1 -type d -name '.*' | while read -r dir; do
+                print_directory_info "$dir"
+            done
+            ;;
+        3)
+            find "$path" -mindepth 1 -maxdepth 1 -type d \( -name '[^.]*' -o -name '.*' \) | while read -r dir; do
+                print_directory_info "$dir"
+            done
+            ;;
+        *)
+            echo "Invalid folder type. Please provide either 1, 2, or 3."
+            ;;
+    esac | sort
+}
+
+# fstab auto entry
+a-fau() {
+    # Perform blkid and filter entries with sd*
+    blkid_output=$(blkid | grep '/dev/sd*')
+
+    # Display filtered results
+    echo "Filtered entries with sd*:"
+    echo "$blkid_output"
+
+    # Prompt for the line number
+    read -p "Enter the line number to retrieve the UUID: " line_number
+
+    # Retrieve UUID based on the chosen line number
+    chosen_line=$(echo "$blkid_output" | sed -n "${line_number}p")
+
+    # Extract UUID from the chosen line
+    TARGET_UUID=$(echo "$chosen_line" | grep -oP ' UUID="\K[^"]*')
+
+    echo "The selected UUID is: $TARGET_UUID"
+
+    # Check if the device's UUID is already present in /etc/fstab
+    if grep -q "UUID=$TARGET_UUID" /etc/fstab; then
+        echo "This UUID is already present in /etc/fstab."
+    else
+        # Check if the script is run as root
+        if [ "$EUID" -ne 0 ]; then
+            echo "Please run this script as root to modify /etc/fstab."
+            exit 1
+        fi
+
+        # Append entry to /etc/fstab for auto-mounting
+        echo "UUID=$TARGET_UUID /mnt/auto auto defaults 0 0" >> /etc/fstab
+        echo "Entry added to /etc/fstab for auto-mounting."
+    fi
+}
+
+# fstab add custom entry
+a-fcu() {
+  if [ $# -eq 0 ]; then
+    # List blkid output with line numbers
+    echo "Available devices:"
+    blkid | nl -v 1
+    echo "Usage: a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
+    return 0
+  elif [ $# -ne 6 ]; then
+    echo "Usage: a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
+    return 1
+  fi
+
+  line_number=$1
+  mount_point=$2
+  filesystem=$3
+  mount_options=$4
+  fsck_pass_number=$5
+  mount_at_boot_priority=$6
+
+  # Extract the UUID based on the specified line number
+  uuid=$(blkid | sed -n "${line_number}s/.*UUID=\"\([^\"]*\)\".*/\1/p")
+  if [ -z "$uuid" ]; then
+    echo "Error: No UUID found at line $line_number"
+    return 1
+  fi
+
+  # Create the fstab entry
+  fstab_entry="UUID=${uuid} ${mount_point} ${filesystem} ${mount_options} ${fsck_pass_number} ${mount_at_boot_priority}"
+
+  # Append the entry to /etc/fstab
+  echo "$fstab_entry" >> /etc/fstab
+
+  echo "Entry added to /etc/fstab:"
+  echo "$fstab_entry"
+}
+
+# selects a file in current folder and saves it as var 'sel'
+a-sel() {
+    files=($(ls))
+    echo "Select a file by entering its index:"
+    for i in "${!files[@]}"; do
+        echo "$i: ${files[$i]}"
+    done
+    read -p "Enter the index of the file you want: " index
+    sel="${files[$index]}"
+    echo "$selected_file"
+}
+
 # zfs snapshot and send helper
-zfs_dset_backup() {
+a-zdb() {
     local sourcepoolname="$1"
     local destinationpoolname="$2"
     local datasetname="$3"
@@ -252,7 +286,7 @@ zfs_dset_backup() {
 }
 
 # data usage comparison
-du-c() {
+a-duc() {
     local path1=$1
     local path2=$2
     local depth=$3
