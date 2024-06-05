@@ -98,52 +98,6 @@ gg() {
     cd - || return
 }
 
-# count files in folder
-a-cff() {
-    if [ $# -ne 2 ]; then
-        echo "Usage: a-count <path> <1|2|3>"
-        return 1
-    fi
-
-    local path="$1"
-    local folder_type="$2"
-    
-    # Function to count files in a directory
-    count_files() {
-        local dir="$1"
-        find "$dir" -type f | wc -l
-    }
-    
-    # Function to print directory information
-    print_directory_info() {
-        local dir="$1"
-        local file_count=$(count_files "$dir")
-        printf "%-20s %5s\n" "$dir" "$file_count"
-    }
-    
-    # Main function logic
-    case "$folder_type" in
-        1)
-            find "$path" -mindepth 1 -maxdepth 1 -type d -name '[^.]*' | while read -r dir; do
-                print_directory_info "$dir"
-            done
-            ;;
-        2)
-            find "$path" -mindepth 1 -maxdepth 1 -type d -name '.*' | while read -r dir; do
-                print_directory_info "$dir"
-            done
-            ;;
-        3)
-            find "$path" -mindepth 1 -maxdepth 1 -type d \( -name '[^.]*' -o -name '.*' \) | while read -r dir; do
-                print_directory_info "$dir"
-            done
-            ;;
-        *)
-            echo "Invalid folder type. Please provide either 1, 2, or 3."
-            ;;
-    esac | sort
-}
-
 # fstab auto entry
 a-fau() {
     # Perform blkid and filter entries with sd*
@@ -215,6 +169,52 @@ a-fcu() {
 
   echo "Entry added to /etc/fstab:"
   echo "$fstab_entry"
+}
+
+# count files in folder
+a-cff() {
+    if [ $# -ne 2 ]; then
+        echo "Usage: a-count <path> <1|2|3>"
+        return 1
+    fi
+
+    local path="$1"
+    local folder_type="$2"
+    
+    # Function to count files in a directory
+    count_files() {
+        local dir="$1"
+        find "$dir" -type f | wc -l
+    }
+    
+    # Function to print directory information
+    print_directory_info() {
+        local dir="$1"
+        local file_count=$(count_files "$dir")
+        printf "%-20s %5s\n" "$dir" "$file_count"
+    }
+    
+    # Main function logic
+    case "$folder_type" in
+        1)
+            find "$path" -mindepth 1 -maxdepth 1 -type d -name '[^.]*' | while read -r dir; do
+                print_directory_info "$dir"
+            done
+            ;;
+        2)
+            find "$path" -mindepth 1 -maxdepth 1 -type d -name '.*' | while read -r dir; do
+                print_directory_info "$dir"
+            done
+            ;;
+        3)
+            find "$path" -mindepth 1 -maxdepth 1 -type d \( -name '[^.]*' -o -name '.*' \) | while read -r dir; do
+                print_directory_info "$dir"
+            done
+            ;;
+        *)
+            echo "Invalid folder type. Please provide either 1, 2, or 3."
+            ;;
+    esac | sort
 }
 
 # selects a file in current folder and saves it as var 'sel'
