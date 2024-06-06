@@ -94,7 +94,7 @@ vm() {
     fi
 }
 
-# remote vm-pt, migration, local vm-pt
+# remote vm-pth, migration, local vm-pth
 vm-get() {
     local vm_id="$1"
 
@@ -104,7 +104,7 @@ vm-get() {
         echo "VM found on node: $node"
 
         # Disable PCIe passthrough for the VM on the remote node
-        if ! ssh "$node" "vm-pt $vm_id off"; then
+        if ! ssh "$node" "vm-pth $vm_id off"; then
             echo "Failed to disable PCIe passthrough for VM on $node." >&2
             return 1
         fi
@@ -116,7 +116,7 @@ vm-get() {
         fi
 
         # Enable PCIe passthrough for the VM on the current node
-        if ! vm-pt "$vm_id" on; then
+        if ! vm-pth "$vm_id" on; then
             echo "Failed to enable PCIe passthrough for VM on $(hostname)." >&2
             return 1
         fi
