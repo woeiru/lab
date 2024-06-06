@@ -7,8 +7,6 @@ BASE="${FILE%.*}"
 source "$DIR/../var/${BASE}.conf"
 
 #list all Functions in a given File
-#!/bin/bash
-
 o() {
     printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
     printf "| %-18s | %-62s | %-15s | %-15s |\n" "Function Name" "Description" "Size - Lines" "Location - Line"
@@ -55,7 +53,7 @@ o() {
 }
 
 # transforming a folder to a subvolume
-o-trans() {
+o-tra() {
     if [ $# -ne 3 ]; then
         echo "Usage: o-trans <folder_name> <user_name> <C>"
         return 1
@@ -102,7 +100,7 @@ o-trans() {
 }
 
 # list folders and checks if they are subvolumes
-o-sub-chk() {
+o-sch() {
     local path="$1"
     local folder_type="$2"
     local filter="$3"
