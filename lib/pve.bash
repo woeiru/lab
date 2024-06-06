@@ -130,7 +130,7 @@ vm-get() {
 }
 
 # toggle Passthrough lines in the VM Config ON or OFF
-vm-pt() {
+vm-pth() {
     local vm_id="$1"
     local action="$2"
     local vm_conf="$CONF_PATH_QEMU/$vm_id.conf"
@@ -239,8 +239,8 @@ vm-chk() {
     fi
 }
 
-# rysnc /var/lib/vz to an external location
-p-rv() {
+# rysnc to an external location
+p-rsy() {
     # Check if the argument is provided
     if [ $# -eq 0 ]; then
         echo "Please provide the storage name as an argument."
@@ -258,7 +258,7 @@ p-rv() {
 
     # Display files to be transferred
     echo "Files to be transferred from $sy_vlv_source to $destination_path:"
-    rsync -avhn --human-readable "$sy_vlv_source/" "$destination_path/"
+    rsync -avhn "$sy_vlv_source/" "$destination_path/"
 
     # Ask for confirmation
     read -p "Do you want to proceed with the transfer? (y/n): " confirm

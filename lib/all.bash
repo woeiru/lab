@@ -171,6 +171,18 @@ a-fcu() {
   echo "$fstab_entry"
 }
 
+# selects filename and saves it in 'sel'
+a-sel() {
+    files=($(ls))
+    echo "Select a file by entering its index:"
+    for i in "${!files[@]}"; do
+        echo "$i: ${files[$i]}"
+    done
+    read -p "Enter the index of the file you want: " index
+    sel="${files[$index]}"
+    echo "$selected_file"
+}
+
 # count files in folder
 a-cff() {
     if [ $# -ne 2 ]; then
@@ -215,18 +227,6 @@ a-cff() {
             echo "Invalid folder type. Please provide either 1, 2, or 3."
             ;;
     esac | sort
-}
-
-# selects a file in current folder and saves it as var 'sel'
-a-sel() {
-    files=($(ls))
-    echo "Select a file by entering its index:"
-    for i in "${!files[@]}"; do
-        echo "$i: ${files[$i]}"
-    done
-    read -p "Enter the index of the file you want: " index
-    sel="${files[$index]}"
-    echo "$selected_file"
 }
 
 # zfs snapshot and send helper
