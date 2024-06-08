@@ -6,7 +6,7 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-#list all Functions in a given File
+# list all Functions in a given File
 pve() {
     printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
     printf "| %-18s | %-62s | %-15s | %-15s |\n" "Function Name" "Description" "Size - Lines" "Location - Line"
