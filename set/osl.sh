@@ -43,39 +43,6 @@ check_and_append() {
     fi
 }
 
-
-# Function to set global git configurations
-git_setup() {
-    local function_name="${FUNCNAME[0]}"
-    local username="$1"
-    local usermail="$2"
-
-    git config --global user.name "$username"
-    git config --global user.email "$usermail"
-
-    notify_status "$function_name" "executed ( $1 $2 )"
-}
-  
-setup_sshd() {
-    local function_name="${FUNCNAME[0]}"
-
-    systemctl enable sshd
-    systemctl start sshd
-    systemctl status sshd
-
-    notify_status "$function_name" "executed"
-}
-
-setup_sshd_firewalld() {
-    local function_name="${FUNCNAME[0]}"
-
-    firewall-cmd --state
-    firewall-cmd --add-service=ssh --permanent
-    firewall-cmd --reload
-
-    notify_status "$function_name" "executed"
-}
-
 install_pakages () {
     local function_name="${FUNCNAME[0]}"
     local pm="$1"
@@ -94,19 +61,16 @@ install_pakages () {
         return 1
     fi
 }
-   
-setup_sysstat() {
-  # Step 1: Install sysstat
-  install_pakages sysstat
 
-  # Step 2: Enable sysstat
-  sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
+ setup_firewalld() {
+    local function_name="${FUNCNAME[0]}" 
+    local firwalld_allow_service_1="$1"
 
-  # Step 3: Start the sysstat service
-  systemctl enable sysstat
-  systemctl start sysstat
+    firewall-cmd --state
+    firewall-cmd --add-service="$firewalld_allow_service_1" --permanent
+    firewall-cmd --reload
 
-  echo "sysstat has been installed, enabled, and started."
+    notify_status "$function_name" "executed"
 }
 
 # Main function to execute based on command-line arguments or display main menu
@@ -122,15 +86,9 @@ main() {
 # Function to display main menu
 display_menu() {
     echo "Choose an option:"
-
     echo "a.......................( include config )"
-    echo "dot1. source dotfiles"
-    echo "ins1. install pakages"
-    echo "git1. setup git"
     echo ""
-    echo "ssh.......................( include config )"
-    echo "ssh1. setup sshd"
-    echo "ssh2. setup sshd firewalld"
+    echo ""
 }
 
 # Function to read user choice
@@ -143,12 +101,9 @@ read_user_choice() {
 execute_choice() {
     case "$1" in
         a) 	a_xall;;
-	a1) 	check_and_append;;
-	a2) 	install_pakages;;
-	t1) 	setup_sysstat;;
-        ssh) 	ssh_xall;;
-        ssh1) 	setup_sshd;;
-        ssh2) 	setup_sshd_firewalld;;
+	a1) 	install_pakages;;
+	a2) 	firewall_setup;;
+        b) 	b_xall;;
         *) echo "Invalid choice";;
     esac
 }
@@ -156,19 +111,8 @@ execute_choice() {
 # Function to execute all
 
 a_xall() {
-	check_and_append "$DOT_FILE1" "$DOT_SOURCE1"
-    	git_setup "$GIT_USERNAME" "$GIT_USERMAIL"
     	install_pakages "$PM1" "$PM1P2" "$PM1P3" 
-	exec bash
-}
-
-t_xall() {
-	setup_sysstat
-}
-
-ssh_xall() {
-    	setup_sshd
-    	setup_sshd_firewalld
+	firwall_setup "$FIREWALLD_ALLOW_SERVICE_1"
 }
 
 # Function to execute based on command-line arguments
