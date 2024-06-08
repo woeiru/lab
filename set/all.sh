@@ -56,7 +56,7 @@ git_setup() {
     notify_status "$function_name" "executed ( $1 $2 )"
 }
 
- install_pakages () {
+install_packages () {
     local function_name="${FUNCNAME[0]}"
     local pman="$1"
     local pak1="$2"
@@ -75,28 +75,6 @@ git_setup() {
     fi
 } 
 
-setup_sshd() {
-    local function_name="${FUNCNAME[0]}"
-
-    systemctl enable sshd
-    systemctl start sshd
-    systemctl status sshd
-
-    notify_status "$function_name" "executed"
-}
-
-setup_sshd_firewalld() {
-    local function_name="${FUNCNAME[0]}"
-
-    firewall-cmd --state
-    firewall-cmd --add-service=ssh --permanent
-    firewall-cmd --reload
-
-    notify_status "$function_name" "executed"
-}
-
-
-   
 setup_sysstat() {
   # Step 1: Install sysstat
   install_pakages sysstat
@@ -124,15 +102,10 @@ main() {
 # Function to display main menu
 display_menu() {
     echo "Choose an option:"
-
     echo "a.......................( include config )"
     echo "dot1. source dotfiles"
     echo "ins1. install pakages"
     echo "git1. setup git"
-    echo ""
-    echo "ssh.......................( include config )"
-    echo "ssh1. setup sshd"
-    echo "ssh2. setup sshd firewalld"
 }
 
 # Function to read user choice
@@ -148,9 +121,6 @@ execute_choice() {
 	a1) 	check_and_append;;
 	a2) 	install_pakages;;
 	t1) 	setup_sysstat;;
-        ssh) 	ssh_xall;;
-        ssh1) 	setup_sshd;;
-        ssh2) 	setup_sshd_firewalld;;
         *) echo "Invalid choice";;
     esac
 }
@@ -160,17 +130,8 @@ execute_choice() {
 a_xall() {
 	check_and_append "$DOT_FILE1" "$DOT_SOURCE1"
     	git_setup "$GIT_USERNAME" "$GIT_USERMAIL"
-    	install_pakages "$PM1" "$PM1P2" "$PM1P3" 
+    	install_packages "$PMAN" "$PAK1" "$PAK2" 
 	exec bash
-}
-
-t_xall() {
-	setup_sysstat
-}
-
-ssh_xall() {
-    	setup_sshd
-    	setup_sshd_firewalld
 }
 
 # Function to execute based on command-line arguments

@@ -66,10 +66,23 @@ update_upgrade() {
 }
 
 # Function for installing packages
-install_packages() {
+install_packages () {
     local function_name="${FUNCNAME[0]}"
-    apt install -y proxmox-backup-server
-    notify_status "$function_name" "executed"
+    local pman="$1"
+    local pak1="$2"
+    local pak2="$3"
+   
+    "$pman" update
+    "$pman" upgrade -y
+    "$pman" install -y "$pak1" "$pak2"
+
+    # Check if installation was successful
+    if [ $? -eq 0 ]; then
+	    notify_status "$function_name" "executed ( $1 $2 $3 )"
+    else
+        notify_status "$function_name" "Failed to install  ( $1 $2 $3 )"
+        return 1
+    fi
 }
 
 # Function to remove subscription notice
