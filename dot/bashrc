@@ -12,13 +12,13 @@ TOO_DIR="$DIR/../too"
 
 # Source necessary scripts
 source "$LIB_DIR/all.bash"
-source "$LIB_DIR/ost.bash"
+source "$LIB_DIR/osl.bash"
 source "$LIB_DIR/pve.bash"
 
 # Define arrays for constructing aliases
 #
-files=(all osl ost pbs pve shr)
-bash_files=(all osl ost pbs pve shr)
+files=(all osl pbs pve shr)
+bash_files=(all osl pbs pve shr)
 
 # Generate bash execution aliases
 for file in "${bash_files[@]}"; do

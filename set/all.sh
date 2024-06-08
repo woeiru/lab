@@ -55,7 +55,26 @@ git_setup() {
 
     notify_status "$function_name" "executed ( $1 $2 )"
 }
-  
+
+ install_pakages () {
+    local function_name="${FUNCNAME[0]}"
+    local pman="$1"
+    local pak1="$2"
+    local pak2="$3"
+   
+    "$pman" update
+    "$pman" upgrade -y
+    "$pman" install -y "$pak1" "$pak2"
+
+    # Check if installation was successful
+    if [ $? -eq 0 ]; then
+	    notify_status "$function_name" "executed ( $1 $2 $3 )"
+    else
+        notify_status "$function_name" "Failed to install  ( $1 $2 $3 )"
+        return 1
+    fi
+} 
+
 setup_sshd() {
     local function_name="${FUNCNAME[0]}"
 
@@ -76,24 +95,7 @@ setup_sshd_firewalld() {
     notify_status "$function_name" "executed"
 }
 
-install_pakages () {
-    local function_name="${FUNCNAME[0]}"
-    local pm="$1"
-    local p2="$2"
-    local p3="$3"
-   
-    "$pm" update
-    "$pm" upgrade -y
-    "$pm" install -y "$p2" "$p3"
 
-    # Check if installation was successful
-    if [ $? -eq 0 ]; then
-	    notify_status "$function_name" "executed ( $1 $2 $3 )"
-    else
-        notify_status "$function_name" "Failed to install  ( $1 $2 $3 )"
-        return 1
-    fi
-}
    
 setup_sysstat() {
   # Step 1: Install sysstat
