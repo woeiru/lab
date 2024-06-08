@@ -64,10 +64,10 @@ install_pakages () {
 
  setup_firewalld() {
     local function_name="${FUNCNAME[0]}" 
-    local firwalld_allow_service_1="$1"
+    local fwd_as_1="$1"
 
     firewall-cmd --state
-    firewall-cmd --add-service="$firewalld_allow_service_1" --permanent
+    firewall-cmd --add-service="$fwd_as_1" --permanent
     firewall-cmd --reload
 
     notify_status "$function_name" "executed"
@@ -87,8 +87,8 @@ main() {
 display_menu() {
     echo "Choose an option:"
     echo "a.......................( include config )"
-    echo ""
-    echo ""
+    echo "a1 install pakages"
+    echo "a2 setup firewall"
 }
 
 # Function to read user choice
@@ -112,7 +112,7 @@ execute_choice() {
 
 a_xall() {
     	install_pakages "$PMAN" "$PAK1" "$PAK2" 
-	firwall_setup "$FIREWALLD_ALLOW_SERVICE_1"
+	firwall_setup "$FWD_AS_1"
 }
 
 # Function to execute based on command-line arguments
