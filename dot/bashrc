@@ -17,8 +17,8 @@ source "$LIB_DIR/pve.bash"
 
 # Define arrays for constructing aliases
 #
-files=(all ost pve pbs shr)
-bash_files=(all ost pve pbs shr)
+files=(all osl ost pbs pve shr)
+bash_files=(all osl ost pbs pve shr)
 
 # Generate bash execution aliases
 for file in "${bash_files[@]}"; do
@@ -55,7 +55,8 @@ alias ..='cd ..'
 alias d.l="cd $DIR/.."
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
-alias d.pam='cd /usr.bash/pam_snapper'
+alias d.pam='cd /usr/lib/pam_snapper'
+alias d.def='cd /etc/default'
 
 # filesystem management
 alias b='btrfs'
