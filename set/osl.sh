@@ -45,13 +45,13 @@ check_and_append() {
 
 install_pakages () {
     local function_name="${FUNCNAME[0]}"
-    local pm="$1"
-    local p2="$2"
-    local p3="$3"
+    local pman="$1"
+    local pak1="$2"
+    local pak2="$3"
    
-    "$pm" update
-    "$pm" upgrade -y
-    "$pm" install -y "$p2" "$p3"
+    "$pman" update
+    "$pman" upgrade -y
+    "$pman" install -y "$pak1" "$pak2"
 
     # Check if installation was successful
     if [ $? -eq 0 ]; then
@@ -111,7 +111,7 @@ execute_choice() {
 # Function to execute all
 
 a_xall() {
-    	install_pakages "$PM1" "$PM1P2" "$PM1P3" 
+    	install_pakages "$PMAN" "$PAK1" "$PAK2" 
 	firwall_setup "$FIREWALLD_ALLOW_SERVICE_1"
 }
 
