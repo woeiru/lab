@@ -7,7 +7,7 @@ BASE="${FILE%.*}"
 source "$DIR/../var/${BASE}.conf"
 
 # list all Functions in a given File
-a() {
+all() {
     printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
     printf "| %-18s | %-62s | %-15s | %-15s |\n" "Function Name" "Description" "Size - Lines" "Location - Line"
     printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
@@ -193,13 +193,13 @@ a-cff() {
     local path="$1"
     local folder_type="$2"
     
-    # Function to count files in a directory
+    # count files in a directory
     count_files() {
         local dir="$1"
         find "$dir" -type f | wc -l
     }
     
-    # Function to print directory information
+    # print directory information
     print_directory_info() {
         local dir="$1"
         local file_count=$(count_files "$dir")
@@ -297,7 +297,7 @@ a-duc() {
         return 1
     fi
 
-    # Function to remove base path and sort by subpath
+    # remove base path and sort by subpath
     process_du() {
         local path=$1
         local depth=$2
@@ -346,4 +346,175 @@ a-duc() {
             }
         }' | column -t
 }
+
+# Main function to execute based on command-line arguments or display main menu
+main() {
+    if [ "$#" -eq 0 ]; then
+        display_menu
+        read_user_choice
+    else
+        execute_arguments "$@"
+    fi
+}
+
+# Function to read user choice
+read_user_choice() {
+    read -p "Enter your choice: " choice
+    execute_choice "$choice"
+}
+
+# Function to execute based on command-line arguments
+execute_arguments() {
+    for arg in "$@"; do
+        execute_choice "$arg"
+    done
+}
+
+# evaluates if current value is what user wants
+prompt_for_input() {
+    local var_name=$1
+    local prompt_message=$2
+    local current_value=$3
+
+    read -p "$prompt_message [$current_value]: " input
+    if [ -n "$input" ]; then
+        eval "$var_name=\"$input\""
+    else
+        eval "$var_name=\"$current_value\""
+    fi
+}
+
+# display status notification
+notify_status() {
+    local function_name="$1"
+    local status="$2"
+
+    echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
+}
+# check if line exists in file and append it when not
+check_and_append() {
+    local file="$1"
+    local line="$2"
+
+    # Check if the line is already present in the file
+    if ! grep -Fxq "$line" "$file"; then
+        # If not, append the line to the file
+        echo "$line" >> "$file"
+        echo "Line appended to $file"
+    else
+        echo "Line already present in $file"
+    fi
+}
+
+# set global git configurations
+git_setup() {
+    local function_name="${FUNCNAME[0]}"
+    local username="$1"
+    local usermail="$2"
+
+    git config --global user.name "$username"
+    git config --global user.email "$usermail"
+
+    notify_status "$function_name" "executed ( $1 $2 )"
+}
+
+# install packages
+install_packages () {
+    local function_name="${FUNCNAME[0]}"
+    local pman="$1"
+    local pak1="$2"
+    local pak2="$3"
+   
+    "$pman" update
+    "$pman" upgrade -y
+    "$pman" install -y "$pak1" "$pak2"
+
+    # Check if installation was successful
+    if [ $? -eq 0 ]; then
+	    notify_status "$function_name" "executed ( $1 $2 $3 )"
+    else
+        notify_status "$function_name" "Failed to install  ( $1 $2 $3 )"
+        return 1
+    fi
+} 
+
+# setup sysstat
+setup_sysstat() {
+  # Step 1: Install sysstat
+  install_pakages sysstat
+
+  # Step 2: Enable sysstat
+  sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
+
+  # Step 3: Start the sysstat service
+  systemctl enable sysstat
+  systemctl start sysstat
+
+  echo "sysstat has been installed, enabled, and started."
+}
+
+# allow service in firewall
+ setup_firewalld() {
+    local function_name="${FUNCNAME[0]}" 
+    local fwd_as_1="$1"
+
+    firewall-cmd --state
+    firewall-cmd --add-service="$fwd_as_1" --permanent
+    firewall-cmd --reload
+
+    notify_status "$function_name" "executed"
+}
+
+# setting up standard user
+user_setup() {
+    local function_name="${FUNCNAME[0]}"
+    local username="$1"
+    local password="$2"
+
+    # Prompt for user details
+    prompt_for_input "username" "Enter new username" "$username"
+    while [ -z "$password" ]; do
+        prompt_for_input "password" "Enter password for $username" "$password"
+    done
+
+    # Create the user
+    useradd -m "$username"
+    echo "$username:$password" | chpasswd
+
+    # Check if user creation was successful
+    if id -u "$username" > /dev/null 2>&1; then
+        notify_status "$function_name" "User $username created successfully"
+    else
+        notify_status "$function_name" "Failed to create user $username"
+        return 1
+    fi
+}
+
+# check if service is running if not enable and start ist
+systemd_check() {
+    local function_name="${FUNCNAME[0]}"
+    local service="$1"
+    
+    # Enable and start smbd service
+    systemctl enable "$service"
+    systemctl start "$service"
+    
+    # Check if service is active
+    systemctl is-active --quiet "$service"
+    if [ $? -eq 0 ]; then
+        notify_status "$function_name" "$service is active"
+    else
+        read -p "$service is not active. Do you want to continue anyway? [Y/n] " choice
+        case "$choice" in 
+            [yY]|[yY][eE][sS])
+                notify_status "$function_name" "$service is not active"
+                ;;
+            *)
+                notify_status "$function_name" "$service is not active. Exiting."
+                return 1
+                ;;
+        esac
+    fi
+}
+
 

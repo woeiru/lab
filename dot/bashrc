@@ -14,6 +14,8 @@ TOO_DIR="$DIR/../too"
 source "$LIB_DIR/all.bash"
 source "$LIB_DIR/osl.bash"
 source "$LIB_DIR/pve.bash"
+source "$LIB_DIR/pbs.bash"
+source "$LIB_DIR/shr.bash"
 
 # Define arrays for constructing aliases
 #
