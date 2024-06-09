@@ -177,10 +177,10 @@ all-fec() {
     # List blkid output with line numbers
     echo "Available devices:"
     blkid | nl -v 1
-    echo "Usage: a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
+    all-gfc
     return 0
   elif [ $# -ne 6 ]; then
-    echo "Usage: a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
+    all-gfc
     return 1
   fi
 
@@ -225,7 +225,7 @@ all-vsf() {
 # <path> <folder_type: 1=regular, 2=hidden, 3=both>
 all-cff() {
     if [ $# -ne 2 ]; then
-        echo "Usage: a-count <path> <1|2|3>"
+	all-gfc
         return 1
     fi
 
@@ -274,7 +274,12 @@ all-zdb() {
     local sourcepoolname="$1"
     local destinationpoolname="$2"
     local datasetname="$3"
-    
+
+     if [ $# -ne 3 ]; then
+	all-gfc
+        return 1
+    fi
+
     # Generate a unique snapshot name based on the current date and hour
     local snapshot_name="$(date +%Y%m%d_%H)"
     local full_snapshot_name="${sourcepoolname}/${datasetname}@${snapshot_name}"
@@ -332,9 +337,8 @@ all-duc() {
     local path2=$2
     local depth=$3
 
-    # Check if required arguments are provided
-    if [ -z "$path1" ] || [ -z "$path2" ] || [ -z "$depth" ]; then
-        echo "Usage: compare_du <path1> <path2> <depth>"
+    if [ $# -ne 3 ]; then
+	all-gfc
         return 1
     fi
 
@@ -420,6 +424,11 @@ all-pfi() {
     local var_name=$1
     local prompt_message=$2
     local current_value=$3
+    
+    if [ $# -ne 3 ]; then
+	all-gfc
+        return 1
+    fi
 
     read -p "$prompt_message [$current_value]: " input
     if [ -n "$input" ]; then
@@ -434,7 +443,8 @@ all-pfi() {
 all-nos() {
     local function_name="$1"
     local status="$2"
-
+	
+   
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
 # check append create
@@ -442,6 +452,12 @@ all-nos() {
 all-cap() {
     local file="$1"
     local line="$2"
+    
+    if [ $# -ne 2 ]; then
+	all-gfc
+        return 1
+    fi
+
 
     # Check if the line is already present in the file
     if ! grep -Fxq "$line" "$file"; then
@@ -461,6 +477,11 @@ all-ipa () {
     local pak1="$2"
     local pak2="$3"
    
+    if [ $# -ne 3 ]; then
+	all-gfc
+        return 1
+    fi
+
     "$pman" update
     "$pman" upgrade -y
     "$pman" install -y "$pak1" "$pak2"
@@ -480,6 +501,11 @@ all-gst() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local usermail="$2"
+    
+    if [ $# -ne 2 ]; then
+	all-gfc
+        return 1
+    fi
 
     git config --global user.name "$username"
     git config --global user.email "$usermail"
@@ -508,6 +534,11 @@ all-sst() {
 all-fas() {
     local function_name="${FUNCNAME[0]}" 
     local fwd_as_1="$1"
+   
+    if [ $# -ne 1 ]; then
+	all-gfc
+        return 1
+    fi
 
     firewall-cmd --state
     firewall-cmd --add-service="$fwd_as_1" --permanent
@@ -522,6 +553,11 @@ all-ust() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local password="$2"
+   
+    if [ $# -ne 2 ]; then
+	all-gfc
+        return 1
+    fi
 
     # Prompt for user details
     all-pfi "username" "Enter new username" "$username"
@@ -548,6 +584,11 @@ all-sdc() {
     local function_name="${FUNCNAME[0]}"
     local service="$1"
     
+    if [ $# -ne 1 ]; then
+	all-gfc
+        return 1
+    fi
+
     # Enable and start smbd service
     systemctl enable "$service"
     systemctl start "$service"
@@ -576,6 +617,11 @@ all-rsf() {
   local foldername="$1"
   local old_string="$2"
   local new_string="$3"
+ 
+  if [ $# -ne 3 ]; then
+	all-gfc
+        return 1
+    fi
 
   # Navigate to the specified folder
   cd "$foldername" || { echo "Folder not found: $foldername"; return 1; }
