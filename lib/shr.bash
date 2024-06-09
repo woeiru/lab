@@ -13,6 +13,7 @@ all-laf "$file_name"
 }
 
 # Unified function to set up Samba
+# <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
 shr-smb() {
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
@@ -45,6 +46,7 @@ shr-smb() {
 }
 
 # apply Samba configuration
+# <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
 shr-sma() {
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
@@ -105,9 +107,14 @@ shr-sma() {
 }
 
 # setup Samba firewall rules
+# <function_name>
 shr-fws() {
     local function_name="${FUNCNAME[0]}"
-    # Open firewall ports
+    if [ $# -ne 1 ]; then
+	all-gfc
+        return 1
+    fi
+   # Open firewall ports
     if command -v firewall-cmd > /dev/null; then
         firewall-cmd --permanent --add-service=samba
         firewall-cmd --reload

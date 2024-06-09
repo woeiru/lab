@@ -13,13 +13,14 @@ all-laf "$file_name"
 }
 
 # if vm on node qm start if not vm-get before optional shutdown of other node
+# <vm_id> [s: optional, shutdown other node]
 vm() {
     # Retrieve and store hostname
     local hostname=$(hostname)
 
     # Check if vm_id argument is provided
     if [ -z "$1" ]; then
-        echo "Usage: vm <vm_id> [s]"
+	all-gfc
         return 1
     fi
 
@@ -55,8 +56,13 @@ vm() {
 }
 
 # remote vm-pth, migration, local vm-pth
+# <vm_id>
 vm-get() {
     local vm_id="$1"
+    if [ $# -ne 1 ]; then
+	all-gfc
+        return 1
+    fi
 
     # Call vm-chk to check if VM exists and get the node
     local node=$(vm-chk "$vm_id")
@@ -90,10 +96,15 @@ vm-get() {
 }
 
 # toggle Passthrough lines in the VM Config ON or OFF
+# <VM_ID> <on|off>
 vm-pth() {
     local vm_id="$1"
     local action="$2"
     local vm_conf="$CONF_PATH_QEMU/$vm_id.conf"
+    if [ $# -ne 2 ]; then
+	all-gfc
+        return 1
+    fi
 
     # Get hostname for variable names
     local hostname=$(hostname)
@@ -162,9 +173,14 @@ hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
 }
 
 # check if the VM exists on any node and return the node ID where it is found
+# <vm_id>
 vm-chk() {
     local vm_id="$1"
     local found_node=""
+    if [ $# -ne 1 ]; then
+	all-gfc
+        return 1
+    fi
 
     # Check if cluster_nodes array is populated
     if [ ${#cluster_nodes[@]} -eq 0 ]; then
@@ -200,11 +216,11 @@ vm-chk() {
 }
 
 # rysnc to an external location
+# <storage_name>
 pve-rsy() {
-    # Check if the argument is provided
-    if [ $# -eq 0 ]; then
-        echo "Please provide the storage name as an argument."
-        exit 1
+    if [ $# -ne 1 ]; then
+	all-gfc
+        return 1
     fi
 
     local storage_name="$1"
@@ -238,6 +254,7 @@ pve-rsy() {
 }
 
 # udev network interface
+# [interaction with user]
 pve-uni() {
     # Prompt user for the new interface name
     read -p "Enter the new interface name (e.g., nic1): " INTERFACE_NAME
@@ -277,6 +294,7 @@ pve-uni() {
 }
 
 # show backup notes
+# [folder: optional]
 pve-sbn() {
     # Get the absolute path of the specified folder or use the current directory if no argument is provided
     local folder="${1:-.}"
@@ -306,6 +324,7 @@ pve-sbn() {
 }
 
 # disable repository by commenting out lines starting with "deb" in specified files
+#  
 pve-dsr() {
     local function_name="${FUNCNAME[0]}"
     files=(
@@ -324,6 +343,7 @@ pve-dsr() {
 }
 
 # add a line to sources.list if it doesn't already exist
+#   
 pve-adr() {
     local function_name="${FUNCNAME[0]}"
     line_to_add="deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription"
@@ -338,6 +358,7 @@ pve-adr() {
 }
 
 # update package lists and upgrade packages
+#   
 pve-uup() {
     local function_name="${FUNCNAME[0]}"
     apt update
@@ -346,6 +367,7 @@ pve-uup() {
 }
 
 # remove subscription notice
+#   
 pve-rsn() {
     local function_name="${FUNCNAME[0]}"
     sed -Ezi.bak "s/(Ext\.Msg\.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
@@ -360,11 +382,16 @@ pve-rsn() {
 }
 
 # BTRFS options
+# <device1> <device2> <mount_point>
 pve-br1() {
     local function_name="${FUNCNAME[0]}"
     local device1="$1"
     local device2="$2"
     local mount_point="$3"
+    if [ $# -ne 3 ]; then
+	all-gfc
+        return 1
+    fi
 
     # Create Btrfs RAID 1 filesystem
     mkfs.btrfs -m raid1 -d raid1 "$device1" "$device2"
@@ -396,6 +423,7 @@ pve-br1() {
 }
 
 # zfs directory mount
+# <pool_name> <dataset_name> <mountpoint_path>
 pve-zdm() {
     local function_name="${FUNCNAME[0]}"
     local pool_name="$1"
@@ -403,6 +431,10 @@ pve-zdm() {
     local mountpoint_path="$3"
     local dataset_path="$pool_name/$dataset_name"
     local newly_created=false
+    if [ $# -ne 3 ]; then
+	all-gfc
+        return 1
+    fi
 
     # Check if the dataset exists, create it if not
     if ! zfs list "$dataset_path" &>/dev/null; then
@@ -436,7 +468,8 @@ pve-zdm() {
     all-nos "$function_name" "executed ( $pool_name / $dataset_name )"
 }
 
-# Container options 
+# container list update
+#  
 pve-clu() {
     local function_name="${FUNCNAME[0]}"
 
@@ -445,6 +478,8 @@ pve-clu() {
     all-nos "$function_name" "executed"
 }
 
+# container downloads
+#   
 pve-cdo() {
     local function_name="${FUNCNAME[0]}"
     local ct_dl="$1"
@@ -454,11 +489,17 @@ pve-cdo() {
 	all-nos "$function_name" "executed ( $ct_dl )"
 }
 
+# container bindmount
+# <vmid> <mphost> <mpcontainer>
 pve-cbm() {
     local function_name="${FUNCNAME[0]}"
     local vmid="$1"
     local mphost="$2"
     local mpcontainer="$3"
+    if [ $# -ne 3 ]; then
+	all-gfc
+        return 1
+    fi
 
     # Debugging output to check the parameters
     echo "Function: $function_name"
@@ -479,7 +520,8 @@ pve-cbm() {
 }
 
 
-# gpu passthrough step 
+# gpu passthrough step 1
+#  
 pve-gp1() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 1:"
@@ -503,6 +545,7 @@ pve-gp1() {
 }
 
 # gpu passthrough step 2
+#   
 pve-gp2() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 2:"
@@ -523,6 +566,7 @@ pve-gp2() {
 }
 
 # gpu passthrough step 3
+#   
 pve-gp3() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 3:"

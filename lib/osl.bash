@@ -13,6 +13,7 @@ all-laf "$file_name"
 }
 
 # transforming a folder to a subvolume
+# <folder_name> <user_name> <C>
 osl-tra() {
     if [ $# -ne 3 ]; then
         echo "Usage: osl-trans <folder_name> <user_name> <C>"
@@ -60,6 +61,7 @@ osl-tra() {
 }
 
 # list folders and checks if they are subvolumes
+# <path> <folder_type: 1=regular, 2=hidden, 3=both> <yes=show subvolumes, no=show non-subvolumes, all=show all>
 osl-sch() {
     local path="$1"
     local folder_type="$2"
@@ -67,7 +69,7 @@ osl-sch() {
 
     # Check if arguments are provided
     if [ -z "$path" ] || [ -z "$folder_type" ] || [ -z "$filter" ]; then
-        echo "Usage: o-sub-chk <path> <1|2|3> <yes|no|all>"
+        all-gfc
         return 1
     fi
 
