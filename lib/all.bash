@@ -457,7 +457,7 @@ all-pfi() {
 }
 
 # main display notification
-# all-nos <function_name> <status>
+# <function_name> <status>
 all-nos() {
     local function_name="$1"
     local status="$2"
@@ -466,7 +466,7 @@ all-nos() {
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
 # check append create
-# all-cap <file> <line>
+# <file> <line>
 all-cap() {
     local file="$1"
     local line="$2"
@@ -548,7 +548,7 @@ all-sst() {
 }
 
 # firewall allow service
-# <fwd_as_1>
+# <service>
 all-fas() {
     local function_name="${FUNCNAME[0]}" 
     local fwd_as_1="$1"
