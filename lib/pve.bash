@@ -386,7 +386,7 @@ update_upgrade() {
 }
 
 # Function to remove subscription notice
-remove_subscription_notice() {
+pve-rsn() {
     local function_name="${FUNCNAME[0]}"
     sed -Ezi.bak "s/(Ext\.Msg\.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
 

@@ -40,7 +40,7 @@ execute_a_options() {
     	add_repo
     	update_upgrade
     	install_packages
-    	remove_subscription_notice
+    	pve-rsn
 }
 
 # Function to execute all b options
