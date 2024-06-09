@@ -7,7 +7,7 @@ BASE="${FILE%.*}"
 source "$DIR/../var/${BASE}.conf"
 
 # overview
-# all <path-optional>
+# <path-optional>
 all() {
     local target="$1"
     if [[ -z "$target" ]]; then
@@ -27,18 +27,20 @@ all() {
         echo "Invalid target: $target"
     fi
 }
+
 # list all functions
-#  
+#   
 all-laf() {
-    printf "+----------+--------------------------------+--------------------------------------------------------------+------------+------------+\n"
-    printf "| %-8s | %-30s | %-60s | %-10s | %-10s |\n" "Function" "Description" "Usage Example" "Size" "Location"
-    printf "+----------+--------------------------------+--------------------------------------------------------------+------------+------------+\n"
+    printf "+----------+--------------------------------------------------------------+--------------------------------+------------+------------+\n"
+    printf "| %-8s | %-60s | %-30s | %-10s | %-10s |\n" "Function" "Usage Example" "Description" "Size" "Location"
+    printf "+----------+--------------------------------------------------------------+--------------------------------+------------+------------+\n"
     local file_name="$1"
     # Initialize variables
     local last_comment_line=0
     local second_last_comment_line=0
     local line_number=0
     declare -a comments=()
+
 
     # Read all comments into an array
     while IFS= read -r line; do
@@ -71,13 +73,15 @@ all-laf() {
             # Truncate the usage example if it's longer than 60 characters
             truncated_usage=$(echo "${comments[$last_comment_line]:-N/A}" | awk '{ if (length($0) > 60) print substr($0, 1, 57) "..."; else print $0 }')
             # Print function name, function size, comment line number, and comment
-            printf "%-10s | %-30s | %-60s | %-10s | %s\n" "$func_name" "$truncated_desc" "$truncated_usage" "$func_size" "${last_comment_line:-N/A}"
+            printf "%10s | %-60s | %-30s | %-10s | %s\n" "$func_name" "$truncated_usage" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}"
         elif [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
             second_last_comment_line=$last_comment_line
             last_comment_line=$line_number
         fi
     done < "$file_name"
-    printf "+----------+--------------------------------+--------------------------------------------------------------+------------+------------+\n"
+
+
+   printf "+----------+--------------------------------------------------------------+--------------------------------+------------+------------+\n"
     echo ""
 }
 
@@ -167,7 +171,7 @@ all-fea() {
 }
 
 # fstab entry custom
-# a-fec <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
+# <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
 all-fec() {
   if [ $# -eq 0 ]; then
     # List blkid output with line numbers
@@ -218,7 +222,7 @@ all-vsf() {
 }
 
 # count files folder
-# all-cff <path> <folder_type: 1=regular, 2=hidden, 3=both>
+# <path> <folder_type: 1=regular, 2=hidden, 3=both>
 all-cff() {
     if [ $# -ne 2 ]; then
         echo "Usage: a-count <path> <1|2|3>"
@@ -265,7 +269,7 @@ all-cff() {
 }
 
 # zfs snapshot send
-# all-zdb <sourcepoolname> <destinationpoolname> <datasetname>
+# <sourcepoolname> <destinationpoolname> <datasetname>
 all-zdb() {
     local sourcepoolname="$1"
     local destinationpoolname="$2"
@@ -322,7 +326,7 @@ all-zdb() {
 }
 
 # data usage comparison
-# all-duc <path1> <path2> <depth>
+# <path1> <path2> <depth>
 all-duc() {
     local path1=$1
     local path2=$2
@@ -411,7 +415,7 @@ all-exa() {
 }
 
 # main eval global
-# all-pfi <var_name> <prompt_message> <current_value>
+# <var_name> <prompt_message> <current_value>
 all-pfi() {
     local var_name=$1
     local prompt_message=$2
@@ -450,7 +454,7 @@ all-cap() {
 }
 
 # install packages
-# all-ipa <pman> <pak1> <pak2>
+# <pman> <pak1> <pak2>
 all-ipa () {
     local function_name="${FUNCNAME[0]}"
     local pman="$1"
@@ -471,7 +475,7 @@ all-ipa () {
 } 
 
 # git set config
-# all-gst <username> <usermail>
+# <username> <usermail>
 all-gst() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
@@ -500,7 +504,7 @@ all-sst() {
 }
 
 # firewall allow service
-# all-fas <fwd_as_1>
+# <fwd_as_1>
 all-fas() {
     local function_name="${FUNCNAME[0]}" 
     local fwd_as_1="$1"
@@ -513,7 +517,7 @@ all-fas() {
 }
 
 # user setup
-# all-ust <username> <password>
+# <username> <password>
 all-ust() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
@@ -539,7 +543,7 @@ all-ust() {
 }
 
 # systemd setup service
-# all-sdc <service>
+# <service>
 all-sdc() {
     local function_name="${FUNCNAME[0]}"
     local service="$1"
@@ -567,7 +571,7 @@ all-sdc() {
 }
 
 # replace strings
-# all-rsf <foldername> <old_string> <new_string>
+# <foldername> <old_string> <new_string>
 all-rsf() {
   local foldername="$1"
   local old_string="$2"
@@ -600,6 +604,7 @@ all-rsf() {
 }
 
 # Function to get the comment of the calling function
+#   
 all-gfc() {
     local caller_line=$(caller 0)
     local caller_function=$(echo $caller_line | awk '{print $2}')
