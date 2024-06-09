@@ -7,6 +7,7 @@ BASE="${FILE%.*}"
 source "$DIR/../var/${BASE}.conf"
 
 # overview
+# all .
 all() {
     local target="$1"
     if [[ -z "$target" ]]; then
@@ -26,15 +27,17 @@ all() {
         echo "Invalid target: $target"
     fi
 }
+# test
+# test2
 
-# list all functions
 all-laf() {
-    printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
-    printf "| %-18s | %-62s | %-15s | %-15s |\n" "Function Name" "Description" "Size - Lines" "Location - Line"
-    printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
+    printf "+----------+--------------------------------+--------------------------------------------------------------+------------+------------+\n"
+    printf "| %-8s | %-30s | %-60s | %-10s | %-10s |\n" "Function" "Description" "Usage Example" "Size" "Location"
+    printf "+----------+--------------------------------+--------------------------------------------------------------+------------+------------+\n"
     local file_name="$1"
     # Initialize variables
     local last_comment_line=0
+    local second_last_comment_line=0
     local line_number=0
     declare -a comments=()
 
@@ -43,6 +46,8 @@ all-laf() {
         ((line_number++))
         if [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
             comments[$line_number]="${line:2}"  # Remove leading '# '
+            second_last_comment_line=$last_comment_line
+            last_comment_line=$line_number
         fi
     done < "$file_name"
 
@@ -62,17 +67,23 @@ all-laf() {
                     break
                 fi
             done < <(tail -n +$func_start_line "$file_name")
-            # Truncate the description if it's longer than 60 characters
-            truncated_desc=$(echo "${comments[$last_comment_line]:-N/A}" | awk '{ if (length($0) > 60) print substr($0, 1, 57) "..."; else print $0 }')
+            # Truncate the description if it's longer than 30 characters
+            truncated_desc=$(echo "${comments[$second_last_comment_line]:-N/A}" | awk '{ if (length($0) > 30) print substr($0, 1, 27) "..."; else print $0 }')
+            # Truncate the usage example if it's longer than 60 characters
+            truncated_usage=$(echo "${comments[$last_comment_line]:-N/A}" | awk '{ if (length($0) > 60) print substr($0, 1, 57) "..."; else print $0 }')
             # Print function name, function size, comment line number, and comment
-            printf "%20s | %-62s | %-15s | %s\n" "$func_name" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}"
+            printf "%-10s | %-30s | %-60s | %-10s | %s\n" "$func_name" "$truncated_desc" "$truncated_usage" "$func_size" "${last_comment_line:-N/A}"
         elif [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
+            second_last_comment_line=$last_comment_line
             last_comment_line=$line_number
         fi
     done < "$file_name"
-    printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
+    printf "+----------+--------------------------------+--------------------------------------------------------------+------------+------------+\n"
+    echo ""
 }
+
 # git all in
+#
 all-gio() {
     # Navigate to the git folder
     cd "$DIR/.." || return
@@ -156,6 +167,7 @@ all-fea() {
 }
 
 # fstab entry custom
+# a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
 all-fec() {
   if [ $# -eq 0 ]; then
     # List blkid output with line numbers
