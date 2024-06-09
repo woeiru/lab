@@ -85,10 +85,10 @@ add_repo() {
     file="/etc/apt/sources.list"
 
     if grep -Fxq "$line_to_add" "$file"; then
-        notify_status "$function_name" "Line already exists in $file"
+        all-nos "$function_name" "Line already exists in $file"
     else
         echo "$line_to_add" >> "$file"
-        notify_status "$function_name" "Line added to $file"
+        all-nos "$function_name" "Line added to $file"
     fi
 }
 
@@ -97,7 +97,7 @@ update_upgrade() {
     local function_name="${FUNCNAME[0]}"
     apt update
     apt upgrade -y
-    notify_status "$function_name" "Package lists updated and packages upgraded"
+    all-nos "$function_name" "Package lists updated and packages upgraded"
 }
 
 # Function to restore datastore
