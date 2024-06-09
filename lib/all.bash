@@ -28,19 +28,35 @@ all() {
     fi
 }
 
-# list all functions
-#   
 all-laf() {
-    printf "+----------+--------------------------------------------------------------+--------------------------------+------------+------------+\n"
-    printf "| %-8s | %-60s | %-30s | %-10s | %-10s |\n" "Function" "Arguments" "Description" "Size" "Location"
-    printf "+----------+--------------------------------------------------------------+--------------------------------+------------+------------+\n"
+    # Column width parameters
+    local col_width_1=10
+    local col_width_2=40
+    local col_width_3=50
+    local col_width_4=10
+    local col_width_5=10
+
+    # Function to print a separator line
+    print_separator() {
+        printf "+%s+%s+%s+%s+%s+\n" \
+            "$(printf '%*s' $col_width_1 '' | tr ' ' '-')" \
+            "$(printf '%*s' $col_width_2 '' | tr ' ' '-')" \
+            "$(printf '%*s' $col_width_3 '' | tr ' ' '-')" \
+            "$(printf '%*s' $col_width_4 '' | tr ' ' '-')" \
+            "$(printf '%*s' $col_width_5 '' | tr ' ' '-')"
+    }
+
+    # Print table header
+    print_separator
+    printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s |\n" \
+        "Function" "Arguments" "Description" "Size" "Location"
+    print_separator
+
     local file_name="$1"
-    # Initialize variables
     local last_comment_line=0
     local second_last_comment_line=0
     local line_number=0
     declare -a comments=()
-
 
     # Read all comments into an array
     while IFS= read -r line; do
@@ -68,20 +84,20 @@ all-laf() {
                     break
                 fi
             done < <(tail -n +$func_start_line "$file_name")
-            # Truncate the description if it's longer than 30 characters
-            truncated_desc=$(echo "${comments[$second_last_comment_line]:-N/A}" | awk '{ if (length($0) > 30) print substr($0, 1, 27) "..."; else print $0 }')
-            # Truncate the usage example if it's longer than 60 characters
-            truncated_usage=$(echo "${comments[$last_comment_line]:-N/A}" | awk '{ if (length($0) > 60) print substr($0, 1, 57) "..."; else print $0 }')
+            # Truncate the description if it's longer than col_width_3 characters
+            truncated_desc=$(echo "${comments[$second_last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_3"') print substr($0, 1, '"$col_width_3 - 3"') ".."; else print $0 }')
+            # Truncate the usage example if it's longer than col_width_2 characters
+            truncated_usage=$(echo "${comments[$last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_2"') print substr($0, 1, '"$col_width_2 - 3"') ".."; else print $0 }')
             # Print function name, function size, comment line number, and comment
-            printf "%10s | %-60s | %-30s | %-10s | %s\n" "$func_name" "$truncated_usage" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}"
+            printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s |\n" \
+                "$func_name" "$truncated_usage" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}"
         elif [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
             second_last_comment_line=$last_comment_line
             last_comment_line=$line_number
         fi
     done < "$file_name"
 
-
-   printf "+----------+--------------------------------------------------------------+--------------------------------+------------+------------+\n"
+    print_separator
     echo ""
 }
 
