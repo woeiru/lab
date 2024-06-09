@@ -53,7 +53,7 @@ pbs() {
 }
 
 # disable repository by commenting out lines starting with "deb" in specified files
-setup_gpg() {
+pbs-sgp() {
     # Download the GPG key
     wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
 
@@ -79,7 +79,7 @@ setup_gpg() {
 }
 
 # add a line to sources.list if it doesn't already exist
-add_repo() {
+pbs-adr() {
     local function_name="${FUNCNAME[0]}"
     line_to_add="deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription"
     file="/etc/apt/sources.list"
@@ -93,7 +93,7 @@ add_repo() {
 }
 
 # update package lists and upgrade packages
-update_upgrade() {
+pbs-uup() {
     local function_name="${FUNCNAME[0]}"
     apt update
     apt upgrade -y

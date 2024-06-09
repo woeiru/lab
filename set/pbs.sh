@@ -23,9 +23,9 @@ display_menu() {
 # execute based on user choice
 execute_choice() {
     case "$1" in
-	a1) setup_gpg;;
-        a2) add_repo;;
-        a3) update_upgrade;;
+	a1) pbs-sgp;;
+        a2) pbs-adr;;
+        a3) pbs-uup;;
         a4) install_packages;;
         b1) add_datastore;;
         a) execute_a_options;;
@@ -36,9 +36,9 @@ execute_choice() {
 
 # execute all a options
 execute_a_options() {
-	setup_gpg
-    	add_repo
-    	update_upgrade
+	pbs-sgp
+    	pbs-adr
+    	pbs-uup
     	install_packages
     	pve-rsn
 }
