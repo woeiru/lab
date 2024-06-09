@@ -6,15 +6,16 @@ systemctl stop sshd
 ### Build container
 podman build . -t iq --format docker
 
+### Create corosync folder if it not exists and set permissions
+mkdir /etc/corosync
+chown 701:701 /etc/corosync
+
+### In case SELinux is blocking container folders  
+chcon -Rt container_file_t /etc/corosync  
+chcon -Rt svirt_sandbox_file_t /etc/corosync  
+
 ### Run container
-podman run -d \  
-  --name=qd \  
-  --cap-drop=ALL \ 
-  --privileged \  
-  -p 22:22 \  
-  -p 5403:5403 \  
-  -v /etc/corosync:/etc/corosync \  
-  iqd
+podman run -d --name=qd --cap-drop=ALL --privileged -p 22:22 -p 5403:5403 -v /etc/corosync:/etc/corosync iq
 
 ### Enable sshd as Su inside container
 podman exec -ti qd bash  
@@ -29,21 +30,10 @@ pvecm qdevice setup <IP QDEVICE HOST> -f
 podman commit qd iqdx
 
 ### Run container this time without port forwarding the ssh port
-podman run -d \  
-  --name=qdx \  
-  --cap-drop=ALL \  
-  --privileged \  
-  -p 5403:5403 \  
-  -v /etc/corosync:/etc/corosync \  
-  iqdx
+podman run -d --name=qdx --cap-drop=ALL --privileged -p 5403:5403 -v /etc/corosync:/etc/corosync iqdx
 
 ### Re-enable sshd on the host
 systemctl start sshd
-
-# Troubleshooting  
-## On qdevice host - In case SELinux is blocking container folders  
-chcon -R -t container_file_t /etc/corosync  
-sudo chcon -Rt svirt_sandbox_file_t /etc/corosync  
 
 ## On Node 1 - In case pvecm qdevice setup don't work  
 node2_ip="192.168.178.220"  
