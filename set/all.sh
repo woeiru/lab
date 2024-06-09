@@ -32,7 +32,7 @@ execute_choice() {
 a_xall() {
 	all-cap "$DOT_FILE1" "$DOT_SOURCE1"
     	all-gst "$GIT_USERNAME" "$GIT_USERMAIL"
-    	install_packages "$PMAN" "$PAK1" "$PAK2" 
+    	all-ipa "$PMAN" "$PAK1" "$PAK2" 
 	exec bash
 }
 
