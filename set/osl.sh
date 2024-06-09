@@ -5,7 +5,10 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE=$(basename "$BASH_SOURCE")
 BASE="${FILE%.*}"
 
-# Source config.sh using the absolute path
+# source lib and var
+source "$DIR/../lib/all.bash"
+source "$DIR/../var/all.bash"
+source "$DIR/../lib/${BASE}.bash"
 source "$DIR/../var/${BASE}.conf"
 
 # main setup function
