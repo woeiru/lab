@@ -7,7 +7,7 @@ BASE="${FILE%.*}"
 source "$DIR/../var/${BASE}.conf"
 
 # overview
-# all .
+# all <path-optional>
 all() {
     local target="$1"
     if [[ -z "$target" ]]; then
@@ -27,9 +27,8 @@ all() {
         echo "Invalid target: $target"
     fi
 }
-# test
-# test2
-
+# list all functions
+#  
 all-laf() {
     printf "+----------+--------------------------------+--------------------------------------------------------------+------------+------------+\n"
     printf "| %-8s | %-30s | %-60s | %-10s | %-10s |\n" "Function" "Description" "Usage Example" "Size" "Location"
@@ -83,7 +82,7 @@ all-laf() {
 }
 
 # git all in
-#
+#  
 all-gio() {
     # Navigate to the git folder
     cd "$DIR/.." || return
@@ -131,6 +130,7 @@ all-gio() {
 }
 
 # fstab entry auto
+#   
 all-fea() {
     # Perform blkid and filter entries with sd*
     blkid_output=$(blkid | grep '/dev/sd*')
@@ -167,7 +167,7 @@ all-fea() {
 }
 
 # fstab entry custom
-# a-fstab <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
+# a-fec <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
 all-fec() {
   if [ $# -eq 0 ]; then
     # List blkid output with line numbers
@@ -205,6 +205,7 @@ all-fec() {
 }
 
 # variable select filename
+#   
 all-vsf() {
     files=($(ls))
     echo "Select a file by entering its index:"
@@ -217,8 +218,8 @@ all-vsf() {
 }
 
 # count files folder
+# all-cff <path> <folder_type: 1=regular, 2=hidden, 3=both>
 all-cff() {
-all-gfc
     if [ $# -ne 2 ]; then
         echo "Usage: a-count <path> <1|2|3>"
         return 1
@@ -264,6 +265,7 @@ all-gfc
 }
 
 # zfs snapshot send
+# all-zdb <sourcepoolname> <destinationpoolname> <datasetname>
 all-zdb() {
     local sourcepoolname="$1"
     local destinationpoolname="$2"
@@ -320,6 +322,7 @@ all-zdb() {
 }
 
 # data usage comparison
+# all-duc <path1> <path2> <depth>
 all-duc() {
     local path1=$1
     local path2=$2
@@ -382,6 +385,7 @@ all-duc() {
 }
 
 # main setup function
+#   
 all-mai() {
     if [ "$#" -eq 0 ]; then
         display_menu
@@ -392,12 +396,14 @@ all-mai() {
 }
 
 # main read choice
+#   
 all-ruc() {
     read -p "Enter your choice: " choice
     execute_choice "$choice"
 }
 
 # main execute choice
+#   
 all-exa() {
     for arg in "$@"; do
         execute_choice "$arg"
@@ -405,6 +411,7 @@ all-exa() {
 }
 
 # main eval global
+# all-pfi <var_name> <prompt_message> <current_value>
 all-pfi() {
     local var_name=$1
     local prompt_message=$2
@@ -419,6 +426,7 @@ all-pfi() {
 }
 
 # main display notification
+# all-nos <function_name> <status>
 all-nos() {
     local function_name="$1"
     local status="$2"
@@ -426,6 +434,7 @@ all-nos() {
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
 # check append create
+# all-cap <file> <line>
 all-cap() {
     local file="$1"
     local line="$2"
@@ -441,6 +450,7 @@ all-cap() {
 }
 
 # install packages
+# all-ipa <pman> <pak1> <pak2>
 all-ipa () {
     local function_name="${FUNCNAME[0]}"
     local pman="$1"
@@ -461,6 +471,7 @@ all-ipa () {
 } 
 
 # git set config
+# all-gst <username> <usermail>
 all-gst() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
@@ -473,6 +484,7 @@ all-gst() {
 }
 
 # setup sysstat
+#   
 all-sst() {
   # Step 1: Install sysstat
   install_pakages sysstat
@@ -488,6 +500,7 @@ all-sst() {
 }
 
 # firewall allow service
+# all-fas <fwd_as_1>
 all-fas() {
     local function_name="${FUNCNAME[0]}" 
     local fwd_as_1="$1"
@@ -500,6 +513,7 @@ all-fas() {
 }
 
 # user setup
+# all-ust <username> <password>
 all-ust() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
@@ -525,6 +539,7 @@ all-ust() {
 }
 
 # systemd setup service
+# all-sdc <service>
 all-sdc() {
     local function_name="${FUNCNAME[0]}"
     local service="$1"
@@ -551,8 +566,8 @@ all-sdc() {
     fi
 }
 
-# this is a test
-# all-rsf "/path/to/folder" "old_string" "new_string"
+# replace strings
+# all-rsf <foldername> <old_string> <new_string>
 all-rsf() {
   local foldername="$1"
   local old_string="$2"
@@ -607,5 +622,3 @@ all-gfc() {
     # Display the comment
     echo "$comment"
 }
-
-
