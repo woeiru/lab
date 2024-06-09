@@ -8,7 +8,7 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# Function to display main menu
+# Function to display all-main menu
 display_menu() {
     echo "Choose an option:"
     echo "a.......................( include config )"
@@ -33,6 +33,6 @@ a_xall() {
 	firwall_setup "$FWD_AS_1"
 }
 
-# Call the main function with command-line arguments
-main "$@"
+# Call the all-main function with command-line arguments
+all-main "$@"
 

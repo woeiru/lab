@@ -52,7 +52,7 @@ all() {
     printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
 }
 # git all in one
-gg() {
+all-gio() {
     # Navigate to the git folder
     cd "$DIR/.." || return
 
@@ -347,31 +347,31 @@ a-duc() {
         }' | column -t
 }
 
-# Main function to execute based on command-line arguments or display main menu
-main() {
+# Main function to execute based on command-line arguments or display all-main menu
+all-main() {
     if [ "$#" -eq 0 ]; then
         display_menu
-        read_user_choice
+        all-ruc
     else
-        execute_arguments "$@"
+        all-exa "$@"
     fi
 }
 
 # Function to read user choice
-read_user_choice() {
+all-ruc() {
     read -p "Enter your choice: " choice
     execute_choice "$choice"
 }
 
 # Function to execute based on command-line arguments
-execute_arguments() {
+all-exa() {
     for arg in "$@"; do
         execute_choice "$arg"
     done
 }
 
 # evaluates if current value is what user wants
-prompt_for_input() {
+all-pfi() {
     local var_name=$1
     local prompt_message=$2
     local current_value=$3
@@ -385,14 +385,14 @@ prompt_for_input() {
 }
 
 # display status notification
-notify_status() {
+all-nos() {
     local function_name="$1"
     local status="$2"
 
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
 # check if line exists in file and append it when not
-check_and_append() {
+all-cap() {
     local file="$1"
     local line="$2"
 
@@ -407,7 +407,7 @@ check_and_append() {
 }
 
 # set global git configurations
-git_setup() {
+all-gst() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local usermail="$2"
@@ -415,7 +415,7 @@ git_setup() {
     git config --global user.name "$username"
     git config --global user.email "$usermail"
 
-    notify_status "$function_name" "executed ( $1 $2 )"
+    all-nos "$function_name" "executed ( $1 $2 )"
 }
 
 # install packages
@@ -431,15 +431,15 @@ install_packages () {
 
     # Check if installation was successful
     if [ $? -eq 0 ]; then
-	    notify_status "$function_name" "executed ( $1 $2 $3 )"
+	    all-nos "$function_name" "executed ( $1 $2 $3 )"
     else
-        notify_status "$function_name" "Failed to install  ( $1 $2 $3 )"
+        all-nos "$function_name" "Failed to install  ( $1 $2 $3 )"
         return 1
     fi
 } 
 
 # setup sysstat
-setup_sysstat() {
+all-sst() {
   # Step 1: Install sysstat
   install_pakages sysstat
 
@@ -462,19 +462,19 @@ setup_sysstat() {
     firewall-cmd --add-service="$fwd_as_1" --permanent
     firewall-cmd --reload
 
-    notify_status "$function_name" "executed"
+    all-nos "$function_name" "executed"
 }
 
 # setting up standard user
-user_setup() {
+all-ust() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local password="$2"
 
     # Prompt for user details
-    prompt_for_input "username" "Enter new username" "$username"
+    all-pfi "username" "Enter new username" "$username"
     while [ -z "$password" ]; do
-        prompt_for_input "password" "Enter password for $username" "$password"
+        all-pfi "password" "Enter password for $username" "$password"
     done
 
     # Create the user
@@ -483,15 +483,15 @@ user_setup() {
 
     # Check if user creation was successful
     if id -u "$username" > /dev/null 2>&1; then
-        notify_status "$function_name" "User $username created successfully"
+        all-nos "$function_name" "User $username created successfully"
     else
-        notify_status "$function_name" "Failed to create user $username"
+        all-nos "$function_name" "Failed to create user $username"
         return 1
     fi
 }
 
 # check if service is running if not enable and start ist
-systemd_check() {
+all-sdc() {
     local function_name="${FUNCNAME[0]}"
     local service="$1"
     
@@ -502,15 +502,15 @@ systemd_check() {
     # Check if service is active
     systemctl is-active --quiet "$service"
     if [ $? -eq 0 ]; then
-        notify_status "$function_name" "$service is active"
+        all-nos "$function_name" "$service is active"
     else
         read -p "$service is not active. Do you want to continue anyway? [Y/n] " choice
         case "$choice" in 
             [yY]|[yY][eE][sS])
-                notify_status "$function_name" "$service is not active"
+                all-nos "$function_name" "$service is not active"
                 ;;
             *)
-                notify_status "$function_name" "$service is not active. Exiting."
+                all-nos "$function_name" "$service is not active. Exiting."
                 return 1
                 ;;
         esac

@@ -356,9 +356,9 @@ disable_repo() {
     for file in "${files[@]}"; do
         if [ -f "$file" ]; then
             sed -i '/^deb/ s/^/#/' "$file"
-            notify_status "$function_name" "Changes applied to $file"
+            all-nos "$function_name" "Changes applied to $file"
         else
-            notify_status "$function_name" "File $file not found."
+            all-nos "$function_name" "File $file not found."
         fi
     done
 }
@@ -370,10 +370,10 @@ add_repo() {
     file="/etc/apt/sources.list"
 
     if grep -Fxq "$line_to_add" "$file"; then
-        notify_status "$function_name" "Line already exists in $file"
+        all-nos "$function_name" "Line already exists in $file"
     else
         echo "$line_to_add" >> "$file"
-        notify_status "$function_name" "Line added to $file"
+        all-nos "$function_name" "Line added to $file"
     fi
 }
 
@@ -382,7 +382,7 @@ update_upgrade() {
     local function_name="${FUNCNAME[0]}"
     apt update
     apt upgrade -y
-    notify_status "$function_name" "executed"
+    all-nos "$function_name" "executed"
 }
 
 # Function to remove subscription notice
@@ -393,9 +393,9 @@ pve-rsn() {
     # Prompt user whether to restart the service
     read -p "Do you want to restart the pveproxy.service now? (y/n): " choice
     case "$choice" in
-        y|Y ) systemctl restart pveproxy.service && notify_status "$function_name" "Service restarted successfully.";;
-        n|N ) notify_status "$function_name" "Service not restarted.";;
-        * ) notify_status "$function_name" "Invalid choice. Service not restarted.";;
+        y|Y ) systemctl restart pveproxy.service && all-nos "$function_name" "Service restarted successfully.";;
+        n|N ) all-nos "$function_name" "Service not restarted.";;
+        * ) all-nos "$function_name" "Invalid choice. Service not restarted.";;
     esac
 }
 
@@ -432,7 +432,7 @@ btrfs_setup_raid1() {
         echo "Entry not added to /etc/fstab."
     fi
 
-    notify_status "$function_name" "executed ( $1 $2 $3 )"
+    all-nos "$function_name" "executed ( $1 $2 $3 )"
 }
 
 # ZFS options
@@ -473,7 +473,7 @@ zfs_create_mount() {
         echo "ZFS dataset '$dataset_path' is already mounted at '$expected_mountpoint'."
     fi
 
-    notify_status "$function_name" "executed ( $pool_name / $dataset_name )"
+    all-nos "$function_name" "executed ( $pool_name / $dataset_name )"
 }
 
 # Container options 
@@ -482,7 +482,7 @@ container_list_update() {
 
     	pveam update
 
-    notify_status "$function_name" "executed"
+    all-nos "$function_name" "executed"
 }
 
 container_download() {
@@ -491,7 +491,7 @@ container_download() {
 
     	pveam download local "$ct_dl" 
 
-	notify_status "$function_name" "executed ( $ct_dl )"
+	all-nos "$function_name" "executed ( $ct_dl )"
 }
 
 container_bindmount() {
@@ -515,7 +515,7 @@ container_bindmount() {
     # Properly quote the entire argument for -mp0
     pct set "$vmid" -mp0 "$mphost,mp=$mpcontainer"
 
-    notify_status "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
+    all-nos "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
 
 
@@ -536,7 +536,7 @@ gpupt_part_1() {
     apt install grub-efi-amd64 -y
 
     # Notify status
-    notify_status "$function_name" "Completed section 1, system will reboot now."
+    all-nos "$function_name" "Completed section 1, system will reboot now."
 
     # Perform system reboot without prompting
     reboot
@@ -555,7 +555,7 @@ gpupt_part_2() {
     update-initramfs -u -k all
 
     # Notify status
-    notify_status "$function_name" "Completed section 2, system will reboot now."
+    all-nos "$function_name" "Completed section 2, system will reboot now."
 
     # Perform system reboot without prompting
     reboot
@@ -603,7 +603,7 @@ gpupt_part_3() {
     echo "blacklist amdgpu" >> /etc/modprobe.d/blacklist.conf
 
     # Notify status
-    notify_status "$function_name" "Completed section 3, system will reboot now."
+    all-nos "$function_name" "Completed section 3, system will reboot now."
 
     # Perform system reboot without prompting
     reboot
