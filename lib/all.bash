@@ -28,17 +28,19 @@ all() {
     fi
 }
 
+# list all functions
+#  
 all-laf() {
     # Column width parameters
     local col_width_1=10
-    local col_width_2=40
+    local col_width_2=50
     local col_width_3=50
     local col_width_4=10
     local col_width_5=10
 
     # Function to print a separator line
     print_separator() {
-        printf "+%s+%s+%s+%s+%s+\n" \
+        printf "+-%s+-%s+-%s+-%s+-%s+\n" \
             "$(printf '%*s' $col_width_1 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_2 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_3 '' | tr ' ' '-')" \
