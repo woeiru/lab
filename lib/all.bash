@@ -185,6 +185,7 @@ all-sel() {
 
 # count files in folder
 all-cff() {
+all-gfc
     if [ $# -ne 2 ]; then
         echo "Usage: a-count <path> <1|2|3>"
         return 1
@@ -548,3 +549,29 @@ all-rsf() {
   # Optionally commit the changes (uncomment if you want to commit automatically)
   # git commit -am "Replaced $old_string with $new_string"
 }
+
+# Function to get the comment of the calling function
+all-gfc() {
+    local caller_line=$(caller 0)
+    local caller_function=$(echo $caller_line | awk '{print $2}')
+    local script_file="${BASH_SOURCE[1]}"
+
+    # Use grep to locate the function's declaration line number
+    local function_start_line=$(grep -n -m 1 "^[[:space:]]*${caller_function}()" "$script_file" | cut -d: -f1)
+    
+    if [ -z "$function_start_line" ]; then
+        echo "Function not found."
+        return
+    fi
+
+    # Calculate the line number of the comment
+    local comment_line=$((function_start_line - 1))
+
+    # Use sed to get the comment line and strip off leading "# "
+    local comment=$(sed -n "${comment_line}s/^# //p" "$script_file")
+
+    # Display the comment
+    echo "$comment"
+}
+
+

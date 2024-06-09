@@ -36,58 +36,58 @@ display_menu() {
 execute_choice() {
     case "$1" in
         a) a_xall;;
-        a1) disable_repo;;
-        a2) add_repo;;
-        a3) update_upgrade;;
+        a1) pve-dsr;;
+        a2) pve-adr;;
+        a3) pve-uup;;
         a4) install_packages;;
         a5) pve-rsn;;
         b) b_xall;;
-        b1) btrfs_setup_raid1;;
+        b1) pve-br1;;
         c) c_xall;;
-        c1) zfs_create_mount;;
+        c1) pve-zdm;;
         d) d_xall;;
-        d1) container_list_update;;
-        d2) container_download;;
+        d1) pve-clu;;
+        d2) pve-cdo;;
         e) e_xall;;
-        e1) container_bindmount;;
+        e1) pve-cbm;;
         g) g_xall;;
-        g1) gpupt_part_1;;
-        g2) gpupt_part_2;;
-        g3) gpupt_part_3;;
+        g1) pve-gp1;;
+        g2) pve-gp2;;
+        g3) pve-gp3;;
         *) echo "Invalid choice";;
     esac
 }
 
 # Functions for executing whole section
 a_xall() {
-	disable_repo
-    	add_repo
-    	update_upgrade
+	pve-dsr
+    	pve-adr
+    	pve-uup
     	install_packages "$PMAN" "$PAK1" "$PAK2"
     	pve-rsn
 }
 b_xall() {
-	btrfs_setup_raid1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
+	pve-br1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
 c_xall() {
-	zfs_create_mount "$ZFS_POOL_NAME1" "$ZFS_DATASET_NAME1" "$ZFS_MOUNTPOINT_NAME1"
-	zfs_create_mount "$ZFS_POOL_NAME2" "$ZFS_DATASET_NAME2" "$ZFS_MOUNTPOINT_NAME2"
+	pve-zdm "$ZFS_POOL_NAME1" "$ZFS_DATASET_NAME1" "$ZFS_MOUNTPOINT_NAME1"
+	pve-zdm "$ZFS_POOL_NAME2" "$ZFS_DATASET_NAME2" "$ZFS_MOUNTPOINT_NAME2"
 	zfs list
 }
 d_xall() {
-   	container_list_update
-	container_download "$CT_DL_1"
+   	pve-clu
+	pve-cdo "$CT_DL_1"
 }
 
 e_xall() {
-   	container_bindmount "$CT_ID_1" "$CT_MPH_1" "$CT_MPC_1"
-   	container_bindmount "$CT_ID_2" "$CT_MPH_2" "$CT_MPC_2"
+   	pve-cbm "$CT_ID_1" "$CT_MPH_1" "$CT_MPC_1"
+   	pve-cbm "$CT_ID_2" "$CT_MPH_2" "$CT_MPC_2"
 }
 g_xall() {
-    	gpupt_part_1
-    	gpupt_part_2
-    	gpupt_part_3
+    	pve-gp1
+    	pve-gp2
+    	pve-gp3
 }
 
 # Call the all-mai function with command-line arguments

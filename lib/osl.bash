@@ -53,9 +53,9 @@ osl() {
 }
 
 # transforming a folder to a subvolume
-o-tra() {
+osl-tra() {
     if [ $# -ne 3 ]; then
-        echo "Usage: o-trans <folder_name> <user_name> <C>"
+        echo "Usage: osl-trans <folder_name> <user_name> <C>"
         return 1
     fi
 
@@ -100,7 +100,7 @@ o-tra() {
 }
 
 # list folders and checks if they are subvolumes
-o-sch() {
+osl-sch() {
     local path="$1"
     local folder_type="$2"
     local filter="$3"

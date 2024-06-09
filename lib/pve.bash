@@ -240,7 +240,7 @@ vm-chk() {
 }
 
 # rysnc to an external location
-p-rsy() {
+pve-rsy() {
     # Check if the argument is provided
     if [ $# -eq 0 ]; then
         echo "Please provide the storage name as an argument."
@@ -278,7 +278,7 @@ p-rsy() {
 }
 
 # udev network interface
-p-uni() {
+pve-uni() {
     # Prompt user for the new interface name
     read -p "Enter the new interface name (e.g., nic1): " INTERFACE_NAME
 
@@ -317,7 +317,7 @@ p-uni() {
 }
 
 # show backup notes
-p-sbn() {
+pve-sbn() {
     # Get the absolute path of the specified folder or use the current directory if no argument is provided
     local folder="${1:-.}"
     local abs_path=$(realpath "$folder")
@@ -346,7 +346,7 @@ p-sbn() {
 }
 
 # disable repository by commenting out lines starting with "deb" in specified files
-disable_repo() {
+pve-dsr() {
     local function_name="${FUNCNAME[0]}"
     files=(
         "/etc/apt/sources.list.d/pve-enterprise.list"
@@ -364,7 +364,7 @@ disable_repo() {
 }
 
 # add a line to sources.list if it doesn't already exist
-add_repo() {
+pve-adr() {
     local function_name="${FUNCNAME[0]}"
     line_to_add="deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription"
     file="/etc/apt/sources.list"
@@ -378,7 +378,7 @@ add_repo() {
 }
 
 # update package lists and upgrade packages
-update_upgrade() {
+pve-uup() {
     local function_name="${FUNCNAME[0]}"
     apt update
     apt upgrade -y
@@ -400,7 +400,7 @@ pve-rsn() {
 }
 
 # BTRFS options
-btrfs_setup_raid1() {
+pve-br1() {
     local function_name="${FUNCNAME[0]}"
     local device1="$1"
     local device2="$2"
@@ -435,8 +435,8 @@ btrfs_setup_raid1() {
     all-nos "$function_name" "executed ( $1 $2 $3 )"
 }
 
-# ZFS options
-zfs_create_mount() {
+# zfs directory mount
+pve-zdm() {
     local function_name="${FUNCNAME[0]}"
     local pool_name="$1"
     local dataset_name="$2"
@@ -477,7 +477,7 @@ zfs_create_mount() {
 }
 
 # Container options 
-container_list_update() {
+pve-clu() {
     local function_name="${FUNCNAME[0]}"
 
     	pveam update
@@ -485,7 +485,7 @@ container_list_update() {
     all-nos "$function_name" "executed"
 }
 
-container_download() {
+pve-cdo() {
     local function_name="${FUNCNAME[0]}"
     local ct_dl="$1"
 
@@ -494,7 +494,7 @@ container_download() {
 	all-nos "$function_name" "executed ( $ct_dl )"
 }
 
-container_bindmount() {
+pve-cbm() {
     local function_name="${FUNCNAME[0]}"
     local vmid="$1"
     local mphost="$2"
@@ -520,7 +520,7 @@ container_bindmount() {
 
 
 # GPU Passthrough options
-gpupt_part_1() {
+pve-gp1() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 1:"
 
@@ -542,7 +542,7 @@ gpupt_part_1() {
     reboot
 }
 
-gpupt_part_2() {
+pve-gp2() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 2:"
 
@@ -561,7 +561,7 @@ gpupt_part_2() {
     reboot
 }
 
-gpupt_part_3() {
+pve-gp3() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 3:"
 
