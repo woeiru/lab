@@ -13,6 +13,7 @@ all-laf "$file_name"
 }
 
 # disable repository by commenting out lines starting with "deb" in specified files
+#   
 pbs-sgp() {
     # Download the GPG key
     wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
@@ -39,6 +40,7 @@ pbs-sgp() {
 }
 
 # add a line to sources.list if it doesn't already exist
+#   
 pbs-adr() {
     local function_name="${FUNCNAME[0]}"
     line_to_add="deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription"
@@ -53,6 +55,7 @@ pbs-adr() {
 }
 
 # update package lists and upgrade packages
+#   
 pbs-uup() {
     local function_name="${FUNCNAME[0]}"
     apt update
@@ -61,6 +64,7 @@ pbs-uup() {
 }
 
 # restore datastore
+# <datastore_config> <datastore_name> <datastore_path>
 add_datastore () {
 	local datastore_config="$1"
 	local datastore_name="$2"
