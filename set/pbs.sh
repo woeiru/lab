@@ -8,7 +8,7 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# Function to display all-main menu
+# display all-mai menu
 display_menu() {
     echo "Choose an option:"
     echo "a............................."
@@ -20,7 +20,7 @@ display_menu() {
     echo "b1. Restore Datatstore"
 }
 
-# Function to execute based on user choice
+# execute based on user choice
 execute_choice() {
     case "$1" in
 	a1) setup_gpg;;
@@ -34,7 +34,7 @@ execute_choice() {
     esac
 }
 
-# Function to execute all a options
+# execute all a options
 execute_a_options() {
 	setup_gpg
     	add_repo
@@ -43,10 +43,10 @@ execute_a_options() {
     	pve-rsn
 }
 
-# Function to execute all b options
+# execute all b options
 execute_b_options() {
 	add_datastore "$DATASTORE_CONFIG" "$DATASTORE_NAME" "$DATASTORE_PATH"
 }
 
-# Call the all-main function with command-line arguments
-all-main "$@"
+# Call the all-mai function with command-line arguments
+all-mai "$@"

@@ -3,7 +3,7 @@
 findpath="$1"
 depth="$2"
 
-# Function to manage aliases
+# manage aliases
 manage_aliases() {
 	read -p "Do you want to manage aliases for editing files with VIM or executing files with BASH (v/b): " manage_type
     case $manage_type in
@@ -20,7 +20,7 @@ manage_aliases() {
     esac
 }
 
-# Function to manage aliases with specified command
+# manage aliases with specified command
 manage_aliases_with_command() {
     local command="$1"  # Command to be used (bash or vim)
     echo "Select the .bashrc file to edit:"
@@ -60,7 +60,7 @@ manage_aliases_with_command() {
     done
 }
 
-# Function to add alias
+# add alias
 add_alias() {
     local command="$1"
     local bashrc_file="$2"
@@ -87,7 +87,7 @@ add_alias() {
     fi
 }
 
-# Function to delete alias
+# delete alias
 delete_alias() {
     local bashrc_file="$1"
     echo "Select the alias to delete:"
@@ -111,12 +111,12 @@ delete_alias() {
 }
 
 # Main function
-all-main() {
+all-mai() {
     # Call the function to manage aliases
     manage_aliases
 }
 
-# Execute all-main function
-all-main
+# Execute all-mai function
+all-mai
 
 exec bash
