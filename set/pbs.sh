@@ -8,8 +8,8 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# display all-mai menu
-display_menu() {
+# display setup_main menu
+setup_display_menu() {
     echo "Choose an option:"
     echo "a............................."
     echo "a1. Setup GPG Key"
@@ -21,7 +21,7 @@ display_menu() {
 }
 
 # execute based on user choice
-execute_choice() {
+setup_execute_choice() {
     case "$1" in
 	a1) pbs-sgp;;
         a2) pbs-adr;;
@@ -48,5 +48,5 @@ execute_b_options() {
 	add_datastore "$DATASTORE_CONFIG" "$DATASTORE_NAME" "$DATASTORE_PATH"
 }
 
-# Call the all-mai function with command-line arguments
-all-mai "$@"
+# Call the setup_main function with command-line arguments
+setup_main "$@"

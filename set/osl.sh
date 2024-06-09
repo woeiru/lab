@@ -8,8 +8,8 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# display all-mai menu
-display_menu() {
+# display setup_main menu
+setup_display_menu() {
     echo "Choose an option:"
     echo "a.......................( include config )"
     echo "a1 install pakages"
@@ -17,7 +17,7 @@ display_menu() {
 }
 
 # execute based on user choice
-execute_choice() {
+setup_execute_choice() {
     case "$1" in
         a) 	a_xall;;
 	a1) 	install_pakages;;
@@ -33,6 +33,6 @@ a_xall() {
 	firwall_setup "$FWD_AS_1"
 }
 
-# Call the all-mai function with command-line arguments
-all-mai "$@"
+# Call the setup_main function with command-line arguments
+setup_main "$@"
 

@@ -30,14 +30,14 @@ shr-smb() {
 	local force_group="${11}"
 
     # Prompt for missing inputs
-    all-pfi "smb_header" "Enter Samba header" "$smb_header"
-    all-pfi "shared_folder" "Enter path to shared folder" "$shared_folder"
+    all-mev "smb_header" "Enter Samba header" "$smb_header"
+    all-mev "shared_folder" "Enter path to shared folder" "$shared_folder"
 
     if [ "$smb_header" != "nobody" ]; then
-        all-pfi "username" "Enter Samba username" "$username"
+        all-mev "username" "Enter Samba username" "$username"
 
         while [ -z "$smb_password" ]; do
-            all-pfi "smb_password" "Enter Samba password (cannot be empty)" "$smb_password"
+            all-mev "smb_password" "Enter Samba password (cannot be empty)" "$smb_password"
         done
     fi
 
