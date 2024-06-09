@@ -1,12 +1,12 @@
-# Get dirname and filename and basename
+# get dirname and filename and basename
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE=$(basename "$BASH_SOURCE")
 BASE="${FILE%.*}"
 
-# Source config.sh using the absolute path
+# source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# list all functions
+# overview
 osl() {
 local file_name="$BASH_SOURCE"
 all-laf "$file_name"
