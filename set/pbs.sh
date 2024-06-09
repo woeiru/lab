@@ -26,7 +26,7 @@ execute_choice() {
 	a1) pbs-sgp;;
         a2) pbs-adr;;
         a3) pbs-uup;;
-        a4) install_packages;;
+        a4) all-ipa;;
         b1) add_datastore;;
         a) execute_a_options;;
         b) execute_b_options;;
@@ -39,7 +39,7 @@ execute_a_options() {
 	pbs-sgp
     	pbs-adr
     	pbs-uup
-    	install_packages
+    	all-ipa
     	pve-rsn
 }
 

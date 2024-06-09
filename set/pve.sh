@@ -39,7 +39,7 @@ execute_choice() {
         a1) pve-dsr;;
         a2) pve-adr;;
         a3) pve-uup;;
-        a4) install_packages;;
+        a4) all-ipa;;
         a5) pve-rsn;;
         b) b_xall;;
         b1) pve-br1;;
@@ -63,7 +63,7 @@ a_xall() {
 	pve-dsr
     	pve-adr
     	pve-uup
-    	install_packages "$PMAN" "$PAK1" "$PAK2"
+    	all-ipa "$PMAN" "$PAK1" "$PAK2"
     	pve-rsn
 }
 b_xall() {
