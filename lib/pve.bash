@@ -96,7 +96,7 @@ vm-get() {
 }
 
 # toggle Passthrough lines in the VM Config ON or OFF
-# <VM_ID> <on|off>
+# <vm_id> <on|off>
 vm-pth() {
     local vm_id="$1"
     local action="$2"
