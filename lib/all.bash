@@ -463,7 +463,7 @@ all-cap() {
 
 # install packages
 # <pman> <pak1> <pak2>
-all-ipa () {
+all-ipa() {
     local function_name="${FUNCNAME[0]}"
     local pman="$1"
     local pak1="$2"

@@ -65,7 +65,7 @@ pbs-uup() {
 
 # restore datastore
 # <datastore_config> <datastore_name> <datastore_path>
-add_datastore () {
+add_datastore() {
 	local datastore_config="$1"
 	local datastore_name="$2"
 	local datastore_path="$3"
