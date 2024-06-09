@@ -8,8 +8,23 @@ source "$DIR/../var/${BASE}.conf"
 
 # overview
 all() {
-local file_name="$BASH_SOURCE"
-all-laf "$file_name"
+    local target="$1"
+    if [[ -z "$target" ]]; then
+        target="$BASH_SOURCE" # Default to the current file if no argument is provided
+    fi
+
+    if [[ -d "$target" ]]; then
+        for file in "$target"/*.bash; do # Adjust the extension according to the file type you want to process
+            if [[ -f "$file" ]]; then
+                echo "Processing file: $file"
+                all-laf "$file"
+            fi
+        done
+    elif [[ -f "$target" ]]; then
+        all-laf "$target"
+    else
+        echo "Invalid target: $target"
+    fi
 }
 
 # list all functions
