@@ -69,7 +69,7 @@ osl-sch() {
 
     # Check if arguments are provided
     if [ -z "$path" ] || [ -z "$folder_type" ] || [ -z "$filter" ]; then
-        all-gfc
+        all-gfa
         return 1
     fi
 

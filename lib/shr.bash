@@ -7,6 +7,7 @@ BASE="${FILE%.*}"
 source "$DIR/../var/${BASE}.conf"
 
 # overview
+#   
 shr() {
 local file_name="$BASH_SOURCE"
 all-laf "$file_name"
@@ -111,7 +112,7 @@ shr-sma() {
 shr-fws() {
     local function_name="${FUNCNAME[0]}"
     if [ $# -ne 1 ]; then
-	all-gfc
+	all-gfa
         return 1
     fi
    # Open firewall ports

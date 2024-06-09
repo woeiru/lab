@@ -20,7 +20,7 @@ vm() {
 
     # Check if vm_id argument is provided
     if [ -z "$1" ]; then
-	all-gfc
+	all-gfa
         return 1
     fi
 
@@ -60,7 +60,7 @@ vm() {
 vm-get() {
     local vm_id="$1"
     if [ $# -ne 1 ]; then
-	all-gfc
+	all-gfa
         return 1
     fi
 
@@ -102,7 +102,7 @@ vm-pth() {
     local action="$2"
     local vm_conf="$CONF_PATH_QEMU/$vm_id.conf"
     if [ $# -ne 2 ]; then
-	all-gfc
+	all-gfa
         return 1
     fi
 
@@ -178,7 +178,7 @@ vm-chk() {
     local vm_id="$1"
     local found_node=""
     if [ $# -ne 1 ]; then
-	all-gfc
+	all-gfa
         return 1
     fi
 
@@ -219,7 +219,7 @@ vm-chk() {
 # <storage_name>
 pve-rsy() {
     if [ $# -ne 1 ]; then
-	all-gfc
+	all-gfa
         return 1
     fi
 
@@ -389,7 +389,7 @@ pve-br1() {
     local device2="$2"
     local mount_point="$3"
     if [ $# -ne 3 ]; then
-	all-gfc
+	all-gfa
         return 1
     fi
 
@@ -432,7 +432,7 @@ pve-zdm() {
     local dataset_path="$pool_name/$dataset_name"
     local newly_created=false
     if [ $# -ne 3 ]; then
-	all-gfc
+	all-gfa
         return 1
     fi
 
@@ -497,7 +497,7 @@ pve-cbm() {
     local mphost="$2"
     local mpcontainer="$3"
     if [ $# -ne 3 ]; then
-	all-gfc
+	all-gfa
         return 1
     fi
 
