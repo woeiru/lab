@@ -40,7 +40,7 @@ execute_choice() {
         a2) add_repo;;
         a3) update_upgrade;;
         a4) install_packages;;
-        a5) remove_subscription_notice;;
+        a5) pve-rsn;;
         b) b_xall;;
         b1) btrfs_setup_raid1;;
         c) c_xall;;
@@ -64,7 +64,7 @@ a_xall() {
     	add_repo
     	update_upgrade
     	install_packages "$PMAN" "$PAK1" "$PAK2"
-    	remove_subscription_notice
+    	pve-rsn
 }
 b_xall() {
 	btrfs_setup_raid1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
