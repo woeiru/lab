@@ -6,12 +6,18 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# list all Functions in a given File
+# list all functions
 all() {
+local file_name="$BASH_SOURCE"
+all-laf "$file_name"
+}
+
+# list all functions
+all-laf() {
     printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
     printf "| %-18s | %-62s | %-15s | %-15s |\n" "Function Name" "Description" "Size - Lines" "Location - Line"
     printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
-    local file_name="${1:-${BASH_SOURCE[0]}}"
+    local file_name="$1"
     # Initialize variables
     local last_comment_line=0
     local line_number=0
@@ -51,7 +57,7 @@ all() {
     done < "$file_name"
     printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
 }
-# git all in one
+# git all in
 all-gio() {
     # Navigate to the git folder
     cd "$DIR/.." || return
@@ -98,8 +104,8 @@ all-gio() {
     cd - || return
 }
 
-# fstab auto entry
-all-fau() {
+# fstab entry auto
+all-fea() {
     # Perform blkid and filter entries with sd*
     blkid_output=$(blkid | grep '/dev/sd*')
 
@@ -134,8 +140,8 @@ all-fau() {
     fi
 }
 
-# fstab add custom entry
-all-fcu() {
+# fstab entry custom
+all-fec() {
   if [ $# -eq 0 ]; then
     # List blkid output with line numbers
     echo "Available devices:"
@@ -171,8 +177,8 @@ all-fcu() {
   echo "$fstab_entry"
 }
 
-# selects filename and saves it in 'sel'
-all-sel() {
+# variable select filename
+all-vsf() {
     files=($(ls))
     echo "Select a file by entering its index:"
     for i in "${!files[@]}"; do
@@ -183,7 +189,7 @@ all-sel() {
     echo "$selected_file"
 }
 
-# count files in folder
+# count files folder
 all-cff() {
 all-gfc
     if [ $# -ne 2 ]; then
@@ -230,7 +236,7 @@ all-gfc
     esac | sort
 }
 
-# zfs snapshot and send helper
+# zfs snapshot send
 all-zdb() {
     local sourcepoolname="$1"
     local destinationpoolname="$2"
@@ -348,7 +354,7 @@ all-duc() {
         }' | column -t
 }
 
-# Main function to execute based on command-line arguments or display all-mai menu
+# main setup function
 all-mai() {
     if [ "$#" -eq 0 ]; then
         display_menu
@@ -358,20 +364,20 @@ all-mai() {
     fi
 }
 
-# read user choice
+# main read choice
 all-ruc() {
     read -p "Enter your choice: " choice
     execute_choice "$choice"
 }
 
-# execute based on command-line arguments
+# main execute choice
 all-exa() {
     for arg in "$@"; do
         execute_choice "$arg"
     done
 }
 
-# evaluates if current value is what user wants
+# main eval global
 all-pfi() {
     local var_name=$1
     local prompt_message=$2
@@ -385,14 +391,14 @@ all-pfi() {
     fi
 }
 
-# display status notification
+# main display notification
 all-nos() {
     local function_name="$1"
     local status="$2"
 
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
-# check if line exists in file and append it when not
+# check append create
 all-cap() {
     local file="$1"
     local line="$2"
@@ -407,20 +413,8 @@ all-cap() {
     fi
 }
 
-# set global git configurations
-all-gst() {
-    local function_name="${FUNCNAME[0]}"
-    local username="$1"
-    local usermail="$2"
-
-    git config --global user.name "$username"
-    git config --global user.email "$usermail"
-
-    all-nos "$function_name" "executed ( $1 $2 )"
-}
-
 # install packages
-install_packages () {
+all-ipa () {
     local function_name="${FUNCNAME[0]}"
     local pman="$1"
     local pak1="$2"
@@ -439,6 +433,18 @@ install_packages () {
     fi
 } 
 
+# git set config
+all-gst() {
+    local function_name="${FUNCNAME[0]}"
+    local username="$1"
+    local usermail="$2"
+
+    git config --global user.name "$username"
+    git config --global user.email "$usermail"
+
+    all-nos "$function_name" "executed ( $1 $2 )"
+}
+
 # setup sysstat
 all-sst() {
   # Step 1: Install sysstat
@@ -454,8 +460,8 @@ all-sst() {
   echo "sysstat has been installed, enabled, and started."
 }
 
-# allow service in firewall
- setup_firewalld() {
+# firewall allow service
+all-fas() {
     local function_name="${FUNCNAME[0]}" 
     local fwd_as_1="$1"
 
@@ -466,7 +472,7 @@ all-sst() {
     all-nos "$function_name" "executed"
 }
 
-# setting up standard user
+# user setup
 all-ust() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
@@ -491,7 +497,7 @@ all-ust() {
     fi
 }
 
-# check if service is running if not enable and start ist
+# systemd setup service
 all-sdc() {
     local function_name="${FUNCNAME[0]}"
     local service="$1"
@@ -518,6 +524,7 @@ all-sdc() {
     fi
 }
 
+# this is a test
 # all-rsf "/path/to/folder" "old_string" "new_string"
 all-rsf() {
   local foldername="$1"

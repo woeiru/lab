@@ -35,7 +35,7 @@ execute_choice() {
 
 # execute whole section
 a_xall() {
-    	install_packages "$PMAN" "$PAK1" "$PAK2"
+    	all-ipa "$PMAN" "$PAK1" "$PAK2"
 	all-sdc "$SYSD_CHECK"
     	all-ust "$USERNAME1" "$PASSWORD1"
     	setup_smb_firewalld
