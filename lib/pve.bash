@@ -479,7 +479,7 @@ pve-cbm() {
 }
 
 
-# GPU Passthrough options
+# gpu passthrough step 
 pve-gp1() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 1:"
@@ -502,6 +502,7 @@ pve-gp1() {
     reboot
 }
 
+# gpu passthrough step 2
 pve-gp2() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 2:"
@@ -521,6 +522,7 @@ pve-gp2() {
     reboot
 }
 
+# gpu passthrough step 3
 pve-gp3() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 3:"
