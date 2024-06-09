@@ -111,12 +111,12 @@ delete_alias() {
 }
 
 # Main function
-all-mai() {
+setup_main() {
     # Call the function to manage aliases
     manage_aliases
 }
 
-# Execute all-mai function
-all-mai
+# Execute setup_main function
+setup_main
 
 exec bash

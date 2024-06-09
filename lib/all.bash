@@ -410,35 +410,9 @@ all-duc() {
         }' | column -t
 }
 
-# main setup function
-#   
-all-mai() {
-    if [ "$#" -eq 0 ]; then
-        display_menu
-        all-ruc
-    else
-        all-exa "$@"
-    fi
-}
-
-# main read choice
-#   
-all-ruc() {
-    read -p "Enter your choice: " choice
-    execute_choice "$choice"
-}
-
-# main execute choice
-#   
-all-exa() {
-    for arg in "$@"; do
-        execute_choice "$arg"
-    done
-}
-
-# main eval global
+# main eval variable
 # <var_name> <prompt_message> <current_value>
-all-pfi() {
+all-mev() {
     local var_name=$1
     local prompt_message=$2
     local current_value=$3
@@ -578,9 +552,9 @@ all-ust() {
     fi
 
     # Prompt for user details
-    all-pfi "username" "Enter new username" "$username"
+    all-mev "username" "Enter new username" "$username"
     while [ -z "$password" ]; do
-        all-pfi "password" "Enter password for $username" "$password"
+        all-mev "password" "Enter password for $username" "$password"
     done
 
     # Create the user
