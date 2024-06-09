@@ -7,7 +7,7 @@ BASE="${FILE%.*}"
 
 # source lib and var
 source "$DIR/../lib/all.bash"
-source "$DIR/../var/all.bash"
+source "$DIR/../var/all.conf"
 source "$DIR/../lib/${BASE}.bash"
 source "$DIR/../var/${BASE}.conf"
 
