@@ -8,7 +8,7 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# Function to display main menu
+# Function to display all-main menu
 display_menu() {
     echo "Choose an option:"
     echo "a............................."
@@ -48,5 +48,5 @@ execute_b_options() {
 	add_datastore "$DATASTORE_CONFIG" "$DATASTORE_NAME" "$DATASTORE_PATH"
 }
 
-# Call the main function with command-line arguments
-main "$@"
+# Call the all-main function with command-line arguments
+all-main "$@"

@@ -8,7 +8,7 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# Function to display main menu
+# Function to display all-main menu
 display_menu() {
     echo "Choose an option:"
     echo "a. -------------------"
@@ -90,5 +90,5 @@ g_xall() {
     	gpupt_part_3
 }
 
-# Call the main function with command-line arguments
-main "$@"
+# Call the all-main function with command-line arguments
+all-main "$@"

@@ -68,20 +68,20 @@ setup_smb() {
 	local force_group="${11}"
 
     # Prompt for missing inputs
-    prompt_for_input "smb_header" "Enter Samba header" "$smb_header"
-    prompt_for_input "shared_folder" "Enter path to shared folder" "$shared_folder"
+    all-pfi "smb_header" "Enter Samba header" "$smb_header"
+    all-pfi "shared_folder" "Enter path to shared folder" "$shared_folder"
 
     if [ "$smb_header" != "nobody" ]; then
-        prompt_for_input "username" "Enter Samba username" "$username"
+        all-pfi "username" "Enter Samba username" "$username"
 
         while [ -z "$smb_password" ]; do
-            prompt_for_input "smb_password" "Enter Samba password (cannot be empty)" "$smb_password"
+            all-pfi "smb_password" "Enter Samba password (cannot be empty)" "$smb_password"
         done
     fi
 
     # Apply the Samba configuration
     setup_smb_apply "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
-    notify_status "$function_name" "Samba setup complete"
+    all-nos "$function_name" "Samba setup complete"
 }
 
 # Function to apply Samba configuration
@@ -141,7 +141,7 @@ setup_smb_apply() {
 
     # Print confirmation message
     echo "Samba server configured. Shared folder: $shared_folder"
-    notify_status "$function_name" "Samba configuration applied"
+    all-nos "$function_name" "Samba configuration applied"
 }
 
 # Function to setup Samba firewall rules
@@ -151,7 +151,7 @@ setup_smb_firewalld() {
     if command -v firewall-cmd > /dev/null; then
         firewall-cmd --permanent --add-service=samba
         firewall-cmd --reload
-        notify_status "$function_name" "Samba firewalld setup complete"
+        all-nos "$function_name" "Samba firewalld setup complete"
     else
         echo "firewall-cmd not found, skipping firewall configuration."
     fi

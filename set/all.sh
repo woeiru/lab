@@ -8,7 +8,7 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# Function to display main menu
+# Function to display all-main menu
 display_menu() {
     echo "Choose an option:"
     echo "a.......................( include config )"
@@ -21,20 +21,20 @@ display_menu() {
 execute_choice() {
     case "$1" in
         a) 	a_xall;;
-	a1) 	check_and_append;;
+	a1) 	all-cap;;
 	a2) 	install_pakages;;
-	t1) 	setup_sysstat;;
+	t1) 	all-sst;;
         *) echo "Invalid choice";;
     esac
 }
 
 # Function to execute whole section
 a_xall() {
-	check_and_append "$DOT_FILE1" "$DOT_SOURCE1"
-    	git_setup "$GIT_USERNAME" "$GIT_USERMAIL"
+	all-cap "$DOT_FILE1" "$DOT_SOURCE1"
+    	all-gst "$GIT_USERNAME" "$GIT_USERMAIL"
     	install_packages "$PMAN" "$PAK1" "$PAK2" 
 	exec bash
 }
 
-# Call the main function with command-line arguments
-main "$@"
+# Call the all-main function with command-line arguments
+all-main "$@"

@@ -111,12 +111,12 @@ delete_alias() {
 }
 
 # Main function
-main() {
+all-main() {
     # Call the function to manage aliases
     manage_aliases
 }
 
-# Execute main function
-main
+# Execute all-main function
+all-main
 
 exec bash
