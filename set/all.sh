@@ -7,7 +7,7 @@ BASE="${FILE%.*}"
 
 # source lib and var
 source "$DIR/../lib/all.bash"
-source "$DIR/../var/all.bash"
+source "$DIR/../var/all.conf"
 source "$DIR/../lib/${BASE}.bash"
 source "$DIR/../var/${BASE}.conf"
 
@@ -38,9 +38,8 @@ setup_execute_arguments() {
 setup_display_menu() {
     echo "Choose an option:"
     echo "a.......................( include config )"
-    echo "dot1. source dotfiles"
-    echo "ins1. install pakages"
-    echo "git1. setup git"
+    echo "a1. source dotfiles"
+    echo "a2. setup git"
 }
 
 # execute based on user choice
@@ -48,8 +47,7 @@ setup_execute_choice() {
     case "$1" in
         a) 	a_xall;;
 	a1) 	all-cap;;
-	a2) 	install_pakages;;
-	t1) 	all-sst;;
+	a2) 	all-sst;;
         *) echo "Invalid choice";;
     esac
 }
@@ -58,7 +56,6 @@ setup_execute_choice() {
 a_xall() {
 	all-cap "$DOT_FILE1" "$DOT_SOURCE1"
     	all-gst "$GIT_USERNAME" "$GIT_USERMAIL"
-    	all-ipa "$PMAN" "$PAK1" "$PAK2" 
 	exec bash
 }
 
