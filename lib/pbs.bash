@@ -52,7 +52,7 @@ pbs() {
     printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
 }
 
-# Function to disable repository by commenting out lines starting with "deb" in specified files
+# disable repository by commenting out lines starting with "deb" in specified files
 setup_gpg() {
     # Download the GPG key
     wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
@@ -78,7 +78,7 @@ setup_gpg() {
     fi
 }
 
-# Function to add a line to sources.list if it doesn't already exist
+# add a line to sources.list if it doesn't already exist
 add_repo() {
     local function_name="${FUNCNAME[0]}"
     line_to_add="deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription"
@@ -92,7 +92,7 @@ add_repo() {
     fi
 }
 
-# Function to update package lists and upgrade packages
+# update package lists and upgrade packages
 update_upgrade() {
     local function_name="${FUNCNAME[0]}"
     apt update
@@ -100,7 +100,7 @@ update_upgrade() {
     all-nos "$function_name" "Package lists updated and packages upgraded"
 }
 
-# Function to restore datastore
+# restore datastore
 add_datastore () {
 	local datastore_config="$1"
 	local datastore_name="$2"
