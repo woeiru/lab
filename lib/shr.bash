@@ -1,59 +1,19 @@
-# Get dirname and filename and basename
+# get dirname and filename and basename
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE=$(basename "$BASH_SOURCE")
 BASE="${FILE%.*}"
 
-# Source config.sh using the absolute path
+# source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# list all Functions in a given File
+# overview
 shr() {
-    printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
-    printf "| %-18s | %-62s | %-15s | %-15s |\n" "Function Name" "Description" "Size - Lines" "Location - Line"
-    printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
-    local file_name="${1:-${BASH_SOURCE[0]}}"
-    # Initialize variables
-    local last_comment_line=0
-    local line_number=0
-    declare -a comments=()
-
-    # Read all comments into an array
-    while IFS= read -r line; do
-        ((line_number++))
-        if [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
-            comments[$line_number]="${line:2}"  # Remove leading '# '
-        fi
-    done < "$file_name"
-
-    # Loop through all lines in the file again
-    line_number=0
-    while IFS= read -r line; do
-        ((line_number++))
-        if [[ $line =~ ^[a-zA-Z_][a-zA-Z0-9_-]*\(\) ]]; then
-            # Extract function name without parentheses
-            func_name=$(echo "$line" | awk -F '[(|)]' '{print $1}')
-            # Calculate function size
-            func_start_line=$line_number
-            func_size=0
-            while IFS= read -r func_line; do
-                ((func_size++))
-                if [[ $func_line == *} ]]; then
-                    break
-                fi
-            done < <(tail -n +$func_start_line "$file_name")
-            # Truncate the description if it's longer than 60 characters
-            truncated_desc=$(echo "${comments[$last_comment_line]:-N/A}" | awk '{ if (length($0) > 60) print substr($0, 1, 57) "..."; else print $0 }')
-            # Print function name, function size, comment line number, and comment
-            printf "%20s | %-62s | %-15s | %s\n" "$func_name" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}"
-        elif [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
-            last_comment_line=$line_number
-        fi
-    done < "$file_name"
-    printf "+--------------------+----------------------------------------------------------------+-----------------+-----------------+\n"
+local file_name="$BASH_SOURCE"
+all-laf "$file_name"
 }
 
 # Unified function to set up Samba
-setup_smb() {
+shr-smb() {
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
 	local shared_folder="$2"
@@ -80,12 +40,12 @@ setup_smb() {
     fi
 
     # Apply the Samba configuration
-    setup_smb_apply "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
+    shr-sma "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
     all-nos "$function_name" "Samba setup complete"
 }
 
 # apply Samba configuration
-setup_smb_apply() {
+shr-sma() {
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
 	local shared_folder="$2"
@@ -145,7 +105,7 @@ setup_smb_apply() {
 }
 
 # setup Samba firewall rules
-setup_smb_firewalld() {
+shr-fws() {
     local function_name="${FUNCNAME[0]}"
     # Open firewall ports
     if command -v firewall-cmd > /dev/null; then
