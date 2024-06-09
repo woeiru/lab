@@ -84,7 +84,7 @@ setup_smb() {
     all-nos "$function_name" "Samba setup complete"
 }
 
-# Function to apply Samba configuration
+# apply Samba configuration
 setup_smb_apply() {
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
@@ -144,7 +144,7 @@ setup_smb_apply() {
     all-nos "$function_name" "Samba configuration applied"
 }
 
-# Function to setup Samba firewall rules
+# setup Samba firewall rules
 setup_smb_firewalld() {
     local function_name="${FUNCNAME[0]}"
     # Open firewall ports

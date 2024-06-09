@@ -8,7 +8,7 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# Function to display all-main menu
+# display all-mai menu
 display_menu() {
     echo "Choose an option:"
     echo "a.......................( include config )"
@@ -17,7 +17,7 @@ display_menu() {
     echo "git1. setup git"
 }
 
-# Function to execute based on user choice
+# execute based on user choice
 execute_choice() {
     case "$1" in
         a) 	a_xall;;
@@ -28,7 +28,7 @@ execute_choice() {
     esac
 }
 
-# Function to execute whole section
+# execute whole section
 a_xall() {
 	all-cap "$DOT_FILE1" "$DOT_SOURCE1"
     	all-gst "$GIT_USERNAME" "$GIT_USERMAIL"
@@ -36,5 +36,5 @@ a_xall() {
 	exec bash
 }
 
-# Call the all-main function with command-line arguments
-all-main "$@"
+# Call the all-mai function with command-line arguments
+all-mai "$@"

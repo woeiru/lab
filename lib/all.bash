@@ -99,7 +99,7 @@ all-gio() {
 }
 
 # fstab auto entry
-a-fau() {
+all-fau() {
     # Perform blkid and filter entries with sd*
     blkid_output=$(blkid | grep '/dev/sd*')
 
@@ -135,7 +135,7 @@ a-fau() {
 }
 
 # fstab add custom entry
-a-fcu() {
+all-fcu() {
   if [ $# -eq 0 ]; then
     # List blkid output with line numbers
     echo "Available devices:"
@@ -172,7 +172,7 @@ a-fcu() {
 }
 
 # selects filename and saves it in 'sel'
-a-sel() {
+all-sel() {
     files=($(ls))
     echo "Select a file by entering its index:"
     for i in "${!files[@]}"; do
@@ -184,7 +184,7 @@ a-sel() {
 }
 
 # count files in folder
-a-cff() {
+all-cff() {
     if [ $# -ne 2 ]; then
         echo "Usage: a-count <path> <1|2|3>"
         return 1
@@ -230,7 +230,7 @@ a-cff() {
 }
 
 # zfs snapshot and send helper
-a-zdb() {
+all-zdb() {
     local sourcepoolname="$1"
     local destinationpoolname="$2"
     local datasetname="$3"
@@ -286,7 +286,7 @@ a-zdb() {
 }
 
 # data usage comparison
-a-duc() {
+all-duc() {
     local path1=$1
     local path2=$2
     local depth=$3
@@ -347,8 +347,8 @@ a-duc() {
         }' | column -t
 }
 
-# Main function to execute based on command-line arguments or display all-main menu
-all-main() {
+# Main function to execute based on command-line arguments or display all-mai menu
+all-mai() {
     if [ "$#" -eq 0 ]; then
         display_menu
         all-ruc
@@ -357,13 +357,13 @@ all-main() {
     fi
 }
 
-# Function to read user choice
+# read user choice
 all-ruc() {
     read -p "Enter your choice: " choice
     execute_choice "$choice"
 }
 
-# Function to execute based on command-line arguments
+# execute based on command-line arguments
 all-exa() {
     for arg in "$@"; do
         execute_choice "$arg"

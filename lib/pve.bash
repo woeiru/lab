@@ -345,7 +345,7 @@ p-sbn() {
         done <<< "$note_files"
 }
 
-# Function to disable repository by commenting out lines starting with "deb" in specified files
+# disable repository by commenting out lines starting with "deb" in specified files
 disable_repo() {
     local function_name="${FUNCNAME[0]}"
     files=(
@@ -363,7 +363,7 @@ disable_repo() {
     done
 }
 
-# Function to add a line to sources.list if it doesn't already exist
+# add a line to sources.list if it doesn't already exist
 add_repo() {
     local function_name="${FUNCNAME[0]}"
     line_to_add="deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription"
@@ -377,7 +377,7 @@ add_repo() {
     fi
 }
 
-# Function to update package lists and upgrade packages
+# update package lists and upgrade packages
 update_upgrade() {
     local function_name="${FUNCNAME[0]}"
     apt update
@@ -385,7 +385,7 @@ update_upgrade() {
     all-nos "$function_name" "executed"
 }
 
-# Function to remove subscription notice
+# remove subscription notice
 pve-rsn() {
     local function_name="${FUNCNAME[0]}"
     sed -Ezi.bak "s/(Ext\.Msg\.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js

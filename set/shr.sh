@@ -8,7 +8,7 @@ BASE="${FILE%.*}"
 # Source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# Function to display all-main menu
+# display all-mai menu
 display_menu() {
     echo "Choose an option:"
     echo "a......................( include config )"
@@ -20,7 +20,7 @@ display_menu() {
     echo ""
 }
 
-# Function to execute based on user choice
+# execute based on user choice
 execute_choice() {
     case "$1" in
         a) 	a_xall;;
@@ -33,7 +33,7 @@ execute_choice() {
     esac
 }
 
-# Function to execute whole section
+# execute whole section
 a_xall() {
     	install_packages "$PMAN" "$PAK1" "$PAK2"
 	all-sdc "$SYSD_CHECK"
@@ -46,12 +46,12 @@ b_xall() {
     	setup_smb  "$SMB_HEADER_2" "$SHARED_FOLDER_2" "$USERNAME_2" "$SMB_PASSWORD_2" "$WRITABLE_YESNO_2" "$GUESTOK_YESNO_2" "$BROWSABLE_YESNO_2" "$CREATE_MASK_2" "$DIR_MASK_2" "$FORCE_USER_2" "$FORCE_GROUP_2"
 }
 
-# Function to execute based on command-line arguments
+# execute based on command-line arguments
 all-exa() {
     for arg in "$@"; do
         execute_choice "$arg"
     done
 }
 
-# Call the all-main function with command-line arguments
-all-main "$@"
+# Call the all-mai function with command-line arguments
+all-mai "$@"
