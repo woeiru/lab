@@ -13,7 +13,7 @@ local file_name="$BASH_SOURCE"
 all-laf "$file_name"
 }
 
-# transforming a folder to a subvolume
+# transforming folder subvolume
 # <folder_name> <user_name> <C>
 osl-tra() {
     if [ $# -ne 3 ]; then
@@ -61,9 +61,9 @@ osl-tra() {
     eval "$cmd6"
 }
 
-# list folders and checks if they are subvolumes
+# check subvolume folder
 # <path> <folder_type: 1=regular, 2=hidden, 3=both> <yes=show subvolumes, no=show non-subvolumes, all=show all>
-osl-sch() {
+osl-csf() {
     local path="$1"
     local folder_type="$2"
     local filter="$3"
