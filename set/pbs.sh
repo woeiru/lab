@@ -51,7 +51,7 @@ setup_execute_choice() {
     case "$1" in
 	a1) pbs-sgp;;
         a2) pbs-adr;;
-        a3) pbs-uup;;
+        a3) pbs-puu;;
         a4) all-ipa;;
         b1) add_datastore;;
         a) execute_a_options;;
@@ -64,7 +64,7 @@ setup_execute_choice() {
 execute_a_options() {
 	pbs-sgp
     	pbs-adr
-    	pbs-uup
+    	pbs-puu
     	all-ipa
     	pve-rsn
 }

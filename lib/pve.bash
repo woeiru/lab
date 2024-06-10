@@ -95,7 +95,7 @@ vm-get() {
     return 1  # Return failure if VM is not found
 }
 
-# toggle Passthrough lines in the VM Config ON or OFF
+# toggle Passthrough lines ON or OFF
 # <vm_id> <on|off>
 vm-pth() {
     local vm_id="$1"
@@ -172,7 +172,7 @@ hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
     esac
 }
 
-# check if the VM exists on any node and return the node ID where it is found
+# check if the VM exists on any node and return the nodeID
 # <vm_id>
 vm-chk() {
     local vm_id="$1"
@@ -213,44 +213,6 @@ vm-chk() {
     else
         return 1
     fi
-}
-
-# rysnc to an external location
-# <storage_name>
-pve-rsy() {
-    if [ $# -ne 1 ]; then
-	all-gfa
-        return 1
-    fi
-
-    local storage_name="$1"
-    local destination_path="$sy_vlv_destination/$storage_name"
-
-    # Check if destination path exists
-    if [ ! -d "$destination_path" ]; then
-        echo "Destination path $destination_path does not exist."
-        exit 1
-    fi
-
-    # Display files to be transferred
-    echo "Files to be transferred from $sy_vlv_source to $destination_path:"
-    rsync -avhn "$sy_vlv_source/" "$destination_path/"
-
-    # Ask for confirmation
-    read -p "Do you want to proceed with the transfer? (y/n): " confirm
-    case $confirm in
-        [Yy])   # Proceed with the transfer
-                # Perform the transfer
-                rsync -avh --human-readable "$sy_vlv_source/" "$destination_path/"
-                echo "Transfer completed successfully."
-                ;;
-        [Nn])   # Abort the transfer
-                echo "Transfer aborted."
-                ;;
-        *)      # Invalid input
-                echo "Invalid input. Please enter 'y' or 'n'."
-                ;;
-    esac
 }
 
 # udev network interface
@@ -323,7 +285,7 @@ pve-sbn() {
         done <<< "$note_files"
 }
 
-# disable repository by commenting out lines starting with "deb" in specified files
+# disable repository
 #  
 pve-dsr() {
     local function_name="${FUNCNAME[0]}"
@@ -342,7 +304,7 @@ pve-dsr() {
     done
 }
 
-# add a line to sources.list if it doesn't already exist
+# setup sources.list
 #   
 pve-adr() {
     local function_name="${FUNCNAME[0]}"
@@ -357,9 +319,9 @@ pve-adr() {
     fi
 }
 
-# update package lists and upgrade packages
+# packages update upgrade
 #   
-pve-uup() {
+pve-puu() {
     local function_name="${FUNCNAME[0]}"
     apt update
     apt upgrade -y
@@ -381,7 +343,7 @@ pve-rsn() {
     esac
 }
 
-# BTRFS options
+# btrfs raid 1
 # <device1> <device2> <mount_point>
 pve-br1() {
     local function_name="${FUNCNAME[0]}"

@@ -64,7 +64,7 @@ setup_execute_choice() {
         a) a_xall;;
         a1) pve-dsr;;
         a2) pve-adr;;
-        a3) pve-uup;;
+        a3) pve-puu;;
         a4) all-ipa;;
         a5) pve-rsn;;
         b) b_xall;;
@@ -88,7 +88,7 @@ setup_execute_choice() {
 a_xall() {
 	pve-dsr
     	pve-adr
-    	pve-uup
+    	pve-puu
     	all-ipa "$PMAN" "$PAK1" "$PAK2"
     	pve-rsn
 }

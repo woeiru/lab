@@ -7,6 +7,7 @@ BASE="${FILE%.*}"
 source "$DIR/../var/${BASE}.conf"
 
 # overview
+#  
 osl() {
 local file_name="$BASH_SOURCE"
 all-laf "$file_name"

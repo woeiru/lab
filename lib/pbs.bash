@@ -12,7 +12,7 @@ local file_name="$BASH_SOURCE"
 all-laf "$file_name"
 }
 
-# disable repository by commenting out lines starting with "deb" in specified files
+# disable repository
 #   
 pbs-sgp() {
     # Download the GPG key
@@ -39,7 +39,7 @@ pbs-sgp() {
     fi
 }
 
-# add a line to sources.list if it doesn't already exist
+# setup sources.list
 #   
 pbs-adr() {
     local function_name="${FUNCNAME[0]}"
@@ -54,9 +54,9 @@ pbs-adr() {
     fi
 }
 
-# update package lists and upgrade packages
+# packages update upgrade
 #   
-pbs-uup() {
+pbs-puu() {
     local function_name="${FUNCNAME[0]}"
     apt update
     apt upgrade -y

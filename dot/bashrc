@@ -45,7 +45,7 @@ alias v.b="vim $DOT_DIR/bashrc"
 
 # hardcoded section
 #
-# function aliases
+# functions
 alias ag='all-gio'
 
 # standard
