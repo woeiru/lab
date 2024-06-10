@@ -7,12 +7,13 @@ BASE="${FILE%.*}"
 source "$DIR/../var/${BASE}.conf"
 
 # overview
+#  
 pve() {
 local file_name="$BASH_SOURCE"
 all-laf "$file_name"
 }
 
-# if vm on node qm start if not vm-get before optional shutdown of other node
+# vm start or vm-get then shutdown other node
 # <vm_id> [s: optional, shutdown other node]
 vm() {
     # Retrieve and store hostname
@@ -172,7 +173,7 @@ hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
     esac
 }
 
-# check if the VM exists on any node and return the nodeID
+# check where VM exists
 # <vm_id>
 vm-chk() {
     local vm_id="$1"
