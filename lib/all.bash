@@ -665,3 +665,45 @@ all-gfa() {
     # Display the comment
     echo "$comment"
 }
+
+# rysnc source destination
+# <storage_name>
+all_rav() {
+    if [ $# -ne 1 ]; then
+	all-gfa
+        return 1
+    fi
+    local source_path="$1"
+    local destination_path="$2"
+
+    # Check if destination path exists
+    if [ ! -d "$destination_path" ]; then
+        echo "Destination path $destination_path will be created."
+	mkdir -p $destination_path
+    fi
+    # Check again
+    if [ ! -d "$destination_path" ]; then
+        echo "Destination path $destination_path could not been created."
+	return 1
+    fi
+
+    # Display files to be transferred
+    echo "Files to be transferred from $source to $destination_path:"
+    rsync -avhn "$source_path/" "$destination_path/"
+
+    # Ask for confirmation
+    read -p "Do you want to proceed with the transfer? (y/n): " confirm
+    case $confirm in
+        [Yy])   # Proceed with the transfer
+                # Perform the transfer
+                rsync -avh --human-readable "$source_path/" "$destination_path/"
+                echo "Transfer completed successfully."
+                ;;
+        [Nn])   # Abort the transfer
+                echo "Transfer aborted."
+                ;;
+        *)      # Invalid input
+                echo "Invalid input. Please enter 'y' or 'n'."
+                ;;
+    esac
+}
