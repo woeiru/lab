@@ -668,7 +668,7 @@ all-gfa() {
 
 # rysnc source destination
 # <storage_name>
-all_rav() {
+all-rav() {
     if [ $# -ne 1 ]; then
 	all-gfa
         return 1
