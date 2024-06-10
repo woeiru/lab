@@ -8,16 +8,16 @@ source "$DIR/../var/${BASE}.conf"
 
 # overview
 #  
-osl() {
+osm() {
 local file_name="$BASH_SOURCE"
 all-laf "$file_name"
 }
 
 # transforming folder subvolume
 # <folder_name> <user_name> <C>
-osl-tra() {
+osm-tra() {
     if [ $# -ne 3 ]; then
-        echo "Usage: osl-trans <folder_name> <user_name> <C>"
+        echo "Usage: osm-trans <folder_name> <user_name> <C>"
         return 1
     fi
 
@@ -63,7 +63,7 @@ osl-tra() {
 
 # check subvolume folder
 # <path> <folder_type: 1=regular, 2=hidden, 3=both> <yes=show subvolumes, no=show non-subvolumes, all=show all>
-osl-csf() {
+osm-csf() {
     local path="$1"
     local folder_type="$2"
     local filter="$3"
