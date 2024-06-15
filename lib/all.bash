@@ -641,6 +641,55 @@ all-rsf() {
   # git commit -am "Replaced $old_string with $new_string"
 }
 
+# replace strings 2
+# <foldername> <old_string> <new_string>
+all-rs2() {
+  local foldername="$1"
+  local old_string="$2"
+  local new_string="$3"
+    
+  if [ $# -ne 3 ]; then
+    all-gfa
+    return 1
+  fi
+
+  # Navigate to the specified folder
+  cd "$foldername" || { echo "Folder not found: $foldername"; return 1; }
+
+  # Check if we are inside a git repository
+  if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    # Stage all current changes
+    git add . || { echo "Failed to stage changes"; return 1; }
+  fi
+    
+  # Run the substitution command with a check for modified files
+  find . -type f -exec sh -c '
+    for file; do
+      if grep -q "$0" "$file"; then
+        sed -i -e "s/$0/$1/g" "$file"
+        echo "Modified $file"
+      fi
+    done
+  ' "$old_string" "$new_string" {} +
+
+  # Check if we are inside a git repository
+  if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    # Check the status to see which files have been modified
+    git status || { echo "Failed to get git status"; return 1; }
+
+    # Use git diff to see the exact lines that were changed
+    git diff || { echo "Failed to get git diff"; return 1; }
+
+    # Optionally commit the changes (uncomment if you want to commit automatically)
+    # Uncomment the following lines if you want to commit automatically
+    # read -p "Do you want to commit the changes? (y/n) " -n 1 -r
+    # echo    # move to a new line
+    # if [[ $REPLY =~ ^[Yy]$ ]]; then
+    #     git commit -am "Replaced $old_string with $new_string" || { echo "Failed to commit changes"; return 1; }
+    # fi
+  fi
+}
+
 # get function arguments
 #   
 all-gfa() {
