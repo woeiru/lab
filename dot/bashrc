@@ -106,10 +106,10 @@ alias ttttt='tree -L 5'
 alias tu='transactional-update'
 
 # pam_snapper
-alias pam.convert='/usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
-alias pam.config='/usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
-alias pam.useradd='/usr/lib/pam_snapper/pam_snapper_useradd.sh'
-alias pam.userdel='/usr/lib/pam_snapper/pam_snapper_userdel.sh'
+alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
+alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
+alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
+alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
 
 # Sysstat
 alias sar='sar -d 1'
