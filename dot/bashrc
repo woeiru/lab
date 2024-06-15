@@ -106,7 +106,7 @@ alias ttttt='tree -L 5'
 alias tu='transactional-update'
 
 # snapper
-alias s.l='snapper list'
+alias sl='snapper list'
 
 # pam_snapper
 alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
