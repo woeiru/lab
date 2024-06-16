@@ -32,3 +32,13 @@ podman run -d \
     -p 139:139 -p 445:445 \
     -v /home/xo:/mount \
     custom-samba
+
+# iptables setup
+iptables -L -v -n
+iptables -A INPUT -p tcp --dport 139 -j ACCEPT
+iptables -A INPUT -p tcp --dport 445 -j ACCEPT
+/sbin/iptables-save > /etc/sysconfig/iptables
+iptables -L -v -n
+
+# selinux setup
+:
