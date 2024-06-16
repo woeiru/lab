@@ -26,28 +26,21 @@ tu & tu apply & tu reboot
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
 # container shrh
 podman build -t custom-samba /root/lab/con/shrh
-
 podman run -d \
     --name shrhxo \
     -p 139:139 -p 445:445 \
     -v /home/xo:/mount \
     custom-samba
-
 # iptables setup
 iptables -L -v -n
-
 iptables -A INPUT -p tcp --dport 139 -j ACCEPT
 iptables -A INPUT -p tcp --dport 445 -j ACCEPT
-
 /sbin/iptables-save > /etc/sysconfig/iptables
 iptables-restore < /etc/sysconfig/iptables
- 
 # selinux setup
-
 setsebool -P samba_enable_home_dirs on
 setsebool -P samba_portmapper on
 setsebool -P samba_export_all_rw on
-
 # troubleshooting 
 lsof -i -P -n
 ss -tuln
