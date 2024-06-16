@@ -35,10 +35,19 @@ podman run -d \
 
 # iptables setup
 iptables -L -v -n
+
 iptables -A INPUT -p tcp --dport 139 -j ACCEPT
 iptables -A INPUT -p tcp --dport 445 -j ACCEPT
-/sbin/iptables-save > /etc/sysconfig/iptables
-iptables -L -v -n
 
+/sbin/iptables-save > /etc/sysconfig/iptables
+iptables-restore < /etc/sysconfig/iptables
+ 
 # selinux setup
-:
+
+setsebool -P samba_enable_home_dirs on
+setsebool -P samba_portmapper on
+setsebool -P samba_export_all_rw on
+
+# troubleshooting 
+lsof -i -P -n
+ss -tuln
