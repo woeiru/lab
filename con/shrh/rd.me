@@ -17,7 +17,7 @@ podman run -d \
 # container setup
 podman exec -it shrhxo bash -c 'echo "xo:your_real_password" | chpasswd'
 podman exec -it shrhxo smbpasswd -a xo
-podman exec -it shrhxo systemctl restart smbd
+podman exec -it shrhxo service smbd restart
 
 # container running
 podman start shrhxo
