@@ -1,0 +1,25 @@
+# Use Debian 12 as the base image
+FROM debian:12
+
+# Install Samba and other necessary packages
+RUN apt-get update && \
+    apt-get install -y samba && \
+    apt-get clean
+
+# Create a directory for the Samba share
+RUN mkdir -p /mount && chmod 777 /mount
+
+# Expose SMB ports
+EXPOSE 139 445
+
+# Create a Samba user
+RUN useradd -M -s /sbin/nologin smbuser && \
+    echo "smbuser:smbpassword" | chpasswd && \
+    smbpasswd -a -s smbuser <<< "smbpassword\nsmbpassword"
+
+# Copy custom smb.conf to the container
+COPY smb.conf /etc/samba/smb.conf
+
+# Start the Samba service
+CMD ["smbd", "-FS", "--no-process-group", "--log-stdout"]
+
