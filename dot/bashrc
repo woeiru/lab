@@ -108,6 +108,7 @@ alias tu='transactional-update'
 
 # snapper
 alias sl='snapper list'
+alias slh='osm-slc home'
 
 # pam_snapper
 alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
