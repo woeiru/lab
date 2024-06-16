@@ -115,3 +115,14 @@ osm-csf() {
         fi
     done
 }
+
+# snapper list config
+# <configname>
+osm-slc() {
+    local configname=$1
+    if [ -z "$configname" ]; then
+        echo "Usage: osm-slc <configname>"
+        return 1
+    fi
+    snapper -c "$configname" list
+}
