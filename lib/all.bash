@@ -718,7 +718,7 @@ all-rs2() {
   fi
 }
 
-#
+#  
 # get function arguments
 #   
 all-gfa() {
@@ -752,7 +752,7 @@ all-gfa() {
 
 }
 
-#
+#  
 # rysnc source destination
 # <storage_name>
 all-rav() {
