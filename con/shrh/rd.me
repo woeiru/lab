@@ -1,29 +1,29 @@
-# container shrh
-podman build -t custom-samba /root/lab/con/shrh
-podman run -d \
-    --name shrhxo \
-    -p 139:139 -p 445:445 \
-    -v /home/xo:/mount \
-    custom-samba
-
-# container user
-podman exec -it shrhxo bash -c 'echo "xo:your_real_password" | chpasswd'
-podman exec -it shrhxo smbpasswd -a xo
-podman exec -it shrhxo systemctl restart smbd
-podman start shrhxo
-
-# selinux setup
-ls -Z /home/xo
-chcon -Rt container_file_t /home/xo
-
 # iptables setup
 iptables -L -v -n
 iptables -A INPUT -p tcp --dport 139 -j ACCEPT
 iptables -A INPUT -p tcp --dport 445 -j ACCEPT
 /sbin/iptables-save > /etc/sysconfig/iptables
+
 iptables-restore < /etc/sysconfig/iptables
 
+# container deployment
+podman build -t custom-samba /root/lab/con/shrh
+podman run -d \
+    --name shrhxo \
+    -p 139:139 -p 445:445 \
+    -v /home/xo/dat:/home/xo:z \
+    custom-samba
+
+# container setup
+podman exec -it shrhxo bash -c 'echo "xo:your_real_password" | chpasswd'
+podman exec -it shrhxo smbpasswd -a xo
+podman exec -it shrhxo systemctl restart smbd
+
+# container running
+podman start shrhxo
+
 # testing
+ls -Z /home/xo
 lsof -i -P -n
 ss -tuln
 smbclient -L w0 -U xo
