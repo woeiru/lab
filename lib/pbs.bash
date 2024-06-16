@@ -6,13 +6,15 @@ BASE="${FILE%.*}"
 # source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
+#  
 # overview
 #  
 pbs() {
 local file_name="$BASH_SOURCE"
 all-laf "$file_name"
 }
-
+ 
+# Download Proxmox GPG key and verify checksums.
 # disable repository
 #   
 pbs-sgp() {
@@ -40,6 +42,7 @@ pbs-sgp() {
     fi
 }
 
+# Add Proxmox repository to sources.list if not already present.
 # setup sources.list
 #   
 pbs-adr() {
@@ -55,6 +58,7 @@ pbs-adr() {
     fi
 }
 
+# Update package lists and upgrade packages.
 # packages update upgrade
 #   
 pbs-puu() {
@@ -64,6 +68,7 @@ pbs-puu() {
     all-nos "$function_name" "Package lists updated and packages upgraded"
 }
 
+# Restore datastore configuration file with given parameters.
 # restore datastore
 # <datastore_config> <datastore_name> <datastore_path>
 pbs-rda() {
