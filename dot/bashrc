@@ -130,5 +130,8 @@ alias ios='iostat -x 1'
 alias ses='sestatus -v'
 alias seb='sudo semanage boolean -l'
 
+# Podman
+alias p='podman'
+
 # Misc
 alias berlintime="sudo timedatectl set-timezone Europe/Berlin"
