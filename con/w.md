@@ -13,8 +13,8 @@ tu run bash
     mkdir /mnt/bak /mnt/sto
 tu apply && tu reboot
 # install pam snapper
-tu run bash
-    zypper install pam_snapper
+    tu run bash
+        zypper install pam_snapper
     all-rs2 /usr/lib/pam_snapper/ DRYRUN=1 DRYRUN=0
     exit
 tu apply && tu reboot
