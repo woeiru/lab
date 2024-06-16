@@ -4,11 +4,11 @@ DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 &
 # alias contruction
 #
 # Common directories
+DOC_DIR="$DIR/../doc"
+DOT_DIR="$DIR/../dot"
 LIB_DIR="$DIR/../lib"
 SET_DIR="$DIR/../set"
 VAR_DIR="$DIR/../var"
-DOT_DIR="$DIR/../dot"
-TOO_DIR="$DIR/../too"
 
 # Source necessary scripts
 source "$LIB_DIR/all.bash"
@@ -41,10 +41,14 @@ for file in "${files[@]}"; do
   alias "v.$file.sh"="vim $SET_DIR/$file.sh"
   alias "v.$file.conf"="vim $VAR_DIR/$file.conf"
 done
-alias v.b="vim $DOT_DIR/bashrc"
 
 # hardcoded section
 #
+
+alias v.b="vim $DOT_DIR/bashrc"
+
+alias v.wmd="vim $DOC_DIR/w.md"
+
 # favorites
 alias gg='all-gio'
 alias ee='exit'
