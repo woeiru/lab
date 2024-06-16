@@ -169,7 +169,7 @@ osm-sfr() {
 
     # Check if arguments are provided
     if [ -z "$snapshot_sub" ] || [ -z "$target_folder" ]; then
-        echo "Usage: osm-sfr <snapshot subvolume> <target folder>"
+	all-gfa
         return 1
     fi
 
