@@ -12,15 +12,18 @@ RUN mkdir -p /mount && chmod 777 /mount
 # Expose SMB ports
 EXPOSE 139 445
 
-# Create a Samba user
-RUN useradd -M -s /sbin/nologin smbuser && \
-    echo "smbuser:smbpassword" | chpasswd
+# Create the 'xo' user with the same UID and GID as on the host
+RUN useradd -u 1000 -g 1000 -d /home/xo -s /bin/sh xo && \
+    mkdir -p /home/xo && \
+    chown -R xo:xo /home/xo && \
+    echo "xo:password" | chpasswd
 
-# Set Samba password for the user
-RUN echo "smbpassword\nsmbpassword" | smbpasswd -a -s smbuser
+# Set Samba password for the 'xo' user
+RUN echo "password\npassword" | smbpasswd -a -s xo
 
 # Copy custom smb.conf to the container
 COPY smb.conf /etc/samba/smb.conf
 
 # Start the Samba service
 CMD ["smbd", "-F", "--no-process-group"]
+
