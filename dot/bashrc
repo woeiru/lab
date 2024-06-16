@@ -109,6 +109,8 @@ alias ttttt='tree -L 5'
 
 # Transactional update alias
 alias tu='transactional-update'
+alias tua='transactional-update apply'
+alias tur='transactional-update reboot'
 
 # snapper
 alias sl='snapper list'
@@ -123,6 +125,10 @@ alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
 # Sysstat
 alias sar='sar -d 1'
 alias ios='iostat -x 1'
+
+# SELinux
+alias ses='sestatus -v'
+alias seb='sudo semanage boolean -l'
 
 # Misc
 alias berlintime="sudo timedatectl set-timezone Europe/Berlin"
