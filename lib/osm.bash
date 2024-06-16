@@ -160,3 +160,30 @@ osm-slc() {
     snapper -c "$configname" list
 }
 
+# Resyncing a Btrfs snapshot to a flat folder
+# snapshot flat resync
+# <snapshot subvolume> <target folder>
+osm-sfr() {
+    local snapshot_sub="$1"
+    local target_folder="$2"
+
+    # Check if arguments are provided
+    if [ -z "$snapshot_sub" ] || [ -z "$target_folder" ]; then
+        echo "Usage: osm-sfr <snapshot subvolume> <target folder>"
+        return 1
+    fi
+
+    # Perform rsync with exclusions
+    rsync -aAXv --delete \
+        --exclude='.snapshots' \
+        --exclude='testdirectory/' \
+        --exclude='.testfile' \
+        "$snapshot_sub/" "$target_folder"
+
+    # Check rsync exit status
+    local rsync_status=$?
+    if [ $rsync_status -ne 0 ]; then
+        echo "rsync encountered an error. Exit status: $rsync_status"
+    fi
+}
+
