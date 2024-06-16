@@ -1,0 +1,21 @@
+# container shrh
+podman build -t custom-samba /root/lab/con/shrh
+podman run -d \
+    --name shrhxo \
+    -p 139:139 -p 445:445 \
+    -v /home/xo:/mount \
+    custom-samba
+# container user
+podman exec -it shrhxo useradd xo
+podman exec -it shrhxo smbpasswd -a xo
+# iptables setup
+iptables -A INPUT -p tcp --dport 139 -j ACCEPT
+iptables -A INPUT -p tcp --dport 445 -j ACCEPT
+/sbin/iptables-save > /etc/sysconfig/iptables
+iptables-restore < /etc/sysconfig/iptables
+# testing
+iptables -L -v -n
+lsof -i -P -n
+ss -tuln
+smbclient -L w0 -U xo
+smbclient //w0/home_xo -U xo
