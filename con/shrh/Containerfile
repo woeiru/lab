@@ -17,7 +17,7 @@ RUN useradd -M -s /sbin/nologin smbuser && \
     echo "smbuser:smbpassword" | chpasswd
 
 # Set Samba password for the user
-RUN echo -e "smbpassword\nsmbpassword" | smbpasswd -a -s smbuser
+RUN echo "smbpassword\nsmbpassword" | smbpasswd -a -s smbuser
 
 # Copy custom smb.conf to the container
 COPY smb.conf /etc/samba/smb.conf
