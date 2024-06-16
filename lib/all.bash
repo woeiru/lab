@@ -6,6 +6,7 @@ BASE="${FILE%.*}"
 # source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
+# Recursively processes bash files in a directory.
 # overview
 # <path-optional>
 all() {
@@ -28,8 +29,9 @@ all() {
     fi
 }
 
+# Lists all functions with descriptions and details in a bash file.
 # list all functions
-#  
+#    
 all-laf() {
     # Column width parameters
     local col_width_1=10
@@ -103,6 +105,7 @@ all-laf() {
     echo ""
 }
 
+# Manages git operations, ensuring local repository syncs with remote.
 # git all in
 #  
 all-gio() {
@@ -151,6 +154,7 @@ all-gio() {
     cd - || return
 }
 
+# Adds auto-mount entries for devices to /etc/fstab using blkid.
 # fstab entry auto
 #   
 all-fea() {
@@ -188,6 +192,7 @@ all-fea() {
     fi
 }
 
+# Adds custom entries to /etc/fstab using device UUIDs.
 # fstab entry custom
 # <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
 all-fec() {
@@ -226,6 +231,7 @@ all-fec() {
   echo "$fstab_entry"
 }
 
+# Prompts the user to select a file from the current directory.
 # variable select filename
 #   
 all-vsf() {
@@ -239,6 +245,7 @@ all-vsf() {
     echo "$selected_file"
 }
 
+# Counts files in directories based on specified visibility.
 # count files folder
 # <path> <folder_type: 1=regular, 2=hidden, 3=both>
 all-cff() {
@@ -286,6 +293,7 @@ all-cff() {
     esac | sort
 }
 
+# Sends ZFS snapshots from a source pool to a destination pool.
 # zfs snapshot send
 # <sourcepoolname> <destinationpoolname> <datasetname>
 all-zdb() {
@@ -348,6 +356,7 @@ all-zdb() {
     eval "${send_cmd} | ${receive_cmd}"
 }
 
+# Compares data usage between two paths up to a specified depth.
 # data usage comparison
 # <path1> <path2> <depth>
 all-duc() {
@@ -410,6 +419,7 @@ all-duc() {
         }' | column -t
 }
 
+# Prompts the user to input or confirm a variable's value.
 # main eval variable
 # <var_name> <prompt_message> <current_value>
 all-mev() {
@@ -430,6 +440,7 @@ all-mev() {
     fi
 }
 
+# Logs a function's execution status with a timestamp.
 # main display notification
 # <function_name> <status>
 all-nos() {
@@ -439,6 +450,8 @@ all-nos() {
    
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
+
+# Appends a line to a file if it does not already exist.
 # check append create
 # <file> <line>
 all-cap() {
@@ -461,6 +474,7 @@ all-cap() {
     fi
 }
 
+# Installs specified packages using a package manager.
 # install packages
 # <pman> <pak1> <pak2>
 all-ipa() {
@@ -487,6 +501,7 @@ all-ipa() {
     fi
 } 
 
+# Configures git with a specified username and email.
 # git set config
 # <username> <usermail>
 all-gst() {
@@ -505,6 +520,7 @@ all-gst() {
     all-nos "$function_name" "executed ( $1 $2 )"
 }
 
+# Installs, enables, and starts the sysstat service.
 # setup sysstat
 #   
 all-sst() {
@@ -521,6 +537,7 @@ all-sst() {
   echo "sysstat has been installed, enabled, and started."
 }
 
+# Allows a specified service through the firewall.
 # firewall allow service
 # <service>
 all-fas() {
@@ -539,6 +556,7 @@ all-fas() {
     all-nos "$function_name" "executed"
 }
 
+# Creates a user with a specified username and password.
 # user setup
 # <username> <password>
 all-ust() {
@@ -570,6 +588,7 @@ all-ust() {
     fi
 }
 
+# Enables and starts a specified systemd service.
 # systemd setup service
 # <service>
 all-sdc() {
@@ -603,6 +622,7 @@ all-sdc() {
     fi
 }
 
+# Replaces strings in all files within a specified folder, staged by git.
 # replace strings
 # <foldername> <old_string> <new_string>
 all-rsf() {
@@ -641,6 +661,7 @@ all-rsf() {
   # git commit -am "Replaced $old_string with $new_string"
 }
 
+# Replaces strings in files within a specified folder, optionally staged by git.
 # replace strings 2
 # <foldername> <old_string> <new_string>
 all-rs2() {
@@ -690,6 +711,7 @@ all-rs2() {
   fi
 }
 
+#
 # get function arguments
 #   
 all-gfa() {
@@ -711,7 +733,7 @@ all-gfa() {
     local usage_line=$((function_start_line - 1))
 
     # Use sed to get the comment line and strip off leading "# "
-    local description=$((function_start_line - 3))
+    local description=$(sed -n "${description_line}s/^# //p" "$script_file")
     local shortname=$(sed -n "${shortname_line}s/^# //p" "$script_file")
     local usage=$(sed -n "${usage_line}s/^# //p" "$script_file")
     local funcname=${caller_function}
@@ -723,6 +745,7 @@ all-gfa() {
 
 }
 
+#
 # rysnc source destination
 # <storage_name>
 all-rav() {
