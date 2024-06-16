@@ -12,7 +12,10 @@ RUN mkdir -p /mount && chmod 777 /mount
 # Expose SMB ports
 EXPOSE 139 445
 
-# Create the 'xo' user with the same UID and GID as on the host
+# Create the 'xo' group with GID 1000
+RUN groupadd -g 1000 xo
+
+# Create the 'xo' user with UID 1000 and add to the 'xo' group
 RUN useradd -u 1000 -g 1000 -d /home/xo -s /bin/sh xo && \
     mkdir -p /home/xo && \
     chown -R xo:xo /home/xo && \
@@ -26,4 +29,3 @@ COPY smb.conf /etc/samba/smb.conf
 
 # Start the Samba service
 CMD ["smbd", "-F", "--no-process-group"]
-
