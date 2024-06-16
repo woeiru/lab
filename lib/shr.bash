@@ -6,6 +6,7 @@ BASE="${FILE%.*}"
 # source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
+#  
 # overview
 #   
 shr() {
@@ -14,6 +15,7 @@ all-laf "$file_name"
 }
 
 # Unified function to set up Samba
+# samba setup 1
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
 shr-smb() {
     local function_name="${FUNCNAME[0]}"
@@ -46,7 +48,8 @@ shr-smb() {
     all-nos "$function_name" "Samba setup complete"
 }
 
-# apply Samba configuration
+# Helper script for samba setup.
+# samba apply config
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
 shr-sma() {
     local function_name="${FUNCNAME[0]}"
@@ -107,7 +110,8 @@ shr-sma() {
     all-nos "$function_name" "Samba configuration applied"
 }
 
-# setup Samba firewall rules
+# firewalld add samba service and reload
+# firewalld setup samba
 # <function_name>
 shr-fws() {
     local function_name="${FUNCNAME[0]}"

@@ -7,7 +7,7 @@ BASE="${FILE%.*}"
 source "$DIR/../var/${BASE}.conf"
 
 # Recursively processes bash files in a directory.
-# overview
+# extended overview
 # <path-optional>
 all() {
     local target="$1"
