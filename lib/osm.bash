@@ -6,14 +6,15 @@ BASE="${FILE%.*}"
 # source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# Description: Run 'all-laf' with the current script's filename.
+#   
 # overview
+#   
 osm() {
     local file_name="$BASH_SOURCE"
     all-laf "$file_name"
 }
 
-# Description: Transform a folder subvolume.
+# Transform a folder subvolume.
 # transforming folder subvolume
 # <folder_name> <user_name> <C>
 osm-tra() {
@@ -62,7 +63,7 @@ osm-tra() {
     eval "$cmd6"
 }
 
-# Description: Check subvolume folder and filter results.
+# Check subvolume folder and filter results.
 # check subvolume folder
 # <path> <folder_type: 1=regular, 2=hidden, 3=both> <yes=show subvolumes, no=show non-subvolumes, all=show all>
 osm-csf() {
@@ -118,7 +119,7 @@ osm-csf() {
     done
 }
 
-# Description: List configurations for 'snapper' starting with 'home_'.
+# List configurations for 'snapper' starting with 'home_'.
 # snapper list config
 # <configname>
 osm-slc() {
