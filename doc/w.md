@@ -11,4 +11,13 @@ tu run bash
 tu run bash
     mkdir /mnt/bak /mnt/sto
 # -------
+*delete old entry*
 all-fec 1 /home btrfs subvol=home 0 0
+*reboot*
+# -------
+pam.config
+pam.useradd <username> <usergroup>
+# -------
+osm-sfr /path/to/snapshot /home/<username>
+# -------
+# -------
