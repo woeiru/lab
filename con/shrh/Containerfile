@@ -6,9 +6,6 @@ RUN apt-get update && \
     apt-get install -y samba && \
     apt-get clean
 
-# Create a directory for the Samba share
-RUN mkdir -p /mount && chmod 777 /mount
-
 # Expose SMB ports
 EXPOSE 139 445
 
@@ -19,6 +16,7 @@ RUN groupadd -g 1000 xo
 RUN useradd -u 1000 -g 1000 -d /home/xo -s /bin/sh xo && \
     mkdir -p /home/xo && \
     chown -R xo:xo /home/xo && \
+    chmod 777 /home/xo && \
     echo "xo:password" | chpasswd
 
 # Set Samba password for the 'xo' user
