@@ -301,7 +301,7 @@ all-cff() {
 }
 
 # Sends ZFS snapshots from a source pool to a destination pool.
-# zfs snapshot send
+# zfs dataset backup
 # <sourcepoolname> <destinationpoolname> <datasetname>
 all-zdb() {
     local sourcepoolname="$1"
