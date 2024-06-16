@@ -58,7 +58,7 @@ alias v='vim'
 
 # directory selection
 alias ..='cd ..'
-alias l="cd $DIR/.."
+alias dl="cd $DIR/.."
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
 alias d.pam='cd /usr/lib/pam_snapper'
