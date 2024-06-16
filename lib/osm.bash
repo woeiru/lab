@@ -120,9 +120,39 @@ osm-csf() {
 # <configname>
 osm-slc() {
     local configname=$1
+
     if [ -z "$configname" ]; then
         echo "Usage: osm-slc <configname>"
         return 1
     fi
+
+    if [ "$configname" == "home" ]; then
+        # Get the list of configs
+        configs=$(snapper list-configs | awk '$1 ~ /^home_/ {print $1}')
+
+        # Count the number of home_ configs
+        config_count=$(echo "$configs" | wc -l)
+
+        if [ "$config_count" -eq 0 ]; then
+            echo "No configurations found starting with 'home_'."
+            return 1
+        elif [ "$config_count" -eq 1 ]; then
+            configname=$(echo "$configs" | head -n 1)
+            echo "Using configuration: $configname"
+        else
+            echo "Multiple configurations found starting with 'home_':"
+            echo "$configs"
+            echo "Please enter the configuration name to use:"
+            read selected_config
+            if echo "$configs" | grep -q "^$selected_config$"; then
+                configname=$selected_config
+            else
+                echo "Invalid configuration selected."
+                return 1
+            fi
+        fi
+    fi
+
     snapper -c "$configname" list
 }
+
