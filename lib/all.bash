@@ -51,7 +51,7 @@ all-laf() {
     # Print table header
     print_separator
     printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s |\n" \
-        "Function" "Arguments" "Description" "Size" "Location"
+        "Function" "Arguments" "Shortname" "Size" "Location"
     print_separator
 
     local file_name="$1"
@@ -706,13 +706,21 @@ all-gfa() {
     fi
 
     # Calculate the line number of the comment
-    local comment_line=$((function_start_line - 1))
+    local description_line=$((function_start_line - 3))
+    local shortname_line=$((function_start_line - 2))
+    local usage_line=$((function_start_line - 1))
 
     # Use sed to get the comment line and strip off leading "# "
-    local comment=$(sed -n "${comment_line}s/^# //p" "$script_file")
+    local description=$((function_start_line - 3))
+    local shortname=$(sed -n "${shortname_line}s/^# //p" "$script_file")
+    local usage=$(sed -n "${usage_line}s/^# //p" "$script_file")
+    local funcname=${caller_function}
 
     # Display the comment
-    echo "$comment"
+    echo "Description:    $description"
+    echo "Shortname:      $shortname"
+    echo "Usage:          $funcname" "$usage"
+
 }
 
 # rysnc source destination
