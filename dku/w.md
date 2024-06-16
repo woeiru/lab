@@ -24,4 +24,11 @@ pam.useradd <username> <usergroup>
 tu & tu apply & tu reboot
 # in case of snapshot flat restore
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
-# ---
+# container shrh
+podman build -t custom-samba /root/lab/con/shrh
+
+podman run -d \
+    --name shrhxo \
+    -p 139:139 -p 445:445 \
+    -v /home/xo:/mount \
+    custom-samba
