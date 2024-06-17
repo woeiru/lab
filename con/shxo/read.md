@@ -16,6 +16,8 @@ podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 podman run -d \
     --name ${CT_NAME} \
     -p 139:139 -p 445:445 \
+    -e UID=1000 \
+    -e GID=1000 \
     -e USERNAME=${SMB_USER_NAME} \
     -e PASSWORD=${SMB_USER_PASSWORD} \
     -v /home/${USER_NAME}/${SUBFOLDER}:/home/${USER_NAME}/${SUBFOLDER}:z \
@@ -38,3 +40,4 @@ ss -tuln
 smbclient -L ${NODE_NAME} -U ${SMB_USER_NAME}
 smbclient //${NODE_NAME}/${SHARENAME} -U ${SMB_USER_NAME}
 pdbedit -L
+
