@@ -1,12 +1,12 @@
 ## Variables
 export USER_NAME=xo
-export USER_PASSWORD=your_real_password
+export USER_PASSWORD=<INSERT_PASSWORD>
 
 export CT_NAME=shxo
 export CT_IMAGE=ishxo
 
 export SMB_USER_NAME=smb_user
-export SMB_USER_PASSWORD=smb_password  # Add a separate password for the Samba user
+export SMB_USER_PASSWORD=<INSERT_PASSWORD>
 
 export NODE_NAME=w0
 export SUBFOLDER=dat
