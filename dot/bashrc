@@ -52,12 +52,36 @@ done < <(find "$DIR/.." -type f -name "$FILEBASE_MD" -print0)
 
 # alias hardcoding
 #
+
 # bash
 alias b='bash'
+alias bb='exec bash'
+
+# btrfs management
+alias bt='btrfs'
+alias btf='btrfs filesystem'
 
 # cat
 alias c='cat'
 alias c.b="cat $DOT_DIR/bashrc"
+
+# directory selection
+alias d='cd'
+alias ..='cd ..'
+alias dl="cd $DIR/.."
+alias dlc="cd $CON_DIR"
+alias d.samba='cd /etc/samba/'
+alias d.snapper='cd /etc/snapper/configs'
+alias d.pam='cd /usr/lib/pam_snapper'
+alias d.def='cd /etc/default'
+
+# disk usage aliases
+alias u='du -bh -d1'
+alias uu='du -bh -d2'
+alias uuu='du -bh -d3'
+
+# exits
+alias ee='exit'
 
 # functions
 alias gg='all-gio'
@@ -71,24 +95,23 @@ alias gc='git commit -m "standard"'
 alias go='git push origin master'
 alias gp='git pull'
 
-# vim
-alias v='vim'
-alias v.b="vim $DOT_DIR/bashrc"
-alias v.nw="vim $CON_DIR/node-w.md"
+# history
+alias h='history'
 
-# directory selection
-alias d='cd'
-alias ..='cd ..'
-alias dl="cd $DIR/.."
-alias dlc="cd $CON_DIR"
-alias d.samba='cd /etc/samba/'
-alias d.snapper='cd /etc/snapper/configs'
-alias d.pam='cd /usr/lib/pam_snapper'
-alias d.def='cd /etc/default'
+# pam_snapper
+alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
+alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
+alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
+alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
 
-# btrfs management
-alias bt='btrfs'
-alias btf='btrfs filesystem'
+# podman
+alias p='podman'
+alias ps='podman ps'
+alias psa='podman ps -a'
+
+# system control aliases
+alias s='sudo'
+alias y='systemctl'
 
 # system configuration
 alias v.smb.conf='vim /etc/samba/smb.conf'
@@ -96,41 +119,9 @@ alias v.smbusers='vim /etc/samba/smbusers'
 alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
 alias v.fstab='vim /etc/fstab'
 
-# system control aliases
-alias s='sudo'
-alias y='systemctl'
-
-# utility aliases
-alias ee='exit'
-alias eb='exec bash'
-alias h='history'
-
-# Disk usage aliases
-alias u='du -bh -d1'
-alias uu='du -bh -d2'
-alias uuu='du -bh -d3'
-
-# Tree view aliases
-alias t='tree'
-alias tt='tree -L 2'
-alias ttt='tree -L 3'
-alias tttt='tree -L 4'
-alias ttttt='tree -L 5'
-
-# Transactional update alias
-alias tu='transactional-update'
-alias tua='transactional-update apply'
-alias tur='transactional-update reboot'
-
 # snapper
 alias sl='snapper list'
 alias slh='osm-slc home'
-
-# pam_snapper
-alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
-alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
-alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
-alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
 
 # Sysstat
 alias sar='sar -d 1'
@@ -140,10 +131,22 @@ alias ios='iostat -x 1'
 alias ses='sestatus -v'
 alias seb='sudo semanage boolean -l'
 
-# Podman
-alias p='podman'
-alias ps='podman ps'
-alias psa='podman ps -a'
+# transactional update alias
+alias tu='transactional-update'
+alias tua='transactional-update apply'
+alias tur='transactional-update reboot'
 
-# General Setup
+# tree view aliases
+alias t='tree'
+alias tt='tree -L 2'
+alias ttt='tree -L 3'
+alias tttt='tree -L 4'
+alias ttttt='tree -L 5'
+
+# vim
+alias v='vim'
+alias v.b="vim $DOT_DIR/bashrc"
+alias v.nw="vim $CON_DIR/node-w.md"
+
+# -----
 alias berlintime="sudo timedatectl set-timezone Europe/Berlin"
