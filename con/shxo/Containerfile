@@ -10,18 +10,13 @@ RUN apt-get update && \
 # Expose SMB ports
 EXPOSE 139 445
 
-# Create the user and group with specified UID and GID
-ARG UID=1000
-ARG GID=1000
-RUN groupadd -g $GID xo && \
-    useradd -u $UID -g $GID -d /home/xo -s /bin/sh xo && \
-    mkdir -p /home/xo && \
-    chown -R xo:xo /home/xo && \
-    chmod 777 /home/xo
+# Add a script to create the user and configure Samba
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Copy custom smb.conf to the container
-COPY smb.conf /etc/samba/smb.conf
+# Copy the smb.conf template
+COPY smb.conf /etc/samba/smb.conf.template
 
-# Start the Samba service
-CMD ["sh", "-c", "echo $USERNAME:$PASSWORD | chpasswd && (echo $PASSWORD; echo $PASSWORD) | smbpasswd -a -s $USERNAME && smbd -F --no-process-group"]
+# Start the entrypoint script
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 

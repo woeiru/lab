@@ -7,12 +7,11 @@
    dns proxy = no
 
 [dat]
-   path = /home/xo/dat
+   path = /home/{{USERNAME}}/dat
    writable = yes
    guest ok = no
    browseable = yes
    create mask = 0775
    directory mask = 0775
-   force user = xo
-   force group = xo
-
+   force user = {{USERNAME}}
+   force group = {{USERNAME}}
