@@ -2,6 +2,10 @@
 tu pkg in vim tree
 *reboot*
 
+# set grub timer
+vim /etc/default/grub
+grub2-mkconfig -o /boot/grub2/grub.cfg
+
 # install utils
 git clone https://github.com/woeiru/lab.git
 bash lab/go.sh
