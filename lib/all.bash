@@ -679,6 +679,28 @@ all-rsf() {
   fi
 }
 
+# renames all files in folder and in nested folders too
+# renames files in folder
+# <path> <old_name> <new_name>
+all-rnf() {
+    local path="$1"
+    local oldname="$2"
+    local newname="$3"
+
+    if [[ ! -d "$path" ]]; then
+        echo "The specified path is not a directory."
+        return 1
+    fi
+
+    find "$path" -type f -name "*$oldname*" | while read -r file; do
+        local dirname=$(dirname "$file")
+        local basename=$(basename "$file")
+        local newfile="${basename//$oldname/$newname}"
+        mv "$file" "$dirname/$newfile"
+    done
+}
+
+
 #  
 # get function arguments
 #   
