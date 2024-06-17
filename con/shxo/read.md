@@ -23,13 +23,6 @@ podman run -d \
 
 podman start ${CT_NAME}
 
-## Testing
-ls -Z <path>
-lsof -i -P -n
-ss -tuln
-smbclient -L ${NODE_NAME} -U ${SMB_USER_NAME}
-smbclient //${NODE_NAME}/${SHARENAME} -U ${SMB_USER_NAME}
-
 ## iptables setup
 iptables -L -v -n
 iptables -A INPUT -p tcp --dport 139 -j ACCEPT
@@ -38,3 +31,10 @@ iptables -A INPUT -p tcp --dport 445 -j ACCEPT
 
 iptables-restore < /etc/sysconfig/iptables
 
+## Testing
+ls -Z <path>
+lsof -i -P -n
+ss -tuln
+smbclient -L ${NODE_NAME} -U ${SMB_USER_NAME}
+smbclient //${NODE_NAME}/${SHARENAME} -U ${SMB_USER_NAME}
+pdbedit -L
