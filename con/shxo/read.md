@@ -1,12 +1,14 @@
 ## Variables
+export CT_DIR=/root/lab/con/
+
 export USER_NAME=xo
-export USER_PASSWORD=<INSERT_PASSWORD>
+export USER_PASSWORD=<SET_PASS>
 
 export CT_NAME=shxo
 export CT_IMAGE=ishxo
 
 export SMB_USER_NAME=smb_user
-export SMB_USER_PASSWORD=<INSERT_PASSWORD>
+export SMB_USER_PASSWORD=<SET_PASS>
 
 export NODE_NAME=w0
 export SUBFOLDER=dat
@@ -21,7 +23,7 @@ iptables -A INPUT -p tcp --dport 445 -j ACCEPT
 iptables-restore < /etc/sysconfig/iptables
 
 ## Container deployment
-podman build -t ${CT_IMAGE} /root/lab/con/${CT_NAME}
+podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 podman run -d \
     --name ${CT_NAME} \
     -p 139:139 -p 445:445 \
