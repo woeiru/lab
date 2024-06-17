@@ -15,7 +15,7 @@ COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Copy the smb.conf template
-COPY smb.conf /etc/samba/smb.conf.template
+COPY smb.conf.template /etc/samba/smb.conf.template
 
 # Start the entrypoint script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
