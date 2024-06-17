@@ -1,15 +1,11 @@
 ## Variables
 export CT_DIR=/root/lab/con/
-
 export USER_NAME=xo
-export USER_PASSWORD=<SET_PASS>
-
+export USER_PASSWORD=password
 export CT_NAME=shxo
 export CT_IMAGE=ishxo
-
 export SMB_USER_NAME=smb_user
-export SMB_USER_PASSWORD=<SET_PASS>
-
+export SMB_USER_PASSWORD=password
 export NODE_NAME=w0
 export SUBFOLDER=dat
 export SHARENAME=dat
@@ -27,7 +23,7 @@ podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 podman run -d \
     --name ${CT_NAME} \
     -p 139:139 -p 445:445 \
-    -v /home/${USER_NAME}/dat:/home/${USER_NAME}:z \
+    -v /home/${USER_NAME}/${SUBFOLDER}:/home/${USER_NAME}/${SUBFOLDER}:z \
     ${CT_IMAGE}
 
 ## Container setup
