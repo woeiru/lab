@@ -188,7 +188,7 @@ osm-sfr() {
 }
 # creating a subvol on bak then sending snapshots there
 # home user backups
-# <user> <snapshots: "all" or "1 2 3">
+# <user> <snapshots: "all">
 osm-hub() {
     local username="$1"
     local snapshot_option="$2"
@@ -197,10 +197,10 @@ osm-hub() {
     local snapshot_dir="$home_dir/.snapshots"
 
     if [ $# -ne 2 ]; then
-	all-gfa
+        all-gfa
         return 1
     fi
-  
+
     # Check if the home directory exists
     if [ ! -d "$home_dir" ]; then
         echo "User home directory $home_dir does not exist."
@@ -220,30 +220,32 @@ osm-hub() {
 
     # Determine which snapshots to backup
     if [ "$snapshot_option" == "all" ]; then
-        # Backup all snapshots
-        for snapshot_number in $(ls "$snapshot_dir"); do
-            if snapshot_exists "$snapshot_number"; then
-                backup_snapshot_dir="$backup_dir/$snapshot_number"
-                if [ ! -d "$backup_snapshot_dir" ]; then
-                    btrfs subvolume create "$backup_snapshot_dir"
-                fi
-                btrfs send "$snapshot_dir/$snapshot_number/snapshot" | btrfs receive "$backup_snapshot_dir"
+        # Get the list of snapshots
+        snapshots=($(ls "$snapshot_dir" | sort))
+
+        # Find the smallest snapshot
+        smallest_snapshot=${snapshots[0]}
+
+        # Full backup of the smallest snapshot
+        backup_snapshot_dir="$backup_dir/$smallest_snapshot"
+        if [ ! -d "$backup_snapshot_dir" ]; then
+            btrfs subvolume create "$backup_snapshot_dir"
+        fi
+        btrfs send "$snapshot_dir/$smallest_snapshot/snapshot" | btrfs receive "$backup_snapshot_dir"
+
+        # Incremental backups of other snapshots
+        prev_snapshot="$smallest_snapshot"
+        for snapshot in "${snapshots[@]:1}"; do
+            backup_snapshot_dir="$backup_dir/$snapshot"
+            if [ ! -d "$backup_snapshot_dir" ]; then
+                btrfs subvolume create "$backup_snapshot_dir"
             fi
+            btrfs send -p "$snapshot_dir/$prev_snapshot/snapshot" "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_snapshot_dir"
+            prev_snapshot="$snapshot"
         done
     else
-        # Backup specified snapshots
-        for snapshot_number in $snapshot_option; do
-            if snapshot_exists "$snapshot_number"; then
-                backup_snapshot_dir="$backup_dir/$snapshot_number"
-                if [ ! -d "$backup_snapshot_dir" ]; then
-                    btrfs subvolume create "$backup_snapshot_dir"
-                fi
-                btrfs send "$snapshot_dir/$snapshot_number/snapshot" | btrfs receive "$backup_snapshot_dir"
-            else
-                echo "Snapshot $snapshot_number does not exist in $snapshot_dir."
-            fi
-        done
+        # If snapshot_option is not "all", exit the function
+        return 0
     fi
 }
-
 
