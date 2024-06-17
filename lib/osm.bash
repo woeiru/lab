@@ -197,18 +197,20 @@ osm-hub() {
     local snapshot_dir="$home_dir/.snapshots"
 
     if [ $# -ne 2 ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Incorrect number of arguments. Usage: osm-hub <username> <snapshot_option>"
         all-gfa
         return 1
     fi
 
     # Check if the home directory exists
     if [ ! -d "$home_dir" ]; then
-        echo "User home directory $home_dir does not exist."
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - User home directory $home_dir does not exist."
         return 1
     fi
 
     # Create backup directory if it doesn't exist
     if [ ! -d "$backup_dir" ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Creating backup directory $backup_dir."
         btrfs subvolume create "$backup_dir"
     fi
 
@@ -220,31 +222,42 @@ osm-hub() {
 
     # Determine which snapshots to backup
     if [ "$snapshot_option" == "all" ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting full and incremental backups for all snapshots."
+
         # Get the list of snapshots
         snapshots=($(ls "$snapshot_dir" | sort))
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Found snapshots: ${snapshots[*]}"
 
         # Find the smallest snapshot
         smallest_snapshot=${snapshots[0]}
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Smallest snapshot: $smallest_snapshot"
 
         # Full backup of the smallest snapshot
         backup_snapshot_dir="$backup_dir/$smallest_snapshot"
         if [ ! -d "$backup_snapshot_dir" ]; then
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - Creating backup subvolume for smallest snapshot: $smallest_snapshot"
             btrfs subvolume create "$backup_snapshot_dir"
         fi
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting full backup of smallest snapshot: $smallest_snapshot"
         btrfs send "$snapshot_dir/$smallest_snapshot/snapshot" | btrfs receive "$backup_snapshot_dir"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Full backup of smallest snapshot $smallest_snapshot completed."
 
         # Incremental backups of other snapshots
         prev_snapshot="$smallest_snapshot"
         for snapshot in "${snapshots[@]:1}"; do
             backup_snapshot_dir="$backup_dir/$snapshot"
             if [ ! -d "$backup_snapshot_dir" ]; then
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - Creating backup subvolume for snapshot: $snapshot"
                 btrfs subvolume create "$backup_snapshot_dir"
             fi
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting incremental backup of snapshot: $snapshot with parent snapshot: $prev_snapshot"
             btrfs send -p "$snapshot_dir/$prev_snapshot/snapshot" "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_snapshot_dir"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - Incremental backup of snapshot $snapshot completed."
             prev_snapshot="$snapshot"
         done
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - All backups completed."
     else
-        # If snapshot_option is not "all", exit the function
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Snapshot option is not 'all', exiting the function."
         return 0
     fi
 }
