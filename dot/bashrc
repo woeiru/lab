@@ -41,10 +41,12 @@ for file in "${files[@]}"; do
   alias "v.$file.conf"="vim $VAR_DIR/$file.conf"
 done
 
-# Generate readme.md aliases for each container
-for container in $(ls "$CON_DIR"); do
-  alias "$container.md"="cat $CON_DIR/$container/readme.md"
-done
+# Generate readme.md aliases for all folders containing a readme.md in the entire repo
+while IFS= read -r -d '' readme; do
+  dir=$(dirname "$readme")
+  alias_name=$(basename "$dir").md
+  alias "$alias_name"="cat $readme"
+done < <(find "$DIR/.." -type f -name "readme.md" -print0)
 
 # alias hardcoding
 #
