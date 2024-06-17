@@ -34,7 +34,10 @@ podman start ${CT_NAME}
 podman generate systemd --new --files --name ${CT_NAME}
 mv container-${CT_NAME}.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable container-${CT_NAME}.service
+tu run bash
+	systemctl enable container-${CT_NAME}.service
+	exit
+tua && tur
 
 ### iptables setup
 
