@@ -186,4 +186,59 @@ osm-sfr() {
         echo "rsync encountered an error. Exit status: $rsync_status"
     fi
 }
+# creating a subvol on bak then sending snapshots there
+# home user backups
+# <user> <snapshots: "all" or "1 2 3">
+osm-hub() {
+    local username="$1"
+    local snapshot_option="$2"
+    local home_dir="/home/$username"
+    local backup_dir="/mnt/bak/home_$username"
+    local snapshot_dir="$home_dir/.snapshots"
+
+    # Check if the home directory exists
+    if [ ! -d "$home_dir" ]; then
+        echo "User home directory $home_dir does not exist."
+        return 1
+    fi
+
+    # Create backup directory if it doesn't exist
+    if [ ! -d "$backup_dir" ]; then
+        btrfs subvolume create "$backup_dir"
+    fi
+
+    # Function to check if a snapshot exists
+    snapshot_exists() {
+        local snap="$1"
+        [ -d "$snapshot_dir/$snap" ]
+    }
+
+    # Determine which snapshots to backup
+    if [ "$snapshot_option" == "all" ]; then
+        # Backup all snapshots
+        for snapshot_number in $(ls "$snapshot_dir"); do
+            if snapshot_exists "$snapshot_number"; then
+                backup_snapshot_dir="$backup_dir/$snapshot_number"
+                if [ ! -d "$backup_snapshot_dir" ]; then
+                    btrfs subvolume create "$backup_snapshot_dir"
+                fi
+                btrfs send "$snapshot_dir/$snapshot_number/snapshot" | btrfs receive "$backup_snapshot_dir"
+            fi
+        done
+    else
+        # Backup specified snapshots
+        for snapshot_number in $snapshot_option; do
+            if snapshot_exists "$snapshot_number"; then
+                backup_snapshot_dir="$backup_dir/$snapshot_number"
+                if [ ! -d "$backup_snapshot_dir" ]; then
+                    btrfs subvolume create "$backup_snapshot_dir"
+                fi
+                btrfs send "$snapshot_dir/$snapshot_number/snapshot" | btrfs receive "$backup_snapshot_dir"
+            else
+                echo "Snapshot $snapshot_number does not exist in $snapshot_dir."
+            fi
+        done
+    fi
+}
+
 
