@@ -794,3 +794,29 @@ all-rav() {
                 ;;
     esac
 }
+
+# cats all files inside a particular folder
+# cat in folder
+# <path>
+all-cif() {
+    # Check if exactly one argument (directory path) is provided
+    if [ $# -ne 1 ]; then
+        all-gfa
+        return 1
+    fi
+
+    # Check if the argument is a directory
+    if [ ! -d "$1" ]; then
+        echo "$1 is not a directory."
+        return 1
+    fi
+
+    # Concatenate all files within the directory
+    for file in "$1"/*; do
+        if [ -f "$file" ]; then
+            echo "Contents of $file:"
+            cat "$file"
+            echo "-----------------------------------"
+        fi
+    done
+}
