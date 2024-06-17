@@ -59,9 +59,6 @@ alias b='bash'
 alias c='cat'
 alias c.b="cat $DOT_DIR/bashrc"
 
-# exit
-alias ee='exit'
-
 # functions
 alias gg='all-gio'
 
@@ -84,7 +81,6 @@ alias d='cd'
 alias ..='cd ..'
 alias dl="cd $DIR/.."
 alias dlc="cd $CON_DIR"
-
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
 alias d.pam='cd /usr/lib/pam_snapper'
@@ -100,11 +96,11 @@ alias v.smbusers='vim /etc/samba/smbusers'
 alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
 alias v.fstab='vim /etc/fstab'
 
-# System control aliases
+# system control aliases
 alias s='sudo'
 alias y='systemctl'
 
-# Utility aliases
+# utility aliases
 alias ee='exit'
 alias eb='exec bash'
 alias h='history'
@@ -149,5 +145,5 @@ alias p='podman'
 alias ps='podman ps'
 alias psa='podman ps -a'
 
-# Misc
+# General Setup
 alias berlintime="sudo timedatectl set-timezone Europe/Berlin"
