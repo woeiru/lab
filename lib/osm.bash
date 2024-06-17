@@ -235,9 +235,10 @@ osm-hub() {
         # Full backup of the smallest snapshot
         backup_snapshot_dir="$backup_dir/$smallest_snapshot"
         if [ ! -d "$backup_snapshot_dir" ]; then
-            echo "$(date '+%H:%M') - Creating backup subvolume for smallest snapshot: $smallest_snapshot"
-            btrfs subvolume create "$backup_snapshot_dir"
+            echo "$(date '+%H:%M') - Creating backup directory for smallest snapshot: $smallest_snapshot"
+            mkdir -p "$backup_snapshot_dir"
         fi
+ 
         echo "$(date '+%H:%M') - Starting full backup of smallest snapshot: $smallest_snapshot"
         btrfs send "$snapshot_dir/$smallest_snapshot/snapshot" | btrfs receive "$backup_snapshot_dir"
         echo "$(date '+%H:%M') - Full backup of smallest snapshot $smallest_snapshot completed."
