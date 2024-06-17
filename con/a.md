@@ -37,5 +37,5 @@ tu & tu apply & tu reboot
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
 
 ### installing cockpit
-tu pkg in patterns-microos-cockpit cockpit-ws cockpit-tukit cockpit-storaged cockpit-networkmanager cockpit-podman cockpit-selinux cockpit-files
+tu pkg in patterns-microos-cockpit cockpit-ws cockpit-tukit cockpit-podman cockpit-storaged cockpit-files cockpit-networkmanager cockpit-selinux
 systemctl enable --now cockpit.socket
