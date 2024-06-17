@@ -41,12 +41,13 @@ for file in "${files[@]}"; do
   alias "v.$file.conf"="vim $VAR_DIR/$file.conf"
 done
 
-# Generate readme.md aliases for all folders containing a readme.md in the entire repo
-while IFS= read -r -d '' readme; do
-  dir=$(dirname "$readme")
+# Generate aliases for all folders containing the specified file in the entire repo
+FILEBASE_MD="a.md"
+while IFS= read -r -d '' file; do
+  dir=$(dirname "$file")
   alias_name=$(basename "$dir").md
-  alias "$alias_name"="cat $readme"
-done < <(find "$DIR/.." -type f -name "readme.md" -print0)
+  alias "$alias_name"="cat $file"
+done < <(find "$DIR/.." -type f -name "$FILEBASE_MD" -print0)
 
 # alias hardcoding
 #
