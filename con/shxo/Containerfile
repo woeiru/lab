@@ -10,26 +10,24 @@ ARG GID=1000
 # Install Samba and other necessary packages
 RUN apt-get update && \
     apt-get install -y samba && \
-    apt-get clean
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Expose SMB ports
 EXPOSE 139 445
 
-# Create the group with GID
-RUN groupadd -g $GID $USERNAME
-
-# Create the user with UID and add to the group
-RUN useradd -u $UID -g $GID -d /home/$USERNAME -s /bin/sh $USERNAME && \
+# Create the group with GID and the user with UID, add to the group, set permissions, and set the password
+RUN groupadd -g $GID $USERNAME && \
+    useradd -u $UID -g $GID -d /home/$USERNAME -s /bin/sh $USERNAME && \
     mkdir -p /home/$USERNAME && \
     chown -R $USERNAME:$USERNAME /home/$USERNAME && \
     chmod 777 /home/$USERNAME && \
-    echo "$USERNAME:$PASSWORD" | chpasswd
-
-# Set Samba password for the user
-RUN echo "$PASSWORD\n$PASSWORD" | smbpasswd -a -s $USERNAME
+    echo "$USERNAME:$PASSWORD" | chpasswd && \
+    (echo "$PASSWORD"; echo "$PASSWORD") | smbpasswd -a -s $USERNAME
 
 # Copy custom smb.conf to the container
 COPY smb.conf /etc/samba/smb.conf
 
 # Start the Samba service
 CMD ["smbd", "-F", "--no-process-group"]
+
