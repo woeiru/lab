@@ -29,6 +29,13 @@ podman run -d \
 
 podman start ${CT_NAME}
 
+### systemctl setup
+
+podman generate systemd --new --files --name ${CT_NAME}
+mv container-${CT_NAME}.service /etc/systemd/system/
+sytemctl daemon-reload
+sytemctl enable container-${CT_NAME}.service
+
 ### iptables setup
 
 iptables -L -v -n
