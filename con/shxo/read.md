@@ -21,7 +21,7 @@ iptables -A INPUT -p tcp --dport 445 -j ACCEPT
 iptables-restore < /etc/sysconfig/iptables
 
 ## Container deployment
-podman build -t custom-samba /root/lab/con/${CT_NAME}
+podman build -t ${CT_IMAGE} /root/lab/con/${CT_NAME}
 podman run -d \
     --name ${CT_NAME} \
     -p 139:139 -p 445:445 \
@@ -43,3 +43,4 @@ lsof -i -P -n
 ss -tuln
 smbclient -L ${NODE_NAME} -U ${SMB_USER_NAME}
 smbclient //${NODE_NAME}/${SHARENAME} -U ${SMB_USER_NAME}
+
