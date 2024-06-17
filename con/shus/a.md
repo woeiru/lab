@@ -1,7 +1,7 @@
 ### Variables
 
 export CT_DIR=/root/lab/con/
-export CT_IMAGE=ishu
+export CT_IMAGE=ishus
 export CT_NAME=shus
 
 export USER_NAME=
