@@ -46,7 +46,8 @@ FILEBASE_MD="a.md"
 while IFS= read -r -d '' file; do
   dir=$(dirname "$file")
   alias_name=$(basename "$dir").md
-  alias "$alias_name"="cat $file"
+  alias "c.$alias_name"="cat $file"
+  alias "v.$alias_name"="vim $file"
 done < <(find "$DIR/.." -type f -name "$FILEBASE_MD" -print0)
 
 # alias hardcoding
