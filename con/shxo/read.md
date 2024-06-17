@@ -4,7 +4,7 @@ export USER_NAME=xo
 export USER_PASSWORD=password
 export CT_NAME=shxo
 export CT_IMAGE=ishxo
-export SMB_USER_NAME=smb_user
+export SMB_USER_NAME=xo
 export SMB_USER_PASSWORD=password
 export NODE_NAME=w0
 export SUBFOLDER=dat
@@ -23,6 +23,8 @@ podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 podman run -d \
     --name ${CT_NAME} \
     -p 139:139 -p 445:445 \
+    -e USERNAME=${SMB_USER_NAME} \
+    -e PASSWORD=${SMB_USER_PASSWORD} \
     -v /home/${USER_NAME}/${SUBFOLDER}:/home/${USER_NAME}/${SUBFOLDER}:z \
     ${CT_IMAGE}
 
@@ -35,7 +37,7 @@ podman exec -it ${CT_NAME} service smbd restart
 ## Container running
 podman start ${CT_NAME}
 
-## testing
+## Testing
 ls -Z <path>
 lsof -i -P -n
 ss -tuln
