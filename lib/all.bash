@@ -629,49 +629,10 @@ all-sdc() {
     fi
 }
 
-# Replaces strings in all files within a specified folder, staged by git.
-# replace strings
-# <foldername> <old_string> <new_string>
-all-rsf() {
-  local foldername="$1"
-  local old_string="$2"
-  local new_string="$3"
- 
-  if [ $# -ne 3 ]; then
-	all-gfa
-        return 1
-    fi
-
-  # Navigate to the specified folder
-  cd "$foldername" || { echo "Folder not found: $foldername"; return 1; }
-
-  # Stage all current changes
-  git add .
-
-  # Run the substitution command with a check for modified files
-  find . -type f ! -path './.git/*' -exec sh -c '
-    for file; do
-      if grep -q "$0" "$file"; then
-        sed -i "s/$0/$1/g" "$file"
-        echo "Modified $file"
-      fi
-    done
-  ' "$old_string" "$new_string" {} +
-
-  # Check the status to see which files have been modified
-  git status
-
-  # Use git diff to see the exact lines that were changed
-  git diff
-
-  # Optionally commit the changes (uncomment if you want to commit automatically)
-  # git commit -am "Replaced $old_string with $new_string"
-}
-
 # Replaces strings in files within a specified folder, optionally staged by git.
 # replace strings 2
 # <foldername> <old_string> <new_string>
-all-rs2() {
+all-rsf() {
   local foldername="$1"
   local old_string="$2"
   local new_string="$3"
