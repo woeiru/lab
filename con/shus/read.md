@@ -1,11 +1,11 @@
 ## Variables
 export CT_DIR=/root/lab/con/
-export USER_NAME=xo
-export USER_PASSWORD=password
-export CT_NAME=shxo
-export CT_IMAGE=ishxo
-export SMB_USER_NAME=xo
-export SMB_USER_PASSWORD=password
+export CT_NAME=shus
+export CT_IMAGE=ishus
+export USER_NAME=es
+export USER_PASSWORD=lernt
+export SMB_USER_NAME=es
+export SMB_USER_PASSWORD=lernt
 export NODE_NAME=w0
 export SUBFOLDER=dat
 export SHARENAME=dat
