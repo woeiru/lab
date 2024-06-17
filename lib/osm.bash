@@ -202,64 +202,82 @@ osm-hub() {
         return 1
     fi
 
-    # Check if the home directory exists
-    if [ ! -d "$home_dir" ]; then
-        echo "$(date '+%H:%M') - User home directory $home_dir does not exist."
-        return 1
-    fi
+    check_directories() {
+        if [ ! -d "$home_dir" ]; then
+            echo "$(date '+%H:%M') - User home directory $home_dir does not exist."
+            return 1
+        fi
 
-    # Create backup directory if it doesn't exist
-    if [ ! -d "$backup_dir" ]; then
-        echo "$(date '+%H:%M') - Creating backup directory $backup_dir."
-        btrfs subvolume create "$backup_dir"
-    fi
-
-    # Function to check if a snapshot exists
-    snapshot_exists() {
-        local snap="$1"
-        [ -d "$snapshot_dir/$snap" ]
+        if [ ! -d "$backup_dir" ]; then
+            echo "$(date '+%H:%M') - Creating backup directory $backup_dir."
+            mkdir -p "$backup_dir"
+        fi
     }
 
-    # Determine which snapshots to backup
-    if [ "$snapshot_option" == "all" ]; then
-        echo "$(date '+%H:%M') - Starting full and incremental backups for all snapshots."
+    get_snapshots() {
+        local dir="$1"
+        echo $(ls "$dir" 2>/dev/null | sort -n)
+    }
 
-        # Get the list of snapshots and sort them numerically
-        snapshots=($(ls "$snapshot_dir" | sort -n))
-        echo "$(date '+%H:%M') - Found snapshots: ${snapshots[*]}"
+    log_snapshots() {
+        echo "$(date '+%H:%M') - Source snapshots: ${src_snapshots[*]}"
+        echo "$(date '+%H:%M') - Target snapshots: ${tgt_snapshots[*]}"
+    }
 
-        # Find the smallest snapshot
-        smallest_snapshot=${snapshots[0]}
-        echo "$(date '+%H:%M') - Smallest snapshot: $smallest_snapshot"
+    full_backup() {
+        local snapshot="$1"
+        echo "$(date '+%H:%M') - Starting full backup of smallest snapshot: $snapshot"
+        mkdir -p "$backup_dir/$snapshot"
+        btrfs send "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
+        echo "$(date '+%H:%M') - Full backup of smallest snapshot $snapshot completed."
+    }
 
-        # Full backup of the smallest snapshot
-        backup_snapshot_dir="$backup_dir/$smallest_snapshot"
-        if [ ! -d "$backup_snapshot_dir" ]; then
-            echo "$(date '+%H:%M') - Creating backup directory for smallest snapshot: $smallest_snapshot"
-            mkdir -p "$backup_snapshot_dir"
+    incremental_backup() {
+        local parent_snapshot="$1"
+        local snapshot="$2"
+        echo "$(date '+%H:%M') - Starting incremental backup of snapshot: $snapshot with parent snapshot: $parent_snapshot"
+        mkdir -p "$backup_dir/$snapshot"
+        if [ -n "$parent_snapshot" ]; then
+            btrfs send -p "$snapshot_dir/$parent_snapshot/snapshot" "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
+        else
+            btrfs send "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
         fi
- 
-        echo "$(date '+%H:%M') - Starting full backup of smallest snapshot: $smallest_snapshot"
-        btrfs send "$snapshot_dir/$smallest_snapshot/snapshot" | btrfs receive "$backup_snapshot_dir"
-        echo "$(date '+%H:%M') - Full backup of smallest snapshot $smallest_snapshot completed."
+        echo "$(date '+%H:%M') - Incremental backup of snapshot $snapshot completed."
+    }
 
-        # Incremental backups of other snapshots
-        prev_snapshot="$smallest_snapshot"
-        for snapshot in "${snapshots[@]:1}"; do
-            backup_snapshot_dir="$backup_dir/$snapshot"
-            if [ ! -d "$backup_snapshot_dir" ]; then
-                echo "$(date '+%H:%M') - Creating backup directory for snapshot: $snapshot"
-                mkdir -p "$backup_snapshot_dir"
-            fi
-            echo "$(date '+%H:%M') - Starting incremental backup of snapshot: $snapshot with parent snapshot: $prev_snapshot"
-            btrfs send -p "$snapshot_dir/$prev_snapshot/snapshot" "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_snapshot_dir"
-            echo "$(date '+%H:%M') - Incremental backup of snapshot $snapshot completed."
-            prev_snapshot="$snapshot"
-        done
-        echo "$(date '+%H:%M') - All backups completed."
-    else
-        echo "$(date '+%H:%M') - Snapshot option is not 'all', exiting the function."
+    perform_backups() {
+        if [ ${#src_snapshots[@]} -gt 0 ] && [ ${#tgt_snapshots[@]} -eq 0 ]; then
+            echo "$(date '+%H:%M') - Target is empty and source has snapshots. Performing full and incremental backups."
+            full_backup "${src_snapshots[0]}"
+            prev_snapshot="${src_snapshots[0]}"
+            for snapshot in "${src_snapshots[@]:1}"; do
+                incremental_backup "$prev_snapshot" "$snapshot"
+                prev_snapshot="$snapshot"
+            done
+        elif [ ${#src_snapshots[@]} -gt ${#tgt_snapshots[@]} ]; then
+            echo "$(date '+%H:%M') - There are fewer snapshots in the target. Performing incremental backups for missing snapshots."
+            prev_snapshot=""
+            for snapshot in "${src_snapshots[@]}"; do
+                if ! [[ " ${tgt_snapshots[*]} " =~ " $snapshot " ]]; then
+                    incremental_backup "$prev_snapshot" "$snapshot"
+                fi
+                prev_snapshot="$snapshot"
+            done
+        else
+            echo "$(date '+%H:%M') - No actions needed. Exiting."
+        fi
+    }
+
+    check_directories
+    src_snapshots=($(get_snapshots "$snapshot_dir"))
+    tgt_snapshots=($(get_snapshots "$backup_dir"))
+    log_snapshots
+
+    if [ ${#src_snapshots[@]} -eq 0 ] && [ ${#tgt_snapshots[@]} -eq 0 ]; then
+        echo "$(date '+%H:%M') - Both source and target snapshots are empty. Exiting."
         return 0
     fi
+
+    perform_backups
 }
 
