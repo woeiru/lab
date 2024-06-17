@@ -196,6 +196,11 @@ osm-hub() {
     local backup_dir="/mnt/bak/home_$username"
     local snapshot_dir="$home_dir/.snapshots"
 
+    if [ $# -ne 2 ]; then
+	all-gfa
+        return 1
+    fi
+  
     # Check if the home directory exists
     if [ ! -d "$home_dir" ]; then
         echo "User home directory $home_dir does not exist."
