@@ -248,8 +248,8 @@ osm-hub() {
         for snapshot in "${snapshots[@]:1}"; do
             backup_snapshot_dir="$backup_dir/$snapshot"
             if [ ! -d "$backup_snapshot_dir" ]; then
-                echo "$(date '+%H:%M') - Creating backup subvolume for snapshot: $snapshot"
-                btrfs subvolume create "$backup_snapshot_dir"
+                echo "$(date '+%H:%M') - Creating backup directory for snapshot: $snapshot"
+                mkdir -p "$backup_snapshot_dir"
             fi
             echo "$(date '+%H:%M') - Starting incremental backup of snapshot: $snapshot with parent snapshot: $prev_snapshot"
             btrfs send -p "$snapshot_dir/$prev_snapshot/snapshot" "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_snapshot_dir"
