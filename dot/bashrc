@@ -41,6 +41,11 @@ for file in "${files[@]}"; do
   alias "v.$file.conf"="vim $VAR_DIR/$file.conf"
 done
 
+# Generate readme.md aliases for each container
+for container in $(ls "$CON_DIR"); do
+  alias "$container.md"="cat $CON_DIR/$container/readme.md"
+done
+
 # alias hardcoding
 #
 # bash
