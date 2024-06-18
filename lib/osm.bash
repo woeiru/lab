@@ -157,6 +157,7 @@ osm-shc() {
         fi
     fi
 
+    echo "snapper -c "$configname" create"
     snapper -c "$configname" create
 }
 
@@ -198,6 +199,7 @@ osm-shl() {
         fi
     fi
 
+    echo "snapper -c "$configname" list"
     snapper -c "$configname" list
 }
 
