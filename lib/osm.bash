@@ -120,9 +120,9 @@ osm-csf() {
 }
 
 # snapper -c home_* create
-# snapper create home
+# snapper home create
 # <configname>
-osm-sch() {
+osm-shc() {
     local configname=$1
 
     if [ -z "$configname" ]; then
@@ -161,9 +161,9 @@ osm-sch() {
 }
 
 # snapper -c home_* list
-# snapper list home
+# snapper home list
 # <configname>
-osm-slh() {
+osm-shl() {
     local configname=$1
 
     if [ -z "$configname" ]; then
