@@ -116,7 +116,7 @@ shr-sma() {
 shr-fws() {
     local function_name="${FUNCNAME[0]}"
     if [ $# -ne 1 ]; then
-	all-gfa
+	all-use
         return 1
     fi
    # Open firewall ports

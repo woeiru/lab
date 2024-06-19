@@ -86,6 +86,7 @@ alias ee='exit'
 
 # functions
 alias gg='all-gio'
+alias af='all-fun'
 
 # git
 alias g='git status'
