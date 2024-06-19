@@ -372,9 +372,13 @@ all-duc() {
     local depth=$3
 
     if [ $# -ne 3 ]; then
-	all-use
+        all-use
         return 1
     fi
+
+    # Convert relative paths to absolute paths
+    path1=$(realpath "$path1")
+    path2=$(realpath "$path2")
 
     # remove base path and sort by subpath
     process_du() {
@@ -425,6 +429,7 @@ all-duc() {
             }
         }' | column -t
 }
+
 
 # Prompts the user to input or confirm a variable's value.
 # main eval variable
