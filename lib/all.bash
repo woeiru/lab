@@ -803,3 +803,36 @@ all-cif() {
         fi
     done
 }
+
+# cats the source code of a function inside the lib folder
+# function library cat
+# <function_name>
+all-fun() {
+    # Check if a function name is provided
+    if [ -z "$1" ]; then
+        echo "Usage: all-fun <function-name>"
+        return 1
+    fi
+
+    # Extract the library prefix from the function name
+    func_name="$1"
+    lib_prefix="${func_name%%-*}"
+    lib_file="/root/lab/lib/${lib_prefix}.bash"
+
+    # Check if the library file exists
+    if [ ! -f "$lib_file" ]; then
+        echo "Library file $lib_file not found!"
+        return 1
+    fi
+
+    # Search for the function definition in the library file
+    start_line=$(grep -n "^[[:space:]]*${func_name}[[:space:]]*()" "$lib_file" | cut -d: -f1)
+    
+    if [ -z "$start_line" ]; then
+        echo "Function $func_name not found in $lib_file"
+        return 1
+    fi
+
+    # Extract the function source code
+    awk "NR >= $start_line { print; if (/^\}$/) exit }" "$lib_file"
+}
