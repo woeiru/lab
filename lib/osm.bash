@@ -73,7 +73,7 @@ osm-csf() {
 
     # Check if arguments are provided
     if [ -z "$path" ] || [ -z "$folder_type" ] || [ -z "$filter" ]; then
-        all-gfa
+        all-use
         return 1
     fi
 
@@ -126,7 +126,7 @@ osm-shc() {
     local configname=$1
 
     if [ -z "$configname" ]; then
-        all-gfa
+        all-use
         return 1
     fi
 
@@ -168,7 +168,7 @@ osm-shl() {
     local configname=$1
 
     if [ -z "$configname" ]; then
-        all-gfa
+        all-use
         return 1
     fi
 
@@ -212,7 +212,7 @@ osm-sfr() {
 
     # Check if arguments are provided
     if [ -z "$snapshot_sub" ] || [ -z "$target_folder" ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -241,7 +241,7 @@ osm-hub() {
 
     if [ $# -ne 2 ]; then
         echo "$(date '+%H:%M') - Incorrect number of arguments. Usage: osm-hub <username> <snapshot_option>"
-        all-gfa
+        all-use
         return 1
     fi
 

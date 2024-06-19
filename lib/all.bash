@@ -207,10 +207,10 @@ all-fec() {
     # List blkid output with line numbers
     echo "Available devices:"
     blkid | nl -v 1
-    all-gfa
+    all-use
     return 0
   elif [ $# -ne 6 ]; then
-    all-gfa
+    all-use
     return 1
   fi
 
@@ -257,7 +257,7 @@ all-vsf() {
 # <path> <folder_type: 1=regular, 2=hidden, 3=both>
 all-cff() {
     if [ $# -ne 2 ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -309,7 +309,7 @@ all-zdb() {
     local datasetname="$3"
 
      if [ $# -ne 3 ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -372,7 +372,7 @@ all-duc() {
     local depth=$3
 
     if [ $# -ne 3 ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -435,7 +435,7 @@ all-mev() {
     local current_value=$3
     
     if [ $# -ne 3 ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -466,7 +466,7 @@ all-cap() {
     local line="$2"
     
     if [ $# -ne 2 ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -491,7 +491,7 @@ all-ipa() {
     local pak2="$3"
    
     if [ $# -ne 3 ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -517,7 +517,7 @@ all-gst() {
     local usermail="$2"
     
     if [ $# -ne 2 ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -552,7 +552,7 @@ all-fas() {
     local fwd_as_1="$1"
    
     if [ $# -ne 1 ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -572,7 +572,7 @@ all-ust() {
     local password="$2"
    
     if [ $# -ne 2 ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -603,7 +603,7 @@ all-sdc() {
     local service="$1"
     
     if [ $# -ne 1 ]; then
-	all-gfa
+	all-use
         return 1
     fi
 
@@ -638,7 +638,7 @@ all-rsf() {
   local new_string="$3"
     
   if [ $# -ne 3 ]; then
-    all-gfa
+    all-use
     return 1
   fi
 
@@ -704,7 +704,7 @@ all-rnf() {
 #  
 # get function arguments
 #   
-all-gfa() {
+all-use() {
     local caller_line=$(caller 0)
     local caller_function=$(echo $caller_line | awk '{print $2}')
     local script_file="${BASH_SOURCE[1]}"
@@ -740,7 +740,7 @@ all-gfa() {
 # <storage_name>
 all-rav() {
     if [ $# -ne 1 ]; then
-	all-gfa
+	all-use
         return 1
     fi
     local source_path="$1"
@@ -784,7 +784,7 @@ all-rav() {
 all-cif() {
     # Check if exactly one argument (directory path) is provided
     if [ $# -ne 1 ]; then
-        all-gfa
+        all-use
         return 1
     fi
 
@@ -810,7 +810,7 @@ all-cif() {
 all-fun() {
     # Check if a function name is provided
     if [ -z "$1" ]; then
-        echo "Usage: all-fun <function-name>"
+        all-use
         return 1
     fi
 
