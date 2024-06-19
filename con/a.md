@@ -39,3 +39,12 @@ osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
 ### installing cockpit
 tu pkg in patterns-microos-cockpit cockpit-ws cockpit-tukit 
 systemctl enable --now cockpit.socket
+
+
+
+### troubleshooting
+### ( some repo assosciated on install media )
+tu run bash
+	zypper lr
+	zypper mr -d <no_or_alias>
+tua && tur
