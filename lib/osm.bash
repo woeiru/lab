@@ -269,8 +269,16 @@ osm-hub() {
 
     copy_info_file() {
         local snapshot="$1"
-        echo "$(date '+%H:%M') - Copying info.xml for snapshot: $snapshot"
-        cp "$snapshot_dir/$snapshot/info.xml" "$backup_dir/$snapshot/"
+        local info_source="$snapshot_dir/$snapshot/info.xml"
+        local info_target="$backup_dir/$snapshot/info.xml"
+
+        if [ -f "$info_source" ]; then
+            echo "$(date '+%H:%M') - Copying $info_source to $info_target"
+            cp "$info_source" "$info_target"
+            echo "$(date '+%H:%M') - Info.xml copied successfully."
+        else
+            echo "$(date '+%H:%M') - Info.xml not found at $info_source for snapshot: $snapshot"
+        fi
     }
 
     full_backup() {
