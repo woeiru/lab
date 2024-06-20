@@ -236,23 +236,45 @@ osm-hub() {
     local username="$1"
     local snapshot_option="$2"
     local home_dir="/home/$username"
-    local backup_dir="/mnt/bak/home_$username"
+    local backup_drive="/mnt/bak"
+    local backup_home="$backup_drive/home"
+    local backup_sub="$backup_home/$username"
+    local backup_dir="$backup_sub/.snapshots"
     local snapshot_dir="$home_dir/.snapshots"
+    local log_file="$backup_home/.$username.log"
+
+    log() {
+       local message="$1"
+       local short_timestamp=$(date '+%H:%M')
+       local full_timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+       echo "$short_timestamp - $message"
+       echo "$full_timestamp - $message" >> "$log_file"
+    }
 
     if [ $# -ne 2 ]; then
-        all-use
+        log "Usage: osm-hub <username> <snapshot_option>"
         return 1
     fi
 
-
     check_directories() {
         if [ ! -d "$home_dir" ]; then
-            echo "$(date '+%H:%M') - User home directory $home_dir does not exist."
-            return 1
+            log "User home directory $home_dir does not exist."
+            exit 1
+        fi
+
+        if [ ! -d "$backup_home" ]; then
+            log "Backup home directory $backup_home does not exist and will be created."
+            mkdir -p "$backup_home"
+        fi 
+
+        if [ ! -d "$backup_sub" ]; then
+            log "Creating backup subvolume $backup_sub."
+            mkdir -p "$backup_sub"
+            btrfs subvolume create "$backup_sub"
         fi
 
         if [ ! -d "$backup_dir" ]; then
-            echo "$(date '+%H:%M') - Creating backup directory $backup_dir."
+            log "Creating backup directory $backup_dir."
             mkdir -p "$backup_dir"
         fi
     }
@@ -263,8 +285,8 @@ osm-hub() {
     }
 
     log_snapshots() {
-        echo "$(date '+%H:%M') - Source snapshots: ${src_snapshots[*]}"
-        echo "$(date '+%H:%M') - Target snapshots: ${tgt_snapshots[*]}"
+        log "Source snapshots: ${src_snapshots[*]}"
+        log "Target snapshots: ${tgt_snapshots[*]}"
     }
 
     copy_info_file() {
@@ -273,40 +295,43 @@ osm-hub() {
         local info_target="$backup_dir/$snapshot/info.xml"
 
         if [ -f "$info_source" ]; then
-            echo "$(date '+%H:%M') - Copying $info_source to $info_target"
+            log "Copying $info_source to $info_target"
+            mkdir -p "$(dirname "$info_target")"
             cp "$info_source" "$info_target"
-            echo "$(date '+%H:%M') - Info.xml copied successfully."
+            log "Info.xml copied successfully."
         else
-            echo "$(date '+%H:%M') - Info.xml not found at $info_source for snapshot: $snapshot"
+            log "Info.xml not found at $info_source for snapshot: $snapshot"
         fi
     }
 
     full_backup() {
         local snapshot="$1"
-        echo "$(date '+%H:%M') - Starting full backup of smallest snapshot: $snapshot"
+        log "Starting full backup of smallest snapshot: $snapshot"
         mkdir -p "$backup_dir/$snapshot"
-        btrfs send "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
+        btrfs subvolume create "$backup_dir/$snapshot/snapshot"
+        btrfs send "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
         copy_info_file "$snapshot"
-        echo "$(date '+%H:%M') - Full backup of smallest snapshot $snapshot completed."
+        log "Full backup of smallest snapshot $snapshot completed."
     }
 
     incremental_backup() {
         local parent_snapshot="$1"
         local snapshot="$2"
-        echo "$(date '+%H:%M') - Starting incremental backup of snapshot: $snapshot with parent snapshot: $parent_snapshot"
+        log "Starting incremental backup of snapshot: $snapshot with parent snapshot: $parent_snapshot"
         mkdir -p "$backup_dir/$snapshot"
+        btrfs subvolume create "$backup_dir/$snapshot/snapshot"
         if [ -n "$parent_snapshot" ]; then
-            btrfs send -p "$snapshot_dir/$parent_snapshot/snapshot" "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
+            btrfs send -p "$snapshot_dir/$parent_snapshot/snapshot" "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
         else
-            btrfs send "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
+            btrfs send "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
         fi
         copy_info_file "$snapshot"
-        echo "$(date '+%H:%M') - Incremental backup of snapshot $snapshot completed."
+        log "Incremental backup of snapshot $snapshot completed."
     }
 
     perform_backups() {
         if [ ${#src_snapshots[@]} -gt 0 ] && [ ${#tgt_snapshots[@]} -eq 0 ]; then
-            echo "$(date '+%H:%M') - Target is empty and source has snapshots. Performing full and incremental backups."
+            log "Target is empty and source has snapshots. Performing full and incremental backups."
             full_backup "${src_snapshots[0]}"
             prev_snapshot="${src_snapshots[0]}"
             for snapshot in "${src_snapshots[@]:1}"; do
@@ -314,7 +339,7 @@ osm-hub() {
                 prev_snapshot="$snapshot"
             done
         elif [ ${#src_snapshots[@]} -gt ${#tgt_snapshots[@]} ]; then
-            echo "$(date '+%H:%M') - There are fewer snapshots in the target. Performing incremental backups for missing snapshots."
+            log "There are fewer snapshots in the target. Performing incremental backups for missing snapshots."
             prev_snapshot=""
             for snapshot in "${src_snapshots[@]}"; do
                 if ! [[ " ${tgt_snapshots[*]} " =~ " $snapshot " ]]; then
@@ -323,7 +348,7 @@ osm-hub() {
                 prev_snapshot="$snapshot"
             done
         else
-            echo "$(date '+%H:%M') - No actions needed. Exiting."
+            log "No actions needed. Exiting."
         fi
     }
 
@@ -333,7 +358,7 @@ osm-hub() {
     log_snapshots
 
     if [ ${#src_snapshots[@]} -eq 0 ] && [ ${#tgt_snapshots[@]} -eq 0 ]; then
-        echo "$(date '+%H:%M') - Both source and target snapshots are empty. Exiting."
+        log "Both source and target snapshots are empty. Exiting."
         return 0
     fi
 
