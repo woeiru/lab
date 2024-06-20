@@ -240,10 +240,10 @@ osm-hub() {
     local snapshot_dir="$home_dir/.snapshots"
 
     if [ $# -ne 2 ]; then
-        echo "$(date '+%H:%M') - Incorrect number of arguments. Usage: osm-hub <username> <snapshot_option>"
         all-use
         return 1
     fi
+
 
     check_directories() {
         if [ ! -d "$home_dir" ]; then
@@ -267,11 +267,18 @@ osm-hub() {
         echo "$(date '+%H:%M') - Target snapshots: ${tgt_snapshots[*]}"
     }
 
+    copy_info_file() {
+        local snapshot="$1"
+        echo "$(date '+%H:%M') - Copying info.xml for snapshot: $snapshot"
+        cp "$snapshot_dir/$snapshot/info.xml" "$backup_dir/$snapshot/"
+    }
+
     full_backup() {
         local snapshot="$1"
         echo "$(date '+%H:%M') - Starting full backup of smallest snapshot: $snapshot"
         mkdir -p "$backup_dir/$snapshot"
         btrfs send "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
+        copy_info_file "$snapshot"
         echo "$(date '+%H:%M') - Full backup of smallest snapshot $snapshot completed."
     }
 
@@ -285,6 +292,7 @@ osm-hub() {
         else
             btrfs send "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
         fi
+        copy_info_file "$snapshot"
         echo "$(date '+%H:%M') - Incremental backup of snapshot $snapshot completed."
     }
 
