@@ -263,13 +263,12 @@ osm-hub() {
         fi
 
         if [ ! -d "$backup_home" ]; then
-            log "Backup home directory $backup_home does not exist and will be created."
             mkdir -p "$backup_home"
+            log "Backup home directory $backup_home created."
         fi 
 
         if [ ! -d "$backup_sub" ]; then
             log "Creating backup subvolume $backup_sub."
-            mkdir -p "$backup_sub"
             btrfs subvolume create "$backup_sub"
         fi
 
