@@ -6,6 +6,7 @@ BASE="${FILE%.*}"
 # source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
+#   
 # overview
 #  
 pve() {
@@ -14,6 +15,7 @@ all-laf "$file_name"
 }
 
 # vm start or vm-get then shutdown other node
+# vm start get shutdown
 # <vm_id> [s: optional, shutdown other node]
 vm() {
     # Retrieve and store hostname
@@ -57,6 +59,7 @@ vm() {
 }
 
 # remote vm-pth, migration, local vm-pth
+# vm get start
 # <vm_id>
 vm-get() {
     local vm_id="$1"
@@ -97,6 +100,7 @@ vm-get() {
 }
 
 # toggle Passthrough lines ON or OFF
+# vm passthrough toggle
 # <vm_id> <on|off>
 vm-pth() {
     local vm_id="$1"
@@ -174,6 +178,7 @@ hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
 }
 
 # check where VM exists
+# vm check node
 # <vm_id>
 vm-chk() {
     local vm_id="$1"
@@ -216,6 +221,7 @@ vm-chk() {
     fi
 }
 
+#   
 # udev network interface
 # [interaction with user]
 pve-uni() {
@@ -256,6 +262,7 @@ pve-uni() {
     fi
 }
 
+#  
 # show backup notes
 # [folder: optional]
 pve-sbn() {
@@ -286,6 +293,8 @@ pve-sbn() {
         done <<< "$note_files"
 }
 
+
+#  
 # disable repository
 #  
 pve-dsr() {
@@ -305,6 +314,7 @@ pve-dsr() {
     done
 }
 
+#  
 # setup sources.list
 #   
 pve-adr() {
@@ -329,6 +339,7 @@ pve-puu() {
     all-nos "$function_name" "executed"
 }
 
+#  
 # remove subscription notice
 #   
 pve-rsn() {
@@ -344,6 +355,7 @@ pve-rsn() {
     esac
 }
 
+#  
 # btrfs raid 1
 # <device1> <device2> <mount_point>
 pve-br1() {
@@ -385,6 +397,7 @@ pve-br1() {
     all-nos "$function_name" "executed ( $1 $2 $3 )"
 }
 
+#  
 # zfs directory mount
 # <pool_name> <dataset_name> <mountpoint_path>
 pve-zdm() {
@@ -431,6 +444,7 @@ pve-zdm() {
     all-nos "$function_name" "executed ( $pool_name / $dataset_name )"
 }
 
+#  
 # container list update
 #  
 pve-clu() {
@@ -482,7 +496,7 @@ pve-cbm() {
     all-nos "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
 
-
+#  
 # gpu passthrough step 1
 #  
 pve-gp1() {
@@ -507,6 +521,7 @@ pve-gp1() {
     reboot
 }
 
+#  
 # gpu passthrough step 2
 #   
 pve-gp2() {
@@ -528,6 +543,7 @@ pve-gp2() {
     reboot
 }
 
+#  
 # gpu passthrough step 3
 #   
 pve-gp3() {
