@@ -832,6 +832,7 @@ all-fun() {
 
     # Search for the function definition in the library file
     start_line=$(grep -n "^[[:space:]]*${func_name}[[:space:]]*()" "$lib_file" | cut -d: -f1)
+    start_line=$((start_line - 3))
     
     if [ -z "$start_line" ]; then
         echo "Function $func_name not found in $lib_file"
