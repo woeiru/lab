@@ -235,12 +235,12 @@ osm-sfr() {
 osm-hub() {
     local username="$1"
     local snapshot_option="$2"
-    local home_dir="/home/$username"
+    local source_sub="/home/$username"
+    local source_dir="$source_sub/.snapshots"
     local backup_drive="/mnt/bak"
     local backup_home="$backup_drive/home"
     local backup_sub="$backup_home/$username"
     local backup_dir="$backup_sub/.snapshots"
-    local snapshot_dir="$home_dir/.snapshots"
     local log_file="$backup_home/.$username.log"
 
     if [ $# -ne 2 ]; then
@@ -259,12 +259,12 @@ osm-hub() {
     log_variables() {
         log "Username: $username"
         log "Snapshot option: $snapshot_option"
-        log "Home directory: $home_dir"
-        log "Snapshot directory: $snapshot_dir"
+        log "Source sub: $source_sub"
+        log "Source snapshot dir: $source_dir"
         log "Backup drive: $backup_drive"
         log "Backup home: $backup_home"
         log "Backup subvolume: $backup_sub"
-        log "Backup directory: $backup_dir"
+        log "Backup snapshot dir: $backup_dir"
     }
 
     check_directories() {
@@ -274,8 +274,8 @@ osm-hub() {
             log "Backup home directory $backup_home created."
         fi 
 
-	if [ ! -d "$home_dir" ]; then
-            log "User home directory $home_dir does not exist."
+	if [ ! -d "$source_sub" ]; then
+            log "User home directory $source_sub does not exist."
             exit 1
         fi
 
@@ -296,13 +296,13 @@ osm-hub() {
     }
 
     log_snapshots() {
-        log "Source snapshots @ $snapshot_dir : ${src_snapshots[*]}"
+        log "Source snapshots @ $source_dir : ${src_snapshots[*]}"
         log "Target snapshots @ $backup_dir : ${tgt_snapshots[*]}"
     }
 
     copy_info_file() {
         local snapshot="$1"
-        local info_source="$snapshot_dir/$snapshot/info.xml"
+        local info_source="$source_dir/$snapshot/info.xml"
         local info_target="$backup_dir/$snapshot/info.xml"
 
         if [ -f "$info_source" ]; then
@@ -319,7 +319,7 @@ osm-hub() {
         log "Starting full backup of smallest snapshot: $snapshot"
         mkdir -p "$backup_dir/$snapshot"
         btrfs subvolume create "$backup_dir/$snapshot/snapshot"
-        btrfs send "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
+        btrfs send "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
         copy_info_file "$snapshot"
         log "Full backup of smallest snapshot $snapshot completed."
     }
@@ -331,9 +331,9 @@ osm-hub() {
         mkdir -p "$backup_dir/$snapshot"
         btrfs subvolume create "$backup_dir/$snapshot/snapshot"
         if [ -n "$parent_snapshot" ]; then
-            btrfs send -p "$snapshot_dir/$parent_snapshot/snapshot" "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
+            btrfs send -p "$source_dir/$parent_snapshot/snapshot" "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
         else
-            btrfs send "$snapshot_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
+            btrfs send "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
         fi
         copy_info_file "$snapshot"
         log "Incremental backup of snapshot $snapshot completed."
@@ -364,7 +364,7 @@ osm-hub() {
 
     check_directories
     log_variables
-    src_snapshots=($(get_snapshots "$snapshot_dir"))
+    src_snapshots=($(get_snapshots "$source_dir"))
     tgt_snapshots=($(get_snapshots "$backup_dir"))
     log_snapshots
 
