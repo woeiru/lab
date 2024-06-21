@@ -259,11 +259,11 @@ osm-hub() {
     log_variables() {
         log "Username: $username"
         log "Snapshot option: $snapshot_option"
-        log "Source sub: $source_sub"
+        log "Source user sub: $source_sub"
         log "Source snapshot dir: $source_dir"
         log "Backup drive: $backup_drive"
         log "Backup home: $backup_home"
-        log "Backup subvolume: $backup_sub"
+        log "Backup user sub: $backup_sub"
         log "Backup snapshot dir: $backup_dir"
     }
 
@@ -296,8 +296,8 @@ osm-hub() {
     }
 
     log_snapshots() {
-        log "Source snapshots @ $source_dir : ${src_snapshots[*]}"
-        log "Target snapshots @ $backup_dir : ${tgt_snapshots[*]}"
+        log "Source snapshots : ${src_snapshots[*]}"
+        log "Backup snapshots : ${tgt_snapshots[*]}"
     }
 
     copy_info_file() {
