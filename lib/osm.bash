@@ -302,15 +302,18 @@ osm-hub() {
 
     copy_info_file() {
         local snapshot="$1"
-        local info_source="$source_dir/$snapshot/info.xml"
+        local info_source="$snapshot_dir/$snapshot/info.xml"
         local info_target="$backup_dir/$snapshot/info.xml"
 
         if [ -f "$info_source" ]; then
+            log "$(date '+%H:%M') - Copying $info_source to $info_target"
             mkdir -p "$(dirname "$info_target")"
             cp "$info_source" "$info_target"
-            log "Info.xml copied successfully."
+
+            local timestamp=$(xmllint --xpath 'string(/snapshot/date)' "$info_source")
+            log "$(date '+%H:%M') - Info.xml copied - containing snapshot timestamp: $timestamp"
         else
-            log "Info.xml not found at $info_source for snapshot: $snapshot"
+            log "$(date '+%H:%M') - Info.xml not found at $info_source for snapshot: $snapshot"
         fi
     }
 
