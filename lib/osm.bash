@@ -243,6 +243,11 @@ osm-hub() {
     local snapshot_dir="$home_dir/.snapshots"
     local log_file="$backup_home/.$username.log"
 
+    if [ $# -ne 2 ]; then
+        log "Usage: osm-hub <username> <snapshot_option>"
+        return 1
+    fi
+
     log() {
        local message="$1"
        local short_timestamp=$(date '+%H:%M')
@@ -251,10 +256,16 @@ osm-hub() {
        echo "$full_timestamp - $message" >> "$log_file"
     }
 
-    if [ $# -ne 2 ]; then
-        log "Usage: osm-hub <username> <snapshot_option>"
-        return 1
-    fi
+    log_variables() {
+        log "Username: $username"
+        log "Snapshot option: $snapshot_option"
+        log "Home directory: $home_dir"
+        log "Backup drive: $backup_drive"
+        log "Backup home: $backup_home"
+        log "Backup subvolume: $backup_sub"
+        log "Backup directory: $backup_dir"
+        log "Snapshot directory: $snapshot_dir"
+    }
 
     check_directories() {
         if [ ! -d "$home_dir" ]; then
@@ -294,7 +305,6 @@ osm-hub() {
         local info_target="$backup_dir/$snapshot/info.xml"
 
         if [ -f "$info_source" ]; then
-            log "Copying $info_source to $info_target"
             mkdir -p "$(dirname "$info_target")"
             cp "$info_source" "$info_target"
             log "Info.xml copied successfully."
@@ -351,6 +361,7 @@ osm-hub() {
         fi
     }
 
+    log_variables
     check_directories
     src_snapshots=($(get_snapshots "$snapshot_dir"))
     tgt_snapshots=($(get_snapshots "$backup_dir"))
