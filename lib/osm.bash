@@ -268,15 +268,17 @@ osm-hub() {
     }
 
     check_directories() {
-        if [ ! -d "$home_dir" ]; then
+        
+        if [ ! -d "$backup_home" ]; then
+            mkdir -p "$backup_home"
+            log_variables
+            log "Backup home directory $backup_home created."
+        fi 
+
+	if [ ! -d "$home_dir" ]; then
             log "User home directory $home_dir does not exist."
             exit 1
         fi
-
-        if [ ! -d "$backup_home" ]; then
-            mkdir -p "$backup_home"
-            log "Backup home directory $backup_home created."
-        fi 
 
         if [ ! -d "$backup_sub" ]; then
             log "Creating backup subvolume $backup_sub."
