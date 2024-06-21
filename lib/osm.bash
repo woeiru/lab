@@ -271,7 +271,6 @@ osm-hub() {
         
         if [ ! -d "$backup_home" ]; then
             mkdir -p "$backup_home"
-            log_variables
             log "Backup home directory $backup_home created."
         fi 
 
@@ -363,8 +362,8 @@ osm-hub() {
         fi
     }
 
-    log_variables
     check_directories
+    log_variables
     src_snapshots=($(get_snapshots "$snapshot_dir"))
     tgt_snapshots=($(get_snapshots "$backup_dir"))
     log_snapshots
