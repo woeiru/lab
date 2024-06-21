@@ -302,7 +302,7 @@ osm-hub() {
 
     copy_info_file() {
         local snapshot="$1"
-        local info_source="$snapshot_dir/$snapshot/info.xml"
+        local info_source="$source_dir/$snapshot/info.xml"
         local info_target="$backup_dir/$snapshot/info.xml"
 
         if [ -f "$info_source" ]; then
