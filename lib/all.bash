@@ -57,7 +57,7 @@ all-laf() {
     # Print table header
     print_separator
     printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s | %-$(($col_width_7 - 1))s |\n" \
-        "Function" "Arguments" "Shortname" "Description" "Size" "Loc" "Calls"
+        "Function" "Arguments" "Shortname" "Description" "Size" "Loc" "Call"
     print_separator
 
     local file_name="$1"
@@ -77,12 +77,12 @@ all-laf() {
             last_comment_line=$line_number
         fi
     done < "$file_name"
-
-    # Function to count the number of times a function is called
-    count_calls() {
-        local func_name="$1"
-        grep -o "\b$func_name\b" "$file_name" | wc -l
-    }
+	
+	# counts all function calls
+	count_calls() {
+    		local func_name="$1"
+    		awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' "$file_name"
+		}
 
     # Loop through all lines in the file again
     line_number=0
