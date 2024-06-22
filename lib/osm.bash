@@ -237,8 +237,7 @@ osm-hub() {
     local snapshot_option="$2"
     local source_sub="/home/$username"
     local source_dir="$source_sub/.snapshots"
-    local backup_drive="/mnt/bak"
-    local backup_home="$backup_drive/home"
+    local backup_home="/bak"
     local backup_sub="$backup_home/$username"
     local backup_dir="$backup_sub/.snapshots"
     local log_file="$backup_home/.$username.log"
@@ -269,11 +268,6 @@ osm-hub() {
 
     check_directories() {
         
-        if [ ! -d "$backup_home" ]; then
-            mkdir -p "$backup_home"
-            log "Backup home directory $backup_home created."
-        fi 
-
 	if [ ! -d "$source_sub" ]; then
             log "User home directory $source_sub does not exist."
             exit 1

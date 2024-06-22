@@ -142,6 +142,7 @@ alias seb='sudo semanage boolean -l'
 alias tu='transactional-update'
 alias tua='transactional-update apply'
 alias tur='transactional-update reboot'
+alias tuar='transactional-update apply && transactional-update reboot'
 
 # tree view aliases
 alias t='tree'
@@ -156,7 +157,7 @@ alias v.b="vim $DOT_DIR/bashrc"
 alias v.nw="vim $CON_DIR/node-w.md"
 
 # -----
-alias berlintime="sudo timedatectl set-timezone Europe/Berlin"
+alias berlintime="timedatectl set-timezone Europe/Berlin"
 
 # backup logs
 alias es.log="cat /mnt/bak/home/.es.log"
