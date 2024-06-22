@@ -101,9 +101,9 @@ alias gp='git pull'
 alias h='history'
 
 # mounting
-alias a1.bak='mount /dev/sda1 /bak'
-alias b1.bak='mount /dev/sdb1 /bak'
-alias 0n1.sto='mount /dev/nvme0n1 /sto'
+alias ma.bak='mount /dev/sda1 /mnt/bak'
+alias mb.bak='mount /dev/sdb1 /mnt/bak'
+alias m0.sto='mount /dev/nvme0n1 /mnt/sto'
 
 # pam_snapper
 alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
