@@ -74,6 +74,8 @@ alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
 alias d.pam='cd /usr/lib/pam_snapper'
 alias d.def='cd /etc/default'
+alias das='cd /mnt/das'
+alias nvm='cd /mnt/nvm'
 alias bak='cd /bak'
 
 # disk usage aliases
