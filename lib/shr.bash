@@ -9,7 +9,7 @@ source "$DIR/../var/${BASE}.conf"
 #  
 # overview
 #   
-shr() {
+shr-fun() {
 local file_name="$BASH_SOURCE"
 all-laf "$file_name"
 }
