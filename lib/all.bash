@@ -40,22 +40,24 @@ all-laf() {
     local col_width_4=60
     local col_width_5=5
     local col_width_6=5
+    local col_width_7=5
 
-# Function to print a separator line
+    # Function to print a separator line
     print_separator() {
-        printf "+-%s+-%s+-%s+-%s+-%s+-%s+\n" \
+        printf "+-%s+-%s+-%s+-%s+-%s+-%s+-%s+\n" \
             "$(printf '%*s' $col_width_1 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_2 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_3 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_4 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_5 '' | tr ' ' '-')" \
-            "$(printf '%*s' $col_width_6 '' | tr ' ' '-')"
+            "$(printf '%*s' $col_width_6 '' | tr ' ' '-')" \
+            "$(printf '%*s' $col_width_7 '' | tr ' ' '-')"
     }
 
     # Print table header
     print_separator
-    printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s |\n" \
-        "Function" "Arguments" "Shortname" "Description" "Size" "Loc"
+    printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s | %-$(($col_width_7 - 1))s |\n" \
+        "Function" "Arguments" "Shortname" "Description" "Size" "Loc" "Calls"
     print_separator
 
     local file_name="$1"
@@ -76,6 +78,12 @@ all-laf() {
         fi
     done < "$file_name"
 
+    # Function to count the number of times a function is called
+    count_calls() {
+        local func_name="$1"
+        grep -o "\b$func_name\b" "$file_name" | wc -l
+    }
+
     # Loop through all lines in the file again
     line_number=0
     while IFS= read -r line; do
@@ -92,6 +100,8 @@ all-laf() {
                     break
                 fi
             done < <(tail -n +$func_start_line "$file_name")
+            # Count the number of calls to the function
+            func_calls=$(count_calls "$func_name")
             # Truncate the description if it's longer than col_width_4 characters
             truncated_desc=$(echo "${comments[$third_last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_4"') print substr($0, 1, '"$col_width_4 - 3"') ".."; else print $0 }')
             # Truncate the shortname if it's longer than col_width_3 characters
@@ -99,8 +109,8 @@ all-laf() {
             # Truncate the usage example if it's longer than col_width_2 characters
             truncated_usage=$(echo "${comments[$last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_2"') print substr($0, 1, '"$col_width_2 - 3"') ".."; else print $0 }')
             # Print function name, function size, comment line number, and comment
-            printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s |\n" \
-                "$func_name" "$truncated_usage" "$truncated_shortname" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}"
+            printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s | %-$(($col_width_7 - 1))s |\n" \
+                "$func_name" "$truncated_usage" "$truncated_shortname" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}" "$func_calls"
         elif [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
             third_last_comment_line=$second_last_comment_line
             second_last_comment_line=$last_comment_line
@@ -111,6 +121,7 @@ all-laf() {
     print_separator
     echo ""
 }
+
 
 # Manages git operations, ensuring local repository syncs with remote.
 # git all in
