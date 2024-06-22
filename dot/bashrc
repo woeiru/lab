@@ -68,13 +68,13 @@ alias c.b="cat $DOT_DIR/bashrc"
 # directory selection
 alias d='cd'
 alias ..='cd ..'
-alias dl="cd $DIR/.."
+alias lab="cd $DIR/.."
 alias dlc="cd $CON_DIR"
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
 alias d.pam='cd /usr/lib/pam_snapper'
 alias d.def='cd /etc/default'
-alias d.bak='cd /mnt/bak'
+alias bak='cd /bak'
 
 # disk usage aliases
 alias u='du -bh -d1'
