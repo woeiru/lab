@@ -34,14 +34,14 @@ pam.useradd <username> <usergroup>
 tu
 tuar
 
+### installing cockpit
+tu pkg in patterns microos-cockpit cockpit-tukit cockpit-ws
+tuar
+systemctl enable --now cockpit.socket
+vim /etc/cockpit/
+
 ### in case of snapshot flat restore
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
-
-### installing cockpit
-tu pkg in patterns-microos-cockpit cockpit-ws cockpit-tukit 
-tu run bash
-    systemctl enable --now cockpit.socket
-tuar
 
 ### troubleshooting
 ### ( some repo assosciated on install media )
