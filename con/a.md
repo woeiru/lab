@@ -1,5 +1,5 @@
 ### install basics
-transactional-update pkg in git tree
+transactional-update pkg in git tree tcpdump
 transactional-update apply
 transactional-update reboot
 

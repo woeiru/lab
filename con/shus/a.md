@@ -2,16 +2,12 @@
 
 export CT_IMAGE=ishus
 export CT_NAME=shus
-
-export CT_DIR=/root/lab/con/
-
-export USER_NAME=
+export CT_DIR=/home/es/lab/con/
+export USER_NAME=es
 export USER_PASSWORD=
-export SMB_USER_NAME=
+export SMB_USER_NAME=es
 export SMB_USER_PASSWORD=
-
 export NODE_NAME=w
-
 export SUBFOLDER=dat
 export SHARENAME=dat
 
@@ -51,19 +47,12 @@ iptables -A INPUT -p tcp --dport 445 -j ACCEPT
 
 iptables-restore < /etc/sysconfig/iptables
 
+** for rootless mode **
 
-### for rootless mode
-
-# Redirect incoming traffic from port 139 to the container's port 1139
 sudo iptables -t nat -A PREROUTING -p tcp --dport 139 -j DNAT --to-destination 192.168.178.110:1139
-
-# Redirect incoming traffic from port 445 to the container's port 1445
 sudo iptables -t nat -A PREROUTING -p tcp --dport 445 -j DNAT --to-destination 192.168.178.110:1445
-
-# Perform source NAT (MASQUERADE) for outgoing traffic from the container
 sudo iptables -t nat -A POSTROUTING -p tcp -d 192.168.178.110 --dport 1139 -j MASQUERADE
 sudo iptables -t nat -A POSTROUTING -p tcp -d 192.168.178.110 --dport 1445 -j MASQUERADE
-
 
 ### Testing
 
