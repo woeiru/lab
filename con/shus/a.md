@@ -37,7 +37,7 @@ systemctl daemon-reload
 tu run bash
 	systemctl enable container-${CT_NAME}.service
 	exit
-tua && tur
+tuar
 
 ### iptables setup
 
