@@ -55,7 +55,7 @@ done < <(find "$DIR/.." -type f -name "$FILEBASE_MD" -print0)
 
 # bash
 alias b='bash'
-alias eb='exec bash'
+alias bb='exec bash'
 
 # btrfs management
 alias bt='btrfs'
