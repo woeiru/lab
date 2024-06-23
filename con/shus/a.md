@@ -4,9 +4,9 @@ export CT_IMAGE=ishus
 export CT_NAME=shus
 export CT_DIR=/home/es/lab/con/
 export USER_NAME=es
-export USER_PASSWORD=
+export USER_PASSWORD=lernt
 export SMB_USER_NAME=es
-export SMB_USER_PASSWORD=
+export SMB_USER_PASSWORD=lernt
 export NODE_NAME=w
 export SUBFOLDER=dat
 export SHARENAME=dat
@@ -27,21 +27,9 @@ podman run -d \
 
 podman start ${CT_NAME}
 
-### systemctl setup
-
-podman generate systemd --new --files --name ${CT_NAME}
-mv container-${CT_NAME}.service /etc/systemd/system/
-systemctl daemon-reload
-tu run bash
-	systemctl enable container-${CT_NAME}.service
-	exit
-tuar
-
 ### iptables setup
 
 iptables -L -v -n
-
-** for rootless mode **
 
 iptables -t nat -A PREROUTING -p tcp --dport 139 -j DNAT --to-destination 192.168.178.110:1139
 iptables -t nat -A PREROUTING -p tcp --dport 445 -j DNAT --to-destination 192.168.178.110:1445
@@ -52,9 +40,17 @@ sudo iptables -A INPUT -p tcp --dport 1139 -j ACCEPT
 sudo iptables -A INPUT -p tcp --dport 1445 -j ACCEPT
 
 /sbin/iptables-save > /etc/sysconfig/iptables
-
 iptables-restore < /etc/sysconfig/iptables
 
+### systemctl setup
+
+podman generate systemd --new --files --name ${CT_NAME}
+mv container-${CT_NAME}.service /etc/systemd/system/
+systemctl daemon-reload
+tu run bash
+	systemctl enable container-${CT_NAME}.service
+	exit
+tuar
 
 ### Testing
 
