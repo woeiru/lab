@@ -1,5 +1,5 @@
 ### install basics
-transactional-update pkg in vim tree
+transactional-update pkg in git tree
 transactional-update apply
 transactional-update reboot
 
@@ -18,6 +18,7 @@ tuar
 ### set grub timer
 tu run bash
     vim /etc/default/grub
+    grub2-mkconfig -o /boot/grub2/grub.cfg
 tuar
 
 ### install pam snapper
@@ -52,11 +53,11 @@ tuar
 ### optional - swap home for homeraid on standalone sub
 *delete old fstab entry*
 all-fec 1 /home btrfs subvol=home 0 0
-tua && tur
+tu
+tuar
 
 ### optional - create mountpoint on readonly part
 tu run bash
     mkdir /mnt/bak /mnt/sto
-tua && tur
-
+tuar
 
