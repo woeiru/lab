@@ -17,8 +17,8 @@ tuar
 
 ### set grub timer
 tu run bash
-    vim /etc/default/grub
-    grub2-mkconfig -o /boot/grub2/grub.cfg
+	vim /etc/default/grub.cfg
+	grub2-mkconfig -o /boot/grub2/grub.cfg
 tuar
 
 ### install pam snapper
