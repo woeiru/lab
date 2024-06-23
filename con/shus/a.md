@@ -17,7 +17,7 @@ podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 
 podman run -d \
     --name ${CT_NAME} \
-    -p 1139:1139 -p 1445:1445 \
+    -p 1139:139 -p 1445:445 \
     -e UID=1000 \
     -e GID=1000 \
     -e USERNAME=${SMB_USER_NAME} \
@@ -41,18 +41,20 @@ tuar
 
 iptables -L -v -n
 
-iptables -A INPUT -p tcp --dport 139 -j ACCEPT
-iptables -A INPUT -p tcp --dport 445 -j ACCEPT
+** for rootless mode **
+
+iptables -t nat -A PREROUTING -p tcp --dport 139 -j DNAT --to-destination 192.168.178.110:1139
+iptables -t nat -A PREROUTING -p tcp --dport 445 -j DNAT --to-destination 192.168.178.110:1445
+iptables -t nat -A POSTROUTING -p tcp -d 192.168.178.110 --dport 1139 -j MASQUERADE
+iptables -t nat -A POSTROUTING -p tcp -d 192.168.178.110 --dport 1445 -j MASQUERADE
+
+sudo iptables -A INPUT -p tcp --dport 1139 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 1445 -j ACCEPT
+
 /sbin/iptables-save > /etc/sysconfig/iptables
 
 iptables-restore < /etc/sysconfig/iptables
 
-** for rootless mode **
-
-sudo iptables -t nat -A PREROUTING -p tcp --dport 139 -j DNAT --to-destination 192.168.178.110:1139
-sudo iptables -t nat -A PREROUTING -p tcp --dport 445 -j DNAT --to-destination 192.168.178.110:1445
-sudo iptables -t nat -A POSTROUTING -p tcp -d 192.168.178.110 --dport 1139 -j MASQUERADE
-sudo iptables -t nat -A POSTROUTING -p tcp -d 192.168.178.110 --dport 1445 -j MASQUERADE
 
 ### Testing
 
@@ -62,4 +64,4 @@ ss -tuln
 smbclient -L ${NODE_NAME} -U ${SMB_USER_NAME}
 smbclient //${NODE_NAME}/${SHARENAME} -U ${SMB_USER_NAME}
 pdbedit -L
-
+sudo tcpdump -i any port 139 or port 445
