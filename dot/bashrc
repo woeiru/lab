@@ -115,6 +115,7 @@ alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
 alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
 
 # podman
+alias p='podman'
 alias ps='podman ps'
 alias psa='podman ps -a'
 
