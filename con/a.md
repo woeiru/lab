@@ -31,14 +31,17 @@ tuar
 ### create standard user with id 1000
 pam.config
 pam.useradd <username> <usergroup>
+passwd <username>
 tu
 tuar
 
 ### installing cockpit
-tu pkg in patterns microos-cockpit cockpit-tukit cockpit-ws
+tu pkg in patterns-microos-cockpit cockpit-tukit cockpit-ws
 tuar
 systemctl enable --now cockpit.socket
-vim /etc/cockpit/
+vim /etc/cockpit/disallowed-users
+tu
+tuar
 
 ### in case of snapshot flat restore
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
