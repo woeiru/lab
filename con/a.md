@@ -22,15 +22,19 @@ tu run bash
     sed -i 's/^GRUB_TIMEOUT=8/GRUB_TIMEOUT=4/' /etc/default/grub
 	grub2-mkconfig -o /boot/grub2/grub.cfg
 tuar
+reboot
 
-### install pam snapper
+### 5 install pam snapper
 tu run bash
     zypper install pam_snapper
-    source /root/lab/dot/bash
+    . /root/lab/dot/bashrc
     all-rsf /usr/lib/pam_snapper/ DRYRUN=1 DRYRUN=0
+    sed -i 's/useradd --no-create-home/useradd --no-create-home --user-group/' pam_snapper_useradd.sh && \
+    sed -i 's/if \[ ".${MYGROUP}" == "." \] ; then MYGROUP="users"; fi/if \[ ".${MYGROUP}" == "." \] ; then MYGROUP="${MYUSER}"; fi/' pam_snapper_useradd.sh
 tuar
+reboot
 
-### create standard user with id 1000
+### 6 create standard user with id 1000
 pam.config
 pam.useradd <username> <usergroup>
 passwd <username>
