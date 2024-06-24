@@ -61,8 +61,7 @@ passwd <username>
     usermod -g es es
 
 cp /root/.ssh/* /home/es/.ssh
-chown -R <username>: /home/es/*
-chown -R <username>: /home/es/.*
+chown -R <username>: /home/es/.ssh/*
 
 tu pkg in *
 tuar
