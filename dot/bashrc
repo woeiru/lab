@@ -166,10 +166,11 @@ alias v.nw="vim $CON_DIR/node-w.md"
 alias berlintime="timedatectl set-timezone Europe/Berlin"
 
 # backup logs
-alias es.log="cat /mnt/bak/home/.es.log"
+alias es.log='cat /mnt/bak/home/.es.log'
 
 # mkfs
-alias mbf="mkfs.btrfs -f"
+alias mbf='mkfs.btrfs -f'
+alias mbmd='mkfs.btrfs -m raid1 -d raid1'
 
 alias c.group='cat /etc/group'
 alias c.passwd='cat /etc/passwd'
