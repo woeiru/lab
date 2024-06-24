@@ -161,6 +161,49 @@ osm-shc() {
     snapper -c "$configname" create
 }
 
+# snapper -c home_* delete <snapshot>
+# snapper home delete <snapshot>
+# <configname> <snapshot>
+osm-shd() {
+    local configname=$1
+    local snapshot=$2
+
+    if [ -z "$configname" ] || [ -z "$snapshot" ]; then
+        echo "Usage: osm-shd <configname> <snapshot>"
+        return 1
+    fi
+
+    if [ "$configname" == "home" ]; then
+        # Get the list of configs
+        configs=$(snapper list-configs | awk '$1 ~ /^home_/ {print $1}')
+
+        # Count the number of home_ configs
+        config_count=$(echo "$configs" | wc -l)
+
+        if [ "$config_count" -eq 0 ]; then
+            echo "No configurations found starting with 'home_'."
+            return 1
+        elif [ "$config_count" -eq 1 ]; then
+            configname=$(echo "$configs" | head -n 1)
+            echo "Using configuration: $configname"
+        else
+            echo "Multiple configurations found starting with 'home_':"
+            echo "$configs"
+            echo "Please enter the configuration name to use:"
+            read selected_config
+            if echo "$configs" | grep -q "^$selected_config$"; then
+                configname=$selected_config
+            else
+                echo "Invalid configuration selected."
+                return 1
+            fi
+        fi
+    fi
+
+    echo "snapper -c "$configname" delete "$snapshot""
+    snapper -c "$configname" delete "$snapshot"
+}
+
 # snapper -c home_* list
 # snapper home list
 # <configname>
