@@ -59,7 +59,7 @@ passwd <username>
     ### fix1 alternative
     groupadd -g 1000 es
     usermod -g es es
-tu pkg in glances
+tu pkg in glances python3-curses
 tuar
 reboot
 
@@ -71,12 +71,7 @@ reboot
 ### 11 - configuring cockpit
 
 systemctl enable --now cockpit.socket
-vim /etc/cockpit/disallowed-users
-
-
-
+sed -i '/root/s/^/# /' /etc/cockpit/disallowed-users
 
 ### in case of snapshot flat restore
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
-
-
