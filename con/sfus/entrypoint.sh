@@ -22,4 +22,3 @@ echo "$USERNAME:$PASSWORD" | chpasswd
 
 ### Start the Samba service
 exec smbd -F --no-process-group
-
