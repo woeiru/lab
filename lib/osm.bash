@@ -290,7 +290,7 @@ osm-hub() {
     local log_file="$backup_home/.$username.log"
 
     if [ $# -ne 2 ]; then
-        log "Usage: osm-hub <username> <snapshot_option>"
+        all-use
         return 1
     fi
 
