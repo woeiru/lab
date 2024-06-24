@@ -135,6 +135,7 @@ alias v.fstab='vim /etc/fstab'
 alias sl='snapper list'
 alias shl='osm-shl home'
 alias shc='osm-shc home'
+alias shd='osm-shd'
 
 # Sysstat
 alias sar='sar -d 1'
