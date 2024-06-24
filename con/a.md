@@ -24,13 +24,18 @@ tu run bash
 tuar
 reboot
 
-### 5 optional - swap home for homeraid on standalone sub
-*delete old fstab entry*
-all-fec 1 /home btrfs subvol=home 0 0
+### 5 - swap home for homeraid on standalone sub
 tu run bash
-    mkdir /mnt/bak /mnt/sto
+    mkdir /mnt/das /mnt/nvm /bak
 tuar
 reboot
+
+mount * /mnt/nvm
+bt sub create /mnt/nvm/home
+
+umount /home
+*delete old fstab entry*
+all-fec 1 /home btrfs subvol=home 0 0
 
 ### install pam snapper
 tu run bash
