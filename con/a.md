@@ -88,6 +88,3 @@ reboot
 
 ### in case of snapshot flat restore
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
-
-
-
