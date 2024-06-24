@@ -59,6 +59,11 @@ passwd <username>
     ### fix1 alternative
     groupadd -g 1000 es
     usermod -g es es
+
+cp /root/.ssh/* /home/es/.ssh
+chown -R <username>: /home/es/*
+chown -R <username>: /home/es/.*
+
 tu pkg in *
 tuar
 reboot
