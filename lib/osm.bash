@@ -160,20 +160,24 @@ osm-shc() {
     echo "snapper -c "$configname" create"
     snapper -c "$configname" create
 }
-
 # snapper -c home_* delete <snapshot>
 # snapper home delete <snapshot>
 # <configname> <snapshot>
 osm-shd() {
-    local configname=$1
-    local snapshot=$2
+    local configname
+    local snapshot
 
-    if [ -z "$configname" ] || [ -z "$snapshot" ]; then
-        echo "Usage: osm-shd <configname> <snapshot>"
+    if [ $# -eq 0 ]; then
+        echo "Usage: osm-shd <snapshot> [<configname>]"
         return 1
+    elif [ $# -eq 1 ]; then
+        snapshot=$1
+    else
+        snapshot=$1
+        configname=$2
     fi
 
-    if [ "$configname" == "home" ]; then
+    if [ -z "$configname" ]; then
         # Get the list of configs
         configs=$(snapper list-configs | awk '$1 ~ /^home_/ {print $1}')
 
