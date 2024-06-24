@@ -1,23 +1,25 @@
-### install basics
-transactional-update pkg in git tree tcpdump
+### 1 install basics
+transactional-update pkg in git tree
 transactional-update apply
 transactional-update reboot
-
-### install utils
 git clone https://github.com/woeiru/lab.git
-bash lab/go.sh
+bash lab/set/all.sh a
 
-### update
+### 2 remove repo assosciated on install media
+tu run bash
+	zypper lr
+	zypper mr -d <no_or_alias>
+tuar
+reboot
+
+### 3 update
 tu
 tuar
+reboot
 
-### distro update
-tu dup
-tuar
-
-### set grub timer
+### 4 set grub timer
 tu run bash
-	vim /etc/default/grub.cfg
+    sed -i 's/^GRUB_TIMEOUT=8/GRUB_TIMEOUT=4/' /etc/default/grub
 	grub2-mkconfig -o /boot/grub2/grub.cfg
 tuar
 
@@ -25,7 +27,7 @@ tuar
 tu run bash
     zypper install pam_snapper
     source /root/lab/dot/bash
-    all-rs2 /usr/lib/pam_snapper/ DRYRUN=1 DRYRUN=0
+    all-rsf /usr/lib/pam_snapper/ DRYRUN=1 DRYRUN=0
 tuar
 
 ### create standard user with id 1000
@@ -46,12 +48,6 @@ tuar
 ### in case of snapshot flat restore
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
 
-### troubleshooting
-### ( some repo assosciated on install media )
-tu run bash
-	zypper lr
-	zypper mr -d <no_or_alias>
-tuar
 
 ### optional - swap home for homeraid on standalone sub
 *delete old fstab entry*
