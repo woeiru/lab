@@ -88,9 +88,11 @@ alias uuu='du -bh -d3'
 alias ee='exit'
 
 # functions
+
 alias osm='osm-fun'
+alias pbs='pbs-fun'
 alias pve='pve-fun'
-alias pbs='pve-fun'
+alias shr='shr-fun'
 
 alias gg='all-gio'
 alias af='all-fun'
