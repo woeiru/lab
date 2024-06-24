@@ -17,7 +17,8 @@ podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 
 podman run -d \
     --name ${CT_NAME} \
-    -p 1139:139 -p 1445:445 \
+    -p 1139:139 \
+    -p 1445:445 \
     -e UID=1000 \
     -e GID=1000 \
     -e USERNAME=${SMB_USER_NAME} \
