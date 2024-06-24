@@ -88,8 +88,14 @@ alias uuu='du -bh -d3'
 alias ee='exit'
 
 # functions
+alias osm='osm-fun'
+alias pve='pve-fun'
+alias pbs='pve-fun'
+
 alias gg='all-gio'
 alias af='all-fun'
+
+
 
 # git
 alias g='git status'
