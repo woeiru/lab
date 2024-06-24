@@ -1,3 +1,4 @@
+## As User
 ### Variables
 
 export CT_IMAGE=ishus
@@ -13,7 +14,11 @@ export SHARENAME=dat
 
 ### Container deployment
 
+sudo setenforce 0
 podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
+sudo setenforce 1
+
+mkdir /home/es/dat
 
 podman run -d \
     --name ${CT_NAME} \
@@ -30,17 +35,21 @@ podman start ${CT_NAME}
 
 ### iptables setup
 
-iptables -L -v -n
+sudo iptables -L -v -n
 
-iptables -t nat -A PREROUTING -p tcp --dport 139 -j DNAT --to-destination 192.168.178.110:1139
-iptables -t nat -A PREROUTING -p tcp --dport 445 -j DNAT --to-destination 192.168.178.110:1445
-iptables -t nat -A POSTROUTING -p tcp -d 192.168.178.110 --dport 1139 -j MASQUERADE
-iptables -t nat -A POSTROUTING -p tcp -d 192.168.178.110 --dport 1445 -j MASQUERADE
+sudo iptables -t nat -A PREROUTING -p tcp --dport 139 -j DNAT --to-destination 192.168.178.110:1139
+sudo iptables -t nat -A PREROUTING -p tcp --dport 445 -j DNAT --to-destination 192.168.178.110:1445
+sudo iptables -t nat -A POSTROUTING -p tcp -d 192.168.178.110 --dport 1139 -j MASQUERADE
+sudo iptables -t nat -A POSTROUTING -p tcp -d 192.168.178.110 --dport 1445 -j MASQUERADE
 
 sudo iptables -A INPUT -p tcp --dport 1139 -j ACCEPT
 sudo iptables -A INPUT -p tcp --dport 1445 -j ACCEPT
 
+su
 /sbin/iptables-save > /etc/sysconfig/iptables
+
+reboot
+
 iptables-restore < /etc/sysconfig/iptables
 
 ### systemctl setup
