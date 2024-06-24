@@ -59,7 +59,7 @@ passwd <username>
     ### fix1 alternative
     groupadd -g 1000 es
     usermod -g es es
-tu pkg in glances python3-curses
+tu pkg in *
 tuar
 reboot
 
@@ -69,9 +69,21 @@ tuar
 reboot
 
 ### 11 - configuring cockpit
-
 systemctl enable --now cockpit.socket
 sed -i '/root/s/^/# /' /etc/cockpit/disallowed-users
 
+### troubleshoot - Failed to start Create missing directories from rpmdb
+ls -ld /var/lib/pcp/config/derived
+sudo mkdir -p /var/lib/pcp/config/derived
+sudo chmod 755 /var/lib/pcp/config/derived
+sudo chown root: /var/lib/pcp/config/derived
+
+tu pkg in htop
+tuar
+reboot
+
 ### in case of snapshot flat restore
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
+
+
+
