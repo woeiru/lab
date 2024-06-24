@@ -1,9 +1,9 @@
-## As User
+## As Root
 ### Variables
 
 export CT_IMAGE=isfus
 export CT_NAME=sfus
-export CT_DIR=/home/es/lab/con/
+export CT_DIR=/root/lab/con/
 export USER_NAME=es
 export USER_PASSWORD=lernt
 export SMB_USER_NAME=es
