@@ -1,0 +1,17 @@
+[global]
+   workgroup = WORKGROUP
+   server string = Samba Server %v
+   netbios name = samba
+   security = user
+   map to guest = Bad User
+   dns proxy = no
+
+[dat]
+   path = /home/{{USERNAME}}/dat
+   writable = yes
+   guest ok = no
+   browseable = yes
+   create mask = 0775
+   directory mask = 0775
+   force user = {{USERNAME}}
+   force group = {{USERNAME}}
