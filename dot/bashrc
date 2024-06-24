@@ -170,6 +170,6 @@ alias es.log="cat /mnt/bak/home/.es.log"
 # mkfs
 alias mbf="mkfs.btrfs -f"
 
-c.group='cat /etc/group'
-c.passwd='cat /etc/passwd'
+alias c.group='cat /etc/group'
+alias c.passwd='cat /etc/passwd'
 
