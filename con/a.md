@@ -30,6 +30,8 @@ tu run bash
 tuar
 reboot
 
+### 6 - rolledback (now 8)
+
 ### 7 - swap home
 mount *device* /mnt/nvm
 bt sub create /mnt/nvm/home
@@ -39,35 +41,40 @@ tu pkg in sysstat
 tuar
 reboot
 
-### install pam snapper
+### 8 - install pam snapper
 tu run bash
     zypper install pam_snapper
     . /root/lab/dot/bashrc
     all-rsf /usr/lib/pam_snapper/ DRYRUN=1 DRYRUN=0
-    
-    ### test this
+    ### fix1 
     sed -i 's/useradd --no-create-home/useradd --no-create-home --user-group/' /usr/lib/pam_snapper/pam_snapper_useradd.sh
     sed -i 's/if \[ ".${MYGROUP}" == "." \] ; then MYGROUP="users"; fi/if \[ ".${MYGROUP}" == "." \] ; then MYGROUP="${MYUSER}"; fi/' /usr/lib/pam_snapper/pam_snapper_useradd.sh
 tuar
 reboot
 
-### 8 - create standard user with id 1000
+### 9 - create standard user with id 1000
 pam.config
 pam.useradd <username> <usergroup>
 passwd <username>
-    ### if test did not work :
+    ### fix1 alternative
     groupadd -g 1000 es
     usermod -g es es
-tu
+tu pkg in glances
 tuar
+reboot
 
-### installing cockpit
+### 10 - installing cockpit
 tu pkg in patterns-microos-cockpit cockpit-tukit cockpit-ws
 tuar
+reboot
+
+### 11 - configuring cockpit
+
 systemctl enable --now cockpit.socket
 vim /etc/cockpit/disallowed-users
-tu
-tuar
+
+
+
 
 ### in case of snapshot flat restore
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
