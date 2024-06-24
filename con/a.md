@@ -72,6 +72,10 @@ reboot
 systemctl enable --now cockpit.socket
 sed -i '/root/s/^/# /' /etc/cockpit/disallowed-users
 
+tu pkg in
+reboot
+
+### 12 -- 
 ### troubleshoot - Failed to start Create missing directories from rpmdb
 ls -ld /var/lib/pcp/config/derived
 sudo mkdir -p /var/lib/pcp/config/derived
