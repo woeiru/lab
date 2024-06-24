@@ -1,8 +1,8 @@
 ## As User
 ### Variables
 
-export CT_IMAGE=ishus
-export CT_NAME=shus
+export CT_IMAGE=islus
+export CT_NAME=slus
 export CT_DIR=/home/es/lab/con/
 export USER_NAME=es
 export USER_PASSWORD=lernt
