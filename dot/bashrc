@@ -112,6 +112,7 @@ alias gp='git pull'
 alias h='history'
 
 # mounting
+alias m.sda.das='mount /dev/sda /mnt/das'
 alias m.sub.sda.bak='mount -o subvol=bak /dev/sda /bak'
 
 # pam_snapper
