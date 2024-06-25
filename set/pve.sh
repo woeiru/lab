@@ -1,15 +1,37 @@
 #!/bin/bash
 
+# Hardcoded values for LIB_DIR, VAR_DIR, and ALL_BASE
+LIB_DIR="../lib"
+VAR_DIR="../var"
+ALL_BASE="all"
+
 # Get dirname and filename and basename
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-FILE=$(basename "$BASH_SOURCE")
+FILE=$(basename "${BASH_SOURCE[0]}")
 BASE="${FILE%.*}"
 
-# source lib and var
-source "$DIR/../lib/all.bash"
-source "$DIR/../var/all.conf"
-source "$DIR/../lib/${BASE}.bash"
-source "$DIR/../var/${BASE}.conf"
+# Function to source files
+source_file() {
+  local file_path="$1"
+  if [ -f "$file_path" ]; then
+    source "$file_path"
+  else
+    echo "Error: $file_path not found."
+  fi
+}
+
+# Array of files to source
+files_to_source=(
+  "$DIR/$LIB_DIR/${ALL_BASE}.bash"
+  "$DIR/$VAR_DIR/${ALL_BASE}.conf"
+  "$DIR/$LIB_DIR/${BASE}.bash"
+  "$DIR/$VAR_DIR/${BASE}.conf"
+)
+
+# Loop through and source files
+for file in "${files_to_source[@]}"; do
+  source_file "$file"
+done
 
 # main setup function
 setup_main() {
@@ -103,7 +125,7 @@ c_xall() {
 }
 d_xall() {
    	pve-clu
-	pve-cdo "$CT_DL_1"
+	pve-cdo "$CT_DL_STO" "$CT_DL_1"
 }
 
 e_xall() {
