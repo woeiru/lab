@@ -74,7 +74,6 @@ setup_execute_choice() {
         a) 	a_xall;;
         a1) 	install_pakages;;
         a2) 	all-ust;;
-        a3) 	shr-fws;;
         b) 	b_xall;;
         b1) 	shr-smb;;
         *) echo "Invalid choice";;
@@ -86,7 +85,6 @@ a_xall() {
     	all-ipa "$PMAN" "$PAK1" "$PAK2"
 	all-sdc "$SYSD_CHECK"
     	all-ust "$USERNAME1" "$PASSWORD1"
-    	shr-fws "$FW_SERVICE"
 }
 
 b_xall() {
