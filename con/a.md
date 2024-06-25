@@ -66,6 +66,9 @@ sed -i '/root/s/^/# /' /etc/cockpit/disallowed-users
 tu pkg in btop
 reboot
 
+### 10 - current
+m.sub.sda.bak
+
 ### troubleshoot - Failed to start Create missing directories from rpmdb
 ls -ld /var/lib/pcp/config/derived
 sudo mkdir -p /var/lib/pcp/config/derived
