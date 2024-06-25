@@ -459,9 +459,10 @@ pve-clu() {
 #   
 pve-cdo() {
     local function_name="${FUNCNAME[0]}"
-    local ct_dl="$1"
+    local ct_dl_sto="$1"
+    local ct_dl="$2"
 
-    	pveam download local "$ct_dl" 
+    	pveam download "$ct_dl_sto" "$ct_dl" 
 
 	all-nos "$function_name" "executed ( $ct_dl )"
 }
