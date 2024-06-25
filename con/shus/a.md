@@ -1,8 +1,8 @@
 ## ROOTFUL SETUP
 ### Variables
 
-export CT_IMAGE=isfus
-export CT_NAME=sfus
+export CT_NAME=shus
+export CT_IMAGE=ishus
 export CT_DIR=/root/lab/con/
 export USER_NAME=es
 export USER_PASSWORD=lernt
@@ -44,32 +44,12 @@ reboot
 
 iptables-restore < /etc/sysconfig/iptables
 
-### systemctl setup
-
-podman generate systemd --new --files --name ${CT_NAME}
-mv container-${CT_NAME}.service /etc/systemd/system/
-systemctl daemon-reload
-tu run bash
-	systemctl enable container-${CT_NAME}.service
-	exit
-tuar
-
-### Testing
-
-ls -Z <path>
-lsof -i -P -n
-ss -tuln
-smbclient -L ${NODE_NAME} -U ${SMB_USER_NAME}
-smbclient //${NODE_NAME}/${SHARENAME} -U ${SMB_USER_NAME}
-pdbedit -L
-sudo tcpdump -i any port 139 or port 445
-
 
 ## ROOTLESS SETUP
 ### Variables
 
-export CT_IMAGE=islus
-export CT_NAME=slus
+export CT_NAME=shus
+export CT_IMAGE=ishus
 export CT_DIR=/home/es/lab/con/
 export USER_NAME=es
 export USER_PASSWORD=lernt
