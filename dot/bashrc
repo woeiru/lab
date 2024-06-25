@@ -179,6 +179,7 @@ alias es.log='cat /mnt/bak/home/.es.log'
 alias mbf='mkfs.btrfs -f'
 alias mbmd='mkfs.btrfs -m raid1 -d raid1'
 
+# unsorted
 alias c.group='cat /etc/group'
 alias c.passwd='cat /etc/passwd'
-
+alias ipt='iptables -L -v -n'
