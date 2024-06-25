@@ -29,8 +29,7 @@ mount *device* /mnt/nvm
 bt sub create /mnt/nvm/home
 *delete old fstab entry*
 all-fec 1 /home btrfs subvol=home 0 0
-tu pkg in sysstat
-tuar
+** cheat on snapshot **
 reboot
 
 ### 6 - install pam snapper
@@ -45,39 +44,33 @@ reboot
 
 ### 7 - create standard user with id 1000
 
-export USER_NAME=es 
-export USER_GROUP=es
+export USERNAME=es 
+export USERGRP=es
 
 pam.config
-pam.useradd ${USER_NAME} ${USER_GROUP}
-passwd ${USER_NAME}
-cp /root/.ssh/authorized_keys /home/es/.ssh/authorized_keys
-find /home/${USER_NAME}/ -path ./snapshot -prune -o -exec chown ${USERNAME}: {} +
+pam.useradd ${USERNAME} ${USERGRP}
+passwd ${USERNAME}
+mkdir /home/${USERNAME}/.ssh
+cp /root/.ssh/authorized_keys /home/${USERNAME}/.ssh/authorized_keys
+find /home/${USERNAME} -path /home/${USERNAME}/.snapshots -prune -o -exec chown ${USERNAME}: {} +
 tu pkg in htop
 reboot
 
-### 10 - installing cockpit
+### 8 - installing cockpit
 tu pkg in patterns-microos-cockpit cockpit-tukit cockpit-ws
-tuar
 reboot
 
-### 11 - configuring cockpit
+### 9 - configuring cockpit
 systemctl enable --now cockpit.socket
 sed -i '/root/s/^/# /' /etc/cockpit/disallowed-users
-
-tu pkg in
+tu pkg in btop
 reboot
 
-### 12 -- 
 ### troubleshoot - Failed to start Create missing directories from rpmdb
 ls -ld /var/lib/pcp/config/derived
 sudo mkdir -p /var/lib/pcp/config/derived
 sudo chmod 755 /var/lib/pcp/config/derived
 sudo chown root: /var/lib/pcp/config/derived
-
-tu pkg in htop
-tuar
-reboot
 
 ### in case of snapshot flat restore
 osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
@@ -86,5 +79,3 @@ osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
 ### fix user alternative instead of the sed command for the pam_snapper config
     groupadd -g 1000 es
     usermod -g es es
-
-
