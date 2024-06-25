@@ -86,7 +86,7 @@ a_xall() {
     	all-ipa "$PMAN" "$PAK1" "$PAK2"
 	all-sdc "$SYSD_CHECK"
     	all-ust "$USERNAME1" "$PASSWORD1"
-    	shr-fws
+    	shr-fws "$FW_SERVICE"
 }
 
 b_xall() {
