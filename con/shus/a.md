@@ -16,7 +16,7 @@ export SHARENAME=dat
 
 podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 
-mkdir /home/es/dat
+mkdir /home/${USER_NAME}/${SUBFOLDER}
 
 podman run -d \
     --name ${CT_NAME} \
