@@ -266,8 +266,7 @@ osm-sfr() {
     # Perform rsync with exclusions
     rsync -aAXv --delete \
         --exclude='.snapshots' \
-        --exclude='testdirectory/' \
-        --exclude='.testfile' \
+        --exclude='.ssh' \
         "$snapshot_sub/" "$target_folder"
 
     # Check rsync exit status
