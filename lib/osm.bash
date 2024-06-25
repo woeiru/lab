@@ -361,8 +361,7 @@ osm-hub() {
         local snapshot="$1"
         log "Starting full backup of smallest snapshot: $snapshot"
         mkdir -p "$backup_dir/$snapshot"
-        btrfs subvolume create "$backup_dir/$snapshot/snapshot"
-        btrfs send "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
+        btrfs send "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
         copy_info_file "$snapshot"
         log "Full backup of smallest snapshot $snapshot completed."
     }
@@ -372,15 +371,15 @@ osm-hub() {
         local snapshot="$2"
         log "Starting incremental backup of snapshot: $snapshot with parent snapshot: $parent_snapshot"
         mkdir -p "$backup_dir/$snapshot"
-        btrfs subvolume create "$backup_dir/$snapshot/snapshot"
         if [ -n "$parent_snapshot" ]; then
-            btrfs send -p "$source_dir/$parent_snapshot/snapshot" "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
+            btrfs send -p "$source_dir/$parent_snapshot/snapshot" "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
         else
-            btrfs send "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot/snapshot"
+            btrfs send "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
         fi
         copy_info_file "$snapshot"
         log "Incremental backup of snapshot $snapshot completed."
     }
+
 
     perform_backups() {
         if [ ${#src_snapshots[@]} -gt 0 ] && [ ${#tgt_snapshots[@]} -eq 0 ]; then
