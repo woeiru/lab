@@ -29,7 +29,7 @@ mount *device* /mnt/nvm
 bt sub create /mnt/nvm/home
 *delete old fstab entry*
 all-fec 1 /home btrfs subvol=home 0 0
-** cheat on snapshot **
+tu pkg in htop
 reboot
 
 ### 6 - install pam snapper
@@ -68,6 +68,7 @@ reboot
 
 ### 10 - current
 m.sub.sda.bak
+osm-sfr
 
 ### troubleshoot - Failed to start Create missing directories from rpmdb
 ls -ld /var/lib/pcp/config/derived
