@@ -53,7 +53,7 @@ passwd ${USERNAME}
 mkdir /home/${USERNAME}/.ssh
 cp /root/.ssh/authorized_keys /home/${USERNAME}/.ssh/authorized_keys
 find /home/${USERNAME} -path /home/${USERNAME}/.snapshots -prune -o -exec chown ${USERNAME}: {} +
-tu pkg in htop
+tu pkg in btop
 reboot
 
 ### 8 - installing cockpit
@@ -63,14 +63,14 @@ reboot
 ### 9 - configuring cockpit
 systemctl enable --now cockpit.socket
 sed -i '/root/s/^/# /' /etc/cockpit/disallowed-users
-tu pkg in btop
+tu pkg in atop
 reboot
 
 ### 10 - current
 m.sub.sda.bak
 osm-sfr
 
-### troubleshoot - Failed to start Create missing directories from rpmdb
+### sysstat troubleshoot
 ls -ld /var/lib/pcp/config/derived
 sudo mkdir -p /var/lib/pcp/config/derived
 sudo chmod 755 /var/lib/pcp/config/derived
@@ -81,5 +81,6 @@ osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
 
 
 ### fix user alternative instead of the sed command for the pam_snapper config
-    groupadd -g 1000 es
+    groupadd -sudo chmod 755 /var/lib/pcp/config/derived
+g 1000 es
     usermod -g es es
