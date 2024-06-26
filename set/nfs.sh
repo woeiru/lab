@@ -28,7 +28,4 @@ b_xall() {
     nfs-setup  "$NFS_HEADER_2" "$SHARED_FOLDER_2" "$NFS_OPTIONS_2"
 }
 
-# Call menu structure with passed arguments
 setup_main "$@"
-
-
