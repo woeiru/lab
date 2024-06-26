@@ -18,12 +18,12 @@ setup_source() {
   local var_dir="${dir%/*}/var"
   local all_base="all"
 
-  echo "Debug ( .up setup_source) dir = $dir"
-  echo "Debug ( .up setup_source) file = $file"
-  echo "Debug ( .up setup_source) base = $base"
-  echo "Debug ( .up setup_source) lib_dir = $lib_dir"
-  echo "Debug ( .up setup_source) var_dir = $var_dir"
-  echo "Debug ( .up setup_source) all_base = $all_base"
+  echo "Variable ( .up setup_source) dir = $dir"
+  echo "Variable ( .up setup_source) file = $file"
+  echo "Variable ( .up setup_source) base = $base"
+  echo "Variable ( .up setup_source) lib_dir = $lib_dir"
+  echo "Variable ( .up setup_source) var_dir = $var_dir"
+  echo "Variable ( .up setup_source) all_base = $all_base"
  
   local files_to_source=(
     "$lib_dir/${all_base}.bash"
@@ -39,10 +39,10 @@ setup_source() {
 }
 
 setup_main() {
-    echo "Debug ( .up setup_main) dir = $DIR_SH"
-    echo "Debug ( .up setup_main) file = $FILE_SH"
-    echo "Debug ( .up setup_main) base = $BASE_SH"
-    echo "Debug ( .up setup_main) @ = $@"
+    echo "Variable ( .up setup_main) dir = $DIR_SH"
+    echo "Variable ( .up setup_main) file = $FILE_SH"
+    echo "Variable ( .up setup_main) base = $BASE_SH"
+    echo "Variable ( .up setup_main) @ = $@"
     
     if [ "$#" -eq 0 ]; then
         echo "setup_main called without arguments"
@@ -68,12 +68,12 @@ setup_execute_arguments() {
 
 setup_execute_choice() {
     local choice="$1"
-    echo "Debug: choice = '$choice'"
-    echo "Debug: MENU_OPTIONS = ${!MENU_OPTIONS[@]}"
-    echo "Debug: MENU_OPTIONS values = ${MENU_OPTIONS[@]}"
+    echo "Variable: choice = '$choice'"
+    echo "Variable: MENU_OPTIONS = ${!MENU_OPTIONS[@]}"
+    echo "Variable: MENU_OPTIONS values = ${MENU_OPTIONS[@]}"
     
     local func="${MENU_OPTIONS[$choice]}"
-    echo "Debug: func = '$func'"
+    echo "Variable: func = '$func'"
     if [[ -n "$func" ]]; then
         $func
     else
@@ -85,14 +85,17 @@ setup_display_menu() {
     local dir="$1"
     local file="$2"
 
-    echo "Choose an option:"
-    echo "Debug: Scanning file $dir/$file for *_xall functions"
+    echo "------------------------------------------------------------"
+    echo "-------  Scanning file $file for *_xall functions  --------"
+    echo "                                                            "
+    echo "---------------->>(  Choose an option  )<<------------------"
+    echo "                                                            "
     
     # Find all *_xall functions in the given file
     grep -E '^[a-zA-Z_]+_xall\(\)' "$dir/$file" | while read -r line; do
         # Extract the function name
         func_name=$(echo "$line" | awk -F'(' '{print $1}')
-        echo "${func_name%%_xall}......................"
+	echo "------------------------>>(  ${func_name%%_xall}  )<<-------------------------"
         # List all the functions called within this *_xall function
         sed -n "/^${func_name}()/,/^}/p" "$dir/$file" | while read -r inner_line; do
             echo "$inner_line"
