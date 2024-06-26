@@ -221,7 +221,7 @@ vm-chk() {
     fi
 }
 
-#   
+#  Prompts user to rename a network interface by editing udev rules and updating network configuration.
 # udev network interface
 # [interaction with user]
 pve-uni() {
@@ -262,7 +262,7 @@ pve-uni() {
     fi
 }
 
-#  
+# Displays the contents of .notes files in a specified or current directory. 
 # show backup notes
 # [folder: optional]
 pve-sbn() {
@@ -294,7 +294,7 @@ pve-sbn() {
 }
 
 
-#  
+# Disables specified repository files by commenting out 'deb' lines. 
 # disable repository
 #  
 pve-dsr() {
@@ -314,7 +314,7 @@ pve-dsr() {
     done
 }
 
-#  
+# Adds a specific Proxmox repository line to /etc/apt/sources.list if not already present. 
 # setup sources.list
 #   
 pve-adr() {
@@ -330,6 +330,7 @@ pve-adr() {
     fi
 }
 
+# Updates and upgrades system packages.
 # packages update upgrade
 #   
 pve-puu() {
@@ -339,7 +340,7 @@ pve-puu() {
     all-nos "$function_name" "executed"
 }
 
-#  
+# Removes the Proxmox subscription notice and optionally restarts the pveproxy service. 
 # remove subscription notice
 #   
 pve-rsn() {
@@ -355,7 +356,7 @@ pve-rsn() {
     esac
 }
 
-#  
+#  Sets up a Btrfs RAID 1 filesystem on two devices and optionally adds the mount point to /etc/fstab.
 # btrfs raid 1
 # <device1> <device2> <mount_point>
 pve-br1() {
@@ -397,7 +398,7 @@ pve-br1() {
     all-nos "$function_name" "executed ( $1 $2 $3 )"
 }
 
-#  
+# Creates and mounts a ZFS dataset at a specified mount point.
 # zfs directory mount
 # <pool_name> <dataset_name> <mountpoint_path>
 pve-zdm() {
@@ -444,7 +445,7 @@ pve-zdm() {
     all-nos "$function_name" "executed ( $pool_name / $dataset_name )"
 }
 
-#  
+# Updates the Proxmox container list.
 # container list update
 #  
 pve-clu() {
@@ -455,6 +456,7 @@ pve-clu() {
     all-nos "$function_name" "executed"
 }
 
+# Downloads a specified container template from a storage location.
 # container downloads
 #   
 pve-cdo() {
@@ -467,6 +469,7 @@ pve-cdo() {
 	all-nos "$function_name" "executed ( $ct_dl )"
 }
 
+# Configures a bind mount for a Proxmox container.
 # container bindmount
 # <vmid> <mphost> <mpcontainer>
 pve-cbm() {
@@ -497,7 +500,7 @@ pve-cbm() {
     all-nos "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
 
-#  
+# Configures initial settings for GPU passthrough and reboots the system.
 # gpu passthrough step 1
 #  
 pve-gp1() {
@@ -522,7 +525,7 @@ pve-gp1() {
     reboot
 }
 
-#  
+# Adds necessary modules for GPU passthrough and reboots the system.
 # gpu passthrough step 2
 #   
 pve-gp2() {
@@ -544,7 +547,7 @@ pve-gp2() {
     reboot
 }
 
-#  
+# Completes GPU passthrough setup by configuring vfio-pci IDs, blacklisting GPU drivers, and rebooting the system.
 # gpu passthrough step 3
 #   
 pve-gp3() {
