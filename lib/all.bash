@@ -87,7 +87,8 @@ all-laf() {
     # counts all function calls
     count_calls() {
         local func_name="$1"
-        awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' "$file_name"
+	local count=$(awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' "$file_name")
+	echo "${count}"
     }
 
     # counts all function calls in a folder, excluding a specific file
@@ -95,7 +96,8 @@ all-laf() {
         local func_name="$1"
         local folder_name="$2"
         local exclude_file="$3"
-        find "$folder_name" -type f ! -name "$exclude_file" -exec awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' {} + | awk '{sum += $1} END {print sum}'
+        local count=$(find "$folder_name" -type f ! -name "$exclude_file" -exec awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' {} + | awk '{sum += $1} END {if (sum == 0) print ""; else print sum}')
+	echo "${count}"
     }
 
     # Loop through all lines in the file again
