@@ -8,21 +8,13 @@ echo "Debug: FILE = $FILE"
 source "$DIR/.up"
 setup_source "$DIR" "$FILE"
 
-# Call menu structure
-setup_main "$DIR" "$FILE"
-
-# Execute based on user choice
-setup_execute_choice() {
-    case "$1" in
-        a)   a_xall;;
-        b)   b_xall;;
-        *) echo "Invalid choice";;
-    esac
-}
-
+# Declare MENU_OPTIONS
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
+
+# Call menu structure
+setup_main "$DIR" "$FILE"
 
 # Execute whole section
 a_xall() {
@@ -35,4 +27,3 @@ b_xall() {
     nfs_setup  "$NFS_HEADER_1" "$SHARED_FOLDER_1" "$NFS_OPTIONS_1"
     nfs_setup  "$NFS_HEADER_2" "$SHARED_FOLDER_2" "$NFS_OPTIONS_2"
 }
-
