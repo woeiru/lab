@@ -356,7 +356,7 @@ pve-rsn() {
     esac
 }
 
-#  Sets up a Btrfs RAID 1 filesystem on two devices and optionally adds the mount point to /etc/fstab.
+# Sets up a Btrfs RAID 1 filesystem on two devices and optionally adds the mount point to /etc/fstab.
 # btrfs raid 1
 # <device1> <device2> <mount_point>
 pve-br1() {
