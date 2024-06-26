@@ -1,112 +1,24 @@
 #!/bin/bash
 
-# Hardcoded values for LIB_DIR, VAR_DIR, and ALL_BASE
-LIB_DIR="../lib"
-VAR_DIR="../var"
-ALL_BASE="all"
+# Sourcing
+DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_SH="$(basename "${BASH_SOURCE[0]}")"
+BASE_SH="${FILE_SH%.*}"
+echo "Variable ( *.sh ) DIR_SH = $DIR_SH"
+echo "Variable ( *.sh ) FILE_SH = $FILE_SH"
+echo "Variable ( *.sh ) BASE_SH = $BASE_SH"
+source "$DIR_SH/.up"
+setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 
-# Get dirname and filename and basename
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-FILE=$(basename "${BASH_SOURCE[0]}")
-BASE="${FILE%.*}"
+# Declare MENU_OPTIONS
+declare -A MENU_OPTIONS
+MENU_OPTIONS[a]="a_xall"
+MENU_OPTIONS[b]="b_xall"
+MENU_OPTIONS[c]="c_xall"
+MENU_OPTIONS[d]="d_xall"
+MENU_OPTIONS[e]="e_xall"
+MENU_OPTIONS[g]="g_xall"
 
-# Function to source files
-source_file() {
-  local file_path="$1"
-  if [ -f "$file_path" ]; then
-    source "$file_path"
-  else
-    echo "Error: $file_path not found."
-  fi
-}
-
-# Array of files to source
-files_to_source=(
-  "$DIR/$LIB_DIR/${ALL_BASE}.bash"
-  "$DIR/$VAR_DIR/${ALL_BASE}.conf"
-  "$DIR/$LIB_DIR/${BASE}.bash"
-  "$DIR/$VAR_DIR/${BASE}.conf"
-)
-
-# Loop through and source files
-for file in "${files_to_source[@]}"; do
-  source_file "$file"
-done
-
-# main setup function
-setup_main() {
-    if [ "$#" -eq 0 ]; then
-        setup_display_menu
-        setup_read_choice
-    else
-        setup_execute_arguments "$@"
-    fi
-}
-
-# main read choice
-setup_read_choice() {
-    read -p "Enter your choice: " choice
-    setup_execute_choice "$choice"
-}
-
-# main execute choice
-setup_execute_arguments() {
-    for arg in "$@"; do
-        setup_execute_choice "$arg"
-    done
-}
-
-# display setup_main menu
-setup_display_menu() {
-    echo "Choose an option:"
-    echo "a. -------------------"
-    echo "a1. Disable repository"
-    echo "a2. Add repository"
-    echo "a3. Update and upgrade packages"
-    echo "a4. Install packages"
-    echo "a5. Remove subscription notice"
-    echo "b. -------------------"
-    echo "b1. Setup Btrfs Raid1"
-    echo "c. -------------------"
-    echo "c1. Zfs create and mount dataset"
-    echo "d. -------------------"
-    echo "d1. Update  Container List"
-    echo "d2. Download Containers"
-    echo "e. -------------------"
-    echo "e1. Bindmount Containers"
-    echo "g. -------------------"
-    echo "g1. Enable gpu-pt Part 1"
-    echo "g2. Enable gpu-pt Part 2"
-    echo "g3. Enable gpu-pt Part 3"
-}
-
-# execute based on user choice
-setup_execute_choice() {
-    case "$1" in
-        a) a_xall;;
-        a1) pve-dsr;;
-        a2) pve-adr;;
-        a3) pve-puu;;
-        a4) all-ipa;;
-        a5) pve-rsn;;
-        b) b_xall;;
-        b1) pve-br1;;
-        c) c_xall;;
-        c1) pve-zdm;;
-        d) d_xall;;
-        d1) pve-clu;;
-        d2) pve-cdo;;
-        e) e_xall;;
-        e1) pve-cbm;;
-        g) g_xall;;
-        g1) pve-gp1;;
-        g2) pve-gp2;;
-        g3) pve-gp3;;
-        *) echo "Invalid choice";;
-    esac
-}
-
-# Functions for executing whole section
 a_xall() {
 	pve-dsr
     	pve-adr
@@ -138,5 +50,4 @@ g_xall() {
     	pve-gp3
 }
 
-# Call the setup_main function with command-line arguments
 setup_main "$@"
