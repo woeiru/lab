@@ -87,7 +87,7 @@ execute_a_options() {
 	pbs-sgp
     	pbs-adr
     	pbs-puu
-    	all-ipa
+    	all-ipa "$PMAN" "$PAK1" "$PAK2"
     	pve-rsn
 }
 
