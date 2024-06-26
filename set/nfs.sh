@@ -2,12 +2,14 @@
 
 # Sourcing
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-FILE=$(basename "${BASH_SOURCE[0]}")
+FILE="$(basename "${BASH_SOURCE[0]}")"
+echo "Debug: DIR = $DIR"
+echo "Debug: FILE = $FILE"
 source "$DIR/.up"
 setup_source "$DIR" "$FILE"
 
 # Call menu structure
-setup_main "$@"
+setup_main "$DIR" "$FILE"
 
 # Execute based on user choice
 setup_execute_choice() {
@@ -29,4 +31,3 @@ b_xall() {
     nfs_setup  "$NFS_HEADER_1" "$SHARED_FOLDER_1" "$NFS_OPTIONS_1"
     nfs_setup  "$NFS_HEADER_2" "$SHARED_FOLDER_2" "$NFS_OPTIONS_2"
 }
-
