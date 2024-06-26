@@ -30,6 +30,7 @@ setup_source() {
 }
 
 setup_main() {
+    echo "Debug: setup_main called with arguments: $@"
     if [ "$#" -eq 0 ]; then
         setup_display_menu "$DIR" "$FILE"
         setup_read_choice
@@ -40,6 +41,7 @@ setup_main() {
 
 setup_read_choice() {
     read -p "Enter your choice: " choice
+    choice=$(echo "$choice" | xargs)  # Trim leading/trailing whitespace
     setup_execute_choice "$choice"
 }
 
@@ -51,11 +53,12 @@ setup_execute_arguments() {
 
 setup_execute_choice() {
     local choice="$1"
-    echo "Debug: choice = $choice"
+    echo "Debug: choice = '$choice'"
     echo "Debug: MENU_OPTIONS = ${!MENU_OPTIONS[@]}"
     echo "Debug: MENU_OPTIONS values = ${MENU_OPTIONS[@]}"
     
     local func="${MENU_OPTIONS[$choice]}"
+    echo "Debug: func = '$func'"
     if [[ -n "$func" ]]; then
         $func
     else
@@ -89,4 +92,3 @@ setup_display_menu() {
     done
     echo ""
 }
-
