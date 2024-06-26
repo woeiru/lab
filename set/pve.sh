@@ -29,9 +29,22 @@ b_xall() {
 }
 
 c_xall() {
-	pve-zdm "$ZFS_POOL_NAME1" "$ZFS_DATASET_NAME1" "$ZFS_MOUNTPOINT_NAME1"
-	pve-zdm "$ZFS_POOL_NAME2" "$ZFS_DATASET_NAME2" "$ZFS_MOUNTPOINT_NAME2"
-	zfs list
+    local i=1
+    while true; do
+        pool_var="ZFS_POOL_NAME$i"
+        dataset_var="ZFS_DATASET_NAME$i"
+        mountpoint_var="ZFS_MOUNTPOINT_NAME$i"
+        
+        if [ -n "${!pool_var}" ] && [ -n "${!dataset_var}" ] && [ -n "${!mountpoint_var}" ]; then
+            pve-zdm "${!pool_var}" "${!dataset_var}" "${!mountpoint_var}"
+        else
+            break
+        fi
+        
+        ((i++))
+    done
+    
+    zfs list
 }
 d_xall() {
    	pve-clu
