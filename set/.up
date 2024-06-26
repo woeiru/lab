@@ -51,6 +51,10 @@ setup_execute_arguments() {
 
 setup_execute_choice() {
     local choice="$1"
+    echo "Debug: choice = $choice"
+    echo "Debug: MENU_OPTIONS = ${!MENU_OPTIONS[@]}"
+    echo "Debug: MENU_OPTIONS values = ${MENU_OPTIONS[@]}"
+    
     local func="${MENU_OPTIONS[$choice]}"
     if [[ -n "$func" ]]; then
         $func
