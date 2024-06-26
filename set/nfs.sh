@@ -20,6 +20,10 @@ setup_execute_choice() {
     esac
 }
 
+declare -A MENU_OPTIONS
+MENU_OPTIONS[a]="a_xall"
+MENU_OPTIONS[b]="b_xall"
+
 # Execute whole section
 a_xall() {
     all_ipa "$PMAN" "$PAK1" "$PAK2"
@@ -31,3 +35,4 @@ b_xall() {
     nfs_setup  "$NFS_HEADER_1" "$SHARED_FOLDER_1" "$NFS_OPTIONS_1"
     nfs_setup  "$NFS_HEADER_2" "$SHARED_FOLDER_2" "$NFS_OPTIONS_2"
 }
+
