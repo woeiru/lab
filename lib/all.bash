@@ -9,7 +9,7 @@ source "$DIR/../var/${BASE}.conf"
 # Recursively processes bash files in a directory.
 # extended overview
 # <path-optional>
-all() {
+all-fun() {
     local target="$1"
     if [[ -z "$target" ]]; then
         target="$BASH_SOURCE" # Default to the current file if no argument is provided
@@ -32,32 +32,38 @@ all() {
 # Lists all functions with details in a table format.
 # list all functions
 #    
+# Lists all functions with details in a table format.
+# list all functions
 all-laf() {
     # Column width parameters
     local col_width_1=9
-    local col_width_2=40
+    local col_width_2=35
     local col_width_3=30
-    local col_width_4=60
+    local col_width_4=50
     local col_width_5=5
     local col_width_6=5
     local col_width_7=5
+    local col_width_8=5
+    local col_width_9=5
 
     # Function to print a separator line
     print_separator() {
-        printf "+-%s+-%s+-%s+-%s+-%s+-%s+-%s+\n" \
+        printf "+-%s+-%s+-%s+-%s+-%s+-%s+-%s+-%s+-%s+\n" \
             "$(printf '%*s' $col_width_1 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_2 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_3 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_4 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_5 '' | tr ' ' '-')" \
             "$(printf '%*s' $col_width_6 '' | tr ' ' '-')" \
-            "$(printf '%*s' $col_width_7 '' | tr ' ' '-')"
+            "$(printf '%*s' $col_width_7 '' | tr ' ' '-')" \
+            "$(printf '%*s' $col_width_8 '' | tr ' ' '-')" \
+            "$(printf '%*s' $col_width_9 '' | tr ' ' '-')"
     }
 
     # Print table header
     print_separator
-    printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s | %-$(($col_width_7 - 1))s |\n" \
-        "Function" "Arguments" "Shortname" "Description" "Size" "Loc" "Call"
+    printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s | %-$(($col_width_7 - 1))s | %-$(($col_width_8 - 1))s | %-$(($col_width_9 - 1))s |\n" \
+        "Function" "Arguments" "Shortname" "Description" "Size" "Loc" "Cfil" "Clib" "Cset"
     print_separator
 
     local file_name="$1"
@@ -77,12 +83,20 @@ all-laf() {
             last_comment_line=$line_number
         fi
     done < "$file_name"
-	
-	# counts all function calls
-	count_calls() {
-    		local func_name="$1"
-    		awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' "$file_name"
-		}
+
+    # counts all function calls
+    count_calls() {
+        local func_name="$1"
+        awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' "$file_name"
+    }
+
+    # counts all function calls in a folder, excluding a specific file
+    count_calls_folder() {
+        local func_name="$1"
+        local folder_name="$2"
+        local exclude_file="$3"
+        find "$folder_name" -type f ! -name "$exclude_file" -exec awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' {} + | awk '{sum += $1} END {print sum}'
+    }
 
     # Loop through all lines in the file again
     line_number=0
@@ -102,15 +116,17 @@ all-laf() {
             done < <(tail -n +$func_start_line "$file_name")
             # Count the number of calls to the function
             func_calls=$(count_calls "$func_name")
+            callslib=$(count_calls_folder "$func_name" "/root/lab/lib" "$file_name")
+            callsset=$(count_calls_folder "$func_name" "/root/lab/set")
             # Truncate the description if it's longer than col_width_4 characters
-            truncated_desc=$(echo "${comments[$third_last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_4"') print substr($0, 1, '"$col_width_4 - 3"') ".."; else print $0 }')
+            truncated_desc=$(echo "${comments[$third_last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_4"' - 2 ) print substr($0, 1, '"$col_width_4 - 3"') ".."; else print $0 }')
             # Truncate the shortname if it's longer than col_width_3 characters
             truncated_shortname=$(echo "${comments[$second_last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_3"' - 2 ) print substr($0, 1, '"$col_width_3 - 3"') ".."; else print $0 }')
             # Truncate the usage example if it's longer than col_width_2 characters
             truncated_usage=$(echo "${comments[$last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_2"') print substr($0, 1, '"$col_width_2 - 3"') ".."; else print $0 }')
             # Print function name, function size, comment line number, and comment
-            printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s | %-$(($col_width_7 - 1))s |\n" \
-                "$func_name" "$truncated_usage" "$truncated_shortname" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}" "$func_calls"
+            printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s | %-$(($col_width_7 - 1))s | %-$(($col_width_8 - 1))s | %-$(($col_width_9 - 1))s |\n" \
+                "$func_name" "$truncated_usage" "$truncated_shortname" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}" "$func_calls" "$callslib" "$callsset"
         elif [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
             third_last_comment_line=$second_last_comment_line
             second_last_comment_line=$last_comment_line
@@ -121,7 +137,6 @@ all-laf() {
     print_separator
     echo ""
 }
-
 
 # Manages git operations, ensuring local repository syncs with remote.
 # git all in
@@ -823,7 +838,7 @@ all-cif() {
 # cats the source code of a function inside the lib folder
 # function library cat
 # <function_name>
-all-fun() {
+all-flc() {
     # Check if a function name is provided
     if [ -z "$1" ]; then
         all-use

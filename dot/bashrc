@@ -10,17 +10,20 @@ LIB_DIR="$DIR/../lib"
 SET_DIR="$DIR/../set"
 VAR_DIR="$DIR/../var"
 
-# Source necessary scripts
-source "$LIB_DIR/all.bash"
-source "$LIB_DIR/pbs.bash"
-source "$LIB_DIR/pve.bash"
-source "$LIB_DIR/nfs.bash"
-source "$LIB_DIR/smb.bash"
-
 # Define arrays for constructing aliases
 #
 files=(all osm pbs pve nfs smb)
 bash_files=(all osm pbs pve nfs smb)
+
+# Source necessary scripts
+for file in "${files[@]}"; do
+   source "$LIB_DIR/$file.bash"
+done
+
+# Generate function overview aliases
+for file in "${files[@]}"; do
+   alias $file="$file-fun"
+done
 
 # Generate bash execution aliases
 for file in "${bash_files[@]}"; do
@@ -87,17 +90,6 @@ alias uuu='du -bh -d3'
 # exits
 alias ee='exit'
 
-# functions
-
-alias osm='osm-fun'
-alias pbs='pbs-fun'
-alias pve='pve-fun'
-alias shr='shr-fun'
-
-alias gg='all-gio'
-alias af='all-fun'
-
-
 
 # git
 alias g='git status'
@@ -107,6 +99,7 @@ alias ga='git add .'
 alias gc='git commit -m "standard"'
 alias go='git push origin master'
 alias gp='git pull'
+alias gg='all-gio'
 
 # history
 alias h='history'
