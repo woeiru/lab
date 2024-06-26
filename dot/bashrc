@@ -73,6 +73,7 @@ alias d='cd'
 alias ..='cd ..'
 alias dl="cd $DIR/.."
 alias dlc="cd $CON_DIR"
+alias dls="cd $SET_DIR"
 
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
