@@ -632,5 +632,5 @@ pve-ctc() {
     --password "$password" \
     --cores "$cpus" \
     --features "keyctl=1,nesting=1" \
-    $(if [ "$privileged" == "yes" ]; then echo "--privileged"; fi)
+    $(if [ "$privileged" == "no" ]; then echo "--unprivileged"; fi)
 }
