@@ -4,9 +4,9 @@
 DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
-echo "Debug ( *.sh ) DIR_SH = $DIR_SH"
-echo "Debug ( *.sh ) FILE_SH = $FILE_SH"
-echo "Debug ( *.sh ) BASE_SH = $BASE_SH"
+echo "Variable ( *.sh ) DIR_SH = $DIR_SH"
+echo "Variable ( *.sh ) FILE_SH = $FILE_SH"
+echo "Variable ( *.sh ) BASE_SH = $BASE_SH"
 source "$DIR_SH/.up"
 setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 
