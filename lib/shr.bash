@@ -110,24 +110,3 @@ shr-sma() {
     all-nos "$function_name" "Samba configuration applied"
 }
 
-# firewalld add service and reload
-# fire wall service
-# <function_name>
-shr-fws() {
-    local function_name="${FUNCNAME[0]}"
-    local fw_service="$1"
-    if [ $# -ne 1 ]; then
-	all-use
-        return 1
-    fi
-   # Open firewall ports
-    if command -v firewall-cmd > /dev/null; then
-        firewall-cmd --permanent --add-service=$fw_service
-        firewall-cmd --reload
-	all-nos "$function_name" "executed ( $1 )"
-    else
-        echo "firewall-cmd not found, skipping firewall configuration."
-    fi
-}
-
-
