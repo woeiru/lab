@@ -92,3 +92,4 @@ setup_display_menu() {
     done
     echo ""
 }
+
