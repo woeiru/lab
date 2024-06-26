@@ -12,10 +12,18 @@ source_file() {
 setup_source() {
   local dir="$1"
   local file="$2"
-  local base="${file%.*}"
+  local base="$3"
+
   local lib_dir="${dir%/*}/lib"
   local var_dir="${dir%/*}/var"
   local all_base="all"
+
+  echo "Debug ( .up setup_source) dir = $dir"
+  echo "Debug ( .up setup_source) file = $file"
+  echo "Debug ( .up setup_source) base = $base"
+  echo "Debug ( .up setup_source) lib_dir = $lib_dir"
+  echo "Debug ( .up setup_source) var_dir = $var_dir"
+  echo "Debug ( .up setup_source) all_base = $all_base"
  
   local files_to_source=(
     "$lib_dir/${all_base}.bash"
@@ -30,11 +38,17 @@ setup_source() {
 }
 
 setup_main() {
-    echo "Debug: setup_main called with arguments: $@"
+    echo "Debug ( .up setup_main) dir = $DIR_SH"
+    echo "Debug ( .up setup_main) file = $FILE_SH"
+    echo "Debug ( .up setup_main) base = $BASE_SH"
+    echo "Debug ( .up setup_main) @ = $@"
+    
     if [ "$#" -eq 0 ]; then
-        setup_display_menu "$DIR" "$FILE"
+        echo "setup_main called without arguments"
+        setup_display_menu "$DIR_SH" "$FILE_SH"
         setup_read_choice
     else
+        echo "setup_main called with arguments: $@"
         setup_execute_arguments "$@"
     fi
 }
@@ -77,13 +91,10 @@ setup_display_menu() {
     grep -E '^[a-zA-Z_]+_xall\(\)' "$dir/$file" | while read -r line; do
         # Extract the function name
         func_name=$(echo "$line" | awk -F'(' '{print $1}')
-        echo "Debug: Found function $func_name"
-        echo "${func_name%%_xall}......................( include config )"
-        
+        echo "${func_name%%_xall}......................"
         # List all the functions called within this *_xall function
-        echo "Debug: Scanning function body of $func_name"
         sed -n "/^${func_name}()/,/^}/p" "$dir/$file" | while read -r inner_line; do
-            echo "Debug: Processing line: $inner_line"
+            echo "$inner_line"
             inner_func=$(echo "$inner_line" | grep -oE '^[[:space:]]*[a-zA-Z_]+\(' | awk '{print $1}' | sed 's/(//')
             if [[ -n "$inner_func" ]]; then
                 echo "  - $inner_func"
