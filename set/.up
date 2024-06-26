@@ -48,6 +48,17 @@ setup_execute_arguments() {
         setup_execute_choice "$arg"
     done
 }
+
+setup_execute_choice() {
+    local choice="$1"
+    local func="${MENU_OPTIONS[$choice]}"
+    if [[ -n "$func" ]]; then
+        $func
+    else
+        echo "Invalid choice"
+    fi
+}
+
 setup_display_menu() {
     local dir="$1"
     local file="$2"
