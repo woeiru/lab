@@ -33,7 +33,8 @@ setup_source() {
   )
 
   for file in "${files_to_source[@]}"; do
-    source_file "$file"
+    source "$file"
+    echo "source_file = $file"
   done
 }
 
