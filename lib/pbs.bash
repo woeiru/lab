@@ -76,6 +76,11 @@ pbs-rda() {
 	local datastore_name="$2"
 	local datastore_path="$3"
 
+   elif [ $# -ne 3 ]; then
+       all-use
+       return 1
+     fi
+
  # Define the file path to the configuration file
     local file="/etc/proxmox-backup/datastore.cfg"
     # Define the combined lines to be checked within the file
