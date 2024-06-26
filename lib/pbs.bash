@@ -105,6 +105,7 @@ pbs-rda() {
         # Create the file and add the combined lines
         echo -e "$combined_lines" > "$file"
         echo "File created and lines added."
+        echo "$combined_lines"
     fi
 
     all-nos "$function_name" "executed ( $1 $2 $3 )"
