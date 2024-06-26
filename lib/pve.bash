@@ -601,20 +601,38 @@ pve-gp3() {
 # create a custom container
 # container create
 # 
-CT_ID=111
-TEMPLATE=local:debian-12-standard_12.2-1_amd64.tar.zst"
-HOSTNAME=pbs
-STORAGE=local-zfs
-ROOTFS_SIZE=32
-MEMORY=10240
-SWAP=10240
-NET_CONFIG="name=eno0,bridge=vmbr0,ip=dhcp"
-NAMESERVER=8.8.8.8
-SEARCHDOMAIN=fritz.box
-PASSWORD=password
-CPUS=8
-PRIVILEGED=yes
-IP_ADDRESS=192.168.178.111
-CIDR=24
-GATEWAY=192.168.178.1
+pve-ctc() {
+local id="$1"
+  local template="$2"
+  local hostname="$3"
+  local storage="$4"
+  local rootfs_size="$5"
+  local memory="$6"
+  local swap="$7"
+  local net_config="$8"
+  local nameserver="$9"
+  local searchdomain="${10}"
+  local password="${11}"
+  local cpus="${12}"
+  local privileged="${13}"
+  local ip_address="${14}"
+  local cidr="${15}"
+  local gateway="${16}"
+
+  pct create "$id" "$template" \
+    --hostname "$hostname" \
+    --storage "$storage" \
+    --rootfs "$storage:$rootfs_size" \
+    --memory "$memory" \
+    --swap "$swap" \
+    --net0 "$net_config" \
+    --ipadd "$ip_address/$cidr" \
+    --gateway "$gateway" \
+    --nameserver "$nameserver" \
+    --searchdomain "$searchdomain" \
+    --password "$password" \
+    --cpus "$cpus" \
+    --features "keyctl=1,nesting=1" \
+    --$privileged
+}
 

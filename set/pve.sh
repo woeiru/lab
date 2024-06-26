@@ -14,6 +14,7 @@ MENU_OPTIONS[b]="b_xall"
 MENU_OPTIONS[c]="c_xall"
 MENU_OPTIONS[d]="d_xall"
 MENU_OPTIONS[e]="e_xall"
+MENU_OPTIONS[f]="f_xall"
 MENU_OPTIONS[g]="g_xall"
 
 a_xall() {
@@ -36,8 +37,26 @@ d_xall() {
    	pve-clu
 	pve-cdo "$CT_DL_STO" "$CT_DL_1"
 }
-
 e_xall() {
+	pve-ctc \
+	  "$CT_ID" \
+	  "$CT_TEMPLATE" \
+	  "$CT_HOSTNAME" \
+	  "$CT_STORAGE" \
+	  "$CT_ROOTFS_SIZE" \
+	  "$CT_MEMORY" \
+	  "$CT_SWAP" \
+	  "$CT_NET_CONFIG" \
+	  "$CT_NAMESERVER" \
+	  "$CT_SEARCHDOMAIN" \
+	  "$CT_PASSWORD" \
+	  "$CT_CPUS" \
+	  "$CT_PRIVILEGED" \
+	  "$CT_IP_ADDRESS" \
+	  "$CT_CIDR" \
+	  "$CT_GATEWAY"
+}
+f_xall() {
    	pve-cbm "$CT_ID_1" "$CT_MPH_1" "$CT_MPC_1"
    	pve-cbm "$CT_ID_2" "$CT_MPH_2" "$CT_MPC_2"
 }
