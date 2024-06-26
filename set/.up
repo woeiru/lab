@@ -31,7 +31,7 @@ setup_source() {
 
 setup_main() {
     if [ "$#" -eq 0 ]; then
-        setup_display_menu
+        setup_display_menu "$DIR" "$FILE"
         setup_read_choice
     else
         setup_execute_arguments "$@"
@@ -52,7 +52,7 @@ setup_execute_arguments() {
 setup_display_menu() {
     local dir="$1"
     local file="$2"
-    
+
     echo "Choose an option:"
     
     # Find all *_xall functions in the given file
@@ -69,4 +69,3 @@ setup_display_menu() {
     done
     echo ""
 }
-
