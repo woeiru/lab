@@ -1,0 +1,50 @@
+#!/bin/bash
+
+setup_source() {
+local lib_dir="../lib"
+local var_dir="../var"
+local all_base="all"
+local dir="$1"
+local file="$2"
+local base="${file%.*}"
+
+source_file() {
+  local file_path="$1"
+  if [ -f "$file_path" ]; then
+    source "$file_path"
+  else
+    echo "Error: $file_path not found."
+  fi
+}
+
+files_to_source=(
+  "$dir/$lib_dir/${all_base}.bash"
+  "$dir/$var_dir/${all_base}.conf"
+  "$dir/$lib_dir/${base}.bash"
+  "$dir/$var_dir/${base}.conf"
+)
+
+for file in "${files_to_source[@]}"; do
+  source_file "$file"
+done
+}
+
+setup_main() {
+    if [ "$#" -eq 0 ]; then
+        setup_display_menu
+        setup_read_choice
+    else
+        setup_execute_arguments "$@"
+    fi
+}
+
+setup_read_choice() {
+    read -p "Enter your choice: " choice
+    setup_execute_choice "$choice"
+}
+
+setup_execute_arguments() {
+    for arg in "$@"; do
+        setup_execute_choice "$arg"
+    done
+}
