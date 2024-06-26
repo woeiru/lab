@@ -602,7 +602,7 @@ pve-gp3() {
 # container create
 # 
 pve-ctc() {
-local id="$1"
+  local id="$1"
   local template="$2"
   local hostname="$3"
   local storage="$4"
@@ -619,20 +619,18 @@ local id="$1"
   local cidr="${15}"
   local gateway="${16}"
 
+  # Correcting the parameters passed to pct create
   pct create "$id" "$template" \
     --hostname "$hostname" \
     --storage "$storage" \
     --rootfs "$storage:$rootfs_size" \
     --memory "$memory" \
     --swap "$swap" \
-    --net0 "$net_config" \
-    --ipadd "$ip_address/$cidr" \
-    --gateway "$gateway" \
+    --net0 "name=eth0,bridge=vmbr0,ip=$ip_address/$cidr,gw=$gateway" \
     --nameserver "$nameserver" \
     --searchdomain "$searchdomain" \
     --password "$password" \
-    --cpus "$cpus" \
+    --cores "$cpus" \
     --features "keyctl=1,nesting=1" \
-    --$privileged
+    $(if [ "$privileged" == "yes" ]; then echo "--privileged"; fi)
 }
-
