@@ -27,7 +27,7 @@ setup_source() {
 
   for file in "${files_to_source[@]}"; do
     source "$file"
-    echo "source_file = $file"
+    echo "sourced $file"
   done
 }
 
