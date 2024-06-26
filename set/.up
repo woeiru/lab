@@ -58,7 +58,7 @@ setup_execute_arguments() {
 setup_execute_choice() {
     local choice="$1"
     local func="${MENU_OPTIONS[$choice]}"
-    echo "function = '$func' executed"
+    echo "function '$func' executed"
     if [[ -n "$func" ]]; then
         $func
     else
