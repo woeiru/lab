@@ -600,16 +600,21 @@ pve-gp3() {
 
 # create a custom container
 # container create
-#  
-pve_ctc() {
-  pct create "$CT_ID" "$TEMPLATE" \
-  --hostname "$HOSTNAME" \
-  --storage "$CT_STORAGE" \
-  --rootfs "$STORAGE:$ROOTFS_SIZE" \
-  --memory "$MEMORY" \
-  --swap "$SWAP" \
-  --net0 "$NET_CONFIG" \
-  --nameserver "$NAMESERVER" \
-  --searchdomain "$SEARCHDOMAIN" \
-  --password "$PASSWORD"
-}
+# 
+CT_ID=111
+TEMPLATE=local:debian-12-standard_12.2-1_amd64.tar.zst"
+HOSTNAME=pbs
+STORAGE=local-zfs
+ROOTFS_SIZE=32
+MEMORY=10240
+SWAP=10240
+NET_CONFIG="name=eno0,bridge=vmbr0,ip=dhcp"
+NAMESERVER=8.8.8.8
+SEARCHDOMAIN=fritz.box
+PASSWORD=password
+CPUS=8
+PRIVILEGED=yes
+IP_ADDRESS=192.168.178.111
+CIDR=24
+GATEWAY=192.168.178.1
+
