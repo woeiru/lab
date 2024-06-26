@@ -50,25 +50,58 @@ d_xall() {
    	pve-clu
 	pve-cdo "$CT_DL_STO" "$CT_DL_1"
 }
+
 e_xall() {
-	pve-ctc \
-	  "$CT_ID" \
-	  "$CT_TEMPLATE" \
-	  "$CT_HOSTNAME" \
-	  "$CT_STORAGE" \
-	  "$CT_ROOTFS_SIZE" \
-	  "$CT_MEMORY" \
-	  "$CT_SWAP" \
-	  "$CT_NET_CONFIG" \
-	  "$CT_NAMESERVER" \
-	  "$CT_SEARCHDOMAIN" \
-	  "$CT_PASSWORD" \
-	  "$CT_CPUS" \
-	  "$CT_PRIVILEGED" \
-	  "$CT_IP_ADDRESS" \
-	  "$CT_CIDR" \
-	  "$CT_GATEWAY"
+    local i=1
+    while true; do
+        id_var="CT_${i}_ID"
+        template_var="CT_${i}_TEMPLATE"
+        hostname_var="CT_${i}_HOSTNAME"
+        storage_var="CT_${i}_STORAGE"
+        rootfs_size_var="CT_${i}_ROOTFS_SIZE"
+        memory_var="CT_${i}_MEMORY"
+        swap_var="CT_${i}_SWAP"
+        net_config_var="CT_${i}_NET_CONFIG"
+        nameserver_var="CT_${i}_NAMESERVER"
+        searchdomain_var="CT_${i}_SEARCHDOMAIN"
+        password_var="CT_${i}_PASSWORD"
+        cpus_var="CT_${i}_CPUS"
+        privileged_var="CT_${i}_PRIVILEGED"
+        ip_address_var="CT_${i}_IP_ADDRESS"
+        cidr_var="CT_${i}_CIDR"
+        gateway_var="CT_${i}_GATEWAY"
+
+        if [ -n "${!id_var}" ] && [ -n "${!template_var}" ] && [ -n "${!hostname_var}" ] && [ -n "${!storage_var}" ]; then
+            # Check if the container with the given ID already exists
+            if pct status "${!id_var}" &>/dev/null; then
+                echo "Container with ID ${!id_var} already exists. Skipping..."
+            else
+                pve-ctc \
+                    "${!id_var}" \
+                    "${!template_var}" \
+                    "${!hostname_var}" \
+                    "${!storage_var}" \
+                    "${!rootfs_size_var}" \
+                    "${!memory_var}" \
+                    "${!swap_var}" \
+                    "${!net_config_var}" \
+                    "${!nameserver_var}" \
+                    "${!searchdomain_var}" \
+                    "${!password_var}" \
+                    "${!cpus_var}" \
+                    "${!privileged_var}" \
+                    "${!ip_address_var}" \
+                    "${!cidr_var}" \
+                    "${!gateway_var}"
+            fi
+        else
+            break
+        fi
+
+        ((i++))
+    done
 }
+
 f_xall() {
    	pve-cbm "$CT_ID_1" "$CT_MPH_1" "$CT_MPC_1"
    	pve-cbm "$CT_ID_2" "$CT_MPH_2" "$CT_MPC_2"
