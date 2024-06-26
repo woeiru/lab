@@ -17,7 +17,7 @@ all-laf "$file_name"
 # Unified function to set up NFS
 # nfs setup
 # <nfs_header> <shared_folder> <nfs_options>
-nfs-setup() {
+nfs-set() {
     local function_name="${FUNCNAME[0]}"
     local nfs_header="$1"
     local shared_folder="$2"
@@ -29,14 +29,14 @@ nfs-setup() {
     all-mev "nfs_options" "Enter NFS options" "$nfs_options"
 
     # Apply the NFS configuration
-    nfs-apply "$nfs_header" "$shared_folder" "$nfs_options"
+    nfs-apl "$nfs_header" "$shared_folder" "$nfs_options"
     all-nos "$function_name" "NFS setup complete"
 }
 
 # Helper script for NFS setup.
 # nfs apply config
 # <nfs_header> <shared_folder> <nfs_options>
-nfs-apply() {
+nfs-apl() {
     local function_name="${FUNCNAME[0]}"
     local nfs_header="$1"
     local shared_folder="$2"
