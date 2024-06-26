@@ -85,7 +85,7 @@ pbs-rda() {
  # Define the file path to the configuration file
     local file="/etc/proxmox-backup/datastore.cfg"
     # Define the combined lines to be checked within the file
-    local combined_lines="datastore: $datstore_name\n\tpath $datastore_path"
+    local combined_lines="datastore: $datastore_name\n\tpath $datastore_path"
 
     # Check if the file exists
     if [[ -f "$file" ]]; then
