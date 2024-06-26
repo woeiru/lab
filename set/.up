@@ -10,18 +10,18 @@ source_file() {
 }
 
 setup_source() {
-  local lib_dir="../lib"
-  local var_dir="../var"
-  local all_base="all"
   local dir="$1"
   local file="$2"
   local base="${file%.*}"
-
+  local lib_dir="${dir%/*}/lib"
+  local var_dir="${dir%/*}/var"
+  local all_base="all"
+ 
   local files_to_source=(
-    "$dir/$lib_dir/${all_base}.bash"
-    "$dir/$var_dir/${all_base}.conf"
-    "$dir/$lib_dir/${base}.bash"
-    "$dir/$var_dir/${base}.conf"
+    "$lib_dir/${all_base}.bash"
+    "$var_dir/${all_base}.conf"
+    "$lib_dir/${base}.bash"
+    "$var_dir/${base}.conf"
   )
 
   for file in "${files_to_source[@]}"; do
