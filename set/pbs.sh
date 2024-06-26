@@ -92,7 +92,7 @@ execute_a_options() {
 
 # execute all b options
 execute_b_options() {
-	add_datastore "$DATASTORE_CONFIG" "$DATASTORE_NAME" "$DATASTORE_PATH"
+	pbs_rda "$DATASTORE_CONFIG" "$DATASTORE_NAME" "$DATASTORE_PATH"
 }
 
 # Call the setup_main function with command-line arguments
