@@ -30,10 +30,6 @@ all-fun() {
 }
 
 # Lists all functions with details in a table format.
-# list all functions
-#    
-# Lists all functions with details in a table format.
-# list all functions
 all-laf() {
     # Column width parameters
     local col_width_1=9
@@ -84,20 +80,20 @@ all-laf() {
         fi
     done < "$file_name"
 
-    # counts all function calls
+    # Counts all function calls
     count_calls() {
         local func_name="$1"
-	local count=$(awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' "$file_name")
-	echo "${count}"
+        local count=$(awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' "$file_name")
+        echo "${count}"
     }
 
-    # counts all function calls in a folder, excluding a specific file
+    # Counts all function calls in a folder, excluding a specific file
     count_calls_folder() {
         local func_name="$1"
         local folder_name="$2"
         local exclude_file="$3"
-        local count=$(find "$folder_name" -type f ! -name "$exclude_file" -exec awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' {} + | awk '{sum += $1} END {if (sum == 0) print ""; else print sum}')
-	echo "${count}"
+        local count=$(find "$folder_name" -type f ! -name "$(basename "$exclude_file")" -exec awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' {} + | awk '{sum += $1} END {if (sum == 0) print ""; else print sum}')
+        echo "${count}"
     }
 
     # Loop through all lines in the file again
@@ -119,7 +115,7 @@ all-laf() {
             # Count the number of calls to the function
             func_calls=$(count_calls "$func_name")
             callslib=$(count_calls_folder "$func_name" "/root/lab/lib" "$file_name")
-            callsset=$(count_calls_folder "$func_name" "/root/lab/set")
+            callsset=$(count_calls_folder "$func_name" "/root/lab/set" "$file_name")
             # Truncate the description if it's longer than col_width_4 characters
             truncated_desc=$(echo "${comments[$third_last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_4"' - 2 ) print substr($0, 1, '"$col_width_4 - 3"') ".."; else print $0 }')
             # Truncate the shortname if it's longer than col_width_3 characters
