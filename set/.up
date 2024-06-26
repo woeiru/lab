@@ -48,24 +48,30 @@ setup_execute_arguments() {
         setup_execute_choice "$arg"
     done
 }
-
 setup_display_menu() {
     local dir="$1"
     local file="$2"
 
     echo "Choose an option:"
+    echo "Debug: Scanning file $dir/$file for *_xall functions"
     
     # Find all *_xall functions in the given file
-    grep -E '^[a-z]+_xall\(\)' "$dir/$file" | while read -r line; do
+    grep -E '^[a-zA-Z_]+_xall\(\)' "$dir/$file" | while read -r line; do
         # Extract the function name
         func_name=$(echo "$line" | awk -F'(' '{print $1}')
+        echo "Debug: Found function $func_name"
         echo "${func_name%%_xall}......................( include config )"
         
         # List all the functions called within this *_xall function
-        sed -n "/^$func_name/,/^}/p" "$dir/$file" | grep -E '^[[:space:]]*[a-z]+' | while read -r inner_line; do
-            inner_func=$(echo "$inner_line" | awk '{print $1}')
-            echo "  - $inner_func"
+        echo "Debug: Scanning function body of $func_name"
+        sed -n "/^${func_name}()/,/^}/p" "$dir/$file" | while read -r inner_line; do
+            echo "Debug: Processing line: $inner_line"
+            inner_func=$(echo "$inner_line" | grep -oE '^[[:space:]]*[a-zA-Z_]+\(' | awk '{print $1}' | sed 's/(//')
+            if [[ -n "$inner_func" ]]; then
+                echo "  - $inner_func"
+            fi
         done
     done
     echo ""
 }
+
