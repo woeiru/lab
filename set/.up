@@ -49,3 +49,24 @@ setup_execute_arguments() {
     done
 }
 
+setup_display_menu() {
+    local dir="$1"
+    local file="$2"
+    
+    echo "Choose an option:"
+    
+    # Find all *_xall functions in the given file
+    grep -E '^[a-z]+_xall\(\)' "$dir/$file" | while read -r line; do
+        # Extract the function name
+        func_name=$(echo "$line" | awk -F'(' '{print $1}')
+        echo "${func_name%%_xall}......................( include config )"
+        
+        # List all the functions called within this *_xall function
+        sed -n "/^$func_name/,/^}/p" "$dir/$file" | grep -E '^[[:space:]]*[a-z]+' | while read -r inner_line; do
+            inner_func=$(echo "$inner_line" | awk '{print $1}')
+            echo "  - $inner_func"
+        done
+    done
+    echo ""
+}
+
