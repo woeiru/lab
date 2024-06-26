@@ -72,6 +72,7 @@ pbs-puu() {
 # restore datastore
 # <datastore_config> <datastore_name> <datastore_path>
 pbs-rda() {
+        local function_name="${FUNCNAME[0]}"
 	local datastore_config="$1"
 	local datastore_name="$2"
 	local datastore_path="$3"
@@ -106,4 +107,5 @@ pbs-rda() {
         echo "File created and lines added."
     fi
 
+    all-nos "$function_name" "executed ( $1 $2 $3 )"
 }
