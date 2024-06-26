@@ -597,3 +597,19 @@ pve-gp3() {
     # Perform system reboot without prompting
     reboot
 }
+
+# create a custom container
+# container create
+#  
+pve_ctc() {
+  pct create "$CT_ID" "$TEMPLATE" \
+  --hostname "$HOSTNAME" \
+  --storage "$CT_STORAGE" \
+  --rootfs "$STORAGE:$ROOTFS_SIZE" \
+  --memory "$MEMORY" \
+  --swap "$SWAP" \
+  --net0 "$NET_CONFIG" \
+  --nameserver "$NAMESERVER" \
+  --searchdomain "$SEARCHDOMAIN" \
+  --password "$PASSWORD"
+}
