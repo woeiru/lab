@@ -65,27 +65,27 @@ setup_execute_choice() {
         echo "Invalid choice"
     fi
 }
-
 setup_display_menu() {
     local dir="$1"
     local file="$2"
 
-    echo "------------------------------------------------------------"
-    echo "-------  Scanning file $file for *_xall functions  --------"
+    echo "----------------------------------------------------------------------"
+    echo "------------  Scanning file $file for *_xall functions  -------------"
     echo "                                                            "
-    echo "---------------->>(  Choose an option  )<<------------------"
+    echo "--------------------->>(  Choose an option  )<<-----------------------"
     echo "                                                            "
 
     # Find all *_xall functions in the given file
-    grep -E '^[a-zA-Z_]+_xall\(\)' "$dir/$file" | while read -r line; do
+    grep -E '^[a-zA-Z_]+_xall\(\)' "$dir/$file" | while IFS= read -r line; do
         # Extract the function name
         func_name=$(echo "$line" | awk -F'(' '{print $1}')
-        echo "------------------------>>(  ${func_name%%_xall}  )<<-------------------------"
+        echo "----------------------------->>(  ${func_name%%_xall}  )<<------------------------------"
         echo ""
+
         # List all the functions called within this *_xall function
         in_function=false
         first_line=true
-        sed -n "/^${func_name}()/,/^}/p" "$dir/$file" | while read -r inner_line; do
+        while IFS= read -r inner_line; do
             if $first_line; then
                 first_line=false
                 in_function=true
@@ -95,14 +95,11 @@ setup_display_menu() {
                 in_function=false
                 echo ""
             elif $in_function; then
-                inner_func=$(echo "$inner_line" | grep -oE '^[[:space:]]*[a-zA-Z_]+\(' | awk '{print $1}' | sed 's/(//')
-                if [[ -n "$inner_func" && "$inner_func" != "$func_name" ]]; then
-                    echo "  - $inner_func"
-                else
-                    echo "$inner_line"
-                fi
+                # Check indentation and preserve it
+                echo "$inner_line"  # Print the line as-is
             fi
-        done
+        done < <(sed -n "/^${func_name}()/,/^}/p" "$dir/$file")
     done
+    echo "----------------------------------------------------------------------"
     echo ""
 }
