@@ -609,16 +609,17 @@ pve-ctc() {
   local rootfs_size="$5"
   local memory="$6"
   local swap="$7"
-  local net_config="$8"
-  local nameserver="$9"
-  local searchdomain="${10}"
-  local password="${11}"
-  local cpus="${12}"
-  local privileged="${13}"
-  local ip_address="${14}"
-  local cidr="${15}"
-  local gateway="${16}"
-  local ssh_key_file="${17}"
+  local nameserver="$8"
+  local searchdomain="$9"
+  local password="${10}"
+  local cpus="${11}"
+  local privileged="${12}"
+  local ip_address="${13}"
+  local cidr="${14}"
+  local gateway="${15}"
+  local ssh_key_file="${16}"
+  local net_bridge="${17}"
+  local net_nic="${18}"
 
   if [ ! -f "$ssh_key_file" ]; then
       echo "SSH key file $ssh_key_file does not exist. Aborting."
@@ -635,12 +636,13 @@ pve-ctc() {
     --rootfs "$storage:$rootfs_size" \
     --memory "$memory" \
     --swap "$swap" \
-    --net0 "name=eth0,bridge=vmbr0,ip=$ip_address/$cidr,gw=$gateway" \
+    --net0 "name=$net_nic,bridge=$net_bridge,ip=$ip_address/$cidr,gw=$gateway" \
     --nameserver "$nameserver" \
     --searchdomain "$searchdomain" \
     --password "$password" \
     --cores "$cpus" \
     --features "keyctl=1,nesting=1" \
-    $(if [ "$privileged" == "no" ]; then echo "--unprivileged"; fi)
+    $(if [ "$privileged" == "no" ]; then echo "--unprivileged"; fi) \
     --ssh-public-keys "$ssh_key"
 }
+
