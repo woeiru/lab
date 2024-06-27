@@ -643,20 +643,36 @@ pve-ctc() {
         --ssh-public-keys "$ssh_key_file"
 }
 
-# start a range of containers
-# container start multiple
-# < containers >
-pve-csm() {
+# start or stop a range of containers
+# container toggle
+# <on or off> <containers>
+pve-ctg() {
+    action=$1
+    shift
+    if [[ $action != "on" && $action != "off" ]]; then
+        echo "Invalid action: $action. Use 'on' to start or 'off' to stop."
+        exit 1
+    fi
+
     for arg in "$@"; do
         if [[ $arg == *-* ]]; then
             # Handle range input
             IFS='-' read -r start end <<< "$arg"
             for (( vmid=start; vmid<=end; vmid++ )); do
-                pct start "$vmid"
+                if [[ $action == "on" ]]; then
+                    pct start "$vmid"
+                else
+                    pct stop "$vmid"
+                fi
             done
         else
             # Handle individual input
-            pct start "$arg"
+            if [[ $action == "on" ]]; then
+                pct start "$arg"
+            else
+                pct stop "$arg"
+            fi
         fi
     done
 }
+
