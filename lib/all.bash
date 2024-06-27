@@ -946,6 +946,25 @@ all-usk() {
     umount $mount_point
 
     echo "SSH key successfully uploaded to $upload_path"
+}
+
+# Function to append SSH key content to authorized_keys
+# append authorized keys
+# <upload_full_path> <authorized_keys_path>
+all-aak() {
+  local upload_path="$1"
+    local file_name="$2"
+    local authorized_keys_path="$upload_path/authorized_keys"
+    local upload_full_path="$upload_path/$file_name"
+
+    if [ $# -ne 2 ]; then
+        echo "Usage: append_to_authorized_keys <upload_path> <file_name>"
+        return 1
+    fi
+
+    # Evaluate and confirm variables
+    all-mev "upload_path" "Enter the SSH folder path" $upload_path
+    all-mev "file_name" "Enter the SSH key file name (e.g., id_rsa.pub)" $file_name
 
     # Prompt user to append to authorized_keys
     read -p "Do you want to append the content of $file_name to authorized_keys? (yes/no): " append_choice
@@ -963,8 +982,8 @@ all-usk() {
             echo "Content was not appended to authorized_keys"
             ;;
     esac
-
 }
+
 
 # Workaround to remove the SSH prompt on fresh servers
 # SSH initial login
