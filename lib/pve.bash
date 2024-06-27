@@ -618,6 +618,15 @@ pve-ctc() {
   local ip_address="${14}"
   local cidr="${15}"
   local gateway="${16}"
+  local ssh_key_file="${17}"
+
+  if [ ! -f "$ssh_key_file" ]; then
+      echo "SSH key file $ssh_key_file does not exist. Aborting."
+      return 1
+  fi
+  
+  local ssh_key
+  ssh_key=$(cat "$ssh_key_file")
 
   # Correcting the parameters passed to pct create
   pct create "$id" "$template" \
@@ -633,4 +642,5 @@ pve-ctc() {
     --cores "$cpus" \
     --features "keyctl=1,nesting=1" \
     $(if [ "$privileged" == "no" ]; then echo "--unprivileged"; fi)
+    --ssh-public-keys "$ssh_key"
 }
