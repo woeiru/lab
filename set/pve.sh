@@ -23,6 +23,14 @@ a_xall() {
     	pve-puu
     	all-ipa "$PMAN" "$PAK1" "$PAK2"
     	pve-rsn
+	all-usk \
+    		"$DEVICE_PATH" \
+    		"$MOUNT_POINT" \
+    		"$SUBFOLDER_PATH" \
+    		"$UPLOAD_PATH" \
+    		"$PUBLIC_KEY"
+	all-aak
+
 }
 b_xall() {
 	pve-br1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
