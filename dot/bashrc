@@ -91,7 +91,6 @@ alias uuu='du -bh -d3'
 # exits
 alias ee='exit'
 
-
 # git
 alias g='git status'
 alias gd='git diff'
@@ -177,3 +176,4 @@ alias mbmd='mkfs.btrfs -m raid1 -d raid1'
 alias c.group='cat /etc/group'
 alias c.passwd='cat /etc/passwd'
 alias ipt='iptables -L -v -n'
+alias fc='all-flc'
