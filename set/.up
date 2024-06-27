@@ -81,15 +81,19 @@ setup_display_menu() {
         # Extract the function name
         func_name=$(echo "$line" | awk -F'(' '{print $1}')
         echo "------------------------>>(  ${func_name%%_xall}  )<<-------------------------"
-        echo "${func_name}() {"
+        echo ""
         # List all the functions called within this *_xall function
         in_function=false
+        first_line=true
         sed -n "/^${func_name}()/,/^}/p" "$dir/$file" | while read -r inner_line; do
-            if [[ "$inner_line" == "${func_name}()"* ]]; then
+            if $first_line; then
+                first_line=false
                 in_function=true
-            elif [[ "$inner_line" == "}" ]]; then
+                continue
+            fi
+            if [[ "$inner_line" == "}" ]]; then
                 in_function=false
-                echo "$inner_line"
+                echo ""
             elif $in_function; then
                 inner_func=$(echo "$inner_line" | grep -oE '^[[:space:]]*[a-zA-Z_]+\(' | awk '{print $1}' | sed 's/(//')
                 if [[ -n "$inner_func" && "$inner_func" != "$func_name" ]]; then
@@ -99,7 +103,6 @@ setup_display_menu() {
                 fi
             fi
         done
-        echo "}"
     done
     echo ""
 }
