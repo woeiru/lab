@@ -642,3 +642,21 @@ pve-ctc() {
         $(if [ "$privileged" == "no" ]; then echo "--unprivileged"; fi) \
         --ssh-public-keys "$ssh_key_file"
 }
+
+# start a range of containers
+# container start multiple
+# < containers >
+pve-csm() {
+    for arg in "$@"; do
+        if [[ $arg == *-* ]]; then
+            # Handle range input
+            IFS='-' read -r start end <<< "$arg"
+            for (( vmid=start; vmid<=end; vmid++ )); do
+                pct start "$vmid"
+            done
+        else
+            # Handle individual input
+            pct start "$arg"
+        fi
+    done
+}
