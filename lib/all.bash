@@ -895,8 +895,8 @@ all-usk() {
     local device_path="$1"
     local mount_point="$2"
     local subfolder_path="$3"
-    local file_name="$4"
-    local upload_path="$5"
+    local upload_path="$4"
+    local file_name="$5"
 
     if [ $# -ne 5 ]; then
 	all-use
