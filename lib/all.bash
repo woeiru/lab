@@ -908,7 +908,7 @@ all-usk() {
     # Evaluate and confirm variables
     all-mev "device_path" "Enter the device path" $device_path
     all-mev "mount_point" "Enter the mount point" $mount_point
-    all-mev "subfolder_path" "Enter the file path on the device" $subfolder_path
+    all-mev "subfolder_path" "Enter the subfolder(s) on the device" $subfolder_path
     all-mev "file_name" "Enter the file name" $file_name
     all-mev "upload_path" "Enter the upload path" $upload_path
 
