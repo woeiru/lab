@@ -103,9 +103,22 @@ e_xall() {
 }
 
 f_xall() {
-   	pve-cbm "$CT_ID_1" "$CT_MPH_1" "$CT_MPC_1"
-   	pve-cbm "$CT_ID_2" "$CT_MPH_2" "$CT_MPC_2"
+    local i=1
+    while true; do
+        eval CT_ID=\$CT_ID_$i
+        eval CT_MPH=\$CT_MPH_$i
+        eval CT_MPC=\$CT_MPC_$i
+
+        if [ -n "$CT_ID" ] && [ -n "$CT_MPH" ] && [ -n "$CT_MPC" ]; then
+            pve-cbm "$CT_ID" "$CT_MPH" "$CT_MPC"
+        else
+            break
+        fi
+
+        ((i++))
+    done
 }
+
 g_xall() {
     	pve-gp1
     	pve-gp2
