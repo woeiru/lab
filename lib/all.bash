@@ -902,6 +902,7 @@ all-usk() {
     echo "" 
     lsblk
     echo "" 
+    echo "ls /mnt output :" 
     ls /mnt
     echo "" 
 
