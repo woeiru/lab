@@ -942,3 +942,25 @@ all-usk() {
 
     echo "SSH key successfully uploaded to $upload_path"
 }
+
+all-ush() {
+
+SERVER_IP_1="192.168.178.111"
+SERVER_IP_2="192.168.178.112"
+SERVER_IP_3="192.168.178.113"
+
+    local i=1
+    while true; do
+        eval SERVER_IP=\$SERVER_IP_$i
+
+        if [ -n "$SERVER_IP" ]; then
+            ssh -o StrictHostKeyChecking=no root@"$SERVER_IP" "echo "test"
+        else
+            break
+        fi
+
+        ((i++))
+    done
+}
+
+
