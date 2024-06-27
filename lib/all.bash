@@ -948,8 +948,8 @@ all-usk() {
     echo "SSH key successfully uploaded to $upload_path"
 }
 
-# Perform initial SSH login to bypass StrictHostKeyChecking
-# ssh initial login
+# Workaround to remove the SSH prompt on fresh servers
+# SSH initial login
 # <server ip>
 all-sil() {
     local i=1
