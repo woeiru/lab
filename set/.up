@@ -75,21 +75,31 @@ setup_display_menu() {
     echo "                                                            "
     echo "---------------->>(  Choose an option  )<<------------------"
     echo "                                                            "
-    
+
     # Find all *_xall functions in the given file
     grep -E '^[a-zA-Z_]+_xall\(\)' "$dir/$file" | while read -r line; do
         # Extract the function name
         func_name=$(echo "$line" | awk -F'(' '{print $1}')
-	echo "------------------------>>(  ${func_name%%_xall}  )<<-------------------------"
+        echo "------------------------>>(  ${func_name%%_xall}  )<<-------------------------"
+        echo "${func_name}() {"
         # List all the functions called within this *_xall function
+        in_function=false
         sed -n "/^${func_name}()/,/^}/p" "$dir/$file" | while read -r inner_line; do
-            echo "$inner_line"
-            inner_func=$(echo "$inner_line" | grep -oE '^[[:space:]]*[a-zA-Z_]+\(' | awk '{print $1}' | sed 's/(//')
-            if [[ -n "$inner_func" ]]; then
-                echo "  - $inner_func"
+            if [[ "$inner_line" == "${func_name}()"* ]]; then
+                in_function=true
+            elif [[ "$inner_line" == "}" ]]; then
+                in_function=false
+                echo "$inner_line"
+            elif $in_function; then
+                inner_func=$(echo "$inner_line" | grep -oE '^[[:space:]]*[a-zA-Z_]+\(' | awk '{print $1}' | sed 's/(//')
+                if [[ -n "$inner_func" && "$inner_func" != "$func_name" ]]; then
+                    echo "  - $inner_func"
+                else
+                    echo "$inner_line"
+                fi
             fi
         done
+        echo "}"
     done
     echo ""
 }
-
