@@ -94,6 +94,7 @@ e_xall() {
                     "${!ip_address_var}" \
                     "${!cidr_var}" \
                     "${!gateway_var}"
+                    "${!ssh_key_file}"
             fi
         else
             break
