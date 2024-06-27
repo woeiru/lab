@@ -24,8 +24,8 @@ b_xall() {
     		"$DEVICE_PATH" \
     		"$MOUNT_POINT" \
     		"$SUBFOLDER_PATH" \
-    		"$FILE_NAME" \
-    		"$UPLOAD_PATH"
+    		"$UPLOAD_PATH" \
+    		"$PRIVATE_KEY"
 }
 
 setup_main "$@"
