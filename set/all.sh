@@ -11,6 +11,7 @@ setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 # Declare MENU_OPTIONS
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
+MENU_OPTIONS[b]="b_xall"
 
 a_xall() {
 	all-cap "$DOT_FILE1" "$DOT_SOURCE1"

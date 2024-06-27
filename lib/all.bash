@@ -892,21 +892,25 @@ all-fws() {
 # upload ssh key
 # <device_path> <mount_point> <file_path> <file_name> <upload_path>
 all-usk() {
-    local device_path
-    local mount_point
-    local file_path
-    local file_name
-    local full_path
-    local upload_path
+    local device_path="$1"
+    local mount_point="$2"
+    local file_path="$3"
+    local file_name="$4"
+    local full_path="$5"
+    local upload_path="$6"
 
-    lsblk -h
+    echo "" 
+    lsblk
+    echo "" 
+    ls /mnt
+    echo "" 
 
     # Evaluate and confirm variables
-    all-mev device_path "Enter the device path" ""
-    all-mev mount_point "Enter the mount point" ""
-    all-mev file_path "Enter the file path on the device" ""
-    all-mev file_name "Enter the file name" ""
-    all-mev upload_path "Enter the upload path" "/root/.ssh"
+    all-mev "device_path" "Enter the device path" $device_path
+    all-mev "mount_point" "Enter the mount point" $mount_point
+    all-mev "file_path" "Enter the file path on the device" $file_path
+    all-mev "file_name" "Enter the file name" $file_name
+    all-mev "upload_path" "Enter the upload path" $upload_path
 
     full_path="$mount_point/$file_path/$file_name"
 
