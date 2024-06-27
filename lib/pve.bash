@@ -602,47 +602,43 @@ pve-gp3() {
 # container create
 # 
 pve-ctc() {
-  local id="$1"
-  local template="$2"
-  local hostname="$3"
-  local storage="$4"
-  local rootfs_size="$5"
-  local memory="$6"
-  local swap="$7"
-  local nameserver="$8"
-  local searchdomain="$9"
-  local password="${10}"
-  local cpus="${11}"
-  local privileged="${12}"
-  local ip_address="${13}"
-  local cidr="${14}"
-  local gateway="${15}"
-  local ssh_key_file="${16}"
-  local net_bridge="${17}"
-  local net_nic="${18}"
+    local id="$1"
+    local template="$2"
+    local hostname="$3"
+    local storage="$4"
+    local rootfs_size="$5"
+    local memory="$6"
+    local swap="$7"
+    local nameserver="$8"
+    local searchdomain="$9"
+    local password="${10}"
+    local cpus="${11}"
+    local privileged="${12}"
+    local ip_address="${13}"
+    local cidr="${14}"
+    local gateway="${15}"
+    local ssh_key_file="${16}"
+    local net_bridge="${17}"
+    local net_nic="${18}"
 
-  if [ ! -f "$ssh_key_file" ]; then
-      echo "SSH key file $ssh_key_file does not exist. Aborting."
-      return 1
-  fi
-  
-  local ssh_key
-  ssh_key=$(<"$ssh_key_file")
+    if [ ! -f "$ssh_key_file" ]; then
+        echo "SSH key file $ssh_key_file does not exist. Aborting."
+        return 1
+    fi
 
-  # Correcting the parameters passed to pct create
-  pct create "$id" "$template" \
-    --hostname "$hostname" \
-    --storage "$storage" \
-    --rootfs "$storage:$rootfs_size" \
-    --memory "$memory" \
-    --swap "$swap" \
-    --net0 "name=$net_nic,bridge=$net_bridge,ip=$ip_address/$cidr,gw=$gateway" \
-    --nameserver "$nameserver" \
-    --searchdomain "$searchdomain" \
-    --password "$password" \
-    --cores "$cpus" \
-    --features "keyctl=1,nesting=1" \
-    $(if [ "$privileged" == "no" ]; then echo "--unprivileged"; fi) \
-    --ssh-public-keys "$ssh_key"
+    # Correcting the parameters passed to pct create
+    pct create "$id" "$template" \
+        --hostname "$hostname" \
+        --storage "$storage" \
+        --rootfs "$storage:$rootfs_size" \
+        --memory "$memory" \
+        --swap "$swap" \
+        --net0 "name=$net_nic,bridge=$net_bridge,ip=$ip_address/$cidr,gw=$gateway" \
+        --nameserver "$nameserver" \
+        --searchdomain "$searchdomain" \
+        --password "$password" \
+        --cores "$cpus" \
+        --features "keyctl=1,nesting=1" \
+        $(if [ "$privileged" == "no" ]; then echo "--unprivileged"; fi) \
+        --ssh-public-keys "$ssh_key_file"
 }
-
