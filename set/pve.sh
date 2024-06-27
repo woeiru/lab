@@ -68,9 +68,10 @@ e_xall() {
         cpus_var="CT_${i}_CPUS"
         privileged_var="CT_${i}_PRIVILEGED"
         ip_address_var="CT_${i}_IP_ADDRESS"
+        ip_address_var="CT_${i}_IP_ADDRESS"
         cidr_var="CT_${i}_CIDR"
         gateway_var="CT_${i}_GATEWAY"
-        ssh_key_file="CT_${i}_SSH_KEY_FILE"
+        ssh_key_file_var="CT_${i}_SSH_KEY_FILE"
 
         if [ -n "${!id_var}" ] && [ -n "${!template_var}" ] && [ -n "${!hostname_var}" ] && [ -n "${!storage_var}" ]; then
             # Check if the container with the given ID already exists
@@ -94,7 +95,7 @@ e_xall() {
                     "${!ip_address_var}" \
                     "${!cidr_var}" \
                     "${!gateway_var}"
-                    "${!ssh_key_file}"
+                    "${!ssh_key_file_var}"
             fi
         else
             break
