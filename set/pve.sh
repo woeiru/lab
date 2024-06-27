@@ -33,7 +33,8 @@ b_xall() {
     		"$SUBFOLDER_PATH" \
     		"$UPLOAD_PATH" \
     		"$PUBLIC_KEY"
-	all-aak
+
+	all-aak "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
 c_xall() {
