@@ -952,7 +952,7 @@ all-usk() {
 # append authorized keys
 # <upload_full_path> <authorized_keys_path>
 all-aak() {
-  local upload_path="$1"
+    local upload_path="$1"
     local file_name="$2"
     local authorized_keys_path="$upload_path/authorized_keys"
     local upload_full_path="$upload_path/$file_name"
