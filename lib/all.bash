@@ -896,8 +896,10 @@ all-usk() {
     local mount_point="$2"
     local subfolder_path="$3"
     local file_name="$4"
-    local full_path="$5"
-    local upload_path="$6"
+    local upload_path="$5"
+
+    local full_path
+    local upload_full_path
 
     echo "" 
     lsblk
@@ -913,7 +915,8 @@ all-usk() {
     all-mev "file_name" "Enter the file name" $file_name
     all-mev "upload_path" "Enter the upload path" $upload_path
 
-    full_path="$mount_point/$file_path/$file_name"
+    full_path="$mount_point/$subfolder_path/$file_name"
+    upload_full_path="$upload_path/$file_name"
 
     # Mount the device
     mount $device_path $mount_point
@@ -925,7 +928,7 @@ all-usk() {
     fi
 
     # Copy the SSH key to the upload path
-    cp $full_path $upload_path
+    cp $full_path $upload_full_path
 
     # Check if copy was successful
     if [ $? -ne 0 ]; then
