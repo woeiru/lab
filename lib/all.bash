@@ -964,7 +964,7 @@ all-aak() {
 
     # Evaluate and confirm variables
     all-mev "upload_path" "Enter the SSH folder path" $upload_path
-    all-mev "file_name" "Enter the SSH key file name (e.g., id_rsa.pub)" $file_name
+    all-mev "file_name" "Enter the SSH key file name" $file_name
 
     # Prompt user to append to authorized_keys
     read -p "Do you want to append the content of $file_name to authorized_keys? (yes/no): " append_choice
@@ -982,6 +982,8 @@ all-aak() {
             echo "Content was not appended to authorized_keys"
             ;;
     esac
+    echo "performing a systemctl restart sshd"
+    systemctl restart sshd
 }
 
 
