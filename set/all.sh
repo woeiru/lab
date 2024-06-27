@@ -23,7 +23,7 @@ b_xall() {
 	all-usk \
     		"$DEVICE_PATH" \
     		"$MOUNT_POINT" \
-    		"$FILE_PATH" \
+    		"$SUBFOLDER_PATH" \
     		"$FILE_NAME" \
     		"$UPLOAD_PATH"
 }
