@@ -1005,3 +1005,61 @@ all-sil() {
         ((i++))
     done
 }
+
+# resolves custom ssh aliases with the help of all.conf
+# ssh custom aliases
+# <user> <server <"command">
+all-sca() {
+    local user_short=$1
+    local server_short=$2
+    local optional_command=$3
+    local user_name=""
+    local server_ip=""
+
+    # Function to get value from config file
+    get_config_value() {
+        local key=$1
+        grep "^${key}=" "$CONFIG_FILE" | cut -d'=' -f2 | tr -d "'"
+    }
+
+    # Function to get the user name from the short name
+    get_user_name() {
+        local user_short=$1
+        local user_index=$(grep -oP "(?<=SSH_USER_SHORT_)[0-9]+(?='${user_short}')" "$CONFIG_FILE")
+        if [[ -n "$user_index" ]]; then
+            get_config_value "SSH_USER_NAME_${user_index}"
+        fi
+    }
+
+    # Function to get the server IP from the short name
+    get_server_ip() {
+        local server_short=$1
+        local server_index=$(grep -oP "(?<=SERVER_NAME_)[0-9]+(?='${server_short}')" "$CONFIG_FILE")
+        if [[ -n "$server_index" ]]; then
+            get_config_value "SERVER_IP_${server_index}"
+        fi
+    }
+
+    # Look up user name
+    user_name=$(get_user_name "$user_short")
+
+    # Look up server IP
+    server_ip=$(get_server_ip "$server_short")
+
+    # Check if both user_name and server_ip are found
+    if [[ -z "$user_name" || -z "$server_ip" ]]; then
+        echo "Error: Could not resolve user or server details from config file."
+        return 1
+    fi
+
+    # Construct SSH command
+    local ssh_command="ssh $user_name@$server_ip"
+    
+    # Append optional command if provided
+    if [[ -n "$optional_command" ]]; then
+        ssh_command="$ssh_command $optional_command"
+    fi
+
+    # Execute SSH command
+    eval "$ssh_command"
+}
