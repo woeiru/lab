@@ -627,7 +627,7 @@ pve-ctc() {
   fi
   
   local ssh_key
-  ssh_key=$(cat "$ssh_key_file")
+  ssh_key=$(<"$ssh_key_file")
 
   # Correcting the parameters passed to pct create
   pct create "$id" "$template" \
