@@ -136,6 +136,9 @@ alias shl='osm-shl home'
 alias shc='osm-shc home'
 alias shd='osm-shd'
 
+# ssh
+alias sw='ssh root@w'
+
 # Sysstat
 alias sar='sar -d 1'
 alias ios='iostat -x 1'
