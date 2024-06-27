@@ -889,7 +889,7 @@ all-fws() {
 
 
 # This function uploads an SSH key from a device plugged in, into the /root/.ssh folder.
-# upload ssh key
+# upload ssh keyfile
 # <device_path> <mount_point> <file_path> <file_name> <upload_path>
 all-usk() {
     local device_path="$1"
@@ -946,6 +946,24 @@ all-usk() {
     umount $mount_point
 
     echo "SSH key successfully uploaded to $upload_path"
+
+    # Prompt user to append to authorized_keys
+    read -p "Do you want to append the content of $file_name to authorized_keys? (yes/no): " append_choice
+    case "$append_choice" in
+        [yY]|[yY][eE][sS])
+            # Append the content to authorized_keys
+            cat "$upload_full_path" >> "$authorized_keys_path"
+            if [ $? -eq 0 ]; then
+                echo "Content appended to authorized_keys"
+            else
+                echo "Failed to append content to authorized_keys"
+            fi
+            ;;
+        *)
+            echo "Content was not appended to authorized_keys"
+            ;;
+    esac
+
 }
 
 # Workaround to remove the SSH prompt on fresh servers
