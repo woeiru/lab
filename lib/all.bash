@@ -894,7 +894,7 @@ all-fws() {
 all-usk() {
     local device_path="$1"
     local mount_point="$2"
-    local file_path="$3"
+    local subfolder_path="$3"
     local file_name="$4"
     local full_path="$5"
     local upload_path="$6"
@@ -908,7 +908,7 @@ all-usk() {
     # Evaluate and confirm variables
     all-mev "device_path" "Enter the device path" $device_path
     all-mev "mount_point" "Enter the mount point" $mount_point
-    all-mev "file_path" "Enter the file path on the device" $file_path
+    all-mev "subfolder_path" "Enter the file path on the device" $subfolder_path
     all-mev "file_name" "Enter the file name" $file_name
     all-mev "upload_path" "Enter the upload path" $upload_path
 
