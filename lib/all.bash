@@ -888,3 +888,49 @@ all-fws() {
 }
 
 
+# This function uploads an SSH key from a device plugged in, into the /root/.ssh folder.
+# upload ssh key
+# <device_path> <mount_point> <file_path> <file_name> <upload_path>
+all-usk() {
+    local device_path
+    local mount_point
+    local file_path
+    local file_name
+    local full_path
+    local upload_path
+
+    lsblk -h
+
+    # Evaluate and confirm variables
+    all-mev device_path "Enter the device path" ""
+    all-mev mount_point "Enter the mount point" ""
+    all-mev file_path "Enter the file path on the device" ""
+    all-mev file_name "Enter the file name" ""
+    all-mev upload_path "Enter the upload path" "/root/.ssh"
+
+    full_path="$mount_point/$file_path/$file_name"
+
+    # Mount the device
+    mount $device_path $mount_point
+
+    # Check if mount was successful
+    if [ $? -ne 0 ]; then
+        echo "Failed to mount $device_path at $mount_point"
+        return 1
+    fi
+
+    # Copy the SSH key to the upload path
+    cp $full_path $upload_path
+
+    # Check if copy was successful
+    if [ $? -ne 0 ]; then
+        echo "Failed to copy $full_path to $upload_path"
+        umount $mount_point
+        return 1
+    fi
+
+    # Unmount the device
+    umount $mount_point
+
+    echo "SSH key successfully uploaded to $upload_path"
+}

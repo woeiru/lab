@@ -18,4 +18,13 @@ a_xall() {
 	exec bash
 }
 
+b_xall() {
+	all-usk \
+    		"$DEVICE_PATH" \
+    		"$MOUNT_POINT" \
+    		"$FILE_PATH" \
+    		"$FILE_NAME" \
+    		"$UPLOAD_PATH"
+}
+
 setup_main "$@"
