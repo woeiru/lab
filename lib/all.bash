@@ -1055,10 +1055,16 @@ all-sca() {
 # counts the var occurances from a config file in a target folder
 # analyze config usage
 # <config file> <target folder> <sort mode: o/a>
+# analyze config usage
+# <config file> <target folder> <sort mode: o/a>
 all-acu() {
     local conf_file=$1
     local target_folder=$2
     local sort_mode=$3
+
+    local col_width_var=20
+    local col_width_val=20
+    local col_width_count=10
 
     if [ $# -ne 3 ]; then
         all-use
@@ -1094,25 +1100,37 @@ all-acu() {
     # List all .sh files in the target folder
     sh_files=($(find "$target_folder" -maxdepth 1 -name '*.sh'))
 
-    # Print header
-    printf "%-20s %-20s" "Variable" "Value"
+    # Function to print a separator line
+    print_separator() {
+        printf "+-%-${col_width_var}s-+-%-${col_width_val}s-+" "" "" | tr ' ' '-'
+        for _ in "${sh_files[@]}"; do
+            printf "-%-${col_width_count}s-+" "" | tr ' ' '-'
+        done
+        echo
+    }
+
+    # Print table header
+    print_separator
+    printf "| %-*s | %-*s |" $col_width_var "Variable" $col_width_val "Value"
     for sh_file in "${sh_files[@]}"; do
-        printf " %-20s" "$(basename "$sh_file")"
+        printf " %-*s |" $col_width_count "$(basename "$sh_file")"
     done
     echo
+    print_separator
 
     # Iterate over each variable and count occurrences in each .sh file
     for var in "${sorted_vars[@]}"; do
-        printf "%-20s %-20s" "$var" "${config_vars[$var]}"
+        printf "| %-*s | %-*s |" $col_width_var "$var" $col_width_val "${config_vars[$var]}"
         for sh_file in "${sh_files[@]}"; do
             count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
-            printf " %-20s" "$count"
+            if [[ $count -ne 0 ]]; then
+                printf " %-*s |" $col_width_count "$count"
+            else
+                printf " %-*s |" $col_width_count ""
+            fi
         done
         echo
     done
+    print_separator
 }
-
-# Example usage:
-# all-acu "/root/lab/var/all.conf" "/root/lab/set/" "o"   # For original order
-# all-acu "/root/lab/var/all.conf" "/root/lab/set/" "a"   # For alphabetical order
 
