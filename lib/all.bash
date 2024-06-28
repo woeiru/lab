@@ -191,7 +191,7 @@ all-acu() {
     # Customizable column widths
     local tab_width_var_names=15
     local tab_width_var_values=15
-    local tab_width_var_occurences=10
+    local tab_width_var_occurences=5
 
     if [ $# -ne 3 ]; then
         echo "Usage: all-acu <sort mode: o|a> <target folder> <config file>"
@@ -231,10 +231,12 @@ all-acu() {
         fi
     }
 
+
     list_target_files() {
-    local target_folder=$1
-    target_files=($(find "$target_folder" -maxdepth 2 -type d -name .git -prune -o -type f -name '*.*' -print | sort))
+        local target_folder=$1
+        target_files=($(find "$target_folder" \( -name .git -o -name fix -o -name con \) -prune -o -type f -name '*.*' -print | sort))
     }
+
 
     # Function to truncate strings that exceed the column width
     truncate_string() {
@@ -249,20 +251,22 @@ all-acu() {
 
     # Function to print header with borders
     print_header() {
-        echo ""
-        printf "| %-*s | %-*s |" "$tab_width_var_names" "Variable" "$tab_width_var_values" "Value"
-        for sh_file in "${target_files[@]}"; do
-            printf " %-*s |" "$tab_width_var_occurences" "$(basename "$sh_file")"
+       echo ""
+       printf "| %-*s | %-*s |" "$tab_width_var_names" "Variable" "$tab_width_var_values" "Value"
+
+       for sh_file in "${target_files[@]}"; do
+           local truncated_filename=$(basename "$sh_file" | cut -c 1-$tab_width_var_occurences)
+           printf " %-*s |" "$tab_width_var_occurences" "$truncated_filename"
         done
         echo
 
         # Print separator
         printf "| %s | %s | " "$(printf -- '-%.0s' $(seq $tab_width_var_names))" "$(printf -- '-%.0s' $(seq $tab_width_var_values))"
         for _ in "${target_files[@]}"; do
-            printf "%s | " "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
+        printf "%s | " "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
         done
         echo
-    }
+}
 
     # Function to print variable usage across target files
     print_variables_usage() {
