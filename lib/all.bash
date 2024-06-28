@@ -1054,11 +1054,11 @@ all-sca() {
 
 # Counts the var occurrences from a config file in a target folder
 # analyze config usage
-# <config file> <target folder> <sort mode: o/a>
+#<sort mode: o|a > <target folder> <config file> 
 all-acu() {
-    local conf_file=$1
-    local target_folder=$2
-    local sort_mode=$3
+    local sort_mode=$1
+    local target_folder=$1
+    local conf_file=$2
 
     # Customizable column widths
     local tab_width_var_names=20
