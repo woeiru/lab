@@ -120,8 +120,10 @@ alias pt='podman start'
 alias ps='podman ps'
 alias psa='podman ps -a'
 
+# ssh
+alias s='all-sca'
+
 # system control aliases
-alias s='sudo'
 alias y='systemctl'
 
 # system configuration

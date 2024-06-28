@@ -1010,56 +1010,44 @@ all-sil() {
 # ssh custom aliases
 # <user> <server <"command">
 all-sca() {
-    local user_short=$1
-    local server_short=$2
-    local optional_command=$3
-    local user_name=""
-    local server_ip=""
+    local user_shortcut=$1
+    local server_shortcuts=$2
+    local command=$3
 
-    # Function to get value from config file
-    get_config_value() {
-        local key=$1
-        grep "^${key}=" "$CONFIG_FILE" | cut -d'=' -f2 | tr -d "'"
-    }
-
-    # Function to get the user name from the short name
-    get_user_name() {
-        local user_short=$1
-        local user_index=$(grep -oP "(?<=SSH_USER_SHORT_)[0-9]+(?='${user_short}')" "$CONFIG_FILE")
-        if [[ -n "$user_index" ]]; then
-            get_config_value "SSH_USER_NAME_${user_index}"
-        fi
-    }
-
-    # Function to get the server IP from the short name
-    get_server_ip() {
-        local server_short=$1
-        local server_index=$(grep -oP "(?<=SERVER_NAME_)[0-9]+(?='${server_short}')" "$CONFIG_FILE")
-        if [[ -n "$server_index" ]]; then
-            get_config_value "SERVER_IP_${server_index}"
-        fi
-    }
-
-    # Look up user name
-    user_name=$(get_user_name "$user_short")
-
-    # Look up server IP
-    server_ip=$(get_server_ip "$server_short")
-
-    # Check if both user_name and server_ip are found
-    if [[ -z "$user_name" || -z "$server_ip" ]]; then
-        echo "Error: Could not resolve user or server details from config file."
+    # Resolve user name from shortcut
+    local user_name=${SSH_USERS[$user_shortcut]}
+    if [[ -z $user_name ]]; then
+        echo "Error: Unknown user shortcut '$user_shortcut'"
         return 1
     fi
 
-    # Construct SSH command
-    local ssh_command="ssh $user_name@$server_ip"
-    
-    # Append optional command if provided
-    if [[ -n "$optional_command" ]]; then
-        ssh_command="$ssh_command $optional_command"
+    # Split server_shortcuts by comma
+    IFS=',' read -ra servers <<< "$server_shortcuts"
+
+    # Check if multiple servers are provided and no command is given
+    if [[ ${#servers[@]} -gt 1 && -z $command ]]; then
+        echo "Error: No command provided for multiple servers"
+        return 1
     fi
 
-    # Execute SSH command
-    eval "$ssh_command"
+    # Loop through each server shortcut
+    for server_shortcut in "${servers[@]}"; do
+        # Resolve server IP from name shortcut
+        local server_ip=${SERVER_IPS[$server_shortcut]}
+        if [[ -z $server_ip ]]; then
+            echo "Error: Unknown server shortcut '$server_shortcut'"
+            return 1
+        fi
+
+        # Construct the SSH command
+        local ssh_command="ssh ${user_name}@${server_ip}"
+        if [[ -n $command ]]; then
+            ssh_command+=" \"$command\""
+        fi
+
+        # Execute the SSH command
+        echo "Executing: $ssh_command"
+        eval $ssh_command
+    done
 }
+
