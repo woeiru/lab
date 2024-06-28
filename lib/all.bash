@@ -6,30 +6,6 @@ BASE="${FILE%.*}"
 # source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# Recursively processes files in a directory with an function
-# extended overview
-# <function> <path>
-all-loo() {
-    local fnc="$1"
-    local target="$2"
-     if [ $# -ne 2 ]; then
-	all-use
-        return 1
-    fi
-    if [[ -d "$target" ]]; then
-        for file in "$target"/*.*; do
-            if [[ -f "$file" ]]; then
-                echo "Processing file: $file"
-                "$fnc" "$file"
-            fi
-        done
-    elif [[ -f "$target" ]]; then
-        all-laf "$target"
-    else
-        echo "Invalid target: $target"
-    fi
-}
-
 #  
 # overview
 #  
@@ -37,6 +13,32 @@ all-fun() {
     local file_name="$bash_source"
     all-laf "$file_name"
 }
+
+all-loo() {
+    local fnc="$1"
+    local target="$2"
+
+    # Argument check assuming always expecting two arguments
+    if [ $# -ne 2 ]; then
+        all-use
+        return 1
+    fi
+
+    if [[ -d "$target" ]]; then
+        for file in "$target"/{*,.[!.]*,..?*}; do
+            if [[ -f "$file" ]]; then
+                echo "Processing file: $file"
+                "$fnc" "$file"
+            elif [[ -d "$file" && "$file" != "$target"/. && "$file" != "$target"/.. ]]; then
+                all-loo "$fnc" "$file"
+            fi
+        done
+    else
+        echo "Invalid target: $target"
+        return 1
+    fi
+}
+
 # Lists all functions with details in a table format.
 all-laf() {
     # Column width parameters
@@ -142,6 +144,134 @@ all-laf() {
 
     print_separator
     echo ""
+}
+# Counts the var occurrences from a config file in a target folder
+# analyze config usage
+#<sort mode: o|a > <target folder> <config file>
+all-acu() {
+    local sort_mode=$1
+    local target_folder=$2
+    local conf_file=$3
+
+    # Customizable column widths
+    local tab_width_var_names=20
+    local tab_width_var_values=20
+    local tab_width_var_occurences=10
+
+    if [ $# -ne 3 ]; then
+        echo "Usage: all-acu <sort mode: o|a> <target folder> <config file>"
+        return 1
+    fi
+
+    if [[ ! -f $conf_file ]]; then
+        echo "Config file $conf_file does not exist."
+        return 1
+    fi
+
+    if [[ ! -d $target_folder ]]; then
+        echo "Target folder $target_folder does not exist."
+        return 1
+    fi
+
+    declare -A config_vars
+    declare -a var_order
+
+    # Function to read config file and store variables and their values
+    read_config_file() {
+        local conf_file=$1
+        echo "Reading config file: $conf_file"
+        while IFS='=' read -r var value; do
+            echo "Found variable: $var with value: $value"
+            config_vars[$var]=$value
+            var_order+=("$var")
+        done < <(grep -E -v '^(#|declare|[[:space:]]*\))' "$conf_file" | grep '=' | sed 's/[[:space:]]//g')
+        echo "Config variables: ${!config_vars[@]}"
+        echo "Variable order: ${var_order[@]}"
+    }
+
+    # Function to sort variables based on the sort mode
+    sort_variables() {
+        local sort_mode=$1
+        echo "Sorting variables with mode: $sort_mode"
+        if [[ $sort_mode == "a" ]]; then
+            IFS=$'\n' sorted_vars=($(sort <<<"${var_order[*]}"))
+            unset IFS
+        else
+            sorted_vars=("${var_order[@]}")
+        fi
+        echo "Sorted variables: ${sorted_vars[@]}"
+    }
+
+    # Function to list all files in the target folder
+    list_target_files() {
+        local target_folder=$1
+        echo "Listing files in target folder: $target_folder"
+        target_files=($(find "$target_folder" -maxdepth 1 -name '*.*' | sort))
+        echo "Target files: ${target_files[@]}"
+    }
+
+    # Function to truncate strings that exceed the column width
+    truncate_string() {
+        local str=$1
+        local max_length=$2
+        if [ ${#str} -gt $max_length ]; then
+            echo "${str:0:max_length-2}.."
+        else
+            echo "$str"
+        fi
+    }
+
+    # Function to print header with borders
+    print_header() {
+        echo "Printing header"
+        echo ""
+        printf "| %-*s | %-*s |" "$tab_width_var_names" "Variable" "$tab_width_var_values" "Value"
+        for sh_file in "${target_files[@]}"; do
+            printf " %-*s |" "$tab_width_var_occurences" "$(basename "$sh_file")"
+        done
+        echo
+
+        # Print separator
+        printf "| %s | %s | " "$(printf -- '-%.0s' $(seq $tab_width_var_names))" "$(printf -- '-%.0s' $(seq $tab_width_var_values))"
+        for _ in "${target_files[@]}"; do
+            printf "%s | " "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
+        done
+        echo
+    }
+
+    # Function to print variable usage across target files
+    print_variables_usage() {
+        for var in "${sorted_vars[@]}"; do
+            local truncated_var=$(truncate_string "$var" "$tab_width_var_names")
+            local truncated_value=$(truncate_string "${config_vars[$var]}" "$tab_width_var_values")
+            printf "| %-*s | %-*s |" "$tab_width_var_names" "$truncated_var" "$tab_width_var_values" "$truncated_value"
+            
+            if [[ $var == *"["* ]]; then
+                # Skip counting for array elements
+                for sh_file in "${target_files[@]}"; do
+                    printf " %-*s |" "$tab_width_var_occurences" ""
+                done
+            else
+                for sh_file in "${target_files[@]}"; do
+                    local count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
+                    if [[ $count -ne 0 ]]; then
+                        printf " %-*s |" "$tab_width_var_occurences" "$count"
+                    else
+                        printf " %-*s |" "$tab_width_var_occurences" ""
+                    fi
+                done
+            fi
+            echo
+        done
+
+        echo ""
+    }
+
+    read_config_file "$conf_file"
+    sort_variables "$sort_mode"
+    list_target_files "$target_folder"
+    print_header
+    print_variables_usage
 }
 
 # Manages git operations, ensuring local repository syncs with remote.
@@ -1060,132 +1190,4 @@ all-sca() {
     done
 }
 
-# Counts the var occurrences from a config file in a target folder
-# analyze config usage
-#<sort mode: o|a > <target folder> <config file>
-all-acu() {
-    local sort_mode=$1
-    local target_folder=$2
-    local conf_file=$3
-
-    # Customizable column widths
-    local tab_width_var_names=20
-    local tab_width_var_values=20
-    local tab_width_var_occurences=10
-
-    if [ $# -ne 3 ]; then
-        echo "Usage: all-acu <sort mode: o|a> <target folder> <config file>"
-        return 1
-    fi
-
-    if [[ ! -f $conf_file ]]; then
-        echo "Config file $conf_file does not exist."
-        return 1
-    fi
-
-    if [[ ! -d $target_folder ]]; then
-        echo "Target folder $target_folder does not exist."
-        return 1
-    fi
-
-    declare -A config_vars
-    declare -a var_order
-
-    # Function to read config file and store variables and their values
-    read_config_file() {
-        local conf_file=$1
-        echo "Reading config file: $conf_file"
-        while IFS='=' read -r var value; do
-            echo "Found variable: $var with value: $value"
-            config_vars[$var]=$value
-            var_order+=("$var")
-        done < <(grep -E -v '^(#|declare|[[:space:]]*\))' "$conf_file" | grep '=' | sed 's/[[:space:]]//g')
-        echo "Config variables: ${!config_vars[@]}"
-        echo "Variable order: ${var_order[@]}"
-    }
-
-    # Function to sort variables based on the sort mode
-    sort_variables() {
-        local sort_mode=$1
-        echo "Sorting variables with mode: $sort_mode"
-        if [[ $sort_mode == "a" ]]; then
-            IFS=$'\n' sorted_vars=($(sort <<<"${var_order[*]}"))
-            unset IFS
-        else
-            sorted_vars=("${var_order[@]}")
-        fi
-        echo "Sorted variables: ${sorted_vars[@]}"
-    }
-
-    # Function to list all files in the target folder
-    list_target_files() {
-        local target_folder=$1
-        echo "Listing files in target folder: $target_folder"
-        target_files=($(find "$target_folder" -maxdepth 1 -name '*.*' | sort))
-        echo "Target files: ${target_files[@]}"
-    }
-
-    # Function to truncate strings that exceed the column width
-    truncate_string() {
-        local str=$1
-        local max_length=$2
-        if [ ${#str} -gt $max_length ]; then
-            echo "${str:0:max_length-2}.."
-        else
-            echo "$str"
-        fi
-    }
-
-    # Function to print header with borders
-    print_header() {
-        echo "Printing header"
-        echo ""
-        printf "| %-*s | %-*s |" "$tab_width_var_names" "Variable" "$tab_width_var_values" "Value"
-        for sh_file in "${target_files[@]}"; do
-            printf " %-*s |" "$tab_width_var_occurences" "$(basename "$sh_file")"
-        done
-        echo
-
-        # Print separator
-        printf "| %s | %s | " "$(printf -- '-%.0s' $(seq $tab_width_var_names))" "$(printf -- '-%.0s' $(seq $tab_width_var_values))"
-        for _ in "${target_files[@]}"; do
-            printf "%s | " "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
-        done
-        echo
-    }
-
-    # Function to print variable usage across target files
-    print_variables_usage() {
-        for var in "${sorted_vars[@]}"; do
-            local truncated_var=$(truncate_string "$var" "$tab_width_var_names")
-            local truncated_value=$(truncate_string "${config_vars[$var]}" "$tab_width_var_values")
-            printf "| %-*s | %-*s |" "$tab_width_var_names" "$truncated_var" "$tab_width_var_values" "$truncated_value"
-            
-            if [[ $var == *"["* ]]; then
-                # Skip counting for array elements
-                for sh_file in "${target_files[@]}"; do
-                    printf " %-*s |" "$tab_width_var_occurences" ""
-                done
-            else
-                for sh_file in "${target_files[@]}"; do
-                    local count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
-                    if [[ $count -ne 0 ]]; then
-                        printf " %-*s |" "$tab_width_var_occurences" "$count"
-                    else
-                        printf " %-*s |" "$tab_width_var_occurences" ""
-                    fi
-                done
-            fi
-            echo
-        done
-
-        echo ""
-    }
-
-    read_config_file "$conf_file"
-    sort_variables "$sort_mode"
-    list_target_files "$target_folder"
-    print_header
-    print_variables_usage
-}
 
