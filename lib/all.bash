@@ -1052,9 +1052,6 @@ all-sca() {
     done
 }
 
-# counts the var occurances from a config file in a target folder
-# analyze config usage
-# <config file> <target folder> <sort mode: o/a>
 # Counts the var occurrences from a config file in a target folder
 # analyze config usage
 # <config file> <target folder> <sort mode: o/a>
@@ -1064,9 +1061,9 @@ all-acu() {
     local sort_mode=$3
 
     # Customizable column widths
-    local tab_width_var_names=25
-    local tab_width_var_values=25
-    local tab_width_var_occurences=5
+    local tab_width_var_names=20
+    local tab_width_var_values=20
+    local tab_width_var_occurences=10
 
     if [ $# -ne 3 ]; then
         all-use
@@ -1082,6 +1079,17 @@ all-acu() {
         echo "Target folder $target_folder does not exist."
         return 1
     fi
+
+    # Function to truncate strings that exceed the column width
+    truncate_string() {
+        local str=$1
+        local max_length=$2
+        if [ ${#str} -gt $max_length ]; then
+            echo "${str:0:max_length-2}.."
+        else
+            echo "$str"
+        fi
+    }
 
     # Read all variables and their values from the config file in original order
     declare -A config_vars
@@ -1103,6 +1111,7 @@ all-acu() {
     sh_files=($(find "$target_folder" -maxdepth 1 -name '*.sh'))
 
     # Print header with borders
+    echo ""
     printf "| %-*s | %-*s |" "$tab_width_var_names" "Variable" "$tab_width_var_values" "Value"
     for sh_file in "${sh_files[@]}"; do
         printf " %-*s |" "$tab_width_var_occurences" "$(basename "$sh_file")"
@@ -1110,15 +1119,17 @@ all-acu() {
     echo
 
     # Print separator
-    printf "|-%*s-|-%*s-|" "$(printf -- '-%.0s' $(seq $tab_width_var_names))" "$(printf -- '-%.0s' $(seq $tab_width_var_values))"
+    printf "| %s | %s | " "$(printf -- '-%.0s' $(seq $tab_width_var_names))" "$(printf -- '-%.0s' $(seq $tab_width_var_values))"
     for _ in "${sh_files[@]}"; do
-        printf "-%*s-|" "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
+        printf "%s | " "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
     done
     echo
 
     # Iterate over each variable and count occurrences in each .sh file
     for var in "${sorted_vars[@]}"; do
-        printf "| %-*s | %-*s |" "$tab_width_var_names" "$var" "$tab_width_var_values" "${config_vars[$var]}"
+        truncated_var=$(truncate_string "$var" "$tab_width_var_names")
+        truncated_value=$(truncate_string "${config_vars[$var]}" "$tab_width_var_values")
+        printf "| %-*s | %-*s |" "$tab_width_var_names" "$truncated_var" "$tab_width_var_values" "$truncated_value"
         for sh_file in "${sh_files[@]}"; do
             count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
             if [[ $count -ne 0 ]]; then
@@ -1129,5 +1140,6 @@ all-acu() {
         done
         echo
     done
+    echo ""
 }
 
