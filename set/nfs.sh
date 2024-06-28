@@ -14,13 +14,12 @@ MENU_OPTIONS[b]="b_xall"
 
 a_xall() {
     all-ipa "$PMAN_NFS" "$PAK1_NFS" "$PAK2_NFS"
-    all-sdc "$SYSD_CHECK"
-    all-ust "$USERNAME1" "$PASSWORD1"
+    all-sdc "$SYSD_CHECK_NFS"
+    all-ust "$USERNAME1_NFS" "$PASSWORD1_NFS"
 }
 
 b_xall() {
-    nfs-set  "$NFS_HEADER_1" "$SHARED_FOLDER_1" "$NFS_OPTIONS_1"
-    nfs-set  "$NFS_HEADER_2" "$SHARED_FOLDER_2" "$NFS_OPTIONS_2"
+    nfs-set  "$HEADER_1_NFS" "$SHARED_FOLDER_1_NFS" "$OPTIONS_1_NFS"
 }
 
 setup_main "$@"

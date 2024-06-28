@@ -189,8 +189,8 @@ all-acu() {
     local conf_file=$3
 
     # Customizable column widths
-    local tab_width_var_names=15
-    local tab_width_var_values=15
+    local tab_width_var_names=20
+    local tab_width_var_values=18
     local tab_width_var_occurences=5
 
     if [ $# -ne 3 ]; then
@@ -234,7 +234,7 @@ all-acu() {
 
     list_target_files() {
         local target_folder=$1
-        target_files=($(find "$target_folder" \( -name .git -o -name fix -o -name con -o -name var \) -prune -o -type f -name '*.*' -print | sort))
+        target_files=($(find "$target_folder" \( -name .git -o -name fix -o -name con \) -prune -o -type f -name '*.*' -print | sort))
     }
 
 
