@@ -132,8 +132,8 @@ alias sra='all-sca r pbs,nfs,smb'
 alias y='systemctl'
 
 # system configuration
-alias v.smb.conf='vim /etc/samba/smb.conf'
-alias v.smbusers='vim /etc/samba/smbusers'
+alias v.samba.conf='vim /etc/samba/smb.conf'
+alias v.sambausers='vim /etc/samba/smbusers'
 alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
 alias v.fstab='vim /etc/fstab'
 
