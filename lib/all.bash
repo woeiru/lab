@@ -14,6 +14,10 @@ all-fun() {
     all-laf "$file_name"
 }
 
+
+# Recursively processes files in a directory with an function
+# extended overview
+# <function> <path>
 all-loo() {
     local fnc="$1"
     local target="$2"
@@ -145,6 +149,7 @@ all-laf() {
     print_separator
     echo ""
 }
+
 # Counts the var occurrences from a config file in a target folder
 # analyze config usage
 #<sort mode: o|a > <target folder> <config file>
