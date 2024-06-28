@@ -1097,9 +1097,7 @@ all-acu() {
     while IFS='=' read -r var value; do
         config_vars[$var]=$value
         var_order+=("$var")
-    done < <(grep -o '^[^#]*' "$conf_file" | sed 's/[[:space:]]//g')
-
-
+    done < <(grep -E -v '^(#|declare|[[:space:]]*\))' "$conf_file" | grep '=' | sed 's/[[:space:]]//g')
 
     # Sort variables based on the sort_mode
     if [[ $sort_mode == "a" ]]; then
@@ -1127,20 +1125,28 @@ all-acu() {
     done
     echo
 
-    # Iterate over each variable and count occurrences in each .sh file
-    for var in "${sorted_vars[@]}"; do
-        truncated_var=$(truncate_string "$var" "$tab_width_var_names")
-        truncated_value=$(truncate_string "${config_vars[$var]}" "$tab_width_var_values")
-        printf "| %-*s | %-*s |" "$tab_width_var_names" "$truncated_var" "$tab_width_var_values" "$truncated_value"
+for var in "${sorted_vars[@]}"; do
+    truncated_var=$(truncate_string "$var" "$tab_width_var_names")
+    truncated_value=$(truncate_string "${config_vars[$var]}" "$tab_width_var_values")
+    printf "| %-*s | %-*s |" "$tab_width_var_names" "$truncated_var" "$tab_width_var_values" "$truncated_value"
+    
+    if [[ $var == *"["* ]]; then
+        # Skip counting for array elements
         for sh_file in "${target_files[@]}"; do
-            count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
-            if [[ $count -ne 0 ]]; then
-                printf " %-*s |" "$tab_width_var_occurences" "$count"
-            else
-                printf " %-*s |" "$tab_width_var_occurences" ""
-            fi
+            printf " %-*s |" "$tab_width_var_occurences" ""
         done
+        else
+            for sh_file in "${target_files[@]}"; do
+                count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
+                if [[ $count -ne 0 ]]; then
+                    printf " %-*s |" "$tab_width_var_occurences" "$count"
+                else
+                    printf " %-*s |" "$tab_width_var_occurences" ""
+                fi
+            done
+        fi
         echo
     done
+
     echo ""
 }
