@@ -1059,6 +1059,8 @@ all-sca() {
 # <config file> <target folder> <sort mode: o/a>
 # analyze config usage
 # <config file> <target folder> <sort mode: o/a>
+# analyze config usage
+# <config file> <target folder> <sort mode: o/a>
 all-acu() {
     local conf_file=$1
     local target_folder=$2
@@ -1104,9 +1106,9 @@ all-acu() {
 
     # Function to print a separator line
     print_separator() {
-        printf "+-%s-+-%s-+" "$(head -c $col_width_var < /dev/zero | tr '\0' '-')" "$(head -c $col_width_val < /dev/zero | tr '\0' '-')"
+        printf "+-%-${col_width_var}s-+-%-${col_width_val}s-+" "" "" | tr ' ' '-'
         for _ in "${sh_files[@]}"; do
-            printf "-%s-+" "$(head -c $col_width_count < /dev/zero | tr '\0' '-')"
+            printf "-%-${col_width_count}s-+" "" | tr ' ' '-'
         done
         echo
     }
@@ -1126,7 +1128,7 @@ all-acu() {
         for sh_file in "${sh_files[@]}"; do
             count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
             if [[ $count -ne 0 ]]; then
-                printf " %-*s |" $col_width_count "$count"
+                printf " %-*d |" $col_width_count "$count"
             else
                 printf " %-*s |" $col_width_count ""
             fi
@@ -1135,3 +1137,4 @@ all-acu() {
     done
     print_separator
 }
+
