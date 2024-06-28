@@ -644,11 +644,11 @@ pve-ctc() {
 
 # start or stop a range of containers
 # container toggle
-# <on or off> <containers>
-pve-ctg() {
+# <start or stop> <containers>
+pve-cto() {
     action=$1
     shift
-    if [[ $action != "on" && $action != "off" ]]; then
+    if [[ $action != "start" && $action != "stop" ]]; then
         echo "Invalid action: $action. Use 'on' to start or 'off' to stop."
         exit 1
     fi
@@ -674,4 +674,3 @@ pve-ctg() {
         fi
     done
 }
-
