@@ -214,35 +214,27 @@ all-acu() {
     # Function to read config file and store variables and their values
     read_config_file() {
         local conf_file=$1
-        echo "Reading config file: $conf_file"
         while IFS='=' read -r var value; do
-            echo "Found variable: $var with value: $value"
             config_vars[$var]=$value
             var_order+=("$var")
         done < <(grep -E -v '^(#|declare|[[:space:]]*\))' "$conf_file" | grep '=' | sed 's/[[:space:]]//g')
-        echo "Config variables: ${!config_vars[@]}"
-        echo "Variable order: ${var_order[@]}"
     }
 
     # Function to sort variables based on the sort mode
     sort_variables() {
         local sort_mode=$1
-        echo "Sorting variables with mode: $sort_mode"
         if [[ $sort_mode == "a" ]]; then
             IFS=$'\n' sorted_vars=($(sort <<<"${var_order[*]}"))
             unset IFS
         else
             sorted_vars=("${var_order[@]}")
         fi
-        echo "Sorted variables: ${sorted_vars[@]}"
     }
 
     # Function to list all files in the target folder
     list_target_files() {
         local target_folder=$1
-        echo "Listing files in target folder: $target_folder"
-        target_files=($(find "$target_folder" -maxdepth 1 -name '*.*' | sort))
-        echo "Target files: ${target_files[@]}"
+        target_files=($(find "$target_folder" -maxdepth 2 -name '*.*' | sort))
     }
 
     # Function to truncate strings that exceed the column width
@@ -258,7 +250,6 @@ all-acu() {
 
     # Function to print header with borders
     print_header() {
-        echo "Printing header"
         echo ""
         printf "| %-*s | %-*s |" "$tab_width_var_names" "Variable" "$tab_width_var_values" "Value"
         for sh_file in "${target_files[@]}"; do
