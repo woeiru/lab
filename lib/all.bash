@@ -1099,6 +1099,8 @@ all-acu() {
         var_order+=("$var")
     done < <(grep -o '^[^#]*' "$conf_file" | sed 's/[[:space:]]//g')
 
+
+
     # Sort variables based on the sort_mode
     if [[ $sort_mode == "a" ]]; then
         IFS=$'\n' sorted_vars=($(sort <<<"${var_order[*]}"))
@@ -1107,20 +1109,20 @@ all-acu() {
         sorted_vars=("${var_order[@]}")
     fi
 
-    # List all .sh files in the target folder
-    sh_files=($(find "$target_folder" -maxdepth 1 -name '*.sh'))
+    # List all files in the target folder
+    target_files=($(find "$target_folder" -maxdepth 1 -name '*.*'))
 
     # Print header with borders
     echo ""
     printf "| %-*s | %-*s |" "$tab_width_var_names" "Variable" "$tab_width_var_values" "Value"
-    for sh_file in "${sh_files[@]}"; do
+    for sh_file in "${target_files[@]}"; do
         printf " %-*s |" "$tab_width_var_occurences" "$(basename "$sh_file")"
     done
     echo
 
     # Print separator
     printf "| %s | %s | " "$(printf -- '-%.0s' $(seq $tab_width_var_names))" "$(printf -- '-%.0s' $(seq $tab_width_var_values))"
-    for _ in "${sh_files[@]}"; do
+    for _ in "${target_files[@]}"; do
         printf "%s | " "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
     done
     echo
@@ -1130,7 +1132,7 @@ all-acu() {
         truncated_var=$(truncate_string "$var" "$tab_width_var_names")
         truncated_value=$(truncate_string "${config_vars[$var]}" "$tab_width_var_values")
         printf "| %-*s | %-*s |" "$tab_width_var_names" "$truncated_var" "$tab_width_var_values" "$truncated_value"
-        for sh_file in "${sh_files[@]}"; do
+        for sh_file in "${target_files[@]}"; do
             count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
             if [[ $count -ne 0 ]]; then
                 printf " %-*s |" "$tab_width_var_occurences" "$count"
@@ -1142,4 +1144,3 @@ all-acu() {
     done
     echo ""
 }
-
