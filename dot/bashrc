@@ -190,4 +190,4 @@ alias c.group='cat /etc/group'
 alias c.passwd='cat /etc/passwd'
 alias ipt='iptables -L -v -n'
 alias fc='all-flc'
-
+alias fnc='all-loo all-laf /root/lab/lib'

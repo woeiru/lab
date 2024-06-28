@@ -6,20 +6,21 @@ BASE="${FILE%.*}"
 # source config.sh using the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-# Recursively processes bash files in a directory.
+# Recursively processes files in a directory with an function
 # extended overview
-# <path-optional>
-all-fun() {
-    local target="$1"
-    if [[ -z "$target" ]]; then
-        target="$BASH_SOURCE" # Default to the current file if no argument is provided
+# <function> <path>
+all-loo() {
+    local fnc="$1"
+    local target="$2"
+     if [ $# -ne 2 ]; then
+	all-use
+        return 1
     fi
-
     if [[ -d "$target" ]]; then
-        for file in "$target"/*.bash; do # Adjust the extension according to the file type you want to process
+        for file in "$target"/*.*; do
             if [[ -f "$file" ]]; then
                 echo "Processing file: $file"
-                all-laf "$file"
+                "$fnc" "$file"
             fi
         done
     elif [[ -f "$target" ]]; then
@@ -29,6 +30,13 @@ all-fun() {
     fi
 }
 
+#  
+# overview
+#  
+all-fun() {
+    local file_name="$bash_source"
+    all-laf "$file_name"
+}
 # Lists all functions with details in a table format.
 all-laf() {
     # Column width parameters
