@@ -1057,8 +1057,8 @@ all-sca() {
 #<sort mode: o|a > <target folder> <config file> 
 all-acu() {
     local sort_mode=$1
-    local target_folder=$1
-    local conf_file=$2
+    local target_folder=$2
+    local conf_file=$3
 
     # Customizable column widths
     local tab_width_var_names=20
