@@ -1064,9 +1064,9 @@ all-acu() {
     local sort_mode=$3
 
     # Customizable column widths
-    local tab_width_var_names=20
-    local tab_width_var_values=20
-    local tab_width_var_occurences=10
+    local tab_width_var_names=25
+    local tab_width_var_values=25
+    local tab_width_var_occurences=5
 
     if [ $# -ne 3 ]; then
         all-use
@@ -1110,9 +1110,9 @@ all-acu() {
     echo
 
     # Print separator
-    printf "|%s|%s|" "$(printf -- '-%.0s' $(seq $tab_width_var_names))" "$(printf -- '-%.0s' $(seq $tab_width_var_values))"
+    printf "|-%*s-|-%*s-|" "$(printf -- '-%.0s' $(seq $tab_width_var_names))" "$(printf -- '-%.0s' $(seq $tab_width_var_values))"
     for _ in "${sh_files[@]}"; do
-        printf "%s|" "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
+        printf "-%*s-|" "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
     done
     echo
 
