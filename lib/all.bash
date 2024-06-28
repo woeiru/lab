@@ -1055,10 +1055,18 @@ all-sca() {
 # counts the var occurances from a config file in a target folder
 # analyze config usage
 # <config file> <target folder> <sort mode: o/a>
+# Counts the var occurrences from a config file in a target folder
+# analyze config usage
+# <config file> <target folder> <sort mode: o/a>
 all-acu() {
     local conf_file=$1
     local target_folder=$2
     local sort_mode=$3
+
+    # Customizable column widths
+    local tab_width_var_names=20
+    local tab_width_var_values=20
+    local tab_width_var_occurences=10
 
     if [ $# -ne 3 ]; then
         all-use
@@ -1094,22 +1102,29 @@ all-acu() {
     # List all .sh files in the target folder
     sh_files=($(find "$target_folder" -maxdepth 1 -name '*.sh'))
 
-    # Print header
-    printf "%-20s %-20s" "Variable" "Value"
+    # Print header with borders
+    printf "| %-*s | %-*s |" "$tab_width_var_names" "Variable" "$tab_width_var_values" "Value"
     for sh_file in "${sh_files[@]}"; do
-        printf " %-20s" "$(basename "$sh_file")"
+        printf " %-*s |" "$tab_width_var_occurences" "$(basename "$sh_file")"
+    done
+    echo
+
+    # Print separator
+    printf "|%s|%s|" "$(printf -- '-%.0s' $(seq $tab_width_var_names))" "$(printf -- '-%.0s' $(seq $tab_width_var_values))"
+    for _ in "${sh_files[@]}"; do
+        printf "%s|" "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
     done
     echo
 
     # Iterate over each variable and count occurrences in each .sh file
     for var in "${sorted_vars[@]}"; do
-        printf "%-20s %-20s" "$var" "${config_vars[$var]}"
+        printf "| %-*s | %-*s |" "$tab_width_var_names" "$var" "$tab_width_var_values" "${config_vars[$var]}"
         for sh_file in "${sh_files[@]}"; do
             count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
             if [[ $count -ne 0 ]]; then
-                printf " %-20s" "$count"
+                printf " %-*s |" "$tab_width_var_occurences" "$count"
             else
-                printf " %-20s" ""
+                printf " %-*s |" "$tab_width_var_occurences" ""
             fi
         done
         echo
