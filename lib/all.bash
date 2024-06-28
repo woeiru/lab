@@ -1051,3 +1051,68 @@ all-sca() {
         eval $ssh_command
     done
 }
+
+# counts the var occurances from a config file in a target folder
+# analyze config usage
+# <config file> <target folder> <sort mode: o/a>
+all-acu() {
+    local conf_file=$1
+    local target_folder=$2
+    local sort_mode=$3
+
+    if [ $# -ne 3 ]; then
+        all-use
+        return 1
+    fi
+
+    if [[ ! -f $conf_file ]]; then
+        echo "Config file $conf_file does not exist."
+        return 1
+    fi
+
+    if [[ ! -d $target_folder ]]; then
+        echo "Target folder $target_folder does not exist."
+        return 1
+    fi
+
+    # Read all variables and their values from the config file in original order
+    declare -A config_vars
+    declare -a var_order
+    while IFS='=' read -r var value; do
+        config_vars[$var]=$value
+        var_order+=("$var")
+    done < <(grep -o '^[^#]*' "$conf_file" | sed 's/[[:space:]]//g')
+
+    # Sort variables based on the sort_mode
+    if [[ $sort_mode == "a" ]]; then
+        IFS=$'\n' sorted_vars=($(sort <<<"${var_order[*]}"))
+        unset IFS
+    else
+        sorted_vars=("${var_order[@]}")
+    fi
+
+    # List all .sh files in the target folder
+    sh_files=($(find "$target_folder" -maxdepth 1 -name '*.sh'))
+
+    # Print header
+    printf "%-20s %-20s" "Variable" "Value"
+    for sh_file in "${sh_files[@]}"; do
+        printf " %-20s" "$(basename "$sh_file")"
+    done
+    echo
+
+    # Iterate over each variable and count occurrences in each .sh file
+    for var in "${sorted_vars[@]}"; do
+        printf "%-20s %-20s" "$var" "${config_vars[$var]}"
+        for sh_file in "${sh_files[@]}"; do
+            count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
+            printf " %-20s" "$count"
+        done
+        echo
+    done
+}
+
+# Example usage:
+# all-acu "/root/lab/var/all.conf" "/root/lab/set/" "o"   # For original order
+# all-acu "/root/lab/var/all.conf" "/root/lab/set/" "a"   # For alphabetical order
+
