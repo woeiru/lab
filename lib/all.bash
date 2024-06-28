@@ -1006,13 +1006,14 @@ all-sil() {
     done
 }
 
-# resolves custom ssh aliases with the help of all.conf
+# Resolves custom ssh aliases with the help of all.conf
 # ssh custom aliases
-# <user> <server <"command">
+# <user> <server <command>
 all-sca() {
     local user_shortcut=$1
     local server_shortcuts=$2
-    local command=$3
+    shift 2
+    local command="$@"
 
     # Resolve user name from shortcut
     local user_name=${SSH_USERS[$user_shortcut]}
@@ -1042,7 +1043,7 @@ all-sca() {
         # Construct the SSH command
         local ssh_command="ssh ${user_name}@${server_ip}"
         if [[ -n $command ]]; then
-            ssh_command+=" \"$command\""
+            ssh_command+=" $command"
         fi
 
         # Execute the SSH command
@@ -1050,4 +1051,3 @@ all-sca() {
         eval $ssh_command
     done
 }
-
