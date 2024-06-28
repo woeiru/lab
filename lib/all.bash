@@ -150,6 +150,36 @@ all-laf() {
     echo ""
 }
 
+# Function that calls a function for each file in the directory
+# function passthrough loop
+# <function> <static arg1> <static arg2> <dynamic arg3>
+all-fpl() {
+    local function=$1
+    local arg1=$2
+    local arg2=$3
+    local folder=$4
+
+    # Debug output
+    echo "Function: $function"
+    echo "Arg1: $arg1"
+    echo "Arg2: $arg2"
+    echo "Folder: $folder"
+
+    # Check if folder exists
+    if [ ! -d "$folder" ]; then
+        echo "Directory $folder does not exist."
+        return 1
+    fi
+
+    # Iterate through all files in the directory
+    for file in "$folder"/*; do
+        if [ -f "$file" ]; then
+            echo "Processing file: $file"
+            $function "$arg1" "$arg2" "$file"
+        fi
+    done
+}
+
 # Counts the var occurrences from a config file in a target folder
 # analyze config usage
 #<sort mode: o|a > <target folder> <config file>
