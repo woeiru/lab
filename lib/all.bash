@@ -189,8 +189,8 @@ all-acu() {
     local conf_file=$3
 
     # Customizable column widths
-    local tab_width_var_names=20
-    local tab_width_var_values=20
+    local tab_width_var_names=15
+    local tab_width_var_values=15
     local tab_width_var_occurences=10
 
     if [ $# -ne 3 ]; then
@@ -231,10 +231,9 @@ all-acu() {
         fi
     }
 
-    # Function to list all files in the target folder
     list_target_files() {
-        local target_folder=$1
-        target_files=($(find "$target_folder" -maxdepth 2 -name '*.*' | sort))
+    local target_folder=$1
+    target_files=($(find "$target_folder" -maxdepth 2 -type d -name .git -prune -o -type f -name '*.*' -print | sort))
     }
 
     # Function to truncate strings that exceed the column width
