@@ -22,7 +22,12 @@ done
 
 # Generate function overview aliases
 for file in "${files[@]}"; do
-   alias $file="$file-fun"
+   alias fnc.$file="$file-fun"
+done
+
+# Generate variable overview aliases
+for file in "${files[@]}"; do
+   alias var.$file="all-acu o /root/lab /root/lab/var/$file.conf"
 done
 
 # Generate bash execution aliases
