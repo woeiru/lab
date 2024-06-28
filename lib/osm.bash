@@ -10,7 +10,7 @@ source "$DIR/../var/${BASE}.conf"
 # overview
 #   
 osm-fun() {
-    local file_name="$BASH_SOURCE"
+    local file_name="$bash_source"
     all-laf "$file_name"
 }
 
