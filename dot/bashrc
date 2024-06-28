@@ -183,6 +183,7 @@ alias mbf='mkfs.btrfs -f'
 alias mbmd='mkfs.btrfs -m raid1 -d raid1'
 
 # proxmox
+alias ct='pve-cto'
 
 # unsorted
 alias c.group='cat /etc/group'
