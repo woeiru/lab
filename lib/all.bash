@@ -1113,7 +1113,7 @@ all-acu() {
     list_target_files() {
         local target_folder=$1
         echo "Listing files in target folder: $target_folder"
-        target_files=($(find "$target_folder" -maxdepth 1 -name '*.*'))
+        target_files=($(find "$target_folder" -maxdepth 1 -name '*.*' | sort))
         echo "Target files: ${target_files[@]}"
     }
 
@@ -1148,7 +1148,6 @@ all-acu() {
 
     # Function to print variable usage across target files
     print_variables_usage() {
-        echo "Printing variables usage"
         for var in "${sorted_vars[@]}"; do
             local truncated_var=$(truncate_string "$var" "$tab_width_var_names")
             local truncated_value=$(truncate_string "${config_vars[$var]}" "$tab_width_var_values")
