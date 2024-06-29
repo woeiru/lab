@@ -1236,34 +1236,49 @@ all-sca() {
         return 1
     fi
 
-    # Split server_shortcuts by comma
-    IFS=',' read -ra servers <<< "$server_shortcuts"
+    # Handle wildcard for server_shortcuts
+    if [[ $server_shortcuts == "all" ]]; then
+        # Loop through all servers in SERVER_IPS
+        for server_shortcut in "${!SERVER_IPS[@]}"; do
+            local server_ip=${SERVER_IPS[$server_shortcut]}
+            # Construct the SSH command
+            local ssh_command="ssh ${user_name}@${server_ip}"
+            if [[ -n $command ]]; then
+                ssh_command+=" $command"
+            fi
 
-    # Check if multiple servers are provided and no command is given
-    if [[ ${#servers[@]} -gt 1 && -z $command ]]; then
-        echo "Error: No command provided for multiple servers"
-        return 1
-    fi
+            # Execute the SSH command
+            echo "Executing: $ssh_command"
+            eval $ssh_command
+        done
+    else
+        # Split server_shortcuts by comma
+        IFS=',' read -ra servers <<< "$server_shortcuts"
 
-    # Loop through each server shortcut
-    for server_shortcut in "${servers[@]}"; do
-        # Resolve server IP from name shortcut
-        local server_ip=${SERVER_IPS[$server_shortcut]}
-        if [[ -z $server_ip ]]; then
-            echo "Error: Unknown server shortcut '$server_shortcut'"
+        # Check if multiple servers are provided and no command is given
+        if [[ ${#servers[@]} -gt 1 && -z $command ]]; then
+            echo "Error: No command provided for multiple servers"
             return 1
         fi
 
-        # Construct the SSH command
-        local ssh_command="ssh ${user_name}@${server_ip}"
-        if [[ -n $command ]]; then
-            ssh_command+=" $command"
-        fi
+        # Loop through each server shortcut
+        for server_shortcut in "${servers[@]}"; do
+            # Resolve server IP from name shortcut
+            local server_ip=${SERVER_IPS[$server_shortcut]}
+            if [[ -z $server_ip ]]; then
+                echo "Error: Unknown server shortcut '$server_shortcut'"
+                return 1
+            fi
 
-        # Execute the SSH command
-        echo "Executing: $ssh_command"
-        eval $ssh_command
-    done
+            # Construct the SSH command
+            local ssh_command="ssh ${user_name}@${server_ip}"
+            if [[ -n $command ]]; then
+                ssh_command+=" $command"
+            fi
+
+            # Execute the SSH command
+            echo "Executing: $ssh_command"
+            eval $ssh_command
+        done
+    fi
 }
-
-
