@@ -1,16 +1,35 @@
-# folder, filename, basename variables
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"; FILE=$(basename "$BASH_SOURCE"); BASE="${FILE%.*}"; FILEPATH="${DIR}/${FILE}"
-# filepath, filename, basename variables unique
-eval "FILEPATH_${BASE}=\$FILEPATH"; eval "FILE_${BASE}=\$FILE"; eval "BASE_${BASE}=\$BASE"
+# Define directory and file variables
+DIR_LIB="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_LIB=$(basename "$BASH_SOURCE")
+BASE_LIB="${FILE_LIB%.*}"
+FILEPATH_LIB="${DIR_LIB}/${FILE_LIB}"
+CONFIG_LIB="$DIR_LIB/../var/${BASE_LIB}.conf"
 
-# source config the absolute path
-source "$DIR/../var/${BASE}.conf"
+# Dynamically create variables based on the base name
+eval "FILEPATH_${BASE_LIB}=\$FILEPATH_LIB"
+eval "FILE_${BASE_LIB}=\$FILE_LIB"
+eval "BASE_${BASE_LIB}=\$BASE_LIB"
+eval "CONFIG_${BASE_LIB}=\$CONFIG_LIB"
 
-#  
-# overview
-#  
+# Source the configuration file
+if [ -f "$CONFIG_LIB" ]; then
+    source "$CONFIG_LIB"
+else
+    echo "Configuration file $CONFIG_LIB not found!"
+    exit 1
+fi
+
+#
+# overview functions
+#
 osm-fun() {
     all-laf "$FILEPATH_osm"
+}
+#
+# overview variables
+#
+osm-var() {
+    all-acu o "$DIR_LIB/.." "$CONFIG_osm"
 }
 
 # Transform a folder subvolume.

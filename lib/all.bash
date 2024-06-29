@@ -1,16 +1,35 @@
-# folder, filename, basename variables
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"; FILE=$(basename "$BASH_SOURCE"); BASE="${FILE%.*}"; FILEPATH="${DIR}/${FILE}"
-# filepath, filename, basename variables unique
-eval "FILEPATH_${BASE}=\$FILEPATH"; eval "FILE_${BASE}=\$FILE"; eval "BASE_${BASE}=\$BASE"
+# Define directory and file variables
+DIR_LIB="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_LIB=$(basename "$BASH_SOURCE")
+BASE_LIB="${FILE_LIB%.*}"
+FILEPATH_LIB="${DIR_LIB}/${FILE_LIB}"
+CONFIG_LIB="$DIR_LIB/../var/${BASE_LIB}.conf"
 
-# source config the absolute path
-source "$DIR/../var/${BASE}.conf"
+# Dynamically create variables based on the base name
+eval "FILEPATH_${BASE_LIB}=\$FILEPATH_LIB"
+eval "FILE_${BASE_LIB}=\$FILE_LIB"
+eval "BASE_${BASE_LIB}=\$BASE_LIB"
+eval "CONFIG_${BASE_LIB}=\$CONFIG_LIB"
 
-#  
-# overview
+# Source the configuration file
+if [ -f "$CONFIG_LIB" ]; then
+    source "$CONFIG_LIB"
+else
+    echo "Configuration file $CONFIG_LIB not found!"
+    exit 1
+fi
+
+#
+# overview functions
 #  
 all-fun() {
     all-laf "$FILEPATH_all"
+}
+#  
+# overview variables
+#  
+all-var() {
+    all-acu o "$DIR_LIB/.." "$CONFIG_all"
 }
 
 # Recursively processes files in a directory with an function
@@ -19,7 +38,7 @@ all-fun() {
 all-loo() {
     local fnc="$1"
     local target="$2"
-    # Argument check assuming always expecting two arguments
+
     if [ $# -ne 2 ]; then
         all-use
         return 1
@@ -40,8 +59,16 @@ all-loo() {
     fi
 }
 
-# Lists all functions with details in a table format.
+# cats the three lines above each function as usage,shortname,description
+# list all functions
+# <file name>
 all-laf() {
+
+    if [ $# -ne 1 ]; then
+        all-use
+        return 1
+    fi
+
     # Column width parameters
     local col_width_1=9
     local col_width_2=35
@@ -179,7 +206,7 @@ all-fpl() {
 
 # Counts the var occurrences from a config file in a target folder
 # analyze config usage
-#<sort mode: o|a > <target folder> <config file>
+# <sort mode: o|a > <target folder> <config file>
 all-acu() {
     local sort_mode=$1
     local target_folder=$2
@@ -305,7 +332,7 @@ all-acu() {
 #  
 all-gio() {
     # Navigate to the git folder
-    cd "$DIR/.." || return
+    cd "$DIR_LIB/.." || return
 
     # Display the current status of the repository
     status_output=$(git status)
