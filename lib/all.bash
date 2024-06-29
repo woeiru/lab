@@ -1178,10 +1178,10 @@ all-aak() {
 }
 
 
-# Workaround to remove the SSH prompt on fresh servers
-# SSH initial login
+# loops through server ip array in the conf and execute commands
+# ip loop execution
 # <server ip>
-all-sil() {
+all-ile() {
     local operation=$1
 
     for SERVER_KEY in "${!SERVER_IPS[@]}"; do
