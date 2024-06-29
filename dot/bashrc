@@ -67,6 +67,8 @@ alias btf='btrfs filesystem'
 # cat
 alias c='cat'
 alias c.b="cat $DOT_DIR/bashrc"
+alias c.group='cat /etc/group'
+alias c.passwd='cat /etc/passwd'
 
 # directory selection
 alias d='cd'
@@ -105,6 +107,9 @@ alias gg='all-gio'
 
 # history
 alias h='history'
+
+# iptables
+alias ipt='iptables -L -v -n'
 
 # mounting
 alias m.sda.das='mount /dev/sda /mnt/das'
@@ -176,13 +181,6 @@ alias es.log='cat /mnt/bak/home/.es.log'
 alias mbf='mkfs.btrfs -f'
 alias mbmd='mkfs.btrfs -m raid1 -d raid1'
 
-# proxmox
-alias ct='pve-cto'
-
-# unsorted
-alias c.group='cat /etc/group'
-alias c.passwd='cat /etc/passwd'
-alias ipt='iptables -L -v -n'
-alias fc='all-flc'
+# *random* function presets
 alias fun='all-loo all-laf /root/lab/lib'
 alias var='all-fpl all-acu o /root/lab /root/lab/var'
