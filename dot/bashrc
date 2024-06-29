@@ -128,12 +128,7 @@ alias ps='podman ps'
 alias psa='podman ps -a'
 
 # ssh
-alias s='all-sca'
-alias srw='all-sca r w'
-alias srp='all-sca r pbs'
-alias srn='all-sca r nfs'
-alias srs='all-sca r smb'
-alias sra='all-sca r pbs,nfs,smb'
+alias sca='all-sca'
 
 # system control aliases
 alias y='systemctl'
@@ -149,9 +144,6 @@ alias sl='snapper list'
 alias shl='osm-shl home'
 alias shc='osm-shc home'
 alias shd='osm-shd'
-
-# ssh
-alias sw='ssh root@w'
 
 # Sysstat
 alias sar='sar -d 1'
