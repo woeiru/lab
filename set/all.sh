@@ -12,6 +12,7 @@ setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
+MENU_OPTIONS[x]="x_xall"
 
 a_xall() {
 	all-ipa "$PMAN_ALL" "$PAK1_ALL" "$PAK2_ALL"
@@ -27,6 +28,17 @@ b_xall() {
     		"$SUBFOLDER_PATH" \
     		"$UPLOAD_PATH" \
     		"$PRIVATE_KEY"
+}
+
+x_xall() {
+  local hostname=$(hostname)
+  local script_path="/root/lab/set/${hostname}.sh a"
+  
+  if [[ -f "$script_path" ]]; then
+    bash "$script_path" a
+  else
+    echo "Script $script_path does not exist."
+  fi
 }
 
 setup_main "$@"
