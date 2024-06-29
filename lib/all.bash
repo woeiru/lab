@@ -1182,18 +1182,23 @@ all-aak() {
 # SSH initial login
 # <server ip>
 all-sil() {
-    local i=1
-    while true; do
-        eval SERVER_IP=\$SERVER_IP_$i
+    local operation=$1
 
+    for SERVER_KEY in "${!SERVER_IPS[@]}"; do
+        SERVER_IP=${SERVER_IPS[$SERVER_KEY]}
+        
         if [ -n "$SERVER_IP" ]; then
-            # Perform initial SSH login to bypass StrictHostKeyChecking
-            ssh -o StrictHostKeyChecking=no root@"$SERVER_IP" "exit"
-        else
-            break
+            if [ "$operation" == "bypass" ]; then
+                # Perform initial SSH login to bypass StrictHostKeyChecking
+                ssh -o StrictHostKeyChecking=no root@"$SERVER_IP" "exit"
+            elif [ "$operation" == "refresh" ]; then
+                # Remove the SSH key for the given IP from known_hosts
+                ssh-keygen -R "$SERVER_IP" -f /root/.ssh/known_hosts
+            else
+                echo "Invalid operation: $operation"
+                return 1
+            fi
         fi
-
-        ((i++))
     done
 }
 
