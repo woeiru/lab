@@ -657,7 +657,7 @@ pve-cto() {
             # Handle range input
             IFS='-' read -r start end <<< "$arg"
             for (( vmid=start; vmid<=end; vmid++ )); do
-                if [[ $action == "on" ]]; then
+                if [[ $action == "start" ]]; then
                     pct start "$vmid"
                 else
                     pct stop "$vmid"
