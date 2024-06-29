@@ -10,6 +10,9 @@ LIB_DIR="$DIR/../lib"
 SET_DIR="$DIR/../set"
 VAR_DIR="$DIR/../var"
 
+# alias contruction
+#
+
 # Define arrays for constructing aliases
 #
 files=(all osm pbs pve nfs smb)
@@ -53,7 +56,13 @@ while IFS= read -r -d '' file; do
   alias "v.$alias_name"="vim $file"
 done < <(find "$DIR/.." -type f -name "$FILEBASE_MD" -print0)
 
-# alias hardcoding
+
+# function chains
+#
+alias fun='all-loo all-laf /root/lab/lib'
+alias var='all-fpl all-acu o /root/lab /root/lab/var'
+
+# standard aliases
 #
 
 # bash
@@ -69,6 +78,7 @@ alias c='cat'
 alias c.b="cat $DOT_DIR/bashrc"
 alias c.group='cat /etc/group'
 alias c.passwd='cat /etc/passwd'
+alias es.log='cat /mnt/bak/home/.es.log'
 
 # directory selection
 alias d='cd'
@@ -115,6 +125,10 @@ alias ipt='iptables -L -v -n'
 alias m.sda.das='mount /dev/sda /mnt/das'
 alias m.sub.sda.bak='mount -o subvol=bak /dev/sda /bak'
 
+# mkfs
+alias mbf='mkfs.btrfs -f'
+alias mbmd='mkfs.btrfs -m raid1 -d raid1'
+
 # pam_snapper
 alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
 alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
@@ -153,6 +167,9 @@ alias ios='iostat -x 1'
 alias ses='sestatus -v'
 alias seb='sudo semanage boolean -l'
 
+# timedatectl
+alias berlintime="timedatectl set-timezone Europe/Berlin"
+
 # transactional update alias
 alias tu='transactional-update'
 alias tua='transactional-update apply'
@@ -170,17 +187,3 @@ alias ttttt='tree -L 5'
 alias v='vim'
 alias v.b="vim $DOT_DIR/bashrc"
 alias v.nw="vim $CON_DIR/node-w.md"
-
-# -----
-alias berlintime="timedatectl set-timezone Europe/Berlin"
-
-# backup logs
-alias es.log='cat /mnt/bak/home/.es.log'
-
-# mkfs
-alias mbf='mkfs.btrfs -f'
-alias mbmd='mkfs.btrfs -m raid1 -d raid1'
-
-# *random* function presets
-alias fun='all-loo all-laf /root/lab/lib'
-alias var='all-fpl all-acu o /root/lab /root/lab/var'
