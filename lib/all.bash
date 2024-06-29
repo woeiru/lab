@@ -1222,7 +1222,7 @@ all-loi() {
 
 # Resolves custom ssh aliases with the help of all.conf
 # ssh custom aliases
-# <user> <server> <command>
+# <usershortcut> <servershortcut: single or csv or all> <command>
 all-sca() {
     local user_shortcut=$1
     local server_shortcuts=$2
