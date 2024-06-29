@@ -1177,13 +1177,14 @@ all-aak() {
     systemctl restart sshd
 }
 
-# Description: Loop a specified operation through an array of IPs
-# Shortname: loop operation ip
-# Usage: all-loi <operation>
+
 # Supported operations: 
 # - bypass: Perform initial SSH login to bypass StrictHostKeyChecking
 # - refresh: Remove the SSH key for the given IP from known_hosts
 #
+# Loop a specified operation through an array of IPs
+# loop operation ip
+# <operation>
 all-loi() {
     local operation=$1
 
@@ -1198,14 +1199,12 @@ all-loi() {
 
         if [ -n "$SERVER_IP" ]; then
             if [ "$operation" == "bypass" ]; then
-                # Perform initial SSH login to bypass StrictHostKeyChecking
                 echo "Performing SSH login to bypass StrictHostKeyChecking for $SERVER_IP"
                 ssh -o StrictHostKeyChecking=no root@"$SERVER_IP" "exit"
                 if [ $? -ne 0 ]; then
                     echo "Failed to SSH into $SERVER_IP"
                 fi
             elif [ "$operation" == "refresh" ]; then
-                # Remove the SSH key for the given IP from known_hosts
                 echo "Removing SSH key for $SERVER_IP from known_hosts"
                 ssh-keygen -R "$SERVER_IP" -f /root/.ssh/known_hosts
                 if [ $? -ne 0 ]; then
@@ -1223,7 +1222,7 @@ all-loi() {
 
 # Resolves custom ssh aliases with the help of all.conf
 # ssh custom aliases
-# <user> <server <command>
+# <user> <server> <command>
 all-sca() {
     local user_shortcut=$1
     local server_shortcuts=$2
