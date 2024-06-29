@@ -1286,7 +1286,6 @@ CT_IPS=(
 # Resolves custom ssh aliases with the help of all.conf
 # ssh custom aliases
 # <usershortcut> <servershortcut: single or csv or all or array> <command>
-
 all-sca() {
     local user_shortcut=$1
     local server_shortcuts=$2
