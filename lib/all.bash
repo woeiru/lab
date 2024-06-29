@@ -1,19 +1,17 @@
-# get dirname and filename and basename
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-FILE=$(basename "$BASH_SOURCE")
-BASE="${FILE%.*}"
+# folder, filename, basename variables
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"; FILE=$(basename "$BASH_SOURCE"); BASE="${FILE%.*}"; FILEPATH="${DIR}/${FILE}"
+# filepath, filename, basename variables unique
+eval "FILEPATH_${BASE}=\$FILEPATH"; eval "FILE_${BASE}=\$FILE"; eval "BASE_${BASE}=\$BASE"
 
-# source config.sh using the absolute path
+# source config the absolute path
 source "$DIR/../var/${BASE}.conf"
 
 #  
 # overview
 #  
 all-fun() {
-    local file_name="$bash_source"
-    all-laf "$file_name"
+    all-laf "$FILEPATH_all"
 }
-
 
 # Recursively processes files in a directory with an function
 # extended overview
@@ -21,7 +19,6 @@ all-fun() {
 all-loo() {
     local fnc="$1"
     local target="$2"
-
     # Argument check assuming always expecting two arguments
     if [ $# -ne 2 ]; then
         all-use

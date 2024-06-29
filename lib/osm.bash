@@ -1,17 +1,16 @@
-# get dirname and filename and basename
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-FILE=$(basename "$BASH_SOURCE")
-BASE="${FILE%.*}"
+# folder, filename, basename variables
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"; FILE=$(basename "$BASH_SOURCE"); BASE="${FILE%.*}"; FILEPATH="${DIR}/${FILE}"
+# filepath, filename, basename variables unique
+eval "FILEPATH_${BASE}=\$FILEPATH"; eval "FILE_${BASE}=\$FILE"; eval "BASE_${BASE}=\$BASE"
 
-# source config.sh using the absolute path
+# source config the absolute path
 source "$DIR/../var/${BASE}.conf"
 
-#   
+#  
 # overview
-#   
+#  
 osm-fun() {
-    local file_name="$bash_source"
-    all-laf "$file_name"
+    all-laf "$FILEPATH_osm"
 }
 
 # Transform a folder subvolume.
