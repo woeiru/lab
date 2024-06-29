@@ -1286,6 +1286,7 @@ CT_IPS=(
 # Resolves custom ssh aliases with the help of all.conf
 # ssh custom aliases
 # <usershortcut> <servershortcut: single or csv or all or array> <command>
+
 all-sca() {
     local user_shortcut=$1
     local server_shortcuts=$2
@@ -1318,7 +1319,7 @@ all-sca() {
             # Construct the SSH command
             local ssh_command="ssh ${user_name}@${server_ip}"
             if [[ -n $command ]]; then
-                ssh_command+=" $command"
+                ssh_command+=" \"$command\""
             fi
 
             # Execute the SSH command
@@ -1336,7 +1337,7 @@ all-sca() {
                 # Construct the SSH command
                 local ssh_command="ssh ${user_name}@${server_ip}"
                 if [[ -n $command ]]; then
-                    ssh_command+=" $command"
+                    ssh_command+=" \"$command\""
                 fi
 
                 # Execute the SSH command
@@ -1370,7 +1371,7 @@ all-sca() {
                 # Construct the SSH command
                 local ssh_command="ssh ${user_name}@${server_ip}"
                 if [[ -n $command ]]; then
-                    ssh_command+=" $command"
+                    ssh_command+=" \"$command\""
                 fi
 
                 # Execute the SSH command
@@ -1380,3 +1381,4 @@ all-sca() {
             ;;
     esac
 }
+
