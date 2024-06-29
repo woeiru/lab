@@ -645,7 +645,7 @@ pve-ctc() {
 # container toggle
 # <start or stop> <containers>
 pve-cto() {
-    action=$1
+    local action=$1
     shift
     if [[ $action != "start" && $action != "stop" ]]; then
         echo "Invalid action: $action. Use 'on' to start or 'off' to stop."
