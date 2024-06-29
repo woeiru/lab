@@ -1177,27 +1177,46 @@ all-aak() {
     systemctl restart sshd
 }
 
-
-# loops through server ip array in the conf and execute commands
-# ip loop execution
-# <server ip>
-all-ile() {
+# Description: Loop a specified operation through an array of IPs
+# Shortname: loop operation ip
+# Usage: all-loi <operation>
+# Supported operations: 
+# - bypass: Perform initial SSH login to bypass StrictHostKeyChecking
+# - refresh: Remove the SSH key for the given IP from known_hosts
+#
+all-loi() {
     local operation=$1
+
+    if [ -z "$operation" ]; then
+        echo "Usage: all-loi <operation>"
+        echo "Supported operations: bypass, refresh"
+        return 1
+    fi
 
     for SERVER_KEY in "${!SERVER_IPS[@]}"; do
         SERVER_IP=${SERVER_IPS[$SERVER_KEY]}
-        
+
         if [ -n "$SERVER_IP" ]; then
             if [ "$operation" == "bypass" ]; then
                 # Perform initial SSH login to bypass StrictHostKeyChecking
+                echo "Performing SSH login to bypass StrictHostKeyChecking for $SERVER_IP"
                 ssh -o StrictHostKeyChecking=no root@"$SERVER_IP" "exit"
+                if [ $? -ne 0 ]; then
+                    echo "Failed to SSH into $SERVER_IP"
+                fi
             elif [ "$operation" == "refresh" ]; then
                 # Remove the SSH key for the given IP from known_hosts
+                echo "Removing SSH key for $SERVER_IP from known_hosts"
                 ssh-keygen -R "$SERVER_IP" -f /root/.ssh/known_hosts
+                if [ $? -ne 0 ]; then
+                    echo "Failed to remove SSH key for $SERVER_IP"
+                fi
             else
                 echo "Invalid operation: $operation"
                 return 1
             fi
+        else
+            echo "SERVER_IP is empty for key $SERVER_KEY"
         fi
     done
 }
