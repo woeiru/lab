@@ -665,7 +665,7 @@ pve-cto() {
             done
         else
             # Handle individual input
-            if [[ $action == "on" ]]; then
+            if [[ $action == "start" ]]; then
                 pct start "$arg"
             else
                 pct stop "$arg"
