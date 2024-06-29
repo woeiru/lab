@@ -1220,9 +1220,72 @@ all-loi() {
     done
 }
 
+# users
+declare -A SSH_USERS
+SSH_USERS=(
+    ["r"]="root"
+    ["e"]="es"
+)
+
+# hypervisors
+declare -A HY_IPS
+HY_IPS=(
+    ["w"]="192.168.178.110"
+)
+# containers
+declare -A CT_IPS
+CT_IPS=(
+    ["pbs"]="192.168.178.111"
+    ["nfs"]="192.168.178.112"
+    ["smb"]="192.168.178.113"
+)
+
+# ------------------------------------------------------------
+# Function: all-sca
+#
+# Description:
+#   Resolves custom SSH aliases and executes SSH commands
+#   based on user shortcuts and server shortcuts. Supports
+#   multiple modes for server selection.
+#
+# Usage:
+#   all-sca <usershortcut> <servershortcut: single | csv | all | array> <command>
+#
+# Parameters:
+#   <usershortcut>  : Shortcut for the SSH user defined in SSH_USERS array.
+#   <servershortcut>: Shortcut(s) for the server(s). Can be:
+#                      - single: A single server shortcut (e.g., "pbs")
+#                      - csv   : Multiple server shortcuts separated by commas (e.g., "pbs,nfs")
+#                      - all   : Wildcard to select all servers in both HY_IPS and CT_IPS arrays
+#                      - array : The name of an IP array in lowercase (e.g., "hy_ips", "ct_ips")
+#   <command>       : The command to execute on the selected server(s). If no command
+#                     is provided, an error will be thrown when multiple servers are selected.
+#
+# Configuration:
+#   - SSH_USERS: Associative array mapping user shortcuts to actual SSH usernames.
+#   - HY_IPS   : Associative array mapping hypervisor shortcuts to IP addresses.
+#   - CT_IPS   : Associative array mapping container shortcuts to IP addresses.
+#
+# Functions:
+#   - resolve_server_ip(server_shortcut): Resolves the server IP from the given shortcut.
+#   - handle_server_array(array_name)   : Handles the execution of SSH commands for all
+#                                         servers in the specified IP array.
+#
+# Error Handling:
+#   - If an unknown user shortcut is provided, an error message is displayed.
+#   - If no command is provided for multiple servers, an error message is displayed.
+#   - If an unknown server shortcut is provided, an error message is displayed.
+#
+# Example Calls:
+#   all-sca r nfs apt update -y
+#   all-sca r nfs,smb apt update -y
+#   all-sca e hy_ips "apt update -y
+#   all-sca r all apt update -y
+#
+
 # Resolves custom ssh aliases with the help of all.conf
 # ssh custom aliases
-# <usershortcut> <servershortcut: single or csv or all> <command>
+# <usershortcut> <servershortcut: single or csv or all or array> <command>
 all-sca() {
     local user_shortcut=$1
     local server_shortcuts=$2
@@ -1236,11 +1299,22 @@ all-sca() {
         return 1
     fi
 
-    # Handle wildcard for server_shortcuts
-    if [[ $server_shortcuts == "all" ]]; then
-        # Loop through all servers in SERVER_IPS
-        for server_shortcut in "${!SERVER_IPS[@]}"; do
-            local server_ip=${SERVER_IPS[$server_shortcut]}
+    # Function to resolve server IPs from shortcuts
+    resolve_server_ip() {
+        local server_shortcut=$1
+        local server_ip=${HY_IPS[$server_shortcut]}
+        if [[ -z $server_ip ]]; then
+            server_ip=${CT_IPS[$server_shortcut]}
+        fi
+        echo $server_ip
+    }
+
+    # Function to handle an array of servers
+    handle_server_array() {
+        local array_name=$1
+        declare -n server_array=$array_name
+        for server_shortcut in "${!server_array[@]}"; do
+            local server_ip=${server_array[$server_shortcut]}
             # Construct the SSH command
             local ssh_command="ssh ${user_name}@${server_ip}"
             if [[ -n $command ]]; then
@@ -1251,34 +1325,58 @@ all-sca() {
             echo "Executing: $ssh_command"
             eval $ssh_command
         done
-    else
-        # Split server_shortcuts by comma
-        IFS=',' read -ra servers <<< "$server_shortcuts"
+    }
 
-        # Check if multiple servers are provided and no command is given
-        if [[ ${#servers[@]} -gt 1 && -z $command ]]; then
-            echo "Error: No command provided for multiple servers"
-            return 1
-        fi
+    # Handle server_shortcuts
+    case $server_shortcuts in
+        all)
+            # Loop through all servers in HY_IPS and CT_IPS
+            for server_shortcut in "${!HY_IPS[@]}" "${!CT_IPS[@]}"; do
+                local server_ip=$(resolve_server_ip $server_shortcut)
+                # Construct the SSH command
+                local ssh_command="ssh ${user_name}@${server_ip}"
+                if [[ -n $command ]]; then
+                    ssh_command+=" $command"
+                fi
 
-        # Loop through each server shortcut
-        for server_shortcut in "${servers[@]}"; do
-            # Resolve server IP from name shortcut
-            local server_ip=${SERVER_IPS[$server_shortcut]}
-            if [[ -z $server_ip ]]; then
-                echo "Error: Unknown server shortcut '$server_shortcut'"
+                # Execute the SSH command
+                echo "Executing: $ssh_command"
+                eval $ssh_command
+            done
+            ;;
+        hy_ips|ct_ips)
+            # Handle specific IP array
+            handle_server_array ${server_shortcuts^^}
+            ;;
+        *)
+            # Split server_shortcuts by comma
+            IFS=',' read -ra servers <<< "$server_shortcuts"
+
+            # Check if multiple servers are provided and no command is given
+            if [[ ${#servers[@]} -gt 1 && -z $command ]]; then
+                echo "Error: No command provided for multiple servers"
                 return 1
             fi
 
-            # Construct the SSH command
-            local ssh_command="ssh ${user_name}@${server_ip}"
-            if [[ -n $command ]]; then
-                ssh_command+=" $command"
-            fi
+            # Loop through each server shortcut
+            for server_shortcut in "${servers[@]}"; do
+                # Resolve server IP from name shortcut
+                local server_ip=$(resolve_server_ip $server_shortcut)
+                if [[ -z $server_ip ]]; then
+                    echo "Error: Unknown server shortcut '$server_shortcut'"
+                    return 1
+                fi
 
-            # Execute the SSH command
-            echo "Executing: $ssh_command"
-            eval $ssh_command
-        done
-    fi
+                # Construct the SSH command
+                local ssh_command="ssh ${user_name}@${server_ip}"
+                if [[ -n $command ]]; then
+                    ssh_command+=" $command"
+                fi
+
+                # Execute the SSH command
+                echo "Executing: $ssh_command"
+                eval $ssh_command
+            done
+            ;;
+    esac
 }
