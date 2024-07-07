@@ -1183,7 +1183,6 @@ all-aak() {
     systemctl restart sshd
 }
 
-
 # Supported operations: 
 # - bypass: Perform initial SSH login to bypass StrictHostKeyChecking
 # - refresh: Remove the SSH key for the given IP from known_hosts
@@ -1192,36 +1191,49 @@ all-aak() {
 # loop operation ip
 # <operation>
 all-loi() {
-    local operation=$1
+    local ip_type=$1
+    local operation=$2
+    local ip_array_name="${ip_type^^}_IPS"
 
-    if [ -z "$operation" ]; then
-        echo "Usage: all-loi <operation>"
+    # Ensure both parameters are provided
+    if [ -z "$ip_type" ] || [ -z "$operation" ]; then
+        echo "Usage: all-loi <ip_type> <operation>"
+        echo "Supported IP types: ct, hy, etc."
         echo "Supported operations: bypass, refresh"
         return 1
     fi
 
-    for CT_KEY in "${!CT_IPS[@]}"; do
-        CT_IP=${CT_IPS[$CT_KEY]}
+    # Ensure the array exists
+    if ! declare -p "$ip_array_name" >/dev/null 2>&1; then
+        echo "Invalid IP type: $ip_type"
+        return 1
+    fi
 
-        if [ -n "$CT_IP" ]; then
+    # Get the associative array
+    declare -n IP_ARRAY="$ip_array_name"
+
+    for KEY in "${!IP_ARRAY[@]}"; do
+        IP=${IP_ARRAY[$KEY]}
+
+        if [ -n "$IP" ]; then
             if [ "$operation" == "bypass" ]; then
-                echo "Performing SSH login to bypass StrictHostKeyChecking for $CT_IP"
-                ssh -o StrictHostKeyChecking=no root@"$CT_IP" "exit"
+                echo "Performing SSH login to bypass StrictHostKeyChecking for $IP"
+                ssh -o StrictHostKeyChecking=no root@"$IP" "exit"
                 if [ $? -ne 0 ]; then
-                    echo "Failed to SSH into $CT_IP"
+                    echo "Failed to SSH into $IP"
                 fi
             elif [ "$operation" == "refresh" ]; then
-                echo "Removing SSH key for $CT_IP from known_hosts"
-                ssh-keygen -R "$CT_IP" -f /root/.ssh/known_hosts
+                echo "Removing SSH key for $IP from known_hosts"
+                ssh-keygen -R "$IP"
                 if [ $? -ne 0 ]; then
-                    echo "Failed to remove SSH key for $CT_IP"
+                    echo "Failed to remove SSH key for $IP"
                 fi
             else
                 echo "Invalid operation: $operation"
                 return 1
             fi
         else
-            echo "CT_IP is empty for key $CT_KEY"
+            echo "IP is empty for key $KEY"
         fi
     done
 }
