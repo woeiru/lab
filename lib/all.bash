@@ -1291,7 +1291,7 @@ all-loi() {
 # <usershortcut> <servershortcut: single or csv or all or array> <'command'>
 all-sca() {
     echo "Debug: Number of arguments: $#"
-    echo "Debug: Arguments: $@"
+    echo "Debug: Arguments: $*"
 
     if [ $# -lt 3 ]; then
         all-use
