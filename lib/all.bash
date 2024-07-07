@@ -1148,12 +1148,21 @@ all-usk() {
 # append a private SSH key identifier to a config inside .ssh
 # ssh private identifier
 # <user> <keyname>
+# Append a private SSH key identifier to a config inside .ssh
+# ssh private identifier
+# <user> <keyname>
 all-spi() {
     local user=$1
     local keyname=$2
     local ssh_dir
     local config_file
     local user_home
+
+    if [ $# -ne 2 ]; then
+	all-use
+        return 1
+    fi
+
 
     if [ "$user" == "root" ]; then
         ssh_dir="/root/.ssh"
@@ -1168,14 +1177,22 @@ all-spi() {
     # Create the .ssh directory if it doesn't exist
     mkdir -p $ssh_dir
 
-    # Append the configuration to the config file
-    echo -e "\nHost *\n    IdentityFile $user_home/.ssh/$keyname" >> $config_file
+    # Define the configuration line to add
+    identity_file_line="    IdentityFile $user_home/.ssh/$keyname"
 
-    # Set the correct permissions
-    chown $user:$user $config_file
-    chmod 600 $config_file
+    # Check if the IdentityFile line already exists
+    if ! grep -qx "$identity_file_line" "$config_file" 2>/dev/null; then
+        # Append the configuration to the config file
+        echo -e "\nHost *\n$identity_file_line" >> $config_file
 
-    echo "SSH config file updated at $config_file"
+        # Set the correct permissions
+        chown $user:$user $config_file
+        chmod 600 $config_file
+
+        echo "SSH config file updated at $config_file"
+    else
+        echo "Configuration already exists in $config_file"
+    fi
 }
 
 # append a public SSH key content to authorized_keys
