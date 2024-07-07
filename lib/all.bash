@@ -1152,8 +1152,8 @@ all-usk() {
 # ssh private identifier
 # <user> <keyname>
 all-spi() {
-    local user=$1
     local keyname=$2
+    local user=$2
     local ssh_dir
     local config_file
     local user_home
@@ -1337,6 +1337,11 @@ all-sca() {
     local server_shortcuts=$2
     shift 2
     local command="$@"
+
+    if [ $# -ne 2 ]; then
+	all-use
+        return 1
+    fi
 
     # Resolve user name from shortcut
     local user_name=${SSH_USERS[$user_shortcut]}
