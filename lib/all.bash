@@ -1114,6 +1114,12 @@ all-usk() {
     full_path="$mount_point/$subfolder_path/$file_name"
     upload_full_path="$upload_path/$file_name"
 
+    # Check if mount point exists
+    if [ ! -d "$mount_point" ]; then
+        echo "Mount Point $mount_point will be created."
+	mkdir -p $mount_point
+    fi
+
     # Mount the device
     mount $device_path $mount_point
 
@@ -1194,28 +1200,28 @@ all-loi() {
         return 1
     fi
 
-    for SERVER_KEY in "${!SERVER_IPS[@]}"; do
-        SERVER_IP=${SERVER_IPS[$SERVER_KEY]}
+    for CT_KEY in "${!CT_IPS[@]}"; do
+        CT_IP=${CT_IPS[$CT_KEY]}
 
-        if [ -n "$SERVER_IP" ]; then
+        if [ -n "$CT_IP" ]; then
             if [ "$operation" == "bypass" ]; then
-                echo "Performing SSH login to bypass StrictHostKeyChecking for $SERVER_IP"
-                ssh -o StrictHostKeyChecking=no root@"$SERVER_IP" "exit"
+                echo "Performing SSH login to bypass StrictHostKeyChecking for $CT_IP"
+                ssh -o StrictHostKeyChecking=no root@"$CT_IP" "exit"
                 if [ $? -ne 0 ]; then
-                    echo "Failed to SSH into $SERVER_IP"
+                    echo "Failed to SSH into $CT_IP"
                 fi
             elif [ "$operation" == "refresh" ]; then
-                echo "Removing SSH key for $SERVER_IP from known_hosts"
-                ssh-keygen -R "$SERVER_IP" -f /root/.ssh/known_hosts
+                echo "Removing SSH key for $CT_IP from known_hosts"
+                ssh-keygen -R "$CT_IP" -f /root/.ssh/known_hosts
                 if [ $? -ne 0 ]; then
-                    echo "Failed to remove SSH key for $SERVER_IP"
+                    echo "Failed to remove SSH key for $CT_IP"
                 fi
             else
                 echo "Invalid operation: $operation"
                 return 1
             fi
         else
-            echo "SERVER_IP is empty for key $SERVER_KEY"
+            echo "CT_IP is empty for key $CT_KEY"
         fi
     done
 }

@@ -17,16 +17,20 @@ MENU_OPTIONS[e]="e_xall"
 MENU_OPTIONS[f]="f_xall"
 MENU_OPTIONS[g]="g_xall"
 MENU_OPTIONS[h]="h_xall"
+MENU_OPTIONS[i]="i_xall"
 
 a_xall() {
 	pve-dsr
     	pve-adr
     	pve-puu
-    	all-ipa "$PMAN_PVE" "$PAK1_PVE" "$PAK2_PVE"
     	pve-rsn
 }
 
 b_xall() {
+    	all-ipa "$PMAN_PVE" "$PAK1_PVE" "$PAK2_PVE"
+}
+
+c_xall() {
 	all-usk \
     		"$DEVICE_PATH" \
     		"$MOUNT_POINT" \
@@ -37,11 +41,11 @@ b_xall() {
 	all-aak "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
-c_xall() {
+d_xall() {
 	pve-br1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
-d_xall() {
+e_xall() {
     local i=1
     while true; do
         pool_var="ZFS_POOL_NAME$i"
@@ -59,12 +63,12 @@ d_xall() {
     
     zfs list
 }
-e_xall() {
+f_xall() {
    	pve-clu
 	pve-cdo "$CT_DL_STO" "$CT_DL_1"
 }
 
-f_xall() {
+g_xall() {
     local i=1
     while true; do
         id_var="CT_${i}_ID"
@@ -119,7 +123,7 @@ f_xall() {
     done
 }
 
-g_xall() {
+h_xall() {
     local i=1
     while true; do
         eval CT_ID=\$CT_ID_$i
@@ -136,7 +140,7 @@ g_xall() {
     done
 }
 
-h_xall() {
+i_xall() {
     	pve-gp1
     	pve-gp2
     	pve-gp3
