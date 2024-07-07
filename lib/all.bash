@@ -1301,11 +1301,11 @@ all-sca() {
     local user_shortcut=$1
     local server_shortcuts=$2
     shift 2
-    local command="$@"
+    local command="$*"
 
     echo "Debug: user_shortcut: $user_shortcut"
     echo "Debug: server_shortcuts: $server_shortcuts"
-    echo "Debug: command: $command"
+    echo "Debug: raw command: $command"
 
     # Check if the command is enclosed in single quotes
     if [[ ! "$command" =~ ^\'.*\'$ ]]; then
@@ -1320,6 +1320,7 @@ all-sca() {
 
     # Resolve user name from shortcut
     local user_name=${SSH_USERS[$user_shortcut]}
+    echo "Debug: user_name: $user_name"
     if [[ -z $user_name ]]; then
         echo "Error: Unknown user shortcut '$user_shortcut'"
         return 1
