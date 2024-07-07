@@ -1293,7 +1293,7 @@ all-sca() {
     echo "Debug: Number of arguments: $#"
     echo "Debug: Arguments: $*"
 
-    if [ $# -lt 3 ]; then
+    if [ $# -lt 1 ]; then
         all-use
         return 1
     fi
