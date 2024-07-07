@@ -1307,18 +1307,6 @@ all-sca() {
     echo "Debug: server_shortcuts: $server_shortcuts"
     echo "Debug: raw command: $command"
 
-    # Check if the command is enclosed in single quotes
-    if [[ "$command" != \'*\' ]]; then
-        echo "Error: The command must be enclosed in single quotes."
-        echo "Debug: Command without quotes: $command"
-        return 1
-    fi
-
-    # Remove the single quotes for further processing
-    command="${command:1:-1}"
-
-    echo "Debug: Stripped command: $command"
-
     # Resolve user name from shortcut
     local user_name=${SSH_USERS[$user_shortcut]}
     echo "Debug: user_name: $user_name"
