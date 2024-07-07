@@ -159,6 +159,7 @@ alias v.fstab='vim /etc/fstab'
 
 # snapper
 alias sl='snapper list'
+alias sc='snapper create'
 alias shl='osm-shl home'
 alias shc='osm-shc home'
 alias shd='osm-shd'
