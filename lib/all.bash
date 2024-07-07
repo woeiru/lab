@@ -1286,62 +1286,37 @@ all-loi() {
     done
 }
 
-# ------------------------------------------------------------
-# Function: all-sca
-#
-# Description:
-#   Resolves custom SSH aliases and executes SSH commands
-#   based on user shortcuts and server shortcuts. Supports
-#   multiple modes for server selection.
-#
-# Usage:
-#   all-sca <usershortcut> <servershortcut: single | csv | all | array> <command>
-#
-# Parameters:
-#   <usershortcut>  : Shortcut for the SSH user defined in SSH_USERS array.
-#   <servershortcut>: Shortcut(s) for the server(s). Can be:
-#                      - single: A single server shortcut (e.g., "pbs")
-#                      - csv   : Multiple server shortcuts separated by commas (e.g., "pbs,nfs")
-#                      - all   : Wildcard to select all servers in both HY_IPS and CT_IPS arrays
-#                      - array : The name of an IP array in lowercase (e.g., "hy_ips", "ct_ips")
-#   <command>       : The command to execute on the selected server(s). If no command
-#                     is provided, an error will be thrown when multiple servers are selected.
-#
-# Configuration:
-#   - SSH_USERS: Associative array mapping user shortcuts to actual SSH usernames.
-#   - HY_IPS   : Associative array mapping hypervisor shortcuts to IP addresses.
-#   - CT_IPS   : Associative array mapping container shortcuts to IP addresses.
-#
-# Functions:
-#   - resolve_server_ip(server_shortcut): Resolves the server IP from the given shortcut.
-#   - handle_server_array(array_name)   : Handles the execution of SSH commands for all
-#                                         servers in the specified IP array.
-#
-# Error Handling:
-#   - If an unknown user shortcut is provided, an error message is displayed.
-#   - If no command is provided for multiple servers, an error message is displayed.
-#   - If an unknown server shortcut is provided, an error message is displayed.
-#
-# Example Calls:
-#   all-sca r nfs apt update -y
-#   all-sca r nfs,smb apt update -y
-#   all-sca e hy_ips "apt update -y
-#   all-sca r all apt update -y
-#
-
 # Resolves custom ssh aliases with the help of all.conf
 # ssh custom aliases
-# <usershortcut> <servershortcut: single or csv or all or array> <command>
+# <usershortcut> <servershortcut: single or csv or all or array> <'command'>
 all-sca() {
+    echo "Debug: Number of arguments: $#"
+    echo "Debug: Arguments: $@"
+
+    if [ $# -lt 3 ]; then
+        all-use
+        return 1
+    fi
+
     local user_shortcut=$1
     local server_shortcuts=$2
     shift 2
     local command="$@"
 
-    if [ $# -ne 2 ]; then
-	all-use
+    echo "Debug: user_shortcut: $user_shortcut"
+    echo "Debug: server_shortcuts: $server_shortcuts"
+    echo "Debug: command: $command"
+
+    # Check if the command is enclosed in single quotes
+    if [[ ! "$command" =~ ^\'.*\'$ ]]; then
+        echo "Error: The command must be enclosed in single quotes."
         return 1
     fi
+
+    # Remove the single quotes for further processing
+    command=${command:1:-1}
+
+    echo "Debug: Stripped command: $command"
 
     # Resolve user name from shortcut
     local user_name=${SSH_USERS[$user_shortcut]}
