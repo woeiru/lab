@@ -1239,7 +1239,7 @@ all-aak() {
 #
 # Loop a specified operation through an specific range of ips
 # loop operation ip
-# <ip type> <operation>
+# <ip array: hy,ct> <operation>
 all-loi() {
     local ip_type=$1
     local operation=$2
