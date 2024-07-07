@@ -1145,7 +1145,40 @@ all-usk() {
     echo "SSH key successfully uploaded to $upload_path"
 }
 
-# Function to append SSH key content to authorized_keys
+# append a private SSH key identifier to a config inside .ssh
+# ssh private identifier
+# <user> <keyname>
+all-spi() {
+    local user=$1
+    local keyname=$2
+    local ssh_dir
+    local config_file
+    local user_home
+
+    if [ "$user" == "root" ]; then
+        ssh_dir="/root/.ssh"
+        user_home="/root"
+    else
+        ssh_dir="/home/$user/.ssh"
+        user_home="/home/$user"
+    fi
+
+    config_file="$ssh_dir/config"
+
+    # Create the .ssh directory if it doesn't exist
+    mkdir -p $ssh_dir
+
+    # Append the configuration to the config file
+    echo -e "\nHost *\n    IdentityFile $user_home/.ssh/$keyname" >> $config_file
+
+    # Set the correct permissions
+    chown $user:$user $config_file
+    chmod 600 $config_file
+
+    echo "SSH config file updated at $config_file"
+}
+
+# append a public SSH key content to authorized_keys
 # append authorized keys
 # <upload_full_path> <authorized_keys_path>
 all-aak() {
