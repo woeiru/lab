@@ -1187,9 +1187,9 @@ all-aak() {
 # - bypass: Perform initial SSH login to bypass StrictHostKeyChecking
 # - refresh: Remove the SSH key for the given IP from known_hosts
 #
-# Loop a specified operation through an array of IPs
+# Loop a specified operation through an specific range of ips
 # loop operation ip
-# <operation>
+# <ip type> <operation>
 all-loi() {
     local ip_type=$1
     local operation=$2
@@ -1197,10 +1197,8 @@ all-loi() {
 
     # Ensure both parameters are provided
     if [ -z "$ip_type" ] || [ -z "$operation" ]; then
-        echo "Usage: all-loi <ip_type> <operation>"
-        echo "Supported IP types: ct, hy, etc."
-        echo "Supported operations: bypass, refresh"
-        return 1
+	  all-use
+	  return 1
     fi
 
     # Ensure the array exists
@@ -1237,26 +1235,6 @@ all-loi() {
         fi
     done
 }
-
-# users
-declare -A SSH_USERS
-SSH_USERS=(
-    ["r"]="root"
-    ["e"]="es"
-)
-
-# hypervisors
-declare -A HY_IPS
-HY_IPS=(
-    ["w"]="192.168.178.110"
-)
-# containers
-declare -A CT_IPS
-CT_IPS=(
-    ["pbs"]="192.168.178.111"
-    ["nfs"]="192.168.178.112"
-    ["smb"]="192.168.178.113"
-)
 
 # ------------------------------------------------------------
 # Function: all-sca
