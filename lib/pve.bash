@@ -22,14 +22,14 @@ fi
 #
 # overview functions
 #
-smb-fun() {
-    all-laf "$FILEPATH_smb"
+pve-fun() {
+    all-laf "$FILEPATH_pve"
 }
 #
 # overview variables
 #
-smb-var() {
-    all-acu o "$DIR_LIB/.." "$CONFIG_smb"
+pve-var() {
+    all-acu o "$DIR_LIB/.." "$CONFIG_pve"
 }
 
 # vm start or vm-get then shutdown other node
@@ -667,8 +667,7 @@ pve-cto() {
     local action=$1
     shift
     if [[ $action != "start" && $action != "stop" ]]; then
-        echo "Invalid action: $action. Use 'on' to start or 'off' to stop."
-        exit 1
+        all-use
     fi
 
     for arg in "$@"; do
