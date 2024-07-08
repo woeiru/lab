@@ -477,6 +477,12 @@ osm-snd() {
         echo "[ERROR] $1" >&2
     }
 
+    # Function to list subvolumes and filter out '@' symbol
+    list_subvolumes() {
+        local path="$1"
+        btrfs subvolume list -o "$path" | awk '{print $NF}' | sed 's|@/||g'
+    }
+
     # Convert relative path to absolute path if necessary
     if [[ "$target_path" = /* ]]; then
         full_path="$target_path"
@@ -496,7 +502,7 @@ osm-snd() {
         print_tree "Checking subvolumes in: ${current_path##*/}" $current_depth
 
         # List subvolumes and store them in an array
-        mapfile -t subvolumes < <(btrfs subvolume list -o "$current_path" | awk '{print $NF}')
+        mapfile -t subvolumes < <(list_subvolumes "$current_path")
 
         # If no subvolumes found, attempt to delete the current subvolume
         if [ ${#subvolumes[@]} -eq 0 ]; then
@@ -518,7 +524,7 @@ osm-snd() {
 
         # Iterate through subvolumes
         for subvol in "${subvolumes[@]}"; do
-            local subvol_path="${full_path%/}/${subvol#"${target_path#/}/"}"
+            local subvol_path="${current_path}/${subvol##*/}"
             print_tree "Processing subvolume: ${subvol_path##*/}" $((current_depth + 1))
 
             # Recursively delete nested subvolumes
