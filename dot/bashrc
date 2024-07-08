@@ -82,6 +82,7 @@ alias c='cat'
 alias c.b="cat $DOT_DIR/bashrc"
 alias c.group='cat /etc/group'
 alias c.passwd='cat /etc/passwd'
+alias c.fstab='cat /etc/fstab'
 alias es.log='cat /mnt/bak/home/.es.log'
 
 # directory selection
