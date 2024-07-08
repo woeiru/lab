@@ -460,11 +460,8 @@ osm-snd() {
 
     # List all subvolumes, including deeply nested ones
     local subvolumes
-    subvolumes=$(btrfs subvolume list . | awk -v parent="$parent_id" '
-        function count(str, substr) {
-            return gsub(substr, "", str)
-        }
-        $4 == parent || count($NF, "/") > count("'"$subvolume_path"'", "/") {
+    subvolumes=$(btrfs subvolume list . | awk -v parent="$parent_id" -v path="$subvolume_path" '
+        $4 == parent || index($NF, path"/") == 1 {
             print $2 " " $NF
         }
     ' | sort -rn)
@@ -476,9 +473,8 @@ osm-snd() {
     while IFS= read -r line; do
         local id=$(echo $line | cut -d' ' -f1)
         local path=$(echo $line | cut -d' ' -f2-)
-        local full_path="/${path#*/}"
-        echo "Deleting subvolume: $full_path"
-        btrfs subvolume delete "$full_path" || echo "Failed to delete: $full_path"
+        echo "Deleting subvolume: $path"
+        btrfs subvolume delete "$path" || echo "Failed to delete: $path"
     done <<< "$subvolumes"
 
     # Delete the parent subvolume
