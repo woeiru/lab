@@ -454,7 +454,7 @@ osm-snd() {
     list_nested_subvolumes() {
         local subvolume_path="$1"
         echo "Listing subvolumes in: $subvolume_path"
-        btrfs subvolume list -o "$subvolume_path" | awk '{print $NF}'
+        btrfs subvolume list -o "$subvolume_path" | awk '{print $9}' | sort -r
     }
 
     # Helper function to delete a subvolume
@@ -474,10 +474,10 @@ osm-snd() {
     echo "Nested subvolumes:"
     echo "$nested_subvolumes"
     
-    for subvolume in $nested_subvolumes; do
-        delete_subvolume "$subvolume"
-    done
+    while IFS= read -r subvolume; do
+        delete_subvolume "$subvolume_path/$subvolume"
+    done <<< "$nested_subvolumes"
 
     # Delete the parent subvolume
     delete_subvolume "$subvolume_path"
-}
+}	
