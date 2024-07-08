@@ -440,46 +440,73 @@ osm-hub() {
 # subvolume nested delete
 # <parent subvolume>
 osm-snd() {
-    if [ -z "$1" ]; then
-        echo "Usage: osm-snd <subvolume-path>"
-        return 1
-    fi
+    local target_path="$1"
+    local full_path
 
-    local subvolume_path
-    subvolume_path=$(realpath "$1")
-    echo "Parent subvolume path: $subvolume_path"
-
-    if [ ! -d "$subvolume_path" ]; then
-        echo "Error: $subvolume_path is not a directory"
-        return 1
-    fi
-
-    local max_depth=0
-
-    delete_subvolumes() {
-        local current_path=$1
-        local current_depth=$2
-        
-        if [ $current_depth -gt $max_depth ]; then
-            max_depth=$current_depth
-        fi
-
-        echo "Checking subvolumes at depth $current_depth: $current_path"
-        
-        local subvolumes
-        subvolumes=$(btrfs subvolume list -o "$current_path" | awk '{print $NF}')
-
-        for subvol in $subvolumes; do
-            local full_path="${current_path}/${subvol}"
-            echo "Found subvolume: $full_path"
-            delete_subvolumes "$full_path" $((current_depth + 1))
-        done
-
-        echo "Attempting to delete: $current_path"
-        btrfs subvolume delete "$current_path" || echo "Failed to delete: $current_path"
+    # Function to print debug messages
+    debug() {
+        echo "[DEBUG] $1" >&2
     }
 
-    delete_subvolumes "$subvolume_path" 0
+    # Function to print error messages
+    error() {
+        echo "[ERROR] $1" >&2
+    }
 
-    echo "Maximum depth of subvolumes found: $max_depth"
+    # Convert relative path to absolute path if necessary
+    if [[ "$target_path" = /* ]]; then
+        full_path="$target_path"
+    else
+        full_path="$(pwd)/$target_path"
+    fi
+    
+    debug "Target path: $full_path"
+
+    # Function to delete subvolumes recursively
+    delete_subvolumes() {
+        local current_path="$1"
+        local subvolumes
+
+        debug "Checking subvolumes in: $current_path"
+
+        # List subvolumes and store them in an array
+        mapfile -t subvolumes < <(btrfs subvolume list -o "$current_path" | awk '{print $NF}')
+
+        # If no subvolumes found, delete the current subvolume and return
+        if [ ${#subvolumes[@]} -eq 0 ]; then
+            debug "No nested subvolumes found in: $current_path. Deleting this subvolume."
+            if ! btrfs subvolume delete "$current_path"; then
+                error "Failed to delete subvolume: $current_path"
+                return 1
+            fi
+            return 0
+        fi
+
+        # Iterate through subvolumes
+        for subvol in "${subvolumes[@]}"; do
+            local subvol_path="$full_path/$subvol"
+            debug "Processing subvolume: $subvol_path"
+
+            # Recursively delete nested subvolumes
+            if ! delete_subvolumes "$subvol_path"; then
+                return 1
+            fi
+        done
+
+        # After processing all nested subvolumes, delete the current subvolume
+        debug "Deleting subvolume: $current_path"
+        if ! btrfs subvolume delete "$current_path"; then
+            error "Failed to delete subvolume: $current_path"
+            return 1
+        fi
+    }
+
+    # Start the recursive deletion process
+    if ! delete_subvolumes "$full_path"; then
+        error "Failed to complete the subvolume deletion process"
+        return 1
+    fi
+
+    debug "Subvolume deletion process completed successfully"
+    return 0
 }	
