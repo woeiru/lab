@@ -36,49 +36,47 @@ osm-var() {
 # transforming folder subvolume
 # <folder_name> <user_name> <C>
 osm-tra() {
-    if [ $# -ne 3 ]; then
-        echo "Usage: osm-trans <folder_name> <user_name> <C>"
+    if [ $# -lt 3 ]; then
+        echo "Usage: osm-tra <-n|-c> <user_name> <folder_name> [<additional_folders>...]"
         return 1
     fi
 
-    local folder_name="$1"
+    local flag="$1"
     local user_name="$2"
-    local attr_cow="$3"
-    local old_swap="${folder_name}-old"
+    shift 2
 
-    # Move current folder to .folder_name-old
-    cmd1="mv $folder_name $old_swap"
-    read -p "$cmd1"
-    eval "$cmd1"
-
-    # Create new subvolume
-    cmd2="sudo btrfs subvolume create $folder_name"
-    read -p "$cmd2"
-    eval "$cmd2"
-
-    # Change ownership to specified user
-    cmd3="sudo chown $user_name: $folder_name"
-    read -p "$cmd3"
-    eval "$cmd3"
-
-    # Disable copy-on-write on new target
-    if [ "$attr_cow" = "C" ]; then
-        cmd4="sudo chattr +C $folder_name"
-        read -p "$cmd4"
-        eval "$cmd4"
-    else
-        echo "COW Stays Enabled"
+    if [[ "$flag" != "-n" && "$flag" != "-c" ]]; then
+        echo "Invalid flag. Use -n for no cow or -c for cow."
+        return 1
     fi
 
-    # Move contents from old folder to new one
-    cmd5="mv $old_swap/* $folder_name"
-    read -p "$cmd5"
-    eval "$cmd5"
+    for folder_name in "$@"; do
+        local old_swap="${folder_name}-old"
 
-    # Remove old folder
-    cmd6="rm -r $old_swap"
-    read -p "$cmd6"
-    eval "$cmd6"
+        # Move current folder to .folder_name-old
+        mv "$folder_name" "$old_swap"
+
+        # Create new subvolume
+        sudo btrfs subvolume create "$folder_name"
+
+        # Change ownership to specified user
+        sudo chown "$user_name": "$folder_name"
+
+        # Disable copy-on-write on new target if -c flag is used
+        if [ "$flag" = "-c" ]; then
+            sudo chattr +C "$folder_name"
+        else
+            echo "COW Stays Enabled for $folder_name"
+        fi
+
+        # Move contents from old folder to new one
+        mv "$old_swap"/* "$folder_name"
+
+        # Remove old folder
+        rm -r "$old_swap"
+
+        echo "Processed folder: $folder_name"
+    done
 }
 
 # Check subvolume folder and filter results.
