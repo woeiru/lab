@@ -457,8 +457,12 @@ osm-snd() {
     # Get the ID of the parent subvolume
     local parent_id
     parent_id=$(btrfs subvolume list . | awk -v path="$subvolume_path" '$NF == path {print $2}')
+    echo "Parent subvolume ID: $parent_id"
 
     # List all subvolumes, including deeply nested ones
+    echo "Listing subvolumes:"
+    btrfs subvolume list .
+
     local subvolumes
     subvolumes=$(btrfs subvolume list . | awk -v parent="$parent_id" -v path="$subvolume_path" '
         $4 == parent || index($NF, path"/") == 1 {
@@ -473,11 +477,23 @@ osm-snd() {
     while IFS= read -r line; do
         local id=$(echo $line | cut -d' ' -f1)
         local path=$(echo $line | cut -d' ' -f2-)
-        echo "Deleting subvolume: $path"
+        echo "Attempting to delete subvolume: ID=$id, Path=$path"
+        if [ -z "$path" ]; then
+            echo "Warning: Empty path detected, skipping"
+            continue
+        fi
+        if [ ! -d "$path" ]; then
+            echo "Warning: $path is not a directory or doesn't exist"
+            continue
+        fi
         btrfs subvolume delete "$path" || echo "Failed to delete: $path"
     done <<< "$subvolumes"
 
     # Delete the parent subvolume
     echo "Deleting parent subvolume: $subvolume_path"
-    btrfs subvolume delete "$subvolume_path" || echo "Failed to delete parent: $subvolume_path"
+    if [ -d "$subvolume_path" ]; then
+        btrfs subvolume delete "$subvolume_path" || echo "Failed to delete parent: $subvolume_path"
+    else
+        echo "Warning: Parent subvolume $subvolume_path no longer exists"
+    fi
 }	
