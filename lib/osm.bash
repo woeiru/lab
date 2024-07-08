@@ -440,7 +440,28 @@ osm-hub() {
 # subvolume nested delete
 # <parent subvolume>
 osm-snd() {
-    local target_path="$1"
+    local target_path=""
+    local interactive=false
+    local force=false
+
+    # Parse command line options
+    while getopts "if" opt; do
+        case $opt in
+            i) interactive=true ;;
+            f) force=true ;;
+            \?) echo "Invalid option: -$OPTARG" >&2; return 1 ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    # Check if target path is provided
+    if [ $# -eq 0 ]; then
+        echo "Error: Target path not provided" >&2
+        echo "Usage: osm-snd [-i|-f] <target_path>" >&2
+        return 1
+    fi
+
+    target_path="$1"
     local full_path
 
     # Function to print debug messages
@@ -475,6 +496,13 @@ osm-snd() {
         # If no subvolumes found, delete the current subvolume and return
         if [ ${#subvolumes[@]} -eq 0 ]; then
             debug "No nested subvolumes found in: $current_path. Deleting this subvolume."
+            if $interactive; then
+                read -p "Delete subvolume $current_path? (y/n): " answer
+                if [[ $answer != [Yy]* ]]; then
+                    debug "Skipping deletion of $current_path"
+                    return 0
+                fi
+            fi
             if ! btrfs subvolume delete "$current_path"; then
                 error "Failed to delete subvolume: $current_path"
                 return 1
@@ -495,6 +523,13 @@ osm-snd() {
 
         # After processing all nested subvolumes, delete the current subvolume
         debug "Deleting subvolume: $current_path"
+        if $interactive; then
+            read -p "Delete subvolume $current_path? (y/n): " answer
+            if [[ $answer != [Yy]* ]]; then
+                debug "Skipping deletion of $current_path"
+                return 0
+            fi
+        fi
         if ! btrfs subvolume delete "$current_path"; then
             error "Failed to delete subvolume: $current_path"
             return 1
