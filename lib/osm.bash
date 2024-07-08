@@ -37,23 +37,24 @@ osm-var() {
 # <folder_name> <user_name> <C>
 osm-tra() {
     if [ $# -lt 3 ]; then
-        echo "Usage: osm-tra <-n|-c> <user_name> <folder_name> [<additional_folders>...]"
+        echo "Usage: osm-tra <attribute_flag> <user_name> <folder_name> [<additional_folders>...]"
+        echo "Attribute flags: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
         return 1
     fi
 
-    local flag="$1"
+    local attr_flag="$1"
     local user_name="$2"
     shift 2
 
-    if [[ "$flag" != "-n" && "$flag" != "-c" ]]; then
-        echo "Invalid flag. Use -n for no cow or -c for cow."
+    if [[ ! "$attr_flag" =~ ^[acdeijsuACDST-]$ ]]; then
+        echo "Invalid attribute flag. Use one of: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
         return 1
     fi
 
     for folder_name in "$@"; do
         local old_swap="${folder_name}-old"
 
-        # Move current folder to .folder_name-old
+        # Move current folder to folder_name-old
         mv "$folder_name" "$old_swap"
 
         # Create new subvolume
@@ -62,11 +63,15 @@ osm-tra() {
         # Change ownership to specified user
         sudo chown "$user_name": "$folder_name"
 
-        # Disable copy-on-write on new target if -c flag is used
-        if [ "$flag" = "-c" ]; then
+        # Set attribute if specified
+        if [ "$attr_flag" = "C" ]; then
             sudo chattr +C "$folder_name"
+            echo "COW disabled for $folder_name"
+        elif [ "$attr_flag" != "-" ]; then
+            sudo chattr +"$attr_flag" "$folder_name"
+            echo "Attribute '$attr_flag' set for $folder_name"
         else
-            echo "COW Stays Enabled for $folder_name"
+            echo "No attribute set for $folder_name"
         fi
 
         # Move contents from old folder to new one
