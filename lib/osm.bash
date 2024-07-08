@@ -484,7 +484,7 @@ osm-snd() {
 
         # Iterate through subvolumes
         for subvol in "${subvolumes[@]}"; do
-            local subvol_path="$current_path/${subvol#*/}"
+            local subvol_path="${full_path%/}/${subvol#"${target_path#/}/"}"
             debug "Processing subvolume: $subvol_path"
 
             # Recursively delete nested subvolumes
@@ -509,4 +509,4 @@ osm-snd() {
 
     debug "Subvolume deletion process completed successfully"
     return 0
-}	
+}
