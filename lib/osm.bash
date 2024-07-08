@@ -439,15 +439,37 @@ osm-hub() {
 # delete a parent subvolume with all it nested childs
 # subvolume nested delete
 # <parent subvolume>
+# Add this to your ~/.bashrc file
+
 osm-snd() {
     if [ -z "$1" ]; then
         echo "Usage: osm-snd <subvolume-path>"
         return 1
     fi
+    
+    # Convert the provided path to an absolute path
+    local subvolume_path
+    subvolume_path=$(realpath "$1")
+    
+    # Helper function to list nested subvolumes
+    list_nested_subvolumes() {
+        local subvolume_path="$1"
+        btrfs subvolume list -o "$subvolume_path" | awk '{print $9}'
+    }
 
-    subvolume_path="$1"
-
-    btrfs subvolume list -o "$subvolume_path" | awk '{print $9}' | sort -r | xargs -I {} btrfs subvolume delete "${subvolume_path}/{}"
-    btrfs subvolume delete "$subvolume_path"
+    # Helper function to delete a subvolume
+    delete_subvolume() {
+        local subvolume_full_path="$1"
+        btrfs subvolume delete "$subvolume_full_path"
+    }
+    
+    # List and delete nested subvolumes
+    local nested_subvolumes
+    nested_subvolumes=$(list_nested_subvolumes "$subvolume_path" | sort -r)
+    for subvolume in $nested_subvolumes; do
+        delete_subvolume "$subvolume_path/$subvolume"
+    done
+    
+    # Delete the parent subvolume
+    delete_subvolume "$subvolume_path"
 }
-
