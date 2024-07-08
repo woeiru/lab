@@ -463,7 +463,7 @@ osm-snd() {
 
     # Delete nested subvolumes
     while IFS= read -r subvol; do
-        local full_path="$subvolume_path/$subvol"
+        local full_path="${subvolume_path%/}/${subvol#*/}"
         echo "Deleting subvolume: $full_path"
         btrfs subvolume delete "$full_path" || echo "Failed to delete: $full_path"
     done <<< "$subvolumes"
