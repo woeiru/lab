@@ -448,6 +448,9 @@ osm-snd() {
     local force=false
     local depth=0
 
+    # Reset option processing
+    OPTIND=1
+
     echo "Debug: Function called with arguments: $@"
     echo "Debug: OPTIND at start: $OPTIND"
 
