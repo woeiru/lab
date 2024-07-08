@@ -446,7 +446,6 @@ osm-snd() {
     local target_path=""
     local interactive=false
     local force=false
-    local depth=0
 
     # Reset option processing
     OPTIND=1
@@ -471,13 +470,6 @@ osm-snd() {
     target_path="$1"
     local full_path
 
-    # Function to print tree view
-    print_tree() {
-        local message="$1"
-        local current_depth="$2"
-        printf "%*s%s\n" $((current_depth * 2)) "" "$message"
-    }
-
     # Function to print error messages
     error() {
         echo "[ERROR] $1" >&2
@@ -495,28 +487,21 @@ osm-snd() {
     else
         full_path="$(pwd)/$target_path"
     fi
-    
-    print_tree "Target path: $full_path" 0
 
     # Function to delete subvolumes recursively
     delete_subvolumes() {
         local current_path="$1"
         local subvolumes
-        local current_depth="$2"
         local can_delete=true
-
-        print_tree "Checking subvolumes in: ${current_path##*/}" $current_depth
 
         # List subvolumes and store them in an array
         mapfile -t subvolumes < <(list_subvolumes "$current_path")
 
         # If no subvolumes found, attempt to delete the current subvolume
         if [ ${#subvolumes[@]} -eq 0 ]; then
-            print_tree "No nested subvolumes found in: ${current_path##*/}" $((current_depth + 1))
             if $interactive; then
-                read -p "Delete subvolume ${current_path##*/}? (y/n): " answer
+                read -p "Delete subvolume $current_path? (y/n): " answer
                 if [[ $answer != [Yy]* ]]; then
-                    print_tree "Skipping deletion of ${current_path##*/}" $((current_depth + 1))
                     return 1
                 fi
             fi
@@ -524,17 +509,15 @@ osm-snd() {
                 error "Failed to delete subvolume: $current_path"
                 return 1
             fi
-            print_tree "Deleted: ${current_path##*/}" $((current_depth + 1))
             return 0
         fi
 
         # Iterate through subvolumes
         for subvol in "${subvolumes[@]}"; do
             local subvol_path="${current_path}/${subvol##*/}"
-            print_tree "Processing subvolume: ${subvol_path##*/}" $((current_depth + 1))
 
             # Recursively delete nested subvolumes
-            if ! delete_subvolumes "$subvol_path" $((current_depth + 2)); then
+            if ! delete_subvolumes "$subvol_path"; then
                 can_delete=false
             fi
         done
@@ -542,9 +525,8 @@ osm-snd() {
         # After processing all nested subvolumes, attempt to delete the current subvolume
         if $can_delete; then
             if $interactive; then
-                read -p "Delete subvolume ${current_path##*/}? (y/n): " answer
+                read -p "Delete subvolume $current_path? (y/n): " answer
                 if [[ $answer != [Yy]* ]]; then
-                    print_tree "Skipping deletion of ${current_path##*/}" $((current_depth + 1))
                     return 1
                 fi
             fi
@@ -552,20 +534,18 @@ osm-snd() {
                 error "Failed to delete subvolume: $current_path"
                 return 1
             fi
-            print_tree "Deleted: ${current_path##*/}" $((current_depth + 1))
             return 0
         else
-            print_tree "Cannot delete ${current_path##*/} due to remaining child subvolumes" $((current_depth + 1))
             return 1
         fi
     }
 
     # Start the recursive deletion process
-    if ! delete_subvolumes "$full_path" 0; then
+    if ! delete_subvolumes "$full_path"; then
         error "Failed to complete the subvolume deletion process"
         return 1
     fi
 
-    print_tree "Subvolume deletion process completed successfully" 0
+    echo "Subvolume deletion process completed successfully"
     return 0
 }
