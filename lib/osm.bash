@@ -454,46 +454,32 @@ osm-snd() {
         return 1
     fi
 
-    # Get the ID of the parent subvolume
-    local parent_id
-    parent_id=$(btrfs subvolume list . | awk -v path="$subvolume_path" '$NF == path {print $2}')
-    echo "Parent subvolume ID: $parent_id"
+    local max_depth=0
 
-    # List all subvolumes, including deeply nested ones
-    echo "Listing subvolumes:"
-    btrfs subvolume list .
-
-    local subvolumes
-    subvolumes=$(btrfs subvolume list . | awk -v parent="$parent_id" -v path="$subvolume_path" '
-        $4 == parent || index($NF, path"/") == 1 {
-            print $2 " " $NF
-        }
-    ' | sort -rn)
-
-    echo "Subvolumes to delete:"
-    echo "$subvolumes"
-
-    # Delete subvolumes
-    while IFS= read -r line; do
-        local id=$(echo $line | cut -d' ' -f1)
-        local path=$(echo $line | cut -d' ' -f2-)
-        echo "Attempting to delete subvolume: ID=$id, Path=$path"
-        if [ -z "$path" ]; then
-            echo "Warning: Empty path detected, skipping"
-            continue
+    delete_subvolumes() {
+        local current_path=$1
+        local current_depth=$2
+        
+        if [ $current_depth -gt $max_depth ]; then
+            max_depth=$current_depth
         fi
-        if [ ! -d "$path" ]; then
-            echo "Warning: $path is not a directory or doesn't exist"
-            continue
-        fi
-        btrfs subvolume delete "$path" || echo "Failed to delete: $path"
-    done <<< "$subvolumes"
 
-    # Delete the parent subvolume
-    echo "Deleting parent subvolume: $subvolume_path"
-    if [ -d "$subvolume_path" ]; then
-        btrfs subvolume delete "$subvolume_path" || echo "Failed to delete parent: $subvolume_path"
-    else
-        echo "Warning: Parent subvolume $subvolume_path no longer exists"
-    fi
+        echo "Checking subvolumes at depth $current_depth: $current_path"
+        
+        local subvolumes
+        subvolumes=$(btrfs subvolume list -o "$current_path" | awk '{print $NF}')
+
+        for subvol in $subvolumes; do
+            local full_path="${current_path}/${subvol}"
+            echo "Found subvolume: $full_path"
+            delete_subvolumes "$full_path" $((current_depth + 1))
+        done
+
+        echo "Attempting to delete: $current_path"
+        btrfs subvolume delete "$current_path" || echo "Failed to delete: $current_path"
+    }
+
+    delete_subvolumes "$subvolume_path" 0
+
+    echo "Maximum depth of subvolumes found: $max_depth"
 }	
