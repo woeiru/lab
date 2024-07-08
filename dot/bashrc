@@ -65,6 +65,7 @@ alias var='all-fpl all-acu o /root/lab /root/lab/var'
 # function aliases
 alias sca='all-sca'
 alias flc='all-flc'
+alias cto='pve-cto'
 
 # standard aliases
 #
