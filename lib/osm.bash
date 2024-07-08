@@ -455,44 +455,10 @@ osm-snd() {
     done
     shift $((OPTIND-1))
 
-    # Check if target path is provided
-    if [ $# -eq 0 ]; then
-        echo "Error: Target path not provided" >&2
-        echo "Usage: osm-snd [-i|-f] <target_path>" >&2
-        return 1
-    fi
+    echo "Debug: Interactive mode is set to $interactive" # Debug statement
 
-    target_path="$1"
-    local full_path
+    # ... (rest of the initial setup code remains the same)
 
-    # Function to print tree view
-    print_tree() {
-        local message="$1"
-        local current_depth="$2"
-        printf "%*s%s\n" $((current_depth * 2)) "" "$message"
-    }
-
-    # Function to print error messages
-    error() {
-        echo "[ERROR] $1" >&2
-    }
-
-    # Function to list subvolumes and filter out '@' symbol
-    list_subvolumes() {
-        local path="$1"
-        btrfs subvolume list -o "$path" | awk '{print $NF}' | sed 's|@/||g'
-    }
-
-    # Convert relative path to absolute path if necessary
-    if [[ "$target_path" = /* ]]; then
-        full_path="$target_path"
-    else
-        full_path="$(pwd)/$target_path"
-    fi
-    
-    print_tree "Target path: $full_path" 0
-
-    # Function to delete subvolumes recursively
     delete_subvolumes() {
         local current_path="$1"
         local subvolumes
@@ -500,19 +466,24 @@ osm-snd() {
         local can_delete=true
 
         print_tree "Checking subvolumes in: ${current_path##*/}" $current_depth
+        echo "Debug: Entering delete_subvolumes for ${current_path##*/}, interactive=$interactive" # Debug statement
 
-        # List subvolumes and store them in an array
         mapfile -t subvolumes < <(list_subvolumes "$current_path")
 
-        # If no subvolumes found, attempt to delete the current subvolume
         if [ ${#subvolumes[@]} -eq 0 ]; then
             print_tree "No nested subvolumes found in: ${current_path##*/}" $((current_depth + 1))
+            echo "Debug: No nested subvolumes found, interactive=$interactive" # Debug statement
             if $interactive; then
+                echo "Debug: Prompting for deletion of leaf subvolume ${current_path##*/}" # Debug statement
                 read -p "Delete subvolume ${current_path##*/}? (y/n): " answer
+                echo "Debug: User response for ${current_path##*/}: $answer" # Debug statement
                 if [[ $answer != [Yy]* ]]; then
                     print_tree "Skipping deletion of ${current_path##*/}" $((current_depth + 1))
+                    echo "Debug: User chose to skip ${current_path##*/}" # Debug statement
                     return 1
                 fi
+            else
+                echo "Debug: Non-interactive mode, proceeding with deletion of ${current_path##*/}" # Debug statement
             fi
             if ! btrfs subvolume delete "$current_path"; then
                 error "Failed to delete subvolume: $current_path"
@@ -522,25 +493,30 @@ osm-snd() {
             return 0
         fi
 
-        # Iterate through subvolumes
         for subvol in "${subvolumes[@]}"; do
             local subvol_path="${current_path}/${subvol##*/}"
             print_tree "Processing subvolume: ${subvol_path##*/}" $((current_depth + 1))
+            echo "Debug: Processing nested subvolume ${subvol_path##*/}" # Debug statement
 
-            # Recursively delete nested subvolumes
             if ! delete_subvolumes "$subvol_path" $((current_depth + 2)); then
                 can_delete=false
+                echo "Debug: Failed to delete nested subvolume ${subvol_path##*/}, can_delete set to false" # Debug statement
             fi
         done
 
-        # After processing all nested subvolumes, attempt to delete the current subvolume
         if $can_delete; then
+            echo "Debug: All nested subvolumes processed, can_delete=$can_delete, interactive=$interactive" # Debug statement
             if $interactive; then
+                echo "Debug: Prompting for deletion of parent subvolume ${current_path##*/}" # Debug statement
                 read -p "Delete subvolume ${current_path##*/}? (y/n): " answer
+                echo "Debug: User response for ${current_path##*/}: $answer" # Debug statement
                 if [[ $answer != [Yy]* ]]; then
                     print_tree "Skipping deletion of ${current_path##*/}" $((current_depth + 1))
+                    echo "Debug: User chose to skip ${current_path##*/}" # Debug statement
                     return 1
                 fi
+            else
+                echo "Debug: Non-interactive mode, proceeding with deletion of ${current_path##*/}" # Debug statement
             fi
             if ! btrfs subvolume delete "$current_path"; then
                 error "Failed to delete subvolume: $current_path"
@@ -550,11 +526,13 @@ osm-snd() {
             return 0
         else
             print_tree "Cannot delete ${current_path##*/} due to remaining child subvolumes" $((current_depth + 1))
+            echo "Debug: Cannot delete ${current_path##*/}, can_delete=$can_delete" # Debug statement
             return 1
         fi
     }
 
     # Start the recursive deletion process
+    echo "Debug: Starting recursive deletion process, interactive=$interactive" # Debug statement
     if ! delete_subvolumes "$full_path" 0; then
         error "Failed to complete the subvolume deletion process"
         return 1
