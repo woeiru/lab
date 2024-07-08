@@ -100,7 +100,7 @@ alias d.pam='cd /usr/lib/pam_snapper'
 
 alias d.das='cd /mnt/das'
 alias d.nvm='cd /mnt/nvm'
-alias d.bak='cd /bak'
+alias d.usb='cd /mnt/nvm'
 
 # disk usage aliases
 alias u='du -bh -d1'
