@@ -448,17 +448,22 @@ osm-snd() {
     local force=false
     local depth=0
 
+    echo "Debug: Function called with arguments: $@"
+    echo "Debug: OPTIND at start: $OPTIND"
+
     # Parse command line options
     while getopts "if" opt; do
         case $opt in
-            i) interactive=true ;;
-            f) force=true ;;
+            i) interactive=true; echo "Debug: Interactive flag set to true" ;;
+            f) force=true; echo "Debug: Force flag set to true" ;;
             \?) echo "Invalid option: -$OPTARG" >&2; return 1 ;;
         esac
     done
     shift $((OPTIND-1))
 
-    echo "Debug: Interactive mode is set to $interactive" # Debug statement
+    echo "Debug: After getopts, interactive=$interactive, force=$force, OPTIND=$OPTIND"
+
+    echo "Debug: Interactive mode is set to $interactive"
 
     # Check if target path is provided
     if [ $# -eq 0 ]; then
@@ -505,7 +510,7 @@ osm-snd() {
         local can_delete=true
 
         print_tree "Checking subvolumes in: ${current_path##*/}" $current_depth
-        echo "Debug: Entering delete_subvolumes for ${current_path##*/}, interactive=$interactive" # Debug statement
+        echo "Debug: Entering delete_subvolumes for ${current_path##*/}, interactive=$interactive"
 
         # List subvolumes and store them in an array
         mapfile -t subvolumes < <(list_subvolumes "$current_path")
@@ -513,18 +518,18 @@ osm-snd() {
         # If no subvolumes found, attempt to delete the current subvolume
         if [ ${#subvolumes[@]} -eq 0 ]; then
             print_tree "No nested subvolumes found in: ${current_path##*/}" $((current_depth + 1))
-            echo "Debug: No nested subvolumes found, interactive=$interactive" # Debug statement
+            echo "Debug: No nested subvolumes found, interactive=$interactive"
             if $interactive; then
-                echo "Debug: Prompting for deletion of leaf subvolume ${current_path##*/}" # Debug statement
+                echo "Debug: Prompting for deletion of leaf subvolume ${current_path##*/}"
                 read -p "Delete subvolume ${current_path##*/}? (y/n): " answer
-                echo "Debug: User response for ${current_path##*/}: $answer" # Debug statement
+                echo "Debug: User response for ${current_path##*/}: $answer"
                 if [[ $answer != [Yy]* ]]; then
                     print_tree "Skipping deletion of ${current_path##*/}" $((current_depth + 1))
-                    echo "Debug: User chose to skip ${current_path##*/}" # Debug statement
+                    echo "Debug: User chose to skip ${current_path##*/}"
                     return 1
                 fi
             else
-                echo "Debug: Non-interactive mode, proceeding with deletion of ${current_path##*/}" # Debug statement
+                echo "Debug: Non-interactive mode, proceeding with deletion of ${current_path##*/}"
             fi
             if ! btrfs subvolume delete "$current_path"; then
                 error "Failed to delete subvolume: $current_path"
@@ -538,29 +543,29 @@ osm-snd() {
         for subvol in "${subvolumes[@]}"; do
             local subvol_path="${current_path}/${subvol##*/}"
             print_tree "Processing subvolume: ${subvol_path##*/}" $((current_depth + 1))
-            echo "Debug: Processing nested subvolume ${subvol_path##*/}" # Debug statement
+            echo "Debug: Processing nested subvolume ${subvol_path##*/}"
 
             # Recursively delete nested subvolumes
             if ! delete_subvolumes "$subvol_path" $((current_depth + 2)); then
                 can_delete=false
-                echo "Debug: Failed to delete nested subvolume ${subvol_path##*/}, can_delete set to false" # Debug statement
+                echo "Debug: Failed to delete nested subvolume ${subvol_path##*/}, can_delete set to false"
             fi
         done
 
         # After processing all nested subvolumes, attempt to delete the current subvolume
         if $can_delete; then
-            echo "Debug: All nested subvolumes processed, can_delete=$can_delete, interactive=$interactive" # Debug statement
+            echo "Debug: All nested subvolumes processed, can_delete=$can_delete, interactive=$interactive"
             if $interactive; then
-                echo "Debug: Prompting for deletion of parent subvolume ${current_path##*/}" # Debug statement
+                echo "Debug: Prompting for deletion of parent subvolume ${current_path##*/}"
                 read -p "Delete subvolume ${current_path##*/}? (y/n): " answer
-                echo "Debug: User response for ${current_path##*/}: $answer" # Debug statement
+                echo "Debug: User response for ${current_path##*/}: $answer"
                 if [[ $answer != [Yy]* ]]; then
                     print_tree "Skipping deletion of ${current_path##*/}" $((current_depth + 1))
-                    echo "Debug: User chose to skip ${current_path##*/}" # Debug statement
+                    echo "Debug: User chose to skip ${current_path##*/}"
                     return 1
                 fi
             else
-                echo "Debug: Non-interactive mode, proceeding with deletion of ${current_path##*/}" # Debug statement
+                echo "Debug: Non-interactive mode, proceeding with deletion of ${current_path##*/}"
             fi
             if ! btrfs subvolume delete "$current_path"; then
                 error "Failed to delete subvolume: $current_path"
@@ -570,13 +575,13 @@ osm-snd() {
             return 0
         else
             print_tree "Cannot delete ${current_path##*/} due to remaining child subvolumes" $((current_depth + 1))
-            echo "Debug: Cannot delete ${current_path##*/}, can_delete=$can_delete" # Debug statement
+            echo "Debug: Cannot delete ${current_path##*/}, can_delete=$can_delete"
             return 1
         fi
     }
 
     # Start the recursive deletion process
-    echo "Debug: Starting recursive deletion process, interactive=$interactive" # Debug statement
+    echo "Debug: Starting recursive deletion process, interactive=$interactive"
     if ! delete_subvolumes "$full_path" 0; then
         error "Failed to complete the subvolume deletion process"
         return 1
