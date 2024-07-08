@@ -660,34 +660,55 @@ pve-ctc() {
         --ssh-public-keys "$ssh_key_file"
 }
 
-# start or stop a range of containers
+# start, stop, enable, or disable a range of containers
 # container toggle
-# <start or stop> <containers>
+# <start|stop|enable|disable> <containers>
 pve-cto() {
     local action=$1
     shift
-    if [[ $action != "start" && $action != "stop" ]]; then
-        all-use
+    if [[ $action != "start" && $action != "stop" && $action != "enable" && $action != "disable" ]]; then
+        echo "Invalid action: $action"
+        echo "Usage: pve-cto <start|stop|enable|disable> <containers>"
+        return 1
     fi
+
+    handle_action() {
+        local vmid=$1
+        case $action in
+            start)
+                pct start "$vmid"
+                ;;
+            stop)
+                pct stop "$vmid"
+                ;;
+            enable)
+                sed -i 's/^onboot:.*/onboot: 1/' "/etc/pve/lxc/${vmid}.conf" || echo "onboot: 1" >> "/etc/pve/lxc/${vmid}.conf"
+                echo "Container $vmid configuration:"
+                grep '^onboot:' "/etc/pve/lxc/${vmid}.conf"
+                ;;
+            disable)
+                sed -i 's/^onboot:.*/onboot: 0/' "/etc/pve/lxc/${vmid}.conf" || echo "onboot: 0" >> "/etc/pve/lxc/${vmid}.conf"
+                echo "Container $vmid configuration:"
+                grep '^onboot:' "/etc/pve/lxc/${vmid}.conf"
+                ;;
+        esac
+    }
 
     for arg in "$@"; do
         if [[ $arg == *-* ]]; then
             # Handle range input
             IFS='-' read -r start end <<< "$arg"
             for (( vmid=start; vmid<=end; vmid++ )); do
-                if [[ $action == "start" ]]; then
-                    pct start "$vmid"
-                else
-                    pct stop "$vmid"
-                fi
+                handle_action "$vmid"
             done
         else
             # Handle individual input
-            if [[ $action == "start" ]]; then
-                pct start "$arg"
-            else
-                pct stop "$arg"
-            fi
+            handle_action "$arg"
         fi
     done
+
+    if [[ $action == "start" || $action == "stop" ]]; then
+        pct list
+    fi
 }
+
