@@ -662,13 +662,13 @@ pve-ctc() {
 
 # start, stop, enable, or disable a range of containers
 # container toggle
-# <start|stop|enable|disable> <containers>
+# <start|stop|enable|disable> <containers|all>
 pve-cto() {
     local action=$1
     shift
     if [[ $action != "start" && $action != "stop" && $action != "enable" && $action != "disable" ]]; then
         echo "Invalid action: $action"
-        echo "Usage: pve-cto <start|stop|enable|disable> <containers>"
+        echo "Usage: pve-cto <start|stop|enable|disable> <containers|all>"
         return 1
     fi
 
@@ -694,18 +694,26 @@ pve-cto() {
         esac
     }
 
-    for arg in "$@"; do
-        if [[ $arg == *-* ]]; then
-            # Handle range input
-            IFS='-' read -r start end <<< "$arg"
-            for (( vmid=start; vmid<=end; vmid++ )); do
-                handle_action "$vmid"
-            done
-        else
-            # Handle individual input
-            handle_action "$arg"
-        fi
-    done
+    if [[ $1 == "all" ]]; then
+        # Get list of all container IDs
+        container_ids=$(pct list | awk 'NR>1 {print $1}')
+        for vmid in $container_ids; do
+            handle_action "$vmid"
+        done
+    else
+        for arg in "$@"; do
+            if [[ $arg == *-* ]]; then
+                # Handle range input
+                IFS='-' read -r start end <<< "$arg"
+                for (( vmid=start; vmid<=end; vmid++ )); do
+                    handle_action "$vmid"
+                done
+            else
+                # Handle individual input
+                handle_action "$arg"
+            fi
+        done
+    fi
 
     if [[ $action == "start" || $action == "stop" ]]; then
         pct list
