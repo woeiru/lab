@@ -436,3 +436,18 @@ osm-hub() {
     perform_backups
 }
 
+# delete a parent subvolume with all it nested childs
+# subvolume nested delete
+# <parent subvolume>
+osm-snd() {
+    if [ -z "$1" ]; then
+        echo "Usage: osm-snd <subvolume-path>"
+        return 1
+    fi
+
+    subvolume_path="$1"
+
+    btrfs subvolume list -o "$subvolume_path" | awk '{print $9}' | sort -r | xargs -I {} btrfs subvolume delete "${subvolume_path}/{}"
+    btrfs subvolume delete "$subvolume_path"
+}
+
