@@ -439,6 +439,9 @@ osm-hub() {
 # delete a parent subvolume with all it nested childs
 # subvolume nested delete
 # <parent subvolume>
+# delete a parent subvolume with all it nested childs
+# subvolume nested delete
+# <parent subvolume>
 osm-snd() {
     local target_path=""
     local interactive=false
@@ -457,8 +460,44 @@ osm-snd() {
 
     echo "Debug: Interactive mode is set to $interactive" # Debug statement
 
-    # ... (rest of the initial setup code remains the same)
+    # Check if target path is provided
+    if [ $# -eq 0 ]; then
+        echo "Error: Target path not provided" >&2
+        echo "Usage: osm-snd [-i|-f] <target_path>" >&2
+        return 1
+    fi
 
+    target_path="$1"
+    local full_path
+
+    # Function to print tree view
+    print_tree() {
+        local message="$1"
+        local current_depth="$2"
+        printf "%*s%s\n" $((current_depth * 2)) "" "$message"
+    }
+
+    # Function to print error messages
+    error() {
+        echo "[ERROR] $1" >&2
+    }
+
+    # Function to list subvolumes and filter out '@' symbol
+    list_subvolumes() {
+        local path="$1"
+        btrfs subvolume list -o "$path" | awk '{print $NF}' | sed 's|@/||g'
+    }
+
+    # Convert relative path to absolute path if necessary
+    if [[ "$target_path" = /* ]]; then
+        full_path="$target_path"
+    else
+        full_path="$(pwd)/$target_path"
+    fi
+    
+    print_tree "Target path: $full_path" 0
+
+    # Function to delete subvolumes recursively
     delete_subvolumes() {
         local current_path="$1"
         local subvolumes
@@ -468,8 +507,10 @@ osm-snd() {
         print_tree "Checking subvolumes in: ${current_path##*/}" $current_depth
         echo "Debug: Entering delete_subvolumes for ${current_path##*/}, interactive=$interactive" # Debug statement
 
+        # List subvolumes and store them in an array
         mapfile -t subvolumes < <(list_subvolumes "$current_path")
 
+        # If no subvolumes found, attempt to delete the current subvolume
         if [ ${#subvolumes[@]} -eq 0 ]; then
             print_tree "No nested subvolumes found in: ${current_path##*/}" $((current_depth + 1))
             echo "Debug: No nested subvolumes found, interactive=$interactive" # Debug statement
@@ -493,17 +534,20 @@ osm-snd() {
             return 0
         fi
 
+        # Iterate through subvolumes
         for subvol in "${subvolumes[@]}"; do
             local subvol_path="${current_path}/${subvol##*/}"
             print_tree "Processing subvolume: ${subvol_path##*/}" $((current_depth + 1))
             echo "Debug: Processing nested subvolume ${subvol_path##*/}" # Debug statement
 
+            # Recursively delete nested subvolumes
             if ! delete_subvolumes "$subvol_path" $((current_depth + 2)); then
                 can_delete=false
                 echo "Debug: Failed to delete nested subvolume ${subvol_path##*/}, can_delete set to false" # Debug statement
             fi
         done
 
+        # After processing all nested subvolumes, attempt to delete the current subvolume
         if $can_delete; then
             echo "Debug: All nested subvolumes processed, can_delete=$can_delete, interactive=$interactive" # Debug statement
             if $interactive; then
