@@ -448,25 +448,34 @@ osm-snd() {
     # Convert the provided path to an absolute path
     local subvolume_path
     subvolume_path=$(realpath "$1")
+    echo "Parent subvolume path: $subvolume_path"
 
     # Helper function to list nested subvolumes
     list_nested_subvolumes() {
         local subvolume_path="$1"
+        echo "Listing subvolumes in: $subvolume_path"
         btrfs subvolume list -o "$subvolume_path" | awk '{print $NF}'
     }
 
     # Helper function to delete a subvolume
     delete_subvolume() {
         local subvolume_full_path="$1"
-        echo "Deleting subvolume: $subvolume_full_path"
-        btrfs subvolume delete "$subvolume_full_path"
+        if [ -d "$subvolume_full_path" ]; then
+            echo "Deleting subvolume: $subvolume_full_path"
+            btrfs subvolume delete "$subvolume_full_path"
+        else
+            echo "Subvolume not found: $subvolume_full_path"
+        fi
     }
 
     # List and delete nested subvolumes
     local nested_subvolumes
-    nested_subvolumes=$(list_nested_subvolumes "$subvolume_path" | sort -r)
+    nested_subvolumes=$(list_nested_subvolumes "$subvolume_path")
+    echo "Nested subvolumes:"
+    echo "$nested_subvolumes"
+    
     for subvolume in $nested_subvolumes; do
-        delete_subvolume "$subvolume_path/$subvolume"
+        delete_subvolume "$subvolume"
     done
 
     # Delete the parent subvolume
