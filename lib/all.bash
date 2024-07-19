@@ -1399,7 +1399,7 @@ all-sca() {
 
 # rctwake wrapper
 # sheduled wakeup timer
-# <time>
+# <-r for relative or -a for absolute> <time>
 all-swt() {
     local log_file="/var/log/wake_up.log"
 
@@ -1409,59 +1409,77 @@ all-swt() {
         echo "$(date +'%Y-%m-%d %H:%M:%S') - $message" | sudo tee -a "$log_file" > /dev/null
     }
 
-    # Check if an argument was provided
-    if [ $# -eq 0 ]; then
-        echo "Please provide a wake-up time as an argument."
-        echo "Usage: wake_up_at <time>"
-        echo "Examples: '7:00', '7', '07:30', '2024-07-20 07:00:00'"
-        log_message "Error: No wake-up time provided"
+    # Check if correct number of arguments is provided
+    if [ $# -lt 2 ]; then
+        echo "Usage: all-swt [-a|-r] <time>"
+        echo "  -a: absolute time (e.g., 7, 7:00, 2024-07-20 07:00)"
+        echo "  -r: relative time (e.g., 6, 6:30 for 6 hours 30 minutes)"
         return 1
     fi
 
-    input_time="$1"
-    now=$(date +%s)
-    
-    # Function to parse time and get next occurrence
-    get_next_occurrence() {
-        local input="$1"
-        local parsed_time
-        
-        # Try parsing as full date-time
-        if date -d "$input" &>/dev/null; then
-            parsed_time=$(date -d "$input" +%s)
-        # Try parsing as HH:MM
-        elif [[ $input =~ ^[0-9]{1,2}:[0-9]{2}$ ]]; then
-            parsed_time=$(date -d "today $input" +%s)
-        # Try parsing as HH
-        elif [[ $input =~ ^[0-9]{1,2}$ ]]; then
-            parsed_time=$(date -d "today $input:00" +%s)
-        else
-            echo "Invalid time format."
-            log_message "Error: Invalid time format - $input"
+    local mode="$1"
+    local input_time="$2"
+    local wake_seconds
+    local now=$(date +%s)
+
+    case "$mode" in
+        -a)
+            # Function to parse absolute time and get next occurrence
+            get_next_occurrence() {
+                local input="$1"
+                local parsed_time
+                
+                # Try parsing as full date-time
+                if date -d "$input" &>/dev/null; then
+                    parsed_time=$(date -d "$input" +%s)
+                # Try parsing as HH:MM
+                elif [[ $input =~ ^[0-9]{1,2}:[0-9]{2}$ ]]; then
+                    parsed_time=$(date -d "today $input" +%s)
+                # Try parsing as HH
+                elif [[ $input =~ ^[0-9]{1,2}$ ]]; then
+                    parsed_time=$(date -d "today $input:00" +%s)
+                else
+                    echo "Invalid time format."
+                    return 1
+                fi
+                
+                # If the parsed time is in the past, add a day
+                if [ $parsed_time -le $now ]; then
+                    parsed_time=$(date -d "tomorrow $input" +%s)
+                fi
+                
+                echo $parsed_time
+            }
+
+            wake_seconds=$(get_next_occurrence "$input_time")
+            if [ $? -ne 0 ]; then
+                return 1
+            fi
+            ;;
+        -r)
+            # Parse relative time
+            local hours=0
+            local minutes=0
+            if [[ $input_time =~ ^[0-9]+:[0-9]+$ ]]; then
+                IFS=':' read hours minutes <<< "$input_time"
+            elif [[ $input_time =~ ^[0-9]+$ ]]; then
+                hours=$input_time
+            else
+                echo "Invalid relative time format."
+                return 1
+            fi
+            wake_seconds=$((now + hours*3600 + minutes*60))
+            ;;
+        *)
+            echo "Invalid mode. Use -a for absolute time or -r for relative time."
             return 1
-        fi
-        
-        # If the parsed time is in the past, add a day
-        if [ $parsed_time -le $now ]; then
-            parsed_time=$(date -d "tomorrow $input" +%s)
-        fi
-        
-        echo $parsed_time
-    }
+            ;;
+    esac
 
-    wake_seconds=$(get_next_occurrence "$input_time")
-    if [ $? -ne 0 ]; then
-        return 1
-    fi
+    local duration=$((wake_seconds - now))
+    local duration_readable=$(date -u -d @"$duration" +'%-Hh %-Mm %-Ss')
+    local wake_time_readable=$(date -d @"$wake_seconds" +'%Y-%m-%d %H:%M:%S')
 
-    # Calculate the duration until wake-up time
-    duration=$((wake_seconds - now))
-
-    # Convert seconds to a more readable format
-    duration_readable=$(date -u -d @"$duration" +'%-Hh %-Mm %-Ss')
-    wake_time_readable=$(date -d @"$wake_seconds" +'%Y-%m-%d %H:%M:%S')
-
-    # Prompt the user
     echo "System will wake up at: $wake_time_readable"
     echo "Time until wake-up: $duration_readable"
     read -p "Do you want to proceed with putting the system to sleep? (y/n): " answer
@@ -1469,11 +1487,24 @@ all-swt() {
     if [[ $answer =~ ^[Yy]$ ]]; then
         echo "Putting system to sleep. It will wake up at $wake_time_readable"
         log_message "System set to sleep. Wake-up time: $wake_time_readable"
-        sudo rtcwake -m mem -t "$wake_seconds"
-        log_message "System woke up at $(date +'%Y-%m-%d %H:%M:%S')"
+        
+        for state in mem freeze disk; do
+            echo "Attempting to sleep using state: $state"
+            sudo rtcwake -m $state -s $duration -v
+            sleep_result=$?
+            if [ $sleep_result -eq 0 ]; then
+                log_message "System woke up at $(date +'%Y-%m-%d %H:%M:%S') using state: $state"
+                return 0
+            else
+                log_message "Failed to sleep using state: $state (Exit code: $sleep_result)"
+                echo "Failed to sleep using state: $state (Exit code: $sleep_result)"
+            fi
+        done
+        
+        echo "Failed to put the system to sleep."
+        log_message "Failed to put the system to sleep after trying all states."
     else
         echo "Operation cancelled."
         log_message "Operation cancelled by user"
     fi
 }
-
