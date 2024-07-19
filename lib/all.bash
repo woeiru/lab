@@ -1410,17 +1410,25 @@ all-swt() {
     }
 
     # Check if correct number of arguments is provided
-    if [ $# -lt 2 ]; then
-        echo "Usage: all-swt [-a|-r] <time>"
+    if [ $# -lt 3 ]; then
+        echo "Usage: all-swt [-a|-r] <time> <state>"
         echo "  -a: absolute time (e.g., 7, 7:00, 2024-07-20 07:00)"
         echo "  -r: relative time (e.g., 6, 6:30 for 6 hours 30 minutes)"
+        echo "  state: mem or disk"
         return 1
     fi
 
     local mode="$1"
     local input_time="$2"
+    local state="$3"
     local wake_seconds
     local now=$(date +%s)
+
+    # Validate sleep state
+    if [[ "$state" != "mem" && "$state" != "disk" ]]; then
+        echo "Invalid sleep state. Use 'mem' or 'disk'."
+        return 1
+    fi
 
     case "$mode" in
         -a)
@@ -1482,27 +1490,24 @@ all-swt() {
 
     echo "System will wake up at: $wake_time_readable"
     echo "Time until wake-up: $duration_readable"
+    echo "Sleep state: $state"
     read -p "Do you want to proceed with putting the system to sleep? (y/n): " answer
 
     if [[ $answer =~ ^[Yy]$ ]]; then
-        echo "Putting system to sleep. It will wake up at $wake_time_readable"
-        log_message "System set to sleep. Wake-up time: $wake_time_readable"
+        echo "Putting system to sleep using state '$state'. It will wake up at $wake_time_readable"
+        log_message "System set to sleep using state '$state'. Wake-up time: $wake_time_readable"
         
-        for state in mem freeze disk; do
-            echo "Attempting to sleep using state: $state"
-            sudo rtcwake -m $state -s $duration -v
-            sleep_result=$?
-            if [ $sleep_result -eq 0 ]; then
-                log_message "System woke up at $(date +'%Y-%m-%d %H:%M:%S') using state: $state"
-                return 0
-            else
-                log_message "Failed to sleep using state: $state (Exit code: $sleep_result)"
-                echo "Failed to sleep using state: $state (Exit code: $sleep_result)"
-            fi
-        done
-        
-        echo "Failed to put the system to sleep."
-        log_message "Failed to put the system to sleep after trying all states."
+        sudo rtcwake -m $state -s $duration -v
+        sleep_result=$?
+        if [ $sleep_result -eq 0 ]; then
+            log_message "System woke up at $(date +'%Y-%m-%d %H:%M:%S') using state: $state"
+            echo "System woke up successfully."
+            return 0
+        else
+            log_message "Failed to sleep using state: $state (Exit code: $sleep_result)"
+            echo "Failed to sleep using state: $state (Exit code: $sleep_result)"
+            return 1
+        fi
     else
         echo "Operation cancelled."
         log_message "Operation cancelled by user"
