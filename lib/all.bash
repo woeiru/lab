@@ -1497,7 +1497,7 @@ all-swt() {
         echo "Putting system to sleep using state '$state'. It will wake up at $wake_time_readable"
         log_message "System set to sleep using state '$state'. Wake-up time: $wake_time_readable"
         
-        sudo rtcwake -m $state -s $duration -v
+        sudo rtcwake -m $state -l -t "$wake_seconds" -v
         sleep_result=$?
         if [ $sleep_result -eq 0 ]; then
             log_message "System woke up at $(date +'%Y-%m-%d %H:%M:%S') using state: $state"
