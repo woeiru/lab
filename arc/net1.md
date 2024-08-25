@@ -36,7 +36,6 @@ graph TD
     end
     subgraph VLAN99 [Non-Routable Management VLAN 99]
         MS
-        APC
         OPN
         GIT
     end
