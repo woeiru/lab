@@ -7,7 +7,8 @@ graph TD
     US{{Unmanaged Switch}} -.- MH1
     OPN((OpenSENSE)) --- VB((VIRTUAL BRIDGE))
     GIT((GITEA)) --- VB
-    VB --- QD((Quorum Device))
+    VB --- QDV((Quorum Device))
+    VB --- QDD((Quorum Device))
     VB ===|2x 10GbE| CS{{Core Switch}}
     MH1[(Mgmt Hypervisor 1)] -.-  MS{{Mgmt Switch}}
     MH2[(Mgmt Hypervisor 1)] -.-  MS{{Mgmt Switch}}
@@ -28,11 +29,12 @@ graph TD
     subgraph VLAN20 [DATA VLAN 20]
         DH1
         DH2
+        QDD
     end
     subgraph VLAN30 [VFIO VLAN 30]
         VH1
         VH2
-        QD
+        QDV
     end
     subgraph VLAN99 [Non-Routable Management VLAN 99]
         MS
