@@ -15,7 +15,7 @@ graph TD
     QDM{Quorum Device} -.-|1g| MS
     MS ---|10g| CS
     MS ---|1g| APC[Admin PC]
-    APC ---|wifi| ISPR
+    APC ---|1g| US
     MH1 ==>|Hosts| VB
     CS ---|10g| VH2[(VFIO Hypervisor 2)]
     MS ---|1g| VH2
