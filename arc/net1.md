@@ -10,9 +10,9 @@ graph TD
     VB --- QDV((Quorum Device))
     VB --- QDD((Quorum Device))
     VB ===|2x 10g| CS{{Core Switch}}
-    MH1[(Mgmt Hypervisor 1)] -.-|2g|  MS{{Mgmt Switch}}
-    MH2[(Mgmt Hypervisor 2)] -.-|2g|  MS
-    QDM{Quorum Device} -.-|1g|  MS
+    MH1[(Mgmt Hypervisor 1)] -.-|2g| MS{{Mgmt Switch}}
+    MH2[(Mgmt Hypervisor 2)] -.-|2g| MS
+    QDM{Quorum Device} -.-|1g| MS
     MS ---|10g| CS
     MS ---|1g| APC[Admin PC]
     APC ---|wifi| ISPR
