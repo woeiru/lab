@@ -9,21 +9,20 @@ graph TD
     VB ===|2x 10GbE SFP+| CS{{Core Switch}}
     MH1[(Mgmt Hypervisor 1)] ---  MS{{Mgmt Switch}}
     MS === CS
-    MS --- APC[Admin PC]
+    MS -.- APC[Admin PC]
     APC -.-|Wi-Fi| ISPR
     MH1 -.->|Hosts| VB
     CS --- VH2[(VFIO Hypervisor 2)]
-    MS --- VH2
+    MS -.- VH2
     ISPR --- HD[Household Devices]
     CS --- VH1[(VFIO Hypervisor 1)]
-    MS --- VH1
+    MS -.- VH1
     CS --- DH1[(Data Hypervisor 1)]
-    MS --- DH1
+    MS -.- DH1
     CS --- PBS[Primary Backup Server]
-    MS --- PBS
-    PBS -.-|Backup Sync| SBS[Slave Backup Server]
-    MS --- SBS
-    VH1 -.-|Replication| VH2
+    MS -.- PBS
+    PBS ---|Backup Sync| SBS[Slave Backup Server]
+    MS -.- SBS
     VH1 ===|25GbE| DH1
     subgraph MH1
         VB
