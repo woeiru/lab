@@ -13,7 +13,7 @@ graph TD
     MH1[(Mgmt Hypervisor 1)] ---|2g| MS{{Mgmt Switch}}
     MH2[(Mgmt Hypervisor 2)] ---|2g| MS
     QDM[Quorum Device] ---|1g| MS
-    MS ---|10g| CS
+    MS -.-|10g optional| CS
     MS ---|1g| APC[Admin PC]
     APC ---|1g| US
     MH1 ==>|Hosts| VB
@@ -37,7 +37,7 @@ graph TD
         VH2
         QDV
     end
-    subgraph VLAN99 [Non-Routable Management VLAN 99]
+    subgraph VLAN99 [Optional-Routable Management VLAN 99]
         MS
         OPN
         GIT
