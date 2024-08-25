@@ -7,9 +7,7 @@ graph TD
     OPNSENSE --- VB
     VB --- QD[Quorum Device]
     VB ===|2x 10GbE SFP+| CS{{Core Switch}}
-    MH1[(Mgmt Hypervisor 1)] ===|2x 1GbE| MS{{Mgmt Switch}}
-    MH2[(Mgmt Hypervisor 2<br>Cold Standby)] ===|2x 1GbE| MS
-    MH1 -.-|Replication| MH2
+    MH1[(Mgmt Hypervisor 1)] ---  MS{{Mgmt Switch}}
     MS === CS
     MS --- APC[Admin PC]
     APC -.-|Wi-Fi| ISPR
@@ -31,6 +29,9 @@ graph TD
         VB
         OPNSENSE
     end
+    subgraph VLAN10 [Backup VLAN 10]
+        PBS
+    end
     subgraph VLAN20 [DATA VLAN 20]
         DH1
     end
@@ -45,10 +46,7 @@ graph TD
         MH1
         MH2
     end
-    subgraph VLAN10 [Backup VLAN 10]
-        PBS
-    end
-    subgraph IsolatedBackup [Isolated Backup Subnet]
+        subgraph IsolatedBackup [Isolated Backup Subnet]
         PBS
         SBS
     end
