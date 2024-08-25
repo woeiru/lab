@@ -4,7 +4,7 @@
 graph TD
     INT[Internet] --- ISPR[ISP Router]
     ISPR -.- MH1
-    OPN((OpenSENSE)) --- VB
+    OPN((OpenSENSE)) --- VB((VIRTUAL BRIDGE))
     GIT((GITEA)) --- VB
     VB --- QD((Quorum Device))
     VB ===|2x 10GbE| CS{{Core Switch}}
