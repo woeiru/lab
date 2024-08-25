@@ -28,7 +28,7 @@ graph TD
     VH1 ===|25GbE| DH1
     subgraph MH1
         VB
-        OPNSENSE
+        OPNS
     end
     subgraph VLAN10 [Backup VLAN 10]
         PBS
