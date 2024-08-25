@@ -4,8 +4,8 @@
 graph TD
     INT[Internet] --- ISPR[ISP Router]
     ISPR --- VB[Virtual Bridge]
-    OPNSENSE --- VB
-    VB --- QD[Quorum Device]
+    OPNS((OpenSENSE)) --- VB
+    VB --- QD((Quorum Device))
     VB ===|2x 10GbE| CS{{Core Switch}}
     MH1[(Mgmt Hypervisor 1)] -.-  MS{{Mgmt Switch}}
     MS --- CS
