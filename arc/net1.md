@@ -3,19 +3,19 @@
 ```mermaid
 graph TD
     INT[Internet] --- ISPR[ISP Router]
-    ISPR -.- US
-    US{{Unmanaged Switch}} -.- MH1
+    ISPR -.-> US
+    US{{Unmanaged Switch}} -.-> MH1
     OPN((OpenSENSE)) --- VB((VIRTUAL BRIDGE))
     GIT((GITEA)) --- VB
     VB --- QDV((Quorum Device))
     VB --- QDD((Quorum Device))
     VB ===|2x 10g| CS{{Core Switch}}
     MH1[(Mgmt Hypervisor 1)] -.-  MS{{Mgmt Switch}}
-    MH2[(Mgmt Hypervisor 2)] -.-  MS{{Mgmt Switch}}
-    QDM[(Quorum Device)] -.-  MS{{Mgmt Switch}}
+    MH2[(Mgmt Hypervisor 2)] -.-  MS
+    QDM[(Quorum Device)] -.-  MS
     MS --- CS
     MS ---|1g| APC[Admin PC]
-    APC ---|wifi|  ISPR
+    APC ---|wifi| ISPR
     MH1 ==>|Hosts| VB
     CS ---|10g| VH2[(VFIO Hypervisor 2)]
     MS ---|1g| VH2
