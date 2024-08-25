@@ -18,7 +18,7 @@ graph TD
     MH1 ==>|Hosts| VB
     CS --- VH2[(VFIO Hypervisor 2)]
     MS -.- VH2
-    ISPR --- HD[Guest Devices]
+    US --- GD[Guest Devices]
     CS --- VH1[(VFIO Hypervisor 1)]
     MS -.- VH1
     CS --- DH1[(Data Hypervisor 1)]
