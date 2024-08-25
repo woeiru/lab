@@ -4,7 +4,7 @@
 graph TD
     INT[Internet] --- ISPR[ISP Router]
     ISPR ---|1g| US
-    US{Unmanaged Switch} ---|1g| MH1
+    US{UM Switch} ---|1g| MH1
     OPN((OpenSENSE)) -.- VB((VIRTUAL BRIDGE))
     GIT((GITEA)) -.- VB
     VB -.- QDV((Quorum Device))
