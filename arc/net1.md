@@ -3,8 +3,8 @@
 ```mermaid
 graph TD
     INT[Internet] --- ISPR[ISP Router]
-    ISPR --- OPNSENSE[OPNsense VM]
-    OPNSENSE --- VB[Virtual Bridge]
+    ISPR --- VB[Virtual Bridge]
+    OPNSENSE --- VB
     VB --- QD[Quorum Device]
     VB ===|2x 10GbE SFP+| CS{{Core Switch}}
     MH1[(Mgmt Hypervisor 1)] ===|2x 1GbE| MS{{Mgmt Switch}}
