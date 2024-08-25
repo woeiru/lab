@@ -3,7 +3,8 @@
 ```mermaid
 graph TD
     INT[Internet] --- ISPR[ISP Router]
-    ISPR -.- MH1
+    ISPR -.- US
+    US{{Unmanaged Switch}} -.- MH1
     OPN((OpenSENSE)) --- VB((VIRTUAL BRIDGE))
     GIT((GITEA)) --- VB
     VB --- QD((Quorum Device))
@@ -16,7 +17,7 @@ graph TD
     MH1 ==>|Hosts| VB
     CS --- VH2[(VFIO Hypervisor 2)]
     MS -.- VH2
-    ISPR --- HD[Household Devices]
+    ISPR --- HD[Guest Devices]
     CS --- VH1[(VFIO Hypervisor 1)]
     MS -.- VH1
     CS --- DH1[(Data Hypervisor 1)]
@@ -41,6 +42,7 @@ graph TD
     end
     subgraph DMZ [DMZ-like Area / Wi-Fi]
         ISPR
-        HD
+        GD
+        US
     end
 ```
