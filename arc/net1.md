@@ -42,7 +42,6 @@ graph TD
     subgraph VLAN99 [Non-Routable Management VLAN 99]
         MS
         APC
-        MH1
         MH2
     end
         subgraph IsolatedBackup [Isolated Backup Subnet]
