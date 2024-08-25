@@ -6,7 +6,7 @@ graph TD
     ISPR --- VB[Virtual Bridge]
     OPNSENSE --- VB
     VB --- QD[Quorum Device]
-    VB ===|2x 10GbE SFP+| CS{{Core Switch}}
+    VB ===|2x 10GbE| CS{{Core Switch}}
     MH1[(Mgmt Hypervisor 1)] ---  MS{{Mgmt Switch}}
     MS === CS
     MS -.- APC[Admin PC]
