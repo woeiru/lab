@@ -9,6 +9,7 @@ graph TD
     VB --- QD((Quorum Device))
     VB ===|2x 10GbE| CS{{Core Switch}}
     MH1[(Mgmt Hypervisor 1)] -.-  MS{{Mgmt Switch}}
+    MH2[(Mgmt Hypervisor 1)] -.-  MS{{Mgmt Switch}}
     MS --- CS
     MS -.- APC[Admin PC]
     APC -.-|Wi-Fi| ISPR
@@ -23,7 +24,6 @@ graph TD
     CS --- DH2[(Data Hypervisor 2)]
     MS -.- DH2
     VH1 ===|25GbE| DH1
-    DH1 ===|25GbE| DH2
     subgraph VLAN20 [DATA VLAN 20]
         DH1
         DH2
