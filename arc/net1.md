@@ -7,7 +7,7 @@ graph TD
     OPNSENSE --- VB
     VB --- QD[Quorum Device]
     VB ===|2x 10GbE| CS{{Core Switch}}
-    MH1[(Mgmt Hypervisor 1)] ---  MS{{Mgmt Switch}}
+    MH1[(Mgmt Hypervisor 1)] -.-  MS{{Mgmt Switch}}
     MS --- CS
     MS -.- APC[Admin PC]
     APC -.-|Wi-Fi| ISPR
@@ -45,7 +45,6 @@ graph TD
     subgraph VLAN99 [Non-Routable Management VLAN 99]
         MS
         APC
-        MH2
     end
         subgraph IsolatedBackup [Isolated Backup Subnet]
         PBS
