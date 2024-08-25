@@ -28,6 +28,7 @@ graph TD
     subgraph MH1
         VB
         OPNS
+        GIT
     end
     subgraph VLAN10 [Backup VLAN 10]
         PBS
