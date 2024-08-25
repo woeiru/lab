@@ -3,7 +3,7 @@
 ```mermaid
 graph TD
     INT[Internet] --- ISPR[ISP Router]
-    ISPR --- VB((Virtual Bridge))
+    ISPR -.- MH1
     OPN((OpenSENSE)) --- VB
     GIT((GITEA)) --- VB
     VB --- QD((Quorum Device))
