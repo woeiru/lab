@@ -3,8 +3,8 @@
 ```mermaid
 graph TD
     INT[Internet] --- ISPR[ISP Router]
-    ISPR --- VB[Virtual Bridge]
-    OPNS((OpenSENSE)) --- VB
+    ISPR --- VB((Virtual Bridge))
+    OPN((OpenSENSE)) --- VB
     GIT((GITEA)) --- VB
     VB --- QD((Quorum Device))
     VB ===|2x 10GbE| CS{{Core Switch}}
@@ -12,7 +12,7 @@ graph TD
     MS --- CS
     MS -.- APC[Admin PC]
     APC -.-|Wi-Fi| ISPR
-    MH1 -.->|Hosts| VB
+    MH1 ==>|Hosts| VB
     CS --- VH2[(VFIO Hypervisor 2)]
     MS -.- VH2
     ISPR --- HD[Household Devices]
@@ -36,10 +36,11 @@ graph TD
     subgraph VLAN99 [Non-Routable Management VLAN 99]
         MS
         APC
+        OPN
+        GIT
     end
     subgraph DMZ [DMZ-like Area / Wi-Fi]
         ISPR
         HD
     end
 ```
-
