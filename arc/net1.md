@@ -24,11 +24,6 @@ graph TD
     MS -.- DH2
     VH1 ===|25GbE| DH1
     DH1 ===|25GbE| DH2
-    subgraph MH1
-        VB
-        OPNS
-        GIT
-    end
     subgraph VLAN20 [DATA VLAN 20]
         DH1
         DH2
