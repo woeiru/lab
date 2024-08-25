@@ -8,7 +8,7 @@ graph TD
     VB --- QD[Quorum Device]
     VB ===|2x 10GbE| CS{{Core Switch}}
     MH1[(Mgmt Hypervisor 1)] ---  MS{{Mgmt Switch}}
-    MS === CS
+    MS --- CS
     MS -.- APC[Admin PC]
     APC -.-|Wi-Fi| ISPR
     MH1 -.->|Hosts| VB
@@ -18,7 +18,9 @@ graph TD
     CS --- VH1[(VFIO Hypervisor 1)]
     MS -.- VH1
     CS --- DH1[(Data Hypervisor 1)]
+    CS --- DH2[(Data Hypervisor 2)]
     MS -.- DH1
+    MS -.- DH2
     CS --- PBS[Primary Backup Server]
     MS -.- PBS
     PBS ---|Backup Sync| SBS[Slave Backup Server]
@@ -33,6 +35,7 @@ graph TD
     end
     subgraph VLAN20 [DATA VLAN 20]
         DH1
+        DH2
     end
     subgraph VLAN30 [VFIO VLAN 30]
         VH1
