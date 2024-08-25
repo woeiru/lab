@@ -3,7 +3,7 @@
 ```mermaid
 graph TD
     INT[Internet] --- ISPR[ISP Router]
-    ISPR -.-> US
+    ISPR ---|1g| US
     US{{Unmanaged Switch}} -.-> MH1
     OPN((OpenSENSE)) --- VB((VIRTUAL BRIDGE))
     GIT((GITEA)) --- VB
@@ -19,7 +19,7 @@ graph TD
     MH1 ==>|Hosts| VB
     CS ---|10g| VH2[(VFIO Hypervisor 2)]
     MS ---|1g| VH2
-    US ---|10g| GD[Guest Devices]
+    US ---|1g| GD[Guest Devices]
     CS ---|10g| VH1[(VFIO Hypervisor 1)]
     MS ---|1g| VH1
     CS ---|10g| DH1[(Data Hypervisor 1)]
