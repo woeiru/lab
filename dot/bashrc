@@ -120,6 +120,7 @@ alias gc='git commit -m "standard"'
 alias go='git push origin master'
 alias gp='git pull'
 alias gg='all-gio'
+alias gr1='git revert HEAD~1'
 
 # history
 alias h='history'
