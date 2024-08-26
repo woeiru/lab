@@ -2,9 +2,10 @@
 
 ```mermaid
 graph TD
- INT[Internet] -.-> |WAN| ISPR[ISP Router]
+    INT[Internet] -.-> |WAN| ISPR[ISP Router]
     ISPR ---> |LAN| US
     US{{Unmanaged Switch}} -.-> |LAN| MH1
+    US -.-> |LAN| MH2
     VB1{Virtual Bridge 1} -.- |"Uses VB1"| QDV((Quorum Device VFIO))
     VB1 -.- |"Uses VB1"| QDD((Quorum Device Data))
     VB1 -.- |"Uses VB1"| OPN((OpenSENSE))
@@ -15,7 +16,9 @@ graph TD
     MS ---|"1G"| APC[Admin PC]
     APC ---|"1G"| US
     MH1 ==>|"Hosts"| VB1
+    MH2 ==>|"Hosts"| VB1
     MH1 ==>|"Hosts"| VB2{Virtual Bridge 2}
+    MH2 ==>|"Hosts"| VB2
     VB2 -.- |"Uses VB2"| GIT((GITEA))
     VB2 ---> |"Connected to"| MS
     CS ---|"10G"| VH2[(VFIO Hypervisor 2)]
@@ -47,7 +50,6 @@ graph TD
         GD
         US
     end
-
     classDef punctuated stroke-dasharray: 5 5;
-    class US,MH1,VH1,VH2,DH1,DH2,GIT,QDV,QDD,OPN punctuated;
+    class US,MH1,MH2,VH1,VH2,DH1,DH2,GIT,QDV,QDD,OPN punctuated;
 ```
