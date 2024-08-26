@@ -3,6 +3,16 @@
 ```mermaid
 graph TD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+    %% Define styles
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef network fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef hypervisor fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
+    classDef vm fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef vlan fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+
+>>>>>>> parent of ad31816 (standard)
     %% External Network
     subgraph EXT [External Network]
         INT[Internet]
