@@ -3,30 +3,30 @@
 ```mermaid
 graph TD
     INT[Internet] --- ISPR[ISP Router]
-    ISPR ---|1g| US
-    US{UM Switch} ---|1g| MH1
-    OPN((OpenSENSE)) -.- VB((VIRTUAL BRIDGE))
-    GIT((GITEA)) -.- VB
-    VB -.- QDV((Quorum Device))
-    VB -.- QDD((Quorum Device))
-    VB ===|2x 10g| CS{Core Switch}
-    MH1[(Mgmt Hypervisor 1)] ---|2g| MS{Mgmt Switch}
-    MH2[(Mgmt Hypervisor 2)] ---|2g| MS
-    QDM[Quorum Device] ---|1g| MS
-    MS -.-|10g optional| CS
-    MS ---|1g| APC[Admin PC]
-    APC ---|1g| US
+    ISPR ---|WAN| US{{Unmanaged Switch}}
+    US ---|LAN| MS{{Mgmt Switch}}
+    MS ---|2x 1GbE| MH1[(Mgmt Hypervisor 1)]
+    MH1 -.->|Replication| MH2[(Mgmt Hypervisor 2)]
+    MS ---|2x 1GbE| MH2
+    OPN((OpenSENSE)) --- VB((VIRTUAL BRIDGE))
+    GIT((GITEA)) --- VB
+    VB --- QDV((Quorum Device VFIO))
+    VB --- QDD((Quorum Device Data))
+    OPN ===|2x 10GbE| CS{{Core Switch}}
+    QDM[(Quorum Device Mgmt)] --- MS
+    MS ---|1GbE| APC[Admin PC]
+    APC -.-|wifi| US
     MH1 ==>|Hosts| VB
-    CS ---|10g| VH2[(VFIO Hypervisor 2)]
-    MS ---|1g| VH2
-    US ---|1g| GD[Guest Devices]
-    CS ---|10g| VH1[(VFIO Hypervisor 1)]
-    MS ---|1g| VH1
-    CS ---|10g| DH1[(Data Hypervisor 1)]
-    MS ---|1g| DH1
-    CS ---|10g| DH2[(Data Hypervisor 2)]
-    MS ---|1g| DH2
-    VH1 ---|25g| DH1
+    CS ---|10GbE| VH2[(VFIO Hypervisor 2)]
+    MS ---|1GbE| VH2
+    US ---|1GbE| GD[Guest Devices]
+    CS ---|10GbE| VH1[(VFIO Hypervisor 1)]
+    MS ---|1GbE| VH1
+    CS ---|10GbE| DH1[(Data Hypervisor 1)]
+    MS ---|1GbE| DH1
+    CS ---|10GbE| DH2[(Data Hypervisor 2)]
+    MS ---|1GbE| DH2
+    VH1 ---|25GbE| DH1
     subgraph VLAN20 [DATA VLAN 20]
         DH1
         DH2
@@ -37,9 +37,10 @@ graph TD
         VH2
         QDV
     end
-    subgraph VLAN99 [Optional-Routable Management VLAN 99]
+    subgraph VLAN99 [Non-Routable Management VLAN 99]
         MS
-        OPN
+        MH1
+        MH2
         GIT
     end
     subgraph DMZ [DMZ-like Area / Wi-Fi]
@@ -47,4 +48,5 @@ graph TD
         GD
         US
     end
+
 ```
