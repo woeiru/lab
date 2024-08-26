@@ -1,6 +1,7 @@
 # Network Topology Graph
 
 ```mermaid
+graph TD
  INT[Internet] -.-> |WAN| ISPR[ISP Router]
     ISPR -.-> |LAN| US
     US{{Unmanaged Switch}} -.-> |LAN| MH1
