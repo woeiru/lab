@@ -3,8 +3,8 @@
 ```mermaid
 graph TD
     INT[Internet] --- ISPR[ISP Router]
-    ISPR ---|WAN| US{{Unmanaged Switch}}
-    US ---|LAN| MS{{Mgmt Switch}}
+    ISPR ---|WAN| US{Unmanaged Switch}
+    US ---|LAN| MS{Mgmt Switch}
     MS ---|2x 1GbE| MH1[(Mgmt Hypervisor 1)]
     MH1 -.->|Replication| MH2[(Mgmt Hypervisor 2)]
     MS ---|2x 1GbE| MH2
@@ -12,7 +12,7 @@ graph TD
     GIT((GITEA)) --- VB
     VB --- QDV((Quorum Device VFIO))
     VB --- QDD((Quorum Device Data))
-    OPN ===|2x 10GbE| CS{{Core Switch}}
+    OPN ===|2x 10GbE| CS{Core Switch}
     QDM[(Quorum Device Mgmt)] --- MS
     MS ---|1GbE| APC[Admin PC]
     APC -.-|1GbE| US
