@@ -10,7 +10,7 @@ graph TD
     VB1 -.- |"Uses VB1"| OPN((OpenSENSE))
     OPN ===|"2x 10G"| CS{{Core Switch}}
     MH1[(Mgmt Hypervisor 1)] -.-> |"1G"| MS{{Mgmt Switch}}
-    PBS[(Proxmox Backup Server)] ---> |"10G"| MS
+    MH2[(Mgmt Hypervisor 2)] ---> |"10G"| MS
     MS --- |"10G"| CS
     MS ---|"1G"| APC[Admin PC]
     APC ---|"1G"| US
