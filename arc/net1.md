@@ -42,6 +42,8 @@ graph TD
         OPN
         GIT
         QDM
+        MH1
+        MH2
     end
     subgraph DMZ [DMZ-like Area / Wi-Fi]
         ISPR
