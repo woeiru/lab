@@ -15,7 +15,7 @@ graph TD
     OPN ===|2x 10GbE| CS{{Core Switch}}
     QDM[(Quorum Device Mgmt)] --- MS
     MS ---|1GbE| APC[Admin PC]
-    APC -.-|wifi| US
+    APC -.-|1GbE| US
     MH1 ==>|Hosts| VB
     CS ---|10GbE| VH2[(VFIO Hypervisor 2)]
     MS ---|1GbE| VH2
