@@ -27,6 +27,7 @@ graph TD
     CS ---|"10G"| DH2[(Data Hypervisor 2)]
     MS --->|"1G"| DH2
     VH1 ---|"25G"| DH1
+    VH2 ---|"25G"| DH2
     subgraph VLAN20 [DATA VLAN 20]
         DH1
         DH2
