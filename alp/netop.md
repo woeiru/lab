@@ -20,6 +20,7 @@ graph TD
     MS --->|"1G"| VH1
     CS ---|"10G"| DH1[(Data Hypervisor 1)]
     MS --->|"1G"| DH1
+    MS --->|"10G"| CS
     CS ---|"10g"| BMS{{Baremetal Switch}}
     BMS ---|"10g"| BM1[Baremetal Machine 1]
     BM1 ---|"25g"| DH1
