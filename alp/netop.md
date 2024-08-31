@@ -43,11 +43,10 @@ graph TD
     CS ---|"10G"| VH2[(VFIO Hypervisor 2)]
 
     VH1 -.-|"25g optional"| DH1
-    VH2 -.-|"25g optional"| DH1
+    VH2 -.-|"25g optional"| DH2
 
     CS ---|"10g"| BMS{{Baremetal Switch}}
     BMS ---|"10g"| BM1[Baremetal Machine 1]
-    BM1 -.-|"25g optional"| DH1
     BMS ---|"2.5g"| BM2[Baremetal Machine 2]
     BMS ---|"2.5g"| BM3[Baremetal Machine 3]
 
