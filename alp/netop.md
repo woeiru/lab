@@ -10,9 +10,10 @@ graph TD
     MS{{Mgmt Switch}} ---|"1G"| APC[Admin PC]
     APC ---|"1G"| US
 
+    MH1 ==>|"Hosts"| VB2{Virtual Bridge 2} 
     MH1 ==>|"Hosts"| OPN((OpenSENSE))
-    VB2{Virtual Bridge 2} -.- |"Uses VB2"| QDV((Quorum Device VFIO))
-    VB2{Virtual Bridge 2} -.- |"Uses VB2"| QDD((Quorum Device DATA))
+    VB2 -.- |"Uses VB2"| QDV((Quorum Device VFIO))
+    VB2 -.- |"Uses VB2"| QDD((Quorum Device DATA))
     VB2 ===|"2x 10G"| CS{{Core Switch}}
     VB2 ===|"1G"| MS
     VB2 -.- |"Uses VB2"| GIT((GITEA))
