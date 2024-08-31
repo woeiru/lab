@@ -15,6 +15,7 @@ graph TD
         QDV((Quorum Device VFIO))
         QDD((Quorum Device DATA))
         GIT((GITEA))
+        MH1TEAM(TEAM)
     end
 
     INT[Internet] -.-> |WAN| ISPR[ISP Router]
@@ -75,7 +76,7 @@ graph TD
     VB2 -.-|VLAN 99| GIT
 
     classDef punctuated stroke-dasharray: 5 5;
-    class GIT,QDV,QDD,OPN punctuated;
+    class TEAM,GIT,QDV,QDD,OPN punctuated;
     classDef vlan fill:#f9f,stroke:#333,stroke-width:2px;
     class VLAN20,VLAN30,VLAN40,VLAN99 vlan;
 ```
