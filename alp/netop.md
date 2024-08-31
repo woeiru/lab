@@ -18,9 +18,9 @@ graph TD
     end
 
     INT[Internet] -.-> |WAN| ISPR[ISP Router]
-    ISPR --> |LAN| US{{Unmanaged Switch}}
-    US --> |LAN| MH1
-    US ---|"10G"| GD[Guest Devices]
+    ISPR --- |"1G"| US{{Unmanaged Switch}}
+    US --- MH1NIC1
+    US --- GD[Guest Devices]
 
     MS{{Mgmt Switch}} ---|"1G"| APC[Admin PC]
     APC ---|"1G"| US
