@@ -4,7 +4,7 @@
 graph TD
     INT[Internet] -.-> |WAN| ISPR[ISP Router]
     ISPR ---> |LAN| US
-    US{{Unmanaged Switch}} ---> |LAN| MH1
+    US{{Unmanaged Switch}} ---> |LAN| MH1[(Mgmt Hypervisor 1)]
     VB1{Virtual Bridge 1} -.- |"Uses VB1"| QDV((Quorum Device VFIO))
     VB1 -.- |"Uses VB1"| OPN((OpenSENSE))
     OPN ===|"2x 10G"| CS{{Core Switch}}
