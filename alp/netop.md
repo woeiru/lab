@@ -63,6 +63,7 @@ graph TD
         BM3 
     end
     subgraph VLAN99 [Mgmt VLAN 99]
+        MH1
         MS
     end
     subgraph Guest [Guest / Wi-Fi]
