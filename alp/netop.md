@@ -2,21 +2,24 @@
 
 ```mermaid
 graph TD
+    subgraph MH1[Management Hypervisor 1]
+        VB2{Virtual Bridge 2}
+        OPN((OpenSENSE))
+        QDV((Quorum Device VFIO))
+        QDD((Quorum Device DATA))
+        GIT((GITEA))
+    end
+
     INT[Internet] -.-> |WAN| ISPR[ISP Router]
-    ISPR ---> |LAN| US
-    US{{Unmanaged Switch}} ---> |LAN| MH1[(Mgmt Hypervisor 1)]
+    ISPR --> |LAN| US{{Unmanaged Switch}}
+    US --> |LAN| MH1
     US ---|"10G"| GD[Guest Devices]
 
     MS{{Mgmt Switch}} ---|"1G"| APC[Admin PC]
     APC ---|"1G"| US
 
-    MH1 ==>|"Hosts"| VB2{Virtual Bridge 2} 
-    MH1 ==>|"Hosts"| OPN((OpenSENSE))
-    VB2 -.- |"Uses VB2"| QDV((Quorum Device VFIO))
-    VB2 -.- |"Uses VB2"| QDD((Quorum Device DATA))
-    OPN ===|"2x 10G"| CS{{Core Switch}}
     VB2 ===|"1G"| MS
-    VB2 -.- |"Uses VB2"| GIT((GITEA))
+    OPN ===|"2x 10G"| CS{{Core Switch}}
 
     MS --->|"10G"| CS
     MS --->|"1G"| DH1
@@ -32,35 +35,38 @@ graph TD
     CS ---|"10g"| BMS{{Baremetal Switch}}
     BMS ---|"10g"| BM1[Baremetal Machine 1]
     BM1 ---|"25g"| DH1
-    BMS ---|"2,5g"| BM2[Baremetal Machine 2]
-    BMS ---|"2,5g"| BM3[Baremetal Machine 3]
+    BMS ---|"2.5g"| BM2[Baremetal Machine 2]
+    BMS ---|"2.5g"| BM3[Baremetal Machine 3]
 
     subgraph VLAN20 [DATA VLAN 20]
         DH1
         DH2
-        QDD
     end
     subgraph VLAN30 [VFIO VLAN 30]
         VH1
         VH2
-        QDV
     end
     subgraph VLAN40 [BARE VLAN 40]
-       BMS
-       BM1 
-       BM2 
-       BM3 
+        BMS
+        BM1 
+        BM2 
+        BM3 
     end
-
     subgraph VLAN99 [Mgmt VLAN 99]
         MS
-        GIT
     end
     subgraph Guest [Guest / Wi-Fi]
         ISPR
         GD
         US
     end
+
+    VB2 -.->|VLAN 20| QDD
+    VB2 -.->|VLAN 30| QDV
+    VB2 -.->|VLAN 99| GIT
+
     classDef punctuated stroke-dasharray: 5 5;
-    class GIT,QDV,OPN punctuated;
+    class GIT,QDV,QDD,OPN punctuated;
+    classDef vlan fill:#f9f,stroke:#333,stroke-width:2px;
+    class VLAN20,VLAN30,VLAN40,VLAN99 vlan;
 ```
