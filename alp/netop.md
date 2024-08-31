@@ -10,7 +10,7 @@ graph TD
         MH1NIC3 ---|"PCIE PT"| OPN
         MH1NIC4 ---|"PCIE PT"| OPN
         VB2{Virtual Bridge 2}
-        MH1NIC1 ---|"Bound"| VB2
+        MH1NIC2 ---|"Bound"| VB2
         OPN((OpenSENSE))
         QDV((Quorum Device VFIO))
         QDD((Quorum Device DATA))
