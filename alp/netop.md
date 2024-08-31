@@ -25,9 +25,10 @@ graph TD
     MS{{Mgmt Switch}} ---|"1G"| APC[Admin PC]
     APC ---|"1G"| US
 
-    MH1NIC2 ===|"1G"| MS
-    MH1NIC3 ===|"10G"| CS{{Core Switch}}
-    MH1NIC4 ===|"10G"| CS{{Core Switch}}
+    MH1NIC2 ---|"1G"| MS
+    MH1NIC3 ---|"10G"| MH1TEAM
+    MH1NIC4 ---|"10G"| MH1TEAM
+    MH1TEAM ---|"10G"| CS{{Core Switch}}
 
     MS --->|"10G"| CS
     MS --->|"1G"| DH1
