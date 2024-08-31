@@ -7,8 +7,8 @@ graph TD
         MH1NIC2[intel NIC]
         MH1NIC3[mellanox NIC]
         MH1NIC4[mellanox NIC]
-        MH1NIC3 ---|"PCIE PT"| OPN
-        MH1NIC4 ---|"PCIE PT"| OPN
+        MH1NIC3 -.-|"PCIE PT"| OPN
+        MH1NIC4 -.-|"PCIE PT"| OPN
         VB2{Virtual Bridge 2}
         MH1NIC2 ---|"Bound"| VB2
         OPN((OpenSENSE))
@@ -69,9 +69,9 @@ graph TD
         US
     end
 
-    VB2 -.->|VLAN 20| QDD
-    VB2 -.->|VLAN 30| QDV
-    VB2 -.->|VLAN 99| GIT
+    VB2 -.-|VLAN 20| QDD
+    VB2 -.-|VLAN 30| QDV
+    VB2 -.-|VLAN 99| GIT
 
     classDef punctuated stroke-dasharray: 5 5;
     class GIT,QDV,QDD,OPN punctuated;
