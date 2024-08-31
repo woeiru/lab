@@ -22,7 +22,7 @@ graph TD
     MS --->|"1G"| DH1
     CS ---|"10g"| BMS{{Baremetal Switch}}
     BMS ---|"10g"| BM1[Baremetal Machine 1]
-    BMS ---|"25g"| DH1
+    BM1 ---|"25g"| DH1
     BMS ---|"2,5g"| BM2[Baremetal Machine 2]
     BMS ---|"2,5g"| BM3[Baremetal Machine 3]
     subgraph VLAN20 [DATA VLAN 20]
