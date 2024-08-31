@@ -20,6 +20,7 @@ graph TD
     INT[Internet] -.-> |WAN| ISPR[ISP Router]
     ISPR --- |"1G"| US{{Unmanaged Switch}}
     US --- GD[Guest Devices]
+    US ---|1G| MH1NIC1
 
     MS{{Mgmt Switch}} ---|"1G"| APC[Admin PC]
     APC ---|"1G"| US
