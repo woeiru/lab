@@ -23,7 +23,9 @@ graph TD
     MS --->|"1G"| VH1
     CS ---|"10G"| DH1[(Data Hypervisor 1)]
     MS --->|"1G"| DH1
-    MS --->|"1G"| DH2
+    CS ---|"10g"| BMS{{Baremetal Switch}}
+    BMS ---|"10g"| BM1[Baremetal Machine 1]
+    BMS ---|"2,5g"| BM2[Baremetal Machine 2]
     subgraph VLAN20 [DATA VLAN 20]
         DH1
     end
@@ -32,8 +34,8 @@ graph TD
         VH2
         QDV
     end
-    subgraph VLAN40 [VFIO VLAN 30]
-        
+    subgraph VLAN40 [BARE VLAN 40]
+       BM1 
     end
 
     subgraph VLAN99 [Mgmt VLAN 99]
