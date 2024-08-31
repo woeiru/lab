@@ -32,6 +32,7 @@ graph TD
     subgraph VLAN20 [DATA VLAN 20]
         DH1
         DH2
+        QDD
     end
     subgraph VLAN30 [VFIO VLAN 30]
         VH1
