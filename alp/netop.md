@@ -14,7 +14,7 @@ graph TD
     MH1 ==>|"Hosts"| OPN((OpenSENSE))
     VB2 -.- |"Uses VB2"| QDV((Quorum Device VFIO))
     VB2 -.- |"Uses VB2"| QDD((Quorum Device DATA))
-    VB2 ===|"2x 10G"| CS{{Core Switch}}
+    OPN ===|"2x 10G"| CS{{Core Switch}}
     VB2 ===|"1G"| MS
     VB2 -.- |"Uses VB2"| GIT((GITEA))
 
