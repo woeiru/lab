@@ -3,6 +3,11 @@
 ```mermaid
 graph TD
     subgraph MH1[Management Hypervisor 1]
+        MH1NIC1[1G Intel NIC]
+        MH1NIC2[10G Mellanox NIC]
+        MH1NIC3[10G Mellanox NIC]
+        MH1NIC2 ---|"PCIE Passthrough"| OPN
+        MH1NIC3 ---|"PCIE Passthrough"| OPN
         VB2{Virtual Bridge 2}
         OPN((OpenSENSE))
         QDV((Quorum Device VFIO))
