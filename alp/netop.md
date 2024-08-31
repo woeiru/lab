@@ -6,6 +6,7 @@ graph TD
     ISPR ---> |LAN| US
     US{{Unmanaged Switch}} ---> |LAN| MH1[(Mgmt Hypervisor 1)]
     VB1{Virtual Bridge 1} -.- |"Uses VB1"| QDV((Quorum Device VFIO))
+    VB1{Virtual Bridge 1} -.- |"Uses VB1"| QDD((Quorum Device DATA))
     VB1 -.- |"Uses VB1"| OPN((OpenSENSE))
     OPN ===|"2x 10G"| CS{{Core Switch}}
     MS{{Mgmt Switch}} ---|"1G"| APC[Admin PC]
@@ -18,8 +19,10 @@ graph TD
     US ---|"10G"| GD[Guest Devices]
     CS ---|"10G"| VH1[(VFIO Hypervisor 1)]
     MS --->|"1G"| VH1
-    CS ---|"10G"| DH1[(Data Hypervisor 1)]
+    CS ---|"10G"| DH1[(DATA Hypervisor 1)]
+    CS ---|"10G"| DH2[(DATA Hypervisor 2)]
     MS --->|"1G"| DH1
+    MS --->|"1G"| DH2
     MS --->|"10G"| CS
     CS ---|"10g"| BMS{{Baremetal Switch}}
     BMS ---|"10g"| BM1[Baremetal Machine 1]
@@ -28,6 +31,7 @@ graph TD
     BMS ---|"2,5g"| BM3[Baremetal Machine 3]
     subgraph VLAN20 [DATA VLAN 20]
         DH1
+        DH2
     end
     subgraph VLAN30 [VFIO VLAN 30]
         VH1
