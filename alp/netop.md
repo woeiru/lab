@@ -26,6 +26,7 @@ graph TD
     CS ---|"10g"| BMS{{Baremetal Switch}}
     BMS ---|"10g"| BM1[Baremetal Machine 1]
     BMS ---|"2,5g"| BM2[Baremetal Machine 2]
+    BMS ---|"2,5g"| BM3[Baremetal Machine 3]
     subgraph VLAN20 [DATA VLAN 20]
         DH1
     end
@@ -38,6 +39,7 @@ graph TD
        BMS
        BM1 
        BM2 
+       BM3 
     end
 
     subgraph VLAN99 [Mgmt VLAN 99]
