@@ -92,7 +92,7 @@ alias d='cd'
 alias ..='cd ..'
 alias dl="cd $DIR/.."
 
-alias dlc="cd $ALP_DIR"
+alias dla="cd $ALP_DIR"
 alias dlc="cd $CON_DIR"
 alias dls="cd $SET_DIR"
 alias dll="cd $LIB_DIR"
