@@ -6,7 +6,6 @@ graph TD
     ISPR ---> |LAN| US
     US{{Unmanaged Switch}} ---> |LAN| MH1
     VB1{Virtual Bridge 1} -.- |"Uses VB1"| QDV((Quorum Device VFIO))
-    VB1 -.- |"Uses VB1"| QDD((Quorum Device Data))
     VB1 -.- |"Uses VB1"| OPN((OpenSENSE))
     OPN ===|"2x 10G"| CS{{Core Switch}}
     MH1[(Mgmt Hypervisor 1)] -.-> |"1G"| MS{{Mgmt Switch}}
@@ -24,20 +23,19 @@ graph TD
     MS --->|"1G"| VH1
     CS ---|"10G"| DH1[(Data Hypervisor 1)]
     MS --->|"1G"| DH1
-    CS ---|"10G"| DH2[(Data Hypervisor 2)]
     MS --->|"1G"| DH2
-    VH1 ---|"25G"| DH1
-    VH2 ---|"25G"| DH2
     subgraph VLAN20 [DATA VLAN 20]
         DH1
-        DH2
-        QDD
     end
     subgraph VLAN30 [VFIO VLAN 30]
         VH1
         VH2
         QDV
     end
+    subgraph VLAN40 [VFIO VLAN 30]
+        
+    end
+
     subgraph VLAN99 [Mgmt VLAN 99]
         MS
         GIT
@@ -48,5 +46,5 @@ graph TD
         US
     end
     classDef punctuated stroke-dasharray: 5 5;
-    class GIT,QDV,QDD,OPN punctuated;
+    class GIT,QDV,OPN punctuated;
 ```
