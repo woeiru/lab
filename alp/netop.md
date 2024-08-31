@@ -3,11 +3,12 @@
 ```mermaid
 graph TD
     subgraph MH1[Management Hypervisor 1]
-        MH1NIC1[1G NIC]
-        MH1NIC2[10G NIC]
-        MH1NIC3[10G NIC]
-        MH1NIC2 ---|"PCIE PT"| OPN
+        MH1NIC1[intel NIC]
+        MH1NIC2[intel NIC]
+        MH1NIC3[mellanox NIC]
+        MH1NIC4[mellanox NIC]
         MH1NIC3 ---|"PCIE PT"| OPN
+        MH1NIC4 ---|"PCIE PT"| OPN
         VB2{Virtual Bridge 2}
         MH1NIC1 ---|"Bound"| VB2
         OPN((OpenSENSE))
@@ -24,8 +25,9 @@ graph TD
     MS{{Mgmt Switch}} ---|"1G"| APC[Admin PC]
     APC ---|"1G"| US
 
-    VB2 ===|"1G"| MS
-    OPN ===|"2x 10G"| CS{{Core Switch}}
+    MH1NIC2 ===|"1G"| MS
+    MH1NIC3 ===|"10G"| CS{{Core Switch}}
+    MH1NIC4 ===|"10G"| CS{{Core Switch}}
 
     MS --->|"10G"| CS
     MS --->|"1G"| DH1
