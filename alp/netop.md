@@ -15,7 +15,6 @@ graph TD
     MH1 ==>|"Hosts"| VB1
     MH1 ==>|"Hosts"| VB2{Virtual Bridge 2}
     VB2 -.- |"Uses VB2"| GIT((GITEA))
-    VB2 ---> |"Connected to"| MS
     CS ---|"10G"| VH2[(VFIO Hypervisor 2)]
     MS -.->|"1G"| VH2
     US ---|"10G"| GD[Guest Devices]
