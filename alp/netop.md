@@ -4,8 +4,8 @@
 graph TD
     INT[Internet] -.-> |WAN| ISPR[ISP Router]
     ISPR ---> |LAN| US
-    US{{Unmanaged Switch}} -.-> |LAN| MH1
-    US -.-> |LAN| MH2
+    US{{Unmanaged Switch}} ---> |LAN| MH1
+    US ---> |LAN| MH2
     VB1{Virtual Bridge 1} -.- |"Uses VB1"| QDV((Quorum Device VFIO))
     VB1 -.- |"Uses VB1"| QDD((Quorum Device Data))
     VB1 -.- |"Uses VB1"| OPN((OpenSENSE))
@@ -38,11 +38,11 @@ graph TD
         VH2
         QDV
     end
-    subgraph VLAN99 [Non-Routable Management VLAN 99]
+    subgraph VLAN99 [Mgmt VLAN 99]
         MS
         GIT
     end
-    subgraph DMZ [DMZ-like Area / Wi-Fi]
+    subgraph Guest [Guest / Wi-Fi]
         ISPR
         GD
         US
