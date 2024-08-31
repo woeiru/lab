@@ -8,7 +8,8 @@ graph TD
     VB1{Virtual Bridge 1} -.- |"Uses VB1"| QDV((Quorum Device VFIO))
     VB1{Virtual Bridge 1} -.- |"Uses VB1"| QDD((Quorum Device DATA))
     VB1 -.- |"Uses VB1"| OPN((OpenSENSE))
-    OPN ===|"2x 10G"| CS{{Core Switch}}
+    VB1 ===|"2x 10G"| CS{{Core Switch}}
+    VB2 ===|"1G"| MS
     MS{{Mgmt Switch}} ---|"1G"| APC[Admin PC]
     APC ---|"1G"| US
     MH1 ==>|"Hosts"| VB1
