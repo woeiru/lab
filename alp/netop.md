@@ -29,7 +29,7 @@ graph TD
     MH1NIC2 ---|"1G"| MS
     MH1NIC3 ---|"10G"| MH1TEAM
     MH1NIC4 ---|"10G"| MH1TEAM
-    MH1TEAM ---|"10G"| CS{{Core Switch}}
+    MH1TEAM ===|"10G"| CS{{Core Switch}}
 
     MS --->|"10G"| CS
     MS --->|"1G"| DH1
