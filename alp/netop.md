@@ -5,7 +5,6 @@ graph TD
     INT[Internet] -.-> |WAN| ISPR[ISP Router]
     ISPR ---> |LAN| US
     US{{Unmanaged Switch}} ---> |LAN| MH1
-    US ---> |LAN| MH2
     VB1{Virtual Bridge 1} -.- |"Uses VB1"| QDV((Quorum Device VFIO))
     VB1 -.- |"Uses VB1"| QDD((Quorum Device Data))
     VB1 -.- |"Uses VB1"| OPN((OpenSENSE))
@@ -48,5 +47,5 @@ graph TD
         US
     end
     classDef punctuated stroke-dasharray: 5 5;
-    class US,MH1,VH1,VH2,DH1,DH2,GIT,QDV,QDD,OPN punctuated;
+    class GIT,QDV,QDD,OPN punctuated;
 ```
