@@ -8,9 +8,7 @@ graph TD
     VB1{Virtual Bridge 1} -.- |"Uses VB1"| QDV((Quorum Device VFIO))
     VB1 -.- |"Uses VB1"| OPN((OpenSENSE))
     OPN ===|"2x 10G"| CS{{Core Switch}}
-    MH1[(Mgmt Hypervisor 1)] -.-> |"1G"| MS{{Mgmt Switch}}
-    MS --- |"10G"| CS
-    MS ---|"1G"| APC[Admin PC]
+    MS{{Mgmt Switch}} ---|"1G"| APC[Admin PC]
     APC ---|"1G"| US
     MH1 ==>|"Hosts"| VB1
     MH1 ==>|"Hosts"| VB2{Virtual Bridge 2}
