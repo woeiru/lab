@@ -35,7 +35,9 @@ graph TD
         QDV
     end
     subgraph VLAN40 [BARE VLAN 40]
+       BMS
        BM1 
+       BM2 
     end
 
     subgraph VLAN99 [Mgmt VLAN 99]
