@@ -29,11 +29,13 @@ graph TD
 
     subgraph MH1[Meta Hypervisor 1]
         MH1NIC2 ---|"PCIE PT"| OPN1((OpenSense VM 1))
+        MH1NIC3
     end
         MH1NIC3 --- VBA
 
     subgraph MH2[Meta Hypervisor 2]
         MH2NIC2 ---|"PCIE PT"| OPN2((OpenSense VM 2))
+        MH2NIC3
     end
         MH2NIC3 --- VBA
 
