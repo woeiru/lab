@@ -26,6 +26,7 @@ graph TD
     TS -.-|"2.5G Optional"| TH
     TS ---|"2.5G"| TM[Test PC]
     VBA{Virtual Bridge A} -..- QDD((QDev Data))
+    VBA{Virtual Bridge A} -..- QDV((QDev VFIO))
 
     subgraph MH1[Meta Hypervisor 1]
         MH1NIC2 ---|"PCIE PT"| OPN1((OpenSense VM 1))
@@ -61,6 +62,7 @@ graph TD
         MH2NIC3
         DH2
         QDD
+        QDV
     end
 
     subgraph Guest [Guest / Wi-Fi DMZ]
