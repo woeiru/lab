@@ -34,7 +34,11 @@ graph TD
     CS ---|"10G"| TS
     TS ---|"10G"| TH[Test Hypervisor]
     TS -.-|"1G Optional"| TH
+<<<<<<< HEAD
     TS ---|"2.5G"| TM[Test Machine]
+=======
+    TS ===|"2.5G"| TM[Test PC]
+>>>>>>> 13773ba (standard)
 
     subgraph VLAN20 [DATA VLAN 20]
         DH1
@@ -44,7 +48,7 @@ graph TD
         VH1
         VH2
     end
-    subgraph HybridTestNet [Hybrid Test Network / VLAN 10]
+    subgraph VLAN10 [Hybrid Test Network / VLAN 10]
         TS
         TH
         TM
@@ -62,12 +66,19 @@ graph TD
 
     classDef vlan fill:#f9f,stroke:#333,stroke-width:2px;
     class VLAN20,VLAN30,VLAN99 vlan;
+
+    classDef vlan fill:#e9e,stroke:#333,stroke-width:2px;
+    class VLAN99 vlan;
+
     classDef hybridtestnet fill:#9f9,stroke:#333,stroke-width:2px;
-    class HybridTestNet hybridtestnet;
+    class VLAN10 hybridtestnet;
+
     classDef optional stroke-dasharray: 5 5;
     class US,TH optional;
+
     classDef adminpc fill:#f96,stroke:#333,stroke-width:4px;
     class AP adminpc;
+
     classDef testmachine fill:#ff9,stroke:#333,stroke-width:2px;
     class TM testmachine;
 ```
