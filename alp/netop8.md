@@ -26,26 +26,32 @@ graph TD
     TS -.-|"2.5G Optional"| TH
     TS ---|"2.5G"| TM[Test PC]
     VBA{Virtual Bridge A} -..- QDD((QDev Data))
+
     subgraph MH1[Meta Hypervisor 1]
         MH1NIC2 ---|"PCIE PT"| OPN1((OpenSense VM 1))
-        MH1NIC3 --- VBA
     end
+        MH1NIC3 --- VBA
+
     subgraph MH2[Meta Hypervisor 2]
         MH2NIC2 ---|"PCIE PT"| OPN2((OpenSense VM 2))
-        MH2NIC3 --- VBA
     end
+        MH2NIC3 --- VBA
+
     subgraph VLAN20 [DATA VLAN 20]
         DH1
     end
+
     subgraph VLAN30 [VFIO VLAN 30]
         VH1
         VH2
     end
+
     subgraph VLAN10 [Hybrid Test Network / VLAN 10]
         TS
         TH
         TM
     end
+
     subgraph VLAN99 [Mgmt VLAN 99]
         MS
         AP
@@ -54,6 +60,7 @@ graph TD
         DH2
         QDD
     end
+
     subgraph Guest [Guest / Wi-Fi DMZ]
         US
         GD
