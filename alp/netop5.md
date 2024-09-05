@@ -8,6 +8,7 @@ graph TD
     US ---|1G WAN| MS{{Mgmt Switch}}
     US -.-|"2.5G Optional"| TS{{Test Switch}}
 
+    AP ---|"2.5G"| MS
     MS ---|"10G"| MH1NIC1[MH1 Mgmt NIC]
     MS ---|"10G"| MH2NIC1[MH2 Mgmt NIC]
     MS ---|"1G"| MH1NIC3[MH1 WAN NIC]
@@ -67,9 +68,6 @@ graph TD
         GD
         US
     end
-
-    AP ---|"1G"| MS
-    AP -.-|"WiFi Optional"| ISPR
 
     classDef vlan fill:#f9f,stroke:#333,stroke-width:2px;
     class VLAN20,VLAN30 vlan;
