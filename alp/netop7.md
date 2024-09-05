@@ -56,6 +56,7 @@ graph TD
     subgraph Guest [Guest / Wi-Fi DMZ]
         US
         GD
+        ISPR
     end
     classDef vlan fill:#f9f,stroke:#333,stroke-width:2px;
     class VLAN20,VLAN30 vlan;
