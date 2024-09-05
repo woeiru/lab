@@ -53,6 +53,8 @@ graph TD
         MH2NIC3
     end
     subgraph Guest [Guest / Wi-Fi DMZ]
+        INT
+        ISPR
         US
         GD
     end
