@@ -9,33 +9,33 @@ graph TD
     US ---|1G| MH2[Management Hypervisor 2]
     US -.-|"2.5G Optional"| TS{{Test Switch}}
 
-    US ===|"10G"| AP[Admin PC]
-    AP ===|"2.5G"| TS
-    AP ===|"10G"| MS{{Mgmt Switch}}
+    US ---|"10G"| AP[Admin PC]
+    AP ---|"2.5G"| TS
+    AP ---|"10G"| MS{{Mgmt Switch}}
 
     MH1 ---|"1G"| MS
     MH2 ---|"1G"| MS
-    MH1 ===|"10G"| CS{{Core Switch}}
-    MH2 ===|"10G"| CS
+    MH1 ---|"10G"| CS{{Core Switch}}
+    MH2 ---|"10G"| CS
 
-    MS ===|"10G"| CS
+    MS ---|"10G"| CS
     MS --->|"1G"| DH1
     MS --->|"1G"| DH2
     MS --->|"1G"| VH1
     MS --->|"1G"| VH2
 
-    CS ===|"10G"| DH1[(DATA Hypervisor 1)]
-    CS ===|"10G"| DH2[(DATA Hypervisor 2)]
-    CS ===|"10G"| VH1[(VFIO Hypervisor 1)]
-    CS ===|"10G"| VH2[(VFIO Hypervisor 2)]
+    CS ---|"10G"| DH1[(DATA Hypervisor 1)]
+    CS ---|"10G"| DH2[(DATA Hypervisor 2)]
+    CS ---|"10G"| VH1[(VFIO Hypervisor 1)]
+    CS ---|"10G"| VH2[(VFIO Hypervisor 2)]
 
     VH1 -.-|"25G optional"| DH1
     VH2 -.-|"25G optional"| DH2
 
-    CS ===|"10G"| TS
-    TS ===|"10G"| TH[Test Hypervisor]
+    CS ---|"10G"| TS
+    TS ---|"10G"| TH[Test Hypervisor]
     TS -.-|"1G Optional"| TH
-    TS ===|"2.5G"| TM[Test Machine]
+    TS ---|"2.5G"| TM[Test Machine]
 
     subgraph VLAN20 [DATA VLAN 20]
         DH1
