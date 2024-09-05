@@ -17,7 +17,7 @@ graph TD
     MH1NIC2[MH1 Core NIC] ---|"10G"| CS
     MH2NIC2[MH2 Core NIC] ---|"10G"| CS
     CS ---|"10G"| DH1[(DATA Hypervisor 1)]
-    CS ---|"10G"| DH2[(DATA Hypervisor 2)]
+    DH1 ---|"25G"| DH2[(DATA Hypervisor 2)]
     CS ---|"10G"| VH1[(VFIO Hypervisor 1)]
     CS ---|"10G"| VH2[(VFIO Hypervisor 2)]
     VH1 -.-|"25G optional"| DH1
