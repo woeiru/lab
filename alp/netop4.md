@@ -9,7 +9,7 @@ graph TD
     US ---|1G| MH2[Management Hypervisor 2]
     US -.-|"2.5G Optional"| TS{{Test Switch}}
 
-    US ---|"Wifi"| AP[Admin PC]
+    US ---|"Wifi"| AP[Admin Baremetal]
     AP ---|"2.5G"| MS{{Mgmt Switch}}
 
     MH1 ---|"1G"| MS
@@ -34,7 +34,7 @@ graph TD
     CS ---|"10G"| TS
     TS ---|"10G"| TH[Test Hypervisor]
     TS -.-|"1G Optional"| TH
-    TS ===|"2.5G"| TM[Test PC]
+    TS ---|"2.5G"| TM[Test Baremetal]
 
     subgraph VLAN20 [DATA VLAN 20]
         DH1
