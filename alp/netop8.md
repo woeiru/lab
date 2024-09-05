@@ -52,7 +52,6 @@ graph TD
         MH1NIC3
         MH2NIC3
         DH2
-        VBA
         QDD
     end
     subgraph Guest [Guest / Wi-Fi DMZ]
@@ -62,24 +61,31 @@ graph TD
     end
     classDef vlan fill:#f9f,stroke:#333,stroke-width:2px;
     class VLAN20,VLAN30 vlan;
+
     classDef vlan99 fill:#e6f3ff,stroke:#333,stroke-width:2px;
     class VLAN99 vlan99;
+
     classDef hybridtestnet fill:#9f9,stroke:#333,stroke-width:2px;
     class VLAN10 hybridtestnet;
+
     classDef metahypervisor fill:#ffe6cc,stroke:#333,stroke-width:2px;
-    class MH1,MH2 metahypervisor;
+    class MH1,MH2,VBA metahypervisor;
+
     classDef optional stroke-dasharray: 5 5;
     class US optional;
+
     classDef adminpc fill:#f96,stroke:#333,stroke-width:4px;
     class AP adminpc;
+
     classDef testmachine fill:#ff9,stroke:#333,stroke-width:2px;
     class TM testmachine;
+
     classDef dmz fill:#ffd700,stroke:#333,stroke-width:2px;
     class Guest dmz;
+
     classDef quorum fill:#ff7f50,stroke:#333,stroke-width:2px;
     class QDD quorum;
+
     classDef coldstandby fill:#c0c0c0,stroke:#333,stroke-width:2px;
     class DH2 coldstandby;
-    classDef virtualbridge fill:#98fb98,stroke:#333,stroke-width:2px;
-    class VBA virtualbridge;
  ```
