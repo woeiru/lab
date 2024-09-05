@@ -3,7 +3,7 @@
 ```mermaid
 graph TD
     INT[Internet] --- |WAN| ISPR[ISP Router]
-    ISPR --- |"1G"| CS{{Core Switch}}
+    US --- |"2.5G"| CS{{Core Switch}}
     ISPR ---|"2.5G"| US{{Unmanaged Switch}}
     US ---|"2.5G"| GD[Guest Device 1]
     CS ---|"10G"| MS{{Mgmt Switch}}
@@ -26,8 +26,6 @@ graph TD
     TS -.-|"2.5G Optional"| TH
     TS ---|"2.5G"| TM[Test PC]
     VBA{Virtual Bridge A} -..- QDD((QDev Data))
-    VBA -..- OPN1
-    VBA -..- OPN2
     subgraph MH1[Meta Hypervisor 1]
         MH1NIC2 ---|"PCIE PT"| OPN1((OpenSense VM 1))
         MH1NIC3 --- VBA
