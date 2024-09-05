@@ -5,7 +5,7 @@ graph TD
     INT[Internet] --- |WAN| ISPR[ISP Router]
     ISPR --- |"1G"| US{{Unmanaged Switch}}
     US ---|"2.5G"| GD[Guest Device 1]
-    US ---|1G WAN| MS{{Mgmt Switch}}
+    US ---|1.5 WAN| MS{{Mgmt Switch}}
     US -.-|"2.5G Optional"| TS{{Test Switch}}
 
     AP ---|"2.5G"| MS
