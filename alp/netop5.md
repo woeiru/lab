@@ -31,7 +31,7 @@ graph TD
     VH2 -.-|"25G optional"| DH2
     CS ---|"10G"| TS
     TS ---|"10G"| TH[Test Hypervisor]
-    TS -.-|"1G Optional"| TH
+    TS -.-|"2.5G Optional"| TH
     TS ---|"2.5G"| TM[Test PC]
 
     subgraph MH1[Management Hypervisor 1]
