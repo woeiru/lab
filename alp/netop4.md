@@ -34,11 +34,7 @@ graph TD
     CS ---|"10G"| TS
     TS ---|"10G"| TH[Test Hypervisor]
     TS -.-|"1G Optional"| TH
-<<<<<<< HEAD
-    TS ---|"2.5G"| TM[Test Machine]
-=======
     TS ===|"2.5G"| TM[Test PC]
->>>>>>> 13773ba (standard)
 
     subgraph VLAN20 [DATA VLAN 20]
         DH1
