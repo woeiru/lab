@@ -9,9 +9,8 @@ graph TD
     US ---|1G| MH2[Management Hypervisor 2]
     US -.-|"2.5G Optional"| TS{{Test Switch}}
 
-    US ---|"10G"| AP[Admin PC]
-    AP ---|"2.5G"| TS
-    AP ---|"10G"| MS{{Mgmt Switch}}
+    US ---|"Wifi"| AP[Admin PC]
+    AP ---|"2.5G"| MS{{Mgmt Switch}}
 
     MH1 ---|"1G"| MS
     MH2 ---|"1G"| MS
