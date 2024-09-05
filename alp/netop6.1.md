@@ -3,7 +3,7 @@
 ```mermaid
 graph TD
     INT[Internet] --- |WAN| ISPR[ISP Router]
-    ISPR --- |"1G"| CS1{{Core Switch 1}}
+    US --- |"1G"| CS2{{Core Switch 2}}
     ISPR ---|"2.5G"| US{{Unmanaged Switch}}
     US ---|"2.5G"| GD[Guest Device 1]
     CS2{{Core Switch 2}} ---|"2.5G"| AP[Admin PC]
