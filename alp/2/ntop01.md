@@ -2,7 +2,7 @@
 graph TD
     INT[Internet] --- |WAN| ISPRWAN[ISP Router WAN]
     
-    subgraph Guest [Guest / Wi-Fi DMZ]
+    subgraph GuestZone [Guest / Wi-Fi DMZ]
         subgraph ISPR [ISP Router]
             ISPRWAN[WAN NIC]
             ISPRNIC1[NIC 1]
@@ -153,20 +153,39 @@ graph TD
     VS ---|"10G"| VH2NICC
     VH1NICD ---|"25G VLAN99"| VH2NICD
     
-    classDef vlan20 fill:#ffd700,stroke:#333,stroke-width:2px;
-    class VLAN20 vlan20;
-    classDef vlan99 fill:#4169E1,stroke:#333,stroke-width:2px;
-    class VLAN99,VLAN99Data vlan99;
-    classDef vlan30 fill:#90EE90,stroke:#333,stroke-width:2px;
-    class VLAN30 vlan30;
-    classDef hybridtestnet fill:#ffa500,stroke:#333,stroke-width:2px;
-    class HybridNetwork hybridtestnet;
-    classDef devices fill:#d3d3d3,stroke:#333,stroke-width:2px,color:#000;
-    class MH1,MH2,DH1,DH2,VH1,VH2,TM1,AP,TM2,TT,ISPR,CS,MS,VS,TS,TAP devices;
-    classDef optional stroke-dasharray: 5 5;
-    class TTNICW,MH2NICC,MH2NICD optional;
-    classDef dmz fill:#ff0000,stroke:#333,stroke-width:2px;
-    class Guest dmz;
-    classDef infrastructure fill:none,stroke:#800080,stroke-width:4px;
-    class MetaInfrastructure,DataInfrastructure,VFIOInfrastructure,TestInfrastructure,ManagementInfrastructure infrastructure;
+    classDef physicalDevices fill:#d3d3d3,stroke:#333,stroke-width:2px,fontcolor:#000000;
+    class MH1,MH2,DH1,DH2,VH1,VH2,TM1,AP,TM2,TT,ISPR physicalDevices;
+
+    classDef networkDevices fill:#a9a9a9,stroke:#333,stroke-width:2px,fontcolor:#000000;
+    class CS,MS,VS,TS,TAP networkDevices;
+
+    classDef virtualDevices fill:#e6e6e6,stroke:#333,stroke-width:2px,fontcolor:#000000;
+    class VBA,VBB virtualDevices;
+
+    classDef vlanDataNetwork fill:#ffd700,stroke:#333,stroke-width:2px,fontcolor:#000000;
+    class VLAN20 vlanDataNetwork;
+
+    classDef vlanManagement fill:#4169E1,stroke:#333,stroke-width:2px,fontcolor:#000000;
+    class VLAN99,VLAN99Data vlanManagement;
+
+    classDef vlanVFIO fill:#90EE90,stroke:#333,stroke-width:2px,fontcolor:#000000;
+    class VLAN30 vlanVFIO;
+
+    classDef vlanHybridTest fill:#ffa500,stroke:#333,stroke-width:2px,fontcolor:#000000;
+    class HybridNetwork vlanHybridTest;
+
+    classDef optionalConnections stroke-dasharray: 5 5;
+    class TTNICW,MH2NICC,MH2NICD optionalConnections;
+
+    classDef securityZone fill:#ff0000,stroke:#333,stroke-width:2px,fontcolor:#000000;
+    class GuestZone securityZone;
+
+    classDef infrastructureGroup fill:none,stroke:#800080,stroke-width:4px;
+    class MetaInfrastructure,DataInfrastructure,VFIOInfrastructure,TestInfrastructure,ManagementInfrastructure infrastructureGroup;
+
+    classDef virtualServices fill:none,stroke:#0000FF,stroke-width:2px,fontcolor:#000000;
+    class QDD,QDV,QDM,OPN virtualServices;
+
+    classDef virtualBridges fill:none,stroke:#808080,stroke-width:2px;
+    class VBA,VBB virtualBridges;
 ```
