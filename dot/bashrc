@@ -197,3 +197,6 @@ alias ttttt='tree -L 5'
 alias v='vim'
 alias v.b="vim $DOT_DIR/bashrc"
 alias v.nw="vim $CON_DIR/node-w.md"
+
+# unsorted
+alias l='ls -Al'
