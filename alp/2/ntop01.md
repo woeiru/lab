@@ -5,14 +5,14 @@ graph TD
     subgraph GuestZone [Guest / Wi-Fi DMZ]
         subgraph ISPR [ISP Router]
             ISPRWAN[WAN NIC]
-            ISPRNIC1[NIC 1]
-            ISPRNIC2[NIC 2]
-            ISPRNIC3[NIC 3]
+            ISPRNIC1[NIC 1 DMZ]
+            ISPRNIC2[NIC 2 DMZ]
+            ISPRNIC3[NIC 3 DMZ]
             ISPRNIC4[NIC 4]
             ISPRNIC5[NIC 5]
-            ISPRWIFI[WiFi NIC]
+            ISPRWIFI[WiFi NIC DMZ]
         end
-        GD[Guest Device 1]
+        GD[Guest Device 1 DMZ]
     end
     
     ISPRNIC1 ---|"2.5G"| CS{Core Switch}
@@ -26,16 +26,16 @@ graph TD
     subgraph MetaInfrastructure [Meta Infrastructure]
         CS
         subgraph MH1[Meta Hypervisor 1]
-            MH1NICA[NIC A]
-            MH1NICB[NIC B]
-            MH1NICC[NIC C]
-            MH1NICD[NIC D]
+            MH1NICA[NIC A VLAN99]
+            MH1NICB[NIC B VLAN99]
+            MH1NICC[NIC C ALL VLANs]
+            MH1NICD[NIC D ALL VLANs]
         end
         subgraph MH2[Meta Hypervisor 2]
-            MH2NICA[NIC A]
-            MH2NICB[NIC B]
-            MH2NICC[NIC C]
-            MH2NICD[NIC D]
+            MH2NICA[NIC A VLAN99]
+            MH2NICB[NIC B VLAN99]
+            MH2NICC[NIC C ALL VLANs]
+            MH2NICD[NIC D ALL VLANs]
         end
         VBA[[Virtual Bridge A]]
         VBB[[Virtual Bridge B]]
@@ -57,33 +57,27 @@ graph TD
     end
     
     subgraph DataInfrastructure [Data Infrastructure]
-        subgraph VLAN20 [DATA VLAN 20]
-            subgraph DH1[Data Hypervisor 1]
-                DH1NICA[NIC A]
-                DH1NICB[NIC B]
-                DH1NICC[NIC C]
-                DH1NICD[NIC D]
-            end
+        subgraph DH1[Data Hypervisor 1]
+            DH1NICA[NIC A VLAN99]
+            DH1NICB[NIC B VLAN99]
+            DH1NICC[NIC C VLAN20]
+            DH1NICD[NIC D VLAN99]
         end
-        subgraph VLAN99Data [MGMT VLAN 99]
-            subgraph DH2[Data Hypervisor 2]
-                DH2NICA[NIC A]
-                DH2NICB[NIC B]
-                DH2NICC[NIC C]
-                DH2NICD[NIC D]
-            end
+        subgraph DH2[Data Hypervisor 2]
+            DH2NICA[NIC A VLAN99]
+            DH2NICB[NIC B VLAN99]
+            DH2NICC[NIC C VLAN20]
+            DH2NICD[NIC D VLAN99]
         end
     end
     
     subgraph ManagementInfrastructure [Management Infrastructure]
-        subgraph VLAN99 [Mgmt VLAN 99]
-            MS
-            MH1NICB
-            MH2NICB
-        end
+        MS
+        MH1NICB
+        MH2NICB
         subgraph AP[Admin PC]
-            APNICA[NIC A]
-            APNICW[NIC W]
+            APNICA[NIC A VLAN99]
+            APNICW[NIC W DMZ]
             QDM((QDev Meta<br>Container))
         end
     end
@@ -104,16 +98,14 @@ graph TD
     QDM -.->|"Container Network"| APNICA
 
     subgraph VFIOInfrastructure [VFIO Infrastructure]
-        subgraph VLAN30 [VFIO VLAN 30]
-            VS
-            subgraph VH1[VFIO Hypervisor 1]
-                VH1NICC[NIC C]
-                VH1NICD[NIC D]
-            end
-            subgraph VH2[VFIO Hypervisor 2]
-                VH2NICC[NIC C]
-                VH2NICD[NIC D]
-            end
+        VS
+        subgraph VH1[VFIO Hypervisor 1]
+            VH1NICC[NIC C VLAN30]
+            VH1NICD[NIC D VLAN99]
+        end
+        subgraph VH2[VFIO Hypervisor 2]
+            VH2NICC[NIC C VLAN30]
+            VH2NICD[NIC D VLAN99]
         end
     end
     
@@ -121,26 +113,26 @@ graph TD
         subgraph HybridNetwork [Hybrid VLAN 10 / DMZ Subnet]
             TS
             subgraph TM1[Test Machine 1]
-                THNICA[NIC A]
-                THNICB[NIC B]
-                THNICC[NIC C]
+                THNICA[NIC A VLAN99]
+                THNICB[NIC B DMZ]
+                THNICC[NIC C VLAN10]
                 THNICD[NIC D]
             end
             subgraph TM2[Test Machine 2]
-                TMNICA[NIC A]
-                TMNICC[NIC C]
+                TMNICA[NIC A DMZ]
+                TMNICC[NIC C VLAN10]
                 TMNICD[NIC D]
             end
             TAP{2.5G AP}
             subgraph TT[Test Tablet]
-                TTNICW[NIC W]
+                TTNICW[NIC W DMZ]
             end
         end
-        TS ---|"2.5G VLAN99"| THNICA
-        TS ---|"2.5G DMZ"| THNICB
-        TS ---|"10G VLAN10"| THNICC
-        TS ---|"1G DMZ"| TMNICA
-        TS ---|"10->2.5G VLAN10"| TMNICC
+        TS ---|"2.5G"| THNICA
+        TS ---|"2.5G"| THNICB
+        TS ---|"10G"| THNICC
+        TS ---|"1G"| TMNICA
+        TS ---|"2.5G"| TMNICC
         THNICD ---|"10G Direct"| TMNICD
         TS ---|"2.5G"| TAP
         TTNICW -.-|"WiFi"| TAP
@@ -148,9 +140,8 @@ graph TD
 
     %% Detailed connections
     CS ---|"10G"| DH1NICC
-    DH1NICD ---|"25G VLAN99"| DH2NICD
+    DH1NICD ---|"25G"| DH2NICD
     VS ---|"10G"| VH1NICC
     VS ---|"10G"| VH2NICC
-    VH1NICD ---|"25G VLAN99"| VH2NICD
-    
+    VH1NICD ---|"25G"| VH2NICD   
 ```
