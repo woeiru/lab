@@ -154,10 +154,7 @@ graph TD
     VH1NICD ---|"25G VLAN99"| VH2NICD
     
     classDef physicalDevices fill:#d3d3d3,stroke:#333,stroke-width:2px,fontcolor:#000000;
-    class MH1,MH2,DH1,DH2,VH1,VH2,TM1,AP,TM2,TT,ISPR physicalDevices;
-
-    classDef networkDevices fill:#a9a9a9,stroke:#333,stroke-width:2px,fontcolor:#000000;
-    class CS,MS,VS,TS,TAP networkDevices;
+    class CS,MS,VS,TS,TAP,MH1,MH2,DH1,DH2,VH1,VH2,TM1,AP,TM2,TT,ISPR physicalDevices;
 
     classDef virtualDevices fill:#e6e6e6,stroke:#333,stroke-width:2px,fontcolor:#000000;
     class VBA,VBB virtualDevices;
