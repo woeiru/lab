@@ -153,36 +153,4 @@ graph TD
     VS ---|"10G"| VH2NICC
     VH1NICD ---|"25G VLAN99"| VH2NICD
     
-    classDef physicalDevices fill:#d3d3d3,stroke:#333,stroke-width:2px,fontcolor:#000000;
-    class CS,MS,VS,TS,TAP,MH1,MH2,DH1,DH2,VH1,VH2,TM1,AP,TM2,TT,ISPR physicalDevices;
-
-    classDef virtualDevices fill:#e6e6e6,stroke:#333,stroke-width:2px,fontcolor:#000000;
-    class VBA,VBB virtualDevices;
-
-    classDef vlanDataNetwork fill:#ffd700,stroke:#333,stroke-width:2px,fontcolor:#000000;
-    class VLAN20 vlanDataNetwork;
-
-    classDef vlanManagement fill:#4169E1,stroke:#333,stroke-width:2px,fontcolor:#000000;
-    class VLAN99,VLAN99Data vlanManagement;
-
-    classDef vlanVFIO fill:#90EE90,stroke:#333,stroke-width:2px,fontcolor:#000000;
-    class VLAN30 vlanVFIO;
-
-    classDef vlanHybridTest fill:#ffa500,stroke:#333,stroke-width:2px,fontcolor:#000000;
-    class HybridNetwork vlanHybridTest;
-
-    classDef optionalConnections stroke-dasharray: 5 5;
-    class TTNICW,MH2NICC,MH2NICD optionalConnections;
-
-    classDef securityZone fill:#ff0000,stroke:#333,stroke-width:2px,fontcolor:#000000;
-    class GuestZone securityZone;
-
-    classDef infrastructureGroup fill:none,stroke:#800080,stroke-width:4px;
-    class MetaInfrastructure,DataInfrastructure,VFIOInfrastructure,TestInfrastructure,ManagementInfrastructure infrastructureGroup;
-
-    classDef virtualServices fill:none,stroke:#0000FF,stroke-width:2px,fontcolor:#000000;
-    class QDD,QDV,QDM,OPN virtualServices;
-
-    classDef virtualBridges fill:none,stroke:#808080,stroke-width:2px;
-    class VBA,VBB virtualBridges;
 ```
