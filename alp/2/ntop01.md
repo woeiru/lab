@@ -1,5 +1,4 @@
-mermaid
-```
+mermaid```
 graph TD
     INT[Internet] --- |WAN| ISPR[ISP Router]
     ISPR ---|"2.5G"| CS{Core Switch}
