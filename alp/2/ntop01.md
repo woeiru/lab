@@ -40,14 +40,20 @@ graph TD
         VBA[[Virtual Bridge A]]
         VBB[[Virtual Bridge B]]
         OPN((OpenSense VM))
-        QDM((QDev Meta))
+        QDD((QDev Data))
+        QDV((QDev VFIO))
         
-        VBA --- QDM
         VBA --- MH1NICB
         VBA --- MH2NICB
+        VBA --- MH1NICA
+        VBA --- MH2NICA
+        VBA --- QDD
+        VBA --- QDV
         VBB --- OPN
         VBB --- MH1NICC
         VBB --- MH2NICC
+        VBB --- MH1NICD
+        VBB --- MH2NICD
     end
     
     subgraph DataInfrastructure [Data Infrastructure]
@@ -67,7 +73,6 @@ graph TD
                 DH2NICD[NIC D]
             end
         end
-        QDD((QDev Data))
     end
     
     subgraph ManagementInfrastructure [Management Infrastructure]
@@ -79,11 +84,14 @@ graph TD
         subgraph AP[Admin PC]
             APNICA[NIC A]
             APNICW[NIC W]
+            QDM((QDev Meta<br>Container))
         end
     end
     
     MH1NICC ---|"10G"| CS
-    MH2NICC ---|"10G"| CS
+    MH1NICD ---|"10G"| CS
+    MH2NICC -.-|"10G Optional"| CS
+    MH2NICD -.-|"10G Optional"| CS
     MS ---|"1G LACP"| MH1NICA
     MS ---|"1G LACP"| MH1NICB
     MS ---|"1G LACP"| MH2NICA
@@ -93,6 +101,7 @@ graph TD
     MS ---|"1G LACP"| DH2NICA
     MS ---|"1G LACP"| DH2NICB
     APNICA ---|"10G"| MS
+    QDM -.->|"Container Network"| APNICA
 
     subgraph VFIOInfrastructure [VFIO Infrastructure]
         subgraph VLAN30 [VFIO VLAN 30]
@@ -106,19 +115,18 @@ graph TD
                 VH2NICD[NIC D]
             end
         end
-        QDV((QDev VFIO))
     end
     
     subgraph TestInfrastructure [Test Infrastructure]
         subgraph HybridNetwork [Hybrid VLAN 10 / DMZ Subnet]
             TS
-            subgraph TH[Test Hypervisor]
+            subgraph TM1[Test Machine 1]
                 THNICA[NIC A]
                 THNICB[NIC B]
                 THNICC[NIC C]
                 THNICD[NIC D]
             end
-            subgraph TM[Test PC]
+            subgraph TM2[Test Machine 2]
                 TMNICA[NIC A]
                 TMNICC[NIC C]
                 TMNICD[NIC D]
@@ -138,10 +146,6 @@ graph TD
         TTNICW -.-|"WiFi"| TAP
     end
 
-    MS ---|"1G"| QDM
-    VS ---|"1G VLAN99"| QDV
-    VBA --- QDD
-
     %% Detailed connections
     CS ---|"10G"| DH1NICC
     DH1NICD ---|"25G VLAN99"| DH2NICD
@@ -158,9 +162,9 @@ graph TD
     classDef hybridtestnet fill:#ffa500,stroke:#333,stroke-width:2px;
     class HybridNetwork hybridtestnet;
     classDef devices fill:#d3d3d3,stroke:#333,stroke-width:2px,color:#000;
-    class MH1,MH2,DH1,DH2,VH1,VH2,TH,AP,TM,TT,ISPR,CS,MS,VS,TS,TAP devices;
+    class MH1,MH2,DH1,DH2,VH1,VH2,TM1,AP,TM2,TT,ISPR,CS,MS,VS,TS,TAP devices;
     classDef optional stroke-dasharray: 5 5;
-    class TTNICW optional;
+    class TTNICW,MH2NICC,MH2NICD optional;
     classDef dmz fill:#ff0000,stroke:#333,stroke-width:2px;
     class Guest dmz;
     classDef infrastructure fill:none,stroke:#800080,stroke-width:4px;
