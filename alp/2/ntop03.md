@@ -18,12 +18,12 @@ graph TD
     
     subgraph CoreInfrastructure [Core Infrastructure]
         subgraph CS [Core Switch]
-            CSP1[P1 VLAN20]
-            CSP2[P2]
+            CSP1[P1 Trunk]
+            CSP2[P2 Trunk]
             CSP3[P3 VLAN20]
             CSP4[P4]
-            CSP5[P5 Trunk]
-            CSP6[P6 Trunk]
+            CSP5[P5 VLAN20]
+            CSP6[P6]
             CSP7[P7 Trunk]
             CSP8[P8 Trunk]
             CSP9[P9 Trunk]
@@ -72,7 +72,7 @@ graph TD
         subgraph AP[Admin PC]
             APNICA[NIC A]
             APNICW[NIC W]
-            QDM((QDev Meta<br>Container))
+            QDC((QDev Core))
         end
     end
     
@@ -146,19 +146,19 @@ graph TD
         end
     end
 
-    %% Connections (unchanged)
+    %% Connections
     ISPRNIC0 ---|"2.5G"| CSP15
     CSP13 ---|"10G"| MSP9
     CSP11 ---|"10G"| VSP7
     CSP12 ---|"10G"| VSP8
-    CSP1 ---|"10G"| DH1NICC
-    CSP3 ---|"10G"| DH2NICC
+    CSP3 ---|"10G"| DH1NICC
+    CSP5 ---|"10G"| DH2NICC
     CH1NICC ---|"10G"| CSP7
-    CH1NICD ---|"10G"| CSP8
-    CH2NICC ---|"10G"| CSP9
+    CH1NICD ---|"10G"| CSP9
+    CH2NICC ---|"10G"| CSP8
     CH2NICD ---|"10G"| CSP10
-    TSP9 ---|"10G"| CSP5
-    TSP10 ---|"10G"| CSP6
+    TSP9 ---|"10G"| CSP1
+    TSP10 ---|"10G"| CSP2
     MSP2 ---|"1G LACP"| CH1NICA
     MSP3 ---|"1G LACP"| CH1NICB
     MSP4 ---|"1G LACP"| CH2NICA
@@ -168,7 +168,7 @@ graph TD
     MSP8 ---|"1G LACP"| DH2NICA
     MSP1 ---|"1G LACP"| DH2NICB
     APNICA ---|"10G"| MSP10
-    QDM -.->|"Container Network"| APNICA
+    QDC -.->|"Container Network"| APNICA
     DH1NICD ---|"25G"| DH2NICD
     VSP1 ---|"10G LACP"| VH1NICC
     VSP2 ---|"10G LACP"| VH1NICD
