@@ -737,30 +737,93 @@ all-cap() {
 
 # Installs specified packages using a package manager.
 # install packages
-# <pman> <pak1> <pak2>
+# <pak1> <pak2> ...
 all-ipa() {
     local function_name="${FUNCNAME[0]}"
-    local pman="$1"
-    local pak1="$2"
-    local pak2="$3"
-   
-    if [ $# -ne 3 ]; then
-	all-use
+
+    if [ $# -lt 1 ]; then
+        all-use
         return 1
     fi
 
-    "$pman" update
-    "$pman" upgrade -y
-    "$pman" install -y "$pak1" "$pak2"
+    # Function to detect the package manager
+    detect_package_manager() {
+        if command -v apt &> /dev/null; then
+            echo "apt"
+        elif command -v dnf &> /dev/null; then
+            echo "dnf"
+        elif command -v yum &> /dev/null; then
+            echo "yum"
+        elif command -v zypper &> /dev/null; then
+            echo "zypper"
+        else
+            echo "unknown"
+        fi
+    }
 
-    # Check if installation was successful
-    if [ $? -eq 0 ]; then
-	    all-nos "$function_name" "executed ( $1 $2 $3 )"
-    else
-        all-nos "$function_name" "Failed to install  ( $1 $2 $3 )"
+    # Nested function to define package manager commands
+    get_commands() {
+        case "$1" in
+            apt)
+                echo "update:update upgrade:upgrade -y install:install -y"
+                ;;
+            dnf)
+                echo "update:check-update upgrade:upgrade -y install:install -y"
+                ;;
+            yum)
+                echo "update:check-update upgrade:upgrade -y install:install -y"
+                ;;
+            zypper)
+                echo "update:refresh upgrade:update -y install:install -y"
+                ;;
+            *)
+                echo "error:Unsupported package manager: $1"
+                ;;
+        esac
+    }
+
+    # Detect the package manager
+    local pman=$(detect_package_manager)
+
+    if [ "$pman" = "unknown" ]; then
+        all-nos "$function_name" "Could not detect a supported package manager"
         return 1
     fi
-} 
+
+    # Get commands for the detected package manager
+    commands=$(get_commands "$pman")
+
+    # Check if the package manager is supported (this should always be true now, but keep as a safeguard)
+    if [[ $commands == error:* ]]; then
+        all-nos "$function_name" "${commands#error:}"
+        return 1
+    fi
+
+    # Parse commands
+    local update_cmd=$(echo "$commands" | cut -d' ' -f1 | cut -d: -f2)
+    local upgrade_cmd=$(echo "$commands" | cut -d' ' -f2 | cut -d: -f2)
+    local install_cmd=$(echo "$commands" | cut -d' ' -f3 | cut -d: -f2)
+
+    # Execute update command
+    if ! "$pman" $update_cmd; then
+        all-nos "$function_name" "Failed to update package list"
+        return 1
+    fi
+
+    # Execute upgrade command
+    if ! "$pman" $upgrade_cmd; then
+        all-nos "$function_name" "Failed to upgrade packages"
+        return 1
+    fi
+
+    # Install all provided packages
+    if ! "$pman" $install_cmd "$@"; then
+        all-nos "$function_name" "Failed to install packages ( $* )"
+        return 1
+    fi
+
+    all-nos "$function_name" "Successfully executed ( $pman $* )"
+}
 
 # Configures git with a specified username and email.
 # git set config
