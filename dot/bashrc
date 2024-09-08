@@ -7,6 +7,7 @@ DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 &
 ALP_DIR="$DIR/../alp"
 CON_DIR="$DIR/../con"
 DOT_DIR="$DIR/../dot"
+FIX_DIR="$DIR/../fix"
 LIB_DIR="$DIR/../lib"
 SET_DIR="$DIR/../set"
 VAR_DIR="$DIR/../var"
@@ -96,6 +97,7 @@ alias dla="cd $ALP_DIR"
 alias dlc="cd $CON_DIR"
 alias dls="cd $SET_DIR"
 alias dll="cd $LIB_DIR"
+alias dlf="cd $FIX_DIR"
 
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
