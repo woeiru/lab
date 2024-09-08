@@ -2,7 +2,7 @@
 graph TD
     INT[Internet] --- |WAN| ISPRWAN[NIC WAN]
     
-    subgraph GuestZone [Guest / Wi-Fi DMZ]
+    subgraph DMZ [DMZ]
         subgraph ISPR [ISP Router]
             ISPRWAN[NIC WAN]
             ISPRNIC0[NIC 0 DMZ]
@@ -101,7 +101,7 @@ graph TD
             TSP4[P4]
             TSP5[P5]
             TSP6[P6]
-            TSP7[P7]
+            TSP7[P7 VLAN10]
             TSP8[P8]
             TSP9[P9 Trunk]
             TSP10[P10 Trunk]
