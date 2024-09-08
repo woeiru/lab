@@ -86,17 +86,19 @@ graph TD
     CSP4 ---|"10G"| TSP9
     
     subgraph DataInfrastructure [Data Infrastructure]
-        subgraph DH1[Data Hypervisor 1]
-            DH1NICA[NIC A]
-            DH1NICB[NIC B]
-            DH1NICC[NIC C]
-            DH1NICD[NIC D]
-        end
-        subgraph DH2[Data Hypervisor 2]
-            DH2NICA[NIC A]
-            DH2NICB[NIC B]
-            DH2NICC[NIC C]
-            DH2NICD[NIC D]
+        subgraph DataCluster [Data Cluster]
+            subgraph DH1[Data Hypervisor 1]
+                DH1NICA[NIC A]
+                DH1NICB[NIC B]
+                DH1NICC[NIC C]
+                DH1NICD[NIC D]
+            end
+            subgraph DH2[Data Hypervisor 2]
+                DH2NICA[NIC A]
+                DH2NICB[NIC B]
+                DH2NICC[NIC C]
+                DH2NICD[NIC D]
+            end
         end
     end
     
