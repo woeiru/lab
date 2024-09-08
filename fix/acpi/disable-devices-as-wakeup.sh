@@ -3,7 +3,7 @@
 LOGFILE="/var/log/disable-devices-as-wakeup.log"
 
 echo "Script started at $(date)" >> $LOGFILE
-declare -a devices=("GPP0" "GPP8") # <-- Add your entries here
+declare -a devices=("GPP0" "GPP8" "XHC1") # <-- Add your entries here
 for device in "${devices[@]}"; do
     if grep -qw ^$device /proc/acpi/wakeup; then
         status=$(grep -w ^$device /proc/acpi/wakeup | awk '{print $3}')
@@ -19,4 +19,3 @@ for device in "${devices[@]}"; do
     fi
 done
 echo "Script finished at $(date)" >> $LOGFILE
-
