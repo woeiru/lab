@@ -45,18 +45,6 @@ graph TD
             OPN((OpenSense VM))
             QDD((QDev Data))
             QDV((QDev VFIO))
-            
-            VBA --- CH1NICB
-            VBA --- CH2NICB
-            VBA --- CH1NICA
-            VBA --- CH2NICA
-            VBA --- QDD
-            VBA --- QDV
-            VBB --- OPN
-            VBB --- CH1NICC
-            VBB --- CH2NICC
-            VBB --- CH1NICD
-            VBB --- CH2NICD
         end
     end
 
@@ -75,15 +63,10 @@ graph TD
         end
         subgraph AP[Admin PC]
             APNICA[NIC A]
-            APNICW[NIC W DMZ]
+            APNICW[NIC W]
             QDM((QDev Meta<br>Container))
         end
     end
-
-    ISPRNIC0 ---|"2.5G"| CSP1
-    CSP2 ---|"10G"| MSP9
-    CSP3 ---|"10G"| VSP7
-    CSP4 ---|"10G"| TSP9
     
     subgraph DataInfrastructure [Data Infrastructure]
         subgraph DataCluster [Data Cluster]
@@ -98,45 +81,6 @@ graph TD
                 DH2NICB[NIC B]
                 DH2NICC[NIC C]
                 DH2NICD[NIC D]
-            end
-        end
-    end
-    
-    CH1NICC ---|"10G"| CSP7
-    CH1NICD ---|"10G"| CSP8
-    CH2NICC -.-|"10G Optional"| CSP7
-    CH2NICD -.-|"10G Optional"| CSP8
-    MSP2 ---|"1G LACP"| CH1NICA
-    MSP3 ---|"1G LACP"| CH1NICB
-    MSP4 ---|"1G LACP"| CH2NICA
-    MSP5 ---|"1G LACP"| CH2NICB
-    MSP6 ---|"1G LACP"| DH1NICA
-    MSP7 ---|"1G LACP"| DH1NICB
-    MSP8 ---|"1G LACP"| DH2NICA
-    MSP1 ---|"1G LACP"| DH2NICB
-    APNICA ---|"10G"| MSP10
-    QDM -.->|"Container Network"| APNICA
-    ISPRWIFI ---|"WiFi"| APNICW
-
-    subgraph VFIOInfrastructure [VFIO Infrastructure]
-        subgraph VS [VFIO Switch]
-            VSP1[P1 VLAN30]
-            VSP2[P2 VLAN30]
-            VSP3[P3]
-            VSP4[P4]
-            VSP5[P5]
-            VSP6[P6]
-            VSP7[P7 Trunk]
-            VSP8[P8]
-        end
-        subgraph VFIOCluster [VFIO Cluster]
-            subgraph VH1[VFIO Hypervisor 1]
-                VH1NICC[NIC C]
-                VH1NICD[NIC D]
-            end
-            subgraph VH2[VFIO Hypervisor 2]
-                VH2NICC[NIC C]
-                VH2NICD[NIC D]
             end
         end
     end
@@ -171,12 +115,55 @@ graph TD
         end
     end
 
+    subgraph VFIOInfrastructure [VFIO Infrastructure]
+        subgraph VS [VFIO Switch]
+            VSP1[P1 Trunk]
+            VSP2[P2 Trunk]
+            VSP3[P3 Trunk]
+            VSP4[P4 Trunk]
+            VSP5[P5]
+            VSP6[P6]
+            VSP7[P7 Trunk]
+            VSP8[P8]
+        end
+        subgraph VFIOCluster [VFIO Cluster]
+            subgraph VH1[VFIO Hypervisor 1]
+                VH1NICC[NIC C]
+                VH1NICD[NIC D]
+            end
+            subgraph VH2[VFIO Hypervisor 2]
+                VH2NICC[NIC C]
+                VH2NICD[NIC D]
+            end
+        end
+    end
+
+    %% Connections (unchanged)
+    ISPRNIC0 ---|"2.5G"| CSP1
+    CSP2 ---|"10G"| MSP9
+    CSP3 ---|"10G"| VSP7
+    CSP4 ---|"10G"| TSP9
+    CH1NICC ---|"10G"| CSP7
+    CH1NICD ---|"10G"| CSP8
+    CH2NICC -.-|"10G Optional"| CSP7
+    CH2NICD -.-|"10G Optional"| CSP8
+    MSP2 ---|"1G LACP"| CH1NICA
+    MSP3 ---|"1G LACP"| CH1NICB
+    MSP4 ---|"1G LACP"| CH2NICA
+    MSP5 ---|"1G LACP"| CH2NICB
+    MSP6 ---|"1G LACP"| DH1NICA
+    MSP7 ---|"1G LACP"| DH1NICB
+    MSP8 ---|"1G LACP"| DH2NICA
+    MSP1 ---|"1G LACP"| DH2NICB
+    APNICA ---|"10G"| MSP10
+    QDM -.->|"Container Network"| APNICA
     CSP5 ---|"10G"| DH1NICC
     CSP6 ---|"10G VLAN20"| DH2NICC
     DH1NICD ---|"25G"| DH2NICD
-    VSP1 ---|"10G"| VH1NICC
-    VSP2 ---|"10G"| VH2NICC
-    VH1NICD ---|"10G"| VH2NICD
+    VSP1 ---|"10G LACP"| VH1NICC
+    VSP2 ---|"10G LACP"| VH1NICD
+    VSP3 ---|"10G LACP"| VH2NICC
+    VSP4 ---|"10G LACP"| VH2NICD
     TSP4 ---|"2.5G"| THNICA
     TSP2 ---|"2.5G"| THNICB
     TSP3 ---|"10G"| THNICC
@@ -187,4 +174,17 @@ graph TD
     THNICD ---|"25G"| TMNICD
     ISPRNIC1 ---|"2.5G"| GD
     ISPRNIC5 -.-|"1G Optional"| TSP8
+    
+    %% Virtual Bridge Connections
+    VBA --- CH1NICB
+    VBA --- CH2NICB
+    VBA --- CH1NICA
+    VBA --- CH2NICA
+    VBA --- QDD
+    VBA --- QDV
+    VBB --- OPN
+    VBB --- CH1NICC
+    VBB --- CH2NICC
+    VBB --- CH1NICD
+    VBB --- CH2NICD
 ```
