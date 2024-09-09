@@ -30,9 +30,6 @@ get_next_version() {
 init_backup() {
     mkdir -p "$BACKUP_DIR"
     touch "$CHANGE_LOG"
-    echo "#!/bin/bash" > "$SCRIPT_OUTPUT"
-    echo "" >> "$SCRIPT_OUTPUT"
-    chmod +x "$SCRIPT_OUTPUT"
 }
 
 # Function to create initial snapshot
@@ -69,27 +66,11 @@ check_and_update() {
                 current_file="$current_dir/$rel_path"
                 prev_file="$prev_dir/$rel_path"
                 
-                if [ ! -f "$prev_file" ]; then
-                    # New file
+                if [ ! -f "$prev_file" ] || ! cmp -s "$file" "$prev_file"; then
+                    # New or changed file
                     mkdir -p "$(dirname "$current_file")"
                     cp "$file" "$current_file"
-                    echo "New file in version $current_version: $rel_path" >> "$CHANGE_LOG"
-                    echo "# New file: $rel_path" >> "$SCRIPT_OUTPUT"
-                    echo "mkdir -p \"\$(dirname \"$rel_path\")\"" >> "$SCRIPT_OUTPUT"
-                    echo "cat << 'EOF' > \"$rel_path\"" >> "$SCRIPT_OUTPUT"
-                    cat "$file" >> "$SCRIPT_OUTPUT"
-                    echo "EOF" >> "$SCRIPT_OUTPUT"
-                    echo "" >> "$SCRIPT_OUTPUT"
-                elif ! cmp -s "$file" "$prev_file"; then
-                    # File changed
-                    mkdir -p "$(dirname "$current_file")"
-                    cp "$file" "$current_file"
-                    echo "Changed in version $current_version: $rel_path" >> "$CHANGE_LOG"
-                    echo "# Changed: $rel_path" >> "$SCRIPT_OUTPUT"
-                    echo "cat << 'EOF' > \"$rel_path\"" >> "$SCRIPT_OUTPUT"
-                    cat "$file" >> "$SCRIPT_OUTPUT"
-                    echo "EOF" >> "$SCRIPT_OUTPUT"
-                    echo "" >> "$SCRIPT_OUTPUT"
+                    echo "Updated in version $current_version: $rel_path" >> "$CHANGE_LOG"
                 else
                     # File unchanged, copy from previous version
                     mkdir -p "$(dirname "$current_file")"
@@ -98,6 +79,54 @@ check_and_update() {
             done
         fi
     done
+}
+
+# Function to create the apply_changes script
+create_apply_script() {
+    cat << EOF > "$SCRIPT_OUTPUT"
+#!/bin/bash
+
+BACKUP_DIR="$BACKUP_DIR"
+
+apply_version() {
+    local version=\$1
+    local version_dir="\$BACKUP_DIR/version_\$version"
+    
+    if [ ! -d "\$version_dir" ]; then
+        echo "Version \$version does not exist."
+        exit 1
+    fi
+
+    echo "Applying configuration version \$version..."
+    
+    find "\$version_dir" -type f | while read file; do
+        rel_path="\${file#\$version_dir/}"
+        target_file="\$HOME/\$rel_path"
+        mkdir -p "\$(dirname "\$target_file")"
+        cp "\$file" "\$target_file"
+        echo "Updated: \$rel_path"
+    done
+
+    echo "Configuration version \$version has been applied."
+    
+    echo "Restarting Plasma shell to apply changes..."
+    kquitapp5 plasmashell || killall plasmashell && kstart5 plasmashell &
+    echo "Plasma shell restart initiated. Changes should now be visible."
+}
+
+if [ "\$1" == "latest" ]; then
+    latest_version=\$(ls -d \$BACKUP_DIR/version_* | sort -V | tail -n 1 | sed 's/.*version_//')
+    apply_version \$latest_version
+elif [ -n "\$1" ]; then
+    apply_version \$1
+else
+    echo "Usage: \$0 <version_number> or \$0 latest"
+    echo "Available versions:"
+    ls -d \$BACKUP_DIR/version_* | sed 's/.*version_//'
+fi
+EOF
+
+    chmod +x "$SCRIPT_OUTPUT"
 }
 
 # Main execution
@@ -109,5 +138,8 @@ else
     check_and_update
 fi
 
+create_apply_script
+
 echo "KDE configuration check completed at $(date)" >> "$CHANGE_LOG"
-echo "Changes have been logged and a script to apply changes has been updated."
+echo "Changes have been logged and apply_changes.sh has been updated."
+echo "To apply changes, run: $SCRIPT_OUTPUT <version_number> or $SCRIPT_OUTPUT latest"
