@@ -10,7 +10,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASHRC_FILE="/home/$USERNAME/.bashrc"
-CONTENT_FILE="$SCRIPT_DIR/bashrc"
+CONTENT_FILE="$SCRIPT_DIR/bashinject"
 FUNC_FILE="$SCRIPT_DIR/func.sh"
 
 # If the user is root, adjust the paths
