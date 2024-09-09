@@ -6,7 +6,6 @@ DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 &
 # Common directories
 ARC_DIR="$DIR/../alc"
 CON_DIR="$DIR/../con"
-DOT_DIR="$DIR/../dot"
 INI_DIR="$DIR/../ini"
 FIX_DIR="$DIR/../fix"
 LIB_DIR="$DIR/../lib"
@@ -83,7 +82,7 @@ alias btf='btrfs filesystem'
 
 # cat
 alias c='cat'
-alias c.b="cat $DOT_DIR/bashrc"
+alias c.b="cat $INI_DIR/bashrc"
 alias c.group='cat /etc/group'
 alias c.passwd='cat /etc/passwd'
 alias c.fstab='cat /etc/fstab'
@@ -96,7 +95,6 @@ alias dl="cd $DIR/.."
 
 alias dla="cd $ARC_DIR"
 alias dlc="cd $CON_DIR"
-alias dld="cd $DOT_DIR"
 alias dli="cd $INI_DIR"
 alias dls="cd $SET_DIR"
 alias dll="cd $LIB_DIR"
@@ -200,7 +198,7 @@ alias ttttt='tree -L 5'
 
 # vim
 alias v='vim'
-alias v.b="vim $DOT_DIR/bashrc"
+alias v.b="vim $INI_DIR/bashrc"
 alias v.nw="vim $CON_DIR/node-w.md"
 
 # unsorted
