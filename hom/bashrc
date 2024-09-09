@@ -1,0 +1,10 @@
+# sourcing
+#
+. ~/func.sh 
+#
+# desktop
+#
+alias p1='plasma-apply-lookandfeel -a org.kde.breeze.desktop'
+alias p2='plasma-apply-lookandfeel -a org.kde.breezedark.desktop'
+alias ypr='systemctl --user restart plasma-plasmashell'
+#
