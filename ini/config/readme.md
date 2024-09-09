@@ -1,21 +1,20 @@
-# KDE Configuration Tracker
+# Configuration Tracker
 
 ## Overview
 
-The KDE Configuration Tracker is a bash script designed to backup and manage KDE Plasma desktop environment configurations for both regular users and the root user. It creates versioned backups of specified configuration directories and provides a mechanism to apply these configurations to the system, including automatically restarting the Plasma shell to ensure changes take effect.
+The Configuration Tracker is a bash script designed to backup and manage user configurations for both regular users and the root user. It creates versioned backups of specified directories (including the entire `.config` folder) and provides a mechanism to apply these configurations to the system.
 
 ## Features
 
-- Creates versioned backups of KDE configuration files for a specified user or the root user
+- Creates versioned backups of configuration files for a specified user or the root user
 - Tracks changes between versions
 - Generates a script to apply configurations from any saved version
 - Supports applying the latest configuration or a specific version
-- Automatically restarts the Plasma shell after applying changes
 
 ## Files
 
 - `/root/lab/ini/tracker.sh`: Main script for creating backups
-- `~/.kde-config-backup/apply_changes.sh` or `/root/.kde-config-backup/apply_changes.sh`: Generated script for applying saved configurations
+- `~/.config-backup/apply_changes.sh` or `/root/.config-backup/apply_changes.sh`: Generated script for applying saved configurations
 
 ## Usage
 
@@ -31,7 +30,7 @@ sudo /root/lab/ini/tracker.sh <username>
 /root/lab/ini/tracker.sh
 ```
 
-This will create a new version of the user's configuration backup in `/home/<username>/.kde-config-backup/version_X` or `/root/.kde-config-backup/version_X`, where X is an incrementing number.
+This will create a new version of the user's configuration backup in `/home/<username>/.config-backup/version_X` or `/root/.config-backup/version_X`, where X is an incrementing number.
 
 ### Applying Configurations
 
@@ -39,33 +38,30 @@ To apply configurations, use the generated `apply_changes.sh` script in the user
 
 - Apply the latest version:
   ```bash
-  ~/.kde-config-backup/apply_changes.sh latest
+  ~/.config-backup/apply_changes.sh latest
   # or for root
-  /root/.kde-config-backup/apply_changes.sh latest
+  /root/.config-backup/apply_changes.sh latest
   ```
 
 - Apply a specific version:
   ```bash
-  ~/.kde-config-backup/apply_changes.sh <version_number>
+  ~/.config-backup/apply_changes.sh <version_number>
   # or for root
-  /root/.kde-config-backup/apply_changes.sh <version_number>
+  /root/.config-backup/apply_changes.sh <version_number>
   ```
 
 - List available versions:
   ```bash
-  ~/.kde-config-backup/apply_changes.sh
+  ~/.config-backup/apply_changes.sh
   # or for root
-  /root/.kde-config-backup/apply_changes.sh
+  /root/.config-backup/apply_changes.sh
   ```
-
-After applying the configurations, the script will automatically restart the Plasma shell to ensure the changes take effect.
 
 ## Configuration
 
 The script monitors the following directories by default:
 - `$USER_HOME/.config`
-- `$USER_HOME/.local/share/plasma`
-- `$USER_HOME/.kde`
+- `$USER_HOME/.local/share`
 
 To modify the monitored directories, edit the `MONITOR_DIRS` array in the `tracker.sh` script.
 
@@ -89,15 +85,13 @@ To modify the monitored directories, edit the `MONITOR_DIRS` array in the `track
 1. Takes a version number or 'latest' as an argument.
 2. Locates the corresponding version directory.
 3. Copies all files from the version directory to the user's home directory or root's home directory, maintaining relative paths.
-4. Restarts the Plasma shell for the user.
 
 ## Important Notes
 
 - The main script (`tracker.sh`) must be run as root for regular users, but can be run directly when logged in as root.
 - Applying a configuration will overwrite existing files in the user's home directory or root's home directory. Use with caution.
 - The script does not delete files. If a file exists in the current setup but not in the applied version, it will remain unchanged.
-- Consider running the backup script before making significant changes to the KDE configuration.
-- The Plasma shell restart may cause a brief interruption in the desktop environment.
+- Consider running the backup script before making significant changes to your configurations.
 
 ## Limitations
 
@@ -112,10 +106,10 @@ If you encounter permission issues:
 2. Check if the script is being run with appropriate permissions (as root for regular users, or directly as root).
 
 If changes don't appear to take effect after applying:
-1. Log out and log back in to the KDE session.
+1. Log out and log back in to your session.
 2. If issues persist, reboot the system.
 
-For other issues, check the `changes.log` file in the user's or root's `.kde-config-backup` directory for any error messages or unexpected behavior.
+For other issues, check the `changes.log` file in the user's or root's `.config-backup` directory for any error messages or unexpected behavior.
 
 ## Contributing
 
