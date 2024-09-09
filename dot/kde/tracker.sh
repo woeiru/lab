@@ -1,15 +1,22 @@
 #!/bin/bash
 
-# Set up directories
-BACKUP_DIR="$HOME/kde-config-backup"
+# Check if a username is provided
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <username>"
+    exit 1
+fi
+
+USERNAME=$1
+USER_HOME="/home/$USERNAME"
+BACKUP_DIR="$USER_HOME/.kde-config-backup"
 CHANGE_LOG="$BACKUP_DIR/changes.log"
 SCRIPT_OUTPUT="$BACKUP_DIR/apply_changes.sh"
 
 # Directories to monitor
 MONITOR_DIRS=(
-    "$HOME/.config"
-    "$HOME/.local/share/plasma"
-    "$HOME/.kde"
+    "$USER_HOME/.config"
+    "$USER_HOME/.local/share/plasma"
+    "$USER_HOME/.kde"
 )
 
 # Function to get the next version number
@@ -30,6 +37,7 @@ get_next_version() {
 init_backup() {
     mkdir -p "$BACKUP_DIR"
     touch "$CHANGE_LOG"
+    chown -R $USERNAME:$USERNAME "$BACKUP_DIR"
 }
 
 # Function to create initial snapshot
@@ -41,13 +49,14 @@ create_snapshot() {
     for dir in "${MONITOR_DIRS[@]}"; do
         if [ -d "$dir" ]; then
             find "$dir" -type f | while read file; do
-                rel_path="${file#$HOME/}"
+                rel_path="${file#$USER_HOME/}"
                 mkdir -p "$version_dir/$(dirname "$rel_path")"
                 cp "$file" "$version_dir/$rel_path"
             done
         fi
     done
     echo "Initial snapshot created as version $version at $(date)" >> "$CHANGE_LOG"
+    chown -R $USERNAME:$USERNAME "$version_dir"
 }
 
 # Function to check for changes and update snapshot
@@ -62,7 +71,7 @@ check_and_update() {
     for dir in "${MONITOR_DIRS[@]}"; do
         if [ -d "$dir" ]; then
             find "$dir" -type f | while read file; do
-                rel_path="${file#$HOME/}"
+                rel_path="${file#$USER_HOME/}"
                 current_file="$current_dir/$rel_path"
                 prev_file="$prev_dir/$rel_path"
                 
@@ -79,6 +88,7 @@ check_and_update() {
             done
         fi
     done
+    chown -R $USERNAME:$USERNAME "$current_dir"
 }
 
 # Function to create the apply_changes script
@@ -87,6 +97,7 @@ create_apply_script() {
 #!/bin/bash
 
 BACKUP_DIR="$BACKUP_DIR"
+USER_HOME="$USER_HOME"
 
 apply_version() {
     local version=\$1
@@ -101,7 +112,7 @@ apply_version() {
     
     find "\$version_dir" -type f | while read file; do
         rel_path="\${file#\$version_dir/}"
-        target_file="\$HOME/\$rel_path"
+        target_file="\$USER_HOME/\$rel_path"
         mkdir -p "\$(dirname "\$target_file")"
         cp "\$file" "\$target_file"
         echo "Updated: \$rel_path"
@@ -110,7 +121,7 @@ apply_version() {
     echo "Configuration version \$version has been applied."
     
     echo "Restarting Plasma shell to apply changes..."
-    kquitapp5 plasmashell || killall plasmashell && kstart5 plasmashell &
+    sudo -u $USERNAME bash -c 'kquitapp5 plasmashell || killall plasmashell && kstart5 plasmashell &'
     echo "Plasma shell restart initiated. Changes should now be visible."
 }
 
@@ -127,6 +138,7 @@ fi
 EOF
 
     chmod +x "$SCRIPT_OUTPUT"
+    chown $USERNAME:$USERNAME "$SCRIPT_OUTPUT"
 }
 
 # Main execution
