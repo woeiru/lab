@@ -121,7 +121,7 @@ apply_version() {
     echo "Configuration version \$version has been applied."
     
     echo "Restarting Plasma shell to apply changes..."
-    kquitapp5 plasmashell || killall plasmashell && kstart5 plasmashell
+    kquitapp5 plasmashell || killall plasmashell && kstart5 plasmashell &
     echo "Plasma shell restart initiated. Changes should now be visible."
 }
 
