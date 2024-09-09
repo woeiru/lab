@@ -2,12 +2,19 @@
 
 # Check if a username is provided
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 <username>"
-    exit 1
+    # If no username is provided, assume it's for the current user (which could be root)
+    USERNAME=$(whoami)
+else
+    USERNAME=$1
 fi
 
-USERNAME=$1
-USER_HOME="/home/$USERNAME"
+# Set up paths based on the user
+if [ "$USERNAME" = "root" ]; then
+    USER_HOME="/root"
+else
+    USER_HOME="/home/$USERNAME"
+fi
+
 BACKUP_DIR="$USER_HOME/.kde-config-backup"
 CHANGE_LOG="$BACKUP_DIR/changes.log"
 SCRIPT_OUTPUT="$BACKUP_DIR/apply_changes.sh"
@@ -37,7 +44,9 @@ get_next_version() {
 init_backup() {
     mkdir -p "$BACKUP_DIR"
     touch "$CHANGE_LOG"
-    chown -R $USERNAME:$USERNAME "$BACKUP_DIR"
+    if [ "$USERNAME" != "root" ]; then
+        chown -R $USERNAME:$USERNAME "$BACKUP_DIR"
+    fi
 }
 
 # Function to create initial snapshot
@@ -56,7 +65,9 @@ create_snapshot() {
         fi
     done
     echo "Initial snapshot created as version $version at $(date)" >> "$CHANGE_LOG"
-    chown -R $USERNAME:$USERNAME "$version_dir"
+    if [ "$USERNAME" != "root" ]; then
+        chown -R $USERNAME:$USERNAME "$version_dir"
+    fi
 }
 
 # Function to check for changes and update snapshot
@@ -65,7 +76,7 @@ check_and_update() {
     local current_version=$(get_next_version)
     local prev_dir="$BACKUP_DIR/version_$prev_version"
     local current_dir="$BACKUP_DIR/version_$current_version"
-    
+
     mkdir -p "$current_dir"
 
     for dir in "${MONITOR_DIRS[@]}"; do
@@ -74,7 +85,7 @@ check_and_update() {
                 rel_path="${file#$USER_HOME/}"
                 current_file="$current_dir/$rel_path"
                 prev_file="$prev_dir/$rel_path"
-                
+
                 if [ ! -f "$prev_file" ] || ! cmp -s "$file" "$prev_file"; then
                     # New or changed file
                     mkdir -p "$(dirname "$current_file")"
@@ -88,7 +99,9 @@ check_and_update() {
             done
         fi
     done
-    chown -R $USERNAME:$USERNAME "$current_dir"
+    if [ "$USERNAME" != "root" ]; then
+        chown -R $USERNAME:$USERNAME "$current_dir"
+    fi
 }
 
 # Function to create the apply_changes script
@@ -102,14 +115,14 @@ USER_HOME="$USER_HOME"
 apply_version() {
     local version=\$1
     local version_dir="\$BACKUP_DIR/version_\$version"
-    
+
     if [ ! -d "\$version_dir" ]; then
         echo "Version \$version does not exist."
         exit 1
     fi
 
     echo "Applying configuration version \$version..."
-    
+
     find "\$version_dir" -type f | while read file; do
         rel_path="\${file#\$version_dir/}"
         target_file="\$USER_HOME/\$rel_path"
@@ -119,7 +132,7 @@ apply_version() {
     done
 
     echo "Configuration version \$version has been applied."
-    
+
     echo "Restarting Plasma shell to apply changes..."
     kquitapp5 plasmashell || killall plasmashell && kstart5 plasmashell &
     echo "Plasma shell restart initiated. Changes should now be visible."
@@ -138,7 +151,9 @@ fi
 EOF
 
     chmod +x "$SCRIPT_OUTPUT"
-    chown $USERNAME:$USERNAME "$SCRIPT_OUTPUT"
+    if [ "$USERNAME" != "root" ]; then
+        chown $USERNAME:$USERNAME "$SCRIPT_OUTPUT"
+    fi
 }
 
 # Main execution
