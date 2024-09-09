@@ -1,39 +1,10 @@
-konsole_profile_diagnostic() {
-    echo "Current user: $(whoami)"
-    echo "Home directory: $HOME"
-    echo "Content of \$1: '$1'"
-    echo "Content of \$2: '$2'"
-    echo "Result of id command: $(id)"
-    echo "Konsolerc file exists: $(test -f "$HOME/.config/konsolerc" && echo "Yes" || echo "No")"
-}
-
-# Usage:
-# konsole_profile_diagnostic "*" 2
-
 change_konsole_profile() {
-    echo "Function started with arguments: $@"
-    local username=""
-    local profile_number=""
-    
-    # Parse arguments
-    for arg in "$@"; do
-        if [[ "$arg" =~ ^[0-9]+$ ]]; then
-            profile_number="$arg"
-        elif [ -z "$username" ]; then
-            username="$arg"
-        fi
-    done
+    local profile_number="$1"
 
-    echo "Initial username: '$username'"
+    # Get the current user
+    local username=$(whoami)
 
-    # Check if username is empty or was meant to be a wildcard
-    if [ -z "$username" ] || [ "$username" = "*" ] || [ "$username" = "Desktop" ]; then
-        username=$(whoami)
-        echo "Username after whoami: '$username'"
-    fi
-
-    echo "Final username: '$username'"
-    echo "Profile number: '$profile_number'"
+    echo "Changing Konsole profile for user: $username"
 
     # Check if the user is root
     if [ "$username" = "root" ]; then
@@ -41,22 +12,12 @@ change_konsole_profile() {
         return 1
     fi
 
-    # Check if the user exists
-    if ! id "$username" &>/dev/null; then
-        echo "Error: User $username does not exist."
-        echo "Current user: $(whoami)"
-        echo "Home directory: $HOME"
-        return 1
-    fi
-
     # Set the path to the konsolerc file
-    local konsolerc_path="/home/$username/.config/konsolerc"
-
-    echo "Konsolerc path: $konsolerc_path"
+    local konsolerc_path="$HOME/.config/konsolerc"
 
     # Check if the file exists
     if [ ! -f "$konsolerc_path" ]; then
-        echo "Error: Konsole configuration file not found for user $username."
+        echo "Error: Konsole configuration file not found at $konsolerc_path"
         return 1
     fi
 
@@ -75,7 +36,5 @@ change_konsole_profile() {
     fi
 }
 
-# Usage examples:
-# change_konsole_profile * 2
-# change_konsole_profile "" 2
-# change_konsole_profile username 2
+# Usage example:
+# change_konsole_profile 2
