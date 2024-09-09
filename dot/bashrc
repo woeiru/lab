@@ -95,6 +95,7 @@ alias dl="cd $DIR/.."
 
 alias dla="cd $ARC_DIR"
 alias dlc="cd $CON_DIR"
+alias dld="cd $DOT_DIR"
 alias dls="cd $SET_DIR"
 alias dll="cd $LIB_DIR"
 alias dlf="cd $FIX_DIR"
