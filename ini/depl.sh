@@ -2,16 +2,24 @@
 
 # Check if a username is provided
 if [ $# -eq 0 ]; then
-    echo "Error: No username provided."
-    echo "Usage: $0 <username>"
-    exit 1
+    # If no username is provided, assume it's for the current user (which could be root)
+    USERNAME=$(whoami)
+else
+    USERNAME=$1
 fi
 
-USERNAME=$1
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASHRC_FILE="/home/$USERNAME/.bashrc"
 CONTENT_FILE="$SCRIPT_DIR/bashrc"
 FUNC_FILE="$SCRIPT_DIR/func.sh"
+
+# If the user is root, adjust the paths
+if [ "$USERNAME" = "root" ]; then
+    BASHRC_FILE="/root/.bashrc"
+    FUNC_DEST="/root/"
+else
+    FUNC_DEST="/home/$USERNAME/"
+fi
 
 # Injection markers
 START_MARKER="#START_INJECTED_LINES"
@@ -51,7 +59,7 @@ EOF
 echo "$INJECT_CONTENT" >> "$BASHRC_FILE"
 
 # Copy func.sh to the user's home directory
-cp "$FUNC_FILE" "/home/$USERNAME/"
+cp "$FUNC_FILE" "$FUNC_DEST"
 
 echo "Content from 'bashrc' successfully injected into $BASHRC_FILE"
-echo "func.sh copied to /home/$USERNAME/"
+echo "func.sh copied to $FUNC_DEST"

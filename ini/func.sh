@@ -6,14 +6,14 @@ change_konsole_profile() {
 
     echo "Changing Konsole profile for user: $username"
 
-    # Check if the user is root
-    if [ "$username" = "root" ]; then
-        echo "Error: Cannot change profile for root user."
-        return 1
-    fi
-
     # Set the path to the konsolerc file
-    local konsolerc_path="$HOME/.config/konsolerc"
+    local konsolerc_path
+
+    if [ "$username" = "root" ]; then
+        konsolerc_path="/root/.config/konsolerc"
+    else
+        konsolerc_path="$HOME/.config/konsolerc"
+    fi
 
     # Check if the file exists
     if [ ! -f "$konsolerc_path" ]; then
