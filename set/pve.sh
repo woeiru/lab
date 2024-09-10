@@ -140,10 +140,4 @@ h_xall() {
     done
 }
 
-i_xall() {
-    	pve-gp1
-    	pve-gp2
-    	pve-gp3
-}
-
 setup_main "$@"
