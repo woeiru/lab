@@ -82,7 +82,9 @@ graph TD
     class TEAM,GIT,QDV,QDD,OPN punctuated;
     classDef vlan fill:#f9f,stroke:#333,stroke-width:2px;
     class VLAN20,VLAN30,VLAN40,VLAN99 vlan;
+```
 
+```mermaid
 graph TD
     subgraph MH1[Management Hypervisor 1]
         MH1NIC1[intel NIC]
