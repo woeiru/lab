@@ -763,27 +763,6 @@ all-ipa() {
         fi
     }
 
-    # Nested function to define package manager commands
-    get_commands() {
-        case "$1" in
-            apt)
-                echo "update:update upgrade:upgrade -y install:install -y"
-                ;;
-            dnf)
-                echo "update:check-update upgrade:upgrade -y install:install -y"
-                ;;
-            yum)
-                echo "update:check-update upgrade:upgrade -y install:install -y"
-                ;;
-            zypper)
-                echo "update:refresh upgrade:update -y install:install -y"
-                ;;
-            *)
-                echo "error:Unsupported package manager: $1"
-                ;;
-        esac
-    }
-
     # Detect the package manager
     local pman=$(detect_package_manager)
     echo "Debug: Detected package manager: $pman"
@@ -793,45 +772,55 @@ all-ipa() {
         return 1
     fi
 
-    # Get commands for the detected package manager
-    commands=$(get_commands "$pman")
-    echo "Debug: Package manager commands: $commands"
-
-    # Check if the package manager is supported (this should always be true now, but keep as a safeguard)
-    if [[ $commands == error:* ]]; then
-        all-nos "$function_name" "${commands#error:}"
-        return 1
-    fi
-
-    # Parse commands
-    local update_cmd=$(echo "$commands" | cut -d' ' -f1 | cut -d: -f2)
-    local upgrade_cmd=$(echo "$commands" | cut -d' ' -f2 | cut -d: -f2)
-    local install_cmd=$(echo "$commands" | cut -d' ' -f3 | cut -d: -f2)
+    # Define commands based on package manager
+    case "$pman" in
+        apt)
+            local update_cmd="update"
+            local upgrade_cmd="upgrade -y"
+            local install_cmd="install -y"
+            ;;
+        dnf|yum)
+            local update_cmd="check-update"
+            local upgrade_cmd="upgrade -y"
+            local install_cmd="install -y"
+            ;;
+        zypper)
+            local update_cmd="refresh"
+            local upgrade_cmd="update -y"
+            local install_cmd="install -y"
+            ;;
+        *)
+            all-nos "$function_name" "Unsupported package manager: $pman"
+            return 1
+            ;;
+    esac
 
     echo "Debug: Update command: $pman $update_cmd"
     echo "Debug: Upgrade command: $pman $upgrade_cmd"
     echo "Debug: Install command: $pman $install_cmd"
 
     # Execute update command
+    echo "Debug: Executing: $pman $update_cmd"
     if ! $pman $update_cmd; then
         all-nos "$function_name" "Failed to update package list"
         return 1
     fi
 
     # Execute upgrade command
+    echo "Debug: Executing: $pman $upgrade_cmd"
     if ! $pman $upgrade_cmd; then
         all-nos "$function_name" "Failed to upgrade packages"
         return 1
     fi
 
     # Install all provided packages
-    echo "Debug: Attempting to install packages with command: $pman $install_cmd $@"
-    if ! $pman install -y "$@"; then
+    echo "Debug: Executing: $pman $install_cmd $@"
+    if ! $pman $install_cmd "$@"; then
         all-nos "$function_name" "Failed to install packages ( $* )"
         return 1
     fi
 
-    all-nos "$function_name" "Successfully executed ( $pman install -y $* )"
+    all-nos "$function_name" "Successfully executed ( $pman $install_cmd $* )"
 }
 
 # Configures git with a specified username and email.
