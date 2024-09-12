@@ -27,7 +27,7 @@ a_xall() {
 }
 
 b_xall() {
-    	all-ipa "$PAK1_PVE" "$PAK2_PVE"
+    	all-ipa "$PACKAGES_ALL"
 }
 
 c_xall() {
