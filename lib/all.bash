@@ -814,8 +814,8 @@ all-ipa() {
     fi
 
     # Install all provided packages
-    echo "Debug: Executing: $pman $install_cmd $@"
-    if ! $pman $install_cmd "$@"; then
+    echo "Debug: Executing: $pman $install_cmd $*"
+    if ! $pman $install_cmd $*; then
         all-nos "$function_name" "Failed to install packages ( $* )"
         return 1
     fi
