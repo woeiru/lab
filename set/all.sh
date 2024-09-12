@@ -15,7 +15,7 @@ MENU_OPTIONS[b]="b_xall"
 MENU_OPTIONS[x]="x_xall"
 
 a_xall() {
-	all-ipa "$PAK1_ALL" "$PAK2_ALL" "$PAK3_ALL"
+	all-ipa "$PACKAGES_ALL"
     	all-gst "$GIT_USERNAME" "$GIT_USERMAIL"
 	all-cap "$DOT_FILE1" "$DOT_SOURCE1"
 	exec bash
