@@ -154,7 +154,7 @@ graph TD
     class Guest dmz;
     classDef infrastructure fill:#e6e6fa,stroke:#333,stroke-width:2px;
     class MetaInfrastructure,DataInfrastructure,VFIOInfrastructure,TestInfrastructure,ManagementInfrastructure infrastructure;
-     ```
+```
 
 ```mermaid
 graph TD
@@ -476,6 +476,7 @@ graph TD
     VS ---|"10G"| VH2NICC
     VH1NICD ---|"25G"| VH2NICD
 ```
+
 ```mermaid
 graph TD
     INT[Internet] --- |WAN| ISPRWAN[ISP Router WAN]
@@ -623,6 +624,7 @@ graph TD
     VS ---|"10G"| VH2NICC
     VH1NICD ---|"25G"| VH2NICD
 ```
+
 ```mermaid
 graph TD
     INT[Internet] --- |WAN| ISPRWAN[NIC WAN]
