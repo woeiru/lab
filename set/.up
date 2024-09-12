@@ -96,7 +96,16 @@ get_function_description() {
         return
     fi
     
-    local description=$(sed -n "/${func_name}()/{ x; p; q}; x" "$lib_file" | sed 's/^# //')
+    local description=$(awk -v fn="$func_name" '
+        $0 ~ "^"fn"\\(\\)" {
+            if (NR > 2) print lines[NR-3];
+            exit;
+        }
+        {
+            lines[NR] = $0;
+        }
+    ' "$lib_file" | sed 's/^# //')
+    
     echo "$description"
 }
 
