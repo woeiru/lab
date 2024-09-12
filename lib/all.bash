@@ -741,6 +741,8 @@ all-cap() {
 all-ipa() {
     local function_name="${FUNCNAME[0]}"
 
+    echo "Debug: all-ipa function called with arguments: $@"
+
     if [ $# -lt 1 ]; then
         all-use
         return 1
@@ -784,6 +786,7 @@ all-ipa() {
 
     # Detect the package manager
     local pman=$(detect_package_manager)
+    echo "Debug: Detected package manager: $pman"
 
     if [ "$pman" = "unknown" ]; then
         all-nos "$function_name" "Could not detect a supported package manager"
@@ -792,6 +795,7 @@ all-ipa() {
 
     # Get commands for the detected package manager
     commands=$(get_commands "$pman")
+    echo "Debug: Package manager commands: $commands"
 
     # Check if the package manager is supported (this should always be true now, but keep as a safeguard)
     if [[ $commands == error:* ]]; then
@@ -804,25 +808,30 @@ all-ipa() {
     local upgrade_cmd=$(echo "$commands" | cut -d' ' -f2 | cut -d: -f2)
     local install_cmd=$(echo "$commands" | cut -d' ' -f3 | cut -d: -f2)
 
+    echo "Debug: Update command: $pman $update_cmd"
+    echo "Debug: Upgrade command: $pman $upgrade_cmd"
+    echo "Debug: Install command: $pman $install_cmd"
+
     # Execute update command
-    if ! "$pman" $update_cmd; then
+    if ! $pman $update_cmd; then
         all-nos "$function_name" "Failed to update package list"
         return 1
     fi
 
     # Execute upgrade command
-    if ! "$pman" $upgrade_cmd; then
+    if ! $pman $upgrade_cmd; then
         all-nos "$function_name" "Failed to upgrade packages"
         return 1
     fi
 
     # Install all provided packages
+    echo "Debug: Attempting to install packages with command: $pman $install_cmd $@"
     if ! $pman $install_cmd "$@"; then
         all-nos "$function_name" "Failed to install packages ( $* )"
         return 1
     fi
 
-    all-nos "$function_name" "Successfully executed ( $pman $* )"
+    all-nos "$function_name" "Successfully executed ( $pman $install_cmd $* )"
 }
 
 # Configures git with a specified username and email.
