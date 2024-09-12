@@ -817,7 +817,7 @@ all-ipa() {
     fi
 
     # Install all provided packages
-    if ! "$pman" $install_cmd "$@"; then
+    if ! $pman $install_cmd "$@"; then
         all-nos "$function_name" "Failed to install packages ( $* )"
         return 1
     fi
