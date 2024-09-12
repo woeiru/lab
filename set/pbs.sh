@@ -16,7 +16,7 @@ a_xall() {
 	pbs-sgp
     	pbs-adr
     	pbs-puu
-    	all-ipa "$PAK1_PBS" "$PAK2_PBS"
+    	all-ipa "$PACKAGES_ALL"
 }
 
 b_xall() {
