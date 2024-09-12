@@ -826,12 +826,12 @@ all-ipa() {
 
     # Install all provided packages
     echo "Debug: Attempting to install packages with command: $pman $install_cmd $@"
-    if ! $pman $install_cmd "$@"; then
+    if ! $pman install -y "$@"; then
         all-nos "$function_name" "Failed to install packages ( $* )"
         return 1
     fi
 
-    all-nos "$function_name" "Successfully executed ( $pman $install_cmd $* )"
+    all-nos "$function_name" "Successfully executed ( $pman install -y $* )"
 }
 
 # Configures git with a specified username and email.
