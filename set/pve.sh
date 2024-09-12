@@ -66,6 +66,7 @@ e_xall() {
 f_xall() {
    	pve-clu
 	pve-cdo "$CT_DL_STO" "$CT_DL_1"
+	pve-cuc
 }
 
 g_xall() {

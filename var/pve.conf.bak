@@ -52,7 +52,7 @@ BTRFS_SUB_3="/sto/smb"
 #
 # Define download parameter for container
 CT_DL_STO='local'
-CT_DL_1="debian-12-standard_12.7-1_amd64.tar.zst"
+CT_DL_1="debian-12-standard_12.2-1_amd64.tar.zst"
 
 # Define bindmount parameters for container 1
 CT_ID_1=111
@@ -72,7 +72,7 @@ CT_MPC_3="/home"
 
 # container 1
 CT_1_ID=111
-CT_1_TEMPLATE=local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst
+CT_1_TEMPLATE=local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst
 CT_1_HOSTNAME=pbs
 CT_1_STORAGE=local-btrfs
 CT_1_ROOTFS_SIZE=32
@@ -91,7 +91,7 @@ CT_1_GATEWAY=192.168.178.1
 CT_1_SSH_KEY_FILE=/root/.ssh/w1.pub
 # container 2
 CT_2_ID=112
-CT_2_TEMPLATE=local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst
+CT_2_TEMPLATE=local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst
 CT_2_HOSTNAME=nfs
 CT_2_STORAGE=local-btrfs
 CT_2_ROOTFS_SIZE=32
@@ -110,7 +110,7 @@ CT_2_GATEWAY=192.168.178.1
 CT_2_SSH_KEY_FILE=/root/.ssh/w1.pub
 # container 3
 CT_3_ID=113
-CT_3_TEMPLATE=local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst
+CT_3_TEMPLATE=local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst
 CT_3_HOSTNAME=smb
 CT_3_STORAGE=local-btrfs
 CT_3_ROOTFS_SIZE=32
