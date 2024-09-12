@@ -13,7 +13,7 @@ Ensure you have the following files in your working directory:
 2. Modify the `disable-devices-as-wakeup.sh` script to include the ACPI devices you want to disable:
 
    ```bash
-   nano disable-devices-as-wakeup.sh
+   vim disable-devices-as-wakeup.sh
    ```
 
    Update the `devices` array with your specific device names:
