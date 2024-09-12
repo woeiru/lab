@@ -99,6 +99,7 @@ alias dli="cd $INI_DIR"
 alias dls="cd $SET_DIR"
 alias dll="cd $LIB_DIR"
 alias dlf="cd $FIX_DIR"
+alias dlv="cd $VAR_DIR"
 
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'

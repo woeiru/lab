@@ -579,9 +579,31 @@ pve-cdo() {
     local ct_dl_sto="$1"
     local ct_dl="$2"
 
-    	pveam download "$ct_dl_sto" "$ct_dl" 
-
-	all-nos "$function_name" "executed ( $ct_dl )"
+    # Attempt to download the template
+    if ! pveam download "$ct_dl_sto" "$ct_dl" 2>/dev/null; then
+        echo "Error: Unable to download template '$ct_dl'."
+        
+        # Ask user if they want to see available templates
+        read -p "Would you like to see a list of available templates? (y/n): " answer
+        
+        if [[ "$answer" =~ ^[Yy]$ ]]; then
+            echo "Available templates:"
+            pveam available
+            
+            # Ask user if they want to try downloading a different template
+            read -p "Would you like to try downloading a different template? (y/n): " retry_answer
+            
+            if [[ "$retry_answer" =~ ^[Yy]$ ]]; then
+                read -p "Enter the name of the template you'd like to download: " new_ct_dl
+                pve-cdo "$ct_dl_sto" "$new_ct_dl"
+                return
+            fi
+        fi
+        
+        echo "$function_name: Failed to download template ( $ct_dl )"
+    else
+        echo "$function_name: Successfully downloaded template ( $ct_dl )"
+    fi
 }
 
 # Configures a bind mount for a Proxmox container.
@@ -717,6 +739,56 @@ pve-cto() {
 
     if [[ $action == "start" || $action == "stop" ]]; then
         pct list
+    fi
+}
+
+# updates the occurences of the containertemplate in the config file
+# config update containertemplate
+# <interactive>
+pve-cuc() {
+    # Check if CONFIG_pve is set
+    if [ -z "$CONFIG_pve" ]; then
+        echo "Error: CONFIG_pve is not set. Please ensure it's defined before calling this function."
+        return 1
+    fi
+
+    local current_template
+    local new_template
+
+    # Prompt user if they want to update the config file
+    read -p "Do you want to update the container config file ($CONFIG_pve)? (y/n): " answer
+    if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+        echo "Config update cancelled."
+        return 0
+    fi
+
+    # Find the current template
+    current_template=$(grep -oP 'CT_DL_1="\K[^"]+' "$CONFIG_pve")
+    if [ -z "$current_template" ]; then
+        echo "Error: Couldn't find the current template in the config file."
+        return 1
+    fi
+
+    # Prompt for the new template
+    read -p "Enter the new template name (current: $current_template): " new_template
+    if [ -z "$new_template" ]; then
+        echo "No new template provided. Config update cancelled."
+        return 0
+    fi
+
+    # Create a backup of the config file
+    cp "$CONFIG_pve" "${CONFIG_pve}.bak"
+    echo "Backup created: ${CONFIG_pve}.bak"
+
+    # Update the config file
+    if sed -i "s|$current_template|$new_template|g" "$CONFIG_pve"; then
+        echo "Config file updated successfully."
+        echo "Changed template from '$current_template' to '$new_template' in:"
+        grep -n "$new_template" "$CONFIG_pve"
+    else
+        echo "Error: Failed to update the config file."
+        echo "The original file is unchanged. You can find a backup at ${CONFIG_pve}.bak"
+        return 1
     fi
 }
 
