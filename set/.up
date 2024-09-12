@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Enable debug mode
+#set -x
+
 source_file() {
   local file_path="$1"
   if [ -f "$file_path" ]; then
@@ -32,7 +35,6 @@ setup_source() {
 }
 
 setup_main() {
-
     if [ "$#" -eq 0 ]; then
         echo "setup_main called without arguments"
         setup_display_menu "$DIR_SH" "$FILE_SH"
@@ -65,9 +67,48 @@ setup_execute_choice() {
         echo "Invalid choice"
     fi
 }
+
+# Function to expand variables
+expand_variables() {
+    local line="$1"
+    local expanded_line="$line"
+    
+    local vars=$(echo "$line" | grep -o '\<[a-zA-Z_][a-zA-Z0-9_]*\>')
+    
+    for var in $vars; do
+        if [[ -v $var ]]; then
+            local value="${!var}"
+            expanded_line="${expanded_line//$var/$var [$value]}"
+        fi
+    done
+    
+    echo "$expanded_line"
+}
+
+# Function to get function description
+get_function_description() {
+    local func_name="$1"
+    local lib_name="${func_name%%-*}"
+    local lib_file="/root/lab/lib/${lib_name}.bash"
+    
+    if [ ! -f "$lib_file" ]; then
+        echo "Library file not found"
+        return
+    fi
+    
+    local description=$(sed -n "/${func_name}()/{ x; p; q}; x" "$lib_file" | sed 's/^# //')
+    echo "$description"
+}
+
 setup_display_menu() {
     local dir="$1"
     local file="$2"
+
+    echo "Choose display option:"
+    echo "1. Standard output"
+    echo "2. Output with expanded variables"
+    echo "3. Output with expanded function descriptions"
+    read -p "Enter your choice (1, 2, or 3): " display_choice
 
     echo "----------------------------------------------------------------------"
     echo "------------  Scanning file $file for *_xall functions  -------------"
@@ -75,14 +116,11 @@ setup_display_menu() {
     echo "--------------------->>(  Choose an option  )<<-----------------------"
     echo "                                                            "
 
-    # Find all *_xall functions in the given file
     grep -E '^[a-zA-Z_]+_xall\(\)' "$dir/$file" | while IFS= read -r line; do
-        # Extract the function name
         func_name=$(echo "$line" | awk -F'(' '{print $1}')
         echo "----------------------------->>(  ${func_name%%_xall}  )<<------------------------------"
         echo ""
 
-        # List all the functions called within this *_xall function
         in_function=false
         first_line=true
         while IFS= read -r inner_line; do
@@ -95,11 +133,29 @@ setup_display_menu() {
                 in_function=false
                 echo ""
             elif $in_function; then
-                # Check indentation and preserve it
-                echo "$inner_line"  # Print the line as-is
+                case "$display_choice" in
+                    1)
+                        echo "$inner_line"
+                        ;;
+                    2)
+                        echo "$(expand_variables "$inner_line")"
+                        ;;
+                    3)
+                        if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z_-]+) ]]; then
+                            local func="${BASH_REMATCH[1]}"
+                            local desc="$(get_function_description "$func")"
+                            echo "${inner_line} [$desc]"
+                        else
+                            echo "$inner_line"
+                        fi
+                        ;;
+                esac
             fi
         done < <(sed -n "/^${func_name}()/,/^}/p" "$dir/$file")
     done
     echo "----------------------------------------------------------------------"
     echo ""
 }
+
+# Disable debug mode
+set +x
