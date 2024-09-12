@@ -1,0 +1,7 @@
+# Generated SELinux files
+*.mod
+*.pp
+*.te
+
+# Log files
+*.log
