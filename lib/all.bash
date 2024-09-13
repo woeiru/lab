@@ -19,15 +19,15 @@ else
     exit 1
 fi
 
-#
+# show an overview of specific functions
 # overview functions
-#  
+#
 all-fun() {
     all-laf "$FILEPATH_all"
 }
-#  
+# show an overview of specific variables
 # overview variables
-#  
+#
 all-var() {
     all-acu o "$DIR_LIB/.." "$CONFIG_all"
 }
@@ -58,22 +58,20 @@ all-loo() {
         return 1
     fi
 }
-
 # cats the three lines above each function as usage,shortname,description
 # list all functions
 # <file name>
 all-laf() {
-
     if [ $# -ne 1 ]; then
         all-use
         return 1
     fi
 
     # Column width parameters
-    local col_width_1=9
-    local col_width_2=35
-    local col_width_3=30
-    local col_width_4=50
+    local col_width_1=10
+    local col_width_2=36
+    local col_width_3=31
+    local col_width_4=51
     local col_width_5=5
     local col_width_6=5
     local col_width_7=5
@@ -101,20 +99,16 @@ all-laf() {
     print_separator
 
     local file_name="$1"
-    local third_last_comment_line=0
-    local second_last_comment_line=0
-    local last_comment_line=0
     local line_number=0
     declare -a comments=()
 
     # Read all comments into an array
     while IFS= read -r line; do
         ((line_number++))
-        if [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
-            comments[$line_number]="${line:2}"  # Remove leading '# '
-            third_last_comment_line=$second_last_comment_line
-            second_last_comment_line=$last_comment_line
-            last_comment_line=$line_number
+        if [[ $line =~ ^[[:space:]]*# ]]; then
+            comments[$line_number]="${line#"${line%%[![:space:]]*}"}"  # Remove leading whitespace
+            comments[$line_number]="${comments[$line_number]#\# }"    # Remove leading '# '
+            comments[$line_number]="${comments[$line_number]#\#}"     # Remove leading '#' if there's no space after it
         fi
     done < "$file_name"
 
@@ -132,6 +126,18 @@ all-laf() {
         local exclude_file="$3"
         local count=$(find "$folder_name" -type f ! -name "$(basename "$exclude_file")" -exec awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' {} + | awk '{sum += $1} END {if (sum == 0) print ""; else print sum}')
         echo "${count}"
+    }
+
+    # Function to get comment or empty string
+    get_comment() {
+        local line_num=$1
+        local comment="${comments[$line_num]:-}"
+        # Return empty string if comment is just whitespace
+        if [[ -z "${comment// }" ]]; then
+            echo ""
+        else
+            echo "$comment"
+        fi
     }
 
     # Loop through all lines in the file again
@@ -154,54 +160,35 @@ all-laf() {
             func_calls=$(count_calls "$func_name")
             callslib=$(count_calls_folder "$func_name" "/root/lab/lib" "$file_name")
             callsset=$(count_calls_folder "$func_name" "/root/lab/set" "$file_name")
-            # Truncate the description if it's longer than col_width_4 characters
-            truncated_desc=$(echo "${comments[$third_last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_4"' - 2 ) print substr($0, 1, '"$col_width_4 - 3"') ".."; else print $0 }')
-            # Truncate the shortname if it's longer than col_width_3 characters
-            truncated_shortname=$(echo "${comments[$second_last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_3"' - 2 ) print substr($0, 1, '"$col_width_3 - 3"') ".."; else print $0 }')
-            # Truncate the usage example if it's longer than col_width_2 characters
-            truncated_usage=$(echo "${comments[$last_comment_line]:-N/A}" | awk '{ if (length($0) > '"$col_width_2"') print substr($0, 1, '"$col_width_2 - 3"') ".."; else print $0 }')
-            # Print function name, function size, comment line number, and comment
+            
+            # Get comments for arguments, shortname, and description
+            description=$(get_comment $((line_number-3)))
+            shortname=$(get_comment $((line_number-2)))
+            arguments=$(get_comment $((line_number-1)))
+
+            # Truncate strings if they're longer than the column width
+            truncate_string() {
+                local str="$1"
+                local max_length=$2
+                if [ ${#str} -gt $max_length ]; then
+                    echo "${str:0:$((max_length-3))}.."
+                else
+                    echo "$str"
+                fi
+            }
+
+            arguments=$(truncate_string "$arguments" $col_width_2)
+            shortname=$(truncate_string "$shortname" $col_width_3)
+            description=$(truncate_string "$description" $col_width_4)
+
+            # Print function information
             printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s | %-$(($col_width_7 - 1))s | %-$(($col_width_8 - 1))s | %-$(($col_width_9 - 1))s |\n" \
-                "$func_name" "$truncated_usage" "$truncated_shortname" "$truncated_desc" "$func_size" "${last_comment_line:-N/A}" "$func_calls" "$callslib" "$callsset"
-        elif [[ $line =~ ^[[:space:]]*#[[:space:]]+ ]]; then
-            third_last_comment_line=$second_last_comment_line
-            second_last_comment_line=$last_comment_line
-            last_comment_line=$line_number
+                "$func_name" "$arguments" "$shortname" "$description" "$func_size" "$line_number" "$func_calls" "$callslib" "$callsset"
         fi
     done < "$file_name"
 
     print_separator
     echo ""
-}
-
-# Function that calls a function for each file in the directory
-# function passthrough loop
-# <function> <static arg1> <static arg2> <dynamic arg3>
-all-fpl() {
-    local function=$1
-    local arg1=$2
-    local arg2=$3
-    local folder=$4
-
-    # Debug output
-    echo "Function: $function"
-    echo "Arg1: $arg1"
-    echo "Arg2: $arg2"
-    echo "Folder: $folder"
-
-    # Check if folder exists
-    if [ ! -d "$folder" ]; then
-        echo "Directory $folder does not exist."
-        return 1
-    fi
-
-    # Iterate through all files in the directory
-    for file in "$folder"/*; do
-        if [ -f "$file" ]; then
-            echo "Processing file: $file"
-            $function "$arg1" "$arg2" "$file"
-        fi
-    done
 }
 
 # Counts the var occurrences from a config file in a target folder
@@ -363,7 +350,7 @@ all-flc() {
 
 # Manages git operations, ensuring local repository syncs with remote.
 # git all in
-#  
+#
 all-gio() {
     # Navigate to the git folder
     cd "$DIR_LIB/.." || return
@@ -412,7 +399,7 @@ all-gio() {
 
 # Adds auto-mount entries for devices to /etc/fstab using blkid.
 # fstab entry auto
-#   
+#
 all-fea() {
     # Perform blkid and filter entries with sd*
     blkid_output=$(blkid | grep '/dev/sd*')
@@ -489,7 +476,7 @@ all-fec() {
 
 # Prompts the user to select a file from the current directory.
 # variable select filename
-#   
+#
 all-vsf() {
     files=($(ls))
     echo "Select a file by entering its index:"
@@ -823,7 +810,7 @@ all-ipa() {
     all-nos "$function_name" "Successfully executed ( $pman $install_cmd $* )"
 }
 
-# Configures git with a specified username and email.
+# Configures git with a specified username and email
 # git set config
 # <username> <usermail>
 all-gst() {
@@ -844,7 +831,7 @@ all-gst() {
 
 # Installs, enables, and starts the sysstat service.
 # setup sysstat
-#   
+#
 all-sst() {
   # Step 1: Install sysstat
   install_pakages sysstat
@@ -989,7 +976,7 @@ all-rsf() {
     # read -p "Do you want to commit the changes? (y/n) " -n 1 -r
     # echo    # move to a new line
     # if [[ $REPLY =~ ^[Yy]$ ]]; then
-    #     git commit -am "Replaced $old_string with $new_string" || { echo "Failed to commit changes"; return 1; }
+    #   git commit -am "Replaced $old_string with $new_string" || { echo "Failed to commit changes"; return 1; }
     # fi
   fi
 }
@@ -1016,9 +1003,9 @@ all-rnf() {
 }
 
 
-#  
+#
 # get function arguments
-#   
+#
 all-use() {
     local caller_line=$(caller 0)
     local caller_function=$(echo $caller_line | awk '{print $2}')
@@ -1050,7 +1037,7 @@ all-use() {
 
 }
 
-#  
+#
 # rysnc source destination
 # <storage_name>
 all-rav() {
