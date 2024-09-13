@@ -23,8 +23,10 @@ fi
 # overview functions
 #
 all-fun() {
-    all-laf "$FILEPATH_all"
+    # Pass all arguments directly to all-laf
+    all-laf "$FILEPATH_all" "$@"
 }
+
 # show an overview of specific variables
 # overview variables
 #
@@ -36,10 +38,35 @@ all-var() {
 # extended overview
 # <function> <path>
 all-loo() {
-    local fnc="$1"
-    local target="$2"
+    local fnc
+    local target
+    local extra_args=()
 
-    if [ $# -ne 2 ]; then
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -*)
+                # Collect all flags and their values
+                extra_args+=("$1")
+                if [[ "$2" != -* && "$2" != "" ]]; then
+                    extra_args+=("$2")
+                    shift
+                fi
+                ;;
+            *)
+                if [ -z "$fnc" ]; then
+                    fnc="$1"
+                elif [ -z "$target" ]; then
+                    target="$1"
+                else
+                    extra_args+=("$1")
+                fi
+                ;;
+        esac
+        shift
+    done
+
+    if [ -z "$fnc" ] || [ -z "$target" ]; then
         all-use
         return 1
     fi
@@ -48,9 +75,9 @@ all-loo() {
         for file in "$target"/{*,.[!.]*,..?*}; do
             if [[ -f "$file" ]]; then
                 echo "Processing file: $file"
-                "$fnc" "$file"
+                "$fnc" "$file" "${extra_args[@]}"
             elif [[ -d "$file" && "$file" != "$target"/. && "$file" != "$target"/.. ]]; then
-                all-loo "$fnc" "$file"
+                all-loo "$fnc" "$file" "${extra_args[@]}"
             fi
         done
     else
@@ -63,7 +90,24 @@ all-loo() {
 # list all functions
 # <file name>
 all-laf() {
-    if [ $# -ne 1 ]; then
+    local full_output=false
+    local file_name
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -f|--full)
+                full_output=true
+                shift
+                ;;
+            *)
+                file_name="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [ -z "$file_name" ]; then
         all-use
         return 1
     fi
@@ -83,10 +127,14 @@ all-laf() {
     truncate_and_pad() {
         local str="$1"
         local width="$2"
-        if [ ${#str} -gt $width ]; then
-            echo "${str:0:$((width-2))}.."
-        else
+        if $full_output; then
             printf "%-${width}s" "$str"
+        else
+            if [ ${#str} -gt $width ]; then
+                echo "${str:0:$((width-2))}.."
+            else
+                printf "%-${width}s" "$str"
+            fi
         fi
     }
 
@@ -110,7 +158,6 @@ all-laf() {
         printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' '-')"
     }
 
-    local file_name="$1"
     local line_number=0
     declare -a comments=()
 
