@@ -89,15 +89,23 @@ all-loo() {
 # cats the three lines above each function as usage,shortname,description
 # list all functions
 # <file name>
+# cats the three lines above each function as usage,shortname,description
+# list all functions
+# <file name> [-t] [-b]
 all-laf() {
-    local full_output=false
+    local truncate_mode=false
+    local break_mode=false
     local file_name
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -f|--full)
-                full_output=true
+            -t)
+                truncate_mode=true
+                shift
+                ;;
+            -b)
+                break_mode=true
                 shift
                 ;;
             *)
@@ -127,29 +135,80 @@ all-laf() {
     truncate_and_pad() {
         local str="$1"
         local width="$2"
-        if $full_output; then
-            printf "%-${width}s" "$str"
+        if [ ${#str} -gt $width ]; then
+            echo "${str:0:$((width-2))}.."
         else
-            if [ ${#str} -gt $width ]; then
-                echo "${str:0:$((width-2))}.."
-            else
-                printf "%-${width}s" "$str"
-            fi
+            printf "%-${width}s" "$str"
         fi
+    }
+
+    # Function to wrap text
+    wrap_text() {
+        local text="$1"
+        local width="$2"
+        echo "$text" | fold -s -w "$width"
     }
 
     # Function to print a row (including header and data rows)
     print_row() {
-        printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n" \
-            "$(truncate_and_pad "$1" $col_width_1)" \
-            "$(truncate_and_pad "$2" $col_width_2)" \
-            "$(truncate_and_pad "$3" $col_width_3)" \
-            "$(truncate_and_pad "$4" $col_width_4)" \
-            "$(truncate_and_pad "$5" $col_width_5)" \
-            "$(truncate_and_pad "$6" $col_width_6)" \
-            "$(truncate_and_pad "$7" $col_width_7)" \
-            "$(truncate_and_pad "$8" $col_width_8)" \
-            "$(truncate_and_pad "$9" $col_width_9)"
+        if $break_mode; then
+            local col1=$(wrap_text "$1" $col_width_1)
+            local col2=$(wrap_text "$2" $col_width_2)
+            local col3=$(wrap_text "$3" $col_width_3)
+            local col4=$(wrap_text "$4" $col_width_4)
+            local col5=$(wrap_text "$5" $col_width_5)
+            local col6=$(wrap_text "$6" $col_width_6)
+            local col7=$(wrap_text "$7" $col_width_7)
+            local col8=$(wrap_text "$8" $col_width_8)
+            local col9=$(wrap_text "$9" $col_width_9)
+            
+            local IFS=$'\n'
+            local lines1=($col1)
+            local lines2=($col2)
+            local lines3=($col3)
+            local lines4=($col4)
+            local lines5=($col5)
+            local lines6=($col6)
+            local lines7=($col7)
+            local lines8=($col8)
+            local lines9=($col9)
+            
+            local max_lines=$(( ${#lines1[@]} > ${#lines2[@]} ? ${#lines1[@]} : ${#lines2[@]} ))
+            max_lines=$(( max_lines > ${#lines3[@]} ? max_lines : ${#lines3[@]} ))
+            max_lines=$(( max_lines > ${#lines4[@]} ? max_lines : ${#lines4[@]} ))
+            max_lines=$(( max_lines > ${#lines5[@]} ? max_lines : ${#lines5[@]} ))
+            max_lines=$(( max_lines > ${#lines6[@]} ? max_lines : ${#lines6[@]} ))
+            max_lines=$(( max_lines > ${#lines7[@]} ? max_lines : ${#lines7[@]} ))
+            max_lines=$(( max_lines > ${#lines8[@]} ? max_lines : ${#lines8[@]} ))
+            max_lines=$(( max_lines > ${#lines9[@]} ? max_lines : ${#lines9[@]} ))
+            
+            for i in $(seq 0 $((max_lines-1))); do
+                printf "| %-${col_width_1}s | %-${col_width_2}s | %-${col_width_3}s | %-${col_width_4}s | %-${col_width_5}s | %-${col_width_6}s | %-${col_width_7}s | %-${col_width_8}s | %-${col_width_9}s |\n" \
+                    "${lines1[$i]:-}" \
+                    "${lines2[$i]:-}" \
+                    "${lines3[$i]:-}" \
+                    "${lines4[$i]:-}" \
+                    "${lines5[$i]:-}" \
+                    "${lines6[$i]:-}" \
+                    "${lines7[$i]:-}" \
+                    "${lines8[$i]:-}" \
+                    "${lines9[$i]:-}"
+            done
+        elif $truncate_mode; then
+            printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n" \
+                "$(truncate_and_pad "$1" $col_width_1)" \
+                "$(truncate_and_pad "$2" $col_width_2)" \
+                "$(truncate_and_pad "$3" $col_width_3)" \
+                "$(truncate_and_pad "$4" $col_width_4)" \
+                "$(truncate_and_pad "$5" $col_width_5)" \
+                "$(truncate_and_pad "$6" $col_width_6)" \
+                "$(truncate_and_pad "$7" $col_width_7)" \
+                "$(truncate_and_pad "$8" $col_width_8)" \
+                "$(truncate_and_pad "$9" $col_width_9)"
+        else
+            printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n" \
+                "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9"
+        fi
     }
 
     # Function to print a separator line
@@ -232,10 +291,15 @@ all-laf() {
 
             # Print function information
             print_row "$func_name" "$arguments" "$shortname" "$description" "$func_size" "$line_number" "$func_calls" "$callslib" "$callsset"
+            if $break_mode; then
+                print_separator
+            fi
         fi
     done < "$file_name"
 
-    print_separator
+    if ! $break_mode; then
+        print_separator
+    fi
     echo ""
 }
 
