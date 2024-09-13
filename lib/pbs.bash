@@ -19,15 +19,15 @@ else
     exit 1
 fi
 
-#
+# show an overview of specific functions
 # overview functions
-#
+#  
 pbs-fun() {
     all-laf "$FILEPATH_pbs"
 }
-#
+# show an overview of specific variables
 # overview variables
-#
+#  
 pbs-var() {
     all-acu o "$DIR_LIB/.." "$CONFIG_pbs"
 }

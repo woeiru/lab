@@ -19,15 +19,15 @@ else
     exit 1
 fi
 
-#
+# show an overview of specific functions
 # overview functions
-#
+# 
 osm-fun() {
     all-laf "$FILEPATH_osm"
 }
-#
+# show an overview of specific variables 
 # overview variables
-#
+# 
 osm-var() {
     all-acu o "$DIR_LIB/.." "$CONFIG_osm"
 }

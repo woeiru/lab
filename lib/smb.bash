@@ -19,15 +19,15 @@ else
     exit 1
 fi
 
-#
+# show an overview of specific functions
 # overview functions
-#
+#  
 smb-fun() {
     all-laf "$FILEPATH_smb"
 }
-#
+# show an overview of specific variables
 # overview variables
-#
+#  
 smb-var() {
     all-acu o "$DIR_LIB/.." "$CONFIG_smb"
 }
