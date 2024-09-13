@@ -58,6 +58,7 @@ all-loo() {
         return 1
     fi
 }
+
 # cats the three lines above each function as usage,shortname,description
 # list all functions
 # <file name>
@@ -68,35 +69,46 @@ all-laf() {
     fi
 
     # Column width parameters
-    local col_width_1=10
-    local col_width_2=36
-    local col_width_3=31
-    local col_width_4=51
-    local col_width_5=5
-    local col_width_6=5
-    local col_width_7=5
-    local col_width_8=5
-    local col_width_9=5
+    local col_width_1=7
+    local col_width_2=20
+    local col_width_3=20
+    local col_width_4=30
+    local col_width_5=4
+    local col_width_6=4
+    local col_width_7=4
+    local col_width_8=4
+    local col_width_9=4
+
+    # Function to truncate and pad strings
+    truncate_and_pad() {
+        local str="$1"
+        local width="$2"
+        if [ ${#str} -gt $width ]; then
+            echo "${str:0:$((width-2))}.."
+        else
+            printf "%-${width}s" "$str"
+        fi
+    }
+
+    # Function to print a row (including header and data rows)
+    print_row() {
+        printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n" \
+            "$(truncate_and_pad "$1" $col_width_1)" \
+            "$(truncate_and_pad "$2" $col_width_2)" \
+            "$(truncate_and_pad "$3" $col_width_3)" \
+            "$(truncate_and_pad "$4" $col_width_4)" \
+            "$(truncate_and_pad "$5" $col_width_5)" \
+            "$(truncate_and_pad "$6" $col_width_6)" \
+            "$(truncate_and_pad "$7" $col_width_7)" \
+            "$(truncate_and_pad "$8" $col_width_8)" \
+            "$(truncate_and_pad "$9" $col_width_9)"
+    }
 
     # Function to print a separator line
     print_separator() {
-        printf "+-%s+-%s+-%s+-%s+-%s+-%s+-%s+-%s+-%s+\n" \
-            "$(printf '%*s' $col_width_1 '' | tr ' ' '-')" \
-            "$(printf '%*s' $col_width_2 '' | tr ' ' '-')" \
-            "$(printf '%*s' $col_width_3 '' | tr ' ' '-')" \
-            "$(printf '%*s' $col_width_4 '' | tr ' ' '-')" \
-            "$(printf '%*s' $col_width_5 '' | tr ' ' '-')" \
-            "$(printf '%*s' $col_width_6 '' | tr ' ' '-')" \
-            "$(printf '%*s' $col_width_7 '' | tr ' ' '-')" \
-            "$(printf '%*s' $col_width_8 '' | tr ' ' '-')" \
-            "$(printf '%*s' $col_width_9 '' | tr ' ' '-')"
+        local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + col_width_8 + col_width_9 + 26))
+        printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' '-')"
     }
-
-    # Print table header
-    print_separator
-    printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s | %-$(($col_width_7 - 1))s | %-$(($col_width_8 - 1))s | %-$(($col_width_9 - 1))s |\n" \
-        "Function" "Arguments" "Shortname" "Description" "Size" "Loc" "Cfil" "Clib" "Cset"
-    print_separator
 
     local file_name="$1"
     local line_number=0
@@ -140,6 +152,11 @@ all-laf() {
         fi
     }
 
+    # Print table header
+    print_separator
+    print_row "Function" "Arguments" "Shortname" "Description" "Size" "Loc" "Cfil" "Clib" "Cset"
+    print_separator
+
     # Loop through all lines in the file again
     line_number=0
     while IFS= read -r line; do
@@ -166,24 +183,8 @@ all-laf() {
             shortname=$(get_comment $((line_number-2)))
             arguments=$(get_comment $((line_number-1)))
 
-            # Truncate strings if they're longer than the column width
-            truncate_string() {
-                local str="$1"
-                local max_length=$2
-                if [ ${#str} -gt $max_length ]; then
-                    echo "${str:0:$((max_length-3))}.."
-                else
-                    echo "$str"
-                fi
-            }
-
-            arguments=$(truncate_string "$arguments" $col_width_2)
-            shortname=$(truncate_string "$shortname" $col_width_3)
-            description=$(truncate_string "$description" $col_width_4)
-
             # Print function information
-            printf "| %-$(($col_width_1 - 1))s | %-$(($col_width_2 - 1))s | %-$(($col_width_3 - 1))s | %-$(($col_width_4 - 1))s | %-$(($col_width_5 - 1))s | %-$(($col_width_6 - 1))s | %-$(($col_width_7 - 1))s | %-$(($col_width_8 - 1))s | %-$(($col_width_9 - 1))s |\n" \
-                "$func_name" "$arguments" "$shortname" "$description" "$func_size" "$line_number" "$func_calls" "$callslib" "$callsset"
+            print_row "$func_name" "$arguments" "$shortname" "$description" "$func_size" "$line_number" "$func_calls" "$callslib" "$callsset"
         fi
     done < "$file_name"
 
