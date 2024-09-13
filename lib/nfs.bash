@@ -19,15 +19,15 @@ else
     exit 1
 fi
 
-#
+# show an overview of specific functions
 # overview functions
-#
+# 
 nfs-fun() {
     all-laf "$FILEPATH_nfs"
 }
-#
+# show an overview of specific variables
 # overview variables
-#
+# 
 nfs-var() {
     all-acu o "$DIR_LIB/.." "$CONFIG_nfs"
 }

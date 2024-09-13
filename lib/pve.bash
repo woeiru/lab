@@ -19,15 +19,15 @@ else
     exit 1
 fi
 
-#
+# show an overview of specific functions
 # overview functions
-#
+#  
 pve-fun() {
     all-laf "$FILEPATH_pve"
 }
-#
+# show an overview of specific variables
 # overview variables
-#
+# 
 pve-var() {
     all-acu o "$DIR_LIB/.." "$CONFIG_pve"
 }
