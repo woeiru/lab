@@ -50,7 +50,7 @@ for file in "${files[@]}"; do
 done
 
 # Generate aliases for all folders containing the specified file in the entire repo
-FILEBASE_MD="a.md"
+FILEBASE_MD="readme.md"
 while IFS= read -r -d '' file; do
   dir=$(dirname "$file")
   alias_name=$(basename "$dir").md
