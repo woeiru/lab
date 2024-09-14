@@ -304,19 +304,20 @@ all-laf() {
 }
 
 # Function that calls a function for each file in the directory
-# function passthrough loop
-# <function> <static arg1> <static arg2> <dynamic arg3>
+# function passthrough(pt) loop
+# <function> <pt flag> <pt looped folder> <pt arg1>
 all-fpl() {
     local function=$1
-    local arg1=$2
-    local arg2=$3
-    local folder=$4
+    local flag=$2
+    local folder=$3
+    local arg1=$4
 
     # Debug output
-    echo "Function: $function"
-    echo "Arg1: $arg1"
-    echo "Arg2: $arg2"
-    echo "Folder: $folder"
+    echo "passthorugh parameters :"
+    echo "1 function: $function"
+    echo "2 flag: $flag"
+    echo "3 folder: $folder"
+    echo "4 arg1: $arg1"
 
     # Check if folder exists
     if [ ! -d "$folder" ]; then
@@ -328,7 +329,7 @@ all-fpl() {
     for file in "$folder"/*; do
         if [ -f "$file" ]; then
             echo "Processing file: $file"
-            $function "$arg1" "$arg2" "$file"
+            $function "$arg" "$file" "$arg1"
         fi
     done
 }
@@ -338,8 +339,8 @@ all-fpl() {
 # <sort mode: o|a > <target folder> <config file>
 all-acu() {
     local sort_mode=$1
-    local target_folder=$2
-    local conf_file=$3
+    local conf_file=$2
+    local target_folder=$3
 
     # Customizable column widths
     local tab_width_var_names=20
@@ -347,7 +348,7 @@ all-acu() {
     local tab_width_var_occurences=5
 
     if [ $# -ne 3 ]; then
-        echo "Usage: all-acu <sort mode: o|a> <target folder> <config file>"
+        echo "Usage: all-acu <sort mode: -o|-a> <target folder> <config file>"
         return 1
     fi
 
@@ -376,7 +377,7 @@ all-acu() {
     # Function to sort variables based on the sort mode
     sort_variables() {
         local sort_mode=$1
-        if [[ $sort_mode == "a" ]]; then
+        if [[ $sort_mode == "-a" ]]; then
             IFS=$'\n' sorted_vars=($(sort <<<"${var_order[*]}"))
             unset IFS
         else
