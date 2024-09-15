@@ -61,8 +61,8 @@ done < <(find "$DIR/.." -type f -name "$FILEBASE_MD" -print0)
 
 # function chains
 #
-alias fun='all-loo all-laf /root/lab/lib'
-alias var='all-fpl all-acu -o /root/lab/var /root/lab/'
+alias fun='all-loo all-laf "" /root/lab/lib'
+alias var='all-loo all-acu "" /root/lab/var /root/lab/'
 
 # function aliases
 alias sca='all-sca'
