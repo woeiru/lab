@@ -29,7 +29,7 @@ osm-fun() {
 # overview variables
 # 
 osm-var() {
-    all-acu o "$DIR_LIB/.." "$CONFIG_osm"
+    all-acu -o "$CONFIG_osm" "$DIR_LIB/.."
 }
 
 # Transform a folder subvolume.

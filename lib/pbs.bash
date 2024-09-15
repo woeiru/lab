@@ -29,7 +29,7 @@ pbs-fun() {
 # overview variables
 #  
 pbs-var() {
-    all-acu o "$DIR_LIB/.." "$CONFIG_pbs"
+    all-acu -o "$CONFIG_pbs" "$DIR_LIB/.."
 }
 
 # Download Proxmox GPG key and verify checksums.

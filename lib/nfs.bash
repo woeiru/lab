@@ -29,7 +29,7 @@ nfs-fun() {
 # overview variables
 # 
 nfs-var() {
-    all-acu o "$DIR_LIB/.." "$CONFIG_nfs"
+    all-acu -o "$CONFIG_nfs" "$DIR_LIB/.."
 }
 
 # Unified function to set up NFS
