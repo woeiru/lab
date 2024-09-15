@@ -88,9 +88,6 @@ all-loo() {
 
 # cats the three lines above each function as usage,shortname,description
 # list all functions
-# <file name>
-# cats the three lines above each function as usage,shortname,description
-# list all functions
 # <file name> [-t] [-b]
 all-laf() {
     local truncate_mode=false
@@ -272,13 +269,9 @@ all-laf() {
             func_name=$(echo "$line" | awk -F '[(|)]' '{print $1}')
             # Calculate function size
             func_start_line=$line_number
-            func_size=0
-            while IFS= read -r func_line; do
-                ((func_size++))
-                if [[ $func_line == *} ]]; then
-                    break
-                fi
-            done < <(tail -n +$func_start_line "$file_name")
+            func_end_line=$(tail -n +$((func_start_line+1)) "$file_name" | grep -n '^}' | head -1 | cut -d: -f1)
+            func_size=$((func_end_line + 1))  # +1 to include the closing brace
+            
             # Count the number of calls to the function
             func_calls=$(count_calls "$func_name")
             callslib=$(count_calls_folder "$func_name" "/root/lab/lib" "$file_name")
