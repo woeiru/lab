@@ -369,8 +369,8 @@ all-acu() {
 
 # Recursively processes files in a directory with an function
 # function folder loop
-# <function> <flag> <path>
-all-loo() {
+# <function> <flag> <path> [extra_args ..]
+all-ffl() {
     local fnc
     local flag
     local folder
@@ -393,7 +393,7 @@ all-loo() {
                 echo "Processing file: $file"
                 "$fnc" "$flag" "$file" "${extra_args[@]}"
             elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
-                all-loo "$fnc" "$flag" "$file" "${extra_args[@]}"
+                all-ffl "$fnc" "$flag" "$file" "${extra_args[@]}"
             fi
         done
     else
@@ -1125,10 +1125,10 @@ all-use() {
 
 }
 
-#
+# 
 # rysnc source destination
-# <storage_name>
-all-rav() {
+# <storage_name> <destination_path>
+all-rsd() {
     if [ $# -ne 1 ]; then
 	all-use
         return 1
@@ -1194,10 +1194,10 @@ all-cif() {
     done
 }
 
-# firewalld add service and reload
-# fire wall service
-# <function_name>
-all-fws() {
+# 
+# firewalld (add) service (and) reload
+# <service>
+all-fsr() {
     local function_name="${FUNCNAME[0]}"
     local fw_service="$1"
     if [ $# -ne 1 ]; then
@@ -1217,7 +1217,7 @@ all-fws() {
 
 # This function uploads an SSH key from a device plugged in, into the /root/.ssh folder.
 # upload ssh keyfile
-# <device_path> <mount_point> <file_path> <file_name> <upload_path>
+# <device_path> <mount_point> <subfolder_path> <upload_path> <file_name>
 all-usk() {
     local device_path="$1"
     local mount_point="$2"
@@ -1333,7 +1333,7 @@ all-spi() {
 
 # append a public SSH key content to authorized_keys
 # append authorized keys
-# <upload_full_path> <authorized_keys_path>
+# <upload_path> <file_name>
 all-aak() {
     local upload_path="$1"
     local file_name="$2"
@@ -1424,7 +1424,7 @@ all-loi() {
 
 # Resolves custom ssh aliases with the help of all.conf
 # ssh custom aliases
-# <usershortcut> <servershortcut: single or csv or all or array> <'command'>
+# <usershortcut> <servershortcut: single or csv or all or array> [command]
 all-sca() {
     echo "Debug: Number of arguments: $#"
     echo "Debug: Arguments: $*"
@@ -1535,7 +1535,7 @@ all-sca() {
 
 # rctwake wrapper
 # sheduled wakeup timer
-# <-r for relative or -a for absolute> <time>
+# <-r for relative or -a for absolute> <time> <state>
 all-swt() {
     local log_file="/var/log/wake_up.log"
 
