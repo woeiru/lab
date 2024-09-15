@@ -208,3 +208,63 @@ New: Recursively deletes a Btrfs parent subvolume and all its nested child subvo
 -----------------
 2024-09-15 16:30:05 - Replacement process completed.
 -----------------
+-----------------
+Target file: /root/lab/lib/osm.bash.bash
+-----------------
+Item: pbs-fun
+Old: show an overview of specific functions
+New: Displays an overview of specific Proxmox Backup Server (PBS) related functions in the script, showing their usage, shortname, and description
+---
+Item: pbs-var
+Old: show an overview of specific variables
+New: Displays an overview of PBS-specific variables defined in the configuration file, showing their names, values, and usage across different files
+---
+Item: pbs-sgp
+Old: Download Proxmox GPG key and verify checksums.
+New: Downloads the Proxmox GPG key for Debian Bookworm, saves it to the trusted.gpg.d directory, and verifies both SHA512 and MD5 checksums for security
+---
+Item: pbs-adr
+Old: Add Proxmox repository to sources.list if not already present.
+New: Adds the Proxmox Backup Server repository to /etc/apt/sources.list if not already present, enabling access to PBS packages without a subscription
+---
+Item: pbs-puu
+Old: Update package lists and upgrade packages.
+New: Updates package lists and upgrades all installed packages on the system, ensuring PBS and other software are up to date
+---
+Item: pbs-rda
+Old: Restore datastore configuration file with given parameters.
+New: Restores or creates a Proxmox Backup Server datastore configuration file (/etc/proxmox-backup/datastore.cfg) with specified datastore name and path
+---
+-----------------
+2024-09-15 17:01:04 - Replacement process completed.
+-----------------
+-----------------
+Target file: /root/lab/lib/osm.bash
+-----------------
+Item: pbs-fun
+Old: show an overview of specific functions
+New: Displays an overview of specific Proxmox Backup Server (PBS) related functions in the script, showing their usage, shortname, and description
+---
+Item: pbs-var
+Old: show an overview of specific variables
+New: Displays an overview of PBS-specific variables defined in the configuration file, showing their names, values, and usage across different files
+---
+Item: pbs-sgp
+Old: Download Proxmox GPG key and verify checksums.
+New: Downloads the Proxmox GPG key for Debian Bookworm, saves it to the trusted.gpg.d directory, and verifies both SHA512 and MD5 checksums for security
+---
+Item: pbs-adr
+Old: Add Proxmox repository to sources.list if not already present.
+New: Adds the Proxmox Backup Server repository to /etc/apt/sources.list if not already present, enabling access to PBS packages without a subscription
+---
+Item: pbs-puu
+Old: Update package lists and upgrade packages.
+New: Updates package lists and upgrades all installed packages on the system, ensuring PBS and other software are up to date
+---
+Item: pbs-rda
+Old: Restore datastore configuration file with given parameters.
+New: Restores or creates a Proxmox Backup Server datastore configuration file (/etc/proxmox-backup/datastore.cfg) with specified datastore name and path
+---
+-----------------
+2024-09-15 17:01:23 - Replacement process completed.
+-----------------

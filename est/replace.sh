@@ -6,10 +6,10 @@ if [ $# -ne 2 ]; then
     exit 1
 fi
 
-# Path to the file to be modified
-target_file="$1"
 # Path to the JSON file containing replacements
-json_file="$2"
+json_file="$1"
+# Path to the file to be modified
+target_file="$2"
 
 # Get the directory of this script
 script_dir="$(dirname "$(readlink -f "$0")")"
