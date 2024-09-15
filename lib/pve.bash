@@ -734,36 +734,46 @@ pve-ctc() {
 pve-cto() {
     local action=$1
     shift
+    
     if [[ $action != "start" && $action != "stop" && $action != "enable" && $action != "disable" ]]; then
         echo "Invalid action: $action"
         echo "Usage: pve-cto <start|stop|enable|disable> <containers|all>"
         return 1
     fi
-
+    
     handle_action() {
         local vmid=$1
+        local config_file="/etc/pve/lxc/${vmid}.conf"
+        
+        if [[ ! -f "$config_file" ]]; then
+            echo "ERROR: Config file for container $vmid does not exist"
+            return 1
+        fi
+        
         case $action in
             start)
+                echo "Starting container $vmid"
                 pct start "$vmid"
                 ;;
             stop)
+                echo "Stopping container $vmid"
                 pct stop "$vmid"
                 ;;
-            enable)
-                sed -i 's/^onboot:.*/onboot: 1/' "/etc/pve/lxc/${vmid}.conf" || echo "onboot: 1" >> "/etc/pve/lxc/${vmid}.conf"
-                echo "Container $vmid configuration:"
-                grep '^onboot:' "/etc/pve/lxc/${vmid}.conf"
-                ;;
-            disable)
-                sed -i 's/^onboot:.*/onboot: 0/' "/etc/pve/lxc/${vmid}.conf" || echo "onboot: 0" >> "/etc/pve/lxc/${vmid}.conf"
-                echo "Container $vmid configuration:"
-                grep '^onboot:' "/etc/pve/lxc/${vmid}.conf"
+            enable|disable)
+                local onboot_value=$([[ $action == "enable" ]] && echo 1 || echo 0)
+                echo "Setting onboot to $onboot_value for container $vmid"
+                
+                sed -i '/^onboot:/d' "$config_file"
+                echo "onboot: $onboot_value" >> "$config_file"
+                
+                echo "Container $vmid configuration updated:"
+                grep '^onboot:' "$config_file" || echo "ERROR: onboot entry not found after modification"
                 ;;
         esac
     }
-
+    
     if [[ $1 == "all" ]]; then
-        # Get list of all container IDs
+        echo "Processing all containers"
         container_ids=$(pct list | awk 'NR>1 {print $1}')
         for vmid in $container_ids; do
             handle_action "$vmid"
@@ -771,19 +781,18 @@ pve-cto() {
     else
         for arg in "$@"; do
             if [[ $arg == *-* ]]; then
-                # Handle range input
                 IFS='-' read -r start end <<< "$arg"
                 for (( vmid=start; vmid<=end; vmid++ )); do
                     handle_action "$vmid"
                 done
             else
-                # Handle individual input
                 handle_action "$arg"
             fi
         done
     fi
-
+    
     if [[ $action == "start" || $action == "stop" ]]; then
+        echo "Current container status:"
         pct list
     fi
 }
