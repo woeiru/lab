@@ -157,7 +157,17 @@ alias ps='podman ps'
 alias psa='podman ps -a'
 
 # ssh
+
+if [ -z "$SSH_AUTH_SOCK" ] ; then
+    eval `ssh-agent -s`
+    ssh-add
+fi
+
 alias sca='all-sca'
+
+alias ssh-keygen.1='ssh-keygen -t ed25519-C "admin@woeiru.io"'
+alias ssh-copy-id.2='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@w1'
+alias ssh-add.3='ssh-add ~/.ssh/id_ed25519'
 
 # system control aliases
 alias y='systemctl'
