@@ -1,0 +1,174 @@
+{
+  "functionDescriptions": [
+    {
+      "function": "all-fun",
+      "old": "show an overview of specific functions",
+      "new": "Shows a summary of selected functions in the script, displaying their usage, shortname, and description"
+    },
+    {
+      "function": "all-laf",
+      "old": "cats the three lines above each function as usage,shortname,description",
+      "new": "Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability"
+    },
+    {
+      "function": "all-var",
+      "old": "show an overview of specific variables",
+      "new": "Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files"
+    },
+    {
+      "function": "all-acu",
+      "old": "Counts the var occurrences from a config file in a target folder",
+      "new": "Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files"
+    },
+    {
+      "function": "all-ffl",
+      "old": "Recursively processes files in a directory with an function",
+      "new": "Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed"
+    },
+    {
+      "function": "all-flc",
+      "old": "cats the source code of a function inside the lib folder",
+      "new": "Displays the source code of a specified function from the library folder, including its description, shortname, and usage"
+    },
+    {
+      "function": "all-gio",
+      "old": "Manages git operations, ensuring local repository syncs with remote.",
+      "new": "Manages git operations, ensuring the local repository syncs with the remote. Performs status check, pull, commit, and push operations as needed"
+    },
+    {
+      "function": "all-fea",
+      "old": "Adds auto-mount entries for devices to /etc/fstab using blkid.",
+      "new": "Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry"
+    },
+    {
+      "function": "all-fec",
+      "old": "Adds custom entries to /etc/fstab using device UUIDs.",
+      "new": "Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters"
+    },
+    {
+      "function": "all-vsf",
+      "old": "Prompts the user to select a file from the current directory.",
+      "new": "Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename"
+    },
+    {
+      "function": "all-cff",
+      "old": "Counts files in directories based on specified visibility.",
+      "new": "Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name"
+    },
+    {
+      "function": "all-zdb",
+      "old": "Sends ZFS snapshots from a source pool to a destination pool.",
+      "new": "Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency"
+    },
+    {
+      "function": "all-duc",
+      "old": "Compares data usage between two paths up to a specified depth.",
+      "new": "Compares data usage between two paths up to a specified depth. Displays results in a tabular format with color-coded differences"
+    },
+    {
+      "function": "all-mev",
+      "old": "Prompts the user to input or confirm a variable's value.",
+      "new": "Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters"
+    },
+    {
+      "function": "all-nos",
+      "old": "Logs a function's execution status with a timestamp.",
+      "new": "Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information"
+    },
+    {
+      "function": "all-cap",
+      "old": "Appends a line to a file if it does not already exist.",
+      "new": "Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation"
+    },
+    {
+      "function": "all-ipa",
+      "old": "Installs specified packages using a package manager.",
+      "new": "Installs specified packages using the system's package manager (apt, dnf, yum, or zypper). Performs update, upgrade, and installation operations"
+    },
+    {
+      "function": "all-gst",
+      "old": "Configures git with a specified username and email",
+      "new": "Configures git globally with a specified username and email, essential for proper commit attribution"
+    },
+    {
+      "function": "all-sst",
+      "old": "Installs, enables, and starts the sysstat service.",
+      "new": "Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled"
+    },
+    {
+      "function": "all-fas",
+      "old": "Allows a specified service through the firewall.",
+      "new": "Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration"
+    },
+    {
+      "function": "all-ust",
+      "old": "Creates a user with a specified username and password.",
+      "new": "Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation"
+    },
+    {
+      "function": "all-sdc",
+      "old": "Enables and starts a specified systemd service.",
+      "new": "Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not"
+    },
+    {
+      "function": "all-rsf",
+      "old": "Replaces strings in files within a specified folder, optionally staged by git.",
+      "new": "Replaces strings in files within a specified folder and its subfolders. If in a git repository, it stages changes and shows the diff"
+    },
+    {
+      "function": "all-rnf",
+      "old": "renames all files in folder and in nested folders too",
+      "new": "Renames all files containing a specified string in their names, within a given folder and its subfolders"
+    },
+    {
+      "function": "all-use",
+      "old": "get function arguments",
+      "new": "Displays the usage information, shortname, and description of the calling function, helping users understand how to use it"
+    },
+    {
+      "function": "all-rsd",
+      "old": "rysnc source destination",
+      "new": "Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding"
+    },
+    {
+      "function": "all-cif",
+      "old": "cats all files inside a particular folder",
+      "new": "Concatenates and displays the contents of all files within a specified folder, separating each file's content with a line of dashes"
+    },
+    {
+      "function": "all-fsr",
+      "old": "firewalld (add) service (and) reload",
+      "new": "Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding"
+    },
+    {
+      "function": "all-usk",
+      "old": "This function uploads an SSH key from a device plugged in, into the /root/.ssh folder.",
+      "new": "Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device"
+    },
+    {
+      "function": "all-spi",
+      "old": "append a private SSH key identifier to a config inside .ssh",
+      "new": "Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist"
+    },
+    {
+      "function": "all-aak",
+      "old": "append a public SSH key content to authorized_keys",
+      "new": "Appends the content of a specified public SSH key file to the authorized_keys file. Prompts for confirmation and restarts the SSH service"
+    },
+    {
+      "function": "all-loi",
+      "old": "Loop a specified operation through an specific range of ips",
+      "new": "Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration"
+    },
+    {
+      "function": "all-sca",
+      "old": "Resolves custom ssh aliases with the help of all.conf",
+      "new": "Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely"
+    },
+    {
+      "function": "all-swt",
+      "old": "rctwake wrapper",
+      "new": "Schedules a system wake-up using rtcwake. Supports absolute or relative time input, different sleep states (mem/disk), and logs operations"
+    }
+  ]
+}
