@@ -1,54 +1,34 @@
 {
   "replacements": [
     {
-      "item": "osm-fun",
+      "item": "pbs-fun",
       "old": "show an overview of specific functions",
-      "new": "Displays an overview of specific OSM-related functions in the script, showing their usage, shortname, and description"
+      "new": "Displays an overview of specific Proxmox Backup Server (PBS) related functions in the script, showing their usage, shortname, and description"
     },
     {
-      "item": "osm-var",
+      "item": "pbs-var",
       "old": "show an overview of specific variables",
-      "new": "Displays an overview of OSM-specific variables defined in the configuration file, showing their names, values, and usage across different files"
+      "new": "Displays an overview of PBS-specific variables defined in the configuration file, showing their names, values, and usage across different files"
     },
     {
-      "item": "osm-tra",
-      "old": "Transform a folder subvolume.",
-      "new": "Transforms a folder into a Btrfs subvolume, optionally setting attributes (e.g., disabling COW). Handles multiple folders, preserving content and ownership."
+      "item": "pbs-sgp",
+      "old": "Download Proxmox GPG key and verify checksums.",
+      "new": "Downloads the Proxmox GPG key for Debian Bookworm, saves it to the trusted.gpg.d directory, and verifies both SHA512 and MD5 checksums for security"
     },
     {
-      "item": "osm-csf",
-      "old": "Check subvolume folder and filter results.",
-      "new": "Checks and lists subvolume status of folders in a specified path. Supports filtering by folder type (regular, hidden, or both) and subvolume status."
+      "item": "pbs-adr",
+      "old": "Add Proxmox repository to sources.list if not already present.",
+      "new": "Adds the Proxmox Backup Server repository to /etc/apt/sources.list if not already present, enabling access to PBS packages without a subscription"
     },
     {
-      "item": "osm-shc",
-      "old": "snapper -c home_* create",
-      "new": "Creates a new Snapper snapshot for the specified configuration or automatically selects a 'home_*' configuration if multiple exist"
+      "item": "pbs-puu",
+      "old": "Update package lists and upgrade packages.",
+      "new": "Updates package lists and upgrades all installed packages on the system, ensuring PBS and other software are up to date"
     },
     {
-      "item": "osm-shd",
-      "old": "snapper -c home_* delete <snapshot>",
-      "new": "Deletes a specified Snapper snapshot from a given configuration or automatically selects a 'home_*' configuration if multiple exist"
-    },
-    {
-      "item": "osm-shl",
-      "old": "snapper -c home_* list",
-      "new": "Lists Snapper snapshots for the specified configuration or automatically selects a 'home_*' configuration if multiple exist"
-    },
-    {
-      "item": "osm-sfr",
-      "old": "Resyncing a Btrfs snapshot to a flat folder",
-      "new": "Resyncs a Btrfs snapshot subvolume to a flat folder using rsync, excluding specific directories (.snapshots and .ssh) and preserving attributes"
-    },
-    {
-      "item": "osm-hub",
-      "old": "creating a subvol on bak then sending snapshots there",
-      "new": "Creates a backup subvolume for a user's home directory on a backup drive, then sends and receives Btrfs snapshots incrementally, managing full and incremental backups"
-    },
-    {
-      "item": "osm-snd",
-      "old": "delete a parent subvolume with all it nested childs",
-      "new": "Recursively deletes a Btrfs parent subvolume and all its nested child subvolumes, with options for interactive mode and forced deletion"
+      "item": "pbs-rda",
+      "old": "Restore datastore configuration file with given parameters.",
+      "new": "Restores or creates a Proxmox Backup Server datastore configuration file (/etc/proxmox-backup/datastore.cfg) with specified datastore name and path"
     }
   ]
 }
