@@ -368,86 +368,38 @@ all-acu() {
 }
 
 # Recursively processes files in a directory with an function
-# extended overview
-# <function> <path>
+# function folder loop
+# <function> <flag> <path>
 all-loo() {
     local fnc
-    local target
+    local flag
+    local folder
     local extra_args=()
 
-    # Parse arguments
+    fnc="$1"
+    flag="$2"
+    folder="$3"
+    shift 3
+
+    # Collect remaining arguments as extra_args
     while [[ $# -gt 0 ]]; do
-        case $1 in
-            -*)
-                # Collect all flags and their values
-                extra_args+=("$1")
-                if [[ "$2" != -* && "$2" != "" ]]; then
-                    extra_args+=("$2")
-                    shift
-                fi
-                ;;
-            *)
-                if [ -z "$fnc" ]; then
-                    fnc="$1"
-                elif [ -z "$target" ]; then
-                    target="$1"
-                else
-                    extra_args+=("$1")
-                fi
-                ;;
-        esac
+        extra_args+=("$1")
         shift
     done
 
-    if [ -z "$fnc" ] || [ -z "$target" ]; then
-        all-use
-        return 1
-    fi
-
-    if [[ -d "$target" ]]; then
-        for file in "$target"/{*,.[!.]*,..?*}; do
+    if [[ -d "$folder" ]]; then
+        for file in "$folder"/{*,.[!.]*,..?*}; do
             if [[ -f "$file" ]]; then
                 echo "Processing file: $file"
-                "$fnc" "$file" "${extra_args[@]}"
-            elif [[ -d "$file" && "$file" != "$target"/. && "$file" != "$target"/.. ]]; then
-                all-loo "$fnc" "$file" "${extra_args[@]}"
+                "$fnc" "$flag" "$file" "${extra_args[@]}"
+            elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
+                all-loo "$fnc" "$flag" "$file" "${extra_args[@]}"
             fi
         done
     else
-        echo "Invalid target: $target"
+        echo "Invalid folder: $folder"
         return 1
     fi
-}
-
-# function that calls a function for each file in the directory
-# function passthrough(pt) loop
-# <function> <pt flag> <pt looped folder> <pt arg1>
-all-fpl() {
-    local function=$1
-    local flag=$2
-    local folder=$3
-    local arg1=$4
-
-    # debug output
-    echo "passthorugh parameters :"
-    echo "1 function: $function"
-    echo "2 flag: $flag"
-    echo "3 folder: $folder"
-    echo "4 arg1: $arg1"
-
-    # check if folder exists
-    if [ ! -d "$folder" ]; then
-        echo "directory $folder does not exist."
-        return 1
-    fi
-
-    # iterate through all files in the directory
-    for file in "$folder"/*; do
-        if [ -f "$file" ]; then
-            echo "processing file: $file"
-            $function "$arg" "$file" "$arg1"
-        fi
-    done
 }
 
 # cats the source code of a function inside the lib folder
