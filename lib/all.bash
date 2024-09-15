@@ -31,7 +31,7 @@ all-fun() {
 # overview variables
 #
 all-var() {
-    all-acu o "$DIR_LIB/.." "$CONFIG_all"
+    all-acu -o "$CONFIG_all" "$DIR_LIB/.." 
 }
 
 # Recursively processes files in a directory with an function
@@ -122,9 +122,9 @@ all-laf() {
 
     # Column width parameters
     local col_width_1=7
-    local col_width_2=20
-    local col_width_3=20
-    local col_width_4=30
+    local col_width_2=30
+    local col_width_3=25
+    local col_width_4=40
     local col_width_5=4
     local col_width_6=4
     local col_width_7=4

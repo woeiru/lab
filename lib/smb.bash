@@ -29,7 +29,7 @@ smb-fun() {
 # overview variables
 #  
 smb-var() {
-    all-acu o "$DIR_LIB/.." "$CONFIG_smb"
+    all-acu -o "$CONFIG_smb" "$DIR_LIB/.."
 }
 
 # Unified function to set up Samba
