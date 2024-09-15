@@ -1,119 +1,24 @@
 {
   "replacements": [
     {
-      "item": "pve-fun",
+      "item": "smb-fun",
       "old": "show an overview of specific functions",
-      "new": "Displays an overview of specific Proxmox Virtual Environment (PVE) related functions in the script, showing their usage, shortname, and description"
+      "new": "Displays an overview of specific Samba-related functions in the script, showing their usage, shortname, and description"
     },
     {
-      "item": "pve-var",
+      "item": "smb-var",
       "old": "show an overview of specific variables",
-      "new": "Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files"
+      "new": "Displays an overview of Samba-specific variables defined in the configuration file, showing their names, values, and usage across different files"
     },
     {
-      "item": "vm",
-      "old": "vm start or vm-get then shutdown other node",
-      "new": "Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration"
+      "item": "shr-smb",
+      "old": "Unified function to set up Samba",
+      "new": "Sets up a Samba share by prompting for missing configuration details and applying the configuration. Handles various share parameters including permissions, guest access, and file masks"
     },
     {
-      "item": "vm-get",
-      "old": "remote vm-pth, migration, local vm-pth",
-      "new": "Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process"
-    },
-    {
-      "item": "vm-pth",
-      "old": "toggle Passthrough lines ON or OFF",
-      "new": "Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices"
-    },
-    {
-      "item": "vm-chk",
-      "old": "check where VM exists",
-      "new": "Checks and reports which node in the Proxmox cluster is currently hosting a specified VM"
-    },
-    {
-      "item": "pve-uni",
-      "old": "Prompts user to rename a network interface by editing udev rules and updating network configuration.",
-      "new": "Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system"
-    },
-    {
-      "item": "pve-sbn",
-      "old": "Displays the contents of .notes files in a specified or current directory.",
-      "new": "Displays the contents of all .notes files found in a specified directory or the current directory, useful for viewing backup notes"
-    },
-    {
-      "item": "pve-dsr",
-      "old": "Disables specified repository files by commenting out 'deb' lines.",
-      "new": "Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources"
-    },
-    {
-      "item": "pve-adr",
-      "old": "Adds a specific Proxmox repository line to /etc/apt/sources.list if not already present.",
-      "new": "Adds a specific Proxmox VE no-subscription repository line to /etc/apt/sources.list if not already present"
-    },
-    {
-      "item": "pve-puu",
-      "old": "Updates and upgrades system packages.",
-      "new": "Updates package lists and upgrades all installed packages on the Proxmox system"
-    },
-    {
-      "item": "pve-rsn",
-      "old": "Removes the Proxmox subscription notice and optionally restarts the pveproxy service.",
-      "new": "Removes the Proxmox subscription notice by modifying the web interface JavaScript file, with an option to restart the pveproxy service"
-    },
-    {
-      "item": "pve-gp1",
-      "old": "Configures initial settings for GPU passthrough and reboots the system.",
-      "new": "Configures initial GRUB and EFI settings for GPU passthrough, installs necessary packages, and reboots the system"
-    },
-    {
-      "item": "pve-gp2",
-      "old": "Adds necessary modules for GPU passthrough and reboots the system.",
-      "new": "Adds necessary kernel modules for GPU passthrough to /etc/modules, updates initramfs, and reboots the system"
-    },
-    {
-      "item": "pve-gp3",
-      "old": "Completes GPU passthrough setup by configuring vfio-pci IDs, blacklisting GPU drivers, and rebooting the system.",
-      "new": "Finalizes GPU passthrough setup by configuring VFIO-PCI IDs, blacklisting specific GPU drivers, and rebooting the system"
-    },
-    {
-      "item": "pve-br1",
-      "old": "Sets up a Btrfs RAID 1 filesystem on two devices and optionally adds the mount point to /etc/fstab.",
-      "new": "Creates a Btrfs RAID 1 filesystem on two specified devices, mounts it, and optionally adds an entry to /etc/fstab"
-    },
-    {
-      "item": "pve-zdm",
-      "old": "Creates and mounts a ZFS dataset at a specified mount point.",
-      "new": "Creates a new ZFS dataset or uses an existing one, sets its mountpoint, and ensures it's mounted at the specified path"
-    },
-    {
-      "item": "pve-clu",
-      "old": "Updates the Proxmox container list.",
-      "new": "Updates the Proxmox VE Appliance Manager (pveam) container template list"
-    },
-    {
-      "item": "pve-cdo",
-      "old": "Downloads a specified container template from a storage location.",
-      "new": "Downloads a specified container template to a given storage location, with error handling and options to list available templates"
-    },
-    {
-      "item": "pve-cuc",
-      "old": "updates the occurences of the containertemplate in the config file",
-      "new": "Updates the container template reference in the Proxmox configuration file, prompting for user confirmation and new template name"
-    },
-    {
-      "item": "pve-cbm",
-      "old": "Configures a bind mount for a Proxmox container.",
-      "new": "Configures a bind mount for a specified Proxmox container, linking a host directory to a container directory"
-    },
-    {
-      "item": "pve-ctc",
-      "old": "create a custom container",
-      "new": "Creates a custom Proxmox container with specified parameters including network settings, resources, and SSH key"
-    },
-    {
-      "item": "pve-cto",
-      "old": "start, stop, enable, or disable a range of containers",
-      "new": "Manages multiple Proxmox containers by starting, stopping, enabling, or disabling them, supporting individual IDs, ranges, or all containers"
+      "item": "shr-sma",
+      "old": "Helper script for samba setup.",
+      "new": "Applies Samba configuration by creating the shared folder if needed, updating smb.conf with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares"
     }
   ]
 }
