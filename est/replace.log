@@ -366,3 +366,25 @@ New: Manages multiple Proxmox containers by starting, stopping, enabling, or dis
 -----------------
 2024-09-15 17:06:38 - Replacement process completed.
 -----------------
+-----------------
+Target file: /root/lab/lib/smb.bash
+-----------------
+Item: smb-fun
+Old: show an overview of specific functions
+New: Displays an overview of specific Samba-related functions in the script, showing their usage, shortname, and description
+---
+Item: smb-var
+Old: show an overview of specific variables
+New: Displays an overview of Samba-specific variables defined in the configuration file, showing their names, values, and usage across different files
+---
+Item: shr-smb
+Old: Unified function to set up Samba
+New: Sets up a Samba share by prompting for missing configuration details and applying the configuration. Handles various share parameters including permissions, guest access, and file masks
+---
+Item: shr-sma
+Old: Helper script for samba setup.
+New: Applies Samba configuration by creating the shared folder if needed, updating smb.conf with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares
+---
+-----------------
+2024-09-15 17:08:12 - Replacement process completed.
+-----------------

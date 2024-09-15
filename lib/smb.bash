@@ -19,20 +19,20 @@ else
     exit 1
 fi
 
-# show an overview of specific functions
+# Displays an overview of specific Samba-related functions in the script, showing their usage, shortname, and description
 # overview functions
 #  
 smb-fun() {
     all-laf "$FILEPATH_smb" "$@"
 }
-# show an overview of specific variables
+# Displays an overview of Samba-specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #  
 smb-var() {
     all-acu -o "$CONFIG_smb" "$DIR_LIB/.."
 }
 
-# Unified function to set up Samba
+# Sets up a Samba share by prompting for missing configuration details and applying the configuration. Handles various share parameters including permissions, guest access, and file masks
 # samba setup 1
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
 shr-smb() {
@@ -66,7 +66,7 @@ shr-smb() {
     all-nos "$function_name" "Samba setup complete"
 }
 
-# Helper script for samba setup.
+# Applies Samba configuration by creating the shared folder if needed, updating smb.conf with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares
 # samba apply config
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
 shr-sma() {
