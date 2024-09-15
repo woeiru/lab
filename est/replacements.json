@@ -1,5 +1,5 @@
 {
-  "functionDescriptions": [
+  "replacements": [
     {
       "function": "all-fun",
       "old": "show an overview of specific functions",
