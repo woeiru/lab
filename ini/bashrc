@@ -165,7 +165,7 @@ fi
 
 alias sca='all-sca'
 
-alias sa.w1='ssh-add ~/.ssh/id_w'
+alias sa.w1='ssh-add ~/.ssh/w1'
 
 alias sk.ed='ssh-keygen -t ed25519 -C "admin@woeiru.io"'
 alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
