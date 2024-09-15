@@ -239,7 +239,7 @@ vm-chk() {
     fi
 }
 
-#  Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
+# Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
 # udev network interface
 # [interactive]
 pve-uni() {
