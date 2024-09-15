@@ -19,7 +19,7 @@ else
     exit 1
 fi
 
-# show an overview of specific functions
+# Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
 all-fun() {
@@ -27,7 +27,7 @@ all-fun() {
     all-laf "$FILEPATH_all" "$@"
 }
 
-# cats the three lines above each function as usage,shortname,description
+# Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
 # list all functions
 # <file name> [-t] [-b]
 all-laf() {
@@ -62,7 +62,7 @@ all-laf() {
     local col_width_1=7
     local col_width_2=30
     local col_width_3=25
-    local col_width_4=40
+    local col_width_4=50
     local col_width_5=4
     local col_width_6=4
     local col_width_7=4
@@ -237,14 +237,14 @@ all-laf() {
     echo ""
 }
 
-# show an overview of specific variables
+# Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
 all-var() {
     all-acu -o "$CONFIG_all" "$DIR_LIB/.." 
 }
 
-# Counts the var occurrences from a config file in a target folder
+# Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
 # <sort mode: o|a > <target folder> <config file>
 all-acu() {
@@ -367,7 +367,7 @@ all-acu() {
     print_variables_usage
 }
 
-# Recursively processes files in a directory with an function
+# Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
 # function folder loop
 # <function> <flag> <path> [extra_args ..]
 all-ffl() {
@@ -402,7 +402,7 @@ all-ffl() {
     fi
 }
 
-# cats the source code of a function inside the lib folder
+# Displays the source code of a specified function from the library folder, including its description, shortname, and usage
 # function library cat
 # <function_name>
 all-flc() {
@@ -436,7 +436,7 @@ all-flc() {
     awk "NR >= $start_line { print; if (/^\}$/) exit }" "$lib_file"
 }
 
-# Manages git operations, ensuring local repository syncs with remote.
+# Manages git operations, ensuring the local repository syncs with the remote. Performs status check, pull, commit, and push operations as needed
 # git all in
 #
 all-gio() {
@@ -485,7 +485,7 @@ all-gio() {
     cd - || return
 }
 
-# Adds auto-mount entries for devices to /etc/fstab using blkid.
+# Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
 # fstab entry auto
 #
 all-fea() {
@@ -523,7 +523,7 @@ all-fea() {
     fi
 }
 
-# Adds custom entries to /etc/fstab using device UUIDs.
+# Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters
 # fstab entry custom
 # <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
 all-fec() {
@@ -562,7 +562,7 @@ all-fec() {
   echo "$fstab_entry"
 }
 
-# Prompts the user to select a file from the current directory.
+# Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
 # variable select filename
 #
 all-vsf() {
@@ -576,7 +576,7 @@ all-vsf() {
     echo "$selected_file"
 }
 
-# Counts files in directories based on specified visibility.
+# Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name
 # count files folder
 # <path> <folder_type: 1=regular, 2=hidden, 3=both>
 all-cff() {
@@ -624,7 +624,7 @@ all-cff() {
     esac | sort
 }
 
-# Sends ZFS snapshots from a source pool to a destination pool.
+# Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency
 # zfs dataset backup
 # <sourcepoolname> <destinationpoolname> <datasetname>
 all-zdb() {
@@ -687,7 +687,7 @@ all-zdb() {
     eval "${send_cmd} | ${receive_cmd}"
 }
 
-# Compares data usage between two paths up to a specified depth.
+# Compares data usage between two paths up to a specified depth. Displays results in a tabular format with color-coded differences
 # data usage comparison
 # <path1> <path2> <depth>
 all-duc() {
@@ -755,7 +755,7 @@ all-duc() {
 }
 
 
-# Prompts the user to input or confirm a variable's value.
+# Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters
 # main eval variable
 # <var_name> <prompt_message> <current_value>
 all-mev() {
@@ -776,7 +776,7 @@ all-mev() {
     fi
 }
 
-# Logs a function's execution status with a timestamp.
+# Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information
 # main display notification
 # <function_name> <status>
 all-nos() {
@@ -787,7 +787,7 @@ all-nos() {
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
 
-# Appends a line to a file if it does not already exist.
+# Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation
 # check append create
 # <file> <line>
 all-cap() {
@@ -810,7 +810,7 @@ all-cap() {
     fi
 }
 
-# Installs specified packages using a package manager.
+# Installs specified packages using the system's package manager (apt, dnf, yum, or zypper). Performs update, upgrade, and installation operations
 # install packages
 # <pak1> <pak2> ...
 all-ipa() {
@@ -898,7 +898,7 @@ all-ipa() {
     all-nos "$function_name" "Successfully executed ( $pman $install_cmd $* )"
 }
 
-# Configures git with a specified username and email
+# Configures git globally with a specified username and email, essential for proper commit attribution
 # git set config
 # <username> <usermail>
 all-gst() {
@@ -917,7 +917,7 @@ all-gst() {
     all-nos "$function_name" "executed ( $1 $2 )"
 }
 
-# Installs, enables, and starts the sysstat service.
+# Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
 # setup sysstat
 #
 all-sst() {
@@ -934,7 +934,7 @@ all-sst() {
   echo "sysstat has been installed, enabled, and started."
 }
 
-# Allows a specified service through the firewall.
+# Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration
 # firewall allow service
 # <service>
 all-fas() {
@@ -953,7 +953,7 @@ all-fas() {
     all-nos "$function_name" "executed"
 }
 
-# Creates a user with a specified username and password.
+# Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
 # user setup
 # <username> <password>
 all-ust() {
@@ -985,7 +985,7 @@ all-ust() {
     fi
 }
 
-# Enables and starts a specified systemd service.
+# Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not
 # systemd setup service
 # <service>
 all-sdc() {
@@ -1019,7 +1019,7 @@ all-sdc() {
     fi
 }
 
-# Replaces strings in files within a specified folder, optionally staged by git.
+# Replaces strings in files within a specified folder and its subfolders. If in a git repository, it stages changes and shows the diff
 # replace strings 2
 # <foldername> <old_string> <new_string>
 all-rsf() {
@@ -1069,7 +1069,7 @@ all-rsf() {
   fi
 }
 
-# renames all files in folder and in nested folders too
+# Renames all files containing a specified string in their names, within a given folder and its subfolders
 # renames files in folder
 # <path> <old_name> <new_name>
 all-rnf() {
@@ -1091,9 +1091,9 @@ all-rnf() {
 }
 
 
-#
-# get function arguments
-#
+# Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
+# function usage information 
+# 
 all-use() {
     local caller_line=$(caller 0)
     local caller_function=$(echo $caller_line | awk '{print $2}')
@@ -1125,8 +1125,8 @@ all-use() {
 
 }
 
-# 
-# rysnc source destination
+# Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding
+# rsync source (to) destination
 # <storage_name> <destination_path>
 all-rsd() {
     if [ $# -ne 1 ]; then
@@ -1168,7 +1168,7 @@ all-rsd() {
     esac
 }
 
-# cats all files inside a particular folder
+# Concatenates and displays the contents of all files within a specified folder, separating each file's content with a line of dashes
 # cat in folder
 # <path>
 all-cif() {
@@ -1194,8 +1194,8 @@ all-cif() {
     done
 }
 
-# 
-# firewalld (add) service (and) reload
+# Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding 
+# firewall (add) service (and) reload
 # <service>
 all-fsr() {
     local function_name="${FUNCNAME[0]}"
@@ -1215,7 +1215,7 @@ all-fsr() {
 }
 
 
-# This function uploads an SSH key from a device plugged in, into the /root/.ssh folder.
+# Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
 # upload ssh keyfile
 # <device_path> <mount_point> <subfolder_path> <upload_path> <file_name>
 all-usk() {
@@ -1281,7 +1281,7 @@ all-usk() {
     echo "SSH key successfully uploaded to $upload_path"
 }
 
-# append a private SSH key identifier to a config inside .ssh
+# Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist
 # ssh private identifier
 # <user> <keyname>
 # Append a private SSH key identifier to a config inside .ssh
@@ -1331,7 +1331,7 @@ all-spi() {
     fi
 }
 
-# append a public SSH key content to authorized_keys
+# Appends the content of a specified public SSH key file to the authorized_keys file. Prompts for confirmation and restarts the SSH service
 # append authorized keys
 # <upload_path> <file_name>
 all-aak() {
@@ -1373,7 +1373,7 @@ all-aak() {
 # - bypass: Perform initial SSH login to bypass StrictHostKeyChecking
 # - refresh: Remove the SSH key for the given IP from known_hosts
 #
-# Loop a specified operation through an specific range of ips
+# Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
 # loop operation ip
 # <ip array: hy,ct> <operation>
 all-loi() {
@@ -1422,7 +1422,7 @@ all-loi() {
     done
 }
 
-# Resolves custom ssh aliases with the help of all.conf
+# Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
 # ssh custom aliases
 # <usershortcut> <servershortcut: single or csv or all or array> [command]
 all-sca() {
@@ -1533,7 +1533,7 @@ all-sca() {
     esac
 }
 
-# rctwake wrapper
+# Schedules a system wake-up using rtcwake. Supports absolute or relative time input, different sleep states (mem/disk), and logs operations
 # sheduled wakeup timer
 # <-r for relative or -a for absolute> <time> <state>
 all-swt() {
