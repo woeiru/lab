@@ -19,20 +19,20 @@ else
     exit 1
 fi
 
-# show an overview of specific functions
+# Displays an overview of specific NFS-related functions in the script, showing their usage, shortname, and description
 # overview functions
 # 
 nfs-fun() {
     all-laf "$FILEPATH_nfs" "$@"
 }
-# show an overview of specific variables
+# Displays an overview of NFS-specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 # 
 nfs-var() {
     all-acu -o "$CONFIG_nfs" "$DIR_LIB/.."
 }
 
-# Unified function to set up NFS
+# Sets up an NFS share by prompting for necessary information (NFS header, shared folder, and options) and applying the configuration
 # nfs setup
 # <nfs_header> <shared_folder> <nfs_options>
 nfs-set() {
@@ -51,7 +51,7 @@ nfs-set() {
     all-nos "$function_name" "NFS setup complete"
 }
 
-# Helper script for NFS setup.
+# Applies NFS configuration by creating the shared folder if needed, updating /etc/exports, and restarting the NFS server
 # nfs apply config
 # <nfs_header> <shared_folder> <nfs_options>
 nfs-apl() {
