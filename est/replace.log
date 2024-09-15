@@ -268,3 +268,101 @@ New: Restores or creates a Proxmox Backup Server datastore configuration file (/
 -----------------
 2024-09-15 17:01:23 - Replacement process completed.
 -----------------
+-----------------
+Target file: /root/lab/lib/pve.bash
+-----------------
+Item: pve-fun
+Old: show an overview of specific functions
+New: Displays an overview of specific Proxmox Virtual Environment (PVE) related functions in the script, showing their usage, shortname, and description
+---
+Item: pve-var
+Old: show an overview of specific variables
+New: Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files
+---
+Item: vm
+Old: vm start or vm-get then shutdown other node
+New: Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration
+---
+Item: vm-get
+Old: remote vm-pth, migration, local vm-pth
+New: Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process
+---
+Item: vm-pth
+Old: toggle Passthrough lines ON or OFF
+New: Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices
+---
+Item: vm-chk
+Old: check where VM exists
+New: Checks and reports which node in the Proxmox cluster is currently hosting a specified VM
+---
+Item: pve-uni
+Old: Prompts user to rename a network interface by editing udev rules and updating network configuration.
+New: Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
+---
+Item: pve-sbn
+Old: Displays the contents of .notes files in a specified or current directory.
+New: Displays the contents of all .notes files found in a specified directory or the current directory, useful for viewing backup notes
+---
+Item: pve-dsr
+Old: Disables specified repository files by commenting out 'deb' lines.
+New: Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources
+---
+Item: pve-adr
+Old: Adds a specific Proxmox repository line to /etc/apt/sources.list if not already present.
+New: Adds a specific Proxmox VE no-subscription repository line to /etc/apt/sources.list if not already present
+---
+Item: pve-puu
+Old: Updates and upgrades system packages.
+New: Updates package lists and upgrades all installed packages on the Proxmox system
+---
+Item: pve-rsn
+Old: Removes the Proxmox subscription notice and optionally restarts the pveproxy service.
+New: Removes the Proxmox subscription notice by modifying the web interface JavaScript file, with an option to restart the pveproxy service
+---
+Item: pve-gp1
+Old: Configures initial settings for GPU passthrough and reboots the system.
+New: Configures initial GRUB and EFI settings for GPU passthrough, installs necessary packages, and reboots the system
+---
+Item: pve-gp2
+Old: Adds necessary modules for GPU passthrough and reboots the system.
+New: Adds necessary kernel modules for GPU passthrough to /etc/modules, updates initramfs, and reboots the system
+---
+Item: pve-gp3
+Old: Completes GPU passthrough setup by configuring vfio-pci IDs, blacklisting GPU drivers, and rebooting the system.
+New: Finalizes GPU passthrough setup by configuring VFIO-PCI IDs, blacklisting specific GPU drivers, and rebooting the system
+---
+Item: pve-br1
+Old: Sets up a Btrfs RAID 1 filesystem on two devices and optionally adds the mount point to /etc/fstab.
+New: Creates a Btrfs RAID 1 filesystem on two specified devices, mounts it, and optionally adds an entry to /etc/fstab
+---
+Item: pve-zdm
+Old: Creates and mounts a ZFS dataset at a specified mount point.
+New: Creates a new ZFS dataset or uses an existing one, sets its mountpoint, and ensures it's mounted at the specified path
+---
+Item: pve-clu
+Old: Updates the Proxmox container list.
+New: Updates the Proxmox VE Appliance Manager (pveam) container template list
+---
+Item: pve-cdo
+Old: Downloads a specified container template from a storage location.
+New: Downloads a specified container template to a given storage location, with error handling and options to list available templates
+---
+Item: pve-cuc
+Old: updates the occurences of the containertemplate in the config file
+New: Updates the container template reference in the Proxmox configuration file, prompting for user confirmation and new template name
+---
+Item: pve-cbm
+Old: Configures a bind mount for a Proxmox container.
+New: Configures a bind mount for a specified Proxmox container, linking a host directory to a container directory
+---
+Item: pve-ctc
+Old: create a custom container
+New: Creates a custom Proxmox container with specified parameters including network settings, resources, and SSH key
+---
+Item: pve-cto
+Old: start, stop, enable, or disable a range of containers
+New: Manages multiple Proxmox containers by starting, stopping, enabling, or disabling them, supporting individual IDs, ranges, or all containers
+---
+-----------------
+2024-09-15 17:06:38 - Replacement process completed.
+-----------------
