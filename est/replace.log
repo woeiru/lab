@@ -140,3 +140,25 @@ New: Schedules a system wake-up using rtcwake. Supports absolute or relative tim
 -----------------
 2024-09-15 16:13:16 - Replacement process completed.
 -----------------
+-----------------
+Target file: /root/lab/lib/nfs.bash
+-----------------
+Item: nfs-fun
+Old: show an overview of specific functions
+New: Displays an overview of specific NFS-related functions in the script, showing their usage, shortname, and description
+---
+Item: nfs-var
+Old: show an overview of specific variables
+New: Displays an overview of NFS-specific variables defined in the configuration file, showing their names, values, and usage across different files
+---
+Item: nfs-set
+Old: Unified function to set up NFS
+New: Sets up an NFS share by prompting for necessary information (NFS header, shared folder, and options) and applying the configuration
+---
+Item: nfs-apl
+Old: Helper script for NFS setup.
+New: Applies NFS configuration by creating the shared folder if needed, updating /etc/exports, and restarting the NFS server
+---
+-----------------
+2024-09-15 16:25:58 - Replacement process completed.
+-----------------
