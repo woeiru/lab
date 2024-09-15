@@ -11,6 +11,7 @@ FIX_DIR="$DIR/../fix"
 LIB_DIR="$DIR/../lib"
 SET_DIR="$DIR/../set"
 VAR_DIR="$DIR/../var"
+EST_DIR="$DIR/../est"
 
 # alias contruction
 #
@@ -98,6 +99,7 @@ alias dlc="cd $CON_DIR"
 alias dli="cd $INI_DIR"
 alias dls="cd $SET_DIR"
 alias dll="cd $LIB_DIR"
+alias dle="cd $EST_DIR"
 alias dlf="cd $FIX_DIR"
 alias dlv="cd $VAR_DIR"
 
