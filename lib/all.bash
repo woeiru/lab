@@ -1430,11 +1430,17 @@ all-loi() {
 # Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
 # ssh custom aliases
 # <usershortcut> <servershortcut: single or csv or all or array> [command]
+#!/bin/bash
+
+# Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
+# ssh custom aliases
+# <usershortcut> <servershortcut: single or csv or all or array> [command]
+
 all-sca() {
     echo "Debug: Number of arguments: $#"
-    echo "Debug: Arguments: $*"
-
-    if [ $# -lt 1 ]; then
+    echo "Debug: All arguments: $*"
+    
+    if [ $# -lt 2 ]; then
         all-use
         return 1
     fi
@@ -1444,98 +1450,137 @@ all-sca() {
     shift 2
     local command="$*"
 
-    echo "Debug: user_shortcut: $user_shortcut"
-    echo "Debug: server_shortcuts: $server_shortcuts"
-    echo "Debug: raw command: $command"
+    echo "Debug: User shortcut: $user_shortcut"
 
     # Resolve user name from shortcut
     local user_name=${SSH_USERS[$user_shortcut]}
-    echo "Debug: user_name: $user_name"
+    echo "Debug: Resolved user name: $user_name"
+
     if [[ -z $user_name ]]; then
         echo "Error: Unknown user shortcut '$user_shortcut'"
         return 1
     fi
 
-    # Function to resolve server IPs from shortcuts
-    resolve_server_ip() {
-        local server_shortcut=$1
-        local server_ip=${HY_IPS[$server_shortcut]}
-        if [[ -z $server_ip ]]; then
-            server_ip=${CT_IPS[$server_shortcut]}
-        fi
-        echo $server_ip
-    }
+    echo "Debug: Server shortcuts (raw): $server_shortcuts"
+    echo "Debug: ALL_IP_ARRAYS: ${ALL_IP_ARRAYS[*]}"
 
     # Function to handle an array of servers
     handle_server_array() {
         local array_name=$1
         declare -n server_array=$array_name
+        echo "Debug: Processing array: $array_name"
+        echo "Debug: Array contents: ${!server_array[*]}"
         for server_shortcut in "${!server_array[@]}"; do
             local server_ip=${server_array[$server_shortcut]}
+            echo "Debug: Resolved server IP for $server_shortcut: $server_ip"
             # Construct the SSH command
             local ssh_command="ssh ${user_name}@${server_ip}"
             if [[ -n $command ]]; then
                 ssh_command+=" \"$command\""
             fi
-
             # Execute the SSH command
             echo "Executing: $ssh_command"
             eval $ssh_command
         done
     }
 
-    # Handle server_shortcuts
-    case $server_shortcuts in
-        all)
-            # Loop through all servers in HY_IPS and CT_IPS
-            for server_shortcut in "${!HY_IPS[@]}" "${!CT_IPS[@]}"; do
-                local server_ip=$(resolve_server_ip $server_shortcut)
-                # Construct the SSH command
-                local ssh_command="ssh ${user_name}@${server_ip}"
-                if [[ -n $command ]]; then
-                    ssh_command+=" \"$command\""
+    # Function to normalize server shortcuts
+    normalize_shortcut() {
+        local input=$1
+        local normalized=$input
+
+        # Check if input matches any array name or alias (case-insensitive)
+        for array in "${!ARRAY_ALIASES[@]}"; do
+            local aliases=(${ARRAY_ALIASES[$array]})
+            for alias in "${aliases[@]}"; do
+                if [[ ${input,,} == ${alias,,} ]]; then
+                    normalized=$array
+                    echo "Debug: Match found, normalized '$input' to '$normalized'" >&2
+                    break 2
                 fi
-
-                # Execute the SSH command
-                echo "Executing: $ssh_command"
-                eval $ssh_command
             done
-            ;;
-        hy_ips|ct_ips)
-            # Handle specific IP array
-            handle_server_array ${server_shortcuts^^}
-            ;;
-        *)
-            # Split server_shortcuts by comma
-            IFS=',' read -ra servers <<< "$server_shortcuts"
+        done
 
-            # Check if multiple servers are provided and no command is given
-            if [[ ${#servers[@]} -gt 1 && -z $command ]]; then
-                echo "Error: No command provided for multiple servers"
+        echo "Debug: Normalized '$input' to '$normalized'" >&2
+        echo "$normalized"
+    }
+
+    # Function to find server IP
+    find_server_ip() {
+        local shortcut=$1
+        local ip=""
+        local array_name=""
+        for array in "${ALL_IP_ARRAYS[@]}"; do
+            echo "Debug: Searching for '$shortcut' in '$array'" >&2
+            declare -n current_array=$array
+            echo "Debug: $array contents: ${!current_array[*]}" >&2
+            if [[ -n ${current_array[$shortcut]} ]]; then
+                ip=${current_array[$shortcut]}
+                array_name=$array
+                echo "Debug: Found '$shortcut' in '$array'" >&2
+                break
+            fi
+        done
+        echo "Debug: Found IP for $shortcut: $ip (from $array_name)" >&2
+        echo "$ip"
+    }
+
+    # Function to check if input is an array name
+    is_array_name() {
+        local input=$1
+        echo "Debug: Checking if '$input' is an array name" >&2
+        if [[ $input == "all" ]]; then
+            echo "Debug: '$input' is 'all'" >&2
+            return 0
+        fi
+        for array in "${ALL_IP_ARRAYS[@]}"; do
+            if [[ $input == $array ]]; then
+                echo "Debug: '$input' matches array '$array'" >&2
+                return 0
+            fi
+        done
+        echo "Debug: '$input' is not an array name" >&2
+        return 1
+    }
+
+    # Normalize the server shortcuts
+    local normalized_shortcuts=$(normalize_shortcut "$server_shortcuts")
+    echo "Debug: Normalized server shortcuts: $normalized_shortcuts"
+
+    # Handle server_shortcuts
+    if is_array_name "$normalized_shortcuts"; then
+        echo "Debug: Processing as array name"
+        if [[ $normalized_shortcuts == "all" ]]; then
+            echo "Debug: Processing all servers"
+            for array in "${ALL_IP_ARRAYS[@]}"; do
+                handle_server_array $array
+            done
+        else
+            echo "Debug: Processing specific IP array: $normalized_shortcuts"
+            handle_server_array $normalized_shortcuts
+        fi
+    else
+        echo "Debug: Processing as individual server(s)"
+        IFS=',' read -ra servers <<< "$normalized_shortcuts"
+        if [[ ${#servers[@]} -gt 1 && -z $command ]]; then
+            echo "Error: No command provided for multiple servers"
+            return 1
+        fi
+        for server_shortcut in "${servers[@]}"; do
+            local server_ip=$(find_server_ip "$server_shortcut")
+            if [[ -z $server_ip ]]; then
+                echo "Error: Unknown server shortcut '$server_shortcut'"
                 return 1
             fi
-
-            # Loop through each server shortcut
-            for server_shortcut in "${servers[@]}"; do
-                # Resolve server IP from name shortcut
-                local server_ip=$(resolve_server_ip $server_shortcut)
-                if [[ -z $server_ip ]]; then
-                    echo "Error: Unknown server shortcut '$server_shortcut'"
-                    return 1
-                fi
-
-                # Construct the SSH command
-                local ssh_command="ssh ${user_name}@${server_ip}"
-                if [[ -n $command ]]; then
-                    ssh_command+=" \"$command\""
-                fi
-
-                # Execute the SSH command
-                echo "Executing: $ssh_command"
-                eval $ssh_command
-            done
-            ;;
-    esac
+            local ssh_command="ssh ${user_name}@${server_ip}"
+            if [[ -n $command ]]; then
+                ssh_command+=" \"$command\""
+            fi
+            echo "Executing: $ssh_command"
+            eval $ssh_command
+        done
+    fi
+    echo "Debug: Raw command: $command"
 }
 
 # Schedules a system wake-up using rtcwake. Supports absolute or relative time input, different sleep states (mem/disk), and logs operations
