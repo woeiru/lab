@@ -29,7 +29,7 @@ pve-fun() {
 # overview variables
 # 
 pve-var() {
-    all-acu o "$DIR_LIB/.." "$CONFIG_pve"
+    all-acu -o "$CONFIG_pve" "$DIR_LIB/.."
 }
 
 # vm start or vm-get then shutdown other node
