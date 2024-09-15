@@ -23,7 +23,7 @@ fi
 # overview functions
 #  
 pbs-fun() {
-    all-laf "$FILEPATH_pbs"
+    all-laf "$FILEPATH_pbs" "$@"
 }
 # show an overview of specific variables
 # overview variables

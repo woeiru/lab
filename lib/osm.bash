@@ -23,7 +23,7 @@ fi
 # overview functions
 # 
 osm-fun() {
-    all-laf "$FILEPATH_osm"
+    all-laf "$FILEPATH_osm" "$@"
 }
 # show an overview of specific variables 
 # overview variables

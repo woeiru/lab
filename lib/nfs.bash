@@ -23,7 +23,7 @@ fi
 # overview functions
 # 
 nfs-fun() {
-    all-laf "$FILEPATH_nfs"
+    all-laf "$FILEPATH_nfs" "$@"
 }
 # show an overview of specific variables
 # overview variables
