@@ -182,7 +182,7 @@ osm-shc() {
     snapper -c "$configname" create
 }
 # snapper -c home_* delete <snapshot>
-# snapper home delete <snapshot>
+# snapper home delete
 # <configname> <snapshot>
 osm-shd() {
     local configname
