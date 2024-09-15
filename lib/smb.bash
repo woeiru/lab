@@ -23,7 +23,7 @@ fi
 # overview functions
 #  
 smb-fun() {
-    all-laf "$FILEPATH_smb"
+    all-laf "$FILEPATH_smb" "$@"
 }
 # show an overview of specific variables
 # overview variables
