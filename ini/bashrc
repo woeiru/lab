@@ -164,7 +164,7 @@ if [ -z "$SSH_AUTH_SOCK" ] ; then
 fi
 
 alias sca='all-sca'
-alias ssh1='ssh-keygen -t ed25519-C "admin@woeiru.io"'
+alias ssh1='ssh-keygen -t ed25519 -C "admin@woeiru.io"'
 alias ssh2='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@w1'
 alias ssh3='ssh-add ~/.ssh/id_ed25519'
 
