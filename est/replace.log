@@ -1,573 +1,142 @@
-2024-09-15 15:40:24 - DEBUG: Starting replacement process
-2024-09-15 15:40:24 - DEBUG: Target file: /root/lab/lib/all.bash
-2024-09-15 15:40:24 - DEBUG: JSON file: ./replacements.json
-2024-09-15 15:40:24 - DEBUG: JSON content: {
-  "replacements": [
-    {
-      "function": "all-fun",
-      "old": "show an overview of specific functions",
-      "new": "Shows a summary of selected functions in the script, displaying their usage, shortname, and description"
-    },
-    {
-      "function": "all-laf",
-      "old": "cats the three lines above each function as usage,shortname,description",
-      "new": "Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability"
-    },
-    {
-      "function": "all-var",
-      "old": "show an overview of specific variables",
-      "new": "Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files"
-    },
-    {
-      "function": "all-acu",
-      "old": "Counts the var occurrences from a config file in a target folder",
-      "new": "Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files"
-    },
-    {
-      "function": "all-ffl",
-      "old": "Recursively processes files in a directory with an function",
-      "new": "Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed"
-    },
-    {
-      "function": "all-flc",
-      "old": "cats the source code of a function inside the lib folder",
-      "new": "Displays the source code of a specified function from the library folder, including its description, shortname, and usage"
-    },
-    {
-      "function": "all-gio",
-      "old": "Manages git operations, ensuring local repository syncs with remote.",
-      "new": "Manages git operations, ensuring the local repository syncs with the remote. Performs status check, pull, commit, and push operations as needed"
-    },
-    {
-      "function": "all-fea",
-      "old": "Adds auto-mount entries for devices to /etc/fstab using blkid.",
-      "new": "Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry"
-    },
-    {
-      "function": "all-fec",
-      "old": "Adds custom entries to /etc/fstab using device UUIDs.",
-      "new": "Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters"
-    },
-    {
-      "function": "all-vsf",
-      "old": "Prompts the user to select a file from the current directory.",
-      "new": "Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename"
-    },
-    {
-      "function": "all-cff",
-      "old": "Counts files in directories based on specified visibility.",
-      "new": "Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name"
-    },
-    {
-      "function": "all-zdb",
-      "old": "Sends ZFS snapshots from a source pool to a destination pool.",
-      "new": "Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency"
-    },
-    {
-      "function": "all-duc",
-      "old": "Compares data usage between two paths up to a specified depth.",
-      "new": "Compares data usage between two paths up to a specified depth. Displays results in a tabular format with color-coded differences"
-    },
-    {
-      "function": "all-mev",
-      "old": "Prompts the user to input or confirm a variable's value.",
-      "new": "Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters"
-    },
-    {
-      "function": "all-nos",
-      "old": "Logs a function's execution status with a timestamp.",
-      "new": "Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information"
-    },
-    {
-      "function": "all-cap",
-      "old": "Appends a line to a file if it does not already exist.",
-      "new": "Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation"
-    },
-    {
-      "function": "all-ipa",
-      "old": "Installs specified packages using a package manager.",
-      "new": "Installs specified packages using the system's package manager (apt, dnf, yum, or zypper). Performs update, upgrade, and installation operations"
-    },
-    {
-      "function": "all-gst",
-      "old": "Configures git with a specified username and email",
-      "new": "Configures git globally with a specified username and email, essential for proper commit attribution"
-    },
-    {
-      "function": "all-sst",
-      "old": "Installs, enables, and starts the sysstat service.",
-      "new": "Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled"
-    },
-    {
-      "function": "all-fas",
-      "old": "Allows a specified service through the firewall.",
-      "new": "Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration"
-    },
-    {
-      "function": "all-ust",
-      "old": "Creates a user with a specified username and password.",
-      "new": "Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation"
-    },
-    {
-      "function": "all-sdc",
-      "old": "Enables and starts a specified systemd service.",
-      "new": "Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not"
-    },
-    {
-      "function": "all-rsf",
-      "old": "Replaces strings in files within a specified folder, optionally staged by git.",
-      "new": "Replaces strings in files within a specified folder and its subfolders. If in a git repository, it stages changes and shows the diff"
-    },
-    {
-      "function": "all-rnf",
-      "old": "renames all files in folder and in nested folders too",
-      "new": "Renames all files containing a specified string in their names, within a given folder and its subfolders"
-    },
-    {
-      "function": "all-use",
-      "old": "get function arguments",
-      "new": "Displays the usage information, shortname, and description of the calling function, helping users understand how to use it"
-    },
-    {
-      "function": "all-rsd",
-      "old": "rysnc source destination",
-      "new": "Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding"
-    },
-    {
-      "function": "all-cif",
-      "old": "cats all files inside a particular folder",
-      "new": "Concatenates and displays the contents of all files within a specified folder, separating each file's content with a line of dashes"
-    },
-    {
-      "function": "all-fsr",
-      "old": "firewalld (add) service (and) reload",
-      "new": "Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding"
-    },
-    {
-      "function": "all-usk",
-      "old": "This function uploads an SSH key from a device plugged in, into the /root/.ssh folder.",
-      "new": "Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device"
-    },
-    {
-      "function": "all-spi",
-      "old": "append a private SSH key identifier to a config inside .ssh",
-      "new": "Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist"
-    },
-    {
-      "function": "all-aak",
-      "old": "append a public SSH key content to authorized_keys",
-      "new": "Appends the content of a specified public SSH key file to the authorized_keys file. Prompts for confirmation and restarts the SSH service"
-    },
-    {
-      "function": "all-loi",
-      "old": "Loop a specified operation through an specific range of ips",
-      "new": "Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration"
-    },
-    {
-      "function": "all-sca",
-      "old": "Resolves custom ssh aliases with the help of all.conf",
-      "new": "Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely"
-    },
-    {
-      "function": "all-swt",
-      "old": "rctwake wrapper",
-      "new": "Schedules a system wake-up using rtcwake. Supports absolute or relative time input, different sleep states (mem/disk), and logs operations"
-    }
-  ]
-}
-2024-09-15 15:40:24 - DEBUG: Processing: all-fun
-2024-09-15 15:40:24 - DEBUG: Old text: show an overview of specific functions
-2024-09-15 15:40:24 - DEBUG: New text: Shows a summary of selected functions in the script, displaying their usage, shortname, and description
-2024-09-15 15:40:24 - DEBUG: Escaped old text: show an overview of specific functions
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Shows a summary of selected functions in the script, displaying their usage, shortname, and description
-2024-09-15 15:40:24 - DEBUG: Function all-fun found in target file
-2024-09-15 15:40:24 - Replaced in function all-fun:
-2024-09-15 15:40:24 -   Old: show an overview of specific functions
-2024-09-15 15:40:24 -   New: Shows a summary of selected functions in the script, displaying their usage, shortname, and description
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-laf
-2024-09-15 15:40:24 - DEBUG: Old text: cats the three lines above each function as usage,shortname,description
-2024-09-15 15:40:24 - DEBUG: New text: Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
-2024-09-15 15:40:24 - DEBUG: Escaped old text: cats the three lines above each function as usage,shortname,description
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Lists all functions in a file, displaying their usage, shortname, and description\. Supports truncation and line break options for better readability
-2024-09-15 15:40:24 - DEBUG: Function all-laf found in target file
-2024-09-15 15:40:24 - Replaced in function all-laf:
-2024-09-15 15:40:24 -   Old: cats the three lines above each function as usage,shortname,description
-2024-09-15 15:40:24 -   New: Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-var
-2024-09-15 15:40:24 - DEBUG: Old text: show an overview of specific variables
-2024-09-15 15:40:24 - DEBUG: New text: Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
-2024-09-15 15:40:24 - DEBUG: Escaped old text: show an overview of specific variables
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
-2024-09-15 15:40:24 - DEBUG: Function all-var found in target file
-2024-09-15 15:40:24 - Replaced in function all-var:
-2024-09-15 15:40:24 -   Old: show an overview of specific variables
-2024-09-15 15:40:24 -   New: Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-acu
-2024-09-15 15:40:24 - DEBUG: Old text: Counts the var occurrences from a config file in a target folder
-2024-09-15 15:40:24 - DEBUG: New text: Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files
-2024-09-15 15:40:24 - DEBUG: Escaped old text: Counts the var occurrences from a config file in a target folder
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files
-2024-09-15 15:40:24 - DEBUG: Function all-acu found in target file
-2024-09-15 15:40:24 - Replaced in function all-acu:
-2024-09-15 15:40:24 -   Old: Counts the var occurrences from a config file in a target folder
-2024-09-15 15:40:24 -   New: Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-ffl
-2024-09-15 15:40:24 - DEBUG: Old text: Recursively processes files in a directory with an function
-2024-09-15 15:40:24 - DEBUG: New text: Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
-2024-09-15 15:40:24 - DEBUG: Escaped old text: Recursively processes files in a directory with an function
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
-2024-09-15 15:40:24 - DEBUG: Function all-ffl found in target file
-2024-09-15 15:40:24 - Replaced in function all-ffl:
-2024-09-15 15:40:24 -   Old: Recursively processes files in a directory with an function
-2024-09-15 15:40:24 -   New: Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-flc
-2024-09-15 15:40:24 - DEBUG: Old text: cats the source code of a function inside the lib folder
-2024-09-15 15:40:24 - DEBUG: New text: Displays the source code of a specified function from the library folder, including its description, shortname, and usage
-2024-09-15 15:40:24 - DEBUG: Escaped old text: cats the source code of a function inside the lib folder
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Displays the source code of a specified function from the library folder, including its description, shortname, and usage
-2024-09-15 15:40:24 - DEBUG: Function all-flc found in target file
-2024-09-15 15:40:24 - Replaced in function all-flc:
-2024-09-15 15:40:24 -   Old: cats the source code of a function inside the lib folder
-2024-09-15 15:40:24 -   New: Displays the source code of a specified function from the library folder, including its description, shortname, and usage
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-gio
-2024-09-15 15:40:24 - DEBUG: Old text: Manages git operations, ensuring local repository syncs with remote.
-2024-09-15 15:40:24 - DEBUG: New text: Manages git operations, ensuring the local repository syncs with the remote. Performs status check, pull, commit, and push operations as needed
-2024-09-15 15:40:24 - DEBUG: Escaped old text: Manages git operations, ensuring local repository syncs with remote\.
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Manages git operations, ensuring the local repository syncs with the remote\. Performs status check, pull, commit, and push operations as needed
-2024-09-15 15:40:24 - DEBUG: Function all-gio found in target file
-2024-09-15 15:40:24 - Replaced in function all-gio:
-2024-09-15 15:40:24 -   Old: Manages git operations, ensuring local repository syncs with remote.
-2024-09-15 15:40:24 -   New: Manages git operations, ensuring the local repository syncs with the remote. Performs status check, pull, commit, and push operations as needed
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-fea
-2024-09-15 15:40:24 - DEBUG: Old text: Adds auto-mount entries for devices to /etc/fstab using blkid.
-2024-09-15 15:40:24 - DEBUG: New text: Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
-2024-09-15 15:40:24 - DEBUG: Escaped old text: Adds auto-mount entries for devices to \/etc\/fstab using blkid\.
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Adds auto-mount entries for devices to \/etc\/fstab using blkid\. Allows user to select a device UUID and automatically creates the appropriate fstab entry
-2024-09-15 15:40:24 - DEBUG: Function all-fea found in target file
-2024-09-15 15:40:24 - Replaced in function all-fea:
-2024-09-15 15:40:24 -   Old: Adds auto-mount entries for devices to /etc/fstab using blkid.
-2024-09-15 15:40:24 -   New: Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-fec
-2024-09-15 15:40:24 - DEBUG: Old text: Adds custom entries to /etc/fstab using device UUIDs.
-2024-09-15 15:40:24 - DEBUG: New text: Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters
-2024-09-15 15:40:24 - DEBUG: Escaped old text: Adds custom entries to \/etc\/fstab using device UUIDs\.
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Adds custom entries to \/etc\/fstab using device UUIDs\. Allows user to specify mount point, filesystem, mount options, and other parameters
-2024-09-15 15:40:24 - DEBUG: Function all-fec found in target file
-2024-09-15 15:40:24 - Replaced in function all-fec:
-2024-09-15 15:40:24 -   Old: Adds custom entries to /etc/fstab using device UUIDs.
-2024-09-15 15:40:24 -   New: Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-vsf
-2024-09-15 15:40:24 - DEBUG: Old text: Prompts the user to select a file from the current directory.
-2024-09-15 15:40:24 - DEBUG: New text: Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
-2024-09-15 15:40:24 - DEBUG: Escaped old text: Prompts the user to select a file from the current directory\.
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
-2024-09-15 15:40:24 - DEBUG: Function all-vsf found in target file
-2024-09-15 15:40:24 - Replaced in function all-vsf:
-2024-09-15 15:40:24 -   Old: Prompts the user to select a file from the current directory.
-2024-09-15 15:40:24 -   New: Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-cff
-2024-09-15 15:40:24 - DEBUG: Old text: Counts files in directories based on specified visibility.
-2024-09-15 15:40:24 - DEBUG: New text: Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name
-2024-09-15 15:40:24 - DEBUG: Escaped old text: Counts files in directories based on specified visibility\.
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Counts files in directories based on specified visibility (regular, hidden, or both)\. Displays results sorted by directory name
-2024-09-15 15:40:24 - DEBUG: Function all-cff found in target file
-2024-09-15 15:40:24 - Replaced in function all-cff:
-2024-09-15 15:40:24 -   Old: Counts files in directories based on specified visibility.
-2024-09-15 15:40:24 -   New: Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-zdb
-2024-09-15 15:40:24 - DEBUG: Old text: Sends ZFS snapshots from a source pool to a destination pool.
-2024-09-15 15:40:24 - DEBUG: New text: Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency
-2024-09-15 15:40:24 - DEBUG: Escaped old text: Sends ZFS snapshots from a source pool to a destination pool\.
-2024-09-15 15:40:24 - DEBUG: Escaped new text: Creates and sends ZFS snapshots from a source pool to a destination pool\. Supports initial full sends and incremental sends for efficiency
-2024-09-15 15:40:24 - DEBUG: Function all-zdb found in target file
-2024-09-15 15:40:24 - Replaced in function all-zdb:
-2024-09-15 15:40:24 -   Old: Sends ZFS snapshots from a source pool to a destination pool.
-2024-09-15 15:40:24 -   New: Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency
-2024-09-15 15:40:24 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:24 - ---
-2024-09-15 15:40:24 - DEBUG: Processing: all-duc
-2024-09-15 15:40:24 - DEBUG: Old text: Compares data usage between two paths up to a specified depth.
-2024-09-15 15:40:24 - DEBUG: New text: Compares data usage between two paths up to a specified depth. Displays results in a tabular format with color-coded differences
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Compares data usage between two paths up to a specified depth\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Compares data usage between two paths up to a specified depth\. Displays results in a tabular format with color-coded differences
-2024-09-15 15:40:25 - DEBUG: Function all-duc found in target file
-2024-09-15 15:40:25 - Replaced in function all-duc:
-2024-09-15 15:40:25 -   Old: Compares data usage between two paths up to a specified depth.
-2024-09-15 15:40:25 -   New: Compares data usage between two paths up to a specified depth. Displays results in a tabular format with color-coded differences
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-mev
-2024-09-15 15:40:25 - DEBUG: Old text: Prompts the user to input or confirm a variable's value.
-2024-09-15 15:40:25 - DEBUG: New text: Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Prompts the user to input or confirm a variable's value\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters
-2024-09-15 15:40:25 - DEBUG: Function all-mev found in target file
-2024-09-15 15:40:25 - Replaced in function all-mev:
-2024-09-15 15:40:25 -   Old: Prompts the user to input or confirm a variable's value.
-2024-09-15 15:40:25 -   New: Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-nos
-2024-09-15 15:40:25 - DEBUG: Old text: Logs a function's execution status with a timestamp.
-2024-09-15 15:40:25 - DEBUG: New text: Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Logs a function's execution status with a timestamp\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information
-2024-09-15 15:40:25 - DEBUG: Function all-nos found in target file
-2024-09-15 15:40:25 - Replaced in function all-nos:
-2024-09-15 15:40:25 -   Old: Logs a function's execution status with a timestamp.
-2024-09-15 15:40:25 -   New: Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-cap
-2024-09-15 15:40:25 - DEBUG: Old text: Appends a line to a file if it does not already exist.
-2024-09-15 15:40:25 - DEBUG: New text: Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Appends a line to a file if it does not already exist\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation
-2024-09-15 15:40:25 - DEBUG: Function all-cap found in target file
-2024-09-15 15:40:25 - Replaced in function all-cap:
-2024-09-15 15:40:25 -   Old: Appends a line to a file if it does not already exist.
-2024-09-15 15:40:25 -   New: Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-ipa
-2024-09-15 15:40:25 - DEBUG: Old text: Installs specified packages using a package manager.
-2024-09-15 15:40:25 - DEBUG: New text: Installs specified packages using the system's package manager (apt, dnf, yum, or zypper). Performs update, upgrade, and installation operations
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Installs specified packages using a package manager\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Installs specified packages using the system's package manager (apt, dnf, yum, or zypper)\. Performs update, upgrade, and installation operations
-2024-09-15 15:40:25 - DEBUG: Function all-ipa found in target file
-2024-09-15 15:40:25 - Replaced in function all-ipa:
-2024-09-15 15:40:25 -   Old: Installs specified packages using a package manager.
-2024-09-15 15:40:25 -   New: Installs specified packages using the system's package manager (apt, dnf, yum, or zypper). Performs update, upgrade, and installation operations
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-gst
-2024-09-15 15:40:25 - DEBUG: Old text: Configures git with a specified username and email
-2024-09-15 15:40:25 - DEBUG: New text: Configures git globally with a specified username and email, essential for proper commit attribution
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Configures git with a specified username and email
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Configures git globally with a specified username and email, essential for proper commit attribution
-2024-09-15 15:40:25 - DEBUG: Function all-gst found in target file
-2024-09-15 15:40:25 - Replaced in function all-gst:
-2024-09-15 15:40:25 -   Old: Configures git with a specified username and email
-2024-09-15 15:40:25 -   New: Configures git globally with a specified username and email, essential for proper commit attribution
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-sst
-2024-09-15 15:40:25 - DEBUG: Old text: Installs, enables, and starts the sysstat service.
-2024-09-15 15:40:25 - DEBUG: New text: Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Installs, enables, and starts the sysstat service\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Installs, enables, and starts the sysstat service for system performance monitoring\. Modifies the configuration to ensure it's enabled
-2024-09-15 15:40:25 - DEBUG: Function all-sst found in target file
-2024-09-15 15:40:25 - Replaced in function all-sst:
-2024-09-15 15:40:25 -   Old: Installs, enables, and starts the sysstat service.
-2024-09-15 15:40:25 -   New: Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-fas
-2024-09-15 15:40:25 - DEBUG: Old text: Allows a specified service through the firewall.
-2024-09-15 15:40:25 - DEBUG: New text: Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Allows a specified service through the firewall\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration
-2024-09-15 15:40:25 - DEBUG: Function all-fas found in target file
-2024-09-15 15:40:25 - Replaced in function all-fas:
-2024-09-15 15:40:25 -   Old: Allows a specified service through the firewall.
-2024-09-15 15:40:25 -   New: Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-ust
-2024-09-15 15:40:25 - DEBUG: Old text: Creates a user with a specified username and password.
-2024-09-15 15:40:25 - DEBUG: New text: Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Creates a user with a specified username and password\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Creates a new user with a specified username and password, prompting for input if not provided\. Verifies successful user creation
-2024-09-15 15:40:25 - DEBUG: Function all-ust found in target file
-2024-09-15 15:40:25 - Replaced in function all-ust:
-2024-09-15 15:40:25 -   Old: Creates a user with a specified username and password.
-2024-09-15 15:40:25 -   New: Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-sdc
-2024-09-15 15:40:25 - DEBUG: Old text: Enables and starts a specified systemd service.
-2024-09-15 15:40:25 - DEBUG: New text: Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Enables and starts a specified systemd service\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Enables and starts a specified systemd service\. Checks if the service is active and prompts for continuation if it's not
-2024-09-15 15:40:25 - DEBUG: Function all-sdc found in target file
-2024-09-15 15:40:25 - Replaced in function all-sdc:
-2024-09-15 15:40:25 -   Old: Enables and starts a specified systemd service.
-2024-09-15 15:40:25 -   New: Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-rsf
-2024-09-15 15:40:25 - DEBUG: Old text: Replaces strings in files within a specified folder, optionally staged by git.
-2024-09-15 15:40:25 - DEBUG: New text: Replaces strings in files within a specified folder and its subfolders. If in a git repository, it stages changes and shows the diff
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Replaces strings in files within a specified folder, optionally staged by git\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Replaces strings in files within a specified folder and its subfolders\. If in a git repository, it stages changes and shows the diff
-2024-09-15 15:40:25 - DEBUG: Function all-rsf found in target file
-2024-09-15 15:40:25 - Replaced in function all-rsf:
-2024-09-15 15:40:25 -   Old: Replaces strings in files within a specified folder, optionally staged by git.
-2024-09-15 15:40:25 -   New: Replaces strings in files within a specified folder and its subfolders. If in a git repository, it stages changes and shows the diff
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-rnf
-2024-09-15 15:40:25 - DEBUG: Old text: renames all files in folder and in nested folders too
-2024-09-15 15:40:25 - DEBUG: New text: Renames all files containing a specified string in their names, within a given folder and its subfolders
-2024-09-15 15:40:25 - DEBUG: Escaped old text: renames all files in folder and in nested folders too
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Renames all files containing a specified string in their names, within a given folder and its subfolders
-2024-09-15 15:40:25 - DEBUG: Function all-rnf found in target file
-2024-09-15 15:40:25 - Replaced in function all-rnf:
-2024-09-15 15:40:25 -   Old: renames all files in folder and in nested folders too
-2024-09-15 15:40:25 -   New: Renames all files containing a specified string in their names, within a given folder and its subfolders
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-use
-2024-09-15 15:40:25 - DEBUG: Old text: get function arguments
-2024-09-15 15:40:25 - DEBUG: New text: Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
-2024-09-15 15:40:25 - DEBUG: Escaped old text: get function arguments
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
-2024-09-15 15:40:25 - DEBUG: Function all-use found in target file
-2024-09-15 15:40:25 - Replaced in function all-use:
-2024-09-15 15:40:25 -   Old: get function arguments
-2024-09-15 15:40:25 -   New: Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-rsd
-2024-09-15 15:40:25 - DEBUG: Old text: rysnc source destination
-2024-09-15 15:40:25 - DEBUG: New text: Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding
-2024-09-15 15:40:25 - DEBUG: Escaped old text: rysnc source destination
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Performs an rsync operation from a source to a destination path\. Displays files to be transferred and prompts for confirmation before proceeding
-2024-09-15 15:40:25 - DEBUG: Function all-rsd found in target file
-2024-09-15 15:40:25 - Replaced in function all-rsd:
-2024-09-15 15:40:25 -   Old: rysnc source destination
-2024-09-15 15:40:25 -   New: Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-cif
-2024-09-15 15:40:25 - DEBUG: Old text: cats all files inside a particular folder
-2024-09-15 15:40:25 - DEBUG: New text: Concatenates and displays the contents of all files within a specified folder, separating each file's content with a line of dashes
-2024-09-15 15:40:25 - DEBUG: Escaped old text: cats all files inside a particular folder
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Concatenates and displays the contents of all files within a specified folder, separating each file's content with a line of dashes
-2024-09-15 15:40:25 - DEBUG: Function all-cif found in target file
-2024-09-15 15:40:25 - Replaced in function all-cif:
-2024-09-15 15:40:25 -   Old: cats all files inside a particular folder
-2024-09-15 15:40:25 -   New: Concatenates and displays the contents of all files within a specified folder, separating each file's content with a line of dashes
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-fsr
-2024-09-15 15:40:25 - DEBUG: Old text: firewalld (add) service (and) reload
-2024-09-15 15:40:25 - DEBUG: New text: Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding
-2024-09-15 15:40:25 - DEBUG: Escaped old text: firewalld (add) service (and) reload
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Adds a specified service to the firewalld configuration and reloads the firewall\. Checks for the presence of firewall-cmd before proceeding
-2024-09-15 15:40:25 - DEBUG: Function all-fsr found in target file
-2024-09-15 15:40:25 - Replaced in function all-fsr:
-2024-09-15 15:40:25 -   Old: firewalld (add) service (and) reload
-2024-09-15 15:40:25 -   New: Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-usk
-2024-09-15 15:40:25 - DEBUG: Old text: This function uploads an SSH key from a device plugged in, into the /root/.ssh folder.
-2024-09-15 15:40:25 - DEBUG: New text: Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
-2024-09-15 15:40:25 - DEBUG: Escaped old text: This function uploads an SSH key from a device plugged in, into the \/root\/\.ssh folder\.
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Uploads an SSH key from a plugged-in device to a specified folder (default: \/root\/\.ssh)\. Handles mounting, file copying, and unmounting of the device
-2024-09-15 15:40:25 - DEBUG: Function all-usk found in target file
-2024-09-15 15:40:25 - Replaced in function all-usk:
-2024-09-15 15:40:25 -   Old: This function uploads an SSH key from a device plugged in, into the /root/.ssh folder.
-2024-09-15 15:40:25 -   New: Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-spi
-2024-09-15 15:40:25 - DEBUG: Old text: append a private SSH key identifier to a config inside .ssh
-2024-09-15 15:40:25 - DEBUG: New text: Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist
-2024-09-15 15:40:25 - DEBUG: Escaped old text: append a private SSH key identifier to a config inside \.ssh
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Appends a private SSH key identifier to the SSH config file for a specified user\. Creates the \.ssh directory and config file if they don't exist
-2024-09-15 15:40:25 - DEBUG: Function all-spi found in target file
-2024-09-15 15:40:25 - Replaced in function all-spi:
-2024-09-15 15:40:25 -   Old: append a private SSH key identifier to a config inside .ssh
-2024-09-15 15:40:25 -   New: Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-aak
-2024-09-15 15:40:25 - DEBUG: Old text: append a public SSH key content to authorized_keys
-2024-09-15 15:40:25 - DEBUG: New text: Appends the content of a specified public SSH key file to the authorized_keys file. Prompts for confirmation and restarts the SSH service
-2024-09-15 15:40:25 - DEBUG: Escaped old text: append a public SSH key content to authorized_keys
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Appends the content of a specified public SSH key file to the authorized_keys file\. Prompts for confirmation and restarts the SSH service
-2024-09-15 15:40:25 - DEBUG: Function all-aak found in target file
-2024-09-15 15:40:25 - Replaced in function all-aak:
-2024-09-15 15:40:25 -   Old: append a public SSH key content to authorized_keys
-2024-09-15 15:40:25 -   New: Appends the content of a specified public SSH key file to the authorized_keys file. Prompts for confirmation and restarts the SSH service
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-loi
-2024-09-15 15:40:25 - DEBUG: Old text: Loop a specified operation through an specific range of ips
-2024-09-15 15:40:25 - DEBUG: New text: Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Loop a specified operation through an specific range of ips
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
-2024-09-15 15:40:25 - DEBUG: Function all-loi found in target file
-2024-09-15 15:40:25 - Replaced in function all-loi:
-2024-09-15 15:40:25 -   Old: Loop a specified operation through an specific range of ips
-2024-09-15 15:40:25 -   New: Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-sca
-2024-09-15 15:40:25 - DEBUG: Old text: Resolves custom ssh aliases with the help of all.conf
-2024-09-15 15:40:25 - DEBUG: New text: Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
-2024-09-15 15:40:25 - DEBUG: Escaped old text: Resolves custom ssh aliases with the help of all\.conf
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Resolves custom SSH aliases using the configuration file\. Supports connecting to single or multiple servers, executing commands remotely
-2024-09-15 15:40:25 - DEBUG: Function all-sca found in target file
-2024-09-15 15:40:25 - Replaced in function all-sca:
-2024-09-15 15:40:25 -   Old: Resolves custom ssh aliases with the help of all.conf
-2024-09-15 15:40:25 -   New: Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: Processing: all-swt
-2024-09-15 15:40:25 - DEBUG: Old text: rctwake wrapper
-2024-09-15 15:40:25 - DEBUG: New text: Schedules a system wake-up using rtcwake. Supports absolute or relative time input, different sleep states (mem/disk), and logs operations
-2024-09-15 15:40:25 - DEBUG: Escaped old text: rctwake wrapper
-2024-09-15 15:40:25 - DEBUG: Escaped new text: Schedules a system wake-up using rtcwake\. Supports absolute or relative time input, different sleep states (mem\/disk), and logs operations
-2024-09-15 15:40:25 - DEBUG: Function all-swt found in target file
-2024-09-15 15:40:25 - Replaced in function all-swt:
-2024-09-15 15:40:25 -   Old: rctwake wrapper
-2024-09-15 15:40:25 -   New: Schedules a system wake-up using rtcwake. Supports absolute or relative time input, different sleep states (mem/disk), and logs operations
-2024-09-15 15:40:25 - DEBUG: Replacement not found in target file. This might indicate a problem.
-2024-09-15 15:40:25 - ---
-2024-09-15 15:40:25 - DEBUG: First 20 lines of target file after replacements:
-2024-09-15 15:40:25 - DEBUG:   # Define directory and file variables
-2024-09-15 15:40:25 - DEBUG:   DIR_LIB="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-2024-09-15 15:40:25 - DEBUG:   FILE_LIB=$(basename "$BASH_SOURCE")
-2024-09-15 15:40:25 - DEBUG:   BASE_LIB="${FILE_LIB%.*}"
-2024-09-15 15:40:25 - DEBUG:   FILEPATH_LIB="${DIR_LIB}/${FILE_LIB}"
-2024-09-15 15:40:25 - DEBUG:   CONFIG_LIB="$DIR_LIB/../var/${BASE_LIB}.conf"
-2024-09-15 15:40:25 - DEBUG:   
-2024-09-15 15:40:25 - DEBUG:   # Dynamically create variables based on the base name
-2024-09-15 15:40:25 - DEBUG:   eval "FILEPATH_${BASE_LIB}=\$FILEPATH_LIB"
-2024-09-15 15:40:25 - DEBUG:   eval "FILE_${BASE_LIB}=\$FILE_LIB"
-2024-09-15 15:40:25 - DEBUG:   eval "BASE_${BASE_LIB}=\$BASE_LIB"
-2024-09-15 15:40:26 - DEBUG:   eval "CONFIG_${BASE_LIB}=\$CONFIG_LIB"
-2024-09-15 15:40:26 - DEBUG:   
-2024-09-15 15:40:26 - DEBUG:   # Source the configuration file
-2024-09-15 15:40:26 - DEBUG:   if [ -f "$CONFIG_LIB" ]; then
-2024-09-15 15:40:26 - DEBUG:       source "$CONFIG_LIB"
-2024-09-15 15:40:26 - DEBUG:   else
-2024-09-15 15:40:26 - DEBUG:       echo "Configuration file $CONFIG_LIB not found!"
-2024-09-15 15:40:26 - DEBUG:       exit 1
-2024-09-15 15:40:26 - DEBUG:   fi
-2024-09-15 15:40:26 - Replacement process completed.
+-----------------
+Target file: /root/lab/lib/all.bash
+-----------------
+Item: all-fun
+Old: show an overview of specific functions
+New: Shows a summary of selected functions in the script, displaying their usage, shortname, and description
+---
+Item: all-laf
+Old: cats the three lines above each function as usage,shortname,description
+New: Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
+---
+Item: all-var
+Old: show an overview of specific variables
+New: Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
+---
+Item: all-acu
+Old: Counts the var occurrences from a config file in a target folder
+New: Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files
+---
+Item: all-ffl
+Old: Recursively processes files in a directory with an function
+New: Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
+---
+Item: all-flc
+Old: cats the source code of a function inside the lib folder
+New: Displays the source code of a specified function from the library folder, including its description, shortname, and usage
+---
+Item: all-gio
+Old: Manages git operations, ensuring local repository syncs with remote.
+New: Manages git operations, ensuring the local repository syncs with the remote. Performs status check, pull, commit, and push operations as needed
+---
+Item: all-fea
+Old: Adds auto-mount entries for devices to /etc/fstab using blkid.
+New: Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
+---
+Item: all-fec
+Old: Adds custom entries to /etc/fstab using device UUIDs.
+New: Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters
+---
+Item: all-vsf
+Old: Prompts the user to select a file from the current directory.
+New: Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
+---
+Item: all-cff
+Old: Counts files in directories based on specified visibility.
+New: Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name
+---
+Item: all-zdb
+Old: Sends ZFS snapshots from a source pool to a destination pool.
+New: Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency
+---
+Item: all-duc
+Old: Compares data usage between two paths up to a specified depth.
+New: Compares data usage between two paths up to a specified depth. Displays results in a tabular format with color-coded differences
+---
+Item: all-mev
+Old: Prompts the user to input or confirm a variable's value.
+New: Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters
+---
+Item: all-nos
+Old: Logs a function's execution status with a timestamp.
+New: Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information
+---
+Item: all-cap
+Old: Appends a line to a file if it does not already exist.
+New: Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation
+---
+Item: all-ipa
+Old: Installs specified packages using a package manager.
+New: Installs specified packages using the system's package manager (apt, dnf, yum, or zypper). Performs update, upgrade, and installation operations
+---
+Item: all-gst
+Old: Configures git with a specified username and email
+New: Configures git globally with a specified username and email, essential for proper commit attribution
+---
+Item: all-sst
+Old: Installs, enables, and starts the sysstat service.
+New: Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
+---
+Item: all-fas
+Old: Allows a specified service through the firewall.
+New: Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration
+---
+Item: all-ust
+Old: Creates a user with a specified username and password.
+New: Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
+---
+Item: all-sdc
+Old: Enables and starts a specified systemd service.
+New: Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not
+---
+Item: all-rsf
+Old: Replaces strings in files within a specified folder, optionally staged by git.
+New: Replaces strings in files within a specified folder and its subfolders. If in a git repository, it stages changes and shows the diff
+---
+Item: all-rnf
+Old: renames all files in folder and in nested folders too
+New: Renames all files containing a specified string in their names, within a given folder and its subfolders
+---
+Item: all-use
+Old: get function arguments
+New: Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
+---
+Item: all-rsd
+Old: rysnc source destination
+New: Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding
+---
+Item: all-cif
+Old: cats all files inside a particular folder
+New: Concatenates and displays the contents of all files within a specified folder, separating each file's content with a line of dashes
+---
+Item: all-fsr
+Old: firewalld (add) service (and) reload
+New: Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding
+---
+Item: all-usk
+Old: This function uploads an SSH key from a device plugged in, into the /root/.ssh folder.
+New: Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
+---
+Item: all-spi
+Old: append a private SSH key identifier to a config inside .ssh
+New: Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist
+---
+Item: all-aak
+Old: append a public SSH key content to authorized_keys
+New: Appends the content of a specified public SSH key file to the authorized_keys file. Prompts for confirmation and restarts the SSH service
+---
+Item: all-loi
+Old: Loop a specified operation through an specific range of ips
+New: Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
+---
+Item: all-sca
+Old: Resolves custom ssh aliases with the help of all.conf
+New: Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
+---
+Item: all-swt
+Old: rctwake wrapper
+New: Schedules a system wake-up using rtcwake. Supports absolute or relative time input, different sleep states (mem/disk), and logs operations
+---
+-----------------
+2024-09-15 16:13:16 - Replacement process completed.
+-----------------
