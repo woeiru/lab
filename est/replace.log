@@ -162,3 +162,49 @@ New: Applies NFS configuration by creating the shared folder if needed, updating
 -----------------
 2024-09-15 16:25:58 - Replacement process completed.
 -----------------
+-----------------
+Target file: /root/lab/lib/osm.bash
+-----------------
+Item: osm-fun
+Old: show an overview of specific functions
+New: Displays an overview of specific OSM-related functions in the script, showing their usage, shortname, and description
+---
+Item: osm-var
+Old: show an overview of specific variables
+New: Displays an overview of OSM-specific variables defined in the configuration file, showing their names, values, and usage across different files
+---
+Item: osm-tra
+Old: Transform a folder subvolume.
+New: Transforms a folder into a Btrfs subvolume, optionally setting attributes (e.g., disabling COW). Handles multiple folders, preserving content and ownership.
+---
+Item: osm-csf
+Old: Check subvolume folder and filter results.
+New: Checks and lists subvolume status of folders in a specified path. Supports filtering by folder type (regular, hidden, or both) and subvolume status.
+---
+Item: osm-shc
+Old: snapper -c home_* create
+New: Creates a new Snapper snapshot for the specified configuration or automatically selects a 'home_*' configuration if multiple exist
+---
+Item: osm-shd
+Old: snapper -c home_* delete <snapshot>
+New: Deletes a specified Snapper snapshot from a given configuration or automatically selects a 'home_*' configuration if multiple exist
+---
+Item: osm-shl
+Old: snapper -c home_* list
+New: Lists Snapper snapshots for the specified configuration or automatically selects a 'home_*' configuration if multiple exist
+---
+Item: osm-sfr
+Old: Resyncing a Btrfs snapshot to a flat folder
+New: Resyncs a Btrfs snapshot subvolume to a flat folder using rsync, excluding specific directories (.snapshots and .ssh) and preserving attributes
+---
+Item: osm-hub
+Old: creating a subvol on bak then sending snapshots there
+New: Creates a backup subvolume for a user's home directory on a backup drive, then sends and receives Btrfs snapshots incrementally, managing full and incremental backups
+---
+Item: osm-snd
+Old: delete a parent subvolume with all it nested childs
+New: Recursively deletes a Btrfs parent subvolume and all its nested child subvolumes, with options for interactive mode and forced deletion
+---
+-----------------
+2024-09-15 16:30:05 - Replacement process completed.
+-----------------

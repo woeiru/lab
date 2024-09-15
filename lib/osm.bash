@@ -19,20 +19,20 @@ else
     exit 1
 fi
 
-# show an overview of specific functions
+# Displays an overview of specific OSM-related functions in the script, showing their usage, shortname, and description
 # overview functions
 # 
 osm-fun() {
     all-laf "$FILEPATH_osm" "$@"
 }
-# show an overview of specific variables 
+# Displays an overview of OSM-specific variables defined in the configuration file, showing their names, values, and usage across different files 
 # overview variables
 # 
 osm-var() {
     all-acu -o "$CONFIG_osm" "$DIR_LIB/.."
 }
 
-# Transform a folder subvolume.
+# Transforms a folder into a Btrfs subvolume, optionally setting attributes (e.g., disabling COW). Handles multiple folders, preserving content and ownership.
 # transforming folder subvolume
 # <folder_name> <user_name> <C>
 osm-tra() {
@@ -84,7 +84,7 @@ osm-tra() {
     done
 }
 
-# Check subvolume folder and filter results.
+# Checks and lists subvolume status of folders in a specified path. Supports filtering by folder type (regular, hidden, or both) and subvolume status.
 # check subvolume folder
 # <path> <folder_type: 1=regular, 2=hidden, 3=both> <yes=show subvolumes, no=show non-subvolumes, all=show all>
 osm-csf() {
@@ -140,7 +140,7 @@ osm-csf() {
     done
 }
 
-# snapper -c home_* create
+# Creates a new Snapper snapshot for the specified configuration or automatically selects a 'home_*' configuration if multiple exist
 # snapper home create
 # <configname>
 osm-shc() {
@@ -181,7 +181,7 @@ osm-shc() {
     echo "snapper -c "$configname" create"
     snapper -c "$configname" create
 }
-# snapper -c home_* delete <snapshot>
+# Deletes a specified Snapper snapshot from a given configuration or automatically selects a 'home_*' configuration if multiple exist
 # snapper home delete
 # <configname> <snapshot>
 osm-shd() {
@@ -229,7 +229,7 @@ osm-shd() {
     snapper -c "$configname" delete "$snapshot"
 }
 
-# snapper -c home_* list
+# Lists Snapper snapshots for the specified configuration or automatically selects a 'home_*' configuration if multiple exist
 # snapper home list
 # <configname>
 osm-shl() {
@@ -271,7 +271,7 @@ osm-shl() {
     snapper -c "$configname" list
 }
 
-# Resyncing a Btrfs snapshot to a flat folder
+# Resyncs a Btrfs snapshot subvolume to a flat folder using rsync, excluding specific directories (.snapshots and .ssh) and preserving attributes
 # snapshot flat resync
 # <snapshot subvolume> <target folder>
 osm-sfr() {
@@ -296,7 +296,7 @@ osm-sfr() {
         echo "rsync encountered an error. Exit status: $rsync_status"
     fi
 }
-# creating a subvol on bak then sending snapshots there
+# Creates a backup subvolume for a user's home directory on a backup drive, then sends and receives Btrfs snapshots incrementally, managing full and incremental backups
 # home user backups
 # <user> <snapshots: "all">
 osm-hub() {
@@ -439,7 +439,7 @@ osm-hub() {
     perform_backups
 }
 
-# delete a parent subvolume with all it nested childs
+# Recursively deletes a Btrfs parent subvolume and all its nested child subvolumes, with options for interactive mode and forced deletion
 # subvolume nested delete
 # <parent subvolume>
 osm-snd() {
