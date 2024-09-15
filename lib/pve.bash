@@ -23,7 +23,7 @@ fi
 # overview functions
 #  
 pve-fun() {
-    all-laf "$FILEPATH_pve"
+    all-laf "$FILEPATH_pve" "$@"
 }
 # show an overview of specific variables
 # overview variables
@@ -241,7 +241,7 @@ vm-chk() {
 
 #  Prompts user to rename a network interface by editing udev rules and updating network configuration.
 # udev network interface
-# [interaction with user]
+# [interactive]
 pve-uni() {
     # Prompt user for the new interface name
     read -p "Enter the new interface name (e.g., nic1): " INTERFACE_NAME
@@ -608,7 +608,7 @@ pve-cdo() {
 
 # updates the occurences of the containertemplate in the config file
 # config update containertemplate
-# <interactive>
+# [interactive]
 pve-cuc() {
     # Check if CONFIG_pve is set
     if [ -z "$CONFIG_pve" ]; then
