@@ -27,65 +27,6 @@ all-fun() {
     all-laf "$FILEPATH_all" "$@"
 }
 
-# show an overview of specific variables
-# overview variables
-#
-all-var() {
-    all-acu -o "$CONFIG_all" "$DIR_LIB/.." 
-}
-
-# Recursively processes files in a directory with an function
-# extended overview
-# <function> <path>
-all-loo() {
-    local fnc
-    local target
-    local extra_args=()
-
-    # Parse arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            -*)
-                # Collect all flags and their values
-                extra_args+=("$1")
-                if [[ "$2" != -* && "$2" != "" ]]; then
-                    extra_args+=("$2")
-                    shift
-                fi
-                ;;
-            *)
-                if [ -z "$fnc" ]; then
-                    fnc="$1"
-                elif [ -z "$target" ]; then
-                    target="$1"
-                else
-                    extra_args+=("$1")
-                fi
-                ;;
-        esac
-        shift
-    done
-
-    if [ -z "$fnc" ] || [ -z "$target" ]; then
-        all-use
-        return 1
-    fi
-
-    if [[ -d "$target" ]]; then
-        for file in "$target"/{*,.[!.]*,..?*}; do
-            if [[ -f "$file" ]]; then
-                echo "Processing file: $file"
-                "$fnc" "$file" "${extra_args[@]}"
-            elif [[ -d "$file" && "$file" != "$target"/. && "$file" != "$target"/.. ]]; then
-                all-loo "$fnc" "$file" "${extra_args[@]}"
-            fi
-        done
-    else
-        echo "Invalid target: $target"
-        return 1
-    fi
-}
-
 # cats the three lines above each function as usage,shortname,description
 # list all functions
 # <file name> [-t] [-b]
@@ -296,35 +237,11 @@ all-laf() {
     echo ""
 }
 
-# Function that calls a function for each file in the directory
-# function passthrough(pt) loop
-# <function> <pt flag> <pt looped folder> <pt arg1>
-all-fpl() {
-    local function=$1
-    local flag=$2
-    local folder=$3
-    local arg1=$4
-
-    # Debug output
-    echo "passthorugh parameters :"
-    echo "1 function: $function"
-    echo "2 flag: $flag"
-    echo "3 folder: $folder"
-    echo "4 arg1: $arg1"
-
-    # Check if folder exists
-    if [ ! -d "$folder" ]; then
-        echo "Directory $folder does not exist."
-        return 1
-    fi
-
-    # Iterate through all files in the directory
-    for file in "$folder"/*; do
-        if [ -f "$file" ]; then
-            echo "Processing file: $file"
-            $function "$arg" "$file" "$arg1"
-        fi
-    done
+# show an overview of specific variables
+# overview variables
+#
+all-var() {
+    all-acu -o "$CONFIG_all" "$DIR_LIB/.." 
 }
 
 # Counts the var occurrences from a config file in a target folder
@@ -448,6 +365,89 @@ all-acu() {
     list_target_files "$target_folder"
     print_header
     print_variables_usage
+}
+
+# Recursively processes files in a directory with an function
+# extended overview
+# <function> <path>
+all-loo() {
+    local fnc
+    local target
+    local extra_args=()
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -*)
+                # Collect all flags and their values
+                extra_args+=("$1")
+                if [[ "$2" != -* && "$2" != "" ]]; then
+                    extra_args+=("$2")
+                    shift
+                fi
+                ;;
+            *)
+                if [ -z "$fnc" ]; then
+                    fnc="$1"
+                elif [ -z "$target" ]; then
+                    target="$1"
+                else
+                    extra_args+=("$1")
+                fi
+                ;;
+        esac
+        shift
+    done
+
+    if [ -z "$fnc" ] || [ -z "$target" ]; then
+        all-use
+        return 1
+    fi
+
+    if [[ -d "$target" ]]; then
+        for file in "$target"/{*,.[!.]*,..?*}; do
+            if [[ -f "$file" ]]; then
+                echo "Processing file: $file"
+                "$fnc" "$file" "${extra_args[@]}"
+            elif [[ -d "$file" && "$file" != "$target"/. && "$file" != "$target"/.. ]]; then
+                all-loo "$fnc" "$file" "${extra_args[@]}"
+            fi
+        done
+    else
+        echo "Invalid target: $target"
+        return 1
+    fi
+}
+
+# function that calls a function for each file in the directory
+# function passthrough(pt) loop
+# <function> <pt flag> <pt looped folder> <pt arg1>
+all-fpl() {
+    local function=$1
+    local flag=$2
+    local folder=$3
+    local arg1=$4
+
+    # debug output
+    echo "passthorugh parameters :"
+    echo "1 function: $function"
+    echo "2 flag: $flag"
+    echo "3 folder: $folder"
+    echo "4 arg1: $arg1"
+
+    # check if folder exists
+    if [ ! -d "$folder" ]; then
+        echo "directory $folder does not exist."
+        return 1
+    fi
+
+    # iterate through all files in the directory
+    for file in "$folder"/*; do
+        if [ -f "$file" ]; then
+            echo "processing file: $file"
+            $function "$arg" "$file" "$arg1"
+        fi
+    done
 }
 
 # cats the source code of a function inside the lib folder
