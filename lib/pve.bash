@@ -19,20 +19,20 @@ else
     exit 1
 fi
 
-# show an overview of specific functions
+# Displays an overview of specific Proxmox Virtual Environment (PVE) related functions in the script, showing their usage, shortname, and description
 # overview functions
 #  
 pve-fun() {
     all-laf "$FILEPATH_pve" "$@"
 }
-# show an overview of specific variables
+# Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 # 
 pve-var() {
     all-acu -o "$CONFIG_pve" "$DIR_LIB/.."
 }
 
-# vm start or vm-get then shutdown other node
+# Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration
 # vm start get shutdown
 # <vm_id> [s: optional, shutdown other node]
 vm() {
@@ -76,7 +76,7 @@ vm() {
     fi
 }
 
-# remote vm-pth, migration, local vm-pth
+# Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process
 # vm get start
 # <vm_id>
 vm-get() {
@@ -117,7 +117,7 @@ vm-get() {
     return 1  # Return failure if VM is not found
 }
 
-# toggle Passthrough lines ON or OFF
+# Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices
 # vm passthrough toggle
 # <vm_id> <on|off>
 vm-pth() {
@@ -195,7 +195,7 @@ hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
     esac
 }
 
-# check where VM exists
+# Checks and reports which node in the Proxmox cluster is currently hosting a specified VM
 # vm check node
 # <vm_id>
 vm-chk() {
@@ -239,7 +239,7 @@ vm-chk() {
     fi
 }
 
-#  Prompts user to rename a network interface by editing udev rules and updating network configuration.
+#  Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
 # udev network interface
 # [interactive]
 pve-uni() {
@@ -280,7 +280,7 @@ pve-uni() {
     fi
 }
 
-# Displays the contents of .notes files in a specified or current directory. 
+# Displays the contents of all .notes files found in a specified directory or the current directory, useful for viewing backup notes 
 # show backup notes
 # [folder: optional]
 pve-sbn() {
@@ -312,7 +312,7 @@ pve-sbn() {
 }
 
 
-# Disables specified repository files by commenting out 'deb' lines. 
+# Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources 
 # disable repository
 #  
 pve-dsr() {
@@ -332,7 +332,7 @@ pve-dsr() {
     done
 }
 
-# Adds a specific Proxmox repository line to /etc/apt/sources.list if not already present. 
+# Adds a specific Proxmox VE no-subscription repository line to /etc/apt/sources.list if not already present 
 # setup sources.list
 #   
 pve-adr() {
@@ -348,7 +348,7 @@ pve-adr() {
     fi
 }
 
-# Updates and upgrades system packages.
+# Updates package lists and upgrades all installed packages on the Proxmox system
 # packages update upgrade
 #   
 pve-puu() {
@@ -358,7 +358,7 @@ pve-puu() {
     all-nos "$function_name" "executed"
 }
 
-# Removes the Proxmox subscription notice and optionally restarts the pveproxy service. 
+# Removes the Proxmox subscription notice by modifying the web interface JavaScript file, with an option to restart the pveproxy service 
 # remove sub notice
 #   
 pve-rsn() {
@@ -373,7 +373,7 @@ pve-rsn() {
         * ) all-nos "$function_name" "Invalid choice. Service not restarted.";;
     esac
 }
-# Configures initial settings for GPU passthrough and reboots the system.
+# Configures initial GRUB and EFI settings for GPU passthrough, installs necessary packages, and reboots the system
 # gpu passthrough step 1
 #  
 pve-gp1() {
@@ -398,7 +398,7 @@ pve-gp1() {
     reboot
 }
 
-# Adds necessary modules for GPU passthrough and reboots the system.
+# Adds necessary kernel modules for GPU passthrough to /etc/modules, updates initramfs, and reboots the system
 # gpu passthrough step 2
 #   
 pve-gp2() {
@@ -420,7 +420,7 @@ pve-gp2() {
     reboot
 }
 
-# Completes GPU passthrough setup by configuring vfio-pci IDs, blacklisting GPU drivers, and rebooting the system.
+# Finalizes GPU passthrough setup by configuring VFIO-PCI IDs, blacklisting specific GPU drivers, and rebooting the system
 # gpu passthrough step 3
 #   
 pve-gp3() {
@@ -471,7 +471,7 @@ pve-gp3() {
     reboot
 }
 
-# Sets up a Btrfs RAID 1 filesystem on two devices and optionally adds the mount point to /etc/fstab.
+# Creates a Btrfs RAID 1 filesystem on two specified devices, mounts it, and optionally adds an entry to /etc/fstab
 # btrfs raid 1
 # <device1> <device2> <mount_point>
 pve-br1() {
@@ -513,7 +513,7 @@ pve-br1() {
     all-nos "$function_name" "executed ( $1 $2 $3 )"
 }
 
-# Creates and mounts a ZFS dataset at a specified mount point.
+# Creates a new ZFS dataset or uses an existing one, sets its mountpoint, and ensures it's mounted at the specified path
 # zfs directory mount
 # <pool_name> <dataset_name> <mountpoint_path>
 pve-zdm() {
@@ -560,7 +560,7 @@ pve-zdm() {
     all-nos "$function_name" "executed ( $pool_name / $dataset_name )"
 }
 
-# Updates the Proxmox container list.
+# Updates the Proxmox VE Appliance Manager (pveam) container template list
 # container list update
 #  
 pve-clu() {
@@ -571,7 +571,7 @@ pve-clu() {
     all-nos "$function_name" "executed"
 }
 
-# Downloads a specified container template from a storage location.
+# Downloads a specified container template to a given storage location, with error handling and options to list available templates
 # container downloads
 #   
 pve-cdo() {
@@ -606,7 +606,7 @@ pve-cdo() {
     fi
 }
 
-# updates the occurences of the containertemplate in the config file
+# Updates the container template reference in the Proxmox configuration file, prompting for user confirmation and new template name
 # config update containertemplate
 # [interactive]
 pve-cuc() {
@@ -652,7 +652,7 @@ pve-cuc() {
     fi
 }
 
-# Configures a bind mount for a Proxmox container.
+# Configures a bind mount for a specified Proxmox container, linking a host directory to a container directory
 # container bindmount
 # <vmid> <mphost> <mpcontainer>
 pve-cbm() {
@@ -683,7 +683,7 @@ pve-cbm() {
     all-nos "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
 
-# create a custom container
+# Creates a custom Proxmox container with specified parameters including network settings, resources, and SSH key
 # container create
 #   
 pve-ctc() {
@@ -728,7 +728,7 @@ pve-ctc() {
         --ssh-public-keys "$ssh_key_file"
 }
 
-# start, stop, enable, or disable a range of containers
+# Manages multiple Proxmox containers by starting, stopping, enabling, or disabling them, supporting individual IDs, ranges, or all containers
 # container toggle
 # <start|stop|enable|disable> <containers|all>
 pve-cto() {
