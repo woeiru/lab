@@ -15,14 +15,11 @@ json_file="$2"
 script_dir="$(dirname "$(readlink -f "$0")")"
 
 # Path to the log file
-log_file="$script_dir/replacement.log"
-
-# Clear the log file
-> "$log_file"
+log_file="$script_dir/replace.log"
 
 # Function to log messages
 log_message() {
-    echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" | tee -a "$log_file"
+    echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" >> "$log_file"
 }
 
 # Function to escape special characters for sed
@@ -35,6 +32,13 @@ if ! command -v jq &> /dev/null; then
     log_message "Error: jq is not installed. Please install jq to process JSON files."
     exit 1
 fi
+
+# Add header to log file
+{
+    echo "-----------------"
+    echo "Target file: $target_file"
+    echo "-----------------"
+} >> "$log_file"
 
 # Read the JSON file and perform replacements
 jq -c '.replacements[]' "$json_file" | while read -r replacement; do
@@ -49,12 +53,19 @@ jq -c '.replacements[]' "$json_file" | while read -r replacement; do
     # Perform the replacement
     sed -i "s/${old_text_escaped}/${new_text_escaped}/g" "$target_file"
 
-    log_message "Item: $item_name"
-    log_message "Old: $old_text"
-    log_message "New: $new_text"
-    log_message "---"
+    {
+        echo "Item: $item_name"
+        echo "Old: $old_text"
+        echo "New: $new_text"
+        echo "---"
+    } >> "$log_file"
 done
 
-log_message "Replacement process completed."
+# Add footer to log file
+{
+    echo "-----------------"
+    log_message "Replacement process completed."
+    echo "-----------------"
+} >> "$log_file"
 
 echo "Replacement process completed. Check $log_file for details."
