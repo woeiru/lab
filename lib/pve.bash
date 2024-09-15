@@ -359,7 +359,7 @@ pve-puu() {
 }
 
 # Removes the Proxmox subscription notice and optionally restarts the pveproxy service. 
-# remove subscription notice
+# remove sub notice
 #   
 pve-rsn() {
     local function_name="${FUNCNAME[0]}"
