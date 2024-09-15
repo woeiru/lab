@@ -155,6 +155,11 @@ all-laf() {
         printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' '-')"
     }
 
+    print_separator_2() {
+        local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + col_width_8 + col_width_9 + 26))
+        printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' ' ')"
+    }
+
     local line_number=0
     declare -a comments=()
 
@@ -226,7 +231,7 @@ all-laf() {
             # Print function information
             print_row "$func_name" "$arguments" "$shortname" "$description" "$func_size" "$line_number" "$func_calls" "$callslib" "$callsset"
             if $break_mode; then
-                print_separator
+                print_separator_2
             fi
         fi
     done < "$file_name"
