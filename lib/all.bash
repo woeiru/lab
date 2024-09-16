@@ -1453,11 +1453,13 @@ all-sca() {
     echo "Debug: User shortcut: $user_shortcut"
 
     # Resolve user name from shortcut
-    local user_name=${SSH_USERS[$user_shortcut]}
+    local user_name="${SSH_USERS[$user_shortcut]}"
     echo "Debug: Resolved user name: $user_name"
 
     if [[ -z $user_name ]]; then
         echo "Error: Unknown user shortcut '$user_shortcut'"
+	echo "Debug: SSH_USERS array contents: ${SSH_USERS[@]}"
+  	echo "Debug: SSH_USERS keys: ${!SSH_USERS[@]}"
         return 1
     fi
 

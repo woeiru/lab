@@ -166,103 +166,7 @@ pve-rsn() {
         * ) all-nos "$function_name" "Invalid choice. Service not restarted.";;
     esac
 }
-# Configures initial GRUB and EFI settings for GPU passthrough, installs necessary packages, and reboots the system
-# gpu passthrough step 1
-#  
-pve-gp1() {
-    local function_name="${FUNCNAME[0]}"
-    echo "Executing section 1:"
 
-    # Display EFI boot information
-    efibootmgr -v
-
-    # Edit GRUB configuration
-    sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt"/' /etc/default/grub
-    update-grub
-    update-grug2
-
-    # Install grub-efi-amd64
-    apt install grub-efi-amd64 -y
-
-    # Notify status
-    all-nos "$function_name" "Completed section 1, system will reboot now."
-
-    # Perform system reboot without prompting
-    reboot
-}
-
-# Adds necessary kernel modules for GPU passthrough to /etc/modules, updates initramfs, and reboots the system
-# gpu passthrough step 2
-#   
-pve-gp2() {
-    local function_name="${FUNCNAME[0]}"
-    echo "Executing section 2:"
-
-    # Add modules to /etc/modules
-    echo "vfio" >> /etc/modules
-    echo "vfio_iommu_type1" >> /etc/modules
-    echo "vfio_pci" >> /etc/modules
-
-    # Update initramfs
-    update-initramfs -u -k all
-
-    # Notify status
-    all-nos "$function_name" "Completed section 2, system will reboot now."
-
-    # Perform system reboot without prompting
-    reboot
-}
-
-# Finalizes GPU passthrough setup by configuring VFIO-PCI IDs, blacklisting specific GPU drivers, and rebooting the system
-# gpu passthrough step 3
-#   
-pve-gp3() {
-    local function_name="${FUNCNAME[0]}"
-    echo "Executing section 3:"
-
-    # Check for vfio-related logs in kernel messages after reboot
-    dmesg | grep -i vfio
-    dmesg | grep 'remapping'
-
-    # List NVIDIA and AMD devices after reboot
-    lspci -nn | grep 'NVIDIA'
-    lspci -nn | grep 'AMD'
-
-    # Check if vfio configuration already exists
-    vfio_conf="/etc/modprobe.d/vfio.conf"
-    if [ ! -f "$vfio_conf" ]; then
-        # Prompt for the IDs input in the format ****:****,****:****
-        read -p "Please enter the IDs in the format ****:****,****:****: " ids_input
-
-        # Split the IDs based on comma
-        IFS=',' read -ra id_list <<< "$ids_input"
-
-        # Construct the line with the IDs
-        options_line="options vfio-pci ids="
-
-        # Build the line for each ID
-        for id in "${id_list[@]}"
-        do
-            options_line+="$(echo "$id" | tr '\n' ',')"
-        done
-
-        # Remove the trailing comma
-        options_line="${options_line%,}"
-
-        # Append the line into the file
-        echo "$options_line" >> "$vfio_conf"
-    fi
-
-    # Blacklist GPU
-    echo "blacklist radeon" >> /etc/modprobe.d/blacklist.conf
-    echo "blacklist amdgpu" >> /etc/modprobe.d/blacklist.conf
-
-    # Notify status
-    all-nos "$function_name" "Completed section 3, system will reboot now."
-
-    # Perform system reboot without prompting
-    reboot
-}
 
 # Creates a Btrfs RAID 1 filesystem on two specified devices, mounts it, and optionally adds an entry to /etc/fstab
 # btrfs raid 1
@@ -588,6 +492,104 @@ pve-cto() {
         echo "Current container status:"
         pct list
     fi
+}
+
+# Configures initial GRUB and EFI settings for GPU passthrough, installs necessary packages, and reboots the system
+# gpu passthrough step 1
+#  
+pve-gp1() {
+    local function_name="${FUNCNAME[0]}"
+    echo "Executing section 1:"
+
+    # Display EFI boot information
+    efibootmgr -v
+
+    # Edit GRUB configuration
+    sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt"/' /etc/default/grub
+    update-grub
+    update-grug2
+
+    # Install grub-efi-amd64
+    apt install grub-efi-amd64 -y
+
+    # Notify status
+    all-nos "$function_name" "Completed section 1, system will reboot now."
+
+    # Perform system reboot without prompting
+    reboot
+}
+
+# Adds necessary kernel modules for GPU passthrough to /etc/modules, updates initramfs, and reboots the system
+# gpu passthrough step 2
+#   
+pve-gp2() {
+    local function_name="${FUNCNAME[0]}"
+    echo "Executing section 2:"
+
+    # Add modules to /etc/modules
+    echo "vfio" >> /etc/modules
+    echo "vfio_iommu_type1" >> /etc/modules
+    echo "vfio_pci" >> /etc/modules
+
+    # Update initramfs
+    update-initramfs -u -k all
+
+    # Notify status
+    all-nos "$function_name" "Completed section 2, system will reboot now."
+
+    # Perform system reboot without prompting
+    reboot
+}
+
+# Finalizes GPU passthrough setup by configuring VFIO-PCI IDs, blacklisting specific GPU drivers, and rebooting the system
+# gpu passthrough step 3
+#   
+pve-gp3() {
+    local function_name="${FUNCNAME[0]}"
+    echo "Executing section 3:"
+
+    # Check for vfio-related logs in kernel messages after reboot
+    dmesg | grep -i vfio
+    dmesg | grep 'remapping'
+
+    # List NVIDIA and AMD devices after reboot
+    lspci -nn | grep 'NVIDIA'
+    lspci -nn | grep 'AMD'
+
+    # Check if vfio configuration already exists
+    vfio_conf="/etc/modprobe.d/vfio.conf"
+    if [ ! -f "$vfio_conf" ]; then
+        # Prompt for the IDs input in the format ****:****,****:****
+        read -p "Please enter the IDs in the format ****:****,****:****: " ids_input
+
+        # Split the IDs based on comma
+        IFS=',' read -ra id_list <<< "$ids_input"
+
+        # Construct the line with the IDs
+        options_line="options vfio-pci ids="
+
+        # Build the line for each ID
+        for id in "${id_list[@]}"
+        do
+            options_line+="$(echo "$id" | tr '\n' ',')"
+        done
+
+        # Remove the trailing comma
+        options_line="${options_line%,}"
+
+        # Append the line into the file
+        echo "$options_line" >> "$vfio_conf"
+    fi
+
+    # Blacklist GPU
+    echo "blacklist radeon" >> /etc/modprobe.d/blacklist.conf
+    echo "blacklist amdgpu" >> /etc/modprobe.d/blacklist.conf
+
+    # Notify status
+    all-nos "$function_name" "Completed section 3, system will reboot now."
+
+    # Perform system reboot without prompting
+    reboot
 }
 
 # Creates a custom Proxmox virtual machine with specified parameters
