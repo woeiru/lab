@@ -135,6 +135,7 @@ pve-vpt() {
     local node_pci1="${hostname}_node_pci1"
     local core_count_on="${hostname}_core_count_on"
     local core_count_off="${hostname}_core_count_off"
+    local usb_devices_var="${hostname}_usb_devices[@]"
 
     # Find the starting line of the VM configuration section
     local section_start=$(awk '/^\[/{print NR-1; exit}' "$vm_conf")
@@ -147,36 +148,21 @@ pve-vpt() {
 
             # Add passthrough lines
             if [ -z "$section_start" ]; then
-                # If no section found, append passthrough lines at the end of the file using a here document
-                cat <<EOF >> "$vm_conf"
-usb0: host=1-4
-usb1: host=3-1
-usb2: host=3-2
-usb3: host=3-3
-usb4: host=3-4
-usb5: host=5-1
-usb6: host=5-2
-usb7: host=5-3
-usb8: host=5-4
-usb9: host=4-4
-hostpci0: ${!node_pci0},pcie=1,x-vga=1
-hostpci1: ${!node_pci1},pcie=1
-EOF
+                # If no section found, append passthrough lines at the end of the file
+                for usb_device in "${!usb_devices_var}"; do
+                    echo "$usb_device" >> "$vm_conf"
+                done
+                echo "hostpci0: ${!node_pci0},pcie=1,x-vga=1" >> "$vm_conf"
+                echo "hostpci1: ${!node_pci1},pcie=1" >> "$vm_conf"
             else
-                # If a section is found, insert passthrough lines at the appropriate position in the file using sed
-                sed -i "${section_start}a\\
-usb0: host=1-4\n\
-usb1: host=3-1\n\
-usb2: host=3-2\n\
-usb3: host=3-3\n\
-usb4: host=3-4\n\
-usb5: host=5-1\n\
-usb6: host=5-2\n\
-usb7: host=5-3\n\
-usb8: host=5-4\n\
-usb9: host=4-4\n\
-hostpci0: ${!node_pci0},pcie=1,x-vga=1\n\
-hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
+                # If a section is found, insert passthrough lines at the appropriate position
+                for usb_device in "${!usb_devices_var}"; do
+                    sed -i "${section_start}a\\${usb_device}" "$vm_conf"
+                    ((section_start++))
+                done
+                sed -i "${section_start}a\\hostpci0: ${!node_pci0},pcie=1,x-vga=1" "$vm_conf"
+                ((section_start++))
+                sed -i "${section_start}a\\hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
             fi
 
             echo "Passthrough lines added to $vm_conf."
