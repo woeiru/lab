@@ -35,21 +35,21 @@ pve-var() {
 # Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration
 # vm start get shutdown
 # <vm_id> [s: optional, shutdown other node]
-vm() {
+pve-vms() {
     # Retrieve and store hostname
     local hostname=$(hostname)
 
     # Check if vm_id argument is provided
     if [ -z "$1" ]; then
-	all-use
+        all-use
         return 1
     fi
 
     # Assign vm_id to a variable
     local vm_id=$1
 
-    # Call vm-chk function to get node_id
-    local node_id=$(vm-chk "$vm_id")
+    # Call pve-vck function to get node_id
+    local node_id=$(pve-vck "$vm_id")
 
     # Check if node_id is empty
     if [ -z "$node_id" ]; then
@@ -60,13 +60,13 @@ vm() {
     # Main logic
     if [ "$hostname" = "$node_id" ]; then
         qm start "$vm_id"
-	if [ "$2" = "s" ]; then
+        if [ "$2" = "s" ]; then
             # Shutdown the other node
             echo "Shutting down node $node_id"
             ssh "root@$node_id" "shutdown now"
-	fi 
+        fi 
     else
-        vm-get "$vm_id"
+        pve-vmg "$vm_id"
         qm start "$vm_id"
         if [ "$2" = "s" ]; then
             # Shutdown the other node
@@ -79,20 +79,20 @@ vm() {
 # Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process
 # vm get start
 # <vm_id>
-vm-get() {
+pve-vmg() {
     local vm_id="$1"
     if [ $# -ne 1 ]; then
-	all-use
+        all-use
         return 1
     fi
 
-    # Call vm-chk to check if VM exists and get the node
-    local node=$(vm-chk "$vm_id")
+    # Call pve-vck to check if VM exists and get the node
+    local node=$(pve-vck "$vm_id")
     if [ -n "$node" ]; then
         echo "VM found on node: $node"
 
         # Disable PCIe passthrough for the VM on the remote node
-        if ! ssh "$node" "vm-pth $vm_id off"; then
+        if ! ssh "$node" "pve-vpt $vm_id off"; then
             echo "Failed to disable PCIe passthrough for VM on $node." >&2
             return 1
         fi
@@ -104,7 +104,7 @@ vm-get() {
         fi
 
         # Enable PCIe passthrough for the VM on the current node
-        if ! vm-pth "$vm_id" on; then
+        if ! pve-vpt "$vm_id" on; then
             echo "Failed to enable PCIe passthrough for VM on $(hostname)." >&2
             return 1
         fi
@@ -120,12 +120,12 @@ vm-get() {
 # Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices
 # vm passthrough toggle
 # <vm_id> <on|off>
-vm-pth() {
+pve-vpt() {
     local vm_id="$1"
     local action="$2"
     local vm_conf="$CONF_PATH_QEMU/$vm_id.conf"
     if [ $# -ne 2 ]; then
-	all-use
+        all-use
         return 1
     fi
 
@@ -189,7 +189,7 @@ hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
             echo "Passthrough lines removed from $vm_conf."
             ;;
         *)
-            echo "Invalid parameter. Usage: vm-tog-pass <VM_ID> <on|off>"
+            echo "Invalid parameter. Usage: pve-vpt <VM_ID> <on|off>"
             exit 1
             ;;
     esac
@@ -198,11 +198,11 @@ hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
 # Checks and reports which node in the Proxmox cluster is currently hosting a specified VM
 # vm check node
 # <vm_id>
-vm-chk() {
+pve-vck() {
     local vm_id="$1"
     local found_node=""
     if [ $# -ne 1 ]; then
-	all-use
+        all-use
         return 1
     fi
 
