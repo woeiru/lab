@@ -1,11 +1,9 @@
 # Define the directory of the script
 DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
 
-# alias contruction
-#
-
-# Common directories
-#
+# This section creates aliases for top-level directories
+# It looks for directories with 3-letter names in the parent directory
+# and creates variables and aliases for them
 PARENT_DIR="$DIR/.."
 
 for dir in "$PARENT_DIR"/*; do
@@ -19,8 +17,8 @@ for dir in "$PARENT_DIR"/*; do
     fi
 done
 
-# Define arrays for constructing aliases
-#
+
+# Define arrays for different types of files
 files=(all osm pbs pve nfs smb)
 bash_files=(all osm pbs pve nfs smb)
 
@@ -39,21 +37,22 @@ for file in "${bash_files[@]}"; do
   alias "b.$file.sh"="bash $SET_DIR/$file.sh"
 done
 
-# Generate cat aliases
+# Generate cat aliases for viewing file contents
 for file in "${files[@]}"; do
   alias "c.$file.bash"="cat $LIB_DIR/$file.bash"
   alias "c.$file.sh"="cat $SET_DIR/$file.sh"
   alias "c.$file.conf"="cat $VAR_DIR/$file.conf"
 done
 
-# Generate vim aliases
+# Generate vim aliases for editing files
 for file in "${files[@]}"; do
   alias "v.$file.bash"="vim $LIB_DIR/$file.bash"
   alias "v.$file.sh"="vim $SET_DIR/$file.sh"
   alias "v.$file.conf"="vim $VAR_DIR/$file.conf"
 done
 
-# Generate aliases for all folders containing the specified file in the entire repo
+
+# Generate aliases for all folders containing readme.md in the entire repo
 FILEBASE_MD="readme.md"
 while IFS= read -r -d '' file; do
   dir=$(dirname "$file")
@@ -63,28 +62,27 @@ while IFS= read -r -d '' file; do
 done < <(find "$DIR/.." -type f -name "$FILEBASE_MD" -print0)
 
 
-# function chains
-#
+# Function chain aliases
 alias fun='all-ffl all-laf "" /root/lab/lib'
 alias var='all-ffl all-acu "" /root/lab/var /root/lab/'
 
-# function aliases
+# Function aliases
 alias sca='all-sca'
 alias flc='all-flc'
 alias cto='pve-cto'
 
-# standard aliases
-#
 
-# bash
+# Standard aliases for common commands
+
+# Bash
 alias b='bash'
 alias eb='exec bash'
 
-# btrfs management
+# BTRFS management
 alias bt='btrfs'
 alias btf='btrfs filesystem'
 
-# cat
+# Cat (file viewing)
 alias c='cat'
 alias c.b="cat $INI_DIR/bashrc"
 alias c.group='cat /etc/group'
@@ -92,7 +90,7 @@ alias c.passwd='cat /etc/passwd'
 alias c.fstab='cat /etc/fstab'
 alias es.log='cat /mnt/bak/home/.es.log'
 
-# directory selection
+# Directory navigation
 alias d='cd'
 alias ..='cd ..'
 alias dl="cd $DIR/.."
@@ -105,15 +103,15 @@ alias d.das='cd /mnt/das'
 alias d.nvm='cd /mnt/nvm'
 alias d.usb='cd /mnt/nvm'
 
-# disk usage aliases
+# Disk usage
 alias u='du -bh -d1'
 alias uu='du -bh -d2'
 alias uuu='du -bh -d3'
 
-# exits
+# Exit
 alias ee='exit'
 
-# git
+# Git commands
 alias g='git status'
 alias gd='git diff'
 alias gl='git ls-files | xargs cat | wc -l'
@@ -124,34 +122,33 @@ alias gp='git pull'
 alias gg='all-gio'
 alias gr1='git revert HEAD~1'
 
-# history
+# History
 alias h='history'
 
-# iptables
+# IPTables
 alias ipt='iptables -L -v -n'
 
-# mounting
+# Mounting
 alias m.sda.das='mount /dev/sda /mnt/das'
 alias m.sub.sda.bak='mount -o subvol=bak /dev/sda /bak'
 
-# mkfs
+# Filesystem creation
 alias mbf='mkfs.btrfs -f'
 alias mbmd='mkfs.btrfs -m raid1 -d raid1'
 
-# pam_snapper
+# PAM Snapper commands
 alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
 alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
 alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
 alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
 
-# podman
+# Podman (container management)
 alias pod='podman'
 alias podst='podman start'
 alias podps='podman ps'
 alias podpsa='podman ps -a'
 
-# ssh
-
+# SSH key management
 if [ -z "$SSH_AUTH_SOCK" ] ; then
     eval `ssh-agent -s`
     ssh-add
@@ -165,23 +162,23 @@ alias sa.ed='ssh-add ~/.ssh/id_ed25519'
 alias sca='all-sca'
 alias w1='sca r w1'
 
-# system control aliases
+# System control
 alias y='systemctl'
 
-# system configuration
+# System configuration file editing
 alias v.samba.conf='vim /etc/samba/smb.conf'
 alias v.sambausers='vim /etc/samba/smbusers'
 alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
 alias v.fstab='vim /etc/fstab'
 
-# snapper
+# Snapper (filesystem snapshot management)
 alias sl='snapper list'
 alias sc='snapper create'
 alias shl='osm-shl home'
 alias shc='osm-shc home'
 alias shd='osm-shd'
 
-# Sysstat
+# System statistics
 alias sar='sar -d 1'
 alias ios='iostat -x 1'
 
@@ -189,26 +186,26 @@ alias ios='iostat -x 1'
 alias ses='sestatus -v'
 alias seb='sudo semanage boolean -l'
 
-# timedatectl
+# Time zone setting
 alias berlintime="timedatectl set-timezone Europe/Berlin"
 
-# transactional update alias
+# Transactional update
 alias tu='transactional-update'
 alias tua='transactional-update apply'
 alias tur='transactional-update reboot'
 alias tuar='transactional-update apply && transactional-update reboot'
 
-# tree view aliases
+# Tree view
 alias t='tree'
 alias tt='tree -L 2'
 alias ttt='tree -L 3'
 alias tttt='tree -L 4'
 alias ttttt='tree -L 5'
 
-# vim
+# Vim
 alias v='vim'
 alias v.b="vim $INI_DIR/bashrc"
 alias v.nw="vim $CON_DIR/node-w.md"
 
-# unsorted
+# File listing
 alias l='ls -Al'
