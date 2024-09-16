@@ -20,29 +20,29 @@ MENU_OPTIONS[h]="h_xall"
 MENU_OPTIONS[i]="i_xall"
 
 a_xall() {
-	pve-dsr
-    	pve-adr
-    	pve-puu
-    	pve-rsn
+    pve-dsr
+    pve-adr
+    pve-puu
+    pve-rsn
 }
 
 b_xall() {
-    	all-ipa "$PACKAGES_ALL"
+    all-ipa "$PACKAGES_ALL"
 }
 
 c_xall() {
-	all-usk \
-    		"$DEVICE_PATH" \
-    		"$MOUNT_POINT" \
-    		"$SUBFOLDER_PATH" \
-    		"$UPLOAD_PATH" \
-    		"$PUBLIC_KEY"
+    all-usk \
+        "$DEVICE_PATH" \
+        "$MOUNT_POINT" \
+        "$SUBFOLDER_PATH" \
+        "$UPLOAD_PATH" \
+        "$PUBLIC_KEY"
 
-	all-aak "$UPLOAD_PATH" "$PUBLIC_KEY"
+    all-aak "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
 d_xall() {
-	pve-br1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
+    pve-br1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
 e_xall() {
@@ -63,10 +63,11 @@ e_xall() {
     
     zfs list
 }
+
 f_xall() {
-   	pve-clu
-	pve-cdo "$CT_DL_STO" "$CT_DL_1"
-	pve-cuc
+    pve-clu
+    pve-cdo "$CT_DL_STO" "$CT_DL_1"
+    pve-cuc
 }
 
 g_xall() {
@@ -139,6 +140,7 @@ h_xall() {
 
         ((i++))
     done
+}
 
 i_xall() {
     local i=1
@@ -181,6 +183,7 @@ i_xall() {
 
         ((i++))
     done
-}}
+}
 
+# Call the main setup function
 setup_main "$@"
