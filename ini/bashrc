@@ -176,7 +176,7 @@ main() {
     generate_aliases "cat" "${files[@]}"
     generate_aliases "vim" "${files[@]}"
     generate_readme_aliases
-    setup_ssh_agent
+    add_ssh_keys
 
     # Function chain aliases
     alias fun='all-ffl all-laf "" $LIB_DIR'
