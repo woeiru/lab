@@ -149,6 +149,7 @@ pve-vpt() {
             if [ -z "$section_start" ]; then
                 # If no section found, append passthrough lines at the end of the file using a here document
                 cat <<EOF >> "$vm_conf"
+usb0: host=1-4
 usb1: host=3-1
 usb2: host=3-2
 usb3: host=3-3
@@ -164,6 +165,7 @@ EOF
             else
                 # If a section is found, insert passthrough lines at the appropriate position in the file using sed
                 sed -i "${section_start}a\\
+usb0: host=1-4\n\
 usb1: host=3-1\n\
 usb2: host=3-2\n\
 usb3: host=3-3\n\
