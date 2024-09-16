@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ===========================================
-# Integrated and Improved bashrc file
+# Revised and Improved bashrc file
 # Author: [Your Name]
 # Last updated: [Date]
 # ===========================================
@@ -13,20 +13,8 @@
 # Uses a POSIX-compliant method to get the script's directory
 DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
 
-# Source external configuration file
-CONFIG_FILE="$DIR/bashrc_config.sh"
-if [[ -f "$CONFIG_FILE" ]]; then
-    source "$CONFIG_FILE"
-else
-    echo "Warning: Configuration file not found. Using default values."
-    # Define default values here
-    PARENT_DIR="$DIR/.."
-    LIB_DIR="$PARENT_DIR/lib"
-    SET_DIR="$PARENT_DIR/set"
-    VAR_DIR="$PARENT_DIR/var"
-    INI_DIR="$PARENT_DIR/ini"
-    CON_DIR="$PARENT_DIR/con"
-fi
+# Define parent directory
+PARENT_DIR="$DIR/.."
 
 # 2. ERROR HANDLING
 # =================
@@ -124,10 +112,12 @@ setup_ssh_agent() {
 # =================
 
 main() {
+    # Generate top-level directory aliases and variables
+    generate_top_level_aliases
+
     local files=(all osm pbs pve nfs smb)
     local bash_files=(all osm pbs pve nfs smb)
 
-    generate_top_level_aliases
     source_scripts "${files[@]}"
     generate_aliases "var" "${files[@]}"
     generate_aliases "bash" "${bash_files[@]}"
