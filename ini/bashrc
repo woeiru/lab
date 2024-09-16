@@ -3,18 +3,21 @@ DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 &
 
 # alias contruction
 #
-# Common directories
-ARC_DIR="$DIR/../alc"
-CON_DIR="$DIR/../con"
-INI_DIR="$DIR/../ini"
-FIX_DIR="$DIR/../fix"
-LIB_DIR="$DIR/../lib"
-SET_DIR="$DIR/../set"
-VAR_DIR="$DIR/../var"
-EST_DIR="$DIR/../est"
 
-# alias contruction
+# Common directories
 #
+PARENT_DIR="$DIR/.."
+
+for dir in "$PARENT_DIR"/*; do
+    if [ -d "$dir" ]; then
+        base=$(basename "$dir")
+        if [ ${#base} -eq 3 ]; then
+            var_name="${base^^}_DIR"
+            declare "$var_name=$dir"
+            alias "d.$base=cd $dir"
+        fi
+    fi
+done
 
 # Define arrays for constructing aliases
 #
@@ -93,15 +96,6 @@ alias es.log='cat /mnt/bak/home/.es.log'
 alias d='cd'
 alias ..='cd ..'
 alias dl="cd $DIR/.."
-
-alias dla="cd $ARC_DIR"
-alias dlc="cd $CON_DIR"
-alias dli="cd $INI_DIR"
-alias dls="cd $SET_DIR"
-alias dll="cd $LIB_DIR"
-alias dle="cd $EST_DIR"
-alias dlf="cd $FIX_DIR"
-alias dlv="cd $VAR_DIR"
 
 alias d.samba='cd /etc/samba/'
 alias d.snapper='cd /etc/snapper/configs'
