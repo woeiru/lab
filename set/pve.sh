@@ -139,6 +139,48 @@ h_xall() {
 
         ((i++))
     done
-}
+
+i_xall() {
+    local i=1
+    while true; do
+        id_var="VM_${i}_ID"
+        name_var="VM_${i}_NAME"
+        storage_var="VM_${i}_STORAGE"
+        disk_size_var="VM_${i}_DISK_SIZE"
+        memory_var="VM_${i}_MEMORY"
+        cores_var="VM_${i}_CORES"
+        net_bridge_var="VM_${i}_NET_BRIDGE"
+        net_model_var="VM_${i}_NET_MODEL"
+        iso_var="VM_${i}_ISO"
+        scsihw_var="VM_${i}_SCSIHW"
+        ostype_var="VM_${i}_OSTYPE"
+        boot_var="VM_${i}_BOOT"
+
+        if [ -n "${!id_var}" ] && [ -n "${!name_var}" ] && [ -n "${!storage_var}" ]; then
+            # Check if the VM with the given ID already exists
+            if qm status "${!id_var}" &>/dev/null; then
+                echo "VM with ID ${!id_var} already exists. Skipping..."
+            else
+                pve-vmc \
+                    "${!id_var}" \
+                    "${!name_var}" \
+                    "${!storage_var}" \
+                    "${!disk_size_var}" \
+                    "${!memory_var}" \
+                    "${!cores_var}" \
+                    "${!net_bridge_var}" \
+                    "${!net_model_var}" \
+                    "${!iso_var}" \
+                    "${!scsihw_var}" \
+                    "${!ostype_var}" \
+                    "${!boot_var}"
+            fi
+        else
+            break
+        fi
+
+        ((i++))
+    done
+}}
 
 setup_main "$@"

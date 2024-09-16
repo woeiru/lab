@@ -784,3 +784,34 @@ pve-cto() {
         pct list
     fi
 }
+
+# Creates a custom Proxmox virtual machine with specified parameters
+# virtual machine create
+# <id> <name> <storage> <disk_size> <memory> <cores> <net_bridge> <net_model> <iso> <scsihw> <ostype> <boot>
+pve-vmc() {
+    local id="$1"
+    local name="$2"
+    local storage="$3"
+    local disk_size="$4"
+    local memory="$5"
+    local cores="$6"
+    local net_bridge="$7"
+    local net_model="$8"
+    local iso="$9"
+    local scsihw="${10}"
+    local ostype="${11}"
+    local boot="${12}"
+
+    qm create "$id" \
+        --name "$name" \
+        --storage "$storage" \
+        --disk "scsi0,size=$disk_size" \
+        --memory "$memory" \
+        --cores "$cores" \
+        --net0 "model=$net_model,bridge=$net_bridge" \
+        --ide2 "$iso,media=cdrom" \
+        --scsihw "$scsihw" \
+        --ostype "$ostype" \
+        --boot "$boot" \
+        --start 0
+}
