@@ -1,24 +1,23 @@
 #!/bin/bash
 
 # ===========================================
-# Revised and Improved bashrc file
+# Improved and Fully Commented bashrc file
 # Author: [Your Name]
 # Last updated: [Date]
+# Description: This bashrc file sets up a customized shell environment with various aliases and functions for system administration tasks.
 # ===========================================
 
 # 1. CONFIGURATION AND SETUP
 # ==========================
 
-# Define the directory of the script
-# Uses a POSIX-compliant method to get the script's directory
+# Define the directory of the script using a POSIX-compliant method
 DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
-
-# Define parent directory
 PARENT_DIR="$DIR/.."
 
 # 2. ERROR HANDLING
 # =================
 
+# Central error handling function for consistent error reporting and exit
 handle_error() {
     local exit_code=$1
     local error_message=$2
@@ -29,6 +28,7 @@ handle_error() {
 # 3. HELPER FUNCTIONS
 # ===================
 
+# Creates a directory if it doesn't exist, with error handling
 create_directory() {
     local dir_path=$1
     if [[ ! -d "$dir_path" ]]; then
@@ -36,6 +36,7 @@ create_directory() {
     fi
 }
 
+# Generates aliases for top-level directories and creates corresponding variables
 generate_top_level_aliases() {
     for dir in "$PARENT_DIR"/*; do
         if [[ -d "$dir" ]]; then
@@ -49,6 +50,7 @@ generate_top_level_aliases() {
     done
 }
 
+# Sources specified scripts, with error checking
 source_scripts() {
     local files=("$@")
     for file in "${files[@]}"; do
@@ -61,6 +63,7 @@ source_scripts() {
     done
 }
 
+# Generates various types of aliases based on the provided type and file list
 generate_aliases() {
     local alias_type=$1
     shift
@@ -91,6 +94,7 @@ generate_aliases() {
     done
 }
 
+# Generates aliases for readme files across the directory structure
 generate_readme_aliases() {
     local FILEBASE_MD="readme.md"
     while IFS= read -r -d '' file; do
@@ -101,10 +105,10 @@ generate_readme_aliases() {
     done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
 }
 
-# SSH Key Management
-# ------------------
+# 4. SSH KEY MANAGEMENT
+# =====================
 
-# Function to add SSH keys
+# Adds specified SSH keys to the ssh-agent if they exist and aren't already added
 add_ssh_keys() {
     # Start or connect to ssh-agent
     if [ -z "$SSH_AUTH_SOCK" ]; then
@@ -127,42 +131,20 @@ add_ssh_keys() {
     done
 }
 
-# Function to list added SSH keys
+# Lists all SSH keys currently added to the ssh-agent
 list_ssh_keys() {
     ssh-add -l
 }
 
-# Function to remove all SSH keys from the agent
+# Removes all SSH keys from the ssh-agent
 remove_ssh_keys() {
     ssh-add -D
 }
 
-# Alias for adding keys
-alias ssha='add_ssh_keys'
-
-# Alias for listing keys
-alias sshl='list_ssh_keys'
-
-# Alias for removing keys
-alias sshr='remove_ssh_keys'
-
-# Specific key aliases (adjust paths as needed)
-alias sa.w1='ssh-add ~/.ssh/w1'
-alias sa.ed='ssh-add ~/.ssh/id_ed25519'
-
-# Key generation alias
-alias sk.ed='ssh-keygen -t ed25519 -C "admin@woeiru.io"'
-
-# Key copying alias (adjust IP as needed)
-alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
-
-# Automatically add keys when starting a new shell (comment out if not desired)
-add_ssh_keys
-
-
-# 4. MAIN EXECUTION
+# 5. MAIN EXECUTION
 # =================
 
+# Main function to set up the shell environment
 main() {
     # Generate top-level directory aliases and variables
     generate_top_level_aliases
@@ -176,6 +158,8 @@ main() {
     generate_aliases "cat" "${files[@]}"
     generate_aliases "vim" "${files[@]}"
     generate_readme_aliases
+
+    # Automatically add SSH keys
     add_ssh_keys
 
     # Function chain aliases
@@ -186,6 +170,15 @@ main() {
     alias sca='all-sca'
     alias flc='all-flc'
     alias cto='pve-cto'
+
+    # SSH aliases
+    alias ssha='add_ssh_keys'
+    alias sshl='list_ssh_keys'
+    alias sshr='remove_ssh_keys'
+    alias sa.w1='ssh-add ~/.ssh/w1'
+    alias sa.ed='ssh-add ~/.ssh/id_ed25519'
+    alias sk.ed='ssh-keygen -t ed25519 -C "admin@woeiru.io"'
+    alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
 
     # Standard aliases for common commands
     
@@ -262,15 +255,6 @@ main() {
     alias podst='podman start'
     alias podps='podman ps'
     alias podpsa='podman ps -a'
-
-    # SSH key management
-    alias sa.w1='ssh-add ~/.ssh/w1'
-    alias sk.ed='ssh-keygen -t ed25519 -C "admin@woeiru.io"'
-    alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
-    alias sa.ed='ssh-add ~/.ssh/id_ed25519'
-
-    alias sca='all-sca'
-    alias w1='sca r w1'
 
     # System control
     alias y='systemctl'
