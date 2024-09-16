@@ -30,15 +30,4 @@ b_xall() {
     		"$PRIVATE_KEY"
 }
 
-x_xall() {
-  local hostname=$(hostname)
-  local script_path="/root/lab/set/${hostname}.sh a"
-  
-  if [[ -f "$script_path" ]]; then
-    bash "$script_path" a
-  else
-    echo "Script $script_path does not exist."
-  fi
-}
-
 setup_main "$@"
