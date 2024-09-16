@@ -172,12 +172,7 @@ main() {
     alias cto='pve-cto'
 
     # SSH aliases
-    alias ssha='add_ssh_keys'
-    alias sshl='list_ssh_keys'
-    alias sshr='remove_ssh_keys'
-    alias sa.w1='ssh-add ~/.ssh/w1'
-    alias sa.ed='ssh-add ~/.ssh/id_ed25519'
-    alias sk.ed='ssh-keygen -t ed25519 -C "admin@woeiru.io"'
+    alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
     alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
 
     # Standard aliases for common commands
