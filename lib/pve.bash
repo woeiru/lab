@@ -32,201 +32,6 @@ pve-var() {
     all-acu -o "$CONFIG_pve" "$DIR_LIB/.."
 }
 
-# Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration
-# vm start get shutdown
-# <vm_id> [s: optional, shutdown other node]
-pve-vms() {
-    # Retrieve and store hostname
-    local hostname=$(hostname)
-
-    # Check if vm_id argument is provided
-    if [ -z "$1" ]; then
-        all-use
-        return 1
-    fi
-
-    # Assign vm_id to a variable
-    local vm_id=$1
-
-    # Call pve-vck function to get node_id
-    local node_id=$(pve-vck "$vm_id")
-
-    # Check if node_id is empty
-    if [ -z "$node_id" ]; then
-        echo "Node ID is empty. Cannot proceed."
-        return 1
-    fi
-
-    # Main logic
-    if [ "$hostname" = "$node_id" ]; then
-        qm start "$vm_id"
-        if [ "$2" = "s" ]; then
-            # Shutdown the other node
-            echo "Shutting down node $node_id"
-            ssh "root@$node_id" "shutdown now"
-        fi 
-    else
-        pve-vmg "$vm_id"
-        qm start "$vm_id"
-        if [ "$2" = "s" ]; then
-            # Shutdown the other node
-            echo "Shutting down node $node_id"
-            ssh "root@$node_id" "shutdown now"
-        fi
-    fi
-}
-
-# Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process
-# vm get start
-# <vm_id>
-pve-vmg() {
-    local vm_id="$1"
-    if [ $# -ne 1 ]; then
-        all-use
-        return 1
-    fi
-
-    # Call pve-vck to check if VM exists and get the node
-    local node=$(pve-vck "$vm_id")
-    if [ -n "$node" ]; then
-        echo "VM found on node: $node"
-
-        # Disable PCIe passthrough for the VM on the remote node
-        if ! ssh "$node" "pve-vpt $vm_id off"; then
-            echo "Failed to disable PCIe passthrough for VM on $node." >&2
-            return 1
-        fi
-
-        # Migrate the VM to the current node
-        if ! ssh "$node" "qm migrate $vm_id $(hostname)"; then
-            echo "Failed to migrate VM from $node to $(hostname)." >&2
-            return 1
-        fi
-
-        # Enable PCIe passthrough for the VM on the current node
-        if ! pve-vpt "$vm_id" on; then
-            echo "Failed to enable PCIe passthrough for VM on $(hostname)." >&2
-            return 1
-        fi
-
-        echo "VM migrated and PCIe passthrough enabled."
-        return 0  # Return success once VM is found and migrated
-    fi
-
-    echo "VM not found on any other node."
-    return 1  # Return failure if VM is not found
-}
-
-# Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices
-# vm passthrough toggle
-# <vm_id> <on|off>
-pve-vpt() {
-    local vm_id="$1"
-    local action="$2"
-    local vm_conf="$CONF_PATH_QEMU/$vm_id.conf"
-    if [ $# -ne 2 ]; then
-        all-use
-        return 1
-    fi
-
-    # Get hostname for variable names
-    local hostname=$(hostname)
-    local node_pci0="${hostname}_node_pci0"
-    local node_pci1="${hostname}_node_pci1"
-    local core_count_on="${hostname}_core_count_on"
-    local core_count_off="${hostname}_core_count_off"
-    local usb_devices_var="${hostname}_usb_devices[@]"
-
-    # Find the starting line of the VM configuration section
-    local section_start=$(awk '/^\[/{print NR-1; exit}' "$vm_conf")
-
-    # Action based on the parameter
-    case "$action" in
-        on)
-            # Set core count based on configuration when toggled on
-            sed -i "s/cores:.*/cores: ${!core_count_on}/" "$vm_conf"
-
-            # Add passthrough lines
-            if [ -z "$section_start" ]; then
-                # If no section found, append passthrough lines at the end of the file
-                for usb_device in "${!usb_devices_var}"; do
-                    echo "$usb_device" >> "$vm_conf"
-                done
-                echo "hostpci0: ${!node_pci0},pcie=1,x-vga=1" >> "$vm_conf"
-                echo "hostpci1: ${!node_pci1},pcie=1" >> "$vm_conf"
-            else
-                # If a section is found, insert passthrough lines at the appropriate position
-                for usb_device in "${!usb_devices_var}"; do
-                    sed -i "${section_start}a\\${usb_device}" "$vm_conf"
-                    ((section_start++))
-                done
-                sed -i "${section_start}a\\hostpci0: ${!node_pci0},pcie=1,x-vga=1" "$vm_conf"
-                ((section_start++))
-                sed -i "${section_start}a\\hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
-            fi
-
-            echo "Passthrough lines added to $vm_conf."
-            ;;
-        off)
-            # Set default core count when toggled off
-            sed -i "s/cores:.*/cores: ${!core_count_off}/" "$vm_conf"
-
-            # Remove passthrough lines
-            sed -i '/^usb[0-9]*:/d; /^hostpci[0-9]*:/d' "$vm_conf"
-
-            echo "Passthrough lines removed from $vm_conf."
-            ;;
-        *)
-            echo "Invalid parameter. Usage: pve-vpt <VM_ID> <on|off>"
-            exit 1
-            ;;
-    esac
-}
-
-# Checks and reports which node in the Proxmox cluster is currently hosting a specified VM
-# vm check node
-# <vm_id>
-pve-vck() {
-    local vm_id="$1"
-    local found_node=""
-    if [ $# -ne 1 ]; then
-        all-use
-        return 1
-    fi
-
-    # Check if cluster_nodes array is populated
-    if [ ${#cluster_nodes[@]} -eq 0 ]; then
-        echo "Error: cluster_nodes array is empty"
-        return 1
-    fi
-
-    for node in "${cluster_nodes[@]}"; do
-        # Skip SSH for the local node
-        if [ "$node" != "$(hostname)" ]; then
-            ssh_output=$(ssh "$node" "qm list" 2>&1)
-            ssh_exit_status=$?
-            if [ $ssh_exit_status -eq 0 ] && echo "$ssh_output" | grep -q "\<$vm_id\>"; then
-                found_node="$node"
-                break
-            fi
-        else
-            local_output=$(qm list 2>&1)
-            local_exit_status=$?
-            if [ $local_exit_status -eq 0 ] && echo "$local_output" | grep -q "\<$vm_id\>"; then
-                found_node="$node"
-                break
-            fi
-        fi
-    done
-
-    if [ -n "$found_node" ]; then
-        echo "$found_node"
-        return 0
-    else
-        return 1
-    fi
-}
-
 # Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
 # udev network interface
 # [interactive]
@@ -815,3 +620,199 @@ pve-vmc() {
         --boot "$boot" \
         --start 0
 }
+
+# Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration
+# vm start get shutdown
+# <vm_id> [s: optional, shutdown other node]
+pve-vms() {
+    # Retrieve and store hostname
+    local hostname=$(hostname)
+
+    # Check if vm_id argument is provided
+    if [ -z "$1" ]; then
+        all-use
+        return 1
+    fi
+
+    # Assign vm_id to a variable
+    local vm_id=$1
+
+    # Call pve-vck function to get node_id
+    local node_id=$(pve-vck "$vm_id")
+
+    # Check if node_id is empty
+    if [ -z "$node_id" ]; then
+        echo "Node ID is empty. Cannot proceed."
+        return 1
+    fi
+
+    # Main logic
+    if [ "$hostname" = "$node_id" ]; then
+        qm start "$vm_id"
+        if [ "$2" = "s" ]; then
+            # Shutdown the other node
+            echo "Shutting down node $node_id"
+            ssh "root@$node_id" "shutdown now"
+        fi 
+    else
+        pve-vmg "$vm_id"
+        qm start "$vm_id"
+        if [ "$2" = "s" ]; then
+            # Shutdown the other node
+            echo "Shutting down node $node_id"
+            ssh "root@$node_id" "shutdown now"
+        fi
+    fi
+}
+
+# Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process
+# vm get start
+# <vm_id>
+pve-vmg() {
+    local vm_id="$1"
+    if [ $# -ne 1 ]; then
+        all-use
+        return 1
+    fi
+
+    # Call pve-vck to check if VM exists and get the node
+    local node=$(pve-vck "$vm_id")
+    if [ -n "$node" ]; then
+        echo "VM found on node: $node"
+
+        # Disable PCIe passthrough for the VM on the remote node
+        if ! ssh "$node" "pve-vpt $vm_id off"; then
+            echo "Failed to disable PCIe passthrough for VM on $node." >&2
+            return 1
+        fi
+
+        # Migrate the VM to the current node
+        if ! ssh "$node" "qm migrate $vm_id $(hostname)"; then
+            echo "Failed to migrate VM from $node to $(hostname)." >&2
+            return 1
+        fi
+
+        # Enable PCIe passthrough for the VM on the current node
+        if ! pve-vpt "$vm_id" on; then
+            echo "Failed to enable PCIe passthrough for VM on $(hostname)." >&2
+            return 1
+        fi
+
+        echo "VM migrated and PCIe passthrough enabled."
+        return 0  # Return success once VM is found and migrated
+    fi
+
+    echo "VM not found on any other node."
+    return 1  # Return failure if VM is not found
+}
+
+# Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices
+# vm passthrough toggle
+# <vm_id> <on|off>
+pve-vpt() {
+    local vm_id="$1"
+    local action="$2"
+    local vm_conf="$CONF_PATH_QEMU/$vm_id.conf"
+    if [ $# -ne 2 ]; then
+        all-use
+        return 1
+    fi
+
+    # Get hostname for variable names
+    local hostname=$(hostname)
+    local node_pci0="${hostname}_node_pci0"
+    local node_pci1="${hostname}_node_pci1"
+    local core_count_on="${hostname}_core_count_on"
+    local core_count_off="${hostname}_core_count_off"
+    local usb_devices_var="${hostname}_usb_devices[@]"
+
+    # Find the starting line of the VM configuration section
+    local section_start=$(awk '/^\[/{print NR-1; exit}' "$vm_conf")
+
+    # Action based on the parameter
+    case "$action" in
+        on)
+            # Set core count based on configuration when toggled on
+            sed -i "s/cores:.*/cores: ${!core_count_on}/" "$vm_conf"
+
+            # Add passthrough lines
+            if [ -z "$section_start" ]; then
+                # If no section found, append passthrough lines at the end of the file
+                for usb_device in "${!usb_devices_var}"; do
+                    echo "$usb_device" >> "$vm_conf"
+                done
+                echo "hostpci0: ${!node_pci0},pcie=1,x-vga=1" >> "$vm_conf"
+                echo "hostpci1: ${!node_pci1},pcie=1" >> "$vm_conf"
+            else
+                # If a section is found, insert passthrough lines at the appropriate position
+                for usb_device in "${!usb_devices_var}"; do
+                    sed -i "${section_start}a\\${usb_device}" "$vm_conf"
+                    ((section_start++))
+                done
+                sed -i "${section_start}a\\hostpci0: ${!node_pci0},pcie=1,x-vga=1" "$vm_conf"
+                ((section_start++))
+                sed -i "${section_start}a\\hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
+            fi
+
+            echo "Passthrough lines added to $vm_conf."
+            ;;
+        off)
+            # Set default core count when toggled off
+            sed -i "s/cores:.*/cores: ${!core_count_off}/" "$vm_conf"
+
+            # Remove passthrough lines
+            sed -i '/^usb[0-9]*:/d; /^hostpci[0-9]*:/d' "$vm_conf"
+
+            echo "Passthrough lines removed from $vm_conf."
+            ;;
+        *)
+            echo "Invalid parameter. Usage: pve-vpt <VM_ID> <on|off>"
+            exit 1
+            ;;
+    esac
+}
+
+# Checks and reports which node in the Proxmox cluster is currently hosting a specified VM
+# vm check node
+# <vm_id>
+pve-vck() {
+    local vm_id="$1"
+    local found_node=""
+    if [ $# -ne 1 ]; then
+        all-use
+        return 1
+    fi
+
+    # Check if cluster_nodes array is populated
+    if [ ${#cluster_nodes[@]} -eq 0 ]; then
+        echo "Error: cluster_nodes array is empty"
+        return 1
+    fi
+
+    for node in "${cluster_nodes[@]}"; do
+        # Skip SSH for the local node
+        if [ "$node" != "$(hostname)" ]; then
+            ssh_output=$(ssh "$node" "qm list" 2>&1)
+            ssh_exit_status=$?
+            if [ $ssh_exit_status -eq 0 ] && echo "$ssh_output" | grep -q "\<$vm_id\>"; then
+                found_node="$node"
+                break
+            fi
+        else
+            local_output=$(qm list 2>&1)
+            local_exit_status=$?
+            if [ $local_exit_status -eq 0 ] && echo "$local_output" | grep -q "\<$vm_id\>"; then
+                found_node="$node"
+                break
+            fi
+        fi
+    done
+
+    if [ -n "$found_node" ]; then
+        echo "$found_node"
+        return 0
+    else
+        return 1
+    fi
+}
+
