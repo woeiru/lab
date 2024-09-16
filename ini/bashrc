@@ -1,211 +1,283 @@
+#!/bin/bash
+
+# ===========================================
+# Integrated and Improved bashrc file
+# Author: [Your Name]
+# Last updated: [Date]
+# ===========================================
+
+# 1. CONFIGURATION AND SETUP
+# ==========================
+
 # Define the directory of the script
+# Uses a POSIX-compliant method to get the script's directory
 DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
 
-# This section creates aliases for top-level directories
-# It looks for directories with 3-letter names in the parent directory
-# and creates variables and aliases for them
-PARENT_DIR="$DIR/.."
-
-for dir in "$PARENT_DIR"/*; do
-    if [ -d "$dir" ]; then
-        base=$(basename "$dir")
-        if [ ${#base} -eq 3 ]; then
-            var_name="${base^^}_DIR"
-            declare "$var_name=$dir"
-            alias "d.$base=cd $dir"
-        fi
-    fi
-done
-
-
-# Define arrays for different types of files
-files=(all osm pbs pve nfs smb)
-bash_files=(all osm pbs pve nfs smb)
-
-# Source necessary scripts
-for file in "${files[@]}"; do
-   source "$LIB_DIR/$file.bash"
-done
-
-# Generate variable overview aliases
-for file in "${files[@]}"; do
-   alias var.$file="all-acu o /root/lab /root/lab/var/$file.conf"
-done
-
-# Generate bash execution aliases
-for file in "${bash_files[@]}"; do
-  alias "b.$file.sh"="bash $SET_DIR/$file.sh"
-done
-
-# Generate cat aliases for viewing file contents
-for file in "${files[@]}"; do
-  alias "c.$file.bash"="cat $LIB_DIR/$file.bash"
-  alias "c.$file.sh"="cat $SET_DIR/$file.sh"
-  alias "c.$file.conf"="cat $VAR_DIR/$file.conf"
-done
-
-# Generate vim aliases for editing files
-for file in "${files[@]}"; do
-  alias "v.$file.bash"="vim $LIB_DIR/$file.bash"
-  alias "v.$file.sh"="vim $SET_DIR/$file.sh"
-  alias "v.$file.conf"="vim $VAR_DIR/$file.conf"
-done
-
-
-# Generate aliases for all folders containing readme.md in the entire repo
-FILEBASE_MD="readme.md"
-while IFS= read -r -d '' file; do
-  dir=$(dirname "$file")
-  alias_name=$(basename "$dir").md
-  alias "c.$alias_name"="cat $file"
-  alias "v.$alias_name"="vim $file"
-done < <(find "$DIR/.." -type f -name "$FILEBASE_MD" -print0)
-
-
-# Function chain aliases
-alias fun='all-ffl all-laf "" /root/lab/lib'
-alias var='all-ffl all-acu "" /root/lab/var /root/lab/'
-
-# Function aliases
-alias sca='all-sca'
-alias flc='all-flc'
-alias cto='pve-cto'
-
-
-# Standard aliases for common commands
-
-# Bash
-alias b='bash'
-alias eb='exec bash'
-
-# BTRFS management
-alias bt='btrfs'
-alias btf='btrfs filesystem'
-
-# Cat (file viewing)
-alias c='cat'
-alias c.b="cat $INI_DIR/bashrc"
-alias c.group='cat /etc/group'
-alias c.passwd='cat /etc/passwd'
-alias c.fstab='cat /etc/fstab'
-alias es.log='cat /mnt/bak/home/.es.log'
-
-# Directory navigation
-alias d='cd'
-alias ..='cd ..'
-alias dl="cd $DIR/.."
-
-alias d.samba='cd /etc/samba/'
-alias d.snapper='cd /etc/snapper/configs'
-alias d.pam='cd /usr/lib/pam_snapper'
-
-alias d.das='cd /mnt/das'
-alias d.nvm='cd /mnt/nvm'
-alias d.usb='cd /mnt/nvm'
-
-# Disk usage
-alias u='du -bh -d1'
-alias uu='du -bh -d2'
-alias uuu='du -bh -d3'
-
-# Exit
-alias ee='exit'
-
-# Git commands
-alias g='git status'
-alias gd='git diff'
-alias gl='git ls-files | xargs cat | wc -l'
-alias ga='git add .'
-alias gc='git commit -m "standard"'
-alias go='git push origin master'
-alias gp='git pull'
-alias gg='all-gio'
-alias gr1='git revert HEAD~1'
-
-# History
-alias h='history'
-
-# IPTables
-alias ipt='iptables -L -v -n'
-
-# Mounting
-alias m.sda.das='mount /dev/sda /mnt/das'
-alias m.sub.sda.bak='mount -o subvol=bak /dev/sda /bak'
-
-# Filesystem creation
-alias mbf='mkfs.btrfs -f'
-alias mbmd='mkfs.btrfs -m raid1 -d raid1'
-
-# PAM Snapper commands
-alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
-alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
-alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
-alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
-
-# Podman (container management)
-alias pod='podman'
-alias podst='podman start'
-alias podps='podman ps'
-alias podpsa='podman ps -a'
-
-# SSH key management
-if [ -z "$SSH_AUTH_SOCK" ] ; then
-    eval `ssh-agent -s`
-    ssh-add
+# Source external configuration file
+CONFIG_FILE="$DIR/bashrc_config.sh"
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+else
+    echo "Warning: Configuration file not found. Using default values."
+    # Define default values here
+    PARENT_DIR="$DIR/.."
+    LIB_DIR="$PARENT_DIR/lib"
+    SET_DIR="$PARENT_DIR/set"
+    VAR_DIR="$PARENT_DIR/var"
+    INI_DIR="$PARENT_DIR/ini"
+    CON_DIR="$PARENT_DIR/con"
 fi
 
-alias sa.w1='ssh-add ~/.ssh/w1'
-alias sk.ed='ssh-keygen -t ed25519 -C "admin@woeiru.io"'
-alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
-alias sa.ed='ssh-add ~/.ssh/id_ed25519'
+# 2. ERROR HANDLING
+# =================
 
-alias sca='all-sca'
-alias w1='sca r w1'
+handle_error() {
+    local exit_code=$1
+    local error_message=$2
+    echo "Error: $error_message" >&2
+    exit "$exit_code"
+}
 
-# System control
-alias y='systemctl'
+# 3. HELPER FUNCTIONS
+# ===================
 
-# System configuration file editing
-alias v.samba.conf='vim /etc/samba/smb.conf'
-alias v.sambausers='vim /etc/samba/smbusers'
-alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
-alias v.fstab='vim /etc/fstab'
+create_directory() {
+    local dir_path=$1
+    if [[ ! -d "$dir_path" ]]; then
+        mkdir -p "$dir_path" || handle_error 1 "Failed to create directory: $dir_path"
+    fi
+}
 
-# Snapper (filesystem snapshot management)
-alias sl='snapper list'
-alias sc='snapper create'
-alias shl='osm-shl home'
-alias shc='osm-shc home'
-alias shd='osm-shd'
+generate_top_level_aliases() {
+    for dir in "$PARENT_DIR"/*; do
+        if [[ -d "$dir" ]]; then
+            base=$(basename "$dir")
+            if [[ ${#base} -eq 3 ]]; then
+                var_name="${base^^}_DIR"
+                declare -g "$var_name=$dir"
+                alias "d.$base=cd $dir"
+            fi
+        fi
+    done
+}
 
-# System statistics
-alias sar='sar -d 1'
-alias ios='iostat -x 1'
+source_scripts() {
+    local files=("$@")
+    for file in "${files[@]}"; do
+        local script_path="$LIB_DIR/$file.bash"
+        if [[ -f "$script_path" ]]; then
+            source "$script_path"
+        else
+            echo "Warning: Script not found: $script_path"
+        fi
+    done
+}
 
-# SELinux
-alias ses='sestatus -v'
-alias seb='sudo semanage boolean -l'
+generate_aliases() {
+    local alias_type=$1
+    shift
+    local files=("$@")
+    
+    for file in "${files[@]}"; do
+        case "$alias_type" in
+            "var")
+                alias "var.$file=all-acu o $PARENT_DIR $VAR_DIR/$file.conf"
+                ;;
+            "bash")
+                alias "b.$file.sh=bash $SET_DIR/$file.sh"
+                ;;
+            "cat")
+                alias "c.$file.bash=cat $LIB_DIR/$file.bash"
+                alias "c.$file.sh=cat $SET_DIR/$file.sh"
+                alias "c.$file.conf=cat $VAR_DIR/$file.conf"
+                ;;
+            "vim")
+                alias "v.$file.bash=vim $LIB_DIR/$file.bash"
+                alias "v.$file.sh=vim $SET_DIR/$file.sh"
+                alias "v.$file.conf=vim $VAR_DIR/$file.conf"
+                ;;
+            *)
+                echo "Warning: Unknown alias type: $alias_type"
+                ;;
+        esac
+    done
+}
 
-# Time zone setting
-alias berlintime="timedatectl set-timezone Europe/Berlin"
+generate_readme_aliases() {
+    local FILEBASE_MD="readme.md"
+    while IFS= read -r -d '' file; do
+        dir=$(dirname "$file")
+        alias_name=$(basename "$dir").md
+        alias "c.$alias_name=cat $file"
+        alias "v.$alias_name=vim $file"
+    done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
+}
 
-# Transactional update
-alias tu='transactional-update'
-alias tua='transactional-update apply'
-alias tur='transactional-update reboot'
-alias tuar='transactional-update apply && transactional-update reboot'
+setup_ssh_agent() {
+    if [ -z "$SSH_AUTH_SOCK" ] ; then
+        eval `ssh-agent -s`
+        ssh-add
+    fi
+}
 
-# Tree view
-alias t='tree'
-alias tt='tree -L 2'
-alias ttt='tree -L 3'
-alias tttt='tree -L 4'
-alias ttttt='tree -L 5'
+# 4. MAIN EXECUTION
+# =================
 
-# Vim
-alias v='vim'
-alias v.b="vim $INI_DIR/bashrc"
-alias v.nw="vim $CON_DIR/node-w.md"
+main() {
+    local files=(all osm pbs pve nfs smb)
+    local bash_files=(all osm pbs pve nfs smb)
 
-# File listing
-alias l='ls -Al'
+    generate_top_level_aliases
+    source_scripts "${files[@]}"
+    generate_aliases "var" "${files[@]}"
+    generate_aliases "bash" "${bash_files[@]}"
+    generate_aliases "cat" "${files[@]}"
+    generate_aliases "vim" "${files[@]}"
+    generate_readme_aliases
+    setup_ssh_agent
+
+    # Function chain aliases
+    alias fun='all-ffl all-laf "" $LIB_DIR'
+    alias var='all-ffl all-acu "" $VAR_DIR $PARENT_DIR'
+
+    # Function aliases
+    alias sca='all-sca'
+    alias flc='all-flc'
+    alias cto='pve-cto'
+
+    # Standard aliases for common commands
+    
+    # Bash
+    alias b='bash'
+    alias eb='exec bash'
+
+    # BTRFS management
+    alias bt='btrfs'
+    alias btf='btrfs filesystem'
+
+    # Cat (file viewing)
+    alias c='cat'
+    alias c.b="cat $INI_DIR/bashrc"
+    alias c.group='cat /etc/group'
+    alias c.passwd='cat /etc/passwd'
+    alias c.fstab='cat /etc/fstab'
+    alias es.log='cat /mnt/bak/home/.es.log'
+
+    # Directory navigation
+    alias d='cd'
+    alias ..='cd ..'
+    alias dl="cd $PARENT_DIR"
+
+    alias d.samba='cd /etc/samba/'
+    alias d.snapper='cd /etc/snapper/configs'
+    alias d.pam='cd /usr/lib/pam_snapper'
+
+    alias d.das='cd /mnt/das'
+    alias d.nvm='cd /mnt/nvm'
+    alias d.usb='cd /mnt/nvm'
+
+    # Disk usage
+    alias u='du -bh -d1'
+    alias uu='du -bh -d2'
+    alias uuu='du -bh -d3'
+
+    # Exit
+    alias ee='exit'
+
+    # Git commands
+    alias g='git status'
+    alias gd='git diff'
+    alias gl='git ls-files | xargs cat | wc -l'
+    alias ga='git add .'
+    alias gc='git commit -m "standard"'
+    alias go='git push origin master'
+    alias gp='git pull'
+    alias gg='all-gio'
+    alias gr1='git revert HEAD~1'
+
+    # History
+    alias h='history'
+
+    # IPTables
+    alias ipt='iptables -L -v -n'
+
+    # Mounting
+    alias m.sda.das='mount /dev/sda /mnt/das'
+    alias m.sub.sda.bak='mount -o subvol=bak /dev/sda /bak'
+
+    # Filesystem creation
+    alias mbf='mkfs.btrfs -f'
+    alias mbmd='mkfs.btrfs -m raid1 -d raid1'
+
+    # PAM Snapper commands
+    alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
+    alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
+    alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
+    alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
+
+    # Podman (container management)
+    alias pod='podman'
+    alias podst='podman start'
+    alias podps='podman ps'
+    alias podpsa='podman ps -a'
+
+    # SSH key management
+    alias sa.w1='ssh-add ~/.ssh/w1'
+    alias sk.ed='ssh-keygen -t ed25519 -C "admin@woeiru.io"'
+    alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
+    alias sa.ed='ssh-add ~/.ssh/id_ed25519'
+
+    alias sca='all-sca'
+    alias w1='sca r w1'
+
+    # System control
+    alias y='systemctl'
+
+    # System configuration file editing
+    alias v.samba.conf='vim /etc/samba/smb.conf'
+    alias v.sambausers='vim /etc/samba/smbusers'
+    alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
+    alias v.fstab='vim /etc/fstab'
+
+    # Snapper (filesystem snapshot management)
+    alias sl='snapper list'
+    alias sc='snapper create'
+    alias shl='osm-shl home'
+    alias shc='osm-shc home'
+    alias shd='osm-shd'
+
+    # System statistics
+    alias sar='sar -d 1'
+    alias ios='iostat -x 1'
+
+    # SELinux
+    alias ses='sestatus -v'
+    alias seb='sudo semanage boolean -l'
+
+    # Time zone setting
+    alias berlintime="timedatectl set-timezone Europe/Berlin"
+
+    # Transactional update
+    alias tu='transactional-update'
+    alias tua='transactional-update apply'
+    alias tur='transactional-update reboot'
+    alias tuar='transactional-update apply && transactional-update reboot'
+
+    # Tree view
+    alias t='tree'
+    alias tt='tree -L 2'
+    alias ttt='tree -L 3'
+    alias tttt='tree -L 4'
+    alias ttttt='tree -L 5'
+
+    # Vim
+    alias v='vim'
+    alias v.b="vim $INI_DIR/bashrc"
+    alias v.nw="vim $CON_DIR/node-w.md"
+
+    # File listing
+    alias l='ls -Al'
+}
+
+# Execute main function
+main
