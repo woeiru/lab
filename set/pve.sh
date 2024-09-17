@@ -185,5 +185,58 @@ i_xall() {
     done
 }
 
+i_xall() {
+    local i=1
+    while true; do
+        id_var="VM_${i}_ID"
+        name_var="VM_${i}_NAME"
+        ostype_var="VM_${i}_OSTYPE"
+        machine_var="VM_${i}_MACHINE"
+        iso_var="VM_${i}_ISO"
+        boot_var="VM_${i}_BOOT"
+        bios_var="VM_${i}_BIOS"
+        efidisk_var="VM_${i}_EFIDISK"
+        scsihw_var="VM_${i}_SCSIHW"
+        agent_var="VM_${i}_AGENT"
+        disk_var="VM_${i}_DISK"
+        sockets_var="VM_${i}_SOCKETS"
+        cores_var="VM_${i}_CORES"
+        cpu_var="VM_${i}_CPU"
+        memory_var="VM_${i}_MEMORY"
+        balloon_var="VM_${i}_BALLOON"
+        net_var="VM_${i}_NET"
+
+        if [ -n "${!id_var}" ] && [ -n "${!name_var}" ] && [ -n "${!ostype_var}" ]; then
+            # Check if the VM with the given ID already exists
+            if qm status "${!id_var}" &>/dev/null; then
+                echo "VM with ID ${!id_var} already exists. Skipping..."
+            else
+                pve-vmc \
+                    "${!id_var}" \
+                    "${!name_var}" \
+                    "${!ostype_var}" \
+                    "${!machine_var}" \
+                    "${!iso_var}" \
+                    "${!boot_var}" \
+                    "${!bios_var}" \
+                    "${!efidisk_var}" \
+                    "${!scsihw_var}" \
+                    "${!agent_var}" \
+                    "${!disk_var}" \
+                    "${!sockets_var}" \
+                    "${!cores_var}" \
+                    "${!cpu_var}" \
+                    "${!memory_var}" \
+                    "${!balloon_var}" \
+                    "${!net_var}"
+            fi
+        else
+            break
+        fi
+
+        ((i++))
+    done
+}
+
 # Call the main setup function
 setup_main "$@"

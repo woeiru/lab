@@ -594,33 +594,43 @@ pve-gp3() {
 
 # Creates a custom Proxmox virtual machine with specified parameters
 # virtual machine create
-# <id> <name> <storage> <disk_size> <memory> <cores> <net_bridge> <net_model> <iso> <scsihw> <ostype> <boot>
+#
 pve-vmc() {
     local id="$1"
     local name="$2"
-    local storage="$3"
-    local disk_size="$4"
-    local memory="$5"
-    local cores="$6"
-    local net_bridge="$7"
-    local net_model="$8"
-    local iso="$9"
-    local scsihw="${10}"
-    local ostype="${11}"
-    local boot="${12}"
+    local ostype="$3"
+    local machine="$4"
+    local iso="$5"
+    local boot="$6"
+    local bios="$7"
+    local efidisk="$8"
+    local scsihw="$9"
+    local agent="${10}"
+    local disk="${11}"
+    local sockets="${12}"
+    local cores="${13}"
+    local cpu="${14}"
+    local memory="${15}"
+    local balloon="${16}"
+    local net="${17}"
 
     qm create "$id" \
         --name "$name" \
-        --storage "$storage" \
-        --disk "scsi0,size=$disk_size" \
-        --memory "$memory" \
-        --cores "$cores" \
-        --net0 "model=$net_model,bridge=$net_bridge" \
-        --ide2 "$iso,media=cdrom" \
-        --scsihw "$scsihw" \
         --ostype "$ostype" \
+        --machine "$machine" \
+        --ide2 "$iso,media=cdrom" \
         --boot "$boot" \
-        --start 0
+        --bios "$bios" \
+        --efidisk0 "$efidisk" \
+        --scsihw "$scsihw" \
+        --agent "$agent" \
+        --scsi0 "$disk" \
+        --sockets "$sockets" \
+        --cores "$cores" \
+        --cpu "$cpu" \
+        --memory "$memory" \
+        --balloon "$balloon" \
+        --net0 "$net"
 }
 
 # Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration
