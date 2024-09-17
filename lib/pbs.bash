@@ -128,3 +128,86 @@ pbs-rda() {
 
     all-nos "$function_name" "executed ( $1 $2 $3 )"
 }
+
+# Monitors and displays various aspects of the Proxmox Backup Server
+# pbs monitor
+# [option]
+pbs-mon() {
+    local function_name="${FUNCNAME[0]}"
+    local option=""
+
+    # If no argument is provided, prompt for option
+    if [ $# -eq 0 ]; then
+        echo "Proxmox Backup Server Monitoring Options:"
+        echo "1. Show PBS service status"
+        echo "2. Display datastore information"
+        echo "3. Show running tasks"
+        echo "4. Display server configuration"
+        echo "5. Check PBS-related processes"
+        echo "6. View recent PBS logs"
+        echo "7. Show storage usage"
+        echo "8. Display user and API token information"
+        echo "9. Show backup schedule"
+        echo "10. Display network statistics"
+        echo "11. All of the above"
+        all-mev "option" "Enter option number" "11"
+    else
+        option="$1"
+    fi
+
+    case "$option" in
+        1|"Show PBS service status")
+            echo "PBS Service Status:"
+            systemctl status proxmox-backup
+            ;;
+        2|"Display datastore information")
+            echo "Datastore Information:"
+            proxmox-backup-manager datastore list
+            ;;
+        3|"Show running tasks")
+            echo "Running Tasks:"
+            proxmox-backup-manager task list --limit 10
+            ;;
+        4|"Display server configuration")
+            echo "Server Configuration:"
+            cat /etc/proxmox-backup/proxmox-backup.ini
+            ;;
+        5|"Check PBS-related processes")
+            echo "PBS-related Processes:"
+            ps aux | grep -E 'proxmox-backup'
+            ;;
+        6|"View recent PBS logs")
+            echo "Recent PBS Logs:"
+            journalctl -u proxmox-backup -n 50
+            ;;
+        7|"Show storage usage")
+            echo "Storage Usage:"
+            df -h /proxmox-backup
+            ;;
+        8|"Display user and API token information")
+            echo "User and API Token Information:"
+            proxmox-backup-manager user list
+            proxmox-backup-manager api-token list
+            ;;
+        9|"Show backup schedule")
+            echo "Backup Schedule:"
+            proxmox-backup-manager schedule list
+            ;;
+        10|"Display network statistics")
+            echo "Network Statistics:"
+            ss -tuna | grep -E ':8007|:8008'
+            ;;
+        11|"All of the above")
+            for i in {1..10}; do
+                pbs-mon "$i"
+                echo "----------------------------------------"
+            done
+            ;;
+        *)
+            echo "Invalid option"
+            return 1
+            ;;
+    esac
+
+    all-nos "$function_name" "PBS monitoring completed"
+}

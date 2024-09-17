@@ -128,3 +128,74 @@ shr-sma() {
     all-nos "$function_name" "Samba configuration applied"
 }
 
+# Monitors and displays various aspects of the SMB server
+# smb monitor
+# [option]
+smb-mon() {
+    local function_name="${FUNCNAME[0]}"
+    local option=""
+
+    # If no argument is provided, prompt for option
+    if [ $# -eq 0 ]; then
+        echo "SMB Monitoring Options:"
+        echo "1. Show SMB server status"
+        echo "2. Display current SMB shares"
+        echo "3. Show active SMB connections"
+        echo "4. Display SMB server configuration"
+        echo "5. Check SMB-related processes"
+        echo "6. View recent SMB server logs"
+        echo "7. Show SMB version information"
+        echo "8. Display SMB user list"
+        echo "9. All of the above"
+        all-mev "option" "Enter option number" "9"
+    else
+        option="$1"
+    fi
+
+    case "$option" in
+        1|"Show SMB server status")
+            echo "SMB Server Status:"
+            systemctl status smbd
+            ;;
+        2|"Display current SMB shares")
+            echo "Current SMB Shares:"
+            smbstatus --shares
+            ;;
+        3|"Show active SMB connections")
+            echo "Active SMB Connections:"
+            smbstatus --processes
+            ;;
+        4|"Display SMB server configuration")
+            echo "SMB Server Configuration:"
+            testparm -s
+            ;;
+        5|"Check SMB-related processes")
+            echo "SMB-related Processes:"
+            ps aux | grep -E 'smb|nmb|winbind'
+            ;;
+        6|"View recent SMB server logs")
+            echo "Recent SMB Server Logs:"
+            journalctl -u smbd -n 50
+            ;;
+        7|"Show SMB version information")
+            echo "SMB Version Information:"
+            smbd --version
+            ;;
+        8|"Display SMB user list")
+            echo "SMB User List:"
+            pdbedit -L -v
+            ;;
+        9|"All of the above")
+            for i in {1..8}; do
+                smb-mon "$i"
+                echo "----------------------------------------"
+            done
+            ;;
+        *)
+            echo "Invalid option"
+            return 1
+            ;;
+    esac
+
+    all-nos "$function_name" "SMB monitoring completed"
+}
