@@ -60,9 +60,9 @@ all-laf() {
 
     # Column width parameters
     local col_width_1=9
-    local col_width_2=30
-    local col_width_3=26
-    local col_width_4=52
+    local col_width_2=10
+    local col_width_3=10
+    local col_width_4=10
     local col_width_5=4
     local col_width_6=4
     local col_width_7=4
