@@ -85,3 +85,74 @@ nfs-apl() {
     all-nos "$function_name" "NFS configuration applied"
 }
 
+# Monitors and displays various aspects of the NFS server
+# nfs monitor
+# [option]
+nfs-mon() {
+    local function_name="${FUNCNAME[0]}"
+    local option=""
+
+    # If no argument is provided, prompt for option
+    if [ $# -eq 0 ]; then
+        echo "NFS Monitoring Options:"
+        echo "1. Show NFS server status"
+        echo "2. Display current NFS exports"
+        echo "3. Show active NFS connections"
+        echo "4. Display NFS statistics"
+        echo "5. Check NFS-related processes"
+        echo "6. View recent NFS server logs"
+        echo "7. Show NFS mount points"
+        echo "8. Display RPC information"
+        echo "9. All of the above"
+        all-mev "option" "Enter option number" "9"
+    else
+        option="$1"
+    fi
+
+    case "$option" in
+        1|"Show NFS server status")
+            echo "NFS Server Status:"
+            systemctl status nfs-server
+            ;;
+        2|"Display current NFS exports")
+            echo "Current NFS Exports:"
+            exportfs -v
+            ;;
+        3|"Show active NFS connections")
+            echo "Active NFS Connections:"
+            ss -tna | grep :2049
+            ;;
+        4|"Display NFS statistics")
+            echo "NFS Statistics:"
+            nfsstat
+            ;;
+        5|"Check NFS-related processes")
+            echo "NFS-related Processes:"
+            ps aux | grep -E 'nfs|rpc'
+            ;;
+        6|"View recent NFS server logs")
+            echo "Recent NFS Server Logs:"
+            journalctl -u nfs-server -n 50
+            ;;
+        7|"Show NFS mount points")
+            echo "NFS Mount Points:"
+            df -h | grep nfs
+            ;;
+        8|"Display RPC information")
+            echo "RPC Information:"
+            rpcinfo -p
+            ;;
+        9|"All of the above")
+            for i in {1..8}; do
+                nfs-mon "$i"
+                echo "----------------------------------------"
+            done
+            ;;
+        *)
+            echo "Invalid option"
+            return 1
+            ;;
+    esac
+
+    all-nos "$function_name" "NFS monitoring completed"
+}
