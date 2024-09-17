@@ -59,10 +59,10 @@ all-laf() {
     fi
 
     # Column width parameters
-    local col_width_1=9
-    local col_width_2=10
-    local col_width_3=10
-    local col_width_4=10
+    local col_width_1=7
+    local col_width_2=16
+    local col_width_3=18
+    local col_width_4=36
     local col_width_5=4
     local col_width_6=4
     local col_width_7=4
@@ -203,7 +203,7 @@ all-laf() {
 
     # Print table header
     print_separator
-    print_row "Function" "Arguments" "Shortname" "Description" "Size" "Loc" "Cfil" "Clib" "Cset"
+    print_row "Func" "Arguments" "Shortname" "Description" "Size" "Loc" "file" "libr" "sets"
     print_separator
 
     # Loop through all lines in the file again
@@ -1430,12 +1430,6 @@ all-loi() {
 # Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
 # ssh custom aliases
 # <usershortcut> <servershortcut: single or csv or all or array> [command]
-#!/bin/bash
-
-# Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
-# ssh custom aliases
-# <usershortcut> <servershortcut: single or csv or all or array> [command]
-
 all-sca() {
     echo "Debug: Number of arguments: $#"
     echo "Debug: All arguments: $*"
