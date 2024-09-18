@@ -71,7 +71,58 @@ f_xall() {
 }
 
 g_xall() {
-    pve-ctc create all
+    local i=1
+    while true; do
+        id_var="CT_${i}_ID"
+        template_var="CT_${i}_TEMPLATE"
+        hostname_var="CT_${i}_HOSTNAME"
+        storage_var="CT_${i}_STORAGE"
+        rootfs_size_var="CT_${i}_ROOTFS_SIZE"
+        memory_var="CT_${i}_MEMORY"
+        swap_var="CT_${i}_SWAP"
+        nameserver_var="CT_${i}_NAMESERVER"
+        searchdomain_var="CT_${i}_SEARCHDOMAIN"
+        password_var="CT_${i}_PASSWORD"
+        cpus_var="CT_${i}_CPUS"
+        privileged_var="CT_${i}_PRIVILEGED"
+        ip_address_var="CT_${i}_IP_ADDRESS"
+        cidr_var="CT_${i}_CIDR"
+        gateway_var="CT_${i}_GATEWAY"
+        ssh_key_file_var="CT_${i}_SSH_KEY_FILE"
+        net_bridge_var="CT_${i}_NET_BRIDGE"
+        net_nic_var="CT_${i}_NET_NIC"
+
+        if [ -n "${!id_var}" ] && [ -n "${!template_var}" ] && [ -n "${!hostname_var}" ] && [ -n "${!storage_var}" ]; then
+            # Check if the container with the given ID already exists
+            if pct status "${!id_var}" &>/dev/null; then
+                echo "Container with ID ${!id_var} already exists. Skipping..."
+            else
+                pve-ctc \
+                    "${!id_var}" \
+                    "${!template_var}" \
+                    "${!hostname_var}" \
+                    "${!storage_var}" \
+                    "${!rootfs_size_var}" \
+                    "${!memory_var}" \
+                    "${!swap_var}" \
+                    "${!nameserver_var}" \
+                    "${!searchdomain_var}" \
+                    "${!password_var}" \
+                    "${!cpus_var}" \
+                    "${!privileged_var}" \
+                    "${!ip_address_var}" \
+                    "${!cidr_var}" \
+                    "${!gateway_var}" \
+                    "${!ssh_key_file_var}" \
+                    "${!net_bridge_var}" \
+                    "${!net_nic_var}"
+            fi
+        else
+            break
+        fi
+
+        ((i++))
+    done
 }
 
 h_xall() {
@@ -92,7 +143,56 @@ h_xall() {
 }
 
 i_xall() {
-    pve-vmc create all
+    local i=1
+    while true; do
+        id_var="VM_${i}_ID"
+        name_var="VM_${i}_NAME"
+        ostype_var="VM_${i}_OSTYPE"
+        machine_var="VM_${i}_MACHINE"
+        iso_var="VM_${i}_ISO"
+        boot_var="VM_${i}_BOOT"
+        bios_var="VM_${i}_BIOS"
+        efidisk_var="VM_${i}_EFIDISK"
+        scsihw_var="VM_${i}_SCSIHW"
+        agent_var="VM_${i}_AGENT"
+        disk_var="VM_${i}_DISK"
+        sockets_var="VM_${i}_SOCKETS"
+        cores_var="VM_${i}_CORES"
+        cpu_var="VM_${i}_CPU"
+        memory_var="VM_${i}_MEMORY"
+        balloon_var="VM_${i}_BALLOON"
+        net_var="VM_${i}_NET"
+
+        if [ -n "${!id_var}" ] && [ -n "${!name_var}" ] && [ -n "${!ostype_var}" ]; then
+            # Check if the VM with the given ID already exists
+            if qm status "${!id_var}" &>/dev/null; then
+                echo "VM with ID ${!id_var} already exists. Skipping..."
+            else
+                pve-vmc \
+                    "${!id_var}" \
+                    "${!name_var}" \
+                    "${!ostype_var}" \
+                    "${!machine_var}" \
+                    "${!iso_var}" \
+                    "${!boot_var}" \
+                    "${!bios_var}" \
+                    "${!efidisk_var}" \
+                    "${!scsihw_var}" \
+                    "${!agent_var}" \
+                    "${!disk_var}" \
+                    "${!sockets_var}" \
+                    "${!cores_var}" \
+                    "${!cpu_var}" \
+                    "${!memory_var}" \
+                    "${!balloon_var}" \
+                    "${!net_var}"
+            fi
+        else
+            break
+        fi
+
+        ((i++))
+    done
 }
 
 # Call the main setup function
