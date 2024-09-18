@@ -380,67 +380,6 @@ pve-cbm() {
     all-nos "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
 
-# Create, destroy, or manage Proxmox containers individually or in bulk
-# Container Creation
-# pve-ctc <action> [<id>|all] [parameters...]
-pve-ctc() {
-    local action=$1
-    shift
-
-    case $action in
-        create)
-            if [ "$1" == "all" ]; then
-                local i=1
-                while true; do
-                    local id_var="CT_${i}_ID"
-                    # ... [other variables as in the original g_xall function]
-
-                    if [ -n "${!id_var}" ]; then
-                        pve-ctc create "${!id_var}" "${!template_var}" "${!hostname_var}" "${!storage_var}" \
-                            "${!rootfs_size_var}" "${!memory_var}" "${!swap_var}" "${!nameserver_var}" \
-                            "${!searchdomain_var}" "${!password_var}" "${!cpus_var}" "${!privileged_var}" \
-                            "${!ip_address_var}" "${!cidr_var}" "${!gateway_var}" "${!ssh_key_file_var}" \
-                            "${!net_bridge_var}" "${!net_nic_var}"
-                    else
-                        break
-                    fi
-                    ((i++))
-                done
-            else
-                # Original container creation logic here
-                local ct_id=$1
-                # ... [rest of the parameters]
-                
-                if pct status "$ct_id" &>/dev/null; then
-                    echo "Container with ID $ct_id already exists. Skipping..."
-                else
-                    # Create container logic here
-                    echo "Creating container with ID $ct_id"
-                    # Add your pct create command here
-                fi
-            fi
-            ;;
-        destroy)
-            if [ "$1" == "all" ]; then
-                for ct in $(pct list | tail -n +2 | awk '{print $1}'); do
-                    pve-ctc destroy "$ct"
-                done
-            else
-                local ct_id=$1
-                if pct status "$ct_id" &>/dev/null; then
-                    echo "Destroying container with ID $ct_id"
-                    # Add your pct destroy command here
-                else
-                    echo "Container with ID $ct_id does not exist."
-                fi
-            fi
-            ;;
-        *)
-            echo "Invalid action. Use 'create' or 'destroy'."
-            ;;
-    esac
-}
-
 # Manages multiple Proxmox containers by starting, stopping, enabling, or disabling them, supporting individual IDs, ranges, or all containers
 # container toggle
 # <start|stop|enable|disable> <containers|all>
@@ -606,66 +545,6 @@ pve-gp3() {
 
     # Perform system reboot without prompting
     reboot
-}
-
-# Create, destroy, or manage Proxmox virtual machines individually or in bulk
-# Virtual Machine management
-# Usage: pve-vmc <action> [<id>|all] [parameters...]
-pve-vmc() {
-    local action=$1
-    shift
-
-    case $action in
-        create)
-            if [ "$1" == "all" ]; then
-                local i=1
-                while true; do
-                    local id_var="VM_${i}_ID"
-                    # ... [other variables as in the original i_xall function]
-
-                    if [ -n "${!id_var}" ]; then
-                        pve-vmc create "${!id_var}" "${!name_var}" "${!ostype_var}" "${!machine_var}" \
-                            "${!iso_var}" "${!boot_var}" "${!bios_var}" "${!efidisk_var}" \
-                            "${!scsihw_var}" "${!agent_var}" "${!disk_var}" "${!sockets_var}" \
-                            "${!cores_var}" "${!cpu_var}" "${!memory_var}" "${!balloon_var}" "${!net_var}"
-                    else
-                        break
-                    fi
-                    ((i++))
-                done
-            else
-                # Original VM creation logic here
-                local vm_id=$1
-                # ... [rest of the parameters]
-                
-                if qm status "$vm_id" &>/dev/null; then
-                    echo "VM with ID $vm_id already exists. Skipping..."
-                else
-                    # Create VM logic here
-                    echo "Creating VM with ID $vm_id"
-                    # Add your qm create command here
-                fi
-            fi
-            ;;
-        destroy)
-            if [ "$1" == "all" ]; then
-                for vm in $(qm list | tail -n +2 | awk '{print $1}'); do
-                    pve-vmc destroy "$vm"
-                done
-            else
-                local vm_id=$1
-                if qm status "$vm_id" &>/dev/null; then
-                    echo "Destroying VM with ID $vm_id"
-                    # Add your qm destroy command here
-                else
-                    echo "VM with ID $vm_id does not exist."
-                fi
-            fi
-            ;;
-        *)
-            echo "Invalid action. Use 'create' or 'destroy'."
-            ;;
-    esac
 }
 
 # Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration
@@ -863,3 +742,148 @@ pve-vck() {
     fi
 }
 
+#!/bin/bash
+
+# Function: pve-vmc
+# Description: Create or destroy VMs in Proxmox VE
+# Usage: pve-vmc <action> <target>
+#   <action>: 'create' or 'destroy'
+#   <target>: 'all' or a specific VM ID
+# Example: pve-vmc create all
+#          pve-vmc destroy 211
+pve-vmc() {
+    local action=$1
+    local target=$2
+
+    # Input validation
+    if [[ ! "$action" =~ ^(create|destroy)$ ]]; then
+        echo "Error: Invalid action. Use 'create' or 'destroy'."
+        return 1
+    fi
+
+    if [[ "$target" != "all" && ! "$target" =~ ^[0-9]+$ ]]; then
+        echo "Error: Invalid target. Use 'all' or a numeric VM ID."
+        return 1
+    fi
+
+    # Debug information
+    echo "DEBUG: Action: $action, Target: $target"
+
+    local i=1
+    while true; do
+        id_var="VM_${i}_ID"
+        name_var="VM_${i}_NAME"
+        ostype_var="VM_${i}_OSTYPE"
+
+        if [ -n "${!id_var}" ] && [ -n "${!name_var}" ] && [ -n "${!ostype_var}" ]; then
+            if [[ "$target" == "all" || "${!id_var}" == "$target" ]]; then
+                if [[ "$action" == "create" ]]; then
+                    if qm status "${!id_var}" &>/dev/null; then
+                        echo "VM with ID ${!id_var} already exists. Skipping..."
+                    else
+                        echo "Creating VM ${!id_var}..."
+                        qm create "${!id_var}" \
+                            --name "${!name_var}" \
+                            --ostype "${!ostype_var}" \
+                            --machine "${!machine_var}" \
+                            --iso "${!iso_var}" \
+                            --boot "${!boot_var}" \
+                            --bios "${!bios_var}" \
+                            --efidisk0 "${!efidisk_var}" \
+                            --scsihw "${!scsihw_var}" \
+                            --agent "${!agent_var}" \
+                            --scsi0 "${!disk_var}" \
+                            --sockets "${!sockets_var}" \
+                            --cores "${!cores_var}" \
+                            --cpu "${!cpu_var}" \
+                            --memory "${!memory_var}" \
+                            --balloon "${!balloon_var}" \
+                            --net0 "${!net_var}"
+                    fi
+                elif [[ "$action" == "destroy" ]]; then
+                    if qm status "${!id_var}" &>/dev/null; then
+                        echo "Destroying VM ${!id_var}..."
+                        qm destroy "${!id_var}"
+                    else
+                        echo "VM with ID ${!id_var} does not exist. Skipping..."
+                    fi
+                fi
+            fi
+        else
+            break
+        fi
+
+        ((i++))
+    done
+}
+
+# Function: pve-ctc
+# Description: Create or destroy containers in Proxmox VE
+# Usage: pve-ctc <action> <target>
+#   <action>: 'create' or 'destroy'
+#   <target>: 'all' or a specific container ID
+# Example: pve-ctc create all
+#          pve-ctc destroy 111
+pve-ctc() {
+    local action=$1
+    local target=$2
+
+    # Input validation
+    if [[ ! "$action" =~ ^(create|destroy)$ ]]; then
+        echo "Error: Invalid action. Use 'create' or 'destroy'."
+        return 1
+    fi
+
+    if [[ "$target" != "all" && ! "$target" =~ ^[0-9]+$ ]]; then
+        echo "Error: Invalid target. Use 'all' or a numeric container ID."
+        return 1
+    fi
+
+    # Debug information
+    echo "DEBUG: Action: $action, Target: $target"
+
+    local i=1
+    while true; do
+        id_var="CT_${i}_ID"
+        template_var="CT_${i}_TEMPLATE"
+        hostname_var="CT_${i}_HOSTNAME"
+        storage_var="CT_${i}_STORAGE"
+
+        if [ -n "${!id_var}" ] && [ -n "${!template_var}" ] && [ -n "${!hostname_var}" ] && [ -n "${!storage_var}" ]; then
+            if [[ "$target" == "all" || "${!id_var}" == "$target" ]]; then
+                if [[ "$action" == "create" ]]; then
+                    if pct status "${!id_var}" &>/dev/null; then
+                        echo "Container with ID ${!id_var} already exists. Skipping..."
+                    else
+                        echo "Creating container ${!id_var}..."
+                        pct create "${!id_var}" \
+                            "${!template_var}" \
+                            --hostname "${!hostname_var}" \
+                            --storage "${!storage_var}" \
+                            --rootfs "${!storage_var}:${!rootfs_size_var}" \
+                            --memory "${!memory_var}" \
+                            --swap "${!swap_var}" \
+                            --nameserver "${!nameserver_var}" \
+                            --searchdomain "${!searchdomain_var}" \
+                            --password "${!password_var}" \
+                            --cores "${!cpus_var}" \
+                            --$([[ "${!privileged_var}" == "yes" ]] && echo "privileged" || echo "unprivileged") \
+                            --net0 "name=${!net_nic_var},bridge=${!net_bridge_var},ip=${!ip_address_var}/${!cidr_var},gw=${!gateway_var}" \
+                            --ssh-public-keys "${!ssh_key_file_var}"
+                    fi
+                elif [[ "$action" == "destroy" ]]; then
+                    if pct status "${!id_var}" &>/dev/null; then
+                        echo "Destroying container ${!id_var}..."
+                        pct destroy "${!id_var}"
+                    else
+                        echo "Container with ID ${!id_var} does not exist. Skipping..."
+                    fi
+                fi
+            fi
+        else
+            break
+        fi
+
+        ((i++))
+    done
+}
