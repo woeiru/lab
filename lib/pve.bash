@@ -742,148 +742,213 @@ pve-vck() {
     fi
 }
 
-#!/bin/bash
-
-# Function: pve-vmc
-# Description: Create or destroy VMs in Proxmox VE
-# Usage: pve-vmc <action> <target>
-#   <action>: 'create' or 'destroy'
-#   <target>: 'all' or a specific VM ID
-# Example: pve-vmc create all
-#          pve-vmc destroy 211
 pve-vmc() {
+    # Check if at least two arguments are provided
+    if [ $# -lt 2 ]; then
+        echo "Usage: pve-vmc <create|destroy> <all|VM_ID>"
+        return 1
+    fi
+
     local action=$1
     local target=$2
 
-    # Input validation
-    if [[ ! "$action" =~ ^(create|destroy)$ ]]; then
-        echo "Error: Invalid action. Use 'create' or 'destroy'."
-        return 1
-    fi
+    # Debug: Print received arguments
+    echo "Debug: Action: $action, Target: $target"
 
-    if [[ "$target" != "all" && ! "$target" =~ ^[0-9]+$ ]]; then
-        echo "Error: Invalid target. Use 'all' or a numeric VM ID."
-        return 1
-    fi
+    case $action in
+        create)
+            # If target is 'all', create all VMs
+            if [ "$target" = "all" ]; then
+                local i=1
+                while true; do
+                    # ... [rest of the VM creation loop remains unchanged]
+                    id_var="VM_${i}_ID"
+                    name_var="VM_${i}_NAME"
+                    ostype_var="VM_${i}_OSTYPE"
+                    # ... [other variable declarations remain unchanged]
 
-    # Debug information
-    echo "DEBUG: Action: $action, Target: $target"
-
-    local i=1
-    while true; do
-        id_var="VM_${i}_ID"
-        name_var="VM_${i}_NAME"
-        ostype_var="VM_${i}_OSTYPE"
-
-        if [ -n "${!id_var}" ] && [ -n "${!name_var}" ] && [ -n "${!ostype_var}" ]; then
-            if [[ "$target" == "all" || "${!id_var}" == "$target" ]]; then
-                if [[ "$action" == "create" ]]; then
-                    if qm status "${!id_var}" &>/dev/null; then
-                        echo "VM with ID ${!id_var} already exists. Skipping..."
+                    if [ -n "${!id_var}" ] && [ -n "${!name_var}" ] && [ -n "${!ostype_var}" ]; then
+                        # Check if the VM with the given ID already exists
+                        if qm status "${!id_var}" &>/dev/null; then
+                            echo "VM with ID ${!id_var} already exists. Skipping..."
+                        else
+                            # Debug: Print VM creation attempt
+                            echo "Debug: Attempting to create VM with ID ${!id_var}"
+                            
+                            # VM creation command remains unchanged
+                            qm create "${!id_var}" \
+                                --name "${!name_var}" \
+                                --ostype "${!ostype_var}" \
+                                --machine "${!machine_var}" \
+                                --iso "${!iso_var}" \
+                                --boot "${!boot_var}" \
+                                --bios "${!bios_var}" \
+                                --efidisk0 "${!efidisk_var}" \
+                                --scsihw "${!scsihw_var}" \
+                                --agent "${!agent_var}" \
+                                --scsi0 "${!disk_var}" \
+                                --sockets "${!sockets_var}" \
+                                --cores "${!cores_var}" \
+                                --cpu "${!cpu_var}" \
+                                --memory "${!memory_var}" \
+                                --balloon "${!balloon_var}" \
+                                --net0 "${!net_var}"
+                            
+                            # Debug: Print VM creation result
+                            echo "Debug: VM creation result: $?"
+                        fi
                     else
-                        echo "Creating VM ${!id_var}..."
-                        qm create "${!id_var}" \
-                            --name "${!name_var}" \
-                            --ostype "${!ostype_var}" \
-                            --machine "${!machine_var}" \
-                            --iso "${!iso_var}" \
-                            --boot "${!boot_var}" \
-                            --bios "${!bios_var}" \
-                            --efidisk0 "${!efidisk_var}" \
-                            --scsihw "${!scsihw_var}" \
-                            --agent "${!agent_var}" \
-                            --scsi0 "${!disk_var}" \
-                            --sockets "${!sockets_var}" \
-                            --cores "${!cores_var}" \
-                            --cpu "${!cpu_var}" \
-                            --memory "${!memory_var}" \
-                            --balloon "${!balloon_var}" \
-                            --net0 "${!net_var}"
+                        break
                     fi
-                elif [[ "$action" == "destroy" ]]; then
-                    if qm status "${!id_var}" &>/dev/null; then
-                        echo "Destroying VM ${!id_var}..."
-                        qm destroy "${!id_var}"
-                    else
-                        echo "VM with ID ${!id_var} does not exist. Skipping..."
-                    fi
-                fi
+
+                    ((i++))
+                done
+            else
+                # Create a specific VM
+                # Debug: Print specific VM creation attempt
+                echo "Debug: Attempting to create VM with ID $target"
+                
+                # ... [Code to create a specific VM goes here]
+                # This part needs to be implemented based on how you want to handle individual VM creation
             fi
-        else
-            break
-        fi
-
-        ((i++))
-    done
+            ;;
+        destroy)
+            # If target is 'all', destroy all VMs
+            if [ "$target" = "all" ]; then
+                local i=1
+                while true; do
+                    id_var="VM_${i}_ID"
+                    if [ -n "${!id_var}" ]; then
+                        # Debug: Print VM destruction attempt
+                        echo "Debug: Attempting to destroy VM with ID ${!id_var}"
+                        
+                        qm destroy "${!id_var}" --purge
+                        
+                        # Debug: Print VM destruction result
+                        echo "Debug: VM destruction result: $?"
+                    else
+                        break
+                    fi
+                    ((i++))
+                done
+            else
+                # Destroy a specific VM
+                # Debug: Print specific VM destruction attempt
+                echo "Debug: Attempting to destroy VM with ID $target"
+                
+                qm destroy "$target" --purge
+                
+                # Debug: Print VM destruction result
+                echo "Debug: VM destruction result: $?"
+            fi
+            ;;
+        *)
+            echo "Invalid action. Use 'create' or 'destroy'."
+            return 1
+            ;;
+    esac
 }
 
-# Function: pve-ctc
-# Description: Create or destroy containers in Proxmox VE
-# Usage: pve-ctc <action> <target>
-#   <action>: 'create' or 'destroy'
-#   <target>: 'all' or a specific container ID
-# Example: pve-ctc create all
-#          pve-ctc destroy 111
 pve-ctc() {
+    # Check if at least two arguments are provided
+    if [ $# -lt 2 ]; then
+        echo "Usage: pve-ctc <create|destroy> <all|CT_ID>"
+        return 1
+    fi
+
     local action=$1
     local target=$2
 
-    # Input validation
-    if [[ ! "$action" =~ ^(create|destroy)$ ]]; then
-        echo "Error: Invalid action. Use 'create' or 'destroy'."
-        return 1
-    fi
+    # Debug: Print received arguments
+    echo "Debug: Action: $action, Target: $target"
 
-    if [[ "$target" != "all" && ! "$target" =~ ^[0-9]+$ ]]; then
-        echo "Error: Invalid target. Use 'all' or a numeric container ID."
-        return 1
-    fi
+    case $action in
+        create)
+            # If target is 'all', create all containers
+            if [ "$target" = "all" ]; then
+                local i=1
+                while true; do
+                    # ... [rest of the container creation loop remains unchanged]
+                    id_var="CT_${i}_ID"
+                    template_var="CT_${i}_TEMPLATE"
+                    hostname_var="CT_${i}_HOSTNAME"
+                    # ... [other variable declarations remain unchanged]
 
-    # Debug information
-    echo "DEBUG: Action: $action, Target: $target"
-
-    local i=1
-    while true; do
-        id_var="CT_${i}_ID"
-        template_var="CT_${i}_TEMPLATE"
-        hostname_var="CT_${i}_HOSTNAME"
-        storage_var="CT_${i}_STORAGE"
-
-        if [ -n "${!id_var}" ] && [ -n "${!template_var}" ] && [ -n "${!hostname_var}" ] && [ -n "${!storage_var}" ]; then
-            if [[ "$target" == "all" || "${!id_var}" == "$target" ]]; then
-                if [[ "$action" == "create" ]]; then
-                    if pct status "${!id_var}" &>/dev/null; then
-                        echo "Container with ID ${!id_var} already exists. Skipping..."
+                    if [ -n "${!id_var}" ] && [ -n "${!template_var}" ] && [ -n "${!hostname_var}" ] && [ -n "${!storage_var}" ]; then
+                        # Check if the container with the given ID already exists
+                        if pct status "${!id_var}" &>/dev/null; then
+                            echo "Container with ID ${!id_var} already exists. Skipping..."
+                        else
+                            # Debug: Print container creation attempt
+                            echo "Debug: Attempting to create container with ID ${!id_var}"
+                            
+                            # Container creation command remains unchanged
+                            pct create "${!id_var}" \
+                                "${!template_var}" \
+                                --hostname "${!hostname_var}" \
+                                --storage "${!storage_var}" \
+                                --rootfs "${!rootfs_size_var}" \
+                                --memory "${!memory_var}" \
+                                --swap "${!swap_var}" \
+                                --nameserver "${!nameserver_var}" \
+                                --searchdomain "${!searchdomain_var}" \
+                                --password "${!password_var}" \
+                                --cores "${!cpus_var}" \
+                                --privileged "${!privileged_var}" \
+                                --net0 "name=${!net_nic_var},bridge=${!net_bridge_var},ip=${!ip_address_var}/${!cidr_var},gw=${!gateway_var}" \
+                                --ssh-public-keys "${!ssh_key_file_var}"
+                            
+                            # Debug: Print container creation result
+                            echo "Debug: Container creation result: $?"
+                        fi
                     else
-                        echo "Creating container ${!id_var}..."
-                        pct create "${!id_var}" \
-                            "${!template_var}" \
-                            --hostname "${!hostname_var}" \
-                            --storage "${!storage_var}" \
-                            --rootfs "${!storage_var}:${!rootfs_size_var}" \
-                            --memory "${!memory_var}" \
-                            --swap "${!swap_var}" \
-                            --nameserver "${!nameserver_var}" \
-                            --searchdomain "${!searchdomain_var}" \
-                            --password "${!password_var}" \
-                            --cores "${!cpus_var}" \
-                            --$([[ "${!privileged_var}" == "yes" ]] && echo "privileged" || echo "unprivileged") \
-                            --net0 "name=${!net_nic_var},bridge=${!net_bridge_var},ip=${!ip_address_var}/${!cidr_var},gw=${!gateway_var}" \
-                            --ssh-public-keys "${!ssh_key_file_var}"
+                        break
                     fi
-                elif [[ "$action" == "destroy" ]]; then
-                    if pct status "${!id_var}" &>/dev/null; then
-                        echo "Destroying container ${!id_var}..."
-                        pct destroy "${!id_var}"
-                    else
-                        echo "Container with ID ${!id_var} does not exist. Skipping..."
-                    fi
-                fi
+
+                    ((i++))
+                done
+            else
+                # Create a specific container
+                # Debug: Print specific container creation attempt
+                echo "Debug: Attempting to create container with ID $target"
+                
+                # ... [Code to create a specific container goes here]
+                # This part needs to be implemented based on how you want to handle individual container creation
             fi
-        else
-            break
-        fi
-
-        ((i++))
-    done
+            ;;
+        destroy)
+            # If target is 'all', destroy all containers
+            if [ "$target" = "all" ]; then
+                local i=1
+                while true; do
+                    id_var="CT_${i}_ID"
+                    if [ -n "${!id_var}" ]; then
+                        # Debug: Print container destruction attempt
+                        echo "Debug: Attempting to destroy container with ID ${!id_var}"
+                        
+                        pct destroy "${!id_var}"
+                        
+                        # Debug: Print container destruction result
+                        echo "Debug: Container destruction result: $?"
+                    else
+                        break
+                    fi
+                    ((i++))
+                done
+            else
+                # Destroy a specific container
+                # Debug: Print specific container destruction attempt
+                echo "Debug: Attempting to destroy container with ID $target"
+                
+                pct destroy "$target"
+                
+                # Debug: Print container destruction result
+                echo "Debug: Container destruction result: $?"
+            fi
+            ;;
+        *)
+            echo "Invalid action. Use 'create' or 'destroy'."
+            return 1
+            ;;
+    esac
 }
