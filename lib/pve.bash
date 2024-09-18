@@ -380,6 +380,51 @@ pve-cbm() {
     all-nos "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
 
+# Setting up different containers specified in pve.conf
+# container create
+# <passed global variables>
+pve-ctc() {
+    local id="$1"
+    local template="$2"
+    local hostname="$3"
+    local storage="$4"
+    local rootfs_size="$5"
+    local memory="$6"
+    local swap="$7"
+    local nameserver="$8"
+    local searchdomain="$9"
+    local password="${10}"
+    local cpus="${11}"
+    local privileged="${12}"
+    local ip_address="${13}"
+    local cidr="${14}"
+    local gateway="${15}"
+    local ssh_key_file="${16}"
+    local net_bridge="${17}"
+    local net_nic="${18}"
+
+    if [ ! -f "$ssh_key_file" ]; then
+        echo "SSH key file $ssh_key_file does not exist. Aborting."
+        return 1
+    fi
+
+    # Correcting the parameters passed to pct create
+    pct create "$id" "$template" \
+        --hostname "$hostname" \
+        --storage "$storage" \
+        --rootfs "$storage:$rootfs_size" \
+        --memory "$memory" \
+        --swap "$swap" \
+        --net0 "name=$net_nic,bridge=$net_bridge,ip=$ip_address/$cidr,gw=$gateway" \
+        --nameserver "$nameserver" \
+        --searchdomain "$searchdomain" \
+        --password "$password" \
+        --cores "$cpus" \
+        --features "keyctl=1,nesting=1" \
+        $(if [ "$privileged" == "no" ]; then echo "--unprivileged"; fi) \
+        --ssh-public-keys "$ssh_key_file"
+}
+
 # Manages multiple Proxmox containers by starting, stopping, enabling, or disabling them, supporting individual IDs, ranges, or all containers
 # container toggle
 # <start|stop|enable|disable> <containers|all>
@@ -545,6 +590,47 @@ pve-gp3() {
 
     # Perform system reboot without prompting
     reboot
+}
+
+# Setting up different virtual machines specified in pve.conf
+# virtual machine create
+# <passed global variables>
+pve-vmc() {
+    local id="$1"
+    local name="$2"
+    local ostype="$3"
+    local machine="$4"
+    local iso="$5"
+    local boot="$6"
+    local bios="$7"
+    local efidisk="$8"
+    local scsihw="$9"
+    local agent="${10}"
+    local disk="${11}"
+    local sockets="${12}"
+    local cores="${13}"
+    local cpu="${14}"
+    local memory="${15}"
+    local balloon="${16}"
+    local net="${17}"
+
+    qm create "$id" \
+        --name "$name" \
+        --ostype "$ostype" \
+        --machine "$machine" \
+        --ide2 "$iso,media=cdrom" \
+        --boot "$boot" \
+        --bios "$bios" \
+        --efidisk0 "$efidisk" \
+        --scsihw "$scsihw" \
+        --agent "$agent" \
+        --scsi0 "$disk" \
+        --sockets "$sockets" \
+        --cores "$cores" \
+        --cpu "$cpu" \
+        --memory "$memory" \
+        --balloon "$balloon" \
+        --net0 "$net"
 }
 
 # Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration
@@ -740,90 +826,5 @@ pve-vck() {
     else
         return 1
     fi
-}
-
-# container create
-#   
-pve-ctc() {
-    local id="$1"
-    local template="$2"
-    local hostname="$3"
-    local storage="$4"
-    local rootfs_size="$5"
-    local memory="$6"
-    local swap="$7"
-    local nameserver="$8"
-    local searchdomain="$9"
-    local password="${10}"
-    local cpus="${11}"
-    local privileged="${12}"
-    local ip_address="${13}"
-    local cidr="${14}"
-    local gateway="${15}"
-    local ssh_key_file="${16}"
-    local net_bridge="${17}"
-    local net_nic="${18}"
-
-    if [ ! -f "$ssh_key_file" ]; then
-        echo "SSH key file $ssh_key_file does not exist. Aborting."
-        return 1
-    fi
-
-    # Correcting the parameters passed to pct create
-    pct create "$id" "$template" \
-        --hostname "$hostname" \
-        --storage "$storage" \
-        --rootfs "$storage:$rootfs_size" \
-        --memory "$memory" \
-        --swap "$swap" \
-        --net0 "name=$net_nic,bridge=$net_bridge,ip=$ip_address/$cidr,gw=$gateway" \
-        --nameserver "$nameserver" \
-        --searchdomain "$searchdomain" \
-        --password "$password" \
-        --cores "$cpus" \
-        --features "keyctl=1,nesting=1" \
-        $(if [ "$privileged" == "no" ]; then echo "--unprivileged"; fi) \
-        --ssh-public-keys "$ssh_key_file"
-}
-
-# Creates a custom Proxmox virtual machine with specified parameters
-# virtual machine create
-#
-pve-vmc() {
-    local id="$1"
-    local name="$2"
-    local ostype="$3"
-    local machine="$4"
-    local iso="$5"
-    local boot="$6"
-    local bios="$7"
-    local efidisk="$8"
-    local scsihw="$9"
-    local agent="${10}"
-    local disk="${11}"
-    local sockets="${12}"
-    local cores="${13}"
-    local cpu="${14}"
-    local memory="${15}"
-    local balloon="${16}"
-    local net="${17}"
-
-    qm create "$id" \
-        --name "$name" \
-        --ostype "$ostype" \
-        --machine "$machine" \
-        --ide2 "$iso,media=cdrom" \
-        --boot "$boot" \
-        --bios "$bios" \
-        --efidisk0 "$efidisk" \
-        --scsihw "$scsihw" \
-        --agent "$agent" \
-        --scsi0 "$disk" \
-        --sockets "$sockets" \
-        --cores "$cores" \
-        --cpu "$cpu" \
-        --memory "$memory" \
-        --balloon "$balloon" \
-        --net0 "$net"
 }
 
