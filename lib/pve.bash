@@ -735,9 +735,9 @@ pve-gps() {
     all-nos "$function_name" "GPU status check completed."
 }
 
-#
-#
-#
+# Deploys or modifies the VM shutdown hook for GPU reattachment
+# Usage: pve-vmd <operation> <vm_id> [<vm_id2> ...]
+# Operations: add, remove, replace, debug
 pve-vmd() {
     local function_name="${FUNCNAME[0]}"
     local hook_script="/var/lib/vz/snippets/gpu-reattach-hook.pl"
