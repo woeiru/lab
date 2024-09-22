@@ -27,7 +27,7 @@ b_xall() {
     		"$MOUNT_POINT" \
     		"$SUBFOLDER_PATH" \
     		"$UPLOAD_PATH" \
-    		"$PUBLIC_KEY"
+    		"$PRIVATE_KEY"
 }
 
 setup_main "$@"
