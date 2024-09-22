@@ -735,6 +735,106 @@ pve-gps() {
     all-nos "$function_name" "GPU status check completed."
 }
 
+# Deploys or modifies the VM shutdown hook for GPU reattachment
+# Usage: pve-vmd <operation> <vm_id> [<vm_id2> ...]
+# Operations: add, remove, replace
+pve-vmd() {
+    local function_name="${FUNCNAME[0]}"
+    local hook_script="/var/lib/vz/snippets/vm-shutdown-hook.sh"
+    local hook_conf="/etc/pve/hooks/qemu.conf"
+    local operation="$1"
+    shift
+    local vm_ids=("$@")
+
+    # Debug: Print function arguments
+    echo "Debug: Operation: $operation, VM IDs: ${vm_ids[*]}"
+
+    # Validate operation
+    if [[ ! "$operation" =~ ^(add|remove|replace)$ ]]; then
+        echo "Error: Invalid operation. Use 'add', 'remove', or 'replace'."
+        return 1
+    fi
+
+    # Create hook script if it doesn't exist
+    if [[ ! -f "$hook_script" ]]; then
+        echo "Creating new hook script: $hook_script"
+        cat > "$hook_script" << EOL
+#!/bin/bash
+
+# Source the library containing pve-gpa function
+source /root/pve.bash
+
+# Array of VMIDs that we want to trigger GPU reattachment
+TARGET_VMIDS=()
+
+# This script receives the VMID as the first argument
+VMID="\$1"
+
+if [[ " \${TARGET_VMIDS[@]} " =~ " \${VMID} " ]]; then
+    logger -t vm-shutdown-hook "VM \$VMID shut down. Reattaching GPU to host."
+    pve-gpa
+else
+    logger -t vm-shutdown-hook "VM \$VMID shut down. No action needed."
+fi
+EOL
+        chmod +x "$hook_script"
+        echo "Hook script created and made executable."
+    fi
+
+    # Create hook configuration if it doesn't exist
+    if [[ ! -f "$hook_conf" ]]; then
+        echo "Creating hook configuration: $hook_conf"
+        cat > "$hook_conf" << EOL
+[stopped]
+execute: $hook_script {vmid}
+EOL
+        echo "Hook configuration created."
+    fi
+
+    # Read current TARGET_VMIDS array
+    local current_ids=$(grep "TARGET_VMIDS=" "$hook_script" | sed 's/TARGET_VMIDS=(//' | sed 's/)//')
+    echo "Debug: Current VM IDs: $current_ids"
+
+    # Perform operation
+    case "$operation" in
+        add)
+            for id in "${vm_ids[@]}"; do
+                if [[ ! " $current_ids " =~ " $id " ]]; then
+                    current_ids+=" $id"
+                    echo "Added VM ID: $id"
+                else
+                    echo "VM ID $id already exists, skipping."
+                fi
+            done
+            ;;
+        remove)
+            for id in "${vm_ids[@]}"; do
+                current_ids=${current_ids//$id/}
+                echo "Removed VM ID: $id"
+            done
+            current_ids=$(echo $current_ids | tr -s ' ' | sed 's/^ *//' | sed 's/ *$//')
+            ;;
+        replace)
+            current_ids="${vm_ids[*]}"
+            echo "Replaced VM IDs with: ${vm_ids[*]}"
+            ;;
+    esac
+
+    # Update hook script
+    sed -i "s/TARGET_VMIDS=.*/TARGET_VMIDS=($current_ids)/" "$hook_script"
+
+    echo "Updated TARGET_VMIDS: ($current_ids)"
+
+    # Restart Proxmox service
+    if systemctl restart pveproxy; then
+        echo "Proxmox service restarted successfully."
+    else
+        echo "Failed to restart Proxmox service. Please restart manually."
+    fi
+
+    all-nos "$function_name" "Hook deployment completed for operation: $operation"
+}
+
 # Setting up different virtual machines specified in pve.conf
 # virtual machine create
 # <passed global variables>
