@@ -735,159 +735,78 @@ pve-gps() {
     all-nos "$function_name" "GPU status check completed."
 }
 
-# Deploys or modifies the VM shutdown hook for GPU reattachment
-# Usage: pve-vmd <operation> <vm_id> [<vm_id2> ...]
-# Operations: add, remove, replace, debug
 pve-vmd() {
     local function_name="${FUNCNAME[0]}"
-    local hook_script="/var/lib/vz/snippets/vm-shutdown-hook.sh"
-    local hook_conf="/etc/pve/hooks/qemu.conf"
+    local hook_script="/var/lib/vz/snippets/gpu-reattach-hook.pl"
     local operation="$1"
-    shift
-    local vm_ids=("$@")
+    local vm_id="$2"
 
-    echo "Debug: Operation: $operation, VM IDs: ${vm_ids[*]}"
+    echo "Debug: Operation: $operation, VM ID: $vm_id"
 
     # Validate operation
-    if [[ ! "$operation" =~ ^(add|remove|replace|debug)$ ]]; then
-        echo "Error: Invalid operation. Use 'add', 'remove', 'replace', or 'debug'."
+    if [[ ! "$operation" =~ ^(add|remove|debug)$ ]]; then
+        echo "Error: Invalid operation. Use 'add', 'remove', or 'debug'."
         return 1
     fi
 
-    # Create directories if they don't exist
-    mkdir -p /var/lib/vz/snippets
-    mkdir -p /etc/pve/hooks
-    mkdir -p /var/log
+    # Function to create or update hook script
+    create_or_update_hook_script() {
+        cat > "$hook_script" << EOL
+#!/usr/bin/perl
 
-    # Function to create or update hook configuration
-    create_or_update_hook_conf() {
-        local temp_conf=$(mktemp)
-        echo "[stopped]" > "$temp_conf"
-        echo "execute: $hook_script {vmid}" >> "$temp_conf"
-        
-        mkdir -p $(dirname "$hook_conf")
-        if ! mv "$temp_conf" "$hook_conf"; then
-            echo "Error: Failed to create or update $hook_conf"
-            return 1
-        fi
-        
-        echo "Hook configuration created/updated successfully:"
-        cat "$hook_conf"
+use strict;
+use warnings;
+
+my \$vmid = shift;
+my \$phase = shift;
+
+if (\$phase eq 'post-stop') {
+    print "VM \$vmid stopped. Attempting to reattach GPU.\n";
+    system("bash -c 'source /root/lab/lib/pve.bash && pve-gpa'");
+}
+EOL
+        chmod 755 "$hook_script"
+        echo "Hook script created/updated and made executable."
     }
-
-    # Create hook configuration if it doesn't exist or update if it does
-    if [[ ! -f "$hook_conf" ]] || ! grep -q "$hook_script" "$hook_conf"; then
-        echo "Creating/Updating hook configuration: $hook_conf"
-        if ! create_or_update_hook_conf; then
-            echo "Failed to create/update hook configuration. Aborting."
-            return 1
-        fi
-    else
-        echo "Hook configuration already exists and contains the correct script path."
-    fi
 
     # Create hook script if it doesn't exist
     if [[ ! -f "$hook_script" ]]; then
         echo "Creating new hook script: $hook_script"
-        cat > "$hook_script" << EOL
-#!/bin/bash
-
-# Enable logging
-exec > >(tee -a /var/log/vm-shutdown-hook.log) 2>&1
-set -x
-
-# Log script execution
-logger -t vm-shutdown-hook "Hook script executed for VMID: \$1"
-
-# Source the library containing pve-gpa function
-source /root/lab/lib/pve.bash
-
-# Array of VMIDs that we want to trigger GPU reattachment
-TARGET_VMIDS=()
-
-# This script receives the VMID as the first argument
-VMID="\$1"
-
-if [[ " \${TARGET_VMIDS[@]} " =~ " \${VMID} " ]]; then
-    logger -t vm-shutdown-hook "VM \$VMID shut down. Attempting to reattach GPU to host."
-    echo "Executing pve-gpa"
-    pve-gpa
-    echo "pve-gpa execution completed"
-else
-    logger -t vm-shutdown-hook "VM \$VMID shut down. No action needed."
-fi
-EOL
-        chmod 755 "$hook_script"
-        chown root:root "$hook_script"
-        echo "Hook script created and made executable."
+        create_or_update_hook_script
     fi
 
     if [ "$operation" = "debug" ]; then
         echo "Debugging hook setup:"
         echo "1. Checking hook script existence and permissions:"
         ls -l "$hook_script"
-        echo "2. Checking hook configuration:"
-        cat "$hook_conf"
-        echo "3. Checking Proxmox hook references:"
-        grep -r "hooks" /etc/pve/
-        echo "4. Checking Proxmox logs for hook mentions:"
-        journalctl -u pve-qemu-kvm | grep -i hook
-        echo "5. Manually triggering hook script:"
-        "$hook_script" "${vm_ids[0]}"
-        echo "6. Checking system log for hook execution:"
-        journalctl | grep vm-shutdown-hook
+        echo "2. Checking hook script content:"
+        cat "$hook_script"
+        echo "3. Checking Proxmox VM configurations for hook references:"
+        grep -r "hookscript" /etc/pve/qemu-server/
+        echo "4. Manually triggering hook script:"
+        perl "$hook_script" "$vm_id" "post-stop"
         return 0
     fi
-
-    # Read current TARGET_VMIDS array
-    local current_ids=$(grep "TARGET_VMIDS=" "$hook_script" | sed 's/TARGET_VMIDS=(//' | sed 's/)//')
-    echo "Debug: Current VM IDs: $current_ids"
 
     # Perform operation
     case "$operation" in
         add)
-            for id in "${vm_ids[@]}"; do
-                if [[ ! "$current_ids" =~ (^|[[:space:]])"$id"($|[[:space:]]) ]]; then
-                    [ -n "$current_ids" ] && current_ids+=" "
-                    current_ids+="$id"
-                    echo "Added VM ID: $id"
-                else
-                    echo "VM ID $id already exists, skipping."
-                fi
-            done
+            if qm set "$vm_id" -hookscript "local:snippets/$(basename "$hook_script")"; then
+                echo "Hook applied to VM $vm_id"
+            else
+                echo "Failed to apply hook to VM $vm_id"
+            fi
             ;;
         remove)
-            for id in "${vm_ids[@]}"; do
-                current_ids=${current_ids//$id/}
-                echo "Removed VM ID: $id"
-            done
-            current_ids=$(echo $current_ids | tr -s ' ' | sed 's/^ *//' | sed 's/ *$//')
-            ;;
-        replace)
-            current_ids="${vm_ids[*]}"
-            echo "Replaced VM IDs with: ${vm_ids[*]}"
+            if qm set "$vm_id" -delete hookscript; then
+                echo "Hook removed from VM $vm_id"
+            else
+                echo "Failed to remove hook from VM $vm_id"
+            fi
             ;;
     esac
 
-    # Update hook script
-    sed -i "s/TARGET_VMIDS=.*/TARGET_VMIDS=($current_ids)/" "$hook_script"
-
-    echo "Updated TARGET_VMIDS: ($current_ids)"
-
-    echo "Hook script content after update:"
-    cat "$hook_script"
-    
-    echo "qemu.conf content:"
-    cat "$hook_conf"
-
-    # Restart Proxmox service
-    if systemctl restart pveproxy; then
-        echo "Proxmox service restarted successfully."
-    else
-        echo "Failed to restart Proxmox service. Please restart manually."
-    fi
-
-    all-nos "$function_name" "Hook deployment completed for operation: $operation"
+    all-nos "$function_name" "Hook $operation completed for VM $vm_id"
 }
 
 # Setting up different virtual machines specified in pve.conf
