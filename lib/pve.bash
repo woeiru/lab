@@ -597,7 +597,7 @@ pve-gp3() {
 #
 pve-gpd() {
     local function_name="${FUNCNAME[0]}"
-    
+
     echo "Current GPU driver and IOMMU group:"
     lspci -nnk | grep -A3 "VGA compatible controller"
     for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
@@ -606,31 +606,33 @@ pve-gpd() {
             echo -e "\t$(lspci -nns "$device")"
         done
     done
-    
-    # Unload Nouveau if it's loaded
-    if lsmod | grep -q nouveau; then
-        echo "Unloading Nouveau driver"
-        if ! modprobe -r nouveau; then
-            all-nos "$function_name" "Warning: Failed to unload Nouveau driver. Continuing anyway."
+
+    # Unload NVIDIA or AMD drivers if loaded
+    for driver in nouveau nvidia amdgpu radeon; do
+        if lsmod | grep -q $driver; then
+            echo "Unloading $driver driver"
+            if ! modprobe -r $driver; then
+                all-nos "$function_name" "Warning: Failed to unload $driver driver. Continuing anyway."
+            fi
+        else
+            echo "$driver driver not loaded."
         fi
-    else
-        echo "Nouveau driver not loaded."
-    fi
-    
+    done
+
     # Load VFIO driver
     if ! modprobe vfio-pci; then
         all-nos "$function_name" "Error: Failed to load VFIO-PCI driver. GPU detachment may fail."
         return 1
     fi
-    
-    # Get GPU PCI IDs
-    local gpu_ids=$(lspci -nn | grep -i "VGA compatible controller" | awk '{print $1}')
-    
+
+    # Get GPU PCI IDs (including both NVIDIA and AMD)
+    local gpu_ids=$(lspci -nn | grep -iE "VGA compatible controller|3D controller" | awk '{print $1}')
+
     if [ -z "$gpu_ids" ]; then
         all-nos "$function_name" "Error: No GPU found."
         return 1
     fi
-    
+
     for id in $gpu_ids; do
         if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
             echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
@@ -640,7 +642,7 @@ pve-gpd() {
             all-nos "$function_name" "Warning: Failed to bind GPU $id to VFIO-PCI."
         fi
     done
-    
+
     echo "GPU driver and IOMMU group after detachment:"
     lspci -nnk | grep -A3 "VGA compatible controller"
     for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
@@ -649,7 +651,7 @@ pve-gpd() {
             echo -e "\t$(lspci -nns "$device")"
         done
     done
-    
+
     all-nos "$function_name" "GPU detachment process completed. Check above output for details."
 }
 
@@ -658,7 +660,7 @@ pve-gpd() {
 #
 pve-gpa() {
     local function_name="${FUNCNAME[0]}"
-    
+
     echo "Current GPU driver and IOMMU group:"
     lspci -nnk | grep -A3 "VGA compatible controller"
     for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
@@ -667,15 +669,15 @@ pve-gpa() {
             echo -e "\t$(lspci -nns "$device")"
         done
     done
-    
-    # Get GPU PCI IDs
-    local gpu_ids=$(lspci -nn | grep -i "VGA compatible controller" | awk '{print $1}')
-    
+
+    # Get GPU PCI IDs (including both NVIDIA and AMD)
+    local gpu_ids=$(lspci -nn | grep -iE "VGA compatible controller|3D controller" | awk '{print $1}')
+
     if [ -z "$gpu_ids" ]; then
         all-nos "$function_name" "Error: No GPU found."
         return 1
     fi
-    
+
     for id in $gpu_ids; do
         if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
             echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
@@ -683,17 +685,37 @@ pve-gpa() {
         echo > /sys/bus/pci/devices/0000:$id/driver_override
         echo "0000:$id" > /sys/bus/pci/drivers_probe
     done
-    
-    # Try to load the Nouveau driver if it's not already loaded
-    if ! lsmod | grep -q nouveau; then
-        echo "Loading Nouveau driver"
-        if ! modprobe nouveau; then
-            all-nos "$function_name" "Warning: Failed to load Nouveau driver. You may need to install it."
-        fi
-    else
-        echo "Nouveau driver already loaded."
-    fi
-    
+
+    # Try to load the appropriate driver based on the GPU vendor
+    for id in $gpu_ids; do
+        vendor=$(lspci -nns "$id" | grep -oP '(?<=\[)[0-9a-f]{4}(?=\]:)')
+        case $vendor in
+            10de)  # NVIDIA
+                if ! lsmod | grep -q nvidia; then
+                    echo "Loading NVIDIA driver"
+                    if ! modprobe nvidia; then
+                        all-nos "$function_name" "Warning: Failed to load NVIDIA driver. You may need to install it."
+                    fi
+                else
+                    echo "NVIDIA driver already loaded."
+                fi
+                ;;
+            1002)  # AMD
+                if ! lsmod | grep -q amdgpu; then
+                    echo "Loading AMD GPU driver"
+                    if ! modprobe amdgpu; then
+                        all-nos "$function_name" "Warning: Failed to load AMD GPU driver. You may need to install it."
+                    fi
+                else
+                    echo "AMD GPU driver already loaded."
+                fi
+                ;;
+            *)
+                all-nos "$function_name" "Warning: Unknown GPU vendor $vendor. Unable to load specific driver."
+                ;;
+        esac
+    done
+
     echo "GPU driver and IOMMU group after reattachment:"
     lspci -nnk | grep -A3 "VGA compatible controller"
     for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
@@ -702,7 +724,7 @@ pve-gpa() {
             echo -e "\t$(lspci -nns "$device")"
         done
     done
-    
+
     all-nos "$function_name" "GPU reattachment process completed. Check above output for details."
 }
 
