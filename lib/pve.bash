@@ -714,15 +714,7 @@ pve-gps() {
     
     echo "GPU Status:"
     echo "==========="
-    
-    # Check loaded GPU-related modules
-    echo "Loaded GPU modules:"
-    lsmod | grep -E "nvidia|vfio" || echo "No NVIDIA or VFIO modules loaded."
-    
-    # Check GPU PCI devices
-    echo -e "\nGPU PCI devices:"
-    lspci -nnk | grep -A3 "VGA compatible controller"
-    
+        
     # Check IOMMU groups
     echo -e "\nIOMMU Groups:"
     for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
@@ -731,7 +723,15 @@ pve-gps() {
             echo -e "\t$(lspci -nns "$device")"
         done
     done
+
+    # Check loaded GPU-related modules
+    echo "Loaded GPU modules:"
+    lsmod | grep -E "nvidia|vfio" || echo "No NVIDIA or VFIO modules loaded."
     
+    # Check GPU PCI devices
+    echo -e "\nGPU PCI devices:"
+    lspci -nnk | grep -A3 "VGA compatible controller"
+
     all-nos "$function_name" "GPU status check completed."
 }
 
