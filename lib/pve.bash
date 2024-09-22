@@ -541,52 +541,85 @@ pve-gp2() {
     reboot
 }
 
-# Finalizes GPU passthrough setup by configuring VFIO-PCI IDs, blacklisting specific GPU drivers, and rebooting the system
+# Finalizes or reverts GPU passthrough setup by configuring or removing VFIO-PCI IDs and blacklisting specific GPU drivers
 # gpu passthrough step 3
-#   
+# <enable|disable>
 pve-gp3() {
     local function_name="${FUNCNAME[0]}"
-    echo "Executing section 3:"
+    local action="$1"
 
-    # Check for vfio-related logs in kernel messages after reboot
-    dmesg | grep -i vfio
-    dmesg | grep 'remapping'
-
-    # List NVIDIA and AMD devices after reboot
-    lspci -nn | grep 'NVIDIA'
-    lspci -nn | grep 'AMD'
-
-    # Check if vfio configuration already exists
-    vfio_conf="/etc/modprobe.d/vfio.conf"
-    if [ ! -f "$vfio_conf" ]; then
-        # Prompt for the IDs input in the format ****:****,****:****
-        read -p "Please enter the IDs in the format ****:****,****:****: " ids_input
-
-        # Split the IDs based on comma
-        IFS=',' read -ra id_list <<< "$ids_input"
-
-        # Construct the line with the IDs
-        options_line="options vfio-pci ids="
-
-        # Build the line for each ID
-        for id in "${id_list[@]}"
-        do
-            options_line+="$(echo "$id" | tr '\n' ',')"
-        done
-
-        # Remove the trailing comma
-        options_line="${options_line%,}"
-
-        # Append the line into the file
-        echo "$options_line" >> "$vfio_conf"
+    if [ "$action" != "enable" ] && [ "$action" != "disable" ]; then
+        echo "Usage: $function_name <enable|disable>"
+        return 1
     fi
 
-    # Blacklist GPU
-    echo "blacklist radeon" >> /etc/modprobe.d/blacklist.conf
-    echo "blacklist amdgpu" >> /etc/modprobe.d/blacklist.conf
+    echo "Executing section 3 ($action mode):"
 
-    # Notify status
-    all-nos "$function_name" "Completed section 3, system will reboot now."
+    vfio_conf="/etc/modprobe.d/vfio.conf"
+    blacklist_conf="/etc/modprobe.d/blacklist.conf"
+
+    if [ "$action" == "enable" ]; then
+        # Enable GPU passthrough
+
+        # Check for vfio-related logs in kernel messages
+        dmesg | grep -i vfio
+        dmesg | grep 'remapping'
+
+        # List NVIDIA and AMD devices
+        lspci -nn | grep 'NVIDIA'
+        lspci -nn | grep 'AMD'
+
+        # Configure VFIO
+        if [ ! -f "$vfio_conf" ]; then
+            # Prompt for the IDs input in the format ****:****,****:****
+            read -p "Please enter the IDs in the format ****:****,****:****: " ids_input
+
+            # Split the IDs based on comma
+            IFS=',' read -ra id_list <<< "$ids_input"
+
+            # Construct the line with the IDs
+            options_line="options vfio-pci ids="
+
+            # Build the line for each ID
+            for id in "${id_list[@]}"
+            do
+                options_line+="$(echo "$id" | tr '\n' ',')"
+            done
+
+            # Remove the trailing comma
+            options_line="${options_line%,}"
+
+            # Append the line into the file
+            echo "$options_line" >> "$vfio_conf"
+        fi
+
+        # Blacklist GPU drivers
+        echo "blacklist radeon" >> "$blacklist_conf"
+        echo "blacklist amdgpu" >> "$blacklist_conf"
+
+        all-nos "$function_name" "Completed section 3 (enable mode), system will reboot now."
+    else
+        # Disable GPU passthrough
+
+        # Remove VFIO configuration
+        if [ -f "$vfio_conf" ]; then
+            rm "$vfio_conf"
+            echo "Removed VFIO configuration file."
+        else
+            echo "VFIO configuration file not found. Skipping removal."
+        fi
+
+        # Remove GPU driver blacklisting
+        if [ -f "$blacklist_conf" ]; then
+            sed -i '/blacklist radeon/d' "$blacklist_conf"
+            sed -i '/blacklist amdgpu/d' "$blacklist_conf"
+            echo "Removed GPU driver blacklisting from $blacklist_conf."
+        else
+            echo "Blacklist configuration file not found. Skipping modification."
+        fi
+
+        all-nos "$function_name" "Completed section 3 (disable mode), system will reboot now."
+    fi
 
     # Perform system reboot without prompting
     reboot
