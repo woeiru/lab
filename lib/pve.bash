@@ -598,14 +598,23 @@ pve-gp3() {
 pve-gpd() {
     local function_name="${FUNCNAME[0]}"
     
-    # Check if NVIDIA modules are loaded
-    if lsmod | grep -q nvidia; then
-        # Attempt to unload NVIDIA drivers
-        if ! modprobe -r nvidia_drm nvidia_modeset nvidia; then
-            all-nos "$function_name" "Warning: Failed to unload some NVIDIA modules. Continuing anyway."
+    echo "Current GPU driver and IOMMU group:"
+    lspci -nnk | grep -A3 "VGA compatible controller"
+    for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
+        echo "IOMMU Group ${iommu_group##*/}:"
+        for device in $(ls -1 "$iommu_group"/devices/); do
+            echo -e "\t$(lspci -nns "$device")"
+        done
+    done
+    
+    # Unload Nouveau if it's loaded
+    if lsmod | grep -q nouveau; then
+        echo "Unloading Nouveau driver"
+        if ! modprobe -r nouveau; then
+            all-nos "$function_name" "Warning: Failed to unload Nouveau driver. Continuing anyway."
         fi
     else
-        all-nos "$function_name" "NVIDIA modules not loaded. Continuing with detachment."
+        echo "Nouveau driver not loaded."
     fi
     
     # Load VFIO driver
@@ -632,7 +641,16 @@ pve-gpd() {
         fi
     done
     
-    all-nos "$function_name" "GPU detachment process completed. Check dmesg for any errors."
+    echo "GPU driver and IOMMU group after detachment:"
+    lspci -nnk | grep -A3 "VGA compatible controller"
+    for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
+        echo "IOMMU Group ${iommu_group##*/}:"
+        for device in $(ls -1 "$iommu_group"/devices/); do
+            echo -e "\t$(lspci -nns "$device")"
+        done
+    done
+    
+    all-nos "$function_name" "GPU detachment process completed. Check above output for details."
 }
 
 # Attaches the GPU back to the host system
@@ -640,6 +658,15 @@ pve-gpd() {
 #
 pve-gpa() {
     local function_name="${FUNCNAME[0]}"
+    
+    echo "Current GPU driver and IOMMU group:"
+    lspci -nnk | grep -A3 "VGA compatible controller"
+    for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
+        echo "IOMMU Group ${iommu_group##*/}:"
+        for device in $(ls -1 "$iommu_group"/devices/); do
+            echo -e "\t$(lspci -nns "$device")"
+        done
+    done
     
     # Get GPU PCI IDs
     local gpu_ids=$(lspci -nn | grep -i "VGA compatible controller" | awk '{print $1}')
@@ -654,19 +681,29 @@ pve-gpa() {
             echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
         fi
         echo > /sys/bus/pci/devices/0000:$id/driver_override
+        echo "0000:$id" > /sys/bus/pci/drivers_probe
     done
     
-    # Check if NVIDIA modules are available
-    if modinfo nvidia > /dev/null 2>&1; then
-        # Attempt to load NVIDIA drivers
-        if ! modprobe nvidia_drm nvidia_modeset nvidia; then
-            all-nos "$function_name" "Warning: Failed to load NVIDIA modules. You may need to install or reinstall NVIDIA drivers."
+    # Try to load the Nouveau driver if it's not already loaded
+    if ! lsmod | grep -q nouveau; then
+        echo "Loading Nouveau driver"
+        if ! modprobe nouveau; then
+            all-nos "$function_name" "Warning: Failed to load Nouveau driver. You may need to install it."
         fi
     else
-        all-nos "$function_name" "NVIDIA modules not found. You may need to install NVIDIA drivers."
+        echo "Nouveau driver already loaded."
     fi
     
-    all-nos "$function_name" "GPU reattachment process completed. Check dmesg for any errors."
+    echo "GPU driver and IOMMU group after reattachment:"
+    lspci -nnk | grep -A3 "VGA compatible controller"
+    for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
+        echo "IOMMU Group ${iommu_group##*/}:"
+        for device in $(ls -1 "$iommu_group"/devices/); do
+            echo -e "\t$(lspci -nns "$device")"
+        done
+    done
+    
+    all-nos "$function_name" "GPU reattachment process completed. Check above output for details."
 }
 
 # Checks the current status of the GPU
