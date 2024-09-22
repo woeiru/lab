@@ -737,7 +737,7 @@ pve-gps() {
 
 # Deploys or modifies the VM shutdown hook for GPU reattachment
 # Usage: pve-vmd <operation> <vm_id> [<vm_id2> ...]
-# Operations: add, remove, replace
+# Operations: add, remove, replace, debug
 pve-vmd() {
     local function_name="${FUNCNAME[0]}"
     local hook_script="/var/lib/vz/snippets/vm-shutdown-hook.sh"
@@ -749,14 +749,40 @@ pve-vmd() {
     echo "Debug: Operation: $operation, VM IDs: ${vm_ids[*]}"
 
     # Validate operation
-    if [[ ! "$operation" =~ ^(add|remove|replace)$ ]]; then
-        echo "Error: Invalid operation. Use 'add', 'remove', or 'replace'."
+    if [[ ! "$operation" =~ ^(add|remove|replace|debug)$ ]]; then
+        echo "Error: Invalid operation. Use 'add', 'remove', 'replace', or 'debug'."
         return 1
     fi
 
     # Create directories if they don't exist
     mkdir -p /var/lib/vz/snippets
     mkdir -p /etc/pve/hooks
+
+    # Function to create or update hook configuration
+    create_or_update_hook_conf() {
+        local temp_conf=$(mktemp)
+        echo "[stopped]" > "$temp_conf"
+        echo "execute: $hook_script {vmid}" >> "$temp_conf"
+        
+        if ! mv "$temp_conf" "$hook_conf"; then
+            echo "Error: Failed to create or update $hook_conf"
+            return 1
+        fi
+        
+        echo "Hook configuration created/updated successfully:"
+        cat "$hook_conf"
+    }
+
+    # Create hook configuration if it doesn't exist or update if it does
+    if [[ ! -f "$hook_conf" ]] || ! grep -q "$hook_script" "$hook_conf"; then
+        echo "Creating/Updating hook configuration: $hook_conf"
+        if ! create_or_update_hook_conf; then
+            echo "Failed to create/update hook configuration. Aborting."
+            return 1
+        fi
+    else
+        echo "Hook configuration already exists and contains the correct script path."
+    fi
 
     # Create hook script if it doesn't exist
     if [[ ! -f "$hook_script" ]]; then
@@ -767,6 +793,9 @@ pve-vmd() {
 # Enable logging
 exec > >(tee -a /var/log/vm-shutdown-hook.log) 2>&1
 set -x
+
+# Log script execution
+logger -t vm-shutdown-hook "Hook script executed for VMID: \$1"
 
 # Source the library containing pve-gpa function
 source /root/lab/lib/pve.bash
@@ -786,18 +815,26 @@ else
     logger -t vm-shutdown-hook "VM \$VMID shut down. No action needed."
 fi
 EOL
-        chmod +x "$hook_script"
+        chmod 755 "$hook_script"
+        chown root:root "$hook_script"
         echo "Hook script created and made executable."
     fi
 
-    # Create hook configuration if it doesn't exist
-    if [[ ! -f "$hook_conf" ]]; then
-        echo "Creating hook configuration: $hook_conf"
-        cat > "$hook_conf" << EOL
-[stopped]
-execute: $hook_script {vmid}
-EOL
-        echo "Hook configuration created."
+    if [ "$operation" = "debug" ]; then
+        echo "Debugging hook setup:"
+        echo "1. Checking hook script existence and permissions:"
+        ls -l "$hook_script"
+        echo "2. Checking hook configuration:"
+        cat "$hook_conf"
+        echo "3. Checking Proxmox hook references:"
+        grep -r "hooks" /etc/pve/
+        echo "4. Checking Proxmox logs for hook mentions:"
+        journalctl -u pve-qemu-kvm | grep -i hook
+        echo "5. Manually triggering hook script:"
+        "$hook_script" "${vm_ids[0]}"
+        echo "6. Checking system log for hook execution:"
+        journalctl | grep vm-shutdown-hook
+        return 0
     fi
 
     # Read current TARGET_VMIDS array
