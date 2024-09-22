@@ -757,6 +757,7 @@ pve-vmd() {
     # Create directories if they don't exist
     mkdir -p /var/lib/vz/snippets
     mkdir -p /etc/pve/hooks
+    mkdir -p /var/log
 
     # Function to create or update hook configuration
     create_or_update_hook_conf() {
@@ -764,6 +765,7 @@ pve-vmd() {
         echo "[stopped]" > "$temp_conf"
         echo "execute: $hook_script {vmid}" >> "$temp_conf"
         
+        mkdir -p $(dirname "$hook_conf")
         if ! mv "$temp_conf" "$hook_conf"; then
             echo "Error: Failed to create or update $hook_conf"
             return 1
@@ -845,8 +847,9 @@ EOL
     case "$operation" in
         add)
             for id in "${vm_ids[@]}"; do
-                if [[ ! " $current_ids " =~ " $id " ]]; then
-                    current_ids+=" $id"
+                if [[ ! "$current_ids" =~ (^|[[:space:]])"$id"($|[[:space:]]) ]]; then
+                    [ -n "$current_ids" ] && current_ids+=" "
+                    current_ids+="$id"
                     echo "Added VM ID: $id"
                 else
                     echo "VM ID $id already exists, skipping."
@@ -870,6 +873,12 @@ EOL
     sed -i "s/TARGET_VMIDS=.*/TARGET_VMIDS=($current_ids)/" "$hook_script"
 
     echo "Updated TARGET_VMIDS: ($current_ids)"
+
+    echo "Hook script content after update:"
+    cat "$hook_script"
+    
+    echo "qemu.conf content:"
+    cat "$hook_conf"
 
     # Restart Proxmox service
     if systemctl restart pveproxy; then
