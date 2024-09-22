@@ -735,6 +735,9 @@ pve-gps() {
     all-nos "$function_name" "GPU status check completed."
 }
 
+#
+#
+#
 pve-vmd() {
     local function_name="${FUNCNAME[0]}"
     local hook_script="/var/lib/vz/snippets/gpu-reattach-hook.pl"
@@ -756,24 +759,30 @@ pve-vmd() {
 
 use strict;
 use warnings;
+use POSIX qw(strftime);
 
 my \$vmid = shift;
 my \$phase = shift;
 
+my \$log_file = '/var/log/gpu-reattach-hook.log';
+
+open(my \$log, '>>', \$log_file) or die "Could not open log file: \$!";
+print \$log strftime("%Y-%m-%d %H:%M:%S", localtime) . " - VM \$vmid, Phase: \$phase\n";
+
 if (\$phase eq 'post-stop') {
-    print "VM \$vmid stopped. Attempting to reattach GPU.\n";
-    system("bash -c 'source /root/lab/lib/pve.bash && pve-gpa'");
+    print \$log "Attempting to reattach GPU for VM \$vmid\n";
+    my \$result = system("bash -c 'source /root/lab/lib/pve.bash && pve-gpa'");
+    print \$log "pve-gpa execution result: \$result\n";
 }
+
+close(\$log);
 EOL
         chmod 755 "$hook_script"
         echo "Hook script created/updated and made executable."
     }
 
-    # Create hook script if it doesn't exist
-    if [[ ! -f "$hook_script" ]]; then
-        echo "Creating new hook script: $hook_script"
-        create_or_update_hook_script
-    fi
+    # Create or update hook script
+    create_or_update_hook_script
 
     if [ "$operation" = "debug" ]; then
         echo "Debugging hook setup:"
@@ -785,6 +794,8 @@ EOL
         grep -r "hookscript" /etc/pve/qemu-server/
         echo "4. Manually triggering hook script:"
         perl "$hook_script" "$vm_id" "post-stop"
+        echo "5. Checking log file:"
+        cat /var/log/gpu-reattach-hook.log
         return 0
     fi
 
