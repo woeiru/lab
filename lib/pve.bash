@@ -764,8 +764,12 @@ pve-vmd() {
         cat > "$hook_script" << EOL
 #!/bin/bash
 
+# Enable logging
+exec > >(tee -a /var/log/vm-shutdown-hook.log) 2>&1
+set -x
+
 # Source the library containing pve-gpa function
-source /root/pve.bash
+source /root/lab/lib/pve.bash
 
 # Array of VMIDs that we want to trigger GPU reattachment
 TARGET_VMIDS=()
@@ -774,8 +778,10 @@ TARGET_VMIDS=()
 VMID="\$1"
 
 if [[ " \${TARGET_VMIDS[@]} " =~ " \${VMID} " ]]; then
-    logger -t vm-shutdown-hook "VM \$VMID shut down. Reattaching GPU to host."
+    logger -t vm-shutdown-hook "VM \$VMID shut down. Attempting to reattach GPU to host."
+    echo "Executing pve-gpa"
     pve-gpa
+    echo "pve-gpa execution completed"
 else
     logger -t vm-shutdown-hook "VM \$VMID shut down. No action needed."
 fi
