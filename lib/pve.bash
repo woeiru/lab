@@ -32,6 +32,14 @@ pve-var() {
     all-acu -o "$CONFIG_pve" "$DIR_LIB/.."
 }
 
+# Logging function
+all-log() {
+    local log_level="$1"
+    local message="$2"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$log_level] $message"
+}
+
+
 # Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
 # udev network interface
 # [interactive]
@@ -693,72 +701,97 @@ pve-gpd() {
 #
 pve-gpa() {
     local function_name="${FUNCNAME[0]}"
-
-    echo "Current GPU driver and IOMMU group:"
-    lspci -nnk | grep -A3 "VGA compatible controller"
-    for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
-        echo "IOMMU Group ${iommu_group##*/}:"
-        for device in $(ls -1 "$iommu_group"/devices/); do
-            echo -e "\t$(lspci -nns "$device")"
-        done
+    
+    all-log "INFO" "Starting GPU reattachment process"
+    
+    all-log "INFO" "Current GPU driver and IOMMU group:"
+    lspci -nnk | grep -A3 "VGA compatible controller" | while read -r line; do
+        all-log "INFO" "$line"
     done
-
-    # Get GPU PCI IDs (including both NVIDIA and AMD)
-    local gpu_ids=$(lspci -nn | grep -iE "VGA compatible controller|3D controller" | awk '{print $1}')
-
+    
+    # Get GPU PCI IDs
+    local gpu_ids=$(lspci -nn | grep -i "VGA compatible controller" | awk '{print $1}')
+    
     if [ -z "$gpu_ids" ]; then
+        all-log "ERROR" "No GPU found."
         all-nos "$function_name" "Error: No GPU found."
         return 1
     fi
-
+    
+    all-log "INFO" "Found GPU(s) with PCI ID(s): $gpu_ids"
+    
     for id in $gpu_ids; do
+        all-log "INFO" "Processing GPU with PCI ID: $id"
         if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
+            all-log "INFO" "Unbinding GPU $id from current driver"
             echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
+            if [ $? -eq 0 ]; then
+                all-log "INFO" "Successfully unbound GPU $id"
+            else
+                all-log "WARNING" "Failed to unbind GPU $id"
+            fi
+        else
+            all-log "INFO" "GPU $id is not bound to any driver"
         fi
+        
+        all-log "INFO" "Resetting driver_override for GPU $id"
         echo > /sys/bus/pci/devices/0000:$id/driver_override
-        echo "0000:$id" > /sys/bus/pci/drivers_probe
-    done
-
-    # Try to load the appropriate driver based on the GPU vendor
-    for id in $gpu_ids; do
-        vendor=$(lspci -nns "$id" | grep -oP '(?<=\[)[0-9a-f]{4}(?=\]:)')
-        case $vendor in
-            10de)  # NVIDIA
-                if ! lsmod | grep -q nvidia; then
-                    echo "Loading NVIDIA driver"
-                    if ! modprobe nvidia; then
-                        all-nos "$function_name" "Warning: Failed to load NVIDIA driver. You may need to install it."
-                    fi
-                else
-                    echo "NVIDIA driver already loaded."
-                fi
+        
+        # Determine the correct driver based on the GPU vendor
+        local vendor_id=$(lspci -n -s "$id" | awk '{print $3}' | cut -d':' -f1)
+        local driver
+        case "$vendor_id" in
+            1002)
+                driver="amdgpu"
                 ;;
-            1002)  # AMD
-                if ! lsmod | grep -q amdgpu; then
-                    echo "Loading AMD GPU driver"
-                    if ! modprobe amdgpu; then
-                        all-nos "$function_name" "Warning: Failed to load AMD GPU driver. You may need to install it."
-                    fi
-                else
-                    echo "AMD GPU driver already loaded."
-                fi
+            10de)
+                driver="nouveau"
                 ;;
             *)
-                all-nos "$function_name" "Warning: Unknown GPU vendor $vendor. Unable to load specific driver."
+                all-log "ERROR" "Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment."
+                all-nos "$function_name" "Error: Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment."
+                return 1
                 ;;
         esac
+        
+        all-log "INFO" "Attempting to load $driver driver"
+        if ! modprobe "$driver"; then
+            all-log "ERROR" "Failed to load $driver driver. You may need to install it."
+            all-nos "$function_name" "Error: Failed to load $driver driver. You may need to install it."
+            return 1
+        else
+            all-log "INFO" "$driver driver loaded successfully."
+        fi
+        
+        all-log "INFO" "Probing for new driver for GPU $id"
+        echo "0000:$id" > /sys/bus/pci/drivers_probe
+        if [ $? -eq 0 ]; then
+            all-log "INFO" "Successfully probed for new driver for GPU $id"
+        else
+            all-log "WARNING" "Failed to probe for new driver for GPU $id"
+        fi
+        
+        # Explicitly bind the driver if it's not automatically bound
+        if [ ! -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
+            all-log "INFO" "Attempting to explicitly bind $driver to GPU $id"
+            echo "0000:$id" > /sys/bus/pci/drivers/$driver/bind
+            if [ $? -eq 0 ]; then
+                all-log "INFO" "Successfully bound $driver to GPU $id"
+            else
+                all-log "ERROR" "Failed to bind $driver to GPU $id"
+                all-nos "$function_name" "Error: Failed to bind $driver to GPU $id"
+                return 1
+            fi
+        fi
     done
-
-    echo "GPU driver and IOMMU group after reattachment:"
-    lspci -nnk | grep -A3 "VGA compatible controller"
-    for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
-        echo "IOMMU Group ${iommu_group##*/}:"
-        for device in $(ls -1 "$iommu_group"/devices/); do
-            echo -e "\t$(lspci -nns "$device")"
-        done
+    
+    all-log "INFO" "GPU driver and IOMMU group after reattachment:"
+    lspci -nnk | grep -A3 "VGA compatible controller" | while read -r line; do
+        all-log "INFO" "$line"
     done
-
-    all-nos "$function_name" "GPU reattachment process completed. Check above output for details."
+    
+    all-log "INFO" "GPU reattachment process completed."
+    all-nos "$function_name" "GPU reattachment process completed. Check logs for details."
 }
 
 # Checks the current status of the GPU
