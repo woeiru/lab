@@ -825,7 +825,7 @@ pve-gps() {
 
 # Deploys or modifies the VM shutdown hook for GPU reattachment
 # Usage: pve-vmd <operation> <vm_id> [<vm_id2> ...]
-# Operations: add, remove, replace, debug
+# Operations: add, remove, debug
 pve-vmd() {
     local function_name="${FUNCNAME[0]}"
     local hook_script="/var/lib/vz/snippets/gpu-reattach-hook.pl"
@@ -840,9 +840,18 @@ pve-vmd() {
         return 1
     fi
 
+    # Check if /var/lib/vz/snippets exists, create if not
+    if [ ! -d "/var/lib/vz/snippets" ]; then
+        echo "Creating /var/lib/vz/snippets directory..."
+        if ! mkdir -p "/var/lib/vz/snippets"; then
+            echo "Error: Failed to create /var/lib/vz/snippets directory. Aborting."
+            return 1
+        fi
+    fi
+
     # Function to create or update hook script
     create_or_update_hook_script() {
-        cat > "$hook_script" << EOL
+        if ! cat > "$hook_script" << EOL
 #!/usr/bin/perl
 
 use strict;
@@ -865,12 +874,22 @@ if (\$phase eq 'post-stop') {
 
 close(\$log);
 EOL
-        chmod 755 "$hook_script"
+        then
+            echo "Error: Failed to create or update hook script. Aborting."
+            return 1
+        fi
+
+        if ! chmod 755 "$hook_script"; then
+            echo "Error: Failed to set permissions on hook script. Aborting."
+            return 1
+        fi
         echo "Hook script created/updated and made executable."
     }
 
     # Create or update hook script
-    create_or_update_hook_script
+    if ! create_or_update_hook_script; then
+        return 1
+    fi
 
     if [ "$operation" = "debug" ]; then
         echo "Debugging hook setup:"
@@ -894,6 +913,7 @@ EOL
                 echo "Hook applied to VM $vm_id"
             else
                 echo "Failed to apply hook to VM $vm_id"
+                return 1
             fi
             ;;
         remove)
@@ -901,6 +921,7 @@ EOL
                 echo "Hook removed from VM $vm_id"
             else
                 echo "Failed to remove hook from VM $vm_id"
+                return 1
             fi
             ;;
     esac
