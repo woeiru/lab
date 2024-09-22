@@ -598,22 +598,41 @@ pve-gp3() {
 pve-gpd() {
     local function_name="${FUNCNAME[0]}"
     
-    # Unload NVIDIA drivers (adjust for AMD if necessary)
-    modprobe -r nvidia_drm nvidia_modeset nvidia
+    # Check if NVIDIA modules are loaded
+    if lsmod | grep -q nvidia; then
+        # Attempt to unload NVIDIA drivers
+        if ! modprobe -r nvidia_drm nvidia_modeset nvidia; then
+            all-nos "$function_name" "Warning: Failed to unload some NVIDIA modules. Continuing anyway."
+        fi
+    else
+        all-nos "$function_name" "NVIDIA modules not loaded. Continuing with detachment."
+    fi
     
     # Load VFIO driver
-    modprobe vfio-pci
+    if ! modprobe vfio-pci; then
+        all-nos "$function_name" "Error: Failed to load VFIO-PCI driver. GPU detachment may fail."
+        return 1
+    fi
     
-    # Get GPU PCI IDs (adjust grep for AMD if necessary)
-    local gpu_ids=$(lspci -nn | grep NVIDIA | awk '{print $1}')
+    # Get GPU PCI IDs
+    local gpu_ids=$(lspci -nn | grep -i "VGA compatible controller" | awk '{print $1}')
+    
+    if [ -z "$gpu_ids" ]; then
+        all-nos "$function_name" "Error: No GPU found."
+        return 1
+    fi
     
     for id in $gpu_ids; do
-        echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
+        if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
+            echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
+        fi
         echo "vfio-pci" > /sys/bus/pci/devices/0000:$id/driver_override
-        echo "0000:$id" > /sys/bus/pci/drivers/vfio-pci/bind
+        if ! echo "0000:$id" > /sys/bus/pci/drivers/vfio-pci/bind; then
+            all-nos "$function_name" "Warning: Failed to bind GPU $id to VFIO-PCI."
+        fi
     done
     
-    all-nos "$function_name" "GPU detached from host"
+    all-nos "$function_name" "GPU detachment process completed. Check dmesg for any errors."
 }
 
 # Attaches the GPU back to the host system
@@ -622,18 +641,61 @@ pve-gpd() {
 pve-gpa() {
     local function_name="${FUNCNAME[0]}"
     
-    # Get GPU PCI IDs (adjust grep for AMD if necessary)
-    local gpu_ids=$(lspci -nn | grep NVIDIA | awk '{print $1}')
+    # Get GPU PCI IDs
+    local gpu_ids=$(lspci -nn | grep -i "VGA compatible controller" | awk '{print $1}')
+    
+    if [ -z "$gpu_ids" ]; then
+        all-nos "$function_name" "Error: No GPU found."
+        return 1
+    fi
     
     for id in $gpu_ids; do
-        echo "vfio-pci" > /sys/bus/pci/devices/0000:$id/driver/unbind
+        if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
+            echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
+        fi
         echo > /sys/bus/pci/devices/0000:$id/driver_override
     done
     
-    # Reload NVIDIA drivers (adjust for AMD if necessary)
-    modprobe nvidia_drm nvidia_modeset nvidia
+    # Check if NVIDIA modules are available
+    if modinfo nvidia > /dev/null 2>&1; then
+        # Attempt to load NVIDIA drivers
+        if ! modprobe nvidia_drm nvidia_modeset nvidia; then
+            all-nos "$function_name" "Warning: Failed to load NVIDIA modules. You may need to install or reinstall NVIDIA drivers."
+        fi
+    else
+        all-nos "$function_name" "NVIDIA modules not found. You may need to install NVIDIA drivers."
+    fi
     
-    all-nos "$function_name" "GPU attached to host"
+    all-nos "$function_name" "GPU reattachment process completed. Check dmesg for any errors."
+}
+
+# Checks the current status of the GPU
+# gpu passthrough status
+#
+pve-gps() {
+    local function_name="${FUNCNAME[0]}"
+    
+    echo "GPU Status:"
+    echo "==========="
+    
+    # Check loaded GPU-related modules
+    echo "Loaded GPU modules:"
+    lsmod | grep -E "nvidia|vfio" || echo "No NVIDIA or VFIO modules loaded."
+    
+    # Check GPU PCI devices
+    echo -e "\nGPU PCI devices:"
+    lspci -nnk | grep -A3 "VGA compatible controller"
+    
+    # Check IOMMU groups
+    echo -e "\nIOMMU Groups:"
+    for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
+        echo "IOMMU Group ${iommu_group##*/}:"
+        for device in $(ls -1 "$iommu_group"/devices/); do
+            echo -e "\t$(lspci -nns "$device")"
+        done
+    done
+    
+    all-nos "$function_name" "GPU status check completed."
 }
 
 # Setting up different virtual machines specified in pve.conf
