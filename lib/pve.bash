@@ -592,6 +592,50 @@ pve-gp3() {
     reboot
 }
 
+# Detaches the GPU from the host system, making it available for VM passthrough
+# gpu passthrough detach
+#
+pve-gpd() {
+    local function_name="${FUNCNAME[0]}"
+    
+    # Unload NVIDIA drivers (adjust for AMD if necessary)
+    modprobe -r nvidia_drm nvidia_modeset nvidia
+    
+    # Load VFIO driver
+    modprobe vfio-pci
+    
+    # Get GPU PCI IDs (adjust grep for AMD if necessary)
+    local gpu_ids=$(lspci -nn | grep NVIDIA | awk '{print $1}')
+    
+    for id in $gpu_ids; do
+        echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
+        echo "vfio-pci" > /sys/bus/pci/devices/0000:$id/driver_override
+        echo "0000:$id" > /sys/bus/pci/drivers/vfio-pci/bind
+    done
+    
+    all-nos "$function_name" "GPU detached from host"
+}
+
+# Attaches the GPU back to the host system
+# gpu passthrough attach
+#
+pve-gpa() {
+    local function_name="${FUNCNAME[0]}"
+    
+    # Get GPU PCI IDs (adjust grep for AMD if necessary)
+    local gpu_ids=$(lspci -nn | grep NVIDIA | awk '{print $1}')
+    
+    for id in $gpu_ids; do
+        echo "vfio-pci" > /sys/bus/pci/devices/0000:$id/driver/unbind
+        echo > /sys/bus/pci/devices/0000:$id/driver_override
+    done
+    
+    # Reload NVIDIA drivers (adjust for AMD if necessary)
+    modprobe nvidia_drm nvidia_modeset nvidia
+    
+    all-nos "$function_name" "GPU attached to host"
+}
+
 # Setting up different virtual machines specified in pve.conf
 # virtual machine create
 # <passed global variables>
