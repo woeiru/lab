@@ -746,7 +746,6 @@ pve-vmd() {
     shift
     local vm_ids=("$@")
 
-    # Debug: Print function arguments
     echo "Debug: Operation: $operation, VM IDs: ${vm_ids[*]}"
 
     # Validate operation
@@ -754,6 +753,10 @@ pve-vmd() {
         echo "Error: Invalid operation. Use 'add', 'remove', or 'replace'."
         return 1
     fi
+
+    # Create directories if they don't exist
+    mkdir -p /var/lib/vz/snippets
+    mkdir -p /etc/pve/hooks
 
     # Create hook script if it doesn't exist
     if [[ ! -f "$hook_script" ]]; then
