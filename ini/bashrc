@@ -162,14 +162,17 @@ main() {
     # Automatically add SSH keys
     add_ssh_keys
 
-    # Function chain aliases
-    alias fun='all-ffl all-laf "" $LIB_DIR'
-    alias var='all-ffl all-acu "" $VAR_DIR $PARENT_DIR'
-
-    # Function aliases
+    # Function shortcuts
     alias sca='all-sca'
     alias flc='all-flc'
     alias cto='pve-cto'
+
+    # Function chaining
+    alias fun='all-ffl all-laf "" $LIB_DIR'
+    alias var='all-ffl all-acu "" $VAR_DIR $PARENT_DIR'
+
+    # Function makros
+    alias v1='pve-gpd ; qm start 211'
 
     # SSH aliases
     alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
