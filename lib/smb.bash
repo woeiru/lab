@@ -15,8 +15,8 @@ eval "CONFIG_${BASE_LIB}=\$CONFIG_LIB"
 if [ -f "$CONFIG_LIB" ]; then
     source "$CONFIG_LIB"
 else
-    echo "Configuration file $CONFIG_LIB not found!"
-    exit 1
+    echo "Warning: Configuration file $CONFIG_LIB not found!"
+    # Don't exit, just continue
 fi
 
 # Displays an overview of specific Samba-related functions in the script, showing their usage, shortname, and description
