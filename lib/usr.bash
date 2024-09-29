@@ -72,7 +72,7 @@ usr-ckp() {
 # Configures Git and SSH to disable password prompting by updating Git global configuration and SSH config file
 # configure git ssh passphrase
 #
-usr-cgsp() {
+usr-cgp() {
     local ssh_config="$HOME/.ssh/config"
     local askpass_line="    SetEnv SSH_ASKPASS=''"
 

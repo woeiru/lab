@@ -1,10 +1,25 @@
 #!/bin/bash
 
-# Source usr.bash from the lib folder
-source ../lib/usr.bash
+# Check if the user is root
+if [ "$EUID" -eq 0 ]; then
+    echo "Running as root. Skipping pushing usr.bash to destination folder."
+else
+    # Source usr.bash from the lib folder
+    if [ -f ../lib/usr.bash ]; then
+        source ../lib/usr.bash
+        echo "Sourced usr.bash from ../lib/usr.bash"
 
-# Run configure_git_ssh_passphrase() function
-configure_git_ssh_passphrase
+        # Run usr-cgsp() function if it exists
+        if declare -f usr-cgsp > /dev/null; then
+            usr-cgp
+            echo "Configured Git and SSH settings."
+        else
+            echo "Warning: usr-cgsp function not found in usr.bash"
+        fi
+    else
+        echo "Warning: ../lib/usr.bash not found. Skipping sourcing and git/ssh configuration."
+    fi
+fi
 
 # Inject content into .bashrc or .zshrc
 if [ -f ~/.zshrc ]; then
