@@ -24,7 +24,7 @@ fi
 #
 usr-fun() {
     # Pass all arguments directly to all-laf
-    all-laf "$FILEPATH_all" "$@"
+    all-laf "$FILEPATH_usr" "$@"
 }
 
 # Changes the Konsole profile for the current user by updating the konsolerc file
