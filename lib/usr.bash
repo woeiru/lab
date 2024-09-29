@@ -15,21 +15,17 @@ eval "CONFIG_${BASE_LIB}=\$CONFIG_LIB"
 if [ -f "$CONFIG_LIB" ]; then
     source "$CONFIG_LIB"
 else
-    echo "Configuration file $CONFIG_LIB not found!"
-    exit 1
+    echo "Warning: Configuration file $CONFIG_LIB not found!"
+    # Don't exit, just continue
 fi
 
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
-# overview functions
-#
 usr-fun() {
     # Pass all arguments directly to all-laf
     all-laf "$FILEPATH_all" "$@"
 }
 
 # Changes the Konsole profile for the current user by updating the konsolerc file
-# change konsole profile
-# <profile_number>
 usr-ckp() {
     local profile_number="$1"
     local username
@@ -70,8 +66,6 @@ usr-ckp() {
 }
 
 # Configures Git and SSH to disable password prompting by updating Git global configuration and SSH config file
-# configure git ssh passphrase
-#
 usr-cgp() {
     local ssh_config="$HOME/.ssh/config"
     local askpass_line="    SetEnv SSH_ASKPASS=''"
@@ -106,8 +100,6 @@ usr-cgp() {
 }
 
 # Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
-# variable select filename
-#
 usr-vsf() {
     files=($(ls))
     echo "Select a file by entering its index:"
@@ -120,8 +112,6 @@ usr-vsf() {
 }
 
 # Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name
-# count files folder
-# <path> <folder_type: 1=regular, 2=hidden, 3=both>
 usr-cff() {
     if [ $# -ne 2 ]; then
         all-use
@@ -168,8 +158,6 @@ usr-cff() {
 }
 
 # Compares data usage between two paths up to a specified depth. Displays results in a tabular format with color-coded differences
-# data usage comparison
-# <path1> <path2> <depth>
 usr-duc() {
     local path1=$1
     local path2=$2
@@ -235,8 +223,6 @@ usr-duc() {
 }
 
 # Concatenates and displays the contents of all files within a specified folder, separating each file's content with a line of dashes
-# cat in folder
-# <path>
 usr-cif() {
     # Check if exactly one argument (directory path) is provided
     if [ $# -ne 1 ]; then
