@@ -111,7 +111,7 @@ main() {
     fi
 
     # Create an array of function names, sorted by their number
-    local functions=($(grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# [0-9]+\. (.+)/\1/' | awk '{print $1}'))
+    local functions=($(grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# [0-9]+\. .+/\1/' | awk '{print $NF}'))
 
     # Loop through the functions and execute them
     for func in "${functions[@]}"; do
