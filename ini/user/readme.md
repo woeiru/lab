@@ -6,7 +6,7 @@ This repository contains shell scripts and configuration files for customizing a
 
 1. [depl.sh](#deplsh)
 2. [func.sh](#funcsh)
-3. [bashinject](#bashinject)
+3. [inject](#inject)
 
 ## depl.sh
 
@@ -16,7 +16,7 @@ The main deployment script that sets up the entire configuration.
 - Copies `func.sh` to the user's home directory
 - Sources `func.sh` to make the `configure_git_ssh_passphrase()` function available
 - Runs the `configure_git_ssh_passphrase()` function to set up Git and SSH configurations
-- Injects the content of `bashinject` into `.bashrc` or `.zshrc`
+- Injects the content of `inject` into `.bashrc` or `.zshrc`
 - Checks for existing configurations before making changes
 
 ### Usage:
@@ -54,7 +54,7 @@ source ~/func.sh
 configure_git_ssh_passphrase
 ```
 
-## bashinject
+## inject
 
 Contains aliases and configurations that will be injected into your shell environment.
 
