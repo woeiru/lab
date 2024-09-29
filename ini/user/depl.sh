@@ -90,10 +90,9 @@ inject_content() {
 # Display operations and prompt for confirmation
 display_operations() {
     echo "The following operations will be performed:"
-    echo "• Initialize target user and home directory"
-    echo "• Source usr.bash and configure environment"
-    echo "• Set appropriate config file (.zshrc or .bashrc)"
-    echo "• Inject content into config file"
+
+    # Dynamically generate operation list from function comments
+    grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# [0-9]+\. /• /'
 
     read -p "Do you want to proceed? (y/n): " choice
     case "$choice" in
@@ -106,41 +105,71 @@ display_operations() {
 main() {
     local success=true
 
-    if ! display_operations; then
-        echo "Operation cancelled by user."
-        exit 0
+    cat << EOF
+==================================================
+               DEPLOYMENT SCRIPT
+==================================================
+The following operations will be performed:
+EOF
+
+    # Display operations with numbering
+    grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# ([0-9]+)\. (.+)/\1  \2/'
+
+    echo "=================================================="
+    read -p "Do you want to proceed? (y/n): " choice
+    case "$choice" in
+        y|Y ) ;;
+        * ) echo "Operation cancelled by user."; exit 0;;
+    esac
+
+    # Create an array of function names, sorted by their comment number
+    local functions=($(grep -A1 -E '^# [0-9]+\.' "$0" | grep -E '^[a-z_]+[a-z0-9_-]*\(\)' | sed 's/().*//' | sort -n))
+
+    echo
+    echo "DEBUG: Functions to be executed:"
+    printf '%s\n' "${functions[@]}"
+    echo
+
+    # Check if the functions array is empty
+    if [ ${#functions[@]} -eq 0 ]; then
+        echo "Error: No functions found to execute."
+        return 1
     fi
 
-    # Define the functions to be executed in order
-    local functions=(
-        "init_target_user"
-        "configure_environment"
-        "set_config_file"
-        "inject_content"
-    )
-
-    # Loop through the functions and execute them
+    # Loop through the functions array and execute each function
     for func in "${functions[@]}"; do
+        echo "=================================================="
         echo "Executing: $func"
+        echo "=================================================="
+        # Check if the function exists
         if declare -f "$func" > /dev/null; then
+            # Execute the function and check its return status
             if ! $func; then
                 echo "Failed to execute $func."
                 success=false
                 break
             fi
         else
+            # If the function doesn't exist, print an error and set success to false
             echo "Error: Function $func not found."
             success=false
             break
         fi
+        echo
     done
 
+    echo "=================================================="
     if $success; then
         echo "All operations completed successfully."
-        echo "Run 'source $CONFIG_FILE' to apply changes in the current session."
+        if [ -n "$CONFIG_FILE" ]; then
+            echo "Run 'source $CONFIG_FILE' to apply changes in the current session."
+        else
+            echo "Warning: CONFIG_FILE is not set. Please check your shell configuration."
+        fi
     else
         echo "Some operations failed. Please check the output above for details."
     fi
+    echo "=================================================="
 }
 
 # Run the main function
