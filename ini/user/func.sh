@@ -1,3 +1,4 @@
+# Konsole profile change function
 change_konsole_profile() {
     local profile_number="$1"
 
@@ -36,5 +37,31 @@ change_konsole_profile() {
     fi
 }
 
-# Usage example:
+# Git and SSH configuration function
+configure_git_ssh_passphrase() {
+    # Set Git configuration
+    git config --global core.askPass ""
+    echo "Git global configuration updated to disable password prompting."
+
+    # Update SSH config
+    ssh_config="$HOME/.ssh/config"
+
+    if [ ! -f "$ssh_config" ]; then
+        mkdir -p "$HOME/.ssh"
+        touch "$ssh_config"
+        chmod 600 "$ssh_config"
+    fi
+
+    if ! grep -q "ASKPASS" "$ssh_config"; then
+        echo -e "\n# Disable SSH_ASKPASS\nHost *\n    SetEnv SSH_ASKPASS=''" >> "$ssh_config"
+        echo "SSH configuration updated to disable ASKPASS."
+    else
+        echo "SSH configuration already contains ASKPASS setting."
+    fi
+
+    echo "configure_git_ssh_passphrase: Git and SSH configurations have been updated."
+}
+
+# Usage examples:
 # change_konsole_profile 2
+# configure_git_ssh_passphrase
