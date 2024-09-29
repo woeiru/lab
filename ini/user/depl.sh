@@ -9,7 +9,7 @@ source ~/func.sh
 # Run configure_git_ssh_passphrase() function
 configure_git_ssh_passphrase
 
-# Inject bashinject content into .bashrc or .zshrc
+# Inject content into .bashrc or .zshrc
 if [ -f ~/.zshrc ]; then
     config_file=~/.zshrc
 elif [ -f ~/.bashrc ]; then
@@ -19,15 +19,15 @@ else
     exit 1
 fi
 
-# Check if bashinject content already exists
-if grep -q "# START bashinject" "$config_file"; then
-    echo "bashinject content already exists in $config_file. Skipping."
+# Check if inject content already exists
+if grep -q "# START inject" "$config_file"; then
+    echo "inject content already exists in $config_file. Skipping."
 else
     echo "" >> "$config_file"
-    echo "# START bashinject" >> "$config_file"
-    cat bashinject >> "$config_file"
-    echo "# END bashinject" >> "$config_file"
-    echo "bashinject content added to $config_file"
+    echo "# START inject" >> "$config_file"
+    cat inject >> "$config_file"
+    echo "# END inject" >> "$config_file"
+    echo "inject content added to $config_file"
 fi
 
 echo "Deployment completed. Run 'source $config_file' to apply changes in the current session."
