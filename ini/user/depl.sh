@@ -5,6 +5,7 @@ LAB_DIR="$( cd "$SCRIPT_DIR/../.." &> /dev/null && pwd )"
 TARGET_HOME=""
 CONFIG_FILE=""
 
+# 1. Initialize target user and home directory
 init_target_user() {
     if [ "$EUID" -eq 0 ]; then
         echo "Running as root. Please enter the target user's username (or 'root' for the root user):"
@@ -26,6 +27,7 @@ init_target_user() {
     return 0
 }
 
+# 2. Source usr.bash and configure environment
 configure_environment() {
     USR_BASH_PATH="$LAB_DIR/lib/usr.bash"
     if [ -f "$USR_BASH_PATH" ]; then
@@ -45,6 +47,7 @@ configure_environment() {
     fi
 }
 
+# 3. Set appropriate config file (.zshrc or .bashrc)
 set_config_file() {
     if [ -f "$TARGET_HOME/.zshrc" ]; then
         CONFIG_FILE="$TARGET_HOME/.zshrc"
@@ -57,26 +60,39 @@ set_config_file() {
     return 0
 }
 
+# 4. Inject content into config file
 inject_content() {
-    if grep -q "# START inject" "$CONFIG_FILE"; then
-        echo "inject content already exists in $CONFIG_FILE. Skipping."
-        return 0
+    local start_marker="# START inject"
+    local end_marker="# END inject"
+    local temp_file=$(mktemp)
+
+    if grep -q "$start_marker" "$CONFIG_FILE"; then
+        # If injection markers exist, replace the content between them
+        awk -v start="$start_marker" -v end="$end_marker" -v inject_file="$SCRIPT_DIR/inject" '
+            $0 ~ start {print; system("cat " inject_file); f=1; next}
+            $0 ~ end {f=0}
+            !f
+        ' "$CONFIG_FILE" > "$temp_file"
+        mv "$temp_file" "$CONFIG_FILE"
+        echo "Existing inject content in $CONFIG_FILE has been updated."
     else
+        # If no injection markers exist, append the new content
         echo "" >> "$CONFIG_FILE"
-        echo "# START inject" >> "$CONFIG_FILE"
+        echo "$start_marker" >> "$CONFIG_FILE"
         cat "$SCRIPT_DIR/inject" >> "$CONFIG_FILE"
-        echo "# END inject" >> "$CONFIG_FILE"
-        echo "inject content added to $CONFIG_FILE"
-        return 0
+        echo "$end_marker" >> "$CONFIG_FILE"
+        echo "New inject content added to $CONFIG_FILE"
     fi
+
+    return 0
 }
 
+# Display operations and prompt for confirmation
 display_operations() {
     echo "The following operations will be performed:"
-    echo "• Initialize target user and home directory"
-    echo "• Source usr.bash and configure environment"
-    echo "• Set appropriate config file (.zshrc or .bashrc)"
-    echo "• Inject content into config file"
+
+    # Dynamically generate operation list from function comments
+    grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# [0-9]+\. /• /'
 
     read -p "Do you want to proceed? (y/n): " choice
     case "$choice" in
@@ -85,6 +101,7 @@ display_operations() {
     esac
 }
 
+# Main execution function
 main() {
     local success=true
 
@@ -93,25 +110,18 @@ main() {
         exit 0
     fi
 
-    if ! init_target_user; then
-        echo "Failed to initialize target user."
-        success=false
-    fi
+    # Create an array of function names, sorted by their number
+    local functions=($(grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# [0-9]+\. (.+)/\1/' | awk '{print $1}'))
 
-    if ! configure_environment; then
-        echo "Failed to configure environment."
-        success=false
-    fi
-
-    if ! set_config_file; then
-        echo "Failed to set config file."
-        success=false
-    fi
-
-    if ! inject_content; then
-        echo "Failed to inject content."
-        success=false
-    fi
+    # Loop through the functions and execute them
+    for func in "${functions[@]}"; do
+        echo "Executing: $func"
+        if ! $func; then
+            echo "Failed to execute $func."
+            success=false
+            break
+        fi
+    done
 
     if $success; then
         echo "All operations completed successfully."
@@ -121,4 +131,5 @@ main() {
     fi
 }
 
+# Run the main function
 main
