@@ -1,10 +1,7 @@
 #!/bin/bash
 
-# Copy func.sh to the user's home directory
-cp func.sh ~/func.sh
-
-# Source func.sh to make configure_git_ssh_passphrase() available
-source ~/func.sh
+# Source usr.bash from the lib folder
+source ../lib/usr.bash
 
 # Run configure_git_ssh_passphrase() function
 configure_git_ssh_passphrase
