@@ -87,20 +87,6 @@ inject_content() {
     return 0
 }
 
-# Display operations and prompt for confirmation
-display_operations() {
-    echo "The following operations will be performed:"
-
-    # Dynamically generate operation list from function comments
-    grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# [0-9]+\. /• /'
-
-    read -p "Do you want to proceed? (y/n): " choice
-    case "$choice" in
-        y|Y ) return 0;;
-        * ) return 1;;
-    esac
-}
-
 # Main execution function
 main() {
     local success=true
@@ -122,41 +108,50 @@ EOF
         * ) echo "Operation cancelled by user."; exit 0;;
     esac
 
-    # Create an array of function names, sorted by their comment number
-    local functions=($(grep -A1 -E '^# [0-9]+\.' "$0" | grep -E '^[a-z_]+[a-z0-9_-]*\(\)' | sed 's/().*//' | sort -n))
+    # Nested function to handle function ordering and execution
+    execute_functions() {
+        # Create an array of function names, sorted by their comment number
+        local functions=($(grep -E '^# [0-9]+\.' "$0" |
+                           sed -E 's/^# ([0-9]+)\. .*/\1 /' |
+                           paste -d' ' - <(grep -A1 -E '^# [0-9]+\.' "$0" |
+                                           grep -E '^[a-z_]+[a-z0-9_-]*\(\)' |
+                                           sed 's/().*//') |
+                           sort -n |
+                           cut -d' ' -f2-))
 
-    echo
-    echo "DEBUG: Functions to be executed:"
-    printf '%s\n' "${functions[@]}"
-    echo
-
-    # Check if the functions array is empty
-    if [ ${#functions[@]} -eq 0 ]; then
-        echo "Error: No functions found to execute."
-        return 1
-    fi
-
-    # Loop through the functions array and execute each function
-    for func in "${functions[@]}"; do
-        echo "=================================================="
-        echo "Executing: $func"
-        echo "=================================================="
-        # Check if the function exists
-        if declare -f "$func" > /dev/null; then
-            # Execute the function and check its return status
-            if ! $func; then
-                echo "Failed to execute $func."
-                success=false
-                break
-            fi
-        else
-            # If the function doesn't exist, print an error and set success to false
-            echo "Error: Function $func not found."
-            success=false
-            break
+        # Check if the functions array is empty
+        if [ ${#functions[@]} -eq 0 ]; then
+            echo "Error: No functions found to execute."
+            return 1
         fi
-        echo
-    done
+
+        # Loop through the functions array and execute each function
+        for func in "${functions[@]}"; do
+            echo "=================================================="
+            echo "Executing: $func"
+            echo "=================================================="
+            # Check if the function exists
+            if declare -f "$func" > /dev/null; then
+                # Execute the function and check its return status
+                if ! $func; then
+                    echo "Failed to execute $func."
+                    return 1
+                fi
+            else
+                # If the function doesn't exist, print an error and return 1
+                echo "Error: Function $func not found."
+                return 1
+            fi
+            echo
+        done
+
+        return 0
+    }
+
+    # Execute the nested function
+    if ! execute_functions; then
+        success=false
+    fi
 
     echo "=================================================="
     if $success; then
