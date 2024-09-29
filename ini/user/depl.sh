@@ -1,10 +1,10 @@
 #!/bin/bash
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+LAB_DIR="$( cd "$SCRIPT_DIR/../.." &> /dev/null && pwd )"
 TARGET_HOME=""
 CONFIG_FILE=""
 
-# Initialize target user and home directory
 init_target_user() {
     if [ "$EUID" -eq 0 ]; then
         echo "Running as root. Please enter the target user's username (or 'root' for the root user):"
@@ -26,11 +26,11 @@ init_target_user() {
     return 0
 }
 
-# Source usr.bash and run configuration
 configure_environment() {
-    if [ -f "$SCRIPT_DIR/../lib/usr.bash" ]; then
-        source "$SCRIPT_DIR/../lib/usr.bash"
-        echo "Sourced usr.bash from $SCRIPT_DIR/../lib/usr.bash"
+    USR_BASH_PATH="$LAB_DIR/lib/usr.bash"
+    if [ -f "$USR_BASH_PATH" ]; then
+        source "$USR_BASH_PATH"
+        echo "Sourced usr.bash from $USR_BASH_PATH"
         if declare -f usr-cgp > /dev/null; then
             usr-cgp
             echo "Configured Git and SSH settings."
@@ -40,12 +40,11 @@ configure_environment() {
             return 1
         fi
     else
-        echo "Warning: $SCRIPT_DIR/../lib/usr.bash not found."
+        echo "Warning: $USR_BASH_PATH not found."
         return 1
     fi
 }
 
-# Determine the appropriate config file (.zshrc or .bashrc)
 set_config_file() {
     if [ -f "$TARGET_HOME/.zshrc" ]; then
         CONFIG_FILE="$TARGET_HOME/.zshrc"
@@ -58,7 +57,6 @@ set_config_file() {
     return 0
 }
 
-# Inject content into the config file
 inject_content() {
     if grep -q "# START inject" "$CONFIG_FILE"; then
         echo "inject content already exists in $CONFIG_FILE. Skipping."
@@ -73,7 +71,6 @@ inject_content() {
     fi
 }
 
-# Display operations and prompt for confirmation
 display_operations() {
     echo "The following operations will be performed:"
     echo "• Initialize target user and home directory"
@@ -88,7 +85,6 @@ display_operations() {
     esac
 }
 
-# Main execution function
 main() {
     local success=true
 
@@ -125,5 +121,4 @@ main() {
     fi
 }
 
-# Run the main function
 main
