@@ -27,7 +27,10 @@ usr-fun() {
     all-laf "$FILEPATH_all" "$@"
 }
 
-change_konsole_profile() {
+# Changes the Konsole profile for the current user by updating the konsolerc file
+# change konsole profile
+# <profile_number>
+usr-ckp() {
     local profile_number="$1"
     local username
     local konsolerc_path
@@ -66,7 +69,10 @@ change_konsole_profile() {
     fi
 }
 
-configure_git_ssh_passphrase() {
+# Configures Git and SSH to disable password prompting by updating Git global configuration and SSH config file
+# configure git ssh passphrase
+#
+usr-cgsp() {
     local ssh_config="$HOME/.ssh/config"
     local askpass_line="    SetEnv SSH_ASKPASS=''"
 
@@ -118,7 +124,7 @@ usr-vsf() {
 # <path> <folder_type: 1=regular, 2=hidden, 3=both>
 usr-cff() {
     if [ $# -ne 2 ]; then
-	all-use
+        all-use
         return 1
     fi
 
@@ -253,7 +259,3 @@ usr-cif() {
         fi
     done
 }
-
-# Usage examples:
-# change_konsole_profile 2
-# configure_git_ssh_passphrase
