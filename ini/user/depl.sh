@@ -90,9 +90,10 @@ inject_content() {
 # Display operations and prompt for confirmation
 display_operations() {
     echo "The following operations will be performed:"
-
-    # Dynamically generate operation list from function comments
-    grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# [0-9]+\. /• /'
+    echo "• Initialize target user and home directory"
+    echo "• Source usr.bash and configure environment"
+    echo "• Set appropriate config file (.zshrc or .bashrc)"
+    echo "• Inject content into config file"
 
     read -p "Do you want to proceed? (y/n): " choice
     case "$choice" in
@@ -110,14 +111,25 @@ main() {
         exit 0
     fi
 
-    # Create an array of function names, sorted by their number
-    local functions=($(grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# [0-9]+\. .+/\1/' | awk '{print $NF}'))
+    # Define the functions to be executed in order
+    local functions=(
+        "init_target_user"
+        "configure_environment"
+        "set_config_file"
+        "inject_content"
+    )
 
     # Loop through the functions and execute them
     for func in "${functions[@]}"; do
         echo "Executing: $func"
-        if ! $func; then
-            echo "Failed to execute $func."
+        if declare -f "$func" > /dev/null; then
+            if ! $func; then
+                echo "Failed to execute $func."
+                success=false
+                break
+            fi
+        else
+            echo "Error: Function $func not found."
             success=false
             break
         fi
