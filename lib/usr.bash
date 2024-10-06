@@ -35,51 +35,48 @@ usr-ckp() {
     local username
     local konsole_profile_path
     local profile_name
-
     username=$(whoami)
     echo "Changing Konsole profile for user: $username"
-
     if [ "$username" = "root" ]; then
         konsole_profile_path="/root/.local/share/konsole"
     else
         konsole_profile_path="$HOME/.local/share/konsole"
     fi
-
     if [ ! -d "$konsole_profile_path" ]; then
         echo "Error: Konsole profile directory not found at $konsole_profile_path"
         return 1
     fi
-
     if ! [[ "$profile_number" =~ ^[0-9]+$ ]]; then
         echo "Error: Invalid profile number. Please provide a positive integer."
         return 1
     fi
-
     profile_name="Profile $profile_number.profile"
-
     if [ ! -f "$konsole_profile_path/$profile_name" ]; then
         echo "Error: Profile $profile_number does not exist in $konsole_profile_path"
         return 1
     fi
-
     local konsolerc_path
     if [ "$username" = "root" ]; then
         konsolerc_path="/root/.config/konsolerc"
     else
         konsolerc_path="$HOME/.config/konsolerc"
     fi
-
     if [ ! -f "$konsolerc_path" ]; then
         echo "Error: Konsole configuration file not found at $konsolerc_path"
         return 1
     fi
-
-    if sed -i '/^\[Desktop Entry\]/,/^\[/ s/^DefaultProfile=.*/DefaultProfile=Profile '"$profile_number"'.profile/' "$konsolerc_path"; then
-        echo "Konsole default profile updated to Profile $profile_number for user $username."
+    
+    # Check if the DefaultProfile line exists in the [Desktop Entry] section
+    if ! grep -q '^\[Desktop Entry\]' "$konsolerc_path" || ! sed -n '/^\[Desktop Entry\]/,/^\[/p' "$konsolerc_path" | grep -q '^DefaultProfile='; then
+        # If it doesn't exist, add it to the [Desktop Entry] section
+        sed -i '/^\[Desktop Entry\]/a DefaultProfile=Profile '"$profile_number"'.profile' "$konsolerc_path"
+        echo "Added DefaultProfile line to $konsolerc_path"
     else
-        echo "Error: Failed to update Konsole profile for user $username."
-        return 1
+        # If it exists, update it
+        sed -i '/^\[Desktop Entry\]/,/^\[/ s/^DefaultProfile=.*/DefaultProfile=Profile '"$profile_number"'.profile/' "$konsolerc_path"
     fi
+    
+    echo "Konsole default profile updated to Profile $profile_number for user $username."
 }
 
 # Configures Git and SSH to disable password prompting by updating Git global configuration and SSH config file
