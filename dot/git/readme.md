@@ -118,9 +118,13 @@ When dealing with new, untracked files or directories:
 
 ## Exporting Changes for Ansible
 
-When ready to convert to Ansible, follow these steps to ensure all changes, including untracked files, are exported:
+There are two main approaches to exporting changes: exporting all changes since the initial commit, and exporting only recent changes. Choose the approach that best fits your needs.
 
-1. First, stage all changes, including untracked files:
+### Approach 1: Exporting All Changes
+
+Use this approach when you want to export all changes since the initial commit, including untracked files:
+
+1. Stage all changes, including untracked files:
    ```
    git add -A
    ```
@@ -145,13 +149,46 @@ When ready to convert to Ansible, follow these steps to ensure all changes, incl
    git reset
    ```
 
-Now you have a diff file that includes all changes, even those from previously untracked files.
+### Approach 2: Exporting Only Recent Changes
 
-To work with this exported diff:
+Use this approach when you want to export only the most recent changes:
+
+1. If you have uncommitted changes you want to include, first commit them:
+   ```
+   git add -A
+   git commit -m "Recent changes for export"
+   ```
+
+2. Export only the most recent commit:
+   ```
+   git diff HEAD^ HEAD > recent_changes.diff
+   ```
+
+   Or, to include staged but uncommitted changes:
+   ```
+   git diff HEAD > recent_changes.diff
+   ```
+
+3. To see these changes before exporting:
+   ```
+   git diff HEAD^ HEAD
+   ```
+   Or for staged changes:
+   ```
+   git diff --staged
+   ```
+
+### Working with Exported Diffs
+
+Regardless of the approach you choose:
 
 1. Review the diff file to understand all changes:
    ```
    less all_config_changes.diff
+   ```
+   or
+   ```
+   less recent_changes.diff
    ```
 
 2. Group related changes into potential Ansible tasks.
@@ -162,35 +199,7 @@ To work with this exported diff:
 
 5. For new files that were previously untracked, you may need to use Ansible's `copy` or `template` modules to create these files on the target system.
 
-Remember, this process creates a comprehensive diff of all changes and new files, but you'll need to carefully review and translate these changes into appropriate Ansible tasks.
-
-### Exporting Only Recent Changes
-
-If you want to export only the most recent changes, you can use the following command:
-
-```
-git diff HEAD^ HEAD > recent_changes.diff
-```
-
-This command will create a diff file containing only the changes from the last commit. If you want to include staged but not yet committed changes, you can use:
-
-```
-git diff HEAD > recent_changes.diff
-```
-
-To see these changes before exporting, you can use:
-
-```
-git diff HEAD^ HEAD
-```
-
-or for staged changes:
-
-```
-git diff --staged
-```
-
-These commands are useful when you've made a series of changes over time and only want to export the most recent modifications for review or conversion to Ansible tasks.
+Remember, you'll need to carefully review and translate these changes into appropriate Ansible tasks.
 
 ## Note
 
