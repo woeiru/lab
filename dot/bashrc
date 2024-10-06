@@ -190,7 +190,7 @@ main() {
 
     # Cat (file viewing)
     alias c='cat'
-    alias c.b="cat $INI_DIR/bashrc"
+    alias c.b="cat $DOT_DIR/bashrc"
     alias c.group='cat /etc/group'
     alias c.passwd='cat /etc/passwd'
     alias c.fstab='cat /etc/fstab'
@@ -296,7 +296,7 @@ main() {
 
     # Vim
     alias v='vim'
-    alias v.b="vim $INI_DIR/bashrc"
+    alias v.b="vim $DOT_DIR/bashrc"
     alias v.nw="vim $CON_DIR/node-w.md"
 
     # File listing
