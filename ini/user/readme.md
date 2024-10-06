@@ -6,7 +6,7 @@ This repository contains shell scripts and configuration files for customizing a
 
 ```
 ini/
-└── user/
+└── dot/
     ├── depl.sh
     ├── inject
     └── readme.md
@@ -32,7 +32,7 @@ The main deployment script that sets up the entire configuration.
 
 ### Usage:
 ```bash
-./depl.sh
+/path/to/lab/ini/dot/depl.sh
 ```
 
 ## usr.bash
@@ -50,19 +50,34 @@ Contains aliases and configurations that will be injected into your shell enviro
 
 ## Installation
 
-1. Ensure you're in the `ini/user` directory.
+1. Ensure you have the correct directory structure:
+   ```
+   lab/
+   ├── ini/
+   │   └── dot/
+   │       ├── depl.sh
+   │       ├── inject
+   │       └── readme.md
+   └── lib/
+       └── usr.bash
+   ```
+
 2. Make sure the `depl.sh` script is executable:
    ```bash
-   chmod +x depl.sh
+   chmod +x /path/to/lab/ini/dot/depl.sh
    ```
+
 3. Run `depl.sh` to set up the entire configuration:
    ```bash
-   ./depl.sh
+   /path/to/lab/ini/dot/depl.sh
    ```
+
 4. Source your updated shell configuration file:
    ```bash
    source ~/.bashrc  # or ~/.zshrc if you're using zsh
    ```
+
+Note: You can run the `depl.sh` script from any directory, as long as you provide the correct path to the script.
 
 ## Notes
 
