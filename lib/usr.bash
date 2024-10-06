@@ -33,20 +33,20 @@ usr-fun() {
 usr-ckp() {
     local profile_number="$1"
     local username
-    local konsolerc_path
+    local konsole_profile_path
     local profile_name
 
     username=$(whoami)
     echo "Changing Konsole profile for user: $username"
 
     if [ "$username" = "root" ]; then
-        konsolerc_path="/root/.config/konsolerc"
+        konsole_profile_path="/root/.local/share/konsole"
     else
-        konsolerc_path="$HOME/.config/konsolerc"
+        konsole_profile_path="$HOME/.local/share/konsole"
     fi
 
-    if [ ! -f "$konsolerc_path" ]; then
-        echo "Error: Konsole configuration file not found at $konsolerc_path"
+    if [ ! -d "$konsole_profile_path" ]; then
+        echo "Error: Konsole profile directory not found at $konsole_profile_path"
         return 1
     fi
 
@@ -55,9 +55,22 @@ usr-ckp() {
         return 1
     fi
 
-    profile_name="Profile $profile_number"
-    if ! grep -q "$profile_name" "$konsolerc_path"; then
-        echo "Error: Profile $profile_number does not exist in $konsolerc_path"
+    profile_name="Profile $profile_number.profile"
+
+    if [ ! -f "$konsole_profile_path/$profile_name" ]; then
+        echo "Error: Profile $profile_number does not exist in $konsole_profile_path"
+        return 1
+    fi
+
+    local konsolerc_path
+    if [ "$username" = "root" ]; then
+        konsolerc_path="/root/.config/konsolerc"
+    else
+        konsolerc_path="$HOME/.config/konsolerc"
+    fi
+
+    if [ ! -f "$konsolerc_path" ]; then
+        echo "Error: Konsole configuration file not found at $konsolerc_path"
         return 1
     fi
 

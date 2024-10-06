@@ -11,7 +11,7 @@ fi
 #
 # desktop
 #
-alias p1='plasma-apply-lookandfeel -a org.kde.breeze.desktop && change_konsole_profile 1'
-alias p2='plasma-apply-lookandfeel -a org.kde.breezedark.desktop && change_konsole_profile 2'
+alias p1='plasma-apply-lookandfeel -a org.kde.breeze.desktop && usr-ckp 1'
+alias p2='plasma-apply-lookandfeel -a org.kde.breezedark.desktop && usr-ckp 2'
 alias ypr='systemctl --user restart plasma-plasmashell'
 #
