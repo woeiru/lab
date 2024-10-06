@@ -1,0 +1,15 @@
+diff --git a/.local/share/konsole/Profile 1.profile b/.local/share/konsole/Profile 1.profile
+new file mode 100644
+index 0000000..b47a854
+--- /dev/null
++++ b/.local/share/konsole/Profile 1.profile	
+@@ -0,0 +1,9 @@
++[Appearance]
++ColorScheme=SolarizedLight
++Font=Noto Sans Mono,13,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
++
++[General]
++Name=Profile 1
++Parent=FALLBACK/
++TerminalColumns=133
++TerminalRows=44
