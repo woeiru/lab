@@ -164,6 +164,33 @@ To work with this exported diff:
 
 Remember, this process creates a comprehensive diff of all changes and new files, but you'll need to carefully review and translate these changes into appropriate Ansible tasks.
 
+### Exporting Only Recent Changes
+
+If you want to export only the most recent changes, you can use the following command:
+
+```
+git diff HEAD^ HEAD > recent_changes.diff
+```
+
+This command will create a diff file containing only the changes from the last commit. If you want to include staged but not yet committed changes, you can use:
+
+```
+git diff HEAD > recent_changes.diff
+```
+
+To see these changes before exporting, you can use:
+
+```
+git diff HEAD^ HEAD
+```
+
+or for staged changes:
+
+```
+git diff --staged
+```
+
+These commands are useful when you've made a series of changes over time and only want to export the most recent modifications for review or conversion to Ansible tasks.
 
 ## Note
 
