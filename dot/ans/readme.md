@@ -20,15 +20,28 @@ This guide will walk you through the process of setting up Ansible and deploying
 
 ## Installing Ansible
 
+The installation method depends on your operating system:
+
+### For Fedora (or other RPM-based systems):
+
+1. Open your terminal.
+2. Install Ansible using DNF:
+   ```
+   sudo dnf install ansible
+   ```
+
+### For other systems:
+
 1. Open your terminal.
 2. Install Ansible using pip (Python package manager):
    ```
    pip install ansible
    ```
-3. Verify the installation:
-   ```
-   ansible --version
-   ```
+
+After installation, verify it by running:
+```
+ansible --version
+```
 
 ## Project Structure
 
@@ -68,6 +81,18 @@ Your Ansible project is organized with roles and a `start` directory for playboo
    ```
    ansible-playbook start/site.yml
    ```
+
+3. To perform a dry run (check mode):
+   ```
+   ansible-playbook start/site.yml --check
+   ```
+   This simulates the execution without making any changes to your system.
+
+4. For a dry run with detailed diff output:
+   ```
+   ansible-playbook start/site.yml --check --diff
+   ```
+   This shows you what changes would be made without actually applying them.
 
 ## Customizing Roles
 
