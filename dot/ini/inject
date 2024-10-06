@@ -2,7 +2,7 @@
 #
 if [ "$(id -u)" -eq 0 ]; then
     # Running as root
-    . ~/lab/ini/bashrc
+    . ~/lab/dot/bashrc
 else
     # Running as regular user
     . ~/usr.sh
