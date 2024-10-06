@@ -17,10 +17,12 @@ This guide explains how to use Git to manage your configuration files in .config
 3. Create a .gitignore file to exclude everything except .config and .local:
    ```
    cat << 'EOF' > .gitignore
-   *
+   /*
    !.gitignore
    !.config/
+   !.config/**
    !.local/
+   !.local/**
    EOF
    ```
 
@@ -66,6 +68,37 @@ Follow these steps to track changes to your configuration:
    git commit -m "Description of changes"
    ```
 
+## Handling Untracked Files and Directories
+
+When dealing with new, untracked files or directories:
+
+1. Use `git status` to see which directories contain untracked files.
+
+2. For more detailed view of untracked files:
+   ```
+   git status -u
+   ```
+   or for even more detail:
+   ```
+   git status -uall
+   ```
+
+3. To see the contents of a specific untracked file:
+   ```
+   git diff --no-index -- /dev/null 'path/to/specific/file'
+   ```
+
+4. If you don't know the names of new files in a directory:
+   ```
+   ls path/to/directory/
+   git diff --no-index -- /dev/null path/to/directory/filename
+   ```
+
+5. To stage new files or directories:
+   ```
+   git add path/to/new/file_or_directory
+   ```
+
 ## Reviewing Changes
 
 - To see changes in a specific commit:
@@ -85,11 +118,40 @@ Follow these steps to track changes to your configuration:
 
 ## Exporting Changes for Ansible
 
-When ready to convert to Ansible:
+When ready to convert to Ansible, follow these steps to ensure all changes, including untracked files, are exported:
 
-1. Export all changes to a file:
+1. First, stage all changes, including untracked files:
+   ```
+   git add -A
+   ```
+
+2. Create a temporary commit (we'll undo this later):
+   ```
+   git commit -m "Temporary commit for exporting changes"
+   ```
+
+3. Export all changes, including newly added files, to a diff file:
    ```
    git diff $(git rev-list --max-parents=0 HEAD) HEAD > all_config_changes.diff
+   ```
+
+4. Undo the temporary commit, keeping the changes staged:
+   ```
+   git reset --soft HEAD^
+   ```
+
+5. Unstage the changes:
+   ```
+   git reset
+   ```
+
+Now you have a diff file that includes all changes, even those from previously untracked files.
+
+To work with this exported diff:
+
+1. Review the diff file to understand all changes:
+   ```
+   less all_config_changes.diff
    ```
 
 2. Group related changes into potential Ansible tasks.
@@ -97,6 +159,11 @@ When ready to convert to Ansible:
 3. Identify configuration files and their locations.
 
 4. Research how to apply these changes via command line or config files, which will help in creating Ansible tasks.
+
+5. For new files that were previously untracked, you may need to use Ansible's `copy` or `template` modules to create these files on the target system.
+
+Remember, this process creates a comprehensive diff of all changes and new files, but you'll need to carefully review and translate these changes into appropriate Ansible tasks.
+
 
 ## Note
 
