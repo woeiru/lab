@@ -7,12 +7,12 @@
 
 - name: Copy Konsole Profile 1
   copy:
-    src: konsole_profile_1.profile
+    src: "Profile 1.profile"
     dest: "{{ ansible_env.HOME }}/.local/share/konsole/Profile 1.profile"
     mode: '0644'
 
 - name: Copy Konsole Profile 2
   copy:
-    src: konsole_profile_2.profile
+    src: "Profile 2.profile"
     dest: "{{ ansible_env.HOME }}/.local/share/konsole/Profile 2.profile"
     mode: '0644'
