@@ -1,44 +1,47 @@
-# DOT FILES with GIT
+# Managing Your Dotfiles with Git
 
-This guide explains how to use Git to manage all your configuration files in .config and .local directories.
+This guide explains how to use Git to manage your configuration files in .config and .local directories directly from your home folder.
 
 ## Initial Setup
 
-1. Create a new directory in your home folder to store your dotfiles:
+1. Navigate to your home directory:
    ```
-   mkdir ~/dotfiles
-   cd ~/dotfiles
-   ```
-
-2. Set the default branch name for new repositories:
-   ```
-   git config --global init.defaultBranch main
+   cd ~
    ```
 
-3. Initialize a new Git repository:
+2. Initialize a new Git repository:
    ```
    git init
    ```
 
-4. Verify that the branch is named 'main':
+3. Create a .gitignore file to exclude everything except .config and .local:
    ```
-   git branch
+   cat << 'EOF' > .gitignore
+   *
+   !.gitignore
+   !.config/
+   !.local/
+   EOF
    ```
 
-5. Create symbolic links for .config and .local:
+4. Set the default branch name (if not already set):
    ```
-   ln -s ~/.config config
-   ln -s ~/.local local
+   git config --global init.defaultBranch main
    ```
 
-6. Add all files to the repository:
+5. Rename the current branch to 'main' if necessary:
    ```
-   git add .
+   git branch -m main
+   ```
+
+6. Add .config and .local directories to the repository:
+   ```
+   git add .config .local
    ```
 
 7. Commit the initial state:
    ```
-   git commit -m "Initial commit of all dotfiles"
+   git commit -m "Initial commit of .config and .local"
    ```
 
 ## Tracking Changes
@@ -49,7 +52,6 @@ Follow these steps to track changes to your configuration:
 
 2. Check which files have been modified:
    ```
-   cd ~/dotfiles
    git status
    ```
 
@@ -100,19 +102,15 @@ When ready to convert to Ansible:
 
 This setup is for local use only. No remote repository is configured, so all changes are tracked only on your local machine. Be cautious about committing sensitive information.
 
-## Restoring Configuration
+## Applying Configuration to a New System
 
-To restore your configuration on a new system:
+To apply your configuration on a new system:
 
-1. Clone your dotfiles repository:
+1. Clone your dotfiles repository to the new home directory:
    ```
-   git clone /path/to/your/dotfiles/repo ~/dotfiles
+   git clone /path/to/your/dotfiles/repo ~
    ```
 
-2. Create symbolic links:
-   ```
-   ln -s ~/dotfiles/config ~/.config
-   ln -s ~/dotfiles/local ~/.local
-   ```
+2. Your .config and .local directories should now be in place and up to date.
 
 Remember to restart your session or log out and log back in for some changes to take effect.
