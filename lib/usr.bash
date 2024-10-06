@@ -66,53 +66,25 @@ usr-ckp() {
         return 1
     fi
     
-    # Check if the DefaultProfile line exists in the [Desktop Entry] section
-    if ! grep -q '^\[Desktop Entry\]' "$konsolerc_path" || ! sed -n '/^\[Desktop Entry\]/,/^\[/p' "$konsolerc_path" | grep -q '^DefaultProfile='; then
-        # If it doesn't exist, add it to the [Desktop Entry] section
-        sed -i '/^\[Desktop Entry\]/a DefaultProfile=Profile '"$profile_number"'.profile' "$konsolerc_path"
-        echo "Added DefaultProfile line to $konsolerc_path"
+    # Check if [Desktop Entry] section exists
+    if ! grep -q '^\[Desktop Entry\]' "$konsolerc_path"; then
+        # If it doesn't exist, add it and the DefaultProfile line
+        echo -e "\n[Desktop Entry]\nDefaultProfile=Profile $profile_number.profile" >> "$konsolerc_path"
+        echo "Added [Desktop Entry] section with DefaultProfile to $konsolerc_path"
     else
-        # If it exists, update it
-        sed -i '/^\[Desktop Entry\]/,/^\[/ s/^DefaultProfile=.*/DefaultProfile=Profile '"$profile_number"'.profile/' "$konsolerc_path"
+        # If [Desktop Entry] exists, check if DefaultProfile line exists
+        if ! sed -n '/^\[Desktop Entry\]/,/^\[/p' "$konsolerc_path" | grep -q '^DefaultProfile='; then
+            # If it doesn't exist, add it to the [Desktop Entry] section
+            sed -i '/^\[Desktop Entry\]/a DefaultProfile=Profile '"$profile_number"'.profile' "$konsolerc_path"
+            echo "Added DefaultProfile line to $konsolerc_path"
+        else
+            # If it exists, update it
+            sed -i '/^\[Desktop Entry\]/,/^\[/ s/^DefaultProfile=.*/DefaultProfile=Profile '"$profile_number"'.profile/' "$konsolerc_path"
+            echo "Updated existing DefaultProfile line in $konsolerc_path"
+        fi
     fi
     
     echo "Konsole default profile updated to Profile $profile_number for user $username."
-}
-
-# Configures Git and SSH to disable password prompting by updating Git global configuration and SSH config file
-# configure git ssh passphrase
-#
-usr-cgp() {
-    local ssh_config="$HOME/.ssh/config"
-    local askpass_line="    SetEnv SSH_ASKPASS=''"
-
-    # Set Git configuration
-    if git config --global core.askPass ""; then
-        echo "Git global configuration updated to disable password prompting."
-    else
-        echo "Error: Failed to update Git configuration."
-        return 1
-    fi
-
-    # Update SSH config
-    if [ ! -f "$ssh_config" ]; then
-        mkdir -p "$HOME/.ssh"
-        touch "$ssh_config"
-        chmod 600 "$ssh_config"
-    fi
-
-    if ! grep -q "^Host \*$" "$ssh_config"; then
-        echo -e "\n# Disable SSH_ASKPASS\nHost *" >> "$ssh_config"
-    fi
-
-    if ! grep -q "^$askpass_line" "$ssh_config"; then
-        sed -i '/^Host \*/a\'"$askpass_line" "$ssh_config"
-        echo "SSH configuration updated to disable ASKPASS."
-    else
-        echo "SSH configuration already contains ASKPASS setting."
-    fi
-
-    echo "configure_git_ssh_passphrase: Git and SSH configurations have been updated."
 }
 
 # Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
