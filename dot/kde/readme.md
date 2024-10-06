@@ -10,18 +10,28 @@ This guide explains how to use Git to manage your configuration files (dotfiles)
    cd ~/dotfiles
    ```
 
-2. Initialize a new Git repository:
+2. Set the default branch name for new repositories (you can choose 'main' or any other name you prefer):
+   ```
+   git config --global init.defaultBranch main
+   ```
+
+3. Initialize a new Git repository:
    ```
    git init
    ```
 
-3. Create symbolic links for .config and .local:
+4. Verify that the branch is named 'main' (or the name you chose):
+   ```
+   git branch
+   ```
+
+5. Create symbolic links for .config and .local:
    ```
    ln -s ~/.config config
    ln -s ~/.local local
    ```
 
-4. Create a .gitignore file to exclude unnecessary files:
+6. Create a .gitignore file to exclude unnecessary files:
    ```
    echo "
    *
@@ -36,7 +46,7 @@ This guide explains how to use Git to manage your configuration files (dotfiles)
 
    This .gitignore setup ignores everything by default, then explicitly includes the directories and files we want to track.
 
-5. Add and commit the initial state:
+7. Add and commit the initial state:
    ```
    git add .
    git commit -m "Initial commit of dotfiles"
