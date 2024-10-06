@@ -1,0 +1,18 @@
+---
+- name: Dynamic Main Configuration Playbook
+  hosts: localhost
+  become: no
+  vars:
+    playbook_dir: "{{ playbook_dir }}"
+  tasks:
+    - name: Find all YAML files
+      find:
+        paths: "{{ playbook_dir }}"
+        patterns: "*.yml,*.yaml"
+        recurse: yes
+      register: found_playbooks
+
+    - name: Import found playbooks
+      include_tasks: "{{ item.path }}"
+      loop: "{{ found_playbooks.files }}"
+      when: item.path != playbook_dir + '/main.yml'
