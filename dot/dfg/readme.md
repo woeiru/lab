@@ -1,6 +1,6 @@
-# Managing Your Dotfiles with Git
+# DOT FILES with GIT
 
-This guide explains how to use Git to manage your configuration files (dotfiles) across multiple directories, with a focus on KDE Plasma settings.
+This guide explains how to use Git to manage all your configuration files in .config and .local directories.
 
 ## Initial Setup
 
@@ -10,7 +10,7 @@ This guide explains how to use Git to manage your configuration files (dotfiles)
    cd ~/dotfiles
    ```
 
-2. Set the default branch name for new repositories (you can choose 'main' or any other name you prefer):
+2. Set the default branch name for new repositories:
    ```
    git config --global init.defaultBranch main
    ```
@@ -20,7 +20,7 @@ This guide explains how to use Git to manage your configuration files (dotfiles)
    git init
    ```
 
-4. Verify that the branch is named 'main' (or the name you chose):
+4. Verify that the branch is named 'main':
    ```
    git branch
    ```
@@ -31,32 +31,21 @@ This guide explains how to use Git to manage your configuration files (dotfiles)
    ln -s ~/.local local
    ```
 
-6. Create a .gitignore file to exclude unnecessary files:
-   ```
-   echo "
-   *
-   !config/
-   !local/
-   !config/kde*
-   !config/plasma*
-   !local/share/plasma*
-   !.gitignore
-   " > .gitignore
-   ```
-
-   This .gitignore setup ignores everything by default, then explicitly includes the directories and files we want to track.
-
-7. Add and commit the initial state:
+6. Add all files to the repository:
    ```
    git add .
-   git commit -m "Initial commit of dotfiles"
+   ```
+
+7. Commit the initial state:
+   ```
+   git commit -m "Initial commit of all dotfiles"
    ```
 
 ## Tracking Changes
 
-Follow these steps to track changes to your KDE Plasma configuration:
+Follow these steps to track changes to your configuration:
 
-1. Make changes in the KDE Plasma interface as needed.
+1. Make changes in your system as needed.
 
 2. Check which files have been modified:
    ```
@@ -71,8 +60,8 @@ Follow these steps to track changes to your KDE Plasma configuration:
 
 4. Stage and commit the changes:
    ```
-   git add -u
-   git commit -m "Description of KDE Plasma changes"
+   git add -A
+   git commit -m "Description of changes"
    ```
 
 ## Reviewing Changes
@@ -89,7 +78,7 @@ Follow these steps to track changes to your KDE Plasma configuration:
 
 - To review all changes since the initial commit:
   ```
-  git diff <initial-commit-hash> HEAD
+  git diff $(git rev-list --max-parents=0 HEAD) HEAD
   ```
 
 ## Exporting Changes for Ansible
@@ -98,7 +87,7 @@ When ready to convert to Ansible:
 
 1. Export all changes to a file:
    ```
-   git diff <initial-commit-hash> HEAD > all_kde_changes.diff
+   git diff $(git rev-list --max-parents=0 HEAD) HEAD > all_config_changes.diff
    ```
 
 2. Group related changes into potential Ansible tasks.
@@ -126,4 +115,4 @@ To restore your configuration on a new system:
    ln -s ~/dotfiles/local ~/.local
    ```
 
-Remember to restart your KDE Plasma session or log out and log back in for some changes to take effect.
+Remember to restart your session or log out and log back in for some changes to take effect.
