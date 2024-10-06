@@ -178,17 +178,38 @@ Use this approach when you want to export only the most recent changes:
    git diff --staged
    ```
 
+### Handling Untracked Files During Export
+
+When exporting changes, untracked files may not be included in the diff. To ensure all changes, including new files, are captured:
+
+1. Identify untracked files:
+   ```
+   git status -u
+   ```
+
+2. For each untracked file, create a separate diff:
+   ```
+   git diff --no-index -- /dev/null 'path/to/untracked/file' > 'untracked_file.diff'
+   ```
+   For example:
+   ```
+   git diff --no-index -- /dev/null '.local/share/konsole/Profile 1.profile' > 'profile1.diff'
+   git diff --no-index -- /dev/null '.local/share/konsole/Profile 2.profile' > 'profile2.diff'
+   ```
+
+3. These separate diff files will contain the full content of the new files, including the file mode and index information.
+
+4. When working with Ansible, you can use these diff files to create tasks that will add these new files to the target system.
+
 ### Working with Exported Diffs
 
 Regardless of the approach you choose:
 
-1. Review the diff file to understand all changes:
+1. Review the diff files to understand all changes:
    ```
    less all_config_changes.diff
-   ```
-   or
-   ```
    less recent_changes.diff
+   less untracked_file.diff
    ```
 
 2. Group related changes into potential Ansible tasks.
@@ -197,7 +218,7 @@ Regardless of the approach you choose:
 
 4. Research how to apply these changes via command line or config files, which will help in creating Ansible tasks.
 
-5. For new files that were previously untracked, you may need to use Ansible's `copy` or `template` modules to create these files on the target system.
+5. For new files that were previously untracked, use the separate diff files created in the "Handling Untracked Files" step to create Ansible tasks using the `copy` or `template` modules.
 
 Remember, you'll need to carefully review and translate these changes into appropriate Ansible tasks.
 
