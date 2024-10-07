@@ -6,15 +6,7 @@ This document provides technical details for the Ansible task that configures ke
 
 ## File Structure
 
-The shortcuts configuration task is organized as follows within the `system_preferences` role:
-
-```
-roles/
-└── system_preferences/
-    └── tasks/
-        ├── main.yml
-        └── shortcuts.yml
-```
+(Content remains the same)
 
 ## Task Breakdown
 
@@ -47,7 +39,11 @@ The `shortcuts.yml` file contains all the tasks for configuring shortcuts and re
     - { section: "org.kde.konsole.desktop", option: "_launch", value: "Meta+Return,none,Konsole" }
 ```
 
-This task updates the `kglobalshortcutsrc` file with global shortcut configurations. It uses the `ini_file` module to ensure idempotency and loops through multiple shortcut configurations. The new addition is the Konsole shortcut, which opens a new Konsole window when pressing Meta+Return.
+This task updates the `kglobalshortcutsrc` file with global shortcut configurations. It uses the `ini_file` module to ensure idempotency and loops through multiple shortcut configurations. The Konsole shortcut is added as a separate section `org.kde.konsole.desktop` with the `_launch` option set to open Konsole when pressing Meta+Return.
+
+#### 2.3 Configure Custom Shortcuts
+
+(Content remains the same)
 
 (The rest of the document remains the same)
 
@@ -56,8 +52,8 @@ This task updates the `kglobalshortcutsrc` file with global shortcut configurati
 To customize the shortcut settings:
 
 1. Modify the shortcut configurations in the "Configure global shortcuts" and "Configure custom shortcuts" tasks.
-2. Adjust the content of the custom shortcut files in the "Create custom shortcut files" task.
-3. Update the `plasmashellstaterc` configuration if needed.
-4. To add new global shortcuts, add a new item to the loop in the "Configure global shortcuts" task, specifying the appropriate section, option, and value.
+2. To add new global shortcuts for specific applications, add a new item to the loop in the "Configure global shortcuts" task, specifying the appropriate section (usually in the format `org.kde.<application>.desktop`), option (usually `_launch` for launching applications), and the desired shortcut value.
+3. Adjust the content of the custom shortcut files in the "Create custom shortcut files" task.
+4. Update the `plasmashellstaterc` configuration if needed.
 
 (The rest of the document remains the same)
