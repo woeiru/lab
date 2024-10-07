@@ -141,6 +141,10 @@ remove_ssh_keys() {
     ssh-add -D
 }
 
+    alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
+    alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
+
+
 # 5. MAIN EXECUTION
 # =================
 
@@ -162,24 +166,10 @@ main() {
     # Automatically add SSH keys
     add_ssh_keys
 
-    # Function shortcuts
-    alias sca='all-sca'
-    alias flc='all-flc'
-    alias cto='pve-cto'
+    # Ansible
+   
+    alias ap='ansible-playbook'
 
-    # Function chaining
-    alias fun='all-ffl all-laf "" $LIB_DIR'
-    alias var='all-ffl all-acu "" $VAR_DIR $PARENT_DIR'
-
-    # Function makros
-    alias v1='pve-gpd ; qm start 211'
-
-    # SSH aliases
-    alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
-    alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
-
-    # Standard aliases for common commands
-    
     # Bash
     alias b='bash'
     alias eb='exec bash'
@@ -217,6 +207,19 @@ main() {
     # Exit
     alias ee='exit'
 
+    # Function shortcuts
+    alias sca='all-sca'
+    alias flc='all-flc'
+    alias cto='pve-cto'
+
+    # Function chaining
+    alias fun='all-ffl all-laf "" $LIB_DIR'
+    alias var='all-ffl all-acu "" $VAR_DIR $PARENT_DIR'
+
+    # Function makros
+    alias v1='pve-gpd ; qm start 211'
+
+    
     # Git commands
     alias g='git status'
     alias gd='git diff'
