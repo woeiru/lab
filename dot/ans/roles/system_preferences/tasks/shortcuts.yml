@@ -16,7 +16,13 @@
     - { section: "kwin", option: "Window Close", value: "Alt+F4\\tMeta+Backspace,Alt+F4,Close Window" }
     - { section: "org.kde.kglobalaccel", option: "Sleep", value: "Meta+Del\\tSleep,Sleep,Suspend" }
     - { section: "plasmashell", option: "show-on-mouse-pos", value: "Meta+`\\tMeta+V,Meta+V,Show Clipboard Items at Mouse Position" }
-    - { section: "org.kde.konsole.desktop", option: "_launch", value: "Meta+Return,none,Konsole" }
+
+- name: Configure Konsole shortcut
+  ini_file:
+    path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
+    section: "org.kde.konsole.desktop"
+    option: "_launch"
+    value: "Meta+Return,none,Konsole"
 
 - name: Configure custom shortcuts
   ini_file:
