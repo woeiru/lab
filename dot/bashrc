@@ -219,7 +219,6 @@ main() {
     # Function makros
     alias v1='pve-gpd ; qm start 211'
 
-    
     # Git commands
     alias g='git'
     alias gs='git status'
@@ -309,3 +308,12 @@ main() {
 
 # Execute main function
 main
+
+# 6. PROJECTS
+# =================
+
+ini_path=~/lab/dot/ini
+depl_file="$ini_path/depl.sh"
+inject_file="$ini_path/inject"
+alias bde="bash $depl_file"
+alias vin="vim $inject_file"
