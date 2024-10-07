@@ -1,10 +1,4 @@
 ---
-- name: Configure Icons-and-Text Task Manager Widget
-  ini_file:
-    path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
-    section: plasmashell
-    option: "activate widget 30"
-    value: ",none,Activate Icons-and-Text Task Manager Widget"
 
 - name: Configure panel thickness
   ini_file:
@@ -13,7 +7,10 @@
     option: "thickness"
     value: "40"
 
-- name: Restart Plasma to apply changes
-  command: kquitapp5 plasmashell && kstart5 plasmashell
-  async: 45
-  poll: 0
+- name: Notify user about configuration changes
+  debug:
+    msg: |
+      Configuration files have been updated. Changes will take effect after you log out and log back in, or after your next system restart.
+
+- name: Restart Plasma shell
+  shell: kquitapp5 plasmashell && kstart5 plasmashell
