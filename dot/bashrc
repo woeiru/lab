@@ -221,7 +221,8 @@ main() {
 
     
     # Git commands
-    alias g='git status'
+    alias g='git'
+    alias gs='git status'
     alias gd='git diff'
     alias gl='git ls-files | xargs cat | wc -l'
     alias ga='git add .'
