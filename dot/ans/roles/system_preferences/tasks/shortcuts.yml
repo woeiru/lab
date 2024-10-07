@@ -12,27 +12,25 @@
     option: "{{ item.option }}"
     value: "{{ item.value }}"
   loop:
-    - { section: "kwin", option: "ExposeAll", value: "Ctrl+F10\\tLaunch (C)\\tMeta+Tab,Ctrl+F10\\tLaunch (C),Toggle Present Windows (All desktops)" }
-    - { section: "kwin", option: "Window Close", value: "Alt+F4\\tMeta+Backspace,Alt+F4,Close Window" }
-    - { section: "org.kde.kglobalaccel", option: "Sleep", value: "Meta+Del\\tSleep,Sleep,Suspend" }
-    - { section: "plasmashell", option: "show-on-mouse-pos", value: "Meta+`\\tMeta+V,Meta+V,Show Clipboard Items at Mouse Position" }
-
-- name: Configure Konsole shortcut
-  ini_file:
-    path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
-    section: "org.kde.konsole.desktop"
-    option: "_launch"
-    value: "Meta+Return,none,Konsole"
+    - { section: "kwin", option: "ExposeAll", value: "Ctrl+F10,Launch (C),Meta+Tab,Ctrl+F10,Launch (C),Toggle Present Windows (All desktops)" }
+    - { section: "kwin", option: "Window Close", value: "Alt+F4,Meta+Backspace,Alt+F4,Close Window" }
+    - { section: "org.kde.kglobalaccel", option: "Sleep", value: "Meta+Del,Sleep,Sleep,Suspend" }
+    - { section: "plasmashell", option: "show-on-mouse-pos", value: "Meta+`,Meta+V,Meta+V,Show Clipboard Items at Mouse Position" }
 
 - name: Configure custom shortcuts
-  ini_file:
+  blockinfile:
     path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
-    section: "services"
-    option: "{{ item.option }}"
-    value: "{{ item.value }}"
-  loop:
-    - { option: "[net.local.bash-2.desktop]_launch", value: "Meta+End" }
-    - { option: "[net.local.bash.desktop]_launch", value: "Meta+Home" }
+    block: |
+      [services][net.local.bash-2.desktop]
+      _launch=Meta+End
+
+      [services][net.local.bash.desktop]
+      _launch=Meta+Home
+
+      [services][org.kde.konsole.desktop]
+      NewWindow=Meta+Return
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - CUSTOM SHORTCUTS"
+    insertafter: EOF
 
 - name: Create custom shortcut files
   copy:
@@ -44,7 +42,7 @@
       content: |
         [Desktop Entry]
         Exec=bash -c -i "theme-preset-dark"
-        Name=
+        Name=Switch to Dark Theme
         NoDisplay=true
         StartupNotify=false
         Type=Application
@@ -53,21 +51,12 @@
       content: |
         [Desktop Entry]
         Exec=bash -c -i "theme-preset-bright"
-        Name=
+        Name=Switch to Light Theme
         NoDisplay=true
         StartupNotify=false
         Type=Application
         X-KDE-GlobalAccel-CommandShortcut=true
 
-- name: Ensure .local/state directory exists
-  file:
-    path: "{{ ansible_env.HOME }}/.local/state"
-    state: directory
-    mode: '0755'
-
-- name: Update plasmashellstaterc
-  ini_file:
-    path: "{{ ansible_env.HOME }}/.local/state/plasmashellstaterc"
-    section: "KickerRunnerManager][History"
-    option: "a19edca3-f987-4565-9b0d-339920995a1f"
-    value: "shortcuts,kde wallet,wallet,kde,kdewa,walle,kdewall"
+- name: Notify user to restart KDE
+  debug:
+    msg: "Shortcut configuration complete. Please restart your KDE session (log out and log back in) to ensure all changes take effect."
