@@ -29,10 +29,10 @@
     block: |
 
       [services][net.local.bash-2.desktop]
-      _launch=Meta+End,none,Switch to Dark Theme
+      _launch=Meta+End
 
       [services][net.local.bash.desktop]
-      _launch=Meta+Home,none,Switch to Light Theme
+      _launch=Meta+Home
 
       [services][org.kde.konsole.desktop]
       NewWindow=Meta+Return
