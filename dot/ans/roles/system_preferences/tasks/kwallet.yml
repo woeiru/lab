@@ -56,9 +56,26 @@
     dest: "{{ ansible_env.HOME }}/.local/state/kwalletmanagerstaterc"
     force: no
 
-- name: Restart KWallet service
+- name: Check if KWallet service exists
+  ansible.builtin.command: systemctl list-unit-files --type=service | grep -E 'kwalletd|kwallet'
+  register: kwallet_service_check
+  changed_when: false
+  failed_when: false
+
+- name: Restart KWallet service if it exists
   ansible.builtin.systemd:
-    name: kwalletd5
+    name: "{{ item }}"
     state: restarted
     scope: user
-  when: kwallet_config.changed
+  when:
+    - kwallet_config.changed
+    - item in kwallet_service_check.stdout
+  loop:
+    - kwalletd5.service
+    - kwalletd.service
+  ignore_errors: yes
+
+- name: Notify user if KWallet service was not found
+  ansible.builtin.debug:
+    msg: "KWallet service not found. You may need to restart it manually or it may not be installed on this system."
+  when: kwallet_service_check.rc != 0
