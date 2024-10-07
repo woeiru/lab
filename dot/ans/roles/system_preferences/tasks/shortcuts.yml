@@ -5,40 +5,21 @@
     state: directory
     mode: '0755'
 
-- name: Configure global shortcuts
+- name: Configure all shortcuts
   lineinfile:
     path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
     regexp: "^{{ item.option }}="
     line: "{{ item.option }}={{ item.value }}"
   loop:
-    - { option: "ExposeAll", value: "Ctrl+F10\\tLaunch (C)\\tMeta+Tab,Ctrl+F10\\tLaunch (C),Toggle Present Windows (All desktops)" }
-    - { option: "Window Close", value: "Alt+F4\\tMeta+Backspace,Alt+F4,Close Window" }
-    - { option: "Sleep", value: "Meta+Del,Sleep,Sleep,Suspend" }
-    - { option: "show-on-mouse-pos", value: "Meta+`\\tMeta+V,Meta+V,Show Clipboard Items at Mouse Position" }
-
-- name: Remove existing custom shortcuts block
-  blockinfile:
-    path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
-    block: ""
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - CUSTOM SHORTCUTS"
-    state: absent
-
-- name: Configure custom shortcuts
-  blockinfile:
-    path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
-    block: |
-
-      [services][net.local.bash-2.desktop]
-      _launch=Meta+End
-
-      [services][net.local.bash.desktop]
-      _launch=Meta+Home
-
-      [services][org.kde.konsole.desktop]
-      NewWindow=Meta+Return
-
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - CUSTOM SHORTCUTS"
-    insertafter: EOF
+    # Global shortcuts
+    - { option: "kwin.ExposeAll", value: "Ctrl+F10\\tLaunch (C)\\tMeta+Tab,Ctrl+F10\\tLaunch (C),Toggle Present Windows (All desktops)" }
+    - { option: "kwin.Window Close", value: "Alt+F4\\tMeta+Backspace,Alt+F4,Close Window" }
+    - { option: "org.kde.kglobalaccel.Sleep", value: "Meta+Del,Sleep,Sleep,Suspend" }
+    - { option: "plasmashell.show-on-mouse-pos", value: "Meta+`\\tMeta+V,Meta+V,Show Clipboard Items at Mouse Position" }
+    # Custom shortcuts
+    - { option: "services.net.local.bash-2.desktop._launch", value: "Meta+End,,Switch to Dark Theme" }
+    - { option: "services.net.local.bash.desktop._launch", value: "Meta+Home,,Switch to Light Theme" }
+    - { option: "services.org.kde.konsole.desktop.NewWindow", value: "Meta+Return,,Open Terminal" }
 
 - name: Create custom shortcut files
   copy:
