@@ -5,14 +5,32 @@
     state: directory
     mode: '0755'
 
-- name: Copy Konsole Profile 1
+- name: Create Konsole Profile 1
   copy:
-    src: "Profile 1.profile"
+    content: |
+      [Appearance]
+      ColorScheme=SolarizedLight
+      Font=Noto Sans Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+
+      [General]
+      Name=Profile 1
+      Parent=FALLBACK/
+      TerminalColumns=133
+      TerminalRows=44
     dest: "{{ ansible_env.HOME }}/.local/share/konsole/Profile 1.profile"
     mode: '0644'
 
-- name: Copy Konsole Profile 2
+- name: Create Konsole Profile 2
   copy:
-    src: "Profile 2.profile"
+    content: |
+      [Appearance]
+      ColorScheme=Linux
+      Font=Noto Sans Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+
+      [General]
+      Name=Profile 2
+      Parent=FALLBACK/
+      TerminalColumns=133
+      TerminalRows=144
     dest: "{{ ansible_env.HOME }}/.local/share/konsole/Profile 2.profile"
     mode: '0644'
