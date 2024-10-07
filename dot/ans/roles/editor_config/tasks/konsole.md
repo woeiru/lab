@@ -2,11 +2,11 @@
 
 ## Overview
 
-This document provides technical details for the Ansible tasks defined in `konsole.yml`. These tasks are responsible for setting up Konsole profiles on a user's system. Konsole is the default terminal emulator for the KDE desktop environment.
+This document provides technical details for the Ansible tasks defined in `konsole.yml`. These tasks set up Konsole profiles on a user's system. Konsole is the default terminal emulator for the KDE desktop environment.
 
 ## File Location
 
-The `konsole.yml` file is typically located in the `tasks` directory of the `editor_config` role:
+The `konsole.yml` file is located in the `tasks` directory of the `editor_config` role:
 
 ```
 roles/
@@ -17,7 +17,7 @@ roles/
 
 ## Task Breakdown
 
-The `konsole.yml` file contains three main tasks:
+The `konsole.yml` file contains the following tasks:
 
 ### 1. Ensure Konsole Directory Exists
 
@@ -29,46 +29,46 @@ The `konsole.yml` file contains three main tasks:
     mode: '0755'
 ```
 
-This task ensures that the directory for storing Konsole profiles exists.
+This task creates the directory for storing Konsole profiles if it doesn't exist.
 
-- **Module**: `file`
-- **Path**: Uses `{{ ansible_env.HOME }}` to reference the user's home directory
-- **State**: `directory` ensures the directory is created if it doesn't exist
-- **Mode**: `0755` sets read, write, and execute permissions for the owner, and read and execute for others
-
-### 2. Copy Konsole Profile 1
+### 2. Create Konsole Profile
 
 ```yaml
-- name: Copy Konsole Profile 1
+- name: Create Konsole Profile
   copy:
-    src: "Profile 1.profile"
+    content: |
+      [Appearance]
+      ColorScheme=SolarizedLight
+      Font=Noto Sans Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+
+      [General]
+      Name=Profile 1
+      Parent=FALLBACK/
+      TerminalColumns=133
+      TerminalRows=44
     dest: "{{ ansible_env.HOME }}/.local/share/konsole/Profile 1.profile"
     mode: '0644'
 ```
 
-This task copies the first Konsole profile to the user's Konsole directory.
+This task creates a Konsole profile directly in the user's Konsole directory.
 
-- **Module**: `copy`
-- **Source**: `"Profile 1.profile"` (assumed to be in the `files` directory of the role)
-- **Destination**: User's Konsole profiles directory
-- **Mode**: `0644` sets read and write permissions for the owner, and read-only for others
+## Profile Customization
 
-### 3. Copy Konsole Profile 2
+To customize the Konsole profile, modify the `content` section of the task. Here's a breakdown of the profile settings:
 
 ```yaml
-- name: Copy Konsole Profile 2
-  copy:
-    src: "Profile 2.profile"
-    dest: "{{ ansible_env.HOME }}/.local/share/konsole/Profile 2.profile"
-    mode: '0644'
+[Appearance]
+ColorScheme=SolarizedLight  # Change this to your preferred color scheme
+Font=Noto Sans Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1  # Modify font settings as needed
+
+[General]
+Name=Profile 1  # Change the profile name
+Parent=FALLBACK/
+TerminalColumns=133  # Adjust the number of columns
+TerminalRows=44  # Adjust the number of rows
 ```
 
-This task copies the second Konsole profile to the user's Konsole directory.
-
-- **Module**: `copy`
-- **Source**: `"Profile 2.profile"` (assumed to be in the `files` directory of the role)
-- **Destination**: User's Konsole profiles directory
-- **Mode**: `0644` sets read and write permissions for the owner, and read-only for others
+You can add more profile-specific settings under the appropriate sections.
 
 ## Usage
 
@@ -82,29 +82,20 @@ To use these tasks:
      include_tasks: konsole.yml
    ```
 
-3. Make sure the profile files (`Profile 1.profile` and `Profile 2.profile`) are present in the `files` directory of your role.
-
 ## Considerations
 
 - These tasks assume that Konsole is installed on the target system.
 - The tasks will run for the user specified by `ansible_env.HOME`.
 - Existing profile files with the same names will be overwritten.
-
-## Customization
-
-To customize these tasks:
-
-1. Modify the profile filenames if you want to use different profile names.
-2. Adjust the file permissions (mode) if needed for your security requirements.
-3. Add more copy tasks if you have additional profiles to deploy.
+- You can add more tasks with different profile configurations if you need additional profiles.
 
 ## Troubleshooting
 
 If you encounter issues:
 
-1. Verify that the source profile files exist in the `files` directory of your role.
-2. Check that the user running the playbook has permissions to create directories and files in their home directory.
-3. Ensure Konsole is installed on the target system.
+1. Check that the user running the playbook has permissions to create directories and files in their home directory.
+2. Ensure Konsole is installed on the target system.
+3. Verify the syntax of the profile configurations within the `content` sections.
 4. Run the playbook with increased verbosity (`-v` or `-vv`) for more detailed output.
 
 For any persistent issues, consult the Konsole documentation or KDE community forums for specific configuration details.

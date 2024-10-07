@@ -5,5 +5,7 @@
       include_tasks: wallpaper.yml
     - name: Include KWallet configuration tasks
       include_tasks: kwallet.yml
+    - name: Include shortcut configuration tasks
+      include_tasks: shortcuts.yml
 
   # Add more system preference tasks here as needed
