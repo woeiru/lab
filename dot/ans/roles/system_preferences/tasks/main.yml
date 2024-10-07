@@ -7,5 +7,8 @@
       include_tasks: kwallet.yml
     - name: Include shortcut configuration tasks
       include_tasks: shortcuts.yml
+    - name: Include taskbar configuration tasks
+      include_tasks: taskbar.yml
+
 
   # Add more system preference tasks here as needed

@@ -1,0 +1,45 @@
+---
+- name: Ensure .config directory exists
+  file:
+    path: "{{ ansible_env.HOME }}/.config"
+    state: directory
+    mode: '0755'
+
+- name: Configure global shortcuts for taskbar
+  ini_file:
+    path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
+    section: plasmashell
+    option: "activate widget 30"
+    value: ",none,Activate Icons-and-Text Task Manager Widget"
+
+- name: Configure Plasma desktop appletsrc for taskbar
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.config/plasma-org.kde.plasma.desktop-appletsrc"
+    block: |
+      [Containments][38][Applets][41][Configuration]
+      immutability=1
+      plugin=org.kde.plasma.icontasks
+
+      [Containments][38][Applets][41][Configuration][ConfigDialog]
+      DialogHeight=660
+      DialogWidth=880
+
+      [Containments][38][Applets][41][Configuration][General]
+      launchers=applications:systemsettings.desktop,applications:org.kde.konsole.desktop,preferred://filemanager,preferred://browser
+      showOnlyCurrentDesktop=false
+      showText=true
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - TASKBAR SETTINGS"
+    create: yes
+
+- name: Configure panel thickness in plasmashellrc
+  ini_file:
+    path: "{{ ansible_env.HOME }}/.config/plasmashellrc"
+    section: "PlasmaViews][Panel 2][Defaults"
+    option: "thickness"
+    value: "40"
+    create: yes
+
+- name: Restart Plasma to apply changes
+  command: kquitapp5 plasmashell && kstart5 plasmashell
+  async: 45
+  poll: 0
