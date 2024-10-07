@@ -1,10 +1,60 @@
 ---
+- name: Ensure KWallet config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config"
+    state: directory
+    mode: '0755'
+
 - name: Configure KWallet
-  ansible.builtin.lineinfile:
+  ansible.builtin.blockinfile:
     path: "{{ ansible_env.HOME }}/.config/kwalletrc"
-    regexp: "^Enabled="
-    line: "Enabled=false"
+    create: yes
+    block: |
+      [Wallet]
+      Enabled=false
+      Close When Idle=false
+      Close on Screensaver=false
+      Idle Timeout=10
+      Launch Manager=false
+      Leave Manager Open=false
+      Leave Open=true
+      Prompt on Open=false
+      Use One Wallet=true
+
+      [org.freedesktop.secrets]
+      apiEnabled=true
   register: kwallet_config
+
+- name: Ensure KWallet manager config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config"
+    state: directory
+    mode: '0755'
+
+- name: Configure KWallet manager
+  ansible.builtin.copy:
+    content: |
+      [MainWindow]
+      ToolBarsMovable=Disabled
+    dest: "{{ ansible_env.HOME }}/.config/kwalletmanagerrc"
+    force: no
+
+- name: Ensure KWallet manager state directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/state"
+    state: directory
+    mode: '0755'
+
+- name: Configure KWallet manager state
+  ansible.builtin.copy:
+    content: |
+      [MainWindow]
+      2194x1234 screen: Height=354
+      2194x1234 screen: Width=288
+      RestorePositionForNextInstance=false
+      State=AAAA/wAAAAD9AAAAAAAAASAAAAFEAAAABAAAAAQAAAAIAAAACPwAAAAA
+    dest: "{{ ansible_env.HOME }}/.local/state/kwalletmanagerstaterc"
+    force: no
 
 - name: Restart KWallet service
   ansible.builtin.systemd:
