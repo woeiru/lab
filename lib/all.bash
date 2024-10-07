@@ -1593,3 +1593,27 @@ all-nfs() {
 
     all-nos "$function_name" "NFS mount completed"
 }
+
+all-ans() {
+    # Check if two arguments are provided
+    if [ $# -ne 2 ]; then
+        echo "Error: Incorrect number of arguments. Usage: all-ans <ansible_pro_path> <ansible_site_path>"
+        return 1
+    fi
+
+    # Store the Ansible path and site path from the arguments
+    local ansible_pro_path="$1"
+    local ansible_site_path="$2"
+
+    # Store the current directory
+    local current_dir=$(pwd)
+
+    # Navigate to the specified Ansible directory
+    cd "$ansible_pro_path" || return
+
+    # Execute the Ansible playbook with the provided site path
+    ansible-playbook "$ansible_site_path"
+
+    # Return to the previous directory
+    cd "$current_dir" || return
+}
