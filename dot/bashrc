@@ -168,7 +168,7 @@ main() {
 
     # Ansible
    
-    alias aa='all-ans $ANS_PATH_1 $SITE_PATH1'
+    alias aa='all-ans $ANS_PRO_PATH_1 $ANS_SITE_PATH_1'
     alias ap='ansible-playbook'
 
     # Bash
