@@ -27,6 +27,7 @@
   blockinfile:
     path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
     block: |
+
       [services][net.local.bash-2.desktop]
       _launch=Meta+End,none,Switch to Dark Theme
 
@@ -34,7 +35,8 @@
       _launch=Meta+Home,none,Switch to Light Theme
 
       [services][org.kde.konsole.desktop]
-      NewWindow=Meta+Return,none,Open a New Window
+      NewWindow=Meta+Return
+
     marker: "# {mark} ANSIBLE MANAGED BLOCK - CUSTOM SHORTCUTS"
     insertafter: EOF
 
