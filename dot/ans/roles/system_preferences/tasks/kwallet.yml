@@ -1,0 +1,14 @@
+---
+- name: Configure KWallet
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.config/kwalletrc"
+    regexp: "^Enabled="
+    line: "Enabled=false"
+  register: kwallet_config
+
+- name: Restart KWallet service
+  ansible.builtin.systemd:
+    name: kwalletd5
+    state: restarted
+    scope: user
+  when: kwallet_config.changed

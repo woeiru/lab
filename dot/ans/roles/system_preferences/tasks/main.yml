@@ -3,11 +3,7 @@
   block:
     - name: Include wallpaper configuration tasks
       include_tasks: wallpaper.yml
+    - name: Include KWallet configuration tasks
+      include_tasks: kwallet.yml
 
-  # You can add more system preference tasks here
-  # For example:
-  # - name: Configure system theme
-  #   include_tasks: theme.yml
-  #
-  # - name: Set default applications
-  #   include_tasks: default_apps.yml
+  # Add more system preference tasks here as needed
