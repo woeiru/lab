@@ -6,29 +6,35 @@
     mode: '0755'
 
 - name: Configure global shortcuts
-  ini_file:
+  lineinfile:
     path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
-    section: "{{ item.section }}"
-    option: "{{ item.option }}"
-    value: "{{ item.value }}"
+    regexp: "^{{ item.option }}="
+    line: "{{ item.option }}={{ item.value }}"
   loop:
-    - { section: "kwin", option: "ExposeAll", value: "Ctrl+F10,Launch (C),Meta+Tab,Ctrl+F10,Launch (C),Toggle Present Windows (All desktops)" }
-    - { section: "kwin", option: "Window Close", value: "Alt+F4,Meta+Backspace,Alt+F4,Close Window" }
-    - { section: "org.kde.kglobalaccel", option: "Sleep", value: "Meta+Del,Sleep,Sleep,Suspend" }
-    - { section: "plasmashell", option: "show-on-mouse-pos", value: "Meta+`,Meta+V,Meta+V,Show Clipboard Items at Mouse Position" }
+    - { option: "ExposeAll", value: "Ctrl+F10\\tLaunch (C)\\tMeta+Tab,Ctrl+F10\\tLaunch (C),Toggle Present Windows (All desktops)" }
+    - { option: "Window Close", value: "Alt+F4\\tMeta+Backspace,Alt+F4,Close Window" }
+    - { option: "Sleep", value: "Meta+Del,Sleep,Sleep,Suspend" }
+    - { option: "show-on-mouse-pos", value: "Meta+`\\tMeta+V,Meta+V,Show Clipboard Items at Mouse Position" }
+
+- name: Remove existing custom shortcuts block
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
+    block: ""
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - CUSTOM SHORTCUTS"
+    state: absent
 
 - name: Configure custom shortcuts
   blockinfile:
     path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
     block: |
       [services][net.local.bash-2.desktop]
-      _launch=Meta+End
+      _launch=Meta+End,none,Switch to Dark Theme
 
       [services][net.local.bash.desktop]
-      _launch=Meta+Home
+      _launch=Meta+Home,none,Switch to Light Theme
 
       [services][org.kde.konsole.desktop]
-      NewWindow=Meta+Return
+      NewWindow=Meta+Return,none,Open a New Window
     marker: "# {mark} ANSIBLE MANAGED BLOCK - CUSTOM SHORTCUTS"
     insertafter: EOF
 
