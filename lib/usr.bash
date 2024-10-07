@@ -87,6 +87,42 @@ usr-ckp() {
     echo "Konsole default profile updated to Profile $profile_number for user $username."
 }
 
+# Configures Git and SSH to disable password prompting by updating Git global configuration and SSH config file
+# configure git ssh passphrase
+#
+usr-cgp() {
+    local ssh_config="$HOME/.ssh/config"
+    local askpass_line="    SetEnv SSH_ASKPASS=''"
+
+    # Set Git configuration
+    if git config --global core.askPass ""; then
+        echo "Git global configuration updated to disable password prompting."
+    else
+        echo "Error: Failed to update Git configuration."
+        return 1
+    fi
+
+    # Update SSH config
+   if [ ! -f "$ssh_config" ]; then
+        mkdir -p "$HOME/.ssh"
+        touch "$ssh_config"
+        chmod 600 "$ssh_config"
+    fi
+
+    if ! grep -q "^Host \*$" "$ssh_config"; then
+        echo -e "\n# Disable SSH_ASKPASS\nHost *" >> "$ssh_config"
+    fi
+
+    if ! grep -q "^$askpass_line" "$ssh_config"; then
+        sed -i '/^Host \*/a\'"$askpass_line" "$ssh_config"
+        echo "SSH configuration updated to disable ASKPASS."
+    else
+        echo "SSH configuration already contains ASKPASS setting."
+    fi
+
+    echo "configure_git_ssh_passphrase: Git and SSH configurations have been updated."
+}
+
 # Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
 # variable select filename
 #
