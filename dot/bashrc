@@ -168,7 +168,7 @@ main() {
 
     # Ansible
    
-    alias aa='all-ans $ANS_PRO_PATH_1 $ANS_SITE_PATH_1'
+    alias aa='all-ans $ANS_PRO_PATH_1 $ANS_SITE_PATH1'
     alias ap='ansible-playbook'
 
     # Bash
@@ -225,7 +225,7 @@ main() {
     alias gs='git status'
     alias gd='git diff'
     alias gl='git ls-files | xargs cat | wc -l'
-    alias ga='git add .'
+    alias ga='git add'
     alias gc='git commit'
     alias gcmb='git commit -m "base"'
     alias go='git push origin master'
