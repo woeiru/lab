@@ -5,47 +5,50 @@
     state: directory
     mode: '0755'
 
-- name: Configure all shortcuts
-  lineinfile:
-    path: "{{ ansible_env.HOME }}/.config/kglobalshortcutsrc"
-    regexp: "^{{ item.option }}="
-    line: "{{ item.option }}={{ item.value }}"
-  loop:
-    # Global shortcuts
-    - { option: "kwin.ExposeAll", value: "Ctrl+F10\\tLaunch (C)\\tMeta+Tab,Ctrl+F10\\tLaunch (C),Toggle Present Windows (All desktops)" }
-    - { option: "kwin.Window Close", value: "Alt+F4\\tMeta+Backspace,Alt+F4,Close Window" }
-    - { option: "org.kde.kglobalaccel.Sleep", value: "Meta+Del,Sleep,Sleep,Suspend" }
-    - { option: "plasmashell.show-on-mouse-pos", value: "Meta+`\\tMeta+V,Meta+V,Show Clipboard Items at Mouse Position" }
-    # Custom shortcuts
-    - { option: "services.net.local.bash-2.desktop._launch", value: "Meta+End,,Switch to Dark Theme" }
-    - { option: "services.net.local.bash.desktop._launch", value: "Meta+Home,,Switch to Light Theme" }
-    - { option: "services.org.kde.konsole.desktop.NewWindow", value: "Meta+Return,,Open Terminal" }
+- name: Ensure .local/share/kservices5 directory exists
+  file:
+    path: "{{ ansible_env.HOME }}/.local/share/kservices5"
+    state: directory
+    mode: '0755'
 
-- name: Create custom shortcut files
+- name: Set global shortcuts using kwriteconfig5
+  command: kwriteconfig5 --file kglobalshortcutsrc --group "{{ item.group }}" --key "{{ item.key }}" "{{ item.value }}"
+  loop:
+    - { group: "kwin", key: "_k_friendly_name", value: "KWin" }
+    - { group: "kwin", key: "ExposeAll", value: "Ctrl+F10,Ctrl+F10,Toggle Present Windows (All desktops)" }
+    - { group: "kwin", key: "Window Close", value: "Alt+F4,Alt+F4,Close Window" }
+    - { group: "org.kde.kglobalaccel", key: "Sleep", value: "Meta+Del,Sleep,Sleep" }
+    - { group: "plasmashell", key: "show-on-mouse-pos", value: "Meta+V,Meta+V,Show Clipboard Items at Mouse Position" }
+
+- name: Create custom shortcut .desktop files
   copy:
-    content: "{{ item.content }}"
-    dest: "{{ ansible_env.HOME }}/.local/share/applications/{{ item.filename }}"
-    mode: '0644'
+    content: |
+      [Desktop Entry]
+      Name={{ item.name }}
+      Exec={{ item.exec }}
+      Type=Service
+      X-KDE-ServiceTypes=KPluginInfo
+      X-KDE-PluginInfo-EnabledByDefault=true
+    dest: "{{ ansible_env.HOME }}/.local/share/kservices5/{{ item.filename }}"
   loop:
-    - filename: "net.local.bash-2.desktop"
-      content: |
-        [Desktop Entry]
-        Exec=bash -c -i "theme-preset-dark"
-        Name=Switch to Dark Theme
-        NoDisplay=true
-        StartupNotify=false
-        Type=Application
-        X-KDE-GlobalAccel-CommandShortcut=true
-    - filename: "net.local.bash.desktop"
-      content: |
-        [Desktop Entry]
-        Exec=bash -c -i "theme-preset-bright"
-        Name=Switch to Light Theme
-        NoDisplay=true
-        StartupNotify=false
-        Type=Application
-        X-KDE-GlobalAccel-CommandShortcut=true
+    - { name: "Switch to Dark Theme", exec: "bash -c 'theme-preset-dark'", filename: "switch_dark_theme.desktop" }
+    - { name: "Switch to Light Theme", exec: "bash -c 'theme-preset-bright'", filename: "switch_light_theme.desktop" }
 
-- name: Notify user to restart KDE
+- name: Set custom shortcuts
+  command: kwriteconfig5 --file kglobalshortcutsrc --group "{{ item.service }}" --key "_launch" "{{ item.shortcut }},none,{{ item.name }}"
+  loop:
+    - { service: "switch_dark_theme", shortcut: "Meta+End", name: "Switch to Dark Theme" }
+    - { service: "switch_light_theme", shortcut: "Meta+Home", name: "Switch to Light Theme" }
+
+- name: Set Konsole shortcut
+  command: kwriteconfig5 --file kglobalshortcutsrc --group "org.kde.konsole.desktop" --key "_launch" "Meta+Return,none,Open Terminal"
+
+- name: Reload Plasma Shell
+  shell: kquitapp5 plasmashell && kstart5 plasmashell
+  async: 300
+  poll: 0
+  changed_when: false
+
+- name: Notify user about configuration changes
   debug:
-    msg: "Shortcut configuration complete. Please restart your KDE session (log out and log back in) to ensure all changes take effect."
+    msg: "Shortcut configuration complete and Plasma shell has been reloaded. If shortcuts are still not working, you may need to log out and log back in."
