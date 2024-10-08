@@ -6,23 +6,22 @@
     mode: '0755'
 
 - name: Configure KWallet
-  ansible.builtin.blockinfile:
+  ansible.builtin.ini_file:
     path: "{{ ansible_env.HOME }}/.config/kwalletrc"
-    create: yes
-    block: |
-      [Wallet]
-      Enabled=false
-      Close When Idle=false
-      Close on Screensaver=false
-      Idle Timeout=10
-      Launch Manager=false
-      Leave Manager Open=false
-      Leave Open=true
-      Prompt on Open=false
-      Use One Wallet=true
-
-      [org.freedesktop.secrets]
-      apiEnabled=true
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  loop:
+    - { section: 'Wallet', option: 'Enabled', value: 'false' }
+    - { section: 'Wallet', option: 'Close When Idle', value: 'false' }
+    - { section: 'Wallet', option: 'Close on Screensaver', value: 'false' }
+    - { section: 'Wallet', option: 'Idle Timeout', value: '10' }
+    - { section: 'Wallet', option: 'Launch Manager', value: 'false' }
+    - { section: 'Wallet', option: 'Leave Manager Open', value: 'false' }
+    - { section: 'Wallet', option: 'Leave Open', value: 'true' }
+    - { section: 'Wallet', option: 'Prompt on Open', value: 'false' }
+    - { section: 'Wallet', option: 'Use One Wallet', value: 'true' }
+    - { section: 'org.freedesktop.secrets', option: 'apiEnabled', value: 'true' }
   register: kwallet_config
 
 - name: Ensure KWallet manager config directory exists
