@@ -11,7 +11,7 @@ fi
 #
 # desktop
 #
-alias theme-preset-bright='plasma-apply-lookandfeel -a org.kde.breeze.desktop && usr-ckp 1'
-alias theme-preset-dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop && usr-ckp 2'
+alias theme-preset-dark='plasma-apply-lookandfeel -a org.kde.breeze.desktop && usr-ckp 1'
+alias theme-preset-bright='plasma-apply-lookandfeel -a org.kde.breezedark.desktop && usr-ckp 2'
 alias ypr='systemctl --user restart plasma-plasmashell'
 #
