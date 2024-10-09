@@ -1,3 +1,0 @@
----
-- name: Include Konsole configuration tasks
-  include_tasks: konsole.yml
