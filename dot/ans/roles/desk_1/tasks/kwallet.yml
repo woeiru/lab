@@ -5,55 +5,13 @@
     state: directory
     mode: '0755'
 
-- name: Configure KWallet
+- name: Disable KWallet
   ansible.builtin.ini_file:
     path: "{{ ansible_env.HOME }}/.config/kwalletrc"
-    section: "{{ item.section }}"
-    option: "{{ item.option }}"
-    value: "{{ item.value }}"
-  loop:
-    - { section: 'Wallet', option: 'Enabled', value: 'false' }
-    - { section: 'Wallet', option: 'Close When Idle', value: 'false' }
-    - { section: 'Wallet', option: 'Close on Screensaver', value: 'false' }
-    - { section: 'Wallet', option: 'Idle Timeout', value: '10' }
-    - { section: 'Wallet', option: 'Launch Manager', value: 'false' }
-    - { section: 'Wallet', option: 'Leave Manager Open', value: 'false' }
-    - { section: 'Wallet', option: 'Leave Open', value: 'true' }
-    - { section: 'Wallet', option: 'Prompt on Open', value: 'false' }
-    - { section: 'Wallet', option: 'Use One Wallet', value: 'true' }
-    - { section: 'org.freedesktop.secrets', option: 'apiEnabled', value: 'true' }
+    section: 'Wallet'
+    option: 'Enabled'
+    value: 'false'
   register: kwallet_config
-
-- name: Ensure KWallet manager config directory exists
-  ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config"
-    state: directory
-    mode: '0755'
-
-- name: Configure KWallet manager
-  ansible.builtin.copy:
-    content: |
-      [MainWindow]
-      ToolBarsMovable=Disabled
-    dest: "{{ ansible_env.HOME }}/.config/kwalletmanagerrc"
-    force: no
-
-- name: Ensure KWallet manager state directory exists
-  ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/state"
-    state: directory
-    mode: '0755'
-
-- name: Configure KWallet manager state
-  ansible.builtin.copy:
-    content: |
-      [MainWindow]
-      2194x1234 screen: Height=354
-      2194x1234 screen: Width=288
-      RestorePositionForNextInstance=false
-      State=AAAA/wAAAAD9AAAAAAAAASAAAAFEAAAABAAAAAQAAAAIAAAACPwAAAAA
-    dest: "{{ ansible_env.HOME }}/.local/state/kwalletmanagerstaterc"
-    force: no
 
 - name: Check if KWallet service exists
   ansible.builtin.command: systemctl list-unit-files --type=service | grep -E 'kwalletd|kwallet'
@@ -61,7 +19,7 @@
   changed_when: false
   failed_when: false
 
-- name: Restart KWallet service if it exists
+- name: Restart KWallet service if it exists and configuration changed
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: restarted

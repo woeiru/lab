@@ -4,9 +4,6 @@
     - name: Include Konsole configuration tasks
       include_tasks: konsole.yml
 
-    - name: Include wallpaper configuration tasks
-      include_tasks: wallpaper.yml
-
     - name: Include KWallet configuration tasks
       include_tasks: kwallet.yml
 
