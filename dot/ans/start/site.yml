@@ -1,13 +1,5 @@
----
 - hosts: localhost
   vars:
-    config_editor: true
-    config_system_prefs: true
+    config_desk_1: true
   roles:
-    - { role: editor_config, when: config_editor | bool, tags: ['editor'] }
-    - { role: system_preferences, when: config_system_prefs | bool, tags: ['system'] }
-  # Commented roles can be uncommented and added similarly when needed
-  # - { role: development_env, when: config_dev_env | bool, tags: ['dev'] }
-  # - { role: gui_apps, when: config_gui | bool, tags: ['gui'] }
-  # - { role: security_config, when: config_security | bool, tags: ['security'] }
-  # - { role: shell_config, when: config_shell | bool, tags: ['shell'] }
+    - { role: desk_1, when: config_desk_1 | bool, tags: ['desk'] }
