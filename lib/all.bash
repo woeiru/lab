@@ -441,53 +441,41 @@ all-flc() {
     awk "NR >= $start_line { print; if (/^\}$/) exit }" "$lib_file"
 }
 
-# Manages git operations, ensuring the local repository syncs with the remote. Performs status check, pull, commit, and push operations as needed
-# git all in
+# Manages git operations, ensuring the local repository syncs with the remote.
+# Performs status check, pull, commit, and push operations as needed.
 #
 all-gio() {
+    local dir="${DIR_LIB:-.}/.."
+    local branch="${GIT_BRANCH:-master}"
+    local commit_message="${GIT_COMMITMESSAGE:-Auto-commit: $(date +%Y-%m-%d_%H-%M-%S)}"
+
     # Navigate to the git folder
-    cd "$DIR_LIB/.." || return
+    cd "$dir" || { echo "Failed to change directory to $dir"; return 1; }
 
-    # Display the current status of the repository
-    status_output=$(git status)
+    # Fetch updates from remote
+    git fetch origin "$branch" || { echo "Failed to fetch from remote"; return 1; }
 
-    # Check if the working tree is clean
-    if echo "$status_output" | grep -q "nothing to commit, working tree clean"; then
-        echo "Nothing to commit, working tree clean..."
-	git pull
-        cd - || return
-        return
-    fi
+    # Get the current status
+    local status_output
+    status_output=$(git status --porcelain)
 
-    # Check if the branch is behind
-    if echo "$status_output" | grep -q "Your branch is behind"; then
-        # If the branch is behind, pull the changes and return
-        echo "Branch is behind, pulling changes..."
-        git pull origin master
-        cd - || return
-        return
-    fi
-
-    # Define commit message
-    local commit_message="$GIT_COMMITMESSAGE"
-
-    # Stage all changes
-    git add .
-
-    # Commit the changes with the provided commit message
-    git commit -m "$commit_message"
-
-    # Push changes to remote
-    git push origin master
-
-    # Check if the branch is ahead of the remote
-    if git status | grep -q "Your branch is ahead"; then
-        # If there are changes ahead of the master branch, push them
-        git push origin master
+    if [[ -z "$status_output" ]]; then
+        echo "Working tree clean. Checking for updates..."
+        if git rev-list HEAD...origin/"$branch" --count | grep -q "^0$"; then
+            echo "Local branch is up to date with origin/$branch."
+        else
+            echo "Updates available. Pulling changes..."
+            git pull origin "$branch" || { echo "Failed to pull changes"; return 1; }
+        fi
+    else
+        echo "Changes detected. Committing and pushing..."
+        git add . || { echo "Failed to stage changes"; return 1; }
+        git commit -m "$commit_message" || { echo "Failed to commit changes"; return 1; }
+        git push origin "$branch" || { echo "Failed to push changes"; return 1; }
     fi
 
     # Return to the previous directory
-    cd - || return
+    cd - > /dev/null || { echo "Failed to return to previous directory"; return 1; }
 }
 
 # Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
