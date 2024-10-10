@@ -324,3 +324,4 @@ alias vin="vim $inject_file"
 # 7. UNSORTED
 # =================
 alias pr='kquitapp5 plasmashell && kstart5 plasmashell'
+alias gdi='git diff --no-index -- /dev/null'
