@@ -1,8 +1,91 @@
 ---
 - name: Configure desk_1 preferences
   block:
-    - name: Include Konsole configuration tasks
-      include_tasks: konsole.yml
+    # Konsole configuration
+    - name: Ensure .local/share/konsole directory exists
+      file:
+        path: "{{ ansible_env.HOME }}/.local/share/konsole"
+        state: directory
+        mode: '0755'
 
-    - name: Include KWallet configuration tasks
-      include_tasks: kwallet.yml
+    - name: Create Konsole Profile 1
+      copy:
+        content: |
+          [Appearance]
+          ColorScheme=SolarizedLight
+          Font=Noto Sans Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+
+          [General]
+          Name=Profile 1
+          Parent=FALLBACK/
+          TerminalColumns=133
+          TerminalRows=44
+        dest: "{{ ansible_env.HOME }}/.local/share/konsole/Profile 1.profile"
+        mode: '0644'
+
+    - name: Create Konsole Profile 2
+      copy:
+        content: |
+          [Appearance]
+          ColorScheme=Linux
+          Font=Noto Sans Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+
+          [General]
+          Name=Profile 2
+          Parent=FALLBACK/
+          TerminalColumns=133
+          TerminalRows=144
+        dest: "{{ ansible_env.HOME }}/.local/share/konsole/Profile 2.profile"
+        mode: '0644'
+
+    # KWallet configuration
+    - name: Ensure KWallet config directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.config"
+        state: directory
+        mode: '0755'
+
+    - name: Disable KWallet
+      ansible.builtin.ini_file:
+        path: "{{ ansible_env.HOME }}/.config/kwalletrc"
+        section: 'Wallet'
+        option: 'Enabled'
+        value: 'false'
+      register: kwallet_config
+
+    - name: Check if KWallet service exists
+      ansible.builtin.command: systemctl list-unit-files --type=service | grep -E 'kwalletd|kwallet'
+      register: kwallet_service_check
+      changed_when: false
+      failed_when: false
+
+    - name: Restart KWallet service if it exists and configuration changed
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: restarted
+        scope: user
+      when:
+        - kwallet_config.changed
+        - item in kwallet_service_check.stdout
+      loop:
+        - kwalletd5.service
+        - kwalletd.service
+      ignore_errors: yes
+
+    - name: Notify user if KWallet service was not found
+      ansible.builtin.debug:
+        msg: "KWallet service not found. You may need to restart it manually or it may not be installed on this system."
+      when: kwallet_service_check.rc != 0
+
+    # Keyboard layout configuration
+    - name: Configure keyboard layout
+      ansible.builtin.copy:
+        content: |
+          [Layout]
+          DisplayNames=,
+          LayoutList=de,us
+          Use=true
+          VariantList=,
+        dest: "{{ ansible_env.HOME }}/.config/kxkbrc"
+        mode: '0644'
+
