@@ -683,12 +683,7 @@ all-ipa() {
 
     echo "Debug: all-ipa function called with arguments: $@"
 
-    if [ $# -lt 1 ]; then
-        all-use
-        return 1
-    fi
-
-    # Function to detect the package manager
+    # Helper function to detect the package manager
     detect_package_manager() {
         if command -v apt &> /dev/null; then
             echo "apt"
@@ -702,6 +697,68 @@ all-ipa() {
             echo "unknown"
         fi
     }
+
+    # Helper function to check repositories
+    check_repositories() {
+        local pman=$1
+        echo "Checking repository status for $pman"
+        case $pman in
+            apt)
+                grep -h ^deb /etc/apt/sources.list /etc/apt/sources.list.d/*
+                ;;
+            dnf|yum)
+                $pman repolist
+                ;;
+            zypper)
+                zypper repos
+                ;;
+        esac
+    }
+
+    # Helper function to check system resources
+    check_system_resources() {
+        echo "Checking system resources"
+        echo "Disk space:"
+        df -h
+        echo "Memory usage:"
+        free -h
+        echo "CPU load:"
+        uptime
+    }
+
+    # Helper function to remove package manager locks
+    remove_package_manager_locks() {
+        local pman=$1
+        echo "Removing package manager locks for $pman"
+        case $pman in
+            apt)
+                rm -f /var/lib/apt/lists/lock
+                rm -f /var/cache/apt/archives/lock
+                rm -f /var/lib/dpkg/lock*
+                ;;
+            dnf|yum)
+                rm -f /var/run/yum.pid
+                ;;
+            zypper)
+                rm -f /var/run/zypp.pid
+                ;;
+        esac
+    }
+
+    # Helper function to check DNS resolution
+    check_dns_resolution() {
+        echo "Checking DNS resolution"
+        host -t A google.com
+        host -t A archive.ubuntu.com
+        host -t A mirror.centos.org
+        host -t A download.opensuse.org
+    }
+
+    # Main logic starts here
+    if [ $# -lt 1 ]; then
+        all-use
+        return 1
+    fi
 
     # Detect the package manager
     local pman=$(detect_package_manager)
@@ -739,10 +796,31 @@ all-ipa() {
     echo "Debug: Upgrade command: $pman $upgrade_cmd"
     echo "Debug: Install command: $pman $install_cmd"
 
+    # Perform checks and remove locks
+    check_repositories $pman
+    check_system_resources
+    remove_package_manager_locks $pman
+    check_dns_resolution
+
     # Execute update command
     echo "Debug: Executing: $pman $update_cmd"
-    if ! $pman $update_cmd; then
-        all-nos "$function_name" "Failed to update package list"
+    if ! $pman $update_cmd > /tmp/update_output.log 2>&1; then
+        local error_message=$(cat /tmp/update_output.log)
+        all-nos "$function_name" "Failed to update package list. Error details below:"
+        echo "Full error log:"
+        cat /tmp/update_output.log
+        echo "Debug: Package manager status:"
+        case $pman in
+            apt)
+                apt-get check
+                ;;
+            dnf|yum)
+                $pman check-update
+                ;;
+            zypper)
+                zypper verify
+                ;;
+        esac
         return 1
     fi
 
