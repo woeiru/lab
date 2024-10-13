@@ -87,6 +87,11 @@ inject_content() {
     return 0
 }
 
+# 5. Restart Shell
+restart_shell() {
+	exec bash
+}
+
 # Main execution function
 main() {
     local success=true
