@@ -260,7 +260,7 @@ main() {
     alias podpsa='podman ps -a'
 
     # System control
-    alias y='systemctl'
+    alias sl='systemctl'
 
     # System configuration file editing
     alias v.samba.conf='vim /etc/samba/smb.conf'
