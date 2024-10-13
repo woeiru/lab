@@ -46,15 +46,31 @@ create_btrfs_subvolume() {
 
 # Function to calculate and create swap file
 setup_swap_file() {
-    local zram_size=$(swapon --show=size --noheadings | awk '{print $1}' | sed 's/[^0-9]*//g')
-    local ram_size=$(free -g | awk '/Mem:/ {print $2}')
-    local zram_uncompressed=$((zram_size * 2))
-    local total_size=$((zram_uncompressed + ram_size))
+    print_status "Entering setup_swap_file function" "DEBUG"
 
-    echo "ZRAM size: ${zram_size}G"
+    local zram_sizes=$(swapon --show=size --noheadings | awk '{print $1}' | sed 's/[^0-9]*//g')
+    local total_zram_size=0
+    for size in $zram_sizes; do
+        total_zram_size=$((total_zram_size + size))
+    done
+    print_status "Total ZRAM size: $total_zram_size" "DEBUG"
+
+    local ram_size=$(free -g | awk '/Mem:/ {print $2}')
+    print_status "RAM size: $ram_size" "DEBUG"
+
+    print_status "Calculating ZRAM uncompressed size" "DEBUG"
+    local zram_uncompressed=$((total_zram_size * 2))
+    print_status "ZRAM uncompressed: $zram_uncompressed" "DEBUG"
+
+    print_status "Calculating total size" "DEBUG"
+    local total_size=$((zram_uncompressed + ram_size))
+    print_status "Total size: $total_size" "DEBUG"
+
+    echo "Total ZRAM size: ${total_zram_size}G"
     echo "RAM size: ${ram_size}G"
     echo "Recommended swap file size: ${total_size}G"
     read -p "Enter desired swap file size in GB: " user_swap_size
+    print_status "User entered swap size: $user_swap_size" "DEBUG"
 
     if [ -f "/swap/swapfile" ]; then
         read -p "Swap file already exists. Recreate? (y/n) " -n 1 -r
@@ -79,6 +95,7 @@ setup_swap_file() {
     print_status "Creating swap file..." "DEBUG"
     touch /swap/swapfile
     chattr +C /swap/swapfile
+    print_status "Running fallocate command" "DEBUG"
     fallocate --length ${user_swap_size}G /swap/swapfile 2>&1 | tee -a setup.log
     chmod 600 /swap/swapfile
 
@@ -190,61 +207,125 @@ disable_systemd_memory_checks() {
     done
 }
 
-# Function to check system status
-check_system_status() {
-    echo "Checking system status..."
+# Function to add fstab entry
+add_fstab_entry() {
+    if ! grep -q "/swap/swapfile" /etc/fstab; then
+        print_status "Adding swap file entry to /etc/fstab..." "DEBUG"
+        echo '/swap/swapfile none swap defaults 0 0' | tee -a /etc/fstab > /dev/null
+        print_status "Added swap file entry to /etc/fstab" "OK"
+    else
+        print_status "Swap file entry already exists in /etc/fstab" "OK"
+    fi
+}
 
-    # Check swap file
+# Checker functions
+check_swap_file() {
     if [ -f "/swap/swapfile" ]; then
         swap_size=$(du -h /swap/swapfile | cut -f1)
         print_status "Swap file exists (${swap_size})" "OK"
+        return 0
     else
         print_status "Swap file is missing" "MISSING"
+        return 1
     fi
+}
 
-    # Check if swap is active
+check_swap_active() {
     if swapon -s | grep -q "/swap/swapfile"; then
         print_status "Swap file is active" "OK"
+        return 0
     else
         print_status "Swap file is not active" "WARNING"
+        return 1
     fi
+}
 
-    # Check GRUB configuration
+check_grub_config() {
     if grep -q "resume=UUID" /etc/default/grub; then
         print_status "GRUB configuration for resume exists" "OK"
+        return 0
     else
         print_status "GRUB configuration for resume is missing" "MISSING"
+        return 1
     fi
+}
 
-    # Check systemd units
+check_systemd_units() {
+    local status=0
     for service in hibernate-preparation hibernate-resume; do
         if systemctl is-enabled --quiet ${service}.service; then
             print_status "${service}.service is enabled" "OK"
         else
             print_status "${service}.service is missing or not enabled" "MISSING"
+            status=1
         fi
     done
+    return $status
+}
 
-    # Check systemd memory checks
+check_systemd_memory_checks() {
+    local status=0
     for service in logind hibernate; do
         if [ -f "/etc/systemd/system/systemd-${service}.service.d/override.conf" ]; then
             print_status "Systemd memory check disabled for ${service}" "OK"
         else
             print_status "Systemd memory check not disabled for ${service}" "MISSING"
+            status=1
         fi
     done
+    return $status
 }
 
-# Function to check if btrfs-progs is installed
-check_btrfs_progs() {
-    if ! command -v btrfs &> /dev/null; then
-        print_status "btrfs-progs is not installed" "MISSING"
-        echo "Please install btrfs-progs using your package manager:"
-        echo "sudo dnf install btrfs-progs"
-        return 1
+check_fstab_entry() {
+    if grep -q "/swap/swapfile" /etc/fstab; then
+        print_status "Swap file entry exists in /etc/fstab" "OK"
+        return 0
     else
-        print_status "btrfs-progs is installed" "OK"
+        print_status "Swap file entry is missing in /etc/fstab" "MISSING"
+        return 1
     fi
+}
+
+check_btrfs_progs() {
+    if command -v btrfs &> /dev/null; then
+        print_status "btrfs-progs is installed" "OK"
+        return 0
+    else
+        print_status "btrfs-progs is not installed" "MISSING"
+        return 1
+    fi
+}
+
+# Handler functions
+handle_swap_file() {
+    create_btrfs_subvolume
+    setup_swap_file
+}
+
+handle_swap_active() {
+    swapon /swap/swapfile
+}
+
+handle_grub_config() {
+    get_uuid_and_offset
+    update_grub
+}
+
+handle_systemd_units() {
+    create_systemd_units
+}
+
+handle_systemd_memory_checks() {
+    disable_systemd_memory_checks
+}
+
+handle_fstab_entry() {
+    add_fstab_entry
+}
+
+handle_btrfs_progs() {
+    echo "Please install btrfs-progs using your package manager:"
+    echo "sudo dnf install btrfs-progs"
 }
 
 # Main function
@@ -257,29 +338,68 @@ main() {
     # Clear previous log
     > setup.log
 
-    check_system_status
-    check_btrfs_progs
+    # Run all checks
+    local issues=()
+    check_swap_file || issues+=("swap_file")
+    check_swap_active || issues+=("swap_active")
+    check_grub_config || issues+=("grub_config")
+    check_systemd_units || issues+=("systemd_units")
+    check_systemd_memory_checks || issues+=("systemd_memory_checks")
+    check_fstab_entry || issues+=("fstab_entry")
+    check_btrfs_progs || issues+=("btrfs_progs")
 
-    read -p "Do you want to proceed with the setup? (y/n) " -n 1 -r
+    if [ ${#issues[@]} -eq 0 ]; then
+        echo "No issues found. Your system is ready for hibernation."
+        exit 0
+    fi
+
+    echo "The following issues were found:"
+    for issue in "${issues[@]}"; do
+        echo "- $issue"
+    done
+
+    read -p "Do you want to fix these issues? (y/n) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         echo "Operation cancelled."
         exit 1
     fi
 
-    create_btrfs_subvolume
-    setup_swap_file || {
-        echo "Swap file setup failed. Please review the messages above and the setup.log file for more details."
-        exit 1
-    }
-    configure_dracut
-    get_uuid_and_offset
-    update_grub
-    create_systemd_units
-    disable_systemd_memory_checks
+    # Handle issues
+    for issue in "${issues[@]}"; do
+        case $issue in
+            swap_file)
+                handle_swap_file
+                ;;
+            swap_active)
+                handle_swap_active
+                ;;
+            grub_config)
+                handle_grub_config
+                ;;
+            systemd_units)
+                handle_systemd_units
+                ;;
+            systemd_memory_checks)
+                handle_systemd_memory_checks
+                ;;
+            fstab_entry)
+                handle_fstab_entry
+                ;;
+            btrfs_progs)
+                handle_btrfs_progs
+                ;;
+        esac
+    done
 
-    echo "Setup complete. Checking final status..."
-    check_system_status
+    echo "Fixes applied. Checking final status..."
+    check_swap_file
+    check_swap_active
+    check_grub_config
+    check_systemd_units
+    check_systemd_memory_checks
+    check_fstab_entry
+    check_btrfs_progs
 
     echo "Current swap status:"
     swapon --show
