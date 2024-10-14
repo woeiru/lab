@@ -138,16 +138,43 @@ pve-dsr() {
 #   
 pve-adr() {
     local function_name="${FUNCNAME[0]}"
-    line_to_add="deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription"
-    file="/etc/apt/sources.list"
+    local file="$1"
+    local line_to_add="$2"
+    local temp_file=$(mktemp)
 
+    # Check if both arguments were provided
+    if [ -z "$file" ] || [ -z "$line_to_add" ]; then
+        all-nos "$function_name" "Error: Both file path and line to add must be provided"
+        return 1
+    fi
+
+    # Check if the file exists and is writable
+    if [ ! -w "$file" ]; then
+        all-nos "$function_name" "Error: $file does not exist or is not writable"
+        return 1
+    fi
+
+    # Check if the line already exists in the file
     if grep -Fxq "$line_to_add" "$file"; then
         all-nos "$function_name" "Line already exists in $file"
-    else
-        echo "$line_to_add" >> "$file"
+        return 0
+    fi
+
+    # Create a temporary file with the new content
+    cat "$file" > "$temp_file"
+    echo "$line_to_add" >> "$temp_file"
+
+    # Use mv to atomically replace the original file
+    if mv "$temp_file" "$file"; then
         all-nos "$function_name" "Line added to $file"
+        return 0
+    else
+        all-nos "$function_name" "Error: Failed to update $file"
+        rm -f "$temp_file"
+        return 1
     fi
 }
+
 
 # Updates package lists and upgrades all installed packages on the Proxmox system
 # packages update upgrade

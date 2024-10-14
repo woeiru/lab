@@ -21,7 +21,7 @@ MENU_OPTIONS[i]="i_xall"
 
 a_xall() {
     pve-dsr
-    pve-adr
+    pve-adr "$PVE_ADR_FILE" "$PVE_ADR_LINE"
     pve-puu
     pve-rsn
 }
