@@ -11,6 +11,8 @@ CONFIG_FILE=""
 LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 DRY_RUN=false
 INTERACTIVE=false
+TARGET_USER=""
+TARGET_USER_SET=false
 
 # Numbered functions (main workflow)
 
@@ -34,7 +36,7 @@ check_shell_version() {
 
 # 2. Initialize target user and home directory
 init_target_user() {
-    if [[ "$EUID" -eq 0 ]]; then
+    if [[ "$EUID" -eq 0 && "$TARGET_USER_SET" = false ]]; then
         if [[ -z "${TARGET_USER:-}" ]]; then
             if [[ "$INTERACTIVE" = true ]]; then
                 read -p "Enter the target user's username (or 'root' for the root user): " TARGET_USER
@@ -44,18 +46,20 @@ init_target_user() {
                 exit 1
             fi
         fi
-        if [[ "$TARGET_USER" = "root" ]]; then
-            TARGET_HOME=$(eval echo ~root)
-        else
-            TARGET_HOME=$(eval echo ~$TARGET_USER)
-        fi
+        TARGET_USER_SET=true
+    fi
 
-        if [[ ! -d "$TARGET_HOME" ]]; then
-            log_message "ERROR" "Home directory for user $TARGET_USER not found."
-            exit 1
-        fi
+    if [[ "$TARGET_USER" = "root" ]]; then
+        TARGET_HOME=$(eval echo ~root)
+    elif [[ -n "${TARGET_USER:-}" ]]; then
+        TARGET_HOME=$(eval echo ~$TARGET_USER)
     else
         TARGET_HOME="$HOME"
+    fi
+
+    if [[ ! -d "$TARGET_HOME" ]]; then
+        log_message "ERROR" "Home directory for user $TARGET_USER not found."
+        exit 1
     fi
     log_message "INFO" "Target home directory set to: $TARGET_HOME"
 }
@@ -187,6 +191,7 @@ parse_arguments() {
         case $1 in
             -u|--user)
                 TARGET_USER="$2"
+                TARGET_USER_SET=true
                 shift 2
                 ;;
             -c|--config)
@@ -260,9 +265,6 @@ execute_functions() {
 # Interactive mode function
 run_interactive_mode() {
     INTERACTIVE=true
-    if [[ "$EUID" -eq 0 ]]; then
-        read -p "Enter the target user's username (or 'root' for the root user): " TARGET_USER
-    fi
     read -p "Enter the config file location (leave blank for default): " CONFIG_FILE
     read -p "Perform a dry run? (y/n): " dry_run_choice
     if [[ "$dry_run_choice" =~ ^[Yy]$ ]]; then
