@@ -11,6 +11,7 @@ This guide walks you through the process of setting up Ansible, deploying roles 
 6. [Customizing Roles](#customizing-roles)
 7. [Maintenance Tips](#maintenance-tips)
 8. [Troubleshooting](#troubleshooting)
+9. [Advanced Execution Scenarios](#advanced-execution-scenarios)
 
 ## Prerequisites
 
@@ -54,33 +55,24 @@ Your Ansible project is organized as follows:
 ├── inventory
 ├── readme.md
 ├── roles/
-│   ├── editor_config/
-│   │   ├── files/
-│   │   │   ├── Profile 1.profile
-│   │   │   └── Profile 2.profile
-│   │   └── tasks/
-│   │       ├── konsole.yml
-│   │       └── main.yml
-│   └── system_preferences/
+│   └── desk_1/
 │       └── tasks/
-│           ├── main.yml
-│           └── wallpaper.yml
-└── start/
-    └── site.yml
+│           └── main.yml
+└── site.yml
 ```
 
-This structure will evolve as you add more roles and tasks.
+This structure may evolve as you add more roles and tasks.
 
 ## Configuring Ansible
 
-1. Create an `ansible.cfg` file in your project root:
+1. The `ansible.cfg` file in your project root contains:
    ```ini
    [defaults]
    inventory = inventory
    roles_path = ./roles
    ```
 
-2. Create an inventory file named `inventory` in your project root:
+2. The inventory file named `inventory` in your project root contains:
    ```
    localhost ansible_connection=local
    ```
@@ -88,102 +80,83 @@ This structure will evolve as you add more roles and tasks.
 
 ## Running Playbooks
 
-1. Your main playbook (`start/site.yml`) should look like this:
+1. Your main playbook (`site.yml`) looks like this:
    ```yaml
-   ---
    - hosts: localhost
      vars:
-       config_editor: true
-       config_system_prefs: true
+       config_desk_1: true
      roles:
-       - { role: editor_config, when: config_editor | bool, tags: ['editor'] }
-       - { role: system_preferences, when: config_system_prefs | bool, tags: ['system'] }
-     # Commented roles can be uncommented and added similarly when needed
-     # - { role: development_env, when: config_dev_env | bool, tags: ['dev'] }
-     # - { role: gui_apps, when: config_gui | bool, tags: ['gui'] }
-     # - { role: security_config, when: config_security | bool, tags: ['security'] }
-     # - { role: shell_config, when: config_shell | bool, tags: ['shell'] }
+       - { role: desk_1, when: config_desk_1 | bool, tags: ['desk'] }
    ```
 
 2. Run the playbook:
    ```
-   ansible-playbook start/site.yml
+   ansible-playbook site.yml
    ```
 
 3. For a dry run (check mode):
    ```
-   ansible-playbook start/site.yml --check
+   ansible-playbook site.yml --check
    ```
 
 4. For a dry run with detailed diff output:
    ```
-   ansible-playbook start/site.yml --check --diff
+   ansible-playbook site.yml --check --diff
    ```
 
 5. To run specific parts of the playbook:
-   - Use tags: `ansible-playbook start/site.yml --tags editor`
-   - Use variables: `ansible-playbook start/site.yml --extra-vars "config_editor=false"`
+   - Use tags: `ansible-playbook site.yml --tags desk`
+   - Use variables: `ansible-playbook site.yml --extra-vars "config_desk_1=false"`
 
 ## Customizing Roles
 
-Each role has a `tasks/main.yml` file that defines its tasks. To customize a role:
+The `desk_1` role has a `tasks/main.yml` file that defines its tasks. To customize this role:
 
-1. Navigate to the role's directory (e.g., `roles/editor_config/`).
+1. Navigate to the role's directory (`roles/desk_1/`).
 2. Edit the `tasks/main.yml` file to add or modify tasks.
-3. Add new configuration files in the `files/` directory of the role if needed.
 
-Example (`roles/editor_config/tasks/main.yml`):
-```yaml
----
-- name: Include Konsole configuration tasks
-  include_tasks: konsole.yml
-
-# Add more editor configuration tasks here
-```
+The current `main.yml` file includes tasks for:
+- Configuring Konsole profiles
+- Disabling KWallet
+- Configuring keyboard layout
 
 ## Maintenance Tips
 
-1. **Adding New Roles**: 
-   - Create a new directory under `roles/`.
-   - Add a `tasks/main.yml` file in the new role directory.
-   - Include the new role in `start/site.yml`.
-
-2. **Modifying Existing Roles**:
-   - Edit the `tasks/main.yml` file in the respective role directory.
+1. **Modifying Existing Roles**:
+   - Edit the `tasks/main.yml` file in the `desk_1` role directory.
    - Add new task files and include them in `main.yml` if needed.
 
-3. **Best Practices**:
+2. **Best Practices**:
    - Use relative paths in your playbooks and role definitions.
    - Utilize variables for paths that might change across environments.
-   - Use `{{ playbook_dir }}` to reference files relative to your playbook location.
-   - For files within a role, use `{{ role_path }}`.
+   - Use `{{ ansible_env.HOME }}` for user home directory paths.
 
-4. **Version Control**:
+3. **Version Control**:
    - Keep your Ansible project in a version control system like Git.
    - Use meaningful commit messages to track changes.
 
-5. **Testing**:
+4. **Testing**:
    - Test changes on a non-production system before applying to your main environment.
-   - Consider using Ansible Molecule for role testing.
+   - Use the `--check` flag for dry runs.
 
-6. **Documentation**:
+5. **Documentation**:
    - Keep this README updated as you modify your project.
-   - Document role-specific details in a README within each role directory.
+   - Document role-specific details in comments within the YAML files.
 
-7. **Security**:
-   - Use Ansible Vault for sensitive data.
+6. **Security**:
+   - Use Ansible Vault for sensitive data if needed.
    - Regularly update Ansible to the latest stable version.
 
 ## Troubleshooting
 
 - If you encounter permission issues, try running the playbook with `sudo`:
   ```
-  sudo ansible-playbook start/site.yml
+  sudo ansible-playbook site.yml
   ```
 
 - For more verbose output, add the `-v`, `-vv`, or `-vvv` flag:
   ```
-  ansible-playbook -v start/site.yml
+  ansible-playbook -v site.yml
   ```
 
 - Check [Ansible documentation](https://docs.ansible.com/) for specific error messages.
@@ -191,3 +164,73 @@ Example (`roles/editor_config/tasks/main.yml`):
 Remember to run your playbook from the project root directory (/root/lab/dot/ans/) to ensure proper path resolution. Always test changes in a safe environment before applying them to your main system.
 
 For any questions or issues, refer to the Ansible documentation or seek community support.
+
+## Advanced Execution Scenarios
+
+### Running as a Non-Root User
+
+While this playbook is typically run as root, you can also run it as a normal user with some modifications:
+
+1. Ensure your user has sudo privileges.
+
+2. Modify the `site.yml` file to use `become` for privilege escalation:
+
+   ```yaml
+   - hosts: localhost
+     vars:
+       config_desk_1: true
+     roles:
+       - { role: desk_1, when: config_desk_1 | bool, tags: ['desk'] }
+     become: true
+     become_method: sudo
+     become_user: root
+   ```
+
+3. In your roles' task files, use `become: true` only for tasks that require root privileges.
+
+4. Run the playbook with the `--ask-become-pass` or `-K` flag:
+
+   ```
+   ansible-playbook site.yml --ask-become-pass
+   ```
+
+   This will prompt you for your sudo password.
+
+Remember to test thoroughly when switching between root and non-root execution to ensure all tasks work as expected.
+
+### Running a Root-Owned Ansible Playbook as a Normal User
+
+When your Ansible playbook is located in a root-owned directory (e.g., /root/lab/dot/ans), you can still run it as a normal user by using sudo. Here's how:
+
+1. Ensure your user has sudo privileges.
+
+2. Use sudo to run the ansible-playbook command:
+
+   ```
+   sudo ansible-playbook /root/lab/dot/ans/site.yml
+   ```
+
+3. If your playbook uses `become` for privilege escalation, you might need to use the `-b` flag:
+
+   ```
+   sudo ansible-playbook -b /root/lab/dot/ans/site.yml
+   ```
+
+4. If you need to specify the inventory file, use the `-i` flag:
+
+   ```
+   sudo ansible-playbook -b -i /root/lab/dot/ans/inventory /root/lab/dot/ans/site.yml
+   ```
+
+5. To avoid potential issues with environment variables or user-specific configurations, you may want to use the `-H` flag with sudo, which sets the HOME environment variable to the target user's home directory:
+
+   ```
+   sudo -H ansible-playbook -b -i /root/lab/dot/ans/inventory /root/lab/dot/ans/site.yml
+   ```
+
+Remember:
+- Using sudo will run the playbook with root privileges, so be cautious and ensure you trust the playbook content.
+- If your playbook references files using relative paths, you may need to adjust these or use absolute paths.
+- Always test in a safe environment before running on your main system.
+
+NOTE: While this method works, it's generally better practice to store Ansible playbooks in a location accessible to the users who need to run them, rather than in /root. Consider discussing with your system administrator about moving the playbook to a more appropriate location.
