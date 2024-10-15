@@ -339,7 +339,7 @@ usr-rnf() {
     if [[ ! -d "$path" ]]; then
         echo "The specified path is not a directory."
         return 1
-    }
+    fi
 
     find "$path" -type f -name "*$oldname*" | while read -r file; do
         local dirname=$(dirname "$file")
@@ -356,7 +356,7 @@ usr-rsd() {
     if [ $# -ne 2 ]; then
         all-use
         return 1
-    }
+    fi
     local source_path="$1"
     local destination_path="$2"
 

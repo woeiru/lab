@@ -32,14 +32,6 @@ pve-var() {
     all-acu -o "$CONFIG_pve" "$DIR_LIB/.."
 }
 
-# Logging function
-all-log() {
-    local log_level="$1"
-    local message="$2"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$log_level] $message"
-}
-
-
 # Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
 # udev network interface
 # [interactive]
