@@ -19,6 +19,13 @@ else
     # Don't exit, just continue
 fi
 
+# Logging function
+all-log() {
+    local log_level="$1"
+    local message="$2"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$log_level] $message"
+}
+
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
