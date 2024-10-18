@@ -1,9 +1,0 @@
-[Unit]
-Description=Disable devices as wakeup
-
-[Service]
-ExecStart=/usr/local/bin/disable-devices-as-wakeup.sh
-Type=oneshot
-
-[Install]
-WantedBy=multi-user.target
