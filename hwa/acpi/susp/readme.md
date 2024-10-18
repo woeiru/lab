@@ -2,21 +2,29 @@
 
 ## Purpose
 
-This solution provides a method to disable specific ACPI wakeup devices on Linux systems using a systemd service. It's designed to work on systems with or without SELinux enabled, improving system stability and power management by preventing unwanted system wakeups.
+This project provides a solution for managing ACPI wakeup devices on Linux systems, particularly focusing on preventing unwanted system wakeups and handling USB device reinitialization after sleep. It's designed to work on systems with or without SELinux enabled, improving system stability and power management.
+
+## Features
+
+- Disables specified ACPI wakeup devices to prevent unwanted system wakeups
+- Manages USB power settings to ensure proper device functionality after wake-up
+- Includes a post-wake USB reset mechanism to reinitialize USB devices
+- Supports systems with SELinux enabled
+- Provides detailed logging for troubleshooting
 
 ## Prerequisites
 
-- Root access to your system
-- `systemd` (standard on most modern Linux distributions)
+- A Linux system with systemd
+- Root access to the system
 - SELinux tools (`checkmodule`, `semodule_package`) if SELinux is enabled
 
 ## Files
 
-Ensure you have the following files in your working directory:
-
 - `depl.sh`: Main deployment script
-- `disable-devices-as-wakeup.service`: Systemd service file
-- `disable-devices-as-wakeup.sh`: Script to disable wakeup devices
+- `disable-devices-as-wakeup.service`: Systemd service file for disabling wakeup devices
+- `disable-devices-as-wakeup.sh`: Script to disable specified wakeup devices
+- `post-wake-usb-reset.service`: Systemd service file for post-wake USB reset
+- `post-wake-usb-reset.sh`: Script to reset USB devices after system wake-up
 
 ## Installation
 
@@ -31,7 +39,7 @@ Ensure you have the following files in your working directory:
    Update the `devices` array with your specific device names:
 
    ```bash
-   declare -a devices=("GPP0" "GPP8" "XHC0")  # Modify this list as needed
+   declare -a devices=("GPP0" "XHC0")  # Modify this list as needed
    ```
 
 3. Make the deployment script executable:
@@ -48,14 +56,62 @@ Ensure you have the following files in your working directory:
 
    This script will:
    - Copy necessary files to appropriate system directories
-   - Configure SELinux if it's enabled (creating, compiling, and loading a policy)
-   - Set up and start the systemd service
+   - Configure SELinux if it's enabled
+   - Set up and start the required systemd services
    - Log all actions to `/var/log/acpi-wakeup-disabler-deploy.log`
 
-## SELinux Configuration
+## Configuration
 
-If SELinux is enabled on your system, the deployment script will automatically create, compile, and load an appropriate SELinux policy. This policy allows the service to function correctly within SELinux constraints. The entire process is handled during deployment and does not require any manual intervention.
+- The main configuration is done in the `disable-devices-as-wakeup.sh` script, where you specify which ACPI devices to disable.
+- The `post-wake-usb-reset.sh` script handles USB device reinitialization after wake-up. Modify this script if you need to add specific USB device handling.
 
-If you need to customize the SELinux policy, you can modify the policy generation section in the `depl.sh` script before running it.
+## Logging
 
-[The rest of the README remains the same as in previous versions]
+- Deployment logs: `/var/log/acpi-wakeup-disabler-deploy.log`
+- Runtime logs for disabling devices: `/var/log/disable-devices-as-wakeup.log`
+- Post-wake USB reset logs: `/var/log/post-wake-usb-reset.log`
+
+Check these logs for troubleshooting and to verify the system's behavior.
+
+## Troubleshooting
+
+If you encounter issues:
+
+1. Check the log files mentioned above for error messages or unexpected behavior.
+2. Ensure that the ACPI devices you've specified actually exist on your system. You can check available devices with:
+   ```
+   cat /proc/acpi/wakeup
+   ```
+3. If USB devices are not functioning correctly after wake-up, check the post-wake USB reset logs and consider modifying the `post-wake-usb-reset.sh` script.
+
+## Uninstallation
+
+To remove the changes made by this script:
+
+1. Disable and stop the services:
+   ```
+   sudo systemctl disable --now disable-devices-as-wakeup.service post-wake-usb-reset.service
+   ```
+2. Remove the installed files:
+   ```
+   sudo rm /etc/systemd/system/disable-devices-as-wakeup.service
+   sudo rm /etc/systemd/system/post-wake-usb-reset.service
+   sudo rm /usr/local/bin/disable-devices-as-wakeup.sh
+   sudo rm /usr/local/bin/post-wake-usb-reset.sh
+   ```
+3. If SELinux is enabled, remove the custom policy:
+   ```
+   sudo semodule -r disable_wakeup
+   ```
+
+## Contributing
+
+Contributions to improve this project are welcome. Please feel free to submit issues or pull requests on the project's repository.
+
+## License
+
+[Specify your license here, e.g., MIT, GPL, etc.]
+
+## Disclaimer
+
+This script modifies system behavior related to power management and device control. While efforts have been made to ensure its reliability, use it at your own risk. Always test thoroughly on non-critical systems before deploying in a production environment.
