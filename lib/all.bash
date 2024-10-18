@@ -1022,9 +1022,9 @@ all-spi() {
 }
 
 # Generates an SSH key pair and handles the transfer process
-# ssh public swap
+# ssh key swap
 # For client-side generation: all-sgp -c <server_address> <key_name> / For server-side generation: all-sgp -s <client_address> <key_name>
-all-sgp() {
+all-sks() {
     local mode="$1"
     local remote_address="$2"
     local key_name="$3"
