@@ -83,9 +83,8 @@
         content: |
           [Layout]
           DisplayNames=,
-          LayoutList=de,us
+          LayoutList=us,de
           Use=true
           VariantList=,
         dest: "{{ ansible_env.HOME }}/.config/kxkbrc"
         mode: '0644'
-
