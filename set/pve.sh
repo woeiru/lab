@@ -31,14 +31,14 @@ b_xall() {
 }
 
 c_xall() {
-    all-usk \
+    all-suk \
         "$DEVICE_PATH" \
         "$MOUNT_POINT" \
         "$SUBFOLDER_PATH" \
         "$UPLOAD_PATH" \
         "$PUBLIC_KEY"
 
-    all-aak "$UPLOAD_PATH" "$PUBLIC_KEY"
+    all-sak "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
 d_xall() {

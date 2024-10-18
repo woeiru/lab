@@ -909,9 +909,9 @@ all-fsr() {
 }
 
 # Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
-# upload ssh keyfile
+# ssh upload keyfile
 # <device_path> <mount_point> <subfolder_path> <upload_path> <file_name>
-all-usk() {
+all-suk() {
     local device_path="$1"
     local mount_point="$2"
     local subfolder_path="$3"
@@ -977,9 +977,6 @@ all-usk() {
 # Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist
 # ssh private identifier
 # <user> <keyname>
-# Append a private SSH key identifier to a config inside .ssh
-# ssh private identifier
-# <user> <keyname>
 all-spi() {
     local keyname=$2
     local user=$2
@@ -1024,10 +1021,115 @@ all-spi() {
     fi
 }
 
+# Generates an SSH key pair and handles the transfer process
+# ssh public swap
+# For client-side generation: all-sgp -c <server_address> / For server-side generation: all-sgp -s <client_address>
+all-sps() {
+    local mode="$1"
+    local remote_address="$2"
+    local ssh_dir="/root/.ssh"
+    local key_name="id_rsa_$(date +%Y%m%d_%H%M%S)"
+    local auth_keys_file="$ssh_dir/authorized_keys"
+
+    if [ $# -ne 2 ]; then
+        echo "Usage: all-sgp -s <client_address> # for server-side generation"
+        echo "       all-sgp -c <server_address> # for client-side generation"
+        return 1
+    fi
+
+    # Evaluate and confirm variables
+    all-mev "mode" "Enter the mode (-s for server, -c for client)" $mode
+    all-mev "remote_address" "Enter the remote address" $remote_address
+
+    case "$mode" in
+        -s) # Server-side generation
+            # Create .ssh directory if it doesn't exist
+            mkdir -p "$ssh_dir"
+            chmod 700 "$ssh_dir"
+
+            # Generate new SSH key pair
+            ssh-keygen -t rsa -b 4096 -f "$ssh_dir/$key_name" -N ""
+
+            if [ $? -ne 0 ]; then
+                echo "Failed to generate SSH key pair."
+                return 1
+            fi
+
+            # Append public key to authorized_keys
+            cat "$ssh_dir/${key_name}.pub" >> "$auth_keys_file"
+            chmod 600 "$auth_keys_file"
+
+            echo "SSH key pair generated on server."
+            echo "Transferring private key to client..."
+
+            # Transfer private key to client
+            scp "$ssh_dir/$key_name" "${remote_address}:~/.ssh/"
+            
+            if [ $? -ne 0 ]; then
+                echo "Failed to transfer private key to client."
+                return 1
+            fi
+
+            # Remove private key from server
+            rm "$ssh_dir/$key_name"
+
+            echo "Private key transferred to client and removed from server."
+            echo "Public key file: $ssh_dir/${key_name}.pub"
+
+            # Restart SSH service
+            echo "Restarting SSH service..."
+            systemctl restart sshd
+            ;;
+
+        -c) # Client-side generation
+            # Generate new SSH key pair on client
+            ssh-keygen -t rsa -b 4096 -f "$HOME/.ssh/$key_name" -N ""
+
+            if [ $? -ne 0 ]; then
+                echo "Failed to generate SSH key pair."
+                return 1
+            fi
+
+            echo "SSH key pair generated on client."
+            echo "Transferring public key to server..."
+
+            # Transfer public key to server
+            scp "$HOME/.ssh/${key_name}.pub" "${remote_address}:/tmp/"
+            
+            if [ $? -ne 0 ]; then
+                echo "Failed to transfer public key to server."
+                return 1
+            fi
+
+            # Append public key to authorized_keys on server
+            ssh "$remote_address" "mkdir -p $ssh_dir && cat /tmp/${key_name}.pub >> $auth_keys_file && chmod 600 $auth_keys_file && rm /tmp/${key_name}.pub"
+
+            if [ $? -ne 0 ]; then
+                echo "Failed to append public key to authorized_keys on server."
+                return 1
+            fi
+
+            echo "Public key transferred to server and added to authorized_keys."
+            echo "Private key file: $HOME/.ssh/$key_name"
+
+            # Restart SSH service on server
+            echo "Restarting SSH service on server..."
+            ssh "$remote_address" "systemctl restart sshd"
+            ;;
+
+        *)
+            echo "Invalid mode. Use -s for server-side or -c for client-side generation."
+            return 1
+            ;;
+    esac
+
+    echo "SSH key setup completed successfully."
+}
+
 # Appends the content of a specified public SSH key file to the authorized_keys file. Prompts for confirmation and restarts the SSH service
-# append authorized keys
+# ssh append keys
 # <upload_path> <file_name>
-all-aak() {
+all-sak() {
     local upload_path="$1"
     local file_name="$2"
     local authorized_keys_path="$upload_path/authorized_keys"

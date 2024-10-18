@@ -20,7 +20,7 @@ a_xall() {
 }
 
 b_xall() {
-	all-usk \
+	all-suk \
     		"$DEVICE_PATH" \
     		"$MOUNT_POINT" \
     		"$SUBFOLDER_PATH" \
