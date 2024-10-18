@@ -67,7 +67,7 @@ require {
 }
 
 #============= init_t ==============
-allow init_t bin_t:file { read open execute };
+allow init_t bin_t:file { read open };
 allow init_t proc_t:file { read write open };
 allow init_t self:process execmem;
 EOF
