@@ -1023,23 +1023,19 @@ all-spi() {
 
 # Generates an SSH key pair and handles the transfer process
 # ssh public swap
-# For client-side generation: all-sgp -c <server_address> / For server-side generation: all-sgp -s <client_address>
-all-sps() {
+# For client-side generation: all-sgp -c <server_address> <key_name> / For server-side generation: all-sgp -s <client_address> <key_name>
+all-sgp() {
     local mode="$1"
     local remote_address="$2"
+    local key_name="$3"
     local ssh_dir="/root/.ssh"
-    local key_name="id_rsa_$(date +%Y%m%d_%H%M%S)"
     local auth_keys_file="$ssh_dir/authorized_keys"
 
-    if [ $# -ne 2 ]; then
-        echo "Usage: all-sgp -s <client_address> # for server-side generation"
-        echo "       all-sgp -c <server_address> # for client-side generation"
+    if [ $# -ne 3 ]; then
+        echo "Usage: all-sgp -s <client_address> <key_name> # for server-side generation"
+        echo "       all-sgp -c <server_address> <key_name> # for client-side generation"
         return 1
     fi
-
-    # Evaluate and confirm variables
-    all-mev "mode" "Enter the mode (-s for server, -c for client)" $mode
-    all-mev "remote_address" "Enter the remote address" $remote_address
 
     case "$mode" in
         -s) # Server-side generation
@@ -1064,7 +1060,7 @@ all-sps() {
 
             # Transfer private key to client
             scp "$ssh_dir/$key_name" "${remote_address}:~/.ssh/"
-            
+
             if [ $? -ne 0 ]; then
                 echo "Failed to transfer private key to client."
                 return 1
@@ -1095,22 +1091,27 @@ all-sps() {
 
             # Transfer public key to server
             scp "$HOME/.ssh/${key_name}.pub" "${remote_address}:/tmp/"
-            
+
             if [ $? -ne 0 ]; then
                 echo "Failed to transfer public key to server."
                 return 1
             fi
 
-            # Append public key to authorized_keys on server
-            ssh "$remote_address" "mkdir -p $ssh_dir && cat /tmp/${key_name}.pub >> $auth_keys_file && chmod 600 $auth_keys_file && rm /tmp/${key_name}.pub"
+            # Append public key to authorized_keys on server and keep a copy
+            ssh "$remote_address" "mkdir -p $ssh_dir && \
+                                   cat /tmp/${key_name}.pub >> $auth_keys_file && \
+                                   chmod 600 $auth_keys_file && \
+                                   cp /tmp/${key_name}.pub $ssh_dir/ && \
+                                   rm /tmp/${key_name}.pub"
 
             if [ $? -ne 0 ]; then
-                echo "Failed to append public key to authorized_keys on server."
+                echo "Failed to process public key on server."
                 return 1
             fi
 
-            echo "Public key transferred to server and added to authorized_keys."
-            echo "Private key file: $HOME/.ssh/$key_name"
+            echo "Public key transferred to server, added to authorized_keys, and saved as a separate file."
+            echo "Private key file on client: $HOME/.ssh/$key_name"
+            echo "Public key file on server: $ssh_dir/${key_name}.pub"
 
             # Restart SSH service on server
             echo "Restarting SSH service on server..."
@@ -1125,6 +1126,7 @@ all-sps() {
 
     echo "SSH key setup completed successfully."
 }
+
 
 # Appends the content of a specified public SSH key file to the authorized_keys file. Prompts for confirmation and restarts the SSH service
 # ssh append keys
