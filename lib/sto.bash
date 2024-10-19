@@ -184,3 +184,80 @@ pve-btr() {
     all-nos "$function_name" "executed ( $1 $2 $3 )"
 }
 
+# Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
+# fstab entry auto
+#
+all-fea() {
+    # Perform blkid and filter entries with sd*
+    blkid_output=$(blkid | grep '/dev/sd*')
+
+    # Display filtered results
+    echo "Filtered entries with sd*:"
+    echo "$blkid_output"
+
+    # Prompt for the line number
+    read -p "Enter the line number to retrieve the UUID: " line_number
+
+    # Retrieve UUID based on the chosen line number
+    chosen_line=$(echo "$blkid_output" | sed -n "${line_number}p")
+
+    # Extract UUID from the chosen line
+    TARGET_UUID=$(echo "$chosen_line" | grep -oP ' UUID="\K[^"]*')
+
+    echo "The selected UUID is: $TARGET_UUID"
+
+    # Check if the device's UUID is already present in /etc/fstab
+    if grep -q "UUID=$TARGET_UUID" /etc/fstab; then
+        echo "This UUID is already present in /etc/fstab."
+    else
+        # Check if the script is run as root
+        if [ "$EUID" -ne 0 ]; then
+            echo "Please run this script as root to modify /etc/fstab."
+            exit 1
+        fi
+
+        # Append entry to /etc/fstab for auto-mounting
+        echo "UUID=$TARGET_UUID /mnt/auto auto defaults 0 0" >> /etc/fstab
+        echo "Entry added to /etc/fstab for auto-mounting."
+    fi
+}
+
+# Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters
+# fstab entry custom
+# <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
+all-fec() {
+  if [ $# -eq 0 ]; then
+    # List blkid output with line numbers
+    echo "Available devices:"
+    blkid | nl -v 1
+    all-use
+    return 0
+  elif [ $# -ne 6 ]; then
+    all-use
+    return 1
+  fi
+
+  line_number=$1
+  mount_point=$2
+  filesystem=$3
+  mount_options=$4
+  fsck_pass_number=$5
+  mount_at_boot_priority=$6
+
+  # Extract the UUID based on the specified line number
+  uuid=$(blkid | sed -n "${line_number}s/.*UUID=\"\([^\"]*\)\".*/\1/p")
+  if [ -z "$uuid" ]; then
+    echo "Error: No UUID found at line $line_number"
+    return 1
+  fi
+
+  # Create the fstab entry
+  fstab_entry="UUID=${uuid} ${mount_point} ${filesystem} ${mount_options} ${fsck_pass_number} ${mount_at_boot_priority}"
+
+  # Append the entry to /etc/fstab
+  echo "$fstab_entry" >> /etc/fstab
+
+  echo "Entry added to /etc/fstab:"
+  echo "$fstab_entry"
+}
+
