@@ -557,224 +557,124 @@ all-cap() {
     fi
 }
 
-# Renames files containing a specified string in their names
-# Usage: usr-rnf [-d] [-r] [-i] <path> <old_name> <new_name>
-# Options: -d (dry run), -r (recursive), -i (interactive)
-usr-rnf() {
-    local dryrun=false
-    local recursive=false
-    local interactive=false
-
-    # Parse options
-    while getopts ":dri" opt; do
-        case ${opt} in
-            d ) dryrun=true ;;
-            r ) recursive=true ;;
-            i ) interactive=true ;;
-            \? ) echo "Usage: usr-rnf [-d] [-r] [-i] <path> <old_name> <new_name>"
-                 echo "  -d: Dry run (show what would change without making changes)"
-                 echo "  -r: Recursive (include subdirectories)"
-                 echo "  -i: Interactive (prompt for each change)"
-                 return 1 ;;
-        esac
-    done
-    shift $((OPTIND -1))
-
-    # Check if the correct number of arguments is provided
-    if [ $# -ne 3 ]; then
-        echo "Usage: usr-rnf [-d] [-r] [-i] <path> <old_name> <new_name>"
-        echo "  -d: Dry run (show what would change without making changes)"
-        echo "  -r: Recursive (include subdirectories)"
-        echo "  -i: Interactive (prompt for each change)"
-        return 1
-    fi
-
-    local path="$1"
-    local oldname="$2"
-    local newname="$3"
-    local changes_found=0
-    local changes_made=0
-
-    # Resolve path to absolute path
-    path=$(realpath "$path")
-
-    # Check if the specified path exists and is a directory
-    if [ ! -d "$path" ]; then
-        echo "Error: The specified path '$path' is not a directory."
-        return 1
-    fi
-
-    # Check if oldname is not empty
-    if [ -z "$oldname" ]; then
-        echo "Error: The old name cannot be empty."
-        return 1
-    fi
-
-    if $dryrun; then
-        echo "Dry run: Showing files that would be renamed in '$path'..."
-    else
-        echo "Searching for files containing '$oldname' in '$path'..."
-    fi
-
-    # Set find options based on recursive flag
-    local find_opts="-maxdepth 1"
-    if $recursive; then
-        find_opts=""
-    fi
-
-    # Use find to locate files and rename them
-    while IFS= read -r -d '' file; do
-        local dirname=$(dirname "$file")
-        local basename=$(basename "$file")
-        local newfile="${basename//$oldname/$newname}"
-
-        if [ "$basename" != "$newfile" ]; then
-            ((changes_found++))
-            if $interactive; then
-                echo -n "Rename '$file' to '$dirname/$newfile'? (Enter to confirm, Space to skip): "
-                read -n 1 -s user_input
-                echo
-                if [ "$user_input" = " " ]; then
-                    echo "Skipped: $file"
-                    continue
-                fi
-            fi
-
-            if $dryrun; then
-                echo "Would rename: $file -> $dirname/$newfile"
-            else
-                if mv "$file" "$dirname/$newfile"; then
-                    echo "Renamed: $file -> $dirname/$newfile"
-                    ((changes_made++))
-                else
-                    echo "Failed to rename: $file"
-                fi
-            fi
-        fi
-    done < <(find "$path" $find_opts -type f -name "*$oldname*" -print0)
-
-    # Print summary
-    if $dryrun; then
-        if [ $changes_found -gt 0 ]; then
-            echo "Dry run completed. $changes_found file(s) would be renamed."
-        else
-            echo "No files matching '*$oldname*' were found that would be renamed in '$path'."
-        fi
-    else
-        if [ $changes_made -gt 0 ]; then
-            echo "Rename operation completed. $changes_made file(s) were renamed."
-        else
-            echo "No files matching '*$oldname*' were found or renamed in '$path'."
-        fi
-    fi
-}
-
 # Replaces all occurrences of a string in files within a given folder
 # Usage: usr-rif [-d] [-r] [-i] <path> <old_string> <new_string>
 # Options: -d (dry run), -r (recursive), -i (interactive)
 usr-rif() {
-    local dryrun=false
     local recursive=false
     local interactive=false
+    local dry_run=false
+    local directory=""
+    local search_string=""
+    local replace_string=""
+    local ignore_git=true
+    local files_found=0
+    local files_modified=0
+    local files_skipped=0
 
-    # Parse options
-    while getopts ":dri" opt; do
-        case ${opt} in
-            d ) dryrun=true ;;
-            r ) recursive=true ;;
-            i ) interactive=true ;;
-            \? ) echo "Usage: usr-rif [-d] [-r] [-i] <path> <old_string> <new_string>"
-                 echo "  -d: Dry run (show what would change without making changes)"
-                 echo "  -r: Recursive (include subdirectories)"
-                 echo "  -i: Interactive (prompt for each change)"
-                 return 1 ;;
+    # ANSI color codes
+    local GREEN='\033[0;32m'
+    local RED='\033[0;31m'
+    local YELLOW='\033[0;33m'
+    local NC='\033[0m' # No Color
+
+    # Parse options and arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -r|--recursive) recursive=true; shift ;;
+            -i|--interactive) interactive=true; shift ;;
+            -d|--dry-run) dry_run=true; shift ;;
+            --include-git) ignore_git=false; shift ;;
+            *)
+                if [[ -z "$directory" ]]; then
+                    directory="$1"
+                elif [[ -z "$search_string" ]]; then
+                    search_string="$1"
+                elif [[ -z "$replace_string" ]]; then
+                    replace_string="$1"
+                else
+                    echo "Error: Too many arguments."
+                    echo "Usage: usr-rif [-r] [-i] [-d] [--include-git] <directory> <search_string> <replace_string>"
+                    return 1
+                fi
+                shift
+                ;;
         esac
     done
-    shift $((OPTIND -1))
 
-    # Check if the correct number of arguments is provided
-    if [ $# -ne 3 ]; then
-        echo "Usage: usr-rif [-d] [-r] [-i] <path> <old_string> <new_string>"
-        echo "  -d: Dry run (show what would change without making changes)"
-        echo "  -r: Recursive (include subdirectories)"
-        echo "  -i: Interactive (prompt for each change)"
+    # Check if required arguments are provided
+    if [[ -z "$directory" || -z "$search_string" || -z "$replace_string" ]]; then
+        echo "Error: Missing required arguments."
+        echo "Usage: usr-rif [-r] [-i] [-d] [--include-git] <directory> <search_string> <replace_string>"
         return 1
     fi
 
-    local path="$1"
-    local oldstring="$2"
-    local newstring="$3"
-    local files_found=0
-    local files_changed=0
-
-    # Resolve path to absolute path
-    path=$(realpath "$path")
-
-    # Check if the specified path exists and is a directory
-    if [ ! -d "$path" ]; then
-        echo "Error: The specified path '$path' is not a directory."
+    # Validate and normalize directory path
+    directory=$(realpath "$directory")
+    if [[ ! -d "$directory" ]]; then
+        echo "Error: '$directory' is not a valid directory."
         return 1
     fi
 
-    # Check if oldstring is not empty
-    if [ -z "$oldstring" ]; then
-        echo "Error: The old string cannot be empty."
-        return 1
-    fi
+    # Construct find command
+    local find_cmd="find \"$directory\" -type f"
+    [[ "$recursive" != true ]] && find_cmd+=" -maxdepth 1"
+    [[ "$ignore_git" == true ]] && find_cmd+=" -not -path '*/\.git/*'"
 
-    if $dryrun; then
-        echo "Dry run: Showing files that would be modified in '$path'..."
-    else
-        echo "Searching for files containing '$oldstring' in '$path'..."
-    fi
-
-    # Set find options based on recursive flag
-    local find_opts="-maxdepth 1"
-    if $recursive; then
-        find_opts=""
-    fi
-
-    # Use find to locate files and replace strings
-    while IFS= read -r -d '' file; do
-        if grep -q "$oldstring" "$file"; then
+    echo "Searching for files containing '$search_string' in '$directory'..."
+    while IFS= read -r file; do
+        if grep -q "$search_string" "$file" 2>/dev/null; then
             ((files_found++))
-            if $interactive; then
-                echo -n "Modify '$file'? (Enter to confirm, Space to skip): "
-                read -n 1 -s user_input
-                echo
-                if [ "$user_input" = " " ]; then
-                    echo "Skipped: $file"
-                    continue
-                fi
-            fi
-
-            if $dryrun; then
+            printf "Found match in file: ${GREEN}%s${NC}\n" "$file"
+            if [[ "$dry_run" == true ]]; then
                 echo "Would modify: $file"
-                echo "  Sample change: $(grep -n "$oldstring" "$file" | head -n 1)"
+                grep -n "$search_string" "$file" | head -n 1 | awk -v red="$RED" -v yellow="$YELLOW" -v nc="$NC" -v search="$search_string" '{
+                    split($0, parts, ":")
+                    line_num = parts[1]
+                    content = substr($0, length(line_num) + 2)
+                    match_start = index(content, search)
+                    match_end = match_start + length(search) - 1
+                    printf "Sample change: %s%s%s:%s%s%s%s\n",
+                        red, line_num, nc,
+                        substr(content, 1, match_start - 1),
+                        yellow, substr(content, match_start, length(search)), nc,
+                        substr(content, match_end + 1)
+                }'
+            elif [[ "$interactive" == true ]]; then
+                read -p "Modify '$file'? (y/n): " -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    if sed -i "s/$search_string/$replace_string/g" "$file"; then
+                        echo "Modified: $file"
+                        ((files_modified++))
+                    else
+                        echo "Failed to modify: $file"
+                    fi
+                else
+                    echo "Skipped: $file"
+                    ((files_skipped++))
+                fi
             else
-                if sed -i "s/$oldstring/$newstring/g" "$file"; then
+                if sed -i "s/$search_string/$replace_string/g" "$file"; then
                     echo "Modified: $file"
-                    echo "  Sample change: $(grep -n "$newstring" "$file" | head -n 1)"
-                    ((files_changed++))
+                    ((files_modified++))
                 else
                     echo "Failed to modify: $file"
                 fi
             fi
         fi
-    done < <(find "$path" $find_opts -type f -print0)
+    done < <(eval "$find_cmd")
 
-    # Print summary
-    if $dryrun; then
-        if [ $files_found -gt 0 ]; then
-            echo "Dry run completed. $files_found file(s) would be modified."
-        else
-            echo "No files containing '$oldstring' were found in '$path'."
-        fi
+    echo "Summary:"
+    echo "  Files found with matches: $files_found"
+    echo "  Files modified: $files_modified"
+    [[ "$interactive" == true ]] && echo "  Files skipped: $files_skipped"
+
+    if [[ "$dry_run" == true ]]; then
+        echo "Dry run completed. $files_found file(s) would be modified."
+    elif [[ $files_modified -eq 0 ]]; then
+        echo "No files were modified in '$directory'."
     else
-        if [ $files_changed -gt 0 ]; then
-            echo "Replacement operation completed. $files_changed file(s) were modified."
-        else
-            echo "No files containing '$oldstring' were found or modified in '$path'."
-        fi
+        echo "$files_modified file(s) were modified in '$directory'."
     fi
 }
