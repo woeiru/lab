@@ -1,13 +1,6 @@
 # sourcing
 #
-if [ "$(id -u)" -eq 0 ]; then
-    # Running as root
     . ~/lab/dot/bashrc
-else
-    # Running as regular user
-    . ~/usr.sh
-fi
-
 #
 # desktop
 #
