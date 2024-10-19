@@ -37,7 +37,7 @@ gen-var() {
 # Manages git operations, ensuring the local repository syncs with the remote.
 # Performs status check, pull, commit, and push operations as needed.
 #
-all-gio() {
+gen-gio() {
     local dir="${DIR_LIB:-.}/.."
     local branch="${GIT_BRANCH:-master}"
     local commit_message="${GIT_COMMITMESSAGE:-Auto-commit: $(date +%Y-%m-%d_%H-%M-%S)}"
@@ -186,7 +186,7 @@ all-ipa() {
 # Configures git globally with a specified username and email, essential for proper commit attribution
 # git set config
 # <username> <usermail>
-all-gst() {
+gen-gst() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local usermail="$2"
@@ -205,7 +205,7 @@ all-gst() {
 # Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
 # setup sysstat
 #
-all-sst() {
+gen-sst() {
   # Step 1: Install sysstat
   install_pakages sysstat
 
@@ -222,7 +222,7 @@ all-sst() {
 # Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
 # user setup
 # <username> <password>
-all-ust() {
+gen-ust() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local password="$2"
@@ -254,7 +254,7 @@ all-ust() {
 # Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not
 # systemd setup service
 # <service>
-all-sdc() {
+gen-sdc() {
     local function_name="${FUNCNAME[0]}"
     local service="$1"
 
@@ -288,7 +288,7 @@ all-sdc() {
 # Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
 # ssh upload keyfile
 # <device_path> <mount_point> <subfolder_path> <upload_path> <file_name>
-all-suk() {
+gen-suk() {
     local device_path="$1"
     local mount_point="$2"
     local subfolder_path="$3"
@@ -354,7 +354,7 @@ all-suk() {
 # Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist
 # ssh private identifier
 # <user> <keyname>
-all-spi() {
+gen-spi() {
     local keyname=$2
     local user=$2
     local ssh_dir
@@ -400,8 +400,8 @@ all-spi() {
 
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
-# For client-side generation: all-sks -c [-d] <server_address> <key_name> [encryption_type] /// For server-side generation: all-sks -s [-d] <client_address> <key_name> [encryption_type]
-all-sks() {
+# For client-side generation: gen-sks -c [-d] <server_address> <key_name> [encryption_type] /// For server-side generation: gen-sks -s [-d] <client_address> <key_name> [encryption_type]
+gen-sks() {
     local mode=""
     local deduplicate=false
     local remote_address=""
@@ -429,8 +429,8 @@ all-sks() {
 
     # Check if required arguments are provided
     if [[ -z "$mode" || -z "$remote_address" || -z "$key_name" ]]; then
-        echo "Usage: all-sks -s [-d] <client_address> <key_name> [encryption_type] # for server-side generation"
-        echo "       all-sks -c [-d] <server_address> <key_name> [encryption_type] # for client-side generation"
+        echo "Usage: gen-sks -s [-d] <client_address> <key_name> [encryption_type] # for server-side generation"
+        echo "       gen-sks -c [-d] <server_address> <key_name> [encryption_type] # for client-side generation"
         echo "       -d: Optional. If provided, removes the original key after successful transfer."
         echo "If encryption_type is not specified, ed25519 will be used by default."
         return 1
@@ -514,16 +514,16 @@ all-sks() {
 
 # Appends the content of a specified public SSH key file to the authorized_keys file.
 # Provides informational output and restarts the SSH service.
-# Usage: all-sak -c <server_address> <key_name> *for client-side operation /// all-sak -s <client_address> <key_name> *for server-side operation
-all-sak() {
+# Usage: gen-sak -c <server_address> <key_name> *for client-side operation /// gen-sak -s <client_address> <key_name> *for server-side operation
+gen-sak() {
     local mode="$1"
     local remote_address="$2"
     local key_name="$3"
     local ssh_dir="/root/.ssh"
     local authorized_keys_path="$ssh_dir/authorized_keys"
     if [ $# -ne 3 ]; then
-        echo "Usage: all-sak -c <server_address> <key_name> # for client-side operation"
-        echo "       all-sak -s <client_address> <key_name> # for server-side operation"
+        echo "Usage: gen-sak -c <server_address> <key_name> # for client-side operation"
+        echo "       gen-sak -s <client_address> <key_name> # for server-side operation"
         return 1
     fi
     case "$mode" in
@@ -578,7 +578,7 @@ all-sak() {
 # Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
 # loop operation ip
 # <ip array: hy,ct> <operation: bypass = Perform initial SSH login to bypass StrictHostKeyChecking / refresh = Remove the SSH key for the given IP from known_hosts>
-all-loi() {
+gen-loi() {
     local ip_type=$1
     local operation=$2
     local ip_array_name="${ip_type^^}_IPS"
@@ -627,7 +627,7 @@ all-loi() {
 # Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
 # ssh custom aliases
 # <usershortcut> <servershortcut: single or csv or all or array> [command]
-all-sca() {
+gen-sca() {
     echo "Debug: Number of arguments: $#"
     echo "Debug: All arguments: $*"
 
@@ -774,28 +774,4 @@ all-sca() {
         done
     fi
     echo "Debug: Raw command: $command"
-}
-
-all-ans() {
-    # Check if two arguments are provided
-    if [ $# -ne 2 ]; then
-        echo "Error: Incorrect number of arguments. Usage: all-ans <ansible_pro_path> <ansible_site_path>"
-        return 1
-    fi
-
-    # Store the Ansible path and site path from the arguments
-    local ansible_pro_path="$1"
-    local ansible_site_path="$2"
-
-    # Store the current directory
-    local current_dir=$(pwd)
-
-    # Navigate to the specified Ansible directory
-    cd "$ansible_pro_path" || return
-
-    # Execute the Ansible playbook with the provided site path
-    ansible-playbook "$ansible_site_path"
-
-    # Return to the previous directory
-    cd "$current_dir" || return
 }

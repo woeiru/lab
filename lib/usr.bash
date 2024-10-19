@@ -641,25 +641,26 @@ usr-rif() {
                         substr(content, match_end + 1)
                 }'
             elif [[ "$interactive" == true ]]; then
-                read -p "Modify '$file'? (y/n): " -n 1 -r
-                echo
-                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                echo "=== INTERACTIVE MODE ==="
+                echo -e "Modify '${GREEN}$file${NC}'? (${YELLOW}y${NC}/${YELLOW}n${NC}): "
+                read -r user_response
+                if [[ $user_response =~ ^[Yy]$ ]]; then
                     if sed -i "s/$search_string/$replace_string/g" "$file"; then
-                        echo "Modified: $file"
+                        echo -e "${GREEN}Modified:${NC} $file"
                         ((files_modified++))
                     else
-                        echo "Failed to modify: $file"
+                        echo -e "${RED}Failed to modify:${NC} $file"
                     fi
                 else
-                    echo "Skipped: $file"
+                    echo -e "${YELLOW}Skipped:${NC} $file"
                     ((files_skipped++))
                 fi
             else
                 if sed -i "s/$search_string/$replace_string/g" "$file"; then
-                    echo "Modified: $file"
+                    echo -e "${GREEN}Modified:${NC} $file"
                     ((files_modified++))
                 else
-                    echo "Failed to modify: $file"
+                    echo -e "${RED}Failed to modify:${NC} $file"
                 fi
             fi
         fi
@@ -677,4 +678,31 @@ usr-rif() {
     else
         echo "$files_modified file(s) were modified in '$directory'."
     fi
+}
+
+# Navigates to the Ansible project directory, runs the playbook, then returns to the original directory
+# ansible deployment desk
+# Usage: usr-ans <ansible_pro_path> <ansible_site_path>
+usr-ans() {
+    # Check if two arguments are provided
+    if [ $# -ne 2 ]; then
+        echo "Error: Incorrect number of arguments. Usage: usr-ans <ansible_pro_path> <ansible_site_path>"
+        return 1
+    fi
+
+    # Store the Ansible path and site path from the arguments
+    local ansible_pro_path="$1"
+    local ansible_site_path="$2"
+
+    # Store the current directory
+    local current_dir=$(pwd)
+
+    # Navigate to the specified Ansible directory
+    cd "$ansible_pro_path" || return
+
+    # Execute the Ansible playbook with the provided site path
+    ansible-playbook "$ansible_site_path"
+
+    # Return to the previous directory
+    cd "$current_dir" || return
 }

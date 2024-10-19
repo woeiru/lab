@@ -14,8 +14,8 @@ MENU_OPTIONS[b]="b_xall"
 
 a_xall() {
     	all-ipa "$PACKAGES_ALL"
-	all-sdc "$SYSD_CHECK"
-    	all-ust "$USERNAME1" "$PASSWORD1"
+	gen-sdc "$SYSD_CHECK"
+    	gen-ust "$USERNAME1" "$PASSWORD1"
 }
 
 b_xall() {

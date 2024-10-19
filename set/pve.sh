@@ -47,20 +47,20 @@ b_xall() {
 }
 
 c_xall() {
-    all-suk \
+    gen-suk \
         "$DEVICE_PATH" \
         "$MOUNT_POINT" \
         "$SUBFOLDER_PATH" \
         "$UPLOAD_PATH" \
         "$PUBLIC_KEY"
 
-    all-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
+    gen-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
 d_xall() {
-    all-sks -s root@"${CL_IPS[t1]}" "$KEY_NAME"
+    gen-sks -s root@"${CL_IPS[t1]}" "$KEY_NAME"
 
-    all-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
+    gen-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
 i_xall() {

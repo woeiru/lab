@@ -16,11 +16,11 @@ MENU_OPTIONS[x]="x_xall"
 
 a_xall() {
 	all-ipa "$PACKAGES_ALL"
-    	all-gst "$GIT_USERNAME" "$GIT_USERMAIL"
+    	gen-gst "$GIT_USERNAME" "$GIT_USERMAIL"
 }
 
 b_xall() {
-	all-suk \
+	gen-suk \
     		"$DEVICE_PATH" \
     		"$MOUNT_POINT" \
     		"$SUBFOLDER_PATH" \
