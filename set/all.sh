@@ -15,7 +15,7 @@ MENU_OPTIONS[b]="b_xall"
 MENU_OPTIONS[x]="x_xall"
 
 a_xall() {
-	all-ipa "$PACKAGES_ALL"
+	gen-ipa "$PACKAGES_ALL"
     	gen-gst "$GIT_USERNAME" "$GIT_USERMAIL"
 }
 

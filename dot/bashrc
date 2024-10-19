@@ -218,7 +218,7 @@ main() {
     alias var='all-ffl all-acu "" $VAR_DIR $PARENT_DIR'
 
     # Function makros
-    alias v1='pve-gpd ; qm start 211'
+    alias v1='gpu-ptd ; qm start 211'
 
     # Git commands
     alias g='git'

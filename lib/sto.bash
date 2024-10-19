@@ -35,7 +35,7 @@ sto-var() {
 # Creates a new ZFS dataset or uses an existing one, sets its mountpoint, and ensures it's mounted at the specified path
 # zfs directory mount
 # <pool_name> <dataset_name> <mountpoint_path>
-pve-zdm() {
+sto-zdm() {
     local function_name="${FUNCNAME[0]}"
     local pool_name="$1"
     local dataset_name="$2"
@@ -82,7 +82,7 @@ pve-zdm() {
 # Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency
 # zfs dataset backup
 # <sourcepoolname> <destinationpoolname> <datasetname>
-pve-zdb() {
+sto-zdb() {
     local sourcepoolname="$1"
     local destinationpoolname="$2"
     local datasetname="$3"
@@ -145,7 +145,7 @@ pve-zdb() {
 # Creates a Btrfs RAID 1 filesystem on two specified devices, mounts it, and optionally adds an entry to /etc/fstab
 # btrfs raid 1
 # <device1> <device2> <mount_point>
-pve-btr() {
+sto-btr() {
     local function_name="${FUNCNAME[0]}"
     local device1="$1"
     local device2="$2"
@@ -187,7 +187,7 @@ pve-btr() {
 # Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
 # fstab entry auto
 #
-all-fea() {
+sto-fea() {
     # Perform blkid and filter entries with sd*
     blkid_output=$(blkid | grep '/dev/sd*')
 
@@ -225,7 +225,7 @@ all-fea() {
 # Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters
 # fstab entry custom
 # <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
-all-fec() {
+sto-fec() {
   if [ $# -eq 0 ]; then
     # List blkid output with line numbers
     echo "Available devices:"
