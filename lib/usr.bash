@@ -26,6 +26,13 @@ usr-fun() {
     # Pass all arguments directly to all-laf
     all-laf "$FILEPATH_usr" "$@"
 }
+# Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
+# overview variables
+#
+usr-var() {
+    all-acu -o "$CONFIG_usr" "$DIR_LIB/.."
+}
+
 
 # Changes the Konsole profile for the current user by updating the konsolerc file
 # change konsole profile
@@ -460,3 +467,92 @@ usr-swt() {
         echo "Operation cancelled."
     fi
 }
+
+# Adds a specific line to a target if not already present
+# adding line (to) target
+#
+pve-adr() {
+    local function_name="${FUNCNAME[0]}"
+    local file="$1"
+    local line_to_add="$2"
+    local temp_file=$(mktemp)
+
+    # Check if both arguments were provided
+    if [ -z "$file" ] || [ -z "$line_to_add" ]; then
+        all-nos "$function_name" "Error: Both file path and line to add must be provided"
+        return 1
+    fi
+
+    # Check if the file exists and is writable
+    if [ ! -w "$file" ]; then
+        all-nos "$function_name" "Error: $file does not exist or is not writable"
+        return 1
+    fi
+
+    # Check if the line already exists in the file
+    if grep -Fxq "$line_to_add" "$file"; then
+        all-nos "$function_name" "Line already exists in $file"
+        return 0
+    fi
+
+    # Create a temporary file with the new content
+    cat "$file" > "$temp_file"
+    echo "$line_to_add" >> "$temp_file"
+
+    # Use mv to atomically replace the original file
+    if mv "$temp_file" "$file"; then
+        all-nos "$function_name" "Line added to $file"
+        return 0
+    else
+        all-nos "$function_name" "Error: Failed to update $file"
+        rm -f "$temp_file"
+        return 1
+    fi
+}
+
+# Updates the container template reference in the Proxmox configuration file, prompting for user confirmation and new template name
+# config update containertemplate
+# [interactive]
+pve-cuc() {
+    # Check if CONFIG_pve is set
+    if [ -z "$CONFIG_pve" ]; then
+        echo "Error: CONFIG_pve is not set. Please ensure it's defined before calling this function."
+        return 1
+    fi
+
+    local current_template
+    local new_template
+
+    # Prompt user if they want to update the config file
+    read -p "Do you want to update the container config file ($CONFIG_pve)? (y/n): " answer
+    if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+        echo "Config update cancelled."
+        return 0
+    fi
+
+    # Find the current template
+    current_template=$(grep -oP 'CT_DL_1="\K[^"]+' "$CONFIG_pve")
+    if [ -z "$current_template" ]; then
+        echo "Error: Couldn't find the current template in the config file."
+        return 1
+    fi
+
+    # Prompt for the new template
+    read -p "Enter the new template name (current: $current_template): " new_template
+    if [ -z "$new_template" ]; then
+        echo "No new template provided. Config update cancelled."
+        return 0
+    fi
+
+    # Update the config file
+    if sed -i "s|$current_template|$new_template|g" "$CONFIG_pve"; then
+        echo "Config file updated successfully."
+        echo "Changed template from '$current_template' to '$new_template' in:"
+        grep -n "$new_template" "$CONFIG_pve"
+    else
+        echo "Error: Failed to update the config file."
+        echo "The original file is unchanged. You can find a backup at ${CONFIG_pve}.bak"
+        return 1
+    fi
+}
+

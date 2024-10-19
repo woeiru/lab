@@ -153,8 +153,8 @@ main() {
     # Generate top-level directory aliases and variables
     generate_top_level_aliases
 
-    local files=(all osm pbs pve nfs smb usr)
-    local bash_files=(all osm pbs pve nfs smb usr)
+    local files=(all osm pbs pve nfs smb usr net gpu sto)
+    local bash_files=(all osm pbs pve nfs smb usr net gpu sto)
 
     source_scripts "${files[@]}"
     generate_aliases "var" "${files[@]}"
