@@ -10,6 +10,9 @@ DATA_DIR="$TMP_DIR/labdotgit"
 LOG_DIR="$DATA_DIR/logs"
 EXPORT_DIR="$DATA_DIR/exports"
 
+# Store the original working directory
+ORIGINAL_DIR=$(pwd)
+
 # Function to ensure directories exist
 ensure_directories() {
     mkdir -p "$TMP_DIR" "$LOG_DIR" "$EXPORT_DIR"
@@ -32,6 +35,7 @@ log() {
 
 error() {
     log "ERROR: $1"
+    cd "$ORIGINAL_DIR"
     exit 1
 }
 
@@ -42,10 +46,13 @@ check_success() {
     fi
 }
 
+# Change to home directory
+cd "$HOME" || error "Failed to change to home directory"
+log "Changed working directory to $HOME"
+
 # Function to initialize the repository
 initialize_repo() {
     log "Initializing repository..."
-    cd "$HOME" || error "Failed to change to home directory"
     git init
     check_success "Failed to initialize Git repository"
 
@@ -104,16 +111,21 @@ track_changes() {
 # Function to handle untracked files
 handle_untracked() {
     log "Checking for untracked files..."
+    echo "Current status of the repository:"
     git status -u
 
     read -p "Do you want to see the contents of any untracked files? (y/n): " view_untracked
     if [[ $view_untracked =~ ^[Yy]$ ]]; then
+        echo "List of untracked files:"
+        git ls-files --others --exclude-standard
         read -p "Enter the path to the untracked file: " untracked_file
         git diff --no-index -- /dev/null "$untracked_file"
     fi
 
     read -p "Do you want to stage any untracked files? (y/n): " stage_untracked
     if [[ $stage_untracked =~ ^[Yy]$ ]]; then
+        echo "List of untracked files:"
+        git ls-files --others --exclude-standard
         read -p "Enter the path to the file or directory to stage: " stage_path
         git add "$stage_path"
         check_success "Failed to stage $stage_path"
@@ -123,10 +135,16 @@ handle_untracked() {
 
 # Function to review changes
 review_changes() {
+    echo "Recent commits:"
+    git log --oneline -n 10  # Show the last 10 commits
+    echo ""
+
     read -p "Enter commit hash to review (leave blank for all changes): " commit_hash
     if [ -z "$commit_hash" ]; then
+        echo "Showing all changes since the initial commit:"
         git diff $(git rev-list --max-parents=0 HEAD) HEAD
     else
+        echo "Showing changes for commit $commit_hash:"
         git show "$commit_hash"
     fi
 }
@@ -177,7 +195,13 @@ Dotfiles Manager Menu:
         3) handle_untracked ;;
         4) review_changes ;;
         5) export_changes ;;
-        6) log "Exiting Dotfiles Manager"; exit 0 ;;
+        6) log "Exiting Dotfiles Manager"; break ;;
         *) log "Invalid option. Please try again." ;;
     esac
 done
+
+# Return to the original directory
+cd "$ORIGINAL_DIR"
+log "Returned to original directory: $ORIGINAL_DIR"
+
+exit 0
