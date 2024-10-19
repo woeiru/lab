@@ -25,7 +25,24 @@ echo "Script started with PID: $$"
 log_message() {
     local level="$1"
     local message="$2"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message" | tee -a "$LOG_FILE"
+    local color_code=""
+
+    case "$level" in
+        "INFO")
+            color_code="\033[0;32m"  # Green
+            ;;
+        "DEBUG")
+            color_code="\033[0;33m"  # Yellow
+            ;;
+        "ERROR")
+            color_code="\033[0;31m"  # Red
+            ;;
+        *)
+            color_code="\033[0m"  # Default (no color)
+            ;;
+    esac
+
+    echo -e "${color_code}[$(date '+%Y-%m-%d %H:%M:%S')] [$level]\033[0m $message" | tee -a "$LOG_FILE"
 }
 
 log_debug() {
