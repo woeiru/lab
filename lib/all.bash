@@ -1211,13 +1211,9 @@ all-sak() {
     echo "SSH key append operation completed successfully."
 }
 
-# Supported operations: 
-# - bypass: Perform initial SSH login to bypass StrictHostKeyChecking
-# - refresh: Remove the SSH key for the given IP from known_hosts
-#
 # Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
 # loop operation ip
-# <ip array: hy,ct> <operation>
+# <ip array: hy,ct> <operation: bypass = Perform initial SSH login to bypass StrictHostKeyChecking / refresh = Remove the SSH key for the given IP from known_hosts>
 all-loi() {
     local ip_type=$1
     local operation=$2
