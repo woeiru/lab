@@ -48,7 +48,7 @@ d_xall() {
 }
 
 i_xall() {
-    pve-br1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
+    pve-btr "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
 j_xall() {
