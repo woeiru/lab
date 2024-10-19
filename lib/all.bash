@@ -1020,6 +1020,7 @@ all-spi() {
         echo "Configuration already exists in $config_file"
     fi
 }
+
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
 # For client-side generation: all-sks -c <server_address> <key_name> / For server-side generation: all-sks -s <client_address> <key_name>
@@ -1028,88 +1029,74 @@ all-sks() {
     local remote_address="$2"
     local key_name="$3"
     local ssh_dir="/root/.ssh"
-
     if [ $# -ne 3 ]; then
         echo "Usage: all-sks -s <client_address> <key_name> # for server-side generation"
         echo "       all-sks -c <server_address> <key_name> # for client-side generation"
         return 1
     fi
-
     case "$mode" in
         -s) # Server-side generation
             # Create .ssh directory if it doesn't exist
             mkdir -p "$ssh_dir"
             chmod 700 "$ssh_dir"
-
             # Generate new SSH key pair
             ssh-keygen -t rsa -b 4096 -f "$ssh_dir/$key_name" -N ""
-
             if [ $? -ne 0 ]; then
                 echo "Failed to generate SSH key pair."
                 return 1
             fi
-
             echo "SSH key pair generated on server."
             echo "Transferring private key to client..."
-
             # Transfer private key to client
             scp "$ssh_dir/$key_name" "${remote_address}:~/.ssh/"
-
             if [ $? -ne 0 ]; then
                 echo "Failed to transfer private key to client."
                 return 1
             fi
-
             # Remove private key from server
             rm "$ssh_dir/$key_name"
-
             echo "Private key transferred to client and removed from server."
             echo "Public key file: $ssh_dir/${key_name}.pub"
             echo "Please use all-sak to append the public key to authorized_keys if needed."
             ;;
-
         -c) # Client-side generation
             # Generate new SSH key pair on client
             ssh-keygen -t rsa -b 4096 -f "$HOME/.ssh/$key_name" -N ""
-
             if [ $? -ne 0 ]; then
                 echo "Failed to generate SSH key pair."
                 return 1
             fi
-
             echo "SSH key pair generated on client."
             echo "Transferring public key to server..."
-
             # Transfer public key to server
             scp "$HOME/.ssh/${key_name}.pub" "${remote_address}:/tmp/"
-
             if [ $? -ne 0 ]; then
                 echo "Failed to transfer public key to server."
                 return 1
             fi
-
             # Move public key to .ssh directory on server
             ssh "$remote_address" "mkdir -p $ssh_dir && \
                                    mv /tmp/${key_name}.pub $ssh_dir/"
-
             if [ $? -ne 0 ]; then
                 echo "Failed to move public key on server."
                 return 1
             fi
-
             echo "Public key transferred to server and saved in $ssh_dir/${key_name}.pub"
             echo "Private key file on client: $HOME/.ssh/$key_name"
             echo "Please use all-sak on the server to append the public key to authorized_keys if needed."
-            ;;
 
+            # Remove the public key from the client's .ssh folder
+            rm "$HOME/.ssh/${key_name}.pub"
+            echo "Public key removed from client's .ssh folder."
+            ;;
         *)
             echo "Invalid mode. Use -s for server-side or -c for client-side generation."
             return 1
             ;;
     esac
-
     echo "SSH key generation and transfer completed successfully."
 }
+
 # Appends the content of a specified public SSH key file to the authorized_keys file.
 # Provides informational output and restarts the SSH service.
 # Usage: all-sak <upload_path> <file_name>
