@@ -560,7 +560,6 @@ all-cap() {
 # Renames files containing a specified string in their names
 # Usage: usr-rnf [-d] [-r] <path> <old_name> <new_name>
 # Options: -d (dry run), -r (recursive)
-
 usr-rnf() {
     local dryrun=false
     local recursive=false
@@ -658,7 +657,6 @@ usr-rnf() {
 # Replaces all occurrences of a string in files within a given folder
 # Usage: usr-rif [-d] [-r] <path> <old_string> <new_string>
 # Options: -d (dry run), -r (recursive)
-
 usr-rif() {
     local dryrun=false
     local recursive=false
