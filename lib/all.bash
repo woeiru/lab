@@ -62,8 +62,8 @@ all-ffl() {
         for file in "$folder"/{*,.[!.]*,..?*}; do
             if [[ -f "$file" ]]; then
                 line_count=$(wc -l < "$file")
-                # Improved function counting
-                function_count=$(grep -cE '^[[:space:]]*(function[[:space:]]+)?([a-zA-Z_][a-zA-Z0-9_-]*[[:space:]]*\(\))[[:space:]]*\{' "$file")
+                # Improved function counting for the specific pattern
+                function_count=$(grep -cE '^[a-zA-Z0-9_-]+\(\)[[:space:]]*\{' "$file")
                 # Get the real path of the file
                 real_path=$(realpath "$file")
                 # Extract the filename (prefix) from the path
