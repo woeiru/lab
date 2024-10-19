@@ -33,9 +33,9 @@ pbs-var() {
 }
 
 # Download Proxmox GPG key and verify checksums.
-# disable repository
+# download and verify
 #   
-pbs-sgp() {
+pbs-dav() {
     # Download the GPG key
     wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
 
@@ -74,16 +74,6 @@ pbs-adr() {
         echo "$line_to_add" >> "$file"
         all-nos "$function_name" "Line added to $file"
     fi
-}
-
-# Update package lists and upgrade packages.
-# packages update upgrade
-#   
-pbs-puu() {
-    local function_name="${FUNCNAME[0]}"
-    apt update
-    apt upgrade -y
-    all-nos "$function_name" "Package lists updated and packages upgraded"
 }
 
 # Restore datastore configuration file with given parameters.
