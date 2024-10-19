@@ -32,158 +32,6 @@ sto-var() {
     all-acu -o "$CONFIG_sto" "$DIR_LIB/.."
 }
 
-# Creates a new ZFS dataset or uses an existing one, sets its mountpoint, and ensures it's mounted at the specified path
-# zfs directory mount
-# <pool_name> <dataset_name> <mountpoint_path>
-sto-zdm() {
-    local function_name="${FUNCNAME[0]}"
-    local pool_name="$1"
-    local dataset_name="$2"
-    local mountpoint_path="$3"
-    local dataset_path="$pool_name/$dataset_name"
-    local newly_created=false
-    if [ $# -ne 3 ]; then
-	all-use
-        return 1
-    fi
-
-    # Check if the dataset exists, create it if not
-    if ! zfs list "$dataset_path" &>/dev/null; then
-        echo "Creating ZFS dataset '$dataset_path'."
-        zfs create "$dataset_path" || { echo "Failed to create ZFS dataset '$dataset_path'"; exit 1; }
-        echo "ZFS dataset '$dataset_path' created."
-        newly_created=true
-    else
-        echo "ZFS dataset '$dataset_path' already exists."
-    fi
-
-    # Check if the mountpoint directory exists, create it if not
-    if [ ! -d "$mountpoint_path" ]; then
-        mkdir -p "$mountpoint_path" || { echo "Failed to create mountpoint directory '$mountpoint_path'"; exit 1; }
-        echo "Mountpoint directory '$mountpoint_path' created."
-    fi
-
-    # Get the current mountpoint and compare with the expected mountpoint
-    current_mountpoint=$(zfs get -H -o value mountpoint "$dataset_path")
-    expected_mountpoint="$mountpoint_path"
-
-    if [ "$current_mountpoint" != "$expected_mountpoint" ]; then
-        zfs set mountpoint="$expected_mountpoint" "$dataset_path" || { echo "Failed to set mountpoint for ZFS dataset '$dataset_path'"; exit 1; }
-        echo "ZFS dataset '$dataset_path' mounted at '$expected_mountpoint'."
-    elif [ "$newly_created" = true ]; then
-        echo "ZFS dataset '$dataset_path' newly mounted at '$expected_mountpoint'."
-    else
-        echo "ZFS dataset '$dataset_path' is already mounted at '$expected_mountpoint'."
-    fi
-
-    all-nos "$function_name" "executed ( $pool_name / $dataset_name )"
-}
-
-# Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency
-# zfs dataset backup
-# <sourcepoolname> <destinationpoolname> <datasetname>
-sto-zdb() {
-    local sourcepoolname="$1"
-    local destinationpoolname="$2"
-    local datasetname="$3"
-
-     if [ $# -ne 3 ]; then
-	all-use
-        return 1
-    fi
-
-    # Generate a unique snapshot name based on the current date and hour
-    local snapshot_name="$(date +%Y%m%d_%H)"
-    local full_snapshot_name="${sourcepoolname}/${datasetname}@${snapshot_name}"
-
-    # Check if the snapshot already exists
-    if zfs list -t snapshot -o name | grep -q "^${full_snapshot_name}$"; then
-        echo "Snapshot ${full_snapshot_name} already exists."
-        read -p "Do you want to delete the existing snapshot? [y/N]: " delete_snapshot
-
-        if [[ "$delete_snapshot" =~ ^[Yy]$ ]]; then
-            # Delete the existing snapshot
-            local delete_snapshot_cmd="zfs destroy ${full_snapshot_name}"
-            echo "Deleting snapshot: ${delete_snapshot_cmd}"
-            eval "${delete_snapshot_cmd}"
-        else
-            echo "Aborting backup to avoid overwriting existing snapshot."
-            return 1
-        fi
-    fi
-
-    # Create the snapshot
-    local create_snapshot_cmd="zfs snapshot ${full_snapshot_name}"
-    echo "Creating snapshot: ${create_snapshot_cmd}"
-    eval "${create_snapshot_cmd}"
-
-    # Determine the correct send and receive commands
-    if zfs list -H -t snapshot -o name | grep -q "^${destinationpoolname}/${datasetname}@"; then
-        # Get the name of the most recent snapshot in the destination pool
-        local last_snapshot=$(zfs list -H -t snapshot -o name | grep "^${destinationpoolname}/${datasetname}@" | tail -1)
-
-        # Prepare the incremental send and receive commands
-        local send_cmd="zfs send -i ${last_snapshot} ${full_snapshot_name}"
-        local receive_cmd="zfs receive ${destinationpoolname}/${datasetname}"
-
-        echo "Incremental send command: ${send_cmd} | ${receive_cmd}"
-    else
-        # Prepare the initial full send and receive commands
-        local send_cmd="zfs send ${full_snapshot_name}"
-        local receive_cmd="zfs receive ${destinationpoolname}/${datasetname}"
-
-        echo "Initial send command: ${send_cmd} | ${receive_cmd}"
-    fi
-
-    # Wait for user confirmation before executing the commands
-    read -p "Press enter to execute the above command..."
-
-    # Execute the send and receive commands
-    eval "${send_cmd} | ${receive_cmd}"
-}
-
-# Creates a Btrfs RAID 1 filesystem on two specified devices, mounts it, and optionally adds an entry to /etc/fstab
-# btrfs raid 1
-# <device1> <device2> <mount_point>
-sto-btr() {
-    local function_name="${FUNCNAME[0]}"
-    local device1="$1"
-    local device2="$2"
-    local mount_point="$3"
-    if [ $# -ne 3 ]; then
-	all-use
-        return 1
-    fi
-
-    # Create Btrfs RAID 1 filesystem
-    mkfs.btrfs -m raid1 -d raid1 "$device1" "$device2"
-
-    # Create mount point and mount the filesystem
-    mkdir -p "$mount_point"
-    mount "$device1" "$mount_point"
-
-    # Verify the RAID 1 setup
-    btrfs filesystem show "$mount_point"
-    btrfs filesystem df "$mount_point"
-
-    # Optionally add to fstab
-    local uuid
-    uuid=$(sudo blkid -s UUID -o value "$device1")
-    local fstab_entry="UUID=$uuid $mount_point btrfs defaults,degraded 0 0"
-
-    echo "The following line will be added to /etc/fstab:"
-    echo "$fstab_entry"
-    read -p "Do you want to add this line to /etc/fstab? [y/N]: " response
-    if [[ "$response" =~ ^[Yy]$ ]]; then
-        echo "$fstab_entry" | sudo tee -a /etc/fstab
-        echo "Entry added to /etc/fstab."
-    else
-        echo "Entry not added to /etc/fstab."
-    fi
-
-    all-nos "$function_name" "executed ( $1 $2 $3 )"
-}
-
 # Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
 # fstab entry auto
 #
@@ -261,3 +109,659 @@ sto-fec() {
   echo "$fstab_entry"
 }
 
+# Transforms a folder into a Btrfs subvolume, optionally setting attributes (e.g., disabling COW). Handles multiple folders, preserving content and ownership.
+# transforming folder subvolume
+# <folder_name> <user_name> <C>
+bfs-tra() {
+    if [ $# -lt 3 ]; then
+        echo "Usage: bfs-tra <attribute_flag> <user_name> <folder_name> [<additional_folders>...]"
+        echo "Attribute flags: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
+        return 1
+    fi
+
+    local attr_flag="$1"
+    local user_name="$2"
+    shift 2
+
+    if [[ ! "$attr_flag" =~ ^[acdeijsuACDST-]$ ]]; then
+        echo "Invalid attribute flag. Use one of: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
+        return 1
+    fi
+
+    for folder_name in "$@"; do
+        local old_swap="${folder_name}-old"
+
+        # Move current folder to folder_name-old
+        mv "$folder_name" "$old_swap"
+
+        # Create new subvolume
+        sudo btrfs subvolume create "$folder_name"
+
+        # Change ownership to specified user
+        sudo chown "$user_name": "$folder_name"
+
+        # Set attribute if specified
+        if [ "$attr_flag" = "C" ]; then
+            sudo chattr +C "$folder_name"
+            echo "COW disabled for $folder_name"
+        elif [ "$attr_flag" != "-" ]; then
+            sudo chattr +"$attr_flag" "$folder_name"
+            echo "Attribute '$attr_flag' set for $folder_name"
+        else
+            echo "No attribute set for $folder_name"
+        fi
+
+        # Move contents from old folder to new one
+        mv "$old_swap"/* "$folder_name"
+
+        # Remove old folder
+        rm -r "$old_swap"
+
+        echo "Processed folder: $folder_name"
+    done
+}
+
+# Creates a Btrfs RAID 1 filesystem on two specified devices, mounts it, and optionally adds an entry to /etc/fstab
+# btrfs raid 1
+# <device1> <device2> <mount_point>
+bfs-ra1() {
+    local function_name="${FUNCNAME[0]}"
+    local device1="$1"
+    local device2="$2"
+    local mount_point="$3"
+    if [ $# -ne 3 ]; then
+	all-use
+        return 1
+    fi
+
+    # Create Btrfs RAID 1 filesystem
+    mkfs.btrfs -m raid1 -d raid1 "$device1" "$device2"
+
+    # Create mount point and mount the filesystem
+    mkdir -p "$mount_point"
+    mount "$device1" "$mount_point"
+
+    # Verify the RAID 1 setup
+    btrfs filesystem show "$mount_point"
+    btrfs filesystem df "$mount_point"
+
+    # Optionally add to fstab
+    local uuid
+    uuid=$(sudo blkid -s UUID -o value "$device1")
+    local fstab_entry="UUID=$uuid $mount_point btrfs defaults,degraded 0 0"
+
+    echo "The following line will be added to /etc/fstab:"
+    echo "$fstab_entry"
+    read -p "Do you want to add this line to /etc/fstab? [y/N]: " response
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        echo "$fstab_entry" | sudo tee -a /etc/fstab
+        echo "Entry added to /etc/fstab."
+    else
+        echo "Entry not added to /etc/fstab."
+    fi
+
+    all-nos "$function_name" "executed ( $1 $2 $3 )"
+}
+
+# Checks and lists subvolume status of folders in a specified path. Supports filtering by folder type (regular, hidden, or both) and subvolume status.
+# check subvolume folder
+# <path> <folder_type: 1=regular, 2=hidden, 3=both> <yes=show subvolumes, no=show non-subvolumes, all=show all>
+bfs-csf() {
+    local path="$1"
+    local folder_type="$2"
+    local filter="$3"
+
+    # Check if arguments are provided
+    if [ -z "$path" ] || [ -z "$folder_type" ] || [ -z "$filter" ]; then
+        all-use
+        return 1
+    fi
+
+    # Check if the path exists and is a directory
+    if [ ! -d "$path" ]; then
+        echo "Error: $path is not a valid directory."
+        return 1
+    fi
+
+    # Get the output of 'btrfs sub list' in the specified directory
+    local subvol_output
+    subvol_output=$(btrfs sub list -o "$path")
+
+    # Get the list of folders based on folder type and sort alphabetically
+    local all_folders
+    if [ "$folder_type" -eq 1 ]; then
+        all_folders=$(find "$path" -mindepth 1 -maxdepth 1 ! -name ".*" -type d -exec basename {} \; | sort)
+    elif [ "$folder_type" -eq 2 ]; then
+        all_folders=$(find "$path" -mindepth 1 -maxdepth 1 -name ".*" -type d -exec basename {} \; | sort)
+    elif [ "$folder_type" -eq 3 ]; then
+        all_folders=$(find "$path" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
+    else
+        echo "Error: Invalid folder type argument. Please specify 1, 2, or 3."
+        return 1
+    fi
+
+    # Iterate over each folder and filter based on the third argument
+    local folder_name
+    for folder_name in $all_folders; do
+        local is_subvol="no"
+        if echo "$subvol_output" | grep -q "$path/$folder_name"; then
+            is_subvol="yes"
+        fi
+
+        # Print the folder path and whether it is a subvolume based on the filter
+        if [ "$filter" == "yes" ] && [ "$is_subvol" == "yes" ]; then
+            printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
+        elif [ "$filter" == "no" ] && [ "$is_subvol" == "no" ]; then
+            printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
+        elif [ "$filter" == "all" ]; then
+            printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
+        fi
+    done
+}
+
+# Creates a new Snapper snapshot for the specified configuration or automatically selects a 'home_*' configuration if multiple exist
+# snapper home create
+# <configname>
+bfs-shc() {
+    local configname=$1
+
+    if [ -z "$configname" ]; then
+        all-use
+        return 1
+    fi
+
+    if [ "$configname" == "home" ]; then
+        # Get the list of configs
+        configs=$(snapper list-configs | awk '$1 ~ /^home_/ {print $1}')
+
+        # Count the number of home_ configs
+        config_count=$(echo "$configs" | wc -l)
+
+        if [ "$config_count" -eq 0 ]; then
+            echo "No configurations found starting with 'home_'."
+            return 1
+        elif [ "$config_count" -eq 1 ]; then
+            configname=$(echo "$configs" | head -n 1)
+            echo "Using configuration: $configname"
+        else
+            echo "Multiple configurations found starting with 'home_':"
+            echo "$configs"
+            echo "Please enter the configuration name to use:"
+            read selected_config
+            if echo "$configs" | grep -q "^$selected_config$"; then
+                configname=$selected_config
+            else
+                echo "Invalid configuration selected."
+                return 1
+            fi
+        fi
+    fi
+
+    echo "snapper -c "$configname" create"
+    snapper -c "$configname" create
+}
+# Deletes a specified Snapper snapshot from a given configuration or automatically selects a 'home_*' configuration if multiple exist
+# snapper home delete
+# <configname> <snapshot>
+bfs-shd() {
+    local configname
+    local snapshot
+
+    if [ $# -eq 0 ]; then
+        echo "Usage: bfs-shd <snapshot> [<configname>]"
+        return 1
+    elif [ $# -eq 1 ]; then
+        snapshot=$1
+    else
+        snapshot=$1
+        configname=$2
+    fi
+
+    if [ -z "$configname" ]; then
+        # Get the list of configs
+        configs=$(snapper list-configs | awk '$1 ~ /^home_/ {print $1}')
+
+        # Count the number of home_ configs
+        config_count=$(echo "$configs" | wc -l)
+
+        if [ "$config_count" -eq 0 ]; then
+            echo "No configurations found starting with 'home_'."
+            return 1
+        elif [ "$config_count" -eq 1 ]; then
+            configname=$(echo "$configs" | head -n 1)
+            echo "Using configuration: $configname"
+        else
+            echo "Multiple configurations found starting with 'home_':"
+            echo "$configs"
+            echo "Please enter the configuration name to use:"
+            read selected_config
+            if echo "$configs" | grep -q "^$selected_config$"; then
+                configname=$selected_config
+            else
+                echo "Invalid configuration selected."
+                return 1
+            fi
+        fi
+    fi
+
+    echo "snapper -c "$configname" delete "$snapshot""
+    snapper -c "$configname" delete "$snapshot"
+}
+
+# Lists Snapper snapshots for the specified configuration or automatically selects a 'home_*' configuration if multiple exist
+# snapper home list
+# <configname>
+bfs-shl() {
+    local configname=$1
+
+    if [ -z "$configname" ]; then
+        all-use
+        return 1
+    fi
+
+    if [ "$configname" == "home" ]; then
+        # Get the list of configs
+        configs=$(snapper list-configs | awk '$1 ~ /^home_/ {print $1}')
+
+        # Count the number of home_ configs
+        config_count=$(echo "$configs" | wc -l)
+
+        if [ "$config_count" -eq 0 ]; then
+            echo "No configurations found starting with 'home_'."
+            return 1
+        elif [ "$config_count" -eq 1 ]; then
+            configname=$(echo "$configs" | head -n 1)
+            echo "Using configuration: $configname"
+        else
+            echo "Multiple configurations found starting with 'home_':"
+            echo "$configs"
+            echo "Please enter the configuration name to use:"
+            read selected_config
+            if echo "$configs" | grep -q "^$selected_config$"; then
+                configname=$selected_config
+            else
+                echo "Invalid configuration selected."
+                return 1
+            fi
+        fi
+    fi
+
+    echo "snapper -c "$configname" list"
+    snapper -c "$configname" list
+}
+
+# Resyncs a Btrfs snapshot subvolume to a flat folder using rsync, excluding specific directories (.snapshots and .ssh) and preserving attributes
+# snapshot flat resync
+# <snapshot subvolume> <target folder>
+bfs-sfr() {
+    local snapshot_sub="$1"
+    local target_folder="$2"
+
+    # Check if arguments are provided
+    if [ -z "$snapshot_sub" ] || [ -z "$target_folder" ]; then
+	all-use
+        return 1
+    fi
+
+    # Perform rsync with exclusions
+    rsync -aAXv --delete \
+        --exclude='.snapshots' \
+        --exclude='.ssh' \
+        "$snapshot_sub/" "$target_folder"
+
+    # Check rsync exit status
+    local rsync_status=$?
+    if [ $rsync_status -ne 0 ]; then
+        echo "rsync encountered an error. Exit status: $rsync_status"
+    fi
+}
+# Creates a backup subvolume for a user's home directory on a backup drive, then sends and receives Btrfs snapshots incrementally, managing full and incremental backups
+# home user backups
+# <user> <snapshots: "all">
+bfs-hub() {
+    local username="$1"
+    local snapshot_option="$2"
+    local source_sub="/home/$username"
+    local source_dir="$source_sub/.snapshots"
+    local backup_home="/bak"
+    local backup_sub="$backup_home/$username"
+    local backup_dir="$backup_sub/.snapshots"
+    local log_file="$backup_home/.$username.log"
+
+    if [ $# -ne 2 ]; then
+        all-use
+        return 1
+    fi
+
+    log() {
+       local message="$1"
+       local short_timestamp=$(date '+%H:%M')
+       local full_timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+       echo "$short_timestamp - $message"
+       echo "$full_timestamp - $message" >> "$log_file"
+    }
+
+    log_variables() {
+        log "Username: $username"
+        log "Snapshot option: $snapshot_option"
+        log "Source user sub: $source_sub"
+        log "Source snapshot dir: $source_dir"
+        log "Backup drive: $backup_drive"
+        log "Backup home: $backup_home"
+        log "Backup user sub: $backup_sub"
+        log "Backup snapshot dir: $backup_dir"
+    }
+
+    check_directories() {
+
+	if [ ! -d "$source_sub" ]; then
+            log "User home directory $source_sub does not exist."
+            exit 1
+        fi
+
+        if [ ! -d "$backup_sub" ]; then
+            log "Creating backup subvolume $backup_sub."
+            btrfs subvolume create "$backup_sub"
+        fi
+
+        if [ ! -d "$backup_dir" ]; then
+            log "Creating backup directory $backup_dir."
+            mkdir -p "$backup_dir"
+        fi
+    }
+
+    get_snapshots() {
+        local dir="$1"
+        echo $(ls "$dir" 2>/dev/null | sort -n)
+    }
+
+    log_snapshots() {
+        log "Source snapshots : ${src_snapshots[*]}"
+        log "Backup snapshots : ${tgt_snapshots[*]}"
+    }
+
+    copy_info_file() {
+        local snapshot="$1"
+        local info_source="$source_dir/$snapshot/info.xml"
+        local info_target="$backup_dir/$snapshot/info.xml"
+
+        if [ -f "$info_source" ]; then
+            log "$(date '+%H:%M') - Copying $info_source to $info_target"
+            mkdir -p "$(dirname "$info_target")"
+            cp "$info_source" "$info_target"
+
+            local timestamp=$(xmllint --xpath 'string(/snapshot/date)' "$info_source")
+            log "$(date '+%H:%M') - Info.xml copied - containing snapshot timestamp: $timestamp"
+        else
+            log "$(date '+%H:%M') - Info.xml not found at $info_source for snapshot: $snapshot"
+        fi
+    }
+
+    full_backup() {
+        local snapshot="$1"
+        log "Starting full backup of smallest snapshot: $snapshot"
+        mkdir -p "$backup_dir/$snapshot"
+        btrfs send "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
+        copy_info_file "$snapshot"
+        log "Full backup of smallest snapshot $snapshot completed."
+    }
+
+    incremental_backup() {
+        local parent_snapshot="$1"
+        local snapshot="$2"
+        log "Starting incremental backup of snapshot: $snapshot with parent snapshot: $parent_snapshot"
+        mkdir -p "$backup_dir/$snapshot"
+        if [ -n "$parent_snapshot" ]; then
+            btrfs send -p "$source_dir/$parent_snapshot/snapshot" "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
+        else
+            btrfs send "$source_dir/$snapshot/snapshot" | btrfs receive "$backup_dir/$snapshot"
+        fi
+        copy_info_file "$snapshot"
+        log "Incremental backup of snapshot $snapshot completed."
+    }
+
+
+    perform_backups() {
+        if [ ${#src_snapshots[@]} -gt 0 ] && [ ${#tgt_snapshots[@]} -eq 0 ]; then
+            log "Target is empty and source has snapshots. Performing full and incremental backups."
+            full_backup "${src_snapshots[0]}"
+            prev_snapshot="${src_snapshots[0]}"
+            for snapshot in "${src_snapshots[@]:1}"; do
+                incremental_backup "$prev_snapshot" "$snapshot"
+                prev_snapshot="$snapshot"
+            done
+        elif [ ${#src_snapshots[@]} -gt ${#tgt_snapshots[@]} ]; then
+            log "There are fewer snapshots in the target. Performing incremental backups for missing snapshots."
+            prev_snapshot=""
+            for snapshot in "${src_snapshots[@]}"; do
+                if ! [[ " ${tgt_snapshots[*]} " =~ " $snapshot " ]]; then
+                    incremental_backup "$prev_snapshot" "$snapshot"
+                fi
+                prev_snapshot="$snapshot"
+            done
+        else
+            log "No actions needed. Exiting."
+        fi
+    }
+
+    check_directories
+    log_variables
+    src_snapshots=($(get_snapshots "$source_dir"))
+    tgt_snapshots=($(get_snapshots "$backup_dir"))
+    log_snapshots
+
+    if [ ${#src_snapshots[@]} -eq 0 ] && [ ${#tgt_snapshots[@]} -eq 0 ]; then
+        log "Both source and target snapshots are empty. Exiting."
+        return 0
+    fi
+
+    perform_backups
+}
+
+# Recursively deletes a Btrfs parent subvolume and all its nested child subvolumes, with options for interactive mode and forced deletion
+# subvolume nested delete
+# <parent subvolume>
+bfs-snd() {
+    local target_path=""
+    local interactive=false
+    local force=false
+
+    OPTIND=1
+
+    while getopts "if" opt; do
+        case $opt in
+            i) interactive=true ;;
+            f) force=true ;;
+            \?) echo "Invalid option: -$OPTARG" >&2; return 1 ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    if [ $# -eq 0 ]; then
+        echo "Error: Target path not provided" >&2
+        echo "Usage: bfs-snd [-i|-f] <target_path>" >&2
+        return 1
+    fi
+
+    target_path="$1"
+    local full_path
+
+    error() {
+        echo "[ERROR] $1" >&2
+    }
+
+    list_subvolumes() {
+        local path="$1"
+        btrfs subvolume list -o "$path" | awk '{print $NF}' | sed 's|@/||g'
+    }
+
+    if [[ "$target_path" = /* ]]; then
+        full_path="$target_path"
+    else
+        full_path="$(pwd)/$target_path"
+    fi
+
+    delete_subvolumes() {
+        local current_path="$1"
+        local subvolumes
+        local can_delete=true
+
+        mapfile -t subvolumes < <(list_subvolumes "$current_path")
+
+        if [ ${#subvolumes[@]} -eq 0 ]; then
+            if $interactive; then
+                read -p "Delete subvolume $current_path? (y/n): " answer
+                if [[ $answer != [Yy]* ]]; then
+                    return 1
+                fi
+            fi
+            if ! btrfs subvolume delete "$current_path"; then
+                error "Failed to delete subvolume: $current_path"
+                return 1
+            fi
+            return 0
+        fi
+
+        for subvol in "${subvolumes[@]}"; do
+            local subvol_path="${current_path}/${subvol##*/}"
+            if ! delete_subvolumes "$subvol_path"; then
+                can_delete=false
+                break  # Stop processing further subvolumes if one fails
+            fi
+        done
+
+        if $can_delete; then
+            if $interactive; then
+                read -p "Delete subvolume $current_path? (y/n): " answer
+                if [[ $answer != [Yy]* ]]; then
+                    return 1
+                fi
+            fi
+            if ! btrfs subvolume delete "$current_path"; then
+                error "Failed to delete subvolume: $current_path"
+                return 1
+            fi
+            return 0
+        else
+            return 1
+        fi
+    }
+
+    if ! delete_subvolumes "$full_path"; then
+        error "Failed to complete the subvolume deletion process"
+        return 1
+    fi
+
+    echo "Subvolume deletion process completed successfully"
+    return 0
+}
+
+# Creates a new ZFS dataset or uses an existing one, sets its mountpoint, and ensures it's mounted at the specified path
+# zfs directory mount
+# <pool_name> <dataset_name> <mountpoint_path>
+zfs-dim() {
+    local function_name="${FUNCNAME[0]}"
+    local pool_name="$1"
+    local dataset_name="$2"
+    local mountpoint_path="$3"
+    local dataset_path="$pool_name/$dataset_name"
+    local newly_created=false
+    if [ $# -ne 3 ]; then
+	all-use
+        return 1
+    fi
+
+    # Check if the dataset exists, create it if not
+    if ! zfs list "$dataset_path" &>/dev/null; then
+        echo "Creating ZFS dataset '$dataset_path'."
+        zfs create "$dataset_path" || { echo "Failed to create ZFS dataset '$dataset_path'"; exit 1; }
+        echo "ZFS dataset '$dataset_path' created."
+        newly_created=true
+    else
+        echo "ZFS dataset '$dataset_path' already exists."
+    fi
+
+    # Check if the mountpoint directory exists, create it if not
+    if [ ! -d "$mountpoint_path" ]; then
+        mkdir -p "$mountpoint_path" || { echo "Failed to create mountpoint directory '$mountpoint_path'"; exit 1; }
+        echo "Mountpoint directory '$mountpoint_path' created."
+    fi
+
+    # Get the current mountpoint and compare with the expected mountpoint
+    current_mountpoint=$(zfs get -H -o value mountpoint "$dataset_path")
+    expected_mountpoint="$mountpoint_path"
+
+    if [ "$current_mountpoint" != "$expected_mountpoint" ]; then
+        zfs set mountpoint="$expected_mountpoint" "$dataset_path" || { echo "Failed to set mountpoint for ZFS dataset '$dataset_path'"; exit 1; }
+        echo "ZFS dataset '$dataset_path' mounted at '$expected_mountpoint'."
+    elif [ "$newly_created" = true ]; then
+        echo "ZFS dataset '$dataset_path' newly mounted at '$expected_mountpoint'."
+    else
+        echo "ZFS dataset '$dataset_path' is already mounted at '$expected_mountpoint'."
+    fi
+
+    all-nos "$function_name" "executed ( $pool_name / $dataset_name )"
+}
+
+# Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency
+# zfs dataset backup
+# <sourcepoolname> <destinationpoolname> <datasetname>
+zfs-dbs() {
+    local sourcepoolname="$1"
+    local destinationpoolname="$2"
+    local datasetname="$3"
+
+     if [ $# -ne 3 ]; then
+	all-use
+        return 1
+    fi
+
+    # Generate a unique snapshot name based on the current date and hour
+    local snapshot_name="$(date +%Y%m%d_%H)"
+    local full_snapshot_name="${sourcepoolname}/${datasetname}@${snapshot_name}"
+
+    # Check if the snapshot already exists
+    if zfs list -t snapshot -o name | grep -q "^${full_snapshot_name}$"; then
+        echo "Snapshot ${full_snapshot_name} already exists."
+        read -p "Do you want to delete the existing snapshot? [y/N]: " delete_snapshot
+
+        if [[ "$delete_snapshot" =~ ^[Yy]$ ]]; then
+            # Delete the existing snapshot
+            local delete_snapshot_cmd="zfs destroy ${full_snapshot_name}"
+            echo "Deleting snapshot: ${delete_snapshot_cmd}"
+            eval "${delete_snapshot_cmd}"
+        else
+            echo "Aborting backup to avoid overwriting existing snapshot."
+            return 1
+        fi
+    fi
+
+    # Create the snapshot
+    local create_snapshot_cmd="zfs snapshot ${full_snapshot_name}"
+    echo "Creating snapshot: ${create_snapshot_cmd}"
+    eval "${create_snapshot_cmd}"
+
+    # Determine the correct send and receive commands
+    if zfs list -H -t snapshot -o name | grep -q "^${destinationpoolname}/${datasetname}@"; then
+        # Get the name of the most recent snapshot in the destination pool
+        local last_snapshot=$(zfs list -H -t snapshot -o name | grep "^${destinationpoolname}/${datasetname}@" | tail -1)
+
+        # Prepare the incremental send and receive commands
+        local send_cmd="zfs send -i ${last_snapshot} ${full_snapshot_name}"
+        local receive_cmd="zfs receive ${destinationpoolname}/${datasetname}"
+
+        echo "Incremental send command: ${send_cmd} | ${receive_cmd}"
+    else
+        # Prepare the initial full send and receive commands
+        local send_cmd="zfs send ${full_snapshot_name}"
+        local receive_cmd="zfs receive ${destinationpoolname}/${datasetname}"
+
+        echo "Initial send command: ${send_cmd} | ${receive_cmd}"
+    fi
+
+    # Wait for user confirmation before executing the commands
+    read -p "Press enter to execute the above command..."
+
+    # Execute the send and receive commands
+    eval "${send_cmd} | ${receive_cmd}"
+}

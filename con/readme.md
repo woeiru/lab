@@ -68,7 +68,7 @@ reboot
 
 ### 10 - current
 m.sub.sda.bak
-osm-sfr
+bfs-sfr
 
 ### sysstat troubleshoot
 ls -ld /var/lib/pcp/config/derived
@@ -77,7 +77,7 @@ sudo chmod 755 /var/lib/pcp/config/derived
 sudo chown root: /var/lib/pcp/config/derived
 
 ### in case of snapshot flat restore
-osm-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
+bfs-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
 
 
 ### fix user alternative instead of the sed command for the pam_snapper config
