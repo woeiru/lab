@@ -67,22 +67,59 @@ setup_interactive_mode() {
 
     setup_display_menu "$DIR_SH" "$FILE_SH" "$display_mode" "$section"
 
-    read -p "Do you want to execute this code? (y/n): " execute_choice
-    if [[ "$execute_choice" == "y" ]]; then
-        read -p "Choose execution mode (d for dry run, p for production): " exec_mode
-        case "$exec_mode" in
-            d)
-                setup_executing_mode "-d" "$section"
-                ;;
-            p)
-                setup_executing_mode "-p" "$section"
-                ;;
-            *)
-                echo "Invalid execution mode. Exiting."
-                exit 1
-                ;;
-        esac
+    if [[ "$section" != "-all" ]]; then
+        read -p "Do you want to execute this code? (y/n): " execute_choice
+        if [[ "$execute_choice" == "y" ]]; then
+            read -p "Choose execution mode (d for dry run, p for production): " exec_mode
+            case "$exec_mode" in
+                d)
+                    setup_executing_mode "-d" "$section"
+                    ;;
+                p)
+                    setup_executing_mode "-p" "$section"
+                    ;;
+                *)
+                    echo "Invalid execution mode. Exiting."
+                    exit 1
+                    ;;
+            esac
+        fi
+    else
+        select_and_execute_sections
     fi
+}
+
+select_and_execute_sections() {
+    echo "Which sections do you want to execute?"
+    echo "Available sections: ${!MENU_OPTIONS[@]} (or type 'all' for all sections)"
+    read -p "Enter section(s) separated by space, or 'all': " sections
+
+    if [[ "$sections" == "all" ]]; then
+        sections="${!MENU_OPTIONS[@]}"
+    fi
+
+    read -p "Choose execution mode (d for dry run, p for production): " exec_mode
+    case "$exec_mode" in
+        d)
+            option="-d"
+            ;;
+        p)
+            option="-p"
+            ;;
+        *)
+            echo "Invalid execution mode. Exiting."
+            exit 1
+            ;;
+    esac
+
+    for section in $sections; do
+        if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
+            echo "Executing section: $section"
+            setup_executing_mode "$option" "$section"
+        else
+            echo "Invalid section: $section. Skipping."
+        fi
+    done
 }
 
 setup_executing_mode() {
@@ -106,6 +143,7 @@ setup_executing_mode() {
 
     if [[ "$section" == "-all" ]]; then
         for func in "${!MENU_OPTIONS[@]}"; do
+            echo "Executing section: $func"
             ${MENU_OPTIONS[$func]}
         done
     else
