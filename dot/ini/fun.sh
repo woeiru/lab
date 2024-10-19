@@ -6,19 +6,26 @@
 check_shell_version() {
     log "DEBUG" "Entering function: ${FUNCNAME[0]}"
     if [[ -n "${BASH_VERSION:-}" ]]; then
+        log "INFO" "Detected Bash version: $BASH_VERSION"
         if [[ "${BASH_VERSION:0:1}" -lt 4 ]]; then
             log "ERROR" "This script requires Bash version 4 or higher."
             exit 1
+        else
+            log "INFO" "Bash version is compatible with this script."
         fi
     elif [[ -n "${ZSH_VERSION:-}" ]]; then
+        log "INFO" "Detected Zsh version: $ZSH_VERSION"
         if [[ "${ZSH_VERSION:0:1}" -lt 5 ]]; then
             log "ERROR" "This script requires Zsh version 5 or higher."
             exit 1
+        else
+            log "INFO" "Zsh version is compatible with this script."
         fi
     else
         log "ERROR" "This script must be run in Bash or Zsh."
         exit 1
     fi
+    log "INFO" "Shell version check completed successfully."
 }
 
 # 2. Initialize target user and home directory - Set TARGET_USER and TARGET_HOME, handle root user case
@@ -52,22 +59,45 @@ configure_environment() {
     if [[ -f "$USR_BASH_PATH" ]]; then
         source "$USR_BASH_PATH"
         log "INFO" "Sourced usr.bash from $USR_BASH_PATH"
-        if declare -f usr-cgp > /dev/null; then
-            if [[ "$DRY_RUN" = false ]]; then
-                usr-cgp
-                log "INFO" "Configured Git and SSH settings."
+
+        if [[ "$DRY_RUN" = false ]]; then
+            # Integrated usr-cgp logic
+            local ssh_config="$HOME/.ssh/config"
+            local askpass_line="    SetEnv SSH_ASKPASS=''"
+
+            # Set Git configuration
+            if git config --global core.askPass ""; then
+                log "INFO" "Git global configuration updated to disable password prompting."
             else
-                log "DRY-RUN" "Would configure Git and SSH settings."
+                log "ERROR" "Failed to update Git configuration."
+                return 1
             fi
+
+            # Update SSH config
+            if [ ! -f "$ssh_config" ]; then
+                mkdir -p "$HOME/.ssh"
+                touch "$ssh_config"
+                chmod 600 "$ssh_config"
+            fi
+
+            if ! grep -q "^Host \*$" "$ssh_config"; then
+                echo -e "\n# Disable SSH_ASKPASS\nHost *" >> "$ssh_config"
+            fi
+
+            if ! grep -q "^$askpass_line" "$ssh_config"; then
+                sed -i '/^Host \*/a\'"$askpass_line" "$ssh_config"
+                log "INFO" "SSH configuration updated to disable ASKPASS."
+            else
+                log "INFO" "SSH configuration already contains ASKPASS setting."
+            fi
+
+            log "INFO" "configure_git_ssh_passphrase: Git and SSH configurations have been updated."
         else
-            log "ERROR" "usr-cgp function not found in usr.bash"
+            log "DRY-RUN" "Would configure Git and SSH settings."
         fi
     else
         log "ERROR" "$USR_BASH_PATH not found."
     fi
-    log "INFO" "Git global configuration updated to disable password prompting."
-    log "INFO" "SSH configuration already contains ASKPASS setting."
-    log "INFO" "configure_git_ssh_passphrase: Git and SSH configurations have been updated."
 }
 
 # 4. Set appropriate config file - Determine whether to use .zshrc or .bashrc based on availability

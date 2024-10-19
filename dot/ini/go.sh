@@ -124,7 +124,6 @@ parse_arguments() {
 
 # Function to handle cleanup on exit
 cleanup() {
-    echo "Cleanup function called"
     log "INFO" "Cleaning up..."
 
     # Remove temporary files
@@ -308,7 +307,7 @@ main() {
 }
 
 debug_trap() {
-    echo "Trap triggered with signal: $1"
+    log "DEBUG" "Trap triggered with signal: $1"
     cleanup
 }
 
