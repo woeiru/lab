@@ -12,11 +12,12 @@ EXPORT_DIR="$DATA_DIR/exports"
 
 # Function to ensure directories exist
 ensure_directories() {
-    if [ ! -d "$TMP_DIR" ]; then
-        echo "Error: $TMP_DIR does not exist. Please create it first."
+    mkdir -p "$TMP_DIR" "$LOG_DIR" "$EXPORT_DIR"
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to create necessary directories. Please check permissions."
         exit 1
     fi
-    mkdir -p "$LOG_DIR" "$EXPORT_DIR"
+    echo "Necessary directories have been created or already exist."
 }
 
 # Ensure directories exist before proceeding
