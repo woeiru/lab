@@ -14,8 +14,8 @@ MENU_OPTIONS[b]="b_xall"
 
 a_xall() {
     all-ipa "$PACKAGES_ALL"
-    all-sdc "$SYSD_CHECK_NFS"
-    all-ust "$USERNAME1_NFS" "$PASSWORD1_NFS"
+    gen-sdc "$SYSD_CHECK_NFS"
+    gen-ust "$USERNAME1_NFS" "$PASSWORD1_NFS"
 }
 
 b_xall() {

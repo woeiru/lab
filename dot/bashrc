@@ -168,7 +168,7 @@ main() {
 
     # Ansible
    
-    alias a1='all-ans $ANS_PRO_PATH_1 $ANS_SITE_PATH_1'
+    alias a1='usr-ans $ANS_PRO_PATH_1 $ANS_SITE_PATH_1'
     alias ap='ansible-playbook'
 
     # Bash
@@ -209,7 +209,7 @@ main() {
     alias ee='exit'
 
     # Function shortcuts
-    alias sca='all-sca'
+    alias sca='gen-sca'
     alias flc='all-flc'
     alias cto='pve-cto'
 
@@ -230,7 +230,7 @@ main() {
     alias gcmb='git commit -m "base"'
     alias go='git push origin master'
     alias gp='git pull'
-    alias gg='all-gio'
+    alias gg='gen-gio'
     alias gr1='git revert HEAD~1'
 
     # History
