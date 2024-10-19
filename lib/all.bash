@@ -1020,20 +1020,18 @@ all-spi() {
         echo "Configuration already exists in $config_file"
     fi
 }
-
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
-# For client-side generation: all-sgp -c <server_address> <key_name> / For server-side generation: all-sgp -s <client_address> <key_name>
+# For client-side generation: all-sks -c <server_address> <key_name> / For server-side generation: all-sks -s <client_address> <key_name>
 all-sks() {
     local mode="$1"
     local remote_address="$2"
     local key_name="$3"
     local ssh_dir="/root/.ssh"
-    local auth_keys_file="$ssh_dir/authorized_keys"
 
     if [ $# -ne 3 ]; then
-        echo "Usage: all-sgp -s <client_address> <key_name> # for server-side generation"
-        echo "       all-sgp -c <server_address> <key_name> # for client-side generation"
+        echo "Usage: all-sks -s <client_address> <key_name> # for server-side generation"
+        echo "       all-sks -c <server_address> <key_name> # for client-side generation"
         return 1
     fi
 
@@ -1051,10 +1049,6 @@ all-sks() {
                 return 1
             fi
 
-            # Append public key to authorized_keys
-            cat "$ssh_dir/${key_name}.pub" >> "$auth_keys_file"
-            chmod 600 "$auth_keys_file"
-
             echo "SSH key pair generated on server."
             echo "Transferring private key to client..."
 
@@ -1071,10 +1065,7 @@ all-sks() {
 
             echo "Private key transferred to client and removed from server."
             echo "Public key file: $ssh_dir/${key_name}.pub"
-
-            # Restart SSH service
-            echo "Restarting SSH service..."
-            systemctl restart sshd
+            echo "Please use all-sak to append the public key to authorized_keys if needed."
             ;;
 
         -c) # Client-side generation
@@ -1097,25 +1088,18 @@ all-sks() {
                 return 1
             fi
 
-            # Append public key to authorized_keys on server and keep a copy
+            # Move public key to .ssh directory on server
             ssh "$remote_address" "mkdir -p $ssh_dir && \
-                                   cat /tmp/${key_name}.pub >> $auth_keys_file && \
-                                   chmod 600 $auth_keys_file && \
-                                   cp /tmp/${key_name}.pub $ssh_dir/ && \
-                                   rm /tmp/${key_name}.pub"
+                                   mv /tmp/${key_name}.pub $ssh_dir/"
 
             if [ $? -ne 0 ]; then
-                echo "Failed to process public key on server."
+                echo "Failed to move public key on server."
                 return 1
             fi
 
-            echo "Public key transferred to server, added to authorized_keys, and saved as a separate file."
+            echo "Public key transferred to server and saved in $ssh_dir/${key_name}.pub"
             echo "Private key file on client: $HOME/.ssh/$key_name"
-            echo "Public key file on server: $ssh_dir/${key_name}.pub"
-
-            # Restart SSH service on server
-            echo "Restarting SSH service on server..."
-            ssh "$remote_address" "systemctl restart sshd"
+            echo "Please use all-sak on the server to append the public key to authorized_keys if needed."
             ;;
 
         *)
@@ -1124,46 +1108,67 @@ all-sks() {
             ;;
     esac
 
-    echo "SSH key setup completed successfully."
+    echo "SSH key generation and transfer completed successfully."
 }
-
-
-# Appends the content of a specified public SSH key file to the authorized_keys file. Prompts for confirmation and restarts the SSH service
-# ssh append keys
-# <upload_path> <file_name>
+# Appends the content of a specified public SSH key file to the authorized_keys file.
+# Provides informational output and restarts the SSH service.
+# Usage: all-sak <upload_path> <file_name>
 all-sak() {
     local upload_path="$1"
     local file_name="$2"
     local authorized_keys_path="$upload_path/authorized_keys"
     local upload_full_path="$upload_path/$file_name"
 
+    # Check for correct number of arguments
     if [ $# -ne 2 ]; then
-        echo "Usage: append_to_authorized_keys <upload_path> <file_name>"
+        echo "Usage: all-sak <upload_path> <file_name>"
         return 1
     fi
 
-    # Evaluate and confirm variables
-    all-mev "upload_path" "Enter the SSH folder path" $upload_path
-    all-mev "file_name" "Enter the SSH key file name" $file_name
+    # Check if the upload path exists
+    if [ ! -d "$upload_path" ]; then
+        echo "Error: Upload path '$upload_path' does not exist."
+        return 1
+    fi
 
-    # Prompt user to append to authorized_keys
-    read -p "Do you want to append the content of $file_name to authorized_keys? (yes/no): " append_choice
-    case "$append_choice" in
-        [yY]|[yY][eE][sS])
-            # Append the content to authorized_keys
-            cat "$upload_full_path" >> "$authorized_keys_path"
-            if [ $? -eq 0 ]; then
-                echo "Content appended to authorized_keys"
-            else
-                echo "Failed to append content to authorized_keys"
-            fi
-            ;;
-        *)
-            echo "Content was not appended to authorized_keys"
-            ;;
-    esac
-    echo "performing a systemctl restart sshd"
-    systemctl restart sshd
+    # Check if the file exists
+    if [ ! -f "$upload_full_path" ]; then
+        echo "Error: File '$upload_full_path' does not exist."
+        return 1
+    fi
+
+    # Validate the file as a public key
+    if ! ssh-keygen -l -f "$upload_full_path" &>/dev/null; then
+        echo "Error: '$file_name' does not appear to be a valid public key."
+        return 1
+    fi
+
+    # Create authorized_keys if it doesn't exist
+    touch "$authorized_keys_path"
+    chmod 600 "$authorized_keys_path"
+
+    # Check if the key is already in authorized_keys
+    if grep -qf "$upload_full_path" "$authorized_keys_path"; then
+        echo "Info: This key already exists in authorized_keys. Appending anyway."
+    fi
+
+    # Append the content to authorized_keys
+    if cat "$upload_full_path" >> "$authorized_keys_path"; then
+        echo "Info: Content successfully appended to authorized_keys"
+    else
+        echo "Error: Failed to append content to authorized_keys"
+        return 1
+    fi
+
+    echo "Info: Restarting SSH service..."
+    if systemctl restart sshd; then
+        echo "Info: SSH service restarted successfully."
+    else
+        echo "Error: Failed to restart SSH service. Please check the service manually."
+        return 1
+    fi
+
+    echo "Info: SSH key append operation completed successfully."
 }
 
 # Supported operations: 
