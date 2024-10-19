@@ -271,9 +271,9 @@ main() {
     # Snapper (filesystem snapshot management)
     alias sl='snapper list'
     alias sc='snapper create'
-    alias shl='osm-shl home'
-    alias shc='osm-shc home'
-    alias shd='osm-shd'
+    alias shl='bfs-shl home'
+    alias shc='bfs-shc home'
+    alias shd='bfs-shd'
 
     # System statistics
     alias sar='sar -d 1'

@@ -64,7 +64,7 @@ d_xall() {
 }
 
 i_xall() {
-    sto-btr "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
+    bfs-ra1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
 j_xall() {
@@ -75,7 +75,7 @@ j_xall() {
         mountpoint_var="ZFS_MOUNTPOINT_NAME$i"
         
         if [ -n "${!pool_var}" ] && [ -n "${!dataset_var}" ] && [ -n "${!mountpoint_var}" ]; then
-            sto-zdm "${!pool_var}" "${!dataset_var}" "${!mountpoint_var}"
+            zfs-dim "${!pool_var}" "${!dataset_var}" "${!mountpoint_var}"
         else
             break
         fi
