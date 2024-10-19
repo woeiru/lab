@@ -12,11 +12,13 @@ LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 DRY_RUN=false
 INTERACTIVE=false
 TARGET_USER=""
+DEBUG=false
 
 # Numbered functions (main workflow)
 
 # 1. Check shell version
 check_shell_version() {
+    log_debug "Entering function: ${FUNCNAME[0]}"
     if [[ -n "${BASH_VERSION:-}" ]]; then
         if [[ "${BASH_VERSION:0:1}" -lt 4 ]]; then
             log_message "ERROR" "This script requires Bash version 4 or higher."
@@ -35,6 +37,7 @@ check_shell_version() {
 
 # 2. Initialize target user and home directory
 init_target_user() {
+    log_debug "Entering function: ${FUNCNAME[0]}"
     if [[ -z "${TARGET_USER}" ]]; then
         TARGET_USER=$(whoami)
         log_message "INFO" "No user specified. Using current user: $TARGET_USER"
@@ -165,6 +168,11 @@ log_message() {
     local message="$2"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message" | tee -a "$LOG_FILE"
 }
+log_debug() {
+    if [[ "$DEBUG" = true ]]; then
+        log_message "DEBUG" "$1"
+    fi
+}
 
 # Function to display usage information
 usage() {
@@ -227,6 +235,11 @@ parse_arguments() {
             -h|--help)
                 usage
                 exit 0
+                ;;
+            -v|--verbose)
+                DEBUG=true
+                log_message "INFO" "Verbose mode enabled"
+                shift
                 ;;
             *)
                 echo "Unknown option: $1"
@@ -400,14 +413,18 @@ main() {
     if [[ "$DRY_RUN" = false ]]; then
         log_message "INFO" "Deployment completed successfully."
         echo "Changes have been applied. The shell will now restart to apply the changes."
+        if [[ "$DEBUG" = true ]]; then
+            log_message "DEBUG" "Testing cleanup function"
+            cleanup
+        fi
         exec "$SHELL"
     else
         log_message "INFO" "Dry run completed. No changes were made."
     fi
 }
 
-# Set up trap for cleanup
-trap cleanup EXIT
+# Set up traps for multiple signals
+trap cleanup EXIT SIGINT SIGTERM
 
 # Run the main function
 main "$@"
