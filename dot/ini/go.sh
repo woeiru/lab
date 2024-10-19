@@ -124,26 +124,26 @@ parse_arguments() {
 
 # Function to handle cleanup on exit
 cleanup() {
-    log "INFO" "Cleaning up..."
+    log "DEBUG" "Cleaning up..."
 
     # Remove temporary files
     local temp_files=($(find /tmp -name "temp_*" -user "$(whoami)" -mmin -5))
     if [[ ${#temp_files[@]} -gt 0 ]]; then
         for temp_file in "${temp_files[@]}"; do
             rm -f "$temp_file"
-            log "INFO" "Removed temporary file: $temp_file"
+            log "DEBUG" "Removed temporary file: $temp_file"
         done
     else
-        log "INFO" "No temporary files found"
+        log "DEBUG" "No temporary files found"
     fi
 
     # Restore original config file if deployment failed
     local latest_backup=$(find "$(dirname "$CONFIG_FILE")" -maxdepth 1 -name "$(basename "$CONFIG_FILE").bak_*" | sort -r | head -n 1)
     if [[ $? -ne 0 && -n "$latest_backup" ]]; then
         mv "$latest_backup" "$CONFIG_FILE"
-        log "INFO" "Restored original config file due to deployment failure"
+        log "DEBUG" "Restored original config file due to deployment failure"
     else
-        log "INFO" "No need to restore config file"
+        log "DEBUG" "No need to restore config file"
     fi
 
     # Remove old backup files (keeping only the 2 most recent)
@@ -151,18 +151,17 @@ cleanup() {
     sort -r |
     tail -n +3 |
     xargs -r rm
-    log "INFO" "Removed old backup files, keeping the 2 most recent"
+    log "DEBUG" "Removed old backup files, keeping the 2 most recent"
 
     # Reset any environment variables set during the script
     unset SCRIPT_DIR LAB_DIR TARGET_HOME CONFIG_FILE DRY_RUN INTERACTIVE TARGET_USER
-    log "INFO" "Reset environment variables"
+    log "DEBUG" "Reset environment variables"
 
     # Close file descriptors
     exec 3>&- 4>&-
-    log "INFO" "Closed file descriptors"
+    log "DEBUG" "Closed file descriptors"
 
-    log "INFO" "Cleanup completed"
-    echo "Cleanup function finished"
+    log "DEBUG" "Cleanup completed"
 }
 
 # Function to dynamically execute functions
@@ -189,6 +188,7 @@ execute_functions() {
         echo "=================================================="
         echo "Step $number: $comment"
         echo "=================================================="
+        log "DEBUG" "Executing: $func"
         if declare -f "$func" > /dev/null; then
             if ! $func; then
                 log "ERROR" "Failed to execute $func."
