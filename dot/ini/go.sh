@@ -235,11 +235,6 @@ display_settings() {
 }
 
 # Main execution function
-#!/bin/bash
-
-# [Previous content remains unchanged]
-
-# Main execution function
 main() {
     log_message "INFO" "Starting deployment script"
 
@@ -279,12 +274,35 @@ main() {
         * ) log_message "INFO" "Operation cancelled by user."; exit 0;;
     esac
 
-    if ! execute_functions; then
-        log_message "ERROR" "Some operations failed. Please check the output above for details."
-        exit 1
-    fi
+    # Execute functions with numbered output
+    local functions=($(grep -E '^# [0-9]+\.' "$SCRIPT_DIR/fun.sh" |
+                       sed -E 's/^# ([0-9]+)\. .*/\1 /' |
+                       paste -d' ' - <(grep -A1 -E '^# [0-9]+\.' "$SCRIPT_DIR/fun.sh" |
+                                       grep -E '^[a-z_]+[a-z0-9_-]*\(\)' |
+                                       sed 's/().*//') |
+                       sort -n |
+                       cut -d' ' -f2-))
 
-        if [[ "$DRY_RUN" = false ]]; then
+    for func in "${functions[@]}"; do
+        local number=$(grep -E "^# [0-9]+\. .*$func" "$SCRIPT_DIR/fun.sh" | sed -E 's/^# ([0-9]+)\..*/\1/')
+        local comment=$(grep -E "^# [0-9]+\. .*$func" "$SCRIPT_DIR/fun.sh" | sed -E 's/^# [0-9]+\. //')
+        echo "=================================================="
+        echo "Step $number: $comment"
+        echo "=================================================="
+        log_message "INFO" "Executing: $func"
+        if declare -f "$func" > /dev/null; then
+            if ! $func; then
+                log_message "ERROR" "Failed to execute $func."
+                exit 1
+            fi
+        else
+            log_message "ERROR" "Function $func not found."
+            exit 1
+        fi
+        echo
+    done
+
+    if [[ "$DRY_RUN" = false ]]; then
         log_message "INFO" "Deployment completed successfully."
         echo "Changes have been applied. The shell will now restart to apply the changes."
         if [[ "$DEBUG" = true ]]; then
@@ -300,7 +318,6 @@ main() {
     fi
     echo "This line should not be reached due to exec"
 }
-
 
 debug_trap() {
     echo "Trap triggered with signal: $1"
