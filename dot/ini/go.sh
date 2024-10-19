@@ -19,16 +19,19 @@ source "$SCRIPT_DIR/fun.sh"
 
 echo "Script started with PID: $$"
 
-# Utility functions
-
-# Function to log messages
-log_message() {
+# Improved logging function
+log() {
     local level="$1"
     local message="$2"
     local color_code=""
 
+    # Only log DEBUG messages if DEBUG is true
+    if [[ "$level" == "DEBUG" && "$DEBUG" != true ]]; then
+        return
+    fi
+
     case "$level" in
-        "INFO")
+        "DRY-RUN")
             color_code="\033[0;32m"  # Green
             ;;
         "DEBUG")
@@ -37,18 +40,15 @@ log_message() {
         "ERROR")
             color_code="\033[0;31m"  # Red
             ;;
+        "INFO")
+            color_code="\033[0;34m"  # Blue
+            ;;
         *)
             color_code="\033[0m"  # Default (no color)
             ;;
     esac
 
     echo -e "${color_code}[$(date '+%Y-%m-%d %H:%M:%S')] [$level]\033[0m $message" | tee -a "$LOG_FILE"
-}
-
-log_debug() {
-    if [[ "$DEBUG" = true ]]; then
-        log_message "DEBUG" "$1"
-    fi
 }
 
 # Function to display usage information
@@ -86,22 +86,22 @@ parse_arguments() {
         case $1 in
             -u|--user)
                 TARGET_USER="$2"
-                log_message "INFO" "User argument provided: $TARGET_USER"
+                log "INFO" "User argument provided: $TARGET_USER"
                 shift 2
                 ;;
             -c|--config)
                 CONFIG_FILE="$2"
-                log_message "INFO" "Config file argument provided: $CONFIG_FILE"
+                log "INFO" "Config file argument provided: $CONFIG_FILE"
                 shift 2
                 ;;
             -d|--dry-run)
                 DRY_RUN=true
-                log_message "INFO" "Dry run mode enabled"
+                log "INFO" "Dry run mode enabled"
                 shift
                 ;;
             -i|--interactive)
                 INTERACTIVE=true
-                log_message "INFO" "Interactive mode enabled"
+                log "INFO" "Interactive mode enabled"
                 shift
                 ;;
             -h|--help)
@@ -110,7 +110,7 @@ parse_arguments() {
                 ;;
             -v|--verbose)
                 DEBUG=true
-                log_message "INFO" "Verbose mode enabled"
+                log "INFO" "Verbose mode enabled"
                 shift
                 ;;
             *)
@@ -125,26 +125,26 @@ parse_arguments() {
 # Function to handle cleanup on exit
 cleanup() {
     echo "Cleanup function called"
-    log_message "INFO" "Cleaning up..."
+    log "INFO" "Cleaning up..."
 
     # Remove temporary files
     local temp_files=($(find /tmp -name "temp_*" -user "$(whoami)" -mmin -5))
     if [[ ${#temp_files[@]} -gt 0 ]]; then
         for temp_file in "${temp_files[@]}"; do
             rm -f "$temp_file"
-            log_message "INFO" "Removed temporary file: $temp_file"
+            log "INFO" "Removed temporary file: $temp_file"
         done
     else
-        log_message "INFO" "No temporary files found"
+        log "INFO" "No temporary files found"
     fi
 
     # Restore original config file if deployment failed
     local latest_backup=$(find "$(dirname "$CONFIG_FILE")" -maxdepth 1 -name "$(basename "$CONFIG_FILE").bak_*" | sort -r | head -n 1)
     if [[ $? -ne 0 && -n "$latest_backup" ]]; then
         mv "$latest_backup" "$CONFIG_FILE"
-        log_message "INFO" "Restored original config file due to deployment failure"
+        log "INFO" "Restored original config file due to deployment failure"
     else
-        log_message "INFO" "No need to restore config file"
+        log "INFO" "No need to restore config file"
     fi
 
     # Remove old backup files (keeping only the 2 most recent)
@@ -152,17 +152,17 @@ cleanup() {
     sort -r |
     tail -n +3 |
     xargs -r rm
-    log_message "INFO" "Removed old backup files, keeping the 2 most recent"
+    log "INFO" "Removed old backup files, keeping the 2 most recent"
 
     # Reset any environment variables set during the script
     unset SCRIPT_DIR LAB_DIR TARGET_HOME CONFIG_FILE DRY_RUN INTERACTIVE TARGET_USER
-    log_message "INFO" "Reset environment variables"
+    log "INFO" "Reset environment variables"
 
     # Close file descriptors
     exec 3>&- 4>&-
-    log_message "INFO" "Closed file descriptors"
+    log "INFO" "Closed file descriptors"
 
-    log_message "INFO" "Cleanup completed"
+    log "INFO" "Cleanup completed"
     echo "Cleanup function finished"
 }
 
@@ -179,7 +179,7 @@ execute_functions() {
 
     # Check if the functions array is empty
     if [ ${#functions[@]} -eq 0 ]; then
-        log_message "ERROR" "No functions found to execute."
+        log "ERROR" "No functions found to execute."
         return 1
     fi
 
@@ -190,14 +190,13 @@ execute_functions() {
         echo "=================================================="
         echo "Step $number: $comment"
         echo "=================================================="
-        log_message "INFO" "Executing: $func"
         if declare -f "$func" > /dev/null; then
             if ! $func; then
-                log_message "ERROR" "Failed to execute $func."
+                log "ERROR" "Failed to execute $func."
                 return 1
             fi
         else
-            log_message "ERROR" "Function $func not found."
+            log "ERROR" "Function $func not found."
             return 1
         fi
         echo
@@ -218,26 +217,26 @@ run_interactive_mode() {
     read -p "Enter the target user (leave blank for current user: $(whoami)): " user_input
     if [[ -n "$user_input" ]]; then
         TARGET_USER="$user_input"
-        log_message "INFO" "User set interactively to: $TARGET_USER"
+        log "INFO" "User set interactively to: $TARGET_USER"
     else
-        log_message "INFO" "Using current user: $(whoami)"
+        log "INFO" "Using current user: $(whoami)"
     fi
 
     read -p "Enter the config file location (leave blank for default): " config_input
     if [[ -n "$config_input" ]]; then
         CONFIG_FILE="$config_input"
-        log_message "INFO" "Config file set interactively to: $CONFIG_FILE"
+        log "INFO" "Config file set interactively to: $CONFIG_FILE"
     else
-        log_message "INFO" "Using default config file location"
+        log "INFO" "Using default config file location"
     fi
 
     read -p "Perform a dry run? (y/n): " dry_run_choice
     if [[ "$dry_run_choice" =~ ^[Yy]$ ]]; then
         DRY_RUN=true
-        log_message "INFO" "Dry run mode enabled interactively"
+        log "INFO" "Dry run mode enabled interactively"
     else
         DRY_RUN=false
-        log_message "INFO" "Dry run mode disabled interactively"
+        log "INFO" "Dry run mode disabled interactively"
     fi
 }
 
@@ -252,7 +251,7 @@ display_settings() {
 
 # Main execution function
 main() {
-    log_message "INFO" "Starting deployment script"
+    log "INFO" "Starting deployment script"
 
     if [[ $# -eq 0 ]]; then
         set_default_values
@@ -265,14 +264,14 @@ main() {
     fi
 
     if [[ "$INTERACTIVE" = true ]]; then
-        log_message "INFO" "Entering interactive mode"
+        log "INFO" "Entering interactive mode"
         run_interactive_mode
     fi
 
     display_settings
 
     if [[ "$DRY_RUN" = true ]]; then
-        log_message "INFO" "Running in dry-run mode. No changes will be made."
+        log "INFO" "Running in dry-run mode. No changes will be made."
     fi
 
     # Display operations with numbering
@@ -284,19 +283,19 @@ main() {
     read -p "Do you want to proceed? (y/n): " choice
     case "$choice" in
         y|Y ) ;;
-        * ) log_message "INFO" "Operation cancelled by user."; exit 0;;
+        * ) log "INFO" "Operation cancelled by user."; exit 0;;
     esac
 
     if ! execute_functions; then
-        log_message "ERROR" "Deployment failed."
+        log "ERROR" "Deployment failed."
         exit 1
     fi
 
     if [[ "$DRY_RUN" = false ]]; then
-        log_message "INFO" "Deployment completed successfully."
+        log "INFO" "Deployment completed successfully."
         echo "Changes have been applied. The shell will now restart to apply the changes."
         if [[ "$DEBUG" = true ]]; then
-            log_message "DEBUG" "Testing cleanup function"
+            log "DEBUG" "Testing cleanup function"
             cleanup
         fi
         echo "Press any key to restart the shell..."
@@ -304,7 +303,7 @@ main() {
         echo "About to exec new shell..."
         exec "$SHELL"
     else
-        log_message "INFO" "Dry run completed. No changes were made."
+        log "INFO" "Dry run completed. No changes were made."
     fi
 }
 
