@@ -12,10 +12,12 @@ LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 DRY_RUN=false
 INTERACTIVE=false
 TARGET_USER=""
-DEBUG=true
+DEBUG=${DEBUG:-false}
 
 # Source the fun.sh file containing numbered functions
 source "$SCRIPT_DIR/fun.sh"
+
+echo "Script started with PID: $$"
 
 # Utility functions
 
@@ -109,18 +111,23 @@ parse_arguments() {
 
 # Function to handle cleanup on exit
 cleanup() {
+    echo "Cleanup function called"
     log_message "INFO" "Cleaning up..."
 
     # Remove temporary files
     if [[ -f "$temp_file" ]]; then
         rm -f "$temp_file"
         log_message "INFO" "Removed temporary file: $temp_file"
+    else
+        log_message "DEBUG" "No temporary file found"
     fi
 
     # Restore original config file if deployment failed
     if [[ $? -ne 0 && -f "${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)" ]]; then
         mv "${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)" "$CONFIG_FILE"
         log_message "INFO" "Restored original config file due to deployment failure"
+    else
+        log_message "DEBUG" "No need to restore config file"
     fi
 
     # Remove old backup files (keeping the last 5)
@@ -139,6 +146,7 @@ cleanup() {
     log_message "INFO" "Closed file descriptors"
 
     log_message "INFO" "Cleanup completed"
+    echo "Cleanup function finished"
 }
 
 # Function to dynamically execute functions
@@ -223,8 +231,83 @@ display_settings() {
 }
 
 # Main execution function
+#!/bin/bash
+
+# [Previous content remains unchanged]
+
+# Main execution function
 main() {
     log_message "INFO" "Starting deployment script"
 
     if [[ $# -eq 0 ]]; then
-        log_message "INFO" "No arguments provided. Using
+        log_message "INFO" "No arguments provided. Using default values."
+        set_default_values
+    else
+        log_message "INFO" "Parsing command-line arguments"
+        parse_arguments "$@"
+    fi
+
+    if [[ -z "$TARGET_USER" || -z "$CONFIG_FILE" ]]; then
+        log_message "INFO" "Some required values are not set. Using defaults for missing values."
+        set_default_values
+    fi
+
+    if [[ "$INTERACTIVE" = true ]]; then
+        log_message "INFO" "Entering interactive mode"
+        run_interactive_mode
+    fi
+
+    display_settings
+
+    if [[ "$DRY_RUN" = true ]]; then
+        log_message "INFO" "Running in dry-run mode. No changes will be made."
+    fi
+
+    # Display operations with numbering
+    echo "=================================================="
+    echo "The following operations will be performed:"
+    grep -E '^# [0-9]+\.' "$SCRIPT_DIR/fun.sh" | sed -E 's/^# ([0-9]+)\. (.+)/\1. \2/'
+    echo "=================================================="
+
+    read -p "Do you want to proceed? (y/n): " choice
+    case "$choice" in
+        y|Y ) ;;
+        * ) log_message "INFO" "Operation cancelled by user."; exit 0;;
+    esac
+
+    if ! execute_functions; then
+        log_message "ERROR" "Some operations failed. Please check the output above for details."
+        exit 1
+    fi
+
+        if [[ "$DRY_RUN" = false ]]; then
+        log_message "INFO" "Deployment completed successfully."
+        echo "Changes have been applied. The shell will now restart to apply the changes."
+        if [[ "$DEBUG" = true ]]; then
+            log_message "DEBUG" "Testing cleanup function"
+            cleanup
+        fi
+        echo "Press any key to restart the shell..."
+        read -n 1 -s
+        echo "About to exec new shell..."
+        exec "$SHELL"
+    else
+        log_message "INFO" "Dry run completed. No changes were made."
+    fi
+    echo "This line should not be reached due to exec"
+}
+
+
+debug_trap() {
+    echo "Trap triggered with signal: $1"
+    cleanup
+}
+
+# Set up traps for multiple signals with debugging
+trap 'debug_trap EXIT' EXIT
+trap 'debug_trap SIGINT' SIGINT
+trap 'debug_trap SIGTERM' SIGTERM
+
+# Run the main function
+main "$@"
+echo "Script completed. Exiting..."
