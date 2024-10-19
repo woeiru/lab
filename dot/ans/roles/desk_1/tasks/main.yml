@@ -14,7 +14,6 @@
           [Appearance]
           ColorScheme=SolarizedLight
           Font=Noto Sans Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
-
           [General]
           Name=Profile 1
           Parent=FALLBACK/
@@ -29,7 +28,6 @@
           [Appearance]
           ColorScheme=Linux
           Font=Noto Sans Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
-
           [General]
           Name=Profile 2
           Parent=FALLBACK/
@@ -88,3 +86,14 @@
           VariantList=,
         dest: "{{ ansible_env.HOME }}/.config/kxkbrc"
         mode: '0644'
+
+    # New task to execute usr-cgp function
+    - name: Execute usr-cgp function
+      ansible.builtin.shell: usr-cgp
+      args:
+        executable: /bin/bash
+      register: usr_cgp_result
+
+    - name: Display usr-cgp function output
+      ansible.builtin.debug:
+        var: usr_cgp_result.stdout_lines
