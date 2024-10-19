@@ -27,6 +27,7 @@ log_message() {
     local message="$2"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message" | tee -a "$LOG_FILE"
 }
+
 log_debug() {
     if [[ "$DEBUG" = true ]]; then
         log_message "DEBUG" "$1"
@@ -60,7 +61,6 @@ set_default_values() {
     else
         CONFIG_FILE="$TARGET_HOME/.bashrc"  # Default to .bashrc if neither exists
     fi
-
 }
 
 # Function to parse command-line arguments
@@ -118,7 +118,7 @@ cleanup() {
             log_message "INFO" "Removed temporary file: $temp_file"
         done
     else
-        log_message "DEBUG" "No temporary files found"
+        log_message "INFO" "No temporary files found"
     fi
 
     # Restore original config file if deployment failed
@@ -127,7 +127,7 @@ cleanup() {
         mv "$latest_backup" "$CONFIG_FILE"
         log_message "INFO" "Restored original config file due to deployment failure"
     else
-        log_message "DEBUG" "No need to restore config file"
+        log_message "INFO" "No need to restore config file"
     fi
 
     # Remove old backup files (keeping only the 2 most recent)
@@ -168,19 +168,22 @@ execute_functions() {
 
     # Loop through the functions array and execute each function
     for func in "${functions[@]}"; do
+        local number=$(grep -B1 "^$func()" "$SCRIPT_DIR/fun.sh" | grep -E '^# [0-9]+\.' | sed -E 's/^# ([0-9]+)\..*/\1/')
+        local comment=$(grep -B1 "^$func()" "$SCRIPT_DIR/fun.sh" | grep -E '^# [0-9]+\.' | sed -E 's/^# [0-9]+\. //')
+        echo "=================================================="
+        echo "Step $number: $comment"
+        echo "=================================================="
         log_message "INFO" "Executing: $func"
-        # Check if the function exists
         if declare -f "$func" > /dev/null; then
-            # Execute the function and check its return status
             if ! $func; then
                 log_message "ERROR" "Failed to execute $func."
                 return 1
             fi
         else
-            # If the function doesn't exist, print an error and return 1
             log_message "ERROR" "Function $func not found."
             return 1
         fi
+        echo
     done
 
     return 0
@@ -267,31 +270,10 @@ main() {
         * ) log_message "INFO" "Operation cancelled by user."; exit 0;;
     esac
 
-    # Execute functions with numbered output
-      local functions=($(grep -E '^[a-z_]+[a-z0-9_-]*\(\)' "$SCRIPT_DIR/fun.sh" | sed 's/().*//'))
-
-    echo "DEBUG: Functions found: ${functions[*]}" >&2
-
-    for func in "${functions[@]}"; do
-        echo "DEBUG: Processing function: $func" >&2
-        local number=$(grep -B1 "^$func()" "$SCRIPT_DIR/fun.sh" | grep -E '^# [0-9]+\.' | sed -E 's/^# ([0-9]+)\..*/\1/')
-        local comment=$(grep -B1 "^$func()" "$SCRIPT_DIR/fun.sh" | grep -E '^# [0-9]+\.' | sed -E 's/^# [0-9]+\. //')
-        echo "DEBUG: number=$number, comment=$comment" >&2
-        echo "=================================================="
-        echo "Step $number: $comment"
-        echo "=================================================="
-        log_message "INFO" "Executing: $func"
-        if declare -f "$func" > /dev/null; then
-            if ! $func; then
-                log_message "ERROR" "Failed to execute $func."
-                exit 1
-            fi
-        else
-            log_message "ERROR" "Function $func not found."
-            exit 1
-        fi
-        echo
-    done
+    if ! execute_functions; then
+        log_message "ERROR" "Deployment failed."
+        exit 1
+    fi
 
     if [[ "$DRY_RUN" = false ]]; then
         log_message "INFO" "Deployment completed successfully."
@@ -307,7 +289,6 @@ main() {
     else
         log_message "INFO" "Dry run completed. No changes were made."
     fi
-    echo "This line should not be reached due to exec"
 }
 
 debug_trap() {
