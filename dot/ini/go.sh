@@ -240,7 +240,35 @@ parse_arguments() {
 # Function to handle cleanup on exit
 cleanup() {
     log_message "INFO" "Cleaning up..."
-    # Add any necessary cleanup tasks here
+
+    # Remove temporary files
+    if [[ -f "$temp_file" ]]; then
+        rm -f "$temp_file"
+        log_message "INFO" "Removed temporary file: $temp_file"
+    fi
+
+    # Restore original config file if deployment failed
+    if [[ $? -ne 0 && -f "${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)" ]]; then
+        mv "${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)" "$CONFIG_FILE"
+        log_message "INFO" "Restored original config file due to deployment failure"
+    fi
+
+    # Remove old backup files (keeping the last 5)
+    find "$(dirname "$CONFIG_FILE")" -maxdepth 1 -name "$(basename "$CONFIG_FILE").bak_*" |
+    sort -r |
+    tail -n +6 |
+    xargs -r rm
+    log_message "INFO" "Removed old backup files, keeping the 5 most recent"
+
+    # Reset any environment variables set during the script
+    unset SCRIPT_DIR LAB_DIR TARGET_HOME CONFIG_FILE DRY_RUN INTERACTIVE TARGET_USER
+    log_message "INFO" "Reset environment variables"
+
+    # Close file descriptors
+    exec 3>&- 4>&-
+    log_message "INFO" "Closed file descriptors"
+
+    log_message "INFO" "Cleanup completed"
 }
 
 # Function to dynamically execute functions
