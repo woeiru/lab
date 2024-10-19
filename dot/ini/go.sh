@@ -13,47 +13,6 @@ DRY_RUN=false
 INTERACTIVE=false
 TARGET_USER=""
 
-# Function to log messages
-log_message() {
-    local level="$1"
-    local message="$2"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message" | tee -a "$LOG_FILE"
-}
-
-# Cleanup function
-cleanup() {
-    log_message "INFO" "Cleaning up..."
-
-    # Remove temporary files
-    if [[ -n "${temp_file:-}" && -f "$temp_file" ]]; then
-        rm -f "$temp_file"
-        log_message "INFO" "Removed temporary file: $temp_file"
-    fi
-
-    # Restore original config file if deployment failed
-    if [[ $? -ne 0 && -n "${CONFIG_FILE:-}" && -f "${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)" ]]; then
-        mv "${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)" "$CONFIG_FILE"
-        log_message "INFO" "Restored original config file due to deployment failure"
-    fi
-
-    # Remove old backup files (keeping the last 5)
-    if [[ -n "${CONFIG_FILE:-}" ]]; then
-        find "$(dirname "$CONFIG_FILE")" -maxdepth 1 -name "$(basename "$CONFIG_FILE").bak_*" |
-        sort -r |
-        tail -n +6 |
-        xargs -r rm
-        log_message "INFO" "Removed old backup files, keeping the 5 most recent"
-    fi
-
-    # Reset any environment variables set during the script
-    unset SCRIPT_DIR LAB_DIR TARGET_HOME CONFIG_FILE DRY_RUN INTERACTIVE TARGET_USER
-
-    log_message "INFO" "Cleanup completed"
-}
-
-# Set up trap for cleanup
-trap cleanup EXIT
-
 # Numbered functions (main workflow)
 
 # 1. Check shell version
@@ -92,7 +51,7 @@ init_target_user() {
     if [[ ! -d "$TARGET_HOME" ]]; then
         log_message "ERROR" "Home directory for user $TARGET_USER not found."
         exit 1
-    }
+    fi
     log_message "INFO" "Target user set to: $TARGET_USER"
     log_message "INFO" "Target home directory set to: $TARGET_HOME"
 }
@@ -200,6 +159,13 @@ restart_shell() {
 
 # Utility functions
 
+# Function to log messages
+log_message() {
+    local level="$1"
+    local message="$2"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message" | tee -a "$LOG_FILE"
+}
+
 # Function to display usage information
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -269,6 +235,40 @@ parse_arguments() {
                 ;;
         esac
     done
+}
+
+# Function to handle cleanup on exit
+cleanup() {
+    log_message "INFO" "Cleaning up..."
+
+    # Remove temporary files
+    if [[ -f "$temp_file" ]]; then
+        rm -f "$temp_file"
+        log_message "INFO" "Removed temporary file: $temp_file"
+    fi
+
+    # Restore original config file if deployment failed
+    if [[ $? -ne 0 && -f "${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)" ]]; then
+        mv "${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)" "$CONFIG_FILE"
+        log_message "INFO" "Restored original config file due to deployment failure"
+    fi
+
+    # Remove old backup files (keeping the last 5)
+    find "$(dirname "$CONFIG_FILE")" -maxdepth 1 -name "$(basename "$CONFIG_FILE").bak_*" |
+    sort -r |
+    tail -n +6 |
+    xargs -r rm
+    log_message "INFO" "Removed old backup files, keeping the 5 most recent"
+
+    # Reset any environment variables set during the script
+    unset SCRIPT_DIR LAB_DIR TARGET_HOME CONFIG_FILE DRY_RUN INTERACTIVE TARGET_USER
+    log_message "INFO" "Reset environment variables"
+
+    # Close file descriptors
+    exec 3>&- 4>&-
+    log_message "INFO" "Closed file descriptors"
+
+    log_message "INFO" "Cleanup completed"
 }
 
 # Function to dynamically execute functions
@@ -389,4 +389,25 @@ main() {
     read -p "Do you want to proceed? (y/n): " choice
     case "$choice" in
         y|Y ) ;;
-        * ) log_message "INFO" "Operation cancelled by user."; exit
+        * ) log_message "INFO" "Operation cancelled by user."; exit 0;;
+    esac
+
+    if ! execute_functions; then
+        log_message "ERROR" "Some operations failed. Please check the output above for details."
+        exit 1
+    fi
+
+    if [[ "$DRY_RUN" = false ]]; then
+        log_message "INFO" "Deployment completed successfully."
+        echo "Changes have been applied. The shell will now restart to apply the changes."
+        exec "$SHELL"
+    else
+        log_message "INFO" "Dry run completed. No changes were made."
+    fi
+}
+
+# Set up trap for cleanup
+trap cleanup EXIT
+
+# Run the main function
+main "$@"
