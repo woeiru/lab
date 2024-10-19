@@ -106,7 +106,7 @@ get_function_description() {
     ' "$lib_file" | sed 's/^# *//')
 
     if [ -n "$description" ]; then
-        echo "----(( $description ))----"
+        echo "--( $description )--"
     fi
 }
 
@@ -131,8 +131,7 @@ setup_display_menu() {
 
     grep -E '^[a-zA-Z_]+_xall\(\)' "$dir/$file" | while IFS= read -r line; do
         func_name=$(echo "$line" | awk -F'(' '{print $1}')
-        echo "----------------------------->>(  ${func_name%%_xall}  )<<------------------------------"
-        echo ""
+        echo "->>(  ${func_name%%_xall}  )<<------------------------------"
 
         in_function=false
         first_line=true
