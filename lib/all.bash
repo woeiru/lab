@@ -1144,60 +1144,49 @@ all-sak() {
     local key_name="$3"
     local ssh_dir="/root/.ssh"
     local authorized_keys_path="$ssh_dir/authorized_keys"
-
     if [ $# -ne 3 ]; then
         echo "Usage: all-sak -c <server_address> <key_name> # for client-side operation"
         echo "       all-sak -s <client_address> <key_name> # for server-side operation"
         return 1
     fi
-
     case "$mode" in
         -c) # Client-side operation
             local public_key_path="$HOME/.ssh/${key_name}.pub"
-
             # Check if the public key exists
             if [ ! -f "$public_key_path" ]; then
                 echo "Error: Public key '$public_key_path' does not exist."
                 return 1
             fi
-
             # Transfer and append the public key on the server
             ssh "$remote_address" "mkdir -p $ssh_dir && cat >> $authorized_keys_path" < "$public_key_path"
             if [ $? -ne 0 ]; then
                 echo "Error: Failed to append public key to authorized_keys on the server."
                 return 1
             fi
-
             echo "Public key appended to authorized_keys on the server."
             ;;
-
         -s) # Server-side operation
             local public_key_path="$ssh_dir/${key_name}.pub"
-
             # Check if the public key exists
             if [ ! -f "$public_key_path" ]; then
                 echo "Error: Public key '$public_key_path' does not exist on the server."
                 return 1
-
+            fi
             # Append the public key to authorized_keys
             cat "$public_key_path" >> "$authorized_keys_path"
             if [ $? -ne 0 ]; then
                 echo "Error: Failed to append public key to authorized_keys."
                 return 1
             fi
-
             echo "Public key appended to authorized_keys on the server."
             ;;
-
         *)
             echo "Invalid mode. Use -c for client-side or -s for server-side operation."
             return 1
             ;;
     esac
-
     # Ensure correct permissions
     chmod 600 "$authorized_keys_path"
-
     # Restart SSH service
     echo "Restarting SSH service..."
     if systemctl restart sshd; then
@@ -1206,7 +1195,6 @@ all-sak() {
         echo "Error: Failed to restart SSH service. Please check the service manually."
         return 1
     fi
-
     echo "SSH key append operation completed successfully."
 }
 
