@@ -11,12 +11,12 @@
       "new": "Displays an overview of Samba-specific variables defined in the configuration file, showing their names, values, and usage across different files"
     },
     {
-      "item": "shr-smb",
+      "item": "smb-shr",
       "old": "Unified function to set up Samba",
       "new": "Sets up a Samba share by prompting for missing configuration details and applying the configuration. Handles various share parameters including permissions, guest access, and file masks"
     },
     {
-      "item": "shr-sma",
+      "item": "smb-sma",
       "old": "Helper script for samba setup.",
       "new": "Applies Samba configuration by creating the shared folder if needed, updating smb.conf with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares"
     }

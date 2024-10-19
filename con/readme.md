@@ -28,7 +28,7 @@ reboot
 mount *device* /mnt/nvm
 bt sub create /mnt/nvm/home
 *delete old fstab entry*
-all-fec 1 /home btrfs subvol=home 0 0
+sto-fec 1 /home btrfs subvol=home 0 0
 tu pkg in htop
 reboot
 

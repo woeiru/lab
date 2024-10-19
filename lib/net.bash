@@ -34,7 +34,7 @@ net-var() {
 # Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
 # udev network interface
 # [interactive]
-pve-uni() {
+net-uni() {
     # Prompt user for the new interface name
     read -p "Enter the new interface name (e.g., nic1): " INTERFACE_NAME
 
@@ -76,7 +76,7 @@ pve-uni() {
 # Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding
 # firewall (add) service (and) reload
 # <service>
-all-fsr() {
+net-fsr() {
     local function_name="${FUNCNAME[0]}"
     local fw_service="$1"
     if [ $# -ne 1 ]; then
@@ -96,7 +96,7 @@ all-fsr() {
 # Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration
 # firewall allow service
 # <service>
-all-fas() {
+net-fas() {
     local function_name="${FUNCNAME[0]}"
     local fwd_as_1="$1"
 
@@ -115,7 +115,7 @@ all-fas() {
 # Mounts an NFS share interactively or with provided arguments
 # network file share
 # [server_ip] [shared_folder] [mount_point] [options]
-all-nfs() {
+net-nfs() {
     local function_name="${FUNCNAME[0]}"
     local server_ip=""
     local shared_folder=""

@@ -449,7 +449,7 @@ usr-swt() {
 # Adds a specific line to a target if not already present
 # adding line (to) target
 #
-pve-adr() {
+usr-adr() {
     local function_name="${FUNCNAME[0]}"
     local file="$1"
     local line_to_add="$2"
@@ -491,7 +491,7 @@ pve-adr() {
 # Updates the container template reference in the Proxmox configuration file, prompting for user confirmation and new template name
 # config update containertemplate
 # [interactive]
-pve-cuc() {
+usr-cuc() {
     # Check if CONFIG_pve is set
     if [ -z "$CONFIG_pve" ]; then
         echo "Error: CONFIG_pve is not set. Please ensure it's defined before calling this function."
@@ -537,7 +537,7 @@ pve-cuc() {
 # Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation
 # check append create
 # <file> <line>
-all-cap() {
+usr-cap() {
     local file="$1"
     local line="$2"
 

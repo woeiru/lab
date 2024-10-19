@@ -36,7 +36,7 @@ gpu-var() {
 # Configures initial GRUB and EFI settings for GPU passthrough, installs necessary packages, and reboots the system
 # gpu passthrough step 1
 #
-pve-gp1() {
+gpu-pt1() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 1:"
 
@@ -61,7 +61,7 @@ pve-gp1() {
 # Adds necessary kernel modules for GPU passthrough to /etc/modules, updates initramfs, and reboots the system
 # gpu passthrough step 2
 #
-pve-gp2() {
+gpu-pt2() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 2:"
 
@@ -83,7 +83,7 @@ pve-gp2() {
 # Finalizes or reverts GPU passthrough setup by configuring or removing VFIO-PCI IDs and blacklisting specific GPU drivers
 # gpu passthrough step 3
 # <enable|disable>
-pve-gp3() {
+gpu-pt3() {
     local function_name="${FUNCNAME[0]}"
     local action="$1"
 
@@ -167,7 +167,7 @@ pve-gp3() {
 # Detaches the GPU from the host system, making it available for VM passthrough
 # gpu passthrough detach
 #
-pve-gpd() {
+gpu-ptd() {
     local function_name="${FUNCNAME[0]}"
 
     echo "Current GPU driver and IOMMU group:"
@@ -230,7 +230,7 @@ pve-gpd() {
 # Attaches the GPU back to the host system
 # gpu passthrough attach
 #
-pve-gpa() {
+gpu-pta() {
     local function_name="${FUNCNAME[0]}"
 
     all-log "INFO" "Starting GPU reattachment process"
@@ -328,7 +328,7 @@ pve-gpa() {
 # Checks the current status of the GPU
 # gpu passthrough status
 #
-pve-gps() {
+gpu-pts() {
     local function_name="${FUNCNAME[0]}"
 
     echo "GPU Status:"

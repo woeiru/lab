@@ -38,12 +38,12 @@ MENU_OPTIONS[z]="z_xall"
 
 a_xall() {
     pve-dsr
-    pve-adr "$PVE_ADR_FILE" "$PVE_ADR_LINE"
+    usr-adr "$PVE_ADR_FILE" "$PVE_ADR_LINE"
     pve-rsn
 }
 
 b_xall() {
-    all-ipa "$PACKAGES_ALL"
+    gen-ipa "$PACKAGES_ALL"
 }
 
 c_xall() {
@@ -64,7 +64,7 @@ d_xall() {
 }
 
 i_xall() {
-    pve-btr "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
+    sto-btr "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
 j_xall() {
@@ -75,7 +75,7 @@ j_xall() {
         mountpoint_var="ZFS_MOUNTPOINT_NAME$i"
         
         if [ -n "${!pool_var}" ] && [ -n "${!dataset_var}" ] && [ -n "${!mountpoint_var}" ]; then
-            pve-zdm "${!pool_var}" "${!dataset_var}" "${!mountpoint_var}"
+            sto-zdm "${!pool_var}" "${!dataset_var}" "${!mountpoint_var}"
         else
             break
         fi
@@ -89,7 +89,7 @@ j_xall() {
 p_xall() {
     pve-clu
     pve-cdo "$CT_DL_STO" "$CT_DL_1"
-    pve-cuc
+    usr-cuc
 }
 
 q_xall() {

@@ -74,10 +74,10 @@ gen-gio() {
 # Installs specified packages using the system's package manager (apt, dnf, yum, or zypper). Performs update, upgrade, and installation operations
 # install packages
 # <pak1> <pak2> ...
-all-ipa() {
+gen-ipa() {
     local function_name="${FUNCNAME[0]}"
 
-    echo "Debug: all-ipa function called with arguments: $@"
+    echo "Debug: gen-ipa function called with arguments: $@"
 
     if [ $# -lt 1 ]; then
         all-use

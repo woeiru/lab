@@ -35,7 +35,7 @@ smb-var() {
 # Sets up a Samba share by prompting for missing configuration details and applying the configuration. Handles various share parameters including permissions, guest access, and file masks
 # samba setup 1
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
-shr-smb() {
+smb-shr() {
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
 	local shared_folder="$2"
@@ -62,14 +62,14 @@ shr-smb() {
     fi
 
     # Apply the Samba configuration
-    shr-sma "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
+    smb-sma "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
     all-nos "$function_name" "Samba setup complete"
 }
 
 # Applies Samba configuration by creating the shared folder if needed, updating smb.conf with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares
 # samba apply config
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
-shr-sma() {
+smb-sma() {
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
 	local shared_folder="$2"
