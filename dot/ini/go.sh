@@ -239,15 +239,12 @@ main() {
     log_message "INFO" "Starting deployment script"
 
     if [[ $# -eq 0 ]]; then
-        log_message "INFO" "No arguments provided. Using default values."
         set_default_values
     else
-        log_message "INFO" "Parsing command-line arguments"
         parse_arguments "$@"
     fi
 
     if [[ -z "$TARGET_USER" || -z "$CONFIG_FILE" ]]; then
-        log_message "INFO" "Some required values are not set. Using defaults for missing values."
         set_default_values
     fi
 
