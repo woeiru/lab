@@ -198,7 +198,7 @@ pve-rsn() {
 # Creates a Btrfs RAID 1 filesystem on two specified devices, mounts it, and optionally adds an entry to /etc/fstab
 # btrfs raid 1
 # <device1> <device2> <mount_point>
-pve-br1() {
+pve-btr() {
     local function_name="${FUNCNAME[0]}"
     local device1="$1"
     local device2="$2"
