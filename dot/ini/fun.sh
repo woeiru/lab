@@ -140,8 +140,8 @@ inject_content() {
 restart_shell() {
     if [[ "$DRY_RUN" = false ]]; then
         log_message "INFO" "Restarting shell to apply changes..."
-        (exec "$SHELL")
-        log_message "INFO" "Shell restarted. Continuing with script."
+        echo "Shell will be restarted. Script is about to exit."
+        exit 0
     else
         log_message "DRY-RUN" "Would restart shell to apply changes."
     fi
