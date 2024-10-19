@@ -106,106 +106,6 @@ all-gio() {
     cd - > /dev/null || { echo "Failed to return to previous directory"; return 1; }
 }
 
-# Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
-# fstab entry auto
-#
-all-fea() {
-    # Perform blkid and filter entries with sd*
-    blkid_output=$(blkid | grep '/dev/sd*')
-
-    # Display filtered results
-    echo "Filtered entries with sd*:"
-    echo "$blkid_output"
-
-    # Prompt for the line number
-    read -p "Enter the line number to retrieve the UUID: " line_number
-
-    # Retrieve UUID based on the chosen line number
-    chosen_line=$(echo "$blkid_output" | sed -n "${line_number}p")
-
-    # Extract UUID from the chosen line
-    TARGET_UUID=$(echo "$chosen_line" | grep -oP ' UUID="\K[^"]*')
-
-    echo "The selected UUID is: $TARGET_UUID"
-
-    # Check if the device's UUID is already present in /etc/fstab
-    if grep -q "UUID=$TARGET_UUID" /etc/fstab; then
-        echo "This UUID is already present in /etc/fstab."
-    else
-        # Check if the script is run as root
-        if [ "$EUID" -ne 0 ]; then
-            echo "Please run this script as root to modify /etc/fstab."
-            exit 1
-        fi
-
-        # Append entry to /etc/fstab for auto-mounting
-        echo "UUID=$TARGET_UUID /mnt/auto auto defaults 0 0" >> /etc/fstab
-        echo "Entry added to /etc/fstab for auto-mounting."
-    fi
-}
-
-# Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters
-# fstab entry custom
-# <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
-all-fec() {
-  if [ $# -eq 0 ]; then
-    # List blkid output with line numbers
-    echo "Available devices:"
-    blkid | nl -v 1
-    all-use
-    return 0
-  elif [ $# -ne 6 ]; then
-    all-use
-    return 1
-  fi
-
-  line_number=$1
-  mount_point=$2
-  filesystem=$3
-  mount_options=$4
-  fsck_pass_number=$5
-  mount_at_boot_priority=$6
-
-  # Extract the UUID based on the specified line number
-  uuid=$(blkid | sed -n "${line_number}s/.*UUID=\"\([^\"]*\)\".*/\1/p")
-  if [ -z "$uuid" ]; then
-    echo "Error: No UUID found at line $line_number"
-    return 1
-  fi
-
-  # Create the fstab entry
-  fstab_entry="UUID=${uuid} ${mount_point} ${filesystem} ${mount_options} ${fsck_pass_number} ${mount_at_boot_priority}"
-
-  # Append the entry to /etc/fstab
-  echo "$fstab_entry" >> /etc/fstab
-
-  echo "Entry added to /etc/fstab:"
-  echo "$fstab_entry"
-}
-
-# Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation
-# check append create
-# <file> <line>
-all-cap() {
-    local file="$1"
-    local line="$2"
-
-    if [ $# -ne 2 ]; then
-	all-use
-        return 1
-    fi
-
-
-    # Check if the line is already present in the file
-    if ! grep -Fxq "$line" "$file"; then
-        # If not, append the line to the file
-        echo "$line" >> "$file"
-        echo "Line appended to $file"
-    else
-        echo "Line already present in $file"
-    fi
-}
-
 # Installs specified packages using the system's package manager (apt, dnf, yum, or zypper). Performs update, upgrade, and installation operations
 # install packages
 # <pak1> <pak2> ...
@@ -354,25 +254,6 @@ all-sst() {
   echo "sysstat has been installed, enabled, and started."
 }
 
-# Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration
-# firewall allow service
-# <service>
-all-fas() {
-    local function_name="${FUNCNAME[0]}"
-    local fwd_as_1="$1"
-
-    if [ $# -ne 1 ]; then
-	all-use
-        return 1
-    fi
-
-    firewall-cmd --state
-    firewall-cmd --add-service="$fwd_as_1" --permanent
-    firewall-cmd --reload
-
-    all-nos "$function_name" "executed"
-}
-
 # Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
 # user setup
 # <username> <password>
@@ -436,64 +317,6 @@ all-sdc() {
                 return 1
                 ;;
         esac
-    fi
-}
-
-
-
-# Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
-# function usage information
-#
-all-use() {
-    local caller_line=$(caller 0)
-    local caller_function=$(echo $caller_line | awk '{print $2}')
-    local script_file="${BASH_SOURCE[1]}"
-
-    # Use grep to locate the function's declaration line number
-    local function_start_line=$(grep -n -m 1 "^[[:space:]]*${caller_function}()" "$script_file" | cut -d: -f1)
-
-    if [ -z "$function_start_line" ]; then
-        echo "Function not found."
-        return
-    fi
-
-    # Calculate the line number of the comment
-    local description_line=$((function_start_line - 3))
-    local shortname_line=$((function_start_line - 2))
-    local usage_line=$((function_start_line - 1))
-
-    # Use sed to get the comment line and strip off leading "# "
-    local description=$(sed -n "${description_line}s/^# //p" "$script_file")
-    local shortname=$(sed -n "${shortname_line}s/^# //p" "$script_file")
-    local usage=$(sed -n "${usage_line}s/^# //p" "$script_file")
-    local funcname=${caller_function}
-
-    # Display the comment
-    echo "Description:    $description"
-    echo "Shortname:      $shortname"
-    echo "Usage:          $funcname" "$usage"
-
-}
-
-
-
-# Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding
-# firewall (add) service (and) reload
-# <service>
-all-fsr() {
-    local function_name="${FUNCNAME[0]}"
-    local fw_service="$1"
-    if [ $# -ne 1 ]; then
-	all-use
-        return 1
-    fi
-   # Open firewall ports
-    if command -v firewall-cmd > /dev/null; then
-        firewall-cmd --permanent --add-service=$fw_service
-        firewall-cmd --reload
-	all-nos "$function_name" "executed ( $1 )"
-    else
-        echo "firewall-cmd not found, skipping firewall configuration."
     fi
 }
 
@@ -986,56 +809,6 @@ all-sca() {
         done
     fi
     echo "Debug: Raw command: $command"
-}
-
-# Mounts an NFS share interactively or with provided arguments
-# network file share
-# [server_ip] [shared_folder] [mount_point] [options]
-all-nfs() {
-    local function_name="${FUNCNAME[0]}"
-    local server_ip=""
-    local shared_folder=""
-    local mount_point=""
-    local options=""
-
-    # If arguments are provided, use them
-    if [ $# -eq 4 ]; then
-        server_ip="$1"
-        shared_folder="$2"
-        mount_point="$3"
-        options="$4"
-    else
-        # Use all-mev to prompt for each parameter
-        all-mev "server_ip" "Enter NFS server IP" "$NFS_SERVER_IP"
-        all-mev "shared_folder" "Enter NFS shared folder" "$NFS_SHARED_FOLDER"
-        all-mev "mount_point" "Enter local mount point" "$NFS_MOUNT_POINT"
-        all-mev "options" "Enter mount options" "$NFS_MOUNT_OPTIONS"
-    fi
-
-    # Create the mount point if it doesn't exist
-    if [ ! -d "$mount_point" ]; then
-        echo "Creating mount point $mount_point"
-        sudo mkdir -p "$mount_point"
-    fi
-
-    # Perform the mount
-    echo "Mounting NFS share..."
-    if sudo mount -t nfs -o "$options" "${server_ip}:${shared_folder}" "$mount_point"; then
-        echo "NFS share mounted successfully at $mount_point"
-    else
-        echo "Failed to mount NFS share"
-        return 1
-    fi
-
-    # Verify the mount
-    if mount | grep -q "$mount_point"; then
-        echo "Mount verified successfully"
-    else
-        echo "Mount verification failed"
-        return 1
-    fi
-
-    all-nos "$function_name" "NFS mount completed"
 }
 
 all-ans() {
