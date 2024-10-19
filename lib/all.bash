@@ -310,7 +310,7 @@ all-acu() {
 
     list_target_files() {
         local target_folder=$1
-        target_files=($(find "$target_folder" \( -name .git -o -name arc -o -name con -o -name ini -o -name var \) -prune -o -type f -name '*.*' -print | sort))
+        target_files=($(find "$target_folder" \( -name .git -o -name arc -o -name bar -o -name con -o -name dot -o -name fix -o -name var \) -prune -o -type f -name '*.*' -print | sort))
     }
 
 
