@@ -39,7 +39,6 @@ MENU_OPTIONS[z]="z_xall"
 a_xall() {
     pve-dsr
     pve-adr "$PVE_ADR_FILE" "$PVE_ADR_LINE"
-    pve-puu
     pve-rsn
 }
 
