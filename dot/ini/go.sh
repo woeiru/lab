@@ -61,10 +61,6 @@ set_default_values() {
         CONFIG_FILE="$TARGET_HOME/.bashrc"  # Default to .bashrc if neither exists
     fi
 
-    log_message "INFO" "Using default values:"
-    log_message "INFO" "  User: $TARGET_USER"
-    log_message "INFO" "  Home: $TARGET_HOME"
-    log_message "INFO" "  Config: $CONFIG_FILE"
 }
 
 # Function to parse command-line arguments
@@ -272,17 +268,15 @@ main() {
     esac
 
     # Execute functions with numbered output
-    local functions=($(grep -E '^# [0-9]+\.' "$SCRIPT_DIR/fun.sh" |
-                       sed -E 's/^# ([0-9]+)\. .*/\1 /' |
-                       paste -d' ' - <(grep -A1 -E '^# [0-9]+\.' "$SCRIPT_DIR/fun.sh" |
-                                       grep -E '^[a-z_]+[a-z0-9_-]*\(\)' |
-                                       sed 's/().*//') |
-                       sort -n |
-                       cut -d' ' -f2-))
+      local functions=($(grep -E '^[a-z_]+[a-z0-9_-]*\(\)' "$SCRIPT_DIR/fun.sh" | sed 's/().*//'))
+
+    echo "DEBUG: Functions found: ${functions[*]}" >&2
 
     for func in "${functions[@]}"; do
-        local number=$(grep -E "^# [0-9]+\. .*$func" "$SCRIPT_DIR/fun.sh" | sed -E 's/^# ([0-9]+)\..*/\1/')
-        local comment=$(grep -E "^# [0-9]+\. .*$func" "$SCRIPT_DIR/fun.sh" | sed -E 's/^# [0-9]+\. //')
+        echo "DEBUG: Processing function: $func" >&2
+        local number=$(grep -B1 "^$func()" "$SCRIPT_DIR/fun.sh" | grep -E '^# [0-9]+\.' | sed -E 's/^# ([0-9]+)\..*/\1/')
+        local comment=$(grep -B1 "^$func()" "$SCRIPT_DIR/fun.sh" | grep -E '^# [0-9]+\.' | sed -E 's/^# [0-9]+\. //')
+        echo "DEBUG: number=$number, comment=$comment" >&2
         echo "=================================================="
         echo "Step $number: $comment"
         echo "=================================================="
