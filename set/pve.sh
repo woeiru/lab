@@ -42,10 +42,14 @@ c_xall() {
 }
 
 d_xall() {
+    all-sks -s root@"${CL_IPS[t1]}" w1
+}
+
+i_xall() {
     pve-br1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
-e_xall() {
+j_xall() {
     local i=1
     while true; do
         pool_var="ZFS_POOL_NAME$i"
@@ -64,13 +68,13 @@ e_xall() {
     zfs list
 }
 
-f_xall() {
+p_xall() {
     pve-clu
     pve-cdo "$CT_DL_STO" "$CT_DL_1"
     pve-cuc
 }
 
-g_xall() {
+q_xall() {
     local i=1
     while true; do
         id_var="CT_${i}_ID"
@@ -125,7 +129,7 @@ g_xall() {
     done
 }
 
-h_xall() {
+r_xall() {
     local i=1
     while true; do
         eval CT_ID=\$CT_ID_$i
@@ -142,7 +146,7 @@ h_xall() {
     done
 }
 
-i_xall() {
+s_xall() {
     local i=1
     while true; do
         id_var="VM_${i}_ID"
