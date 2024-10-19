@@ -119,8 +119,9 @@ setup_display_menu() {
     echo "2. Code with expanded variables"
     echo "3. Code with expanded function descriptions"
     echo "4. Code with expanded variables & function descriptions"
-    echo "5. Only function descriptions"
-    read -p "Enter your choice (1, 2, 3, 4 or 5): " display_choice
+    echo "5. Function names and descriptions"
+    echo "6. Only function descriptions (without names)"
+    read -p "Enter your choice (1, 2, 3, 4, 5 or 6): " display_choice
 
     echo "----------------------------------------------------------------------"
     echo "------------  Scanning file $file for *_xall functions  -------------"
@@ -176,6 +177,15 @@ setup_display_menu() {
                             local desc="$(get_function_description "$func")"
                             if [ -n "$desc" ]; then
                                 echo "$func: $desc"
+                            fi
+                        fi
+                        ;;
+                    6)
+                        if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z_-]+) ]]; then
+                            local func="${BASH_REMATCH[1]}"
+                            local desc="$(get_function_description "$func")"
+                            if [ -n "$desc" ]; then
+                                echo "$desc"
                             fi
                         fi
                         ;;
