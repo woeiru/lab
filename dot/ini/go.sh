@@ -17,8 +17,6 @@ DEBUG=${DEBUG:-false}
 # Source the fun.sh file containing numbered functions
 source "$SCRIPT_DIR/fun.sh"
 
-echo "Script started with PID: $$"
-
 # Improved logging function
 log() {
     local level="$1"
@@ -206,7 +204,7 @@ execute_functions() {
 
 # Interactive mode function
 run_interactive_mode() {
-    echo "=== Interactive Mode ==="
+    echo "<===> Interactive Mode <===>"
     echo "Current settings:"
     echo "  User: ${TARGET_USER:-Current user ($(whoami))}"
     echo "  Config file: ${CONFIG_FILE:-Default}"
@@ -250,7 +248,7 @@ display_settings() {
 
 # Main execution function
 main() {
-    log "INFO" "Starting deployment script"
+    log "INFO" "Starting deployment script with PID: $$"
 
     if [[ $# -eq 0 ]]; then
         set_default_values
@@ -302,7 +300,7 @@ main() {
         echo "About to exec new shell..."
         exec "$SHELL"
     else
-        log "INFO" "Dry run completed. No changes were made."
+        log "DRY-RUN" "Dry run completed. No changes were made."
     fi
 }
 
@@ -318,4 +316,6 @@ trap 'debug_trap SIGTERM' SIGTERM
 
 # Run the main function
 main "$@"
+echo "=================================================="
 echo "Script completed. Exiting..."
+echo "=================================================="

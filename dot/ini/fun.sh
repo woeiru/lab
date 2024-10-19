@@ -50,54 +50,7 @@ init_target_user() {
     log "INFO" "Target home directory set to: $TARGET_HOME"
 }
 
-# 3. Source usr.bash and configure environment - Load user settings, set up Git and SSH if applicable
-configure_environment() {
-    local USR_BASH_PATH="$LAB_DIR/lib/usr.bash"
-    if [[ -f "$USR_BASH_PATH" ]]; then
-        source "$USR_BASH_PATH"
-        log "INFO" "Sourced usr.bash from $USR_BASH_PATH"
-
-        if [[ "$DRY_RUN" = false ]]; then
-            # Integrated usr-cgp logic
-            local ssh_config="$HOME/.ssh/config"
-            local askpass_line="    SetEnv SSH_ASKPASS=''"
-
-            # Set Git configuration
-            if git config --global core.askPass ""; then
-                log "INFO" "Git global configuration updated to disable password prompting."
-            else
-                log "ERROR" "Failed to update Git configuration."
-                return 1
-            fi
-
-            # Update SSH config
-            if [ ! -f "$ssh_config" ]; then
-                mkdir -p "$HOME/.ssh"
-                touch "$ssh_config"
-                chmod 600 "$ssh_config"
-            fi
-
-            if ! grep -q "^Host \*$" "$ssh_config"; then
-                echo -e "\n# Disable SSH_ASKPASS\nHost *" >> "$ssh_config"
-            fi
-
-            if ! grep -q "^$askpass_line" "$ssh_config"; then
-                sed -i '/^Host \*/a\'"$askpass_line" "$ssh_config"
-                log "INFO" "SSH configuration updated to disable ASKPASS."
-            else
-                log "INFO" "SSH configuration already contains ASKPASS setting."
-            fi
-
-            log "INFO" "configure_git_ssh_passphrase: Git and SSH configurations have been updated."
-        else
-            log "DRY-RUN" "Would configure Git and SSH settings."
-        fi
-    else
-        log "ERROR" "$USR_BASH_PATH not found."
-    fi
-}
-
-# 4. Set appropriate config file - Determine whether to use .zshrc or .bashrc based on availability
+# 3. Set appropriate config file - Determine whether to use .zshrc or .bashrc based on availability
 set_config_file() {
     if [[ -n "${CONFIG_FILE:-}" ]]; then
         if [[ ! -f "$CONFIG_FILE" ]]; then
@@ -115,7 +68,7 @@ set_config_file() {
     log "INFO" "Using config file: $CONFIG_FILE"
 }
 
-# 5. Create a backup of the config file - Generate timestamped backup before making changes
+# 4. Create a backup of the config file - Generate timestamped backup before making changes
 backup_config_file() {
     local backup_file="${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)"
     if [[ "$DRY_RUN" = false ]]; then
@@ -126,7 +79,7 @@ backup_config_file() {
     fi
 }
 
-# 6. Inject content into config file - Insert or update content between specific markers in config file
+# 5. Inject content into config file - Insert or update content between specific markers in config file
 inject_content() {
     local start_marker="# START inject"
     local end_marker="# END inject"
@@ -167,11 +120,11 @@ inject_content() {
     fi
 }
 
-# 7. Restart shell - Exit script to allow for shell restart, applying the new configuration
+# 6. Restart shell - Exit script to allow for shell restart, applying the new configuration
 restart_shell() {
     if [[ "$DRY_RUN" = false ]]; then
         log "INFO" "Restarting shell to apply changes..."
-        log "INFO" "Shell will be restarted. Script is about to exit."
+        echo ""
         exit 0
     else
         log "DRY-RUN" "Would restart shell to apply changes."
