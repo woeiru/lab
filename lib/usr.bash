@@ -33,7 +33,6 @@ usr-var() {
     all-acu -o "$CONFIG_usr" "$DIR_LIB/.."
 }
 
-
 # Changes the Konsole profile for the current user by updating the konsolerc file
 # change konsole profile
 # <profile_number>
@@ -299,27 +298,6 @@ usr-rsf() {
   fi
 }
 
-# Renames all files containing a specified string in their names, within a given folder and its subfolders
-# renames files in folder
-# <path> <old_name> <new_name>
-usr-rnf() {
-    local path="$1"
-    local oldname="$2"
-    local newname="$3"
-
-    if [[ ! -d "$path" ]]; then
-        echo "The specified path is not a directory."
-        return 1
-    fi
-
-    find "$path" -type f -name "*$oldname*" | while read -r file; do
-        local dirname=$(dirname "$file")
-        local basename=$(basename "$file")
-        local newfile="${basename//$oldname/$newname}"
-        mv "$file" "$dirname/$newfile"
-    done
-}
-
 # Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding
 # rsync source (to) destination
 # <source_path> <destination_path>
@@ -579,3 +557,196 @@ all-cap() {
     fi
 }
 
+# Renames files containing a specified string in their names
+# Usage: usr-rnf [-d] [-r] <path> <old_name> <new_name>
+# Options: -d (dry run), -r (recursive)
+
+usr-rnf() {
+    local dryrun=false
+    local recursive=false
+
+    # Parse options
+    while getopts ":dr" opt; do
+        case ${opt} in
+            d ) dryrun=true ;;
+            r ) recursive=true ;;
+            \? ) echo "Usage: usr-rnf [-d] [-r] <path> <old_name> <new_name>"
+                 echo "  -d: Dry run (show what would change without making changes)"
+                 echo "  -r: Recursive (include subdirectories)"
+                 return 1 ;;
+        esac
+    done
+    shift $((OPTIND -1))
+
+    # Check if the correct number of arguments is provided
+    if [ $# -ne 3 ]; then
+        echo "Usage: usr-rnf [-d] [-r] <path> <old_name> <new_name>"
+        echo "  -d: Dry run (show what would change without making changes)"
+        echo "  -r: Recursive (include subdirectories)"
+        return 1
+    fi
+
+    local path="$1"
+    local oldname="$2"
+    local newname="$3"
+    local changes_found=0
+
+    # Resolve path to absolute path
+    path=$(realpath "$path")
+
+    # Check if the specified path exists and is a directory
+    if [ ! -d "$path" ]; then
+        echo "Error: The specified path '$path' is not a directory."
+        return 1
+    fi
+
+    # Check if oldname is not empty
+    if [ -z "$oldname" ]; then
+        echo "Error: The old name cannot be empty."
+        return 1
+    fi
+
+    if $dryrun; then
+        echo "Dry run: Showing files that would be renamed in '$path'..."
+    else
+        echo "Searching for files containing '$oldname' in '$path'..."
+    fi
+
+    # Set find options based on recursive flag
+    local find_opts="-maxdepth 1"
+    if $recursive; then
+        find_opts=""
+    fi
+
+    # Use find to locate files and rename them
+    while IFS= read -r -d '' file; do
+        local dirname=$(dirname "$file")
+        local basename=$(basename "$file")
+        local newfile="${basename//$oldname/$newname}"
+
+        if [ "$basename" != "$newfile" ]; then
+            if $dryrun; then
+                echo "Would rename: $file -> $dirname/$newfile"
+                ((changes_found++))
+            else
+                if mv "$file" "$dirname/$newfile"; then
+                    echo "Renamed: $file -> $dirname/$newfile"
+                    ((changes_found++))
+                else
+                    echo "Failed to rename: $file"
+                fi
+            fi
+        fi
+    done < <(find "$path" $find_opts -type f -name "*$oldname*" -print0)
+
+    # Print summary
+    if $dryrun; then
+        if [ $changes_found -gt 0 ]; then
+            echo "Dry run completed. $changes_found file(s) would be renamed."
+        else
+            echo "No files matching '*$oldname*' were found that would be renamed in '$path'."
+        fi
+    else
+        if [ $changes_found -gt 0 ]; then
+            echo "Rename operation completed. $changes_found file(s) were renamed."
+        else
+            echo "No files matching '*$oldname*' were found or renamed in '$path'."
+        fi
+    fi
+}
+
+# Replaces all occurrences of a string in files within a given folder
+# Usage: usr-rif [-d] [-r] <path> <old_string> <new_string>
+# Options: -d (dry run), -r (recursive)
+
+usr-rif() {
+    local dryrun=false
+    local recursive=false
+
+    # Parse options
+    while getopts ":dr" opt; do
+        case ${opt} in
+            d ) dryrun=true ;;
+            r ) recursive=true ;;
+            \? ) echo "Usage: usr-rif [-d] [-r] <path> <old_string> <new_string>"
+                 echo "  -d: Dry run (show what would change without making changes)"
+                 echo "  -r: Recursive (include subdirectories)"
+                 return 1 ;;
+        esac
+    done
+    shift $((OPTIND -1))
+
+    # Check if the correct number of arguments is provided
+    if [ $# -ne 3 ]; then
+        echo "Usage: usr-rif [-d] [-r] <path> <old_string> <new_string>"
+        echo "  -d: Dry run (show what would change without making changes)"
+        echo "  -r: Recursive (include subdirectories)"
+        return 1
+    fi
+
+    local path="$1"
+    local oldstring="$2"
+    local newstring="$3"
+    local files_changed=0
+
+    # Resolve path to absolute path
+    path=$(realpath "$path")
+
+    # Check if the specified path exists and is a directory
+    if [ ! -d "$path" ]; then
+        echo "Error: The specified path '$path' is not a directory."
+        return 1
+    fi
+
+    # Check if oldstring is not empty
+    if [ -z "$oldstring" ]; then
+        echo "Error: The old string cannot be empty."
+        return 1
+    fi
+
+    if $dryrun; then
+        echo "Dry run: Showing files that would be modified in '$path'..."
+    else
+        echo "Searching for files containing '$oldstring' in '$path'..."
+    fi
+
+    # Set find options based on recursive flag
+    local find_opts="-maxdepth 1"
+    if $recursive; then
+        find_opts=""
+    fi
+
+    # Use find to locate files and replace strings
+    while IFS= read -r -d '' file; do
+        if grep -q "$oldstring" "$file"; then
+            if $dryrun; then
+                echo "Would modify: $file"
+                echo "  Sample change: $(grep -n "$oldstring" "$file" | head -n 1)"
+                ((files_changed++))
+            else
+                if sed -i "s/$oldstring/$newstring/g" "$file"; then
+                    echo "Modified: $file"
+                    echo "  Sample change: $(grep -n "$newstring" "$file" | head -n 1)"
+                    ((files_changed++))
+                else
+                    echo "Failed to modify: $file"
+                fi
+            fi
+        fi
+    done < <(find "$path" $find_opts -type f -print0)
+
+    # Print summary
+    if $dryrun; then
+        if [ $files_changed -gt 0 ]; then
+            echo "Dry run completed. $files_changed file(s) would be modified."
+        else
+            echo "No files containing '$oldstring' were found in '$path'."
+        fi
+    else
+        if [ $files_changed -gt 0 ]; then
+            echo "Replacement operation completed. $files_changed file(s) were modified."
+        else
+            echo "No files containing '$oldstring' were found or modified in '$path'."
+        fi
+    fi
+}
