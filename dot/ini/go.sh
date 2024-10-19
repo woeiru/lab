@@ -115,27 +115,31 @@ cleanup() {
     log_message "INFO" "Cleaning up..."
 
     # Remove temporary files
-    if [[ -f "$temp_file" ]]; then
-        rm -f "$temp_file"
-        log_message "INFO" "Removed temporary file: $temp_file"
+    local temp_files=($(find /tmp -name "temp_*" -user "$(whoami)" -mmin -5))
+    if [[ ${#temp_files[@]} -gt 0 ]]; then
+        for temp_file in "${temp_files[@]}"; do
+            rm -f "$temp_file"
+            log_message "INFO" "Removed temporary file: $temp_file"
+        done
     else
-        log_message "DEBUG" "No temporary file found"
+        log_message "DEBUG" "No temporary files found"
     fi
 
     # Restore original config file if deployment failed
-    if [[ $? -ne 0 && -f "${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)" ]]; then
-        mv "${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)" "$CONFIG_FILE"
+    local latest_backup=$(find "$(dirname "$CONFIG_FILE")" -maxdepth 1 -name "$(basename "$CONFIG_FILE").bak_*" | sort -r | head -n 1)
+    if [[ $? -ne 0 && -n "$latest_backup" ]]; then
+        mv "$latest_backup" "$CONFIG_FILE"
         log_message "INFO" "Restored original config file due to deployment failure"
     else
         log_message "DEBUG" "No need to restore config file"
     fi
 
-    # Remove old backup files (keeping the last 5)
+    # Remove old backup files (keeping only the 2 most recent)
     find "$(dirname "$CONFIG_FILE")" -maxdepth 1 -name "$(basename "$CONFIG_FILE").bak_*" |
     sort -r |
-    tail -n +6 |
+    tail -n +3 |
     xargs -r rm
-    log_message "INFO" "Removed old backup files, keeping the 5 most recent"
+    log_message "INFO" "Removed old backup files, keeping the 2 most recent"
 
     # Reset any environment variables set during the script
     unset SCRIPT_DIR LAB_DIR TARGET_HOME CONFIG_FILE DRY_RUN INTERACTIVE TARGET_USER
