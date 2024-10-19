@@ -325,8 +325,6 @@ main() {
 
     # Display operations with numbering
     echo "=================================================="
-    echo "               DEPLOYMENT SCRIPT"
-    echo "=================================================="
     echo "The following operations will be performed:"
     grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# ([0-9]+)\. (.+)/\1. \2/'
     echo "=================================================="
