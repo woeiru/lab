@@ -13,9 +13,8 @@ MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
 
 a_xall() {
-	pbs-sgp
+	pbs-dav
     	pbs-adr
-    	pbs-puu
     	gen-ipa "$PACKAGES_ALL"
 }
 
