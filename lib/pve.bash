@@ -307,8 +307,8 @@ print \$log strftime("%Y-%m-%d %H:%M:%S", localtime) . " - VM \$vmid, Phase: \$p
 
 if (\$phase eq 'post-stop') {
     print \$log "Attempting to reattach GPU for VM \$vmid\n";
-    my \$result = system("bash -c 'source /root/lab/lib/pve.bash && pve-gpa'");
-    print \$log "pve-gpa execution result: \$result\n";
+    my \$result = system("bash -c 'source /root/lab/lib/pve.bash && gpu-pta'");
+    print \$log "gpu-pta execution result: \$result\n";
 }
 
 close(\$log);

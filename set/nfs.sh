@@ -13,7 +13,7 @@ MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
 
 a_xall() {
-    all-ipa "$PACKAGES_ALL"
+    gen-ipa "$PACKAGES_ALL"
     gen-sdc "$SYSD_CHECK_NFS"
     gen-ust "$USERNAME1_NFS" "$PASSWORD1_NFS"
 }
