@@ -34,41 +34,6 @@ gen-var() {
     all-acu -o "$CONFIG_gen" "$DIR_LIB/.."
 }
 
-# Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
-# function folder loop
-# <function> <flag> <path> [extra_args ..]
-all-ffl() {
-    local fnc
-    local flag
-    local folder
-    local extra_args=()
-
-    fnc="$1"
-    flag="$2"
-    folder="$3"
-    shift 3
-
-    # Collect remaining arguments as extra_args
-    while [[ $# -gt 0 ]]; do
-        extra_args+=("$1")
-        shift
-    done
-
-    if [[ -d "$folder" ]]; then
-        for file in "$folder"/{*,.[!.]*,..?*}; do
-            if [[ -f "$file" ]]; then
-                echo "Processing file: $file"
-                "$fnc" "$flag" "$file" "${extra_args[@]}"
-            elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
-                all-ffl "$fnc" "$flag" "$file" "${extra_args[@]}"
-            fi
-        done
-    else
-        echo "Invalid folder: $folder"
-        return 1
-    fi
-}
-
 # Manages git operations, ensuring the local repository syncs with the remote.
 # Performs status check, pull, commit, and push operations as needed.
 #

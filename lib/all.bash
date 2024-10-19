@@ -41,6 +41,43 @@ all-log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$log_level] $message"
 }
 
+# Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
+# function folder loop
+# <function> <flag> <path> [extra_args ..]
+all-ffl() {
+    local fnc
+    local flag
+    local folder
+    local extra_args=()
+    fnc="$1"
+    flag="$2"
+    folder="$3"
+    shift 3
+    # Collect remaining arguments as extra_args
+    while [[ $# -gt 0 ]]; do
+        extra_args+=("$1")
+        shift
+    done
+    if [[ -d "$folder" ]]; then
+        for file in "$folder"/{*,.[!.]*,..?*}; do
+            if [[ -f "$file" ]]; then
+                line_count=$(wc -l < "$file")
+                # Get the actual filename without the path
+                filename=$(basename "$file")
+                # Get the real path of the file
+                real_path=$(realpath "$file")
+                echo -e "Processing file: \e[32m$real_path\e[0m - Total of \e[31m$line_count\e[0m Lines"
+                "$fnc" "$flag" "$file" "${extra_args[@]}"
+            elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
+                all-ffl "$fnc" "$flag" "$file" "${extra_args[@]}"
+            fi
+        done
+    else
+        echo "Invalid folder: $folder"
+        return 1
+    fi
+}
+
 # Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
 # list all functions
 # <file name> [-t] [-b]
