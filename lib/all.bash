@@ -1023,60 +1023,75 @@ all-spi() {
 
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
-# For client-side generation: all-sks -c <server_address> <key_name> / For server-side generation: all-sks -s <client_address> <key_name>
+# For client-side generation: all-sks -c <server_address> <key_name> [encryption_type] /// For server-side generation: all-sks -s <client_address> [encryption_type] <key_name>
 all-sks() {
     local mode="$1"
     local remote_address="$2"
     local key_name="$3"
+    local encryption_type="${4:-ed25519}"  # Default to ed25519 if not specified
     local ssh_dir="/root/.ssh"
-    if [ $# -ne 3 ]; then
-        echo "Usage: all-sks -s <client_address> <key_name> # for server-side generation"
-        echo "       all-sks -c <server_address> <key_name> # for client-side generation"
+
+    if [ $# -lt 3 ] || [ $# -gt 4 ]; then
+        echo "Usage: all-sks -s <client_address> <key_name> [encryption_type] # for server-side generation"
+        echo "       all-sks -c <server_address> <key_name> [encryption_type] # for client-side generation"
+        echo "If encryption_type is not specified, ed25519 will be used by default."
         return 1
     fi
+
+    # Function to generate SSH key
+    generate_key() {
+        local key_path="$1"
+        case "$encryption_type" in
+            rsa)
+                ssh-keygen -t rsa -b 4096 -f "$key_path" -N ""
+                ;;
+            dsa)
+                ssh-keygen -t dsa -f "$key_path" -N ""
+                ;;
+            ecdsa)
+                ssh-keygen -t ecdsa -b 521 -f "$key_path" -N ""
+                ;;
+            ed25519|*)
+                ssh-keygen -t ed25519 -f "$key_path" -N ""
+                ;;
+        esac
+    }
+
     case "$mode" in
         -s) # Server-side generation
-            # Create .ssh directory if it doesn't exist
             mkdir -p "$ssh_dir"
             chmod 700 "$ssh_dir"
-            # Generate new SSH key pair
-            ssh-keygen -t rsa -b 4096 -f "$ssh_dir/$key_name" -N ""
+            generate_key "$ssh_dir/$key_name"
             if [ $? -ne 0 ]; then
                 echo "Failed to generate SSH key pair."
                 return 1
             fi
-            echo "SSH key pair generated on server."
+            echo "SSH key pair generated on server using $encryption_type encryption."
             echo "Transferring private key to client..."
-            # Transfer private key to client
             scp "$ssh_dir/$key_name" "${remote_address}:~/.ssh/"
             if [ $? -ne 0 ]; then
                 echo "Failed to transfer private key to client."
                 return 1
             fi
-            # Remove private key from server
             rm "$ssh_dir/$key_name"
             echo "Private key transferred to client and removed from server."
             echo "Public key file: $ssh_dir/${key_name}.pub"
             echo "Please use all-sak to append the public key to authorized_keys if needed."
             ;;
         -c) # Client-side generation
-            # Generate new SSH key pair on client
-            ssh-keygen -t rsa -b 4096 -f "$HOME/.ssh/$key_name" -N ""
+            generate_key "$HOME/.ssh/$key_name"
             if [ $? -ne 0 ]; then
                 echo "Failed to generate SSH key pair."
                 return 1
             fi
-            echo "SSH key pair generated on client."
+            echo "SSH key pair generated on client using $encryption_type encryption."
             echo "Transferring public key to server..."
-            # Transfer public key to server
             scp "$HOME/.ssh/${key_name}.pub" "${remote_address}:/tmp/"
             if [ $? -ne 0 ]; then
                 echo "Failed to transfer public key to server."
                 return 1
             fi
-            # Move public key to .ssh directory on server
-            ssh "$remote_address" "mkdir -p $ssh_dir && \
-                                   mv /tmp/${key_name}.pub $ssh_dir/"
+            ssh "$remote_address" "mkdir -p $ssh_dir && mv /tmp/${key_name}.pub $ssh_dir/"
             if [ $? -ne 0 ]; then
                 echo "Failed to move public key on server."
                 return 1
