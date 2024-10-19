@@ -558,20 +558,23 @@ all-cap() {
 }
 
 # Renames files containing a specified string in their names
-# Usage: usr-rnf [-d] [-r] <path> <old_name> <new_name>
-# Options: -d (dry run), -r (recursive)
+# Usage: usr-rnf [-d] [-r] [-i] <path> <old_name> <new_name>
+# Options: -d (dry run), -r (recursive), -i (interactive)
 usr-rnf() {
     local dryrun=false
     local recursive=false
+    local interactive=false
 
     # Parse options
-    while getopts ":dr" opt; do
+    while getopts ":dri" opt; do
         case ${opt} in
             d ) dryrun=true ;;
             r ) recursive=true ;;
-            \? ) echo "Usage: usr-rnf [-d] [-r] <path> <old_name> <new_name>"
+            i ) interactive=true ;;
+            \? ) echo "Usage: usr-rnf [-d] [-r] [-i] <path> <old_name> <new_name>"
                  echo "  -d: Dry run (show what would change without making changes)"
                  echo "  -r: Recursive (include subdirectories)"
+                 echo "  -i: Interactive (prompt for each change)"
                  return 1 ;;
         esac
     done
@@ -579,9 +582,10 @@ usr-rnf() {
 
     # Check if the correct number of arguments is provided
     if [ $# -ne 3 ]; then
-        echo "Usage: usr-rnf [-d] [-r] <path> <old_name> <new_name>"
+        echo "Usage: usr-rnf [-d] [-r] [-i] <path> <old_name> <new_name>"
         echo "  -d: Dry run (show what would change without making changes)"
         echo "  -r: Recursive (include subdirectories)"
+        echo "  -i: Interactive (prompt for each change)"
         return 1
     fi
 
@@ -589,6 +593,7 @@ usr-rnf() {
     local oldname="$2"
     local newname="$3"
     local changes_found=0
+    local changes_made=0
 
     # Resolve path to absolute path
     path=$(realpath "$path")
@@ -624,13 +629,23 @@ usr-rnf() {
         local newfile="${basename//$oldname/$newname}"
 
         if [ "$basename" != "$newfile" ]; then
+            ((changes_found++))
+            if $interactive; then
+                echo -n "Rename '$file' to '$dirname/$newfile'? (Enter to confirm, Space to skip): "
+                read -n 1 -s user_input
+                echo
+                if [ "$user_input" = " " ]; then
+                    echo "Skipped: $file"
+                    continue
+                fi
+            fi
+
             if $dryrun; then
                 echo "Would rename: $file -> $dirname/$newfile"
-                ((changes_found++))
             else
                 if mv "$file" "$dirname/$newfile"; then
                     echo "Renamed: $file -> $dirname/$newfile"
-                    ((changes_found++))
+                    ((changes_made++))
                 else
                     echo "Failed to rename: $file"
                 fi
@@ -646,8 +661,8 @@ usr-rnf() {
             echo "No files matching '*$oldname*' were found that would be renamed in '$path'."
         fi
     else
-        if [ $changes_found -gt 0 ]; then
-            echo "Rename operation completed. $changes_found file(s) were renamed."
+        if [ $changes_made -gt 0 ]; then
+            echo "Rename operation completed. $changes_made file(s) were renamed."
         else
             echo "No files matching '*$oldname*' were found or renamed in '$path'."
         fi
@@ -655,20 +670,23 @@ usr-rnf() {
 }
 
 # Replaces all occurrences of a string in files within a given folder
-# Usage: usr-rif [-d] [-r] <path> <old_string> <new_string>
-# Options: -d (dry run), -r (recursive)
+# Usage: usr-rif [-d] [-r] [-i] <path> <old_string> <new_string>
+# Options: -d (dry run), -r (recursive), -i (interactive)
 usr-rif() {
     local dryrun=false
     local recursive=false
+    local interactive=false
 
     # Parse options
-    while getopts ":dr" opt; do
+    while getopts ":dri" opt; do
         case ${opt} in
             d ) dryrun=true ;;
             r ) recursive=true ;;
-            \? ) echo "Usage: usr-rif [-d] [-r] <path> <old_string> <new_string>"
+            i ) interactive=true ;;
+            \? ) echo "Usage: usr-rif [-d] [-r] [-i] <path> <old_string> <new_string>"
                  echo "  -d: Dry run (show what would change without making changes)"
                  echo "  -r: Recursive (include subdirectories)"
+                 echo "  -i: Interactive (prompt for each change)"
                  return 1 ;;
         esac
     done
@@ -676,15 +694,17 @@ usr-rif() {
 
     # Check if the correct number of arguments is provided
     if [ $# -ne 3 ]; then
-        echo "Usage: usr-rif [-d] [-r] <path> <old_string> <new_string>"
+        echo "Usage: usr-rif [-d] [-r] [-i] <path> <old_string> <new_string>"
         echo "  -d: Dry run (show what would change without making changes)"
         echo "  -r: Recursive (include subdirectories)"
+        echo "  -i: Interactive (prompt for each change)"
         return 1
     fi
 
     local path="$1"
     local oldstring="$2"
     local newstring="$3"
+    local files_found=0
     local files_changed=0
 
     # Resolve path to absolute path
@@ -717,10 +737,20 @@ usr-rif() {
     # Use find to locate files and replace strings
     while IFS= read -r -d '' file; do
         if grep -q "$oldstring" "$file"; then
+            ((files_found++))
+            if $interactive; then
+                echo -n "Modify '$file'? (Enter to confirm, Space to skip): "
+                read -n 1 -s user_input
+                echo
+                if [ "$user_input" = " " ]; then
+                    echo "Skipped: $file"
+                    continue
+                fi
+            fi
+
             if $dryrun; then
                 echo "Would modify: $file"
                 echo "  Sample change: $(grep -n "$oldstring" "$file" | head -n 1)"
-                ((files_changed++))
             else
                 if sed -i "s/$oldstring/$newstring/g" "$file"; then
                     echo "Modified: $file"
@@ -735,8 +765,8 @@ usr-rif() {
 
     # Print summary
     if $dryrun; then
-        if [ $files_changed -gt 0 ]; then
-            echo "Dry run completed. $files_changed file(s) would be modified."
+        if [ $files_found -gt 0 ]; then
+            echo "Dry run completed. $files_found file(s) would be modified."
         else
             echo "No files containing '$oldstring' were found in '$path'."
         fi
