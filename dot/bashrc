@@ -71,9 +71,6 @@ generate_aliases() {
     
     for file in "${files[@]}"; do
         case "$alias_type" in
-            "var")
-                alias "var.$file=all-acu o $PARENT_DIR $VAR_DIR/$file.conf"
-                ;;
             "bash")
                 alias "b.$file.sh=bash $SET_DIR/$file.sh"
                 ;;
@@ -153,14 +150,13 @@ main() {
     # Generate top-level directory aliases and variables
     generate_top_level_aliases
 
-    local files=(all gen osm pbs pve nfs smb usr net gpu sto)
-    local bash_files=(all gen osm pbs pve nfs smb usr net gpu sto)
+    local set_files=(gen pve pbs nfs smb)
+    local lib_files=(gen pve pbs srv usr net gpu sto all)
 
-    source_scripts "${files[@]}"
-    generate_aliases "var" "${files[@]}"
-    generate_aliases "bash" "${bash_files[@]}"
-    generate_aliases "cat" "${files[@]}"
-    generate_aliases "vim" "${files[@]}"
+    source_scripts "${lib_files[@]}"
+    generate_aliases "bash" "${set_files[@]}"
+    generate_aliases "cat" "${lib_files[@]}"
+    generate_aliases "vim" "${lib_files[@]}"
     generate_readme_aliases
 
     # Automatically add SSH keys
