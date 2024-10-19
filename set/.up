@@ -20,7 +20,7 @@ setup_source() {
   local lib_dir="${dir%/*}/lib"
   local var_dir="${dir%/*}/var"
   local all_base="all"
- 
+
   local files_to_source=(
     "$lib_dir/${all_base}.bash"
     "$var_dir/${all_base}.conf"
@@ -72,16 +72,16 @@ setup_execute_choice() {
 expand_variables() {
     local line="$1"
     local expanded_line="$line"
-    
+
     local vars=$(echo "$line" | grep -o '\<[a-zA-Z_][a-zA-Z0-9_]*\>')
-    
+
     for var in $vars; do
         if [[ -v $var ]]; then
             local value="${!var}"
             expanded_line="${expanded_line//$var/$var = $value}"
         fi
     done
-    
+
     echo "$expanded_line"
 }
 
@@ -90,11 +90,11 @@ get_function_description() {
     local func_name="$1"
     local lib_name="${func_name%%-*}"
     local lib_file="/root/lab/lib/${lib_name}.bash"
-    
+
     if [ ! -f "$lib_file" ]; then
         return
     fi
-    
+
     local description=$(awk -v fn="$func_name" '
         $0 ~ "^"fn"\\(\\)" {
             if (NR > 2) print lines[NR-3];
@@ -104,7 +104,7 @@ get_function_description() {
             lines[NR] = $0;
         }
     ' "$lib_file" | sed 's/^# *//')
-    
+
     if [ -n "$description" ]; then
         echo "----(( $description ))----"
     fi
@@ -119,7 +119,8 @@ setup_display_menu() {
     echo "2. Code with expanded variables"
     echo "3. Code with expanded function descriptions"
     echo "4. Code with expanded variables & function descriptions"
-    read -p "Enter your choice (1, 2, 3 or 4): " display_choice
+    echo "5. Only function descriptions"
+    read -p "Enter your choice (1, 2, 3, 4 or 5): " display_choice
 
     echo "----------------------------------------------------------------------"
     echo "------------  Scanning file $file for *_xall functions  -------------"
@@ -160,7 +161,7 @@ setup_display_menu() {
                             echo "$inner_line"
                         fi
                         ;;
-		   4)
+                    4)
                         if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z_-]+) ]]; then
                             local func="${BASH_REMATCH[1]}"
                             local desc="$(get_function_description "$func")"
@@ -169,7 +170,15 @@ setup_display_menu() {
                             echo "$(expand_variables "$inner_line")"
                         fi
                         ;;
-
+                    5)
+                        if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z_-]+) ]]; then
+                            local func="${BASH_REMATCH[1]}"
+                            local desc="$(get_function_description "$func")"
+                            if [ -n "$desc" ]; then
+                                echo "$func: $desc"
+                            fi
+                        fi
+                        ;;
                 esac
             fi
         done < <(sed -n "/^${func_name}()/,/^}/p" "$dir/$file")
