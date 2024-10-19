@@ -62,11 +62,17 @@ all-ffl() {
         for file in "$folder"/{*,.[!.]*,..?*}; do
             if [[ -f "$file" ]]; then
                 line_count=$(wc -l < "$file")
-                # Get the actual filename without the path
-                filename=$(basename "$file")
+                # Improved function counting
+                function_count=$(grep -cE '^[[:space:]]*(function[[:space:]]+)?([a-zA-Z_][a-zA-Z0-9_-]*[[:space:]]*\(\))[[:space:]]*\{' "$file")
                 # Get the real path of the file
                 real_path=$(realpath "$file")
-                echo -e "Processing file: \e[32m$real_path\e[0m - Total of \e[31m$line_count\e[0m Lines"
+                # Extract the filename (prefix) from the path
+                filename=$(basename "$real_path")
+                # Extract the prefix (part before the first dot)
+                prefix="${filename%%.*}"
+                # Get the directory path with the trailing slash
+                dir_path=$(dirname "$real_path")/
+                echo -e "$dir_path\e[32m$prefix\e[0m${filename#$prefix} - Contains \e[31m$line_count\e[0m Lines and \e[33m$function_count\e[0m Functions"
                 "$fnc" "$flag" "$file" "${extra_args[@]}"
             elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
                 all-ffl "$fnc" "$flag" "$file" "${extra_args[@]}"
