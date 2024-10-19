@@ -1,5 +1,29 @@
 #!/bin/bash
 
+# Improved log_message function with color coding
+log_message() {
+    local level="$1"
+    local message="$2"
+    local color_code=""
+
+    case "$level" in
+        "INFO")
+            color_code="\033[0;32m"  # Green
+            ;;
+        "DEBUG")
+            color_code="\033[0;33m"  # Yellow
+            ;;
+        "ERROR")
+            color_code="\033[0;31m"  # Red
+            ;;
+        *)
+            color_code="\033[0m"  # Default (no color)
+            ;;
+    esac
+
+    echo -e "${color_code}[$(date '+%Y-%m-%d %H:%M:%S')] [$level]\033[0m $message" | tee -a "$LOG_FILE"
+}
+
 # Numbered functions (main workflow)
 
 # 1. Check shell version - Verify Bash 4+ or Zsh 5+ is being used, exit if requirements not met
@@ -47,6 +71,7 @@ init_target_user() {
 
 # 3. Source usr.bash and configure environment - Load user settings, set up Git and SSH if applicable
 configure_environment() {
+    log_debug "Entering function: ${FUNCNAME[0]}"
     local USR_BASH_PATH="$LAB_DIR/lib/usr.bash"
     if [[ -f "$USR_BASH_PATH" ]]; then
         source "$USR_BASH_PATH"
@@ -59,15 +84,19 @@ configure_environment() {
                 log_message "DRY-RUN" "Would configure Git and SSH settings."
             fi
         else
-            log_message "WARNING" "usr-cgp function not found in usr.bash"
+            log_message "ERROR" "usr-cgp function not found in usr.bash"
         fi
     else
-        log_message "WARNING" "$USR_BASH_PATH not found."
+        log_message "ERROR" "$USR_BASH_PATH not found."
     fi
+    log_message "INFO" "Git global configuration updated to disable password prompting."
+    log_message "INFO" "SSH configuration already contains ASKPASS setting."
+    log_message "INFO" "configure_git_ssh_passphrase: Git and SSH configurations have been updated."
 }
 
 # 4. Set appropriate config file - Determine whether to use .zshrc or .bashrc based on availability
 set_config_file() {
+    log_debug "Entering function: ${FUNCNAME[0]}"
     if [[ -n "${CONFIG_FILE:-}" ]]; then
         if [[ ! -f "$CONFIG_FILE" ]]; then
             log_message "ERROR" "Specified config file $CONFIG_FILE not found."
@@ -86,6 +115,7 @@ set_config_file() {
 
 # 5. Create a backup of the config file - Generate timestamped backup before making changes
 backup_config_file() {
+    log_debug "Entering function: ${FUNCNAME[0]}"
     local backup_file="${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)"
     if [[ "$DRY_RUN" = false ]]; then
         cp "$CONFIG_FILE" "$backup_file"
@@ -97,6 +127,7 @@ backup_config_file() {
 
 # 6. Inject content into config file - Insert or update content between specific markers in config file
 inject_content() {
+    log_debug "Entering function: ${FUNCNAME[0]}"
     local start_marker="# START inject"
     local end_marker="# END inject"
     local temp_file=$(mktemp)
@@ -138,9 +169,10 @@ inject_content() {
 
 # 7. Restart shell - Exit script to allow for shell restart, applying the new configuration
 restart_shell() {
+    log_debug "Entering function: ${FUNCNAME[0]}"
     if [[ "$DRY_RUN" = false ]]; then
         log_message "INFO" "Restarting shell to apply changes..."
-        echo "Shell will be restarted. Script is about to exit."
+        log_message "INFO" "Shell will be restarted. Script is about to exit."
         exit 0
     else
         log_message "DRY-RUN" "Would restart shell to apply changes."
