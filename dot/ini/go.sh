@@ -177,6 +177,29 @@ usage() {
     echo "  -h, --help         Display this help message"
 }
 
+# Function to set default values
+set_default_values() {
+    TARGET_USER=$(whoami)
+    if [[ "$TARGET_USER" = "root" ]]; then
+        TARGET_HOME=$(eval echo ~root)
+    else
+        TARGET_HOME=$(eval echo ~$TARGET_USER)
+    fi
+
+    if [[ -f "$TARGET_HOME/.zshrc" ]]; then
+        CONFIG_FILE="$TARGET_HOME/.zshrc"
+    elif [[ -f "$TARGET_HOME/.bashrc" ]]; then
+        CONFIG_FILE="$TARGET_HOME/.bashrc"
+    else
+        CONFIG_FILE="$TARGET_HOME/.bashrc"  # Default to .bashrc if neither exists
+    fi
+
+    log_message "INFO" "Using default values:"
+    log_message "INFO" "  User: $TARGET_USER"
+    log_message "INFO" "  Home: $TARGET_HOME"
+    log_message "INFO" "  Config: $CONFIG_FILE"
+}
+
 # Function to parse command-line arguments
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
@@ -303,14 +326,20 @@ display_settings() {
 
 # Main execution function
 main() {
+    log_message "INFO" "Starting deployment script"
+
     if [[ $# -eq 0 ]]; then
-        usage
-        exit 1
+        log_message "INFO" "No arguments provided. Using default values."
+        set_default_values
+    else
+        log_message "INFO" "Parsing command-line arguments"
+        parse_arguments "$@"
     fi
 
-    log_message "INFO" "Starting deployment script"
-    log_message "INFO" "Parsing command-line arguments"
-    parse_arguments "$@"
+    if [[ -z "$TARGET_USER" || -z "$CONFIG_FILE" ]]; then
+        log_message "INFO" "Some required values are not set. Using defaults for missing values."
+        set_default_values
+    fi
 
     if [[ "$INTERACTIVE" = true ]]; then
         log_message "INFO" "Entering interactive mode"
