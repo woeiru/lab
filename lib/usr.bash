@@ -556,3 +556,26 @@ pve-cuc() {
     fi
 }
 
+# Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation
+# check append create
+# <file> <line>
+all-cap() {
+    local file="$1"
+    local line="$2"
+
+    if [ $# -ne 2 ]; then
+	all-use
+        return 1
+    fi
+
+
+    # Check if the line is already present in the file
+    if ! grep -Fxq "$line" "$file"; then
+        # If not, append the line to the file
+        echo "$line" >> "$file"
+        echo "Line appended to $file"
+    else
+        echo "Line already present in $file"
+    fi
+}
+
