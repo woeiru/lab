@@ -12,7 +12,6 @@ LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 DRY_RUN=false
 INTERACTIVE=false
 TARGET_USER=""
-TARGET_USER_SET=false
 
 # Numbered functions (main workflow)
 
@@ -36,31 +35,24 @@ check_shell_version() {
 
 # 2. Initialize target user and home directory
 init_target_user() {
-    if [[ "$EUID" -eq 0 && "$TARGET_USER_SET" = false ]]; then
-        if [[ -z "${TARGET_USER:-}" ]]; then
-            if [[ "$INTERACTIVE" = true ]]; then
-                read -p "Enter the target user's username (or 'root' for the root user): " TARGET_USER
-            else
-                log_message "ERROR" "When running as root, you must specify a target user with -u or --user."
-                usage
-                exit 1
-            fi
-        fi
-        TARGET_USER_SET=true
+    if [[ -z "${TARGET_USER}" ]]; then
+        TARGET_USER=$(whoami)
+        log_message "INFO" "No user specified. Using current user: $TARGET_USER"
+    else
+        log_message "INFO" "User specified via -u/--user argument: $TARGET_USER"
     fi
 
     if [[ "$TARGET_USER" = "root" ]]; then
         TARGET_HOME=$(eval echo ~root)
-    elif [[ -n "${TARGET_USER:-}" ]]; then
-        TARGET_HOME=$(eval echo ~$TARGET_USER)
     else
-        TARGET_HOME="$HOME"
+        TARGET_HOME=$(eval echo ~$TARGET_USER)
     fi
 
     if [[ ! -d "$TARGET_HOME" ]]; then
         log_message "ERROR" "Home directory for user $TARGET_USER not found."
         exit 1
     fi
+    log_message "INFO" "Target user set to: $TARGET_USER"
     log_message "INFO" "Target home directory set to: $TARGET_HOME"
 }
 
@@ -178,7 +170,7 @@ log_message() {
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo "Options:"
-    echo "  -u, --user USER    Specify target user (required for root)"
+    echo "  -u, --user USER    Specify target user (default: current user)"
     echo "  -c, --config FILE  Specify config file location"
     echo "  -d, --dry-run      Perform a dry run without making changes"
     echo "  -i, --interactive  Run in interactive mode"
@@ -191,19 +183,22 @@ parse_arguments() {
         case $1 in
             -u|--user)
                 TARGET_USER="$2"
-                TARGET_USER_SET=true
+                log_message "INFO" "User argument provided: $TARGET_USER"
                 shift 2
                 ;;
             -c|--config)
                 CONFIG_FILE="$2"
+                log_message "INFO" "Config file argument provided: $CONFIG_FILE"
                 shift 2
                 ;;
             -d|--dry-run)
                 DRY_RUN=true
+                log_message "INFO" "Dry run mode enabled"
                 shift
                 ;;
             -i|--interactive)
                 INTERACTIVE=true
+                log_message "INFO" "Interactive mode enabled"
                 shift
                 ;;
             -h|--help)
@@ -264,23 +259,65 @@ execute_functions() {
 
 # Interactive mode function
 run_interactive_mode() {
-    INTERACTIVE=true
-    read -p "Enter the config file location (leave blank for default): " CONFIG_FILE
+    echo "=== Interactive Mode ==="
+    echo "Current settings:"
+    echo "  User: ${TARGET_USER:-Current user ($(whoami))}"
+    echo "  Config file: ${CONFIG_FILE:-Default}"
+    echo "  Dry run: ${DRY_RUN}"
+    echo
+
+    read -p "Enter the target user (leave blank for current user: $(whoami)): " user_input
+    if [[ -n "$user_input" ]]; then
+        TARGET_USER="$user_input"
+        log_message "INFO" "User set interactively to: $TARGET_USER"
+    else
+        log_message "INFO" "Using current user: $(whoami)"
+    fi
+
+    read -p "Enter the config file location (leave blank for default): " config_input
+    if [[ -n "$config_input" ]]; then
+        CONFIG_FILE="$config_input"
+        log_message "INFO" "Config file set interactively to: $CONFIG_FILE"
+    else
+        log_message "INFO" "Using default config file location"
+    fi
+
     read -p "Perform a dry run? (y/n): " dry_run_choice
     if [[ "$dry_run_choice" =~ ^[Yy]$ ]]; then
         DRY_RUN=true
+        log_message "INFO" "Dry run mode enabled interactively"
+    else
+        DRY_RUN=false
+        log_message "INFO" "Dry run mode disabled interactively"
     fi
+}
+
+# Function to display current settings
+display_settings() {
+    echo "=== Current Settings ==="
+    echo "  User: ${TARGET_USER:-Current user ($(whoami))}"
+    echo "  Config file: ${CONFIG_FILE:-Default}"
+    echo "  Dry run: ${DRY_RUN}"
+    echo "========================"
 }
 
 # Main execution function
 main() {
     if [[ $# -eq 0 ]]; then
-        run_interactive_mode
-    else
-        parse_arguments "$@"
+        usage
+        exit 1
     fi
 
     log_message "INFO" "Starting deployment script"
+    log_message "INFO" "Parsing command-line arguments"
+    parse_arguments "$@"
+
+    if [[ "$INTERACTIVE" = true ]]; then
+        log_message "INFO" "Entering interactive mode"
+        run_interactive_mode
+    fi
+
+    display_settings
 
     if [[ "$DRY_RUN" = true ]]; then
         log_message "INFO" "Running in dry-run mode. No changes will be made."
