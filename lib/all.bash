@@ -1178,7 +1178,6 @@ all-sak() {
             if [ ! -f "$public_key_path" ]; then
                 echo "Error: Public key '$public_key_path' does not exist on the server."
                 return 1
-            }
 
             # Append the public key to authorized_keys
             cat "$public_key_path" >> "$authorized_keys_path"
