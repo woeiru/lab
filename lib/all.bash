@@ -1023,17 +1023,38 @@ all-spi() {
 
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
-# For client-side generation: all-sks -c <server_address> <key_name> [encryption_type] /// For server-side generation: all-sks -s <client_address> [encryption_type] <key_name>
+# For client-side generation: all-sks -c [-d] <server_address> <key_name> [encryption_type] /// For server-side generation: all-sks -s [-d] <client_address> <key_name> [encryption_type]
 all-sks() {
-    local mode="$1"
-    local remote_address="$2"
-    local key_name="$3"
-    local encryption_type="${4:-ed25519}"  # Default to ed25519 if not specified
+    local mode=""
+    local deduplicate=false
+    local remote_address=""
+    local key_name=""
+    local encryption_type="ed25519"  # Default to ed25519
     local ssh_dir="/root/.ssh"
 
-    if [ $# -lt 3 ] || [ $# -gt 4 ]; then
-        echo "Usage: all-sks -s <client_address> <key_name> [encryption_type] # for server-side generation"
-        echo "       all-sks -c <server_address> <key_name> [encryption_type] # for client-side generation"
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -c|-s) mode="$1" ;;
+            -d) deduplicate=true ;;
+            *)
+                if [[ -z "$remote_address" ]]; then
+                    remote_address="$1"
+                elif [[ -z "$key_name" ]]; then
+                    key_name="$1"
+                else
+                    encryption_type="$1"
+                fi
+                ;;
+        esac
+        shift
+    done
+
+    # Check if required arguments are provided
+    if [[ -z "$mode" || -z "$remote_address" || -z "$key_name" ]]; then
+        echo "Usage: all-sks -s [-d] <client_address> <key_name> [encryption_type] # for server-side generation"
+        echo "       all-sks -c [-d] <server_address> <key_name> [encryption_type] # for client-side generation"
+        echo "       -d: Optional. If provided, removes the original key after successful transfer."
         echo "If encryption_type is not specified, ed25519 will be used by default."
         return 1
     fi
@@ -1073,10 +1094,12 @@ all-sks() {
                 echo "Failed to transfer private key to client."
                 return 1
             fi
-            rm "$ssh_dir/$key_name"
-            echo "Private key transferred to client and removed from server."
+            echo "Private key transferred to client successfully."
+            if $deduplicate; then
+                rm "$ssh_dir/$key_name"
+                echo "Private key removed from server (deduplication)."
+            fi
             echo "Public key file: $ssh_dir/${key_name}.pub"
-            echo "Please use all-sak to append the public key to authorized_keys if needed."
             ;;
         -c) # Client-side generation
             generate_key "$HOME/.ssh/$key_name"
@@ -1098,11 +1121,11 @@ all-sks() {
             fi
             echo "Public key transferred to server and saved in $ssh_dir/${key_name}.pub"
             echo "Private key file on client: $HOME/.ssh/$key_name"
-            echo "Please use all-sak on the server to append the public key to authorized_keys if needed."
 
-            # Remove the public key from the client's .ssh folder
-            rm "$HOME/.ssh/${key_name}.pub"
-            echo "Public key removed from client's .ssh folder."
+            if $deduplicate; then
+                rm "$HOME/.ssh/${key_name}.pub"
+                echo "Public key removed from client's .ssh folder (deduplication)."
+            fi
             ;;
         *)
             echo "Invalid mode. Use -s for server-side or -c for client-side generation."
@@ -1114,63 +1137,78 @@ all-sks() {
 
 # Appends the content of a specified public SSH key file to the authorized_keys file.
 # Provides informational output and restarts the SSH service.
-# Usage: all-sak <upload_path> <file_name>
+# Usage: all-sak -c <server_address> <key_name> *for client-side operation /// all-sak -s <client_address> <key_name> *for server-side operation
 all-sak() {
-    local upload_path="$1"
-    local file_name="$2"
-    local authorized_keys_path="$upload_path/authorized_keys"
-    local upload_full_path="$upload_path/$file_name"
+    local mode="$1"
+    local remote_address="$2"
+    local key_name="$3"
+    local ssh_dir="/root/.ssh"
+    local authorized_keys_path="$ssh_dir/authorized_keys"
 
-    # Check for correct number of arguments
-    if [ $# -ne 2 ]; then
-        echo "Usage: all-sak <upload_path> <file_name>"
+    if [ $# -ne 3 ]; then
+        echo "Usage: all-sak -c <server_address> <key_name> # for client-side operation"
+        echo "       all-sak -s <client_address> <key_name> # for server-side operation"
         return 1
     fi
 
-    # Check if the upload path exists
-    if [ ! -d "$upload_path" ]; then
-        echo "Error: Upload path '$upload_path' does not exist."
-        return 1
-    fi
+    case "$mode" in
+        -c) # Client-side operation
+            local public_key_path="$HOME/.ssh/${key_name}.pub"
 
-    # Check if the file exists
-    if [ ! -f "$upload_full_path" ]; then
-        echo "Error: File '$upload_full_path' does not exist."
-        return 1
-    fi
+            # Check if the public key exists
+            if [ ! -f "$public_key_path" ]; then
+                echo "Error: Public key '$public_key_path' does not exist."
+                return 1
+            fi
 
-    # Validate the file as a public key
-    if ! ssh-keygen -l -f "$upload_full_path" &>/dev/null; then
-        echo "Error: '$file_name' does not appear to be a valid public key."
-        return 1
-    fi
+            # Transfer and append the public key on the server
+            ssh "$remote_address" "mkdir -p $ssh_dir && cat >> $authorized_keys_path" < "$public_key_path"
+            if [ $? -ne 0 ]; then
+                echo "Error: Failed to append public key to authorized_keys on the server."
+                return 1
+            fi
 
-    # Create authorized_keys if it doesn't exist
-    touch "$authorized_keys_path"
+            echo "Public key appended to authorized_keys on the server."
+            ;;
+
+        -s) # Server-side operation
+            local public_key_path="$ssh_dir/${key_name}.pub"
+
+            # Check if the public key exists
+            if [ ! -f "$public_key_path" ]; then
+                echo "Error: Public key '$public_key_path' does not exist on the server."
+                return 1
+            }
+
+            # Append the public key to authorized_keys
+            cat "$public_key_path" >> "$authorized_keys_path"
+            if [ $? -ne 0 ]; then
+                echo "Error: Failed to append public key to authorized_keys."
+                return 1
+            fi
+
+            echo "Public key appended to authorized_keys on the server."
+            ;;
+
+        *)
+            echo "Invalid mode. Use -c for client-side or -s for server-side operation."
+            return 1
+            ;;
+    esac
+
+    # Ensure correct permissions
     chmod 600 "$authorized_keys_path"
 
-    # Check if the key is already in authorized_keys
-    if grep -qf "$upload_full_path" "$authorized_keys_path"; then
-        echo "Info: This key already exists in authorized_keys. Appending anyway."
-    fi
-
-    # Append the content to authorized_keys
-    if cat "$upload_full_path" >> "$authorized_keys_path"; then
-        echo "Info: Content successfully appended to authorized_keys"
-    else
-        echo "Error: Failed to append content to authorized_keys"
-        return 1
-    fi
-
-    echo "Info: Restarting SSH service..."
+    # Restart SSH service
+    echo "Restarting SSH service..."
     if systemctl restart sshd; then
-        echo "Info: SSH service restarted successfully."
+        echo "SSH service restarted successfully."
     else
         echo "Error: Failed to restart SSH service. Please check the service manually."
         return 1
     fi
 
-    echo "Info: SSH key append operation completed successfully."
+    echo "SSH key append operation completed successfully."
 }
 
 # Supported operations: 
