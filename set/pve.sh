@@ -43,6 +43,7 @@ c_xall() {
 
 d_xall() {
     all-sks -s root@"${CL_IPS[t1]}" w1
+    all-sak "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
 i_xall() {
