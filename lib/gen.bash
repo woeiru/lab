@@ -36,7 +36,7 @@ gen-var() {
 
 # Manages git operations, ensuring the local repository syncs with the remote.
 # Performs status check, pull, commit, and push operations as needed.
-# Usage: gen-gio [commit message]
+# gen-gio [commit message]
 gen-gio() {
     local dir="${DIR_LIB:-.}/.."
     local branch="${GIT_BRANCH:-master}"
@@ -408,7 +408,7 @@ gen-spi() {
 
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
-# For client-side generation: gen-sks -c [-d] <server_address> <key_name> [encryption_type] /// For server-side generation: gen-sks -s [-d] <client_address> <key_name> [encryption_type]
+# client-side generation: gen-sks -c [-d] <server_address> <key_name> [encryption_type] / server-side generation: gen-sks -s [-d] <client_address> <key_name> [encryption_type]
 gen-sks() {
     local mode=""
     local deduplicate=false
