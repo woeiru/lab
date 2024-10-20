@@ -19,7 +19,7 @@ else
     # Don't exit, just continue
 fi
 
-# Shows a summary of selected functions in the script, displaying their usage, shortname, and description
+# Shows a summary of specific functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
 gen-fun() {
