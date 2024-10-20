@@ -2,6 +2,10 @@
 
 # rc0 - Common Functions and Logging
 
+# Logging control array
+# Index 0: LVL1 (RED), Index 1: LVL2 (YELLOW), Index 2: LVL3 (GREEN), Index 3: LVL4 (BLUE)
+LOG_LEVELS=(1 1 1 1)
+
 # Color codes
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
@@ -9,50 +13,38 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Logging control variable
-ENABLE_LOGGING=1
-
 # Logging function
 log() {
-    if [ "$ENABLE_LOGGING" = 1 ]; then
-        local level=$1
-        local message=$2
-        local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
-        case $level in
-            "ERROR")
-                echo -e "${timestamp} ${RED}ERROR: $message${NC}" >&2
-                ;;
-            "DEBUG")
-                echo -e "${timestamp} ${YELLOW}DEBUG: $message${NC}"
-                ;;
-            "HEADER")
-                echo -e "${timestamp} ${GREEN}HEADER: $message${NC}"
-                ;;
-            "INFO")
-                echo -e "${timestamp} ${BLUE}INFO: $message${NC}"
-                ;;
-            *)
-                echo "${timestamp} Unknown log level: $level"
-                ;;
-        esac
-    fi
+    local level=$1
+    local message=$2
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+
+    case $level in
+        "LVL1")
+            [[ ${LOG_LEVELS[0]} -eq 1 ]] && echo -e "${timestamp} ${RED}LVL1: $message${NC}" >&2
+            ;;
+        "LVL2")
+            [[ ${LOG_LEVELS[1]} -eq 1 ]] && echo -e "${timestamp} ${YELLOW}LVL2: $message${NC}"
+            ;;
+        "LVL3")
+            [[ ${LOG_LEVELS[2]} -eq 1 ]] && echo -e "${timestamp} ${GREEN}LVL3: $message${NC}"
+            ;;
+        "LVL4")
+            [[ ${LOG_LEVELS[3]} -eq 1 ]] && echo -e "${timestamp} ${BLUE}LVL4: $message${NC}"
+            ;;
+        *)
+            echo "${timestamp} Unknown log level: $level"
+            ;;
+    esac
 }
 
 # Function to set up logging
 setup_logging() {
-    local log_level=${1:-"INFO"}
-    case $log_level in
-        "ERROR") ENABLE_LOGGING=1 ;;
-        "DEBUG") ENABLE_LOGGING=1 ;;
-        "HEADER") ENABLE_LOGGING=1 ;;
-        "INFO") ENABLE_LOGGING=1 ;;
-        "OFF") ENABLE_LOGGING=0 ;;
-        *)
-            echo "Invalid log level. Using default (INFO)."
-            ENABLE_LOGGING=1
-            ;;
-    esac
-    log "INFO" "Logging set up with level: $log_level"
+    local log_config=($@)
+    for i in {0..3}; do
+        LOG_LEVELS[$i]=${log_config[$i]:-${LOG_LEVELS[$i]}}
+    done
+    log "LVL4" "Logging set up with levels: ${LOG_LEVELS[*]}"
 }
 
 # Utility function to check if a command exists
@@ -64,9 +56,9 @@ command_exists() {
 source_if_exists() {
     if [ -f "$1" ]; then
         source "$1"
-        log "DEBUG" "Sourced file: $1"
+        log "LVL3" "Sourced file: $1"
     else
-        log "ERROR" "File not found: $1"
+        log "LVL1" "File not found: $1"
     fi
 }
 
@@ -75,4 +67,4 @@ export -f log
 export -f setup_logging
 export -f command_exists
 export -f source_if_exists
-export ENABLE_LOGGING
+export LOG_LEVELS
