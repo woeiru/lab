@@ -2,7 +2,7 @@
 
 # rc2 - module
 
-setup_dynamic_navigation() {
+setup_navigation() {
     log "DEBUG" "Starting setup_dynamic_navigation function"
     log "DEBUG" "PARENT_DIR is set to: $PARENT_DIR"
 

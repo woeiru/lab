@@ -2,7 +2,7 @@
 
 # rc1 module
 
-setup_static_aliases() {
+setup_aliases() {
     # Ansible
     alias a1='usr-ans $ANS_PRO_PATH_1 $ANS_SITE_PATH_1'
     alias ap='ansible-playbook'
