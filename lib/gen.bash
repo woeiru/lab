@@ -36,11 +36,31 @@ gen-var() {
 
 # Manages git operations, ensuring the local repository syncs with the remote.
 # Performs status check, pull, commit, and push operations as needed.
-#
+# Usage: gen-gio [-m <commit message>]
 gen-gio() {
     local dir="${DIR_LIB:-.}/.."
     local branch="${GIT_BRANCH:-master}"
-    local commit_message="${GIT_COMMITMESSAGE:-Auto-commit: $(date +%Y-%m-%d_%H-%M-%S)}"
+    local commit_message=""
+
+    # Parse command line arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -m)
+                shift
+                commit_message="$*"
+                break
+                ;;
+            *)
+                echo "Invalid option: $1" >&2
+                return 1
+                ;;
+        esac
+    done
+
+    # If no commit message provided, use default
+    if [[ -z "$commit_message" ]]; then
+        commit_message="${GIT_COMMITMESSAGE:-Auto-commit: $(date +%Y-%m-%d_%H-%M-%S)}"
+    fi
 
     # Navigate to the git folder
     cd "$dir" || { echo "Failed to change directory to $dir"; return 1; }
@@ -51,7 +71,6 @@ gen-gio() {
     # Get the current status
     local status_output
     status_output=$(git status --porcelain)
-
     if [[ -z "$status_output" ]]; then
         echo "Working tree clean. Checking for updates..."
         if git rev-list HEAD...origin/"$branch" --count | grep -q "^0$"; then
