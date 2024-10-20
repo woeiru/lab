@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# dyn - Dynamic bash module
+# dyn - Dynamic bash module (Revised Version)
 # This file contains functions for generating dynamic aliases and arrays
 
 # Color codes
@@ -38,17 +38,19 @@ generate_dynamic_aliases() {
 
     # Use the dynamically generated arrays
     log "DEBUG" "Generating aliases for dynamically created arrays"
-    for array_name in lib_files var_files set_files; do
+    for array_name in lib_files set_files var_files; do
         log "DEBUG" "Processing array: $array_name"
-        if [[ -v $array_name[@] && ${#array_name[@]} -gt 0 ]]; then
-            generate_aliases "cat" "${!array_name[@]}"
-            generate_aliases "vim" "${!array_name[@]}"
+        eval "local array_contents=(\"\${$array_name[@]}\")"
+        if [[ ${#array_contents[@]} -gt 0 ]]; then
+            log "DEBUG" "Array contents: ${array_contents[*]}"
+            generate_aliases "cat" "${array_contents[@]}"
+            generate_aliases "vim" "${array_contents[@]}"
         else
             log "DEBUG" "Array $array_name is empty or not set"
         fi
     done
 
-    if [[ -v set_files[@] && ${#set_files[@]} -gt 0 ]]; then
+    if [[ ${#set_files[@]} -gt 0 ]]; then
         log "DEBUG" "Generating bash aliases for set_files"
         generate_aliases "bash" "${set_files[@]}"
     else
@@ -56,7 +58,7 @@ generate_dynamic_aliases() {
     fi
 
     # Source dynamically generated scripts
-    if [[ -v lib_files[@] && ${#lib_files[@]} -gt 0 ]]; then
+    if [[ ${#lib_files[@]} -gt 0 ]]; then
         log "DEBUG" "Sourcing scripts from lib_files"
         source_scripts "${lib_files[@]}"
     else
@@ -76,8 +78,8 @@ generate_level_one_vars_and_aliases() {
                 var_name="${base^^}_DIR"
                 dir_path=$(realpath "$dir")
                 declare -g "$var_name=$dir_path"
-                alias "d.$base=cd $dir_path"
-                log "DEBUG" "Created alias: d.$base -> cd $dir_path"
+                alias "d-$base=cd $dir_path"
+                log "DEBUG" "Created alias: d-$base -> cd $dir_path"
             fi
         fi
     done
@@ -93,6 +95,7 @@ generate_level_two_arrays() {
         if [[ -d "$dir_path" ]]; then
             local array_name="${folder}_files"
             local files=()
+
             while IFS= read -r -d '' file; do
                 base_name=$(basename "$file")
                 name_without_ext="${base_name%.*}"
@@ -100,12 +103,8 @@ generate_level_two_arrays() {
                 log "DEBUG" "Added file to $array_name: $name_without_ext"
             done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*.bash" -o -name "*.sh" -o -name "*.conf" \) -print0)
 
-            # Remove duplicates and sort
-            IFS=$'\n' sorted_unique=($(sort -u <<<"${files[*]}"))
-            unset IFS
-
-            # Create the array
-            eval "$array_name=(${sorted_unique[*]})"
+            # Create the array using declare, joining all elements
+            eval "declare -ga $array_name=(${files[*]})"
             log "DEBUG" "Created array $array_name with values: ${!array_name[*]}"
         else
             log "DEBUG" "Warning: Directory not found: $dir_path"
@@ -123,38 +122,38 @@ generate_aliases() {
         case "$alias_type" in
             "bash")
                 if [[ -f "$SET_DIR/$file.sh" ]]; then
-                    alias "b.$file.sh=bash $SET_DIR/$file.sh"
-                    log "DEBUG" "Created alias: b.$file.sh"
+                    alias "b-$file=bash $SET_DIR/$file.sh"
+                    log "DEBUG" "Created alias: b-$file"
                 else
                     log "DEBUG" "File not found: $SET_DIR/$file.sh"
                 fi
                 ;;
             "cat")
                 if [[ -f "$LIB_DIR/$file.bash" ]]; then
-                    alias "c.$file.bash=cat $LIB_DIR/$file.bash"
-                    log "DEBUG" "Created alias: c.$file.bash"
-                fi
-                if [[ -f "$SET_DIR/$file.sh" ]]; then
-                    alias "c.$file.sh=cat $SET_DIR/$file.sh"
-                    log "DEBUG" "Created alias: c.$file.sh"
-                fi
-                if [[ -f "$VAR_DIR/$file.conf" ]]; then
-                    alias "c.$file.conf=cat $VAR_DIR/$file.conf"
-                    log "DEBUG" "Created alias: c.$file.conf"
+                    alias "c-$file=cat $LIB_DIR/$file.bash"
+                    log "DEBUG" "Created alias: c-$file (bash)"
+                elif [[ -f "$SET_DIR/$file.sh" ]]; then
+                    alias "c-$file=cat $SET_DIR/$file.sh"
+                    log "DEBUG" "Created alias: c-$file (sh)"
+                elif [[ -f "$VAR_DIR/$file.conf" ]]; then
+                    alias "c-$file=cat $VAR_DIR/$file.conf"
+                    log "DEBUG" "Created alias: c-$file (conf)"
+                else
+                    log "DEBUG" "No matching file found for c-$file"
                 fi
                 ;;
             "vim")
                 if [[ -f "$LIB_DIR/$file.bash" ]]; then
-                    alias "v.$file.bash=vim $LIB_DIR/$file.bash"
-                    log "DEBUG" "Created alias: v.$file.bash"
-                fi
-                if [[ -f "$SET_DIR/$file.sh" ]]; then
-                    alias "v.$file.sh=vim $SET_DIR/$file.sh"
-                    log "DEBUG" "Created alias: v.$file.sh"
-                fi
-                if [[ -f "$VAR_DIR/$file.conf" ]]; then
-                    alias "v.$file.conf=vim $VAR_DIR/$file.conf"
-                    log "DEBUG" "Created alias: v.$file.conf"
+                    alias "v-$file=vim $LIB_DIR/$file.bash"
+                    log "DEBUG" "Created alias: v-$file (bash)"
+                elif [[ -f "$SET_DIR/$file.sh" ]]; then
+                    alias "v-$file=vim $SET_DIR/$file.sh"
+                    log "DEBUG" "Created alias: v-$file (sh)"
+                elif [[ -f "$VAR_DIR/$file.conf" ]]; then
+                    alias "v-$file=vim $VAR_DIR/$file.conf"
+                    log "DEBUG" "Created alias: v-$file (conf)"
+                else
+                    log "DEBUG" "No matching file found for v-$file"
                 fi
                 ;;
         esac
@@ -169,13 +168,13 @@ generate_readme_aliases() {
         dir_name=$(basename "$dir")
         parent_dir=$(basename "$(dirname "$dir")")
         if [[ "$parent_dir" != "lab" ]]; then
-            alias_name="$parent_dir.$dir_name.md"
+            alias_name="$parent_dir-$dir_name-md"
         else
-            alias_name="$dir_name.md"
+            alias_name="$dir_name-md"
         fi
-        alias "c.$alias_name=cat $file"
-        alias "v.$alias_name=vim $file"
-        log "INFO" "Created aliases: c.$alias_name and v.$alias_name for $file"
+        alias "c-$alias_name=cat $file"
+        alias "v-$alias_name=vim $file"
+        log "INFO" "Created aliases: c-$alias_name and v-$alias_name for $file"
     done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
 }
 
@@ -207,38 +206,36 @@ display_generated_output() {
     done
 
     log "INFO" "Top-level directory aliases:"
-    alias | grep "^alias d\." | sed 's/^alias //' | while read -r line; do
+    alias | grep "^alias d-" | sed 's/^alias //' | while read -r line; do
         log "INFO" "$line"
     done
 
     log "HEADER" "Generated arrays:"
     for array_name in lib_files set_files var_files; do
-        if [[ -v $array_name[@] ]]; then
-            log "INFO" "$array_name=(${!array_name[*]})"
-        else
-            log "INFO" "$array_name is not set or is empty"
-        fi
+        eval "local array_contents=(\"\${$array_name[@]}\")"
+        log "INFO" "$array_name=(${array_contents[*]})"
     done
 
     log "HEADER" "Generated aliases for lib_files:"
-    alias | grep "^\(alias c\.\|alias v\.\).*\.bash=" | sed 's/^alias //' | while read -r line; do
+    alias | grep "^\(alias c-\|alias v-\).*=" | grep "\.bash" | sed 's/^alias //' | while read -r line; do
         log "INFO" "$line"
     done
 
     log "HEADER" "Generated aliases for set_files:"
-    alias | grep "^\(alias c\.\|alias v\.\|alias b\.\).*\.sh=" | sed 's/^alias //' | while read -r line; do
+    alias | grep "^\(alias c-\|alias v-\|alias b-\).*=" | grep "\.sh" | sed 's/^alias //' | while read -r line; do
         log "INFO" "$line"
     done
 
     log "HEADER" "Generated aliases for var_files:"
-    alias | grep "^\(alias c\.\|alias v\.\).*\.conf=" | sed 's/^alias //' | while read -r line; do
+    alias | grep "^\(alias c-\|alias v-\).*=" | grep "\.conf" | sed 's/^alias //' | while read -r line; do
         log "INFO" "$line"
     done
 
     log "HEADER" "Generated readme aliases:"
-    alias | grep "^\(alias c\.\|alias v\.\).*\.md=" | sed 's/^alias //' | while read -r line; do
+    alias | grep "^\(alias c-\|alias v-\).*-md=" | sed 's/^alias //' | while read -r line; do
         log "INFO" "$line"
     done
 }
 
-# The main function call is not needed here as it's called from the main module
+# The main function call is not included here as it's likely called from another script
+# generate_dynamic_aliases
