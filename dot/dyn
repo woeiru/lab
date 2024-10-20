@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# dyn - Dynamic bash module (Revised Version)
+# dyn - Dynamic bash module (Revised Version with Logging Control)
 # This file contains functions for generating dynamic aliases and arrays
+
+# Logging control variable
+ENABLE_LOGGING=false  # Set to true to enable logging, false to disable
 
 # Color codes
 RED='\033[0;31m'
@@ -12,25 +15,27 @@ NC='\033[0m' # No Color
 
 # Logging function
 log() {
-    local level=$1
-    local message=$2
-    case $level in
-        "ERROR")
-            echo -e "${RED}ERROR: $message${NC}" >&2
-            ;;
-        "DEBUG")
-            echo -e "${YELLOW}DEBUG: $message${NC}"
-            ;;
-        "HEADER")
-            echo -e "${GREEN}HEADER: $message${NC}"
-            ;;
-        "INFO")
-            echo -e "${BLUE}INFO: $message${NC}"
-            ;;
-        *)
-            echo "Unknown log level: $level"
-            ;;
-    esac
+    if [ "$ENABLE_LOGGING" = true ]; then
+        local level=$1
+        local message=$2
+        case $level in
+            "ERROR")
+                echo -e "${RED}ERROR: $message${NC}" >&2
+                ;;
+            "DEBUG")
+                echo -e "${YELLOW}DEBUG: $message${NC}"
+                ;;
+            "HEADER")
+                echo -e "${GREEN}HEADER: $message${NC}"
+                ;;
+            "INFO")
+                echo -e "${BLUE}INFO: $message${NC}"
+                ;;
+            *)
+                echo "Unknown log level: $level"
+                ;;
+        esac
+    fi
 }
 
 setup_dynamic_navigation() {
