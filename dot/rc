@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -o pipefail
 
 # Main configuration file
 # This file sources the modular components and handles the main execution
