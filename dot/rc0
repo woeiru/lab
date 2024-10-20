@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# rc0 - Common Functions and Logging
+
+# Color codes
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Logging control variable
+ENABLE_LOGGING=0
+
+# Logging function
+log() {
+    if [ "$ENABLE_LOGGING" = 1 ]; then
+        local level=$1
+        local message=$2
+        local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+        case $level in
+            "ERROR")
+                echo -e "${timestamp} ${RED}ERROR: $message${NC}" >&2
+                ;;
+            "DEBUG")
+                echo -e "${timestamp} ${YELLOW}DEBUG: $message${NC}"
+                ;;
+            "HEADER")
+                echo -e "${timestamp} ${GREEN}HEADER: $message${NC}"
+                ;;
+            "INFO")
+                echo -e "${timestamp} ${BLUE}INFO: $message${NC}"
+                ;;
+            *)
+                echo "${timestamp} Unknown log level: $level"
+                ;;
+        esac
+    fi
+}
+
+# Function to set up logging
+setup_logging() {
+    local log_level=${1:-"INFO"}
+    case $log_level in
+        "ERROR") ENABLE_LOGGING=1 ;;
+        "DEBUG") ENABLE_LOGGING=1 ;;
+        "HEADER") ENABLE_LOGGING=1 ;;
+        "INFO") ENABLE_LOGGING=1 ;;
+        "OFF") ENABLE_LOGGING=0 ;;
+        *)
+            echo "Invalid log level. Using default (INFO)."
+            ENABLE_LOGGING=1
+            ;;
+    esac
+    log "INFO" "Logging set up with level: $log_level"
+}
+
+# Utility function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Utility function to source a file if it exists
+source_if_exists() {
+    if [ -f "$1" ]; then
+        source "$1"
+        log "DEBUG" "Sourced file: $1"
+    else
+        log "ERROR" "File not found: $1"
+    fi
+}
+
+# Export functions and variables
+export -f log
+export -f setup_logging
+export -f command_exists
+export -f source_if_exists
+export ENABLE_LOGGING
