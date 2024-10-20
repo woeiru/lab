@@ -2,7 +2,7 @@
 # rc0 - Common Functions and Logging
 
 # Log mode: 1 for colored output, 0 for black and white with tree structure
-LOG_MODE=0
+LOG_MODE=1
 
 # Logging control array
 # Index 0: LVL1 (RED), Index 1: LVL2 (ORANGE), Index 2: LVL3 (YELLOW), Index 3: LVL4 (GREEN),
