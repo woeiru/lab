@@ -8,9 +8,8 @@ DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 &
 PARENT_DIR="$DIR/.."
 
 # Source modular components
+source "$DIR/dyn"
 source "$DIR/sta"
-source "$DIR/nav"
-source "$DIR/ssh"
 
 # Main execution
 main() {
