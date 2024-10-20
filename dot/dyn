@@ -29,7 +29,7 @@ log() {
     esac
 }
 
-generate_dynamic_aliases() {
+setup_dynamic_navigation() {
     log "DEBUG" "Starting generate_dynamic_aliases function"
     log "DEBUG" "PARENT_DIR is set to: $PARENT_DIR"
 
@@ -122,36 +122,36 @@ generate_aliases() {
         case "$alias_type" in
             "bash")
                 if [[ -f "$SET_DIR/$file.sh" ]]; then
-                    alias "b-$file=bash $SET_DIR/$file.sh"
-                    log "DEBUG" "Created alias: b-$file"
+                    alias "b-$file.sh=bash $SET_DIR/$file.sh"
+                    log "DEBUG" "Created alias: b-$file.sh"
                 else
                     log "DEBUG" "File not found: $SET_DIR/$file.sh"
                 fi
                 ;;
             "cat")
                 if [[ -f "$LIB_DIR/$file.bash" ]]; then
-                    alias "c-$file=cat $LIB_DIR/$file.bash"
-                    log "DEBUG" "Created alias: c-$file (bash)"
+                    alias "c-$file.bash=cat $LIB_DIR/$file.bash"
+                    log "DEBUG" "Created alias: c-$file.bash"
                 elif [[ -f "$SET_DIR/$file.sh" ]]; then
-                    alias "c-$file=cat $SET_DIR/$file.sh"
-                    log "DEBUG" "Created alias: c-$file (sh)"
+                    alias "c-$file.sh=cat $SET_DIR/$file.sh"
+                    log "DEBUG" "Created alias: c-$file.sh"
                 elif [[ -f "$VAR_DIR/$file.conf" ]]; then
-                    alias "c-$file=cat $VAR_DIR/$file.conf"
-                    log "DEBUG" "Created alias: c-$file (conf)"
+                    alias "c-$file.conf=cat $VAR_DIR/$file.conf"
+                    log "DEBUG" "Created alias: c-$file.conf"
                 else
                     log "DEBUG" "No matching file found for c-$file"
                 fi
                 ;;
             "vim")
                 if [[ -f "$LIB_DIR/$file.bash" ]]; then
-                    alias "v-$file=vim $LIB_DIR/$file.bash"
-                    log "DEBUG" "Created alias: v-$file (bash)"
+                    alias "v-$file.bash=vim $LIB_DIR/$file.bash"
+                    log "DEBUG" "Created alias: v-$file.bash"
                 elif [[ -f "$SET_DIR/$file.sh" ]]; then
-                    alias "v-$file=vim $SET_DIR/$file.sh"
-                    log "DEBUG" "Created alias: v-$file (sh)"
+                    alias "v-$file.sh=vim $SET_DIR/$file.sh"
+                    log "DEBUG" "Created alias: v-$file.sh"
                 elif [[ -f "$VAR_DIR/$file.conf" ]]; then
-                    alias "v-$file=vim $VAR_DIR/$file.conf"
-                    log "DEBUG" "Created alias: v-$file (conf)"
+                    alias "v-$file.conf=vim $VAR_DIR/$file.conf"
+                    log "DEBUG" "Created alias: v-$file.conf"
                 else
                     log "DEBUG" "No matching file found for v-$file"
                 fi
@@ -237,5 +237,4 @@ display_generated_output() {
     done
 }
 
-# The main function call is not included here as it's likely called from another script
-# generate_dynamic_aliases
+# The main function call is not included here as it's likely called from the rc module
