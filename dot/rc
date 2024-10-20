@@ -23,7 +23,7 @@ error_handler() {
 # Set up error handling
 trap 'error_handler $LINENO' ERR
 
-# Function to source a file safely (renamed from safe_source)
+# Function to source a file safely
 source_helper() {
     if [[ -f "$1" ]]; then
         source "$1"
@@ -33,7 +33,7 @@ source_helper() {
     fi
 }
 
-# Main sourcing function (renamed from sourcing)
+# Main sourcing function
 source_setup() {
     echo "HEADER: Starting sourcing"
 
@@ -63,7 +63,7 @@ source_setup() {
     echo "All modules and files sourced successfully"
 }
 
-# Main setup execution (renamed from setup)
+# Main execution setup
 execution_setup() {
     # Check if required functions exist before calling them
     local required_functions=("setup_navigation" "setup_aliases" "setup_environment")
