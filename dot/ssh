@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # ssh - SSH bash module
 # This file contains SSH-related configurations and functions
 

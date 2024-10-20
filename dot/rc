@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # rc - Main configuration file
 # This file sources the modular components and handles the main execution
 
