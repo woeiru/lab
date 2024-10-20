@@ -2,8 +2,8 @@
 
 # rc3 module
 
-setup_static_functions() {
-    log "INFO" "Setting up static functions"
+setup_environment() {
+    log "INFO" "Setting up environment"
 
     # Setup SSH keys and create aliases
     setup_ssh() {
