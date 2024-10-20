@@ -130,10 +130,10 @@ net-nfs() {
         options="$4"
     else
         # Use all-mev to prompt for each parameter
-        all-mev "server_ip" "Enter NFS server IP" "$NFS_SERVER_IP"
-        all-mev "shared_folder" "Enter NFS shared folder" "$NFS_SHARED_FOLDER"
-        all-mev "mount_point" "Enter local mount point" "$NFS_MOUNT_POINT"
-        all-mev "options" "Enter mount options" "$NFS_MOUNT_OPTIONS"
+        all-mev "server_ip" "Enter NFS server IP" "$STO_NFS_SERVER_IP"
+        all-mev "shared_folder" "Enter NFS shared folder" "$STO_NFS_SHARED_FOLDER"
+        all-mev "mount_point" "Enter local mount point" "$STO_NFS_MOUNT_POINT"
+        all-mev "options" "Enter mount options" "$STO_NFS_MOUNT_OPTIONS"
     fi
 
     # Create the mount point if it doesn't exist
