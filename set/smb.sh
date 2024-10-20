@@ -13,9 +13,9 @@ MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
 
 a_xall() {
-    	gen-ipa "$PACKAGES_ALL"
-	gen-sdc "$SYSD_CHECK"
-    	gen-ust "$USERNAME1" "$PASSWORD1"
+    	gen-ipa "$SMB_PACKAGES_ALL"
+	gen-sdc "$SMB_SYSD_CHECK"
+	gen-ust "$SMB_USERNAME_1" "$SMB_PASSWORD_1"
 }
 
 b_xall() {
