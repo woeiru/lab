@@ -45,8 +45,6 @@ gen-gio() {
     # If arguments are provided, use them as the commit message
     if [ $# -gt 0 ]; then
         commit_message="$*"
-    else
-        commit_message="${GIT_COMMITMESSAGE:-Auto-commit: $(date +%Y-%m-%d_%H-%M-%S)}"
     fi
 
     # Navigate to the git folder
@@ -69,7 +67,11 @@ gen-gio() {
     else
         echo "Changes detected. Committing and pushing..."
         git add . || { echo "Failed to stage changes"; return 1; }
-        git commit -m "$commit_message" || { echo "Failed to commit changes"; return 1; }
+        if [[ -n "$commit_message" ]]; then
+            git commit -m "$commit_message" || { echo "Failed to commit changes"; return 1; }
+        else
+            git commit --allow-empty-message -m "" || { echo "Failed to commit changes"; return 1; }
+        fi
         git push origin "$branch" || { echo "Failed to push changes"; return 1; }
     fi
 
