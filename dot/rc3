@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# rc1 - module
+# rc3 - module
 
 # Logging control variable
 ENABLE_LOGGING=false
