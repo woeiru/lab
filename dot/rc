@@ -78,11 +78,9 @@ execution_setup() {
 
 # Set up a function to wrap alias execution with error trapping
 aliaswrap() {
-    local original_command="$@"
-    (
-        trap 'error_handler $LINENO' ERR
-        eval "$original_command"
-    )
+    echo "Executing command: $*"
+    trap 'echo "Error occurred on line $LINENO"; return 1' ERR
+    "$@"
 }
 
 # Wrap all aliases with the error trapping function
