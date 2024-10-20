@@ -1,44 +1,189 @@
 #!/bin/bash
 
-# rc2 module
+# rc2 - module
 
-setup_static_functions() {
-    # Setup SSH keys and create aliases
-    setup_ssh() {
-        add_ssh_keys
-        # SSH aliases
-        alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
-        alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@$SSH_TARGET_IP'
-    }
+setup_dynamic_navigation() {
+    log "DEBUG" "Starting setup_dynamic_navigation function"
+    log "DEBUG" "PARENT_DIR is set to: $PARENT_DIR"
 
-    # Add SSH keys to the agent
-    add_ssh_keys() {
-        if [ -z "$SSH_AUTH_SOCK" ]; then
-            eval "$(ssh-agent -s)" > /dev/null || echo "Failed to start ssh-agent" >&2
-        fi
-        local keys=(
-            "$HOME/.ssh/id_rsa"
-            "$HOME/.ssh/id_ed25519"
-            "$HOME/.ssh/w1"
-        )
-        for key in "${keys[@]}"; do
-            if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
-                ssh-add "$key" || echo "Failed to add key: $key" >&2
+    generate_level_one_vars_and_aliases
+    generate_level_two_arrays
+
+    # Generate aliases for lib_files
+    log "DEBUG" "Generating aliases for lib_files"
+    generate_aliases "cat" "$LIB_DIR" "${lib_files[@]}"
+    generate_aliases "vim" "$LIB_DIR" "${lib_files[@]}"
+
+    # Generate aliases for set_files
+    log "DEBUG" "Generating aliases for set_files"
+    generate_aliases "cat" "$SET_DIR" "${set_files[@]}"
+    generate_aliases "vim" "$SET_DIR" "${set_files[@]}"
+    generate_aliases "bash" "$SET_DIR" "${set_files[@]}"
+
+    # Generate aliases for var_files
+    log "DEBUG" "Generating aliases for var_files"
+    generate_aliases "cat" "$VAR_DIR" "${var_files[@]}"
+    generate_aliases "vim" "$VAR_DIR" "${var_files[@]}"
+
+    # Source dynamically generated scripts
+    log "DEBUG" "Sourcing scripts from lib_files"
+    source_scripts "${lib_files[@]}"
+
+    generate_readme_aliases
+    display_generated_output
+}
+
+generate_level_one_vars_and_aliases() {
+    log "DEBUG" "Generating top-level directory aliases"
+    for dir in "$PARENT_DIR"/*; do
+        if [[ -d "$dir" ]]; then
+            base=$(basename "$dir")
+            if [[ ${#base} -eq 3 ]]; then
+                var_name="${base^^}_DIR"
+                dir_path=$(realpath "$dir")
+                declare -g "$var_name=$dir_path"
+                alias "d-$base=cd $dir_path"
+                log "DEBUG" "Created alias: d-$base -> cd $dir_path"
             fi
-        done
-    }
+        fi
+    done
+}
 
-    # List all SSH keys in the agent
-    list_ssh_keys() {
-        ssh-add -l || echo "No keys found or ssh-agent is not running" >&2
-    }
+generate_level_two_arrays() {
+    local generation_folders=(lib set var)
 
-    # Remove all SSH keys from the agent
-    remove_ssh_keys() {
-        ssh-add -D || echo "Failed to remove SSH keys" >&2
-    }
+    for folder in "${generation_folders[@]}"; do
+        local dir_path="$PARENT_DIR/$folder"
+        log "DEBUG" "Processing folder: $folder, path: $dir_path"
 
-    # Call the functions
-    setup_ssh
-    list_ssh_keys
+        if [[ -d "$dir_path" ]]; then
+            local array_name="${folder}_files"
+            local files=()
+
+            while IFS= read -r -d '' file; do
+                base_name=$(basename "$file")
+                name_without_ext="${base_name%.*}"
+                files+=("$name_without_ext")
+                log "DEBUG" "Added file to $array_name: $name_without_ext"
+            done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*.bash" -o -name "*.sh" -o -name "*.conf" \) -print0)
+
+            # Create the array using declare, joining all elements
+            eval "declare -ga $array_name=(${files[*]})"
+            log "DEBUG" "Created array $array_name with values: ${!array_name[*]}"
+        else
+            log "ERROR" "Directory not found: $dir_path"
+        fi
+    done
+}
+
+generate_aliases() {
+    local alias_type=$1
+    local directory=$2
+    shift 2
+    local files=("$@")
+    log "DEBUG" "Generating aliases of type $alias_type in directory $directory for files: ${files[*]}"
+
+    for file in "${files[@]}"; do
+        log "DEBUG" "Searching for file $file in directory $directory"
+        # Find the file with any extension
+        local found_file=$(find "$directory" -maxdepth 1 -type f -name "$file.*" | head -n 1)
+        if [[ -n "$found_file" ]]; then
+            log "DEBUG" "Found file: $found_file"
+            local ext="${found_file##*.}"
+            local alias_prefix=""
+
+            case "$alias_type" in
+                "bash")
+                    [[ "$ext" == "sh" ]] && alias_prefix="b-"
+                    ;;
+                "cat") alias_prefix="c-" ;;
+                "vim") alias_prefix="v-" ;;
+            esac
+
+            if [[ -n "$alias_prefix" ]]; then
+                alias "${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
+                log "DEBUG" "Created alias: ${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
+            fi
+        else
+            log "DEBUG" "File not found: $file in directory $directory"
+        fi
+    done
+}
+
+generate_readme_aliases() {
+    log "HEADER" "Generating readme aliases"
+    local FILEBASE_MD="readme.md"
+    while IFS= read -r -d '' file; do
+        dir=$(dirname "$file")
+        dir_name=$(basename "$dir")
+        parent_dir=$(basename "$(dirname "$dir")")
+        if [[ "$parent_dir" != "lab" ]]; then
+            alias_name="$parent_dir-$dir_name-md"
+        else
+            alias_name="$dir_name-md"
+        fi
+        alias "c-$alias_name=cat $file"
+        alias "v-$alias_name=vim $file"
+        log "INFO" "Created aliases: c-$alias_name and v-$alias_name for $file"
+    done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
+}
+
+source_scripts() {
+    local files=("$@")
+    log "DEBUG" "Sourcing scripts: ${files[*]}"
+    for file in "${files[@]}"; do
+        local script_path="$LIB_DIR/$file.bash"
+        log "DEBUG" "Attempting to source: $script_path"
+        if [[ -f "$script_path" ]]; then
+            source "$script_path"
+            log "DEBUG" "Successfully sourced: $script_path"
+        else
+            log "ERROR" "Script not found: $script_path"
+        fi
+    done
+}
+
+display_generated_output() {
+    log "HEADER" "Generated Variables and Aliases Showcase:"
+    log "INFO" "Top-level directory variables:"
+    for dir in "$PARENT_DIR"/*; do
+        if [[ -d "$dir" ]]; then
+            base=$(basename "$dir")
+            if [[ ${#base} -eq 3 ]]; then
+                var_name="${base^^}_DIR"
+                log "INFO" "$var_name=${!var_name}"
+            fi
+        fi
+    done
+
+    log "INFO" "Top-level directory aliases:"
+    alias | grep "^alias d-" | sed 's/^alias //' | while read -r line; do
+        log "INFO" "$line"
+    done
+
+    log "HEADER" "Generated arrays:"
+    for array_name in lib_files set_files var_files; do
+        eval "local array_contents=(\"\${$array_name[@]}\")"
+        log "INFO" "$array_name=(${array_contents[*]})"
+    done
+
+    log "HEADER" "Generated aliases for lib_files:"
+    alias | grep "^\(alias c-\|alias v-\).*=" | grep "\.bash" | sed 's/^alias //' | while read -r line; do
+        log "INFO" "$line"
+    done
+
+    log "HEADER" "Generated aliases for set_files:"
+    alias | grep "^\(alias c-\|alias v-\|alias b-\).*=" | grep "\.sh" | sed 's/^alias //' | while read -r line; do
+        log "INFO" "$line"
+    done
+
+    log "HEADER" "Generated aliases for var_files:"
+    alias | grep "^\(alias c-\|alias v-\).*=" | grep "\.conf" | sed 's/^alias //' | while read -r line; do
+        log "INFO" "$line"
+    done
+
+    log "HEADER" "Generated readme aliases:"
+    alias | grep "^\(alias c-\|alias v-\).*-md=" | sed 's/^alias //' | while read -r line; do
+        log "INFO" "$line"
+    done
 }
