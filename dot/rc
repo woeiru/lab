@@ -1,0 +1,36 @@
+# rc - Main configuration file
+# This file sources the modular components and handles the main execution
+
+# Define the directory of the script using a POSIX-compliant method
+DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
+PARENT_DIR="$DIR/.."
+
+# Source modular components
+source "$DIR/sta"
+source "$DIR/dyn"
+source "$DIR/ssh"
+
+# Main execution
+main() {
+    # Call functions from modules
+    setup_static_aliases
+    setup_static_functions
+    generate_dynamic_aliases
+    setup_ssh
+
+    # Projects
+    ini_path=~/lab/dot/ini
+    depl_file="$ini_path/depl.sh"
+    inject_file="$ini_path/inject"
+    alias bde="bash $depl_file"
+    alias vin="vim $inject_file"
+
+    # Unsorted (you may want to organize these later)
+    alias pr='kquitapp5 plasmashell && kstart5 plasmashell'
+    alias gdi='git diff --no-index -- /dev/null'
+
+    # Any additional main execution logic can be added here
+}
+
+# Execute main function
+main
