@@ -5,6 +5,7 @@
 
 # Color codes
 RED='\033[0;31m'
+YELLOW='\033[0;33m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
@@ -14,8 +15,11 @@ log() {
     local level=$1
     local message=$2
     case $level in
-        "DEBUG")
+        "ERROR")
             echo -e "${RED}DEBUG: $message${NC}"
+            ;;
+        "DEBUG")
+            echo -e "${YELLOW}DEBUG: $message${NC}"
             ;;
         "HEADER")
             echo -e "${GREEN}HEADER: $message${NC}"
@@ -98,7 +102,7 @@ generate_level_two_arrays() {
             eval "declare -ga $array_name=(${files[*]})"
             log "DEBUG" "Created array $array_name with values: ${!array_name[*]}"
         else
-            log "DEBUG" "Warning: Directory not found: $dir_path"
+            log "ERROR" "Directory not found: $dir_path"
         fi
     done
 }
@@ -164,7 +168,7 @@ source_scripts() {
         if [[ -f "$script_path" ]]; then
             source "$script_path"
         else
-            log "DEBUG" "Warning: Script not found: $script_path"
+            log "ERROR" "Script not found: $script_path"
         fi
     done
 }
