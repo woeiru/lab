@@ -4,7 +4,7 @@
 # This file contains functions for generating dynamic aliases and arrays
 
 # Logging control variable
-ENABLE_LOGGING=false  # Set to true to enable logging, false to disable
+ENABLE_LOGGING=false
 
 # Color codes
 RED='\033[0;31m'
@@ -223,5 +223,3 @@ display_generated_output() {
         log "INFO" "$line"
     done
 }
-
-# The main function call is not included here as it's likely called from the rc module
