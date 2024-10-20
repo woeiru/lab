@@ -13,13 +13,13 @@ MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
 
 a_xall() {
-    gen-ipa "$PACKAGES_ALL"
-    gen-sdc "$SYSD_CHECK_NFS"
-    gen-ust "$USERNAME1_NFS" "$PASSWORD1_NFS"
+    gen-ipa "$NFS_PACKAGES_ALL"
+    gen-sdc "$NFS_SYSD_CHECK"
+    gen-ust "$NFS_USERNAME_1" "$NFS_PASSWORD_1"
 }
 
 b_xall() {
-    nfs-set  "$HEADER_1_NFS" "$SHARED_FOLDER_1_NFS" "$OPTIONS_1_NFS"
+    nfs-set  "$NFS_HEADER_1" "$NFS_SHARED_FOLDER_1" "$NFS_OPTIONS_1"
 }
 
 setup_main "$@"
