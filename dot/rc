@@ -17,12 +17,12 @@ source "$DIR/rc3"
 main() {
     # Call functions from modules
 
-    setup_static_aliases
-
-    setup_static_functions
-
-    setup_dynamic_navigation
-
+    #rc1
+    setup_aliases
+    #rc2
+    setup_navigation
+    #rc3
+    setup_environment
 }
 
 # Execute main function
