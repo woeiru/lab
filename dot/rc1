@@ -28,6 +28,25 @@ setup_navigation() {
 
 }
 
+generate_readme_aliases() {
+    log "LVL2" "Generating readme aliases"
+    local FILEBASE_MD="readme.md"
+    while IFS= read -r -d '' file; do
+        log "LVL3" "Processing readme file: $file"
+        dir=$(dirname "$file")
+        dir_name=$(basename "$dir")
+        parent_dir=$(basename "$(dirname "$dir")")
+        if [[ "$parent_dir" != "lab" ]]; then
+            alias_name="$parent_dir-$dir_name-md"
+        else
+            alias_name="$dir_name-md"
+        fi
+        alias "c-$alias_name=cat $file"
+        alias "v-$alias_name=vim $file"
+        log "LVL4" "Created aliases: c-$alias_name and v-$alias_name for $file"
+    done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
+}
+
 generate_level_one_vars_and_aliases() {
     log "LVL2" "Generating top-level directory aliases"
     for dir in "$PARENT_DIR"/*; do
@@ -106,21 +125,3 @@ generate_aliases() {
     done
 }
 
-generate_readme_aliases() {
-    log "LVL2" "Generating readme aliases"
-    local FILEBASE_MD="readme.md"
-    while IFS= read -r -d '' file; do
-        log "LVL3" "Processing readme file: $file"
-        dir=$(dirname "$file")
-        dir_name=$(basename "$dir")
-        parent_dir=$(basename "$(dirname "$dir")")
-        if [[ "$parent_dir" != "lab" ]]; then
-            alias_name="$parent_dir-$dir_name-md"
-        else
-            alias_name="$dir_name-md"
-        fi
-        alias "c-$alias_name=cat $file"
-        alias "v-$alias_name=vim $file"
-        log "LVL4" "Created aliases: c-$alias_name and v-$alias_name for $file"
-    done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
-}
