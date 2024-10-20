@@ -30,40 +30,31 @@ log() {
 }
 
 setup_dynamic_navigation() {
-    log "DEBUG" "Starting generate_dynamic_aliases function"
+    log "DEBUG" "Starting setup_dynamic_navigation function"
     log "DEBUG" "PARENT_DIR is set to: $PARENT_DIR"
 
     generate_level_one_vars_and_aliases
     generate_level_two_arrays
 
-    # Use the dynamically generated arrays
-    log "DEBUG" "Generating aliases for dynamically created arrays"
-    for array_name in lib_files set_files var_files; do
-        log "DEBUG" "Processing array: $array_name"
-        eval "local array_contents=(\"\${$array_name[@]}\")"
-        if [[ ${#array_contents[@]} -gt 0 ]]; then
-            log "DEBUG" "Array contents: ${array_contents[*]}"
-            generate_aliases "cat" "${array_contents[@]}"
-            generate_aliases "vim" "${array_contents[@]}"
-        else
-            log "DEBUG" "Array $array_name is empty or not set"
-        fi
-    done
+    # Generate aliases for lib_files
+    log "DEBUG" "Generating aliases for lib_files"
+    generate_aliases "cat" "${lib_files[@]}"
+    generate_aliases "vim" "${lib_files[@]}"
 
-    if [[ ${#set_files[@]} -gt 0 ]]; then
-        log "DEBUG" "Generating bash aliases for set_files"
-        generate_aliases "bash" "${set_files[@]}"
-    else
-        log "DEBUG" "set_files array is empty or not set"
-    fi
+    # Generate aliases for set_files
+    log "DEBUG" "Generating aliases for set_files"
+    generate_aliases "cat" "${set_files[@]}"
+    generate_aliases "vim" "${set_files[@]}"
+    generate_aliases "bash" "${set_files[@]}"
+
+    # Generate aliases for var_files
+    log "DEBUG" "Generating aliases for var_files"
+    generate_aliases "cat" "${var_files[@]}"
+    generate_aliases "vim" "${var_files[@]}"
 
     # Source dynamically generated scripts
-    if [[ ${#lib_files[@]} -gt 0 ]]; then
-        log "DEBUG" "Sourcing scripts from lib_files"
-        source_scripts "${lib_files[@]}"
-    else
-        log "DEBUG" "lib_files array is empty or not set"
-    fi
+    log "DEBUG" "Sourcing scripts from lib_files"
+    source_scripts "${lib_files[@]}"
 
     generate_readme_aliases
     display_generated_output
