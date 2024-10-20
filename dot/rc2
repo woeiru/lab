@@ -5,6 +5,8 @@
 setup_navigation() {
     log "LVL1" "Starting setup_navigation function"
 
+    generate_readme_aliases
+
     generate_level_one_vars_and_aliases
     generate_level_two_arrays
 
@@ -23,7 +25,7 @@ setup_navigation() {
 
     log "LVL2" "Sourcing scripts from lib_files"
 
-    generate_readme_aliases
+
 }
 
 generate_level_one_vars_and_aliases() {
