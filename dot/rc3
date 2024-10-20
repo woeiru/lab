@@ -3,51 +3,48 @@
 # rc3 module
 
 setup_environment() {
-    log "INFO" "Setting up environment"
+    log "LVL1" "Setting up environment"
 
-    # Setup SSH keys and create aliases
-    setup_ssh() {
-        log "DEBUG" "Setting up SSH keys and aliases"
-        add_ssh_keys
-        # SSH aliases
-        alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
-        alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@$SSH_TARGET_IP'
-        log "DEBUG" "SSH aliases created"
-    }
-
-    # Add SSH keys to the agent
-    add_ssh_keys() {
-        log "DEBUG" "Adding SSH keys to the agent"
-        if [ -z "$SSH_AUTH_SOCK" ]; then
-            eval "$(ssh-agent -s)" > /dev/null || log "ERROR" "Failed to start ssh-agent"
-        fi
-        local keys=(
-            "$HOME/.ssh/id_rsa"
-            "$HOME/.ssh/id_ed25519"
-            "$HOME/.ssh/w1"
-        )
-        for key in "${keys[@]}"; do
-            if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
-                ssh-add "$key" || log "ERROR" "Failed to add key: $key"
-            fi
-        done
-        log "INFO" "SSH keys added successfully"
-    }
-
-    # List all SSH keys in the agent
-    list_ssh_keys() {
-        log "DEBUG" "Listing SSH keys in the agent"
-        ssh-add -l || log "WARN" "No keys found or ssh-agent is not running"
-    }
-
-    # Remove all SSH keys from the agent
-    remove_ssh_keys() {
-        log "DEBUG" "Removing all SSH keys from the agent"
-        ssh-add -D || log "ERROR" "Failed to remove SSH keys"
-    }
-
-    # Call the functions
     setup_ssh
     list_ssh_keys
-    log "INFO" "Static functions setup completed"
+    log "LVL2" "Static functions setup completed"
+}
+
+setup_ssh() {
+    log "LVL2" "Setting up SSH keys and aliases"
+    add_ssh_keys
+    log "LVL3" "Creating SSH aliases"
+    alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
+    alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@$SSH_TARGET_IP'
+    log "LVL3" "SSH aliases created"
+}
+
+add_ssh_keys() {
+    log "LVL3" "Adding SSH keys to the agent"
+    if [ -z "$SSH_AUTH_SOCK" ]; then
+        log "LVL4" "Starting ssh-agent"
+        eval "$(ssh-agent -s)" > /dev/null || log "LVL4" "Failed to start ssh-agent"
+    fi
+    local keys=(
+        "$HOME/.ssh/id_rsa"
+        "$HOME/.ssh/id_ed25519"
+        "$HOME/.ssh/w1"
+    )
+    for key in "${keys[@]}"; do
+        log "LVL4" "Processing key: $key"
+        if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
+            ssh-add "$key" || log "LVL4" "Failed to add key: $key"
+        fi
+    done
+    log "LVL3" "SSH keys added successfully"
+}
+
+list_ssh_keys() {
+    log "LVL2" "Listing SSH keys in the agent"
+    ssh-add -l || log "LVL3" "No keys found or ssh-agent is not running"
+}
+
+remove_ssh_keys() {
+    log "LVL2" "Removing all SSH keys from the agent"
+    ssh-add -D || log "LVL3" "Failed to remove SSH keys"
 }
