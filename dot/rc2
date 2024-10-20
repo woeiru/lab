@@ -81,7 +81,7 @@ generate_aliases() {
     local directory=$2
     shift 2
     local files=("$@")
-    log "DEBUG" "Generating aliases of type $alias_type in directory $directory for files: ${files[*]}"
+    log "HEADER" "Generating aliases of type $alias_type in directory $directory for files: ${files[*]}"
 
     for file in "${files[@]}"; do
         log "DEBUG" "Searching for file $file in directory $directory"
@@ -102,7 +102,7 @@ generate_aliases() {
 
             if [[ -n "$alias_prefix" ]]; then
                 alias "${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
-                log "DEBUG" "Created alias: ${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
+                log "INFO" "Created alias: ${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
             fi
         else
             log "DEBUG" "File not found: $file in directory $directory"
