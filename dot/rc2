@@ -1,143 +1,58 @@
 #!/bin/bash
 
-# rc2 module
+# rc3 module
 
-setup_static_aliases() {
-    # Ansible
-    alias a1='usr-ans $ANS_PRO_PATH_1 $ANS_SITE_PATH_1'
-    alias ap='ansible-playbook'
+source_static_functions() {
+    # Error handling function
+    handle_error() {
+        local exit_code=$1
+        local error_message=$2
+        echo "Error: $error_message" >&2
+        exit "$exit_code"
+    }
 
-    # Bash
-    alias b='bash'
-    alias eb='exec bash'
+    # Creates a directory if it doesn't exist, with error handling
+    create_directory() {
+        local dir_path=$1
+        if [[ ! -d "$dir_path" ]]; then
+            mkdir -p "$dir_path" || handle_error 1 "Failed to create directory: $dir_path"
+        fi
+    }
+}
 
-    # BTRFS management
-    alias bt='btrfs'
-    alias btf='btrfs filesystem'
+execute_static_functions() {
+    setup_ssh() {
+        add_ssh_keys
+        # SSH aliases
+        alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
+        alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
+    }
 
-    # Cat (file viewing)
-    alias c='cat'
-    alias c.group='cat /etc/group'
-    alias c.passwd='cat /etc/passwd'
-    alias c.fstab='cat /etc/fstab'
-    alias es.log='cat /mnt/bak/home/.es.log'
+    add_ssh_keys() {
+        if [ -z "$SSH_AUTH_SOCK" ]; then
+            eval "$(ssh-agent -s)" > /dev/null
+        fi
+        local keys=(
+            "$HOME/.ssh/id_rsa"
+            "$HOME/.ssh/id_ed25519"
+            "$HOME/.ssh/w1"
+        )
+        for key in "${keys[@]}"; do
+            if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
+                ssh-add "$key"
+            fi
+        done
+    }
 
-    # Directory navigation
-    alias d='cd'
-    alias ..='cd ..'
-    alias dl="cd $PARENT_DIR"
+    list_ssh_keys() {
+        ssh-add -l
+    }
 
-    alias d.samba='cd /etc/samba/'
-    alias d.snapper='cd /etc/snapper/configs'
-    alias d.pam='cd /usr/lib/pam_snapper'
+    remove_ssh_keys() {
+        ssh-add -D
+    }
 
-    alias d.das='cd /mnt/das'
-    alias d.nvm='cd /mnt/nvm'
-    alias d.usb='cd /mnt/usb'
-
-    # Disk usage
-    alias u='du -bh -d1'
-    alias uu='du -bh -d2'
-    alias uuu='du -bh -d3'
-
-    # Exit
-    alias ee='exit'
-
-    # Function shortcuts
-    alias sca='gen-sca'
-    alias flc='all-flc'
-    alias cto='pve-cto'
-
-    # Function chaining
-    alias fun='all-ffl all-laf "" $LIB_DIR'
-    alias var='all-ffl all-acu "" $VAR_DIR $PARENT_DIR'
-
-    # Function makros
-    alias v1='gpu-ptd ; qm start 211'
-
-    # Git commands
-    alias g='git'
-    alias gs='git status'
-    alias gd='git diff'
-    alias gl='git ls-files | xargs cat | wc -l'
-    alias ga='git add'
-    alias gc='git commit'
-    alias gcmb='git commit -m "base"'
-    alias go='git push origin master'
-    alias gp='git pull'
-    alias gg='gen-gio'
-    alias gr1='git revert HEAD~1'
-
-    # History
-    alias h='history'
-
-    # IPTables
-    alias ipt='iptables -L -v -n'
-
-    # Mounting
-    alias m.sda.das='mount /dev/sda /mnt/das'
-    alias m.sub.sda.bak='mount -o subvol=bak /dev/sda /bak'
-
-    # Filesystem creation
-    alias mbf='mkfs.btrfs -f'
-    alias mbmd='mkfs.btrfs -m raid1 -d raid1'
-
-    # PAM Snapper commands
-    alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
-    alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
-    alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
-    alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
-
-    # Podman (container management)
-    alias pod='podman'
-    alias podst='podman start'
-    alias podps='podman ps'
-    alias podpsa='podman ps -a'
-
-    # System control
-    alias sy='systemctl'
-
-    # System configuration file editing
-    alias v.samba.conf='vim /etc/samba/smb.conf'
-    alias v.sambausers='vim /etc/samba/smbusers'
-    alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
-    alias v.fstab='vim /etc/fstab'
-
-    # Snapper (filesystem snapshot management)
-    alias sl='snapper list'
-    alias sc='snapper create'
-    alias shl='bfs-shl home'
-    alias shc='bfs-shc home'
-    alias shd='bfs-shd'
-
-    # System statistics
-    alias sar='sar -d 1'
-    alias ios='iostat -x 1'
-
-    # SELinux
-    alias ses='sestatus -v'
-    alias seb='sudo semanage boolean -l'
-
-    # Time zone setting
-    alias berlintime="timedatectl set-timezone Europe/Berlin"
-
-    # Transactional update
-    alias tu='transactional-update'
-    alias tua='transactional-update apply'
-    alias tur='transactional-update reboot'
-    alias tuar='transactional-update apply && transactional-update reboot'
-
-    # Tree view
-    alias t='tree'
-    alias tt='tree -L 2'
-    alias ttt='tree -L 3'
-    alias tttt='tree -L 4'
-    alias ttttt='tree -L 5'
-
-    # Vim
-    alias v='vim'
-    alias v.nw="vim $CON_DIR/node-w.md"
-
-    # File listing
-    alias l='ls -Al'
+    # Call the functions
+    setup_ssh
+    list_ssh_keys
 }
