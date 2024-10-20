@@ -15,11 +15,11 @@ MENU_OPTIONS[b]="b_xall"
 a_xall() {
 	pbs-dav
     	pbs-adr
-    	gen-ipa "$PACKAGES_ALL"
+    	gen-ipa "$PBS_PACKAGES_ALL"
 }
 
 b_xall() {
-	pbs-rda "$DATASTORE_CONFIG" "$DATASTORE_NAME" "$DATASTORE_PATH"
+	pbs-rda "$PBS_DATASTORE_CONFIG" "$PBS_DATASTORE_NAME" "$PBS_DATASTORE_PATH"
 }
 
 setup_main "$@"
