@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# rc3 module
+
+setup_static_functions() {
+
+    # Error handling function
+    handle_error() {
+        local exit_code=$1
+        local error_message=$2
+        echo "Error: $error_message" >&2
+        exit "$exit_code"
+    }
+
+    # Creates a directory if it doesn't exist, with error handling
+    create_directory() {
+        local dir_path=$1
+        if [[ ! -d "$dir_path" ]]; then
+            mkdir -p "$dir_path" || handle_error 1 "Failed to create directory: $dir_path"
+        fi
+    }
+
+    setup_ssh() {
+    add_ssh_keys
+
+    # SSH aliases
+    alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
+    alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
+    }
+
+    add_ssh_keys() {
+        if [ -z "$SSH_AUTH_SOCK" ]; then
+            eval "$(ssh-agent -s)" > /dev/null
+        fi
+
+        local keys=(
+            "$HOME/.ssh/id_rsa"
+            "$HOME/.ssh/id_ed25519"
+            "$HOME/.ssh/w1"
+        )
+
+        for key in "${keys[@]}"; do
+            if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
+                ssh-add "$key"
+            fi
+        done
+    }
+
+    list_ssh_keys() {
+        ssh-add -l
+    }
+
+    remove_ssh_keys() {
+        ssh-add -D
+
+    }
+
+    # Add any other static functions here
+
+}
