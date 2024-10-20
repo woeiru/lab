@@ -1,52 +1,86 @@
 #!/bin/bash
+set -eo pipefail
 
 # Main configuration file
 # This file sources the modular components and handles the main execution
 
 # Define the directory of the script using a POSIX-compliant method
-DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
-#PARENT_DIR="$DIR/.."
+DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
 PARENT_DIR="/root/lab"
 
-# Source modules
-source "$DIR/rc0"
-source "$DIR/rc1"
-source "$DIR/rc2"
-source "$DIR/rc3"
+# Function to handle errors
+error_handler() {
+    local exit_code=$?
+    local line_number=$1
+    echo "Error on line $line_number: Command exited with status $exit_code"
+    exit $exit_code
+}
+
+# Set up error handling
+trap 'error_handler $LINENO' ERR
+
+# Function to source a file safely
+safe_source() {
+    if [[ -f "$1" ]]; then
+        source "$1"
+        echo "INFO: Sourced file: $1"
+    else
+        echo "Warning: File $1 not found."
+    fi
+}
 
 sourcing() {
-    log "HEADER" "Starting sourcing"
+    echo "HEADER: Starting sourcing"
+
+    # Source rc modules
+    local rc_modules=("rc0" "rc1" "rc2" "rc3")
+    for module in "${rc_modules[@]}"; do
+        safe_source "$DIR/$module"
+    done
+
+    # Source lib and var files
     local dirs=("lib" "var")
     local extensions=("bash" "conf")
-
     for i in "${!dirs[@]}"; do
         local dir="$PARENT_DIR/${dirs[i]}"
         local ext="${extensions[i]}"
-
+        if [[ ! -d "$dir" ]]; then
+            echo "Warning: Directory $dir not found."
+            continue
+        fi
         for file in "$dir"/*."$ext"; do
-            if [ -f "$file" ]; then
-                source "$file"
-                log "INFO" "Sourced ${dirs[i]} file: $file"
+            if [[ -f "$file" ]]; then
+                safe_source "$file"
             fi
         done
     done
 
     # Set environment variable to indicate successful sourcing
     export LABS_ENVIRONMENT_SOURCED=1
-    echo "All lib and var files sourced successfully"
+    echo "All modules and files sourced successfully"
 }
 
 # Main setup execution
 setup() {
-    # Call functions from modules
-    setup_aliases
-    setup_navigation
-    setup_environment
-
-    # Source lib and var files
-
+    # Check if required functions exist before calling them
+    local required_functions=("setup_aliases" "setup_navigation" "setup_environment")
+    for func in "${required_functions[@]}"; do
+        if type "$func" &>/dev/null; then
+            $func
+        else
+            echo "Warning: $func function not found."
+        fi
+    done
 }
 
-# Execute main function
-setup
+# Execute main functions
 sourcing
+setup
+
+# Final check
+if [[ -z "${LABS_ENVIRONMENT_SOURCED}" ]]; then
+    echo "Error: Environment sourcing failed."
+    exit 1
+else
+    echo "Setup completed successfully."
+fi
