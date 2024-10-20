@@ -88,10 +88,10 @@ generate_aliases() {
 
             case "$alias_type" in
                 "bash")
-                    [[ "$ext" == "sh" ]] && alias_prefix="b-"
+                    [[ "$ext" == "sh" ]] && alias_prefix="b."
                     ;;
-                "cat") alias_prefix="c-" ;;
-                "vim") alias_prefix="v-" ;;
+                "cat") alias_prefix="c." ;;
+                "vim") alias_prefix="v." ;;
             esac
 
             if [[ -n "$alias_prefix" ]]; then
