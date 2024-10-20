@@ -43,8 +43,10 @@ generate_top_level_aliases() {
             base=$(basename "$dir")
             if [[ ${#base} -eq 3 ]]; then
                 var_name="${base^^}_DIR"
-                declare -g "$var_name=$dir"
-                alias "d.$base=cd $dir"
+                # Use realpath to resolve the absolute path
+                dir_path=$(realpath "$dir")
+                declare -g "$var_name=$dir_path"
+                alias "d.$base=cd $dir_path"
             fi
         fi
     done
@@ -68,7 +70,7 @@ generate_aliases() {
     local alias_type=$1
     shift
     local files=("$@")
-    
+
     for file in "${files[@]}"; do
         case "$alias_type" in
             "bash")
@@ -150,13 +152,22 @@ main() {
     # Generate top-level directory aliases and variables
     generate_top_level_aliases
 
+    local lib_files=(all gen pve pbs srv usr sto net gpu)
+    local var_files=(all gen pve pbs srv usr sto net gpu)
     local set_files=(gen pve pbs nfs smb)
-    local lib_files=(gen pve pbs srv usr net gpu sto all)
 
     source_scripts "${lib_files[@]}"
-    generate_aliases "bash" "${set_files[@]}"
+
     generate_aliases "cat" "${lib_files[@]}"
+    generate_aliases "cat" "${var_files[@]}"
+    generate_aliases "cat" "${set_files[@]}"
+
     generate_aliases "vim" "${lib_files[@]}"
+    generate_aliases "vim" "${var_files[@]}"
+    generate_aliases "vim" "${set_files[@]}"
+
+    generate_aliases "bash" "${set_files[@]}"
+
     generate_readme_aliases
 
     # Automatically add SSH keys
