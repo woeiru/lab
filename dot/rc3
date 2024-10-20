@@ -16,14 +16,14 @@ setup_ssh() {
     log "LVL3" "Creating SSH aliases"
     alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
     alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@$SSH_TARGET_IP'
-    log "LVL3" "SSH aliases created"
+    log "LVL4" "SSH aliases created"
 }
 
 add_ssh_keys() {
     log "LVL3" "Adding SSH keys to the agent"
     if [ -z "$SSH_AUTH_SOCK" ]; then
         log "LVL4" "Starting ssh-agent"
-        eval "$(ssh-agent -s)" > /dev/null || log "LVL4" "Failed to start ssh-agent"
+        eval "$(ssh-agent -s)" > /dev/null || log "LVL5" "Failed to start ssh-agent"
     fi
     local keys=(
         "$HOME/.ssh/id_rsa"
@@ -31,12 +31,12 @@ add_ssh_keys() {
         "$HOME/.ssh/w1"
     )
     for key in "${keys[@]}"; do
-        log "LVL4" "Processing key: $key"
+        log "LVL6" "Processing key: $key"
         if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
-            ssh-add "$key" || log "LVL4" "Failed to add key: $key"
+            ssh-add "$key" || log "LVL7" "Failed to add key: $key"
         fi
     done
-    log "LVL3" "SSH keys added successfully"
+    log "LVL5" "SSH keys added successfully"
 }
 
 list_ssh_keys() {
