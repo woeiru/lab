@@ -2,8 +2,8 @@
 
 # ===========================================
 # Improved and Fully Commented bashrc file
-# Author: [Your Name]
-# Last updated: [Date]
+# Author: woeiru
+# Last updated: today
 # Description: This bashrc file sets up a customized shell environment with various aliases and functions for system administration tasks.
 # ===========================================
 
@@ -52,47 +52,6 @@ generate_top_level_aliases() {
     done
 }
 
-# Sources specified scripts, with error checking
-source_scripts() {
-    local files=("$@")
-    for file in "${files[@]}"; do
-        local script_path="$LIB_DIR/$file.bash"
-        if [[ -f "$script_path" ]]; then
-            source "$script_path"
-        else
-            echo "Warning: Script not found: $script_path"
-        fi
-    done
-}
-
-# Generates various types of aliases based on the provided type and file list
-generate_aliases() {
-    local alias_type=$1
-    shift
-    local files=("$@")
-
-    for file in "${files[@]}"; do
-        case "$alias_type" in
-            "bash")
-                alias "b.$file.sh=bash $SET_DIR/$file.sh"
-                ;;
-            "cat")
-                alias "c.$file.bash=cat $LIB_DIR/$file.bash"
-                alias "c.$file.sh=cat $SET_DIR/$file.sh"
-                alias "c.$file.conf=cat $VAR_DIR/$file.conf"
-                ;;
-            "vim")
-                alias "v.$file.bash=vim $LIB_DIR/$file.bash"
-                alias "v.$file.sh=vim $SET_DIR/$file.sh"
-                alias "v.$file.conf=vim $VAR_DIR/$file.conf"
-                ;;
-            *)
-                echo "Warning: Unknown alias type: $alias_type"
-                ;;
-        esac
-    done
-}
-
 # Generates aliases for readme files across the directory structure
 generate_readme_aliases() {
     local FILEBASE_MD="readme.md"
@@ -104,44 +63,79 @@ generate_readme_aliases() {
     done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
 }
 
-# 4. SSH KEY MANAGEMENT
-# =====================
+generate_dynamic_arrays() {
+    local generation_folders=(lib set var)
 
-# Adds specified SSH keys to the ssh-agent if they exist and aren't already added
-add_ssh_keys() {
-    # Start or connect to ssh-agent
-    if [ -z "$SSH_AUTH_SOCK" ]; then
-        eval "$(ssh-agent -s)" > /dev/null
-    fi
+    for folder in "${generation_folders[@]}"; do
+        local dir_path="$PARENT_DIR/$folder"
+        echo "Processing folder: $folder, path: $dir_path"
 
-    # Array of keys to add
-    local keys=(
-        "$HOME/.ssh/id_rsa"
-        "$HOME/.ssh/id_ed25519"
-        "$HOME/.ssh/w1"
-        # Add more keys as needed
-    )
+        if [[ -d "$dir_path" ]]; then
+            local array_name="${folder}_files"
+            local files=()
+            while IFS= read -r -d '' file; do
+                base_name=$(basename "$file")
+                name_without_ext="${base_name%.*}"
+                files+=("$name_without_ext")
+            done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*.bash" -o -name "*.sh" -o -name "*.conf" \) -print0)
 
-    # Add keys if they exist and are not already added
-    for key in "${keys[@]}"; do
-        if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
-            ssh-add "$key"
+            # Remove duplicates and sort
+            IFS=$'\n' sorted_unique=($(sort -u <<<"${files[*]}"))
+            unset IFS
+
+            # Create the array
+            eval "$array_name=(${sorted_unique[*]})"
+            echo "Created array $array_name with values: ${!array_name[*]}"
+        else
+            echo "Warning: Directory not found: $dir_path"
         fi
     done
 }
 
-# Lists all SSH keys currently added to the ssh-agent
-list_ssh_keys() {
-    ssh-add -l
+generate_aliases() {
+    local alias_type=$1
+    shift
+    local files=("$@")
+    echo "Generating aliases of type $alias_type for files: ${files[*]}"
+
+    for file in "${files[@]}"; do
+        case "$alias_type" in
+            "bash")
+                alias "b_${file}_sh=bash $SET_DIR/$file.sh"
+                echo "Created alias: b_${file}_sh"
+                ;;
+            "cat")
+                alias "c_${file}_bash=cat $LIB_DIR/$file.bash"
+                alias "c_${file}_sh=cat $SET_DIR/$file.sh"
+                alias "c_${file}_conf=cat $VAR_DIR/$file.conf"
+                echo "Created aliases: c_${file}_bash, c_${file}_sh, c_${file}_conf"
+                ;;
+            "vim")
+                alias "v_${file}_bash=vim $LIB_DIR/$file.bash"
+                alias "v_${file}_sh=vim $SET_DIR/$file.sh"
+                alias "v_${file}_conf=vim $VAR_DIR/$file.conf"
+                echo "Created aliases: v_${file}_bash, v_${file}_sh, v_${file}_conf"
+                ;;
+            *)
+                echo "Warning: Unknown alias type: $alias_type"
+                ;;
+        esac
+    done
 }
 
-# Removes all SSH keys from the ssh-agent
-remove_ssh_keys() {
-    ssh-add -D
+source_scripts() {
+    local files=("$@")
+    echo "Sourcing scripts: ${files[*]}"
+    for file in "${files[@]}"; do
+        local script_path="$LIB_DIR/$file.bash"
+        echo "Attempting to source: $script_path"
+        if [[ -f "$script_path" ]]; then
+            source "$script_path"
+        else
+            echo "Warning: Script not found: $script_path"
+        fi
+    done
 }
-
-    alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
-    alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
 
 
 # 5. MAIN EXECUTION
@@ -152,29 +146,33 @@ main() {
     # Generate top-level directory aliases and variables
     generate_top_level_aliases
 
-    local lib_files=(all gen pve pbs srv usr sto net gpu)
-    local var_files=(all gen pve pbs srv usr sto net gpu)
-    local set_files=(gen pve pbs nfs smb)
+    # Generate dynamic arrays
+    generate_dynamic_arrays
 
-    source_scripts "${lib_files[@]}"
+    # Use the dynamically generated arrays
+    echo "lib_files: ${lib_files[*]}"
+    echo "var_files: ${var_files[*]}"
+    echo "set_files: ${set_files[*]}"
 
-    generate_aliases "cat" "${lib_files[@]}"
-    generate_aliases "cat" "${var_files[@]}"
-    generate_aliases "cat" "${set_files[@]}"
+    if [[ ${#lib_files[@]} -gt 0 ]]; then
+        source_scripts "${lib_files[@]}"
+    fi
 
-    generate_aliases "vim" "${lib_files[@]}"
-    generate_aliases "vim" "${var_files[@]}"
-    generate_aliases "vim" "${set_files[@]}"
+    for array_name in lib_files var_files set_files; do
+        echo "Processing array: $array_name"
+        if [[ ${#array_name[@]} -gt 0 ]]; then
+            generate_aliases "cat" "${!array_name[@]}"
+            generate_aliases "vim" "${!array_name[@]}"
+        fi
+    done
 
-    generate_aliases "bash" "${set_files[@]}"
+    if [[ ${#set_files[@]} -gt 0 ]]; then
+        generate_aliases "bash" "${set_files[@]}"
+    fi
 
     generate_readme_aliases
 
-    # Automatically add SSH keys
-    add_ssh_keys
-
     # Ansible
-
     alias a1='usr-ans $ANS_PRO_PATH_1 $ANS_SITE_PATH_1'
     alias ap='ansible-playbook'
 
@@ -317,6 +315,7 @@ main() {
 
 # Execute main function
 main
+
 
 # 6. PROJECTS
 # =================

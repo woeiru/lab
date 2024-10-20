@@ -1,0 +1,43 @@
+
+# 4. SSH KEY MANAGEMENT
+# =====================
+
+# Adds specified SSH keys to the ssh-agent if they exist and aren't already added
+add_ssh_keys() {
+    # Start or connect to ssh-agent
+    if [ -z "$SSH_AUTH_SOCK" ]; then
+        eval "$(ssh-agent -s)" > /dev/null
+    fi
+
+    # Array of keys to add
+    local keys=(
+        "$HOME/.ssh/id_rsa"
+        "$HOME/.ssh/id_ed25519"
+        "$HOME/.ssh/w1"
+        # Add more keys as needed
+    )
+
+    # Add keys if they exist and are not already added
+    for key in "${keys[@]}"; do
+        if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
+            ssh-add "$key"
+        fi
+    done
+}
+
+# Lists all SSH keys currently added to the ssh-agent
+list_ssh_keys() {
+    ssh-add -l
+}
+
+# Removes all SSH keys from the ssh-agent
+remove_ssh_keys() {
+    ssh-add -D
+}
+
+alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
+alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.178.110'
+
+
+    # Automatically add SSH keys
+    add_ssh_keys
