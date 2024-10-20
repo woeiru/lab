@@ -72,7 +72,6 @@ net-uni() {
     fi
 }
 
-
 # Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding
 # firewall (add) service (and) reload
 # <service>
@@ -111,54 +110,3 @@ net-fas() {
 
     all-nos "$function_name" "executed"
 }
-
-# Mounts an NFS share interactively or with provided arguments
-# network file share
-# [server_ip] [shared_folder] [mount_point] [options]
-net-nfs() {
-    local function_name="${FUNCNAME[0]}"
-    local server_ip=""
-    local shared_folder=""
-    local mount_point=""
-    local options=""
-
-    # If arguments are provided, use them
-    if [ $# -eq 4 ]; then
-        server_ip="$1"
-        shared_folder="$2"
-        mount_point="$3"
-        options="$4"
-    else
-        # Use all-mev to prompt for each parameter
-        all-mev "server_ip" "Enter NFS server IP" "$STO_NFS_SERVER_IP"
-        all-mev "shared_folder" "Enter NFS shared folder" "$STO_NFS_SHARED_FOLDER"
-        all-mev "mount_point" "Enter local mount point" "$STO_NFS_MOUNT_POINT"
-        all-mev "options" "Enter mount options" "$STO_NFS_MOUNT_OPTIONS"
-    fi
-
-    # Create the mount point if it doesn't exist
-    if [ ! -d "$mount_point" ]; then
-        echo "Creating mount point $mount_point"
-        sudo mkdir -p "$mount_point"
-    fi
-
-    # Perform the mount
-    echo "Mounting NFS share..."
-    if sudo mount -t nfs -o "$options" "${server_ip}:${shared_folder}" "$mount_point"; then
-        echo "NFS share mounted successfully at $mount_point"
-    else
-        echo "Failed to mount NFS share"
-        return 1
-    fi
-
-    # Verify the mount
-    if mount | grep -q "$mount_point"; then
-        echo "Mount verified successfully"
-    else
-        echo "Mount verification failed"
-        return 1
-    fi
-
-    all-nos "$function_name" "NFS mount completed"
-}
-
