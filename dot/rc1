@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# dyn - Dynamic bash module (Revised Version with Logging Control)
-# This file contains functions for generating dynamic aliases and arrays
+# rc1 - module
 
 # Logging control variable
 ENABLE_LOGGING=false
