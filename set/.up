@@ -3,19 +3,6 @@
 # Enable debug mode if needed
 # set -x
 
-# Function to source files if they haven't been sourced already
-source_if_not_sourced() {
-    local file="$1"
-    if [[ -f "$file" && ! "${SOURCED_FILES[$file]}" ]]; then
-        source "$file"
-        SOURCED_FILES[$file]=1
-        echo "Sourced $file"
-    fi
-}
-
-# Initialize associative array to track sourced files
-declare -A SOURCED_FILES
-
 setup_source() {
     local dir="$1"
     local file="$2"
@@ -24,20 +11,30 @@ setup_source() {
     local lib_dir="${dir%/*}/lib"
     local var_dir="${dir%/*}/var"
 
-    # Source all .conf files in var directory
-    for conf_file in "$var_dir"/*.conf; do
-        source_if_not_sourced "$conf_file"
-    done
+    if [[ -z "$LABS_ENVIRONMENT_SOURCED" ]]; then
+        # Source all .conf files in var directory
+        for conf_file in "$var_dir"/*.conf; do
+            if [[ -f "$conf_file" ]]; then
+                source "$conf_file"
+                echo "Sourced $conf_file"
+            fi
+        done
 
-    # Source all .bash files in lib directory
-    for bash_file in "$lib_dir"/*.bash; do
-        source_if_not_sourced "$bash_file"
-    done
+        # Source all .bash files in lib directory
+        for bash_file in "$lib_dir"/*.bash; do
+            if [[ -f "$bash_file" ]]; then
+                source "$bash_file"
+                echo "Sourced $bash_file"
+            fi
+        done
+    else
+        echo "Environment already sourced, skipping..."
+    fi
 }
 
 setup_main() {
     if [ "$#" -ne 3 ]; then
-        echo "Usage: $0 MODE OPTION SECTION"
+        echo "Usage: $0 MODE OPTION SECTION"l
         echo "MODE: -i (interactive) or -x (executing)"
         echo "OPTION: For -i: 1-6 (display mode), For -x: -d (dry run) or -p (production)"
         echo "SECTION: Function name or -all"

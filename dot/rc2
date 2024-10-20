@@ -3,8 +3,8 @@
 # rc2 - module
 
 setup_navigation() {
-    log "DEBUG" "Starting setup_dynamic_navigation function"
-    log "DEBUG" "PARENT_DIR is set to: $PARENT_DIR"
+    log "HEADER" "Starting setup_dynamic_navigation function"
+    log "INFO" "PARENT_DIR is set to: $PARENT_DIR"
 
     generate_level_one_vars_and_aliases
     generate_level_two_arrays
@@ -126,21 +126,6 @@ generate_readme_aliases() {
         alias "v-$alias_name=vim $file"
         log "INFO" "Created aliases: c-$alias_name and v-$alias_name for $file"
     done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
-}
-
-source_scripts() {
-    local files=("$@")
-    log "DEBUG" "Sourcing scripts: ${files[*]}"
-    for file in "${files[@]}"; do
-        local script_path="$LIB_DIR/$file.bash"
-        log "DEBUG" "Attempting to source: $script_path"
-        if [[ -f "$script_path" ]]; then
-            source "$script_path"
-            log "DEBUG" "Successfully sourced: $script_path"
-        else
-            log "ERROR" "Script not found: $script_path"
-        fi
-    done
 }
 
 display_generated_output() {
