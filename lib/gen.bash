@@ -36,29 +36,16 @@ gen-var() {
 
 # Manages git operations, ensuring the local repository syncs with the remote.
 # Performs status check, pull, commit, and push operations as needed.
-# Usage: gen-gio [-m <commit message>]
+# Usage: gen-gio [commit message]
 gen-gio() {
     local dir="${DIR_LIB:-.}/.."
     local branch="${GIT_BRANCH:-master}"
     local commit_message=""
 
-    # Parse command line arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            -m)
-                shift
-                commit_message="$*"
-                break
-                ;;
-            *)
-                echo "Invalid option: $1" >&2
-                return 1
-                ;;
-        esac
-    done
-
-    # If no commit message provided, use default
-    if [[ -z "$commit_message" ]]; then
+    # If arguments are provided, use them as the commit message
+    if [ $# -gt 0 ]; then
+        commit_message="$*"
+    else
         commit_message="${GIT_COMMITMESSAGE:-Auto-commit: $(date +%Y-%m-%d_%H-%M-%S)}"
     fi
 
