@@ -1,44 +1,68 @@
 #!/bin/bash
 
-# Enable debug mode if needed
-# set -x
+# Enable error handling and logging
+set -e
+exec 2>>/tmp/up_error.log
+set -x
+
+log_error() {
+    echo "ERROR: $1" >&2
+}
+
+log_info() {
+    echo "INFO: $1"
+}
+
+print_usage() {
+    echo "Usage: $0 MODE OPTION SECTION"
+    echo "MODE: -i (interactive) or -x (executing)"
+    echo "OPTION: For -i: 1-6 (display mode), For -x: -d (dry run) or -p (production)"
+    echo "SECTION: Function name or -all"
+}
 
 setup_source() {
     local dir="$1"
     local file="$2"
     local base="$3"
 
+    log_info "Starting setup_source with dir=$dir, file=$file, base=$base"
+
     local lib_dir="${dir%/*}/lib"
     local var_dir="${dir%/*}/var"
 
     if [[ -z "$LABS_ENVIRONMENT_SOURCED" ]]; then
+        log_info "Sourcing environment files"
+
         # Source all .conf files in var directory
         for conf_file in "$var_dir"/*.conf; do
             if [[ -f "$conf_file" ]]; then
-                source "$conf_file"
-                echo "Sourced $conf_file"
+                log_info "Sourcing $conf_file"
+                source "$conf_file" || log_error "Failed to source $conf_file"
             fi
         done
 
         # Source all .bash files in lib directory
         for bash_file in "$lib_dir"/*.bash; do
             if [[ -f "$bash_file" ]]; then
-                source "$bash_file"
-                echo "Sourced $bash_file"
+                log_info "Sourcing $bash_file"
+                source "$bash_file" || log_error "Failed to source $bash_file"
             fi
         done
+
+        export LABS_ENVIRONMENT_SOURCED=1
     else
-        echo "Environment already sourced, skipping..."
+        log_info "Environment already sourced, skipping..."
+        return 0
     fi
 }
 
 setup_main() {
+    log_info "Starting setup_main with arguments: $@"
+
     if [ "$#" -ne 3 ]; then
-        echo "Usage: $0 MODE OPTION SECTION"l
-        echo "MODE: -i (interactive) or -x (executing)"
-        echo "OPTION: For -i: 1-6 (display mode), For -x: -d (dry run) or -p (production)"
-        echo "SECTION: Function name or -all"
-        exit 1
+        log_error "Incorrect number of arguments."
+        print_usage
+        return 1
     fi
 
     local mode="$1"
@@ -47,14 +71,17 @@ setup_main() {
 
     case "$mode" in
         -i)
+            log_info "Entering interactive mode"
             setup_interactive_mode "$option" "$section"
             ;;
         -x)
+            log_info "Entering executing mode"
             setup_executing_mode "$option" "$section"
             ;;
         *)
-            echo "Invalid mode. Use -i for interactive or -x for executing."
-            exit 1
+            log_error "Invalid mode. Use -i for interactive or -x for executing."
+            print_usage
+            return 1
             ;;
     esac
 }
