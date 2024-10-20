@@ -16,7 +16,7 @@ log() {
     local message=$2
     case $level in
         "ERROR")
-            echo -e "${RED}DEBUG: $message${NC}"
+            echo -e "${RED}ERROR: $message${NC}" >&2
             ;;
         "DEBUG")
             echo -e "${YELLOW}DEBUG: $message${NC}"
@@ -42,19 +42,19 @@ setup_dynamic_navigation() {
 
     # Generate aliases for lib_files
     log "DEBUG" "Generating aliases for lib_files"
-    generate_aliases "cat" "${lib_files[@]}"
-    generate_aliases "vim" "${lib_files[@]}"
+    generate_aliases "cat" "$LIB_DIR" "${lib_files[@]}"
+    generate_aliases "vim" "$LIB_DIR" "${lib_files[@]}"
 
     # Generate aliases for set_files
     log "DEBUG" "Generating aliases for set_files"
-    generate_aliases "cat" "${set_files[@]}"
-    generate_aliases "vim" "${set_files[@]}"
-    generate_aliases "bash" "${set_files[@]}"
+    generate_aliases "cat" "$SET_DIR" "${set_files[@]}"
+    generate_aliases "vim" "$SET_DIR" "${set_files[@]}"
+    generate_aliases "bash" "$SET_DIR" "${set_files[@]}"
 
     # Generate aliases for var_files
     log "DEBUG" "Generating aliases for var_files"
-    generate_aliases "cat" "${var_files[@]}"
-    generate_aliases "vim" "${var_files[@]}"
+    generate_aliases "cat" "$VAR_DIR" "${var_files[@]}"
+    generate_aliases "vim" "$VAR_DIR" "${var_files[@]}"
 
     # Source dynamically generated scripts
     log "DEBUG" "Sourcing scripts from lib_files"
@@ -109,35 +109,35 @@ generate_level_two_arrays() {
 
 generate_aliases() {
     local alias_type=$1
-    shift
+    local directory=$2
+    shift 2
     local files=("$@")
-    log "DEBUG" "Generating aliases of type $alias_type for files: ${files[*]}"
-
-    local directories=("$LIB_DIR" "$SET_DIR" "$VAR_DIR")
-    local extensions=("bash" "sh" "conf")
+    log "DEBUG" "Generating aliases of type $alias_type in directory $directory for files: ${files[*]}"
 
     for file in "${files[@]}"; do
-        for dir in "${directories[@]}"; do
-            for ext in "${extensions[@]}"; do
-                local full_path="$dir/$file.$ext"
-                if [[ -f "$full_path" ]]; then
-                    local alias_prefix=""
-                    case "$alias_type" in
-                        "bash")
-                            [[ "$ext" == "sh" ]] && alias_prefix="b-"
-                            ;;
-                        "cat") alias_prefix="c-" ;;
-                        "vim") alias_prefix="v-" ;;
-                    esac
+        log "DEBUG" "Searching for file $file in directory $directory"
+        # Find the file with any extension
+        local found_file=$(find "$directory" -maxdepth 1 -type f -name "$file.*" | head -n 1)
+        if [[ -n "$found_file" ]]; then
+            log "DEBUG" "Found file: $found_file"
+            local ext="${found_file##*.}"
+            local alias_prefix=""
 
-                    if [[ -n "$alias_prefix" ]]; then
-                        alias "${alias_prefix}${file}.${ext}=${alias_type} ${full_path}"
-                        log "DEBUG" "Created alias: ${alias_prefix}${file}.${ext}"
-                    fi
-                    break 2  # Exit both inner loops once a file is found
-                fi
-            done
-        done
+            case "$alias_type" in
+                "bash")
+                    [[ "$ext" == "sh" ]] && alias_prefix="b-"
+                    ;;
+                "cat") alias_prefix="c-" ;;
+                "vim") alias_prefix="v-" ;;
+            esac
+
+            if [[ -n "$alias_prefix" ]]; then
+                alias "${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
+                log "DEBUG" "Created alias: ${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
+            fi
+        else
+            log "DEBUG" "File not found: $file in directory $directory"
+        fi
     done
 }
 
@@ -167,6 +167,7 @@ source_scripts() {
         log "DEBUG" "Attempting to source: $script_path"
         if [[ -f "$script_path" ]]; then
             source "$script_path"
+            log "DEBUG" "Successfully sourced: $script_path"
         else
             log "ERROR" "Script not found: $script_path"
         fi
