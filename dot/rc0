@@ -52,9 +52,9 @@ log() {
     # Output log message
     if [[ ${LOG_LEVELS[$((level_num-1))]} -eq 1 ]]; then
         if [ $level_num -eq 1 ]; then
-            echo -e "${timestamp} ${indent}$level: $message" >&2
+            echo -e "${indent}$level: $message" >&2
         else
-            echo -e "${timestamp} ${indent}$level: $message"
+            echo -e "${indent}$level: $message"
         fi
     fi
 }
