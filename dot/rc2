@@ -49,8 +49,8 @@ setup_aliases() {
     alias cto='pve-cto'
 
     # Function chaining
-    alias fun='all-ffl all-laf "" $LIB_DIR'
-    alias var='all-ffl all-acu "" $VAR_DIR $PARENT_DIR'
+    alias fun='all-ffl all-laf "" "$LIB_DIR"'
+    alias var='all-ffl all-acu "" "$VAR_DIR" "$PARENT_DIR"'
 
     # Function makros
     alias v1='gpu-ptd ; qm start 211'
