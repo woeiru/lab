@@ -3,7 +3,7 @@
 # rc3 - module
 
 # Logging control variable
-ENABLE_LOGGING=false
+ENABLE_LOGGING=
 
 # Color codes
 RED='\033[0;31m'
@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Logging function
 log() {
-    if [ "$ENABLE_LOGGING" = true ]; then
+    if [ "$ENABLE_LOGGING" = 1 ]; then
         local level=$1
         local message=$2
         case $level in
