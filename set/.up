@@ -1,37 +1,38 @@
 #!/bin/bash
 
-# Enable debug mode
-#set -x
+# Enable debug mode if needed
+# set -x
 
-source_file() {
-  local file_path="$1"
-  if [ -f "$file_path" ]; then
-    source "$file_path"
-  else
-    echo "Error: $file_path not found."
-  fi
+# Function to source files if they haven't been sourced already
+source_if_not_sourced() {
+    local file="$1"
+    if [[ -f "$file" && ! "${SOURCED_FILES[$file]}" ]]; then
+        source "$file"
+        SOURCED_FILES[$file]=1
+        echo "Sourced $file"
+    fi
 }
 
+# Initialize associative array to track sourced files
+declare -A SOURCED_FILES
+
 setup_source() {
-  local dir="$1"
-  local file="$2"
-  local base="$3"
+    local dir="$1"
+    local file="$2"
+    local base="$3"
 
-  local lib_dir="${dir%/*}/lib"
-  local var_dir="${dir%/*}/var"
-  local all_base="all"
+    local lib_dir="${dir%/*}/lib"
+    local var_dir="${dir%/*}/var"
 
-  local files_to_source=(
-    "$lib_dir/${all_base}.bash"
-    "$var_dir/${all_base}.conf"
-    "$lib_dir/${base}.bash"
-    "$var_dir/${base}.conf"
-  )
+    # Source all .conf files in var directory
+    for conf_file in "$var_dir"/*.conf; do
+        source_if_not_sourced "$conf_file"
+    done
 
-  for file in "${files_to_source[@]}"; do
-    source "$file"
-    echo "sourced $file"
-  done
+    # Source all .bash files in lib directory
+    for bash_file in "$lib_dir"/*.bash; do
+        source_if_not_sourced "$bash_file"
+    done
 }
 
 setup_main() {
