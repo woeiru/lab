@@ -3,14 +3,19 @@
 # rc0 - Common Functions and Logging
 
 # Logging control array
-# Index 0: LVL1 (RED), Index 1: LVL2 (YELLOW), Index 2: LVL3 (GREEN), Index 3: LVL4 (BLUE)
-LOG_LEVELS=(1 1 1 1)
+# Index 0: LVL1 (RED), Index 1: LVL2 (ORANGE), Index 2: LVL3 (YELLOW), Index 3: LVL4 (GREEN),
+# Index 4: LVL5 (CYAN), Index 5: LVL6 (BLUE), Index 6: LVL7 (INDIGO), Index 7: LVL8 (VIOLET)
+LOG_LEVELS=(1 1 1 1 1 1 1 1)
 
 # Color codes
 RED='\033[0;31m'
-YELLOW='\033[0;33m'
+ORANGE='\033[0;33m'
+YELLOW='\033[1;33m'
 GREEN='\033[0;32m'
+CYAN='\033[0;36m'
 BLUE='\033[0;34m'
+INDIGO='\033[0;35m'
+VIOLET='\033[1;35m'
 NC='\033[0m' # No Color
 
 # Logging function
@@ -24,13 +29,25 @@ log() {
             [[ ${LOG_LEVELS[0]} -eq 1 ]] && echo -e "${timestamp} ${RED}LVL1: $message${NC}" >&2
             ;;
         "LVL2")
-            [[ ${LOG_LEVELS[1]} -eq 1 ]] && echo -e "${timestamp} ${YELLOW}LVL2: $message${NC}"
+            [[ ${LOG_LEVELS[1]} -eq 1 ]] && echo -e "${timestamp} ${ORANGE}LVL2: $message${NC}"
             ;;
         "LVL3")
-            [[ ${LOG_LEVELS[2]} -eq 1 ]] && echo -e "${timestamp} ${GREEN}LVL3: $message${NC}"
+            [[ ${LOG_LEVELS[2]} -eq 1 ]] && echo -e "${timestamp} ${YELLOW}LVL3: $message${NC}"
             ;;
         "LVL4")
-            [[ ${LOG_LEVELS[3]} -eq 1 ]] && echo -e "${timestamp} ${BLUE}LVL4: $message${NC}"
+            [[ ${LOG_LEVELS[3]} -eq 1 ]] && echo -e "${timestamp} ${GREEN}LVL4: $message${NC}"
+            ;;
+        "LVL5")
+            [[ ${LOG_LEVELS[4]} -eq 1 ]] && echo -e "${timestamp} ${CYAN}LVL5: $message${NC}"
+            ;;
+        "LVL6")
+            [[ ${LOG_LEVELS[5]} -eq 1 ]] && echo -e "${timestamp} ${BLUE}LVL6: $message${NC}"
+            ;;
+        "LVL7")
+            [[ ${LOG_LEVELS[6]} -eq 1 ]] && echo -e "${timestamp} ${INDIGO}LVL7: $message${NC}"
+            ;;
+        "LVL8")
+            [[ ${LOG_LEVELS[7]} -eq 1 ]] && echo -e "${timestamp} ${VIOLET}LVL8: $message${NC}"
             ;;
         *)
             echo "${timestamp} Unknown log level: $level"
@@ -41,7 +58,7 @@ log() {
 # Function to set up logging
 setup_logging() {
     local log_config=($@)
-    for i in {0..3}; do
+    for i in {0..7}; do
         LOG_LEVELS[$i]=${log_config[$i]:-${LOG_LEVELS[$i]}}
     done
     log "LVL4" "Logging set up with levels: ${LOG_LEVELS[*]}"
