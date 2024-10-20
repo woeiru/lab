@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# rc - Main configuration file
+# Main configuration file
 # This file sources the modular components and handles the main execution
 
 # Define the directory of the script using a POSIX-compliant method
@@ -9,15 +9,15 @@ PARENT_DIR="$DIR/.."
 
 # Source modular components
 source "$DIR/sta"
-source "$DIR/dyn"
+source "$DIR/nav"
 source "$DIR/ssh"
 
 # Main execution
 main() {
     # Call functions from modules
+    setup_dynamic_navigation
     setup_static_aliases
     setup_static_functions
-    generate_dynamic_aliases
     setup_ssh
 
     # Projects
