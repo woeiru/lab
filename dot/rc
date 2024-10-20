@@ -13,16 +13,41 @@ source "$DIR/rc1"
 source "$DIR/rc2"
 source "$DIR/rc3"
 
+# Source all files in lib and var folders
+source_lib_and_var() {
+    local lib_dir="$PARENT_DIR/lib"
+    local var_dir="$PARENT_DIR/var"
+
+    # Source all .bash files in lib directory
+    for file in "$lib_dir"/*.bash; do
+        if [ -f "$file" ]; then
+            source "$file"
+            echo "Sourced lib file: $file"
+        fi
+    done
+
+    # Source all .conf files in var directory
+    for file in "$var_dir"/*.conf; do
+        if [ -f "$file" ]; then
+            source "$file"
+            echo "Sourced var file: $file"
+        fi
+    done
+
+    # Set environment variable to indicate successful sourcing
+    export LABS_ENVIRONMENT_SOURCED=1
+    echo "All lib and var files sourced successfully"
+}
+
 # Main execution
 main() {
     # Call functions from modules
-
-    #rc1
     setup_aliases
-    #rc2
     setup_navigation
-    #rc3
     setup_environment
+
+    # Source lib and var files
+    source_lib_and_var
 }
 
 # Execute main function
