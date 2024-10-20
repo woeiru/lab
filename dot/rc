@@ -5,33 +5,30 @@
 
 # Define the directory of the script using a POSIX-compliant method
 DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" >/dev/null 2>&1 && pwd )"
-PARENT_DIR="$DIR/.."
+#PARENT_DIR="$DIR/.."
+PARENT_DIR="/root/lab"
 
-# Source modular components
+# Source modules
 source "$DIR/rc0"
 source "$DIR/rc1"
 source "$DIR/rc2"
 source "$DIR/rc3"
 
-# Source all files in lib and var folders
-source_lib_and_var() {
-    local lib_dir="$PARENT_DIR/lib"
-    local var_dir="$PARENT_DIR/var"
+sourcing() {
+    log "HEADER" "Starting sourcing"
+    local dirs=("lib" "var")
+    local extensions=("bash" "conf")
 
-    # Source all .bash files in lib directory
-    for file in "$lib_dir"/*.bash; do
-        if [ -f "$file" ]; then
-            source "$file"
-            echo "Sourced lib file: $file"
-        fi
-    done
+    for i in "${!dirs[@]}"; do
+        local dir="$PARENT_DIR/${dirs[i]}"
+        local ext="${extensions[i]}"
 
-    # Source all .conf files in var directory
-    for file in "$var_dir"/*.conf; do
-        if [ -f "$file" ]; then
-            source "$file"
-            echo "Sourced var file: $file"
-        fi
+        for file in "$dir"/*."$ext"; do
+            if [ -f "$file" ]; then
+                source "$file"
+                log "INFO" "Sourced ${dirs[i]} file: $file"
+            fi
+        done
     done
 
     # Set environment variable to indicate successful sourcing
@@ -39,16 +36,17 @@ source_lib_and_var() {
     echo "All lib and var files sourced successfully"
 }
 
-# Main execution
-main() {
+# Main setup execution
+setup() {
     # Call functions from modules
     setup_aliases
     setup_navigation
     setup_environment
 
     # Source lib and var files
-    source_lib_and_var
+
 }
 
 # Execute main function
-main
+setup
+sourcing
