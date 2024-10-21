@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# rc3 module
+# rc4 module
 
 set_environment() {
 
