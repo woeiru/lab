@@ -27,9 +27,9 @@ trap 'error_handler $LINENO' ERR
 source_helper() {
     if [[ -f "$1" ]]; then
         source "$1"
-        log "lvl-3" "$1"
+        log "lvl-4" "Source $1"
     else
-        log "lvl-3" "Warning: File $1 not found." | tee -a "$ERROR_LOG" >&2
+        log "lvl-4" "Warning: File $1 not found." | tee -a "$ERROR_LOG" >&2
     fi
 }
 
@@ -40,51 +40,48 @@ source_arrangement_rc() {
 
     # Source rc modules
     local rc_modules=("rc2" "rc3" "rc4" "rc5")
-    echo "  └─ lvl-2 Sourcing rc files: ${rc_modules[*]}"
+    echo -e "   └─lvl-2 Sourcing rc files: ${rc_modules[*]}"
     for module in "${rc_modules[@]}"; do
-        echo "    └─ lvl-3 Sourcing: $module"
         source_helper "$DIR/$module"
     done
 
     # Source secondary modules
     local secondary_modules=("env")
-    echo "  └─ lvl-2 Sourcing secondary modules: ${secondary_modules[*]}"
+    log "lvl-2" "Sourcing secondary modules: ${secondary_modules[*]}"
     for module in "${secondary_modules[@]}"; do
         module_folder="$DIR/$module"
         if [ -d "$module_folder" ]; then
-            echo "    └─ lvl-3 Processing folder: $module"
+            log "lvl-3" "Processing folder: $module"
             for file in "$module_folder"/*1*; do
                 if [ -f "$file" ]; then
-                    echo "      └─ lvl-4 Sourcing file: $file"
-                    source "$file"
+                    source_helper "$file"
                 fi
             done
         else
-            echo "    └─ lvl-3 Folder $module_folder not found. Skipping."
+            log "lvl-3" "Folder $module_folder not found. Skipping."
         fi
     done
 
     # Source lib and var files
     local dirs=("lib" "var")
     local extensions=("bash" "conf")
-    echo "  └─ lvl-2 Sourcing lib and var files"
+    log "lvl-2" "Sourcing lib and var files"
     for i in "${!dirs[@]}"; do
         local dir="$PARENT_DIR/${dirs[i]}"
         local ext="${extensions[i]}"
-        echo "    └─ lvl-3 Processing directory: $dir (extension: .$ext)"
+        log "lvl-3" "Processing directory: $dir (extension: .$ext)"
         if [[ ! -d "$dir" ]]; then
-            echo "      └─ lvl-4 Warning: Directory $dir not found. Skipping."
+            log "lvl-4" "Warning: Directory $dir not found. Skipping."
             continue
         fi
         for file in "$dir"/*."$ext"; do
             if [[ -f "$file" ]]; then
-                echo "      └─ lvl-4 Sourcing file: $file"
                 source_helper "$file"
             fi
         done
     done
 
-    echo "└─ lvl-1 All modules and files sourced successfully"
+    log "lvl-1" "All modules and files sourced successfully"
 }
 
 # Main execution setup
