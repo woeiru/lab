@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set strict mode
-set -euo pipefail
+set -eo pipefail
 
 # Global variables
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -12,9 +12,6 @@ DEPLOY_LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 INTERACTIVE=false
 TARGET_USER=""
 DEPLOY_DEBUG=${DEPLOY_DEBUG:-true}
-
-# Source the fun.sh file containing numbered functions
-source "$SCRIPT_DIR/fun.sh"
 
 # Improved logging function (renamed to avoid conflicts)
 deploy_log() {
@@ -44,6 +41,12 @@ deploy_log() {
 
     echo -e "${color_code}[$(date '+%Y-%m-%d %H:%M:%S')] [$level]\033[0m $message" | tee -a "$DEPLOY_LOG_FILE"
 }
+
+# Export the deploy_log function so it's available to sourced scripts
+export -f deploy_log
+
+# Source the fun.sh file containing numbered functions
+source "$SCRIPT_DIR/fun.sh"
 
 # Function to display usage information
 usage() {

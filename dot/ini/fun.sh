@@ -2,6 +2,12 @@
 
 # Numbered functions (main workflow)
 
+# Check if deploy_log function is available
+if ! command -v deploy_log &> /dev/null; then
+    echo "Error: deploy_log function not found. Make sure start.sh is sourcing this file correctly."
+    exit 1
+fi
+
 # 1. Check shell version - Verify Bash 4+ or Zsh 5+ is being used, exit if requirements not met
 check_shell_version() {
     deploy_log "INFO" "Checking shell version compatibility..."
