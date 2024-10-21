@@ -783,3 +783,76 @@ gen-sca() {
     fi
     echo "Debug: Raw command: $command"
 }
+
+# An interactive Bash function that guides users through Git history navigation, offering options for reset type and subsequent actions, with built-in safeguards and explanations.
+# GRE: Git Reset Explorer
+# Usage: gen-gre  # Then follow prompts, e.g., enter '2' for commits, '3' for hard reset, '2' to create new branch 'feat
+gen-gre() {
+    echo "Welcome to the Git Reset Explorer (gen-gre)!"
+    echo "This function will guide you through the process of moving back in Git history."
+    echo
+
+    # Step 1: Determine how many commits to go back
+    read -p "How many commits do you want to go back? " num_commits
+
+    # Step 2: Determine the reset type
+    echo
+    echo "What type of reset do you want to perform?"
+    echo "1. Soft (move HEAD but leave staging and working directory unchanged)"
+    echo "2. Mixed (move HEAD and reset staging, but leave working directory unchanged)"
+    echo "3. Hard (move HEAD, reset staging, and reset working directory)"
+    read -p "Enter your choice (1/2/3): " reset_type
+
+    # Construct the reset command
+    case $reset_type in
+        1) reset_cmd="git reset --soft HEAD~$num_commits" ;;
+        2) reset_cmd="git reset HEAD~$num_commits" ;;
+        3) reset_cmd="git reset --hard HEAD~$num_commits" ;;
+        *) echo "Invalid choice. Exiting."; return 1 ;;
+    esac
+
+    # Execute the reset command
+    echo
+    echo "Executing: $reset_cmd"
+    eval $reset_cmd
+
+    # Step 3: Handle the new state
+    echo
+    echo "Reset complete. What would you like to do with this new state?"
+    echo "1. Keep this state (do nothing further)"
+    echo "2. Create a new branch at this point"
+    echo "3. Force push this state to the remote (caution: rewrites history)"
+    echo "4. Create a new commit with this state"
+    read -p "Enter your choice (1/2/3/4): " state_choice
+
+    case $state_choice in
+        1)
+            echo "Keeping the current state. No further action needed."
+            ;;
+        2)
+            read -p "Enter the name for the new branch: " branch_name
+            git checkout -b $branch_name
+            echo "Created and switched to new branch: $branch_name"
+            ;;
+        3)
+            read -p "Enter the name of the remote branch to force push to: " remote_branch
+            git push -f origin HEAD:$remote_branch
+            echo "Force pushed to $remote_branch. Remote history has been rewritten."
+            ;;
+        4)
+            read -p "Enter a commit message: " commit_message
+            git commit -m "$commit_message"
+            echo "Created a new commit with the message: $commit_message"
+            ;;
+        *)
+            echo "Invalid choice. No further action taken."
+            ;;
+    esac
+
+    echo
+    echo "Gen-gre process complete. Your repository is now in the following state:"
+    git status
+    echo
+    echo "Current commit:"
+    git log -1 --oneline
+}
