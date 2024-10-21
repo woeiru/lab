@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set strict mode
-set -euo pipefail
+set -eo pipefail
 
 # Global variables
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
