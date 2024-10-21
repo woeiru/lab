@@ -40,67 +40,51 @@ source_arrangement_rc() {
 
     # Source rc modules
     local rc_modules=("rc2" "rc3" "rc4" "rc5")
-    echo "  └─ lvl-2 sourcing files $rc_var_name(${rc_modules[*]})"
+    echo "  └─ lvl-2 Sourcing rc files: ${rc_modules[*]}"
     for module in "${rc_modules[@]}"; do
+        echo "    └─ lvl-3 Sourcing: $module"
         source_helper "$DIR/$module"
     done
 
-    # Define an array of secondary module names (same as folder names)
-    secondary_modules=("env")
-
-    # Loop through each secondary modules
+    # Source secondary modules
+    local secondary_modules=("env")
+    echo "  └─ lvl-2 Sourcing secondary modules: ${secondary_modules[*]}"
     for module in "${secondary_modules[@]}"; do
         module_folder="$DIR/$module"
-
-        # Check if the folder exists
         if [ -d "$module_folder" ]; then
-            log "lvl-3" "Sourcing folder $module"
-
-            # Find and source the file ending with '1' in the folder
+            echo "    └─ lvl-3 Processing folder: $module"
             for file in "$module_folder"/*1*; do
                 if [ -f "$file" ]; then
-                    log "lvl-3" "Sourcing file: $file"
+                    echo "      └─ lvl-4 Sourcing file: $file"
                     source "$file"
                 fi
             done
         else
-            log "lvl-2" "Folder $module_folder not found. Skipping."
+            echo "    └─ lvl-3 Folder $module_folder not found. Skipping."
         fi
     done
 
     # Source lib and var files
-log "lvl-2" "Starting to source lib and var files"
     local dirs=("lib" "var")
     local extensions=("bash" "conf")
-
-    log "lvl-3" "Directories to process: ${dirs[*]}"
-    log "lvl-3" "File extensions to look for: ${extensions[*]}"
-
+    echo "  └─ lvl-2 Sourcing lib and var files"
     for i in "${!dirs[@]}"; do
         local dir="$PARENT_DIR/${dirs[i]}"
         local ext="${extensions[i]}"
-
-        log "lvl-3" "Processing directory: $dir"
-        log "lvl-4" "Looking for files with extension: .$ext"
-
+        echo "    └─ lvl-3 Processing directory: $dir (extension: .$ext)"
         if [[ ! -d "$dir" ]]; then
-            log "lvl-3" "Warning: Directory $dir not found." | tee -a "$ERROR_LOG" >&2
+            echo "      └─ lvl-4 Warning: Directory $dir not found. Skipping."
             continue
         fi
-
-        local file_count=0
         for file in "$dir"/*."$ext"; do
             if [[ -f "$file" ]]; then
-                log "lvl-4" "Sourcing file: $file"
+                echo "      └─ lvl-4 Sourcing file: $file"
                 source_helper "$file"
-                ((file_count++))
             fi
         done
-
-        log "lvl-3" "Finished processing $dir. Sourced $file_count files."
     done
 
-    log "lvl-2" "Completed sourcing all lib and var files"
+    echo "└─ lvl-1 All modules and files sourced successfully"
 }
 
 # Main execution setup
