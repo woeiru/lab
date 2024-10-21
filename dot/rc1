@@ -11,6 +11,13 @@ PARENT_DIR="/root/lab"
 # Log file for stderr
 ERROR_LOG="/tmp/rc_error.log"
 
+clean_exit() {
+    local exit_code=${1:-0}
+    trap - ERR  # Remove the error trap
+    trap - EXIT # Remove exit trap if any
+    exit $exit_code
+}
+
 # Function to handle errors
 error_handler() {
     local exit_code=$?
@@ -20,7 +27,7 @@ error_handler() {
     echo "Debug: \$0 value: $0" >> "$ERROR_LOG"
     local source_file="${BASH_SOURCE[1]:-${0:-$command}}"
     source_file="${source_file:-"<unknown-source>"}"  # Final fallback
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - Error in $source_file on line $line_number: Command '$command' exited with status $exit_code" | tee -a "$ERROR_LOG" >&2
+    echo "└─ lvl-0 $(date '+%Y%m%d%H%M%S') - Error in $source_file on line $line_number: Command '$command' exited with status $exit_code" | tee -a "$ERROR_LOG" >&2
 }
 
 # Set up error handling
@@ -167,3 +174,6 @@ main_rc() {
 
 # Execute main function
 main_rc
+
+# Export it so it's available to other scripts
+export -f clean_exit
