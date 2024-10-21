@@ -92,8 +92,7 @@ main() {
         return 1
     else
         echo ""
-        log "lv1" "Setup completed successfully."
-        log "lv2" "Error logging is set up. Check /tmp/rc_error.log for any errors."
+        echo "Setup completed successfully."
         echo ""
     fi
 }
