@@ -61,7 +61,7 @@ log() {
 }
 
 # Function to set up logging
-logset() {
+setlog() {
     if ! $LOG_TOGGLE; then
         echo "Logging is disabled."
         return
@@ -116,7 +116,7 @@ source_if_exists() {
 
 # Export functions and variables
 export -f log
-export -f logset
+export -f setlog
 export -f command_exists
 export -f source_if_exists
 export LOG_LEVELS
