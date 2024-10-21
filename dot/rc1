@@ -40,7 +40,7 @@ source_arrangement_rc() {
 
     # Source rc modules
     local rc_modules=("rc2" "rc3" "rc4" "rc5")
-    echo -e "   └─lvl-2 Sourcing rc files: ${rc_modules[*]}"
+    echo -e "  └─lvl-2 Sourcing rc files: ${rc_modules[*]}"
     for module in "${rc_modules[@]}"; do
         source_helper "$DIR/$module"
     done
@@ -80,8 +80,6 @@ source_arrangement_rc() {
             fi
         done
     done
-
-    log "lvl-1" "All modules and files sourced successfully"
 }
 
 # Main execution setup
@@ -101,7 +99,7 @@ execute_functions() {
 # Execution arrangement for rc
 execution_arrangement_rc() {
     echo ""
-    log "lvl-1" "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
+    log "lvl-1" "Starting \033[1m${FUNCNAME[0]} () \033[0m"
     local set_functions=("set_dynamic" "set_static" "set_aliaswrap")
     execute_functions "${set_functions[@]}"
 }
@@ -109,13 +107,14 @@ execution_arrangement_rc() {
 # Execution arrangement for modules
 execution_arrangement_modules() {
     echo ""
-    log "lvl-1" "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
-    local module_functions=("mod_env")
+    log "lvl-1" "Starting \033[1m${FUNCNAME[0]} () \033[0m"
+    local module_functions=("main_env")
     execute_functions "${module_functions[@]}"
+
 }
 
 # Main execution
-main() {
+main_rc() {
     source_arrangement_rc
     execution_arrangement_rc
     execution_arrangement_modules
@@ -128,10 +127,9 @@ main() {
         echo "Error: Environment sourcing failed." | tee -a "$ERROR_LOG" >&2
         return 1
     else
-        echo "Setup completed successfully."
         echo ""
     fi
 }
 
 # Execute main function
-main
+main_rc
