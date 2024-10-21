@@ -14,9 +14,8 @@ log_info() {
 }
 
 print_usage() {
-    echo "Usage: $0 MODE OPTION SECTION"
+    echo "Usage: $0 MODE SECTION"
     echo "MODE: -i (interactive) or -x (executing)"
-    echo "OPTION: For -i: 1-6 (display mode), For -x: -d (dry run) or -p (production)"
     echo "SECTION: Function name or -all"
 }
 
@@ -59,24 +58,23 @@ setup_source() {
 setup_main() {
     log_info "Starting setup_main with arguments: $@"
 
-    if [ "$#" -ne 3 ]; then
+    if [ "$#" -ne 2 ]; then
         log_error "Incorrect number of arguments."
         print_usage
         return 1
     fi
 
     local mode="$1"
-    local option="$2"
-    local section="$3"
+    local section="$2"
 
     case "$mode" in
         -i)
             log_info "Entering interactive mode"
-            setup_interactive_mode "$option" "$section"
+            setup_interactive_mode "$section"
             ;;
         -x)
             log_info "Entering executing mode"
-            setup_executing_mode "$option" "$section"
+            setup_executing_mode "$section"
             ;;
         *)
             log_error "Invalid mode. Use -i for interactive or -x for executing."
@@ -87,27 +85,14 @@ setup_main() {
 }
 
 setup_interactive_mode() {
-    local display_mode="$1"
-    local section="$2"
+    local section="$1"
 
-    setup_display_menu "$DIR_SH" "$FILE_SH" "$display_mode" "$section"
+    setup_display_menu "$DIR_SH" "$FILE_SH" "1" "$section"
 
     if [[ "$section" != "-all" ]]; then
         read -p "Do you want to execute this code? (y/n): " execute_choice
         if [[ "$execute_choice" == "y" ]]; then
-            read -p "Choose execution mode (d for dry run, p for production): " exec_mode
-            case "$exec_mode" in
-                d)
-                    setup_executing_mode "-d" "$section"
-                    ;;
-                p)
-                    setup_executing_mode "-p" "$section"
-                    ;;
-                *)
-                    echo "Invalid execution mode. Exiting."
-                    exit 1
-                    ;;
-            esac
+            setup_executing_mode "$section"
         fi
     else
         select_and_execute_sections
@@ -123,24 +108,10 @@ select_and_execute_sections() {
         sections="${!MENU_OPTIONS[@]}"
     fi
 
-    read -p "Choose execution mode (d for dry run, p for production): " exec_mode
-    case "$exec_mode" in
-        d)
-            option="-d"
-            ;;
-        p)
-            option="-p"
-            ;;
-        *)
-            echo "Invalid execution mode. Exiting."
-            exit 1
-            ;;
-    esac
-
     for section in $sections; do
         if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
             echo "Executing section: $section"
-            setup_executing_mode "$option" "$section"
+            setup_executing_mode "$section"
         else
             echo "Invalid section: $section. Skipping."
         fi
@@ -148,23 +119,7 @@ select_and_execute_sections() {
 }
 
 setup_executing_mode() {
-    local option="$1"
-    local section="$2"
-
-    case "$option" in
-        -d)
-            echo "Executing in dry run mode"
-            # Add dry run logic here
-            ;;
-        -p)
-            echo "Executing in production mode"
-            # Add production execution logic here
-            ;;
-        *)
-            echo "Invalid option for executing mode. Use -d for dry run or -p for production."
-            exit 1
-            ;;
-    esac
+    local section="$1"
 
     if [[ "$section" == "-all" ]]; then
         for func in "${!MENU_OPTIONS[@]}"; do
@@ -251,8 +206,7 @@ setup_display_menu() {
                 if [[ "$inner_line" == "}" ]]; then
                     in_function=false
                     echo ""
-                elif $in_function; then
-                    case "$display_choice" in
+                elif $in_function; case "$display_choice" in
                         1)
                             echo "$inner_line"
                             ;;
