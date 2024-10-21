@@ -13,18 +13,14 @@ log_info() {
     echo "INFO: $1"
 }
 
-log_info "Starting gen.sh"
-
 # Sourcing
 DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
 
-log_info "Sourcing .up file"
-source "$DIR_SH/.up" || log_error "Failed to source .up file"
+source "$DIR_SH/.up"
 
-log_info "Calling setup_source"
-setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH" || log_error "setup_source failed"
+setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 
 # Declare MENU_OPTIONS
 declare -A MENU_OPTIONS
@@ -33,9 +29,8 @@ MENU_OPTIONS[b]="b_xall"
 MENU_OPTIONS[x]="x_xall"
 
 a_xall() {
-    log_info "Executing a_xall"
-    gen-ipa "$PACKAGES_ALL" || log_error "gen-ipa failed"
-    gen-gst "$GIT_USERNAME" "$GIT_USERMAIL" || log_error "gen-gst failed"
+    gen-ipa "$PACKAGES_ALL"
+    gen-gst "$GIT_USERNAME" "$GIT_USERMAIL"
 }
 
 b_xall() {
@@ -45,10 +40,7 @@ b_xall() {
         "$MOUNT_POINT" \
         "$SUBFOLDER_PATH" \
         "$UPLOAD_PATH" \
-        "$PRIVATE_KEY" || log_error "gen-suk failed"
+        "$PRIVATE_KEY"
 }
 
-log_info "Calling setup_main"
-setup_main "$@" || log_error "setup_main failed"
-
-log_info "End of gen.sh reached"
+setup_main "$@"
