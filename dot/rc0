@@ -5,8 +5,8 @@
 LOG_TOGGLE=true
 
 # Logging control array
-# Index 0: LVL1 (RED), Index 1: LVL2 (ORANGE), Index 2: LVL3 (YELLOW), Index 3: LVL4 (GREEN),
-# Index 4: LVL5 (CYAN), Index 5: LVL6 (BLUE), Index 6: LVL7 (INDIGO), Index 7: LVL8 (VIOLET)
+# Index 0: lv1 (RED), Index 1: lv2 (ORANGE), Index 2: lv3 (YELLOW), Index 3: lv4 (GREEN),
+# Index 4: lv5 (CYAN), Index 5: lv6 (BLUE), Index 6: lv7 (INDIGO), Index 7: lv8 (VIOLET)
 LOG_LEVELS=(1 1 0 0 0 0 0 0)
 
 # Color codes (only for indentation)
@@ -29,20 +29,20 @@ log() {
     local level=$1
     local message=$2
     local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
-    local level_num=${level#LVL}
+    local level_num=${level#lv}
     local indent=""
     local color=""
 
     # Set color based on level
     case $level in
-        "LVL1") color=$RED ;;
-        "LVL2") color=$ORANGE ;;
-        "LVL3") color=$YELLOW ;;
-        "LVL4") color=$GREEN ;;
-        "LVL5") color=$CYAN ;;
-        "LVL6") color=$BLUE ;;
-        "LVL7") color=$INDIGO ;;
-        "LVL8") color=$VIOLET ;;
+        "lv1") color=$RED ;;
+        "lv2") color=$ORANGE ;;
+        "lv3") color=$YELLOW ;;
+        "lv4") color=$GREEN ;;
+        "lv5") color=$CYAN ;;
+        "lv6") color=$BLUE ;;
+        "lv7") color=$INDIGO ;;
+        "lv8") color=$VIOLET ;;
         *) color=$NC ;;
     esac
 
@@ -80,7 +80,7 @@ set_log() {
         start=${BASH_REMATCH[1]}
         end=${BASH_REMATCH[2]}
     else
-        log "LVL1" "Invalid range format. Please use 'start-end' (e.g., '1-3' or '2-5')."
+        log "lv1" "Invalid range format. Please use 'start-end' (e.g., '1-3' or '2-5')."
         return 1
     fi
 
@@ -98,8 +98,8 @@ set_log() {
     local rc0_file="${BASH_SOURCE[0]}"
     sed -i "s/LOG_LEVELS=(1 1 0 0 0 0 0 0)/" "$rc0_file"
 
-    log "LVL4" "Logging set up with levels: ${LOG_LEVELS[*]}"
-    log "LVL4" "rc0 file updated: $rc0_file"
+    log "lv4" "Logging set up with levels: ${LOG_LEVELS[*]}"
+    log "lv4" "rc0 file updated: $rc0_file"
 }
 
 # Utility function to check if a command exists
@@ -111,9 +111,9 @@ command_exists() {
 source_if_exists() {
     if [ -f "$1" ]; then
         source "$1"
-        log "LVL3" "Sourced file: $1"
+        log "lv3" "Sourced file: $1"
     else
-        log "LVL1" "File not found: $1"
+        log "lv1" "File not found: $1"
     fi
 }
 
