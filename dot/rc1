@@ -38,7 +38,7 @@ source_rc() {
     echo -e "   └─ lvl-1 Starting \033[1m ${FUNCNAME[0]} () \033[0m"
     # Source rc modules
     local rc_modules=("rc2" "rc3" "rc4" "rc5")
-    echo -e "      └─lvl-2 Sourcing rc files: ${rc_modules[*]}"
+    echo -e "      └─lvl-2 Source ${rc_modules[*]}"
     for module in "${rc_modules[@]}"; do
         source_helper "$DIR/$module"
     done
