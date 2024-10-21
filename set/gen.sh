@@ -1,23 +1,11 @@
 #!/bin/bash
 
-# Enable error handling and logging
-# set -e
-# exec 2>>/tmp/gen_error.log
-# set -x
-
-log_error() {
-    echo "ERROR: $1" >&2
-}
-
-log_info() {
-    echo "INFO: $1"
-}
-
-# Sourcing
+# Define script location
 DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
 
+# Source .up which provides logging and other core functionality
 source "$DIR_SH/.up"
 
 setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
@@ -34,7 +22,6 @@ a_xall() {
 }
 
 b_xall() {
-    log_info "Executing b_xall"
     gen-suk \
         "$DEVICE_PATH" \
         "$MOUNT_POINT" \
@@ -43,4 +30,9 @@ b_xall() {
         "$PRIVATE_KEY"
 }
 
-setup_main "$@"
+# Handle script execution with default to interactive mode
+if [ $# -eq 0 ]; then
+    setup_main "-i"
+else
+    setup_main "$@"
+fi
