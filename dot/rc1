@@ -34,17 +34,14 @@ source_helper() {
 }
 
 # Main sourcing function
-source_arrangement_rc() {
-    echo ""
-    echo -e "└─ lvl-1 Starting \033[1m ${FUNCNAME[0]} () \033[0m"
-
+source_rc() {
+    echo -e "   └─ lvl-1 Starting \033[1m ${FUNCNAME[0]} () \033[0m"
     # Source rc modules
     local rc_modules=("rc2" "rc3" "rc4" "rc5")
-    echo -e "  └─lvl-2 Sourcing rc files: ${rc_modules[*]}"
+    echo -e "      └─lvl-2 Sourcing rc files: ${rc_modules[*]}"
     for module in "${rc_modules[@]}"; do
         source_helper "$DIR/$module"
     done
-
     # Source secondary modules
     local secondary_modules=("env")
     log "lvl-2" "Sourcing secondary modules: ${secondary_modules[*]}"
@@ -61,7 +58,6 @@ source_arrangement_rc() {
             log "lvl-3" "Folder $module_folder not found. Skipping."
         fi
     done
-
     # Source lib and var files
     local dirs=("lib" "var")
     local extensions=("bash" "conf")
@@ -82,11 +78,11 @@ source_arrangement_rc() {
     done
 }
 
-# Main execution setup
-# Helper function to check and execute functions
-execute_functions() {
-    local func_array=("$@")
-    for func in "${func_array[@]}"; do
+# Execution arrangement for rc
+execution_rc() {
+    log "lvl-1" "Starting \033[1m${FUNCNAME[0]} () \033[0m"
+    local set_functions=("set_dynamic" "set_static" "set_aliaswrap")
+    for func in "${set_functions[@]}"; do
         if type "$func" &>/dev/null; then
             log "lvl-3" "Executing $func"
             $func
@@ -96,38 +92,73 @@ execute_functions() {
     done
 }
 
-# Execution arrangement for rc
-execution_arrangement_rc() {
-    echo ""
-    log "lvl-1" "Starting \033[1m${FUNCNAME[0]} () \033[0m"
-    local set_functions=("set_dynamic" "set_static" "set_aliaswrap")
-    execute_functions "${set_functions[@]}"
-}
-
 # Execution arrangement for modules
-execution_arrangement_modules() {
-    echo ""
+execution_modules() {
     log "lvl-1" "Starting \033[1m${FUNCNAME[0]} () \033[0m"
     local module_functions=("main_env")
-    execute_functions "${module_functions[@]}"
-
+    for func in "${module_functions[@]}"; do
+        if type "$func" &>/dev/null; then
+            log "lvl-3" "Executing $func"
+            $func
+        else
+            log "lvl-3" "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
+        fi
+    done
 }
 
 # Main execution
 main_rc() {
-    source_arrangement_rc
-    execution_arrangement_rc
-    execution_arrangement_modules
+    echo -e "└─ lvl-0 Starting \033[1m${FUNCNAME[0]} () \033[0m"
+    local source_success=0
+    local execution_rc_success=0
+    local execution_modules_success=0
 
-    # Set environment variable to indicate successful setup
-    export LABS_ENVIRONMENT_SOURCED=1
 
-    # Final check
-    if [[ -z "${LABS_ENVIRONMENT_SOURCED}" ]]; then
-        echo "Error: Environment sourcing failed." | tee -a "$ERROR_LOG" >&2
+    if source_rc; then
+        export SOURCE_RC_SUCCESS=1
+        source_success=1
+    else
+        unset SOURCE_RC_SUCCESS
+    fi
+
+    if execution_rc; then
+        export EXECUTION_RC_SUCCESS=1
+        execution_rc_success=1
+    else
+        unset EXECUTION_RC_SUCCESS
+    fi
+
+    if execution_modules; then
+        export EXECUTION_MODULES_SUCCESS=1
+        execution_modules_success=1
+    else
+        unset EXECUTION_MODULES_SUCCESS
+    fi
+
+    if [[ $source_success -eq 1 && $execution_rc_success -eq 1 && $execution_modules_success -eq 1 ]]; then
+        export RC_SOURCED=1
+    else
+        unset RC_SOURCED
+    fi
+
+    if [[ -z "${SOURCE_RC_SUCCESS}" ]]; then
+        log "lvl-2" "Error: Source rc failed." | tee -a "$ERROR_LOG" >&2
+    fi
+
+    if [[ -z "${EXECUTION_RC_SUCCESS}" ]]; then
+        log "lvl-2" "Error: Execution rc failed." | tee -a "$ERROR_LOG" >&2
+    fi
+
+    if [[ -z "${EXECUTION_MODULES_SUCCESS}" ]]; then
+        log "lvl-2" "Error: Execution modules failed." | tee -a "$ERROR_LOG" >&2
+    fi
+
+    if [[ -z "${RC_SOURCED}" ]]; then
+        log "lvl-2" "Error: Overall RC sourcing failed." | tee -a "$ERROR_LOG" >&2
         return 1
     else
-        echo ""
+        log "lvl-2" "Setup completed successfully."
+        return 0
     fi
 }
 
