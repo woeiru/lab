@@ -12,7 +12,7 @@ DEPLOY_LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 INTERACTIVE=false
 TARGET_USER=""
 DEPLOY_DEBUG=${DEPLOY_DEBUG:-false}
-FUNCTION_FILE="func.sh"  # Variable for the function file name
+FUNCTION_FILE="flow.sh"  # Variable for the function file name
 INJECT_FILE="inject"  # New variable for the inject file name
 
 # Improved logging function (renamed to avoid conflicts)
@@ -259,8 +259,6 @@ main() {
     grep -E '^# [0-9]+\.' "$SCRIPT_DIR/$FUNCTION_FILE" | sed -E 's/^# ([0-9]+)\. (.+)/\1. \2/' | while read -r line; do
         deploy_log "INFO" "$line"
     done
-    deploy_log "INFO" "=================================================="
-
     read -p "Do you want to proceed? (y/n): " choice
     case "$choice" in
         y|Y ) ;;
