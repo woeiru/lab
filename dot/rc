@@ -27,7 +27,7 @@ trap 'error_handler $LINENO' ERR
 source_helper() {
     if [[ -f "$1" ]]; then
         source "$1"
-        echo "INFO: Sourced file: $1"
+        echo "└─Sourced file: $1"
     else
         echo "Warning: File $1 not found." | tee -a "$ERROR_LOG" >&2
     fi
@@ -35,8 +35,8 @@ source_helper() {
 
 # Main sourcing function
 source_setup() {
-    echo "HEADER: Starting sourcing"
-
+    echo ""
+    echo -e "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
     # Source rc modules
     local rc_modules=("rc0" "rc1" "rc2" "rc3")
     for module in "${rc_modules[@]}"; do
@@ -65,6 +65,8 @@ source_setup() {
 
 # Main execution setup
 execution_setup() {
+    echo ""
+    echo -e "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
     # Check if required functions exist before calling them
     local required_functions=("setup_navigation" "setup_aliases" "setup_environment")
     for func in "${required_functions[@]}"; do
@@ -85,6 +87,8 @@ aliaswrap() {
 
 # Wrap all aliases with the error trapping function
 aliaswrap_setup() {
+    echo ""
+    echo -e "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
     while read -r alias_def; do
         if [[ $alias_def =~ ^alias\ ([^=]+)=(.*)$ ]]; then
             alias_name="${BASH_REMATCH[1]}"
@@ -95,7 +99,7 @@ aliaswrap_setup() {
             alias "$alias_name"="aliaswrap $alias_command"
         fi
     done < <(alias)
-    echo "All aliases have been wrapped with error trapping."
+    log "LVL1" "All aliases have been wrapped with error trapping."
 }
 
 
@@ -113,8 +117,10 @@ main() {
         echo "Error: Environment sourcing failed." | tee -a "$ERROR_LOG" >&2
         return 1
     else
+        echo ""
         echo "Setup completed successfully."
         echo "Error logging is set up. Check /tmp/rc_error.log for any errors."
+        echo ""
     fi
 }
 
