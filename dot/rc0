@@ -67,7 +67,7 @@ log() {
 }
 
 # Function to set up logging
-set_log() {
+logset() {
     if ! $LOG_TOGGLE; then
         echo "Logging is disabled."
         return
