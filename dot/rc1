@@ -27,26 +27,26 @@ trap 'error_handler $LINENO' ERR
 source_helper() {
     if [[ -f "$1" ]]; then
         source "$1"
-        log "lvl-2" "$1"
+        log "lvl-3" "$1"
     else
-        log "lvl-2" "Warning: File $1 not found." | tee -a "$ERROR_LOG" >&2
+        log "lvl-3" "Warning: File $1 not found." | tee -a "$ERROR_LOG" >&2
     fi
 }
 
 # Main sourcing function
 source_arrangement_rc() {
     echo ""
-    echo -e "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
+    echo -e "└─ lvl-1 Starting \033[1m ${FUNCNAME[0]} () \033[0m"
 
     # Source rc modules
     local rc_modules=("rc2" "rc3" "rc4" "rc5")
-    echo "└─ lvl-1 sourcing files $rc_var_name(${rc_modules[*]})"
+    echo "  └─ lvl-2 sourcing files $rc_var_name(${rc_modules[*]})"
     for module in "${rc_modules[@]}"; do
         source_helper "$DIR/$module"
     done
 
     # Define an array of secondary module names (same as folder names)
-    secondary_modules=("env" "tst")
+    secondary_modules=("env")
 
     # Loop through each secondary modules
     for module in "${secondary_modules[@]}"; do
@@ -54,39 +54,53 @@ source_arrangement_rc() {
 
         # Check if the folder exists
         if [ -d "$module_folder" ]; then
-            log "lvl-1" "Sourcing folder $module"
+            log "lvl-3" "Sourcing folder $module"
 
             # Find and source the file ending with '1' in the folder
             for file in "$module_folder"/*1*; do
                 if [ -f "$file" ]; then
-                    log "lvl-2" "Sourcing file: $file"
+                    log "lvl-3" "Sourcing file: $file"
                     source "$file"
                 fi
             done
         else
-            log "lvl-1" "Folder $module_folder not found. Skipping."
+            log "lvl-2" "Folder $module_folder not found. Skipping."
         fi
     done
 
     # Source lib and var files
+log "lvl-2" "Starting to source lib and var files"
     local dirs=("lib" "var")
     local extensions=("bash" "conf")
-    log "lvl-1" "sourcing folders$dirs_var_name (${dirs[*]}) with extensions $extensions_var_name(${extensions[*]})"
+
+    log "lvl-3" "Directories to process: ${dirs[*]}"
+    log "lvl-3" "File extensions to look for: ${extensions[*]}"
+
     for i in "${!dirs[@]}"; do
-        log "lvl-2" "cycling dirs"
         local dir="$PARENT_DIR/${dirs[i]}"
         local ext="${extensions[i]}"
+
+        log "lvl-3" "Processing directory: $dir"
+        log "lvl-4" "Looking for files with extension: .$ext"
+
         if [[ ! -d "$dir" ]]; then
             log "lvl-3" "Warning: Directory $dir not found." | tee -a "$ERROR_LOG" >&2
             continue
         fi
+
+        local file_count=0
         for file in "$dir"/*."$ext"; do
             if [[ -f "$file" ]]; then
+                log "lvl-4" "Sourcing file: $file"
                 source_helper "$file"
+                ((file_count++))
             fi
         done
+
+        log "lvl-3" "Finished processing $dir. Sourced $file_count files."
     done
-    log "lvl-1" "All modules and files sourced successfully"
+
+    log "lvl-2" "Completed sourcing all lib and var files"
 }
 
 # Main execution setup
@@ -95,10 +109,10 @@ execute_functions() {
     local func_array=("$@")
     for func in "${func_array[@]}"; do
         if type "$func" &>/dev/null; then
-            log "lvl-2" "Executing $func"
+            log "lvl-3" "Executing $func"
             $func
         else
-            log "lvl-2" "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
+            log "lvl-3" "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
         fi
     done
 }
@@ -114,7 +128,7 @@ execution_arrangement_rc() {
 # Execution arrangement for modules
 execution_arrangement_modules() {
     echo ""
-    log "lvl-1" "tarting \033[1m ${FUNCNAME[0]} () \033[0m"
+    log "lvl-1" "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
     local module_functions=("mod_env")
     execute_functions "${module_functions[@]}"
 }
