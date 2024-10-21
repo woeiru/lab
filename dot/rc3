@@ -30,7 +30,7 @@ set_aliaswrap() {
                 alias "$alias_name"="aliaswrap $alias_command"
             fi
         done < <(alias)
-        log "LVL1" "All aliases have been wrapped with error trapping."
+        log "lv1" "All aliases have been wrapped with error trapping."
     else
         echo "Alias wrapping is disabled."
     fi

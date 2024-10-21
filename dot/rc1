@@ -4,35 +4,35 @@
 
 set_dynamic() {
 
-    log "LVL1" "Starting setup_navigation function"
+    log "lv1" "Starting setup_navigation function"
 
     generate_readme_aliases
 
     generate_level_one_vars_and_aliases
     generate_level_two_arrays
 
-    log "LVL2" "Generating aliases for lib_files"
+    log "lv2" "Generating aliases for lib_files"
     generate_aliases "cat" "$LIB_DIR" "${lib_files[@]}"
     generate_aliases "vim" "$LIB_DIR" "${lib_files[@]}"
 
-    log "LVL2" "Generating aliases for set_files"
+    log "lv2" "Generating aliases for set_files"
     generate_aliases "cat" "$SET_DIR" "${set_files[@]}"
     generate_aliases "vim" "$SET_DIR" "${set_files[@]}"
     generate_aliases "bash" "$SET_DIR" "${set_files[@]}"
 
-    log "LVL2" "Generating aliases for var_files"
+    log "lv2" "Generating aliases for var_files"
     generate_aliases "cat" "$VAR_DIR" "${var_files[@]}"
     generate_aliases "vim" "$VAR_DIR" "${var_files[@]}"
 
-    log "LVL2" "Sourcing scripts from lib_files"
+    log "lv2" "Sourcing scripts from lib_files"
 
 }
 
 generate_readme_aliases() {
-    log "LVL2" "Generating readme aliases"
+    log "lv2" "Generating readme aliases"
     local FILEBASE_MD="readme.md"
     while IFS= read -r -d '' file; do
-        log "LVL3" "Processing readme file: $file"
+        log "lv3" "Processing readme file: $file"
         dir=$(dirname "$file")
         dir_name=$(basename "$dir")
         parent_dir=$(basename "$(dirname "$dir")")
@@ -43,34 +43,34 @@ generate_readme_aliases() {
         fi
         alias "c-$alias_name=cat $file"
         alias "v-$alias_name=vim $file"
-        log "LVL4" "Created aliases: c-$alias_name and v-$alias_name for $file"
+        log "lv4" "Created aliases: c-$alias_name and v-$alias_name for $file"
     done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
 }
 
 generate_level_one_vars_and_aliases() {
-    log "LVL2" "Generating top-level directory aliases"
+    log "lv2" "Generating top-level directory aliases"
     for dir in "$PARENT_DIR"/*; do
         if [[ -d "$dir" ]]; then
             base=$(basename "$dir")
             if [[ ${#base} -eq 3 ]]; then
-                log "LVL3" "Processing directory: $base"
+                log "lv3" "Processing directory: $base"
                 var_name="${base^^}_DIR"
                 dir_path=$(realpath "$dir")
                 declare -g "$var_name=$dir_path"
                 alias "d-$base=cd $dir_path"
-                log "LVL4" "Created alias: d-$base -> cd $dir_path"
+                log "lv4" "Created alias: d-$base -> cd $dir_path"
             fi
         fi
     done
 }
 
 generate_level_two_arrays() {
-    log "LVL2" "Generating level two arrays"
+    log "lv2" "Generating level two arrays"
     local generation_folders=(lib set var)
 
     for folder in "${generation_folders[@]}"; do
         local dir_path="$PARENT_DIR/$folder"
-        log "LVL3" "Processing folder: $folder, path: $dir_path"
+        log "lv3" "Processing folder: $folder, path: $dir_path"
 
         if [[ -d "$dir_path" ]]; then
             local array_name="${folder}_files"
@@ -80,30 +80,30 @@ generate_level_two_arrays() {
                 base_name=$(basename "$file")
                 name_without_ext="${base_name%.*}"
                 files+=("$name_without_ext")
-                log "LVL6" "Added file to $array_name: $name_without_ext"
+                log "lv6" "Added file to $array_name: $name_without_ext"
             done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*.bash" -o -name "*.sh" -o -name "*.conf" \) -print0)
 
             eval "declare -ga $array_name=(${files[*]})"
-            log "LVL5" "Created array $array_name with values: ${!array_name[*]}"
+            log "lv5" "Created array $array_name with values: ${!array_name[*]}"
         else
-            log "LVL3" "Directory not found: $dir_path"
+            log "lv3" "Directory not found: $dir_path"
         fi
     done
 }
 
 generate_aliases() {
-    log "LVL3" "Generating aliases"
+    log "lv3" "Generating aliases"
     local alias_type=$1
     local directory=$2
     shift 2
     local files=("$@")
-    log "LVL4" "Alias type: $alias_type, Directory: $directory, Files: ${files[*]}"
+    log "lv4" "Alias type: $alias_type, Directory: $directory, Files: ${files[*]}"
 
     for file in "${files[@]}"; do
-        log "LVL5" "Searching for file $file in directory $directory"
+        log "lv5" "Searching for file $file in directory $directory"
         local found_file=$(find "$directory" -maxdepth 1 -type f -name "$file.*" | head -n 1)
         if [[ -n "$found_file" ]]; then
-            log "LVL6" "Found file: $found_file"
+            log "lv6" "Found file: $found_file"
             local ext="${found_file##*.}"
             local alias_prefix=""
 
@@ -117,10 +117,10 @@ generate_aliases() {
 
             if [[ -n "$alias_prefix" ]]; then
                 alias "${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
-                log "LVL7" "Created alias: ${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
+                log "lv7" "Created alias: ${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
             fi
         else
-            log "LVL5" "File not found: $file in directory $directory"
+            log "lv5" "File not found: $file in directory $directory"
         fi
     done
 }
