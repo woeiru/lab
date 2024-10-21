@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Enable error handling and logging
-set -e
-exec 2>>/tmp/gen_error.log
-set -x
+# set -e
+# exec 2>>/tmp/gen_error.log
+# set -x
 
 log_error() {
     echo "ERROR: $1" >&2

@@ -16,7 +16,10 @@ error_handler() {
     local exit_code=$?
     local command="$BASH_COMMAND"
     local line_number="$1"
-    local source_file="${BASH_SOURCE[1]}"
+    echo "Debug: BASH_SOURCE array: ${BASH_SOURCE[*]}" >> "$ERROR_LOG"
+    echo "Debug: \$0 value: $0" >> "$ERROR_LOG"
+    local source_file="${BASH_SOURCE[1]:-${0:-$command}}"
+    source_file="${source_file:-"<unknown-source>"}"  # Final fallback
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Error in $source_file on line $line_number: Command '$command' exited with status $exit_code" | tee -a "$ERROR_LOG" >&2
 }
 
