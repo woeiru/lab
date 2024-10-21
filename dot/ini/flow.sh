@@ -16,7 +16,6 @@ fi
 
 # 1. Check shell version - Verify Bash 4+ or Zsh 5+ is being used, exit if requirements not met
 check_shell_version() {
-    deploy_log "INFO" "Checking shell version compatibility..."
     if [[ -n "${BASH_VERSION:-}" ]]; then
         deploy_log "DEBUG" "Detected Bash version: $BASH_VERSION"
         if [[ "${BASH_VERSION:0:1}" -lt 4 ]]; then
@@ -42,7 +41,6 @@ check_shell_version() {
 
 # 2. Initialize target user and home directory - Set TARGET_USER and TARGET_HOME, handle root user case
 init_target_user() {
-    deploy_log "INFO" "Initializing target user and home directory..."
     if [[ -z "${TARGET_USER}" ]]; then
         TARGET_USER=$(whoami)
         deploy_log "INFO" "No user specified. Using current user: $TARGET_USER"
@@ -68,7 +66,6 @@ init_target_user() {
 
 # 3. Set appropriate config file - Determine whether to use .zshrc or .bashrc based on availability
 set_config_file() {
-    deploy_log "INFO" "Setting appropriate configuration file..."
     if [[ -n "${CONFIG_FILE:-}" ]]; then
         if [[ ! -f "$CONFIG_FILE" ]]; then
             deploy_log "ERROR" "Specified config file not found: $CONFIG_FILE"
@@ -90,19 +87,13 @@ set_config_file() {
 
 # 4. Create a backup of the config file - Generate timestamped backup before making changes
 backup_config_file() {
-    deploy_log "INFO" "Creating backup of configuration file..."
     local backup_file="${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)"
-    if [[ "$DRY_RUN" = false ]]; then
-        cp "$CONFIG_FILE" "$backup_file"
-        deploy_log "INFO" "Created backup of config file: $backup_file"
-    else
-        deploy_log "DEBUG" "DRY RUN: Would create backup of config file: $backup_file"
-    fi
+    cp "$CONFIG_FILE" "$backup_file"
+    deploy_log "INFO" "Created backup of config file: $backup_file"
 }
 
 # 5. Inject content into config file - Insert or update content between specific markers in config file
 inject_content() {
-    deploy_log "INFO" "Injecting content into configuration file..."
     local start_marker="# START inject"
     local end_marker="# END inject"
     local temp_file=$(mktemp)
@@ -155,11 +146,6 @@ inject_content() {
 
 # 6. Restart shell - Exit script to allow for shell restart, applying the new configuration
 restart_shell() {
-    if [[ "$DRY_RUN" = false ]]; then
-        deploy_log "INFO" "Preparing to restart shell to apply changes..."
-        deploy_log "DEBUG" "Exiting current script execution."
-        exit 0
-    else
-        deploy_log "DEBUG" "DRY RUN: Would restart shell to apply changes."
-    fi
+    deploy_log "DEBUG" "Exiting current script execution."
+    exit 0
 }
