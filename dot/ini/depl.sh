@@ -25,21 +25,24 @@ deploy_log() {
     fi
 
     case "$level" in
-        "DEBUG")
-            color_code="\033[0;33m"  # Yellow
-            ;;
         "ERROR")
             color_code="\033[0;31m"  # Red
             ;;
+        "DEBUG")
+            color_code="\033[0;33m"  # Yellow
+            ;;
         "INFO")
-            color_code="\033[0;34m"  #
+            color_code="\033[0;32m"  # Green
             ;;
         *)
             color_code="\033[0m"  # Default (no color)
             ;;
     esac
 
-    echo -e "${color_code}[$(date '+%Y-%m-%d %H:%M:%S')] [$level]\033[0m $message" | tee -a "$DEPLOY_LOG_FILE"
+    # Compact timestamp format
+    local timestamp=$(date '+%Y%m%d%H%M%S')
+
+    echo -e "${color_code}[$timestamp][$level]\033[0m $message" | tee -a "$DEPLOY_LOG_FILE"
 }
 
 # Export the deploy_log function so it's available to sourced scripts
