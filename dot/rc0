@@ -1,6 +1,8 @@
 #!/bin/bash
-
 # rc0 - Common Functions and Logging
+
+# Master toggle for logging functionality
+LOG_TOGGLE=true
 
 # Logging control array
 # Index 0: LVL1 (RED), Index 1: LVL2 (ORANGE), Index 2: LVL3 (YELLOW), Index 3: LVL4 (GREEN),
@@ -20,6 +22,10 @@ NC='\033[0m' # No Color
 
 # Logging function
 log() {
+    if ! $LOG_TOGGLE; then
+        return
+    fi
+
     local level=$1
     local message=$2
     local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
@@ -60,15 +66,6 @@ log() {
     fi
 }
 
-# Function to set up logging
-setup_logging() {
-    local log_config=($@)
-    for i in {0..7}; do
-        LOG_LEVELS[$i]=${log_config[$i]:-${LOG_LEVELS[$i]}}
-    done
-    log "LVL4" "Logging set up with levels: ${LOG_LEVELS[*]}"
-}
-
 # Utility function to check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -86,7 +83,7 @@ source_if_exists() {
 
 # Export functions and variables
 export -f log
-export -f setup_logging
 export -f command_exists
 export -f source_if_exists
 export LOG_LEVELS
+export LOG_TOGGLE
