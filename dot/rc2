@@ -128,13 +128,26 @@ set_static() {
     alias tur='transactional-update reboot'
     alias tuar='transactional-update apply && transactional-update reboot'
 
-    # Tree view
-    alias t='tree'
-    alias tt='tree -L 2'
-    alias ttt='tree -L 3'
-    alias tttt='tree -L 4'
-    alias ttttt='tree -L 5'
+    # Dynamic tree function with line count
+    
+    tree_with_count() {
+     local depth=${1:-0}
+     local tree_cmd="tree"
 
+     if [ $depth -gt 0 ]; then
+           tree_cmd="tree -L $depth"
+     fi
+
+     $tree_cmd
+     echo "Total lines: $(find . -type f -exec wc -l {} + | tail -n1 | awk '{print $1}')"
+   }
+
+    alias t='tree_with_count'
+    alias tt='tree_with_count 2'
+    alias ttt='tree_with_count 3'
+    alias tttt='tree_with_count 4'
+    alias ttttt='tree_with_count 5'
+   
     # Vim
     alias v='vim'
     alias v.nw="vim $CON_DIR/node-w.md"
