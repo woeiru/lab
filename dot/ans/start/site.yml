@@ -1,5 +1,0 @@
-- hosts: localhost
-  vars:
-    config_desk_1: true
-  roles:
-    - { role: desk_1, when: config_desk_1 | bool, tags: ['desk'] }
