@@ -3,7 +3,7 @@
 set_static() {
 
     # Ansible
-    alias a1='usr-ans $ANS_PRO_PATH_1 $ANS_SITE_PATH_1'
+    alias a1='usr-ans $ANS_PRO_PATH_1 $ANS_START_PATH_1'
     alias ap='ansible-playbook'
 
     # Bash
