@@ -1,52 +1,157 @@
 #!/bin/bash
 
-# rc3 module
+# rc2 module
 
-environment() {
-    echo ""
-    log "LVL1" "Setting up environment"
+set_static() {
 
-    setup_ssh
-    list_ssh_keys
+    # Ansible
+    alias a1='usr-ans $ANS_PRO_PATH_1 $ANS_SITE_PATH_1'
+    alias ap='ansible-playbook'
 
-    log "LVL2" "Static functions setup completed"
-}
+    # Bash
+    alias b='bash'
+    alias eb='exec bash'
 
-setup_ssh() {
-    log "LVL2" "Setting up SSH keys and aliases"
-    add_ssh_keys
-    log "LVL3" "Creating SSH aliases"
-    alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
-    alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@$SSH_TARGET_IP'
-    log "LVL4" "SSH aliases created"
-}
+    # BTRFS management
+    alias bt='btrfs'
+    alias btf='btrfs filesystem'
 
-add_ssh_keys() {
-    log "LVL3" "Adding SSH keys to the agent"
-    if [ -z "$SSH_AUTH_SOCK" ]; then
-        log "LVL4" "Starting ssh-agent"
-        eval "$(ssh-agent -s)" > /dev/null || log "LVL5" "Failed to start ssh-agent"
-    fi
-    local keys=(
-        "$HOME/.ssh/id_rsa"
-        "$HOME/.ssh/id_ed25519"
-        "$HOME/.ssh/w1"
-    )
-    for key in "${keys[@]}"; do
-        log "LVL6" "Processing key: $key"
-        if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
-            ssh-add "$key" || log "LVL7" "Failed to add key: $key"
-        fi
-    done
-    log "LVL5" "SSH keys added successfully"
-}
+    # Cat (file viewing)
+    alias c='cat'
+    alias c.group='cat /etc/group'
+    alias c.passwd='cat /etc/passwd'
+    alias c.fstab='cat /etc/fstab'
+    alias es.log='cat /mnt/bak/home/.es.log'
 
-list_ssh_keys() {
-    log "LVL2" "Listing SSH keys in the agent"
-    ssh-add -l || log "LVL3" "No keys found or ssh-agent is not running"
-}
+    # Directory navigation
+    alias d='cd'
+    alias ..='cd ..'
+    alias dl="cd $PARENT_DIR"
 
-remove_ssh_keys() {
-    log "LVL2" "Removing all SSH keys from the agent"
-    ssh-add -D || log "LVL3" "Failed to remove SSH keys"
+    alias d.samba='cd /etc/samba/'
+    alias d.snapper='cd /etc/snapper/configs'
+    alias d.pam='cd /usr/lib/pam_snapper'
+
+    alias d.das='cd /mnt/das'
+    alias d.nvm='cd /mnt/nvm'
+    alias d.usb='cd /mnt/usb'
+
+    # Disk usage
+    alias u='du -bh -d1'
+    alias uu='du -bh -d2'
+    alias uuu='du -bh -d3'
+
+    # Exit
+    alias ee='exit'
+
+    # Function shortcuts
+    alias sca='gen-sca'
+    alias flc='all-flc'
+    alias cto='pve-cto'
+
+    # Function chaining
+    alias fun='all-ffl all-laf "" "$LIB_DIR"'
+    alias var='all-ffl all-acu "" "$VAR_DIR" "$PARENT_DIR"'
+
+    # Function makros
+    alias v1='gpu-ptd ; qm start 211'
+
+    # Git commands
+    alias g='git'
+    alias gs='git status'
+    alias gd='git diff'
+    alias gl='git ls-files | xargs cat | wc -l'
+    alias ga='git add'
+    alias gc='git commit'
+    alias gcmb='git commit -m "base"'
+    alias go='git push origin master'
+    alias gp='git pull'
+    alias gg='gen-gio'
+    alias gr1='git revert HEAD~1'
+
+    # History
+    alias h='history'
+
+    # IPTables
+    alias ipt='iptables -L -v -n'
+
+    # Mounting
+    alias m.sda.das='mount /dev/sda /mnt/das'
+    alias m.sub.sda.bak='mount -o subvol=bak /dev/sda /bak'
+
+    # Filesystem creation
+    alias mbf='mkfs.btrfs -f'
+    alias mbmd='mkfs.btrfs -m raid1 -d raid1'
+
+    # PAM Snapper commands
+    alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
+    alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
+    alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
+    alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
+
+    # Podman (container management)
+    alias pod='podman'
+    alias podst='podman start'
+    alias podps='podman ps'
+    alias podpsa='podman ps -a'
+
+    # System control
+    alias sy='systemctl'
+
+    # System configuration file editing
+    alias v.samba.conf='vim /etc/samba/smb.conf'
+    alias v.sambausers='vim /etc/samba/smbusers'
+    alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
+    alias v.fstab='vim /etc/fstab'
+
+    # Snapper (filesystem snapshot management)
+    alias sl='snapper list'
+    alias sc='snapper create'
+    alias shl='bfs-shl home'
+    alias shc='bfs-shc home'
+    alias shd='bfs-shd'
+
+    # System statistics
+    alias sar='sar -d 1'
+    alias ios='iostat -x 1'
+
+    # SELinux
+    alias ses='sestatus -v'
+    alias seb='sudo semanage boolean -l'
+
+    # Time zone setting
+    alias berlintime="timedatectl set-timezone Europe/Berlin"
+
+    # Transactional update
+    alias tu='transactional-update'
+    alias tua='transactional-update apply'
+    alias tur='transactional-update reboot'
+    alias tuar='transactional-update apply && transactional-update reboot'
+
+    # Tree view
+    alias t='tree'
+    alias tt='tree -L 2'
+    alias ttt='tree -L 3'
+    alias tttt='tree -L 4'
+    alias ttttt='tree -L 5'
+
+    # Vim
+    alias v='vim'
+    alias v.nw="vim $CON_DIR/node-w.md"
+
+    # File listing
+    alias l='ls -Al'
+
+    # lab/dot/ini
+    ini_path=~/lab/dot/ini
+    depl_file="$ini_path/depl.sh"
+    inject_file="$ini_path/inject"
+    alias bde="bash $depl_file"
+    alias vin="vim $inject_file"
+
+    # Unsorted (you may want to organize these later)
+    alias pr='kquitapp5 plasmashell && kstart5 plasmashell'
+    alias gdi='git diff --no-index -- /dev/null'
+
+    # Any additional main execution logic can be added here
 }
