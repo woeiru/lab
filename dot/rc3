@@ -2,7 +2,7 @@
 # rc3 - Alias Management
 
 # Master toggle for alias wrapping functionality
-AW_TOGGLE=true
+AW_TOGGLE=false
 
 # Set up a function to wrap alias execution with error trapping
 aliaswrap() {
@@ -32,6 +32,7 @@ set_aliaswrap() {
         done < <(alias)
         log "lv2" "All aliases have been wrapped with error trapping."
     else
+       echo ""
        log "lv1" "Alias wrapping is disabled."
     fi
 }
