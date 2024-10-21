@@ -116,16 +116,25 @@ setup_interactive_mode() {
     local display_choice="$1"
     log "lvl-3" "Setup interactive mode with display choice: $display_choice"
 
+    local base_indent="          "  # Matches the indentation of lvl-4 log
+    local BOLD='\033[1m'
+    local RESET='\033[0m'
+
+    printf "\n"
+    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+    printf "%s┃ ${BOLD}Choose a display option:${RESET}\n" "$base_indent"
+    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+    printf "%s┃ 1. Default display\n" "$base_indent"
+    printf "%s┃ 2. Expand variables\n" "$base_indent"
+    printf "%s┃ 3. Show function descriptions\n" "$base_indent"
+    printf "%s┃ 4. Expand variables and show function descriptions\n" "$base_indent"
+    printf "%s┃ 5. Show only function names and descriptions\n" "$base_indent"
+    printf "%s┃ 6. Show only function descriptions\n" "$base_indent"
+    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+    printf "\n"
+
     if [ -z "$display_choice" ]; then
-        # Prompt user for display choice
-        echo "Choose a display option:"
-        echo "1. Default display"
-        echo "2. Expand variables"
-        echo "3. Show function descriptions"
-        echo "4. Expand variables and show function descriptions"
-        echo "5. Show only function names and descriptions"
-        echo "6. Show only function descriptions"
-        read -p "Enter your choice (1-6): " display_choice
+        read -p "${base_indent}Enter your choice (1-6): " display_choice
     fi
 
     # Validate user input
@@ -135,7 +144,9 @@ setup_interactive_mode() {
     fi
 
     setup_display_menu "$DIR_SH" "$FILE_SH" "$display_choice" "-all"
+    select_and_execute_sections
 }
+
 
 setup_executing_mode() {
     local section="$1"
@@ -158,34 +169,25 @@ setup_executing_mode() {
     fi
 }
 
-setup_interactive_mode() {
-    local section="$1"
-    log "lvl-3" "Setup interactive mode for section: $section"
-
-    setup_display_menu "$DIR_SH" "$FILE_SH" "1" "$section"
-
-    if [[ "$section" != "-all" ]]; then
-        read -p "Do you want to execute this code? (y/n): " execute_choice
-        if [[ "$execute_choice" == "y" ]]; then
-            log "lvl-4" "User chose to execute section: $section"
-            setup_executing_mode "$section"
-        else
-            log "lvl-4" "User chose not to execute section: $section"
-        fi
-    else
-        log "lvl-4" "All sections mode, prompting for selection"
-        select_and_execute_sections
-    fi
-}
-
 select_and_execute_sections() {
     log "lvl-3" "Entering select_and_execute_sections"
-    echo "Which sections do you want to execute?"
-    echo "Available sections: ${!MENU_OPTIONS[@]} (or type 'all' for all sections)"
-    read -p "Enter section(s) separated by space, or 'all': " sections
+    local base_indent="          "  # Matches the indentation of lvl-4 log
+    local BOLD='\033[1m'
+    local RESET='\033[0m'
+
+    printf "\n"
+    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+    printf "%s┃ ${BOLD}Select sections to execute:${RESET}\n" "$base_indent"
+    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+    printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${!MENU_OPTIONS[*]}"
+    printf "%s┃ Type 'all' to select all sections\n" "$base_indent"
+    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+    printf "\n"
+
+    read -p "${base_indent}Enter section(s) separated by space, or 'all': " sections
 
     if [[ "$sections" == "all" ]]; then
-        sections="${!MENU_OPTIONS[@]}"
+        sections="${!MENU_OPTIONS[*]}"
         log "lvl-4" "User selected all sections"
     else
         log "lvl-4" "User selected sections: $sections"
@@ -199,27 +201,6 @@ select_and_execute_sections() {
             log_error "Invalid section: $section. Skipping."
         fi
     done
-}
-
-setup_executing_mode() {
-    local section="$1"
-    log "lvl-3" "Setup executing mode for section: $section"
-
-    if [[ "$section" == "-all" ]]; then
-        log "lvl-4" "Executing all sections"
-        for func in "${!MENU_OPTIONS[@]}"; do
-            log "lvl-5" "Executing section: $func"
-            ${MENU_OPTIONS[$func]}
-        done
-    else
-        if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
-            log "lvl-4" "Executing section: $section"
-            ${MENU_OPTIONS[$section]}
-        else
-            log_error "Invalid section: $section"
-            exit 1
-        fi
-    fi
 }
 
 # Function to expand variables
@@ -354,7 +335,4 @@ setup_display_menu() {
     printf "\n"
 }
 
-# Main execution
-log "lvl-1" "Script execution started"
-setup_main "$@"
-log "lvl-1" "Script execution completed"
+# Main execution is not needed in .up file as it's sourced by gen.sh
