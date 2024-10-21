@@ -152,5 +152,3 @@ restart_shell() {
         deploy_log "DEBUG" "DRY RUN: Would restart shell to apply changes."
     fi
 }
-
-deploy_log "DEBUG" "All functions in fun.sh have been defined with improved logging."
