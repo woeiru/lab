@@ -12,7 +12,8 @@ DEPLOY_LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 INTERACTIVE=false
 TARGET_USER=""
 DEPLOY_DEBUG=${DEPLOY_DEBUG:-false}
-FUNCTION_FILE="func.sh"  # New variable for the function file name
+FUNCTION_FILE="func.sh"  # Variable for the function file name
+INJECT_FILE="inject"  # New variable for the inject file name
 
 # Improved logging function (renamed to avoid conflicts)
 deploy_log() {
@@ -46,8 +47,9 @@ deploy_log() {
     echo -e "${color_code}[$timestamp][$level]\033[0m $message" | tee -a "$DEPLOY_LOG_FILE"
 }
 
-# Export the deploy_log function so it's available to sourced scripts
+# Export the deploy_log function and INJECT_FILE variable so they're available to sourced scripts
 export -f deploy_log
+export INJECT_FILE
 
 # Source the function file containing numbered functions
 source "$SCRIPT_DIR/$FUNCTION_FILE"

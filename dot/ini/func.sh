@@ -4,7 +4,13 @@
 
 # Check if deploy_log function is available
 if ! command -v deploy_log &> /dev/null; then
-    echo "Error: deploy_log function not found. Make sure start.sh is sourcing this file correctly."
+    echo "Error: deploy_log function not found. Make sure depl.sh is sourcing this file correctly."
+    exit 1
+fi
+
+# Check if INJECT_FILE is set
+if [[ -z "$INJECT_FILE" ]]; then
+    echo "Error: INJECT_FILE is not set. Make sure depl.sh is exporting this variable."
     exit 1
 fi
 
@@ -100,7 +106,7 @@ inject_content() {
     local start_marker="# START inject"
     local end_marker="# END inject"
     local temp_file=$(mktemp)
-    local inject_file="$SCRIPT_DIR/inject"
+    local inject_file="$SCRIPT_DIR/$INJECT_FILE"
 
     if [[ ! -f "$inject_file" ]]; then
         deploy_log "ERROR" "Inject file not found: $inject_file"
