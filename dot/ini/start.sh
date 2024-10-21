@@ -9,7 +9,6 @@ LAB_DIR="$( cd "$SCRIPT_DIR/../.." &> /dev/null && pwd )"
 TARGET_HOME=""
 CONFIG_FILE=""
 LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
-DRY_RUN=false
 INTERACTIVE=false
 TARGET_USER=""
 DEBUG=${DEBUG:-false}
@@ -29,9 +28,6 @@ log() {
     fi
 
     case "$level" in
-        "DRY-RUN")
-            color_code="\033[0;32m"  # Green
-            ;;
         "DEBUG")
             color_code="\033[0;33m"  # Yellow
             ;;
@@ -55,7 +51,6 @@ usage() {
     echo "Options:"
     echo "  -u, --user USER    Specify target user (default: current user)"
     echo "  -c, --config FILE  Specify config file location"
-    echo "  -d, --dry-run      Perform a dry run without making changes"
     echo "  -i, --interactive  Run in interactive mode"
     echo "  -h, --help         Display this help message"
 }
@@ -91,11 +86,6 @@ parse_arguments() {
                 CONFIG_FILE="$2"
                 log "INFO" "Config file argument provided: $CONFIG_FILE"
                 shift 2
-                ;;
-            -d|--dry-run)
-                DRY_RUN=true
-                log "INFO" "Dry run mode enabled"
-                shift
                 ;;
             -i|--interactive)
                 INTERACTIVE=true
@@ -152,7 +142,7 @@ cleanup() {
     log "DEBUG" "Removed old backup files, keeping the 2 most recent"
 
     # Reset any environment variables set during the script
-    unset SCRIPT_DIR LAB_DIR TARGET_HOME CONFIG_FILE DRY_RUN INTERACTIVE TARGET_USER
+    unset SCRIPT_DIR LAB_DIR TARGET_HOME CONFIG_FILE INTERACTIVE TARGET_USER
     log "DEBUG" "Reset environment variables"
 
     # Close file descriptors
@@ -208,7 +198,6 @@ run_interactive_mode() {
     echo "Current settings:"
     echo "  User: ${TARGET_USER:-Current user ($(whoami))}"
     echo "  Config file: ${CONFIG_FILE:-Default}"
-    echo "  Dry run: ${DRY_RUN}"
     echo
 
     read -p "Enter the target user (leave blank for current user: $(whoami)): " user_input
@@ -226,15 +215,6 @@ run_interactive_mode() {
     else
         log "INFO" "Using default config file location"
     fi
-
-    read -p "Perform a dry run? (y/n): " dry_run_choice
-    if [[ "$dry_run_choice" =~ ^[Yy]$ ]]; then
-        DRY_RUN=true
-        log "INFO" "Dry run mode enabled interactively"
-    else
-        DRY_RUN=false
-        log "INFO" "Dry run mode disabled interactively"
-    fi
 }
 
 # Function to display current settings
@@ -242,7 +222,6 @@ display_settings() {
     echo "=== Current Settings ==="
     echo "  User: ${TARGET_USER:-Current user ($(whoami))}"
     echo "  Config file: ${CONFIG_FILE:-Default}"
-    echo "  Dry run: ${DRY_RUN}"
     echo "========================"
 }
 
@@ -267,10 +246,6 @@ main() {
 
     display_settings
 
-    if [[ "$DRY_RUN" = true ]]; then
-        log "INFO" "Running in dry-run mode. No changes will be made."
-    fi
-
     # Display operations with numbering
     echo "=================================================="
     echo "The following operations will be performed:"
@@ -288,20 +263,16 @@ main() {
         exit 1
     fi
 
-    if [[ "$DRY_RUN" = false ]]; then
-        log "INFO" "Deployment completed successfully."
-        echo "Changes have been applied. The shell will now restart to apply the changes."
-        if [[ "$DEBUG" = true ]]; then
-            log "DEBUG" "Testing cleanup function"
-            cleanup
-        fi
-        echo "Press any key to restart the shell..."
-        read -n 1 -s
-        echo "About to exec new shell..."
-        exec "$SHELL"
-    else
-        log "DRY-RUN" "Dry run completed. No changes were made."
+    log "INFO" "Deployment completed successfully."
+    echo "Changes have been applied. The shell will now restart to apply the changes."
+    if [[ "$DEBUG" = true ]]; then
+        log "DEBUG" "Testing cleanup function"
+        cleanup
     fi
+    echo "Press any key to restart the shell..."
+    read -n 1 -s
+    echo "About to exec new shell..."
+    exec "$SHELL"
 }
 
 debug_trap() {
