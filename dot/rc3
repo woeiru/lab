@@ -3,10 +3,12 @@
 # rc3 module
 
 setup_environment() {
+    echo ""
     log "LVL1" "Setting up environment"
 
     setup_ssh
     list_ssh_keys
+
     log "LVL2" "Static functions setup completed"
 }
 
