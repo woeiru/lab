@@ -72,15 +72,13 @@ logset() {
         echo "Logging is disabled."
         return
     fi
-
     local range=$1
     local start end
-
     if [[ $range =~ ^([1-8])-([1-8])$ ]]; then
         start=${BASH_REMATCH[1]}
         end=${BASH_REMATCH[2]}
     else
-        log "lv1" "Invalid range format. Please use 'start-end' (e.g., '1-3' or '2-5')."
+        echo "└─Invalid range format. Please use 'start-end' (e.g., '1-3' or '2-5')."
         return 1
     fi
 
@@ -88,7 +86,6 @@ logset() {
     for i in {0..7}; do
         LOG_LEVELS[$i]=0
     done
-
     # Set specified range to 1
     for ((i=start-1; i<=end-1; i++)); do
         LOG_LEVELS[$i]=1
@@ -96,10 +93,16 @@ logset() {
 
     # Update the rc0 file
     local rc0_file="${BASH_SOURCE[0]}"
-    sed -i "s/LOG_LEVELS=(1 1 0 0 0 0 0 0)/" "$rc0_file"
-
-    log "lv4" "Logging set up with levels: ${LOG_LEVELS[*]}"
-    log "lv4" "rc0 file updated: $rc0_file"
+    local new_levels=$(IFS=' '; echo "${LOG_LEVELS[*]}")
+    echo "└─Debug: new_levels = $new_levels"
+    echo "└─Debug: sed command = s/LOG_LEVELS=([0-9 ]*)/LOG_LEVELS=($new_levels)/"
+    if sed -i "s/LOG_LEVELS=([0-9 ]*)/LOG_LEVELS=($new_levels)/" "$rc0_file"; then
+        echo "└─Logging set up with levels: ${LOG_LEVELS[*]}"
+        echo "└─rc0 file updated: $rc0_file"
+    else
+        echo "└─Failed to update rc0 file"
+        echo "└─Debug: sed error code $?"
+    fi
 }
 
 # Utility function to check if a command exists
