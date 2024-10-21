@@ -68,7 +68,7 @@ execution_setup() {
     echo ""
     echo -e "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
     # Check if required functions exist before calling them
-    local required_functions=("setup_navigation" "setup_aliases" "setup_environment")
+    local required_functions=("navigation" "aliases" "environment")
     for func in "${required_functions[@]}"; do
         if type "$func" &>/dev/null; then
             $func

@@ -2,7 +2,7 @@
 
 # rc3 module
 
-setup_environment() {
+environment() {
     echo ""
     log "LVL1" "Setting up environment"
 

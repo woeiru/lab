@@ -2,7 +2,7 @@
 
 # rc1 - module
 
-setup_navigation() {
+navigation() {
 
     log "LVL1" "Starting setup_navigation function"
 
