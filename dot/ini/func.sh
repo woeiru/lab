@@ -109,25 +109,30 @@ inject_content() {
 
     deploy_log "DEBUG" "Checking for existing injection markers in $CONFIG_FILE"
     if grep -q "$start_marker" "$CONFIG_FILE"; then
-        deploy_log "INFO" "Existing injection markers found. Updating content."
-        # If injection markers exist, replace the content between them
-        awk -v start="$start_marker" -v end="$end_marker" -v inject_file="$inject_file" '
-            $0 ~ start {print; system("cat " inject_file); f=1; next}
-            $0 ~ end {f=0}
-            !f
-        ' "$CONFIG_FILE" > "$temp_file"
+        deploy_log "INFO" "Existing injection markers found. Checking for changes..."
+        # Extract existing content between markers
+        sed -n "/$start_marker/,/$end_marker/p" "$CONFIG_FILE" > "$temp_file"
 
-        if [[ "$DRY_RUN" = false ]]; then
-            mv "$temp_file" "$CONFIG_FILE"
-            deploy_log "INFO" "Updated existing inject content in $CONFIG_FILE"
-        else
-            deploy_log "DEBUG" "DRY RUN: Would update existing inject content in $CONFIG_FILE"
+        # Compare existing content with new content
+        if diff -q <(sed '1d;$d' "$temp_file") "$inject_file" >/dev/null; then
+            deploy_log "INFO" "No changes detected. Skipping injection."
             rm "$temp_file"
+            return 0
+        else
+            deploy_log "INFO" "Changes detected. Updating content."
+            # Replace content between markers
+            sed -i "/$start_marker/,/$end_marker/d" "$CONFIG_FILE"
+            sed -i "/$start_marker/r $inject_file" "$CONFIG_FILE"
+            deploy_log "INFO" "Updated existing inject content in $CONFIG_FILE"
         fi
     else
-        deploy_log "INFO" "No existing injection markers found. Appending new content."
-        # If no injection markers exist, append the new content
-        if [[ "$DRY_RUN" = false ]]; then
+        deploy_log "INFO" "No existing injection markers found. Checking for duplicate content..."
+        if grep -Fxq "$(cat "$inject_file")" "$CONFIG_FILE"; then
+            deploy_log "INFO" "Content already exists. Skipping injection."
+            return 0
+        else
+            deploy_log "INFO" "Appending new content."
+            # Append new content with markers
             {
                 echo ""
                 echo "$start_marker"
@@ -135,10 +140,10 @@ inject_content() {
                 echo "$end_marker"
             } >> "$CONFIG_FILE"
             deploy_log "INFO" "Added new inject content to $CONFIG_FILE"
-        else
-            deploy_log "DEBUG" "DRY RUN: Would add new inject content to $CONFIG_FILE"
         fi
     fi
+
+    rm "$temp_file"
     deploy_log "INFO" "Content injection completed."
 }
 

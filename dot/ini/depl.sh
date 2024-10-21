@@ -12,6 +12,7 @@ DEPLOY_LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 INTERACTIVE=false
 TARGET_USER=""
 DEPLOY_DEBUG=${DEPLOY_DEBUG:-false}
+FUNCTION_FILE="func.sh"  # New variable for the function file name
 
 # Improved logging function (renamed to avoid conflicts)
 deploy_log() {
@@ -48,8 +49,8 @@ deploy_log() {
 # Export the deploy_log function so it's available to sourced scripts
 export -f deploy_log
 
-# Source the fun.sh file containing numbered functions
-source "$SCRIPT_DIR/fun.sh"
+# Source the function file containing numbered functions
+source "$SCRIPT_DIR/$FUNCTION_FILE"
 
 # Function to display usage information
 usage() {
@@ -161,9 +162,9 @@ cleanup() {
 # Function to dynamically execute functions
 execute_functions() {
     # Create an array of function names, sorted by their comment number
-    local functions=($(grep -E '^# [0-9]+\.' "$SCRIPT_DIR/fun.sh" |
+    local functions=($(grep -E '^# [0-9]+\.' "$SCRIPT_DIR/$FUNCTION_FILE" |
                        sed -E 's/^# ([0-9]+)\. .*/\1 /' |
-                       paste -d' ' - <(grep -A1 -E '^# [0-9]+\.' "$SCRIPT_DIR/fun.sh" |
+                       paste -d' ' - <(grep -A1 -E '^# [0-9]+\.' "$SCRIPT_DIR/$FUNCTION_FILE" |
                                        grep -E '^[a-z_]+[a-z0-9_-]*\(\)' |
                                        sed 's/().*//') |
                        sort -n |
@@ -177,8 +178,8 @@ execute_functions() {
 
     # Loop through the functions array and execute each function
     for func in "${functions[@]}"; do
-        local number=$(grep -B1 "^$func()" "$SCRIPT_DIR/fun.sh" | grep -E '^# [0-9]+\.' | sed -E 's/^# ([0-9]+)\..*/\1/')
-        local comment=$(grep -B1 "^$func()" "$SCRIPT_DIR/fun.sh" | grep -E '^# [0-9]+\.' | sed -E 's/^# [0-9]+\. //')
+        local number=$(grep -B1 "^$func()" "$SCRIPT_DIR/$FUNCTION_FILE" | grep -E '^# [0-9]+\.' | sed -E 's/^# ([0-9]+)\..*/\1/')
+        local comment=$(grep -B1 "^$func()" "$SCRIPT_DIR/$FUNCTION_FILE" | grep -E '^# [0-9]+\.' | sed -E 's/^# [0-9]+\. //')
         deploy_log "INFO" "=================================================="
         deploy_log "INFO" "Step $number: $comment"
         deploy_log "INFO" "=================================================="
@@ -253,7 +254,7 @@ main() {
     # Display operations with numbering
     deploy_log "INFO" "=================================================="
     deploy_log "INFO" "The following operations will be performed:"
-    grep -E '^# [0-9]+\.' "$SCRIPT_DIR/fun.sh" | sed -E 's/^# ([0-9]+)\. (.+)/\1. \2/' | while read -r line; do
+    grep -E '^# [0-9]+\.' "$SCRIPT_DIR/$FUNCTION_FILE" | sed -E 's/^# ([0-9]+)\. (.+)/\1. \2/' | while read -r line; do
         deploy_log "INFO" "$line"
     done
     deploy_log "INFO" "=================================================="
