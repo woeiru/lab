@@ -34,7 +34,7 @@ source_helper() {
 }
 
 # Main sourcing function
-source_arrangement() {
+source_arrangement_rc() {
     echo ""
     echo -e "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
 
@@ -45,12 +45,27 @@ source_arrangement() {
         source_helper "$DIR/$module"
     done
 
-    # Source secondary modules
-    local env_folder="env"
-    local env_modules=("env1")
-    log "lvl-1" "sourcing folder $env_folder with files $env_var_name(${env_modules[*]})"
-    for module in "${env_modules[@]}"; do
-        source_helper "$DIR/$env_folder/$module"
+    # Define an array of secondary module names (same as folder names)
+    secondary_modules=("env" "tst")
+
+    # Loop through each secondary modules
+    for module in "${secondary_modules[@]}"; do
+        module_folder="$DIR/$module"
+
+        # Check if the folder exists
+        if [ -d "$module_folder" ]; then
+            log "lvl-1" "Sourcing folder $module"
+
+            # Find and source the file ending with '1' in the folder
+            for file in "$module_folder"/*1*; do
+                if [ -f "$file" ]; then
+                    log "lvl-2" "Sourcing file: $file"
+                    source "$file"
+                fi
+            done
+        else
+            log "lvl-1" "Folder $module_folder not found. Skipping."
+        fi
     done
 
     # Source lib and var files
@@ -58,10 +73,11 @@ source_arrangement() {
     local extensions=("bash" "conf")
     log "lvl-1" "sourcing folders$dirs_var_name (${dirs[*]}) with extensions $extensions_var_name(${extensions[*]})"
     for i in "${!dirs[@]}"; do
+        log "lvl-2" "cycling dirs"
         local dir="$PARENT_DIR/${dirs[i]}"
         local ext="${extensions[i]}"
         if [[ ! -d "$dir" ]]; then
-            echo "Warning: Directory $dir not found." | tee -a "$ERROR_LOG" >&2
+            log "lvl-3" "Warning: Directory $dir not found." | tee -a "$ERROR_LOG" >&2
             continue
         fi
         for file in "$dir"/*."$ext"; do
@@ -70,29 +86,44 @@ source_arrangement() {
             fi
         done
     done
-
-    echo "All modules and files sourced successfully"
+    log "lvl-1" "All modules and files sourced successfully"
 }
 
 # Main execution setup
-execution_arrangement() {
-    echo ""
-    echo -e "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
-    # Check if required functions exist before calling them
-    local required_functions=("set_dynamic" "set_static" "set_aliaswrap" "set_environment")
-    for func in "${required_functions[@]}"; do
+# Helper function to check and execute functions
+execute_functions() {
+    local func_array=("$@")
+    for func in "${func_array[@]}"; do
         if type "$func" &>/dev/null; then
+            log "lvl-2" "Executing $func"
             $func
         else
-            echo "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
+            log "lvl-2" "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
         fi
     done
 }
 
+# Execution arrangement for rc
+execution_arrangement_rc() {
+    echo ""
+    log "lvl-1" "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
+    local set_functions=("set_dynamic" "set_static" "set_aliaswrap")
+    execute_functions "${set_functions[@]}"
+}
+
+# Execution arrangement for modules
+execution_arrangement_modules() {
+    echo ""
+    log "lvl-1" "tarting \033[1m ${FUNCNAME[0]} () \033[0m"
+    local module_functions=("mod_env")
+    execute_functions "${module_functions[@]}"
+}
+
 # Main execution
 main() {
-    source_arrangement
-    execution_arrangement
+    source_arrangement_rc
+    execution_arrangement_rc
+    execution_arrangement_modules
 
     # Set environment variable to indicate successful setup
     export LABS_ENVIRONMENT_SOURCED=1
@@ -102,7 +133,6 @@ main() {
         echo "Error: Environment sourcing failed." | tee -a "$ERROR_LOG" >&2
         return 1
     else
-        echo ""
         echo "Setup completed successfully."
         echo ""
     fi
