@@ -11,7 +11,7 @@ CONFIG_FILE=""
 LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 INTERACTIVE=false
 TARGET_USER=""
-DEBUG=${DEBUG:-false}
+DEBUG=${DEBUG:-true}
 
 # Source the fun.sh file containing numbered functions
 source "$SCRIPT_DIR/fun.sh"
@@ -47,12 +47,12 @@ log() {
 
 # Function to display usage information
 usage() {
-    echo "Usage: $0 [OPTIONS]"
-    echo "Options:"
-    echo "  -u, --user USER    Specify target user (default: current user)"
-    echo "  -c, --config FILE  Specify config file location"
-    echo "  -i, --interactive  Run in interactive mode"
-    echo "  -h, --help         Display this help message"
+    log "INFO" "Usage: $0 [OPTIONS]"
+    log "INFO" "Options:"
+    log "INFO" "  -u, --user USER    Specify target user (default: current user)"
+    log "INFO" "  -c, --config FILE  Specify config file location"
+    log "INFO" "  -i, --interactive  Run in interactive mode"
+    log "INFO" "  -h, --help         Display this help message"
 }
 
 # Function to set default values
@@ -102,7 +102,7 @@ parse_arguments() {
                 shift
                 ;;
             *)
-                echo "Unknown option: $1"
+                log "ERROR" "Unknown option: $1"
                 usage
                 exit 1
                 ;;
@@ -173,9 +173,9 @@ execute_functions() {
     for func in "${functions[@]}"; do
         local number=$(grep -B1 "^$func()" "$SCRIPT_DIR/fun.sh" | grep -E '^# [0-9]+\.' | sed -E 's/^# ([0-9]+)\..*/\1/')
         local comment=$(grep -B1 "^$func()" "$SCRIPT_DIR/fun.sh" | grep -E '^# [0-9]+\.' | sed -E 's/^# [0-9]+\. //')
-        echo "=================================================="
-        echo "Step $number: $comment"
-        echo "=================================================="
+        log "INFO" "=================================================="
+        log "INFO" "Step $number: $comment"
+        log "INFO" "=================================================="
         log "DEBUG" "Executing: $func"
         if declare -f "$func" > /dev/null; then
             if ! $func; then
@@ -186,7 +186,6 @@ execute_functions() {
             log "ERROR" "Function $func not found."
             return 1
         fi
-        echo
     done
 
     return 0
@@ -194,11 +193,10 @@ execute_functions() {
 
 # Interactive mode function
 run_interactive_mode() {
-    echo "<===> Interactive Mode <===>"
-    echo "Current settings:"
-    echo "  User: ${TARGET_USER:-Current user ($(whoami))}"
-    echo "  Config file: ${CONFIG_FILE:-Default}"
-    echo
+    log "INFO" "<===> Interactive Mode <===>"
+    log "INFO" "Current settings:"
+    log "INFO" "  User: ${TARGET_USER:-Current user ($(whoami))}"
+    log "INFO" "  Config file: ${CONFIG_FILE:-Default}"
 
     read -p "Enter the target user (leave blank for current user: $(whoami)): " user_input
     if [[ -n "$user_input" ]]; then
@@ -219,10 +217,10 @@ run_interactive_mode() {
 
 # Function to display current settings
 display_settings() {
-    echo "=== Current Settings ==="
-    echo "  User: ${TARGET_USER:-Current user ($(whoami))}"
-    echo "  Config file: ${CONFIG_FILE:-Default}"
-    echo "========================"
+    log "INFO" "=== Current Settings ==="
+    log "INFO" "  User: ${TARGET_USER:-Current user ($(whoami))}"
+    log "INFO" "  Config file: ${CONFIG_FILE:-Default}"
+    log "INFO" "========================"
 }
 
 # Main execution function
@@ -247,10 +245,12 @@ main() {
     display_settings
 
     # Display operations with numbering
-    echo "=================================================="
-    echo "The following operations will be performed:"
-    grep -E '^# [0-9]+\.' "$SCRIPT_DIR/fun.sh" | sed -E 's/^# ([0-9]+)\. (.+)/\1. \2/'
-    echo "=================================================="
+    log "INFO" "=================================================="
+    log "INFO" "The following operations will be performed:"
+    grep -E '^# [0-9]+\.' "$SCRIPT_DIR/fun.sh" | sed -E 's/^# ([0-9]+)\. (.+)/\1. \2/' | while read -r line; do
+        log "INFO" "$line"
+    done
+    log "INFO" "=================================================="
 
     read -p "Do you want to proceed? (y/n): " choice
     case "$choice" in
@@ -264,14 +264,14 @@ main() {
     fi
 
     log "INFO" "Deployment completed successfully."
-    echo "Changes have been applied. The shell will now restart to apply the changes."
+    log "INFO" "Changes have been applied. The shell will now restart to apply the changes."
     if [[ "$DEBUG" = true ]]; then
         log "DEBUG" "Testing cleanup function"
         cleanup
     fi
-    echo "Press any key to restart the shell..."
+    log "INFO" "Press any key to restart the shell..."
     read -n 1 -s
-    echo "About to exec new shell..."
+    log "INFO" "About to exec new shell..."
     exec "$SHELL"
 }
 
@@ -287,6 +287,6 @@ trap 'debug_trap SIGTERM' SIGTERM
 
 # Run the main function
 main "$@"
-echo "=================================================="
-echo "Script completed. Exiting..."
-echo "=================================================="
+log "INFO" "=================================================="
+log "INFO" "Script completed. Exiting..."
+log "INFO" "=================================================="
