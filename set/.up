@@ -40,7 +40,7 @@ check_arguments() {
     local args=("$@")
 
     if [ "${#args[@]}" -lt "$min_args" ] || [ "${#args[@]}" -gt "$max_args" ]; then
-        log_error "Incorrect number of arguments."
+        log "lvl-4" "Incorrect number of arguments."
         print_usage
         clean_exit 0
     fi
@@ -90,9 +90,14 @@ setup_source() {
 }
 
 setup_main() {
-
-    check_arguments "$FILE_SH" 1 2 "$@"
     log "lvl-2" "Starting setup_main with arguments: $@"
+
+    # Check arguments after logging has started
+    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        log_error "Incorrect number of arguments."
+        print_usage
+        clean_exit 0
+    fi
 
     if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
         log "lvl-3" "Incorrect number of arguments."
