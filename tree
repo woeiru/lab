@@ -35,6 +35,8 @@
 │   │   │           └── main.yml
 │   │   └── start
 │   │       └── site.yml
+│   ├── env
+│   │   └── env1
 │   ├── git
 │   │   ├── go.sh
 │   │   └── readme.md
@@ -42,12 +44,11 @@
 │   │   ├── fun.sh
 │   │   ├── go.sh
 │   │   └── inject
-│   ├── rc
-│   ├── rc0
 │   ├── rc1
 │   ├── rc2
 │   ├── rc3
-│   └── rc4
+│   ├── rc4
+│   └── rc5
 ├── fix
 │   ├── acpi
 │   │   └── susp
@@ -84,5 +85,5 @@
 └── var
     └── site1.conf
 
-27 directories, 58 files
-Total lines: 21175
+28 directories, 58 files
+Total lines: 21217

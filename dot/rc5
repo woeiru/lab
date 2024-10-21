@@ -1,0 +1,40 @@
+#!/bin/bash
+
+ALIASWRAP_TOGGLE=false
+
+# Set up a function to wrap alias execution with error trapping
+aliaswrap() {
+    if $ALIASWRAP_TOGGLE; then
+        echo "Executing command: $*"
+        trap 'echo "Error occurred on line $LINENO"; return 1' ERR
+        "$@"
+    else
+        "$@"
+    fi
+}
+
+# Wrap all aliases with the error trapping function
+set_aliaswrap() {
+    if $ALIASWRAP_TOGGLE; then
+        echo ""
+        log "lvl-1" "Starting alias wrapping"
+        while read -r alias_def; do
+            if [[ $alias_def =~ ^alias\ ([^=]+)=(.*)$ ]]; then
+                alias_name="${BASH_REMATCH[1]}"
+                alias_command="${BASH_REMATCH[2]}"
+                # Remove surrounding quotes if present
+                alias_command="${alias_command#[\'\"]}"
+                alias_command="${alias_command%[\'\"]}"
+                alias "$alias_name"="aliaswrap $alias_command"
+            fi
+        done < <(alias)
+        log "lvl-2" "All aliases have been wrapped with error trapping."
+    else
+       echo ""
+       log "lvl-1" "Alias wrapping is disabled."
+    fi
+}
+
+# Export functions
+export -f aliaswrap
+export -f set_aliaswrap
