@@ -36,10 +36,10 @@ fi
 LOG_LEVELS=(1 1 1 1 1 0 0 0)
 
 print_usage() {
-    log "lvl-3" "Usage: $0 MODE [ARGUMENT]"
-    log "lvl-3" "MODE:"
-    log "lvl-3" "  -i [DISPLAY_MODE]: Interactive mode. DISPLAY_MODE is optional (1-6)."
-    log "lvl-3" "  -x SECTION: Executing mode. SECTION is required (function name or -all)."
+    log "lvl-4" "Usage: $0 MODE [ARGUMENT]"
+    log "lvl-4" "MODE:"
+    log "lvl-4" "  -i [DISPLAY_MODE]: Interactive mode. DISPLAY_MODE is optional (1-6)."
+    log "lvl-4" "  -x SECTION: Executing mode. SECTION is required (function name or -all)."
 }
 
 setup_source() {
@@ -82,7 +82,7 @@ setup_main() {
     log "lvl-2" "Starting setup_main with arguments: $@"
 
     if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
-        log_error "Incorrect number of arguments."
+        log "lvl-3" "Incorrect number of arguments."
         print_usage
         return 1
     fi
