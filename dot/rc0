@@ -23,20 +23,20 @@ log() {
     local level=$1
     local message=$2
     local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
-    local level_num=${level#lv}
+    local level_num=${level#lvl-}
     local indent=""
     local color=""
 
     # Set color based on level
     case $level in
-        "lv1") color=$RED ;;
-        "lv2") color=$ORANGE ;;
-        "lv3") color=$YELLOW ;;
-        "lv4") color=$GREEN ;;
-        "lv5") color=$CYAN ;;
-        "lv6") color=$BLUE ;;
-        "lv7") color=$INDIGO ;;
-        "lv8") color=$VIOLET ;;
+        "lvl-1") color=$RED ;;
+        "lvl-2") color=$ORANGE ;;
+        "lvl-3") color=$YELLOW ;;
+        "lvl-4") color=$GREEN ;;
+        "lvl-5") color=$CYAN ;;
+        "lvl-6") color=$BLUE ;;
+        "lvl-7") color=$INDIGO ;;
+        "lvl-8") color=$VIOLET ;;
         *) color=$NC ;;
     esac
 
@@ -53,9 +53,9 @@ log() {
     # Output log message
     if [[ ${LOG_LEVELS[$((level_num-1))]} -eq 1 ]]; then
         if [ $level_num -eq 1 ]; then
-            echo -e "${indent}$level: $message" >&2
+            echo -e "${indent}$level $message" >&2
         else
-            echo -e "${indent}$level: $message"
+            echo -e "${indent}$level $message"
         fi
     fi
 }
@@ -108,9 +108,9 @@ command_exists() {
 source_if_exists() {
     if [ -f "$1" ]; then
         source "$1"
-        log "lv3" "Sourced file: $1"
+        log "lvl-3" "Sourced file: $1"
     else
-        log "lv1" "File not found: $1"
+        log "lvl-1" "File not found: $1"
     fi
 }
 

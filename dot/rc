@@ -27,7 +27,7 @@ trap 'error_handler $LINENO' ERR
 source_helper() {
     if [[ -f "$1" ]]; then
         source "$1"
-        log "lv1" "$1"
+        log "lvl-1" "$1"
     else
         echo "Warning: File $1 not found." | tee -a "$ERROR_LOG" >&2
     fi

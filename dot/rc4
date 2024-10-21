@@ -3,28 +3,28 @@
 set_environment() {
 
     echo ""
-    log "lv1" "Setting up environment"
+    log "lvl-1" "Setting up environment"
 
     setup_ssh
     list_ssh_keys
 
-    log "lv2" "Static functions setup completed"
+    log "lvl-2" "Static functions setup completed"
 }
 
 setup_ssh() {
-    log "lv2" "Setting up SSH keys and aliases"
+    log "lvl-2" "Setting up SSH keys and aliases"
     add_ssh_keys
-    log "lv3" "Creating SSH aliases"
+    log "lvl-3" "Creating SSH aliases"
     alias sk.ed='ssh-keygen -t ed25519 -C "woeiru/lab"'
     alias sc.ed='ssh-copy-id -i ~/.ssh/id_ed25519.pub root@$SSH_TARGET_IP'
-    log "lv4" "SSH aliases created"
+    log "lvl-4" "SSH aliases created"
 }
 
 add_ssh_keys() {
-    log "lv3" "Adding SSH keys to the agent"
+    log "lvl-3" "Adding SSH keys to the agent"
     if [ -z "$SSH_AUTH_SOCK" ]; then
-        log "lv4" "Starting ssh-agent"
-        eval "$(ssh-agent -s)" > /dev/null || log "lv5" "Failed to start ssh-agent"
+        log "lvl-4" "Starting ssh-agent"
+        eval "$(ssh-agent -s)" > /dev/null || log "lvl-5" "Failed to start ssh-agent"
     fi
     local keys=(
         "$HOME/.ssh/id_rsa"
@@ -32,20 +32,20 @@ add_ssh_keys() {
         "$HOME/.ssh/w1"
     )
     for key in "${keys[@]}"; do
-        log "lv6" "Processing key: $key"
+        log "lvl-6" "Processing key: $key"
         if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
-            ssh-add "$key" || log "lv7" "Failed to add key: $key"
+            ssh-add "$key" || log "lvl-7" "Failed to add key: $key"
         fi
     done
-    log "lv5" "SSH keys added successfully"
+    log "lvl-5" "SSH keys added successfully"
 }
 
 list_ssh_keys() {
-    log "lv2" "Listing SSH keys in the agent"
-    ssh-add -l || log "lv3" "No keys found or ssh-agent is not running"
+    log "lvl-2" "Listing SSH keys in the agent"
+    ssh-add -l || log "lvl-3" "No keys found or ssh-agent is not running"
 }
 
 remove_ssh_keys() {
-    log "lv2" "Removing all SSH keys from the agent"
-    ssh-add -D || log "lv3" "Failed to remove SSH keys"
+    log "lvl-2" "Removing all SSH keys from the agent"
+    ssh-add -D || log "lvl-3" "Failed to remove SSH keys"
 }
