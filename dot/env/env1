@@ -6,30 +6,29 @@ PARENT_DIR="/root/lab"
 
 # Main sourcing function for env files
 source_arrangement_env() {
-    echo ""
-    echo -e "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
+    log "lvl-1" "Starting ${FUNCNAME[0]} ()"
 
     # Source env modules
     local env_modules=("env2")
-    echo "└─ lvl-1 sourcing files $env_var_name(${env_modules[*]})"
+    log "lvl-2" "Sourcing files $env_var_name(${env_modules[*]})"
     for module in "${env_modules[@]}"; do
         source_helper "$DIR/$module"
     done
 
-    echo "All env modules sourced successfully"
+    log "lvl-2" "All env modules sourced successfully"
 }
 
 # Main execution setup for env files
 execution_arrangement_env() {
-    echo ""
-    echo -e "Starting \033[1m ${FUNCNAME[0]} () \033[0m"
+    log "lvl-1" "Starting ${FUNCNAME[0]} ()"
     # Check if required functions exist before calling them
-    local required_functions=("set_environment")
+    local required_functions=("set_ssh")
     for func in "${required_functions[@]}"; do
         if type "$func" &>/dev/null; then
+            log "lvl-2" "Executing $func"
             $func
         else
-            echo "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
+            log "lvl-2" "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
         fi
     done
 }
@@ -44,12 +43,9 @@ mod_env() {
 
     # Final check
     if [[ -z "${LABS_ENV_SOURCED}" ]]; then
-        echo "Error: Environment sourcing failed." | tee -a "$ERROR_LOG" >&2
+        log "lvl-1" "Error: Environment sourcing failed." | tee -a "$ERROR_LOG" >&2
         return 1
     else
-        echo ""
-        echo "Env setup completed successfully."
-        echo ""
+        log "lvl-1" "Env setup completed successfully."
     fi
 }
-

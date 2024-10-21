@@ -1,8 +1,6 @@
 #!/bin/bash
 
-set_environment() {
-
-    echo ""
+set_ssh() {
     log "lvl-1" "Setting up environment"
 
     setup_ssh
@@ -32,12 +30,12 @@ add_ssh_keys() {
         "$HOME/.ssh/w1"
     )
     for key in "${keys[@]}"; do
-        log "lvl-6" "Processing key: $key"
+        log "lvl-4" "Processing key: $key"
         if [[ -f "$key" && ! $(ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')") ]]; then
-            ssh-add "$key" || log "lvl-7" "Failed to add key: $key"
+            ssh-add "$key" || log "lvl-5" "Failed to add key: $key"
         fi
     done
-    log "lvl-5" "SSH keys added successfully"
+    log "lvl-4" "SSH keys added successfully"
 }
 
 list_ssh_keys() {
