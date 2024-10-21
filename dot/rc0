@@ -7,7 +7,7 @@ LOG_TOGGLE=true
 # Logging control array
 # Index 0: LVL1 (RED), Index 1: LVL2 (ORANGE), Index 2: LVL3 (YELLOW), Index 3: LVL4 (GREEN),
 # Index 4: LVL5 (CYAN), Index 5: LVL6 (BLUE), Index 6: LVL7 (INDIGO), Index 7: LVL8 (VIOLET)
-LOG_LEVELS=(1 1 1 1 1 1 1 1)
+LOG_LEVELS=(1 1 0 0 0 0 0 0)
 
 # Color codes (only for indentation)
 RED='\033[0;31m'
@@ -66,6 +66,42 @@ log() {
     fi
 }
 
+# Function to set up logging
+set_log() {
+    if ! $LOG_TOGGLE; then
+        echo "Logging is disabled."
+        return
+    fi
+
+    local range=$1
+    local start end
+
+    if [[ $range =~ ^([1-8])-([1-8])$ ]]; then
+        start=${BASH_REMATCH[1]}
+        end=${BASH_REMATCH[2]}
+    else
+        log "LVL1" "Invalid range format. Please use 'start-end' (e.g., '1-3' or '2-5')."
+        return 1
+    fi
+
+    # Reset all levels to 0
+    for i in {0..7}; do
+        LOG_LEVELS[$i]=0
+    done
+
+    # Set specified range to 1
+    for ((i=start-1; i<=end-1; i++)); do
+        LOG_LEVELS[$i]=1
+    done
+
+    # Update the rc0 file
+    local rc0_file="${BASH_SOURCE[0]}"
+    sed -i "s/LOG_LEVELS=(1 1 0 0 0 0 0 0)/" "$rc0_file"
+
+    log "LVL4" "Logging set up with levels: ${LOG_LEVELS[*]}"
+    log "LVL4" "rc0 file updated: $rc0_file"
+}
+
 # Utility function to check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -83,6 +119,7 @@ source_if_exists() {
 
 # Export functions and variables
 export -f log
+export -f set_log
 export -f command_exists
 export -f source_if_exists
 export LOG_LEVELS
