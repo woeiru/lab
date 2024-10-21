@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# rc4 module
-
 set_environment() {
 
     echo ""
