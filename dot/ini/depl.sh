@@ -11,7 +11,7 @@ CONFIG_FILE=""
 DEPLOY_LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 INTERACTIVE=false
 TARGET_USER=""
-DEPLOY_DEBUG=${DEPLOY_DEBUG:-true}
+DEPLOY_DEBUG=${DEPLOY_DEBUG:-false}
 
 # Improved logging function (renamed to avoid conflicts)
 deploy_log() {
@@ -32,7 +32,7 @@ deploy_log() {
             color_code="\033[0;31m"  # Red
             ;;
         "INFO")
-            color_code="\033[0;34m"  # Blue
+            color_code="\033[0;34m"  #
             ;;
         *)
             color_code="\033[0m"  # Default (no color)
