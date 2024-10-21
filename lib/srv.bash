@@ -11,14 +11,6 @@ eval "FILE_${BASE_LIB}=\$FILE_LIB"
 eval "BASE_${BASE_LIB}=\$BASE_LIB"
 eval "CONFIG_${BASE_LIB}=\$CONFIG_LIB"
 
-# Source the configuration file
-if [ -f "$CONFIG_LIB" ]; then
-    source "$CONFIG_LIB"
-else
-    echo "Warning: Configuration file $CONFIG_LIB not found!"
-    # Don't exit, just continue
-fi
-
 # Displays an overview of specific NFS-related functions in the script, showing their usage, shortname, and description
 # overview functions
 # 
