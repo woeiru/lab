@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# rc1 - module
-
 set_dynamic() {
 
     log "lv1" "Starting setup_navigation function"
