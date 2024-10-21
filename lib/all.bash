@@ -33,6 +33,8 @@ all-log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$log_level] $message"
 }
 
+#!/bin/bash
+
 # Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
 # function folder loop
 # <function> <flag> <path> [extra_args ..]
@@ -50,12 +52,27 @@ all-ffl() {
         extra_args+=("$1")
         shift
     done
+
     if [[ -d "$folder" ]]; then
         for file in "$folder"/{*,.[!.]*,..?*}; do
             if [[ -f "$file" ]]; then
                 line_count=$(wc -l < "$file")
-                # Improved function counting for the specific pattern
-                function_count=$(grep -cE '^[a-zA-Z0-9_-]+\(\)[[:space:]]*\{' "$file")
+                
+                # Get the file extension
+                file_extension="${file##*.}"
+                
+                if [[ "$file_extension" == "conf" ]]; then
+                    # Count variables in .conf files
+                    variable_count=$(grep -cE '^[a-zA-Z0-9_]+=' "$file")
+                    count_type="Variables"
+                    count_value=$variable_count
+                else
+                    # Count functions in other files
+                    function_count=$(grep -cE '^[a-zA-Z0-9_-]+\(\)[[:space:]]*\{' "$file")
+                    count_type="Functions"
+                    count_value=$function_count
+                fi
+                
                 # Get the real path of the file
                 real_path=$(realpath "$file")
                 # Extract the filename (prefix) from the path
@@ -64,7 +81,9 @@ all-ffl() {
                 prefix="${filename%%.*}"
                 # Get the directory path with the trailing slash
                 dir_path=$(dirname "$real_path")/
-                echo -e "$dir_path\e[32m$prefix\e[0m${filename#$prefix} - Contains \e[31m$line_count\e[0m Lines and \e[33m$function_count\e[0m Functions"
+                
+                echo -e "$dir_path\e[32m$prefix\e[0m${filename#$prefix} - Contains \e[31m$line_count\e[0m Lines and \e[33m$count_value\e[0m $count_type"
+                
                 "$fnc" "$flag" "$file" "${extra_args[@]}"
             elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
                 all-ffl "$fnc" "$flag" "$file" "${extra_args[@]}"
