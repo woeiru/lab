@@ -1,168 +1,39 @@
 #!/bin/bash
 
-set_static() {
+ALIASWRAP_TOGGLE=false
 
-    # Ansible
-    alias a1='usr-ans $ANS_PRO_PATH_1 $ANS_START_PATH_1'
-    alias ap='ansible-playbook'
-
-    # Bash
-    alias b='bash'
-    alias eb='exec bash'
-
-    # BTRFS management
-    alias bt='btrfs'
-    alias btf='btrfs filesystem'
-
-    # Cat (file viewing)
-    alias c='cat'
-    alias c.group='cat /etc/group'
-    alias c.passwd='cat /etc/passwd'
-    alias c.fstab='cat /etc/fstab'
-    alias es.log='cat /mnt/bak/home/.es.log'
-
-    # Directory navigation
-    alias d='cd'
-    alias ..='cd ..'
-    alias dl="cd $PARENT_DIR"
-
-    alias d.samba='cd /etc/samba/'
-    alias d.snapper='cd /etc/snapper/configs'
-    alias d.pam='cd /usr/lib/pam_snapper'
-
-    alias d.das='cd /mnt/das'
-    alias d.nvm='cd /mnt/nvm'
-    alias d.usb='cd /mnt/usb'
-
-    # Disk usage
-    alias u='du -bh -d1'
-    alias uu='du -bh -d2'
-    alias uuu='du -bh -d3'
-
-    # Exit
-    alias ee='exit'
-
-    # Function shortcuts
-    alias sca='gen-sca'
-    alias flc='all-flc'
-    alias cto='pve-cto'
-
-    # Function chaining
-    alias fun='all-ffl all-laf "" "$LIB_DIR"'
-    alias var='all-ffl all-acu "" "$VAR_DIR" "$PARENT_DIR"'
-
-    # Function makros
-    alias v1='gpu-ptd ; qm start 211'
-
-    # Git commands
-    alias g='git'
-    alias gs='git status'
-    alias gd='git diff'
-    alias gl='git ls-files | xargs cat | wc -l'
-    alias ga='git add'
-    alias gc='git commit'
-    alias gcmb='git commit -m "base"'
-    alias go='git push origin master'
-    alias gp='git pull'
-    alias gg='gen-gio'
-    alias gr1='git revert HEAD~1'
-
-    # History
-    alias h='history'
-
-    # IPTables
-    alias ipt='iptables -L -v -n'
-
-    # Mounting
-    alias m.sda.das='mount /dev/sda /mnt/das'
-    alias m.sub.sda.bak='mount -o subvol=bak /dev/sda /bak'
-
-    # Filesystem creation
-    alias mbf='mkfs.btrfs -f'
-    alias mbmd='mkfs.btrfs -m raid1 -d raid1'
-
-    # PAM Snapper commands
-    alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
-    alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
-    alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
-    alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
-
-    # Podman (container management)
-    alias pod='podman'
-    alias podst='podman start'
-    alias podps='podman ps'
-    alias podpsa='podman ps -a'
-
-    # System control
-    alias sy='systemctl'
-
-    # System configuration file editing
-    alias v.samba.conf='vim /etc/samba/smb.conf'
-    alias v.sambausers='vim /etc/samba/smbusers'
-    alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
-    alias v.fstab='vim /etc/fstab'
-
-    # Snapper (filesystem snapshot management)
-    alias sl='snapper list'
-    alias sc='snapper create'
-    alias shl='bfs-shl home'
-    alias shc='bfs-shc home'
-    alias shd='bfs-shd'
-
-    # System statistics
-    alias sar='sar -d 1'
-    alias ios='iostat -x 1'
-
-    # SELinux
-    alias ses='sestatus -v'
-    alias seb='sudo semanage boolean -l'
-
-    # Time zone setting
-    alias berlintime="timedatectl set-timezone Europe/Berlin"
-
-    # Transactional update
-    alias tu='transactional-update'
-    alias tua='transactional-update apply'
-    alias tur='transactional-update reboot'
-    alias tuar='transactional-update apply && transactional-update reboot'
-
-    # Dynamic tree function with line count
-    
-    tree_with_count() {
-     local depth=${1:-0}
-     local tree_cmd="tree"
-
-     if [ $depth -gt 0 ]; then
-           tree_cmd="tree -L $depth"
-     fi
-
-     $tree_cmd
-     echo "Total lines: $(find . -type f -exec wc -l {} + | tail -n1 | awk '{print $1}')"
-   }
-
-    alias t='tree_with_count'
-    alias tt='tree_with_count 2'
-    alias ttt='tree_with_count 3'
-    alias tttt='tree_with_count 4'
-    alias ttttt='tree_with_count 5'
-   
-    # Vim
-    alias v='vim'
-    alias v.nw="vim $CON_DIR/node-w.md"
-
-    # File listing
-    alias l='ls -Al'
-
-    # lab/dot/ini
-    ini_path=~/lab/dot/ini
-    depl_file="$ini_path/depl.sh"
-    inject_file="$ini_path/inject"
-    alias bde="bash $depl_file"
-    alias vin="vim $inject_file"
-
-    # Unsorted (you may want to organize these later)
-    alias pr='kquitapp5 plasmashell && kstart5 plasmashell'
-    alias gdi='git diff --no-index -- /dev/null'
-
-    # Any additional main execution logic can be added here
+# Set up a function to wrap alias execution with error trapping
+aliaswrap() {
+    if $ALIASWRAP_TOGGLE; then
+        echo "Executing command: $*"
+        trap 'echo "Error occurred on line $LINENO"; return 1' ERR
+        "$@"
+    else
+        "$@"
+    fi
 }
+
+# Wrap all aliases with the error trapping function
+set_aliaswrap() {
+    if $ALIASWRAP_TOGGLE; then
+        echo ""
+        log "lvl-2" "Starting alias wrapping"
+        while read -r alias_def; do
+            if [[ $alias_def =~ ^alias\ ([^=]+)=(.*)$ ]]; then
+                alias_name="${BASH_REMATCH[1]}"
+                alias_command="${BASH_REMATCH[2]}"
+                # Remove surrounding quotes if present
+                alias_command="${alias_command#[\'\"]}"
+                alias_command="${alias_command%[\'\"]}"
+                alias "$alias_name"="aliaswrap $alias_command"
+            fi
+        done < <(alias)
+        log "lvl-3" "All aliases have been wrapped with error trapping."
+    else
+       log "lvl-2" "Alias wrapping is disabled."
+    fi
+}
+
+# Export functions
+export -f aliaswrap
+export -f set_aliaswrap

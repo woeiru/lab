@@ -1,132 +1,168 @@
 #!/bin/bash
 
-set_dynamic() {
+set_static() {
 
-    log "lvl-2" "Starting setup_navigation function"
+    # Ansible
+    alias a1='usr-ans $ANS_PRO_PATH_1 $ANS_START_PATH_1'
+    alias ap='ansible-playbook'
 
-    generate_readme_aliases
+    # Bash
+    alias b='bash'
+    alias eb='exec bash'
 
-    generate_level_one_vars_and_aliases
-    generate_level_two_arrays
+    # BTRFS management
+    alias bt='btrfs'
+    alias btf='btrfs filesystem'
 
-    log "lvl-3" "Generating aliases for lib_files"
-    generate_aliases "cat" "$LIB_DIR" "${lib_files[@]}"
-    generate_aliases "vim" "$LIB_DIR" "${lib_files[@]}"
+    # Cat (file viewing)
+    alias c='cat'
+    alias c.group='cat /etc/group'
+    alias c.passwd='cat /etc/passwd'
+    alias c.fstab='cat /etc/fstab'
+    alias es.log='cat /mnt/bak/home/.es.log'
 
-    log "lvl-3" "Generating aliases for set_files"
-    generate_aliases "cat" "$SET_DIR" "${set_files[@]}"
-    generate_aliases "vim" "$SET_DIR" "${set_files[@]}"
-    generate_aliases "bash" "$SET_DIR" "${set_files[@]}"
+    # Directory navigation
+    alias d='cd'
+    alias ..='cd ..'
+    alias dl="cd $PARENT_DIR"
 
-    log "lvl-3" "Generating aliases for var_files"
-    generate_aliases "cat" "$VAR_DIR" "${var_files[@]}"
-    generate_aliases "vim" "$VAR_DIR" "${var_files[@]}"
+    alias d.samba='cd /etc/samba/'
+    alias d.snapper='cd /etc/snapper/configs'
+    alias d.pam='cd /usr/lib/pam_snapper'
 
-    log "lvl-3" "Sourcing scripts from lib_files"
+    alias d.das='cd /mnt/das'
+    alias d.nvm='cd /mnt/nvm'
+    alias d.usb='cd /mnt/usb'
 
+    # Disk usage
+    alias u='du -bh -d1'
+    alias uu='du -bh -d2'
+    alias uuu='du -bh -d3'
+
+    # Exit
+    alias ee='exit'
+
+    # Function shortcuts
+    alias sca='gen-sca'
+    alias flc='all-flc'
+    alias cto='pve-cto'
+
+    # Function chaining
+    alias fun='all-ffl all-laf "" "$LIB_DIR"'
+    alias var='all-ffl all-acu "" "$VAR_DIR" "$PARENT_DIR"'
+
+    # Function makros
+    alias v1='gpu-ptd ; qm start 211'
+
+    # Git commands
+    alias g='git'
+    alias gs='git status'
+    alias gd='git diff'
+    alias gl='git ls-files | xargs cat | wc -l'
+    alias ga='git add'
+    alias gc='git commit'
+    alias gcmb='git commit -m "base"'
+    alias go='git push origin master'
+    alias gp='git pull'
+    alias gg='gen-gio'
+    alias gr1='git revert HEAD~1'
+
+    # History
+    alias h='history'
+
+    # IPTables
+    alias ipt='iptables -L -v -n'
+
+    # Mounting
+    alias m.sda.das='mount /dev/sda /mnt/das'
+    alias m.sub.sda.bak='mount -o subvol=bak /dev/sda /bak'
+
+    # Filesystem creation
+    alias mbf='mkfs.btrfs -f'
+    alias mbmd='mkfs.btrfs -m raid1 -d raid1'
+
+    # PAM Snapper commands
+    alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
+    alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
+    alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
+    alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
+
+    # Podman (container management)
+    alias pod='podman'
+    alias podst='podman start'
+    alias podps='podman ps'
+    alias podpsa='podman ps -a'
+
+    # System control
+    alias sy='systemctl'
+
+    # System configuration file editing
+    alias v.samba.conf='vim /etc/samba/smb.conf'
+    alias v.sambausers='vim /etc/samba/smbusers'
+    alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
+    alias v.fstab='vim /etc/fstab'
+
+    # Snapper (filesystem snapshot management)
+    alias sl='snapper list'
+    alias sc='snapper create'
+    alias shl='bfs-shl home'
+    alias shc='bfs-shc home'
+    alias shd='bfs-shd'
+
+    # System statistics
+    alias sar='sar -d 1'
+    alias ios='iostat -x 1'
+
+    # SELinux
+    alias ses='sestatus -v'
+    alias seb='sudo semanage boolean -l'
+
+    # Time zone setting
+    alias berlintime="timedatectl set-timezone Europe/Berlin"
+
+    # Transactional update
+    alias tu='transactional-update'
+    alias tua='transactional-update apply'
+    alias tur='transactional-update reboot'
+    alias tuar='transactional-update apply && transactional-update reboot'
+
+    # Dynamic tree function with line count
+    
+    tree_with_count() {
+     local depth=${1:-0}
+     local tree_cmd="tree"
+
+     if [ $depth -gt 0 ]; then
+           tree_cmd="tree -L $depth"
+     fi
+
+     $tree_cmd
+     echo "Total lines: $(find . -type f -exec wc -l {} + | tail -n1 | awk '{print $1}')"
+   }
+
+    alias t='tree_with_count'
+    alias tt='tree_with_count 2'
+    alias ttt='tree_with_count 3'
+    alias tttt='tree_with_count 4'
+    alias ttttt='tree_with_count 5'
+   
+    # Vim
+    alias v='vim'
+    alias v.nw="vim $CON_DIR/node-w.md"
+
+    # File listing
+    alias l='ls -Al'
+
+    # lab/dot/ini
+    ini_path=~/lab/dot/ini
+    depl_file="$ini_path/depl.sh"
+    inject_file="$ini_path/inject"
+    alias bde="bash $depl_file"
+    alias vin="vim $inject_file"
+
+    # Unsorted (you may want to organize these later)
+    alias pr='kquitapp5 plasmashell && kstart5 plasmashell'
+    alias gdi='git diff --no-index -- /dev/null'
+
+    # Any additional main execution logic can be added here
 }
-
-generate_readme_aliases() {
-    log "lvl-3" "Generating readme aliases"
-    local FILEBASE_MD="readme.md"
-    while IFS= read -r -d '' file; do
-        log "lvl-4" "Processing readme file: $file"
-        dir=$(dirname "$file")
-        dir_name=$(basename "$dir")
-        parent_dir=$(basename "$(dirname "$dir")")
-        if [[ "$parent_dir" != "lab" ]]; then
-            alias_name="$parent_dir-$dir_name-md"
-        else
-            alias_name="$dir_name-md"
-        fi
-        alias "c-$alias_name=cat $file"
-        alias "v-$alias_name=vim $file"
-        log "lvl-5" "Created aliases: c-$alias_name and v-$alias_name for $file"
-    done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
-}
-
-generate_level_one_vars_and_aliases() {
-    log "lvl-3" "Generating top-level directory aliases"
-    for dir in "$PARENT_DIR"/*; do
-        if [[ -d "$dir" ]]; then
-            base=$(basename "$dir")
-            if [[ ${#base} -eq 3 ]]; then
-                log "lvl-4" "Processing directory: $base"
-                var_name="${base^^}_DIR"
-                dir_path=$(realpath "$dir")
-                declare -g "$var_name=$dir_path"
-                alias "d-$base=cd $dir_path"
-                log "lvl-5" "Created alias: d-$base -> cd $dir_path"
-            fi
-        fi
-    done
-}
-
-generate_level_two_arrays() {
-    log "lvl-3" "Generating level two arrays"
-    local generation_folders=(lib set var)
-
-    for folder in "${generation_folders[@]}"; do
-        local dir_path="$PARENT_DIR/$folder"
-        log "lvl-4" "Processing folder: $folder, path: $dir_path"
-
-        if [[ -d "$dir_path" ]]; then
-            local array_name="${folder}_files"
-            local files=()
-
-            log "lvl-5" "Searching for files in $dir_path"
-            while IFS= read -r -d '' file; do
-                base_name=$(basename "$file")
-                name_without_ext="${base_name%.*}"
-                files+=("$name_without_ext")
-                log "lvl-6" "Found file: $file"
-                log "lvl-7" "Added file to $array_name: $name_without_ext"
-            done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*.bash" -o -name "*.sh" -o -name "*.conf" \) -print0)
-
-            log "lvl-5" "Creating array $array_name"
-            eval "declare -ga $array_name=(${files[*]})"
-            log "lvl-6" "Created array $array_name with values: ${!array_name[*]}"
-
-            log "lvl-7" "Finished processing folder: $folder"
-        else
-            log "lvl-4" "Directory not found: $dir_path"
-        fi
-    done
-
-    log "lvl-4" "Finished generating all level two arrays"
-}
-
-generate_aliases() {
-    log "lvl-4" "Generating aliases"
-    local alias_type=$1
-    local directory=$2
-    shift 2
-    local files=("$@")
-    log "lvl-5" "Alias type: $alias_type, Directory: $directory, Files: ${files[*]}"
-
-    for file in "${files[@]}"; do
-        log "lvl-6" "Searching for file $file in directory $directory"
-        local found_file=$(find "$directory" -maxdepth 1 -type f -name "$file.*" | head -n 1)
-        if [[ -n "$found_file" ]]; then
-            log "lvl-7" "Found file: $found_file"
-            local ext="${found_file##*.}"
-            local alias_prefix=""
-
-            case "$alias_type" in
-                "bash")
-                    [[ "$ext" == "sh" ]] && alias_prefix="b."
-                    ;;
-                "cat") alias_prefix="c." ;;
-                "vim") alias_prefix="v." ;;
-            esac
-
-            if [[ -n "$alias_prefix" ]]; then
-                alias "${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
-                log "lvl-8" "Created alias: ${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
-            fi
-        else
-            log "lvl-6" "File not found: $file in directory $directory"
-        fi
-    done
-}
-
