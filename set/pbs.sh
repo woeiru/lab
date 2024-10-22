@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Handle non-interactive shell case
-[[ -z "${DOT_DIR}" ]] && DOT_DIR="/root/lab/dot"
-
 # Define script location
 DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_SH="$(basename "${BASH_SOURCE[0]}")"
