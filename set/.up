@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Check if DOT_DIR is already set, if not set it
+if [[ -z "${DOT_DIR}" ]]; then
+    DOT_DIR="/root/lab/dot"
+fi
+
 # Enable error handling
 set -e
 
@@ -13,12 +18,12 @@ if [[ -z "${SOURCE_RC_SUCCESS}" ]]; then
     }
 
     # Attempt to source rc2 for full logging capabilities
-    if [[ -f "/path/to/rc2" ]]; then
-        source "/path/to/rc2"
+    if [[ -f "${DOT_DIR}/rc2" ]]; then
+        source "${DOT_DIR}/rc2"
         export SOURCE_RC_SUCCESS=1
         log "lvl-2" "rc2 sourced successfully"
     else
-        echo "rc2 not found, using minimal logging"
+        echo "rc2 not found at ${DOT_DIR}/rc2, using minimal logging"
     fi
 else
     log "lvl-2" "rc already sourced, using existing log function"
