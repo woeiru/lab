@@ -12,28 +12,17 @@ if [[ -z "${SOURCE_RC_SUCCESS}" ]]; then
         echo "[${level}] ${message}"
     }
 
-    log_error() {
-        log "ERROR" "$1" >&2
-    }
-
-    log_info() {
-        log "INFO" "$1"
-    }
-
     # Attempt to source rc2 for full logging capabilities
     if [[ -f "/path/to/rc2" ]]; then
         source "/path/to/rc2"
         export SOURCE_RC_SUCCESS=1
         log "lvl-2" "rc2 sourced successfully"
     else
-        log_error "rc2 not found, using minimal logging"
+        echo "rc2 not found, using minimal logging"
     fi
 else
     log "lvl-2" "rc already sourced, using existing log function"
 fi
-
-# Set log levels (adjust as needed)
-LOG_LEVELS=(1 1 1 1 1 0 0 0)
 
 print_usage() {
     log "lvl-3" "Usage: $0 MODE [ARGUMENT]"
@@ -59,7 +48,7 @@ setup_source() {
         for conf_file in "$var_dir"/*.conf; do
             if [[ -f "$conf_file" ]]; then
                 log "lvl-4" "Sourcing $conf_file"
-                source "$conf_file" || log_error "Failed to source $conf_file"
+                source "$conf_file" || echo "Failed to source $conf_file"
             fi
         done
 
@@ -67,7 +56,7 @@ setup_source() {
         for bash_file in "$lib_dir"/*.bash; do
             if [[ -f "$bash_file" ]]; then
                 log "lvl-4" "Sourcing $bash_file"
-                source "$bash_file" || log_error "Failed to source $bash_file"
+                source "$bash_file" || echo "Failed to source $bash_file"
             fi
         done
 
@@ -82,7 +71,7 @@ setup_main() {
     log "lvl-2" "Starting setup_main with arguments: $@"
 
     if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
-        log_error "Incorrect number of arguments."
+        echo "Incorrect number of arguments."
         print_usage
         return 1
     fi
@@ -97,7 +86,7 @@ setup_main() {
             ;;
         -x)
             if [ -z "$argument" ]; then
-                log_error "Section argument is required for executing mode."
+                echo "Section argument is required for executing mode."
                 print_usage
                 return 1
             fi
@@ -105,7 +94,7 @@ setup_main() {
             setup_executing_mode "$argument"
             ;;
         *)
-            log_error "Invalid mode. Use -i for interactive or -x for executing."
+            echo "Invalid mode. Use -i for interactive or -x for executing."
             print_usage
             return 1
             ;;
@@ -139,7 +128,7 @@ setup_interactive_mode() {
 
     # Validate user input
     if ! [[ "$display_choice" =~ ^[1-6]$ ]]; then
-        log_error "Invalid choice. Using default display (1)."
+        echo "Invalid choice. Using default display (1)."
         display_choice=1
     fi
 
@@ -163,7 +152,7 @@ setup_executing_mode() {
             log "lvl-4" "Executing section: $section"
             ${MENU_OPTIONS[$section]}
         else
-            log_error "Invalid section: $section"
+            echo "Invalid section: $section"
             exit 1
         fi
     fi
@@ -198,7 +187,7 @@ select_and_execute_sections() {
             log "lvl-4" "Executing section: $section"
             setup_executing_mode "$section"
         else
-            log_error "Invalid section: $section. Skipping."
+            echo "Invalid section: $section. Skipping."
         fi
     done
 }
