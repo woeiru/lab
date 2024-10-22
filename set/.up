@@ -25,10 +25,38 @@ else
 fi
 
 print_usage() {
-    log "lvl-3" "Usage: $0 MODE [ARGUMENT]"
-    log "lvl-3" "MODE:"
-    log "lvl-3" "  -i [DISPLAY_MODE]: Interactive mode. DISPLAY_MODE is optional (1-6)."
-    log "lvl-3" "  -x SECTION: Executing mode. SECTION is required (function name or -all)."
+    local base_indent="          "
+    # Get directory name and base name dynamically
+    local dir_name=$(dirname "$0")
+    dir_name=$(basename "$dir_name")  # Get just the last directory name
+    local base_name=$(basename "$0")
+    base_name="${base_name%.*}"       # Remove extension
+    local header="${dir_name}/${base_name} usage guide"
+
+    printf "\n"
+    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+    printf "%s┃ %s\n" "$base_indent" "$header"
+    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+    printf "%s┃ COMMAND SYNTAX:\n" "$base_indent"
+    printf "%s┃   ./%s MODE [ARGUMENT]\n" "$base_indent" "$(basename "$0")"
+    printf "%s┃ \n" "$base_indent"
+    printf "%s┃ AVAILABLE MODES:\n" "$base_indent"
+    printf "%s┃   -i : Interactive Mode\n" "$base_indent"
+    printf "%s┃        Provides a menu-driven interface for executing functions\n" "$base_indent"
+    printf "%s┃        Optional: Add display mode (1-6) for different output formats\n" "$base_indent"
+    printf "%s┃        Example: ./%s -i 2\n" "$base_indent" "$(basename "$0")"
+    printf "%s┃ \n" "$base_indent"
+    printf "%s┃   -x : Execution Mode\n" "$base_indent"
+    printf "%s┃        Directly executes specified section(s)\n" "$base_indent"
+    printf "%s┃        Required: Section name or '-all'\n" "$base_indent"
+    printf "%s┃        Example: ./%s -x a\n" "$base_indent" "$(basename "$0")"
+    printf "%s┃ \n" "$base_indent"
+    printf "%s┃ SECTIONS:\n" "$base_indent"
+    printf "%s┃   a    : Package and Git Setup\n" "$base_indent"
+    printf "%s┃   b    : System Configuration\n" "$base_indent"
+    printf "%s┃   -all : Execute All Sections\n" "$base_indent"
+    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+    printf "\n"
 }
 
 setup_source() {
