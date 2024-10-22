@@ -12,12 +12,14 @@ declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
 
+# this a test description
 a_xall() {
     gen-ipa "$NFS_PACKAGES_ALL"
     gen-sdc "$NFS_SYSD_CHECK"
     gen-ust "$NFS_USERNAME_1" "$NFS_PASSWORD_1"
 }
 
+# this a test description
 b_xall() {
     nfs-set  "$NFS_HEADER_1" "$NFS_SHARED_FOLDER_1" "$NFS_OPTIONS_1"
 }

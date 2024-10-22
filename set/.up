@@ -24,6 +24,58 @@ else
     log "lvl-2" "rc already sourced, using existing log function"
 fi
 
+# Helper function to get section IDs from the calling script
+get_section_ids() {
+    local script_path="$1"
+    local -n ids_array="$2"  # nameref to array for storing results
+
+    # Clear the array
+    ids_array=()
+
+    # Read the script and find all *_xall functions
+    while IFS= read -r line; do
+        if [[ $line =~ ^([a-zA-Z_]+)_xall\(\) ]]; then
+            ids_array+=("${BASH_REMATCH[1]}")
+        fi
+    done < "$script_path"
+
+    # Sort the array
+    IFS=$'\n' ids_array=($(sort <<<"${ids_array[*]}"))
+    unset IFS
+
+    log "lvl-4" "Found sections: ${ids_array[*]}"
+}
+
+# Helper function to get section descriptions
+get_section_description() {
+    local script_path="$1"
+    local section_id="$2"
+
+    # Look for the comment line before the function definition
+    local description
+    description=$(awk -v fname="${section_id}_xall" '
+        /^#/ {
+            desc = substr($0, 3)  # Remove "# " prefix
+            next
+        }
+        $0 ~ "^"fname"\\(\\)" {
+            if (desc != "") {
+                print desc
+            } else {
+                print "Section " fname
+            }
+            exit
+        }
+    ' "$script_path")
+
+    # If no description found or awk failed, provide a default
+    if [[ -z "$description" ]]; then
+        description="Section ${section_id}"
+    fi
+
+    echo "$description"
+}
+
 print_usage() {
     local base_indent="          "
     # Get directory name and base name dynamically
@@ -32,6 +84,18 @@ print_usage() {
     local base_name=$(basename "$0")
     base_name="${base_name%.*}"       # Remove extension
     local header="${dir_name}/${base_name} usage guide"
+
+    # Get the calling script's path
+    local calling_script
+    if [[ -n "${BASH_SOURCE[1]}" ]]; then
+        calling_script="${BASH_SOURCE[1]}"
+    else
+        calling_script="$0"
+    fi
+
+    # Get section IDs
+    local -a section_ids
+    get_section_ids "$calling_script" section_ids
 
     printf "\n"
     printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
@@ -52,8 +116,13 @@ print_usage() {
     printf "%s┃        Example: ./%s -x a\n" "$base_indent" "$(basename "$0")"
     printf "%s┃ \n" "$base_indent"
     printf "%s┃ SECTIONS:\n" "$base_indent"
-    printf "%s┃   a    : Package and Git Setup\n" "$base_indent"
-    printf "%s┃   b    : System Configuration\n" "$base_indent"
+
+    # Print each section with its description
+    for section_id in "${section_ids[@]}"; do
+        local description
+        description=$(get_section_description "$calling_script" "$section_id")
+        printf "%s┃   %-4s : %s\n" "$base_indent" "$section_id" "$description"
+    done
     printf "%s┃   -all : Execute All Sections\n" "$base_indent"
     printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
     printf "\n"
