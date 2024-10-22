@@ -45,10 +45,10 @@ source_helper() {
 
 # Main sourcing function
 source_rc() {
-    echo -e "   └─ lvl-1 Starting \033[1m ${FUNCNAME[0]} () \033[0m"
+    ### echo -e "   └─ lvl-1 Starting \033[1m ${FUNCNAME[0]} () \033[0m"
     # Source rc mod
     local rc_mod=("rc2" "rc3" "rc4" "rc5")
-    echo -e "      └─lvl-2 Source ${rc_mod[*]}"
+    ### echo -e "      └─lvl-2 Source ${rc_mod[*]}"
     for module in "${rc_mod[@]}"; do
         source_helper "$DIR/$module"
     done
@@ -118,7 +118,7 @@ execution_mod() {
 
 # Main execution
 main_rc() {
-    echo -e "└─ lvl-0 Starting \033[1m${FUNCNAME[0]} () \033[0m"
+    ### echo -e "└─ lvl-0 Starting \033[1m${FUNCNAME[0]} () \033[0m"
     local source_success=0
     local execution_rc_success=0
     local execution_mod_success=0
