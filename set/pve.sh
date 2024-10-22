@@ -36,16 +36,19 @@ MENU_OPTIONS[x]="x_xall"
 MENU_OPTIONS[y]="y_xall"
 MENU_OPTIONS[z]="z_xall"
 
+# this a test description
 a_xall() {
     pve-dsr
     usr-adr "$PVE_ADR_FILE" "$PVE_ADR_LINE"
     pve-rsn
 }
 
+# this a test description
 b_xall() {
     gen-ipa "$PACKAGES_ALL"
 }
 
+# this a test description
 c_xall() {
     gen-suk \
         "$DEVICE_PATH" \
@@ -57,16 +60,19 @@ c_xall() {
     gen-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
+# this a test description
 d_xall() {
     gen-sks -s root@"${CL_IPS[t1]}" "$KEY_NAME"
 
     gen-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
+# this a test description
 i_xall() {
     bfs-ra1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
+# this a test description
 j_xall() {
     local i=1
     while true; do
@@ -86,12 +92,14 @@ j_xall() {
     zfs list
 }
 
+# this a test description
 p_xall() {
     pve-clu
     pve-cdo "$CT_DL_STO" "$CT_DL_1"
     usr-cuc
 }
 
+# this a test description
 q_xall() {
     local i=1
     while true; do
@@ -147,6 +155,7 @@ q_xall() {
     done
 }
 
+# this a test description
 r_xall() {
     local i=1
     while true; do
@@ -164,6 +173,7 @@ r_xall() {
     done
 }
 
+# this a test description
 s_xall() {
     local i=1
     while true; do
