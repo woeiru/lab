@@ -16,13 +16,13 @@ MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
 MENU_OPTIONS[x]="x_xall"
 
-# this is the a description
+# Installs common system packages and configures global Git user credentials
 a_xall() {
     gen-ipa "$PACKAGES_ALL"
     gen-gst "$GIT_USERNAME" "$GIT_USERMAIL"
 }
 
-# this is the b description
+# Uploads private SSH key from USB device to system for secure authentication
 b_xall() {
     gen-suk \
         "$DEVICE_PATH" \
