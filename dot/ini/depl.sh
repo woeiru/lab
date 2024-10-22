@@ -1,4 +1,6 @@
-# depl.sh
+#!/bin/bash
+
+# depl.sh v2
 
 # Set strict mode
 set -eo pipefail
