@@ -17,20 +17,19 @@ BASE_INDENT="          "  # Added for consistent
 INJECT_FILE="inject"
 
 print_message() {
-    local level="$1"
-    local message="$2"
-    local timestamp=$(date '+%Y%m%d%H%M%S')
+    local message="$1"
 
     # Print to both console and log file
-    printf "[%s][%s] %s\n" "$timestamp" "$message" | tee -a "$DEPLOY_LOG_FILE"
+    printf "%s┃ %-68s \n" "$BASE_INDENT" "$message" | tee -a "$DEPLOY_LOG_FILE"
 }
+
 
 # Function to print box-style messages
 print_box() {
     local message="$1"
     printf "\n"
     printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$BASE_INDENT"
-    printf "%s┃ %-75s ┃\n" "$BASE_INDENT" "$message"
+    printf "%s┃ %-68s ┃\n" "$BASE_INDENT" "$message"
     printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$BASE_INDENT"
 }
 
@@ -39,14 +38,14 @@ print_section() {
     local message="$1"
     printf "\n"
     printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$BASE_INDENT"
-    printf "%s┃ %-75s ┃\n" "$BASE_INDENT" "$message"
+    printf "%s┃ %-68s ┃\n" "$BASE_INDENT" "$message"
     printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\n" "$BASE_INDENT"
 }
 
 # Function to print normal box line
 print_boxline() {
     local message="$1"
-    printf "%s┃ %-75s ┃\n" "$BASE_INDENT" "$message"
+    printf "%s┃ %-68s \n" "$BASE_INDENT" "$message"
 }
 
 # Function to print box footer
@@ -137,7 +136,7 @@ execute_functions() {
 
     for func in "${functions[@]}"; do
         local number=$(grep -B1 "^$func()" "$SCRIPT_DIR/$FUNCTION_FILE" | grep -E '^# [0-9]+\.' | sed -E 's/^# ([0-9]+)\..*/\1/')
-        local comment=$(grep -B1 "^$func()" "$SCRIPT_DIR/$FUNCTION_FILE" | grep -E '^# [0-9]+\.' | sed -E 's/^# [0-9]+\. //')
+        local comment=$func
         print_section "Step $number: $comment"
         if declare -f "$func" > /dev/null; then
             if ! $func; then
