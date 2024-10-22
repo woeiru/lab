@@ -16,11 +16,13 @@ MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
 MENU_OPTIONS[x]="x_xall"
 
+# this is the a description
 a_xall() {
     gen-ipa "$PACKAGES_ALL"
     gen-gst "$GIT_USERNAME" "$GIT_USERMAIL"
 }
 
+# this is the b description
 b_xall() {
     gen-suk \
         "$DEVICE_PATH" \
@@ -32,9 +34,9 @@ b_xall() {
 
 # Handle script execution
 if [ $# -eq 0 ]; then
-    setup_main
-    clean_exit $?  # Handle the return value from setup_main
+    print_usage
+    clean_exit 0       # Exit cleanly with status 0
 else
     setup_main "$@"
-    clean_exit $?  # Handle the return value from setup_main
+    clean_exit $?
 fi
