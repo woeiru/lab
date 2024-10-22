@@ -24,4 +24,11 @@ b_xall() {
     nfs-set  "$NFS_HEADER_1" "$NFS_SHARED_FOLDER_1" "$NFS_OPTIONS_1"
 }
 
-setup_main "$@"
+# Handle script execution
+if [ $# -eq 0 ]; then
+    print_usage
+    clean_exit 0       # Exit cleanly with status 0
+else
+    setup_main "$@"
+    clean_exit $?
+fi

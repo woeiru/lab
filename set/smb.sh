@@ -25,4 +25,11 @@ b_xall() {
     	smb-set  "$SMB_HEADER_2" "$SMB_SHARED_FOLDER_2" "$SMB_USERNAME_2" "$SMB_PASSWORD_2" "$SMB_WRITABLE_YESNO_2" "$SMB_GUESTOK_YESNO_2" "$SMB_BROWSABLE_YESNO_2" "$SMB_CREATE_MASK_2" "$SMB_DIR_MASK_2" "$SMB_FORCE_USER_2" "$SMB_FORCE_GROUP_2"
 }
 
-setup_main "$@"
+# Handle script execution
+if [ $# -eq 0 ]; then
+    print_usage
+    clean_exit 0       # Exit cleanly with status 0
+else
+    setup_main "$@"
+    clean_exit $?
+fi
