@@ -36,19 +36,19 @@ MENU_OPTIONS[x]="x_xall"
 MENU_OPTIONS[y]="y_xall"
 MENU_OPTIONS[z]="z_xall"
 
-# this a test description
+# Disables enterprise repository, adds community repository, and removes subscription notice from Proxmox web interface
 a_xall() {
     pve-dsr
     usr-adr "$PVE_ADR_FILE" "$PVE_ADR_LINE"
     pve-rsn
 }
 
-# this a test description
+# Installs required system packages including corosync-qdevice for cluster management
 b_xall() {
     gen-ipa "$PACKAGES_ALL"
 }
 
-# this a test description
+# Uploads public SSH key from USB device and adds it to the authorized keys for secure remote access
 c_xall() {
     gen-suk \
         "$DEVICE_PATH" \
@@ -60,19 +60,19 @@ c_xall() {
     gen-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
-# this a test description
+# Generates and distributes SSH keys for secure communication between client and server nodes
 d_xall() {
     gen-sks -s root@"${CL_IPS[t1]}" "$KEY_NAME"
 
     gen-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
-# this a test description
+# Creates a RAID 1 Btrfs filesystem across two devices with the specified mount point
 i_xall() {
     bfs-ra1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
-# this a test description
+# Creates and configures multiple ZFS datasets with their respective mount points based on configuration
 j_xall() {
     local i=1
     while true; do
@@ -92,14 +92,14 @@ j_xall() {
     zfs list
 }
 
-# this a test description
+# Updates container template list, downloads specified template, and updates container configuration
 p_xall() {
     pve-clu
     pve-cdo "$CT_DL_STO" "$CT_DL_1"
     usr-cuc
 }
 
-# this a test description
+# Creates multiple Proxmox containers using configuration parameters from site.conf
 q_xall() {
     local i=1
     while true; do
@@ -155,7 +155,7 @@ q_xall() {
     done
 }
 
-# this a test description
+# Configures bind mounts for all defined containers to link host and container directories
 r_xall() {
     local i=1
     while true; do
@@ -173,7 +173,7 @@ r_xall() {
     done
 }
 
-# this a test description
+# Creates multiple virtual machines using the specifications defined in site.conf
 s_xall() {
     local i=1
     while true; do
