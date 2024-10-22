@@ -1,0 +1,179 @@
+#!/bin/bash
+set -o pipefail
+
+# Main configuration file
+# This file sources the modular components and handles the main execution
+
+# Define the directory of the script using a POSIX-compliant method
+DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
+PARENT_DIR="/root/lab"
+
+# Log file for stderr
+ERROR_LOG="/tmp/rc_error.log"
+
+clean_exit() {
+    local exit_code=${1:-0}
+    trap - ERR  # Remove the error trap
+    trap - EXIT # Remove exit trap if any
+    exit $exit_code
+}
+
+# Function to handle errors
+error_handler() {
+    local exit_code=$?
+    local command="$BASH_COMMAND"
+    local line_number="$1"
+    echo "Debug: BASH_SOURCE array: ${BASH_SOURCE[*]}" >> "$ERROR_LOG"
+    echo "Debug: \$0 value: $0" >> "$ERROR_LOG"
+    local source_file="${BASH_SOURCE[1]:-${0:-$command}}"
+    source_file="${source_file:-"<unknown-source>"}"  # Final fallback
+    echo "└─ lvl-0 $(date '+%Y%m%d%H%M%S') - Error in $source_file on line $line_number: Command '$command' exited with status $exit_code" | tee -a "$ERROR_LOG" >&2
+}
+
+# Set up error handling
+trap 'error_handler $LINENO' ERR
+
+# Function to source a file safely
+source_helper() {
+    if [[ -f "$1" ]]; then
+        source "$1"
+        log "lvl-4" "Source $1"
+    else
+        log "lvl-4" "Warning: File $1 not found." | tee -a "$ERROR_LOG" >&2
+    fi
+}
+
+# Main sourcing function
+source_rc() {
+    ### echo -e "   └─ lvl-1 Starting \033[1m ${FUNCNAME[0]} () \033[0m"
+    # Source rc mod
+    local rc_mod=("rc1" "rc2" "rc3" "rc4")
+    ### echo -e "      └─lvl-2 Source ${rc_mod[*]}"
+    for module in "${rc_mod[@]}"; do
+        source_helper "$DIR/$module"
+    done
+    # Source secondary mod
+    local secondary_mod=("env")
+    log "lvl-2" "Sourcing secondary mod: ${secondary_mod[*]}"
+    for module in "${secondary_mod[@]}"; do
+        module_folder="$DIR/$module"
+        if [ -d "$module_folder" ]; then
+            log "lvl-3" "Processing folder: $module"
+            for file in "$module_folder"/*1*; do
+                if [ -f "$file" ]; then
+                    source_helper "$file"
+                fi
+            done
+        else
+            log "lvl-3" "Folder $module_folder not found. Skipping."
+        fi
+    done
+    # Source lib and var files
+    local dirs=("lib" "var")
+    local extensions=("bash" "conf")
+    log "lvl-2" "Sourcing lib and var files"
+    for i in "${!dirs[@]}"; do
+        local dir="$PARENT_DIR/${dirs[i]}"
+        local ext="${extensions[i]}"
+        log "lvl-3" "Processing directory: $dir (extension: .$ext)"
+        if [[ ! -d "$dir" ]]; then
+            log "lvl-4" "Warning: Directory $dir not found. Skipping."
+            continue
+        fi
+        for file in "$dir"/*."$ext"; do
+            if [[ -f "$file" ]]; then
+                source_helper "$file"
+            fi
+        done
+    done
+}
+
+# Execution arrangement for rc
+execution_rc() {
+    log "lvl-1" "Starting \033[1m${FUNCNAME[0]} () \033[0m"
+    local set_functions=("set_dynamic" "set_static" "set_aliaswrap")
+    for func in "${set_functions[@]}"; do
+        if type "$func" &>/dev/null; then
+            log "lvl-3" "Executing $func"
+            $func
+        else
+            log "lvl-3" "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
+        fi
+    done
+}
+
+# Execution arrangement for mod
+execution_mod() {
+    log "lvl-1" "Starting \033[1m${FUNCNAME[0]} () \033[0m"
+    local module_functions=("main_env")
+    for func in "${module_functions[@]}"; do
+        if type "$func" &>/dev/null; then
+            log "lvl-3" "Executing $func"
+            $func
+        else
+            log "lvl-3" "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
+        fi
+    done
+}
+
+# Main execution
+main_rc() {
+    ### echo -e "└─ lvl-0 Starting \033[1m${FUNCNAME[0]} () \033[0m"
+    local source_success=0
+    local execution_rc_success=0
+    local execution_mod_success=0
+
+
+    if source_rc; then
+        export SOURCE_RC_SUCCESS=1
+        source_success=1
+    else
+        unset SOURCE_RC_SUCCESS
+    fi
+
+    if execution_rc; then
+        export EXECUTION_RC_SUCCESS=1
+        execution_rc_success=1
+    else
+        unset EXECUTION_RC_SUCCESS
+    fi
+
+    if execution_mod; then
+        export EXECUTION_MODULES_SUCCESS=1
+        execution_mod_success=1
+    else
+        unset EXECUTION_MODULES_SUCCESS
+    fi
+
+    if [[ $source_success -eq 1 && $execution_rc_success -eq 1 && $execution_mod_success -eq 1 ]]; then
+        export RC_SOURCED=1
+    else
+        unset RC_SOURCED
+    fi
+
+    if [[ -z "${SOURCE_RC_SUCCESS}" ]]; then
+        log "lvl-2" "Error: Source rc failed." | tee -a "$ERROR_LOG" >&2
+    fi
+
+    if [[ -z "${EXECUTION_RC_SUCCESS}" ]]; then
+        log "lvl-2" "Error: Execution rc failed." | tee -a "$ERROR_LOG" >&2
+    fi
+
+    if [[ -z "${EXECUTION_MODULES_SUCCESS}" ]]; then
+        log "lvl-2" "Error: Execution mod failed." | tee -a "$ERROR_LOG" >&2
+    fi
+
+    if [[ -z "${RC_SOURCED}" ]]; then
+        log "lvl-2" "Error: Overall RC sourcing failed." | tee -a "$ERROR_LOG" >&2
+        return 1
+    else
+        log "lvl-2" "Setup completed successfully."
+        return 0
+    fi
+}
+
+# Execute main function
+main_rc
+
+# Export it so it's available to other scripts
+export -f clean_exit
