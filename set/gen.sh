@@ -30,9 +30,11 @@ b_xall() {
         "$PRIVATE_KEY"
 }
 
-# Handle script execution with default to interactive mode
+# Handle script execution
 if [ $# -eq 0 ]; then
-    setup_main "-i"
+    setup_main
+    clean_exit $?  # Handle the return value from setup_main
 else
     setup_main "$@"
+    clean_exit $?  # Handle the return value from setup_main
 fi
