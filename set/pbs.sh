@@ -22,4 +22,11 @@ b_xall() {
 	pbs-rda "$PBS_DATASTORE_CONFIG" "$PBS_DATASTORE_NAME" "$PBS_DATASTORE_PATH"
 }
 
-setup_main "$@"
+# Handle script execution
+if [ $# -eq 0 ]; then
+    print_usage
+    clean_exit 0       # Exit cleanly with status 0
+else
+    setup_main "$@"
+    clean_exit $?
+fi
