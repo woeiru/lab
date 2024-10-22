@@ -26,45 +26,20 @@ if [[ -z "${SOURCE_RC_SUCCESS}" ]]; then
         export SOURCE_RC_SUCCESS=1
         log "lvl-2" "rc2 sourced successfully"
     else
-        echo "rc2 not found, using minimal logging"
+        log_error "rc2 not found, using minimal logging"
     fi
 else
     log "lvl-2" "rc already sourced, using existing log function"
 fi
 
-check_arguments() {
-    local script_name="$1"
-    local min_args="$2"
-    local max_args="$3"
-    shift 3
-    local args=("$@")
-
-    if [ "${#args[@]}" -lt "$min_args" ]; then
-        # If no arguments, default to interactive mode
-        if [ "$min_args" -eq 1 ] && [ "${#args[@]}" -eq 0 ]; then
-            return 0
-        fi
-        log "lvl-4" "Insufficient number of arguments."
-        print_usage
-        clean_exit 0
-    fi
-
-    if [ "${#args[@]}" -gt "$max_args" ]; then
-        log "lvl-4" "Too many arguments."
-        print_usage
-        clean_exit 0
-    fi
-}
+# Set log levels (adjust as needed)
+LOG_LEVELS=(1 1 1 1 1 0 0 0)
 
 print_usage() {
-    log "lvl-4" "Usage: $0 [MODE] [ARGUMENT]"
-    log "lvl-4" "Modes:"
-    log "lvl-4" "  (no arguments) : Interactive mode with default display"
-    log "lvl-4" "  -i [DISPLAY_MODE]: Interactive mode. DISPLAY_MODE is optional (1-6)"
-    log "lvl-4" "  -x SECTION: Execute specific section"
-    log "lvl-4" "  SECTION: Direct section execution"
-    log "lvl-4" ""
-    log "lvl-4" "Available sections: ${!MENU_OPTIONS[*]}"
+    log "lvl-3" "Usage: $0 MODE [ARGUMENT]"
+    log "lvl-3" "MODE:"
+    log "lvl-3" "  -i [DISPLAY_MODE]: Interactive mode. DISPLAY_MODE is optional (1-6)."
+    log "lvl-3" "  -x SECTION: Executing mode. SECTION is required (function name or -all)."
 }
 
 setup_source() {
@@ -106,11 +81,10 @@ setup_source() {
 setup_main() {
     log "lvl-2" "Starting setup_main with arguments: $@"
 
-    # Handle no arguments by showing usage
-    if [ "$#" -eq 0 ]; then
-        log "lvl-3" "No arguments provided, defaulting to interactive mode"
-        setup_interactive_mode
-        return 0
+    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        log_error "Incorrect number of arguments."
+        print_usage
+        return 1
     fi
 
     local mode="$1"
@@ -123,23 +97,17 @@ setup_main() {
             ;;
         -x)
             if [ -z "$argument" ]; then
-                log "lvl-4" "Section argument is required for executing mode."
+                log_error "Section argument is required for executing mode."
                 print_usage
-                clean_exit 0
+                return 1
             fi
             log "lvl-3" "Entering executing mode"
             setup_executing_mode "$argument"
             ;;
         *)
-            # Check if this is a section name directly
-            if [[ -n "${MENU_OPTIONS[$mode]}" ]]; then
-                log "lvl-3" "Direct section execution: $mode"
-                setup_executing_mode "$mode"
-            else
-                log "lvl-4" "Invalid mode. Use -i for interactive or -x for executing."
-                print_usage
-                clean_exit 0
-            fi
+            log_error "Invalid mode. Use -i for interactive or -x for executing."
+            print_usage
+            return 1
             ;;
     esac
 }
