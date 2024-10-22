@@ -8,7 +8,7 @@ set -e
 
 # Source rc2 for logging capabilities
 source "${DOT_DIR}/rc2"
-log "lvl-2" "rc2 sourced successfully"
+log "lvl-2" "log sourced successfully"
 
 # Helper function to get section IDs from the calling script
 get_section_ids() {
@@ -29,7 +29,7 @@ get_section_ids() {
     IFS=$'\n' ids_array=($(sort <<<"${ids_array[*]}"))
     unset IFS
 
-    log "lvl-4" "Found sections: ${ids_array[*]}"
+    log "lvl-5" "Found sections: ${ids_array[*]}"
 }
 
 # Helper function to get section descriptions
@@ -119,18 +119,17 @@ setup_source() {
     local file="$2"
     local base="$3"
 
-    log "lvl-2" "Starting setup_source with dir=$dir, file=$file, base=$base"
-
+    log "lvl-3" "Starting setup_source with dir=$dir, file=$file"
     local lib_dir="${dir%/*}/lib"
     local var_dir="${dir%/*}/var"
 
-    if [[ -z "$LABS_ENVIRONMENT_SOURCED" ]]; then
-        log "lvl-3" "Sourcing environment files"
+    log "lvl-4" "Checking for sourced rc files"
+    if [[ -z "$SOURCE_RC_SUCCESS" ]]; then
 
         # Source all .conf files in var directory
         for conf_file in "$var_dir"/*.conf; do
             if [[ -f "$conf_file" ]]; then
-                log "lvl-4" "Sourcing $conf_file"
+                log "lvl-5" "Sourcing $conf_file"
                 source "$conf_file" || echo "Failed to source $conf_file"
             fi
         done
@@ -138,15 +137,15 @@ setup_source() {
         # Source all .bash files in lib directory
         for bash_file in "$lib_dir"/*.bash; do
             if [[ -f "$bash_file" ]]; then
-                log "lvl-4" "Sourcing $bash_file"
+                log "lvl-5" "Sourcing $bash_file"
                 source "$bash_file" || echo "Failed to source $bash_file"
             fi
         done
 
-        export LABS_ENVIRONMENT_SOURCED=1
-        log "lvl-3" "Environment sourcing completed"
+        export SOURCE_RC_SUCCESS=1
+        log "lvl-4" "Environment sourcing completed"
     else
-        log "lvl-3" "Environment already sourced, skipping..."
+        log "lvl-4" "Environment already sourced, skipping..."
     fi
 }
 
