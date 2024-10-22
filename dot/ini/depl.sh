@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # depl.sh
 
 # Set strict mode
