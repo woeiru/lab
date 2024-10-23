@@ -10,12 +10,6 @@ if ! declare -F print_message >/dev/null || ! declare -F print_box >/dev/null; t
     exit 1
 fi
 
-# Check if INJECT_FILE is set
-if [[ -z "$INJECT_FILE" ]]; then
-    echo "Error: INJECT_FILE is not set. Make sure depl.sh is exporting this variable."
-    exit 1
-fi
-
 # Check if BASE_INDENT is set, if not set a default
 if [[ -z "$BASE_INDENT" ]]; then
     BASE_INDENT="          "  # 10 spaces to match the output
@@ -114,19 +108,14 @@ inject_content() {
     local start_marker="# START inject"
     local end_marker="# END inject"
     local temp_file=$(mktemp)
-    local inject_file="$SCRIPT_DIR/$INJECT_FILE"
-
-    if [[ ! -f "$inject_file" ]]; then
-        print_message "Inject file not found: $inject_file"
-        return 1
-    fi
+    local inject_content=". ~/lab/dot/rc"
 
     print_message "Checking for existing injection markers in $CONFIG_FILE"
     if grep -q "$start_marker" "$CONFIG_FILE"; then
         print_message "Existing injection markers found. Checking for changes..."
         sed -n "/$start_marker/,/$end_marker/p" "$CONFIG_FILE" > "$temp_file"
 
-        if diff -q <(sed '1d;$d' "$temp_file") "$inject_file" >/dev/null; then
+        if diff -q <(echo "$inject_content") <(sed '1d;$d' "$temp_file") >/dev/null; then
             print_message "No changes detected. Skipping injection."
             rm "$temp_file"
             return 0
@@ -137,7 +126,7 @@ inject_content() {
         print_message "Updated existing inject content in $CONFIG_FILE"
     else
         print_message "No existing injection markers found. Checking for duplicate content..."
-        if grep -Fxq "$(cat "$inject_file")" "$CONFIG_FILE"; then
+        if grep -Fxq "$inject_content" "$CONFIG_FILE"; then
             print_message "Content already exists. Skipping injection."
             return 0
         fi
@@ -147,7 +136,7 @@ inject_content() {
     {
         echo ""
         echo "$start_marker"
-        cat "$inject_file"
+        echo "$inject_content"
         echo "$end_marker"
     } >> "$CONFIG_FILE"
 
