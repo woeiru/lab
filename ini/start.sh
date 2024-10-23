@@ -26,6 +26,30 @@ check_shell_version() {
     return 0
 }
 
+# 1. Source environment files
+source_environment() {
+    local env_dir="$LAB_DIR/env"  # Use env directory at same level as dot
+    echo "Sourcing environment folder: $env_dir"
+
+    if [ -d "$env_dir" ]; then
+        # Source all files in env directory
+        for file in "$env_dir"/*; do
+            if [ -f "$file" ]; then
+                if [[ -f "$file" ]]; then
+                    source "$file"
+                    echo "Source $file"
+                else
+                    echo "Warning: File $file not found." >&2
+                fi
+            fi
+        done
+    else
+        # Log warning if env folder is missing
+        echo "Folder $env_dir not found. Skipping."
+    fi
+    return 0
+}
+
 # 2. Initialize target user and home directory
 init_target_user() {
     local default_user=$(whoami)
