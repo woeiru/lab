@@ -1,0 +1,57 @@
+#!/bin/bash
+set -o pipefail
+
+# Define the error log file location
+ERROR_LOG="/tmp/rc_error.log"
+
+# Function to ensure clean exit from the script
+# Parameters:
+#   $1: exit code (optional, defaults to 0)
+clean_exit() {
+    local exit_code=${1:-0}
+    trap - ERR  # Remove the error handling trap
+    trap - EXIT # Remove exit trap if present
+    exit $exit_code  # Exit with specified code or 0
+}
+
+# Error handler function that logs detailed error information
+# Parameters:
+#   $1: Line number where error occurred
+error_handler() {
+    local exit_code=$?  # Capture the exit code of the failed command
+    local command="$BASH_COMMAND"  # Capture the command that failed
+    local line_number="$1"  # Get the line number passed to the function
+
+    # Log debugging information about the bash source
+    echo "Debug: BASH_SOURCE array: ${BASH_SOURCE[*]}" >> "$ERROR_LOG"
+    echo "Debug: \$0 value: $0" >> "$ERROR_LOG"
+
+    # Determine the source file where the error occurred
+    local source_file="${BASH_SOURCE[1]:-${0:-$command}}"
+    source_file="${source_file:-"<unknown-source>"}"  # Fallback if source cannot be determined
+
+    # Log the error with timestamp and details
+    echo "└─ lvl-0 $(date '+%Y%m%d%H%M%S') - Error in $source_file on line $line_number: Command '$command' exited with status $exit_code" | tee -a "$ERROR_LOG" >&2
+}
+
+# Set up error handling
+setup_error_handling() {
+    # Set up error handling trap - calls error_handler whenever an error occurs
+    trap 'error_handler $LINENO' ERR
+}
+
+# Function to log errors with different severity levels
+# Parameters:
+#   $1: log level (lvl-0 through lvl-4)
+#   $2: message to log
+log_error() {
+    local level="$1"
+    local message="$2"
+    echo "$level $(date '+%Y%m%d%H%M%S') - $message" | tee -a "$ERROR_LOG" >&2
+}
+
+# Export functions so they can be used by other scripts
+export -f clean_exit
+export -f error_handler
+export -f setup_error_handling
+export -f log_error
