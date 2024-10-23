@@ -250,7 +250,7 @@ source_environment() {
 
     # First source error and log handlers specifically
     if [ -f "$env_dir/err" ]; then
-        source "$env_dir/err"s
+        source "$env_dir/err"
         echo ". $env_dir/err"
     else
         echo "Error handler not found at $env_dir/err"
