@@ -13,45 +13,11 @@ CONFIG_FILE=""
 DEPLOY_LOG_FILE="/tmp/deployment_$(date +%Y%m%d_%H%M%S).log"
 TARGET_USER=""
 FUNCTION_FILE="flow.sh"
-BASE_INDENT="          "  # Added for consistent
+BASE_INDENT="          "  # Added for consistent formatting
 INJECT_FILE="inject"
 
-print_message() {
-    local message="$1"
-
-    # Print to both console and log file
-    printf "%s┃ %-68s \n" "$BASE_INDENT" "$message" | tee -a "$DEPLOY_LOG_FILE"
-}
-
-
-# Function to print box-style messages
-print_box() {
-    local message="$1"
-    printf "\n"
-    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$BASE_INDENT"
-    printf "%s┃ %-68s ┃\n" "$BASE_INDENT" "$message"
-    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$BASE_INDENT"
-}
-
-# Function to print section headers
-print_section() {
-    local message="$1"
-    printf "\n"
-    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$BASE_INDENT"
-    printf "%s┃ %-68s ┃\n" "$BASE_INDENT" "$message"
-    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\n" "$BASE_INDENT"
-}
-
-# Function to print normal box line
-print_boxline() {
-    local message="$1"
-    printf "%s┃ %-68s \n" "$BASE_INDENT" "$message"
-}
-
-# Function to print box footer
-print_boxfooter() {
-    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$BASE_INDENT"
-}
+# Source the formatting functions
+source "$SCRIPT_DIR/form.sh"
 
 # Function to display usage information
 usage() {

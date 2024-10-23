@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Dotfiles Manager (go.sh)
-# This script helps manage dotfiles using Git
+# tracker.sh v1
 
 # Set up directories
 SCRIPT_DIR="/root/lab/dot/git"
