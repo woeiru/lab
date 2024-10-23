@@ -44,6 +44,21 @@
             dest: "{{ ansible_user_dir }}/.local/share/konsole/Profile 2.profile"
             mode: '0644'
 
+        # Shell aliases configuration
+        - name: Ensure bash aliases file exists
+          ansible.builtin.file:
+            path: "{{ ansible_user_dir }}/.bash_aliases"
+            state: touch
+            mode: '0644'
+
+        - name: Add theme and plasma shell aliases
+          ansible.builtin.blockinfile:
+            path: "{{ ansible_user_dir }}/.bash_aliases"
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - Theme and Plasma Shell aliases"
+            block: |
+              alias theme-preset-bright='plasma-apply-lookandfeel -a org.kde.breeze.desktop && usr-ckp 1'
+              alias theme-preset-dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop && usr-ckp 2'
+
         # KWallet configuration
         - name: Ensure KWallet config directory exists
           ansible.builtin.file:
