@@ -70,7 +70,7 @@ init_target_user() {
     if [[ ! -d "$TARGET_HOME" ]]; then
         log "lvl-1" "Home directory $TARGET_HOME does not exist"
         return 1
-    }
+    fi
     log "lvl-2" "Selected user: ${TARGET_USER}"
     log "lvl-2" "Home directory: ${TARGET_HOME}"
     echo "USER=${TARGET_USER}, HOME=${TARGET_HOME}"
@@ -83,7 +83,7 @@ set_config_file() {
     if [[ -z "$TARGET_HOME" ]]; then
         TARGET_HOME=$(eval echo ~$(whoami))
         log "lvl-2" "Using default home directory: ${TARGET_HOME}"
-    }
+    fi
 
     local default_config=""
 
@@ -112,18 +112,18 @@ set_config_file() {
         if [[ ! -d "$config_dir" ]]; then
             log "lvl-1" "Directory $config_dir does not exist"
             return 1
-        }
+        fi
         if [[ ! -w "$config_dir" ]]; then
             log "lvl-1" "Cannot write to directory $config_dir"
             return 1
-        }
+        fi
         # Create empty config file
         if ! touch "$CONFIG_FILE"; then
             log "lvl-1" "Failed to create config file $CONFIG_FILE"
             return 1
-        }
+        fi
         log "lvl-2" "Created new config file: $CONFIG_FILE"
-    }
+    fi
 
     export CONFIG_FILE
     log "lvl-2" "Using config file: ${CONFIG_FILE}"
@@ -137,7 +137,7 @@ inject_content() {
     if [[ -z "$CONFIG_FILE" ]]; then
         log "lvl-1" "No config file specified"
         return 1
-    }
+    fi
 
     local start_marker="# START inject"
     local end_marker="# END inject"
@@ -150,7 +150,7 @@ inject_content() {
             log "lvl-3" "Content unchanged"
             echo "STATUS=${status}"
             return 0
-        }
+        fi
         log "lvl-2" "Updating existing content"
         sed -i "/$start_marker/,/$end_marker/d" "$CONFIG_FILE"
         status="UPDATED"
@@ -254,7 +254,7 @@ execute_functions() {
                 log "lvl-2" "Error output: ${output}"
             else
                 echo "  └─ Failed with return code $ret"
-            }
+            fi
             return 1
         fi
         ((i++))
