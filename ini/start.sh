@@ -2,26 +2,6 @@
 
 set -eo pipefail
 
-# Source error and logging handlers
-source_environment() {
-    local env_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../env" &> /dev/null && pwd)"
-    log "lvl-1" "Sourcing environment folder: $env_dir"
-
-    if [ -d "$env_dir" ]; then
-        # Source all files in env directory
-        for file in "$env_dir"/*; do
-            if [ -f "$file" ]; then
-                source "$file"
-                log "lvl-2" "Sourced $file"
-                setup_error_handling
-            fi
-        done
-    else
-        log "lvl-1" "Folder $env_dir not found. Skipping."
-        return 1
-    fi
-    return 0
-}
 
 # Initialize script variables
 SCRIPT_DIR="$( cd "$( dirname "${BASH_VERSION:-}" )" &> /dev/null && pwd )"
@@ -263,15 +243,47 @@ execute_functions() {
     return 0
 }
 
-main() {
-    # Set up error handling immediately
-    setup_error_handling
+# Source error and logging handlers
+source_environment() {
+    local env_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../env" &> /dev/null && pwd)"
+    echo "Sourcing environment folder: $env_dir"
 
-    parse_arguments "$@"
+    # First source error and log handlers specifically
+    if [ -f "$env_dir/err" ]; then
+        source "$env_dir/err"s
+        echo ". $env_dir/err"
+    else
+        echo "Error handler not found at $env_dir/err"
+        return 1
+    fi
+
+    if [ -f "$env_dir/log" ]; then
+        source "$env_dir/log"
+        echo ". $env_dir/log"
+    else
+        echo "Logger not found at $env_dir/log"
+        return 1
+    fi
+
+    # Now we can use logging and error handling
+    setup_error_handling
+    log "lvl-1" "Error handling and logging initialized"
+
+    return 0
+}
+
+# Main function
+main() {
+    # First source the environment to get error and logging functions
     source_environment
 
     # Enable all logging levels
     setlog on
+
+    # Now we can set up error handling and use logging
+    setup_error_handling
+
+    parse_arguments "$@"
 
     log "lvl-1" "Starting deployment process"
     echo "Starting deployment..."
