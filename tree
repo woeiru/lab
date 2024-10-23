@@ -30,6 +30,7 @@
 │   │   ├── replace.json
 │   │   └── replace.sh
 │   ├── set.md
+│   ├── ssh
 │   └── tracker.sh
 ├── con
 │   ├── qdev
@@ -49,9 +50,8 @@
 │   ├── rc3
 │   └── rc4
 ├── env
-│   ├── box
-│   ├── log
-│   └── ssh
+│   ├── err
+│   └── log
 ├── ini
 │   └── start.sh
 ├── lib
@@ -65,6 +65,7 @@
 │   ├── sto.bash
 │   └── usr.bash
 ├── set
+│   ├── box
 │   ├── gen.sh
 │   ├── nfs.sh
 │   ├── pbs.sh
@@ -74,4 +75,4 @@
 └── var
     └── lib.conf
 
-20 directories, 55 files
+20 directories, 56 files

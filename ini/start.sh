@@ -2,6 +2,27 @@
 
 set -eo pipefail
 
+# Source error and logging handlers
+source_environment() {
+    local env_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../env" &> /dev/null && pwd)"
+    log "lvl-1" "Sourcing environment folder: $env_dir"
+
+    if [ -d "$env_dir" ]; then
+        # Source all files in env directory
+        for file in "$env_dir"/*; do
+            if [ -f "$file" ]; then
+                source "$file"
+                log "lvl-2" "Sourced $file"
+                setup_error_handling
+            fi
+        done
+    else
+        log "lvl-1" "Folder $env_dir not found. Skipping."
+        return 1
+    fi
+    return 0
+}
+
 # Initialize script variables
 SCRIPT_DIR="$( cd "$( dirname "${BASH_VERSION:-}" )" &> /dev/null && pwd )"
 LAB_DIR="$( cd "$SCRIPT_DIR/../.." &> /dev/null && pwd )"
@@ -13,25 +34,30 @@ CONFIG_FILE=""
 
 # 1. Check shell version - Verify Bash 4+ or Zsh 5+ is being used
 check_shell_version() {
+    log "lvl-1" "Checking shell version"
     if [[ -n "${BASH_VERSION:-}" ]]; then
-        echo "BASH ${BASH_VERSION}"
-        [[ "${BASH_VERSION:0:1}" -lt 4 ]] && return 1
+        log "lvl-2" "Detected BASH ${BASH_VERSION}"
+        [[ "${BASH_VERSION:0:1}" -lt 4 ]] && {
+            log "lvl-1" "Unsupported Bash version"
+            return 1
+        }
     elif [[ -n "${ZSH_VERSION:-}" ]]; then
-        echo "ZSH ${ZSH_VERSION}"
-        [[ "${ZSH_VERSION:0:1}" -lt 5 ]] && return 1
+        log "lvl-2" "Detected ZSH ${ZSH_VERSION}"
+        [[ "${ZSH_VERSION:0:1}" -lt 5 ]] && {
+            log "lvl-1" "Unsupported Zsh version"
+            return 1
+        }
     else
-        echo "UNKNOWN SHELL"
+        log "lvl-1" "Unknown shell detected"
         return 1
     fi
     return 0
 }
 
-# 2. Source environment files
-
-
-# 3. Initialize target user and home directory
+# 2. Initialize target user and home directory
 init_target_user() {
     local default_user=$(whoami)
+    log "lvl-1" "Initializing target user"
 
     if [[ "$YES_FLAG" == "false" ]]; then
         read -p "Enter target user (default: $default_user): " input_user
@@ -41,30 +67,36 @@ init_target_user() {
     fi
 
     TARGET_HOME=$(eval echo ~$TARGET_USER)
-    [[ ! -d "$TARGET_HOME" ]] && {
-        echo "Error: Home directory $TARGET_HOME does not exist"
+    if [[ ! -d "$TARGET_HOME" ]]; then
+        log "lvl-1" "Home directory $TARGET_HOME does not exist"
         return 1
     }
+    log "lvl-2" "Selected user: ${TARGET_USER}"
+    log "lvl-2" "Home directory: ${TARGET_HOME}"
     echo "USER=${TARGET_USER}, HOME=${TARGET_HOME}"
     return 0
 }
 
-# 4. Set appropriate config file
+# 3. Set appropriate config file
 set_config_file() {
-    # Ensure TARGET_HOME is set
+    log "lvl-1" "Setting configuration file"
     if [[ -z "$TARGET_HOME" ]]; then
         TARGET_HOME=$(eval echo ~$(whoami))
-    fi
+        log "lvl-2" "Using default home directory: ${TARGET_HOME}"
+    }
 
     local default_config=""
 
     # Check for config files
     if [[ -f "$TARGET_HOME/.zshrc" ]]; then
         default_config="$TARGET_HOME/.zshrc"
+        log "lvl-3" "Found .zshrc configuration file"
     elif [[ -f "$TARGET_HOME/.bashrc" ]]; then
         default_config="$TARGET_HOME/.bashrc"
+        log "lvl-3" "Found .bashrc configuration file"
     else
         default_config="$TARGET_HOME/.bashrc"
+        log "lvl-3" "Using default .bashrc configuration file"
     fi
 
     if [[ "$YES_FLAG" == "false" ]]; then
@@ -78,34 +110,34 @@ set_config_file() {
     if [[ ! -f "$CONFIG_FILE" ]]; then
         local config_dir=$(dirname "$CONFIG_FILE")
         if [[ ! -d "$config_dir" ]]; then
-            echo "Error: Directory $config_dir does not exist"
-            return 1
-        fi
-        if [[ ! -w "$config_dir" ]]; then
-            echo "Error: Cannot write to directory $config_dir"
-            return 1
-        fi
-        # Create empty config file
-        touch "$CONFIG_FILE" || {
-            echo "Error: Failed to create config file $CONFIG_FILE"
+            log "lvl-1" "Directory $config_dir does not exist"
             return 1
         }
-        echo "Created new config file: $CONFIG_FILE"
-    fi
+        if [[ ! -w "$config_dir" ]]; then
+            log "lvl-1" "Cannot write to directory $config_dir"
+            return 1
+        }
+        # Create empty config file
+        if ! touch "$CONFIG_FILE"; then
+            log "lvl-1" "Failed to create config file $CONFIG_FILE"
+            return 1
+        }
+        log "lvl-2" "Created new config file: $CONFIG_FILE"
+    }
 
-    # Export CONFIG_FILE for other functions to use
     export CONFIG_FILE
+    log "lvl-2" "Using config file: ${CONFIG_FILE}"
     echo "CONFIG=${CONFIG_FILE}"
     return 0
 }
 
-# 5. Inject content into config file
+# 4. Inject content into config file
 inject_content() {
-    # Read CONFIG_FILE from environment
+    log "lvl-1" "Injecting content into config file"
     if [[ -z "$CONFIG_FILE" ]]; then
-        echo "Error: No config file specified"
+        log "lvl-1" "No config file specified"
         return 1
-    fi
+    }
 
     local start_marker="# START inject"
     local end_marker="# END inject"
@@ -113,32 +145,40 @@ inject_content() {
     local status="NO_CHANGE"
 
     if grep -q "$start_marker" "$CONFIG_FILE"; then
+        log "lvl-2" "Found existing inject markers"
         if diff -q <(echo "$inject_content") <(sed -n "/$start_marker/,/$end_marker/p" "$CONFIG_FILE" | sed '1d;$d') >/dev/null; then
+            log "lvl-3" "Content unchanged"
             echo "STATUS=${status}"
             return 0
-        fi
+        }
+        log "lvl-2" "Updating existing content"
         sed -i "/$start_marker/,/$end_marker/d" "$CONFIG_FILE"
         status="UPDATED"
     elif grep -Fxq "$inject_content" "$CONFIG_FILE"; then
+        log "lvl-2" "Content already exists without markers"
         echo "STATUS=${status}"
         return 0
     else
+        log "lvl-2" "Adding new content"
         status="ADDED"
     fi
 
     echo -e "\n$start_marker\n$inject_content\n$end_marker" >> "$CONFIG_FILE"
+    log "lvl-2" "Content injection complete: ${status}"
     echo "STATUS=${status}"
     return 0
 }
 
-# 6. Restart shell
+# 5. Restart shell
 restart_shell() {
+    log "lvl-1" "Preparing for shell restart"
     echo "STATUS=READY"
     return 0
 }
 
 # Script control functions
 usage() {
+    log "lvl-1" "Displaying usage information"
     echo "Usage: $0 [-y] [-u|--user USER] [-c|--config FILE] [-h|--help]"
     echo "  -y          Non-interactive mode (yes to all prompts)"
     echo "  -u, --user  Specify target user"
@@ -147,19 +187,23 @@ usage() {
 }
 
 parse_arguments() {
+    log "lvl-1" "Parsing command line arguments"
     while [[ $# -gt 0 ]]; do
         case $1 in
             -y)
                 YES_FLAG=true
+                log "lvl-2" "Non-interactive mode enabled"
                 shift
                 ;;
             -u|--user)
                 TARGET_USER="$2"
+                log "lvl-2" "Target user set to: ${TARGET_USER}"
                 shift 2
                 ;;
             -c|--config)
                 CONFIG_FILE="$2"
                 export CONFIG_FILE
+                log "lvl-2" "Config file set to: ${CONFIG_FILE}"
                 shift 2
                 ;;
             -h|--help)
@@ -167,6 +211,7 @@ parse_arguments() {
                 exit 0
                 ;;
             *)
+                log "lvl-1" "Invalid argument: $1"
                 usage
                 exit 1
                 ;;
@@ -175,6 +220,7 @@ parse_arguments() {
 }
 
 execute_functions() {
+    log "lvl-1" "Starting function execution sequence"
     local functions=($(grep -E '^# [0-9]+\.' "$0" |
                       sed -E 's/^# ([0-9]+)\. .*/\1 /' |
                       paste -d' ' - <(grep -A1 -E '^# [0-9]+\.' "$0" |
@@ -186,75 +232,73 @@ execute_functions() {
     local i=0
 
     for func in "${functions[@]}"; do
+        log "lvl-2" "Executing function: ${func}"
         echo -n "Step $((i+1)): ${func} ... "
 
-        # Capture both output and return value
         local output
         output=$(eval "$func")
         local ret=$?
 
         if [ $ret -eq 0 ]; then
-            echo -e "\033[32m✓\033[0m"  # Green checkmark
+            echo -e "\033[32m✓\033[0m"
+            log "lvl-3" "Function ${func} completed successfully"
             if [ -n "$output" ]; then
                 echo "  └─ $output"
+                log "lvl-4" "Output: ${output}"
             fi
         else
-            echo -e "\033[31m✗\033[0m"  # Red X
+            echo -e "\033[31m✗\033[0m"
+            log "lvl-1" "Function ${func} failed with return code ${ret}"
             if [ -n "$output" ]; then
                 echo "  └─ $output"
+                log "lvl-2" "Error output: ${output}"
             else
                 echo "  └─ Failed with return code $ret"
-            fi
+            }
             return 1
         fi
         ((i++))
     done
-    return 0
-}
-
-source_environment() {
-    local env_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../env" &> /dev/null && pwd)"
-    echo "Sourcing environment folder: $env_dir"
-
-    if [ -d "$env_dir" ]; then
-        # Source all files in env directory
-        for file in "$env_dir"/*; do
-            if [ -f "$file" ]; then
-                source "$file"
-                echo ". $file"
-            fi
-        done
-    else
-        # Log warning if env folder is missing
-        echo "Folder $env_dir not found. Skipping."
-        return 1
-    fi
+    log "lvl-1" "All functions executed successfully"
     return 0
 }
 
 main() {
+    # Set up error handling immediately
+    setup_error_handling
+
     parse_arguments "$@"
     source_environment
+
+    # Enable all logging levels
+    setlog on
+
+    log "lvl-1" "Starting deployment process"
     echo "Starting deployment..."
     echo "The following steps will be performed:"
     grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# ([0-9]+)\. (.+)/\1. \2/'
     echo
 
-    # Early continuation prompt if not in -y mode
     if [[ "$YES_FLAG" == "false" ]]; then
         read -p "Continue with these steps? [Y/n] " confirm
-        [[ "${confirm,,}" == "n" ]] && exit 0
+        if [[ "${confirm,,}" == "n" ]]; then
+            log "lvl-1" "Deployment cancelled by user"
+            exit 0
+        fi
     fi
 
     if ! execute_functions; then
+        log "lvl-1" "Deployment failed"
         echo "Deployment failed."
         exit 1
     fi
 
+    log "lvl-1" "Deployment completed successfully"
     echo "Deployment completed. Press any key to restart shell..."
     read -n 1 -s
     exec "$SHELL"
 }
 
+trap 'error_handler $LINENO' ERR
 trap 'exit' EXIT
 main "$@"
