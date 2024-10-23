@@ -40,18 +40,7 @@ setup_error_handling() {
     trap 'error_handler $LINENO' ERR
 }
 
-# Function to log errors with different severity levels
-# Parameters:
-#   $1: log level (lvl-0 through lvl-4)
-#   $2: message to log
-log_error() {
-    local level="$1"
-    local message="$2"
-    echo "$level $(date '+%Y%m%d%H%M%S') - $message" | tee -a "$ERROR_LOG" >&2
-}
-
 # Export functions so they can be used by other scripts
 export -f clean_exit
 export -f error_handler
 export -f setup_error_handling
-export -f log_error
