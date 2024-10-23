@@ -3,15 +3,16 @@
 # Store log state and levels in persistent files
 LOG_STATE_FILE="/tmp/rc_log_state"
 LOG_LEVELS_FILE="/tmp/rc_log_levels"
+ERROR_LOG="/tmp/rc_error.log"
 
 # Initialize log state if file doesn't exist
 if [[ ! -f "$LOG_STATE_FILE" ]]; then
     echo "true" > "$LOG_STATE_FILE"
 fi
 
-# Initialize log levels if file doesn't exist
+# Initialize log levels if file doesn't exist (now including level 9 for errors)
 if [[ ! -f "$LOG_LEVELS_FILE" ]]; then
-    echo "1 1 1 1 1 1 1 1" > "$LOG_LEVELS_FILE"
+    echo "1 1 1 1 1 1 1 1 1" > "$LOG_LEVELS_FILE"
 fi
 
 # Read the current log state and levels
@@ -27,9 +28,10 @@ CYAN='\033[0;36m'
 BLUE='\033[0;34m'
 INDIGO='\033[0;35m'
 VIOLET='\033[1;35m'
+WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
-# Logging function with state and level check
+# Enhanced logging function with error support
 log() {
     # First check LOG_TOGGLE from the state file
     local current_state=$(cat "$LOG_STATE_FILE")
@@ -56,12 +58,15 @@ log() {
         "lvl-6") color=$BLUE ;;
         "lvl-7") color=$INDIGO ;;
         "lvl-8") color=$VIOLET ;;
+        "lvl-9") color=$WHITE ;; # Error level
         *) color=$NC ;;
     esac
 
     # Create indentation and colored indicator
     if [ $level_num -eq 1 ]; then
         indent="${color}    └─${NC}"
+    elif [ $level_num -eq 9 ]; then
+        indent="                  ${color}█─${NC}" # Thick line for errors
     else
         indent="      ${color}└─${NC}"
         for i in $(seq 3 $level_num); do
@@ -69,14 +74,44 @@ log() {
         done
     fi
 
-    # Output log message only if the level is enabled
-    if [[ ${current_levels[$((level_num-1))]} -eq 1 ]]; then
-        if [ $level_num -eq 1 ]; then
-            echo -e "${indent}$level $message" >&2
-        else
-            echo -e "${indent}$level $message"
+    # Format the log message
+    local formatted_message
+    if [ $level_num -eq 9 ]; then
+        formatted_message="$(date '+%Y%m%d%H%M%S') - $message"
+        echo -e "${indent}$level $formatted_message" | tee -a "$ERROR_LOG" >&2
+    else
+        if [[ ${current_levels[$((level_num-1))]} -eq 1 ]]; then
+            if [ $level_num -eq 1 ]; then
+                echo -e "${indent}$level $message" >&2
+            else
+                echo -e "${indent}$level $message"
+            fi
         fi
     fi
+}
+
+# Error handler function that uses the log function
+error_handler() {
+    local exit_code=$?
+    local command="$BASH_COMMAND"
+    local line_number="$1"
+    local source_file="${BASH_SOURCE[1]:-${0:-$command}}"
+    source_file="${source_file:-"<unknown-source>"}"
+
+    log "lvl-9" "Error in $source_file on line $line_number: Command '$command' exited with status $exit_code"
+}
+
+# Function to ensure clean exit from the script
+clean_exit() {
+    local exit_code=${1:-0}
+    trap - ERR
+    trap - EXIT
+    exit $exit_code
+}
+
+# Set up error handling
+setup_error_handling() {
+    trap 'error_handler $LINENO' ERR
 }
 
 # Function to set up logging with persistent state and levels
@@ -85,27 +120,21 @@ setlog() {
 
     case "$arg" in
         "off")
-            # Disable logging by updating the state file
             echo "false" > "$LOG_STATE_FILE"
             export LOG_TOGGLE="false"
             echo "─ Logging has been disabled"
             return 0
             ;;
         "on")
-            # Enable logging by updating the state file
             echo "true" > "$LOG_STATE_FILE"
             export LOG_TOGGLE="true"
-
-            # Reset all levels to enabled
-            echo "1 1 1 1 1 1 1 1" > "$LOG_LEVELS_FILE"
+            echo "1 1 1 1 1 1 1 1 1" > "$LOG_LEVELS_FILE"
             read -r -a LOG_LEVELS <<< "$(cat "$LOG_LEVELS_FILE")"
             export LOG_LEVELS
-
             echo "─ Logging has been enabled with all levels active"
             return 0
             ;;
         *)
-            # Check if logging is enabled by reading the state file
             if [[ "$(cat "$LOG_STATE_FILE")" != "true" ]]; then
                 echo "Logging is currently disabled. Use 'setlog on' to enable logging first."
                 return 1
@@ -113,11 +142,10 @@ setlog() {
 
             local range=$arg
             local start end
-            if [[ $range =~ ^([1-8])-([1-8])$ ]]; then
+            if [[ $range =~ ^([1-9])-([1-9])$ ]]; then
                 start=${BASH_REMATCH[1]}
                 end=${BASH_REMATCH[2]}
 
-                # Validate range
                 if [[ $start -gt $end ]]; then
                     echo "Invalid range: start ($start) cannot be greater than end ($end)"
                     return 1
@@ -129,18 +157,13 @@ setlog() {
                 return 1
             fi
 
-            # Create new levels array
-            local -a new_levels=(0 0 0 0 0 0 0 0)
+            local -a new_levels=(0 0 0 0 0 0 0 0 0)
 
-            # Set specified range to 1
             for ((i=start-1; i<=end-1; i++)); do
                 new_levels[$i]=1
             done
 
-            # Save new levels to file
             echo "${new_levels[*]}" > "$LOG_LEVELS_FILE"
-
-            # Update current session
             LOG_LEVELS=("${new_levels[@]}")
             export LOG_LEVELS
 
@@ -168,5 +191,8 @@ export -f log
 export -f setlog
 export -f command_exists
 export -f source_if_exists
+export -f error_handler
+export -f setup_error_handling
+export -f clean_exit
 export LOG_LEVELS
 export LOG_TOGGLE
