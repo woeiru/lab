@@ -71,28 +71,7 @@ source_rc() {
         source_helper "$DIR/$module"
     done
 
-    # SECTION 2: Source secondary modules (currently only 'env')
-    # Secondary modules contain environment-specific configurations
-    # These are loaded after primary modules to allow overriding of defaults
-    local secondary_mod=("env")  # List of secondary module directories
-    log "lvl-2" "Sourcing secondary mod: ${secondary_mod[*]}"
-    for module in "${secondary_mod[@]}"; do
-        module_folder="$DIR/$module"  # Construct full path to module directory
-        if [ -d "$module_folder" ]; then
-            log "lvl-3" "Processing folder: $module"
-            # source all files found inside
-            for file in "$module_folder"/*; do
-                if [ -f "$file" ]; then
-                    source_helper "$file"
-                fi
-            done
-        else
-            # Log warning if module folder is missing
-            log "lvl-3" "Folder $module_folder not found. Skipping."
-        fi
-    done
-
-    # SECTION 3: Source library and variable files
+    # SECTION 2: Source library and variable files
     # These files contain shared functions and configuration variables
     # They're loaded last to ensure all dependencies are available
     local dirs=("lib" "var")              # Directories to process
