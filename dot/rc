@@ -1,0 +1,239 @@
+#!/bin/bash
+set -o pipefail  # Ensures that a pipeline returns failure if any command fails
+
+# This script appears to be a runtime configuration (RC) setup script that sources various
+# configuration files and executes initialization functions
+
+# Set up important directory paths
+# Uses readlink to resolve symlinks and get the absolute path of the script
+DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
+PARENT_DIR="/root/lab"  # Parent directory where additional resources are stored
+
+# Define the error log file location
+ERROR_LOG="/tmp/rc_error.log"
+
+# Function to ensure clean exit from the script
+# Parameters:
+#   $1: exit code (optional, defaults to 0)
+clean_exit() {
+    local exit_code=${1:-0}
+    trap - ERR  # Remove the error handling trap
+    trap - EXIT # Remove exit trap if present
+    exit $exit_code  # Exit with specified code or 0
+}
+
+# Error handler function that logs detailed error information
+# Parameters:
+#   $1: Line number where error occurred
+error_handler() {
+    local exit_code=$?  # Capture the exit code of the failed command
+    local command="$BASH_COMMAND"  # Capture the command that failed
+    local line_number="$1"  # Get the line number passed to the function
+    # Log debugging information about the bash source
+    echo "Debug: BASH_SOURCE array: ${BASH_SOURCE[*]}" >> "$ERROR_LOG"
+    echo "Debug: \$0 value: $0" >> "$ERROR_LOG"
+    # Determine the source file where the error occurred
+    local source_file="${BASH_SOURCE[1]:-${0:-$command}}"
+    source_file="${source_file:-"<unknown-source>"}"  # Fallback if source cannot be determined
+    # Log the error with timestamp and details
+    echo "└─ lvl-0 $(date '+%Y%m%d%H%M%S') - Error in $source_file on line $line_number: Command '$command' exited with status $exit_code" | tee -a "$ERROR_LOG" >&2
+}
+
+# Set up error handling trap - calls error_handler whenever an error occurs
+trap 'error_handler $LINENO' ERR
+
+# Helper function to safely source files
+# Parameters:
+#   $1: Path to the file to be sourced
+source_helper() {
+    if [[ -f "$1" ]]; then  # Check if file exists
+        source "$1"
+        log "lvl-4" "Source $1"  # Log successful sourcing
+    else
+        log "lvl-4" "Warning: File $1 not found." | tee -a "$ERROR_LOG" >&2
+    fi
+}
+
+# Main function to source all required configuration files
+# This function follows a specific hierarchy for loading configuration:
+# 1. Primary RC modules (core configuration)
+# 2. Secondary modules (environment-specific settings)
+# 3. Library and variable files (shared functions and configuration values)
+source_rc() {
+    # SECTION 1: Source primary RC modules
+    # These are the core configuration files that should be loaded first
+    # They typically contain fundamental settings and functions
+    local rc_mod=("rc1" "rc2" "rc3" "rc4")  # Define the order of RC modules
+    ### echo -e "      └─lvl-2 Source ${rc_mod[*]}"  # Commented out debug line
+    for module in "./${rc_mod[@]}"; do
+        # Source each RC module from the same directory as this script
+        # The ./ prefix ensures we're looking in the current directory
+        source_helper "$DIR/$module"
+    done
+
+    # SECTION 2: Source secondary modules (currently only 'env')
+    # Secondary modules contain environment-specific configurations
+    # These are loaded after primary modules to allow overriding of defaults
+    local secondary_mod=("env")  # List of secondary module directories
+    log "lvl-2" "Sourcing secondary mod: ${secondary_mod[*]}"
+    for module in "${secondary_mod[@]}"; do
+        module_folder="$DIR/$module"  # Construct full path to module directory
+        if [ -d "$module_folder" ]; then
+            log "lvl-3" "Processing folder: $module"
+            # source all files found inside
+            for file in "$module_folder"/*; do
+                if [ -f "$file" ]; then
+                    source_helper "$file"
+                fi
+            done
+        else
+            # Log warning if module folder is missing
+            log "lvl-3" "Folder $module_folder not found. Skipping."
+        fi
+    done
+
+    # SECTION 3: Source library and variable files
+    # These files contain shared functions and configuration variables
+    # They're loaded last to ensure all dependencies are available
+    local dirs=("lib" "var")              # Directories to process
+    local extensions=("bash" "conf")      # File extensions to look for
+    log "lvl-2" "Sourcing lib and var files"
+
+    # Iterate through directories and their corresponding extensions
+    for i in "${!dirs[@]}"; do
+        local dir="$PARENT_DIR/${dirs[i]}"    # Get full path to directory
+        local ext="${extensions[i]}"           # Get corresponding extension
+        log "lvl-3" "Processing directory: $dir (extension: .$ext)"
+
+        # Skip if directory doesn't exist
+        if [[ ! -d "$dir" ]]; then
+            log "lvl-4" "Warning: Directory $dir not found. Skipping."
+            continue
+        fi
+
+        # Source all files with matching extension in the directory
+        # .bash files typically contain functions
+        # .conf files typically contain configuration variables
+        for file in "$dir"/*."$ext"; do
+            if [[ -f "$file" ]]; then
+                source_helper "$file"
+            fi
+        done
+    done
+}
+
+# Function to execute RC-specific setup functions
+# This function is responsible for initializing various aspects of the runtime configuration
+# It runs after all files have been sourced to ensure all required functions are available
+execution_rc() {
+    # Log the start of execution with function name in bold
+    log "lvl-1" "Starting \033[1m${FUNCNAME[0]} () \033[0m"
+
+    # Define the sequence of setup functions to be executed
+    # - set_dynamic: Typically sets up environment variables that may change during runtime
+    # - set_static: Sets up environment variables that should remain constant
+    # - set_aliaswrap: Sets up command aliases and wrapper functions
+    local set_functions=("set_dynamic" "set_static" "set_aliaswrap")
+
+    # Iterate through each setup function
+    for func in "${set_functions[@]}"; do
+        # Check if the function exists before trying to execute it
+        # 'type' is used instead of 'command -v' because it also works for functions
+        # &>/dev/null redirects both stdout and stderr to null
+        if type "$func" &>/dev/null; then
+            log "lvl-3" "Executing $func"  # Log before execution
+            $func                          # Execute the function
+        else
+            # If function is not found, log a warning
+            # This might happen if a source file failed to load or if the configuration
+            # is incomplete
+            log "lvl-3" "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
+        fi
+    done
+
+    # Note: The function's success/failure status will be automatically returned
+    # to the caller through the last command's exit status
+}
+
+
+# Function to execute module-specific setup functions
+execution_mod() {
+    log "lvl-1" "Starting \033[1m${FUNCNAME[0]} () \033[0m"
+    # List of module initialization functions
+    local module_functions=("main_env")
+    for func in "${module_functions[@]}"; do
+        if type "$func" &>/dev/null; then  # Check if function exists
+            log "lvl-3" "Executing $func"
+            $func
+        else
+            log "lvl-3" "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
+        fi
+    done
+}
+
+# Main execution function that orchestrates the entire setup process
+main_rc() {
+    # Initialize success flags
+    local source_success=0
+    local execution_rc_success=0
+    local execution_mod_success=0
+
+    # Source all configuration files
+    if source_rc; then
+        export SOURCE_RC_SUCCESS=1
+        source_success=1
+    else
+        unset SOURCE_RC_SUCCESS
+    fi
+
+    # Execute RC setup functions
+    if execution_rc; then
+        export EXECUTION_RC_SUCCESS=1
+        execution_rc_success=1
+    else
+        unset EXECUTION_RC_SUCCESS
+    fi
+
+    # Execute module setup functions
+    if execution_mod; then
+        export EXECUTION_MODULES_SUCCESS=1
+        execution_mod_success=1
+    else
+        unset EXECUTION_MODULES_SUCCESS
+    fi
+
+    # Set overall success flag if all steps succeeded
+    if [[ $source_success -eq 1 && $execution_rc_success -eq 1 && $execution_mod_success -eq 1 ]]; then
+        export RC_SOURCED=1
+    else
+        unset RC_SOURCED
+    fi
+
+    # Log any failures that occurred
+    if [[ -z "${SOURCE_RC_SUCCESS}" ]]; then
+        log "lvl-2" "Error: Source rc failed." | tee -a "$ERROR_LOG" >&2
+    fi
+
+    if [[ -z "${EXECUTION_RC_SUCCESS}" ]]; then
+        log "lvl-2" "Error: Execution rc failed." | tee -a "$ERROR_LOG" >&2
+    fi
+
+    if [[ -z "${EXECUTION_MODULES_SUCCESS}" ]]; then
+        log "lvl-2" "Error: Execution mod failed." | tee -a "$ERROR_LOG" >&2
+    fi
+
+    # Return final status
+    if [[ -z "${RC_SOURCED}" ]]; then
+        log "lvl-2" "Error: Overall RC sourcing failed." | tee -a "$ERROR_LOG" >&2
+        return 1
+    else
+        log "lvl-2" "Setup completed successfully."
+        return 0
+    fi
+}
+
+# Execute the main function
+main_rc
+
+# Make clean_exit function available to other scripts
+export -f clean_exit
