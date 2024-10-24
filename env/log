@@ -122,7 +122,7 @@ setlog() {
         "off")
             echo "false" > "$LOG_STATE_FILE"
             export LOG_TOGGLE="false"
-            echo "─ Logging has been disabled"
+            log "lvl-1" "Logging has been disabled"
             return 0
             ;;
         "on")
@@ -131,12 +131,12 @@ setlog() {
             echo "1 1 1 1 1 1 1 1 1" > "$LOG_LEVELS_FILE"
             read -r -a LOG_LEVELS <<< "$(cat "$LOG_LEVELS_FILE")"
             export LOG_LEVELS
-            echo "─ Logging has been enabled with all levels active"
+            log "lvl-1" "Logging has been enabled with all levels active"
             return 0
             ;;
         *)
             if [[ "$(cat "$LOG_STATE_FILE")" != "true" ]]; then
-                echo "Logging is currently disabled. Use 'setlog on' to enable logging first."
+                log "lvl-1" "Logging is currently disabled. Use 'setlog on' to enable logging first."
                 return 1
             fi
 
@@ -147,7 +147,7 @@ setlog() {
                 end=${BASH_REMATCH[2]}
 
                 if [[ $start -gt $end ]]; then
-                    echo "Invalid range: start ($start) cannot be greater than end ($end)"
+                    log "lvl-1" "Invalid range: start ($start) cannot be greater than end ($end)"
                     return 1
                 fi
             else
@@ -163,11 +163,11 @@ setlog() {
                 new_levels[$i]=1
             done
 
-            echo "${new_levels[*]}" > "$LOG_LEVELS_FILE"
+            log "lvl-1" "${new_levels[*]}" > "$LOG_LEVELS_FILE"
             LOG_LEVELS=("${new_levels[@]}")
             export LOG_LEVELS
 
-            echo "─ Logging levels updated to: ${new_levels[*]}"
+            log "lvl-1" "Logging levels updated to: ${new_levels[*]}"
             ;;
     esac
 }
