@@ -1,59 +1,21 @@
 .
-├── ans
-│   ├── kde.yml
-│   └── tracker.sh
-├── bin
-│   ├── exit.md
-│   ├── hwa
-│   │   ├── arc
-│   │   │   ├── ntop_01.md
-│   │   │   └── ntop_02.md
-│   │   └── fix
-│   │       ├── acpi
-│   │       │   └── susp
-│   │       │       ├── disable-devices-as-wakeup.service
-│   │       │       ├── disable-devices-as-wakeup.sh
-│   │       │       ├── go.sh
-│   │       │       ├── post-wake-usb-reset.service
-│   │       │       ├── post-wake-usb-reset.sh
-│   │       │       └── readme.md
-│   │       ├── audio
-│   │       │   └── readme.md
-│   │       └── hibernate
-│   │           ├── btrfs_map_physical.c
-│   │           ├── fedora_disable_zram.sh
-│   │           ├── fedora_hibernation_btrfs.sh
-│   │           └── fedora_hibernation_lvm.sh
-│   ├── logging.md
-│   ├── replace
-│   │   ├── readme.md
-│   │   ├── replace.json
-│   │   └── replace.sh
-│   ├── set.md
-│   ├── ssh
-│   └── tracker.sh
-├── con
-│   ├── qdev
-│   │   ├── Containerfile
-│   │   ├── readme.md
-│   │   └── startcqd.sh
-│   ├── readme.md
-│   └── shus
-│       ├── Containerfile
-│       ├── entrypoint.sh
-│       ├── readme.md
-│       └── smb.conf.template
-├── dot
+├── all
+│   └── start.sh
+├── bas
+│   ├── box
+│   ├── err
+│   └── log
+├── com
 │   ├── rc
 │   ├── rc1
 │   ├── rc2
 │   ├── rc3
 │   └── rc4
+├── dec
+│   ├── dot-git-tracker.sh
+│   └── kde.yml
 ├── env
-│   ├── err
-│   └── log
-├── ini
-│   └── start.sh
+│   └── site.conf
 ├── lib
 │   ├── all.bash
 │   ├── gen.bash
@@ -64,15 +26,51 @@
 │   ├── srv.bash
 │   ├── sto.bash
 │   └── usr.bash
-├── set
-│   ├── box
+├── mix
 │   ├── gen.sh
 │   ├── nfs.sh
 │   ├── pbs.sh
 │   ├── pve.sh
 │   └── smb.sh
+├── opt
+│   ├── acpi
+│   │   └── susp
+│   │       ├── disable-devices-as-wakeup.service
+│   │       ├── disable-devices-as-wakeup.sh
+│   │       ├── go.sh
+│   │       ├── post-wake-usb-reset.service
+│   │       ├── post-wake-usb-reset.sh
+│   │       └── readme.md
+│   ├── audio
+│   │   └── readme.md
+│   └── hibernate
+│       ├── btrfs_map_physical.c
+│       ├── fedora_disable_zram.sh
+│       ├── fedora_hibernation_btrfs.sh
+│       └── fedora_hibernation_lvm.sh
+├── pod
+│   ├── qdev
+│   │   ├── Containerfile
+│   │   ├── readme.md
+│   │   └── startcqd.sh
+│   ├── readme.md
+│   └── shus
+│       ├── Containerfile
+│       ├── entrypoint.sh
+│       ├── readme.md
+│       └── smb.conf.template
+├── too
+│   └── replace
+│       ├── readme.md
+│       ├── replace.json
+│       └── replace.sh
+├── top
+│   ├── network-topology-collection-1.md
+│   └── network-topology-collection-2.md
 ├── tree
-└── var
-    └── lib.conf
+└── zen
+    ├── exit.md
+    ├── logging.md
+    └── set.md
 
-20 directories, 56 files
+20 directories, 54 files
