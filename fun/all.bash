@@ -1,21 +1,17 @@
 #!/bin/bash
 
-# Use the debug function from var
-bug "Loading all.bash functions" 1
+# Define directory and file variables
+DIR_LIB="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_LIB=$(basename "$BASH_SOURCE")
+BASE_LIB="${FILE_LIB%.*}"
+FILEPATH_LIB="${DIR_LIB}/${FILE_LIB}"
+CONFIG_LIB="$DIR_LIB/../var/${BASE_LIB}.conf"
 
-# Variables should already be available from var
-if [[ -z "${LAB_DIR:-}" ]]; then
-    echo "ERROR: Critical variable LAB_DIR not found"
-    exit 1
-fi
-
-# Start logging if available
-if type log >/dev/null 2>&1; then
-    log "lvl-3" "Loading all.bash functions"
-else
-    echo "└─Loading all.bash functions"
-fi
-
+# Dynamically create variables based on the base name
+eval "FILEPATH_${BASE_LIB}=\$FILEPATH_LIB"
+eval "FILE_${BASE_LIB}=\$FILE_LIB"
+eval "BASE_${BASE_LIB}=\$BASE_LIB"
+eval "CONFIG_${BASE_LIB}=\$CONFIG_LIB"
 
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
