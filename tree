@@ -5,16 +5,15 @@
 │   ├── box
 │   ├── err
 │   ├── ire
-│   └── log
+│   ├── log
+│   └── tme
 ├── com
 │   ├── rc
 │   ├── rc1
 │   ├── rc2
-│   ├── rc3
-│   └── rc4
-├── dsk
-│   ├── dot-git-tracker.sh
-│   └── kde.yml
+│   └── rc3
+├── dot
+│   └── tracker.sh
 ├── env
 │   └── site.conf
 ├── fun
@@ -27,7 +26,7 @@
 │   ├── srv.bash
 │   ├── sto.bash
 │   └── usr.bash
-├── goa
+├── gem
 │   ├── gen.sh
 │   ├── nfs.sh
 │   ├── pbs.sh
@@ -49,7 +48,9 @@
 │       ├── fedora_disable_zram.sh
 │       ├── fedora_hibernation_btrfs.sh
 │       └── fedora_hibernation_lvm.sh
-├── inf
+├── ini
+│   └── kde.yml
+├── net
 │   ├── network-topology-collection-1.md
 │   └── network-topology-collection-2.md
 ├── pod
@@ -75,4 +76,4 @@
 │   └── set.md
 └── tree
 
-20 directories, 56 files
+21 directories, 56 files
