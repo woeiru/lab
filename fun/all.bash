@@ -1,18 +1,13 @@
 #!/bin/bash
 
-# Debug output to help us understand the environment
-if [[ "$DEBUG" == "true" ]]; then
-    echo "Debug: Current environment when loading all.bash:"
-    echo "LAB_DIR=${LAB_DIR:-undefined}"
-    echo "FUN_DIR=${FUN_DIR:-undefined}"
-    echo "PARENT_DIR=${PARENT_DIR:-undefined}"
-    echo "BASH_SOURCE=${BASH_SOURCE[0]}"
-    echo "Current DIR=$( pwd )"
-fi
+# Use the debug function from var
+bug "Loading all.bash functions" 1
 
-# Ensure variables are properly exported from parent scope
-[[ -n "${LAB_DIR:-}" ]] || LAB_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}")/.." &> /dev/null && pwd )"
-[[ -n "${FUN_DIR:-}" ]] || FUN_DIR="$LAB_DIR/fun"
+# Variables should already be available from var
+if [[ -z "${LAB_DIR:-}" ]]; then
+    echo "ERROR: Critical variable LAB_DIR not found"
+    exit 1
+fi
 
 # Start logging if available
 if type log >/dev/null 2>&1; then
@@ -20,9 +15,6 @@ if type log >/dev/null 2>&1; then
 else
     echo "└─Loading all.bash functions"
 fi
-
-# Export the critical variables to ensure they're available to child processes
-export LAB_DIR FUN_DIR
 
 
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
