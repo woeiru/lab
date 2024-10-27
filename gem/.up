@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Handle non-interactive shell case
-[[ -z "${DOT_DIR}" ]] && DOT_DIR="/root/lab/dot"
+[[ -z "${BAS_DIR}" ]] && BAS_DIR="/root/lab/bas"
 
 # Enable error handling
 set -e
 
 # Source rc2 for logging capabilities
-source "${DOT_DIR}/rc2"
+source "${BAS_DIR}/log"
 log "lvl-2" "log sourced successfully"
 
 # Helper function to get section IDs from the calling script
