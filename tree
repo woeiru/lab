@@ -15,23 +15,23 @@
 ├── dot
 │   └── tracker.sh
 ├── env
-│   └── site.conf
+│   └── site
 ├── fun
-│   ├── all.bash
-│   ├── gen.bash
-│   ├── gpu.bash
-│   ├── net.bash
-│   ├── pbs.bash
-│   ├── pve.bash
-│   ├── srv.bash
-│   ├── sto.bash
-│   └── usr.bash
+│   ├── all
+│   ├── gen
+│   ├── gpu
+│   ├── net
+│   ├── pbs
+│   ├── pve
+│   ├── srv
+│   ├── sto
+│   └── usr
 ├── gem
-│   ├── gen.sh
-│   ├── nfs.sh
-│   ├── pbs.sh
-│   ├── pve.sh
-│   └── smb.sh
+│   ├── gen
+│   ├── nfs
+│   ├── pbs
+│   ├── pve
+│   └── smb
 ├── hwa
 │   ├── acpi
 │   │   └── susp
