@@ -11,12 +11,12 @@
 │   ├── rc2
 │   ├── rc3
 │   └── rc4
-├── dec
+├── dsk
 │   ├── dot-git-tracker.sh
 │   └── kde.yml
 ├── env
 │   └── site.conf
-├── lib
+├── fun
 │   ├── all.bash
 │   ├── gen.bash
 │   ├── gpu.bash
@@ -26,13 +26,13 @@
 │   ├── srv.bash
 │   ├── sto.bash
 │   └── usr.bash
-├── mix
+├── goa
 │   ├── gen.sh
 │   ├── nfs.sh
 │   ├── pbs.sh
 │   ├── pve.sh
 │   └── smb.sh
-├── opt
+├── hwa
 │   ├── acpi
 │   │   └── susp
 │   │       ├── disable-devices-as-wakeup.service
@@ -48,6 +48,9 @@
 │       ├── fedora_disable_zram.sh
 │       ├── fedora_hibernation_btrfs.sh
 │       └── fedora_hibernation_lvm.sh
+├── inf
+│   ├── network-topology-collection-1.md
+│   └── network-topology-collection-2.md
 ├── pod
 │   ├── qdev
 │   │   ├── Containerfile
@@ -59,18 +62,15 @@
 │       ├── entrypoint.sh
 │       ├── readme.md
 │       └── smb.conf.template
-├── too
+├── pro
 │   └── replace
 │       ├── readme.md
 │       ├── replace.json
 │       └── replace.sh
-├── top
-│   ├── network-topology-collection-1.md
-│   └── network-topology-collection-2.md
-├── tree
-└── zen
-    ├── exit.md
-    ├── logging.md
-    └── set.md
+├── rem
+│   ├── exit.md
+│   ├── logging.md
+│   └── set.md
+└── tree
 
 20 directories, 54 files
