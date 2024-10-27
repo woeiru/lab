@@ -86,7 +86,7 @@ init_target_user() {
     local default_user=$(whoami)
 
     if [[ "$YES_FLAG" == "false" ]]; then
-        read -p "Enter target user (default: $default_user): " input_user
+        input_user=$(ire "lvl-2" "Enter target user (default: $default_user): ")
         TARGET_USER=${input_user:-$default_user}
     else
         TARGET_USER=$default_user
@@ -129,7 +129,7 @@ set_config_file() {
     [[ -z "$default_config" ]] && default_config="$TARGET_HOME/.bashrc"
 
     if [[ "$YES_FLAG" == "false" ]]; then
-        read -p "Enter config file path (default: $default_config): " input_config
+        input_config=$(ire "lvl-2" "Enter config file path (default: $default_config): ")
         CONFIG_FILE=${input_config:-$default_config}
     else
         CONFIG_FILE=$default_config
@@ -352,29 +352,50 @@ execute_functions() {
 }
 
 source_base() {
+    log "lvl-1" "Sourcing base folder: $BAS_DIR"
     echo "Sourcing base folder: $BAS_DIR"
     echo
 
-    if [ -f "$BAS_DIR/err" ]; then
-        source "$BAS_DIR/err"
-        echo ". $BAS_DIR/err"
-    else
-        echo "Error handler not found at $BAS_DIR/err"
-        return 1
-    fi
+    # Get all files in the base directory (excluding directories)
+    local base_files=()
+    while IFS= read -r -d '' file; do
+        # Only include regular files (not directories, symlinks, etc)
+        if [[ -f "$file" ]]; then
+            base_files+=("$file")
+        fi
+    done < <(find "$BAS_DIR" -maxdepth 1 -type f -print0)
 
-    if [ -f "$BAS_DIR/log" ]; then
-        source "$BAS_DIR/log"
-        echo ". $BAS_DIR/log"
-    else
-        echo "Logger not found at $BAS_DIR/log"
-        return 1
-    fi
+    # Sort files to ensure consistent loading order
+    IFS=$'\n' base_files=($(sort <<<"${base_files[*]}"))
+    unset IFS
+
+    # Track if we've successfully sourced at least one file
+    local sourced_any=false
+
+    # Source each file
+    for file in "${base_files[@]}"; do
+        local filename=$(basename "$file")
+        if [[ -f "$file" && -r "$file" ]]; then
+            source "$file"
+            echo ". $file"
+            sourced_any=true
+            log "lvl-2" "Sourced: $filename"
+        else
+            log "lvl-1" "Could not source: $filename"
+            echo "Could not source: $filename"
+        fi
+    done
 
     echo
 
+    if [[ "$sourced_any" = false ]]; then
+        log "lvl-1" "No base files were sourced from $BAS_DIR"
+        echo "No base files were sourced"
+        return 1
+    fi
+
     setup_error_handling
-    log "lvl-1" "Error handling and logging initialized"
+    log "lvl-1" "Base initialization complete"
 
     return 0
 }
