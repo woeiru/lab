@@ -4,6 +4,7 @@
 ├── bas
 │   ├── box
 │   ├── err
+│   ├── ire
 │   └── log
 ├── com
 │   ├── rc
@@ -69,8 +70,9 @@
 │       └── replace.sh
 ├── rem
 │   ├── exit.md
+│   ├── interfunction.md
 │   ├── logging.md
 │   └── set.md
 └── tree
 
-20 directories, 54 files
+20 directories, 56 files
