@@ -14,6 +14,7 @@ readonly LAB_DIR="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
 echo "LAB DIR = $LAB_DIR"
 readonly BAS_DIR="$LAB_DIR/bas"
 echo "BAS DIR = $BAS_DIR"
+echo
 
 # Default configuration
 readonly DEFAULT_CONFIG_FILES=(".zshrc" ".bashrc")
@@ -35,7 +36,7 @@ declare -g SCRIPT_LOG_LEVEL="$DEFAULT_LOG_LEVEL"
 
 # Function to initialize all runtime configuration
 init_config() {
-    echo "Initializing configuration"
+    log "lvl-1" "Initializing configuration"
 
     # Initialize variables without readonly
     CONFIG_FILE=""
@@ -51,7 +52,7 @@ init_config() {
     export YES_FLAG
     export LOG_LEVEL
 
-    echo "Configuration initialized"
+    log "lvl-2" "Configuration initialized"
     return 0
 }
 
@@ -61,17 +62,17 @@ check_shell_version() {
     if [[ -n "${BASH_VERSION:-}" ]]; then
         log "lvl-2" "Detected BASH ${BASH_VERSION}"
         [[ "${BASH_VERSION:0:1}" -lt 4 ]] && {
-            log "lvl-1" "Unsupported Bash version"
+            log "lvl-2" "Unsupported Bash version"
             return 1
         }
     elif [[ -n "${ZSH_VERSION:-}" ]]; then
         log "lvl-2" "Detected ZSH ${ZSH_VERSION}"
         [[ "${ZSH_VERSION:0:1}" -lt 5 ]] && {
-            log "lvl-1" "Unsupported Zsh version"
+            log "lvl-2" "Unsupported Zsh version"
             return 1
         }
     else
-        log "lvl-1" "Unknown shell detected"
+        log "lvl-2" "Unknown shell detected"
         return 1
     fi
     return 0
@@ -79,8 +80,8 @@ check_shell_version() {
 
 # 2. Initialize target user and home directory
 init_target_user() {
-    local default_user=$(whoami)
     log "lvl-1" "Initializing target user"
+    local default_user=$(whoami)
 
     if [[ "$YES_FLAG" == "false" ]]; then
         read -p "Enter target user (default: $default_user): " input_user
@@ -91,7 +92,7 @@ init_target_user() {
 
     TARGET_HOME=$(eval echo ~$TARGET_USER)
     if [[ ! -d "$TARGET_HOME" ]]; then
-        log "lvl-1" "Home directory $TARGET_HOME does not exist"
+        log "lvl-2" "Home directory $TARGET_HOME does not exist"
         return 1
     fi
 
@@ -136,15 +137,15 @@ set_config_file() {
     if [[ ! -f "$CONFIG_FILE" ]]; then
         local config_dir=$(dirname "$CONFIG_FILE")
         if [[ ! -d "$config_dir" ]]; then
-            log "lvl-1" "Directory $config_dir does not exist"
+            log "lvl-2" "Directory $config_dir does not exist"
             return 1
         fi
         if [[ ! -w "$config_dir" ]]; then
-            log "lvl-1" "Cannot write to directory $config_dir"
+            log "lvl-2" "Cannot write to directory $config_dir"
             return 1
         fi
         touch "$CONFIG_FILE" || {
-            log "lvl-1" "Failed to create config file $CONFIG_FILE"
+            log "lvl-2" "Failed to create config file $CONFIG_FILE"
             return 1
         }
         log "lvl-2" "Created new config file: $CONFIG_FILE"
@@ -164,7 +165,7 @@ inject_content() {
     log "lvl-2" "CONFIG_FILE value: ${CONFIG_FILE}"
 
     if [[ -z "$CONFIG_FILE" || ! -f "$CONFIG_FILE" ]]; then
-        log "lvl-1" "Invalid config file: ${CONFIG_FILE}"
+        log "lvl-2" "Invalid config file: ${CONFIG_FILE}"
         return 1
     fi
 
@@ -262,8 +263,6 @@ execute_functions() {
                       cut -d' ' -f2-))
 
     local i=0
-
-    # Export any necessary variables to make them available to subshells
     export CONFIG_FILE
     export TARGET_USER
     export TARGET_HOME
@@ -272,15 +271,14 @@ execute_functions() {
 
     for func in "${functions[@]}"; do
         log "lvl-2" "Executing function: ${func}"
-        log "lvl-3" "Current CONFIG_FILE value: ${CONFIG_FILE}"
-        echo -n "Step $((i+1)): ${func} ... "
+        echo
+        echo -n "Step $((i+1)): ${func} ..."
+        echo
 
-        # Run the function directly in the current shell context
         local output
         output=$("$func")
         local ret=$?
 
-        # Update global CONFIG_FILE if it was modified by the function
         [[ -n "$output" ]] && {
             local config_line=$(echo "$output" | grep "^CONFIG=")
             if [[ -n "$config_line" ]]; then
@@ -290,34 +288,30 @@ execute_functions() {
         }
 
         if [ $ret -eq 0 ]; then
-            echo -e "\033[32m✓\033[0m"
-            log "lvl-3" "Function ${func} completed successfully"
             if [ -n "$output" ]; then
-                echo "  └─ $output"
-                log "lvl-4" "Output: ${output}"
+                echo "$output"
             fi
+            echo -e "\033[32m✓\033[0m"
         else
             echo -e "\033[31m✗\033[0m"
-            log "lvl-1" "Function ${func} failed with return code ${ret}"
             if [ -n "$output" ]; then
-                echo "  └─ $output"
-                log "lvl-2" "Error output: ${output}"
+                echo "$output"
             else
-                echo "  └─ Failed with return code $ret"
+                echo "Failed with return code $ret"
             fi
             return 1
         fi
         ((i++))
+        echo
     done
     log "lvl-1" "All functions executed successfully"
     return 0
 }
 
-# Source error and logging handlers
 source_base() {
     echo "Sourcing BASe folder: $BAS_DIR"
+    echo
 
-    # First source error and log handlers specifically
     if [ -f "$BAS_DIR/err" ]; then
         source "$BAS_DIR/err"
         echo ". $BAS_DIR/err"
@@ -334,32 +328,25 @@ source_base() {
         return 1
     fi
 
-    # Now we can use logging and error handling
+    echo
+
     setup_error_handling
     log "lvl-1" "Error handling and logging initialized"
 
     return 0
 }
 
-# Main function
 main() {
-    # Initialize configuration
     init_config
-
-    # Source the BASe to get error and logging functions
     source_base
-
-    # Enable all logging levels
     setlog on
-
-    # Set up error handling and use logging
     setup_error_handling
-
     parse_arguments "$@"
 
     log "lvl-1" "Starting deployment process"
     echo "Starting deployment..."
     echo "Script Version: $SCRIPT_VERSION"
+    echo
     echo "The following steps will be performed:"
     grep -E '^# [0-9]+\.' "$0" | sed -E 's/^# ([0-9]+)\. (.+)/\1. \2/'
     echo
@@ -371,6 +358,7 @@ main() {
             exit 0
         fi
     fi
+    echo
 
     if ! execute_functions; then
         log "lvl-1" "Deployment failed"
@@ -378,6 +366,7 @@ main() {
         exit 1
     fi
 
+    echo
     log "lvl-1" "Deployment completed successfully"
     echo "Deployment completed. Press any key to restart shell..."
     read -n 1 -s
