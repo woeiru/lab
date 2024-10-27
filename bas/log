@@ -1,13 +1,24 @@
 #!/bin/bash
 
-# Store log state and levels in persistent files
-LOG_STATE_FILE="/tmp/rc_log_state"
-LOG_LEVELS_FILE="/tmp/rc_log_levels"
-ERROR_LOG="/tmp/rc_error.log"
+# Define log directory
+LOG_DIR="/var/log/rc"
+[[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp"
+
+# Store log state and levels in persistent files with proper paths
+LOG_STATE_FILE="${LOG_DIR}/rc_log_state"
+LOG_LEVELS_FILE="${LOG_DIR}/rc_log_levels"
+ERROR_LOG="${LOG_DIR}/rc_error.log"
 
 # Initialize log state if file doesn't exist
 if [[ ! -f "$LOG_STATE_FILE" ]]; then
-    echo "true" > "$LOG_STATE_FILE"
+    echo "true" > "$LOG_STATE_FILE" 2>/dev/null || {
+        # Fallback to temp directory if can't write to LOG_DIR
+        LOG_DIR="/tmp"
+        LOG_STATE_FILE="${LOG_DIR}/rc_log_state"
+        LOG_LEVELS_FILE="${LOG_DIR}/rc_log_levels"
+        ERROR_LOG="${LOG_DIR}/rc_error.log"
+        echo "true" > "$LOG_STATE_FILE"
+    }
 fi
 
 # Initialize log levels if file doesn't exist (now including level 9 for errors)
@@ -16,8 +27,8 @@ if [[ ! -f "$LOG_LEVELS_FILE" ]]; then
 fi
 
 # Read the current log state and levels
-LOG_TOGGLE=$(cat "$LOG_STATE_FILE")
-read -r -a LOG_LEVELS <<< "$(cat "$LOG_LEVELS_FILE")"
+LOG_TOGGLE=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
+read -r -a LOG_LEVELS <<< "$(cat "$LOG_LEVELS_FILE" 2>/dev/null || echo "1 1 1 1 1 1 1 1 1")"
 
 # Color codes
 RED='\033[0;31m'
@@ -34,16 +45,16 @@ NC='\033[0m' # No Color
 # Modified logging function that hides the level in output
 log() {
     # First check LOG_TOGGLE from the state file
-    local current_state=$(cat "$LOG_STATE_FILE")
+    local current_state
+    current_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
     [[ "${current_state}" != "true" ]] && return 0
 
     # Read current levels
     local -a current_levels
-    read -r -a current_levels <<< "$(cat "$LOG_LEVELS_FILE")"
+    read -r -a current_levels <<< "$(cat "$LOG_LEVELS_FILE" 2>/dev/null || echo "1 1 1 1 1 1 1 1 1")"
 
     local level=$1
     local message=$2
-    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
     local level_num=${level#lvl-}
     local indent=""
     local color=""
@@ -62,19 +73,19 @@ log() {
         *) color=$NC ;;
     esac
 
-    # Create indentation and colored indicator, without showing the level
+    # Create indentation and colored indicator
     if [ $level_num -eq 1 ]; then
         indent="${color}    └─${NC}"
     elif [ $level_num -eq 9 ]; then
         indent="                  ${color}█─${NC}" # Thick line for errors
     else
         indent="      ${color}└─${NC}"
-        for i in $(seq 3 $level_num); do
+        for ((i=3; i<=$level_num; i++)); do
             indent="  $indent"
         done
     fi
 
-    # Format the log message - note the level is no longer included in output
+    # Format the log message
     local formatted_message
     if [ $level_num -eq 9 ]; then
         formatted_message="$(date '+%Y%m%d%H%M%S') - $message"
@@ -88,30 +99,6 @@ log() {
             fi
         fi
     fi
-}
-
-# Error handler function that uses the log function
-error_handler() {
-    local exit_code=$?
-    local command="$BASH_COMMAND"
-    local line_number="$1"
-    local source_file="${BASH_SOURCE[1]:-${0:-$command}}"
-    source_file="${source_file:-"<unknown-source>"}"
-
-    log "lvl-9" "Error in $source_file on line $line_number: Command '$command' exited with status $exit_code"
-}
-
-# Function to ensure clean exit from the script
-clean_exit() {
-    local exit_code=${1:-0}
-    trap - ERR
-    trap - EXIT
-    exit $exit_code
-}
-
-# Set up error handling
-setup_error_handling() {
-    trap 'error_handler $LINENO' ERR
 }
 
 # Function to set up logging with persistent state and levels
@@ -135,7 +122,7 @@ setlog() {
             return 0
             ;;
         *)
-            if [[ "$(cat "$LOG_STATE_FILE")" != "true" ]]; then
+            if [[ "$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "false")" != "true" ]]; then
                 log "lvl-1" "Logging is currently disabled. Use 'setlog on' to enable logging first."
                 return 1
             fi
@@ -163,7 +150,7 @@ setlog() {
                 new_levels[$i]=1
             done
 
-            log "lvl-1" "${new_levels[*]}" > "$LOG_LEVELS_FILE"
+            printf '%s\n' "${new_levels[*]}" > "$LOG_LEVELS_FILE"
             LOG_LEVELS=("${new_levels[@]}")
             export LOG_LEVELS
 
@@ -172,27 +159,11 @@ setlog() {
     esac
 }
 
-# Utility functions
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-source_if_exists() {
-    if [ -f "$1" ]; then
-        source "$1"
-        log "lvl-3" "Sourced file: $1"
-    else
-        log "lvl-1" "File not found: $1"
-    fi
-}
-
 # Export functions and variables
 export -f log
 export -f setlog
-export -f command_exists
-export -f source_if_exists
-export -f error_handler
-export -f setup_error_handling
-export -f clean_exit
 export LOG_LEVELS
 export LOG_TOGGLE
+export LOG_STATE_FILE
+export LOG_LEVELS_FILE
+export ERROR_LOG
