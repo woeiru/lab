@@ -287,6 +287,13 @@ execute_functions() {
         return 1
     }
 
+    # Ensure global scope for critical variables
+    declare -g CONFIG_FILE
+    declare -g TARGET_USER
+    declare -g TARGET_HOME
+    declare -g YES_FLAG
+    declare -g LOG_LEVEL
+
     export CONFIG_FILE
     export TARGET_USER
     export TARGET_HOME
@@ -301,33 +308,43 @@ execute_functions() {
             continue
         fi
 
-        local output
-        output=$("$func")
-        local ret=$?
+        # Create a temporary file for output capture
+        local temp_output=$(mktemp)
 
-        [[ -n "$output" ]] && {
-            local config_line=$(echo "$output" | grep "^CONFIG=")
-            if [[ -n "$config_line" ]]; then
-                CONFIG_FILE="${config_line#CONFIG=}"
-                export CONFIG_FILE
-            fi
-        }
-
-        if [ $ret -eq 0 ]; then
-            if [ -n "$output" ]; then
-                echo "$output"
-            fi
-            log "lvl-4" "\033[32m ✓\033[0m"
-        else
+        # Execute function in current shell context and capture output
+        if ! eval "$func" > "$temp_output" 2>&1; then
+            local ret=$?
             log "lvl-4" "\033[31m ✗\033[0m"
-            if [ -n "$output" ]; then
-                echo "$output"
+            if [[ -s "$temp_output" ]]; then
+                cat "$temp_output"
             else
                 echo "Failed with return code $ret"
             fi
+            rm "$temp_output"
             return 1
         fi
+
+        # Process output if any exists
+        if [[ -s "$temp_output" ]]; then
+            # First check for CONFIG= lines and process them
+            while IFS= read -r line; do
+                if [[ "$line" =~ ^CONFIG=(.*) ]]; then
+                    CONFIG_FILE="${BASH_REMATCH[1]}"
+                    export CONFIG_FILE
+                fi
+            done < "$temp_output"
+
+            # Now display the output
+            cat "$temp_output"
+        fi
+
+        # Clean up temp file
+        rm "$temp_output"
+
+        # Mark success
+        log "lvl-4" "\033[32m ✓\033[0m"
         echo
+
     done
 
     log "lvl-2" "All functions executed successfully"
