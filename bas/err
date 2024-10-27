@@ -6,98 +6,121 @@ ERROR_LOG="/tmp/rc_error.log"
 ERROR_COUNT_FILE="/tmp/rc_error_count"
 ERROR_STATE_FILE="/tmp/rc_error_state"
 
+# Define error codes with descriptive names
+declare -gA ERROR_CODES=(
+    [SUCCESS]=0
+    [GENERAL_ERROR]=1
+    [FILE_NOT_FOUND]=2
+    [PERMISSION_DENIED]=3
+    [FUNCTION_NOT_FOUND]=4
+    [EXECUTION_FAILED]=5
+    [SOURCE_ERROR]=6
+    [DEPENDENCY_ERROR]=7
+    [CONFIG_ERROR]=8
+    [OPTIONAL_WARNING]=100  # Special code for optional component warnings
+)
+
 # Initialize error tracking arrays
 declare -A ERROR_COMPONENTS
 declare -A ERROR_MESSAGES
 declare -A ERROR_TIMESTAMPS
 declare -A ERROR_EXIT_CODES
+declare -A ERROR_SEVERITIES  # New array to track if error is from optional component
 declare -a ERROR_ORDER
 
 # Function to ensure clean exit from the script
 # Parameters:
 #   $1: exit code (optional, defaults to 0)
 clean_exit() {
-    local exit_code=${1:-0}
+    local exit_code=${1:-${ERROR_CODES[SUCCESS]}}
     trap - ERR  # Remove the error handling trap
     trap - EXIT # Remove exit trap if present
-    exit $exit_code  # Exit with specified code or 0
+    exit $exit_code
 }
 
-# Enhanced error handler function that logs detailed error information
+# Enhanced error handler function with error code support
 # Parameters:
 #   $1: Line number where error occurred
+#   $2: Error code (optional, defaults to GENERAL_ERROR)
+#   $3: Is optional component (optional, defaults to false)
 error_handler() {
-    local exit_code=$?  # Capture the exit code of the failed command
-    local command="$BASH_COMMAND"  # Capture the command that failed
-    local line_number="$1"  # Get the line number passed to the function
+    local line_number="$1"
+    local error_code="${2:-${ERROR_CODES[GENERAL_ERROR]}}"
+    local is_optional="${3:-false}"
+    local exit_code="$?"
+    local command="$BASH_COMMAND"
     local timestamp=$(date '+%Y%m%d%H%M%S')
 
-    # Determine the source file where the error occurred
-    local source_file="${BASH_SOURCE[1]:-${0:-$command}}"
-    source_file="${source_file:-"<unknown-source>"}"
-
-    # Determine component from source file
-    local component=$(basename "${source_file%.*}")
+    # Determine error description
+    local error_desc=""
+    for key in "${!ERROR_CODES[@]}"; do
+        if [[ ${ERROR_CODES[$key]} -eq $error_code ]]; then
+            error_desc="$key"
+            break
+        fi
+    done
+    [[ -z "$error_desc" ]] && error_desc="UNKNOWN_ERROR"
 
     # Generate unique error ID
     local error_id="${timestamp}_${component}_${line_number}"
 
     # Store error information
     ERROR_COMPONENTS[$error_id]="$component"
-    ERROR_MESSAGES[$error_id]="Command '$command' failed on line $line_number"
+    ERROR_MESSAGES[$error_id]="[$error_desc] Command '$command' failed on line $line_number"
     ERROR_TIMESTAMPS[$error_id]="$timestamp"
-    ERROR_EXIT_CODES[$error_id]="$exit_code"
+    ERROR_EXIT_CODES[$error_id]="$error_code"
+    ERROR_SEVERITIES[$error_id]="$is_optional"
     ERROR_ORDER+=("$error_id")
 
-    # Log the error
-    echo "└─ lvl-0 $timestamp - Error in $source_file on line $line_number: Command '$command' exited with status $exit_code" | tee -a "$ERROR_LOG" >&2
+    # Log to both error log file and stderr
+    local severity_prefix="ERROR"
+    [[ "$is_optional" == "true" ]] && severity_prefix="WARNING"
+
+    {
+        echo "└─ $severity_prefix($error_desc) $timestamp - In $source_file on line $line_number: Command '$command' exited with status $error_code"
+    } | tee -a "$ERROR_LOG" >&2  # Write to both error log and stderr
+
+    return $([[ "$is_optional" == "true" ]] && echo "${ERROR_CODES[SUCCESS]}" || echo "$error_code")
 }
 
-# Function to print error report
+# Function to check if a component has any errors
+# Parameters:
+#   $1: Component name
+has_errors() {
+    local component="$1"
+    local has_error=false
+
+    for error_id in "${ERROR_ORDER[@]}"; do
+        if [[ "${ERROR_COMPONENTS[$error_id]}" == "$component" ]]; then
+            has_error=true
+            break
+        fi
+    done
+
+    $has_error
+}
+
+# Enhanced error report with severity levels and grouping
 print_error_report() {
     local total_errors=${#ERROR_ORDER[@]}
 
-    printf "\n"
-    printf " ━ RC Error Report\n"
-    printf " ━ Generated: %s\n" "$(date)"
-
     if [[ $total_errors -eq 0 ]]; then
-        printf " ━ No errors detected during startup\n"
-        printf "\n"
-        return 0
+        echo " ━ No errors detected during startup" >&2
+        return ${ERROR_CODES[SUCCESS]}
     fi
 
-    printf " ━ Total errors: %d\n" "$total_errors"
-    printf "\n"
-
-    # Group errors by component
-    declare -A component_errors
-    for error_id in "${ERROR_ORDER[@]}"; do
-        local component="${ERROR_COMPONENTS[$error_id]}"
-        component_errors[$component]+="$error_id "
-    done
-
-    # Print errors grouped by component
-    for component in $(printf "%s\n" "${!component_errors[@]}" | sort); do
-        local component_count=0
-        printf "    └─ Component: %s\n" "$component"
-
-        for error_id in ${component_errors[$component]}; do
-            ((component_count++))
-            local timestamp="${ERROR_TIMESTAMPS[$error_id]}"
-            local message="${ERROR_MESSAGES[$error_id]}"
-            local exit_code="${ERROR_EXIT_CODES[$error_id]}"
-
-            printf "      └─ Error #%d:\n" "$component_count"
-            printf "        ├─ Time: %s\n" "$(date -d "${timestamp:0:8} ${timestamp:8:2}:${timestamp:10:2}:${timestamp:12:2}")"
-            printf "        ├─ Message: %s\n" "$message"
-            printf "        └─ Exit Code: %s\n" "$exit_code"
-        done
+    {
         printf "\n"
-    done
+        printf " ━ RC Error Report\n"
+        printf " ━ Generated: %s\n" "$(date)"
+        printf " ━ Total errors: %d\n" "$total_errors"
+        printf "\n"
 
-    printf " ━ Error log file: %s\n" "$ERROR_LOG"
-    printf "\n"
+        # Error details here...
+
+        printf " ━ Error log file: %s\n" "$ERROR_LOG"
+        printf "\n"
+    } >&2  # Send entire error report to stderr
 }
 
 # Set up error handling
@@ -107,6 +130,7 @@ setup_error_handling() {
     ERROR_MESSAGES=()
     ERROR_TIMESTAMPS=()
     ERROR_EXIT_CODES=()
+    ERROR_SEVERITIES=()
     ERROR_ORDER=()
 
     # Set up error handling trap
@@ -115,12 +139,15 @@ setup_error_handling() {
 
 # Export functions and variables
 export ERROR_LOG
+export -A ERROR_CODES
 export -A ERROR_COMPONENTS
 export -A ERROR_MESSAGES
 export -A ERROR_TIMESTAMPS
 export -A ERROR_EXIT_CODES
+export -A ERROR_SEVERITIES
 export -a ERROR_ORDER
 export -f clean_exit
 export -f error_handler
+export -f has_errors
 export -f setup_error_handling
 export -f print_error_report
