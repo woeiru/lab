@@ -24,7 +24,7 @@ set_static() {
     # Directory navigation
     alias d='cd'
     alias ..='cd ..'
-    alias dl="cd $PARENT_DIR"
+    alias dl="cd $LAB_DIR"
 
     alias d.samba='cd /etc/samba/'
     alias d.snapper='cd /etc/snapper/configs'
@@ -49,7 +49,7 @@ set_static() {
 
     # Function chaining
     alias fun='all-ffl all-laf "" "$LIB_DIR"'
-    alias var='all-ffl all-acu "" "$VAR_DIR" "$PARENT_DIR"'
+    alias var='all-ffl all-acu "" "$VAR_DIR" "$LAB_DIR"'
 
     # Function makros
     alias v1='gpu-ptd ; qm start 211'
