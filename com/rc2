@@ -54,7 +54,10 @@ generate_level_one_vars_and_aliases() {
                 log "lvl-4" "Processing directory: $base"
                 var_name="${base^^}_DIR"
                 dir_path=$(realpath "$dir")
-                declare -g "$var_name=$dir_path"
+                # Only declare if not already set (protects BAS_DIR and any other pre-set vars)
+                if [[ -z "${!var_name:-}" ]]; then
+                    declare -g "$var_name=$dir_path"
+                fi
                 alias "d-$base=cd $dir_path"
                 log "lvl-5" "Created alias: d-$base -> cd $dir_path"
             fi
