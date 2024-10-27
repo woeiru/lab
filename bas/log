@@ -31,7 +31,7 @@ VIOLET='\033[1;35m'
 WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
-# Enhanced logging function with error support
+# Modified logging function that hides the level in output
 log() {
     # First check LOG_TOGGLE from the state file
     local current_state=$(cat "$LOG_STATE_FILE")
@@ -62,7 +62,7 @@ log() {
         *) color=$NC ;;
     esac
 
-    # Create indentation and colored indicator
+    # Create indentation and colored indicator, without showing the level
     if [ $level_num -eq 1 ]; then
         indent="${color}    └─${NC}"
     elif [ $level_num -eq 9 ]; then
@@ -74,17 +74,17 @@ log() {
         done
     fi
 
-    # Format the log message
+    # Format the log message - note the level is no longer included in output
     local formatted_message
     if [ $level_num -eq 9 ]; then
         formatted_message="$(date '+%Y%m%d%H%M%S') - $message"
-        echo -e "${indent}$level $formatted_message" | tee -a "$ERROR_LOG" >&2
+        echo -e "${indent}$formatted_message" | tee -a "$ERROR_LOG" >&2
     else
         if [[ ${current_levels[$((level_num-1))]} -eq 1 ]]; then
             if [ $level_num -eq 1 ]; then
-                echo -e "${indent}$level $message" >&2
+                echo -e "${indent}$message" >&2
             else
-                echo -e "${indent}$level $message"
+                echo -e "${indent}$message"
             fi
         fi
     fi
