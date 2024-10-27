@@ -18,32 +18,26 @@ source_helper() {
     local file="$1"
     local description="${2:-$(basename "$file")}"
 
-    start_timer "source_$description"
-
     if [[ ! -f "$file" ]]; then
-        echo "       ━ Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
-        end_timer "source_$description"
-        return 1
+        echo "       ━ Error: File $description ($file) not found." >&2
+        error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
+        return ${ERROR_CODES[FILE_NOT_FOUND]}
     fi
 
     if [[ ! -r "$file" ]]; then
-        echo "       ━ Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
-        end_timer "source_$description"
-        return 1
+        echo "       ━ Error: File $description ($file) is not readable." >&2
+        error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
+        return ${ERROR_CODES[PERMISSION_DENIED]}
     fi
 
-    # Source the file and capture any errors
-    if source "$file" 2>/tmp/source_error; then
-        echo "       ━ Successfully sourced: $description"
-        end_timer "source_$description"
-        return 0
-    else
-        local error=$(cat /tmp/source_error)
-        echo "       ━ Error sourcing $description: $error" | tee -a "$ERROR_LOG" >&2
-        rm -f /tmp/source_error
-        end_timer "source_$description"
-        return 1
+    # Capture source errors
+    if ! source "$file" 2> >(tee -a "$ERROR_LOG" >&2); then
+        error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
+        return ${ERROR_CODES[SOURCE_ERROR]}
     fi
+
+    echo "       ━ Successfully sourced: $description"
+    return ${ERROR_CODES[SUCCESS]}
 }
 
 # Function to source all files in a directory with consistent sorting and error handling
@@ -190,25 +184,27 @@ execute_component() {
     echo "   ━ Executing component: $component"
 
     if ! type "$func" &>/dev/null; then
-        echo "   ━ Error: Function $func not found" | tee -a "$ERROR_LOG" >&2
-        return_value=1
+        error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$([[ $required -eq 0 ]] && echo true || echo false)"
+        return_value=${ERROR_CODES[FUNCTION_NOT_FOUND]}
     elif $func; then
         export "$success_var=1"
         echo "   ━ Component $component completed successfully"
-        return_value=0
+        return_value=${ERROR_CODES[SUCCESS]}
     else
         unset "$success_var"
+        local error_code=$?
         local msg="Component $component failed"
+
         if ((required)); then
-            echo "   ━ Error: $msg" | tee -a "$ERROR_LOG" >&2
-            return_value=1
+            error_handler "$LINENO" "$error_code" "false"
+            return_value=$error_code
         else
-            echo "   ━ Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
-            return_value=0
+            error_handler "$LINENO" "${ERROR_CODES[OPTIONAL_WARNING]}" "true"
+            return_value=${ERROR_CODES[SUCCESS]}  # Don't fail for optional components
         fi
     fi
 
-    end_timer "$component"
+    end_timer "$component" "$([[ $return_value -eq 0 ]] && echo success || echo error)"
     return $return_value
 }
 

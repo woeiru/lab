@@ -1,13 +1,13 @@
 .
 ├── all
-│   └── start.sh
+│   └── start
 ├── bas
 │   ├── box
 │   ├── err
 │   ├── ire
 │   ├── log
 │   └── tme
-├── com
+├── con
 │   ├── rc
 │   ├── rc1
 │   ├── rc2
