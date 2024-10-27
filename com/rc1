@@ -76,14 +76,21 @@ generate_level_two_arrays() {
             # Process all files under single timer
             while IFS= read -r -d '' file; do
                 base_name=$(basename "$file")
-                name_without_ext="${base_name%.*}"
+                # Handle files both with and without extensions
+                if [[ "$base_name" =~ \. ]]; then
+                    name_without_ext="${base_name%.*}"
+                else
+                    name_without_ext="$base_name"
+                fi
                 files+=("$name_without_ext")
                 log "lvl-6" "Found file: $file"
                 log "lvl-7" "Added file to $array_name: $name_without_ext"
-            done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*.bash" -o -name "*.sh" -o -name "*.conf" \) -print0)
+            done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*" ! -name ".*" \) -print0)
 
             log "lvl-5" "Creating array $array_name"
-            eval "declare -ga $array_name=(${files[*]})"
+            # Remove duplicates in case we have multiple files with same base name
+            local unique_files=($(printf "%s\n" "${files[@]}" | sort -u))
+            eval "declare -ga $array_name=(${unique_files[*]})"
             log "lvl-6" "Created array $array_name with values: ${!array_name[*]}"
         else
             log "lvl-4" "Directory not found: $dir_path"
@@ -105,6 +112,10 @@ generate_aliases() {
     log "lvl-4" "Generating ${alias_type} aliases"
     log "lvl-5" "Directory: $directory, Files count: ${#files[@]}"
 
+    # Extract folder name from directory path
+    local folder_name=$(basename "$directory" | tr '[:upper:]' '[:lower:]')
+    log "lvl-5" "Using folder name: $folder_name"
+
     # Process all aliases under single timer
     for file in "${files[@]}"; do
         log "lvl-6" "Searching for file $file in directory $directory"
@@ -117,18 +128,20 @@ generate_aliases() {
             if [[ "$found_file" =~ \. ]]; then
                 local ext="${found_file##*.}"
                 local base_name="$file"
-                local display_name="${base_name}.${ext}"
+                local display_name="${folder_name}.${base_name}.${ext}"
+                local short_display_name="${folder_name}.${base_name}"
             else
                 local ext=""
                 local base_name="$file"
-                local display_name="$base_name"
+                local display_name="${folder_name}.${base_name}"
+                local short_display_name="${folder_name}.${base_name}"
             fi
 
             local alias_prefix=""
             case "$alias_type" in
                 "bash")
                     # For bash, only create alias if it's a .sh file or has execute permission
-                    if [[ "$ext" == "sh" ]] || [[ -x "$found_file" ]]; then
+                    if [[ "$ext" == "sh" || "$ext" == "bash" ]] || [[ -x "$found_file" ]]; then
                         alias_prefix="b."
                     fi
                     ;;
@@ -137,8 +150,15 @@ generate_aliases() {
             esac
 
             if [[ -n "$alias_prefix" ]]; then
+                # Create alias with full name (including extension if present)
                 alias "${alias_prefix}${display_name}=${alias_type} ${found_file}"
                 log "lvl-8" "Created alias: ${alias_prefix}${display_name}"
+
+                # Create additional short alias without extension if requested
+                if [[ "$alias_type" == "bash" && "$ext" != "" ]]; then
+                    alias "${alias_prefix}${short_display_name}=${alias_type} ${found_file}"
+                    log "lvl-8" "Created additional short alias: ${alias_prefix}${short_display_name}"
+                fi
             fi
         else
             log "lvl-6" "No matching file found for: $file"
