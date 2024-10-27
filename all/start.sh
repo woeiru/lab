@@ -352,7 +352,6 @@ execute_functions() {
 }
 
 source_base() {
-    log "lvl-1" "Sourcing base folder: $BAS_DIR"
     echo "Sourcing base folder: $BAS_DIR"
     echo
 
@@ -379,9 +378,8 @@ source_base() {
             source "$file"
             echo ". $file"
             sourced_any=true
-            log "lvl-2" "Sourced: $filename"
+            echo "Sourced: $filename"
         else
-            log "lvl-1" "Could not source: $filename"
             echo "Could not source: $filename"
         fi
     done
@@ -389,13 +387,12 @@ source_base() {
     echo
 
     if [[ "$sourced_any" = false ]]; then
-        log "lvl-1" "No base files were sourced from $BAS_DIR"
-        echo "No base files were sourced"
+        echo "No base files were sourced from $BAS_DIR"
         return 1
     fi
 
     setup_error_handling
-    log "lvl-1" "Base initialization complete"
+    echo "Base initialization complete"
 
     return 0
 }
