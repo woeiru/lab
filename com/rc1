@@ -1,16 +1,19 @@
 #!/bin/bash
 
-# 1. Configuration (new)
-# Must be first as it sets up required global variables
+# 1. Configuration (unchanged)
 declare -ga GENERATION_FOLDERS=(env fun gem)
 export GENERATION_FOLDERS
 
-# 2. All helper/generator functions
-# These can be in any order as they are just function definitions
-# that will be called later by set_dynamic
+# 2. Helper/generator functions with timing
+# In rc1 file, modify the functions to use better timing hierarchy:
+
 generate_readme_aliases() {
+    start_nested_timing "gen_readme_aliases"
     log "lvl-3" "Generating readme aliases"
     local FILEBASE_MD="readme.md"
+
+    # Single timer for all readme files rather than individual ones
+    start_nested_timing "process_readme_files"
     while IFS= read -r -d '' file; do
         log "lvl-4" "Processing readme file: $file"
         dir=$(dirname "$file")
@@ -25,10 +28,17 @@ generate_readme_aliases() {
         alias "v-$alias_name=vim $file"
         log "lvl-5" "Created aliases: c-$alias_name and v-$alias_name for $file"
     done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
+    end_nested_timing "process_readme_files" "success"
+
+    end_nested_timing "gen_readme_aliases" "success"
 }
 
 generate_level_one_vars_and_aliases() {
+    start_nested_timing "gen_level_one"
     log "lvl-3" "Generating top-level directory aliases"
+
+    # Single timer for directory processing
+    start_nested_timing "process_directories"
     for dir in "$PARENT_DIR"/*; do
         if [[ -d "$dir" ]]; then
             base=$(basename "$dir")
@@ -36,7 +46,6 @@ generate_level_one_vars_and_aliases() {
                 log "lvl-4" "Processing directory: $base"
                 var_name="${base^^}_DIR"
                 dir_path=$(realpath "$dir")
-                # Only declare if not already set
                 if [[ -z "${!var_name:-}" ]]; then
                     declare -g "$var_name=$dir_path"
                 fi
@@ -45,12 +54,17 @@ generate_level_one_vars_and_aliases() {
             fi
         fi
     done
+    end_nested_timing "process_directories" "success"
+
+    end_nested_timing "gen_level_one" "success"
 }
 
 generate_level_two_arrays() {
+    start_nested_timing "gen_level_two"
     log "lvl-3" "Generating level two arrays"
 
     for folder in "${GENERATION_FOLDERS[@]}"; do
+        start_nested_timing "process_folder_${folder}"
         local dir_path="$PARENT_DIR/$folder"
         log "lvl-4" "Processing folder: $folder, path: $dir_path"
 
@@ -59,6 +73,7 @@ generate_level_two_arrays() {
             local files=()
 
             log "lvl-5" "Searching for files in $dir_path"
+            # Process all files under single timer
             while IFS= read -r -d '' file; do
                 base_name=$(basename "$file")
                 name_without_ext="${base_name%.*}"
@@ -70,24 +85,27 @@ generate_level_two_arrays() {
             log "lvl-5" "Creating array $array_name"
             eval "declare -ga $array_name=(${files[*]})"
             log "lvl-6" "Created array $array_name with values: ${!array_name[*]}"
-
-            log "lvl-7" "Finished processing folder: $folder"
         else
             log "lvl-4" "Directory not found: $dir_path"
         fi
+
+        end_nested_timing "process_folder_${folder}" "success"
     done
 
-    log "lvl-4" "Finished generating all level two arrays"
+    end_nested_timing "gen_level_two" "success"
 }
 
 generate_aliases() {
-    log "lvl-4" "Generating aliases"
     local alias_type=$1
     local directory=$2
     shift 2
     local files=("$@")
-    log "lvl-5" "Alias type: $alias_type, Directory: $directory, Files: ${files[*]}"
 
+    start_nested_timing "gen_aliases_${alias_type}"
+    log "lvl-4" "Generating ${alias_type} aliases"
+    log "lvl-5" "Directory: $directory, Files count: ${#files[@]}"
+
+    # Process all aliases under single timer
     for file in "${files[@]}"; do
         log "lvl-6" "Searching for file $file in directory $directory"
         local found_file=$(find "$directory" -maxdepth 1 -type f -name "$file.*" | head -n 1)
@@ -97,51 +115,62 @@ generate_aliases() {
             local alias_prefix=""
 
             case "$alias_type" in
-                "bash")
-                    [[ "$ext" == "sh" ]] && alias_prefix="b."
-                    ;;
+                "bash") [[ "$ext" == "sh" ]] && alias_prefix="b." ;;
                 "cat") alias_prefix="c." ;;
                 "vim") alias_prefix="v." ;;
             esac
 
             if [[ -n "$alias_prefix" ]]; then
                 alias "${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
-                log "lvl-8" "Created alias: ${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
+                log "lvl-8" "Created alias: ${alias_prefix}${file}.${ext}"
             fi
-        else
-            log "lvl-6" "File not found: $file in directory $directory"
         fi
     done
+
+    end_nested_timing "gen_aliases_${alias_type}" "success"
 }
 
-# 3. Main entry point function that is called by rc
-# This must be last as it references all the above functions
+# Main entry point function with cleaner timing structure
 set_dynamic() {
+    start_timer "set_dynamic"
     log "lvl-2" "Starting setup_navigation function"
 
-    # Order of these calls matters:
-    # 1. readme aliases need PARENT_DIR
+    # Group all readme operations
+    start_nested_timing "readme_processing"
     generate_readme_aliases
+    end_nested_timing "readme_processing" "success"
 
-    # 2. level one vars sets up DIR variables used by later functions
+    # Group all level one operations
+    start_nested_timing "level_one_processing"
     generate_level_one_vars_and_aliases
+    end_nested_timing "level_one_processing" "success"
 
-    # 3. level two arrays depend on DIR variables from step 2
+    # Group all level two operations
+    start_nested_timing "level_two_processing"
     generate_level_two_arrays
+    end_nested_timing "level_two_processing" "success"
 
-    # 4. These depend on arrays and DIRs from steps 2 and 3
-    log "lvl-3" "Generating aliases for variables"
+    # Group all alias generation
+    start_nested_timing "alias_processing"
+    log "lvl-3" "Generating all aliases"
+
+    start_nested_timing "env_aliases"
     generate_aliases "cat" "$ENV_DIR" "${env_files[@]}"
     generate_aliases "vim" "$ENV_DIR" "${env_files[@]}"
+    end_nested_timing "env_aliases" "success"
 
-    log "lvl-3" "Generating aliases for functions"
+    start_nested_timing "fun_aliases"
     generate_aliases "cat" "$FUN_DIR" "${fun_files[@]}"
     generate_aliases "vim" "$FUN_DIR" "${fun_files[@]}"
+    end_nested_timing "fun_aliases" "success"
 
-    log "lvl-3" "Generating aliases for gems"
+    start_nested_timing "gem_aliases"
     generate_aliases "cat" "$GEM_DIR" "${gem_files[@]}"
     generate_aliases "vim" "$GEM_DIR" "${gem_files[@]}"
     generate_aliases "bash" "$GEM_DIR" "${gem_files[@]}"
+    end_nested_timing "gem_aliases" "success"
 
-    log "lvl-3" "Sourcing scripts from lib_files"
+    end_nested_timing "alias_processing" "success"
+
+    end_timer "set_dynamic" "success"
 }
