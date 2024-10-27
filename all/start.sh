@@ -5,16 +5,13 @@ set -eo pipefail
 # Script metadata
 readonly SCRIPT_NAME=$(basename "$0")
 readonly SCRIPT_VERSION="1.0.1"
-readonly SCRIPT_AUTHOR="System Administrator"
+readonly SCRIPT_AUTHOR="woeiru"
 
 # Directory paths
+
 readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-echo "SCRIPT DIR = $SCRIPT_DIR"
 readonly LAB_DIR="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
-echo "LAB DIR = $LAB_DIR"
 readonly BAS_DIR="$LAB_DIR/bas"
-echo "BAS DIR = $BAS_DIR"
-echo
 
 # Default configuration
 readonly DEFAULT_CONFIG_FILES=(".zshrc" ".bashrc")
@@ -36,7 +33,12 @@ declare -g SCRIPT_LOG_LEVEL="$DEFAULT_LOG_LEVEL"
 
 # Function to initialize all runtime configuration
 init_config() {
-    log "lvl-1" "Initializing configuration"
+
+    echo
+    echo "SCRIPT DIR = $SCRIPT_DIR"
+    echo "LAB DIR = $LAB_DIR"
+    echo "BAS DIR = $BAS_DIR"
+    echo
 
     # Initialize variables without readonly
     CONFIG_FILE=""
@@ -52,27 +54,27 @@ init_config() {
     export YES_FLAG
     export LOG_LEVEL
 
-    log "lvl-2" "Configuration initialized"
+    echo "Configuration initialized"
     return 0
 }
 
 # 1. Check shell version - Verify Bash 4+ or Zsh 5+ is being used
 check_shell_version() {
-    log "lvl-1" "Checking shell version"
+    log "lvl-4" "Checking shell version"
     if [[ -n "${BASH_VERSION:-}" ]]; then
-        log "lvl-2" "Detected BASH ${BASH_VERSION}"
+        log "lvl-5" "Detected BASH ${BASH_VERSION}"
         [[ "${BASH_VERSION:0:1}" -lt 4 ]] && {
-            log "lvl-2" "Unsupported Bash version"
+            log "lvl-4" "Unsupported Bash version"
             return 1
         }
     elif [[ -n "${ZSH_VERSION:-}" ]]; then
-        log "lvl-2" "Detected ZSH ${ZSH_VERSION}"
+        log "lvl-5" "Detected ZSH ${ZSH_VERSION}"
         [[ "${ZSH_VERSION:0:1}" -lt 5 ]] && {
-            log "lvl-2" "Unsupported Zsh version"
+            log "lvl-5" "Unsupported Zsh version"
             return 1
         }
     else
-        log "lvl-2" "Unknown shell detected"
+        log "lvl-5" "Unknown shell detected"
         return 1
     fi
     return 0
@@ -80,7 +82,7 @@ check_shell_version() {
 
 # 2. Initialize target user and home directory
 init_target_user() {
-    log "lvl-1" "Initializing target user"
+    log "lvl-4" "Initializing target user"
     local default_user=$(whoami)
 
     if [[ "$YES_FLAG" == "false" ]]; then
@@ -92,25 +94,25 @@ init_target_user() {
 
     TARGET_HOME=$(eval echo ~$TARGET_USER)
     if [[ ! -d "$TARGET_HOME" ]]; then
-        log "lvl-2" "Home directory $TARGET_HOME does not exist"
+        log "lvl-5" "Home directory $TARGET_HOME does not exist"
         return 1
     fi
 
     # Ensure global scope
     declare -g TARGET_USER TARGET_HOME
 
-    log "lvl-2" "Selected user: ${TARGET_USER}"
-    log "lvl-2" "Home directory: ${TARGET_HOME}"
-    echo "USER=${TARGET_USER}, HOME=${TARGET_HOME}"
+    log "lvl-5" "Selected user: ${TARGET_USER}"
+    log "lvl-5" "Home directory: ${TARGET_HOME}"
+    log "lvl-3" "USER=${TARGET_USER}, HOME=${TARGET_HOME}"
     return 0
 }
 
 # 3. Set appropriate config file
 set_config_file() {
-    log "lvl-1" "Setting configuration file"
+    log "lvl-4" "Setting configuration file"
 
     [[ -z "$TARGET_HOME" ]] && TARGET_HOME=$(eval echo ~$(whoami))
-    log "lvl-2" "Using home directory: ${TARGET_HOME}"
+    log "lvl-5" "Using home directory: ${TARGET_HOME}"
 
     local default_config=""
 
@@ -118,7 +120,7 @@ set_config_file() {
     for config_file in "${DEFAULT_CONFIG_FILES[@]}"; do
         if [[ -f "$TARGET_HOME/$config_file" ]]; then
             default_config="$TARGET_HOME/$config_file"
-            log "lvl-3" "Found $config_file configuration file"
+            log "lvl-5" "Found $config_file configuration file"
             break
         fi
     done
@@ -137,69 +139,69 @@ set_config_file() {
     if [[ ! -f "$CONFIG_FILE" ]]; then
         local config_dir=$(dirname "$CONFIG_FILE")
         if [[ ! -d "$config_dir" ]]; then
-            log "lvl-2" "Directory $config_dir does not exist"
+            log "lvl-5" "Directory $config_dir does not exist"
             return 1
         fi
         if [[ ! -w "$config_dir" ]]; then
-            log "lvl-2" "Cannot write to directory $config_dir"
+            log "lvl-5" "Cannot write to directory $config_dir"
             return 1
         fi
         touch "$CONFIG_FILE" || {
-            log "lvl-2" "Failed to create config file $CONFIG_FILE"
+            log "lvl-5" "Failed to create config file $CONFIG_FILE"
             return 1
         }
-        log "lvl-2" "Created new config file: $CONFIG_FILE"
+        log "lvl-5" "Created new config file: $CONFIG_FILE"
     fi
 
     # Ensure global scope
     declare -g CONFIG_FILE
 
-    log "lvl-2" "Using config file: ${CONFIG_FILE}"
-    echo "CONFIG=${CONFIG_FILE}"
+    log "lvl-3" "Using config file: ${CONFIG_FILE}"
+    log "lvl-3" "CONFIG=${CONFIG_FILE}"
     return 0
 }
 
 # 4. Inject content into config file
 inject_content() {
-    log "lvl-1" "Injecting content into config file"
-    log "lvl-2" "CONFIG_FILE value: ${CONFIG_FILE}"
+    log "lvl-4" "Injecting content into config file"
+    log "lvl-5" "CONFIG_FILE value: ${CONFIG_FILE}"
 
     if [[ -z "$CONFIG_FILE" || ! -f "$CONFIG_FILE" ]]; then
-        log "lvl-2" "Invalid config file: ${CONFIG_FILE}"
+        log "lvl-5" "Invalid config file: ${CONFIG_FILE}"
         return 1
     fi
 
     local status="NO_CHANGE"
 
     if grep -q "$INJECT_MARKER_START" "$CONFIG_FILE"; then
-        log "lvl-2" "Found existing inject markers"
+        log "lvl-5" "Found existing inject markers"
         if diff -q <(echo "$INJECT_CONTENT") <(sed -n "/$INJECT_MARKER_START/,/$INJECT_MARKER_END/p" "$CONFIG_FILE" | sed '1d;$d') >/dev/null; then
-            log "lvl-3" "Content unchanged"
+            log "lvl-6" "Content unchanged"
             echo "STATUS=${status}"
             return 0
         fi
-        log "lvl-2" "Updating existing content"
+        log "lvl-5" "Updating existing content"
         sed -i "/$INJECT_MARKER_START/,/$INJECT_MARKER_END/d" "$CONFIG_FILE"
         status="UPDATED"
     elif grep -Fxq "$INJECT_CONTENT" "$CONFIG_FILE"; then
-        log "lvl-2" "Content already exists without markers"
+        log "lvl-5" "Content already exists without markers"
         echo "STATUS=${status}"
         return 0
     else
-        log "lvl-2" "Adding new content"
+        log "lvl-5" "Adding new content"
         status="ADDED"
     fi
 
     echo -e "\n$INJECT_MARKER_START\n$INJECT_CONTENT\n$INJECT_MARKER_END" >> "$CONFIG_FILE"
-    log "lvl-2" "Content injection complete: ${status}"
-    echo "STATUS=${status}"
+    log "lvl-5" "Content injection complete: ${status}"
+    log "lvl-3" "STATUS=${status}"
     return 0
 }
 
 # 5. Restart shell
 restart_shell() {
-    log "lvl-1" "Preparing for shell restart"
-    echo "STATUS=READY"
+    log "lvl-4" "Preparing for shell restart"
+    log "lvl-3" "STATUS=READY"
     return 0
 }
 
@@ -220,23 +222,23 @@ EOF
 }
 
 parse_arguments() {
-    log "lvl-1" "Parsing command line arguments"
+    log "lvl-2" "Parsing command line arguments"
     while [[ $# -gt 0 ]]; do
         case $1 in
             -y)
                 YES_FLAG=true
-                log "lvl-2" "Non-interactive mode enabled"
+                log "lvl-3" "Non-interactive mode enabled"
                 shift
                 ;;
             -u|--user)
                 TARGET_USER="$2"
-                log "lvl-2" "Target user set to: ${TARGET_USER}"
+                log "lvl-3" "Target user set to: ${TARGET_USER}"
                 shift 2
                 ;;
             -c|--config)
                 CONFIG_FILE="$2"
                 declare -g CONFIG_FILE
-                log "lvl-2" "Config file set to: ${CONFIG_FILE}"
+                log "lvl-3" "Config file set to: ${CONFIG_FILE}"
                 shift 2
                 ;;
             -h|--help)
@@ -244,7 +246,7 @@ parse_arguments() {
                 exit 0
                 ;;
             *)
-                log "lvl-1" "Invalid argument: $1"
+                log "lvl-2" "Invalid argument: $1"
                 usage
                 exit 1
                 ;;
@@ -253,7 +255,7 @@ parse_arguments() {
 }
 
 execute_functions() {
-    log "lvl-1" "Starting function execution sequence"
+    log "lvl-2" "Starting function execution sequence"
     local functions=($(grep -E '^# [0-9]+\.' "$0" |
                       sed -E 's/^# ([0-9]+)\. .*/\1 /' |
                       paste -d' ' - <(grep -A1 -E '^# [0-9]+\.' "$0" |
@@ -270,9 +272,7 @@ execute_functions() {
     export LOG_LEVEL
 
     for func in "${functions[@]}"; do
-        log "lvl-2" "Executing function: ${func}"
-        echo
-        echo -n "Step $((i+1)): ${func} ..."
+        log "lvl-3" "Step $((i+1)): ${func} ..."
         echo
 
         local output
@@ -304,12 +304,12 @@ execute_functions() {
         ((i++))
         echo
     done
-    log "lvl-1" "All functions executed successfully"
+    log "lvl-2" "All functions executed successfully"
     return 0
 }
 
 source_base() {
-    echo "Sourcing BASe folder: $BAS_DIR"
+    echo "Sourcing base folder: $BAS_DIR"
     echo
 
     if [ -f "$BAS_DIR/err" ]; then
