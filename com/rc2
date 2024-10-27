@@ -9,18 +9,18 @@ set_dynamic() {
     generate_level_one_vars_and_aliases
     generate_level_two_arrays
 
-    log "lvl-3" "Generating aliases for lib_files"
-    generate_aliases "cat" "$LIB_DIR" "${lib_files[@]}"
-    generate_aliases "vim" "$LIB_DIR" "${lib_files[@]}"
+    log "lvl-3" "Generating aliases for functions"
+    generate_aliases "cat" "$FUN_DIR" "${fun_files[@]}"
+    generate_aliases "vim" "$FUN_DIR" "${fun_files[@]}"
 
-    log "lvl-3" "Generating aliases for set_files"
-    generate_aliases "cat" "$SET_DIR" "${set_files[@]}"
-    generate_aliases "vim" "$SET_DIR" "${set_files[@]}"
-    generate_aliases "bash" "$SET_DIR" "${set_files[@]}"
+    log "lvl-3" "Generating aliases for games"
+    generate_aliases "cat" "$GAM_DIR" "${gam_files[@]}"
+    generate_aliases "vim" "$GAM_DIR" "${gam_files[@]}"
+    generate_aliases "bash" "$GAM_DIR" "${gam_files[@]}"
 
-    log "lvl-3" "Generating aliases for var_files"
-    generate_aliases "cat" "$VAR_DIR" "${var_files[@]}"
-    generate_aliases "vim" "$VAR_DIR" "${var_files[@]}"
+    log "lvl-3" "Generating aliases for variables"
+    generate_aliases "cat" "$ENV_DIR" "${env_files[@]}"
+    generate_aliases "vim" "$ENV_DIR" "${env_files[@]}"
 
     log "lvl-3" "Sourcing scripts from lib_files"
 
