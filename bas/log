@@ -6,7 +6,7 @@ LOG_DIR="/var/log/rc"
 
 # Store log state and levels in persistent files with proper paths
 LOG_STATE_FILE="${LOG_DIR}/rc_log_state"
-LOG_LEVELS_FILE="${LOG_DIR}/rc_log_levels"
+LOG_LEVEL_FILE="${LOG_DIR}/rc_log_level"  # Changed from LOG_LEVELS_FILE
 ERROR_LOG="${LOG_DIR}/rc_error.log"
 
 # Initialize log state if file doesn't exist
@@ -15,20 +15,20 @@ if [[ ! -f "$LOG_STATE_FILE" ]]; then
         # Fallback to temp directory if can't write to LOG_DIR
         LOG_DIR="/tmp"
         LOG_STATE_FILE="${LOG_DIR}/rc_log_state"
-        LOG_LEVELS_FILE="${LOG_DIR}/rc_log_levels"
+        LOG_LEVEL_FILE="${LOG_DIR}/rc_log_level"
         ERROR_LOG="${LOG_DIR}/rc_error.log"
         echo "true" > "$LOG_STATE_FILE"
     }
 fi
 
-# Initialize log levels if file doesn't exist (now including level 9 for errors)
-if [[ ! -f "$LOG_LEVELS_FILE" ]]; then
-    echo "1 1 1 1 1 1 1 1 1" > "$LOG_LEVELS_FILE"
+# Initialize log level if file doesn't exist (9 is maximum level)
+if [[ ! -f "$LOG_LEVEL_FILE" ]]; then
+    echo "9" > "$LOG_LEVEL_FILE"
 fi
 
-# Read the current log state and levels
+# Read the current log state and level
 LOG_TOGGLE=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-read -r -a LOG_LEVELS <<< "$(cat "$LOG_LEVELS_FILE" 2>/dev/null || echo "1 1 1 1 1 1 1 1 1")"
+LOG_LEVEL=$(cat "$LOG_LEVEL_FILE" 2>/dev/null || echo "9")
 
 # Color codes
 RED='\033[0;31m'
@@ -42,16 +42,16 @@ VIOLET='\033[1;35m'
 WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
-# Modified logging function that hides the level in output
+# Modified logging function that uses single level number
 log() {
     # First check LOG_TOGGLE from the state file
     local current_state
     current_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
     [[ "${current_state}" != "true" ]] && return 0
 
-    # Read current levels
-    local -a current_levels
-    read -r -a current_levels <<< "$(cat "$LOG_LEVELS_FILE" 2>/dev/null || echo "1 1 1 1 1 1 1 1 1")"
+    # Read current level ceiling
+    local current_level
+    current_level=$(cat "$LOG_LEVEL_FILE" 2>/dev/null || echo "9")
 
     local level=$1
     local message=$2
@@ -86,12 +86,13 @@ log() {
     fi
 
     # Format the log message
-    local formatted_message
     if [ $level_num -eq 9 ]; then
-        formatted_message="$(date '+%Y%m%d%H%M%S') - $message"
+        # Always show error messages (level 9)
+        local formatted_message="$(date '+%Y%m%d%H%M%S') - $message"
         echo -e "${indent}$formatted_message" | tee -a "$ERROR_LOG" >&2
     else
-        if [[ ${current_levels[$((level_num-1))]} -eq 1 ]]; then
+        # Only show message if level is within current ceiling
+        if [ $level_num -le $current_level ]; then
             if [ $level_num -eq 1 ]; then
                 echo -e "${indent}$message" >&2
             else
@@ -101,7 +102,7 @@ log() {
     fi
 }
 
-# Function to set up logging with persistent state and levels
+# Simplified setlog function that uses a single number
 setlog() {
     local arg=$1
 
@@ -114,11 +115,10 @@ setlog() {
             ;;
         "on")
             echo "true" > "$LOG_STATE_FILE"
+            echo "9" > "$LOG_LEVEL_FILE"
             export LOG_TOGGLE="true"
-            echo "1 1 1 1 1 1 1 1 1" > "$LOG_LEVELS_FILE"
-            read -r -a LOG_LEVELS <<< "$(cat "$LOG_LEVELS_FILE")"
-            export LOG_LEVELS
-            log "lvl-1" "Logging has been enabled with all levels active"
+            export LOG_LEVEL="9"
+            log "lvl-1" "Logging has been enabled with maximum level"
             return 0
             ;;
         *)
@@ -127,34 +127,16 @@ setlog() {
                 return 1
             fi
 
-            local range=$arg
-            local start end
-            if [[ $range =~ ^([1-9])-([1-9])$ ]]; then
-                start=${BASH_REMATCH[1]}
-                end=${BASH_REMATCH[2]}
-
-                if [[ $start -gt $end ]]; then
-                    log "lvl-1" "Invalid range: start ($start) cannot be greater than end ($end)"
-                    return 1
-                fi
+            if [[ $arg =~ ^[1-9]$ ]]; then
+                echo "$arg" > "$LOG_LEVEL_FILE"
+                export LOG_LEVEL="$arg"
+                log "lvl-1" "Logging level set to $arg"
             else
                 echo "└─Invalid input. Usage:"
-                echo "   setlog on|off            - Enable or disable logging"
-                echo "   setlog <start>-<end>     - Set logging levels (e.g., '1-3' or '2-5')"
+                echo "   setlog on|off    - Enable or disable logging"
+                echo "   setlog <number>  - Set maximum log level (1-9)"
                 return 1
             fi
-
-            local -a new_levels=(0 0 0 0 0 0 0 0 0)
-
-            for ((i=start-1; i<=end-1; i++)); do
-                new_levels[$i]=1
-            done
-
-            printf '%s\n' "${new_levels[*]}" > "$LOG_LEVELS_FILE"
-            LOG_LEVELS=("${new_levels[@]}")
-            export LOG_LEVELS
-
-            log "lvl-1" "Logging levels updated to: ${new_levels[*]}"
             ;;
     esac
 }
@@ -162,8 +144,8 @@ setlog() {
 # Export functions and variables
 export -f log
 export -f setlog
-export LOG_LEVELS
 export LOG_TOGGLE
+export LOG_LEVEL
 export LOG_STATE_FILE
-export LOG_LEVELS_FILE
+export LOG_LEVEL_FILE
 export ERROR_LOG
