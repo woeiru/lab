@@ -125,7 +125,7 @@ source_env() {
 # Source the RC modules
 source_rc() {
     log "lvl-2" "Sourcing primary RC modules"
-    local rc_modules=("rc1" "rc2" "rc3" "rc4")
+    local rc_modules=("rc1" "rc2" "rc3")
     local success_count=0
 
     for module in "${rc_modules[@]}"; do
