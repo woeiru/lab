@@ -1,15 +1,29 @@
-# Define directory and file variables
-DIR_LIB="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-FILE_LIB=$(basename "$BASH_SOURCE")
-BASE_LIB="${FILE_LIB%.*}"
-FILEPATH_LIB="${DIR_LIB}/${FILE_LIB}"
-CONFIG_LIB="$DIR_LIB/../var/${BASE_LIB}.conf"
+#!/bin/bash
 
-# Dynamically create variables based on the base name
-eval "FILEPATH_${BASE_LIB}=\$FILEPATH_LIB"
-eval "FILE_${BASE_LIB}=\$FILE_LIB"
-eval "BASE_${BASE_LIB}=\$BASE_LIB"
-eval "CONFIG_${BASE_LIB}=\$CONFIG_LIB"
+# Debug output to help us understand the environment
+if [[ "$DEBUG" == "true" ]]; then
+    echo "Debug: Current environment when loading all.bash:"
+    echo "LAB_DIR=${LAB_DIR:-undefined}"
+    echo "FUN_DIR=${FUN_DIR:-undefined}"
+    echo "PARENT_DIR=${PARENT_DIR:-undefined}"
+    echo "BASH_SOURCE=${BASH_SOURCE[0]}"
+    echo "Current DIR=$( pwd )"
+fi
+
+# Ensure variables are properly exported from parent scope
+[[ -n "${LAB_DIR:-}" ]] || LAB_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}")/.." &> /dev/null && pwd )"
+[[ -n "${FUN_DIR:-}" ]] || FUN_DIR="$LAB_DIR/fun"
+
+# Start logging if available
+if type log >/dev/null 2>&1; then
+    log "lvl-3" "Loading all.bash functions"
+else
+    echo "└─Loading all.bash functions"
+fi
+
+# Export the critical variables to ensure they're available to child processes
+export LAB_DIR FUN_DIR
+
 
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
