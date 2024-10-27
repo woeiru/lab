@@ -1,8 +1,17 @@
 #!/bin/bash
 set -o pipefail
 
-# Define the error log file location
+# Define the error log file location and additional tracking files
 ERROR_LOG="/tmp/rc_error.log"
+ERROR_COUNT_FILE="/tmp/rc_error_count"
+ERROR_STATE_FILE="/tmp/rc_error_state"
+
+# Initialize error tracking arrays
+declare -A ERROR_COMPONENTS
+declare -A ERROR_MESSAGES
+declare -A ERROR_TIMESTAMPS
+declare -A ERROR_EXIT_CODES
+declare -a ERROR_ORDER
 
 # Function to ensure clean exit from the script
 # Parameters:
@@ -14,33 +23,104 @@ clean_exit() {
     exit $exit_code  # Exit with specified code or 0
 }
 
-# Error handler function that logs detailed error information
+# Enhanced error handler function that logs detailed error information
 # Parameters:
 #   $1: Line number where error occurred
 error_handler() {
     local exit_code=$?  # Capture the exit code of the failed command
     local command="$BASH_COMMAND"  # Capture the command that failed
     local line_number="$1"  # Get the line number passed to the function
-
-    # Log debugging information about the bash source
-    echo "Debug: BASH_SOURCE array: ${BASH_SOURCE[*]}" >> "$ERROR_LOG"
-    echo "Debug: \$0 value: $0" >> "$ERROR_LOG"
+    local timestamp=$(date '+%Y%m%d%H%M%S')
 
     # Determine the source file where the error occurred
     local source_file="${BASH_SOURCE[1]:-${0:-$command}}"
-    source_file="${source_file:-"<unknown-source>"}"  # Fallback if source cannot be determined
+    source_file="${source_file:-"<unknown-source>"}"
 
-    # Log the error with timestamp and details
-    echo "└─ lvl-0 $(date '+%Y%m%d%H%M%S') - Error in $source_file on line $line_number: Command '$command' exited with status $exit_code" | tee -a "$ERROR_LOG" >&2
+    # Determine component from source file
+    local component=$(basename "${source_file%.*}")
+
+    # Generate unique error ID
+    local error_id="${timestamp}_${component}_${line_number}"
+
+    # Store error information
+    ERROR_COMPONENTS[$error_id]="$component"
+    ERROR_MESSAGES[$error_id]="Command '$command' failed on line $line_number"
+    ERROR_TIMESTAMPS[$error_id]="$timestamp"
+    ERROR_EXIT_CODES[$error_id]="$exit_code"
+    ERROR_ORDER+=("$error_id")
+
+    # Log the error
+    echo "└─ lvl-0 $timestamp - Error in $source_file on line $line_number: Command '$command' exited with status $exit_code" | tee -a "$ERROR_LOG" >&2
+}
+
+# Function to print error report
+print_error_report() {
+    local total_errors=${#ERROR_ORDER[@]}
+
+    printf "\n"
+    printf " ━ RC Error Report\n"
+    printf " ━ Generated: %s\n" "$(date)"
+
+    if [[ $total_errors -eq 0 ]]; then
+        printf " ━ No errors detected during startup\n"
+        printf "\n"
+        return 0
+    fi
+
+    printf " ━ Total errors: %d\n" "$total_errors"
+    printf "\n"
+
+    # Group errors by component
+    declare -A component_errors
+    for error_id in "${ERROR_ORDER[@]}"; do
+        local component="${ERROR_COMPONENTS[$error_id]}"
+        component_errors[$component]+="$error_id "
+    done
+
+    # Print errors grouped by component
+    for component in $(printf "%s\n" "${!component_errors[@]}" | sort); do
+        local component_count=0
+        printf "    └─ Component: %s\n" "$component"
+
+        for error_id in ${component_errors[$component]}; do
+            ((component_count++))
+            local timestamp="${ERROR_TIMESTAMPS[$error_id]}"
+            local message="${ERROR_MESSAGES[$error_id]}"
+            local exit_code="${ERROR_EXIT_CODES[$error_id]}"
+
+            printf "      └─ Error #%d:\n" "$component_count"
+            printf "        ├─ Time: %s\n" "$(date -d "${timestamp:0:8} ${timestamp:8:2}:${timestamp:10:2}:${timestamp:12:2}")"
+            printf "        ├─ Message: %s\n" "$message"
+            printf "        └─ Exit Code: %s\n" "$exit_code"
+        done
+        printf "\n"
+    done
+
+    printf " ━ Error log file: %s\n" "$ERROR_LOG"
+    printf "\n"
 }
 
 # Set up error handling
 setup_error_handling() {
-    # Set up error handling trap - calls error_handler whenever an error occurs
+    # Initialize error tracking
+    ERROR_COMPONENTS=()
+    ERROR_MESSAGES=()
+    ERROR_TIMESTAMPS=()
+    ERROR_EXIT_CODES=()
+    ERROR_ORDER=()
+
+    # Set up error handling trap
     trap 'error_handler $LINENO' ERR
 }
 
-# Export functions so they can be used by other scripts
+# Export functions and variables
+export ERROR_LOG
+export -A ERROR_COMPONENTS
+export -A ERROR_MESSAGES
+export -A ERROR_TIMESTAMPS
+export -A ERROR_EXIT_CODES
+export -a ERROR_ORDER
 export -f clean_exit
 export -f error_handler
 export -f setup_error_handling
+export -f print_error_report

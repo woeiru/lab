@@ -248,12 +248,16 @@ main_rc() {
         echo " ━ RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
         echo
         print_timing_report
+        print_error_report  # Add error report before timing report
+
         return 1
     else
         export RC_SOURCED=1
         echo
         echo " ━ RC initialization completed successfully"
         print_timing_report
+        print_error_report  # Add error report before timing report
+
         echo
         return 0
     fi
