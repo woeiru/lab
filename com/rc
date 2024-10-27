@@ -5,9 +5,10 @@ set -o pipefail
 DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
 PARENT_DIR="/root/lab"
 
-if [[ -z "${BAS_DIR:-}" ]]; then
-    readonly BAS_DIR="$PARENT_DIR/bas"
-fi
+# Initialize timer at the very start
+[[ -z "${BAS_DIR:-}" ]] && readonly BAS_DIR="$PARENT_DIR/bas"
+source "$BAS_DIR/tme"
+init_timer
 
 # Helper function to safely source files with improved error handling and logging
 # Parameters:
@@ -17,24 +18,30 @@ source_helper() {
     local file="$1"
     local description="${2:-$(basename "$file")}"
 
+    start_timer "source_$description"
+
     if [[ ! -f "$file" ]]; then
         echo "       ━ Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
+        end_timer "source_$description"
         return 1
     fi
 
     if [[ ! -r "$file" ]]; then
         echo "       ━ Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
+        end_timer "source_$description"
         return 1
     fi
 
     # Source the file and capture any errors
     if source "$file" 2>/tmp/source_error; then
         echo "       ━ Successfully sourced: $description"
+        end_timer "source_$description"
         return 0
     else
         local error=$(cat /tmp/source_error)
         echo "       ━ Error sourcing $description: $error" | tee -a "$ERROR_LOG" >&2
         rm -f /tmp/source_error
+        end_timer "source_$description"
         return 1
     fi
 }
@@ -50,10 +57,12 @@ source_directory() {
     local description="$3"
     local return_value=0
 
+    start_timer "dir_$description"
     echo "     ━ Sourcing $description: $dir"
 
     if [[ ! -d "$dir" ]]; then
         echo "     ━ Warning: Directory $dir not found. Skipping."
+        end_timer "dir_$description"
         return 1
     fi
 
@@ -71,6 +80,7 @@ source_directory() {
 
     if [[ ${#files[@]} -eq 0 ]]; then
         echo "     ━ Warning: No matching files found in $dir"
+        end_timer "dir_$description"
         return 1
     fi
 
@@ -90,6 +100,7 @@ source_directory() {
         return_value=0
     fi
 
+    end_timer "dir_$description"
     return $return_value
 }
 
@@ -162,6 +173,7 @@ execute_component() {
     local success_var="${component}_SUCCESS"
     local return_value=0
 
+    start_timer "$component"
     echo
     echo "   ━ Executing component: $component"
 
@@ -184,6 +196,7 @@ execute_component() {
         fi
     fi
 
+    end_timer "$component"
     return $return_value
 }
 
@@ -222,15 +235,19 @@ main_rc() {
         unset RC_SOURCED
         echo " ━ RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
         echo
+        print_timing_report
         return 1
     else
         export RC_SOURCED=1
         echo
         echo " ━ RC initialization completed successfully"
+        print_timing_report
         echo
         return 0
     fi
 }
 
 # Execute the main function
+trap 'error_handler $LINENO' ERR
+trap 'exit' EXIT
 main_rc
