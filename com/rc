@@ -18,22 +18,22 @@ source_helper() {
     local description="${2:-$(basename "$file")}"
 
     if [[ ! -f "$file" ]]; then
-        echo "   ━ Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
+        echo "       ━ Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
         return 1
     fi
 
     if [[ ! -r "$file" ]]; then
-        echo "   ━ Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
+        echo "       ━ Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
         return 1
     fi
 
     # Source the file and capture any errors
     if source "$file" 2>/tmp/source_error; then
-        echo "   ━ Successfully sourced: $description"
+        echo "       ━ Successfully sourced: $description"
         return 0
     else
         local error=$(cat /tmp/source_error)
-        echo "   ━ Error sourcing $description: $error" | tee -a "$ERROR_LOG" >&2
+        echo "       ━ Error sourcing $description: $error" | tee -a "$ERROR_LOG" >&2
         rm -f /tmp/source_error
         return 1
     fi
@@ -50,11 +50,10 @@ source_directory() {
     local description="$3"
     local return_value=0
 
-    echo "   ━ Sourcing $description: $dir"
-    echo
+    echo "     ━ Sourcing $description: $dir"
 
     if [[ ! -d "$dir" ]]; then
-        echo "   ━ Warning: Directory $dir not found. Skipping."
+        echo "     ━ Warning: Directory $dir not found. Skipping."
         return 1
     fi
 
@@ -71,7 +70,7 @@ source_directory() {
     unset IFS
 
     if [[ ${#files[@]} -eq 0 ]]; then
-        echo "   ━ Warning: No matching files found in $dir"
+        echo "     ━ Warning: No matching files found in $dir"
         return 1
     fi
 
@@ -83,13 +82,11 @@ source_directory() {
         fi
     done
 
-    echo
-
     if ((success_count == 0)); then
-        echo "   ━ Warning: No files were successfully sourced from $dir"
+        echo "     ━ Warning: No files were successfully sourced from $dir"
         return_value=1
     else
-        echo "   ━ Successfully sourced $success_count files from $dir"
+        echo "     ━ Successfully sourced $success_count files from $dir"
         return_value=0
     fi
 
@@ -165,6 +162,7 @@ execute_component() {
     local success_var="${component}_SUCCESS"
     local return_value=0
 
+    echo
     echo "   ━ Executing component: $component"
 
     if ! type "$func" &>/dev/null; then
@@ -201,13 +199,17 @@ main_rc() {
 
     local failed_required=0
 
+    echo
+    echo " ━ RC initialization started"
+
     for component in "${components[@]}"; do
         IFS=':' read -r func name required <<< "$component"
 
         if ! execute_component "$func" "$name" "$required"; then
             if ((required)); then
                 failed_required=1
-                echo "   ━ Required component $name failed"
+                echo " ━ Required component $name failed"
+                echo
                 break
             fi
         fi
@@ -218,11 +220,14 @@ main_rc() {
 
     if ((failed_required)); then
         unset RC_SOURCED
-        echo "   ━ RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
+        echo " ━ RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
+        echo
         return 1
     else
         export RC_SOURCED=1
-        echo "   ━ RC initialization completed successfully"
+        echo
+        echo " ━ RC initialization completed successfully"
+        echo
         return 0
     fi
 }
