@@ -17,7 +17,7 @@ readonly BAS_DIR="$LAB_DIR/bas"
 readonly DEFAULT_CONFIG_FILES=(".zshrc" ".bashrc")
 readonly INJECT_MARKER_START="# START inject"
 readonly INJECT_MARKER_END="# END inject"
-readonly INJECT_CONTENT=". ~/lab/com/rc"
+readonly INJECT_CONTENT=". ~/lab/con/rc"
 
 # Script behavior flags and settings
 [[ -z "$BASE_INDENT" ]] && readonly BASE_INDENT="  "
