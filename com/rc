@@ -134,7 +134,7 @@ source_rc() {
 # Execute RC-specific setup functions
 execution_rc() {
     log "lvl-1" "Starting ${FUNCNAME[0]}"
-    local setup_functions=("set_dynamic" "set_static" "set_aliaswrap")
+    local setup_functions=("set_static" "set_dynamic" "set_aliaswrap")
     local success_count=0
 
     for func in "${setup_functions[@]}"; do

@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Performance monitoring setup
+declare -gA component_times start_times
+declare -g STARTUP_BEGIN
+
+# Initialize timer system
+init_timer() {
+    STARTUP_BEGIN=$(date +%s.%N)
+    component_times=()
+    start_times=()
+}
+
+# Function to start timing a component
+start_timer() {
+    local component="$1"
+    start_times[$component]=$(date +%s.%N)
+}
+
+# Function to end timing a component and store result
+end_timer() {
+    local component="$1"
+    local end_time=$(date +%s.%N)
+    local start_time="${start_times[$component]}"
+    component_times[$component]=$(echo "$end_time - $start_time" | bc)
+}
+
+# Function to print timing report
+print_timing_report() {
+    local total_time=$(echo "$(date +%s.%N) - $STARTUP_BEGIN" | bc)
+
+    echo
+    echo " ━ RC Performance Report"
+    echo " ━ Total startup time: ${total_time}s"
+    echo
+    echo " ━ Component timing breakdown:"
+
+    # Sort components by execution time
+    while IFS=: read -r comp time; do
+        printf "   ├─ %-20s: %ss\n" "$comp" "$time"
+    done < <(
+        for comp in "${!component_times[@]}"; do
+            echo "$comp:${component_times[$comp]}"
+        done | sort -t: -k2 -nr
+    )
+    echo "   └─"
+}
+
+# Export functions and variables
+export STARTUP_BEGIN
+export -A component_times
+export -A start_times
+export -f init_timer
+export -f start_timer
+export -f end_timer
+export -f print_timing_report
