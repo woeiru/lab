@@ -4,7 +4,10 @@ set -o pipefail
 # Set up important directory paths
 DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
 PARENT_DIR="/root/lab"
-readonly BAS_DIR="$PARENT_DIR/bas"
+
+if [[ -z "${BAS_DIR:-}" ]]; then
+    readonly BAS_DIR="$PARENT_DIR/bas"
+fi
 
 # Helper function to safely source files with improved error handling and logging
 # Parameters:
@@ -62,7 +65,7 @@ source_directory() {
             files+=("$file")
         fi
     done < <(find "$dir" -maxdepth 1 -type f -name "$pattern" -print0)
-s
+
     # Sort files for consistent loading order
     IFS=$'\n' files=($(sort <<<"${files[*]}"))
     unset IFS
