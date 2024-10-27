@@ -23,38 +23,78 @@ source_helper() {
     fi
 }
 
+# Function to source environment configuration files
+source_env() {
+    local env_dir="$PARENT_DIR/env"
+    log "lvl-2" "Sourcing environment configuration files"
+
+    if [[ ! -d "$env_dir" ]]; then
+        log "lvl-4" "Warning: Environment directory $env_dir not found. Skipping."
+        return 1
+    fi
+
+    local found_files=0
+    for file in "$env_dir"/*.conf; do
+        if [[ -f "$file" ]]; then
+            source_helper "$file"
+            ((found_files++))
+        fi
+    done
+
+    if ((found_files == 0)); then
+        log "lvl-4" "Warning: No .conf files found in $env_dir"
+        return 1
+    fi
+
+    return 0
+}
+
+# Function to source function files
+source_fun() {
+    local fun_dir="$PARENT_DIR/fun"
+    log "lvl-2" "Sourcing function files"
+
+    if [[ ! -d "$fun_dir" ]]; then
+        log "lvl-4" "Warning: Function directory $fun_dir not found. Skipping."
+        return 1
+    fi
+
+    local found_files=0
+    for file in "$fun_dir"/*.bash; do
+        if [[ -f "$file" ]]; then
+            source_helper "$file"
+            ((found_files++))
+        fi
+    done
+
+    if ((found_files == 0)); then
+        log "lvl-4" "Warning: No .bash files found in $fun_dir"
+        return 1
+    fi
+
+    return 0
+}
+
 # Main function to source all required configuration files
 source_rc() {
     # SECTION 1: Source primary RC modules
+    log "lvl-2" "Sourcing primary RC modules"
     local rc_mod=("rc1" "rc2" "rc3" "rc4")  # Define the order of RC modules
-    for module in "./${rc_mod[@]}"; do
-        source_helper "$DIR/$module"
-    done
 
-    # SECTION 2: Source library and variable files
-    local dirs=("lib" "var")              # Directories to process
-    local extensions=("bash" "conf")      # File extensions to look for
-    log "lvl-2" "Sourcing lib and var files"
-
-    # Iterate through directories and their corresponding extensions
-    for i in "${!dirs[@]}"; do
-        local dir="$PARENT_DIR/${dirs[i]}"    # Get full path to directory
-        local ext="${extensions[i]}"           # Get corresponding extension
-        log "lvl-3" "Processing directory: $dir (extension: .$ext)"
-
-        # Skip if directory doesn't exist
-        if [[ ! -d "$dir" ]]; then
-            log "lvl-4" "Warning: Directory $dir not found. Skipping."
-            continue
+    local found_modules=0
+    for module in "${rc_mod[@]}"; do
+        if [[ -f "$DIR/$module" ]]; then
+            source_helper "$DIR/$module"
+            ((found_modules++))
         fi
-
-        # Source all files with matching extension in the directory
-        for file in "$dir"/*."$ext"; do
-            if [[ -f "$file" ]]; then
-                source_helper "$file"
-            fi
-        done
     done
+
+    if ((found_modules == 0)); then
+        log "lvl-4" "Warning: No RC modules found"
+        return 1
+    fi
+
+    return 0
 }
 
 # Function to execute RC-specific setup functions
@@ -76,78 +116,47 @@ execution_rc() {
     done
 }
 
-# Function to execute module-specific setup functions
-execution_mod() {
-    log "lvl-1" "Starting \033[1m${FUNCNAME[0]} () \033[0m"
-    local module_functions=("main_env")
-    for func in "${module_functions[@]}"; do
-        if type "$func" &>/dev/null; then
-            log "lvl-3" "Executing $func"
-            $func
-        else
-            log "lvl-3" "Warning: $func function not found." | tee -a "$ERROR_LOG" >&2
-        fi
-    done
+# Helper function to execute a component and manage its status
+# Parameters:
+#   $1: Function to execute
+#   $2: Component name for status variable
+execute_component() {
+    local func="$1"
+    local component="$2"
+    local success_var="${component}_SUCCESS"
+    local success=0
+
+    if "$func"; then
+        export "$success_var=1"
+        success=1
+    else
+        unset "$success_var"
+        log "lvl-2" "Error: ${component} failed." | tee -a "$ERROR_LOG" >&2
+    fi
+
+    return $((1 - success))
 }
 
 # Main execution function that orchestrates the entire setup process
 main_rc() {
-    # Initialize success flags
-    local source_success=0
-    local execution_rc_success=0
-    local execution_mod_success=0
+    local all_succeeded=0
 
-    # Source all configuration files
-    if source_rc; then
-        export SOURCE_RC_SUCCESS=1
-        source_success=1
-    else
-        unset SOURCE_RC_SUCCESS
-    fi
+    # Execute each component and track overall success
+    execute_component source_rc "SOURCE_RC" && \
+    execute_component source_env "SOURCE_ENV" && \
+    execute_component source_fun "SOURCE_FUN" && \
+    execute_component execution_rc "EXECUTION_RC" && \
+    all_succeeded=1
 
-    # Execute RC setup functions
-    if execution_rc; then
-        export EXECUTION_RC_SUCCESS=1
-        execution_rc_success=1
-    else
-        unset EXECUTION_RC_SUCCESS
-    fi
-
-    # Execute module setup functions
-    if execution_mod; then
-        export EXECUTION_MODULES_SUCCESS=1
-        execution_mod_success=1
-    else
-        unset EXECUTION_MODULES_SUCCESS
-    fi
-
-    # Set overall success flag if all steps succeeded
-    if [[ $source_success -eq 1 && $execution_rc_success -eq 1 && $execution_mod_success -eq 1 ]]; then
+    # Set overall success flag
+    if ((all_succeeded)); then
         export RC_SOURCED=1
-    else
-        unset RC_SOURCED
-    fi
-
-    # Log any failures that occurred
-    if [[ -z "${SOURCE_RC_SUCCESS}" ]]; then
-        log "lvl-2" "Error: Source rc failed." | tee -a "$ERROR_LOG" >&2
-    fi
-
-    if [[ -z "${EXECUTION_RC_SUCCESS}" ]]; then
-        log "lvl-2" "Error: Execution rc failed." | tee -a "$ERROR_LOG" >&2
-    fi
-
-    if [[ -z "${EXECUTION_MODULES_SUCCESS}" ]]; then
-        log "lvl-2" "Error: Execution mod failed." | tee -a "$ERROR_LOG" >&2
-    fi
-
-    # Return final status
-    if [[ -z "${RC_SOURCED}" ]]; then
-        log "lvl-2" "Error: Overall RC sourcing failed." | tee -a "$ERROR_LOG" >&2
-        return 1
-    else
         log "lvl-2" "Setup completed successfully."
         return 0
+    else
+        unset RC_SOURCED
+        log "lvl-2" "Error: Overall RC sourcing failed." | tee -a "$ERROR_LOG" >&2
+        return 1
     fi
 }
 
