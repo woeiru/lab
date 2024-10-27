@@ -1,31 +1,13 @@
 #!/bin/bash
 
-set_dynamic() {
+# 1. Configuration (new)
+# Must be first as it sets up required global variables
+declare -ga GENERATION_FOLDERS=(lib set var)
+export GENERATION_FOLDERS
 
-    log "lvl-2" "Starting setup_navigation function"
-
-    generate_readme_aliases
-
-    generate_level_one_vars_and_aliases
-    generate_level_two_arrays
-
-    log "lvl-3" "Generating aliases for variables"
-    generate_aliases "cat" "$ENV_DIR" "${env_files[@]}"
-    generate_aliases "vim" "$ENV_DIR" "${env_files[@]}"
-
-    log "lvl-3" "Generating aliases for functions"
-    generate_aliases "cat" "$FUN_DIR" "${fun_files[@]}"
-    generate_aliases "vim" "$FUN_DIR" "${fun_files[@]}"
-
-    log "lvl-3" "Generating aliases for gems"
-    generate_aliases "cat" "$GEM_DIR" "${gem_files[@]}"
-    generate_aliases "vim" "$GEM_DIR" "${gem_files[@]}"
-    generate_aliases "bash" "$GEM_DIR" "${gem_files[@]}"
-
-    log "lvl-3" "Sourcing scripts from lib_files"
-
-}
-
+# 2. All helper/generator functions
+# These can be in any order as they are just function definitions
+# that will be called later by set_dynamic
 generate_readme_aliases() {
     log "lvl-3" "Generating readme aliases"
     local FILEBASE_MD="readme.md"
@@ -54,7 +36,7 @@ generate_level_one_vars_and_aliases() {
                 log "lvl-4" "Processing directory: $base"
                 var_name="${base^^}_DIR"
                 dir_path=$(realpath "$dir")
-                # Only declare if not already set (protects BAS_DIR and any other pre-set vars)
+                # Only declare if not already set
                 if [[ -z "${!var_name:-}" ]]; then
                     declare -g "$var_name=$dir_path"
                 fi
@@ -67,9 +49,8 @@ generate_level_one_vars_and_aliases() {
 
 generate_level_two_arrays() {
     log "lvl-3" "Generating level two arrays"
-    local generation_folders=(lib set var)
 
-    for folder in "${generation_folders[@]}"; do
+    for folder in "${GENERATION_FOLDERS[@]}"; do
         local dir_path="$PARENT_DIR/$folder"
         log "lvl-4" "Processing folder: $folder, path: $dir_path"
 
@@ -133,3 +114,34 @@ generate_aliases() {
     done
 }
 
+# 3. Main entry point function that is called by rc
+# This must be last as it references all the above functions
+set_dynamic() {
+    log "lvl-2" "Starting setup_navigation function"
+
+    # Order of these calls matters:
+    # 1. readme aliases need PARENT_DIR
+    generate_readme_aliases
+
+    # 2. level one vars sets up DIR variables used by later functions
+    generate_level_one_vars_and_aliases
+
+    # 3. level two arrays depend on DIR variables from step 2
+    generate_level_two_arrays
+
+    # 4. These depend on arrays and DIRs from steps 2 and 3
+    log "lvl-3" "Generating aliases for variables"
+    generate_aliases "cat" "$ENV_DIR" "${env_files[@]}"
+    generate_aliases "vim" "$ENV_DIR" "${env_files[@]}"
+
+    log "lvl-3" "Generating aliases for functions"
+    generate_aliases "cat" "$FUN_DIR" "${fun_files[@]}"
+    generate_aliases "vim" "$FUN_DIR" "${fun_files[@]}"
+
+    log "lvl-3" "Generating aliases for gems"
+    generate_aliases "cat" "$GEM_DIR" "${gem_files[@]}"
+    generate_aliases "vim" "$GEM_DIR" "${gem_files[@]}"
+    generate_aliases "bash" "$GEM_DIR" "${gem_files[@]}"
+
+    log "lvl-3" "Sourcing scripts from lib_files"
+}
