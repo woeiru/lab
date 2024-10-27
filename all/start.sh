@@ -86,7 +86,7 @@ init_target_user() {
     local default_user=$(whoami)
 
     if [[ "$YES_FLAG" == "false" ]]; then
-        input_user=$(ire "lvl-2" "Enter target user (default: $default_user): ")
+        read -p "Enter target user (default: $default_user): " input_user
         TARGET_USER=${input_user:-$default_user}
     else
         TARGET_USER=$default_user
@@ -129,7 +129,7 @@ set_config_file() {
     [[ -z "$default_config" ]] && default_config="$TARGET_HOME/.bashrc"
 
     if [[ "$YES_FLAG" == "false" ]]; then
-        input_config=$(ire "lvl-2" "Enter config file path (default: $default_config): ")
+        read -p "Enter config file path (default: $default_config): " input_config
         CONFIG_FILE=${input_config:-$default_config}
     else
         CONFIG_FILE=$default_config
