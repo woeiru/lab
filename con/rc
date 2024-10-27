@@ -7,44 +7,57 @@ PARENT_DIR="/root/lab"
 
 # Initialize timer at the very start
 [[ -z "${BAS_DIR:-}" ]] && readonly BAS_DIR="$PARENT_DIR/bas"
-source "$BAS_DIR/tme"
+source "$BAS_DIR/tme" || {
+    echo "Fatal: Failed to source timing module" >&2
+    exit 1
+}
+source "$BAS_DIR/err" || {
+    echo "Fatal: Failed to source error handling module" >&2
+    exit 1
+}
+
+# Initialize systems
 init_timer
 
 # Helper function to safely source files with improved error handling and logging
-# Parameters:
-#   $1: Path to the file to be sourced
-#   $2: Optional description for logging (defaults to filename)
 source_helper() {
     local file="$1"
     local description="${2:-$(basename "$file")}"
 
+    start_timer "source_$description"
+
     if [[ ! -f "$file" ]]; then
-        echo "       ━ Error: File $description ($file) not found." >&2
+        echo "       ━ Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
-        return ${ERROR_CODES[FILE_NOT_FOUND]}
+        end_timer "source_$description"
+        return 1
     fi
 
     if [[ ! -r "$file" ]]; then
-        echo "       ━ Error: File $description ($file) is not readable." >&2
+        echo "       ━ Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
-        return ${ERROR_CODES[PERMISSION_DENIED]}
+        end_timer "source_$description"
+        return 1
     fi
 
-    # Capture source errors
-    if ! source "$file" 2> >(tee -a "$ERROR_LOG" >&2); then
+    # Source the file and capture any errors
+    local temp_error="/tmp/source_error.$$"
+    if source "$file" 2>"$temp_error"; then
+        echo "       ━ Successfully sourced: $description" | tee -a "$ERROR_LOG"
+        end_timer "source_$description" "success"
+        rm -f "$temp_error"
+        return 0
+    else
+        local error=$(cat "$temp_error")
+        echo "       ━ Error sourcing $description: $error" | tee -a "$ERROR_LOG" >&2
+        rm -f "$temp_error"
         error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
-        return ${ERROR_CODES[SOURCE_ERROR]}
+        end_timer "source_$description" "error"
+        return 1
     fi
-
-    echo "       ━ Successfully sourced: $description"
-    return ${ERROR_CODES[SUCCESS]}
 }
 
 # Function to source all files in a directory with consistent sorting and error handling
-# Parameters:
-#   $1: Directory path
-#   $2: File pattern (e.g., "*.bash" or "*")
-#   $3: Description for logging
 source_directory() {
     local dir="$1"
     local pattern="${2:-*}"
@@ -52,10 +65,10 @@ source_directory() {
     local return_value=0
 
     start_timer "dir_$description"
-    echo "     ━ Sourcing $description: $dir"
+    echo "     ━ Sourcing $description: $dir" | tee -a "$ERROR_LOG"
 
     if [[ ! -d "$dir" ]]; then
-        echo "     ━ Warning: Directory $dir not found. Skipping."
+        echo "     ━ Warning: Directory $dir not found. Skipping." | tee -a "$ERROR_LOG" >&2
         end_timer "dir_$description"
         return 1
     fi
@@ -63,17 +76,11 @@ source_directory() {
     # Get all matching files in the directory
     local files=()
     while IFS= read -r -d '' file; do
-        if [[ -f "$file" ]]; then
-            files+=("$file")
-        fi
-    done < <(find "$dir" -maxdepth 1 -type f -name "$pattern" -print0)
-
-    # Sort files for consistent loading order
-    IFS=$'\n' files=($(sort <<<"${files[*]}"))
-    unset IFS
+        files+=("$file")
+    done < <(find "$dir" -maxdepth 1 -type f -name "$pattern" -print0 | sort -z)
 
     if [[ ${#files[@]} -eq 0 ]]; then
-        echo "     ━ Warning: No matching files found in $dir"
+        echo "     ━ Warning: No matching files found in $dir" | tee -a "$ERROR_LOG" >&2
         end_timer "dir_$description"
         return 1
     fi
@@ -87,10 +94,10 @@ source_directory() {
     done
 
     if ((success_count == 0)); then
-        echo "     ━ Warning: No files were successfully sourced from $dir"
+        echo "     ━ Warning: No files were successfully sourced from $dir" | tee -a "$ERROR_LOG" >&2
         return_value=1
     else
-        echo "     ━ Successfully sourced $success_count files from $dir"
+        echo "     ━ Successfully sourced $success_count files from $dir" | tee -a "$ERROR_LOG"
         return_value=0
     fi
 
@@ -145,7 +152,6 @@ execution_rc() {
     local success_count=0
 
     for func in "${setup_functions[@]}"; do
-        # Start timing for this specific function
         start_nested_timing "setup_${func}"
 
         if ! type "$func" &>/dev/null; then
@@ -160,11 +166,10 @@ execution_rc() {
             end_nested_timing "setup_${func}" "success"
         else
             log "lvl-3" "Warning: $func failed" | tee -a "$ERROR_LOG" >&2
-            end_nested_timing "setup_${func}" "errorusr_execution"
+            end_nested_timing "setup_${func}" "error_execution"
         fi
     done
 
-    # End timing for the whole execution_rc function
     local status=$((success_count > 0 ? "success" : "error"))
     end_timer "execution_rc" "$status"
 
@@ -180,31 +185,32 @@ execute_component() {
     local return_value=0
 
     start_timer "$component"
-    echo
-    echo "   ━ Executing component: $component"
+    echo | tee -a "$ERROR_LOG"
+    echo "   ━ Executing component: $component" | tee -a "$ERROR_LOG"
 
     if ! type "$func" &>/dev/null; then
+        echo "   ━ Error: Function $func not found" | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$([[ $required -eq 0 ]] && echo true || echo false)"
-        return_value=${ERROR_CODES[FUNCTION_NOT_FOUND]}
+        return_value=1
     elif $func; then
         export "$success_var=1"
-        echo "   ━ Component $component completed successfully"
-        return_value=${ERROR_CODES[SUCCESS]}
+        echo "   ━ Component $component completed successfully" | tee -a "$ERROR_LOG"
+        return_value=0
     else
         unset "$success_var"
-        local error_code=$?
         local msg="Component $component failed"
-
         if ((required)); then
-            error_handler "$LINENO" "$error_code" "false"
-            return_value=$error_code
+            echo "   ━ Error: $msg" | tee -a "$ERROR_LOG" >&2
+            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
+            return_value=1
         else
-            error_handler "$LINENO" "${ERROR_CODES[OPTIONAL_WARNING]}" "true"
-            return_value=${ERROR_CODES[SUCCESS]}  # Don't fail for optional components
+            echo "   ━ Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
+            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
+            return_value=0
         fi
     fi
 
-    end_timer "$component" "$([[ $return_value -eq 0 ]] && echo success || echo error)"
+    end_timer "$component"
     return $return_value
 }
 
@@ -220,8 +226,8 @@ main_rc() {
 
     local failed_required=0
 
-    echo
-    echo " ━ RC initialization started"
+    echo | tee -a "$ERROR_LOG"
+    echo " ━ RC initialization started" | tee -a "$ERROR_LOG"
 
     for component in "${components[@]}"; do
         IFS=':' read -r func name required <<< "$component"
@@ -229,7 +235,7 @@ main_rc() {
         if ! execute_component "$func" "$name" "$required"; then
             if ((required)); then
                 failed_required=1
-                echo " ━ Required component $name failed"
+                echo " ━ Required component $name failed" | tee -a "$ERROR_LOG" >&2
                 echo
                 break
             fi
@@ -245,12 +251,11 @@ main_rc() {
         echo
         print_timing_report
         print_error_report
-
         return 1
     else
         export RC_SOURCED=1
         echo
-        echo " ━ RC initialization completed successfully"
+        echo " ━ RC initialization completed successfully" | tee -a "$ERROR_LOG"
         print_timing_report
         print_error_report
         echo
@@ -258,7 +263,9 @@ main_rc() {
     fi
 }
 
-# Execute the main function
+# Set up traps for error handling and cleanup
 trap 'error_handler $LINENO' ERR
-trap 'exit' EXIT
+trap 'cleanup_timer' EXIT
+
+# Execute the main function
 main_rc
