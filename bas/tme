@@ -95,86 +95,6 @@ end_timer() {
     } >> "$TME_LOG_FILE"
 }
 
-# Print tree structure for a component
-print_component_tree() {
-    local component="$1"
-    local indent="$2"
-    local duration="${TME_DURATIONS[$component]}"
-    local status="${TME_STATUS[$component]}"
-    local total_time="$3"
-
-    # Calculate percentage of total time
-    local percentage=$(echo "scale=2; ($duration / $total_time) * 100" | bc)
-
-    # Generate status indicator
-    local status_icon
-    case "$status" in
-        "success") status_icon="✓";;
-        "error"*) status_icon="✗";;
-        "running") status_icon="⟳";;
-        *) status_icon="?";;
-    esac
-
-    # Print this component with timing information
-    printf "%s%s %-20s: %6.3fs [%5.1f%%] [%s]\n" \
-        "$indent" \
-        "${indent:+└─}" \
-        "$component" \
-        "$duration" \
-        "$percentage" \
-        "$status_icon"
-
-    # Process children if any exist
-    if [[ -n "${TME_CHILDREN[$component]}" ]]; then
-        local new_indent="${indent}   "
-        local IFS=':'
-        local children=(${TME_CHILDREN[$component]})
-        for child in "${children[@]}"; do
-            print_component_tree "$child" "$new_indent" "$total_time"
-        done
-    fi
-}
-
-# Print detailed timing report with tree structure
-print_timing_report() {
-    local total_time=$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)
-
-    {
-        echo
-        echo " ━ RC Performance Report"
-        echo " ━ Total startup time: ${total_time}s"
-        echo " ━ Generated: $(date)"
-        echo
-        echo " ━ Component Timing Tree:"
-        echo
-
-        # Find root components (those without parents)
-        local root_components=()
-        for comp in "${!TME_START_TIMES[@]}"; do
-            if [[ -z "${TME_PARENTS[$comp]}" ]]; then
-                root_components+=("$comp")
-            fi
-        done
-
-        # Sort root components by duration
-        IFS=$'\n'
-        root_components=($(for comp in "${root_components[@]}"; do
-            echo "${TME_DURATIONS[$comp]}:$comp"
-        done | sort -rn | cut -d: -f2))
-        unset IFS
-
-        # Print tree for each root component
-        for comp in "${root_components[@]}"; do
-            print_component_tree "$comp" "" "$total_time"
-            echo
-        done
-
-        echo " ━ Log file: $TME_LOG_FILE"
-        echo
-
-    } | tee -a "$TME_LOG_FILE"
-}
-
 # Example of how to use nested timing
 start_nested_timing() {
     local component="$1"
@@ -202,6 +122,236 @@ cleanup_timer() {
     } >> "$TME_LOG_FILE"
 }
 
+# Define timer state directory and files
+TME_DIR="/var/log/rc"
+[[ ! -d "$TME_DIR" ]] && mkdir -p "$TME_DIR" 2>/dev/null || TME_DIR="/tmp"
+
+TME_STATE_FILE="${TME_DIR}/rc_tme_state"
+TME_LEVELS_FILE="${TME_DIR}/rc_tme_levels"
+
+# Initialize timer state if file doesn't exist
+if [[ ! -f "$TME_STATE_FILE" ]]; then
+    echo "true" > "$TME_STATE_FILE" 2>/dev/null || {
+        TME_DIR="/tmp"
+        TME_STATE_FILE="${TME_DIR}/rc_tme_state"
+        TME_LEVELS_FILE="${TME_DIR}/rc_tme_levels"
+        echo "true" > "$TME_STATE_FILE"
+    }
+fi
+
+# Initialize timer levels
+if [[ ! -f "$TME_LEVELS_FILE" ]]; then
+    echo "9" > "$TME_LEVELS_FILE"  # Default max depth
+fi
+
+# Color codes for timing output
+TME_RED='\033[0;31m'
+TME_ORANGE='\033[0;33m'
+TME_YELLOW='\033[1;33m'
+TME_GREEN='\033[0;32m'
+TME_CYAN='\033[0;36m'
+TME_BLUE='\033[0;34m'
+TME_INDIGO='\033[0;35m'
+TME_VIOLET='\033[1;35m'
+TME_WHITE='\033[1;37m'
+TME_NC='\033[0m'
+
+# Calculate the depth of a component in the timing tree
+calculate_component_depth() {
+    local component="$1"
+    local depth=0
+    local current="$component"
+
+    while [[ -n "${TME_PARENTS[$current]}" ]]; do
+        ((depth++))
+        current="${TME_PARENTS[$current]}"
+    done
+
+    echo "$depth"
+}
+
+# Print formatted timing entry
+print_timing_entry() {
+    local component="$1"
+    local indent="$2"
+    local duration="$3"
+    local total_time="$4"
+    local depth="$5"
+    local status="${TME_STATUS[$component]}"
+
+    # Calculate percentage of total time
+    local percentage=$(echo "scale=2; ($duration / $total_time) * 100" | bc)
+
+    # Set color based on depth
+    local color
+    case $depth in
+        0) color=$TME_RED ;;
+        1) color=$TME_ORANGE ;;
+        2) color=$TME_YELLOW ;;
+        3) color=$TME_GREEN ;;
+        4) color=$TME_CYAN ;;
+        5) color=$TME_BLUE ;;
+        6) color=$TME_INDIGO ;;
+        7) color=$TME_VIOLET ;;
+        *) color=$TME_WHITE ;;
+    esac
+
+    # Create depth-based indentation
+    local depth_indent=""
+    if [ $depth -eq 0 ]; then
+        depth_indent="    "
+    else
+        depth_indent="      "
+        for ((i=2; i<=$depth; i++)); do
+            depth_indent="  $depth_indent"
+        done
+    fi
+
+    # Generate status indicator
+    local status_icon
+    case "$status" in
+        "success") status_icon="✓";;
+        "error"*) status_icon="✗";;
+        "running") status_icon="⟳";;
+        *) status_icon="?";;
+    esac
+
+    # Format duration and percentage
+    local time_str=$(printf "%6.3fs" "$duration")
+    local perc_str=$(printf "[%5.1f%%]" "$percentage")
+
+    # Print the formatted line
+    printf "%s%s%s %-25s %s %s [%s]%s\n" \
+        "$depth_indent" \
+        "$color" \
+        "${depth:+└─}" \
+        "$component" \
+        "$time_str" \
+        "$perc_str" \
+        "$status_icon" \
+        "$TME_NC"
+}
+
+# Enhanced component tree printer
+print_enhanced_tree() {
+    local component="$1"
+    local indent="$2"
+    local total_time="$3"
+    local depth=$(calculate_component_depth "$component")
+
+    # Read current max depth
+    local max_depth
+    max_depth=$(cat "$TME_LEVELS_FILE" 2>/dev/null || echo "9")
+
+    # Only proceed if depth is within limits
+    if ((depth <= max_depth)); then
+        # Print this component
+        print_timing_entry "$component" "$indent" "${TME_DURATIONS[$component]}" "$total_time" "$depth"
+
+        # Process children if any exist
+        if [[ -n "${TME_CHILDREN[$component]}" ]]; then
+            local new_indent="${indent}   "
+            local IFS=':'
+            local children=(${TME_CHILDREN[$component]})
+            # Sort children by duration
+            IFS=$'\n'
+            children=($(for child in "${children[@]}"; do
+                echo "${TME_DURATIONS[$child]}:$child"
+            done | sort -rn | cut -d: -f2))
+            unset IFS
+
+            for child in "${children[@]}"; do
+                print_enhanced_tree "$child" "$new_indent" "$total_time"
+            done
+        fi
+    fi
+}
+
+# Enhanced timing report
+print_timing_report() {
+    # Check if timing is enabled
+    local current_state
+    current_state=$(cat "$TME_STATE_FILE" 2>/dev/null || echo "true")
+    [[ "${current_state}" != "true" ]] && return 0
+
+    local total_time=$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)
+
+    {
+        echo
+        printf " %s━ RC Performance Report%s\n" "$TME_BLUE" "$TME_NC"
+        printf " %s━ Total startup time: %s%.3fs%s\n" "$TME_BLUE" "$TME_GREEN" "$total_time" "$TME_NC"
+        printf " %s━ Generated: %s%s%s\n" "$TME_BLUE" "$TME_CYAN" "$(date)" "$TME_NC"
+        echo
+        printf " %s━ Component Timing Tree:%s\n" "$TME_BLUE" "$TME_NC"
+        echo
+
+        # Find and sort root components by duration
+        local root_components=()
+        for comp in "${!TME_START_TIMES[@]}"; do
+            if [[ -z "${TME_PARENTS[$comp]}" ]]; then
+                root_components+=("$comp")
+            fi
+        done
+
+        # Sort root components by duration
+        IFS=$'\n'
+        root_components=($(for comp in "${root_components[@]}"; do
+            echo "${TME_DURATIONS[$comp]}:$comp"
+        done | sort -rn | cut -d: -f2))
+        unset IFS
+
+        # Print tree for each root component
+        for comp in "${root_components[@]}"; do
+            print_enhanced_tree "$comp" "" "$total_time"
+            echo
+        done
+
+        printf " %s━ Log file: %s%s%s\n" "$TME_BLUE" "$TME_CYAN" "$TME_LOG_FILE" "$TME_NC"
+        echo
+
+    } | tee -a "$TME_LOG_FILE"
+}
+
+# The settme function to control timer output
+settme() {
+    local arg=$1
+
+    case "$arg" in
+        "off")
+            echo "false" > "$TME_STATE_FILE"
+            echo "Timer output has been disabled"
+            return 0
+            ;;
+        "on")
+            echo "true" > "$TME_STATE_FILE"
+            echo "9" > "$TME_LEVELS_FILE"
+            echo "Timer output has been enabled with maximum depth"
+            return 0
+            ;;
+        *)
+            if [[ "$(cat "$TME_STATE_FILE" 2>/dev/null || echo "false")" != "true" ]]; then
+                echo "Timer output is currently disabled. Use 'settme on' to enable first."
+                return 1
+            fi
+
+            # Handle depth range setting
+            if [[ $arg =~ ^([0-9]+)$ ]]; then
+                local depth=${BASH_REMATCH[1]}
+                if ((depth > 0 && depth <= 9)); then
+                    echo "$depth" > "$TME_LEVELS_FILE"
+                    echo "Timer depth set to $depth"
+                    return 0
+                fi
+            fi
+
+            echo "Invalid input. Usage:"
+            echo "   settme on|off            - Enable or disable timer output"
+            echo "   settme <depth>           - Set maximum depth to show (1-9)"
+            return 1
+            ;;
+    esac
+}
+
 # Export functions and variables
 export TME_STARTUP_BEGIN
 export -A TME_START_TIMES
@@ -217,7 +367,11 @@ export -f start_timer
 export -f end_timer
 export -f start_nested_timing
 export -f end_nested_timing
+export -f calculate_component_depth
+export -f print_timing_entry
+export -f print_enhanced_tree
 export -f print_timing_report
+export -f settme
 export -f cleanup_timer
 
 # Set up cleanup trap
