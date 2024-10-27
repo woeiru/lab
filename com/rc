@@ -112,13 +112,13 @@ source_bas() {
 
 # Source the function files
 source_fun() {
-    source_directory "$PARENT_DIR/fun" "*.bash" "function files"
+    source_directory "$PARENT_DIR/fun" "*" "function files"
     return $?
 }
 
 # Source the environment files
 source_env() {
-    source_directory "$PARENT_DIR/env" "*.conf" "environment configuration files"
+    source_directory "$PARENT_DIR/env" "*" "environment configuration files"
     return $?
 }
 
