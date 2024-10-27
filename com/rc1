@@ -1,0 +1,147 @@
+#!/bin/bash
+
+# 1. Configuration (new)
+# Must be first as it sets up required global variables
+declare -ga GENERATION_FOLDERS=(env fun gem)
+export GENERATION_FOLDERS
+
+# 2. All helper/generator functions
+# These can be in any order as they are just function definitions
+# that will be called later by set_dynamic
+generate_readme_aliases() {
+    log "lvl-3" "Generating readme aliases"
+    local FILEBASE_MD="readme.md"
+    while IFS= read -r -d '' file; do
+        log "lvl-4" "Processing readme file: $file"
+        dir=$(dirname "$file")
+        dir_name=$(basename "$dir")
+        parent_dir=$(basename "$(dirname "$dir")")
+        if [[ "$parent_dir" != "lab" ]]; then
+            alias_name="$parent_dir-$dir_name-md"
+        else
+            alias_name="$dir_name-md"
+        fi
+        alias "c-$alias_name=cat $file"
+        alias "v-$alias_name=vim $file"
+        log "lvl-5" "Created aliases: c-$alias_name and v-$alias_name for $file"
+    done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
+}
+
+generate_level_one_vars_and_aliases() {
+    log "lvl-3" "Generating top-level directory aliases"
+    for dir in "$PARENT_DIR"/*; do
+        if [[ -d "$dir" ]]; then
+            base=$(basename "$dir")
+            if [[ ${#base} -eq 3 ]]; then
+                log "lvl-4" "Processing directory: $base"
+                var_name="${base^^}_DIR"
+                dir_path=$(realpath "$dir")
+                # Only declare if not already set
+                if [[ -z "${!var_name:-}" ]]; then
+                    declare -g "$var_name=$dir_path"
+                fi
+                alias "d-$base=cd $dir_path"
+                log "lvl-5" "Created alias: d-$base -> cd $dir_path"
+            fi
+        fi
+    done
+}
+
+generate_level_two_arrays() {
+    log "lvl-3" "Generating level two arrays"
+
+    for folder in "${GENERATION_FOLDERS[@]}"; do
+        local dir_path="$PARENT_DIR/$folder"
+        log "lvl-4" "Processing folder: $folder, path: $dir_path"
+
+        if [[ -d "$dir_path" ]]; then
+            local array_name="${folder}_files"
+            local files=()
+
+            log "lvl-5" "Searching for files in $dir_path"
+            while IFS= read -r -d '' file; do
+                base_name=$(basename "$file")
+                name_without_ext="${base_name%.*}"
+                files+=("$name_without_ext")
+                log "lvl-6" "Found file: $file"
+                log "lvl-7" "Added file to $array_name: $name_without_ext"
+            done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*.bash" -o -name "*.sh" -o -name "*.conf" \) -print0)
+
+            log "lvl-5" "Creating array $array_name"
+            eval "declare -ga $array_name=(${files[*]})"
+            log "lvl-6" "Created array $array_name with values: ${!array_name[*]}"
+
+            log "lvl-7" "Finished processing folder: $folder"
+        else
+            log "lvl-4" "Directory not found: $dir_path"
+        fi
+    done
+
+    log "lvl-4" "Finished generating all level two arrays"
+}
+
+generate_aliases() {
+    log "lvl-4" "Generating aliases"
+    local alias_type=$1
+    local directory=$2
+    shift 2
+    local files=("$@")
+    log "lvl-5" "Alias type: $alias_type, Directory: $directory, Files: ${files[*]}"
+
+    for file in "${files[@]}"; do
+        log "lvl-6" "Searching for file $file in directory $directory"
+        local found_file=$(find "$directory" -maxdepth 1 -type f -name "$file.*" | head -n 1)
+        if [[ -n "$found_file" ]]; then
+            log "lvl-7" "Found file: $found_file"
+            local ext="${found_file##*.}"
+            local alias_prefix=""
+
+            case "$alias_type" in
+                "bash")
+                    [[ "$ext" == "sh" ]] && alias_prefix="b."
+                    ;;
+                "cat") alias_prefix="c." ;;
+                "vim") alias_prefix="v." ;;
+            esac
+
+            if [[ -n "$alias_prefix" ]]; then
+                alias "${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
+                log "lvl-8" "Created alias: ${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
+            fi
+        else
+            log "lvl-6" "File not found: $file in directory $directory"
+        fi
+    done
+}
+
+# 3. Main entry point function that is called by rc
+# This must be last as it references all the above functions
+set_dynamic() {
+    log "lvl-2" "Starting setup_navigation function"
+
+    # Order of these calls matters:
+    # 1. readme aliases need PARENT_DIR
+    generate_readme_aliases
+
+    # 2. level one vars sets up DIR variables used by later functions
+    generate_level_one_vars_and_aliases
+
+    # 3. level two arrays depend on DIR variables from step 2
+    generate_level_two_arrays
+
+    # 4. These depend on arrays and DIRs from steps 2 and 3
+    log "lvl-3" "Generating aliases for variables"
+    generate_aliases "cat" "$ENV_DIR" "${env_files[@]}"
+    generate_aliases "vim" "$ENV_DIR" "${env_files[@]}"
+
+    log "lvl-3" "Generating aliases for functions"
+    generate_aliases "cat" "$FUN_DIR" "${fun_files[@]}"
+    generate_aliases "vim" "$FUN_DIR" "${fun_files[@]}"
+
+    log "lvl-3" "Generating aliases for gems"
+    generate_aliases "cat" "$GEM_DIR" "${gem_files[@]}"
+    generate_aliases "vim" "$GEM_DIR" "${gem_files[@]}"
+    generate_aliases "bash" "$GEM_DIR" "${gem_files[@]}"
+
+    log "lvl-3" "Sourcing scripts from lib_files"
+}
