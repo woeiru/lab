@@ -27,7 +27,7 @@ generate_readme_aliases() {
         alias "c-$alias_name=cat $file"
         alias "v-$alias_name=vim $file"
         log "lvl-5" "Created aliases: c-$alias_name and v-$alias_name for $file"
-    done < <(find "$PARENT_DIR" -type f -name "$FILEBASE_MD" -print0)
+    done < <(find "$LAB_DIR" -type f -name "$FILEBASE_MD" -print0)
     end_nested_timing "process_readme_files" "success"
 
     end_nested_timing "gen_readme_aliases" "success"
@@ -39,7 +39,7 @@ generate_level_one_vars_and_aliases() {
 
     # Single timer for directory processing
     start_nested_timing "process_directories"
-    for dir in "$PARENT_DIR"/*; do
+    for dir in "$LAB_DIR"/*; do
         if [[ -d "$dir" ]]; then
             base=$(basename "$dir")
             if [[ ${#base} -eq 3 ]]; then
@@ -65,7 +65,7 @@ generate_level_two_arrays() {
 
     for folder in "${GENERATION_FOLDERS[@]}"; do
         start_nested_timing "process_folder_${folder}"
-        local dir_path="$PARENT_DIR/$folder"
+        local dir_path="$LAB_DIR/$folder"
         log "lvl-4" "Processing folder: $folder, path: $dir_path"
 
         if [[ -d "$dir_path" ]]; then

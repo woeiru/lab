@@ -3,10 +3,10 @@ set -o pipefail
 
 # Set up important directory paths
 DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
-PARENT_DIR="/root/lab"
+LAB_DIR="/root/lab"
 
 # Initialize timer at the very start
-[[ -z "${BAS_DIR:-}" ]] && readonly BAS_DIR="$PARENT_DIR/bas"
+[[ -z "${BAS_DIR:-}" ]] && readonly BAS_DIR="$LAB_DIR/bas"
 source "$BAS_DIR/tme"
 init_timer
 
@@ -112,13 +112,13 @@ source_bas() {
 
 # Source the function files
 source_fun() {
-    source_directory "$PARENT_DIR/fun" "*" "function files"
+    source_directory "$LAB_DIR/fun" "*" "function files"
     return $?
 }
 
 # Source the environment files
 source_env() {
-    source_directory "$PARENT_DIR/env" "*" "environment configuration files"
+    source_directory "$LAB_DIR/env" "*" "environment configuration files"
     return $?
 }
 
@@ -248,7 +248,7 @@ main_rc() {
         echo " ━ RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
         echo
         print_timing_report
-        print_error_report  # Add error report before timing report
+        print_error_report
 
         return 1
     else
@@ -256,8 +256,7 @@ main_rc() {
         echo
         echo " ━ RC initialization completed successfully"
         print_timing_report
-        print_error_report  # Add error report before timing report
-
+        print_error_report
         echo
         return 0
     fi
