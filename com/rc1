@@ -108,22 +108,40 @@ generate_aliases() {
     # Process all aliases under single timer
     for file in "${files[@]}"; do
         log "lvl-6" "Searching for file $file in directory $directory"
-        local found_file=$(find "$directory" -maxdepth 1 -type f -name "$file.*" | head -n 1)
+        # Search for both files with and without extensions
+        local found_file=$(find "$directory" -maxdepth 1 -type f \( -name "$file" -o -name "$file.*" \) | head -n 1)
         if [[ -n "$found_file" ]]; then
             log "lvl-7" "Found file: $found_file"
-            local ext="${found_file##*.}"
-            local alias_prefix=""
 
+            # Check if file has an extension
+            if [[ "$found_file" =~ \. ]]; then
+                local ext="${found_file##*.}"
+                local base_name="$file"
+                local display_name="${base_name}.${ext}"
+            else
+                local ext=""
+                local base_name="$file"
+                local display_name="$base_name"
+            fi
+
+            local alias_prefix=""
             case "$alias_type" in
-                "bash") [[ "$ext" == "sh" ]] && alias_prefix="b." ;;
+                "bash")
+                    # For bash, only create alias if it's a .sh file or has execute permission
+                    if [[ "$ext" == "sh" ]] || [[ -x "$found_file" ]]; then
+                        alias_prefix="b."
+                    fi
+                    ;;
                 "cat") alias_prefix="c." ;;
                 "vim") alias_prefix="v." ;;
             esac
 
             if [[ -n "$alias_prefix" ]]; then
-                alias "${alias_prefix}${file}.${ext}=${alias_type} ${found_file}"
-                log "lvl-8" "Created alias: ${alias_prefix}${file}.${ext}"
+                alias "${alias_prefix}${display_name}=${alias_type} ${found_file}"
+                log "lvl-8" "Created alias: ${alias_prefix}${display_name}"
             fi
+        else
+            log "lvl-6" "No matching file found for: $file"
         fi
     done
 
