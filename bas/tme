@@ -170,7 +170,7 @@ calculate_component_depth() {
     echo "$depth"
 }
 
-# Print formatted timing entry
+# Modify the print_timing_entry function to use echo -e for color output
 print_timing_entry() {
     local component="$1"
     local indent="$2"
@@ -220,16 +220,12 @@ print_timing_entry() {
     local time_str=$(printf "%6.3fs" "$duration")
     local perc_str=$(printf "[%5.1f%%]" "$percentage")
 
-    # Print the formatted line
-    printf "%s%s%s %-25s %s %s [%s]%s\n" \
-        "$depth_indent" \
-        "$color" \
-        "${depth:+└─}" \
+    # Print the formatted line with echo -e for color interpretation
+    echo -e "${depth_indent}${color}${depth:+└─} %-25s %s %s [%s]${TME_NC}" \
         "$component" \
         "$time_str" \
         "$perc_str" \
-        "$status_icon" \
-        "$TME_NC"
+        "$status_icon"
 }
 
 # Enhanced component tree printer
@@ -267,7 +263,7 @@ print_enhanced_tree() {
     fi
 }
 
-# Enhanced timing report
+# Modify the enhanced timing report function to properly handle color output
 print_timing_report() {
     # Check if timing is enabled
     local current_state
@@ -278,11 +274,11 @@ print_timing_report() {
 
     {
         echo
-        printf " %s━ RC Performance Report%s\n" "$TME_BLUE" "$TME_NC"
-        printf " %s━ Total startup time: %s%.3fs%s\n" "$TME_BLUE" "$TME_GREEN" "$total_time" "$TME_NC"
-        printf " %s━ Generated: %s%s%s\n" "$TME_BLUE" "$TME_CYAN" "$(date)" "$TME_NC"
+        echo -e " ${TME_BLUE}━ RC Performance Report${TME_NC}"
+        echo -e " ${TME_BLUE}━ Total startup time: ${TME_GREEN}$(printf "%.3fs" "$total_time")${TME_NC}"
+        echo -e " ${TME_BLUE}━ Generated: ${TME_CYAN}$(date)${TME_NC}"
         echo
-        printf " %s━ Component Timing Tree:%s\n" "$TME_BLUE" "$TME_NC"
+        echo -e " ${TME_BLUE}━ Component Timing Tree:${TME_NC}"
         echo
 
         # Find and sort root components by duration
@@ -306,7 +302,7 @@ print_timing_report() {
             echo
         done
 
-        printf " %s━ Log file: %s%s%s\n" "$TME_BLUE" "$TME_CYAN" "$TME_LOG_FILE" "$TME_NC"
+        echo -e " ${TME_BLUE}━ Log file: ${TME_CYAN}${TME_LOG_FILE}${TME_NC}"
         echo
 
     } | tee -a "$TME_LOG_FILE"
