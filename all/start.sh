@@ -378,7 +378,6 @@ source_base() {
             source "$file"
             echo ". $file"
             sourced_any=true
-            echo "Sourced: $filename"
         else
             echo "Could not source: $filename"
         fi
