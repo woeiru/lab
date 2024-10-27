@@ -256,15 +256,33 @@ parse_arguments() {
 
 execute_functions() {
     log "lvl-2" "Starting function execution sequence"
-    local functions=($(grep -E '^# [0-9]+\.' "$0" |
-                      sed -E 's/^# ([0-9]+)\. .*/\1 /' |
-                      paste -d' ' - <(grep -A1 -E '^# [0-9]+\.' "$0" |
-                                    grep -E '^[a-z_]+[a-z0-9_-]*\(\)' |
-                                    sed 's/().*//') |
-                      sort -n |
-                      cut -d' ' -f2-))
 
-    local i=0
+    # Create an associative array to map functions to their step numbers
+    declare -A step_numbers
+
+    # Get both step numbers and function names
+    while read -r line; do
+        if [[ $line =~ ^#[[:space:]]*([0-9]+)\. ]]; then
+            step_num="${BASH_REMATCH[1]}"
+            # Get the next line which should be the function name
+            read -r func_line
+            if [[ $func_line =~ ^([a-z_][a-z0-9_-]*)\(\) ]]; then
+                func_name="${BASH_REMATCH[1]}"
+                step_numbers[$func_name]=$step_num
+            fi
+        fi
+    done < <(grep -A1 -E '^# [0-9]+\.' "$0")
+
+    # Get the functions in order
+    local functions=($(grep -A1 -E '^# [0-9]+\.' "$0" |
+                      grep -E '^[a-z_]+[a-z0-9_-]*\(\)' |
+                      sed 's/().*//'))
+
+    [[ ${#functions[@]} -eq 0 ]] && {
+        log "lvl-1" "No functions found to execute"
+        return 1
+    }
+
     export CONFIG_FILE
     export TARGET_USER
     export TARGET_HOME
@@ -272,8 +290,13 @@ execute_functions() {
     export LOG_LEVEL
 
     for func in "${functions[@]}"; do
-        log "lvl-3" "Step $((i+1)): ${func} ..."
+        log "lvl-3" "Step ${step_numbers[$func]}: ${func} ..."
         echo
+
+        if ! declare -F "$func" >/dev/null; then
+            log "lvl-1" "Function $func not found"
+            continue
+        fi
 
         local output
         output=$("$func")
@@ -301,9 +324,9 @@ execute_functions() {
             fi
             return 1
         fi
-        ((i++))
         echo
     done
+
     log "lvl-2" "All functions executed successfully"
     return 0
 }
