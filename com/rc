@@ -145,22 +145,34 @@ source_rc() {
 # Execute RC-specific setup functions
 execution_rc() {
     log "lvl-1" "Starting ${FUNCNAME[0]}"
+    start_timer "execution_rc"
+
     local setup_functions=("set_static" "set_dynamic" "set_aliaswrap")
     local success_count=0
 
     for func in "${setup_functions[@]}"; do
+        # Start timing for this specific function
+        start_nested_timing "setup_${func}"
+
         if ! type "$func" &>/dev/null; then
             log "lvl-3" "Warning: Function $func not found" | tee -a "$ERROR_LOG" >&2
+            end_nested_timing "setup_${func}" "error_not_found"
             continue
         fi
 
         log "lvl-3" "Executing $func"
         if $func; then
             ((success_count++))
+            end_nested_timing "setup_${func}" "success"
         else
             log "lvl-3" "Warning: $func failed" | tee -a "$ERROR_LOG" >&2
+            end_nested_timing "setup_${func}" "error_execution"
         fi
     done
+
+    # End timing for the whole execution_rc function
+    local status=$((success_count > 0 ? "success" : "error"))
+    end_timer "execution_rc" "$status"
 
     return $((success_count > 0 ? 0 : 1))
 }
