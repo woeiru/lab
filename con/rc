@@ -113,7 +113,7 @@ source_bas() {
 
 # Source the RC modules
 source_rc() {
-    log "lvl-2" "Sourcing primary RC modules"
+    log "lvl" "Sourcing primary RC modules"
     local rc_modules=("rc1" "rc2" "rc3")
     local success_count=0
 
@@ -124,7 +124,7 @@ source_rc() {
     done
 
     if ((success_count == 0)); then
-        log "lvl-4" "Warning: No RC modules were successfully sourced"
+        log "lvl" "Warning: No RC modules were successfully sourced"
         return 1
     fi
 
@@ -145,7 +145,7 @@ source_fun() {
 
 # Execute RC-specific setup functions
 execution_rc() {
-    log "lvl-1" "Starting ${FUNCNAME[0]}"
+    log "lvl" "Starting ${FUNCNAME[0]}"
     start_timer "execution_rc"
 
     local setup_functions=("set_static" "set_dynamic" "set_aliaswrap")
@@ -155,17 +155,17 @@ execution_rc() {
         start_nested_timing "setup_${func}"
 
         if ! type "$func" &>/dev/null; then
-            log "lvl-3" "Warning: Function $func not found" | tee -a "$ERROR_LOG" >&2
+            log "lvl" "Warning: Function $func not found" | tee -a "$ERROR_LOG" >&2
             end_nested_timing "setup_${func}" "error_not_found"
             continue
         fi
 
-        log "lvl-3" "Executing $func"
+        log "lvl" "Executing $func"
         if $func; then
             ((success_count++))
             end_nested_timing "setup_${func}" "success"
         else
-            log "lvl-3" "Warning: $func failed" | tee -a "$ERROR_LOG" >&2
+            log "lvl" "Warning: $func failed" | tee -a "$ERROR_LOG" >&2
             end_nested_timing "setup_${func}" "error_execution"
         fi
     done
