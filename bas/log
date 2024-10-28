@@ -121,69 +121,82 @@ calculate_stack_depth() {
         return
     fi
 
-    # Walk up the call stack with improved tracking
+    # Store the initial stack for reference
+    local -a initial_stack=("${FUNCNAME[@]}")
+    local stack_size=${#initial_stack[@]}
+
+    # Walk up the call stack counting actual function calls
     local i=1
     local prev_func=""
     local stack_trace=""
-    local found_root=false
+    local current_depth=0
+    local found_exec=false
 
-    while [[ -n "${FUNCNAME[$i]:-}" ]]; do
-        local func="${FUNCNAME[$i]}"
-        stack_trace+="$func:"
+    while [[ -n "${initial_stack[$i]:-}" ]]; do
+        local func="${initial_stack[$i]}"
 
-        # Only consider main_rc, execution_rc, and source_rc as root functions
-        # Remove the pattern matching for set_* functions
-        if [[ "$func" == "main_rc" || "$func" == "execution_rc" || "$func" == "source_rc" ]]; then
-            debug_log "Found true root function: $func"
-            found_root=true
-            break
+        # Skip internal logging functions
+        if [[ "$func" =~ ^(log|debug_log|calculate_stack_depth|get_indent)$ ]]; then
+            ((i++))
+            continue
+        fi
+
+        # Track execution_rc specially
+        if [[ "$func" == "execution_rc" ]]; then
+            found_exec=true
         fi
 
         # Skip direct recursion
         if [[ "$func" == "$prev_func" ]]; then
-            debug_log "Detected recursion: $func"
+            ((i++))
             continue
         fi
 
-        # Track parent-child relationship
-        if [[ -n "$prev_func" ]]; then
-            LOG_PARENT_CONTEXTS["$prev_func"]="$func"
+        # Add to depth unless it's a root function
+        if ! is_root_function "$func"; then
+            ((current_depth++))
+        elif [[ "$func" == "main_rc" ]]; then
+            break
         fi
 
-        ((depth++))
+        # Track the function in our trace
+        stack_trace+="$func:"
+
         prev_func="$func"
         ((i++))
     done
 
+    # Adjust depth for execution_rc context
+    if [[ "$found_exec" == "true" ]]; then
+        ((current_depth++))
+    fi
+
     # Store results
-    LOG_DEPTH_CACHE[$current_func]=$depth
+    LOG_DEPTH_CACHE[$current_func]=$current_depth
     LOG_STACK_TRACES[$current_func]=$stack_trace
 
-    debug_log "Calculated depth for $current_func: $depth"
-    echo "$depth"
+    debug_log "Calculated depth for $current_func: $current_depth (stack: $stack_trace)"
+    echo "$current_depth"
 }
 
 # Improved indentation generation
 get_indent() {
     local depth="$1"
-    local base_indent="    "  # 4 spaces for base level
+    local indent=""
 
+    # Base indentation
     case $depth in
-        0)  # Root level
-            echo -n "$base_indent"
-            ;;
-        1)  # First level indent
-            echo -n "      "  # 6 spaces
-            ;;
-        *)  # Deeper levels
-            local indent="      "  # Start with 6 spaces
-            for ((i=2; i<=depth; i++)); do
-                indent="  $indent"  # Add 2 spaces per level
-            done
-            echo -n "$indent"
-            ;;
+        0) indent="    " ;; # 4 spaces for root
+        1) indent="      " ;; # 6 spaces for first level
+        *) # For deeper levels, start with 6 spaces and add 2 for each level
+           indent="      "
+           for ((i=2; i<=depth; i++)); do
+               indent="  $indent"
+           done
+           ;;
     esac
-    echo -n "└─"  # Add the tree connector
+
+    echo -n "$indent└─"
 }
 
 # Get appropriate color for current depth
@@ -386,19 +399,20 @@ register_root_function() {
 is_root_function() {
     local func_name="$1"
 
-    # Debug logging for root function checks
     debug_log "Checking if $func_name is root function"
 
-    # Only consider specific root functions
+    # Only consider main_rc as a true root
+    # Treat execution_rc as a special case that contributes to depth
     case "$func_name" in
-        main_rc|execution_rc|source_rc)
-            debug_log "$func_name is a registered root function"
+        main_rc)
+            debug_log "$func_name is the main root function"
             return 0
             ;;
+        *)
+            debug_log "$func_name is not a root function"
+            return 1
+            ;;
     esac
-
-    debug_log "$func_name is not a root function"
-    return 1
 }
 
 # Function to list all registered root functions
