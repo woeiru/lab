@@ -82,19 +82,20 @@ generate_log_indent() {
     local prefix=""
 
     case $depth in
-        0) prefix="    ${color}└─${LOG_NC}" ;;
-        1) prefix="      ${color}└─${LOG_NC}" ;;
+        0) prefix="    └─" ;;
+        1) prefix="      └─" ;;
         *)
             prefix="      "
             for ((i=2; i<depth; i++)); do
                 prefix="${prefix}  "
             done
-            prefix="${prefix}${color}└─${LOG_NC}"
+            prefix="${prefix}└─"
             ;;
     esac
 
     echo -n "$prefix"
 }
+
 
 # Enhanced logging function with recursion protection
 log() {
@@ -158,20 +159,18 @@ log() {
         color=$(get_log_color "$depth")
         local indent
         indent=$(generate_log_indent "$depth" "$color")
-
         local timestamp=$(date '+%H:%M:%S')
 
-        # Format and output the message
+        # Format and output the message with enhanced color handling
         if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
-            printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC"
+            printf "%b━ %s%b\n" "$color" "$message" "$LOG_NC"
         elif ((depth == 0)); then
-            printf "%s%s%s\n" "$indent" "$message" "$LOG_NC"
+            printf "%b%s%s%b\n" "$color" "$indent" "$message" "$LOG_NC"
         else
-            printf "%s [%s] %s%s\n" "$indent" "$timestamp" "$message" "$LOG_NC"
+            printf "%b%s [%s] %s%b\n" "$color" "$indent" "$timestamp" "$message" "$LOG_NC"
         fi
     fi
 }
-
 # Enhanced setlog function with validation
 setlog() {
     local arg=$1
