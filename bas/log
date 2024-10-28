@@ -18,7 +18,7 @@
 
 # Directory and file setup with fallback handling
 LOG_DIR="${LOG_DIR:-/var/log/rc}"
-[[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp"
+[[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/var/log/rc"
 LOG_FILE="${LOG_DIR}/rc_hierarchical.log"
 LOG_STATE_FILE="${LOG_DIR}/rc_log_state"
 LOG_DEBUG_FILE="${LOG_DIR}/rc_debug.log"
