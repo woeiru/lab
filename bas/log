@@ -4,148 +4,231 @@
 LOG_DIR="/var/log/rc"
 [[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp"
 
-# Store log state and levels in persistent files with proper paths
+# Store log state and levels in persistent files
 LOG_STATE_FILE="${LOG_DIR}/rc_log_state"
-LOG_LEVEL_FILE="${LOG_DIR}/rc_log_level"  # Changed from LOG_LEVELS_FILE
+LOG_LEVEL_FILE="${LOG_DIR}/rc_log_level"
 ERROR_LOG="${LOG_DIR}/rc_error.log"
 
-# Initialize log state if file doesn't exist
-if [[ ! -f "$LOG_STATE_FILE" ]]; then
-    echo "true" > "$LOG_STATE_FILE" 2>/dev/null || {
-        # Fallback to temp directory if can't write to LOG_DIR
-        LOG_DIR="/tmp"
-        LOG_STATE_FILE="${LOG_DIR}/rc_log_state"
-        LOG_LEVEL_FILE="${LOG_DIR}/rc_log_level"
-        ERROR_LOG="${LOG_DIR}/rc_error.log"
-        echo "true" > "$LOG_STATE_FILE"
-    }
-fi
+# Constants
+readonly ROOT_LEVEL=1
+readonly ERROR_LEVEL=9
+readonly MAX_CACHE_AGE=5
+readonly MAX_TRACKING_ENTRIES=1000
 
-# Initialize log level if file doesn't exist (9 is maximum level)
-if [[ ! -f "$LOG_LEVEL_FILE" ]]; then
-    echo "9" > "$LOG_LEVEL_FILE"
-fi
+# Enhanced color definitions with proper escaping
+readonly LOG_RED=$'\033[0;31m'
+readonly LOG_ORANGE=$'\033[0;33m'
+readonly LOG_YELLOW=$'\033[1;33m'
+readonly LOG_GREEN=$'\033[0;32m'
+readonly LOG_CYAN=$'\033[0;36m'
+readonly LOG_BLUE=$'\033[0;34m'
+readonly LOG_INDIGO=$'\033[0;35m'
+readonly LOG_VIOLET=$'\033[1;35m'
+readonly LOG_WHITE=$'\033[1;37m'
+readonly LOG_NC=$'\033[0m'
 
-# Read the current log state and level
-LOG_TOGGLE=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-LOG_LEVEL=$(cat "$LOG_LEVEL_FILE" 2>/dev/null || echo "9")
+# Call hierarchy tracking with improved structure
+declare -A LOG_PARENTS
+declare -A LOG_CHILDREN
+declare -g LOG_CURRENT_PARENT=""
+declare -i LOG_TRACKING_COUNT=0
 
-# Color codes
-RED='\033[0;31m'
-ORANGE='\033[0;33m'
-YELLOW='\033[1;33m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-BLUE='\033[0;34m'
-INDIGO='\033[0;35m'
-VIOLET='\033[1;35m'
-WHITE='\033[1;37m'
-NC='\033[0m' # No Color
+# Enhanced header and separator format
+format_header() {
+    local message="$1"
+    local color="${2:-$LOG_BLUE}"
+    echo -e "    ${color}└─${LOG_NC} ${message}"
+}
 
-# Modified logging function that uses single level number
-log() {
-    # First check LOG_TOGGLE from the state file
-    local current_state
-    current_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-    [[ "${current_state}" != "true" ]] && return 0
+# Improved indent generation with proper hierarchy
+generate_indent() {
+    local depth=$1
+    local color=$2
+    local prefix=""
+    local spacer="  "
 
-    # Read current level ceiling
-    local current_level
-    current_level=$(cat "$LOG_LEVEL_FILE" 2>/dev/null || echo "9")
-
-    local level=$1
-    local message=$2
-    local level_num=${level#lvl-}
-    local indent=""
-    local color=""
-
-    # Set color based on level
-    case $level in
-        "lvl-1") color=$RED ;;
-        "lvl-2") color=$ORANGE ;;
-        "lvl-3") color=$YELLOW ;;
-        "lvl-4") color=$GREEN ;;
-        "lvl-5") color=$CYAN ;;
-        "lvl-6") color=$BLUE ;;
-        "lvl-7") color=$INDIGO ;;
-        "lvl-8") color=$VIOLET ;;
-        "lvl-9") color=$WHITE ;; # Error level
-        *) color=$NC ;;
+    case $depth in
+        $ROOT_LEVEL)
+            prefix="    ${color}└─${LOG_NC}"
+            ;;
+        $ERROR_LEVEL)
+            prefix="                  ${color}█─${LOG_NC}"
+            ;;
+        2)
+            prefix="      ${color}└─${LOG_NC}"
+            ;;
+        *)
+            prefix="      "
+            for ((i=3; i<$depth; i++)); do
+                prefix="${prefix}${spacer}"
+            done
+            prefix="${prefix}${color}└─${LOG_NC}"
+            ;;
     esac
 
-    # Create indentation and colored indicator
-    if [ $level_num -eq 1 ]; then
-        indent="${color}    └─${NC}"
-    elif [ $level_num -eq 9 ]; then
-        indent="                  ${color}█─${NC}" # Thick line for errors
-    else
-        indent="      ${color}└─${NC}"
-        for ((i=3; i<=$level_num; i++)); do
-            indent="  $indent"
-        done
+    echo -n "$prefix"
+}
+
+# Enhanced color selection based on depth
+get_level_color() {
+    local depth=$1
+    case $depth in
+        1) echo -n "$LOG_RED" ;;
+        2) echo -n "$LOG_ORANGE" ;;
+        3) echo -n "$LOG_YELLOW" ;;
+        4) echo -n "$LOG_GREEN" ;;
+        5) echo -n "$LOG_CYAN" ;;
+        6) echo -n "$LOG_BLUE" ;;
+        7) echo -n "$LOG_INDIGO" ;;
+        8) echo -n "$LOG_VIOLET" ;;
+        9) echo -n "$LOG_WHITE" ;;
+        *) echo -n "$LOG_NC" ;;
+    esac
+}
+
+# Improved depth calculation with better parent tracking
+calculate_log_depth() {
+    local caller="${FUNCNAME[2]}"
+    local depth=$ROOT_LEVEL
+    local max_depth=$ERROR_LEVEL
+
+    [[ -z "$caller" || "$caller" == "main" ]] && echo $ROOT_LEVEL && return
+
+    if [[ -z "${LOG_PARENTS[$caller]}" && "$caller" != "main" ]]; then
+        echo 2
+        return
     fi
 
-    # Format the log message
-    if [ $level_num -eq 9 ]; then
-        # Always show error messages (level 9)
-        local formatted_message="$(date '+%Y%m%d%H%M%S') - $message"
-        echo -e "${indent}$formatted_message" | tee -a "$ERROR_LOG" >&2
-    else
-        # Only show message if level is within current ceiling
-        if [ $level_num -le $current_level ]; then
-            if [ $level_num -eq 1 ]; then
-                echo -e "${indent}$message" >&2
+    local current="$caller"
+    while [[ -n "${LOG_PARENTS[$current]}" ]]; do
+        ((depth++))
+        current="${LOG_PARENTS[$current]}"
+        if ((depth > max_depth)); then
+            echo $max_depth
+            return
+        fi
+    done
+
+    echo $depth
+}
+
+# Enhanced logging function with proper tree structure
+log() {
+    local state
+    state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
+    [[ "$state" != "true" ]] && return 0
+
+    local max_level
+    max_level=$(cat "$LOG_LEVEL_FILE" 2>/dev/null || echo "$ERROR_LEVEL")
+    [[ -z "$max_level" ]] && max_level=$ERROR_LEVEL
+
+    local command="$1"
+    local message="$2"
+    local caller="${FUNCNAME[1]}"
+    local parent="${FUNCNAME[2]}"
+
+    [[ "$command" != "lvl" ]] && {
+        echo "Invalid log command. Usage: log \"lvl\" \"message\"" >&2
+        return 1
+    }
+
+    # Update call hierarchy
+    if [[ -n "$caller" && "$caller" != "main" && -n "$parent" && "$parent" != "main" ]]; then
+        if [[ -z "${LOG_PARENTS[$caller]}" ]]; then
+            LOG_PARENTS[$caller]="$parent"
+            ((LOG_TRACKING_COUNT++))
+
+            if [[ -z "${LOG_CHILDREN[$parent]}" ]]; then
+                LOG_CHILDREN[$parent]="$caller"
             else
-                echo -e "${indent}$message"
+                LOG_CHILDREN[$parent]="${LOG_CHILDREN[$parent]}:$caller"
             fi
+
+            # Cleanup if needed
+            if ((LOG_TRACKING_COUNT > MAX_TRACKING_ENTRIES)); then
+                LOG_PARENTS=()
+                LOG_CHILDREN=()
+                LOG_TRACKING_COUNT=0
+                LOG_CURRENT_PARENT=""
+            fi
+        fi
+    fi
+
+    # Calculate depth and format output
+    local depth
+    depth=$(calculate_log_depth)
+
+    if ((depth <= max_level)); then
+        local color
+        color=$(get_level_color "$depth")
+        local indent
+        indent=$(generate_indent "$depth" "$color")
+
+        # Special handling for different message types
+        if [[ "$message" == *" initialization "* || "$message" == *"Report"* ]]; then
+            format_header "$message"
+        elif ((depth == ERROR_LEVEL)); then
+            local timestamp
+            timestamp=$(date '+%Y%m%d%H%M%S')
+            echo -e "${indent}${timestamp} - ${message}" | tee -a "$ERROR_LOG" >&2
+        elif ((depth == ROOT_LEVEL)); then
+            echo -e "${indent}${message}" >&2
+        else
+            echo -e "${indent}${message}"
         fi
     fi
 }
 
-# Simplified setlog function that uses a single number
+# Enhanced setlog function with proper formatting
 setlog() {
     local arg=$1
 
     case "$arg" in
         "off")
             echo "false" > "$LOG_STATE_FILE"
-            export LOG_TOGGLE="false"
-            log "lvl-1" "Logging has been disabled"
+            format_header "Logging has been disabled" "$LOG_RED"
             return 0
             ;;
         "on")
             echo "true" > "$LOG_STATE_FILE"
-            echo "9" > "$LOG_LEVEL_FILE"
-            export LOG_TOGGLE="true"
-            export LOG_LEVEL="9"
-            log "lvl-1" "Logging has been enabled with maximum level"
+            echo "$ERROR_LEVEL" > "$LOG_LEVEL_FILE"
+            format_header "Logging has been enabled with maximum level" "$LOG_GREEN"
             return 0
             ;;
         *)
             if [[ "$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "false")" != "true" ]]; then
-                log "lvl-1" "Logging is currently disabled. Use 'setlog on' to enable logging first."
+                format_header "Logging is currently disabled. Use 'setlog on' to enable logging first." "$LOG_YELLOW"
                 return 1
             fi
 
             if [[ $arg =~ ^[1-9]$ ]]; then
                 echo "$arg" > "$LOG_LEVEL_FILE"
-                export LOG_LEVEL="$arg"
-                log "lvl-1" "Logging level set to $arg"
+                format_header "Logging level set to $arg" "$LOG_GREEN"
+                return 0
             else
-                echo "└─Invalid input. Usage:"
-                echo "   setlog on|off    - Enable or disable logging"
-                echo "   setlog <number>  - Set maximum log level (1-9)"
+                format_header "Invalid input. Usage:" "$LOG_RED"
+                echo "       setlog on|off    - Enable or disable logging"
+                echo "       setlog <number>  - Set maximum log level (1-9)"
                 return 1
             fi
             ;;
     esac
 }
 
+# Initialize log files
+[[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
+[[ ! -f "$LOG_LEVEL_FILE" ]] && echo "$ERROR_LEVEL" > "$LOG_LEVEL_FILE"
+
 # Export functions and variables
 export -f log
 export -f setlog
-export LOG_TOGGLE
-export LOG_LEVEL
+export -f calculate_log_depth
 export LOG_STATE_FILE
 export LOG_LEVEL_FILE
 export ERROR_LOG
+export -A LOG_PARENTS
+export -A LOG_CHILDREN
+export LOG_CURRENT_PARENT
+
+# Setup cleanup trap
+trap 'LOG_PARENTS=(); LOG_CHILDREN=(); LOG_CURRENT_PARENT=""; LOG_TRACKING_COUNT=0' EXIT INT TERM
