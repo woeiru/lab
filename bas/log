@@ -1,35 +1,44 @@
 #!/bin/bash
 
 # ============================================================================
-# Advanced Automatic Hierarchical Logger
+# Advanced Automatic Hierarchical Logger v2.0
 # ============================================================================
-# This module provides automatic hierarchical logging based on the call stack
-# rather than message content. It handles:
-# - Automatic level determination from call stack
-# - Root function-based hierarchy reset
-# - Context preservation across subshells
-# - Performance optimization through caching
-# - Clean state management
+# This module provides automatic hierarchical logging with improved depth
+# handling and more consistent visual formatting. Key improvements include:
+# - Enhanced depth calculation with better call stack analysis
+# - Improved parent-child relationship tracking
+# - More consistent visual formatting
+# - Better subshell handling
+# - Comprehensive debugging capabilities
+# - Memory optimization with periodic cache cleanup
+
+# ============================================================================
+# Configuration and Environment Setup
+# ============================================================================
 
 # Directory and file setup with fallback handling
-LOG_DIR="/var/log/rc"
+LOG_DIR="${LOG_DIR:-/var/log/rc}"
 [[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp"
 LOG_FILE="${LOG_DIR}/rc_hierarchical.log"
 LOG_STATE_FILE="${LOG_DIR}/rc_log_state"
+LOG_DEBUG_FILE="${LOG_DIR}/rc_debug.log"
+
+# Enable debug mode through environment variable
+readonly LOG_DEBUG_ENABLED="${LOG_DEBUG:-0}"
 
 # ============================================================================
-# Color Management
+# Color Definitions
 # ============================================================================
-# Define colors using printf to properly handle escape sequences
-readonly LOG_RED=$(printf '\033[0;31m')      # Level 1
-readonly LOG_ORANGE=$(printf '\033[0;33m')   # Level 2
-readonly LOG_YELLOW=$(printf '\033[1;33m')   # Level 3
-readonly LOG_GREEN=$(printf '\033[0;32m')    # Level 4
-readonly LOG_CYAN=$(printf '\033[0;36m')     # Level 5
-readonly LOG_BLUE=$(printf '\033[0;34m')     # Level 6
-readonly LOG_INDIGO=$(printf '\033[0;35m')   # Level 7
-readonly LOG_VIOLET=$(printf '\033[1;35m')   # Level 8
-readonly LOG_WHITE=$(printf '\033[1;37m')    # Level 9+
+# Using printf for proper escape sequence handling
+readonly LOG_RED=$(printf '\033[0;31m')      # Level 1 (Critical)
+readonly LOG_ORANGE=$(printf '\033[0;33m')   # Level 2 (Error)
+readonly LOG_YELLOW=$(printf '\033[1;33m')   # Level 3 (Warning)
+readonly LOG_GREEN=$(printf '\033[0;32m')    # Level 4 (Success)
+readonly LOG_CYAN=$(printf '\033[0;36m')     # Level 5 (Info)
+readonly LOG_BLUE=$(printf '\033[0;34m')     # Level 6 (Debug)
+readonly LOG_INDIGO=$(printf '\033[0;35m')   # Level 7 (Trace)
+readonly LOG_VIOLET=$(printf '\033[1;35m')   # Level 8 (Detail)
+readonly LOG_WHITE=$(printf '\033[1;37m')    # Level 9+ (Extra)
 readonly LOG_NC=$(printf '\033[0m')          # No Color
 
 # ============================================================================
@@ -38,114 +47,141 @@ readonly LOG_NC=$(printf '\033[0m')          # No Color
 readonly ROOT_LEVEL=1
 readonly MAX_DEPTH=20
 readonly MAX_TRACKING_ENTRIES=1000
+readonly CACHE_CLEANUP_INTERVAL=300  # 5 minutes
 
 # ============================================================================
 # State Management
 # ============================================================================
 
-# These arrays handle the hierarchical state of the logger
+# Core state tracking
 declare -A LOG_ROOT_FUNCTIONS     # Registered root functions that reset hierarchy
 declare -A LOG_DEPTH_CACHE       # Cache of calculated depths for performance
 declare -A LOG_PARENT_CONTEXTS   # Track parent-child relationships
+declare -A LOG_STACK_TRACES      # Store stack traces for debugging
 declare -a LOG_CONTEXT_STACK     # Stack of current execution context
 declare -i LOG_CURRENT_DEPTH=0   # Current depth in the hierarchy
-
-# Challenge: State persistence across subshells
-# Solution: Use temporary files to maintain state across subshells
-LOG_STATE_DIR="/tmp/logger_state_$$"
-mkdir -p "$LOG_STATE_DIR"
-
-# Cleanup function to remove temporary state
-cleanup_logger_state() {
-    rm -rf "$LOG_STATE_DIR"
-    LOG_ROOT_FUNCTIONS=()
-    LOG_DEPTH_CACHE=()
-    LOG_PARENT_CONTEXTS=()
-    LOG_CONTEXT_STACK=()
-    LOG_CURRENT_DEPTH=0
-}
-
-# Ensure cleanup happens on script exit
-trap cleanup_logger_state EXIT
+declare -i LAST_CACHE_CLEANUP=0  # Timestamp of last cache cleanup
 
 # ============================================================================
-# Root Function Management
+# Debug Support Functions
 # ============================================================================
 
-# Challenge: Defining hierarchy reset points
-# Solution: Maintain a registry of root functions that reset the hierarchy
-register_root_function() {
-    local func_name="$1"
-    LOG_ROOT_FUNCTIONS["$func_name"]=1
-    # Persist root function registration for subshells
-    echo "$func_name" >> "$LOG_STATE_DIR/root_functions"
+# Enhanced debug logging function
+debug_log() {
+    [[ "${LOG_DEBUG_ENABLED}" != "1" ]] && return 0
+
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local message="$1"
+    printf "[DEBUG] %s - %s\n" "$timestamp" "$message" >> "$LOG_DEBUG_FILE"
 }
 
-is_root_function() {
-    local func_name="$1"
-    [[ -n "${LOG_ROOT_FUNCTIONS[$func_name]:-}" ]]
+# Function to dump current stack trace
+dump_stack_trace() {
+    local func="${1:-${FUNCNAME[1]}}"
+    debug_log "Stack trace for $func:"
+    local i=0
+    while [[ -n "${FUNCNAME[$i]:-}" ]]; do
+        debug_log "  $i: ${FUNCNAME[$i]:-main} (${BASH_SOURCE[$i]:-unknown}:${BASH_LINENO[$i]:-0})"
+        ((i++))
+    done
 }
 
 # ============================================================================
-# Context Management
+# Cache Management
 # ============================================================================
 
-# Challenge: Maintaining correct context across function calls
-# Solution: Stack-based context tracking with file persistence
-push_context() {
-    local context="$1"
-    LOG_CONTEXT_STACK+=("$context")
-    # Persist context for subshells
-    echo "${LOG_CONTEXT_STACK[*]}" > "$LOG_STATE_DIR/context_stack"
-}
-
-pop_context() {
-    local stack_size=${#LOG_CONTEXT_STACK[@]}
-    if ((stack_size > 0)); then
-        unset 'LOG_CONTEXT_STACK[stack_size-1]'
-        # Update persisted context
-        echo "${LOG_CONTEXT_STACK[*]}" > "$LOG_STATE_DIR/context_stack"
+# Periodic cache cleanup to prevent memory bloat
+cleanup_cache() {
+    local current_time=$(date +%s)
+    if ((current_time - LAST_CACHE_CLEANUP >= CACHE_CLEANUP_INTERVAL)); then
+        debug_log "Performing cache cleanup"
+        LOG_DEPTH_CACHE=()
+        LAST_CACHE_CLEANUP=$current_time
     fi
 }
 
 # ============================================================================
-# Call Stack Analysis
+# Core Logging Functions
 # ============================================================================
 
-# Challenge: Accurate stack depth calculation
-# Solution: Walk the call stack until we hit a root function or top
+# Improved depth calculation with better stack analysis
 calculate_stack_depth() {
     local current_func="${FUNCNAME[1]:-main}"
     local depth=0
 
+    # Perform cache cleanup if needed
+    cleanup_cache
+
+    debug_log "Calculating depth for function: $current_func"
+
     # Check cache first for performance
     if [[ -n "${LOG_DEPTH_CACHE[$current_func]:-}" ]]; then
+        debug_log "Cache hit for $current_func: ${LOG_DEPTH_CACHE[$current_func]}"
         echo "${LOG_DEPTH_CACHE[$current_func]}"
         return
     fi
 
-    # Walk up the call stack
+    # Walk up the call stack with improved tracking
     local i=1
+    local prev_func=""
+    local stack_trace=""
+
     while [[ -n "${FUNCNAME[$i]:-}" ]]; do
         local func="${FUNCNAME[$i]}"
+        stack_trace+="$func:"
 
-        # Reset depth at root functions
+        # Root function detection
         if is_root_function "$func"; then
+            debug_log "Found root function: $func"
             break
         fi
 
+        # Skip direct recursion
+        if [[ "$func" == "$prev_func" ]]; then
+            debug_log "Detected recursion: $func"
+            continue
+        fi
+
+        # Track parent-child relationship
+        if [[ -n "$prev_func" ]]; then
+            LOG_PARENT_CONTEXTS["$prev_func"]="$func"
+        fi
+
         ((depth++))
+        prev_func="$func"
         ((i++))
     done
 
-    # Cache the result for better performance
+    # Store results
     LOG_DEPTH_CACHE[$current_func]=$depth
+    LOG_STACK_TRACES[$current_func]=$stack_trace
+
+    debug_log "Calculated depth for $current_func: $depth"
     echo "$depth"
 }
 
-# ============================================================================
-# Formatting Helpers
-# ============================================================================
+# Improved indentation generation
+get_indent() {
+    local depth="$1"
+    local base_indent="    "  # 4 spaces for base level
+
+    case $depth in
+        0)  # Root level
+            echo -n "$base_indent"
+            ;;
+        1)  # First level indent
+            echo -n "      "  # 6 spaces
+            ;;
+        *)  # Deeper levels
+            local indent="      "  # Start with 6 spaces
+            for ((i=2; i<=depth; i++)); do
+                indent="  $indent"  # Add 2 spaces per level
+            done
+            echo -n "$indent"
+            ;;
+    esac
+    echo -n "└─"  # Add the tree connector
+}
 
 # Get appropriate color for current depth
 get_color() {
@@ -163,32 +199,9 @@ get_color() {
     esac
 }
 
-# Calculate indentation based on depth
-get_indent() {
-    local depth="$1"
-    local base_indent="    "  # Base indentation for root level
-
-    case $depth in
-        0)  echo -n "${base_indent}" ;;
-        1)  echo -n "      " ;;
-        *)  # For deeper levels, add two spaces per level
-            local indent="      "
-            for ((i=2; i<=depth; i++)); do
-                indent="  $indent"
-            done
-            echo -n "$indent"
-            ;;
-    esac
-    echo -n "└─"
-}
-
-# ============================================================================
-# Main Logging Function
-# ============================================================================
-
-# The primary logging function that combines all functionality
+# Main logging function with improved formatting
 log() {
-    # Validate arguments
+    # Validate input
     if [[ "$1" != "lvl" ]]; then
         echo "Error: Invalid log command" >&2
         return 1
@@ -200,11 +213,9 @@ log() {
     log_enabled=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
     [[ "$log_enabled" != "true" ]] && return 0
 
-    # Calculate depth based on call stack
+    # Calculate depth and get formatting
     local depth
     depth=$(calculate_stack_depth)
-
-    # Get formatting elements
     local indent
     indent=$(get_indent "$depth")
     local color
@@ -212,7 +223,6 @@ log() {
     local timestamp
     timestamp=$(date '+%H:%M:%S')
 
-    # Format and output the message
     # Special handling for report headers
     if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
         printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" | tee -a "$LOG_FILE"
@@ -225,10 +235,37 @@ log() {
             "$LOG_NC" | tee -a "$LOG_FILE"
     fi
 
-    # Maintain context
+    # Update context
     local current_func="${FUNCNAME[1]:-main}"
     if [[ -n "$current_func" && "$current_func" != "main" ]]; then
         push_context "$current_func"
+    fi
+
+    # Debug logging if enabled
+    if [[ "${LOG_DEBUG_ENABLED}" == "1" ]]; then
+        debug_log "Logged message from $current_func (depth: $depth)"
+        dump_stack_trace "$current_func"
+    fi
+}
+
+# ============================================================================
+# Context Management
+# ============================================================================
+
+# Push new context onto the stack
+push_context() {
+    local context="$1"
+    LOG_CONTEXT_STACK+=("$context")
+    debug_log "Pushed context: $context"
+}
+
+# Pop context from the stack
+pop_context() {
+    local stack_size=${#LOG_CONTEXT_STACK[@]}
+    if ((stack_size > 0)); then
+        local popped="${LOG_CONTEXT_STACK[stack_size-1]}"
+        unset 'LOG_CONTEXT_STACK[stack_size-1]'
+        debug_log "Popped context: $popped"
     fi
 }
 
@@ -249,7 +286,7 @@ setlog() {
             ;;
         *)
             if [[ "$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "false")" != "true" ]]; then
-                printf "%sLogging is currently disabled. Use 'setlog on' to enable first.%s\n" \
+                printf "%sLogging is currently disabled. Use 'setlog on' to enable.%s\n" \
                     "$LOG_YELLOW" "$LOG_NC"
                 return 1
             fi
@@ -280,7 +317,7 @@ print_hierarchy() {
 }
 
 # ============================================================================
-# Initialize Logger
+# Initialization
 # ============================================================================
 
 init_logger() {
@@ -291,13 +328,99 @@ init_logger() {
     [[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
 
     # Clear any existing state
-    cleanup_logger_state
+    LOG_ROOT_FUNCTIONS=()
+    LOG_DEPTH_CACHE=()
+    LOG_PARENT_CONTEXTS=()
+    LOG_STACK_TRACES=()
+    LOG_CONTEXT_STACK=()
+    LOG_CURRENT_DEPTH=0
+    LAST_CACHE_CLEANUP=$(date +%s)
 
-    # Initialize new state directory
-    mkdir -p "$LOG_STATE_DIR"
+    # Initialize debug log if enabled
+    if [[ "${LOG_DEBUG_ENABLED}" == "1" ]]; then
+        : > "$LOG_DEBUG_FILE"
+        debug_log "Logger initialized"
+    fi
 
     # Create initial log entry
     printf "Logger initialized at %s\n" "$(date)" > "$LOG_FILE"
+}
+
+# ============================================================================
+# Cleanup
+# ============================================================================
+
+cleanup_logger() {
+    debug_log "Cleaning up logger state"
+    LOG_ROOT_FUNCTIONS=()
+    LOG_DEPTH_CACHE=()
+    LOG_PARENT_CONTEXTS=()
+    LOG_STACK_TRACES=()
+    LOG_CONTEXT_STACK=()
+    LOG_CURRENT_DEPTH=0
+}
+
+# ============================================================================
+# Root Function Detection
+# ============================================================================
+
+# Initialize array of known root functions
+declare -gA ROOT_FUNCTIONS=(
+    [main_rc]=1
+    [setup_rc]=1
+    [source_rc]=1
+    [execution_rc]=1
+    [set_static]=1
+    [set_dynamic]=1
+    [set_aliaswrap]=1
+)
+
+# Function to register additional root functions
+register_root_function() {
+    local func_name="$1"
+    ROOT_FUNCTIONS[$func_name]=1
+    debug_log "Registered root function: $func_name"
+}
+
+# Function to check if a function is a root function
+is_root_function() {
+    local func_name="$1"
+
+    # Debug logging for root function checks
+    debug_log "Checking if $func_name is root function"
+
+    # Check if function is in ROOT_FUNCTIONS array
+    if [[ -n "${ROOT_FUNCTIONS[$func_name]:-}" ]]; then
+        debug_log "$func_name is a registered root function"
+        return 0
+    fi
+
+    # Check for common root function patterns
+    case "$func_name" in
+        main_*|setup_*|source_*|execution_*|set_*)
+            debug_log "$func_name matches root function pattern"
+            return 0
+            ;;
+    esac
+
+    # Check if function has specific root markers in its definition
+    local func_def
+    func_def=$(declare -f "$func_name" 2>/dev/null)
+    if [[ "$func_def" =~ ^[[:space:]]*#[[:space:]]*@root[[:space:]]*$ ]]; then
+        debug_log "$func_name has @root annotation"
+        return 0
+    fi
+
+    debug_log "$func_name is not a root function"
+    return 1
+}
+
+# Function to list all registered root functions
+list_root_functions() {
+    printf "Registered Root Functions:\n"
+    for func in "${!ROOT_FUNCTIONS[@]}"; do
+        printf "  - %s\n" "$func"
+    done
 }
 
 # ============================================================================
@@ -306,10 +429,17 @@ init_logger() {
 
 export -f log
 export -f setlog
-export -f register_root_function
 export -f print_hierarchy
 export LOG_FILE
 export LOG_STATE_FILE
+export -f register_root_function
+export -f is_root_function
+export -f list_root_functions
+export -A ROOT_FUNCTIONS
+
+
+# Set up cleanup trap
+trap cleanup_logger EXIT
 
 # Initialize logger on source
 init_logger
