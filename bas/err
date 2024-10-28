@@ -39,10 +39,6 @@ clean_exit() {
 }
 
 # Enhanced error handler function with error code support
-# Parameters:
-#   $1: Line number where error occurred
-#   $2: Error code (optional, defaults to GENERAL_ERROR)
-#   $3: Is optional component (optional, defaults to false)
 error_handler() {
     local line_number="$1"
     local error_code="${2:-${ERROR_CODES[GENERAL_ERROR]}}"
@@ -64,7 +60,7 @@ error_handler() {
     # Generate unique error ID
     local error_id="${timestamp}_${component}_${line_number}"
 
-    # Store error information
+    # Store error information with enhanced type tracking
     ERROR_COMPONENTS[$error_id]="$component"
     ERROR_MESSAGES[$error_id]="[$error_desc] Command '$command' failed on line $line_number"
     ERROR_TIMESTAMPS[$error_id]="$timestamp"
@@ -78,10 +74,12 @@ error_handler() {
 
     {
         echo "└─ $severity_prefix($error_desc) $timestamp - In $source_file on line $line_number: Command '$command' exited with status $error_code"
-    } | tee -a "$ERROR_LOG" >&2  # Write to both error log and stderr
+    } | tee -a "$ERROR_LOG" >&2
 
+    # Don't return success for non-optional errors
     return $([[ "$is_optional" == "true" ]] && echo "${ERROR_CODES[SUCCESS]}" || echo "$error_code")
 }
+
 
 # Function to check if a component has any errors
 # Parameters:
@@ -101,26 +99,97 @@ has_errors() {
 }
 
 # Enhanced error report with severity levels and grouping
+# Enhanced error reporting function
 print_error_report() {
-    local total_errors=${#ERROR_ORDER[@]}
+    local total_errors=0
+    local total_warnings=0
+    local error_types=()
+    local warnings_by_type=()
 
-    if [[ $total_errors -eq 0 ]]; then
-        echo " ━ No errors detected during startup" >&2
-        return ${ERROR_CODES[SUCCESS]}
-    fi
+    # Count and categorize issues
+    for error_id in "${ERROR_ORDER[@]}"; do
+        local error_code="${ERROR_EXIT_CODES[$error_id]}"
+        local is_optional="${ERROR_SEVERITIES[$error_id]}"
 
+        if [[ "$is_optional" == "true" ]]; then
+            ((total_warnings++))
+            warnings_by_type[$error_code]=$((${warnings_by_type[$error_code]:-0} + 1))
+        else
+            ((total_errors++))
+            error_types[$error_code]=$((${error_types[$error_code]:-0} + 1))
+        fi
+    done
+
+    # Print report header
     {
         printf "\n"
         printf " ━ RC Error Report\n"
         printf " ━ Generated: %s\n" "$(date)"
-        printf " ━ Total errors: %d\n" "$total_errors"
+        printf " ━ Total issues: %d (Errors: %d, Warnings: %d)\n" "$((total_errors + total_warnings))" "$total_errors" "$total_warnings"
         printf "\n"
 
-        # Error details here...
+        # Print errors first if any exist
+        if ((total_errors > 0)); then
+            printf " ━ Errors by type:\n"
+            for code in "${!error_types[@]}"; do
+                local count=${error_types[$code]}
+                local desc
+                for key in "${!ERROR_CODES[@]}"; do
+                    if [[ ${ERROR_CODES[$key]} -eq $code ]]; then
+                        desc="$key"
+                        break
+                    fi
+                done
+                printf "   └─ %s: %d occurrences\n" "$desc" "$count"
+            done
+            printf "\n"
+
+            printf " ━ Error details:\n"
+            for error_id in "${ERROR_ORDER[@]}"; do
+                if [[ "${ERROR_SEVERITIES[$error_id]}" != "true" ]]; then
+                    printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
+                    printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
+                fi
+            done
+            printf "\n"
+        fi
+
+        # Print warnings if any exist
+        if ((total_warnings > 0)); then
+            printf " ━ Warnings by type:\n"
+            for code in "${!warnings_by_type[@]}"; do
+                local count=${warnings_by_type[$code]}
+                local desc
+                for key in "${!ERROR_CODES[@]}"; do
+                    if [[ ${ERROR_CODES[$key]} -eq $code ]]; then
+                        desc="$key"
+                        break
+                    fi
+                done
+                printf "   └─ %s: %d occurrences\n" "$desc" "$count"
+            done
+            printf "\n"
+
+            printf " ━ Warning details:\n"
+            for error_id in "${ERROR_ORDER[@]}"; do
+                if [[ "${ERROR_SEVERITIES[$error_id]}" == "true" ]]; then
+                    printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
+                    printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
+                fi
+            done
+            printf "\n"
+        fi
+
+        if ((total_errors + total_warnings == 0)); then
+            printf " ━ No issues detected during startup\n"
+        fi
 
         printf " ━ Error log file: %s\n" "$ERROR_LOG"
         printf "\n"
-    } >&2  # Send entire error report to stderr
+    } >&2
+
+    # Return non-zero if there were any non-optional errors
+    return $((total_errors > 0 ? 1 : 0))
 }
 
 # Set up error handling
