@@ -36,29 +36,33 @@ declare -i LOG_TRACKING_COUNT=0
 declare -i _LOG_DEPTH=0
 declare -g _LOG_IN_PROGRESS=0
 declare -g _LOG_LAST_MESSAGE=""
+declare -a LOG_CONTEXT_STACK=()
+
+# Stack management functions
+push_context() {
+    LOG_CONTEXT_STACK+=("$1")
+    LOG_CURRENT_PARENT="$1"
+}
+
+pop_context() {
+    local len=${#LOG_CONTEXT_STACK[@]}
+    if ((len > 0)); then
+        unset 'LOG_CONTEXT_STACK[len-1]'
+        len=${#LOG_CONTEXT_STACK[@]}
+        if ((len > 0)); then
+            LOG_CURRENT_PARENT="${LOG_CONTEXT_STACK[len-1]}"
+        else
+            LOG_CURRENT_PARENT=""
+        fi
+    fi
+}
 
 # Enhanced component depth calculation
 calculate_log_depth() {
     local component="${1:-}"
     [[ -z "$component" ]] && echo 0 && return
 
-    local depth=0
-    local current="$component"
-    local visited=()
-
-    while [[ -n "${LOG_PARENTS[$current]:-}" ]]; do
-        # Check for circular references
-        for v in "${visited[@]}"; do
-            [[ "$v" == "$current" ]] && echo "$depth" && return
-        done
-        visited+=("$current")
-
-        ((depth++))
-        current="${LOG_PARENTS[$current]}"
-        [[ $depth -gt $MAX_DEPTH ]] && break
-    done
-
-    echo "$depth"
+    echo "${LOG_LEVELS[$component]:-0}"
 }
 
 # Improved color selection based on depth
@@ -77,7 +81,7 @@ get_log_color() {
     esac
 }
 
-# Fixed indentation generator
+# Fixed indentation generator with better depth handling
 generate_log_indent() {
     local depth="${1:-0}"
     local depth_indent=""
@@ -102,28 +106,56 @@ update_component_hierarchy() {
     local parent="${2:-}"
 
     [[ -z "$component" || "$component" == "main" ]] && return
-    [[ -z "$parent" || "$parent" == "main" ]] && return
+
+    # If no explicit parent is provided, use current context
+    if [[ -z "$parent" || "$parent" == "main" ]]; then
+        parent="$LOG_CURRENT_PARENT"
+    fi
 
     # Check tracking limit
     if ((LOG_TRACKING_COUNT >= MAX_TRACKING_ENTRIES)); then
         return
     fi
 
-    # Only update if relationship doesn't exist
-    if [[ -z "${LOG_PARENTS[$component]:-}" ]]; then
-        LOG_PARENTS[$component]="$parent"
-        ((LOG_TRACKING_COUNT++))
+    # Only update if relationship doesn't exist or parent has changed
+    if [[ -n "$parent" && "$parent" != "main" ]]; then
+        if [[ -z "${LOG_PARENTS[$component]:-}" || "${LOG_PARENTS[$component]}" != "$parent" ]]; then
+            LOG_PARENTS[$component]="$parent"
+            ((LOG_TRACKING_COUNT++))
 
-        # Update children tracking
-        if [[ -z "${LOG_CHILDREN[$parent]:-}" ]]; then
-            LOG_CHILDREN[$parent]="$component"
-        else
-            LOG_CHILDREN[$parent]="${LOG_CHILDREN[$parent]}:$component"
+            # Update children tracking
+            if [[ -z "${LOG_CHILDREN[$parent]:-}" ]]; then
+                LOG_CHILDREN[$parent]="$component"
+            else
+                # Check if component is not already in children list
+                if [[ ! "${LOG_CHILDREN[$parent]}" =~ (^|:)${component}($|:) ]]; then
+                    LOG_CHILDREN[$parent]="${LOG_CHILDREN[$parent]}:$component"
+                fi
+            fi
+
+            # Calculate and store level
+            local parent_level="${LOG_LEVELS[$parent]:-0}"
+            LOG_LEVELS[$component]=$((parent_level + 1))
+        fi
+    else
+        # Root level component
+        LOG_LEVELS[$component]=0
+        # Clear any existing parent relationship
+        if [[ -n "${LOG_PARENTS[$component]:-}" ]]; then
+            local old_parent="${LOG_PARENTS[$component]}"
+            unset "LOG_PARENTS[$component]"
+            # Remove from old parent's children
+            if [[ -n "${LOG_CHILDREN[$old_parent]:-}" ]]; then
+                LOG_CHILDREN[$old_parent]="${LOG_CHILDREN[$old_parent]//:$component/}"
+                LOG_CHILDREN[$old_parent]="${LOG_CHILDREN[$old_parent]/$component:/}"
+                LOG_CHILDREN[$old_parent]="${LOG_CHILDREN[$old_parent]/$component/}"
+                [[ -z "${LOG_CHILDREN[$old_parent]}" ]] && unset "LOG_CHILDREN[$old_parent]"
+            fi
         fi
     fi
 }
 
-# Improved logging function with better state management
+# Improved logging function with context management
 log() {
     # Prevent recursive logging and deep nesting
     ((_LOG_IN_PROGRESS > 2 || _LOG_DEPTH > MAX_DEPTH)) && return 0
@@ -142,11 +174,11 @@ log() {
     local max_level
     max_level=$(cat "$LOG_LEVEL_FILE" 2>/dev/null || echo "$ERROR_LEVEL")
 
-    # Parse input parameters
+    # Parse input parameters with context awareness
     local command="${1:-}"
     local message="${2:-}"
     local component="${3:-${FUNCNAME[1]:-unknown}}"
-    local parent="${FUNCNAME[2]:-}"
+    local explicit_parent="${4:-}"
 
     # Validate command
     [[ "$command" != "lvl" ]] && return 1
@@ -155,8 +187,14 @@ log() {
     [[ "$message" == "$_LOG_LAST_MESSAGE" ]] && return 0
     _LOG_LAST_MESSAGE="$message"
 
-    # Update hierarchy
-    update_component_hierarchy "$component" "$parent"
+    # Update hierarchy with proper context
+    if [[ -n "$explicit_parent" ]]; then
+        update_component_hierarchy "$component" "$explicit_parent"
+        push_context "$component"
+    else
+        update_component_hierarchy "$component" "$LOG_CURRENT_PARENT"
+        push_context "$component"
+    fi
 
     # Calculate depth and validate against maximum level
     local depth
@@ -170,7 +208,7 @@ log() {
         local timestamp
         timestamp=$(date '+%H:%M:%S')
 
-        # Format and output the message
+        # Format and output the message with proper indentation
         if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
             printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC"
         elif ((depth == 0)); then
@@ -179,9 +217,14 @@ log() {
             printf "%s%s %s [%s]%s\n" "$color" "$indent" "$message" "$timestamp" "$LOG_NC"
         fi
     fi
+
+    # Handle end of context
+    if [[ "$message" == *"completed"* || "$message" == *"finished"* || "$message" == *"ended"* ]]; then
+        pop_context
+    fi
 }
 
-# Enhanced component tree printing
+# Print enhanced component tree
 print_log_component_tree() {
     local component="${1:-}"
     [[ -z "$component" ]] && return
@@ -211,7 +254,45 @@ print_log_component_tree() {
     fi
 }
 
-# Rest of the functions remain largely the same but with improved error handling...
+# Enhanced print report function
+print_log_report() {
+    local current_state
+    current_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
+    [[ "$current_state" != "true" ]] && return 0
+
+    printf "\n"
+    printf " %s━ Log Report%s\n" "$LOG_BLUE" "$LOG_NC"
+    printf " %s━ Generated: %s%s%s\n" "$LOG_BLUE" "$LOG_CYAN" "$(date)" "$LOG_NC"
+    printf "\n"
+
+    local root_components=()
+    for comp in "${!LOG_LEVELS[@]}"; do
+        if [[ "${LOG_LEVELS[$comp]}" -eq 0 ]]; then
+            root_components+=("$comp")
+        fi
+    done
+
+    if ((${#root_components[@]} > 0)); then
+        printf " %s━ Component Hierarchy:%s\n" "$LOG_BLUE" "$LOG_NC"
+        printf "\n"
+
+        IFS=$'\n'
+        root_components=($(printf "%s\n" "${root_components[@]}" | sort))
+        unset IFS
+
+        for comp in "${root_components[@]}"; do
+            print_log_component_tree "$comp"
+        done
+    else
+        printf " %s━ No components to report%s\n" "$LOG_YELLOW" "$LOG_NC"
+    fi
+
+    printf "\n"
+    printf " %s━ Log file: %s%s%s\n" "$LOG_BLUE" "$LOG_CYAN" "$ERROR_LOG" "$LOG_NC"
+    printf "\n"
+}
+
+# Enhanced setlog function
 setlog() {
     local arg="${1:-}"
     local color
@@ -253,7 +334,7 @@ setlog() {
     esac
 }
 
-# Cleanup function with proper reset
+# Enhanced cleanup function
 cleanup_log() {
     _LOG_IN_PROGRESS=0
     _LOG_DEPTH=0
@@ -263,6 +344,7 @@ cleanup_log() {
     LOG_CURRENT_PARENT=""
     LOG_TRACKING_COUNT=0
     _LOG_LAST_MESSAGE=""
+    LOG_CONTEXT_STACK=()
 }
 
 # Initialize log files with error checking
@@ -277,12 +359,16 @@ export -f setlog
 export -f calculate_log_depth
 export -f print_log_component_tree
 export -f print_log_report
+export -f push_context
+export -f pop_context
 export LOG_STATE_FILE
 export LOG_LEVEL_FILE
 export ERROR_LOG
 export -A LOG_PARENTS
 export -A LOG_CHILDREN
 export -A LOG_LEVELS
+export LOG_CURRENT_PARENT
+export -a LOG_CONTEXT_STACK
 
 # Set up cleanup trap
 trap cleanup_log EXIT INT TERM
