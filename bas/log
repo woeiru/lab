@@ -31,6 +31,7 @@ declare -A LOG_PARENTS
 declare -A LOG_CHILDREN
 declare -g LOG_CURRENT_PARENT=""
 declare -i LOG_TRACKING_COUNT=0
+declare -g _LOG_IN_PROGRESS=0
 
 # Calculate component depth based on call hierarchy
 calculate_log_depth() {
@@ -85,9 +86,18 @@ generate_log_indent() {
 
 # Enhanced logging function with tree structure
 log() {
+    # Prevent recursive logging
+    if (( _LOG_IN_PROGRESS > 0 )); then
+        return 0
+    fi
+    let _LOG_IN_PROGRESS+=1
+
     local state
     state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-    [[ "$state" != "true" ]] && return 0
+    [[ "$state" != "true" ]] && {
+        let _LOG_IN_PROGRESS-=1
+        return 0
+    }
 
     local max_level
     max_level=$(cat "$LOG_LEVEL_FILE" 2>/dev/null || echo "$ERROR_LEVEL")
@@ -99,6 +109,7 @@ log() {
 
     [[ "$command" != "lvl" ]] && {
         echo "Invalid log command. Usage: log \"lvl\" \"message\" [component]" >&2
+        let _LOG_IN_PROGRESS-=1
         return 1
     }
 
@@ -137,6 +148,8 @@ log() {
             printf "%s %s - %s%s\n" "$indent" "$timestamp" "$message" "$LOG_NC"
         fi
     fi
+
+    let _LOG_IN_PROGRESS-=1
 }
 
 # Enhanced setlog function with better formatting
@@ -237,6 +250,7 @@ print_log_component_tree() {
 
 # Cleanup function
 cleanup_log() {
+    _LOG_IN_PROGRESS=0
     LOG_PARENTS=()
     LOG_CHILDREN=()
     LOG_CURRENT_PARENT=""
