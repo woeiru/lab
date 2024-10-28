@@ -4,6 +4,7 @@ set -o pipefail
 # Set up important directory paths
 DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
 PARENT_DIR="/root/lab"
+export LAB_DIR="$PARENT_DIR"
 
 # Initialize timer at the very start
 [[ -z "${BAS_DIR:-}" ]] && readonly BAS_DIR="$PARENT_DIR/bas"
