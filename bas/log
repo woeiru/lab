@@ -18,10 +18,21 @@
 
 # Directory and file setup with fallback handling
 LOG_DIR="${LOG_DIR:-/var/log/rc}"
+TMP_DIR="${TMP_DIR:-/tmp}"  # New temporary directory for state files
+
+# Ensure directories exist with fallbacks
 [[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/var/log/rc"
+[[ ! -d "$TMP_DIR" ]] && mkdir -p "$TMP_DIR" 2>/dev/null || TMP_DIR="/tmp"
+
+# Log files
 LOG_FILE="${LOG_DIR}/rc_hierarchical.log"
-LOG_STATE_FILE="${LOG_DIR}/rc_log_state"
 LOG_DEBUG_FILE="${LOG_DIR}/rc_debug.log"
+
+# State files (now in TMP_DIR)
+LOG_STATE_FILE="${TMP_DIR}/rc_log_state"
+LOG_DEPTH_CACHE_FILE="${TMP_DIR}/rc_depth_cache"
+LOG_CONTEXT_FILE="${TMP_DIR}/rc_context"
+LOG_TRACE_FILE="${TMP_DIR}/rc_trace"
 
 # Enable debug mode through environment variable
 readonly LOG_DEBUG_ENABLED="${LOG_DEBUG:-1}"
@@ -62,6 +73,34 @@ declare -a LOG_CONTEXT_STACK     # Stack of current execution context
 declare -i LOG_CURRENT_DEPTH=0   # Current depth in the hierarchy
 declare -i LAST_CACHE_CLEANUP=0  # Timestamp of last cache cleanup
 
+# Function to ensure state file directories exist
+ensure_state_directories() {
+    local dirs=("$LOG_DIR" "$TMP_DIR")
+    local success=true
+
+    for dir in "${dirs[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            if ! mkdir -p "$dir" 2>/dev/null; then
+                echo "Warning: Failed to create directory: $dir" >&2
+                success=false
+            fi
+        fi
+    done
+
+    $success
+}
+
+# Function to initialize state files
+init_state_files() {
+    # Initialize log state file if it doesn't exist
+    [[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
+
+    # Initialize other state files if needed
+    [[ ! -f "$LOG_DEPTH_CACHE_FILE" ]] && touch "$LOG_DEPTH_CACHE_FILE"
+    [[ ! -f "$LOG_CONTEXT_FILE" ]] && touch "$LOG_CONTEXT_FILE"
+    [[ ! -f "$LOG_TRACE_FILE" ]] && touch "$LOG_TRACE_FILE"
+}
+
 # ============================================================================
 # Debug Support Functions
 # ============================================================================
@@ -96,6 +135,7 @@ cleanup_cache() {
     if ((current_time - LAST_CACHE_CLEANUP >= CACHE_CLEANUP_INTERVAL)); then
         debug_log "Performing cache cleanup"
         LOG_DEPTH_CACHE=()
+        : > "$LOG_DEPTH_CACHE_FILE"  # Clear cache file
         LAST_CACHE_CLEANUP=$current_time
     fi
 }
@@ -337,11 +377,14 @@ print_hierarchy() {
 # ============================================================================
 
 init_logger() {
-    # Create required directories
-    mkdir -p "$LOG_DIR"
+    # Ensure required directories exist
+    ensure_state_directories || {
+        echo "Fatal: Failed to initialize logger directories" >&2
+        return 1
+    }
 
-    # Initialize log state file
-    [[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
+    # Initialize state files
+    init_state_files
 
     # Clear any existing state
     LOG_ROOT_FUNCTIONS=()
@@ -356,10 +399,14 @@ init_logger() {
     if [[ "${LOG_DEBUG_ENABLED}" == "1" ]]; then
         : > "$LOG_DEBUG_FILE"
         debug_log "Logger initialized"
+        debug_log "Using LOG_DIR: $LOG_DIR"
+        debug_log "Using TMP_DIR: $TMP_DIR"
     fi
 
     # Create initial log entry
     printf "Logger initialized at %s\n" "$(date)" > "$LOG_FILE"
+    printf "Using LOG_DIR: %s\n" "$LOG_DIR" >> "$LOG_FILE"
+    printf "Using TMP_DIR: %s\n" "$TMP_DIR" >> "$LOG_FILE"
 }
 
 # ============================================================================
@@ -374,6 +421,9 @@ cleanup_logger() {
     LOG_STACK_TRACES=()
     LOG_CONTEXT_STACK=()
     LOG_CURRENT_DEPTH=0
+
+    # Clean up state files in TMP_DIR
+    rm -f "$LOG_DEPTH_CACHE_FILE" "$LOG_CONTEXT_FILE" "$LOG_TRACE_FILE"
 }
 
 # ============================================================================
@@ -432,11 +482,11 @@ export -f setlog
 export -f print_hierarchy
 export LOG_FILE
 export LOG_STATE_FILE
+export TMP_DIR
 export -f register_root_function
 export -f is_root_function
 export -f list_root_functions
 export -A ROOT_FUNCTIONS
-
 
 # Set up cleanup trap
 trap cleanup_logger EXIT
