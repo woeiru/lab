@@ -58,6 +58,32 @@ generate_readme_aliases() {
     end_nested_timing "gen_readme_aliases" "success"
 }
 
+generate_level_one_vars_and_aliases() {
+    start_nested_timing "gen_level_one"
+    log "lvl" "Generating top-level directory aliases"
+
+    # Single timer for directory processing
+    start_nested_timing "process_directories"
+    for dir in "$LAB_DIR"/*; do
+        if [[ -d "$dir" ]]; then
+            base=$(basename "$dir")
+            if [[ ${#base} -eq 3 ]]; then
+                log "lvl" "Processing directory: $base"
+                var_name="${base^^}_DIR"
+                dir_path=$(realpath "$dir")
+                if [[ -z "${!var_name:-}" ]]; then
+                    declare -g "$var_name=$dir_path"
+                fi
+                alias "d-$base=cd $dir_path"
+                log "lvl" "Created alias: d-$base -> cd $dir_path"
+            fi
+        fi
+    done
+    end_nested_timing "process_directories" "success"
+
+    end_nested_timing "gen_level_one" "success"
+}
+
 # Improved level two arrays generation with error handling
 generate_level_two_arrays() {
     start_nested_timing "gen_level_two"
