@@ -156,6 +156,7 @@ update_component_hierarchy() {
 }
 
 # Improved logging function with context management
+# Enhanced logging function with proper context management
 log() {
     # Prevent recursive logging and deep nesting
     ((_LOG_IN_PROGRESS > 2 || _LOG_DEPTH > MAX_DEPTH)) && return 0
@@ -187,13 +188,32 @@ log() {
     [[ "$message" == "$_LOG_LAST_MESSAGE" ]] && return 0
     _LOG_LAST_MESSAGE="$message"
 
-    # Update hierarchy with proper context
-    if [[ -n "$explicit_parent" ]]; then
+    # Context management based on message content
+    if [[ "$message" =~ ^Starting|^Executing|^Processing|^Generating ]]; then
+        # Push new context only if this is a "start" message
         update_component_hierarchy "$component" "$explicit_parent"
         push_context "$component"
+    elif [[ "$message" =~ completed$|finished$|ended$|^Created|^Found|^Successfully ]]; then
+        # Pop context if this is an "end" message, but log the message first
+        local current_depth
+        current_depth=$(calculate_log_depth "$component")
+
+        if ((current_depth <= max_level)); then
+            local color
+            color=$(get_log_color "$current_depth")
+            local indent
+            indent=$(generate_log_indent "$current_depth")
+            local timestamp
+            timestamp=$(date '+%H:%M:%S')
+
+            printf "%s%s %s [%s]%s\n" "$color" "$indent" "$message" "$timestamp" "$LOG_NC"
+        fi
+
+        pop_context
+        return 0
     else
+        # For other messages, maintain current context
         update_component_hierarchy "$component" "$LOG_CURRENT_PARENT"
-        push_context "$component"
     fi
 
     # Calculate depth and validate against maximum level
@@ -217,11 +237,12 @@ log() {
             printf "%s%s %s [%s]%s\n" "$color" "$indent" "$message" "$timestamp" "$LOG_NC"
         fi
     fi
+}
 
-    # Handle end of context
-    if [[ "$message" == *"completed"* || "$message" == *"finished"* || "$message" == *"ended"* ]]; then
-        pop_context
-    fi
+# Helper function to determine if a message indicates task completion
+is_completion_message() {
+    local message="$1"
+    [[ "$message" =~ completed$|finished$|ended$|^Created|^Found|^Successfully ]]
 }
 
 # Print enhanced component tree
