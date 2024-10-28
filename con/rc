@@ -226,6 +226,9 @@ main_rc() {
 
     local failed_required=0
 
+    # Setup error handling
+    setup_error_handling
+
     echo | tee -a "$ERROR_LOG"
     echo " ━ RC initialization started" | tee -a "$ERROR_LOG"
 
@@ -241,9 +244,6 @@ main_rc() {
             fi
         fi
     done
-
-    # Setup error handling
-    setup_error_handling
 
     if ((failed_required)); then
         unset RC_SOURCED

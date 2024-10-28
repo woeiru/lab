@@ -1,5 +1,4 @@
 #!/bin/bash
-set -o pipefail
 
 # Define the error log file location and additional tracking files
 ERROR_LOG="/tmp/rc_error.log"
@@ -20,17 +19,15 @@ declare -gA ERROR_CODES=(
     [OPTIONAL_WARNING]=100  # Special code for optional component warnings
 )
 
-# Initialize error tracking arrays
-declare -A ERROR_COMPONENTS
-declare -A ERROR_MESSAGES
-declare -A ERROR_TIMESTAMPS
-declare -A ERROR_EXIT_CODES
-declare -A ERROR_SEVERITIES  # New array to track if error is from optional component
-declare -a ERROR_ORDER
+# Initialize error tracking arrays with better scope control
+declare -gA ERROR_COMPONENTS
+declare -gA ERROR_MESSAGES
+declare -gA ERROR_TIMESTAMPS
+declare -gA ERROR_EXIT_CODES
+declare -gA ERROR_SEVERITIES
+declare -ga ERROR_ORDER
 
 # Function to ensure clean exit from the script
-# Parameters:
-#   $1: exit code (optional, defaults to 0)
 clean_exit() {
     local exit_code=${1:-${ERROR_CODES[SUCCESS]}}
     trap - ERR  # Remove the error handling trap
@@ -38,52 +35,7 @@ clean_exit() {
     exit $exit_code
 }
 
-# Enhanced error handler function with error code support
-error_handler() {
-    local line_number="$1"
-    local error_code="${2:-${ERROR_CODES[GENERAL_ERROR]}}"
-    local is_optional="${3:-false}"
-    local exit_code="$?"
-    local command="$BASH_COMMAND"
-    local timestamp=$(date '+%Y%m%d%H%M%S')
-
-    # Determine error description
-    local error_desc=""
-    for key in "${!ERROR_CODES[@]}"; do
-        if [[ ${ERROR_CODES[$key]} -eq $error_code ]]; then
-            error_desc="$key"
-            break
-        fi
-    done
-    [[ -z "$error_desc" ]] && error_desc="UNKNOWN_ERROR"
-
-    # Generate unique error ID
-    local error_id="${timestamp}_${component}_${line_number}"
-
-    # Store error information with enhanced type tracking
-    ERROR_COMPONENTS[$error_id]="$component"
-    ERROR_MESSAGES[$error_id]="[$error_desc] Command '$command' failed on line $line_number"
-    ERROR_TIMESTAMPS[$error_id]="$timestamp"
-    ERROR_EXIT_CODES[$error_id]="$error_code"
-    ERROR_SEVERITIES[$error_id]="$is_optional"
-    ERROR_ORDER+=("$error_id")
-
-    # Log to both error log file and stderr
-    local severity_prefix="ERROR"
-    [[ "$is_optional" == "true" ]] && severity_prefix="WARNING"
-
-    {
-        echo "└─ $severity_prefix($error_desc) $timestamp - In $source_file on line $line_number: Command '$command' exited with status $error_code"
-    } | tee -a "$ERROR_LOG" >&2
-
-    # Don't return success for non-optional errors
-    return $([[ "$is_optional" == "true" ]] && echo "${ERROR_CODES[SUCCESS]}" || echo "$error_code")
-}
-
-
 # Function to check if a component has any errors
-# Parameters:
-#   $1: Component name
 has_errors() {
     local component="$1"
     local has_error=false
@@ -98,13 +50,56 @@ has_errors() {
     $has_error
 }
 
-# Enhanced error report with severity levels and grouping
-# Enhanced error reporting function
+# Enhanced error handler function with improved tracking
+error_handler() {
+    local line_number="$1"
+    local error_code="${2:-${ERROR_CODES[GENERAL_ERROR]}}"
+    local is_optional="${3:-false}"
+    local exit_code="$?"
+    local command="${BASH_COMMAND:-Unknown command}"
+    local timestamp=$(date '+%Y%m%d%H%M%S')
+    local source_file="${BASH_SOURCE[1]:-unknown}"
+    local component="${FUNCNAME[1]:-main}"
+
+    # Determine error description
+    local error_desc=""
+    for key in "${!ERROR_CODES[@]}"; do
+        if [[ ${ERROR_CODES[$key]} -eq $error_code ]]; then
+            error_desc="$key"
+            break
+        fi
+    done
+    [[ -z "$error_desc" ]] && error_desc="UNKNOWN_ERROR"
+
+    # Generate unique error ID with more information
+    local error_id="${timestamp}_${component}_${line_number}"
+
+    # Store error information with enhanced detail
+    ERROR_COMPONENTS[$error_id]="$component"
+    ERROR_MESSAGES[$error_id]="[$error_desc] In $source_file on line $line_number: $command failed with status $error_code"
+    ERROR_TIMESTAMPS[$error_id]="$timestamp"
+    ERROR_EXIT_CODES[$error_id]="$error_code"
+    ERROR_SEVERITIES[$error_id]="$is_optional"
+    ERROR_ORDER+=("$error_id")
+
+    # Log to both error log file and stderr with improved formatting
+    local severity_prefix="ERROR"
+    [[ "$is_optional" == "true" ]] && severity_prefix="WARNING"
+
+    {
+        echo "└─ $severity_prefix($error_desc) $timestamp - In $source_file on line $line_number: Command '$command' failed with status $error_code"
+    } | tee -a "$ERROR_LOG" >&2
+
+    # Return appropriate status
+    return $([[ "$is_optional" == "true" ]] && echo "${ERROR_CODES[SUCCESS]}" || echo "$error_code")
+}
+
+# Enhanced error reporting function with better organization
 print_error_report() {
     local total_errors=0
     local total_warnings=0
-    local error_types=()
-    local warnings_by_type=()
+    declare -A error_types
+    declare -A warnings_by_type
 
     # Count and categorize issues
     for error_id in "${ERROR_ORDER[@]}"; do
@@ -113,10 +108,10 @@ print_error_report() {
 
         if [[ "$is_optional" == "true" ]]; then
             ((total_warnings++))
-            warnings_by_type[$error_code]=$((${warnings_by_type[$error_code]:-0} + 1))
+            ((warnings_by_type[$error_code]++))
         else
             ((total_errors++))
-            error_types[$error_code]=$((${error_types[$error_code]:-0} + 1))
+            ((error_types[$error_code]++))
         fi
     done
 
@@ -192,9 +187,9 @@ print_error_report() {
     return $((total_errors > 0 ? 1 : 0))
 }
 
-# Set up error handling
+# Setup function to initialize error handling
 setup_error_handling() {
-    # Initialize error tracking
+    # Clear existing error tracking
     ERROR_COMPONENTS=()
     ERROR_MESSAGES=()
     ERROR_TIMESTAMPS=()
@@ -216,7 +211,7 @@ export -A ERROR_EXIT_CODES
 export -A ERROR_SEVERITIES
 export -a ERROR_ORDER
 export -f clean_exit
-export -f error_handler
 export -f has_errors
-export -f setup_error_handling
+export -f error_handler
 export -f print_error_report
+export -f setup_error_handling
