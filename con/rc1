@@ -286,7 +286,6 @@ generate_aliases() {
 # Main entry point function with cleaner timing structure
 set_dynamic() {
     start_timer "set_dynamic"
-    log "lvl" "starting set_dynamic function"
     log "lvl" "Setting up Navigation"
 
     # Group all readme operations

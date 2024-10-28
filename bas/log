@@ -16,8 +16,8 @@ LOG_CONTEXT_FILE="${TMP_DIR}/rc_context"
 LOG_TRACE_FILE="${TMP_DIR}/rc_trace"
 
 # Configuration
-LOG_DEBUG_ENABLED="${LOG_DEBUG:-1}"
-LOG_CONTROL_DEPTH_ENABLED=false
+LOG_DEBUG_ENABLED="${LOG_DEBUG:-0}"
+LOG_CONTROL_DEPTH_ENABLED=true
 
 # Color definitions
 readonly LOG_RED=$(printf '\033[0;31m')
