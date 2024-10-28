@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Define log directory with fallback
+# Directory and file setup with fallback handling
 LOG_DIR="/var/log/rc"
 [[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp"
 
-# Store log state and levels in persistent files
+# State and configuration files
 LOG_STATE_FILE="${LOG_DIR}/rc_log_state"
 LOG_LEVEL_FILE="${LOG_DIR}/rc_log_level"
 ERROR_LOG="${LOG_DIR}/rc_error.log"
@@ -25,23 +25,35 @@ readonly LOG_NC=$(printf '\033[0m')
 readonly ROOT_LEVEL=1
 readonly ERROR_LEVEL=9
 readonly MAX_TRACKING_ENTRIES=1000
+readonly MAX_DEPTH=20
 
-# Call hierarchy tracking
+# Call hierarchy tracking with recursion protection
 declare -A LOG_PARENTS
 declare -A LOG_CHILDREN
 declare -g LOG_CURRENT_PARENT=""
 declare -i LOG_TRACKING_COUNT=0
+declare -i _LOG_DEPTH=0
 declare -g _LOG_IN_PROGRESS=0
+declare -g _LOG_LAST_MESSAGE=""
 
 # Calculate component depth based on call hierarchy
 calculate_log_depth() {
     local component="$1"
     local depth=0
     local current="$component"
+    local visited=()
 
     while [[ -n "${LOG_PARENTS[$current]}" ]]; do
+        # Check for circular references
+        for v in "${visited[@]}"; do
+            [[ "$v" == "$current" ]] && return $depth
+        done
+        visited+=("$current")
+
         ((depth++))
         current="${LOG_PARENTS[$current]}"
+        # Prevent infinite loops in hierarchy calculation
+        ((depth > MAX_DEPTH)) && break
     done
 
     echo "$depth"
@@ -84,38 +96,48 @@ generate_log_indent() {
     echo -n "$prefix"
 }
 
-# Enhanced logging function with tree structure
+# Enhanced logging function with recursion protection
 log() {
-    # Prevent recursive logging
-    if (( _LOG_IN_PROGRESS > 0 )); then
-        return 0
-    fi
+    # Prevent recursive logging and deep nesting
+    ((_LOG_IN_PROGRESS > 2 || _LOG_DEPTH > MAX_DEPTH)) && return 0
     let _LOG_IN_PROGRESS+=1
+    let _LOG_DEPTH+=1
 
+    # Ensure counters are decremented on return
+    trap 'let _LOG_IN_PROGRESS-=1; let _LOG_DEPTH-=1' RETURN
+
+    # Check logging state
     local state
     state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-    [[ "$state" != "true" ]] && {
-        let _LOG_IN_PROGRESS-=1
-        return 0
-    }
+    [[ "$state" != "true" ]] && return 0
 
+    # Get maximum logging level
     local max_level
     max_level=$(cat "$LOG_LEVEL_FILE" 2>/dev/null || echo "$ERROR_LEVEL")
 
+    # Parse input parameters
     local command="$1"
     local message="$2"
     local component="${3:-${FUNCNAME[1]}}"
     local parent="${FUNCNAME[2]}"
 
-    [[ "$command" != "lvl" ]] && {
-        echo "Invalid log command. Usage: log \"lvl\" \"message\" [component]" >&2
-        let _LOG_IN_PROGRESS-=1
-        return 1
-    }
+    # Validate command
+    [[ "$command" != "lvl" ]] && return 1
 
-    # Update call hierarchy
+    # Prevent duplicate consecutive messages
+    if [[ "$message" == "$_LOG_LAST_MESSAGE" ]]; then
+        return 0
+    fi
+    _LOG_LAST_MESSAGE="$message"
+
+    # Update call hierarchy with protection
     if [[ -n "$component" && "$component" != "main" && -n "$parent" && "$parent" != "main" ]]; then
         if [[ -z "${LOG_PARENTS[$component]}" ]]; then
+            # Check tracking limit
+            if ((LOG_TRACKING_COUNT >= MAX_TRACKING_ENTRIES)); then
+                return 0
+            fi
+
             LOG_PARENTS[$component]="$parent"
             ((LOG_TRACKING_COUNT++))
 
@@ -127,7 +149,7 @@ log() {
         fi
     fi
 
-    # Calculate depth and format output
+    # Calculate depth and check against maximum level
     local depth
     depth=$(calculate_log_depth "$component")
 
@@ -137,22 +159,20 @@ log() {
         local indent
         indent=$(generate_log_indent "$depth" "$color")
 
-        local timestamp=$(date '+%Y%m%d%H%M%S')
+        local timestamp=$(date '+%H:%M:%S')
 
-        # Format the message
+        # Format and output the message
         if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
             printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC"
         elif ((depth == 0)); then
             printf "%s%s%s\n" "$indent" "$message" "$LOG_NC"
         else
-            printf "%s %s - %s%s\n" "$indent" "$timestamp" "$message" "$LOG_NC"
+            printf "%s [%s] %s%s\n" "$indent" "$timestamp" "$message" "$LOG_NC"
         fi
     fi
-
-    let _LOG_IN_PROGRESS-=1
 }
 
-# Enhanced setlog function with better formatting
+# Enhanced setlog function with validation
 setlog() {
     local arg=$1
     local color
@@ -194,6 +214,34 @@ setlog() {
     esac
 }
 
+# Print component tree recursively
+print_log_component_tree() {
+    local component="$1"
+    local visited=()
+    local depth=$(calculate_log_depth "$component")
+    local color=$(get_log_color "$depth")
+
+    # Check for circular references
+    for v in "${visited[@]}"; do
+        [[ "$v" == "$component" ]] && return
+    done
+    visited+=("$component")
+
+    printf "%s%s%-30s%s\n" \
+        "$(generate_log_indent "$depth" "$color")" \
+        "$color" \
+        "$component" \
+        "$LOG_NC"
+
+    if [[ -n "${LOG_CHILDREN[$component]}" ]]; then
+        local IFS=':'
+        local children=(${LOG_CHILDREN[$component]})
+        for child in "${children[@]}"; do
+            print_log_component_tree "$child"
+        done
+    fi
+}
+
 # Print log report with hierarchy
 print_log_report() {
     local current_state
@@ -213,49 +261,40 @@ print_log_report() {
         fi
     done
 
-    for comp in "${root_components[@]}"; do
-        print_log_component_tree "$comp"
-    done
+    # Sort root components if needed
+    if ((${#root_components[@]} > 0)); then
+        IFS=$'\n'
+        root_components=($(printf "%s\n" "${root_components[@]}" | sort))
+        unset IFS
+
+        for comp in "${root_components[@]}"; do
+            print_log_component_tree "$comp"
+        done
+    else
+        printf " %s━ No components to report%s\n" "$LOG_YELLOW" "$LOG_NC"
+    fi
 
     printf "\n"
     printf " %s━ Log file: %s%s%s\n" "$LOG_BLUE" "$LOG_CYAN" "$ERROR_LOG" "$LOG_NC"
     printf "\n"
 }
 
-# Print component tree recursively
-print_log_component_tree() {
-    local component="$1"
-    local indent="$2"
-    local depth=$(calculate_log_depth "$component")
-    local color=$(get_log_color "$depth")
-
-    printf "%s%s%-30s%s\n" \
-        "$(generate_log_indent "$depth" "$color")" \
-        "$color" \
-        "$component" \
-        "$LOG_NC"
-
-    if [[ -n "${LOG_CHILDREN[$component]}" ]]; then
-        local IFS=':'
-        local children=(${LOG_CHILDREN[$component]})
-        for child in "${children[@]}"; do
-            print_log_component_tree "$child" "$indent  "
-        done
-    fi
-}
-
-# Initialize log files
-[[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
-[[ ! -f "$LOG_LEVEL_FILE" ]] && echo "$ERROR_LEVEL" > "$LOG_LEVEL_FILE"
-
 # Cleanup function
 cleanup_log() {
     _LOG_IN_PROGRESS=0
+    _LOG_DEPTH=0
     LOG_PARENTS=()
     LOG_CHILDREN=()
     LOG_CURRENT_PARENT=""
     LOG_TRACKING_COUNT=0
+    _LOG_LAST_MESSAGE=""
 }
+
+# Initialize log files with error checking
+{
+    [[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
+    [[ ! -f "$LOG_LEVEL_FILE" ]] && echo "$ERROR_LEVEL" > "$LOG_LEVEL_FILE"
+} 2>/dev/null
 
 # Export functions and variables
 export -f log
