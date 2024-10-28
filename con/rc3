@@ -17,7 +17,7 @@ aliaswrap() {
 set_aliaswrap() {
     if $ALIASWRAP_TOGGLE; then
         echo ""
-        log "lvl-2" "Starting alias wrapping"
+        log "lvl" "Starting alias wrapping"
         while read -r alias_def; do
             if [[ $alias_def =~ ^alias\ ([^=]+)=(.*)$ ]]; then
                 alias_name="${BASH_REMATCH[1]}"
@@ -28,9 +28,9 @@ set_aliaswrap() {
                 alias "$alias_name"="aliaswrap $alias_command"
             fi
         done < <(alias)
-        log "lvl-3" "All aliases have been wrapped with error trapping."
+        log "lvl" "All aliases have been wrapped with error trapping."
     else
-       log "lvl-2" "Alias wrapping is disabled."
+       log "lvl" "Alias wrapping is disabled."
     fi
 }
 
