@@ -370,9 +370,6 @@ declare -gA ROOT_FUNCTIONS=(
     [setup_rc]=1
     [source_rc]=1
     [execution_rc]=1
-    [set_static]=1
-    [set_dynamic]=1
-    [set_aliaswrap]=1
 )
 
 # Function to register additional root functions
