@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the error log file location and additional tracking files
-ERROR_LOG="/tmp/rc_error.log"
+ERROR_LOG="${LOG_DIR:-/var/log/rc}/rc_error.log"
 ERROR_COUNT_FILE="/tmp/rc_error_count"
 ERROR_STATE_FILE="/tmp/rc_error_state"
 
