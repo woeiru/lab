@@ -45,7 +45,7 @@ analyze_source_file() {
     if [[ ! -f "$file" ]]; then
         debug_log "Cannot analyze non-existent file: $file"
         return 1
-    }
+    fi
 
     # Reset state
     CONTROL_RANGES=()
