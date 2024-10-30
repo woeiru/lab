@@ -7,7 +7,7 @@ if ! declare -F log >/dev/null; then
 fi
 
 # Control structure tracking state with debug support
-LOG_CONTROL_DEPTH_ENABLED=false
+LOG_CONTROL_DEPTH_ENABLED=true
 declare -A LO2_CONTROL_RANGES
 declare -A LO2_CONTROL_TYPES
 declare -g LO2_LAST_ANALYZED_FILE=""

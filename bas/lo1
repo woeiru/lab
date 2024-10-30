@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Directory and file setup
-LOG_DIR="${LOG_DIR:-/var/log/rc}"
-TMP_DIR="${TMP_DIR:-/tmp}"
+LOG_DIR="${LOG_DIR:-/var/log/lo}"
+TMP_DIR="${TMP_DIR:-/tmp/lo}"
 
-[[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp"
-[[ ! -d "$TMP_DIR" ]] && mkdir -p "$TMP_DIR" 2>/dev/null || TMP_DIR="/tmp"
+[[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/var/log/lo"
+[[ ! -d "$TMP_DIR" ]] && mkdir -p "$TMP_DIR" 2>/dev/null || TMP_DIR="/var/log/lo"
 
 LOG_FILE="${LOG_DIR}/rc_hierarchical.log"
 LOG_STATE_FILE="${TMP_DIR}/rc_log_state"
