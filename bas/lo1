@@ -5,9 +5,9 @@ LOG_DIR="${LOG_DIR:-/var/log/lab/lo}"
 TMP_DIR="${TMP_DIR:-/tmp/lab/lo}"
 
 [[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp/lab/lo"
-[[ ! -d "$TMP_DIR" ]] && mkdir -p "$TMP_DIR" 2>/dev/null || TMP_DIR="/tmp/lab/lo"
+[[ ! -d "$TMP_DIR" ]] && mkdir -p "$TMP_DIR" 2>/dev/null
 
-LOG_FILE="${LOG_DIR}/hierarchical.log"
+LOG_FILE="${LOG_DIR}/log"
 LOG_STATE_FILE="${TMP_DIR}/log_state"
 LOG_DEBUG_FILE="${LOG_DIR}/debug.log"
 LOG_DEPTH_CACHE_FILE="${TMP_DIR}/depth_cache"
