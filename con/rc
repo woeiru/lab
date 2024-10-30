@@ -8,7 +8,7 @@ export TMP_DIR="/tmp/lab"
 for dir in \
     "$LOG_DIR" "$TMP_DIR" \
     "$LOG_DIR/lo" "$TMP_DIR/lo" \
-    "$LOG_DIR/tme" "$TMP_DIR/tme" \
+    "$LOG_DIR/tme" "$TMP_DIR/tme"; do
     "$LOG_DIR/rc" "$TMP_DIR/rc"; do
     mkdir -p "$dir" 2>/dev/null
 done
