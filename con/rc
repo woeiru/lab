@@ -34,6 +34,20 @@ command source "$BAS_DIR/err" || {
 # Initialize systems
 init_timer "$RC_LOG_DIR"
 
+cleanlab() {
+    echo " ━ Cleaning lab directories"
+    for dir in "$LOG_DIR" "$TMP_DIR"; do
+        [[ -d "$dir" ]] && \
+        rm -rf "${dir:?}"/* 2>/dev/null && \
+        mkdir -p "$dir"/{lo,tme,rc} && \
+        echo "   ━ Cleaned: $dir" || \
+        echo "   ━ Failed to clean: $dir" >&2
+    done
+    echo " ━ Done"
+}
+
+export -f cleanlab
+
 # Helper function to safely source files with improved error handling and logging
 source_helper() {
     local file="$1"
