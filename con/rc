@@ -39,19 +39,17 @@ initialize_directories() {
         printf '%s\n\n' "=== End Post-Definition State ==="
     } >> "$debug_log"
 
-    # Define all required directories
-    local -a required_dirs=(
-        "${LOG_DIR}"
-        "${TMP_DIR}"
-        "${LOG_DIR}/err"
-        "${TMP_DIR}/err"
-        "${LOG_DIR}/lo"
-        "${TMP_DIR}/lo"
-        "${LOG_DIR}/tme"
-        "${TMP_DIR}/tme"
-        "${LOG_DIR}/rc"
-        "${TMP_DIR}/rc"
-    )
+    # LOG & TMP dir structures
+    local base_dirs=("${LOG_DIR}" "${TMP_DIR}")
+    local sub_dirs=("err" "lo" "tme" "rc")
+    local required_dirs=()
+
+    for base in "${base_dirs[@]}"; do
+        required_dirs+=("$base")
+        for sub in "${sub_dirs[@]}"; do
+            required_dirs+=("$base/$sub")
+        done
+    done
 
     # Create all directories in one pass
     local -a failed_dirs=()
