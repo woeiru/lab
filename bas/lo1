@@ -1,17 +1,31 @@
 #!/bin/bash
 
+# Enable debug logging by default
 export LOG_DEBUG_ENABLED=1
 
-# Directory and file setup
-LOG_DIR="${LOG_DIR:-/var/log/lab}"
-TMP_DIR="${TMP_DIR:-/tmp/lab}"
+# Validate required environment variables
+[[ -z "$LOG_DIR" ]] && {
+    echo "Fatal: LOG_DIR environment variable not set" >&2
+    exit 1
+}
+[[ -z "$TMP_DIR" ]] && {
+    echo "Fatal: TMP_DIR environment variable not set" >&2
+    exit 1
+}
 
+# Define module-specific directories
 LOG_LO_DIR="$LOG_DIR/lo"
 TMP_LO_DIR="$TMP_DIR/lo"
 
-[[ ! -d "$LOG_LO_DIR" ]] && mkdir -p "$LOG_LO_DIR" 2>/dev/null
-[[ ! -d "$TMP_LO_DIR" ]] && mkdir -p "$TMP_LO_DIR" 2>/dev/null
+# Verify critical directories exist (should have been created by rc.sh)
+for dir in "$LOG_LO_DIR" "$TMP_LO_DIR"; do
+    [[ ! -d "$dir" ]] && {
+        echo "Critical: Required directory missing: $dir" >&2
+        exit 1
+    }
+done
 
+# Define log files and state files
 LOG_FILE="${LOG_LO_DIR}/tree.log"
 LOG_STATE_FILE="${TMP_LO_DIR}/state"
 LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
@@ -19,6 +33,17 @@ LOG_DEPTH_CACHE_FILE="${TMP_LO_DIR}/depth_cache"
 
 # Initialize state file if it doesn't exist
 [[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
+
+# State tracking
+declare -A LOG_DEPTH_CACHE
+declare -A LOG_PARENTS
+declare -A LOG_CHILDREN
+declare -g LOG_CURRENT_PARENT=""
+declare -i LAST_CACHE_CLEANUP=0
+readonly CACHE_CLEANUP_INTERVAL=300  # 5 minutes
+
+# Root function handling
+declare -gA ROOT_FUNCTIONS=([main_rc]=1)
 
 # Color definitions
 readonly LOG_RED=$(printf '\033[0;31m')
