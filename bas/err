@@ -1,9 +1,13 @@
 #!/bin/bash
 
 # Define the error log file location and additional tracking files
-ERROR_LOG="${LOG_DIR:-/var/lab/err}/error.log"
+ERROR_LOG="${LOG_DIR:-/var/log/lab/err}/error.log"
 ERROR_COUNT_FILE="/tmp/lab/err/error_count"
 ERROR_STATE_FILE="/tmp/lab/err/error_state"
+
+[[ ! -d "$(dirname "$ERROR_LOG")" ]] && mkdir -p "$(dirname "$ERROR_LOG")" 2>/dev/null || ERROR_LOG="/tmp/lab/err/error.log"
+[[ ! -d "$(dirname "$ERROR_COUNT_FILE")" ]] && mkdir -p "$(dirname "$ERROR_COUNT_FILE")" 2>/dev/null
+[[ ! -d "$(dirname "$ERROR_STATE_FILE")" ]] && mkdir -p "$(dirname "$ERROR_STATE_FILE")" 2>/dev/null
 
 # Define error codes with descriptive names
 declare -gA ERROR_CODES=(

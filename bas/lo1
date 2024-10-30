@@ -1,17 +1,16 @@
 #!/bin/bash
 
 # Directory and file setup
-LOG_DIR="${LOG_DIR:-/var/log/lo}"
-TMP_DIR="${TMP_DIR:-/tmp/lo}"
+LOG_DIR="${LOG_DIR:-/var/log/lab/lo}"
+TMP_DIR="${TMP_DIR:-/tmp/lab/lo}"
 
-[[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/var/log/lo"
-[[ ! -d "$TMP_DIR" ]] && mkdir -p "$TMP_DIR" 2>/dev/null || TMP_DIR="/var/log/lo"
+[[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp/lab/lo"
+[[ ! -d "$TMP_DIR" ]] && mkdir -p "$TMP_DIR" 2>/dev/null || TMP_DIR="/tmp/lab/lo"
 
 LOG_FILE="${LOG_DIR}/rc_hierarchical.log"
 LOG_STATE_FILE="${TMP_DIR}/rc_log_state"
 LOG_DEBUG_FILE="${LOG_DIR}/rc_debug.log"
 LOG_DEPTH_CACHE_FILE="${TMP_DIR}/rc_depth_cache"
-LOG_DEBUG_ENABLED="${LOG_DEBUG:-1}"
 
 # Color definitions
 readonly LOG_RED=$(printf '\033[0;31m')
