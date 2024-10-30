@@ -11,21 +11,23 @@ declare -g TME_STARTUP_BEGIN    # Global startup timestamp
 declare -g TME_LOG_FILE         # Path to timing log file
 declare -g TME_CURRENT_PARENT   # Tracks current parent for nested timing
 
-# Define timer state directory and files
+# In tme file, replace these lines:
 TME_DIR="/var/log/lab/tme"
-[[ ! -d "$TME_DIR" ]] && mkdir -p "$TME_DIR" 2>/dev/null || TME_DIR="/tmp/lab/tme"
+[[ ! -d "$TME_DIR" ]] && mkdir -p "$TME_DIR" 2>/dev/null || TME_DIR="/tmp/lab/tme"  # Changed fallback path
 
 TME_STATE_FILE="${TME_DIR}/state"
 TME_LEVELS_FILE="${TME_DIR}/levels"
 TME_LOG_FILE="${TME_DIR}/timing.log"
 
-# Initialize timer state if file doesn't exist
+# If the state file doesn't exist, initialize it
 if [[ ! -f "$TME_STATE_FILE" ]]; then
     echo "true" > "$TME_STATE_FILE" 2>/dev/null || {
-        TME_DIR="/tmp"
-        TME_STATE_FILE="${TME_DIR}/rc_tme_state"
-        TME_LEVELS_FILE="${TME_DIR}/rc_tme_levels"
-        TME_LOG_FILE="${TME_DIR}/rc_timing.log"
+        # If primary location fails, ensure the fallback directory exists
+        mkdir -p "/tmp/lab/tme" 2>/dev/null
+        TME_DIR="/tmp/lab/tme"
+        TME_STATE_FILE="${TME_DIR}/state"
+        TME_LEVELS_FILE="${TME_DIR}/levels"
+        TME_LOG_FILE="${TME_DIR}/timing.log"
         echo "true" > "$TME_STATE_FILE"
     }
 fi
