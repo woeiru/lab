@@ -1,6 +1,15 @@
 #!/bin/bash
 set -o pipefail
 
+export LOG_DIR="/var/log/lab"
+export TMP_DIR="/tmp/lab"
+[[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp/lab"
+[[ ! -d "$TMP_DIR" ]] && mkdir -p "$TMP_DIR" 2>/dev/null
+
+# Set up RC-specific log directories
+RC_LOG_DIR="${LOG_DIR}/rc"
+[[ ! -d "$RC_LOG_DIR" ]] && mkdir -p "$RC_LOG_DIR" 2>/dev/null || RC_LOG_DIR="${TMP_DIR}/rc"
+
 # Set up important directory paths
 DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
 PARENT_DIR="/root/lab"
@@ -12,13 +21,13 @@ source "$BAS_DIR/tme" || {
     echo "Fatal: Failed to source timing module" >&2
     exit 1
 }
-source "$BAS_DIR/err" || {
+command source "$BAS_DIR/err" || {
     echo "Fatal: Failed to source error handling module" >&2
     exit 1
 }
 
 # Initialize systems
-init_timer
+init_timer "$RC_LOG_DIR"
 
 # Helper function to safely source files with improved error handling and logging
 source_helper() {
