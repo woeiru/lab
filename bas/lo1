@@ -1,17 +1,19 @@
 #!/bin/bash
 
 # Directory and file setup
-LOG_DIR="${LOG_DIR:-/var/log/lab/lo}"
-TMP_DIR="${TMP_DIR:-/tmp/lab/lo}"
+LOG_DIR="${LOG_DIR:-/var/log/lab}"
+TMP_DIR="${TMP_DIR:-/tmp/lab}"
 
-[[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp/lab/lo"
-[[ ! -d "$TMP_DIR" ]] && mkdir -p "$TMP_DIR" 2>/dev/null
+LOG_LO_DIR="$LOG_DIR/lo"
+TMP_LO_DIR="$TMP_DIR/lo"
 
-LOG_FILE="${LOG_DIR}/log"
-LOG_STATE_FILE="${TMP_DIR}/log_state"
-LOG_DEBUG_FILE="${LOG_DIR}/debug.log"
-LOG_DEPTH_CACHE_FILE="${TMP_DIR}/depth_cache"
-LOG_DEBUG_ENABLED="${LOG_DEBUG:-1}"
+[[ ! -d "$LOG_LO_DIR" ]] && mkdir -p "$LOG_LO_DIR" 2>/dev/null
+[[ ! -d "$TMP_LO_DIR" ]] && mkdir -p "$TMP_LO_DIR" 2>/dev/null
+
+LOG_FILE="${LOG_LO_DIR}/log"
+LOG_STATE_FILE="${TMP_LO_DIR}/log_state"
+LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
+LOG_DEPTH_CACHE_FILE="${TMP_LO_DIR}/depth_cache"
 
 # Initialize state file if it doesn't exist
 [[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
