@@ -2,73 +2,140 @@
 set -o pipefail
 
 # Define base directories with validation and creation logic
+#!/bin/bash
+
 initialize_directories() {
-    # Define base directories with fallbacks
-    export LOG_DIR="${LOG_DIR:-/var/log/lab}"
-    export TMP_DIR="${TMP_DIR:-/tmp/lab}"
+    local debug_log="/tmp/directory_init_debug.log"
+
+    # Debug logging for initial state
+    {
+        printf '%s\n' "=== Directory Initialization Debug Log ==="
+        printf 'Timestamp: %s\n' "$(date)"
+        printf 'Initial TMP_DIR value: %s\n' "${TMP_DIR:-unset}"
+        printf 'Initial LOG_DIR value: %s\n' "${LOG_DIR:-unset}"
+        printf 'Caller: %s\n' "${FUNCNAME[1]:-main}"
+        echo "Call stack:"
+        local i=0
+        while caller $i >/dev/null 2>&1; do
+            caller $i
+            ((i++))
+        done
+        echo "Current environment variables affecting paths:"
+        env | grep -i "dir\|path" || echo "No relevant environment variables found"
+        echo "=== End Initial State ==="
+        echo
+    } > "$debug_log"
+
+    # Force set base directories - override any existing values
+    LOG_DIR="/var/log/lab"
+    TMP_DIR="/tmp/lab"
+    export LOG_DIR TMP_DIR
+
+    # Debug logging post-definition
+    {
+        printf '%s\n' "=== Post-Definition State ==="
+        printf 'LOG_DIR set to: %s\n' "${LOG_DIR}"
+        printf 'TMP_DIR set to: %s\n' "${TMP_DIR}"
+        printf '%s\n\n' "=== End Post-Definition State ==="
+    } >> "$debug_log"
 
     # Define all required directories
-    declare -a REQUIRED_DIRS=(
-        "$LOG_DIR"
-        "$TMP_DIR"
-        "$LOG_DIR/err"
-        "$TMP_DIR/err"
-        "$LOG_DIR/lo"
-        "$TMP_DIR/lo"
-        "$LOG_DIR/tme"
-        "$TMP_DIR/tme"
-        "$LOG_DIR/rc"
-        "$TMP_DIR/rc"
+    local -a required_dirs=(
+        "${LOG_DIR}"
+        "${TMP_DIR}"
+        "${LOG_DIR}/err"
+        "${TMP_DIR}/err"
+        "${LOG_DIR}/lo"
+        "${TMP_DIR}/lo"
+        "${LOG_DIR}/tme"
+        "${TMP_DIR}/tme"
+        "${LOG_DIR}/rc"
+        "${TMP_DIR}/rc"
     )
 
     # Create all directories in one pass
-    local failed_dirs=()
-    for dir in "${REQUIRED_DIRS[@]}"; do
+    local -a failed_dirs=()
+    local dir
+    for dir in "${required_dirs[@]}"; do
         if ! mkdir -p "$dir" 2>/dev/null; then
             failed_dirs+=("$dir")
-            echo "Warning: Failed to create directory: $dir" >&2
+            printf 'Warning: Failed to create directory: %s\n' "$dir" >&2
+            {
+                printf 'FAILED to create directory: %s\n' "$dir"
+                echo "Current permissions:"
+                ls -ld "$(dirname "$dir")" 2>&1 || echo "Cannot access parent directory"
+            } >> "$debug_log"
+        else
+            {
+                printf 'Successfully created/verified directory: %s\n' "$dir"
+                echo "Directory permissions:"
+                ls -ld "$dir"
+            } >> "$debug_log"
         fi
     done
 
     # Handle failures and set fallbacks
-    if ((${#failed_dirs[@]} > 0)); then
-        echo "Warning: Some directories could not be created" >&2
-        printf '%s\n' "${failed_dirs[@]}" >&2
+    if (( ${#failed_dirs[@]} > 0 )); then
+        {
+            printf '%s\n' "=== Directory Creation Failures ==="
+            printf '%s\n' "${failed_dirs[@]}"
+            echo "Warning: Some directories could not be created" >&2
 
-        # Critical fallback: If main LOG_DIR fails, use TMP_DIR
-        if [[ ! -d "$LOG_DIR" ]]; then
-            LOG_DIR="$TMP_DIR"
-            echo "Falling back to TMP_DIR for logging: $TMP_DIR" >&2
+            # Critical fallback: If main LOG_DIR fails, use TMP_DIR
+            if [[ ! -d "$LOG_DIR" ]]; then
+                printf 'LOG_DIR (%s) not accessible, falling back to TMP_DIR\n' "$LOG_DIR"
+                LOG_DIR="$TMP_DIR"
+                echo "Falling back to TMP_DIR for logging: $TMP_DIR" >&2
 
-            # Attempt to create subdirectories in fallback location
-            for subdir in err lo tme rc; do
-                mkdir -p "$LOG_DIR/$subdir" 2>/dev/null || \
-                    echo "Warning: Failed to create fallback directory: $LOG_DIR/$subdir" >&2
-            done
-        fi
+                # Attempt to create subdirectories in fallback location
+                local subdir
+                for subdir in err lo tme rc; do
+                    if ! mkdir -p "${LOG_DIR}/${subdir}" 2>/dev/null; then
+                        printf 'Warning: Failed to create fallback directory: %s/%s\n' "$LOG_DIR" "$subdir" >&2
+                    fi
+                done
+            fi
+        } >> "$debug_log"
     fi
 
     # Verify critical directories exist
-    local critical_dirs=(
-        "$LOG_DIR"
-        "$TMP_DIR"
-        "$LOG_DIR/err"
-        "$TMP_DIR/err"
+    local -a critical_dirs=(
+        "${LOG_DIR}"
+        "${TMP_DIR}"
+        "${LOG_DIR}/err"
+        "${TMP_DIR}/err"
     )
 
-    local missing_critical=0
-    for dir in "${critical_dirs[@]}"; do
-        if [[ ! -d "$dir" ]]; then
-            echo "Critical: Required directory missing: $dir" >&2
-            missing_critical=1
-        fi
-    done
+    {
+        printf '%s\n' "=== Critical Directory Verification ==="
+        local missing_critical=0
+        local dir
+        for dir in "${critical_dirs[@]}"; do
+            if [[ ! -d "$dir" ]]; then
+                printf 'MISSING CRITICAL DIRECTORY: %s\n' "$dir"
+                echo "Parent directory status:"
+                ls -ld "$(dirname "$dir")" 2>&1 || echo "Cannot access parent directory"
+                printf 'Critical: Required directory missing: %s\n' "$dir" >&2
+                missing_critical=1
+            else
+                printf 'Verified critical directory exists: %s\n' "$dir"
+                echo "Directory permissions:"
+                ls -ld "$dir"
+            fi
+        done
 
-    # Exit if critical directories are missing
-    if ((missing_critical)); then
-        echo "Fatal: Missing critical directories. Cannot continue." >&2
-        return 1
-    fi
+        printf '%s\n' "=== Final State ==="
+        printf 'Final LOG_DIR: %s\n' "${LOG_DIR}"
+        printf 'Final TMP_DIR: %s\n' "${TMP_DIR}"
+        printf 'Missing critical directories: %d\n' "$missing_critical"
+        printf '%s\n\n' "=== End Directory Initialization ==="
+
+        # Exit if critical directories are missing
+        if (( missing_critical )); then
+            echo "Fatal: Missing critical directories. Cannot continue." >&2
+            return 1
+        fi
+    } >> "$debug_log"
 
     return 0
 }
