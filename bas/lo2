@@ -6,19 +6,42 @@ if ! declare -F log >/dev/null; then
     return 1
 fi
 
-# Control structure tracking state
+# Control structure tracking state with debug support
 LOG_CONTROL_DEPTH_ENABLED=false
 declare -A LO2_CONTROL_RANGES
 declare -A LO2_CONTROL_TYPES
 declare -g LO2_LAST_ANALYZED_FILE=""
 declare -a LO2_SOURCE_LINES
 
+# Enhanced debug logging for lo2
+lo2_debug_log() {
+    [[ "${LOG_DEBUG_ENABLED}" != "1" ]] && return 0
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local message="$1"
+    local source="${2:-unknown}"
+    printf "[LO2-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_DEBUG_FILE"
+}
+
+# Debug helper for control structure analysis
+debug_control_structure() {
+    [[ "${LOG_DEBUG_ENABLED}" != "1" ]] && return 0
+    local type="$1"
+    local id="$2"
+    local range="${LO2_CONTROL_RANGES["$type:$id"]}"
+    lo2_debug_log "Found control structure: $type (ID: $id) Range: $range" "analyze_source"
+}
+
 # Cache the source file content and analyze control structures
 analyze_source_file() {
     local file="$1"
 
     # Skip if already analyzed
-    [[ "$file" == "$LO2_LAST_ANALYZED_FILE" ]] && return 0
+    if [[ "$file" == "$LO2_LAST_ANALYZED_FILE" ]]; then
+        lo2_debug_log "Skipping already analyzed file: $file" "analyze_source"
+        return 0
+    fi
+
+    lo2_debug_log "Starting analysis of file: $file" "analyze_source"
 
     # Reset state
     LO2_CONTROL_RANGES=()
@@ -26,11 +49,15 @@ analyze_source_file() {
     LO2_SOURCE_LINES=()
 
     # Skip non-existent files
-    [[ ! -f "$file" ]] && return 1
+    if [[ ! -f "$file" ]]; then
+        lo2_debug_log "File not found: $file" "analyze_source"
+        return 1
+    fi
 
     # Load file content
     mapfile -t LO2_SOURCE_LINES < "$file"
     LO2_LAST_ANALYZED_FILE="$file"
+    lo2_debug_log "Loaded ${#LO2_SOURCE_LINES[@]} lines from file" "analyze_source"
 
     local line_number=0
     local structure_stack=()
@@ -45,9 +72,10 @@ analyze_source_file() {
                 local type="${trimmed%% *}"
                 ((structure_id++))
                 structure_stack+=("$type:$structure_id:$line_number")
+                lo2_debug_log "Started $type block at line $line_number (ID: $structure_id)" "analyze_source"
                 ;;
             elif*|else*)
-                : # Just track these but don't increment depth
+                lo2_debug_log "Found branch statement at line $line_number" "analyze_source"
                 ;;
             fi|done|esac)
                 if ((${#structure_stack[@]} > 0)); then
@@ -56,22 +84,28 @@ analyze_source_file() {
                     IFS=':' read -r type id start <<< "$struct"
                     LO2_CONTROL_RANGES["$type:$id"]="$start:$line_number"
                     LO2_CONTROL_TYPES["$type:$id"]="$type"
+                    debug_control_structure "$type" "$id"
                     unset 'structure_stack[$last_idx]'
                 fi
                 ;;
         esac
         ((line_number++))
     done
+
+    lo2_debug_log "Analysis complete. Found ${#LO2_CONTROL_RANGES[@]} control structures" "analyze_source"
 }
 
-# Calculate depth from control structures
+# Calculate depth from control structures with enhanced debugging
 calculate_control_depth() {
     local file="${BASH_SOURCE[2]}"
     local line="${BASH_LINENO[1]}"
     local current_func="${FUNCNAME[2]:-main}"
 
+    lo2_debug_log "Calculating control depth for $current_func (line $line in $file)" "depth_calc"
+
     # If we're in a root function, no control depth
     if is_root_function "$current_func"; then
+        lo2_debug_log "Root function detected, returning depth 0" "depth_calc"
         return 0
     fi
 
@@ -84,9 +118,11 @@ calculate_control_depth() {
         IFS=':' read -r start end <<< "${LO2_CONTROL_RANGES[$control]}"
         if ((line > start && line < end)); then
             ((depth++))
+            lo2_debug_log "Inside control structure $control (${LO2_CONTROL_TYPES[$control]}) at depth $depth" "depth_calc"
         fi
     done
 
+    lo2_debug_log "Final control depth: $depth" "depth_calc"
     echo "$depth"
 }
 
@@ -95,23 +131,29 @@ calculate_final_depth_with_controls() {
     local base_depth
     base_depth=$(get_base_depth)
 
+    lo2_debug_log "Base depth: $base_depth" "final_depth"
+
     if [[ "$LOG_CONTROL_DEPTH_ENABLED" == "true" ]]; then
         local control_depth
         control_depth=$(calculate_control_depth)
-        echo $((base_depth + control_depth))
+        local total_depth=$((base_depth + control_depth))
+        lo2_debug_log "Control depth: $control_depth, Total depth: $total_depth" "final_depth"
+        echo "$total_depth"
     else
+        lo2_debug_log "Control depth tracking disabled, using base depth" "final_depth"
         echo "$base_depth"
     fi
 }
 
-# Toggle control structure tracking
+# Toggle control structure tracking with debug logging
 setlogcontrol() {
     case "$1" in
         "on")
             LOG_CONTROL_DEPTH_ENABLED=true
             # Override depth calculation
             eval "function calculate_final_depth() { calculate_final_depth_with_controls; }"
-            printf "%sControl structure depth tracking enabled%s\n" "$LOG_GREEN" "$LOG_NC"
+            lo2_debug_log "Control structure depth tracking enabled" "setlogcontrol"
+            printf "%sControl structure depth tracking enabled%s\n" "$LOG_GREEN" "$LOG_NC" | tee -a "$LOG_FILE"
             ;;
         "off")
             LOG_CONTROL_DEPTH_ENABLED=false
@@ -122,27 +164,36 @@ setlogcontrol() {
             LO2_CONTROL_TYPES=()
             LO2_LAST_ANALYZED_FILE=""
             LO2_SOURCE_LINES=()
-            printf "%sControl structure depth tracking disabled%s\n" "$LOG_RED" "$LOG_NC"
+            lo2_debug_log "Control structure depth tracking disabled" "setlogcontrol"
+            printf "%sControl structure depth tracking disabled%s\n" "$LOG_RED" "$LOG_NC" | tee -a "$LOG_FILE"
             ;;
         *)
-            printf "Usage: setlogcontrol on|off\n"
+            printf "Usage: setlogcontrol on|off\n" | tee -a "$LOG_FILE"
             return 1
             ;;
     esac
 }
 
-# Clean up on exit
+# Clean up on exit with debug logging
 cleanup_lo2() {
+    if [[ "$LOG_DEBUG_ENABLED" == "1" ]]; then
+        lo2_debug_log "Starting cleanup" "cleanup_lo2"
+        [[ "$LOG_CONTROL_DEPTH_ENABLED" == "true" ]] && lo2_debug_log "Disabling control tracking" "cleanup_lo2"
+    fi
+
     [[ "$LOG_CONTROL_DEPTH_ENABLED" == "true" ]] && setlogcontrol off
     LO2_CONTROL_RANGES=()
     LO2_CONTROL_TYPES=()
     LO2_LAST_ANALYZED_FILE=""
     LO2_SOURCE_LINES=()
+
+    [[ "$LOG_DEBUG_ENABLED" == "1" ]] && lo2_debug_log "Cleanup complete" "cleanup_lo2"
 }
 
 # Export necessary functions
 export LOG_CONTROL_DEPTH_ENABLED
 export -f setlogcontrol
+export -f lo2_debug_log
 
 # Set up cleanup trap
 trap cleanup_lo2 EXIT
