@@ -1,95 +1,62 @@
 #!/bin/bash
 
-# log 2 context
-
 # Verify base module is loaded
 if ! declare -F log >/dev/null; then
-    echo "Error: Base logging module must be loaded first" >&2
+    echo "Error: Base logging module (lo1) must be loaded first" >&2
     return 1
 fi
 
-# Enhanced context tracking configuration
+# Control structure tracking state
 LOG_CONTROL_DEPTH_ENABLED=false
-LOG_CONTEXT_DEBUG="${LOG_DEBUG:-0}"
+declare -A LO2_CONTROL_RANGES
+declare -A LO2_CONTROL_TYPES
+declare -g LO2_LAST_ANALYZED_FILE=""
+declare -a LO2_SOURCE_LINES
 
-# Control structure tracking
-declare -a CONTROL_STACK=()        # Stack to track control structure hierarchy
-declare -A CONTROL_RANGES=()       # Store line ranges for control structures
-declare -A CONTROL_TYPES=()        # Store types of control structures
-declare -g LAST_ANALYZED_FILE=""   # Cache the last analyzed file
-declare -ga SOURCE_LINES=()        # Cache for source file contents
-declare -g CONTEXT_CACHE_FILE="${TMP_DIR}/rc_context_cache"
-
-# Initialize context tracking
-init_context_tracker() {
-    CONTROL_STACK=()
-    CONTROL_RANGES=()
-    CONTROL_TYPES=()
-    LAST_ANALYZED_FILE=""
-    SOURCE_LINES=()
-    [[ ! -f "$CONTEXT_CACHE_FILE" ]] && touch "$CONTEXT_CACHE_FILE"
-}
-
-# Analyze source file for control structures
+# Cache the source file content and analyze control structures
 analyze_source_file() {
     local file="$1"
-    local line_number=0
-    local structure_id=0
 
-    # Check cache first
-    if [[ "$file" == "$LAST_ANALYZED_FILE" ]]; then
-        return 0
-    fi
-
-    # Validate file
-    if [[ ! -f "$file" ]]; then
-        debug_log "Cannot analyze non-existent file: $file"
-        return 1
-    fi
+    # Skip if already analyzed
+    [[ "$file" == "$LO2_LAST_ANALYZED_FILE" ]] && return 0
 
     # Reset state
-    CONTROL_RANGES=()
-    CONTROL_TYPES=()
-    CONTROL_STACK=()
-    mapfile -t SOURCE_LINES < "$file"
-    LAST_ANALYZED_FILE="$file"
+    LO2_CONTROL_RANGES=()
+    LO2_CONTROL_TYPES=()
+    LO2_SOURCE_LINES=()
 
-    while ((line_number < ${#SOURCE_LINES[@]})); do
-        local line="${SOURCE_LINES[$line_number]}"
-        local trimmed_line="${line#"${line%%[![:space:]]*}"}"
+    # Skip non-existent files
+    [[ ! -f "$file" ]] && return 1
 
-        # Skip comments and empty lines
-        [[ -z "$trimmed_line" || "$trimmed_line" =~ ^[[:space:]]*# ]] && {
-            ((line_number++))
-            continue
-        fi
+    # Load file content
+    mapfile -t LO2_SOURCE_LINES < "$file"
+    LO2_LAST_ANALYZED_FILE="$file"
 
-        # Match control structures
-        case "$trimmed_line" in
-            if*|elif*|else*)
-                structure_id=$((structure_id + 1))
-                CONTROL_STACK+=("if:$structure_id:$line_number")
-                CONTROL_TYPES["if:$structure_id"]="if"
+    local line_number=0
+    local structure_stack=()
+    local structure_id=0
+
+    while ((line_number < ${#LO2_SOURCE_LINES[@]})); do
+        local line="${LO2_SOURCE_LINES[$line_number]}"
+        local trimmed="${line#"${line%%[![:space:]]*}"}"
+
+        case "$trimmed" in
+            if*|for*|while*|until*|case*)
+                local type="${trimmed%% *}"
+                ((structure_id++))
+                structure_stack+=("$type:$structure_id:$line_number")
                 ;;
-            for*|while*|until*|select*)
-                structure_id=$((structure_id + 1))
-                local type="${trimmed_line%% *}"
-                CONTROL_STACK+=("$type:$structure_id:$line_number")
-                CONTROL_TYPES["$type:$structure_id"]="$type"
-                ;;
-            case*)
-                structure_id=$((structure_id + 1))
-                CONTROL_STACK+=("case:$structure_id:$line_number")
-                CONTROL_TYPES["case:$structure_id"]="case"
+            elif*|else*)
+                : # Just track these but don't increment depth
                 ;;
             fi|done|esac)
-                if ((${#CONTROL_STACK[@]} > 0)); then
-                    local last_idx=$((${#CONTROL_STACK[@]} - 1))
-                    local last_control="${CONTROL_STACK[$last_idx]}"
-                    IFS=':' read -r type id start <<< "$last_control"
-                    CONTROL_RANGES["$type:$id"]="$start:$line_number"
-                    unset 'CONTROL_STACK[$last_idx]'
-                    CONTROL_STACK=("${CONTROL_STACK[@]}")
+                if ((${#structure_stack[@]} > 0)); then
+                    local last_idx=$((${#structure_stack[@]} - 1))
+                    local struct="${structure_stack[$last_idx]}"
+                    IFS=':' read -r type id start <<< "$struct"
+                    LO2_CONTROL_RANGES["$type:$id"]="$start:$line_number"
+                    LO2_CONTROL_TYPES["$type:$id"]="$type"
+                    unset 'structure_stack[$last_idx]'
                 fi
                 ;;
         esac
@@ -97,92 +64,44 @@ analyze_source_file() {
     done
 }
 
-# Get active control structures count
-get_active_controls() {
-    local file="$1"
-    local line_number="$2"
-    local active_count=0
+# Calculate depth from control structures
+calculate_control_depth() {
+    local file="${BASH_SOURCE[2]}"
+    local line="${BASH_LINENO[1]}"
+    local current_func="${FUNCNAME[2]:-main}"
 
+    # If we're in a root function, no control depth
+    if is_root_function "$current_func"; then
+        return 0
+    fi
+
+    # Analyze file if needed
     analyze_source_file "$file"
 
-    for control in "${!CONTROL_RANGES[@]}"; do
-        IFS=':' read -r start end <<< "${CONTROL_RANGES[$control]}"
-        if ((line_number > start && line_number < end)); then
-            ((active_count++))
+    local depth=0
+    # Count active control structures
+    for control in "${!LO2_CONTROL_RANGES[@]}"; do
+        IFS=':' read -r start end <<< "${LO2_CONTROL_RANGES[$control]}"
+        if ((line > start && line < end)); then
+            ((depth++))
         fi
     done
 
-    echo "$active_count"
+    echo "$depth"
 }
 
-# Get control structure context information
-get_context_info() {
-    local file="$1"
-    local line_number="$2"
-    local context_info=""
-
-    analyze_source_file "$file"
-
-    for control in "${!CONTROL_RANGES[@]}"; do
-        IFS=':' read -r start end <<< "${CONTROL_RANGES[$control]}"
-        if ((line_number > start && line_number < end)); then
-            local type="${CONTROL_TYPES[$control]}"
-            [[ -n "$context_info" ]] && context_info+=", "
-            context_info+="$type"
-        fi
-    done
-
-    [[ -n "$context_info" ]] && echo "[$context_info]"
-}
-
-# Override calculate_stack_depth to include control structures
-calculate_stack_depth_enhanced() {
+# Override the final depth calculation when enabled
+calculate_final_depth_with_controls() {
     local base_depth
-    base_depth=$(calculate_stack_depth)  # Call original function
+    base_depth=$(get_base_depth)
 
     if [[ "$LOG_CONTROL_DEPTH_ENABLED" == "true" ]]; then
         local control_depth
-        control_depth=$(get_active_controls "${BASH_SOURCE[2]}" "${BASH_LINENO[0]}")
+        control_depth=$(calculate_control_depth)
         echo $((base_depth + control_depth))
     else
         echo "$base_depth"
     fi
-}
-
-# Override the log function to add context information
-log_enhanced() {
-    [[ "$1" != "lvl" ]] && { echo "Error: Invalid log command" >&2; return 1; }
-    local message="$2"
-    local log_enabled=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-    [[ "$log_enabled" != "true" ]] && return 0
-
-    local depth
-    depth=$(calculate_stack_depth_enhanced)
-    local indent=$(get_indent "$depth")
-    local color=$(get_color "$depth")
-    local timestamp=$(date '+%H:%M:%S')
-
-    # Get context information if enabled
-    local context_info=""
-    if [[ "$LOG_CONTROL_DEPTH_ENABLED" == "true" ]]; then
-        context_info=$(get_context_info "${BASH_SOURCE[2]}" "${BASH_LINENO[0]}")
-        [[ -n "$context_info" ]] && context_info=" $context_info"
-    fi
-
-    # Special formatting for reports and initialization messages
-    if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
-        printf " %s━ %s%s%s\n" "$color" "$message" "$context_info" "$LOG_NC" | tee -a "$LOG_FILE"
-    else
-        printf "%s%s %s [%s]%s%s\n" "$color" "$indent" "$message" "$timestamp" "$context_info" "$LOG_NC" | tee -a "$LOG_FILE"
-    fi
-
-    local current_func="${FUNCNAME[1]:-main}"
-    [[ -n "$current_func" && "$current_func" != "main" ]] && push_context "$current_func"
-
-    [[ "${LOG_DEBUG_ENABLED}" == "1" ]] && {
-        debug_log "Logged message from $current_func (depth: $depth, context: $context_info)"
-        dump_stack_trace "$current_func"
-    }
 }
 
 # Toggle control structure tracking
@@ -190,41 +109,40 @@ setlogcontrol() {
     case "$1" in
         "on")
             LOG_CONTROL_DEPTH_ENABLED=true
-            # Override the standard log function with enhanced version
-            eval "$(echo "function log() { log_enhanced \"\$@\"; }")"
-            init_context_tracker
-            printf "%sControl structure tracking enabled%s\n" "$LOG_GREEN" "$LOG_NC"
+            # Override depth calculation
+            eval "function calculate_final_depth() { calculate_final_depth_with_controls; }"
+            printf "%sControl structure depth tracking enabled%s\n" "$LOG_GREEN" "$LOG_NC"
             ;;
         "off")
             LOG_CONTROL_DEPTH_ENABLED=false
-            # Restore original log function
-            unset -f log
-            CONTROL_STACK=()
-            CONTROL_RANGES=()
-            CONTROL_TYPES=()
-            printf "%sControl structure tracking disabled%s\n" "$LOG_RED" "$LOG_NC"
+            # Restore original depth calculation
+            eval "function calculate_final_depth() { get_base_depth; }"
+            # Clean up state
+            LO2_CONTROL_RANGES=()
+            LO2_CONTROL_TYPES=()
+            LO2_LAST_ANALYZED_FILE=""
+            LO2_SOURCE_LINES=()
+            printf "%sControl structure depth tracking disabled%s\n" "$LOG_RED" "$LOG_NC"
             ;;
         *)
-            printf "%sUsage: setlogcontrol on|off%s\n" "$LOG_YELLOW" "$LOG_NC"
+            printf "Usage: setlogcontrol on|off\n"
             return 1
             ;;
     esac
 }
 
-# Cleanup function for context tracking
-cleanup_context_tracker() {
+# Clean up on exit
+cleanup_lo2() {
     [[ "$LOG_CONTROL_DEPTH_ENABLED" == "true" ]] && setlogcontrol off
-    init_context_tracker
-    rm -f "$CONTEXT_CACHE_FILE"
+    LO2_CONTROL_RANGES=()
+    LO2_CONTROL_TYPES=()
+    LO2_LAST_ANALYZED_FILE=""
+    LO2_SOURCE_LINES=()
 }
 
 # Export necessary functions
-export -f setlogcontrol
-export -f log_enhanced
 export LOG_CONTROL_DEPTH_ENABLED
+export -f setlogcontrol
 
 # Set up cleanup trap
-trap cleanup_context_tracker EXIT
-
-# Initialize
-init_context_tracker
+trap cleanup_lo2 EXIT
