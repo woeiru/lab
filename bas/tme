@@ -11,10 +11,14 @@ declare -g TME_STARTUP_BEGIN    # Global startup timestamp
 declare -g TME_CURRENT_PARENT   # Tracks current parent for nested timing
 
 # Define the directory structure
-TME_LOG_DIR="${LOG_DIR:-/var/log/lab/tme}"
-TME_TMP_DIR="${TMP_DIR:-/tmp/lab/tme}"
+LOG_DIR="${LOG_DIR:-/var/log/lab}"
+TMP_DIR="${TMP_DIR:-/tmp/lab}"
 
-[[ ! -d "$TME_LOG_DIR" ]] && mkdir -p "$TME_LOG_DIR" 2>/dev/null || TME_LOG_DIR="/tmp/lab/tme"
+# Ensure tme-specific directories exist
+TME_LOG_DIR="$LOG_DIR/tme"
+TME_TMP_DIR="$TMP_DIR/tme"
+
+[[ ! -d "$TME_LOG_DIR" ]] && mkdir -p "$TME_LOG_DIR" 2>/dev/null
 [[ ! -d "$TME_TMP_DIR" ]] && mkdir -p "$TME_TMP_DIR" 2>/dev/null
 
 TME_STATE_FILE="${TME_TMP_DIR}/state"
