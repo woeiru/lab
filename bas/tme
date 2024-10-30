@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Validate required environment variables
+[[ -z "$LOG_DIR" ]] && {
+    echo "Fatal: LOG_DIR environment variable not set" >&2
+    exit 1
+}
+[[ -z "$TMP_DIR" ]] && {
+    echo "Fatal: TMP_DIR environment variable not set" >&2
+    exit 1
+}
+
 # Performance monitoring setup
 declare -gA TME_START_TIMES     # Stores component start times
 declare -gA TME_END_TIMES       # Stores component end times
@@ -10,27 +20,26 @@ declare -gA TME_CHILDREN        # Stores child components for each parent
 declare -g TME_STARTUP_BEGIN    # Global startup timestamp
 declare -g TME_CURRENT_PARENT   # Tracks current parent for nested timing
 
-# Define the directory structure
-LOG_DIR="${LOG_DIR:-/var/log/lab}"
-TMP_DIR="${TMP_DIR:-/tmp/lab}"
-
-# Ensure tme-specific directories exist
+# Define module-specific directories
 TME_LOG_DIR="$LOG_DIR/tme"
 TME_TMP_DIR="$TMP_DIR/tme"
 
-[[ ! -d "$TME_LOG_DIR" ]] && mkdir -p "$TME_LOG_DIR" 2>/dev/null
-[[ ! -d "$TME_TMP_DIR" ]] && mkdir -p "$TME_TMP_DIR" 2>/dev/null
+# Verify critical directories exist (should have been created by rc.sh)
+for dir in "$TME_LOG_DIR" "$TME_TMP_DIR"; do
+    [[ ! -d "$dir" ]] && {
+        echo "Critical: Required directory missing: $dir" >&2
+        exit 1
+    }
+done
 
+# Define timing files and state files
 TME_STATE_FILE="${TME_TMP_DIR}/state"
 TME_LEVELS_FILE="${TME_TMP_DIR}/levels"
 TME_LOG_FILE="${TME_LOG_DIR}/timing.log"
 
-echo "true" > "$TME_STATE_FILE"
-
-# Initialize timer levels
-if [[ ! -f "$TME_LEVELS_FILE" ]]; then
-    echo "9" > "$TME_LEVELS_FILE"  # Default max depth
-fi
+# Initialize state files if they don't exist
+[[ ! -f "$TME_STATE_FILE" ]] && echo "true" > "$TME_STATE_FILE"
+[[ ! -f "$TME_LEVELS_FILE" ]] && echo "9" > "$TME_LEVELS_FILE"  # Default max depth
 
 # Color definitions - using printf to ensure proper escape sequences
 readonly TME_RED=$(printf '\033[0;31m')
