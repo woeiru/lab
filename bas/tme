@@ -65,7 +65,7 @@ init_timer() {
         printf "%sRC Timing Log - %s%s\n" "$TME_BLUE" "$(date)" "$TME_NC"
         printf "====================\n"
         printf "Startup time: %s%s%s\n\n" "$TME_CYAN" "$(date -d @${TME_STARTUP_BEGIN})" "$TME_NC"
-    } > "$TME_LOG_FILE"
+    } >> "$TME_LOG_FILE"
 }
 
 # Start timing a component with optional parent component
@@ -355,7 +355,7 @@ cleanup_timer() {
     } >> "$TME_LOG_FILE"
 
     # Restore logging state
-    echo "$orig_log_state" > "${TMP_DIR}/lo/log_state"
+    echo "$orig_log_state" > "$TME_STATE_FILE"
 }
 
 # Export all functions and variables
