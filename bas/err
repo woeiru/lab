@@ -1,13 +1,31 @@
 #!/bin/bash
 
-# Define the error log file location and additional tracking files
-ERROR_LOG="${LOG_DIR:-/var/log/lab/err}/error.log"
-ERROR_COUNT_FILE="/tmp/lab/err/error_count"
-ERROR_STATE_FILE="/tmp/lab/err/error_state"
+# Validate required environment variables
+[[ -z "$LOG_DIR" ]] && {
+    echo "Fatal: LOG_DIR environment variable not set" >&2
+    exit 1
+}
+[[ -z "$TMP_DIR" ]] && {
+    echo "Fatal: TMP_DIR environment variable not set" >&2
+    exit 1
+}
 
-[[ ! -d "$(dirname "$ERROR_LOG")" ]] && mkdir -p "$(dirname "$ERROR_LOG")" 2>/dev/null || ERROR_LOG="/tmp/lab/err/error.log"
-[[ ! -d "$(dirname "$ERROR_COUNT_FILE")" ]] && mkdir -p "$(dirname "$ERROR_COUNT_FILE")" 2>/dev/null
-[[ ! -d "$(dirname "$ERROR_STATE_FILE")" ]] && mkdir -p "$(dirname "$ERROR_STATE_FILE")" 2>/dev/null
+# Define module-specific directories
+ERR_LOG_DIR="$LOG_DIR/err"
+ERR_TMP_DIR="$TMP_DIR/err"
+
+# Define the error log file location and additional tracking files
+ERROR_LOG="$ERR_LOG_DIR/error.log"
+ERROR_COUNT_FILE="$ERR_TMP_DIR/error_count"
+ERROR_STATE_FILE="$ERR_TMP_DIR/error_state"
+
+# Verify critical directories exist (should have been created by rc.sh)
+for dir in "$ERR_LOG_DIR" "$ERR_TMP_DIR"; do
+    [[ ! -d "$dir" ]] && {
+        echo "Critical: Required directory missing: $dir" >&2
+        exit 1
+    }
+done
 
 # Define error codes with descriptive names
 declare -gA ERROR_CODES=(

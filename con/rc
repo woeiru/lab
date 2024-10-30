@@ -1,24 +1,88 @@
 #!/bin/bash
 set -o pipefail
 
-export LOG_DIR="/var/log/lab"
-export TMP_DIR="/tmp/lab"
+# Define base directories with validation and creation logic
+initialize_directories() {
+    # Define base directories with fallbacks
+    export LOG_DIR="${LOG_DIR:-/var/log/lab}"
+    export TMP_DIR="${TMP_DIR:-/tmp/lab}"
 
-# Create all required base directories
-for dir in \
-    "$LOG_DIR" "$TMP_DIR" \
-    "$LOG_DIR/lo" "$TMP_DIR/lo" \
-    "$LOG_DIR/tme" "$TMP_DIR/tme" \
-    "$LOG_DIR/rc" "$TMP_DIR/rc"; do
-    mkdir -p "$dir" 2>/dev/null
-done
+    # Define all required directories
+    declare -a REQUIRED_DIRS=(
+        "$LOG_DIR"
+        "$TMP_DIR"
+        "$LOG_DIR/err"
+        "$TMP_DIR/err"
+        "$LOG_DIR/lo"
+        "$TMP_DIR/lo"
+        "$LOG_DIR/tme"
+        "$TMP_DIR/tme"
+        "$LOG_DIR/rc"
+        "$TMP_DIR/rc"
+    )
 
-[[ ! -d "$LOG_DIR" ]] && LOG_DIR="/tmp/lab"
+    # Create all directories in one pass
+    local failed_dirs=()
+    for dir in "${REQUIRED_DIRS[@]}"; do
+        if ! mkdir -p "$dir" 2>/dev/null; then
+            failed_dirs+=("$dir")
+            echo "Warning: Failed to create directory: $dir" >&2
+        fi
+    done
+
+    # Handle failures and set fallbacks
+    if ((${#failed_dirs[@]} > 0)); then
+        echo "Warning: Some directories could not be created" >&2
+        printf '%s\n' "${failed_dirs[@]}" >&2
+
+        # Critical fallback: If main LOG_DIR fails, use TMP_DIR
+        if [[ ! -d "$LOG_DIR" ]]; then
+            LOG_DIR="$TMP_DIR"
+            echo "Falling back to TMP_DIR for logging: $TMP_DIR" >&2
+
+            # Attempt to create subdirectories in fallback location
+            for subdir in err lo tme rc; do
+                mkdir -p "$LOG_DIR/$subdir" 2>/dev/null || \
+                    echo "Warning: Failed to create fallback directory: $LOG_DIR/$subdir" >&2
+            done
+        fi
+    fi
+
+    # Verify critical directories exist
+    local critical_dirs=(
+        "$LOG_DIR"
+        "$TMP_DIR"
+        "$LOG_DIR/err"
+        "$TMP_DIR/err"
+    )
+
+    local missing_critical=0
+    for dir in "${critical_dirs[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            echo "Critical: Required directory missing: $dir" >&2
+            missing_critical=1
+        fi
+    done
+
+    # Exit if critical directories are missing
+    if ((missing_critical)); then
+        echo "Fatal: Missing critical directories. Cannot continue." >&2
+        return 1
+    fi
+
+    return 0
+}
 
 # Set up important directory paths
 DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
 PARENT_DIR="/root/lab"
 export LAB_DIR="$PARENT_DIR"
+
+# Initialize directories before anything else
+initialize_directories || {
+    echo "Fatal: Directory initialization failed" >&2
+    exit 1
+}
 
 # Initialize timer at the very start
 [[ -z "${BAS_DIR:-}" ]] && readonly BAS_DIR="$PARENT_DIR/bas"
@@ -243,8 +307,13 @@ execute_component() {
     return $return_value
 }
 
+
+
 # Main execution function with component dependency management
 main_rc() {
+
+    initialize_directories
+
     local components=(
         "source_bas:BAS:1"           # Required
         "source_rc:RC:1"             # Required
