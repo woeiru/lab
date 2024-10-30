@@ -3,12 +3,17 @@ set -o pipefail
 
 export LOG_DIR="/var/log/lab"
 export TMP_DIR="/tmp/lab"
-[[ ! -d "$LOG_DIR" ]] && mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="/tmp/lab"
-[[ ! -d "$TMP_DIR" ]] && mkdir -p "$TMP_DIR" 2>/dev/null
 
-# Set up RC-specific log directories
-RC_LOG_DIR="${LOG_DIR}/rc"
-[[ ! -d "$RC_LOG_DIR" ]] && mkdir -p "$RC_LOG_DIR" 2>/dev/null || RC_LOG_DIR="${TMP_DIR}/rc"
+# Create all required base directories
+for dir in \
+    "$LOG_DIR" "$TMP_DIR" \
+    "$LOG_DIR/lo" "$TMP_DIR/lo" \
+    "$LOG_DIR/tme" "$TMP_DIR/tme" \
+    "$LOG_DIR/rc" "$TMP_DIR/rc"; do
+    mkdir -p "$dir" 2>/dev/null
+done
+
+[[ ! -d "$LOG_DIR" ]] && LOG_DIR="/tmp/lab"
 
 # Set up important directory paths
 DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
