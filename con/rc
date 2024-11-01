@@ -4,6 +4,44 @@ set -o pipefail
 # Define base directories with validation and creation logic
 #!/bin/bash
 
+Cleanup() {
+    # Remove error handling trap
+    trap - ERR
+
+    # Clear associative arrays properly
+    unset ERROR_COMPONENTS
+    unset ERROR_MESSAGES
+    unset ERROR_TIMESTAMPS
+    unset ERROR_EXIT_CODES
+    unset ERROR_SEVERITIES
+
+    # Re-declare as associative arrays
+    declare -gA ERROR_COMPONENTS
+    declare -gA ERROR_MESSAGES
+    declare -gA ERROR_TIMESTAMPS
+    declare -gA ERROR_EXIT_CODES
+    declare -gA ERROR_SEVERITIES
+
+    # Clear indexed array
+    ERROR_ORDER=()
+
+    # Reset error trap enabled flag
+    ERROR_TRAP_ENABLED="false"
+
+    # Remove exit trap if present
+    trap - EXIT
+
+    # Clear any temporary files
+    rm -f /tmp/source_error.* 2>/dev/null
+    rm -f /tmp/directory_init_debug.log 2>/dev/null
+
+    # Clear any leftover timer data
+    if [[ -n "$TMP_DIR" ]]; then
+        rm -f "$TMP_DIR"/tme/* 2>/dev/null
+    fi
+    echo "Cleanup sucessfull"
+}
+
 initialize_directories() {
     local debug_log="/tmp/directory_init_debug.log"
 

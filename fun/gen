@@ -73,38 +73,35 @@ gen-gio() {
     cd - > /dev/null || { echo "Failed to return to previous directory"; return 1; }
 }
 
-# Installs specified packages using the system's package manager (apt, dnf, yum, or zypper). Performs update, upgrade, and installation operations
-# install packages
-# <pak1> <pak2> ...
-# Function to install packages with proper DNF check-update handling
-gen-ipa() {
+# Detects the system's package manager
+# detect package all
+#
+gen-dpa() {
     local function_name="${FUNCNAME[0]}"
+    local pman="unknown"
 
-    echo "Debug: gen-ipa function called with arguments: $@"
-
-    if [ $# -lt 1 ]; then
-        all-use
-        return 1
+    if command -v apt &> /dev/null; then
+        pman="apt"
+    elif command -v dnf &> /dev/null; then
+        pman="dnf"
+    elif command -v yum &> /dev/null; then
+        pman="yum"
+    elif command -v zypper &> /dev/null; then
+        pman="zypper"
     fi
 
-    # Function to detect the package manager
-    detect_package_manager() {
-        if command -v apt &> /dev/null; then
-            echo "apt"
-        elif command -v dnf &> /dev/null; then
-            echo "dnf"
-        elif command -v yum &> /dev/null; then
-            echo "yum"
-        elif command -v zypper &> /dev/null; then
-            echo "zypper"
-        else
-            echo "unknown"
-        fi
-    }
+    echo "$pman"
+}
 
-    # Detect the package manager
-    local pman=$(detect_package_manager)
-    echo "Debug: Detected package manager: $pman"
+# Updates and upgrades system packages using the detected package manager
+# update packages all
+#
+gen-upa() {
+    local function_name="${FUNCNAME[0]}"
+
+    # Get package manager using gen-dpa
+    local pman
+    pman=$(gen-dpa)
 
     if [ "$pman" = "unknown" ]; then
         all-nos "$function_name" "Could not detect a supported package manager"
@@ -114,19 +111,13 @@ gen-ipa() {
     # Define commands based on package manager
     case "$pman" in
         apt)
-            local update_cmd="update"
-            local upgrade_cmd="upgrade -y"
-            local install_cmd="install -y"
+            apt update -y && apt upgrade -y
             ;;
         dnf|yum)
-            local update_cmd="check-update"
-            local upgrade_cmd="upgrade -y"
-            local install_cmd="install -y"
+            $pman update -y && $pman upgrade -y
             ;;
         zypper)
-            local update_cmd="refresh"
-            local upgrade_cmd="update -y"
-            local install_cmd="install -y"
+            zypper refresh -y && zypper update -y
             ;;
         *)
             all-nos "$function_name" "Unsupported package manager: $pman"
@@ -134,70 +125,59 @@ gen-ipa() {
             ;;
     esac
 
-    echo "Debug: Update command: $pman $update_cmd"
-    echo "Debug: Upgrade command: $pman $upgrade_cmd"
-    echo "Debug: Install command: $pman $install_cmd"
-
-    # Execute update command with special handling for DNF
-    echo "Debug: Executing: $pman $update_cmd"
-    $pman $update_cmd > /tmp/update_output.log 2>&1
-    update_exit_code=$?
-
-    # Special handling for DNF check-update return codes
-    if [ "$pman" = "dnf" ] || [ "$pman" = "yum" ]; then
-        if [ $update_exit_code -eq 0 ] || [ $update_exit_code -eq 100 ]; then
-            echo "Update check completed successfully (exit code: $update_exit_code)"
-            if [ $update_exit_code -eq 0 ]; then
-                echo "No updates available."
-            else
-                echo "Updates are available."
-            fi
-        else
-            echo "Debug: $pman $update_cmd failed with exit code $update_exit_code"
-            echo "Full command output:"
-            cat /tmp/update_output.log
-            all-nos "$function_name" "Failed to check for updates. Exit code: $update_exit_code"
-            return 1
-        fi
+    if [ $? -eq 0 ]; then
+        all-nos "$function_name" "System update and upgrade completed successfully"
+        return 0
     else
-        # For non-DNF package managers
-        if [ $update_exit_code -ne 0 ]; then
-            echo "Debug: $pman $update_cmd failed with exit code $update_exit_code"
-            echo "Full command output:"
-            cat /tmp/update_output.log
-            all-nos "$function_name" "Failed to check for updates. Exit code: $update_exit_code"
+        all-nos "$function_name" "Failed to update and upgrade system"
+        return 1
+    fi
+}
+
+# Installs specified packages using the system's package manager
+# install packages all
+# <pak1> <pak2> ...
+gen-ipa() {
+    local function_name="${FUNCNAME[0]}"
+
+    if [ $# -lt 1 ]; then
+        all-use
+        return 1
+    fi
+
+    # Get package manager using gen-dpa
+    local pman
+    pman=$(gen-dpa)
+
+    if [ "$pman" = "unknown" ]; then
+        all-nos "$function_name" "Could not detect a supported package manager"
+        return 1
+    fi
+
+    # Install packages directly without any update/upgrade operations
+    case "$pman" in
+        apt)
+            apt install -y "$@"
+            ;;
+        dnf|yum)
+            $pman install -y "$@"
+            ;;
+        zypper)
+            zypper install -y "$@"
+            ;;
+        *)
+            all-nos "$function_name" "Unsupported package manager: $pman"
             return 1
-        fi
-    fi
+            ;;
+    esac
 
-    echo "Debug: Update check completed successfully"
-
-    # Execute upgrade command
-    echo "Debug: Executing: $pman $upgrade_cmd"
-    if ! $pman $upgrade_cmd > /tmp/upgrade_output.log 2>&1; then
-        local exit_code=$?
-        echo "Debug: $pman $upgrade_cmd failed with exit code $exit_code"
-        echo "Full command output:"
-        cat /tmp/upgrade_output.log
-        all-nos "$function_name" "Failed to upgrade packages. Exit code: $exit_code"
+    if [ $? -eq 0 ]; then
+        all-nos "$function_name" "Successfully installed packages: $*"
+        return 0
+    else
+        all-nos "$function_name" "Failed to install packages: $*"
         return 1
     fi
-
-    echo "Debug: Upgrade command completed successfully"
-
-    # Install all provided packages
-    echo "Debug: Executing: $pman $install_cmd $*"
-    if ! $pman $install_cmd $* > /tmp/install_output.log 2>&1; then
-        local exit_code=$?
-        echo "Debug: $pman $install_cmd $* failed with exit code $exit_code"
-        echo "Full command output:"
-        cat /tmp/install_output.log
-        all-nos "$function_name" "Failed to install packages ( $* ). Exit code: $exit_code"
-        return 1
-    fi
-
-    echo "Debug: Install command completed successfully"
-    all-nos "$function_name" "Successfully executed ( $pman $install_cmd $* )"
 }
 
 # Configures git globally with a specified username and email, essential for proper commit attribution
