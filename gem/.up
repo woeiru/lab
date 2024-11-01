@@ -9,21 +9,15 @@ setup_source() {
     local base="$3"
 
     printf "    Starting setup_source with dir=%s, file=%s\n" "$dir" "$file"
-    echo "DEBUG: Before sourcing - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
 
     # Calculate lab root by going up one directory from the script location
     local lab_root="$(dirname "$dir")"
     local fun_dir="$lab_root/fun"
     local env_dir="$lab_root/env"
 
-    printf "      DEBUG: lab_root=%s\n" "$lab_root"
-    printf "      DEBUG: fun_dir=%s\n" "$fun_dir"
-    printf "      DEBUG: env_dir=%s\n" "$env_dir"
-
     printf "      Checking for sourced rc files\n"
     if [[ -z "$SOURCE_RC_SUCCESS" ]]; then
         # Source all files in env directory
-        printf "      DEBUG: Checking env directory contents:\n"
         ls -l "$env_dir"/* 2>/dev/null || echo "No files found in $env_dir"
         for conf_file in "$env_dir"/*; do
             if [[ -f "$conf_file" ]]; then
@@ -33,7 +27,6 @@ setup_source() {
         done
 
         # Source all files in fun directory
-        printf "      DEBUG: Checking fun directory contents:\n"
         ls -l "$fun_dir"/* 2>/dev/null || echo "No files found in $fun_dir"
         for func_file in "$fun_dir"/*; do
             if [[ -f "$func_file" ]]; then
@@ -47,7 +40,6 @@ setup_source() {
     else
         printf "      Environment already sourced, skipping...\n"
     fi
-    echo "DEBUG: After sourcing $conf_file - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
 }
 
 
