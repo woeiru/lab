@@ -99,8 +99,8 @@
             dest: "{{ ansible_user_dir }}/.config/kxkbrc"
             mode: '0644'
 
-        # Git and SSH Configuration
-        - name: Configure Git global settings
+        # Enhanced Git and SSH Configuration
+        - name: Configure Git global settings to disable GUI prompts
           community.general.git_config:
             scope: global
             name: "{{ item.name }}"
@@ -109,6 +109,23 @@
             - { name: 'core.askPass', value: '' }
             - { name: 'credential.helper', value: '' }
             - { name: 'gui.askpass', value: '' }
+            - { name: 'core.editor', value: 'vim' }
+            - { name: 'push.default', value: 'simple' }
+            - { name: 'credential.modalPrompt', value: 'false' }
+
+        - name: Set global Git environment variables
+          lineinfile:
+            path: "{{ ansible_user_dir }}/{{ item }}"
+            line: "{{ line_item }}"
+            create: yes
+          loop_control:
+            loop_var: line_item
+          loop:
+            - "export GIT_ASKPASS=''"
+            - "export SSH_ASKPASS=''"
+            - "unset SSH_ASKPASS"
+            - "unset GIT_ASKPASS"
+          with_items: "{{ shell_rc_files }}"
 
         - name: Ensure SSH config directory exists
           ansible.builtin.file:
@@ -122,7 +139,17 @@
             create: yes
             mode: '0600'
             block: |
-              # Disable SSH_ASKPASS
+              # Disable SSH_ASKPASS and other GUI prompts
               Host *
                   SetEnv SSH_ASKPASS=''
+                  SetEnv GIT_ASKPASS=''
+                  PreferredAuthentications publickey,keyboard-interactive,password
+                  BatchMode yes
             marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH_ASKPASS configuration"
+
+        - name: Ensure KDE Wallet integration is disabled for Git
+          lineinfile:
+            path: "{{ ansible_user_dir }}/.config/kdeglobals"
+            line: "EnableGitIntegration=false"
+            create: yes
+            section: "[General]"
