@@ -120,7 +120,7 @@
             block: |
               # Disable SSH_ASKPASS
               Host *
-                  SetEnv SSH_ASKPASS=''
+                  Environment="SSH_ASKPASS="
             marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH_ASKPASS configuration"
 
         - name: Display shell configuration message
