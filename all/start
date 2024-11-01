@@ -15,8 +15,8 @@ readonly BAS_DIR="$LAB_DIR/bas"
 
 # Default configuration
 readonly DEFAULT_CONFIG_FILES=(".zshrc" ".bashrc")
-readonly INJECT_MARKER_START="# START inject"
-readonly INJECT_MARKER_END="# END inject"
+readonly INJECT_MARKER_START="# === BEGIN MANAGED BLOCK: Shell Configuration [source: $(basename "$0")] ==="
+readonly INJECT_MARKER_END="# === END MANAGED BLOCK: Shell Configuration ==="
 readonly INJECT_CONTENT=". ~/lab/con/rc"
 
 # Script behavior flags and settings
@@ -167,10 +167,6 @@ inject_content() {
     log "lvl-6" "CONFIG_FILE value: ${CONFIG_FILE}"
 
     if [[ -z "$CONFIG_FILE" || ! -f "$CONFIG_FILE" ]]; then
-       # Add debug output to see what's happening
-       log "lvl-6" "CONFIG_FILE='${CONFIG_FILE}'"
-       [[ -z "$CONFIG_FILE" ]] && log "lvl-6" "CONFIG_FILE is empty"
-       [[ ! -f "$CONFIG_FILE" ]] && log "lvl-6" "File does not exist"
         log "lvl-6" "Invalid config file: ${CONFIG_FILE}"
         return 1
     fi
@@ -187,16 +183,17 @@ inject_content() {
         log "lvl-6" "Updating existing content"
         sed -i "/$INJECT_MARKER_START/,/$INJECT_MARKER_END/d" "$CONFIG_FILE"
         status="UPDATED"
-    elif grep -Fxq "$INJECT_CONTENT" "$CONFIG_FILE"; then
-        log "lvl-6" "Content already exists without markers"
-        echo "STATUS=${status}"
-        return 0
     else
         log "lvl-6" "Adding new content"
         status="ADDED"
     fi
 
-    echo -e "\n$INJECT_MARKER_START\n$INJECT_CONTENT\n$INJECT_MARKER_END" >> "$CONFIG_FILE"
+    # Add newline before block if file is not empty and doesn't end with newline
+    if [[ -s "$CONFIG_FILE" ]] && [[ $(tail -c1 "$CONFIG_FILE" | wc -l) -eq 0 ]]; then
+        echo "" >> "$CONFIG_FILE"
+    fi
+
+    echo -e "$INJECT_MARKER_START\n$INJECT_CONTENT\n$INJECT_MARKER_END" >> "$CONFIG_FILE"
     log "lvl-6" "Content injection complete: ${status}"
     log "lvl-4" "STATUS=${status}"
     return 0

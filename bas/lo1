@@ -34,14 +34,6 @@ LOG_DEPTH_CACHE_FILE="${TMP_LO_DIR}/depth_cache"
 # Initialize state file if it doesn't exist
 [[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
 
-# State tracking
-declare -A LOG_DEPTH_CACHE
-declare -A LOG_PARENTS
-declare -A LOG_CHILDREN
-declare -g LOG_CURRENT_PARENT=""
-declare -i LAST_CACHE_CLEANUP=0
-readonly CACHE_CLEANUP_INTERVAL=300  # 5 minutes
-
 # Root function handling
 declare -gA ROOT_FUNCTIONS=([main_rc]=1)
 
