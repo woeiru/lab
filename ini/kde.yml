@@ -63,29 +63,28 @@
               alias theme-preset-bright='plasma-apply-lookandfeel -a org.kde.breeze.desktop'
               alias theme-preset-dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop'
 
-        # Check for existing shell RC files and update them
-        - name: Get current shell
-          command: echo $SHELL
-          register: current_shell
-          changed_when: false
-
+        # Get current shell and handle RC files
         - name: Check existing RC files
           stat:
             path: "{{ ansible_user_dir }}/{{ item }}"
           register: rc_files
           loop: "{{ shell_rc_files }}"
 
-        - name: Ensure aliases are sourced in existing RC files
-          blockinfile:
-            path: "{{ ansible_user_dir }}/{{ item.stat.path }}"
-            marker: "# {mark} ANSIBLE MANAGED BLOCK - Source KDE aliases"
+        - name: Add KDE aliases to RC files
+        blockinfile:
+            path: "{{ ansible_user_dir }}/{{ item.item }}"
+            marker: "# === {mark} MANAGED BLOCK: KDE Aliases [source: {{ playbook_name | default(ansible_play_name) | default('kde.yml') }}] ==="
+            marker_begin: BEGIN
+            marker_end: END
             block: |
-              if [ -f ~/{{ kde_aliases_file }} ]; then
-                  . ~/{{ kde_aliases_file }}
-              fi
+            . ~/.aliases_kde
             create: no
-          when: item.stat.exists
-          loop: "{{ rc_files.results }}"
+            insertbefore: EOF
+            # Add a newline before the block
+            insertbefore: EOF
+            block_prepend_newline: yes
+        when: item.stat.exists
+        loop: "{{ rc_files.results }}"
 
         # KWallet configuration
         - name: Ensure KWallet config directory exists
@@ -165,7 +164,5 @@
         - name: Display shell configuration message
           debug:
             msg: |
-              Configuration complete. Changes made:
-              - KDE aliases stored in ~/{{ kde_aliases_file }}
-              - Sourcing configuration added to existing shell RC files
+              Configuration complete. KDE aliases stored in ~/{{ kde_aliases_file }}
               Please run 'source ~/{{ kde_aliases_file }}' to load the aliases in your current session.
