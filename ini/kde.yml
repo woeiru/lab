@@ -99,9 +99,9 @@
             dest: "{{ ansible_user_dir }}/.config/kxkbrc"
             mode: '0644'
 
-        # Enhanced Git and SSH Configuration
-        - name: Configure Git global settings to disable GUI prompts
-          git_config:
+        # Git and SSH Configuration
+        - name: Configure Git global settings
+          community.general.git_config:
             scope: global
             name: "{{ item.name }}"
             value: "{{ item.value }}"
@@ -109,20 +109,6 @@
             - { name: 'core.askPass', value: '' }
             - { name: 'credential.helper', value: '' }
             - { name: 'gui.askpass', value: '' }
-
-        - name: Ensure SSH config directory exists
-          file:
-            path: "{{ ansible_user_dir }}/.ssh"
-            state: directory
-            mode: '0700'
-
-
-        # Git and SSH Configuration
-        - name: Configure Git global settings
-          community.general.git_config:
-            name: core.askPass
-            scope: global
-            value: ""
 
         - name: Ensure SSH config directory exists
           ansible.builtin.file:
