@@ -1,46 +1,8 @@
 #!/bin/bash
 set -o pipefail
 
-# Define base directories with validation and creation logic
-#!/bin/bash
-
-Cleanup() {
-    # Remove error handling trap
-    trap - ERR
-
-    # Clear associative arrays properly
-    unset ERROR_COMPONENTS
-    unset ERROR_MESSAGES
-    unset ERROR_TIMESTAMPS
-    unset ERROR_EXIT_CODES
-    unset ERROR_SEVERITIES
-
-    # Re-declare as associative arrays
-    declare -gA ERROR_COMPONENTS
-    declare -gA ERROR_MESSAGES
-    declare -gA ERROR_TIMESTAMPS
-    declare -gA ERROR_EXIT_CODES
-    declare -gA ERROR_SEVERITIES
-
-    # Clear indexed array
-    ERROR_ORDER=()
-
-    # Reset error trap enabled flag
-    ERROR_TRAP_ENABLED="false"
-
-    # Remove exit trap if present
-    trap - EXIT
-
-    # Clear any temporary files
-    rm -f /tmp/source_error.* 2>/dev/null
-    rm -f /tmp/directory_init_debug.log 2>/dev/null
-
-    # Clear any leftover timer data
-    if [[ -n "$TMP_DIR" ]]; then
-        rm -f "$TMP_DIR"/tme/* 2>/dev/null
-    fi
-    echo "Cleanup sucessfull"
-}
+declare -gA CLEANUP_FUNCTIONS
+declare -g TRAP_INITIALIZED=false
 
 initialize_directories() {
     local debug_log="/tmp/directory_init_debug.log"
@@ -200,30 +162,6 @@ command source "$BAS_DIR/err" || {
 
 # Initialize systems
 init_timer "$RC_LOG_DIR"
-
-cleanlab() {
-    echo " ━ Cleaning lab log directory"
-
-    # Only clean LOG_DIR, leave TMP_DIR alone
-    if [[ -d "$LOG_DIR" ]]; then
-        rm -rf "${LOG_DIR:?}"/* 2>/dev/null && \
-        mkdir -p "$LOG_DIR"/{lo,tme,rc} && \
-        echo "   ━ Cleaned: $LOG_DIR" || \
-        echo "   ━ Failed to clean: $LOG_DIR" >&2
-    else
-        echo "   ━ Warning: Log directory $LOG_DIR does not exist" >&2
-        if mkdir -p "$LOG_DIR"/{lo,tme,rc}; then
-            echo "   ━ Created new log directory structure"
-        else
-            echo "   ━ Failed to create log directory structure" >&2
-            return 1
-        fi
-    fi
-
-    echo " ━ Done"
-}
-
-export -f cleanlab
 
 # Helper function to safely source files with improved error handling and logging
 source_helper() {
@@ -420,11 +358,78 @@ execute_component() {
     return $return_value
 }
 
+# Central trap registration system
+register_cleanup() {
+    local module="$1"
+    local function="$2"
 
+    if [[ -n "$function" && $(type -t "$function") == "function" ]]; then
+        CLEANUP_FUNCTIONS[$module]="$function"
+        log "lvl" "Registered cleanup for module: $module"
+    else
+        log "lvl" "Failed to register cleanup for module: $module - invalid function"
+        return 1
+    fi
+}
 
-# Main execution function with component dependency management
+# Main cleanup orchestrator
+main_cleanup() {
+    log "lvl" "Starting main cleanup sequence"
+
+    # First cleanup logging system
+    if [[ -n "${CLEANUP_FUNCTIONS[lo]}" ]]; then
+        ${CLEANUP_FUNCTIONS[lo]}
+    fi
+
+    # Then cleanup timing system
+    if [[ -n "${CLEANUP_FUNCTIONS[tme]}" ]]; then
+        ${CLEANUP_FUNCTIONS[tme]}
+    fi
+
+    # Finally cleanup error handling
+    if [[ -n "${CLEANUP_FUNCTIONS[err]}" ]]; then
+        ${CLEANUP_FUNCTIONS[err]}
+    fi
+
+    log "lvl" "Main cleanup sequence completed"
+}
+
+# Central error handler
+main_error_handler() {
+    local line_number="$1"
+    local error_code="$2"
+
+    # Call error handler from err module if available
+    if type error_handler &>/dev/null; then
+        error_handler "$line_number" "$error_code"
+    fi
+}
+
+# Initialize trap system
+init_traps() {
+    if [[ "$TRAP_INITIALIZED" != "true" ]]; then
+        # Remove any existing traps
+        trap - EXIT
+        trap - ERR
+
+        # Set up main traps
+        trap main_cleanup EXIT
+        trap 'main_error_handler $LINENO $?' ERR
+
+        TRAP_INITIALIZED=true
+        log "lvl" "Trap system initialized"
+    fi
+}
+
+# Then in main_rc():
 main_rc() {
+    # Initialize trap system first
+    init_traps
 
+    # Register cleanup functions for each module
+    register_cleanup "lo" "cleanup_logger"
+    register_cleanup "tme" "cleanup_timer"
+    register_cleanup "err" "Cleanup"
     initialize_directories
 
     local components=(
@@ -473,10 +478,6 @@ main_rc() {
         return 0
     fi
 }
-
-# Set up traps for error handling and cleanup
-trap 'error_handler $LINENO' ERR
-trap 'cleanup_timer' EXIT
 
 # Execute the main function
 main_rc
