@@ -1,14 +1,43 @@
 #!/bin/bash
 
-# Handle non-interactive shell case
-[[ -z "${BAS_DIR}" ]] && BAS_DIR="/root/lab/bas"
-
 # Enable error handling
 set -e
 
-# Source rc2 for logging capabilities
-source "${BAS_DIR}/log"
-log "lvl-2" "log sourced successfully"
+setup_source() {
+    local dir="$1"
+    local file="$2"
+    local base="$3"
+
+    printf "    Starting setup_source with dir=%s, file=%s\n" "$dir" "$file"
+    local fun_dir="${dir%/*}/fun"
+    local env_dir="${dir%/*}/env"
+
+    printf "      Checking for sourced rc files\n"
+    if [[ -z "$SOURCE_RC_SUCCESS" ]]; then
+
+        # Source all .conf files in var directory
+        for conf_file in "$env_dir"/*.conf; do
+            if [[ -f "$conf_file" ]]; then
+                printf "        Sourcing %s\n" "$conf_file"
+                source "$conf_file" || echo "Failed to source $conf_file"
+            fi
+        done
+
+        # Source all .bash files in lib directory
+        for bash_file in "$fun_dir"/*.bash; do
+            if [[ -f "$bash_file" ]]; then
+                printf "        Sourcing %s\n" "$bash_file"
+                source "$bash_file" || echo "Failed to source $bash_file"
+            fi
+        done
+
+        export SOURCE_RC_SUCCESS=1
+        printf "      Environment sourcing completed\n"
+    else
+        printf "      Environment already sourced, skipping...\n"
+    fi
+}
+
 
 # Helper function to get section IDs from the calling script
 get_section_ids() {
@@ -29,7 +58,7 @@ get_section_ids() {
     IFS=$'\n' ids_array=($(sort <<<"${ids_array[*]}"))
     unset IFS
 
-    log "lvl-5" "Found sections: ${ids_array[*]}"
+    printf "      Found sections: %s\n" "${ids_array[*]}"
 }
 
 # Helper function to get section descriptions
@@ -114,43 +143,9 @@ print_usage() {
     printf "\n"
 }
 
-setup_source() {
-    local dir="$1"
-    local file="$2"
-    local base="$3"
-
-    log "lvl-3" "Starting setup_source with dir=$dir, file=$file"
-    local lib_dir="${dir%/*}/lib"
-    local var_dir="${dir%/*}/var"
-
-    log "lvl-4" "Checking for sourced rc files"
-    if [[ -z "$SOURCE_RC_SUCCESS" ]]; then
-
-        # Source all .conf files in var directory
-        for conf_file in "$var_dir"/*.conf; do
-            if [[ -f "$conf_file" ]]; then
-                log "lvl-5" "Sourcing $conf_file"
-                source "$conf_file" || echo "Failed to source $conf_file"
-            fi
-        done
-
-        # Source all .bash files in lib directory
-        for bash_file in "$lib_dir"/*.bash; do
-            if [[ -f "$bash_file" ]]; then
-                log "lvl-5" "Sourcing $bash_file"
-                source "$bash_file" || echo "Failed to source $bash_file"
-            fi
-        done
-
-        export SOURCE_RC_SUCCESS=1
-        log "lvl-4" "Environment sourcing completed"
-    else
-        log "lvl-4" "Environment already sourced, skipping..."
-    fi
-}
 
 setup_main() {
-    log "lvl-2" "Starting setup_main with arguments: $@"
+    printf "  Starting setup_main with arguments: %s\n" "$*"
 
     if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
         echo "Incorrect number of arguments."
@@ -163,7 +158,7 @@ setup_main() {
 
     case "$mode" in
         -i)
-            log "lvl-3" "Entering interactive mode"
+            printf "    Entering interactive mode\n"
             setup_interactive_mode "$argument"
             ;;
         -x)
@@ -172,7 +167,7 @@ setup_main() {
                 print_usage
                 return 1
             fi
-            log "lvl-3" "Entering executing mode"
+            printf "    Entering executing mode\n"
             setup_executing_mode "$argument"
             ;;
         *)
@@ -185,9 +180,9 @@ setup_main() {
 
 setup_interactive_mode() {
     local display_choice="$1"
-    log "lvl-3" "Setup interactive mode with display choice: $display_choice"
+    printf "    Setup interactive mode with display choice: %s\n" "$display_choice"
 
-    local base_indent="          "  # Matches the indentation of lvl-4 log
+    local base_indent="          "
     local BOLD='\033[1m'
     local RESET='\033[0m'
 
@@ -218,20 +213,19 @@ setup_interactive_mode() {
     select_and_execute_sections
 }
 
-
 setup_executing_mode() {
     local section="$1"
-    log "lvl-3" "Setup executing mode for section: $section"
+    printf "    Setup executing mode for section: %s\n" "$section"
 
     if [[ "$section" == "-all" ]]; then
-        log "lvl-4" "Executing all sections"
+        printf "      Executing all sections\n"
         for func in "${!MENU_OPTIONS[@]}"; do
-            log "lvl-5" "Executing section: $func"
+            printf "        Executing section: %s\n" "$func"
             ${MENU_OPTIONS[$func]}
         done
     else
         if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
-            log "lvl-4" "Executing section: $section"
+            printf "      Executing section: %s\n" "$section"
             ${MENU_OPTIONS[$section]}
         else
             echo "Invalid section: $section"
@@ -241,8 +235,8 @@ setup_executing_mode() {
 }
 
 select_and_execute_sections() {
-    log "lvl-3" "Entering select_and_execute_sections"
-    local base_indent="          "  # Matches the indentation of lvl-4 log
+    printf "    Entering select_and_execute_sections\n"
+    local base_indent="          "
     local BOLD='\033[1m'
     local RESET='\033[0m'
 
@@ -259,14 +253,14 @@ select_and_execute_sections() {
 
     if [[ "$sections" == "all" ]]; then
         sections="${!MENU_OPTIONS[*]}"
-        log "lvl-4" "User selected all sections"
+        printf "      User selected all sections\n"
     else
-        log "lvl-4" "User selected sections: $sections"
+        printf "      User selected sections: %s\n" "$sections"
     fi
 
     for section in $sections; do
         if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
-            log "lvl-4" "Executing section: $section"
+            printf "      Executing section: %s\n" "$section"
             setup_executing_mode "$section"
         else
             echo "Invalid section: $section. Skipping."
@@ -288,7 +282,7 @@ expand_variables() {
         fi
     done
 
-    log "lvl-5" "Expanded line: $expanded_line"
+    printf "        Expanded line: %s\n" "$expanded_line"
     echo "$expanded_line"
 }
 
@@ -298,10 +292,10 @@ get_function_description() {
     local lib_name="${func_name%%-*}"
     local lib_file="/root/lab/lib/${lib_name}.bash"
 
-    log "lvl-4" "Getting description for function: $func_name from file: $lib_file"
+    printf "      Getting description for function: %s from file: %s\n" "$func_name" "$lib_file"
 
     if [ ! -f "$lib_file" ]; then
-        log "lvl-4" "Library file not found: $lib_file"
+        printf "      Library file not found: %s\n" "$lib_file"
         return
     fi
 
@@ -316,10 +310,10 @@ get_function_description() {
     ' "$lib_file" | sed 's/^# *//')
 
     if [ -n "$description" ]; then
-        log "lvl-5" "Function description: $description"
+        printf "        Function description: %s\n" "$description"
         echo "--( $description )--"
     else
-        log "lvl-5" "No description found for function: $func_name"
+        printf "        No description found for function: %s\n" "$func_name"
     fi
 }
 
@@ -328,14 +322,14 @@ setup_display_menu() {
     local file="$2"
     local display_choice="$3"
     local section="$4"
-    local base_indent="          "  # Matches the indentation of lvl-4 log
-    local content_indent="            "  # Matches the indentation of lvl-5 log
+    local base_indent="          "
+    local content_indent="            "
 
     # ANSI escape codes for bold text and reset
     local BOLD='\033[1m'
     local RESET='\033[0m'
 
-    log "lvl-4" "Scanning file $file for *_xall functions"
+    printf "      Scanning file %s for *_xall functions\n" "$file"
     printf "\n"
     printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
     grep -E '^[a-zA-Z_]+_xall\(\)' "$dir/$file" | while IFS= read -r line; do
