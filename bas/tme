@@ -36,9 +36,9 @@ for dir in "$TME_LOG_DIR" "$TME_TMP_DIR"; do
 done
 
 # Define timing files and state files
-TME_STATE_FILE="${TME_TMP_DIR}/state"
-TME_LEVELS_FILE="${TME_TMP_DIR}/levels"
-TME_LOG_FILE="${TME_LOG_DIR}/timing.log"
+TME_STATE_FILE="${TME_TMP_DIR}/tme_state"
+TME_LEVELS_FILE="${TME_TMP_DIR}/tme_levels"
+TME_LOG_FILE="${TME_LOG_DIR}/tme_timing.log"
 
 # Initialize state files if they don't exist
 [[ ! -f "$TME_STATE_FILE" ]] && echo "true" > "$TME_STATE_FILE"
