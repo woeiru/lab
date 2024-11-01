@@ -25,11 +25,11 @@ for dir in "$LOG_LO_DIR" "$TMP_LO_DIR"; do
     }
 done
 
-# Define log files and state files
+# Change in lo1:
 LOG_FILE="${LOG_LO_DIR}/tree.log"
-LOG_STATE_FILE="${TMP_LO_DIR}/state"
 LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
 LOG_DEPTH_CACHE_FILE="${TMP_LO_DIR}/depth_cache"
+LOG_MAIN_STATE_FILE="${TMP_LO_DIR}/logging_enabled"
 
 # Initialize state file if it doesn't exist
 [[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"

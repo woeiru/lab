@@ -6,6 +6,8 @@ if ! declare -F log >/dev/null; then
     return 1
 fi
 
+LOG_CONTROL_STATE_FILE="${TMP_LO_DIR}/control_tracking_enabled"
+
 # Control structure tracking state with debug support
 LOG_CONTROL_DEPTH_ENABLED=true
 declare -A LO2_CONTROL_RANGES
@@ -150,14 +152,14 @@ setlogcontrol() {
     case "$1" in
         "on")
             LOG_CONTROL_DEPTH_ENABLED=true
-            # Override depth calculation
+            echo "true" > "$LOG_CONTROL_STATE_FILE"
             eval "function calculate_final_depth() { calculate_final_depth_with_controls; }"
             lo2_debug_log "Control structure depth tracking enabled" "setlogcontrol"
             printf "%sControl structure depth tracking enabled%s\n" "$LOG_GREEN" "$LOG_NC" | tee -a "$LOG_FILE"
             ;;
         "off")
             LOG_CONTROL_DEPTH_ENABLED=false
-            # Restore original depth calculation
+            echo "false" > "$LOG_CONTROL_STATE_FILE"
             eval "function calculate_final_depth() { get_base_depth; }"
             # Clean up state
             LO2_CONTROL_RANGES=()
