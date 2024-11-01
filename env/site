@@ -18,8 +18,8 @@ PACKAGES_ALL="vim tree ansible"
 
 # ansible
 #
-ANS_PRO_PATH_1="/root/lab/dot/ans"
-ANS_START_PATH_1="start.yml"
+ANS_PRO_PATH_1="/root/lab/ini"
+ANS_START_PATH_1="kde.yml"
 
 # ssh keys ( usk, aak
 #
