@@ -25,10 +25,9 @@ readonly LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
 # Global state
 declare -g LOG_CONTROL_DEPTH_ENABLED=false
 
-# Pre-analyzed file cache structure
-declare -gA LO2_FILE_ANALYSIS=()  # Stores complete file analysis
-declare -gA LO2_LINE_DEPTH=()     # Stores pre-calculated depths for each line
-declare -g LO2_INITIALIZED=false   # Track if initialization is complete
+# Runtime control structure tracking
+declare -ga CONTROL_DEPTH_STACK=()
+declare -g LAST_COMMAND=""
 
 # Enhanced debug logging
 lo2_debug_log() {
@@ -39,156 +38,95 @@ lo2_debug_log() {
     printf "[LO2-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_DEBUG_FILE"
 }
 
-# Pre-analyze a file completely
-analyze_source_file() {
-    local file="$1"
-    local key="$file"
+# Add a hash function to identify unique control structures
+hash_command() {
+    local cmd="$1"
+    # Get line number and file from DEBUG trap if available
+    local lineno="${BASH_LINENO[0]:-0}"
+    local source="${BASH_SOURCE[1]:-unknown}"
+    echo "${source}:${lineno}:${cmd}"
+}
 
-    # Skip if already analyzed
-    [[ -n "${LO2_FILE_ANALYSIS[$key]}" ]] && return 0
+# Modified tracking function with deduplication
+track_control_depth() {
+    local command="$1"
 
-    [[ ! -f "$file" ]] && {
-        lo2_debug_log "File not found: $file" "analyze_source"
-        return 1
-    }
+    # Skip if it's the same command as last time
+    [[ "$command" == "$LAST_COMMAND" ]] && return
+    LAST_COMMAND="$command"
 
-    lo2_debug_log "Pre-analyzing file: $file" "analyze_source"
+    # Generate unique hash for this command
+    local cmd_hash=$(hash_command "$command")
 
-    local -a file_lines
-    mapfile -t file_lines < "$file"
+    lo2_debug_log "Processing command: $command (hash: $cmd_hash)" "track_depth"
 
-    local line_number=0
-    local -a control_stack=()
-    local depth=0
-    local analysis=""
+    case "$command" in
+        if\ *|for\ *|while\ *|until\ *|case\ *|select\ *)
+            # Check if this exact control structure is already in the stack
+            local duplicate=false
+            for structure in "${CONTROL_DEPTH_STACK[@]}"; do
+                if [[ "$structure" == "$cmd_hash" ]]; then
+                    duplicate=true
+                    break
+                fi
+            done
 
-    while ((line_number < ${#file_lines[@]})); do
-        local line="${file_lines[$line_number]}"
-        local trimmed="${line#"${line%%[![:space:]]*}"}"
+            if ! $duplicate; then
+                CONTROL_DEPTH_STACK+=("$cmd_hash")
+                lo2_debug_log "Entered unique control structure: $command (depth: ${#CONTROL_DEPTH_STACK[@]})" "track_depth"
+            else
+                lo2_debug_log "Skipped duplicate control structure: $command" "track_depth"
+            fi
+            ;;
+        fi|done|esac)
+            # Only remove if it matches the last added structure
+            if [ ${#CONTROL_DEPTH_STACK[@]} -gt 0 ]; then
+                local last_structure="${CONTROL_DEPTH_STACK[-1]}"
+                if [[ "$last_structure" == *"$command"* ]]; then
+                    unset 'CONTROL_DEPTH_STACK[-1]'
+                    lo2_debug_log "Exited control structure (new depth: ${#CONTROL_DEPTH_STACK[@]})" "track_depth"
+                fi
+            fi
+            ;;
+    esac
+}
 
-        case "$trimmed" in
-            if*|for*|while*|until*|case*|select*)
-                ((depth++))
-                control_stack+=("$depth")
-                LO2_LINE_DEPTH["$key:$line_number"]=$depth
-                ;;
-            elif*|else*)
-                # Maintain same depth as parent if
-                [[ ${#control_stack[@]} -gt 0 ]] && {
-                    depth=${control_stack[-1]}
-                    LO2_LINE_DEPTH["$key:$line_number"]=$depth
-                }
-                ;;
-            fi|done|esac)
-                [[ ${#control_stack[@]} -gt 0 ]] && {
-                    unset 'control_stack[-1]'
-                    ((depth--))
-                }
-                LO2_LINE_DEPTH["$key:$line_number"]=$depth
-                ;;
-            *)
-                LO2_LINE_DEPTH["$key:$line_number"]=$depth
-                ;;
-        esac
+# Get current runtime control structure depth
+get_current_control_depth() {
+    lo2_debug_log "Current control depth: ${#CONTROL_DEPTH_STACK[@]}" "get_depth"
+    echo ${#CONTROL_DEPTH_STACK[@]}
+}
 
-        analysis+="$line_number:$depth;"
-        ((line_number++))
+print_control_stack() {
+    lo2_debug_log "Control structure stack:" "stack_debug"
+    local i=0
+    for structure in "${CONTROL_DEPTH_STACK[@]}"; do
+        # Extract original command from hash
+        local cmd="${structure##*:}"
+        lo2_debug_log "  $i: $cmd (hash: $structure)" "stack_debug"
+        ((i++))
     done
-
-    LO2_FILE_ANALYSIS[$key]="$analysis"
-    lo2_debug_log "Analysis complete for $file. Processed $line_number lines" "analyze_source"
-    return 0
 }
 
-# Get the depth for a specific line in a file
-get_line_depth() {
-    local file="$1"
-    local line="$2"
-
-    echo "${LO2_LINE_DEPTH["$file:$line"]:-0}"
-}
-
-# Get the actual source file from the call stack
-get_actual_source_file() {
-    local stack_size=${#FUNCNAME[@]}
-    local current_file=""
-
-    # Start from 2 to skip get_actual_source_file and immediate caller
-    for ((i=2; i<stack_size; i++)); do
-        local source="${BASH_SOURCE[$i]}"
-        if [[ "$source" =~ ^/root/lab/(con/rc|con/rc[0-9]+|fun/.*|gem/.*)$ ]]; then
-            current_file="$source"
-            break
-        fi
-    done
-
-    echo "$current_file"
-}
-
-# Pre-initialize analysis for known script files
-initialize_lo2() {
-    [[ "$LO2_INITIALIZED" == "true" ]] && return 0
-
-    lo2_debug_log "Starting LO2 initialization" "init"
-
-    # Define paths to pre-analyze
-    local base_path="/root/lab"
-    local paths=(
-        "$base_path/con/rc"
-        "$base_path/con/rc1"
-        "$base_path/con/rc2"
-        "$base_path/con/rc3"
-        "$base_path/fun"
-        "$base_path/gem"
-    )
-
-    # Pre-analyze all relevant files
-    for path in "${paths[@]}"; do
-        if [[ -d "$path" ]]; then
-            while IFS= read -r -d '' file; do
-                analyze_source_file "$file"
-            done < <(find "$path" -type f -name "*.sh" -print0 2>/dev/null)
-        elif [[ -f "$path" ]]; then
-            analyze_source_file "$path"
-        fi
-    done
-
-    LO2_INITIALIZED=true
-    lo2_debug_log "LO2 initialization complete" "init"
-}
-
-# Calculate total control structure depth
+# Calculate control structure depth
 calculate_control_depth() {
-    local caller_file="$1"
-    local line="${BASH_LINENO[1]}"
-    local current_func="${FUNCNAME[2]:-main}"
-
-    [[ -z "$caller_file" ]] && {
-        lo2_debug_log "No valid source file found" "depth_calc"
-        return 0
-    }
-
-    # Ensure file is analyzed
-    analyze_source_file "$caller_file"
-
-    # Get pre-calculated depth
-    local depth=$(get_line_depth "$caller_file" "$line")
-    lo2_debug_log "Retrieved cached depth $depth for $caller_file:$line" "depth_calc"
-
-    echo "${depth:-0}"
+    local depth=$(get_current_control_depth)
+    lo2_debug_log "Calculated control depth: $depth" "calc_depth"
+    if ((depth > 0)); then
+        print_control_stack
+    fi
+    echo "$depth"
 }
 
-# Override calculate_final_depth for control structure awareness
+# Override calculate_final_depth to use runtime tracking
 calculate_final_depth() {
     if [[ "$LOG_CONTROL_DEPTH_ENABLED" == "true" ]]; then
         local base_depth
         base_depth=$(get_base_depth)
         lo2_debug_log "Base depth: $base_depth" "final_depth"
 
-        local source_file
-        source_file=$(get_actual_source_file)
-        local control_depth
-        control_depth=$(calculate_control_depth "$source_file")
+        local control_depth1
+        control_depth=$(calculate_control_depth)
         local total_depth=$((base_depth + control_depth))
 
         lo2_debug_log "Control depth: $control_depth, Total depth: $total_depth" "final_depth"
@@ -198,19 +136,45 @@ calculate_final_depth() {
     fi
 }
 
+# Install the debug trap for control structure tracking
+install_depth_tracking() {
+    # Save any existing DEBUG trap
+    local old_trap=$(trap -p DEBUG)
+
+    # Set our new trap while preserving any existing trap
+    if [[ -n "$old_trap" && "$old_trap" != *"track_control_depth"* ]]; then
+        local old_command=${old_trap#trap -- \'}
+        old_command=${old_command%\' DEBUG}
+        trap 'track_control_depth "$BASH_COMMAND"; '"$old_command" DEBUG
+    else
+        trap 'track_control_depth "$BASH_COMMAND"' DEBUG
+    fi
+
+    lo2_debug_log "Installed control structure tracking" "init"
+}
+
+# Remove the debug trap
+remove_depth_tracking() {
+    trap - DEBUG
+    lo2_debug_log "Removed control structure tracking" "cleanup"
+}
+
 # Control structure tracking toggle
 setlogcontrol() {
     case "$1" in
         "on")
             LOG_CONTROL_DEPTH_ENABLED=true
             echo "true" > "$LOG_CONTROL_STATE_FILE"
-            initialize_lo2
+            install_depth_tracking
+            CONTROL_DEPTH_STACK=()
             lo2_debug_log "Control structure depth tracking enabled" "setlogcontrol"
             printf "%sControl structure depth tracking enabled%s\n" "$LOG_GREEN" "$LOG_NC"
             ;;
         "off")
             LOG_CONTROL_DEPTH_ENABLED=false
             echo "false" > "$LOG_CONTROL_STATE_FILE"
+            remove_depth_tracking
+            CONTROL_DEPTH_STACK=()
             lo2_debug_log "Control structure depth tracking disabled" "setlogcontrol"
             printf "%sControl structure depth tracking disabled%s\n" "$LOG_RED" "$LOG_NC"
             ;;
@@ -221,12 +185,11 @@ setlogcontrol() {
     esac
 }
 
-# Cleanup function
 cleanup_lo2() {
     lo2_debug_log "Starting cleanup" "cleanup_lo2"
-    LO2_FILE_ANALYSIS=()
-    LO2_LINE_DEPTH=()
-    LO2_INITIALIZED=false
+    remove_depth_tracking
+    CONTROL_DEPTH_STACK=()
+    LAST_COMMAND=""
     lo2_debug_log "Cleanup complete" "cleanup_lo2"
 }
 
@@ -235,6 +198,8 @@ export LOG_CONTROL_DEPTH_ENABLED
 export -f setlogcontrol
 export -f lo2_debug_log
 export -f calculate_final_depth
+export -f track_control_depth
+export -f get_current_control_depth
 
 # Set up cleanup trap
 trap cleanup_lo2 EXIT
