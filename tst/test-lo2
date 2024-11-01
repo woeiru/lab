@@ -1,0 +1,93 @@
+#!/bin/bash
+
+# Ensure required environment variables are set
+[[ -z "$LOG_DIR" ]] && export LOG_DIR="/var/log/lab"
+[[ -z "$TMP_DIR" ]] && export TMP_DIR="/tmp/lab"
+
+# Create necessary directories
+mkdir -p "$LOG_DIR/lo" "$TMP_DIR/lo"
+
+# Create test directory
+TEST_DIR="/tmp/lo2_test"
+mkdir -p "$TEST_DIR"
+
+# Create a sample file to analyze
+cat > "$TEST_DIR/sample.sh" << 'EOL'
+#!/bin/bash
+
+if [[ "$1" == "test" ]]; then
+    echo "Level 1"
+    for i in {1..3}; do
+        echo "Level 2"
+        while true; do
+            echo "Level 3"
+            break
+        done
+    done
+fi
+
+case "$2" in
+    "a") echo "Option A" ;;
+    "b") echo "Option B" ;;
+esac
+EOL
+
+# Enable debug logging
+export LOG_DEBUG_ENABLED=1
+
+# Source required modules in correct order
+echo "Sourcing required modules..."
+for module in err lo1 lo2; do
+    if [[ -f "$BAS_DIR/$module" ]]; then
+        echo "Sourcing $module..."
+        source "$BAS_DIR/$module"
+    else
+        echo "Error: Cannot find module $BAS_DIR/$module"
+        exit 1
+    fi
+done
+
+# Test functions
+echo "=== Testing lo2 module ==="
+echo
+
+echo "1. Testing control structure tracking..."
+if type setlogcontrol &>/dev/null; then
+    setlogcontrol on
+    echo "Control structure tracking enabled"
+else
+    echo "Error: setlogcontrol function not found"
+fi
+echo
+
+echo "2. Testing file analysis..."
+if type analyze_source_file &>/dev/null; then
+    analyze_source_file "$TEST_DIR/sample.sh"
+    echo "Control ranges:"
+    declare -p LO2_CONTROL_RANGES 2>/dev/null || echo "LO2_CONTROL_RANGES not defined"
+    echo "Control types:"
+    declare -p LO2_CONTROL_TYPES 2>/dev/null || echo "LO2_CONTROL_TYPES not defined"
+else
+    echo "Error: analyze_source_file function not found"
+fi
+echo
+
+echo "3. Testing depth calculation..."
+if type calculate_control_depth &>/dev/null; then
+    source "$TEST_DIR/sample.sh"
+    test_depth "test"
+else
+    echo "Error: calculate_control_depth function not found"
+fi
+echo
+
+# Display debug log if it exists
+echo "=== Debug Log ==="
+if [[ -f "$LOG_DIR/lo/debug.log" ]]; then
+    cat "$LOG_DIR/lo/debug.log"
+else
+    echo "Debug log file not found"
+fi
+
+# Cleanup
+rm -rf "$TEST_DIR"
