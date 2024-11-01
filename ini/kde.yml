@@ -3,7 +3,11 @@
   connection: local
   vars:
     config_desk_1: true
-    ansible_user_dir: "{{ lookup('env', 'HOME') }}"
+    ansible_user_dir: "/root"
+    kde_aliases_file: ".aliases_kde"
+    shell_rc_files:
+      - ".bashrc"
+      - ".zshrc"
 
   tasks:
     - name: Configure desk_1 preferences
@@ -11,13 +15,13 @@
       block:
         # Konsole configuration
         - name: Ensure .local/share/konsole directory exists
-          ansible.builtin.file:
+          file:
             path: "{{ ansible_user_dir }}/.local/share/konsole"
             state: directory
             mode: '0755'
 
         - name: Create Konsole Profile 1
-          ansible.builtin.copy:
+          copy:
             content: |
               [Appearance]
               ColorScheme=SolarizedLight
@@ -31,7 +35,7 @@
             mode: '0644'
 
         - name: Create Konsole Profile 2
-          ansible.builtin.copy:
+          copy:
             content: |
               [Appearance]
               ColorScheme=WhiteOnBlack
@@ -44,30 +48,54 @@
             dest: "{{ ansible_user_dir }}/.local/share/konsole/Profile 2.profile"
             mode: '0644'
 
-        # Shell aliases configuration
-        - name: Ensure bash aliases file exists
-          ansible.builtin.file:
-            path: "{{ ansible_user_dir }}/.bash_aliases"
+        # Shell-agnostic aliases configuration
+        - name: Ensure KDE aliases file exists
+          file:
+            path: "{{ ansible_user_dir }}/{{ kde_aliases_file }}"
             state: touch
             mode: '0644'
 
         - name: Add theme and plasma shell aliases
-          ansible.builtin.blockinfile:
-            path: "{{ ansible_user_dir }}/.bash_aliases"
+          blockinfile:
+            path: "{{ ansible_user_dir }}/{{ kde_aliases_file }}"
             marker: "# {mark} ANSIBLE MANAGED BLOCK - Theme and Plasma Shell aliases"
             block: |
-              alias theme-preset-bright='plasma-apply-lookandfeel -a org.kde.breeze.desktop && usr-ckp 1'
-              alias theme-preset-dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop && usr-ckp 2'
+              alias theme-preset-bright='plasma-apply-lookandfeel -a org.kde.breeze.desktop'
+              alias theme-preset-dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop'
+
+        # Check for existing shell RC files and update them
+        - name: Get current shell
+          command: echo $SHELL
+          register: current_shell
+          changed_when: false
+
+        - name: Check existing RC files
+          stat:
+            path: "{{ ansible_user_dir }}/{{ item }}"
+          register: rc_files
+          loop: "{{ shell_rc_files }}"
+
+        - name: Ensure aliases are sourced in existing RC files
+          blockinfile:
+            path: "{{ ansible_user_dir }}/{{ item.stat.path }}"
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - Source KDE aliases"
+            block: |
+              if [ -f ~/{{ kde_aliases_file }} ]; then
+                  . ~/{{ kde_aliases_file }}
+              fi
+            create: no
+          when: item.stat.exists
+          loop: "{{ rc_files.results }}"
 
         # KWallet configuration
         - name: Ensure KWallet config directory exists
-          ansible.builtin.file:
+          file:
             path: "{{ ansible_user_dir }}/.config"
             state: directory
             mode: '0755'
 
         - name: Disable KWallet
-          ansible.builtin.ini_file:
+          ini_file:
             path: "{{ ansible_user_dir }}/.config/kwalletrc"
             section: 'Wallet'
             option: 'Enabled'
@@ -75,13 +103,13 @@
           register: kwallet_config
 
         - name: Check if KWallet service exists
-          ansible.builtin.command: systemctl list-unit-files --type=service | grep -E 'kwalletd|kwallet'
+          command: systemctl list-unit-files --type=service | grep -E 'kwalletd|kwallet'
           register: kwallet_service_check
           changed_when: false
           failed_when: false
 
         - name: Restart KWallet service if it exists and configuration changed
-          ansible.builtin.systemd:
+          systemd:
             name: "{{ item }}"
             state: restarted
             scope: user
@@ -94,13 +122,13 @@
           failed_when: false
 
         - name: Notify user if KWallet service was not found
-          ansible.builtin.debug:
+          debug:
             msg: "KWallet service not found. You may need to restart it manually or it may not be installed on this system."
           when: kwallet_service_check.rc != 0
 
         # Keyboard layout configuration
         - name: Configure keyboard layout
-          ansible.builtin.copy:
+          copy:
             content: |
               [Layout]
               DisplayNames=,
@@ -112,19 +140,19 @@
 
         # Git and SSH Configuration
         - name: Configure Git global settings
-          community.general.git_config:
+          git_config:
             name: core.askPass
             scope: global
             value: ""
 
         - name: Ensure SSH config directory exists
-          ansible.builtin.file:
+          file:
             path: "{{ ansible_user_dir }}/.ssh"
             state: directory
             mode: '0700'
 
         - name: Configure SSH to disable password prompting
-          ansible.builtin.blockinfile:
+          blockinfile:
             path: "{{ ansible_user_dir }}/.ssh/config"
             create: yes
             mode: '0600'
@@ -133,3 +161,11 @@
               Host *
                   SetEnv SSH_ASKPASS=''
             marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH_ASKPASS configuration"
+
+        - name: Display shell configuration message
+          debug:
+            msg: |
+              Configuration complete. Changes made:
+              - KDE aliases stored in ~/{{ kde_aliases_file }}
+              - Sourcing configuration added to existing shell RC files
+              Please run 'source ~/{{ kde_aliases_file }}' to load the aliases in your current session.
