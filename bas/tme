@@ -11,7 +11,7 @@
 }
 
 # Add reference to the lo module's state file at the top
-readonly LO_STATE_FILE="${TMP_DIR}/lo/state"  # Single source of truth for logging state
+readonly LO_STATE_FILE="${TMP_DIR}/lo/lo1_state"  # Single source of truth for logging state
 
 # Performance monitoring setup
 declare -gA TME_START_TIMES     # Stores component start times

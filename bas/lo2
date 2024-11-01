@@ -6,7 +6,7 @@ if ! declare -F log >/dev/null; then
     return 1
 fi
 
-LOG_CONTROL_STATE_FILE="${TMP_LO_DIR}/control_tracking_enabled"
+LOG_CONTROL_STATE_FILE="${TMP_LO_DIR}/lo2_state"
 
 # Control structure tracking state with debug support
 LOG_CONTROL_DEPTH_ENABLED=true

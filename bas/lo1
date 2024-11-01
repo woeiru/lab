@@ -29,7 +29,7 @@ done
 LOG_FILE="${LOG_LO_DIR}/tree.log"
 LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
 LOG_DEPTH_CACHE_FILE="${TMP_LO_DIR}/depth_cache"
-LOG_STATE_FILE="${TMP_LO_DIR}/state"
+LOG_STATE_FILE="${TMP_LO_DIR}/lo1_state"
 
 # Initialize state file if it doesn't exist
 [[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
