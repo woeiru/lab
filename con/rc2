@@ -163,6 +163,6 @@ set_static() {
     # Unsorted (you may want to organize these later)
     alias pr='kquitapp5 plasmashell && kstart5 plasmashell'
     alias gdi='git diff --no-index -- /dev/null'
-
-    # Any additional main execution logic can be added here
+    alias theme-preset-bright='plasma-apply-lookandfeel -a org.kde.breeze.desktop'
+    alias theme-preset-dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop'
 }
