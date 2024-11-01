@@ -15,8 +15,10 @@ GIT_USERNAME="woeiru"
 GIT_USERMAIL="169383590+woeiru@users.noreply.github.com"
 
 # packages ( ipa
-#
-PACKAGES_ALL="vim tree ansible"
+# Define package array
+declare -g -a PACKAGES_ALL
+PACKAGES_ALL=(vim tree ansible)
+echo "DEBUG (site): PACKAGES_ALL just after declaration: ${PACKAGES_ALL[@]}"
 
 # ansible
 #
@@ -378,4 +380,6 @@ STO_NFS_SERVER_IP="192.168.178.112"
 STO_NFS_SHARED_FOLDER="/var/lib/vz"
 STO_NFS_MOUNT_POINT="/mnt/nfs_share"
 STO_NFS_MOUNT_OPTIONS="rw,sync,hard,intr"
+
+echo "DEBUG (site): PACKAGES_ALL at end of site file: ${PACKAGES_ALL[@]}"
 

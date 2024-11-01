@@ -72,48 +72,62 @@ has_errors() {
     $has_error
 }
 
-# Enhanced error handler function with improved tracking
+# Enhanced error handler function that only catches real errors
 error_handler() {
+    # Only proceed if ERROR_TRAP_ENABLED is set
+    [[ "${ERROR_TRAP_ENABLED}" != "true" ]] && return 0
+
     local line_number="$1"
     local error_code="${2:-${ERROR_CODES[GENERAL_ERROR]}}"
-    local is_optional="${3:-false}"
     local exit_code="$?"
     local command="${BASH_COMMAND:-Unknown command}"
-    local timestamp=$(date '+%Y%m%d%H%M%S')
     local source_file="${BASH_SOURCE[1]:-unknown}"
     local component="${FUNCNAME[1]:-main}"
+    local timestamp=$(date '+%Y%m%d%H%M%S')
 
-    # Determine error description
-    local error_desc=""
-    for key in "${!ERROR_CODES[@]}"; do
-        if [[ ${ERROR_CODES[$key]} -eq $error_code ]]; then
-            error_desc="$key"
-            break
-        fi
-    done
-    [[ -z "$error_desc" ]] && error_desc="UNKNOWN_ERROR"
-
-    # Generate unique error ID with more information
+    # Generate unique error ID
     local error_id="${timestamp}_${component}_${line_number}"
 
-    # Store error information with enhanced detail
+    # Store error information
     ERROR_COMPONENTS[$error_id]="$component"
-    ERROR_MESSAGES[$error_id]="[$error_desc] In $source_file on line $line_number: $command failed with status $error_code"
+    ERROR_MESSAGES[$error_id]="In $source_file on line $line_number: $command failed with status $error_code"
     ERROR_TIMESTAMPS[$error_id]="$timestamp"
     ERROR_EXIT_CODES[$error_id]="$error_code"
-    ERROR_SEVERITIES[$error_id]="$is_optional"
     ERROR_ORDER+=("$error_id")
 
-    # Log to both error log file and stderr with improved formatting
-    local severity_prefix="ERROR"
-    [[ "$is_optional" == "true" ]] && severity_prefix="WARNING"
+    # Log error
+    echo "└─ ERROR $timestamp - In $source_file on line $line_number: Command '$command' failed with status $error_code" | tee -a "$ERROR_LOG" >&2
 
-    {
-        echo "└─ $severity_prefix($error_desc) $timestamp - In $source_file on line $line_number: Command '$command' failed with status $error_code"
-    } | tee -a "$ERROR_LOG" >&2
+    return $error_code
+}
 
-    # Return appropriate status
-    return $([[ "$is_optional" == "true" ]] && echo "${ERROR_CODES[SUCCESS]}" || echo "$error_code")
+# Function to enable error trapping
+enable_error_trap() {
+    ERROR_TRAP_ENABLED="true"
+    trap 'error_handler $LINENO $?' ERR
+}
+
+# Function to disable error trapping
+disable_error_trap() {
+    ERROR_TRAP_ENABLED="false"
+    trap - ERR
+}
+
+# Example usage in your scripts:
+# Wrap dangerous operations with error trapping
+dangerous_operation() {
+    enable_error_trap
+    # Your dangerous operation here
+    rm -rf some_important_directory/
+    disable_error_trap
+}
+
+# For package management and other safe operations, don't use error trapping
+safe_operation() {
+    disable_error_trap
+    # Your safe operation here
+    dnf update
+    enable_error_trap  # Re-enable if needed after the operation
 }
 
 # Enhanced error reporting function with better organization

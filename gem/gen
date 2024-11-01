@@ -1,5 +1,7 @@
 #!/bin/bash
 
+declare -g -a PACKAGES_ALL
+
 # Define script location
 DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_SH="$(basename "${BASH_SOURCE[0]}")"
@@ -9,6 +11,7 @@ BASE_SH="${FILE_SH%.*}"
 source "$DIR_SH/.up"
 
 setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
+echo "DEBUG: After setup_source - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
 
 # Declare MENU_OPTIONS
 declare -A MENU_OPTIONS
@@ -18,8 +21,21 @@ MENU_OPTIONS[x]="x_xall"
 
 # Installs common system packages and configures global Git user credentials
 a_xall() {
-    gen-ipa "$PACKAGES_ALL"
-    gen-gst "$GIT_USERNAME" "$GIT_USERMAIL"
+    echo "Debug: Entering a_xall function"
+    echo "Debug: Current directory: $(pwd)"
+    echo "Debug: PACKAGES_ALL contents: ${PACKAGES_ALL[@]}"
+    echo "Debug: Number of packages: ${#PACKAGES_ALL[@]}"
+
+    if [ ${#PACKAGES_ALL[@]} -eq 0 ]; then
+        echo "Error: PACKAGES_ALL array is empty"
+        return 1
+    fi
+
+    echo "Debug: About to execute: gen-ipa ${PACKAGES_ALL[@]}"
+    gen-ipa "${PACKAGES_ALL[@]}"
+    local result=$?
+    echo "Debug: gen-ipa exit code: $result"
+    return $result
 }
 
 # Uploads private SSH key from USB device to system for secure authentication
@@ -37,6 +53,10 @@ if [ $# -eq 0 ]; then
     print_usage
     clean_exit 0       # Exit cleanly with status 0
 else
+    echo "DEBUG: Before setup_main - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
     setup_main "$@"
+    exit_code=$?
+    echo "DEBUG: After setup_main - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
+    exit $exit_code
     clean_exit $?
 fi
