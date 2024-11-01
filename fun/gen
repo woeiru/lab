@@ -76,6 +76,7 @@ gen-gio() {
 # Installs specified packages using the system's package manager (apt, dnf, yum, or zypper). Performs update, upgrade, and installation operations
 # install packages
 # <pak1> <pak2> ...
+# Function to install packages with proper DNF check-update handling
 gen-ipa() {
     local function_name="${FUNCNAME[0]}"
 
@@ -137,21 +138,36 @@ gen-ipa() {
     echo "Debug: Upgrade command: $pman $upgrade_cmd"
     echo "Debug: Install command: $pman $install_cmd"
 
-    # Execute update command
+    # Execute update command with special handling for DNF
     echo "Debug: Executing: $pman $update_cmd"
     $pman $update_cmd > /tmp/update_output.log 2>&1
     update_exit_code=$?
 
-    if [ $update_exit_code -eq 0 ]; then
-        echo "No updates available."
-    elif [ $update_exit_code -eq 100 ]; then
-        echo "Updates are available."
+    # Special handling for DNF check-update return codes
+    if [ "$pman" = "dnf" ] || [ "$pman" = "yum" ]; then
+        if [ $update_exit_code -eq 0 ] || [ $update_exit_code -eq 100 ]; then
+            echo "Update check completed successfully (exit code: $update_exit_code)"
+            if [ $update_exit_code -eq 0 ]; then
+                echo "No updates available."
+            else
+                echo "Updates are available."
+            fi
+        else
+            echo "Debug: $pman $update_cmd failed with exit code $update_exit_code"
+            echo "Full command output:"
+            cat /tmp/update_output.log
+            all-nos "$function_name" "Failed to check for updates. Exit code: $update_exit_code"
+            return 1
+        fi
     else
-        echo "Debug: $pman $update_cmd exited with code $update_exit_code"
-        echo "Full command output:"
-        cat /tmp/update_output.log
-        all-nos "$function_name" "Failed to check for updates. Exit code: $update_exit_code"
-        return 1
+        # For non-DNF package managers
+        if [ $update_exit_code -ne 0 ]; then
+            echo "Debug: $pman $update_cmd failed with exit code $update_exit_code"
+            echo "Full command output:"
+            cat /tmp/update_output.log
+            all-nos "$function_name" "Failed to check for updates. Exit code: $update_exit_code"
+            return 1
+        fi
     fi
 
     echo "Debug: Update check completed successfully"
@@ -160,7 +176,7 @@ gen-ipa() {
     echo "Debug: Executing: $pman $upgrade_cmd"
     if ! $pman $upgrade_cmd > /tmp/upgrade_output.log 2>&1; then
         local exit_code=$?
-        echo "Debug: $pman $upgrade_cmd exited with code $exit_code"
+        echo "Debug: $pman $upgrade_cmd failed with exit code $exit_code"
         echo "Full command output:"
         cat /tmp/upgrade_output.log
         all-nos "$function_name" "Failed to upgrade packages. Exit code: $exit_code"
@@ -173,7 +189,7 @@ gen-ipa() {
     echo "Debug: Executing: $pman $install_cmd $*"
     if ! $pman $install_cmd $* > /tmp/install_output.log 2>&1; then
         local exit_code=$?
-        echo "Debug: $pman $install_cmd $* exited with code $exit_code"
+        echo "Debug: $pman $install_cmd $* failed with exit code $exit_code"
         echo "Full command output:"
         cat /tmp/install_output.log
         all-nos "$function_name" "Failed to install packages ( $* ). Exit code: $exit_code"
@@ -181,7 +197,6 @@ gen-ipa() {
     fi
 
     echo "Debug: Install command completed successfully"
-
     all-nos "$function_name" "Successfully executed ( $pman $install_cmd $* )"
 }
 
