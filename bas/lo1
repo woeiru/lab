@@ -71,7 +71,7 @@ declare -gA ROOT_FUNCTIONS=([main_rc]=1)
 # In lo1, find and modify the debug_log function:
 debug_log() {
     [[ "${LOG_DEBUG_ENABLED}" != "1" ]] && return 0
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp=$(date '+%H:%M:%S')
     local message="$1"
     printf "[LO1-DEBUG] %s - %s\n" "$timestamp" "$message" >> "$LOG_DEBUG_FILE"
 }
