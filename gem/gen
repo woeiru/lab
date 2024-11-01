@@ -18,7 +18,7 @@ MENU_OPTIONS[x]="x_xall"
 
 # Installs common system packages and configures global Git user credentials
 a_xall() {
-    gen-ipa "$PACKAGES_ALL"
+    gen-ipa "$PVE_PACKAGES_ALL"
     gen-gst "$GIT_USERNAME" "$GIT_USERMAIL"
 }
 
