@@ -9,6 +9,7 @@ setup_source() {
     local base="$3"
 
     printf "    Starting setup_source with dir=%s, file=%s\n" "$dir" "$file"
+    echo "DEBUG: Before sourcing - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
 
     # Calculate lab root by going up one directory from the script location
     local lab_root="$(dirname "$dir")"
@@ -46,6 +47,7 @@ setup_source() {
     else
         printf "      Environment already sourced, skipping...\n"
     fi
+    echo "DEBUG: After sourcing $conf_file - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
 }
 
 
@@ -155,6 +157,7 @@ print_usage() {
 
 
 setup_main() {
+    echo "DEBUG: Enter setup_main - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
     printf "  Starting setup_main with arguments: %s\n" "$*"
 
     if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
@@ -224,6 +227,7 @@ setup_interactive_mode() {
 }
 
 setup_executing_mode() {
+    echo "DEBUG: Enter setup_executing_mode - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
     local section="$1"
     printf "    Setup executing mode for section: %s\n" "$section"
 
