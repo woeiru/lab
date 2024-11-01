@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #
 # GEN
 #
@@ -93,7 +95,7 @@ PBS_DATASTORE_PATH="/home"
 
 # packages
 #
-PACKAGES_ALL="corosync-qdevice"
+PVE_PACKAGES_ALL="corosync-qdevice"
 
 # config files
 CONF_PATH_QEMU="/etc/pve/qemu-server"
