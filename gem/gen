@@ -21,7 +21,7 @@ MENU_OPTIONS[x]="x_xall"
 # Installs common system packages and configures global Git user credentials
 a_xall() {
     gen-ipa "$PACKAGES_ALL"
-
+}
 # Uploads private SSH key from USB device to system for secure authentication
 b_xall() {
     gen-suk \
@@ -40,4 +40,3 @@ else
     setup_main "$@"
     clean_exit $?
 fi
-
