@@ -99,12 +99,16 @@
             dest: "{{ ansible_user_dir }}/.config/kxkbrc"
             mode: '0644'
 
-        # Git and SSH Configuration
-        - name: Configure Git global settings
+        # Enhanced Git and SSH Configuration
+        - name: Configure Git global settings to disable GUI prompts
           git_config:
-            name: core.askPass
             scope: global
-            value: ""
+            name: "{{ item.name }}"
+            value: "{{ item.value }}"
+          loop:
+            - { name: 'core.askPass', value: '' }
+            - { name: 'credential.helper', value: '' }
+            - { name: 'gui.askpass', value: '' }
 
         - name: Ensure SSH config directory exists
           file:
@@ -118,13 +122,79 @@
             create: yes
             mode: '0600'
             block: |
-              # Disable SSH_ASKPASS
+              # Disable SSH_ASKPASS and other GUI prompts
               Host *
+                  BatchMode no
+                  PasswordAuthentication no
+                  GSSAPIAuthentication no
+                  PreferredAuthentications publickey
                   Environment="SSH_ASKPASS="
+                  Environment="GIT_ASKPASS="
+                  Environment="DISPLAY="
             marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH_ASKPASS configuration"
+
+        - name: Configure environment variables in shell RC files
+          blockinfile:
+            path: "{{ ansible_user_dir }}/{{ item }}"
+            create: yes
+            mode: '0644'
+            block: |
+              # Disable GUI password prompts
+              unset SSH_ASKPASS
+              unset GIT_ASKPASS
+              export SSH_ASKPASS=
+              export GIT_ASKPASS=
+              # Only set DISPLAY to empty if it's a non-interactive session
+              if [ -z "$PS1" ]; then
+                export DISPLAY=
+              fi
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - DISABLE GUI PASSWORD PROMPTS"
+          loop: "{{ shell_rc_files }}"
+
+        - name: Ensure KDE Plasma doesn't interfere with SSH agent
+          copy:
+            content: |
+              [Agent-0]
+              Enabled=false
+              Type=ssh-agent
+            dest: "{{ ansible_user_dir }}/.config/plasma-workspace/env/ssh-agent-disable.conf"
+            mode: '0644'
+
+        - name: Create script to kill existing ssh-askpass processes
+          copy:
+            content: |
+              #!/bin/bash
+              pkill -f ssh-askpass
+              pkill -f ksshaskpass
+            dest: "{{ ansible_user_dir }}/kill-ssh-askpass.sh"
+            mode: '0755'
+
+        # Ensure the workspace/env directory exists
+        - name: Ensure plasma-workspace/env directory exists
+          file:
+            path: "{{ ansible_user_dir }}/.config/plasma-workspace/env"
+            state: directory
+            mode: '0755'
+
+        # Create environment script to disable SSH askpass
+        - name: Create SSH askpass environment disable script
+          copy:
+            content: |
+              #!/bin/sh
+              export SSH_ASKPASS=
+              export GIT_ASKPASS=
+              export DISPLAY=
+            dest: "{{ ansible_user_dir }}/.config/plasma-workspace/env/disable-ssh-askpass.sh"
+            mode: '0755'
 
         - name: Display shell configuration message
           debug:
             msg: |
               Configuration complete. KDE aliases stored in ~/{{ kde_aliases_file }}
               Please run 'source ~/{{ kde_aliases_file }}' to load the aliases in your current session.
+
+              To ensure all SSH/Git password prompts are disabled:
+              1. Log out and log back into your KDE session
+              2. Run ~/kill-ssh-askpass.sh if you still see prompts
+              3. Make sure your SSH keys are added to ssh-agent: ssh-add ~/.ssh/your_key
+              4. Verify your Git repositories use SSH URLs (git@github.com:... instead of https://...)
