@@ -124,58 +124,14 @@ analyze_source_file() {
     return 0
 }
 
-get_actual_source_file() {
-    local stack_size=${#FUNCNAME[@]}
-    local current_file=""
-
-    # Add debug logging for stack inspection
-    echo "DEBUG: Inspecting call stack for source file" >&2
-
-    # Start from 2 to skip get_actual_source_file and immediate caller
-    for ((i=2; i<stack_size; i++)); do
-        local source="${BASH_SOURCE[$i]}"
-        # Add debug logging for each file considered
-        echo "DEBUG: Checking source file: $source" >&2
-
-        if [[ "$source" =~ ^/root/lab/(con/rc|con/rc[0-9]+|fun/.*|gem/.*)$ ]]; then
-            current_file="$source"
-            echo "DEBUG: Found matching source file: $current_file" >&2
-            break
-        fi
-    done
-
-    echo "$current_file"
-}
-
-get_actual_source_file() {
-    local stack_size=${#FUNCNAME[@]}
-    local current_file=""
-
-    # Add debug logging for stack inspection
-    lo2_debug_log "Inspecting call stack for source file" "get_source"
-
-    # Start from 2 to skip get_actual_source_file and immediate caller
-    for ((i=2; i<stack_size; i++)); do
-        local source="${BASH_SOURCE[$i]}"
-        # Add debug logging for each file considered
-        lo2_debug_log "Checking source file: $source" "get_source"
-
-        if [[ "$source" =~ ^/root/lab/(con/rc|con/rc[0-9]+|fun/.*|gem/.*)$ ]]; then
-            current_file="$source"
-            lo2_debug_log "Found matching source file: $current_file" "get_source"
-            break
-        fi
-    done
-
-    echo "$current_file"
-}
-
+# Get the actual source file and line number from call stack
 calculate_control_depth() {
     local caller_file="$1"
     local current_func="${FUNCNAME[2]:-main}"
 
     # Get the actual calling line and source
     local i=1
+    local line
     while ((i < ${#FUNCNAME[@]})); do
         if [[ "${BASH_SOURCE[$i]}" =~ ^/root/lab/(con/rc|con/rc[0-9]+|fun/.*|gem/.*)$ ]]; then
             caller_file="${BASH_SOURCE[$i]}"
@@ -211,21 +167,43 @@ calculate_control_depth() {
 # Override calculate_final_depth for control structure awareness
 calculate_final_depth() {
     if [[ "$LOG_CONTROL_DEPTH_ENABLED" == "true" ]]; then
-        local base_depth control_depth total_depth
+        local base_depth
         base_depth=$(get_base_depth)
         lo2_debug_log "Base depth: $base_depth" "final_depth"
 
-        # Get actual source file
         local source_file
         source_file=$(get_actual_source_file)
+        local control_depth
         control_depth=$(calculate_control_depth "$source_file")
-        total_depth=$((base_depth + control_depth))
+        local total_depth=$((base_depth + control_depth))
 
         lo2_debug_log "Control depth: $control_depth, Total depth: $total_depth" "final_depth"
         echo "$total_depth"
     else
         get_base_depth
     fi
+}
+
+# Get actual source file helper
+get_actual_source_file() {
+    local stack_size=${#FUNCNAME[@]}
+    local current_file=""
+
+    lo2_debug_log "Inspecting call stack for source file" "get_source"
+
+    # Start from 2 to skip get_actual_source_file and immediate caller
+    for ((i=2; i<stack_size; i++)); do
+        local source="${BASH_SOURCE[$i]}"
+        lo2_debug_log "Checking source file: $source" "get_source"
+
+        if [[ "$source" =~ ^/root/lab/(con/rc|con/rc[0-9]+|fun/.*|gem/.*)$ ]]; then
+            current_file="$source"
+            lo2_debug_log "Found matching source file: $current_file" "get_source"
+            break
+        fi
+    done
+
+    echo "$current_file"
 }
 
 # Control structure tracking toggle
