@@ -46,7 +46,7 @@ a_xall() {
 
 # Installs required system packages including corosync-qdevice for cluster management
 b_xall() {
-    gen-ipa "$PACKAGES_ALL"
+    gen-ipa "$PVE_PACKAGES_ALL"
 }
 
 # Uploads public SSH key from USB device and adds it to the authorized keys for secure remote access
