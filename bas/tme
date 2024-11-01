@@ -392,6 +392,3 @@ export -f print_enhanced_tree
 export -f print_timing_report
 export -f settme
 export -f cleanup_timer
-
-# Set up cleanup trap
-trap cleanup_timer EXIT
