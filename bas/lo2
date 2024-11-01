@@ -67,28 +67,45 @@ detect_control_structure() {
     esac
 }
 
-# Analyze source file with improved control structure tracking
+# Add cache for analyzed files
+declare -gA LO2_FILE_CACHE=()  # Stores analyzed file data
+declare -gA LO2_CONTROL_CACHE=()  # Stores control structure data by file
+
+# Modified analyze_source_file with caching
 analyze_source_file() {
     local file="$1"
-    [[ "$file" == "$LO2_LAST_ANALYZED_FILE" ]] && return 0
+    local file_hash
 
-    lo2_debug_log "Starting analysis of file: $file" "analyze_source"
-
-    # Reset state
-    LO2_CONTROL_RANGES=()
-    LO2_CONTROL_TYPES=()
-    LO2_SOURCE_LINES=()
-    LO2_CONTROL_STACK=()
-
+    # Check if file exists and is readable
     [[ ! -f "$file" ]] && {
         lo2_debug_log "File not found: $file" "analyze_source"
         return 1
     }
 
-    # Load file content
-    mapfile -t LO2_SOURCE_LINES < "$file"
-    LO2_LAST_ANALYZED_FILE="$file"
+    # Generate hash of file content for cache validation
+    file_hash=$(md5sum "$file" | cut -d' ' -f1)
 
+    # Check if we have a valid cache entry
+    if [[ -n "${LO2_FILE_CACHE[$file]}" ]]; then
+        local cached_hash="${LO2_FILE_CACHE[$file]}"
+        if [[ "$cached_hash" == "$file_hash" ]]; then
+            lo2_debug_log "Using cached analysis for $file" "analyze_source"
+            # Restore cached control structures
+            eval "$(_deserialize_cache "$file")"
+            return 0
+        fi
+    fi
+
+    lo2_debug_log "Starting fresh analysis of file: $file" "analyze_source"
+
+    # Reset state for new analysis
+    LO2_CONTROL_RANGES=()
+    LO2_CONTROL_TYPES=()
+    LO2_SOURCE_LINES=()
+    LO2_CONTROL_STACK=()
+
+    # Load and analyze file
+    mapfile -t LO2_SOURCE_LINES < "$file"
     local line_number=0
     local structure_id=0
 
@@ -100,7 +117,7 @@ analyze_source_file() {
             if|for|while|until|case|select)
                 ((structure_id++))
                 LO2_CONTROL_STACK+=("$structure_type:$structure_id:$line_number")
-                lo2_debug_log "Started $structure_type block at line $line_number (ID: $structure_id)" "analyze_source"
+                lo2_debug_log "Found $structure_type block at line $line_number (ID: $structure_id)" "analyze_source"
                 ;;
             end)
                 if ((${#LO2_CONTROL_STACK[@]} > 0)); then
@@ -108,7 +125,6 @@ analyze_source_file() {
                     local struct="${LO2_CONTROL_STACK[$last_idx]}"
                     IFS=':' read -r type id start <<< "$struct"
 
-                    # Store both start and end line numbers
                     LO2_CONTROL_RANGES["$type:$id"]="$start:$line_number"
                     LO2_CONTROL_TYPES["$type:$id"]="$type"
 
@@ -120,31 +136,49 @@ analyze_source_file() {
         ((line_number++))
     done
 
-    lo2_debug_log "Analysis complete. Found ${#LO2_CONTROL_RANGES[@]} control structures" "analyze_source"
+    # Cache the results
+    LO2_FILE_CACHE[$file]="$file_hash"
+    _cache_control_structures "$file"
+
+    lo2_debug_log "Analysis complete and cached. Found ${#LO2_CONTROL_RANGES[@]} control structures" "analyze_source"
     return 0
 }
 
-# Get the actual source file and line number from call stack
+# Helper function to serialize control structure data
+_cache_control_structures() {
+    local file="$1"
+    local cache_data=""
+
+    # Serialize control ranges
+    for key in "${!LO2_CONTROL_RANGES[@]}"; do
+        cache_data+="LO2_CONTROL_RANGES[$key]='${LO2_CONTROL_RANGES[$key]}';"
+    done
+
+    # Serialize control types
+    for key in "${!LO2_CONTROL_TYPES[@]}"; do
+        cache_data+="LO2_CONTROL_TYPES[$key]='${LO2_CONTROL_TYPES[$key]}';"
+    done
+
+    LO2_CONTROL_CACHE[$file]="$cache_data"
+}
+
+# Helper function to deserialize cached control structure data
+_deserialize_cache() {
+    local file="$1"
+    echo "${LO2_CONTROL_CACHE[$file]}"
+}
+
+
+# Modified calculate_control_depth to use cached data efficiently
 calculate_control_depth() {
     local caller_file="$1"
+    local line="${BASH_LINENO[1]}"
     local current_func="${FUNCNAME[2]:-main}"
-
-    # Get the actual calling line and source
-    local i=1
-    local line
-    while ((i < ${#FUNCNAME[@]})); do
-        if [[ "${BASH_SOURCE[$i]}" =~ ^/root/lab/(con/rc|con/rc[0-9]+|fun/.*|gem/.*)$ ]]; then
-            caller_file="${BASH_SOURCE[$i]}"
-            line="${BASH_LINENO[$i-1]}"
-            break
-        fi
-        ((i++))
-    done
 
     lo2_debug_log "Calculating control depth for $current_func (line $line in $caller_file)" "depth_calc"
 
-    [[ -z "$caller_file" || -z "$line" ]] && {
-        lo2_debug_log "No valid source location found" "depth_calc"
+    [[ -z "$caller_file" ]] && {
+        lo2_debug_log "No valid source file found" "depth_calc"
         return 0
     }
 
@@ -234,14 +268,15 @@ setlogcontrol() {
     esac
 }
 
-# Cleanup handler
+# Add cleanup for caches
 cleanup_lo2() {
     lo2_debug_log "Starting cleanup" "cleanup_lo2"
     LO2_CONTROL_RANGES=()
     LO2_CONTROL_TYPES=()
-    LO2_LAST_ANALYZED_FILE=""
     LO2_SOURCE_LINES=()
     LO2_CONTROL_STACK=()
+    LO2_FILE_CACHE=()
+    LO2_CONTROL_CACHE=()
     lo2_debug_log "Cleanup complete" "cleanup_lo2"
 }
 
@@ -250,6 +285,9 @@ export LOG_CONTROL_DEPTH_ENABLED
 export -f setlogcontrol
 export -f lo2_debug_log
 export -f calculate_final_depth
+export -A LO2_FILE_CACHE
+export -A LO2_CONTROL_CACHE
+
 
 # Set up cleanup trap
 trap cleanup_lo2 EXIT
