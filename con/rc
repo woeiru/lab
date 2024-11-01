@@ -164,14 +164,24 @@ command source "$BAS_DIR/err" || {
 init_timer "$RC_LOG_DIR"
 
 cleanlab() {
-    echo " ━ Cleaning lab directories"
-    for dir in "$LOG_DIR" "$TMP_DIR"; do
-        [[ -d "$dir" ]] && \
-        rm -rf "${dir:?}"/* 2>/dev/null && \
-        mkdir -p "$dir"/{lo,tme,rc} && \
-        echo "   ━ Cleaned: $dir" || \
-        echo "   ━ Failed to clean: $dir" >&2
-    done
+    echo " ━ Cleaning lab log directory"
+
+    # Only clean LOG_DIR, leave TMP_DIR alone
+    if [[ -d "$LOG_DIR" ]]; then
+        rm -rf "${LOG_DIR:?}"/* 2>/dev/null && \
+        mkdir -p "$LOG_DIR"/{lo,tme,rc} && \
+        echo "   ━ Cleaned: $LOG_DIR" || \
+        echo "   ━ Failed to clean: $LOG_DIR" >&2
+    else
+        echo "   ━ Warning: Log directory $LOG_DIR does not exist" >&2
+        if mkdir -p "$LOG_DIR"/{lo,tme,rc}; then
+            echo "   ━ Created new log directory structure"
+        else
+            echo "   ━ Failed to create log directory structure" >&2
+            return 1
+        fi
+    fi
+
     echo " ━ Done"
 }
 
