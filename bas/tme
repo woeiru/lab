@@ -10,6 +10,9 @@
     exit 1
 }
 
+# Add reference to the lo module's state file at the top
+readonly LO_STATE_FILE="${TMP_DIR}/lo/state"  # Single source of truth for logging state
+
 # Performance monitoring setup
 declare -gA TME_START_TIMES     # Stores component start times
 declare -gA TME_END_TIMES       # Stores component end times
@@ -97,10 +100,10 @@ start_timer() {
 
     TME_CURRENT_PARENT="$component"
 
-    # Temporarily disable logging for file writes
+    # Use the lo module's state file
     local orig_log_state
-    orig_log_state=$(cat "${TMP_DIR}/lo/log_state" 2>/dev/null || echo "true")
-    echo "false" > "${TMP_DIR}/lo/log_state"
+    orig_log_state=$(cat "$LO_STATE_FILE" 2>/dev/null || echo "true")
+    echo "false" > "$LO_STATE_FILE"
 
     {
         printf "[START] %s\n" "$component"
@@ -109,7 +112,7 @@ start_timer() {
     } >> "$TME_LOG_FILE"
 
     # Restore logging state
-    echo "$orig_log_state" > "${TMP_DIR}/lo/log_state"
+    echo "$orig_log_state" > "$LO_STATE_FILE"
 }
 
 # End timing for a component
@@ -131,10 +134,10 @@ end_timer() {
 
     TME_CURRENT_PARENT="${TME_PARENTS[$component]}"
 
-    # Temporarily disable logging for file writes
+    # Use the lo module's state file
     local orig_log_state
-    orig_log_state=$(cat "${TMP_DIR}/lo/log_state" 2>/dev/null || echo "true")
-    echo "false" > "${TMP_DIR}/lo/log_state"
+    orig_log_state=$(cat "$LO_STATE_FILE" 2>/dev/null || echo "true")
+    echo "false" > "$LO_STATE_FILE"
 
     {
         printf "[END] %s\n" "$component"
@@ -143,7 +146,7 @@ end_timer() {
     } >> "$TME_LOG_FILE"
 
     # Restore logging state
-    echo "$orig_log_state" > "${TMP_DIR}/lo/log_state"
+    echo "$orig_log_state" > "$LO_STATE_FILE"
 }
 
 # Calculate the depth of a component in the timing tree
@@ -290,10 +293,10 @@ print_timing_report() {
     current_state=$(cat "$TME_STATE_FILE" 2>/dev/null || echo "true")
     [[ "${current_state}" != "true" ]] && return 0
 
-    # Temporarily disable logging during report generation
+    # Use the lo module's state file
     local orig_log_state
-    orig_log_state=$(cat "${TMP_DIR}/lo/log_state" 2>/dev/null || echo "true")
-    echo "false" > "${TMP_DIR}/lo/log_state"
+    orig_log_state=$(cat "$LO_STATE_FILE" 2>/dev/null || echo "true")
+    echo "false" > "$LO_STATE_FILE"
 
     local total_time=$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)
 
@@ -330,7 +333,7 @@ print_timing_report() {
     } | tee -a "$TME_LOG_FILE"
 
     # Restore logging state
-    echo "$orig_log_state" > "${TMP_DIR}/lo/log_state"
+    echo "$orig_log_state" > "$LO_STATE_FILE"
 }
 
 # Example of how to use nested timing
@@ -345,11 +348,12 @@ end_nested_timing() {
 }
 
  Cleanup function
+
 cleanup_timer() {
-    # Temporarily disable logging during cleanup
+    # Use the lo module's state file
     local orig_log_state
-    orig_log_state=$(cat "${TMP_DIR}/lo/log_state" 2>/dev/null || echo "true")
-    echo "false" > "${TMP_DIR}/lo/log_state"
+    orig_log_state=$(cat "$LO_STATE_FILE" 2>/dev/null || echo "true")
+    echo "false" > "$LO_STATE_FILE"
 
     for component in "${!TME_STATUS[@]}"; do
         if [[ "${TME_STATUS[$component]}" == "running" ]]; then
@@ -364,7 +368,7 @@ cleanup_timer() {
     } >> "$TME_LOG_FILE"
 
     # Restore logging state
-    echo "$orig_log_state" > "$TME_STATE_FILE"
+    echo "$orig_log_state" > "$LO_STATE_FILE"
 }
 
 # Export all functions and variables
