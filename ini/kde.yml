@@ -48,44 +48,6 @@
             dest: "{{ ansible_user_dir }}/.local/share/konsole/Profile 2.profile"
             mode: '0644'
 
-        # Shell-agnostic aliases configuration
-        - name: Ensure KDE aliases file exists
-          file:
-            path: "{{ ansible_user_dir }}/{{ kde_aliases_file }}"
-            state: touch
-            mode: '0644'
-
-        - name: Add theme and plasma shell aliases
-          blockinfile:
-            path: "{{ ansible_user_dir }}/{{ kde_aliases_file }}"
-            marker: "# {mark} ANSIBLE MANAGED BLOCK - Theme and Plasma Shell aliases"
-            block: |
-              alias theme-preset-bright='plasma-apply-lookandfeel -a org.kde.breeze.desktop'
-              alias theme-preset-dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop'
-
-        # Get current shell and handle RC files
-        - name: Check existing RC files
-          stat:
-            path: "{{ ansible_user_dir }}/{{ item }}"
-          register: rc_files
-          loop: "{{ shell_rc_files }}"
-
-        - name: Add KDE aliases to RC files
-        blockinfile:
-            path: "{{ ansible_user_dir }}/{{ item.item }}"
-            marker: "# === {mark} MANAGED BLOCK: KDE Aliases [source: {{ playbook_name | default(ansible_play_name) | default('kde.yml') }}] ==="
-            marker_begin: BEGIN
-            marker_end: END
-            block: |
-            . ~/.aliases_kde
-            create: no
-            insertbefore: EOF
-            # Add a newline before the block
-            insertbefore: EOF
-            block_prepend_newline: yes
-        when: item.stat.exists
-        loop: "{{ rc_files.results }}"
-
         # KWallet configuration
         - name: Ensure KWallet config directory exists
           file:
