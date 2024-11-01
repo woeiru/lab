@@ -78,6 +78,7 @@ debug_log() {
 
 dump_stack_trace() {
     local func="${1:-${FUNCNAME[1]}}"
+    debug_log ""
     debug_log "Stack trace for $func:"
     local i=0
     while [[ -n "${FUNCNAME[$i]:-}" ]]; do
