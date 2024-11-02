@@ -17,13 +17,13 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 #  
 pbs-fun() {
-    all-laf "$FILEPATH_pbs" "$@"
+    aux-laf "$FILEPATH_pbs" "$@"
 }
 # show an overview of specific variables
 # overview variables
 #  
 pbs-var() {
-    all-acu -o "$CONFIG_pbs" "$DIR_FUN/.."
+    aux-acu -o "$CONFIG_pbs" "$DIR_FUN/.."
 }
 
 # Download Proxmox GPG key and verify checksums.
@@ -63,10 +63,10 @@ pbs-adr() {
     file="/etc/apt/sources.list"
 
     if grep -Fxq "$line_to_add" "$file"; then
-        all-nos "$function_name" "Line already exists in $file"
+        aux-nos "$function_name" "Line already exists in $file"
     else
         echo "$line_to_add" >> "$file"
-        all-nos "$function_name" "Line added to $file"
+        aux-nos "$function_name" "Line added to $file"
     fi
 }
 
@@ -80,7 +80,7 @@ pbs-rda() {
 	local datastore_path="$3"
 
      if [ $# -ne 3 ]; then
-       all-use
+       aux-use
        return 1
      fi
 
@@ -110,7 +110,7 @@ pbs-rda() {
         echo "$combined_lines"
     fi
 
-    all-nos "$function_name" "executed ( $1 $2 $3 )"
+    aux-nos "$function_name" "executed ( $1 $2 $3 )"
 }
 
 # Monitors and displays various aspects of the Proxmox Backup Server
@@ -134,7 +134,7 @@ pbs-mon() {
         echo "9. Show backup schedule"
         echo "10. Display network statistics"
         echo "11. All of the above"
-        all-mev "option" "Enter option number" "11"
+        aux-mev "option" "Enter option number" "11"
     else
         option="$1"
     fi
@@ -193,5 +193,5 @@ pbs-mon() {
             ;;
     esac
 
-    all-nos "$function_name" "PBS monitoring completed"
+    aux-nos "$function_name" "PBS monitoring completed"
 }

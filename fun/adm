@@ -16,22 +16,22 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # Shows a summary of specific functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
-gen-fun() {
-    # Pass all arguments directly to all-laf
-    all-laf "$FILEPATH_gen" "$@"
+adm-fun() {
+    # Pass all arguments directly to aux-laf
+    aux-laf "$FILEPATH_gen" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
-gen-var() {
-    all-acu -o "$CONFIG_gen" "$DIR_FUN/.."
+adm-var() {
+    aux-acu -o "$CONFIG_gen" "$DIR_FUN/.."
 }
 
 # Manages git operations, ensuring the local repository syncs with the remote.
 # Performs status check, pull, commit, and push operations as needed.
-# gen-gio [commit message]
-gen-gio() {
+# adm-gio [commit message]
+adm-gio() {
     local dir="${DIR_FUN:-.}/.."
     local branch="${GIT_BRANCH:-master}"
     local commit_message=""
@@ -76,7 +76,7 @@ gen-gio() {
 # Detects the system's package manager
 # detect package all
 #
-gen-dpa() {
+adm-dpa() {
     local function_name="${FUNCNAME[0]}"
     local pman="unknown"
 
@@ -96,15 +96,15 @@ gen-dpa() {
 # Updates and upgrades system packages using the detected package manager
 # update packages all
 #
-gen-upa() {
+adm-upa() {
     local function_name="${FUNCNAME[0]}"
 
-    # Get package manager using gen-dpa
+    # Get package manager using adm-dpa
     local pman
-    pman=$(gen-dpa)
+    pman=$(adm-dpa)
 
     if [ "$pman" = "unknown" ]; then
-        all-nos "$function_name" "Could not detect a supported package manager"
+        aux-nos "$function_name" "Could not detect a supported package manager"
         return 1
     fi
 
@@ -120,16 +120,16 @@ gen-upa() {
             zypper refresh -y && zypper update -y
             ;;
         *)
-            all-nos "$function_name" "Unsupported package manager: $pman"
+            aux-nos "$function_name" "Unsupported package manager: $pman"
             return 1
             ;;
     esac
 
     if [ $? -eq 0 ]; then
-        all-nos "$function_name" "System update and upgrade completed successfully"
+        aux-nos "$function_name" "System update and upgrade completed successfully"
         return 0
     else
-        all-nos "$function_name" "Failed to update and upgrade system"
+        aux-nos "$function_name" "Failed to update and upgrade system"
         return 1
     fi
 }
@@ -137,20 +137,20 @@ gen-upa() {
 # Installs specified packages using the system's package manager
 # install packages all
 # <pak1> <pak2> ...
-gen-ipa() {
+adm-ipa() {
     local function_name="${FUNCNAME[0]}"
 
     if [ $# -lt 1 ]; then
-        all-use
+        aux-use
         return 1
     fi
 
-    # Get package manager using gen-dpa
+    # Get package manager using adm-dpa
     local pman
-    pman=$(gen-dpa)
+    pman=$(adm-dpa)
 
     if [ "$pman" = "unknown" ]; then
-        all-nos "$function_name" "Could not detect a supported package manager"
+        aux-nos "$function_name" "Could not detect a supported package manager"
         return 1
     fi
 
@@ -166,16 +166,16 @@ gen-ipa() {
             zypper install -y "$@"
             ;;
         *)
-            all-nos "$function_name" "Unsupported package manager: $pman"
+            aux-nos "$function_name" "Unsupported package manager: $pman"
             return 1
             ;;
     esac
 
     if [ $? -eq 0 ]; then
-        all-nos "$function_name" "Successfully installed packages: $*"
+        aux-nos "$function_name" "Successfully installed packages: $*"
         return 0
     else
-        all-nos "$function_name" "Failed to install packages: $*"
+        aux-nos "$function_name" "Failed to install packages: $*"
         return 1
     fi
 }
@@ -183,26 +183,26 @@ gen-ipa() {
 # Configures git globally with a specified username and email, essential for proper commit attribution
 # git set config
 # <username> <usermail>
-gen-gst() {
+adm-gst() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local usermail="$2"
 
     if [ $# -ne 2 ]; then
-	all-use
+	aux-use
         return 1
     fi
 
     git config --global user.name "$username"
     git config --global user.email "$usermail"
 
-    all-nos "$function_name" "executed ( $1 $2 )"
+    aux-nos "$function_name" "executed ( $1 $2 )"
 }
 
 # Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
 # setup sysstat
 #
-gen-sst() {
+adm-sst() {
   # Step 1: Install sysstat
   install_pakages sysstat
 
@@ -219,20 +219,20 @@ gen-sst() {
 # Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
 # user setup
 # <username> <password>
-gen-ust() {
+adm-ust() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local password="$2"
 
     if [ $# -ne 2 ]; then
-	all-use
+	aux-use
         return 1
     fi
 
     # Prompt for user details
-    all-mev "username" "Enter new username" "$username"
+    aux-mev "username" "Enter new username" "$username"
     while [ -z "$password" ]; do
-        all-mev "password" "Enter password for $username" "$password"
+        aux-mev "password" "Enter password for $username" "$password"
     done
 
     # Create the user
@@ -241,9 +241,9 @@ gen-ust() {
 
     # Check if user creation was successful
     if id -u "$username" > /dev/null 2>&1; then
-        all-nos "$function_name" "User $username created successfully"
+        aux-nos "$function_name" "User $username created successfully"
     else
-        all-nos "$function_name" "Failed to create user $username"
+        aux-nos "$function_name" "Failed to create user $username"
         return 1
     fi
 }
@@ -251,12 +251,12 @@ gen-ust() {
 # Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not
 # systemd setup service
 # <service>
-gen-sdc() {
+adm-sdc() {
     local function_name="${FUNCNAME[0]}"
     local service="$1"
 
     if [ $# -ne 1 ]; then
-	all-use
+	aux-use
         return 1
     fi
 
@@ -267,15 +267,15 @@ gen-sdc() {
     # Check if service is active
     systemctl is-active --quiet "$service"
     if [ $? -eq 0 ]; then
-        all-nos "$function_name" "$service is active"
+        aux-nos "$function_name" "$service is active"
     else
         read -p "$service is not active. Do you want to continue anyway? [Y/n] " choice
         case "$choice" in
             [yY]|[yY][eE][sS])
-                all-nos "$function_name" "$service is not active"
+                aux-nos "$function_name" "$service is not active"
                 ;;
             *)
-                all-nos "$function_name" "$service is not active. Exiting."
+                aux-nos "$function_name" "$service is not active. Exiting."
                 return 1
                 ;;
         esac
@@ -285,7 +285,7 @@ gen-sdc() {
 # Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
 # ssh upload keyfile
 # <device_path> <mount_point> <subfolder_path> <upload_path> <file_name>
-gen-suk() {
+adm-suk() {
     local device_path="$1"
     local mount_point="$2"
     local subfolder_path="$3"
@@ -293,7 +293,7 @@ gen-suk() {
     local file_name="$5"
 
     if [ $# -ne 5 ]; then
-	all-use
+	aux-use
         return 1
     fi
 
@@ -308,11 +308,11 @@ gen-suk() {
     echo ""
 
     # Evaluate and confirm variables
-    all-mev "device_path" "Enter the device path" $device_path
-    all-mev "mount_point" "Enter the mount point" $mount_point
-    all-mev "subfolder_path" "Enter the subfolder(s) on the device" $subfolder_path
-    all-mev "file_name" "Enter the file name" $file_name
-    all-mev "upload_path" "Enter the upload path" $upload_path
+    aux-mev "device_path" "Enter the device path" $device_path
+    aux-mev "mount_point" "Enter the mount point" $mount_point
+    aux-mev "subfolder_path" "Enter the subfolder(s) on the device" $subfolder_path
+    aux-mev "file_name" "Enter the file name" $file_name
+    aux-mev "upload_path" "Enter the upload path" $upload_path
 
     full_path="$mount_point/$subfolder_path/$file_name"
     upload_full_path="$upload_path/$file_name"
@@ -351,7 +351,7 @@ gen-suk() {
 # Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist
 # ssh private identifier
 # <user> <keyname>
-gen-spi() {
+adm-spi() {
     local keyname=$2
     local user=$2
     local ssh_dir
@@ -359,7 +359,7 @@ gen-spi() {
     local user_home
 
     if [ $# -ne 2 ]; then
-	all-use
+	aux-use
         return 1
     fi
 
@@ -397,8 +397,8 @@ gen-spi() {
 
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
-# client-side generation: gen-sks -c [-d] <server_address> <key_name> [encryption_type] / server-side generation: gen-sks -s [-d] <client_address> <key_name> [encryption_type]
-gen-sks() {
+# client-side generation: adm-sks -c [-d] <server_address> <key_name> [encryption_type] / server-side generation: adm-sks -s [-d] <client_address> <key_name> [encryption_type]
+adm-sks() {
     local mode=""
     local deduplicate=false
     local remote_address=""
@@ -426,8 +426,8 @@ gen-sks() {
 
     # Check if required arguments are provided
     if [[ -z "$mode" || -z "$remote_address" || -z "$key_name" ]]; then
-        echo "Usage: gen-sks -s [-d] <client_address> <key_name> [encryption_type] # for server-side generation"
-        echo "       gen-sks -c [-d] <server_address> <key_name> [encryption_type] # for client-side generation"
+        echo "Usage: adm-sks -s [-d] <client_address> <key_name> [encryption_type] # for server-side generation"
+        echo "       adm-sks -c [-d] <server_address> <key_name> [encryption_type] # for client-side generation"
         echo "       -d: Optional. If provided, removes the original key after successful transfer."
         echo "If encryption_type is not specified, ed25519 will be used by default."
         return 1
@@ -511,16 +511,16 @@ gen-sks() {
 
 # Appends the content of a specified public SSH key file to the authorized_keys file.
 # Provides informational output and restarts the SSH service.
-# Usage: gen-sak -c <server_address> <key_name> *for client-side operation /// gen-sak -s <client_address> <key_name> *for server-side operation
-gen-sak() {
+# Usage: adm-sak -c <server_address> <key_name> *for client-side operation /// adm-sak -s <client_address> <key_name> *for server-side operation
+adm-sak() {
     local mode="$1"
     local remote_address="$2"
     local key_name="$3"
     local ssh_dir="/root/.ssh"
     local authorized_keys_path="$ssh_dir/authorized_keys"
     if [ $# -ne 3 ]; then
-        echo "Usage: gen-sak -c <server_address> <key_name> # for client-side operation"
-        echo "       gen-sak -s <client_address> <key_name> # for server-side operation"
+        echo "Usage: adm-sak -c <server_address> <key_name> # for client-side operation"
+        echo "       adm-sak -s <client_address> <key_name> # for server-side operation"
         return 1
     fi
     case "$mode" in
@@ -575,14 +575,14 @@ gen-sak() {
 # Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
 # loop operation ip
 # <ip array: hy,ct> <operation: bypass = Perform initial SSH login to bypass StrictHostKeyChecking / refresh = Remove the SSH key for the given IP from known_hosts>
-gen-loi() {
+adm-loi() {
     local ip_type=$1
     local operation=$2
     local ip_array_name="${ip_type^^}_IPS"
 
     # Ensure both parameters are provided
     if [ -z "$ip_type" ] || [ -z "$operation" ]; then
-	  all-use
+	  aux-use
 	  return 1
     fi
 
@@ -624,12 +624,12 @@ gen-loi() {
 # Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
 # ssh custom aliases
 # <usershortcut> <servershortcut: single or csv or all or array> [command]
-gen-sca() {
+adm-sca() {
     echo "Debug: Number of arguments: $#"
     echo "Debug: All arguments: $*"
 
     if [ $# -lt 2 ]; then
-        all-use
+        aux-use
         return 1
     fi
 
@@ -775,9 +775,9 @@ gen-sca() {
 
 # An interactive Bash function that guides users through Git history navigation, offering options for reset type and subsequent actions, with built-in safeguards and explanations.
 # GRE: Git Reset Explorer
-# Usage: gen-gre  # Then follow prompts, e.g., enter '2' for commits, '3' for hard reset, '2' to create new branch 'feat
-gen-gre() {
-    echo "Welcome to the Git Reset Explorer (gen-gre)!"
+# Usage: adm-gre  # Then follow prompts, e.g., enter '2' for commits, '3' for hard reset, '2' to create new branch 'feat
+adm-gre() {
+    echo "Welcome to the Git Reset Explorer (adm-gre)!"
     echo "This function will guide you through the process of moving back in Git history."
     echo
 

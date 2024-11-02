@@ -43,13 +43,13 @@ set_static() {
     alias ee='exit'
 
     # Function shortcuts
-    alias sca='gen-sca'
-    alias flc='all-flc'
+    alias sca='adm-sca'
+    alias flc='aux-flc'
     alias cto='pve-cto'
 
     # Function chaining
-    alias fun='all-ffl all-laf "" "$FUN_DIR"'
-    alias var='all-ffl all-acu "" "$ENV_DIR" "$LAB_DIR"'
+    alias fun='aux-ffl aux-laf "" "$FUN_DIR"'
+    alias var='aux-ffl aux-acu "" "$ENV_DIR" "$LAB_DIR"'
 
     # Function makros
     alias v1='gpu-ptd ; qm start 211'
@@ -64,7 +64,7 @@ set_static() {
     alias gcmb='git commit -m "base"'
     alias go='git push origin master'
     alias gp='git pull'
-    alias gg='gen-gio'
+    alias gg='adm-gio'
     alias gr1='git revert HEAD~1'
 
     # History
