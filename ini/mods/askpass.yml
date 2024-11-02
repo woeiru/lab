@@ -1,0 +1,72 @@
+---
+# Disable GUI Password Prompts Configuration
+- name: Configure askpass preferences
+  when: config_desk_1 | bool
+  block:
+    # Configure Git to disable GUI prompts
+    - name: Configure Git global settings to disable GUI prompts
+      community.general.git_config:
+        scope: global
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+      loop:
+        - { name: 'core.askPass', value: '' }
+        - { name: 'credential.helper', value: '' }
+        - { name: 'credential.modalPrompt', value: 'false' }
+
+    # Set environment variables in shell RC files
+    - name: Set global Git environment variables
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_user_dir }}/{{ item }}"
+        line: "{{ line_item }}"
+        create: yes
+      loop_control:
+        loop_var: line_item
+      loop:
+        - "export GIT_ASKPASS=''"
+        - "export SSH_ASKPASS=''"
+        - "unset SSH_ASKPASS"
+        - "unset GIT_ASKPASS"
+      with_items:
+        - ".bashrc"
+        - ".zshrc"
+
+    # Configure SSH
+    - name: Ensure SSH config directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/.ssh"
+        state: directory
+        mode: '0700'
+
+    # SSH configuration for disabling password prompts
+    - name: Configure SSH to disable password prompting
+      ansible.builtin.blockinfile:
+        path: "{{ ansible_user_dir }}/.ssh/config"
+        create: yes
+        mode: '0600'
+        block: |
+          # Disable SSH_ASKPASS and other GUI prompts
+          Host *
+              SetEnv SSH_ASKPASS=''
+              SetEnv GIT_ASKPASS=''
+              PreferredAuthentications publickey,keyboard-interactive,password
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH_ASKPASS configuration"
+
+    # Disable GNOME Keyring autostart
+    - name: Create autostart directory
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/.config/autostart"
+        state: directory
+        mode: '0755'
+
+    - name: Disable GNOME Keyring autostart components
+      ansible.builtin.shell: |
+        cd {{ ansible_user_dir }}/.config/autostart
+        for file in /etc/xdg/autostart/gnome-keyring-*; do
+          if [ -f "$file" ]; then
+            cp "$file" .
+            echo "Hidden=true" >> "$(basename "$file")"
+          fi
+        done
+      args:
+        creates: "{{ ansible_user_dir }}/.config/autostart/gnome-keyring-secrets.desktop"

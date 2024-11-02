@@ -1,9 +1,0 @@
----
-- name: Configure Git Settings
-  when: config_desk_1 | bool
-  block:
-    - name: Configure Git global settings
-      community.general.git_config:
-        name: core.askPass
-        scope: global
-        value: ""
