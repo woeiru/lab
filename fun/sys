@@ -152,54 +152,39 @@ sys-ipa() {
         return 1
     fi
 
-    local failed_packages=()
-    local successful_packages=()
-    local exit_status=0
-
-    # Install packages one by one
+    # Filter out already installed packages
+    local packages_to_install=()
     for package in "$@"; do
         case "$pman" in
-            apt)
-                if ! apt install -y "$package"; then
-                    failed_packages+=("$package")
-                    exit_status=1
-                else
-                    successful_packages+=("$package")
-                fi
-                ;;
             dnf|yum)
-                if ! $pman install -y "$package"; then
-                    failed_packages+=("$package")
-                    exit_status=1
-                else
-                    successful_packages+=("$package")
+                if ! rpm -q "$package" &>/dev/null; then
+                    packages_to_install+=("$package")
                 fi
-                ;;
-            zypper)
-                if ! zypper install -y "$package"; then
-                    failed_packages+=("$package")
-                    exit_status=1
-                else
-                    successful_packages+=("$package")
-                fi
-                ;;
-            *)
-                aux-nos "$function_name" "Unsupported package manager: $pman"
-                return 1
                 ;;
         esac
     done
 
-    # Report results
-    if [ ${#successful_packages[@]} -gt 0 ]; then
-        aux-nos "$function_name" "Successfully installed packages: ${successful_packages[*]}"
+    # If no packages need installation, exit successfully
+    if [ ${#packages_to_install[@]} -eq 0 ]; then
+        aux-nos "$function_name" "All packages are already installed"
+        return 0
     fi
 
-    if [ ${#failed_packages[@]} -gt 0 ]; then
-        aux-nos "$function_name" "Failed to install packages: ${failed_packages[*]}"
-    fi
+    # Install filtered packages
+    case "$pman" in
+        dnf|yum)
+            $pman install -y "${packages_to_install[@]}"
+            ;;
+    esac
 
-    return $exit_status
+    local exit_status=$?
+    if [ $exit_status -eq 0 ]; then
+        aux-nos "$function_name" "Successfully installed packages: ${packages_to_install[*]}"
+        return 0
+    else
+        aux-nos "$function_name" "Failed to install packages: ${packages_to_install[*]}"
+        return 1
+    fi
 }
 
 # Configures git globally with a specified username and email, essential for proper commit attribution
