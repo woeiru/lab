@@ -6,10 +6,15 @@ declare -gA CLEANUP_FUNCTIONS    # Associative array to store cleanup functions 
 declare -g TRAP_INITIALIZED=false    # Global flag to track trap initialization state
 
 # Rest of your variables
+# Get the current script's directory
 DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
-PARENT_DIR="/root/lab"
-export LAB_DIR="$PARENT_DIR"
-readonly BAS_DIR="$PARENT_DIR/bas"
+
+# Find LAB_DIR by going up two directories from DIR (con -> lab)
+export LAB_DIR="$(cd "$DIR/.." >/dev/null 2>&1 && pwd)"
+readonly BAS_DIR="$LAB_DIR/bas"
+
+# Remove this line as it's no longer needed
+# PARENT_DIR="/root/lab"
 
 # init base modules
 init_base() {
