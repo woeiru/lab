@@ -1,0 +1,14 @@
+---
+- name: Configure Keyboard Layout
+  when: config_desk_1 | bool
+  block:
+    - name: Configure keyboard layout
+      ansible.builtin.copy:
+        content: |
+          [Layout]
+          DisplayNames=,
+          LayoutList=us,de
+          Use=true
+          VariantList=,
+        dest: "{{ ansible_user_dir }}/.config/kxkbrc"
+        mode: '0644'
