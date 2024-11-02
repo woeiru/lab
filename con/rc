@@ -19,21 +19,51 @@ init_base() {
         return 1
     }
 
-    # Source all files in BAS_DIR
+    local module_loaded=0
+    local fallback_active=false
+
+    # Try to source each module, fall back if needed
     for file in "$BAS_DIR"/*; do
-        source "$file" || {
-            echo "Fatal: Failed to source $(basename "$file")" >&2
-            return 1
-        }
+        local module_name=$(basename "$file")
+        if ! source "$file" 2>/dev/null; then
+            echo "Warning: Failed to load $module_name, activating fallback" >&2
+
+            case "$module_name" in
+                "lo1"|"lo2")
+                    fallback_lo
+                    echo "Activated fallback logging system"
+                    ;;
+                "err")
+                    fallback_err
+                    echo "Activated fallback error handling"
+                    ;;
+                "tme")
+                    fallback_tme
+                    echo "Activated fallback timing system"
+                    ;;
+            esac
+
+            fallback_active=true
+        else
+            ((module_loaded++))
+        fi
     done
 
-    # Initialize timer system with proper log directory
-    init_timer "$RC_LOG_DIR" || {
-        echo "Fatal: Failed to initialize timer" >&2
-        return 1
-    }
+    # Initialize timer system if available
+    if type init_timer >/dev/null 2>&1; then
+        init_timer "$RC_LOG_DIR" || {
+            echo "Warning: Timer initialization failed, using fallback" >&2
+            fallback_tme
+            fallback_active=true
+        }
+    fi
 
-    return 0
+    if $fallback_active; then
+        echo "Notice: Running in partial fallback mode with minimal functionality"
+        return 0  # Continue execution with fallback functions
+    fi
+
+    return $((module_loaded > 0 ? 0 : 1))
 }
 
 # init base modules tmp and log dirs
@@ -171,7 +201,6 @@ init_dirs() {
     return 0
 }
 
-
 # Central trap registration system
 register_cleanup() {
     local module="$1"
@@ -234,6 +263,69 @@ init_traps() {
     fi
 }
 
+fallback_lo() {
+    # Minimal logging functionality
+    log() {
+        local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+        echo "[FALLBACK-LOG] $timestamp - $2"
+    }
+
+    setlog() {
+        echo "[FALLBACK-LOG] Logging control not available in fallback mode"
+    }
+
+    init_logger() {
+        echo "[FALLBACK-LOG] Using minimal fallback logger"
+    }
+
+    cleanup_logger() {
+        :  # No-op in fallback mode
+    }
+
+    # Export fallback functions
+    export -f log setlog init_logger cleanup_logger
+}
+
+fallback_err() {
+    # Minimal error handling
+    error_handler() {
+        echo "[FALLBACK-ERROR] Error on line $1: $2"
+    }
+
+    clean_exit() {
+        exit "${1:-0}"
+    }
+
+    setup_error_handling() {
+        trap 'error_handler $LINENO $?' ERR
+    }
+
+    # Export fallback functions
+    export -f error_handler clean_exit setup_error_handling
+}
+
+fallback_tme() {
+    # Minimal timing functionality
+    init_timer() {
+        echo "[FALLBACK-TIMER] Timer initialization skipped in fallback mode"
+    }
+
+    start_timer() {
+        :  # No-op in fallback mode
+    }
+
+    end_timer() {
+        :  # No-op in fallback mode
+    }
+
+    print_timing_report() {
+        echo "[FALLBACK-TIMER] Timing report not available in fallback mode"
+    }
+
+    # Export fallback functions
+    export -f init_timer start_timer end_timer print_timing_report
+}
+
 source_rc() {
     local rc_modules=("rc1" "rc2" "rc3" "rc4")
     local success_count=0
@@ -248,29 +340,47 @@ source_rc() {
     return 0
 }
 
-# Then in main_rc():
+# Modify main_rc to handle fallback mode
 main_rc() {
     echo "    └─ main_rc : init_traps"
     init_traps
 
     echo "    └─ main_rc : init_base"
-    init_base || {
-        echo "Fatal: Environment initialization failed" >&2
-        return 1
-    }
+    if ! init_base; then
+        echo "Warning: Environment initialization using fallbacks" >&2
+    fi
 
-    log "lvl" " main_rc : register_cleanup"
-    register_cleanup "lo" "cleanup_logger"
-    register_cleanup "tme" "cleanup_timer"
-    register_cleanup "err" "clean_exit"
+    if type log >/dev/null 2>&1; then
+        log "lvl" " main_rc : register_cleanup"
+    else
+        echo "    └─ main_rc : register_cleanup"
+    fi
 
-    log "lvl" " main_rc : setup_error_handling"
-    setup_error_handling
+    # Register cleanups if functions exist
+    type cleanup_logger >/dev/null 2>&1 && register_cleanup "lo" "cleanup_logger"
+    type cleanup_timer >/dev/null 2>&1 && register_cleanup "tme" "cleanup_timer"
+    type clean_exit >/dev/null 2>&1 && register_cleanup "err" "clean_exit"
 
-    log "lvl" " main_rc : source_rc" | tee -a "$ERROR_LOG"
+    if type log >/dev/null 2>&1; then
+        log "lvl" " main_rc : setup_error_handling"
+    else
+        echo "    └─ main_rc : setup_error_handling"
+    fi
+
+    type setup_error_handling >/dev/null 2>&1 && setup_error_handling
+
+    if type log >/dev/null 2>&1; then
+        log "lvl" " main_rc : source_rc"
+    else
+        echo "    └─ main_rc : source_rc"
+    fi
     source_rc
 
-    log "lvl" " main_rc : setup_components" | tee -a "$ERROR_LOG"
+    if type log >/dev/null 2>&1; then
+        log "lvl" " main_rc : setup_components"
+    else
+        echo "    └─ main_rc : setup_components"
+    fi
     setup_components
 }
 
