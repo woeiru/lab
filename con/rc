@@ -11,7 +11,7 @@ PARENT_DIR="/root/lab"
 export LAB_DIR="$PARENT_DIR"
 readonly BAS_DIR="$PARENT_DIR/bas"
 
-# Move all initialization into a proper init function
+# init base modules
 init_base() {
     # First initialize directories
     init_dirs || {
@@ -36,6 +36,7 @@ init_base() {
     return 0
 }
 
+# init base modules tmp and log dirs
 init_dirs() {
     local debug_log="/tmp/directory_init_debug.log"
 
