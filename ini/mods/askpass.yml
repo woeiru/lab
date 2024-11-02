@@ -50,22 +50,3 @@
               SetEnv GIT_ASKPASS=''
               PreferredAuthentications publickey,keyboard-interactive,password
         marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH_ASKPASS configuration"
-
-    # Disable GNOME Keyring autostart
-    - name: Create autostart directory
-      ansible.builtin.file:
-        path: "{{ ansible_user_dir }}/.config/autostart"
-        state: directory
-        mode: '0755'
-
-    - name: Disable GNOME Keyring autostart components
-      ansible.builtin.shell: |
-        cd {{ ansible_user_dir }}/.config/autostart
-        for file in /etc/xdg/autostart/gnome-keyring-*; do
-          if [ -f "$file" ]; then
-            cp "$file" .
-            echo "Hidden=true" >> "$(basename "$file")"
-          fi
-        done
-      args:
-        creates: "{{ ansible_user_dir }}/.config/autostart/gnome-keyring-secrets.desktop"
