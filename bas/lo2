@@ -168,7 +168,7 @@ setlogcontrol() {
             install_depth_tracking
             CONTROL_DEPTH_STACK=()
             lo2_debug_log "Control structure depth tracking enabled" "setlogcontrol"
-            printf "%sControl structure depth tracking enabled%s\n" "$LOG_GREEN" "$LOG_NC"
+            printf "%s      └─ Control structure depth tracking enabled%s\n" "$LOG_NC"
             ;;
         "off")
             LOG_CONTROL_DEPTH_ENABLED=false
@@ -176,7 +176,7 @@ setlogcontrol() {
             remove_depth_tracking
             CONTROL_DEPTH_STACK=()
             lo2_debug_log "Control structure depth tracking disabled" "setlogcontrol"
-            printf "%sControl structure depth tracking disabled%s\n" "$LOG_RED" "$LOG_NC"
+            printf "%s      └─ Control structure depth tracking disabled%s\n" "$LOG_NC"
             ;;
         *)
             printf "Usage: setlogcontrol on|off\n"
@@ -209,5 +209,3 @@ trap cleanup_lo2 EXIT
     saved_state=$(cat "$LOG_CONTROL_STATE_FILE")
     [[ "$saved_state" == "true" ]] && setlogcontrol on
 }
-
-lo2_debug_log "lo2 module loaded successfully" "init"
