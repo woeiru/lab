@@ -22,7 +22,7 @@ export BAS_DIR="$LAB_DIR/bas"
 init_base() {
     # First initialize directories
     init_dirs || {
-        echo "    └─ Fatal: Directory initialization failed" >&2
+        echo "         └─ Fatal: Directory initialization failed" >&2
         return 1
     }
 
@@ -33,20 +33,20 @@ init_base() {
     for file in "$BAS_DIR"/*; do
         local module_name=$(basename "$file")
         if ! source "$file" 2>/dev/null; then
-            echo "    └─ Warning: Failed to load $module_name" >&2
+            echo "        └─ Warning: Failed to load $module_name" >&2
 
             case "$module_name" in
                 "lo1")
                     fallback_lo
-                    echo "    └─ Activated fallback logging system"
+                    echo "         └─ Activated fallback logging system"
                     ;;
                 "err")
                     fallback_err
-                    echo "    └─ Activated fallback error handling"
+                    echo "         └─ Activated fallback error handling"
                     ;;
                 "tme")
                     fallback_tme
-                    echo "    └─ Activated fallback timing system"
+                    echo "         └─ Activated fallback timing system"
                     ;;
             esac
 
@@ -59,14 +59,14 @@ init_base() {
     # Initialize timer system if available
     if type init_timer >/dev/null 2>&1; then
         init_timer "$RC_LOG_DIR" || {
-            echo "    └─ Warning: Timer initialization failed, using fallback" >&2
+            echo "         └─ Warning: Timer initialization failed, using fallback" >&2
             fallback_tme
             fallback_active=true
         }
     fi
 
     if $fallback_active; then
-        echo "    └─ Notice: Running in partial fallback mode with minimal functionality"
+        echo "        └─ Notice: Running in partial fallback mode with minimal functionality"
         return 0  # Continue execution with fallback functions
     fi
 
@@ -75,7 +75,7 @@ init_base() {
 
 # init base modules tmp and log dirs
 init_dirs() {
-    local debug_log="$HOME/.local/tmp/directory_init_debug.log"
+    local debug_log="$HOME/.local/init_dirs.log"
     
     # Create base directories with proper permissions
     mkdir -p "$LOG_DIR" "$TMP_DIR" || {
@@ -360,10 +360,10 @@ source_rc() {
 
 # Modify main_rc to handle fallback mode
 main_rc() {
-    echo "     └─ main_rc : init_traps"
+    echo "      └─ main_rc : init_traps"
     init_traps
 
-    echo "     └─ main_rc : init_base"
+    echo "      └─ main_rc : init_base"
     if ! init_base; then
         echo "Warning: Environment initialization using fallbacks" >&2
     fi
