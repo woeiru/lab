@@ -7,39 +7,48 @@ setup_source() {
     local dir="$1"
     local file="$2"
     local base="$3"
-    printf "    Starting setup_source with dir=%s, file=%s\n" "$dir" "$file"
+    local base_indent="          "
+    local BOLD='\033[1m'
+    local RESET='\033[0m'
+
     # Calculate lab root by going up one directory from the script location
     local lab_root="$(dirname "$dir")"
     local fun_dir="$lab_root/fun"
     local env_dir="$lab_root/env"
 
-    printf "      Checking for sourced rc files\n"
+    printf "\n"
+    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+    printf "%s┃ ${BOLD}Environment Setup${RESET}\n" "$base_indent"
+    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+
     if [[ -z "$SOURCE_RC_SUCCESS" ]]; then
         # Source all files in env directory
-        ls -l "$env_dir"/* 2>/dev/null || echo "No files found in $env_dir"
+        printf "%s┃ Sourcing environment files from: %s\n" "$base_indent" "$env_dir"
         for conf_file in "$env_dir"/*; do
             if [[ -f "$conf_file" ]]; then
-                printf "        Sourcing %s\n" "$conf_file"
-                source "$conf_file" || echo "Failed to source $conf_file"
+                printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$conf_file")"
+                source "$conf_file" || printf "%s┃ │  └─ Failed to source %s\n" "$base_indent" "$(basename "$conf_file")"
             fi
         done
 
         # Source all files in fun directory
-        ls -l "$fun_dir"/* 2>/dev/null || echo "No files found in $fun_dir"
+        printf "%s┃ Sourcing function files from: %s\n" "$base_indent" "$fun_dir"
         for func_file in "$fun_dir"/*; do
             if [[ -f "$func_file" ]]; then
-                printf "        Sourcing %s\n" "$func_file"
-                source "$func_file" || echo "Failed to source $func_file"
+                printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$func_file")"
+                source "$func_file" || printf "%s┃ │  └─ Failed to source %s\n" "$base_indent" "$(basename "$func_file")"
             fi
         done
 
         export SOURCE_RC_SUCCESS=1
-        printf "      Environment sourcing completed\n"
+        printf "%s┃ ${BOLD}Environment setup completed successfully${RESET}\n" "$base_indent"
     else
-        printf "      Environment already sourced, skipping...\n"
+        printf "%s┃ ${BOLD}Environment already sourced, skipping...${RESET}\n" "$base_indent"
     fi
-}
 
+    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+    printf "\n"
+}
 
 # Helper function to get section IDs from the calling script
 get_section_ids() {
@@ -145,10 +154,8 @@ print_usage() {
     printf "\n"
 }
 
-
 setup_main() {
-    echo "DEBUG: Enter setup_main - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
-    printf "  Starting setup_main with arguments: %s\n" "$*"
+    local base_indent="          "
 
     if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
         echo "Incorrect number of arguments."
@@ -159,9 +166,19 @@ setup_main() {
     local mode="$1"
     local argument="$2"
 
+    printf "\n"
+    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+    printf "%s┃ Script Execution\n" "$base_indent"
+    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+    printf "%s┃ Mode: %s\n" "$base_indent" "$mode"
+    if [ -n "$argument" ]; then
+        printf "%s┃ Argument: %s\n" "$base_indent" "$argument"
+    fi
+    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+    printf "\n"
+
     case "$mode" in
         -i)
-            printf "    Entering interactive mode\n"
             setup_interactive_mode "$argument"
             ;;
         -x)
@@ -170,7 +187,6 @@ setup_main() {
                 print_usage
                 return 1
             fi
-            printf "    Entering executing mode\n"
             setup_executing_mode "$argument"
             ;;
         *)
