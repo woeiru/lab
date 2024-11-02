@@ -5,16 +5,15 @@ set -o pipefail
 declare -gA CLEANUP_FUNCTIONS    # Associative array to store cleanup functions by module
 declare -g TRAP_INITIALIZED=false    # Global flag to track trap initialization state
 
-# Rest of your variables
 # Get the current script's directory
 DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
 
 # Find LAB_DIR by going up two directories from DIR (con -> lab)
 export LAB_DIR="$(cd "$DIR/.." >/dev/null 2>&1 && pwd)"
-readonly BAS_DIR="$LAB_DIR/bas"
 
-# Remove this line as it's no longer needed
-# PARENT_DIR="/root/lab"
+# Set up user-specific log and temp directories
+export LOG_DIR="$HOME/.local/log/lab"
+export TMP_DIR="$HOME/.local/tmp/lab"
 
 # init base modules
 init_base() {
@@ -73,7 +72,18 @@ init_base() {
 
 # init base modules tmp and log dirs
 init_dirs() {
-    local debug_log="/tmp/directory_init_debug.log"
+    local debug_log="$HOME/.local/tmp/directory_init_debug.log"
+    
+    # Create base directories with proper permissions
+    mkdir -p "$LOG_DIR" "$TMP_DIR" || {
+        echo "Fatal: Unable to create base directories" >&2
+        return 1
+    }
+
+    # Ensure proper permissions (only for current user)
+    chmod 700 "$LOG_DIR" "$TMP_DIR" || {
+        echo "Warning: Unable to set directory permissions" >&2
+    }
 
     # Debug logging for initial state
     {
@@ -116,7 +126,7 @@ init_dirs() {
         required_dirs+=("$base")
         for sub in "${sub_dirs[@]}"; do
             required_dirs+=("$base/$sub")
-        done
+        end
     done
 
     # Create all directories in one pass

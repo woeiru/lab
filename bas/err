@@ -1,12 +1,18 @@
 #!/bin/bash
 
-# Validate required environment variables
-[[ -z "$LOG_DIR" ]] && {
-    echo "Fatal: LOG_DIR environment variable not set" >&2
+# Validate required environment variables and ensure they're under $HOME
+[[ -z "$HOME" ]] && {
+    echo "Fatal: HOME environment variable not set" >&2
     exit 1
 }
-[[ -z "$TMP_DIR" ]] && {
-    echo "Fatal: TMP_DIR environment variable not set" >&2
+
+[[ -z "$LOG_DIR" || "$LOG_DIR" != "$HOME/.local/log/lab" ]] && {
+    echo "Fatal: LOG_DIR must be set to $HOME/.local/log/lab" >&2
+    exit 1
+}
+
+[[ -z "$TMP_DIR" || "$TMP_DIR" != "$HOME/.local/tmp/lab" ]] && {
+    echo "Fatal: TMP_DIR must be set to $HOME/.local/tmp/lab" >&2
     exit 1
 }
 
