@@ -15,7 +15,7 @@ GIT_USERNAME="woeiru"
 GIT_USERMAIL="169383590+woeiru@users.noreply.github.com"
 
 # packages ( ipa
-PACKAGES_ALL="vim tree ansible"
+PACKAGES_ALL=(vim tree ansible)
 
 # ansible
 #
@@ -80,7 +80,7 @@ CT_IPS=(
 
 # packages
 #
-PBS_PACKAGES_ALL="proxmox-backup-server"
+PBS_PACKAGES_ALL=(proxmox-backup-server)
 
 # restore datastore
 #
@@ -94,7 +94,7 @@ PBS_DATASTORE_PATH="/home"
 
 # packages
 #
-PVE_PACKAGES_ALL="corosync-qdevice"
+PVE_PACKAGES_ALL=(corosync-qdevice)
 
 # config files
 CONF_PATH_QEMU="/etc/pve/qemu-server"
@@ -317,10 +317,10 @@ NFS_USERNAME_1="es"
 NFS_PASSWORD_1=""
 
 # packages
-NFS_PACKAGES_ALL="nfs-kernel-server"
+NFS_PACKAGES_ALL=(nfs-kernel-server)
 
 # service check
-NFS_SYSD_CHECK="nfs-server"
+NFS_SYSD_CHECK=(nfs-server)
 
 # nfs setup
 #
