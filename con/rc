@@ -19,28 +19,13 @@ initialize_environment() {
         return 1
     }
 
-    # Then source required modules in correct order
-    source "$BAS_DIR/tme" || {
-        echo "Fatal: Failed to source timing module" >&2
-        return 1
-    }
-
-    command source "$BAS_DIR/err" || {
-        echo "Fatal: Failed to source error handling module" >&2
-        return 1
-    }
-
-    # Then source required modules in correct order
-    source "$BAS_DIR/lo1" || {
-        echo "Fatal: Failed to source lo1 module" >&2
-        return 1
-    }
-
-    # Then source required modules in correct order
-    source "$BAS_DIR/lo2" || {
-        echo "Fatal: Failed to source lo2 module" >&2
-        return 1
-    }
+    # Source all files in BAS_DIR
+    for file in "$BAS_DIR"/*; do
+        source "$file" || {
+            echo "Fatal: Failed to source $(basename "$file")" >&2
+            return 1
+        }
+    done
 
     # Initialize timer system with proper log directory
     init_timer "$RC_LOG_DIR" || {
