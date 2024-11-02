@@ -17,13 +17,13 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 #
 sto-fun() {
-    all-laf "$FILEPATH_sto" "$@"
+    aux-laf "$FILEPATH_sto" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
 sto-var() {
-    all-acu -o "$CONFIG_sto" "$DIR_FUN/.."
+    aux-acu -o "$CONFIG_sto" "$DIR_FUN/.."
 }
 
 # Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
@@ -72,10 +72,10 @@ sto-fec() {
     # List blkid output with line numbers
     echo "Available devices:"
     blkid | nl -v 1
-    all-use
+    aux-use
     return 0
   elif [ $# -ne 6 ]; then
-    all-use
+    aux-use
     return 1
   fi
 
@@ -120,11 +120,11 @@ sto-nfs() {
         mount_point="$3"
         options="$4"
     else
-        # Use all-mev to prompt for each parameter
-        all-mev "server_ip" "Enter NFS server IP" "$STO_NFS_SERVER_IP"
-        all-mev "shared_folder" "Enter NFS shared folder" "$STO_NFS_SHARED_FOLDER"
-        all-mev "mount_point" "Enter local mount point" "$STO_NFS_MOUNT_POINT"
-        all-mev "options" "Enter mount options" "$STO_NFS_MOUNT_OPTIONS"
+        # Use aux-mev to prompt for each parameter
+        aux-mev "server_ip" "Enter NFS server IP" "$STO_NFS_SERVER_IP"
+        aux-mev "shared_folder" "Enter NFS shared folder" "$STO_NFS_SHARED_FOLDER"
+        aux-mev "mount_point" "Enter local mount point" "$STO_NFS_MOUNT_POINT"
+        aux-mev "options" "Enter mount options" "$STO_NFS_MOUNT_OPTIONS"
     fi
 
     # Create the mount point if it doesn't exist
@@ -150,7 +150,7 @@ sto-nfs() {
         return 1
     fi
 
-    all-nos "$function_name" "NFS mount completed"
+    aux-nos "$function_name" "NFS mount completed"
 }
 
 # Transforms a folder into a Btrfs subvolume, optionally setting attributes (e.g., disabling COW). Handles multiple folders, preserving content and ownership.
@@ -214,7 +214,7 @@ bfs-ra1() {
     local device2="$2"
     local mount_point="$3"
     if [ $# -ne 3 ]; then
-	all-use
+	aux-use
         return 1
     fi
 
@@ -244,7 +244,7 @@ bfs-ra1() {
         echo "Entry not added to /etc/fstab."
     fi
 
-    all-nos "$function_name" "executed ( $1 $2 $3 )"
+    aux-nos "$function_name" "executed ( $1 $2 $3 )"
 }
 
 # Checks and lists subvolume status of folders in a specified path. Supports filtering by folder type (regular, hidden, or both) and subvolume status.
@@ -257,7 +257,7 @@ bfs-csf() {
 
     # Check if arguments are provided
     if [ -z "$path" ] || [ -z "$folder_type" ] || [ -z "$filter" ]; then
-        all-use
+        aux-use
         return 1
     fi
 
@@ -310,7 +310,7 @@ bfs-shc() {
     local configname=$1
 
     if [ -z "$configname" ]; then
-        all-use
+        aux-use
         return 1
     fi
 
@@ -399,7 +399,7 @@ bfs-shl() {
     local configname=$1
 
     if [ -z "$configname" ]; then
-        all-use
+        aux-use
         return 1
     fi
 
@@ -443,7 +443,7 @@ bfs-sfr() {
 
     # Check if arguments are provided
     if [ -z "$snapshot_sub" ] || [ -z "$target_folder" ]; then
-	all-use
+	aux-use
         return 1
     fi
 
@@ -473,7 +473,7 @@ bfs-hub() {
     local log_file="$backup_home/.$username.log"
 
     if [ $# -ne 2 ]; then
-        all-use
+        aux-use
         return 1
     fi
 
@@ -711,7 +711,7 @@ zfs-dim() {
     local dataset_path="$pool_name/$dataset_name"
     local newly_created=false
     if [ $# -ne 3 ]; then
-	all-use
+	aux-use
         return 1
     fi
 
@@ -744,7 +744,7 @@ zfs-dim() {
         echo "ZFS dataset '$dataset_path' is already mounted at '$expected_mountpoint'."
     fi
 
-    all-nos "$function_name" "executed ( $pool_name / $dataset_name )"
+    aux-nos "$function_name" "executed ( $pool_name / $dataset_name )"
 }
 
 # Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency
@@ -756,7 +756,7 @@ zfs-dbs() {
     local datasetname="$3"
 
      if [ $# -ne 3 ]; then
-	all-use
+	aux-use
         return 1
     fi
 

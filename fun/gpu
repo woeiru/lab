@@ -17,14 +17,14 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 #
 gpu-fun() {
-    # Pass all arguments directly to all-laf
-    all-laf "$FILEPATH_gpu" "$@"
+    # Pass all arguments directly to aux-laf
+    aux-laf "$FILEPATH_gpu" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
 gpu-var() {
-    all-acu -o "$CONFIG_gpu" "$DIR_FUN/.."
+    aux-acu -o "$CONFIG_gpu" "$DIR_FUN/.."
 }
 
 # Configures initial GRUB and EFI settings for GPU passthrough, installs necessary packages, and reboots the system
@@ -46,7 +46,7 @@ gpu-pt1() {
     apt install grub-efi-amd64 -y
 
     # Notify status
-    all-nos "$function_name" "Completed section 1, system will reboot now."
+    aux-nos "$function_name" "Completed section 1, system will reboot now."
 
     # Perform system reboot without prompting
     reboot
@@ -68,7 +68,7 @@ gpu-pt2() {
     update-initramfs -u -k all
 
     # Notify status
-    all-nos "$function_name" "Completed section 2, system will reboot now."
+    aux-nos "$function_name" "Completed section 2, system will reboot now."
 
     # Perform system reboot without prompting
     reboot
@@ -130,7 +130,7 @@ gpu-pt3() {
         echo "blacklist radeon" >> "$blacklist_conf"
         echo "blacklist amdgpu" >> "$blacklist_conf"
 
-        all-nos "$function_name" "Completed section 3 (enable mode), system will reboot now."
+        aux-nos "$function_name" "Completed section 3 (enable mode), system will reboot now."
     else
         # Disable GPU passthrough
 
@@ -151,7 +151,7 @@ gpu-pt3() {
             echo "Blacklist configuration file not found. Skipping modification."
         fi
 
-        all-nos "$function_name" "Completed section 3 (disable mode), system will reboot now."
+        aux-nos "$function_name" "Completed section 3 (disable mode), system will reboot now."
     fi
 
     # Perform system reboot without prompting
@@ -178,7 +178,7 @@ gpu-ptd() {
         if lsmod | grep -q $driver; then
             echo "Unloading $driver driver"
             if ! modprobe -r $driver; then
-                all-nos "$function_name" "Warning: Failed to unload $driver driver. Continuing anyway."
+                aux-nos "$function_name" "Warning: Failed to unload $driver driver. Continuing anyway."
             fi
         else
             echo "$driver driver not loaded."
@@ -187,7 +187,7 @@ gpu-ptd() {
 
     # Load VFIO driver
     if ! modprobe vfio-pci; then
-        all-nos "$function_name" "Error: Failed to load VFIO-PCI driver. GPU detachment may fail."
+        aux-nos "$function_name" "Error: Failed to load VFIO-PCI driver. GPU detachment may fail."
         return 1
     fi
 
@@ -195,7 +195,7 @@ gpu-ptd() {
     local gpu_ids=$(lspci -nn | grep -iE "VGA compatible controller|3D controller" | awk '{print $1}')
 
     if [ -z "$gpu_ids" ]; then
-        all-nos "$function_name" "Error: No GPU found."
+        aux-nos "$function_name" "Error: No GPU found."
         return 1
     fi
 
@@ -205,7 +205,7 @@ gpu-ptd() {
         fi
         echo "vfio-pci" > /sys/bus/pci/devices/0000:$id/driver_override
         if ! echo "0000:$id" > /sys/bus/pci/drivers/vfio-pci/bind; then
-            all-nos "$function_name" "Warning: Failed to bind GPU $id to VFIO-PCI."
+            aux-nos "$function_name" "Warning: Failed to bind GPU $id to VFIO-PCI."
         fi
     done
 
@@ -218,7 +218,7 @@ gpu-ptd() {
         done
     done
 
-    all-nos "$function_name" "GPU detachment process completed. Check above output for details."
+    aux-nos "$function_name" "GPU detachment process completed. Check above output for details."
 }
 
 # Attaches the GPU back to the host system
@@ -227,39 +227,39 @@ gpu-ptd() {
 gpu-pta() {
     local function_name="${FUNCNAME[0]}"
 
-    all-log "INFO" "Starting GPU reattachment process"
+    aux-log "INFO" "Starting GPU reattachment process"
 
-    all-log "INFO" "Current GPU driver and IOMMU group:"
+    aux-log "INFO" "Current GPU driver and IOMMU group:"
     lspci -nnk | grep -A3 "VGA compatible controller" | while read -r line; do
-        all-log "INFO" "$line"
+        aux-log "INFO" "$line"
     done
 
     # Get GPU PCI IDs
     local gpu_ids=$(lspci -nn | grep -i "VGA compatible controller" | awk '{print $1}')
 
     if [ -z "$gpu_ids" ]; then
-        all-log "ERROR" "No GPU found."
-        all-nos "$function_name" "Error: No GPU found."
+        aux-log "ERROR" "No GPU found."
+        aux-nos "$function_name" "Error: No GPU found."
         return 1
     fi
 
-    all-log "INFO" "Found GPU(s) with PCI ID(s): $gpu_ids"
+    aux-log "INFO" "Found GPU(s) with PCI ID(s): $gpu_ids"
 
     for id in $gpu_ids; do
-        all-log "INFO" "Processing GPU with PCI ID: $id"
+        aux-log "INFO" "Processing GPU with PCI ID: $id"
         if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
-            all-log "INFO" "Unbinding GPU $id from current driver"
+            aux-log "INFO" "Unbinding GPU $id from current driver"
             echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
             if [ $? -eq 0 ]; then
-                all-log "INFO" "Successfully unbound GPU $id"
+                aux-log "INFO" "Successfully unbound GPU $id"
             else
-                all-log "WARNING" "Failed to unbind GPU $id"
+                aux-log "WARNING" "Failed to unbind GPU $id"
             fi
         else
-            all-log "INFO" "GPU $id is not bound to any driver"
+            aux-log "INFO" "GPU $id is not bound to any driver"
         fi
 
-        all-log "INFO" "Resetting driver_override for GPU $id"
+        aux-log "INFO" "Resetting driver_override for GPU $id"
         echo > /sys/bus/pci/devices/0000:$id/driver_override
 
         # Determine the correct driver based on the GPU vendor
@@ -273,50 +273,50 @@ gpu-pta() {
                 driver="nouveau"
                 ;;
             *)
-                all-log "ERROR" "Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment."
-                all-nos "$function_name" "Error: Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment."
+                aux-log "ERROR" "Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment."
+                aux-nos "$function_name" "Error: Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment."
                 return 1
                 ;;
         esac
 
-        all-log "INFO" "Attempting to load $driver driver"
+        aux-log "INFO" "Attempting to load $driver driver"
         if ! modprobe "$driver"; then
-            all-log "ERROR" "Failed to load $driver driver. You may need to install it."
-            all-nos "$function_name" "Error: Failed to load $driver driver. You may need to install it."
+            aux-log "ERROR" "Failed to load $driver driver. You may need to install it."
+            aux-nos "$function_name" "Error: Failed to load $driver driver. You may need to install it."
             return 1
         else
-            all-log "INFO" "$driver driver loaded successfully."
+            aux-log "INFO" "$driver driver loaded successfully."
         fi
 
-        all-log "INFO" "Probing for new driver for GPU $id"
+        aux-log "INFO" "Probing for new driver for GPU $id"
         echo "0000:$id" > /sys/bus/pci/drivers_probe
         if [ $? -eq 0 ]; then
-            all-log "INFO" "Successfully probed for new driver for GPU $id"
+            aux-log "INFO" "Successfully probed for new driver for GPU $id"
         else
-            all-log "WARNING" "Failed to probe for new driver for GPU $id"
+            aux-log "WARNING" "Failed to probe for new driver for GPU $id"
         fi
 
         # Explicitly bind the driver if it's not automatically bound
         if [ ! -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
-            all-log "INFO" "Attempting to explicitly bind $driver to GPU $id"
+            aux-log "INFO" "Attempting to explicitly bind $driver to GPU $id"
             echo "0000:$id" > /sys/bus/pci/drivers/$driver/bind
             if [ $? -eq 0 ]; then
-                all-log "INFO" "Successfully bound $driver to GPU $id"
+                aux-log "INFO" "Successfully bound $driver to GPU $id"
             else
-                all-log "ERROR" "Failed to bind $driver to GPU $id"
-                all-nos "$function_name" "Error: Failed to bind $driver to GPU $id"
+                aux-log "ERROR" "Failed to bind $driver to GPU $id"
+                aux-nos "$function_name" "Error: Failed to bind $driver to GPU $id"
                 return 1
             fi
         fi
     done
 
-    all-log "INFO" "GPU driver and IOMMU group after reattachment:"
+    aux-log "INFO" "GPU driver and IOMMU group after reattachment:"
     lspci -nnk | grep -A3 "VGA compatible controller" | while read -r line; do
-        all-log "INFO" "$line"
+        aux-log "INFO" "$line"
     done
 
-    all-log "INFO" "GPU reattachment process completed."
-    all-nos "$function_name" "GPU reattachment process completed. Check logs for details."
+    aux-log "INFO" "GPU reattachment process completed."
+    aux-nos "$function_name" "GPU reattachment process completed. Check logs for details."
 }
 
 # Checks the current status of the GPU
@@ -345,5 +345,5 @@ gpu-pts() {
     echo -e "\nGPU PCI devices:"
     lspci -nnk | grep -A3 "VGA compatible controller"
 
-    all-nos "$function_name" "GPU status check completed."
+    aux-nos "$function_name" "GPU status check completed."
 }

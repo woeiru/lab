@@ -17,12 +17,12 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 #
 net-fun() {
-    all-laf "$FILEPATH_net" "$@"
+    aux-laf "$FILEPATH_net" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 #
 net-var() {
-    all-acu -o "$CONFIG_net" "$DIR_FUN/.."
+    aux-acu -o "$CONFIG_net" "$DIR_FUN/.."
 }
 
 # Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
@@ -73,14 +73,14 @@ net-fsr() {
     local function_name="${FUNCNAME[0]}"
     local fw_service="$1"
     if [ $# -ne 1 ]; then
-	all-use
+	aux-use
         return 1
     fi
    # Open firewall ports
     if command -v firewall-cmd > /dev/null; then
         firewall-cmd --permanent --add-service=$fw_service
         firewall-cmd --reload
-	all-nos "$function_name" "executed ( $1 )"
+	aux-nos "$function_name" "executed ( $1 )"
     else
         echo "firewall-cmd not found, skipping firewall configuration."
     fi
@@ -94,7 +94,7 @@ net-fas() {
     local fwd_as_1="$1"
 
     if [ $# -ne 1 ]; then
-	all-use
+	aux-use
         return 1
     fi
 
@@ -102,5 +102,5 @@ net-fas() {
     firewall-cmd --add-service="$fwd_as_1" --permanent
     firewall-cmd --reload
 
-    all-nos "$function_name" "executed"
+    aux-nos "$function_name" "executed"
 }
