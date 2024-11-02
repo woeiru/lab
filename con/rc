@@ -438,12 +438,12 @@ initialize_traps() {
 
 # Then in main_rc():
 main_rc() {
-    echo " Main RC : initializating"
+    echo "    └─ Main RC : initializating"
 
-    echo " Main RC : initialize_traps"
+    echo "    └─ Main RC : initialize_traps"
     initialize_traps
 
-    echo " Main RC : initialize_environment"
+    echo "    └─ Main RC : initialize_environment"
     initialize_environment || {
         echo "Fatal: Environment initialization failed" >&2
         return 1
