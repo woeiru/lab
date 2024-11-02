@@ -139,7 +139,6 @@ sys-upa() {
 # <pak1> <pak2> ...
 sys-ipa() {
     local function_name="${FUNCNAME[0]}"
-
     if [ $# -lt 1 ]; then
         aux-use
         return 1
@@ -148,36 +147,59 @@ sys-ipa() {
     # Get package manager using sys-dpa
     local pman
     pman=$(sys-dpa)
-
     if [ "$pman" = "unknown" ]; then
         aux-nos "$function_name" "Could not detect a supported package manager"
         return 1
     fi
 
-    # Install packages directly without any update/upgrade operations
-    case "$pman" in
-        apt)
-            apt install -y "$@"
-            ;;
-        dnf|yum)
-            $pman install -y "$@"
-            ;;
-        zypper)
-            zypper install -y "$@"
-            ;;
-        *)
-            aux-nos "$function_name" "Unsupported package manager: $pman"
-            return 1
-            ;;
-    esac
+    local failed_packages=()
+    local successful_packages=()
+    local exit_status=0
 
-    if [ $? -eq 0 ]; then
-        aux-nos "$function_name" "Successfully installed packages: $*"
-        return 0
-    else
-        aux-nos "$function_name" "Failed to install packages: $*"
-        return 1
+    # Install packages one by one
+    for package in "$@"; do
+        case "$pman" in
+            apt)
+                if ! apt install -y "$package"; then
+                    failed_packages+=("$package")
+                    exit_status=1
+                else
+                    successful_packages+=("$package")
+                fi
+                ;;
+            dnf|yum)
+                if ! $pman install -y "$package"; then
+                    failed_packages+=("$package")
+                    exit_status=1
+                else
+                    successful_packages+=("$package")
+                fi
+                ;;
+            zypper)
+                if ! zypper install -y "$package"; then
+                    failed_packages+=("$package")
+                    exit_status=1
+                else
+                    successful_packages+=("$package")
+                fi
+                ;;
+            *)
+                aux-nos "$function_name" "Unsupported package manager: $pman"
+                return 1
+                ;;
+        esac
+    done
+
+    # Report results
+    if [ ${#successful_packages[@]} -gt 0 ]; then
+        aux-nos "$function_name" "Successfully installed packages: ${successful_packages[*]}"
     fi
+
+    if [ ${#failed_packages[@]} -gt 0 ]; then
+        aux-nos "$function_name" "Failed to install packages: ${failed_packages[*]}"
+    fi
+
+    return $exit_status
 }
 
 # Configures git globally with a specified username and email, essential for proper commit attribution
