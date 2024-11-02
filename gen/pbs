@@ -6,7 +6,7 @@ FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
 
 # Source .up which provides logging and other core functionality
-source "$DIR_SH/.up"
+source "$DIR_SH/aux"
 
 # Declare MENU_OPTIONS
 declare -A MENU_OPTIONS
@@ -15,9 +15,9 @@ MENU_OPTIONS[b]="b_xall"
 
 # Downloads and verifies Proxmox Backup Server GPG key, adds repository, and installs PBS packages
 a_xall() {
-	pbs-dav
-    	pbs-adr
-    	sys-ipa "$PBS_PACKAGES_ALL"
+    pbs-dav
+    pbs-adr
+    sys-ipa "$PBS_PACKAGES_ALL"
 }
 
 # Configures PBS datastore with specified name and path for backup storage
