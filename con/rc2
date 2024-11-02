@@ -48,8 +48,8 @@ set_static() {
     alias cto='pve-cto'
 
     # Function chaining
-    alias fun='all-ffl all-laf "" "$LIB_DIR"'
-    alias var='all-ffl all-acu "" "$VAR_DIR" "$LAB_DIR"'
+    alias fun='all-ffl all-laf "" "$FUN_DIR"'
+    alias var='all-ffl all-acu "" "$ENV_DIR" "$LAB_DIR"'
 
     # Function makros
     alias v1='gpu-ptd ; qm start 211'
