@@ -17,19 +17,18 @@
     # Set environment variables in shell RC files
     - name: Set global Git environment variables
       ansible.builtin.lineinfile:
-        path: "{{ ansible_user_dir }}/{{ item }}"
-        line: "{{ line_item }}"
+        path: "{{ ansible_user_dir }}/{{ item.file }}"
+        line: "{{ item.line }}"
         create: yes
-      loop_control:
-        loop_var: line_item
       loop:
-        - "export GIT_ASKPASS=''"
-        - "export SSH_ASKPASS=''"
-        - "unset SSH_ASKPASS"
-        - "unset GIT_ASKPASS"
-      with_items:
-        - ".bashrc"
-        - ".zshrc"
+        - { file: '.bashrc', line: "export GIT_ASKPASS=''" }
+        - { file: '.bashrc', line: "export SSH_ASKPASS=''" }
+        - { file: '.bashrc', line: "unset SSH_ASKPASS" }
+        - { file: '.bashrc', line: "unset GIT_ASKPASS" }
+        - { file: '.zshrc', line: "export GIT_ASKPASS=''" }
+        - { file: '.zshrc', line: "export SSH_ASKPASS=''" }
+        - { file: '.zshrc', line: "unset SSH_ASKPASS" }
+        - { file: '.zshrc', line: "unset GIT_ASKPASS" }
 
     # Configure SSH
     - name: Ensure SSH config directory exists
