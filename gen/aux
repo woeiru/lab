@@ -7,9 +7,7 @@ setup_source() {
     local dir="$1"
     local file="$2"
     local base="$3"
-
     printf "    Starting setup_source with dir=%s, file=%s\n" "$dir" "$file"
-
     # Calculate lab root by going up one directory from the script location
     local lab_root="$(dirname "$dir")"
     local fun_dir="$lab_root/fun"
