@@ -12,9 +12,9 @@ export LAB_DIR="$PARENT_DIR"
 readonly BAS_DIR="$PARENT_DIR/bas"
 
 # Move all initialization into a proper init function
-initialize_environment() {
+init_base() {
     # First initialize directories
-    initialize_directories || {
+    init_dirs || {
         echo "Fatal: Directory initialization failed" >&2
         return 1
     }
@@ -36,7 +36,7 @@ initialize_environment() {
     return 0
 }
 
-initialize_directories() {
+init_dirs() {
     local debug_log="/tmp/directory_init_debug.log"
 
     # Debug logging for initial state
@@ -407,7 +407,7 @@ main_error_handler() {
 }
 
 # Initialize trap system
-initialize_traps() {
+init_traps() {
     if [[ "$TRAP_INITIALIZED" != "true" ]]; then
         # Remove any existing traps
         trap - EXIT
@@ -425,11 +425,11 @@ initialize_traps() {
 main_rc() {
     echo "    └─ Main RC : initializating"
 
-    echo "    └─ Main RC : initialize_traps"
-    initialize_traps
+    echo "    └─ Main RC : init_traps"
+    init_traps
 
-    echo "    └─ Main RC : initialize_environment"
-    initialize_environment || {
+    echo "    └─ Main RC : init_base"
+    init_base || {
         echo "Fatal: Environment initialization failed" >&2
         return 1
     }
