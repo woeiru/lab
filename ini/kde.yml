@@ -3,11 +3,7 @@
   connection: local
   vars:
     config_desk_1: true
-    ansible_user_dir: "/root"
-    kde_aliases_file: ".aliases_kde"
-    shell_rc_files:
-      - ".bashrc"
-      - ".zshrc"
+    ansible_user_dir: "{{ lookup('env', 'HOME') }}"
 
   tasks:
     - name: Configure desk_1 preferences
@@ -15,17 +11,17 @@
       block:
         # Konsole configuration
         - name: Ensure .local/share/konsole directory exists
-          file:
+          ansible.builtin.file:
             path: "{{ ansible_user_dir }}/.local/share/konsole"
             state: directory
             mode: '0755'
 
         - name: Create Konsole Profile 1
-          copy:
+          ansible.builtin.copy:
             content: |
               [Appearance]
               ColorScheme=SolarizedLight
-              Font=Noto Sans Mono,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+              Font=Noto Sans Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
               [General]
               Name=Profile 1
               Parent=FALLBACK/
@@ -35,11 +31,11 @@
             mode: '0644'
 
         - name: Create Konsole Profile 2
-          copy:
+          ansible.builtin.copy:
             content: |
               [Appearance]
               ColorScheme=WhiteOnBlack
-              Font=Noto Sans Mono,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+              Font=Noto Sans Mono,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
               [General]
               Name=Profile 2
               Parent=FALLBACK/
@@ -48,71 +44,29 @@
             dest: "{{ ansible_user_dir }}/.local/share/konsole/Profile 2.profile"
             mode: '0644'
 
-        # KWallet and KDE configuration
-        - name: Ensure KDE config directories exist
-          file:
-            path: "{{ ansible_user_dir }}/{{ item }}"
+        # KWallet configuration
+        - name: Ensure KWallet config directory exists
+          ansible.builtin.file:
+            path: "{{ ansible_user_dir }}/.config"
             state: directory
             mode: '0755'
-          loop:
-            - ".config"
-            - ".config/kdeconnect"
-            - ".kde/share/config"
-            - ".local/share/kded5"
 
-        - name: Disable all KDE password prompts
-          blockinfile:
-            path: "{{ ansible_user_dir }}/.config/kdeglobals"
-            create: yes
-            mode: '0644'
-            marker: "# {mark} ANSIBLE MANAGED BLOCK - KDE Password Prompts"
-            block: |
-              [General]
-              EnableGitIntegration=false
-
-              [KDE]
-              ShowDeleteCommand=false
-
-              [Passwords]
-              AutomaticRetrieval=false
-
-        - name: Configure KDE Wallet to never start
-          blockinfile:
+        - name: Disable KWallet
+          ansible.builtin.ini_file:
             path: "{{ ansible_user_dir }}/.config/kwalletrc"
-            create: yes
-            mode: '0644'
-            marker: "# {mark} ANSIBLE MANAGED BLOCK - KWallet Configuration"
-            block: |
-              [Wallet]
-              Enabled=false
-              First Use=false
-              Idle Timeout=0
-              Launch Manager=false
-              Prompt on Open=false
-              Use One Wallet=true
-
-              [Auto Allow]
-              kdewallet=false
-
-              [Auto Deny]
-              kdewallet=true
-
-        - name: Disable SSH/Git integration in KDE Connect
-          copy:
-            content: |
-              [General]
-              sshSupport=false
-            dest: "{{ ansible_user_dir }}/.config/kdeconnect/config"
-            mode: '0644'
+            section: 'Wallet'
+            option: 'Enabled'
+            value: 'false'
+          register: kwallet_config
 
         - name: Check if KWallet service exists
-          command: systemctl list-unit-files --type=service | grep -E 'kwalletd|kwallet'
+          ansible.builtin.command: systemctl list-unit-files --type=service | grep -E 'kwalletd|kwallet'
           register: kwallet_service_check
           changed_when: false
           failed_when: false
 
         - name: Restart KWallet service if it exists and configuration changed
-          systemd:
+          ansible.builtin.systemd:
             name: "{{ item }}"
             state: restarted
             scope: user
@@ -125,13 +79,13 @@
           failed_when: false
 
         - name: Notify user if KWallet service was not found
-          debug:
+          ansible.builtin.debug:
             msg: "KWallet service not found. You may need to restart it manually or it may not be installed on this system."
           when: kwallet_service_check.rc != 0
 
         # Keyboard layout configuration
         - name: Configure keyboard layout
-          copy:
+          ansible.builtin.copy:
             content: |
               [Layout]
               DisplayNames=,
@@ -141,27 +95,12 @@
             dest: "{{ ansible_user_dir }}/.config/kxkbrc"
             mode: '0644'
 
-        # Enhanced Git and SSH Configuration
-        - name: Configure environment variables in all shell RC files
-          blockinfile:
-            path: "{{ ansible_user_dir }}/{{ item }}"
-            create: yes
-            mode: '0644'
-            marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH/Git GUI Prompts"
-            block: |
-              # Disable all GUI password prompts
-              export GIT_ASKPASS=''
-              export SSH_ASKPASS=''
-              unset SSH_ASKPASS
-              unset GIT_ASKPASS
-              export SSH_AUTH_SOCK=''
-              # Force Git to use terminal prompts
-              export GIT_TERMINAL_PROMPT=1
-              # Disable KDE Wallet integration
-              export KDE_SKIP_KDEWALLETD5_CHECK=1
-              # Disable any GUI prompts for SSH
-              export DISPLAY=
-          loop: "{{ shell_rc_files }}"
+        # Git and SSH Configuration
+        - name: Configure Git global settings
+          community.general.git_config:
+            name: core.askPass
+            scope: global
+            value: ""
 
         - name: Ensure SSH config directory exists
           ansible.builtin.file:
@@ -169,56 +108,13 @@
             state: directory
             mode: '0700'
 
-        - name: Configure SSH to disable password prompting and GUI integration
-          blockinfile:
+        - name: Configure SSH to disable password prompting
+          ansible.builtin.blockinfile:
             path: "{{ ansible_user_dir }}/.ssh/config"
             create: yes
             mode: '0600'
-            marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH Configuration"
             block: |
+              # Disable SSH_ASKPASS
               Host *
-                  # Disable GUI prompts
                   SetEnv SSH_ASKPASS=''
-                  SetEnv GIT_ASKPASS=''
-                  # Prefer keyboard-interactive auth and disable GUI
-                  PreferredAuthentications publickey,keyboard-interactive,password
-                  # Disable connection sharing
-                  ControlMaster no
-                  # Disable SSH agent forwarding
-                  ForwardAgent no
-                  # Use batch mode to prevent password prompts
-                  BatchMode yes
-                  # Additional SSH options to prevent prompts
-                  KbdInteractiveAuthentication no
-                  PasswordAuthentication yes
-
-        - name: Configure Git to disable credential helpers and GUI prompts
-          community.general.git_config:
-            scope: global
-            name: "{{ item.name }}"
-            value: "{{ item.value }}"
-          loop:
-            - { name: 'core.askPass', value: '' }
-            - { name: 'credential.helper', value: '' }
-            - { name: 'gui.askpass', value: '' }
-            - { name: 'core.editor', value: 'vim' }
-            - { name: 'push.default', value: 'simple' }
-            - { name: 'credential.modalPrompt', value: 'false' }
-            - { name: 'credential.interactive', value: 'false' }
-            - { name: 'pull.rebase', value: 'false' }
-
-        - name: Kill any running SSH agent processes
-          shell: |
-            pkill ssh-agent || true
-            pkill kwalletd5 || true
-          changed_when: false
-          failed_when: false
-
-        - name: Create logout hook to clean SSH environment
-          copy:
-            content: |
-              #!/bin/bash
-              pkill ssh-agent
-              rm -f $HOME/.ssh/ssh_auth_sock
-            dest: "{{ ansible_user_dir }}/.config/plasma-workspace/shutdown/cleanup-ssh.sh"
-            mode: '0755'
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH_ASKPASS configuration"
