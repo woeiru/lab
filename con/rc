@@ -30,6 +30,18 @@ initialize_environment() {
         return 1
     }
 
+    # Then source required modules in correct order
+    source "$BAS_DIR/lo1" || {
+        echo "Fatal: Failed to source lo1 module" >&2
+        return 1
+    }
+
+    # Then source required modules in correct order
+    source "$BAS_DIR/lo2" || {
+        echo "Fatal: Failed to source lo2 module" >&2
+        return 1
+    }
+
     # Initialize timer system with proper log directory
     init_timer "$RC_LOG_DIR" || {
         echo "Fatal: Failed to initialize timer" >&2
@@ -181,14 +193,14 @@ source_helper() {
     start_timer "source_$description"
 
     if [[ ! -f "$file" ]]; then
-        echo "       ━ Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
         end_timer "source_$description"
         return 1
     fi
 
     if [[ ! -r "$file" ]]; then
-        echo "       ━ Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
         end_timer "source_$description"
         return 1
@@ -197,13 +209,13 @@ source_helper() {
     # Source the file and capture any errors
     local temp_error="/tmp/source_error.$$"
     if source "$file" 2>"$temp_error"; then
-        echo "       ━ Successfully sourced: $description" | tee -a "$ERROR_LOG"
+        log "lvl" "Successfully sourced: $description" | tee -a "$ERROR_LOG"
         end_timer "source_$description" "success"
         rm -f "$temp_error"
         return 0
     else
         local error=$(cat "$temp_error")
-        echo "       ━ Error sourcing $description: $error" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Error sourcing $description: $error" | tee -a "$ERROR_LOG" >&2
         rm -f "$temp_error"
         error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
         end_timer "source_$description" "error"
@@ -219,10 +231,10 @@ source_directory() {
     local return_value=0
 
     start_timer "dir_$description"
-    echo "     ━ Sourcing $description: $dir" | tee -a "$ERROR_LOG"
+    log "lvl" "Sourcing $description: $dir" | tee -a "$ERROR_LOG"
 
     if [[ ! -d "$dir" ]]; then
-        echo "     ━ Warning: Directory $dir not found. Skipping." | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Warning: Directory $dir not found. Skipping." | tee -a "$ERROR_LOG" >&2
         end_timer "dir_$description"
         return 1
     fi
@@ -234,7 +246,7 @@ source_directory() {
     done < <(find "$dir" -maxdepth 1 -type f -name "$pattern" -print0 | sort -z)
 
     if [[ ${#files[@]} -eq 0 ]]; then
-        echo "     ━ Warning: No matching files found in $dir" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Warning: No matching files found in $dir" | tee -a "$ERROR_LOG" >&2
         end_timer "dir_$description"
         return 1
     fi
@@ -248,21 +260,15 @@ source_directory() {
     done
 
     if ((success_count == 0)); then
-        echo "     ━ Warning: No files were successfully sourced from $dir" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Warning: No files were successfully sourced from $dir" | tee -a "$ERROR_LOG" >&2
         return_value=1
     else
-        echo "     ━ Successfully sourced $success_count files from $dir" | tee -a "$ERROR_LOG"
+        log "lvl" "Successfully sourced $success_count files from $dir" | tee -a "$ERROR_LOG"
         return_value=0
     fi
 
     end_timer "dir_$description"
     return $return_value
-}
-
-# Source the base files
-source_bas() {
-    source_directory "$BAS_DIR" "*" "base folder"
-    return $?
 }
 
 # Source the RC modules
@@ -340,25 +346,25 @@ execute_component() {
 
     start_timer "$component"
     echo | tee -a "$ERROR_LOG"
-    echo "   ━ Executing component: $component" | tee -a "$ERROR_LOG"
+    log "lvl" " Executing component: $component" | tee -a "$ERROR_LOG"
 
     if ! type "$func" &>/dev/null; then
-        echo "   ━ Error: Function $func not found" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Error: Function $func not found" | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$([[ $required -eq 0 ]] && echo true || echo false)"
         return_value=1
     elif $func; then
         export "$success_var=1"
-        echo "   ━ Component $component completed successfully" | tee -a "$ERROR_LOG"
+        log "lvl" " Component $component completed successfully" | tee -a "$ERROR_LOG"
         return_value=0
     else
         unset "$success_var"
         local msg="Component $component failed"
         if ((required)); then
-            echo "   ━ Error: $msg" | tee -a "$ERROR_LOG" >&2
+            log "lvl" " Error: $msg" | tee -a "$ERROR_LOG" >&2
             error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
             return_value=1
         else
-            echo "   ━ Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
+            log "lvl" " Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
             error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
             return_value=0
         fi
@@ -416,7 +422,7 @@ main_error_handler() {
 }
 
 # Initialize trap system
-init_traps() {
+initialize_traps() {
     if [[ "$TRAP_INITIALIZED" != "true" ]]; then
         # Remove any existing traps
         trap - EXIT
@@ -432,29 +438,27 @@ init_traps() {
 
 # Then in main_rc():
 main_rc() {
-    echo " ━ Main RC : Starting initialization"
+    echo " Main RC : initializating"
 
-    echo " ━ Main RC : init_traps"
-    init_traps
+    echo " Main RC : initialize_traps"
+    initialize_traps
 
-    echo " ━ Main RC : initialize_environment"
+    echo " Main RC : initialize_environment"
     initialize_environment || {
         echo "Fatal: Environment initialization failed" >&2
         return 1
     }
 
-    echo " ━ Main RC : register_cleanup"
+    log "lvl" " Main RC : register_cleanup"
     register_cleanup "lo" "cleanup_logger"
     register_cleanup "tme" "cleanup_timer"
     register_cleanup "err" "clean_exit"
 
-    echo " ━ Main RC : setup_error_handling"
+    log "lvl" " Main RC : setup_error_handling"
     setup_error_handling
 
-
-    echo " ━ Main RC : setting local components" | tee -a "$ERROR_LOG"
+    log "lvl" " Main RC : setting local components" | tee -a "$ERROR_LOG"
     local components=(
-        "source_bas:BAS:1"           # Required
         "source_rc:RC:1"             # Required
         "source_env:ENV:0"           # Optional
         "source_fun:FUN:0"           # Optional
@@ -468,7 +472,7 @@ main_rc() {
         if ! execute_component "$func" "$name" "$required"; then
             if ((required)); then
                 failed_required=1
-                echo " ━ Required component $name failed" | tee -a "$ERROR_LOG" >&2
+                log "lvl" " Required component $name failed" | tee -a "$ERROR_LOG" >&2
                 echo
                 break
             fi
@@ -477,7 +481,7 @@ main_rc() {
 
     if ((failed_required)); then
         unset RC_SOURCED
-        echo " ━ RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
         echo
         print_timing_report
         print_error_report
@@ -485,7 +489,7 @@ main_rc() {
     else
         export RC_SOURCED=1
         echo
-        echo " ━ RC initialization completed successfully" | tee -a "$ERROR_LOG"
+        log "lvl" " RC initialization completed successfully" | tee -a "$ERROR_LOG"
         print_timing_report
         print_error_report
         echo
