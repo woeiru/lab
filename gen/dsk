@@ -20,7 +20,7 @@ MENU_OPTIONS[b]="b_xall"
 # Installs common system packages and configures global Git user credentials
 a_xall() {
     sys-upa
-    sys-ipa "$PACKAGES_ALL"
+    sys-ipa "${PACKAGES_ALL[@]}"
 }
 # Uploads private SSH key from USB device to system for secure authentication
 b_xall() {
