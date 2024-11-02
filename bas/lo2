@@ -1,211 +1,169 @@
 #!/bin/bash
 
-# Verify base module is loaded
-if ! declare -F log >/dev/null; then
-    echo "Error: Base logging module (lo1) must be loaded first" >&2
-    return 1
+# Enable immediate exit on error
+set -e
+
+# Start debug logging to both stderr and file
+exec 19>/tmp/lo2_trace.log
+BASH_XTRACEFD=19
+set -x
+
+echo "=== LO2 Loading Process Start ===" >&2
+
+# First verify dependencies from lo1
+for func in log get_base_depth get_indent get_color; do
+    if ! declare -F "$func" >/dev/null; then
+        echo "Error: Required function $func not found from lo1" >&2
+        exit 1
+    fi
+done
+echo "Phase 1: lo1 dependencies verified" >&2
+
+# Verify environment variables
+if [[ -z "$LOG_DIR" || -z "$TMP_DIR" ]]; then
+    echo "Error: Required environment variables not set" >&2
+    exit 1
 fi
+echo "Phase 2: Environment variables verified" >&2
 
-# Verify required environment variables
-[[ -z "$LOG_DIR" ]] && {
-    echo "Fatal: LOG_DIR environment variable not set" >&2
-    return 1
-}
-[[ -z "$TMP_DIR" ]] && {
-    echo "Fatal: TMP_DIR environment variable not set" >&2
-    return 1
-}
+# Verify directories exist and are writable
+for dir in "$LOG_DIR/lo" "$TMP_DIR/lo"; do
+    if [[ ! -d "$dir" ]]; then
+        echo "Error: Directory $dir does not exist" >&2
+        exit 1
+    fi
+    if [[ ! -w "$dir" ]]; then
+        echo "Error: Directory $dir not writable" >&2
+        exit 1
+    fi
+done
+echo "Phase 3: Directories verified" >&2
 
-# Define module-specific directories and files
-readonly LOG_LO_DIR="$LOG_DIR/lo"
-readonly TMP_LO_DIR="$TMP_DIR/lo"
-readonly LOG_CONTROL_STATE_FILE="${TMP_LO_DIR}/lo2_state"
-readonly LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
+# Define constants
+LOG_LO_DIR="$LOG_DIR/lo"
+TMP_LO_DIR="$TMP_DIR/lo"
+LOG_CONTROL_STATE_FILE="${TMP_LO_DIR}/lo2_state"
+LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
 
-# Global state
+# Verify we can write to our state files
+for file in "$LOG_CONTROL_STATE_FILE" "$LOG_DEBUG_FILE"; do
+    if ! touch "$file" 2>/dev/null; then
+        echo "Error: Cannot write to $file" >&2
+        exit 1
+    fi
+done
+echo "Phase 4: File access verified" >&2
+
+# Initialize state
 declare -g LOG_CONTROL_DEPTH_ENABLED=false
-
-# Runtime control structure tracking
 declare -ga CONTROL_DEPTH_STACK=()
 declare -g LAST_COMMAND=""
 
-# Enhanced debug logging
+echo "Phase 5: State initialized" >&2
+
+# Core functions
 lo2_debug_log() {
-    [[ "${LOG_DEBUG_ENABLED:-0}" != "1" ]] && return 0
     local timestamp=$(date '+%H:%M:%S')
     local message="$1"
     local source="${2:-unknown}"
     printf "[LO2-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_DEBUG_FILE"
+    return 0
 }
 
-# Add a hash function to identify unique control structures
-hash_command() {
-    local cmd="$1"
-    # Get line number and file from DEBUG trap if available
-    local lineno="${BASH_LINENO[0]:-0}"
-    local source="${BASH_SOURCE[1]:-unknown}"
-    echo "${source}:${lineno}:${cmd}"
-}
-
-# Modified tracking function with deduplication
-track_control_depth() {
-    local command="$1"
-
-    # Skip if it's the same command as last time
-    [[ "$command" == "$LAST_COMMAND" ]] && return
-    LAST_COMMAND="$command"
-
-    # Generate unique hash for this command
-    local cmd_hash=$(hash_command "$command")
-
-    lo2_debug_log "Processing command: $command (hash: $cmd_hash)" "track_depth"
-
-    case "$command" in
-        if\ *|for\ *|while\ *|until\ *|case\ *|select\ *)
-            # Check if this exact control structure is already in the stack
-            local duplicate=false
-            for structure in "${CONTROL_DEPTH_STACK[@]}"; do
-                if [[ "$structure" == "$cmd_hash" ]]; then
-                    duplicate=true
-                    break
-                fi
-            done
-
-            if ! $duplicate; then
-                CONTROL_DEPTH_STACK+=("$cmd_hash")
-                lo2_debug_log "Entered unique control structure: $command (depth: ${#CONTROL_DEPTH_STACK[@]})" "track_depth"
-            else
-                lo2_debug_log "Skipped duplicate control structure: $command" "track_depth"
-            fi
-            ;;
-        fi|done|esac)
-            # Only remove if it matches the last added structure
-            if [ ${#CONTROL_DEPTH_STACK[@]} -gt 0 ]; then
-                local last_structure="${CONTROL_DEPTH_STACK[-1]}"
-                if [[ "$last_structure" == *"$command"* ]]; then
-                    unset 'CONTROL_DEPTH_STACK[-1]'
-                    lo2_debug_log "Exited control structure (new depth: ${#CONTROL_DEPTH_STACK[@]})" "track_depth"
-                fi
-            fi
-            ;;
-    esac
-}
-
-# Get current runtime control structure depth
-get_current_control_depth() {
-    lo2_debug_log "Current control depth: ${#CONTROL_DEPTH_STACK[@]}" "get_depth"
-    echo ${#CONTROL_DEPTH_STACK[@]}
-}
-
-print_control_stack() {
-    lo2_debug_log "Control structure stack:" "stack_debug"
-    local i=0
-    for structure in "${CONTROL_DEPTH_STACK[@]}"; do
-        # Extract original command from hash
-        local cmd="${structure##*:}"
-        lo2_debug_log "  $i: $cmd (hash: $structure)" "stack_debug"
-        ((i++))
-    done
-}
-
-# Calculate control structure depth
-calculate_control_depth() {
-    local depth=$(get_current_control_depth)
-    lo2_debug_log "Calculated control depth: $depth" "calc_depth"
-    if ((depth > 0)); then
-        print_control_stack
-    fi
-    echo "$depth"
-}
-
-# Override calculate_final_depth to use runtime tracking
 calculate_final_depth() {
     if [[ "$LOG_CONTROL_DEPTH_ENABLED" == "true" ]]; then
-        local base_depth
+        local base_depth control_depth total_depth
         base_depth=$(get_base_depth)
-        lo2_debug_log "Base depth: $base_depth" "final_depth"
-
-        local control_depth1
-        control_depth=$(calculate_control_depth)
-        local total_depth=$((base_depth + control_depth))
-
-        lo2_debug_log "Control depth: $control_depth, Total depth: $total_depth" "final_depth"
+        control_depth=$(get_current_control_depth)
+        total_depth=$((base_depth + control_depth))
         echo "$total_depth"
     else
         get_base_depth
     fi
 }
 
-# Install the debug trap for control structure tracking
-install_depth_tracking() {
-    # Save any existing DEBUG trap
-    local old_trap=$(trap -p DEBUG)
-
-    # Set our new trap while preserving any existing trap
-    if [[ -n "$old_trap" && "$old_trap" != *"track_control_depth"* ]]; then
-        local old_command=${old_trap#trap -- \'}
-        old_command=${old_command%\' DEBUG}
-        trap 'track_control_depth "$BASH_COMMAND"; '"$old_command" DEBUG
-    else
-        trap 'track_control_depth "$BASH_COMMAND"' DEBUG
-    fi
-
-    lo2_debug_log "Installed control structure tracking" "init"
+get_current_control_depth() {
+    echo "${#CONTROL_DEPTH_STACK[@]}"
 }
 
-# Remove the debug trap
-remove_depth_tracking() {
-    trap - DEBUG
-    lo2_debug_log "Removed control structure tracking" "cleanup"
+track_control_depth() {
+    local command="$1"
+    [[ "$command" == "$LAST_COMMAND" ]] && return
+    LAST_COMMAND="$command"
+
+    case "$command" in
+        if*|for*|while*|until*|case*|select*)
+            CONTROL_DEPTH_STACK+=("$command")
+            ;;
+        fi|done|esac)
+            if ((${#CONTROL_DEPTH_STACK[@]} > 0)); then
+                unset 'CONTROL_DEPTH_STACK[-1]'
+            fi
+            ;;
+    esac
 }
 
-# Control structure tracking toggle
 setlogcontrol() {
     case "$1" in
         "on")
             LOG_CONTROL_DEPTH_ENABLED=true
             echo "true" > "$LOG_CONTROL_STATE_FILE"
-            install_depth_tracking
+            trap 'track_control_depth "$BASH_COMMAND"' DEBUG
             CONTROL_DEPTH_STACK=()
-            lo2_debug_log "Control structure depth tracking enabled" "setlogcontrol"
-            printf "%s      └─ Control structure depth tracking enabled%s\n" "$LOG_NC"
             ;;
         "off")
             LOG_CONTROL_DEPTH_ENABLED=false
             echo "false" > "$LOG_CONTROL_STATE_FILE"
-            remove_depth_tracking
+            trap - DEBUG
             CONTROL_DEPTH_STACK=()
-            lo2_debug_log "Control structure depth tracking disabled" "setlogcontrol"
-            printf "%s      └─ Control structure depth tracking disabled%s\n" "$LOG_NC"
             ;;
         *)
-            printf "Usage: setlogcontrol on|off\n"
+            echo "Usage: setlogcontrol on|off" >&2
             return 1
             ;;
     esac
 }
 
 cleanup_lo2() {
-    lo2_debug_log "Starting cleanup" "cleanup_lo2"
-    remove_depth_tracking
+    trap - DEBUG
     CONTROL_DEPTH_STACK=()
     LAST_COMMAND=""
-    lo2_debug_log "Cleanup complete" "cleanup_lo2"
 }
 
-# Export necessary functions and variables
+echo "Phase 6: Functions defined" >&2
+
+# Export functions and variables
 export LOG_CONTROL_DEPTH_ENABLED
-export -f setlogcontrol
 export -f lo2_debug_log
 export -f calculate_final_depth
-export -f track_control_depth
 export -f get_current_control_depth
+export -f track_control_depth
+export -f setlogcontrol
+export -f cleanup_lo2
 
-# Set up cleanup trap
-trap cleanup_lo2 EXIT
+echo "Phase 7: Exports completed" >&2
 
-# Initialize control tracking based on saved state
-[[ -f "$LOG_CONTROL_STATE_FILE" ]] && {
+# Set up cleanup trap if none exists
+if [[ -z "$(trap -p EXIT)" ]]; then
+    trap cleanup_lo2 EXIT
+fi
+
+echo "Phase 8: Traps configured" >&2
+
+# Initialize from saved state if exists
+if [[ -f "$LOG_CONTROL_STATE_FILE" ]]; then
     saved_state=$(cat "$LOG_CONTROL_STATE_FILE")
-    [[ "$saved_state" == "true" ]] && setlogcontrol on
-}
+    if [[ "$saved_state" == "true" ]]; then
+        setlogcontrol on
+    fi
+fi
+
+echo "Phase 9: State restored" >&2
+
+# Disable error immediate exit
+set +e
+
+echo "=== LO2 Loading Process Complete ===" >&2
+
+# Return explicitly
+return 0
