@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # Define directory and file variables
-DIR_LIB="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-FILE_LIB=$(basename "$BASH_SOURCE")
-BASE_LIB="${FILE_LIB%.*}"
-FILEPATH_LIB="${DIR_LIB}/${FILE_LIB}"
-CONFIG_LIB="$DIR_LIB/../var/${BASE_LIB}.conf"
+DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_FUN=$(basename "$BASH_SOURCE")
+BASE_FUN="${FILE_FUN%.*}"
+FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
+CONFIG_FUN="$DIR_FUN/../var/${BASE_FUN}.conf"
 
 # Dynamically create variables based on the base name
-eval "FILEPATH_${BASE_LIB}=\$FILEPATH_LIB"
-eval "FILE_${BASE_LIB}=\$FILE_LIB"
-eval "BASE_${BASE_LIB}=\$BASE_LIB"
-eval "CONFIG_${BASE_LIB}=\$CONFIG_LIB"
+eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
+eval "FILE_${BASE_FUN}=\$FILE_FUN"
+eval "BASE_${BASE_FUN}=\$BASE_FUN"
+eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
 # Displays an overview of specific functions in the script, showing their usage, shortname, and description
 # overview functions
@@ -23,7 +23,7 @@ sto-fun() {
 # overview variables
 #
 sto-var() {
-    all-acu -o "$CONFIG_sto" "$DIR_LIB/.."
+    all-acu -o "$CONFIG_sto" "$DIR_FUN/.."
 }
 
 # Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
