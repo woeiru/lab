@@ -115,17 +115,18 @@
 
         - name: Set global Git environment variables
           lineinfile:
-            path: "{{ ansible_user_dir }}/{{ item }}"
-            line: "{{ line_item }}"
+            path: "{{ ansible_user_dir }}/{{ item.rcfile }}"
+            line: "{{ item.line }}"
             create: yes
-          loop_control:
-            loop_var: line_item
           loop:
-            - "export GIT_ASKPASS=''"
-            - "export SSH_ASKPASS=''"
-            - "unset SSH_ASKPASS"
-            - "unset GIT_ASKPASS"
-          with_items: "{{ shell_rc_files }}"
+            - { rcfile: ".bashrc", line: "export GIT_ASKPASS=''" }
+            - { rcfile: ".bashrc", line: "export SSH_ASKPASS=''" }
+            - { rcfile: ".bashrc", line: "unset SSH_ASKPASS" }
+            - { rcfile: ".bashrc", line: "unset GIT_ASKPASS" }
+            - { rcfile: ".zshrc", line: "export GIT_ASKPASS=''" }
+            - { rcfile: ".zshrc", line: "export SSH_ASKPASS=''" }
+            - { rcfile: ".zshrc", line: "unset SSH_ASKPASS" }
+            - { rcfile: ".zshrc", line: "unset GIT_ASKPASS" }
 
         - name: Ensure SSH config directory exists
           ansible.builtin.file:
