@@ -271,7 +271,7 @@ all-laf() {
 
     # Print table header
     print_separator
-    print_row "Func" "Arguments" "Shortname" "Description" "Size" "Loc" "file" "libr" "sets"
+    print_row "Func" "Arguments" "Shortname" "Description" "Size" "Loc" "file" "func" "gens"
     print_separator
 
     # Loop through all lines in the file again
@@ -288,8 +288,8 @@ all-laf() {
             
             # Count the number of calls to the function
             func_calls=$(count_calls "$func_name")
-            callslib=$(count_calls_folder "$func_name" "/root/lab/lib" "$file_name")
-            callsset=$(count_calls_folder "$func_name" "/root/lab/set" "$file_name")
+            callsfun=$(count_calls_folder "$func_name" "$FUN_DIR" "$file_name")
+            callsgen=$(count_calls_folder "$func_name" "$GEN_DIR" "$file_name")
             
             # Get comments for arguments, shortname, and description
             description=$(get_comment $((line_number-3)))
@@ -297,7 +297,7 @@ all-laf() {
             arguments=$(get_comment $((line_number-1)))
 
             # Print function information
-            print_row "$func_name" "$arguments" "$shortname" "$description" "$func_size" "$line_number" "$func_calls" "$callslib" "$callsset"
+            print_row "$func_name" "$arguments" "$shortname" "$description" "$func_size" "$line_number" "$func_calls" "$callsfun" "$callsgen"
             if $break_mode; then
                 print_separator_2
             fi
