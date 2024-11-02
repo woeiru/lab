@@ -209,157 +209,6 @@ source_helper() {
     fi
 }
 
-# Function to source all files in a directory with consistent sorting and error handling
-source_directory() {
-    local dir="$1"
-    local pattern="${2:-*}"
-    local description="$3"
-    local return_value=0
-
-    start_timer "dir_$description"
-    log "lvl" "Sourcing $description: $dir" | tee -a "$ERROR_LOG"
-
-    if [[ ! -d "$dir" ]]; then
-        log "lvl" " Warning: Directory $dir not found. Skipping." | tee -a "$ERROR_LOG" >&2
-        end_timer "dir_$description"
-        return 1
-    fi
-
-    # Get all matching files in the directory
-    local files=()
-    while IFS= read -r -d '' file; do
-        files+=("$file")
-    done < <(find "$dir" -maxdepth 1 -type f -name "$pattern" -print0 | sort -z)
-
-    if [[ ${#files[@]} -eq 0 ]]; then
-        log "lvl" " Warning: No matching files found in $dir" | tee -a "$ERROR_LOG" >&2
-        end_timer "dir_$description"
-        return 1
-    fi
-
-    # Source each file
-    local success_count=0
-    for file in "${files[@]}"; do
-        if source_helper "$file" "$(basename "$file")"; then
-            ((success_count++))
-        fi
-    done
-
-    if ((success_count == 0)); then
-        log "lvl" " Warning: No files were successfully sourced from $dir" | tee -a "$ERROR_LOG" >&2
-        return_value=1
-    else
-        log "lvl" "Successfully sourced $success_count files from $dir" | tee -a "$ERROR_LOG"
-        return_value=0
-    fi
-
-    end_timer "dir_$description"
-    return $return_value
-}
-
-# Source the RC modules
-source_rc() {
-    log "lvl" "Sourcing primary RC modules"
-    local rc_modules=("rc1" "rc2" "rc3")
-    local success_count=0
-
-    for module in "${rc_modules[@]}"; do
-        if source_helper "$DIR/$module" "RC module $module"; then
-            ((success_count++))
-        fi
-    done
-
-    if ((success_count == 0)); then
-        log "lvl" "Warning: No RC modules were successfully sourced"
-        return 1
-    fi
-
-    return 0
-}
-
-# Source the environment files
-source_env() {
-    source_directory "$PARENT_DIR/env" "*" "environment configuration files"
-    return $?
-}
-
-# Source the function files
-source_fun() {
-    source_directory "$PARENT_DIR/fun" "*" "function files"
-    return $?
-}
-
-# Execute RC-specific setup functions
-execution_rc() {
-    log "lvl" "Starting ${FUNCNAME[0]}"
-    start_timer "execution_rc"
-
-    local setup_functions=("set_static" "set_dynamic" "set_aliaswrap")
-    local success_count=0
-
-    for func in "${setup_functions[@]}"; do
-        start_nested_timing "setup_${func}"
-
-        if ! type "$func" &>/dev/null; then
-            log "lvl" "Warning: Function $func not found" | tee -a "$ERROR_LOG" >&2
-            end_nested_timing "setup_${func}" "error_not_found"
-            continue
-        fi
-
-        log "lvl" "Executing $func"
-        if $func; then
-            ((success_count++))
-            end_nested_timing "setup_${func}" "success"
-        else
-            log "lvl" "Warning: $func failed" | tee -a "$ERROR_LOG" >&2
-            end_nested_timing "setup_${func}" "error_execution"
-        fi
-    done
-
-    local status=$((success_count > 0 ? "success" : "error"))
-    end_timer "execution_rc" "$status"
-
-    return $((success_count > 0 ? 0 : 1))
-}
-
-# Component execution with status tracking
-execute_component() {
-    local func="$1"
-    local component="$2"
-    local required="${3:-1}"  # Default to required
-    local success_var="${component}_SUCCESS"
-    local return_value=0
-
-    start_timer "$component"
-    echo | tee -a "$ERROR_LOG"
-    log "lvl" " Executing component: $component" | tee -a "$ERROR_LOG"
-
-    if ! type "$func" &>/dev/null; then
-        log "lvl" " Error: Function $func not found" | tee -a "$ERROR_LOG" >&2
-        error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$([[ $required -eq 0 ]] && echo true || echo false)"
-        return_value=1
-    elif $func; then
-        export "$success_var=1"
-        log "lvl" " Component $component completed successfully" | tee -a "$ERROR_LOG"
-        return_value=0
-    else
-        unset "$success_var"
-        local msg="Component $component failed"
-        if ((required)); then
-            log "lvl" " Error: $msg" | tee -a "$ERROR_LOG" >&2
-            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
-            return_value=1
-        else
-            log "lvl" " Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
-            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
-            return_value=0
-        fi
-    fi
-
-    end_timer "$component"
-    return $return_value
-}
-
 # Central trap registration system
 register_cleanup() {
     local module="$1"
@@ -422,67 +271,51 @@ init_traps() {
     fi
 }
 
+# Source the RC modules
+source_rc() {
+    local rc_modules=("rc1" "rc2" "rc3" "rc4")
+    local success_count=0
+
+    for module in "${rc_modules[@]}"; do
+        if source_helper "$DIR/$module" "RC module $module"; then
+            ((success_count++))
+        fi
+    done
+
+    if ((success_count == 0)); then
+        log "lvl" "Warning: No RC modules were successfully sourced"
+        return 1
+    fi
+
+    return 0
+}
+
 # Then in main_rc():
 main_rc() {
-    echo "    └─ Main RC : initializating"
-
-    echo "    └─ Main RC : init_traps"
+    echo "    └─ main_rc : init_traps"
     init_traps
 
-    echo "    └─ Main RC : init_base"
+    echo "    └─ main_rc : init_base"
     init_base || {
         echo "Fatal: Environment initialization failed" >&2
         return 1
     }
 
-    log "lvl" " Main RC : register_cleanup"
+    log "lvl" " main_rc : register_cleanup"
     register_cleanup "lo" "cleanup_logger"
     register_cleanup "tme" "cleanup_timer"
     register_cleanup "err" "clean_exit"
 
-    log "lvl" " Main RC : setup_error_handling"
+    log "lvl" " main_rc : setup_error_handling"
     setup_error_handling
 
-    log "lvl" " Main RC : setting local components" | tee -a "$ERROR_LOG"
-    local components=(
-        "source_rc:RC:1"             # Required
-        "source_env:ENV:0"           # Optional
-        "source_fun:FUN:0"           # Optional
-        "execution_rc:EXEC:1"        # Required
-    )
-    local failed_required=0
+    log "lvl" " main_rc : source_rc" | tee -a "$ERROR_LOG"
+    source_rc
 
-    for component in "${components[@]}"; do
-        IFS=':' read -r func name required <<< "$component"
-
-        if ! execute_component "$func" "$name" "$required"; then
-            if ((required)); then
-                failed_required=1
-                log "lvl" " Required component $name failed" | tee -a "$ERROR_LOG" >&2
-                echo
-                break
-            fi
-        fi
-    done
-
-    if ((failed_required)); then
-        unset RC_SOURCED
-        log "lvl" " RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
-        echo
-        print_timing_report
-        print_error_report
-        return 1
-    else
-        export RC_SOURCED=1
-        echo
-        log "lvl" " RC initialization completed successfully" | tee -a "$ERROR_LOG"
-        print_timing_report
-        print_error_report
-        echo
-        return 0
-    fi
-    tree > tree
+    log "lvl" " main_rc : setup_components" | tee -a "$ERROR_LOG"
+    setup_components
 }
 
 # Execute the main function
+echo " ─── initializating"
 main_rc
