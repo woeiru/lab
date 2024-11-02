@@ -16,20 +16,20 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
-all-fun() {
-    # Pass all arguments directly to all-laf
-    all-laf "$FILEPATH_all" "$@"
+aux-fun() {
+    # Pass all arguments directly to aux-laf
+    aux-laf "$FILEPATH_all" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
-all-var() {
-    all-acu -o "$CONFIG_all" "$DIR_FUN/.."
+aux-var() {
+    aux-acu -o "$CONFIG_all" "$DIR_FUN/.."
 }
 
 # Logging function
-all-log() {
+aux-log() {
     local log_level="$1"
     local message="$2"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$log_level] $message"
@@ -38,7 +38,7 @@ all-log() {
 # Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
 # function folder loop
 # <function> <flag> <path> [extra_args ..]
-all-ffl() {
+aux-ffl() {
     local fnc
     local flag
     local folder
@@ -86,7 +86,7 @@ all-ffl() {
                 
                 "$fnc" "$flag" "$file" "${extra_args[@]}"
             elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
-                all-ffl "$fnc" "$flag" "$file" "${extra_args[@]}"
+                aux-ffl "$fnc" "$flag" "$file" "${extra_args[@]}"
             fi
         done
     else
@@ -98,7 +98,7 @@ all-ffl() {
 # Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
 # list all functions
 # <file name> [-t] [-b]
-all-laf() {
+aux-laf() {
     local truncate_mode=false
     local break_mode=false
     local file_name
@@ -122,7 +122,7 @@ all-laf() {
     done
 
     if [ -z "$file_name" ]; then
-        all-use
+        aux-use
         return 1
     fi
 
@@ -313,7 +313,7 @@ all-laf() {
 # Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
 # <sort mode: o|a > <target folder> <config file>
-all-acu() {
+aux-acu() {
     local sort_mode=$1
     local conf_file=$2
     local target_folder=$3
@@ -324,7 +324,7 @@ all-acu() {
     local tab_width_var_occurences=5
 
     if [ $# -ne 3 ]; then
-        echo "Usage: all-acu <sort mode: -o|-a> <target folder> <config file>"
+        echo "Usage: aux-acu <sort mode: -o|-a> <target folder> <config file>"
         return 1
     fi
 
@@ -436,13 +436,13 @@ all-acu() {
 # Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters
 # main eval variable
 # <var_name> <prompt_message> <current_value>
-all-mev() {
+aux-mev() {
     local var_name=$1
     local prompt_message=$2
     local current_value=$3
 
     if [ $# -ne 3 ]; then
-	all-use
+	aux-use
         return 1
     fi
 
@@ -457,7 +457,7 @@ all-mev() {
 # Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information
 # main display notification
 # <function_name> <status>
-all-nos() {
+aux-nos() {
     local function_name="$1"
     local status="$2"
 
@@ -468,10 +468,10 @@ all-nos() {
 # Displays the source code of a specified function from the library folder, including its description, shortname, and usage
 # function library cat
 # <function_name>
-all-flc() {
+aux-flc() {
     # Check if a function name is provided
     if [ -z "$1" ]; then
-        all-use
+        aux-use
         return 1
     fi
 
@@ -502,7 +502,7 @@ all-flc() {
 # Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
 # function usage information
 #
-all-use() {
+aux-use() {
     local caller_line=$(caller 0)
     local caller_function=$(echo $caller_line | awk '{print $2}')
     local script_file="${BASH_SOURCE[1]}"

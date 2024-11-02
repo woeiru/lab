@@ -15,9 +15,9 @@ MENU_OPTIONS[b]="b_xall"
 
 # Installs Samba packages, enables the SMB service, and creates initial user account for Samba access
 a_xall() {
-    	gen-ipa "$SMB_PACKAGES_ALL"
-	gen-sdc "$SMB_SYSD_CHECK"
-	gen-ust "$SMB_USERNAME_0" "$SMB_PASSWORD_0"
+    	adm-ipa "$SMB_PACKAGES_ALL"
+	adm-sdc "$SMB_SYSD_CHECK"
+	adm-ust "$SMB_USERNAME_0" "$SMB_PASSWORD_0"
 }
 
 # Sets up multiple Samba shares with different access permissions for regular and guest users
