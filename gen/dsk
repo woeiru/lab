@@ -21,6 +21,7 @@ MENU_OPTIONS[b]="b_xall"
 a_xall() {
     sys-upa
     sys-ipa "${PACKAGES_ALL[@]}"
+    sys-gst "$GIT_USERNAME" "$GIT_USERMAIL"
 }
 # Uploads private SSH key from USB device to system for secure authentication
 b_xall() {
