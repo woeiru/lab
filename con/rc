@@ -423,14 +423,19 @@ init_traps() {
 
 # Then in main_rc():
 main_rc() {
-    # Initialize trap system first
     init_traps
+    echo " ━ Main RC : init_traps"
 
-    # Register cleanup functions for each module
     register_cleanup "lo" "cleanup_logger"
     register_cleanup "tme" "cleanup_timer"
     register_cleanup "err" "Cleanup"
+    echo " ━ Main RC : register_cleanup"
+
+    setup_error_handling
+    echo " ━ Main RC : setup_error_handling" | tee -a "$ERROR_LOG"
+
     initialize_directories
+    echo " ━ Main RC : initialize_directories" | tee -a "$ERROR_LOG"
 
     local components=(
         "source_bas:BAS:1"           # Required
@@ -439,14 +444,8 @@ main_rc() {
         "source_fun:FUN:0"           # Optional
         "execution_rc:EXEC:1"        # Required
     )
-
     local failed_required=0
-
-    # Setup error handling
-    setup_error_handling
-
-    echo | tee -a "$ERROR_LOG"
-    echo " ━ RC initialization started" | tee -a "$ERROR_LOG"
+    echo " ━ Main RC : setting local components" | tee -a "$ERROR_LOG"
 
     for component in "${components[@]}"; do
         IFS=':' read -r func name required <<< "$component"
