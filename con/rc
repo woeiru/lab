@@ -1,8 +1,40 @@
 #!/bin/bash
 set -o pipefail
 
-declare -gA CLEANUP_FUNCTIONS
-declare -g TRAP_INITIALIZED=false
+# Global declarations should be at the very top
+declare -gA CLEANUP_FUNCTIONS    # Associative array to store cleanup functions by module
+declare -g TRAP_INITIALIZED=false    # Global flag to track trap initialization state
+
+# Rest of your variables
+DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
+PARENT_DIR="/root/lab"
+export LAB_DIR="$PARENT_DIR"
+readonly BAS_DIR="$PARENT_DIR/bas"
+
+# Move all initialization into a proper init function
+initialize_environment() {
+    # First initialize directories
+    initialize_directories || {
+        echo "Fatal: Directory initialization failed" >&2
+        return 1
+    }
+
+    # Then source required modules in correct order
+    source "$BAS_DIR/tme" || {
+        echo "Fatal: Failed to source timing module" >&2
+        return 1
+    }
+
+    command source "$BAS_DIR/err" || {
+        echo "Fatal: Failed to source error handling module" >&2
+        return 1
+    }
+
+    # Initialize systems after modules are properly sourced
+    init_timer "$RC_LOG_DIR"
+
+    return 0
+}
 
 initialize_directories() {
     local debug_log="/tmp/directory_init_debug.log"
@@ -136,28 +168,6 @@ initialize_directories() {
     } >> "$debug_log"
 
     return 0
-}
-
-# Set up important directory paths
-DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
-PARENT_DIR="/root/lab"
-export LAB_DIR="$PARENT_DIR"
-
-# Initialize directories before anything else
-initialize_directories || {
-    echo "Fatal: Directory initialization failed" >&2
-    exit 1
-}
-
-# Initialize timer at the very start
-[[ -z "${BAS_DIR:-}" ]] && readonly BAS_DIR="$PARENT_DIR/bas"
-source "$BAS_DIR/tme" || {
-    echo "Fatal: Failed to source timing module" >&2
-    exit 1
-}
-command source "$BAS_DIR/err" || {
-    echo "Fatal: Failed to source error handling module" >&2
-    exit 1
 }
 
 # Initialize systems
@@ -422,20 +432,25 @@ init_traps() {
 
 # Then in main_rc():
 main_rc() {
+    echo " ━ Main RC : Starting initialization"
 
     echo " ━ Main RC : init_traps"
     init_traps
 
+    echo " ━ Main RC : initialize_environment"
+    initialize_environment || {
+        echo "Fatal: Environment initialization failed" >&2
+        return 1
+    }
+
     echo " ━ Main RC : register_cleanup"
     register_cleanup "lo" "cleanup_logger"
     register_cleanup "tme" "cleanup_timer"
-    register_cleanup "err" "Cleanup"
+    register_cleanup "err" "clean_exit"
 
     echo " ━ Main RC : setup_error_handling"
     setup_error_handling
 
-    echo " ━ Main RC : initialize_directories" | tee -a "$ERROR_LOG"
-    initialize_directories
 
     echo " ━ Main RC : setting local components" | tee -a "$ERROR_LOG"
     local components=(
