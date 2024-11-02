@@ -1,5 +1,43 @@
 #!/bin/bash
 
+# Helper function to safely source files with improved error handling and logging
+source_helper() {
+    local file="$1"
+    local description="${2:-$(basename "$file")}"
+
+    start_timer "source_$description"
+
+    if [[ ! -f "$file" ]]; then
+        log "lvl" " Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
+        error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
+        end_timer "source_$description"
+        return 1
+    fi
+
+    if [[ ! -r "$file" ]]; then
+        log "lvl" " Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
+        error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
+        end_timer "source_$description"
+        return 1
+    fi
+
+    # Source the file and capture any errors
+    local temp_error="/tmp/source_error.$$"
+    if source "$file" 2>"$temp_error"; then
+        log "lvl" "Successfully sourced: $description" | tee -a "$ERROR_LOG"
+        end_timer "source_$description" "success"
+        rm -f "$temp_error"
+        return 0
+    else
+        local error=$(cat "$temp_error")
+        log "lvl" " Error sourcing $description: $error" | tee -a "$ERROR_LOG" >&2
+        rm -f "$temp_error"
+        error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
+        end_timer "source_$description" "error"
+        return 1
+    fi
+}
+
 # Function to source all files in a directory with consistent sorting and error handling
 source_directory() {
     local dir="$1"
