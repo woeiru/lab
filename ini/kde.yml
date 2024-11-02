@@ -48,20 +48,62 @@
             dest: "{{ ansible_user_dir }}/.local/share/konsole/Profile 2.profile"
             mode: '0644'
 
-        # KWallet configuration
-        - name: Ensure KWallet config directory exists
+        # KWallet and KDE configuration
+        - name: Ensure KDE config directories exist
           file:
-            path: "{{ ansible_user_dir }}/.config"
+            path: "{{ ansible_user_dir }}/{{ item }}"
             state: directory
             mode: '0755'
+          loop:
+            - ".config"
+            - ".config/kdeconnect"
+            - ".kde/share/config"
+            - ".local/share/kded5"
 
-        - name: Disable KWallet
-          ansible.builtin.ini_file:
+        - name: Disable all KDE password prompts
+          blockinfile:
+            path: "{{ ansible_user_dir }}/.config/kdeglobals"
+            create: yes
+            mode: '0644'
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - KDE Password Prompts"
+            block: |
+              [General]
+              EnableGitIntegration=false
+
+              [KDE]
+              ShowDeleteCommand=false
+
+              [Passwords]
+              AutomaticRetrieval=false
+
+        - name: Configure KDE Wallet to never start
+          blockinfile:
             path: "{{ ansible_user_dir }}/.config/kwalletrc"
-            section: 'Wallet'
-            option: 'Enabled'
-            value: 'false'
-          register: kwallet_config
+            create: yes
+            mode: '0644'
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - KWallet Configuration"
+            block: |
+              [Wallet]
+              Enabled=false
+              First Use=false
+              Idle Timeout=0
+              Launch Manager=false
+              Prompt on Open=false
+              Use One Wallet=true
+
+              [Auto Allow]
+              kdewallet=false
+
+              [Auto Deny]
+              kdewallet=true
+
+        - name: Disable SSH/Git integration in KDE Connect
+          copy:
+            content: |
+              [General]
+              sshSupport=false
+            dest: "{{ ansible_user_dir }}/.config/kdeconnect/config"
+            mode: '0644'
 
         - name: Check if KWallet service exists
           command: systemctl list-unit-files --type=service | grep -E 'kwalletd|kwallet'
@@ -100,7 +142,57 @@
             mode: '0644'
 
         # Enhanced Git and SSH Configuration
-        - name: Configure Git global settings to disable GUI prompts
+        - name: Configure environment variables in all shell RC files
+          blockinfile:
+            path: "{{ ansible_user_dir }}/{{ item }}"
+            create: yes
+            mode: '0644'
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH/Git GUI Prompts"
+            block: |
+              # Disable all GUI password prompts
+              export GIT_ASKPASS=''
+              export SSH_ASKPASS=''
+              unset SSH_ASKPASS
+              unset GIT_ASKPASS
+              export SSH_AUTH_SOCK=''
+              # Force Git to use terminal prompts
+              export GIT_TERMINAL_PROMPT=1
+              # Disable KDE Wallet integration
+              export KDE_SKIP_KDEWALLETD5_CHECK=1
+              # Disable any GUI prompts for SSH
+              export DISPLAY=
+          loop: "{{ shell_rc_files }}"
+
+        - name: Ensure SSH config directory exists
+          ansible.builtin.file:
+            path: "{{ ansible_user_dir }}/.ssh"
+            state: directory
+            mode: '0700'
+
+        - name: Configure SSH to disable password prompting and GUI integration
+          blockinfile:
+            path: "{{ ansible_user_dir }}/.ssh/config"
+            create: yes
+            mode: '0600'
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH Configuration"
+            block: |
+              Host *
+                  # Disable GUI prompts
+                  SetEnv SSH_ASKPASS=''
+                  SetEnv GIT_ASKPASS=''
+                  # Prefer keyboard-interactive auth and disable GUI
+                  PreferredAuthentications publickey,keyboard-interactive,password
+                  # Disable connection sharing
+                  ControlMaster no
+                  # Disable SSH agent forwarding
+                  ForwardAgent no
+                  # Use batch mode to prevent password prompts
+                  BatchMode yes
+                  # Additional SSH options to prevent prompts
+                  KbdInteractiveAuthentication no
+                  PasswordAuthentication yes
+
+        - name: Configure Git to disable credential helpers and GUI prompts
           community.general.git_config:
             scope: global
             name: "{{ item.name }}"
@@ -112,45 +204,21 @@
             - { name: 'core.editor', value: 'vim' }
             - { name: 'push.default', value: 'simple' }
             - { name: 'credential.modalPrompt', value: 'false' }
+            - { name: 'credential.interactive', value: 'false' }
+            - { name: 'pull.rebase', value: 'false' }
 
-        - name: Set global Git environment variables
-          lineinfile:
-            path: "{{ ansible_user_dir }}/{{ item.rcfile }}"
-            line: "{{ item.line }}"
-            create: yes
-          loop:
-            - { rcfile: ".bashrc", line: "export GIT_ASKPASS=''" }
-            - { rcfile: ".bashrc", line: "export SSH_ASKPASS=''" }
-            - { rcfile: ".bashrc", line: "unset SSH_ASKPASS" }
-            - { rcfile: ".bashrc", line: "unset GIT_ASKPASS" }
-            - { rcfile: ".zshrc", line: "export GIT_ASKPASS=''" }
-            - { rcfile: ".zshrc", line: "export SSH_ASKPASS=''" }
-            - { rcfile: ".zshrc", line: "unset SSH_ASKPASS" }
-            - { rcfile: ".zshrc", line: "unset GIT_ASKPASS" }
+        - name: Kill any running SSH agent processes
+          shell: |
+            pkill ssh-agent || true
+            pkill kwalletd5 || true
+          changed_when: false
+          failed_when: false
 
-        - name: Ensure SSH config directory exists
-          ansible.builtin.file:
-            path: "{{ ansible_user_dir }}/.ssh"
-            state: directory
-            mode: '0700'
-
-        - name: Configure SSH to disable password prompting
-          ansible.builtin.blockinfile:
-            path: "{{ ansible_user_dir }}/.ssh/config"
-            create: yes
-            mode: '0600'
-            block: |
-              # Disable SSH_ASKPASS and other GUI prompts
-              Host *
-                  SetEnv SSH_ASKPASS=''
-                  SetEnv GIT_ASKPASS=''
-                  PreferredAuthentications publickey,keyboard-interactive,password
-                  BatchMode yes
-            marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH_ASKPASS configuration"
-
-        - name: Ensure KDE Wallet integration is disabled for Git
-          lineinfile:
-            path: "{{ ansible_user_dir }}/.config/kdeglobals"
-            line: "EnableGitIntegration=false"
-            create: yes
-            section: "[General]"
+        - name: Create logout hook to clean SSH environment
+          copy:
+            content: |
+              #!/bin/bash
+              pkill ssh-agent
+              rm -f $HOME/.ssh/ssh_auth_sock
+            dest: "{{ ansible_user_dir }}/.config/plasma-workspace/shutdown/cleanup-ssh.sh"
+            mode: '0755'
