@@ -16,7 +16,7 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # Shows a summary of specific functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
-adm-fun() {
+sys-fun() {
     # Pass all arguments directly to aux-laf
     aux-laf "$FILEPATH_gen" "$@"
 }
@@ -24,14 +24,14 @@ adm-fun() {
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
-adm-var() {
+sys-var() {
     aux-acu -o "$CONFIG_gen" "$DIR_FUN/.."
 }
 
 # Manages git operations, ensuring the local repository syncs with the remote.
 # Performs status check, pull, commit, and push operations as needed.
-# adm-gio [commit message]
-adm-gio() {
+# sys-gio [commit message]
+sys-gio() {
     local dir="${DIR_FUN:-.}/.."
     local branch="${GIT_BRANCH:-master}"
     local commit_message=""
@@ -76,7 +76,7 @@ adm-gio() {
 # Detects the system's package manager
 # detect package all
 #
-adm-dpa() {
+sys-dpa() {
     local function_name="${FUNCNAME[0]}"
     local pman="unknown"
 
@@ -96,12 +96,12 @@ adm-dpa() {
 # Updates and upgrades system packages using the detected package manager
 # update packages all
 #
-adm-upa() {
+sys-upa() {
     local function_name="${FUNCNAME[0]}"
 
-    # Get package manager using adm-dpa
+    # Get package manager using sys-dpa
     local pman
-    pman=$(adm-dpa)
+    pman=$(sys-dpa)
 
     if [ "$pman" = "unknown" ]; then
         aux-nos "$function_name" "Could not detect a supported package manager"
@@ -137,7 +137,7 @@ adm-upa() {
 # Installs specified packages using the system's package manager
 # install packages all
 # <pak1> <pak2> ...
-adm-ipa() {
+sys-ipa() {
     local function_name="${FUNCNAME[0]}"
 
     if [ $# -lt 1 ]; then
@@ -145,9 +145,9 @@ adm-ipa() {
         return 1
     fi
 
-    # Get package manager using adm-dpa
+    # Get package manager using sys-dpa
     local pman
-    pman=$(adm-dpa)
+    pman=$(sys-dpa)
 
     if [ "$pman" = "unknown" ]; then
         aux-nos "$function_name" "Could not detect a supported package manager"
@@ -183,7 +183,7 @@ adm-ipa() {
 # Configures git globally with a specified username and email, essential for proper commit attribution
 # git set config
 # <username> <usermail>
-adm-gst() {
+sys-gst() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local usermail="$2"
@@ -202,7 +202,7 @@ adm-gst() {
 # Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
 # setup sysstat
 #
-adm-sst() {
+sys-sst() {
   # Step 1: Install sysstat
   install_pakages sysstat
 
@@ -219,7 +219,7 @@ adm-sst() {
 # Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
 # user setup
 # <username> <password>
-adm-ust() {
+sys-ust() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local password="$2"
@@ -251,7 +251,7 @@ adm-ust() {
 # Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not
 # systemd setup service
 # <service>
-adm-sdc() {
+sys-sdc() {
     local function_name="${FUNCNAME[0]}"
     local service="$1"
 
@@ -285,7 +285,7 @@ adm-sdc() {
 # Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
 # ssh upload keyfile
 # <device_path> <mount_point> <subfolder_path> <upload_path> <file_name>
-adm-suk() {
+sys-suk() {
     local device_path="$1"
     local mount_point="$2"
     local subfolder_path="$3"
@@ -351,7 +351,7 @@ adm-suk() {
 # Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist
 # ssh private identifier
 # <user> <keyname>
-adm-spi() {
+sys-spi() {
     local keyname=$2
     local user=$2
     local ssh_dir
@@ -397,8 +397,8 @@ adm-spi() {
 
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
-# client-side generation: adm-sks -c [-d] <server_address> <key_name> [encryption_type] / server-side generation: adm-sks -s [-d] <client_address> <key_name> [encryption_type]
-adm-sks() {
+# client-side generation: sys-sks -c [-d] <server_address> <key_name> [encryption_type] / server-side generation: sys-sks -s [-d] <client_address> <key_name> [encryption_type]
+sys-sks() {
     local mode=""
     local deduplicate=false
     local remote_address=""
@@ -426,8 +426,8 @@ adm-sks() {
 
     # Check if required arguments are provided
     if [[ -z "$mode" || -z "$remote_address" || -z "$key_name" ]]; then
-        echo "Usage: adm-sks -s [-d] <client_address> <key_name> [encryption_type] # for server-side generation"
-        echo "       adm-sks -c [-d] <server_address> <key_name> [encryption_type] # for client-side generation"
+        echo "Usage: sys-sks -s [-d] <client_address> <key_name> [encryption_type] # for server-side generation"
+        echo "       sys-sks -c [-d] <server_address> <key_name> [encryption_type] # for client-side generation"
         echo "       -d: Optional. If provided, removes the original key after successful transfer."
         echo "If encryption_type is not specified, ed25519 will be used by default."
         return 1
@@ -511,16 +511,16 @@ adm-sks() {
 
 # Appends the content of a specified public SSH key file to the authorized_keys file.
 # Provides informational output and restarts the SSH service.
-# Usage: adm-sak -c <server_address> <key_name> *for client-side operation /// adm-sak -s <client_address> <key_name> *for server-side operation
-adm-sak() {
+# Usage: sys-sak -c <server_address> <key_name> *for client-side operation /// sys-sak -s <client_address> <key_name> *for server-side operation
+sys-sak() {
     local mode="$1"
     local remote_address="$2"
     local key_name="$3"
     local ssh_dir="/root/.ssh"
     local authorized_keys_path="$ssh_dir/authorized_keys"
     if [ $# -ne 3 ]; then
-        echo "Usage: adm-sak -c <server_address> <key_name> # for client-side operation"
-        echo "       adm-sak -s <client_address> <key_name> # for server-side operation"
+        echo "Usage: sys-sak -c <server_address> <key_name> # for client-side operation"
+        echo "       sys-sak -s <client_address> <key_name> # for server-side operation"
         return 1
     fi
     case "$mode" in
@@ -575,7 +575,7 @@ adm-sak() {
 # Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
 # loop operation ip
 # <ip array: hy,ct> <operation: bypass = Perform initial SSH login to bypass StrictHostKeyChecking / refresh = Remove the SSH key for the given IP from known_hosts>
-adm-loi() {
+sys-loi() {
     local ip_type=$1
     local operation=$2
     local ip_array_name="${ip_type^^}_IPS"
@@ -624,7 +624,7 @@ adm-loi() {
 # Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
 # ssh custom aliases
 # <usershortcut> <servershortcut: single or csv or all or array> [command]
-adm-sca() {
+sys-sca() {
     echo "Debug: Number of arguments: $#"
     echo "Debug: All arguments: $*"
 
@@ -775,9 +775,9 @@ adm-sca() {
 
 # An interactive Bash function that guides users through Git history navigation, offering options for reset type and subsequent actions, with built-in safeguards and explanations.
 # GRE: Git Reset Explorer
-# Usage: adm-gre  # Then follow prompts, e.g., enter '2' for commits, '3' for hard reset, '2' to create new branch 'feat
-adm-gre() {
-    echo "Welcome to the Git Reset Explorer (adm-gre)!"
+# Usage: sys-gre  # Then follow prompts, e.g., enter '2' for commits, '3' for hard reset, '2' to create new branch 'feat
+sys-gre() {
+    echo "Welcome to the Git Reset Explorer (sys-gre)!"
     echo "This function will guide you through the process of moving back in Git history."
     echo
 

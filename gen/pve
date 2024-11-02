@@ -46,26 +46,26 @@ a_xall() {
 
 # Installs required system packages including corosync-qdevice for cluster management
 b_xall() {
-    adm-ipa "$PVE_PACKAGES_ALL"
+    sys-ipa "$PVE_PACKAGES_ALL"
 }
 
 # Uploads public SSH key from USB device and adds it to the authorized keys for secure remote access
 c_xall() {
-    adm-suk \
+    sys-suk \
         "$DEVICE_PATH" \
         "$MOUNT_POINT" \
         "$SUBFOLDER_PATH" \
         "$UPLOAD_PATH" \
         "$PUBLIC_KEY"
 
-    adm-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
+    sys-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
 # Generates and distributes SSH keys for secure communication between client and server nodes
 d_xall() {
-    adm-sks -s root@"${CL_IPS[t1]}" "$KEY_NAME"
+    sys-sks -s root@"${CL_IPS[t1]}" "$KEY_NAME"
 
-    adm-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
+    sys-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
 # Creates a RAID 1 Btrfs filesystem across two devices with the specified mount point

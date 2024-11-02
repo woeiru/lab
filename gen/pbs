@@ -17,7 +17,7 @@ MENU_OPTIONS[b]="b_xall"
 a_xall() {
 	pbs-dav
     	pbs-adr
-    	adm-ipa "$PBS_PACKAGES_ALL"
+    	sys-ipa "$PBS_PACKAGES_ALL"
 }
 
 # Configures PBS datastore with specified name and path for backup storage
