@@ -36,7 +36,7 @@ init_base() {
             echo "Warning: Failed to load $module_name, activating fallback" >&2
 
             case "$module_name" in
-                "lo1"|"lo2")
+                "lo1")
                     fallback_lo
                     echo "Activated fallback logging system"
                     ;;
