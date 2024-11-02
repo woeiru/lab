@@ -1,0 +1,3 @@
+---
+ansible_user_dir: "{{ lookup('env', 'HOME') }}"
+config_desk_1: true

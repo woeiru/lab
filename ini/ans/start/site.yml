@@ -1,9 +1,0 @@
----
-- hosts: localhost
-  roles:
-#    - development_env
-    - editor_config
-#    - gui_apps
-#    - security_config
-#    - shell_config
-    - system_preferences
