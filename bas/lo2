@@ -3,7 +3,7 @@
 # Verify base module is loaded
 if ! declare -F log >/dev/null; then
     echo "Error: Base logging module (lo1) must be loaded first" >&2
-    return 1
+    exit 1
 fi
 
 # Validate required environment variables and ensure they're under $HOME
