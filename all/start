@@ -4,7 +4,7 @@ set -eo pipefail
 
 # Script metadata
 readonly SCRIPT_NAME=$(basename "$0")
-readonly SCRIPT_VERSION="1.0.1"
+readonly SCRIPT_VERSION="1.0.2"
 readonly SCRIPT_AUTHOR="woeiru"
 
 # Directory paths
@@ -15,7 +15,7 @@ readonly LAB_DIR="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
 readonly DEFAULT_CONFIG_FILES=(".zshrc" ".bashrc")
 readonly INJECT_MARKER_START="# === BEGIN MANAGED BLOCK: Shell Configuration [source: $(basename "$0")] ==="
 readonly INJECT_MARKER_END="# === END MANAGED BLOCK: Shell Configuration ==="
-readonly INJECT_CONTENT=". ~/lab/con/rc"
+readonly INJECT_SUBPATH="con/rc"
 
 # Runtime variables
 declare -g YES_FLAG=false
@@ -32,6 +32,9 @@ init_config() {
     TARGET_USER=""
     TARGET_HOME=""
     YES_FLAG=false
+    
+    # Set the injection content
+    readonly INJECT_CONTENT=". ${LAB_DIR}/${INJECT_SUBPATH}"
 
     # Export the variables
     export CONFIG_FILE TARGET_USER TARGET_HOME YES_FLAG
