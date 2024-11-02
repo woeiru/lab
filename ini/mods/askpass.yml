@@ -21,14 +21,8 @@
         line: "{{ item.line }}"
         create: yes
       loop:
-        - { file: '.bashrc', line: "export GIT_ASKPASS=''" }
-        - { file: '.bashrc', line: "export SSH_ASKPASS=''" }
         - { file: '.bashrc', line: "unset SSH_ASKPASS" }
         - { file: '.bashrc', line: "unset GIT_ASKPASS" }
-        - { file: '.zshrc', line: "export GIT_ASKPASS=''" }
-        - { file: '.zshrc', line: "export SSH_ASKPASS=''" }
-        - { file: '.zshrc', line: "unset SSH_ASKPASS" }
-        - { file: '.zshrc', line: "unset GIT_ASKPASS" }
 
     # Configure SSH
     - name: Ensure SSH config directory exists

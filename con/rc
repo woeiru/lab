@@ -171,43 +171,6 @@ init_dirs() {
     return 0
 }
 
-# Helper function to safely source files with improved error handling and logging
-source_helper() {
-    local file="$1"
-    local description="${2:-$(basename "$file")}"
-
-    start_timer "source_$description"
-
-    if [[ ! -f "$file" ]]; then
-        log "lvl" " Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
-        error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
-        end_timer "source_$description"
-        return 1
-    fi
-
-    if [[ ! -r "$file" ]]; then
-        log "lvl" " Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
-        error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
-        end_timer "source_$description"
-        return 1
-    fi
-
-    # Source the file and capture any errors
-    local temp_error="/tmp/source_error.$$"
-    if source "$file" 2>"$temp_error"; then
-        log "lvl" "Successfully sourced: $description" | tee -a "$ERROR_LOG"
-        end_timer "source_$description" "success"
-        rm -f "$temp_error"
-        return 0
-    else
-        local error=$(cat "$temp_error")
-        log "lvl" " Error sourcing $description: $error" | tee -a "$ERROR_LOG" >&2
-        rm -f "$temp_error"
-        error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
-        end_timer "source_$description" "error"
-        return 1
-    fi
-}
 
 # Central trap registration system
 register_cleanup() {
@@ -271,22 +234,17 @@ init_traps() {
     fi
 }
 
-# Source the RC modules
 source_rc() {
     local rc_modules=("rc1" "rc2" "rc3" "rc4")
     local success_count=0
 
     for module in "${rc_modules[@]}"; do
-        if source_helper "$DIR/$module" "RC module $module"; then
+        if [[ -r "$DIR/$module" ]] && source "$DIR/$module" 2>/dev/null; then
             ((success_count++))
         fi
     done
 
-    if ((success_count == 0)); then
-        log "lvl" "Warning: No RC modules were successfully sourced"
-        return 1
-    fi
-
+    [[ $success_count -gt 0 ]] || return 1
     return 0
 }
 
