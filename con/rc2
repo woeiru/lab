@@ -4,11 +4,6 @@
 declare -ga GENERATION_FOLDERS=(env fun gen)
 export GENERATION_FOLDERS
 
-# 2. Helper/generator functions with timing
-# In rc1 file, modify the functions to use better timing hierarchy:
-
-#!/bin/bash
-
 # Improved readme aliases generation with error handling
 generate_readme_aliases() {
     start_nested_timing "gen_readme_aliases"
