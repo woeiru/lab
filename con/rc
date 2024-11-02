@@ -350,37 +350,20 @@ main_rc() {
         echo "Warning: Environment initialization using fallbacks" >&2
     fi
 
-    if type log >/dev/null 2>&1; then
-        log "lvl" " main_rc : register_cleanup"
-    else
-        echo "    └─ main_rc : register_cleanup"
-    fi
-
+    # From this point on, we can safely use log() as either the main or fallback logging is available
+    log "lvl" "main_rc : register_cleanup"
     # Register cleanups if functions exist
     type cleanup_logger >/dev/null 2>&1 && register_cleanup "lo" "cleanup_logger"
     type cleanup_timer >/dev/null 2>&1 && register_cleanup "tme" "cleanup_timer"
     type clean_exit >/dev/null 2>&1 && register_cleanup "err" "clean_exit"
 
-    if type log >/dev/null 2>&1; then
-        log "lvl" " main_rc : setup_error_handling"
-    else
-        echo "    └─ main_rc : setup_error_handling"
-    fi
-
+    log "lvl" "main_rc : setup_error_handling"
     type setup_error_handling >/dev/null 2>&1 && setup_error_handling
 
-    if type log >/dev/null 2>&1; then
-        log "lvl" " main_rc : source_rc"
-    else
-        echo "    └─ main_rc : source_rc"
-    fi
+    log "lvl" "main_rc : source_rc"
     source_rc
 
-    if type log >/dev/null 2>&1; then
-        log "lvl" " main_rc : setup_components"
-    else
-        echo "    └─ main_rc : setup_components"
-    fi
+    log "lvl" "main_rc : setup_components"
     setup_components
 }
 
