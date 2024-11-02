@@ -347,8 +347,6 @@ end_nested_timing() {
     end_timer "$component"
 }
 
- Cleanup function
-
 cleanup_timer() {
     # Use the lo module's state file
     local orig_log_state
