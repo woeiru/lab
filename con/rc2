@@ -43,7 +43,7 @@ set_static() {
     alias ee='exit'
 
     # Function shortcuts
-    alias sca='adm-sca'
+    alias sca='sys-sca'
     alias flc='aux-flc'
     alias cto='pve-cto'
 
@@ -64,7 +64,7 @@ set_static() {
     alias gcmb='git commit -m "base"'
     alias go='git push origin master'
     alias gp='git pull'
-    alias gg='adm-gio'
+    alias gg='sys-gio'
     alias gr1='git revert HEAD~1'
 
     # History
