@@ -1,167 +1,330 @@
 #!/bin/bash
 
-set_static() {
+# 1. Configuration (unchanged)
+declare -ga GENERATION_FOLDERS=(env fun gen)
+export GENERATION_FOLDERS
 
-    # Ansible
-    alias ap='ansible-playbook'
+# 2. Helper/generator functions with timing
+# In rc1 file, modify the functions to use better timing hierarchy:
 
-    # Bash
-    alias b='bash'
-    alias eb='exec bash'
+#!/bin/bash
 
-    # BTRFS management
-    alias bt='btrfs'
-    alias btf='btrfs filesystem'
+# Improved readme aliases generation with error handling
+generate_readme_aliases() {
+    start_nested_timing "gen_readme_aliases"
+    log "lvl" "Generating readme aliases"
+    local FILEBASE_MD="readme.md"
 
-    # Cat (file viewing)
-    alias c='cat'
-    alias c.group='cat /etc/group'
-    alias c.passwd='cat /etc/passwd'
-    alias c.fstab='cat /etc/fstab'
-    alias es.log='cat /mnt/bak/home/.es.log'
+    # Validate LAB_DIR
+    if [[ -z "$LAB_DIR" ]]; then
+        log "lvl" "Error: LAB_DIR is not defined"
+        error_handler "$LINENO" "${ERROR_CODES[CONFIG_ERROR]}" "false"
+        return 1
+    fi
 
-    # Directory navigation
-    alias d='cd'
-    alias ..='cd ..'
-    alias dl="cd $LAB_DIR"
+    # Check if LAB_DIR exists
+    if [[ ! -d "$LAB_DIR" ]]; then
+        log "lvl" "Error: LAB_DIR directory does not exist: $LAB_DIR"
+        error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
+        return 1
+    fi
 
-    alias d.samba='cd /etc/samba/'
-    alias d.snapper='cd /etc/snapper/configs'
-    alias d.pam='cd /usr/lib/pam_snapper'
+    start_nested_timing "process_readme_files"
+    local found_files=0
+    while IFS= read -r -d '' file; do
+        log "lvl" "Processing readme file: $file"
+        dir=$(dirname "$file")
+        dir_name=$(basename "$dir")
+        parent_dir=$(basename "$(dirname "$dir")")
 
-    alias d.das='cd /mnt/das'
-    alias d.nvm='cd /mnt/nvm'
-    alias d.usb='cd /mnt/usb'
+        if [[ "$parent_dir" != "lab" ]]; then
+            alias_name="$parent_dir-$dir_name-md"
+        else
+            alias_name="$dir_name-md"
+        fi
 
-    # Disk usage
-    alias u='du -bh -d1'
-    alias uu='du -bh -d2'
-    alias uuu='du -bh -d3'
+        alias "c-$alias_name=cat $file"
+        alias "v-$alias_name=vim $file"
+        log "lvl" "Created aliases: c-$alias_name and v-$alias_name for $file"
+        ((found_files++))
+    done < <(find "$LAB_DIR" -type f -name "$FILEBASE_MD" -print0 2>/dev/null)
 
-    # Exit
-    alias ee='exit'
+    if ((found_files == 0)); then
+        log "lvl" "Warning: No readme files found in $LAB_DIR"
+        error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
+    fi
 
-    # Function shortcuts
-    alias sca='sys-sca'
-    alias flc='aux-flc'
-    alias cto='pve-cto'
-
-    # Function chaining
-    alias fun='aux-ffl aux-laf "" "$FUN_DIR"'
-    alias var='aux-ffl aux-acu "" "$ENV_DIR" "$LAB_DIR"'
-
-    # Function makros
-    alias v1='gpu-ptd ; qm start 211'
-
-    # Git commands
-    alias g='git'
-    alias gs='git status'
-    alias gd='git diff'
-    alias gl='git ls-files | xargs cat | wc -l'
-    alias ga='git add'
-    alias gc='git commit'
-    alias gcmb='git commit -m "base"'
-    alias go='git push origin master'
-    alias gp='git pull'
-    alias gg='sys-gio'
-    alias gr1='git revert HEAD~1'
-
-    # History
-    alias h='history'
-
-    # IPTables
-    alias ipt='iptables -L -v -n'
-
-    # Mounting
-    alias m.sda.das='mount /dev/sda /mnt/das'
-    alias m.sub.sda.bak='mount -o subvol=bak /dev/sda /bak'
-
-    # Filesystem creation
-    alias mbf='mkfs.btrfs -f'
-    alias mbmd='mkfs.btrfs -m raid1 -d raid1'
-
-    # PAM Snapper commands
-    alias pam.convert='bash /usr/lib/pam_snapper/pam_snapper_homeconvert.sh'
-    alias pam.config='bash /usr/lib/pam_snapper/pam_snapper_pamconfig.sh'
-    alias pam.useradd='bash /usr/lib/pam_snapper/pam_snapper_useradd.sh'
-    alias pam.userdel='bash /usr/lib/pam_snapper/pam_snapper_userdel.sh'
-
-    # Podman (container management)
-    alias pod='podman'
-    alias podst='podman start'
-    alias podps='podman ps'
-    alias podpsa='podman ps -a'
-
-    # System control
-    alias sy='systemctl'
-
-    # System configuration file editing
-    alias v.samba.conf='vim /etc/samba/smb.conf'
-    alias v.sambausers='vim /etc/samba/smbusers'
-    alias v.firewall.conf='vim /etc/firewalld/firewalld.conf'
-    alias v.fstab='vim /etc/fstab'
-
-    # Snapper (filesystem snapshot management)
-    alias sl='snapper list'
-    alias sc='snapper create'
-    alias shl='bfs-shl home'
-    alias shc='bfs-shc home'
-    alias shd='bfs-shd'
-
-    # System statistics
-    alias sar='sar -d 1'
-    alias ios='iostat -x 1'
-
-    # SELinux
-    alias ses='sestatus -v'
-    alias seb='sudo semanage boolean -l'
-
-    # Time zone setting
-    alias berlintime="timedatectl set-timezone Europe/Berlin"
-
-    # Transactional update
-    alias tu='transactional-update'
-    alias tua='transactional-update apply'
-    alias tur='transactional-update reboot'
-    alias tuar='transactional-update apply && transactional-update reboot'
-
-    # Dynamic tree function with line count
-    
-    tree_with_count() {
-     local depth=${1:-0}
-     local tree_cmd="tree"
-
-     if [ $depth -gt 0 ]; then
-           tree_cmd="tree -L $depth"
-     fi
-
-     $tree_cmd
-     echo "Total lines: $(find . -type f -exec wc -l {} + | tail -n1 | awk '{print $1}')"
-   }
-
-    alias t='tree_with_count'
-    alias tt='tree_with_count 2'
-    alias ttt='tree_with_count 3'
-    alias tttt='tree_with_count 4'
-    alias ttttt='tree_with_count 5'
-   
-    # Vim
-    alias v='vim'
-    alias v.nw="vim $CON_DIR/node-w.md"
-
-    # File listing
-    alias l='ls -Al'
-
-    # lab/dot/ini
-    ini_path=~/lab/dot/ini
-    depl_file="$ini_path/depl.sh"
-    inject_file="$ini_path/inject"
-    alias bde="bash $depl_file"
-    alias vin="vim $inject_file"
-
-    # Unsorted (you may want to organize these later)
-    alias pr='kquitapp5 plasmashell && kstart5 plasmashell'
-    alias gdi='git diff --no-index -- /dev/null'
-    alias light='plasma-apply-lookandfeel -a org.kde.breeze.desktop && usr-ckp 1'
-    alias dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop && usr-ckp 2'
+    end_nested_timing "process_readme_files" "success"
+    end_nested_timing "gen_readme_aliases" "success"
 }
+
+generate_level_one_vars_and_aliases() {
+    start_nested_timing "gen_level_one"
+    log "lvl" "Generating top-level directory aliases"
+
+    # Single timer for directory processing
+    start_nested_timing "process_directories"
+    for dir in "$LAB_DIR"/*; do
+        if [[ -d "$dir" ]]; then
+            base=$(basename "$dir")
+            if [[ ${#base} -eq 3 ]]; then
+                log "lvl" "Processing directory: $base"
+                var_name="${base^^}_DIR"
+                dir_path=$(realpath "$dir")
+                if [[ -z "${!var_name:-}" ]]; then
+                    declare -g "$var_name=$dir_path"
+                fi
+                alias "d-$base=cd $dir_path"
+                log "lvl" "Created alias: d-$base -> cd $dir_path"
+            fi
+        fi
+    done
+    end_nested_timing "process_directories" "success"
+
+    end_nested_timing "gen_level_one" "success"
+}
+
+# Improved level two arrays generation with error handling
+generate_level_two_arrays() {
+    start_nested_timing "gen_level_two"
+    log "lvl" "Generating level two arrays"
+
+    local success_count=0
+    for folder in "${GENERATION_FOLDERS[@]}"; do
+        start_nested_timing "process_folder_${folder}"
+        local dir_path="$LAB_DIR/$folder"
+        log "lvl" "Processing folder: $folder, path: $dir_path"
+
+        if [[ ! -d "$dir_path" ]]; then
+            log "lvl" "Directory not found: $dir_path"
+            error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
+            end_nested_timing "process_folder_${folder}" "error"
+            continue
+        fi
+
+        local array_name="${folder}_files"
+        local files=()
+
+        log "lvl" "Searching for files in $dir_path"
+        while IFS= read -r -d '' file; do
+            base_name=$(basename "$file")
+            if [[ "$base_name" =~ \. ]]; then
+                name_without_ext="${base_name%.*}"
+            else
+                name_without_ext="$base_name"
+            fi
+            files+=("$name_without_ext")
+            log "lvl" "Found file: $file"
+            log "lvl" "Added file to $array_name: $name_without_ext"
+        done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*" ! -name ".*" \) -print0 2>/dev/null)
+
+        if ((${#files[@]} > 0)); then
+            log "lvl" "Creating array $array_name"
+            local unique_files=($(printf "%s\n" "${files[@]}" | sort -u))
+            eval "declare -ga $array_name=(${unique_files[*]})"
+            log "lvl" "Created array $array_name with values: ${!array_name[*]}"
+            ((success_count++))
+        else
+            log "lvl" "No files found in directory: $dir_path"
+            error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
+        fi
+
+        end_nested_timing "process_folder_${folder}" "success"
+    done
+
+    if ((success_count == 0)); then
+        error_handler "$LINENO" "${ERROR_CODES[GENERAL_ERROR]}" "false"
+    fi
+
+    end_nested_timing "gen_level_two" "success"
+}
+
+generate_level_two_arrays() {
+    start_nested_timing "gen_level_two"
+    log "lvl" "Generating level two arrays"
+
+    for folder in "${GENERATION_FOLDERS[@]}"; do
+        start_nested_timing "process_folder_${folder}"
+        local dir_path="$LAB_DIR/$folder"
+        log "lvl" "Processing folder: $folder, path: $dir_path"
+
+        if [[ -d "$dir_path" ]]; then
+            local array_name="${folder}_files"
+            local files=()
+
+            log "lvl" "Searching for files in $dir_path"
+            # Process all files under single timer
+            while IFS= read -r -d '' file; do
+                base_name=$(basename "$file")
+                # Handle files both with and without extensions
+                if [[ "$base_name" =~ \. ]]; then
+                    name_without_ext="${base_name%.*}"
+                else
+                    name_without_ext="$base_name"
+                fi
+                files+=("$name_without_ext")
+                log "lvl" "Found file: $file"
+                log "lvl" "Added file to $array_name: $name_without_ext"
+            done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*" ! -name ".*" \) -print0)
+
+            log "lvl" "Creating array $array_name"
+            # Remove duplicates in case we have multiple files with same base name
+            local unique_files=($(printf "%s\n" "${files[@]}" | sort -u))
+            eval "declare -ga $array_name=(${unique_files[*]})"
+            log "lvl" "Created array $array_name with values: ${!array_name[*]}"
+        else
+            log "lvl" "Directory not found: $dir_path"
+        fi
+
+        end_nested_timing "process_folder_${folder}" "success"
+    done
+
+    end_nested_timing "gen_level_two" "success"
+}
+
+# Improved alias generation with comprehensive error handling and logging
+generate_aliases() {
+    local alias_type=$1
+    local directory=$2
+    shift 2
+    local files=("$@")
+
+    start_nested_timing "gen_aliases_${alias_type}"
+    log "lvl" "Generating ${alias_type} aliases"
+
+    # Input validation
+    if [[ -z "$directory" ]]; then
+        log "lvl" "Error: Empty directory provided"
+        error_handler "$LINENO" "${ERROR_CODES[CONFIG_ERROR]}" "false"
+        end_nested_timing "gen_aliases_${alias_type}" "error"
+        return 1
+    fi
+
+    if [[ ! -d "$directory" ]]; then
+        log "lvl" "Error: Directory does not exist: $directory"
+        error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
+        end_nested_timing "gen_aliases_${alias_type}" "error"
+        return 1
+    fi
+
+    if ((${#files[@]} == 0)); then
+        log "lvl" "Warning: No files provided for processing"
+        error_handler "$LINENO" "${ERROR_CODES[CONFIG_ERROR]}" "false"
+        end_nested_timing "gen_aliases_${alias_type}" "error"
+        return 1
+    fi
+
+    log "lvl" "Directory: $directory, Files count: ${#files[@]}"
+    local folder_name=$(basename "$directory" | tr '[:upper:]' '[:lower:]')
+    log "lvl" "Using folder name: $folder_name"
+
+    local success_count=0
+    # Process all aliases under single timer
+    for file in "${files[@]}"; do
+        log "lvl" "Searching for file $file in directory $directory"
+        # Search for both files with and without extensions
+        local found_file=$(find "$directory" -maxdepth 1 -type f \( -name "$file" -o -name "$file.*" \) | head -n 1)
+
+        if [[ -n "$found_file" ]]; then
+            log "lvl" "Found file: $found_file"
+
+            # Check if file has an extension
+            if [[ "$found_file" =~ \. ]]; then
+                local ext="${found_file##*.}"
+                local base_name="$file"
+                local display_name="${folder_name}.${base_name}.${ext}"
+                local short_display_name="${folder_name}.${base_name}"
+            else
+                local ext=""
+                local base_name="$file"
+                local display_name="${folder_name}.${base_name}"
+                local short_display_name="${folder_name}.${base_name}"
+            fi
+
+            local alias_prefix=""
+            case "$alias_type" in
+                "bash")
+                    # For bash, only create alias if it's a .sh file or has execute permission
+                    if [[ "$ext" == "sh" || "$ext" == "bash" ]] || [[ -x "$found_file" ]]; then
+                        alias_prefix="b."
+                    fi
+                    ;;
+                "cat") alias_prefix="c." ;;
+                "vim") alias_prefix="v." ;;
+            esac
+
+            if [[ -n "$alias_prefix" ]]; then
+                # Create alias with full name (including extension if present)
+                alias "${alias_prefix}${display_name}=${alias_type} ${found_file}"
+                log "lvl" "Created alias: ${alias_prefix}${display_name}"
+
+                # Create additional short alias without extension if requested
+                if [[ "$alias_type" == "bash" && "$ext" != "" ]]; then
+                    alias "${alias_prefix}${short_display_name}=${alias_type} ${found_file}"
+                    log "lvl" "Created additional short alias: ${alias_prefix}${short_display_name}"
+                fi
+                ((success_count++))
+            fi
+        else
+            log "lvl" "No matching file found for: $file"
+            error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
+        fi
+    done
+
+    if ((success_count == 0)); then
+        log "lvl" "Error: No aliases were created"
+        error_handler "$LINENO" "${ERROR_CODES[GENERAL_ERROR]}" "false"
+        end_nested_timing "gen_aliases_${alias_type}" "error"
+        return 1
+    fi
+
+    log "lvl" "Successfully created ${success_count} aliases"
+    end_nested_timing "gen_aliases_${alias_type}" "success"
+    return 0
+}
+
+# Main entry point function with cleaner timing structure
+set_dynamic() {
+    start_timer "set_dynamic"
+    log "lvl" "Setting up Navigation"
+
+    # Group all readme operations
+    start_nested_timing "readme_processing"
+    generate_readme_aliases
+    end_nested_timing "readme_processing" "success"
+
+    # Group all level one operations
+    start_nested_timing "level_one_processing"
+    generate_level_one_vars_and_aliases
+    end_nested_timing "level_one_processing" "success"
+
+    # Group all level two operations
+    start_nested_timing "level_two_processing"
+    generate_level_two_arrays
+    end_nested_timing "level_two_processing" "success"
+
+    # Group all alias generation
+    start_nested_timing "alias_processing"
+    log "lvl" "Generating all aliases"
+
+    start_nested_timing "env_aliases"
+    generate_aliases "cat" "$ENV_DIR" "${env_files[@]}"
+    generate_aliases "vim" "$ENV_DIR" "${env_files[@]}"
+    end_nested_timing "env_aliases" "success"
+
+    start_nested_timing "fun_aliases"
+    generate_aliases "cat" "$FUN_DIR" "${fun_files[@]}"
+    generate_aliases "vim" "$FUN_DIR" "${fun_files[@]}"
+    end_nested_timing "fun_aliases" "success"
+
+    start_nested_timing "gem_aliases"
+    generate_aliases "cat" "$GEN_DIR" "${gen_files[@]}"
+    generate_aliases "vim" "$GEN_DIR" "${gen_files[@]}"
+    generate_aliases "bash" "$GEN_DIR" "${gen_files[@]}"
+    end_nested_timing "gem_aliases" "success"
+
+    end_nested_timing "alias_processing" "success"
+
+    end_timer "set_dynamic" "success"
+}
+
