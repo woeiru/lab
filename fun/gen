@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # Define directory and file variables
-DIR_LIB="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-FILE_LIB=$(basename "$BASH_SOURCE")
-BASE_LIB="${FILE_LIB%.*}"
-FILEPATH_LIB="${DIR_LIB}/${FILE_LIB}"
-CONFIG_LIB="$DIR_LIB/../var/${BASE_LIB}.conf"
+DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_FUN=$(basename "$BASH_SOURCE")
+BASE_FUN="${FILE_FUN%.*}"
+FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
+CONFIG_FUN="$DIR_FUN/../var/${BASE_FUN}.conf"
 
 # Dynamically create variables based on the base name
-eval "FILEPATH_${BASE_LIB}=\$FILEPATH_LIB"
-eval "FILE_${BASE_LIB}=\$FILE_LIB"
-eval "BASE_${BASE_LIB}=\$BASE_LIB"
-eval "CONFIG_${BASE_LIB}=\$CONFIG_LIB"
+eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
+eval "FILE_${BASE_FUN}=\$FILE_FUN"
+eval "BASE_${BASE_FUN}=\$BASE_FUN"
+eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
 # Shows a summary of specific functions in the script, displaying their usage, shortname, and description
 # overview functions
@@ -25,14 +25,14 @@ gen-fun() {
 # overview variables
 #
 gen-var() {
-    all-acu -o "$CONFIG_gen" "$DIR_LIB/.."
+    all-acu -o "$CONFIG_gen" "$DIR_FUN/.."
 }
 
 # Manages git operations, ensuring the local repository syncs with the remote.
 # Performs status check, pull, commit, and push operations as needed.
 # gen-gio [commit message]
 gen-gio() {
-    local dir="${DIR_LIB:-.}/.."
+    local dir="${DIR_FUN:-.}/.."
     local branch="${GIT_BRANCH:-master}"
     local commit_message=""
 
