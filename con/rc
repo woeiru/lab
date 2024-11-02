@@ -15,6 +15,9 @@ export LAB_DIR="$(cd "$DIR/.." >/dev/null 2>&1 && pwd)"
 export LOG_DIR="$HOME/.local/log/lab"
 export TMP_DIR="$HOME/.local/tmp/lab"
 
+# Set BAS_DIR to the correct directory containing your base modules
+export BAS_DIR="$LAB_DIR/bas"
+
 # init base modules
 init_base() {
     # First initialize directories
