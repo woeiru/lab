@@ -16,15 +16,21 @@ setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
+MENU_OPTIONS[c]="c_xall"
 
 # Installs common system packages and configures global Git user credentials
 a_xall() {
-    sys-upa
-    sys-ipa "${PACKAGES_ALL[@]}"
     sys-gst "$GIT_USERNAME" "$GIT_USERMAIL"
 }
-# Uploads private SSH key from USB device to system for secure authentication
+
+# Installs common system packages and configures global Git user credentials
 b_xall() {
+    sys-upa
+    sys-ipa "${PACKAGES_ALL[@]}"
+}
+
+# Uploads private SSH key from USB device to system for secure authentication
+c_xall() {
     sys-suk \
         "$DEVICE_PATH" \
         "$MOUNT_POINT" \
