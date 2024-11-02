@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 1. Configuration (unchanged)
-declare -ga GENERATION_FOLDERS=(env fun gem)
+declare -ga GENERATION_FOLDERS=(env fun gen)
 export GENERATION_FOLDERS
 
 # 2. Helper/generator functions with timing
@@ -318,9 +318,9 @@ set_dynamic() {
     end_nested_timing "fun_aliases" "success"
 
     start_nested_timing "gem_aliases"
-    generate_aliases "cat" "$GEM_DIR" "${gem_files[@]}"
-    generate_aliases "vim" "$GEM_DIR" "${gem_files[@]}"
-    generate_aliases "bash" "$GEM_DIR" "${gem_files[@]}"
+    generate_aliases "cat" "$GEN_DIR" "${gen_files[@]}"
+    generate_aliases "vim" "$GEN_DIR" "${gen_files[@]}"
+    generate_aliases "bash" "$GEN_DIR" "${gen_files[@]}"
     end_nested_timing "gem_aliases" "success"
 
     end_nested_timing "alias_processing" "success"
