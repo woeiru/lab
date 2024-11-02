@@ -51,15 +51,15 @@ initialize_directories() {
         printf 'Caller: %s\n' "${FUNCNAME[1]:-main}"
         echo "Call stack:"
         local i=0
-        while caller $i >/dev/null 2>&1; do
-            caller $i
+        # Redirect stderr to prevent error messages
+        while caller $i 2>/dev/null; do
             ((i++))
         done
         echo "Current environment variables affecting paths:"
         env | grep -i "dir\|path" || echo "No relevant environment variables found"
         echo "=== End Initial State ==="
         echo
-    } > "$debug_log"
+    } > "$debug_log" 2>/dev/null  # Redirect all potential errors to prevent them
 
     # Force set base directories - override any existing values
     LOG_DIR="/var/log/lab"
