@@ -105,8 +105,8 @@ init_dirs() {
     } > "$debug_log" 2>/dev/null  # Redirect all potential errors to prevent them
 
     # Force set base directories - override any existing values
-    LOG_DIR="$HOME/log/lab"
-    TMP_DIR="$HOME/tmp/lab"
+    LOG_DIR="$HOME/.local/log/lab"
+    TMP_DIR="$HOME/.local/tmp/lab"
     export LOG_DIR TMP_DIR
 
     # Debug logging post-definition
@@ -126,7 +126,7 @@ init_dirs() {
         required_dirs+=("$base")
         for sub in "${sub_dirs[@]}"; do
             required_dirs+=("$base/$sub")
-        end
+        done
     done
 
     # Create all directories in one pass
