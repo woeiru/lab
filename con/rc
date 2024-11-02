@@ -105,8 +105,8 @@ init_dirs() {
     } > "$debug_log" 2>/dev/null  # Redirect all potential errors to prevent them
 
     # Force set base directories - override any existing values
-    LOG_DIR="/var/log/lab"
-    TMP_DIR="/tmp/lab"
+    LOG_DIR="$HOME/log/lab"
+    TMP_DIR="$HOME/tmp/lab"
     export LOG_DIR TMP_DIR
 
     # Debug logging post-definition
