@@ -17,11 +17,6 @@ GIT_USERMAIL="169383590+woeiru@users.noreply.github.com"
 # packages ( ipa
 PACKAGES_ALL=(vim tree ansible)
 
-# ansible
-#
-ANS_PRO_PATH_1="/root/lab/ini"
-ANS_START_PATH_1="kde.yml"
-
 # ssh keys ( usk, aak
 #
 DEVICE_PATH="/dev/sda1"
