@@ -1,0 +1,242 @@
+#!/bin/bash
+set -o pipefail
+
+# ==== Core Declarations ====
+declare -gA MODULES            # Stores module metadata
+declare -gA MODULE_STATUS     # Tracks module initialization status
+declare -gA SOURCE_STATUS     # Tracks source operations
+declare -gA FALLBACK_PATHS    # Stores fallback paths for critical directories
+declare -g RC_VERSION="1.0.0"
+declare -g RC_INITIALIZED=false
+declare -g RC_DEBUG=${RC_DEBUG:-false}
+
+# ==== Environment Setup ====
+DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
+PARENT_DIR="/root/lab"
+export LAB_DIR="$PARENT_DIR"
+readonly BAS_DIR="$PARENT_DIR/bas"
+
+# ==== Debug Functions ====
+debug_log() {
+    $RC_DEBUG || return 0
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] DEBUG: $*" >&2
+}
+
+# ==== Source Management ====
+source_file() {
+    local file="$1"
+    local description="${2:-$(basename "$file")}"
+    local required="${3:-true}"
+
+    debug_log "Attempting to source: $description ($file)"
+
+    # Check file existence and permissions
+    if [[ ! -f "$file" ]]; then
+        debug_log "File not found: $file"
+        $required && return 1
+        return 0
+    fi
+
+    if [[ ! -r "$file" ]]; then
+        debug_log "File not readable: $file"
+        $required && return 1
+        return 0
+    fi
+
+    # Track source operation
+    SOURCE_STATUS["$file"]="pending"
+
+    # Source with error capturing
+    local temp_error
+    temp_error=$(mktemp)
+
+    if source "$file" 2>"$temp_error"; then
+        SOURCE_STATUS["$file"]="success"
+        debug_log "Successfully sourced: $description"
+        rm -f "$temp_error"
+        return 0
+    else
+        SOURCE_STATUS["$file"]="failed"
+        local error_msg=$(cat "$temp_error")
+        debug_log "Failed to source $description: $error_msg"
+        rm -f "$temp_error"
+        $required && return 1
+        return 0
+    fi
+}
+
+# ==== Module Management ====
+register_module() {
+    local name="$1"
+    local dependencies="$2"
+    local init_function="$3"
+    local cleanup_function="${4:-}"
+
+    debug_log "Registering module: $name"
+
+    if [[ -z "$name" || -z "$init_function" ]]; then
+        debug_log "Invalid module registration for $name"
+        return 1
+    fi
+
+    MODULES["$name"]="${dependencies}:${init_function}:${cleanup_function}"
+    MODULE_STATUS["$name"]="registered"
+}
+
+initialize_module() {
+    local name="$1"
+    local module_data="${MODULES[$name]}"
+
+    debug_log "Initializing module: $name"
+
+    # Skip if already initialized
+    if [[ "${MODULE_STATUS[$name]}" == "initialized" ]]; then
+        debug_log "Module already initialized: $name"
+        return 0
+    fi
+
+    # Check if module exists
+    if [[ -z "$module_data" ]]; then
+        debug_log "Module not found: $name"
+        return 1
+    fi
+
+    # Parse module data
+    IFS=':' read -r dependencies init_function cleanup_function <<< "$module_data"
+
+    # Initialize dependencies first
+    if [[ -n "$dependencies" ]]; then
+        local dep
+        for dep in $dependencies; do
+            debug_log "Processing dependency: $dep for $name"
+            initialize_module "$dep" || {
+                debug_log "Failed to initialize dependency: $dep for $name"
+                return 1
+            }
+        done
+    fi
+
+    # Initialize the module
+    if type "$init_function" &>/dev/null; then
+        start_timer "init_${name}"
+        if ! $init_function; then
+            debug_log "Failed to initialize module: $name"
+            end_timer "init_${name}" "failed"
+            return 1
+        fi
+        end_timer "init_${name}" "success"
+        MODULE_STATUS["$name"]="initialized"
+
+        # Register cleanup if provided
+        if [[ -n "$cleanup_function" ]] && type "$cleanup_function" &>/dev/null; then
+            CLEANUP_FUNCTIONS["$name"]="$cleanup_function"
+        fi
+    else
+        debug_log "Init function not found: $init_function for $name"
+        return 1
+    fi
+}
+
+# ==== Core Initialization ====
+initialize_environment() {
+    debug_log "Initializing environment"
+
+    # Source critical bas modules first
+    local critical_modules=("tme" "err")
+    local failed=false
+
+    for module in "${critical_modules[@]}"; do
+        if ! source_file "$BAS_DIR/$module" "$module" true; then
+            debug_log "Failed to source critical module: $module"
+            failed=true
+            break
+        fi
+    done
+
+    $failed && return 1
+
+    # Initialize timer and error handling
+    init_timer "${LOG_DIR:-/var/log/lab}" || return 1
+    setup_error_handling || return 1
+
+    return 0
+}
+
+# ==== RC Core Registration ====
+register_core_modules() {
+    debug_log "Registering core modules"
+
+    # Register core RC modules with cleanup functions
+    register_module "rc1" "" "init_rc1" "cleanup_rc1"
+    register_module "rc2" "rc1" "init_rc2" "cleanup_rc2"
+    register_module "rc3" "rc2" "init_rc3"
+    register_module "rc4" "rc3" "init_rc4"
+}
+
+# ==== Cleanup Management ====
+cleanup_modules() {
+    debug_log "Starting module cleanup"
+
+    # Execute cleanup in reverse initialization order
+    local modules=("rc4" "rc3" "rc2" "rc1")
+
+    for module in "${modules[@]}"; do
+        if [[ -n "${CLEANUP_FUNCTIONS[$module]}" ]]; then
+            debug_log "Cleaning up module: $module"
+            ${CLEANUP_FUNCTIONS[$module]} || debug_log "Cleanup failed for: $module"
+        fi
+    done
+}
+
+# ==== Main RC Function ====
+main_rc() {
+    echo "━━ RC System Initialization Starting ━━"
+    start_timer "rc_init"
+
+    trap cleanup_modules EXIT
+
+    # Initialize base environment
+    initialize_environment || {
+        echo "Fatal: Environment initialization failed" >&2
+        end_timer "rc_init" "failed"
+        return 1
+    }
+
+    # Register core modules
+    register_core_modules
+
+    # Initialize each module in order
+    local module
+    for module in rc1 rc2 rc3 rc4; do
+        if ! initialize_module "$module"; then
+            echo "Fatal: Module initialization failed for $module" >&2
+            end_timer "rc_init" "failed"
+            return 1
+        fi
+    done
+
+    RC_INITIALIZED=true
+    export RC_SOURCED=1
+
+    end_timer "rc_init" "success"
+    echo "━━ RC System Initialization Complete ━━"
+
+    # Print final status if in debug mode
+    if $RC_DEBUG; then
+        echo "Module Status:"
+        for module in "${!MODULE_STATUS[@]}"; do
+            echo "  $module: ${MODULE_STATUS[$module]}"
+        done
+
+        echo "Source Status:"
+        for file in "${!SOURCE_STATUS[@]}"; do
+            echo "  $(basename "$file"): ${SOURCE_STATUS[$file]}"
+        done
+    fi
+
+    return 0
+}
+
+# Execute main function
+main_rc
