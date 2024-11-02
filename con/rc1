@@ -88,13 +88,13 @@ source_directory() {
 
 # Source the environment files
 source_env() {
-    source_directory "$PARENT_DIR/env" "*" "environment configuration files"
+    source_directory "$LAB_DIR/env" "*" "environment configuration files"
     return $?
 }
 
 # Source the function files
 source_fun() {
-    source_directory "$PARENT_DIR/fun" "*" "function files"
+    source_directory "$LAB_DIR/fun" "*" "function files"
     return $?
 }
 
