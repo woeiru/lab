@@ -295,11 +295,11 @@ validate_module() {
     local file="$1"
     local module_name="$(basename "$file")"
 
-    # Verify file exists using essential verification
-    if ! essential_verify_path "file" "file" false; then
+    # Verify file exists using essential_verify_path correctly
+    if ! essential_verify_path "MODULE_FILE" "$file" "file" "false"; then
         debug_log "ERROR: $module_name is not a regular file"
         return 1
-    fi
+    }
 
     # Check if file is executable
     [[ -x "$file" ]] || {
@@ -421,10 +421,10 @@ init_base() {
 
     # Updated module loading order array - removed var module
     local modules=(
-        "err"
-        "lo1"
-        "lo2"
-        "tme"
+        "$BAS_DIR/err"
+        "$BAS_DIR/lo1"
+        "$BAS_DIR/lo2"
+        "$BAS_DIR/tme"
     )
 
     # Track loaded modules for dependencies
@@ -432,12 +432,12 @@ init_base() {
 
     # Try to source each module
     for module in "${modules[@]}"; do
-        local file="$BAS_DIR/$module"
-        debug_log "Attempting to load module: $module"
+        local module_name="$(basename "$module")"
+        debug_log "Attempting to load module: $module_name"
 
         # Validate module before loading
-        if ! validate_module "$file"; then
-            debug_log "ERROR: Module validation failed for $module"
+        if ! validate_module "$module"; then
+            debug_log "ERROR: Module validation failed for $module_name"
             continue
         fi
 
@@ -445,12 +445,12 @@ init_base() {
         local error_file
         error_file=$(mktemp)
 
-        if ! source "$file" 2>"$error_file"; then
+        if ! source "$module" 2>"$error_file"; then
             local error_output
             error_output=$(<"$error_file")
             rm -f "$error_file"
-            debug_log "ERROR: Failed to load module $module with error: $error_output"
-            echo "        └─ Warning: Failed to load $module" >&2
+            debug_log "ERROR: Failed to load module $module_name with error: $error_output"
+            echo "        └─ Warning: Failed to load $module_name" >&2
             continue
         fi
         rm -f "$error_file"
@@ -460,8 +460,8 @@ init_base() {
         ((module_loaded++))
 
         # Verify module functions are available
-        debug_log "Verifying module functions for: $module"
-        for func in $(grep -o '^[a-zA-Z0-9_]\+()' "$file" 2>/dev/null | tr -d '()'); do
+        debug_log "Verifying module functions for: $module_name"
+        for func in $(grep -o '^[a-zA-Z0-9_]\+()' "$module" 2>/dev/null | tr -d '()'); do
             if type "$func" >/dev/null 2>&1; then
                 debug_log "  Function verified: $func"
             else
