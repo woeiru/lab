@@ -33,50 +33,52 @@ essential_verify_var() {
 }
 
 essential_verify_path() {
-    local var_name=$1
-    local var_value=$2
-    local var_type=$3
-    local create=$4
+    local var_name="$1"
+    local path="$2"
+    local type="$3"
+    local create="$4"
 
-    if [[ -z "$var_value" ]]; then
-        echo "[ERROR] $var_name is not set or empty" | tee -a /tmp/rc_init.log
+    [[ -z "$path" ]] && {
+        debug_log "ERROR: $var_name is empty"
         return 1
-    fi
+    }
 
-    if [[ "$var_type" == "dir" ]]; then
-        if [[ ! -d "$var_value" ]]; then
-            if [[ "$create" == "true" ]]; then
-                mkdir -p "$var_value" 2>/dev/null
-                if [[ $? -ne 0 ]]; then
-                    echo "[ERROR] Failed to create directory: $var_value" | tee -a /tmp/rc_init.log
+    case "$type" in
+        "dir")
+            if [[ ! -d "$path" ]]; then
+                if [[ "$create" == "true" ]]; then
+                    mkdir -p "$path" 2>/dev/null || {
+                        debug_log "ERROR: Failed to create directory: $path"
+                        return 1
+                    }
+                    debug_log "Created directory: $path"
+                else
+                    debug_log "ERROR: Directory does not exist: $path"
                     return 1
                 fi
-                echo "[INFO] Created directory: $var_value" | tee -a /tmp/rc_init.log
-            else
-                echo "[ERROR] Directory does not exist: $var_value" | tee -a /tmp/rc_init.log
-                return 1
             fi
-        fi
-    elif [[ "$var_type" == "file" ]]; then
-        if [[ ! -f "$var_value" ]]; then
-            if [[ "$create" == "true" ]]; then
-                touch "$var_value" 2>/dev/null
-            if [[ $? -ne 0 ]]; then
-                    echo "[ERROR] Failed to create file: $var_value" | tee -a /tmp/rc_init.log
+            ;;
+        "file")
+            if [[ ! -f "$path" ]]; then
+                if [[ "$create" == "true" ]]; then
+                    mkdir -p "$(dirname "$path")" 2>/dev/null
+                    touch "$path" 2>/dev/null || {
+                        debug_log "ERROR: Failed to create file: $path"
+                        return 1
+                    }
+                    debug_log "Created file: $path"
+                else
+                    debug_log "ERROR: File does not exist: $path"
                     return 1
                 fi
-                echo "[INFO] Created file: $var_value" | tee -a /tmp/rc_init.log
-            else
-                echo "[ERROR] File does not exist: $var_value" | tee -a /tmp/rc_init.log
-                return 1
             fi
-        fi
-    else
-        echo "[ERROR] Unknown type: $var_type for $var_name" | tee -a /tmp/rc_init.log
-        return 1
-    fi
+            ;;
+        *)
+            debug_log "ERROR: Invalid path type: $type"
+            return 1
+            ;;
+    esac
 
-    echo "[INFO] Successfully verified path: $var_value" | tee -a /tmp/rc_init.log
     return 0
 }
 
@@ -311,36 +313,41 @@ validate_module() {
 
 parse_path_spec() {
     local spec="$1"
+    local success=0
     
     # Split into individual path specifications
-    while IFS=';' read -ra SPECS; do
-        for single_spec in "${SPECS[@]}"; do
-            # Skip empty specs
-            [[ -z "$single_spec" ]] && continue
-            
-            # Parse each component
-            local path_var path_type create_flag
-            IFS=':' read -r path_var path_type create_flag <<< "$single_spec"
-            
-            # Clean up create_flag (remove anything after semicolon)
-            create_flag="${create_flag%%:*}"
-            create_flag="${create_flag%%.*;*}"
-            
-            # Validate components
-            [[ -z "$path_var" || -z "$path_type" || -z "$create_flag" ]] && {
-                debug_log "ERROR: Invalid path spec: $single_spec"
-                return 1
-            }
-            
-            # Verify path
-            if ! essential_verify_path "$path_var" "${!path_var}" "$path_type" "$create_flag"; then
-                debug_log "ERROR: Path verification failed for $path_var"
-                return 1
-            fi
-        done
-    done <<< "$spec"
+    IFS=';' read -ra SPECS <<< "$spec"
+    for single_spec in "${SPECS[@]}"; do
+        # Skip empty specs
+        [[ -z "$single_spec" ]] && continue
+        
+        # Parse each component
+        local path_var path_type create_flag
+        IFS=':' read -r path_var path_type create_flag <<< "$single_spec"
+        
+        # Clean up variables
+        path_var="${path_var%%:*}"
+        path_type="${path_type%%:*}"
+        create_flag="${create_flag%%:*}"
+        
+        # Validate components
+        if [[ -z "$path_var" || -z "$path_type" || -z "$create_flag" ]]; then
+            debug_log "ERROR: Invalid path spec: $single_spec"
+            return 1
+        fi
+        
+        # Get actual path value from variable name
+        local path_value="${!path_var}"
+        
+        # Verify path with proper parameters
+        if essential_verify_path "$path_var" "$path_value" "$path_type" "$create_flag"; then
+            ((success++))
+        else
+            debug_log "ERROR: Path verification failed for $path_var ($path_value)"
+        fi
+    done
     
-    return 0
+    return $((success > 0 ? 0 : 1))
 }
 
 # Directory verification helper
