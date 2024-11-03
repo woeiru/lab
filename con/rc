@@ -165,6 +165,69 @@ init_fallback_verification() {
     return 0
 }
 
+verify_module() {
+    local module_name="$1"
+
+    # Check if essential verification is available
+    if ! type essential_verify_vars >/dev/null 2>&1; then
+        echo "Fatal: Essential verification not available" >&2
+        return 1
+    fi
+
+    # Verify basic environment
+    if ! essential_check; then
+        echo "Fatal: Environment verification failed" >&2
+        return 1
+    fi
+
+    # Check module-specific required variables
+    if [[ -n "${MODULE_REQUIRED_VARS[$module_name]}" ]]; then
+        if ! essential_verify_vars ${MODULE_REQUIRED_VARS[$module_name]}; then
+            echo "Fatal: Missing required variables for $module_name" >&2
+            return 1
+        fi
+    fi
+
+    # Check module-specific required paths
+    if [[ -n "${MODULE_REQUIRED_PATHS[$module_name]}" ]]; then
+        local IFS=';'
+        local paths=(${MODULE_REQUIRED_PATHS[$module_name]})
+        for path_spec in "${paths[@]}"; do
+            IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
+            if ! essential_verify_path "$path_var" "$path_type" "$create_flag"; then
+                echo "Fatal: Required path $path_var not accessible for $module_name" >&2
+                return 1
+            fi
+        done
+    fi
+
+    return 0
+}
+
+list_module_deps() {
+    local module="$1"
+
+    echo "Dependencies for module: $module"
+    echo "Required variables:"
+    if [[ -n "${MODULE_REQUIRED_VARS[$module]}" ]]; then
+        echo "  ${MODULE_REQUIRED_VARS[$module]}"
+    else
+        echo "  None"
+    fi
+
+    echo "Required paths:"
+    if [[ -n "${MODULE_REQUIRED_PATHS[$module]}" ]]; then
+        local IFS=';'
+        local paths=(${MODULE_REQUIRED_PATHS[$module]})
+        for path_spec in "${paths[@]}"; do
+            IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
+            echo "  $path_var ($path_type, create: $create_flag)"
+        done
+    else
+        echo "  None"
+    fi
+}
+
 # Debug logging helper
 debug_log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')

@@ -1,14 +1,5 @@
 #!/bin/bash
-
-# Load centralized constants if not already loaded
-if [[ -z "$CONS_LOADED" ]]; then
-    CONS_FILE="${HOME}/lab/dic/cons"
-    if [[ -f "$CONS_FILE" ]]; then
-        source "$CONS_FILE"
-    else
-        echo "Warning: Could not load centralized constants from $CONS_FILE" >&2
-    fi
-fi
+verify_module "tme" || exit 1
 
 # Performance monitoring setup
 declare -gA TME_START_TIMES     # Stores component start times
@@ -19,14 +10,6 @@ declare -gA TME_PARENTS         # Stores parent-child relationships
 declare -gA TME_CHILDREN        # Stores child components for each parent
 declare -g TME_STARTUP_BEGIN    # Global startup timestamp
 declare -g TME_CURRENT_PARENT   # Tracks current parent for nested timing
-
-# Verify critical directories exist (should have been created by rc.sh)
-for dir in "$LOG_DIR" "$TMP_DIR"; do
-    [[ ! -d "$dir" ]] && {
-        echo "Critical: Required directory missing: $dir" >&2
-        exit 1
-    }
-done
 
 # Initialize state files if they don't exist
 [[ ! -f "$TME_STATE_FILE" ]] && echo "true" > "$TME_STATE_FILE"
