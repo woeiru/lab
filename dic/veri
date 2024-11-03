@@ -13,6 +13,11 @@ debug_log() {
 declare -g VERIFICATION_MODE="RC"  # Can be "RC" or "FALLBACK"
 declare -g DEBUG_LOG_ENABLED=false
 
+# Function to switch verification mode
+set_verification_mode() {
+    VERIFICATION_MODE="$1"
+}
+
 # Single, consolidated verify_module function
 verify_module() {
     local module="$1"
@@ -262,10 +267,113 @@ essential_check() {
     return 0
 }
 
+# Validate module file
+validate_module() {
+    local file="$1"
+    local module_name="$(basename "$file")"
+
+    debug_log "Validating module: $module_name at $file"
+
+    # Check if file exists
+    if [[ ! -f "$file" ]]; then
+        debug_log "ERROR: Module file does not exist: $file"
+        return 1
+    fi
+
+    # Check if file is executable
+    if [[ ! -x "$file" ]]; then
+        debug_log "Adding execute permission to $module_name"
+        chmod +x "$file" || {
+            debug_log "ERROR: Failed to make $module_name executable"
+            return 1
+        }
+    fi
+
+    # Validate shebang
+    local shebang
+    read -r shebang < "$file"
+    if [[ "$shebang" != "#!/bin/bash" ]]; then
+        debug_log "ERROR: Invalid or missing shebang in $module_name"
+        return 1
+    fi
+
+    debug_log "Module $module_name validation successful"
+    return 0
+}
+
+
 # Set verification mode
 set_verification_mode() {
     VERIFICATION_MODE="$1"
 }
+
+# Initialize verification system
+init_verification() {
+    # First save original trace settings and enable tracing
+    local orig_trace_setting=$(set -o | grep xtrace | cut -f2)
+    set -x
+
+    # Create log directory if it doesn't exist
+    mkdir -p "$(dirname /tmp/rc_init.log)" 2>/dev/null
+
+    # Redirect all output to both console and a log file
+    exec 1> >(tee /tmp/rc_init.log) 2>&1
+
+    echo "Starting initialization verification..."
+
+    # For RC startup
+    set_verification_mode "RC"
+    if ! essential_check; then
+        echo "Fatal: Essential verification failed during RC initialization" >&2
+        echo "Check /tmp/rc_init.log for details"
+        return 1
+    fi
+
+    # Verify critical directories exist after essential_check
+    local missing=0
+    for dir in "$LAB_DIR" "$BAS_DIR" "$LOG_DIR" "$TMP_DIR"; do
+        if [[ ! -d "$dir" ]]; then
+            echo "Creating directory: $dir"
+            mkdir -p "$dir" || {
+                echo "Failed to create directory: $dir" >&2
+                ((missing++))
+            }
+        fi
+    done
+
+    if ((missing > 0)); then
+        echo "Some directories could not be created" >&2
+        return 1
+    fi
+
+    # Restore original trace setting
+    if [[ "$orig_trace_setting" == "off" ]]; then
+        set +x
+    fi
+
+    echo "Initialization verification completed successfully"
+    return 0
+}
+
+# Fallback initialization
+init_fallback_verification() {
+    set_verification_mode "FALLBACK"
+    if ! essential_check; then
+        echo "Fatal: Essential verification failed in fallback mode" >&2
+        local missing=0
+        for dir in "$LOG_DIR" "$TMP_DIR"; do
+            if [[ ! -d "$dir" ]]; then
+                echo "Attempting to create directory: $dir"
+                mkdir -p "$dir" || ((missing++))
+            fi
+        done
+        if ((missing > 0)); then
+            return 1
+        fi
+    fi
+    return 0
+}
+
 
 # Export functions and variables
 export VERIFICATION_MODE
@@ -277,4 +385,5 @@ export -f essential_verify_path
 export -f essential_verify_vars
 export -f essential_check
 export -f set_verification_mode
+export -f validate_module
 export -f debug_log
