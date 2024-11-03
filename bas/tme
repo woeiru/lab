@@ -1,20 +1,14 @@
 #!/bin/bash
 
-# Validate required environment variables and ensure they're under $HOME
-[[ -z "$HOME" ]] && {
-    echo "Fatal: HOME environment variable not set" >&2
-    exit 1
-}
-
-[[ -z "$LOG_DIR" || "$LOG_DIR" != "$HOME/.local/lab/log" ]] && {
-    echo "Fatal: LOG_DIR must be set to $HOME/.local/lab/log" >&2
-    exit 1
-}
-
-[[ -z "$TMP_DIR" || "$TMP_DIR" != "$HOME/.local/lab/tmp" ]] && {
-    echo "Fatal: TMP_DIR must be set to $HOME/.local/lab/tmp" >&2
-    exit 1
-}
+# Load centralized constants if not already loaded
+if [[ -z "$CONS_LOADED" ]]; then
+    CONS_FILE="${HOME}/lab/dic/cons"
+    if [[ -f "$CONS_FILE" ]]; then
+        source "$CONS_FILE"
+    else
+        echo "Warning: Could not load centralized constants from $CONS_FILE" >&2
+    fi
+fi
 
 # Add reference to the lo module's state file at the top
 readonly LO_STATE_FILE="${TMP_DIR}/lo/lo1_state"  # Single source of truth for logging state
