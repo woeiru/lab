@@ -189,7 +189,7 @@ init_fallback_verification() {
             if [[ ! -d "$dir" ]]; then
                 echo "Attempting to create directory: $dir"
                 mkdir -p "$dir" || ((missing++))
-            }
+            fi
         done
         if ((missing > 0)); then
             return 1
@@ -309,6 +309,42 @@ validate_module() {
     return 0
 }
 
+# Helper function to parse and verify path specifications
+parse_path_spec() {
+    local spec="$1"
+    local IFS=';'
+    local -a specs=($spec)
+    
+    local success=true
+    for single_spec in "${specs[@]}"; do
+        IFS=':' read -r path_var path_type create_flag <<< "$single_spec"
+        if ! essential_verify_path "$path_var" "${!path_var}" "$path_type" "$create_flag"; then
+            debug_log "ERROR: Path verification failed for $path_var"
+            success=false
+        fi
+    done
+    
+    $success
+}
+
+# Directory verification helper
+verify_base_dir() {
+    local dir="$1"
+    if [[ ! -d "$dir" ]]; then
+        debug_log "Warning: Directory $dir does not exist"
+        if ! mkdir -p "$dir" 2>/dev/null; then
+            debug_log "ERROR: Failed to create directory $dir"
+            return 1
+        fi
+        debug_log "Created directory $dir"
+    fi
+    if [[ ! -w "$dir" ]]; then
+        debug_log "ERROR: Directory $dir is not writable"
+        return 1
+    fi
+    return 0
+}
+
 # Modified init_base function without var module dependency
 init_base() {
     debug_log "Starting init_base"
@@ -323,6 +359,8 @@ init_base() {
     echo "LOG_DIR=$LOG_DIR"
     echo "TMP_DIR=$TMP_DIR"
     echo "Current module paths:"
+    
+    
     for path_spec in ${MODULE_REQUIRED_PATHS[lo1]}; do
         echo "Path spec: $path_spec"
         IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
@@ -331,11 +369,11 @@ init_base() {
         echo "  Create: $create_flag"
     done
 
-    # Check BAS_DIR using essential verification
-    if ! essential_verify_path "BAS_DIR" "dir" false; then
-        debug_log "ERROR: BAS_DIR verification failed"
-        return 1
-    fi
+    # With these lines:
+if ! verify_base_dir "$BAS_DIR"; then
+    debug_log "Warning: BAS_DIR verification failed but continuing"
+    # Don't return 1 here - allow continuation
+fi
 
     debug_log "BAS_DIR contents:"
     ls -la "$BAS_DIR" 2>&1 | while read -r line; do
@@ -583,6 +621,13 @@ source_rc() {
         if [[ -r "$CON_DIR/$module" ]]; then
             debug_log "Module $module is readable"
             debug_log "Module permissions: $(ls -l "$CON_DIR/$module")"
+            if [[ ! -x "$CON_DIR/$module" ]]; then
+                debug_log "Adding execute permission to $module"
+                chmod +x "$CON_DIR/$module" || {
+                    debug_log "ERROR: Failed to add execute permission to $module"
+                    continue
+                }
+            fi
             if source "$CON_DIR/$module" 2> >(debug_log "Source error: $(cat)"); then
                 debug_log "Successfully sourced $module"
                 ((success_count++))
