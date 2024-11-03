@@ -10,33 +10,8 @@ if [[ -z "$CONS_LOADED" ]]; then
     fi
 fi
 
-# Validate required environment variables and ensure they're under $HOME
-[[ -z "$HOME" ]] && {
-    echo "Fatal: HOME environment variable not set" >&2
-    exit 1
-}
-
-[[ -z "$LOG_DIR" || "$LOG_DIR" != "$HOME/.local/lab/log" ]] && {
-    echo "Fatal: LOG_DIR must be set to $HOME/.local/lab/log" >&2
-    exit 1
-}
-
-[[ -z "$TMP_DIR" || "$TMP_DIR" != "$HOME/.local/lab/tmp" ]] && {
-    echo "Fatal: TMP_DIR must be set to $HOME/.local/lab/tmp" >&2
-    exit 1
-}
-
-# Define module-specific directories
-ERR_LOG_DIR="$LOG_DIR/err"
-ERR_TMP_DIR="$TMP_DIR/err"
-
-# Define the error log file location and additional tracking files
-ERROR_LOG="$ERR_LOG_DIR/error.log"
-ERROR_COUNT_FILE="$ERR_TMP_DIR/error_count"
-ERROR_STATE_FILE="$ERR_TMP_DIR/error_state"
-
 # Verify critical directories exist (should have been created by rc.sh)
-for dir in "$ERR_LOG_DIR" "$ERR_TMP_DIR"; do
+for dir in "$LOG_DIR" "$TMP_DIR"; do
     [[ ! -d "$dir" ]] && {
         echo "Critical: Required directory missing: $dir" >&2
         exit 1
