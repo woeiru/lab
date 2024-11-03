@@ -10,6 +10,10 @@ declare -g TME_STATE_FILE TME_LOG_FILE
 declare -g CACHE_CLEANUP_INTERVAL
 declare -ga GENERATION_FOLDERS
 declare -gA ERROR_CODES
+declare -g TRAP_INITIALIZED
+declare -gA CLEANUP_FUNCTIONS
+declare -g TRAP_INITIALIZED=false
+
 
 # Use existing base directories or set defaults
 LAB_DIR="${LAB_DIR:-$HOME/lab}"    # Keep existing LAB_DIR if set
