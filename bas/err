@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Load centralized constants if not already loaded
+if [[ -z "$CONS_LOADED" ]]; then
+    CONS_FILE="${HOME}/lab/dic/cons"
+    if [[ -f "$CONS_FILE" ]]; then
+        source "$CONS_FILE"
+    else
+        echo "Warning: Could not load centralized constants from $CONS_FILE" >&2
+    fi
+fi
+
 # Validate required environment variables and ensure they're under $HOME
 [[ -z "$HOME" ]] && {
     echo "Fatal: HOME environment variable not set" >&2
