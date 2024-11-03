@@ -12,7 +12,7 @@ ini_log() {
     local message="${2:-$1}"  # Accept both log "lvl" "msg" and log "msg" formats
     printf "[FALLBACK] %s - %s\n" "$timestamp" "$message" >&2
 }
-export -f fallback_log
+export -f ini_log
 
 # Create initial log function that uses fallback until real logging is ready
 log() {
@@ -723,8 +723,22 @@ if [ $MAIN_RC_STATUS -ne 0 ]; then
 
     # Continue with shell despite initialization failure
     return 0
+fi  # Close the previous if statement
+
 debug_env() {
-fi
+    local prefix="DEBUG ENV:"
+    echo "$prefix Current directory: $(pwd)"
+    echo "$prefix Script directory: $CON_DIR"
+    echo "$prefix Important variables:"
+    echo "  LAB_DIR=$LAB_DIR"
+    echo "  BAS_DIR=$BAS_DIR"
+    echo "  CON_DIR=$CON_DIR"
+    echo "  LOG_DIR=$LOG_DIR"
+    echo "  TMP_DIR=$TMP_DIR"
+    echo "  ERROR_LOG=$ERROR_LOG"
+    echo "  LOG_STATE_FILE=$LOG_STATE_FILE"
+    echo "  LOG_DEBUG_FILE=$LOG_DEBUG_FILE"
+}
 
 # Restore exit on error if it was enabled
 if [[ "$(set -o | grep errexit | cut -f2)" == "on" ]]; then
@@ -735,25 +749,3 @@ export VERIFICATION_MODE
 export -f essential_verify_var essential_verify_path essential_verify_vars
 export -f essential_check set_verification_mode
 export -f init_verification init_fallback_verification
-
-    set -e
-fi
-
-export VERIFICATION_MODE
-export -f essential_verify_var essential_verify_path essential_verify_vars
-export -f essential_check set_verification_mode
-export -f init_verification init_fallback_verification
-
-    local prefix="DEBUG ENV:"
-    echo "$prefix Current directory: $(pwd)"
-    echo "$prefix Script directory: $CON_DIR"
-    echo "$prefix Important variables:"
-    echo "  LAB_DIR=$LAB_DIR"
-    echo "  BAS_DIR=$BAS_DIR"
-    echo "  CON_DIR=$CON_DIR" 
-    echo "  LOG_DIR=$LOG_DIR"
-    echo "  TMP_DIR=$TMP_DIR"
-    echo "  ERROR_LOG=$ERROR_LOG"
-    echo "  LOG_STATE_FILE=$LOG_STATE_FILE"
-    echo "  LOG_DEBUG_FILE=$LOG_DEBUG_FILE"
-}
