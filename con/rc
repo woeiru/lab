@@ -99,9 +99,11 @@ init_base() {
             continue
         fi
 
-        # Create temporary wrapper to capture source errors
-        local error_output
-        error_output=$(source "$file" 2>&1) || {
+        # Source the module and capture errors to temp file
+        local error_file=$(mktemp)
+        if ! source "$file" 2>"$error_file"; then
+            local error_output=$(<"$error_file")
+            rm -f "$error_file"
             debug_log "ERROR: Failed to load module $module_name with error: $error_output"
             echo "        └─ Warning: Failed to load $module_name" >&2
 
@@ -125,14 +127,15 @@ init_base() {
 
             fallback_active=true
             continue
-        }
+        fi
+        rm -f "$error_file"
 
         # Verify module loaded successfully
         if [[ -n "$error_output" ]]; then
             debug_log "WARNING: Module $module_name loaded with warnings: $error_output"
         else
             debug_log "Successfully loaded module: $module_name"
-        }
+        fi
 
         # Verify module functions are available
         for func in $(grep -o '^[a-zA-Z0-9_]\+()' "$file" 2>/dev/null | tr -d '()'); do
@@ -140,7 +143,7 @@ init_base() {
                 debug_log "  Function verified: $func"
             else
                 debug_log "  ERROR: Function not available after sourcing: $func"
-            }
+            fi
         done
         ((module_loaded++))
     done
@@ -229,7 +232,7 @@ init_dirs() {
         required_dirs+=("$base")
         for sub in "${sub_dirs[@]}"; do
             required_dirs+=("$base/$sub")
-        end
+        done  # <- Fixed: changed 'end' to 'done'
     done
 
     # Create all directories in one pass
