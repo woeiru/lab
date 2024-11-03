@@ -11,10 +11,6 @@ declare -gA TME_CHILDREN        # Stores child components for each parent
 declare -g TME_STARTUP_BEGIN    # Global startup timestamp
 declare -g TME_CURRENT_PARENT   # Tracks current parent for nested timing
 
-# Initialize state files if they don't exist
-[[ ! -f "$TME_STATE_FILE" ]] && echo "true" > "$TME_STATE_FILE"
-[[ ! -f "$TME_LEVELS_FILE" ]] && echo "9" > "$TME_LEVELS_FILE"  # Default max depth
-
 # Color definitions - using printf to ensure proper escape sequences
 readonly TME_RED=$(printf '\033[0;31m')
 readonly TME_ORANGE=$(printf '\033[0;33m')

@@ -26,24 +26,82 @@ essential_verify_path() {
     local path_value="${!path_var}"
     local prefix="[${VERIFICATION_MODE}]"
 
+    # First verify the variable exists and has a value
     if ! essential_verify_var "$path_var"; then
+        printf "%s Variable '%s' verification failed\n" "$prefix" "$path_var" >&2
         return 1
     fi
 
+    # Log the attempt
+    printf "%s Verifying path: %s (type: %s, create: %s)\n" "$prefix" "$path_value" "$path_type" "$create" >> /tmp/rc_init.log
+
     if [[ "$create" == "true" ]]; then
         case "$path_type" in
-            dir) mkdir -p "$path_value" 2>/dev/null ;;
+            dir)
+                if ! mkdir -p "$path_value" 2>/tmp/mkdir.error; then
+                    local error=$(cat /tmp/mkdir.error)
+                    printf "%s Failed to create directory '%s': %s\n" "$prefix" "$path_value" "$error" >&2
+                    rm -f /tmp/mkdir.error
+                    return 1
+                fi
+                rm -f /tmp/mkdir.error
+                printf "%s Created directory: %s\n" "$prefix" "$path_value" >> /tmp/rc_init.log
+                ;;
             file)
-                mkdir -p "$(dirname "$path_value")" 2>/dev/null
-                touch "$path_value" 2>/dev/null
+                local parent_dir=$(dirname "$path_value")
+                if ! mkdir -p "$parent_dir" 2>/tmp/mkdir.error; then
+                    local error=$(cat /tmp/mkdir.error)
+                    printf "%s Failed to create parent directory '%s': %s\n" "$prefix" "$parent_dir" "$error" >&2
+                    rm -f /tmp/mkdir.error
+                    return 1
+                fi
+                rm -f /tmp/mkdir.error
+
+                if ! touch "$path_value" 2>/tmp/touch.error; then
+                    local error=$(cat /tmp/touch.error)
+                    printf "%s Failed to create file '%s': %s\n" "$prefix" "$path_value" "$error" >&2
+                    rm -f /tmp/touch.error
+                    return 1
+                fi
+                rm -f /tmp/touch.error
+                printf "%s Created file: %s\n" "$prefix" "$path_value" >> /tmp/rc_init.log
+                ;;
+            *)
+                printf "%s Invalid path type '%s' for '%s'\n" "$prefix" "$path_type" "$path_var" >&2
+                return 1
                 ;;
         esac
     fi
 
+    # Final verification that path exists
     if [[ ! -e "$path_value" ]]; then
-        printf "%s Path '%s' does not exist\n" "$prefix" "$path_value" >&2
+        printf "%s Path '%s' does not exist and creation was not requested\n" "$prefix" "$path_value" >&2
         return 1
     fi
+
+    # Check permissions
+    if [[ ! -r "$path_value" ]]; then
+        printf "%s Path '%s' exists but is not readable\n" "$prefix" "$path_value" >&2
+        return 1
+    fi
+
+    case "$path_type" in
+        dir)
+            if [[ ! -d "$path_value" ]]; then
+                printf "%s Path '%s' exists but is not a directory\n" "$prefix" "$path_value" >&2
+                return 1
+            fi
+            ;;
+        file)
+            if [[ ! -f "$path_value" ]]; then
+                printf "%s Path '%s' exists but is not a regular file\n" "$prefix" "$path_value" >&2
+                return 1
+            fi
+            ;;
+    esac
+
+    # Log success
+    printf "%s Successfully verified path: %s\n" "$prefix" "$path_value" >> /tmp/rc_init.log
     return 0
 }
 
@@ -269,8 +327,7 @@ validate_module() {
     return 0
 }
 
-# init base modules
-# Improved init_base function
+# Modified init_base function without var module dependency
 init_base() {
     debug_log "Starting init_base"
     debug_log "BAS_DIR=$BAS_DIR"
@@ -298,11 +355,9 @@ init_base() {
 
     local module_loaded=0
     local fallback_active=false
-    local var_module_loaded=false
 
-    # Module loading order array
+    # Updated module loading order array - removed var module
     local modules=(
-        "var"   # Will try to load but not critical anymore
         "err"
         "lo1"
         "lo2"
@@ -321,7 +376,7 @@ init_base() {
         if ! validate_module "$file"; then
             debug_log "ERROR: Module validation failed for $module"
             continue
-        fi
+        }
 
         # Source the module and capture errors
         local error_file
@@ -351,10 +406,6 @@ init_base() {
                     fallback_tme
                     echo "         └─ Activated fallback timing system"
                     ;;
-                "var")
-                    debug_log "Var module failed, using essential verification"
-                    # We're already using essential verification, so no additional fallback needed
-                    ;;
             esac
 
             fallback_active=true
@@ -365,7 +416,6 @@ init_base() {
         # Mark module as loaded
         loaded_modules[$module]=1
         ((module_loaded++))
-        [[ "$module" == "var" ]] && var_module_loaded=true
 
         # Verify module functions are available
         debug_log "Verifying module functions for: $module"
@@ -674,26 +724,30 @@ main_rc() {
     local orig_errexit_setting=$(set -o | grep errexit | cut -f2)
     set +e  # Disable exit on error temporarily
 
-    echo "Starting main_rc initialization..."
+    echo "Starting main_rc initialization..." | tee -a /tmp/rc_init.log
 
-    # Try initialization
+    # Try initialization with status tracking
     if ! init_verification; then
-        echo "Warning: Initialization verification failed, attempting fallback mode..." >&2
-        init_fallback_verification || {
-            echo "Fatal: Both main and fallback initialization failed" >&2
-            echo "Check /tmp/rc_init.log for details" >&2
-            # Don't exit, just return failure
+        echo "Warning: Initialization verification failed, attempting fallback mode..." >&2 | tee -a /tmp/rc_init.log
+        if ! init_fallback_verification; then
+            echo "Fatal: Both main and fallback initialization failed" >&2 | tee -a /tmp/rc_init.log
             return 1
-        }
+        fi
     fi
 
-    echo "      └─ main_rc : init_traps"
-    init_traps || echo "Warning: Trap initialization failed"
+    echo "      └─ main_rc : init_traps" | tee -a /tmp/rc_init.log
+    init_traps || {
+        echo "Warning: Trap initialization failed" >&2 | tee -a /tmp/rc_init.log
+        echo "init_traps returned: $?" >> /tmp/rc_init.log
+    }
 
-    echo "      └─ main_rc : init_base"
-    if ! init_base; then
-        echo "Warning: Environment initialization using fallbacks" >&2
-    fi
+    echo "      └─ main_rc : init_base" | tee -a /tmp/rc_init.log
+    init_base
+    local init_base_status=$?
+    echo "init_base returned: $init_base_status" >> /tmp/rc_init.log
+
+    # Track status of each major operation
+    local rc_status=0
 
     # Use log function if available, otherwise echo
     type log >/dev/null 2>&1 && {
@@ -702,13 +756,13 @@ main_rc() {
         log "lvl" "main_rc : source_rc"
         log "lvl" "main_rc : setup_components"
     } || {
-        echo "main_rc : register_cleanup"
-        echo "main_rc : setup_error_handling"
-        echo "main_rc : source_rc"
-        echo "main_rc : setup_components"
+        echo "main_rc : register_cleanup" | tee -a /tmp/rc_init.log
+        echo "main_rc : setup_error_handling" | tee -a /tmp/rc_init.log
+        echo "main_rc : source_rc" | tee -a /tmp/rc_init.log
+        echo "main_rc : setup_components" | tee -a /tmp/rc_init.log
     }
 
-    # Register cleanups if functions exist
+    # Register cleanups with status tracking
     type cleanup_logger >/dev/null 2>&1 && register_cleanup "lo" "cleanup_logger"
     type cleanup_timer >/dev/null 2>&1 && register_cleanup "tme" "cleanup_timer"
     type clean_exit >/dev/null 2>&1 && register_cleanup "err" "clean_exit"
@@ -716,14 +770,16 @@ main_rc() {
     # Setup error handling if available
     type setup_error_handling >/dev/null 2>&1 && setup_error_handling
 
-    # Source RC files
+    # Source RC files with status tracking
     if ! source_rc; then
-        echo "Warning: Failed to source RC files" >&2
+        echo "Warning: Failed to source RC files" >&2 | tee -a /tmp/rc_init.log
+        rc_status=1
     fi
 
-    # Setup components
+    # Setup components with status tracking
     if ! setup_components; then
-        echo "Warning: Component setup failed" >&2
+        echo "Warning: Component setup failed" >&2 | tee -a /tmp/rc_init.log
+        rc_status=1
     fi
 
     # Restore original errexit setting
@@ -731,28 +787,41 @@ main_rc() {
         set -e
     fi
 
-    return 0
+    echo "main_rc completing with status: $rc_status" >> /tmp/rc_init.log
+    return $rc_status
 }
 
 echo " ─── initializing"
-debug_rc_init
-
 # Disable exit on error for the initialization
 set +e
 
-if ! main_rc; then
-    echo "RC initialization failed. Check /tmp/rc_init.log for details" >&2
+# Add debug trapping for main_rc status
+main_rc
+MAIN_RC_STATUS=$?
+echo "main_rc returned with status: $MAIN_RC_STATUS" >> /tmp/rc_init.log
+
+if [ $MAIN_RC_STATUS -ne 0 ]; then
+    echo "RC initialization failed with status $MAIN_RC_STATUS. Check /tmp/rc_init.log for details" >&2
     # Create essential directories as last resort
     for dir in "$LOG_DIR" "$TMP_DIR"; do
         mkdir -p "$dir" 2>/dev/null
     done
+
+    # Set up minimal environment to keep shell usable
+    echo "Setting up minimal environment..." >&2
+    export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$HOME/bin"
+
+    # Set a basic prompt to indicate we're in minimal mode
+    PS1="(minimal)[\u@\h \W]\$ "
+
+    # Continue with shell despite initialization failure
+    return 0
 fi
 
 # Restore exit on error if it was enabled
 if [[ "$(set -o | grep errexit | cut -f2)" == "on" ]]; then
     set -e
 fi
-
 
 export VERIFICATION_MODE
 export -f essential_verify_var essential_verify_path essential_verify_vars

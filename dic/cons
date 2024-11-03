@@ -41,14 +41,12 @@ declare -gA MODULE_REQUIRED_VARS=(
     ["lo1"]="LOG_STATE_FILE LOG_DEBUG_FILE LOG_DIR"
     ["lo2"]="LOG_DEBUG_FILE LOG_DIR"
     ["tme"]="TME_STATE_FILE TME_LOG_FILE LOG_DIR"
-    ["var"]="LOG_DEBUG_FILE LOG_DIR"
 )
 declare -gA MODULE_REQUIRED_PATHS=(
     ["err"]="ERROR_LOG:file:true TMP_DIR:dir:true"
     ["lo1"]="LOG_STATE_FILE:file:true LOG_DEBUG_FILE:file:true"
     ["lo2"]="LOG_DEBUG_FILE:file:true"
-    ["tme"]="TME_LOG_FILE:file:true TME_STATE_FILE:file:true"
-    ["var"]="LOG_DEBUG_FILE:file:true"
+    ["tme"]="TME_LOG_FILE:file:true TME_STATE_FILE:file:true TME_LEVELS_FILE:file:true"
 )
 export -A MODULE_REQUIRED_VARS
 export -A MODULE_REQUIRED_PATHS
