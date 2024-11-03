@@ -487,18 +487,7 @@ init_base() {
     debug_log "Environment after module loading:"
     env | grep -i "lab\|dir\|path" | while read -r line; do
         debug_log "  $line"
-
-    debug_log "init_base completed with $module_loaded modules loaded"
-    return $((module_loaded > 0 ? 0 : 1))
-}
-
-# init base modules tmp and log dirs
-init_dirs() {
-    debug_log "Starting directory initialization"
-    
-    # 1. First ensure base directories exist
-        debug_log "Timer initialization function not available"
-    fi
+    end
 
     debug_log "init_base completed with $module_loaded modules loaded"
     return $((module_loaded > 0 ? 0 : 1))
