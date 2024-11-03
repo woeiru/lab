@@ -1,0 +1,166 @@
+#!/bin/bash
+
+# Configuration
+readonly DEBUG=false
+readonly LOG_FILE="/tmp/verification.log"
+readonly REQUIRED_DIRS=("$LAB_DIR" "$BAS_DIR" "$LOG_DIR" "$TMP_DIR")
+
+# Logging
+log() {
+    local level="$1"
+    local message="$2"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    printf "[%s] %s - %s\n" "$level" "$timestamp" "$message" >> "$LOG_FILE"
+    $DEBUG && printf "[%s] %s\n" "$level" "$message" >&2
+}
+
+# Path verification with auto-creation
+verify_path() {
+    local path="$1"
+    local type="$2"
+    local auto_create="${3:-false}"
+
+    [[ -z "$path" ]] && { log "ERROR" "Empty path provided"; return 1; }
+
+    if [[ "$type" == "dir" ]]; then
+        if [[ ! -d "$path" ]]; then
+            if [[ "$auto_create" == "true" ]]; then
+                mkdir -p "$path" || { log "ERROR" "Failed to create directory: $path"; return 1; }
+                log "INFO" "Created directory: $path"
+            else
+                log "ERROR" "Directory does not exist: $path"
+                return 1
+            fi
+        fi
+    elif [[ "$type" == "file" ]]; then
+        if [[ ! -f "$path" ]]; then
+            if [[ "$auto_create" == "true" ]]; then
+                mkdir -p "$(dirname "$path")"
+                touch "$path" || { log "ERROR" "Failed to create file: $path"; return 1; }
+                log "INFO" "Created file: $path"
+            else
+                log "ERROR" "File does not exist: $path"
+                return 1
+            fi
+        fi
+    else
+        log "ERROR" "Invalid path type: $type"
+        return 1
+    fi
+
+    return 0
+}
+
+# Variable verification
+verify_var() {
+    local var_name="$1"
+    local var_value="${!var_name}"
+
+    if [[ -z "$var_value" ]]; then
+        log "ERROR" "Required variable '$var_name' is empty or undefined"
+        return 1
+    fi
+
+    return 0
+}
+
+# Module validation
+validate_module() {
+    local module_path="$1"
+    local module_name=$(basename "$module_path")
+
+    # Basic checks
+    [[ ! -f "$module_path" ]] && { log "ERROR" "Module not found: $module_path"; return 1; }
+    [[ ! -x "$module_path" ]] && chmod +x "$module_path"
+
+    # Validate shebang
+    local shebang
+    read -r shebang < "$module_path"
+    [[ "$shebang" != "#!/bin/bash" ]] && { log "ERROR" "Invalid shebang in $module_name"; return 1; }
+
+    # Verify module structure
+    if ! grep -q "^# Module:" "$module_path"; then
+        log "WARNING" "Missing module header in $module_name"
+    fi
+
+    log "INFO" "Module $module_name validated successfully"
+    return 0
+}
+
+# System initialization
+init_system() {
+    local mode="${1:-normal}"
+    log "INFO" "Starting system initialization in $mode mode"
+
+    # Ensure log directory exists
+    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
+
+    # Verify essential variables
+    local essential_vars=("LAB_DIR" "BAS_DIR" "LOG_DIR" "TMP_DIR")
+    local failed=0
+
+    for var in "${essential_vars[@]}"; do
+        if ! verify_var "$var"; then
+            ((failed++))
+            [[ "$mode" != "fallback" ]] && continue
+            # In fallback mode, try to create default directories
+            mkdir -p "${!var}" 2>/dev/null || ((failed++))
+        fi
+    done
+
+    # Verify required directories
+    for dir in "${REQUIRED_DIRS[@]}"; do
+        if ! verify_path "$dir" "dir" true; then
+            log "ERROR" "Failed to verify/create required directory: $dir"
+            ((failed++))
+        fi
+    done
+
+    if ((failed > 0)); then
+        log "ERROR" "Initialization failed with $failed errors"
+        return 1
+    fi
+
+    log "INFO" "System initialization completed successfully"
+    return 0
+}
+
+# Module verification
+verify_module() {
+    local module="$1"
+    local config_file="$2"
+
+    log "INFO" "Verifying module: $module"
+
+    # Validate module file
+    if ! validate_module "$module"; then
+        log "ERROR" "Module validation failed: $module"
+        return 1
+    }
+
+    # Load module configuration if provided
+    if [[ -n "$config_file" && -f "$config_file" ]]; then
+        source "$config_file" || { log "ERROR" "Failed to load config: $config_file"; return 1; }
+    fi
+
+    # Verify module requirements
+    if [[ -n "$MODULE_VARS" ]]; then
+        for var in "${MODULE_VARS[@]}"; do
+            verify_var "$var" || return 1
+        done
+    fi
+
+    if [[ -n "$MODULE_PATHS" ]]; then
+        for path_spec in "${MODULE_PATHS[@]}"; do
+            local path="${path_spec%:*}"
+            local type="${path_spec##*:}"
+            verify_path "$path" "$type" || return 1
+        done
+    fi
+
+    log "INFO" "Module $module verified successfully"
+    return 0
+}
+
+# Export functions
+export -f log verify_path verify_var validate_module init_system verify_module

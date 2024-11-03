@@ -1,6 +1,8 @@
 .
 ├── ala
-│   └── start
+│   ├── init
+│   ├── run
+│   └── veri
 ├── bas
 │   ├── dbg
 │   ├── err
@@ -8,15 +10,14 @@
 │   ├── lo2
 │   └── tme
 ├── con
-│   ├── rc
 │   ├── rc1
 │   ├── rc2
 │   ├── rc3
 │   └── rc4
+├── deploy.sh
 ├── dic
-│   ├── init
-│   ├── onst
-│   └── veri
+│   ├── dep
+│   └── ons
 ├── env
 │   └── site
 ├── fun
@@ -51,7 +52,7 @@
 │       ├── fedora_disable_zram.sh
 │       ├── fedora_hibernation_btrfs.sh
 │       └── fedora_hibernation_lvm.sh
-├── ini
+├── ina
 │   ├── main.yml
 │   ├── mods
 │   │   ├── askpass.yml
@@ -79,6 +80,7 @@
 │       ├── replace.json
 │       ├── replace.sh
 │       └── track
+├── readme.md
 ├── rem
 │   ├── exit.md
 │   ├── interfunction.md
@@ -89,4 +91,4 @@
     ├── rc2.new
     └── ssh
 
-22 directories, 68 files
+22 directories, 70 files
