@@ -18,7 +18,7 @@ CON_DIR="${CON_DIR:-$LAB_DIR/con}"
 export LAB_DIR BAS_DIR CON_DIR
 
 # Auxiliary directories
-AUX_DIR="${AUX_DIR:-$LAB_DIR/.aux}" # Updated AUX_DIR to be within LAB_DIR
+AUX_DIR="${AUX_DIR:-$LAB_DIR}" # Updated AUX_DIR to be the same as LAB_DIR
 LOG_DIR="${LOG_DIR:-$LAB_DIR/.log}" # Updated LOG_DIR to be within LAB_DIR
 TMP_DIR="${TMP_DIR:-$LAB_DIR/.tmp}" # Updated TMP_DIR to be within LAB_DIR
 export AUX_DIR LOG_DIR TMP_DIR
