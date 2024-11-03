@@ -6,13 +6,13 @@
     exit 1
 }
 
-[[ -z "$LOG_DIR" || "$LOG_DIR" != "$HOME/.local/log/lab" ]] && {
-    echo "Fatal: LOG_DIR must be set to $HOME/.local/log/lab" >&2
+[[ -z "$LOG_DIR" || "$LOG_DIR" != "$HOME/.local/lab/log" ]] && {
+    echo "Fatal: LOG_DIR must be set to $HOME/.local/lab/log" >&2
     exit 1
 }
 
-[[ -z "$TMP_DIR" || "$TMP_DIR" != "$HOME/.local/tmp/lab" ]] && {
-    echo "Fatal: TMP_DIR must be set to $HOME/.local/tmp/lab" >&2
+[[ -z "$TMP_DIR" || "$TMP_DIR" != "$HOME/.local/lab/tmp" ]] && {
+    echo "Fatal: TMP_DIR must be set to $HOME/.local/lab/tmp" >&2
     exit 1
 }
 
