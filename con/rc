@@ -1,95 +1,18 @@
 #!/bin/bash
 set -o pipefail
 
+# Source verification module early
+source "$LAB_DIR/dic/veri" || {
+    echo "Failed to source verification module" >&2
+    exit 1
+}
+
 # First declare all globals
 declare -g TRAP_INITIALIZED
 declare -gA CLEANUP_FUNCTIONS
 declare -g TRAP_INITIALIZED=false
-declare -g VERIFICATION_MODE="RC"  # Can be "RC" or "FALLBACK"
-declare -g DEBUG_LOG_ENABLED=false
 
-# Add debug_log function
-debug_log() {
-    [[ "$DEBUG_LOG_ENABLED" != "true" ]] && return 0
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    local message="$1"
-    local source="${2:-${FUNCNAME[1]:-main}}"
-    printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >&2
-}
-
-# Single, consolidated verify_module function
-verify_module() {
-    local module="$1"
-    debug_log "Verifying module: $module"
-
-    # Initialize requirements if not already done
-    if [[ -z "${MODULE_VARS[*]}" ]]; then
-        init_module_requirements
-    fi
-
-    local failed=0
-
-    # Verify all variables for this module
-    for var_key in "${!MODULE_VARS[@]}"; do
-        if [[ $var_key == $module.* ]]; then
-            local var_name="${var_key#$module.}"
-            if ! verify_module_var "$module" "$var_name"; then
-                ((failed++))
-            fi
-        fi
-    done
-
-    # Verify all paths for this module
-    for path_key in "${!MODULE_PATHS[@]}"; do
-        if [[ $path_key == $module.* ]]; then
-            local path_var="${path_key#$module.}"
-            if ! verify_module_path "$module" "$path_var"; then
-                ((failed++))
-            fi
-        fi
-    done
-
-    if ((failed > 0)); then
-        debug_log "Module verification failed for $module with $failed errors"
-        return 1
-    fi
-
-    debug_log "Module $module verified successfully"
-    return 0
-}
-
-essential_verify_vars() {
-    local failed=0
-    for var in "$@"; do
-        if ! essential_verify_var "$var"; then
-            ((failed++))
-        fi
-    done
-    return $((failed > 0 ? 1 : 0))
-}
-
-list_module_requirements() {
-    local module="$1"
-
-    echo "Requirements for module: $module"
-    echo
-    echo "Required variables:"
-    for var_key in "${!MODULE_VARS[@]}"; do
-        if [[ $var_key == $module.* ]]; then
-            echo "  ${var_key#$module.}"
-        fi
-    done
-    echo
-    echo "Required paths:"
-    for path_key in "${!MODULE_PATHS[@]}"; do
-        if [[ $path_key == $path_key.* ]]; then
-            local path_var="${path_key#$module.}"
-            local path_spec="${MODULE_PATHS[$path_key]}"
-            echo "  $path_var (${path_spec})"
-        fi
-    done
-}
-
+# Add initial log functions that use fallback until real logging is ready
 ini_log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local message="${2:-$1}"  # Accept both log "lvl" "msg" and log "msg" formats
@@ -102,209 +25,6 @@ log() {
     ini_log "$@"
 }
 export -f log
-
-# Verify a single variable for a module
-verify_module_var() {
-    local module="$1"
-    local var="$2"
-
-    debug_log "Verifying variable $var for module $module"
-
-    # Check if variable is required for this module
-    if [[ -n "${MODULE_VARS[$module.$var]}" ]]; then
-        if [[ -z "${!var}" ]]; then
-            debug_log "ERROR: Required variable $var is empty for module $module"
-            return 1
-        fi
-        debug_log "Variable $var verified for module $module"
-        return 0
-    fi
-
-    debug_log "Variable $var not required for module $module"
-    return 0
-}
-
-# Verify a single path for a module
-verify_module_path() {
-    local module="$1"
-    local path_var="$2"
-
-    debug_log "Verifying path $path_var for module $module"
-
-    local path_spec="${MODULE_PATHS[$module.$path_var]}"
-    if [[ -z "$path_spec" ]]; then
-        debug_log "No path specification for $path_var in module $module"
-        return 0
-    fi
-
-    local type="${path_spec%%:*}"
-    local create="${path_spec##*:}"
-    local path="${!path_var}"
-
-    debug_log "Path spec for $path_var: type=$type create=$create path=$path"
-
-    if [[ -z "$path" ]]; then
-        debug_log "ERROR: Path variable $path_var is empty"
-        return 1
-    fi
-
-    case "$type" in
-        "dir")
-            if [[ ! -d "$path" ]]; then
-                if [[ "$create" == "true" ]]; then
-                    mkdir -p "$path" || {
-                        debug_log "ERROR: Failed to create directory: $path"
-                        return 1
-                    }
-                    debug_log "Created directory: $path"
-                else
-                    debug_log "ERROR: Directory does not exist: $path"
-                    return 1
-                fi
-            fi
-            ;;
-        "file")
-            if [[ ! -f "$path" ]]; then
-                if [[ "$create" == "true" ]]; then
-                    mkdir -p "$(dirname "$path")" || {
-                        debug_log "ERROR: Failed to create parent directory for: $path"
-                        return 1
-                    }
-                    touch "$path" || {
-                        debug_log "ERROR: Failed to create file: $path"
-                        return 1
-                    }
-                    debug_log "Created file: $path"
-                else
-                    debug_log "ERROR: File does not exist: $path"
-                    return 1
-                fi
-            fi
-            ;;
-        *)
-            debug_log "ERROR: Invalid path type: $type"
-            return 1
-            ;;
-    esac
-
-    debug_log "Path verification successful: $path"
-    return 0
-}
-
-
-essential_verify_path() {
-    local var_name="$1"
-    local path="$2"
-    local type="$3"
-    local create="${4:-false}"
-
-    debug_log "essential_verify_path: var=$var_name path=$path type=$type create=$create"
-
-    # Basic validation
-    [[ -z "$var_name" || -z "$path" || -z "$type" ]] && {
-        debug_log "ERROR: Missing required parameters in essential_verify_path"
-        return 1
-    }
-
-    # Type validation
-    case "$type" in
-        "dir"|"file") : ;;
-        *) 
-            debug_log "ERROR: Invalid path type: $type"
-            return 1
-            ;;
-    esac
-
-    # Path verification and creation
-    if [[ "$type" == "dir" ]]; then
-        if [[ ! -d "$path" ]]; then
-            if [[ "$create" == "true" ]]; then
-                debug_log "Creating directory: $path"
-                mkdir -p "$path" || {
-                    debug_log "ERROR: Failed to create directory: $path"
-                    return 1
-                }
-                debug_log "Created directory: $path"
-            else
-                debug_log "ERROR: Directory does not exist: $path"
-                return 1
-            fi
-        fi
-    elif [[ "$type" == "file" ]]; then
-        if [[ ! -f "$path" ]]; then
-            if [[ "$create" == "true" ]]; then
-                debug_log "Creating parent directory for file: $path"
-                mkdir -p "$(dirname "$path")" || {
-                    debug_log "ERROR: Failed to create parent directory for: $path"
-                    return 1
-                }
-                debug_log "Creating file: $path"
-                touch "$path" || {
-                    debug_log "ERROR: Failed to create file: $path"
-                    return 1
-                }
-                debug_log "Created file: $path"
-            else
-                debug_log "ERROR: File does not exist: $path"
-                return 1
-            fi
-        fi
-    fi
-
-    debug_log "Path verification successful: $path"
-    return 0
-}
-
-# Enhanced essential_verify_var function
-essential_verify_var() {
-    local var_name="$1"
-    local var_value="${!var_name}"
-    local prefix="[${VERIFICATION_MODE}]"
-
-    debug_log "Verifying variable: $var_name = $var_value"
-
-    if [[ -z "$var_value" ]]; then
-        printf "%s Variable '%s' is empty or undefined\n" "$prefix" "$var_name" >&2
-        return 1
-    fi
-
-    debug_log "Variable $var_name verified successfully"
-    return 0
-}
-
-essential_check() {
-    # Load constants if needed
-    if [[ -z "$CONS_LOADED" ]]; then
-        local cons_file="${HOME}/lab/dic/cons"
-        if [[ ! -f "$cons_file" ]]; then
-            printf "[%s] Constants file not found: %s\n" "$VERIFICATION_MODE" "$cons_file" >&2
-            return 1
-        fi
-        source "$cons_file" || {
-            printf "[%s] Failed to source constants\n" "$VERIFICATION_MODE" >&2
-            return 1
-        }
-    fi
-
-    # Verify critical variables
-    local essential_vars=(LAB_DIR BAS_DIR LOG_DIR TMP_DIR)
-    if ! essential_verify_vars "${essential_vars[@]}"; then
-        printf "[%s] Critical variable verification failed\n" "$VERIFICATION_MODE" >&2
-        return 1
-    fi
-
-    # Create essential directories if they don't exist
-    for dir in "$LOG_DIR" "$TMP_DIR"; do
-        if [[ ! -d "$dir" ]]; then
-            mkdir -p "$dir" || {
-                printf "[%s] Failed to create directory: %s\n" "$VERIFICATION_MODE" "$dir" >&2
-                return 1
-            }
-        fi
-    done
-
-    return 0
-}
 
 # Function to switch verification mode
 set_verification_mode() {
@@ -330,7 +50,6 @@ init_verification() {
     if ! essential_check; then
         echo "Fatal: Essential verification failed during RC initialization" >&2
         echo "Check /tmp/rc_init.log for details"
-        # Don't exit, just return failure
         return 1
     fi
 
@@ -362,11 +81,9 @@ init_verification() {
 
 # Fallback initialization
 init_fallback_verification() {
-    # For fallback mode
     set_verification_mode "FALLBACK"
     if ! essential_check; then
         echo "Fatal: Essential verification failed in fallback mode" >&2
-        # Don't exit immediately, try to create directories first
         local missing=0
         for dir in "$LOG_DIR" "$TMP_DIR"; do
             if [[ ! -d "$dir" ]]; then
@@ -378,222 +95,6 @@ init_fallback_verification() {
             return 1
         fi
     fi
-    return 0
-}
-
-list_module_deps() {
-    local module="$1"
-
-    echo "Dependencies for module: $module"
-    echo "Required variables:"
-    if [[ -n "${MODULE_REQUIRED_VARS[$module]}" ]]; then
-        echo "  ${MODULE_REQUIRED_VARS[$module]}"
-    else
-        echo "  None"
-    fi
-
-    echo "Required paths:"
-    if [[ -n "${MODULE_REQUIRED_PATHS[$module]}" ]]; then
-        local IFS=';'
-        local paths=(${MODULE_REQUIRED_PATHS[$module]})
-        for path_spec in "${paths[@]}"; do
-            IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
-            echo "  $path_var ($path_type, create: $create_flag)"
-        done
-    else
-        echo "  None"
-    fi
-}
-
-# Debug logging helper
-debug_log() {
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    local message="$1"
-    local debug_file="$LOG_DEBUG_FILE"
-    
-    mkdir -p "$(dirname "$debug_file")"
-    printf "[DEBUG] %s - %s\n" "$timestamp" "$message" | tee -a "$debug_file" >&2
-}
-
-# Add this validation function before init_base
-validate_module() {
-    local file="$1"
-    local module_name="$(basename "$file")"
-
-    debug_log "Validating module: $module_name at $file"
-
-    # Check if file exists
-    if [[ ! -f "$file" ]]; then
-        debug_log "ERROR: Module file does not exist: $file"
-        return 1
-    fi
-
-    # Check if file is executable
-    if [[ ! -x "$file" ]]; then
-        debug_log "Adding execute permission to $module_name"
-        chmod +x "$file" || {
-            debug_log "ERROR: Failed to make $module_name executable"
-            return 1
-        }
-    fi
-
-    # Validate shebang
-    local shebang
-    read -r shebang < "$file"
-    if [[ "$shebang" != "#!/bin/bash" ]]; then
-        debug_log "ERROR: Invalid or missing shebang in $module_name"
-        return 1
-    fi
-
-    debug_log "Module $module_name validation successful"
-    return 0
-}
-
-parse_path_spec() {
-    local spec="$1"
-    [[ -z "$spec" ]] && return 1
-
-    local success=0
-    local IFS=';'
-    read -ra specs <<< "$spec"
-
-    for single_spec in "${specs[@]}"; do
-        [[ -z "$single_spec" ]] && continue
-        
-        local var_name type create_flag
-        IFS=':' read -r var_name type create_flag <<< "$single_spec"
-
-        # Validate all parts are present
-        [[ -z "$var_name" || -z "$type" || -z "$create_flag" ]] && {
-            debug_log "ERROR: Invalid path specification: $single_spec"
-            continue
-        }
-
-        # Clean up variables and remove any trailing/leading whitespace
-        var_name="${var_name%%:*}"
-        type="${type%%:*}"
-        create_flag="${create_flag%%:*}"
-        
-        # Get actual path value and verify it's not empty
-        local path_value="${!var_name}"
-        [[ -z "$path_value" ]] && {
-            debug_log "ERROR: Empty path value for $var_name"
-            continue
-        }
-
-        debug_log "Processing spec: var=$var_name, path=$path_value, type=$type, create=$create_flag"
-
-        if essential_verify_path "$var_name" "$path_value" "$type" "$create_flag"; then
-            ((success++))
-        else
-            debug_log "ERROR: Path verification failed for $var_name"
-            return 1
-        fi
-    done
-
-    return $((success > 0 ? 0 : 1))
-}
-
-# Directory verification helper
-verify_base_dir() {
-    local dir="$1"
-    if [[ ! -d "$dir" ]]; then
-        debug_log "Warning: Directory $dir does not exist"
-        if ! mkdir -p "$dir" 2>/dev/null; then
-            debug_log "ERROR: Failed to create directory $dir"
-            return 1
-        fi
-        debug_log "Created directory $dir"
-    fi
-    if [[ ! -w "$dir" ]]; then
-        debug_log "ERROR: Directory $dir is not writable"
-        return 1
-    fi
-    return 0
-}
-
-# Modified init_base function with better error handling
-init_base() {
-    debug_log "Starting init_base"
-    debug_log "BAS_DIR=$BAS_DIR"
-
-    # Initialize directories first
-    if ! init_dirs; then
-        debug_log "ERROR: Directory initialization failed"
-        return 1
-    fi
-
-    local module_loaded=0
-    local modules=(
-        "$BAS_DIR/err"
-        "$BAS_DIR/lo1"
-        "$BAS_DIR/lo2"
-        "$BAS_DIR/tme"
-    )
-
-    # Track loaded modules
-    declare -A loaded_modules
-
-    for module in "${modules[@]}"; do
-        local module_name="$(basename "$module")"
-        debug_log "Processing module: $module_name"
-
-        # Verify module first
-        if ! verify_module "$module_name"; then
-            debug_log "ERROR: Module verification failed for $module_name"
-            continue
-        fi
-
-        # Validate and source the module
-        if [[ -f "$module" ]] && [[ -r "$module" ]]; then
-            if source "$module" 2> >(debug_log "Source error: $(cat)"); then
-                debug_log "Successfully loaded module: $module_name"
-                loaded_modules[$module_name]=1
-                ((module_loaded++))
-            else
-                debug_log "ERROR: Failed to source module $module_name"
-            fi
-        else
-            debug_log "ERROR: Module file not found or not readable: $module"
-        fi
-    done
-
-    return $((module_loaded > 0 ? 0 : 1))
-}
-
-# init base modules tmp and log dirs
-init_dirs() {
-    debug_log "Starting directory initialization"
-    
-    # 1. First ensure base directories exist
-    if ! essential_verify_path "LOG_DIR" "$LOG_DIR" "dir" "true" || \
-       ! essential_verify_path "TMP_DIR" "$TMP_DIR" "dir" "true"; then
-        debug_log "ERROR: Failed to create base directories"
-        echo "Fatal: Unable to create base directories" >&2
-        return 1
-    fi
-
-    # 2. Set correct permissions
-    chmod 700 "$LOG_DIR" "$TMP_DIR" 2>/dev/null || {
-        debug_log "WARNING: Unable to set directory permissions"
-    }
-
-    # 3. Process module-specific paths
-    for module in "${!MODULE_REQUIRED_PATHS[@]}"; do
-        local path_spec="${MODULE_REQUIRED_PATHS[$module]}"
-        debug_log "Processing module $module paths: $path_spec"
-        
-        if ! parse_path_spec "$path_spec"; then
-            debug_log "ERROR: Failed to process paths for module $module"
-            echo "Fatal: Module path initialization failed for $module" >&2
-            return 1
-        fi
-    done
-
-    debug_log "Directory initialization completed successfully"
-    debug_log "LOG_DIR=$LOG_DIR"
-    debug_log "TMP_DIR=$TMP_DIR"
-    
     return 0
 }
 
@@ -663,6 +164,91 @@ init_traps() {
     fi
 }
 
+# Modified init_base function with better error handling
+init_base() {
+    debug_log "Starting init_base"
+    debug_log "BAS_DIR=$BAS_DIR"
+
+    # Initialize directories first
+    if ! init_dirs; then
+        debug_log "ERROR: Directory initialization failed"
+        return 1
+    fi
+
+    local module_loaded=0
+    local modules=(
+        "$BAS_DIR/err"
+        "$BAS_DIR/lo1"
+        "$BAS_DIR/lo2"
+        "$BAS_DIR/tme"
+    )
+
+    # Track loaded modules
+    declare -A loaded_modules
+
+    for module in "${modules[@]}"; do
+        local module_name="$(basename "$module")"
+        debug_log "Processing module: $module_name"
+
+        # Verify module first
+        if ! verify_module "$module_name"; then
+            debug_log "ERROR: Module verification failed for $module_name"
+            continue
+        fi
+
+        # Validate and source the module
+        if [[ -f "$module" ]] && [[ -r "$module" ]]; then
+            if source "$module" 2> >(debug_log "Source error: $(cat)"); then
+                debug_log "Successfully loaded module: $module_name"
+                loaded_modules[$module_name]=1
+                ((module_loaded++))
+            else
+                debug_log "ERROR: Failed to source module $module_name"
+            fi
+        else
+            debug_log "ERROR: Module file not found or not readable: $module"
+        fi
+    done
+
+    return $((module_loaded > 0 ? 0 : 1))
+}
+
+# Initialize base directories
+init_dirs() {
+    debug_log "Starting directory initialization"
+
+    # Create base directories
+    if ! essential_verify_path "LOG_DIR" "$LOG_DIR" "dir" "true" || \
+       ! essential_verify_path "TMP_DIR" "$TMP_DIR" "dir" "true"; then
+        debug_log "ERROR: Failed to create base directories"
+        echo "Fatal: Unable to create base directories" >&2
+        return 1
+    fi
+
+    # Set correct permissions
+    chmod 700 "$LOG_DIR" "$TMP_DIR" 2>/dev/null || {
+        debug_log "WARNING: Unable to set directory permissions"
+    }
+
+    # Process module-specific paths
+    for module in "${!MODULE_REQUIRED_PATHS[@]}"; do
+        local path_spec="${MODULE_REQUIRED_PATHS[$module]}"
+        debug_log "Processing module $module paths: $path_spec"
+
+        if ! parse_path_spec "$path_spec"; then
+            debug_log "ERROR: Failed to process paths for module $module"
+            echo "Fatal: Module path initialization failed for $module" >&2
+            return 1
+        fi
+    done
+
+    debug_log "Directory initialization completed successfully"
+    debug_log "LOG_DIR=$LOG_DIR"
+    debug_log "TMP_DIR=$TMP_DIR"
+
+    return 0
+}
+
 source_rc() {
     debug_log "Starting source_rc"
     local rc_modules=("rc1" "rc2" "rc3" "rc4")
@@ -696,47 +282,133 @@ source_rc() {
     return 0
 }
 
-debug_rc_init() {
-    echo "Checking critical paths..."
-    echo "HOME=$HOME"
-    echo "LAB_DIR=$LAB_DIR"
-    echo "BAS_DIR=$BAS_DIR"
-    echo "LOG_DIR=$LOG_DIR"
-    echo "TMP_DIR=$TMP_DIR"
-
-    echo -e "\nChecking directory existence:"
-    for dir in "$HOME" "$LAB_DIR" "$BAS_DIR" "$LOG_DIR" "$TMP_DIR"; do
-        printf "%-30s: %s\n" "$dir" "$([ -d "$dir" ] && echo "exists" || echo "missing")"
-    done
-
-    echo -e "\nChecking file permissions:"
-    for dir in "$HOME" "$LAB_DIR" "$BAS_DIR" "$LOG_DIR" "$TMP_DIR"; do
-        if [ -e "$dir" ]; then
-            ls -ld "$dir"
-        fi
-    done
+debug_env() {
+    local prefix="DEBUG ENV:"
+    echo "$prefix Current directory: $(pwd)"
+    echo "$prefix Script directory: $CON_DIR"
+    echo "$prefix Important variables:"
+    echo "  LAB_DIR=$LAB_DIR"
+    echo "  BAS_DIR=$BAS_DIR"
+    echo "  CON_DIR=$CON_DIR"
+    echo "  LOG_DIR=$LOG_DIR"
+    echo "  TMP_DIR=$TMP_DIR"
+    echo "  ERROR_LOG=$ERROR_LOG"
+    echo "  LOG_STATE_FILE=$LOG_STATE_FILE"
+    echo "  LOG_DEBUG_FILE=$LOG_DEBUG_FILE"
 }
 
-# Modified main_rc to remove module function dependencies
+# List module dependencies
+list_module_deps() {
+    local module="$1"
+
+    echo "Dependencies for module: $module"
+    echo "Required variables:"
+    if [[ -n "${MODULE_REQUIRED_VARS[$module]}" ]]; then
+        echo "  ${MODULE_REQUIRED_VARS[$module]}"
+    else
+        echo "  None"
+    fi
+
+    echo "Required paths:"
+    if [[ -n "${MODULE_REQUIRED_PATHS[$module]}" ]]; then
+        local IFS=';'
+        local paths=(${MODULE_REQUIRED_PATHS[$module]})
+        for path_spec in "${paths[@]}"; do
+            IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
+            echo "  $path_var ($path_type, create: $create_flag)"
+        done
+    else
+        echo "  None"
+    fi
+}
+
+# Parse path specifications
+parse_path_spec() {
+    local spec="$1"
+    [[ -z "$spec" ]] && return 1
+
+    local success=0
+    local IFS=';'
+    read -ra specs <<< "$spec"
+
+    for single_spec in "${specs[@]}"; do
+        [[ -z "$single_spec" ]] && continue
+
+        local var_name type create_flag
+        IFS=':' read -r var_name type create_flag <<< "$single_spec"
+
+        # Validate all parts are present
+        [[ -z "$var_name" || -z "$type" || -z "$create_flag" ]] && {
+            debug_log "ERROR: Invalid path specification: $single_spec"
+            continue
+        }
+
+        # Clean up variables and remove any trailing/leading whitespace
+        var_name="${var_name%%:*}"
+        type="${type%%:*}"
+        create_flag="${create_flag%%:*}"
+
+        # Get actual path value and verify it's not empty
+        local path_value="${!var_name}"
+        [[ -z "$path_value" ]] && {
+            debug_log "ERROR: Empty path value for $var_name"
+            continue
+        }
+
+        debug_log "Processing spec: var=$var_name, path=$path_value, type=$type, create=$create_flag"
+
+        if essential_verify_path "$var_name" "$path_value" "$type" "$create_flag"; then
+            ((success++))
+        else
+            debug_log "ERROR: Path verification failed for $var_name"
+            return 1
+        fi
+    done
+
+    return $((success > 0 ? 0 : 1))
+}
+
+# Validate module file
+validate_module() {
+    local file="$1"
+    local module_name="$(basename "$file")"
+
+    debug_log "Validating module: $module_name at $file"
+
+    # Check if file exists
+    if [[ ! -f "$file" ]]; then
+        debug_log "ERROR: Module file does not exist: $file"
+        return 1
+    fi
+
+    # Check if file is executable
+    if [[ ! -x "$file" ]]; then
+        debug_log "Adding execute permission to $module_name"
+        chmod +x "$file" || {
+            debug_log "ERROR: Failed to make $module_name executable"
+            return 1
+        }
+    fi
+
+    # Validate shebang
+    local shebang
+    read -r shebang < "$file"
+    if [[ "$shebang" != "#!/bin/bash" ]]; then
+        debug_log "ERROR: Invalid or missing shebang in $module_name"
+        return 1
+    fi
+
+    debug_log "Module $module_name validation successful"
+    return 0
+}
+
+# Main entry point function
 main_rc() {
     # Save original error exit setting
     local orig_errexit_setting=$(set -o | grep errexit | cut -f2)
     set +e  # Disable exit on error temporarily
 
     echo "Starting main_rc initialization..." | tee -a /tmp/rc_init.log
-
-    echo "      └─ main_rc : init_traps" | tee -a /tmp/rc_init.log
-    init_traps || {
-        echo "Warning: Trap initialization failed" >&2 | tee -a /tmp/rc_init.log
-        echo "init_traps returned: $?" >> /tmp/rc_init.log
-    }
-
-
-    echo "      └─ main_rc : init_base" | tee -a /tmp/rc_init.log
-    init_base
-    local init_base_status=$?
-    echo "init_base returned: $init_base_status" >> /tmp/rc_init.log
-
 
     echo "      └─ main_rc : init_traps" | tee -a /tmp/rc_init.log
     init_traps || {
@@ -752,7 +424,6 @@ main_rc() {
     # Track status of each major operation
     local rc_status=0
 
-    # Simple echo for logging
     echo "main_rc : source_rc" | tee -a /tmp/rc_init.log
 
     # Source RC files with status tracking
@@ -792,36 +463,18 @@ if [ $MAIN_RC_STATUS -ne 0 ]; then
 
     # Set a basic prompt to indicate we're in minimal mode
     PS1="(minimal)[\u@\h \W]\$ "
-
-    # Continue with shell despite initialization failure
-    return 0
-fi  # Close the previous if statement
-
-debug_env() {
-    local prefix="DEBUG ENV:"
-    echo "$prefix Current directory: $(pwd)"
-    echo "$prefix Script directory: $CON_DIR"
-    echo "$prefix Important variables:"
-    echo "  LAB_DIR=$LAB_DIR"
-    echo "  BAS_DIR=$BAS_DIR"
-    echo "  CON_DIR=$CON_DIR"
-    echo "  LOG_DIR=$LOG_DIR"
-    echo "  TMP_DIR=$TMP_DIR"
-    echo "  ERROR_LOG=$ERROR_LOG"
-    echo "  LOG_STATE_FILE=$LOG_STATE_FILE"
-    echo "  LOG_DEBUG_FILE=$LOG_DEBUG_FILE"
-}
-
-# Restore exit on error if it was enabled
-if [[ "$(set -o | grep errexit | cut -f2)" == "on" ]]; then
-    set -e
 fi
 
-export VERIFICATION_MODE
-export -f essential_verify_var essential_verify_path essential_verify_vars
-export -f essential_check set_verification_mode
-export -f init_verification init_fallback_verification
-export -f verify_module
-export -f debug_log
-export -f ini_log
-export -f log
+# Add these exports at the end of the file:
+export -f register_cleanup
+export -f main_cleanup
+export -f main_error_handler
+export -f init_traps
+export -f init_base
+export -f init_dirs
+export -f source_rc
+export -f debug_env
+export -f list_module_deps
+export -f parse_path_spec
+export -f validate_module
+export -f main_rc
