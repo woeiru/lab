@@ -36,9 +36,9 @@ essential_verify_path() {
     local var_name="$1"
     local path="$2"
     local type="$3"
-    local create="$4"
+    local create="${4:-false}"
 
-    debug_log "essential_verify_path called with: var=$var_name path=$path type=$type create=$create"
+    debug_log "essential_verify_path: var=$var_name path=$path type=$type create=$create"
 
     # Basic validation
     [[ -z "$var_name" || -z "$path" || -z "$type" ]] && {
@@ -48,15 +48,12 @@ essential_verify_path() {
 
     # Type validation
     case "$type" in
-        "dir"|"file") : ;; # Valid types
+        "dir"|"file") : ;;
         *) 
             debug_log "ERROR: Invalid path type: $type"
             return 1
             ;;
     esac
-
-    # Create flag validation with default
-    create="${create:-false}"
 
     # Path verification and creation
     if [[ "$type" == "dir" ]]; then
@@ -67,6 +64,7 @@ essential_verify_path() {
                     debug_log "ERROR: Failed to create directory: $path"
                     return 1
                 }
+                debug_log "Created directory: $path"
             else
                 debug_log "ERROR: Directory does not exist: $path"
                 return 1
@@ -85,6 +83,7 @@ essential_verify_path() {
                     debug_log "ERROR: Failed to create file: $path"
                     return 1
                 }
+                debug_log "Created file: $path"
             else
                 debug_log "ERROR: File does not exist: $path"
                 return 1
@@ -92,6 +91,7 @@ essential_verify_path() {
         fi
     fi
 
+    debug_log "Path verification successful: $path"
     return 0
 }
 
@@ -215,47 +215,48 @@ init_fallback_verification() {
 
 verify_module() {
     local module_name="$1"
+    debug_log "Verifying module: $module_name"
 
     # Use essential verification functions
     if ! essential_check; then
-        echo "Fatal: Environment verification failed for module: $module_name" >&2
+        debug_log "ERROR: Environment verification failed for module: $module_name"
         return 1
     fi
 
     # Check module-specific required variables
     if [[ -n "${MODULE_REQUIRED_VARS[$module_name]}" ]]; then
-        if ! essential_verify_vars ${MODULE_REQUIRED_VARS[$module_name]}; then
-            echo "Fatal: Missing required variables for $module_name" >&2
-            return 1
-        fi
-    fi
-
-    # Check module-specific required paths
-    if [[ -n "${MODULE_REQUIRED_PATHS[$module_name]}" ]]; then
-        # Split path specifications into array
-        local path_specs
-        IFS=';' read -ra path_specs <<< "${MODULE_REQUIRED_PATHS[$module_name]}"
-
-        for path_spec in "${path_specs[@]}"; do
-            # Split single specification into components
-            local path_var path_type create_flag
-            IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
-
-            if [[ -z "$path_var" || -z "$path_type" ]]; then
-                echo "Fatal: Invalid path specification for $module_name: $path_spec" >&2
-                return 1
-            fi
-
-            # Debug output
-            echo "[DEBUG] Processing: var=$path_var type=$path_type create=$create_flag"
-
-            if ! essential_verify_path "$path_var" "$path_type" "${create_flag:-false}"; then
-                echo "Fatal: Required path $path_var not accessible for $module_name" >&2
+        local vars=(${MODULE_REQUIRED_VARS[$module_name]})
+        for var in "${vars[@]}"; do
+            if ! essential_verify_var "$var"; then
+                debug_log "ERROR: Missing required variable $var for $module_name"
                 return 1
             fi
         done
     fi
 
+    # Check module-specific required paths
+    if [[ -n "${MODULE_REQUIRED_PATHS[$module_name]}" ]]; then
+        local path_specs
+        IFS=';' read -ra path_specs <<< "${MODULE_REQUIRED_PATHS[$module_name]}"
+
+        for path_spec in "${path_specs[@]}"; do
+            local path_var path_type create_flag
+            IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
+            
+            if [[ -z "$path_var" || -z "${!path_var}" || -z "$path_type" ]]; then
+                debug_log "ERROR: Invalid path specification for $module_name: $path_spec"
+                return 1
+            fi
+
+            debug_log "Verifying path for $module_name: var=$path_var path=${!path_var} type=$path_type create=$create_flag"
+            if ! essential_verify_path "$path_var" "${!path_var}" "$path_type" "${create_flag:-false}"; then
+                debug_log "ERROR: Path verification failed for $path_var in $module_name"
+                return 1
+            fi
+        done
+    fi
+
+    debug_log "Module $module_name verification completed successfully"
     return 0
 }
 
@@ -439,28 +440,28 @@ init_base() {
     # Try to source each module
     for module in "${modules[@]}"; do
         local module_name="$(basename "$module")"
-        debug_log "Attempting to load module: $module_name from $module"
+        debug_log "Processing module: $module_name"
 
-        # First check if module file exists
-        if [[ ! -f "$module" ]]; then
-            debug_log "ERROR: Module file not found: $module"
+        # First verify the module itself
+        if ! verify_module "$module_name"; then
+            debug_log "ERROR: Module verification failed for $module_name"
             continue
         fi
 
-        # Validate module before loading
+        # Then validate and source the module file
         if ! validate_module "$module"; then
-            debug_log "ERROR: Module validation failed for $module_name"
+            debug_log "ERROR: Module file validation failed for $module_name"
             continue
         fi
 
-        # Source the module with error capture
+        # Source with error capture
         if ! source "$module" 2> >(debug_log "Source error for $module_name: $(cat)"); then
             debug_log "ERROR: Failed to source module $module_name"
             continue
         fi
 
         debug_log "Successfully loaded module: $module_name"
-        loaded_modules[$module]=1
+        loaded_modules[$module_name]=1
         ((module_loaded++))
     done
 
