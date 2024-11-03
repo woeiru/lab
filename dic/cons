@@ -14,10 +14,7 @@ declare -gA ERROR_CODES
 # Use existing base directories or set defaults
 LAB_DIR="${LAB_DIR:-$HOME/lab}"    # Keep existing LAB_DIR if set
 BAS_DIR="${BAS_DIR:-$LAB_DIR/bas}"
-CON_DIR="${CON_DIR:-$LAB_DIR/con}"
-ENV_DIR="${ENV_DIR:-$LAB_DIR/env}"
-FUN_DIR="${FUN_DIR:-$LAB_DIR/fun}"
-GEN_DIR="${GEN_DIR:-$LAB_DIR/gen}"
+CON_DIR="${CON_DIR:-$LAB_DIR/con}"s
 
 # Auxiliary directories
 AUX_DIR="${AUX_DIR:-$HOME/.local/lab}" # Keep existing AUX_DIR if set
