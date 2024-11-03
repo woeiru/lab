@@ -311,28 +311,36 @@ validate_module() {
 
 parse_path_spec() {
     local spec="$1"
-    local IFS=';'
-    local -a specs=($spec)
     
-    local success=true
-    for single_spec in "${specs[@]}"; do
-        # Trim any whitespace
-        single_spec="${single_spec## }"
-        single_spec="${single_spec%% }"
-        
-        # Use read -r with a here-string to avoid IFS issues
-        IFS=':' read -r path_var path_type create_flag <<< "$single_spec"
-        
-        # Ensure create_flag is cleaned up
-        create_flag="${create_flag%;*}"
-        
-        if ! essential_verify_path "$path_var" "${!path_var}" "$path_type" "$create_flag"; then
-            debug_log "ERROR: Path verification failed for $path_var"
-            success=false
-        fi
-    done
+    # Split into individual path specifications
+    while IFS=';' read -ra SPECS; do
+        for single_spec in "${SPECS[@]}"; do
+            # Skip empty specs
+            [[ -z "$single_spec" ]] && continue
+            
+            # Parse each component
+            local path_var path_type create_flag
+            IFS=':' read -r path_var path_type create_flag <<< "$single_spec"
+            
+            # Clean up create_flag (remove anything after semicolon)
+            create_flag="${create_flag%%:*}"
+            create_flag="${create_flag%%.*;*}"
+            
+            # Validate components
+            [[ -z "$path_var" || -z "$path_type" || -z "$create_flag" ]] && {
+                debug_log "ERROR: Invalid path spec: $single_spec"
+                return 1
+            }
+            
+            # Verify path
+            if ! essential_verify_path "$path_var" "${!path_var}" "$path_type" "$create_flag"; then
+                debug_log "ERROR: Path verification failed for $path_var"
+                return 1
+            fi
+        done
+    done <<< "$spec"
     
-    $success
+    return 0
 }
 
 # Directory verification helper
