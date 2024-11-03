@@ -225,9 +225,14 @@ verify_module() {
 
     # Check module-specific required variables
     if [[ -n "${MODULE_REQUIRED_VARS[$module_name]}" ]]; then
-        local IFS=' '  # Set IFS to space for proper word splitting
-        local vars=(${MODULE_REQUIRED_VARS[$module_name]})
-        for var in "${vars[@]}"; do
+        debug_log "Checking required vars for $module_name: ${MODULE_REQUIRED_VARS[$module_name]}"
+        local var_string="${MODULE_REQUIRED_VARS[$module_name]}"
+        local var_array=()
+        # Split the string into array while preserving spaces
+        read -ra var_array <<< "$var_string"
+        
+        for var in "${var_array[@]}"; do
+            debug_log "Checking required var: $var"
             if ! essential_verify_var "$var"; then
                 debug_log "ERROR: Missing required variable $var for $module_name"
                 return 1
