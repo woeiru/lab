@@ -398,27 +398,32 @@ init_base() {
     debug_log "Current directory: $(pwd)"
     debug_log "Script directory: $CON_DIR"
 
-        # Inside init_base, just before source "$file":
+    # Debug variables
     echo "DEBUG VARS:"
     echo "LOG_STATE_FILE=$LOG_STATE_FILE"
     echo "LOG_DEBUG_FILE=$LOG_DEBUG_FILE"
     echo "LOG_DIR=$LOG_DIR"
     echo "TMP_DIR=$TMP_DIR"
     echo "Current module paths:"
-    
-    
-    for path_spec in ${MODULE_REQUIRED_PATHS[lo1]}; do
-        echo "Path spec: $path_spec"
-        IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
-        echo "  Var: $path_var = ${!path_var}"
-        echo "  Type: $path_type"
-        echo "  Create: $create_flag"
-    done
 
-    # With these lines:
+    # Show lo1's path specs correctly
+    if [[ -n "${MODULE_REQUIRED_PATHS[lo1]}" ]]; then
+        echo "lo1 path specs:"
+        local IFS=';'
+        local paths=(${MODULE_REQUIRED_PATHS[lo1]})
+        for path_spec in "${paths[@]}"; do
+            echo "Path spec: $path_spec"
+            local path_var path_type create_flag
+            IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
+            echo "  Var: $path_var = ${!path_var}"
+            echo "  Type: $path_type"
+            echo "  Create: $create_flag"
+        done
+    fi
+
+    # Rest of init_base function...
     if ! verify_base_dir "$BAS_DIR"; then
         debug_log "Warning: BAS_DIR verification failed but continuing"
-        # Don't return 1 here - allow continuation
     fi
 
     debug_log "BAS_DIR contents:"
