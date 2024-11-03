@@ -1,0 +1,124 @@
+#!/bin/bash
+
+# Modified init_base function with better error handling
+init_base() {
+    debug_log "Starting init_base"
+    debug_log "BAS_DIR=$BAS_DIR"
+
+    # Initialize directories first
+    if ! init_dirs; then
+        debug_log "ERROR: Directory initialization failed"
+        return 1
+    fi
+
+    local module_loaded=0
+    local modules=(
+        "$BAS_DIR/err"
+        "$BAS_DIR/lo1"
+        "$BAS_DIR/lo2"
+        "$BAS_DIR/tme"
+    )
+
+    # Track loaded modules
+    declare -A loaded_modules
+
+    for module in "${modules[@]}"; do
+        local module_name="$(basename "$module")"
+        debug_log "Processing module: $module_name"
+
+        # Verify module first
+        if ! verify_module "$module_name"; then
+            debug_log "ERROR: Module verification failed for $module_name"
+            continue
+        fi
+
+        # Validate and source the module
+        if [[ -f "$module" ]] && [[ -r "$module" ]]; then
+            if source "$module" 2> >(debug_log "Source error: $(cat)"); then
+                debug_log "Successfully loaded module: $module_name"
+                loaded_modules[$module_name]=1
+                ((module_loaded++))
+            else
+                debug_log "ERROR: Failed to source module $module_name"
+            fi
+        else
+            debug_log "ERROR: Module file not found or not readable: $module"
+        fi
+    done
+
+    return $((module_loaded > 0 ? 0 : 1))
+}
+
+# Initialize base directories
+init_dirs() {
+    debug_log "Starting directory initialization"
+
+    # Create base directories
+    if ! essential_verify_path "LOG_DIR" "$LOG_DIR" "dir" "true" || \
+       ! essential_verify_path "TMP_DIR" "$TMP_DIR" "dir" "true"; then
+        debug_log "ERROR: Failed to create base directories"
+        echo "Fatal: Unable to create base directories" >&2
+        return 1
+    fi
+
+    # Set correct permissions
+    chmod 700 "$LOG_DIR" "$TMP_DIR" 2>/dev/null || {
+        debug_log "WARNING: Unable to set directory permissions"
+    }
+
+    # Process module-specific paths
+    for module in "${!MODULE_REQUIRED_PATHS[@]}"; do
+        local path_spec="${MODULE_REQUIRED_PATHS[$module]}"
+        debug_log "Processing module $module paths: $path_spec"
+
+        if ! parse_path_spec "$path_spec"; then
+            debug_log "ERROR: Failed to process paths for module $module"
+            echo "Fatal: Module path initialization failed for $module" >&2
+            return 1
+        fi
+    done
+
+    debug_log "Directory initialization completed successfully"
+    debug_log "LOG_DIR=$LOG_DIR"
+    debug_log "TMP_DIR=$TMP_DIR"
+
+    return 0
+}
+
+
+source_rc() {
+    debug_log "Starting source_rc"
+    local rc_modules=("rc1" "rc2" "rc3" "rc4")
+    local success_count=0
+
+    for module in "${rc_modules[@]}"; do
+        debug_log "Attempting to source $module"
+        if [[ -r "$CON_DIR/$module" ]]; then
+            debug_log "Module $module is readable"
+            debug_log "Module permissions: $(ls -l "$CON_DIR/$module")"
+            if [[ ! -x "$CON_DIR/$module" ]]; then
+                debug_log "Adding execute permission to $module"
+                chmod +x "$CON_DIR/$module" || {
+                    debug_log "ERROR: Failed to add execute permission to $module"
+                    continue
+                }
+            fi
+            if source "$CON_DIR/$module" 2> >(debug_log "Source error: $(cat)"); then
+                debug_log "Successfully sourced $module"
+                ((success_count++))
+            else
+                debug_log "ERROR: Failed to source $module"
+            fi
+        else
+            debug_log "ERROR: Cannot read $module at $CON_DIR/$module"
+        fi
+    done
+
+    debug_log "source_rc completed with $success_count successful modules"
+    [[ $success_count -gt 0 ]] || return 1
+    return 0
+}
+
+export -f init_base
+export -f init_dirs
+export -f source_rc
