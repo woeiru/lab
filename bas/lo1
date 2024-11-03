@@ -1,14 +1,5 @@
 #!/bin/bash
-
-# Load centralized constants if not already loaded
-if [[ -z "$CONS_LOADED" ]]; then
-    CONS_FILE="${HOME}/lab/dic/cons"
-    if [[ -f "$CONS_FILE" ]]; then
-        source "$CONS_FILE"
-    else
-        echo "Warning: Could not load centralized constants from $CONS_FILE" >&2
-    fi
-fi
+verify_module "lo1" || exit 1
 
 # Enable debug logging by default
 export LOG_DEBUG_ENABLED=1

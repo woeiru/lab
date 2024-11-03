@@ -1,22 +1,5 @@
 #!/bin/bash
-
-# Load centralized constants if not already loaded
-if [[ -z "$CONS_LOADED" ]]; then
-    CONS_FILE="${HOME}/lab/dic/cons"
-    if [[ -f "$CONS_FILE" ]]; then
-        source "$CONS_FILE"
-    else
-        echo "Warning: Could not load centralized constants from $CONS_FILE" >&2
-    fi
-fi
-
-# Verify critical directories exist (should have been created by rc.sh)
-for dir in "$LOG_DIR" "$TMP_DIR"; do
-    [[ ! -d "$dir" ]] && {
-        echo "Critical: Required directory missing: $dir" >&2
-        exit 1
-    }
-done
+verify_module "err" || exit 1
 
 # Define error codes with descriptive names
 declare -gA ERROR_CODES=(

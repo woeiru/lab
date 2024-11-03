@@ -1,5 +1,5 @@
 #!/bin/bash
-# bas/var - Variable verification module
+verify_module "var" || exit 1
 
 # First declare all module variables
 declare -g VAR_DEBUG_ENABLED="${VAR_DEBUG_ENABLED:-0}"
