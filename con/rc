@@ -108,7 +108,7 @@ init_base() {
             echo "        └─ Warning: Failed to load $module_name" >&2
 
             case "$module_name" in
-                "lo1"|"lo2")
+                "lo1")
                     debug_log "Activating fallback for logging"
                     fallback_lo
                     echo "         └─ Activated fallback logging system"
