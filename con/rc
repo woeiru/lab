@@ -9,7 +9,7 @@ declare -g TRAP_INITIALIZED=false    # Global flag to track trap initialization 
 debug_log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local message="$1"
-    local debug_file="$HOME/.local/log/lab/rc/debug.log"
+    local debug_file="$HOME/.local/lab/log/rc/debug.log"
     
     mkdir -p "$(dirname "$debug_file")"
     printf "[DEBUG] %s - %s\n" "$timestamp" "$message" | tee -a "$debug_file" >&2
