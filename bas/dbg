@@ -1,0 +1,91 @@
+#!/bin/bash
+
+debug_env() {
+    local prefix="DEBUG ENV:"
+    echo "$prefix Current directory: $(pwd)"
+    echo "$prefix Script directory: $CON_DIR"
+    echo "$prefix Important variables:"
+    echo "  LAB_DIR=$LAB_DIR"
+    echo "  BAS_DIR=$BAS_DIR"
+    echo "  CON_DIR=$CON_DIR"
+    echo "  LOG_DIR=$LOG_DIR"
+    echo "  TMP_DIR=$TMP_DIR"
+    echo "  ERROR_LOG=$ERROR_LOG"
+    echo "  LOG_STATE_FILE=$LOG_STATE_FILE"
+    echo "  LOG_DEBUG_FILE=$LOG_DEBUG_FILE"
+}
+
+# List module dependencies
+list_module_deps() {
+    local module="$1"
+
+    echo "Dependencies for module: $module"
+    echo "Required variables:"
+    if [[ -n "${MODULE_REQUIRED_VARS[$module]}" ]]; then
+        echo "  ${MODULE_REQUIRED_VARS[$module]}"
+    else
+        echo "  None"
+    fi
+
+    echo "Required paths:"
+    if [[ -n "${MODULE_REQUIRED_PATHS[$module]}" ]]; then
+        local IFS=';'
+        local paths=(${MODULE_REQUIRED_PATHS[$module]})
+        for path_spec in "${paths[@]}"; do
+            IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
+            echo "  $path_var ($path_type, create: $create_flag)"
+        done
+    else
+        echo "  None"
+    fi
+}
+
+# Parse path specifications
+parse_path_spec() {
+    local spec="$1"
+    [[ -z "$spec" ]] && return 1
+
+    local success=0
+    local IFS=';'
+    read -ra specs <<< "$spec"
+
+    for single_spec in "${specs[@]}"; do
+        [[ -z "$single_spec" ]] && continue
+
+        local var_name type create_flag
+        IFS=':' read -r var_name type create_flag <<< "$single_spec"
+
+        # Validate all parts are present
+        [[ -z "$var_name" || -z "$type" || -z "$create_flag" ]] && {
+            debug_log "ERROR: Invalid path specification: $single_spec"
+            continue
+        }
+
+        # Clean up variables and remove any trailing/leading whitespace
+        var_name="${var_name%%:*}"
+        type="${type%%:*}"
+        create_flag="${create_flag%%:*}"
+
+        # Get actual path value and verify it's not empty
+        local path_value="${!var_name}"
+        [[ -z "$path_value" ]] && {
+            debug_log "ERROR: Empty path value for $var_name"
+            continue
+        }
+
+        debug_log "Processing spec: var=$var_name, path=$path_value, type=$type, create=$create_flag"
+
+        if essential_verify_path "$var_name" "$path_value" "$type" "$create_flag"; then
+            ((success++))
+        else
+            debug_log "ERROR: Path verification failed for $var_name"
+            return 1
+        fi
+    done
+
+    return $((success > 0 ? 0 : 1))
+}
+
+export -f debug_env
+export -f list_module_deps
+export -f parse_path_spec
