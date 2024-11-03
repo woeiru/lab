@@ -5,6 +5,16 @@ set -o pipefail
 declare -gA CLEANUP_FUNCTIONS    # Associative array to store cleanup functions by module
 declare -g TRAP_INITIALIZED=false    # Global flag to track trap initialization state
 
+# Debug logging helper
+debug_log() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local message="$1"
+    local debug_file="$HOME/.local/log/lab/rc/debug.log"
+    
+    mkdir -p "$(dirname "$debug_file")"
+    printf "[DEBUG] %s - %s\n" "$timestamp" "$message" | tee -a "$debug_file" >&2
+}
+
 # Get the current script's directory
 DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
 
@@ -18,10 +28,59 @@ export TMP_DIR="$HOME/.local/tmp/lab"
 # Set BAS_DIR to the correct directory containing your base modules
 export BAS_DIR="$LAB_DIR/bas"
 
+# Add this validation function before init_base
+validate_module() {
+    local file="$1"
+    local module_name="$(basename "$file")"
+    
+    # Check if file exists and is regular file
+    [[ -f "$file" ]] || {
+        debug_log "ERROR: $module_name is not a regular file"
+        return 1
+    }
+
+    # Check if file is executable
+    [[ -x "$file" ]] || {
+        debug_log "Adding execute permission to $module_name"
+        chmod +x "$file" || {
+            debug_log "ERROR: Failed to make $module_name executable"
+            return 1
+        }
+    }
+
+    # Validate shebang
+    local shebang
+    read -r shebang < "$file"
+    [[ "$shebang" == "#!/bin/bash" ]] || {
+        debug_log "ERROR: Invalid or missing shebang in $module_name"
+        return 1
+    }
+
+    return 0
+}
+
 # init base modules
 init_base() {
+    debug_log "Starting init_base"
+    debug_log "BAS_DIR=$BAS_DIR"
+    debug_log "Current directory: $(pwd)"
+    debug_log "Script directory: $DIR"
+
+    # Check BAS_DIR exists and is readable
+    if [[ ! -d "$BAS_DIR" ]]; then
+        debug_log "ERROR: BAS_DIR does not exist: $BAS_DIR"
+        return 1
+    fi
+    
+    debug_log "BAS_DIR contents:"
+    ls -la "$BAS_DIR" 2>&1 | while read -r line; do
+        debug_log "  $line"
+    done
+
     # First initialize directories
+    debug_log "Initializing directories"
     init_dirs || {
+        debug_log "ERROR: Directory initialization failed"
         echo "         └─ Fatal: Directory initialization failed" >&2
         return 1
     }
@@ -32,44 +91,85 @@ init_base() {
     # Try to source each module, fall back if needed
     for file in "$BAS_DIR"/*; do
         local module_name=$(basename "$file")
-        if ! source "$file" 2>/dev/null; then
+        debug_log "Attempting to load module: $module_name"
+        
+        # Validate module before loading
+        if ! validate_module "$file"; then
+            debug_log "ERROR: Module validation failed for $module_name"
+            continue
+        fi
+
+        # Create temporary wrapper to capture source errors
+        local error_output
+        error_output=$(source "$file" 2>&1) || {
+            debug_log "ERROR: Failed to load module $module_name with error: $error_output"
             echo "        └─ Warning: Failed to load $module_name" >&2
 
             case "$module_name" in
-                "lo1")
+                "lo1"|"lo2")
+                    debug_log "Activating fallback for logging"
                     fallback_lo
                     echo "         └─ Activated fallback logging system"
                     ;;
                 "err")
+                    debug_log "Activating fallback for err"
                     fallback_err
                     echo "         └─ Activated fallback error handling"
                     ;;
                 "tme")
+                    debug_log "Activating fallback for tme"
                     fallback_tme
                     echo "         └─ Activated fallback timing system"
                     ;;
             esac
 
             fallback_active=true
+            continue
+        }
+
+        # Verify module loaded successfully
+        if [[ -n "$error_output" ]]; then
+            debug_log "WARNING: Module $module_name loaded with warnings: $error_output"
         else
-            ((module_loaded++))
-        fi
+            debug_log "Successfully loaded module: $module_name"
+        }
+
+        # Verify module functions are available
+        for func in $(grep -o '^[a-zA-Z0-9_]\+()' "$file" 2>/dev/null | tr -d '()'); do
+            if type "$func" >/dev/null 2>&1; then
+                debug_log "  Function verified: $func"
+            else
+                debug_log "  ERROR: Function not available after sourcing: $func"
+            }
+        done
+        ((module_loaded++))
+    done
+
+    debug_log "Environment after module loading:"
+    env | grep -i "lab\|dir\|path" | while read -r line; do
+        debug_log "  $line"
     done
 
     # Initialize timer system if available
     if type init_timer >/dev/null 2>&1; then
+        debug_log "Initializing timer system"
         init_timer "$RC_LOG_DIR" || {
+            debug_log "ERROR: Timer initialization failed"
             echo "         └─ Warning: Timer initialization failed, using fallback" >&2
             fallback_tme
             fallback_active=true
         }
+    else
+        debug_log "Timer initialization function not available"
     fi
 
     if $fallback_active; then
+        debug_log "Running in fallback mode"
         echo "        └─ Notice: Running in partial fallback mode with minimal functionality"
-        return 0  # Continue execution with fallback functions
+        return 0
     fi
 
+    debug_log "init_base completed with $module_loaded modules loaded"
     return $((module_loaded > 0 ? 0 : 1))
 }
 
@@ -129,7 +229,7 @@ init_dirs() {
         required_dirs+=("$base")
         for sub in "${sub_dirs[@]}"; do
             required_dirs+=("$base/$sub")
-        done
+        end
     done
 
     # Create all directories in one pass
@@ -345,15 +445,27 @@ fallback_tme() {
 }
 
 source_rc() {
+    debug_log "Starting source_rc"
     local rc_modules=("rc1" "rc2" "rc3" "rc4")
     local success_count=0
 
     for module in "${rc_modules[@]}"; do
-        if [[ -r "$DIR/$module" ]] && source "$DIR/$module" 2>/dev/null; then
-            ((success_count++))
+        debug_log "Attempting to source $module"
+        if [[ -r "$DIR/$module" ]]; then
+            debug_log "Module $module is readable"
+            debug_log "Module permissions: $(ls -l "$DIR/$module")"
+            if source "$DIR/$module" 2> >(debug_log "Source error: $(cat)"); then
+                debug_log "Successfully sourced $module"
+                ((success_count++))
+            else
+                debug_log "ERROR: Failed to source $module"
+            fi
+        else
+            debug_log "ERROR: Cannot read $module at $DIR/$module"
         fi
     done
 
+    debug_log "source_rc completed with $success_count successful modules"
     [[ $success_count -gt 0 ]] || return 1
     return 0
 }
