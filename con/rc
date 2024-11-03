@@ -342,13 +342,23 @@ parse_path_spec() {
         local var_name type create_flag
         IFS=':' read -r var_name type create_flag <<< "$single_spec"
 
-        # Clean up variables
+        # Validate all parts are present
+        [[ -z "$var_name" || -z "$type" || -z "$create_flag" ]] && {
+            debug_log "ERROR: Invalid path specification: $single_spec"
+            continue
+        }
+
+        # Clean up variables and remove any trailing/leading whitespace
         var_name="${var_name%%:*}"
         type="${type%%:*}"
         create_flag="${create_flag%%:*}"
-
-        # Get actual path value
+        
+        # Get actual path value and verify it's not empty
         local path_value="${!var_name}"
+        [[ -z "$path_value" ]] && {
+            debug_log "ERROR: Empty path value for $var_name"
+            continue
+        }
 
         debug_log "Processing spec: var=$var_name, path=$path_value, type=$type, create=$create_flag"
 
