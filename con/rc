@@ -309,7 +309,6 @@ validate_module() {
     return 0
 }
 
-# Helper function to parse and verify path specifications
 parse_path_spec() {
     local spec="$1"
     local IFS=';'
@@ -317,7 +316,16 @@ parse_path_spec() {
     
     local success=true
     for single_spec in "${specs[@]}"; do
+        # Trim any whitespace
+        single_spec="${single_spec## }"
+        single_spec="${single_spec%% }"
+        
+        # Use read -r with a here-string to avoid IFS issues
         IFS=':' read -r path_var path_type create_flag <<< "$single_spec"
+        
+        # Ensure create_flag is cleaned up
+        create_flag="${create_flag%;*}"
+        
         if ! essential_verify_path "$path_var" "${!path_var}" "$path_type" "$create_flag"; then
             debug_log "ERROR: Path verification failed for $path_var"
             success=false
