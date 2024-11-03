@@ -1,7 +1,17 @@
 #!/bin/bash
 # Runtime Constants Centralized
 
-# Use existing base directories
+# Declare all variables as global first
+declare -g LAB_DIR BAS_DIR CON_DIR ENV_DIR FUN_DIR GEN_DIR
+declare -g AUX_DIR LOG_DIR TMP_DIR
+declare -g ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
+declare -g LOG_STATE_FILE LOG_DEBUG_FILE
+declare -g TME_STATE_FILE TME_LOG_FILE
+declare -g CACHE_CLEANUP_INTERVAL
+declare -ga GENERATION_FOLDERS
+declare -gA ERROR_CODES
+
+# Use existing base directories or set defaults
 LAB_DIR="${LAB_DIR:-$HOME/lab}"    # Keep existing LAB_DIR if set
 BAS_DIR="${BAS_DIR:-$LAB_DIR/bas}"
 CON_DIR="${CON_DIR:-$LAB_DIR/con}"
@@ -9,7 +19,7 @@ ENV_DIR="${ENV_DIR:-$LAB_DIR/env}"
 FUN_DIR="${FUN_DIR:-$LAB_DIR/fun}"
 GEN_DIR="${GEN_DIR:-$LAB_DIR/gen}"
 
-# auxillary directories
+# Auxiliary directories
 AUX_DIR="${AUX_DIR:-$HOME/.local/lab}" # Keep existing AUX_DIR if set
 LOG_DIR="${LOG_DIR:-$HOME/.local/lab/log}" # Keep existing LOG_DIR if set
 TMP_DIR="${TMP_DIR:-$HOME/.local/lab/tmp}" # Keep existing TMP_DIR if set
@@ -24,7 +34,7 @@ TME_STATE_FILE="$TMP_DIR/tme_state"
 TME_LOG_FILE="$LOG_DIR/tme.log"
 
 # Keep existing error codes pattern
-declare -gA ERROR_CODES=(
+ERROR_CODES=(
     [SUCCESS]=0
     [GENERAL_ERROR]=1
     [FILE_NOT_FOUND]=2
@@ -41,11 +51,16 @@ declare -gA ERROR_CODES=(
 CACHE_CLEANUP_INTERVAL=300  # 5 minutes
 GENERATION_FOLDERS=(env fun gen)  # Keep existing array name
 
-# Export all constants
-export LAB_DIR LOG_DIR TMP_DIR
+# Flag to indicate constants are loaded
+declare -g CONS_LOADED=1
+
+# Export all variables after they're properly declared and set
+export LAB_DIR BAS_DIR CON_DIR ENV_DIR FUN_DIR GEN_DIR
+export AUX_DIR LOG_DIR TMP_DIR
 export ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
 export LOG_STATE_FILE LOG_DEBUG_FILE
 export TME_STATE_FILE TME_LOG_FILE
 export CACHE_CLEANUP_INTERVAL
 export GENERATION_FOLDERS
+export CONS_LOADED
 export -A ERROR_CODES
