@@ -2,13 +2,13 @@
 set -o pipefail
 
 # Source runtime constants first - the foundation of the system
-source "$DIR/../dic/runc" || {
+source "$DIR/../dic/ruc" || {
     echo "Failed to source constants" >&2
     exit 1
 }
 
 # Source dependency constants first - the foundation of the system
-source "$DIR/../dic/depc" || {
+source "$DIR/../dic/dec" || {
     echo "Failed to source constants" >&2
     exit 1
 }

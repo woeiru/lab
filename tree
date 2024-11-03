@@ -1,8 +1,8 @@
 .
 ├── ala
-│   ├── init
+│   ├── ini
 │   ├── run
-│   └── veri
+│   └── ver
 ├── bas
 │   ├── dbg
 │   ├── err
