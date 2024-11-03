@@ -211,6 +211,11 @@ setup_error_handling() {
     trap 'error_handler $LINENO' ERR
 }
 
+# Add automatic initialization when sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    setup_error_handling
+fi
+
 # Export functions and variables
 export ERROR_LOG
 export -A ERROR_CODES

@@ -189,7 +189,7 @@ init_fallback_verification() {
             if [[ ! -d "$dir" ]]; then
                 echo "Attempting to create directory: $dir"
                 mkdir -p "$dir" || ((missing++))
-            fi
+            }
         done
         if ((missing > 0)); then
             return 1
@@ -351,7 +351,6 @@ init_base() {
     }
 
     local module_loaded=0
-    local fallback_active=false
 
     # Updated module loading order array - removed var module
     local modules=(
@@ -385,27 +384,6 @@ init_base() {
             rm -f "$error_file"
             debug_log "ERROR: Failed to load module $module with error: $error_output"
             echo "        └─ Warning: Failed to load $module" >&2
-
-            # Handle fallbacks based on module
-            case "$module" in
-                "lo1")
-                    debug_log "Activating fallback for logging"
-                    fallback_log
-                    echo "         └─ Activated fallback logging system"
-                    ;;
-                "err")
-                    debug_log "Activating fallback for err"
-                    fallback_err
-                    echo "         └─ Activated fallback error handling"
-                    ;;
-                "tme")
-                    debug_log "Activating fallback for tme"
-                    fallback_tme
-                    echo "         └─ Activated fallback timing system"
-                    ;;
-            esac
-
-            fallback_active=true
             continue
         fi
         rm -f "$error_file"
@@ -435,19 +413,10 @@ init_base() {
         debug_log "Initializing timer system"
         init_timer "$LOG_DIR" || {
             debug_log "ERROR: Timer initialization failed"
-            echo "         └─ Warning: Timer initialization failed, using fallback" >&2
-            fallback_tme
-            fallback_active=true
+            echo "         └─ Warning: Timer initialization failed" >&2
         }
     else
         debug_log "Timer initialization function not available"
-    fi
-
-    # Final status check
-    if $fallback_active; then
-        debug_log "Running in fallback mode"
-        echo "        └─ Notice: Running in partial fallback mode with minimal functionality"
-        return 0
     fi
 
     debug_log "init_base completed with $module_loaded modules loaded"
@@ -604,71 +573,6 @@ init_traps() {
     fi
 }
 
-fallback_log() {
-    # Minimal logging functionality
-    log() {
-        local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-        # Ensure we have a message to log
-        local message="${2:-No message provided}"
-        echo "[FALLBACK-LOG] $timestamp - $message"
-    }
-
-    setlog() {
-        echo "[FALLBACK-LOG] Logging control not available in fallback mode"
-    }
-
-    init_logger() {
-        echo "[FALLBACK-LOG] Using minimal fallback logger"
-    }
-
-    cleanup_logger() {
-        :  # No-op in fallback mode
-    }
-
-    # Export fallback functions
-    export -f log setlog init_logger cleanup_logger
-}
-
-fallback_err() {
-    # Minimal error handling
-    error_handler() {
-        echo "[FALLBACK-ERROR] Error on line $1: $2"
-    }
-
-    clean_exit() {
-        exit "${1:-0}"
-    }
-
-    setup_error_handling() {
-        trap 'error_handler $LINENO $?' ERR
-    }
-
-    # Export fallback functions
-    export -f error_handler clean_exit setup_error_handling
-}
-
-fallback_tme() {
-    # Minimal timing functionality
-    init_timer() {
-        echo "[FALLBACK-TIMER] Timer initialization skipped in fallback mode"
-    }
-
-    start_timer() {
-        :  # No-op in fallback mode
-    }
-
-    end_timer() {
-        :  # No-op in fallback mode
-    }
-
-    print_timing_report() {
-        echo "[FALLBACK-TIMER] Timing report not available in fallback mode"
-    }
-
-    # Export fallback functions
-    export -f init_timer start_timer end_timer print_timing_report
-}
-
 source_rc() {
     debug_log "Starting source_rc"
     local rc_modules=("rc1" "rc2" "rc3" "rc4")
@@ -716,6 +620,7 @@ debug_rc_init() {
     done
 }
 
+# Modified main_rc to remove module function dependencies
 main_rc() {
     # Save original error exit setting
     local orig_errexit_setting=$(set -o | grep errexit | cut -f2)
@@ -746,36 +651,12 @@ main_rc() {
     # Track status of each major operation
     local rc_status=0
 
-    # Use log function if available, otherwise echo
-    type log >/dev/null 2>&1 && {
-        log "lvl" "main_rc : register_cleanup"
-        log "lvl" "main_rc : setup_error_handling"
-        log "lvl" "main_rc : source_rc"
-        log "lvl" "main_rc : setup_components"
-    } || {
-        echo "main_rc : register_cleanup" | tee -a /tmp/rc_init.log
-        echo "main_rc : setup_error_handling" | tee -a /tmp/rc_init.log
-        echo "main_rc : source_rc" | tee -a /tmp/rc_init.log
-        echo "main_rc : setup_components" | tee -a /tmp/rc_init.log
-    }
-
-    # Register cleanups with status tracking
-    type cleanup_logger >/dev/null 2>&1 && register_cleanup "lo" "cleanup_logger"
-    type cleanup_timer >/dev/null 2>&1 && register_cleanup "tme" "cleanup_timer"
-    type clean_exit >/dev/null 2>&1 && register_cleanup "err" "clean_exit"
-
-    # Setup error handling if available
-    type setup_error_handling >/dev/null 2>&1 && setup_error_handling
+    # Simple echo for logging
+    echo "main_rc : source_rc" | tee -a /tmp/rc_init.log
 
     # Source RC files with status tracking
     if ! source_rc; then
         echo "Warning: Failed to source RC files" >&2 | tee -a /tmp/rc_init.log
-        rc_status=1
-    fi
-
-    # Setup components with status tracking
-    if ! setup_components; then
-        echo "Warning: Component setup failed" >&2 | tee -a /tmp/rc_init.log
         rc_status=1
     fi
 
