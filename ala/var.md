@@ -11,13 +11,14 @@ The verification system consists of two complementary layers:
    - Basic safety checks
    - Used during early initialization
    - No dependencies
+   - Supports both RC and FALLBACK modes
 
 2. **Advanced Verification** (var module)
    - Optional enhanced features
    - Caching capabilities
-   - Type checking
-   - Detailed debugging
+   - Detailed debugging with VAR_DEBUG_ENABLED
    - Built on top of essential verification
+   - Automatic parent directory creation
 
 ## Essential Verification
 
@@ -27,6 +28,7 @@ The verification system consists of two complementary layers:
 essential_verify_var "VARIABLE_NAME"              # Single variable check
 essential_verify_path "PATH_VAR" "dir|file" true  # Path verification with creation
 essential_verify_vars VAR1 VAR2 VAR3              # Multiple variable check
+essential_check                                   # Complete environment verification
 ```
 
 ### Basic Usage
@@ -34,22 +36,31 @@ essential_verify_vars VAR1 VAR2 VAR3              # Multiple variable check
 ```bash
 #!/bin/bash
 
+# Set verification mode (RC or FALLBACK)
+set_verification_mode "RC"
+
+# Complete environment check
+if ! essential_check; then
+    echo "Fatal: Environment verification failed" >&2
+    return 1
+fi
+
 # Check single variable
 if ! essential_verify_var "LAB_DIR"; then
-    echo "Fatal: LAB_DIR not set" >&2
-    exit 1
+    printf "[%s] Variable 'LAB_DIR' is empty\n" "$VERIFICATION_MODE" >&2
+    return 1
 fi
 
 # Check multiple variables
 if ! essential_verify_vars LAB_DIR TMP_DIR LOG_DIR; then
-    echo "Fatal: Missing required variables" >&2
-    exit 1
+    printf "[%s] Missing required variables\n" "$VERIFICATION_MODE" >&2
+    return 1
 fi
 
 # Verify and create directory if needed
 if ! essential_verify_path "LOG_DIR" "dir" true; then
-    echo "Fatal: Cannot access log directory" >&2
-    exit 1
+    printf "[%s] Cannot access log directory\n" "$VERIFICATION_MODE" >&2
+    return 1
 fi
 ```
 
@@ -58,9 +69,10 @@ fi
 ### Enhanced Functions
 
 ```bash
-verify "VARIABLE_NAME" "type"                    # Type-aware verification
-verify_path "PATH_VAR" "dir|file" true          # Enhanced path verification
-verify_batch "([VAR]=type [VAR2]=type2 ...)"    # Batch verification with types
+var_debug_log "message" "source"                 # Debug logging with timestamps
+verify_var "VARIABLE_NAME"                       # Cached verification
+verify_path "PATH_VAR" "dir|file" "create"       # Enhanced path verification
+verify_path_auto "PATH" "type"                   # Auto-creates parent directories
 ```
 
 ### Advanced Usage
@@ -68,124 +80,102 @@ verify_batch "([VAR]=type [VAR2]=type2 ...)"    # Batch verification with types
 ```bash
 #!/bin/bash
 
-# Type-aware verification
-verify "PORT" "number" || exit 1
-verify "CONFIG_PATH" "path" || exit 1
+# Enable debug logging
+VAR_DEBUG_ENABLED=1
 
-# Batch verification
-declare -A requirements=(
-    ["PORT"]="number"
-    ["CONFIG_PATH"]="path"
-    ["LOG_DIR"]="path"
-    ["DEBUG_LEVEL"]="number"
-)
-verify_batch "${requirements[@]}" || exit 1
+# Cached variable verification
+verify_var "CONFIG_PATH" || exit 1
 
-# Enhanced path verification
-verify_path "CONFIG_FILE" "file" true || exit 1  # Create if missing
+# Path verification with parent directory creation
+verify_path_auto "LOG_DIR/app/debug" "dir" || exit 1
+
+# Debug logging
+var_debug_log "Starting verification" "init"
 ```
 
-## Combined Usage Examples
+## Initialization and Cleanup
 
-### Basic Script
-Minimal verification using only essential functions:
+### Essential Verification
 
 ```bash
-#!/bin/bash
+# Initialize verification system
+init_verification || init_fallback_verification
 
-# Basic environment checks
-if ! essential_verify_vars LAB_DIR TMP_DIR; then
-    echo "Fatal: Missing required variables" >&2
-    exit 1
-fi
-
-# Create log directory if needed
-essential_verify_path "LOG_DIR" "dir" true || exit 1
+# Debug mode for initialization
+debug_rc_init  # Shows critical paths and permissions
 ```
 
-### Advanced Script
-Using advanced features with fallback:
+### Advanced Verification
 
 ```bash
-#!/bin/bash
+# Clean up cached verifications
+cleanup_var
 
-# Try advanced verification, fall back to essential if needed
-if type verify >/dev/null 2>&1; then
-    # Advanced verification available
-    verify "PORT" "number" || exit 1
-    verify_path "CONFIG_FILE" "file" true || exit 1
-else
-    # Fall back to essential
-    essential_verify_vars PORT CONFIG_FILE || exit 1
-fi
+# Cache debugging
+var_debug_log "Cache status" "debug"
 ```
 
-### Complex Script
-Using both systems together:
+## Error Handling and Logging
 
-```bash
-#!/bin/bash
+### Essential Verification
+- Uses printf for error messages
+- Includes verification mode in messages
+- Supports both RC and FALLBACK modes
+- Creates /tmp/rc_init.log during initialization
 
-# Essential checks first
-essential_verify_vars LAB_DIR TMP_DIR || exit 1
-
-# Then advanced checks if available
-if type verify >/dev/null 2>&1; then
-    # Configuration requirements
-    declare -A requirements=(
-        ["PORT"]="number"
-        ["CONFIG_PATH"]="path"
-        ["LOG_DIR"]="path"
-    )
-    verify_batch "${requirements[@]}" || exit 1
-    
-    # Additional path verifications
-    verify_path "DATA_DIR" "dir" true || exit 1
-fi
-
-# Script continues...
-```
+### Advanced Verification
+- Supports detailed debug logging when VAR_DEBUG_ENABLED=1
+- Caches successful verifications
+- Logs to LOG_DEBUG_FILE
+- Includes timestamps and source information
 
 ## Best Practices
 
-1. **Always use essential verification for critical variables**
-   - Early initialization
-   - Core environment variables
-   - Basic path checks
+1. **Initialization Order**
+   - Start with essential verification
+   - Fall back to init_fallback_verification if needed
+   - Load var module for advanced features
+   - Enable debug logging when troubleshooting
 
-2. **Use advanced verification when available for:**
-   - Type checking
-   - Complex validations
-   - Batch operations
-   - Performance-critical sections (caching)
+2. **Directory Handling**
+   - Use verify_path_auto for nested directories
+   - Enable creation flag when appropriate
+   - Check parent directory permissions
 
-3. **Implement fallbacks where needed**
-   - Check for advanced functions before using them
-   - Fall back to essential verification when needed
-   - Handle missing features gracefully
+3. **Cache Management**
+   - Clear cache when needed using cleanup_var
+   - Monitor cache size in long-running scripts
+   - Use var_debug_log for cache debugging
 
-4. **Debug logging**
-   - Essential verification provides basic error messages
-   - Advanced verification offers detailed debug logging
-   - Enable VAR_DEBUG_ENABLED=1 for more verbose output
+4. **Error Recovery**
+   - Implement fallbacks for critical operations
+   - Use appropriate verification mode
+   - Check debug logs for detailed error information
 
-## Error Handling
+## Environment Variables
 
-Both systems return:
-- 0 for success
-- 1 for failure
+- `VAR_DEBUG_ENABLED`: Enable detailed logging (0/1)
+- `VERIFICATION_MODE`: Current verification mode (RC/FALLBACK)
+- `CONS_LOADED`: Indicates if constants are loaded
 
-Error messages are written to stderr and, in the case of advanced verification, to the debug log when enabled.
+## Limitations and Notes
 
-## Dependencies
+- Essential verification is always available after rc sourcing
+- Advanced verification requires functioning LOG_DIR
+- Cache entries persist until cleanup_var is called
+- Debug logging requires write access to LOG_DEBUG_FILE
+- Parent directory creation may require elevated permissions
+- VERIFICATION_MODE affects error message format
 
-- Essential Verification: None (part of rc)
-- Advanced Verification: Requires essential verification, LOG_DIR
+## Exit Codes
 
-## Notes
+Both systems use consistent exit codes:
+- 0: Success
+- 1: General failure
+- Other codes as defined in ERROR_CODES array
 
-- Essential verification is always available after rc initialization
-- Advanced verification requires the var module to be loaded
-- Both systems can be used together safely
-- Advanced verification includes caching for better performance
-- Type checking is only available in advanced verification
+## See Also
+
+- err.md: Error handling documentation
+- lo1.md: Logging system documentation
+- rc.md: Runtime configuration documentation
