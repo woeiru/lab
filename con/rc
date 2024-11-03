@@ -7,6 +7,19 @@ declare -gA CLEANUP_FUNCTIONS
 declare -g TRAP_INITIALIZED=false
 declare -g VERIFICATION_MODE="RC"  # Can be "RC" or "FALLBACK"
 
+ini_log() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local message="${2:-$1}"  # Accept both log "lvl" "msg" and log "msg" formats
+    printf "[FALLBACK] %s - %s\n" "$timestamp" "$message" >&2
+}
+export -f fallback_log
+
+# Create initial log function that uses fallback until real logging is ready
+log() {
+    ini_log "$@"
+}
+export -f log
+
 essential_verify_var() {
     local var_name="$1"
     local var_value="${!var_name}"
