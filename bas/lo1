@@ -280,6 +280,11 @@ cleanup_logger() {
     [[ -f "$LOG_DEPTH_CACHE_FILE" ]] && : > "$LOG_DEPTH_CACHE_FILE"
 }
 
+# Add automatic cleanup registration
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    trap cleanup_logger EXIT
+fi
+
 # Update exports to include lo1_debug_log instead of debug_log
 export LOG_FILE LOG_STATE_FILE TMP_DIR
 export -f log setlog init_logger cleanup_logger

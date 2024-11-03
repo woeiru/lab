@@ -336,6 +336,11 @@ cleanup_timer() {
     echo "$orig_log_state" > "$LO_STATE_FILE"
 }
 
+# Add automatic initialization when sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    init_timer "$LOG_DIR"
+fi
+
 # Export all functions and variables
 export TME_STARTUP_BEGIN
 export -A TME_START_TIMES
