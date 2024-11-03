@@ -1,14 +1,5 @@
 #!/bin/bash
-
-# Load centralized constants if not already loaded
-if [[ -z "$CONS_LOADED" ]]; then
-    CONS_FILE="${HOME}/lab/dic/cons"
-    if [[ -f "$CONS_FILE" ]]; then
-        source "$CONS_FILE"
-    else
-        echo "Warning: Could not load centralized constants from $CONS_FILE" >&2
-    fi
-fi
+verify_module "lo2" || exit 1
 
 # Enhanced debug logging - moved to top
 lo2_debug_log() {
@@ -19,23 +10,11 @@ lo2_debug_log() {
     printf "[LO2-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_DEBUG_FILE"
 }
 
-# Debug entry point
 lo2_debug_log "Entering lo2 module initialization" "init"
-
-# Verify base module is loaded
-if ! declare -F log >/dev/null; then
-    lo2_debug_log "Error: Base logging module (lo1) not loaded" "init"
-    echo "Error: Base logging module (lo1) must be loaded first" >&2
-    exit 1
-fi
-
-# Debug environment validation
 lo2_debug_log "Validating environment variables in lo2" "init"
 lo2_debug_log "HOME=$HOME" "init"
 lo2_debug_log "LOG_DIR=$LOG_DIR" "init"
 lo2_debug_log "TMP_DIR=$TMP_DIR" "init"
-
-# Debug directory setup
 lo2_debug_log "Setting up lo2 module directories" "init"
 
 # Global state
