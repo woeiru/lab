@@ -10,9 +10,8 @@ if [[ -z "$CONS_LOADED" ]]; then
     fi
 fi
 
-# Define paths early
-readonly LOG_LO_DIR="$HOME/.local/lab/log"
-readonly LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
+# Enable debug logging by default
+export LOG_DEBUG_ENABLED=1
 
 # Enhanced debug logging - moved to top
 lo1_debug_log() {
@@ -23,45 +22,16 @@ lo1_debug_log() {
     printf "[LO1-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_DEBUG_FILE"
 }
 
-# Enable debug logging by default
-export LOG_DEBUG_ENABLED=1
-
-# Validate required environment variables and ensure they're under $HOME
-[[ -z "$HOME" ]] && {
-    echo "Fatal: HOME environment variable not set" >&2
-    exit 1
-}
-
-[[ -z "$LOG_DIR" || "$LOG_DIR" != "$HOME/.local/log/lab" ]] && {
-    echo "Fatal: LOG_DIR must be set to $HOME/.local/log/lab" >&2
-    exit 1
-}
-
-[[ -z "$TMP_DIR" || "$TMP_DIR" != "$HOME/.local/tmp/lab" ]] && {
-    echo "Fatal: TMP_DIR must be set to $HOME/.local/tmp/lab" >&2
-    exit 1
-}
-
-# Define module-specific directories
-LOG_LO_DIR="$LOG_DIR/lo"
-TMP_LO_DIR="$TMP_DIR/lo"
-
 # Verify critical directories exist (should have been created by rc.sh)
-for dir in "$LOG_LO_DIR" "$TMP_LO_DIR"; do
+for dir in "$LOG_DIR" "$TMP_DIR"; do
     [[ ! -d "$dir" ]] && {
         echo "Critical: Required directory missing: $dir" >&2
         exit 1
     }
 done
 
-# Change in lo1:
-LOG_FILE="${LOG_LO_DIR}/tree.log"
-LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
-LOG_DEPTH_CACHE_FILE="${TMP_LO_DIR}/depth_cache"
-LOG_STATE_FILE="${TMP_LO_DIR}/lo1_state"
-
 # Initialize state file if it doesn't exist
-[[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
+[[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FIsLE"
 
 # Root function handling
 declare -gA ROOT_FUNCTIONS=([main_rc]=1)

@@ -19,24 +19,11 @@ declare -g TRAP_INITIALIZED=false    # Global flag to track trap initialization 
 debug_log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local message="$1"
-    local debug_file="$HOME/.local/lab/log/rc/debug.log"
+    local debug_file="$LOG_DEBUG_FILE"
     
     mkdir -p "$(dirname "$debug_file")"
     printf "[DEBUG] %s - %s\n" "$timestamp" "$message" | tee -a "$debug_file" >&2
 }
-
-# Get the current script's directory
-DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
-
-# Find LAB_DIR by going up two directories from DIR (con -> lab)
-export LAB_DIR="$(cd "$DIR/.." >/dev/null 2>&1 && pwd)"
-
-# Set up user-specific log and temp directories
-export LOG_DIR="$HOME/.local/lab/log"
-export TMP_DIR="$HOME/.local/lab/tmp"
-
-# Set BAS_DIR to the correct directory containing your base modules
-export BAS_DIR="$LAB_DIR/bas"
 
 # Add this validation function before init_base
 validate_module() {
@@ -74,7 +61,7 @@ init_base() {
     debug_log "Starting init_base"
     debug_log "BAS_DIR=$BAS_DIR"
     debug_log "Current directory: $(pwd)"
-    debug_log "Script directory: $DIR"
+    debug_log "Script directory: $CON_DIR"
 
     # Check BAS_DIR exists and is readable
     if [[ ! -d "$BAS_DIR" ]]; then
@@ -166,7 +153,7 @@ init_base() {
     # Initialize timer system if available
     if type init_timer >/dev/null 2>&1; then
         debug_log "Initializing timer system"
-        init_timer "$RC_LOG_DIR" || {
+        init_timer "$LOG_DIR" || {
             debug_log "ERROR: Timer initialization failed"
             echo "         └─ Warning: Timer initialization failed, using fallback" >&2
             fallback_tme
@@ -220,11 +207,6 @@ init_dirs() {
         echo
     } > "$debug_log" 2>/dev/null  # Redirect all potential errors to prevent them
 
-    # Force set base directories - override any existing values
-    LOG_DIR="$HOME/.local/log/lab"
-    TMP_DIR="$HOME/.local/tmp/lab"
-    export LOG_DIR TMP_DIR
-
     # Debug logging post-definition
     {
         printf '%s\n' "=== Post-Definition State ==="
@@ -233,69 +215,11 @@ init_dirs() {
         printf '%s\n\n' "=== End Post-Definition State ==="
     } >> "$debug_log"
 
-    # LOG & TMP dir structures
-    local base_dirs=("${LOG_DIR}" "${TMP_DIR}")
-    local sub_dirs=("err" "lo" "tme" "rc")
-    local required_dirs=()
-
-    for base in "${base_dirs[@]}"; do
-        required_dirs+=("$base")
-        for sub in "${sub_dirs[@]}"; do
-            required_dirs+=("$base/$sub")
-        done  # <- Fixed: changed 'end' to 'done'
-    done
-
-    # Create all directories in one pass
-    local -a failed_dirs=()
-    local dir
-    for dir in "${required_dirs[@]}"; do
-        if ! mkdir -p "$dir" 2>/dev/null; then
-            failed_dirs+=("$dir")
-            printf 'Warning: Failed to create directory: %s\n' "$dir" >&2
-            {
-                printf 'FAILED to create directory: %s\n' "$dir"
-                echo "Current permissions:"
-                ls -ld "$(dirname "$dir")" 2>&1 || echo "Cannot access parent directory"
-            } >> "$debug_log"
-        else
-            {
-                printf 'Successfully created/verified directory: %s\n' "$dir"
-                echo "Directory permissions:"
-                ls -ld "$dir"
-            } >> "$debug_log"
-        fi
-    done
-
-    # Handle failures and set fallbacks
-    if (( ${#failed_dirs[@]} > 0 )); then
-        {
-            printf '%s\n' "=== Directory Creation Failures ==="
-            printf '%s\n' "${failed_dirs[@]}"
-            echo "Warning: Some directories could not be created" >&2
-
-            # Critical fallback: If main LOG_DIR fails, use TMP_DIR
-            if [[ ! -d "$LOG_DIR" ]]; then
-                printf 'LOG_DIR (%s) not accessible, falling back to TMP_DIR\n' "$LOG_DIR"
-                LOG_DIR="$TMP_DIR"
-                echo "Falling back to TMP_DIR for logging: $TMP_DIR" >&2
-
-                # Attempt to create subdirectories in fallback location
-                local subdir
-                for subdir in err lo tme rc; do
-                    if ! mkdir -p "${LOG_DIR}/${subdir}" 2>/dev/null; then
-                        printf 'Warning: Failed to create fallback directory: %s/%s\n' "$LOG_DIR" "$subdir" >&2
-                    fi
-                done
-            fi
-        } >> "$debug_log"
-    fi
 
     # Verify critical directories exist
     local -a critical_dirs=(
         "${LOG_DIR}"
         "${TMP_DIR}"
-        "${LOG_DIR}/err"
-        "${TMP_DIR}/err"
     )
 
     {
@@ -464,17 +388,17 @@ source_rc() {
 
     for module in "${rc_modules[@]}"; do
         debug_log "Attempting to source $module"
-        if [[ -r "$DIR/$module" ]]; then
+        if [[ -r "$CON_DIR/$module" ]]; then
             debug_log "Module $module is readable"
-            debug_log "Module permissions: $(ls -l "$DIR/$module")"
-            if source "$DIR/$module" 2> >(debug_log "Source error: $(cat)"); then
+            debug_log "Module permissions: $(ls -l "$CON_DIR/$module")"
+            if source "$CON_DIR/$module" 2> >(debug_log "Source error: $(cat)"); then
                 debug_log "Successfully sourced $module"
                 ((success_count++))
             else
                 debug_log "ERROR: Failed to source $module"
             fi
         else
-            debug_log "ERROR: Cannot read $module at $DIR/$module"
+            debug_log "ERROR: Cannot read $module at $CON_DIR/$module"
         fi
     done
 

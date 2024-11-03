@@ -1,30 +1,27 @@
 #!/bin/bash
-# Centralized Runtime Constants
+# Runtime Constants Centralized
 
 # Use existing base directories
 LAB_DIR="${LAB_DIR:-$HOME/lab}"    # Keep existing LAB_DIR if set
+BAS_DIR="${BAS_DIR:-$LAB_DIR/bas}"
+CON_DIR="${CON_DIR:-$LAB_DIR/con}"
+ENV_DIR="${ENV_DIR:-$LAB_DIR/env}"
+FUN_DIR="${FUN_DIR:-$LAB_DIR/fun}"
+GEN_DIR="${GEN_DIR:-$LAB_DIR/gen}"
 
 # auxillary directories
 AUX_DIR="${AUX_DIR:-$HOME/.local/lab}" # Keep existing AUX_DIR if set
 LOG_DIR="${LOG_DIR:-$HOME/.local/lab/log}" # Keep existing LOG_DIR if set
 TMP_DIR="${TMP_DIR:-$HOME/.local/lab/tmp}" # Keep existing TMP_DIR if set
 
-# Module-specific directories (using existing patterns)
-ERR_LOG_DIR="$LOG_DIR/err"
-ERR_TMP_DIR="$TMP_DIR/err"
-LOG_LO_DIR="$LOG_DIR/log"  
-TMP_LO_DIR="$TMP_DIR/log"
-LOG_TME_DIR="$LOG_DIR/tme"
-TMP_TME_DIR="$TMP_DIR/tme"
-
 # State and log files (using existing patterns)
-ERROR_LOG="$ERR_LOG_DIR/error.log"
-ERROR_COUNT_FILE="$ERR_TMP_DIR/error_count"
-ERROR_STATE_FILE="$ERR_TMP_DIR/error_state"
-LOG_STATE_FILE="$TMP_LO_DIR/lo1_state"
-LOG_DEBUG_FILE="$LOG_LO_DIR/debug.log"
-TME_STATE_FILE="$TMP_TME_DIR/tme_state"
-TME_LOG_FILE="$LOG_TME_DIR/timing.log"
+ERROR_LOG="$LOG_DIR/err.log"
+ERROR_COUNT_FILE="$TMP_DIR/err_count"
+ERROR_STATE_FILE="$TMP_DIR/err_state"
+LOG_STATE_FILE="$TMP_DIR/lo1_state"
+LOG_DEBUG_FILE="$LOG_DIR/debug.log"
+TME_STATE_FILE="$TMP_DIR/tme_state"
+TME_LOG_FILE="$LOG_DIR/tme.log"
 
 # Keep existing error codes pattern
 declare -gA ERROR_CODES=(
@@ -46,9 +43,6 @@ GENERATION_FOLDERS=(env fun gen)  # Keep existing array name
 
 # Export all constants
 export LAB_DIR LOG_DIR TMP_DIR
-export ERR_LOG_DIR ERR_TMP_DIR
-export LOG_LO_DIR TMP_LO_DIR
-export LOG_TME_DIR TMP_TME_DIR
 export ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
 export LOG_STATE_FILE LOG_DEBUG_FILE
 export TME_STATE_FILE TME_LOG_FILE
