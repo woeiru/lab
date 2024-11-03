@@ -377,7 +377,7 @@ init_base() {
             case "$module" in
                 "lo1")
                     debug_log "Activating fallback for logging"
-                    fallback_lo
+                    fallback_log
                     echo "         └─ Activated fallback logging system"
                     ;;
                 "err")
@@ -591,7 +591,7 @@ init_traps() {
     fi
 }
 
-fallback_lo() {
+fallback_log() {
     # Minimal logging functionality
     log() {
         local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
