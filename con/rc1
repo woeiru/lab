@@ -4,9 +4,12 @@
 source_helper() {
     local file="$1"
     local description="${2:-$(basename "$file")}"
+    local temp_dir="/tmp"
+    local temp_error="$temp_dir/source_error.$$"
 
     start_timer "source_$description"
 
+    # Verify the file exists
     if [[ ! -f "$file" ]]; then
         log "lvl" " Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
@@ -14,6 +17,7 @@ source_helper() {
         return 1
     fi
 
+    # Verify the file is readable
     if [[ ! -r "$file" ]]; then
         log "lvl" " Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
@@ -21,8 +25,15 @@ source_helper() {
         return 1
     fi
 
+    # Verify temp directory exists and is writable
+    if [[ ! -d "$temp_dir" ]] || [[ ! -w "$temp_dir" ]]; then
+        log "lvl" " Error: Temporary directory $temp_dir is not available or writable" | tee -a "$ERROR_LOG" >&2
+        error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
+        end_timer "source_$description"
+        return 1
+    fi
+
     # Source the file and capture any errors
-    local temp_error="/tmp/source_error.$$"
     if source "$file" 2>"$temp_error"; then
         log "lvl" "Successfully sourced: $description" | tee -a "$ERROR_LOG"
         end_timer "source_$description" "success"
