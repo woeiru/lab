@@ -1,19 +1,22 @@
 #!/bin/bash
 set -o pipefail
 
-# Load centralized constants if not already loaded
+# 1. First declare all global variables
+declare -g CLEANUP_FUNCTIONS
+declare -g TRAP_INITIALIZED
+declare -gA CLEANUP_FUNCTIONS    # Associative array for cleanup functions
+declare -g TRAP_INITIALIZED=false    # Global flag for trap initialization
+
+# source the centralized constants
 if [[ -z "$CONS_LOADED" ]]; then
     CONS_FILE="${HOME}/lab/dic/cons"
     if [[ -f "$CONS_FILE" ]]; then
         source "$CONS_FILE"
     else
-        echo "Warning: Could not load centralized constants from $CONS_FILE" >&2
+        echo "Fatal: Could not load centralized constants from $CONS_FILE" >&2
+        exit 1
     fi
 fi
-
-# Global declarations should be at the very top
-declare -gA CLEANUP_FUNCTIONS    # Associative array to store cleanup functions by module
-declare -g TRAP_INITIALIZED=false    # Global flag to track trap initialization state
 
 # Debug logging helper
 debug_log() {
@@ -437,3 +440,5 @@ main_rc() {
 # Execute the main function
 echo " ─── initializating"
 main_rc
+
+export -f verify_var verify_vars verify_path verify_critical_paths init_verification
