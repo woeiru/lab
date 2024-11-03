@@ -18,9 +18,9 @@ CON_DIR="${CON_DIR:-$LAB_DIR/con}"
 export LAB_DIR BAS_DIR CON_DIR
 
 # Auxiliary directories
-AUX_DIR="${AUX_DIR:-$HOME/.local/lab}" # Keep existing AUX_DIR if set
-LOG_DIR="${LOG_DIR:-$HOME/.local/lab/log}" # Keep existing LOG_DIR if set
-TMP_DIR="${TMP_DIR:-$HOME/.local/lab/tmp}" # Keep existing TMP_DIR if set
+AUX_DIR="${AUX_DIR:-$LAB_DIR/.aux}" # Updated AUX_DIR to be within LAB_DIR
+LOG_DIR="${LOG_DIR:-$LAB_DIR/.log}" # Updated LOG_DIR to be within LAB_DIR
+TMP_DIR="${TMP_DIR:-$LAB_DIR/.tmp}" # Updated TMP_DIR to be within LAB_DIR
 export AUX_DIR LOG_DIR TMP_DIR
 
 # State and log files (using existing patterns)
