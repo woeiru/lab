@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define paths early
-readonly LOG_LO_DIR="${HOME}/.local/log/lab/lo"
+readonly LOG_LO_DIR="${HOME}/.local/lab/log"
 readonly LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
 
 # Enhanced debug logging - moved to top
