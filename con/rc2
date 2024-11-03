@@ -5,131 +5,52 @@ declare -ga GENERATION_FOLDERS=(env fun gen)
 export GENERATION_FOLDERS
 
 # Improved readme aliases generation with error handling
-# Main function with staged processing
 generate_readme_aliases() {
     start_nested_timing "gen_readme_aliases"
     log "lvl" "Generating readme aliases"
-
     local FILEBASE_MD="readme.md"
-    local temp_file="${TMP_DIR}/readme_files.$$"
 
-    # Stage 1: File Discovery
-    start_nested_timing "find_readme_files"
-    log "lvl" "Discovering readme files"
-    if ! find "$LAB_DIR" -type f -name "$FILEBASE_MD" > "$temp_file" 2>/dev/null; then
-        log "lvl" "Warning: No readme files found"
-        end_nested_timing "find_readme_files" "error"
+    # Validate LAB_DIR
+    if [[ -z "$LAB_DIR" ]]; then
+        log "lvl" "Error: LAB_DIR is not defined"
+        error_handler "$LINENO" "${ERROR_CODES[CONFIG_ERROR]}" "false"
         return 1
     fi
-    end_nested_timing "find_readme_files" "success"
 
-    # Stage 2: Validation
-    start_nested_timing "validate_files"
-    local file_count=$(wc -l < "$temp_file")
-    if [[ $file_count -eq 0 ]]; then
-        log "lvl" "No readme files found to process"
-        rm -f "$temp_file"
-        end_nested_timing "validate_files" "error"
+    # Check if LAB_DIR exists
+    if [[ ! -d "$LAB_DIR" ]]; then
+        log "lvl" "Error: LAB_DIR directory does not exist: $LAB_DIR"
+        error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
         return 1
     fi
-    log "lvl" "Found $file_count readme files to process"
-    end_nested_timing "validate_files" "success"
 
-    # Stage 3: Process files in batches
-    start_nested_timing "process_files"
-    local processed=0
-    local batch_size=10
-    local current_batch=0
+    start_nested_timing "process_readme_files"
+    local found_files=0
+    while IFS= read -r -d '' file; do
+        log "lvl" "Processing readme file: $file"
+        dir=$(dirname "$file")
+        dir_name=$(basename "$dir")
+        parent_dir=$(basename "$(dirname "$dir")")
 
-    # Create associative array for deduplication
-    declare -A created_aliases
+        if [[ "$parent_dir" != "lab" ]]; then
+            alias_name="$parent_dir-$dir_name-md"
+        else
+            alias_name="$dir_name-md"
+        fi
 
-    while true; do
-        # Get next batch of files
-        local -a batch_files=()
-        local i=0
-        while IFS= read -r file && [[ $i -lt $batch_size ]]; do
-            [[ -z "$file" ]] && continue
-            batch_files+=("$file")
-            ((i++))
-        done < <(tail -n +$((current_batch * batch_size + 1)) "$temp_file" | head -n "$batch_size")
+        alias "c-$alias_name=cat $file"
+        alias "v-$alias_name=vim $file"
+        log "lvl" "Created aliases: c-$alias_name and v-$alias_name for $file"
+        ((found_files++))
+    done < <(find "$LAB_DIR" -type f -name "$FILEBASE_MD" -print0 2>/dev/null)
 
-        [[ ${#batch_files[@]} -eq 0 ]] && break
-
-        start_nested_timing "process_batch_$current_batch"
-        log "lvl" "Processing batch $current_batch (${#batch_files[@]} files)"
-
-        for file in "${batch_files[@]}"; do
-            start_nested_timing "process_file_$processed"
-
-            # Extract directory information
-            local dir=$(dirname "$file")
-            local dir_name=$(basename "$dir")
-            local parent_dir=$(basename "$(dirname "$dir")")
-
-            # Generate alias name
-            local alias_name
-            if [[ "$parent_dir" != "lab" ]]; then
-                alias_name="$parent_dir-$dir_name-md"
-            else
-                alias_name="$dir_name-md"
-            fi
-
-            # Check for duplicate aliases
-            if [[ -n "${created_aliases[$alias_name]}" ]]; then
-                log "lvl" "Warning: Duplicate alias name detected: $alias_name"
-                ((processed++))
-                continue
-            fi
-
-            # Create aliases with validation
-            if [[ -r "$file" ]]; then
-                alias "c-$alias_name=cat $file"
-                alias "v-$alias_name=vim $file"
-                created_aliases[$alias_name]=1
-                log "lvl" "Created aliases: c-$alias_name and v-$alias_name"
-            else
-                log "lvl" "Warning: File not readable: $file"
-            fi
-
-            ((processed++))
-            end_nested_timing "process_file_$processed" "success"
-        done
-
-        end_nested_timing "process_batch_$current_batch" "success"
-        ((current_batch++))
-    done
-
-    # Stage 4: Cleanup and Summary
-    start_nested_timing "cleanup"
-    rm -f "$temp_file"
-
-    log "lvl" "Summary: Processed $processed files, created ${#created_aliases[@]} alias pairs"
-    end_nested_timing "cleanup" "success"
-
-    end_nested_timing "process_files" "success"
-    end_timer "gen_readme_aliases" "success"
-}
-
-# Helper function to validate file paths
-validate_file() {
-    local file="$1"
-    [[ -f "$file" && -r "$file" ]] && return 0
-    return 1
-}
-
-# Helper function to generate consistent alias names
-generate_alias_name() {
-    local file="$1"
-    local dir=$(dirname "$file")
-    local dir_name=$(basename "$dir")
-    local parent_dir=$(basename "$(dirname "$dir")")
-
-    if [[ "$parent_dir" != "lab" ]]; then
-        echo "$parent_dir-$dir_name-md"
-    else
-        echo "$dir_name-md"
+    if ((found_files == 0)); then
+        log "lvl" "Warning: No readme files found in $LAB_DIR"
+        error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
     fi
+
+    end_nested_timing "process_readme_files" "success"
+    end_nested_timing "gen_readme_aliases" "success"
 }
 
 generate_level_one_vars_and_aliases() {
