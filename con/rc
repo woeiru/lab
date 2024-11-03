@@ -107,13 +107,21 @@ essential_verify_path() {
     return 0
 }
 
-essential_verify_vars() {
-    local failed=0
-    for var in "$@"; do
-        essential_verify_var "$var" || ((failed++))
-    done
-    # Return 0 if no failures, 1 if any failed
-    return $((failed > 0))
+# Enhanced essential_verify_var function
+essential_verify_var() {
+    local var_name="$1"
+    local var_value="${!var_name}"
+    local prefix="[${VERIFICATION_MODE}]"
+
+    debug_log "Verifying variable: $var_name = $var_value"
+
+    if [[ -z "$var_value" ]]; then
+        printf "%s Variable '%s' is empty or undefined\n" "$prefix" "$var_name" >&2
+        return 1
+    fi
+
+    debug_log "Variable $var_name verified successfully"
+    return 0
 }
 
 essential_check() {
@@ -225,11 +233,12 @@ init_fallback_verification() {
     return 0
 }
 
+# Function to verify a single module's variables
 verify_module() {
     local module_name="$1"
     debug_log "Verifying module: $module_name"
 
-    # Use essential verification functions
+    # Basic environment verification
     if ! essential_check; then
         debug_log "ERROR: Environment verification failed for module: $module_name"
         return 1
@@ -238,12 +247,13 @@ verify_module() {
     # Check module-specific required variables
     if [[ -n "${MODULE_REQUIRED_VARS[$module_name]}" ]]; then
         debug_log "Checking required vars for $module_name: ${MODULE_REQUIRED_VARS[$module_name]}"
-        local required_vars=()
-        # Split the string into array properly
-        # Split the string into array while preserving spaces
-        read -ra var_array <<< "$var_string"
-        
-        for var in "${var_array[@]}"; do
+
+        # Convert space-separated string to array
+        local vars=()
+        read -ra vars <<< "${MODULE_REQUIRED_VARS[$module_name]}"
+
+        # Verify each variable individually
+        for var in "${vars[@]}"; do
             debug_log "Checking required var: $var"
             if ! essential_verify_var "$var"; then
                 debug_log "ERROR: Missing required variable $var for $module_name"
@@ -254,6 +264,7 @@ verify_module() {
 
     # Check module-specific required paths
     if [[ -n "${MODULE_REQUIRED_PATHS[$module_name]}" ]]; then
+        debug_log "Checking required paths for $module_name"
         if ! parse_path_spec "${MODULE_REQUIRED_PATHS[$module_name]}"; then
             debug_log "ERROR: Path verification failed for module $module_name"
             return 1
@@ -395,45 +406,18 @@ verify_base_dir() {
     return 0
 }
 
-# Modified init_base function without var module dependency
+# Modified init_base function with better error handling
 init_base() {
     debug_log "Starting init_base"
     debug_log "BAS_DIR=$BAS_DIR"
-    debug_log "Current directory: $(pwd)"
-    debug_log "Script directory: $CON_DIR"
 
-    # Debug variables
-    echo "DEBUG VARS:"
-    echo "LOG_STATE_FILE=$LOG_STATE_FILE"
-    echo "LOG_DEBUG_FILE=$LOG_DEBUG_FILE"
-    echo "LOG_DIR=$LOG_DIR"
-    echo "TMP_DIR=$TMP_DIR"
-    echo "Current module paths:"
-
-    # Show lo1's path specs correctly
-    if [[ -n "${MODULE_REQUIRED_PATHS[lo1]}" ]]; then
-        echo "lo1 path specs:"
-        local IFS=';'
-        local paths=(${MODULE_REQUIRED_PATHS[lo1]})
-        for path_spec in "${paths[@]}"; do
-            echo "Path spec: $path_spec"
-            local path_var path_type create_flag
-            IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
-            echo "  Var: $path_var = ${!path_var}"
-            echo "  Type: $path_type"
-            echo "  Create: $create_flag"
-        done
-    fi
-
-    # Rest of init_base function...
-    if ! verify_base_dir "$BAS_DIR"; then
-        debug_log "Warning: BAS_DIR verification failed but continuing"
+    # Initialize directories first
+    if ! init_dirs; then
+        debug_log "ERROR: Directory initialization failed"
         return 1
     fi
 
     local module_loaded=0
-
-    # Updated module loading order array - removed var module
     local modules=(
         "$BAS_DIR/err"
         "$BAS_DIR/lo1"
@@ -441,55 +425,33 @@ init_base() {
         "$BAS_DIR/tme"
     )
 
-    # Track loaded modules for dependencies
-
-    local module_loaded=0
-
-    # Updated module loading order array - removed var module
-    local modules=(
-        "$BAS_DIR/err"
-        "$BAS_DIR/lo1"
-        "$BAS_DIR/lo2"
-        "$BAS_DIR/tme"
-    )
-
-    # Track loaded modules for dependencies
+    # Track loaded modules
     declare -A loaded_modules
 
-    # Try to source each module
     for module in "${modules[@]}"; do
         local module_name="$(basename "$module")"
         debug_log "Processing module: $module_name"
 
-        # First verify the module itself
+        # Verify module first
         if ! verify_module "$module_name"; then
             debug_log "ERROR: Module verification failed for $module_name"
             continue
         fi
 
-        # Then validate and source the module file
-        if ! validate_module "$module"; then
-            debug_log "ERROR: Module file validation failed for $module_name"
-            continue
+        # Validate and source the module
+        if [[ -f "$module" ]] && [[ -r "$module" ]]; then
+            if source "$module" 2> >(debug_log "Source error: $(cat)"); then
+                debug_log "Successfully loaded module: $module_name"
+                loaded_modules[$module_name]=1
+                ((module_loaded++))
+            else
+                debug_log "ERROR: Failed to source module $module_name"
+            fi
+        else
+            debug_log "ERROR: Module file not found or not readable: $module"
         fi
-
-        # Source with error capture
-        if ! source "$module" 2> >(debug_log "Source error for $module_name: $(cat)"); then
-            debug_log "ERROR: Failed to source module $module_name"
-            continue
-        fi
-
-        debug_log "Successfully loaded module: $module_name"
-        loaded_modules[$module_name]=1
-        ((module_loaded++))
     done
 
-    debug_log "Environment after module loading:"
-    env | grep -i "lab\|dir\|path" | while read -r line; do
-        debug_log "  $line"
-    done
-
-    debug_log "init_base completed with $module_loaded modules loaded"
     return $((module_loaded > 0 ? 0 : 1))
 }
 
