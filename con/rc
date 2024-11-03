@@ -226,15 +226,9 @@ init_fallback_verification() {
 verify_module() {
     local module_name="$1"
 
-    # Check if essential verification is available
-    if ! type essential_verify_vars >/dev/null 2>&1; then
-        echo "Fatal: Essential verification not available" >&2
-        return 1
-    fi
-
-    # Verify basic environment
+    # Use essential verification functions
     if ! essential_check; then
-        echo "Fatal: Environment verification failed" >&2
+        echo "Fatal: Environment verification failed for module: $module_name" >&2
         return 1
     fi
 
@@ -300,9 +294,9 @@ debug_log() {
 validate_module() {
     local file="$1"
     local module_name="$(basename "$file")"
-    
-    # Check if file exists and is regular file
-    [[ -f "$file" ]] || {
+
+    # Verify file exists using essential verification
+    if ! essential_verify_path "file" "file" false; then
         debug_log "ERROR: $module_name is not a regular file"
         return 1
     }
@@ -376,7 +370,7 @@ init_base() {
         if ! validate_module "$file"; then
             debug_log "ERROR: Module validation failed for $module"
             continue
-        }
+        fi
 
         # Source the module and capture errors
         local error_file
@@ -461,9 +455,9 @@ init_base() {
 init_dirs() {
     local debug_log="${AUX_DIR:-/tmp}/init_dirs.log"
     mkdir -p "$(dirname "$debug_log")" 2>/dev/null
-    
-    # Create base directories with proper permissions
-    mkdir -p "$LOG_DIR" "$TMP_DIR" || {
+
+    # Verify and create base directories using essential verification
+    if ! essential_verify_path "LOG_DIR" "dir" true || ! essential_verify_path "TMP_DIR" "dir" true; then
         echo "Fatal: Unable to create base directories" >&2
         return 1
     }
