@@ -86,15 +86,6 @@ readonly CACHE_CLEANUP_INTERVAL=300  # 5 minutes
 # Root function handling
 declare -gA ROOT_FUNCTIONS=([main_rc]=1)
 
-# Debug support
-# In lo1, find and modify the debug_log function:
-debug_log() {
-    [[ "${LOG_DEBUG_ENABLED}" != "1" ]] && return 0
-    local timestamp=$(date '+%H:%M:%S')
-    local message="$1"
-    printf "[LO1-DEBUG] %s - %s\n" "$timestamp" "$message" >> "$LOG_DEBUG_FILE"
-}
-
 # Update dump_stack_trace to use lo1_debug_log
 dump_stack_trace() {
     local func="${1:-${FUNCNAME[1]}}"
@@ -160,7 +151,7 @@ get_base_depth() {
         lo1_debug_log "Cache hit for $current_func: ${LOG_DEPTH_CACHE[$current_func]}" "depth"
         echo "${LOG_DEPTH_CACHE[$current_func]}"
         return
-    }
+    fi
 
     cleanup_cache
 
