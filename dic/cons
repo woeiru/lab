@@ -31,9 +31,11 @@ LOG_STATE_FILE="$TMP_DIR/lo1_state"
 LOG_DEBUG_FILE="$LOG_DIR/debug.log"
 TME_STATE_FILE="$TMP_DIR/tme_state"
 TME_LOG_FILE="$LOG_DIR/tme.log"
+TME_LEVELS_FILE=/home/es/.local/lab/tmp/tme_levels
 export ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
 export LOG_STATE_FILE LOG_DEBUG_FILE
 export TME_STATE_FILE TME_LOG_FILE
+export TME_LEVELS_FILE
 
 # Module Dependencies
 declare -gA MODULE_REQUIRED_VARS=(
