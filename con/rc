@@ -20,50 +20,50 @@ essential_verify_var() {
 }
 
 essential_verify_path() {
-    local path_var="$1"
-    local path_type="$2"
-    local create="${3:-false}"
-    local path_value="${!path_var}"
-    local prefix="[${VERIFICATION_MODE}]"
+    local var_name=$1
+    local var_value=$2
+    local var_type=$3
+    local create=$4
 
-    echo "$prefix Verifying path: var=$path_var value=$path_value type=$path_type create=$create"
-
-    # First verify the variable exists and has a value
-    if [[ -z "$path_value" ]]; then
-        printf "%s Path variable '%s' is empty\n" "$prefix" "$path_var" >&2
+    if [[ -z "$var_value" ]]; then
+        echo "[ERROR] $var_name is not set or empty" | tee -a /tmp/rc_init.log
         return 1
     fi
 
-    if [[ "$create" == "true" ]]; then
-        case "$path_type" in
-            dir)
-                if ! mkdir -p "$path_value" 2>/dev/null; then
-                    printf "%s Failed to create directory '%s'\n" "$prefix" "$path_value" >&2
+    if [[ "$var_type" == "dir" ]]; then
+        if [[ ! -d "$var_value" ]]; then
+            if [[ "$create" == "true" ]]; then
+                mkdir -p "$var_value" 2>/dev/null
+                if [[ $? -ne 0 ]]; then
+                    echo "[ERROR] Failed to create directory: $var_value" | tee -a /tmp/rc_init.log
                     return 1
                 fi
-                echo "$prefix Created directory: $path_value"
-                ;;
-            file)
-                local parent_dir=$(dirname "$path_value")
-                if ! mkdir -p "$parent_dir" 2>/dev/null; then
-                    printf "%s Failed to create parent directory '%s'\n" "$prefix" "$parent_dir" >&2
+                echo "[INFO] Created directory: $var_value" | tee -a /tmp/rc_init.log
+            else
+                echo "[ERROR] Directory does not exist: $var_value" | tee -a /tmp/rc_init.log
+                return 1
+            fi
+        fi
+    elif [[ "$var_type" == "file" ]]; then
+        if [[ ! -f "$var_value" ]]; then
+            if [[ "$create" == "true" ]]; then
+                touch "$var_value" 2>/dev/null
+            if [[ $? -ne 0 ]]; then
+                    echo "[ERROR] Failed to create file: $var_value" | tee -a /tmp/rc_init.log
                     return 1
                 fi
-                if ! touch "$path_value" 2>/dev/null; then
-                    printf "%s Failed to create file '%s'\n" "$prefix" "$path_value" >&2
-                    return 1
-                fi
-                echo "$prefix Created file: $path_value"
-                ;;
-        esac
-    fi
-
-    if [[ ! -e "$path_value" ]]; then
-        printf "%s Path '%s' does not exist\n" "$prefix" "$path_value" >&2
+                echo "[INFO] Created file: $var_value" | tee -a /tmp/rc_init.log
+            else
+                echo "[ERROR] File does not exist: $var_value" | tee -a /tmp/rc_init.log
+                return 1
+            fi
+        fi
+    else
+        echo "[ERROR] Unknown type: $var_type for $var_name" | tee -a /tmp/rc_init.log
         return 1
     fi
 
-    echo "$prefix Successfully verified path: $path_value"
+    echo "[INFO] Successfully verified path: $var_value" | tee -a /tmp/rc_init.log
     return 0
 }
 
