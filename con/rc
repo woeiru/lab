@@ -38,46 +38,56 @@ essential_verify_path() {
     local type="$3"
     local create="$4"
 
-    [[ -z "$path" ]] && {
-        debug_log "ERROR: $var_name is empty"
+    # Basic validation
+    [[ -z "$var_name" || -z "$path" || -z "$type" ]] && {
+        debug_log "ERROR: Missing required parameters in essential_verify_path"
         return 1
     }
 
+    # Type validation
     case "$type" in
-        "dir")
-            if [[ ! -d "$path" ]]; then
-                if [[ "$create" == "true" ]]; then
-                    mkdir -p "$path" 2>/dev/null || {
-                        debug_log "ERROR: Failed to create directory: $path"
-                        return 1
-                    }
-                    debug_log "Created directory: $path"
-                else
-                    debug_log "ERROR: Directory does not exist: $path"
-                    return 1
-                fi
-            fi
-            ;;
-        "file")
-            if [[ ! -f "$path" ]]; then
-                if [[ "$create" == "true" ]]; then
-                    mkdir -p "$(dirname "$path")" 2>/dev/null
-                    touch "$path" 2>/dev/null || {
-                        debug_log "ERROR: Failed to create file: $path"
-                        return 1
-                    }
-                    debug_log "Created file: $path"
-                else
-                    debug_log "ERROR: File does not exist: $path"
-                    return 1
-                fi
-            fi
-            ;;
-        *)
+        "dir"|"file") : ;; # Valid types
+        *) 
             debug_log "ERROR: Invalid path type: $type"
             return 1
             ;;
     esac
+
+    # Create flag validation
+    [[ "$create" != "true" && "$create" != "false" ]] && create="false"
+
+    # Path verification and creation
+    if [[ "$type" == "dir" ]]; then
+        if [[ ! -d "$path" ]]; then
+            if [[ "$create" == "true" ]]; then
+                mkdir -p "$path" || {
+                    debug_log "ERROR: Failed to create directory: $path"
+                    return 1
+                }
+                debug_log "Created directory: $path"
+            else
+                debug_log "ERROR: Directory does not exist: $path"
+                return 1
+            fi
+        fi
+    elif [[ "$type" == "file" ]]; then
+        if [[ ! -f "$path" ]]; then
+            if [[ "$create" == "true" ]]; then
+                mkdir -p "$(dirname "$path")" || {
+                    debug_log "ERROR: Failed to create parent directory for: $path"
+                    return 1
+                }
+                touch "$path" || {
+                    debug_log "ERROR: Failed to create file: $path"
+                    return 1
+                }
+                debug_log "Created file: $path"
+            else
+                debug_log "ERROR: File does not exist: $path"
+                return 1
+            fi
+        fi
+    fi
 
     return 0
 }
@@ -313,40 +323,36 @@ validate_module() {
 
 parse_path_spec() {
     local spec="$1"
+    [[ -z "$spec" ]] && return 1
+
     local success=0
-    
-    # Split into individual path specifications
-    IFS=';' read -ra SPECS <<< "$spec"
-    for single_spec in "${SPECS[@]}"; do
-        # Skip empty specs
+    local IFS=';'
+    read -ra specs <<< "$spec"
+
+    for single_spec in "${specs[@]}"; do
         [[ -z "$single_spec" ]] && continue
         
-        # Parse each component
-        local path_var path_type create_flag
-        IFS=':' read -r path_var path_type create_flag <<< "$single_spec"
-        
+        local var_name type create_flag
+        IFS=':' read -r var_name type create_flag <<< "$single_spec"
+
         # Clean up variables
-        path_var="${path_var%%:*}"
-        path_type="${path_type%%:*}"
+        var_name="${var_name%%:*}"
+        type="${type%%:*}"
         create_flag="${create_flag%%:*}"
-        
-        # Validate components
-        if [[ -z "$path_var" || -z "$path_type" || -z "$create_flag" ]]; then
-            debug_log "ERROR: Invalid path spec: $single_spec"
-            return 1
-        fi
-        
-        # Get actual path value from variable name
-        local path_value="${!path_var}"
-        
-        # Verify path with proper parameters
-        if essential_verify_path "$path_var" "$path_value" "$path_type" "$create_flag"; then
+
+        # Get actual path value
+        local path_value="${!var_name}"
+
+        debug_log "Processing spec: var=$var_name, path=$path_value, type=$type, create=$create_flag"
+
+        if essential_verify_path "$var_name" "$path_value" "$type" "$create_flag"; then
             ((success++))
         else
-            debug_log "ERROR: Path verification failed for $path_var ($path_value)"
+            debug_log "ERROR: Path verification failed for $var_name"
+            return 1
         fi
     done
-    
+
     return $((success > 0 ? 0 : 1))
 }
 
@@ -486,85 +492,37 @@ init_base() {
 
 # init base modules tmp and log dirs
 init_dirs() {
-    local debug_log="${AUX_DIR:-/tmp}/init_dirs.log"
-    mkdir -p "$(dirname "$debug_log")" 2>/dev/null
-
-    # Verify and create base directories using essential verification
-    if ! essential_verify_path "LOG_DIR" "dir" true || ! essential_verify_path "TMP_DIR" "dir" true; then
+    debug_log "Starting directory initialization"
+    
+    # 1. First ensure base directories exist
+    if ! essential_verify_path "LOG_DIR" "$LOG_DIR" "dir" "true" || \
+       ! essential_verify_path "TMP_DIR" "$TMP_DIR" "dir" "true"; then
+        debug_log "ERROR: Failed to create base directories"
         echo "Fatal: Unable to create base directories" >&2
         return 1
     fi
 
-    # Ensure proper permissions (only for current user)
-    chmod 700 "$LOG_DIR" "$TMP_DIR" || {
-        echo "Warning: Unable to set directory permissions" >&2
+    # 2. Set correct permissions
+    chmod 700 "$LOG_DIR" "$TMP_DIR" 2>/dev/null || {
+        debug_log "WARNING: Unable to set directory permissions"
     }
 
-    # Debug logging for initial state
-    {
-        printf '%s\n' "=== Directory Initialization Debug Log ==="
-        printf 'Timestamp: %s\n' "$(date)"
-        printf 'Initial TMP_DIR value: %s\n' "${TMP_DIR:-unset}"
-        printf 'Initial LOG_DIR value: %s\n' "${LOG_DIR:-unset}"
-        printf 'Caller: %s\n' "${FUNCNAME[1]:-main}"
-        echo "Call stack:"
-        local i=0
-        # Redirect stderr to prevent error messages
-        while caller $i 2>/dev/null; do
-            ((i++))
-        done
-        echo "Current environment variables affecting paths:"
-        env | grep -i "dir\|path" || echo "No relevant environment variables found"
-        echo "=== End Initial State ==="
-        echo
-    } > "$debug_log" 2>/dev/null  # Redirect all potential errors to prevent them
-
-    # Debug logging post-definition
-    {
-        printf '%s\n' "=== Post-Definition State ==="
-        printf 'LOG_DIR set to: %s\n' "${LOG_DIR}"
-        printf 'TMP_DIR set to: %s\n' "${TMP_DIR}"
-        printf '%s\n\n' "=== End Post-Definition State ==="
-    } >> "$debug_log"
-
-
-    # Verify critical directories exist
-    local -a critical_dirs=(
-        "${LOG_DIR}"
-        "${TMP_DIR}"
-    )
-
-    {
-        printf '%s\n' "=== Critical Directory Verification ==="
-        local missing_critical=0
-        local dir
-        for dir in "${critical_dirs[@]}"; do
-            if [[ ! -d "$dir" ]]; then
-                printf 'MISSING CRITICAL DIRECTORY: %s\n' "$dir"
-                echo "Parent directory status:"
-                ls -ld "$(dirname "$dir")" 2>&1 || echo "Cannot access parent directory"
-                printf 'Critical: Required directory missing: %s\n' "$dir" >&2
-                missing_critical=1
-            else
-                printf 'Verified critical directory exists: %s\n' "$dir"
-                echo "Directory permissions:"
-                ls -ld "$dir"
-            fi
-        done
-
-        printf '%s\n' "=== Final State ==="
-        printf 'Final LOG_DIR: %s\n' "${LOG_DIR}"
-        printf 'Final TMP_DIR: %s\n' "${TMP_DIR}"
-        printf 'Missing critical directories: %d\n' "$missing_critical"
-        printf '%s\n\n' "=== End Directory Initialization ==="
-
-        # Exit if critical directories are missing
-        if (( missing_critical )); then
-            echo "Fatal: Missing critical directories. Cannot continue." >&2
+    # 3. Process module-specific paths
+    for module in "${!MODULE_REQUIRED_PATHS[@]}"; do
+        local path_spec="${MODULE_REQUIRED_PATHS[$module]}"
+        debug_log "Processing module $module paths: $path_spec"
+        
+        if ! parse_path_spec "$path_spec"; then
+            debug_log "ERROR: Failed to process paths for module $module"
+            echo "Fatal: Module path initialization failed for $module" >&2
             return 1
         fi
-    } > "$debug_log" 2>/dev/null
+    done
 
+    debug_log "Directory initialization completed successfully"
+    debug_log "LOG_DIR=$LOG_DIR"
+    debug_log "TMP_DIR=$TMP_DIR"
+    
     return 0
 }
 
