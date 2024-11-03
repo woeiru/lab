@@ -22,8 +22,8 @@ DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && p
 export LAB_DIR="$(cd "$DIR/.." >/dev/null 2>&1 && pwd)"
 
 # Set up user-specific log and temp directories
-export LOG_DIR="$HOME/.local/log/lab"
-export TMP_DIR="$HOME/.local/tmp/lab"
+export LOG_DIR="$HOME/.local/lab/log"
+export TMP_DIR="$HOME/.local/lab/tmp"
 
 # Set BAS_DIR to the correct directory containing your base modules
 export BAS_DIR="$LAB_DIR/bas"
@@ -178,7 +178,7 @@ init_base() {
 
 # init base modules tmp and log dirs
 init_dirs() {
-    local debug_log="$HOME/.local/init_dirs.log"
+    local debug_log="$HOME/.local/lab/init_dirs.log"
     
     # Create base directories with proper permissions
     mkdir -p "$LOG_DIR" "$TMP_DIR" || {
