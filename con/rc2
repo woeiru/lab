@@ -1,15 +1,5 @@
 #!/bin/bash
 
-# Load centralized constants if not already loaded
-if [[ -z "$CONS_LOADED" ]]; then
-    CONS_FILE="${HOME}/lab/dic/cons"
-    if [[ -f "$CONS_FILE" ]]; then
-        source "$CONS_FILE"
-    else
-        echo "Warning: Could not load centralized constants from $CONS_FILE" >&2
-    fi
-fi
-
 # Improved readme aliases generation with error handling
 generate_readme_aliases() {
     start_nested_timing "gen_readme_aliases"
