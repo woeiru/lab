@@ -561,7 +561,9 @@ fallback_lo() {
     # Minimal logging functionality
     log() {
         local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-        echo "[FALLBACK-LOG] $timestamp - $2"
+        # Ensure we have a message to log
+        local message="${2:-No message provided}"
+        echo "[FALLBACK-LOG] $timestamp - $message"
     }
 
     setlog() {

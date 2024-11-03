@@ -22,7 +22,7 @@ for dir in "$LOG_DIR" "$TMP_DIR"; do
 done
 
 # Initialize state file if it doesn't exist
-[[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FIsLE"
+[[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
 
 # Root function handling
 declare -gA ROOT_FUNCTIONS=([main_rc]=1)
