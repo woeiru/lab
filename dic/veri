@@ -1,0 +1,280 @@
+#!/bin/bash
+
+# Debug logging helper
+debug_log() {
+    [[ "$DEBUG_LOG_ENABLED" != "true" ]] && return 0
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local message="$1"
+    local source="${2:-${FUNCNAME[1]:-main}}"
+    printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >&2
+}
+
+# Global state
+declare -g VERIFICATION_MODE="RC"  # Can be "RC" or "FALLBACK"
+declare -g DEBUG_LOG_ENABLED=false
+
+# Single, consolidated verify_module function
+verify_module() {
+    local module="$1"
+    debug_log "Verifying module: $module"
+
+    # Initialize requirements if not already done
+    if [[ -z "${MODULE_VARS[*]}" ]]; then
+        init_module_requirements
+    fi
+
+    local failed=0
+
+    # Verify all variables for this module
+    for var_key in "${!MODULE_VARS[@]}"; do
+        if [[ $var_key == $module.* ]]; then
+            local var_name="${var_key#$module.}"
+            if ! verify_module_var "$module" "$var_name"; then
+                ((failed++))
+            fi
+        fi
+    done
+
+    # Verify all paths for this module
+    for path_key in "${!MODULE_PATHS[@]}"; do
+        if [[ $path_key == $module.* ]]; then
+            local path_var="${path_key#$module.}"
+            if ! verify_module_path "$module" "$path_var"; then
+                ((failed++))
+            fi
+        fi
+    done
+
+    if ((failed > 0)); then
+        debug_log "Module verification failed for $module with $failed errors"
+        return 1
+    fi
+
+    debug_log "Module $module verified successfully"
+    return 0
+}
+
+# Verify a single variable for a module
+verify_module_var() {
+    local module="$1"
+    local var="$2"
+
+    debug_log "Verifying variable $var for module $module"
+
+    if [[ -n "${MODULE_VARS[$module.$var]}" ]]; then
+        if [[ -z "${!var}" ]]; then
+            debug_log "ERROR: Required variable $var is empty for module $module"
+            return 1
+        fi
+        debug_log "Variable $var verified for module $module"
+        return 0
+    fi
+
+    debug_log "Variable $var not required for module $module"
+    return 0
+}
+
+# Verify a single path for a module
+verify_module_path() {
+    local module="$1"
+    local path_var="$2"
+
+    debug_log "Verifying path $path_var for module $module"
+
+    local path_spec="${MODULE_PATHS[$module.$path_var]}"
+    if [[ -z "$path_spec" ]]; then
+        debug_log "No path specification for $path_var in module $module"
+        return 0
+    fi
+
+    local type="${path_spec%%:*}"
+    local create="${path_spec##*:}"
+    local path="${!path_var}"
+
+    debug_log "Path spec for $path_var: type=$type create=$create path=$path"
+
+    if [[ -z "$path" ]]; then
+        debug_log "ERROR: Path variable $path_var is empty"
+        return 1
+    fi
+
+    case "$type" in
+        "dir")
+            if [[ ! -d "$path" ]]; then
+                if [[ "$create" == "true" ]]; then
+                    mkdir -p "$path" || {
+                        debug_log "ERROR: Failed to create directory: $path"
+                        return 1
+                    }
+                    debug_log "Created directory: $path"
+                else
+                    debug_log "ERROR: Directory does not exist: $path"
+                    return 1
+                fi
+            fi
+            ;;
+        "file")
+            if [[ ! -f "$path" ]]; then
+                if [[ "$create" == "true" ]]; then
+                    mkdir -p "$(dirname "$path")" || {
+                        debug_log "ERROR: Failed to create parent directory for: $path"
+                        return 1
+                    }
+                    touch "$path" || {
+                        debug_log "ERROR: Failed to create file: $path"
+                        return 1
+                    }
+                    debug_log "Created file: $path"
+                else
+                    debug_log "ERROR: File does not exist: $path"
+                    return 1
+                fi
+            fi
+            ;;
+        *)
+            debug_log "ERROR: Invalid path type: $type"
+            return 1
+            ;;
+    esac
+
+    debug_log "Path verification successful: $path"
+    return 0
+}
+
+# Essential verification functions
+essential_verify_var() {
+    local var_name="$1"
+    local var_value="${!var_name}"
+    local prefix="[${VERIFICATION_MODE}]"
+
+    debug_log "Verifying variable: $var_name = $var_value"
+
+    if [[ -z "$var_value" ]]; then
+        printf "%s Variable '%s' is empty or undefined\n" "$prefix" "$var_name" >&2
+        return 1
+    fi
+
+    debug_log "Variable $var_name verified successfully"
+    return 0
+}
+
+essential_verify_path() {
+    local var_name="$1"
+    local path="$2"
+    local type="$3"
+    local create="${4:-false}"
+
+    debug_log "essential_verify_path: var=$var_name path=$path type=$type create=$create"
+
+    [[ -z "$var_name" || -z "$path" || -z "$type" ]] && {
+        debug_log "ERROR: Missing required parameters in essential_verify_path"
+        return 1
+    }
+
+    case "$type" in
+        "dir"|"file") : ;;
+        *)
+            debug_log "ERROR: Invalid path type: $type"
+            return 1
+            ;;
+    esac
+
+    if [[ "$type" == "dir" ]]; then
+        if [[ ! -d "$path" ]]; then
+            if [[ "$create" == "true" ]]; then
+                debug_log "Creating directory: $path"
+                mkdir -p "$path" || {
+                    debug_log "ERROR: Failed to create directory: $path"
+                    return 1
+                }
+                debug_log "Created directory: $path"
+            else
+                debug_log "ERROR: Directory does not exist: $path"
+                return 1
+            fi
+        fi
+    elif [[ "$type" == "file" ]]; then
+        if [[ ! -f "$path" ]]; then
+            if [[ "$create" == "true" ]]; then
+                debug_log "Creating parent directory for file: $path"
+                mkdir -p "$(dirname "$path")" || {
+                    debug_log "ERROR: Failed to create parent directory for: $path"
+                    return 1
+                }
+                debug_log "Creating file: $path"
+                touch "$path" || {
+                    debug_log "ERROR: Failed to create file: $path"
+                    return 1
+                }
+                debug_log "Created file: $path"
+            else
+                debug_log "ERROR: File does not exist: $path"
+                return 1
+            fi
+        fi
+    fi
+
+    debug_log "Path verification successful: $path"
+    return 0
+}
+
+essential_verify_vars() {
+    local failed=0
+    for var in "$@"; do
+        if ! essential_verify_var "$var"; then
+            ((failed++))
+        fi
+    done
+    return $((failed > 0 ? 1 : 0))
+}
+
+essential_check() {
+    # Load constants if needed
+    if [[ -z "$CONS_LOADED" ]]; then
+        local cons_file="${HOME}/lab/dic/cons"
+        if [[ ! -f "$cons_file" ]]; then
+            printf "[%s] Constants file not found: %s\n" "$VERIFICATION_MODE" "$cons_file" >&2
+            return 1
+        fi
+        source "$cons_file" || {
+            printf "[%s] Failed to source constants\n" "$VERIFICATION_MODE" >&2
+            return 1
+        }
+    fi
+
+    # Verify critical variables
+    local essential_vars=(LAB_DIR BAS_DIR LOG_DIR TMP_DIR)
+    if ! essential_verify_vars "${essential_vars[@]}"; then
+        printf "[%s] Critical variable verification failed\n" "$VERIFICATION_MODE" >&2
+        return 1
+    fi
+
+    # Create essential directories if they don't exist
+    for dir in "$LOG_DIR" "$TMP_DIR"; do
+        if [[ ! -d "$dir" ]]; then
+            mkdir -p "$dir" || {
+                printf "[%s] Failed to create directory: %s\n" "$VERIFICATION_MODE" "$dir" >&2
+                return 1
+            }
+        fi
+    done
+
+    return 0
+}
+
+# Set verification mode
+set_verification_mode() {
+    VERIFICATION_MODE="$1"
+}
+
+# Export functions and variables
+export VERIFICATION_MODE
+export -f verify_module
+export -f verify_module_var
+export -f verify_module_path
+export -f essential_verify_var
+export -f essential_verify_path
+export -f essential_verify_vars
+export -f essential_check
+export -f set_verification_mode
+export -f debug_log
