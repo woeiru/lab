@@ -26,82 +26,44 @@ essential_verify_path() {
     local path_value="${!path_var}"
     local prefix="[${VERIFICATION_MODE}]"
 
+    echo "$prefix Verifying path: var=$path_var value=$path_value type=$path_type create=$create"
+
     # First verify the variable exists and has a value
-    if ! essential_verify_var "$path_var"; then
-        printf "%s Variable '%s' verification failed\n" "$prefix" "$path_var" >&2
+    if [[ -z "$path_value" ]]; then
+        printf "%s Path variable '%s' is empty\n" "$prefix" "$path_var" >&2
         return 1
     fi
-
-    # Log the attempt
-    printf "%s Verifying path: %s (type: %s, create: %s)\n" "$prefix" "$path_value" "$path_type" "$create" >> /tmp/rc_init.log
 
     if [[ "$create" == "true" ]]; then
         case "$path_type" in
             dir)
-                if ! mkdir -p "$path_value" 2>/tmp/mkdir.error; then
-                    local error=$(cat /tmp/mkdir.error)
-                    printf "%s Failed to create directory '%s': %s\n" "$prefix" "$path_value" "$error" >&2
-                    rm -f /tmp/mkdir.error
+                if ! mkdir -p "$path_value" 2>/dev/null; then
+                    printf "%s Failed to create directory '%s'\n" "$prefix" "$path_value" >&2
                     return 1
                 fi
-                rm -f /tmp/mkdir.error
-                printf "%s Created directory: %s\n" "$prefix" "$path_value" >> /tmp/rc_init.log
+                echo "$prefix Created directory: $path_value"
                 ;;
             file)
                 local parent_dir=$(dirname "$path_value")
-                if ! mkdir -p "$parent_dir" 2>/tmp/mkdir.error; then
-                    local error=$(cat /tmp/mkdir.error)
-                    printf "%s Failed to create parent directory '%s': %s\n" "$prefix" "$parent_dir" "$error" >&2
-                    rm -f /tmp/mkdir.error
+                if ! mkdir -p "$parent_dir" 2>/dev/null; then
+                    printf "%s Failed to create parent directory '%s'\n" "$prefix" "$parent_dir" >&2
                     return 1
                 fi
-                rm -f /tmp/mkdir.error
-
-                if ! touch "$path_value" 2>/tmp/touch.error; then
-                    local error=$(cat /tmp/touch.error)
-                    printf "%s Failed to create file '%s': %s\n" "$prefix" "$path_value" "$error" >&2
-                    rm -f /tmp/touch.error
+                if ! touch "$path_value" 2>/dev/null; then
+                    printf "%s Failed to create file '%s'\n" "$prefix" "$path_value" >&2
                     return 1
                 fi
-                rm -f /tmp/touch.error
-                printf "%s Created file: %s\n" "$prefix" "$path_value" >> /tmp/rc_init.log
-                ;;
-            *)
-                printf "%s Invalid path type '%s' for '%s'\n" "$prefix" "$path_type" "$path_var" >&2
-                return 1
+                echo "$prefix Created file: $path_value"
                 ;;
         esac
     fi
 
-    # Final verification that path exists
     if [[ ! -e "$path_value" ]]; then
-        printf "%s Path '%s' does not exist and creation was not requested\n" "$prefix" "$path_value" >&2
+        printf "%s Path '%s' does not exist\n" "$prefix" "$path_value" >&2
         return 1
     fi
 
-    # Check permissions
-    if [[ ! -r "$path_value" ]]; then
-        printf "%s Path '%s' exists but is not readable\n" "$prefix" "$path_value" >&2
-        return 1
-    fi
-
-    case "$path_type" in
-        dir)
-            if [[ ! -d "$path_value" ]]; then
-                printf "%s Path '%s' exists but is not a directory\n" "$prefix" "$path_value" >&2
-                return 1
-            fi
-            ;;
-        file)
-            if [[ ! -f "$path_value" ]]; then
-                printf "%s Path '%s' exists but is not a regular file\n" "$prefix" "$path_value" >&2
-                return 1
-            fi
-            ;;
-    esac
-
-    # Log success
-    printf "%s Successfully verified path: %s\n" "$prefix" "$path_value" >> /tmp/rc_init.log
+    echo "$prefix Successfully verified path: $path_value"
     return 0
 }
 
@@ -242,11 +204,24 @@ verify_module() {
 
     # Check module-specific required paths
     if [[ -n "${MODULE_REQUIRED_PATHS[$module_name]}" ]]; then
-        local IFS=';'
-        local paths=(${MODULE_REQUIRED_PATHS[$module_name]})
-        for path_spec in "${paths[@]}"; do
+        # Split path specifications into array
+        local path_specs
+        IFS=';' read -ra path_specs <<< "${MODULE_REQUIRED_PATHS[$module_name]}"
+
+        for path_spec in "${path_specs[@]}"; do
+            # Split single specification into components
+            local path_var path_type create_flag
             IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
-            if ! essential_verify_path "$path_var" "$path_type" "$create_flag"; then
+
+            if [[ -z "$path_var" || -z "$path_type" ]]; then
+                echo "Fatal: Invalid path specification for $module_name: $path_spec" >&2
+                return 1
+            fi
+
+            # Debug output
+            echo "[DEBUG] Processing: var=$path_var type=$path_type create=$create_flag"
+
+            if ! essential_verify_path "$path_var" "$path_type" "${create_flag:-false}"; then
                 echo "Fatal: Required path $path_var not accessible for $module_name" >&2
                 return 1
             fi
@@ -299,7 +274,7 @@ validate_module() {
     if ! essential_verify_path "file" "file" false; then
         debug_log "ERROR: $module_name is not a regular file"
         return 1
-    }
+    fi
 
     # Check if file is executable
     [[ -x "$file" ]] || {
@@ -327,6 +302,21 @@ init_base() {
     debug_log "BAS_DIR=$BAS_DIR"
     debug_log "Current directory: $(pwd)"
     debug_log "Script directory: $CON_DIR"
+
+        # Inside init_base, just before source "$file":
+    echo "DEBUG VARS:"
+    echo "LOG_STATE_FILE=$LOG_STATE_FILE"
+    echo "LOG_DEBUG_FILE=$LOG_DEBUG_FILE"
+    echo "LOG_DIR=$LOG_DIR"
+    echo "TMP_DIR=$TMP_DIR"
+    echo "Current module paths:"
+    for path_spec in ${MODULE_REQUIRED_PATHS[lo1]}; do
+        echo "Path spec: $path_spec"
+        IFS=':' read -r path_var path_type create_flag <<< "$path_spec"
+        echo "  Var: $path_var = ${!path_var}"
+        echo "  Type: $path_type"
+        echo "  Create: $create_flag"
+    done
 
     # Check BAS_DIR using essential verification
     if ! essential_verify_path "BAS_DIR" "dir" false; then
@@ -460,7 +450,7 @@ init_dirs() {
     if ! essential_verify_path "LOG_DIR" "dir" true || ! essential_verify_path "TMP_DIR" "dir" true; then
         echo "Fatal: Unable to create base directories" >&2
         return 1
-    }
+    fi
 
     # Ensure proper permissions (only for current user)
     chmod 700 "$LOG_DIR" "$TMP_DIR" || {
