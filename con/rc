@@ -1,22 +1,169 @@
 #!/bin/bash
 set -o pipefail
 
-# 1. First declare all global variables
-declare -g CLEANUP_FUNCTIONS
+# First declare all globals
 declare -g TRAP_INITIALIZED
-declare -gA CLEANUP_FUNCTIONS    # Associative array for cleanup functions
-declare -g TRAP_INITIALIZED=false    # Global flag for trap initialization
+declare -gA CLEANUP_FUNCTIONS
+declare -g TRAP_INITIALIZED=false
+declare -g VERIFICATION_MODE="RC"  # Can be "RC" or "FALLBACK"
 
-# source the centralized constants
-if [[ -z "$CONS_LOADED" ]]; then
-    CONS_FILE="${HOME}/lab/dic/cons"
-    if [[ -f "$CONS_FILE" ]]; then
-        source "$CONS_FILE"
-    else
-        echo "Fatal: Could not load centralized constants from $CONS_FILE" >&2
-        exit 1
+essential_verify_var() {
+    local var_name="$1"
+    local var_value="${!var_name}"
+    local prefix="[${VERIFICATION_MODE}]"
+
+    if [[ -z "$var_value" ]]; then
+        printf "%s Variable '%s' is empty\n" "$prefix" "$var_name" >&2
+        return 1
     fi
-fi
+    return 0
+}
+
+essential_verify_path() {
+    local path_var="$1"
+    local path_type="$2"
+    local create="${3:-false}"
+    local path_value="${!path_var}"
+    local prefix="[${VERIFICATION_MODE}]"
+
+    if ! essential_verify_var "$path_var"; then
+        return 1
+    fi
+
+    if [[ "$create" == "true" ]]; then
+        case "$path_type" in
+            dir) mkdir -p "$path_value" 2>/dev/null ;;
+            file)
+                mkdir -p "$(dirname "$path_value")" 2>/dev/null
+                touch "$path_value" 2>/dev/null
+                ;;
+        esac
+    fi
+
+    if [[ ! -e "$path_value" ]]; then
+        printf "%s Path '%s' does not exist\n" "$prefix" "$path_value" >&2
+        return 1
+    fi
+    return 0
+}
+
+essential_verify_vars() {
+    local failed=0
+    for var in "$@"; do
+        essential_verify_var "$var" || ((failed++))
+    done
+    # Return 0 if no failures, 1 if any failed
+    return $((failed > 0))
+}
+
+essential_check() {
+    # Load constants if needed
+    if [[ -z "$CONS_LOADED" ]]; then
+        local cons_file="${HOME}/lab/dic/cons"
+        if [[ ! -f "$cons_file" ]]; then
+            printf "[%s] Constants file not found: %s\n" "$VERIFICATION_MODE" "$cons_file" >&2
+            return 1
+        fi
+        source "$cons_file" || {
+            printf "[%s] Failed to source constants\n" "$VERIFICATION_MODE" >&2
+            return 1
+        }
+    fi
+
+    # Verify critical variables
+    local essential_vars=(LAB_DIR BAS_DIR LOG_DIR TMP_DIR)
+    if ! essential_verify_vars "${essential_vars[@]}"; then
+        printf "[%s] Critical variable verification failed\n" "$VERIFICATION_MODE" >&2
+        return 1
+    fi
+
+    # Create essential directories if they don't exist
+    for dir in "$LOG_DIR" "$TMP_DIR"; do
+        if [[ ! -d "$dir" ]]; then
+            mkdir -p "$dir" || {
+                printf "[%s] Failed to create directory: %s\n" "$VERIFICATION_MODE" "$dir" >&2
+                return 1
+            }
+        fi
+    done
+
+    return 0
+}
+
+# Function to switch verification mode
+set_verification_mode() {
+    VERIFICATION_MODE="$1"
+}
+
+# Initialize verification system
+init_verification() {
+    # First save original trace settings and enable tracing
+    local orig_trace_setting=$(set -o | grep xtrace | cut -f2)
+    set -x
+
+    # Create log directory if it doesn't exist
+    mkdir -p "$(dirname /tmp/rc_init.log)" 2>/dev/null
+
+    # Redirect all output to both console and a log file
+    exec 1> >(tee /tmp/rc_init.log) 2>&1
+
+    echo "Starting initialization verification..."
+
+    # For RC startup
+    set_verification_mode "RC"
+    if ! essential_check; then
+        echo "Fatal: Essential verification failed during RC initialization" >&2
+        echo "Check /tmp/rc_init.log for details"
+        # Don't exit, just return failure
+        return 1
+    fi
+
+    # Verify critical directories exist after essential_check
+    local missing=0
+    for dir in "$LAB_DIR" "$BAS_DIR" "$LOG_DIR" "$TMP_DIR"; do
+        if [[ ! -d "$dir" ]]; then
+            echo "Creating directory: $dir"
+            mkdir -p "$dir" || {
+                echo "Failed to create directory: $dir" >&2
+                ((missing++))
+            }
+        fi
+    done
+
+    if ((missing > 0)); then
+        echo "Some directories could not be created" >&2
+        return 1
+    fi
+
+    # Restore original trace setting
+    if [[ "$orig_trace_setting" == "off" ]]; then
+        set +x
+    fi
+
+    echo "Initialization verification completed successfully"
+    return 0
+}
+
+# Fallback initialization
+init_fallback_verification() {
+    # For fallback mode
+    set_verification_mode "FALLBACK"
+    if ! essential_check; then
+        echo "Fatal: Essential verification failed in fallback mode" >&2
+        # Don't exit immediately, try to create directories first
+        local missing=0
+        for dir in "$LOG_DIR" "$TMP_DIR"; do
+            if [[ ! -d "$dir" ]]; then
+                echo "Attempting to create directory: $dir"
+                mkdir -p "$dir" || ((missing++))
+            fi
+        done
+        if ((missing > 0)); then
+            return 1
+        fi
+    fi
+    return 0
+}
 
 # Debug logging helper
 debug_log() {
@@ -60,24 +207,25 @@ validate_module() {
 }
 
 # init base modules
+# Improved init_base function
 init_base() {
     debug_log "Starting init_base"
     debug_log "BAS_DIR=$BAS_DIR"
     debug_log "Current directory: $(pwd)"
     debug_log "Script directory: $CON_DIR"
 
-    # Check BAS_DIR exists and is readable
-    if [[ ! -d "$BAS_DIR" ]]; then
-        debug_log "ERROR: BAS_DIR does not exist: $BAS_DIR"
+    # Check BAS_DIR using essential verification
+    if ! essential_verify_path "BAS_DIR" "dir" false; then
+        debug_log "ERROR: BAS_DIR verification failed"
         return 1
     fi
-    
+
     debug_log "BAS_DIR contents:"
     ls -la "$BAS_DIR" 2>&1 | while read -r line; do
         debug_log "  $line"
     done
 
-    # First initialize directories
+    # First initialize directories using essential verification
     debug_log "Initializing directories"
     init_dirs || {
         debug_log "ERROR: Directory initialization failed"
@@ -87,27 +235,44 @@ init_base() {
 
     local module_loaded=0
     local fallback_active=false
+    local var_module_loaded=false
 
-    # Try to source each module, fall back if needed
-    for file in "$BAS_DIR"/*; do
-        local module_name=$(basename "$file")
-        debug_log "Attempting to load module: $module_name"
-        
+    # Module loading order array
+    local modules=(
+        "var"   # Will try to load but not critical anymore
+        "err"
+        "lo1"
+        "lo2"
+        "tme"
+    )
+
+    # Track loaded modules for dependencies
+    declare -A loaded_modules
+
+    # Try to source each module
+    for module in "${modules[@]}"; do
+        local file="$BAS_DIR/$module"
+        debug_log "Attempting to load module: $module"
+
         # Validate module before loading
         if ! validate_module "$file"; then
-            debug_log "ERROR: Module validation failed for $module_name"
+            debug_log "ERROR: Module validation failed for $module"
             continue
         fi
 
-        # Source the module and capture errors to temp file
-        local error_file=$(mktemp)
-        if ! source "$file" 2>"$error_file"; then
-            local error_output=$(<"$error_file")
-            rm -f "$error_file"
-            debug_log "ERROR: Failed to load module $module_name with error: $error_output"
-            echo "        └─ Warning: Failed to load $module_name" >&2
+        # Source the module and capture errors
+        local error_file
+        error_file=$(mktemp)
 
-            case "$module_name" in
+        if ! source "$file" 2>"$error_file"; then
+            local error_output
+            error_output=$(<"$error_file")
+            rm -f "$error_file"
+            debug_log "ERROR: Failed to load module $module with error: $error_output"
+            echo "        └─ Warning: Failed to load $module" >&2
+
+            # Handle fallbacks based on module
+            case "$module" in
                 "lo1")
                     debug_log "Activating fallback for logging"
                     fallback_lo
@@ -123,6 +288,10 @@ init_base() {
                     fallback_tme
                     echo "         └─ Activated fallback timing system"
                     ;;
+                "var")
+                    debug_log "Var module failed, using essential verification"
+                    # We're already using essential verification, so no additional fallback needed
+                    ;;
             esac
 
             fallback_active=true
@@ -130,14 +299,13 @@ init_base() {
         fi
         rm -f "$error_file"
 
-        # Verify module loaded successfully
-        if [[ -n "$error_output" ]]; then
-            debug_log "WARNING: Module $module_name loaded with warnings: $error_output"
-        else
-            debug_log "Successfully loaded module: $module_name"
-        fi
+        # Mark module as loaded
+        loaded_modules[$module]=1
+        ((module_loaded++))
+        [[ "$module" == "var" ]] && var_module_loaded=true
 
         # Verify module functions are available
+        debug_log "Verifying module functions for: $module"
         for func in $(grep -o '^[a-zA-Z0-9_]\+()' "$file" 2>/dev/null | tr -d '()'); do
             if type "$func" >/dev/null 2>&1; then
                 debug_log "  Function verified: $func"
@@ -145,7 +313,6 @@ init_base() {
                 debug_log "  ERROR: Function not available after sourcing: $func"
             fi
         done
-        ((module_loaded++))
     done
 
     debug_log "Environment after module loading:"
@@ -153,8 +320,8 @@ init_base() {
         debug_log "  $line"
     done
 
-    # Initialize timer system if available
-    if type init_timer >/dev/null 2>&1; then
+    # Initialize timer system if available using essential verification
+    if type init_timer >/dev/null 2>&1 && essential_verify_path "LOG_DIR" "dir" true; then
         debug_log "Initializing timer system"
         init_timer "$LOG_DIR" || {
             debug_log "ERROR: Timer initialization failed"
@@ -166,6 +333,7 @@ init_base() {
         debug_log "Timer initialization function not available"
     fi
 
+    # Final status check
     if $fallback_active; then
         debug_log "Running in fallback mode"
         echo "        └─ Notice: Running in partial fallback mode with minimal functionality"
@@ -178,7 +346,8 @@ init_base() {
 
 # init base modules tmp and log dirs
 init_dirs() {
-    local debug_log="$AUX_DIR/init_dirs.log"
+    local debug_log="${AUX_DIR:-/tmp}/init_dirs.log"
+    mkdir -p "$(dirname "$debug_log")" 2>/dev/null
     
     # Create base directories with proper permissions
     mkdir -p "$LOG_DIR" "$TMP_DIR" || {
@@ -254,7 +423,7 @@ init_dirs() {
             echo "Fatal: Missing critical directories. Cannot continue." >&2
             return 1
         fi
-    } >> "$debug_log"
+    } > "$debug_log" 2>/dev/null
 
     return 0
 }
@@ -264,11 +433,15 @@ register_cleanup() {
     local module="$1"
     local function="$2"
 
+    [[ -z "$module" || -z "$function" ]] && {
+        echo "Error: Invalid cleanup registration arguments" >&2
+        return 1
+    }
     if [[ -n "$function" && $(type -t "$function") == "function" ]]; then
         CLEANUP_FUNCTIONS[$module]="$function"
-        log "lvl" "Registered cleanup for module: $module"
+        type log >/dev/null 2>&1 && log "lvl" "Registered cleanup for module: $module" || echo "Registered cleanup for module: $module"
     else
-        log "lvl" "Failed to register cleanup for module: $module - invalid function"
+        type log >/dev/null 2>&1 && log "lvl" "Failed to register cleanup for module: $module" || echo "Failed to register cleanup for module: $module"
         return 1
     fi
 }
@@ -410,35 +583,113 @@ source_rc() {
     return 0
 }
 
-# Modify main_rc to handle fallback mode
+debug_rc_init() {
+    echo "Checking critical paths..."
+    echo "HOME=$HOME"
+    echo "LAB_DIR=$LAB_DIR"
+    echo "BAS_DIR=$BAS_DIR"
+    echo "LOG_DIR=$LOG_DIR"
+    echo "TMP_DIR=$TMP_DIR"
+
+    echo -e "\nChecking directory existence:"
+    for dir in "$HOME" "$LAB_DIR" "$BAS_DIR" "$LOG_DIR" "$TMP_DIR"; do
+        printf "%-30s: %s\n" "$dir" "$([ -d "$dir" ] && echo "exists" || echo "missing")"
+    done
+
+    echo -e "\nChecking file permissions:"
+    for dir in "$HOME" "$LAB_DIR" "$BAS_DIR" "$LOG_DIR" "$TMP_DIR"; do
+        if [ -e "$dir" ]; then
+            ls -ld "$dir"
+        fi
+    done
+}
+
 main_rc() {
+    # Save original error exit setting
+    local orig_errexit_setting=$(set -o | grep errexit | cut -f2)
+    set +e  # Disable exit on error temporarily
+
+    echo "Starting main_rc initialization..."
+
+    # Try initialization
+    if ! init_verification; then
+        echo "Warning: Initialization verification failed, attempting fallback mode..." >&2
+        init_fallback_verification || {
+            echo "Fatal: Both main and fallback initialization failed" >&2
+            echo "Check /tmp/rc_init.log for details" >&2
+            # Don't exit, just return failure
+            return 1
+        }
+    fi
+
     echo "      └─ main_rc : init_traps"
-    init_traps
+    init_traps || echo "Warning: Trap initialization failed"
 
     echo "      └─ main_rc : init_base"
     if ! init_base; then
         echo "Warning: Environment initialization using fallbacks" >&2
     fi
 
-    # From this point on, we can safely use log() as either the main or fallback logging is available
-    log "lvl" "main_rc : register_cleanup"
+    # Use log function if available, otherwise echo
+    type log >/dev/null 2>&1 && {
+        log "lvl" "main_rc : register_cleanup"
+        log "lvl" "main_rc : setup_error_handling"
+        log "lvl" "main_rc : source_rc"
+        log "lvl" "main_rc : setup_components"
+    } || {
+        echo "main_rc : register_cleanup"
+        echo "main_rc : setup_error_handling"
+        echo "main_rc : source_rc"
+        echo "main_rc : setup_components"
+    }
+
     # Register cleanups if functions exist
     type cleanup_logger >/dev/null 2>&1 && register_cleanup "lo" "cleanup_logger"
     type cleanup_timer >/dev/null 2>&1 && register_cleanup "tme" "cleanup_timer"
     type clean_exit >/dev/null 2>&1 && register_cleanup "err" "clean_exit"
 
-    log "lvl" "main_rc : setup_error_handling"
+    # Setup error handling if available
     type setup_error_handling >/dev/null 2>&1 && setup_error_handling
 
-    log "lvl" "main_rc : source_rc"
-    source_rc
+    # Source RC files
+    if ! source_rc; then
+        echo "Warning: Failed to source RC files" >&2
+    fi
 
-    log "lvl" "main_rc : setup_components"
-    setup_components
+    # Setup components
+    if ! setup_components; then
+        echo "Warning: Component setup failed" >&2
+    fi
+
+    # Restore original errexit setting
+    if [[ "$orig_errexit_setting" == "on" ]]; then
+        set -e
+    fi
+
+    return 0
 }
 
-# Execute the main function
-echo " ─── initializating"
-main_rc
+echo " ─── initializing"
+debug_rc_init
 
-export -f verify_var verify_vars verify_path verify_critical_paths init_verification
+# Disable exit on error for the initialization
+set +e
+
+if ! main_rc; then
+    echo "RC initialization failed. Check /tmp/rc_init.log for details" >&2
+    # Create essential directories as last resort
+    for dir in "$LOG_DIR" "$TMP_DIR"; do
+        mkdir -p "$dir" 2>/dev/null
+    done
+fi
+
+# Restore exit on error if it was enabled
+if [[ "$(set -o | grep errexit | cut -f2)" == "on" ]]; then
+    set -e
+fi
+
+
+export VERIFICATION_MODE
+export -f essential_verify_var essential_verify_path essential_verify_vars
+export -f essential_check set_verification_mode
+export -f init_verification init_fallback_verification
