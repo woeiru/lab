@@ -34,6 +34,18 @@ essential_verify_var() {
 
 essential_verify_path() {
     local var_name="$1"
+
+    if [[ -z "$var_value" ]]; then
+        printf "%s Variable '%s' is empty\n" "$prefix" "$var_name" >&2
+        return 1
+    fi
+
+    debug_log "Variable $var_name verified: $var_value"
+    return 0
+}
+
+essential_verify_path() {
+    local var_name="$1"
     local path="$2"
     local type="$3"
     local create="${4:-false}"
@@ -226,8 +238,8 @@ verify_module() {
     # Check module-specific required variables
     if [[ -n "${MODULE_REQUIRED_VARS[$module_name]}" ]]; then
         debug_log "Checking required vars for $module_name: ${MODULE_REQUIRED_VARS[$module_name]}"
-        local var_string="${MODULE_REQUIRED_VARS[$module_name]}"
-        local var_array=()
+        local required_vars=()
+        # Split the string into array properly
         # Split the string into array while preserving spaces
         read -ra var_array <<< "$var_string"
         
@@ -416,20 +428,20 @@ init_base() {
     # Rest of init_base function...
     if ! verify_base_dir "$BAS_DIR"; then
         debug_log "Warning: BAS_DIR verification failed but continuing"
+        return 1
     fi
 
-    debug_log "BAS_DIR contents:"
-    ls -la "$BAS_DIR" 2>&1 | while read -r line; do
-        debug_log "  $line"
-    done
+    local module_loaded=0
 
-    # First initialize directories using essential verification
-    debug_log "Initializing directories"
-    init_dirs || {
-        debug_log "ERROR: Directory initialization failed"
-        echo "         └─ Fatal: Directory initialization failed" >&2
-        return 1
-    }
+    # Updated module loading order array - removed var module
+    local modules=(
+        "$BAS_DIR/err"
+        "$BAS_DIR/lo1"
+        "$BAS_DIR/lo2"
+        "$BAS_DIR/tme"
+    )
+
+    # Track loaded modules for dependencies
 
     local module_loaded=0
 
@@ -475,16 +487,16 @@ init_base() {
     debug_log "Environment after module loading:"
     env | grep -i "lab\|dir\|path" | while read -r line; do
         debug_log "  $line"
-    done
 
-    # Initialize timer system if available using essential verification
-    if type init_timer >/dev/null 2>&1 && essential_verify_path "LOG_DIR" "dir" true; then
-        debug_log "Initializing timer system"
-        init_timer "$LOG_DIR" || {
-            debug_log "ERROR: Timer initialization failed"
-            echo "         └─ Warning: Timer initialization failed" >&2
-        }
-    else
+    debug_log "init_base completed with $module_loaded modules loaded"
+    return $((module_loaded > 0 ? 0 : 1))
+}
+
+# init base modules tmp and log dirs
+init_dirs() {
+    debug_log "Starting directory initialization"
+    
+    # 1. First ensure base directories exist
         debug_log "Timer initialization function not available"
     fi
 
@@ -655,15 +667,15 @@ main_rc() {
     set +e  # Disable exit on error temporarily
 
     echo "Starting main_rc initialization..." | tee -a /tmp/rc_init.log
+        echo "Warning: Trap initialization failed" >&2 | tee -a /tmp/rc_init.log
+        echo "init_traps returned: $?" >> /tmp/rc_init.log
+    }
 
-    # Try initialization with status tracking
-    if ! init_verification; then
-        echo "Warning: Initialization verification failed, attempting fallback mode..." >&2 | tee -a /tmp/rc_init.log
-        if ! init_fallback_verification; then
-            echo "Fatal: Both main and fallback initialization failed" >&2 | tee -a /tmp/rc_init.log
-            return 1
-        fi
-    fi
+    echo "      └─ main_rc : init_base" | tee -a /tmp/rc_init.log
+    init_base
+    local init_base_status=$?
+    echo "init_base returned: $init_base_status" >> /tmp/rc_init.log
+
 
     echo "      └─ main_rc : init_traps" | tee -a /tmp/rc_init.log
     init_traps || {
@@ -722,6 +734,7 @@ if [ $MAIN_RC_STATUS -ne 0 ]; then
 
     # Continue with shell despite initialization failure
     return 0
+debug_env() {
 fi
 
 # Restore exit on error if it was enabled
@@ -733,3 +746,25 @@ export VERIFICATION_MODE
 export -f essential_verify_var essential_verify_path essential_verify_vars
 export -f essential_check set_verification_mode
 export -f init_verification init_fallback_verification
+
+    set -e
+fi
+
+export VERIFICATION_MODE
+export -f essential_verify_var essential_verify_path essential_verify_vars
+export -f essential_check set_verification_mode
+export -f init_verification init_fallback_verification
+
+    local prefix="DEBUG ENV:"
+    echo "$prefix Current directory: $(pwd)"
+    echo "$prefix Script directory: $CON_DIR"
+    echo "$prefix Important variables:"
+    echo "  LAB_DIR=$LAB_DIR"
+    echo "  BAS_DIR=$BAS_DIR"
+    echo "  CON_DIR=$CON_DIR" 
+    echo "  LOG_DIR=$LOG_DIR"
+    echo "  TMP_DIR=$TMP_DIR"
+    echo "  ERROR_LOG=$ERROR_LOG"
+    echo "  LOG_STATE_FILE=$LOG_STATE_FILE"
+    echo "  LOG_DEBUG_FILE=$LOG_DEBUG_FILE"
+}
