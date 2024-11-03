@@ -38,6 +38,8 @@ essential_verify_path() {
     local type="$3"
     local create="$4"
 
+    debug_log "essential_verify_path called with: var=$var_name path=$path type=$type create=$create"
+
     # Basic validation
     [[ -z "$var_name" || -z "$path" || -z "$type" ]] && {
         debug_log "ERROR: Missing required parameters in essential_verify_path"
@@ -53,18 +55,18 @@ essential_verify_path() {
             ;;
     esac
 
-    # Create flag validation
-    [[ "$create" != "true" && "$create" != "false" ]] && create="false"
+    # Create flag validation with default
+    create="${create:-false}"
 
     # Path verification and creation
     if [[ "$type" == "dir" ]]; then
         if [[ ! -d "$path" ]]; then
             if [[ "$create" == "true" ]]; then
+                debug_log "Creating directory: $path"
                 mkdir -p "$path" || {
                     debug_log "ERROR: Failed to create directory: $path"
                     return 1
                 }
-                debug_log "Created directory: $path"
             else
                 debug_log "ERROR: Directory does not exist: $path"
                 return 1
@@ -73,15 +75,16 @@ essential_verify_path() {
     elif [[ "$type" == "file" ]]; then
         if [[ ! -f "$path" ]]; then
             if [[ "$create" == "true" ]]; then
+                debug_log "Creating parent directory for file: $path"
                 mkdir -p "$(dirname "$path")" || {
                     debug_log "ERROR: Failed to create parent directory for: $path"
                     return 1
                 }
+                debug_log "Creating file: $path"
                 touch "$path" || {
                     debug_log "ERROR: Failed to create file: $path"
                     return 1
                 }
-                debug_log "Created file: $path"
             else
                 debug_log "ERROR: File does not exist: $path"
                 return 1
@@ -295,29 +298,32 @@ validate_module() {
     local file="$1"
     local module_name="$(basename "$file")"
 
-    # Verify file exists using essential_verify_path correctly
-    if ! essential_verify_path "MODULE_FILE" "$file" "file" "false"; then
-        debug_log "ERROR: $module_name is not a regular file"
+    debug_log "Validating module: $module_name at $file"
+
+    # Check if file exists
+    if [[ ! -f "$file" ]]; then
+        debug_log "ERROR: Module file does not exist: $file"
         return 1
-    }
+    fi
 
     # Check if file is executable
-    [[ -x "$file" ]] || {
+    if [[ ! -x "$file" ]]; then
         debug_log "Adding execute permission to $module_name"
         chmod +x "$file" || {
             debug_log "ERROR: Failed to make $module_name executable"
             return 1
         }
-    }
+    fi
 
     # Validate shebang
     local shebang
     read -r shebang < "$file"
-    [[ "$shebang" == "#!/bin/bash" ]] || {
+    if [[ "$shebang" != "#!/bin/bash" ]]; then
         debug_log "ERROR: Invalid or missing shebang in $module_name"
         return 1
-    }
+    fi
 
+    debug_log "Module $module_name validation successful"
     return 0
 }
 
@@ -433,7 +439,13 @@ init_base() {
     # Try to source each module
     for module in "${modules[@]}"; do
         local module_name="$(basename "$module")"
-        debug_log "Attempting to load module: $module_name"
+        debug_log "Attempting to load module: $module_name from $module"
+
+        # First check if module file exists
+        if [[ ! -f "$module" ]]; then
+            debug_log "ERROR: Module file not found: $module"
+            continue
+        fi
 
         # Validate module before loading
         if ! validate_module "$module"; then
@@ -441,33 +453,15 @@ init_base() {
             continue
         fi
 
-        # Source the module and capture errors
-        local error_file
-        error_file=$(mktemp)
-
-        if ! source "$module" 2>"$error_file"; then
-            local error_output
-            error_output=$(<"$error_file")
-            rm -f "$error_file"
-            debug_log "ERROR: Failed to load module $module_name with error: $error_output"
-            echo "        └─ Warning: Failed to load $module_name" >&2
+        # Source the module with error capture
+        if ! source "$module" 2> >(debug_log "Source error for $module_name: $(cat)"); then
+            debug_log "ERROR: Failed to source module $module_name"
             continue
         fi
-        rm -f "$error_file"
 
-        # Mark module as loaded
+        debug_log "Successfully loaded module: $module_name"
         loaded_modules[$module]=1
         ((module_loaded++))
-
-        # Verify module functions are available
-        debug_log "Verifying module functions for: $module_name"
-        for func in $(grep -o '^[a-zA-Z0-9_]\+()' "$module" 2>/dev/null | tr -d '()'); do
-            if type "$func" >/dev/null 2>&1; then
-                debug_log "  Function verified: $func"
-            else
-                debug_log "  ERROR: Function not available after sourcing: $func"
-            fi
-        done
     done
 
     debug_log "Environment after module loading:"
