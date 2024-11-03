@@ -178,7 +178,7 @@ init_base() {
 
 # init base modules tmp and log dirs
 init_dirs() {
-    local debug_log="$HOME/.local/lab/init_dirs.log"
+    local debug_log="$AUX_DIR/init_dirs.log"
     
     # Create base directories with proper permissions
     mkdir -p "$LOG_DIR" "$TMP_DIR" || {
