@@ -10,9 +10,6 @@ if [[ -z "$CONS_LOADED" ]]; then
     fi
 fi
 
-# Add reference to the lo module's state file at the top
-readonly LO_STATE_FILE="${TMP_DIR}/lo/lo1_state"  # Single source of truth for logging state
-
 # Performance monitoring setup
 declare -gA TME_START_TIMES     # Stores component start times
 declare -gA TME_END_TIMES       # Stores component end times
@@ -23,22 +20,13 @@ declare -gA TME_CHILDREN        # Stores child components for each parent
 declare -g TME_STARTUP_BEGIN    # Global startup timestamp
 declare -g TME_CURRENT_PARENT   # Tracks current parent for nested timing
 
-# Define module-specific directories
-TME_LOG_DIR="$LOG_DIR/tme"
-TME_TMP_DIR="$TMP_DIR/tme"
-
 # Verify critical directories exist (should have been created by rc.sh)
-for dir in "$TME_LOG_DIR" "$TME_TMP_DIR"; do
+for dir in "$LOG_DIR" "$TMP_DIR"; do
     [[ ! -d "$dir" ]] && {
         echo "Critical: Required directory missing: $dir" >&2
         exit 1
     }
 done
-
-# Define timing files and state files
-TME_STATE_FILE="${TME_TMP_DIR}/tme_state"
-TME_LEVELS_FILE="${TME_TMP_DIR}/tme_levels"
-TME_LOG_FILE="${TME_LOG_DIR}/tme_timing.log"
 
 # Initialize state files if they don't exist
 [[ ! -f "$TME_STATE_FILE" ]] && echo "true" > "$TME_STATE_FILE"
