@@ -1,0 +1,73 @@
+#!/bin/bash
+# Centralized Runtime Constants
+
+# Use existing base directories
+LAB_DIR="${LAB_DIR:-$HOME/.local/lab}"    # Keep existing LAB_DIR if set
+LOG_DIR="${LOG_DIR:-$HOME/.local/lab/log}" # Keep existing LOG_DIR if set
+TMP_DIR="${TMP_DIR:-$HOME/.local/lab/tmp}" # Keep existing TMP_DIR if set
+
+# Module-specific directories (using existing patterns)
+ERR_LOG_DIR="$LOG_DIR/err"
+ERR_TMP_DIR="$TMP_DIR/err"
+LOG_LO_DIR="$LOG_DIR/lo"  
+TMP_LO_DIR="$TMP_DIR/lo"
+LOG_TME_DIR="$LOG_DIR/tme"
+TMP_TME_DIR="$TMP_DIR/tme"
+
+# State and log files (using existing patterns)
+ERROR_LOG="$ERR_LOG_DIR/error.log"
+ERROR_COUNT_FILE="$ERR_TMP_DIR/error_count"
+ERROR_STATE_FILE="$ERR_TMP_DIR/error_state"
+LOG_STATE_FILE="$TMP_LO_DIR/lo1_state"
+LOG_DEBUG_FILE="$LOG_LO_DIR/debug.log"
+TME_STATE_FILE="$TMP_TME_DIR/tme_state"
+TME_LOG_FILE="$LOG_TME_DIR/timing.log"
+
+# Using full color spectrum from lo1
+readonly LOG_RED='\033[0;31m'          # Level 0  - Pure Red
+readonly LOG_RED_ORANGE='\033[38;5;202m'  # Level 1  - Red-Orange
+readonly LOG_ORANGE='\033[38;5;208m'      # Level 2  - Orange
+readonly LOG_ORANGE_YELLOW='\033[38;5;214m' # Level 3  - Orange-Yellow
+readonly LOG_YELLOW='\033[38;5;220m'      # Level 4  - Yellow
+readonly LOG_YELLOW_GREEN='\033[38;5;112m' # Level 5  - Yellow-Green
+readonly LOG_GREEN='\033[38;5;34m'        # Level 6  - Green
+readonly LOG_GREEN_CYAN='\033[38;5;35m'   # Level 7  - Green-Cyan
+readonly LOG_CYAN='\033[38;5;37m'         # Level 8  - Cyan
+readonly LOG_CYAN_BLUE='\033[38;5;39m'    # Level 9  - Cyan-Blue
+readonly LOG_BLUE='\033[38;5;27m'         # Level 10 - Blue
+readonly LOG_BLUE_INDIGO='\033[38;5;57m'  # Level 11 - Blue-Indigo
+readonly LOG_INDIGO='\033[38;5;54m'       # Level 12 - Indigo
+readonly LOG_INDIGO_VIOLET='\033[38;5;93m' # Level 13 - Indigo-Violet
+readonly LOG_VIOLET='\033[38;5;92m'       # Level 14 - Violet
+readonly LOG_DEEP_VIOLET='\033[38;5;91m'  # Level 15 - Deep Violet
+readonly LOG_NC='\033[0m'                 # No Color
+
+# Keep existing error codes pattern
+declare -gA ERROR_CODES=(
+    [SUCCESS]=0
+    [GENERAL_ERROR]=1
+    [FILE_NOT_FOUND]=2
+    [PERMISSION_DENIED]=3
+    [FUNCTION_NOT_FOUND]=4
+    [EXECUTION_FAILED]=5
+    [SOURCE_ERROR]=6
+    [DEPENDENCY_ERROR]=7
+    [CONFIG_ERROR]=8
+    [OPTIONAL_WARNING]=100
+)
+
+# Runtime configuration
+CACHE_CLEANUP_INTERVAL=300  # 5 minutes
+GENERATION_FOLDERS=(env fun gen)  # Keep existing array name
+
+# Export all constants
+export LAB_DIR LOG_DIR TMP_DIR
+export ERR_LOG_DIR ERR_TMP_DIR
+export LOG_LO_DIR TMP_LO_DIR
+export LOG_TME_DIR TMP_TME_DIR
+export ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
+export LOG_STATE_FILE LOG_DEBUG_FILE
+export TME_STATE_FILE TME_LOG_FILE
+export CACHE_CLEANUP_INTERVAL
+export GENERATION_FOLDERS
+export -A ERROR_CODES
