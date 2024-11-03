@@ -1,21 +1,27 @@
 #!/bin/bash
 set -o pipefail
 
-# Source constants first - the foundation of the system
-source "$LAB_DIR/dic/onst" || {
+# Source runtime constants first - the foundation of the system
+source "$DIR/../dic/runc" || {
     echo "Failed to source constants" >&2
     exit 1
 }
 
-# Source verification module - validates the environment
-source "$LAB_DIR/dic/veri" || {
-    echo "Failed to source verification module" >&2
+# Source dependency constants first - the foundation of the system
+source "$DIR/../dic/depc" || {
+    echo "Failed to source constants" >&2
     exit 1
 }
 
 # Source initialization module - sets up the system
-source "$LAB_DIR/dic/init" || {
+source "$DIR/ini" || {
     echo "Failed to source initialization module" >&2
+    exit 1
+}
+
+# Source verification module - validates the environment
+source "$DIR/ver" || {
+    echo "Failed to source verification module" >&2
     exit 1
 }
 
