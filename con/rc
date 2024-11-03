@@ -262,17 +262,16 @@ verify_module() {
         done
     fi
 
-    # Check module-specific required paths
-    if [[ -n "${MODULE_REQUIRED_PATHS[$module_name]}" ]]; then
-        debug_log "Checking required paths for $module_name"
-        if ! parse_path_spec "${MODULE_REQUIRED_PATHS[$module_name]}"; then
-            debug_log "ERROR: Path verification failed for module $module_name"
-            return 1
-        fi
+    if [[ -n "${MODULE_REQUIRED_VARS[$module_name]}" ]]; then
+        local IFS=' '
+        local vars=(${MODULE_REQUIRED_VARS[$module_name]})
+        for var in "${vars[@]}"; do
+            if ! essential_verify_var "$var"; then
+                debug_log "ERROR: Missing required variable $var for $module_name"
+                return 1
+            fi
+        done
     fi
-
-    debug_log "Module $module_name verification completed successfully"
-    return 0
 }
 
 list_module_deps() {
