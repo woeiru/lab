@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# Define paths early
+readonly LOG_LO_DIR="$HOME/.local/log/lab/lo"
+readonly LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
+
+# Enhanced debug logging - moved to top
+lo1_debug_log() {
+    [[ "${LOG_DEBUG_ENABLED}" != "1" ]] && return 0
+    local timestamp=$(date '+%H:%M:%S')
+    local message="$1"
+    local source="${2:-unknown}"
+    printf "[LO1-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_DEBUG_FILE"
+}
+
 # Enable debug logging by default
 export LOG_DEBUG_ENABLED=1
 
@@ -82,22 +95,24 @@ debug_log() {
     printf "[LO1-DEBUG] %s - %s\n" "$timestamp" "$message" >> "$LOG_DEBUG_FILE"
 }
 
+# Update dump_stack_trace to use lo1_debug_log
 dump_stack_trace() {
     local func="${1:-${FUNCNAME[1]}}"
-    debug_log ""
-    debug_log "Stack trace for $func:"
+    lo1_debug_log "" "stack"
+    lo1_debug_log "Stack trace for $func:" "stack"
     local i=0
     while [[ -n "${FUNCNAME[$i]:-}" ]]; do
-        debug_log "  $i: ${FUNCNAME[$i]:-main} (${BASH_SOURCE[$i]:-unknown}:${BASH_LINENO[$i]:-0})"
+        lo1_debug_log "  $i: ${FUNCNAME[$i]:-main} (${BASH_SOURCE[$i]:-unknown}:${BASH_LINENO[$i]:-0})" "stack"
         ((i++))
     done
 }
 
 # Performance optimization
+# Update cleanup_cache to use lo1_debug_log
 cleanup_cache() {
     local current_time=$(date +%s)
     if ((current_time - LAST_CACHE_CLEANUP >= CACHE_CLEANUP_INTERVAL)); then
-        debug_log "Performing cache cleanup"
+        lo1_debug_log "Performing cache cleanup" "cache"
         LOG_DEPTH_CACHE=()
         : > "$LOG_DEPTH_CACHE_FILE"
         LAST_CACHE_CLEANUP=$current_time
@@ -136,15 +151,16 @@ is_root_function() {
     esac
 }
 
+# Update get_base_depth to use lo1_debug_log
 get_base_depth() {
     local current_func="${FUNCNAME[1]:-main}"
 
     # Performance: Check cache first
     if [[ -n "${LOG_DEPTH_CACHE[$current_func]:-}" ]]; then
-        debug_log "Cache hit for $current_func: ${LOG_DEPTH_CACHE[$current_func]}"
+        lo1_debug_log "Cache hit for $current_func: ${LOG_DEPTH_CACHE[$current_func]}" "depth"
         echo "${LOG_DEPTH_CACHE[$current_func]}"
         return
-    fi
+    }
 
     cleanup_cache
 
@@ -176,7 +192,7 @@ get_base_depth() {
 
     # Cache the result
     LOG_DEPTH_CACHE[$current_func]=$depth
-    debug_log "Cached depth for $current_func: $depth (stack: $stack_trace)"
+    lo1_debug_log "Cached depth for $current_func: $depth (stack: $stack_trace)" "depth"
 
     echo "$depth"
 }
@@ -227,6 +243,7 @@ get_color() {
 }
 
 # Main logging function
+# Update log function to use lo1_debug_log
 log() {
     [[ "$1" != "lvl" ]] && { echo "Error: Invalid log command" >&2; return 1; }
     local message="$2"
@@ -255,7 +272,7 @@ log() {
     fi
 
     [[ "${LOG_DEBUG_ENABLED}" == "1" ]] && {
-        debug_log "Logged message at depth $depth: $message"
+        lo1_debug_log "Logged message at depth $depth: $message" "log"
         dump_stack_trace
     }
 }
@@ -279,6 +296,7 @@ setlog() {
 }
 
 # Initialization and cleanup
+# Update init_logger to use lo1_debug_log
 init_logger() {
     ensure_state_directories || {
         echo "Fatal: Failed to initialize logger directories" >&2
@@ -293,16 +311,17 @@ init_logger() {
 
     if [[ "${LOG_DEBUG_ENABLED}" == "1" ]]; then
         : > "$LOG_DEBUG_FILE"
-        debug_log "Logger initialized"
-        debug_log "Using LOG_DIR: $LOG_DIR"
-        debug_log "Using TMP_DIR: $TMP_DIR"
+        lo1_debug_log "Logger initialized" "init"
+        lo1_debug_log "Using LOG_DIR: $LOG_DIR" "init"
+        lo1_debug_log "Using TMP_DIR: $TMP_DIR" "init"
     fi
 
     printf "Logger initialized at %s\n" "$(date)" > "$LOG_FILE"
 }
 
+# Update cleanup_logger to use lo1_debug_log
 cleanup_logger() {
-    debug_log "Cleaning up logger state"
+    lo1_debug_log "Cleaning up logger state" "cleanup"
     LOG_DEPTH_CACHE=()
     LOG_PARENTS=()
     LOG_CHILDREN=()
@@ -310,11 +329,11 @@ cleanup_logger() {
     [[ -f "$LOG_DEPTH_CACHE_FILE" ]] && : > "$LOG_DEPTH_CACHE_FILE"
 }
 
-# Export functions and variables
+# Update exports to include lo1_debug_log instead of debug_log
 export LOG_FILE LOG_STATE_FILE TMP_DIR
 export -f log setlog init_logger cleanup_logger
 export -f is_root_function get_base_depth calculate_final_depth
-export -f get_indent get_color debug_log dump_stack_trace
+export -f get_indent get_color lo1_debug_log dump_stack_trace
 export -A ROOT_FUNCTIONS
 
 # Initialize on source
