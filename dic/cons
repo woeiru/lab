@@ -2,7 +2,7 @@
 # Runtime Constants Centralized
 
 # Declare all variables as global first
-declare -g LAB_DIR BAS_DIR CON_DIR ENV_DIR FUN_DIR GEN_DIR
+declare -g LAB_DIR BAS_DIR CON_DIR
 declare -g AUX_DIR LOG_DIR TMP_DIR
 declare -g ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
 declare -g LOG_STATE_FILE LOG_DEBUG_FILE
