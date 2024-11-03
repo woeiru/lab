@@ -1,82 +1,31 @@
 #!/bin/bash
 set -o pipefail
 
-# Source verification module early
+# Source constants first - the foundation of the system
+source "$LAB_DIR/dic/onst" || {
+    echo "Failed to source constants" >&2
+    exit 1
+}
+
+# Source verification module - validates the environment
 source "$LAB_DIR/dic/veri" || {
     echo "Failed to source verification module" >&2
     exit 1
 }
 
-# First declare all globals
-declare -g TRAP_INITIALIZED
-declare -gA CLEANUP_FUNCTIONS
-declare -g TRAP_INITIALIZED=false
-
-# Add initial log functions that use fallback until real logging is ready
-ini_log() {
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    local message="${2:-$1}"  # Accept both log "lvl" "msg" and log "msg" formats
-    printf "[FALLBACK] %s - %s\n" "$timestamp" "$message" >&2
-}
-export -f ini_log
-
-# Create initial log function that uses fallback until real logging is ready
-log() {
-    ini_log "$@"
-}
-export -f log
-
-
-# Main entry point function
-main_rc() {
-    # Save original error exit setting
-    local orig_errexit_setting=$(set -o | grep errexit | cut -f2)
-    set +e  # Disable exit on error temporarily
-
-    echo "Starting main_rc initialization..." | tee -a /tmp/rc_init.log
-
-    echo "      └─ main_rc : init_traps" | tee -a /tmp/rc_init.log
-    init_traps || {
-        echo "Warning: Trap initialization failed" >&2 | tee -a /tmp/rc_init.log
-        echo "init_traps returned: $?" >> /tmp/rc_init.log
-    }
-
-    echo "      └─ main_rc : init_base" | tee -a /tmp/rc_init.log
-    init_base
-    local init_base_status=$?
-    echo "init_base returned: $init_base_status" >> /tmp/rc_init.log
-
-    # Track status of each major operation
-    local rc_status=0
-
-    echo "main_rc : source_rc" | tee -a /tmp/rc_init.log
-
-    # Source RC files with status tracking
-    if ! source_rc; then
-        echo "Warning: Failed to source RC files" >&2 | tee -a /tmp/rc_init.log
-        rc_status=1
-    fi
-
-    # Restore original errexit setting
-    if [[ "$orig_errexit_setting" == "on" ]]; then
-        set -e
-    fi
-
-    echo "main_rc completing with status: $rc_status" >> /tmp/rc_init.log
-    return $rc_status
+# Source initialization module - sets up the system
+source "$LAB_DIR/dic/init" || {
+    echo "Failed to source initialization module" >&2
+    exit 1
 }
 
 echo " ─── initializing"
-# Disable exit on error for the initialization
-set +e
+# Execute initialization from init module
+init_rc
+RC_STATUS=$?
 
-# Add debug trapping for main_rc status
-main_rc
-MAIN_RC_STATUS=$?
-echo "main_rc returned with status: $MAIN_RC_STATUS" >> /tmp/rc_init.log
-
-if [ $MAIN_RC_STATUS -ne 0 ]; then
-    echo "RC initialization failed with status $MAIN_RC_STATUS. Check /tmp/rc_init.log for details" >&2
+if [ $RC_STATUS -ne 0 ]; then
+    echo "RC initialization failed with status $RC_STATUS. Check /tmp/rc_init.log for details" >&2
     # Create essential directories as last resort
     for dir in "$LOG_DIR" "$TMP_DIR"; do
         mkdir -p "$dir" 2>/dev/null
@@ -85,7 +34,5 @@ if [ $MAIN_RC_STATUS -ne 0 ]; then
     # Set up minimal environment to keep shell usable
     echo "Setting up minimal environment..." >&2
     export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$HOME/bin"
-
-    # Set a basic prompt to indicate we're in minimal mode
     PS1="(minimal)[\u@\h \W]\$ "
 fi
