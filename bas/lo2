@@ -1,41 +1,10 @@
 #!/bin/bash
 
-# Verify base module is loaded
-if ! declare -F log >/dev/null; then
-    echo "Error: Base logging module (lo1) must be loaded first" >&2
-    exit 1
-fi
-
-# Validate required environment variables and ensure they're under $HOME
-[[ -z "$HOME" ]] && {
-    echo "Fatal: HOME environment variable not set" >&2
-    exit 1
-}
-
-[[ -z "$LOG_DIR" || "$LOG_DIR" != "$HOME/.local/log/lab" ]] && {
-    echo "Fatal: LOG_DIR must be set to $HOME/.local/log/lab" >&2
-    exit 1
-}
-
-[[ -z "$TMP_DIR" || "$TMP_DIR" != "$HOME/.local/tmp/lab" ]] && {
-    echo "Fatal: TMP_DIR must be set to $HOME/.local/tmp/lab" >&2
-    exit 1
-}
-
-# Define module-specific directories and files
-readonly LOG_LO_DIR="$LOG_DIR/lo"
-readonly TMP_LO_DIR="$TMP_DIR/lo"
-readonly LOG_CONTROL_STATE_FILE="${TMP_LO_DIR}/lo2_state"
+# Define paths early
+readonly LOG_LO_DIR="${HOME}/.local/log/lab/lo"
 readonly LOG_DEBUG_FILE="${LOG_LO_DIR}/debug.log"
 
-# Global state
-declare -g LOG_CONTROL_DEPTH_ENABLED=false
-
-# Runtime control structure tracking
-declare -ga CONTROL_DEPTH_STACK=()
-declare -g LAST_COMMAND=""
-
-# Enhanced debug logging
+# Enhanced debug logging - moved to top
 lo2_debug_log() {
     [[ "${LOG_DEBUG_ENABLED:-0}" != "1" ]] && return 0
     local timestamp=$(date '+%H:%M:%S')
@@ -43,6 +12,55 @@ lo2_debug_log() {
     local source="${2:-unknown}"
     printf "[LO2-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_DEBUG_FILE"
 }
+
+# Debug entry point
+lo2_debug_log "Entering lo2 module initialization" "init"
+
+# Verify base module is loaded
+if ! declare -F log >/dev/null; then
+    lo2_debug_log "Error: Base logging module (lo1) not loaded" "init"
+    echo "Error: Base logging module (lo1) must be loaded first" >&2
+    exit 1
+fi
+
+# Debug environment validation
+lo2_debug_log "Validating environment variables in lo2" "init"
+lo2_debug_log "HOME=$HOME" "init"
+lo2_debug_log "LOG_DIR=$LOG_DIR" "init"
+lo2_debug_log "TMP_DIR=$TMP_DIR" "init"
+
+# Validate required environment variables and ensure they're under $HOME
+[[ -z "$HOME" ]] && {
+    lo2_debug_log "Fatal: HOME environment variable not set in lo2" "init"
+    echo "Fatal: HOME environment variable not set" >&2
+    exit 1
+}
+
+[[ -z "$LOG_DIR" || "$LOG_DIR" != "$HOME/.local/log/lab" ]] && {
+    lo2_debug_log "Fatal: Invalid LOG_DIR=$LOG_DIR in lo2" "init"
+    echo "Fatal: LOG_DIR must be set to $HOME/.local/log/lab" >&2
+    exit 1
+}
+
+[[ -z "$TMP_DIR" || "$TMP_DIR" != "$HOME/.local/tmp/lab" ]] && {
+    lo2_debug_log "Fatal: Invalid TMP_DIR=$TMP_DIR in lo2" "init"
+    echo "Fatal: TMP_DIR must be set to $HOME/.local/tmp/lab" >&2
+    exit 1
+}
+
+# Debug directory setup
+lo2_debug_log "Setting up lo2 module directories" "init"
+
+# Define module-specific directories and files
+readonly TMP_LO_DIR="$TMP_DIR/lo"
+readonly LOG_CONTROL_STATE_FILE="${TMP_LO_DIR}/lo2_state"
+
+# Global state
+declare -g LOG_CONTROL_DEPTH_ENABLED=false
+
+# Runtime control structure tracking
+declare -ga CONTROL_DEPTH_STACK=()
+declare -g LAST_COMMAND=""
 
 # Add a hash function to identify unique control structures
 hash_command() {
@@ -215,3 +233,6 @@ trap cleanup_lo2 EXIT
     saved_state=$(cat "$LOG_CONTROL_STATE_FILE")
     [[ "$saved_state" == "true" ]] && setlogcontrol on
 }
+
+# Add final debug log
+lo2_debug_log "lo2 module initialization completed successfully" "init"
