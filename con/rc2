@@ -130,49 +130,6 @@ generate_level_two_arrays() {
     end_nested_timing "gen_level_two" "success"
 }
 
-generate_level_two_arrays() {
-    start_nested_timing "gen_level_two"
-    log "lvl" "Generating level two arrays"
-
-    for folder in "${GENERATION_FOLDERS[@]}"; do
-        start_nested_timing "process_folder_${folder}"
-        local dir_path="$LAB_DIR/$folder"
-        log "lvl" "Processing folder: $folder, path: $dir_path"
-
-        if [[ -d "$dir_path" ]]; then
-            local array_name="${folder}_files"
-            local files=()
-
-            log "lvl" "Searching for files in $dir_path"
-            # Process all files under single timer
-            while IFS= read -r -d '' file; do
-                base_name=$(basename "$file")
-                # Handle files both with and without extensions
-                if [[ "$base_name" =~ \. ]]; then
-                    name_without_ext="${base_name%.*}"
-                else
-                    name_without_ext="$base_name"
-                fi
-                files+=("$name_without_ext")
-                log "lvl" "Found file: $file"
-                log "lvl" "Added file to $array_name: $name_without_ext"
-            done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*" ! -name ".*" \) -print0)
-
-            log "lvl" "Creating array $array_name"
-            # Remove duplicates in case we have multiple files with same base name
-            local unique_files=($(printf "%s\n" "${files[@]}" | sort -u))
-            eval "declare -ga $array_name=(${unique_files[*]})"
-            log "lvl" "Created array $array_name with values: ${!array_name[*]}"
-        else
-            log "lvl" "Directory not found: $dir_path"
-        fi
-
-        end_nested_timing "process_folder_${folder}" "success"
-    done
-
-    end_nested_timing "gen_level_two" "success"
-}
-
 # Improved alias generation with comprehensive error handling and logging
 generate_aliases() {
     local alias_type=$1
