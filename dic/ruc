@@ -1,32 +1,16 @@
 #!/bin/bash
 # Runtime Constants
+# Dependencies: None
+# Purpose: Define all runtime constants and variables used across the system
 
-# Declare all variables as global first
+# Level 1 directories
 declare -g LAB_DIR ALA_DIR BAS_DIR CON_DIR DIC_DIR
-declare -g AUX_DIR LOG_DIR TMP_DIR
-declare -g ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
-declare -g LOG_STATE_FILE LOG_DEBUG_FILE
-declare -g TME_STATE_FILE TME_LOG_FILE
-declare -g CACHE_CLEANUP_INTERVAL
-declare -ga GENERATION_FOLDERS
-declare -gA ERROR_CODES
-declare -g TRAP_INITIALIZED
-declare -gA CLEANUP_FUNCTIONS
-declare -g TRAP_INITIALIZED=false
-
-# Use existing base directories or set defaults
-LAB_DIR="${LAB_DIR:-$HOME/lab}"    # Keep existing LAB_DIR if set
+LAB_DIR="${LAB_DIR:-$HOME/lab}"
 ALA_DIR="${ALA_DIR:-$LAB_DIR/ala}"
 BAS_DIR="${BAS_DIR:-$LAB_DIR/bas}"
 CON_DIR="${CON_DIR:-$LAB_DIR/con}"
 DIC_DIR="${DIC_DIR:-$LAB_DIR/dic}"
 export ALA_DIR LAB_DIR BAS_DIR CON_DIR DIC_DIR
-
-# Auxiliary directories
-AUX_DIR="${AUX_DIR:-$LAB_DIR}" # Updated AUX_DIR to be the same as LAB_DIR
-LOG_DIR="${LOG_DIR:-$LAB_DIR/.log}" # Updated LOG_DIR to be within LAB_DIR
-TMP_DIR="${TMP_DIR:-$LAB_DIR/.tmp}" # Updated TMP_DIR to be within LAB_DIR
-export AUX_DIR LOG_DIR TMP_DIR
 
 # Constants files
 MDE_FILE="$DIC_DIR/mde"
@@ -34,7 +18,17 @@ RDE_FILE="$DIC_DIR/rde"
 RUC_FILE="$DIC_DIR/ruc"
 export MDE_FILE RDE_FILE RUC_FILE
 
+# Auxiliary directories
+declare -g AUX_DIR LOG_DIR TMP_DIR
+AUX_DIR="${AUX_DIR:-$LAB_DIR}"
+LOG_DIR="${LOG_DIR:-$LAB_DIR/.log}"
+TMP_DIR="${TMP_DIR:-$LAB_DIR/.tmp}"
+export AUX_DIR LOG_DIR TMP_DIR
+
 # State and log files
+declare -g ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
+declare -g LOG_STATE_FILE LOG_DEBUG_FILE
+declare -g TME_STATE_FILE TME_LOG_FILE
 ERROR_LOG="$LOG_DIR/err.log"
 ERROR_COUNT_FILE="$TMP_DIR/err_count"
 ERROR_STATE_FILE="$TMP_DIR/err_state"
@@ -48,10 +42,13 @@ export LOG_STATE_FILE LOG_DEBUG_FILE
 export TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 
 # Runtime configuration
+declare -g CACHE_CLEANUP_INTERVAL
 CACHE_CLEANUP_INTERVAL=300  # 5 minutes
 export CACHE_CLEANUP_INTERVAL
 
-GENERATION_FOLDERS=(env fun gen)  # Keep existing array name
+# Generation folders
+declare -ga GENERATION_FOLDERS
+GENERATION_FOLDERS=(env fun gen)
 export GENERATION_FOLDERS
 
 # Flag to indicate constants are loaded
