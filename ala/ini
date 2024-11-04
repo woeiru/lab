@@ -177,8 +177,9 @@ init_runtime_system() {
 process_runtime_config() {
     debug_log "Processing runtime configuration"
 
-    # First verify RC files exist
-    for rc in rc{1..4}; do
+    # Verify RC files exist using rc array keys
+    local rc_modules=()
+    for rc in "${!rc[@]}"; do
         if ! verify_path "$CON_DIR/$rc" "file" "false"; then
             debug_log "WARNING: RC file $rc not found"
         fi
