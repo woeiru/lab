@@ -1,115 +1,53 @@
 #!/bin/bash
 # Runtime Dependencies Management (rde)
+# Purpose: Declares runtime dependencies between functions and modules
+# Dependencies: None - only contains declarations
 
 # Declare runtime requirement variables
 declare -gA FUNCTION_DEPENDENCIES
 declare -ga REGISTERED_FUNCTIONS
 declare -gA FUNCTION_MODULES
 
-# Initialize runtime dependencies
-init_runtime_dependencies() {
-    debug_log "Initializing runtime dependencies"
+# Initialize core function dependencies
+FUNCTION_DEPENDENCIES=(
+    ["process_error"]="err"
+    ["log_message"]="lo1"
+    ["debug_message"]="lo2"
+    ["start_timer"]="tme"
+    ["stop_timer"]="tme"
+    ["handle_error"]="err,lo1"
+    ["log_with_timer"]="lo1,tme"
+    ["debug_with_timer"]="lo2,tme"
+)
 
-    # Register core functions and their dependencies
-    register_dependency "process_error" "err"
-    register_dependency "log_message" "lo1"
-    register_dependency "debug_message" "lo2"
-    register_dependency "start_timer" "tme"
-    register_dependency "stop_timer" "tme"
+# Initialize registered functions array
+REGISTERED_FUNCTIONS=(
+    "process_error"
+    "log_message"
+    "debug_message"
+    "start_timer"
+    "stop_timer"
+    "handle_error"
+    "log_with_timer"
+    "debug_with_timer"
+)
 
-    # Register composite functions (functions that depend on multiple modules)
-    register_composite_dependency "handle_error" "err,lo1"
-    register_composite_dependency "log_with_timer" "lo1,tme"
-    register_composite_dependency "debug_with_timer" "lo2,tme"
+# Initialize function module mappings
+FUNCTION_MODULES=(
+    ["process_error"]="$BAS_DIR/err"
+    ["log_message"]="$BAS_DIR/lo1"
+    ["debug_message"]="$BAS_DIR/lo2"
+    ["start_timer"]="$BAS_DIR/tme"
+    ["stop_timer"]="$BAS_DIR/tme"
+    ["handle_error:err"]="$BAS_DIR/err"
+    ["handle_error:lo1"]="$BAS_DIR/lo1"
+    ["log_with_timer:lo1"]="$BAS_DIR/lo1"
+    ["log_with_timer:tme"]="$BAS_DIR/tme"
+    ["debug_with_timer:lo2"]="$BAS_DIR/lo2"
+    ["debug_with_timer:tme"]="$BAS_DIR/tme"
+)
 
-    debug_log "Runtime dependencies initialization complete"
-}
-
-# Register a function dependency
-register_dependency() {
-    local func_name="$1"
-    local module_name="$2"
-
-    FUNCTION_DEPENDENCIES["$func_name"]="$module_name"
-    REGISTERED_FUNCTIONS+=("$func_name")
-    FUNCTION_MODULES["$func_name"]="$BAS_DIR/$module_name"
-}
-
-# Register a composite function dependency
-register_composite_dependency() {
-    local func_name="$1"
-    local modules="$2"
-
-    FUNCTION_DEPENDENCIES["$func_name"]="$modules"
-    REGISTERED_FUNCTIONS+=("$func_name")
-
-    # Register all required modules
-    IFS=',' read -ra MODULE_ARRAY <<< "$modules"
-    for module in "${MODULE_ARRAY[@]}"; do
-        FUNCTION_MODULES["$func_name:$module"]="$BAS_DIR/$module"
-    done
-}
-
-# Verify function dependencies
-verify_function_dependencies() {
-    local func_name="$1"
-    debug_log "Verifying dependencies for function: $func_name"
-
-    # Get required modules for this function
-    local modules="${FUNCTION_DEPENDENCIES[$func_name]}"
-    [[ -z "$modules" ]] && {
-        debug_log "No dependencies found for function: $func_name"
-        return 1
-    }
-
-    local failed=0
-    IFS=',' read -ra MODULE_ARRAY <<< "$modules"
-
-    for module in "${MODULE_ARRAY[@]}"; do
-        if ! verify_module "$module"; then
-            debug_log "ERROR: Required module '$module' not verified for function '$func_name'"
-            ((failed++))
-        fi
-    done
-
-    return $((failed > 0 ? 1 : 0))
-}
-
-# Register a function
-register_function() {
-    local func_name="$1"
-    debug_log "Registering function: $func_name"
-
-    # Verify the function exists in one of the required modules
-    local modules="${FUNCTION_DEPENDENCIES[$func_name]}"
-    local found=0
-
-    IFS=',' read -ra MODULE_ARRAY <<< "$modules"
-    for module in "${MODULE_ARRAY[@]}"; do
-        local module_path="${FUNCTION_MODULES[$func_name:$module]:-${FUNCTION_MODULES[$func_name]}}"
-
-        if [[ -f "$module_path" ]] && grep -q "^[[:space:]]*$func_name[[:space:]]*(" "$module_path"; then
-            found=1
-            break
-        fi
-    done
-
-    [[ $found -eq 0 ]] && {
-        debug_log "ERROR: Function '$func_name' not found in required modules"
-        return 1
-    }
-
-    return 0
-}
-
-# Export functions and variables
-export -f register_dependency
-export -f register_composite_dependency
-export -f verify_function_dependencies
-export -f register_function
-export -A FUNCTION_DEPENDENCIES
-export -a REGISTERED_FUNCTIONS
-export -A FUNCTION_MODULES
-
-# Initialize runtime dependencies
-init_runtime_dependencies
+# Export the dependency arrays
+export FUNCTION_DEPENDENCIES
+export REGISTERED_FUNCTIONS
+export FUNCTION_MODULES
