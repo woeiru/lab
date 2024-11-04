@@ -17,19 +17,19 @@ main_ini() {
     if ! type verify_module &>/dev/null || ! type verify_path &>/dev/null; then
         echo "ERROR: Verification module not properly loaded" >&2
         return 1
-    }
+    fi
 
     # Part 1: Module dependency initialization
     if ! init_module_system; then
         debug_log "ERROR: Module system initialization failed"
         return 1
-    }
+    fi
 
     # Part 2: Runtime dependency initialization
     if ! init_runtime_system; then
         debug_log "ERROR: Runtime system initialization failed"
         return 1
-    }
+    fi
 
     debug_log "Main initialization completed successfully"
     return 0
@@ -50,25 +50,25 @@ init_module_system() {
     if ! essential_check; then
         debug_log "ERROR: Essential system check failed"
         return 1
-    }
+    fi
 
     # Initialize module requirements from mde
     if ! init_module_requirements; then
         debug_log "ERROR: Failed to initialize module requirements"
         return 1
-    }
+    fi
 
     # Initialize directories using ver's verify_path
     if ! init_dirs; then
         debug_log "ERROR: Directory initialization failed"
         return 1
-    }
+    fi
 
     # Load and verify modules using ver's validation functions
     if ! load_modules; then
         debug_log "ERROR: Module loading failed"
         return 1
-    }
+    fi
 
     debug_log "Module system initialization completed"
     return 0
@@ -119,7 +119,7 @@ load_modules() {
         if ! verify_module "$module_name" || ! validate_module "$module"; then
             debug_log "ERROR: Module verification/validation failed for $module_name"
             continue
-        }
+        fi
 
         if [[ -f "$module" ]] && [[ -r "$module" ]]; then
             if source "$module" 2> >(debug_log "Source error: $(cat)"); then
@@ -149,25 +149,25 @@ init_runtime_system() {
     if ! verify_path "$CON_DIR/rde" "file" "false"; then
         debug_log "ERROR: Runtime dependencies file not found"
         return 1
-    }
+    fi
 
     # Load runtime dependencies
     if ! source "$CON_DIR/rde" 2>/dev/null; then
         debug_log "ERROR: Failed to load runtime dependencies"
         return 1
-    }
+    fi
 
     # Process runtime configurations
     if ! process_runtime_config; then
         debug_log "ERROR: Failed to process runtime configuration"
         return 1
-    }
+    fi
 
     # Initialize registered functions
     if ! init_registered_functions; then
         debug_log "ERROR: Failed to initialize registered functions"
         return 1
-    }
+    fi
 
     debug_log "Runtime system initialization completed"
     return 0
@@ -188,7 +188,7 @@ process_runtime_config() {
     if ! source_rc; then
         debug_log "ERROR: Failed to source RC files"
         return 1
-    }
+    fi
 
     return 0
 }
@@ -222,7 +222,7 @@ init_registered_functions() {
     if ! verify_var "REGISTERED_FUNCTIONS"; then
         debug_log "No registered functions found"
         return 0
-    }
+    fi
 
     local failed=0
     for func in "${REGISTERED_FUNCTIONS[@]}"; do
