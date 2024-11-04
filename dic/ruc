@@ -28,6 +28,12 @@ LOG_DIR="${LOG_DIR:-$LAB_DIR/.log}" # Updated LOG_DIR to be within LAB_DIR
 TMP_DIR="${TMP_DIR:-$LAB_DIR/.tmp}" # Updated TMP_DIR to be within LAB_DIR
 export AUX_DIR LOG_DIR TMP_DIR
 
+# Constants files
+MDE_FILE="$DIC_DIR/mde"
+RDE_FILE="$DIC_DIR/rde"
+RUC_FILE="$DIC_DIR/ruc"
+export MDE_FILE RDE_FILE RUC_FILE
+
 # State and log files
 ERROR_LOG="$LOG_DIR/err.log"
 ERROR_COUNT_FILE="$TMP_DIR/err_count"
