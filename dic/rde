@@ -1,7 +1,7 @@
 #!/bin/bash
 # Runtime Dependencies Management (rde)
+# Dependencies: None
 # Purpose: Declares runtime dependencies between functions and modules
-# Dependencies: None - only contains declarations
 
 # Declare runtime requirement variables
 declare -gA FUNCTION_DEPENDENCIES

@@ -12,6 +12,16 @@ CON_DIR="${CON_DIR:-$LAB_DIR/con}"
 DIC_DIR="${DIC_DIR:-$LAB_DIR/dic}"
 export ALA_DIR LAB_DIR BAS_DIR CON_DIR DIC_DIR
 
+# Runtime files
+declare -ga RC_FILES
+RC_FILES=(
+    "$CON_DIR/rc1"
+    "$CON_DIR/rc2"
+    "$CON_DIR/rc3"
+    "$CON_DIR/rc4"
+)
+export RC_FILES
+
 # Constants files
 declare -g MDE_FILE RDE_FILE RUC_FILE
 MDE_FILE="$DIC_DIR/mde"
