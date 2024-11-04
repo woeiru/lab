@@ -1,9 +1,40 @@
 #!/bin/bash
+
 # Initialization System
 # Dependencies: Only relies on verification module (ver) from ala folder for helper functions
 # Purpose: Manages system initialization in two phases:
 #   1. Module dependency initialization (working with mdc)
 #   2. Runtime dependency initialization (working with rdc)
+
+# Source runtime initialization constants
+source "$DIR/../dic/ric" || {
+    echo "Failed to source runtime constants" >&2
+    exit 1
+}
+
+# Source runtime dependency constants
+source "$DIR/../dic/rdc" || {
+    echo "Failed to source dependency constants" >&2
+    exit 1
+}
+
+# Source module dependency constants
+source "$DIR/../dic/mdc" || {
+    echo "Failed to source dependency constants" >&2
+    exit 1
+}
+
+# Source initialization module
+source "$DIR/ini" || {
+    echo "Failed to source initialization module" >&2
+    exit 1
+}
+
+# Source verification module
+source "$DIR/ver" || {
+    echo "Failed to source verification module" >&2
+    exit 1
+}
 
 ###############################################
 # Core initialization orchestrator
@@ -245,6 +276,29 @@ init_registered_functions() {
 
     return $((failed > 0 ? 1 : 0))
 }
+
+# Setup minimal environment in case of failure
+setup_minimal_environment() {
+    local base_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$HOME/bin"
+    export PATH="$PATH:$base_path"
+    PS1="(minimal)[\u@\h \W]\$ "
+
+    # Create essential directories
+    for dir in "$LOG_DIR" "$TMP_DIR"; do
+        mkdir -p "$dir" 2>/dev/null
+    done
+}
+
+echo " ─── initializing"
+# Execute initialization
+main_ini
+RC_STATUS=$?
+
+if [ $RC_STATUS -ne 0 ]; then
+    echo "Initialization failed with status $RC_STATUS. Check $LOG_DEBUG_FILE for details" >&2
+    setup_minimal_environment
+    exit 1
+fi
 
 # Export necessary functions
 export -f main_ini
