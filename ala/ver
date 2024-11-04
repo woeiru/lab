@@ -79,7 +79,7 @@ verify_var() {
     if [[ -z "$var_value" ]]; then
         echo "Variable '$var_name' is empty or undefined" >&2
         return 1
-    }
+    fi
 
     return 0
 }
@@ -121,7 +121,7 @@ verify_module() {
     # Initialize requirements if not already done
     if [[ -z "${MODULE_VARS[*]}" ]]; then
         init_module_requirements
-    }
+    fi
 
     local failed=0
 
@@ -211,12 +211,12 @@ verify_function() {
     if [[ ! -f "$module_path" ]]; then
         debug_log "ERROR: Module file not found: $module_path"
         return 1
-    }
+    fi
 
     if ! grep -q "^[[:space:]]*$func_name[[:space:]]*(" "$module_path"; then
         debug_log "ERROR: Function $func_name not found in $module_path"
         return 1
-    }
+    fi
 
     return 0
 }
