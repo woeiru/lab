@@ -1,7 +1,6 @@
 #!/bin/bash
 # Module: Verification
 # Purpose: Provides verification capabilities for modules, paths, functions and dependencies
-# Dependencies: ruc, dec for constants
 
 # Debug logging helper - uses existing LOG_DEBUG_FILE from ruc
 debug_log() {
