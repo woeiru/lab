@@ -2,8 +2,8 @@
 # Initialization System
 # Dependencies: Only relies on verification module (ver) from ala folder for helper functions
 # Purpose: Manages system initialization in two phases:
-#   1. Module dependency initialization (working with mde)
-#   2. Runtime dependency initialization (working with rde)
+#   1. Module dependency initialization (working with mdc)
+#   2. Runtime dependency initialization (working with rdc)
 
 ###############################################
 # Core initialization orchestrator

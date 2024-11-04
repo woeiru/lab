@@ -4,14 +4,20 @@ set -o pipefail
 # Determine script directory
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source runtime constants first - the foundation of the system
-source "$DIR/../dic/ruc" || {
+# Source runtime initialization constants
+source "$DIR/../dic/ric" || {
     echo "Failed to source runtime constants" >&2
     exit 1
 }
 
-# Source dependency constants
-source "$DIR/../dic/dec" || {
+# Source runtime dependency constants
+source "$DIR/../dic/rdc" || {
+    echo "Failed to source dependency constants" >&2
+    exit 1
+}
+
+# Source module dependency constants
+source "$DIR/../dic/mdc" || {
     echo "Failed to source dependency constants" >&2
     exit 1
 }
