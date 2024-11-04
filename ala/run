@@ -1,44 +1,52 @@
 #!/bin/bash
 set -o pipefail
 
+# Determine script directory
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Source runtime constants first - the foundation of the system
 source "$DIR/../dic/ruc" || {
-    echo "Failed to source constants" >&2
+    echo "Failed to source runtime constants" >&2
     exit 1
 }
 
-# Source dependency constants first - the foundation of the system
+# Source dependency constants
 source "$DIR/../dic/dec" || {
-    echo "Failed to source constants" >&2
+    echo "Failed to source dependency constants" >&2
     exit 1
 }
 
-# Source initialization module - sets up the system
+# Source initialization module
 source "$DIR/ini" || {
     echo "Failed to source initialization module" >&2
     exit 1
 }
 
-# Source verification module - validates the environment
+# Source verification module
 source "$DIR/ver" || {
     echo "Failed to source verification module" >&2
     exit 1
 }
 
-echo " ─── initializing"
-# Execute initialization from init module
-init_rc
-RC_STATUS=$?
+# Setup minimal environment in case of failure
+setup_minimal_environment() {
+    local base_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$HOME/bin"
+    export PATH="$PATH:$base_path"
+    PS1="(minimal)[\u@\h \W]\$ "
 
-if [ $RC_STATUS -ne 0 ]; then
-    echo "RC initialization failed with status $RC_STATUS. Check /tmp/rc_init.log for details" >&2
-    # Create essential directories as last resort
+    # Create essential directories
     for dir in "$LOG_DIR" "$TMP_DIR"; do
         mkdir -p "$dir" 2>/dev/null
     done
+}
 
-    # Set up minimal environment to keep shell usable
-    echo "Setting up minimal environment..." >&2
-    export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$HOME/bin"
-    PS1="(minimal)[\u@\h \W]\$ "
+echo " ─── initializing"
+# Execute initialization
+main_ini
+RC_STATUS=$?
+
+if [ $RC_STATUS -ne 0 ]; then
+    echo "Initialization failed with status $RC_STATUS. Check $LOG_DEBUG_FILE for details" >&2
+    setup_minimal_environment
+    exit 1
 fi
