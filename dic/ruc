@@ -13,6 +13,7 @@ DIC_DIR="${DIC_DIR:-$LAB_DIR/dic}"
 export ALA_DIR LAB_DIR BAS_DIR CON_DIR DIC_DIR
 
 # Constants files
+declare -g MDE_FILE RDE_FILE RUC_FILE
 MDE_FILE="$DIC_DIR/mde"
 RDE_FILE="$DIC_DIR/rde"
 RUC_FILE="$DIC_DIR/ruc"
