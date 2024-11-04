@@ -2,7 +2,7 @@
 # Runtime Constants
 
 # Declare all variables as global first
-declare -g LAB_DIR BAS_DIR CON_DIR
+declare -g LAB_DIR ALA_DIR BAS_DIR CON_DIR DIC_DIR
 declare -g AUX_DIR LOG_DIR TMP_DIR
 declare -g ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
 declare -g LOG_STATE_FILE LOG_DEBUG_FILE
@@ -16,9 +16,11 @@ declare -g TRAP_INITIALIZED=false
 
 # Use existing base directories or set defaults
 LAB_DIR="${LAB_DIR:-$HOME/lab}"    # Keep existing LAB_DIR if set
+ALA_DIR="${ALA_DIR:-$LAB_DIR/ala}"
 BAS_DIR="${BAS_DIR:-$LAB_DIR/bas}"
 CON_DIR="${CON_DIR:-$LAB_DIR/con}"
-export LAB_DIR BAS_DIR CON_DIR
+DIC_DIR="${DIC_DIR:-$LAB_DIR/dic}"
+export ALA_DIR LAB_DIR BAS_DIR CON_DIR DIC_DIR
 
 # Auxiliary directories
 AUX_DIR="${AUX_DIR:-$LAB_DIR}" # Updated AUX_DIR to be the same as LAB_DIR
