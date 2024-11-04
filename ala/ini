@@ -196,7 +196,11 @@ process_runtime_config() {
 # Source RC files with validation
 source_rc() {
     debug_log "Starting source_rc"
-    local rc_modules=("rc1" "rc2" "rc3" "rc4")
+    local rc_modules=()
+    # Iterate over the keys of the associative array 'rc'
+    for rc in "${!rc[@]}"; do
+        rc_modules+=("$rc")
+    done
     local success_count=0
 
     for module in "${rc_modules[@]}"; do
