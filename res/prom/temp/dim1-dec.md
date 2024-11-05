@@ -1,133 +1,115 @@
-# Second Dimension Domain Decision Template
+# Three-Letter Directory Structure Recommendation Template
 
 ## Purpose
-To guide systematic decision-making about where to place components within the second dimension domain structure of a three-letter directory system, ensuring consistent and logical organization of system components.
+To provide structured recommendations for organizing files and directories within a three-letter directory structure system, ensuring consistent organization across projects.
 
 ## Required Inputs
-- {{component_name}} - Name of the component being organized
-- {{component_purpose}} - Primary purpose/function of the component
-- {{component_dependencies}} - List of other components this component interacts with
-- {{component_lifecycle_stage}} - Development stage of the component (e.g., core, experimental, testing)
+- {{project_type}} - Type of project (e.g., web application, CLI tool, library)
+- {{primary_programming_language}} - Main programming language used
+- {{file_types}} - List of file types that need to be organized
 
 ## Optional Parameters
 - {{security_requirements}} - Any specific security considerations
-- {{performance_requirements}} - Performance considerations
-- {{scalability_needs}} - Expected scaling requirements
-- {{team_ownership}} - Team responsible for the component
+- {{deployment_environment}} - Target deployment environment(s)
+- {{backup_requirements}} - Specific backup needs
+- {{retention_policies}} - Any data retention requirements
 
 ## Context
-The second dimension domain organization provides functional groupings that cut across the primary three-letter structure. Each domain serves a specific purpose and follows established patterns for component organization.
+This template assists in determining the appropriate location for different types of files within a standardized three-letter directory structure. The structure consists of eleven main directories: bin/, cfg/, dat/, doc/, lib/, log/, res/, src/, tmp/, and var/. Each directory serves a specific purpose and has clear guidelines for what should and shouldn't be stored there.
 
 ## Instructions
-1. Analyze the component's primary purpose against these domain types:
-
-   - core/ : Foundation systems and essential functionality
-   - depl/ : Deployment and installation operations
-   - util/ : Helper tools and support functions
-   - admin/: System administration tasks
-   - api/  : Interface-related components
-   - mod/  : Extensible and pluggable components
-   - test/ : Testing-related components
-   - dev/  : Development-specific tools
-
-2. Consider the following factors:
-   - Component's fundamental purpose
-   - Integration requirements
-   - Lifecycle stage
-   - Maintenance patterns
-   - Team organization
-   - Security boundaries
-   - Performance implications
-
-3. Evaluate cross-domain communication needs
-4. Assess domain hierarchy implications
-5. Consider future scaling requirements
+1. Review the provided file types and project requirements
+2. For each file type or component, evaluate against the following criteria:
+   - Is it executable? → Consider bin/
+   - Is it configuration? → Consider cfg/
+   - Is it reference data? → Consider dat/
+   - Is it documentation? → Consider doc/
+   - Is it reusable code? → Consider lib/
+   - Is it logging data? → Consider log/
+   - Is it a static resource? → Consider res/
+   - Is it core application code? → Consider src/
+   - Is it temporary? → Consider tmp/
+   - Is it variable runtime data? → Consider var/
 
 ## Constraints
-- Each component should primarily belong to one domain
-- Domain placement should minimize cross-domain dependencies
-- Must maintain clear domain boundaries
-- Must follow established naming conventions
-- Must consider security implications of domain placement
+- Each file should be placed in exactly one directory
+- Files must follow the defined purpose of each directory
+- Security-sensitive files must follow appropriate protection measures
+- Version control inclusion/exclusion must be considered for each directory
 
 ## Expected Output Format
-```
-Domain Decision:
-Selected Domain: {{selected_domain}}
-Subdomain: {{selected_subdomain}}
-Full Path: {{domain_path}}
-
-Justification:
-{{detailed_reasoning}}
-
-Implementation Considerations:
-{{list_of_considerations}}
-
-Migration Steps (if applicable):
-{{migration_steps}}
-```
+For each directory, provide:
+1. List of recommended files/components to include
+2. List of files/components to exclude
+3. Specific handling instructions (permissions, backup, security)
 
 ## Examples
 Input Example:
 ```
 {
-  "component_name": "AuthService",
-  "component_purpose": "Handle user authentication and authorization",
-  "component_dependencies": ["UserDB", "SessionManager", "SecurityLogger"],
-  "component_lifecycle_stage": "core",
-  "security_requirements": "high"
+  "project_type": "Web Application",
+  "primary_programming_language": "Python",
+  "file_types": [
+    "Python source files",
+    "Configuration YAML",
+    "User uploads",
+    "Log files",
+    "Frontend assets"
+  ],
+  "security_requirements": "GDPR compliance",
+  "deployment_environment": ["development", "production"],
+  "backup_requirements": "Daily backups required",
+  "retention_policies": "Logs retained for 90 days"
 }
 ```
 
 Expected Output:
 ```
-Domain Decision:
-Selected Domain: core/
-Subdomain: auth/
-Full Path: core/auth/service
+Directory Recommendations:
 
-Justification:
-Authentication is a fundamental system service required by multiple 
-components. Its critical nature and security requirements make it 
-suitable for core/ rather than mod/ or api/.
+src/
+- Include: Python source files, application logic
+- Exclude: Configuration files, uploaded content
+- Handling: Version controlled, code review required
 
-Implementation Considerations:
-- Implement as core service with strict access controls
-- Maintain high-security standards
-- Ensure scalable design
-- Provide clear integration points
+cfg/
+- Include: YAML configuration files
+- Exclude: Source code, static assets
+- Handling: Encrypt sensitive data, environment-specific configs
 
-Migration Steps:
-1. Create core/auth directory structure
-2. Move authentication components
-3. Update dependency references
-4. Verify security configurations
+var/
+- Include: User uploads
+- Exclude: Application code, configurations
+- Handling: Regular backups, GDPR compliance measures
+
+log/
+- Include: Application logs
+- Exclude: Source code, user data
+- Handling: 90-day retention, rotation policy
+
+res/
+- Include: Frontend assets
+- Exclude: User uploads, configuration
+- Handling: Version controlled, CDN deployment
 ```
 
 ## Validation Rules
-1. Selected domain must be one of the defined domain types
-2. Path must follow naming conventions
-3. Justification must address:
-   - Primary purpose alignment
-   - Security considerations
-   - Integration impacts
-   - Maintenance implications
+1. Ensure no file type is assigned to multiple directories
+2. Verify security-sensitive files have appropriate protection measures
+3. Confirm backup requirements are met for critical directories
+4. Validate version control recommendations against best practices
 
 ## Error Handling
-Common issues to check:
-1. Domain conflict resolution:
-   - If component could fit multiple domains, use these priorities:
-     a. Security criticality (prefer core/)
-     b. Fundamental nature (prefer core/)
-     c. Interface nature (prefer api/)
-     d. Extensibility needs (prefer mod/)
+- If a file type doesn't clearly fit any directory:
+  1. Evaluate against secondary characteristics
+  2. Consider project-specific requirements
+  3. Document reasoning for placement decision
+  4. Consider creating a new subdirectory if necessary
 
-2. Invalid domain selection:
-   - Verify against domain purposes
-   - Check for naming conflicts
-   - Validate against security requirements
-
-3. Cross-domain dependencies:
-   - Identify circular dependencies
-   - Evaluate communication patterns
-   - Check security boundaries
+## Notes
+- Directory structure may need adaptation based on:
+  - Project size and complexity
+  - Team size and organization
+  - Deployment requirements
+  - Security considerations
+  - Regulatory compliance needs
