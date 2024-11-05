@@ -9,13 +9,13 @@ readonly SCRIPT_AUTHOR="woeiru"
 
 # Directory paths
 readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-readonly LAB_DIR="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
+readonly PARENT_DIR="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
 
 # Default configuration
 readonly DEFAULT_CONFIG_FILES=(".zshrc" ".bashrc")
 readonly INJECT_MARKER_START="# === BEGIN MANAGED BLOCK: Shell Configuration [source: $(basename "$0")] ==="
 readonly INJECT_MARKER_END="# === END MANAGED BLOCK: Shell Configuration ==="
-readonly INJECT_SUBPATH="con/rc"
+readonly FILEPATH="bin/init"
 
 # Runtime variables
 declare -g YES_FLAG=false
@@ -25,7 +25,7 @@ declare -g CONFIG_FILE=""
 
 # Function to initialize all runtime configuration
 init_config() {
-    printf "\nSCRIPT DIR = %s\nLAB DIR = %s\n\n" "$SCRIPT_DIR" "$LAB_DIR"
+    printf "\nSCRIPT DIR = %s\nLAB DIR = %s\n\n" "$SCRIPT_DIR" "$PARENT_DIR"
 
     # Initialize variables
     CONFIG_FILE=""
@@ -34,7 +34,7 @@ init_config() {
     YES_FLAG=false
     
     # Set the injection content
-    readonly INJECT_CONTENT=". ${LAB_DIR}/${INJECT_SUBPATH}"
+    readonly INJECT_CONTENT=". ${PARENT_DIR}/${FILEPATH}"
 
     # Export the variables
     export CONFIG_FILE TARGET_USER TARGET_HOME YES_FLAG
