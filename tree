@@ -1,0 +1,102 @@
+.
+├── bin
+│   ├── core
+│   │   └── comp
+│   ├── depl
+│   │   ├── dsk
+│   │   ├── nfs
+│   │   ├── pbs
+│   │   ├── pve
+│   │   └── smb
+│   ├── env
+│   │   └── inject
+│   └── init
+├── cfg
+│   ├── ans
+│   │   ├── main.yml
+│   │   ├── mods
+│   │   │   ├── askpass.yml
+│   │   │   ├── keyboard.yml
+│   │   │   ├── konsole.yml
+│   │   │   └── kwallet.yml
+│   │   └── vars.yml
+│   ├── core
+│   │   ├── mdc
+│   │   ├── rdc
+│   │   └── ric
+│   ├── depl
+│   │   └── site.env
+│   └── pod
+│       ├── qdev
+│       │   ├── Containerfile
+│       │   ├── readme.md
+│       │   └── startcqd.sh
+│       ├── readme.md
+│       └── shus
+│           ├── Containerfile
+│           ├── entrypoint.sh
+│           ├── readme.md
+│           └── smb.conf.template
+├── doc
+│   ├── archi
+│   │   ├── ntcoll-1.md
+│   │   └── ntcoll-2.md
+│   ├── guide
+│   │   ├── dim1.md
+│   │   ├── dim2.md
+│   │   └── portable.md
+│   └── worka
+│       └── audioroot.md
+├── lib
+│   ├── alias
+│   │   ├── dynamic
+│   │   ├── static
+│   │   └── wrap
+│   ├── core
+│   │   ├── err
+│   │   └── ver
+│   ├── depl
+│   │   ├── aux-bin
+│   │   └── aux-src
+│   ├── dev
+│   │   └── dbg
+│   └── util
+│       ├── lo1
+│       ├── lo2
+│       └── tme
+├── res
+│   └── prom
+│       ├── meta01.md
+│       └── temp
+│           ├── dim1-dec.md
+│           └── dim2-dec.md
+├── src
+│   ├── depl
+│   │   ├── gpu
+│   │   ├── net
+│   │   ├── pbs
+│   │   ├── pve
+│   │   ├── srv
+│   │   ├── sto
+│   │   ├── sys
+│   │   └── usr
+│   ├── fixes
+│   │   └── acpi
+│   │       ├── deploy.sh
+│   │       ├── disable-devices-as-wakeup.service
+│   │       ├── disable-devices-as-wakeup.sh
+│   │       ├── post-wake-usb-reset.service
+│   │       ├── post-wake-usb-reset.sh
+│   │       └── readme.md
+│   ├── shell
+│   └── tools
+│       └── replace
+│           ├── readme.md
+│           ├── replace.json
+│           ├── replace.sh
+│           └── track
+├── tree
+└── was
+    └── ssh
+
+34 directories, 66 files
