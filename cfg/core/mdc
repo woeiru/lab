@@ -51,7 +51,7 @@ debug_log "Module requirements initialization complete"
 }
 
 # Export module-related functions and variables
-export -f list_module_requirements
+export -f init_module_requirements
 export -A MODULE_VARS
 export -A MODULE_PATHS
 export -A MODULE_OPTS

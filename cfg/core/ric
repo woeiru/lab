@@ -5,7 +5,7 @@
 
 # Level 1 directories
 declare -g LAB_DIR ALA_DIR BAS_DIR CON_DIR DIC_DIR
-LAB_DIR="${LAB_DIR:-$HOME/lab}"
+LAB_DIR="${LAB_DIR:-/home/es/lab}"
 ARK_DIR="${ARK_DIR:-$LAB_DIR/ark}"
 BAS_DIR="${BAS_DIR:-$LAB_DIR/bas}"
 CON_DIR="${CON_DIR:-$LAB_DIR/con}"

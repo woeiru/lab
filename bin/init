@@ -4,7 +4,60 @@
 readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
 
-#######################################################################
+# Simple debug logging function to use before we load the full system
+debug_log() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local message="$1"
+    local source="${2:-${FUNCNAME[1]:-main}}"
+    local LOG_DEBUG_FILE="${BASE_DIR}/.log/debug.log"
+    
+    # Create directory if it doesn't exist
+    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
+    
+    # Output to stderr for immediate feedback during debugging
+    echo "[DEBUG] $timestamp - [$source] $message" >&2
+    
+    # Also log to file
+    echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
+}
+    fi
+
+    # Load runtime dependencies
+    if ! source "$rde_path" 2>/dev/null; then
+        debug_log "ERROR: Failed to load runtime dependencies"
+        return 1
+    fi   local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local message="$1"
+    local source="${2:-${FUNCNAME[1]:-main}}"
+    local LOG_DEBUG_FILE="${BASE_DIR}/.log/debug.log"
+    
+    # Create directory if it doesn't exist
+    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
+    
+    # Output to stderr for immediate feedback during debugging
+    echo "[DEBUG] $timestamp - [$source] $message" >&2
+    
+    # Also log to file
+    echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
+}
+
+###################################init_runtime_system() {
+    debug_log "Starting runtime system initialization"
+
+    # Updated with BASE_DIR - using rdc file which exists
+    local rde_path="${BASE_DIR}/cfg/core/rdc"
+    
+    # Verify runtime dependency file exists using ver's verify_path
+    if ! verify_path "$rde_path" "file" "false"; then
+        debug_log "ERROR: Runtime dependencies file not found"
+        return 1
+    fi
+
+    # Load runtime dependencies
+    if ! source "$rde_path" 2>/dev/null; then
+        debug_log "ERROR: Failed to load runtime dependencies"
+        return 1
+    }###################
 # System Initialization Controller
 #######################################################################
 # Purpose:
@@ -324,6 +377,45 @@ init_registered_functions() {
     done
 
     return $((failed > 0 ? 1 : 0))
+}
+
+# Register a function with its dependencies
+register_function() {
+    local func_name="$1"
+    debug_log "Registering function: $func_name"
+
+    # Get the dependencies for this function
+    local deps="${FUNCTION_DEPENDENCIES[$func_name]}"
+    [[ -z "$deps" ]] && {
+        debug_log "ERROR: No dependencies found for function: $func_name"
+        return 1
+    }
+
+    # Check if the function exists in any of its module files
+    local success=0
+    IFS=',' read -ra MODULE_ARRAY <<< "$deps"
+    
+    for module in "${MODULE_ARRAY[@]}"; do
+        local module_path="${FUNCTION_MODULES["$func_name:$module"]:-${FUNCTION_MODULES[$func_name]}}"
+        
+        if [[ -n "$module_path" ]] && [[ -f "$module_path" ]]; then
+            debug_log "Checking for function $func_name in module $module_path"
+            
+            # Verify function exists in the module file
+            if verify_function "$func_name" "$module_path"; then
+                # Source the module file
+                if source "$module_path" 2> >(debug_log "Source error: $(cat)"); then
+                    debug_log "Successfully registered function: $func_name from $module_path"
+                    success=1
+                    break
+                fi
+            fi
+        else
+            debug_log "WARNING: Module path not found for $func_name in module $module"
+        fi
+    done
+
+    return $((success == 1 ? 0 : 1))
 }
 
 # Setup minimal environment in case of failure
