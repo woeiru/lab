@@ -213,10 +213,24 @@ inject_content() {
     elif grep -qF "$INJECT_CONTENT" "$CONFIG_FILE"; then
         printf "Found existing content without markers\n"
         printf "Adding markers around existing content\n"
+        
+        # First check if we already have duplicate markers
+        if grep -q "${INJECT_MARKER_START}.*${INJECT_MARKER_START}" "$CONFIG_FILE" || \
+           grep -q "${INJECT_MARKER_END}.*${INJECT_MARKER_END}" "$CONFIG_FILE"; then
+            printf "Detected duplicate markers, cleaning up first...\n"
+            # Create a temporary file
+            local cleanup_temp=$(mktemp)
+            # Remove duplicate marker lines
+            awk '!seen[$0]++' "$CONFIG_FILE" > "$cleanup_temp"
+            # Move the temp file back to the original
+            mv "$cleanup_temp" "$CONFIG_FILE"
+        fi
+        
         # Create a temporary file
         local temp_file=$(mktemp)
-        # Replace the line with our marked block
-        sed "s|^${INJECT_CONTENT}$|${INJECT_MARKER_START}\n${INJECT_CONTENT}\n${INJECT_MARKER_END}|" "$CONFIG_FILE" > "$temp_file"
+        # Replace the line with our marked block, but escape special characters in INJECT_CONTENT
+        escaped_content=$(echo "$INJECT_CONTENT" | sed 's/[\/&]/\\&/g')
+        sed "s|^${escaped_content}$|${INJECT_MARKER_START}\n${INJECT_CONTENT}\n${INJECT_MARKER_END}|" "$CONFIG_FILE" > "$temp_file"
         # Move the temp file back to the original
         mv "$temp_file" "$CONFIG_FILE"
         status="MARKED"
