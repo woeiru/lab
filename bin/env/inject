@@ -1,5 +1,31 @@
 #!/bin/bash
 
+#######################################################################
+# Shell Configuration Injector
+#######################################################################
+# Purpose:
+#   Injects system initialization code into user shell configuration files
+#   (.bashrc or .zshrc) in a controlled and reversible manner.
+#
+# Features:
+#   - Supports both Bash (4+) and Zsh (5+)
+#   - Manages configuration blocks with clear markers
+#   - Non-destructive updates with backup capability
+#   - Interactive and non-interactive modes
+#   - User-specific configuration targeting
+#
+# Operation:
+#   1. Verifies shell compatibility
+#   2. Identifies target user and home directory
+#   3. Locates or creates appropriate shell config file
+#   4. Injects or updates initialization code block
+#   5. Manages shell restart for changes to take effect
+#
+# Usage:
+#   ./inject [-y] [-u|--user USER] [-c|--config FILE]
+#
+#######################################################################
+
 set -eo pipefail
 
 # Script metadata
