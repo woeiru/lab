@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Initialization System
-# Dependencies: Only relies on verification module (ver) from ala folder for helper functions
+# Dependencies: Relies on verification module (ver), runtime and module dependency constants (rdc, mdc), and initialization module (ini)
 # Purpose: Manages system initialization in two phases:
 #   1. Module dependency initialization (working with mdc)
 #   2. Runtime dependency initialization (working with rdc)
@@ -31,7 +31,7 @@ source "$DIR/ini" || {
 }
 
 # Source verification module
-source "$DIR/ver" || {
+source "$DIR/../lib/core/ver" || {
     echo "Failed to source verification module" >&2
     exit 1
 }
@@ -39,7 +39,7 @@ source "$DIR/ver" || {
 ###############################################
 # Core initialization orchestrator
 # Dependencies:
-#   - ver (ala/ver) for all verification functions
+#   - ver (lib/core/ver) for all verification functions
 ###############################################
 main_ini() {
     debug_log "Starting main initialization"
