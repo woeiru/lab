@@ -23,6 +23,57 @@ declare -gA ERROR_EXIT_CODES
 declare -gA ERROR_SEVERITIES
 declare -ga ERROR_ORDER
 
+# Process error messages and log them appropriately
+process_error() {
+    local message="$1"
+    local component="${2:-${FUNCNAME[1]:-main}}"
+    local exit_code="${3:-${ERROR_CODES[GENERAL_ERROR]}}"
+    local severity="${4:-ERROR}"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    # Log the error with component information and timestamp
+    local log_message="[$severity] $timestamp - [$component] $message"
+    
+    # Store error information
+    local error_id="$component-$(date +%s%N)"
+    ERROR_COMPONENTS[$error_id]="$component"
+    ERROR_MESSAGES[$error_id]="$message"
+    ERROR_TIMESTAMPS[$error_id]="$timestamp"
+    ERROR_EXIT_CODES[$error_id]="$exit_code"
+    ERROR_SEVERITIES[$error_id]="$severity"
+    ERROR_ORDER+=("$error_id")
+    
+    # Log to the error log file
+    printf "%s\n" "$log_message" >> "${ERROR_LOG}"
+    
+    # Output to console based on severity
+    if [[ "$severity" == "ERROR" || "$severity" == "CRITICAL" ]]; then
+        printf "%s\n" "$log_message" >&2
+    elif [[ "$severity" == "WARNING" ]]; then
+        printf "%s\n" "$log_message" >&1
+    fi
+    
+    return $exit_code
+}
+
+# Function to handle errors more comprehensively
+handle_error() {
+    local message="$1"
+    local component="${2:-${FUNCNAME[1]:-main}}"
+    local exit_code="${3:-${ERROR_CODES[GENERAL_ERROR]}}"
+    local severity="${4:-ERROR}"
+    
+    # Process the error
+    process_error "$message" "$component" "$exit_code" "$severity"
+    
+    # For critical errors, terminate the script
+    if [[ "$severity" == "CRITICAL" || "$exit_code" -ne "${ERROR_CODES[OPTIONAL_WARNING]}" ]]; then
+        clean_exit "$exit_code"
+    fi
+    
+    return $exit_code
+}
+
 # Function to ensure clean exit from the script
 clean_exit() {
     local exit_code=${1:-${ERROR_CODES[SUCCESS]}}

@@ -290,11 +290,55 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     trap cleanup_logger EXIT
 fi
 
+# Standard logging function for modules to use
+log_message() {
+    local message="$1"
+    local level="${2:-1}"
+    local component="${3:-${FUNCNAME[1]:-main}}"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    # Get indent and color based on call stack depth
+    local indent=$(get_indent "$component")
+    local color=$(get_color "$level")
+    local reset=$(printf '\033[0m')
+    
+    # Format the message
+    local formatted_message="${color}${indent}[$component] $message${reset}"
+    
+    # Log to file
+    printf "[LOG] %s - %s\n" "$timestamp" "$formatted_message" >> "$LOG_FILE"
+    
+    # Output to console if enabled
+    if [[ -f "$LOG_STATE_FILE" ]] && [[ "$(cat "$LOG_STATE_FILE")" == "true" ]]; then
+        printf "%s\n" "$formatted_message"
+    fi
+    
+    return 0
+}
+
+# Logging function with timing information
+log_with_timer() {
+    local message="$1"
+    local component="${2:-${FUNCNAME[1]:-main}}"
+    local level="${3:-1}"
+    
+    # Check if TME module functions are available
+    if type -t get_elapsed_time &>/dev/null; then
+        local elapsed=$(get_elapsed_time "$component")
+        log_message "$message (elapsed: ${elapsed}s)" "$level" "$component"
+    else
+        log_message "$message (timing unavailable)" "$level" "$component"
+    fi
+    
+    return 0
+}
+
 # Update exports to include lo1_debug_log instead of debug_log
 export LOG_FILE LOG_STATE_FILE TMP_DIR
 export -f log setlog init_logger cleanup_logger
 export -f is_root_function get_base_depth calculate_final_depth
 export -f get_indent get_color lo1_debug_log dump_stack_trace
+export -f log_message log_with_timer
 export -A ROOT_FUNCTIONS
 
 # Initialize on source
