@@ -199,6 +199,7 @@ inject_content() {
 
     local status="NO_CHANGE"
 
+    # Check if the content is already injected between markers
     if grep -q "$INJECT_MARKER_START" "$CONFIG_FILE"; then
         printf "Found existing inject markers\n"
         if diff -q <(echo "$INJECT_CONTENT") <(sed -n "/$INJECT_MARKER_START/,/$INJECT_MARKER_END/p" "$CONFIG_FILE" | sed '1d;$d') >/dev/null; then
@@ -208,6 +209,19 @@ inject_content() {
         printf "Updating existing content\n"
         sed -i "/$INJECT_MARKER_START/,/$INJECT_MARKER_END/d" "$CONFIG_FILE"
         status="UPDATED"
+    # Check if the exact content line is already in the file without our markers
+    elif grep -qF "$INJECT_CONTENT" "$CONFIG_FILE"; then
+        printf "Found existing content without markers\n"
+        printf "Adding markers around existing content\n"
+        # Create a temporary file
+        local temp_file=$(mktemp)
+        # Replace the line with our marked block
+        sed "s|^${INJECT_CONTENT}$|${INJECT_MARKER_START}\n${INJECT_CONTENT}\n${INJECT_MARKER_END}|" "$CONFIG_FILE" > "$temp_file"
+        # Move the temp file back to the original
+        mv "$temp_file" "$CONFIG_FILE"
+        status="MARKED"
+        printf "Content injection complete: %s\n" "${status}"
+        return 0
     else
         printf "Adding new content\n"
         status="ADDED"
