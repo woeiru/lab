@@ -1,5 +1,29 @@
 #!/bin/bash
 
+# Check if this is the first run
+if [ ! -f "${HOME}/.lab_initialized" ]; then
+    cat << 'EOF'
+╔════════════════════════════════════════════════════════════════╗
+║                Welcome to Lab Environment Setup                 ║
+╚════════════════════════════════════════════════════════════════╝
+
+This script will set up your development environment by:
+- Configuring your shell (Bash/Zsh)
+- Setting up necessary directories
+- Loading required modules
+
+The process is interactive but can be automated with flags:
+  -y          Non-interactive mode
+  -u USER     Specify target user
+  -c FILE     Specify config file
+  
+For more information, see the README.md in the root directory.
+
+EOF
+    read -p "Press Enter to continue..."
+    touch "${HOME}/.lab_initialized"
+fi
+
 #######################################################################
 # Shell Configuration Injector
 #######################################################################
