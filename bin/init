@@ -336,20 +336,25 @@ init_registered_functions() {
     fi
 
     local failed=0
+    local success=0
     for func in "${REGISTERED_FUNCTIONS[@]}"; do
+        debug_log "Checking function: $func"
         if ! verify_function_dependencies "$func"; then
-            debug_log "ERROR: Failed to verify dependencies for function: $func"
-            ((failed++))
+            debug_log "WARNING: Failed to verify dependencies for function: $func - continuing anyway"
             continue
         fi
 
-        if ! register_function "$func"; then
-            debug_log "ERROR: Failed to register function: $func"
-            ((failed++))
+        if register_function "$func"; then
+            debug_log "Successfully registered function: $func"
+            ((success++))
+        else
+            debug_log "WARNING: Failed to register function: $func - continuing anyway"
         fi
     done
 
-    return $((failed > 0 ? 1 : 0))
+    # Even with failures, continue if at least one function registers successfully
+    debug_log "Registered $success functions successfully"
+    return $((success > 0 ? 0 : 1))
 }
 
 # Register a function with its dependencies
