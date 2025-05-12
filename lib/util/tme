@@ -82,6 +82,15 @@ start_timer() {
     echo "$orig_log_state" > "$LO_STATE_FILE"
 }
 
+# Stop timing for a component (alias for end_timer for compatibility)
+stop_timer() {
+    local component="$1"
+    local status="${2:-success}"
+    
+    # Simply call end_timer with the same parameters
+    end_timer "$component" "$status"
+}
+
 # End timing for a component
 end_timer() {
     local component="$1"
@@ -353,6 +362,7 @@ export TME_CURRENT_PARENT
 export TME_LOG_FILE
 export -f init_timer
 export -f start_timer
+export -f stop_timer
 export -f end_timer
 export -f start_nested_timing
 export -f end_nested_timing
