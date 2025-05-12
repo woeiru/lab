@@ -16,6 +16,8 @@ lo1_debug_log() {
 
 # Define main log file 
 declare -g LOG_FILE="${LOG_DIR}/lo1.log"
+# Define depth cache file
+declare -g LOG_DEPTH_CACHE_FILE="${LOG_DIR}/lo1_depth_cache.log"
 
 
 
