@@ -308,29 +308,64 @@ process_runtime_config() {
 source_rc() {
     debug_log "Starting source_rc"
     local rc_modules=()
-    # Updated path for configuration directory
-    local config_dir="${BASE_DIR}/cfg/core"
     
-    # Iterate over the keys of the associative array 'rc'
-    for rc in "${!rc[@]}"; do
-        rc_modules+=("$rc")
-    done
+    # Use CON_DIR from ric file if it exists, otherwise fallback to BASE_DIR
+    local config_dir="${CON_DIR:-${BASE_DIR}/con}"
+    debug_log "Using config directory: $config_dir"
+    
     local success_count=0
     local rc_files_exist=0
+    
+    # Check if RC_FILES array is defined in ric file
+    if [[ -n "${RC_FILES[*]}" ]]; then
+        debug_log "Using RC_FILES from ric"
+        
+        # Iterate through the RC_FILES array
+        for rc_file in "${RC_FILES[@]}"; do
+            if [[ -r "$rc_file" ]]; then
+                rc_files_exist=1
+                debug_log "Processing RC file: $rc_file"
+                if validate_module "$rc_file"; then
+                    if source "$rc_file" 2>/dev/null; then
+                        debug_log "Successfully sourced: $rc_file"
+                        ((success_count++))
+                    fi
+                fi
+            else
+                debug_log "RC file not readable: $rc_file"
+            fi
+        done
+    else
+        # Fall back to the rc array keys
+        debug_log "Falling back to rc array keys"
+        # Iterate over the keys of the associative array 'rc'
+        for rc in "${!rc[@]}"; do
+            rc_modules+=("$rc")
+        done
 
-    for module in "${rc_modules[@]}"; do
-        # First check if any RC files exist at all
-        if [[ -r "$config_dir/$module" ]]; then
-            rc_files_exist=1
-            debug_log "Processing RC module: $module"
-            # Validate RC file using ver's validate_module
-            if validate_module "$config_dir/$module"; then
-                if source "$config_dir/$module" 2>/dev/null; then
-                    ((success_count++))
+        for module in "${rc_modules[@]}"; do
+            # Check both potential locations
+            if [[ -r "$config_dir/$module" ]]; then
+                rc_files_exist=1
+                debug_log "Processing RC module: $module"
+                if validate_module "$config_dir/$module"; then
+                    if source "$config_dir/$module" 2>/dev/null; then
+                        debug_log "Successfully sourced: $config_dir/$module"
+                        ((success_count++))
+                    fi
+                fi
+            elif [[ -r "${BASE_DIR}/cfg/core/$module" ]]; then
+                rc_files_exist=1
+                debug_log "Processing RC module: ${BASE_DIR}/cfg/core/$module"
+                if validate_module "${BASE_DIR}/cfg/core/$module"; then
+                    if source "${BASE_DIR}/cfg/core/$module" 2>/dev/null; then
+                        debug_log "Successfully sourced: ${BASE_DIR}/cfg/core/$module"
+                        ((success_count++))
+                    fi
                 fi
             fi
-        fi
-    done
+        done
+    fi
 
     # If no RC files exist, don't consider it a failure
     if [[ $rc_files_exist -eq 0 ]]; then

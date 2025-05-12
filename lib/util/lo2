@@ -179,10 +179,55 @@ cleanup_lo2() {
     lo2_debug_log "Cleanup complete" "cleanup_lo2"
 }
 
+# Debug message function for modules to use
+debug_message() {
+    local message="$1"
+    local component="${2:-${FUNCNAME[1]:-main}}"
+    local level="${3:-1}" # Default verbosity level
+    
+    # Skip if debug logging is disabled
+    [[ "${LOG_DEBUG_ENABLED:-0}" != "1" ]] && return 0
+    
+    # Format timestamp and get execution context depth
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local depth=$(get_current_control_depth)
+    local indent=$(printf '%*s' "$depth" "" | tr ' ' '·')
+    
+    # Format the log message
+    local formatted_message="[$component] ${indent}$message"
+    
+    # Log to debug file
+    printf "[DEBUG] %s - %s\n" "$timestamp" "$formatted_message" >> "$LOG_DEBUG_FILE"
+    
+    # Output to stderr if verbosity level allows
+    if (( DEBUG_VERBOSITY >= level )); then
+        printf "[DEBUG] %s - %s\n" "$timestamp" "$formatted_message" >&2
+    fi
+    
+    return 0
+}
+
+# Debug message with timer integration
+debug_with_timer() {
+    local message="$1"
+    local component="${2:-${FUNCNAME[1]:-main}}"
+    local level="${3:-1}"
+    
+    # Check if TME module functions are available
+    if type -t get_elapsed_time &>/dev/null; then
+        local elapsed=$(get_elapsed_time "$component")
+        debug_message "$message (elapsed: ${elapsed}s)" "$component" "$level"
+    else
+        debug_message "$message (timing unavailable)" "$component" "$level"
+    fi
+    
+    return 0
+}
+
 # Export necessary functions and variables
 export LOG_CONTROL_DEPTH_ENABLED
 export -f setlogcontrol
-export -f lo2_debug_log
+export -f lo2_debug_log debug_message debug_with_timer
 export -f calculate_final_depth
 export -f track_control_depth
 export -f get_current_control_depth

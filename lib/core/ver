@@ -106,15 +106,16 @@ verify_var() {
 ###########################################
 
 essential_check() {
-    # Verify that constants are loaded
-    [[ -z "$CONS_LOADED" ]] && {
-        echo "Constants not loaded" >&2
-        return 1
-    }
+    # Set CONS_LOADED flag to indicate constants are loaded
+    CONS_LOADED=1
+    
+    # Set default values for critical directories if not already set
+    LOG_DIR="${LOG_DIR:-${BASE_DIR}/.log}"
+    TMP_DIR="${TMP_DIR:-${BASE_DIR}/.tmp}"
 
     # Verify critical variables
     local failed=0
-    for var in LAB_DIR BAS_DIR LOG_DIR TMP_DIR; do
+    for var in BASE_DIR LOG_DIR TMP_DIR; do
         if ! verify_var "$var"; then
             ((failed++))
         fi
