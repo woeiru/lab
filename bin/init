@@ -1,5 +1,46 @@
 #!/bin/bash
 
+#######################################################################
+# System Initialization Controller
+#######################################################################
+# Purpose:
+#   Core system initialization script that manages the bootstrapping and 
+#   configuration of the entire environment through a modular, dependency-
+#   aware approach.
+#
+# Architecture:
+#   - Core Components:
+#     * Verification Module (ver): Validates system state and dependencies
+#     * Runtime Constants (ric): System-wide configuration constants
+#     * Module Dependencies (mdc): Module relationship definitions
+#     * Runtime Dependencies (rdc): Runtime environment requirements
+#
+# Initialization Flow:
+#   1. Module System Initialization:
+#      - Validates core dependencies
+#      - Sets up required directories
+#      - Loads and verifies essential modules (err, lo1, lo2, tme)
+#
+#   2. Runtime System Initialization:
+#      - Processes runtime configurations
+#      - Loads runtime dependencies
+#      - Registers and validates system functions
+#
+# Error Handling:
+#   - Comprehensive error logging via debug_log
+#   - Fallback to minimal environment on failure
+#   - Verification at each critical step
+#
+# Dependencies:
+#   Required files in cfg/core/:
+#   - ric (Runtime initialization constants)
+#   - rdc (Runtime dependency constants)
+#   - mdc (Module dependency constants)
+#   Required modules in lib/core/:
+#   - ver (Verification functions)
+#
+#######################################################################
+
 # Initialization System
 # Dependencies: Relies on verification module (ver), runtime and module dependency constants (rdc, mdc), and initialization module (ini)
 # Purpose: Manages system initialization in two phases:
