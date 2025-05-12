@@ -12,24 +12,12 @@ CON_DIR="${CON_DIR:-$LAB_DIR/con}"
 DIC_DIR="${DIC_DIR:-$LAB_DIR/dic}"
 export ALA_DIR LAB_DIR BAS_DIR CON_DIR DIC_DIR
 
-# Runtime files
-declare -ga RC_FILES
-RC_FILES=(
-    "$CON_DIR/rc1"
-    "$CON_DIR/rc2"
-    "$CON_DIR/rc3"
-    "$CON_DIR/rc4"
-)
+# Runtime files - consolidated into init file
+declare -ga RC_FILES=()
 export RC_FILES
 
-# Runtime configuration files
-declare -A rc
-rc=(
-    ["rc1"]="Runtime configuration 1"
-    ["rc2"]="Runtime configuration 2"
-    ["rc3"]="Runtime configuration 3"
-    ["rc4"]="Runtime configuration 4"
-)
+# Runtime configuration files - consolidated into init file
+declare -A rc=()
 export rc
 
 # Constants files

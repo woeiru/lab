@@ -7,7 +7,19 @@ readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
 # Debug verbosity level (0=minimal, 1=standard, 2=verbose)
 DEBUG_VERBOSITY=${DEBUG_VERBOSITY:-1}
 
-# Simple debug logging function to use before we load the full system
+# Si# Process runtime configurations with ver validation
+process_runtime_config() {
+    debug_log "Processing runtime configuration"
+    
+    # RC files have been consolidated into the init file, 
+    # no need to verify or source separate RC files
+    debug_log "Runtime configuration files consolidated into init file"
+    
+    # Still call source_rc for backward compatibility,
+    # but it will handle the case where no RC files exist
+    source_rc
+    
+    return 0unction to use before we load the full system
 debug_log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local message="$1"
@@ -307,43 +319,13 @@ process_runtime_config() {
 # Source RC files with validation
 source_rc() {
     debug_log "Starting source_rc"
-    local rc_modules=()
     
-    # Use CON_DIR from ric file if it exists, otherwise fallback to BASE_DIR
-    local config_dir="${CON_DIR:-${BASE_DIR}/con}"
-    debug_log "Using config directory: $config_dir"
+    # RC files have been consolidated into the init file
+    debug_log "RC files have been consolidated into the init file, no separate RC files to source"
     
-    local success_count=0
-    local rc_files_exist=0
-    
-    # Check if RC_FILES array is defined in ric file
-    if [[ -n "${RC_FILES[*]}" ]]; then
-        debug_log "Using RC_FILES from ric"
-        
-        # Iterate through the RC_FILES array
-        for rc_file in "${RC_FILES[@]}"; do
-            if [[ -r "$rc_file" ]]; then
-                rc_files_exist=1
-                debug_log "Processing RC file: $rc_file"
-                if validate_module "$rc_file"; then
-                    if source "$rc_file" 2>/dev/null; then
-                        debug_log "Successfully sourced: $rc_file"
-                        ((success_count++))
-                    fi
-                fi
-            else
-                debug_log "RC file not readable: $rc_file"
-            fi
-        done
-    else
-        # Fall back to the rc array keys
-        debug_log "Falling back to rc array keys"
-        # Iterate over the keys of the associative array 'rc'
-        for rc in "${!rc[@]}"; do
-            rc_modules+=("$rc")
-        done
-
-        for module in "${rc_modules[@]}"; do
+    # Return success directly
+    return 0
+} do
             # Check both potential locations
             if [[ -r "$config_dir/$module" ]]; then
                 rc_files_exist=1
