@@ -4,21 +4,25 @@
 readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
 
+# Debug verbosity level (0=minimal, 1=standard, 2=verbose)
+DEBUG_VERBOSITY=${DEBUG_VERBOSITY:-1}
+
 # Simple debug logging function to use before we load the full system
 debug_log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
+    local level="${3:-1}" # Default verbosity level
     local LOG_DEBUG_FILE="${BASE_DIR}/.log/debug.log"
     
-    # Create directory if it doesn't exist
+    # Always log to file regardless of verbosity
     mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
-    
-    # Output to stderr for immediate feedback during debugging
-    echo "[DEBUG] $timestamp - [$source] $message" >&2
-    
-    # Also log to file
     echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
+    
+    # Only output to stderr if verbosity level is sufficient
+    if (( DEBUG_VERBOSITY >= level )); then
+        echo "[DEBUG] $timestamp - [$source] $message" >&2
+    fi
 }
 
 #######################################################################
@@ -205,12 +209,12 @@ load_modules() {
 
         # Using verify_module and validate_module from ver
         if ! verify_module "$module_name" || ! validate_module "$module"; then
-            debug_log "ERROR: Module verification/validation failed for $module_name"
+            debug_log "ERROR: Module verification/validation failed for $module_name" "verify_module" 1
             continue
         fi
 
         if [[ -f "$module" ]] && [[ -r "$module" ]]; then
-            if source "$module" 2> >(debug_log "Source error: $(cat)"); then
+            if source "$module" 2>/dev/null; then
                 debug_log "Successfully loaded module: $module_name"
                 loaded_modules[$module_name]=1
                 ((module_loaded++))
@@ -309,7 +313,7 @@ source_rc() {
             debug_log "Processing RC module: $module"
             # Validate RC file using ver's validate_module
             if validate_module "$config_dir/$module"; then
-                if source "$config_dir/$module" 2> >(debug_log "Source error: $(cat)"); then
+                if source "$config_dir/$module" 2>/dev/null; then
                     ((success_count++))
                 fi
             fi
@@ -382,7 +386,7 @@ register_function() {
             # Verify function exists in the module file
             if verify_function "$func_name" "$module_path"; then
                 # Source the module file
-                if source "$module_path" 2> >(debug_log "Source error: $(cat)"); then
+                if source "$module_path" 2>/dev/null; then
                     debug_log "Successfully registered function: $func_name from $module_path"
                     success=1
                     break
