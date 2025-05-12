@@ -46,7 +46,7 @@ readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
 #######################################################################
 
 # Initialization System
-# Dependencies: Relies on verification module (ver), runtime and module dependency constants (rdc, mdc), and initialization module (ini)
+# Dependencies: Relies on verification module (ver), runtime and module dependency constants (rdc, mdc)
 # Purpose: Manages system initialization in two phases:
 #   1. Module dependency initialization (working with mdc)
 #   2. Runtime dependency initialization (working with rdc)
@@ -122,8 +122,8 @@ init_module_system() {
         return 1
     fi
 
-    # Initialize module requirements from mde
-    if ! init_module_requirements; then
+    # Initialize module requirements - make it conditionally run based on existence
+    if type init_module_requirements &>/dev/null && ! init_module_requirements; then
         debug_log "ERROR: Failed to initialize module requirements"
         return 1
     fi
@@ -148,11 +148,12 @@ init_module_system() {
 init_dirs() {
     debug_log "Starting directory initialization"
 
+    # Updated directory paths to use BASE_DIR
     local required_dirs=(
-        "$LOG_DIR"
-        "$TMP_DIR"
-        "$BAS_DIR"
-        "$CON_DIR"
+        "${BASE_DIR}/.log"
+        "${BASE_DIR}/.tmp"
+        "${BASE_DIR}/lib"
+        "${BASE_DIR}/cfg"
     )
 
     # Using verify_path from ver module
@@ -173,10 +174,10 @@ load_modules() {
 
     local module_loaded=0
     local -a modules=(
-        "$BAS_DIR/err"
-        "$BAS_DIR/lo1"
-        "$BAS_DIR/lo2"
-        "$BAS_DIR/tme"
+        "${BASE_DIR}/lib/core/err"
+        "${BASE_DIR}/lib/util/lo1"
+        "${BASE_DIR}/lib/util/lo2"
+        "${BASE_DIR}/lib/util/tme"
     )
 
     declare -A loaded_modules
@@ -215,14 +216,17 @@ load_modules() {
 init_runtime_system() {
     debug_log "Starting runtime system initialization"
 
+    # Updated with BASE_DIR
+    local rde_path="${BASE_DIR}/cfg/core/rde"
+    
     # Verify runtime dependency file exists using ver's verify_path
-    if ! verify_path "$CON_DIR/rde" "file" "false"; then
+    if ! verify_path "$rde_path" "file" "false"; then
         debug_log "ERROR: Runtime dependencies file not found"
         return 1
     fi
 
     # Load runtime dependencies
-    if ! source "$CON_DIR/rde" 2>/dev/null; then
+    if ! source "$rde_path" 2>/dev/null; then
         debug_log "ERROR: Failed to load runtime dependencies"
         return 1
     fi
@@ -247,10 +251,13 @@ init_runtime_system() {
 process_runtime_config() {
     debug_log "Processing runtime configuration"
 
+    # Updated path for configuration directory
+    local config_dir="${BASE_DIR}/cfg/core"
+    
     # Verify RC files exist using rc array keys
     local rc_modules=()
     for rc in "${!rc[@]}"; do
-        if ! verify_path "$CON_DIR/$rc" "file" "false"; then
+        if ! verify_path "$config_dir/$rc" "file" "false"; then
             debug_log "WARNING: RC file $rc not found"
         fi
     done
@@ -268,6 +275,9 @@ process_runtime_config() {
 source_rc() {
     debug_log "Starting source_rc"
     local rc_modules=()
+    # Updated path for configuration directory
+    local config_dir="${BASE_DIR}/cfg/core"
+    
     # Iterate over the keys of the associative array 'rc'
     for rc in "${!rc[@]}"; do
         rc_modules+=("$rc")
@@ -275,11 +285,11 @@ source_rc() {
     local success_count=0
 
     for module in "${rc_modules[@]}"; do
-        if [[ -r "$CON_DIR/$module" ]]; then
+        if [[ -r "$config_dir/$module" ]]; then
             debug_log "Processing RC module: $module"
             # Validate RC file using ver's validate_module
-            if validate_module "$CON_DIR/$module"; then
-                if source "$CON_DIR/$module" 2> >(debug_log "Source error: $(cat)"); then
+            if validate_module "$config_dir/$module"; then
+                if source "$config_dir/$module" 2> >(debug_log "Source error: $(cat)"); then
                     ((success_count++))
                 fi
             fi
@@ -323,7 +333,9 @@ setup_minimal_environment() {
     PS1="(minimal)[\u@\h \W]\$ "
 
     # Create essential directories
-    for dir in "$LOG_DIR" "$TMP_DIR"; do
+    local log_dir="${BASE_DIR}/.log"
+    local tmp_dir="${BASE_DIR}/.tmp"
+    for dir in "$log_dir" "$tmp_dir"; do
         mkdir -p "$dir" 2>/dev/null
     done
 }
@@ -334,7 +346,7 @@ main_ini
 RC_STATUS=$?
 
 if [ $RC_STATUS -ne 0 ]; then
-    echo "Initialization failed with status $RC_STATUS. Check $LOG_DEBUG_FILE for details" >&2
+    echo "Initialization failed with status $RC_STATUS. Check logs for details" >&2
     setup_minimal_environment
     exit 1
 fi
