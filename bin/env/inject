@@ -190,65 +190,70 @@ set_config_file() {
 
 # 4. Inject content into config file
 inject_content() {
-    printf "Injecting content into config file...\n"
+    printf "Processing config file '%s' for injection...\n" "$CONFIG_FILE"
 
     if [[ -z "$CONFIG_FILE" || ! -f "$CONFIG_FILE" ]]; then
         printf "Error: Invalid config file: %s\n" "${CONFIG_FILE}"
         return 1
     fi
 
-    local status="NO_CHANGE"
+    local temp_new_config
+    temp_new_config=$(mktemp)
+    if [[ -z "$temp_new_config" || ! -f "$temp_new_config" ]]; then # mktemp can fail
+        printf "Error: Failed to create temporary file.\n"
+        return 1
+    fi
 
-    # Check if the content is already injected between markers
-    if grep -q "$INJECT_MARKER_START" "$CONFIG_FILE"; then
-        printf "Found existing inject markers\n"
-        if diff -q <(echo "$INJECT_CONTENT") <(sed -n "/$INJECT_MARKER_START/,/$INJECT_MARKER_END/p" "$CONFIG_FILE" | sed '1d;$d') >/dev/null; then
-            printf "Content unchanged\n"
-            return 0
-        fi
-        printf "Updating existing content\n"
-        sed -i "/$INJECT_MARKER_START/,/$INJECT_MARKER_END/d" "$CONFIG_FILE"
-        status="UPDATED"
-    # Check if the exact content line is already in the file without our markers
-    elif grep -qF "$INJECT_CONTENT" "$CONFIG_FILE"; then
-        printf "Found existing content without markers\n"
-        printf "Adding markers around existing content\n"
-        
-        # First check if we already have duplicate markers
-        if grep -q "${INJECT_MARKER_START}.*${INJECT_MARKER_START}" "$CONFIG_FILE" || \
-           grep -q "${INJECT_MARKER_END}.*${INJECT_MARKER_END}" "$CONFIG_FILE"; then
-            printf "Detected duplicate markers, cleaning up first...\n"
-            # Create a temporary file
-            local cleanup_temp=$(mktemp)
-            # Remove duplicate marker lines
-            awk '!seen[$0]++' "$CONFIG_FILE" > "$cleanup_temp"
-            # Move the temp file back to the original
-            mv "$cleanup_temp" "$CONFIG_FILE"
-        fi
-        
-        # Create a temporary file
-        local temp_file=$(mktemp)
-        # Replace the line with our marked block, but escape special characters in INJECT_CONTENT
-        escaped_content=$(echo "$INJECT_CONTENT" | sed 's/[\/&]/\\&/g')
-        sed "s|^${escaped_content}$|${INJECT_MARKER_START}\n${INJECT_CONTENT}\n${INJECT_MARKER_END}|" "$CONFIG_FILE" > "$temp_file"
-        # Move the temp file back to the original
-        mv "$temp_file" "$CONFIG_FILE"
-        status="MARKED"
-        printf "Content injection complete: %s\n" "${status}"
-        return 0
+    # The desired block content
+    local desired_block
+    # Ensure INJECT_MARKER_START, INJECT_CONTENT, INJECT_MARKER_END are correctly formatted for echo -e
+    # For this script, they are simple strings, so direct usage is fine.
+    printf -v desired_block "%s\n%s\n%s" "$INJECT_MARKER_START" "$INJECT_CONTENT" "$INJECT_MARKER_END"
+
+    # Use awk to filter out old managed blocks and any bare instance of INJECT_CONTENT.
+    # The result (original file minus these parts) is written to temp_new_config.
+    awk -v sm="$INJECT_MARKER_START" -v em="$INJECT_MARKER_END" -v ic="$INJECT_CONTENT" '
+        BEGIN { in_block = 0 }
+        # Using exact string comparison for markers and content
+        $0 == sm { in_block = 1; next }
+        $0 == em { in_block = 0; next }
+        !in_block && $0 != ic { print }
+    ' "$CONFIG_FILE" > "$temp_new_config"
+
+    # Ensure there's a newline before our block if $temp_new_config is not empty and doesn't end with one
+    if [[ -s "$temp_new_config" ]] && [[ $(tail -c1 "$temp_new_config" | wc -l) -eq 0 ]]; then
+        echo "" >> "$temp_new_config"
+    fi
+
+    # Append the correct, new block to $temp_new_config
+    echo -e "$desired_block" >> "$temp_new_config"
+    
+    # Compare the newly constructed temp file with the original.
+    if diff -q "$CONFIG_FILE" "$temp_new_config" >/dev/null; then
+        printf "Configuration file '%s' is already correct. No changes made.\n" "$CONFIG_FILE"
+        rm "$temp_new_config"
+        return 0 
     else
-        printf "Adding new content\n"
-        status="ADDED"
+        printf "Updating configuration file '%s'.\n" "$CONFIG_FILE"
+        local backup_file="${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)"
+        cp "$CONFIG_FILE" "$backup_file"
+        if [[ $? -ne 0 ]]; then
+            printf "Error: Failed to create backup file '%s'. Aborting update.\n" "$backup_file"
+            rm "$temp_new_config"
+            return 1
+        fi
+        
+        mv "$temp_new_config" "$CONFIG_FILE"
+        if [[ $? -ne 0 ]]; then
+            printf "Error: Failed to move temporary file to '%s'. Check permissions.\n" "$CONFIG_FILE"
+            # Attempt to restore backup if move fails
+            cp "$backup_file" "$CONFIG_FILE" 
+            rm "$temp_new_config" # Still remove temp if it exists
+            return 1
+        fi
+        printf "Content injection complete. Backup created at '%s'.\n" "$backup_file"
+        return 0
     fi
-
-    # Add newline before block if file is not empty and doesn't end with newline
-    if [[ -s "$CONFIG_FILE" ]] && [[ $(tail -c1 "$CONFIG_FILE" | wc -l) -eq 0 ]]; then
-        echo "" >> "$CONFIG_FILE"
-    fi
-
-    echo -e "$INJECT_MARKER_START\n$INJECT_CONTENT\n$INJECT_MARKER_END" >> "$CONFIG_FILE"
-    printf "Content injection complete: %s\n" "${status}"
-    return 0
 }
 
 # 5. Restart shell
