@@ -300,9 +300,12 @@ source_rc() {
         rc_modules+=("$rc")
     done
     local success_count=0
+    local rc_files_exist=0
 
     for module in "${rc_modules[@]}"; do
+        # First check if any RC files exist at all
         if [[ -r "$config_dir/$module" ]]; then
+            rc_files_exist=1
             debug_log "Processing RC module: $module"
             # Validate RC file using ver's validate_module
             if validate_module "$config_dir/$module"; then
@@ -312,6 +315,12 @@ source_rc() {
             fi
         fi
     done
+
+    # If no RC files exist, don't consider it a failure
+    if [[ $rc_files_exist -eq 0 ]]; then
+        debug_log "No RC files found - continuing anyway"
+        return 0
+    fi
 
     return $((success_count > 0 ? 0 : 1))
 }
