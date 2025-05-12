@@ -1,4 +1,6 @@
 .
+├── ana
+│   └── ssh
 ├── bin
 │   ├── core
 │   │   └── comp
@@ -38,14 +40,16 @@
 │           ├── readme.md
 │           └── smb.conf.template
 ├── doc
-│   ├── archi
+│   ├── architectual
 │   │   ├── ntcoll-1.md
 │   │   └── ntcoll-2.md
-│   ├── guide
+│   ├── guideline
 │   │   ├── dim1.md
 │   │   ├── dim2.md
 │   │   └── portable.md
-│   └── worka
+│   ├── unsorted
+│   │   └── Domain-First Directory Architecture: Theoretical Framework.md
+│   └── workaround
 │       └── audioroot.md
 ├── lib
 │   ├── alias
@@ -64,39 +68,36 @@
 │       ├── lo1
 │       ├── lo2
 │       └── tme
+├── pro
+│   ├── acpi
+│   │   ├── deploy.sh
+│   │   ├── disable-devices-as-wakeup.service
+│   │   ├── disable-devices-as-wakeup.sh
+│   │   ├── post-wake-usb-reset.service
+│   │   ├── post-wake-usb-reset.sh
+│   │   └── readme.md
+│   └── replace
+│       ├── readme.md
+│       ├── replace.json
+│       ├── replace.sh
+│       └── track
 ├── res
-│   └── prom
+│   └── prompt
 │       ├── meta01.md
 │       └── temp
 │           ├── dim1-dec.md
+│           ├── dim1-dec-v2.md
 │           └── dim2-dec.md
 ├── src
-│   ├── depl
-│   │   ├── gpu
-│   │   ├── net
-│   │   ├── pbs
-│   │   ├── pve
-│   │   ├── srv
-│   │   ├── sto
-│   │   ├── sys
-│   │   └── usr
-│   ├── fixes
-│   │   └── acpi
-│   │       ├── deploy.sh
-│   │       ├── disable-devices-as-wakeup.service
-│   │       ├── disable-devices-as-wakeup.sh
-│   │       ├── post-wake-usb-reset.service
-│   │       ├── post-wake-usb-reset.sh
-│   │       └── readme.md
-│   ├── shell
-│   └── tools
-│       └── replace
-│           ├── readme.md
-│           ├── replace.json
-│           ├── replace.sh
-│           └── track
-├── tree
-└── was
-    └── ssh
+│   └── depl
+│       ├── gpu
+│       ├── net
+│       ├── pbs
+│       ├── pve
+│       ├── srv
+│       ├── sto
+│       ├── sys
+│       └── usr
+└── tree
 
-34 directories, 66 files
+33 directories, 68 files

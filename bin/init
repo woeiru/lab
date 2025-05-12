@@ -7,19 +7,19 @@
 #   2. Runtime dependency initialization (working with rdc)
 
 # Source runtime initialization constants
-source "$DIR/../dic/ric" || {
+source "$DIR/../cfg/core/ric" || {
     echo "Failed to source runtime constants" >&2
     exit 1
 }
 
 # Source runtime dependency constants
-source "$DIR/../dic/rdc" || {
+source "$DIR/../cfg/core/rdc" || {
     echo "Failed to source dependency constants" >&2
     exit 1
 }
 
 # Source module dependency constants
-source "$DIR/../dic/mdc" || {
+source "$DIR/../cfg/core/mdc" || {
     echo "Failed to source dependency constants" >&2
     exit 1
 }
