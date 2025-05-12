@@ -4,10 +4,25 @@
 
 # Debug logging helper - uses existing LOG_DEBUG_FILE from ruc
 debug_log() {
+    # Set debug logging always on during initial debugging
+    local DEBUG_LOG_ENABLED="true"
+    
     [[ "${DEBUG_LOG_ENABLED:-false}" != "true" ]] && return 0
+    
+    # Default log file if not set
+    local LOG_DEBUG_FILE="${LOG_DEBUG_FILE:-${BASE_DIR}/.log/debug.log}"
+    
+    # Create the directory if it doesn't exist
+    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
+    
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
+    
+    # Output to stderr for immediate feedback during debugging
+    printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >&2
+    
+    # Also log to file
     printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "${LOG_DEBUG_FILE}"
 }
 

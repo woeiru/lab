@@ -34,17 +34,17 @@ REGISTERED_FUNCTIONS=(
 
 # Initialize function module mappings
 FUNCTION_MODULES=(
-    ["process_error"]="$BAS_DIR/err"
-    ["log_message"]="$BAS_DIR/lo1"
-    ["debug_message"]="$BAS_DIR/lo2"
-    ["start_timer"]="$BAS_DIR/tme"
-    ["stop_timer"]="$BAS_DIR/tme"
-    ["handle_error:err"]="$BAS_DIR/err"
-    ["handle_error:lo1"]="$BAS_DIR/lo1"
-    ["log_with_timer:lo1"]="$BAS_DIR/lo1"
-    ["log_with_timer:tme"]="$BAS_DIR/tme"
-    ["debug_with_timer:lo2"]="$BAS_DIR/lo2"
-    ["debug_with_timer:tme"]="$BAS_DIR/tme"
+    ["process_error"]="${BASE_DIR}/lib/core/err"
+    ["log_message"]="${BASE_DIR}/lib/util/lo1"
+    ["debug_message"]="${BASE_DIR}/lib/util/lo2"
+    ["start_timer"]="${BASE_DIR}/lib/util/tme"
+    ["stop_timer"]="${BASE_DIR}/lib/util/tme"
+    ["handle_error:err"]="${BASE_DIR}/lib/core/err"
+    ["handle_error:lo1"]="${BASE_DIR}/lib/util/lo1"
+    ["log_with_timer:lo1"]="${BASE_DIR}/lib/util/lo1"
+    ["log_with_timer:tme"]="${BASE_DIR}/lib/util/tme"
+    ["debug_with_timer:lo2"]="${BASE_DIR}/lib/util/lo2"
+    ["debug_with_timer:tme"]="${BASE_DIR}/lib/util/tme"
 )
 
 # Export the dependency arrays
