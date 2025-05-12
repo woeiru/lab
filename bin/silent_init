@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# This is a wrapper script that runs the init script with minimal output
+# It's useful when you don't want to see all the verbose logging
+
+# Set verbosity to 0 (minimal)
+export DEBUG_VERBOSITY=0
+
+# Capture stderr and filter only important messages
+/home/es/lab/bin/init 2>&1 | grep -E 'Starting main|completed successfully|ERROR|CRITICAL|WARNING'
+
+# Pass the exit status of init
+exit ${PIPESTATUS[0]}

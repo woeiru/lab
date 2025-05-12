@@ -34,11 +34,12 @@ verify_path() {
     local path="$1"
     local type="$2"
     local create="${3:-false}"
+    local verbosity="${4:-2}" # Default verbosity level of 2
 
-    debug_log "Verifying path: $path (type: $type, create: $create)"
+    debug_log "Verifying path: $path (type: $type, create: $create)" "verify_path" $verbosity
 
     [[ -z "$path" ]] && {
-        echo "Empty path provided" >&2
+        (( DEBUG_VERBOSITY >= 1 )) && echo "Empty path provided" >&2
         return 1
     }
 
@@ -87,11 +88,13 @@ verify_path() {
 verify_var() {
     local var_name="$1"
     local var_value="${!var_name}"
+    local verbosity="${2:-2}" # Default verbosity level of 2
 
-    debug_log "Verifying variable: $var_name"
+    debug_log "Verifying variable: $var_name" "verify_var" $verbosity
 
     if [[ -z "$var_value" ]]; then
-        echo "Variable '$var_name' is empty or undefined" >&2
+        # Only show error at standard verbosity level
+        (( DEBUG_VERBOSITY >= 1 )) && echo "Variable '$var_name' is empty or undefined" >&2
         return 1
     fi
 
@@ -130,7 +133,7 @@ essential_check() {
 
 verify_module() {
     local module="$1"
-    debug_log "Verifying module: $module"
+    debug_log "Verifying module: $module" "verify_module" 2
 
     # Initialize requirements if not already done
     if [[ -z "${MODULE_VARS[*]}" ]]; then
@@ -143,7 +146,7 @@ verify_module() {
     for var_key in "${!MODULE_VARS[@]}"; do
         if [[ $var_key == $module.* ]]; then
             local var_name="${var_key#$module.}"
-            if ! verify_var "$var_name"; then
+            if ! verify_var "$var_name" 2>/dev/null; then
                 ((failed++))
             fi
         fi
@@ -219,16 +222,17 @@ verify_function_dependencies() {
 verify_function() {
     local func_name="$1"
     local module_path="$2"
+    local verbosity="${3:-2}" # Default verbosity level of 2
 
-    debug_log "Verifying function existence: $func_name in $module_path"
+    debug_log "Verifying function existence: $func_name in $module_path" "verify_function" $verbosity
 
     if [[ ! -f "$module_path" ]]; then
-        debug_log "ERROR: Module file not found: $module_path"
+        debug_log "ERROR: Module file not found: $module_path" "verify_function" 1
         return 1
     fi
 
     if ! grep -q "^[[:space:]]*$func_name[[:space:]]*(" "$module_path"; then
-        debug_log "ERROR: Function $func_name not found in $module_path"
+        debug_log "ERROR: Function $func_name not found in $module_path" "verify_function" 2
         return 1
     fi
 
