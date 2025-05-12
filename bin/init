@@ -19,9 +19,21 @@ debug_log() {
     mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
     echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
     
+    # Always log to file
+    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
+    echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
+    
     # Only output to stderr if verbosity level is sufficient
     if (( DEBUG_VERBOSITY >= level )); then
-        echo "[DEBUG] $timestamp - [$source] $message" >&2
+        # For level 0, only show startup, completion and error messages
+        if (( DEBUG_VERBOSITY == 0 )); then
+            if [[ "$message" == *ERROR* || "$message" == *CRITICAL* || "$message" == *WARNING* || 
+                  "$message" == *"Starting main"* || "$message" == *"completed successfully"* ]]; then
+                echo "[DEBUG] $timestamp - [$source] $message" >&2
+            fi
+        else
+            echo "[DEBUG] $timestamp - [$source] $message" >&2
+        fi
     fi
 }
 
@@ -331,45 +343,45 @@ source_rc() {
 
 # Initialize registered functions with verification
 init_registered_functions() {
-    debug_log "Initializing registered functions"
+    debug_log "Initializing registered functions" "init_registered_functions" 1
 
     # Verify REGISTERED_FUNCTIONS exists using ver's verify_var
-    if ! verify_var "REGISTERED_FUNCTIONS"; then
-        debug_log "No registered functions found"
+    if ! verify_var "REGISTERED_FUNCTIONS" 1; then
+        debug_log "No registered functions found" "init_registered_functions" 1
         return 0
     fi
 
     local failed=0
     local success=0
     for func in "${REGISTERED_FUNCTIONS[@]}"; do
-        debug_log "Checking function: $func"
+        debug_log "Checking function: $func" "init_registered_functions" 2
         if ! verify_function_dependencies "$func"; then
-            debug_log "WARNING: Failed to verify dependencies for function: $func - continuing anyway"
+            debug_log "WARNING: Failed to verify dependencies for function: $func - continuing anyway" "init_registered_functions" 1
             continue
         fi
 
         if register_function "$func"; then
-            debug_log "Successfully registered function: $func"
+            debug_log "Successfully registered function: $func" "init_registered_functions" 1
             ((success++))
         else
-            debug_log "WARNING: Failed to register function: $func - continuing anyway"
+            debug_log "WARNING: Failed to register function: $func - continuing anyway" "init_registered_functions" 1
         fi
     done
 
     # Even with failures, continue if at least one function registers successfully
-    debug_log "Registered $success functions successfully"
+    debug_log "Registered $success functions successfully" "init_registered_functions" 1
     return $((success > 0 ? 0 : 1))
 }
 
 # Register a function with its dependencies
 register_function() {
     local func_name="$1"
-    debug_log "Registering function: $func_name"
+    debug_log "Registering function: $func_name" "register_function" 1
 
     # Get the dependencies for this function
     local deps="${FUNCTION_DEPENDENCIES[$func_name]}"
     [[ -z "$deps" ]] && {
-        debug_log "ERROR: No dependencies found for function: $func_name"
+        debug_log "ERROR: No dependencies found for function: $func_name" "register_function" 1
         return 1
     }
 
@@ -381,19 +393,19 @@ register_function() {
         local module_path="${FUNCTION_MODULES["$func_name:$module"]:-${FUNCTION_MODULES[$func_name]}}"
         
         if [[ -n "$module_path" ]] && [[ -f "$module_path" ]]; then
-            debug_log "Checking for function $func_name in module $module_path"
+            debug_log "Checking for function $func_name in module $module_path" "register_function" 2
             
             # Verify function exists in the module file
-            if verify_function "$func_name" "$module_path"; then
+            if verify_function "$func_name" "$module_path" 2; then
                 # Source the module file
                 if source "$module_path" 2>/dev/null; then
-                    debug_log "Successfully registered function: $func_name from $module_path"
+                    debug_log "Successfully registered function: $func_name from $module_path" "register_function" 1
                     success=1
                     break
                 fi
             fi
         else
-            debug_log "WARNING: Module path not found for $func_name in module $module"
+            debug_log "WARNING: Module path not found for $func_name in module $module" "register_function" 1
         fi
     done
 
@@ -414,7 +426,13 @@ setup_minimal_environment() {
     done
 }
 
-echo " ─── initializing"
+# Check if DEBUG_VERBOSITY is set as an environment variable when script is called
+if [[ -z "${DEBUG_VERBOSITY}" ]]; then
+    # Default is 1 (standard verbosity)
+    DEBUG_VERBOSITY=1
+fi
+
+echo " ─── initializing (verbosity level: ${DEBUG_VERBOSITY})"
 # Execute initialization
 main_ini
 RC_STATUS=$?
