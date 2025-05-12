@@ -4,7 +4,7 @@
 if [ ! -f "${HOME}/.lab_initialized" ]; then
     cat << 'EOF'
 ╔════════════════════════════════════════════════════════════════╗
-║                Welcome to Lab Environment Setup                 ║
+║                Welcome to Lab Environment Setup                ║
 ╚════════════════════════════════════════════════════════════════╝
 
 This script will set up your development environment by:
