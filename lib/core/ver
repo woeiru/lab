@@ -194,12 +194,12 @@ validate_module() {
 
 verify_function_dependencies() {
     local func_name="$1"
-    debug_log "Verifying function dependencies: $func_name"
+    debug_log "Verifying function dependencies: $func_name" "verify_function_dependencies" 2
 
     # Get required modules for this function
     local modules="${FUNCTION_DEPENDENCIES[$func_name]}"
     [[ -z "$modules" ]] && {
-        debug_log "No dependencies found for function: $func_name"
+        debug_log "No dependencies found for function: $func_name" "verify_function_dependencies" 1
         return 1
     }
 
@@ -207,8 +207,8 @@ verify_function_dependencies() {
     IFS=',' read -ra MODULE_ARRAY <<< "$modules"
 
     for module in "${MODULE_ARRAY[@]}"; do
-        if ! verify_module "$module"; then
-            debug_log "ERROR: Required module '$module' not verified for function '$func_name'"
+        if ! verify_module "$module" 2>/dev/null; then
+            debug_log "ERROR: Required module '$module' not verified for function '$func_name'" "verify_function_dependencies" 1
             ((failed++))
         fi
     done
