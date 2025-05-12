@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Set the base directory path
+readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
+
 #######################################################################
 # System Initialization Controller
 #######################################################################
@@ -48,31 +52,25 @@
 #   2. Runtime dependency initialization (working with rdc)
 
 # Source runtime initialization constants
-source "$DIR/../cfg/core/ric" || {
+source "${BASE_DIR}/cfg/core/ric" || {
     echo "Failed to source runtime constants" >&2
     exit 1
 }
 
 # Source runtime dependency constants
-source "$DIR/../cfg/core/rdc" || {
+source "${BASE_DIR}/cfg/core/rdc" || {
     echo "Failed to source dependency constants" >&2
     exit 1
 }
 
 # Source module dependency constants
-source "$DIR/../cfg/core/mdc" || {
+source "${BASE_DIR}/cfg/core/mdc" || {
     echo "Failed to source dependency constants" >&2
     exit 1
 }
 
-# Source initialization module
-source "$DIR/ini" || {
-    echo "Failed to source initialization module" >&2
-    exit 1
-}
-
 # Source verification module
-source "$DIR/../lib/core/ver" || {
+source "${BASE_DIR}/lib/core/ver" || {
     echo "Failed to source verification module" >&2
     exit 1
 }
@@ -341,8 +339,5 @@ if [ $RC_STATUS -ne 0 ]; then
     exit 1
 fi
 
-# Export necessary functions
+# Export only the main initialization function
 export -f main_ini
-export -f init_dirs
-export -f source_rc
-export -f load_modules
