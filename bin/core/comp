@@ -12,9 +12,9 @@
 # Key Functions:
 #   - source_helper: Safely sources individual files.
 #   - source_directory: Sources all files in a given directory.
+#   - execution_rc: Executes RC-specific setup functions.
 #   - source_env: Sources environment configuration files.
 #   - source_fun: Sources function library files.
-#   - execution_rc: Executes RC-specific setup functions.
 #   - execute_component: Executes a single named component.
 #   - setup_components: Orchestrates the execution of all defined
 #     components.
@@ -127,20 +127,6 @@ source_directory() {
     return $return_value
 }
 
-# Source the environment files
-source_env() {
-    # Use ENV_CONFIG_DIR which is defined in ric
-    source_directory "$ENV_CONFIG_DIR" "*" "environment configuration files"
-    return $?
-}
-
-# Source the function files
-source_fun() {
-    # Use FUN_DIR which is defined in ric
-    source_directory "$FUN_DIR" "*" "function files"
-    return $?
-}
-
 # Execute RC-specific setup functions
 execution_rc() {
     log "lvl" "Starting ${FUNCNAME[0]}" | tee -a "$ERROR_LOG"
@@ -186,6 +172,20 @@ execution_rc() {
     end_timer "execution_rc" "$status"
 
     return $((success_count > 0 ? 0 : 1))
+}
+
+# Source the environment files
+source_env() {
+    # Use ENV_CONFIG_DIR which is defined in ric
+    source_directory "$ENV_CONFIG_DIR" "*" "environment configuration files"
+    return $?
+}
+
+# Source the function files
+source_fun() {
+    # Use FUN_DIR which is defined in ric
+    source_directory "$FUN_DIR" "*" "function files"
+    return $?
 }
 
 # Component execution with status tracking
