@@ -1,7 +1,24 @@
 #!/bin/bash
-# Runtime Dependencies Management (rde)
-# Dependencies: None
-# Purpose: Declares runtime dependencies between functions and modules
+# -----------------------------------------------------------------------------
+# Purpose:     Declare runtime dependencies between functions and modules.
+# File:        cfg/core/rdc
+#
+# Description: This file defines the relationships between various functions
+#              and the modules they belong to or depend upon. It maps
+#              functions to their source modules and lists inter-function
+#              dependencies.
+#
+# Dependencies: Relies on module definitions and potentially variables from 'ric'
+#               and 'mdc'. Sourced after 'ric' and 'mdc'.
+#
+# Usage:       Sourced during system initialization to establish the dependency
+#              graph between functions and modules, facilitating dynamic loading
+#              or validation.
+#
+# Notes:       Maintain accuracy of function-to-module mappings and declared
+#              dependencies as the codebase evolves.
+# -----------------------------------------------------------------------------
+# Runtime Dependencies Configuration (rdc)
 
 # Declare runtime requirement variables
 declare -gA FUNCTION_DEPENDENCIES
