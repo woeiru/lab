@@ -19,9 +19,15 @@
 #              `verify_function_dependencies` are called as needed.
 #              `init_verification` can be used to set up initial checks.
 #
-# Notes:       The `debug_log` function provides verbose logging controlled by
+# Notes:       This module is a core, foundational component loaded directly by
+#              the main initialization script (`bin/init`) before other modules.
+#              It provides the essential verification functions needed to bootstrap
+#              the rest of the module loading system, which is why it is not
+#              defined within `cfg/core/mdc` itself.
+#              The `debug_log` function provides verbose logging controlled by
 #              DEBUG_VERBOSITY. `essential_check` verifies critical system variables
-#              and paths. Assumes `init_module_requirements` is available from mdc.
+#              and paths. Assumes `init_module_requirements` (from mdc) is made
+#              available by the main `init` script prior to `verify_module` calls.
 # -----------------------------------------------------------------------------
 #
 # Debug logging helper - uses existing LOG_DEBUG_FILE from ruc
