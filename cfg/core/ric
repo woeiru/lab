@@ -49,6 +49,16 @@ export ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
 export LOG_STATE_FILE LOG_DEBUG_FILE
 export TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 
+# Environment configuration path
+declare -g ENV_CONFIG_DIR
+ENV_CONFIG_DIR="${LAB_DIR}/cfg/depl"
+export ENV_CONFIG_DIR
+
+# Deployment source code path
+declare -g FUN_DIR
+FUN_DIR="${LAB_DIR}/src/depl" # Corrected path
+export FUN_DIR
+
 # Runtime configuration
 declare -g CACHE_CLEANUP_INTERVAL
 CACHE_CLEANUP_INTERVAL=300  # 5 minutes
