@@ -1,3 +1,4 @@
+#!/bin/bash
 #######################################################################
 # Component Orchestrator
 #######################################################################
@@ -27,8 +28,6 @@
 #   and functions like `start_timer`, `end_timer`, `error_handler`,
 #   `print_timing_report`, `print_error_report` to be available.
 #######################################################################
-
-#!/bin/bash
 
 # Helper function to safely source files with improved error handling and logging
 source_helper() {
@@ -130,15 +129,15 @@ source_directory() {
 
 # Source the environment files
 source_env() {
-    # Use BASE_DIR instead of LAB_DIR
-    source_directory "$BASE_DIR/env" "*" "environment configuration files"
+    # Use LAB_DIR which is defined in ric and is consistent with the system's structure
+    source_directory "$LAB_DIR/env" "*" "environment configuration files"
     return $?
 }
 
 # Source the function files
 source_fun() {
-    # Use BASE_DIR instead of LAB_DIR
-    source_directory "$BASE_DIR/fun" "*" "function files"
+    # Use LAB_DIR which is defined in ric and is consistent with the system's structure
+    source_directory "$LAB_DIR/fun" "*" "function files"
     return $?
 }
 
@@ -217,8 +216,8 @@ setup_components() {
 
     local components=(
         "execution_rc:EXEC:1"        # Required: Executes set_static, set_dynamic, set_aliaswrap
-        "source_env:ENV:0"           # Optional: Sources files from $BASE_DIR/env
-        "source_fun:FUN:0"           # Optional: Sources files from $BASE_DIR/fun
+        "source_env:ENV:0"           # Optional: Sources files from $LAB_DIR/env
+        "source_fun:FUN:0"           # Optional: Sources files from $LAB_DIR/fun
     )
 
     log "lvl" "Executing component functions..." | tee -a "$ERROR_LOG"
