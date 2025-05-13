@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Runtime Initialization Constants
 # -----------------------------------------------------------------------------
 # Purpose:     Define all runtime constants and variables used across the system.
 # File:        .lab/cfg/core/ric
@@ -16,7 +18,7 @@
 #
 # Notes:       Review and update paths and default values as per deployment needs.
 # -----------------------------------------------------------------------------
-# Runtime Initialization Constants
+
 
 # Level 1 directories
 declare -g LAB_DIR ALA_DIR BAS_DIR CON_DIR DIC_DIR
