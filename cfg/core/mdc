@@ -1,7 +1,23 @@
 #!/bin/bash
+# -----------------------------------------------------------------------------
+# Purpose:     Manage module requirements and dependencies.
+# File:        cfg/core/mdc
+#
+# Description: This file declares the necessary variables, file paths, and
+#              options required by different modules within the system.
+#              It helps ensure that modules have their dependencies met
+#              before execution.
+#
+# Dependencies: Relies on variables defined in 'ric' (Runtime Initialization Constants)
+#               being available in the environment. Sourced after 'ric'.
+#
+# Usage:       Sourced during system initialization to define module-specific
+#              requirements.
+#
+# Notes:       Ensure module names and their required variables/paths are
+#              kept consistent with the actual module implementations.
+# -----------------------------------------------------------------------------
 # Module Dependencies Management
-# Dependencies: None
-# Purpose: Manage module requirements and dependencies
 
 # Declare module requirement variables
 declare -gA MODULE_VARS
