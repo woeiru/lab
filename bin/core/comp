@@ -213,6 +213,11 @@ execute_component() {
 
 setup_components() {
     log "lvl" "Validating and executing component configuration..." | tee -a "$ERROR_LOG"
+    log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG"
+    
+    # Check if required functions exist
+    type print_timing_report &>/dev/null || log "lvl" "WARNING: print_timing_report function not found" | tee -a "$ERROR_LOG" >&2
+    type print_error_report &>/dev/null || log "lvl" "WARNING: print_error_report function not found" | tee -a "$ERROR_LOG" >&2
 
     local components=(
         "execution_rc:EXEC:1"        # Required: Executes set_static, set_dynamic, set_aliaswrap
@@ -239,14 +244,18 @@ setup_components() {
     if ((failed_required)); then
         unset RC_SOURCED
         log "lvl" " RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
-        print_timing_report # Assumes these functions are available
-        print_error_report  # Assumes these functions are available
+        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG" >&2
+        # Only call these functions if they exist
+        type print_timing_report &>/dev/null && print_timing_report
+        type print_error_report &>/dev/null && print_error_report
         return 1
     else
         export RC_SOURCED=1
         log "lvl" " RC initialization completed successfully" | tee -a "$ERROR_LOG"
-        print_timing_report
-        print_error_report
+        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG"
+        # Only call these functions if they exist
+        type print_timing_report &>/dev/null && print_timing_report
+        type print_error_report &>/dev/null && print_error_report
         return 0
     fi
 }
