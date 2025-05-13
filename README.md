@@ -68,12 +68,14 @@ The project is organized as follows:
     -   `workaround/`: Documented workarounds for known issues.
 -   `lib/`: Shell script libraries and modules.
     -   `alias/`: Scripts for managing dynamic and static aliases.
-    -   `core/`: Core library functions (e.g., error handling `err`, versioning `ver`).
+    -   `core/`: Core library functions (e.g., error handling `err`, verification `ver`).
     -   `depl/`: Helper libraries for deployment tasks.
     -   `dev/`: Development utilities (e.g., debugging `dbg`).
     -   `ssh`: SSH related utility functions.
     -   `util/`: General utility functions.
--   `pro/`: Project-specific utilities and professional setups.
+-   `acpi/`: Scripts and services for ACPI event handling and power management.
+-   `pro/`: Utilities for one-time projects and special-case scenarios.
+-       `replace/`: A utility for replacing text in files based on a JSON configuration.
     -   `acpi/`: Scripts and services for ACPI event handling and power management.
     -   `replace/`: A utility for replacing text in files based on a JSON configuration.
 -   `res/`: Resource files.
