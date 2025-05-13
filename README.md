@@ -75,7 +75,6 @@ The project is organized as follows:
     -   `util/`: General utility functions.
 -   `acpi/`: Scripts and services for ACPI event handling and power management.
 -   `pro/`: Utilities for one-time projects and special-case scenarios.
--       `replace/`: A utility for replacing text in files based on a JSON configuration.
     -   `acpi/`: Scripts and services for ACPI event handling and power management.
     -   `replace/`: A utility for replacing text in files based on a JSON configuration.
 -   `res/`: Resource files.
