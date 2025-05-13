@@ -62,7 +62,6 @@ The project is organized as follows:
     -   `depl/`: Deployment-related configurations (e.g., `site.env`).
     -   `pod/`: Podman container configurations and related files (e.g., `Containerfile` for `qdev`, `shus`).
 -   `doc/`: Documentation.
-    -   `guideline/`: Project guidelines and standards.
     -   `network/`: Network-related documentation.
     -   `session/`: Work session summaries.
     -   `workaround/`: Documented workarounds for known issues.
@@ -78,7 +77,8 @@ The project is organized as follows:
     -   `acpi/`: Scripts and services for ACPI event handling and power management.
     -   `replace/`: A utility for replacing text in files based on a JSON configuration.
 -   `res/`: Resource files.
-    -   `prompt/`: Templates or prompts, possibly for AI interactions or code generation.
+    -   `guideline/`: Project guidelines and standards.
+    -   `prompt/`: Templates for AI interactions
 -   `src/`: Source code for larger scripts or components, primarily for deployment.
     -   `depl/`: Source files for deployment modules (e.g., `gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
 -   `test/`: Automated tests.
