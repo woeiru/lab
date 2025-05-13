@@ -246,7 +246,7 @@ load_modules() {
 
     local module_loaded=0
     local -a modules=(
-        "${BASE_DIR}/lib/core/err"
+        "${BASE_DIR}/lib/util/err" # <-- Changed from lib/core/err
         "${BASE_DIR}/lib/util/lo1"
         "${BASE_DIR}/lib/util/lo2"
         "${BASE_DIR}/lib/util/tme"
