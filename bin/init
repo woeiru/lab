@@ -178,9 +178,8 @@ init_dirs() {
     debug_log "Starting directory initialization"
 
     # Updated directory paths to use BASE_DIR
+    # Removed .log and .tmp as they are handled by essential_check
     local required_dirs=(
-        "${BASE_DIR}/.log"
-        "${BASE_DIR}/.tmp"
         "${BASE_DIR}/lib"
         "${BASE_DIR}/cfg"
     )
