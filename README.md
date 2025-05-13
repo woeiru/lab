@@ -81,9 +81,6 @@ The project is organized as follows:
     -   `prompt/`: Templates for AI interactions
 -   `src/`: Source code for larger scripts or components, primarily for deployment.
     -   `depl/`: Source files for deployment modules (e.g., `gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
--   `test/`: Automated tests.
-    -   `lib/`: Tests for library components (e.g., `test_dbg.bats`).
-    -   `test_helper/`: BATS helper libraries (`bats-assert`, `bats-file`, `bats-support`).
 -   `entry.sh`: Root-level entry script (purpose to be documented or inferred).
 -   `README.md`: This file.
 
@@ -142,5 +139,6 @@ Detailed documentation can be found in the `doc/` directory:
 Please refer to the guidelines in `doc/guideline/` before contributing. (If a specific contribution guide exists, link it here).
 
 ## License
+## License
 
-(Specify the license for your project here, if applicable)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
