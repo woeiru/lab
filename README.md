@@ -22,22 +22,30 @@ This is a modular environment setup system that provides a structured way to man
 
 ## Quick Start
 
-To set up your environment, run the main injection script:
+To set up your environment, run the main injection script or use the `entry.sh` symlink:
 
 ```bash
 bin/env/inject
+# or
+./entry.sh
 ```
 
-This command will:
-1.  Verify shell compatibility.
-2.  Configure your shell environment by sourcing relevant files.
-3.  Set up necessary directories within the project structure.
-4.  Load required modules and libraries.
+Running the `bin/env/inject` or `./entry.sh` command performs the following actions:
+1.  **Verifies shell compatibility** (Bash 4+ or Zsh 5+).
+2.  **Modifies your shell's configuration file** (e.g., `.bashrc` or `.zshrc`). It adds a line that will source the `/home/es/lab/bin/init` script every time a new shell starts.
+3.  **Restarts your shell.**
+
+Upon shell restart, the now-modified shell configuration file will automatically execute (source) the `/home/es/lab/bin/init` script. This `init` script is then responsible for the main environment setup tasks:
+-   Configuring your shell environment further by sourcing relevant library files.
+-   Setting up necessary directories within the project structure.
+-   Loading required modules and libraries.
+
+In essence, `bin/env/inject` sets up the persistent mechanism for initialization, and the actual environment configuration happens when `bin/init` is sourced by a new shell session.
 
 Other initialization scripts are available in `bin/`:
--   `bin/init`: Standard initialization.
--   `bin/silent_init`: Initialization with minimal output.
--   `bin/verbose_init`: Initialization with detailed output.
+-   `bin/init`: Standard initialization, suitable for most use cases.
+-   `bin/silent_init`: Initialization with minimal output, ideal for scripting or when a quiet setup is preferred.
+-   `bin/verbose_init`: Initialization with detailed output, useful for debugging or understanding the setup process.
 
 ## Directory Structure
 
@@ -45,7 +53,7 @@ The project is organized as follows:
 
 -   `bin/`: Executable scripts.
     -   `init`, `silent_init`, `verbose_init`: Main initialization scripts.
-    -   `core/`: Core system utilities (e.g., `comp`).
+    -   `core/`: Core system components (e.g., `comp`).
     -   `depl/`: Deployment scripts for various services (e.g., `dsk`, `nfs`, `pbs`, `pve`, `smb`).
     -   `env/`: Environment setup scripts (e.g., `inject`).
 -   `cfg/`: Configuration files.
