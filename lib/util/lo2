@@ -31,14 +31,23 @@
 
 verify_module "lo2" || exit 1
 
+# Define lo2 log file
+declare -g LO2_LOG_FILE="${LOG_DIR}/lo2.log"
+
 # Enhanced debug logging - moved to top
 lo2_debug_log() {
     [[ "${LOG_DEBUG_ENABLED:-0}" != "1" ]] && return 0
     local timestamp=$(date '+%H:%M:%S')
     local message="$1"
     local source="${2:-unknown}"
-    printf "[LO2-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_DEBUG_FILE"
+    printf "[LO2-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LO2_LOG_FILE"
 }
+
+# Initialize lo2 log file (simple version, can be expanded)
+if [[ ! -f "$LO2_LOG_FILE" ]]; then
+    touch "$LO2_LOG_FILE"
+fi
+: > "$LO2_LOG_FILE" # Clear log on module load/init
 
 lo2_debug_log "Entering lo2 module initialization" "init"
 lo2_debug_log "Validating environment variables in lo2" "init"
