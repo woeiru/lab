@@ -24,6 +24,12 @@ This document provides an analysis of the log files found in the `.log` director
         *   `init_logger` (in `lib/util/lo1`): Writes an initialization message to this log.
     *   **Details**: Provides a structured and hierarchical view of the application's operations.
 
+*   **`lo2.log`**:
+    *   **Purpose**: Records debug messages specifically from the `lo2` module (`lib/util/lo2`), which handles runtime control structure tracking.
+    *   **Writing Functions**:
+        *   `lo2_debug_log` (in `lib/util/lo2`)
+    *   **Details**: Contains `[LO2-DEBUG]` prefixed messages related to control flow depth calculation.
+
 *   **`tme.log`**:
     *   **Purpose**: Records timing information for different components and functions, managed by the `tme` module (`lib/util/tme`). It logs start times, end times, durations, and statuses of timed operations.
     *   **Writing Functions**:
@@ -72,8 +78,11 @@ These are not traditional log files but rather state files used by the logging a
     *   Purpose: Low-level debug messages, especially during initial system verification.
 *   **`lib/util/lo1` (Advanced Logging Module)**:
     *   `log`, `log_message`, `log_with_timer`: Write to `.log/lo1.log` (main application log).
-    *   `lo1_debug_log`: Writes to `.log/debug.log` (specific debug messages from `lo1`).
+    *   `lo1_debug_log`: Writes to `.log/lo1.log` (specific debug messages from `lo1`, prefixed with `[LO1-DEBUG]`).
     *   Manages `.tmp/lo1_depth_cache.log` (performance cache) and `.tmp/log_state` (logging on/off).
+*   **`lib/util/lo2` (Runtime Control Structure Tracking)**:
+    *   `lo2_debug_log`: Writes to `.log/lo2.log`.
+    *   Manages `.tmp/log_control_state` (tracking on/off - *Note: this file was mentioned in lo2 comments but not seen in .tmp listing, verify its actual name and usage if critical*).
 *   **`lib/util/tme` (Timing and Performance Module)**:
     *   `start_timer`, `end_timer`, `print_timing_report`: Write to `.log/tme.log` (timing details).
     *   Manages `.tmp/tme_levels` (report depth) and `.tmp/tme_state` (report on/off).
