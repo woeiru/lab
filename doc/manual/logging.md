@@ -8,7 +8,7 @@ This document provides an analysis of the log files found in the `.log` director
     *   **Purpose**: Records detailed debugging information during script execution. It's used by the `debug_log` function, which is present in both `/home/es/lab/bin/init` (a simpler version for early initialization) and `/home/es/lab/lib/core/ver` (a more robust version).
     *   **Writing Functions**:
         *   `debug_log` (in `bin/init` and `lib/core/ver`)
-    *   **Details**: This log captures timestamps, source functions, and messages. Its verbosity is controlled by the `DEBUG_VERBOSITY` environment variable. The `verify_path` and `verify_var` functions in `lib/core/ver` extensively use `debug_log` to record their actions.
+    *   **Details**: This log captures timestamps, source functions, and messages. Its verbosity is controlled by the `DEBUG_VERBOSITY` environment variable. The `verify_path` and `verify_var` functions in `lib/core/ver` extensively use `debug_log` to record their actions. It should primarily contain messages from the core system and modules that do not have their own dedicated debug logs.
 
 *   **`err.log`**:
     *   **Purpose**: Stores error messages encountered during script execution. It's the primary destination for error output.
@@ -16,13 +16,14 @@ This document provides an analysis of the log files found in the `.log` director
     *   **Details**: This file aggregates critical errors and warnings.
 
 *   **`lo1.log`**:
-    *   **Purpose**: This is the main application log file managed by the `lo1` logging module (`lib/util/lo1`). It captures formatted log messages with timestamps, color-coding (for console output, which is also mirrored here), and indentation based on call stack depth.
+    *   **Purpose**: This is the main application log file managed by the `lo1` logging module (`lib/util/lo1`). It captures formatted log messages with timestamps, color-coding (for console output, which is also mirrored here), and indentation based on call stack depth. It also now contains debug messages specific to the `lo1` module.
     *   **Writing Functions**:
         *   `log` (in `lib/util/lo1`): The core logging function in `lo1`.
         *   `log_message` (in `lib/util/lo1`): A standardized logging function for modules.
         *   `log_with_timer` (in `lib/util/lo1`): Logs messages with timing information if the `tme` module is available.
         *   `init_logger` (in `lib/util/lo1`): Writes an initialization message to this log.
-    *   **Details**: Provides a structured and hierarchical view of the application's operations.
+        *   `lo1_debug_log` (in `lib/util/lo1`): Writes `[LO1-DEBUG]` prefixed messages to this log.
+    *   **Details**: Provides a structured and hierarchical view of the `lo1` module's operations and general application messages.
 
 *   **`lo2.log`**:
     *   **Purpose**: Records debug messages specifically from the `lo2` module (`lib/util/lo2`), which handles runtime control structure tracking.
@@ -52,12 +53,12 @@ These are not traditional log files but rather state files used by the logging a
         *   The `tme` module (`start_timer`, `end_timer`, `print_timing_report`, `cleanup_timer`) temporarily sets this to "false" to prevent its own internal logging messages from being processed by `lo1` during sensitive operations, then restores the original state.
     *   **Details**: Acts as a toggle for the `lo1` logging output.
 
-*   **`lo1_depth_cache.log`** (moved to `.tmp/lo1_depth_cache.log`):
+*   **`lo1_depth_cache.log`**:
     *   **Purpose**: Used by the `lo1` module (`lib/util/lo1`) to cache calculated log depths. This is a performance optimization to avoid recalculating call stack depths repeatedly.
     *   **Writing Functions**:
         *   `cleanup_cache` (in `lib/util/lo1`): Clears this cache file periodically.
         *   `init_state_files` (in `lib/util/lo1`): Touches/creates this file on logger initialization.
-    *   **Details**: This is more of a state/cache file than a traditional human-readable log. It's managed internally by `lo1`.
+    *   **Details**: This is more of a state/cache file than a traditional human-readable log. It's managed internally by `lo1`. Its location is now `${TMP_DIR}/lo1_depth_cache.log`.
 
 *   **`tme_levels`**:
     *   **Purpose**: Controlled by the `TME_LEVELS_FILE` variable (defined in `cfg/core/ric`). It's used by the `tme` module to determine the maximum depth of the component timing tree to display in the `print_timing_report`.
@@ -75,14 +76,12 @@ These are not traditional log files but rather state files used by the logging a
 
 *   **`bin/init` & `lib/core/ver` (`debug_log`)**:
     *   Writes to: `.log/debug.log`
-    *   Purpose: Low-level debug messages, especially during initial system verification.
+    *   Purpose: Low-level debug messages, especially during initial system verification and for modules without dedicated debug logs.
 *   **`lib/util/lo1` (Advanced Logging Module)**:
-    *   `log`, `log_message`, `log_with_timer`: Write to `.log/lo1.log` (main application log).
-    *   `lo1_debug_log`: Writes to `.log/lo1.log` (specific debug messages from `lo1`, prefixed with `[LO1-DEBUG]`).
+    *   `log`, `log_message`, `log_with_timer`, `lo1_debug_log`: Write to `.log/lo1.log` (main application and `lo1` module-specific debug log).
     *   Manages `.tmp/lo1_depth_cache.log` (performance cache) and `.tmp/log_state` (logging on/off).
 *   **`lib/util/lo2` (Runtime Control Structure Tracking)**:
     *   `lo2_debug_log`: Writes to `.log/lo2.log`.
-    *   Manages `.tmp/log_control_state` (tracking on/off - *Note: this file was mentioned in lo2 comments but not seen in .tmp listing, verify its actual name and usage if critical*).
 *   **`lib/util/tme` (Timing and Performance Module)**:
     *   `start_timer`, `end_timer`, `print_timing_report`: Write to `.log/tme.log` (timing details).
     *   Manages `.tmp/tme_levels` (report depth) and `.tmp/tme_state` (report on/off).

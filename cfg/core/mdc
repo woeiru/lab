@@ -42,19 +42,17 @@ debug_log "Initializing module requirements"
 
     # Logging module 1 requirements
     MODULE_VARS[lo1.LOG_STATE_FILE]=1
-    MODULE_VARS[lo1.LOG_DEBUG_FILE]=1
     MODULE_VARS[lo1.LOG_DIR]=1
+    MODULE_VARS[lo1.LOG_FILE]=1 # Added for lo1.log
 
     MODULE_PATHS[lo1.LOG_STATE_FILE]="file:true"
-    MODULE_PATHS[lo1.LOG_DEBUG_FILE]="file:true"
     MODULE_PATHS[lo1.LOG_DIR]="dir:true"
+    MODULE_PATHS[lo1.LOG_FILE]="file:true" # Added for lo1.log
 
     # Logging module 2 requirements
-    MODULE_VARS[lo2.LOG_DEBUG_FILE]=1 # Retain for now if other parts of lo2 still reference it, or remove if fully switched
     MODULE_VARS[lo2.LOG_DIR]=1
     MODULE_VARS[lo2.LO2_LOG_FILE]=1
 
-    MODULE_PATHS[lo2.LOG_DEBUG_FILE]="file:true"
     MODULE_PATHS[lo2.LOG_DIR]="dir:true"
     MODULE_PATHS[lo2.LO2_LOG_FILE]="file:true"
 
