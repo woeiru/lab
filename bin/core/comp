@@ -129,15 +129,15 @@ source_directory() {
 
 # Source the environment files
 source_env() {
-    # Use LAB_DIR which is defined in ric and is consistent with the system's structure
-    source_directory "$LAB_DIR/env" "*" "environment configuration files"
+    # Use ENV_CONFIG_DIR which is defined in ric
+    source_directory "$ENV_CONFIG_DIR" "*" "environment configuration files"
     return $?
 }
 
 # Source the function files
 source_fun() {
-    # Use LAB_DIR which is defined in ric and is consistent with the system's structure
-    source_directory "$LAB_DIR/fun" "*" "function files"
+    # Use FUN_DIR which is defined in ric
+    source_directory "$FUN_DIR" "*" "function files"
     return $?
 }
 
