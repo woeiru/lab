@@ -24,13 +24,6 @@ This document provides an analysis of the log files found in the `.log` director
         *   `init_logger` (in `lib/util/lo1`): Writes an initialization message to this log.
     *   **Details**: Provides a structured and hierarchical view of the application's operations.
 
-*   **`lo1_depth_cache.log`**:
-    *   **Purpose**: Used by the `lo1` module (`lib/util/lo1`) to cache calculated log depths. This is a performance optimization to avoid recalculating call stack depths repeatedly.
-    *   **Writing Functions**:
-        *   `cleanup_cache` (in `lib/util/lo1`): Clears this cache file periodically.
-        *   `init_state_files` (in `lib/util/lo1`): Touches/creates this file on logger initialization.
-    *   **Details**: This is more of a state/cache file than a traditional human-readable log. It's managed internally by `lo1`.
-
 *   **`tme.log`**:
     *   **Purpose**: Records timing information for different components and functions, managed by the `tme` module (`lib/util/tme`). It logs start times, end times, durations, and statuses of timed operations.
     *   **Writing Functions**:
@@ -53,6 +46,13 @@ These are not traditional log files but rather state files used by the logging a
         *   The `tme` module (`start_timer`, `end_timer`, `print_timing_report`, `cleanup_timer`) temporarily sets this to "false" to prevent its own internal logging messages from being processed by `lo1` during sensitive operations, then restores the original state.
     *   **Details**: Acts as a toggle for the `lo1` logging output.
 
+*   **`lo1_depth_cache.log`** (moved to `.tmp/lo1_depth_cache.log`):
+    *   **Purpose**: Used by the `lo1` module (`lib/util/lo1`) to cache calculated log depths. This is a performance optimization to avoid recalculating call stack depths repeatedly.
+    *   **Writing Functions**:
+        *   `cleanup_cache` (in `lib/util/lo1`): Clears this cache file periodically.
+        *   `init_state_files` (in `lib/util/lo1`): Touches/creates this file on logger initialization.
+    *   **Details**: This is more of a state/cache file than a traditional human-readable log. It's managed internally by `lo1`.
+
 *   **`tme_levels`**:
     *   **Purpose**: Controlled by the `TME_LEVELS_FILE` variable (defined in `cfg/core/ric`). It's used by the `tme` module to determine the maximum depth of the component timing tree to display in the `print_timing_report`.
     *   **Writing Functions**:
@@ -73,7 +73,7 @@ These are not traditional log files but rather state files used by the logging a
 *   **`lib/util/lo1` (Advanced Logging Module)**:
     *   `log`, `log_message`, `log_with_timer`: Write to `.log/lo1.log` (main application log).
     *   `lo1_debug_log`: Writes to `.log/debug.log` (specific debug messages from `lo1`).
-    *   Manages `.log/lo1_depth_cache.log` (performance cache) and `.tmp/log_state` (logging on/off).
+    *   Manages `.tmp/lo1_depth_cache.log` (performance cache) and `.tmp/log_state` (logging on/off).
 *   **`lib/util/tme` (Timing and Performance Module)**:
     *   `start_timer`, `end_timer`, `print_timing_report`: Write to `.log/tme.log` (timing details).
     *   Manages `.tmp/tme_levels` (report depth) and `.tmp/tme_state` (report on/off).
