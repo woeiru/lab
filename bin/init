@@ -1,38 +1,4 @@
 #!/bin/bash
-
-# Set the base directory path
-readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
-
-# Debug verbosity level (0=minimal, 1=standard, 2=verbose)
-DEBUG_VERBOSITY=${DEBUG_VERBOSITY:-1}
-
-# Simple debug logging function to use before we load the full system
-debug_log() {
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    local message="$1"
-    local source="${2:-${FUNCNAME[1]:-main}}"
-    local level="${3:-1}" # Default verbosity level
-    local LOG_DEBUG_FILE="${BASE_DIR}/.log/debug.log"
-    
-    # Always log to file regardless of verbosity
-    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
-    echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
-    
-    # Only output to stderr if verbosity level is sufficient
-    if (( DEBUG_VERBOSITY >= level )); then
-        # For level 0, only show startup, completion and error messages
-        if (( DEBUG_VERBOSITY == 0 )); then
-            if [[ "$message" == *ERROR* || "$message" == *CRITICAL* || "$message" == *WARNING* || 
-                  "$message" == *"Starting main"* || "$message" == *"completed successfully"* ]]; then
-                echo "[DEBUG] $timestamp - [$source] $message" >&2
-            fi
-        else
-            echo "[DEBUG] $timestamp - [$source] $message" >&2
-        fi
-    fi
-}
-
 #######################################################################
 # System Initialization Controller
 #######################################################################
@@ -73,6 +39,39 @@ debug_log() {
 #   - ver (Verification functions)
 #
 #######################################################################
+
+# Set the base directory path
+readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
+
+# Debug verbosity level (0=minimal, 1=standard, 2=verbose)
+DEBUG_VERBOSITY=${DEBUG_VERBOSITY:-1}
+
+# Simple debug logging function to use before we load the full system
+debug_log() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local message="$1"
+    local source="${2:-${FUNCNAME[1]:-main}}"
+    local level="${3:-1}" # Default verbosity level
+    local LOG_DEBUG_FILE="${BASE_DIR}/.log/debug.log"
+    
+    # Always log to file regardless of verbosity
+    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
+    echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
+    
+    # Only output to stderr if verbosity level is sufficient
+    if (( DEBUG_VERBOSITY >= level )); then
+        # For level 0, only show startup, completion and error messages
+        if (( DEBUG_VERBOSITY == 0 )); then
+            if [[ "$message" == *ERROR* || "$message" == *CRITICAL* || "$message" == *WARNING* || 
+                  "$message" == *"Starting main"* || "$message" == *"completed successfully"* ]]; then
+                echo "[DEBUG] $timestamp - [$source] $message" >&2
+            fi
+        else
+            echo "[DEBUG] $timestamp - [$source] $message" >&2
+        fi
+    fi
+}
 
 # Initialization System
 # Dependencies: Relies on verification module (ver), runtime and module dependency constants (rdc, mdc)
