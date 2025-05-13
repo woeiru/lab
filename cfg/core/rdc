@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Runtime Dependencies Configuration (rdc)
 # -----------------------------------------------------------------------------
 # Purpose:     Declare runtime dependencies between functions and modules.
 # File:        .lab/cfg/core/rdc
@@ -18,7 +20,7 @@
 # Notes:       Maintain accuracy of function-to-module mappings and declared
 #              dependencies as the codebase evolves.
 # -----------------------------------------------------------------------------
-# Runtime Dependencies Configuration (rdc)
+
 
 # Declare runtime requirement variables
 declare -gA FUNCTION_DEPENDENCIES
