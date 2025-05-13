@@ -54,17 +54,22 @@ export LOG_DIR TMP_DIR
 # Log files
 declare -g ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
 declare -g LOG_STATE_FILE LOG_DEBUG_FILE
+declare -g LOG_FILE # For lo1 module
+declare -g LO2_LOG_FILE # For lo2 module
 declare -g TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 ERROR_LOG="${LOG_DIR}/err.log"
 ERROR_COUNT_FILE="${TMP_DIR}/err_count"
 ERROR_STATE_FILE="${TMP_DIR}/err_state"
 LOG_STATE_FILE="${TMP_DIR}/log_state"
 LOG_DEBUG_FILE="${LOG_DIR}/debug.log"
+LOG_FILE="${LOG_DIR}/lo1.log" # Definition for lo1.log
+LO2_LOG_FILE="${LOG_DIR}/lo2.log" # Definition for lo2.log
 TME_STATE_FILE="${TMP_DIR}/tme_state"
 TME_LEVELS_FILE="${TMP_DIR}/tme_levels"
 TME_LOG_FILE="${LOG_DIR}/tme.log"
 export ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
 export LOG_STATE_FILE LOG_DEBUG_FILE
+export LOG_FILE LO2_LOG_FILE # Export new log file vars
 export TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 
 # Environment configuration path
