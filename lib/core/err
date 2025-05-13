@@ -1,4 +1,29 @@
 #!/bin/bash
+# # -----------------------------------------------------------------------------
+# Module error handling and reporting
+# -----------------------------------------------------------------------------
+# Purpose:     Manage and process errors, provide error codes, and error reporting.
+# File:        lib/core/err
+#
+# Description: This module provides a comprehensive error handling system for the 'lab'
+#              project. It includes definitions for error codes, functions for
+#              processing, logging, and handling errors, an error trapping
+#              mechanism, and an error reporting facility.
+#
+# Dependencies: Relies on 'ric' for ERROR_LOG and potentially other environment variables.
+#               May use logging functions if available (e.g., a 'log' function for
+#               cleanup registration messages).
+#
+# Usage:       Sourced by other modules and scripts to handle errors consistently.
+#              `setup_error_handling` or `enable_error_trap` can be called to
+#              activate error trapping. `process_error` or `handle_error` are used
+#              to report errors. `print_error_report` generates a summary.
+#
+# Notes:       ERROR_TRAP_ENABLED controls the ERR trap. CLEANUP_FUNCTIONS are
+#              used for a central cleanup mechanism. Assumes verify_module is
+#              available if the first line `verify_module "err" || exit 1` is active.
+# -----------------------------------------------------------------------------
+
 verify_module "err" || exit 1
 
 # Define error codes with descriptive names

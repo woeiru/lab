@@ -1,5 +1,5 @@
 #!/bin/bash
-#
+# # -----------------------------------------------------------------------------
 # Runtime Initialization Constants
 # -----------------------------------------------------------------------------
 # Purpose:     Define all runtime constants and variables used across the system.
