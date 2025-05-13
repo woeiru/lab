@@ -124,9 +124,38 @@ main_ini() {
         return 1
     fi
 
-    # Part 2: Runtime dependency initialization
+    # Source the component orchestrator
+    # Ensure BASE_DIR is available to comp script if it needs it explicitly
+    # (though sourcing should make variables available)
+    local comp_orchestrator_path="${BASE_DIR}/bin/core/comp"
+    if [[ ! -f "$comp_orchestrator_path" ]]; then
+        debug_log "ERROR: Component orchestrator script not found at $comp_orchestrator_path"
+        return 1
+    fi
+    # shellcheck source=bin/core/comp
+    if ! source "$comp_orchestrator_path"; then
+        debug_log "ERROR: Failed to source component orchestrator $comp_orchestrator_path"
+        return 1
+    fi
+    debug_log "Component orchestrator sourced successfully"
+
+    # Part 2: Runtime dependency initialization (core)
     if ! init_runtime_system; then
-        debug_log "ERROR: Runtime system initialization failed"
+        debug_log "ERROR: Core runtime system initialization failed"
+        return 1
+    fi
+
+    # Part 3: Setup additional components using the orchestrator
+    if ! setup_components; then
+        debug_log "ERROR: Component setup failed via orchestrator. RC_SOURCED might not be set."
+        # setup_components is expected to print its own reports and manage RC_SOURCED
+        return 1 # main_ini should still return failure
+    fi
+
+    # Verify RC_SOURCED is set by setup_components on success
+    if [[ -z "${RC_SOURCED:-}" ]] || [[ "${RC_SOURCED:-0}" -ne 1 ]]; then
+        debug_log "ERROR: RC_SOURCED not set to 1 after successful-looking component setup. Forcing failure."
+        # This indicates an issue with setup_components logic if it returned 0 but didn't set RC_SOURCED
         return 1
     fi
 
