@@ -9,9 +9,6 @@ DEBUG_VERBOSITY=${DEBUG_VERBOSITY:-1}
 
 # Simple debug logging function to use before we load the full system
 debug_log() {
-    
-    return 0unction to use before we load the full system
-debug_log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
@@ -19,10 +16,6 @@ debug_log() {
     local LOG_DEBUG_FILE="${BASE_DIR}/.log/debug.log"
     
     # Always log to file regardless of verbosity
-    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
-    echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
-    
-    # Always log to file
     mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
     echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
     
