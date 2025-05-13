@@ -1,7 +1,7 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------
 # Purpose:     Declare runtime dependencies between functions and modules.
-# File:        cfg/core/rdc
+# File:        .lab/cfg/core/rdc
 #
 # Description: This file defines the relationships between various functions
 #              and the modules they belong to or depend upon. It maps

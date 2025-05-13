@@ -1,7 +1,7 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------
 # Purpose:     Define all runtime constants and variables used across the system.
-# File:        cfg/core/ric
+# File:        .lab/cfg/core/ric
 #
 # Description: This file initializes global constants and variables for file paths,
 #              logging configurations, directory structures, and other runtime
@@ -11,7 +11,7 @@
 # Dependencies: None. Assumes BASE_DIR may be predefined in the sourcing
 #               environment if used by variables within this file.
 #
-# Usage:       Sourced during system initialization (e.g., by /home/es/lab/bin/init)
+# Usage:       Sourced during system initialization (e.g., by .lab/bin/init)
 #              to establish the runtime environment.
 #
 # Notes:       Review and update paths and default values as per deployment needs.

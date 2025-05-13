@@ -1,7 +1,7 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------
 # Purpose:     Manage module requirements and dependencies.
-# File:        cfg/core/mdc
+# File:        .lab/cfg/core/mdc
 #
 # Description: This file declares the necessary variables, file paths, and
 #              options required by different modules within the system.
