@@ -1,7 +1,7 @@
 #!/bin/bash
 # # -----------------------------------------------------------------------------
 # Module: Verification
-#------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Purpose:     Provide verification capabilities for modules, paths, functions, and dependencies.
 # File:        lib/core/ver
 #
