@@ -4,7 +4,7 @@
 source_helper() {
     local file="$1"
     local description="${2:-$(basename "$file")}"
-    local temp_dir="/tmp"
+    local temp_dir="/tmp" # Consider making this configurable or using mktemp
     local temp_error="$temp_dir/source_error.$$"
 
     start_timer "source_$description"
@@ -40,8 +40,9 @@ source_helper() {
         rm -f "$temp_error"
         return 0
     else
-        local error=$(cat "$temp_error")
-        log "lvl" " Error sourcing $description: $error" | tee -a "$ERROR_LOG" >&2
+        local error_output
+        error_output=$(cat "$temp_error")
+        log "lvl" " Error sourcing $description: $error_output" | tee -a "$ERROR_LOG" >&2
         rm -f "$temp_error"
         error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
         end_timer "source_$description" "error"
@@ -72,9 +73,9 @@ source_directory() {
     done < <(find "$dir" -maxdepth 1 -type f -name "$pattern" -print0 | sort -z)
 
     if [[ ${#files[@]} -eq 0 ]]; then
-        log "lvl" " Warning: No matching files found in $dir" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Warning: No matching files found in $dir for pattern '$pattern'" | tee -a "$ERROR_LOG" >&2
         end_timer "dir_$description"
-        return 1
+        return 1 # Or 0 if not finding files is acceptable
     fi
 
     # Source each file
@@ -85,7 +86,7 @@ source_directory() {
         fi
     done
 
-    if ((success_count == 0)); then
+    if ((success_count == 0 && ${#files[@]} > 0)); then # Only warn if files were found but none sourced
         log "lvl" " Warning: No files were successfully sourced from $dir" | tee -a "$ERROR_LOG" >&2
         return_value=1
     else
@@ -99,19 +100,21 @@ source_directory() {
 
 # Source the environment files
 source_env() {
-    source_directory "$LAB_DIR/env" "*" "environment configuration files"
+    # Use BASE_DIR instead of LAB_DIR
+    source_directory "$BASE_DIR/env" "*" "environment configuration files"
     return $?
 }
 
 # Source the function files
 source_fun() {
-    source_directory "$LAB_DIR/fun" "*" "function files"
+    # Use BASE_DIR instead of LAB_DIR
+    source_directory "$BASE_DIR/fun" "*" "function files"
     return $?
 }
 
 # Execute RC-specific setup functions
 execution_rc() {
-    log "lvl" "Starting ${FUNCNAME[0]}"
+    log "lvl" "Starting ${FUNCNAME[0]}" | tee -a "$ERROR_LOG"
     start_timer "execution_rc"
 
     local setup_functions=("set_static" "set_dynamic" "set_aliaswrap")
@@ -126,8 +129,8 @@ execution_rc() {
             continue
         fi
 
-        log "lvl" "Executing $func"
-        if $func; then
+        log "lvl" "Executing $func" | tee -a "$ERROR_LOG"
+        if "$func"; then # Corrected: remove $ before func for execution
             ((success_count++))
             end_nested_timing "setup_${func}" "success"
         else
@@ -154,10 +157,10 @@ execute_component() {
     log "lvl" " Executing component: $component ..." | tee -a "$ERROR_LOG"
 
     if ! type "$func" &>/dev/null; then
-        log "lvl" " Error: Function $func not found" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Error: Function $func not found for component $component" | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$([[ $required -eq 0 ]] && echo true || echo false)"
         return_value=1
-    elif $func; then
+    elif "$func"; then # Corrected: remove $ before func for execution
         export "$success_var=1"
         log "lvl" " Component $component completed successfully" | tee -a "$ERROR_LOG"
         return_value=0
@@ -170,8 +173,8 @@ execute_component() {
             return_value=1
         else
             log "lvl" " Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
-            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
-            return_value=0
+            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true" # Assuming error_handler can take 'true' for optional
+            return_value=0 # Optional component failure doesn't make execute_component fail
         fi
     fi
 
@@ -180,24 +183,25 @@ execute_component() {
 }
 
 setup_components() {
-
-    log "lvl" "Validating component configuration..." | tee -a "$ERROR_LOG"
+    log "lvl" "Validating and executing component configuration..." | tee -a "$ERROR_LOG"
 
     local components=(
-        "execution_rc:EXEC:1"        # Required
-        "source_env:ENV:0"           # Optional
-        "source_fun:FUN:0"           # Optional
+        "execution_rc:EXEC:1"        # Required: Executes set_static, set_dynamic, set_aliaswrap
+        "source_env:ENV:0"           # Optional: Sources files from $BASE_DIR/env
+        "source_fun:FUN:0"           # Optional: Sources files from $BASE_DIR/fun
     )
 
     log "lvl" "Executing component functions..." | tee -a "$ERROR_LOG"
 
     local failed_required=0
-    for component in "${components[@]}"; do
-        IFS=':' read -r func name required <<< "$component"
+    for component_def in "${components[@]}"; do # Renamed variable to avoid conflict
+        IFS=':' read -r func name required <<< "$component_def"
         if ! execute_component "$func" "$name" "$required"; then
+            # execute_component already logs detailed error/warning
             if ((required)); then
                 failed_required=1
-                log "lvl" " Required component $name failed" | tee -a "$ERROR_LOG" >&2
+                # Specific log for required component failure leading to break
+                log "lvl" " Required component $name ($func) failed. Halting further component setup." | tee -a "$ERROR_LOG" >&2
                 break
             fi
         fi
@@ -206,8 +210,8 @@ setup_components() {
     if ((failed_required)); then
         unset RC_SOURCED
         log "lvl" " RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
-        print_timing_report
-        print_error_report
+        print_timing_report # Assumes these functions are available
+        print_error_report  # Assumes these functions are available
         return 1
     else
         export RC_SOURCED=1
@@ -217,3 +221,9 @@ setup_components() {
         return 0
     fi
 }
+
+# Ensure this script can be sourced without executing setup_components automatically
+# To use, source this file, then call setup_components if needed.
+# Example:
+# source /path/to/comp
+# setup_components
