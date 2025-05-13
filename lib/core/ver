@@ -4,26 +4,35 @@
 
 # Debug logging helper - uses existing LOG_DEBUG_FILE from ruc
 debug_log() {
-    # Set debug logging always on during initial debugging
-    local DEBUG_LOG_ENABLED="true"
-    
-    [[ "${DEBUG_LOG_ENABLED:-false}" != "true" ]] && return 0
-    
-    # Default log file if not set
-    local LOG_DEBUG_FILE="${LOG_DEBUG_FILE:-${BASE_DIR}/.log/debug.log}"
-    
-    # Create the directory if it doesn't exist
-    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
-    
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
+    local level="${3:-1}" # Default verbosity level if not provided by caller
     
-    # Output to stderr for immediate feedback during debugging
-    printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >&2
+    # Ensure DEBUG_VERBOSITY is available, defaulting to 1 if not set (though init should set it)
+    local current_verbosity=${DEBUG_VERBOSITY:-1}
+
+    # Default log file if not set
+    local LOG_DEBUG_FILE="${LOG_DEBUG_FILE:-${BASE_DIR}/.log/debug.log}"
     
-    # Also log to file
+    # Create the directory if it doesn't exist (for file logging)
+    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
+    
+    # Always log to file
     printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "${LOG_DEBUG_FILE}"
+
+    # Only output to stderr if verbosity level is sufficient
+    if (( current_verbosity >= level )); then
+        # For level 0, only show startup, completion and error messages
+        if (( current_verbosity == 0 )); then
+            if [[ "$message" == *ERROR* || "$message" == *CRITICAL* || "$message" == *WARNING* || \
+                  "$message" == *"Starting main"* || "$message" == *"completed successfully"* ]]; then
+                printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >&2
+            fi
+        else
+            printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >&2
+        fi
+    fi
 }
 
 ###########################################
