@@ -1,4 +1,34 @@
 #!/bin/bash
+
+# -----------------------------------------------------------------------------
+# Module: Runtime Control Structure Tracking (lo2)
+# -----------------------------------------------------------------------------
+# Purpose:     Monitor and report the depth of nested control structures (if, for,
+#              while, etc.) during script execution.
+# File:        lib/util/lo2
+#
+# Description: This module provides functionality to track the depth of shell
+#              control structures at runtime. It uses a DEBUG trap to monitor
+#              commands and identify control flow statements, maintaining a stack
+#              to calculate the current depth. It also includes debug logging
+#              for its own operations.
+#
+# Dependencies: Relies on 'verify_module' for module integrity.
+#               Uses environment variables: LOG_DEBUG_ENABLED, LOG_DEBUG_FILE,
+#               LOG_CONTROL_STATE_FILE, HOME, LOG_DIR, TMP_DIR.
+#
+# Usage:       Sourced by other scripts or modules.
+#              'setlogcontrol on/off' enables/disables the tracking.
+#              'calculate_final_depth' can be used to get the current depth,
+#              potentially combined with a base depth from other modules (e.g., lo1).
+#              'lo2_debug_log' provides specific debug messages for this module.
+#
+# Notes:       The core functionality relies on setting a DEBUG trap.
+#              LOG_CONTROL_DEPTH_ENABLED globally controls if this tracking is active.
+#              The module attempts to deduplicate control structures to avoid
+#              over-counting in certain scenarios.
+# -----------------------------------------------------------------------------
+
 verify_module "lo2" || exit 1
 
 # Enhanced debug logging - moved to top
