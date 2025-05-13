@@ -1,4 +1,32 @@
 #!/bin/bash
+
+# -----------------------------------------------------------------------------
+# Module: Advanced Logging (lo1)
+# -----------------------------------------------------------------------------
+# Purpose:     Provide enhanced logging capabilities, including color-coded output,
+#              call stack depth analysis for log indentation, and debug logging.
+# File:        lib/util/lo1
+#
+# Description: This module offers a sophisticated logging system for the 'lab'
+#              project. It includes functions for debug logging, colorized console
+#              output based on log levels or depth, and utilities to calculate
+#              and cache logging depths to represent call stack hierarchy.
+#
+# Dependencies: Relies on 'verify_module' for module integrity checks.
+#               Uses environment variables such as LOG_DIR, TMP_DIR,
+#               LOG_DEBUG_ENABLED, LOG_DEBUG_FILE, and LOG_STATE_FILE.
+#
+# Usage:       Sourced by other modules and scripts for consistent logging.
+#              Key functions include 'lo1_debug_log' for detailed debug output,
+#              'log_message' (if defined elsewhere, or implicitly through its usage
+#              patterns here for structured logging), 'get_base_depth' and
+#              'calculate_final_depth' for managing log indentation and context.
+#
+# Notes:       LOG_DEBUG_ENABLED controls the activation of debug messages.
+#              The module maintains a cache for log depths to optimize performance.
+#              Color definitions are provided for rich terminal output.
+# -----------------------------------------------------------------------------
+
 verify_module "lo1" || exit 1
 
 # Enable debug logging by default
