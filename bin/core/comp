@@ -1,3 +1,33 @@
+#######################################################################
+# Component Orchestrator
+#######################################################################
+# Purpose:
+#   Provides functions to manage and execute a sequence of shell
+#   script components during system or application initialization.
+#   It handles sourcing environment/function files, executing setup
+#   routines, and managing individual components with dependency
+#   awareness (required vs. optional) and status tracking.
+#
+# Key Functions:
+#   - source_helper: Safely sources individual files.
+#   - source_directory: Sources all files in a given directory.
+#   - source_env: Sources environment configuration files.
+#   - source_fun: Sources function library files.
+#   - execution_rc: Executes RC-specific setup functions.
+#   - execute_component: Executes a single named component.
+#   - setup_components: Orchestrates the execution of all defined
+#     components.
+#
+# Usage:
+#   This script is typically sourced by a main initialization script
+#   (e.g., /home/es/lab/bin/init), and then its `setup_components`
+#   function is called to perform the orchestrated setup.
+#   It relies on the `lo1` module for logging and expects certain
+#   environment variables like `BASE_DIR` and `ERROR_LOG` to be set,
+#   and functions like `start_timer`, `end_timer`, `error_handler`,
+#   `print_timing_report`, `print_error_report` to be available.
+#######################################################################
+
 #!/bin/bash
 
 # Helper function to safely source files with improved error handling and logging
