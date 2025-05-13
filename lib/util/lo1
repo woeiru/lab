@@ -42,8 +42,6 @@ lo1_debug_log() {
     printf "[LO1-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_FILE"
 }
 
-# Define main log file 
-declare -g LOG_FILE="${LOG_DIR}/lo1.log"
 # Define depth cache file
 declare -g LOG_DEPTH_CACHE_FILE="${TMP_DIR}/lo1_depth_cache.log"
 
