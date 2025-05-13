@@ -1,7 +1,29 @@
 #!/bin/bash
+# # -----------------------------------------------------------------------------
 # Module: Verification
-# Purpose: Provides verification capabilities for modules, paths, functions and dependencies
-
+#------------------------------------------------------------
+# Purpose:     Provide verification capabilities for modules, paths, functions, and dependencies.
+# File:        lib/core/ver
+#
+# Description: This module offers a suite of functions to verify the integrity and
+#              existence of various system components, including file paths,
+#              variables, modules, and function dependencies. It includes a debug
+#              logging helper.
+#
+# Dependencies: Relies on 'ric' for LOG_DEBUG_FILE, BASE_DIR, DEBUG_VERBOSITY, CONS_LOADED.
+#               Uses 'mdc' for MODULE_VARS, MODULE_PATHS (via init_module_requirements).
+#               Uses 'rdc' for FUNCTION_DEPENDENCIES.
+#
+# Usage:       Sourced by scripts and modules that require validation checks.
+#              Functions like `verify_path`, `verify_var`, `verify_module`, and
+#              `verify_function_dependencies` are called as needed.
+#              `init_verification` can be used to set up initial checks.
+#
+# Notes:       The `debug_log` function provides verbose logging controlled by
+#              DEBUG_VERBOSITY. `essential_check` verifies critical system variables
+#              and paths. Assumes `init_module_requirements` is available from mdc.
+# -----------------------------------------------------------------------------
+#
 # Debug logging helper - uses existing LOG_DEBUG_FILE from ruc
 debug_log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
