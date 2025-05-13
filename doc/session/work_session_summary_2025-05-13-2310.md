@@ -21,11 +21,14 @@ Resolve issues with the `init` script failing after the integration of the `comp
     *   **Attempt 2 (Centralized in `rdc` - Current State):**
         *   Updated `cfg/core/rdc` to include `set_static`, `set_dynamic`, and `set_aliaswrap` in `REGISTERED_FUNCTIONS`, their module paths (`lib/alias/static`, etc.) in `FUNCTION_MODULES`, and placeholder dependencies in `FUNCTION_DEPENDENCIES`.
 
-## Next Steps:
+## Resolution & Final Steps:
 
-1.  **Revert Local Sourcing:** Remove the direct `source_helper` calls for the alias files from `execution_rc` in `bin/core/comp` (as these functions should now be loaded via `rdc` and `init_registered_functions`).
-2.  **Run `init`:** Execute `/home/es/lab/bin/init` to test if the changes to `rdc` correctly load the alias functions and resolve the `setup_components` failure.
-3.  **Review Logs:** If `init` still fails, analyze `/home/es/lab/.log/err.log` and `/home/es/lab/.log/debug.log` for new error messages.
+1.  **Reverted Local Sourcing:** The direct `source_helper` calls for the alias files were removed from `execution_rc` in `bin/core/comp`, relying on `cfg/core/rdc` for loading these.
+2.  **Ran `init` Script:** Executed `/home/es/lab/bin/init` with the updated `rdc` and `comp` configurations.
+    *   **Outcome:** The `init` script completed successfully. The `init_registered_functions` (via `rdc`) correctly sourced the alias definition files (`lib/alias/static`, `lib/alias/dynamic`, `lib/alias/wrap`), making `set_static`, `set_dynamic`, and `set_aliaswrap` available. Consequently, `execution_rc` and `setup_components` in `bin/core/comp` executed without errors.
+
+## Final Status:
+The `init` script is now working correctly. The integration of the `comp` module and the refactoring of alias function loading (managed centrally via `cfg/core/rdc`) have been successfully implemented.
 
 ## Pending Questions/Considerations:
 *   Verify the actual dependencies for `set_static`, `set_dynamic`, and `set_aliaswrap` in `cfg/core/rdc` (currently assumed `err,lo1`).
