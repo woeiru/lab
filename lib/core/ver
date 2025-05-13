@@ -23,15 +23,7 @@ debug_log() {
 
     # Only output to stderr if verbosity level is sufficient
     if (( current_verbosity >= level )); then
-        # For level 0, only show startup, completion and error messages
-        if (( current_verbosity == 0 )); then
-            if [[ "$message" == *ERROR* || "$message" == *CRITICAL* || "$message" == *WARNING* || \
-                  "$message" == *"Starting main"* || "$message" == *"completed successfully"* ]]; then
-                printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >&2
-            fi
-        else
-            printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >&2
-        fi
+        printf "[VER-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >&2 # Corrected: Added printf to stderr
     fi
 }
 

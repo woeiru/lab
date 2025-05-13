@@ -40,17 +40,17 @@ source_helper() {
 
     # Verify the file exists
     if [[ ! -f "$file" ]]; then
-        log "lvl" " Warning: File $description ($file) not found." | tee -a "$ERROR_LOG" >&2
-        error_handler "$LINENO" "${ERROR_CODES[FILE_NOT_FOUND]}" "false"
+        log "lvl" " Warning: File $description ($file) not found." # Removed tee and stderr redirection, assume log handles it
+        handle_error "File not found: $file" "source_helper" "${ERROR_CODES[FILE_NOT_FOUND]}" "WARNING"
         end_timer "source_$description"
         return 1
     fi
 
     # Verify the file is readable
     if [[ ! -r "$file" ]]; then
-        log "lvl" " Warning: File $description ($file) is not readable." | tee -a "$ERROR_LOG" >&2
-        error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
-        end_timer "source_$description"
+        log "lvl" " Warning: File $description ($file) is not readable." # Removed tee and stderr redirection
+        handle_error "File not readable: $file" "source_helper" "${ERROR_CODES[PERMISSION_DENIED]}" "WARNING"
+        end_timer "source_$description" # Added missing end_timer
         return 1
     fi
 
@@ -145,6 +145,27 @@ source_fun() {
 execution_rc() {
     log "lvl" "Starting ${FUNCNAME[0]}" | tee -a "$ERROR_LOG"
     start_timer "execution_rc"
+
+    # Source the alias definition files
+    # Ensure BASE_DIR is available; it should be if 'comp' is sourced by 'init'
+    if [[ -z "$BASE_DIR" ]]; then
+        log "lvl" "Critical: BASE_DIR not set in execution_rc. Cannot source alias files." | tee -a "$ERROR_LOG" >&2
+        end_timer "execution_rc" "error_base_dir_missing"
+        return 1
+    fi
+
+    local static_alias_file="${BASE_DIR}/lib/alias/static"
+    local dynamic_alias_file="${BASE_DIR}/lib/alias/dynamic"
+    local wrap_alias_file="${BASE_DIR}/lib/alias/wrap"
+
+    log "lvl" "Attempting to source alias definition files..." | tee -a "$ERROR_LOG"
+
+    # Use source_helper to load the alias files
+    # We don't necessarily need to count successes here, as the function checks later will catch missing functions.
+    # source_helper itself logs success/failure.
+    source_helper "$static_alias_file" "static_aliases"
+    source_helper "$dynamic_alias_file" "dynamic_aliases"
+    source_helper "$wrap_alias_file" "wrap_aliases"
 
     local setup_functions=("set_static" "set_dynamic" "set_aliaswrap")
     local success_count=0

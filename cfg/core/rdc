@@ -18,6 +18,9 @@ FUNCTION_DEPENDENCIES=(
     ["handle_error"]="err,lo1"
     ["log_with_timer"]="lo1,tme"
     ["debug_with_timer"]="lo2,tme"
+    ["set_static"]="err,lo1"  # Assuming they might use error/logging
+    ["set_dynamic"]="err,lo1" # Assuming they might use error/logging
+    ["set_aliaswrap"]="err,lo1" # Assuming they might use error/logging
 )
 
 # Initialize registered functions array
@@ -30,6 +33,9 @@ REGISTERED_FUNCTIONS=(
     "handle_error"
     "log_with_timer"
     "debug_with_timer"
+    "set_static"
+    "set_dynamic"
+    "set_aliaswrap"
 )
 
 # Initialize function module mappings
@@ -45,6 +51,9 @@ FUNCTION_MODULES=(
     ["log_with_timer:tme"]="${BASE_DIR}/lib/util/tme"
     ["debug_with_timer:lo2"]="${BASE_DIR}/lib/util/lo2"
     ["debug_with_timer:tme"]="${BASE_DIR}/lib/util/tme"
+    ["set_static"]="${BASE_DIR}/lib/alias/static"
+    ["set_dynamic"]="${BASE_DIR}/lib/alias/dynamic"
+    ["set_aliaswrap"]="${BASE_DIR}/lib/alias/wrap"
 )
 
 # Export the dependency arrays
