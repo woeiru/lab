@@ -1,3 +1,33 @@
+# -----------------------------------------------------------------------------
+# Module: Timing and Performance Monitoring (tme)
+# -----------------------------------------------------------------------------
+# Purpose:     Provide functions to measure and report execution time of different
+#              parts of shell scripts.
+# File:        lib/util/tme
+#
+# Description: This module offers a system for timing components within scripts.
+#              It allows starting and stopping timers for named components,
+#              supports nested timing, calculates durations, and can print a
+#              formatted report of all timed events. It also logs timing
+#              information to a dedicated file.
+#
+# Dependencies: Relies on 'verify_module' for module integrity.
+#               Uses environment variables: TME_LOG_DIR (or a passed argument to
+#               init_timer), LOG_STATE_FILE (for managing log output during its
+#               own logging), TME_LEVELS_FILE, TME_STATE_FILE.
+#
+# Usage:       Sourced by scripts needing performance measurement.
+#              'init_timer' initializes the system.
+#              'start_timer <component_name> [parent_component]' starts timing.
+#              'end_timer <component_name> [status]' (or 'stop_timer') ends timing.
+#              'print_timing_report' displays the collected timing data.
+#              'settme' can be used to control aspects of the timer's behavior or output.
+#
+# Notes:       Timing data is logged to 'timing.log' in the specified log directory.
+#              The module defines color codes for its report output.
+#              It manages a hierarchy of timed components (parent/child).
+# -----------------------------------------------------------------------------
+
 #!/bin/bash
 verify_module "tme" || exit 1
 
