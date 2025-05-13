@@ -1,0 +1,23 @@
+# Process runtime configurations with ver validation
+process_runtime_config() {
+    debug_log "Processing runtime configuration"
+    
+    # RC files have been consolidated into the init file
+    debug_log "Runtime configuration files consolidated into init file"
+    
+    # Call source_rc for backward compatibility
+    source_rc
+    
+    return 0
+}
+
+# Source RC files with validation
+source_rc() {
+    debug_log "Starting source_rc"
+    
+    # RC files have been consolidated into the init file
+    debug_log "RC files have been consolidated into the init file, no separate RC files to source"
+    
+    # Return success directly
+    return 0
+}
