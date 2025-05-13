@@ -1,0 +1,371 @@
+#!/bin/bash
+# # -----------------------------------------------------------------------------
+# Module error handling and reporting
+# -------------------------------------------------------------------------------
+# Purpose:     Manage and process errors, provide error codes, and error reporting.
+# File:        lib/util/err
+#
+# Description: This module provides a comprehensive error handling system for the 'lab'
+#              project. It includes definitions for error codes, functions for
+#              processing, logging, and handling errors, an error trapping
+#              mechanism, and an error reporting facility.
+#
+# Dependencies: Relies on 'ric' for ERROR_LOG and potentially other environment variables.
+#               May use logging functions if available (e.g., a 'log' function for
+#               cleanup registration messages).
+#
+# Usage:       Sourced by other modules and scripts to handle errors consistently.
+#              `setup_error_handling` or `enable_error_trap` can be called to
+#              activate error trapping. `process_error` or `handle_error` are used
+#              to report errors. `print_error_report` generates a summary.
+#
+# Notes:       ERROR_TRAP_ENABLED controls the ERR trap. CLEANUP_FUNCTIONS are
+#              used for a central cleanup mechanism. Assumes verify_module is
+#              available if the first line `verify_module "err" || exit 1` is active.
+# -----------------------------------------------------------------------------
+
+verify_module "err" || exit 1
+
+# Define error codes with descriptive names
+declare -gA ERROR_CODES=(
+    [SUCCESS]=0
+    [GENERAL_ERROR]=1
+    [FILE_NOT_FOUND]=2
+    [PERMISSION_DENIED]=3
+    [FUNCTION_NOT_FOUND]=4
+    [EXECUTION_FAILED]=5
+    [SOURCE_ERROR]=6
+    [DEPENDENCY_ERROR]=7
+    [CONFIG_ERROR]=8
+    [OPTIONAL_WARNING]=100  # Special code for optional component warnings
+)
+
+# Initialize error tracking arrays with better scope control
+declare -gA ERROR_COMPONENTS
+declare -gA ERROR_MESSAGES
+declare -gA ERROR_TIMESTAMPS
+declare -gA ERROR_EXIT_CODES
+declare -gA ERROR_SEVERITIES
+declare -ga ERROR_ORDER
+
+# Process error messages and log them appropriately
+process_error() {
+    local message="$1"
+    local component="${2:-${FUNCNAME[1]:-main}}"
+    local exit_code="${3:-${ERROR_CODES[GENERAL_ERROR]}}"
+    local severity="${4:-ERROR}"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    # Log the error with component information and timestamp
+    local log_message="[$severity] $timestamp - [$component] $message"
+    
+    # Store error information
+    local error_id="$component-$(date +%s%N)"
+    ERROR_COMPONENTS[$error_id]="$component"
+    ERROR_MESSAGES[$error_id]="$message"
+    ERROR_TIMESTAMPS[$error_id]="$timestamp"
+    ERROR_EXIT_CODES[$error_id]="$exit_code"
+    ERROR_SEVERITIES[$error_id]="$severity"
+    ERROR_ORDER+=("$error_id")
+    
+    # Log to the error log file
+    printf "%s\n" "$log_message" >> "${ERROR_LOG}"
+    
+    # Output to console based on severity
+    if [[ "$severity" == "ERROR" || "$severity" == "CRITICAL" ]]; then
+        printf "%s\n" "$log_message" >&2
+    elif [[ "$severity" == "WARNING" ]]; then
+        printf "%s\n" "$log_message" >&1
+    fi
+    
+    return $exit_code
+}
+
+# Function to handle errors more comprehensively
+handle_error() {
+    local message="$1"
+    local component="${2:-${FUNCNAME[1]:-main}}"
+    local exit_code="${3:-${ERROR_CODES[GENERAL_ERROR]}}"
+    local severity="${4:-ERROR}"
+    
+    # Process the error
+    process_error "$message" "$component" "$exit_code" "$severity"
+    
+    # For critical errors, terminate the script
+    if [[ "$severity" == "CRITICAL" || "$exit_code" -ne "${ERROR_CODES[OPTIONAL_WARNING]}" ]]; then
+        clean_exit "$exit_code"
+    fi
+    
+    return $exit_code
+}
+
+# Function to ensure clean exit from the script
+clean_exit() {
+    local exit_code=${1:-${ERROR_CODES[SUCCESS]}}
+    trap - ERR  # Remove the error handling trap
+    trap - EXIT # Remove exit trap if present
+    exit $exit_code
+}
+
+# Function to check if a component has any errors
+has_errors() {
+    local component="$1"
+    local has_error=false
+
+    for error_id in "${ERROR_ORDER[@]}"; do
+        if [[ "${ERROR_COMPONENTS[$error_id]}" == "$component" ]]; then
+            has_error=true
+            break
+        fi
+    done
+
+    $has_error
+}
+
+# Enhanced error handler function that only catches real errors
+error_handler() {
+    # Only proceed if ERROR_TRAP_ENABLED is set
+    [[ "${ERROR_TRAP_ENABLED}" != "true" ]] && return 0
+
+    local line_number="$1"
+    local error_code="${2:-${ERROR_CODES[GENERAL_ERROR]}}"
+    local exit_code="$?"
+    local command="${BASH_COMMAND:-Unknown command}"
+    local source_file="${BASH_SOURCE[1]:-unknown}"
+    local component="${FUNCNAME[1]:-main}"
+    local timestamp=$(date '+%Y%m%d%H%M%S')
+
+    # Generate unique error ID
+    local error_id="${timestamp}_${component}_${line_number}"
+
+    # Store error information
+    ERROR_COMPONENTS[$error_id]="$component"
+    ERROR_MESSAGES[$error_id]="In $source_file on line $line_number: $command failed with status $error_code"
+    ERROR_TIMESTAMPS[$error_id]="$timestamp"
+    ERROR_EXIT_CODES[$error_id]="$error_code"
+    ERROR_ORDER+=("$error_id")
+
+    # Log error
+    echo "└─ ERROR $timestamp - In $source_file on line $line_number: Command '$command' failed with status $error_code" | tee -a "$ERROR_LOG" >&2
+
+    return $error_code
+}
+
+# Function to enable error trapping
+enable_error_trap() {
+    ERROR_TRAP_ENABLED="true"
+    trap 'error_handler $LINENO $?' ERR
+}
+
+# Function to disable error trapping
+disable_error_trap() {
+    ERROR_TRAP_ENABLED="false"
+    trap - ERR
+}
+
+# Example usage in your scripts:
+# Wrap dangerous operations with error trapping
+dangerous_operation() {
+    enable_error_trap
+    # Your dangerous operation here
+    rm -rf some_important_directory/
+    disable_error_trap
+}
+
+# For package management and other safe operations, don't use error trapping
+safe_operation() {
+    disable_error_trap
+    # Your safe operation here
+    dnf update
+    enable_error_trap  # Re-enable if needed after the operation
+}
+
+# Enhanced error reporting function with better organization
+print_error_report() {
+    local total_errors=0
+    local total_warnings=0
+    declare -A error_types
+    declare -A warnings_by_type
+
+    # Count and categorize issues
+    for error_id in "${ERROR_ORDER[@]}"; do
+        local error_code="${ERROR_EXIT_CODES[$error_id]}"
+        local is_optional="${ERROR_SEVERITIES[$error_id]}"
+
+        if [[ "$is_optional" == "true" ]]; then
+            ((total_warnings++))
+            ((warnings_by_type[$error_code]++))
+        else
+            ((total_errors++))
+            ((error_types[$error_code]++))
+        fi
+    done
+
+    # Print report header
+    {
+        printf "\n"
+        printf " ━ RC Error Report\n"
+        printf " ━ Generated: %s\n" "$(date)"
+        printf " ━ Total issues: %d (Errors: %d, Warnings: %d)\n" "$((total_errors + total_warnings))" "$total_errors" "$total_warnings"
+        printf "\n"
+
+        # Print errors first if any exist
+        if ((total_errors > 0)); then
+            printf " ━ Errors by type:\n"
+            for code in "${!error_types[@]}"; do
+                local count=${error_types[$code]}
+                local desc
+                for key in "${!ERROR_CODES[@]}"; do
+                    if [[ ${ERROR_CODES[$key]} -eq $code ]]; then
+                        desc="$key"
+                        break
+                    fi
+                done
+                printf "   └─ %s: %d occurrences\n" "$desc" "$count"
+            done
+            printf "\n"
+
+            printf " ━ Error details:\n"
+            for error_id in "${ERROR_ORDER[@]}"; do
+                if [[ "${ERROR_SEVERITIES[$error_id]}" != "true" ]]; then
+                    printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
+                    printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
+                fi
+            done
+            printf "\n"
+        fi
+
+        # Print warnings if any exist
+        if ((total_warnings > 0)); then
+            printf " ━ Warnings by type:\n"
+            for code in "${!warnings_by_type[@]}"; do
+                local count=${warnings_by_type[$code]}
+                local desc
+                for key in "${!ERROR_CODES[@]}"; do
+                    if [[ ${ERROR_CODES[$key]} -eq $code ]]; then
+                        desc="$key"
+                        break
+                    fi
+                done
+                printf "   └─ %s: %d occurrences\n" "$desc" "$count"
+            done
+            printf "\n"
+
+            printf " ━ Warning details:\n"
+            for error_id in "${ERROR_ORDER[@]}"; do
+                if [[ "${ERROR_SEVERITIES[$error_id]}" == "true" ]]; then
+                    printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
+                    printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
+                fi
+            done
+            printf "\n"
+        fi
+
+        if ((total_errors + total_warnings == 0)); then
+            printf " ━ No issues detected during startup\n"
+        fi
+
+        printf " ━ Error log file: %s\n" "$ERROR_LOG"
+        printf "\n"
+    } >&2
+
+    # Return non-zero if there were any non-optional errors
+    return $((total_errors > 0 ? 1 : 0))
+}
+
+# Setup function to initialize error handling
+setup_error_handling() {
+    # Clear existing error tracking
+    ERROR_COMPONENTS=()
+    ERROR_MESSAGES=()
+    ERROR_TIMESTAMPS=()
+    ERROR_EXIT_CODES=()
+    ERROR_SEVERITIES=()
+    ERROR_ORDER=()
+
+    # Set up error handling trap
+    trap 'error_handler $LINENO' ERR
+}
+
+# Central trap registration system
+register_cleanup() {
+    local module="$1"
+    local function="$2"
+
+    [[ -z "$module" || -z "$function" ]] && {
+        echo "Error: Invalid cleanup registration arguments" >&2
+        return 1
+    }
+    if [[ -n "$function" && $(type -t "$function") == "function" ]]; then
+        CLEANUP_FUNCTIONS[$module]="$function"
+        type log >/dev/null 2>&1 && log "lvl" "Registered cleanup for module: $module" || echo "Registered cleanup for module: $module"
+    else
+        type log >/dev/null 2>&1 && log "lvl" "Failed to register cleanup for module: $module" || echo "Failed to register cleanup for module: $module"
+        return 1
+    fi
+}
+
+# Main cleanup orchestrator
+main_cleanup() {
+    log "lvl" "Starting main cleanup sequence"
+
+    # First cleanup logging system
+    if [[ -n "${CLEANUP_FUNCTIONS[lo]}" ]]; then
+        ${CLEANUP_FUNCTIONS[lo]}
+    fi
+
+    # Then cleanup timing system
+    if [[ -n "${CLEANUP_FUNCTIONS[tme]}" ]]; then
+        ${CLEANUP_FUNCTIONS[tme]}
+    fi
+
+    # Finally cleanup error handling
+    if [[ -n "${CLEANUP_FUNCTIONS[err]}" ]]; then
+        ${CLEANUP_FUNCTIONS[err]}
+    fi
+
+    log "lvl" "Main cleanup sequence completed"
+}
+
+# Central error handler
+main_error_handler() {
+    local line_number="$1"
+    local error_code="$2"
+
+    # Call error handler from err module if available
+    if type error_handler &>/dev/null; then
+        error_handler "$line_number" "$error_code"
+    fi
+}
+
+# Initialize trap system
+init_traps() {
+    if [[ "$TRAP_INITIALIZED" != "true" ]]; then
+        # Remove any existing traps
+        trap - EXIT
+        trap - ERR
+
+        # Set up main traps
+        trap main_cleanup EXIT
+        trap 'main_error_handler $LINENO $?' ERR
+
+        TRAP_INITIALIZED=true
+    fi
+}
+
+
+# Add automatic initialization when sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    setup_error_handling
+fi
+
+# Export functions and variables
+export -f clean_exit
+export -f has_errors
+export -f error_handler
+export -f print_error_report
+export -f setup_error_handling
+export -f register_cleanup
+export -f main_cleanup
+export -f main_error_handler
+export -f init_traps
