@@ -117,7 +117,7 @@ ensure_state_directories() {
 }
 
 init_state_files() {
-    [[ ! -f "$LOG_STATE_FILE" ]] && echo "true" > "$LOG_STATE_FILE"
+    [[ ! -f "$LOG_STATE_FILE" ]] && echo "on" > "$LOG_STATE_FILE"  # Changed "true" to "on"
     [[ ! -f "$LOG_DEPTH_CACHE_FILE" ]] && touch "$LOG_DEPTH_CACHE_FILE"
     [[ ! -f "$LOG_DEBUG_FILE" ]] && touch "$LOG_DEBUG_FILE"
 }
@@ -228,8 +228,8 @@ log() {
     [[ "$1" != "lvl" ]] && { echo "Error: Invalid log command" >&2; return 1; }
     local message="$2"
     local log_enabled
-    log_enabled=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-    [[ "$log_enabled" != "true" ]] && return 0
+    log_enabled=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "on")  # Changed "true" to "on"
+    [[ "$log_enabled" != "on" ]] && return 0  # Changed "true" to "on"
 
     local depth
     depth=$(calculate_final_depth)
@@ -261,11 +261,11 @@ log() {
 setlog() {
     case "$1" in
         "off")
-            echo "false" > "$LOG_STATE_FILE"
+            echo "off" > "$LOG_STATE_FILE"  # Changed "false" to "off"
             printf "%s      └─ Logging disabled%s\n" "$LOG_NC"
             ;;
         "on")
-            echo "true" > "$LOG_STATE_FILE"
+            echo "on" > "$LOG_STATE_FILE"   # Changed "true" to "on"
             printf "%s      └─ Logging enabled%s\n" "$LOG_NC"
             ;;
         *)
@@ -294,16 +294,19 @@ init_logger() {
     else
         local current_state
         current_state=$(<"$LOG_STATE_FILE")
-        if [[ "$current_state" == "on" || "$current_state" == "off" ]]; then
-            # State file has valid content, apply it.
-            # setlog will also handle console output status.
-            setlog "$current_state"
-            lo1_debug_log "Logger state loaded as '$current_state' from $LOG_STATE_FILE." "init_logger"
+        if [[ "$current_state" == "on" ]]; then # Changed from "true"
+            setlog "on"
+            lo1_debug_log "Logger state loaded as 'on' from $LOG_STATE_FILE." "init_logger"
+        elif [[ "$current_state" == "off" ]]; then # Changed from "false"
+            setlog "off"
+            lo1_debug_log "Logger state loaded as 'off' from $LOG_STATE_FILE." "init_logger"
         else
-            lo1_debug_log "Invalid content in log state file '$LOG_STATE_FILE': '$current_state'. Defaulting to 'on'." "init_logger"
-            setlog "on" # This should also write 'on' to LOG_STATE_FILE
+            # If the file has "true", "false", or something else, it defaults to "on"
+            lo1_debug_log "Invalid content in $LOG_STATE_FILE: '$current_state'. Defaulting to 'on'." "init_logger"
+            setlog "on"
         fi
     fi
+    lo1_debug_log "Logger initialization completed." "init_logger"
 }
 
 # Update cleanup_logger to use lo1_debug_log
@@ -340,7 +343,7 @@ log_message() {
     printf "[LOG] %s - %s\n" "$timestamp" "$formatted_message" >> "$LOG_FILE"
     
     # Output to console if enabled
-    if [[ -f "$LOG_STATE_FILE" ]] && [[ "$(cat "$LOG_STATE_FILE")" == "true" ]]; then
+    if [[ -f "$LOG_STATE_FILE" ]] && [[ "$(cat "$LOG_STATE_FILE")" == "on" ]]; then  # Changed "true" to "on"
         printf "%s\n" "$formatted_message"
     fi
     

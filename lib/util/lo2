@@ -186,7 +186,7 @@ setlogcontrol() {
     case "$1" in
         "on")
             LOG_CONTROL_DEPTH_ENABLED=true
-            echo "true" > "$LOG_CONTROL_STATE_FILE"
+            echo "on" > "$LOG_CONTROL_STATE_FILE" # Changed "true" to "on"
             install_depth_tracking
             CONTROL_DEPTH_STACK=()
             lo2_debug_log "Control structure depth tracking enabled" "setlogcontrol"
@@ -194,7 +194,7 @@ setlogcontrol() {
             ;;
         "off")
             LOG_CONTROL_DEPTH_ENABLED=false
-            echo "false" > "$LOG_CONTROL_STATE_FILE"
+            echo "off" > "$LOG_CONTROL_STATE_FILE" # Changed "false" to "off"
             remove_depth_tracking
             CONTROL_DEPTH_STACK=()
             lo2_debug_log "Control structure depth tracking disabled" "setlogcontrol"
