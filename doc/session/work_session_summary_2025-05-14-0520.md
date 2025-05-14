@@ -45,17 +45,22 @@
     *   **Verification:** Execution of the `init` script confirmed that `lo2` now runs successfully past "Point H", and `lo2.log` contains the expected initialization messages logged by the restored `lo2_debug_log`.
     *   **Observation:** The `lo2_flow_diag.log` (before its diagnostic lines were removed from `lo2`) showed repeated blocks of initialization messages, suggesting that the `lo2` module might be sourced multiple times during the `init` script's execution. This is a potential area for future optimization but not the immediate blocker.
 
-**Current Status (as of 2025-05-14 ~05:20):**
+7.  **Resolving `DEBUG` Trap Execution Error (Correcting `trap_command`):**
+    *   **Problem:** Upon running the `init` script, terminal errors "bash: trap_command: command not found..." appeared.
+    *   **Cause Analysis:** Investigation of `lo2.log` revealed that the `new_trap_command` variable within `install_depth_tracking` was incorrectly assigned the literal string `'trap_command'` instead of the intended `echo` command string for the `DEBUG` trap. This caused the `trap` builtin to try to execute a non-existent command. The `lo2_trap_fire.log` was also not being created.
+    *   **Fix:** Modified `install_depth_tracking` in `/home/es/lab/lib/util/lo2` to correctly define `new_trap_command` with the full `echo ... >> /home/es/lab/.log/lo2_trap_fire.log` command string. Also, improved trap preservation logic to ensure the wrapper function (if used) is defined before being set as the trap handler and to avoid re-wrapping if already wrapped.
+    *   **Result:** The "bash: trap_command: command not found..." errors were resolved.
 
-*   The `lo2` module (`/home/es/lab/lib/util/lo2`) now appears to initialize correctly, executing past global variable declarations and defining its functions.
-*   The primary `lo2_debug_log` function is operational and logging as expected during the module's own initialization phase.
-*   The `LO2_FLOW:` diagnostic echo statements have been removed from `lo2` as the immediate script execution issue up to "Point H" is resolved.
-*   The `DEBUG` trap within `install_depth_tracking` is still in its simplified diagnostic state (direct `echo` to `/home/es/lab/.log/lo2_trap_fire.log`).
+**Current Status (as of 2025-05-14 ~05:20, updated after `trap_command` fix):**
+
+*   The `lo2` module (`/home/es/lab/lib/util/lo2`) initializes correctly.
+*   The `lo2_debug_log` function is operational.
+*   The `DEBUG` trap mechanism in `install_depth_tracking` has been corrected and is now expected to fire the simplified diagnostic `echo` command to `/home/es/lab/.log/lo2_trap_fire.log`.
 
 **Pending Next Steps:**
 
 1.  **Verify `setlogcontrol "on"` Invocation:** Confirm that the main `init` script (or its equivalent) correctly calls `setlogcontrol "on"` *after* the `lo2` module has been sourced.
-2.  **Test Simplified `DEBUG` Trap Firing:** Execute the `init` script and check if `/home/es/lab/.log/lo2_trap_fire.log` is created and populated by the simplified `DEBUG` trap. This will confirm the trap itself is being set and triggered.
+2.  **Test Simplified `DEBUG` Trap Firing:** Execute the `init` script and check if `/home/es/lab/.log/lo2_trap_fire.log` is created and populated by the simplified `DEBUG` trap. This will confirm the trap itself is being set and triggered correctly.
 3.  **Restore `DEBUG` Trap to Call `track_control_depth`:** If the simplified trap fires, modify `install_depth_tracking` in `lo2` to restore the `DEBUG` trap's command to call `track_control_depth "$BASH_COMMAND" "${BASH_SOURCE[0]}" "${BASH_LINENO[0]}"`.
 4.  **Investigate `track_control_depth` Logic:** If `track_control_depth` is successfully called by the restored trap, the next step will be to diagnose why it was not previously logging control structure entries/exits (e.g., issues with regex matching, stack manipulation, or conditional logic within `track_control_depth`).
 5.  **Address Original Indentation Plateau:** Once `lo2` is correctly tracking and logging control depth, the original "plateau" effect in the main script logs can be properly investigated and addressed.
