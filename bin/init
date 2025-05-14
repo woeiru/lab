@@ -171,43 +171,35 @@ main_ini() {
         return 1
     fi
     # shellcheck source=bin/core/comp
+    if type start_timer &>/dev/null; then start_timer "SOURCE_COMP_ORCHESTRATOR" "MAIN_OPERATIONS"; fi
     if ! source "$comp_orchestrator_path"; then
         debug_log "ERROR: Failed to source component orchestrator $comp_orchestrator_path"
+        if type end_timer &>/dev/null; then end_timer "SOURCE_COMP_ORCHESTRATOR" "error"; fi
         if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
         return 1
     fi
+    if type end_timer &>/dev/null; then end_timer "SOURCE_COMP_ORCHESTRATOR" "success"; fi
     debug_log "Component orchestrator sourced successfully"
 
     # Part 2: Runtime dependency initialization (core)
+    if type start_timer &>/dev/null; then start_timer "INIT_RUNTIME_SYSTEM" "MAIN_OPERATIONS"; fi
     if ! init_runtime_system; then
         debug_log "ERROR: Core runtime system initialization failed"
+        if type end_timer &>/dev/null; then end_timer "INIT_RUNTIME_SYSTEM" "error"; fi
         if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
         return 1
     fi
+    if type end_timer &>/dev/null; then end_timer "INIT_RUNTIME_SYSTEM" "success"; fi
 
     # Part 3: Setup additional components using the orchestrator
     debug_log "Setting RC_SOURCED=0 before calling setup_components"
-    export RC_SOURCED=0
-    
-    # Define print_timing_report and print_error_report if they don't exist
-    if ! type print_timing_report &>/dev/null; then
-        debug_log "Defining fallback print_timing_report function"
-        print_timing_report() { debug_log "Timing report requested but function unavailable"; }
-        export -f print_timing_report
-    fi
-    
-    if ! type print_error_report &>/dev/null; then
-        debug_log "Defining fallback print_error_report function"
-        print_error_report() { debug_log "Error report requested but function unavailable"; }
-        export -f print_error_report
-    fi
-    
     if ! setup_components; then
         debug_log "ERROR: Component setup failed via orchestrator."
         if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
         return 1 # main_ini should still return failure
     fi
 
+    if type start_timer &>/dev/null; then start_timer "FINALIZE_MAIN_INIT" "MAIN_OPERATIONS"; fi
     debug_log "RC_SOURCED value after setup_components: ${RC_SOURCED}"
     
     # Modify this check to set RC_SOURCED=1 if setup_components succeeded
@@ -217,6 +209,7 @@ main_ini() {
     fi
 
     debug_log "Main initialization completed successfully"
+    if type end_timer &>/dev/null; then end_timer "FINALIZE_MAIN_INIT" "success"; fi
     if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "0"; fi
     return 0
 }
