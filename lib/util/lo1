@@ -43,9 +43,7 @@ lo1_debug_log() {
 }
 
 # Define depth cache file
-declare -g LOG_DEPTH_CACHE_FILE="${TMP_DIR}/lo1_depth_cache.log"
-
-
+declare -g LOG_DEPTH_CACHE_FILE="${TMP_DIR}/lo1_depth_cache"
 
 # Color definitions
 readonly LOG_RED=$(printf '\033[0;31m')          # Level 0  - Pure Red
