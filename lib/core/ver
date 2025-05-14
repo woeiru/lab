@@ -52,7 +52,7 @@ debug_log() {
     # Only output to stderr if verbosity level is sufficient
     if (( current_verbosity >= level )); then
         # New format for stderr
-        echo "  └─ $message [$timestamp]" >&2
+        echo "    └─ $message [$timestamp]" >&2
     fi
 }
 

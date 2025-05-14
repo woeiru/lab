@@ -262,11 +262,11 @@ setlog() {
     case "$1" in
         "off")
             echo "false" > "$LOG_STATE_FILE"
-            printf "%sLogging disabled%s\n" "$LOG_RED" "$LOG_NC"
+            printf "%s      └─ Logging disabled%s\n" "$LOG_NC"
             ;;
         "on")
             echo "true" > "$LOG_STATE_FILE"
-            printf "%sLogging enabled%s\n" "$LOG_GREEN" "$LOG_NC"
+            printf "%s      └─ Logging enabled%s\n" "$LOG_NC"
             ;;
         *)
             printf "Usage: setlog on|off\n"
