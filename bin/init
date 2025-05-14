@@ -485,3 +485,11 @@ fi
 
 # Export only the main initialization function
 export -f main_ini
+
+# --- Force timer output and print timing report at the end ---
+if type settme &>/dev/null; then
+    settme on
+fi
+if type print_timing_report &>/dev/null; then
+    print_timing_report
+fi
