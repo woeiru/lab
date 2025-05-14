@@ -36,7 +36,7 @@ declare -gA ROOT_FUNCTIONS=([main_rc]=1)
 # Enhanced debug logging - moved to top
 lo1_debug_log() {
     [[ "${LOG_DEBUG_ENABLED}" != "1" ]] && return 0
-    local timestamp=$(date '+%H:%M:%S')
+    local timestamp=$(date '+%H:%M:%S.%2N')
     local message="$1"
     local source="${2:-unknown}"
     printf "[LO1-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_FILE"
@@ -238,7 +238,7 @@ log() {
     local color
     color=$(get_color "$depth")
     local timestamp
-    timestamp=$(date '+%H:%M:%S')
+    timestamp=$(date '+%H:%M:%S.%2N') # Modified to include milliseconds
 
     if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
         printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" | tee -a "$LOG_FILE"
