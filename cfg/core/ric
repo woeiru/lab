@@ -60,7 +60,7 @@ declare -g TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 ERROR_LOG="${LOG_DIR}/err.log"
 ERROR_COUNT_FILE="${TMP_DIR}/err_count"
 ERROR_STATE_FILE="${TMP_DIR}/err_state"
-LOG_STATE_FILE="${TMP_DIR}/log_state"
+LOG_STATE_FILE="${TMP_DIR}/lo1_state" # Changed from log_state
 LOG_DEBUG_FILE="${LOG_DIR}/debug.log"
 LOG_FILE="${LOG_DIR}/lo1.log" # Definition for lo1.log
 LO2_LOG_FILE="${LOG_DIR}/lo2.log" # Definition for lo2.log
