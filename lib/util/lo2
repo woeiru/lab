@@ -52,6 +52,7 @@ lo2_debug_log "HOME=$HOME" "init"
 lo2_debug_log "LOG_DIR=$LOG_DIR" "init"
 lo2_debug_log "TMP_DIR=$TMP_DIR" "init"
 lo2_debug_log "Setting up lo2 module directories" "init"
+echo "LO2_FLOW: After 'Setting up lo2 module directories' log. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
 # Global state
 declare -g LOG_CONTROL_DEPTH_ENABLED=false
@@ -206,37 +207,20 @@ calculate_final_depth() {
 
 # Install the debug trap for control structure tracking
 install_depth_tracking() {
-    # Save any existing DEBUG trap
+    echo "LO2_FLOW: install_depth_tracking CALLED. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
     local old_trap=$(trap -p DEBUG)
-    # Correctly pass BASH_SOURCE[0] and BASH_LINENO[0] from the trap's context
-    local new_trap_command='track_control_depth "$BASH_COMMAND" "${BASH_SOURCE[0]}" "${BASH_LINENO[0]}"'
+    echo "LO2_FLOW: install_depth_tracking: old_trap='$old_trap'. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+    
+    # SIMPLIFIED TRAP COMMAND FOR DIAGNOSIS
+    local new_trap_command='echo "RAW DEBUG TRAP FIRED: CMD=$BASH_COMMAND SRC=${BASH_SOURCE[0]} LINE=${BASH_LINENO[0]} Timestamp: $(date '\\''+%H:%M:%S.%N'\\'')'" >> "/home/es/lab/.log/lo2_trap_fire.log"'
+    
+    echo "LO2_FLOW: install_depth_tracking: new_trap_command='$new_trap_command'. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
-    # Set our new trap while preserving any existing trap
-    if [[ -n "$old_trap" && "$old_trap" != *"track_control_depth"* ]]; then
-        local old_command_match
-        # More robust extraction of the old command
-        if [[ "$old_trap" =~ trap -- \'(.*)\' DEBUG ]]; then
-            old_command_match="${BASH_REMATCH[1]}"
-            # Ensure old_command_match is not empty and doesn't recursively call track_control_depth
-            if [[ -n "$old_command_match" && "$old_command_match" != *"track_control_depth"* ]]; then
-                 # Properly escape the old command before combining
-                local escaped_old_command=$(printf '%q' "$old_command_match")
-                trap "$(printf "%s; eval %s" "$new_trap_command" "$escaped_old_command")" DEBUG
-                lo2_debug_log "Installed control structure tracking, preserving: $old_command_match" "init"
-            else
-                trap "$new_trap_command" DEBUG
-                lo2_debug_log "Installed control structure tracking (old trap was problematic or redundant)" "init"
-            fi
-        else
-            trap "$new_trap_command" DEBUG
-            lo2_debug_log "Installed control structure tracking (old trap format not recognized)" "init"
-        fi
-    elif [[ "$old_trap" != *"track_control_depth"* ]]; then # Handles empty or non-relevant old trap
-        trap "$new_trap_command" DEBUG
-        lo2_debug_log "Installed control structure tracking (no previous relevant trap)" "init"
-    else
-        lo2_debug_log "Control structure tracking already installed or old trap is only track_control_depth." "init"
-    fi
+    # Forcing a simple trap set for now, overwriting any existing.
+    trap "$new_trap_command" DEBUG
+    local current_trap_setting=$(trap -p DEBUG)
+    echo "LO2_FLOW: install_depth_tracking: DEBUG trap SET (simplified). Current: '$current_trap_setting'. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+    lo2_debug_log "Installed control structure tracking (simplified for diagnosis)" "init"
 }
 
 # Remove the debug trap
@@ -247,10 +231,12 @@ remove_depth_tracking() {
 
 # Control structure tracking toggle
 setlogcontrol() {
+    echo "LO2_FLOW: setlogcontrol CALLED with $1. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
     case "$1" in
         "on")
             LOG_CONTROL_DEPTH_ENABLED=true
             echo "on" > "$LOG_CONTROL_STATE_FILE" # Changed "true" to "on"
+            echo "LO2_FLOW: setlogcontrol ON: calling install_depth_tracking. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
             install_depth_tracking
             CONTROL_DEPTH_STACK=()
             lo2_debug_log "Control structure depth tracking enabled" "setlogcontrol"
@@ -259,6 +245,7 @@ setlogcontrol() {
         "off")
             LOG_CONTROL_DEPTH_ENABLED=false
             echo "off" > "$LOG_CONTROL_STATE_FILE" # Changed "false" to "off"
+            echo "LO2_FLOW: setlogcontrol OFF: calling remove_depth_tracking. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
             remove_depth_tracking
             CONTROL_DEPTH_STACK=()
             lo2_debug_log "Control structure depth tracking disabled" "setlogcontrol"
@@ -334,6 +321,8 @@ export -f get_current_control_depth
 
 # Set up cleanup trap
 trap cleanup_lo2 EXIT
+
+echo "LO2_FLOW: Before LOG_CONTROL_STATE_FILE block. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
 # Initialize control tracking based on saved state, defaulting to 'on'
 # Assumes LOG_CONTROL_STATE_FILE is defined in the environment (e.g., from ric)
