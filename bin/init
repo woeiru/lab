@@ -49,7 +49,7 @@ DEBUG_VERBOSITY=${DEBUG_VERBOSITY:-1}
 
 # Simple debug logging function to use before we load the full system
 debug_log() {
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp=$(date '+%H:%M:%S')
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
     local level="${3:-1}" # Default verbosity level
@@ -65,10 +65,10 @@ debug_log() {
         if (( DEBUG_VERBOSITY == 0 )); then
             if [[ "$message" == *ERROR* || "$message" == *CRITICAL* || "$message" == *WARNING* || 
                   "$message" == *"Starting main"* || "$message" == *"completed successfully"* ]]; then
-                echo "[DEBUG] $timestamp - [$source] $message" >&2
+                echo "└─ $message [$timestamp]" >&2
             fi
         else
-            echo "[DEBUG] $timestamp - [$source] $message" >&2
+            echo "└─ $message [$timestamp]" >&2
         fi
     fi
 }

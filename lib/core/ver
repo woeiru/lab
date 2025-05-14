@@ -32,7 +32,7 @@
 #
 # Debug logging helper - uses existing LOG_DEBUG_FILE from ruc
 debug_log() {
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp=$(date '+%H:%M:%S')
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
     local level="${3:-1}" # Default verbosity level if not provided by caller
@@ -46,12 +46,13 @@ debug_log() {
     # Create the directory if it doesn't exist (for file logging)
     mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
     
-    # Always log to file
-    printf "[DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "${LOG_DEBUG_FILE}"
+    # Format for file logging remains unchanged or can be adjusted if needed
+    echo "[DEBUG] $(date '+%Y-%m-%d %H:%M:%S') - [$source] $message" >> "$LOG_DEBUG_FILE"
 
     # Only output to stderr if verbosity level is sufficient
     if (( current_verbosity >= level )); then
-        printf "[VER-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >&2 # Corrected: Added printf to stderr
+        # New format for stderr
+        echo "  └─ $message [$timestamp]" >&2
     fi
 }
 
