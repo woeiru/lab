@@ -204,38 +204,16 @@ calculate_final_depth() {
 
 install_depth_tracking() {
     lo2_debug_log "install_depth_tracking CALLED" "init"
-    local old_trap
-    old_trap=$(trap -p DEBUG)
+    local old_trap=$(trap -p DEBUG)
     lo2_debug_log "install_depth_tracking: old_trap='$old_trap'" "init"
     
-    # Correctly define the command string for the trap
-    local new_trap_command='echo "RAW DEBUG TRAP FIRED: CMD=$BASH_COMMAND SRC=${BASH_SOURCE[0]} LINE=${BASH_LINENO[0]} Timestamp: $(date '\\''+%H:%M:%S.%N'\\'')'" >> "/home/es/lab/.log/lo2_trap_fire.log"'
+    local new_trap_command='trap_command'
     
     lo2_debug_log "install_depth_tracking: new_trap_command='$new_trap_command'" "init"
 
-    if [[ -n "$old_trap" && "$old_trap" != *"lo2_trap_command_wrapper"* ]]; then
-        # Preserve existing trap by creating a wrapper
-        # Extract existing command: remove "trap -- '" at the beginning and "' DEBUG" at the end
-        local existing_command
-        existing_command=${old_trap#trap -- \'}
-        existing_command=${existing_command%\' DEBUG}
-
-        # Define a wrapper function name that's unlikely to clash
-        local wrapper_func_name="lo2_trap_command_wrapper"
-
-        # Create the wrapper function dynamically
-        eval "function $wrapper_func_name() { $existing_command; $new_trap_command; }"
-        lo2_debug_log "install_depth_tracking: Defined wrapper $wrapper_func_name" "init"
-        
-        # Set the trap to call the wrapper
-        trap "$wrapper_func_name" DEBUG
-        lo2_debug_log "install_depth_tracking: DEBUG trap SET to wrapper '$wrapper_func_name'. Current: '$(trap -p DEBUG)'" "init"
-    else
-        # No existing trap, or it's already our wrapper (or a previous version of our simple trap)
-        trap "$new_trap_command" DEBUG
-        lo2_debug_log "install_depth_tracking: DEBUG trap SET (simplified or overwriting previous lo2 trap). Current: '$(trap -p DEBUG)'" "init"
-    fi
-    
+    trap "$new_trap_command" DEBUG
+    local current_trap_setting=$(trap -p DEBUG)
+    lo2_debug_log "install_depth_tracking: DEBUG trap SET (simplified). Current: '$current_trap_setting'" "init"
     lo2_debug_log "Installed control structure tracking (simplified for diagnosis)" "init"
 }
 
