@@ -115,6 +115,8 @@ source "${BASE_DIR}/lib/core/ver" || {
 #   - ver (lib/core/ver) for all verification functions
 ###############################################
 main_ini() {
+    local main_op_timer_started=0 # New: Flag to track if MAIN_OPERATIONS timer started
+
     # Ensure log directory exists and clear logs for the new cycle
     # LOG_DIR, LOG_DEBUG_FILE, and ERROR_LOG are sourced from cfg/core/ric
     if [ -n "$LOG_DIR" ] && [ -n "$LOG_DEBUG_FILE" ] && [ -n "$ERROR_LOG" ]; then
@@ -148,6 +150,13 @@ main_ini() {
     if type init_timer &>/dev/null; then
         init_timer "${BASE_DIR}/.log"
         debug_log "Timer system initialized and log cleared (${BASE_DIR}/.log/tme.log)."
+        # New: Start MAIN_OPERATIONS timer right after init_timer
+        if type start_timer &>/dev/null; then
+            start_timer "MAIN_OPERATIONS"
+            main_op_timer_started=1
+        else
+            debug_log "WARNING: start_timer function not found. Cannot start MAIN_OPERATIONS timer."
+        fi
     else
         debug_log "WARNING: init_timer function not found after module loading."
     fi
@@ -158,11 +167,13 @@ main_ini() {
     local comp_orchestrator_path="${BASE_DIR}/bin/core/comp"
     if [[ ! -f "$comp_orchestrator_path" ]]; then
         debug_log "ERROR: Component orchestrator script not found at $comp_orchestrator_path"
+        if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
         return 1
     fi
     # shellcheck source=bin/core/comp
     if ! source "$comp_orchestrator_path"; then
         debug_log "ERROR: Failed to source component orchestrator $comp_orchestrator_path"
+        if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
         return 1
     fi
     debug_log "Component orchestrator sourced successfully"
@@ -170,6 +181,7 @@ main_ini() {
     # Part 2: Runtime dependency initialization (core)
     if ! init_runtime_system; then
         debug_log "ERROR: Core runtime system initialization failed"
+        if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
         return 1
     fi
 
@@ -192,6 +204,7 @@ main_ini() {
     
     if ! setup_components; then
         debug_log "ERROR: Component setup failed via orchestrator."
+        if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
         return 1 # main_ini should still return failure
     fi
 
@@ -204,6 +217,7 @@ main_ini() {
     fi
 
     debug_log "Main initialization completed successfully"
+    if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "0"; fi
     return 0
 }
 
