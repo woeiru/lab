@@ -19,7 +19,7 @@ This session focused on debugging and fixing the initialization script (`/home/e
 
 3. **Logging Module Enhancements**:
    * Added missing `LOG_FILE` variable declaration in the lo1 module: `declare -g LOG_FILE="${LOG_DIR}/lo1.log"`.
-   * Added missing `LOG_DEPTH_CACHE_FILE` variable: `declare -g LOG_DEPTH_CACHE_FILE="${LOG_DIR}/lo1_depth_cache.log"`.
+   * Added missing `LOG_DEPTH_CACHE_FILE` variable: `declare -g LOG_DEPTH_CACHE_FILE="${LOG_DIR}/lo1_depth_cache"`.
    * These fixes resolved empty path errors causing touch command failures.
 
 4. **RC File Handling**:
