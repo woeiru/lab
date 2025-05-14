@@ -69,12 +69,10 @@ process_error() {
     ERROR_SEVERITIES[$error_id]="$severity"
     ERROR_ORDER+=("$error_id")
     
-    # Log to the error log file (stripped of color codes)
-    local stripped_log_message
-    stripped_log_message=$(echo "$log_message" | sed 's/\\x1b\\[[0-9;]*m//g')
-    printf "%s\n" "$stripped_log_message" >> "${ERROR_LOG}"
+    # Log to the error log file
+    printf "%s\n" "$log_message" >> "${ERROR_LOG}"
     
-    # Output to console based on severity (with original colors)
+    # Output to console based on severity
     if [[ "$severity" == "ERROR" || "$severity" == "CRITICAL" ]]; then
         printf "%s\n" "$log_message" >&2
     elif [[ "$severity" == "WARNING" ]]; then
@@ -132,25 +130,24 @@ error_handler() {
 
     local line_number="$1"
     local error_code="${2:-${ERROR_CODES[GENERAL_ERROR]}}"
+    local exit_code="$?"
     local command="${BASH_COMMAND:-Unknown command}"
     local source_file="${BASH_SOURCE[1]:-unknown}"
     local component="${FUNCNAME[1]:-main}"
-    local timestamp
-    timestamp=$(date '+%Y-%m-%d %H:%M:%S') # Changed timestamp format
+    local timestamp=$(date '+%Y%m%d%H%M%S')
 
     # Generate unique error ID
-    local error_id="${timestamp}_${component}_${line_number}" # Timestamp format in ID is now different
+    local error_id="${timestamp}_${component}_${line_number}"
 
     # Store error information
     ERROR_COMPONENTS[$error_id]="$component"
     ERROR_MESSAGES[$error_id]="In $source_file on line $line_number: $command failed with status $error_code"
-    ERROR_TIMESTAMPS[$error_id]="$timestamp" # Storing new format
+    ERROR_TIMESTAMPS[$error_id]="$timestamp"
     ERROR_EXIT_CODES[$error_id]="$error_code"
     ERROR_ORDER+=("$error_id")
 
-    # Log error (stripped for file, original for console via tee)
-    local message_content="└─ ERROR $timestamp - In $source_file on line $line_number: Command '$command' failed with status $error_code"
-    echo "$message_content" | tee >(sed 's/\\x1b\\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+    # Log error
+    echo "└─ ERROR $timestamp - In $source_file on line $line_number: Command '$command' failed with status $error_code" | tee -a "$ERROR_LOG" >&2
 
     return $error_code
 }
@@ -194,9 +191,9 @@ print_error_report() {
     # Count and categorize issues
     for error_id in "${ERROR_ORDER[@]}"; do
         local error_code="${ERROR_EXIT_CODES[$error_id]}"
-        local severity="${ERROR_SEVERITIES[$error_id]}" # Use severity string
+        local is_optional="${ERROR_SEVERITIES[$error_id]}"
 
-        if [[ "$severity" == "WARNING" || "$error_code" -eq "${ERROR_CODES[OPTIONAL_WARNING]}" ]]; then # Check severity or optional warning code
+        if [[ "$is_optional" == "true" ]]; then
             ((total_warnings++))
             ((warnings_by_type[$error_code]++))
         else
@@ -231,11 +228,9 @@ print_error_report() {
 
             printf " ━ Error details:\n"
             for error_id in "${ERROR_ORDER[@]}"; do
-                local severity="${ERROR_SEVERITIES[$error_id]}"
-                local error_code="${ERROR_EXIT_CODES[$error_id]}"
-                if [[ "$severity" != "WARNING" && "$error_code" -ne "${ERROR_CODES[OPTIONAL_WARNING]}" ]]; then # Check severity and optional warning code
+                if [[ "${ERROR_SEVERITIES[$error_id]}" != "true" ]]; then
                     printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
-                    printf "      Time: %s\n" "${ERROR_TIMESTAMPS[$error_id]}" # Use stored timestamp directly
+                    printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
                 fi
             done
             printf "\n"
@@ -259,11 +254,9 @@ print_error_report() {
 
             printf " ━ Warning details:\n"
             for error_id in "${ERROR_ORDER[@]}"; do
-                local severity="${ERROR_SEVERITIES[$error_id]}"
-                local error_code="${ERROR_EXIT_CODES[$error_id]}"
-                if [[ "$severity" == "WARNING" || "$error_code" -eq "${ERROR_CODES[OPTIONAL_WARNING]}" ]]; then # Check severity or optional warning code
+                if [[ "${ERROR_SEVERITIES[$error_id]}" == "true" ]]; then
                     printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
-                    printf "      Time: %s\n" "${ERROR_TIMESTAMPS[$error_id]}" # Use stored timestamp directly
+                    printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
                 fi
             done
             printf "\n"

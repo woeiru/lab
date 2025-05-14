@@ -40,7 +40,7 @@ source_helper() {
 
     # Verify the file exists
     if [[ ! -f "$file" ]]; then
-        log "lvl" " Warning: File $description ($file) not found." | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+        log "lvl" " Warning: File $description ($file) not found." # Removed tee and stderr redirection, assume log handles it
         handle_error "File not found: $file" "source_helper" "${ERROR_CODES[FILE_NOT_FOUND]}" "WARNING"
         end_timer "source_$description"
         return 1
@@ -48,7 +48,7 @@ source_helper() {
 
     # Verify the file is readable
     if [[ ! -r "$file" ]]; then
-        log "lvl" " Warning: File $description ($file) is not readable." | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+        log "lvl" " Warning: File $description ($file) is not readable." # Removed tee and stderr redirection
         handle_error "File not readable: $file" "source_helper" "${ERROR_CODES[PERMISSION_DENIED]}" "WARNING"
         end_timer "source_$description" # Added missing end_timer
         return 1
@@ -56,7 +56,7 @@ source_helper() {
 
     # Verify temp directory exists and is writable
     if [[ ! -d "$temp_dir" ]] || [[ ! -w "$temp_dir" ]]; then
-        log "lvl" " Error: Temporary directory $temp_dir is not available or writable" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+        log "lvl" " Error: Temporary directory $temp_dir is not available or writable" | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
         end_timer "source_$description"
         return 1
@@ -64,14 +64,14 @@ source_helper() {
 
     # Source the file and capture any errors
     if source "$file" 2>"$temp_error"; then
-        log "lvl" "Successfully sourced: $description" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+        log "lvl" "Successfully sourced: $description" | tee -a "$ERROR_LOG"
         end_timer "source_$description" "success"
         rm -f "$temp_error"
         return 0
     else
         local error_output
         error_output=$(cat "$temp_error")
-        log "lvl" " Error sourcing $description: $error_output" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+        log "lvl" " Error sourcing $description: $error_output" | tee -a "$ERROR_LOG" >&2
         rm -f "$temp_error"
         error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
         end_timer "source_$description" "error"
@@ -87,10 +87,10 @@ source_directory() {
     local return_value=0
 
     start_timer "dir_$description"
-    log "lvl" "Sourcing $description: $dir" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+    log "lvl" "Sourcing $description: $dir" | tee -a "$ERROR_LOG"
 
     if [[ ! -d "$dir" ]]; then
-        log "lvl" " Warning: Directory $dir not found. Skipping." | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+        log "lvl" " Warning: Directory $dir not found. Skipping." | tee -a "$ERROR_LOG" >&2
         end_timer "dir_$description"
         return 1
     fi
@@ -102,7 +102,7 @@ source_directory() {
     done < <(find "$dir" -maxdepth 1 -type f -name "$pattern" -print0 | sort -z)
 
     if [[ ${#files[@]} -eq 0 ]]; then
-        log "lvl" " Warning: No matching files found in $dir for pattern '$pattern'" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+        log "lvl" " Warning: No matching files found in $dir for pattern '$pattern'" | tee -a "$ERROR_LOG" >&2
         end_timer "dir_$description"
         return 1 # Or 0 if not finding files is acceptable
     fi
@@ -116,10 +116,10 @@ source_directory() {
     done
 
     if ((success_count == 0 && ${#files[@]} > 0)); then # Only warn if files were found but none sourced
-        log "lvl" " Warning: No files were successfully sourced from $dir" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+        log "lvl" " Warning: No files were successfully sourced from $dir" | tee -a "$ERROR_LOG" >&2
         return_value=1
     else
-        log "lvl" "Successfully sourced $success_count files from $dir" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+        log "lvl" "Successfully sourced $success_count files from $dir" | tee -a "$ERROR_LOG"
         return_value=0
     fi
 
@@ -129,12 +129,12 @@ source_directory() {
 
 # Execute RC-specific setup functions
 execution_rc() {
-    log "lvl" "Starting ${FUNCNAME[0]}" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+    log "lvl" "Starting ${FUNCNAME[0]}" | tee -a "$ERROR_LOG"
     start_timer "execution_rc"
 
     # Ensure BASE_DIR is available; it should be if 'comp' is sourced by 'init'
     if [[ -z "$BASE_DIR" ]]; then
-        log "lvl" "Critical: BASE_DIR not set in execution_rc. Cannot proceed." | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+        log "lvl" "Critical: BASE_DIR not set in execution_rc. Cannot proceed." | tee -a "$ERROR_LOG" >&2
         end_timer "execution_rc" "error_base_dir_missing"
         return 1
     fi
@@ -144,7 +144,7 @@ execution_rc() {
     # which uses the definitions in cfg/core/rdc.
     # Therefore, direct sourcing here is removed.
 
-    log "lvl" "Expecting alias functions (set_static, set_dynamic, set_aliaswrap) to be available via rdc." | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+    log "lvl" "Expecting alias functions (set_static, set_dynamic, set_aliaswrap) to be available via rdc." | tee -a "$ERROR_LOG"
 
     local setup_functions=("set_static" "set_dynamic" "set_aliaswrap")
     local success_count=0
@@ -153,17 +153,17 @@ execution_rc() {
         start_nested_timing "setup_${func}"
 
         if ! type "$func" &>/dev/null; then
-            log "lvl" "Warning: Function $func not found" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+            log "lvl" "Warning: Function $func not found" | tee -a "$ERROR_LOG" >&2
             end_nested_timing "setup_${func}" "error_not_found"
             continue
         fi
 
-        log "lvl" "Executing $func" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+        log "lvl" "Executing $func" | tee -a "$ERROR_LOG"
         if "$func"; then # Corrected: remove $ before func for execution
             ((success_count++))
             end_nested_timing "setup_${func}" "success"
         else
-            log "lvl" "Warning: $func failed" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+            log "lvl" "Warning: $func failed" | tee -a "$ERROR_LOG" >&2
             end_nested_timing "setup_${func}" "error_execution"
         fi
     done
@@ -197,25 +197,25 @@ execute_component() {
     local return_value=0
 
     start_timer "$component"
-    log "lvl" " Executing component: $component ..." | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+    log "lvl" " Executing component: $component ..." | tee -a "$ERROR_LOG"
 
     if ! type "$func" &>/dev/null; then
-        log "lvl" " Error: Function $func not found for component $component" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+        log "lvl" " Error: Function $func not found for component $component" | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$([[ $required -eq 0 ]] && echo true || echo false)"
         return_value=1
     elif "$func"; then # Corrected: remove $ before func for execution
         export "$success_var=1"
-        log "lvl" " Component $component completed successfully" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+        log "lvl" " Component $component completed successfully" | tee -a "$ERROR_LOG"
         return_value=0
     else
         unset "$success_var"
         local msg="Component $component failed"
         if ((required)); then
-            log "lvl" " Error: $msg" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+            log "lvl" " Error: $msg" | tee -a "$ERROR_LOG" >&2
             error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
             return_value=1
         else
-            log "lvl" " Warning: $msg (optional component)" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+            log "lvl" " Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
             error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true" # Assuming error_handler can take 'true' for optional
             return_value=0 # Optional component failure doesn't make execute_component fail
         fi
@@ -226,12 +226,12 @@ execute_component() {
 }
 
 setup_components() {
-    log "lvl" "Validating and executing component configuration..." | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
-    log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+    log "lvl" "Validating and executing component configuration..." | tee -a "$ERROR_LOG"
+    log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG"
     
     # Check if required functions exist
-    type print_timing_report &>/dev/null || log "lvl" "WARNING: print_timing_report function not found" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
-    type print_error_report &>/dev/null || log "lvl" "WARNING: print_error_report function not found" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+    type print_timing_report &>/dev/null || log "lvl" "WARNING: print_timing_report function not found" | tee -a "$ERROR_LOG" >&2
+    type print_error_report &>/dev/null || log "lvl" "WARNING: print_error_report function not found" | tee -a "$ERROR_LOG" >&2
 
     local components=(
         "execution_rc:EXEC:1"        # Required: Executes set_static, set_dynamic, set_aliaswrap
@@ -239,7 +239,7 @@ setup_components() {
         "source_fun:FUN:0"           # Optional: Sources files from $LAB_DIR/fun
     )
 
-    log "lvl" "Executing component functions..." | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+    log "lvl" "Executing component functions..." | tee -a "$ERROR_LOG"
 
     local failed_required=0
     for component_def in "${components[@]}"; do # Renamed variable to avoid conflict
@@ -249,7 +249,7 @@ setup_components() {
             if ((required)); then
                 failed_required=1
                 # Specific log for required component failure leading to break
-                log "lvl" " Required component $name ($func) failed. Halting further component setup." | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+                log "lvl" " Required component $name ($func) failed. Halting further component setup." | tee -a "$ERROR_LOG" >&2
                 break
             fi
         fi
@@ -257,16 +257,16 @@ setup_components() {
 
     if ((failed_required)); then
         unset RC_SOURCED
-        log "lvl" " RC initialization failed: required component(s) failed" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
-        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG") >&2
+        log "lvl" " RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG" >&2
         # Only call these functions if they exist
         type print_timing_report &>/dev/null && print_timing_report
         type print_error_report &>/dev/null && print_error_report
         return 1
     else
         export RC_SOURCED=1
-        log "lvl" " RC initialization completed successfully" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
-        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee >(sed 's/\\x1b\[[0-9;]*m//g' >> "$ERROR_LOG")
+        log "lvl" " RC initialization completed successfully" | tee -a "$ERROR_LOG"
+        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG"
         # Only call these functions if they exist
         type print_timing_report &>/dev/null && print_timing_report
         type print_error_report &>/dev/null && print_error_report
