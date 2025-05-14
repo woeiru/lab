@@ -266,6 +266,10 @@ load_modules() {
         local module_name="$(basename "$module")"
         debug_log "Processing module: $module_name"
 
+        if [[ "$module_name" == "lo2" ]]; then
+            echo "INIT_SCRIPT_FLOW: About to source lo2 - $(date '+%T.%N')" >> "/home/es/lab/.log/init_flow.log"
+        fi
+
         # Using verify_module and validate_module from ver
         if ! verify_module "$module_name" || ! validate_module "$module"; then
             debug_log "ERROR: Module verification/validation failed for $module_name" "verify_module" 1
@@ -275,6 +279,12 @@ load_modules() {
         if [[ -f "$module" ]] && [[ -r "$module" ]]; then
             if source "$module" 2>/dev/null; then
                 debug_log "Successfully loaded module: $module_name"
+                if [[ "$module_name" == "lo2" ]]; then
+                    echo "INIT_SCRIPT_FLOW: Sourced lo2, about to call setlogcontrol on - $(date '+%T.%N')" >> "/home/es/lab/.log/init_flow.log"
+                    # This is where setlogcontrol "on" would be called if it were called from init
+                    # However, setlogcontrol is called at the end of lo2 itself.
+                    # We will add a log after this block to confirm flow in init continues.
+                fi
                 loaded_modules[$module_name]=1
                 ((module_loaded++))
             else
@@ -282,6 +292,9 @@ load_modules() {
             fi
         fi
     done
+
+    # Add a log after the module loading loop, specifically after lo2 related logs if we were to call setlogcontrol here.
+    echo "INIT_SCRIPT_FLOW: Finished module loading loop in init - $(date '+%T.%N')" >> "/home/es/lab/.log/init_flow.log"
 
     return $((module_loaded > 0 ? 0 : 1))
 }
