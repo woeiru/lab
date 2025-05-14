@@ -279,6 +279,19 @@ setlog() {
 # Update init_logger to use lo1_debug_log
 init_logger() {
     ensure_state_directories # Ensure $LOG_DIR and $TMP_DIR exist
+
+    # Clear lo1.log at the start of logger initialization
+    if [[ -n "$LOG_FILE" ]]; then
+        # The directory for LOG_FILE should exist due to ensure_state_directories
+        if : > "$LOG_FILE"; then
+            : # Successfully cleared
+        else
+            echo "Warning: Failed to clear $LOG_FILE. Check permissions or path." >&2
+        fi
+    else
+        echo "Warning: LOG_FILE variable not set in lib/util/lo1 init_logger. Cannot clear lo1.log." >&2
+    fi
+
     init_state_files     # Ensure state files like $LOG_STATE_FILE exist (might be empty)
 
     lo1_debug_log "Initializing logger..." "init_logger"
