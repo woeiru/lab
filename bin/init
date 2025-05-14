@@ -109,6 +109,21 @@ source "${BASE_DIR}/lib/core/ver" || {
 #   - ver (lib/core/ver) for all verification functions
 ###############################################
 main_ini() {
+    # Ensure log directory exists and clear logs for the new cycle
+    # LOG_DIR, LOG_DEBUG_FILE, and ERROR_LOG are sourced from cfg/core/ric
+    if [ -n "$LOG_DIR" ] && [ -n "$LOG_DEBUG_FILE" ] && [ -n "$ERROR_LOG" ]; then
+        mkdir -p "$LOG_DIR" 2>/dev/null
+        > "$LOG_DEBUG_FILE" # Clear/create debug log
+        > "$ERROR_LOG"     # Clear/create error log
+    else
+        # This case should ideally not be reached if ric is sourced correctly
+        echo "Critical Error: Log directory or log file variables not set. Cannot clear logs." >&2
+        # Optionally, define a fallback local LOG_DEBUG_FILE for the initial message if absolutely necessary
+        # local initial_debug_log_path="${BASE_DIR}/.log/debug.log"
+        # mkdir -p "$(dirname "$initial_debug_log_path")" 2>/dev/null
+        # echo "[DEBUG] $(date '+%H:%M:%S') - [main_ini] Critical Error: Log variables not set." >> "$initial_debug_log_path"
+    fi
+
     debug_log "Starting main initialization"
 
     # Verify that verification module is loaded
