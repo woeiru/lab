@@ -3,7 +3,7 @@
 # System Initialization Controller
 #######################################################################
 # Purpose:
-#   Core system initialization script that manages the bootstrapping and 
+#   Core system initialization script that manages the bootstrapping and
 #   configuration of the entire environment through a modular, dependency-
 #   aware approach.
 #
@@ -13,6 +13,7 @@
 #     * Runtime Constants (ric): System-wide configuration constants
 #     * Module Dependencies (mdc): Module relationship definitions
 #     * Runtime Dependencies (rdc): Runtime environment requirements
+#     * Component Orchestrator (comp): Manages setup of additional system components
 #
 # Initialization Flow:
 #   1. Module System Initialization:
@@ -20,10 +21,13 @@
 #      - Sets up required directories
 #      - Loads and verifies essential modules (err, lo1, lo2, tme)
 #
-#   2. Runtime System Initialization:
-#      - Processes runtime configurations
-#      - Loads runtime dependencies
+#   2. Core System Configuration & Runtime Initialization:
+#      - Sources the Component Orchestrator (bin/core/comp)
+#      - Initializes core runtime system (processes configurations, loads dependencies)
 #      - Registers and validates system functions
+#
+#   3. Additional Component Setup:
+#      - Utilizes the Component Orchestrator to set up further system components
 #
 # Error Handling:
 #   - Comprehensive error logging via debug_log
@@ -37,6 +41,8 @@
 #   - mdc (Module dependency constants)
 #   Required modules in lib/core/:
 #   - ver (Verification functions)
+#   Required scripts in bin/core/:
+#   - comp (Component orchestrator)
 #
 #######################################################################
 
