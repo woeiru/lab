@@ -33,36 +33,46 @@ verify_module "lo2" || exit 1
 
 # Enhanced debug logging - moved to top
 lo2_debug_log() {
-    [[ "${LOG_DEBUG_ENABLED:-0}" != "1" ]] && return 0
-    local timestamp=$(date '+%H:%M:%S')
-    local message="$1"
-    local source="${2:-unknown}"
-    printf "[LO2-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LO2_LOG_FILE"
+    # Temporarily simplify to see if this function is an issue early on
+    echo "[LO2-DEBUG-SIMPLIFIED] $1 ($2)" >> "${LO2_LOG_FILE:-/dev/null}"
 }
+echo "LO2_FLOW: lo2_debug_log defined. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
 # Initialize lo2 log file (simple version, can be expanded)
 if [[ ! -f "$LO2_LOG_FILE" ]]; then
     touch "$LO2_LOG_FILE"
 fi
-: > "$LO2_LOG_FILE" # Clear log on module load/init
+echo "LO2_FLOW: LO2_LOG_FILE check done. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
-lo2_debug_log "Entering lo2 module initialization" "init"
-lo2_debug_log "Validating environment variables in lo2" "init"
-lo2_debug_log "HOME=$HOME" "init"
-lo2_debug_log "LOG_DIR=$LOG_DIR" "init"
-lo2_debug_log "TMP_DIR=$TMP_DIR" "init"
-lo2_debug_log "Setting up lo2 module directories" "init"
-echo "LO2_FLOW: After 'Setting up lo2 module directories' log. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+# Clear log on module load/init - ensure LO2_LOG_FILE is set or default
+: > "${LO2_LOG_FILE:-/tmp/lo2_fallback.log}"
+echo "LO2_FLOW: LO2_LOG_FILE cleared. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+
+echo "[LO2-DEBUG-SIMPLIFIED] Entering lo2 module initialization (init)" >> "${LO2_LOG_FILE:-/tmp/lo2_fallback.log}"
+echo "[LO2-DEBUG-SIMPLIFIED] Validating environment variables in lo2 (init)" >> "${LO2_LOG_FILE:-/tmp/lo2_fallback.log}"
+echo "[LO2-DEBUG-SIMPLIFIED] HOME=$HOME (init)" >> "${LO2_LOG_FILE:-/tmp/lo2_fallback.log}"
+echo "[LO2-DEBUG-SIMPLIFIED] LOG_DIR=$LOG_DIR (init)" >> "${LO2_LOG_FILE:-/tmp/lo2_fallback.log}"
+echo "[LO2-DEBUG-SIMPLIFIED] TMP_DIR=$TMP_DIR (init)" >> "${LO2_LOG_FILE:-/tmp/lo2_fallback.log}"
+echo "[LO2-DEBUG-SIMPLIFIED] Setting up lo2 module directories (init)" >> "${LO2_LOG_FILE:-/tmp/lo2_fallback.log}"
+
+echo "LO2_FLOW: Point A - After 'Setting up lo2 module directories' log. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
 # Global state
-declare -g LOG_CONTROL_DEPTH_ENABLED=false
+echo "LO2_FLOW: Point B - Before (commented out) declare LOG_CONTROL_DEPTH_ENABLED. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+# declare -g LOG_CONTROL_DEPTH_ENABLED=false # Intentionally commented out
+echo "LO2_FLOW: Point C - After (commented out) declare LOG_CONTROL_DEPTH_ENABLED. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
-# Runtime control structure tracking
-declare -ga CONTROL_DEPTH_STACK=()
-declare -g LAST_COMMAND_SIGNATURE="" # Changed from LAST_COMMAND
+echo "LO2_FLOW: Point D - Before (commented out) declare CONTROL_DEPTH_STACK. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+# declare -ga CONTROL_DEPTH_STACK=() # Intentionally commented out
+echo "LO2_FLOW: Point E - After (commented out) declare CONTROL_DEPTH_STACK. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+
+echo "LO2_FLOW: Point F - Before (commented out) declare LAST_COMMAND_SIGNATURE. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+# declare -g LAST_COMMAND_SIGNATURE="" # Intentionally commented out
+echo "LO2_FLOW: Point G - After (commented out) declare LAST_COMMAND_SIGNATURE. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+
+echo "LO2_FLOW: Point H - After all (commented out) global var declares, before func defs. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
 # Add a hash function to identify unique control structures
-# Modified hash_command to take explicit source and lineno
 hash_command() {
     local cmd="$1"
     local src_file="$2" # Source file of the command
@@ -72,66 +82,54 @@ hash_command() {
 
 # Modified tracking function with deduplication
 track_control_depth() {
-    # ADD THIS LINE FOR DIAGNOSIS
     echo "track_control_depth CALLED: CMD=\"$1\" SRC=\"$2\" LINE=\"$3\"" >> "/home/es/lab/.log/lo2_trap_fire.log"
 
     local command="$1"
     local source_file="$2" # Directly use the argument from the trap
     local line_number="$3" # Directly use the argument from the trap
-    # Ensure source_file and line_number are not empty; default to unknown if necessary
 
-    # Skip if it's the same command, source, and line as last time
     local current_signature="${source_file}:${line_number}:${command}"
-    # Conditional return to prevent errors if LAST_COMMAND_SIGNATURE is unbound during initial calls
     if [[ -n "${LAST_COMMAND_SIGNATURE+isset}" && "$current_signature" == "$LAST_COMMAND_SIGNATURE" ]]; then
         return
     fi
     LAST_COMMAND_SIGNATURE="$current_signature"
 
     local cmd_hash=$(hash_command "$command" "$source_file" "$line_number")
-    # Extended debug log to include source and line
     lo2_debug_log "Processing: '${command}' (hash: ${cmd_hash}, src: ${source_file}:${line_number})" "track_depth"
 
     local control_keyword=""
-    # Refined regex for opening control structures
     if [[ "$command" =~ ^if(\s|\[|$) ]];      then control_keyword="if";
-    elif [[ "$command" =~ ^for([\(\s]|$) ]];  then control_keyword="for"; # Handles 'for ((' and 'for var'
+    elif [[ "$command" =~ ^for([\(\s]|$) ]];  then control_keyword="for";
     elif [[ "$command" =~ ^while(\s|\[|$) ]]; then control_keyword="while";
     elif [[ "$command" =~ ^until(\s|\[|$) ]]; then control_keyword="until";
     elif [[ "$command" =~ ^case(\s|$) ]];   then control_keyword="case";
     elif [[ "$command" =~ ^select(\s|$) ]]; then control_keyword="select";
-    # Match '{' if it's a standalone token or followed by space (typical for compound commands)
-    # Avoids matching brace expansion like {a,b}
     elif [[ "$command" == "{" || "$command" =~ ^\{\s+.* ]]; then control_keyword="block_open";
     fi
 
     if [[ -n "$control_keyword" ]]; then
         CONTROL_DEPTH_STACK+=("$cmd_hash")
         lo2_debug_log "Entered '$control_keyword': ${command} (depth: ${#CONTROL_DEPTH_STACK[@]}) (src: $source_file:$line_number)" "track_depth"
-        # print_control_stack # Uncomment for detailed stack debugging
         return
     fi
 
     local closing_keyword=""
-    # Closing keywords are typically standalone
     if [[ "$command" == "fi" ]];    then closing_keyword="fi";
     elif [[ "$command" == "done" ]];  then closing_keyword="done";
     elif [[ "$command" == "esac" ]];  then closing_keyword="esac";
-    # Match '}' if it's a standalone token
     elif [[ "$command" == "}" ]]; then closing_keyword="block_close";
     fi
 
     if [[ -n "$closing_keyword" ]]; then
         if [ ${#CONTROL_DEPTH_STACK[@]} -gt 0 ]; then
             local last_structure_hash="${CONTROL_DEPTH_STACK[-1]}"
-            local last_command_in_hash="${last_structure_hash##*:}" # Extracts command part from "source:line:command"
+            local last_command_in_hash="${last_structure_hash##*:}"
 
             local should_pop=false
             case "$closing_keyword" in
                 "fi")
                     [[ "$last_command_in_hash" =~ ^if(\s|\[|$) ]] && should_pop=true ;;
                 "done")
-                    # 'done' closes for, while, until, select
                     if [[ "$last_command_in_hash" =~ ^for([\(\s]|$) || \
                           "$last_command_in_hash" =~ ^while(\s|\[|$) || \
                           "$last_command_in_hash" =~ ^until(\s|\[|$) || \
@@ -142,7 +140,6 @@ track_control_depth() {
                 "esac")
                     [[ "$last_command_in_hash" =~ ^case(\s|$) ]] && should_pop=true ;;
                 "block_close")
-                    # Match '{' as it was matched for opening
                     [[ "$last_command_in_hash" == "{" || "$last_command_in_hash" =~ ^\{\s+.* ]] && should_pop=true ;;
             esac
 
@@ -155,12 +152,10 @@ track_control_depth() {
         else
             lo2_debug_log "Attempted to exit '$closing_keyword', but stack empty." "track_depth"
         fi
-        # print_control_stack # Uncomment for detailed stack debugging
         return
     fi
 }
 
-# Get current runtime control structure depth
 get_current_control_depth() {
     lo2_debug_log "Current control depth: ${#CONTROL_DEPTH_STACK[@]}" "get_depth"
     echo ${#CONTROL_DEPTH_STACK[@]}
@@ -170,14 +165,12 @@ print_control_stack() {
     lo2_debug_log "Control structure stack:" "stack_debug"
     local i=0
     for structure in "${CONTROL_DEPTH_STACK[@]}"; do
-        # Extract original command from hash
         local cmd="${structure##*:}"
         lo2_debug_log "  $i: $cmd (hash: $structure)" "stack_debug"
         ((i++))
     done
 }
 
-# Calculate control structure depth
 calculate_control_depth() {
     local depth=$(get_current_control_depth)
     lo2_debug_log "Calculated control depth: $depth" "calc_depth"
@@ -187,7 +180,6 @@ calculate_control_depth() {
     echo "$depth"
 }
 
-# Override calculate_final_depth to use runtime tracking
 calculate_final_depth() {
     if [[ "$LOG_CONTROL_DEPTH_ENABLED" == "true" ]]; then
         local base_depth
@@ -205,37 +197,32 @@ calculate_final_depth() {
     fi
 }
 
-# Install the debug trap for control structure tracking
 install_depth_tracking() {
     echo "LO2_FLOW: install_depth_tracking CALLED. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
     local old_trap=$(trap -p DEBUG)
     echo "LO2_FLOW: install_depth_tracking: old_trap='$old_trap'. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
     
-    # SIMPLIFIED TRAP COMMAND FOR DIAGNOSIS
     local new_trap_command='echo "RAW DEBUG TRAP FIRED: CMD=$BASH_COMMAND SRC=${BASH_SOURCE[0]} LINE=${BASH_LINENO[0]} Timestamp: $(date '\\''+%H:%M:%S.%N'\\'')'" >> "/home/es/lab/.log/lo2_trap_fire.log"'
     
     echo "LO2_FLOW: install_depth_tracking: new_trap_command='$new_trap_command'. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
-    # Forcing a simple trap set for now, overwriting any existing.
     trap "$new_trap_command" DEBUG
     local current_trap_setting=$(trap -p DEBUG)
     echo "LO2_FLOW: install_depth_tracking: DEBUG trap SET (simplified). Current: '$current_trap_setting'. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
     lo2_debug_log "Installed control structure tracking (simplified for diagnosis)" "init"
 }
 
-# Remove the debug trap
 remove_depth_tracking() {
     trap - DEBUG
     lo2_debug_log "Removed control structure tracking" "cleanup"
 }
 
-# Control structure tracking toggle
 setlogcontrol() {
     echo "LO2_FLOW: setlogcontrol CALLED with $1. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
     case "$1" in
         "on")
             LOG_CONTROL_DEPTH_ENABLED=true
-            echo "on" > "$LOG_CONTROL_STATE_FILE" # Changed "true" to "on"
+            echo "on" > "$LOG_CONTROL_STATE_FILE"
             echo "LO2_FLOW: setlogcontrol ON: calling install_depth_tracking. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
             install_depth_tracking
             CONTROL_DEPTH_STACK=()
@@ -244,7 +231,7 @@ setlogcontrol() {
             ;;
         "off")
             LOG_CONTROL_DEPTH_ENABLED=false
-            echo "off" > "$LOG_CONTROL_STATE_FILE" # Changed "false" to "off"
+            echo "off" > "$LOG_CONTROL_STATE_FILE"
             echo "LO2_FLOW: setlogcontrol OFF: calling remove_depth_tracking. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
             remove_depth_tracking
             CONTROL_DEPTH_STACK=()
@@ -262,31 +249,25 @@ cleanup_lo2() {
     lo2_debug_log "Starting cleanup" "cleanup_lo2"
     remove_depth_tracking
     CONTROL_DEPTH_STACK=()
-    LAST_COMMAND_SIGNATURE="" # Changed from LAST_COMMAND
+    LAST_COMMAND_SIGNATURE=""
     lo2_debug_log "Cleanup complete" "cleanup_lo2"
 }
 
-# Debug message function for modules to use
 debug_message() {
     local message="$1"
     local component="${2:-${FUNCNAME[1]:-main}}"
-    local level="${3:-1}" # Default verbosity level
+    local level="${3:-1}"
     
-    # Skip if debug logging is disabled
     [[ "${LOG_DEBUG_ENABLED:-0}" != "1" ]] && return 0
     
-    # Format timestamp and get execution context depth
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local depth=$(get_current_control_depth)
     local indent=$(printf '%*s' "$depth" "" | tr ' ' '·')
     
-    # Format the log message
     local formatted_message="[$component] ${indent}$message"
     
-    # Log to debug file
     printf "[DEBUG] %s - %s\n" "$timestamp" "$formatted_message" >> "$LOG_DEBUG_FILE"
     
-    # Output to stderr if verbosity level allows
     if (( DEBUG_VERBOSITY >= level )); then
         printf "[DEBUG] %s - %s\n" "$timestamp" "$formatted_message" >&2
     fi
@@ -294,13 +275,11 @@ debug_message() {
     return 0
 }
 
-# Debug message with timer integration
 debug_with_timer() {
     local message="$1"
     local component="${2:-${FUNCNAME[1]:-main}}"
     local level="${3:-1}"
     
-    # Check if TME module functions are available
     if type -t get_elapsed_time &>/dev/null; then
         local elapsed=$(get_elapsed_time "$component")
         debug_message "$message (elapsed: ${elapsed}s)" "$component" "$level"
@@ -311,7 +290,8 @@ debug_with_timer() {
     return 0
 }
 
-# Export necessary functions and variables
+echo "LO2_FLOW: Point I - After all func defs, before exports. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+
 export LOG_CONTROL_DEPTH_ENABLED
 export -f setlogcontrol
 export -f lo2_debug_log debug_message debug_with_timer
@@ -319,16 +299,12 @@ export -f calculate_final_depth
 export -f track_control_depth
 export -f get_current_control_depth
 
-# Set up cleanup trap
 trap cleanup_lo2 EXIT
+echo "LO2_FLOW: Point J - After trap cleanup_lo2 EXIT. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
-echo "LO2_FLOW: Before LOG_CONTROL_STATE_FILE block. Timestamp: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
-
-# Initialize control tracking based on saved state, defaulting to 'on'
-# Assumes LOG_CONTROL_STATE_FILE is defined in the environment (e.g., from ric)
 if [[ -z "$LOG_CONTROL_STATE_FILE" ]]; then
     lo2_debug_log "LOG_CONTROL_STATE_FILE variable is not set. Cannot manage control tracking state persistence. Control tracking will be 'on' by default for this session." "init"
-    setlogcontrol "on" # Attempt to set control on, but state won't be saved
+    setlogcontrol "on"
 elif [[ -f "$LOG_CONTROL_STATE_FILE" && -s "$LOG_CONTROL_STATE_FILE" ]]; then
     local saved_control_state
     saved_control_state=$(<"$LOG_CONTROL_STATE_FILE")
@@ -339,12 +315,11 @@ elif [[ -f "$LOG_CONTROL_STATE_FILE" && -s "$LOG_CONTROL_STATE_FILE" ]]; then
         setlogcontrol "off"
     else
         lo2_debug_log "Invalid content in $LOG_CONTROL_STATE_FILE: '$saved_control_state'. Defaulting to 'on'." "init"
-        setlogcontrol "on" # This will also write 'on' to LOG_CONTROL_STATE_FILE
+        setlogcontrol "on"
     fi
 else
     lo2_debug_log "Control state file '$LOG_CONTROL_STATE_FILE' not found or empty. Defaulting to 'on'." "init"
-    setlogcontrol "on" # This will also write 'on' to LOG_CONTROL_STATE_FILE
+    setlogcontrol "on"
 fi
 
-# Add final debug log
 lo2_debug_log "lo2 module initialization completed successfully" "init"
