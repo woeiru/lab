@@ -280,25 +280,32 @@ setlog() {
 # Initialization and cleanup
 # Update init_logger to use lo1_debug_log
 init_logger() {
-    ensure_state_directories || {
-        echo "Fatal: Failed to initialize logger directories" >&2
-        return 1
-    }
-    init_state_files
-    LOG_DEPTH_CACHE=()
-    LOG_PARENTS=()
-    LOG_CHILDREN=()
-    LOG_CURRENT_PARENT=""
-    LAST_CACHE_CLEANUP=$(date +%s)
+    ensure_state_directories # Ensure $LOG_DIR and $TMP_DIR exist
+    init_state_files     # Ensure state files like $LOG_STATE_FILE exist (might be empty)
 
-    if [[ "${LOG_DEBUG_ENABLED}" == "1" ]]; then
-        : > "$LOG_DEBUG_FILE"
-        lo1_debug_log "Logger initialized" "init"
-        lo1_debug_log "Using LOG_DIR: $LOG_DIR" "init"
-        lo1_debug_log "Using TMP_DIR: $TMP_DIR" "init"
+    lo1_debug_log "Initializing logger..." "init_logger"
+
+    # Default to 'on' if state file is missing, empty, or has invalid content
+    # Assumes LOG_STATE_FILE is defined in the environment (e.g., from ric)
+    if [[ -z "$LOG_STATE_FILE" ]]; then
+        lo1_debug_log "LOG_STATE_FILE variable is not set. Cannot manage logger state persistence. Logging will be 'on' by default for this session." "init_logger"
+        setlog "on" # Attempt to set log on, but state won't be saved if LOG_STATE_FILE is unknown
+    elif [[ ! -f "$LOG_STATE_FILE" || ! -s "$LOG_STATE_FILE" ]]; then
+        lo1_debug_log "Log state file '$LOG_STATE_FILE' is missing or empty. Defaulting to 'on'." "init_logger"
+        setlog "on" # This should also write 'on' to LOG_STATE_FILE
+    else
+        local current_state
+        current_state=$(<"$LOG_STATE_FILE")
+        if [[ "$current_state" == "on" || "$current_state" == "off" ]]; then
+            # State file has valid content, apply it.
+            # setlog will also handle console output status.
+            setlog "$current_state"
+            lo1_debug_log "Logger state loaded as '$current_state' from $LOG_STATE_FILE." "init_logger"
+        else
+            lo1_debug_log "Invalid content in log state file '$LOG_STATE_FILE': '$current_state'. Defaulting to 'on'." "init_logger"
+            setlog "on" # This should also write 'on' to LOG_STATE_FILE
+        fi
     fi
-
-    printf "Logger initialized at %s\n" "$(date)" > "$LOG_FILE"
 }
 
 # Update cleanup_logger to use lo1_debug_log

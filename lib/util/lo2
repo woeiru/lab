@@ -271,11 +271,27 @@ export -f get_current_control_depth
 # Set up cleanup trap
 trap cleanup_lo2 EXIT
 
-# Initialize control tracking based on saved state
-[[ -f "$LOG_CONTROL_STATE_FILE" ]] && {
-    saved_state=$(cat "$LOG_CONTROL_STATE_FILE")
-    [[ "$saved_state" == "true" ]] && setlogcontrol on
-}
+# Initialize control tracking based on saved state, defaulting to 'on'
+# Assumes LOG_CONTROL_STATE_FILE is defined in the environment (e.g., from ric)
+if [[ -z "$LOG_CONTROL_STATE_FILE" ]]; then
+    lo2_debug_log "LOG_CONTROL_STATE_FILE variable is not set. Cannot manage control tracking state persistence. Control tracking will be 'on' by default for this session." "init"
+    setlogcontrol "on" # Attempt to set control on, but state won't be saved
+elif [[ -f "$LOG_CONTROL_STATE_FILE" && -s "$LOG_CONTROL_STATE_FILE" ]]; then
+    local saved_control_state
+    saved_control_state=$(<"$LOG_CONTROL_STATE_FILE")
+    lo2_debug_log "Found control state file: $LOG_CONTROL_STATE_FILE with content: $saved_control_state" "init"
+    if [[ "$saved_control_state" == "on" ]]; then
+        setlogcontrol "on"
+    elif [[ "$saved_control_state" == "off" ]]; then
+        setlogcontrol "off"
+    else
+        lo2_debug_log "Invalid content in $LOG_CONTROL_STATE_FILE: '$saved_control_state'. Defaulting to 'on'." "init"
+        setlogcontrol "on" # This will also write 'on' to LOG_CONTROL_STATE_FILE
+    fi
+else
+    lo2_debug_log "Control state file '$LOG_CONTROL_STATE_FILE' not found or empty. Defaulting to 'on'." "init"
+    setlogcontrol "on" # This will also write 'on' to LOG_CONTROL_STATE_FILE
+fi
 
 # Add final debug log
 lo2_debug_log "lo2 module initialization completed successfully" "init"
