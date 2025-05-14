@@ -260,7 +260,6 @@ setup_components() {
         log "lvl" " RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
         log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG" >&2
         # Only call these functions if they exist
-        type print_timing_report &>/dev/null && print_timing_report
         type print_error_report &>/dev/null && print_error_report
         return 1
     else
@@ -268,7 +267,6 @@ setup_components() {
         log "lvl" " RC initialization completed successfully" | tee -a "$ERROR_LOG"
         log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG"
         # Only call these functions if they exist
-        type print_timing_report &>/dev/null && print_timing_report
         type print_error_report &>/dev/null && print_error_report
         return 0
     fi
