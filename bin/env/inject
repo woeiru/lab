@@ -391,5 +391,4 @@ main() {
 }
 
 trap 'printf "Error on line %s\n" "$LINENO"' ERR
-trap 'exit' EXIT
 main "$@"
