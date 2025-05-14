@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "LO2_TRACE: lo2 script execution started - $(date '+%T.%N')" >> "/home/es/lab/.log/lo2_entry_trace.log"
 #
 # -----------------------------------------------------------------------------
 # Module: Runtime Control Structure Tracking (lo2)
@@ -207,11 +208,11 @@ install_depth_tracking() {
     local old_trap=$(trap -p DEBUG)
     lo2_debug_log "install_depth_tracking: old_trap='$old_trap'" "init"
     
-    local new_trap_command='trap_command'
+    local new_trap_command='track_control_depth "$BASH_COMMAND" "${BASH_SOURCE[0]}" "${BASH_LINENO[0]}"'
     
     lo2_debug_log "install_depth_tracking: new_trap_command='$new_trap_command'" "init"
 
-    trap "$new_trap_command" DEBUG
+    trap -- "$new_trap_command" DEBUG
     local current_trap_setting=$(trap -p DEBUG)
     lo2_debug_log "install_depth_tracking: DEBUG trap SET (simplified). Current: '$current_trap_setting'" "init"
     lo2_debug_log "Installed control structure tracking (simplified for diagnosis)" "init"
