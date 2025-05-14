@@ -89,8 +89,6 @@ hash_command() {
 
 # Modified tracking function with deduplication
 track_control_depth() {
-    echo "track_control_depth CALLED: CMD=\"$1\" SRC=\"$2\" LINE=\"$3\"" >> "/home/es/lab/.log/lo2_trap_fire.log"
-
     local command="$1"
     local source_file="$2" # Directly use the argument from the trap
     local line_number="$3" # Directly use the argument from the trap
@@ -209,7 +207,7 @@ install_depth_tracking() {
     local old_trap=$(trap -p DEBUG)
     lo2_debug_log "install_depth_tracking: old_trap='$old_trap'" "init"
     
-    local new_trap_command='echo "RAW DEBUG TRAP FIRED: CMD=$BASH_COMMAND SRC=${BASH_SOURCE[0]} LINE=${BASH_LINENO[0]} Timestamp: $(date '\\''+%H:%M:%S.%N'\\'')'" >> "/home/es/lab/.log/lo2_trap_fire.log"'
+    local new_trap_command='trap_command'
     
     lo2_debug_log "install_depth_tracking: new_trap_command='$new_trap_command'" "init"
 
