@@ -42,6 +42,8 @@ declare -gA TME_PARENTS         # Stores parent-child relationships
 declare -gA TME_CHILDREN        # Stores child components for each parent
 declare -g TME_STARTUP_BEGIN    # Global startup timestamp
 declare -g TME_CURRENT_PARENT   # Tracks current parent for nested timing
+declare -ga TME_COMPONENT_ORDER # Stores components in chronological order
+declare -g TME_SORT_ORDER_FILE_PATH # Path to the sort order configuration file
 
 # Color definitions - using printf to ensure proper escape sequences
 readonly TME_RED=$(printf '\033[0;31m')
@@ -59,18 +61,20 @@ readonly TME_NC=$(printf '\033[0m')
 init_timer() {
     local log_dir="${1:-$TME_LOG_DIR}"
     TME_LOG_FILE="${log_dir}/tme.log" # Changed filename to tme.log
+    TME_SORT_ORDER_FILE_PATH="${log_dir}/tme_sort_order.cfg" # Define sort order file path
     # Clear the log file
     > "$TME_LOG_FILE"
     TME_STARTUP_BEGIN=$(date +%s.%N)
     TME_CURRENT_PARENT=""
 
-    # Reset all associative arrays
+    # Reset all associative arrays and the indexed array
     TME_START_TIMES=()
     TME_END_TIMES=()
     TME_DURATIONS=()
     TME_STATUS=()
     TME_PARENTS=()
     TME_CHILDREN=()
+    TME_COMPONENT_ORDER=() # Reset chronological component order
 
     [[ ! -d "$log_dir" ]] && mkdir -p "$log_dir"
 
@@ -89,6 +93,7 @@ start_timer() {
 
     TME_START_TIMES[$component]=$timestamp
     TME_STATUS[$component]="running"
+    TME_COMPONENT_ORDER+=("$component") # Add component to chronological list
 
     if [[ -n "$parent" ]]; then
         TME_PARENTS[$component]=$parent
@@ -176,13 +181,16 @@ calculate_component_depth() {
 # Print formatted timing entry
 print_timing_entry() {
     local component="$1"
-    local indent="$2"
+    local base_indent="$2"
     local duration="$3"
     local total_time="$4"
     local depth="$5"
     local status="${TME_STATUS[$component]}"
 
-    local percentage=$(echo "scale=2; ($duration / $total_time) * 100" | bc)
+    local percentage=0
+    if (( $(echo "$total_time > 0" | bc -l) )); then
+        percentage=$(echo "scale=2; ($duration / $total_time) * 100" | bc)
+    fi
 
     local color
     case $depth in
@@ -197,62 +205,94 @@ print_timing_entry() {
         *) color=$TME_WHITE ;;
     esac
 
-    local depth_indent=""
-    if [ $depth -eq 0 ]; then
-        depth_indent="    "
-    else
-        depth_indent="      "
-        for ((i=2; i<=$depth; i++)); do
-            depth_indent="  $depth_indent"
-        done
-    fi
-
     local status_icon
     case "$status" in
-        "success") status_icon="✓";;
-        "error"*) status_icon="✗";;
-        "running") status_icon="⟳";;
-        *) status_icon="?";;
+        "success") status_icon="✓" ;;
+        "error_no_start") status_icon="✗" ;;
+        "running") status_icon="⏳" ;;
+        *) status_icon="?" ;;
     esac
 
+    local tree_prefix="└─ "
+    local component_display
+    component_display=$(printf "%-25s" "$component")
+
     # Using printf with proper color escape handling
-    printf "%s%s%s %-25s %6.3fs [%5.1f%%] [%s]%s\n" \
-        "$depth_indent" \
+    printf "%s%s%s%s %6.3fs [%5.1f%%] [%s]%s\n" \
+        "$base_indent" \
         "$color" \
-        "${depth:+└─}" \
-        "$component" \
+        "$tree_prefix" \
+        "$component_display" \
         "$duration" \
         "$percentage" \
         "$status_icon" \
         "$TME_NC"
 }
 
-# Print enhanced component tree
-print_enhanced_tree() {
+# Helper function to sort an array of component names by their TME_DURATIONS
+sort_components_by_duration() {
+    local -n _components_ref=$1
+    local temp_file
+    temp_file=$(mktemp)
+
+    for comp_name in "${_components_ref[@]}"; do
+        if [[ -n "${TME_DURATIONS[$comp_name]}" ]]; then
+            printf "%.9f %s\n" "${TME_DURATIONS[$comp_name]}" "$comp_name" >> "$temp_file"
+        else
+            printf "0 %s\n" "$comp_name" >> "$temp_file"
+        fi
+    done
+
+    mapfile -t sorted_lines < <(sort -k1,1nr "$temp_file")
+    rm "$temp_file"
+
+    local sorted_comp_names=()
+    for line in "${sorted_lines[@]}"; do
+        sorted_comp_names+=( "${line#* }" )
+    done
+    _components_ref=("${sorted_comp_names[@]}")
+}
+
+# Recursive function to print the component tree
+print_tree_recursive() {
     local component="$1"
-    local indent="$2"
+    local current_indent="$2"
     local total_time="$3"
-    local depth=$(calculate_component_depth "$component")
+    local sort_order="$4"
+
+    local depth
+    depth=$(calculate_component_depth "$component")
+
+    if [[ ! -v "TME_DURATIONS[$component]" ]]; then
+        return
+    fi
+    print_timing_entry "$component" "$current_indent" "${TME_DURATIONS[$component]}" "$total_time" "$depth"
 
     local max_depth
     max_depth=$(cat "$TME_LEVELS_FILE" 2>/dev/null || echo "9")
 
-    if ((depth <= max_depth)); then
-        print_timing_entry "$component" "$indent" "${TME_DURATIONS[$component]}" "$total_time" "$depth"
+    if ((depth < max_depth)); then
+        local children_str="${TME_CHILDREN[$component]}"
+        if [[ -n "$children_str" ]]; then
+            IFS=':' read -r -a children_array <<< "$children_str"
 
-        if [[ -n "${TME_CHILDREN[$component]}" ]]; then
-            local new_indent="${indent}   "
-            local IFS=':'
-            local children=(${TME_CHILDREN[$component]})
+            local valid_children=()
+            for child in "${children_array[@]}"; do
+                if [[ -v "TME_DURATIONS[$child]" ]]; then
+                    valid_children+=("$child")
+                fi
+            done
+            
+            if [[ ${#valid_children[@]} -eq 0 ]]; then
+                return
+            fi
 
-            IFS=$'\n'
-            children=($(for child in "${children[@]}"; do
-                echo "${TME_DURATIONS[$child]}:$child"
-            done | sort -rn | cut -d: -f2))
-            unset IFS
+            if [[ "$sort_order" == "dura" ]]; then
+                sort_components_by_duration valid_children
+            fi
 
-            for child in "${children[@]}"; do
-                print_enhanced_tree "$child" "$new_indent" "$total_time"
+            for child in "${valid_children[@]}"; do
+                print_tree_recursive "$child" "${current_indent}  " "$total_time" "$sort_order"
             done
         fi
     fi
@@ -260,38 +300,51 @@ print_enhanced_tree() {
 
 # The settme function to control timer output
 settme() {
-    local arg=$1
+    local arg1="$1"
+    local arg2="$2"
+    local effective_sort_order_file_path="$TME_SORT_ORDER_FILE_PATH"
 
-    case "$arg" in
-        "off")
-            echo "false" > "$TME_STATE_FILE"
-            printf "%sTimer output has been disabled%s\n" "$TME_RED" "$TME_NC"
-            return 0
-            ;;
-        "on")
-            echo "true" > "$TME_STATE_FILE"
-            echo "9" > "$TME_LEVELS_FILE"
-            printf "%sTimer output has been enabled with maximum depth%s\n" "$TME_GREEN" "$TME_NC"
-            return 0
-            ;;
-        *)
-            if [[ "$(cat "$TME_STATE_FILE" 2>/dev/null || echo "false")" != "true" ]]; then
-                printf "%sTimer output is currently disabled. Use 'settme on' to enable first.%s\n" "$TME_YELLOW" "$TME_NC"
+    if [[ -z "$effective_sort_order_file_path" ]]; then
+        local current_log_dir="${TME_LOG_DIR}"
+        if [[ -z "$current_log_dir" && -n "$TME_LOG_FILE" ]]; then
+            current_log_dir=$(dirname "$TME_LOG_FILE")
+        elif [[ -z "$current_log_dir" ]]; then
+            current_log_dir="."
+        fi
+        effective_sort_order_file_path="${current_log_dir}/tme_sort_order.cfg"
+    fi
+    
+    mkdir -p "$(dirname "$effective_sort_order_file_path")"
+
+    case "$arg1" in
+        "sort")
+            if [[ "$arg2" == "chron" ]]; then
+                echo "chron" > "$effective_sort_order_file_path"
+                printf "Timer output sort order set to chronological.\n"
+            elif [[ "$arg2" == "dura" ]]; then
+                echo "dura" > "$effective_sort_order_file_path"
+                printf "Timer output sort order set to duration (descending).\n"
+            else
+                printf "Usage: settme sort [chron|dura]\n"
                 return 1
             fi
-
-            if [[ $arg =~ ^([0-9]+)$ ]]; then
-                local depth=${BASH_REMATCH[1]}
-                if ((depth > 0 && depth <= 9)); then
-                    echo "$depth" > "$TME_LEVELS_FILE"
-                    printf "%sTimer depth set to %d%s\n" "$TME_GREEN" "$depth" "$TME_NC"
-                    return 0
+            ;;
+        "depth")
+             if [[ "$arg2" =~ ^[0-9]+$ ]]; then
+                if [[ -n "$TME_LEVELS_FILE" ]]; then
+                    echo "$arg2" > "$TME_LEVELS_FILE"
+                    printf "Timer report depth set to %s levels.\n" "$arg2"
+                else
+                    printf "Error: TME_LEVELS_FILE path not configured.\n"
+                    return 1
                 fi
+            else
+                printf "Usage: settme depth <N>\n"
+                return 1
             fi
-
-            printf "%sInvalid input. Usage:%s\n" "$TME_RED" "$TME_NC"
-            printf "   settme on|off            - Enable or disable timer output\n"
-            printf "   settme <depth>           - Set maximum depth to show (1-9)\n"
+            ;;
+        *)
+            printf "Usage: settme [sort chron|sort dura|depth <N>]\n"
             return 1
             ;;
     esac
@@ -303,46 +356,49 @@ print_timing_report() {
     current_state=$(cat "$TME_STATE_FILE" 2>/dev/null || echo "true")
     [[ "${current_state}" != "true" ]] && return 0
 
-    # Use the log module's state file
     local orig_log_state
     orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
     echo "false" > "$LOG_STATE_FILE"
 
     local total_time=$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)
+    local sort_order
+    sort_order=$(cat "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null || echo "dura")
 
     {
-        printf "\n"
-        printf " %s━ RC Performance Report%s\n" "$TME_BLUE" "$TME_NC"
+        printf "\n%s━ RC Performance Report%s\n" "$TME_BLUE" "$TME_NC"
         printf " %s━ Total startup time: %s%.3fs%s\n" "$TME_BLUE" "$TME_GREEN" "$total_time" "$TME_NC"
         printf " %s━ Generated: %s%s%s\n" "$TME_BLUE" "$TME_CYAN" "$(date)" "$TME_NC"
-        printf "\n"
-        printf " %s━ Component Timing Tree:%s\n" "$TME_BLUE" "$TME_NC"
-        printf "\n"
+        printf " %s━ Sort Order: %s%s%s\n" "$TME_BLUE" "$TME_YELLOW" "$sort_order" "$TME_NC"
+        printf "\n %s━ Component Timing Tree:%s\n\n" "$TME_BLUE" "$TME_NC"
 
-        local root_components=()
-        for comp in "${!TME_START_TIMES[@]}"; do
-            if [[ -z "${TME_PARENTS[$comp]}" ]]; then
-                root_components+=("$comp")
+        local top_level_components=()
+        if [[ "$sort_order" == "chron" ]]; then
+            for component in "${TME_COMPONENT_ORDER[@]}"; do
+                if [[ -z "${TME_PARENTS[$component]}" && -v "TME_DURATIONS[$component]" ]]; then
+                    top_level_components+=("$component")
+                fi
+            done
+        else
+            local all_potential_top_level=()
+            for component in "${!TME_START_TIMES[@]}"; do
+                if [[ -z "${TME_PARENTS[$component]}" && -v "TME_DURATIONS[$component]" ]]; then
+                    all_potential_top_level+=("$component")
+                fi
+            done
+            if [[ ${#all_potential_top_level[@]} -gt 0 ]]; then
+                 sort_components_by_duration all_potential_top_level
+                 top_level_components=("${all_potential_top_level[@]}")
             fi
+        fi
+
+        for component in "${top_level_components[@]}"; do
+            print_tree_recursive "$component" "    " "$total_time" "$sort_order"
         done
 
-        IFS=$'\n'
-        root_components=($(for comp in "${root_components[@]}"; do
-            echo "${TME_DURATIONS[$comp]}:$comp"
-        done | sort -rn | cut -d: -f2))
-        unset IFS
-
-        for comp in "${root_components[@]}"; do
-            print_enhanced_tree "$comp" "" "$total_time"
-            printf "\n"
-        done
-
-        printf " %s━ Log file: %s%s%s\n" "$TME_BLUE" "$TME_CYAN" "$TME_LOG_FILE" "$TME_NC"
-        printf "\n"
+        printf "\n %s━ Log file: %s%s%s\n" "$TME_BLUE" "$TME_CYAN" "$TME_LOG_FILE" "$TME_NC"
 
     } | tee -a "$TME_LOG_FILE"
 
-    # Restore logging state
     echo "$orig_log_state" > "$LOG_STATE_FILE"
 }
 
@@ -358,7 +414,6 @@ end_nested_timing() {
 }
 
 cleanup_timer() {
-    # Use the log module's state file
     local orig_log_state
     orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
     echo "false" > "$LOG_STATE_FILE"
@@ -375,7 +430,6 @@ cleanup_timer() {
         printf "Total execution time: %.3fs\n\n" "$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)"
     } >> "$TME_LOG_FILE"
 
-    # Restore logging state
     echo "$orig_log_state" > "$LOG_STATE_FILE"
 }
 
@@ -394,6 +448,8 @@ export -A TME_PARENTS
 export -A TME_CHILDREN
 export TME_CURRENT_PARENT
 export TME_LOG_FILE
+export TME_SORT_ORDER_FILE_PATH
+export -ga TME_COMPONENT_ORDER
 export -f init_timer
 export -f start_timer
 export -f stop_timer
@@ -402,7 +458,8 @@ export -f start_nested_timing
 export -f end_nested_timing
 export -f calculate_component_depth
 export -f print_timing_entry
-export -f print_enhanced_tree
+export -f print_tree_recursive
 export -f print_timing_report
 export -f settme
 export -f cleanup_timer
+export -f sort_components_by_duration
