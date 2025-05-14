@@ -17,9 +17,9 @@
 #               LOG_DEBUG_ENABLED, LOG_DEBUG_FILE, and LOG_STATE_FILE.
 #
 # Usage:       Sourced by other modules and scripts for consistent logging.
+#              Use 'setlog on|off' to enable or disable logging output to console.
 #              Key functions include 'lo1_debug_log' for detailed debug output,
-#              'log_message' (if defined elsewhere, or implicitly through its usage
-#              patterns here for structured logging), 'get_base_depth' and
+#              'log_message' for structured logging, 'get_base_depth' and
 #              'calculate_final_depth' for managing log indentation and context.
 #
 # Notes:       LOG_DEBUG_ENABLED controls the activation of debug messages.
