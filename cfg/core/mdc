@@ -52,9 +52,11 @@ debug_log "Initializing module requirements"
     # Logging module 2 requirements
     MODULE_VARS[lo2.LOG_DIR]=1
     MODULE_VARS[lo2.LO2_LOG_FILE]=1
+    MODULE_VARS[lo2.LOG_CONTROL_STATE_FILE]=1 # Added for lo2_state
 
     MODULE_PATHS[lo2.LOG_DIR]="dir:true"
     MODULE_PATHS[lo2.LO2_LOG_FILE]="file:true"
+    MODULE_PATHS[lo2.LOG_CONTROL_STATE_FILE]="file:true" # Added for lo2_state
 
     # Timer module requirements
     MODULE_VARS[tme.TME_STATE_FILE]=1
