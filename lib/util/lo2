@@ -58,59 +58,105 @@ declare -g LOG_CONTROL_DEPTH_ENABLED=false
 
 # Runtime control structure tracking
 declare -ga CONTROL_DEPTH_STACK=()
-declare -g LAST_COMMAND=""
+declare -g LAST_COMMAND_SIGNATURE="" # Changed from LAST_COMMAND
 
 # Add a hash function to identify unique control structures
+# Modified hash_command to take explicit source and lineno
 hash_command() {
     local cmd="$1"
-    # Get line number and file from DEBUG trap if available
-    local lineno="${BASH_LINENO[0]:-0}"
-    local source="${BASH_SOURCE[1]:-unknown}"
-    echo "${source}:${lineno}:${cmd}"
+    local src_file="$2" # Source file of the command
+    local line_num="$3" # Line number of the command
+    echo "${src_file}:${line_num}:${cmd}"
 }
 
 # Modified tracking function with deduplication
 track_control_depth() {
+    # ADD THIS LINE FOR DIAGNOSIS
+    echo "track_control_depth CALLED: CMD=\"$1\" SRC=\"$2\" LINE=\"$3\"" >> "/home/es/lab/.log/lo2_trap_fire.log"
+
     local command="$1"
+    local source_file="$2" # Directly use the argument from the trap
+    local line_number="$3" # Directly use the argument from the trap
+    # Ensure source_file and line_number are not empty; default to unknown if necessary
 
-    # Skip if it's the same command as last time
-    [[ "$command" == "$LAST_COMMAND" ]] && return
-    LAST_COMMAND="$command"
+    # Skip if it's the same command, source, and line as last time
+    local current_signature="${source_file}:${line_number}:${command}"
+    # Conditional return to prevent errors if LAST_COMMAND_SIGNATURE is unbound during initial calls
+    if [[ -n "${LAST_COMMAND_SIGNATURE+isset}" && "$current_signature" == "$LAST_COMMAND_SIGNATURE" ]]; then
+        return
+    fi
+    LAST_COMMAND_SIGNATURE="$current_signature"
 
-    # Generate unique hash for this command
-    local cmd_hash=$(hash_command "$command")
+    local cmd_hash=$(hash_command "$command" "$source_file" "$line_number")
+    # Extended debug log to include source and line
+    lo2_debug_log "Processing: '${command}' (hash: ${cmd_hash}, src: ${source_file}:${line_number})" "track_depth"
 
-    lo2_debug_log "Processing command: $command (hash: $cmd_hash)" "track_depth"
+    local control_keyword=""
+    # Refined regex for opening control structures
+    if [[ "$command" =~ ^if(\s|\[|$) ]];      then control_keyword="if";
+    elif [[ "$command" =~ ^for([\(\s]|$) ]];  then control_keyword="for"; # Handles 'for ((' and 'for var'
+    elif [[ "$command" =~ ^while(\s|\[|$) ]]; then control_keyword="while";
+    elif [[ "$command" =~ ^until(\s|\[|$) ]]; then control_keyword="until";
+    elif [[ "$command" =~ ^case(\s|$) ]];   then control_keyword="case";
+    elif [[ "$command" =~ ^select(\s|$) ]]; then control_keyword="select";
+    # Match '{' if it's a standalone token or followed by space (typical for compound commands)
+    # Avoids matching brace expansion like {a,b}
+    elif [[ "$command" == "{" || "$command" =~ ^\{\s+.* ]]; then control_keyword="block_open";
+    fi
 
-    case "$command" in
-        if\ *|for\ *|while\ *|until\ *|case\ *|select\ *)
-            # Check if this exact control structure is already in the stack
-            local duplicate=false
-            for structure in "${CONTROL_DEPTH_STACK[@]}"; do
-                if [[ "$structure" == "$cmd_hash" ]]; then
-                    duplicate=true
-                    break
-                fi
-            done
+    if [[ -n "$control_keyword" ]]; then
+        CONTROL_DEPTH_STACK+=("$cmd_hash")
+        lo2_debug_log "Entered '$control_keyword': ${command} (depth: ${#CONTROL_DEPTH_STACK[@]}) (src: $source_file:$line_number)" "track_depth"
+        # print_control_stack # Uncomment for detailed stack debugging
+        return
+    fi
 
-            if ! $duplicate; then
-                CONTROL_DEPTH_STACK+=("$cmd_hash")
-                lo2_debug_log "Entered unique control structure: $command (depth: ${#CONTROL_DEPTH_STACK[@]})" "track_depth"
+    local closing_keyword=""
+    # Closing keywords are typically standalone
+    if [[ "$command" == "fi" ]];    then closing_keyword="fi";
+    elif [[ "$command" == "done" ]];  then closing_keyword="done";
+    elif [[ "$command" == "esac" ]];  then closing_keyword="esac";
+    # Match '}' if it's a standalone token
+    elif [[ "$command" == "}" ]]; then closing_keyword="block_close";
+    fi
+
+    if [[ -n "$closing_keyword" ]]; then
+        if [ ${#CONTROL_DEPTH_STACK[@]} -gt 0 ]; then
+            local last_structure_hash="${CONTROL_DEPTH_STACK[-1]}"
+            local last_command_in_hash="${last_structure_hash##*:}" # Extracts command part from "source:line:command"
+
+            local should_pop=false
+            case "$closing_keyword" in
+                "fi")
+                    [[ "$last_command_in_hash" =~ ^if(\s|\[|$) ]] && should_pop=true ;;
+                "done")
+                    # 'done' closes for, while, until, select
+                    if [[ "$last_command_in_hash" =~ ^for([\(\s]|$) || \
+                          "$last_command_in_hash" =~ ^while(\s|\[|$) || \
+                          "$last_command_in_hash" =~ ^until(\s|\[|$) || \
+                          "$last_command_in_hash" =~ ^select(\s|$) ]]; then
+                        should_pop=true
+                    fi
+                    ;;
+                "esac")
+                    [[ "$last_command_in_hash" =~ ^case(\s|$) ]] && should_pop=true ;;
+                "block_close")
+                    # Match '{' as it was matched for opening
+                    [[ "$last_command_in_hash" == "{" || "$last_command_in_hash" =~ ^\{\s+.* ]] && should_pop=true ;;
+            esac
+
+            if $should_pop; then
+                unset 'CONTROL_DEPTH_STACK[-1]'
+                lo2_debug_log "Exited control for '$closing_keyword' (new depth: ${#CONTROL_DEPTH_STACK[@]}) (matched open: '$last_command_in_hash')" "track_depth"
             else
-                lo2_debug_log "Skipped duplicate control structure: $command" "track_depth"
+                lo2_debug_log "Mismatched exit: '$closing_keyword'. Stack top cmd: '$last_command_in_hash' (hash: '$last_structure_hash')" "track_depth"
             fi
-            ;;
-        fi|done|esac)
-            # Only remove if it matches the last added structure
-            if [ ${#CONTROL_DEPTH_STACK[@]} -gt 0 ]; then
-                local last_structure="${CONTROL_DEPTH_STACK[-1]}"
-                if [[ "$last_structure" == *"$command"* ]]; then
-                    unset 'CONTROL_DEPTH_STACK[-1]'
-                    lo2_debug_log "Exited control structure (new depth: ${#CONTROL_DEPTH_STACK[@]})" "track_depth"
-                fi
-            fi
-            ;;
-    esac
+        else
+            lo2_debug_log "Attempted to exit '$closing_keyword', but stack empty." "track_depth"
+        fi
+        # print_control_stack # Uncomment for detailed stack debugging
+        return
+    fi
 }
 
 # Get current runtime control structure depth
@@ -162,17 +208,35 @@ calculate_final_depth() {
 install_depth_tracking() {
     # Save any existing DEBUG trap
     local old_trap=$(trap -p DEBUG)
+    # Correctly pass BASH_SOURCE[0] and BASH_LINENO[0] from the trap's context
+    local new_trap_command='track_control_depth "$BASH_COMMAND" "${BASH_SOURCE[0]}" "${BASH_LINENO[0]}"'
 
     # Set our new trap while preserving any existing trap
     if [[ -n "$old_trap" && "$old_trap" != *"track_control_depth"* ]]; then
-        local old_command=${old_trap#trap -- \'}
-        old_command=${old_command%\' DEBUG}
-        trap 'track_control_depth "$BASH_COMMAND"; '"$old_command" DEBUG
+        local old_command_match
+        # More robust extraction of the old command
+        if [[ "$old_trap" =~ trap -- \'(.*)\' DEBUG ]]; then
+            old_command_match="${BASH_REMATCH[1]}"
+            # Ensure old_command_match is not empty and doesn't recursively call track_control_depth
+            if [[ -n "$old_command_match" && "$old_command_match" != *"track_control_depth"* ]]; then
+                 # Properly escape the old command before combining
+                local escaped_old_command=$(printf '%q' "$old_command_match")
+                trap "$(printf "%s; eval %s" "$new_trap_command" "$escaped_old_command")" DEBUG
+                lo2_debug_log "Installed control structure tracking, preserving: $old_command_match" "init"
+            else
+                trap "$new_trap_command" DEBUG
+                lo2_debug_log "Installed control structure tracking (old trap was problematic or redundant)" "init"
+            fi
+        else
+            trap "$new_trap_command" DEBUG
+            lo2_debug_log "Installed control structure tracking (old trap format not recognized)" "init"
+        fi
+    elif [[ "$old_trap" != *"track_control_depth"* ]]; then # Handles empty or non-relevant old trap
+        trap "$new_trap_command" DEBUG
+        lo2_debug_log "Installed control structure tracking (no previous relevant trap)" "init"
     else
-        trap 'track_control_depth "$BASH_COMMAND"' DEBUG
+        lo2_debug_log "Control structure tracking already installed or old trap is only track_control_depth." "init"
     fi
-
-    lo2_debug_log "Installed control structure tracking" "init"
 }
 
 # Remove the debug trap
@@ -211,7 +275,7 @@ cleanup_lo2() {
     lo2_debug_log "Starting cleanup" "cleanup_lo2"
     remove_depth_tracking
     CONTROL_DEPTH_STACK=()
-    LAST_COMMAND=""
+    LAST_COMMAND_SIGNATURE="" # Changed from LAST_COMMAND
     lo2_debug_log "Cleanup complete" "cleanup_lo2"
 }
 
