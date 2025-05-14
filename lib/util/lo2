@@ -58,9 +58,9 @@ echo "[LO2-DEBUG-SIMPLIFIED] Setting up lo2 module directories (init)" >> "${LO2
 echo "LO2_FLOW: Point A - After 'Setting up lo2 module directories' log. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
 # Global state
-echo "LO2_FLOW: Point B - Before (commented out) declare LOG_CONTROL_DEPTH_ENABLED. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
-# declare -g LOG_CONTROL_DEPTH_ENABLED=false # Intentionally commented out
-echo "LO2_FLOW: Point C - After (commented out) declare LOG_CONTROL_DEPTH_ENABLED. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+echo "LO2_FLOW: Point B - Before declare LOG_CONTROL_DEPTH_ENABLED. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
+declare -g LOG_CONTROL_DEPTH_ENABLED=false
+echo "LO2_FLOW: Point C - After declare LOG_CONTROL_DEPTH_ENABLED. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 
 echo "LO2_FLOW: Point D - Before (commented out) declare CONTROL_DEPTH_STACK. TS: $(date '+%H:%M:%S.%N')" >> "/home/es/lab/.log/lo2_flow_diag.log"
 # declare -ga CONTROL_DEPTH_STACK=() # Intentionally commented out
