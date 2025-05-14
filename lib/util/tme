@@ -58,7 +58,9 @@ readonly TME_NC=$(printf '\033[0m')
 # Initialize timer system with optional log file
 init_timer() {
     local log_dir="${1:-$TME_LOG_DIR}"
-    TME_LOG_FILE="${log_dir}/timing.log"
+    TME_LOG_FILE="${log_dir}/tme.log" # Changed filename to tme.log
+    # Clear the log file
+    > "$TME_LOG_FILE"
     TME_STARTUP_BEGIN=$(date +%s.%N)
     TME_CURRENT_PARENT=""
 

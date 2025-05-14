@@ -123,6 +123,14 @@ main_ini() {
         return 1
     fi
 
+    # Initialize the timer system and clear its log file
+    if type init_timer &>/dev/null; then
+        init_timer "${BASE_DIR}/.log"
+        debug_log "Timer system initialized and log cleared (${BASE_DIR}/.log/tme.log)."
+    else
+        debug_log "WARNING: init_timer function not found after module loading."
+    fi
+
     # Source the component orchestrator
     # Ensure BASE_DIR is available to comp script if it needs it explicitly
     # (though sourcing should make variables available)
