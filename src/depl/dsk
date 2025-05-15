@@ -8,7 +8,7 @@ FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
 
 # Source aux file which provides logging and other core functionality
-source "$LAB_DIR/lib/aux/bin"
+source "$DIR_SH/../../lib/aux/bin"
 
 setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 
