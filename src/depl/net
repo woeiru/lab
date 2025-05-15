@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# ============================================================================
+# net - Function Summary
+#
+#   net-fun : Shows a summary of selected functions in the script.
+#   net-var : Displays an overview of specific variables defined in the configuration file.
+#   net-uni : Renames a network interface by updating udev rules and network configuration.
+#   net-fsr : Adds a specified service to firewalld and reloads the firewall.
+#   net-fas : Allows a specified service through the firewall using firewall-cmd.
+#
+# ============================================================================
+
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
