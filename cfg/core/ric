@@ -30,6 +30,11 @@ CON_DIR="${CON_DIR:-$LAB_DIR/con}"
 DIC_DIR="${DIC_DIR:-$LAB_DIR/dic}"
 export ALA_DIR LAB_DIR BAS_DIR CON_DIR DIC_DIR
 
+# Site-wide configuration file path for depl scripts
+declare -g SITE_CONFIG_FILE
+SITE_CONFIG_FILE="${LAB_DIR}/cfg/depl/site.env"
+export SITE_CONFIG_FILE
+
 # Runtime files - consolidated into init file
 declare -ga RC_FILES=()
 export RC_FILES
@@ -81,7 +86,7 @@ export ENV_CONFIG_DIR
 
 # Deployment source code path
 declare -g FUN_DIR
-FUN_DIR="${LAB_DIR}/src/depl" # Corrected path
+FUN_DIR="${LAB_DIR}/lib/depl" # Corrected path
 export FUN_DIR
 
 # Runtime configuration
