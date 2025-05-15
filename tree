@@ -3,7 +3,7 @@
 │   ├── core
 │   │   └── comp
 │   ├── env
-│   │   └── inject
+│   │   └── rc
 │   └── init
 ├── cfg
 │   ├── ans
