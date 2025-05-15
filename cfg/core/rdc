@@ -60,12 +60,12 @@ REGISTERED_FUNCTIONS=(
 
 # Initialize function module mappings
 FUNCTION_MODULES=(
-    ["process_error"]="${BASE_DIR}/lib/core/err"
+    ["process_error"]="${BASE_DIR}/lib/util/err"
     ["log_message"]="${BASE_DIR}/lib/util/lo1"
     ["debug_message"]="${BASE_DIR}/lib/util/lo2"
     ["start_timer"]="${BASE_DIR}/lib/util/tme"
     ["stop_timer"]="${BASE_DIR}/lib/util/tme"
-    ["handle_error:err"]="${BASE_DIR}/lib/core/err"
+    ["handle_error:err"]="${BASE_DIR}/lib/util/err"
     ["handle_error:lo1"]="${BASE_DIR}/lib/util/lo1"
     ["log_with_timer:lo1"]="${BASE_DIR}/lib/util/lo1"
     ["log_with_timer:tme"]="${BASE_DIR}/lib/util/tme"
