@@ -72,12 +72,13 @@ init_timer() {
     mkdir -p "$log_dir" 2>/dev/null # Ensure log_dir exists
 
     TME_LOG_FILE="${log_dir}/tme.log"
-    TME_SORT_ORDER_FILE_PATH="${log_dir}/tme_sort_order.cfg"
+    TME_SORT_ORDER_FILE_PATH="${TMP_DIR}/tme_sort_order"
 
     # Initialize TME_LOG_FILE (create/clear)
     > "$TME_LOG_FILE"
 
     # Initialize TME_SORT_ORDER_FILE_PATH with default if empty
+    mkdir -p "$TMP_DIR" 2>/dev/null
     touch "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null
     if [[ ! -s "$TME_SORT_ORDER_FILE_PATH" ]]; then
         echo "chron" > "$TME_SORT_ORDER_FILE_PATH" # Changed default to chron
@@ -346,11 +347,7 @@ settme() {
     local effective_sort_order_file_path="$TME_SORT_ORDER_FILE_PATH"
 
     if [[ -z "$effective_sort_order_file_path" ]]; then
-        local current_log_dir="${TME_LOG_DIR:-./.log}"
-        if [[ -n "$TME_LOG_FILE" ]]; then
-            current_log_dir=$(dirname "$TME_LOG_FILE")
-        fi
-        effective_sort_order_file_path="${current_log_dir}/tme_sort_order.cfg"
+        effective_sort_order_file_path="${TMP_DIR}/tme_sort_order"
     fi
     
     mkdir -p "$(dirname "$effective_sort_order_file_path")" 2>/dev/null
