@@ -9,15 +9,19 @@
 #   routines, and managing individual components with dependency
 #   awareness (required vs. optional) and status tracking.
 #
-# Key Functions:
+# Helper Functions:
 #   - source_helper: Safely sources individual files.
 #   - source_directory: Sources all files in a given directory.
+#   - execute_component: Executes a single named component with status tracking.
+#
+# Component Functions (perform specific initialization tasks):
 #   - execution_rc: Executes RC-specific setup functions.
 #   - source_env: Sources environment configuration files.
 #   - source_fun: Sources function library files.
-#   - execute_component: Executes a single named component.
+#
+# Main Orchestration Function:
 #   - setup_components: Orchestrates the execution of all defined
-#     components.
+#     components in the proper order with error handling.
 #
 # Usage:
 #   This script is typically sourced by a main initialization script
@@ -127,6 +131,43 @@ source_directory() {
     return $return_value
 }
 
+# Component execution with status tracking
+execute_component() {
+    local func="$1"
+    local component="$2"
+    local required="${3:-1}"  # Default to required
+    local success_var="${component}_SUCCESS"
+    local return_value=0
+
+    start_timer "$component"
+    log "lvl" " Executing component: $component ..." | tee -a "$ERROR_LOG"
+
+    if ! type "$func" &>/dev/null; then
+        log "lvl" " Error: Function $func not found for component $component" | tee -a "$ERROR_LOG" >&2
+        error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$([[ $required -eq 0 ]] && echo true || echo false)"
+        return_value=1
+    elif "$func"; then # Corrected: remove $ before func for execution
+        export "$success_var=1"
+        log "lvl" " Component $component completed successfully" | tee -a "$ERROR_LOG"
+        return_value=0
+    else
+        unset "$success_var"
+        local msg="Component $component failed"
+        if ((required)); then
+            log "lvl" " Error: $msg" | tee -a "$ERROR_LOG" >&2
+            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
+            return_value=1
+        else
+            log "lvl" " Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
+            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true" # Assuming error_handler can take 'true' for optional
+            return_value=0 # Optional component failure doesn't make execute_component fail
+        fi
+    fi
+
+    end_timer "$component"
+    return $return_value
+}
+
 # Execute RC-specific setup functions
 execution_rc() {
     log "lvl" "Starting ${FUNCNAME[0]}" | tee -a "$ERROR_LOG"
@@ -186,43 +227,6 @@ source_fun() {
     # Use FUN_DIR which is defined in ric
     source_directory "$FUN_DIR" "*" "function files"
     return $?
-}
-
-# Component execution with status tracking
-execute_component() {
-    local func="$1"
-    local component="$2"
-    local required="${3:-1}"  # Default to required
-    local success_var="${component}_SUCCESS"
-    local return_value=0
-
-    start_timer "$component"
-    log "lvl" " Executing component: $component ..." | tee -a "$ERROR_LOG"
-
-    if ! type "$func" &>/dev/null; then
-        log "lvl" " Error: Function $func not found for component $component" | tee -a "$ERROR_LOG" >&2
-        error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$([[ $required -eq 0 ]] && echo true || echo false)"
-        return_value=1
-    elif "$func"; then # Corrected: remove $ before func for execution
-        export "$success_var=1"
-        log "lvl" " Component $component completed successfully" | tee -a "$ERROR_LOG"
-        return_value=0
-    else
-        unset "$success_var"
-        local msg="Component $component failed"
-        if ((required)); then
-            log "lvl" " Error: $msg" | tee -a "$ERROR_LOG" >&2
-            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
-            return_value=1
-        else
-            log "lvl" " Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
-            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true" # Assuming error_handler can take 'true' for optional
-            return_value=0 # Optional component failure doesn't make execute_component fail
-        fi
-    fi
-
-    end_timer "$component"
-    return $return_value
 }
 
 setup_components() {
