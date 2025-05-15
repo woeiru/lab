@@ -71,9 +71,9 @@ export LOG_FILE LO2_LOG_FILE LOG_CONTROL_STATE_FILE # Export new log file vars
 export TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 
 # Environment configuration path
-declare -g CFG_DEPL_DIR
-CFG_DEPL_DIR="${LAB_DIR}/cfg/depl"
-export CFG_DEPL_DIR
+declare -g CFG_ENV_DIR
+CFG_DEPL_DIR="${LAB_DIR}/cfg/env"
+export CFG_ENV_DIR
 
 # Site-wide configuration file path for depl scripts
 declare -g SITE_CONFIG_FILE
