@@ -7,7 +7,7 @@ This document outlines the overall structure of the Lab Environment project, exp
 The project follows a domain-oriented architecture with these main directories:
 
 -   `bin/`: Executable scripts and entry points.
-    -   `init`, `silent_init`, `verbose_init`: Main initialization scripts with different verbosity levels.
+    -   `init`: Main initialization script.
     -   `core/`: Core system components (e.g., `comp` - component orchestrator).
     -   `depl/`: Deployment scripts for various services (`dsk`, `nfs`, `pbs`, `pve`, `smb`).
     -   `env/`: Environment setup scripts, including `inject` which configures shell environments.
@@ -48,12 +48,12 @@ The project follows a domain-oriented architecture with these main directories:
     -   Supports both interactive and non-interactive modes.
     -   Creates non-destructive and reversible modifications to shell configuration files.
     -   Takes command-line options `-y` (non-interactive), `-u`/`--user` (target user), and `-c`/`--config` (config file).
--   **`bin/init`**, **`bin/silent_init`**, **`bin/verbose_init`**: Main initialization scripts with different verbosity levels. These are automatically sourced when a shell starts after the environment is set up.
+-   **`bin/init`**: Main initialization script. This is automatically sourced when a shell starts after the environment is set up.
 
 ### Core Modules
 
 -   **Error Handling (`lib/util/err`)**: Provides error trapping and handling mechanisms.
--   **Logging (`lib/util/lo1`, `lib/util/lo2`)**: Advanced logging systems with support for different verbosity levels.
+-   **Logging (`lib/util/lo1`, `lib/util/lo2`)**: Advanced logging systems with support for module-specific debug and control features.
 -   **Timing (`lib/util/tme`)**: Performance monitoring and reporting.
 -   **Component Orchestration (`bin/core/comp`)**: Manages loading and initialization of system components.
 
