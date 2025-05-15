@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# ============================================================================
+# sys - Function Summary
+#
+#   sys-fun : Shows a summary of specific functions in the script.
+#   sys-var : Displays an overview of specific variables defined in the configuration file.
+#   sys-gio : Manages git operations (status, pull, commit, push).
+#   sys-dpa : Detects the system's package manager.
+#   sys-upa : Updates and upgrades system packages.
+#   sys-ipa : Installs specified packages using the system's package manager.
+#   sys-gst : Configures git globally with a username and email.
+#   sys-sst : Installs, enables, and starts the sysstat service.
+#   sys-ust : Creates a new user with a specified username and password.
+#   sys-sdc : Enables and starts a specified systemd service.
+#   sys-suk : Uploads an SSH key from a device to a specified folder.
+#   sys-spi : Appends a private SSH key identifier to the SSH config file for a user.
+#   sys-sks : Generates an SSH key pair and handles transfer (client/server side).
+#   sys-sak : Appends a public SSH key to authorized_keys (client/server side).
+#
+# ============================================================================
+
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")

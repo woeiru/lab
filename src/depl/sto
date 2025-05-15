@@ -1,5 +1,27 @@
 #!/bin/bash
 
+# ============================================================================
+# sto - Function Summary
+#
+#   sto-fun : Shows a summary of selected functions in the script.
+#   sto-var : Displays an overview of specific variables defined in the configuration file.
+#   sto-fea : Adds auto-mount entries for devices to /etc/fstab using blkid.
+#   sto-fec : Adds custom entries to /etc/fstab using device UUIDs.
+#   sto-nfs : Mounts an NFS share interactively or with provided arguments.
+#   bfs-tra : Transforms a folder into a Btrfs subvolume, optionally setting attributes.
+#   bfs-ra1 : Creates a Btrfs RAID 1 filesystem on two devices, mounts it, and optionally updates fstab.
+#   bfs-csf : Checks and lists subvolume status of folders in a specified path.
+#   bfs-shc : Creates a new Snapper snapshot for a specified or auto-selected configuration.
+#   bfs-shd : Deletes a specified Snapper snapshot from a given or auto-selected configuration.
+#   bfs-shl : Lists Snapper snapshots for a specified or auto-selected configuration.
+#   bfs-sfr : Resyncs a Btrfs snapshot subvolume to a flat folder using rsync.
+#   bfs-hub : Creates/manages Btrfs snapshots for user home directory backups.
+#   bfs-snd : Recursively deletes a Btrfs parent subvolume and its nested children.
+#   zfs-dim : Creates or uses an existing ZFS dataset, sets its mountpoint, and ensures it is mounted.
+#   zfs-dbs : Creates and sends ZFS snapshots from a source to a destination pool (full/incremental).
+#
+# ============================================================================
+
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")

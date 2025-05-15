@@ -1,5 +1,42 @@
 #!/bin/bash
 
+# ==============================================================================
+# Script: aux/bin
+#
+# Description:
+#   This script provides a framework for executing shell scripts with
+#   interactive and direct execution modes. It includes utilities for
+#   setting up the environment, parsing script sections, displaying usage
+#   information, and managing different output display formats.
+#
+#   It is designed to be sourced or used by other scripts to provide a
+#   consistent command-line interface and execution flow.
+#
+# Key Functions:
+#   - setup_source: Initializes the environment by sourcing necessary files.
+#   - get_section_ids: Identifies executable sections within a script.
+#   - get_section_description: Retrieves descriptions for script sections.
+#   - print_usage: Displays help and usage instructions.
+#   - setup_main: Parses command-line arguments and routes to execution modes.
+#   - setup_interactive_mode: Provides a menu-driven interface for users.
+#   - setup_executing_mode: Allows direct execution of specified sections.
+#   - setup_display_menu: Formats and displays script content based on user
+#                         preferences (e.g., expanding variables, showing
+#                         function descriptions).
+#
+# Usage:
+#   Typically, a master script would call 'setup_main' from this file,
+#   passing mode and arguments.
+#   Example: ./master_script.sh -i (for interactive mode)
+#            ./master_script.sh -x section_name (to execute a specific section)
+#
+# Dependencies:
+#   - Relies on a specific project structure for sourcing environment and
+#     function files (e.g., ../fun, ../env relative to the script's dir).
+#   - Assumes scripts using this framework define sections as functions
+#     ending with "_xall()".
+# ==============================================================================
+
 # Enable error handling
 set -e
 

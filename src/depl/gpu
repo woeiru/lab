@@ -1,5 +1,19 @@
 #!/bin/bash
 
+# ============================================================================
+# gpu - Function Summary
+#
+#   gpu-fun : Shows a summary of selected functions in the script.
+#   gpu-var : Displays an overview of specific variables defined in the configuration file.
+#   gpu-pt1 : Configures initial GRUB and EFI settings for GPU passthrough, installs packages, and reboots.
+#   gpu-pt2 : Adds kernel modules for GPU passthrough, updates initramfs, and reboots.
+#   gpu-pt3 : Finalizes or reverts GPU passthrough setup (VFIO-PCI IDs, blacklisting drivers).
+#   gpu-ptd : Detaches the GPU from the host system for VM passthrough.
+#   gpu-pta : Attaches the GPU back to the host system.
+#   gpu-pts : Checks the current status of the GPU passthrough setup.
+#
+# ============================================================================
+
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")

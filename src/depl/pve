@@ -1,5 +1,24 @@
 #!/bin/bash
 
+# ============================================================================
+# pve - Function Summary
+#
+#   pve-fun : Shows a summary of selected PVE related functions in the script.
+#   pve-var : Displays an overview of PVE-specific variables from the configuration file.
+#   pve-dsr : Disables specified Proxmox repository files.
+#   pve-rsn : Removes the Proxmox subscription notice.
+#   pve-clu : Updates the PVE appliance manager (pveam) container template list.
+#   pve-cdo : Downloads a specified container template.
+#   pve-cbm : Configures a bind mount for a Proxmox container.
+#   pve-ctc : Sets up different containers specified in pve.conf.
+#   pve-cto : Manages multiple Proxmox containers (start, stop, enable, disable).
+#   pve-vmd : Deploys or modifies the VM shutdown hook for GPU reattachment.
+#   pve-vmc : Sets up different virtual machines specified in pve.conf.
+#   pve-vms : Starts a VM on the current node or migrates it, optionally shutting down the source.
+#   pve-vmg : Migrates a VM from a remote node, handling PCIe passthrough.
+#
+# ============================================================================
+
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
