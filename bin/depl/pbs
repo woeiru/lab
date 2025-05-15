@@ -6,7 +6,7 @@ FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
 
 # Source .up which provides logging and other core functionality
-source "$DIR_SH/aux"
+source "$LAB_DIR/lib/aux/bin"
 
 # Declare MENU_OPTIONS
 declare -A MENU_OPTIONS
