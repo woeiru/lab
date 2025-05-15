@@ -41,9 +41,9 @@ export rc
 # Constants files
 declare -g MDE_FILE RDE_FILE RUC_FILE
 MDE_FILE="$DIC_DIR/mde"
-RDE_FILE="$DIC_DIR/rde"
-RUC_FILE="$DIC_DIR/ruc"
-export MDE_FILE RDE_FILE RUC_FILE
+RDC_FILE="$DIC_DIR/rdc"
+RIC_FILE="$DIC_DIR/ric"
+export MDE_FILE RDC_FILE RIC_FILE
 
 # Log and temp file paths
 declare -g LOG_DIR TMP_DIR
@@ -81,13 +81,13 @@ export ENV_CONFIG_DIR
 
 # Site-wide configuration file path for depl scripts
 declare -g SITE_CONFIG_FILE
-SITE_CONFIG_FILE="${LAB_DIR}/cfg/depl/site.env"
+SITE_CONFIG_FILE="${ENV_CONFIG_DIR}/site1.env"
 export SITE_CONFIG_FILE
 
-# Deployment source code path
-declare -g FUN_DIR
-FUN_DIR="${LAB_DIR}/lib/depl" # Corrected path
-export FUN_DIR
+# Deployment function ibrary path
+declare -g DEPL_DIR
+DEPL_DIR="${LAB_DIR}/lib/depl" # Corrected path
+export DEPL_DIR
 
 # Runtime configuration
 declare -g CACHE_CLEANUP_INTERVAL

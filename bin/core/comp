@@ -17,7 +17,7 @@
 # Component Functions (perform specific initialization tasks):
 #   - execution_rc: Executes RC-specific setup functions.
 #   - source_env: Sources environment configuration files.
-#   - source_fun: Sources function library files.
+#   - source_depl: Sources function library files.
 #
 # Main Orchestration Function:
 #   - setup_components: Orchestrates the execution of all defined
@@ -176,9 +176,9 @@ source_env() {
 }
 
 # Source the function files
-source_fun() {
+source_depl() {
     # Use FUN_DIR which is defined in ric
-    source_directory "$FUN_DIR" "*" "function files"
+    source_directory "$DEPL_DIR" "*" "function files"
     return $?
 }
 
@@ -239,9 +239,8 @@ setup_components() {
 
     local components=(
         "execution_rc:EXEC:1"        # Required: Executes set_static, set_dynamic, set_aliaswrap
-        "source_env:ENV:0"           # Optional: Sources files from $LAB_DIR/env
-        "source_fun:FUN:0"           # Optional: Sources files from $LAB_DIR/fun
-    )
+        "source_env:ENV:0"           # Optional
+        "source_depl:DEPL:0"          # Optional
 
     log "lvl" "Executing component functions..." | tee -a "$ERROR_LOG"
 
