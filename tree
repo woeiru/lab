@@ -2,12 +2,6 @@
 ├── bin
 │   ├── core
 │   │   └── comp
-│   ├── depl
-│   │   ├── dsk
-│   │   ├── nfs
-│   │   ├── pbs
-│   │   ├── pve
-│   │   └── smb
 │   ├── env
 │   │   └── inject
 │   ├── init
@@ -115,6 +109,11 @@
 │           └── dim2-dec.md
 ├── src
 │   └── depl
+│       ├── dsk
+│       ├── nfs
+│       ├── pbs
+│       ├── pve
+│       └── smb
 └── tree
 
-33 directories, 85 files
+32 directories, 85 files
