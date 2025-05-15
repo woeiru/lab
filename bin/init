@@ -50,33 +50,19 @@
 readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
 
-# Debug verbosity level (0=minimal, 1=standard, 2=verbose)
-DEBUG_VERBOSITY=${DEBUG_VERBOSITY:-1}
-
-# Simple debug logging function to use before we load the full system
+# Debug logging function to use before we load the full system
+# Now always logs to file and stderr (no verbosity control)
 debug_log() {
     local timestamp=$(date '+%H:%M:%S')
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
-    local level="${3:-1}" # Default verbosity level
     local LOG_DEBUG_FILE="${BASE_DIR}/.log/debug.log"
     
-    # Always log to file regardless of verbosity
+    # Always log to file
     mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
     echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
-    
-    # Only output to stderr if verbosity level is sufficient
-    if (( DEBUG_VERBOSITY >= level )); then
-        # For level 0, only show startup, completion and error messages
-        if (( DEBUG_VERBOSITY == 0 )); then
-            if [[ "$message" == *ERROR* || "$message" == *CRITICAL* || "$message" == *WARNING* || 
-                  "$message" == *"Starting main"* || "$message" == *"completed successfully"* ]]; then
-                echo "└─ $message [$timestamp]" >&2
-            fi
-        else
-            echo "└─ $message [$timestamp]" >&2
-        fi
-    fi
+    # Always output to stderr
+    echo "└─ $message [$timestamp]" >&2
 }
 
 # Initialization System
@@ -480,13 +466,7 @@ setup_minimal_environment() {
     done
 }
 
-# Check if DEBUG_VERBOSITY is set as an environment variable when script is called
-if [[ -z "${DEBUG_VERBOSITY}" ]]; then
-    # Default is 1 (standard verbosity)
-    DEBUG_VERBOSITY=1
-fi
-
-echo " ─── initializing (verbosity level: ${DEBUG_VERBOSITY})"
+echo " ─── initializing"
 # Execute initialization
 main_ini
 RC_STATUS=$?
