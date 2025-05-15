@@ -1,4 +1,11 @@
 #!/bin/bash
+# ----------------------------------------------------------------------
+# Functions:
+#   a_xall: Downloads and verifies Proxmox Backup Server GPG key, 
+#           adds repository, and installs PBS packages.
+#   b_xall: Configures PBS datastore with specified name and path for 
+#           backup storage.
+# ----------------------------------------------------------------------
 
 # Define script location
 DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
