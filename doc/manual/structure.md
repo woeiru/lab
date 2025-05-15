@@ -1,95 +1,157 @@
+# Project Structure and Architecture
+
+This document outlines the overall structure of the Lab Environment project, explaining the purpose of each directory and key components within the system.
+
 ## Directory Structure
 
-The project is organized as follows:
+The project follows a domain-oriented architecture with these main directories:
 
--   `bin/`: Executable scripts.
-    -   `init`, `silent_init`, `verbose_init`: Main initialization scripts.
-    -   `core/`: Core system components (e.g., `comp`).
-    -   `depl/`: Deployment scripts for various services (e.g., `dsk`, `nfs`, `pbs`, `pve`, `smb`).
-    -   `env/`: Environment setup scripts (e.g., `inject`).
--   `cfg/`: Configuration files.
-    -   `ans/`: Ansible playbooks and configurations (e.g., `main.yml`, `vars.yml`).
-    -   `core/`: Configuration for core components (e.g., `mdc`, `rdc`, `ric`).
-    -   `depl/`: Deployment-related configurations (e.g., `site.env`).
-    -   `pod/`: Podman container configurations and related files (e.g., `Containerfile` for `qdev`, `shus`).
--   `doc/`: Documentation.
-    -   `network/`: Network-related documentation.
-    -   `session/`: Work session summaries.
-    -   `workaround/`: Documented workarounds for known issues.
--   `lib/`: Shell script libraries and modules.
-    -   `alias/`: Scripts for managing dynamic and static aliases.
-    -   `core/`: Core library functions (e.g., error handling `err`, verification `ver`).
-    -   `depl/`: Helper libraries for deployment tasks.
-    -   `dev/`: Development utilities (e.g., debugging `dbg`).
-    -   `ssh`: SSH related utility functions.
-    -   `util/`: General utility functions.
--   `acpi/`: Scripts and services for ACPI event handling and power management.
--   `pro/`: Utilities for one-time projects and special-case scenarios.
+-   `bin/`: Executable scripts and entry points.
+    -   `init`, `silent_init`, `verbose_init`: Main initialization scripts with different verbosity levels.
+    -   `core/`: Core system components (e.g., `comp` - component orchestrator).
+    -   `depl/`: Deployment scripts for various services (`dsk`, `nfs`, `pbs`, `pve`, `smb`).
+    -   `env/`: Environment setup scripts, including `inject` which configures shell environments.
+-   `cfg/`: Configuration files and definitions.
+    -   `ans/`: Ansible playbooks and configurations.
+        -   `main.yml`, `vars.yml`: Main playbook and variable definitions.
+        -   `mods/`: Module-specific configurations (`askpass.yml`, `keyboard.yml`, `konsole.yml`, etc.).
+    -   `core/`: Core configuration files (`mdc`, `rdc`, `ric` - runtime initialization constants).
+    -   `depl/`: Deployment-related configurations (e.g., `site.env` with environment variables).
+    -   `pod/`: Podman container configurations with `Containerfile`s and documentation.
+-   `doc/`: Documentation files.
+    -   `manual/`: User and developer manuals (`initiation.md`, `logging.md`, `structure.md`).
+    -   `network/`: Network architecture and configuration documentation.
+    -   `session/`: Work session summaries and progress tracking.
+    -   `workaround/`: Solutions for known issues and special cases.
+-   `lib/`: Shell script libraries and reusable modules.
+    -   `alias/`: Scripts for managing dynamic and static aliases and wrappers.
+    -   `aux/`: Auxiliary binaries and source files.
+    -   `core/`: Core library functions (e.g., `ver` for version management).
+    -   `ssh`: SSH-related utility functions.
+    -   `util/`: General utilities (`err` for error handling, `lo1`/`lo2` for logging, `tme` for timing).
+-   `pro/`: Special projects and standalone utilities.
     -   `acpi/`: Scripts and services for ACPI event handling and power management.
     -   `replace/`: A utility for replacing text in files based on a JSON configuration.
--   `res/`: Resource files.
-    -   `guideline/`: Project guidelines and standards.
-    -   `prompt/`: Templates for AI interactions
--   `src/`: Source code for larger scripts or components, primarily for deployment.
-    -   `depl/`: Source files for deployment modules (e.g., `gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
--   `entry.sh`: Root-level entry script (purpose to be documented or inferred).
--   `README.md`: This file.
+-   `res/`: Resource files and templates.
+    -   `guideline/`: Project guidelines, coding standards, and architectural principles.
+    -   `prompt/`: Templates for AI interactions and code generation.
+-   `src/`: Source code for larger components and deployment modules.
+    -   `depl/`: Source files for deployment modules (`gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
+-   `entry.sh`: Root-level symlink to `bin/env/inject` for easy environment setup.
+-   `README.md`: Main project documentation and quick start guide.
 
 ## Key Components & Usage
 
-### Environment Initialization
--   **`bin/env/inject`**: The primary script to set up and configure the shell environment.
--   The scripts in `bin/` (`init`, `silent_init`, `verbose_init`) handle different aspects or modes of system initialization.
+### Environment Setup and Initialization
 
-### Deployment
--   Scripts in `bin/depl/` are used to deploy and manage various services.
--   Configurations for these deployments can be found in `cfg/depl/` and source files in `src/depl/`.
+-   **`entry.sh`**: A symlink to `bin/env/inject` for easy access to the environment setup utility.
+-   **`bin/env/inject`**: The primary script that configures shell environments by injecting initialization code into shell config files (`.bashrc` or `.zshrc`).
+    -   Supports both interactive and non-interactive modes.
+    -   Creates non-destructive and reversible modifications to shell configuration files.
+    -   Takes command-line options `-y` (non-interactive), `-u`/`--user` (target user), and `-c`/`--config` (config file).
+-   **`bin/init`**, **`bin/silent_init`**, **`bin/verbose_init`**: Main initialization scripts with different verbosity levels. These are automatically sourced when a shell starts after the environment is set up.
 
-### Ansible Automation
--   Ansible playbooks are located in `cfg/ans/`.
--   Run playbooks using `ansible-playbook cfg/ans/main.yml` (adjust as needed).
--   Variables are typically managed in `cfg/ans/vars.yml`.
+### Core Modules
+
+-   **Error Handling (`lib/util/err`)**: Provides error trapping and handling mechanisms.
+-   **Logging (`lib/util/lo1`, `lib/util/lo2`)**: Advanced logging systems with support for different verbosity levels.
+-   **Timing (`lib/util/tme`)**: Performance monitoring and reporting.
+-   **Component Orchestration (`bin/core/comp`)**: Manages loading and initialization of system components.
+
+### Deployment System
+
+-   **Scripts**: Located in `bin/depl/` for deploying and managing various services.
+-   **Configurations**: Found in `cfg/depl/`, including environment variables in `site.env`.
+-   **Source Modules**: Available in `src/depl/` with specialized modules for different system areas:
+    -   `gpu`: GPU-related functionality
+    -   `net`: Network configuration and management
+    -   `pbs`: PBS (Portable Batch System) functionality
+    -   `pve`: Proxmox VE management
+    -   `srv`: Server configuration
+    -   `sto`: Storage management
+    -   `sys`: System-level operations
+    -   `usr`: User management
+
+### Ansible Integration
+
+-   **Playbooks**: Located in `cfg/ans/` with `main.yml` as the primary entry point.
+-   **Variables**: Managed in `cfg/ans/vars.yml` for centralized configuration.
+-   **Modules**: Specialized Ansible modules in `cfg/ans/mods/` for specific tasks like keyboard configuration, KDE components, etc.
+-   **Usage**: Run playbooks using `ansible-playbook cfg/ans/main.yml` (adjust as needed).
 
 ### Container Management
--   Podman container definitions are in `cfg/pod/`.
--   Each subdirectory (e.g., `qdev`, `shus`) usually contains a `Containerfile` and a `readme.md`.
 
-### Libraries
--   The `lib/` directory contains a wealth of shell functions. These are typically sourced by the environment setup scripts.
-    -   `lib/core/err`: For error handling.
-    -   `lib/core/ver`: For version management.
-    -   `lib/dev/dbg`: For debugging shell scripts.
+-   **Definitions**: Podman container configurations in `cfg/pod/`.
+-   **Containers**:
+    -   `qdev`: Development environment container with accompanying scripts.
+    -   `shus`: Likely a service container with SMB configuration capabilities.
+-   **Documentation**: Each container directory includes a `readme.md` with usage instructions.
 
-## Configuration
+### Utility Libraries
 
--   Global and component-specific configurations are stored in the `cfg/` directory.
--   `cfg/core/`: Configurations for core functionalities.
--   `cfg/depl/site.env`: Likely contains environment variables for deployment scripts.
--   `cfg/ans/vars.yml`: Variables for Ansible playbooks.
--   Individual tools or modules may have their own configuration files within their respective subdirectories.
+-   **Alias Management**: The `lib/alias` directory provides utilities to create and manage:
+    -   Static aliases (`static`): Fixed command shortcuts
+    -   Dynamic aliases (`dynamic`): Contextually generated shortcuts
+    -   Alias wrappers (`wrap`): For wrapping commands with additional functionality
 
-## Testing
+-   **SSH Utilities**: SSH-related tools and functions in the `lib/ssh` directory.
 
--   Automated tests are written using the [BATS (Bash Automated Testing System)](https://github.com/bats-core/bats-core) framework.
--   Test files are located in the `test/` directory (e.g., `test/lib/dev/test_dbg.bats`).
--   Helper libraries for BATS (`bats-assert`, `bats-file`, `bats-support`) are included in `test/test_helper/`.
--   To run all tests, you might navigate to the `test/` directory and execute `bats .` or run specific test files like `bats test/lib/dev/test_dbg.bats`. (Consult BATS documentation for more detailed instructions on running tests).
+### Special Projects
 
-## Documentation
+-   **ACPI Management**: Scripts in `pro/acpi/` for power management:
+    -   `deploy.sh`: Deployment script for ACPI services
+    -   `disable-devices-as-wakeup.service`: Systemd service to control wake-up devices
+    -   `post-wake-usb-reset.service`: Service to handle USB devices after system wake
 
-Detailed documentation can be found in the `doc/` directory:
--   **Guidelines:** `doc/guideline/` - Contains coding standards, architectural principles, and other guidelines.
--   **Network Information:** `doc/network/` - Documentation related to network setup or concepts.
--   **Workarounds:** `doc/workaround/` - Solutions for specific issues encountered.
--   **Session Summaries:** `doc/session/` - Contains work session summaries, which might be useful for tracking progress or decisions.
+-   **File Replacement Tool**: Utility in `pro/replace/` for text substitution in files:
+    -   Configuration-driven using JSON format
+    -   Useful for templating and configuration management
 
-(Note: Previous links to `doc/architectural/` and `doc/unsorted/Domain-First Directory Architecture: Theoretical Framework.md` have been removed as these paths were not found in the current project structure.)
+## Configuration System
 
-## Contributing
+The configuration system is organized hierarchically:
 
-Please refer to the guidelines in `doc/guideline/` before contributing. (If a specific contribution guide exists, link it here).
+-   **Core Configurations** (`cfg/core/`):
+    -   `ric`: Runtime Initialization Constants, defining global variables and paths
+    -   `mdc`: Module Definition Constants
+    -   `rdc`: Runtime Definition Constants
+
+-   **Deployment Configurations** (`cfg/depl/`):
+    -   `site.env`: Environment variables for deployment scripts
+
+-   **Ansible Configuration** (`cfg/ans/`):
+    -   `vars.yml`: Centralized variables for all playbooks
+    -   Module-specific configurations in `mods/` subdirectory
+
+-   **Container Configurations** (`cfg/pod/`):
+    -   Each container has its own directory with Containerfiles and related scripts
+
+## Documentation Resources
+
+-   **User Manuals** (`doc/manual/`):
+    -   `initiation.md`: User interaction and configuration guide
+    -   `logging.md`: Logging system documentation
+    -   `structure.md`: This document explaining project organization
+
+-   **Network Documentation** (`doc/network/`):
+    -   Network architecture and configuration resources
+
+-   **Workarounds** (`doc/workaround/`):
+    -   Documented solutions for specific issues (e.g., `audioroot.md`)
+
+-   **Session Records** (`doc/session/`):
+    -   Chronological work session summaries and progress tracking
+
+-   **Guidelines** (`res/guideline/`):
+    -   Architectural principles and coding standards
+    -   Framework documentation and organizational guidelines
+
+## Getting Started
+
+1. Use the `entry.sh` symlink (or directly run `bin/env/inject`) to set up your shell environment.
+2. After environment setup and shell restart, the system is automatically initialized with each new shell session.
+3. Refer to `doc/manual/initiation.md` for detailed information on configuration options and runtime controls.
 
 ## License
-## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file in the project root for details.
