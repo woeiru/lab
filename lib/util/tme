@@ -80,7 +80,7 @@ init_timer() {
     # Initialize TME_SORT_ORDER_FILE_PATH with default if empty
     touch "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null
     if [[ ! -s "$TME_SORT_ORDER_FILE_PATH" ]]; then
-        echo "dura" > "$TME_SORT_ORDER_FILE_PATH"
+        echo "chron" > "$TME_SORT_ORDER_FILE_PATH" # Changed default to chron
     fi
 
     # Initialize TME_LEVELS_FILE with default if empty
@@ -417,7 +417,7 @@ print_timing_report() {
     if [[ -n "$TME_SORT_ORDER_FILE_PATH" && -f "$TME_SORT_ORDER_FILE_PATH" ]]; then
         sort_order_from_file=$(cat "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null)
     fi
-    sort_order="${sort_order_from_file:-dura}"
+    sort_order="${sort_order_from_file:-chron}" # Changed default to chron
 
     {
         printf "\n%s━ RC Performance Report%s\n" "$TME_BLUE" "$TME_NC"
