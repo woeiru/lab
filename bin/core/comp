@@ -18,6 +18,7 @@
 #   - execution_rc: Executes RC-specific setup functions.
 #   - source_env: Sources environment configuration files.
 #   - source_depl: Sources function library files.
+#   - source_aux: Sources auxiliary function files.
 #
 # Main Orchestration Function:
 #   - setup_components: Orchestrates the execution of all defined
@@ -182,6 +183,13 @@ source_depl() {
     return $?
 }
 
+# Source the aux function files
+source_aux() {
+    # Use LIB_AUX_DIR which is defined in ric
+    source_directory "$LIB_AUX_DIR" "*" "auxiliary function files"
+    return $?
+}
+
 # Execute RC-specific setup functions
 execution_rc() {
     log "lvl" "Starting ${FUNCNAME[0]}" | tee -a "$ERROR_LOG"
@@ -241,6 +249,7 @@ setup_components() {
         "execution_rc:EXEC:1"        # Required: Executes set_static, set_dynamic, set_aliaswrap
         "source_env:ENV:0"           # Optional
         "source_depl:DEPL:0"         # Optional
+        "source_aux:AUX:0"           # Optional (new)
     )
 
     log "lvl" "Executing component functions..." | tee -a "$ERROR_LOG"
