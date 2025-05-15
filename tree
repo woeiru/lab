@@ -18,8 +18,8 @@
 │   │   ├── mdc
 │   │   ├── rdc
 │   │   └── ric
-│   ├── depl
-│   │   └── site1.env
+│   ├── env
+│   │   └── site1
 │   └── pod
 │       ├── qdev
 │       │   ├── Containerfile
@@ -64,7 +64,7 @@
 │   │   └── src
 │   ├── core
 │   │   └── ver
-│   ├── depl
+│   ├── dep
 │   │   ├── gpu
 │   │   ├── net
 │   │   ├── pbs
@@ -106,7 +106,7 @@
 │           ├── dim1-dec-v2.md
 │           └── dim2-dec.md
 ├── src
-│   └── depl
+│   └── set
 │       ├── dsk
 │       ├── nfs
 │       ├── pbs

@@ -10,13 +10,13 @@ The project follows a domain-oriented architecture with these main directories:
     -   `init`: Main initialization script.
     -   `core/`: Core system components (e.g., `comp` - component orchestrator).
     -   `env/`: Environment setup scripts, including `inject` which configures shell environments.
--   `src/depl/`: Deployment scripts for various services (`dsk`, `nfs`, `pbs`, `pve`, `smb`).
+-   `src/set/`: Deployment scripts for various services (`dsk`, `nfs`, `pbs`, `pve`, `smb`).
 -   `cfg/`: Configuration files and definitions.
     -   `ans/`: Ansible playbooks and configurations.
         -   `main.yml`, `vars.yml`: Main playbook and variable definitions.
         -   `mods/`: Module-specific configurations (`askpass.yml`, `keyboard.yml`, `konsole.yml`, etc.).
     -   `core/`: Core configuration files (`mdc`, `rdc`, `ric` - runtime initialization constants).
-    -   `depl/`: Deployment-related configurations (e.g., `site1.env` with environment variables).
+    -   `env/`: Environment configuration files, including `site1.env`.
     -   `pod/`: Podman container configurations with `Containerfile`s and documentation.
 -   `doc/`: Documentation files.
     -   `manual/`: User and developer manuals (`initiation.md`, `logging.md`, `structure.md`).
@@ -29,7 +29,7 @@ The project follows a domain-oriented architecture with these main directories:
     -   `core/`: Core library functions (e.g., `ver` for version management).
     -   `ssh`: SSH-related utility functions.
     -   `util/`: General utilities (`err` for error handling, `lo1`/`lo2` for logging, `tme` for timing).
-    -   `depl/`: Source files for deployment modules (`gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
+    -   `dep/`: Source files for deployment modules (`gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
 -   `pro/`: Special projects and standalone utilities.
     -   `acpi/`: Scripts and services for ACPI event handling and power management.
     -   `replace/`: A utility for replacing text in files based on a JSON configuration.
@@ -59,9 +59,9 @@ The project follows a domain-oriented architecture with these main directories:
 
 ### Deployment System
 
--   **Scripts**: Located in `src/depl/` for deploying and managing various services.
--   **Configurations**: Found in `cfg/depl/`, including environment variables in `site1.env`.
--   **Source Modules**: Available in `lib/depl/` with specialized modules for different system areas:
+-   **Scripts**: Located in `src/set/` for deploying and managing various services.
+-   **Configurations**: Found in `cfg/env/`, including environment variables in `site1.env`.
+-   **Source Modules**: Available in `lib/dep/` with specialized modules for different system areas:
     -   `gpu`: GPU-related functionality
     -   `net`: Network configuration and management
     -   `pbs`: PBS (Portable Batch System) functionality
@@ -115,7 +115,7 @@ The configuration system is organized hierarchically:
     -   `mdc`: Module Definition Constants
     -   `rdc`: Runtime Definition Constants
 
--   **Deployment Configurations** (`cfg/depl/`):
+-   **Deployment Configurations** (`cfg/env/`):
     -   `site1.env`: Environment variables for deployment scripts
 
 -   **Ansible Configuration** (`cfg/ans/`):
