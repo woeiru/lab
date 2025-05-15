@@ -46,7 +46,7 @@ fi
 #   5. Manages shell restart for changes to take effect
 #
 # Usage:
-#   ./inject [-y] [-u|--user USER] [-c|--config FILE]
+#   ./rc [-y] [-u|--user USER] [-c|--config FILE]
 #
 #######################################################################
 
@@ -63,7 +63,7 @@ readonly BIN_DIR="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
 
 # Default configuration
 readonly DEFAULT_CONFIG_FILES=(".zshrc" ".bashrc")
-readonly INJECT_MARKER_START="# === BEGIN MANAGED BLOCK: Shell Configuration [source: $(basename "$0")] ==="
+readonly INJECT_MARKER_START="# === BEGIN MANAGED BLOCK: Shell Configuration [source: rc] ==="
 readonly INJECT_MARKER_END="# === END MANAGED BLOCK: Shell Configuration ==="
 readonly FILEPATH="init"
 

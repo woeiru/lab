@@ -8,7 +8,7 @@ A lightweight shell environment management system for Bash (4+) and Zsh (5+).
 ./entry.sh
 ```
 
-This symlink runs `bin/env/inject`, which:
+This symlink runs `bin/env/rc`, which:
 
 1. Checks shell compatibility
 2. Modifies your shell configuration (`.bashrc` or `.zshrc`)
@@ -22,7 +22,7 @@ For detailed information on configuration options and runtime controls, see:
 
 ## Command Line Options
 
-The `entry.sh` script (or `bin/env/inject`) supports these options:
+The `entry.sh` script (or `bin/env/rc`) supports these options:
 ```
 -y          Non-interactive mode
 -u USER     Specify target user
