@@ -84,10 +84,15 @@ declare -g SITE_CONFIG_FILE
 SITE_CONFIG_FILE="${ENV_CONFIG_DIR}/site1.env"
 export SITE_CONFIG_FILE
 
-# Deployment function ibrary path
+# Deployment function library path
 declare -g DEPL_DIR
 DEPL_DIR="${LAB_DIR}/lib/depl" # Corrected path
 export DEPL_DIR
+
+# Deployment function library path
+declare -g LIB_AUX_DIR
+LIB_AUX_DIR="${LAB_DIR}/lib/aux" # Corrected path
+export LIB_AUX_DIR
 
 # Runtime configuration
 declare -g CACHE_CLEANUP_INTERVAL
