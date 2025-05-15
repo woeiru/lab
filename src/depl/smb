@@ -5,7 +5,7 @@ DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
 
-# Source .up which provides logging and other core functionality
+# Source aux file which provides logging and other core functionality
 source "$LAB_DIR/lib/aux/bin"
 
 # Declare MENU_OPTIONS
