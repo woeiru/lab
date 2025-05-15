@@ -29,14 +29,13 @@ The project follows a domain-oriented architecture with these main directories:
     -   `core/`: Core library functions (e.g., `ver` for version management).
     -   `ssh`: SSH-related utility functions.
     -   `util/`: General utilities (`err` for error handling, `lo1`/`lo2` for logging, `tme` for timing).
+    -   `depl/`: Source files for deployment modules (`gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
 -   `pro/`: Special projects and standalone utilities.
     -   `acpi/`: Scripts and services for ACPI event handling and power management.
     -   `replace/`: A utility for replacing text in files based on a JSON configuration.
 -   `res/`: Resource files and templates.
     -   `guideline/`: Project guidelines, coding standards, and architectural principles.
     -   `prompt/`: Templates for AI interactions and code generation.
--   `src/`: Source code for larger components and deployment modules.
-    -   `depl/`: Source files for deployment modules (`gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
 -   `entry.sh`: Root-level symlink to `bin/env/inject` for easy environment setup.
 -   `README.md`: Main project documentation and quick start guide.
 
@@ -62,7 +61,7 @@ The project follows a domain-oriented architecture with these main directories:
 
 -   **Scripts**: Located in `bin/depl/` for deploying and managing various services.
 -   **Configurations**: Found in `cfg/depl/`, including environment variables in `site.env`.
--   **Source Modules**: Available in `src/depl/` with specialized modules for different system areas:
+-   **Source Modules**: Available in `lib/depl/` with specialized modules for different system areas:
     -   `gpu`: GPU-related functionality
     -   `net`: Network configuration and management
     -   `pbs`: PBS (Portable Batch System) functionality
