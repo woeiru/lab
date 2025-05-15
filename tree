@@ -1,0 +1,117 @@
+.
+├── bin
+│   ├── core
+│   │   └── comp
+│   ├── depl
+│   │   ├── dsk
+│   │   ├── nfs
+│   │   ├── pbs
+│   │   ├── pve
+│   │   └── smb
+│   ├── env
+│   │   └── inject
+│   ├── init
+│   ├── silent_init
+│   └── verbose_init
+├── cfg
+│   ├── ans
+│   │   ├── main.yml
+│   │   ├── mods
+│   │   │   ├── askpass.yml
+│   │   │   ├── keyboard.yml
+│   │   │   ├── konsole.yml
+│   │   │   └── kwallet.yml
+│   │   └── vars.yml
+│   ├── core
+│   │   ├── mdc
+│   │   ├── rdc
+│   │   └── ric
+│   ├── depl
+│   │   └── site.env
+│   └── pod
+│       ├── qdev
+│       │   ├── Containerfile
+│       │   ├── readme.md
+│       │   └── startcqd.sh
+│       ├── readme.md
+│       └── shus
+│           ├── Containerfile
+│           ├── entrypoint.sh
+│           ├── readme.md
+│           └── smb.conf.template
+├── doc
+│   ├── manual
+│   │   ├── initiation.md
+│   │   ├── logging.md
+│   │   └── structure.md
+│   ├── network
+│   │   ├── ntcoll-1.md
+│   │   └── ntcoll-2.md
+│   ├── session
+│   │   ├── 2025-05-13-0000_summary.md
+│   │   ├── 2025-05-13-0105_summary.md
+│   │   ├── 2025-05-13-0122_summary.md
+│   │   ├── 2025-05-13-0220_summary.md
+│   │   ├── 2025-05-13-0235_summary.md
+│   │   ├── 2025-05-13-0330_summary.md
+│   │   ├── 2025-05-13-2310_summary.md
+│   │   ├── 2025-05-14-0520_summary.md
+│   │   └── 2025-05-14-0521_outlook.md
+│   └── workaround
+│       └── audioroot.md
+├── entry.sh -> bin/env/inject
+├── lib
+│   ├── alias
+│   │   ├── dynamic
+│   │   ├── static
+│   │   └── wrap
+│   ├── aux
+│   │   ├── bin
+│   │   └── src
+│   ├── core
+│   │   └── ver
+│   ├── ssh
+│   └── util
+│       ├── err
+│       ├── lo1
+│       ├── lo2
+│       └── tme
+├── pro
+│   ├── acpi
+│   │   ├── deploy.sh
+│   │   ├── disable-devices-as-wakeup.service
+│   │   ├── disable-devices-as-wakeup.sh
+│   │   ├── post-wake-usb-reset.service
+│   │   ├── post-wake-usb-reset.sh
+│   │   └── readme.md
+│   └── replace
+│       ├── readme.md
+│       ├── replace.json
+│       ├── replace.sh
+│       └── track
+├── README.md
+├── res
+│   ├── guideline
+│   │   ├── dim1.md
+│   │   ├── dim2.md
+│   │   ├── framework.md
+│   │   └── portable.md
+│   └── prompt
+│       ├── meta01.md
+│       └── template
+│           ├── dim1-dec.md
+│           ├── dim1-dec-v2.md
+│           └── dim2-dec.md
+├── src
+│   └── depl
+│       ├── gpu
+│       ├── net
+│       ├── pbs
+│       ├── pve
+│       ├── srv
+│       ├── sto
+│       ├── sys
+│       └── usr
+└── tree
+
+32 directories, 83 files
