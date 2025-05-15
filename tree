@@ -4,9 +4,7 @@
 │   │   └── comp
 │   ├── env
 │   │   └── inject
-│   ├── init
-│   ├── silent_init
-│   └── verbose_init
+│   └── init
 ├── cfg
 │   ├── ans
 │   │   ├── main.yml
@@ -108,6 +106,7 @@
 │           ├── dim1-dec-v2.md
 │           └── dim2-dec.md
 ├── src
+│   ├── aux
 │   └── depl
 │       ├── dsk
 │       ├── nfs
@@ -116,4 +115,4 @@
 │       └── smb
 └── tree
 
-32 directories, 85 files
+33 directories, 83 files

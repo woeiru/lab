@@ -9,8 +9,8 @@ The project follows a domain-oriented architecture with these main directories:
 -   `bin/`: Executable scripts and entry points.
     -   `init`: Main initialization script.
     -   `core/`: Core system components (e.g., `comp` - component orchestrator).
-    -   `depl/`: Deployment scripts for various services (`dsk`, `nfs`, `pbs`, `pve`, `smb`).
     -   `env/`: Environment setup scripts, including `inject` which configures shell environments.
+-   `src/depl/`: Deployment scripts for various services (`dsk`, `nfs`, `pbs`, `pve`, `smb`).
 -   `cfg/`: Configuration files and definitions.
     -   `ans/`: Ansible playbooks and configurations.
         -   `main.yml`, `vars.yml`: Main playbook and variable definitions.
@@ -59,7 +59,7 @@ The project follows a domain-oriented architecture with these main directories:
 
 ### Deployment System
 
--   **Scripts**: Located in `bin/depl/` for deploying and managing various services.
+-   **Scripts**: Located in `src/depl/` for deploying and managing various services.
 -   **Configurations**: Found in `cfg/depl/`, including environment variables in `site1.env`.
 -   **Source Modules**: Available in `lib/depl/` with specialized modules for different system areas:
     -   `gpu`: GPU-related functionality
