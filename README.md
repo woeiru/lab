@@ -20,13 +20,6 @@ This symlink runs `bin/env/inject`, which:
 For detailed information on configuration options and runtime controls, see:
 - [User Interaction and Configuration Guide](doc/manual/initiation.md)
 
-## Advanced Usage
-
-The environment provides multiple initialization variants:
-- `bin/init`: Standard initialization
-- `bin/silent_init`: Minimal output for scripting
-- `bin/verbose_init`: Detailed output for troubleshooting
-
 ## Command Line Options
 
 The `entry.sh` script (or `bin/env/inject`) supports these options:
