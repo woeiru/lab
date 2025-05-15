@@ -9,7 +9,7 @@ The project follows a domain-oriented architecture with these main directories:
 -   `bin/`: Executable scripts and entry points.
     -   `init`: Main initialization script.
     -   `core/`: Core system components (e.g., `comp` - component orchestrator).
-    -   `env/`: Environment setup scripts, including `inject` which configures shell environments.
+    -   `env/`: Environment setup scripts, including `rc` which configures shell environments.
 -   `src/set/`: Deployment scripts for various services (`dsk`, `nfs`, `pbs`, `pve`, `smb`).
 -   `cfg/`: Configuration files and definitions.
     -   `ans/`: Ansible playbooks and configurations.
@@ -36,15 +36,15 @@ The project follows a domain-oriented architecture with these main directories:
 -   `res/`: Resource files and templates.
     -   `guideline/`: Project guidelines, coding standards, and architectural principles.
     -   `prompt/`: Templates for AI interactions and code generation.
--   `entry.sh`: Root-level symlink to `bin/env/inject` for easy environment setup.
+-   `entry.sh`: Root-level symlink to `bin/env/rc` for easy environment setup.
 -   `README.md`: Main project documentation and quick start guide.
 
 ## Key Components & Usage
 
 ### Environment Setup and Initialization
 
--   **`entry.sh`**: A symlink to `bin/env/inject` for easy access to the environment setup utility.
--   **`bin/env/inject`**: The primary script that configures shell environments by injecting initialization code into shell config files (`.bashrc` or `.zshrc`).
+-   **`entry.sh`**: A symlink to `bin/env/rc` for easy access to the environment setup utility.
+-   **`bin/env/rc`**: The primary script that configures shell environments by injecting initialization code into shell config files (`.bashrc` or `.zshrc`).
     -   Supports both interactive and non-interactive modes.
     -   Creates non-destructive and reversible modifications to shell configuration files.
     -   Takes command-line options `-y` (non-interactive), `-u`/`--user` (target user), and `-c`/`--config` (config file).
@@ -147,9 +147,9 @@ The configuration system is organized hierarchically:
 
 ## Getting Started
 
-1. Use the `entry.sh` symlink (or directly run `bin/env/inject`) to set up your shell environment.
-2. After environment setup and shell restart, the system is automatically initialized with each new shell session.
-3. Refer to `doc/manual/initiation.md` for detailed information on configuration options and runtime controls.
+1. Use the `entry.sh` symlink (or directly run `bin/env/rc`) to set up your shell environment.
+2. Open a new shell or source your updated shell configuration file (e.g., `source ~/.bashrc`).
+3. The Lab Environment core modules (`err`, `lo1`, `lo2`, `tme`) will be available.
 
 ## License
 
