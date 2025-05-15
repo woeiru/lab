@@ -1,4 +1,27 @@
 #!/bin/bash
+# ----------------------------------------------------------------------
+# Functions:
+#   a_xall: Disables enterprise repository, adds community repository, and 
+#           removes subscription notice from Proxmox web interface.
+#   b_xall: Installs required system packages including corosync-qdevice 
+#           for cluster management.
+#   c_xall: Uploads public SSH key from USB device and adds it to the 
+#           authorized keys for secure remote access.
+#   d_xall: Generates and distributes SSH keys for secure communication 
+#           between client and server nodes.
+#   i_xall: Creates a RAID 1 Btrfs filesystem across two devices with 
+#           the specified mount point.
+#   j_xall: Creates and configures multiple ZFS datasets with their 
+#           respective mount points based on configuration.
+#   p_xall: Updates container template list, downloads specified template, 
+#           and updates container configuration.
+#   q_xall: Creates multiple Proxmox containers using configuration 
+#           parameters from site.conf.
+#   r_xall: Configures bind mounts for all defined containers to link 
+#           host and container directories.
+#   s_xall: Creates multiple virtual machines using the specifications 
+#           defined in site.conf.
+# ----------------------------------------------------------------------
 
 # Define script location
 DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"

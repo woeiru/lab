@@ -1,4 +1,10 @@
 #!/bin/bash
+# ----------------------------------------------------------------------
+# Functions:
+#   a_xall: Installs common system packages and configures global Git user credentials.
+#   b_xall: Configures global Git user credentials.
+#   c_xall: Uploads private SSH key from USB device to system for secure authentication.
+# ----------------------------------------------------------------------
 
 declare -g -a PACKAGES_ALL
 
