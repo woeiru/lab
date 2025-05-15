@@ -21,6 +21,12 @@
 # -----------------------------------------------------------------------------
 
 
+# Generation directory for gen scripts
+# This matches the convention for DEPL_DIR and LIB_AUX_DIR
+declare -g GEN_DIR
+GEN_DIR="${LAB_DIR}/src/depl"
+export GEN_DIR
+
 # Level 1 directories
 declare -g LAB_DIR ALA_DIR BAS_DIR CON_DIR DIC_DIR
 LAB_DIR="${LAB_DIR:-/home/es/lab}"
