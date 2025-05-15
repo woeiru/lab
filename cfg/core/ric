@@ -91,9 +91,9 @@ LIB_AUX_DIR="${LAB_DIR}/lib/aux"
 export LIB_AUX_DIR
 
 # Generation directory for gen scripts
-declare -g SRC_DEPL_DIR
-SRC_DEPL_DIR="${LAB_DIR}/src/depl"
-export SRC_DEPL_DIR
+declare -g SRC_SET_DIR
+SRC_SET_DIR="${LAB_DIR}/src/set"
+export SRC_SET_DIR
 
 # Runtime configuration
 declare -g CACHE_CLEANUP_INTERVAL
@@ -102,7 +102,7 @@ export CACHE_CLEANUP_INTERVAL
 
 # Generation folders
 declare -ga GENERATION_FOLDERS
-GENERATION_FOLDERS=(lib/depl cfg/env src/depl)
+GENERATION_FOLDERS=(lib/depl cfg/env src/set)
 export GENERATION_FOLDERS
 
 # Flag to indicate constants are loaded
