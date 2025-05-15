@@ -32,7 +32,7 @@
 #
 # Dependencies:
 #   - Relies on a specific project structure for sourcing environment and
-#     function files (e.g., ../fun, ../env relative to the script's dir).
+#     function files (e.g., ../depl, ../env relative to the script's dir).
 #   - Assumes scripts using this framework define sections as functions
 #     ending with "_xall()".
 # ==============================================================================
@@ -52,7 +52,7 @@ setup_source() {
 
     # Calculate lab root by going up one directory from the script location
     local lab_root="$(dirname "$dir")"
-    local fun_dir="$lab_root/fun"
+    local fun_dir="$lab_root/depl"  # CHANGED from fun to depl
     local env_dir="$lab_root/env"
 
     printf "\n"
@@ -70,7 +70,7 @@ setup_source() {
             fi
         done
 
-        # Source all files in fun directory
+        # Source all files in depl directory (was fun)
         printf "%s┃ Sourcing function files from: %s\n" "$base_indent" "$fun_dir"
         for func_file in "$fun_dir"/*; do
             if [[ -f "$func_file" ]]; then
