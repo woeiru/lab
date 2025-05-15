@@ -364,6 +364,7 @@ settme() {
                 echo "dura" > "$effective_sort_order_file_path"
                 printf "Timer output sort order set to duration (descending).\n"
             else
+                printf "\n" # Add a newline before the usage message
                 printf "Usage: settme sort [chron|dura]\n"
                 return 1
             fi
@@ -384,6 +385,7 @@ settme() {
             fi
             ;;
         *)
+            printf "\n" # Add a newline before the usage message
             printf "Usage: settme [sort chron|sort dura|depth <N>]\n"
             return 1
             ;;
