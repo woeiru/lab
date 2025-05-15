@@ -8,7 +8,7 @@ This document provides an analysis of the log files found in the `.log` director
     *   **Purpose**: Records detailed debugging information during script execution. It's used by the `debug_log` function, which is present in both `/home/es/lab/bin/init` (a simpler version for early initialization) and `/home/es/lab/lib/core/ver` (a more robust version).
     *   **Writing Functions**:
         *   `debug_log` (in `bin/init` and `lib/core/ver`)
-    *   **Details**: This log captures timestamps, source functions, and messages. Its verbosity is controlled by the `DEBUG_VERBOSITY` environment variable. The `verify_path` and `verify_var` functions in `lib/core/ver` extensively use `debug_log` to record their actions. It should primarily contain messages from the core system and modules that do not have their own dedicated debug logs.
+    *   **Details**: This log captures timestamps, source functions, and messages. The `verify_path` and `verify_var` functions in `lib/core/ver` extensively use `debug_log` to record their actions. It should primarily contain messages from the core system and modules that do not have their own dedicated debug logs.
 
 *   **`err.log`**:
     *   **Purpose**: Stores error messages encountered during script execution. It's the primary destination for error output.
@@ -64,7 +64,7 @@ These are not traditional log files but rather state files used by the logging a
     *   **Purpose**: Controlled by the `TME_LEVELS_FILE` variable (defined in `cfg/core/ric`). It's used by the `tme` module to determine the maximum depth of the component timing tree to display in the `print_timing_report`.
     *   **Writing Functions**:
         *   `settme` (in `lib/util/tme`): Allows the user to set the desired depth level (1-9) or turn timing on/off.
-    *   **Details**: Affects the verbosity of the timing report.
+    *   **Details**: Controls the depth of the timing report output.
 
 *   **`tme_state`**:
     *   **Purpose**: Controlled by the `TME_STATE_FILE` variable (defined in `cfg/core/ric`). This file determines if the `tme` module's timing report output is enabled or disabled.
