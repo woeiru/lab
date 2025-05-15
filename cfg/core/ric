@@ -81,9 +81,9 @@ SITE_CONFIG_FILE="${CFG_ENV_DIR}/site1.env"
 export SITE_CONFIG_FILE
 
 # Deployment function library path
-declare -g LIB_DEPL_DIR
-LIB_DEPL_DIR="${LAB_DIR}/lib/depl"
-export LIB_DEPL_DIR
+declare -g LIB_DEP_DIR
+LIB_DEP_DIR="${LAB_DIR}/lib/dep"
+export LIB_DEP_DIR
 
 # Deployment function library path
 declare -g LIB_AUX_DIR
