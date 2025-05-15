@@ -6,23 +6,6 @@ This document outlines the various ways users can interact with and configure th
 
 These variables are typically set in your shell environment *before* executing the main initialization script (e.g., `bin/init`).
 
-### `DEBUG_VERBOSITY`
-*   **Purpose**: Controls the verbosity level of debug messages during the initial system startup and within certain core modules like `ver` (verification).
-*   **Modules Affected**: `bin/init`, `lib/core/ver`
-*   **Usage**: Set this variable to one of the following numeric values:
-    *   `0`: Minimal logging.
-    *   `1`: Standard logging (often the default).
-    *   `2`: Verbose logging.
-*   **Example**:
-    ```bash
-    DEBUG_VERBOSITY=2 ./bin/init
-    ```
-    Or, export it for the session:
-    ```bash
-    export DEBUG_VERBOSITY=2
-    ./bin/init
-    ```
-
 ### `LOG_DEBUG_ENABLED` (for `lo1` module)
 *   **Purpose**: Specifically enables or disables the `lo1_debug_log` messages from the advanced logging module `lo1`.
 *   **Module Affected**: `lib/util/lo1`

@@ -10,7 +10,7 @@
 #              variables, modules, and function dependencies. It includes a debug
 #              logging helper.
 #
-# Dependencies: Relies on 'ric' for LOG_DEBUG_FILE, BASE_DIR, DEBUG_VERBOSITY, CONS_LOADED.
+# Dependencies: Relies on 'ric' for LOG_DEBUG_FILE, BASE_DIR, CONS_LOADED.
 #               Uses 'mdc' for MODULE_VARS, MODULE_PATHS (via init_module_requirements).
 #               Uses 'rdc' for FUNCTION_DEPENDENCIES.
 #
@@ -24,10 +24,10 @@
 #              It provides the essential verification functions needed to bootstrap
 #              the rest of the module loading system, which is why it is not
 #              defined within `cfg/core/mdc` itself.
-#              The `debug_log` function provides verbose logging controlled by
-#              DEBUG_VERBOSITY. `essential_check` verifies critical system variables
-#              and paths. Assumes `init_module_requirements` (from mdc) is made
-#              available by the main `init` script prior to `verify_module` calls.
+#              The `debug_log` function provides verbose logging. `essential_check`
+#              verifies critical system variables and paths. Assumes `init_module_requirements`
+#              (from mdc) is made available by the main `init` script prior to
+#              `verify_module` calls.
 # -----------------------------------------------------------------------------
 #
 # Debug logging helper - uses existing LOG_DEBUG_FILE from ruc
@@ -36,9 +36,6 @@ debug_log() {
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
     local level="${3:-1}" # Default verbosity level if not provided by caller
-    
-    # Ensure DEBUG_VERBOSITY is available, defaulting to 1 if not set (though init should set it)
-    local current_verbosity=${DEBUG_VERBOSITY:-1}
 
     # Default log file if not set
     local LOG_DEBUG_FILE="${LOG_DEBUG_FILE:-${BASE_DIR}/.log/debug.log}"
@@ -49,11 +46,8 @@ debug_log() {
     # Format for file logging remains unchanged or can be adjusted if needed
     echo "[DEBUG] $(date '+%Y-%m-%d %H:%M:%S') - [$source] $message" >> "$LOG_DEBUG_FILE"
 
-    # Only output to stderr if verbosity level is sufficient
-    if (( current_verbosity >= level )); then
-        # New format for stderr
-        echo "    └─ $message [$timestamp]" >&2
-    fi
+    # Output to stderr
+    echo "    └─ $message [$timestamp]" >&2
 }
 
 ###########################################
@@ -64,12 +58,11 @@ verify_path() {
     local path="$1"
     local type="$2"
     local create="${3:-false}"
-    local verbosity="${4:-2}" # Default verbosity level of 2
 
-    debug_log "Verifying path: $path (type: $type, create: $create)" "verify_path" $verbosity
+    debug_log "Verifying path: $path (type: $type, create: $create)" "verify_path"
 
     [[ -z "$path" ]] && {
-        (( DEBUG_VERBOSITY >= 1 )) && echo "Empty path provided" >&2
+        echo "Empty path provided" >&2
         return 1
     }
 
@@ -118,13 +111,11 @@ verify_path() {
 verify_var() {
     local var_name="$1"
     local var_value="${!var_name}"
-    local verbosity="${2:-2}" # Default verbosity level of 2
 
-    debug_log "Verifying variable: $var_name" "verify_var" $verbosity
+    debug_log "Verifying variable: $var_name" "verify_var"
 
     if [[ -z "$var_value" ]]; then
-        # Only show error at standard verbosity level
-        (( DEBUG_VERBOSITY >= 1 )) && echo "Variable '$var_name' is empty or undefined" >&2
+        echo "Variable '$var_name' is empty or undefined" >&2
         return 1
     fi
 
@@ -164,7 +155,7 @@ essential_check() {
 
 verify_module() {
     local module="$1"
-    debug_log "Verifying module: $module" "verify_module" 2
+    debug_log "Verifying module: $module" "verify_module"
 
     # Initialize requirements if not already done
     if [[ -z "${MODULE_VARS[*]}" ]]; then
@@ -228,12 +219,12 @@ validate_module() {
 
 verify_function_dependencies() {
     local func_name="$1"
-    debug_log "Verifying function dependencies: $func_name" "verify_function_dependencies" 2
+    debug_log "Verifying function dependencies: $func_name" "verify_function_dependencies"
 
     # Get required modules for this function
     local modules="${FUNCTION_DEPENDENCIES[$func_name]}"
     [[ -z "$modules" ]] && {
-        debug_log "No dependencies found for function: $func_name" "verify_function_dependencies" 1
+        debug_log "No dependencies found for function: $func_name" "verify_function_dependencies"
         return 1
     }
 
@@ -242,7 +233,7 @@ verify_function_dependencies() {
 
     for module in "${MODULE_ARRAY[@]}"; do
         if ! verify_module "$module" 2>/dev/null; then
-            debug_log "ERROR: Required module '$module' not verified for function '$func_name'" "verify_function_dependencies" 1
+            debug_log "ERROR: Required module '$module' not verified for function '$func_name'" "verify_function_dependencies"
             ((failed++))
         fi
     done
@@ -253,17 +244,16 @@ verify_function_dependencies() {
 verify_function() {
     local func_name="$1"
     local module_path="$2"
-    local verbosity="${3:-2}" # Default verbosity level of 2
 
-    debug_log "Verifying function existence: $func_name in $module_path" "verify_function" $verbosity
+    debug_log "Verifying function existence: $func_name in $module_path" "verify_function"
 
     if [[ ! -f "$module_path" ]]; then
-        debug_log "ERROR: Module file not found: $module_path" "verify_function" 1
+        debug_log "ERROR: Module file not found: $module_path" "verify_function"
         return 1
     fi
 
     if ! grep -q "^[[:space:]]*$func_name[[:space:]]*(" "$module_path"; then
-        debug_log "ERROR: Function $func_name not found in $module_path" "verify_function" 2
+        debug_log "ERROR: Function $func_name not found in $module_path" "verify_function"
         return 1
     fi
 
