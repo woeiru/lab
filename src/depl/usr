@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# ============================================================================
+# usr - Function Summary
+#
+#   usr-fun : Shows a summary of selected functions in the script.
+#   usr-var : Displays an overview of specific variables defined in the configuration file.
+#   usr-ckp : Changes the Konsole profile for the current user.
+#   usr-vsf : Prompts the user to select a file from the current directory.
+#   usr-cff : Counts files in directories based on specified visibility.
+#   usr-duc : Compares data usage between two paths up to a specified depth.
+#   usr-cif : Concatenates and displays the contents of all files within a folder.
+#   usr-rsf : Replaces strings in files within a folder (and subfolders), stages git changes if applicable.
+#   usr-rsd : Performs an rsync operation from a source to a destination path with confirmation.
+#   usr-swt : Schedules a system wake-up using rtcwake.
+#   usr-adr : Adds a specific line to a target file if not already present.
+#   usr-cuc : Updates the container template reference in Proxmox configuration.
+#   usr-cap : Appends a line to a file if it does not already exist.
+#   usr-rif : Replaces all occurrences of a string in files within a given folder (dry run, recursive, interactive options).
+#
+# ============================================================================
+
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")

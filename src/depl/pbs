@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# ============================================================================
+# pbs - Function Summary
+#
+#   pbs-fun : Shows a summary of selected functions in the script.
+#   pbs-var : Displays an overview of specific variables defined in the configuration file.
+#   pbs-dav : Downloads Proxmox GPG key and verifies checksums.
+#   pbs-adr : Adds Proxmox repository to sources.list.
+#   pbs-rda : Restores datastore configuration file.
+#   pbs-mon : Monitors and displays various aspects of the Proxmox Backup Server.
+#
+# ============================================================================
+
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
