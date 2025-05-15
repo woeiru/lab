@@ -16,7 +16,7 @@ The project follows a domain-oriented architecture with these main directories:
         -   `main.yml`, `vars.yml`: Main playbook and variable definitions.
         -   `mods/`: Module-specific configurations (`askpass.yml`, `keyboard.yml`, `konsole.yml`, etc.).
     -   `core/`: Core configuration files (`mdc`, `rdc`, `ric` - runtime initialization constants).
-    -   `depl/`: Deployment-related configurations (e.g., `site.env` with environment variables).
+    -   `depl/`: Deployment-related configurations (e.g., `site1.env` with environment variables).
     -   `pod/`: Podman container configurations with `Containerfile`s and documentation.
 -   `doc/`: Documentation files.
     -   `manual/`: User and developer manuals (`initiation.md`, `logging.md`, `structure.md`).
@@ -60,7 +60,7 @@ The project follows a domain-oriented architecture with these main directories:
 ### Deployment System
 
 -   **Scripts**: Located in `bin/depl/` for deploying and managing various services.
--   **Configurations**: Found in `cfg/depl/`, including environment variables in `site.env`.
+-   **Configurations**: Found in `cfg/depl/`, including environment variables in `site1.env`.
 -   **Source Modules**: Available in `lib/depl/` with specialized modules for different system areas:
     -   `gpu`: GPU-related functionality
     -   `net`: Network configuration and management
@@ -116,7 +116,7 @@ The configuration system is organized hierarchically:
     -   `rdc`: Runtime Definition Constants
 
 -   **Deployment Configurations** (`cfg/depl/`):
-    -   `site.env`: Environment variables for deployment scripts
+    -   `site1.env`: Environment variables for deployment scripts
 
 -   **Ansible Configuration** (`cfg/ans/`):
     -   `vars.yml`: Centralized variables for all playbooks
