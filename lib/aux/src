@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# ============================================================================
+# aux/src - Function Summary
+#
+#   aux-fun      : Shows a summary of selected functions in the script, displaying their usage, shortname, and description.
+#   aux-var      : Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files.
+#   aux-log      : Logging function. Prints a timestamped log message with a log level.
+#   aux-ffl      : Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed.
+#   aux-laf      : Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability.
+#   aux-acu      : Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files.
+#
+# ============================================================================
+
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
