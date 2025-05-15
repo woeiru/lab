@@ -267,9 +267,9 @@ set_dynamic() {
     end_nested_timing "fun_aliases" "success"
 
     start_nested_timing "gem_aliases"
-    generate_aliases "cat" "$GEN_DIR" "${gen_files[@]}"
-    generate_aliases "vim" "$GEN_DIR" "${gen_files[@]}"
-    generate_aliases "bash" "$GEN_DIR" "${gen_files[@]}"
+    generate_aliases "cat" "$SRC_DEPL_DIR" "${gen_files[@]}"
+    generate_aliases "vim" "$SRC_DEPL_DIR" "${gen_files[@]}"
+    generate_aliases "bash" "$SRC_DEPL_DIR" "${gen_files[@]}"
     end_nested_timing "gem_aliases" "success"
 
     end_nested_timing "alias_processing" "success"
