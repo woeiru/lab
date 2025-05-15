@@ -22,7 +22,7 @@
 
 
 # Generation directory for gen scripts
-# This matches the convention for DEPL_DIR and LIB_AUX_DIR
+# This matches the convention for LIB_DEPL_DIR and LIB_AUX_DIR
 declare -g GEN_DIR
 GEN_DIR="${LAB_DIR}/src/depl"
 export GEN_DIR
@@ -91,9 +91,9 @@ SITE_CONFIG_FILE="${ENV_CONFIG_DIR}/site1.env"
 export SITE_CONFIG_FILE
 
 # Deployment function library path
-declare -g DEPL_DIR
-DEPL_DIR="${LAB_DIR}/lib/depl" # Corrected path
-export DEPL_DIR
+declare -g LIB_DEPL_DIR
+LIB_DEPL_DIR="${LAB_DIR}/lib/depl" # Corrected path
+export LIB_DEPL_DIR
 
 # Deployment function library path
 declare -g LIB_AUX_DIR
