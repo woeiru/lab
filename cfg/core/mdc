@@ -63,7 +63,6 @@ debug_log "Initializing module requirements"
     MODULE_VARS[tme.TME_LOG_FILE]=1
     MODULE_VARS[tme.LOG_DIR]=1
 
-    MODULE_PATHS[tme.TME_LOG_FILE]="file:true"
     MODULE_PATHS[tme.TME_STATE_FILE]="file:true"
     MODULE_PATHS[tme.TME_LEVELS_FILE]="file:true"
     MODULE_PATHS[tme.LOG_DIR]="dir:true"

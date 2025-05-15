@@ -60,21 +60,65 @@ readonly TME_NC=$(printf '\033[0m')
 # Initialize timer system with optional log file
 init_timer() {
     local log_dir="${1:-$TME_LOG_DIR}"
-    TME_LOG_FILE="${log_dir}/tme.log" # Changed filename to tme.log
-    TME_SORT_ORDER_FILE_PATH="${log_dir}/tme_sort_order.cfg" # Define sort order file path
-    # Clear the log file
+
+    # Ensure log_dir is set, fallback to a default if necessary
+    if [[ -z "$log_dir" ]]; then
+        if [[ -n "$BASE_DIR" ]]; then
+            log_dir="${BASE_DIR}/.log"
+        else
+            log_dir="./.log"
+        fi
+    fi
+    mkdir -p "$log_dir" 2>/dev/null # Ensure log_dir exists
+
+    TME_LOG_FILE="${log_dir}/tme.log"
+    TME_SORT_ORDER_FILE_PATH="${log_dir}/tme_sort_order.cfg"
+
+    # Initialize TME_LOG_FILE (create/clear)
     > "$TME_LOG_FILE"
+
+    # Initialize TME_SORT_ORDER_FILE_PATH with default if empty
+    touch "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null
+    if [[ ! -s "$TME_SORT_ORDER_FILE_PATH" ]]; then
+        echo "dura" > "$TME_SORT_ORDER_FILE_PATH"
+    fi
+
+    # Initialize TME_LEVELS_FILE with default if empty
+    if [[ -n "$TMP_DIR" && -n "$TME_LEVELS_FILE" ]]; then
+        mkdir -p "$TMP_DIR" 2>/dev/null
+        touch "$TME_LEVELS_FILE" 2>/dev/null
+        if [[ ! -s "$TME_LEVELS_FILE" ]]; then
+            echo "9" > "$TME_LEVELS_FILE"
+        fi
+    elif [[ -z "$TMP_DIR" ]]; then
+        printf "Warning: TMP_DIR not set. TME_LEVELS_FILE (%s) might not be initialized properly.\n" "$TME_LEVELS_FILE" >&2
+    elif [[ -z "$TME_LEVELS_FILE" ]]; then
+        printf "Warning: TME_LEVELS_FILE variable not set. Cannot initialize default depth.\n" >&2
+    fi
+
+    # Initialize TME_STATE_FILE with default if empty
+    if [[ -n "$TMP_DIR" && -n "$TME_STATE_FILE" ]]; then
+        mkdir -p "$TMP_DIR" 2>/dev/null
+        touch "$TME_STATE_FILE" 2>/dev/null
+        if [[ ! -s "$TME_STATE_FILE" ]]; then
+            echo "true" > "$TME_STATE_FILE"
+        fi
+    elif [[ -z "$TMP_DIR" ]]; then
+        printf "Warning: TMP_DIR not set. TME_STATE_FILE (%s) might not be initialized properly.\n" "$TME_STATE_FILE" >&2
+    elif [[ -z "$TME_STATE_FILE" ]]; then
+        printf "Warning: TME_STATE_FILE variable not set. Cannot initialize default report state.\n" >&2
+    fi
+
     TME_STARTUP_BEGIN=$(date +%s.%N)
     TME_CURRENT_PARENT=""
 
-    # Reset all associative arrays and the indexed array
     TME_START_TIMES=()
     TME_END_TIMES=()
     TME_DURATIONS=()
     TME_STATUS=()
     TME_PARENTS=()
     TME_CHILDREN=()
-    TME_COMPONENT_ORDER=() # Reset chronological component order
+    TME_COMPONENT_ORDER=()
 
     [[ ! -d "$log_dir" ]] && mkdir -p "$log_dir"
 
@@ -93,7 +137,7 @@ start_timer() {
 
     TME_START_TIMES[$component]=$timestamp
     TME_STATUS[$component]="running"
-    TME_COMPONENT_ORDER+=("$component") # Add component to chronological list
+    TME_COMPONENT_ORDER+=("$component")
 
     if [[ -n "$parent" ]]; then
         TME_PARENTS[$component]=$parent
@@ -106,7 +150,6 @@ start_timer() {
 
     TME_CURRENT_PARENT="$component"
 
-    # Use the log module's state file
     local orig_log_state
     orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
     echo "false" > "$LOG_STATE_FILE"
@@ -117,7 +160,6 @@ start_timer() {
         printf "Time: %s\n\n" "$(date -d @${timestamp})"
     } >> "$TME_LOG_FILE"
 
-    # Restore logging state
     echo "$orig_log_state" > "$LOG_STATE_FILE"
 }
 
@@ -125,8 +167,6 @@ start_timer() {
 stop_timer() {
     local component="$1"
     local status="${2:-success}"
-    
-    # Simply call end_timer with the same parameters
     end_timer "$component" "$status"
 }
 
@@ -149,7 +189,6 @@ end_timer() {
 
     TME_CURRENT_PARENT="${TME_PARENTS[$component]}"
 
-    # Use the log module's state file
     local orig_log_state
     orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
     echo "false" > "$LOG_STATE_FILE"
@@ -160,7 +199,6 @@ end_timer() {
         printf "Duration: %.3fs\n\n" "${TME_DURATIONS[$component]}"
     } >> "$TME_LOG_FILE"
 
-    # Restore logging state
     echo "$orig_log_state" > "$LOG_STATE_FILE"
 }
 
@@ -217,7 +255,6 @@ print_timing_entry() {
     local component_display
     component_display=$(printf "%-25s" "$component")
 
-    # Using printf with proper color escape handling
     printf "%s%s%s%s %6.3fs [%5.1f%%] [%s]%s\n" \
         "$base_indent" \
         "$color" \
@@ -269,7 +306,11 @@ print_tree_recursive() {
     print_timing_entry "$component" "$current_indent" "${TME_DURATIONS[$component]}" "$total_time" "$depth"
 
     local max_depth
-    max_depth=$(cat "$TME_LEVELS_FILE" 2>/dev/null || echo "9")
+    local max_depth_from_file=""
+    if [[ -n "$TME_LEVELS_FILE" && -f "$TME_LEVELS_FILE" ]]; then
+        max_depth_from_file=$(cat "$TME_LEVELS_FILE" 2>/dev/null)
+    fi
+    max_depth="${max_depth_from_file:-9}"
 
     if ((depth < max_depth)); then
         local children_str="${TME_CHILDREN[$component]}"
@@ -305,16 +346,14 @@ settme() {
     local effective_sort_order_file_path="$TME_SORT_ORDER_FILE_PATH"
 
     if [[ -z "$effective_sort_order_file_path" ]]; then
-        local current_log_dir="${TME_LOG_DIR}"
-        if [[ -z "$current_log_dir" && -n "$TME_LOG_FILE" ]]; then
+        local current_log_dir="${TME_LOG_DIR:-./.log}"
+        if [[ -n "$TME_LOG_FILE" ]]; then
             current_log_dir=$(dirname "$TME_LOG_FILE")
-        elif [[ -z "$current_log_dir" ]]; then
-            current_log_dir="."
         fi
         effective_sort_order_file_path="${current_log_dir}/tme_sort_order.cfg"
     fi
     
-    mkdir -p "$(dirname "$effective_sort_order_file_path")"
+    mkdir -p "$(dirname "$effective_sort_order_file_path")" 2>/dev/null
 
     case "$arg1" in
         "sort")
@@ -332,10 +371,11 @@ settme() {
         "depth")
              if [[ "$arg2" =~ ^[0-9]+$ ]]; then
                 if [[ -n "$TME_LEVELS_FILE" ]]; then
+                    if [[ -n "$TMP_DIR" ]]; then mkdir -p "$TMP_DIR" 2>/dev/null; fi
                     echo "$arg2" > "$TME_LEVELS_FILE"
                     printf "Timer report depth set to %s levels.\n" "$arg2"
                 else
-                    printf "Error: TME_LEVELS_FILE path not configured.\n"
+                    printf "Error: TME_LEVELS_FILE variable not set. Cannot set depth.\n"
                     return 1
                 fi
             else
@@ -353,16 +393,31 @@ settme() {
 # Enhanced timing report
 print_timing_report() {
     local current_state
-    current_state=$(cat "$TME_STATE_FILE" 2>/dev/null || echo "true")
+    local current_state_from_file=""
+    if [[ -n "$TME_STATE_FILE" && -f "$TME_STATE_FILE" ]]; then
+        current_state_from_file=$(cat "$TME_STATE_FILE" 2>/dev/null)
+    fi
+    current_state="${current_state_from_file:-true}"
     [[ "${current_state}" != "true" ]] && return 0
 
+    if [[ -n "$TME_LOG_FILE" ]]; then
+        mkdir -p "$(dirname "$TME_LOG_FILE")" 2>/dev/null
+        touch "$TME_LOG_FILE" 2>/dev/null 
+    else
+        return 1
+    fi
+    
     local orig_log_state
     orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
     echo "false" > "$LOG_STATE_FILE"
 
     local total_time=$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)
     local sort_order
-    sort_order=$(cat "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null || echo "dura")
+    local sort_order_from_file=""
+    if [[ -n "$TME_SORT_ORDER_FILE_PATH" && -f "$TME_SORT_ORDER_FILE_PATH" ]]; then
+        sort_order_from_file=$(cat "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null)
+    fi
+    sort_order="${sort_order_from_file:-dura}"
 
     {
         printf "\n%s━ RC Performance Report%s\n" "$TME_BLUE" "$TME_NC"
