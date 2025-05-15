@@ -100,8 +100,13 @@ CACHE_CLEANUP_INTERVAL=300  # 5 minutes
 export CACHE_CLEANUP_INTERVAL
 
 # Generation folders
+# Updated to reflect new locations for env, fun, and gen
+# These are now relative to $LAB_DIR
+#   fun  -> lib/depl
+#   env  -> cfg/env
+#   gen  -> src/depl
 declare -ga GENERATION_FOLDERS
-GENERATION_FOLDERS=(env fun gen)
+GENERATION_FOLDERS=(lib/depl cfg/env src/depl)
 export GENERATION_FOLDERS
 
 # Flag to indicate constants are loaded
