@@ -410,6 +410,7 @@ source_rc() {
 # Initialize registered functions with verification
 init_registered_functions() {
     debug_log "Initializing registered functions" "init_registered_functions" 1
+    local parent_timer="INIT_REGISTERED_FUNCTIONS" # Parent timer for this overall function
 
     # Verify REGISTERED_FUNCTIONS exists using ver's verify_var
     if ! verify_var "REGISTERED_FUNCTIONS" 1; then
@@ -421,16 +422,25 @@ init_registered_functions() {
     local success=0
     for func in "${REGISTERED_FUNCTIONS[@]}"; do
         debug_log "Checking function: $func" "init_registered_functions" 2
+        local func_timer_name_deps="VERIFY_FUNC_DEPS_${func//[^A-Za-z0-9_]/_}" # Sanitize func name for timer
+        local func_timer_name_reg="REGISTER_FUNC_${func//[^A-Za-z0-9_]/_}" # Sanitize func name for timer
+
+        if type start_timer &>/dev/null; then start_timer "$func_timer_name_deps" "$parent_timer"; fi
         if ! verify_function_dependencies "$func"; then
             debug_log "WARNING: Failed to verify dependencies for function: $func - continuing anyway" "init_registered_functions" 1
+            if type end_timer &>/dev/null; then end_timer "$func_timer_name_deps" "error_deps_failed"; fi
             continue
         fi
+        if type end_timer &>/dev/null; then end_timer "$func_timer_name_deps" "success"; fi
 
+        if type start_timer &>/dev/null; then start_timer "$func_timer_name_reg" "$parent_timer"; fi
         if register_function "$func"; then
             debug_log "Successfully registered function: $func" "init_registered_functions" 1
+            if type end_timer &>/dev/null; then end_timer "$func_timer_name_reg" "success"; fi
             ((success++))
         else
             debug_log "WARNING: Failed to register function: $func - continuing anyway" "init_registered_functions" 1
+            if type end_timer &>/dev/null; then end_timer "$func_timer_name_reg" "error_reg_failed"; fi
         fi
     done
 
@@ -443,9 +453,14 @@ init_registered_functions() {
 register_function() {
     local func_name="$1"
     debug_log "Registering function: $func_name" "register_function" 1
+    local parent_timer_reg_func="REGISTER_FUNC_${func_name//[^A-Za-z0-9_]/_}" # Matches timer in init_registered_functions
 
     # Get the dependencies for this function
+    local timer_get_deps="GET_FUNC_DEPS_${func_name//[^A-Za-z0-9_]/_}"
+    if type start_timer &>/dev/null; then start_timer "$timer_get_deps" "$parent_timer_reg_func"; fi
     local deps="${FUNCTION_DEPENDENCIES[$func_name]}"
+    if type end_timer &>/dev/null; then end_timer "$timer_get_deps" "success"; fi
+
     [[ -z "$deps" ]] && {
         debug_log "ERROR: No dependencies found for function: $func_name" "register_function" 1
         return 1
@@ -456,19 +471,33 @@ register_function() {
     IFS=',' read -ra MODULE_ARRAY <<< "$deps"
     
     for module in "${MODULE_ARRAY[@]}"; do
+        local module_path_timer="CHECK_MODULE_PATH_${func_name//[^A-Za-z0-9_]/_}_${module//[^A-Za-z0-9_]/_}"
+        local verify_func_timer="VERIFY_FUNC_IN_MODULE_${func_name//[^A-Za-z0-9_]/_}_${module//[^A-Za-z0-9_]/_}"
+        local source_module_timer="SOURCE_MODULE_${func_name//[^A-Za-z0-9_]/_}_${module//[^A-Za-z0-9_]/_}"
+
+        if type start_timer &>/dev/null; then start_timer "$module_path_timer" "$parent_timer_reg_func"; fi
         local module_path="${FUNCTION_MODULES["$func_name:$module"]:-${FUNCTION_MODULES[$func_name]}}"
+        if type end_timer &>/dev/null; then end_timer "$module_path_timer" "success"; fi
         
         if [[ -n "$module_path" ]] && [[ -f "$module_path" ]]; then
             debug_log "Checking for function $func_name in module $module_path" "register_function" 2
             
             # Verify function exists in the module file
+            if type start_timer &>/dev/null; then start_timer "$verify_func_timer" "$parent_timer_reg_func"; fi
             if verify_function "$func_name" "$module_path" 2; then
+                if type end_timer &>/dev/null; then end_timer "$verify_func_timer" "success_found"; fi
                 # Source the module file
+                if type start_timer &>/dev/null; then start_timer "$source_module_timer" "$parent_timer_reg_func"; fi
                 if source "$module_path" 2>/dev/null; then
                     debug_log "Successfully registered function: $func_name from $module_path" "register_function" 1
+                    if type end_timer &>/dev/null; then end_timer "$source_module_timer" "success"; fi
                     success=1
                     break
+                else
+                    if type end_timer &>/dev/null; then end_timer "$source_module_timer" "error_source_failed"; fi
                 fi
+            else
+                 if type end_timer &>/dev/null; then end_timer "$verify_func_timer" "error_not_found"; fi
             fi
         else
             debug_log "WARNING: Module path not found for $func_name in module $module" "register_function" 1
