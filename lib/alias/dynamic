@@ -98,15 +98,9 @@ generate_level_two_arrays() {
         local files=()
 
         log "lvl" "Searching for files in $dir_path"
-        while IFS= read -r -d '' file; do
-            base_name=$(basename "$file")
-            if [[ "$base_name" =~ \. ]]; then
-                name_without_ext="${base_name%.*}"
-            else
-                name_without_ext="$base_name"
-            fi
+        while IFS= read -r -d '' found_file_path; do
+            local name_without_ext=$(basename "$found_file_path")
             files+=("$name_without_ext")
-            log "lvl" "Found file: $file"
             log "lvl" "Added file to $array_name: $name_without_ext"
         done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*" ! -name ".*" \) -print0 2>/dev/null)
 
