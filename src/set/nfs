@@ -1,4 +1,11 @@
 #!/bin/bash
+# ----------------------------------------------------------------------
+# Functions:
+#   a_xall: Installs NFS server packages, enables the NFS service, and 
+#           creates a user account for NFS management.
+#   b_xall: Configures NFS exports by setting up a shared folder with 
+#           specified access permissions.
+# ----------------------------------------------------------------------
 
 # Define script location
 DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
