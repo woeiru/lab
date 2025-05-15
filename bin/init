@@ -381,29 +381,10 @@ init_runtime_system() {
     return 0
 }
 
-# Process runtime configurations with ver validation
+# Process runtime configurations
 process_runtime_config() {
     debug_log "Processing runtime configuration"
-    
-    # RC files have been consolidated into the init file, 
-    # no need to verify or source separate RC files
-    debug_log "Runtime configuration files consolidated into init file"
-    
-    # Still call source_rc for backward compatibility,
-    # but it will handle the case where no RC files exist
-    source_rc
-    
-    return 0
-}
-
-# Source RC files with validation
-source_rc() {
-    debug_log "Starting source_rc"
-    
-    # RC files have been consolidated into the init file
-    debug_log "RC files have been consolidated into the init file, no separate RC files to source"
-    
-    # Return success directly
+    # No RC files to process; logic is now consolidated in init
     return 0
 }
 
