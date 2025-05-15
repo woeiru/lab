@@ -152,13 +152,6 @@ set_static() {
     # File listing
     alias l='ls -Al'
 
-    # lab/dot/ini
-    ini_path=~/lab/dot/ini
-    depl_file="$ini_path/depl.sh"
-    inject_file="$ini_path/inject"
-    alias bde="bash $depl_file"
-    alias vin="vim $inject_file"
-
     # Unsorted (you may want to organize these later)
     alias pr='kquitapp5 plasmashell && kstart5 plasmashell'
     alias gdi='git diff --no-index -- /dev/null'
