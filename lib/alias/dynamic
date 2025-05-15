@@ -257,8 +257,8 @@ set_dynamic() {
     log "lvl" "Generating all aliases"
 
     start_nested_timing "env_aliases"
-    generate_aliases "cat" "$CFG_DEPL_DIR" "${cfg_depl_files[@]}"
-    generate_aliases "vim" "$CFG_DEPL_DIR" "${cfg_depl_files[@]}"
+    generate_aliases "cat" "$CFG_ENV_DIR" "${cfg_env_files[@]}"
+    generate_aliases "vim" "$CFG_ENV_DIR" "${cfg_env_files[@]}"
     end_nested_timing "env_aliases" "success"
 
     start_nested_timing "fun_aliases"

@@ -72,12 +72,12 @@ export TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 
 # Environment configuration path
 declare -g CFG_ENV_DIR
-CFG_DEPL_DIR="${LAB_DIR}/cfg/env"
+CFG_ENV_DIR="${LAB_DIR}/cfg/env"
 export CFG_ENV_DIR
 
 # Site-wide configuration file path for depl scripts
 declare -g SITE_CONFIG_FILE
-SITE_CONFIG_FILE="${CFG_DEPL_DIR}/site1.env"
+SITE_CONFIG_FILE="${CFG_ENV_DIR}/site1.env"
 export SITE_CONFIG_FILE
 
 # Deployment function library path

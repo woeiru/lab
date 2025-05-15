@@ -171,8 +171,8 @@ execute_component() {
 
 # Source the environment files
 source_env() {
-    # Use CFG_DEPL_DIR which is defined in ric
-    source_directory "$CFG_DEPL_DIR" "*" "environment configuration files"
+    # Use CFG_ENV_DIR which is defined in ric
+    source_directory "$CFG_ENV_DIR" "*" "environment configuration files"
     return $?
 }
 
