@@ -336,33 +336,46 @@ load_modules() {
 
 init_runtime_system() {
     debug_log "Starting runtime system initialization"
+    local parent_timer="INIT_RUNTIME_SYSTEM" # Define parent timer for sub-operations
 
     # Updated with BASE_DIR - using rdc file which exists
     local rde_path="${BASE_DIR}/cfg/core/rdc"
-    
+
     # Verify runtime dependency file exists using ver's verify_path
+    if type start_timer &>/dev/null; then start_timer "VERIFY_RDC_PATH" "$parent_timer"; fi
     if ! verify_path "$rde_path" "file" "false"; then
         debug_log "ERROR: Runtime dependencies file not found"
+        if type end_timer &>/dev/null; then end_timer "VERIFY_RDC_PATH" "error"; fi
         return 1
     fi
+    if type end_timer &>/dev/null; then end_timer "VERIFY_RDC_PATH" "success"; fi
 
     # Load runtime dependencies
+    if type start_timer &>/dev/null; then start_timer "LOAD_RDC" "$parent_timer"; fi
     if ! source "$rde_path" 2>/dev/null; then
         debug_log "ERROR: Failed to load runtime dependencies"
+        if type end_timer &>/dev/null; then end_timer "LOAD_RDC" "error"; fi
         return 1
     fi
+    if type end_timer &>/dev/null; then end_timer "LOAD_RDC" "success"; fi
 
     # Process runtime configurations
+    if type start_timer &>/dev/null; then start_timer "PROCESS_RUNTIME_CONFIG" "$parent_timer"; fi
     if ! process_runtime_config; then
         debug_log "ERROR: Failed to process runtime configuration"
+        if type end_timer &>/dev/null; then end_timer "PROCESS_RUNTIME_CONFIG" "error"; fi
         return 1
     fi
+    if type end_timer &>/dev/null; then end_timer "PROCESS_RUNTIME_CONFIG" "success"; fi
 
     # Initialize registered functions
+    if type start_timer &>/dev/null; then start_timer "INIT_REGISTERED_FUNCTIONS" "$parent_timer"; fi
     if ! init_registered_functions; then
         debug_log "ERROR: Failed to initialize registered functions"
+        if type end_timer &>/dev/null; then end_timer "INIT_REGISTERED_FUNCTIONS" "error"; fi
         return 1
     fi
+    if type end_timer &>/dev/null; then end_timer "INIT_REGISTERED_FUNCTIONS" "success"; fi
 
     debug_log "Runtime system initialization completed"
     return 0
