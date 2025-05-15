@@ -75,13 +75,13 @@ export LOG_FILE LO2_LOG_FILE LOG_CONTROL_STATE_FILE # Export new log file vars
 export TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 
 # Environment configuration path
-declare -g ENV_CONFIG_DIR
-ENV_CONFIG_DIR="${LAB_DIR}/cfg/depl"
-export ENV_CONFIG_DIR
+declare -g CFG_DEPL_DIR
+CFG_DEPL_DIR="${LAB_DIR}/cfg/depl"
+export CFG_DEPL_DIR
 
 # Site-wide configuration file path for depl scripts
 declare -g SITE_CONFIG_FILE
-SITE_CONFIG_FILE="${ENV_CONFIG_DIR}/site1.env"
+SITE_CONFIG_FILE="${CFG_DEPL_DIR}/site1.env"
 export SITE_CONFIG_FILE
 
 # Deployment function library path
@@ -89,15 +89,15 @@ declare -g LIB_DEPL_DIR
 LIB_DEPL_DIR="${LAB_DIR}/lib/depl" # Corrected path
 export LIB_DEPL_DIR
 
-# Generation directory for gen scripts
-declare -g SRC_DEPL_DIR
-SRC_DEPL_DIR="${LAB_DIR}/src/depl"
-export SRC_DEPL_DIR
-
 # Deployment function library path
 declare -g LIB_AUX_DIR
 LIB_AUX_DIR="${LAB_DIR}/lib/aux" # Corrected path
 export LIB_AUX_DIR
+
+# Generation directory for gen scripts
+declare -g SRC_DEPL_DIR
+SRC_DEPL_DIR="${LAB_DIR}/src/depl"
+export SRC_DEPL_DIR
 
 # Runtime configuration
 declare -g CACHE_CLEANUP_INTERVAL
