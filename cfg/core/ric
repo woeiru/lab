@@ -86,12 +86,12 @@ export SITE_CONFIG_FILE
 
 # Deployment function library path
 declare -g LIB_DEPL_DIR
-LIB_DEPL_DIR="${LAB_DIR}/lib/depl" # Corrected path
+LIB_DEPL_DIR="${LAB_DIR}/lib/depl"
 export LIB_DEPL_DIR
 
 # Deployment function library path
 declare -g LIB_AUX_DIR
-LIB_AUX_DIR="${LAB_DIR}/lib/aux" # Corrected path
+LIB_AUX_DIR="${LAB_DIR}/lib/aux"
 export LIB_AUX_DIR
 
 # Generation directory for gen scripts
@@ -105,11 +105,6 @@ CACHE_CLEANUP_INTERVAL=300  # 5 minutes
 export CACHE_CLEANUP_INTERVAL
 
 # Generation folders
-# Updated to reflect new locations for env, fun, and gen
-# These are now relative to $LAB_DIR
-#   fun  -> lib/depl
-#   env  -> cfg/env
-#   gen  -> src/depl
 declare -ga GENERATION_FOLDERS
 GENERATION_FOLDERS=(lib/depl cfg/env src/depl)
 export GENERATION_FOLDERS
