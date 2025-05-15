@@ -257,19 +257,19 @@ set_dynamic() {
     log "lvl" "Generating all aliases"
 
     start_nested_timing "env_aliases"
-    generate_aliases "cat" "$ENV_DIR" "${env_files[@]}"
-    generate_aliases "vim" "$ENV_DIR" "${env_files[@]}"
+    generate_aliases "cat" "$CFG_DEPL_DIR" "${cfg_depl_files[@]}"
+    generate_aliases "vim" "$CFG_DEPL_DIR" "${cfg_depl_files[@]}"
     end_nested_timing "env_aliases" "success"
 
     start_nested_timing "fun_aliases"
-    generate_aliases "cat" "$LIB_DEPL_DIR" "${fun_files[@]}"
-    generate_aliases "vim" "$LIB_DEPL_DIR" "${fun_files[@]}"
+    generate_aliases "cat" "$LIB_DEPL_DIR" "${lib_depl_files[@]}"
+    generate_aliases "vim" "$LIB_DEPL_DIR" "${lib_depl_files[@]}"
     end_nested_timing "fun_aliases" "success"
 
     start_nested_timing "gem_aliases"
-    generate_aliases "cat" "$SRC_DEPL_DIR" "${gen_files[@]}"
-    generate_aliases "vim" "$SRC_DEPL_DIR" "${gen_files[@]}"
-    generate_aliases "bash" "$SRC_DEPL_DIR" "${gen_files[@]}"
+    generate_aliases "cat" "$SRC_DEPL_DIR" "${src_depl_files[@]}"
+    generate_aliases "vim" "$SRC_DEPL_DIR" "${src_depl_files[@]}"
+    generate_aliases "bash" "$SRC_DEPL_DIR" "${src_depl_files[@]}"
     end_nested_timing "gem_aliases" "success"
 
     end_nested_timing "alias_processing" "success"
