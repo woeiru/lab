@@ -37,8 +37,10 @@
 #     ending with "_xall()".
 # ==============================================================================
 
-# Enable error handling
-set -e
+# Enable error handling only if executed directly, not when sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    set -e
+fi
 
 setup_source() {
     local dir="$1"
