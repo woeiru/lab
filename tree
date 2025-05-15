@@ -56,7 +56,8 @@
 │   │   ├── 2025-05-13-0330_summary.md
 │   │   ├── 2025-05-13-2310_summary.md
 │   │   ├── 2025-05-14-0520_summary.md
-│   │   └── 2025-05-14-0521_outlook.md
+│   │   ├── 2025-05-14-0521_outlook.md
+│   │   └── 2025-05-15-1400_summary.md
 │   └── workaround
 │       └── audioroot.md
 ├── entry.sh -> bin/env/inject
@@ -70,6 +71,15 @@
 │   │   └── src
 │   ├── core
 │   │   └── ver
+│   ├── depl
+│   │   ├── gpu
+│   │   ├── net
+│   │   ├── pbs
+│   │   ├── pve
+│   │   ├── srv
+│   │   ├── sto
+│   │   ├── sys
+│   │   └── usr
 │   ├── ssh
 │   └── util
 │       ├── err
@@ -104,14 +114,6 @@
 │           └── dim2-dec.md
 ├── src
 │   └── depl
-│       ├── gpu
-│       ├── net
-│       ├── pbs
-│       ├── pve
-│       ├── srv
-│       ├── sto
-│       ├── sys
-│       └── usr
 └── tree
 
-32 directories, 83 files
+33 directories, 84 files
