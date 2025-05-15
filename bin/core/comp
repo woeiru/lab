@@ -240,7 +240,8 @@ setup_components() {
     local components=(
         "execution_rc:EXEC:1"        # Required: Executes set_static, set_dynamic, set_aliaswrap
         "source_env:ENV:0"           # Optional
-        "source_depl:DEPL:0"          # Optional
+        "source_depl:DEPL:0"         # Optional
+    )
 
     log "lvl" "Executing component functions..." | tee -a "$ERROR_LOG"
 
