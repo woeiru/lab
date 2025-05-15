@@ -1,13 +1,1 @@
 #!/bin/bash
-
-# This is a wrapper script that runs the init script with full verbose output
-# It's useful for debugging when you need to see all the details
-
-# Set verbosity to 2 (most verbose)
-export DEBUG_VERBOSITY=2
-
-# Run the init script with maximum verbosity
-/home/es/lab/bin/init
-
-# Pass the exit status of init
-exit $?
