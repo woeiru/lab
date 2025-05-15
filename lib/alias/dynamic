@@ -93,7 +93,8 @@ generate_level_two_arrays() {
             continue
         fi
 
-        local array_name="${folder}_files"
+        # Sanitize array name to be a valid Bash variable (replace / with _)
+        local array_name="${folder//\//_}_files"
         local files=()
 
         log "lvl" "Searching for files in $dir_path"
