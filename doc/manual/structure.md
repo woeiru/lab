@@ -1,4 +1,4 @@
-# Project Structure and Architecture
+# Project A and Architecture
 
 This document outlines the overall structure of the Lab Environment project, explaining the purpose of each directory and key components within the system.
 
