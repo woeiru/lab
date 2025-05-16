@@ -88,3 +88,48 @@ Below is a list of the scripts available in `src/set/` and the tasks they can pe
    *   **`b_xall`**: Sets up multiple Samba shares with different access permissions for regular and guest users.
 
 To understand the full capabilities and specific parameters used by each task, it is recommended to also review the source code of the respective scripts in `src/set/` and their associated configuration files if applicable.
+
+## Centralized IaC Launcher: `bin/iac/start`
+
+To simplify the execution of the deployment scripts located in `src/set/`, a centralized launcher script is provided at `bin/iac/start`.
+
+This launcher offers two main modes of operation:
+
+1.  **Interactive Menu Mode**:
+    Running the script without any arguments will present an interactive menu:
+    ```bash
+    ./bin/iac/start
+    ```
+    From this menu, you can:
+    *   Select one of the available deployment scripts (`dsk`, `nfs`, `pbs`, `pve`, `smb`).
+    *   Once a script is selected, the launcher will execute that script with the `-i` flag, starting the chosen script's own interactive mode.
+    *   View help information for the launcher itself.
+    *   Quit the launcher.
+
+2.  **Direct Script Execution Mode**:
+    You can also use the launcher to directly invoke a specific deployment script and pass arguments to it. This is useful for running specific tasks without navigating the interactive menus.
+    ```bash
+    ./bin/iac/start <script_name> [script_specific_args...]
+    ```
+    Examples:
+    *   To run the `dsk` script in its interactive mode:
+        ```bash
+        ./bin/iac/start dsk -i
+        ```
+    *   To directly execute the `a_xall` task within the `pve` script:
+        ```bash
+        ./bin/iac/start pve -x a_xall
+        ```
+    *   To display the usage information for the `nfs` script (by running it without arguments):
+        ```bash
+        ./bin/iac/start nfs
+        ```
+
+### Launcher Features:
+
+*   **Self-sufficient**: The `bin/iac/start` script is designed to run without external dependencies beyond standard Bash and common utilities.
+*   **Dynamic Project Root Detection**: It automatically determines the project's root directory, allowing it to be run from different locations within the project (though typically invoked from the root or via a relative path).
+*   **Script Validation**: It checks if the requested deployment script exists before attempting to execute it.
+*   **Help Information**: Use `./bin/iac/start -h` or `./bin/iac/start --help` to display usage instructions specific to the launcher.
+
+The `bin/iac/start` script acts as a user-friendly frontend, streamlining access to the various deployment functionalities provided by the scripts in `src/set/`.
