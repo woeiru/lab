@@ -3,6 +3,7 @@
 │   ├── core
 │   │   └── comp
 │   ├── env
+│   │   ├── inject
 │   │   └── rc
 │   └── init
 ├── cfg
@@ -33,6 +34,7 @@
 │           └── smb.conf.template
 ├── doc
 │   ├── manual
+│   │   ├── infrastructure.md
 │   │   ├── initiation.md
 │   │   ├── logging.md
 │   │   └── structure.md
@@ -114,4 +116,4 @@
 │       └── smb
 └── tree
 
-32 directories, 83 files
+32 directories, 85 files
