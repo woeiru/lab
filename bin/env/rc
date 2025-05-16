@@ -75,7 +75,26 @@ declare -g CONFIG_FILE=""
 
 # Function to initialize all runtime configuration
 init_config() {
-    printf "\nSCRIPT_DIR = %s\nBIN_DIR = %s\n\n" "$SCRIPT_DIR" "$BIN_DIR"
+    # SCRIPT_DIR, BIN_DIR, and FILEPATH are the global readonly versions.
+    printf "\nInitial SCRIPT_DIR = %s\nInitial BIN_DIR = %s\n\n" "$SCRIPT_DIR" "$BIN_DIR"
+
+    local determined_bin_dir
+    # Heuristic to determine the correct bin directory for the init script.
+
+    # Case 1: SCRIPT_DIR is <project_root>/bin/env (standard execution of rc)
+    # Target init script would be at $SCRIPT_DIR/../$FILEPATH
+    if [[ -f "$SCRIPT_DIR/../$FILEPATH" ]]; then
+        determined_bin_dir=$(cd "$SCRIPT_DIR/.." && pwd)
+    # Case 2: SCRIPT_DIR is <project_root> (e.g., rc content eval'd by a script in project_root)
+    # Target init script would be at $SCRIPT_DIR/bin/$FILEPATH
+    elif [[ -f "$SCRIPT_DIR/bin/$FILEPATH" ]]; then
+        determined_bin_dir=$(cd "$SCRIPT_DIR/bin" && pwd)
+    else
+        # Fallback to the globally defined BIN_DIR if heuristics fail.
+        # This might still lead to the incorrect path in the problematic scenario.
+        printf "Warning: Heuristic for determining project bin directory failed. Falling back to default BIN_DIR calculation.\n" >&2
+        determined_bin_dir="$BIN_DIR"
+    fi
 
     # Initialize variables
     CONFIG_FILE=""
@@ -83,13 +102,14 @@ init_config() {
     TARGET_HOME=""
     YES_FLAG=false
     
-    # Set the injection content
-    readonly INJECT_CONTENT=". ${BIN_DIR}/${FILEPATH}"
+    # Set the injection content using the determined_bin_dir
+    readonly INJECT_CONTENT=". ${determined_bin_dir}/${FILEPATH}"
 
     # Export the variables
     export CONFIG_FILE TARGET_USER TARGET_HOME YES_FLAG
 
-    printf "Configuration initialized\n"
+    printf "Configuration initialized. Determined BIN_DIR for injection: %s\n" "$determined_bin_dir"
+    printf "INJECT_CONTENT will be: %s\n" "$INJECT_CONTENT"
     return 0
 }
 
