@@ -1,1 +1,1 @@
-bin/env/inject
+bin/env/rc
