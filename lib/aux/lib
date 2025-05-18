@@ -41,7 +41,7 @@ aux-fun() {
 # overview variables
 #
 aux-var() {
-    aux-acu -o "$CONFIG_DIR" "$FUNCTION_DIR""
+    aux-acu -o "$CONFIG_DIR" "$FUNCTION_DIR"
 }
 
 # Logging function
@@ -328,7 +328,7 @@ aux-laf() {
 
 # Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
-# <sort mode: o|a > <target folder> <config file or directory>
+# <sort mode: o|a > <config file or directory> <target folder>
 aux-acu() {
     local sort_mode=$1
     local conf_source=$2
@@ -340,7 +340,7 @@ aux-acu() {
     local tab_width_var_occurences=5
 
     if [ $# -ne 3 ]; then
-        echo "Usage: aux-acu <sort mode: -o|-a> <target folder> <config file or directory>"
+        echo "Usage: aux-acu <sort mode: -o|-a> <config file or directory> <target folder>"
         return 1
     fi
 
