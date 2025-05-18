@@ -349,7 +349,7 @@ expand_variables() {
 get_function_description() {
     local func_name="$1"
     local lib_name="${func_name%%-*}"
-    local lib_file="/root/lab/lib/${lib_name}.bash"
+    local lib_file="${LIB_DEP_DIR}/${lib_name}"
 
     printf "      Getting description for function: %s from file: %s\n" "$func_name" "$lib_file"
 
