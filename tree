@@ -3,8 +3,9 @@
 │   ├── core
 │   │   └── comp
 │   ├── env
-│   │   ├── inject
 │   │   └── rc
+│   ├── iac
+│   │   └── start
 │   └── init
 ├── cfg
 │   ├── ans
@@ -34,10 +35,10 @@
 │           └── smb.conf.template
 ├── doc
 │   ├── manual
+│   │   ├── architecture.md
 │   │   ├── infrastructure.md
 │   │   ├── initiation.md
-│   │   ├── logging.md
-│   │   └── structure.md
+│   │   └── logging.md
 │   ├── network
 │   │   ├── ntcoll-1.md
 │   │   └── ntcoll-2.md
@@ -55,7 +56,7 @@
 │   │   └── 2025-05-15-1430_summary.md
 │   └── workaround
 │       └── audioroot.md
-├── entry.sh -> bin/env/inject
+├── entry.sh -> bin/env/rc
 ├── lib
 │   ├── alias
 │   │   ├── dynamic
@@ -116,4 +117,4 @@
 │       └── smb
 └── tree
 
-32 directories, 85 files
+33 directories, 85 files
