@@ -17,13 +17,12 @@ DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
 BASE_FUN="${FILE_FUN%.*}"
 FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
-CONFIG_FUN="$DIR_FUN/../var/${BASE_FUN}.conf"
+CONFIG_DIR="$DIR_FUN/../../cfg/env" # Renamed from NEW_CONFIG_DIR
 
 # Dynamically create variables based on the base name
 eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
 eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
-eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
@@ -37,7 +36,7 @@ aux-fun() {
 # overview variables
 #
 aux-var() {
-    aux-acu -o "$CONFIG_all" "$DIR_FUN/.."
+    aux-acu -o "$CONFIG_DIR" "$DIR_FUN/.."
 }
 
 # Logging function
@@ -324,10 +323,10 @@ aux-laf() {
 
 # Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
-# <sort mode: o|a > <target folder> <config file>
+# <sort mode: o|a > <target folder> <config file or directory>
 aux-acu() {
     local sort_mode=$1
-    local conf_file=$2
+    local conf_source=$2
     local target_folder=$3
 
     # Customizable column widths
@@ -336,12 +335,12 @@ aux-acu() {
     local tab_width_var_occurences=5
 
     if [ $# -ne 3 ]; then
-        echo "Usage: aux-acu <sort mode: -o|-a> <target folder> <config file>"
+        echo "Usage: aux-acu <sort mode: -o|-a> <target folder> <config file or directory>"
         return 1
     fi
 
-    if [[ ! -f $conf_file ]]; then
-        echo "Config file $conf_file does not exist."
+    if [[ ! -f "$conf_source" && ! -d "$conf_source" ]]; then
+        echo "Config source '$conf_source' is not a valid file or directory."
         return 1
     fi
 
@@ -355,11 +354,49 @@ aux-acu() {
 
     # Function to read config file and store variables and their values
     read_config_file() {
-        local conf_file=$1
-        while IFS='=' read -r var value; do
-            config_vars[$var]=$value
-            var_order+=("$var")
-        done < <(grep -E -v '^(#|declare|[[:space:]]*\))' "$conf_file" | grep '=' | sed 's/[[:space:]]//g')
+        local current_conf_source=$1 
+        local files_to_process=()
+
+        if [[ -d "$current_conf_source" ]]; then
+            local item
+            for item in "$current_conf_source"/*; do
+                if [[ -f "$item" ]]; then
+                    files_to_process+=("$item")
+                fi
+            done
+            if [ ${#files_to_process[@]} -eq 0 ]; then
+                echo "Warning: No configuration files found in directory '$current_conf_source'." >&2
+                return
+            fi
+        elif [[ -f "$current_conf_source" ]]; then
+            files_to_process+=("$current_conf_source")
+        else
+            echo "Internal Error: read_config_file called with invalid source '$current_conf_source'." >&2
+            return 1
+        fi
+
+        local current_conf_file var value content
+        for current_conf_file in "${files_to_process[@]}"; do
+            content=$(grep -E -v '^(#|declare|[[:space:]]*\))' "$current_conf_file" | grep '=' | sed 's/[[:space:]]//g' 2>/dev/null || true)
+            if [[ -n "$content" ]]; then
+                while IFS='=' read -r var value; do
+                    if [[ -z "$var" && -n "$value" ]] || [[ -n "$var" ]]; then 
+                        local found_in_order=0
+                        local existing_var
+                        for existing_var in "${var_order[@]}"; do
+                            if [[ "$existing_var" == "$var" ]]; then
+                                found_in_order=1
+                                break
+                            fi
+                        done
+                        if [[ $found_in_order -eq 0 ]]; then
+                            var_order+=("$var")
+                        fi
+                        config_vars[$var]=$value
+                    fi
+                done <<< "$content"
+            fi
+        done
     }
 
     # Function to sort variables based on the sort mode
@@ -373,12 +410,10 @@ aux-acu() {
         fi
     }
 
-
     list_target_files() {
         local target_folder=$1
         target_files=($(find "$target_folder" \( -name .git -o -name arc -o -name bar -o -name con -o -name dot -o -name fix -o -name var \) -prune -o -type f -name '*.*' -print | sort))
     }
-
 
     # Function to truncate strings that exceed the column width
     truncate_string() {
@@ -408,7 +443,7 @@ aux-acu() {
         printf "%s | " "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
         done
         echo
-}
+    }
 
     # Function to print variable usage across target files
     print_variables_usage() {
@@ -418,7 +453,6 @@ aux-acu() {
             printf "| %-*s | %-*s |" "$tab_width_var_names" "$truncated_var" "$tab_width_var_values" "$truncated_value"
             
             if [[ $var == *"["* ]]; then
-                # Skip counting for array elements
                 for sh_file in "${target_files[@]}"; do
                     printf " %-*s |" "$tab_width_var_occurences" ""
                 done
@@ -438,7 +472,7 @@ aux-acu() {
         echo ""
     }
 
-    read_config_file "$conf_file"
+    read_config_file "$conf_source"
     sort_variables "$sort_mode"
     list_target_files "$target_folder"
     print_header
