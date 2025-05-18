@@ -434,7 +434,6 @@ expand_variables() {
     done
     IFS="$OLD_IFS" # Restore IFS permanently after the loop
 
-    printf "        Expanded line: %s\n" "$_ef_result_line"
     echo "$_ef_result_line"
 }
 
