@@ -299,7 +299,7 @@ aux-laf() {
             
             # Count the number of calls to the function
             func_calls=$(count_calls "$func_name")
-            callsfun=$(count_calls_folder "$func_name" "$FUN_DIR" "$file_name")
+            callsfun=$(count_calls_folder "$func_name" "$LIB_DEP_DIR" "$file_name")
             callsgen=$(count_calls_folder "$func_name" "$SRC_SET_DIR" "$file_name")
             
             # Get comments for arguments, shortname, and description
