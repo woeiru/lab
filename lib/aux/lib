@@ -17,11 +17,12 @@
 # ============================================================================
 
 # Define directory and file variables
-DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
 BASE_FUN="${FILE_FUN%.*}"
-FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
-CONFIG_DIR="$(realpath "$DIR_FUN/../../cfg/env")"
+FILEPATH_FUN="${THIS_DIR}/${FILE_FUN}"
+CONFIG_DIR="$(realpath "$THIS_DIR/../../cfg/env")"
+FUNCTION_DIR="$(realpath "$THIS_DIR/../dep")"
 
 # Dynamically create variables based on the base name
 eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
@@ -40,7 +41,7 @@ aux-fun() {
 # overview variables
 #
 aux-var() {
-    aux-acu -o "$CONFIG_DIR" "$DIR_FUN/.."
+    aux-acu -o "$CONFIG_DIR" "$FUNCTION_DIR""
 }
 
 # Logging function
