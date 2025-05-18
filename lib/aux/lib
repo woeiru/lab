@@ -445,11 +445,24 @@ aux-acu() {
     # --- Helper functions for table printing (MODIFIED) ---
     _aux_acu_print_separator() {
         local line="+"
-        line+=$(printf "%-${tab_width_var_names}s-+" "$(printf '%*s' "$tab_width_var_names" '' | tr ' ' '-')")
-        line+=$(printf "%-${tab_width_var_values}s-+" "$(printf '%*s' "$tab_width_var_values" '' | tr ' ' '-')")
-        line+=$(printf "%-${tab_width_total_occ}s-+" "$(printf '%*s' "$tab_width_total_occ" '' | tr ' ' '-')")
-        for target_folder_path in "${target_folders_input[@]}"; do
-            line+=$(printf "%-${tab_width_per_dir_occ}s-+" "$(printf '%*s' "$tab_width_per_dir_occ" '' | tr ' ' '-')")
+        local h_var_segment h_val_segment h_occ_segment h_dir_segment # Declared on one line
+
+        # For "Variable" column
+        h_var_segment=$(printf '%*s' "$((${tab_width_var_names} + 1))" '' | tr ' ' '-')
+        line+="${h_var_segment}-+"
+
+        # For "Value" column
+        h_val_segment=$(printf '%*s' "$((${tab_width_var_values} + 1))" '' | tr ' ' '-')
+        line+="${h_val_segment}-+"
+
+        # For "Total Occ." column
+        h_occ_segment=$(printf '%*s' "$((${tab_width_total_occ} + 1))" '' | tr ' ' '-')
+        line+="${h_occ_segment}-+"
+
+        # For each target directory column
+        for _ in "${target_folders_input[@]}"; do # No need for target_folder_path variable here
+            h_dir_segment=$(printf '%*s' "$((${tab_width_per_dir_occ} + 1))" '' | tr ' ' '-')
+            line+="${h_dir_segment}-+"
         done
         printf "%s\n" "$line"
     }
