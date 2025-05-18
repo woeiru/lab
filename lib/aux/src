@@ -354,8 +354,8 @@ expand_variables() {
 
             local value_of_var="${!var_name}"
             # Replace all occurrences of the variable name (as a whole word)
-            # with "variable_name = value"
-            _ef_result_line="${_ef_result_line//$var_name/$var_name = $value_of_var}"
+            # with its value.
+            _ef_result_line="${_ef_result_line//"$var_name"/"$value_of_var"}"
         fi
         OLD_IFS="$IFS" # Re-set IFS before next iteration if it was changed
         IFS=$'\n'
