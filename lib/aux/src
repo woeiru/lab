@@ -91,6 +91,51 @@ fi
 # Clean up temporary variables for this block
 unset _AUX_SRC_SCRIPT_DIR_TEMP2 _LIB_DEP_DIR_TEMP _lib_file_temp
 
+# Dynamically source all other files from the same directory as this script.
+
+# Determine the absolute path to the directory containing this script.
+_AUX_SRC_SELF_DIR_TEMP="$(dirname "${BASH_SOURCE[0]}")"
+# Get the basename of the current script to exclude it from sourcing.
+_AUX_SRC_SELF_BASENAME_TEMP="$(basename "${BASH_SOURCE[0]}")"
+
+if [[ -d "$_AUX_SRC_SELF_DIR_TEMP" ]]; then
+    printf "INFO: Sourcing other files from script's own directory: %s\n" "$_AUX_SRC_SELF_DIR_TEMP" >&2
+    for _self_dir_file_temp in "$_AUX_SRC_SELF_DIR_TEMP"/*; do
+        # Check if it's a regular file, readable, and not the script itself
+        if [[ -f "$_self_dir_file_temp" ]] && [[ -r "$_self_dir_file_temp" ]] && [[ "$(basename "$_self_dir_file_temp")" != "$_AUX_SRC_SELF_BASENAME_TEMP" ]]; then
+            printf "  ├─ Loading: %s\n" "$(basename "$_self_dir_file_temp")" >&2
+            # shellcheck source=/dev/null
+            source "$_self_dir_file_temp" || printf "WARNING: Failed to source file %s\n" "$(basename "$_self_dir_file_temp")" >&2
+        fi
+    done
+else
+    printf "WARNING: Script's own directory not found: %s\n" "$_AUX_SRC_SELF_DIR_TEMP" >&2
+fi
+# Clean up temporary variables for this block
+unset _AUX_SRC_SELF_DIR_TEMP _AUX_SRC_SELF_BASENAME_TEMP _self_dir_file_temp
+
+# Dynamically source all other files in the same directory as this script (lib/aux/)
+
+# Determine the absolute path to the directory containing this script.
+_AUX_SRC_SCRIPT_DIR_TEMP3="$(dirname "${BASH_SOURCE[0]}")"
+_CURRENT_SCRIPT_BASENAME_TEMP3="$(basename "${BASH_SOURCE[0]}")"
+
+if [[ -d "$_AUX_SRC_SCRIPT_DIR_TEMP3" ]]; then
+    printf "INFO: Sourcing other library files from: %s\n" "$_AUX_SRC_SCRIPT_DIR_TEMP3" >&2
+    for _other_lib_file_temp in "$_AUX_SRC_SCRIPT_DIR_TEMP3"/*; do
+        _other_lib_basename_temp="$(basename "$_other_lib_file_temp")"
+        if [[ -f "$_other_lib_file_temp" ]] && [[ -r "$_other_lib_file_temp" ]] && [[ "$_other_lib_basename_temp" != "$_CURRENT_SCRIPT_BASENAME_TEMP3" ]]; then
+            printf "  ├─ Loading: %s\n" "$_other_lib_basename_temp" >&2
+            # shellcheck source=/dev/null
+            source "$_other_lib_file_temp" || printf "WARNING: Failed to source other library file %s\n" "$_other_lib_basename_temp" >&2
+        fi
+    done
+else
+    printf "WARNING: Auxiliary library directory not found: %s\n" "$_AUX_SRC_SCRIPT_DIR_TEMP3" >&2
+fi
+# Clean up temporary variables for this block
+unset _AUX_SRC_SCRIPT_DIR_TEMP3 _CURRENT_SCRIPT_BASENAME_TEMP3 _other_lib_file_temp _other_lib_basename_temp
+
 setup_source() {
     local dir="$1"
     local file="$2"
