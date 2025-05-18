@@ -47,7 +47,7 @@ set_static() {
     alias cto='pve-cto'
 
     # Function chaining
-    alias fun='aux-ffl aux-laf "" "$LIB_DEPL_DIR"'
+    alias fun='aux-ffl aux-laf "" "$LIB_DEP_DIR"'
     alias var='aux-ffl aux-acu "" "$ENV_DIR" "$LAB_DIR"'
 
     # Function makros
