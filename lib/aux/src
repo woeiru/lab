@@ -67,6 +67,30 @@ fi
 # Clean up temporary variables
 unset _AUX_SRC_SCRIPT_DIR_TEMP _CFG_ENV_DIR_TEMP _env_file_temp
 
+# Dynamically source all function library files from lib/dep/
+
+# Determine the absolute path to the directory containing this script again (or reuse if scope allows and it's clean).
+# For clarity and safety, especially if this script could be sourced in complex ways, re-determining is safer.
+_AUX_SRC_SCRIPT_DIR_TEMP2="$(dirname "${BASH_SOURCE[0]}")"
+
+# Construct the path to the lib/dep directory: two levels up, then into lib/dep.
+_LIB_DEP_DIR_TEMP="$(realpath "${_AUX_SRC_SCRIPT_DIR_TEMP2}/../../lib/dep")"
+
+if [[ -d "$_LIB_DEP_DIR_TEMP" ]]; then
+    printf "INFO: Sourcing function library files from: %s\n" "$_LIB_DEP_DIR_TEMP" >&2
+    for _lib_file_temp in "$_LIB_DEP_DIR_TEMP"/*; do
+        if [[ -f "$_lib_file_temp" ]] && [[ -r "$_lib_file_temp" ]]; then
+            printf "  ├─ Loading: %s\n" "$(basename "$_lib_file_temp")" >&2
+            # shellcheck source=/dev/null
+            source "$_lib_file_temp" || printf "WARNING: Failed to source library file %s\n" "$(basename "$_lib_file_temp")" >&2
+        fi
+    done
+else
+    printf "WARNING: Function library directory not found: %s\n" "$_LIB_DEP_DIR_TEMP" >&2
+fi
+# Clean up temporary variables for this block
+unset _AUX_SRC_SCRIPT_DIR_TEMP2 _LIB_DEP_DIR_TEMP _lib_file_temp
+
 setup_source() {
     local dir="$1"
     local file="$2"
