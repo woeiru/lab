@@ -178,8 +178,8 @@ source_env() {
 
 # Source the function files
 source_depl() {
-    # Use FUN_DIR which is defined in ric
-    source_directory "$LIB_DEPL_DIR" "*" "function files"
+    # Use LIB_DEP_DIR which is defined in ric
+    source_directory "$LIB_DEP_DIR" "*" "function files"
     return $?
 }
 
