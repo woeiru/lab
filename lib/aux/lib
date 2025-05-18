@@ -17,31 +17,31 @@
 # ============================================================================
 
 # Define directory and file variables
-THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
 BASE_FUN="${FILE_FUN%.*}"
-FILEPATH_FUN="${THIS_DIR}/${FILE_FUN}"
-CONFIG_DIR="$(realpath "$THIS_DIR/../../cfg/env")"
-FUNCTION_DIR="$(realpath "$THIS_DIR/../dep")"
+FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
+CONFIG_FUN="${SITE_CONFIG_FILE}"
 
 # Dynamically create variables based on the base name
 eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
 eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
+eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
 aux-fun() {
     # Pass all arguments directly to aux-laf
-    aux-laf "$FILEPATH_all" "$@"
+    aux-laf "$FILEPATH_lib" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
 aux-var() {
-    aux-acu -o "$CONFIG_DIR" "$FUNCTION_DIR"
+    aux-acu -o "$CONFIG_gpu" "$DIR_FUN/.."
 }
 
 # Logging function
