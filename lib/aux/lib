@@ -9,6 +9,10 @@
 #   aux-ffl      : Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed.
 #   aux-laf      : Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability.
 #   aux-acu      : Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files.
+#   aux-mev      : Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters.
+#   aux-nos      : Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information.
+#   aux-flc      : Displays the source code of a specified function from the library folder, including its description, shortname, and usage.
+#   aux-use      : Displays the usage information, shortname, and description of the calling function, helping users understand how to use it.
 #
 # ============================================================================
 
