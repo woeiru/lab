@@ -23,7 +23,14 @@
 
 # Level 1 directories
 declare -g LAB_DIR
-LAB_DIR="${LAB_DIR:-../../}"
+# Determine LAB_DIR based on ric's location to ensure it's independent of CWD
+# Get the path of the currently sourced script (ric itself)
+_ric_file_path_for_lab_dir="${BASH_SOURCE[0]}"
+# Get the absolute path of the directory containing the ric script
+_ric_dir_path_for_lab_dir="$( cd "$( dirname "$_ric_file_path_for_lab_dir" )" &> /dev/null && pwd )"
+# Go up two levels from ric's directory to get the intended LAB_DIR
+_lab_dir_candidate="$(dirname "$(dirname "$_ric_dir_path_for_lab_dir")")"
+LAB_DIR="${LAB_DIR:-$_lab_dir_candidate}"
 export LAB_DIR 
 
 # Runtime files - consolidated into init file
