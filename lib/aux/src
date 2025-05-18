@@ -330,19 +330,40 @@ select_and_execute_sections() {
 # Function to expand variables
 expand_variables() {
     local line="$1"
-    local expanded_line="$line"
+    local _ef_result_line="$line"  # Renamed to avoid collision
 
-    local vars=$(echo "$line" | grep -o '\<[a-zA-Z_][a-zA-Z0-9_]*\>')
+    # Find potential variable names (words)
+    # Ensure grep output is handled safely if it could be empty or contain special characters for the loop
+    local vars_found
+    vars_found=$(echo "$line" | grep -o '\<[a-zA-Z_][a-zA-Z0-9_]*\>')
 
-    for var in $vars; do
-        if [[ -v $var ]]; then
-            local value="${!var}"
-            expanded_line="${expanded_line//$var/$var = $value}"
+    # IFS is set to newline to handle variable names with spaces if grep could produce them (not with this pattern)
+    # and to prevent word splitting on spaces within a single found var_name (already handled by grep -o)
+    local OLD_IFS="$IFS"
+    IFS=$'\n'
+    for var_name in $vars_found; do
+        IFS="$OLD_IFS" # Restore IFS for commands inside the loop if any relied on it
+        # Check if this word is a currently set variable
+        # Ensure $var_name is quoted for the -v test
+        if [[ -v "$var_name" ]]; then
+            # Ensure we are not trying to expand our own accumulator variable
+            # This check is mostly defensive if _ef_result_line was not unique enough
+            if [[ "$var_name" == "_ef_result_line" ]]; then
+                continue
+            fi
+
+            local value_of_var="${!var_name}"
+            # Replace all occurrences of the variable name (as a whole word)
+            # with "variable_name = value"
+            _ef_result_line="${_ef_result_line//$var_name/$var_name = $value_of_var}"
         fi
+        OLD_IFS="$IFS" # Re-set IFS before next iteration if it was changed
+        IFS=$'\n'
     done
+    IFS="$OLD_IFS" # Restore IFS permanently after the loop
 
-    printf "        Expanded line: %s\n" "$expanded_line"
-    echo "$expanded_line"
+    printf "        Expanded line: %s\n" "$_ef_result_line"
+    echo "$_ef_result_line"
 }
 
 # Function to get function description
