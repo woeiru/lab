@@ -26,6 +26,7 @@
 declare -gA MODULE_VARS
 declare -gA MODULE_PATHS
 declare -gA MODULE_OPTS
+declare -gA MODULE_COMMANDS # New: For command-line tool dependencies
 
 # Initialize module requirements
 init_module_requirements() {
@@ -66,6 +67,7 @@ debug_log "Initializing module requirements"
     MODULE_PATHS[tme.TME_STATE_FILE]="file:true"
     MODULE_PATHS[tme.TME_LEVELS_FILE]="file:true"
     MODULE_PATHS[tme.LOG_DIR]="dir:true"
+    MODULE_COMMANDS[tme.bc]=1 # New: 'tme' module requires 'bc' command
 
 debug_log "Module requirements initialization complete"
 }
@@ -75,3 +77,4 @@ export -f init_module_requirements
 export -A MODULE_VARS
 export -A MODULE_PATHS
 export -A MODULE_OPTS
+export -A MODULE_COMMANDS # New: Export the commands array

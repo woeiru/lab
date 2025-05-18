@@ -158,8 +158,13 @@ verify_module() {
     debug_log "Verifying module: $module" "verify_module"
 
     # Initialize requirements if not already done
-    if [[ -z "${MODULE_VARS[*]}" ]]; then
-        init_module_requirements
+    if [[ -z "${MODULE_VARS[*]}" && -z "${MODULE_PATHS[*]}" && -z "${MODULE_COMMANDS[*]}" ]]; then
+        if type init_module_requirements &>/dev/null; then
+            init_module_requirements
+        else
+            debug_log "ERROR: init_module_requirements function not found. Cannot verify module $module." "verify_module"
+            return 1
+        fi
     fi
 
     local failed=0
@@ -168,8 +173,14 @@ verify_module() {
     for var_key in "${!MODULE_VARS[@]}"; do
         if [[ $var_key == $module.* ]]; then
             local var_name="${var_key#$module.}"
-            if ! verify_var "$var_name" 2>/dev/null; then
-                ((failed++))
+            # Ensure the variable name itself is not empty after stripping module prefix
+            if [[ -n "$var_name" ]]; then
+                if ! verify_var "$var_name" 2>/dev/null; then
+                    debug_log "ERROR: Variable '$var_name' for module '$module' not verified." "verify_module"
+                    ((failed++))
+                fi
+            else
+                debug_log "WARNING: Empty variable name derived for key '$var_key' in module '$module'." "verify_module"
             fi
         fi
     done
@@ -177,16 +188,52 @@ verify_module() {
     # Verify module paths
     for path_key in "${!MODULE_PATHS[@]}"; do
         if [[ $path_key == $module.* ]]; then
-            local path_var="${path_key#$module.}"
-            local path_spec="${MODULE_PATHS[$path_key]}"
-            local type="${path_spec%%:*}"
-            local create="${path_spec##*:}"
+            local path_var_name="${path_key#$module.}"
+            # Ensure the path variable name itself is not empty
+            if [[ -n "$path_var_name" ]]; then
+                local path_spec="${MODULE_PATHS[$path_key]}"
+                local type="${path_spec%%:*}"
+                local create_flag="${path_spec##*:}" # Renamed to avoid conflict
 
-            if ! verify_path "${!path_var}" "$type" "$create"; then
-                ((failed++))
+                # Check if path_var_name is a declared variable and not empty
+                if declare -p "$path_var_name" &>/dev/null && [[ -n "${!path_var_name}" ]]; then
+                    if ! verify_path "${!path_var_name}" "$type" "$create_flag"; then # Use renamed flag
+                        debug_log "ERROR: Path '${!path_var_name}' (defined by '$path_var_name') for module '$module' not verified." "verify_module"
+                        ((failed++))
+                    fi
+                else
+                    debug_log "ERROR: Path variable '$path_var_name' for module '$module' is not set or not a valid variable." "verify_module"
+                    ((failed++))
+                fi
+            else
+                debug_log "WARNING: Empty path variable name derived for key '$path_key' in module '$module'." "verify_module"
             fi
         fi
     done
+
+    # Verify module commands (New)
+    if declare -p MODULE_COMMANDS &>/dev/null; then # Check if MODULE_COMMANDS is declared
+        for cmd_key in "${!MODULE_COMMANDS[@]}"; do
+            if [[ $cmd_key == $module.* ]]; then
+                local cmd_name="${cmd_key#$module.}"
+                # Ensure the command name itself is not empty
+                if [[ -n "$cmd_name" ]]; then
+                    if ! command -v "$cmd_name" &>/dev/null; then
+                        echo "ERROR: Required command '$cmd_name' for module '$module' not found in PATH." >&2
+                        debug_log "ERROR: Required command '$cmd_name' for module '$module' not found in PATH." "verify_module"
+                        ((failed++))
+                    else
+                        debug_log "Command '$cmd_name' for module '$module' found." "verify_module"
+                    fi
+                else
+                    debug_log "WARNING: Empty command name derived for key '$cmd_key' in module '$module'." "verify_module"
+                fi
+            fi
+        done
+    else
+        debug_log "INFO: MODULE_COMMANDS array not declared. Skipping command verification for module '$module'." "verify_module"
+    fi
+
 
     ((failed > 0)) && return 1
     return 0
