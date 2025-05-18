@@ -8,7 +8,7 @@
 #   aux-log      : Logging function. Prints a timestamped log message with a log level.
 #   aux-ffl      : Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed.
 #   aux-laf      : Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability.
-#   aux-acu      : Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files.
+#   aux-acu      : Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files.
 #   aux-mev      : Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters.
 #   aux-nos      : Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information.
 #   aux-flc      : Displays the source code of a specified function from the library folder, including its description, shortname, and usage.
@@ -326,25 +326,28 @@ aux-laf() {
     echo ""
 }
 
-# Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files
+# Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
-# <sort mode: -o|-a > <config file or directory> <target folder>
+# <sort mode: -o|-a|""|> <config file or directory> <target folder1> [target folder2 ...]
 aux-acu() {
     local sort_mode_arg="$1"
     local conf_source="$2"
-    local target_folder="$3"
+    shift 2 # Remove sort_mode and conf_source from arguments
+    local target_folders_input=("$@") # Remaining arguments are the target folders
 
     # Customizable column widths
     local tab_width_var_names=24
     local tab_width_var_values=30
     local tab_width_total_occ=10
-    local tab_width_files_list=50
+    # Adjusted width for individual target directory occurrence columns to show details
+    local tab_width_per_dir_occ=40 # Increased width
 
-    if [ $# -ne 3 ]; then
-        echo "Usage: aux-acu <-o|-a|\"\"> <config file or directory> <target folder>"
-        echo "  -o: original order from config file"
-        echo "  -a: alphanumeric order of variable names"
-        echo "  \"\": defaults to -o (original order)"
+    local usage_message="Usage: aux-acu <-o|-a|\"\"> <config file or directory> <target folder1> [target folder2 ...]"
+    local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  \"\": defaults to -o (original order)"
+
+    if [ ${#target_folders_input[@]} -eq 0 ]; then
+        echo "Error: At least one target folder must be specified."
+        echo -e "$usage_message\n$sort_mode_details"
         return 1
     fi
 
@@ -357,7 +360,8 @@ aux-acu() {
 
     if [[ "$sort_mode" != "-o" && "$sort_mode" != "-a" ]]; then
         echo "Invalid sort mode: '$sort_mode_arg'. Use -o, -a, or an empty string (which defaults to -o)."
-        aux-use # Assuming aux-use would print usage for aux-acu
+        echo -e "$usage_message\n$sort_mode_details"
+        # Consider calling aux-use if it's generic enough or pass specific usage.
         return 1
     fi
 
@@ -366,15 +370,17 @@ aux-acu() {
         return 1
     fi
 
-    if [[ ! -d "$target_folder" ]]; then
-        echo "Target folder '$target_folder' does not exist."
-        return 1
-    fi
+    for tf_path in "${target_folders_input[@]}"; do
+        if [[ ! -d "$tf_path" ]]; then
+            echo "Error: Target folder '$tf_path' does not exist."
+            return 1
+        fi
+    done
 
     declare -A config_vars
     declare -a var_order # To store variables in their original order from the config
 
-    # --- Helper function to read config file ---
+    # --- Helper function to read config file (no changes needed from previous version) ---
     _aux_acu_read_config_file() {
         local current_conf_source_path="$1"
         local files_to_process=()
@@ -393,7 +399,6 @@ aux-acu() {
         elif [[ -f "$current_conf_source_path" ]]; then
             files_to_process+=("$current_conf_source_path")
         else
-            # This case should have been caught by earlier checks, but as a safeguard:
             echo "Error: Invalid config source path '$current_conf_source_path' in _aux_acu_read_config_file." >&2
             return 1
         fi
@@ -401,27 +406,19 @@ aux-acu() {
         local current_conf_file var value line
         for current_conf_file in "${files_to_process[@]}"; do
             while IFS= read -r line || [[ -n "$line" ]]; do
-                # Skip comments, empty lines, declare statements, and lines without '='
                 if [[ "$line" =~ ^[[:space:]]*# || -z "$line" || "$line" =~ ^[[:space:]]*declare || ! "$line" =~ = ]]; then
                     continue
                 fi
-
                 local var_raw value_raw
                 var_raw=$(echo "$line" | cut -d'=' -f1)
                 value_raw=$(echo "$line" | cut -d'=' -f2-)
-
-                # Trim whitespace from var_raw and ensure it's a valid variable name
                 var=$(echo "$var_raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-                if [[ ! "$var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then # Basic validation for var name
+                if [[ ! "$var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
                     continue
                 fi
-                
-                # Trim whitespace from value_raw and remove surrounding quotes (single or double)
                 value=$(echo "$value_raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"\\(.*\\)"$/\\1/' -e "s/^'\\([^']*\)'$/\\1/")
-
                 if [[ -n "$var" ]]; then
                     config_vars["$var"]="$value"
-                    # Add to var_order only if not already present, to maintain first-seen order
                     if ! printf '%s\\n' "${var_order[@]}" | grep -qFx "$var"; then
                         var_order+=("$var")
                     fi
@@ -430,62 +427,64 @@ aux-acu() {
         done
     }
 
-    # --- Helper function to list target files ---
-    local -a target_files=()
-    _aux_acu_list_target_files() {
-        local search_path="$1"
-        # Exclude common VCS and build artifact directories, and filter for actual files
-        # Using find for more robust file listing
-        mapfile -t target_files < <(find "$search_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print | sort)
-    }
-
-    # --- Helper function to truncate strings ---
+    # --- Helper function to truncate strings (no changes needed) ---
     _aux_acu_truncate_string() {
         local str="$1"
         local max_length="$2"
         if [ "${#str}" -gt "$max_length" ]; then
-            if [ "$max_length" -lt 2 ]; then # Cannot add ".." if max_length is less than 2
+            if [ "$max_length" -lt 2 ]; then
                  printf "%.*s" "$max_length" "$str"
             else
                 printf "%.*s.." "$((max_length-2))" "$str"
             fi
         else
-            printf "%-${max_length}s" "$str"
+            printf "%-${max_length}s" "$str" # Ensures left alignment and padding
         fi
     }
     
-    # --- Helper functions for table printing ---
+    # --- Helper functions for table printing (MODIFIED) ---
     _aux_acu_print_separator() {
-        printf "+-%-${tab_width_var_names}s-+-%-${tab_width_var_values}s-+-%-${tab_width_total_occ}s-+-%-${tab_width_files_list}s-+\n" \
-            "$(printf '%*s' "$tab_width_var_names" '' | tr ' ' '-')" \
-            "$(printf '%*s' "$tab_width_var_values" '' | tr ' ' '-')" \
-            "$(printf '%*s' "$tab_width_total_occ" '' | tr ' ' '-')" \
-            "$(printf '%*s' "$tab_width_files_list" '' | tr ' ' '-')"
+        local line="+"
+        line+=$(printf "%-${tab_width_var_names}s-+" "$(printf '%*s' "$tab_width_var_names" '' | tr ' ' '-')")
+        line+=$(printf "%-${tab_width_var_values}s-+" "$(printf '%*s' "$tab_width_var_values" '' | tr ' ' '-')")
+        line+=$(printf "%-${tab_width_total_occ}s-+" "$(printf '%*s' "$tab_width_total_occ" '' | tr ' ' '-')")
+        for target_folder_path in "${target_folders_input[@]}"; do
+            line+=$(printf "%-${tab_width_per_dir_occ}s-+" "$(printf '%*s' "$tab_width_per_dir_occ" '' | tr ' ' '-')")
+        done
+        printf "%s\n" "$line"
     }
 
     _aux_acu_print_header() {
         _aux_acu_print_separator
-        printf "| %-${tab_width_var_names}s | %-${tab_width_var_values}s | %-${tab_width_total_occ}s | %-${tab_width_files_list}s |\n" \
-            "Variable" "Value" "Total Occ." "Files (hits)"
+        local header_string="| "
+        header_string+=$(printf "%-${tab_width_var_names}s | " "Variable")
+        header_string+=$(printf "%-${tab_width_var_values}s | " "Value")
+        header_string+=$(printf "%-${tab_width_total_occ}s | " "Total Occ.")
+        for target_folder_path in "${target_folders_input[@]}"; do
+            local dir_name_header=$(_aux_acu_truncate_string "$(basename "$target_folder_path")" "$tab_width_per_dir_occ")
+            header_string+=$(printf "%-${tab_width_per_dir_occ}s | " "$dir_name_header")
+        done
+        printf "%s\n" "$header_string"
         _aux_acu_print_separator
     }
 
     _aux_acu_print_row() {
-        local var_name="$1"
-        local var_value="$2"
-        local total_occurrences="$3"
-        local files_list_str="$4"
+        local var_name_in_row="$1"
+        local var_value_in_row="$2"
+        local overall_total_occurrences_in_row="$3"
+        shift 3
+        local per_dir_detail_strings_in_row=("$@") # Array of "file:count,..." strings or "0"
 
-        local trunc_var_name=$(_aux_acu_truncate_string "$var_name" "$tab_width_var_names")
-        local trunc_var_value=$(_aux_acu_truncate_string "$var_value" "$tab_width_var_values")
-        local trunc_files_list=$(_aux_acu_truncate_string "$files_list_str" "$tab_width_files_list")
-        local trunc_total_occ=$(_aux_acu_truncate_string "$total_occurrences" "$tab_width_total_occ")
+        local row_string="| "
+        row_string+=$(printf "%s | " "$(_aux_acu_truncate_string "$var_name_in_row" "$tab_width_var_names")")
+        row_string+=$(printf "%s | " "$(_aux_acu_truncate_string "$var_value_in_row" "$tab_width_var_values")")
+        row_string+=$(printf "%${tab_width_total_occ}s | " "$overall_total_occurrences_in_row")
 
-        printf "| %s | %s | %s | %s |\n" \
-            "$trunc_var_name" \
-            "$trunc_var_value" \
-            "$trunc_total_occ" \
-            "$trunc_files_list"
+        for detail_str_for_dir in "${per_dir_detail_strings_in_row[@]}"; do
+            # Truncate and left-align the detail string for the directory column
+            row_string+=$(printf "%s | " "$(_aux_acu_truncate_string "$detail_str_for_dir" "$tab_width_per_dir_occ")")
+        done
+        printf "%s\n" "$row_string"
     }
 
     _aux_acu_print_footer() {
@@ -498,18 +497,11 @@ aux-acu() {
         echo "No variables found in config source '$conf_source'."
         return
     fi
-
-    _aux_acu_list_target_files "$target_folder"
-    if [ ${#target_files[@]} -eq 0 ]; then
-        echo "No files found in target folder '$target_folder'."
-        # Proceed to print variables without occurrence data if desired, or return
-        # For now, let's print the table header and then variables with 0 occurrences.
-    fi
     
     local -a vars_to_iterate
     if [[ "$sort_mode" == "-a" ]]; then
         mapfile -t vars_to_iterate < <(printf "%s\n" "${var_order[@]}" | sort)
-    else # -o (original order)
+    else # -o (original order) or default
         vars_to_iterate=("${var_order[@]}")
     fi
 
@@ -517,32 +509,38 @@ aux-acu() {
 
     for var_name in "${vars_to_iterate[@]}"; do
         local var_value="${config_vars[$var_name]}"
-        local total_occurrences_for_var=0
-        local files_with_occurrences_details=()
+        local overall_total_occurrences_for_var=0
+        local per_dir_details_for_row=() # Stores "file:count,..." or "0" for each target dir
 
-        if [ ${#target_files[@]} -gt 0 ]; then
-            for target_file in "${target_files[@]}"; do
-                if [[ -f "$target_file" && -r "$target_file" ]]; then # Ensure target_file is a readable file
-                    # Search for the variable name as a whole word.
-                    # This counts occurrences of the variable name itself (e.g., "MY_VAR").
-                    # It won't distinguish between $MY_VAR, ${MY_VAR}, or MY_VAR=, but gives a general idea of usage.
-                    # Using grep with -o lists each match on a new line, wc -l counts these lines.
-                    # The pattern \bVAR_NAME\b ensures whole word matching.
-                    occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file" 2>/dev/null | wc -l)
-                    if [[ "$occurrences_in_file" -gt 0 ]]; then
-                        total_occurrences_for_var=$((total_occurrences_for_var + occurrences_in_file))
-                        files_with_occurrences_details+=("$(basename "$target_file"):$occurrences_in_file")
+        for target_folder_path in "${target_folders_input[@]}"; do
+            local occurrences_in_current_dir_total=0
+            local files_with_occurrences_details_in_dir=() # Collects "basename:count" for this dir
+            local current_target_files_in_dir=()
+            
+            mapfile -t current_target_files_in_dir < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print 2>/dev/null | sort)
+
+            if [ ${#current_target_files_in_dir[@]} -gt 0 ]; then
+                for target_file_in_dir in "${current_target_files_in_dir[@]}"; do
+                    if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
+                        local occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
+                        if [[ "$occurrences_in_file" -gt 0 ]]; then
+                            occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
+                            files_with_occurrences_details_in_dir+=("$(basename "$target_file_in_dir"):$occurrences_in_file")
+                        fi
                     fi
-                fi
-            done
-        fi
+                done
+            fi
 
-        local files_list_display_str=""
-        if [ ${#files_with_occurrences_details[@]} -gt 0 ]; then
-            files_list_display_str=$(IFS=,; echo "${files_with_occurrences_details[*]}")
-        fi
+            local dir_details_display_str="0" # Default to "0"
+            if [ ${#files_with_occurrences_details_in_dir[@]} -gt 0 ]; then
+                dir_details_display_str=$(IFS=,; echo "${files_with_occurrences_details_in_dir[*]}")
+            fi
+            per_dir_details_for_row+=("$dir_details_display_str")
+            
+            overall_total_occurrences_for_var=$((overall_total_occurrences_for_var + occurrences_in_current_dir_total))
+        done
         
-        _aux_acu_print_row "$var_name" "$var_value" "$total_occurrences_for_var" "$files_list_display_str"
+        _aux_acu_print_row "$var_name" "$var_value" "$overall_total_occurrences_for_var" "${per_dir_details_for_row[@]}"
     done
 
     _aux_acu_print_footer
