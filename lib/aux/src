@@ -351,8 +351,6 @@ get_function_description() {
     local lib_name="${func_name%%-*}"
     local lib_file="${LIB_DEP_DIR}/${lib_name}"
 
-    printf "      Getting description for function: %s from file: %s\n" "$func_name" "$lib_file"
-
     if [ ! -f "$lib_file" ]; then
         printf "      Library file not found: %s\n" "$lib_file"
         return
