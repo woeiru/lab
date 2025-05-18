@@ -328,19 +328,36 @@ aux-laf() {
 
 # Analyzes the usage of variables from a config file across a target folder, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
-# <sort mode: o|a > <config file or directory> <target folder>
+# <sort mode: -o|-a > <config file or directory> <target folder>
 aux-acu() {
-    local sort_mode=$1
-    local conf_source=$2
-    local target_folder=$3
+    local sort_mode_arg="$1"
+    local conf_source="$2"
+    local target_folder="$3"
 
     # Customizable column widths
-    local tab_width_var_names=20
-    local tab_width_var_values=18
-    local tab_width_var_occurences=5
+    local tab_width_var_names=24
+    local tab_width_var_values=30
+    local tab_width_total_occ=10
+    local tab_width_files_list=50
 
     if [ $# -ne 3 ]; then
-        echo "Usage: aux-acu <sort mode: -o|-a> <config file or directory> <target folder>"
+        echo "Usage: aux-acu <-o|-a|\"\"> <config file or directory> <target folder>"
+        echo "  -o: original order from config file"
+        echo "  -a: alphanumeric order of variable names"
+        echo "  \"\": defaults to -o (original order)"
+        return 1
+    fi
+
+    local sort_mode
+    if [[ -z "$sort_mode_arg" ]]; then
+        sort_mode="-o" # Default to original order if sort_mode_arg is empty
+    else
+        sort_mode="$sort_mode_arg"
+    fi
+
+    if [[ "$sort_mode" != "-o" && "$sort_mode" != "-a" ]]; then
+        echo "Invalid sort mode: '$sort_mode_arg'. Use -o, -a, or an empty string (which defaults to -o)."
+        aux-use # Assuming aux-use would print usage for aux-acu
         return 1
     fi
 
@@ -349,139 +366,186 @@ aux-acu() {
         return 1
     fi
 
-    if [[ ! -d $target_folder ]]; then
-        echo "Target folder $target_folder does not exist."
+    if [[ ! -d "$target_folder" ]]; then
+        echo "Target folder '$target_folder' does not exist."
         return 1
     fi
 
     declare -A config_vars
-    declare -a var_order
+    declare -a var_order # To store variables in their original order from the config
 
-    # Function to read config file and store variables and their values
-    read_config_file() {
-        local current_conf_source=$1 
+    # --- Helper function to read config file ---
+    _aux_acu_read_config_file() {
+        local current_conf_source_path="$1"
         local files_to_process=()
 
-        if [[ -d "$current_conf_source" ]]; then
+        if [[ -d "$current_conf_source_path" ]]; then
             local item
-            for item in "$current_conf_source"/*; do
+            for item in "$current_conf_source_path"/*; do
                 if [[ -f "$item" ]]; then
                     files_to_process+=("$item")
                 fi
             done
             if [ ${#files_to_process[@]} -eq 0 ]; then
-                echo "Warning: No configuration files found in directory '$current_conf_source'." >&2
+                echo "Warning: No configuration files found in directory '$current_conf_source_path'." >&2
                 return
             fi
-        elif [[ -f "$current_conf_source" ]]; then
-            files_to_process+=("$current_conf_source")
+        elif [[ -f "$current_conf_source_path" ]]; then
+            files_to_process+=("$current_conf_source_path")
         else
-            echo "Internal Error: read_config_file called with invalid source '$current_conf_source'." >&2
+            # This case should have been caught by earlier checks, but as a safeguard:
+            echo "Error: Invalid config source path '$current_conf_source_path' in _aux_acu_read_config_file." >&2
             return 1
         fi
 
-        local current_conf_file var value content
+        local current_conf_file var value line
         for current_conf_file in "${files_to_process[@]}"; do
-            content=$(grep -E -v '^(#|declare|[[:space:]]*\))' "$current_conf_file" | grep '=' | sed 's/[[:space:]]//g' 2>/dev/null || true)
-            if [[ -n "$content" ]]; then
-                while IFS='=' read -r var value; do
-                    if [[ -z "$var" && -n "$value" ]] || [[ -n "$var" ]]; then 
-                        local found_in_order=0
-                        local existing_var
-                        for existing_var in "${var_order[@]}"; do
-                            if [[ "$existing_var" == "$var" ]]; then
-                                found_in_order=1
-                                break
-                            fi
-                        done
-                        if [[ $found_in_order -eq 0 ]]; then
-                            var_order+=("$var")
-                        fi
-                        config_vars[$var]=$value
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                # Skip comments, empty lines, declare statements, and lines without '='
+                if [[ "$line" =~ ^[[:space:]]*# || -z "$line" || "$line" =~ ^[[:space:]]*declare || ! "$line" =~ = ]]; then
+                    continue
+                fi
+
+                local var_raw value_raw
+                var_raw=$(echo "$line" | cut -d'=' -f1)
+                value_raw=$(echo "$line" | cut -d'=' -f2-)
+
+                # Trim whitespace from var_raw and ensure it's a valid variable name
+                var=$(echo "$var_raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                if [[ ! "$var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then # Basic validation for var name
+                    continue
+                fi
+                
+                # Trim whitespace from value_raw and remove surrounding quotes (single or double)
+                value=$(echo "$value_raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"\\(.*\\)"$/\\1/' -e "s/^'\\([^']*\)'$/\\1/")
+
+                if [[ -n "$var" ]]; then
+                    config_vars["$var"]="$value"
+                    # Add to var_order only if not already present, to maintain first-seen order
+                    if ! printf '%s\\n' "${var_order[@]}" | grep -qFx "$var"; then
+                        var_order+=("$var")
                     fi
-                done <<< "$content"
-            fi
+                fi
+            done < "$current_conf_file"
         done
     }
 
-    # Function to sort variables based on the sort mode
-    sort_variables() {
-        local sort_mode=$1
-        if [[ $sort_mode == "-a" ]]; then
-            IFS=$'\n' sorted_vars=($(sort <<<"${var_order[*]}"))
-            unset IFS
-        else
-            sorted_vars=("${var_order[@]}")
-        fi
+    # --- Helper function to list target files ---
+    local -a target_files=()
+    _aux_acu_list_target_files() {
+        local search_path="$1"
+        # Exclude common VCS and build artifact directories, and filter for actual files
+        # Using find for more robust file listing
+        mapfile -t target_files < <(find "$search_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print | sort)
     }
 
-    list_target_files() {
-        local target_folder=$1
-        target_files=($(find "$target_folder" \( -name .git -o -name arc -o -name bar -o -name con -o -name dot -o -name fix -o -name var \) -prune -o -type f -name '*.*' -print | sort))
-    }
-
-    # Function to truncate strings that exceed the column width
-    truncate_string() {
-        local str=$1
-        local max_length=$2
-        if [ ${#str} -gt $max_length ]; then
-            echo "${str:0:max_length-2}.."
-        else
-            echo "$str"
-        fi
-    }
-
-    # Function to print header with borders
-    print_header() {
-       echo ""
-       printf "| %-*s | %-*s |" "$tab_width_var_names" "Variable" "$tab_width_var_values" "Value"
-
-       for sh_file in "${target_files[@]}"; do
-           local truncated_filename=$(basename "$sh_file" | cut -c 1-$tab_width_var_occurences)
-           printf " %-*s |" "$tab_width_var_occurences" "$truncated_filename"
-        done
-        echo
-
-        # Print separator
-        printf "| %s | %s | " "$(printf -- '-%.0s' $(seq $tab_width_var_names))" "$(printf -- '-%.0s' $(seq $tab_width_var_values))"
-        for _ in "${target_files[@]}"; do
-        printf "%s | " "$(printf -- '-%.0s' $(seq $tab_width_var_occurences))"
-        done
-        echo
-    }
-
-    # Function to print variable usage across target files
-    print_variables_usage() {
-        for var in "${sorted_vars[@]}"; do
-            local truncated_var=$(truncate_string "$var" "$tab_width_var_names")
-            local truncated_value=$(truncate_string "${config_vars[$var]}" "$tab_width_var_values")
-            printf "| %-*s | %-*s |" "$tab_width_var_names" "$truncated_var" "$tab_width_var_values" "$truncated_value"
-            
-            if [[ $var == *"["* ]]; then
-                for sh_file in "${target_files[@]}"; do
-                    printf " %-*s |" "$tab_width_var_occurences" ""
-                done
+    # --- Helper function to truncate strings ---
+    _aux_acu_truncate_string() {
+        local str="$1"
+        local max_length="$2"
+        if [ "${#str}" -gt "$max_length" ]; then
+            if [ "$max_length" -lt 2 ]; then # Cannot add ".." if max_length is less than 2
+                 printf "%.*s" "$max_length" "$str"
             else
-                for sh_file in "${target_files[@]}"; do
-                    local count=$(grep -o "\b$var\b" "$sh_file" | wc -l)
-                    if [[ $count -ne 0 ]]; then
-                        printf " %-*s |" "$tab_width_var_occurences" "$count"
-                    else
-                        printf " %-*s |" "$tab_width_var_occurences" ""
-                    fi
-                done
+                printf "%.*s.." "$((max_length-2))" "$str"
             fi
-            echo
-        done
-
-        echo ""
+        else
+            printf "%-${max_length}s" "$str"
+        fi
+    }
+    
+    # --- Helper functions for table printing ---
+    _aux_acu_print_separator() {
+        printf "+-%-${tab_width_var_names}s-+-%-${tab_width_var_values}s-+-%-${tab_width_total_occ}s-+-%-${tab_width_files_list}s-+\n" \
+            "$(printf '%*s' "$tab_width_var_names" '' | tr ' ' '-')" \
+            "$(printf '%*s' "$tab_width_var_values" '' | tr ' ' '-')" \
+            "$(printf '%*s' "$tab_width_total_occ" '' | tr ' ' '-')" \
+            "$(printf '%*s' "$tab_width_files_list" '' | tr ' ' '-')"
     }
 
-    read_config_file "$conf_source"
-    sort_variables "$sort_mode"
-    list_target_files "$target_folder"
-    print_header
-    print_variables_usage
+    _aux_acu_print_header() {
+        _aux_acu_print_separator
+        printf "| %-${tab_width_var_names}s | %-${tab_width_var_values}s | %-${tab_width_total_occ}s | %-${tab_width_files_list}s |\n" \
+            "Variable" "Value" "Total Occ." "Files (hits)"
+        _aux_acu_print_separator
+    }
+
+    _aux_acu_print_row() {
+        local var_name="$1"
+        local var_value="$2"
+        local total_occurrences="$3"
+        local files_list_str="$4"
+
+        local trunc_var_name=$(_aux_acu_truncate_string "$var_name" "$tab_width_var_names")
+        local trunc_var_value=$(_aux_acu_truncate_string "$var_value" "$tab_width_var_values")
+        local trunc_files_list=$(_aux_acu_truncate_string "$files_list_str" "$tab_width_files_list")
+        local trunc_total_occ=$(_aux_acu_truncate_string "$total_occurrences" "$tab_width_total_occ")
+
+        printf "| %s | %s | %s | %s |\n" \
+            "$trunc_var_name" \
+            "$trunc_var_value" \
+            "$trunc_total_occ" \
+            "$trunc_files_list"
+    }
+
+    _aux_acu_print_footer() {
+        _aux_acu_print_separator
+    }
+
+    # --- Main logic ---
+    _aux_acu_read_config_file "$conf_source"
+    if [ ${#var_order[@]} -eq 0 ]; then
+        echo "No variables found in config source '$conf_source'."
+        return
+    fi
+
+    _aux_acu_list_target_files "$target_folder"
+    if [ ${#target_files[@]} -eq 0 ]; then
+        echo "No files found in target folder '$target_folder'."
+        # Proceed to print variables without occurrence data if desired, or return
+        # For now, let's print the table header and then variables with 0 occurrences.
+    fi
+    
+    local -a vars_to_iterate
+    if [[ "$sort_mode" == "-a" ]]; then
+        mapfile -t vars_to_iterate < <(printf "%s\n" "${var_order[@]}" | sort)
+    else # -o (original order)
+        vars_to_iterate=("${var_order[@]}")
+    fi
+
+    _aux_acu_print_header
+
+    for var_name in "${vars_to_iterate[@]}"; do
+        local var_value="${config_vars[$var_name]}"
+        local total_occurrences_for_var=0
+        local files_with_occurrences_details=()
+
+        if [ ${#target_files[@]} -gt 0 ]; then
+            for target_file in "${target_files[@]}"; do
+                if [[ -f "$target_file" && -r "$target_file" ]]; then # Ensure target_file is a readable file
+                    # Search for the variable name as a whole word.
+                    # This counts occurrences of the variable name itself (e.g., "MY_VAR").
+                    # It won't distinguish between $MY_VAR, ${MY_VAR}, or MY_VAR=, but gives a general idea of usage.
+                    # Using grep with -o lists each match on a new line, wc -l counts these lines.
+                    # The pattern \bVAR_NAME\b ensures whole word matching.
+                    occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file" 2>/dev/null | wc -l)
+                    if [[ "$occurrences_in_file" -gt 0 ]]; then
+                        total_occurrences_for_var=$((total_occurrences_for_var + occurrences_in_file))
+                        files_with_occurrences_details+=("$(basename "$target_file"):$occurrences_in_file")
+                    fi
+                fi
+            done
+        fi
+
+        local files_list_display_str=""
+        if [ ${#files_with_occurrences_details[@]} -gt 0 ]; then
+            files_list_display_str=$(IFS=,; echo "${files_with_occurrences_details[*]}")
+        fi
+        
+        _aux_acu_print_row "$var_name" "$var_value" "$total_occurrences_for_var" "$files_list_display_str"
+    done
+
+    _aux_acu_print_footer
 }
 
 # Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters
