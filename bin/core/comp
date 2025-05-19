@@ -31,8 +31,8 @@
 #   function is called to perform the orchestrated setup.
 #   It relies on the `lo1` module for logging and expects certain
 #   environment variables like `BASE_DIR` and `ERROR_LOG` to be set,
-#   and functions like `start_timer`, `end_timer`, `error_handler`,
-#   `print_timing_report`, `print_error_report` to be available.
+#   and functions like `tme_start_timer`, `tme_end_timer`, `error_handler`,
+#   `tme_print_timing_report`, `print_error_report` to be available.
 #######################################################################
 
 # Helper function to safely source files with improved error handling and logging
@@ -42,13 +42,13 @@ source_helper() {
     local temp_dir="/tmp" # Consider making this configurable or using mktemp
     local temp_error="$temp_dir/source_error.$$"
 
-    start_timer "source_$description"
+    tme_start_timer "source_$description"
 
     # Verify the file exists
     if [[ ! -f "$file" ]]; then
         log "lvl" " Warning: File $description ($file) not found." # Removed tee and stderr redirection, assume log handles it
         handle_error "File not found: $file" "source_helper" "${ERROR_CODES[FILE_NOT_FOUND]}" "WARNING"
-        end_timer "source_$description"
+        tme_end_timer "source_$description"
         return 1
     fi
 
@@ -56,7 +56,7 @@ source_helper() {
     if [[ ! -r "$file" ]]; then
         log "lvl" " Warning: File $description ($file) is not readable." # Removed tee and stderr redirection
         handle_error "File not readable: $file" "source_helper" "${ERROR_CODES[PERMISSION_DENIED]}" "WARNING"
-        end_timer "source_$description" # Added missing end_timer
+        tme_end_timer "source_$description" # Added missing tme_end_timer
         return 1
     fi
 
@@ -64,14 +64,14 @@ source_helper() {
     if [[ ! -d "$temp_dir" ]] || [[ ! -w "$temp_dir" ]]; then
         log "lvl" " Error: Temporary directory $temp_dir is not available or writable" | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
-        end_timer "source_$description"
+        tme_end_timer "source_$description"
         return 1
     fi
 
     # Source the file and capture any errors
     if source "$file" 2>"$temp_error"; then
         log "lvl" "Successfully sourced: $description" | tee -a "$ERROR_LOG"
-        end_timer "source_$description" "success"
+        tme_end_timer "source_$description" "success"
         rm -f "$temp_error"
         return 0
     else
@@ -80,7 +80,7 @@ source_helper() {
         log "lvl" " Error sourcing $description: $error_output" | tee -a "$ERROR_LOG" >&2
         rm -f "$temp_error"
         error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
-        end_timer "source_$description" "error"
+        tme_end_timer "source_$description" "error"
         return 1
     fi
 }
@@ -92,12 +92,12 @@ source_directory() {
     local description="$3"
     local return_value=0
 
-    start_timer "dir_$description"
+    tme_start_timer "dir_$description"
     log "lvl" "Sourcing $description: $dir" | tee -a "$ERROR_LOG"
 
     if [[ ! -d "$dir" ]]; then
         log "lvl" " Warning: Directory $dir not found. Skipping." | tee -a "$ERROR_LOG" >&2
-        end_timer "dir_$description"
+        tme_end_timer "dir_$description"
         return 1
     fi
 
@@ -109,7 +109,7 @@ source_directory() {
 
     if [[ ${#files[@]} -eq 0 ]]; then
         log "lvl" " Warning: No matching files found in $dir for pattern '$pattern'" | tee -a "$ERROR_LOG" >&2
-        end_timer "dir_$description"
+        tme_end_timer "dir_$description"
         return 1 # Or 0 if not finding files is acceptable
     fi
 
@@ -129,7 +129,7 @@ source_directory() {
         return_value=0
     fi
 
-    end_timer "dir_$description"
+    tme_end_timer "dir_$description"
     return $return_value
 }
 
@@ -141,7 +141,7 @@ execute_component() {
     local success_var="${component}_SUCCESS"
     local return_value=0
 
-    start_timer "$component"
+    tme_start_timer "$component"
     log "lvl" " Executing component: $component ..." | tee -a "$ERROR_LOG"
 
     if ! type "$func" &>/dev/null; then
@@ -166,7 +166,7 @@ execute_component() {
         fi
     fi
 
-    end_timer "$component"
+    tme_end_timer "$component"
     return $return_value
 }
 
@@ -219,7 +219,7 @@ setup_components() {
     log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG"
     
     # Check if required functions exist
-    type print_timing_report &>/dev/null || log "lvl" "WARNING: print_timing_report function not found" | tee -a "$ERROR_LOG" >&2
+    type tme_print_timing_report &>/dev/null || log "lvl" "WARNING: tme_print_timing_report function not found" | tee -a "$ERROR_LOG" >&2
     type print_error_report &>/dev/null || log "lvl" "WARNING: print_error_report function not found" | tee -a "$ERROR_LOG" >&2
 
     local components=(

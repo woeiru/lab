@@ -338,7 +338,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 fi
 
 # Standard logging function for modules to use
-log_message() {
+lo1_log_message() {
     local message="$1"
     local level="${2:-1}"
     local component="${3:-${FUNCNAME[1]:-main}}"
@@ -364,17 +364,17 @@ log_message() {
 }
 
 # Logging function with timing information
-log_with_timer() {
+lo1_tme_log_with_timer() {
     local message="$1"
     local component="${2:-${FUNCNAME[1]:-main}}"
     local level="${3:-1}"
     
     # Check if TME module functions are available
-    if type -t get_elapsed_time &>/dev/null; then
-        local elapsed=$(get_elapsed_time "$component")
-        log_message "$message (elapsed: ${elapsed}s)" "$level" "$component"
+    if type -t tme_get_elapsed_time &>/dev/null; then # Renamed tme_get_elapsed_time
+        local elapsed=$(tme_get_elapsed_time "$component") # Renamed tme_get_elapsed_time
+        lo1_log_message "$message (elapsed: ${elapsed}s)" "$level" "$component"
     else
-        log_message "$message (timing unavailable)" "$level" "$component"
+        lo1_log_message "$message (timing unavailable)" "$level" "$component"
     fi
     
     return 0
@@ -385,7 +385,8 @@ export LOG_FILE LOG_STATE_FILE TMP_DIR
 export -f log setlog init_logger cleanup_logger
 export -f is_root_function get_base_depth calculate_final_depth
 export -f get_indent get_color lo1_debug_log dump_stack_trace
-export -f log_message log_with_timer
+export -f lo1_log_message # Renamed
+export -f lo1_tme_log_with_timer # Renamed
 export -A ROOT_FUNCTIONS
 
 # Initialize on source

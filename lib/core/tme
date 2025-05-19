@@ -15,15 +15,15 @@
 #
 # Dependencies: Relies on 'verify_module' for module integrity.
 #               Uses environment variables: TME_LOG_DIR (or a passed argument to
-#               init_timer), LOG_STATE_FILE (for managing log output during its
+#               tme_init_timer), LOG_STATE_FILE (for managing log output during its
 #               own logging), TME_LEVELS_FILE, TME_STATE_FILE.
 #
 # Usage:       Sourced by scripts needing performance measurement.
-#              'init_timer' initializes the system.
-#              'start_timer <component_name> [parent_component]' starts timing.
-#              'end_timer <component_name> [status]' (or 'stop_timer') ends timing.
-#              'print_timing_report' displays the collected timing data.
-#              'settme' can be used to control aspects of the timer's behavior or output.
+#              'tme_init_timer' initializes the system.
+#              'tme_start_timer <component_name> [parent_component]' starts timing.
+#              'tme_end_timer <component_name> [status]' (or 'tme_stop_timer') ends timing.
+#              'tme_print_timing_report' displays the collected timing data.
+#              'tme_settme' can be used to control aspects of the timer's behavior or output.
 #
 # Notes:       Timing data is logged to 'timing.log' in the specified log directory.
 #              The module defines color codes for its report output.
@@ -58,7 +58,7 @@ readonly TME_WHITE=$(printf '\033[1;37m')
 readonly TME_NC=$(printf '\033[0m')
 
 # Initialize timer system with optional log file
-init_timer() {
+tme_init_timer() {
     local log_dir="${1:-$TME_LOG_DIR}"
 
     # Ensure log_dir is set, fallback to a default if necessary
@@ -131,7 +131,7 @@ init_timer() {
 }
 
 # Start timing a component with optional parent component
-start_timer() {
+tme_start_timer() {
     local component="$1"
     local parent="${2:-$TME_CURRENT_PARENT}"
     local timestamp=$(date +%s.%N)
@@ -165,14 +165,14 @@ start_timer() {
 }
 
 # Stop timing for a component (alias for end_timer for compatibility)
-stop_timer() {
+tme_stop_timer() {
     local component="$1"
     local status="${2:-success}"
-    end_timer "$component" "$status"
+    tme_end_timer "$component" "$status"
 }
 
 # End timing for a component
-end_timer() {
+tme_end_timer() {
     local component="$1"
     local status="${2:-success}"
     local timestamp=$(date +%s.%N)
@@ -341,7 +341,7 @@ print_tree_recursive() {
 }
 
 # The settme function to control timer output
-settme() {
+tme_settme() {
     local arg1="$1"
     local arg2="$2"
     local effective_sort_order_file_path="$TME_SORT_ORDER_FILE_PATH"
@@ -362,7 +362,7 @@ settme() {
                 printf "Timer output sort order set to duration (descending).\n"
             else
                 printf "\n" # Add a newline before the usage message
-                printf "Usage: settme sort [chron|dura]\n"
+                printf "Usage: tme_settme sort [chron|dura]\n"
                 return 1
             fi
             ;;
@@ -377,20 +377,20 @@ settme() {
                     return 1
                 fi
             else
-                printf "Usage: settme depth <N>\n"
+                printf "Usage: tme_settme depth <N>\n"
                 return 1
             fi
             ;;
         *)
             printf "\n" # Add a newline before the usage message
-            printf "Usage: settme [sort chron|sort dura|depth <N>]\n"
+            printf "Usage: tme_settme [sort chron|sort dura|depth <N>]\n"
             return 1
             ;;
     esac
 }
 
 # Enhanced timing report
-print_timing_report() {
+tme_print_timing_report() {
     local current_state
     local current_state_from_file=""
     if [[ -n "$TME_STATE_FILE" && -f "$TME_STATE_FILE" ]]; then
@@ -457,24 +457,24 @@ print_timing_report() {
 }
 
 # Example of how to use nested timing
-start_nested_timing() {
+tme_start_nested_timing() {
     local component="$1"
-    start_timer "$component"
+    tme_start_timer "$component"
 }
 
-end_nested_timing() {
+tme_end_nested_timing() {
     local component="$1"
-    end_timer "$component"
+    tme_end_timer "$component"
 }
 
-cleanup_timer() {
+tme_cleanup_timer() {
     local orig_log_state
     orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
     echo "false" > "$LOG_STATE_FILE"
 
     for component in "${!TME_STATUS[@]}"; do
         if [[ "${TME_STATUS[$component]}" == "running" ]]; then
-            end_timer "$component" "interrupted"
+            tme_end_timer "$component" "interrupted"
         fi
     done
 
@@ -489,7 +489,7 @@ cleanup_timer() {
 
 # Add automatic initialization when sourced
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    init_timer "$LOG_DIR"
+    tme_init_timer "$LOG_DIR"
 fi
 
 # Export all functions and variables
@@ -504,16 +504,16 @@ export TME_CURRENT_PARENT
 export TME_LOG_FILE
 export TME_SORT_ORDER_FILE_PATH
 export -ga TME_COMPONENT_ORDER
-export -f init_timer
-export -f start_timer
-export -f stop_timer
-export -f end_timer
-export -f start_nested_timing
-export -f end_nested_timing
+export -f tme_init_timer
+export -f tme_start_timer
+export -f tme_stop_timer
+export -f tme_end_timer
+export -f tme_start_nested_timing
+export -f tme_end_nested_timing
 export -f calculate_component_depth
 export -f print_timing_entry
 export -f print_tree_recursive
-export -f print_timing_report
-export -f settme
-export -f cleanup_timer
+export -f tme_print_timing_report
+export -f tme_settme
+export -f tme_cleanup_timer
 export -f sort_components_by_duration

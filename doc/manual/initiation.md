@@ -58,17 +58,17 @@ These functions are available after the system's modules have been sourced, typi
 
 ### Timing and Performance Monitoring (`lib/core/tme`)
 
-*   **`settme [options]`**
+*   **`tme_settme [options]`**
     *   **Purpose**: The module comments in `lib/core/tme` suggest this function is intended to allow users to "control aspects of the timer's behavior or output."
     *   **Verification**: This function is **not currently implemented** in the provided `lib/core/tme` script, though its purpose is documented in the comments.
-    *   **Usage**: `settme [specific_option_here]` (if implemented)
+    *   **Usage**: `tme_settme [specific_option_here]` (if implemented)
 
-*   **`print_timing_report`**
+*   **`tme_print_timing_report`**
     *   **Purpose**: Displays a formatted report of all timed events, including durations and statuses.
-    *   **Usage**: `print_timing_report`
+    *   **Usage**: `tme_print_timing_report`
 
 *   **Timing Report Sort Order (via `TME_SORT_ORDER_FILE_PATH`)**
-    *   **Purpose**: The `tme` module uses a variable `TME_SORT_ORDER_FILE_PATH` which points to a configuration file. Users can potentially create and edit this file to define a custom sort order for the output of `print_timing_report`.
+    *   **Purpose**: The `tme` module uses a variable `TME_SORT_ORDER_FILE_PATH` which points to a configuration file. Users can potentially create and edit this file to define a custom sort order for the output of `tme_print_timing_report`.
     *   **Usage**: The exact format and content of this file are not specified in the provided snippets and would be specific to the `tme` module's implementation. You would need to consult further documentation or the `tme` script's source for details on how to structure this file.
 
 ## General Usage Notes
@@ -76,4 +76,4 @@ These functions are available after the system's modules have been sourced, typi
 *   To use the functions described above (e.g., `setlog`, `enable_error_trap`), the corresponding modules must have been loaded into your current shell environment. This is typically handled by the main `bin/init` script.
 *   Environment variables should be set *before* the `init` script or relevant modules are loaded to ensure they take effect.
 *   The availability and exact behavior of functions like `setlog` and `setlogcontrol` have been verified against their source code.
-*   The function `settme` is mentioned in comments within `lib/core/tme` but is not implemented in the provided version of the script. Refer to the specific module source code for the most accurate implementation details.
+*   The function `tme_settme` is mentioned in comments within `lib/core/tme` but is not implemented in the provided version of the script. Refer to the specific module source code for the most accurate implementation details.
