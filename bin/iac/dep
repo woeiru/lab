@@ -1,0 +1,213 @@
+#!/bin/bash
+
+# ==============================================================================
+# Script: IaC Deployment Launcher (bin/iac/dep.sh)
+#
+# Description:
+#   This script serves as a self-sufficient frontend for executing deployment
+#   scripts located in the 'src/set/' directory of the project. It provides
+#   an interactive menu for selecting scripts and also allows for direct
+#   invocation of these scripts and their specific tasks.
+#
+#   It is designed to be run from within the project structure and dynamically
+#   determines the project root.
+#
+# ==============================================================================
+
+# --- Configuration ---
+# Determine the absolute path of the project root directory.
+# This script is expected to be in 'PROJECT_ROOT/bin/iac/dep.sh'.
+SCRIPT_DIR_REAL="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR_REAL/../.." &>/dev/null && pwd)"
+SCRIPT_BASENAME="$(basename "${BASH_SOURCE[0]}")"
+
+# Define the directory containing the target deployment scripts.
+SET_SCRIPTS_DIR="$PROJECT_ROOT/src/set"
+
+# Dynamically find available deployment scripts in SET_SCRIPTS_DIR.
+# Scripts are expected to be executable files.
+AVAILABLE_SCRIPTS=()
+if [ -d "$SET_SCRIPTS_DIR" ]; then
+    # Populate AVAILABLE_SCRIPTS with executable files from SET_SCRIPTS_DIR, sorted.
+    mapfile -t AVAILABLE_SCRIPTS < <(find "$SET_SCRIPTS_DIR" -maxdepth 1 -type f -executable -printf "%f\n" | sort)
+else
+    echo "Warning: Scripts directory '$SET_SCRIPTS_DIR' not found. No scripts will be available." >&2
+fi
+
+# --- Helper Functions ---
+
+# Prints a horizontal line matching the terminal width.
+print_line() {
+    printf '%*s\n' "${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}" '' | tr ' ' '-'
+}
+
+# --- Menu Border Helper Functions ---
+_menu_print_horizontal_border() {
+    local left_char="$1"
+    local mid_char="$2"
+    local right_char="$3"
+    local width="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
+    printf "%s" "$left_char"
+    # shellcheck disable=SC2059 # We want the dynamic width for tr
+    printf "%*s" "$((width - 2))" "" | tr ' ' "$mid_char"
+    printf "%s\n" "$right_char"
+}
+
+_menu_print_text_line() {
+    local text="$1"
+    local width="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
+    local content_width=$((width - 4)) # For "┃ text ┃"
+    # Ensure content_width is not negative
+    if (( content_width < 0 )); then content_width=0; fi
+    printf "┃ %-*s ┃\n" "$content_width" "$text"
+}
+
+_menu_print_separator_line() {
+    local width="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
+    # shellcheck disable=SC2059 # We want the dynamic width for tr
+    printf "┣%*s\n" "$((width - 1))" "" | tr ' ' "━"
+}
+# --- End Menu Border Helper Functions ---
+
+# Displays the usage information for this launcher script.
+show_launcher_usage() {
+    echo "IaC Deployment Launcher Usage:"
+    echo "  $SCRIPT_BASENAME [options]"
+    echo "  $SCRIPT_BASENAME <script_name> [script_specific_args...]"
+    echo ""
+    echo "This script acts as a frontend to the deployment scripts in '$PROJECT_ROOT/src/set/'."
+    echo ""
+    echo "Modes of Operation:"
+    echo "  1. Interactive Mode (if no arguments are provided):"
+    echo "     $SCRIPT_BASENAME"
+    echo "     Launches a menu to select and run a deployment script interactively."
+    echo ""
+    echo "  2. Direct Script Invocation:"
+    echo "     $SCRIPT_BASENAME <script_name> [args...]"
+    echo "     Invokes './src/set/<script_name>' with the given arguments."
+    echo "     Examples:"
+    echo "       $SCRIPT_BASENAME dsk -i                     # Run 'dsk' script in its interactive mode."
+    echo "       $SCRIPT_BASENAME pve -x a_xall              # Execute 'a_xall' task in 'pve' script."
+    echo "       $SCRIPT_BASENAME nfs                        # Show usage for the 'nfs' script."
+    echo ""
+    echo "Launcher Options:"
+    echo "  -h, --help    Show this help message and exit."
+    echo ""
+    if [ ${#AVAILABLE_SCRIPTS[@]} -gt 0 ]; then
+        echo "Available deployment scripts to manage:"
+        for scr in "${AVAILABLE_SCRIPTS[@]}"; do
+            echo "  - $scr"
+        done
+    else
+        echo "No deployment scripts found in '$SET_SCRIPTS_DIR'."
+    fi
+    echo ""
+    echo "To see help for a specific deployment script, typically you can run:"
+    echo "  $SCRIPT_BASENAME <script_name>"
+    echo "(This executes '$PROJECT_ROOT/src/set/<script_name>' without arguments.)"
+}
+
+# --- Main Interactive Menu Function ---
+# This menu is shown when the script is called without arguments.
+interactive_main_menu() {
+    while true; do
+        clear
+        _menu_print_horizontal_border "┏" "━" "┓"
+        _menu_print_text_line "IaC Deployment Script Launcher"
+        _menu_print_separator_line
+        _menu_print_text_line "Please select a deployment script to manage:"
+        
+        if [ ${#AVAILABLE_SCRIPTS[@]} -eq 0 ]; then
+            _menu_print_text_line ""
+            _menu_print_text_line "No deployment scripts found in '$SET_SCRIPTS_DIR'."
+            _menu_print_text_line "Please check the directory or add scripts."
+            _menu_print_text_line ""
+        else
+            local i=1
+            for script_name_menu in "${AVAILABLE_SCRIPTS[@]}"; do
+                _menu_print_text_line "  $i. $script_name_menu"
+                i=$((i + 1))
+            done
+        fi
+        _menu_print_text_line "" # Empty line for spacing
+        _menu_print_text_line "  o. Options / Help for this launcher"
+        _menu_print_text_line "  q. Quit"
+        _menu_print_horizontal_border "┗" "━" "┛"
+
+        local choice
+        read -r -p "Enter your choice (number, o, or q): " choice
+
+        if [[ "$choice" =~ ^[0-9]+$ ]]; then
+            if (( choice >= 1 && choice <= ${#AVAILABLE_SCRIPTS[@]} )); then
+                local selected_script_name="${AVAILABLE_SCRIPTS[$((choice - 1))]}"
+                clear # Clear menu before script output
+                echo "You selected: $selected_script_name"
+                echo "This script will now be launched in its own interactive mode (-i)."
+                echo "Press Enter to continue or Ctrl+C to cancel..."
+                read -r
+                print_line # Original print_line for simple separator
+                execute_deployment_script "$selected_script_name" "-i"
+                local exit_code=$?
+                print_line # Original print_line for simple separator
+                echo "Script '$selected_script_name' finished with exit code $exit_code."
+                echo "Press Enter to return to the main menu."
+                read -r
+            else
+                echo "Invalid choice. Please select a valid script number."
+                echo "Press Enter to return to the menu."
+                read -r
+            fi
+        elif [[ "$choice" == "o" ]]; then
+            clear
+            show_launcher_usage
+            echo "Press Enter to return to the menu."
+            read -r
+        elif [[ "$choice" == "q" ]]; then
+            echo "Exiting the launcher. Goodbye!"
+            exit 0
+        else
+            echo "Invalid choice. Please try again."
+            echo "Press Enter to return to the menu."
+            read -r
+        fi
+    done
+}
+
+# --- Execute Deployment Script ---
+execute_deployment_script() {
+    local script_name="$1"
+    shift
+    local script_path="$SET_SCRIPTS_DIR/$script_name"
+    if [ -x "$script_path" ]; then
+        "$script_path" "$@"
+    else
+        echo "Error: Script '$script_name' not found or not executable in '$SET_SCRIPTS_DIR'." >&2
+        return 1
+    fi
+}
+
+# --- Preliminary Checks ---
+if [ -z "$PROJECT_ROOT" ] || [ ! -d "$PROJECT_ROOT" ]; then
+    echo "Error: Could not determine a valid project root directory." >&2
+    echo "Attempted to set PROJECT_ROOT to: '$PROJECT_ROOT'" >&2
+    exit 1
+fi
+
+if [ ! -d "$SET_SCRIPTS_DIR" ]; then
+    echo "Error: Deployment scripts directory '$SET_SCRIPTS_DIR' does not exist." >&2
+    exit 1
+fi
+
+# --- Main Execution ---
+if [ $# -eq 0 ]; then
+    interactive_main_menu
+else
+    case "$1" in
+        -h|--help)
+            show_launcher_usage
+            ;;
+        *)
+            execute_deployment_script "$@"
+            ;;
+    esac
+fi
