@@ -1,4 +1,4 @@
-# Dynamically generated aliases by set_dynamic on Mon May 19 11:04:18 PM CEST 2025
+# Dynamically generated aliases by set_dynamic on Mon May 19 11:44:31 PM CEST 2025
 # Version: 1.0.0
 
 # --- Readme Aliases ---
@@ -45,17 +45,17 @@ alias v.dep.sys='vim "$LAB_DIR/lib/dep/sys"'
 alias v.dep.usr='vim "$LAB_DIR/lib/dep/usr"'
 
 # --- Set Script Aliases (src/set) ---
-alias c.set.dsk='cat "$LAB_DIR/src/set/dsk"'
+alias c.set.gen='cat "$LAB_DIR/src/set/gen"'
 alias c.set.nfs='cat "$LAB_DIR/src/set/nfs"'
 alias c.set.pbs='cat "$LAB_DIR/src/set/pbs"'
 alias c.set.pve='cat "$LAB_DIR/src/set/pve"'
 alias c.set.smb='cat "$LAB_DIR/src/set/smb"'
-alias v.set.dsk='vim "$LAB_DIR/src/set/dsk"'
+alias v.set.gen='vim "$LAB_DIR/src/set/gen"'
 alias v.set.nfs='vim "$LAB_DIR/src/set/nfs"'
 alias v.set.pbs='vim "$LAB_DIR/src/set/pbs"'
 alias v.set.pve='vim "$LAB_DIR/src/set/pve"'
 alias v.set.smb='vim "$LAB_DIR/src/set/smb"'
-alias b.set.dsk='bash "$LAB_DIR/src/set/dsk"'
+alias b.set.gen='bash "$LAB_DIR/src/set/gen"'
 alias b.set.nfs='bash "$LAB_DIR/src/set/nfs"'
 alias b.set.pbs='bash "$LAB_DIR/src/set/pbs"'
 alias b.set.pve='bash "$LAB_DIR/src/set/pve"'
