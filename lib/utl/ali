@@ -207,7 +207,7 @@ generate_aliases() {
 }
 
 # Main entry point function with cleaner timing structure
-set_dynamic() {
+ali-dyn() {
     tme_start_timer "set_dynamic"
     log "lvl" "Setting up Navigation"
 
