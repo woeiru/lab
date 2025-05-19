@@ -287,7 +287,7 @@ aux-laf() {
 
     # Print table header
     print_separator
-    print_row "Func" "Arguments" "Shortname" "Description" "Size" "Loc" "file" "func" "gens"
+    print_row "Func" "Arguments" "Shortname" "Description" "Size" "Loc" "file" "lib" "src"
     print_separator
 
     # Loop through all lines in the file again
