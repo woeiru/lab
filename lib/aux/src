@@ -438,11 +438,16 @@ setup_interactive_mode() {
             printf "      WARNING: No executable sections found in MENU_OPTIONS\n"
         fi
         
+        # Sort the menu options alphabetically
+        local sorted_menu_options
+        IFS=$'\n' sorted_menu_options=($(sort <<<"${!MENU_OPTIONS[*]}"))
+        unset IFS
+        
         printf "\n"
         printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
         printf "%s┃ ${BOLD}Select a section to focus on (or leave empty for all):${RESET}\n" "$base_indent"
         printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
-        printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${!MENU_OPTIONS[*]}"
+        printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${sorted_menu_options[*]}"
         printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
         
         read -p "${base_indent}Enter section ID (or leave empty for all): " section_arg
@@ -484,11 +489,16 @@ select_and_execute_sections() {
     local BOLD='\033[1m'
     local RESET='\033[0m'
 
+    # Sort the menu options alphabetically
+    local sorted_menu_options
+    IFS=$'\n' sorted_menu_options=($(sort <<<"${!MENU_OPTIONS[*]}"))
+    unset IFS
+
     printf "\n"
     printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
     printf "%s┃ ${BOLD}Select sections to execute:${RESET}\n" "$base_indent"
     printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
-    printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${!MENU_OPTIONS[*]}"
+    printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${sorted_menu_options[*]}"
     printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
     printf "\n"
 
