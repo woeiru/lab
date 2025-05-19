@@ -396,8 +396,6 @@ setup_interactive_mode() {
     local BOLD='\033[1m'
     local RESET='\033[0m'
 
-
-
     if [ -z "$display_choice" ]; then
         read -p "${base_indent}Enter your choice (1-6): " display_choice
     fi
