@@ -14,7 +14,7 @@ The project follows a domain-oriented architecture with these main directories:
 -   `cfg/`: Configuration files and definitions.
     -   `ali/`: Alias definition files.
         -   `sta`: Static alias definitions, sourced during initialization.
-        -   `dyn`: Dynamically generated alias definitions (created by `lib/aux/ali`'s `set_dynamic` function), sourced during initialization if present.
+        -   `dyn`: Dynamically generated alias definitions (created by `lib/utl/ali`'s `set_dynamic` function), sourced during initialization if present.
     -   `ans/`: Ansible playbooks and configurations.
         -   `main.yml`, `vars.yml`: Main playbook and variable definitions.
         -   `mods/`: Module-specific configurations (`askpass.yml`, `keyboard.yml`, `konsole.yml`, etc.).
@@ -27,13 +27,13 @@ The project follows a domain-oriented architecture with these main directories:
     -   `session/`: Work session summaries and progress tracking.
     -   `workaround/`: Solutions for known issues and special cases.
 -   `lib/`: Shell script libraries and reusable modules.
-    -   `alias/`: Scripts for managing dynamic and static aliases and wrappers.
+    -   `utl/ali/`: Scripts for managing dynamic and static aliases and wrappers.
     -   `aux/`: Auxiliary scripts and libraries.
         -   `ali`: Script for on-demand generation of dynamic aliases (outputs to `cfg/ali/dyn`).
         -   `lib`: Other auxiliary library files.
         -   `src`: Framework for `src/set/` deployment scripts.
     -   `core/`: Core library functions (e.g., `ver` for version management).
-    -   `ssh`: SSH-related utility functions.
+    -   `utl/ssh`: SSH-related utility functions.
     -   `util/`: General utilities (`err` for error handling, `lo1` for logging, `tme` for timing).
     -   `dep/`: Source files for deployment modules (`gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
 -   `pro/`: Special projects and standalone utilities.
@@ -94,14 +94,14 @@ The project follows a domain-oriented architecture with these main directories:
 
 ### Utility Libraries
 
--   **Alias Management**: The `lib/alias` directory provides utilities to create and manage:
+-   **Alias Management**: The `lib/utl/ali` directory provides utilities to create and manage:
     -   Static aliases (`static`): Fixed command shortcuts
     -   Dynamic aliases (`dynamic`): Contextually generated shortcuts
     -   Alias wrappers (`wrap`): For wrapping commands with additional functionality
 
--   **Dynamic Alias Generation**: The `lib/aux/ali` script generates dynamic aliases on demand, outputting to `cfg/ali/dyn`.
+-   **Dynamic Alias Generation**: The `lib/utl/ali` script generates dynamic aliases on demand, outputting to `cfg/ali/dyn`.
 
--   **SSH Utilities**: SSH-related tools and functions in the `lib/ssh` directory.
+-   **SSH Utilities**: SSH-related tools and functions in the `lib/utl/ssh` directory.
 
 ### Special Projects
 
