@@ -262,7 +262,6 @@ print_usage2() {
 
     # Get section IDs
     local -a section_ids
-    get_section_ids "$calling_script" section_ids
     
     printf "%s┃ \n" "$base_indent"
     printf "%s┃         ${BOLD}Display options:${RESET}\n" "$base_indent"
@@ -280,14 +279,6 @@ print_usage2() {
     printf "%s┃        Required: Section name\n" "$base_indent"
     printf "%s┃        Example: ./%s -x a\n" "$base_indent" "$(basename "$0")"
     printf "%s┃ \n" "$base_indent"
-    printf "%s┃ SECTIONS:\n" "$base_indent"
-
-    # Print each section with its description
-    for section_id in "${section_ids[@]}"; do
-        local description
-        description=$(get_section_description "$calling_script" "$section_id")
-        printf "%s┃   %-4s : %s\n" "$base_indent" "$section_id" "$description"
-    done
     printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
     printf "\n"
 }
@@ -410,7 +401,7 @@ setup_interactive_mode() {
     local display_choice="$1"
     local section_arg="$2" # New parameter for -s <section_name>
 
-    printf "    Setup interactive mode with display choice: %s, section: %s\n" "${display_choice:-N/A}" "${section_arg:-N/A}"
+    printf "          ┃   Setup interactive mode with display choice: %s, section: %s\n" "${display_choice:-N/A}" "${section_arg:-N/A}"
 
     local base_indent="          "
     local BOLD='\033[1m'
