@@ -5,7 +5,7 @@ flowchart TD
     subgraph main_logic ["setup_main"]
         direction LR
         B --> B1{"Args provided?"}
-        B1 -- No --> B_Usage["print_usage"]
+        B1 -- No --> B_Usage["print_usage (both parts)"]
         B_Usage --> B_Exit["Exit"]
         B1 -- Yes --> B2{"Mode?"}
     end
@@ -18,15 +18,17 @@ flowchart TD
         direction TB
         IM1["Parse display_choice & section_focus (-s)"]
         IM2{"Display choice provided?"}
-        IM3["Prompt for display_choice"]
+        IM3a["Show print_usage2 (display options & sections)"]
+        IM3b["Prompt for display_choice"]
         IM4["setup_display_menu"]
         IM5{"Section focus (-s) provided?"}
         IM6["Confirm & Execute focused section"]
         IM7["select_and_execute_sections"]
         
         IM1 --> IM2
-        IM2 -- No --> IM3
-        IM3 --> IM4
+        IM2 -- No --> IM3a
+        IM3a --> IM3b
+        IM3b --> IM4
         IM2 -- Yes --> IM4
         IM4 --> IM5
         IM5 -- Yes --> IM6
