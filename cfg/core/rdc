@@ -32,7 +32,6 @@ declare -gA FUNCTION_MODULES
 FUNCTION_DEPENDENCIES=(
     ["process_error"]="err"
     ["log_message"]="lo1"
-    ["debug_message"]="lo2"
     ["start_timer"]="tme"
     ["stop_timer"]="tme"
     ["handle_error"]="err,lo1"
@@ -48,7 +47,6 @@ REGISTERED_FUNCTIONS=(
     "stop_timer"
     "handle_error"
     "log_with_timer"
-    "debug_with_timer"
 )
 
 # Initialize function module mappings
