@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set_static() {
-
     # Ansible
     alias ap='ansible-playbook'
 
@@ -156,4 +154,3 @@ set_static() {
     alias gdi='git diff --no-index -- /dev/null'
     alias light='plasma-apply-lookandfeel -a org.kde.breeze.desktop && usr-ckp 1'
     alias dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop && usr-ckp 2'
-}
