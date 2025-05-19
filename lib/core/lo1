@@ -345,8 +345,12 @@ lo1_log_message() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
     # Get indent and color based on call stack depth
-    local indent=$(get_indent "$component")
-    local color=$(get_color "$level")
+    local depth
+    depth=$(calculate_final_depth) # Calculate depth
+    local indent
+    indent=$(get_indent "$depth") # Use depth for indent
+    local color
+    color=$(get_color "$level") # Use level for color
     local reset=$(printf '\033[0m')
     
     # Format the message
