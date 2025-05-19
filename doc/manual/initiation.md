@@ -8,7 +8,7 @@ These variables are typically set in your shell environment *before* executing t
 
 ### `LOG_DEBUG_ENABLED` (for `lo1` module)
 *   **Purpose**: Specifically enables or disables the `lo1_debug_log` messages from the advanced logging module `lo1`.
-*   **Module Affected**: `lib/util/lo1`
+*   **Module Affected**: `lib/core/lo1`
 *   **Usage**:
     *   `1`: Enable `lo1` debug messages (this is the default set within `lo1.sh`).
     *   `0`: Disable `lo1` debug messages.
@@ -33,7 +33,7 @@ These variables are typically set in your shell environment *before* executing t
 
 These functions are available after the system's modules have been sourced, typically after `bin/init` has completed or if individual modules are sourced in an interactive session.
 
-### Error Handling (`lib/util/err`)
+### Error Handling (`lib/core/err`)
 
 *   **`enable_error_trap()`**
     *   **Purpose**: Activates the shell's `ERR` trap. When enabled, the script will typically exit immediately if a command fails.
@@ -45,22 +45,22 @@ These functions are available after the system's modules have been sourced, typi
 
 *   **Note**: The global variable `ERROR_TRAP_ENABLED` (set to `1` or `0`) also reflects and can control this state.
 
-### Advanced Logging (`lib/util/lo1`)
+### Advanced Logging (`lib/core/lo1`)
 
 *   **`setlog on|off`**
     *   **Purpose**: Enables or disables the console and file logging output of the `lo1` logging system.
-    *   **Verification**: This function is defined in `lib/util/lo1` and works by writing "on" or "off" to the state file read by the main logging function.
+    *   **Verification**: This function is defined in `lib/core/lo1` and works by writing "on" or "off" to the state file read by the main logging function.
     *   **Usage**:
         ```bash
         setlog on  # Enable lo1 console and file output
         setlog off # Disable lo1 console and file output
         ```
 
-### Timing and Performance Monitoring (`lib/util/tme`)
+### Timing and Performance Monitoring (`lib/core/tme`)
 
 *   **`settme [options]`**
-    *   **Purpose**: The module comments in `lib/util/tme` suggest this function is intended to allow users to "control aspects of the timer's behavior or output."
-    *   **Verification**: This function is **not currently implemented** in the provided `lib/util/tme` script, though its purpose is documented in the comments.
+    *   **Purpose**: The module comments in `lib/core/tme` suggest this function is intended to allow users to "control aspects of the timer's behavior or output."
+    *   **Verification**: This function is **not currently implemented** in the provided `lib/core/tme` script, though its purpose is documented in the comments.
     *   **Usage**: `settme [specific_option_here]` (if implemented)
 
 *   **`print_timing_report`**
@@ -76,4 +76,4 @@ These functions are available after the system's modules have been sourced, typi
 *   To use the functions described above (e.g., `setlog`, `enable_error_trap`), the corresponding modules must have been loaded into your current shell environment. This is typically handled by the main `bin/init` script.
 *   Environment variables should be set *before* the `init` script or relevant modules are loaded to ensure they take effect.
 *   The availability and exact behavior of functions like `setlog` and `setlogcontrol` have been verified against their source code.
-*   The function `settme` is mentioned in comments within `lib/util/tme` but is not implemented in the provided version of the script. Refer to the specific module source code for the most accurate implementation details.
+*   The function `settme` is mentioned in comments within `lib/core/tme` but is not implemented in the provided version of the script. Refer to the specific module source code for the most accurate implementation details.

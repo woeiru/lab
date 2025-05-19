@@ -58,9 +58,9 @@ The project follows a domain-oriented architecture with these main directories:
 
 ### Core Modules
 
--   **Error Handling (`lib/util/err`)**: Provides error trapping and handling mechanisms.
--   **Logging (`lib/util/lo1`)**: Advanced logging systems with support for module-specific debug and control features.
--   **Timing (`lib/util/tme`)**: Performance monitoring and reporting.
+-   **Error Handling (`lib/core/err`)**: Provides error trapping and handling mechanisms.
+-   **Logging (`lib/core/lo1`)**: Advanced logging systems with support for module-specific debug and control features.
+-   **Timing (`lib/core/tme`)**: Performance monitoring and reporting.
 -   **Component Orchestration (`bin/core/comp`)**: Manages loading and initialization of system components.
 
 ### Deployment System
