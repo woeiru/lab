@@ -12,6 +12,9 @@ The project follows a domain-oriented architecture with these main directories:
     -   `env/`: Environment setup scripts, including `rc` which configures shell environments.
 -   `src/set/`: Deployment scripts for various services (`dsk`, `nfs`, `pbs`, `pve`, `smb`).
 -   `cfg/`: Configuration files and definitions.
+    -   `ali/`: Alias definition files.
+        -   `sta`: Static alias definitions, sourced during initialization.
+        -   `dyn`: Dynamically generated alias definitions (created by `lib/aux/ali`'s `set_dynamic` function), sourced during initialization if present.
     -   `ans/`: Ansible playbooks and configurations.
         -   `main.yml`, `vars.yml`: Main playbook and variable definitions.
         -   `mods/`: Module-specific configurations (`askpass.yml`, `keyboard.yml`, `konsole.yml`, etc.).
@@ -19,13 +22,16 @@ The project follows a domain-oriented architecture with these main directories:
     -   `env/`: Environment configuration files, including `site1.env`.
     -   `pod/`: Podman container configurations with `Containerfile`s and documentation.
 -   `doc/`: Documentation files.
-    -   `manual/`: User and developer manuals (`initiation.md`, `logging.md`, `structure.md`).
+    -   `manual/`: User and developer manuals (`architecture.md`, `initiation.md`, `infrastructure.md`, `logging.md`).
     -   `network/`: Network architecture and configuration documentation.
     -   `session/`: Work session summaries and progress tracking.
     -   `workaround/`: Solutions for known issues and special cases.
 -   `lib/`: Shell script libraries and reusable modules.
     -   `alias/`: Scripts for managing dynamic and static aliases and wrappers.
-    -   `aux/`: Auxiliary binaries and source files.
+    -   `aux/`: Auxiliary scripts and libraries.
+        -   `ali`: Script for on-demand generation of dynamic aliases (outputs to `cfg/ali/dyn`).
+        -   `lib`: Other auxiliary library files.
+        -   `src`: Framework for `src/set/` deployment scripts.
     -   `core/`: Core library functions (e.g., `ver` for version management).
     -   `ssh`: SSH-related utility functions.
     -   `util/`: General utilities (`err` for error handling, `lo1`/`lo2` for logging, `tme` for timing).
@@ -93,6 +99,8 @@ The project follows a domain-oriented architecture with these main directories:
     -   Dynamic aliases (`dynamic`): Contextually generated shortcuts
     -   Alias wrappers (`wrap`): For wrapping commands with additional functionality
 
+-   **Dynamic Alias Generation**: The `lib/aux/ali` script generates dynamic aliases on demand, outputting to `cfg/ali/dyn`.
+
 -   **SSH Utilities**: SSH-related tools and functions in the `lib/ssh` directory.
 
 ### Special Projects
@@ -118,6 +126,10 @@ The configuration system is organized hierarchically:
 -   **Deployment Configurations** (`cfg/env/`):
     -   `site1.env`: Environment variables for deployment scripts
 
+-   **Alias Configurations** (`cfg/ali/`):
+    -   `sta`: Static alias definitions
+    -   `dyn`: Dynamically generated alias definitions
+
 -   **Ansible Configuration** (`cfg/ans/`):
     -   `vars.yml`: Centralized variables for all playbooks
     -   Module-specific configurations in `mods/` subdirectory
@@ -128,7 +140,9 @@ The configuration system is organized hierarchically:
 ## Documentation Resources
 
 -   **User Manuals** (`doc/manual/`):
+    -   `architecture.md`: Project architecture overview
     -   `initiation.md`: User interaction and configuration guide
+    -   `infrastructure.md`: Infrastructure setup and management
     -   `logging.md`: Logging system documentation
     -   `structure.md`: This document explaining project organization
 
