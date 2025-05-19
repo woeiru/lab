@@ -484,7 +484,7 @@ tme_cleanup_timer() {
         printf "Total execution time: %.3fs\n\n" "$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)"
     } >> "$TME_LOG_FILE"
 
-    echo "$orig_log_state" > "$LOG_STATE_FILE"
+
 }
 
 # Add automatic initialization when sourced
