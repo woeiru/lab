@@ -197,12 +197,12 @@ source_lib_utl() {
     local description="utility function files"
     local pattern="*" # Or specific patterns like "*.sh"
 
-    log "inf" "Sourcing ${description} from ${dir_to_source}"
+    log "lvl" "Sourcing ${description} from ${dir_to_source}"
     if source_directory "${dir_to_source}" "${pattern}" "${description}"; then
-        log "dbg" "Successfully sourced ${description}."
+        log "lvl" "Successfully sourced ${description}."
         return 0
     else
-        log "err" "Failed to source ${description} from ${dir_to_source}."
+        log "lvl" "Failed to source ${description} from ${dir_to_source}."
         return 1
     fi
 }
