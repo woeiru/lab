@@ -443,46 +443,7 @@ setup_interactive_mode() {
     
     # If section_arg is not provided via command line, prompt user to choose a section
     if [ -z "$section_arg" ]; then
-        # Get sections from MENU_OPTIONS which represents the actual available executable sections
-        
-        # Make sure MENU_OPTIONS is defined
-        if ! declare -p MENU_OPTIONS &>/dev/null; then
-            printf "      WARNING: MENU_OPTIONS associative array is not defined.\n"
-            printf "      Creating a placeholder array. Please ensure the calling script defines MENU_OPTIONS properly.\n"
-            # Create an empty associative array as fallback
-            declare -A MENU_OPTIONS
-        fi
-        
-        # Make sure we're displaying the menu options correctly
-        # The MENU_OPTIONS associative array should be set properly in the calling script
-        if [[ -z "${!MENU_OPTIONS[*]}" ]]; then
-            printf "      WARNING: No executable sections found in MENU_OPTIONS\n"
-        fi
-        
-        # Sort the menu options alphabetically
-        local sorted_menu_options
-        IFS=$'\n' sorted_menu_options=($(sort <<<"${!MENU_OPTIONS[*]}"))
-        unset IFS
-        
-        printf "\n"
-        printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
-        printf "%s┃ ${BOLD}Select a section to focus on (or leave empty for all):${RESET}\n" "$base_indent"
-        printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
-        printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${sorted_menu_options[*]}"
-        printf "%s┃ Enter 'm' to return to main menu\n" "$base_indent"
-        printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
-        
-        read -p "${base_indent}Enter section ID (or leave empty for all): " section_arg
-        
-        # Check if user wants to return to main menu
-        if [[ "$section_arg" == "m" || "$section_arg" == "M" ]]; then
-            # Restart the interactive mode from the beginning
-            printf "      Returning to main menu...\n"
-            setup_interactive_mode "" "$2"
-            return
-        fi
-        
-        printf "      User selected section: %s\n" "${section_arg:-all sections}"
+        prompt_for_section "$base_indent" "$section_arg"
     fi
 
     # Call setup_display_menu with the section filter.
@@ -530,6 +491,59 @@ setup_interactive_mode() {
         # No section filter, proceed with normal selection process
         select_and_execute_sections
     fi
+}
+
+prompt_for_section() {
+    local base_indent="$1"
+    local parent_section_arg="$2" # Pass the original section_arg from the caller
+    local BOLD='\033[1m'
+    local RESET='\033[0m'
+
+    # Make sure MENU_OPTIONS is defined
+    if ! declare -p MENU_OPTIONS &>/dev/null; then
+        printf "      WARNING: MENU_OPTIONS associative array is not defined.\n"
+        printf "      Creating a placeholder array. Please ensure the calling script defines MENU_OPTIONS properly.\n"
+        # Create an empty associative array as fallback
+        declare -A MENU_OPTIONS
+    fi
+
+    # Make sure we're displaying the menu options correctly
+    # The MENU_OPTIONS associative array should be set properly in the calling script
+    if [[ -z "${!MENU_OPTIONS[*]}" ]]; then
+        printf "      WARNING: No executable sections found in MENU_OPTIONS\n"
+    fi
+
+    # Sort the menu options alphabetically
+    local sorted_menu_options
+    IFS=$'\n' sorted_menu_options=($(sort <<<"${!MENU_OPTIONS[*]}"))
+    unset IFS
+
+    printf "\n"
+    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+    printf "%s┃ ${BOLD}Select a section to focus on (or leave empty for all):${RESET}\n" "$base_indent"
+    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+    printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${sorted_menu_options[*]}"
+    printf "%s┃ Enter 'm' to return to main menu\n" "$base_indent"
+    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+
+    read -p "${base_indent}Enter section ID (or leave empty for all): " section_arg_local
+
+    # Check if user wants to return to main menu
+    if [[ "$section_arg_local" == "m" || "$section_arg_local" == "M" ]]; then
+        # Restart the interactive mode from the beginning
+        printf "      Returning to main menu...\n"
+        # Call setup_interactive_mode to restart. Pass empty display_choice and original section_arg
+        setup_interactive_mode "" "$parent_section_arg"
+        return 1 # Indicate that a return to main menu was handled
+    fi
+
+    printf "      User selected section: %s\n" "${section_arg_local:-all sections}"
+    # Update the caller's section_arg. This is tricky in bash without namerefs or global vars.
+    # For simplicity, we'll rely on the caller to use this function's output or a convention.
+    # A common way is to echo the value and have the caller capture it.
+    # Or, if this function is always called in a context where `section_arg` is the variable to be set:
+    section_arg="$section_arg_local" # This will modify the section_arg in setup_interactive_mode's scope
+    return 0 # Indicate success
 }
 
 select_and_execute_sections() {
