@@ -34,7 +34,7 @@ The project follows a domain-oriented architecture with these main directories:
         -   `src`: Framework for `src/set/` deployment scripts.
     -   `core/`: Core library functions (e.g., `ver` for version management).
     -   `ssh`: SSH-related utility functions.
-    -   `util/`: General utilities (`err` for error handling, `lo1`/`lo2` for logging, `tme` for timing).
+    -   `util/`: General utilities (`err` for error handling, `lo1` for logging, `tme` for timing).
     -   `dep/`: Source files for deployment modules (`gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
 -   `pro/`: Special projects and standalone utilities.
     -   `acpi/`: Scripts and services for ACPI event handling and power management.
@@ -59,7 +59,7 @@ The project follows a domain-oriented architecture with these main directories:
 ### Core Modules
 
 -   **Error Handling (`lib/util/err`)**: Provides error trapping and handling mechanisms.
--   **Logging (`lib/util/lo1`, `lib/util/lo2`)**: Advanced logging systems with support for module-specific debug and control features.
+-   **Logging (`lib/util/lo1`)**: Advanced logging systems with support for module-specific debug and control features.
 -   **Timing (`lib/util/tme`)**: Performance monitoring and reporting.
 -   **Component Orchestration (`bin/core/comp`)**: Manages loading and initialization of system components.
 
@@ -163,7 +163,7 @@ The configuration system is organized hierarchically:
 
 1. Use the `entry.sh` symlink (or directly run `bin/env/rc`) to set up your shell environment.
 2. Open a new shell or source your updated shell configuration file (e.g., `source ~/.bashrc`).
-3. The Lab Environment core modules (`err`, `lo1`, `lo2`, `tme`) will be available.
+3. The Lab Environment core modules (`err`, `lo1`, `tme`) will be available.
 
 ## License
 
