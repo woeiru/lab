@@ -262,7 +262,7 @@ print_usage() {
     printf "%s┃━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
     printf "%s┃   -x : Execution Mode\n" "$base_indent"
     printf "%s┃        Directly executes specified section(s)\n" "$base_indent"
-    printf "%s┃        Required: Section name or '-all'\n" "$base_indent"
+    printf "%s┃        Required: Section name\n" "$base_indent"
     printf "%s┃        Example: ./%s -x a\n" "$base_indent" "$(basename "$0")"
     printf "%s┃ \n" "$base_indent"
     printf "%s┃ SECTIONS:\n" "$base_indent"
@@ -273,7 +273,6 @@ print_usage() {
         description=$(get_section_description "$calling_script" "$section_id")
         printf "%s┃   %-4s : %s\n" "$base_indent" "$section_id" "$description"
     done
-    printf "%s┃   -all : Execute All Sections\n" "$base_indent"
     printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
     printf "\n"
 }
@@ -446,18 +445,12 @@ select_and_execute_sections() {
     printf "%s┃ ${BOLD}Select sections to execute:${RESET}\n" "$base_indent"
     printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
     printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${!MENU_OPTIONS[*]}"
-    printf "%s┃ Type 'all' to select all sections\n" "$base_indent"
     printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
     printf "\n"
 
-    read -p "${base_indent}Enter section(s) separated by space, or 'all': " sections
+    read -p "${base_indent}Enter section(s) separated by space: " sections
 
-    if [[ "$sections" == "all" ]]; then
-        sections="${!MENU_OPTIONS[*]}"
-        printf "      User selected all sections\n"
-    else
-        printf "      User selected sections: %s\n" "$sections"
-    fi
+    printf "      User selected sections: %s\n" "$sections"
 
     for section in $sections; do
         if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
@@ -474,20 +467,12 @@ setup_executing_mode() {
     local section="$1"
     printf "    Setup executing mode for section: %s\n" "$section"
 
-    if [[ "$section" == "-all" ]]; then
-        printf "      Executing all sections\n"
-        for func in "${!MENU_OPTIONS[@]}"; do
-            printf "        Executing section: %s\n" "$func"
-            ${MENU_OPTIONS[$func]}
-        done
+    if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
+        printf "      Executing section: %s\n" "$section"
+        ${MENU_OPTIONS[$section]}
     else
-        if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
-            printf "      Executing section: %s\n" "$section"
-            ${MENU_OPTIONS[$section]}
-        else
-            echo "Invalid section: $section"
-            exit 1
-        fi
+        echo "Invalid section: $section"
+        exit 1
     fi
 }
 
