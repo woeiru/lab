@@ -56,18 +56,6 @@ These functions are available after the system's modules have been sourced, typi
         setlog off # Disable lo1 console and file output
         ```
 
-### Runtime Control Structure Tracking (`lib/util/lo2`)
-
-*   **`setlogcontrol on|off`**
-    *   **Purpose**: Enables or disables the runtime tracking of shell control structures (e.g., `if`, `for`, `while` loops) by installing or removing a `DEBUG` trap.
-    *   **Verification**: This function is defined in `lib/util/lo2`. It sets the `LOG_CONTROL_DEPTH_ENABLED` variable and manages a `DEBUG` trap for tracking.
-    *   **Usage**:
-        ```bash
-        setlogcontrol on  # Enable lo2 tracking
-        setlogcontrol off # Disable lo2 tracking
-        ```
-*   **Note**: The global variable `LOG_CONTROL_DEPTH_ENABLED` also controls this feature.
-
 ### Timing and Performance Monitoring (`lib/util/tme`)
 
 *   **`settme [options]`**

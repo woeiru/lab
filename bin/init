@@ -19,7 +19,7 @@
 #   1. Module System Initialization:
 #      - Validates core dependencies
 #      - Sets up required directories
-#      - Loads and verifies essential modules (err, lo1, lo2, tme)
+#      - Loads and verifies essential modules (err, lo1, tme)
 #
 #   2. Core System Configuration & Runtime Initialization:
 #      - Sources the Component Orchestrator (bin/core/comp)
@@ -127,8 +127,8 @@ main_ini() {
     fi
 
     # Part 1: Module dependency initialization
-    if ! init_module_system; then
-        debug_log "ERROR: Module system initialization failed"
+    if ! init_module_system "err" "lo1" "tme"; then # Removed "lo2"
+        debug_log "Critical error: Module system initialization failed. Exiting." "main_ini" "error"
         return 1
     fi
 
