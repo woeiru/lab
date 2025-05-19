@@ -16,12 +16,12 @@ graph TD
 
     subgraph I_Mode [setup_interactive_mode]
         direction TB
-        IM1[Parse display_choice & section_focus (-s)];
+        IM1["Parse display_choice & section_focus (-s)"];
         IM1 --> IM2{Display choice provided?};
         IM2 -- No --> IM3[Prompt for display_choice];
         IM3 --> IM4(setup_display_menu);
         IM2 -- Yes --> IM4;
-        IM4 --> IM5{Section focus (-s) provided?};
+        IM4 --> IM5{"Section focus (-s) provided?"};
         IM5 -- Yes --> IM6[Confirm & Execute focused section via setup_executing_mode];
         IM6 --> I_Exit[End Interactive];
         IM5 -- No --> IM7(select_and_execute_sections);
