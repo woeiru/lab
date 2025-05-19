@@ -73,17 +73,7 @@ b_xall() {
     sys-ipa "$PVE_PACKAGES_ALL"
 }
 
-# Uploads public SSH key from USB device and adds it to the authorized keys for secure remote access
-c_xall() {
-    sys-suk \
-        "$DEVICE_PATH" \
-        "$MOUNT_POINT" \
-        "$SUBFOLDER_PATH" \
-        "$UPLOAD_PATH" \
-        "$PUBLIC_KEY"
 
-    sys-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
-}
 
 # Generates and distributes SSH keys for secure communication between client and server nodes
 d_xall() {
