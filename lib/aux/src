@@ -404,8 +404,6 @@ setup_interactive_mode() {
     printf "          ┃   Setup interactive mode with display choice: %s, section: %s\n" "${display_choice:-N/A}" "${section_arg:-N/A}"
 
     local base_indent="          "
-    local BOLD='\033[1m'
-    local RESET='\033[0m'
 
     # Implement menu loop to allow returning to beginning
     local menu_loop=true
@@ -466,7 +464,7 @@ setup_interactive_mode() {
         # If a section filter was applied, attempt to execute that specific section
         printf "\n"
         printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
-        printf "%s┃ ${BOLD}Confirm Execution of: %s${RESET}\n" "$base_indent" "$section_arg"
+        printf "%s┃ Confirm Execution of: %s\n" "$base_indent" "$section_arg"
         printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
         if [[ -n "${MENU_OPTIONS[$section_arg]}" ]]; then
             read -p "$(printf "%s┃ Press Enter to execute section '%s', 'm' for main menu, or Ctrl+C to cancel: " "$base_indent" "$section_arg")" user_input
@@ -483,7 +481,7 @@ setup_interactive_mode() {
             ${MENU_OPTIONS[$section_arg]}
             printf "%s┃ Execution of section '%s' completed.\n" "$base_indent" "$section_arg"
         else
-            printf "%s┃ ${BOLD}Error: Section '%s' not found or not executable.${RESET}\n" "$base_indent" "$section_arg"
+            printf "%s┃ Error: Section '%s' not found or not executable.\n" "$base_indent" "$section_arg"
         fi
         printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
         printf "\n"
@@ -493,11 +491,27 @@ setup_interactive_mode() {
     fi
 }
 
+# New function to display the section menu
+_display_section_menu() {
+    local base_indent="$1"
+    local menu_title="$2"
+    local sorted_menu_options_str="$3"
+    local BOLD='\033[1m'
+    local RESET='\033[0m'
+
+    printf "\n"
+    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+    printf "%s┃ ${BOLD}%s${RESET}\n" "$base_indent" "$menu_title"
+    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+    printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "$sorted_menu_options_str"
+    printf "%s┃ Enter 'm' to return to main menu\n" "$base_indent"
+    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+    printf "\n"
+}
+
 prompt_for_section() {
     local base_indent="$1"
     local parent_section_arg="$2" # Pass the original section_arg from the caller
-    local BOLD='\033[1m'
-    local RESET='\033[0m'
 
     # Make sure MENU_OPTIONS is defined
     if ! declare -p MENU_OPTIONS &>/dev/null; then
@@ -518,13 +532,8 @@ prompt_for_section() {
     IFS=$'\n' sorted_menu_options=($(sort <<<"${!MENU_OPTIONS[*]}"))
     unset IFS
 
-    printf "\n"
-    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
-    printf "%s┃ ${BOLD}Select a section to focus on (or leave empty for all):${RESET}\n" "$base_indent"
-    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
-    printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${sorted_menu_options[*]}"
-    printf "%s┃ Enter 'm' to return to main menu\n" "$base_indent"
-    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+    # Call the new display function
+    _display_section_menu "$base_indent" "Select a section to focus on (or leave empty for all):" "${sorted_menu_options[*]}"
 
     read -p "${base_indent}Enter section ID (or leave empty for all): " section_arg_local
 
@@ -549,22 +558,14 @@ prompt_for_section() {
 select_and_execute_sections() {
     printf "    Entering select_and_execute_sections\n"
     local base_indent="          "
-    local BOLD='\033[1m'
-    local RESET='\033[0m'
 
     # Sort the menu options alphabetically
     local sorted_menu_options
     IFS=$'\n' sorted_menu_options=($(sort <<<"${!MENU_OPTIONS[*]}"))
     unset IFS
 
-    printf "\n"
-    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
-    printf "%s┃ ${BOLD}Select sections to execute:${RESET}\n" "$base_indent"
-    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
-    printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${sorted_menu_options[*]}"
-    printf "%s┃ Enter 'm' to return to main menu\n" "$base_indent"
-    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
-    printf "\n"
+    # Call the new display function
+    _display_section_menu "$base_indent" "Select sections to execute:" "${sorted_menu_options[*]}"
 
     read -p "${base_indent}Enter section(s) separated by space: " sections
     
