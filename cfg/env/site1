@@ -167,7 +167,6 @@ w2_usb_devices=(
     "usb7: host=4-2"
 )
 
-
 # zfs setup
 #
 # define datasets
