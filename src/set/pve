@@ -73,8 +73,6 @@ b_xall() {
     sys-ipa "$PVE_PACKAGES_ALL"
 }
 
-
-
 # Generates and distributes SSH keys for secure communication between client and server nodes
 d_xall() {
     sys-sks -s root@"${CL_IPS[t1]}" "$KEY_NAME"

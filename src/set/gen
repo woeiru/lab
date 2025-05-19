@@ -33,4 +33,13 @@ a_xall() {
 # Configures global Git user credentials
 b_xall() {
     sys-gst "$GIT_USERNAME" "$GIT_USERMAIL"
+    
 }
+# Handle script execution
+if [ $# -eq 0 ]; then
+    print_usage
+    clean_exit 0       # Exit cleanly with status 0
+else
+    setup_main "$@"
+    clean_exit $?
+fi
