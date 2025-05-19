@@ -1,6 +1,7 @@
 #!/bin/bash
 
     # Ansible
+    alias ali='ali-dyn'
     alias ap='ansible-playbook'
 
     # Bash
