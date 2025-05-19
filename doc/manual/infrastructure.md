@@ -2,9 +2,9 @@
 
 This document provides instructions on how to use the deployment scripts located in the `src/set/` directory. These scripts are designed to automate various setup and configuration tasks for different services and system components.
 
-## Core Framework: `lib/aux/src`
+## Core Framework: `lib/aux/lib`
 
-All scripts within `src/set/` leverage a common shell script framework located at `lib/aux/src`. This framework provides a consistent way to execute scripts, offering features such as:
+All scripts within `src/set/` leverage a common shell script framework located at `lib/aux/lib`. This framework provides a consistent way to execute scripts, offering features such as:
 
 *   **Interactive Mode**: A menu-driven interface to select and execute specific tasks within a script.
 *   **Direct Execution Mode**: Allows running a specific task directly by providing its name as an argument.
@@ -25,7 +25,7 @@ To use any script from the `src/set/` directory (e.g., `dsk`, `nfs`), ensure you
     ```bash
     ./src/set/dsk
     ```
-    This will invoke the `print_usage` function from the `lib/aux/src` framework, which typically lists available tasks based on the script's `MENU_OPTIONS` and function comments.
+    This will invoke the `print_usage` function from the `lib/aux/lib` framework, which typically lists available tasks based on the script's `MENU_OPTIONS` and function comments.
 
 2.  **Interactive Mode**:
     To use the menu-driven interactive mode, run the script with the `-i` flag:
