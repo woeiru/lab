@@ -53,17 +53,17 @@ REGISTERED_FUNCTIONS=(
 
 # Initialize function module mappings
 FUNCTION_MODULES=(
-    ["process_error"]="${BASE_DIR}/lib/core/err"
-    ["log_message"]="${BASE_DIR}/lib/core/lo1"
+    ["process_error"]="${LIB_CORE_DIR}/err"
+    ["log_message"]="${LIB_CORE_DIR}/lo1"
     ["debug_message"]="${BASE_DIR}/lib/util/lo2"
-    ["start_timer"]="${BASE_DIR}/lib/core/tme"
-    ["stop_timer"]="${BASE_DIR}/lib/core/tme"
-    ["handle_error:err"]="${BASE_DIR}/lib/core/err"
-    ["handle_error:lo1"]="${BASE_DIR}/lib/core/lo1"
-    ["log_with_timer:lo1"]="${BASE_DIR}/lib/core/lo1"
-    ["log_with_timer:tme"]="${BASE_DIR}/lib/core/tme"
+    ["start_timer"]="${LIB_CORE_DIR}/tme"
+    ["stop_timer"]="${LIB_CORE_DIR}/tme"
+    ["handle_error:err"]="${LIB_CORE_DIR}/err"
+    ["handle_error:lo1"]="${LIB_CORE_DIR}/lo1"
+    ["log_with_timer:lo1"]="${LIB_CORE_DIR}/lo1"
+    ["log_with_timer:tme"]="${LIB_CORE_DIR}/tme"
     ["debug_with_timer:lo2"]="${BASE_DIR}/lib/util/lo2"
-    ["debug_with_timer:tme"]="${BASE_DIR}/lib/core/tme"
+    ["debug_with_timer:tme"]="${LIB_CORE_DIR}/tme"
 )
 
 # Export the dependency arrays
