@@ -35,7 +35,9 @@ generate_readme_aliases() {
         fi
 
         alias "c-$alias_name=cat $file"
+        echo "alias c-$alias_name='cat \"$file\"'" >> "$CFG_ALI_DIR/dyn"
         alias "v-$alias_name=vim $file"
+        echo "alias v-$alias_name='vim \"$file\"'" >> "$CFG_ALI_DIR/dyn"
         log "lvl" "Created aliases: c-$alias_name and v-$alias_name for $file"
         ((found_files++))
     done < <(find "$LAB_DIR" -type f -name "$FILEBASE_MD" -print0 2>/dev/null)
@@ -66,6 +68,7 @@ generate_level_one_vars_and_aliases() {
                     declare -g "$var_name=$dir_path"
                 fi
                 alias "d-$base=cd $dir_path"
+                echo "alias d-$base='cd \"$dir_path\"'" >> "$CFG_ALI_DIR/dyn"
                 log "lvl" "Created alias: d-$base -> cd $dir_path"
             fi
         fi
@@ -224,11 +227,13 @@ generate_aliases() {
             if [[ -n "$alias_prefix" ]]; then
                 # Create alias with display_name (includes actual extension if present)
                 alias "${alias_prefix}${display_name}=${alias_type} ${found_file_path}"
+                echo "alias ${alias_prefix}${display_name}='${alias_type} \"${found_file_path}\"'" >> "$CFG_ALI_DIR/dyn"
                 log "lvl" "Created alias: ${alias_prefix}${display_name} -> ${alias_type} ${found_file_path}"
 
                 # Create additional short alias (without extension part) if it's bash and there was an extension
                 if [[ "$alias_type" == "bash" && -n "$ext" && "$display_name" != "$short_display_name" ]]; then
                     alias "${alias_prefix}${short_display_name}=${alias_type} ${found_file_path}"
+                    echo "alias ${alias_prefix}${short_display_name}='${alias_type} \"${found_file_path}\"'" >> "$CFG_ALI_DIR/dyn"
                     log "lvl" "Created additional short alias: ${alias_prefix}${short_display_name} -> ${alias_type} ${found_file_path}"
                 fi
                 ((success_count++))
@@ -260,6 +265,9 @@ generate_aliases() {
 set_dynamic() {
     start_timer "set_dynamic"
     log "lvl" "Setting up Navigation"
+
+    # Initialize the dyn file
+    echo "# Dynamically generated aliases by set_dynamic on $(date)" > "$CFG_ALI_DIR/dyn"
 
     # Group all readme operations
     start_nested_timing "readme_processing"
