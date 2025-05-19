@@ -250,6 +250,17 @@ print_usage() {
     printf "%s┃        Example: ./%s -i -f b\n" "$base_indent" "$(basename "$0")"
     printf "%s┃        Example: ./%s -i 4 -f b\n" "$base_indent" "$(basename "$0")"
     printf "%s┃ \n" "$base_indent"
+    printf "%s┃
+    printf "%s┃ ${BOLD}Display options:${RESET}\n" "$base_indent"
+    printf "%s┃
+    printf "%s┃ 1. Default display\n" "$base_indent"
+    printf "%s┃ 2. Expand variables\n" "$base_indent"
+    printf "%s┃ 3. Show function descriptions\n" "$base_indent"
+    printf "%s┃ 4. Expand variables and show function descriptions\n" "$base_indent"
+    printf "%s┃ 5. Show only function names and descriptions\n" "$base_indent"
+    printf "%s┃ 6. Show only function descriptions\n" "$base_indent"
+    printf "%s┃
+    printf "%s┃━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
     printf "%s┃   -x : Execution Mode\n" "$base_indent"
     printf "%s┃        Directly executes specified section(s)\n" "$base_indent"
     printf "%s┃        Required: Section name or '-all'\n" "$base_indent"
@@ -386,18 +397,7 @@ setup_interactive_mode() {
     local BOLD='\033[1m'
     local RESET='\033[0m'
 
-    printf "\n"
-    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
-    printf "%s┃ ${BOLD}Choose a display option:${RESET}\n" "$base_indent"
-    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
-    printf "%s┃ 1. Default display\n" "$base_indent"
-    printf "%s┃ 2. Expand variables\n" "$base_indent"
-    printf "%s┃ 3. Show function descriptions\n" "$base_indent"
-    printf "%s┃ 4. Expand variables and show function descriptions\n" "$base_indent"
-    printf "%s┃ 5. Show only function names and descriptions\n" "$base_indent"
-    printf "%s┃ 6. Show only function descriptions\n" "$base_indent"
-    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
-    printf "\n"
+
 
     if [ -z "$display_choice" ]; then
         read -p "${base_indent}Enter your choice (1-6): " display_choice
