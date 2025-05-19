@@ -427,6 +427,31 @@ setup_interactive_mode() {
         echo "Invalid choice. Using default display (1)."
         display_choice=1
     fi
+    
+    # If section_arg is not provided via command line, prompt user to choose a section
+    if [ -z "$section_arg" ]; then
+        # Get the calling script's path
+        local calling_script
+        if [[ -n "${BASH_SOURCE[1]}" ]]; then
+            calling_script="${BASH_SOURCE[1]}"
+        else
+            calling_script="$0"
+        fi
+        
+        # Get section IDs to show available sections
+        local -a section_ids
+        get_section_ids "$calling_script" section_ids
+        
+        printf "\n"
+        printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+        printf "%s┃ ${BOLD}Select a section to focus on (or leave empty for all):${RESET}\n" "$base_indent"
+        printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+        printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${section_ids[*]}"
+        printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+        
+        read -p "${base_indent}Enter section ID (or leave empty for all): " section_arg
+        printf "      User selected section: %s\n" "${section_arg:-all sections}"
+    fi
 
     # Call setup_display_menu with the section filter.
     # If section_arg is empty, pass "-all" to display all sections.
