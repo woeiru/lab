@@ -12,17 +12,17 @@ This document provides an analysis of the log files found in the `.log` director
 
 *   **`err.log`**:
     *   **Purpose**: Stores error messages encountered during script execution. It's the primary destination for error output.
-    *   **Writing Functions**: Primarily written to by functions that use the `ERROR_LOG` variable, which is defined in `cfg/core/ric` and points to this file. The `handle_error` function (likely in a module like `lib/util/err`) and `error_handler` would write to this.
+    *   **Writing Functions**: Primarily written to by functions that use the `ERROR_LOG` variable, which is defined in `cfg/core/ric` and points to this file. The `handle_error` function (likely in a module like `lib/core/err`) and `error_handler` would write to this.
     *   **Details**: This file aggregates critical errors and warnings.
 
 *   **`lo1.log`**:
-    *   **Purpose**: This is the main application log file managed by the `lo1` logging module (`lib/util/lo1`). It captures formatted log messages with timestamps, color-coding (for console output, which is also mirrored here), and indentation based on call stack depth. It also now contains debug messages specific to the `lo1` module.
+    *   **Purpose**: This is the main application log file managed by the `lo1` logging module (`lib/core/lo1`). It captures formatted log messages with timestamps, color-coding (for console output, which is also mirrored here), and indentation based on call stack depth. It also now contains debug messages specific to the `lo1` module.
     *   **Writing Functions**:
-        *   `log` (in `lib/util/lo1`): The core logging function in `lo1`.
-        *   `log_message` (in `lib/util/lo1`): A standardized logging function for modules.
-        *   `log_with_timer` (in `lib/util/lo1`): Logs messages with timing information if the `tme` module is available.
-        *   `init_logger` (in `lib/util/lo1`): Writes an initialization message to this log.
-        *   `lo1_debug_log` (in `lib/util/lo1`): Writes `[LO1-DEBUG]` prefixed messages to this log.
+        *   `log` (in `lib/core/lo1`): The core logging function in `lo1`.
+        *   `log_message` (in `lib/core/lo1`): A standardized logging function for modules.
+        *   `log_with_timer` (in `lib/core/lo1`): Logs messages with timing information if the `tme` module is available.
+        *   `init_logger` (in `lib/core/lo1`): Writes an initialization message to this log.
+        *   `lo1_debug_log` (in `lib/core/lo1`): Writes `[LO1-DEBUG]` prefixed messages to this log.
     *   **Details**: Provides a structured and hierarchical view of the `lo1` module's operations and general application messages.
 
 *   **`lo2.log`**:
@@ -32,13 +32,13 @@ This document provides an analysis of the log files found in the `.log` director
     *   **Details**: Contains `[LO2-DEBUG]` prefixed messages related to control flow depth calculation.
 
 *   **`tme.log`**:
-    *   **Purpose**: Records timing information for different components and functions, managed by the `tme` module (`lib/util/tme`). It logs start times, end times, durations, and statuses of timed operations.
+    *   **Purpose**: Records timing information for different components and functions, managed by the `tme` module (`lib/core/tme`). It logs start times, end times, durations, and statuses of timed operations.
     *   **Writing Functions**:
-        *   `init_timer` (in `lib/util/tme`): Writes an initial header and startup time.
-        *   `start_timer` (in `lib/util/tme`): Logs the start of a timed component.
-        *   `end_timer` (in `lib/util/tme`): Logs the end and duration of a timed component.
-        *   `print_timing_report` (in `lib/util/tme`): Appends a formatted performance report to this log.
-        *   `cleanup_timer` (in `lib/util/tme`): Logs cleanup information and total execution time.
+        *   `init_timer` (in `lib/core/tme`): Writes an initial header and startup time.
+        *   `start_timer` (in `lib/core/tme`): Logs the start of a timed component.
+        *   `end_timer` (in `lib/core/tme`): Logs the end and duration of a timed component.
+        *   `print_timing_report` (in `lib/core/tme`): Appends a formatted performance report to this log.
+        *   `cleanup_timer` (in `lib/core/tme`): Logs cleanup information and total execution time.
     *   **Details**: Essential for performance analysis and understanding execution flow timing.
 
 *   **`init_flow.log`**:
@@ -58,33 +58,33 @@ These are not traditional log files but rather state files used by the logging a
 *   **`log_state`**:
     *   **Purpose**: This file is referenced by the `LOG_STATE_FILE` variable (defined in `cfg/core/ric`). It controls the overall logging state (on/off) for the `lo1` module.
     *   **Writing Functions**:
-        *   `init_state_files` (in `lib/util/lo1`): Initializes this file (e.g., to "true").
-        *   `setlog` (in `lib/util/lo1`): Toggles the content to "true" or "false" to enable/disable logging.
+        *   `init_state_files` (in `lib/core/lo1`): Initializes this file (e.g., to "true").
+        *   `setlog` (in `lib/core/lo1`): Toggles the content to "true" or "false" to enable/disable logging.
         *   The `tme` module (`start_timer`, `end_timer`, `print_timing_report`, `cleanup_timer`) temporarily sets this to "false" to prevent its own internal logging messages from being processed by `lo1` during sensitive operations, then restores the original state.
     *   **Details**: Acts as a toggle for the `lo1` logging output.
 
 *   **`lo1_depth_cache`** (was `lo1_depth_cache.log`):
-    *   **Purpose**: Used by the `lo1` module (`lib/util/lo1`) to cache calculated log depths. This is a performance optimization to avoid recalculating call stack depths repeatedly.
+    *   **Purpose**: Used by the `lo1` module (`lib/core/lo1`) to cache calculated log depths. This is a performance optimization to avoid recalculating call stack depths repeatedly.
     *   **Writing Functions**:
-        *   `cleanup_cache` (in `lib/util/lo1`): Clears this cache file periodically.
-        *   `init_state_files` (in `lib/util/lo1`): Touches/creates this file on logger initialization.
+        *   `cleanup_cache` (in `lib/core/lo1`): Clears this cache file periodically.
+        *   `init_state_files` (in `lib/core/lo1`): Touches/creates this file on logger initialization.
     *   **Details**: This is more of a state/cache file than a traditional human-readable log. It's managed internally by `lo1`. Its location is now `${TMP_DIR}/lo1_depth_cache`.
 
 *   **`tme_levels`**:
     *   **Purpose**: Controlled by the `TME_LEVELS_FILE` variable (defined in `cfg/core/ric`). It's used by the `tme` module to determine the maximum depth of the component timing tree to display in the `print_timing_report`.
     *   **Writing Functions**:
-        *   `settme` (in `lib/util/tme`): Allows the user to set the desired depth level (1-9) or turn timing on/off.
+        *   `settme` (in `lib/core/tme`): Allows the user to set the desired depth level (1-9) or turn timing on/off.
     *   **Details**: Controls the depth of the timing report output.
 
 *   **`tme_state`**:
     *   **Purpose**: Controlled by the `TME_STATE_FILE` variable (defined in `cfg/core/ric`). This file determines if the `tme` module's timing report output is enabled or disabled.
     *   **Writing Functions**:
-        *   `settme` (in `lib/util/tme`): Sets this to "true" or "false" to enable/disable the timing report.
+        *   `settme` (in `lib/core/tme`): Sets this to "true" or "false" to enable/disable the timing report.
     *   **Details**: A flag file to control the output of `print_timing_report`.
 
 *   **`lo1_state`**:
     *   **Purpose**: Stores the persistent state ("on" or "off") of the main logging system (`lo1`). Controls whether logging output is enabled or disabled across sessions.
-    *   **Writing Functions**: `setlog` and `init_state_files` in `lib/util/lo1` write to this file. The logger reads this file on initialization to restore the previous state.
+    *   **Writing Functions**: `setlog` and `init_state_files` in `lib/core/lo1` write to this file. The logger reads this file on initialization to restore the previous state.
     *   **Details**: If missing or empty, logging defaults to "on". The file is referenced as `LOG_STATE_FILE` in the environment.
 
 *   **`lo2_state`**:
@@ -94,7 +94,7 @@ These are not traditional log files but rather state files used by the logging a
 
 *   **`tme_sort_order`**:
     *   **Purpose**: Determines the sort order for the timing report generated by the `tme` module. The file contains either `chron` (chronological order) or `dura` (duration, descending).
-    *   **Writing Functions**: The `settme sort` command in `lib/util/tme` writes to this file. The `print_timing_report` function reads this file to determine how to order components in the report.
+    *   **Writing Functions**: The `settme sort` command in `lib/core/tme` writes to this file. The `print_timing_report` function reads this file to determine how to order components in the report.
     *   **Details**: Defaults to `chron` if missing or empty. The file is referenced as `TME_SORT_ORDER_FILE_PATH` in the environment.
 
 ## Summary of Key Logging Modules and Functions
@@ -102,14 +102,14 @@ These are not traditional log files but rather state files used by the logging a
 *   **`bin/init` & `lib/core/ver` (`debug_log`)**:
     *   Writes to: `.log/debug.log`
     *   Purpose: Low-level debug messages, especially during initial system verification and for modules without dedicated debug logs.
-*   **`lib/util/lo1` (Advanced Logging Module)**:
+*   **`lib/core/lo1` (Advanced Logging Module)**:
     *   `log`, `log_message`, `log_with_timer`, `lo1_debug_log`: Write to `.log/lo1.log` (main application and `lo1` module-specific debug log).
     *   Manages `.tmp/lo1_depth_cache` (performance cache) and `.tmp/log_state` (logging on/off).
 *   **`lib/util/lo2` (Runtime Control Structure Tracking)**:
     *   `lo2_debug_log`: Writes to `.log/lo2.log`.
-*   **`lib/util/tme` (Timing and Performance Module)**:
+*   **`lib/core/tme` (Timing and Performance Module)**:
     *   `start_timer`, `end_timer`, `print_timing_report`: Write to `.log/tme.log` (timing details).
     *   Manages `.tmp/tme_levels` (report depth) and `.tmp/tme_state` (report on/off).
-*   **Error Handling (e.g., `lib/util/err`)**:
+*   **Error Handling (e.g., `lib/core/err`)**:
     *   Writes to: `.log/err.log` (via `ERROR_LOG` variable).
     *   Purpose: Centralized error reporting.
