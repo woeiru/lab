@@ -7,7 +7,8 @@
 │   └── init
 ├── cfg
 │   ├── ali
-│   │   └── static
+│   │   ├── dyn
+│   │   └── sta
 │   ├── ans
 │   │   ├── main.yml
 │   │   ├── mods
@@ -59,10 +60,12 @@
 ├── entry.sh -> bin/env/rc
 ├── lib
 │   ├── aux
-│   │   ├── ali
 │   │   ├── lib
 │   │   └── src
 │   ├── core
+│   │   ├── err
+│   │   ├── lo1
+│   │   ├── tme
 │   │   └── ver
 │   ├── dep
 │   │   ├── gpu
@@ -73,12 +76,9 @@
 │   │   ├── sto
 │   │   ├── sys
 │   │   └── usr
-│   ├── ssh
-│   └── util
-│       ├── err
-│       ├── lo1
-│       ├── lo2
-│       └── tme
+│   └── utl
+│       ├── ali
+│       └── ssh
 ├── pro
 │   ├── acpi
 │   │   ├── deploy.sh
