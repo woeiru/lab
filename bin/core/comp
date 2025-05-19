@@ -15,7 +15,6 @@
 #   - execute_component: Executes a single named component with status tracking.
 #
 # Component Functions (perform specific initialization tasks):
-#   - execution_rc: Executes RC-specific setup functions.
 #   - source_env: Sources environment configuration files.
 #   - source_depl: Sources function library files.
 #   - source_aux: Sources auxiliary function files.
@@ -190,53 +189,6 @@ source_aux() {
     return $?
 }
 
-# Execute RC-specific setup functions
-execution_rc() {
-    log "lvl" "Starting ${FUNCNAME[0]}" | tee -a "$ERROR_LOG"
-    start_timer "execution_rc"
-
-    # Ensure BASE_DIR is available; it should be if 'comp' is sourced by 'init'
-    if [[ -z "$BASE_DIR" ]]; then
-        log "lvl" "Critical: BASE_DIR not set in execution_rc. Cannot proceed." | tee -a "$ERROR_LOG" >&2
-        end_timer "execution_rc" "error_base_dir_missing"
-        return 1
-    fi
-
-    # The alias definition files (static, dynamic, wrap) should now be sourced
-    # by the main init script's init_registered_functions mechanism,
-    # which uses the definitions in cfg/core/rdc.
-    # Therefore, direct sourcing here is removed.
-
-    log "lvl" "Expecting alias functions (set_static, set_dynamic, set_aliaswrap) to be available via rdc." | tee -a "$ERROR_LOG"
-
-    local setup_functions=("set_static" "set_dynamic" "set_aliaswrap")
-    local success_count=0
-
-    for func in "${setup_functions[@]}"; do
-        start_nested_timing "setup_${func}"
-
-        if ! type "$func" &>/dev/null; then
-            log "lvl" "Warning: Function $func not found" | tee -a "$ERROR_LOG" >&2
-            end_nested_timing "setup_${func}" "error_not_found"
-            continue
-        fi
-
-        log "lvl" "Executing $func" | tee -a "$ERROR_LOG"
-        if "$func"; then # Corrected: remove $ before func for execution
-            ((success_count++))
-            end_nested_timing "setup_${func}" "success"
-        else
-            log "lvl" "Warning: $func failed" | tee -a "$ERROR_LOG" >&2
-            end_nested_timing "setup_${func}" "error_execution"
-        fi
-    done
-
-    local status=$((success_count > 0 ? "success" : "error"))
-    end_timer "execution_rc" "$status"
-
-    return $((success_count > 0 ? 0 : 1))
-}
-
 setup_components() {
     log "lvl" "Validating and executing component configuration..." | tee -a "$ERROR_LOG"
     log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG"
@@ -246,7 +198,6 @@ setup_components() {
     type print_error_report &>/dev/null || log "lvl" "WARNING: print_error_report function not found" | tee -a "$ERROR_LOG" >&2
 
     local components=(
-        "execution_rc:EXEC:1"        # Required: Executes set_static, set_dynamic, set_aliaswrap
         "source_env:ENV:0"           # Optional
         "source_depl:DEPL:0"         # Optional
         "source_aux:AUX:0"           # Optional (new)
