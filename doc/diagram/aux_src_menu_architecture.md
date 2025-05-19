@@ -20,24 +20,37 @@ flowchart TD
         IM2{"Display choice provided?"}
         IM3a["Show print_usage2 (display options & sections)"]
         IM3b["Prompt for display_choice"]
+        IM3c{"User entered 'm'?"}
+        IM3d["Show full print_usage"]
         IM4{"Section focus (-s) provided?"}
         IM5a["Prompt for section ID"]
-        IM5b["setup_display_menu"]
+        IM5b{"User entered 'm'?"}
+        IM5c["setup_display_menu"]
         IM6{"Section focus (-s) provided?"}
         IM7["Confirm & Execute focused section"]
+        IM7a{"User entered 'm'?"}
+        IM7b["Execute focused section"]
         IM8["select_and_execute_sections"]
         
         IM1 --> IM2
         IM2 -- No --> IM3a
         IM3a --> IM3b
-        IM3b --> IM4
+        IM3b --> IM3c
+        IM3c -- Yes --> IM3d
+        IM3d --> IM3b
+        IM3c -- No --> IM4
         IM2 -- Yes --> IM4
         IM4 -- No --> IM5a
         IM5a --> IM5b
-        IM4 -- Yes --> IM5b
-        IM5b --> IM6
+        IM5b -- Yes --> IM1
+        IM5b -- No --> IM5c
+        IM4 -- Yes --> IM5c
+        IM5c --> IM6
         IM6 -- Yes --> IM7
-        IM7 --> I_Exit["End Interactive"]
+        IM7 --> IM7a
+        IM7a -- Yes --> IM1
+        IM7a -- No --> IM7b
+        IM7b --> I_Exit["End Interactive"]
         IM6 -- No --> IM8
     end
 
@@ -45,11 +58,14 @@ flowchart TD
         direction TB
         SES1["Display available sections from MENU_OPTIONS"]
         SES2["Prompt user for section(s)"]
+        SES2a{"User entered 'm'?"}
         SES3{"Loop each selected section"}
         SES4["Call setup_executing_mode for section"]
         
         SES1 --> SES2
-        SES2 --> SES3
+        SES2 --> SES2a
+        SES2a -- Yes --> IM1
+        SES2a -- No --> SES3
         SES3 -- "More sections" --> SES4
         SES4 --> SES3
         SES3 -- "No more sections" --> I_Exit

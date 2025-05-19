@@ -416,21 +416,51 @@ setup_interactive_mode() {
     local BOLD='\033[1m'
     local RESET='\033[0m'
 
-    if [ -z "$display_choice" ]; then
-        # Display usage information about display options and sections
-        print_usage2
-        read -p "${base_indent}Enter your choice (1-6): " display_choice
-    fi
+    # Implement menu loop to allow returning to beginning
+    local menu_loop=true
+    
+    while $menu_loop; do
+        if [ -z "$display_choice" ]; then
+            # Display usage information about display options and sections
+            print_usage2
+            read -p "${base_indent}Enter your choice (1-6), or 'm' for main menu: " display_choice
+            
+            # Check if user wants to return to main menu
+            if [[ "$display_choice" == "m" || "$display_choice" == "M" ]]; then
+                # Display full usage and restart
+                print_usage
+                read -p "${base_indent}Enter your choice (1-6), or 'm' for main menu: " display_choice
+            fi
+        fi
 
-    # Validate user input
-    if ! [[ "$display_choice" =~ ^[1-6]$ ]]; then
-        echo "Invalid choice. Using default display (1)."
-        display_choice=1
-    fi
+        # Validate user input
+        if ! [[ "$display_choice" =~ ^[1-6]$ ]]; then
+            if [[ "$display_choice" == "m" || "$display_choice" == "M" ]]; then
+                # Display full usage and restart
+                print_usage
+                display_choice=""
+                continue
+            else
+                echo "Invalid choice. Using default display (1)."
+                display_choice=1
+            fi
+        fi
+        
+        # Exit loop once we have a valid choice
+        menu_loop=false
+    done
     
     # If section_arg is not provided via command line, prompt user to choose a section
     if [ -z "$section_arg" ]; then
         # Get sections from MENU_OPTIONS which represents the actual available executable sections
+        
+        # Make sure MENU_OPTIONS is defined
+        if ! declare -p MENU_OPTIONS &>/dev/null; then
+            printf "      WARNING: MENU_OPTIONS associative array is not defined.\n"
+            printf "      Creating a placeholder array. Please ensure the calling script defines MENU_OPTIONS properly.\n"
+            # Create an empty associative array as fallback
+            declare -A MENU_OPTIONS
+        fi
         
         # Make sure we're displaying the menu options correctly
         # The MENU_OPTIONS associative array should be set properly in the calling script
@@ -448,16 +478,36 @@ setup_interactive_mode() {
         printf "%s┃ ${BOLD}Select a section to focus on (or leave empty for all):${RESET}\n" "$base_indent"
         printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
         printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${sorted_menu_options[*]}"
+        printf "%s┃ Enter 'm' to return to main menu\n" "$base_indent"
         printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
         
         read -p "${base_indent}Enter section ID (or leave empty for all): " section_arg
+        
+        # Check if user wants to return to main menu
+        if [[ "$section_arg" == "m" || "$section_arg" == "M" ]]; then
+            # Restart the interactive mode from the beginning
+            printf "      Returning to main menu...\n"
+            setup_interactive_mode "" "$2"
+            return
+        fi
+        
         printf "      User selected section: %s\n" "${section_arg:-all sections}"
     fi
 
     # Call setup_display_menu with the section filter.
     # If section_arg is empty, pass "-all" to display all sections.
     # DIR_SH and FILE_SH are assumed to be globally available from the calling script.
-    setup_display_menu "$DIR_SH" "$FILE_SH" "$display_choice" "${section_arg:--all}"
+    # Check if DIR_SH and FILE_SH are defined, otherwise use fallbacks
+    local dir_to_use="${DIR_SH:-$(dirname "$0")}"
+    local file_to_use="${FILE_SH:-$(basename "$0")}"
+    
+    # Check if setup_display_menu function exists before calling it
+    if declare -F setup_display_menu > /dev/null; then
+        setup_display_menu "$dir_to_use" "$file_to_use" "$display_choice" "${section_arg:--all}"
+    else
+        printf "      WARNING: setup_display_menu function not found. Skipping display of sections.\n"
+        printf "      Make sure this script is properly sourced in your environment.\n"
+    fi
 
     # Execution part
     if [ -n "$section_arg" ]; then
@@ -467,7 +517,15 @@ setup_interactive_mode() {
         printf "%s┃ ${BOLD}Confirm Execution of: %s${RESET}\n" "$base_indent" "$section_arg"
         printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
         if [[ -n "${MENU_OPTIONS[$section_arg]}" ]]; then
-            read -p "$(printf "%s┃ Press Enter to execute section '%s', or Ctrl+C to cancel: " "$base_indent" "$section_arg")"
+            read -p "$(printf "%s┃ Press Enter to execute section '%s', 'm' for main menu, or Ctrl+C to cancel: " "$base_indent" "$section_arg")" user_input
+            
+            # Check if user wants to return to main menu
+            if [[ "$user_input" == "m" || "$user_input" == "M" ]]; then
+                printf "      Returning to main menu...\n"
+                setup_interactive_mode "" ""
+                return
+            fi
+            
             printf "%s┃ Calling execution for section '%s'.\n" "$base_indent" "$section_arg"
             # Directly call the function associated with the section
             ${MENU_OPTIONS[$section_arg]}
@@ -499,10 +557,19 @@ select_and_execute_sections() {
     printf "%s┃ ${BOLD}Select sections to execute:${RESET}\n" "$base_indent"
     printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
     printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${sorted_menu_options[*]}"
+    printf "%s┃ Enter 'm' to return to main menu\n" "$base_indent"
     printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
     printf "\n"
 
     read -p "${base_indent}Enter section(s) separated by space: " sections
+    
+    # Check if user wants to return to main menu
+    if [[ "$sections" == "m" || "$sections" == "M" ]]; then
+        # Restart the interactive mode from the beginning
+        printf "      Returning to main menu...\n"
+        setup_interactive_mode "" ""
+        return
+    fi
 
     printf "      User selected sections: %s\n" "$sections"
 
