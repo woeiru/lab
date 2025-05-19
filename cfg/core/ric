@@ -97,6 +97,11 @@ declare -g LIB_AUX_DIR
 LIB_AUX_DIR="${LAB_DIR}/lib/aux"
 export LIB_AUX_DIR
 
+# Alias configuration path
+declare -g CFG_ALI_DIR
+CFG_ALI_DIR="${LAB_DIR}/cfg/ali"
+export CFG_ALI_DIR
+
 # Generation directory for gen scripts
 declare -g SRC_SET_DIR
 SRC_SET_DIR="${LAB_DIR}/src/set"
