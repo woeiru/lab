@@ -44,13 +44,6 @@
 │   │   ├── ntcoll-1.md
 │   │   └── ntcoll-2.md
 │   ├── session
-│   │   ├── 2025-05-13-0000_summary.md
-│   │   ├── 2025-05-13-0105_summary.md
-│   │   ├── 2025-05-13-0122_summary.md
-│   │   ├── 2025-05-13-0220_summary.md
-│   │   ├── 2025-05-13-0235_summary.md
-│   │   ├── 2025-05-13-0330_summary.md
-│   │   ├── 2025-05-13-2310_summary.md
 │   │   ├── 2025-05-14-0520_summary.md
 │   │   ├── 2025-05-14-0521_outlook.md
 │   │   ├── 2025-05-15-1400_summary.md
@@ -76,6 +69,8 @@
 │   │   ├── sto
 │   │   ├── sys
 │   │   └── usr
+│   ├── util
+│   │   └── ali
 │   └── utl
 │       ├── ali
 │       └── ssh
@@ -114,4 +109,4 @@
 │       └── smb
 └── tree
 
-32 directories, 83 files
+33 directories, 77 files
