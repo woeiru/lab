@@ -513,7 +513,7 @@ pve-vmg() {
 pve-vpt() {
     local vm_id="$1"
     local action="$2"
-    local vm_conf="$CONF_PATH_QEMU/$vm_id.conf"
+    local vm_conf="$PVE_CONF_PATH_QEMU/$vm_id.conf"
     if [ $# -ne 2 ]; then
         aux-use
         return 1
