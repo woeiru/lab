@@ -18,6 +18,7 @@
 #   - source_cfg_env: Sources environment configuration files.
 #   - source_lib_dep: Sources function library files.
 #   - source_lib_aux: Sources auxiliary function files.
+#   - source_lib_utl: Sources utility function files.
 #   - source_cfg_ali: Sources alias configuration files.
 #
 # Main Orchestration Function:
@@ -190,6 +191,22 @@ source_lib_aux() {
     return $?
 }
 
+# Source the util function files
+source_lib_utl() {
+    local dir_to_source="${LIB_UTL_DIR}"
+    local description="utility function files"
+    local pattern="*" # Or specific patterns like "*.sh"
+
+    log "inf" "Sourcing ${description} from ${dir_to_source}"
+    if source_directory "${dir_to_source}" "${pattern}" "${description}"; then
+        log "dbg" "Successfully sourced ${description}."
+        return 0
+    else
+        log "err" "Failed to source ${description} from ${dir_to_source}."
+        return 1
+    fi
+}
+
 # Source the alias files
 source_cfg_ali() {
     # Use CFG_ALI_DIR which is defined in ric
@@ -209,6 +226,7 @@ setup_components() {
         "source_cfg_env:CFG_ENV:0"   # Optional
         "source_lib_dep:LIB_DEP:0"   # Optional
         "source_lib_aux:LIB_AUX:0"   # Optional
+        "source_lib_utl:LIB_UTL:0"   # Optional
         "source_cfg_ali:CFG_ALI:0"   # Optional
     )
 
