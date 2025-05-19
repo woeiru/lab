@@ -4,10 +4,10 @@
 │   │   └── comp
 │   ├── env
 │   │   └── rc
-│   ├── iac
-│   │   └── start
 │   └── init
 ├── cfg
+│   ├── ali
+│   │   └── static
 │   ├── ans
 │   │   ├── main.yml
 │   │   ├── mods
@@ -58,11 +58,8 @@
 │       └── audioroot.md
 ├── entry.sh -> bin/env/rc
 ├── lib
-│   ├── alias
-│   │   ├── dynamic
-│   │   ├── static
-│   │   └── wrap
 │   ├── aux
+│   │   ├── ali
 │   │   ├── lib
 │   │   └── src
 │   ├── core
@@ -117,4 +114,4 @@
 │       └── smb
 └── tree
 
-33 directories, 85 files
+32 directories, 83 files
