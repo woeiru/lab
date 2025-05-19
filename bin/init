@@ -112,10 +112,6 @@ main_ini() {
     else
         # This case should ideally not be reached if ric is sourced correctly
         echo "Critical Error: Log directory or log file variables not set. Cannot clear logs." >&2
-        # Optionally, define a fallback local LOG_DEBUG_FILE for the initial message if absolutely necessary
-        # local initial_debug_log_path="${BASE_DIR}/.log/debug.log"
-        # mkdir -p "$(dirname "$initial_debug_log_path")" 2>/dev/null
-        # echo "[DEBUG] $(date '+%H:%M:%S') - [main_ini] Critical Error: Log variables not set." >> "$initial_debug_log_path"
     fi
 
     debug_log "Starting main initialization"
@@ -133,18 +129,18 @@ main_ini() {
     fi
 
     # Initialize the timer system and clear its log file
-    if type init_timer &>/dev/null; then
-        init_timer "${BASE_DIR}/.log"
+    if type tme_init_timer &>/dev/null; then
+        tme_init_timer "${BASE_DIR}/.log"
         debug_log "Timer system initialized and log cleared (${BASE_DIR}/.log/tme.log)."
-        # New: Start MAIN_OPERATIONS timer right after init_timer
-        if type start_timer &>/dev/null; then
-            start_timer "MAIN_OPERATIONS"
+        # New: Start MAIN_OPERATIONS timer right after tme_init_timer
+        if type tme_start_timer &>/dev/null; then
+            tme_start_timer "MAIN_OPERATIONS"
             main_op_timer_started=1
         else
-            debug_log "WARNING: start_timer function not found. Cannot start MAIN_OPERATIONS timer."
+            debug_log "WARNING: tme_start_timer function not found. Cannot start MAIN_OPERATIONS timer."
         fi
     else
-        debug_log "WARNING: init_timer function not found after module loading."
+        debug_log "WARNING: tme_init_timer function not found after module loading."
     fi
 
     # Source the component orchestrator
@@ -153,39 +149,39 @@ main_ini() {
     local comp_orchestrator_path="${BASE_DIR}/bin/core/comp"
     if [[ ! -f "$comp_orchestrator_path" ]]; then
         debug_log "ERROR: Component orchestrator script not found at $comp_orchestrator_path"
-        if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
+        if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "1"; fi
         return 1
     fi
     # shellcheck source=bin/core/comp
-    if type start_timer &>/dev/null; then start_timer "SOURCE_COMP_ORCHESTRATOR" "MAIN_OPERATIONS"; fi
+    if type tme_start_timer &>/dev/null; then tme_start_timer "SOURCE_COMP_ORCHESTRATOR" "MAIN_OPERATIONS"; fi
     if ! source "$comp_orchestrator_path"; then
         debug_log "ERROR: Failed to source component orchestrator $comp_orchestrator_path"
-        if type end_timer &>/dev/null; then end_timer "SOURCE_COMP_ORCHESTRATOR" "error"; fi
-        if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
+        if type tme_end_timer &>/dev/null; then tme_end_timer "SOURCE_COMP_ORCHESTRATOR" "error"; fi
+        if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "1"; fi
         return 1
     fi
-    if type end_timer &>/dev/null; then end_timer "SOURCE_COMP_ORCHESTRATOR" "success"; fi
+    if type tme_end_timer &>/dev/null; then tme_end_timer "SOURCE_COMP_ORCHESTRATOR" "success"; fi
     debug_log "Component orchestrator sourced successfully"
 
     # Part 2: Runtime dependency initialization (core)
-    if type start_timer &>/dev/null; then start_timer "INIT_RUNTIME_SYSTEM" "MAIN_OPERATIONS"; fi
+    if type tme_start_timer &>/dev/null; then tme_start_timer "INIT_RUNTIME_SYSTEM" "MAIN_OPERATIONS"; fi
     if ! init_runtime_system; then
         debug_log "ERROR: Core runtime system initialization failed"
-        if type end_timer &>/dev/null; then end_timer "INIT_RUNTIME_SYSTEM" "error"; fi
-        if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
+        if type tme_end_timer &>/dev/null; then tme_end_timer "INIT_RUNTIME_SYSTEM" "error"; fi
+        if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "1"; fi
         return 1
     fi
-    if type end_timer &>/dev/null; then end_timer "INIT_RUNTIME_SYSTEM" "success"; fi
+    if type tme_end_timer &>/dev/null; then tme_end_timer "INIT_RUNTIME_SYSTEM" "success"; fi
 
     # Part 3: Setup additional components using the orchestrator
     debug_log "Setting RC_SOURCED=0 before calling setup_components"
     if ! setup_components; then
         debug_log "ERROR: Component setup failed via orchestrator."
-        if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "1"; fi
-        return 1 # main_ini should still return failure
+        if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "1"; fi
+        return 1
     fi
 
-    if type start_timer &>/dev/null; then start_timer "FINALIZE_MAIN_INIT" "MAIN_OPERATIONS"; fi
+    if type tme_start_timer &>/dev/null; then tme_start_timer "FINALIZE_MAIN_INIT" "MAIN_OPERATIONS"; fi
     debug_log "RC_SOURCED value after setup_components: ${RC_SOURCED}"
     
     # Modify this check to set RC_SOURCED=1 if setup_components succeeded
@@ -195,8 +191,8 @@ main_ini() {
     fi
 
     debug_log "Main initialization completed successfully"
-    if type end_timer &>/dev/null; then end_timer "FINALIZE_MAIN_INIT" "success"; fi
-    if ((main_op_timer_started)); then type end_timer &>/dev/null && end_timer "MAIN_OPERATIONS" "0"; fi
+    if type tme_end_timer &>/dev/null; then tme_end_timer "FINALIZE_MAIN_INIT" "success"; fi
+    if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "0"; fi
     return 0
 }
 
@@ -295,9 +291,6 @@ load_modules() {
                 debug_log "Successfully loaded module: $module_name"
                 if [[ "$module_name" == "lo2" ]]; then
                     echo "INIT_SCRIPT_FLOW: Sourced lo2, about to call setlogcontrol on - $(date '+%T.%N')" >> "/home/es/lab/.log/init_flow.log"
-                    # This is where setlogcontrol "on" would be called if it were called from init
-                    # However, setlogcontrol is called at the end of lo2 itself.
-                    # We will add a log after this block to confirm flow in init continues.
                 fi
                 loaded_modules[$module_name]=1
                 ((module_loaded++))
@@ -307,7 +300,6 @@ load_modules() {
         fi
     done
 
-    # Add a log after the module loading loop, specifically after lo2 related logs if we were to call setlogcontrol here.
     echo "INIT_SCRIPT_FLOW: Finished module loading loop in init - $(date '+%T.%N')" >> "/home/es/lab/.log/init_flow.log"
 
     return $((module_loaded > 0 ? 0 : 1))
@@ -328,40 +320,40 @@ init_runtime_system() {
     local rde_path="${BASE_DIR}/cfg/core/rdc"
 
     # Verify runtime dependency file exists using ver's verify_path
-    if type start_timer &>/dev/null; then start_timer "VERIFY_RDC_PATH" "$parent_timer"; fi
+    if type tme_start_timer &>/dev/null; then tme_start_timer "VERIFY_RDC_PATH" "$parent_timer"; fi
     if ! verify_path "$rde_path" "file" "false"; then
         debug_log "ERROR: Runtime dependencies file not found"
-        if type end_timer &>/dev/null; then end_timer "VERIFY_RDC_PATH" "error"; fi
+        if type tme_end_timer &>/dev/null; then tme_end_timer "VERIFY_RDC_PATH" "error"; fi
         return 1
     fi
-    if type end_timer &>/dev/null; then end_timer "VERIFY_RDC_PATH" "success"; fi
+    if type tme_end_timer &>/dev/null; then tme_end_timer "VERIFY_RDC_PATH" "success"; fi
 
     # Load runtime dependencies
-    if type start_timer &>/dev/null; then start_timer "LOAD_RDC" "$parent_timer"; fi
+    if type tme_start_timer &>/dev/null; then tme_start_timer "LOAD_RDC" "$parent_timer"; fi
     if ! source "$rde_path" 2>/dev/null; then
         debug_log "ERROR: Failed to load runtime dependencies"
-        if type end_timer &>/dev/null; then end_timer "LOAD_RDC" "error"; fi
+        if type tme_end_timer &>/dev/null; then tme_end_timer "LOAD_RDC" "error"; fi
         return 1
     fi
-    if type end_timer &>/dev/null; then end_timer "LOAD_RDC" "success"; fi
+    if type tme_end_timer &>/dev/null; then tme_end_timer "LOAD_RDC" "success"; fi
 
     # Process runtime configurations
-    if type start_timer &>/dev/null; then start_timer "PROCESS_RUNTIME_CONFIG" "$parent_timer"; fi
+    if type tme_start_timer &>/dev/null; then tme_start_timer "PROCESS_RUNTIME_CONFIG" "$parent_timer"; fi
     if ! process_runtime_config; then
         debug_log "ERROR: Failed to process runtime configuration"
-        if type end_timer &>/dev/null; then end_timer "PROCESS_RUNTIME_CONFIG" "error"; fi
+        if type tme_end_timer &>/dev/null; then tme_end_timer "PROCESS_RUNTIME_CONFIG" "error"; fi
         return 1
     fi
-    if type end_timer &>/dev/null; then end_timer "PROCESS_RUNTIME_CONFIG" "success"; fi
+    if type tme_end_timer &>/dev/null; then tme_end_timer "PROCESS_RUNTIME_CONFIG" "success"; fi
 
     # Initialize registered functions
-    if type start_timer &>/dev/null; then start_timer "INIT_REGISTERED_FUNCTIONS" "$parent_timer"; fi
+    if type tme_start_timer &>/dev/null; then tme_start_timer "INIT_REGISTERED_FUNCTIONS" "$parent_timer"; fi
     if ! init_registered_functions; then
         debug_log "ERROR: Failed to initialize registered functions"
-        if type end_timer &>/dev/null; then end_timer "INIT_REGISTERED_FUNCTIONS" "error"; fi
+        if type tme_end_timer &>/dev/null; then tme_end_timer "INIT_REGISTERED_FUNCTIONS" "error"; fi
         return 1
     fi
-    if type end_timer &>/dev/null; then end_timer "INIT_REGISTERED_FUNCTIONS" "success"; fi
+    if type tme_end_timer &>/dev/null; then tme_end_timer "INIT_REGISTERED_FUNCTIONS" "success"; fi
 
     debug_log "Runtime system initialization completed"
     return 0
@@ -370,7 +362,6 @@ init_runtime_system() {
 # Process runtime configurations
 process_runtime_config() {
     debug_log "Processing runtime configuration"
-    # No RC files to process; logic is now consolidated in init
     return 0
 }
 
@@ -392,26 +383,25 @@ init_registered_functions() {
         local func_timer_name_deps="VERIFY_FUNC_DEPS_${func//[^A-Za-z0-9_]/_}" # Sanitize func name for timer
         local func_timer_name_reg="REGISTER_FUNC_${func//[^A-Za-z0-9_]/_}" # Sanitize func name for timer
 
-        if type start_timer &>/dev/null; then start_timer "$func_timer_name_deps" "$parent_timer"; fi
+        if type tme_start_timer &>/dev/null; then tme_start_timer "$func_timer_name_deps" "$parent_timer"; fi
         if ! verify_function_dependencies "$func"; then
             debug_log "WARNING: Failed to verify dependencies for function: $func - continuing anyway" "init_registered_functions" 1
-            if type end_timer &>/dev/null; then end_timer "$func_timer_name_deps" "error_deps_failed"; fi
+            if type tme_end_timer &>/dev/null; then tme_end_timer "$func_timer_name_deps" "error_deps_failed"; fi
             continue
         fi
-        if type end_timer &>/dev/null; then end_timer "$func_timer_name_deps" "success"; fi
+        if type tme_end_timer &>/dev/null; then tme_end_timer "$func_timer_name_deps" "success"; fi
 
-        if type start_timer &>/dev/null; then start_timer "$func_timer_name_reg" "$parent_timer"; fi
-        if register_function "$func"; then # This call is now timed as a whole
+        if type tme_start_timer &>/dev/null; then tme_start_timer "$func_timer_name_reg" "$parent_timer"; fi
+        if register_function "$func"; then
             debug_log "Successfully registered function: $func" "init_registered_functions" 1
-            if type end_timer &>/dev/null; then end_timer "$func_timer_name_reg" "success"; fi
+            if type tme_end_timer &>/dev/null; then tme_end_timer "$func_timer_name_reg" "success"; fi
             ((success++))
         else
             debug_log "WARNING: Failed to register function: $func - continuing anyway" "init_registered_functions" 1
-            if type end_timer &>/dev/null; then end_timer "$func_timer_name_reg" "error_reg_failed"; fi
+            if type tme_end_timer &>/dev/null; then tme_end_timer "$func_timer_name_reg" "error_reg_failed"; fi
         fi
     done
 
-    # Even with failures, continue if at least one function registers successfully
     debug_log "Registered $success functions successfully" "init_registered_functions" 1
     return $((success > 0 ? 0 : 1))
 }
@@ -420,7 +410,6 @@ init_registered_functions() {
 register_function() {
     local func_name="$1"
     debug_log "Registering function: $func_name" "register_function" 1
-    # Removed internal timers from this function
 
     local deps="${FUNCTION_DEPENDENCIES[$func_name]}"
     [[ -z "$deps" ]] && {
@@ -481,9 +470,9 @@ fi
 export -f main_ini
 
 # --- Force timer output and print timing report at the end ---
-if type settme &>/dev/null; then
-    settme on
+if type tme_settme &>/dev/null; then
+    tme_settme on
 fi
-if type print_timing_report &>/dev/null; then
-    print_timing_report
+if type tme_print_timing_report &>/dev/null; then
+    tme_print_timing_report
 fi
