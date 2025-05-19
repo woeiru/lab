@@ -223,11 +223,12 @@ setup_components() {
     type print_error_report &>/dev/null || log "lvl" "WARNING: print_error_report function not found" | tee -a "$ERROR_LOG" >&2
 
     local components=(
-        "source_cfg_env:CFG_ENV:0"   # Optional
-        "source_lib_dep:LIB_DEP:0"   # Optional
-        "source_lib_aux:LIB_AUX:0"   # Optional
-        "source_lib_utl:LIB_UTL:0"   # Optional
-        "source_cfg_ali:CFG_ALI:0"   # Optional
+        "source_cfg_ali:CFG_ALI:0"
+        "source_cfg_env:CFG_ENV:0"
+
+        "source_lib_aux:LIB_AUX:0"
+        "source_lib_utl:LIB_UTL:0"
+        "source_lib_dep:LIB_DEP:0"
     )
 
     log "lvl" "Executing component functions..." | tee -a "$ERROR_LOG"
