@@ -401,8 +401,6 @@ setup_interactive_mode() {
     local display_choice="$1"
     local section_arg="$2" # New parameter for -s <section_name>
 
-    printf "          ┃   Setup interactive mode with display choice: %s, section: %s\n" "${display_choice:-N/A}" "${section_arg:-N/A}"
-
     local base_indent="          "
 
     # Implement menu loop to allow returning to beginning
