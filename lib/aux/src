@@ -239,13 +239,16 @@ print_usage() {
     printf "%s┃ %s\n" "$base_indent" "$header"
     printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
     printf "%s┃ COMMAND SYNTAX:\n" "$base_indent"
-    printf "%s┃   ./%s MODE [ARGUMENT]\n" "$base_indent" "$(basename "$0")"
+    printf "%s┃   ./%s MODE [ARGUMENT(S)]\n" "$base_indent" "$(basename "$0")"
     printf "%s┃ \n" "$base_indent"
     printf "%s┃ AVAILABLE MODES:\n" "$base_indent"
     printf "%s┃   -i : Interactive Mode\n" "$base_indent"
-    printf "%s┃        Provides a menu-driven interface for executing functions\n" "$base_indent"
-    printf "%s┃        Optional: Add display mode (1-6) for different output formats\n" "$base_indent"
+    printf "%s┃        Provides a menu-driven interface for executing functions.\n" "$base_indent"
+    printf "%s┃        Optional: Add display mode (1-6) for different output formats.\n" "$base_indent"
+    printf "%s┃        Optional: Use -f <section_name> to focus on a single section.\n" "$base_indent"
     printf "%s┃        Example: ./%s -i 2\n" "$base_indent" "$(basename "$0")"
+    printf "%s┃        Example: ./%s -i -f b\n" "$base_indent" "$(basename "$0")"
+    printf "%s┃        Example: ./%s -i 4 -f b\n" "$base_indent" "$(basename "$0")"
     printf "%s┃ \n" "$base_indent"
     printf "%s┃   -x : Execution Mode\n" "$base_indent"
     printf "%s┃        Directly executes specified section(s)\n" "$base_indent"
@@ -267,41 +270,106 @@ print_usage() {
 
 setup_main() {
     local base_indent="          "
+    local script_name
+    script_name=$(basename "$0") # For usage messages
 
-    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
-        echo "Incorrect number of arguments."
+    if [ "$#" -eq 0 ]; then
+        echo "Error: No arguments provided. Use '$script_name -i' or '$script_name -x <section>'."
         print_usage
         return 1
     fi
 
     local mode="$1"
-    local argument="$2"
+    shift # Consume mode
 
-    printf "\n"
-    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
-    printf "%s┃ Script Execution\n" "$base_indent"
-    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
-    printf "%s┃ Mode: %s\n" "$base_indent" "$mode"
-    if [ -n "$argument" ]; then
-        printf "%s┃ Argument: %s\n" "$base_indent" "$argument"
-    fi
-    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
-    printf "\n"
+    local display_choice_arg=""
+    local section_filter_arg="" # For -i -f <section>
+    local exec_section_arg=""   # For -x <section>
 
     case "$mode" in
         -i)
-            setup_interactive_mode "$argument"
-            ;;
-        -x)
-            if [ -z "$argument" ]; then
-                echo "Section argument is required for executing mode."
+            # Interactive mode parsing
+            # Possible forms:
+            # -i
+            # -i <display_choice>
+            # -i -f <section>
+            # -i <display_choice> -f <section>
+
+            # Check for display_choice (must not be -f and must be a number 1-6 if present)
+            if [[ "$1" != "-f" && -n "$1" ]]; then
+                if [[ "$1" =~ ^[1-6]$ ]]; then
+                    display_choice_arg="$1"
+                    shift # Consumed display_choice
+                else
+                    # Argument is present, not -f, and not a valid display choice
+                    echo "Error: Invalid argument '$1' for -i mode. Expected display choice (1-6) or -f."
+                    print_usage
+                    return 1
+                fi
+            fi
+
+            # Check for -f <section_filter>
+            if [[ "$1" == "-f" ]]; then
+                shift # Consumed -f
+                if [[ -n "$1" && "$1" != -* ]]; then # Argument for -f must exist and not be another option
+                    section_filter_arg="$1"
+                    shift # Consumed section_filter
+                else
+                    echo "Error: The -f option requires a section name argument."
+                    print_usage
+                    return 1
+                fi
+            fi
+
+            if [[ -n "$1" ]]; then # Any remaining arguments are unexpected
+                echo "Error: Too many arguments for -i mode after processing options."
                 print_usage
                 return 1
             fi
-            setup_executing_mode "$argument"
+
+            # Print execution details for -i mode
+            printf "\n"
+            printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+            printf "%s┃ Script Execution (Interactive Mode)\n" "$base_indent"
+            printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+            printf "%s┃ Mode: -i\n" "$base_indent"
+            [ -n "$display_choice_arg" ] && printf "%s┃ Display Choice: %s\n" "$base_indent" "$display_choice_arg"
+            [ -n "$section_filter_arg" ] && printf "%s┃ Section Filter: %s\n" "$base_indent" "$section_filter_arg"
+            printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+            printf "\n"
+
+            setup_interactive_mode "$display_choice_arg" "$section_filter_arg"
+            ;;
+        -x)
+            # Execution mode parsing
+            if [[ -z "$1" || "$1" == -* ]]; then # Argument must exist and not be an option
+                echo "Error: Execution mode (-x) requires a section name."
+                print_usage
+                return 1
+            fi
+            exec_section_arg="$1"
+            shift # Consumed section_name
+
+            if [[ -n "$1" ]]; then # Any remaining arguments are unexpected
+                echo "Error: Too many arguments for -x mode."
+                print_usage
+                return 1
+            fi
+            
+            # Print execution details for -x mode
+            printf "\n"
+            printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+            printf "%s┃ Script Execution (Execution Mode)\n" "$base_indent"
+            printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+            printf "%s┃ Mode: -x\n" "$base_indent"
+            printf "%s┃ Section: %s\n" "$base_indent" "$exec_section_arg"
+            printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+            printf "\n"
+
+            setup_executing_mode "$exec_section_arg"
             ;;
         *)
-            echo "Invalid mode. Use -i for interactive or -x for executing."
+            echo "Error: Invalid mode '$mode'. Use -i for interactive or -x for executing."
             print_usage
             return 1
             ;;
@@ -310,7 +378,9 @@ setup_main() {
 
 setup_interactive_mode() {
     local display_choice="$1"
-    printf "    Setup interactive mode with display choice: %s\n" "$display_choice"
+    local section_filter="$2" # New parameter for -f <section_name>
+
+    printf "    Setup interactive mode with display choice: %s, section filter: %s\n" "${display_choice:-N/A}" "${section_filter:-N/A}"
 
     local base_indent="          "
     local BOLD='\033[1m'
@@ -339,29 +409,32 @@ setup_interactive_mode() {
         display_choice=1
     fi
 
-    setup_display_menu "$DIR_SH" "$FILE_SH" "$display_choice" "-all"
-    select_and_execute_sections
-}
+    # Call setup_display_menu with the section filter.
+    # If section_filter is empty, pass "-all" to display all sections.
+    # DIR_SH and FILE_SH are assumed to be globally available from the calling script.
+    setup_display_menu "$DIR_SH" "$FILE_SH" "$display_choice" "${section_filter:--all}"
 
-setup_executing_mode() {
-    echo "DEBUG: Enter setup_executing_mode - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
-    local section="$1"
-    printf "    Setup executing mode for section: %s\n" "$section"
-
-    if [[ "$section" == "-all" ]]; then
-        printf "      Executing all sections\n"
-        for func in "${!MENU_OPTIONS[@]}"; do
-            printf "        Executing section: %s\n" "$func"
-            ${MENU_OPTIONS[$func]}
-        done
-    else
-        if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
-            printf "      Executing section: %s\n" "$section"
-            ${MENU_OPTIONS[$section]}
+    # Execution part
+    if [ -n "$section_filter" ]; then
+        # If a section filter was applied, attempt to execute that specific section
+        printf "\n"
+        printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
+        printf "%s┃ ${BOLD}Confirm Execution of: %s${RESET}\n" "$base_indent" "$section_filter"
+        printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
+        if [[ -n "${MENU_OPTIONS[$section_filter]}" ]]; then
+            read -p "$(printf "%s┃ Press Enter to execute section '%s', or Ctrl+C to cancel: " "$base_indent" "$section_filter")"
+            printf "%s┃ Calling execution for section '%s'.\n" "$base_indent" "$section_filter"
+            # Directly call the function associated with the section
+            ${MENU_OPTIONS[$section_filter]}
+            printf "%s┃ Execution of section '%s' completed.\n" "$base_indent" "$section_filter"
         else
-            echo "Invalid section: $section"
-            exit 1
+            printf "%s┃ ${BOLD}Error: Section '%s' not found or not executable.${RESET}\n" "$base_indent" "$section_filter"
         fi
+        printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+        printf "\n"
+    else
+        # No section filter, proceed with normal selection process
+        select_and_execute_sections
     fi
 }
 
@@ -397,6 +470,28 @@ select_and_execute_sections() {
             echo "Invalid section: $section. Skipping."
         fi
     done
+}
+
+setup_executing_mode() {
+    echo "DEBUG: Enter setup_executing_mode - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
+    local section="$1"
+    printf "    Setup executing mode for section: %s\n" "$section"
+
+    if [[ "$section" == "-all" ]]; then
+        printf "      Executing all sections\n"
+        for func in "${!MENU_OPTIONS[@]}"; do
+            printf "        Executing section: %s\n" "$func"
+            ${MENU_OPTIONS[$func]}
+        done
+    else
+        if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
+            printf "      Executing section: %s\n" "$section"
+            ${MENU_OPTIONS[$section]}
+        else
+            echo "Invalid section: $section"
+            exit 1
+        fi
+    fi
 }
 
 # Function to expand variables
