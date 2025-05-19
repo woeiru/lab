@@ -1,4 +1,7 @@
-# Dynamically generated aliases by set_dynamic on Mon May 19 08:05:32 PM CEST 2025
+# Dynamically generated aliases by set_dynamic on Mon May 19 08:07:20 PM CEST 2025
+# Version: 1.0.0
+
+# --- Readme Aliases ---
 alias c-pod-qdev-md='cat "/home/es/lab/cfg/pod/qdev/readme.md"'
 alias v-pod-qdev-md='vim "/home/es/lab/cfg/pod/qdev/readme.md"'
 alias c-cfg-pod-md='cat "/home/es/lab/cfg/pod/readme.md"'
@@ -9,6 +12,8 @@ alias c-pro-acpi-md='cat "/home/es/lab/pro/acpi/readme.md"'
 alias v-pro-acpi-md='vim "/home/es/lab/pro/acpi/readme.md"'
 alias c-pro-replace-md='cat "/home/es/lab/pro/replace/readme.md"'
 alias v-pro-replace-md='vim "/home/es/lab/pro/replace/readme.md"'
+
+# --- Level One Directory Aliases ---
 alias d-bin='cd "/home/es/lab/bin"'
 alias d-cfg='cd "/home/es/lab/cfg"'
 alias d-doc='cd "/home/es/lab/doc"'
@@ -16,8 +21,12 @@ alias d-lib='cd "/home/es/lab/lib"'
 alias d-pro='cd "/home/es/lab/pro"'
 alias d-res='cd "/home/es/lab/res"'
 alias d-src='cd "/home/es/lab/src"'
+
+# --- Environment File Aliases (cfg/env) ---
 alias c.env.site1='cat "/home/es/lab/cfg/env/site1"'
 alias v.env.site1='vim "/home/es/lab/cfg/env/site1"'
+
+# --- Function Library Aliases (lib/dep) ---
 alias c.dep.gpu='cat "/home/es/lab/lib/dep/gpu"'
 alias c.dep.net='cat "/home/es/lab/lib/dep/net"'
 alias c.dep.pbs='cat "/home/es/lab/lib/dep/pbs"'
@@ -34,6 +43,8 @@ alias v.dep.srv='vim "/home/es/lab/lib/dep/srv"'
 alias v.dep.sto='vim "/home/es/lab/lib/dep/sto"'
 alias v.dep.sys='vim "/home/es/lab/lib/dep/sys"'
 alias v.dep.usr='vim "/home/es/lab/lib/dep/usr"'
+
+# --- Set Script Aliases (src/set) ---
 alias c.set.dsk='cat "/home/es/lab/src/set/dsk"'
 alias c.set.nfs='cat "/home/es/lab/src/set/nfs"'
 alias c.set.pbs='cat "/home/es/lab/src/set/pbs"'
@@ -49,3 +60,4 @@ alias b.set.nfs='bash "/home/es/lab/src/set/nfs"'
 alias b.set.pbs='bash "/home/es/lab/src/set/pbs"'
 alias b.set.pve='bash "/home/es/lab/src/set/pve"'
 alias b.set.smb='bash "/home/es/lab/src/set/smb"'
+
