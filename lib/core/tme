@@ -449,7 +449,7 @@ tme_print_timing_report() {
             print_tree_recursive "$component" "    " "$total_time" "$sort_order"
         done
 
-        printf "\n %s━ Log file: %s%s%s\n" "$TME_BLUE" "$TME_CYAN" "$TME_LOG_FILE" "$TME_NC"
+        printf "\n\n"
 
     } | tee -a "$TME_LOG_FILE"
 
