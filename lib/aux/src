@@ -459,8 +459,7 @@ get_function_description() {
     ' "$lib_file" | sed 's/^# *//')
 
     if [ -n "$description" ]; then
-        printf "        Function description: %s\n" "$description"
-        echo "--( $description )--"
+        printf "        * %s\n" "$description"
     else
         printf "        No description found for function: %s\n" "$func_name"
     fi
@@ -505,38 +504,42 @@ setup_display_menu() {
                             printf "%s┃ %s\n" "$base_indent" "$(expand_variables "$inner_line")"
                             ;;
                         3)
-                            if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z_-]+) ]]; then
+                            local current_line_text="${inner_line#"${inner_line%%[![:space:]]*}"}"
+                            printf "%s┃ %s\n" "$base_indent" "$current_line_text" # Always print the current line text
+                            if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z0-9_-]+) ]]; then # Adjusted regex to include numbers
                                 local func="${BASH_REMATCH[1]}"
-                                local desc="$(get_function_description "$func")"
-                                printf "%s┃ %s %s\n" "$base_indent" "${inner_line#"${inner_line%%[![:space:]]*}"}" "$desc"
-                            else
-                                printf "%s┃ %s\n" "$base_indent" "${inner_line#"${inner_line%%[![:space:]]*}"}"
+                                if [[ ${#func} -ge 4 && "${func:3:1}" == "-" ]]; then
+                                    get_function_description "$func" # It prints its own output
+                                fi
                             fi
                             ;;
                         4)
-                            if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z_-]+) ]]; then
+                            local expanded_line_text="$(expand_variables "${inner_line#"${inner_line%%[![:space:]]*}"}")"
+                            printf "%s┃ %s\n" "$base_indent" "$expanded_line_text" # Always print the expanded line text
+                            if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z0-9_-]+) ]]; then # Adjusted regex, use original inner_line
                                 local func="${BASH_REMATCH[1]}"
-                                local desc="$(get_function_description "$func")"
-                                printf "%s┃ %s %s\n" "$base_indent" "$(expand_variables "${inner_line#"${inner_line%%[![:space:]]*}"}")" "$desc"
-                            else
-                                printf "%s┃ %s\n" "$base_indent" "$(expand_variables "${inner_line#"${inner_line%%[![:space:]]*}"}")"
+                                if [[ ${#func} -ge 4 && "${func:3:1}" == "-" ]]; then
+                                    get_function_description "$func" # It prints its own output
+                                fi
                             fi
                             ;;
                         5)
-                            if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z_-]+) ]]; then
+                            if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z0-9_-]+) ]]; then # Adjusted regex
                                 local func="${BASH_REMATCH[1]}"
-                                local desc="$(get_function_description "$func")"
-                                if [ -n "$desc" ]; then
-                                    printf "%s┃ %s: %s\n" "$base_indent" "$func" "$desc"
+                                if [[ ${#func} -ge 4 && "${func:3:1}" == "-" ]]; then
+                                    local desc_output
+                                    desc_output="$(get_function_description "$func")"
+                                    if [ -n "$desc_output" ]; then
+                                        printf "%s┃ %s: %s\n" "$base_indent" "$func" "$desc_output"
+                                    fi
                                 fi
                             fi
                             ;;
                         6)
-                            if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z_-]+) ]]; then
+                            if [[ "$inner_line" =~ ^[[:space:]]*([a-zA-Z0-9_-]+) ]]; then # Adjusted regex
                                 local func="${BASH_REMATCH[1]}"
-                                local desc="$(get_function_description "$func")"
-                                if [ -n "$desc" ]; then
-                                    printf "%s┃ %s\n" "$base_indent" "$desc"
+                                if [[ ${#func} -ge 4 && "${func:3:1}" == "-" ]]; then
+                                    get_function_description "$func" # It prints its own output
                                 fi
                             fi
                             ;;
