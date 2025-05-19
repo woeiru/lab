@@ -1,13 +1,9 @@
 #!/bin/bash
 
-#
-# GEN
-#
-
 # dotfiles
 #
 DOT_FILE1="/root/.bashrc"
-DOT_SOURCE1=". /root/lab/ini/bashrc"
+DOT_SOURCE1=". /root/lab/bin/init"
 
 # git ( gst
 #
@@ -92,7 +88,7 @@ PBS_DATASTORE_PATH="/home"
 PVE_PACKAGES_ALL=(corosync-qdevice)
 
 # config files
-CONF_PATH_QEMU="/etc/pve/qemu-server"
+PVE_CONF_PATH_QEMU="/etc/pve/qemu-server"
 
 # environment
 PVE_ADR_FILE="/etc/apt/sources.list"
