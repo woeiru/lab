@@ -474,7 +474,28 @@ aux-acu() {
         header_string+=$(printf "%-${tab_width_var_values}s | " "Value")
         header_string+=$(printf "%-${tab_width_total_occ}s | " "Total Occ.")
         for target_folder_path in "${target_folders_input[@]}"; do
-            local dir_name_header=$(_aux_acu_truncate_string "$(basename "$target_folder_path")" "$tab_width_per_dir_occ")
+            local display_path_for_header
+            if [[ -n "$LAB_DIR" && "$target_folder_path" == "$LAB_DIR"* ]]; then
+                # Path is under LAB_DIR (or is LAB_DIR itself)
+                # Remove $LAB_DIR prefix.
+                # e.g., LAB_DIR="/home/es/lab", target="/home/es/lab/foo" -> display_path_for_header becomes "/foo"
+                # e.g., LAB_DIR="/home/es/lab/", target="/home/es/lab/foo" -> display_path_for_header becomes "foo"
+                display_path_for_header="${target_folder_path#$LAB_DIR}"
+                
+                # Remove leading slash if present (e.g. if LAB_DIR had no trailing slash)
+                # "/foo" -> "foo"; "foo" -> "foo"; "" -> ""
+                display_path_for_header="${display_path_for_header#/}"
+
+                if [[ -z "$display_path_for_header" ]]; then
+                    # This case occurs if target_folder_path was $LAB_DIR or $LAB_DIR/
+                    # (after stripping prefix and leading slash, it's empty)
+                    display_path_for_header="."
+                fi
+            else
+                # Fallback: LAB_DIR not set, or path not under LAB_DIR
+                display_path_for_header=$(basename "$target_folder_path")
+            fi
+            local dir_name_header=$(_aux_acu_truncate_string "$display_path_for_header" "$tab_width_per_dir_occ")
             header_string+=$(printf "%-${tab_width_per_dir_occ}s | " "$dir_name_header")
         done
         printf "%s\n" "$header_string"
