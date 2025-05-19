@@ -98,6 +98,11 @@ declare -g LIB_CORE_DIR
 LIB_CORE_DIR="${LAB_DIR}/lib/core"
 export LIB_CORE_DIR
 
+# Utility library path
+declare -g LIB_UTL_DIR
+LIB_UTL_DIR="${LAB_DIR}/lib/utl"
+export LIB_UTL_DIR
+
 # Alias configuration path
 declare -g CFG_ALI_DIR
 CFG_ALI_DIR="${LAB_DIR}/cfg/ali"
