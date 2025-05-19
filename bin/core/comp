@@ -15,9 +15,10 @@
 #   - execute_component: Executes a single named component with status tracking.
 #
 # Component Functions (perform specific initialization tasks):
-#   - source_env: Sources environment configuration files.
-#   - source_depl: Sources function library files.
-#   - source_aux: Sources auxiliary function files.
+#   - source_cfg_env: Sources environment configuration files.
+#   - source_lib_dep: Sources function library files.
+#   - source_lib_aux: Sources auxiliary function files.
+#   - source_cfg_ali: Sources alias configuration files.
 #
 # Main Orchestration Function:
 #   - setup_components: Orchestrates the execution of all defined
@@ -146,7 +147,7 @@ execute_component() {
         log "lvl" " Error: Function $func not found for component $component" | tee -a "$ERROR_LOG" >&2
         error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$([[ $required -eq 0 ]] && echo true || echo false)"
         return_value=1
-    elif "$func"; then # Corrected: remove $ before func for execution
+    elif "$func"; then
         export "$success_var=1"
         log "lvl" " Component $component completed successfully" | tee -a "$ERROR_LOG"
         return_value=0
@@ -159,8 +160,8 @@ execute_component() {
             return_value=1
         else
             log "lvl" " Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
-            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true" # Assuming error_handler can take 'true' for optional
-            return_value=0 # Optional component failure doesn't make execute_component fail
+            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
+            return_value=0
         fi
     fi
 
@@ -169,23 +170,30 @@ execute_component() {
 }
 
 # Source the environment files
-source_env() {
+source_cfg_env() {
     # Use CFG_ENV_DIR which is defined in ric
     source_directory "$CFG_ENV_DIR" "*" "environment configuration files"
     return $?
 }
 
 # Source the function files
-source_depl() {
+source_lib_dep() {
     # Use LIB_DEP_DIR which is defined in ric
     source_directory "$LIB_DEP_DIR" "*" "function files"
     return $?
 }
 
 # Source the aux function files
-source_aux() {
+source_lib_aux() {
     # Use LIB_AUX_DIR which is defined in ric
     source_directory "$LIB_AUX_DIR" "*" "auxiliary function files"
+    return $?
+}
+
+# Source the alias files
+source_cfg_ali() {
+    # Use CFG_ALI_DIR which is defined in ric
+    source_directory "$CFG_ALI_DIR" "*" "alias configuration files"
     return $?
 }
 
@@ -198,21 +206,20 @@ setup_components() {
     type print_error_report &>/dev/null || log "lvl" "WARNING: print_error_report function not found" | tee -a "$ERROR_LOG" >&2
 
     local components=(
-        "source_env:ENV:0"           # Optional
-        "source_depl:DEPL:0"         # Optional
-        "source_aux:AUX:0"           # Optional (new)
+        "source_cfg_env:CFG_ENV:0"   # Optional
+        "source_lib_dep:LIB_DEP:0"   # Optional
+        "source_lib_aux:LIB_AUX:0"   # Optional
+        "source_cfg_ali:CFG_ALI:0"   # Optional
     )
 
     log "lvl" "Executing component functions..." | tee -a "$ERROR_LOG"
 
     local failed_required=0
-    for component_def in "${components[@]}"; do # Renamed variable to avoid conflict
+    for component_def in "${components[@]}"; do
         IFS=':' read -r func name required <<< "$component_def"
         if ! execute_component "$func" "$name" "$required"; then
-            # execute_component already logs detailed error/warning
             if ((required)); then
                 failed_required=1
-                # Specific log for required component failure leading to break
                 log "lvl" " Required component $name ($func) failed. Halting further component setup." | tee -a "$ERROR_LOG" >&2
                 break
             fi
@@ -223,14 +230,12 @@ setup_components() {
         unset RC_SOURCED
         log "lvl" " RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
         log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG" >&2
-        # Only call these functions if they exist
         type print_error_report &>/dev/null && print_error_report
         return 1
     else
         export RC_SOURCED=1
         log "lvl" " RC initialization completed successfully" | tee -a "$ERROR_LOG"
         log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG"
-        # Only call these functions if they exist
         type print_error_report &>/dev/null && print_error_report
         return 0
     fi
