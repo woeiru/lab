@@ -268,41 +268,54 @@ set_dynamic() {
 
     # Initialize the dyn file
     echo "# Dynamically generated aliases by set_dynamic on $(date)" > "$CFG_ALI_DIR/dyn"
+    echo "# Version: 1.0.0" >> "$CFG_ALI_DIR/dyn"
+    echo "" >> "$CFG_ALI_DIR/dyn" # Add an empty line for spacing
 
     # Group all readme operations
+    echo "# --- Readme Aliases ---" >> "$CFG_ALI_DIR/dyn"
     start_nested_timing "readme_processing"
     generate_readme_aliases
     end_nested_timing "readme_processing" "success"
+    echo "" >> "$CFG_ALI_DIR/dyn"
 
     # Group all level one operations
+    echo "# --- Level One Directory Aliases ---" >> "$CFG_ALI_DIR/dyn"
     start_nested_timing "level_one_processing"
     generate_level_one_vars_and_aliases
     end_nested_timing "level_one_processing" "success"
+    echo "" >> "$CFG_ALI_DIR/dyn"
 
-    # Group all level two operations
+    # Group all level two operations (arrays are generated, not aliases directly written here)
     start_nested_timing "level_two_processing"
     generate_level_two_arrays
     end_nested_timing "level_two_processing" "success"
+    # No specific alias group comment here as generate_level_two_arrays populates arrays used by generate_aliases
 
     # Group all alias generation
     start_nested_timing "alias_processing"
     log "lvl" "Generating all aliases"
 
+    echo "# --- Environment File Aliases (cfg/env) ---" >> "$CFG_ALI_DIR/dyn"
     start_nested_timing "env_aliases"
     generate_aliases "cat" "$CFG_ENV_DIR" "${cfg_env_files[@]}"
     generate_aliases "vim" "$CFG_ENV_DIR" "${cfg_env_files[@]}"
     end_nested_timing "env_aliases" "success"
+    echo "" >> "$CFG_ALI_DIR/dyn"
 
+    echo "# --- Function Library Aliases (lib/dep) ---" >> "$CFG_ALI_DIR/dyn"
     start_nested_timing "fun_aliases"
     generate_aliases "cat" "$LIB_DEP_DIR" "${lib_dep_files[@]}"
     generate_aliases "vim" "$LIB_DEP_DIR" "${lib_dep_files[@]}"
     end_nested_timing "fun_aliases" "success"
+    echo "" >> "$CFG_ALI_DIR/dyn"
 
+    echo "# --- Set Script Aliases (src/set) ---" >> "$CFG_ALI_DIR/dyn"
     start_nested_timing "gem_aliases"
     generate_aliases "cat" "$SRC_SET_DIR" "${src_set_files[@]}"
     generate_aliases "vim" "$SRC_SET_DIR" "${src_set_files[@]}"
     generate_aliases "bash" "$SRC_SET_DIR" "${src_set_files[@]}"
     end_nested_timing "gem_aliases" "success"
+    echo "" >> "$CFG_ALI_DIR/dyn"
 
     end_nested_timing "alias_processing" "success"
 
