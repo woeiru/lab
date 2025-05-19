@@ -20,20 +20,25 @@ flowchart TD
         IM2{"Display choice provided?"}
         IM3a["Show print_usage2 (display options & sections)"]
         IM3b["Prompt for display_choice"]
-        IM4["setup_display_menu"]
-        IM5{"Section focus (-s) provided?"}
-        IM6["Confirm & Execute focused section"]
-        IM7["select_and_execute_sections"]
+        IM4{"Section focus (-s) provided?"}
+        IM5a["Prompt for section ID"]
+        IM5b["setup_display_menu"]
+        IM6{"Section focus (-s) provided?"}
+        IM7["Confirm & Execute focused section"]
+        IM8["select_and_execute_sections"]
         
         IM1 --> IM2
         IM2 -- No --> IM3a
         IM3a --> IM3b
         IM3b --> IM4
         IM2 -- Yes --> IM4
-        IM4 --> IM5
-        IM5 -- Yes --> IM6
-        IM6 --> I_Exit["End Interactive"]
-        IM5 -- No --> IM7
+        IM4 -- No --> IM5a
+        IM5a --> IM5b
+        IM4 -- Yes --> IM5b
+        IM5b --> IM6
+        IM6 -- Yes --> IM7
+        IM7 --> I_Exit["End Interactive"]
+        IM6 -- No --> IM8
     end
 
     subgraph select_and_execute_sections ["select_and_execute_sections"]
