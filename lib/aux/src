@@ -430,23 +430,19 @@ setup_interactive_mode() {
     
     # If section_arg is not provided via command line, prompt user to choose a section
     if [ -z "$section_arg" ]; then
-        # Get the calling script's path
-        local calling_script
-        if [[ -n "${BASH_SOURCE[1]}" ]]; then
-            calling_script="${BASH_SOURCE[1]}"
-        else
-            calling_script="$0"
-        fi
+        # Get sections from MENU_OPTIONS which represents the actual available executable sections
         
-        # Get section IDs to show available sections
-        local -a section_ids
-        get_section_ids "$calling_script" section_ids
+        # Make sure we're displaying the menu options correctly
+        # The MENU_OPTIONS associative array should be set properly in the calling script
+        if [[ -z "${!MENU_OPTIONS[*]}" ]]; then
+            printf "      WARNING: No executable sections found in MENU_OPTIONS\n"
+        fi
         
         printf "\n"
         printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
         printf "%s┃ ${BOLD}Select a section to focus on (or leave empty for all):${RESET}\n" "$base_indent"
         printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
-        printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${section_ids[*]}"
+        printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "${!MENU_OPTIONS[*]}"
         printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
         
         read -p "${base_indent}Enter section ID (or leave empty for all): " section_arg
