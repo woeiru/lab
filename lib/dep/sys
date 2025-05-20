@@ -681,8 +681,8 @@ sys-sca() {
 
     if [[ -z $user_name ]]; then
         echo "Error: Unknown user shortcut '$user_shortcut'"
-        echo "Debug: SSH_USERS (passed name: $ssh_users_array_name) array contents: ${_ssh_users_ref[@]}"
-        echo "Debug: SSH_USERS (passed name: $ssh_users_array_name) keys: ${!_ssh_users_ref[@]}"
+        echo "Debug: SSH _ USERS (passed name: $ssh_users_array_name) array contents: ${_ssh_users_ref[@]}"
+        echo "Debug: SSH _ USERS (passed name: $ssh_users_array_name) keys: ${!_ssh_users_ref[@]}"
         return 1
     fi
 
