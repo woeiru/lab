@@ -501,7 +501,6 @@ _display_section_menu() {
     printf "%s┃ ${BOLD}%s${RESET}\n" "$base_indent" "$menu_title"
     printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
     printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "$sorted_menu_options_str"
-    printf "%s┃ Enter 'm' to return to main menu\n" "$base_indent"
     printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
     printf "\n"
 }
@@ -532,7 +531,7 @@ prompt_for_section() {
     # Call the new display function
     _display_section_menu "$base_indent" "Select a section to focus on (or leave empty for all):" "${sorted_menu_options[*]}"
 
-    read -p "${base_indent}Enter section ID (or leave empty for all): " section_arg_local
+    read -p "${base_indent}Enter section ID (or leave empty for all, 'm' for main menu): " section_arg_local
 
     # Check if user wants to return to main menu
     if [[ "$section_arg_local" == "m" || "$section_arg_local" == "M" ]]; then
@@ -564,7 +563,7 @@ select_and_execute_sections() {
     # Call the new display function
     _display_section_menu "$base_indent" "Select sections to execute:" "${sorted_menu_options[*]}"
 
-    read -p "${base_indent}Enter section(s) separated by space: " sections
+    read -p "${base_indent}Enter section(s) separated by space (or 'm' for main menu): " sections
     
     # Check if user wants to return to main menu
     if [[ "$sections" == "m" || "$sections" == "M" ]]; then
