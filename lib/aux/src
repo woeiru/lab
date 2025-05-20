@@ -409,19 +409,19 @@ setup_interactive_mode() {
         if [ -z "$display_choice" ]; then
             # Display usage information about display options and sections
             print_usage2
-            read -p "${base_indent}Enter your choice (1-6), or 'm' for main menu: " display_choice
+            read -p "${base_indent}Enter your choice (1-6), or '.' for main menu: " display_choice
             
             # Check if user wants to return to main menu
-            if [[ "$display_choice" == "m" || "$display_choice" == "M" ]]; then
+            if [[ "$display_choice" == "." ]]; then
                 # Display full usage and restart
                 print_usage
-                read -p "${base_indent}Enter your choice (1-6), or 'm' for main menu: " display_choice
+                read -p "${base_indent}Enter your choice (1-6), or '.' for main menu: " display_choice
             fi
         fi
 
         # Validate user input
         if ! [[ "$display_choice" =~ ^[1-6]$ ]]; then
-            if [[ "$display_choice" == "m" || "$display_choice" == "M" ]]; then
+            if [[ "$display_choice" == "." ]]; then
                 # Display full usage and restart
                 print_usage
                 display_choice=""
@@ -464,10 +464,10 @@ setup_interactive_mode() {
         printf "%s┃ Confirm Execution of: %s\n" "$base_indent" "$section_arg"
         printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
         if [[ -n "${MENU_OPTIONS[$section_arg]}" ]]; then
-            read -p "$(printf "%s┃ Press Enter to execute section '%s', 'm' for main menu, or Ctrl+C to cancel: " "$base_indent" "$section_arg")" user_input
+            read -p "$(printf "%s┃ Press Enter to execute section '%s', '.' for main menu, or Ctrl+C to cancel: " "$base_indent" "$section_arg")" user_input
             
             # Check if user wants to return to main menu
-            if [[ "$user_input" == "m" || "$user_input" == "M" ]]; then
+            if [[ "$user_input" == "." ]]; then
                 printf "      Returning to main menu...\n"
                 setup_interactive_mode "" ""
                 return
@@ -531,10 +531,10 @@ prompt_for_section() {
     # Call the new display function
     _display_section_menu "$base_indent" "Select a section to focus on (or leave empty for all):" "${sorted_menu_options[*]}"
 
-    read -p "${base_indent}Enter section ID (or leave empty for all, 'm' for main menu): " section_arg_local
+    read -p "${base_indent}Enter section ID (or leave empty for all, '.' for main menu): " section_arg_local
 
     # Check if user wants to return to main menu
-    if [[ "$section_arg_local" == "m" || "$section_arg_local" == "M" ]]; then
+    if [[ "$section_arg_local" == "." ]]; then
         # Restart the interactive mode from the beginning
         printf "      Returning to main menu...\n"
         # Call setup_interactive_mode to restart. Pass empty display_choice and original section_arg
@@ -563,10 +563,10 @@ select_and_execute_sections() {
     # Call the new display function
     _display_section_menu "$base_indent" "Select sections to execute:" "${sorted_menu_options[*]}"
 
-    read -p "${base_indent}Enter section(s) separated by space (or 'm' for main menu): " sections
+    read -p "${base_indent}Enter section(s) separated by space (or '.' for main menu): " sections
     
     # Check if user wants to return to main menu
-    if [[ "$sections" == "m" || "$sections" == "M" ]]; then
+    if [[ "$sections" == "." ]]; then
         # Restart the interactive mode from the beginning
         printf "      Returning to main menu...\n"
         setup_interactive_mode "" ""
