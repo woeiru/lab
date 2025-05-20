@@ -42,6 +42,11 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     set -e
 fi
 
+# Define BOLD and RESET for consistent styling
+BOLD='\033[1m'
+RESET='\033[0m'
+base_indent="          " # Define base_indent for global use
+
 # Dynamically source all environment configuration files
 
 # Determine the absolute path to the directory containing this script.
@@ -52,20 +57,30 @@ _AUX_SRC_SCRIPT_DIR_TEMP="$(dirname "${BASH_SOURCE[0]}")"
 # Use realpath to resolve to an absolute, canonical path.
 _CFG_ENV_DIR_TEMP="$(realpath "${_AUX_SRC_SCRIPT_DIR_TEMP}/../../cfg/env")"
 
+printf "\n" >&2
+printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent" >&2
+printf "%s┃ ${BOLD}Environment Configuration Sourcing${RESET}\n" "$base_indent" >&2
+printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent" >&2
 if [[ -d "$_CFG_ENV_DIR_TEMP" ]]; then
-    printf "INFO: Sourcing environment configuration files from: %s\n" "$_CFG_ENV_DIR_TEMP" >&2
+    printf "%s┃ Source Directory: %s\n" "$base_indent" "$_CFG_ENV_DIR_TEMP" >&2
+    _any_cfg_file_processed_temp=false
     for _env_file_temp in "$_CFG_ENV_DIR_TEMP"/*; do
         if [[ -f "$_env_file_temp" ]] && [[ -r "$_env_file_temp" ]]; then
-            printf "  ├─ Loading: %s\n" "$(basename "$_env_file_temp")" >&2
+            _any_cfg_file_processed_temp=true
+            printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$_env_file_temp")" >&2
             # shellcheck source=/dev/null
-            source "$_env_file_temp" || printf "WARNING: Failed to source %s\n" "$(basename "$_env_file_temp")" >&2
+            source "$_env_file_temp" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source %s\n" "$base_indent" "$(basename "$_env_file_temp")" >&2
         fi
     done
+    if ! $_any_cfg_file_processed_temp; then
+        printf "%s┃ No sourceable files found in this directory.\n" "$base_indent" >&2
+    fi
 else
-    printf "WARNING: Environment configuration directory not found: %s\n" "$_CFG_ENV_DIR_TEMP" >&2
+    printf "%s┃ ${BOLD}WARNING:${RESET} Directory not found: %s\n" "$base_indent" "$_CFG_ENV_DIR_TEMP" >&2
 fi
+printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent" >&2
 # Clean up temporary variables
-unset _AUX_SRC_SCRIPT_DIR_TEMP _CFG_ENV_DIR_TEMP _env_file_temp
+unset _AUX_SRC_SCRIPT_DIR_TEMP _CFG_ENV_DIR_TEMP _env_file_temp _any_cfg_file_processed_temp
 
 # Dynamically source all function library files from lib/dep/
 
@@ -76,20 +91,30 @@ _AUX_SRC_SCRIPT_DIR_TEMP2="$(dirname "${BASH_SOURCE[0]}")"
 # Construct the path to the lib/dep directory: two levels up, then into lib/dep.
 _LIB_DEP_DIR_TEMP="$(realpath "${_AUX_SRC_SCRIPT_DIR_TEMP2}/../../lib/dep")"
 
+printf "\n" >&2
+printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent" >&2
+printf "%s┃ ${BOLD}Function Library Sourcing${RESET}\n" "$base_indent" >&2
+printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent" >&2
 if [[ -d "$_LIB_DEP_DIR_TEMP" ]]; then
-    printf "INFO: Sourcing function library files from: %s\n" "$_LIB_DEP_DIR_TEMP" >&2
+    printf "%s┃ Source Directory: %s\n" "$base_indent" "$_LIB_DEP_DIR_TEMP" >&2
+    _any_lib_file_processed_temp=false
     for _lib_file_temp in "$_LIB_DEP_DIR_TEMP"/*; do
         if [[ -f "$_lib_file_temp" ]] && [[ -r "$_lib_file_temp" ]]; then
-            printf "  ├─ Loading: %s\n" "$(basename "$_lib_file_temp")" >&2
+            _any_lib_file_processed_temp=true
+            printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$_lib_file_temp")" >&2
             # shellcheck source=/dev/null
-            source "$_lib_file_temp" || printf "WARNING: Failed to source library file %s\n" "$(basename "$_lib_file_temp")" >&2
+            source "$_lib_file_temp" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source library file %s\n" "$base_indent" "$(basename "$_lib_file_temp")" >&2
         fi
     done
+    if ! $_any_lib_file_processed_temp; then
+        printf "%s┃ No sourceable files found in this directory.\n" "$base_indent" >&2
+    fi
 else
-    printf "WARNING: Function library directory not found: %s\n" "$_LIB_DEP_DIR_TEMP" >&2
+    printf "%s┃ ${BOLD}WARNING:${RESET} Directory not found: %s\n" "$base_indent" "$_LIB_DEP_DIR_TEMP" >&2
 fi
+printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent" >&2
 # Clean up temporary variables for this block
-unset _AUX_SRC_SCRIPT_DIR_TEMP2 _LIB_DEP_DIR_TEMP _lib_file_temp
+unset _AUX_SRC_SCRIPT_DIR_TEMP2 _LIB_DEP_DIR_TEMP _lib_file_temp _any_lib_file_processed_temp
 
 # Dynamically source all other files from the same directory as this script.
 
@@ -98,27 +123,37 @@ _AUX_SRC_SELF_DIR_TEMP="$(dirname "${BASH_SOURCE[0]}")"
 # Get the basename of the current script to exclude it from sourcing.
 _AUX_SRC_SELF_BASENAME_TEMP="$(basename "${BASH_SOURCE[0]}")"
 
+printf "\n" >&2
+printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent" >&2
+printf "%s┃ ${BOLD}Local Auxiliary Script Sourcing${RESET}\n" "$base_indent" >&2
+printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent" >&2
 if [[ -d "$_AUX_SRC_SELF_DIR_TEMP" ]]; then
-    printf "INFO: Sourcing other files from script's own directory: %s\n" "$_AUX_SRC_SELF_DIR_TEMP" >&2
+    printf "%s┃ Source Directory: %s\n" "$base_indent" "$_AUX_SRC_SELF_DIR_TEMP" >&2
+    _any_self_file_processed_temp=false
     for _self_dir_file_temp in "$_AUX_SRC_SELF_DIR_TEMP"/*; do
         # Check if it's a regular file, readable, and not the script itself
         if [[ -f "$_self_dir_file_temp" ]] && [[ -r "$_self_dir_file_temp" ]] && [[ "$(basename "$_self_dir_file_temp")" != "$_AUX_SRC_SELF_BASENAME_TEMP" ]]; then
-            printf "  ├─ Loading: %s\n" "$(basename "$_self_dir_file_temp")" >&2
+            _any_self_file_processed_temp=true
+            printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$_self_dir_file_temp")" >&2
             # shellcheck source=/dev/null
-            source "$_self_dir_file_temp" || printf "WARNING: Failed to source file %s\n" "$(basename "$_self_dir_file_temp")" >&2
+            source "$_self_dir_file_temp" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source file %s\n" "$base_indent" "$(basename "$_self_dir_file_temp")" >&2
         fi
     done
+    if ! $_any_self_file_processed_temp; then
+        printf "%s┃ No other sourceable files found in this directory.\n" "$base_indent" >&2
+    fi
 else
-    printf "WARNING: Script's own directory not found: %s\n" "$_AUX_SRC_SELF_DIR_TEMP" >&2
+    printf "%s┃ ${BOLD}WARNING:${RESET} Script's own directory not found: %s\n" "$base_indent" "$_AUX_SRC_SELF_DIR_TEMP" >&2
 fi
+printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent" >&2
 # Clean up temporary variables for this block
-unset _AUX_SRC_SELF_DIR_TEMP _AUX_SRC_SELF_BASENAME_TEMP _self_dir_file_temp
+unset _AUX_SRC_SELF_DIR_TEMP _AUX_SRC_SELF_BASENAME_TEMP _self_dir_file_temp _any_self_file_processed_temp
 
 setup_source() {
     local dir="$1"
     local file="$2"
     local base="$3"
-    local base_indent="          "
+    # Commented out local base_indent as it's now global
     local BOLD='\033[1m'
     local RESET='\033[0m'
 
@@ -161,60 +196,8 @@ setup_source() {
     printf "\n"
 }
 
-# Helper function to get section IDs from the calling script
-get_section_ids() {
-    local script_path="$1"
-    local -n ids_array="$2"  # nameref to array for storing results
-
-    # Clear the array
-    ids_array=()
-
-    # Read the script and find all *_xall functions
-    while IFS= read -r line; do
-        if [[ $line =~ ^([a-zA-Z_]+)_xall\(\) ]]; then
-            ids_array+=("${BASH_REMATCH[1]}")
-        fi
-    done < "$script_path"
-
-    # Sort the array
-    IFS=$'\n' ids_array=($(sort <<<"${ids_array[*]}"))
-    unset IFS
-
-    printf "      Found sections: %s\n" "${ids_array[*]}"
-}
-
-# Helper function to get section descriptions
-get_section_description() {
-    local script_path="$1"
-    local section_id="$2"
-
-    # Look for the comment line before the function definition
-    local description
-    description=$(awk -v fname="${section_id}_xall" '
-        /^#/ {
-            desc = substr($0, 3)  # Remove "# " prefix
-            next
-        }
-        $0 ~ "^"fname"\\(\\)" {
-            if (desc != "") {
-                print desc
-            } else {
-                print "Section " fname
-            }
-            exit
-        }
-    ' "$script_path")
-
-    # If no description found or awk failed, provide a default
-    if [[ -z "$description" ]]; then
-        description="Section ${section_id}"
-    fi
-
-    echo "$description"
-}
-
 print_usage1() {
-    local base_indent="          "
+    # Commented out local base_indent as it's now global
     # Get directory name and base name dynamically
     local dir_name=$(dirname "$0")
     dir_name=$(basename "$dir_name")  # Get just the last directory name
@@ -248,7 +231,7 @@ print_usage1() {
 }
 
 print_usage2() {
-    local base_indent="          "
+    # Commented out local base_indent as it's now global
     local BOLD='\033[1m'
     local RESET='\033[0m'
     
@@ -290,7 +273,7 @@ print_usage() {
 }
 
 setup_main() {
-    local base_indent="          "
+    # Commented out local base_indent as it's now global
     local script_name
     script_name=$(basename "$0") # For usage messages
 
@@ -400,7 +383,7 @@ setup_interactive_mode() {
     local display_choice="$1"
     local section_arg="$2" # New parameter for -s <section_name>
 
-    local base_indent="          "
+    # Commented out local base_indent as it's now global
 
     # Implement menu loop to allow returning to beginning
     local menu_loop=true
@@ -468,7 +451,7 @@ setup_interactive_mode() {
             
             # Check if user wants to return to main menu
             if [[ "$user_input" == "." ]]; then
-                printf "      Returning to main menu...\n"
+                printf "        Returning to main menu...\n"
                 setup_interactive_mode "" ""
                 return
             fi
@@ -488,25 +471,24 @@ setup_interactive_mode() {
     fi
 }
 
-# New function to display the section menu
 _display_section_menu() {
-    local base_indent="$1"
+    local current_base_indent="$1" # Renamed to avoid conflict with global
     local menu_title="$2"
     local sorted_menu_options_str="$3"
     local BOLD='\033[1m'
     local RESET='\033[0m'
 
     printf "\n"
-    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
-    printf "%s┃ ${BOLD}%s${RESET}\n" "$base_indent" "$menu_title"
-    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
-    printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$base_indent" "$sorted_menu_options_str"
-    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
+    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$current_base_indent"
+    printf "%s┃ ${BOLD}%s${RESET}\n" "$current_base_indent" "$menu_title"
+    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$current_base_indent"
+    printf "%s┃ Available sections: ${BOLD}%s${RESET}\n" "$current_base_indent" "$sorted_menu_options_str"
+    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$current_base_indent"
     printf "\n"
 }
 
 prompt_for_section() {
-    local base_indent="$1"
+    # Commented out local base_indent as it's now global
     local parent_section_arg="$2" # Pass the original section_arg from the caller
 
     # Make sure MENU_OPTIONS is defined
@@ -536,7 +518,7 @@ prompt_for_section() {
     # Check if user wants to return to main menu
     if [[ "$section_arg_local" == "." ]]; then
         # Restart the interactive mode from the beginning
-        printf "      Returning to main menu...\n"
+        printf "            Returning to main menu...\n"
         # Call setup_interactive_mode to restart. Pass empty display_choice and original section_arg
         setup_interactive_mode "" "$parent_section_arg"
         return 1 # Indicate that a return to main menu was handled
@@ -553,7 +535,7 @@ prompt_for_section() {
 
 select_and_execute_sections() {
     printf "    Entering select_and_execute_sections\n"
-    local base_indent="          "
+    # Commented out local base_indent as it's now global
 
     # Sort the menu options alphabetically
     local sorted_menu_options
@@ -670,7 +652,7 @@ setup_display_menu() {
     local file="$2"
     local display_choice="$3"
     local section="$4"
-    local base_indent="          "
+    # Commented out local base_indent as it's now global
     local content_indent="            "
 
     # ANSI escape codes for bold text and reset
