@@ -357,7 +357,6 @@ setup_main() {
             [ -n "$display_choice_arg" ] && printf "%s┃ Display Choice: %s\n" "$base_indent" "$display_choice_arg"
             [ -n "$section_arg" ] && printf "%s┃ Section: %s\n" "$base_indent" "$section_arg"
             printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
-            printf "\n"
 
             setup_interactive_mode "$display_choice_arg" "$section_arg"
             ;;
