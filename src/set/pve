@@ -93,7 +93,7 @@ p_xall() {
     usr-cuc
 }
 
-# Creates multiple Proxmox containers using configuration parameters from site.conf
+# Creates multiple Proxmox containers using configuration parameters from cfg/env/site
 q_xall() {
     local i=1
     while true; do
