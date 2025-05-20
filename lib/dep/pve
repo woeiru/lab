@@ -10,10 +10,10 @@
 #   pve-clu : Updates the PVE appliance manager (pveam) container template list.
 #   pve-cdo : Downloads a specified container template.
 #   pve-cbm : Configures a bind mount for a Proxmox container.
-#   pve-ctc : Sets up different containers specified in pve.conf.
+#   pve-ctc : Sets up different containers specified in cfg/env/site..
 #   pve-cto : Manages multiple Proxmox containers (start, stop, enable, disable).
 #   pve-vmd : Deploys or modifies the VM shutdown hook for GPU reattachment.
-#   pve-vmc : Sets up different virtual machines specified in pve.conf.
+#   pve-vmc : Sets up different virtual machines specified in cfg/env/site.
 #   pve-vms : Starts a VM on the current node or migrates it, optionally shutting down the source.
 #   pve-vmg : Migrates a VM from a remote node, handling PCIe passthrough.
 #
@@ -160,7 +160,7 @@ pve-cbm() {
     aux-nos "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
 
-# Setting up different containers specified in pve.conf
+# Setting up different containers specified in cfg/env/site.
 # container create
 # <passed global variables>
 pve-ctc() {
@@ -381,7 +381,7 @@ EOL
     aux-nos "$function_name" "Hook $operation completed for VM $vm_id"
 }
 
-# Setting up different virtual machines specified in pve.conf
+# Setting up different virtual machines specified in cfg/env/site.
 # virtual machine create
 # <passed global variables>
 pve-vmc() {
