@@ -650,41 +650,49 @@ sys-loi() {
 
 # Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
 # ssh custom aliases
-# <usershortcut> <servershortcut: single or csv or all or array> [command]
+# <usershortcut> <servershortcut> <ssh_users_array_name> <all_ip_arrays_array_name> <array_aliases_array_name> [command]
 sys-sca() {
     echo "Debug: Number of arguments: $#"
     echo "Debug: All arguments: $*"
 
-    if [ $# -lt 2 ]; then
+    if [ $# -lt 5 ]; then
         aux-use
         return 1
     fi
 
     local user_shortcut=$1
     local server_shortcuts=$2
-    shift 2
+    local ssh_users_array_name=$3
+    local all_ip_arrays_name=$4
+    local array_aliases_name=$5
+    shift 5
     local command="$*"
+
+    # Declare namerefs to the passed associative array names
+    declare -n _ssh_users_ref="$ssh_users_array_name"
+    declare -n _all_ip_arrays_ref="$all_ip_arrays_name"
+    declare -n _array_aliases_ref="$array_aliases_name"
 
     echo "Debug: User shortcut: $user_shortcut"
 
     # Resolve user name from shortcut
-    local user_name="${SSH_USERS[$user_shortcut]}"
+    local user_name="${_ssh_users_ref[$user_shortcut]}"
     echo "Debug: Resolved user name: $user_name"
 
     if [[ -z $user_name ]]; then
         echo "Error: Unknown user shortcut '$user_shortcut'"
-	echo "Debug: SSH_USERS array contents: ${SSH_USERS[@]}"
-  	echo "Debug: SSH_USERS keys: ${!SSH_USERS[@]}"
+        echo "Debug: SSH_USERS (passed name: $ssh_users_array_name) array contents: ${_ssh_users_ref[@]}"
+        echo "Debug: SSH_USERS (passed name: $ssh_users_array_name) keys: ${!_ssh_users_ref[@]}"
         return 1
     fi
 
     echo "Debug: Server shortcuts (raw): $server_shortcuts"
-    echo "Debug: ALL_IP_ARRAYS: ${ALL_IP_ARRAYS[*]}"
+    echo "Debug: ALL_IP_ARRAYS (passed name: $all_ip_arrays_name): ${_all_ip_arrays_ref[*]}"
 
     # Function to handle an array of servers
     handle_server_array() {
         local array_name=$1
-        declare -n server_array=$array_name
+        declare -n server_array=$array_name # This correctly refers to an individual IP array by its name
         echo "Debug: Processing array: $array_name"
         echo "Debug: Array contents: ${!server_array[*]}"
         for server_shortcut in "${!server_array[@]}"; do
@@ -707,8 +715,8 @@ sys-sca() {
         local normalized=$input
 
         # Check if input matches any array name or alias (case-insensitive)
-        for array in "${!ARRAY_ALIASES[@]}"; do
-            local aliases=(${ARRAY_ALIASES[$array]})
+        for array in "${!_array_aliases_ref[@]}"; do
+            local aliases=(${_array_aliases_ref[$array]})
             for alias in "${aliases[@]}"; do
                 if [[ ${input,,} == ${alias,,} ]]; then
                     normalized=$array
@@ -726,19 +734,19 @@ sys-sca() {
     find_server_ip() {
         local shortcut=$1
         local ip=""
-        local array_name=""
-        for array in "${ALL_IP_ARRAYS[@]}"; do
-            echo "Debug: Searching for '$shortcut' in '$array'" >&2
-            declare -n current_array=$array
-            echo "Debug: $array contents: ${!current_array[*]}" >&2
-            if [[ -n ${current_array[$shortcut]} ]]; then
-                ip=${current_array[$shortcut]}
-                array_name=$array
-                echo "Debug: Found '$shortcut' in '$array'" >&2
+        local array_name_found="" # Renamed to avoid conflict with outer scope 'array_name' if any
+        for current_array_name in "${_all_ip_arrays_ref[@]}"; do # Iterate over names in _all_ip_arrays_ref
+            echo "Debug: Searching for '$shortcut' in '$current_array_name'" >&2
+            declare -n current_array_ref=$current_array_name # Nameref to the actual IP array
+            echo "Debug: $current_array_name contents: ${!current_array_ref[*]}" >&2
+            if [[ -n ${current_array_ref[$shortcut]} ]]; then
+                ip=${current_array_ref[$shortcut]}
+                array_name_found=$current_array_name
+                echo "Debug: Found '$shortcut' in '$current_array_name'" >&2
                 break
             fi
         done
-        echo "Debug: Found IP for $shortcut: $ip (from $array_name)" >&2
+        echo "Debug: Found IP for $shortcut: $ip (from $array_name_found)" >&2
         echo "$ip"
     }
 
@@ -750,9 +758,9 @@ sys-sca() {
             echo "Debug: '$input' is 'all'" >&2
             return 0
         fi
-        for array in "${ALL_IP_ARRAYS[@]}"; do
-            if [[ $input == $array ]]; then
-                echo "Debug: '$input' matches array '$array'" >&2
+        for array_iter_name in "${_all_ip_arrays_ref[@]}"; do # Iterate over names in _all_ip_arrays_ref
+            if [[ $input == $array_iter_name ]]; then
+                echo "Debug: '$input' matches array '$array_iter_name'" >&2
                 return 0
             fi
         done
@@ -769,8 +777,8 @@ sys-sca() {
         echo "Debug: Processing as array name"
         if [[ $normalized_shortcuts == "all" ]]; then
             echo "Debug: Processing all servers"
-            for array in "${ALL_IP_ARRAYS[@]}"; do
-                handle_server_array $array
+            for array_to_handle in "${_all_ip_arrays_ref[@]}"; do # Iterate over names in _all_ip_arrays_ref
+                handle_server_array $array_to_handle
             done
         else
             echo "Debug: Processing specific IP array: $normalized_shortcuts"
@@ -783,10 +791,10 @@ sys-sca() {
             echo "Error: No command provided for multiple servers"
             return 1
         fi
-        for server_shortcut in "${servers[@]}"; do
-            local server_ip=$(find_server_ip "$server_shortcut")
+        for server_shortcut_iter in "${servers[@]}"; do
+            local server_ip=$(find_server_ip "$server_shortcut_iter")
             if [[ -z $server_ip ]]; then
-                echo "Error: Unknown server shortcut '$server_shortcut'"
+                echo "Error: Unknown server shortcut '$server_shortcut_iter'"
                 return 1
             fi
             local ssh_command="ssh ${user_name}@${server_ip}"
