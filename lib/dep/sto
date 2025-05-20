@@ -19,6 +19,7 @@
 #   sto-bfs-snd : Recursively deletes a Btrfs parent subvolume and its nested children.
 #   sto-zfs-dim : Creates or uses an existing ZFS dataset, sets its mountpoint, and ensures it is mounted.
 #   sto-zfs-dbs : Creates and sends ZFS snapshots from a source to a destination pool (full/incremental).
+#   sto-zfs-cpo : Creates a ZFS pool on a specified drive in a Proxmox VE environment.
 #
 # ============================================================================
 
@@ -721,6 +722,54 @@ sto-bfs-snd() {
     echo "Subvolume deletion process completed successfully"
     return 0
 }
+
+
+# Creates a ZFS pool on a specified drive in a Proxmox VE environment
+# zfs create pool
+# <pool_name> <drive_name_or_path>
+sto-zfs-cpo() {
+    local function_name="${FUNCNAME[0]}"
+    local pool_name="$1"
+    local drive_name="$2"
+
+    if [ $# -ne 2 ]; then
+        echo "Usage: $function_name <pool_name> <drive_name_or_path>"
+        aux-use || true # Call aux-use if it exists, otherwise ignore error
+        return 1
+    fi
+
+    # Check if the pool already exists
+    if zpool list "$pool_name" &>/dev/null; then
+        echo "Error: ZFS pool '$pool_name' already exists."
+        return 1
+    fi
+
+    # Check if the drive exists (basic check)
+    if [ ! -b "$drive_name" ] && [ ! -e "$drive_name" ]; then
+        echo "Error: Drive '$drive_name' not found or is not a block device."
+        echo "Please provide a valid drive path (e.g., /dev/sdx or /dev/disk/by-id/your-disk-id)."
+        return 1
+    fi
+
+    echo "Attempting to create ZFS pool '$pool_name' on drive '$drive_name'."
+    read -p "Are you sure you want to proceed? This will erase data on '$drive_name'. [y/N]: " confirmation
+
+    if [[ "$confirmation" =~ ^[Yy]$ ]]; then
+        echo "Creating ZFS pool '$pool_name' on '$drive_name'..."
+        if sudo zpool create "$pool_name" "$drive_name"; then
+            echo "ZFS pool '$pool_name' created successfully on '$drive_name'."
+            sudo zpool status "$pool_name"
+            aux-nos "$function_name" "executed ( pool: $pool_name, drive: $drive_name )" || true # Call aux-nos if it exists
+        else
+            echo "Error: Failed to create ZFS pool '$pool_name'."
+            return 1
+        fi
+    else
+        echo "ZFS pool creation aborted by user."
+        return 1
+    fi
+}
+
 
 # Creates a new ZFS dataset or uses an existing one, sets its mountpoint, and ensures it's mounted at the specified path
 # zfs directory mount
