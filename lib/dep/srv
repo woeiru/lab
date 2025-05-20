@@ -9,7 +9,7 @@
 #   nfs-apl : Applies NFS configuration (creates folder, updates /etc/exports, restarts server).
 #   nfs-mon : Monitors and displays various aspects of the NFS server.
 #   smb-set : Sets up a Samba share with prompted or provided configuration details.
-#   smb-apl : Applies Samba configuration (creates folder, updates smb.conf, restarts server, sets passwords).
+#   smb-apl : Applies Samba configuration (creates folder, updates cfg/env/site, restarts server, sets passwords).
 #   smb-mon : Monitors and displays various aspects of the SMB server.
 #
 # ============================================================================
@@ -199,7 +199,7 @@ smb-set() {
     aux-nos "$function_name" "Samba setup complete"
 }
 
-# Applies Samba configuration by creating the shared folder if needed, updating smb.conf with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares
+# Applies Samba configuration by creating the shared folder if needed, updating cfg/env/site. with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares
 # samba apply config
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
 smb-apl() {
@@ -223,11 +223,11 @@ smb-apl() {
         echo "Shared folder created: $shared_folder"
     fi
 
-    # Check if the Samba configuration block already exists in smb.conf
+    # Check if the Samba configuration block already exists in cfg/env/site.
     if grep -qF "[$smb_header]" /etc/samba/smb.conf; then
-        echo "Samba configuration block already exists in smb.conf. Skipping addition."
+        echo "Samba configuration block already exists in cfg/env/site. Skipping addition."
     else
-        # Append Samba configuration lines to smb.conf
+        # Append Samba configuration lines to cfg/env/site.
         {
             echo "[$smb_header]"
             echo "    path = $shared_folder"
@@ -239,7 +239,7 @@ smb-apl() {
             echo "    force user = $force_user"
             echo "    force group = $force_group"
         } | tee -a /etc/samba/smb.conf > /dev/null
-        echo "Samba configuration block added to smb.conf."
+        echo "Samba configuration block added to cfg/env/site."
     fi
 
     # Restart Samba
