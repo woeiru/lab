@@ -11,7 +11,7 @@ GIT_USERNAME="woeiru"
 GIT_USERMAIL="169383590+woeiru@users.noreply.github.com"
 
 # packages ( ipa
-PACKAGES_ALL=(vim tree ansible)
+PACKAGES_DEV=(vim tree ansible)
 
 # ssh keys ( usk, aak
 #
@@ -294,10 +294,6 @@ VM_1_CPU="host"
 VM_1_MEMORY=8192
 VM_1_BALLOON=1
 VM_1_NET="model=virtio,bridge=vmbr0,firewall=1"
-
-#
-# SRV
-#
 
 # NFS
 #
