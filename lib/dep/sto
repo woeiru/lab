@@ -8,17 +8,17 @@
 #   sto-fea : Adds auto-mount entries for devices to /etc/fstab using blkid.
 #   sto-fec : Adds custom entries to /etc/fstab using device UUIDs.
 #   sto-nfs : Mounts an NFS share interactively or with provided arguments.
-#   bfs-tra : Transforms a folder into a Btrfs subvolume, optionally setting attributes.
-#   bfs-ra1 : Creates a Btrfs RAID 1 filesystem on two devices, mounts it, and optionally updates fstab.
-#   bfs-csf : Checks and lists subvolume status of folders in a specified path.
-#   bfs-shc : Creates a new Snapper snapshot for a specified or auto-selected configuration.
-#   bfs-shd : Deletes a specified Snapper snapshot from a given or auto-selected configuration.
-#   bfs-shl : Lists Snapper snapshots for a specified or auto-selected configuration.
-#   bfs-sfr : Resyncs a Btrfs snapshot subvolume to a flat folder using rsync.
-#   bfs-hub : Creates/manages Btrfs snapshots for user home directory backups.
-#   bfs-snd : Recursively deletes a Btrfs parent subvolume and its nested children.
-#   zfs-dim : Creates or uses an existing ZFS dataset, sets its mountpoint, and ensures it is mounted.
-#   zfs-dbs : Creates and sends ZFS snapshots from a source to a destination pool (full/incremental).
+#   sto-bfs-tra : Transforms a folder into a Btrfs subvolume, optionally setting attributes.
+#   sto-bfs-ra1 : Creates a Btrfs RAID 1 filesystem on two devices, mounts it, and optionally updates fstab.
+#   sto-bfs-csf : Checks and lists subvolume status of folders in a specified path.
+#   sto-bfs-shc : Creates a new Snapper snapshot for a specified or auto-selected configuration.
+#   sto-bfs-shd : Deletes a specified Snapper snapshot from a given or auto-selected configuration.
+#   sto-bfs-shl : Lists Snapper snapshots for a specified or auto-selected configuration.
+#   sto-bfs-sfr : Resyncs a Btrfs snapshot subvolume to a flat folder using rsync.
+#   sto-bfs-hub : Creates/manages Btrfs snapshots for user home directory backups.
+#   sto-bfs-snd : Recursively deletes a Btrfs parent subvolume and its nested children.
+#   sto-zfs-dim : Creates or uses an existing ZFS dataset, sets its mountpoint, and ensures it is mounted.
+#   sto-zfs-dbs : Creates and sends ZFS snapshots from a source to a destination pool (full/incremental).
 #
 # ============================================================================
 
@@ -178,9 +178,9 @@ sto-nfs() {
 # Transforms a folder into a Btrfs subvolume, optionally setting attributes (e.g., disabling COW). Handles multiple folders, preserving content and ownership.
 # transforming folder subvolume
 # <folder_name> <user_name> <C>
-bfs-tra() {
+sto-bfs-tra() {
     if [ $# -lt 3 ]; then
-        echo "Usage: bfs-tra <attribute_flag> <user_name> <folder_name> [<additional_folders>...]"
+        echo "Usage: sto-bfs-tra <attribute_flag> <user_name> <folder_name> [<additional_folders>...]"
         echo "Attribute flags: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
         return 1
     fi
@@ -230,7 +230,7 @@ bfs-tra() {
 # Creates a Btrfs RAID 1 filesystem on two specified devices, mounts it, and optionally adds an entry to /etc/fstab
 # btrfs raid 1
 # <device1> <device2> <mount_point>
-bfs-ra1() {
+sto-bfs-ra1() {
     local function_name="${FUNCNAME[0]}"
     local device1="$1"
     local device2="$2"
@@ -272,7 +272,7 @@ bfs-ra1() {
 # Checks and lists subvolume status of folders in a specified path. Supports filtering by folder type (regular, hidden, or both) and subvolume status.
 # check subvolume folder
 # <path> <folder_type: 1=regular, 2=hidden, 3=both> <yes=show subvolumes, no=show non-subvolumes, all=show all>
-bfs-csf() {
+sto-bfs-csf() {
     local path="$1"
     local folder_type="$2"
     local filter="$3"
@@ -328,7 +328,7 @@ bfs-csf() {
 # Creates a new Snapper snapshot for the specified configuration or automatically selects a 'home_*' configuration if multiple exist
 # snapper home create
 # <configname>
-bfs-shc() {
+sto-bfs-shc() {
     local configname=$1
 
     if [ -z "$configname" ]; then
@@ -369,12 +369,12 @@ bfs-shc() {
 # Deletes a specified Snapper snapshot from a given configuration or automatically selects a 'home_*' configuration if multiple exist
 # snapper home delete
 # <configname> <snapshot>
-bfs-shd() {
+sto-bfs-shd() {
     local configname
     local snapshot
 
     if [ $# -eq 0 ]; then
-        echo "Usage: bfs-shd <snapshot> [<configname>]"
+        echo "Usage: sto-bfs-shd <snapshot> [<configname>]"
         return 1
     elif [ $# -eq 1 ]; then
         snapshot=$1
@@ -417,7 +417,7 @@ bfs-shd() {
 # Lists Snapper snapshots for the specified configuration or automatically selects a 'home_*' configuration if multiple exist
 # snapper home list
 # <configname>
-bfs-shl() {
+sto-bfs-shl() {
     local configname=$1
 
     if [ -z "$configname" ]; then
@@ -459,7 +459,7 @@ bfs-shl() {
 # Resyncs a Btrfs snapshot subvolume to a flat folder using rsync, excluding specific directories (.snapshots and .ssh) and preserving attributes
 # snapshot flat resync
 # <snapshot subvolume> <target folder>
-bfs-sfr() {
+sto-bfs-sfr() {
     local snapshot_sub="$1"
     local target_folder="$2"
 
@@ -484,7 +484,7 @@ bfs-sfr() {
 # Creates a backup subvolume for a user's home directory on a backup drive, then sends and receives Btrfs snapshots incrementally, managing full and incremental backups
 # home user backups
 # <user> <snapshots: "all">
-bfs-hub() {
+sto-bfs-hub() {
     local username="$1"
     local snapshot_option="$2"
     local source_sub="/home/$username"
@@ -627,7 +627,7 @@ bfs-hub() {
 # Recursively deletes a Btrfs parent subvolume and all its nested child subvolumes, with options for interactive mode and forced deletion
 # subvolume nested delete
 # <parent subvolume>
-bfs-snd() {
+sto-bfs-snd() {
     local target_path=""
     local interactive=false
     local force=false
@@ -645,7 +645,7 @@ bfs-snd() {
 
     if [ $# -eq 0 ]; then
         echo "Error: Target path not provided" >&2
-        echo "Usage: bfs-snd [-i|-f] <target_path>" >&2
+        echo "Usage: sto-bfs-snd [-i|-f] <target_path>" >&2
         return 1
     fi
 
@@ -725,7 +725,7 @@ bfs-snd() {
 # Creates a new ZFS dataset or uses an existing one, sets its mountpoint, and ensures it's mounted at the specified path
 # zfs directory mount
 # <pool_name> <dataset_name> <mountpoint_path>
-zfs-dim() {
+sto-zfs-dim() {
     local function_name="${FUNCNAME[0]}"
     local pool_name="$1"
     local dataset_name="$2"
@@ -772,7 +772,7 @@ zfs-dim() {
 # Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency
 # zfs dataset backup
 # <sourcepoolname> <destinationpoolname> <datasetname>
-zfs-dbs() {
+sto-zfs-dbs() {
     local sourcepoolname="$1"
     local destinationpoolname="$2"
     local datasetname="$3"

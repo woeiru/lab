@@ -68,7 +68,7 @@ reboot
 
 ### 10 - current
 m.sub.sda.bak
-bfs-sfr
+sto-bfs-sfr
 
 ### sysstat troubleshoot
 ls -ld /var/lib/pcp/config/derived
@@ -77,8 +77,17 @@ sudo chmod 755 /var/lib/pcp/config/derived
 sudo chown root: /var/lib/pcp/config/derived
 
 ### in case of snapshot flat restore
-bfs-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
+sto-bfs-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
 
+### Resync User Home Snapshot to Live Directory
+
+Use `sto-bfs-sfr` to resync a Btrfs snapshot of a user's home directory to their live home directory. This is useful for rolling back changes or restoring data from a snapshot.
+
+**Command:**
+
+```bash
+sto-bfs-sfr /mnt/bak/home_<username>/<sNr>/snapshot /home/<username>
+```
 
 ### fix user alternative instead of the sed command for the pam_snapper config
     groupadd -sudo chmod 755 /var/lib/pcp/config/derived

@@ -63,7 +63,7 @@ d_xall() {
 
 # Creates a RAID 1 Btrfs filesystem across two devices with the specified mount point
 i_xall() {
-    bfs-ra1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
+    sto-bfs-ra1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
 }
 
 # Creates and configures multiple ZFS datasets with their respective mount points based on configuration
@@ -75,7 +75,7 @@ j_xall() {
         mountpoint_var="ZFS_MOUNTPOINT_NAME$i"
         
         if [ -n "${!pool_var}" ] && [ -n "${!dataset_var}" ] && [ -n "${!mountpoint_var}" ]; then
-            zfs-dim "${!pool_var}" "${!dataset_var}" "${!mountpoint_var}"
+            sto-zfs-dim "${!pool_var}" "${!dataset_var}" "${!mountpoint_var}"
         else
             break
         fi
