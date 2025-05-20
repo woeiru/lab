@@ -5,8 +5,6 @@
 #           removes subscription notice from Proxmox web interface.
 #   b_xall: Installs required system packages including corosync-qdevice 
 #           for cluster management.
-#   c_xall: Uploads public SSH key from USB device and adds it to the 
-#           authorized keys for secure remote access.
 #   d_xall: Generates and distributes SSH keys for secure communication 
 #           between client and server nodes.
 #   i_xall: Creates a RAID 1 Btrfs filesystem across two devices with 
@@ -36,30 +34,13 @@ source "$(realpath "$DIR_SH/../../lib/aux/src")"
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
-MENU_OPTIONS[c]="c_xall"
 MENU_OPTIONS[d]="d_xall"
-MENU_OPTIONS[e]="e_xall"
-MENU_OPTIONS[f]="f_xall"
-MENU_OPTIONS[g]="g_xall"
-MENU_OPTIONS[h]="h_xall"
 MENU_OPTIONS[i]="i_xall"
 MENU_OPTIONS[j]="j_xall"
-MENU_OPTIONS[k]="k_xall"
-MENU_OPTIONS[l]="l_xall"
-MENU_OPTIONS[m]="m_xall"
-MENU_OPTIONS[n]="n_xall"
-MENU_OPTIONS[o]="o_xall"
 MENU_OPTIONS[p]="p_xall"
 MENU_OPTIONS[q]="q_xall"
 MENU_OPTIONS[r]="r_xall"
 MENU_OPTIONS[s]="s_xall"
-MENU_OPTIONS[t]="t_xall"
-MENU_OPTIONS[u]="u_xall"
-MENU_OPTIONS[v]="v_xall"
-MENU_OPTIONS[w]="w_xall"
-MENU_OPTIONS[x]="x_xall"
-MENU_OPTIONS[y]="y_xall"
-MENU_OPTIONS[z]="z_xall"
 
 # Disables enterprise repository, adds community repository, and removes subscription notice from Proxmox web interface
 a_xall() {
