@@ -36,6 +36,9 @@ The project follows a domain-oriented architecture with these main directories:
     -   `utl/ssh`: SSH-related utility functions.
     -   `util/`: General utilities (`err` for error handling, `lo1` for logging, `tme` for timing).
     -   `dep/`: Source files for deployment modules (`gpu`, `net`, `pbs`, `pve`, `srv`, `sto`, `sys`, `usr`).
+
+    A key convention for the `lib/` directory is that its scripts and functions should be self-contained and stateless. They should avoid direct access to global variables or environment-specific configurations. Instead, any required external data, state, or configuration parameters must be passed explicitly as arguments to the functions. This approach enhances modularity, reusability, and testability. Scripts in directories like `src/set/` or `bin/` are then responsible for sourcing necessary configurations (e.g., from `cfg/`) and passing them to the library functions.
+
 -   `pro/`: Special projects and standalone utilities.
     -   `acpi/`: Scripts and services for ACPI event handling and power management.
     -   `replace/`: A utility for replacing text in files based on a JSON configuration.
