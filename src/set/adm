@@ -2,7 +2,8 @@
 # ----------------------------------------------------------------------
 # Functions:
 #   a_xall: Uploads private SSH key from USB device to system for secure authentication.
-#   c_xall: Uploads private SSH key from USB device to system for secure authentication.
+#   b_xall: Uploads public SSH key from USB device and adds it to the authorized keys for secure remote access.
+#   c_xall: Mounts a predefined NFS share using global configuration variables.
 # ----------------------------------------------------------------------
 
 declare -g -a PACKAGES_ALL
@@ -22,6 +23,7 @@ setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
+MENU_OPTIONS[c]="c_xall"
 
 # Uploads private SSH key from USB device to system for secure authentication
 a_xall() {
@@ -44,6 +46,16 @@ b_xall() {
 
     sys-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
+
+# Mounts a predefined NFS share using global configuration variables
+c_xall() {
+    sto-nfs \
+        "$STO_NFS_SERVER_IP" \
+        "$STO_NFS_SHARED_FOLDER" \
+        "$STO_NFS_MOUNT_POINT" \
+        "$STO_NFS_MOUNT_OPTIONS"
+}
+
 # Handle script execution
 if [ $# -eq 0 ]; then
     print_usage
