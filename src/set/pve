@@ -14,11 +14,11 @@
 #   p_xall: Updates container template list, downloads specified template, 
 #           and updates container configuration.
 #   q_xall: Creates multiple Proxmox containers using configuration 
-#           parameters from site.conf.
+#           parameters from cfg/env/site.
 #   r_xall: Configures bind mounts for all defined containers to link 
 #           host and container directories.
 #   s_xall: Creates multiple virtual machines using the specifications 
-#           defined in site.conf.
+#           defined in cfg/env/site.
 # ----------------------------------------------------------------------
 
 # Define script location
@@ -167,7 +167,7 @@ r_xall() {
     done
 }
 
-# Creates multiple virtual machines using the specifications defined in site.conf
+# Creates multiple virtual machines using the specifications defined in cfg/env/site
 s_xall() {
     local i=1
     while true; do
