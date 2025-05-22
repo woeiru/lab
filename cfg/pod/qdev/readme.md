@@ -86,14 +86,12 @@ su
 service ssh start
 
 <!--  If sshd fails to start due to /run/sshd permissions, run as root:
+
 # mkdir -p /run/sshd
 # chown root:root /run/sshd
 # chmod 0755 /run/sshd
--->
 
-service ssh start
-
-<!-- Once sshd is running, you can type 'exit' to leave the su session, 
+Once sshd is running, you can type 'exit' to leave the su session, 
 and 'exit' again to leave the container's bash shell -->
 
 ## On Nodes 
