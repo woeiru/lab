@@ -184,11 +184,24 @@ gpu-ptd() {
     local function_name="${FUNCNAME[0]}"
 
     echo "Current GPU driver and IOMMU group:"
-    lspci -nnk | grep -A3 "VGA compatible controller"
+    LSPCI_NNK_TEMP_OUTPUT_1="/tmp/lspci_nnk_output_ptd1.txt"
+    if lspci -nnk > "$LSPCI_NNK_TEMP_OUTPUT_1"; then
+        grep -A3 "VGA compatible controller" "$LSPCI_NNK_TEMP_OUTPUT_1"
+    else
+        echo "Error: lspci -nnk command failed (first call)."
+    fi
+    [ -f "$LSPCI_NNK_TEMP_OUTPUT_1" ] && rm -f "$LSPCI_NNK_TEMP_OUTPUT_1"
+
     for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
         echo "IOMMU Group ${iommu_group##*/}:"
         for device in $(ls -1 "$iommu_group"/devices/); do
-            echo -e "\t$(lspci -nns "$device")"
+            LSPCI_NNS_TEMP_OUTPUT_1="/tmp/lspci_nns_output_ptd1.txt"
+            if lspci -nns "$device" > "$LSPCI_NNS_TEMP_OUTPUT_1"; then
+                echo -e "\t$(cat "$LSPCI_NNS_TEMP_OUTPUT_1")"
+            else
+                echo -e "\tError: lspci -nns for $device failed."
+            fi
+            [ -f "$LSPCI_NNS_TEMP_OUTPUT_1" ] && rm -f "$LSPCI_NNS_TEMP_OUTPUT_1"
         done
     done
 
@@ -211,10 +224,26 @@ gpu-ptd() {
     fi
 
     # Get GPU PCI IDs (including both NVIDIA and AMD)
-    local gpu_ids=$(lspci -nn | grep -iE "VGA compatible controller|3D controller" | awk '{print $1}')
+    local gpu_ids="" # Initialize to empty
+    LSPCI_NN_GPU_IDS_TEMP="/tmp/lspci_nn_gpu_ids_ptd.txt"
+    if lspci -nn > "$LSPCI_NN_GPU_IDS_TEMP"; then
+        # Attempt to populate gpu_ids, allowing the pipe between grep and awk for now
+        gpu_ids_output=$(grep -iE "VGA compatible controller|3D controller" "$LSPCI_NN_GPU_IDS_TEMP" | awk '{print $1}')
+        # Check if grep | awk succeeded (exit status 0) and produced non-empty output
+        if [ $? -eq 0 ] && [ -n "$gpu_ids_output" ]; then
+            gpu_ids="$gpu_ids_output"
+        else
+            echo "Warning: Could not extract GPU IDs from lspci output (grep/awk step in gpu-ptd)."
+            # gpu_ids remains empty
+        fi
+    else
+        echo "Error: lspci -nn command failed (for gpu_ids extraction in gpu-ptd)."
+        # gpu_ids remains empty
+    fi
+    [ -f "$LSPCI_NN_GPU_IDS_TEMP" ] && rm -f "$LSPCI_NN_GPU_IDS_TEMP"
 
     if [ -z "$gpu_ids" ]; then
-        aux-nos "$function_name" "Error: No GPU found."
+        aux-nos "$function_name" "Error: No GPU found after lspci processing."
         return 1
     fi
 
@@ -229,11 +258,24 @@ gpu-ptd() {
     done
 
     echo "GPU driver and IOMMU group after detachment:"
-    lspci -nnk | grep -A3 "VGA compatible controller"
+    LSPCI_NNK_TEMP_OUTPUT_2="/tmp/lspci_nnk_output_ptd2.txt"
+    if lspci -nnk > "$LSPCI_NNK_TEMP_OUTPUT_2"; then
+        grep -A3 "VGA compatible controller" "$LSPCI_NNK_TEMP_OUTPUT_2"
+    else
+        echo "Error: lspci -nnk command failed (second call)."
+    fi
+    [ -f "$LSPCI_NNK_TEMP_OUTPUT_2" ] && rm -f "$LSPCI_NNK_TEMP_OUTPUT_2"
+
     for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
         echo "IOMMU Group ${iommu_group##*/}:"
         for device in $(ls -1 "$iommu_group"/devices/); do
-            echo -e "\t$(lspci -nns "$device")"
+            LSPCI_NNS_TEMP_OUTPUT_2="/tmp/lspci_nns_output_ptd2.txt"
+            if lspci -nns "$device" > "$LSPCI_NNS_TEMP_OUTPUT_2"; then
+                echo -e "\t$(cat "$LSPCI_NNS_TEMP_OUTPUT_2")"
+            else
+                echo -e "\tError: lspci -nns for $device failed (second loop)."
+            fi
+            [ -f "$LSPCI_NNS_TEMP_OUTPUT_2" ] && rm -f "$LSPCI_NNS_TEMP_OUTPUT_2"
         done
     done
 
