@@ -69,20 +69,20 @@ If your SUSE Linux system uses NetworkManager, you can configure a static IP add
     # sudo systemctl restart NetworkManager
     ```
 
-4. **Set Default Route (if not automatically configured):**
-    In some cases, especially if the gateway was not set correctly or if there are multiple interfaces, you might need to explicitly add the default route.
-    First, check your current routes:
+3.5. **Set Default Route (if not automatically configured by NetworkManager):**
+    In most cases, NetworkManager should set the default route based on the `ipv4.gateway` setting. However, if you find that the default route is missing after applying the changes in step 3, you can add it manually.
+    Replace `192.168.178.1` with your actual gateway IP and `enp3s0` with your actual interface name (e.g., `wlp4s0` from your example).
     ```bash
+    # Check current routes
+    ip route
+    # Add default route (if missing)
+    sudo ip route add default via 192.168.178.1 dev enp3s0 
+    # Verify route is added
     ip route
     ```
-    If you don't see a line starting with `default via <your_gateway_ip> dev <your_interface>`, you'll need to add it.
-    Replace `<your_gateway_ip>` with your actual gateway IP (e.g., `192.168.178.1`) and `<your_interface>` with your network interface (e.g., `enp3s0`).
-    ```bash
-    sudo ip route add default via 192.168.178.1 dev enp3s0
-    ```
-    Verify again with `ip route`. This change might not persist across reboots if not managed by NetworkManager. If you used `nmcli con mod enp3s0 ipv4.gateway <gateway_ip>` in step 3, NetworkManager should handle this. This manual `ip route add` is more of a troubleshooting or immediate fix step.
+    **Note:** Manually adding a route with `ip route add` might not persist across reboots. The preferred method is to ensure NetworkManager configures the gateway correctly. This step is primarily for troubleshooting or temporary setups if NetworkManager fails to set the route. If the gateway was correctly specified in `nmcli con mod enp3s0 ipv4.gateway <gateway_ip>`, NetworkManager should handle this.
 
-5.  **Verify Configuration:**
+4.  **Verify Configuration:**
     After applying the changes, verify the new settings:
     ```bash
     ip addr show enp3s0
