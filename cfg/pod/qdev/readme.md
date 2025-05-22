@@ -148,6 +148,7 @@ If SELinux (Security-Enhanced Linux) is enabled and enforcing, it might prevent 
 from accessing the host's '/etc/corosync' directory. These commands change the SELinux security context 
 of the directory to 'container_file_t' or 'svirt_sandbox_file_t', which are standard labels 
 allowing container runtimes to access host files/directories.
+To check the current SELinux context of the directory, you can use: `ls -Zd /etc/corosync`
 -->
 sudo chcon -Rt container_file_t /etc/corosync  
 sudo chcon -Rt svirt_sandbox_file_t /etc/corosync  
