@@ -117,13 +117,32 @@ gpu-pt3() {
         dmesg | grep 'remapping'
         echo "DEBUG: Finished dmesg | grep 'remapping'. Exit status: $?"
 
-        echo "DEBUG: About to run lspci -nn | grep 'NVIDIA'"
-        lspci -nn | grep 'NVIDIA'
-        echo "DEBUG: Finished lspci -nn | grep 'NVIDIA'. Exit status: $?"
+        # MODIFIED SECTION TO DEBUG LSPCI HANG
+        LSPCI_TEMP_OUTPUT="/tmp/lspci_output.txt"
+        echo "DEBUG: About to run lspci -nn > $LSPCI_TEMP_OUTPUT"
+        lspci -nn > "$LSPCI_TEMP_OUTPUT"
+        LSPCI_EXIT_STATUS=$?
+        echo "DEBUG: Finished lspci -nn > $LSPCI_TEMP_OUTPUT. Exit status: $LSPCI_EXIT_STATUS"
 
-        echo "DEBUG: About to run lspci -nn | grep 'AMD'"
-        lspci -nn | grep 'AMD'
-        echo "DEBUG: Finished lspci -nn | grep 'AMD'. Exit status: $?"
+        if [ $LSPCI_EXIT_STATUS -eq 0 ]; then
+            echo "DEBUG: About to run grep 'NVIDIA' $LSPCI_TEMP_OUTPUT"
+            grep 'NVIDIA' "$LSPCI_TEMP_OUTPUT"
+            echo "DEBUG: Finished grep 'NVIDIA' $LSPCI_TEMP_OUTPUT. Exit status: $?"
+
+            echo "DEBUG: About to run grep 'AMD' $LSPCI_TEMP_OUTPUT"
+            grep 'AMD' "$LSPCI_TEMP_OUTPUT"
+            echo "DEBUG: Finished grep 'AMD' $LSPCI_TEMP_OUTPUT. Exit status: $?"
+        else
+            echo "DEBUG: lspci -nn failed with exit status $LSPCI_EXIT_STATUS, skipping greps."
+        fi
+        
+        if [ -f "$LSPCI_TEMP_OUTPUT" ]; then
+            rm -f "$LSPCI_TEMP_OUTPUT"
+            echo "DEBUG: Removed $LSPCI_TEMP_OUTPUT"
+        else
+            echo "DEBUG: $LSPCI_TEMP_OUTPUT was not created or already removed."
+        fi
+        # END OF MODIFIED SECTION
 
         echo "DEBUG: Checking for $vfio_conf"
         # Configure VFIO
