@@ -183,19 +183,17 @@ sudo podman exec -ti qd bash
 
 ### Inside the container's shell, type the following:
 
-<!-- The root password required after running `su` is set in the Containerfile (default: `password`). -->
 su
+<!-- The root password required after running `su` is set in the Containerfile (default: `password`). -->
 
 service ssh start
-
 <!--  If sshd fails to start due to /run/sshd permissions, run as root:
-
 # mkdir -p /run/sshd
 # chown root:root /run/sshd
 # chmod 0755 /run/sshd
+ -->
 
-Once sshd is running, you can type 'exit' to leave the su session, 
-and 'exit' again to leave the container's bash shell -->
+exit
 
 ## On Cluster Nodes 
 <!-- 
