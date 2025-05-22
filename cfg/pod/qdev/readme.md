@@ -166,7 +166,7 @@ These commands are executed inside the running 'qd' container:
 
 sudo podman exec -ti qd bash  
 
-# Inside the container's shell, type the following:
+### Inside the container's shell, type the following:
 
 su
 service ssh start
@@ -180,7 +180,7 @@ service ssh start
 Once sshd is running, you can type 'exit' to leave the su session, 
 and 'exit' again to leave the container's bash shell -->
 
-## On Nodes 
+## On Cluster Nodes 
 <!-- 
 This command is run on each Proxmox VE node to configure them to use the Qdevice.
 - '<IP QDEVICE HOST>': Replace this with the actual IP address of the host running the Qdevice container.
@@ -189,6 +189,7 @@ This command is run on each Proxmox VE node to configure them to use the Qdevice
 pvecm qdevice setup <IP QDEVICE HOST> -f
 
 ## On Qdevice Host
+
 ### Save Container to new image after setting up cluster qdevice
 <!-- 
 After the Proxmox VE nodes have successfully connected and configured the Qdevice (which involves writing configuration to /etc/corosync inside the container), 
