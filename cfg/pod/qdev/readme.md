@@ -326,10 +326,13 @@ Copies Node 2's public SSH key to Node 1 and the Qdevice host for the root user,
 ssh-copy-id root@"$qdevice_ip" 
 ssh-copy-id root@"$node1_ip"  
 
-## On both nodes after Step 4 is completed on each of them
-<!-- 
-After ensuring SSH connectivity and key exchange are correctly set up between all nodes and the Qdevice host, 
-this command should be run again on both Proxmox VE nodes to attempt the Qdevice setup. 
-The '$qdevice_ip' variable should be the IP address of the Qdevice host.
+### Step 5: Retry Qdevice Setup on Node 2
+<!--
+After completing the above troubleshooting steps for Node 2, attempt the Qdevice setup command again on Node 2
+to verify if the issue is resolved. Ensure the 'qdevice_ip' variable is correctly set to your Qdevice's IP address.
 -->
 pvecm qdevice setup "$qdevice_ip" -f
+<!--
+- If this command succeeds (or reports the Qdevice is already configured): The Qdevice setup should now be complete for the cluster.
+- If this command still fails : Review the output carefully. You may need to re-check the previous troubleshooting steps or investigate new error messages.
+-->
