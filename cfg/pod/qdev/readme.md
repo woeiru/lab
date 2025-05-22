@@ -4,9 +4,83 @@
 This guide details the configuration of a Qdevice (quorum device) host using Podman containers. 
 It covers initial setup, container creation, cluster integration, and troubleshooting steps for SSH connectivity issues 
 that might arise when connecting Proxmox VE nodes to the Qdevice.
-
-**Prerequisite:** The host machine for the Qdevice should have a static IP address or a DHCP reservation to ensure its IP address does not change. This is critical for stable communication with the Proxmox VE cluster.
 -->
+
+## Prerequisites
+
+**Static IP Address for Qdevice Host:** The host machine for the Qdevice *must* have a static IP address or a DHCP reservation to ensure its IP address does not change. This is critical for stable communication with the Proxmox VE cluster.
+
+**Setting a Static IP on SUSE Linux with NetworkManager (e.g., for interface `enp3s0` to `192.168.178.223`):**
+
+If your SUSE Linux system uses NetworkManager, you can configure a static IP address using `nmtui` (a text-based user interface) or `nmcli` (the command-line interface).
+
+1.  **Ensure NetworkManager is Active:**
+    Verify NetworkManager is running and managing your network interfaces:
+    ```bash
+    sudo systemctl status NetworkManager
+    # Check if NetworkManager is managing the specific interface (e.g., enp3s0)
+    nmcli dev status
+    ```
+    If it's not active, enable and start it:
+    ```bash
+    sudo systemctl enable NetworkManager
+    sudo systemctl start NetworkManager
+    ```
+
+2.  **Configure Static IP using `nmtui` (Recommended for ease of use):**
+    *   Open the text-based network configuration tool:
+        ```bash
+        sudo nmtui
+        ```
+    *   Navigate to "Edit a connection".
+    *   Select your network interface (e.g., `enp3s0`) and choose "Edit...".
+    *   Change "IPv4 CONFIGURATION" from `<Automatic>` (DHCP) to `<Manual>`.
+    *   Select "Show" next to IPv4 CONFIGURATION to expand the options.
+    *   In "Addresses", select "Add..." and enter the IP address and prefix (e.g., `192.168.178.223/24`).
+    *   Enter your "Gateway" (e.g., `192.168.178.1`).
+    *   In "DNS servers", select "Add..." and enter your DNS server(s) (e.g., `192.168.178.1`, `8.8.8.8`).
+    *   Ensure "Automatically connect" is checked.
+    *   Select "OK" to save, then "Back", and "Quit" `nmtui`.
+    *   NetworkManager should automatically apply the changes. You might need to disconnect and reconnect the interface or restart NetworkManager if the changes don't take effect immediately:
+        ```bash
+        sudo nmcli connection down <connection_name> && sudo nmcli connection up <connection_name>
+        # or
+        # sudo systemctl restart NetworkManager
+        ```
+        (Replace `<connection_name>` with the name of your connection, often the same as the interface name like `enp3s0`).
+
+3.  **Configure Static IP using `nmcli` (Command-line alternative):**
+    Replace `enp3s0` with your actual interface name and `192.168.178.1` with your actual gateway and DNS server(s) if different.
+    ```bash
+    # Set the static IP address, prefix, and gateway
+    sudo nmcli con mod enp3s0 ipv4.addresses 192.168.178.223/24
+    sudo nmcli con mod enp3s0 ipv4.gateway 192.168.178.1
+    
+    # Set DNS servers (this will overwrite existing DNS servers)
+    # To add multiple, separate them with a space: "192.168.178.1 8.8.8.8"
+    sudo nmcli con mod enp3s0 ipv4.dns "192.168.178.1 8.8.8.8"
+    
+    # Change the method to manual (from DHCP)
+    sudo nmcli con mod enp3s0 ipv4.method manual
+    
+    # Apply the changes by taking the connection down and then up
+    sudo nmcli con down enp3s0 && sudo nmcli con up enp3s0
+    # Alternatively, restart NetworkManager (this will affect all connections)
+    # sudo systemctl restart NetworkManager
+    ```
+
+4.  **Verify Configuration:**
+    After applying the changes, verify the new settings:
+    ```bash
+    ip addr show enp3s0
+    ip route
+    cat /etc/resolv.conf # Check if DNS servers are correctly listed (NetworkManager might manage this directly or via netconfig)
+    ping -c 3 192.168.178.1 # Ping your gateway (use the actual gateway IP)
+    ping -c 3 google.com    # Ping an external host to test DNS and internet connectivity
+    ```
+    Ensure `enp3s0` shows the IP `192.168.178.223/24`, the default route points to your gateway via `enp3s0`, and that DNS resolution works.
+
+---
 
 ## On qdevice host
 
