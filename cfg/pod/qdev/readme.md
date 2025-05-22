@@ -62,9 +62,9 @@ This command starts the Qdevice container:
 - '-p 22:22': Maps port 22 of the host to port 22 of the container (for SSH).
 - '-p 5403:5403': Maps port 5403 of the host to port 5403 of the container (for Corosync communication).
 - '-v /etc/corosync:/etc/corosync': Mounts the host's '/etc/corosync' directory into the container at the same path, allowing persistent storage for Corosync configuration.
-- 'iq': Specifies the image to use for the container.
+- 'localhost/iq': Specifies the locally built image to use for the container.
 -->
-sudo podman run -d --name=qd --cap-drop=ALL --privileged -p 22:22 -p 5403:5403 -v /etc/corosync:/etc/corosync iq
+sudo podman run -d --name=qd --cap-drop=ALL --privileged -p 22:22 -p 5403:5403 -v /etc/corosync:/etc/corosync localhost/iq
 
 ### Enable sshd as Su inside container
 <!-- 
