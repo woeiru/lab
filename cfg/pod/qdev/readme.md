@@ -69,7 +69,20 @@ If your SUSE Linux system uses NetworkManager, you can configure a static IP add
     # sudo systemctl restart NetworkManager
     ```
 
-4.  **Verify Configuration:**
+4. **Set Default Route (if not automatically configured):**
+    In some cases, especially if the gateway was not set correctly or if there are multiple interfaces, you might need to explicitly add the default route.
+    First, check your current routes:
+    ```bash
+    ip route
+    ```
+    If you don't see a line starting with `default via <your_gateway_ip> dev <your_interface>`, you'll need to add it.
+    Replace `<your_gateway_ip>` with your actual gateway IP (e.g., `192.168.178.1`) and `<your_interface>` with your network interface (e.g., `enp3s0`).
+    ```bash
+    sudo ip route add default via 192.168.178.1 dev enp3s0
+    ```
+    Verify again with `ip route`. This change might not persist across reboots if not managed by NetworkManager. If you used `nmcli con mod enp3s0 ipv4.gateway <gateway_ip>` in step 3, NetworkManager should handle this. This manual `ip route add` is more of a troubleshooting or immediate fix step.
+
+5.  **Verify Configuration:**
     After applying the changes, verify the new settings:
     ```bash
     ip addr show enp3s0
