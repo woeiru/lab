@@ -72,11 +72,13 @@ err_process_error() {
     # Log to the error log file
     printf "%s\n" "$log_message" >> "${ERROR_LOG}"
     
-    # Output to console based on severity
-    if [[ "$severity" == "ERROR" || "$severity" == "CRITICAL" ]]; then
-        printf "%s\n" "$log_message" >&2
-    elif [[ "$severity" == "WARNING" ]]; then
-        printf "%s\n" "$log_message" >&1
+    # Output to console based on severity and verbosity settings
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${ERR_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        if [[ "$severity" == "ERROR" || "$severity" == "CRITICAL" ]]; then
+            printf "%s\n" "$log_message" >&2
+        elif [[ "$severity" == "WARNING" ]]; then
+            printf "%s\n" "$log_message" >&1
+        fi
     fi
     
     return $exit_code
@@ -146,8 +148,12 @@ error_handler() {
     ERROR_EXIT_CODES[$error_id]="$error_code"
     ERROR_ORDER+=("$error_id")
 
-    # Log error
-    echo "└─ ERROR $timestamp - In $source_file on line $line_number: Command '$command' failed with status $error_code" | tee -a "$ERROR_LOG" >&2
+    # Log error to file unconditionally
+    echo "└─ ERROR $timestamp - In $source_file on line $line_number: Command '$command' failed with status $error_code" >> "$ERROR_LOG"
+    # Conditionally log error to terminal
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${ERR_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        echo "└─ ERROR $timestamp - In $source_file on line $line_number: Command '$command' failed with status $error_code" >&2
+    fi
 
     return $error_code
 }
@@ -203,72 +209,74 @@ print_error_report() {
     done
 
     # Print report header
-    {
-        printf "\n"
-        printf " ━ RC Error Report\n"
-        printf " ━ Generated: %s\n" "$(date)"
-        printf " ━ Total issues: %d (Errors: %d, Warnings: %d)\n" "$((total_errors + total_warnings))" "$total_errors" "$total_warnings"
-        printf "\n"
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${ERR_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        {
+            printf "\n"
+            printf " ━ RC Error Report\n"
+            printf " ━ Generated: %s\n" "$(date)"
+            printf " ━ Total issues: %d (Errors: %d, Warnings: %d)\n" "$((total_errors + total_warnings))" "$total_errors" "$total_warnings"
+            printf "\n"
 
-        # Print errors first if any exist
-        if ((total_errors > 0)); then
-            printf " ━ Errors by type:\n"
-            for code in "${!error_types[@]}"; do
-                local count=${error_types[$code]}
-                local desc
-                for key in "${!ERROR_CODES[@]}"; do
-                    if [[ ${ERROR_CODES[$key]} -eq $code ]]; then
-                        desc="$key"
-                        break
+            # Print errors first if any exist
+            if ((total_errors > 0)); then
+                printf " ━ Errors by type:\n"
+                for code in "${!error_types[@]}"; do
+                    local count=${error_types[$code]}
+                    local desc
+                    for key in "${!ERROR_CODES[@]}"; do
+                        if [[ ${ERROR_CODES[$key]} -eq $code ]]; then
+                            desc="$key"
+                            break
+                        fi
+                    done
+                    printf "   └─ %s: %d occurrences\n" "$desc" "$count"
+                done
+                printf "\n"
+
+                printf " ━ Error details:\n"
+                for error_id in "${ERROR_ORDER[@]}"; do
+                    if [[ "${ERROR_SEVERITIES[$error_id]}" != "true" ]]; then
+                        printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
+                        printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
                     fi
                 done
-                printf "   └─ %s: %d occurrences\n" "$desc" "$count"
-            done
-            printf "\n"
+                printf "\n"
+            fi
 
-            printf " ━ Error details:\n"
-            for error_id in "${ERROR_ORDER[@]}"; do
-                if [[ "${ERROR_SEVERITIES[$error_id]}" != "true" ]]; then
-                    printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
-                    printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
-                fi
-            done
-            printf "\n"
-        fi
+            # Print warnings if any exist
+            if ((total_warnings > 0)); then
+                printf " ━ Warnings by type:\n"
+                for code in "${!warnings_by_type[@]}"; do
+                    local count=${warnings_by_type[$code]}
+                    local desc
+                    for key in "${!ERROR_CODES[@]}"; do
+                        if [[ ${ERROR_CODES[$key]} -eq $code ]]; then
+                            desc="$key"
+                            break
+                        fi
+                    done
+                    printf "   └─ %s: %d occurrences\n" "$desc" "$count"
+                done
+                printf "\n"
 
-        # Print warnings if any exist
-        if ((total_warnings > 0)); then
-            printf " ━ Warnings by type:\n"
-            for code in "${!warnings_by_type[@]}"; do
-                local count=${warnings_by_type[$code]}
-                local desc
-                for key in "${!ERROR_CODES[@]}"; do
-                    if [[ ${ERROR_CODES[$key]} -eq $code ]]; then
-                        desc="$key"
-                        break
+                printf " ━ Warning details:\n"
+                for error_id in "${ERROR_ORDER[@]}"; do
+                    if [[ "${ERROR_SEVERITIES[$error_id]}" == "true" ]]; then
+                        printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
+                        printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
                     fi
                 done
-                printf "   └─ %s: %d occurrences\n" "$desc" "$count"
-            done
+                printf "\n"
+            fi
+
+            if ((total_errors + total_warnings == 0)); then
+                printf " ━ No issues detected during startup\n"
+            fi
+
+            printf " ━ Error log file: %s\n" "$ERROR_LOG"
             printf "\n"
-
-            printf " ━ Warning details:\n"
-            for error_id in "${ERROR_ORDER[@]}"; do
-                if [[ "${ERROR_SEVERITIES[$error_id]}" == "true" ]]; then
-                    printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
-                    printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
-                fi
-            done
-            printf "\n"
-        fi
-
-        if ((total_errors + total_warnings == 0)); then
-            printf " ━ No issues detected during startup\n"
-        fi
-
-        printf " ━ Error log file: %s\n" "$ERROR_LOG"
-        printf "\n"
-    } >&2
+        } >&2
+    fi
 
     # Return non-zero if there were any non-optional errors
     return $((total_errors > 0 ? 1 : 0))
@@ -293,15 +301,10 @@ register_cleanup() {
     local module="$1"
     local function="$2"
 
-    [[ -z "$module" || -z "$function" ]] && {
-        echo "Error: Invalid cleanup registration arguments" >&2
-        return 1
-    }
+    [[ -z "$module" || -z "$function" ]] && { echo "Error: Module and function must be provided to register_cleanup." >&2; return 1; }
     if [[ -n "$function" && $(type -t "$function") == "function" ]]; then
-        CLEANUP_FUNCTIONS[$module]="$function"
-        type log >/dev/null 2>&1 && log "lvl" "Registered cleanup for module: $module" || echo "Registered cleanup for module: $module"
+        type log >/dev/null 2>&1 && log "lvl" "Registered cleanup for module: $module" || { if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${ERR_TERMINAL_VERBOSITY:-on}" == "on" ]]; then echo "Registered cleanup for module: $module"; fi; }
     else
-        type log >/dev/null 2>&1 && log "lvl" "Failed to register cleanup for module: $module" || echo "Failed to register cleanup for module: $module"
         return 1
     fi
 }

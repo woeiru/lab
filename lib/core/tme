@@ -92,9 +92,15 @@ tme_init_timer() {
             echo "9" > "$TME_LEVELS_FILE"
         fi
     elif [[ -z "$TMP_DIR" ]]; then
-        printf "Warning: TMP_DIR not set. TME_LEVELS_FILE (%s) might not be initialized properly.\n" "$TME_LEVELS_FILE" >&2
+        # Conditionally print warning
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+            printf "Warning: TMP_DIR not set. TME_LEVELS_FILE (%s) might not be initialized properly.\n" "$TME_LEVELS_FILE" >&2
+        fi
     elif [[ -z "$TME_LEVELS_FILE" ]]; then
-        printf "Warning: TME_LEVELS_FILE variable not set. Cannot initialize default depth.\n" >&2
+        # Conditionally print warning
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+            printf "Warning: TME_LEVELS_FILE variable not set. Cannot initialize default depth.\n" >&2
+        fi
     fi
 
     # Initialize TME_STATE_FILE with default if empty
@@ -105,9 +111,15 @@ tme_init_timer() {
             echo "true" > "$TME_STATE_FILE"
         fi
     elif [[ -z "$TMP_DIR" ]]; then
-        printf "Warning: TMP_DIR not set. TME_STATE_FILE (%s) might not be initialized properly.\n" "$TME_STATE_FILE" >&2
+        # Conditionally print warning
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+            printf "Warning: TMP_DIR not set. TME_STATE_FILE (%s) might not be initialized properly.\n" "$TME_STATE_FILE" >&2
+        fi
     elif [[ -z "$TME_STATE_FILE" ]]; then
-        printf "Warning: TME_STATE_FILE variable not set. Cannot initialize default report state.\n" >&2
+        # Conditionally print warning
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+            printf "Warning: TME_STATE_FILE variable not set. Cannot initialize default report state.\n" >&2
+        fi
     fi
 
     TME_STARTUP_BEGIN=$(date +%s.%N)
@@ -342,118 +354,112 @@ print_tree_recursive() {
 
 # The settme function to control timer output
 tme_settme() {
-    local arg1="$1"
-    local arg2="$2"
-    local effective_sort_order_file_path="$TME_SORT_ORDER_FILE_PATH"
-
-    if [[ -z "$effective_sort_order_file_path" ]]; then
-        effective_sort_order_file_path="${TMP_DIR}/tme_sort_order"
+    if [[ "$#" -eq 0 ]]; then
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+            echo "Usage: tme_settme [report on|off | sort chron|duration | depth <number>]" >&2
+        fi
+        return 1
     fi
-    
-    mkdir -p "$(dirname "$effective_sort_order_file_path")" 2>/dev/null
 
-    case "$arg1" in
-        "sort")
-            if [[ "$arg2" == "chron" ]]; then
-                echo "chron" > "$effective_sort_order_file_path"
-                printf "Timer output sort order set to chronological.\n"
-            elif [[ "$arg2" == "dura" ]]; then
-                echo "dura" > "$effective_sort_order_file_path"
-                printf "Timer output sort order set to duration (descending).\n"
+    local current_report_state
+    local current_sort_order
+    local current_max_depth
+
+    current_report_state=$(cat "$TME_STATE_FILE" 2>/dev/null || echo "true")
+    current_sort_order=$(cat "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null || echo "chron")
+    current_max_depth=$(cat "$TME_LEVELS_FILE" 2>/dev/null || echo "9")
+
+    case "$1" in
+        report)
+            if [[ "$2" == "on" || "$2" == "true" ]]; then
+                echo "true" > "$TME_STATE_FILE"
+                current_report_state="true"
+            elif [[ "$2" == "off" || "$2" == "false" ]]; then
+                echo "false" > "$TME_STATE_FILE"
+                current_report_state="false"
             else
-                printf "\n" # Add a newline before the usage message
-                printf "Usage: tme_settme sort [chron|dura]\n"
+                if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+                    echo "Invalid value for tme_settme report: $2. Use 'on' or 'off'." >&2
+                fi
                 return 1
             fi
             ;;
-        "depth")
-             if [[ "$arg2" =~ ^[0-9]+$ ]]; then
-                if [[ -n "$TME_LEVELS_FILE" ]]; then
-                    if [[ -n "$TMP_DIR" ]]; then mkdir -p "$TMP_DIR" 2>/dev/null; fi
-                    echo "$arg2" > "$TME_LEVELS_FILE"
-                    printf "Timer report depth set to %s levels.\n" "$arg2"
-                else
-                    printf "Error: TME_LEVELS_FILE variable not set. Cannot set depth.\n"
-                    return 1
-                fi
+        sort)
+            if [[ "$2" == "chron" || "$2" == "duration" ]]; then
+                echo "$2" > "$TME_SORT_ORDER_FILE_PATH"
+                current_sort_order="$2"
             else
-                printf "Usage: tme_settme depth <N>\n"
+                if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+                    echo "Invalid value for tme_settme sort: $2. Use 'chron' or 'duration'." >&2
+                fi
+                return 1
+            fi
+            ;;
+        depth)
+            if [[ "$2" =~ ^[0-9]+$ ]]; then
+                echo "$2" > "$TME_LEVELS_FILE"
+                current_max_depth="$2"
+            else
+                if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+                    echo "Invalid value for tme_settme depth: $2. Must be a number." >&2
+                fi
                 return 1
             fi
             ;;
         *)
-            printf "\n" # Add a newline before the usage message
-            printf "Usage: tme_settme [sort chron|sort dura|depth <N>]\n"
+            if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+                echo "Invalid command for tme_settme: $1" >&2
+            fi
             return 1
             ;;
     esac
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        printf "Timing Report: %s | Sort Order: %s | Max Depth: %s\n" \
+            "$current_report_state" "$current_sort_order" "$current_max_depth"
+    fi
 }
 
 # Enhanced timing report
 tme_print_timing_report() {
-    local current_state
-    local current_state_from_file=""
-    if [[ -n "$TME_STATE_FILE" && -f "$TME_STATE_FILE" ]]; then
-        current_state_from_file=$(cat "$TME_STATE_FILE" 2>/dev/null)
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" != "on" || "${TME_TERMINAL_VERBOSITY:-on}" != "on" ]]; then
+        return 0 # Do not print report if verbosity is off
     fi
-    current_state="${current_state_from_file:-true}"
-    [[ "${current_state}" != "true" ]] && return 0
 
-    if [[ -n "$TME_LOG_FILE" ]]; then
-        mkdir -p "$(dirname "$TME_LOG_FILE")" 2>/dev/null
-        touch "$TME_LOG_FILE" 2>/dev/null 
-    else
-        return 1
+    local report_enabled
+    report_enabled=$(cat "$TME_STATE_FILE" 2>/dev/null || echo "true")
+    if [[ "$report_enabled" != "true" ]]; then
+        return 0 # Report is explicitly disabled
     fi
-    
-    local orig_log_state
-    orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-    echo "false" > "$LOG_STATE_FILE"
 
-    local total_time=$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)
+    local total_duration
+    total_duration=$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)
     local sort_order
-    local sort_order_from_file=""
-    if [[ -n "$TME_SORT_ORDER_FILE_PATH" && -f "$TME_SORT_ORDER_FILE_PATH" ]]; then
-        sort_order_from_file=$(cat "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null)
-    fi
-    sort_order="${sort_order_from_file:-chron}" # Changed default to chron
+    sort_order=$(cat "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null || echo "chron")
 
-    {
-        printf "\n%s━ RC Performance Report%s\n" "$TME_BLUE" "$TME_NC"
-        printf " %s━ Total startup time: %s%.3fs%s\n" "$TME_BLUE" "$TME_GREEN" "$total_time" "$TME_NC"
-        printf " %s━ Generated: %s%s%s\n" "$TME_BLUE" "$TME_CYAN" "$(date)" "$TME_NC"
-        printf " %s━ Sort Order: %s%s%s\n" "$TME_BLUE" "$TME_YELLOW" "$sort_order" "$TME_NC"
-        printf "\n %s━ Component Timing Tree:%s\n\n" "$TME_BLUE" "$TME_NC"
+    printf "\n%s ━ RC Timing Report%s\n" "$TME_BLUE" "$TME_NC"
+    printf "%s ━ Generated: %s%s\n" "$TME_BLUE" "$(date)" "$TME_NC"
+    printf "%s ━ Total execution time: %.3fs%s\n" "$TME_BLUE" "$total_duration" "$TME_NC"
+    printf "%s ━ Sort order: %s%s\n" "$TME_BLUE" "$sort_order" "$TME_NC"
+    printf "\n"
 
-        local top_level_components=()
-        if [[ "$sort_order" == "chron" ]]; then
-            for component in "${TME_COMPONENT_ORDER[@]}"; do
-                if [[ -z "${TME_PARENTS[$component]}" && -v "TME_DURATIONS[$component]" ]]; then
-                    top_level_components+=("$component")
-                fi
-            done
-        else
-            local all_potential_top_level=()
-            for component in "${!TME_START_TIMES[@]}"; do
-                if [[ -z "${TME_PARENTS[$component]}" && -v "TME_DURATIONS[$component]" ]]; then
-                    all_potential_top_level+=("$component")
-                fi
-            done
-            if [[ ${#all_potential_top_level[@]} -gt 0 ]]; then
-                 sort_components_by_duration all_potential_top_level
-                 top_level_components=("${all_potential_top_level[@]}")
-            fi
+    local components_to_print=()
+    # Populate components_to_print based on top-level items (no parent)
+    for comp in "${TME_COMPONENT_ORDER[@]}"; do
+        if [[ -z "${TME_PARENTS[$comp]}" ]]; then
+            components_to_print+=("$comp")
         fi
+    done
 
-        for component in "${top_level_components[@]}"; do
-            print_tree_recursive "$component" "    " "$total_time" "$sort_order"
-        done
+    if [[ "$sort_order" == "duration" ]]; then
+        sort_components_by_duration components_to_print # This sorts the array in place
+    fi    
 
-        printf "\n\n"
+    for component in "${components_to_print[@]}"; do
+        print_tree_recursive "$component" "  " "$total_duration" "$sort_order"
+    done
 
-    } | tee -a "$TME_LOG_FILE"
-
-    echo "$orig_log_state" > "$LOG_STATE_FILE"
+    printf "\n%s ━ Timing log file: %s%s\n" "$TME_BLUE" "$TME_LOG_FILE" "$TME_NC"
+    printf "\n"
 }
 
 # Example of how to use nested timing
