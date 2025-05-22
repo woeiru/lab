@@ -50,7 +50,7 @@ On the problematic host `x1`, the script would execute the initial `dmesg` comma
             grep 'NVIDIA' "$LSPCI_TEMP_OUTPUT"
             # ... and similarly for AMD
         fi
-        # ...
+        [ -f "$LSPCI_TEMP_OUTPUT" ] && rm -f "$LSPCI_TEMP_OUTPUT"
         ```
     *   With this change, the script no longer hung. `lspci -nn` successfully wrote its output to the temporary file, and the subsequent `grep` commands on the file also worked, allowing the script to proceed to the ID prompt.
 
@@ -82,3 +82,39 @@ fi
 ## Likely Cause
 
 The issue appears to be related to how the shell on host `x1` handles the piping (`|`) of the `lspci -nn` command's output, specifically when executed within the script's environment. While `lspci -nn` works standalone and its output can be redirected to a file, the direct pipe to `grep` within the script caused an indefinite hang. The exact underlying reason for this piping anomaly on `x1` was not determined, but the workaround is effective.
+
+## Update: Similar Hang in `gpu-ptd` Function
+
+Subsequent to the fix in `gpu-pt3`, a similar hanging behavior was observed in the `gpu-ptd` function within the same script (`/home/es/lab/lib/dep/gpu`). This function is responsible for detaching GPUs from their host drivers and also utilizes `lspci` for various checks and information gathering.
+
+### Issue in `gpu-ptd`
+
+The `gpu-ptd` function was found to hang when executing `lspci` commands, particularly those involving pipes or command substitutions, such as:
+*   `lspci -nnk | grep -A3 "VGA compatible controller"`
+*   `echo -e "\t$(lspci -nns "$device")"`
+*   `local gpu_ids=$(lspci -nn | grep -iE "VGA compatible controller|3D controller" | awk '{print $1}')`
+
+The symptoms were identical to the `gpu-pt3` hang: the script would stop responding at the point of these `lspci` calls.
+
+### Solution for `gpu-ptd`
+
+The same workaround applied to `gpu-pt3` was implemented for all problematic `lspci` calls within the `gpu-ptd` function. This involved:
+1.  Redirecting the output of `lspci` (e.g., `lspci -nnk`, `lspci -nns "$device"`, `lspci -nn`) to a temporary file.
+2.  Performing subsequent operations (e.g., `grep`, `awk`, `cat`) on the temporary file.
+3.  Ensuring the temporary file is deleted after use.
+
+For example, `lspci -nnk | grep -A3 "VGA compatible controller"` was changed to:
+```bash
+LSPCI_TEMP_OUTPUT_PTD="/tmp/lspci_ptd_output.txt"
+if lspci -nnk > "$LSPCI_TEMP_OUTPUT_PTD"; then
+    grep -A3 "VGA compatible controller" "$LSPCI_TEMP_OUTPUT_PTD"
+else
+    echo "Error: lspci -nnk command failed in gpu-ptd."
+fi
+[ -f "$LSPCI_TEMP_OUTPUT_PTD" ] && rm -f "$LSPCI_TEMP_OUTPUT_PTD"
+```
+Similar modifications were made for other `lspci` invocations in `gpu-ptd`. This resolved the hanging issue in the `gpu-ptd` function as well.
+
+## Likely Cause
+
+The issue appears to be related to how the shell on host `x1` handles the piping (`|`) of the `lspci` command's output within the script's environment. Redirecting the output to a temporary file circumvents the problem effectively.
