@@ -183,7 +183,9 @@ sudo podman exec -ti qd bash
 
 ### Inside the container's shell, type the following:
 
+<!-- The root password required after running `su` is set in the Containerfile (default: `password`). -->
 su
+
 service ssh start
 
 <!--  If sshd fails to start due to /run/sshd permissions, run as root:
