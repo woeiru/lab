@@ -237,24 +237,24 @@ often due to SSH host key mismatches or missing keys.
 The variables 'node2_ip' and 'qdevice_ip' should be set to the correct IP addresses.
 The following commands assume you are operating as the root user on the Proxmox VE node.
 -->
+qdevice_ip="<IP QDEVICE HOST>"
 node2_ip="<IP CLUSTER NODE 2>"  
-qdevice_ip="<IP QDEVICE HOST>"  
 
-### Step 1: Remove existing host keys  
+### On Node 1 - Step 1: Remove existing host keys  
 <!-- 
 These commands remove any existing SSH host keys for Node 2 and the Qdevice host from Node 1's 'known_hosts' file. 
 This is useful if the host keys have changed (e.g., due to OS reinstall or IP address reuse) and are causing SSH connection errors.
 -->
+ssh-keygen -R "$qdevice_ip"
 ssh-keygen -R "$node2_ip"  
-ssh-keygen -R "$qdevice_ip"  
 
 ### Step 2: Re-scan and add current host keys  
 <!-- 
 These commands scan Node 2 and the Qdevice host for their current SSH host keys and append them to Node 1's 'known_hosts' file. 
 This ensures Node 1 has the correct keys for future SSH connections.
 -->
+ssh-keyscan -H "$qdevice_ip" >> ~/.ssh/known_hosts
 ssh-keyscan -H "$node2_ip" >> ~/.ssh/known_hosts  
-ssh-keyscan -H "$qdevice_ip" >> ~/.ssh/known_hosts  
 
 ### Step 3: Verify SSH access  
 <!-- 
@@ -271,8 +271,8 @@ exit
 These commands copy Node 1's public SSH key to Node 2 and the Qdevice host for the root user. 
 This enables passwordless SSH authentication from Node 1 to these machines, which is often required or beneficial for cluster operations.
 -->
-ssh-copy-id root@"$node2_ip"  
 ssh-copy-id root@"$qdevice_ip"  
+ssh-copy-id root@"$node2_ip"  
 
 ## On Node 2 - In case pvecm qdevice setup don't work  
 <!-- 
@@ -280,38 +280,38 @@ This section mirrors the troubleshooting steps for Node 1, but performed on Node
 The variables 'node1_ip' and 'qdevice_ip' should be set to the correct IP addresses.
 The following commands assume you are operating as the root user on the Proxmox VE node.
 -->
-node1_ip="192.168.178.210"  
-qdevice_ip="192.168.178.230"  
+qdevice_ip="<IP QDEVICE HOST>" 
+node1_ip="<IP CLUSTER NODE 1>"   
 
 ### Step 1: Remove existing host keys  
 <!-- 
 Removes existing SSH host keys for Node 1 and the Qdevice host from Node 2's 'known_hosts' file.
 -->
-ssh-keygen -R "$node1_ip"  
 ssh-keygen -R "$qdevice_ip"  
+ssh-keygen -R "$node1_ip"  
 
 ### Step 2: Re-scan and add current host keys   
 <!-- 
 Scans Node 1 and the Qdevice host for their current SSH host keys and appends them to Node 2's 'known_hosts' file.
 -->
-ssh-keyscan -H "$node1_ip" >> ~/.ssh/known_hosts  
 ssh-keyscan -H "$qdevice_ip" >> ~/.ssh/known_hosts  
+ssh-keyscan -H "$node1_ip" >> ~/.ssh/known_hosts  
 
 ### Step 3: Verify SSH access  
 <!-- 
 Tests SSH connectivity from Node 2 to Node 1 and the Qdevice host as the root user.
 -->
-ssh root@"$node1_ip"  
-exit  
 ssh root@"$qdevice_ip"  
+exit  
+ssh root@"$node1_ip"  
 exit  
 
 ### Step 4: Copy SSH key  
 <!-- 
 Copies Node 2's public SSH key to Node 1 and the Qdevice host for the root user, enabling passwordless SSH.
 -->
+ssh-copy-id root@"$qdevice_ip" 
 ssh-copy-id root@"$node1_ip"  
-ssh-copy-id root@"$qdevice_ip"  
 
 ## On both nodes after Step 4 is completed on each of them
 <!-- 
