@@ -46,6 +46,11 @@
 #
 #######################################################################
 
+# Output a startup message, respecting verbosity settings
+if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${DEBUG_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+    echo " ─── initializing" >&2
+fi
+
 # Set the base directory path
 readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
@@ -456,7 +461,6 @@ setup_minimal_environment() {
     done
 }
 
-echo " ─── initializing"
 # Execute initialization
 main_ini
 RC_STATUS=$?
