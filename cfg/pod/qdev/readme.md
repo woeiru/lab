@@ -73,11 +73,8 @@ These commands are executed inside the running 'qd' container:
   The following commands are then run *inside this shell*.
 - 'su': Switches to the superuser (root) within the container. You might be prompted for the root password (which is 'password' as set in the Containerfile).
 - 'service ssh start': Starts the SSH daemon inside the container. This is necessary for the Proxmox VE nodes to connect to the Qdevice for the initial setup.
-If starting sshd fails with a permission error for /run/sshd, run these commands as root before trying to start the service again:
-  mkdir -p /run/sshd
-  chown root:root /run/sshd
-  chmod 0755 /run/sshd
 -->
+
 sudo podman exec -ti qd bash  
 
 # Inside the container's shell, type the following:
