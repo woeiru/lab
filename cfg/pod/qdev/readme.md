@@ -14,7 +14,7 @@ The Qdevice container will initially require SSH access for setup.
 This command stops the SSH daemon on the host machine to free up port 22, 
 allowing the container to use it for initial communication with the Proxmox VE nodes.
 -->
-systemctl stop sshd
+sudo systemctl stop sshd
 
 ### Navigate to the Qdevice configuration directory
 <!--
@@ -39,8 +39,8 @@ The user ID 701 and group ID 701 are often associated with the 'corosync' user/g
 which might be the user running corosync inside the container. 
 This directory will be volume-mounted into the container.
 -->
-mkdir /etc/corosync
-chown 701:701 /etc/corosync
+sudo mkdir /etc/corosync
+sudo chown 701:701 /etc/corosync
 
 ### In case SELinux is blocking container folders  
 <!-- 
@@ -49,8 +49,8 @@ from accessing the host's '/etc/corosync' directory. These commands change the S
 of the directory to 'container_file_t' or 'svirt_sandbox_file_t', which are standard labels 
 allowing container runtimes to access host files/directories.
 -->
-chcon -Rt container_file_t /etc/corosync  
-chcon -Rt svirt_sandbox_file_t /etc/corosync  
+sudo chcon -Rt container_file_t /etc/corosync  
+sudo chcon -Rt svirt_sandbox_file_t /etc/corosync  
 
 ### Run container
 <!-- 
@@ -64,7 +64,7 @@ This command starts the Qdevice container:
 - '-v /etc/corosync:/etc/corosync': Mounts the host's '/etc/corosync' directory into the container at the same path, allowing persistent storage for Corosync configuration.
 - 'iq': Specifies the image to use for the container.
 -->
-podman run -d --name=qd --cap-drop=ALL --privileged -p 22:22 -p 5403:5403 -v /etc/corosync:/etc/corosync iq
+sudo podman run -d --name=qd --cap-drop=ALL --privileged -p 22:22 -p 5403:5403 -v /etc/corosync:/etc/corosync iq
 
 ### Enable sshd as Su inside container
 <!-- 
@@ -73,7 +73,7 @@ These commands are executed inside the running 'qd' container:
 - 'su': Switches to the superuser (root) within the container.
 - 'service ssh start': Starts the SSH daemon inside the container. This is necessary for the Proxmox VE nodes to connect to the Qdevice for the initial setup.
 -->
-podman exec -ti qd bash  
+sudo podman exec -ti qd bash  
 su  
 service ssh start
 
@@ -92,7 +92,7 @@ After the Proxmox VE nodes have successfully connected and configured the Qdevic
 this command commits the current state of the 'qd' container to a new image named 'iqdx'. 
 This new image now includes the cluster-specific Corosync configuration.
 -->
-podman commit qd iqdx
+sudo podman commit qd iqdx
 
 ### Run container this time without port forwarding the ssh port
 <!-- 
@@ -102,14 +102,14 @@ Crucially, port 22 (SSH) is no longer forwarded from the host.
 SSH was only needed for the initial setup by 'pvecm qdevice setup'. 
 The Qdevice now communicates primarily over port 5403 for Corosync.
 -->
-podman run -d --name=qdx --cap-drop=ALL --privileged -p 5403:5403 -v /etc/corosync:/etc/corosync iqdx
+sudo podman run -d --name=qdx --cap-drop=ALL --privileged -p 5403:5403 -v /etc/corosync:/etc/corosync iqdx
 
 ### Re-enable sshd on the host
 <!-- 
 Now that the container no longer needs port 22 on the host, the host's SSH daemon can be restarted, 
 restoring normal SSH access to the Qdevice host machine.
 -->
-systemctl start sshd
+sudo systemctl start sshd
 
 ## On Node 1 - In case pvecm qdevice setup don't work  
 <!-- 
