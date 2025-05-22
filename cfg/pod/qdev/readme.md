@@ -79,18 +79,22 @@ If starting sshd fails with a permission error for /run/sshd, run these commands
   chmod 0755 /run/sshd
 -->
 sudo podman exec -ti qd bash  
+
 # Inside the container's shell, type the following:
-# su
-# service ssh start
-#
-# If sshd fails to start due to /run/sshd permissions, run as root:
+
+su
+service ssh start
+
+<!--  If sshd fails to start due to /run/sshd permissions, run as root:
 # mkdir -p /run/sshd
 # chown root:root /run/sshd
 # chmod 0755 /run/sshd
-# service ssh start
-#
-# Once sshd is running, you can type 'exit' to leave the su session, 
-# and 'exit' again to leave the container's bash shell.
+-->
+
+service ssh start
+
+<!-- Once sshd is running, you can type 'exit' to leave the su session, 
+and 'exit' again to leave the container's bash shell -->
 
 ## On Nodes 
 <!-- 
