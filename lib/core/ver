@@ -46,8 +46,8 @@ debug_log() {
     # Format for file logging remains unchanged or can be adjusted if needed
     echo "[DEBUG] $(date '+%Y-%m-%d %H:%M:%S') - [$source] $message" >> "$LOG_DEBUG_FILE"
 
-    # Conditionally output to stderr
-    if [[ "${SYSTEM_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+    # Conditionally output to stderr based on both system and specific debug verbosity
+    if [[ "${SYSTEM_TERMINAL_VERBOSITY:-on}" == "on" && "${DEBUG_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
         echo "    └─ $message [$timestamp]" >&2
     fi
 }

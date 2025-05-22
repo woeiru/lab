@@ -61,8 +61,8 @@ debug_log() {
     # Always log to file
     mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
     echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
-    # Conditionally output to stderr
-    if [[ "${SYSTEM_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+    # Conditionally output to stderr based on both system and specific debug verbosity
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${DEBUG_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
         echo "└─ $message [$timestamp]" >&2
     fi
 }
