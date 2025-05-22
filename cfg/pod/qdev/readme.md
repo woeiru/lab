@@ -201,7 +201,8 @@ This command is run on each Proxmox VE node to configure them to use the Qdevice
 - '<IP QDEVICE HOST>': Replace this with the actual IP address of the host running the Qdevice container.
 - '-f': Forces the operation, potentially overwriting existing configurations.
 -->
-pvecm qdevice setup <IP QDEVICE HOST> -f
+qdevice_ip="<IP QDEVICE HOST>"
+pvecm qdevice setup "$qdevice_ip" -f 
 
 ## On Qdevice Host
 
@@ -237,7 +238,7 @@ often due to SSH host key mismatches or missing keys.
 The variables 'node2_ip' and 'qdevice_ip' should be set to the correct IP addresses.
 The following commands assume you are operating as the root user on the Proxmox VE node.
 -->
-qdevice_ip="<IP QDEVICE HOST>"
+
 node2_ip="<IP CLUSTER NODE 2>"  
 
 ### On Node 1 - Step 1: Remove existing host keys  
