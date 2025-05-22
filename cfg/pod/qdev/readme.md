@@ -237,8 +237,8 @@ often due to SSH host key mismatches or missing keys.
 The variables 'node2_ip' and 'qdevice_ip' should be set to the correct IP addresses.
 The following commands assume you are operating as the root user on the Proxmox VE node.
 -->
-node2_ip="192.168.178.222"  
-qdevice_ip="192.168.178.223"  
+node2_ip="<IP CLUSTER NODE 2>"  
+qdevice_ip="<IP QDEVICE HOST>"  
 
 ### Step 1: Remove existing host keys  
 <!-- 
