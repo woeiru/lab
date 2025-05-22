@@ -106,51 +106,25 @@ gpu-pt3() {
     blacklist_conf="/etc/modprobe.d/blacklist.conf"
 
     if [ "$action" == "enable" ]; then
-        set -x # ADDED FOR DEBUGGING
         # Enable GPU passthrough
 
-        echo "DEBUG: About to run dmesg | grep -i vfio"
         dmesg | grep -i vfio
-        echo "DEBUG: Finished dmesg | grep -i vfio. Exit status: $?"
-
-        echo "DEBUG: About to run dmesg | grep 'remapping'"
         dmesg | grep 'remapping'
-        echo "DEBUG: Finished dmesg | grep 'remapping'. Exit status: $?"
 
-        # MODIFIED SECTION TO DEBUG LSPCI HANG
+        # List NVIDIA and AMD devices using a temporary file for robustness
         LSPCI_TEMP_OUTPUT="/tmp/lspci_output.txt"
-        echo "DEBUG: About to run lspci -nn > $LSPCI_TEMP_OUTPUT"
-        lspci -nn > "$LSPCI_TEMP_OUTPUT"
-        LSPCI_EXIT_STATUS=$?
-        echo "DEBUG: Finished lspci -nn > $LSPCI_TEMP_OUTPUT. Exit status: $LSPCI_EXIT_STATUS"
-
-        if [ $LSPCI_EXIT_STATUS -eq 0 ]; then
-            echo "DEBUG: About to run grep 'NVIDIA' $LSPCI_TEMP_OUTPUT"
+        if lspci -nn > "$LSPCI_TEMP_OUTPUT"; then
             grep 'NVIDIA' "$LSPCI_TEMP_OUTPUT"
-            echo "DEBUG: Finished grep 'NVIDIA' $LSPCI_TEMP_OUTPUT. Exit status: $?"
-
-            echo "DEBUG: About to run grep 'AMD' $LSPCI_TEMP_OUTPUT"
             grep 'AMD' "$LSPCI_TEMP_OUTPUT"
-            echo "DEBUG: Finished grep 'AMD' $LSPCI_TEMP_OUTPUT. Exit status: $?"
         else
-            echo "DEBUG: lspci -nn failed with exit status $LSPCI_EXIT_STATUS, skipping greps."
+            echo "Error: lspci -nn command failed. Cannot list PCI devices."
         fi
-        
-        if [ -f "$LSPCI_TEMP_OUTPUT" ]; then
-            rm -f "$LSPCI_TEMP_OUTPUT"
-            echo "DEBUG: Removed $LSPCI_TEMP_OUTPUT"
-        else
-            echo "DEBUG: $LSPCI_TEMP_OUTPUT was not created or already removed."
-        fi
-        # END OF MODIFIED SECTION
+        [ -f "$LSPCI_TEMP_OUTPUT" ] && rm -f "$LSPCI_TEMP_OUTPUT"
 
-        echo "DEBUG: Checking for $vfio_conf"
         # Configure VFIO
         if [ ! -f "$vfio_conf" ]; then
-            echo "DEBUG: $vfio_conf not found. About to prompt for IDs."
             # Prompt for the IDs input in the format ****:****,****:****
             read -p "Please enter the IDs in the format ****:****,****:****: " ids_input
-            echo "DEBUG: read command finished. ids_input is: '$ids_input'"
 
             # Split the IDs based on comma
             IFS=',' read -ra id_list <<< "$ids_input"
@@ -169,8 +143,6 @@ gpu-pt3() {
 
             # Append the line into the file
             echo "$options_line" >> "$vfio_conf"
-        else
-            echo "DEBUG: $vfio_conf was found."
         fi
 
         # Blacklist GPU drivers
@@ -178,7 +150,6 @@ gpu-pt3() {
         echo "blacklist amdgpu" >> "$blacklist_conf"
 
         aux-nos "$function_name" "Completed section 3 (enable mode), system will reboot now."
-        set +x # REMOVE DEBUGGING TRACE
     else
         # Disable GPU passthrough
 
