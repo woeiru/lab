@@ -16,6 +16,14 @@ allowing the container to use it for initial communication with the Proxmox VE n
 -->
 systemctl stop sshd
 
+### Navigate to the Qdevice configuration directory
+<!--
+It's important to be in the directory containing the Containerfile and other necessary build context
+before running the podman build command. This ensures that Podman can find all the required files.
+The $LAB_DIR environment variable should be set to your lab's base directory.
+-->
+cd $LAB_DIR/cfg/pod/qdev
+
 ### Build container
 <!-- 
 This command builds a Podman container image named 'iq' using a Dockerfile format (specified by --format docker) 
