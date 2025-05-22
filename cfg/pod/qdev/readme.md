@@ -10,6 +10,24 @@ that might arise when connecting Proxmox VE nodes to the Qdevice.
 
 **Static IP Address for Qdevice Host:** The host machine for the Qdevice *must* have a static IP address or a DHCP reservation to ensure its IP address does not change. This is critical for stable communication with the Proxmox VE cluster.
 
+**Proxmox VE Nodes:**
+Ensure the `corosync-qnetd` package is installed on all Proxmox VE nodes in the cluster. You can typically install it using:
+```bash
+sudo apt update
+sudo apt install corosync-qnetd
+```
+
+**Qdevice Host:**
+Ensure the `corosync-qdevice` package is installed on the Qdevice host. The installation command will depend on the host's operating system. For example, on a system using `apt` (like Debian/Ubuntu):
+```bash
+sudo apt update
+sudo apt install corosync-qdevice
+```
+Or on a system using `zypper` (like SUSE):
+```bash
+sudo zypper install corosync-qdevice
+```
+
 **Setting a Static IP on SUSE Linux with NetworkManager (e.g., for interface `enp3s0` to `192.168.178.223`):**
 
 If your SUSE Linux system uses NetworkManager, you can configure a static IP address using `nmtui` (a text-based user interface) or `nmcli` (the command-line interface).
