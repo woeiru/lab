@@ -126,3 +126,9 @@ export GENERATION_FOLDERS
 # Flag to indicate constants are loaded
 declare -g CONS_LOADED=1
 export CONS_LOADED
+
+# Controls whether scripts output verbose messages to the terminal.
+# Set to "on" for verbose output, "off" for quiet terminal.
+# File logging is generally unaffected by this setting.
+declare -g SYSTEM_TERMINAL_VERBOSITY="on"
+export SYSTEM_TERMINAL_VERBOSITY
