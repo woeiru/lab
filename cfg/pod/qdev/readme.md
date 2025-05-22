@@ -4,6 +4,8 @@
 This guide details the configuration of a Qdevice (quorum device) host using Podman containers. 
 It covers initial setup, container creation, cluster integration, and troubleshooting steps for SSH connectivity issues 
 that might arise when connecting Proxmox VE nodes to the Qdevice.
+
+**Prerequisite:** The host machine for the Qdevice should have a static IP address or a DHCP reservation to ensure its IP address does not change. This is critical for stable communication with the Proxmox VE cluster.
 -->
 
 ## On qdevice host
