@@ -106,20 +106,32 @@ gpu-pt3() {
     blacklist_conf="/etc/modprobe.d/blacklist.conf"
 
     if [ "$action" == "enable" ]; then
+        set -x # ADDED FOR DEBUGGING
         # Enable GPU passthrough
 
-        # Check for vfio-related logs in kernel messages
+        echo "DEBUG: About to run dmesg | grep -i vfio"
         dmesg | grep -i vfio
+        echo "DEBUG: Finished dmesg | grep -i vfio. Exit status: $?"
+
+        echo "DEBUG: About to run dmesg | grep 'remapping'"
         dmesg | grep 'remapping'
+        echo "DEBUG: Finished dmesg | grep 'remapping'. Exit status: $?"
 
-        # List NVIDIA and AMD devices
+        echo "DEBUG: About to run lspci -nn | grep 'NVIDIA'"
         lspci -nn | grep 'NVIDIA'
-        lspci -nn | grep 'AMD'
+        echo "DEBUG: Finished lspci -nn | grep 'NVIDIA'. Exit status: $?"
 
+        echo "DEBUG: About to run lspci -nn | grep 'AMD'"
+        lspci -nn | grep 'AMD'
+        echo "DEBUG: Finished lspci -nn | grep 'AMD'. Exit status: $?"
+
+        echo "DEBUG: Checking for $vfio_conf"
         # Configure VFIO
         if [ ! -f "$vfio_conf" ]; then
+            echo "DEBUG: $vfio_conf not found. About to prompt for IDs."
             # Prompt for the IDs input in the format ****:****,****:****
             read -p "Please enter the IDs in the format ****:****,****:****: " ids_input
+            echo "DEBUG: read command finished. ids_input is: '$ids_input'"
 
             # Split the IDs based on comma
             IFS=',' read -ra id_list <<< "$ids_input"
@@ -138,6 +150,8 @@ gpu-pt3() {
 
             # Append the line into the file
             echo "$options_line" >> "$vfio_conf"
+        else
+            echo "DEBUG: $vfio_conf was found."
         fi
 
         # Blacklist GPU drivers
@@ -145,6 +159,7 @@ gpu-pt3() {
         echo "blacklist amdgpu" >> "$blacklist_conf"
 
         aux-nos "$function_name" "Completed section 3 (enable mode), system will reboot now."
+        set +x # REMOVE DEBUGGING TRACE
     else
         # Disable GPU passthrough
 
