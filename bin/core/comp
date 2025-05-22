@@ -46,7 +46,7 @@ source_helper() {
 
     # Verify the file exists
     if [[ ! -f "$file" ]]; then
-        log "lvl" " Warning: File $description ($file) not found." # Removed tee and stderr redirection, assume log handles it
+        log "lvl" " Warning: File $description ($file) not found."
         handle_error "File not found: $file" "source_helper" "${ERROR_CODES[FILE_NOT_FOUND]}" "WARNING"
         tme_end_timer "source_$description"
         return 1
@@ -54,15 +54,15 @@ source_helper() {
 
     # Verify the file is readable
     if [[ ! -r "$file" ]]; then
-        log "lvl" " Warning: File $description ($file) is not readable." # Removed tee and stderr redirection
+        log "lvl" " Warning: File $description ($file) is not readable."
         handle_error "File not readable: $file" "source_helper" "${ERROR_CODES[PERMISSION_DENIED]}" "WARNING"
-        tme_end_timer "source_$description" # Added missing tme_end_timer
+        tme_end_timer "source_$description"
         return 1
     fi
 
     # Verify temp directory exists and is writable
     if [[ ! -d "$temp_dir" ]] || [[ ! -w "$temp_dir" ]]; then
-        log "lvl" " Error: Temporary directory $temp_dir is not available or writable" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Error: Temporary directory $temp_dir is not available or writable"
         error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
         tme_end_timer "source_$description"
         return 1
@@ -70,14 +70,14 @@ source_helper() {
 
     # Source the file and capture any errors
     if source "$file" 2>"$temp_error"; then
-        log "lvl" "Successfully sourced: $description" | tee -a "$ERROR_LOG"
+        log "lvl" "Successfully sourced: $description"
         tme_end_timer "source_$description" "success"
         rm -f "$temp_error"
         return 0
     else
         local error_output
         error_output=$(cat "$temp_error")
-        log "lvl" " Error sourcing $description: $error_output" | tee -a "$ERROR_LOG" >&2
+        log "lvl" "Error sourcing $description: $error_output"
         rm -f "$temp_error"
         error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
         tme_end_timer "source_$description" "error"
@@ -93,10 +93,10 @@ source_directory() {
     local return_value=0
 
     tme_start_timer "dir_$description"
-    log "lvl" "Sourcing $description: $dir" | tee -a "$ERROR_LOG"
+    log "lvl" "Sourcing $description: $dir"
 
     if [[ ! -d "$dir" ]]; then
-        log "lvl" " Warning: Directory $dir not found. Skipping." | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Warning: Directory $dir not found. Skipping."
         tme_end_timer "dir_$description"
         return 1
     fi
@@ -108,7 +108,7 @@ source_directory() {
     done < <(find "$dir" -maxdepth 1 -type f -name "$pattern" -print0 | sort -z)
 
     if [[ ${#files[@]} -eq 0 ]]; then
-        log "lvl" " Warning: No matching files found in $dir for pattern '$pattern'" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Warning: No matching files found in $dir for pattern '$pattern'"
         tme_end_timer "dir_$description"
         return 1 # Or 0 if not finding files is acceptable
     fi
@@ -122,10 +122,10 @@ source_directory() {
     done
 
     if ((success_count == 0 && ${#files[@]} > 0)); then # Only warn if files were found but none sourced
-        log "lvl" " Warning: No files were successfully sourced from $dir" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Warning: No files were successfully sourced from $dir"
         return_value=1
     else
-        log "lvl" "Successfully sourced $success_count files from $dir" | tee -a "$ERROR_LOG"
+        log "lvl" "Successfully sourced $success_count files from $dir"
         return_value=0
     fi
 
@@ -142,25 +142,25 @@ execute_component() {
     local return_value=0
 
     tme_start_timer "$component"
-    log "lvl" " Executing component: $component ..." | tee -a "$ERROR_LOG"
+    log "lvl" " Executing component: $component ..."
 
     if ! type "$func" &>/dev/null; then
-        log "lvl" " Error: Function $func not found for component $component" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " Error: Function $func not found for component $component"
         error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$([[ $required -eq 0 ]] && echo true || echo false)"
         return_value=1
     elif "$func"; then
         export "$success_var=1"
-        log "lvl" " Component $component completed successfully" | tee -a "$ERROR_LOG"
+        log "lvl" " Component $component completed successfully"
         return_value=0
     else
         unset "$success_var"
         local msg="Component $component failed"
         if ((required)); then
-            log "lvl" " Error: $msg" | tee -a "$ERROR_LOG" >&2
+            log "lvl" " Error: $msg"
             error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
             return_value=1
         else
-            log "lvl" " Warning: $msg (optional component)" | tee -a "$ERROR_LOG" >&2
+            log "lvl" " Warning: $msg (optional component)"
             error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
             return_value=0
         fi
@@ -215,12 +215,12 @@ source_cfg_ali() {
 }
 
 setup_components() {
-    log "lvl" "Validating and executing component configuration..." | tee -a "$ERROR_LOG"
-    log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG"
+    log "lvl" "Validating and executing component configuration..."
+    log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
     
     # Check if required functions exist
-    type tme_print_timing_report &>/dev/null || log "lvl" "WARNING: tme_print_timing_report function not found" | tee -a "$ERROR_LOG" >&2
-    type print_error_report &>/dev/null || log "lvl" "WARNING: print_error_report function not found" | tee -a "$ERROR_LOG" >&2
+    type tme_print_timing_report &>/dev/null || log "lvl" "WARNING: tme_print_timing_report function not found"
+    type print_error_report &>/dev/null || log "lvl" "WARNING: print_error_report function not found"
 
     local components=(
         "source_cfg_ali:CFG_ALI:0"
@@ -231,7 +231,7 @@ setup_components() {
         "source_lib_dep:LIB_DEP:0"
     )
 
-    log "lvl" "Executing component functions..." | tee -a "$ERROR_LOG"
+    log "lvl" "Executing component functions..."
 
     local failed_required=0
     for component_def in "${components[@]}"; do
@@ -239,7 +239,7 @@ setup_components() {
         if ! execute_component "$func" "$name" "$required"; then
             if ((required)); then
                 failed_required=1
-                log "lvl" " Required component $name ($func) failed. Halting further component setup." | tee -a "$ERROR_LOG" >&2
+                log "lvl" " Required component $name ($func) failed. Halting further component setup."
                 break
             fi
         fi
@@ -247,14 +247,14 @@ setup_components() {
 
     if ((failed_required)); then
         unset RC_SOURCED
-        log "lvl" " RC initialization failed: required component(s) failed" | tee -a "$ERROR_LOG" >&2
-        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG" >&2
+        log "lvl" " RC initialization failed: required component(s) failed"
+        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
         type print_error_report &>/dev/null && print_error_report
         return 1
     else
         export RC_SOURCED=1
-        log "lvl" " RC initialization completed successfully" | tee -a "$ERROR_LOG"
-        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}" | tee -a "$ERROR_LOG"
+        log "lvl" " RC initialization completed successfully"
+        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
         type print_error_report &>/dev/null && print_error_report
         return 0
     fi

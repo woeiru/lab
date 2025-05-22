@@ -229,7 +229,6 @@ log() {
     local message="$2"
     local log_enabled
     log_enabled=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "on")  # Changed "true" to "on"
-    [[ "$log_enabled" != "on" ]] && return 0  # Changed "true" to "on"
 
     local depth
     depth=$(calculate_final_depth)
@@ -240,21 +239,26 @@ log() {
     local timestamp
     timestamp=$(date '+%H:%M:%S.%2N') # Modified to include milliseconds
 
-    if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
-        printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" | tee -a "$LOG_FILE"
-    else
-        printf "%s%s %s [%s]%s\n" \
-            "$color" \
-            "$indent" \
-            "$message" \
-            "$timestamp" \
-            "$LOG_NC" | tee -a "$LOG_FILE"
+    # 1. Log to file if lo1 logging is enabled
+    if [[ "$log_enabled" == "on" ]]; then
+        if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
+            printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" >> "$LOG_FILE"
+        else
+            printf "%s%s %s %s%s\n" "$indent" "$color" "$timestamp" "$message" "$LOG_NC" >> "$LOG_FILE"
+        fi
     fi
 
-    [[ "${LOG_DEBUG_ENABLED}" == "1" ]] && {
-        lo1_debug_log "Logged message at depth $depth: $message" "log"
-        dump_stack_trace
-    }
+    # 2. Conditionally log to terminal
+    #    Respects both lo1's own state (setlog on/off) and the global verbosity
+    if [[ "$log_enabled" == "on" && "${SYSTEM_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
+            printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" # Output to stdout
+        else
+            printf "%s%s %s %s%s\n" "$indent" "$color" "$timestamp" "$message" "$LOG_NC" >&2 # Output to stderr
+        fi
+    fi
+
+    [[ "${LOG_DEBUG_ENABLED}" == "1" ]] && { lo1_debug_log "Logged: $message (Depth: $depth)" "log"; dump_stack_trace "log"; }
 }
 
 # Logger control
