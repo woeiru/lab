@@ -14,7 +14,7 @@
 #
 # Dependencies: Relies on 'verify_module' for module integrity checks.
 #               Uses environment variables such as LOG_DIR, TMP_DIR,
-#               LOG_DEBUG_ENABLED, LOG_DEBUG_FILE, and LOG_STATE_FILE.
+#               LOG_DEBUG_ENABLED, LOG_DEBUG_FILE, LOG_STATE_FILE, and LOG_FILE.
 #
 # Usage:       Sourced by other modules and scripts for consistent logging.
 #              Use 'setlog on|off' to enable or disable logging output to console.
@@ -266,11 +266,15 @@ setlog() {
     case "$1" in
         "off")
             echo "off" > "$LOG_STATE_FILE"  # Changed "false" to "off"
-            printf "%s      └─ Logging disabled%s\n" "$LOG_NC"
+            if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+                printf "%s      └─ Logging disabled%s\n" "$LOG_NC"
+            fi
             ;;
         "on")
             echo "on" > "$LOG_STATE_FILE"   # Changed "true" to "on"
-            printf "%s      └─ Logging enabled%s\n" "$LOG_NC"
+            if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+                printf "%s      └─ Logging enabled%s\n" "$LOG_NC"
+            fi
             ;;
         *)
             printf "Usage: setlog on|off\n"
