@@ -127,8 +127,20 @@ export GENERATION_FOLDERS
 declare -g CONS_LOADED=1
 export CONS_LOADED
 
-# Controls whether scripts output verbose messages to the terminal.
+# Master switch for all terminal output.
 # Set to "on" for verbose output, "off" for quiet terminal.
 # File logging is generally unaffected by this setting.
-declare -g SYSTEM_TERMINAL_VERBOSITY="on"
-export SYSTEM_TERMINAL_VERBOSITY
+declare -g MASTER_TERMINAL_VERBOSITY="off"
+export MASTER_TERMINAL_VERBOSITY
+
+# Controls terminal verbosity for early init and verification debug_log
+# Set to "on" for verbose output, "off" for quiet terminal.
+# Requires MASTER_TERMINAL_VERBOSITY to also be "on".
+declare -g DEBUG_LOG_TERMINAL_VERBOSITY="on"
+export DEBUG_LOG_TERMINAL_VERBOSITY
+
+# Controls terminal verbosity for the lo1 advanced logging module
+# Set to "on" for verbose output, "off" for quiet terminal.
+# Requires MASTER_TERMINAL_VERBOSITY to also be "on".
+declare -g LO1_LOG_TERMINAL_VERBOSITY="on"
+export LO1_LOG_TERMINAL_VERBOSITY
