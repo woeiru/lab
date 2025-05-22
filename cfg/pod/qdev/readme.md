@@ -275,6 +275,18 @@ This enables passwordless SSH authentication from Node 1 to these machines, whic
 ssh-copy-id root@"$qdevice_ip"  
 ssh-copy-id root@"$node2_ip"  
 
+### Step 5: Retry Qdevice Setup on Node 1
+<!--
+After completing the above troubleshooting steps for Node 1, attempt the Qdevice setup command again on Node 1
+to verify if the issue is resolved. Ensure the 'qdevice_ip' variable is correctly set to your Qdevice's IP address.
+-->
+pvecm qdevice setup "$qdevice_ip" -f
+
+<!--
+- If this command succeeds on Node 1: Great! You will then need to ensure the same setup command is run on Node 2. If Node 2 also failed previously or you anticipate issues, proceed to the "On Node 2 - In case pvecm qdevice setup don't work" section for Node 2 before running the setup command there.
+- If this command still fails on Node 1: Review the output carefully. You may need to re-check the previous troubleshooting steps or investigate new error messages.
+-->
+
 ## On Node 2 - In case pvecm qdevice setup don't work  
 <!-- 
 This section mirrors the troubleshooting steps for Node 1, but performed on Node 2, targeting Node 1 and the Qdevice host.
