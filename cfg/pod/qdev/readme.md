@@ -235,6 +235,7 @@ sudo systemctl start sshd
 This section provides troubleshooting steps if the 'pvecm qdevice setup' command fails on Node 1, 
 often due to SSH host key mismatches or missing keys. 
 The variables 'node2_ip' and 'qdevice_ip' should be set to the correct IP addresses.
+The following commands assume you are operating as the root user on the Proxmox VE node.
 -->
 node2_ip="192.168.178.222"  
 qdevice_ip="192.168.178.223"  
@@ -277,6 +278,7 @@ ssh-copy-id root@"$qdevice_ip"
 <!-- 
 This section mirrors the troubleshooting steps for Node 1, but performed on Node 2, targeting Node 1 and the Qdevice host.
 The variables 'node1_ip' and 'qdevice_ip' should be set to the correct IP addresses.
+The following commands assume you are operating as the root user on the Proxmox VE node.
 -->
 node1_ip="192.168.178.210"  
 qdevice_ip="192.168.178.230"  
