@@ -128,8 +128,11 @@ cd $LAB_DIR/cfg/pod/qdev
 <!-- 
 This command builds a Podman container image named 'iq' using a Dockerfile format (specified by --format docker) 
 located in the current directory (.). This image will contain the necessary software for the Qdevice.
+
+**Note:** The `sudo` prefix is required because mapping privileged ports (such as port 22 for SSH) to the container 
+requires elevated permissions. Without `sudo`, Podman cannot bind to ports below 1024, which are reserved for the root user.
 -->
-podman build . -t iq --format docker
+sudo podman build . -t iq --format docker
 
 ### Create corosync folder if it not exists and set permissions
 <!-- 
