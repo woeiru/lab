@@ -283,7 +283,8 @@ load_modules() {
         debug_log "Processing module: $module_name"
 
         if [[ "$module_name" == "lo2" ]]; then
-            echo "INIT_SCRIPT_FLOW: About to source lo2 - $(date '+%T.%N')" >> "/home/es/lab/.log/init_flow.log"
+            mkdir -p "${BASE_DIR}/.log" # Ensure directory exists
+            echo "INIT_SCRIPT_FLOW: About to source lo2 - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
         fi
 
         # Using verify_module and validate_module from ver
@@ -296,7 +297,8 @@ load_modules() {
             if source "$module" 2>/dev/null; then
                 debug_log "Successfully loaded module: $module_name"
                 if [[ "$module_name" == "lo2" ]]; then
-                    echo "INIT_SCRIPT_FLOW: Sourced lo2, about to call setlogcontrol on - $(date '+%T.%N')" >> "/home/es/lab/.log/init_flow.log"
+                    mkdir -p "${BASE_DIR}/.log" # Ensure directory exists
+                    echo "INIT_SCRIPT_FLOW: Sourced lo2, about to call setlogcontrol on - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
                 fi
                 loaded_modules[$module_name]=1
                 ((module_loaded++))
@@ -306,7 +308,8 @@ load_modules() {
         fi
     done
 
-    echo "INIT_SCRIPT_FLOW: Finished module loading loop in init - $(date '+%T.%N')" >> "/home/es/lab/.log/init_flow.log"
+    mkdir -p "${BASE_DIR}/.log" # Ensure directory exists
+    echo "INIT_SCRIPT_FLOW: Finished module loading loop in init - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
 
     return $((module_loaded > 0 ? 0 : 1))
 }
