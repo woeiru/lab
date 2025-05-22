@@ -144,3 +144,15 @@ export DEBUG_LOG_TERMINAL_VERBOSITY
 # Requires MASTER_TERMINAL_VERBOSITY to also be "on".
 declare -g LO1_LOG_TERMINAL_VERBOSITY="on"
 export LO1_LOG_TERMINAL_VERBOSITY
+
+# Controls terminal verbosity for the err error handling module
+# Set to "on" for verbose output, "off" for quiet terminal.
+# Requires MASTER_TERMINAL_VERBOSITY to also be "on".
+declare -g ERR_TERMINAL_VERBOSITY="on"
+export ERR_TERMINAL_VERBOSITY
+
+# Controls terminal verbosity for the tme timing module (specifically the report)
+# Set to "on" for verbose output, "off" for quiet terminal.
+# Requires MASTER_TERMINAL_VERBOSITY to also be "on".
+declare -g TME_TERMINAL_VERBOSITY="on"
+export TME_TERMINAL_VERBOSITY
