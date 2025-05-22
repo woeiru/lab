@@ -27,7 +27,7 @@ If your SUSE Linux system uses NetworkManager, you can configure a static IP add
     sudo systemctl start NetworkManager
     ```
 
-2.  **Configure Static IP using `nmtui` (Recommended for ease of use):**
+2.1  **Configure Static IP using `nmtui` (Recommended for ease of use):**
     *   Open the text-based network configuration tool:
         ```bash
         sudo nmtui
@@ -49,7 +49,7 @@ If your SUSE Linux system uses NetworkManager, you can configure a static IP add
         ```
         (Replace `<connection_name>` with the name of your connection, often the same as the interface name like `enp3s0`).
 
-3.  **Configure Static IP using `nmcli` (Command-line alternative):**
+2.2  **Configure Static IP using `nmcli` (Command-line alternative):**
     Replace `enp3s0` with your actual interface name and `192.168.178.1` with your actual gateway and DNS server(s) if different.
     ```bash
     # Set the static IP address, prefix, and gateway
@@ -69,7 +69,7 @@ If your SUSE Linux system uses NetworkManager, you can configure a static IP add
     # sudo systemctl restart NetworkManager
     ```
 
-3.5. **Set Default Route (if not automatically configured by NetworkManager):**
+3.  **Set Default Route (if not automatically configured by NetworkManager):**
     In most cases, NetworkManager should set the default route based on the `ipv4.gateway` setting. However, if you find that the default route is missing after applying the changes in step 3, you can add it manually.
     Replace `192.168.178.1` with your actual gateway IP and `enp3s0` with your actual interface name (e.g., `wlp4s0` from your example).
     ```bash
