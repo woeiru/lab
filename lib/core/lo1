@@ -223,7 +223,7 @@ get_color() {
 }
 
 # Main logging function
-# Update log function to use lo1_debug_log
+# Update log function to use LO1_LOG_TERMINAL_VERBOSITY
 log() {
     [[ "$1" != "lvl" ]] && { echo "Error: Invalid log command" >&2; return 1; }
     local message="$2"
@@ -249,8 +249,8 @@ log() {
     fi
 
     # 2. Conditionally log to terminal
-    #    Respects both lo1's own state (setlog on/off) and the global verbosity
-    if [[ "$log_enabled" == "on" && "${SYSTEM_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+    #    Respects lo1's own state (setlog on/off), global verbosity, and lo1-specific verbosity
+    if [[ "$log_enabled" == "on" && "${SYSTEM_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
         if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
             printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" # Output to stdout
         else
