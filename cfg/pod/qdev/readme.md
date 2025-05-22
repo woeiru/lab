@@ -62,19 +62,35 @@ This command starts the Qdevice container:
 - '-p 22:22': Maps port 22 of the host to port 22 of the container (for SSH).
 - '-p 5403:5403': Maps port 5403 of the host to port 5403 of the container (for Corosync communication).
 - '-v /etc/corosync:/etc/corosync': Mounts the host's '/etc/corosync' directory into the container at the same path, allowing persistent storage for Corosync configuration.
+- 'localhost/iq': Specifies the locally built image to use for the container.
 -->
-sudo podman run -d --name=qd --cap-drop=ALL --privileged -p 22:22 -p 5403:5403 -v /etc/corosync:/etc/corosync iq
+sudo podman run -d --name=qd --cap-drop=ALL --privileged -p 22:22 -p 5403:5403 -v /etc/corosync:/etc/corosync localhost/iq
 
 ### Enable sshd as Su inside container
 <!-- 
 These commands are executed inside the running 'qd' container:
-- 'podman exec -ti qd bash': Opens an interactive bash shell inside the 'qd' container.
-- 'su': Switches to the superuser (root) within the container.
+- 'sudo podman exec -ti qd bash': Opens an interactive bash shell inside the 'qd' container.
+  The following commands are then run *inside this shell*.
+- 'su': Switches to the superuser (root) within the container. You might be prompted for the root password (which is 'password' as set in the Containerfile).
 - 'service ssh start': Starts the SSH daemon inside the container. This is necessary for the Proxmox VE nodes to connect to the Qdevice for the initial setup.
+If starting sshd fails with a permission error for /run/sshd, run these commands as root before trying to start the service again:
+  mkdir -p /run/sshd
+  chown root:root /run/sshd
+  chmod 0755 /run/sshd
 -->
 sudo podman exec -ti qd bash  
-su  
-service ssh start
+# Inside the container's shell, type the following:
+# su
+# service ssh start
+#
+# If sshd fails to start due to /run/sshd permissions, run as root:
+# mkdir -p /run/sshd
+# chown root:root /run/sshd
+# chmod 0755 /run/sshd
+# service ssh start
+#
+# Once sshd is running, you can type 'exit' to leave the su session, 
+# and 'exit' again to leave the container's bash shell.
 
 ## On Nodes 
 <!-- 
