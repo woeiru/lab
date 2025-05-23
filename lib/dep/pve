@@ -38,6 +38,7 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 pve-fun() {
     aux-laf "$FILEPATH_pve" "$@"
 }
+
 # Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 # 
@@ -70,6 +71,11 @@ pve-dsr() {
 # remove sub notice
 #   
 pve-rsn() {
+
+    # This function removes the Proxmox subscription notice.
+    # It modifies the '/usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js' file.
+    # It also prompts the user to restart the 'pveproxy.service'.
+
     local function_name="${FUNCNAME[0]}"
     sed -Ezi.bak "s/(Ext\.Msg\.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
 
@@ -86,6 +92,10 @@ pve-rsn() {
 # container list update
 #  
 pve-clu() {
+
+    # This function updates the Proxmox VE Appliance Manager (pveam) container template list.
+    # It executes 'pveam update'.
+
     local function_name="${FUNCNAME[0]}"
 
     	pveam update
@@ -97,6 +107,10 @@ pve-clu() {
 # container downloads
 #   
 pve-cdo() {
+
+    # This function downloads a specified container template to a given storage location.
+    # It uses 'pveam download' and handles errors, offering to list available templates or retry with a different one.
+
     local function_name="${FUNCNAME[0]}"
     local ct_dl_sto="$1"
     local ct_dl="$2"
@@ -133,6 +147,7 @@ pve-cdo() {
 # container bindmount
 # <vmid> <mphost> <mpcontainer>
 pve-cbm() {
+
     local function_name="${FUNCNAME[0]}"
     local vmid="$1"
     local mphost="$2"
@@ -164,6 +179,10 @@ pve-cbm() {
 # container create
 # <passed global variables>
 pve-ctc() {
+
+    # This function sets up different containers based on provided parameters.
+    # It uses 'pct create' with various options like hostname, storage, memory, network, and SSH keys.
+
     local id="$1"
     local template="$2"
     local hostname="$3"
@@ -209,6 +228,11 @@ pve-ctc() {
 # container toggle
 # <start|stop|enable|disable> <containers|all>
 pve-cto() {
+
+    # This function manages multiple Proxmox containers (start, stop, enable, disable).
+    # It can operate on individual container IDs, ranges of IDs, or all containers.
+    # For 'enable'/'disable', it modifies the 'onboot' setting in the container's configuration file.
+
     local action=$1
     shift
     
@@ -279,6 +303,12 @@ pve-cto() {
 # Usage: pve-vmd <operation> <vm_id> [<vm_id2> ...]
 # Operations: add, remove, debug
 pve-vmd() {
+
+    # This function manages Proxmox VE VM shutdown hooks, specifically for GPU reattachment.
+    # It supports adding a hook to a VM, removing it, or debugging the hook setup.
+    # The hook script itself is a Perl script that logs its execution and,
+    # in the 'post-stop' phase, attempts to reattach a GPU by calling another script (gpu-pta).
+    
     local function_name="${FUNCNAME[0]}"
     local hook_script="/var/lib/vz/snippets/gpu-reattach-hook.pl"
     local operation="$1"
@@ -286,13 +316,14 @@ pve-vmd() {
 
     echo "Debug: Operation: $operation, VM ID: $vm_id"
 
-    # Validate operation
+    # Validate the provided operation.
     if [[ ! "$operation" =~ ^(add|remove|debug)$ ]]; then
         echo "Error: Invalid operation. Use 'add', 'remove', or 'debug'."
         return 1
     fi
 
-    # Check if /var/lib/vz/snippets exists, create if not
+    # Ensure the directory for Proxmox snippets exists, creating it if necessary.
+    # This directory is where the hook script will be stored.
     if [ ! -d "/var/lib/vz/snippets" ]; then
         echo "Creating /var/lib/vz/snippets directory..."
         if ! mkdir -p "/var/lib/vz/snippets"; then
@@ -301,7 +332,9 @@ pve-vmd() {
         fi
     fi
 
-    # Function to create or update hook script
+    # Defines an inner function to create or update the GPU reattachment hook script.
+    # The script is written in Perl and logs its activity.
+    # On VM 'post-stop', it executes 'gpu-pta' to handle GPU reattachment.
     create_or_update_hook_script() {
         if ! cat > "$hook_script" << EOL
 #!/usr/bin/perl
@@ -385,6 +418,10 @@ EOL
 # virtual machine create
 # <passed global variables>
 pve-vmc() {
+
+    # This function sets up different virtual machines based on provided parameters.
+    # It uses 'qm create' with options like name, OS type, ISO, boot order, memory, and network.
+
     local id="$1"
     local name="$2"
     local ostype="$3"
@@ -426,7 +463,13 @@ pve-vmc() {
 # vm start get shutdown
 # <vm_id> [s: optional, shutdown other node]
 pve-vms() {
+
+    # This function starts a VM on the current node or migrates it from another node.
+    # It checks if the VM is on the current node; if so, it starts it.
+    # Otherwise, it migrates the VM using 'pve-vmg' and then starts it.
+    # Optionally, it can shut down the source node after migration.
     # Retrieve and store hostname
+
     local hostname=$(hostname)
 
     # Check if vm_id argument is provided
@@ -470,6 +513,12 @@ pve-vms() {
 # vm get start
 # <vm_id>
 pve-vmg() {
+
+    # This function migrates a VM from a remote node to the current node.
+    # It first disables PCIe passthrough on the remote node using 'pve-vpt'.
+    # Then, it migrates the VM using 'qm migrate'.
+    # Finally, it enables PCIe passthrough on the current node using 'pve-vpt'.
+
     local vm_id="$1"
     if [ $# -ne 1 ]; then
         aux-use
@@ -511,6 +560,11 @@ pve-vmg() {
 # vm passthrough toggle
 # <vm_id> <on|off>
 pve-vpt() {
+
+    # This function toggles PCIe passthrough configuration for a specified VM.
+    # It modifies the VM's configuration file to add or remove 'hostpci' and 'usb' lines.
+    # It also adjusts the 'cores' setting based on whether passthrough is being enabled or disabled.
+
     local vm_id="$1"
     local action="$2"
     local vm_conf="$PVE_CONF_PATH_QEMU/$vm_id.conf"
@@ -577,6 +631,10 @@ pve-vpt() {
 # vm check node
 # <vm_id>
 pve-vck() {
+
+    # This function checks and reports which node in the Proxmox cluster is currently hosting a specified VM.
+    # It iterates through the 'cluster_nodes' array, using 'qm list' (via SSH for remote nodes) to find the VM.
+    
     local vm_id="$1"
     local found_node=""
     if [ $# -ne 1 ]; then
