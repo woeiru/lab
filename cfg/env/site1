@@ -99,13 +99,13 @@ PVE_ADR_LINE="deb http://download.proxmox.com/debian/pve bookworm pve-no-subscri
 # Add all hostnames of the cluster nodes here
 cluster_nodes=("x1" "x2")
 # Configuration for x1
-x1_node_pci0="0000:09:00.0"
-x1_node_pci1="0000:09:00.1"
+x1_node_pci0="0000:3b:00.0"
+x1_node_pci1="0000:3b:00.1"
 x1_core_count_on=12
 x1_core_count_off=8
 # Configuration for x2
-x2_node_pci0="0000:0c:00.0"
-x2_node_pci1="0000:0c:00.1"
+x2_node_pci0="0000:0a:00.0"
+x2_node_pci1="0000:0a:00.1"
 x2_core_count_on=12
 x2_core_count_off=8
 # Configuration for w1
