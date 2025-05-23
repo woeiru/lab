@@ -3,19 +3,21 @@
 # ============================================================================
 # pve - Function Summary
 #
-#   pve-fun : Shows a summary of selected PVE related functions in the script.
-#   pve-var : Displays an overview of PVE-specific variables from the configuration file.
-#   pve-dsr : Disables specified Proxmox repository files.
-#   pve-rsn : Removes the Proxmox subscription notice.
-#   pve-clu : Updates the PVE appliance manager (pveam) container template list.
-#   pve-cdo : Downloads a specified container template.
-#   pve-cbm : Configures a bind mount for a Proxmox container.
-#   pve-ctc : Sets up different containers specified in cfg/env/site..
-#   pve-cto : Manages multiple Proxmox containers (start, stop, enable, disable).
+#   pve-fun : Displays an overview of specific Proxmox Virtual Environment (PVE) related functions in the script, showing their usage, shortname, and description.
+#   pve-var : Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files.
+#   pve-dsr : Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources.
+#   pve-rsn : Removes the Proxmox subscription notice by modifying the web interface JavaScript file, with an option to restart the pveproxy service.
+#   pve-clu : Updates the Proxmox VE Appliance Manager (pveam) container template list.
+#   pve-cdo : Downloads a specified container template to a given storage location, with error handling and options to list available templates.
+#   pve-cbm : Configures a bind mount for a specified Proxmox container, linking a host directory to a container directory.
+#   pve-ctc : Sets up different containers specified in cfg/env/site.
+#   pve-cto : Manages multiple Proxmox containers by starting, stopping, enabling, or disabling them, supporting individual IDs, ranges, or all containers.
 #   pve-vmd : Deploys or modifies the VM shutdown hook for GPU reattachment.
 #   pve-vmc : Sets up different virtual machines specified in cfg/env/site.
-#   pve-vms : Starts a VM on the current node or migrates it, optionally shutting down the source.
-#   pve-vmg : Migrates a VM from a remote node, handling PCIe passthrough.
+#   pve-vms : Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration.
+#   pve-vmg : Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process.
+#   pve-vpt : Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices.
+#   pve-vck : Checks and reports which node in the Proxmox cluster is currently hosting a specified VM.
 #
 # ============================================================================
 
@@ -175,7 +177,7 @@ pve-cbm() {
     aux-nos "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
 }
 
-# Setting up different containers specified in cfg/env/site.
+# Sets up different containers specified in cfg/env/site.
 # container create
 # <passed global variables>
 pve-ctc() {
@@ -300,8 +302,8 @@ pve-cto() {
 
 
 # Deploys or modifies the VM shutdown hook for GPU reattachment
+# vm shutdown hook
 # Usage: pve-vmd <operation> <vm_id> [<vm_id2> ...]
-# Operations: add, remove, debug
 pve-vmd() {
 
     # This function manages Proxmox VE VM shutdown hooks, specifically for GPU reattachment.
@@ -414,7 +416,7 @@ EOL
     aux-nos "$function_name" "Hook $operation completed for VM $vm_id"
 }
 
-# Setting up different virtual machines specified in cfg/env/site.
+# Sets up different virtual machines specified in cfg/env/site.
 # virtual machine create
 # <passed global variables>
 pve-vmc() {
