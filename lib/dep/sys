@@ -17,6 +17,7 @@
 #   sys-spi : Appends a private SSH key identifier to the SSH config file for a user.
 #   sys-sks : Generates an SSH key pair and handles transfer (client/server side).
 #   sys-sak : Appends a public SSH key to authorized_keys (client/server side).
+#   sys-hos : Adds or updates a host entry in /etc/hosts.
 #
 # ============================================================================
 
@@ -879,4 +880,28 @@ sys-gre() {
     echo
     echo "Current commit:"
     git log -1 --oneline
+}
+
+# Adds or updates a host entry in /etc/hosts
+# Usage: sys-hos <ip_address> <hostname>
+sys-hos() {
+    local ip_address="$1"
+    local hostname="$2"
+    local hosts_file="/etc/hosts"
+
+    if [ -z "$ip_address" ] || [ -z "$hostname" ]; then
+        echo "Usage: sys-hos <ip_address> <hostname>" >&2
+        return 1
+    fi
+
+    # Check if the hostname already exists
+    if grep -q -w "$hostname" "$hosts_file"; then
+        # Hostname exists, update the IP address
+        sudo sed -i "s/.*\\s$hostname/$ip_address $hostname/" "$hosts_file"
+        echo "Updated $hostname to $ip_address in $hosts_file"
+    else
+        # Hostname does not exist, add new entry
+        echo "$ip_address $hostname" | sudo tee -a "$hosts_file" > /dev/null
+        echo "Added $hostname ($ip_address) to $hosts_file"
+    fi
 }
