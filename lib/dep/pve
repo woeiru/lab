@@ -38,6 +38,16 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 #  
 pve-fun() {
+
+    # Technical Description:
+    #   Invokes the 'aux-laf' (list available functions) utility.
+    #   '$FILEPATH_pve' (dynamically set to the full path of this script) is passed as the file to analyze.
+    #   All arguments passed to 'pve-fun' are forwarded to 'aux-laf'.
+    #   Primarily used for introspection of this script's capabilities.
+    # Dependencies:
+    #   - 'aux-laf' function.
+    #   - '$FILEPATH_pve' environment variable.
+
     aux-laf "$FILEPATH_pve" "$@"
 }
 
@@ -45,6 +55,17 @@ pve-fun() {
 # overview variables
 # 
 pve-var() {
+
+    # Technical Description:
+    #   Utilizes 'aux-acu' (analyze configuration usage) with the '-o' (overview) flag.
+    #   '$CONFIG_pve' (dynamically set from '$SITE_CONFIG_FILE') specifies the configuration file to scan.
+    #   '$DIR_FUN/..' (parent directory of this script) is passed as the scope for usage analysis.
+    #   Helps in understanding how PVE-related variables from the site config are used across the project.
+    # Dependencies:
+    #   - 'aux-acu' function.
+    #   - '$CONFIG_pve' environment variable.
+    #   - '$DIR_FUN' environment variable.
+
     aux-acu -o "$CONFIG_pve" "$DIR_FUN/.."
 }
 
@@ -52,6 +73,19 @@ pve-var() {
 # disable repository
 #  
 pve-dsr() {
+
+    # Technical Description:
+    #   Modifies Proxmox VE APT repository configuration files to disable them.
+    #   Iterates through a predefined list of files:
+    #     - "/etc/apt/sources.list.d/pve-enterprise.list"
+    #     - "/etc/apt/sources.list.d/ceph.list"
+    #   Uses 'sed -i' to comment out lines starting with 'deb' (e.g., 'deb http://...' becomes '#deb http://...').
+    #   Calls 'aux-nos' for notifications about actions taken or if files are not found.
+    # Dependencies:
+    #   - 'sed' utility for in-place file editing.
+    #   - 'aux-nos' function for status messages.
+    #   - Root privileges are required to modify files in /etc/apt/.
+
     local function_name="${FUNCNAME[0]}"
     files=(
         "/etc/apt/sources.list.d/pve-enterprise.list"
@@ -68,15 +102,23 @@ pve-dsr() {
     done
 }
 
-
 # Removes the Proxmox subscription notice by modifying the web interface JavaScript file, with an option to restart the pveproxy service 
 # remove sub notice
 #   
 pve-rsn() {
 
-    # This function removes the Proxmox subscription notice.
-    # It modifies the '/usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js' file.
-    # It also prompts the user to restart the 'pveproxy.service'.
+    # Technical Description:
+    #   Removes the "No valid subscription" notice from the Proxmox VE web interface.
+    #   Modifies the JavaScript file '/usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js'.
+    #   Uses 'sed -Ezi.bak' to perform an in-place, multiline-aware regular expression substitution.
+    #   The regex targets 'Ext.Msg.show(...title: gettext('No valid sub')...' and prepends 'void({ //',
+    #   effectively commenting out the JavaScript call that displays the notice. A backup '.bak' file is created.
+    #   Prompts the user to restart 'pveproxy.service' using 'systemctl'.
+    # Dependencies:
+    #   - 'sed' utility (GNU version for -z and -i).
+    #   - 'systemctl' for service management.
+    #   - 'aux-nos' for status messages.
+    #   - Root privileges required for file modification and service restart.
 
     local function_name="${FUNCNAME[0]}"
     sed -Ezi.bak "s/(Ext\.Msg\.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
@@ -95,12 +137,19 @@ pve-rsn() {
 #  
 pve-clu() {
 
-    # This function updates the Proxmox VE Appliance Manager (pveam) container template list.
-    # It executes 'pveam update'.
+    # Technical Description:
+    #   Updates the local cache of available LXC container templates for Proxmox VE.
+    #   Executes the 'pveam update' command. 'pveam' is the Proxmox VE Appliance Manager.
+    #   This command fetches the latest list of templates from the configured sources.
+    #   Calls 'aux-nos' to confirm execution.
+    # Dependencies:
+    #   - 'pveam' command-line utility.
+    #   - 'aux-nos' function.
+    #   - Network access to Proxmox template repositories.
 
     local function_name="${FUNCNAME[0]}"
 
-    	pveam update
+    pveam update
 
     aux-nos "$function_name" "executed"
 }
@@ -110,8 +159,19 @@ pve-clu() {
 #   
 pve-cdo() {
 
-    # This function downloads a specified container template to a given storage location.
-    # It uses 'pveam download' and handles errors, offering to list available templates or retry with a different one.
+    # Technical Description:
+    #   Downloads a specified LXC container template to a designated Proxmox VE storage.
+    #   Uses 'pveam download <storage_id> <template_name>'. Output is initially suppressed (2>/dev/null).
+    #   Arguments:
+    #     $1 (ct_dl_sto): The ID of the Proxmox storage where the template will be downloaded.
+    #     $2 (ct_dl): The name of the container template to download (e.g., 'alpine-3.18-default_20230615_amd64.tar.xz').
+    #   Includes interactive error handling:
+    #     - If download fails, it prompts the user to view available templates ('pveam available').
+    #     - If the user agrees, it then prompts if they want to try downloading a different template.
+    #     - If yes, it recursively calls 'pve-cdo' with the new template name.
+    # Dependencies:
+    #   - 'pveam' command-line utility.
+    #   - User interaction for error handling.
 
     local function_name="${FUNCNAME[0]}"
     local ct_dl_sto="$1"
@@ -144,11 +204,24 @@ pve-cdo() {
     fi
 }
 
-
 # Configures a bind mount for a specified Proxmox container, linking a host directory to a container directory
 # container bindmount
 # <vmid> <mphost> <mpcontainer>
 pve-cbm() {
+
+    # Technical Description:
+    #   Configures a bind mount for a Proxmox LXC container.
+    #   Uses 'pct set <vmid> -mp0 <host_path>,mp=<container_path>' to define the mount point.
+    #   '-mp0' refers to mount point 0; additional mount points would use -mp1, -mp2, etc.
+    #   Arguments:
+    #     $1 (vmid): The numeric ID of the LXC container.
+    #     $2 (mphost): The absolute path on the Proxmox host to be mounted into the container.
+    #     $3 (mpcontainer): The absolute path inside the container where the host path will be mounted.
+    #   Requires exactly 3 arguments; otherwise, 'aux-use' is called.
+    # Dependencies:
+    #   - 'pct' command-line utility.
+    #   - 'aux-use' for usage display on incorrect arguments.
+    #   - 'aux-nos' for success notification.
 
     local function_name="${FUNCNAME[0]}"
     local vmid="$1"
@@ -182,8 +255,18 @@ pve-cbm() {
 # <passed global variables>
 pve-ctc() {
 
-    # This function sets up different containers based on provided parameters.
-    # It uses 'pct create' with various options like hostname, storage, memory, network, and SSH keys.
+    # Technical Description:
+    #   Creates a new Proxmox LXC container using 'pct create'.
+    #   Accepts a large number of positional arguments mapping to 'pct create' options.
+    #   Key parameters include ID, template, hostname, storage, rootfs size, memory, network settings (IP, CIDR, gateway, bridge, NIC name), SSH keys, etc.
+    #   Checks for the existence of the specified SSH key file ('$ssh_key_file') before proceeding.
+    #   Conditionally adds '--unprivileged' if the 'privileged' argument is "no".
+    #   Sets features 'keyctl=1' and 'nesting=1' by default.
+    # Dependencies:
+    #   - 'pct' command-line utility.
+    #   - Valid Proxmox VE environment and resources (template, storage, network).
+    #   - An existing SSH public key file.
+    # Arguments: $1-$18 define various container parameters. See inline comments for specifics.
 
     local id="$1"
     local template="$2"
@@ -231,9 +314,21 @@ pve-ctc() {
 # <start|stop|enable|disable> <containers|all>
 pve-cto() {
 
-    # This function manages multiple Proxmox containers (start, stop, enable, disable).
-    # It can operate on individual container IDs, ranges of IDs, or all containers.
-    # For 'enable'/'disable', it modifies the 'onboot' setting in the container's configuration file.
+    # Technical Description:
+    #   Manages the state (start, stop) and on-boot behavior (enable, disable) of Proxmox LXC containers.
+    #   First argument 'action': 'start', 'stop', 'enable', or 'disable'.
+    #   Subsequent arguments specify target containers:
+    #     - Individual container IDs (e.g., 101 102).
+    #     - Ranges of IDs (e.g., 100-105).
+    #     - 'all' to target all containers (retrieved via 'pct list | awk').
+    #   'start'/'stop' actions use 'pct start <vmid>' and 'pct stop <vmid>'.
+    #   'enable'/'disable' actions modify the 'onboot:' line in the container's config file
+    #   ('/etc/pve/lxc/<vmid>.conf') using 'sed' to set it to 'onboot: 1' or 'onboot: 0'.
+    #   Lists container status using 'pct list' after 'start' or 'stop' actions.
+    # Dependencies:
+    #   - 'pct' command-line utility.
+    #   - 'sed' and 'awk' utilities.
+    #   - Container configuration files at '/etc/pve/lxc/'.
 
     local action=$1
     shift
@@ -300,17 +395,31 @@ pve-cto() {
     fi
 }
 
-
 # Deploys or modifies the VM shutdown hook for GPU reattachment
 # vm shutdown hook
 # Usage: pve-vmd <operation> <vm_id> [<vm_id2> ...]
 pve-vmd() {
 
-    # This function manages Proxmox VE VM shutdown hooks, specifically for GPU reattachment.
-    # It supports adding a hook to a VM, removing it, or debugging the hook setup.
-    # The hook script itself is a Perl script that logs its execution and,
-    # in the 'post-stop' phase, attempts to reattach a GPU by calling another script (gpu-pta).
-    
+    # Technical Description:
+    #   Manages a VM shutdown hook script for GPU reattachment in Proxmox VE.
+    #   Operations: 'add', 'remove', 'debug', specified as the first argument ($1). VM ID is $2.
+    #   The hook script is located at '/var/lib/vz/snippets/gpu-reattach-hook.pl'.
+    #   'create_or_update_hook_script' inner function generates/updates this Perl script.
+    #   The Perl script logs its execution to '/var/log/gpu-reattach-hook.log'.
+    #   On 'post-stop' phase, the Perl script executes:
+    #     bash -c 'source ${LIB_DEP_DIR}/pve && gpu-pta'
+    #     This implies 'gpu-pta' is another script/function responsible for the actual GPU reattachment logic.
+    #   'add' uses 'qm set <vmid> -hookscript local:snippets/gpu-reattach-hook.pl'.
+    #   'remove' uses 'qm set <vmid> -delete hookscript'.
+    #   'debug' provides diagnostic info (script content, permissions, qm config, manual trigger).
+    # Dependencies:
+    #   - 'qm' command-line utility.
+    #   - Perl interpreter (for the hook script).
+    #   - 'gpu-pta' script/function (defined elsewhere, sourced via LIB_DEP_DIR).
+    #   - '$LIB_DEP_DIR' environment variable.
+    #   - 'aux-nos' for notifications.
+    #   - Directory '/var/lib/vz/snippets' must be writable.
+
     local function_name="${FUNCNAME[0]}"
     local hook_script="/var/lib/vz/snippets/gpu-reattach-hook.pl"
     local operation="$1"
@@ -421,8 +530,17 @@ EOL
 # <passed global variables>
 pve-vmc() {
 
-    # This function sets up different virtual machines based on provided parameters.
-    # It uses 'qm create' with options like name, OS type, ISO, boot order, memory, and network.
+    # Technical Description:
+    #   Creates a new Proxmox QEMU/KVM virtual machine using 'qm create'.
+    #   Accepts numerous positional arguments that map directly to 'qm create' options.
+    #   Key parameters include VM ID, name, OS type, machine type, ISO image (as IDE2 CD-ROM),
+    #   boot order, BIOS type, EFI disk, SCSI hardware controller, QEMU guest agent enablement,
+    #   SCSI disk, CPU configuration (sockets, cores, type), memory (static and ballooning),
+    #   and network interface configuration (net0).
+    # Dependencies:
+    #   - 'qm' command-line utility.
+    #   - Valid Proxmox VE environment and resources (ISO, storage, network).
+    # Arguments: $1-$17 define various VM parameters. See inline comments for specifics.
 
     local id="$1"
     local name="$2"
@@ -466,11 +584,25 @@ pve-vmc() {
 # <vm_id> [s: optional, shutdown other node]
 pve-vms() {
 
-    # This function starts a VM on the current node or migrates it from another node.
-    # It checks if the VM is on the current node; if so, it starts it.
-    # Otherwise, it migrates the VM using 'pve-vmg' and then starts it.
-    # Optionally, it can shut down the source node after migration.
-    # Retrieve and store hostname
+    # Technical Description:
+    #   Starts a Proxmox VM, migrating it from another node if necessary.
+    #   Arguments: $1 (vm_id), $2 (optional 's' to shutdown the source/original node).
+    #   1. Retrieves current hostname.
+    #   2. Uses 'pve-vck <vm_id>' to determine the node currently hosting the VM ('node_id').
+    #   3. If current hostname matches 'node_id' (VM is local):
+    #      - Starts VM using 'qm start <vm_id>'.
+    #      - If $2 is 's', attempts to shut down 'node_id' (which is the current node) via SSH.
+    #   4. If current hostname differs from 'node_id' (VM is remote):
+    #      - Calls 'pve-vmg <vm_id>' to migrate the VM to the current node.
+    #      - Starts VM using 'qm start <vm_id>'.
+    #      - If $2 is 's', shuts down the original remote node ('node_id') via SSH.
+    # Dependencies:
+    #   - 'pve-vck' function (to find VM's current node).
+    #   - 'pve-vmg' function (to migrate VM).
+    #   - 'qm' command-line utility.
+    #   - 'ssh' for remote shutdown.
+    #   - 'hostname' utility.
+    #   - 'aux-use' for usage display.
 
     local hostname=$(hostname)
 
@@ -516,10 +648,22 @@ pve-vms() {
 # <vm_id>
 pve-vmg() {
 
-    # This function migrates a VM from a remote node to the current node.
-    # It first disables PCIe passthrough on the remote node using 'pve-vpt'.
-    # Then, it migrates the VM using 'qm migrate'.
-    # Finally, it enables PCIe passthrough on the current node using 'pve-vpt'.
+    # Technical Description:
+    #   Migrates a Proxmox VM from a remote node to the current node, handling PCIe passthrough.
+    #   Argument: $1 (vm_id).
+    #   1. Uses 'pve-vck <vm_id>' to find the VM's current remote node ('node').
+    #   2. If VM is found on a remote node:
+    #      a. Disables PCIe passthrough on the remote node: 'ssh <node> "pve-vpt <vm_id> off"'.
+    #      b. Migrates the VM to the current node: 'ssh <node> "qm migrate <vm_id> $(hostname)"'.
+    #      c. Enables PCIe passthrough on the current (target) node: 'pve-vpt <vm_id> on'.
+    #   Requires 'pve-vpt' to be available and executable via SSH on remote nodes.
+    # Dependencies:
+    #   - 'pve-vck' function.
+    #   - 'pve-vpt' function (both locally and on remote nodes).
+    #   - 'qm' command-line utility (on remote node for migration).
+    #   - 'ssh' for remote command execution.
+    #   - 'hostname' utility.
+    #   - 'aux-use' for usage display.
 
     local vm_id="$1"
     if [ $# -ne 1 ]; then
@@ -563,9 +707,26 @@ pve-vmg() {
 # <vm_id> <on|off>
 pve-vpt() {
 
-    # This function toggles PCIe passthrough configuration for a specified VM.
-    # It modifies the VM's configuration file to add or remove 'hostpci' and 'usb' lines.
-    # It also adjusts the 'cores' setting based on whether passthrough is being enabled or disabled.
+    # Technical Description:
+    #   Toggles PCIe and USB device passthrough for a Proxmox VM by modifying its configuration file.
+    #   Arguments: $1 (vm_id), $2 (action: 'on' or 'off').
+    #   VM config file path: '$PVE_CONF_PATH_QEMU/<vm_id>.conf' (e.g., /etc/pve/qemu-server/<vm_id>.conf).
+    #   Relies on several host-specific environment variables for PCI IDs, USB devices, and core counts:
+    #     - '${hostname}_node_pci0', '${hostname}_node_pci1': PCI IDs for passthrough.
+    #     - '${hostname}_core_count_on', '${hostname}_core_count_off': VM core counts for on/off states.
+    #     - '${hostname}_usb_devices[@]': An array of USB passthrough definitions (e.g., "usb0: host=1234:5678").
+    #   'on' action:
+    #     - Sets 'cores' to '${!core_count_on}'.
+    #     - Adds 'hostpci0', 'hostpci1', and all entries from '${!usb_devices_var}' to the config file.
+    #       These are inserted after the first '[section_header]' line found by awk.
+    #   'off' action:
+    #     - Sets 'cores' to '${!core_count_off}'.
+    #     - Removes all lines starting with 'usb[0-9]*:' or 'hostpci[0-9]*:' from the config.
+    # Dependencies:
+    #   - 'sed', 'awk', 'hostname' utilities.
+    #   - '$PVE_CONF_PATH_QEMU' environment variable.
+    #   - Predefined, hostname-specific environment variables for device IDs and core counts.
+    #   - 'aux-use' for usage display.
 
     local vm_id="$1"
     local action="$2"
@@ -634,9 +795,26 @@ pve-vpt() {
 # <vm_id>
 pve-vck() {
 
-    # This function checks and reports which node in the Proxmox cluster is currently hosting a specified VM.
-    # It iterates through the 'cluster_nodes' array, using 'qm list' (via SSH for remote nodes) to find the VM.
-    
+    # Technical Description:
+    #   Checks which Proxmox cluster node is currently hosting a specified VM.
+    #   Argument: $1 (vm_id).
+    #   Iterates through an array named 'cluster_nodes'. This array must be predefined in the shell
+    #   environment and contain the hostnames of all nodes in the Proxmox cluster.
+    #   For each node in 'cluster_nodes':
+    #     - If the node is not the current host (checked via 'hostname'), it uses
+    #       'ssh <node> "qm list"' to get the list of VMs on that remote node.
+    #     - If the node is the current host, it uses 'qm list' locally.
+    #   It then 'grep's the output of 'qm list' for the specified 'vm_id'.
+    #   If found, it prints the 'found_node' hostname and returns 0.
+    #   Returns 1 if the VM is not found on any node or if 'cluster_nodes' is empty.
+    # Dependencies:
+    #   - 'qm' command-line utility (locally and on remote nodes).
+    #   - 'ssh' for remote command execution.
+    #   - 'hostname' utility.
+    #   - 'grep' utility.
+    #   - A predefined bash array 'cluster_nodes' in the calling environment.
+    #   - 'aux-use' for usage display.
+
     local vm_id="$1"
     local found_node=""
     if [ $# -ne 1 ]; then
