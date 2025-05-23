@@ -62,24 +62,11 @@ c_xall() {
 
     # Variables node1_ip, node2_ip, qdevice_ip are expected to be sourced from site1
     # Function sys-hos is expected to be available (sourced from lib/dep/sys)
+    # sys-hos will handle checks for empty variables.
 
-    if [ -n "$node1_ip" ]; then
-        sys-hos "$node1_ip" "x1"
-    else
-        echo "ERR: c_xall: node1_ip is not defined. Ensure site1 is sourced and var is set." >&2
-    fi
-
-    if [ -n "$node2_ip" ]; then
-        sys-hos "$node2_ip" "x2"
-    else
-        echo "ERR: c_xall: node2_ip is not defined. Ensure site1 is sourced and var is set." >&2
-    fi
-
-    if [ -n "$qdevice_ip" ]; then
-        sys-hos "$qdevice_ip" "qdevice"
-    else
-        echo "ERR: c_xall: qdevice_ip is not defined. Ensure site1 is sourced and var is set." >&2
-    fi
+    sys-hos "$node1_ip" "x1"
+    sys-hos "$node2_ip" "x2"
+    sys-hos "$qdevice_ip" "qdevice"
 
     echo "INF: Host resolution setup by c_xall completed."
 }
