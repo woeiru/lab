@@ -882,7 +882,8 @@ sys-gre() {
     git log -1 --oneline
 }
 
-# Adds or updates a host entry in /etc/hosts
+# Adds or updates a host entry in /etc/h
+# setting host file
 # Usage: sys-hos <ip_address> <hostname>
 sys-hos() {
     local ip_address="$1"
