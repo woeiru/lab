@@ -58,7 +58,7 @@ b_xall() {
 
 # Sets up /etc/hosts entries for Proxmox nodes (x1, x2) and QDevice
 c_xall() {
-    aux-prn "INF" "Attempting to set up /etc/hosts entries for Proxmox nodes and QDevice via c_xall..."
+    echo "INF: Attempting to set up /etc/hosts entries for Proxmox nodes and QDevice via c_xall..."
 
     # Variables node1_ip, node2_ip, qdevice_ip are expected to be sourced from site1
     # Function sys-hos is expected to be available (sourced from lib/dep/sys)
@@ -66,22 +66,22 @@ c_xall() {
     if [ -n "$node1_ip" ]; then
         sys-hos "$node1_ip" "x1"
     else
-        aux-prn "ERR" "c_xall: node1_ip is not defined. Ensure site1 is sourced and var is set."
+        echo "ERR: c_xall: node1_ip is not defined. Ensure site1 is sourced and var is set." >&2
     fi
 
     if [ -n "$node2_ip" ]; then
         sys-hos "$node2_ip" "x2"
     else
-        aux-prn "ERR" "c_xall: node2_ip is not defined. Ensure site1 is sourced and var is set."
+        echo "ERR: c_xall: node2_ip is not defined. Ensure site1 is sourced and var is set." >&2
     fi
 
     if [ -n "$qdevice_ip" ]; then
         sys-hos "$qdevice_ip" "qdevice"
     else
-        aux-prn "ERR" "c_xall: qdevice_ip is not defined. Ensure site1 is sourced and var is set."
+        echo "ERR: c_xall: qdevice_ip is not defined. Ensure site1 is sourced and var is set." >&2
     fi
 
-    aux-prn "INF" "Host resolution setup by c_xall completed."
+    echo "INF: Host resolution setup by c_xall completed."
 }
 
 # Generates and distributes SSH keys for secure communication between client and server nodes
