@@ -17,7 +17,7 @@
 #   sys-spi : Appends a private SSH key identifier to the SSH config file for a user.
 #   sys-sks : Generates an SSH key pair and handles transfer (client/server side).
 #   sys-sak : Appends a public SSH key to authorized_keys (client/server side).
-#   sys-hos : Adds or updates a host entry in /etc/hosts.
+#   sys-hos : Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits.
 #
 # ============================================================================
 
@@ -882,27 +882,40 @@ sys-gre() {
     git log -1 --oneline
 }
 
-# Adds or updates a host entry in /etc/h
-# setting host file
-# Usage: sys-hos <ip_address> <hostname>
+# Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits.
+# add host
+# <ip_address> <hostname>
 sys-hos() {
+    local function_name="${FUNCNAME[0]}"
     local ip_address="$1"
     local hostname="$2"
     local hosts_file="/etc/hosts"
 
     if [ -z "$ip_address" ] || [ -z "$hostname" ]; then
-        echo "Usage: sys-hos <ip_address> <hostname>" >&2
+        echo "ERR: $function_name: IP address and hostname must be provided." >&2
         return 1
     fi
 
-    # Check if the hostname already exists
+    # Check if the entry already exists with the same IP
     if grep -q -w "$hostname" "$hosts_file"; then
-        # Hostname exists, update the IP address
-        sudo sed -i "s/.*\\s$hostname/$ip_address $hostname/" "$hosts_file"
-        echo "Updated $hostname to $ip_address in $hosts_file"
+        # Hostname exists, check if IP needs update
+        if grep -q -w "$ip_address\\s\\+$hostname" "$hosts_file"; then
+            echo "INF: $function_name: Host entry for $hostname ($ip_address) already exists and is correct."
+            return 0
+        else
+            # Hostname exists, but IP is different. Update the line.
+            # Use a temporary file for sed to avoid issues with /etc/hosts
+            local temp_file
+            temp_file=$(mktemp)
+            sed "s/.*\\s\\+$hostname$/$ip_address\\t$hostname/" "$hosts_file" > "$temp_file" && sudo cp "$temp_file" "$hosts_file"
+            rm "$temp_file"
+            echo "INF: $function_name: Updated host entry for $hostname to $ip_address."
+            return 0
+        fi
     else
         # Hostname does not exist, add new entry
-        echo "$ip_address $hostname" | sudo tee -a "$hosts_file" > /dev/null
-        echo "Added $hostname ($ip_address) to $hosts_file"
+        echo -e "$ip_address\\t$hostname" | sudo tee -a "$hosts_file" > /dev/null
+        echo "INF: $function_name: Added host entry for $hostname ($ip_address)."
+        return 0
     fi
 }
