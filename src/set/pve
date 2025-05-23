@@ -5,6 +5,7 @@
 #           removes subscription notice from Proxmox web interface.
 #   b_xall: Installs required system packages including corosync-qdevice 
 #           for cluster management.
+#   c_xall: Sets up /etc/hosts entries for Proxmox nodes (x1, x2) and QDevice.
 #   d_xall: Generates and distributes SSH keys for secure communication 
 #           between client and server nodes.
 #   i_xall: Creates a RAID 1 Btrfs filesystem across two devices with 
@@ -34,6 +35,7 @@ source "$(realpath "$DIR_SH/../../lib/aux/src")"
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
+MENU_OPTIONS[c]="c_xall"
 MENU_OPTIONS[d]="d_xall"
 MENU_OPTIONS[i]="i_xall"
 MENU_OPTIONS[j]="j_xall"
@@ -52,6 +54,34 @@ a_xall() {
 # Installs required system packages including corosync-qdevice for cluster management
 b_xall() {
     sys-ipa "$PVE_PACKAGES_ALL"
+}
+
+# Sets up /etc/hosts entries for Proxmox nodes (x1, x2) and QDevice
+c_xall() {
+    aux-prn "INF" "Attempting to set up /etc/hosts entries for Proxmox nodes and QDevice via c_xall..."
+
+    # Variables node1_ip, node2_ip, qdevice_ip are expected to be sourced from site1
+    # Function sys-hos is expected to be available (sourced from lib/dep/sys)
+
+    if [ -n "$node1_ip" ]; then
+        sys-hos "$node1_ip" "x1"
+    else
+        aux-prn "ERR" "c_xall: node1_ip is not defined. Ensure site1 is sourced and var is set."
+    fi
+
+    if [ -n "$node2_ip" ]; then
+        sys-hos "$node2_ip" "x2"
+    else
+        aux-prn "ERR" "c_xall: node2_ip is not defined. Ensure site1 is sourced and var is set."
+    fi
+
+    if [ -n "$qdevice_ip" ]; then
+        sys-hos "$qdevice_ip" "qdevice"
+    else
+        aux-prn "ERR" "c_xall: qdevice_ip is not defined. Ensure site1 is sourced and var is set."
+    fi
+
+    aux-prn "INF" "Host resolution setup by c_xall completed."
 }
 
 # Generates and distributes SSH keys for secure communication between client and server nodes
