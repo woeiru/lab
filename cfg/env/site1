@@ -98,6 +98,12 @@ PVE_ADR_LINE="deb http://download.proxmox.com/debian/pve bookworm pve-no-subscri
 #
 # Add all hostnames of the cluster nodes here
 cluster_nodes=("x1" "x2")
+
+# IP Addresses for Proxmox nodes and QDevice
+node1_ip="192.168.178.221"
+node2_ip="192.168.178.222"
+qdevice_ip="192.168.178.223"
+
 # Configuration for x1
 x1_node_pci0="0000:3b:00.0"
 x1_node_pci1="0000:3b:00.1"
