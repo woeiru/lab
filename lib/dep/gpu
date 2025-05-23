@@ -31,13 +31,31 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 #
 gpu-fun() {
+
+    # Technical Description:
+    #   Lists selected functions from this script.
+    #   Displays usage, shortname, and description for each.
+    #   Likely parses comments or uses a predefined list.
+    # Dependencies:
+    #   - Relies on conventions for function comments if parsing.
+
     # Pass all arguments directly to aux-laf
     aux-laf "$FILEPATH_gpu" "$@"
 }
+
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
 gpu-var() {
+
+    # Technical Description:
+    #   Shows details of configuration variables.
+    #   Information includes name, value, and usage context.
+    #   Likely reads from SITE_CONFIG_FILE and parses it.
+    # Dependencies:
+    #   - SITE_CONFIG_FILE environment variable.
+    #   - Text processing tools (e.g. `grep`, `awk`).
+
     aux-acu -o "$CONFIG_gpu" "$DIR_FUN/.."
 }
 
@@ -56,6 +74,16 @@ gpu-pt1() {
     update-grub
     update-grug2
 
+    # Technical Description:
+    #   Installs 'grub-efi-amd64' package for EFI systems.
+    #   Notifies completion using 'aux-nos', using 'function_name'.
+    #   Forces a system reboot. This is step 1 of GPU passthrough setup.
+    # Dependencies:
+    #   - `apt` command for package installation.
+    #   - `aux-nos` function (for notifications).
+    #   - `reboot` command.
+    #   - Root privileges for apt and reboot.
+
     # Install grub-efi-amd64
     apt install grub-efi-amd64 -y
 
@@ -72,6 +100,17 @@ gpu-pt1() {
 gpu-pt2() {
     local function_name="${FUNCNAME[0]}"
     echo "Executing section 2:"
+
+    # Technical Description:
+    #   Appends 'vfio', 'vfio_iommu_type1', 'vfio_pci' to /etc/modules.
+    #   Updates initramfs for all kernels. Notifies completion via 'aux-nos'.
+    #   Forces a system reboot. This is step 2 of GPU passthrough setup.
+    # Dependencies:
+    #   - `echo` (to modify /etc/modules), `update-initramfs`.
+    #   - `aux-nos` function.
+    #   - `reboot` command.
+    #   - Root privileges for file edits and reboot.
+    #   - Assumes /etc/modules is the correct file for loading modules.
 
     # Add modules to /etc/modules
     echo "vfio" >> /etc/modules
@@ -94,6 +133,17 @@ gpu-pt2() {
 gpu-pt3() {
     local function_name="${FUNCNAME[0]}"
     local action="$1"
+
+    # Technical Description:
+    #   Manages VFIO config & GPU driver blacklisting based on $1 ('enable'/'disable').
+    #   'enable': Configures VFIO, blacklists radeon/amdgpu drivers. Uses temp file.
+    #   'disable': Removes VFIO config and driver blacklisting.
+    #   Notifies completion via 'aux-nos' and forces a system reboot.
+    #   Input: $1 must be 'enable' or 'disable'.
+    # Dependencies:
+    #   - `lspci`, `grep`, `rm`, `sed`, `echo`.
+    #   - `aux-nos` function, `reboot` command.
+    #   - Root privileges. Expects $1 as argument.
 
     if [ "$action" != "enable" ] && [ "$action" != "disable" ]; then
         echo "Usage: $function_name <enable|disable>"
@@ -182,6 +232,17 @@ gpu-pt3() {
 #
 gpu-ptd() {
     local function_name="${FUNCNAME[0]}"
+
+    # Technical Description:
+    #   Detaches GPU(s) from host drivers for VM passthrough.
+    #   Unloads standard GPU drivers (nouveau, nvidia, amdgpu, radeon).
+    #   Loads 'vfio-pci' driver. Identifies GPUs via 'lspci -nn'.
+    #   For each GPU: unbinds, sets 'driver_override' to 'vfio-pci', binds to 'vfio-pci'.
+    #   Uses temp files for 'lspci' outputs. Notifies via 'aux-nos'.
+    # Dependencies:
+    #   - `lspci`, `grep`, `find`, `ls`, `modprobe`, `awk`, `echo`.
+    #   - `aux-nos` function.
+    #   - Access to /sys/kernel/iommu_groups/, /sys/bus/pci/devices/ & root privileges.
 
     echo "Current GPU driver and IOMMU group:"
     LSPCI_NNK_TEMP_OUTPUT_1="/tmp/lspci_nnk_output_ptd1.txt"
@@ -288,6 +349,17 @@ gpu-ptd() {
 gpu-pta() {
     local function_name="${FUNCNAME[0]}"
 
+    # Technical Description:
+    #   Reattaches GPU(s) to host system drivers. Logs actions via 'aux-log'.
+    #   Identifies GPU PCI IDs ('lspci -nn'). For each GPU:
+    #     Unbinds from current driver (e.g., vfio-pci), resets 'driver_override'.
+    #     Determines vendor (AMD/NVIDIA via 'lspci -n') for driver ('amdgpu'/'nouveau').
+    #     Loads driver ('modprobe'), probes, and binds if needed. Notifies via 'aux-nos'.
+    # Dependencies:
+    #   - `lspci`, `grep`, `awk`, `cut`, `echo`, `modprobe`.
+    #   - `aux-log`, `aux-nos` functions.
+    #   - Access to /sys/bus/pci/devices/, /sys/bus/pci/drivers_probe & root privileges.
+
     aux-log "INFO" "Starting GPU reattachment process"
 
     aux-log "INFO" "Current GPU driver and IOMMU group:"
@@ -385,6 +457,17 @@ gpu-pta() {
 #
 gpu-pts() {
     local function_name="${FUNCNAME[0]}"
+
+    # Technical Description:
+    #   Displays current GPU passthrough status.
+    #   Shows IOMMU group info by iterating /sys/kernel/iommu_groups/.
+    #   Intended to list devices within each group and their drivers.
+    #   May also show driver bindings for VGA/3D controllers.
+    #   Note: Loop for IOMMU group device listing is currently empty.
+    # Dependencies:
+    #   - `find`, `echo`.
+    #   - `ls`, `lspci` (assumed for complete device details).
+    #   - Filesystem access to /sys/kernel/iommu_groups/.
 
     echo "GPU Status:"
     echo "==========="
