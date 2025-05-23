@@ -795,26 +795,6 @@ pve-vpt() {
 # <vm_id>
 pve-vck() {
 
-    # Technical Description:
-    #   Checks which Proxmox cluster node is currently hosting a specified VM.
-    #   Argument: $1 (vm_id).
-    #   Iterates through an array named 'cluster_nodes'. This array must be predefined in the shell
-    #   environment and contain the hostnames of all nodes in the Proxmox cluster.
-    #   For each node in 'cluster_nodes':
-    #     - If the node is not the current host (checked via 'hostname'), it uses
-    #       'ssh <node> "qm list"' to get the list of VMs on that remote node.
-    #     - If the node is the current host, it uses 'qm list' locally.
-    #   It then 'grep's the output of 'qm list' for the specified 'vm_id'.
-    #   If found, it prints the 'found_node' hostname and returns 0.
-    #   Returns 1 if the VM is not found on any node or if 'cluster_nodes' is empty.
-    # Dependencies:
-    #   - 'qm' command-line utility (locally and on remote nodes).
-    #   - 'ssh' for remote command execution.
-    #   - 'hostname' utility.
-    #   - 'grep' utility.
-    #   - A predefined bash array 'cluster_nodes' in the calling environment.
-    #   - 'aux-use' for usage display.
-
     local vm_id="$1"
     local found_node=""
     if [ $# -ne 1 ]; then
@@ -824,33 +804,69 @@ pve-vck() {
 
     # Check if cluster_nodes array is populated
     if [ ${#cluster_nodes[@]} -eq 0 ]; then
-        echo "Error: cluster_nodes array is empty"
+        echo "Debug: pve-vck: Error: cluster_nodes array is empty. Please define it." >&2
         return 1
     fi
+    
+    echo "Debug: pve-vck: Checking for VM_ID '$vm_id' in nodes: ${cluster_nodes[*]}" >&2
 
     for node in "${cluster_nodes[@]}"; do
-        # Skip SSH for the local node
-        if [ "$node" != "$(hostname)" ]; then
-            ssh_output=$(ssh "$node" "qm list" 2>&1)
+        echo "Debug: pve-vck: Checking node '$node'..." >&2
+        local current_hostname
+        current_hostname=$(hostname)
+        if [ "$node" != "$current_hostname" ]; then
+            echo "Debug: pve-vck: Using SSH for remote node '$node'." >&2
+            # Capture stdout and stderr from ssh command
+            ssh_output_full=$(ssh "$node" "qm list" 2>&1)
             ssh_exit_status=$?
-            if [ $ssh_exit_status -eq 0 ] && echo "$ssh_output" | grep -q "\<$vm_id\>"; then
-                found_node="$node"
-                break
+            echo "Debug: pve-vck: SSH to '$node' command: ssh \"$node\" \"qm list\"" >&2
+            echo "Debug: pve-vck: SSH to '$node' exit status: $ssh_exit_status." >&2
+            
+            if [ $ssh_exit_status -eq 0 ]; then
+                # Use printf for safety with grep
+                if printf "%s\n" "$ssh_output_full" | grep -q -w "$vm_id"; then # Added -w for whole word match, ensure vm_id is just the number
+                    echo "Debug: pve-vck: VM_ID '$vm_id' found on remote node '$node'." >&2
+                    found_node="$node"
+                    break
+                else
+                    echo "Debug: pve-vck: VM_ID '$vm_id' NOT found in 'qm list' output from '$node'." >&2
+                    # echo "Debug: pve-vck: Output from '$node' qm list:" >&2 # Uncomment for full output
+                    # printf "%s\n" "$ssh_output_full" >&2 # Uncomment for full output
+                fi
+            else
+                echo "Debug: pve-vck: SSH to '$node' failed or 'qm list' on remote failed. Output:" >&2
+                printf "%s\n" "$ssh_output_full" >&2
             fi
         else
-            local_output=$(qm list 2>&1)
+            echo "Debug: pve-vck: Using local 'qm list' for node '$node' (current host: '$current_hostname')." >&2
+            local_output_full=$(qm list 2>&1) # Capture stdout and stderr
             local_exit_status=$?
-            if [ $local_exit_status -eq 0 ] && echo "$local_output" | grep -q "\<$vm_id\>"; then
-                found_node="$node"
-                break
+            echo "Debug: pve-vck: Local 'qm list' exit status: $local_exit_status." >&2
+
+            if [ $local_exit_status -eq 0 ]; then
+                if printf "%s\n" "$local_output_full" | grep -q -w "$vm_id"; then # Added -w for whole word match
+                    echo "Debug: pve-vck: VM_ID '$vm_id' found on local node '$node'." >&2
+                    found_node="$node"
+                    break
+                else
+                    echo "Debug: pve-vck: VM_ID '$vm_id' NOT found in local 'qm list' output." >&2
+                    # echo "Debug: pve-vck: Local 'qm list' output:" >&2 # Uncomment for full output
+                    # printf "%s\n" "$local_output_full" >&2 # Uncomment for full output
+                fi
+            else
+                echo "Debug: pve-vck: Local 'qm list' failed. Output:" >&2
+                printf "%s\n" "$local_output_full" >&2
             fi
         fi
     done
 
     if [ -n "$found_node" ]; then
-        echo "$found_node"
+        echo "Debug: pve-vck: Final found_node: '$found_node'." >&2
+        echo "$found_node" # This is the actual output for command substitution
         return 0
     else
+        echo "Debug: pve-vck: VM_ID '$vm_id' not found on any node after checking all." >&2
+        # No stdout echo here, so command substitution gets empty string
         return 1
     fi
 }
