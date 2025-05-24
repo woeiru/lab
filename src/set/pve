@@ -58,7 +58,6 @@ b_xall() {
 
 # Sets up /etc/hosts entries for Proxmox nodes (x1, x2) and QDevice
 c_xall() {
-    echo "INF: Attempting to set up /etc/hosts entries for Proxmox nodes and QDevice via c_xall..."
 
     # Variables node1_ip, node2_ip, qdevice_ip are expected to be sourced from site1
     # Function sys-hos is expected to be available (sourced from lib/ops/sys)
@@ -68,7 +67,6 @@ c_xall() {
     sys-hos "$node2_ip" "x2"
     sys-hos "$qdevice_ip" "qdevice"
 
-    echo "INF: Host resolution setup by c_xall completed."
 }
 
 # Generates and distributes SSH keys for secure communication between client and server nodes
