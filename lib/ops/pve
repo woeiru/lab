@@ -583,7 +583,7 @@ pve-vmc() {
 # vm start get shutdown
 # <vm_id> [s: optional, shutdown other node]
 pve-vms() {
-
+    echo "DEBUG: pve-vms called with arguments: $@" >&2
     # Technical Description:
     #   Starts a Proxmox VM, migrating it from another node if necessary.
     #   Arguments: $1 (vm_id), $2 (optional 's' to shutdown the source/original node).
@@ -605,49 +605,63 @@ pve-vms() {
     #   - 'aux-use' for usage display.
 
     local hostname=$(hostname)
+    echo "DEBUG: pve-vms: current hostname: $hostname" >&2
 
     # Check if vm_id argument is provided
     if [ -z "$1" ]; then
+        echo "DEBUG: pve-vms: vm_id not provided" >&2
         aux-use
         return 1
     fi
 
     # Assign vm_id to a variable
     local vm_id=$1
+    echo "DEBUG: pve-vms: vm_id: $vm_id" >&2
 
     # Call pve-vck function to get node_id
+    echo "DEBUG: pve-vms: calling pve-vck with vm_id: $vm_id" >&2
     local node_id=$(pve-vck "$vm_id")
+    echo "DEBUG: pve-vms: pve-vck returned node_id: $node_id" >&2
 
     # Check if node_id is empty
     if [ -z "$node_id" ]; then
-        echo "Node ID is empty. Cannot proceed."
+        echo "Node ID is empty. Cannot proceed." >&2
+        echo "DEBUG: pve-vms: node_id is empty, exiting" >&2
         return 1
     fi
 
     # Main logic
     if [ "$hostname" = "$node_id" ]; then
+        echo "DEBUG: pve-vms: VM $vm_id is on the current node ($hostname)" >&2
+        echo "DEBUG: pve-vms: starting VM $vm_id locally" >&2
         qm start "$vm_id"
         if [ "$2" = "s" ]; then
             # Shutdown the other node
-            echo "Shutting down node $node_id"
+            echo "DEBUG: pve-vms: shutdown flag 's' detected" >&2
+            echo "Shutting down node $node_id" >&2
             ssh "root@$node_id" "shutdown now"
-        fi 
+        fi
     else
+        echo "DEBUG: pve-vms: VM $vm_id is on remote node $node_id" >&2
+        echo "DEBUG: pve-vms: migrating VM $vm_id from $node_id to $hostname" >&2
         pve-vmg "$vm_id"
+        echo "DEBUG: pve-vms: starting VM $vm_id on $hostname after migration" >&2
         qm start "$vm_id"
         if [ "$2" = "s" ]; then
             # Shutdown the other node
-            echo "Shutting down node $node_id"
+            echo "DEBUG: pve-vms: shutdown flag 's' detected" >&2
+            echo "Shutting down node $node_id" >&2
             ssh "root@$node_id" "shutdown now"
         fi
     fi
+    echo "DEBUG: pve-vms finished for VM $vm_id" >&2
 }
 
 # Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process
 # vm get start
 # <vm_id>
 pve-vmg() {
-
+    echo "DEBUG: pve-vmg called with arguments: $@" >&2
     # Technical Description:
     #   Migrates a Proxmox VM from a remote node to the current node, handling PCIe passthrough.
     #   Argument: $1 (vm_id).
@@ -667,38 +681,61 @@ pve-vmg() {
 
     local vm_id="$1"
     if [ $# -ne 1 ]; then
+        echo "DEBUG: pve-vmg: incorrect number of arguments" >&2
         aux-use
         return 1
     fi
+    echo "DEBUG: pve-vmg: vm_id: $vm_id" >&2
 
     # Call pve-vck to check if VM exists and get the node
+    echo "DEBUG: pve-vmg: calling pve-vck for vm_id: $vm_id" >&2
     local node=$(pve-vck "$vm_id")
+    echo "DEBUG: pve-vmg: pve-vck returned node: $node" >&2
+
     if [ -n "$node" ]; then
-        echo "VM found on node: $node"
+        echo "VM found on node: $node" >&2 # Keep existing user-facing message
+        local current_hostname=$(hostname)
+        echo "DEBUG: pve-vmg: current hostname: $current_hostname" >&2
+
+        if [ "$node" == "$current_hostname" ]; then
+            echo "DEBUG: pve-vmg: VM $vm_id is already on the current node $current_hostname. No migration needed." >&2
+            return 0
+        fi
 
         # Disable PCIe passthrough for the VM on the remote node
+        echo "DEBUG: pve-vmg: disabling PCIe passthrough for VM $vm_id on remote node $node" >&2
         if ! ssh "$node" "pve-vpt $vm_id off"; then
             echo "Failed to disable PCIe passthrough for VM on $node." >&2
+            echo "DEBUG: pve-vmg: failed to disable PCIe passthrough on $node for VM $vm_id" >&2
             return 1
         fi
+        echo "DEBUG: pve-vmg: PCIe passthrough disabled on $node for VM $vm_id" >&2
 
         # Migrate the VM to the current node
-        if ! ssh "$node" "qm migrate $vm_id $(hostname)"; then
-            echo "Failed to migrate VM from $node to $(hostname)." >&2
+        echo "DEBUG: pve-vmg: migrating VM $vm_id from $node to $current_hostname" >&2
+        if ! ssh "$node" "qm migrate $vm_id $current_hostname"; then
+            echo "Failed to migrate VM from $node to $current_hostname." >&2
+            echo "DEBUG: pve-vmg: failed to migrate VM $vm_id from $node to $current_hostname" >&2
             return 1
         fi
+        echo "DEBUG: pve-vmg: VM $vm_id migrated from $node to $current_hostname" >&2
 
         # Enable PCIe passthrough for the VM on the current node
+        echo "DEBUG: pve-vmg: enabling PCIe passthrough for VM $vm_id on current node $current_hostname" >&2
         if ! pve-vpt "$vm_id" on; then
-            echo "Failed to enable PCIe passthrough for VM on $(hostname)." >&2
+            echo "Failed to enable PCIe passthrough for VM on $current_hostname." >&2
+            echo "DEBUG: pve-vmg: failed to enable PCIe passthrough on $current_hostname for VM $vm_id" >&2
             return 1
         fi
+        echo "DEBUG: pve-vmg: PCIe passthrough enabled on $current_hostname for VM $vm_id" >&2
 
-        echo "VM migrated and PCIe passthrough enabled."
+        echo "VM migrated and PCIe passthrough enabled." >&2 # Keep existing user-facing message
+        echo "DEBUG: pve-vmg finished successfully for VM $vm_id" >&2
         return 0  # Return success once VM is found and migrated
     fi
 
-    echo "VM not found on any other node."
+    echo "VM not found on any other node." >&2 # Keep existing user-facing message
+    echo "DEBUG: pve-vmg: VM $vm_id not found on any node by pve-vck, exiting" >&2
     return 1  # Return failure if VM is not found
 }
 
@@ -706,7 +743,7 @@ pve-vmg() {
 # vm passthrough toggle
 # <vm_id> <on|off>
 pve-vpt() {
-
+    echo "DEBUG: pve-vpt called with arguments: $@" >&2
     # Technical Description:
     #   Toggles PCIe and USB device passthrough for a Proxmox VM by modifying its configuration file.
     #   Arguments: $1 (vm_id), $2 (action: 'on' or 'off').
@@ -731,60 +768,80 @@ pve-vpt() {
     local vm_id="$1"
     local action="$2"
     local vm_conf="$PVE_CONF_PATH_QEMU/$vm_id.conf"
+    echo "DEBUG: pve-vpt: vm_id: $vm_id, action: $action, vm_conf: $vm_conf" >&2
+
     if [ $# -ne 2 ]; then
+        echo "DEBUG: pve-vpt: incorrect number of arguments" >&2
         aux-use
+        return 1
+    fi
+
+    if [ ! -f "$vm_conf" ]; then
+        echo "DEBUG: pve-vpt: VM config file $vm_conf not found." >&2
+        echo "Error: VM configuration file $vm_conf not found." >&2 # Keep existing user-facing message
         return 1
     fi
 
     # Get hostname for variable names
     local hostname=$(hostname)
-    local node_pci0="${hostname}_node_pci0"
-    local node_pci1="${hostname}_node_pci1"
-    local core_count_on="${hostname}_core_count_on"
-    local core_count_off="${hostname}_core_count_off"
-    local usb_devices_var="${hostname}_usb_devices[@]"
+    echo "DEBUG: pve-vpt: current hostname: $hostname" >&2
+    local node_pci0_var="${hostname}_node_pci0"
+    local node_pci1_var="${hostname}_node_pci1"
+    local core_count_on_var="${hostname}_core_count_on"
+    local core_count_off_var="${hostname}_core_count_off"
+    local usb_devices_array_name="${hostname}_usb_devices[@]"
+
+    echo "DEBUG: pve-vpt: node_pci0_var: $node_pci0_var, value: ${!node_pci0_var}" >&2
+    echo "DEBUG: pve-vpt: node_pci1_var: $node_pci1_var, value: ${!node_pci1_var}" >&2
+    echo "DEBUG: pve-vpt: core_count_on_var: $core_count_on_var, value: ${!core_count_on_var}" >&2
+    echo "DEBUG: pve-vpt: core_count_off_var: $core_count_off_var, value: ${!core_count_off_var}" >&2
+    echo "DEBUG: pve-vpt: usb_devices_array_name: $usb_devices_array_name, values: ${!usb_devices_array_name}" >&2
 
     # Find the starting line of the VM configuration section
     local section_start=$(awk '/^\[/{print NR-1; exit}' "$vm_conf")
+    echo "DEBUG: pve-vpt: section_start: $section_start" >&2
 
     # Action based on the parameter
     case "$action" in
         on)
+            echo "DEBUG: pve-vpt: action is 'on'" >&2
             # Set core count based on configuration when toggled on
-            sed -i "s/cores:.*/cores: ${!core_count_on}/" "$vm_conf"
+            sed -i "s/cores:.*/cores: ${!core_count_on_var}/" "$vm_conf"
 
             # Add passthrough lines
             if [ -z "$section_start" ]; then
                 # If no section found, append passthrough lines at the end of the file
-                for usb_device in "${!usb_devices_var}"; do
+                for usb_device in "${!usb_devices_array_name}"; do
                     echo "$usb_device" >> "$vm_conf"
                 done
-                echo "hostpci0: ${!node_pci0},pcie=1,x-vga=1" >> "$vm_conf"
-                echo "hostpci1: ${!node_pci1},pcie=1" >> "$vm_conf"
+                echo "hostpci0: ${!node_pci0_var},pcie=1,x-vga=1" >> "$vm_conf"
+                echo "hostpci1: ${!node_pci1_var},pcie=1" >> "$vm_conf"
             else
                 # If a section is found, insert passthrough lines at the appropriate position
-                for usb_device in "${!usb_devices_var}"; do
+                for usb_device in "${!usb_devices_array_name}"; do
                     sed -i "${section_start}a\\${usb_device}" "$vm_conf"
                     ((section_start++))
                 done
-                sed -i "${section_start}a\\hostpci0: ${!node_pci0},pcie=1,x-vga=1" "$vm_conf"
+                sed -i "${section_start}a\\hostpci0: ${!node_pci0_var},pcie=1,x-vga=1" "$vm_conf"
                 ((section_start++))
-                sed -i "${section_start}a\\hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
+                sed -i "${section_start}a\\hostpci1: ${!node_pci1_var},pcie=1" "$vm_conf"
             fi
 
-            echo "Passthrough lines added to $vm_conf."
+            echo "Passthrough lines added to $vm_conf." >&2
             ;;
         off)
+            echo "DEBUG: pve-vpt: action is 'off'" >&2
             # Set default core count when toggled off
-            sed -i "s/cores:.*/cores: ${!core_count_off}/" "$vm_conf"
+            sed -i "s/cores:.*/cores: ${!core_count_off_var}/" "$vm_conf"
 
             # Remove passthrough lines
             sed -i '/^usb[0-9]*:/d; /^hostpci[0-9]*:/d' "$vm_conf"
 
-            echo "Passthrough lines removed from $vm_conf."
+            echo "Passthrough lines removed from $vm_conf." >&2
             ;;
         *)
-            echo "Invalid parameter. Usage: pve-vpt <VM_ID> <on|off>"
+            echo "Invalid parameter. Usage: pve-vpt <VM_ID> <on|off>" >&2
+            echo "DEBUG: pve-vpt: invalid action: $action" >&2
             exit 1
             ;;
     esac
@@ -794,12 +851,16 @@ pve-vpt() {
 # vm check node
 # <vm_id>
 pve-vck() {
+    echo "DEBUG: pve-vck called with arguments: $@" >&2
     local vm_id="$1"
     local found_node=""
+    echo "DEBUG: pve-vck: vm_id: $vm_id" >&2
+
     # Ensure cluster_nodes is defined (expected to be an array of node hostnames, e.g., ("x1" "x2"))
     # This array should be sourced from a configuration file, e.g., site1
     if [ -z "$vm_id" ]; then
         echo "ERR: pve-vck: VM ID not provided." >&2
+        echo "DEBUG: pve-vck: vm_id is empty, calling aux-use" >&2
         aux-use
         return 1
     fi
@@ -807,31 +868,41 @@ pve-vck() {
     # Check if cluster_nodes array is populated
     if [ ${#cluster_nodes[@]} -eq 0 ]; then
         echo "ERR: pve-vck: cluster_nodes array is empty. Please define it in your site configuration." >&2
+        echo "DEBUG: pve-vck: cluster_nodes array is empty" >&2
         return 1
     fi
-    
+    echo "DEBUG: pve-vck: cluster_nodes: (${cluster_nodes[*]})" >&2
+
     for node in "${cluster_nodes[@]}"; do
-        local current_hostname
-        current_hostname=$(hostname)
-        if [ "$node" != "$current_hostname" ]; then
+        echo "DEBUG: pve-vck: checking node: $node" >&2
+        if [ "$node" != "$(hostname)" ]; then
+            echo "DEBUG: pve-vck: checking remote node $node via ssh qm list for vm_id $vm_id" >&2
             # Use printf for safety with grep
-            if ssh "$node" "qm list" 2>/dev/null | grep -q -w "$vm_id"; then # Added -w for whole word match
+            if ssh "$node" "qm list" 2>/dev/null | grep -q -w "$vm_id"; then
+                echo "DEBUG: pve-vck: VM $vm_id found on remote node $node" >&2
                 found_node="$node"
                 break
+            else
+                echo "DEBUG: pve-vck: VM $vm_id NOT found on remote node $node (ssh qm list)" >&2
             fi
         else
-            if qm list 2>/dev/null | grep -q -w "$vm_id"; then # Added -w for whole word match
+            echo "DEBUG: pve-vck: checking local node $node via qm list for vm_id $vm_id" >&2
+            if qm list 2>/dev/null | grep -q -w "$vm_id"; then
+                echo "DEBUG: pve-vck: VM $vm_id found on local node $node" >&2
                 found_node="$node"
                 break
+            else
+                echo "DEBUG: pve-vck: VM $vm_id NOT found on local node $node (local qm list)" >&2
             fi
         fi
     done
 
     if [ -n "$found_node" ]; then
-        echo "$found_node" # This is the actual output for command substitution
+        echo "DEBUG: pve-vck: final found_node: $found_node, returning 0" >&2
+        echo "$found_node"
         return 0
     else
-        # No stdout echo here, so command substitution gets empty string
+        echo "DEBUG: pve-vck: VM $vm_id not found on any cluster node, returning 1" >&2
         return 1
     fi
 }
