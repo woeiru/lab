@@ -407,7 +407,7 @@ pve-vmd() {
     #   'create_or_update_hook_script' inner function generates/updates this Perl script.
     #   The Perl script logs its execution to '/var/log/gpu-reattach-hook.log'.
     #   On 'post-stop' phase, the Perl script executes:
-    #     bash -c 'source ${LIB_DEP_DIR}/pve && gpu-pta'
+    #     bash -c 'source ${LIB_OPS_DIR}/pve && gpu-pta'
     #     This implies 'gpu-pta' is another script/function responsible for the actual GPU reattachment logic.
     #   'add' uses 'qm set <vmid> -hookscript local:snippets/gpu-reattach-hook.pl'.
     #   'remove' uses 'qm set <vmid> -delete hookscript'.
@@ -415,8 +415,8 @@ pve-vmd() {
     # Dependencies:
     #   - 'qm' command-line utility.
     #   - Perl interpreter (for the hook script).
-    #   - 'gpu-pta' script/function (defined elsewhere, sourced via LIB_DEP_DIR).
-    #   - '$LIB_DEP_DIR' environment variable.
+    #   - 'gpu-pta' script/function (defined elsewhere, sourced via LIB_OPS_DIR).
+    #   - '$LIB_OPS_DIR' environment variable.
     #   - 'aux-nos' for notifications.
     #   - Directory '/var/lib/vz/snippets' must be writable.
 
@@ -464,7 +464,7 @@ print \$log strftime("%Y-%m-%d %H:%M:%S", localtime) . " - VM \$vmid, Phase: \$p
 
 if (\$phase eq 'post-stop') {
     print \$log "Attempting to reattach GPU for VM \$vmid\n";
-    my \$result = system("bash -c 'source ${LIB_DEP_DIR}/pve && gpu-pta'");
+    my \$result = system("bash -c 'source ${LIB_OPS_DIR}/pve && gpu-pta'");
     print \$log "gpu-pta execution result: \$result\n";
 }
 

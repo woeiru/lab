@@ -179,8 +179,8 @@ source_cfg_env() {
 
 # Source the function files
 source_lib_dep() {
-    # Use LIB_DEP_DIR which is defined in ric
-    source_directory "$LIB_DEP_DIR" "*" "function files"
+    # Use LIB_OPS_DIR which is defined in ric
+    source_directory "$LIB_OPS_DIR" "*" "function files"
     return $?
 }
 
