@@ -61,7 +61,7 @@ c_xall() {
     echo "INF: Attempting to set up /etc/hosts entries for Proxmox nodes and QDevice via c_xall..."
 
     # Variables node1_ip, node2_ip, qdevice_ip are expected to be sourced from site1
-    # Function sys-hos is expected to be available (sourced from lib/dep/sys)
+    # Function sys-hos is expected to be available (sourced from lib/ops/sys)
     # sys-hos will handle checks for empty variables.
 
     sys-hos "$node1_ip" "x1"

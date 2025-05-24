@@ -85,7 +85,7 @@ The issue appears to be related to how the shell on host `x1` handles the piping
 
 ## Update: Similar Hang in `gpu-ptd` Function
 
-Subsequent to the fix in `gpu-pt3`, a similar hanging behavior was observed in the `gpu-ptd` function within the same script (`/home/es/lab/lib/dep/gpu`). This function is responsible for detaching GPUs from their host drivers and also utilizes `lspci` for various checks and information gathering.
+Subsequent to the fix in `gpu-pt3`, a similar hanging behavior was observed in the `gpu-ptd` function within the same script (`/home/es/lab/lib/ops/gpu`). This function is responsible for detaching GPUs from their host drivers and also utilizes `lspci` for various checks and information gathering.
 
 ### Issue in `gpu-ptd`
 
