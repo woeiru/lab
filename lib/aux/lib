@@ -304,7 +304,7 @@ aux-laf() {
             
             # Count the number of calls to the function
             func_calls=$(count_calls "$func_name")
-            callsfun=$(count_calls_folder "$func_name" "$LIB_DEP_DIR" "$file_name")
+            callsfun=$(count_calls_folder "$func_name" "$LIB_OPS_DIR" "$file_name")
             callsgen=$(count_calls_folder "$func_name" "$SRC_SET_DIR" "$file_name")
             
             # Get comments for arguments, shortname, and description
@@ -625,7 +625,7 @@ aux-flc() {
     # Extract the library prefix from the function name
     func_name="$1"
     lib_prefix="${func_name%%-*}"
-    lib_file="${LIB_DEP_DIR}/${lib_prefix}"
+    lib_file="${LIB_OPS_DIR}/${lib_prefix}"
 
     # Check if the library file exists
     if [ ! -f "$lib_file" ]; then

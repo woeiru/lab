@@ -46,8 +46,8 @@
     alias cto='pve-cto'
 
     # Function chaining
-    alias fun='aux-ffl aux-laf "" "$LIB_DEP_DIR"'
-    alias var='aux-ffl aux-acu "" "$CFG_ENV_DIR" "$LIB_DEP_DIR" "$SRC_SET_DIR"'
+    alias fun='aux-ffl aux-laf "" "$LIB_OPS_DIR"'
+    alias var='aux-ffl aux-acu "" "$CFG_ENV_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR"'
 
     # Function makros
     alias v1='gpu-ptd ; qm start 211'

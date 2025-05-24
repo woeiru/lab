@@ -82,23 +82,23 @@ printf "%s┗━━━━━━━━━━━━━━━━━━━━━━�
 # Clean up temporary variables
 unset _AUX_SRC_SCRIPT_DIR_TEMP _CFG_ENV_DIR_TEMP _env_file_temp _any_cfg_file_processed_temp
 
-# Dynamically source all function library files from lib/dep/
+# Dynamically source all function library files from lib/ops/
 
 # Determine the absolute path to the directory containing this script again (or reuse if scope allows and it's clean).
 # For clarity and safety, especially if this script could be sourced in complex ways, re-determining is safer.
 _AUX_SRC_SCRIPT_DIR_TEMP2="$(dirname "${BASH_SOURCE[0]}")"
 
-# Construct the path to the lib/dep directory: two levels up, then into lib/dep.
-_LIB_DEP_DIR_TEMP="$(realpath "${_AUX_SRC_SCRIPT_DIR_TEMP2}/../../lib/dep")"
+# Construct the path to the lib/ops directory: two levels up, then into lib/ops.
+_LIB_OPS_DIR_TEMP="$(realpath "${_AUX_SRC_SCRIPT_DIR_TEMP2}/../../lib/ops")"
 
 printf "\n" >&2
 printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent" >&2
 printf "%s┃ ${BOLD}Function Library Sourcing${RESET}\n" "$base_indent" >&2
 printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent" >&2
-if [[ -d "$_LIB_DEP_DIR_TEMP" ]]; then
-    printf "%s┃ Source Directory: %s\n" "$base_indent" "$_LIB_DEP_DIR_TEMP" >&2
+if [[ -d "$_LIB_OPS_DIR_TEMP" ]]; then
+    printf "%s┃ Source Directory: %s\n" "$base_indent" "$_LIB_OPS_DIR_TEMP" >&2
     _any_lib_file_processed_temp=false
-    for _lib_file_temp in "$_LIB_DEP_DIR_TEMP"/*; do
+    for _lib_file_temp in "$_LIB_OPS_DIR_TEMP"/*; do
         if [[ -f "$_lib_file_temp" ]] && [[ -r "$_lib_file_temp" ]]; then
             _any_lib_file_processed_temp=true
             printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$_lib_file_temp")" >&2
@@ -110,11 +110,11 @@ if [[ -d "$_LIB_DEP_DIR_TEMP" ]]; then
         printf "%s┃ No sourceable files found in this directory.\n" "$base_indent" >&2
     fi
 else
-    printf "%s┃ ${BOLD}WARNING:${RESET} Directory not found: %s\n" "$base_indent" "$_LIB_DEP_DIR_TEMP" >&2
+    printf "%s┃ ${BOLD}WARNING:${RESET} Directory not found: %s\n" "$base_indent" "$_LIB_OPS_DIR_TEMP" >&2
 fi
 printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent" >&2
 # Clean up temporary variables for this block
-unset _AUX_SRC_SCRIPT_DIR_TEMP2 _LIB_DEP_DIR_TEMP _lib_file_temp _any_lib_file_processed_temp
+unset _AUX_SRC_SCRIPT_DIR_TEMP2 _LIB_OPS_DIR_TEMP _lib_file_temp _any_lib_file_processed_temp
 
 # Dynamically source all other files from the same directory as this script.
 
@@ -623,7 +623,7 @@ expand_variables() {
 get_function_description() {
     local func_name="$1"
     local lib_name="${func_name%%-*}"
-    local lib_file="${LIB_DEP_DIR}/${lib_name}"
+    local lib_file="${LIB_OPS_DIR}/${lib_name}"
 
     if [ ! -f "$lib_file" ]; then
         printf "      Library file not found: %s\n" "$lib_file"
