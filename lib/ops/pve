@@ -794,6 +794,28 @@ pve-vpt() {
 # vm check node
 # <vm_id>
 pve-vck() {
+
+    # Technical Description:
+    #   Determines which node in a Proxmox VE cluster is currently hosting the specified Virtual Machine (VM).
+    #   It iterates through a list of predefined cluster nodes (expected to be in the `cluster_nodes` array,
+    #   sourced from a site configuration file like `cfg/env/site1`).
+    #   For each node, it uses `ssh` to execute `qm list` on remote nodes or executes `qm list` directly
+    #   on the local node.
+    #   The output of `qm list` is then parsed using `grep` to check if the given `vm_id` is present.
+    #   If the VM is found, the function outputs the hostname of the node and returns 0.
+    #   If the VM is not found on any node after checking all, it returns 1.
+    #   Debug messages are printed to stderr if `set -x` or similar debugging is enabled.
+    #   The function relies on the `cluster_nodes` array being populated and `ssh` access (key-based)
+    #   to other cluster nodes for remote command execution.
+    # Dependencies:
+    #   - `qm` command-line utility (Proxmox VE).
+    #   - `ssh` client for remote node checks.
+    #   - `grep` utility for parsing command output.
+    #   - `hostname` utility to identify the current node.
+    #   - `cluster_nodes` bash array variable (e.g., `cluster_nodes=("node1" "node2")`) defined and sourced
+    #     from a configuration file (e.g., `cfg/env/site1`).
+    #   - `aux-use` function for displaying usage if `vm_id` is not provided.
+
     echo "DEBUG: pve-vck called with arguments: $@" >&2
     local vm_id="$1"
     local found_node=""
