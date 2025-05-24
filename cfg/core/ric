@@ -85,7 +85,7 @@ export SITE_CONFIG_FILE
 
 # Deployment function library path
 declare -g LIB_DEP_DIR
-LIB_DEP_DIR="${LAB_DIR}/lib/dep"
+LIB_DEP_DIR="${LAB_DIR}/lib/ops"
 export LIB_DEP_DIR
 
 # Deployment function library path
@@ -120,7 +120,7 @@ export CACHE_CLEANUP_INTERVAL
 
 # Generation folders
 declare -ga GENERATION_FOLDERS
-GENERATION_FOLDERS=(lib/dep cfg/env src/set)
+GENERATION_FOLDERS=(lib/ops cfg/env src/set)
 export GENERATION_FOLDERS
 
 # Flag to indicate constants are loaded

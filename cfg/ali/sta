@@ -101,8 +101,8 @@
     alias v.fstab='vim /etc/fstab'
 
     # Snapper (filesystem snapshot management)
-    if [ -s "$DIR_LIB/dep/sto" ]; then
-        source "$DIR_LIB/dep/sto"
+    if [ -s "$DIR_LIB/ops/sto" ]; then
+        source "$DIR_LIB/ops/sto"
         alias shl='sto-bfs-shl home'
         alias shc='sto-bfs-shc home'
         alias shd='sto-bfs-shd'
