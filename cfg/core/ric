@@ -130,7 +130,7 @@ export CONS_LOADED
 # Master switch for all terminal output.
 # Set to "on" for verbose output, "off" for quiet terminal.
 # File logging is generally unaffected by this setting.
-declare -g MASTER_TERMINAL_VERBOSITY="off"
+declare -g MASTER_TERMINAL_VERBOSITY="on"
 export MASTER_TERMINAL_VERBOSITY
 
 # Controls terminal verbosity for early init and verification debug_log
