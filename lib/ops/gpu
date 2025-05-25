@@ -807,7 +807,7 @@ gpu-pta() {
     else
         printf "INFO: No specific GPU ID provided, will attempt to attach all VGA/3D controllers currently on vfio-pci.\\n"
         local lspci_output_vfio
-        lspci_output_vfio=$(lspci -nnk | grep -B1 "Kernel driver in use: vfio-pci" | grep -E "VGA compatible controller|3D controller")
+        lspci_output_vfio=$(lspci -nnk | grep -A1 "Kernel driver in use: vfio-pci" | grep -E "VGA compatible controller|3D controller")
         if [ -z "$lspci_output_vfio" ]; then
             printf "${YELLOW}No GPUs found currently using vfio-pci according to lspci -nnk.${NC}"
             # Optionally, could scan all GPUs and try to ensure they are on host drivers if not on vfio.
@@ -938,32 +938,166 @@ gpu-pta() {
 #
 gpu-pts() {
     local function_name="${FUNCNAME[0]}"
-    # Corrected flags:
-    local is_any_gpu_on_vfio=false      # True if lspci -nnk shows a VGA/3D controller using vfio-pci
-    local host_drivers_for_gpu=""     # Name(s) of host driver(s) if a VGA/3D controller is using one
-    local vga_devices_processed=false # Flag to check if any VGA/3D device block was processed
+    # Flags for overall summary, populated by lspci parsing
+    local is_any_gpu_on_vfio=false
+    local host_drivers_for_gpu=""
+    local vga_devices_processed=false # True if any VGA/3D device was found by lspci and processed
 
-    # Define colors using printf, similar to lo1 module
+    # Define colors using printf
     local GREEN=$(printf '\\033[0;32m')
     local CYAN=$(printf '\\033[0;36m')
-    local MAGENTA=$(printf '\\033[0;35m') # Magenta is often perceived as pinkish-red
+    local MAGENTA=$(printf '\\033[0;35m')
     local YELLOW=$(printf '\\033[0;33m')
-    local INDIGO_BLUE=$(printf '\\033[38;2;75;0;130m') # True color for Indigo Blue
+    local INDIGO_BLUE=$(printf '\\033[38;2;75;0;130m')
     local RED=$(printf '\\033[0;31m')
     local NC=$(printf '\\033[0m') # No Color
 
-    # Workflow Configuration Checklist & Runtime Status
+    # Workflow Configuration Checklist & Runtime Status Symbols
     local CHECK_MARK="${GREEN}✓${NC}"
     local CROSS_MARK="${RED}✗${NC}"
     local QUESTION_MARK="${YELLOW}?${NC}"
 
     # Define paths needed for the checklist
-    local modules_file_path="/etc/modules" # gpu-pt2 target
-    local blacklist_nouveau_conf_path="/etc/modprobe.d/blacklist-nouveau.conf" # gpu-nds target
-    local vfio_conf_path="/etc/modprobe.d/vfio.conf" # gpu-pt3 target
-    local passthrough_blacklist_conf_path="/etc/modprobe.d/zz-vfio-gpu-blacklist.conf" # gpu-pt3 target
+    local modules_file_path="/etc/modules"
+    local blacklist_nouveau_conf_path="/etc/modprobe.d/blacklist-nouveau.conf"
+    local vfio_conf_path="/etc/modprobe.d/vfio.conf"
+    local passthrough_blacklist_conf_path="/etc/modprobe.d/zz-vfio-gpu-blacklist.conf"
 
-# IOMMU Groups (Still useful as a separate detailed section)
+    # Initialize variables for lspci -nnk processing results
+    local all_device_blocks_output=""
+    local gpu_details_for_checklist=""
+
+    # --- Hoisted lspci -nnk processing ---
+    # This section populates all_device_blocks_output, gpu_details_for_checklist,
+    # is_any_gpu_on_vfio, host_drivers_for_gpu, and vga_devices_processed.
+    local temp_lspci_gpu_blocks="/tmp/gpu_pts_blocks.$$"
+    lspci -nnk | grep -A4 -iE "VGA compatible controller|3D controller" > "$temp_lspci_gpu_blocks"
+    
+    if [ -s "$temp_lspci_gpu_blocks" ]; then
+        local current_gpu_block_content=""
+        # vga_devices_processed is already false, will be set true if blocks are processed or temp file had content
+
+        while IFS= read -r line_from_grep; do
+            if echo "$line_from_grep" | grep -qE "VGA compatible controller|3D controller"; then
+                # Process previous block if it exists and was a GPU block
+                if [ -n "$current_gpu_block_content" ] && echo "$current_gpu_block_content" | head -n1 | grep -qE "VGA compatible controller|3D controller"; then
+                    all_device_blocks_output+="${YELLOW}Device Block:${NC}\\n$current_gpu_block_content\\n\\n"
+                    vga_devices_processed=true # A device block was processed
+                    local pci_id_for_block=$(echo "$current_gpu_block_content" | head -n1 | awk '{print $1}')
+                    
+                    local device_vendor_name_raw=$(lspci -mms "$pci_id_for_block" 2>/dev/null | cut -d'"' -f6)
+                    local device_name_raw=$(lspci -mms "$pci_id_for_block" 2>/dev/null | cut -d'"' -f8)
+                    local device_vendor_name=$(echo "$device_vendor_name_raw" | sed -E 's/ Corporation| Incorporated| Technologies Inc.//g')
+                    local device_name_short=$(echo "$device_name_raw" | sed 's/ \\[.*\\]//g' | awk '{print $1, $2}')
+                    local device_name_for_checklist="$device_vendor_name $device_name_short"
+                    device_name_for_checklist=$(echo "$device_name_for_checklist" | sed 's/[[:space:]]*$//')
+                    if [ -z "$device_name_for_checklist" ]; then device_name_for_checklist="N/A"; fi
+
+                    if echo "$current_gpu_block_content" | grep -q "Kernel driver in use: vfio-pci"; then
+                        is_any_gpu_on_vfio=true
+                        gpu_details_for_checklist+="     ${CHECK_MARK} GPU $pci_id_for_block ($device_name_for_checklist) on vfio-pci\\n"
+                    elif driver_line=$(echo "$current_gpu_block_content" | grep "Kernel driver in use:"); then
+                        local driver_name=$(echo "$driver_line" | awk -F': ' '{print $2}')
+                        if [ -n "$driver_name" ]; then
+                            if [ -z "$host_drivers_for_gpu" ]; then host_drivers_for_gpu="$driver_name"; elif [[ ! "$host_drivers_for_gpu" =~ "$driver_name" ]]; then host_drivers_for_gpu="$host_drivers_for_gpu, $driver_name"; fi
+                            gpu_details_for_checklist+="     ${INDIGO_BLUE}*${NC} GPU $pci_id_for_block ($device_name_for_checklist) on $driver_name\\n"
+                        else
+                            gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block ($device_name_for_checklist) on UNKNOWN driver\\n"
+                        fi
+                    else
+                        gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block ($device_name_for_checklist) UNBOUND or no driver info\\n"
+                    fi
+                fi
+                current_gpu_block_content="$line_from_grep" # Start new block
+            elif [[ "$line_from_grep" == "--" ]]; then # Separator line from grep -A
+                if [ -n "$current_gpu_block_content" ] && echo "$current_gpu_block_content" | head -n1 | grep -qE "VGA compatible controller|3D controller"; then
+                    all_device_blocks_output+="${YELLOW}Device Block:${NC}\\n$current_gpu_block_content\\n\\n"
+                    vga_devices_processed=true
+                    local pci_id_for_block=$(echo "$current_gpu_block_content" | head -n1 | awk '{print $1}')
+
+                    local device_vendor_name_raw=$(lspci -mms "$pci_id_for_block" 2>/dev/null | cut -d'"' -f6)
+                    local device_name_raw=$(lspci -mms "$pci_id_for_block" 2>/dev/null | cut -d'"' -f8)
+                    local device_vendor_name=$(echo "$device_vendor_name_raw" | sed -E 's/ Corporation| Incorporated| Technologies Inc.//g')
+                    local device_name_short=$(echo "$device_name_raw" | sed 's/ \\[.*\\]//g' | awk '{print $1, $2}')
+                    local device_name_for_checklist="$device_vendor_name $device_name_short"
+                    device_name_for_checklist=$(echo "$device_name_for_checklist" | sed 's/[[:space:]]*$//')
+                    if [ -z "$device_name_for_checklist" ]; then device_name_for_checklist="N/A"; fi
+
+                    if echo "$current_gpu_block_content" | grep -q "Kernel driver in use: vfio-pci"; then
+                        is_any_gpu_on_vfio=true
+                        gpu_details_for_checklist+="     ${CHECK_MARK} GPU $pci_id_for_block ($device_name_for_checklist) on vfio-pci\\n"
+                    elif driver_line=$(echo "$current_gpu_block_content" | grep "Kernel driver in use:"); then
+                        local driver_name=$(echo "$driver_line" | awk -F': ' '{print $2}')
+                        if [ -n "$driver_name" ]; then
+                           if [ -z "$host_drivers_for_gpu" ]; then host_drivers_for_gpu="$driver_name"; elif [[ ! "$host_drivers_for_gpu" =~ "$driver_name" ]]; then host_drivers_for_gpu="$host_drivers_for_gpu, $driver_name"; fi
+                           gpu_details_for_checklist+="     ${INDIGO_BLUE}*${NC} GPU $pci_id_for_block ($device_name_for_checklist) on $driver_name\\n"
+                        else
+                           gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block ($device_name_for_checklist) on UNKNOWN driver\\n"
+                        fi
+                    else
+                        gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block ($device_name_for_checklist) UNBOUND or no driver info\\n"
+                    fi
+                fi
+                current_gpu_block_content="" # Reset for next block
+            elif [ -n "$current_gpu_block_content" ]; then # Accumulate lines for the current block
+                current_gpu_block_content="$current_gpu_block_content"$'\\n'"$line_from_grep"
+            fi
+        done < "$temp_lspci_gpu_blocks"
+        
+        # Process the last block after loop ends
+        if [ -n "$current_gpu_block_content" ] && echo "$current_gpu_block_content" | head -n1 | grep -qE "VGA compatible controller|3D controller"; then
+            all_device_blocks_output+="${YELLOW}Device Block:${NC}\\n$current_gpu_block_content\\n\\n"
+            vga_devices_processed=true
+            local pci_id_for_block=$(echo "$current_gpu_block_content" | head -n1 | awk '{print $1}')
+
+            local device_vendor_name_raw=$(lspci -mms "$pci_id_for_block" 2>/dev/null | cut -d'"' -f6)
+            local device_name_raw=$(lspci -mms "$pci_id_for_block" 2>/dev/null | cut -d'"' -f8)
+            local device_vendor_name=$(echo "$device_vendor_name_raw" | sed -E 's/ Corporation| Incorporated| Technologies Inc.//g')
+            local device_name_short=$(echo "$device_name_raw" | sed 's/ \\[.*\\]//g' | awk '{print $1, $2}')
+            local device_name_for_checklist="$device_vendor_name $device_name_short"
+            device_name_for_checklist=$(echo "$device_name_for_checklist" | sed 's/[[:space:]]*$//')
+            if [ -z "$device_name_for_checklist" ]; then device_name_for_checklist="N/A"; fi
+
+            if echo "$current_gpu_block_content" | grep -q "Kernel driver in use: vfio-pci"; then
+                is_any_gpu_on_vfio=true
+                gpu_details_for_checklist+="     ${CHECK_MARK} GPU $pci_id_for_block ($device_name_for_checklist) on vfio-pci\\n"
+            elif driver_line=$(echo "$current_gpu_block_content" | grep "Kernel driver in use:"); then
+                local driver_name=$(echo "$driver_line" | awk -F': ' '{print $2}')
+                if [ -n "$driver_name" ]; then
+                    if [ -z "$host_drivers_for_gpu" ]; then host_drivers_for_gpu="$driver_name"; elif [[ ! "$host_drivers_for_gpu" =~ "$driver_name" ]]; then host_drivers_for_gpu="$host_drivers_for_gpu, $driver_name"; fi
+                    gpu_details_for_checklist+="     ${INDIGO_BLUE}*${NC} GPU $pci_id_for_block ($device_name_for_checklist) on $driver_name\\n"
+                else
+                    gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block ($device_name_for_checklist) on UNKNOWN driver\\n"
+                fi
+            else
+                 gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block ($device_name_for_checklist) UNBOUND or no driver info\\n"
+            fi
+        fi
+        
+        # If lspci | grep found devices, but loop didn't process them (e.g. parsing issue),
+        # still mark vga_devices_processed as true and try basic flag population.
+        if ! $vga_devices_processed && [ -s "$temp_lspci_gpu_blocks" ]; then
+            vga_devices_processed=true 
+            local full_lspci_check_output_from_temp=$(cat "$temp_lspci_gpu_blocks")
+            if echo "$full_lspci_check_output_from_temp" | grep -q "Kernel driver in use: vfio-pci"; then
+                is_any_gpu_on_vfio=true
+            fi
+            if ! $is_any_gpu_on_vfio; then
+                local found_host_driver_names=$(echo "$full_lspci_check_output_from_temp" | grep "Kernel driver in use:" | awk -F': ' '{print $2}' | sort -u | tr '\\n' ',' | sed 's/,$//')
+                if [ -n "$found_host_driver_names" ] && [ "$found_host_driver_names" != "vfio-pci" ]; then
+                     host_drivers_for_gpu="$found_host_driver_names"
+                fi
+            fi
+        fi
+    else
+        # temp_lspci_gpu_blocks is empty, so lspci | grep found no VGA/3D controllers.
+        # vga_devices_processed remains false.
+        : # No action needed, flags remain at their defaults
+    fi
+    rm -f "$temp_lspci_gpu_blocks"
+    # --- End of Hoisted lspci -nnk processing ---
+
+    # --- IOMMU Groups (Details) ---
     echo -e "\\n${CYAN}--- IOMMU Groups (Details) ---${NC}"
     if ! command -v find &>/dev/null || ! command -v ls &>/dev/null || ! command -v lspci &>/dev/null; then
         echo -e "${RED}Required commands (find, ls, lspci) not available to list IOMMU groups.${NC}"
@@ -976,7 +1110,6 @@ gpu-pts() {
         if [ ${#gpu_pci_bus_ids[@]} -eq 0 ]; then
             echo -e "${YELLOW}No VGA/3D controllers found to filter IOMMU groups.${NC}"
         else
-            # echo -e "${CYAN}Monitoring for GPU(s) at PCI Bus IDs:${NC} ${gpu_pci_bus_ids[*]}" # This line is commented out
             local overall_iommu_groups_found=false
             local gpu_related_group_displayed=false
 
@@ -1020,7 +1153,18 @@ gpu-pts() {
         fi
     fi
 
-    # Loaded Kernel Modules (GPU related)
+    # --- GPU Device Details (lspci -nnk) --- (NEW SECTION)
+    echo -e "\\n${CYAN}--- GPU Device Details (lspci -nnk) ---${NC}"
+    if [ -n "$all_device_blocks_output" ]; then
+        echo -e "${all_device_blocks_output%\\n\\n}" # Print accumulated blocks, remove last two newlines
+    elif $vga_devices_processed; then 
+         echo -e "${YELLOW}No detailed GPU device blocks were formatted (e.g. lspci output was unusual or parsing issue).${NC}"
+    else 
+         echo -e "${YELLOW}No VGA compatible or 3D controllers found by lspci to display details.${NC}"
+    fi
+    # --- End of GPU Device Details ---
+
+    # --- Loaded Kernel Modules (GPU related) ---
     echo -e "\\n${CYAN}--- Loaded Kernel Modules (GPU related) ---${NC}"
     if lsmod | command grep -E "vfio|nvidia|nouveau|amdgpu|radeon" --color=never; then
         : 
@@ -1028,23 +1172,19 @@ gpu-pts() {
         echo -e "${YELLOW}No common GPU-related modules (vfio, nvidia, nouveau, amdgpu, radeon) loaded.${NC}"
     fi
 
-    echo -e "${CYAN}--- GPU Passthrough Workflow & Runtime Status ---${NC}"
+    echo -e "\\n${CYAN}--- GPU Passthrough Workflow & Runtime Status ---${NC}"
     echo -e "${CYAN}==================================================${NC}"
 
     # 1. Initial System Preparation (Configuration)
     echo -e "${MAGENTA}1. Initial System Preparation (Configuration):${NC}"
-    # 1.1 IOMMU Enabled in Kernel Command Line
     local iommu_enabled_cmdline_status="$CROSS_MARK"
     if grep -q 'iommu=pt\\|intel_iommu=on\\|amd_iommu=on' /proc/cmdline; then
         iommu_enabled_cmdline_status="$CHECK_MARK"
     fi
     echo -e "   ${iommu_enabled_cmdline_status} IOMMU Enabled in Kernel Command Line (gpu-pt1)"
 
-    # 1.2 Core VFIO modules in /etc/modules (for boot loading)
     local vfio_modules_in_etc_modules_status="$CROSS_MARK"
-    local vfio_ok=0
-    local vfio_iommu_type1_ok=0
-    local vfio_pci_ok=0
+    local vfio_ok=0; local vfio_iommu_type1_ok=0; local vfio_pci_ok=0
     if [ -f "$modules_file_path" ]; then
         if grep -qP "^\\s*vfio\\s*(#.*)?$" "$modules_file_path" && ! grep -qP "^\\s*#\\s*vfio" "$modules_file_path"; then vfio_ok=1; fi
         if grep -qP "^\\s*vfio_iommu_type1\\s*(#.*)?$" "$modules_file_path" && ! grep -qP "^\\s*#\\s*vfio_iommu_type1" "$modules_file_path"; then vfio_iommu_type1_ok=1; fi
@@ -1057,7 +1197,7 @@ gpu-pts() {
 
     # 2. NVIDIA Host Driver Setup (Optional Configuration)
     echo -e "${MAGENTA}2. NVIDIA Host Driver Setup (Optional Configuration):${NC}"
-    local nouveau_blacklisted_status="$QUESTION_MARK (Not found)" # Default
+    local nouveau_blacklisted_status="$QUESTION_MARK (Not found)"
     if [ -f "$blacklist_nouveau_conf_path" ]; then
         if grep -q "blacklist nouveau" "$blacklist_nouveau_conf_path"; then
             nouveau_blacklisted_status="$CHECK_MARK"
@@ -1083,161 +1223,52 @@ gpu-pts() {
 
     # 4. Runtime Kernel Module & Driver Status
     echo -e "${MAGENTA}4. Runtime Kernel Module & Driver Status:${NC}"
-    # 4.1 VFIO-PCI module loaded
     local vfio_pci_loaded_status="$CROSS_MARK"
     if lsmod | grep -q "vfio_pci"; then
         vfio_pci_loaded_status="$CHECK_MARK"
     fi
     echo -e "   ${vfio_pci_loaded_status} VFIO-PCI kernel module currently loaded"
 
-    # 4.2 Other relevant GPU modules loaded
     local other_gpu_modules_loaded="-"
-    if lsmod | grep -qE "nvidia|nouveau|amdgpu|radeon"; then
+    if lsmod | command grep -qE "nvidia|nouveau|amdgpu|radeon"; then # Use command grep
         other_gpu_modules_loaded="${GREEN}Host drivers (nvidia/nouveau/amdgpu/radeon) loaded${NC}"
     else
         other_gpu_modules_loaded="${YELLOW}No common host GPU drivers loaded${NC}"
     fi
-    if lsmod | grep -qE "vfio_pci|vfio_iommu_type1|vfio"; then
-        if [[ "$other_gpu_modules_loaded" == "-" || "$other_gpu_modules_loaded" == *"No common host GPU drivers loaded"* ]]; then # avoid printing vfio if already covered by vfio_pci_loaded_status
+    if lsmod | command grep -qE "vfio_iommu_type1|vfio"; then # Use command grep
+        if [[ "$other_gpu_modules_loaded" == "-" || "$other_gpu_modules_loaded" == *"${YELLOW}No common host GPU drivers loaded${NC}"* ]]; then
             other_gpu_modules_loaded="${GREEN}VFIO modules (vfio/vfio_iommu_type1) loaded${NC}"
         else
             other_gpu_modules_loaded+=", ${GREEN}VFIO modules (vfio/vfio_iommu_type1) loaded${NC}"
         fi 
     fi
     echo -e "   - Other relevant modules: $other_gpu_modules_loaded"
-
-    # 4.3 Kernel Drivers for GPU(s) - This part is more complex to make a simple checklist item
-    # We will still print the detailed block but also try to summarize for the checklist
-    echo -e "   ${CYAN}--- Current GPU Driver Bindings (Details below) ---${NC}"
-    local temp_lspci_gpu_blocks="/tmp/gpu_pts_blocks.$$"
-    # Get all VGA/3D controllers and their surrounding context for drivers
-    lspci -nnk | grep -A4 -iE "VGA compatible controller|3D controller" > "$temp_lspci_gpu_blocks"
     
-    if [ -s "$temp_lspci_gpu_blocks" ]; then
-        local current_gpu_block_content=""
-        local gpu_details_for_checklist=""
-
-        while IFS= read -r line_from_grep; do
-            if echo "$line_from_grep" | grep -qE "VGA compatible controller|3D controller"; then
-                # Process previous block if exists
-                if [ -n "$current_gpu_block_content" ] && echo "$current_gpu_block_content" | head -n1 | grep -qE "VGA compatible controller|3D controller"; then
-                    echo -e "\\n${YELLOW}Device Block:${NC}\\n$current_gpu_block_content"
-                    vga_devices_processed=true
-                    local pci_id_for_block=$(echo "$current_gpu_block_content" | head -n1 | awk '{print $1}')
-                    if echo "$current_gpu_block_content" | grep -q "Kernel driver in use: vfio-pci"; then
-                        is_any_gpu_on_vfio=true
-                        gpu_details_for_checklist+="     ${CHECK_MARK} GPU $pci_id_for_block on vfio-pci\\n"
-                    elif driver_line=$(echo "$current_gpu_block_content" | grep "Kernel driver in use:"); then
-                        local driver_name=$(echo "$driver_line" | awk -F': ' '{print $2}')
-                        if [ -n "$driver_name" ]; then
-                            if [ -z "$host_drivers_for_gpu" ]; then host_drivers_for_gpu="$driver_name"; elif [[ ! "$host_drivers_for_gpu" =~ "$driver_name" ]]; then host_drivers_for_gpu="$host_drivers_for_gpu, $driver_name"; fi
-                            gpu_details_for_checklist+="     ${INDIGO_BLUE}*${NC} GPU $pci_id_for_block on $driver_name\\n"
-                        else
-                            gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block on UNKNOWN driver\\n"
-                        fi
-                    else
-                        gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block UNBOUND or no driver info\\n"
-                    fi
-                fi
-                current_gpu_block_content="$line_from_grep"
-            elif [[ "$line_from_grep" == "--" ]]; then # Separator line from grep -A
-                if [ -n "$current_gpu_block_content" ]; then # Process the last lines of a block before separator
-                    echo -e "\\n${YELLOW}Device Block:${NC}\\n$current_gpu_block_content"
-                    vga_devices_processed=true
-                    local pci_id_for_block=$(echo "$current_gpu_block_content" | head -n1 | awk '{print $1}')
-                    if echo "$current_gpu_block_content" | grep -q "Kernel driver in use: vfio-pci"; then
-                        is_any_gpu_on_vfio=true
-                        gpu_details_for_checklist+="     ${CHECK_MARK} GPU $pci_id_for_block on vfio-pci\\n"
-                    elif driver_line=$(echo "$current_gpu_block_content" | grep "Kernel driver in use:"); then
-                        local driver_name=$(echo "$driver_line" | awk -F': ' '{print $2}')
-                        if [ -n "$driver_name" ]; then
-                           if [ -z "$host_drivers_for_gpu" ]; then host_drivers_for_gpu="$driver_name"; elif [[ ! "$host_drivers_for_gpu" =~ "$driver_name" ]]; then host_drivers_for_gpu="$host_drivers_for_gpu, $driver_name"; fi
-                           gpu_details_for_checklist+="     ${INDIGO_BLUE}*${NC} GPU $pci_id_for_block on $driver_name\\n"
-                        else
-                           gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block on UNKNOWN driver\\n"
-                        fi
-                    else
-                        gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block UNBOUND or no driver info\\n"
-                    fi
-                    current_gpu_block_content="" 
-                fi
-            elif [ -n "$current_gpu_block_content" ]; then # Accumulate lines for the current block
-                current_gpu_block_content="$current_gpu_block_content"$'\\n'"$line_from_grep"
-            fi
-        done < "$temp_lspci_gpu_blocks"
-        # Process the last block after loop ends
-        if [ -n "$current_gpu_block_content" ]; then
-            echo -e "\\n${YELLOW}Device Block:${NC}\\n$current_gpu_block_content"
-            vga_devices_processed=true
-            local pci_id_for_block=$(echo "$current_gpu_block_content" | head -n1 | awk '{print $1}')
-            if echo "$current_gpu_block_content" | grep -q "Kernel driver in use: vfio-pci"; then
-                is_any_gpu_on_vfio=true
-                gpu_details_for_checklist+="     ${CHECK_MARK} GPU $pci_id_for_block on vfio-pci\\n"
-            elif driver_line=$(echo "$current_gpu_block_content" | grep "Kernel driver in use:"); then
-                local driver_name=$(echo "$driver_line" | awk -F': ' '{print $2}')
-
-                if [ -n "$driver_name" ]; then
-                    if [ -z "$host_drivers_for_gpu" ]; then host_drivers_for_gpu="$driver_name"; elif [[ ! "$host_drivers_for_gpu" =~ "$driver_name" ]]; then host_drivers_for_gpu="$host_drivers_for_gpu, $driver_name"; fi
-                    gpu_details_for_checklist+="     ${INDIGO_BLUE}*${NC} GPU $pci_id_for_block on $driver_name\\n"
-                else
-                    gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block on UNKNOWN driver\\n"
-                fi
-            else
-                 gpu_details_for_checklist+="     ${RED}✗${NC} GPU $pci_id_for_block UNBOUND or no driver info\\n"
-            fi
-        fi
-        if [ -n "$gpu_details_for_checklist" ]; then
-            echo -e "${gpu_details_for_checklist%\\n}" # Print accumulated checklist lines for GPUs
-        else
-            echo -e "     ${YELLOW}?${NC} No specific GPU driver bindings found in parsed blocks."
-        fi
-    else
-        echo -e "   ${YELLOW}?${NC} No VGA compatible or 3D controllers found by lspci to check drivers."
+    # 4.3 Kernel Drivers for GPU(s) Summary (MODIFIED SECTION)
+    echo -e "   ${CYAN}--- Kernel Drivers for GPU(s) Summary ---${NC}" # Renamed title
+    if [ -n "$gpu_details_for_checklist" ]; then
+        echo -e "${gpu_details_for_checklist%\\n}" # Print accumulated checklist lines
+    elif $vga_devices_processed; then 
+         echo -e "     ${YELLOW}?${NC} No summary for GPU driver bindings could be generated."
+    else 
+         echo -e "     ${YELLOW}?${NC} No VGA/3D controllers found to summarize driver bindings."
     fi
-    rm -f "$temp_lspci_gpu_blocks"
-
-    if ! $vga_devices_processed && lspci -nnk | grep -qE "VGA compatible controller|3D controller"; then
-        vga_devices_processed=true # Mark as processed even if fallback
-        echo -e "   ${YELLOW}?${NC} Primary parsing of GPU drivers inconclusive; fallback check needed for summary."
-        # Fallback logic to populate is_any_gpu_on_vfio and host_drivers_for_gpu for summary
-        local full_lspci_check_output=$(lspci -nnk)
-        if echo "$full_lspci_check_output" | grep -A4 "VGA compatible controller" | grep -q "Kernel driver in use: vfio-pci"; then
-            is_any_gpu_on_vfio=true
-        fi
-        if ! $is_any_gpu_on_vfio; then
-            local found_host_driver_names=$(echo "$full_lspci_check_output" | grep -A4 "VGA compatible controller" | grep "Kernel driver in use:" | awk -F': ' '{print $2}' | sort -u | tr '\\n' ',' | sed 's/,$//')
-            if [ -n "$found_host_driver_names" ] && [ "$found_host_driver_names" != "vfio-pci" ]; then
-                 host_drivers_for_gpu="$found_host_driver_names"
-            fi
-        fi
-    fi
-    if ! $vga_devices_processed ; then
-         echo -e "   ${YELLOW}?${NC} No VGA compatible or 3D controllers were processed by this script."
-    fi
-
-    
 
     # Default Boot Setting (persisted by gpu-pt3)
     echo -e "\\n${CYAN}--- Default Boot Setting (persisted by gpu-pt3) ---${NC}"
-    local vfio_conf_file="/etc/modprobe.d/vfio.conf"
-    # Corrected: Use the specific blacklist file defined in gpu-pt3
-    local passthrough_blacklist_conf="/etc/modprobe.d/zz-vfio-gpu-blacklist.conf" 
     local pt3_default_state_msg=""
-
-    if [ -f "$vfio_conf_file" ] && grep -q -E "^options vfio-pci ids=" "$vfio_conf_file"; then
+    if [ -f "$vfio_conf_path" ] && grep -q -E "^options vfio-pci ids=" "$vfio_conf_path"; then
         pt3_default_state_msg="${GREEN}Persistent passthrough (gpu-pt3): ENABLED${NC}\\n"
-        pt3_default_state_msg+="  ${GREEN}- GPUs are likely assigned to vfio-pci at boot via $vfio_conf_file.${NC}"
-        
-        if [ -f "$passthrough_blacklist_conf" ] && grep -qE "blacklist (nouveau|nvidia|radeon|amdgpu)" "$passthrough_blacklist_conf"; then
+        pt3_default_state_msg+="  ${GREEN}- GPUs are likely assigned to vfio-pci at boot via $vfio_conf_path.${NC}"
+        if [ -f "$passthrough_blacklist_conf_path" ] && grep -qE "blacklist (nouveau|nvidia|radeon|amdgpu)" "$passthrough_blacklist_conf_path"; then
             pt3_default_state_msg+="\\n  ${GREEN}- Host GPU drivers are appropriately blacklisted in $passthrough_blacklist_conf.${NC}"
         else
             pt3_default_state_msg+="\\n  ${YELLOW}- Host GPU driver blacklisting in $passthrough_blacklist_conf NOT DETECTED or file is missing/empty.${NC}"
         fi
     else
         pt3_default_state_msg="${RED}Persistent passthrough (gpu-pt3): DISABLED or NOT CONFIGURED${NC}\\n"
-        pt3_default_state_msg+="  ${RED}- $vfio_conf_file is missing or does not assign GPUs to vfio-pci.${NC}"
-
-        if [ -f "$passthrough_blacklist_conf" ] && grep -qE "blacklist (nouveau|nvidia|radeon|amdgpu)" "$passthrough_blacklist_conf"; then
+        pt3_default_state_msg+="  ${RED}- $vfio_conf_path is missing or does not assign GPUs to vfio-pci.${NC}"
+        if [ -f "$passthrough_blacklist_conf_path" ] && grep -qE "blacklist (nouveau|nvidia|radeon|amdgpu)" "$passthrough_blacklist_conf_path"; then
             pt3_default_state_msg+="\\n  ${YELLOW}- Note: Host GPU drivers might still be blacklisted in $passthrough_blacklist_conf (check for inconsistency).${NC}"
         else
             pt3_default_state_msg+="\\n  ${RED}- Host GPU driver blacklisting in $passthrough_blacklist_conf also NOT DETECTED or file is missing/empty.${NC}"
@@ -1258,11 +1289,11 @@ gpu-pts() {
         echo -e "  ${INDIGO_BLUE}- GPU device(s) (VGA/3D controller) are using host driver(s): $host_drivers_for_gpu.${NC}"
         echo -e "  ${INDIGO_BLUE}- No VGA/3D controller found using vfio-pci.${NC}"
     else
-        if $vga_devices_processed || lspci -nnk | grep -qE "VGA compatible controller|3D controller"; then
+        if $vga_devices_processed; then # Check if any GPU was processed
             echo -e "${YELLOW}[SUMMARY] GPU State: UNCLEAR / INDETERMINATE${NC}"
             echo -e "  ${YELLOW}- A VGA/3D controller was detected, but it's not using 'vfio-pci' nor any other recognized host driver.${NC}"
-            echo -e "  ${YELLOW}- It might be unbound. Check 'Kernel Drivers for GPU(s)' section and IOMMU details.${NC}"
-        else
+            echo -e "  ${YELLOW}- It might be unbound. Check 'GPU Device Details' and IOMMU details.${NC}"
+        else # No VGA/3D controllers were found by lspci at all
             echo -e "${YELLOW}[SUMMARY] GPU State: N/A (No VGA/3D GPU controllers detected)${NC}"
         fi
         echo -e "  ${YELLOW}- Review IOMMU groups and loaded kernel modules above.${NC}"
