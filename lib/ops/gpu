@@ -955,6 +955,74 @@ gpu-pts() {
     echo -e "${CYAN}--- GPU Passthrough Status ---${NC}"
     echo -e "${CYAN}==============================${NC}"
 
+    # Workflow Configuration Checklist
+    local CHECK_MARK="${GREEN}✓${NC}"
+    local CROSS_MARK="${RED}✗${NC}"
+    local QUESTION_MARK="${YELLOW}?${NC}"
+
+    # Define paths needed for the checklist
+    local modules_file_path="/etc/modules" # gpu-pt2 target
+    local blacklist_nouveau_conf_path="/etc/modprobe.d/blacklist-nouveau.conf" # gpu-nds target
+    local vfio_conf_path="/etc/modprobe.d/vfio.conf" # gpu-pt3 target
+    local passthrough_blacklist_conf_path="/etc/modprobe.d/zz-vfio-gpu-blacklist.conf" # gpu-pt3 target
+
+    echo -e "\\n${CYAN}--- GPU Passthrough Workflow Configuration Checklist ---${NC}"
+
+    # 1. Initial System Preparation
+    echo -e "${MAGENTA}1. Initial System Preparation (for passthrough):${NC}"
+    # 1.1 IOMMU Enabled in Kernel Command Line
+    local iommu_enabled_cmdline_status="$CROSS_MARK"
+    if grep -q 'iommu=pt\\|intel_iommu=on\\|amd_iommu=on' /proc/cmdline; then
+        iommu_enabled_cmdline_status="$CHECK_MARK"
+    fi
+    echo -e "   ${iommu_enabled_cmdline_status} IOMMU Enabled in Kernel Command Line (Action: gpu-pt1)"
+
+    # 1.2 Core VFIO modules in /etc/modules
+    local vfio_modules_in_etc_modules_status="$CROSS_MARK"
+    local vfio_ok=0
+    local vfio_iommu_type1_ok=0
+    local vfio_pci_ok=0
+    if [ -f "$modules_file_path" ]; then
+        if grep -qP "^\\s*vfio\\s*(#.*)?$" "$modules_file_path" && ! grep -qP "^\\s*#\\s*vfio" "$modules_file_path"; then vfio_ok=1; fi
+        if grep -qP "^\\s*vfio_iommu_type1\\s*(#.*)?$" "$modules_file_path" && ! grep -qP "^\\s*#\\s*vfio_iommu_type1" "$modules_file_path"; then vfio_iommu_type1_ok=1; fi
+        if grep -qP "^\\s*vfio_pci\\s*(#.*)?$" "$modules_file_path" && ! grep -qP "^\\s*#\\s*vfio_pci" "$modules_file_path"; then vfio_pci_ok=1; fi
+    fi
+    if [ "$vfio_ok" -eq 1 ] && [ "$vfio_iommu_type1_ok" -eq 1 ] && [ "$vfio_pci_ok" -eq 1 ]; then
+        vfio_modules_in_etc_modules_status="$CHECK_MARK"
+    fi
+    echo -e "   ${vfio_modules_in_etc_modules_status} Core VFIO modules configured in $modules_file_path (Action: gpu-pt2)"
+
+    # 2. NVIDIA Host Driver Setup (Optional)
+    echo -e "${MAGENTA}2. NVIDIA Host Driver Setup (Optional, for host usage):${NC}"
+    local nouveau_blacklisted_status="$QUESTION_MARK (Not found)" # Default
+    if [ -f "$blacklist_nouveau_conf_path" ]; then
+        if grep -q "blacklist nouveau" "$blacklist_nouveau_conf_path"; then
+            nouveau_blacklisted_status="$CHECK_MARK"
+        else
+            nouveau_blacklisted_status="$CROSS_MARK (Found, but 'blacklist nouveau' missing)"
+        fi
+    fi
+    echo -e "   ${nouveau_blacklisted_status} Nouveau blacklisted for NVIDIA proprietary driver ($blacklist_nouveau_conf_path) (Action: gpu-nds)"
+
+    # 3. Persistent GPU Passthrough Configuration (gpu-pt3 enable status)
+    echo -e "${MAGENTA}3. Persistent GPU Passthrough Configuration (Action: gpu-pt3 enable):${NC}"
+    # 3.1 GPUs assigned to vfio-pci at boot (vfio.conf)
+    local persistent_vfio_ids_status="$CROSS_MARK"
+    if [ -f "$vfio_conf_path" ] && grep -qE "^options vfio-pci ids=" "$vfio_conf_path"; then
+        persistent_vfio_ids_status="$CHECK_MARK"
+    fi
+    echo -e "   ${persistent_vfio_ids_status} GPUs assigned to vfio-pci at boot ($vfio_conf_path)"
+
+    # 3.2 Host drivers blacklisted for passthrough GPUs (zz-vfio-gpu-blacklist.conf)
+    local persistent_blacklist_status="$CROSS_MARK"
+    if [ -f "$passthrough_blacklist_conf_path" ] && grep -qE "blacklist (nvidia|nouveau|amdgpu|radeon)" "$passthrough_blacklist_conf_path"; then
+        persistent_blacklist_status="$CHECK_MARK"
+    fi
+    echo -e "   ${persistent_blacklist_status} Host drivers blacklisted for selected GPUs ($passthrough_blacklist_conf_path)"
+
+    echo -e "${CYAN}--- (End of Configuration Checklist) ---${NC}"
+    echo -e "${CYAN}--- For Current Runtime GPU Driver Bindings, see 'Kernel Drivers for GPU(s)' and 'Overall GPU State' sections below ---${NC}\\n"
+
     # VFIO-PCI Module Status
     echo -e "\\n${CYAN}--- VFIO-PCI Module Status ---${NC}"
     if lsmod | grep -q "vfio_pci"; then
