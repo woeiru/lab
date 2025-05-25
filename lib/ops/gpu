@@ -508,13 +508,13 @@ gpu-pts() {
     local attached_driver=""
 
     # Define colors
-    local CYAN='\\033[0;36m'
-    local MAGENTA='\\033[0;35m' # Magenta is often perceived as pinkish-red
-    local YELLOW='\\033[0;33m'
-    local NC='\\033[0m' # No Color
+    local CYAN='\\e[0;36m'
+    local MAGENTA='\\e[0;35m' # Magenta is often perceived as pinkish-red
+    local YELLOW='\\e[0;33m'
+    local NC='\\e[0m' # No Color
 
     echo "--- GPU Passthrough Status ---"
-    echo "=============================="
+    echo -e "=============================="
 
     # Check if VFIO-PCI is loaded, a strong indicator of detached mode
     if lsmod | grep -q "vfio_pci"; then
@@ -532,7 +532,7 @@ gpu-pts() {
             echo "$line" # Print the device line
             if echo "$line" | grep -q "Kernel driver in use:"; then
                 local current_driver=$(echo "$line" | awk -F': ' '{print $2}')
-                echo "  -> Driver: $current_driver"
+                echo -e "  -> Driver: $current_driver"
                 if [ "$current_driver" == "vfio-pci" ]; then
                     detached_mode=true # Confirm detached if vfio-pci is in use
                     echo -e "     Mode: ${CYAN}DETACHED (using vfio-pci)${NC}"
@@ -543,11 +543,11 @@ gpu-pts() {
                     echo -e "     Mode: ${YELLOW}UNKNOWN (no specific driver listed in use)${NC}"
                 fi
             elif echo "$line" | grep -q "Kernel modules:"; then
-                 echo "  -> Modules: $(echo "$line" | awk -F': ' '{print $2}')"
+                 echo -e "  -> Modules: $(echo "$line" | awk -F': ' '{print $2}')"
             fi
         done
     else
-        echo "No VGA compatible or 3D controllers found."
+        echo -e "${YELLOW}No VGA compatible or 3D controllers found.${NC}"
     fi
 
     echo -e "\\n--- Overall GPU State Determination ---"
