@@ -63,3 +63,35 @@ The `gpu-pts` function was significantly refactored to provide a more accurate a
     *   **DETACHED state is N/A if:** No VGA/3D controllers are detected by `lspci -nnk`.
 
 This improved logic ensures that `gpu-pts` more reliably reflects the actual binding state of the GPU(s) to either `vfio-pci` (for passthrough) or a host driver (for host use). The informational message about whether the `vfio-pci` module is loaded is retained for context but no longer solely dictates the overall "DETACHED" boolean status.
+
+## Further `gpu-pta` Improvement: `driver_override` Management
+
+**Date of `driver_override` fix:** 2025-05-25
+
+**Affected Function:** `gpu-pta` in `lib/ops/gpu`
+
+### Problem Description
+
+Even after the initial "File exists" error fix and the `gpu-pts` improvements, a scenario was identified where `gpu-pta` might attempt to attach a GPU, but the GPU would remain on the `vfio-pci` driver. The `gpu-pts` command would correctly report it as still detached (using `vfio-pci`).
+
+This was suspected to be due to the `driver_override` mechanism not being managed in a way that consistently allowed the intended host driver (e.g., `nouveau`) to claim the device after it was unbound from `vfio-pci`. If `driver_override` was not set to the target host driver, or was cleared too early, the host driver might not automatically bind to the device even after `echo "0000:$id" > /sys/bus/pci/drivers_probe` was called.
+
+### Solution
+
+The `gpu-pta` function was further refined to manage `driver_override` more explicitly during the reattachment process for each GPU:
+
+1.  **Set `driver_override` for Host Driver:** Before attempting to load the host driver module (e.g., `modprobe nouveau`) and before triggering `drivers_probe` for a specific GPU, the script now explicitly writes the target host driver's name to the GPU's `driver_override` file:
+    ```bash
+    echo "$driver" > "/sys/bus/pci/devices/0000:$id/driver_override"
+    ```
+    This tells the kernel that the specified driver should be given priority for this device.
+
+2.  **Attempt Binding:** The script then proceeds with `modprobe $driver` (if not already loaded), `echo "0000:$id" > /sys/bus/pci/drivers_probe`, and the explicit bind attempt (`echo "0000:$id" > /sys/bus/pci/drivers/$driver/bind`).
+
+3.  **Clear `driver_override`:** After all binding attempts for a specific GPU (successful or not), `driver_override` is cleared:
+    ```bash
+    echo > "/sys/bus/pci/devices/0000:$id/driver_override"
+    ```
+    This restores the default driver probing behavior for the device for future operations.
+
+This sequence ensures that when the host driver is probed or an explicit bind is attempted, the `driver_override` is set to encourage the kernel to use the desired host driver. Clearing it afterwards ensures that the system doesn't retain a potentially unwanted override.

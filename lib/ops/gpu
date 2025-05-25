@@ -445,6 +445,13 @@ gpu-pta() {
         esac
         echo "--- Debug: Determined driver for $id: $driver ---"
 
+        aux-log "INFO" "Setting driver_override to $driver for GPU $id"
+        echo "--- Debug: Setting driver_override to $driver for 0000:$id ---"
+        if ! echo "$driver" > "/sys/bus/pci/devices/0000:$id/driver_override"; then
+            aux-log "WARNING" "Failed to set driver_override to $driver for GPU $id. Reattachment might be unreliable."
+            echo "--- Debug: WARNING - Failed to set driver_override to $driver for 0000:$id ---"
+        fi
+
         aux-log "INFO" "Attempting to load $driver driver"
         echo "--- Debug: Attempting to load $driver driver for $id ---"
         if ! modprobe "$driver"; then
@@ -519,6 +526,13 @@ gpu-pta() {
                 aux-log "WARNING" "GPU $id is already linked to driver $actual_bound_driver_name, not the target $driver. This might be unexpected."
                 echo "--- Debug: GPU $id linked to $actual_bound_driver_name, but script intended $driver. Check if this is an issue. ---"
             fi
+        fi
+
+        aux-log "INFO" "Clearing driver_override for GPU $id post-binding attempt"
+        echo "--- Debug: Clearing driver_override for 0000:$id post-binding attempt ---"
+        if ! echo > "/sys/bus/pci/devices/0000:$id/driver_override"; then
+            aux-log "WARNING" "Failed to clear driver_override for GPU $id post-binding attempt."
+            echo "--- Debug: WARNING - Failed to clear driver_override for 0000:$id post-binding attempt ---"
         fi
     done
 
