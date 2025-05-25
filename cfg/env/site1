@@ -125,6 +125,13 @@ w2_node_pci1="0000:08:00.1"
 w2_core_count_on=10
 w2_core_count_off=8
 
+# NVIDIA Driver Preference (nvidia or nouveau)
+x1_nvidia_driver_preference="nvidia"
+x2_nvidia_driver_preference="nouveau"
+w1_nvidia_driver_preference="nvidia"
+w2_nvidia_driver_preference="nouveau"
+# default_nvidia_driver_preference="nouveau" # Optional: uncomment and set a global default
+
 # USB device configuration
 x1_usb_devices=(
     "usb1: host=3-1"
