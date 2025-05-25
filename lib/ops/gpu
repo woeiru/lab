@@ -617,7 +617,7 @@ gpu-pts() {
                 fi
                 echo "$line_from_grep" # Print the "--" separator
             elif [ -n "$current_gpu_block_content" ]; then # Line is part of the current block
-                current_gpu_block_content="$current_gpu_block_content"$'\n'"$line_from_grep"
+                current_gpu_block_content="$current_gpu_block_content"$'\\n'"$line_from_grep"
             fi
         done < "$temp_lspci_gpu_blocks"
         # Process the last accumulated block, if any
@@ -650,7 +650,7 @@ gpu-pts() {
         # Check for host drivers only if not on vfio
         if ! $is_any_gpu_on_vfio; then
             # This could be more sophisticated to find all host drivers
-            local found_host_driver_names=$(echo "$full_lspci_check_output" | grep -A4 "VGA compatible controller" | grep "Kernel driver in use:" | awk -F': ' '{print $2}' | sort -u | tr '\n' ',' | sed 's/,$//')
+            local found_host_driver_names=$(echo "$full_lspci_check_output" | grep -A4 "VGA compatible controller" | grep "Kernel driver in use:" | awk -F': ' '{print $2}' | sort -u | tr '\\n' ',' | sed 's/,$//')
             if [ -n "$found_host_driver_names" ] && [ "$found_host_driver_names" != "vfio-pci" ]; then # ensure it's not vfio-pci again
                  host_drivers_for_gpu="$found_host_driver_names"
             fi
@@ -660,27 +660,67 @@ gpu-pts() {
          echo -e "${YELLOW}No VGA compatible or 3D controllers were processed by this script.${NC}"
     fi
 
-    echo -e "\\n--- IOMMU Groups ---"
-    if command -v find &> /dev/null && command -v ls &> /dev/null && command -v lspci &> /dev/null; then
-        local iommu_groups_found=false
-        for iommu_group_path in $(find /sys/kernel/iommu_groups/ -mindepth 1 -maxdepth 1 -type d 2>/dev/null); do
-            iommu_groups_found=true
-            local group_id=$(basename "$iommu_group_path")
-            echo "IOMMU Group ${group_id}:"
-            for device_path in $(ls -1 "$iommu_group_path"/devices/ 2>/dev/null); do
-                local device_info=$(lspci -nns "$device_path" 2>/dev/null)
-                if [ -n "$device_info" ]; then
-                    echo -e "\\t${device_info}"
-                else # Removed 'fi' from here, was a syntax error
-                    echo -e "\\tError reading device info for $device_path"
-                fi # Added 'fi' here
-            done
-        done
-        if ! $iommu_groups_found; then
-            echo "No IOMMU groups found or 'find' command failed."
-        fi
-    else
+    echo -e "\\n--- IOMMU Groups (Filtered for GPU(s)) ---"
+    if ! command -v find &>/dev/null || ! command -v ls &>/dev/null || ! command -v lspci &>/dev/null; then
         echo "Required commands (find, ls, lspci) not available to list IOMMU groups."
+    else
+        local gpu_pci_bus_ids=()
+        # Get PCI bus IDs (e.g., 01:00.0) of VGA/3D controllers
+        while IFS= read -r line; do
+            gpu_pci_bus_ids+=("$(echo "$line" | awk '{print $1}')")
+        done < <(lspci -nn | grep -iE "VGA compatible controller|3D controller")
+
+        if [ ${#gpu_pci_bus_ids[@]} -eq 0 ]; then
+            echo "No VGA/3D controllers found to filter IOMMU groups."
+        else
+            echo "Monitoring for GPU(s) at PCI Bus IDs: ${gpu_pci_bus_ids[*]}"
+            local overall_iommu_groups_found=false
+            local gpu_related_group_displayed=false
+
+            for iommu_group_dir in $(find /sys/kernel/iommu_groups/ -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V); do
+                overall_iommu_groups_found=true
+                local group_id=$(basename "$iommu_group_dir")
+                local devices_in_group_output=""
+                local this_group_contains_gpu=false
+
+                # Iterate over devices to build output and check for GPU presence
+                for device_symlink_name in $(ls -1 "$iommu_group_dir"/devices/ 2>/dev/null | sort -V); do
+                    # device_symlink_name is like 0000:01:00.0
+                    local device_pci_bus_id_full="$device_symlink_name"
+                    # Strip leading "0000:" to get short bus ID like "01:00.0"
+                    local device_pci_bus_id_short="${device_symlink_name#0000:}" 
+                    
+                    local device_info
+                    device_info=$(lspci -nns "$device_pci_bus_id_full" 2>/dev/null)
+                    
+                    if [ -n "$device_info" ]; then
+                        devices_in_group_output+="\\t${device_info}\\n"
+                        # Check if this device is one of the target GPUs
+                        for gpu_id in "${gpu_pci_bus_ids[@]}"; do
+                            if [[ "$device_pci_bus_id_short" == "$gpu_id" ]]; then
+                                this_group_contains_gpu=true
+                                break 
+                            fi
+                        done
+                    else
+                        devices_in_group_output+="\\tError reading device info for $device_pci_bus_id_full\\n"
+                    fi
+                done
+
+                if $this_group_contains_gpu; then
+                    echo -e "IOMMU Group ${group_id}:"
+                    # Remove last newline character from devices_in_group_output before printing
+                    echo -e "${devices_in_group_output%\\n}" 
+                    gpu_related_group_displayed=true
+                fi
+            done
+
+            if ! $overall_iommu_groups_found; then
+                echo "No IOMMU groups found by 'find' command."
+            elif ! $gpu_related_group_displayed; then
+                echo "No IOMMU groups found containing the identified GPU(s): ${gpu_pci_bus_ids[*]}"
+            fi
+        fi
     fi
 
     echo -e "\\n--- Loaded Kernel Modules (GPU related) ---"
@@ -722,6 +762,6 @@ gpu-pts() {
     echo -e "\\n--- VFIO-PCI Module Status ---"
     echo -e "${vfio_pci_loaded_info}"
 
-    aux-nos "$function_name" "GPU status check completed."
+    printf "%s: GPU status check completed.\\n" "$function_name"
     echo "---------------------------------"
 }
