@@ -160,15 +160,15 @@ gpu-nds() {
   #   - `uname -r` to get the current kernel version for PVE headers.
 
   echo "1) Blacklisting Nouveau..."
-  cat <<EOF | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
+  cat <<EOF | tee /etc/modprobe.d/blacklist-nouveau.conf
 blacklist nouveau
 options nouveau modeset=0
 EOF
-  sudo update-initramfs -u   # rebuild initramfs
+  update-initramfs -u   # rebuild initramfs
 
   echo "2) Installing prerequisites..."
-  sudo apt update
-  sudo apt install -y dkms build-essential pve-headers-$(uname -r)   # DKMS & kernel headers
+  apt update
+  apt install -y dkms build-essential pve-headers-$(uname -r)   # DKMS & kernel headers
 
   echo "3) Downloading NVIDIA driver ${drv_ver}..."
   wget -q "${url}" -O "${installer}" || { echo "Download failed"; return 1; }
@@ -176,14 +176,14 @@ EOF
   chmod +x "${installer}"
 
   echo "4) Installing driver with DKMS support..."
-  sudo ./"${installer}" --dkms --silent  # silent install, auto DKMS
+  ./"${installer}" --dkms --silent  # silent install, auto DKMS
 
   echo "5) Finalizing—reboot recommended."
   read -p "Reboot now? [y/N] " yn
   if [[ "$yn" =~ ^[Yy]$ ]]; then
-    sudo reboot
+    reboot
   else
-    echo "You can reboot later with: sudo reboot"
+    echo "You can reboot later with: reboot"
   fi
 
   echo "6) After reboot, verify with: nvidia-smi"   # verify driver loaded
@@ -359,15 +359,15 @@ gpu-pt3() {
         else
             vfio_options_line+="$ids_to_add"
             printf "Ensuring %s exists and adding/updating GPU IDs...\\n" "$vfio_conf"
-            echo "$vfio_options_line" | sudo tee "$vfio_conf" > /dev/null
+            echo "$vfio_options_line" | tee "$vfio_conf" > /dev/null
             printf "Content of %s:\\n" "$vfio_conf"
-            sudo cat "$vfio_conf"
+            cat "$vfio_conf"
         fi
 
         printf "Ensuring GPU drivers are blacklisted for passthrough in %s...\\n" "$passthrough_blacklist_conf"
         # Create or clear the passthrough-specific blacklist file
-        sudo rm -f "$passthrough_blacklist_conf"
-        sudo touch "$passthrough_blacklist_conf" # Ensure it exists even if no drivers are blacklisted
+        rm -f "$passthrough_blacklist_conf"
+        touch "$passthrough_blacklist_conf" # Ensure it exists even if no drivers are blacklisted
 
         if $nvidia_gpus_for_vfio; then
             printf "NVIDIA GPU(s) targeted for passthrough. Blacklisting nouveau and nvidia in %s.\\n" "$passthrough_blacklist_conf"
@@ -375,7 +375,7 @@ gpu-pt3() {
                 echo "blacklist nouveau"
                 echo "options nouveau modeset=0" # Important for nouveau
                 echo "blacklist nvidia"
-            } | sudo tee -a "$passthrough_blacklist_conf" > /dev/null
+            } | tee -a "$passthrough_blacklist_conf" > /dev/null
         elif lspci -nn | grep -qE "VGA compatible controller.*\[10de:" || lspci -nn | grep -qE "3D controller.*\[10de:"; then
              # This case handles if no NVIDIA GPUs were explicitly added to vfio.conf (e.g. ids_to_add was empty for NVIDIA)
              # but NVIDIA GPUs are present on the system. This is a fallback/general blacklisting.
@@ -385,7 +385,7 @@ gpu-pt3() {
                 echo "blacklist nouveau"
                 echo "options nouveau modeset=0"
                 echo "blacklist nvidia"
-            } | sudo tee -a "$passthrough_blacklist_conf" > /dev/null
+            } | tee -a "$passthrough_blacklist_conf" > /dev/null
         fi
 
         if $amd_gpus_for_vfio; then
@@ -393,7 +393,7 @@ gpu-pt3() {
             {
                 echo "blacklist radeon"
                 echo "blacklist amdgpu"
-            } | sudo tee -a "$passthrough_blacklist_conf" > /dev/null
+            } | tee -a "$passthrough_blacklist_conf" > /dev/null
         elif lspci -nn | grep -qE "VGA compatible controller.*\[1002:" || lspci -nn | grep -qE "3D controller.*\[1002:"; then
             # Similar fallback for AMD
             printf "${YELLOW}General AMD GPU(s) detected on system (though not specifically added to %s by this run).${NC}\\n" "$vfio_conf"
@@ -401,12 +401,12 @@ gpu-pt3() {
             {
                 echo "blacklist radeon"
                 echo "blacklist amdgpu"
-            } | sudo tee -a "$passthrough_blacklist_conf" > /dev/null
+            } | tee -a "$passthrough_blacklist_conf" > /dev/null
         fi
         
         if [ -s "$passthrough_blacklist_conf" ]; then # Check if file is not empty
             printf "Content of %s:\\n" "$passthrough_blacklist_conf"
-            sudo cat "$passthrough_blacklist_conf"
+            cat "$passthrough_blacklist_conf"
         else
             printf "No specific drivers were blacklisted in %s during this run (e.g., no NVIDIA/AMD GPUs for VFIO or detected generally). File is empty or only contains comments.\\n" "$passthrough_blacklist_conf"
         fi
@@ -414,13 +414,13 @@ gpu-pt3() {
 
         printf "Ensuring vfio modules are loaded at boot via %s...\\n" "$modules_file"
         for module in vfio vfio_iommu_type1 vfio_pci; do
-            if ! sudo grep -qP "^\s*${module}\s*(#.*)?$" "$modules_file"; then # Check if module exists, possibly commented
-                echo "$module" | sudo tee -a "$modules_file" > /dev/null
+            if ! grep -qP "^\s*${module}\s*(#.*)?$" "$modules_file"; then # Check if module exists, possibly commented
+                echo "$module" | tee -a "$modules_file" > /dev/null
                 printf "Added %s to %s.\\n" "$module" "$modules_file"
             else
                 # Ensure not commented out
-                if sudo grep -qP "^\s*#\s*${module}" "$modules_file"; then
-                    sudo sed -i "s/^\s*#\s*${module}/${module}/" "$modules_file"
+                if grep -qP "^\s*#\s*${module}" "$modules_file"; then
+                    sed -i "s/^\s*#\s*${module}/${module}/" "$modules_file"
                     printf "Uncommented %s in %s.\\n" "$module" "$modules_file"
                 else
                     printf "%s already correctly listed in %s.\\n" "$module" "$modules_file"
@@ -431,15 +431,15 @@ gpu-pt3() {
     elif [ "$action" == "disable" ]; then
         printf "Reverting GPU passthrough configuration...\\n"
         printf "Removing %s...\\n" "$vfio_conf"
-        sudo rm -f "$vfio_conf"
+        rm -f "$vfio_conf"
         printf "Removing passthrough-specific blacklist file %s...\\n" "$passthrough_blacklist_conf"
-        sudo rm -f "$passthrough_blacklist_conf"
+        rm -f "$passthrough_blacklist_conf"
         # Note: We do NOT touch /etc/modprobe.d/blacklist-nouveau.conf if created by gpu-nds
 
         printf "Commenting out vfio modules in %s (they can be auto-loaded if needed)...\\n" "$modules_file"
         for module in vfio vfio_iommu_type1 vfio_pci; do
-            if sudo grep -qP "^\s*${module}" "$modules_file"; then # If module is present and not commented
-                sudo sed -i "s/^\s*${module}/# ${module}/" "$modules_file"
+            if grep -qP "^\s*${module}" "$modules_file"; then # If module is present and not commented
+                sed -i "s/^\s*${module}/# ${module}/" "$modules_file"
                 printf "Commented out %s in %s.\\n" "$module" "$modules_file"
             else
                 printf "%s not found or already commented in %s.\\n" "$module" "$modules_file"
@@ -451,7 +451,7 @@ gpu-pt3() {
     fi
 
     printf "Updating initramfs...\\n"
-    sudo update-initramfs -u -k all # Use -k all to update all kernels, or just -u for current
+    update-initramfs -u -k all # Use -k all to update all kernels, or just -u for current
     printf "Configuration applied. A reboot is required for changes to take full effect.\\n"
 }
 
@@ -465,9 +465,9 @@ gpu-ptd() {
     # Technical Description:
     #   Detaches GPU(s) from host drivers for VM passthrough.
     #   Unloads standard GPU drivers (nouveau, nvidia, amdgpu, radeon).
-    #   Loads \'vfio-pci\' driver. Identifies GPUs via \'lspci -nn\'.
-    #   For each GPU: unbinds, sets \'driver_override\' to \'vfio-pci\', binds to \'vfio-pci\'.
-    #   Uses temp files for \'lspci\' outputs. Notifies via \'printf\'.
+    #   Loads \\'vfio-pci\\' driver. Identifies GPUs via \\'lspci -nn\\'.
+    #   For each GPU: unbinds, sets \\'driver_override\\' to \\'vfio-pci\\', binds to \\'vfio-pci\\'.
+    #   Uses temp files for \\'lspci\\' outputs. Notifies via \\'printf\\'.
     # Dependencies:
     #   - `lspci`, `grep`, `find`, `ls`, `modprobe`, `awk`, `echo`.
     #   - `printf` function.
@@ -608,7 +608,7 @@ gpu-ptd() {
         fi
     done
 
-    printf "INFO: GPU driver and IOMMU group after detachment:\\\\n"
+    printf "INFO: GPU driver and IOMMU group after detachment:\\\\\\n"
     echo "--- Debug: GPU driver and IOMMU group (after detachment) ---"
     LSPCI_NNK_TEMP_OUTPUT_2="/tmp/lspci_nnk_output_ptd2.txt"
     if lspci -nnk > "$LSPCI_NNK_TEMP_OUTPUT_2"; then
@@ -711,7 +711,7 @@ gpu-pta() {
         # Unbind from vfio-pci if it's bound
         if [ -e "/sys/bus/pci/drivers/vfio-pci/$pci_slot_id" ]; then
             printf "Unbinding %s from vfio-pci...\\n" "$pci_slot_id"
-            echo "$pci_slot_id" | sudo tee /sys/bus/pci/drivers/vfio-pci/unbind > /dev/null
+            echo "$pci_slot_id" | tee /sys/bus/pci/drivers/vfio-pci/unbind > /dev/null
         else
             printf "GPU %s not currently bound to vfio-pci.\\n" "$pci_slot_id"
         fi
@@ -738,7 +738,7 @@ gpu-pta() {
         esac
 
         printf "Attempting to bind %s to %s driver...\\n" "$pci_slot_id" "$driver"
-        echo "$pci_slot_id" | sudo tee "/sys/bus/pci/drivers/${driver}/bind" > /dev/null 2>&1
+        echo "$pci_slot_id" | tee "/sys/bus/pci/drivers/${driver}/bind" > /dev/null 2>&1
         if [ $? -eq 0 ]; then
             printf "Successfully bound %s to %s.\\n" "$pci_slot_id" "$driver"
         else
@@ -748,7 +748,7 @@ gpu-pta() {
     done
 
     printf "Rescanning PCI devices (may not be necessary for all driver changes)...\\n"
-    echo 1 | sudo tee /sys/bus/pci/rescan > /dev/null
+    echo 1 | tee /sys/bus/pci/rescan > /dev/null
 
     echo "--- Debug: Exiting ${function_name} ---"
     printf "GPU attachment process complete. Check 'gpu-pts' or 'lspci -nnk' for status.\\n"
