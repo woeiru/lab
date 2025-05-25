@@ -232,6 +232,7 @@ gpu-pt3() {
 #
 gpu-ptd() {
     local function_name="${FUNCNAME[0]}"
+    echo "--- Debug: Entering ${function_name} ---"
 
     # Technical Description:
     #   Detaches GPU(s) from host drivers for VM passthrough.
@@ -244,7 +245,7 @@ gpu-ptd() {
     #   - `aux-nos` function.
     #   - Access to /sys/kernel/iommu_groups/, /sys/bus/pci/devices/ & root privileges.
 
-    echo "Current GPU driver and IOMMU group:"
+    echo "--- Debug: Current GPU driver and IOMMU group (before detachment) ---"
     LSPCI_NNK_TEMP_OUTPUT_1="/tmp/lspci_nnk_output_ptd1.txt"
     if lspci -nnk > "$LSPCI_NNK_TEMP_OUTPUT_1"; then
         grep -A3 "VGA compatible controller" "$LSPCI_NNK_TEMP_OUTPUT_1"
@@ -253,6 +254,7 @@ gpu-ptd() {
     fi
     [ -f "$LSPCI_NNK_TEMP_OUTPUT_1" ] && rm -f "$LSPCI_NNK_TEMP_OUTPUT_1"
 
+    echo "--- Debug: Listing IOMMU groups and devices (before detachment) ---"
     for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
         echo "IOMMU Group ${iommu_group##*/}:"
         for device in $(ls -1 "$iommu_group"/devices/); do
@@ -266,25 +268,27 @@ gpu-ptd() {
         done
     done
 
-    # Unload NVIDIA or AMD drivers if loaded
+    echo "--- Debug: Unloading NVIDIA or AMD drivers ---"
     for driver in nouveau nvidia amdgpu radeon; do
         if lsmod | grep -q $driver; then
-            echo "Unloading $driver driver"
+            echo "--- Debug: Unloading $driver driver ---"
             if ! modprobe -r $driver; then
                 aux-nos "$function_name" "Warning: Failed to unload $driver driver. Continuing anyway."
             fi
         else
-            echo "$driver driver not loaded."
+            echo "--- Debug: $driver driver not loaded. ---"
         fi
     done
 
-    # Load VFIO driver
+    echo "--- Debug: Loading VFIO driver ---"
     if ! modprobe vfio-pci; then
         aux-nos "$function_name" "Error: Failed to load VFIO-PCI driver. GPU detachment may fail."
+        echo "--- Debug: Exiting ${function_name} due to modprobe vfio-pci failure ---"
         return 1
     fi
+    echo "--- Debug: VFIO-PCI driver loaded. ---"
 
-    # Get GPU PCI IDs (including both NVIDIA and AMD)
+    echo "--- Debug: Getting GPU PCI IDs ---"
     local gpu_ids="" # Initialize to empty
     LSPCI_NN_GPU_IDS_TEMP="/tmp/lspci_nn_gpu_ids_ptd.txt"
     if lspci -nn > "$LSPCI_NN_GPU_IDS_TEMP"; then
@@ -293,6 +297,7 @@ gpu-ptd() {
         # Check if grep | awk succeeded (exit status 0) and produced non-empty output
         if [ $? -eq 0 ] && [ -n "$gpu_ids_output" ]; then
             gpu_ids="$gpu_ids_output"
+            echo "--- Debug: Found GPU IDs: $gpu_ids ---"
         else
             echo "Warning: Could not extract GPU IDs from lspci output (grep/awk step in gpu-ptd)."
             # gpu_ids remains empty
@@ -305,20 +310,31 @@ gpu-ptd() {
 
     if [ -z "$gpu_ids" ]; then
         aux-nos "$function_name" "Error: No GPU found after lspci processing."
+        echo "--- Debug: Exiting ${function_name} as no GPU IDs found ---"
         return 1
     fi
 
+    echo "--- Debug: Processing GPU IDs for detachment: $gpu_ids ---"
     for id in $gpu_ids; do
+        echo "--- Debug: Processing GPU ID: $id ---"
         if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
+            echo "--- Debug: Unbinding 0000:$id from current driver ---"
             echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
+        else
+            echo "--- Debug: No driver found for 0000:$id, skipping unbind ---"
         fi
+        echo "--- Debug: Setting driver_override to vfio-pci for 0000:$id ---"
         echo "vfio-pci" > /sys/bus/pci/devices/0000:$id/driver_override
+        echo "--- Debug: Binding 0000:$id to vfio-pci ---"
         if ! echo "0000:$id" > /sys/bus/pci/drivers/vfio-pci/bind; then
             aux-nos "$function_name" "Warning: Failed to bind GPU $id to VFIO-PCI."
+            echo "--- Debug: Failed to bind GPU $id to VFIO-PCI ---"
+        else
+            echo "--- Debug: Successfully bound GPU $id to VFIO-PCI ---"
         fi
     done
 
-    echo "GPU driver and IOMMU group after detachment:"
+    echo "--- Debug: GPU driver and IOMMU group (after detachment) ---"
     LSPCI_NNK_TEMP_OUTPUT_2="/tmp/lspci_nnk_output_ptd2.txt"
     if lspci -nnk > "$LSPCI_NNK_TEMP_OUTPUT_2"; then
         grep -A3 "VGA compatible controller" "$LSPCI_NNK_TEMP_OUTPUT_2"
@@ -327,6 +343,7 @@ gpu-ptd() {
     fi
     [ -f "$LSPCI_NNK_TEMP_OUTPUT_2" ] && rm -f "$LSPCI_NNK_TEMP_OUTPUT_2"
 
+    echo "--- Debug: Listing IOMMU groups and devices (after detachment) ---"
     for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
         echo "IOMMU Group ${iommu_group##*/}:"
         for device in $(ls -1 "$iommu_group"/devices/); do
@@ -341,6 +358,7 @@ gpu-ptd() {
     done
 
     aux-nos "$function_name" "GPU detachment process completed. Check above output for details."
+    echo "--- Debug: Exiting ${function_name} ---"
 }
 
 # Attaches the GPU back to the host system
@@ -348,6 +366,7 @@ gpu-ptd() {
 #
 gpu-pta() {
     local function_name="${FUNCNAME[0]}"
+    echo "--- Debug: Entering ${function_name} ---"
 
     # Technical Description:
     #   Reattaches GPU(s) to host system drivers. Logs actions via 'aux-log'.
@@ -361,95 +380,123 @@ gpu-pta() {
     #   - Access to /sys/bus/pci/devices/, /sys/bus/pci/drivers_probe & root privileges.
 
     aux-log "INFO" "Starting GPU reattachment process"
+    echo "--- Debug: Starting GPU reattachment process ---"
 
     aux-log "INFO" "Current GPU driver and IOMMU group:"
+    echo "--- Debug: Current GPU driver and IOMMU group (before reattachment) ---"
     lspci -nnk | grep -A3 "VGA compatible controller" | while read -r line; do
         aux-log "INFO" "$line"
+        echo "--- Debug: Initial GPU info: $line ---"
     done
 
-    # Get GPU PCI IDs
+    echo "--- Debug: Getting GPU PCI IDs for reattachment ---"
     local gpu_ids=$(lspci -nn | grep -i "VGA compatible controller" | awk '{print $1}')
 
     if [ -z "$gpu_ids" ]; then
         aux-log "ERROR" "No GPU found."
         aux-nos "$function_name" "Error: No GPU found."
+        echo "--- Debug: Exiting ${function_name} as no GPU IDs found ---"
         return 1
     fi
 
     aux-log "INFO" "Found GPU(s) with PCI ID(s): $gpu_ids"
+    echo "--- Debug: Found GPU(s) with PCI ID(s): $gpu_ids ---"
 
     for id in $gpu_ids; do
         aux-log "INFO" "Processing GPU with PCI ID: $id"
+        echo "--- Debug: Processing GPU ID for reattachment: $id ---"
         if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
             aux-log "INFO" "Unbinding GPU $id from current driver"
+            echo "--- Debug: Unbinding 0000:$id from current driver ---"
             echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
             if [ $? -eq 0 ]; then
                 aux-log "INFO" "Successfully unbound GPU $id"
+                echo "--- Debug: Successfully unbound GPU $id ---"
             else
                 aux-log "WARNING" "Failed to unbind GPU $id"
+                echo "--- Debug: Failed to unbind GPU $id ---"
             fi
         else
             aux-log "INFO" "GPU $id is not bound to any driver"
+            echo "--- Debug: GPU $id is not bound to any driver, skipping unbind ---"
         fi
 
         aux-log "INFO" "Resetting driver_override for GPU $id"
+        echo "--- Debug: Resetting driver_override for 0000:$id ---"
         echo > /sys/bus/pci/devices/0000:$id/driver_override
 
-        # Determine the correct driver based on the GPU vendor
+        echo "--- Debug: Determining driver for GPU $id ---"
         local vendor_id=$(lspci -n -s "$id" | awk '{print $3}' | cut -d':' -f1)
         local driver
+        echo "--- Debug: Vendor ID for $id: $vendor_id ---"
         case "$vendor_id" in
             1002)
                 driver="amdgpu"
                 ;;
             10de)
-                driver="nouveau"
+                driver="nouveau" # Or "nvidia" if preferred and installed
                 ;;
             *)
                 aux-log "ERROR" "Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment."
                 aux-nos "$function_name" "Error: Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment."
-                return 1
+                echo "--- Debug: Unknown GPU vendor: $vendor_id for ID $id. Skipping... ---"
+                continue # Skip to the next GPU ID
                 ;;
         esac
+        echo "--- Debug: Determined driver for $id: $driver ---"
 
         aux-log "INFO" "Attempting to load $driver driver"
+        echo "--- Debug: Attempting to load $driver driver for $id ---"
         if ! modprobe "$driver"; then
             aux-log "ERROR" "Failed to load $driver driver. You may need to install it."
             aux-nos "$function_name" "Error: Failed to load $driver driver. You may need to install it."
-            return 1
+            echo "--- Debug: Failed to load $driver driver for $id. Skipping... ---"
+            continue # Skip to the next GPU ID
         else
             aux-log "INFO" "$driver driver loaded successfully."
+            echo "--- Debug: $driver driver loaded successfully for $id ---"
         fi
 
         aux-log "INFO" "Probing for new driver for GPU $id"
+        echo "--- Debug: Probing for new driver for GPU $id (0000:$id) ---"
         echo "0000:$id" > /sys/bus/pci/drivers_probe
         if [ $? -eq 0 ]; then
             aux-log "INFO" "Successfully probed for new driver for GPU $id"
+            echo "--- Debug: Successfully probed for new driver for GPU $id ---"
         else
             aux-log "WARNING" "Failed to probe for new driver for GPU $id"
+            echo "--- Debug: Failed to probe for new driver for GPU $id ---"
         fi
 
         # Explicitly bind the driver if it's not automatically bound
         if [ ! -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
             aux-log "INFO" "Attempting to explicitly bind $driver to GPU $id"
+            echo "--- Debug: Attempting to explicitly bind $driver to GPU $id (0000:$id) ---"
             echo "0000:$id" > /sys/bus/pci/drivers/$driver/bind
             if [ $? -eq 0 ]; then
                 aux-log "INFO" "Successfully bound $driver to GPU $id"
+                echo "--- Debug: Successfully bound $driver to GPU $id ---"
             else
                 aux-log "ERROR" "Failed to bind $driver to GPU $id"
                 aux-nos "$function_name" "Error: Failed to bind $driver to GPU $id"
-                return 1
+                echo "--- Debug: Failed to bind $driver to GPU $id. ---"
+                # Decide if we should return 1 or continue with other GPUs
             fi
+        else
+            echo "--- Debug: GPU $id (0000:$id) already has a driver: $(readlink /sys/bus/pci/devices/0000:$id/driver) ---"
         fi
     done
 
     aux-log "INFO" "GPU driver and IOMMU group after reattachment:"
+    echo "--- Debug: GPU driver and IOMMU group (after reattachment) ---"
     lspci -nnk | grep -A3 "VGA compatible controller" | while read -r line; do
         aux-log "INFO" "$line"
+        echo "--- Debug: Final GPU info: $line ---"
     done
 
     aux-log "INFO" "GPU reattachment process completed."
     aux-nos "$function_name" "GPU reattachment process completed. Check logs for details."
+    echo "--- Debug: Exiting ${function_name} ---"
 }
 
 # Checks the current status of the GPU
@@ -457,37 +504,99 @@ gpu-pta() {
 #
 gpu-pts() {
     local function_name="${FUNCNAME[0]}"
+    local detached_mode=false
+    local attached_driver=""
 
-    # Technical Description:
-    #   Displays current GPU passthrough status.
-    #   Shows IOMMU group info by iterating /sys/kernel/iommu_groups/.
-    #   Intended to list devices within each group and their drivers.
-    #   May also show driver bindings for VGA/3D controllers.
-    #   Note: Loop for IOMMU group device listing is currently empty.
-    # Dependencies:
-    #   - `find`, `echo`.
-    #   - `ls`, `lspci` (assumed for complete device details).
-    #   - Filesystem access to /sys/kernel/iommu_groups/.
+    echo "--- GPU Passthrough Status ---"
+    echo "=============================="
 
-    echo "GPU Status:"
-    echo "==========="
+    # Check if VFIO-PCI is loaded, a strong indicator of detached mode
+    if lsmod | grep -q "vfio_pci"; then
+        detached_mode=true
+        echo -e "\\n[INFO] VFIO-PCI module is loaded. GPU is likely DETACHED."
+    else
+        echo -e "\\n[INFO] VFIO-PCI module is NOT loaded. GPU is likely ATTACHED to host."
+    fi
 
-    # Check IOMMU groups
-    echo -e "\nIOMMU Groups:"
-    for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
-        echo "IOMMU Group ${iommu_group##*/}:"
-        for device in $(ls -1 "$iommu_group"/devices/); do
-            echo -e "\t$(lspci -nns "$device")"
+    # Check current driver for VGA/3D controllers
+    echo -e "\\n--- Kernel Drivers for GPU(s) ---"
+    local gpu_devices_info=$(lspci -nnk | grep -iE "VGA compatible controller|3D controller")
+    if [ -n "$gpu_devices_info" ]; then
+        echo "$gpu_devices_info" | while IFS= read -r line; do
+            echo "$line" # Print the device line
+            if echo "$line" | grep -q "Kernel driver in use:"; then
+                local current_driver=$(echo "$line" | awk -F': ' '{print $2}')
+                echo "  -> Driver: $current_driver"
+                if [ "$current_driver" == "vfio-pci" ]; then
+                    detached_mode=true # Confirm detached if vfio-pci is in use
+                    echo "     Mode: DETACHED (using vfio-pci)"
+                elif [ -n "$current_driver" ]; then
+                    attached_driver="$current_driver"
+                    echo "     Mode: ATTACHED (using $current_driver)"
+                else
+                    echo "     Mode: UNKNOWN (no specific driver listed in use)"
+                fi
+            elif echo "$line" | grep -q "Kernel modules:"; then
+                 echo "  -> Modules: $(echo "$line" | awk -F': ' '{print $2}')"
+            fi
         done
-    done
+    else
+        echo "No VGA compatible or 3D controllers found."
+    fi
 
-    # Check loaded GPU-related modules
-    echo "Loaded GPU modules:"
-    lsmod | grep -E "nvidia|vfio" || echo "No NVIDIA or VFIO modules loaded."
+    if $detached_mode; then
+        echo -e "\\n--- Summary: GPU appears to be DETACHED (for VM use) ---"
+        echo "    - VFIO-PCI module is active."
+        echo "    - Relevant GPU(s) should be bound to vfio-pci."
+    elif [ -n "$attached_driver" ]; then
+        echo -e "\\n--- Summary: GPU appears to be ATTACHED to host (driver: $attached_driver) ---"
+        echo "    - Host driver ($attached_driver) is likely in use."
+        echo "    - VFIO-PCI module is not managing the primary GPU(s)."
+    else
+        echo -e "\\n--- Summary: GPU state is UNCLEAR ---"
+        echo "    - Could not definitively determine if attached or detached."
+        echo "    - Review IOMMU groups and loaded modules below."
+    fi
 
-    # Check GPU PCI devices
-    echo -e "\nGPU PCI devices:"
-    lspci -nnk | grep -A3 "VGA compatible controller"
+
+    echo -e "\\n--- IOMMU Groups ---"
+    if command -v find &> /dev/null && command -v ls &> /dev/null && command -v lspci &> /dev/null; then
+        local iommu_groups_found=false
+        for iommu_group_path in $(find /sys/kernel/iommu_groups/ -mindepth 1 -maxdepth 1 -type d 2>/dev/null); do
+            iommu_groups_found=true
+            local group_id=$(basename "$iommu_group_path")
+            echo "IOMMU Group ${group_id}:"
+            for device_path in $(ls -1 "$iommu_group_path"/devices/ 2>/dev/null); do
+                local device_info=$(lspci -nns "$device_path" 2>/dev/null)
+                if [ -n "$device_info" ]; then
+                    echo -e "\\t${device_info}"
+                    # Also show driver for this specific device if possible
+                    local driver_path="/sys/bus/pci/devices/${device_path}/driver"
+                    if [ -L "$driver_path" ]; then
+                        echo -e "\\t  Driver: $(basename $(readlink "$driver_path"))"
+                    elif [ -d "$driver_path" ]; # Some drivers might not be symlinks
+                        echo -e "\\t  Driver: (Bound, specific name N/A)"
+                    fi
+                else
+                    echo -e "\\tError reading device info for $device_path"
+                fi
+            done
+        done
+        if ! $iommu_groups_found; then
+            echo "No IOMMU groups found or 'find' command failed."
+        fi
+    else
+        echo "Required commands (find, ls, lspci) not available to list IOMMU groups."
+    fi
+
+
+    echo -e "\\n--- Loaded Kernel Modules (GPU related) ---"
+    if lsmod | grep -E "vfio|nvidia|nouveau|amdgpu|radeon" --color=never; then
+        : # lsmod already printed
+    else
+        echo "No common GPU-related modules (vfio, nvidia, nouveau, amdgpu, radeon) loaded."
+    fi
 
     aux-nos "$function_name" "GPU status check completed."
+    echo "---------------------------------"
 }
