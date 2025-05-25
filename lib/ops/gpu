@@ -548,7 +548,6 @@ gpu-ptd() {
                 printf "INFO: Module %s loaded successfully.\\n" "$module"
             else
                 printf "${RED}ERROR: Failed to load module %s. GPU detachment may fail.${NC}\\n" "$module"
-                # For vfio_pci, this is critical. For others, it might also be.
                 if [ "$module" == "vfio_pci" ]; then
                     printf "${RED}Exiting due to failure to load critical module vfio_pci.${NC}\\n"
                     return 1
@@ -558,40 +557,104 @@ gpu-ptd() {
     done
 
     printf "INFO: Identifying target GPU(s)...\\n"
+    # Source the site-specific configuration to get PCI IDs
+    # CONFIG_FUN should be set by the script's initial variable definitions (e.g., from SITE_CONFIG_FILE)
+    if [ -n "$CONFIG_FUN" ] && [ -f "$CONFIG_FUN" ]; then
+        # shellcheck source=/dev/null
+        source "$CONFIG_FUN"
+        printf "INFO: Successfully sourced PCI configuration from %s\\n" "$CONFIG_FUN"
+    else
+        printf "${YELLOW}WARNING: PCI Configuration file '%s' not found or not set. PCI IDs will not be sourced from it.${NC}\\n" "$CONFIG_FUN"
+    fi
+
     if [ -n "$gpu_id_arg" ]; then
         # Validate the provided PCI ID format (basic check)
         if ! [[ "$gpu_id_arg" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]]; then # e.g., 01:00.0
             printf "${RED}ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0${NC}\\n" "$gpu_id_arg"
             return 1
         fi
-        # Check if this GPU exists and is a VGA/3D controller
-        if lspci -s "$gpu_id_arg" -nn | grep -qE "VGA compatible controller|3D controller"; then
+        # Check if this GPU exists and is a VGA/3D controller or Audio device
+        # If a specific ID is given, we process that one. User might want to target only audio or video.
+        if lspci -s "$gpu_id_arg" -nn | grep -qE "VGA compatible controller|3D controller|Audio device"; then
             gpus_to_process+=("$gpu_id_arg")
-            printf "INFO: Targeting specified GPU: %s\\n" "$gpu_id_arg"
+            printf "INFO: Targeting specified PCI device: %s\\n" "$gpu_id_arg"
         else
-            printf "${RED}ERROR: Specified PCI ID %s is not a VGA/3D controller or does not exist.${NC}\\n" "$gpu_id_arg"
+            printf "${RED}ERROR: Specified PCI ID %s is not a VGA/3D/Audio controller or does not exist.${NC}\\n" "$gpu_id_arg"
             return 1
         fi
     else
-        printf "INFO: No specific GPU ID provided, will attempt to detach all detected VGA/3D controllers not already on vfio-pci.\\n"
-        local lspci_output
-        lspci_output=$(lspci -nnk) # Get kernel driver info as well
-        while IFS= read -r line; do
-            if echo "$line" | grep -qE "VGA compatible controller|3D controller"; then
-                local pci_slot_id=$(echo "$line" | awk '{print $1}')
-                # Check if already on vfio-pci
-                if echo "$lspci_output" | grep -A3 "^$pci_slot_id" | grep -q "Kernel driver in use: vfio-pci"; then
-                    printf "INFO: GPU %s is already using vfio-pci. Skipping.\\n" "$pci_slot_id"
+        current_hostname=$(hostname -s)
+        printf "INFO: No specific GPU ID provided. Attempting to use PCI IDs from configuration for hostname '%s'.\\n" "$current_hostname"
+        
+        pci0_var_name="${current_hostname}_node_pci0"
+        pci1_var_name="${current_hostname}_node_pci1"
+
+        # Check if the variables are set (indirect expansion)
+        if [ -n "${!pci0_var_name}" ] && [ -n "${!pci1_var_name}" ]; then
+            pci0_full_val=${!pci0_var_name} # Expected format "0000:xx:xx.x"
+            pci1_full_val=${!pci1_var_name} # Expected format "0000:xx:xx.x"
+
+            # Strip "0000:" prefix for the 'id' variable used in the loop
+            short_pci0_val=${pci0_full_val#"0000:"}
+            short_pci1_val=${pci1_full_val#"0000:"}
+
+            # Validate format after stripping (e.g., 3b:00.0)
+            if [[ "$short_pci0_val" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]] && \
+               [[ "$short_pci1_val" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]]; then
+                
+                lspci_output_for_check=$(lspci -nnk) # Get kernel driver info
+
+                # Check VGA/3D controller
+                if echo "$lspci_output_for_check" | grep -A3 "^$short_pci0_val" | grep -q "Kernel driver in use: vfio-pci"; then
+                    printf "INFO: Configured device %s (%s) is already using vfio-pci. Skipping detachment planning.\\n" "$short_pci0_val" "$pci0_var_name"
                 else
-                    gpus_to_process+=("$pci_slot_id")
-                    printf "INFO: Identified GPU %s for detachment.\\n" "$pci_slot_id"
+                    gpus_to_process+=("$short_pci0_val")
+                    printf "INFO: Identified device %s (%s) from config for detachment.\\n" "$short_pci0_val" "$pci0_var_name"
                 fi
+
+                # Check Audio device
+                if echo "$lspci_output_for_check" | grep -A3 "^$short_pci1_val" | grep -q "Kernel driver in use: vfio-pci"; then
+                    printf "INFO: Configured device %s (%s) is already using vfio-pci. Skipping detachment planning.\\n" "$short_pci1_val" "$pci1_var_name"
+                else
+                    gpus_to_process+=("$short_pci1_val")
+                    printf "INFO: Identified device %s (%s) from config for detachment.\\n" "$short_pci1_val" "$pci1_var_name"
+                fi
+            else
+                printf "${YELLOW}WARNING: PCI IDs from config ('%s=%s', '%s=%s') are not in the expected format (e.g., 0000:xx:xx.x -> xx:xx.x). Falling back to lspci scan.${NC}\\n" "$pci0_var_name" "$pci0_full_val" "$pci1_var_name" "$pci1_full_val"
+                # Fallback to original lspci scan (see below)
+                unset pci0_var_name # Unset to trigger fallback
             fi
-        done <<< "$lspci_output"
+        else
+            printf "${YELLOW}WARNING: PCI ID variables ('%s', '%s') not found in config for hostname '%s'. Falling back to lspci scan for all VGA/3D controllers.${NC}\\n" "$pci0_var_name" "$pci1_var_name" "$current_hostname"
+            # Fallback to original lspci scan (see below)
+        fi
+
+        # Fallback logic if config variables were not sufficient
+        if [ ${#gpus_to_process[@]} -eq 0 ] && ( [ -z "${!pci0_var_name}" ] || [ -z "${!pci1_var_name}" ] ); then
+            printf "INFO: Falling back to lspci scan for all VGA/3D controllers not already on vfio-pci.\\n"
+            local lspci_output
+            lspci_output=$(lspci -nnk) # Get kernel driver info as well
+            while IFS= read -r line; do
+                if echo "$line" | grep -qE "VGA compatible controller|3D controller"; then
+                    local pci_slot_id=$(echo "$line" | awk '{print $1}')
+                    if echo "$lspci_output" | grep -A3 "^$pci_slot_id" | grep -q "Kernel driver in use: vfio-pci"; then
+                        printf "INFO: GPU %s is already using vfio-pci. Skipping.\\n" "$pci_slot_id"
+                    else
+                        gpus_to_process+=("$pci_slot_id")
+                        printf "INFO: Identified GPU %s for detachment from lspci scan.\\n" "$pci_slot_id"
+                    fi
+                fi
+            done <<< "$lspci_output"
+        fi
+    fi
+
+    # Remove duplicates if any were added from multiple sources or by mistake
+    if [ ${#gpus_to_process[@]} -gt 0 ]; then
+        gpus_to_process=($(printf "%s\\n" "${gpus_to_process[@]}" | sort -u | tr '\\n' ' '))
     fi
 
     if [ ${#gpus_to_process[@]} -eq 0 ]; then
-        printf "${YELLOW}No suitable GPU devices found or specified for detachment.${NC}\\n"
+        printf "No suitable GPU devices found or specified for detachment.${NC}\\n"
         return 0
     fi
 
