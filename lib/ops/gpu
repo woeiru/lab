@@ -600,6 +600,8 @@ gpu-pts() {
     local CYAN=$(printf '\\033[0;36m')
     local MAGENTA=$(printf '\\033[0;35m') # Magenta is often perceived as pinkish-red
     local YELLOW=$(printf '\\033[0;33m')
+    local INDIGO_BLUE=$(printf '\\033[38;2;75;0;130m') # True color for Indigo Blue
+    local RED=$(printf '\\033[0;31m')
     local NC=$(printf '\\033[0m') # No Color
 
     echo "--- GPU Passthrough Status ---"
@@ -808,24 +810,24 @@ gpu-pts() {
 
     # Check for vfio.conf and vfio-pci ids
     if [ -f "$vfio_conf_file" ] && grep -q -E "^options vfio-pci ids=" "$vfio_conf_file"; then
-        pt3_default_state_msg="${YELLOW}Persistent passthrough (gpu-pt3): ENABLED${NC}\\n"
-        pt3_default_state_msg+="${YELLOW}  - GPUs are likely assigned to vfio-pci at boot via $vfio_conf_file.${NC}"
+        pt3_default_state_msg="${INDIGO_BLUE}Persistent passthrough (gpu-pt3): ENABLED${NC}\\n"
+        pt3_default_state_msg+="${INDIGO_BLUE}  - GPUs are likely assigned to vfio-pci at boot via $vfio_conf_file.${NC}"
         
         # Check blacklist status
         if [ -f "$blacklist_conf_file" ] && (grep -q "blacklist radeon" "$blacklist_conf_file" || grep -q "blacklist amdgpu" "$blacklist_conf_file"); then
-            pt3_default_state_msg+="\\n${YELLOW}  - Native GPU drivers (radeon/amdgpu) are blacklisted in $blacklist_conf_file.${NC}"
+            pt3_default_state_msg+="\\n${INDIGO_BLUE}  - Native GPU drivers (radeon/amdgpu) are blacklisted in $blacklist_conf_file.${NC}"
         else
-            pt3_default_state_msg+="\\n${YELLOW}  - Native GPU driver blacklisting in $blacklist_conf_file is NOT DETECTED or file is missing.${NC}"
+            pt3_default_state_msg+="\\n${INDIGO_BLUE}  - Native GPU driver blacklisting in $blacklist_conf_file is NOT DETECTED or file is missing.${NC}"
         fi
     else
-        pt3_default_state_msg="${YELLOW}Persistent passthrough (gpu-pt3): DISABLED or NOT CONFIGURED${NC}\\n"
-        pt3_default_state_msg+="${YELLOW}  - $vfio_conf_file is missing or does not assign GPUs to vfio-pci.${NC}"
+        pt3_default_state_msg="${RED}Persistent passthrough (gpu-pt3): DISABLED or NOT CONFIGURED${NC}\\n"
+        pt3_default_state_msg+="${RED}  - $vfio_conf_file is missing or does not assign GPUs to vfio-pci.${NC}"
 
         # Check blacklist status even if vfio.conf is not set for passthrough (could be an inconsistent state)
         if [ -f "$blacklist_conf_file" ] && (grep -q "blacklist radeon" "$blacklist_conf_file" || grep -q "blacklist amdgpu" "$blacklist_conf_file"); then
-            pt3_default_state_msg+="\\n${YELLOW}  - Note: Native GPU drivers might still be blacklisted in $blacklist_conf_file (check for inconsistency).${NC}"
+            pt3_default_state_msg+="\\n${RED}  - Note: Native GPU drivers might still be blacklisted in $blacklist_conf_file (check for inconsistency).${NC}"
         else
-            pt3_default_state_msg+="\\n${YELLOW}  - Native GPU driver blacklisting in $blacklist_conf_file also NOT DETECTED or file is missing.${NC}"
+            pt3_default_state_msg+="\\n${RED}  - Native GPU driver blacklisting in $blacklist_conf_file also NOT DETECTED or file is missing.${NC}"
         fi
     fi
     echo -e "$pt3_default_state_msg"
