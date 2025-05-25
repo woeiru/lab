@@ -177,7 +177,7 @@ gpu-var() {
     #   Information includes name, value, and usage context.
     #   Likely reads from SITE_CONFIG_FILE and parses it.
     # Dependencies:
-    #   - SITE_CONFIG_FILE environment variable.
+    #   - SITE_CONFIG_FILE` env`ironment variable.
     #   - Text processing tools (e.g. `grep`, `awk`).
 
     aux-acu -o "$CONFIG_gpu" "$DIR_FUN/.."
