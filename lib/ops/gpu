@@ -406,8 +406,37 @@ gpu-pta() {
     local function_name="${FUNCNAME[0]}"
     echo "--- Debug: Entering ${function_name} ---"
 
+    local current_hostname
+    current_hostname=$(hostname -s) # Get short hostname like x1, x2
+    local preferred_nvidia_driver="nouveau" # Default preference
+
+    # Construct the preference variable name, e.g., x1_nvidia_driver_preference
+    local preference_var_name="${current_hostname}_nvidia_driver_preference"
+    local global_default_preference_var="default_nvidia_driver_preference" # Optional global default
+
+    # Check if the node-specific preference is set in the config
+    if [ -n "${!preference_var_name}" ]; then
+        if [[ "${!preference_var_name}" == "nvidia" || "${!preference_var_name}" == "nouveau" ]]; then
+            preferred_nvidia_driver="${!preference_var_name}"
+            echo "--- Debug: Using node-specific NVIDIA driver preference for $current_hostname: $preferred_nvidia_driver ---"
+        else
+            echo "--- Debug: Invalid value for $preference_var_name: ${!preference_var_name}. Checking global default. ---"
+            if [ -n "${!global_default_preference_var}" ] && ([[ "${!global_default_preference_var}" == "nvidia" || "${!global_default_preference_var}" == "nouveau" ]]); then
+                preferred_nvidia_driver="${!global_default_preference_var}"
+                echo "--- Debug: Using global default NVIDIA driver preference: $preferred_nvidia_driver ---"
+            else
+                echo "--- Debug: No valid global default. Using hardcoded default: $preferred_nvidia_driver. ---"
+            fi
+        fi
+    elif [ -n "${!global_default_preference_var}" ] && ([[ "${!global_default_preference_var}" == "nvidia" || "${!global_default_preference_var}" == "nouveau" ]]); then
+        preferred_nvidia_driver="${!global_default_preference_var}"
+        echo "--- Debug: No specific preference for $current_hostname. Using global default NVIDIA driver preference: $preferred_nvidia_driver ---"
+    else
+        echo "--- Debug: No specific NVIDIA driver preference found for $current_hostname ($preference_var_name) and no global default. Using hardcoded default: $preferred_nvidia_driver. ---"
+    fi
+
     # Technical Description:
-    #   Reattaches GPU(s) to host system drivers. Logs actions via 'printf'.
+    #   Reattaches GPU(s) to host system drivers. Logs actions via \'printf\'.
     #   Identifies GPU PCI IDs ('lspci -nn'). For each GPU:
     #     Unbinds from current driver (e.g., vfio-pci), resets 'driver_override'.
     #     Determines vendor (AMD/NVIDIA via 'lspci -n') for driver ('amdgpu'/'nouveau').
@@ -443,6 +472,7 @@ gpu-pta() {
     for id in $gpu_ids; do
         printf "INFO: Processing GPU with PCI ID: $id\\n"
         echo "--- Debug: Processing GPU ID for reattachment: $id ---"
+        # Unbind from current driver (e.g., vfio-pci)
         if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
             printf "INFO: Unbinding GPU $id from current driver\\n"
             echo "--- Debug: Unbinding 0000:$id from current driver ---"
@@ -459,29 +489,31 @@ gpu-pta() {
             echo "--- Debug: GPU $id is not bound to any driver, skipping unbind ---"
         fi
 
-        printf "INFO: Resetting driver_override for GPU $id\\n"
-        echo "--- Debug: Resetting driver_override for 0000:$id ---"
-        echo > /sys/bus/pci/devices/0000:$id/driver_override
+        # Reset driver_override
+        printf "INFO: Clearing driver_override for GPU $id\\n"
+        echo "--- Debug: Clearing driver_override for 0000:$id ---"
+        if ! echo > "/sys/bus/pci/devices/0000:$id/driver_override"; then
+            printf "WARNING: Failed to clear driver_override for GPU $id. This might prevent binding to the desired driver.\\n"
+            echo "--- Debug: WARNING - Failed to clear driver_override for 0000:$id ---"
+        fi
 
-        echo "--- Debug: Determining driver for GPU $id ---"
-        local vendor_id=$(lspci -n -s "$id" | awk '{print $3}' | cut -d':' -f1)
-        local driver
-        echo "--- Debug: Vendor ID for $id: $vendor_id ---"
+        # Determine the correct driver (amdgpu or nouveau/nvidia)
+        local vendor_id=$(lspci -n -s "$id" | awk \'{print $3}\' | cut -d\':\' -f1)
+        local driver=""
         case "$vendor_id" in
-            1002)
+            1002) # AMD
                 driver="amdgpu"
                 ;;
-            10de)
-                driver="nouveau" # Or "nvidia" if preferred and installed
+            10de) # NVIDIA
+                driver="$preferred_nvidia_driver" # Use the determined preference
+                echo "--- Debug: NVIDIA card detected. Using preferred driver: $driver ---"
                 ;;
             *)
-                printf "ERROR: Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment.\\n"
-                printf "%s: Error: Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment.\\n" "$function_name"
-                echo "--- Debug: Unknown GPU vendor: $vendor_id for ID $id. Skipping... ---"
+                printf "ERROR: Unknown GPU vendor: $vendor_id for PCI ID $id. Cannot determine driver.\\n"
+                echo "--- Debug: ERROR - Unknown GPU vendor: $vendor_id for PCI ID $id ---"
                 continue # Skip to the next GPU ID
                 ;;
         esac
-        echo "--- Debug: Determined driver for $id: $driver ---"
 
         printf "INFO: Setting driver_override to $driver for GPU $id\\n"
         echo "--- Debug: Setting driver_override to $driver for 0000:$id ---"
