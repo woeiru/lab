@@ -37,3 +37,29 @@ The updated logic is as follows:
 This change ensures that if the GPU is already in the desired state (bound to the correct host driver) before or immediately after the `drivers_probe` operation, the `gpu-pta` function does not erroneously report a failure.
 
 The relevant code section in `gpu-pta` was updated to include this more robust error checking and handling for the driver binding process.
+
+## Related Issue & Improvement: Incorrect GPU Status Reporting in `gpu-pts`
+
+**Date of `gpu-pts` fix:** 2025-05-25
+
+**Affected Function:** `gpu-pts` in `lib/ops/gpu`
+
+### Problem Description
+
+Subsequent to the `gpu-pta` fix, it was observed that the `gpu-pts` function could still report an inaccurate overall GPU state. Specifically, it might indicate "Boolean DETACHED state: true" even if `gpu-pta` had successfully reattached the GPU to a host driver (e.g., `nouveau`).
+
+This occurred because the `gpu-pts` function's primary logic for determining the "DETACHED" status was based on whether the `vfio-pci` kernel module was loaded, rather than checking if a GPU device was *actively* using the `vfio-pci` driver.
+
+### Solution
+
+The `gpu-pts` function was significantly refactored to provide a more accurate assessment of the GPU's attachment state. The key changes include:
+
+1.  **Focused Driver Check:** Instead of broadly checking for the `vfio_pci` module's presence, the script now parses the output of `lspci -nnk`. It specifically looks for "VGA compatible controller" and "3D controller" entries.
+2.  **Active Driver Verification:** For each identified GPU device, the script examines the "Kernel driver in use:" line to determine which driver is actively managing the device.
+3.  **Revised State Logic:**
+    *   **DETACHED state is true if:** At least one GPU device (VGA/3D controller) is found to be actively using the `vfio-pci` driver.
+    *   **DETACHED state is false if:** No GPU devices are using `vfio-pci`, AND at least one GPU device is found to be using a host driver (e.g., `nouveau`, `amdgpu`, `nvidia`). The specific host driver(s) in use are reported.
+    *   **DETACHED state is indeterminate/unclear if:** GPU devices are detected, but they are not reported as using `vfio-pci` nor any other identifiable host driver (e.g., they might be unbound or driver information is missing from `lspci -nnk` output for those devices).
+    *   **DETACHED state is N/A if:** No VGA/3D controllers are detected by `lspci -nnk`.
+
+This improved logic ensures that `gpu-pts` more reliably reflects the actual binding state of the GPU(s) to either `vfio-pci` (for passthrough) or a host driver (for host use). The informational message about whether the `vfio-pci` module is loaded is retained for context but no longer solely dictates the overall "DETACHED" boolean status.
