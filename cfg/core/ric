@@ -80,7 +80,7 @@ export CFG_ENV_DIR
 
 # Site-wide configuration file path for depl scripts
 declare -g SITE_CONFIG_FILE
-SITE_CONFIG_FILE="${CFG_ENV_DIR}/site1.env"
+SITE_CONFIG_FILE="${CFG_ENV_DIR}/site1"
 export SITE_CONFIG_FILE
 
 # Deployment function library path
