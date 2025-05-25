@@ -771,34 +771,6 @@ gpu-pts() {
         echo "No common GPU-related modules (vfio, nvidia, nouveau, amdgpu, radeon) loaded."
     fi
 
-    # Now display the Overall GPU State Determination
-    echo -e "\\n--- Overall GPU State Determination ---"
-    if $is_any_gpu_on_vfio; then
-        echo -e "${CYAN}Boolean DETACHED state: true (a GPU device is actively using vfio-pci).${NC}"
-        echo -e "${CYAN}--- Summary: GPU appears to be DETACHED (for VM use) ---${NC}"
-        echo -e "${CYAN}    - At least one GPU device (VGA/3D controller) is bound to vfio-pci.${NC}"
-        if [ -n "$host_drivers_for_gpu" ]; then
-             echo -e "${YELLOW}    - Note: Other GPU devices might be ATTACHED to host (driver(s): $host_drivers_for_gpu). State could be MIXED.${NC}"
-        fi
-    elif [ -n "$host_drivers_for_gpu" ]; then
-        echo -e "${MAGENTA}Boolean DETACHED state: false (GPU is attached to host driver(s): $host_drivers_for_gpu).${NC}"
-        echo -e "${MAGENTA}--- Summary: GPU appears to be ATTACHED to host (driver(s): $host_drivers_for_gpu) ---${NC}"
-        echo -e "${MAGENTA}    - GPU device(s) (VGA/3D controller) are using host driver(s): $host_drivers_for_gpu.${NC}"
-        echo -e "${MAGENTA}    - No VGA/3D controller found using vfio-pci.${NC}"
-    else
-        # No GPU on vfio, no GPU on host driver. Check if GPUs were found at all.
-        if $vga_devices_processed || lspci -nnk | grep -qE "VGA compatible controller|3D controller"; then # Check if any VGA/3D controller was found
-            echo -e "${YELLOW}Boolean DETACHED state: indeterminate (GPU found, but no driver identified as 'in use' by this script).${NC}"
-            echo -e "${YELLOW}--- Summary: GPU state is UNCLEAR for VGA/3D controllers ---${NC}"
-            echo -e "${YELLOW}    - A VGA/3D controller was detected, but it's not using 'vfio-pci' nor any other recognized host driver.${NC}"
-            echo -e "${YELLOW}    - It might be unbound. Check 'Kernel Drivers for GPU(s)' section and IOMMU details.${NC}"
-        else
-            echo -e "${YELLOW}Boolean DETACHED state: N/A (No VGA/3D GPU controllers detected).${NC}"
-            echo -e "${YELLOW}--- Summary: No VGA/3D GPU controllers detected by lspci -nnk ---${NC}"
-        fi
-        echo -e "${YELLOW}    - Review IOMMU groups and loaded modules above.${NC}"
-    fi
-
     # Display VFIO-PCI module status at the end
     echo -e "\\n--- VFIO-PCI Module Status ---"
     echo -e "${vfio_pci_loaded_info}"
@@ -831,6 +803,36 @@ gpu-pts() {
         fi
     fi
     echo -e "$pt3_default_state_msg"
+
+    # Now display the Overall GPU State Determination
+    echo -e "\\n--- Overall GPU State Determination ---"
+    if $is_any_gpu_on_vfio; then
+        echo -e "${CYAN}Boolean DETACHED state: true (a GPU device is actively using vfio-pci).${NC}"
+        echo -e "${CYAN}--- Summary: GPU appears to be DETACHED (for VM use) ---${NC}"
+        echo -e "${CYAN}    - At least one GPU device (VGA/3D controller) is bound to vfio-pci.${NC}"
+        if [ -n "$host_drivers_for_gpu" ]; then
+             echo -e "${YELLOW}    - Note: Other GPU devices might be ATTACHED to host (driver(s): $host_drivers_for_gpu). State could be MIXED.${NC}"
+        fi
+    elif [ -n "$host_drivers_for_gpu" ]; then
+        echo -e "${MAGENTA}Boolean DETACHED state: false (GPU is attached to host driver(s): $host_drivers_for_gpu).${NC}"
+        echo -e "${MAGENTA}--- Summary: GPU appears to be ATTACHED to host (driver(s): $host_drivers_for_gpu) ---${NC}"
+        echo -e "${MAGENTA}    - GPU device(s) (VGA/3D controller) are using host driver(s): $host_drivers_for_gpu.${NC}"
+        echo -e "${MAGENTA}    - No VGA/3D controller found using vfio-pci.${NC}"
+    else
+        # No GPU on vfio, no GPU on host driver. Check if GPUs were found at all.
+        if $vga_devices_processed || lspci -nnk | grep -qE "VGA compatible controller|3D controller"; then # Check if any VGA/3D controller was found
+            echo -e "${YELLOW}Boolean DETACHED state: indeterminate (GPU found, but no driver identified as 'in use' by this script).${NC}"
+            echo -e "${YELLOW}--- Summary: GPU state is UNCLEAR for VGA/3D controllers ---${NC}"
+            echo -e "${YELLOW}    - A VGA/3D controller was detected, but it's not using 'vfio-pci' nor any other recognized host driver.${NC}"
+            echo -e "${YELLOW}    - It might be unbound. Check 'Kernel Drivers for GPU(s)' section and IOMMU details.${NC}"
+        else
+            echo -e "${YELLOW}Boolean DETACHED state: N/A (No VGA/3D GPU controllers detected).${NC}"
+            echo -e "${YELLOW}--- Summary: No VGA/3D GPU controllers detected by lspci -nnk ---${NC}"
+        fi
+        echo -e "${YELLOW}    - Review IOMMU groups and loaded modules above.${NC}"
+    fi
+
+
 
     printf "%s: GPU status check completed.\\n" "$function_name"
     echo "---------------------------------"
