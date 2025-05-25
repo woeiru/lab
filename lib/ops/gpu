@@ -544,15 +544,18 @@ gpu-pts() {
         echo "No VGA compatible or 3D controllers found."
     fi
 
+    echo -e "\\n--- Overall GPU State Determination ---"
     if $detached_mode; then
+        echo "Boolean DETACHED state: true (GPU is configured for passthrough or using vfio-pci)"
         echo -e "\\n--- Summary: GPU appears to be DETACHED (for VM use) ---"
-        echo "    - VFIO-PCI module is active."
-        echo "    - Relevant GPU(s) should be bound to vfio-pci."
+        echo "    - VFIO-PCI module is active or a GPU is bound to vfio-pci."
     elif [ -n "$attached_driver" ]; then
+        echo "Boolean DETACHED state: false (GPU is attached to host)"
         echo -e "\\n--- Summary: GPU appears to be ATTACHED to host (driver: $attached_driver) ---"
         echo "    - Host driver ($attached_driver) is likely in use."
         echo "    - VFIO-PCI module is not managing the primary GPU(s)."
     else
+        echo "Boolean DETACHED state: false (GPU state unclear, defaulting to not actively detached)"
         echo -e "\\n--- Summary: GPU state is UNCLEAR ---"
         echo "    - Could not definitively determine if attached or detached."
         echo "    - Review IOMMU groups and loaded modules below."
