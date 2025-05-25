@@ -249,7 +249,7 @@ gpu-pt1() {
     # Edit GRUB configuration
     sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt"/' /etc/default/grub
     update-grub
-    update-grug2
+    update-grub2 # Corrected typo from update-grug2
 
     # Technical Description:
     #   Installs 'grub-efi-amd64' package for EFI systems.
