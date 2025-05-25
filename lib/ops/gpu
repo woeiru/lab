@@ -110,7 +110,7 @@
 #     (After completing the Initial One-Time Setup)
 #     a. Run `gpu-pt3 enable`: Assigns specified GPU(s) to `vfio-pci` at boot.
 #        This involves creating /etc/modprobe.d/vfio.conf with the GPU IDs and
-#        blacklisting their host drivers (e.g., nvidia, amdgpu, nouveau) in
+#        blacklisting their host drivers (e.g., nvidia, amgpu, nouveau) in
 #        /etc/modprobe.d/zz-vfio-gpu-blacklist.conf. Reboot.
 #        The GPU is now persistently configured for VM passthrough.
 #     b. (Optional) If the GPU needs to be temporarily used by the host:
@@ -675,123 +675,75 @@ gpu-ptd() {
 
         if [ -L "$driver_path" ]; then
             current_driver=$(basename $(readlink -f "$driver_path"))
-            printf "INFO: GPU %s is currently bound to driver: %s\\n" "$id" "$current_driver"
+            printf "INFO: GPU %s is currently bound to driver: %s\\\\n" "$id" "$current_driver"
             if [ "$current_driver" == "vfio-pci" ]; then
-                printf "INFO: GPU %s is already on vfio-pci. Skipping unbind/bind sequence.\\n" "$id"
+                printf "INFO: GPU %s is already on vfio-pci. Skipping unbind/bind sequence.\\\\n" "$id"
                 continue
             fi
-            printf "INFO: Unbinding GPU %s from %s...\\n" "$id" "$current_driver"
+            printf "INFO: Unbinding GPU %s from %s...\\\\n" "$id" "$current_driver"
             if echo "$full_pci_id" > "$driver_path/unbind"; then
-                printf "INFO: Successfully unbound GPU %s from %s.\\n" "$id" "$current_driver"
+                printf "INFO: Successfully unbound GPU %s from %s.\\\\n" "$id" "$current_driver"
             else
-                printf "${YELLOW}WARNING: Failed to unbind GPU %s from %s. This might be an issue if the driver is in use.${NC}\\n" "$id" "$current_driver"
+                printf "${YELLOW}WARNING: Failed to unbind GPU %s from %s. This might be an issue if the driver is in use.${NC}\\\\n" "$id" "$current_driver"
                 # Attempt to remove the module as a more forceful way, if it's a known GPU driver
                 if [[ " $current_driver " =~ " nvidia " || " $current_driver " =~ " nouveau " || " $current_driver " =~ " amdgpu " || " $current_driver " =~ " radeon " ]]; then
-                    printf "INFO: Attempting to remove module %s to release GPU %s...\\n" "$current_driver" "$id"
+                    printf "INFO: Attempting to remove module %s to release GPU %s...\\\\n" "$current_driver" "$id"
                     if modprobe -r "$current_driver"; then
-                        printf "INFO: Module %s removed.\\n" "$current_driver"
+                        printf "INFO: Module %s removed.\\\\n" "$current_driver"
                     else
-                        printf "${RED}ERROR: Failed to remove module %s. GPU %s may remain bound.${NC}\\n" "$current_driver" "$id"
+                        printf "${RED}ERROR: Failed to remove module %s. GPU %s may remain bound.${NC}\\\\n" "$current_driver" "$id"
                         # continue # Decide if you want to skip to next GPU or try to proceed
                     fi
                 fi 
             fi
         else
-            printf "INFO: GPU %s is not currently bound to any driver.\\n" "$id"
+            printf "INFO: GPU %s is not currently bound to any driver.\\\\n" "$id"
         fi
-        
-        printf "INFO: Setting driver_override to vfio-pci for GPU %s...\\n" "$id"
+
+        printf "INFO: Setting driver_override to vfio-pci for GPU %s...\\\\n" "$id"
+        local driver_override_set_successfully=false
         if echo "vfio-pci" > "/sys/bus/pci/devices/$full_pci_id/driver_override"; then
-             printf "INFO: Successfully set driver_override for %s.\\n" "$id"
+            printf "INFO: Successfully set driver_override for %s.\\\\n" "$id"
+            driver_override_set_successfully=true
+
+            printf "INFO: Triggering re-probe for %s to bind to vfio-pci...\\\\n" "$id"
+            if echo "$full_pci_id" > "/sys/bus/pci/drivers_probe"; then
+                printf "INFO: Re-probe triggered for %s.\\\\n" "$id"
+                sleep 1 # Give time for the probe and bind to occur
+            else
+                printf "${YELLOW}WARNING: Failed to trigger re-probe for %s. Binding might not occur automatically.${NC}\\\\n" "$id"
+            fi
         else
-            printf "${RED}ERROR: Failed to set driver_override to vfio-pci for GPU %s. This is critical.${NC}\\n" "$id"
-            # Consider not continuing for this GPU if override fails
-            continue
+            printf "${RED}ERROR: Failed to set driver_override for %s. Binding may fail.${NC}\\\\n" "$id"
         fi
 
-        printf "INFO: Probing PCI bus to allow vfio-pci to claim GPU %s...\\n" "$id"
-        # This tells the PCI subsystem to re-evaluate drivers for this device
-        if echo 1 > "/sys/bus/pci/devices/$full_pci_id/remove"; then 
-            sleep 0.5 # Brief pause
-            echo 1 > "/sys/bus/pci/rescan"
-            printf "INFO: PCI rescan initiated for %s.\\n" "$id"
+        # Check if vfio-pci claimed the device
+        local new_driver_path="/sys/bus/pci/devices/$full_pci_id/driver"
+        if [ "$driver_override_set_successfully" = true ] && [ -L "$new_driver_path" ] && [ "$(basename $(readlink -f "$new_driver_path") 2>/dev/null)" == "vfio-pci" ]; then
+            printf "INFO: GPU %s successfully bound to vfio-pci (after driver_override and probe).\\\\n" "$id"
         else
-             printf "${YELLOW}WARNING: Could not remove/rescan PCI device %s. Binding might rely on existing vfio-pci probe.${NC}\\n" "$id"
-             # Fallback: try to bind directly if rescan path failed
-             printf "INFO: Attempting direct bind of GPU %s to vfio-pci driver...\\n" "$id"
-             if ! echo "$full_pci_id" > "/sys/bus/pci/drivers/vfio-pci/bind"; then
-                 printf "${RED}ERROR: Failed to bind GPU %s to VFIO-PCI after fallback attempt. See 'dmesg -e'.${NC}\\n" "$id"
-             else
-                 printf "INFO: Successfully bound GPU %s to VFIO-PCI via direct bind.\\n" "$id"
-             fi
-        fi
+            if [ "$driver_override_set_successfully" = true ]; then
+                printf "INFO: GPU %s not bound to vfio-pci after driver_override and probe. Current driver: $(basename $(readlink -f "$new_driver_path") 2>/dev/null || echo "none").\\\\n" "$id"
+            else
+                # This means driver_override itself failed.
+                printf "INFO: GPU %s not bound to vfio-pci (driver_override failed). Current driver: $(basename $(readlink -f "$new_driver_path") 2>/dev/null || echo "none").\\\\n" "$id"
+            fi
 
-        # Verify binding
-        sleep 0.5 # Give a moment for driver to bind
-        if [ -L "$driver_path" ] && [ "$(basename "$(readlink -f "$driver_path")")" == "vfio-pci" ]; then
-            printf "INFO: Successfully verified GPU %s is bound to VFIO-PCI.\\n" "$id"
-        else
-            # GPU is NOT bound to vfio-pci after the first set of operations.
-            printf "INFO: GPU %s not bound to VFIO-PCI after initial attempt. Trying further methods...\\n" "$id"
-
-            # Attempt 2: Force remove/rescan again
-            printf "INFO: Attempting another remove and rescan for %s...\\n" "$id"
-            if echo 1 > "/sys/bus/pci/devices/$full_pci_id/remove"; then
-                sleep 0.5
-                if echo 1 > "/sys/bus/pci/rescan"; then
-                    printf "INFO: Second remove/rescan sequence initiated for %s.\\n" "$id"
-                    sleep 0.5 # Give a moment for driver to bind after rescan
-                    # Verify after second remove/rescan
-                    if [ -L "$driver_path" ] && [ "$(basename "$(readlink -f "$driver_path")")" == "vfio-pci" ]; then
-                        printf "INFO: Successfully bound GPU %s to VFIO-PCI after second remove/rescan.\\n" "$id"
-                    else
-                        # Attempt 3: Direct bind (if second remove/rescan didn't lead to binding)
-                        printf "INFO: GPU %s still not bound after second rescan. Attempting direct bind to vfio-pci (final attempt)...\\n" "$id"
-                        if echo "$full_pci_id" > "/sys/bus/pci/drivers/vfio-pci/bind"; then
-                            sleep 0.5 # Give a moment
-                            if [ -L "$driver_path" ] && [ "$(basename "$(readlink -f "$driver_path")")" == "vfio-pci" ]; then
-                                printf "INFO: Successfully bound GPU %s to VFIO-PCI via direct bind (final attempt).\\n" "$id"
-                            else
-                                printf "${RED}ERROR: GPU %s still not bound to VFIO-PCI after direct bind. See 'dmesg -e'.${NC}\\n" "$id"
-                            fi
-                        else
-                            printf "${RED}ERROR: Failed to issue direct bind command for GPU %s to VFIO-PCI. See 'dmesg -e'.${NC}\\n" "$id"
-                        fi
-                    fi
+            printf "INFO: Attempting direct bind to vfio-pci for %s as a fallback...\\\\n" "$id"
+            if echo "$full_pci_id" > "/sys/bus/pci/drivers/vfio-pci/bind"; then
+                sleep 0.5 # Give it a moment
+                if [ -L "$new_driver_path" ] && [ "$(basename $(readlink -f "$new_driver_path") 2>/dev/null)" == "vfio-pci" ]; then
+                    printf "INFO: GPU %s successfully bound to vfio-pci via direct bind command.\\\\n" "$id"
                 else
-                    printf "${YELLOW}WARNING: Second rescan command failed for %s. Attempting direct bind...${NC}\\n" "$id"
-                    # Attempt 3: Direct bind (if second rescan command failed)
-                    if echo "$full_pci_id" > "/sys/bus/pci/drivers/vfio-pci/bind"; then
-                        sleep 0.5
-                        if [ -L "$driver_path" ] && [ "$(basename "$(readlink -f "$driver_path")")" == "vfio-pci" ]; then
-                            printf "INFO: Successfully bound GPU %s to VFIO-PCI via direct bind (after rescan cmd failure).\\n" "$id"
-                        else
-                            printf "${RED}ERROR: GPU %s still not bound to VFIO-PCI after direct bind (rescan cmd failure). See 'dmesg -e'.${NC}\\n" "$id"
-                        fi
-                    else
-                        printf "${RED}ERROR: Failed to issue direct bind command for GPU %s to VFIO-PCI (rescan cmd failure). See 'dmesg -e'.${NC}\\n" "$id"
-                    fi
+                    printf "${RED}ERROR: GPU %s failed to bind to vfio-pci even after direct bind. Current driver: $(basename $(readlink -f "$new_driver_path") 2>/dev/null || echo "none"). See 'dmesg -e'.${NC}\\\\n" "$id"
                 fi
             else
-                printf "${YELLOW}WARNING: Second remove command failed for %s. Attempting direct bind...${NC}\\n" "$id"
-                # Attempt 3: Direct bind (if second remove command failed)
-                if echo "$full_pci_id" > "/sys/bus/pci/drivers/vfio-pci/bind"; then
-                    sleep 0.5
-                    if [ -L "$driver_path" ] && [ "$(basename "$(readlink -f "$driver_path")")" == "vfio-pci" ]; then
-                        printf "INFO: Successfully bound GPU %s to VFIO-PCI via direct bind (after remove cmd failure).\\n" "$id"
-                    else
-                        printf "${RED}ERROR: GPU %s still not bound to VFIO-PCI after direct bind (remove cmd failure). See 'dmesg -e'.${NC}\\n" "$id"
-                    fi
-                else
-                    printf "${RED}ERROR: Failed to issue direct bind command for GPU %s to VFIO-PCI (remove cmd failure). See 'dmesg -e'.${NC}\\n" "$id"
-                fi
+                printf "${RED}ERROR: Failed to issue direct bind command for GPU %s to VFIO-PCI (echo to bind failed). Device may not exist or vfio-pci cannot claim it. See 'dmesg -e'.${NC}\\\\n" "$id"
             fi
         fi
-    done
+    done # End of for id in gpus_to_process
 
-    printf "INFO: GPU detachment process completed.\\n"
-    printf "INFO: Verify with 'lspci -nnk' or 'gpu-pts'.\\n"
-    echo "--- Debug: Exiting ${function_name} ---"
+    printf "INFO: GPU detachment process completed.\\\\n"
 }
 
 # Attaches the GPU back to the host system
