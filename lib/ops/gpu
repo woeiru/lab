@@ -294,7 +294,7 @@ gpu-ptd() {
     local gpu_ids="" # Initialize to empty
     LSPCI_NN_GPU_IDS_TEMP="/tmp/lspci_nn_gpu_ids_ptd.txt"
     if lspci -nn > "$LSPCI_NN_GPU_IDS_TEMP"; then
-        gpu_ids_output=$(grep -iE "VGA compatible controller|3D controller" "$LSPCI_NN_GPU_IDS_TEMP" | awk \'{print $1}\')
+        gpu_ids_output=$(grep -iE "VGA compatible controller|3D controller" "$LSPCI_NN_GPU_IDS_TEMP" | awk '{print $1}')
         if [ $? -eq 0 ] && [ -n "$gpu_ids_output" ]; then
             gpu_ids="$gpu_ids_output"
             printf "INFO: Found GPU(s) with PCI ID(s): %s\\\\n" "$gpu_ids"
