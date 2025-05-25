@@ -59,10 +59,27 @@ gpu-var() {
     aux-acu -o "$CONFIG_gpu" "$DIR_FUN/.."
 }
 
+# Downloads and installs NVIDIA drivers, blacklisting Nouveau
+# nvidia driver setup
+# <driver_version> (optional)
 gpu-nds() {
   local drv_ver="${1:-550.142}"  # default driver version; override as needed
   local url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${drv_ver}/NVIDIA-Linux-x86_64-${drv_ver}.run"
   local installer="NVIDIA-Linux-x86_64-${drv_ver}.run"
+
+  # Technical Description:
+  #   Downloads a specific NVIDIA driver version (default or specified).
+  #   Blacklists the Nouveau driver by creating a modprobe.d configuration file.
+  #   Updates the initramfs.
+  #   Installs prerequisite packages (dkms, build-essential, pve-headers).
+  #   Makes the downloaded driver installer executable.
+  #   Runs the NVIDIA installer silently with DKMS support.
+  #   Prompts the user to reboot.
+  # Dependencies:
+  #   - `tee`, `update-initramfs`, `apt`, `wget`, `chmod`, `reboot`.
+  #   - Root privileges for most operations.
+  #   - Internet connectivity for downloading the driver.
+  #   - `uname -r` to get the current kernel version for PVE headers.
 
   echo "1) Blacklisting Nouveau..."
   cat <<EOF | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
