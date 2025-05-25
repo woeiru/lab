@@ -446,7 +446,7 @@ gpu-pta() {
                 driver="amdgpu"
                 ;;
             10de)
-                driver="nouveau # Or "nvidia" if preferred and installed
+                driver="nouveau" # Or "nvidia" if preferred and installed
                 ;;
             *)
                 printf "ERROR: Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment.\\n"
