@@ -508,20 +508,21 @@ gpu-pts() {
     local attached_driver=""
 
     # Define colors using printf, similar to lo1 module
-    local CYAN=$(printf '\033[0;36m')
-    local MAGENTA=$(printf '\033[0;35m') # Magenta is often perceived as pinkish-red
-    local YELLOW=$(printf '\033[0;33m')
-    local NC=$(printf '\033[0m') # No Color
+    local CYAN=$(printf '\\033[0;36m')
+    local MAGENTA=$(printf '\\033[0;35m') # Magenta is often perceived as pinkish-red
+    local YELLOW=$(printf '\\033[0;33m')
+    local NC=$(printf '\\033[0m') # No Color
 
     echo "--- GPU Passthrough Status ---"
     echo -e "=============================="
 
-    # Check if VFIO-PCI is loaded, a strong indicator of detached mode
+    # Store VFIO-PCI module status for later display
+    local vfio_pci_loaded_info=""
     if lsmod | grep -q "vfio_pci"; then
-        detached_mode=true
-        echo -e "\\n[INFO] ${CYAN}VFIO-PCI module is loaded. GPU is likely DETACHED.${NC}"
+        detached_mode=true # This might be overridden by lspci check if vfio-pci is loaded but not used by GPU
+        vfio_pci_loaded_info="[INFO] ${CYAN}VFIO-PCI module is loaded.${NC}"
     else
-        echo -e "\\n[INFO] ${MAGENTA}VFIO-PCI module is NOT loaded. GPU is likely ATTACHED to host.${NC}"
+        vfio_pci_loaded_info="[INFO] ${MAGENTA}VFIO-PCI module is NOT loaded.${NC}"
     fi
 
     # Check current driver for VGA/3D controllers
@@ -550,23 +551,7 @@ gpu-pts() {
         echo -e "${YELLOW}No VGA compatible or 3D controllers found.${NC}"
     fi
 
-    echo -e "\\n--- Overall GPU State Determination ---"
-    if $detached_mode; then
-        echo -e "${CYAN}Boolean DETACHED state: true (GPU is configured for passthrough or using vfio-pci)${NC}"
-        echo -e "${CYAN}--- Summary: GPU appears to be DETACHED (for VM use) ---${NC}"
-        echo -e "${CYAN}    - VFIO-PCI module is active or a GPU is bound to vfio-pci.${NC}"
-    elif [ -n "$attached_driver" ]; then
-        echo -e "${MAGENTA}Boolean DETACHED state: false (GPU is attached to host)${NC}"
-        echo -e "${MAGENTA}--- Summary: GPU appears to be ATTACHED to host (driver: $attached_driver) ---${NC}"
-        echo -e "${MAGENTA}    - Host driver ($attached_driver) is likely in use.${NC}"
-        echo -e "${MAGENTA}    - VFIO-PCI module is not managing the primary GPU(s).${NC}"
-    else
-        echo -e "${YELLOW}Boolean DETACHED state: false (GPU state unclear, defaulting to not actively detached)${NC}"
-        echo -e "${YELLOW}--- Summary: GPU state is UNCLEAR ---${NC}"
-        echo -e "${YELLOW}    - Could not definitively determine if attached or detached.${NC}"
-        echo -e "${YELLOW}    - Review IOMMU groups and loaded modules below.${NC}"
-    fi
-
+    # IOMMU Groups and Loaded Kernel Modules will be displayed before the summary
 
     echo -e "\\n--- IOMMU Groups ---"
     if command -v find &> /dev/null && command -v ls &> /dev/null && command -v lspci &> /dev/null; then
@@ -605,6 +590,29 @@ gpu-pts() {
     else
         echo "No common GPU-related modules (vfio, nvidia, nouveau, amdgpu, radeon) loaded."
     fi
+
+    # Now display the Overall GPU State Determination
+    echo -e "\\n--- Overall GPU State Determination ---"
+    if $detached_mode; then
+        echo -e "${CYAN}Boolean DETACHED state: true (GPU is configured for passthrough or using vfio-pci)${NC}"
+        echo -e "${CYAN}--- Summary: GPU appears to be DETACHED (for VM use) ---${NC}"
+        echo -e "${CYAN}    - VFIO-PCI module is active or a GPU is bound to vfio-pci.${NC}"
+    elif [ -n "$attached_driver" ]; then
+        echo -e "${MAGENTA}Boolean DETACHED state: false (GPU is attached to host)${NC}"
+        echo -e "${MAGENTA}--- Summary: GPU appears to be ATTACHED to host (driver: $attached_driver) ---${NC}"
+        echo -e "${MAGENTA}    - Host driver ($attached_driver) is likely in use.${NC}"
+        # vfio_pci_loaded_info will clarify if vfio_pci is loaded even if not primary
+    else
+        echo -e "${YELLOW}Boolean DETACHED state: false (GPU state unclear, defaulting to not actively detached)${NC}"
+        echo -e "${YELLOW}--- Summary: GPU state is UNCLEAR ---${NC}"
+        echo -e "${YELLOW}    - Could not definitively determine if attached or detached.${NC}"
+        echo -e "${YELLOW}    - Review IOMMU groups and loaded modules above, and VFIO-PCI status below.${NC}"
+    fi
+
+    # Display VFIO-PCI module status at the end
+    echo -e "\\n--- VFIO-PCI Module Status ---"
+    echo -e "${vfio_pci_loaded_info}"
+
 
     aux-nos "$function_name" "GPU status check completed."
     echo "---------------------------------"
