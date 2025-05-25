@@ -96,26 +96,45 @@
 #
 # General Workflow Examples:
 #
-#   Scenario A: GPU Primarily for Passthrough (Persistent Setup)
-#     a. Run `gpu-nds` (if NVIDIA and using proprietary drivers on host when attached).
-#     b. Run `gpu-pt1`, `gpu-pt2` for initial system setup (IOMMU, kernel modules).
+#   Initial One-Time Setup (Common for both scenarios below):
+#     1. Run `gpu-pt1`: Configures GRUB/EFI for IOMMU, installs related packages.
 #        Reboot as prompted.
-#     c. Run `gpu-pt3 enable` to assign GPU(s) to `vfio-pci` at boot. Reboot.
-#        GPU is now persistently ready for VM use.
-#     d. (Optional) Use `gpu-pta` to temporarily attach GPU to host, then `gpu-ptd`
-#        to detach again for VM use, all without reboots.
+#     2. Run `gpu-pt2`: Adds necessary kernel modules (vfio, vfio_iommu_type1, vfio_pci)
+#        to /etc/modules for them to be loaded at boot, updates initramfs.
+#        Reboot as prompted.
+#     3. (Optional) Run `gpu-nds`: If using an NVIDIA GPU and proprietary drivers are
+#        desired for host usage (when GPU is attached to host). This blacklists nouveau
+#        and installs the NVIDIA driver. Reboot if prompted.
+#
+#   Scenario A: GPU Primarily for Passthrough (Persistent Setup)
+#     (After completing the Initial One-Time Setup)
+#     a. Run `gpu-pt3 enable`: Assigns specified GPU(s) to `vfio-pci` at boot.
+#        This involves creating /etc/modprobe.d/vfio.conf with the GPU IDs and
+#        blacklisting their host drivers (e.g., nvidia, amdgpu, nouveau) in
+#        /etc/modprobe.d/zz-vfio-gpu-blacklist.conf. Reboot.
+#        The GPU is now persistently configured for VM passthrough.
+#     b. (Optional) If the GPU needs to be temporarily used by the host:
+#        Run `gpu-pta` to attach it to host drivers.
+#        Run `gpu-ptd` to detach it again for VM use. (No reboots needed for these).
 #
 #   Scenario B: GPU Primarily for Host, Dynamic Passthrough as Needed
-#     a. Ensure IOMMU is enabled in kernel boot parameters (e.g., via `gpu-pt1` once, or manual grub edit).
-#        Ensure base VFIO modules can be loaded (e.g., `gpu-pt2` run once, or ensure kernel supports them).
-#     b. (Optional) Run `gpu-nds` if NVIDIA and want proprietary drivers for host use.
-#     c. System boots with GPU attached to host (default, or after `gpu-pt3 disable`).
-#     d. When needed for a VM: Run `gpu-ptd`. This will attempt to load VFIO modules,
-#        unbind host drivers, and bind `vfio-pci`.
-#     e. After VM use: Run `gpu-pta` to return the GPU to host driver control.
-#     f. Note: If dynamic switching (`gpu-ptd`) faces issues with host drivers
-#        re-asserting control, using `gpu-pt3 enable` for a more persistent
-#        passthrough setup (Scenario A) might be necessary for those GPUs.
+#     (After completing the Initial One-Time Setup)
+#     a. Ensure the system boots with the GPU attached to host drivers.
+#        This is the default state if `gpu-pt3 enable` has not been run for the GPU,
+#        or if `gpu-pt3 disable` was run to revert a persistent passthrough setup.
+#        (If `gpu-nds` was run, the NVIDIA GPU will use proprietary drivers; otherwise,
+#        it might use nouveau or amdgpu for AMD).
+#     b. When passthrough is needed for a VM: Run `gpu-ptd` for the target GPU.
+#        This dynamically attempts to:
+#          - Ensure VFIO modules are loaded (they should be if `gpu-pt2` was run).
+#          - Unbind the GPU from its host driver.
+#          - Bind the GPU to `vfio-pci`.
+#     c. After VM use: Run `gpu-pta` for the target GPU. This dynamically:
+#          - Unbinds the GPU from `vfio-pci`.
+#          - Rebinds the GPU to its appropriate host driver.
+#     d. Note: If dynamic switching (`gpu-ptd`) faces issues (e.g., host drivers
+#        re-asserting control, or instability), using `gpu-pt3 enable` (Scenario A)
+#        for a persistent passthrough setup is generally more robust.
 #
 # ============================================================================
 
