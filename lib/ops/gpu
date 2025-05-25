@@ -752,208 +752,275 @@ gpu-ptd() {
 gpu-pta() {
     local function_name="${FUNCNAME[0]}"
     echo "--- Debug: Entering ${function_name} ---"
-    local gpu_id_arg="$1" # Optional: specific GPU PCI ID to attach
     local -a gpus_to_process
-
+    local gpu_id_arg="$1" # Optional: specific GPU PCI ID to attach
     local current_hostname
-    current_hostname=$(hostname -s) # Get short hostname like x1, x2
-    local preferred_nvidia_driver="nouveau" # Default preference
-    
+
     # Define colors using printf
-    local YELLOW=$(printf '\\033[0;33m')
-    local RED=$(printf '\\033[0;31m')
-    local GREEN=$(printf '\\033[0;32m')
-    local NC=$(printf '\\033[0m') # No Color
+    local GREEN=$(printf '\\\\033[0;32m')
+    local YELLOW=$(printf '\\\\033[0;33m')
+    local RED=$(printf '\\\\033[0;31m')
+    local CYAN=$(printf '\\\\033[0;36m')
+    local NC=$(printf '\\\\033[0m') # No Color
 
-    # Construct the preference variable name, e.g., x1_nvidia_driver_preference
-    local preference_var_name="${current_hostname}_nvidia_driver_preference"
-    local global_default_preference_var="default_nvidia_driver_preference" # Optional global default
+    current_hostname=$(hostname -s) # Get current hostname
 
-    # Determine preferred NVIDIA driver from config (if SITE_CONFIG_FILE is sourced and vars are set)
-    if [ -n "${!preference_var_name}" ]; then
-        if [[ "${!preference_var_name}" == "nvidia" || "${!preference_var_name}" == "nouveau" ]]; then
-            preferred_nvidia_driver="${!preference_var_name}"
-            echo "--- Debug: Using node-specific NVIDIA driver preference for $current_hostname: $preferred_nvidia_driver ---"
-        else
-            echo "--- Debug: Invalid value for $preference_var_name: ${!preference_var_name}. Checking global default. ---"
-            if [ -n "${!global_default_preference_var}" ] && ([[ "${!global_default_preference_var}" == "nvidia" || "${!global_default_preference_var}" == "nouveau" ]]); then
-                preferred_nvidia_driver="${!global_default_preference_var}"
-                echo "--- Debug: Using global default NVIDIA driver preference: $preferred_nvidia_driver ---"
-            else
-                echo "--- Debug: No valid global default. Using hardcoded default: $preferred_nvidia_driver. ---"
-            fi
-        fi
-    elif [ -n "${!global_default_preference_var}" ] && ([[ "${!global_default_preference_var}" == "nvidia" || "${!global_default_preference_var}" == "nouveau" ]]); then
-        preferred_nvidia_driver="${!global_default_preference_var}"
-        echo "--- Debug: No specific preference for $current_hostname. Using global default NVIDIA driver preference: $preferred_nvidia_driver ---"
-    else
-        echo "--- Debug: No specific NVIDIA driver preference found for $current_hostname ($preference_var_name) and no global default. Using hardcoded default: $preferred_nvidia_driver. ---"
-    fi 
+    # NVIDIA driver preference logic (will be used later per GPU)
+    # Example: x2_nvidia_driver_preference="nouveau" or "nvidia"
+    # This will be checked when an NVIDIA card is processed.
+    # local nvidia_driver_pref_var="${current_hostname}_nvidia_driver_preference"
+    # local preferred_nvidia_driver="${!nvidia_driver_pref_var:-nvidia}" # Default to 'nvidia'
+    # printf "INFO: Default NVIDIA driver preference for host '%s' is '%s' (via var %s).\\n" "$current_hostname" "$preferred_nvidia_driver" "$nvidia_driver_pref_var"
+
 
     # Technical Description:
     #   Dynamically attaches GPU(s) back to the host system from vfio-pci.
-    #   Attempts to be self-sufficient.
-    #   Identifies GPU PCI slot IDs. If an argument is provided, only that GPU is targeted.
+    #   Identifies GPU PCI slot IDs. If an argument is provided, only that GPU is targeted (if on vfio-pci).
+    #   If no argument, uses hostname-specific config variables (e.g., x2_node_pci0) if the devices are on vfio-pci.
+    #   Falls back to scanning all relevant devices (VGA/3D/Audio) on vfio-pci.
     #   For each target GPU:
     #     - Unbinds from vfio-pci (if bound).
     #     - Clears 'driver_override'.
     #     - Determines appropriate host driver (amdgpu, or nvidia/nouveau based on site config/preference).
     #     - Attempts to load the host driver module if not already loaded.
     #     - Binds the host driver.
-    #     - Rescans PCI devices (may not always be necessary but can help).
     # Dependencies:
-    #   - `lspci`, `modprobe`, `awk`, `echo`, `tee`, `hostname`.
+    #   - `lspci`, `modprobe`, `awk`, `echo`, `hostname`, `grep`, `readlink`, `basename`, `sleep`.
     #   - Root privileges for driver/module operations and sysfs access.
     # Interactions:
     #   - Uses `*_nvidia_driver_preference` from site config for NVIDIA GPUs.
-    #   - Warns if `nouveau` is preferred but blacklisted by `gpu-nds`.
 
-    printf "INFO: Starting GPU attachment process...\\n"
+    printf "INFO: Starting GPU attachment process...\\\\n"
+    printf "INFO: Identifying target GPU(s)...\\\\n"
 
-    printf "INFO: Identifying target GPU(s)...\\n"
+    # Source the site-specific configuration
+    # CONFIG_FUN should be set by the script's initial variable definitions (e.g., from SITE_CONFIG_FILE)
+    if [ -n "$CONFIG_FUN" ] && [ -f "$CONFIG_FUN" ]; then
+        # shellcheck source=/dev/null
+        source "$CONFIG_FUN"
+        printf "INFO: Successfully sourced PCI configuration from %s\\\\n" "$CONFIG_FUN"
+    else
+        printf "${YELLOW}WARNING: PCI Configuration file '%s' not found or not set. PCI IDs will not be sourced from it for attachment preference.${NC}\\\\n" "$CONFIG_FUN"
+    fi
+
     if [ -n "$gpu_id_arg" ]; then
-        if ! [[ "$gpu_id_arg" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]]; then
-            printf "${RED}ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0${NC}\\n" "$gpu_id_arg"
+        if ! [[ "$gpu_id_arg" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]$ ]]; then
+            printf "${RED}ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0${NC}\\\\n" "$gpu_id_arg"
             return 1
         fi
-        # Check if this GPU exists and is a VGA/3D controller currently on vfio-pci
-        if lspci -s "$gpu_id_arg" -k -nn | grep -A3 "VGA compatible controller\|3D controller" | grep -q "Kernel driver in use: vfio-pci"; then
-            gpus_to_process+=("$gpu_id_arg")
-            printf "INFO: Targeting specified GPU %s for attachment (currently on vfio-pci).\\n" "$gpu_id_arg"
-        elif lspci -s "$gpu_id_arg" -nn | grep -qE "VGA compatible controller|3D controller"; then
-             printf "${YELLOW}WARNING: Specified GPU %s exists but is not currently using vfio-pci. Will attempt to ensure host driver is bound.${NC}\\n" "$gpu_id_arg"
-             gpus_to_process+=("$gpu_id_arg") # Still process it to ensure host driver
+        
+        local lspci_specific_output
+        lspci_specific_output=$(lspci -s "$gpu_id_arg" -nnk 2>/dev/null)
+        if [ -n "$lspci_specific_output" ]; then
+            if echo "$lspci_specific_output" | grep -qE "VGA compatible controller|3D controller|Audio device"; then
+                if echo "$lspci_specific_output" | grep -A2 "Kernel driver in use:" | grep -q "vfio-pci"; then
+                    gpus_to_process+=("$gpu_id_arg")
+                    printf "INFO: Targeting specified PCI device %s (on vfio-pci) for attachment.\\\\n" "$gpu_id_arg"
+                else
+                    printf "${YELLOW}WARNING: Specified PCI ID %s is a relevant device type but not currently on vfio-pci. Cannot attach.${NC}\\\\n" "$gpu_id_arg"
+                fi
+            else
+                 printf "${YELLOW}WARNING: Specified PCI ID %s is not a VGA/3D/Audio controller. Skipping.${NC}\\\\n" "$gpu_id_arg"
+            fi
         else
-            printf "${RED}ERROR: Specified PCI ID %s is not a VGA/3D controller or does not exist.${NC}\\n" "$gpu_id_arg"
-            return 1
+            printf "${RED}ERROR: Specified PCI ID %s does not exist or could not be queried.${NC}\\\\n" "$gpu_id_arg"
         fi
     else
-        printf "INFO: No specific GPU ID provided, will attempt to attach all VGA/3D controllers currently on vfio-pci.\\n"
-        local lspci_output_vfio
-        lspci_output_vfio=$(lspci -nnk | grep -A1 "Kernel driver in use: vfio-pci" | grep -E "VGA compatible controller|3D controller")
-        if [ -z "$lspci_output_vfio" ]; then
-            printf "${YELLOW}No GPUs found currently using vfio-pci according to lspci -nnk.${NC}"
-            # Optionally, could scan all GPUs and try to ensure they are on host drivers if not on vfio.
-            # For now, let's stick to only those explicitly on vfio if no arg is given.
+        printf "INFO: No specific GPU ID provided. Attempting to use PCI IDs from configuration for hostname '%s' if they are on vfio-pci.\\\\n" "$current_hostname"
+        
+        local pci0_var_name="${current_hostname}_node_pci0"
+        local pci1_var_name="${current_hostname}_node_pci1"
+        local lspci_full_output_check # To avoid multiple full lspci calls
+        lspci_full_output_check=$(lspci -nnk)
+
+        # Check PCI0 from config
+        if [ -n "${!pci0_var_name}" ]; then
+            local pci0_full_val=${!pci0_var_name}
+            local short_pci0_val=${pci0_full_val#0000:}
+            if [[ "$short_pci0_val" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]$ ]]; then
+                if echo "$lspci_full_output_check" | grep -A3 "^$short_pci0_val" | grep -qE "VGA compatible controller|3D controller|Audio device"; then
+                    if echo "$lspci_full_output_check" | grep -A3 "^$short_pci0_val" | grep -q "Kernel driver in use: vfio-pci"; then
+                        gpus_to_process+=("$short_pci0_val")
+                        printf "INFO: Identified device %s (%s from config) on vfio-pci for attachment.\\\\n" "$short_pci0_val" "$pci0_var_name"
+                    else
+                        printf "INFO: Configured device %s (%s) is a relevant type but not on vfio-pci. Skipping for attachment.\\\\n" "$short_pci0_val" "$pci0_var_name"
+                    fi
+                else
+                    printf "INFO: Configured device %s (%s) is not a VGA/3D/Audio controller. Skipping for attachment.\\\\n" "$short_pci0_val" "$pci0_var_name"
+                fi
+            else
+                printf "${YELLOW}WARNING: Configured PCI ID %s value ('%s') is not in the expected format (xx:xx.x after stripping 0000:).${NC}\\\\n" "$pci0_var_name" "$pci0_full_val"
+            fi
         else
-            while IFS= read -r line; do
-                local pci_slot_id=$(echo "$line" | awk '{print $1}')
-                gpus_to_process+=("$pci_slot_id")
-                printf "INFO: Identified GPU %s (on vfio-pci) for attachment.\\n" "$pci_slot_id"
-            done <<< "$lspci_output_vfio"
+            printf "INFO: PCI ID variable '%s' not found in config for hostname '%s'.\\\\n" "$pci0_var_name" "$current_hostname"
         fi
+
+        # Check PCI1 from config
+        if [ -n "${!pci1_var_name}" ]; then
+            local pci1_full_val=${!pci1_var_name}
+            local short_pci1_val=${pci1_full_val#0000:}
+            if [[ "$short_pci1_val" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]$ ]]; then
+                 if echo "$lspci_full_output_check" | grep -A3 "^$short_pci1_val" | grep -qE "VGA compatible controller|3D controller|Audio device"; then
+                    if echo "$lspci_full_output_check" | grep -A3 "^$short_pci1_val" | grep -q "Kernel driver in use: vfio-pci"; then
+                        gpus_to_process+=("$short_pci1_val")
+                        printf "INFO: Identified device %s (%s from config) on vfio-pci for attachment.\\\\n" "$short_pci1_val" "$pci1_var_name"
+                    else
+                        printf "INFO: Configured device %s (%s) is a relevant type but not on vfio-pci. Skipping for attachment.\\\\n" "$short_pci1_val" "$pci1_var_name"
+                    fi
+                else
+                    printf "INFO: Configured device %s (%s) is not a VGA/3D/Audio controller. Skipping for attachment.\\\\n" "$short_pci1_val" "$pci1_var_name"
+                fi
+            else
+                printf "${YELLOW}WARNING: Configured PCI ID %s value ('%s') is not in the expected format (xx:xx.x after stripping 0000:).${NC}\\\\n" "$pci1_var_name" "$pci1_full_val"
+            fi
+        else
+            printf "INFO: PCI ID variable '%s' not found in config for hostname '%s'.\\\\n" "$pci1_var_name" "$current_hostname"
+        fi
+        
+        if [ ${#gpus_to_process[@]} -eq 0 ]; then
+            printf "INFO: No GPUs specified via argument or found via host-specific config on vfio-pci. Falling back to scanning all relevant devices on vfio-pci.\\\\n"
+            
+            if [ -z "$lspci_full_output_check" ]; then # Should have been set, but as a safeguard
+                lspci_full_output_check=$(lspci -nnk)
+            fi
+
+            local current_pci_id_fb=""
+            local current_block_content_fb=""
+            local is_relevant_device_fb=false 
+
+            while IFS= read -r line_fb; do
+                if [[ "$line_fb" =~ ^([0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]) ]]; then 
+                    if [ -n "$current_pci_id_fb" ] && $is_relevant_device_fb; then
+                        if echo "$current_block_content_fb" | grep -A2 "Kernel driver in use:" | grep -q "vfio-pci"; then
+                            gpus_to_process+=("$current_pci_id_fb")
+                            printf "INFO: Identified device %s (from lspci scan) on vfio-pci for attachment.\\\\n" "$current_pci_id_fb"
+                        fi
+                    fi
+                    current_pci_id_fb="${BASH_REMATCH[1]}"
+                    current_block_content_fb="$line_fb" 
+                    if echo "$line_fb" | grep -qE "VGA compatible controller|3D controller|Audio device"; then
+                        is_relevant_device_fb=true
+                    else
+                        is_relevant_device_fb=false
+                    fi
+                elif [ -n "$current_pci_id_fb" ]; then 
+                    current_block_content_fb+=$'\\\\n'"$line_fb"
+                fi
+            done <<< "$lspci_full_output_check"
+
+            if [ -n "$current_pci_id_fb" ] && $is_relevant_device_fb; then
+                if echo "$current_block_content_fb" | grep -A2 "Kernel driver in use:" | grep -q "vfio-pci"; then
+                    gpus_to_process+=("$current_pci_id_fb")
+                    printf "INFO: Identified device %s (from lspci scan, last block) on vfio-pci for attachment.\\\\n" "$current_pci_id_fb"
+                fi
+            fi
+        fi
+    fi
+
+    if [ ${#gpus_to_process[@]} -gt 0 ]; then
+        gpus_to_process=($(printf "%s\\\\n" "${gpus_to_process[@]}" | sort -u | tr '\\\\n' ' '))
     fi
 
     if [ ${#gpus_to_process[@]} -eq 0 ]; then
-        printf "${YELLOW}No suitable GPU devices found or specified for attachment.${NC}\\n"
-        return 0
+        printf "${YELLOW}No suitable GPU devices found on vfio-pci (via argument, config, or scan) to attach.${NC}\\\\n"
+        return 0 
     fi
 
+    printf "INFO: Final list of GPU IDs to process for attachment: %s\\\\n" "${gpus_to_process[*]}"
+
     for pci_slot_id in "${gpus_to_process[@]}"; do
-        printf "--- Processing GPU at %s ---\\n" "$pci_slot_id"
         local full_pci_id="0000:$pci_slot_id"
-        local driver_path="/sys/bus/pci/devices/$full_pci_id/driver"
-        local driver_override_path="/sys/bus/pci/devices/$full_pci_id/driver_override"
+        local sysfs_device_path="/sys/bus/pci/devices/$full_pci_id"
+        local current_driver_path="$sysfs_device_path/driver"
+        local host_driver="" 
 
-        # Unbind from vfio-pci if it's bound
-        if [ -L "$driver_path" ] && [ "$(basename $(readlink -f "$driver_path"))" == "vfio-pci" ]; then
-            printf "INFO: Unbinding %s from vfio-pci...\\n" "$pci_slot_id"
-            if ! echo "$full_pci_id" > "/sys/bus/pci/drivers/vfio-pci/unbind"; then
-                printf "${RED}ERROR: Failed to unbind %s from vfio-pci. Attachment may fail.${NC}\\n" "$pci_slot_id"
-                # continue # Or try to proceed
+        printf "${CYAN}--- Processing GPU %s for attachment to host ---${NC}\\\\n" "$pci_slot_id"
+
+        if [ -L "$current_driver_path" ] && [ "$(basename "$(readlink -f "$current_driver_path")")" == "vfio-pci" ]; then
+            printf "INFO: GPU %s is on vfio-pci. Unbinding...\\\\n" "$pci_slot_id"
+            if echo "$full_pci_id" > "$current_driver_path/unbind"; then
+                printf "INFO: Successfully unbound %s from vfio-pci.\\\\n" "$pci_slot_id"
             else
-                printf "INFO: Successfully unbound %s from vfio-pci.\\n" "$pci_slot_id"
+                printf "${RED}ERROR: Failed to unbind %s from vfio-pci. Skipping attachment for this device.${NC}\\\\n" "$pci_slot_id"
+                continue
             fi
+        elif [ -L "$current_driver_path" ]; then
+             local current_bound_driver
+             current_bound_driver=$(basename "$(readlink -f "$current_driver_path")")
+             printf "INFO: GPU %s is already bound to %s, not vfio-pci. Assuming it's already attached or no action needed by this script.\\\\n" "$pci_slot_id" "$current_bound_driver"
+             continue 
         else
-            printf "INFO: GPU %s not currently bound to vfio-pci. Will attempt to bind host driver directly.\\n" "$pci_slot_id"
+            printf "INFO: GPU %s is not currently bound to any driver. Proceeding to attach.\\\\n" "$pci_slot_id"
         fi
 
-        # Clear driver_override
-        printf "INFO: Clearing driver_override for %s...\\n" "$pci_slot_id"
-        if ! echo "" > "$driver_override_path"; then # Write empty string to clear
-            printf "${YELLOW}WARNING: Failed to clear driver_override for %s. This might interfere with host driver binding.${NC}\\n" "$pci_slot_id"
-        else
-            printf "INFO: Successfully cleared driver_override for %s.\\n" "$pci_slot_id"
+        if [ -f "$sysfs_device_path/driver_override" ]; then
+            printf "INFO: Clearing driver_override for %s...\\\\n" "$pci_slot_id"
+            if ! echo > "$sysfs_device_path/driver_override"; then
+                 printf "${YELLOW}WARNING: Failed to clear driver_override for %s. Attachment might be affected.${NC}\\\\n" "$pci_slot_id"
+            fi
         fi
 
-        # Determine the correct host driver
-        local vendor_id=$(lspci -n -s "$pci_slot_id" | awk '{print $3}' | cut -d':' -f1)
-        local host_driver_to_bind=""
-        case "$vendor_id" in
-            "1002") # AMD
-                host_driver_to_bind="amdgpu" # Could also be "radeon" for older cards
-                # A more sophisticated check could look at lspci -k to see what module it *would* use
-                # or try amdgpu first, then radeon if that fails.
-                ;;
-            "10de") # NVIDIA
-                host_driver_to_bind="$preferred_nvidia_driver"
-                echo "--- Debug: NVIDIA card detected. Will attempt to use preferred driver: $host_driver_to_bind ---"
-                if [ "$host_driver_to_bind" == "nouveau" ] && [ -f "/etc/modprobe.d/blacklist-nouveau.conf" ]; then
-                    printf "${YELLOW}WARNING: Preferred driver for %s is 'nouveau', but /etc/modprobe.d/blacklist-nouveau.conf exists (likely from gpu-nds).${NC}\\n" "$current_hostname"
-                    printf "${YELLOW}         'nouveau' may fail to load. Consider setting %s_nvidia_driver_preference to 'nvidia' or removing the blacklist.${NC}\\n" "$current_hostname"
-                fi
-                ;;
-            *)
-                printf "${RED}ERROR: Unknown GPU vendor ID: %s for PCI slot %s. Cannot determine host driver.${NC}\\n" "$vendor_id" "$pci_slot_id"
-                continue # Skip to next GPU
-                ;;
-        esac
+        local vendor_id device_id
+        vendor_id=$(lspci -nns "$pci_slot_id" | awk '{print $3}' | cut -d':' -f1)
+        device_id=$(lspci -nns "$pci_slot_id" | awk '{print $3}' | cut -d':' -f2) # For more specific AMD logic if needed
 
-        if [ -z "$host_driver_to_bind" ]; then
-            printf "${RED}ERROR: Could not determine host driver for %s. Skipping.${NC}\\n" "$pci_slot_id"
-            continue
-        fi 
-
-        printf "INFO: Attempting to ensure module %s is loaded...\\n" "$host_driver_to_bind"
-        if ! lsmod | grep -q "^${host_driver_to_bind}"; then
-            if modprobe "$host_driver_to_bind"; then
-                printf "INFO: Module %s loaded successfully.\\n" "$host_driver_to_bind"
+        if [ "$vendor_id" == "10de" ]; then 
+            local nvidia_driver_pref_var="${current_hostname}_nvidia_driver_preference"
+            # Default to "nvidia" if var is not set or empty, otherwise use its value.
+            local preferred_nvidia_driver
+            if [ -n "${!nvidia_driver_pref_var}" ]; then
+                preferred_nvidia_driver="${!nvidia_driver_pref_var}"
             else
-                printf "${RED}ERROR: Failed to load module %s. Cannot bind GPU %s.${NC}\\n" "$host_driver_to_bind" "$pci_slot_id"
+                preferred_nvidia_driver="nvidia"
+            fi
+            
+            if [ "$preferred_nvidia_driver" == "nouveau" ]; then
+                if [ -f "/etc/modprobe.d/blacklist-nouveau.conf" ] && grep -q "blacklist nouveau" "/etc/modprobe.d/blacklist-nouveau.conf"; then
+                    printf "${YELLOW}WARNING: Preferred driver for %s is 'nouveau', but it appears to be blacklisted (e.g., by gpu-nds). Attachment might fail or use an alternative.${NC}\\\\n" "$pci_slot_id"
+                fi
+            fi
+            host_driver="$preferred_nvidia_driver"
+            printf "INFO: Target host driver for NVIDIA GPU %s: %s (based on var %s, site default: nvidia)\\\\n" "$pci_slot_id" "$host_driver" "$nvidia_driver_pref_var"
+        elif [ "$vendor_id" == "1002" ]; then 
+            host_driver="amdgpu" 
+            printf "INFO: Target host driver for AMD GPU %s: %s\\\\n" "$pci_slot_id" "$host_driver"
+        else
+            printf "${YELLOW}WARNING: Unknown GPU vendor ID %s for %s. Cannot determine host driver.${NC}\\\\n" "$vendor_id" "$pci_slot_id"
+            continue
+        fi
+
+        if ! lsmod | grep -q "^${host_driver//-/_}"; then
+            printf "INFO: Host driver module %s not loaded. Attempting to load...\\\\n" "$host_driver"
+            if modprobe "$host_driver"; then
+                printf "INFO: Module %s loaded successfully.\\\\n" "$host_driver"
+            else
+                printf "${RED}ERROR: Failed to load module %s. Cannot attach GPU %s.${NC}\\\\n" "$host_driver" "$pci_slot_id"
                 continue
             fi
         else
-            printf "INFO: Module %s is already loaded.\\n" "$host_driver_to_bind"
+            printf "INFO: Host driver module %s is already loaded.\\\\n" "$host_driver"
         fi
 
-        printf "INFO: Attempting to bind %s to %s driver...\\n" "$pci_slot_id" "$host_driver_to_bind"
-        # Try to bind via the driver's bind file
-        if echo "$full_pci_id" > "/sys/bus/pci/drivers/$host_driver_to_bind/bind"; then
-            printf "${GREEN}Successfully initiated binding of %s to %s.${NC}\\n" "$pci_slot_id" "$host_driver_to_bind"
-        else
-            printf "${YELLOW}WARNING: Failed to directly bind %s to %s. Will try PCI rescan.${NC}\\n" "$pci_slot_id" "$host_driver_to_bind"
-            # As a fallback, or primary method, try telling the device to re-probe
-            printf "INFO: Triggering PCI rescan for device %s to allow %s to claim it...\\n" "$pci_slot_id" "$host_driver_to_bind"
-            if echo 1 > "/sys/bus/pci/devices/$full_pci_id/remove"; then
-                sleep 0.5 # Brief pause
-                echo 1 > "/sys/bus/pci/rescan"
-                printf "INFO: PCI rescan initiated for %s.\\n" "$pci_slot_id"
-            else
-                printf "${RED}ERROR: Could not remove/rescan PCI device %s. Binding %s may fail.${NC}\\n" "$pci_slot_id" "$host_driver_to_bind"
-            fi
+        printf "INFO: Attempting to bind GPU %s to driver %s...\\\\n" "$pci_slot_id" "$host_driver"
+        local pci_driver_bind_path="/sys/bus/pci/drivers/$host_driver/bind"
+        if [ ! -d "/sys/bus/pci/drivers/$host_driver" ]; then
+             printf "${RED}ERROR: PCI driver directory for %s (%s) does not exist. Cannot bind %s.${NC}\\\\n" "$host_driver" "$pci_driver_bind_path" "$pci_slot_id"
+             continue
         fi
 
-        # Verify binding
-        sleep 1 # Give a moment for driver to bind
-        local final_driver
-        if [ -L "$driver_path" ]; then
-            final_driver=$(basename $(readlink -f "$driver_path"))
-            if [ "$final_driver" == "$host_driver_to_bind" ]; then
-                printf "${GREEN}Successfully verified GPU %s is bound to %s.${NC}\\n" "$pci_slot_id" "$host_driver_to_bind"
+        if echo "$full_pci_id" > "$pci_driver_bind_path"; then
+            printf "INFO: Successfully initiated bind for GPU %s to %s.\\\\n" "$pci_slot_id" "$host_driver"
+            sleep 1 
+            if [ -L "$current_driver_path" ] && [ "$(basename "$(readlink -f "$current_driver_path")")" == "$host_driver" ]; then
+                printf "${GREEN}SUCCESS: GPU %s is now bound to %s.${NC}\\\\n" "$pci_slot_id" "$host_driver"
             else
-                printf "${RED}ERROR: GPU %s is bound to %s instead of expected %s. Check dmesg.${NC}\\n" "$pci_slot_id" "$final_driver" "$host_driver_to_bind"
+                printf "${YELLOW}WARNING: GPU %s may not have bound to %s correctly. Current driver: $(basename "$(readlink -f "$current_driver_path")" 2>/dev/null || echo "none").${NC}\\\\n" "$pci_slot_id" "$host_driver"
             fi
         else
-            printf "${RED}ERROR: GPU %s is not bound to any driver after attachment attempt. Check dmesg.${NC}\\n" "$pci_slot_id"
+            printf "${RED}ERROR: Failed to bind GPU %s to %s (echo to bind file failed).${NC}\\\\n" "$pci_slot_id" "$host_driver"
         fi
     done
-
-    # A general rescan might sometimes help graphics systems re-initialize
-    # printf "INFO: Performing a general PCI bus rescan...\\n"
-    # echo 1 > /sys/bus/pci/rescan # This might be too broad or disruptive in some cases
-
-    echo "--- Debug: Exiting ${function_name} ---"
-    printf "INFO: GPU attachment process complete. Check 'lspci -nnk' or 'gpu-pts' for status.\\n"
+    printf "INFO: GPU attachment process completed.\\\\n"
 }
 
 # Checks the current status of the GPU
@@ -1076,7 +1143,7 @@ gpu-pts() {
             local device_vendor_name_raw=$(lspci -mms "$pci_id_for_block" 2>/dev/null | cut -d'"' -f6)
             local device_name_raw=$(lspci -mms "$pci_id_for_block" 2>/dev/null | cut -d'"' -f8)
             local device_vendor_name=$(echo "$device_vendor_name_raw" | sed -E 's/ Corporation| Incorporated| Technologies Inc.//g')
-            local device_name_short=$(echo "$device_name_raw" | sed 's/ \\[.*\\]//g' | awk '{print $1, $2}')
+            local device_name_short=$(echo "$device_name_raw" | sed 's/ \\[.*//g' | awk '{print $1, $2}')
             local device_name_for_checklist="$device_vendor_name $device_name_short"
             device_name_for_checklist=$(echo "$device_name_for_checklist" | sed 's/[[:space:]]*$//')
             if [ -z "$device_name_for_checklist" ]; then device_name_for_checklist="N/A"; fi
