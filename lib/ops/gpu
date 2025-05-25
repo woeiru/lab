@@ -59,6 +59,42 @@ gpu-var() {
     aux-acu -o "$CONFIG_gpu" "$DIR_FUN/.."
 }
 
+gpu-nds() {
+  local drv_ver="${1:-550.142}"  # default driver version; override as needed
+  local url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${drv_ver}/NVIDIA-Linux-x86_64-${drv_ver}.run"
+  local installer="NVIDIA-Linux-x86_64-${drv_ver}.run"
+
+  echo "1) Blacklisting Nouveau..."
+  cat <<EOF | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
+blacklist nouveau
+options nouveau modeset=0
+EOF
+  sudo update-initramfs -u   # rebuild initramfs :contentReference[oaicite:5]{index=5}
+
+  echo "2) Installing prerequisites..."
+  sudo apt update
+  sudo apt install -y dkms build-essential pve-headers-$(uname -r)   # DKMS & kernel headers :contentReference[oaicite:6]{index=6}
+
+  echo "3) Downloading NVIDIA driver ${drv_ver}..."
+  wget -q "${url}" -O "${installer}" || { echo "Download failed"; return 1; }
+
+  chmod +x "${installer}"
+
+  echo "4) Installing driver with DKMS support..."
+  sudo ./"${installer}" --dkms --silent  # silent install, auto DKMS :contentReference[oaicite:7]{index=7}
+
+  echo "5) Finalizing—reboot recommended."
+  read -p "Reboot now? [y/N] " yn
+  if [[ "$yn" =~ ^[Yy]$ ]]; then
+    sudo reboot
+  else
+    echo "You can reboot later with: sudo reboot"
+  fi
+
+  echo "6) After reboot, verify with: nvidia-smi"   # verify driver loaded :contentReference[oaicite:8]{index=8}
+}
+
+
 # Configures initial GRUB and EFI settings for GPU passthrough, installs necessary packages, and reboots the system
 # gpu passthrough step 1
 #
