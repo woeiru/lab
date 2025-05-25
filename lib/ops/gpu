@@ -1177,10 +1177,19 @@ gpu-pts() {
 
     # 1. Initial System Preparation (Configuration)
     echo -e "${MAGENTA}1. Initial System Preparation (Configuration):${NC}"
+    
+    echo "DEBUG: Initial iommu_enabled_cmdline_status: $CROSS_MARK" # DEBUG
+    grep -q 'iommu=pt\\|intel_iommu=on\\|amd_iommu=on' /proc/cmdline
+    echo "DEBUG: grep exit status for iommu: $?" # DEBUG
+    
     local iommu_enabled_cmdline_status="$CROSS_MARK"
     if grep -q 'iommu=pt\\|intel_iommu=on\\|amd_iommu=on' /proc/cmdline; then
         iommu_enabled_cmdline_status="$CHECK_MARK"
+        echo "DEBUG: iommu_enabled_cmdline_status changed to CHECK_MARK: $CHECK_MARK" # DEBUG
+    else
+        echo "DEBUG: iommu_enabled_cmdline_status REMAINS CROSS_MARK: $CROSS_MARK" # DEBUG
     fi
+    echo "DEBUG: Final iommu_enabled_cmdline_status: $iommu_enabled_cmdline_status" # DEBUG
     echo -e "   ${iommu_enabled_cmdline_status} IOMMU Enabled in Kernel Command Line (gpu-pt1)"
 
     local vfio_modules_in_etc_modules_status="$CROSS_MARK"
