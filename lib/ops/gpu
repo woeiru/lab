@@ -659,8 +659,16 @@ gpu-ptd() {
     fi
 
     printf "INFO: Processing GPU IDs for detachment: %s\\n" "${gpus_to_process[*]}"
+    echo "DEBUG: gpus_to_process array elements follow:"
+    for item_debug in "${gpus_to_process[@]}"; do
+        printf "DEBUG: Element: [%s]\\n" "$item_debug"
+    done
+    echo "DEBUG: End of gpus_to_process array elements."
+
     for id in "${gpus_to_process[@]}"; do
-        printf "--- Processing GPU %s ---\\n" "$id"
+        printf "DEBUG: Current id before problematic printf: [%s]\\n" "$id"
+        # Attempt to make printf more robust in case of strange $id values, though unlikely to be the cause if $id is clean
+        printf -- "--- Processing GPU %s ---\\n" "$id"
         local full_pci_id="0000:$id"
         local driver_path="/sys/bus/pci/devices/$full_pci_id/driver"
         local current_driver=""
