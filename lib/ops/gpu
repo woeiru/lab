@@ -963,6 +963,71 @@ gpu-pts() {
     local vfio_conf_path="/etc/modprobe.d/vfio.conf" # gpu-pt3 target
     local passthrough_blacklist_conf_path="/etc/modprobe.d/zz-vfio-gpu-blacklist.conf" # gpu-pt3 target
 
+# IOMMU Groups (Still useful as a separate detailed section)
+    echo -e "\\n${CYAN}--- IOMMU Groups (Details) ---${NC}"
+    if ! command -v find &>/dev/null || ! command -v ls &>/dev/null || ! command -v lspci &>/dev/null; then
+        echo -e "${RED}Required commands (find, ls, lspci) not available to list IOMMU groups.${NC}"
+    else
+        local gpu_pci_bus_ids=()
+        while IFS= read -r line; do
+            gpu_pci_bus_ids+=("$(echo "$line" | awk '{print $1}')")
+        done < <(lspci -nn | grep -iE "VGA compatible controller|3D controller")
+
+        if [ ${#gpu_pci_bus_ids[@]} -eq 0 ]; then
+            echo -e "${YELLOW}No VGA/3D controllers found to filter IOMMU groups.${NC}"
+        else
+            # echo -e "${CYAN}Monitoring for GPU(s) at PCI Bus IDs:${NC} ${gpu_pci_bus_ids[*]}" # This line is commented out
+            local overall_iommu_groups_found=false
+            local gpu_related_group_displayed=false
+
+            for iommu_group_dir in $(find /sys/kernel/iommu_groups/ -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V); do
+                overall_iommu_groups_found=true
+                local group_id=$(basename "$iommu_group_dir")
+                local devices_in_group_output=""
+                local this_group_contains_gpu=false
+
+                for device_symlink_name in $(ls -1 "$iommu_group_dir"/devices/ 2>/dev/null | sort -V); do
+                    local device_pci_bus_id_full="$device_symlink_name"
+                    local device_pci_bus_id_short="${device_symlink_name#0000:}"
+                    local device_info
+                    device_info=$(lspci -nns "$device_pci_bus_id_full" 2>/dev/null)
+                    
+                    if [ -n "$device_info" ]; then
+                        devices_in_group_output+="  ${device_info}\\n"
+                        for gpu_id in "${gpu_pci_bus_ids[@]}"; do
+                            if [[ "$device_pci_bus_id_short" == "$gpu_id" ]]; then
+                                this_group_contains_gpu=true
+                                break 
+                            fi
+                        done
+                    else
+                        devices_in_group_output+="  ${RED}Error reading device info for $device_pci_bus_id_full${NC}\\n"
+                    fi
+                done
+
+                if $this_group_contains_gpu; then
+                    echo -e "\\n${YELLOW}IOMMU Group ${group_id}:${NC}"
+                    echo -e "${devices_in_group_output%\\n}" 
+                    gpu_related_group_displayed=true
+                fi
+            done
+
+            if ! $overall_iommu_groups_found; then
+                echo -e "${YELLOW}No IOMMU groups found by 'find' command.${NC}"
+            elif ! $gpu_related_group_displayed; then
+                echo -e "${YELLOW}No IOMMU groups found containing the identified GPU(s):${NC} ${gpu_pci_bus_ids[*]}"
+            fi
+        fi
+    fi
+
+    # Loaded Kernel Modules (GPU related)
+    echo -e "\\n${CYAN}--- Loaded Kernel Modules (GPU related) ---${NC}"
+    if lsmod | command grep -E "vfio|nvidia|nouveau|amdgpu|radeon" --color=never; then
+        : 
+    else
+        echo -e "${YELLOW}No common GPU-related modules (vfio, nvidia, nouveau, amdgpu, radeon) loaded.${NC}"
+    fi
+
     echo -e "${CYAN}--- GPU Passthrough Workflow & Runtime Status ---${NC}"
     echo -e "${CYAN}==================================================${NC}"
 
@@ -1110,6 +1175,7 @@ gpu-pts() {
                 gpu_details_for_checklist+="     ${CHECK_MARK} GPU $pci_id_for_block on vfio-pci\\n"
             elif driver_line=$(echo "$current_gpu_block_content" | grep "Kernel driver in use:"); then
                 local driver_name=$(echo "$driver_line" | awk -F': ' '{print $2}')
+
                 if [ -n "$driver_name" ]; then
                     if [ -z "$host_drivers_for_gpu" ]; then host_drivers_for_gpu="$driver_name"; elif [[ ! "$host_drivers_for_gpu" =~ "$driver_name" ]]; then host_drivers_for_gpu="$host_drivers_for_gpu, $driver_name"; fi
                     gpu_details_for_checklist+="     ${INDIGO_BLUE}*${NC} GPU $pci_id_for_block on $driver_name\\n"
@@ -1149,70 +1215,7 @@ gpu-pts() {
          echo -e "   ${YELLOW}?${NC} No VGA compatible or 3D controllers were processed by this script."
     fi
 
-    # IOMMU Groups (Still useful as a separate detailed section)
-    echo -e "\\n${CYAN}--- IOMMU Groups (Details) ---${NC}"
-    if ! command -v find &>/dev/null || ! command -v ls &>/dev/null || ! command -v lspci &>/dev/null; then
-        echo -e "${RED}Required commands (find, ls, lspci) not available to list IOMMU groups.${NC}"
-    else
-        local gpu_pci_bus_ids=()
-        while IFS= read -r line; do
-            gpu_pci_bus_ids+=("$(echo "$line" | awk '{print $1}')")
-        done < <(lspci -nn | grep -iE "VGA compatible controller|3D controller")
-
-        if [ ${#gpu_pci_bus_ids[@]} -eq 0 ]; then
-            echo -e "${YELLOW}No VGA/3D controllers found to filter IOMMU groups.${NC}"
-        else
-            # echo -e "${CYAN}Monitoring for GPU(s) at PCI Bus IDs:${NC} ${gpu_pci_bus_ids[*]}" # This line is commented out
-            local overall_iommu_groups_found=false
-            local gpu_related_group_displayed=false
-
-            for iommu_group_dir in $(find /sys/kernel/iommu_groups/ -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V); do
-                overall_iommu_groups_found=true
-                local group_id=$(basename "$iommu_group_dir")
-                local devices_in_group_output=""
-                local this_group_contains_gpu=false
-
-                for device_symlink_name in $(ls -1 "$iommu_group_dir"/devices/ 2>/dev/null | sort -V); do
-                    local device_pci_bus_id_full="$device_symlink_name"
-                    local device_pci_bus_id_short="${device_symlink_name#0000:}"
-                    local device_info
-                    device_info=$(lspci -nns "$device_pci_bus_id_full" 2>/dev/null)
-                    
-                    if [ -n "$device_info" ]; then
-                        devices_in_group_output+="  ${device_info}\\n"
-                        for gpu_id in "${gpu_pci_bus_ids[@]}"; do
-                            if [[ "$device_pci_bus_id_short" == "$gpu_id" ]]; then
-                                this_group_contains_gpu=true
-                                break 
-                            fi
-                        done
-                    else
-                        devices_in_group_output+="  ${RED}Error reading device info for $device_pci_bus_id_full${NC}\\n"
-                    fi
-                done
-
-                if $this_group_contains_gpu; then
-                    echo -e "\\n${YELLOW}IOMMU Group ${group_id}:${NC}"
-                    echo -e "${devices_in_group_output%\\n}" 
-                    gpu_related_group_displayed=true
-                fi
-            done
-
-            if ! $overall_iommu_groups_found; then
-                echo -e "${YELLOW}No IOMMU groups found by 'find' command.${NC}"
-            elif ! $gpu_related_group_displayed; then
-                echo -e "${YELLOW}No IOMMU groups found containing the identified GPU(s):${NC} ${gpu_pci_bus_ids[*]}"
-            fi
-        fi
-    fi
-
-    # Loaded Kernel Modules (GPU related)
-    echo -e "\\n${CYAN}--- Loaded Kernel Modules (GPU related) ---${NC}"
-    if lsmod | grep -E "vfio|nvidia|nouveau|amdgpu|radeon" --color=never; then
-        : 
-    else
-        echo -e "${YELLOW}No common GPU-related modules (vfio, nvidia, nouveau, amdgpu, radeon) loaded.${NC}"
-    fi
+    
 
     # Default Boot Setting (persisted by gpu-pt3)
     echo -e "\\n${CYAN}--- Default Boot Setting (persisted by gpu-pt3) ---${NC}"
