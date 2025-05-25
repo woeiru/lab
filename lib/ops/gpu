@@ -1177,17 +1177,42 @@ gpu-pts() {
 
     # 1. Initial System Preparation (Configuration)
     echo -e "${MAGENTA}1. Initial System Preparation (Configuration):${NC}"
+
+    echo "DEBUG: --- Inside gpu-pts ---"
+    echo "DEBUG: Script sees SHELL as: $SHELL"
+    echo "DEBUG: Script sees PATH as: $PATH"
+    echo "DEBUG: Contents of /proc/cmdline as seen by script:"
+    cat /proc/cmdline # DEBUG: Show what the script sees
+    echo "DEBUG: --- End of /proc/cmdline contents ---"
     
-    echo "DEBUG: Initial iommu_enabled_cmdline_status: $CROSS_MARK" # DEBUG
-    grep -q 'iommu=pt\\|intel_iommu=on\\|amd_iommu=on' /proc/cmdline
-    echo "DEBUG: grep exit status for iommu: $?" # DEBUG
+    # Attempt to find grep's full path
+    local grep_path
+    grep_path=$(command -v grep)
+    if [ -z "$grep_path" ]; then
+        echo "DEBUG: grep command not found via 'command -v grep'. Trying /usr/bin/grep and /bin/grep."
+        if [ -x "/usr/bin/grep" ]; then
+            grep_path="/usr/bin/grep"
+        elif [ -x "/bin/grep" ]; then
+            grep_path="/bin/grep"
+        else
+            echo "DEBUG: CRITICAL - grep executable not found at /usr/bin/grep or /bin/grep."
+            # Fallback to just 'grep' but this is likely to fail if 'command -v grep' failed
+            grep_path="grep" 
+        fi
+    fi
+    echo "DEBUG: Using grep at path: $grep_path"
+
+    echo "DEBUG: Running: $grep_path -E -q 'iommu=pt|intel_iommu=on|amd_iommu=on' /proc/cmdline" # DEBUG
+    "$grep_path" -E -q 'iommu=pt|intel_iommu=on|amd_iommu=on' /proc/cmdline
+    local grep_exit_status=$?
+    echo "DEBUG: grep exit status for iommu: $grep_exit_status" # DEBUG
     
     local iommu_enabled_cmdline_status="$CROSS_MARK"
-    if grep -q 'iommu=pt\\|intel_iommu=on\\|amd_iommu=on' /proc/cmdline; then
+    if [ "$grep_exit_status" -eq 0 ]; then
         iommu_enabled_cmdline_status="$CHECK_MARK"
-        echo "DEBUG: iommu_enabled_cmdline_status changed to CHECK_MARK: $CHECK_MARK" # DEBUG
+        echo "DEBUG: iommu_enabled_cmdline_status changed to CHECK_MARK: $CHECK_MARK (raw: ${CHECK_MARK})" # DEBUG
     else
-        echo "DEBUG: iommu_enabled_cmdline_status REMAINS CROSS_MARK: $CROSS_MARK" # DEBUG
+        echo "DEBUG: iommu_enabled_cmdline_status REMAINS CROSS_MARK: $CROSS_MARK (raw: ${CROSS_MARK})" # DEBUG
     fi
     echo "DEBUG: Final iommu_enabled_cmdline_status: $iommu_enabled_cmdline_status" # DEBUG
     echo -e "   ${iommu_enabled_cmdline_status} IOMMU Enabled in Kernel Command Line (gpu-pt1)"
