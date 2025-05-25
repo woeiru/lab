@@ -1188,9 +1188,9 @@ gpu-pts() {
     local vfio_modules_in_etc_modules_status="$CROSS_MARK"
     local vfio_ok=0; local vfio_iommu_type1_ok=0; local vfio_pci_ok=0
     if [ -f "$modules_file_path" ]; then
-        if grep -qP "^\\s*vfio\\s*(#.*)?$" "$modules_file_path" && ! grep -qP "^\\s*#\\s*vfio" "$modules_file_path"; then vfio_ok=1; fi
-        if grep -qP "^\\s*vfio_iommu_type1\\s*(#.*)?$" "$modules_file_path" && ! grep -qP "^\\s*#\\s*vfio_iommu_type1" "$modules_file_path"; then vfio_iommu_type1_ok=1; fi
-        if grep -qP "^\\s*vfio_pci\\s*(#.*)?$" "$modules_file_path" && ! grep -qP "^\\s*#\\s*vfio_pci" "$modules_file_path"; then vfio_pci_ok=1; fi
+        if grep -qP "^\\s*vfio(\\s|$|#)" "$modules_file_path"; then vfio_ok=1; fi
+        if grep -qP "^\\s*vfio_iommu_type1(\\s|$|#)" "$modules_file_path"; then vfio_iommu_type1_ok=1; fi
+        if grep -qP "^\\s*vfio_pci(\\s|$|#)" "$modules_file_path"; then vfio_pci_ok=1; fi
     fi
     if [ "$vfio_ok" -eq 1 ] && [ "$vfio_iommu_type1_ok" -eq 1 ] && [ "$vfio_pci_ok" -eq 1 ]; then
         vfio_modules_in_etc_modules_status="$CHECK_MARK"
