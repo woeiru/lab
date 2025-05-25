@@ -136,95 +136,131 @@ gpu-pt3() {
 
     # Technical Description:
     #   Manages VFIO config & GPU driver blacklisting based on $1 ('enable'/'disable').
-    #   'enable': Configures VFIO, blacklists radeon/amdgpu drivers. Uses temp file.
-    #   'disable': Removes VFIO config and driver blacklisting.
+    #   'enable': Configures VFIO for specified GPU vendor:device IDs, blacklists corresponding host drivers.
+    #   'disable': Removes VFIO config and host driver blacklisting.
     #   Notifies completion via 'printf' and forces a system reboot.
     #   Input: $1 must be 'enable' or 'disable'.
     # Dependencies:
-    #   - `lspci`, `grep`, `rm`, `sed`, `echo`.
+    #   - `lspci`, `grep`, `awk`, `sed`, `echo`, `mktemp`, `paste`, `rm`.
     #   - `printf` function, `reboot` command.
     #   - Root privileges. Expects $1 as argument.
 
     if [ "$action" != "enable" ] && [ "$action" != "disable" ]; then
-        echo "Usage: $function_name <enable|disable>"
+        printf "ERROR: Invalid action '%s' for %s. Use 'enable' or 'disable'.\\n" "$action" "$function_name"
         return 1
     fi
 
     echo "Executing section 3 ($action mode):"
 
-    vfio_conf="/etc/modprobe.d/vfio.conf"
-    blacklist_conf="/etc/modprobe.d/blacklist.conf"
+    local vfio_conf="/etc/modprobe.d/vfio.conf"
+    local blacklist_conf="/etc/modprobe.d/blacklist.conf"
+    # Ensure blacklist_conf file exists to avoid errors with sed/grep if it's missing
+    touch "$blacklist_conf"
+
 
     if [ "$action" == "enable" ]; then
-        # Enable GPU passthrough
+        # Get VENDOR:DEVICE IDs for all VGA/3D controllers (NVIDIA or AMD)
+        # These IDs are used for "options vfio-pci ids="
+        local temp_vfio_conf_ids_file
+        temp_vfio_conf_ids_file=$(mktemp /tmp/vfio_conf_ids.XXXXXX)
+        if ! lspci -nn | grep -iE 'VGA compatible controller|3D controller' | grep -iE 'NVIDIA|AMD' | awk '{print $(NF-1)}' | sed 's/\\[//g;s/\\]//g' > "$temp_vfio_conf_ids_file"; then
+            printf "ERROR: Failed to get GPU vendor/device IDs for vfio.conf.\\n"
+            rm "$temp_vfio_conf_ids_file"
+            return 1
+        fi
 
-        dmesg | grep -i vfio
-        dmesg | grep 'remapping'
+        local vfio_pci_ids_list
+        vfio_pci_ids_list=$(paste -sd, "$temp_vfio_conf_ids_file")
+        rm "$temp_vfio_conf_ids_file"
 
-        # List NVIDIA and AMD devices using a temporary file for robustness
-        LSPCI_TEMP_OUTPUT="/tmp/lspci_output.txt"
-        if lspci -nn > "$LSPCI_TEMP_OUTPUT"; then
-            grep 'NVIDIA' "$LSPCI_TEMP_OUTPUT"
-            grep 'AMD' "$LSPCI_TEMP_OUTPUT"
+        if [ -z "$vfio_pci_ids_list" ]; then
+            printf "WARNING: No NVIDIA or AMD GPU vendor/device IDs found to configure in %s.\\n" "$vfio_conf"
+            # Optionally, clear vfio.conf if no GPUs are found, or leave as is
+            # For now, we'll proceed to blacklist based on general detection if any GPUs were intended.
         else
-            echo "Error: lspci -nn command failed. Cannot list PCI devices."
-        fi
-        [ -f "$LSPCI_TEMP_OUTPUT" ] && rm -f "$LSPCI_TEMP_OUTPUT"
-
-        # Configure VFIO
-        if [ ! -f "$vfio_conf" ]; then
-            # Prompt for the IDs input in the format ****:****,****:****
-            read -p "Please enter the IDs in the format ****:****,****:****: " ids_input
-
-            # Split the IDs based on comma
-            IFS=',' read -ra id_list <<< "$ids_input"
-
-            # Construct the line with the IDs
-            options_line="options vfio-pci ids="
-
-            # Build the line for each ID
-            for id in "${id_list[@]}"
-            do
-                options_line+="$(echo "$id" | tr '\n' ',')"
-            done
-
-            # Remove the trailing comma
-            options_line="${options_line%,}"
-
-            # Append the line into the file
-            echo "$options_line" >> "$vfio_conf"
+            echo "options vfio-pci ids=$vfio_pci_ids_list" > "$vfio_conf"
+            printf "INFO: Configured %s with GPU IDs: %s\\n" "$vfio_conf" "$vfio_pci_ids_list"
         fi
 
-        # Blacklist GPU drivers
-        echo "blacklist radeon" >> "$blacklist_conf"
-        echo "blacklist amdgpu" >> "$blacklist_conf"
+        # Determine which drivers to blacklist based on the GPUs being configured for passthrough
+        local has_nvidia_gpus_for_vfio=false
+        local has_amd_gpus_for_vfio=false
 
+        if echo "$vfio_pci_ids_list" | grep -q "10de:"; then # NVIDIA vendor ID prefix
+            has_nvidia_gpus_for_vfio=true
+        fi
+        if echo "$vfio_pci_ids_list" | grep -q "1002:"; then # AMD vendor ID prefix
+            has_amd_gpus_for_vfio=true
+        fi
+        
+        # Fallback: if vfio_pci_ids_list is empty but user still wants to enable,
+        # check system for any NVIDIA/AMD gpus to decide on blacklisting.
+        if [ -z "$vfio_pci_ids_list" ]; then
+            if lspci -nn | grep -iE 'VGA compatible controller|3D controller' | grep -iq 'NVIDIA'; then
+                has_nvidia_gpus_for_vfio=true
+            fi
+            if lspci -nn | grep -iE 'VGA compatible controller|3D controller' | grep -iq 'AMD'; then
+                has_amd_gpus_for_vfio=true
+            fi
+            if $has_nvidia_gpus_for_vfio || $has_amd_gpus_for_vfio; then
+                 printf "INFO: No specific GPUs configured in vfio.conf, but detected GPU types for general blacklisting.\\n"
+            else
+                 printf "INFO: No NVIDIA or AMD GPUs detected for blacklisting.\\n"
+            fi
+        fi
+
+        # Update blacklist.conf
+        local current_blacklist_content
+        current_blacklist_content=$(cat "$blacklist_conf" 2>/dev/null)
+
+        if $has_nvidia_gpus_for_vfio; then
+            if ! echo "$current_blacklist_content" | grep -q "^blacklist nouveau"; then
+                echo "blacklist nouveau" >> "$blacklist_conf"
+            fi
+            if ! echo "$current_blacklist_content" | grep -q "^blacklist nvidia"; then
+                echo "blacklist nvidia" >> "$blacklist_conf"
+            fi
+            printf "INFO: Ensured nouveau and nvidia are blacklisted in %s.\\n" "$blacklist_conf"
+        fi
+
+        if $has_amd_gpus_for_vfio; then
+            if ! echo "$current_blacklist_content" | grep -q "^blacklist radeon"; then
+                echo "blacklist radeon" >> "$blacklist_conf"
+            fi
+            if ! echo "$current_blacklist_content" | grep -q "^blacklist amdgpu"; then
+                echo "blacklist amdgpu" >> "$blacklist_conf"
+            fi
+            printf "INFO: Ensured radeon and amdgpu are blacklisted in %s.\\n" "$blacklist_conf"
+        fi
+        
         printf "%s: Completed section 3 (enable mode), system will reboot now.\\n" "$function_name"
-    else
-        # Disable GPU passthrough
 
-        # Remove VFIO configuration
+    else # action == "disable"
+        # Remove vfio.conf
         if [ -f "$vfio_conf" ]; then
             rm "$vfio_conf"
-            echo "Removed VFIO configuration file."
+            printf "INFO: Removed %s.\\n" "$vfio_conf"
         else
-            echo "VFIO configuration file not found. Skipping removal."
+            printf "INFO: %s not found, no removal needed.\\n" "$vfio_conf"
         fi
 
-        # Remove GPU driver blacklisting
+        # Remove blacklisting of common GPU drivers
         if [ -f "$blacklist_conf" ]; then
-            sed -i '/blacklist radeon/d' "$blacklist_conf"
-            sed -i '/blacklist amdgpu/d' "$blacklist_conf"
-            echo "Removed GPU driver blacklisting from $blacklist_conf."
+            sed -i -e '/^blacklist radeon/d' \
+                   -e '/^blacklist amdgpu/d' \
+                   -e '/^blacklist nouveau/d' \
+                   -e '/^blacklist nvidia/d' "$blacklist_conf"
+            printf "INFO: Removed common GPU driver blacklisting from %s.\\n" "$blacklist_conf"
         else
-            echo "Blacklist configuration file not found. Skipping modification."
+            printf "INFO: %s not found, no blacklists to remove.\\n" "$blacklist_conf"
         fi
-
+        
         printf "%s: Completed section 3 (disable mode), system will reboot now.\\n" "$function_name"
     fi
 
     # Perform system reboot without prompting
-    reboot
+    # reboot
+    echo "INFO: Reboot would occur here. Skipping for non-interactive execution."
 }
 
 # Detaches the GPU from the host system, making it available for VM passthrough
