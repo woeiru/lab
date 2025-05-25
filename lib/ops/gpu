@@ -237,126 +237,139 @@ gpu-ptd() {
     # Technical Description:
     #   Detaches GPU(s) from host drivers for VM passthrough.
     #   Unloads standard GPU drivers (nouveau, nvidia, amdgpu, radeon).
-    #   Loads 'vfio-pci' driver. Identifies GPUs via 'lspci -nn'.
-    #   For each GPU: unbinds, sets 'driver_override' to 'vfio-pci', binds to 'vfio-pci'.
-    #   Uses temp files for 'lspci' outputs. Notifies via 'printf'.
+    #   Loads \'vfio-pci\' driver. Identifies GPUs via \'lspci -nn\'.
+    #   For each GPU: unbinds, sets \'driver_override\' to \'vfio-pci\', binds to \'vfio-pci\'.
+    #   Uses temp files for \'lspci\' outputs. Notifies via \'printf\'.
     # Dependencies:
     #   - `lspci`, `grep`, `find`, `ls`, `modprobe`, `awk`, `echo`.
     #   - `printf` function.
     #   - Access to /sys/kernel/iommu_groups/, /sys/bus/pci/devices/ & root privileges.
 
+    printf "INFO: Starting GPU detachment process\\\\n"
+    echo "--- Debug: Starting GPU detachment process ---"
+
+    printf "INFO: Current GPU driver and IOMMU group (before detachment):\\\\n"
     echo "--- Debug: Current GPU driver and IOMMU group (before detachment) ---"
     LSPCI_NNK_TEMP_OUTPUT_1="/tmp/lspci_nnk_output_ptd1.txt"
     if lspci -nnk > "$LSPCI_NNK_TEMP_OUTPUT_1"; then
-        grep -A3 "VGA compatible controller" "$LSPCI_NNK_TEMP_OUTPUT_1"
+        grep -A3 "VGA compatible controller" "$LSPCI_NNK_TEMP_OUTPUT_1" | while read -r line; do
+            printf "INFO: %s\\\\n" "$line"
+            echo "--- Debug: Initial GPU info: $line ---"
+        done
     else
+        printf "ERROR: lspci -nnk command failed (first call).\\\\n"
         echo "Error: lspci -nnk command failed (first call)."
     fi
     [ -f "$LSPCI_NNK_TEMP_OUTPUT_1" ] && rm -f "$LSPCI_NNK_TEMP_OUTPUT_1"
 
-    echo "--- Debug: Listing IOMMU groups and devices (before detachment) ---"
-    for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
-        echo "IOMMU Group ${iommu_group##*/}:"
-        for device in $(ls -1 "$iommu_group"/devices/); do
-            LSPCI_NNS_TEMP_OUTPUT_1="/tmp/lspci_nns_output_ptd1.txt"
-            if lspci -nns "$device" > "$LSPCI_NNS_TEMP_OUTPUT_1"; then
-                echo -e "\t$(cat "$LSPCI_NNS_TEMP_OUTPUT_1")"
-            else
-                echo -e "\tError: lspci -nns for $device failed."
-            fi
-            [ -f "$LSPCI_NNS_TEMP_OUTPUT_1" ] && rm -f "$LSPCI_NNS_TEMP_OUTPUT_1"
-        done
-    done
-
     echo "--- Debug: Unloading NVIDIA or AMD drivers ---"
     for driver in nouveau nvidia amdgpu radeon; do
         if lsmod | grep -q $driver; then
+            printf "INFO: Unloading $driver driver\\\\n"
             echo "--- Debug: Unloading $driver driver ---"
             if ! modprobe -r $driver; then
-                printf "%s: Warning: Failed to unload $driver driver. Continuing anyway.\\n" "$function_name"
+                printf "WARNING: Failed to unload $driver driver. Continuing anyway.\\\\n"
+                printf "%s: Warning: Failed to unload $driver driver. Continuing anyway.\\\\n" "$function_name"
+            else
+                printf "INFO: Successfully unloaded $driver driver\\\\n"
             fi
         else
+            printf "INFO: $driver driver not loaded.\\\\n"
             echo "--- Debug: $driver driver not loaded. ---"
         fi
     done
 
+    printf "INFO: Loading VFIO-PCI driver\\\\n"
     echo "--- Debug: Loading VFIO driver ---"
     if ! modprobe vfio-pci; then
-        printf "%s: Error: Failed to load VFIO-PCI driver. GPU detachment may fail.\\n" "$function_name"
+        printf "ERROR: Failed to load VFIO-PCI driver. GPU detachment may fail.\\\\n"
+        printf "%s: Error: Failed to load VFIO-PCI driver. GPU detachment may fail.\\\\n" "$function_name"
         echo "--- Debug: Exiting ${function_name} due to modprobe vfio-pci failure ---"
         return 1
     fi
+    printf "INFO: VFIO-PCI driver loaded successfully.\\\\n"
     echo "--- Debug: VFIO-PCI driver loaded. ---"
 
     echo "--- Debug: Getting GPU PCI IDs ---"
     local gpu_ids="" # Initialize to empty
     LSPCI_NN_GPU_IDS_TEMP="/tmp/lspci_nn_gpu_ids_ptd.txt"
     if lspci -nn > "$LSPCI_NN_GPU_IDS_TEMP"; then
-        # Attempt to populate gpu_ids, allowing the pipe between grep and awk for now
-        gpu_ids_output=$(grep -iE "VGA compatible controller|3D controller" "$LSPCI_NN_GPU_IDS_TEMP" | awk '{print $1}')
-        # Check if grep | awk succeeded (exit status 0) and produced non-empty output
+        gpu_ids_output=$(grep -iE "VGA compatible controller|3D controller" "$LSPCI_NN_GPU_IDS_TEMP" | awk \'{print $1}\')
         if [ $? -eq 0 ] && [ -n "$gpu_ids_output" ]; then
             gpu_ids="$gpu_ids_output"
+            printf "INFO: Found GPU(s) with PCI ID(s): %s\\\\n" "$gpu_ids"
             echo "--- Debug: Found GPU IDs: $gpu_ids ---"
         else
+            printf "WARNING: Could not extract GPU IDs from lspci output.\\\\n"
             echo "Warning: Could not extract GPU IDs from lspci output (grep/awk step in gpu-ptd)."
-            # gpu_ids remains empty
         fi
     else
+        printf "ERROR: lspci -nn command failed (for gpu_ids extraction).\\\\n"
         echo "Error: lspci -nn command failed (for gpu_ids extraction in gpu-ptd)."
-        # gpu_ids remains empty
     fi
     [ -f "$LSPCI_NN_GPU_IDS_TEMP" ] && rm -f "$LSPCI_NN_GPU_IDS_TEMP"
 
     if [ -z "$gpu_ids" ]; then
-        printf "%s: Error: No GPU found after lspci processing.\\n" "$function_name"
+        printf "ERROR: No GPU found after lspci processing.\\\\n"
+        printf "%s: Error: No GPU found after lspci processing.\\\\n" "$function_name"
         echo "--- Debug: Exiting ${function_name} as no GPU IDs found ---"
         return 1
     fi
 
+    printf "INFO: Processing GPU IDs for detachment: %s\\\\n" "$gpu_ids"
     echo "--- Debug: Processing GPU IDs for detachment: $gpu_ids ---"
     for id in $gpu_ids; do
+        printf "INFO: Processing GPU with PCI ID: %s\\\\n" "$id"
         echo "--- Debug: Processing GPU ID: $id ---"
         if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
-            echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
+            printf "INFO: Unbinding GPU %s from current driver\\\\n" "$id"
+            echo "--- Debug: Unbinding 0000:$id from current driver ---"
+            if echo "0000:$id" > "/sys/bus/pci/devices/0000:$id/driver/unbind"; then
+                printf "INFO: Successfully unbound GPU %s\\\\n" "$id"
+                echo "--- Debug: Successfully unbound GPU $id ---"
+            else
+                printf "WARNING: Failed to unbind GPU %s\\\\n" "$id"
+                echo "--- Debug: Failed to unbind GPU $id ---"
+            fi
         else
+            printf "INFO: GPU %s is not bound to any driver\\\\n" "$id"
             echo "--- Debug: No driver found for 0000:$id, skipping unbind ---"
         fi
+        
+        printf "INFO: Setting driver_override to vfio-pci for GPU %s\\\\n" "$id"
         echo "--- Debug: Setting driver_override to vfio-pci for 0000:$id ---"
-        echo "vfio-pci" > /sys/bus/pci/devices/0000:$id/driver_override
+        if ! echo "vfio-pci" > "/sys/bus/pci/devices/0000:$id/driver_override"; then
+            printf "WARNING: Failed to set driver_override to vfio-pci for GPU %s\\\\n" "$id"
+            echo "--- Debug: Failed to set driver_override for $id ---"
+        fi
+
+        printf "INFO: Binding GPU %s to vfio-pci driver\\\\n" "$id"
         echo "--- Debug: Binding 0000:$id to vfio-pci ---"
-        if ! echo "0000:$id" > /sys/bus/pci/drivers/vfio-pci/bind; then
+        if ! echo "0000:$id" > "/sys/bus/pci/drivers/vfio-pci/bind"; then
+            printf "ERROR: Failed to bind GPU %s to VFIO-PCI\\\\n" "$id"
             echo "--- Debug: Failed to bind GPU $id to VFIO-PCI ---"
         else
+            printf "INFO: Successfully bound GPU %s to VFIO-PCI\\\\n" "$id"
             echo "--- Debug: Successfully bound GPU $id to VFIO-PCI ---"
         fi
     done
 
+    printf "INFO: GPU driver and IOMMU group after detachment:\\\\n"
     echo "--- Debug: GPU driver and IOMMU group (after detachment) ---"
     LSPCI_NNK_TEMP_OUTPUT_2="/tmp/lspci_nnk_output_ptd2.txt"
     if lspci -nnk > "$LSPCI_NNK_TEMP_OUTPUT_2"; then
-        grep -A3 "VGA compatible controller" "$LSPCI_NNK_TEMP_OUTPUT_2"
+        grep -A3 "VGA compatible controller" "$LSPCI_NNK_TEMP_OUTPUT_2" | while read -r line; do
+            printf "INFO: %s\\\\n" "$line"
+            echo "--- Debug: Final GPU info: $line ---"
+        done
     else
+        printf "ERROR: lspci -nnk command failed (second call).\\\\n"
         echo "Error: lspci -nnk command failed (second call)."
     fi
     [ -f "$LSPCI_NNK_TEMP_OUTPUT_2" ] && rm -f "$LSPCI_NNK_TEMP_OUTPUT_2"
 
-    echo "--- Debug: Listing IOMMU groups and devices (after detachment) ---"
-    for iommu_group in $(find /sys/kernel/iommu_groups/ -maxdepth 1 -mindepth 1 -type d); do
-        echo "IOMMU Group ${iommu_group##*/}:"
-        for device in $(ls -1 "$iommu_group"/devices/); do
-            LSPCI_NNS_TEMP_OUTPUT_2="/tmp/lspci_nns_output_ptd2.txt"
-            if lspci -nns "$device" > "$LSPCI_NNS_TEMP_OUTPUT_2"; then
-                echo -e "\t$(cat "$LSPCI_NNS_TEMP_OUTPUT_2")"
-            else
-                echo -e "\tError: lspci -nns for $device failed."
-            fi
-            [ -f "$LSPCI_NNS_TEMP_OUTPUT_2" ] && rm -f "$LSPCI_NNS_TEMP_OUTPUT_2"
-        done
-    done
-
-
-    printf "%s: GPU detachment process completed. Check above output for details.\\n" "$function_name"
+    printf "INFO: GPU detachment process completed.\\\\n"
+    printf "%s: GPU detachment process completed. Check logs for details.\\\\n" "$function_name"
     echo "--- Debug: Exiting ${function_name} ---"
 }
 
@@ -381,7 +394,7 @@ gpu-pta() {
     printf "INFO: Starting GPU reattachment process\\n"
     echo "--- Debug: Starting GPU reattachment process ---"
 
-    printf "INFO: Current GPU driver and IOMMU group:\\n"
+    printf "INFO: Current GPU driver and IOMMU group (before reattachment):\\n"
     echo "--- Debug: Current GPU driver and IOMMU group (before reattachment) ---"
     lspci -nnk | grep -A3 "VGA compatible controller" | while read -r line; do
         printf "INFO: $line\\n"
