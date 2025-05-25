@@ -801,6 +801,35 @@ gpu-pts() {
     echo -e "\\n--- VFIO-PCI Module Status ---"
     echo -e "${vfio_pci_loaded_info}"
 
+    echo -e "\\n--- Default Boot Setting (persisted by gpu-pt3) ---"
+    local vfio_conf_file="/etc/modprobe.d/vfio.conf"
+    local blacklist_conf_file="/etc/modprobe.d/blacklist.conf"
+    local pt3_default_state_msg=""
+
+    # Check for vfio.conf and vfio-pci ids
+    if [ -f "$vfio_conf_file" ] && grep -q -E "^options vfio-pci ids=" "$vfio_conf_file"; then
+        pt3_default_state_msg="${YELLOW}Persistent passthrough (gpu-pt3): ENABLED${NC}\\n"
+        pt3_default_state_msg+="${YELLOW}  - GPUs are likely assigned to vfio-pci at boot via $vfio_conf_file.${NC}"
+        
+        # Check blacklist status
+        if [ -f "$blacklist_conf_file" ] && (grep -q "blacklist radeon" "$blacklist_conf_file" || grep -q "blacklist amdgpu" "$blacklist_conf_file"); then
+            pt3_default_state_msg+="\\n${YELLOW}  - Native GPU drivers (radeon/amdgpu) are blacklisted in $blacklist_conf_file.${NC}"
+        else
+            pt3_default_state_msg+="\\n${YELLOW}  - Native GPU driver blacklisting in $blacklist_conf_file is NOT DETECTED or file is missing.${NC}"
+        fi
+    else
+        pt3_default_state_msg="${YELLOW}Persistent passthrough (gpu-pt3): DISABLED or NOT CONFIGURED${NC}\\n"
+        pt3_default_state_msg+="${YELLOW}  - $vfio_conf_file is missing or does not assign GPUs to vfio-pci.${NC}"
+
+        # Check blacklist status even if vfio.conf is not set for passthrough (could be an inconsistent state)
+        if [ -f "$blacklist_conf_file" ] && (grep -q "blacklist radeon" "$blacklist_conf_file" || grep -q "blacklist amdgpu" "$blacklist_conf_file"); then
+            pt3_default_state_msg+="\\n${YELLOW}  - Note: Native GPU drivers might still be blacklisted in $blacklist_conf_file (check for inconsistency).${NC}"
+        else
+            pt3_default_state_msg+="\\n${YELLOW}  - Native GPU driver blacklisting in $blacklist_conf_file also NOT DETECTED or file is missing.${NC}"
+        fi
+    fi
+    echo -e "$pt3_default_state_msg"
+
     printf "%s: GPU status check completed.\\n" "$function_name"
     echo "---------------------------------"
 }
