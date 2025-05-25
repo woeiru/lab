@@ -771,10 +771,6 @@ gpu-pts() {
         echo "No common GPU-related modules (vfio, nvidia, nouveau, amdgpu, radeon) loaded."
     fi
 
-    # Display VFIO-PCI module status at the end
-    echo -e "\\n--- VFIO-PCI Module Status ---"
-    echo -e "${vfio_pci_loaded_info}"
-
     echo -e "\\n--- Default Boot Setting (persisted by gpu-pt3) ---"
     local vfio_conf_file="/etc/modprobe.d/vfio.conf"
     local blacklist_conf_file="/etc/modprobe.d/blacklist.conf"
@@ -803,6 +799,10 @@ gpu-pts() {
         fi
     fi
     echo -e "$pt3_default_state_msg"
+
+    # Display the VFIO-PCI module status
+    echo -e "\\n--- VFIO-PCI Module Status ---"
+    echo -e "${vfio_pci_loaded_info}"
 
     # Now display the Overall GPU State Determination
     echo -e "\\n--- Overall GPU State Determination ---"
