@@ -76,11 +76,11 @@ gpu-pt1() {
 
     # Technical Description:
     #   Installs 'grub-efi-amd64' package for EFI systems.
-    #   Notifies completion using 'aux-nos', using 'function_name'.
+    #   Notifies completion using 'printf', using 'function_name'.
     #   Forces a system reboot. This is step 1 of GPU passthrough setup.
     # Dependencies:
     #   - `apt` command for package installation.
-    #   - `aux-nos` function (for notifications).
+    #   - `printf` function (for notifications).
     #   - `reboot` command.
     #   - Root privileges for apt and reboot.
 
@@ -88,7 +88,7 @@ gpu-pt1() {
     apt install grub-efi-amd64 -y
 
     # Notify status
-    aux-nos "$function_name" "Completed section 1, system will reboot now."
+    printf "%s: Completed section 1, system will reboot now.\\n" "$function_name"
 
     # Perform system reboot without prompting
     reboot
@@ -103,11 +103,11 @@ gpu-pt2() {
 
     # Technical Description:
     #   Appends 'vfio', 'vfio_iommu_type1', 'vfio_pci' to /etc/modules.
-    #   Updates initramfs for all kernels. Notifies completion via 'aux-nos'.
+    #   Updates initramfs for all kernels. Notifies completion via 'printf'.
     #   Forces a system reboot. This is step 2 of GPU passthrough setup.
     # Dependencies:
     #   - `echo` (to modify /etc/modules), `update-initramfs`.
-    #   - `aux-nos` function.
+    #   - `printf` function.
     #   - `reboot` command.
     #   - Root privileges for file edits and reboot.
     #   - Assumes /etc/modules is the correct file for loading modules.
@@ -121,7 +121,7 @@ gpu-pt2() {
     update-initramfs -u -k all
 
     # Notify status
-    aux-nos "$function_name" "Completed section 2, system will reboot now."
+    printf "%s: Completed section 2, system will reboot now.\\n" "$function_name"
 
     # Perform system reboot without prompting
     reboot
@@ -138,11 +138,11 @@ gpu-pt3() {
     #   Manages VFIO config & GPU driver blacklisting based on $1 ('enable'/'disable').
     #   'enable': Configures VFIO, blacklists radeon/amdgpu drivers. Uses temp file.
     #   'disable': Removes VFIO config and driver blacklisting.
-    #   Notifies completion via 'aux-nos' and forces a system reboot.
+    #   Notifies completion via 'printf' and forces a system reboot.
     #   Input: $1 must be 'enable' or 'disable'.
     # Dependencies:
     #   - `lspci`, `grep`, `rm`, `sed`, `echo`.
-    #   - `aux-nos` function, `reboot` command.
+    #   - `printf` function, `reboot` command.
     #   - Root privileges. Expects $1 as argument.
 
     if [ "$action" != "enable" ] && [ "$action" != "disable" ]; then
@@ -199,7 +199,7 @@ gpu-pt3() {
         echo "blacklist radeon" >> "$blacklist_conf"
         echo "blacklist amdgpu" >> "$blacklist_conf"
 
-        aux-nos "$function_name" "Completed section 3 (enable mode), system will reboot now."
+        printf "%s: Completed section 3 (enable mode), system will reboot now.\\n" "$function_name"
     else
         # Disable GPU passthrough
 
@@ -220,7 +220,7 @@ gpu-pt3() {
             echo "Blacklist configuration file not found. Skipping modification."
         fi
 
-        aux-nos "$function_name" "Completed section 3 (disable mode), system will reboot now."
+        printf "%s: Completed section 3 (disable mode), system will reboot now.\\n" "$function_name"
     fi
 
     # Perform system reboot without prompting
@@ -239,10 +239,10 @@ gpu-ptd() {
     #   Unloads standard GPU drivers (nouveau, nvidia, amdgpu, radeon).
     #   Loads 'vfio-pci' driver. Identifies GPUs via 'lspci -nn'.
     #   For each GPU: unbinds, sets 'driver_override' to 'vfio-pci', binds to 'vfio-pci'.
-    #   Uses temp files for 'lspci' outputs. Notifies via 'aux-nos'.
+    #   Uses temp files for 'lspci' outputs. Notifies via 'printf'.
     # Dependencies:
     #   - `lspci`, `grep`, `find`, `ls`, `modprobe`, `awk`, `echo`.
-    #   - `aux-nos` function.
+    #   - `printf` function.
     #   - Access to /sys/kernel/iommu_groups/, /sys/bus/pci/devices/ & root privileges.
 
     echo "--- Debug: Current GPU driver and IOMMU group (before detachment) ---"
@@ -273,7 +273,7 @@ gpu-ptd() {
         if lsmod | grep -q $driver; then
             echo "--- Debug: Unloading $driver driver ---"
             if ! modprobe -r $driver; then
-                aux-nos "$function_name" "Warning: Failed to unload $driver driver. Continuing anyway."
+                printf "%s: Warning: Failed to unload $driver driver. Continuing anyway.\\n" "$function_name"
             fi
         else
             echo "--- Debug: $driver driver not loaded. ---"
@@ -282,7 +282,7 @@ gpu-ptd() {
 
     echo "--- Debug: Loading VFIO driver ---"
     if ! modprobe vfio-pci; then
-        aux-nos "$function_name" "Error: Failed to load VFIO-PCI driver. GPU detachment may fail."
+        printf "%s: Error: Failed to load VFIO-PCI driver. GPU detachment may fail.\\n" "$function_name"
         echo "--- Debug: Exiting ${function_name} due to modprobe vfio-pci failure ---"
         return 1
     fi
@@ -309,7 +309,7 @@ gpu-ptd() {
     [ -f "$LSPCI_NN_GPU_IDS_TEMP" ] && rm -f "$LSPCI_NN_GPU_IDS_TEMP"
 
     if [ -z "$gpu_ids" ]; then
-        aux-nos "$function_name" "Error: No GPU found after lspci processing."
+        printf "%s: Error: No GPU found after lspci processing.\\n" "$function_name"
         echo "--- Debug: Exiting ${function_name} as no GPU IDs found ---"
         return 1
     fi
@@ -318,7 +318,6 @@ gpu-ptd() {
     for id in $gpu_ids; do
         echo "--- Debug: Processing GPU ID: $id ---"
         if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
-            echo "--- Debug: Unbinding 0000:$id from current driver ---"
             echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
         else
             echo "--- Debug: No driver found for 0000:$id, skipping unbind ---"
@@ -327,7 +326,6 @@ gpu-ptd() {
         echo "vfio-pci" > /sys/bus/pci/devices/0000:$id/driver_override
         echo "--- Debug: Binding 0000:$id to vfio-pci ---"
         if ! echo "0000:$id" > /sys/bus/pci/drivers/vfio-pci/bind; then
-            aux-nos "$function_name" "Warning: Failed to bind GPU $id to VFIO-PCI."
             echo "--- Debug: Failed to bind GPU $id to VFIO-PCI ---"
         else
             echo "--- Debug: Successfully bound GPU $id to VFIO-PCI ---"
@@ -351,13 +349,14 @@ gpu-ptd() {
             if lspci -nns "$device" > "$LSPCI_NNS_TEMP_OUTPUT_2"; then
                 echo -e "\t$(cat "$LSPCI_NNS_TEMP_OUTPUT_2")"
             else
-                echo -e "\tError: lspci -nns for $device failed (second loop)."
+                echo -e "\tError: lspci -nns for $device failed."
             fi
             [ -f "$LSPCI_NNS_TEMP_OUTPUT_2" ] && rm -f "$LSPCI_NNS_TEMP_OUTPUT_2"
         done
     done
 
-    aux-nos "$function_name" "GPU detachment process completed. Check above output for details."
+
+    printf "%s: GPU detachment process completed. Check above output for details.\\n" "$function_name"
     echo "--- Debug: Exiting ${function_name} ---"
 }
 
@@ -369,23 +368,23 @@ gpu-pta() {
     echo "--- Debug: Entering ${function_name} ---"
 
     # Technical Description:
-    #   Reattaches GPU(s) to host system drivers. Logs actions via 'aux-log'.
+    #   Reattaches GPU(s) to host system drivers. Logs actions via 'printf'.
     #   Identifies GPU PCI IDs ('lspci -nn'). For each GPU:
     #     Unbinds from current driver (e.g., vfio-pci), resets 'driver_override'.
     #     Determines vendor (AMD/NVIDIA via 'lspci -n') for driver ('amdgpu'/'nouveau').
-    #     Loads driver ('modprobe'), probes, and binds if needed. Notifies via 'aux-nos'.
+    #     Loads driver ('modprobe'), probes, and binds if needed. Notifies via 'printf'.
     # Dependencies:
     #   - `lspci`, `grep`, `awk`, `cut`, `echo`, `modprobe`.
-    #   - `aux-log`, `aux-nos` functions.
+    #   - `printf` function.
     #   - Access to /sys/bus/pci/devices/, /sys/bus/pci/drivers_probe & root privileges.
 
-    aux-log "INFO" "Starting GPU reattachment process"
+    printf "INFO: Starting GPU reattachment process\\n"
     echo "--- Debug: Starting GPU reattachment process ---"
 
-    aux-log "INFO" "Current GPU driver and IOMMU group:"
+    printf "INFO: Current GPU driver and IOMMU group:\\n"
     echo "--- Debug: Current GPU driver and IOMMU group (before reattachment) ---"
     lspci -nnk | grep -A3 "VGA compatible controller" | while read -r line; do
-        aux-log "INFO" "$line"
+        printf "INFO: $line\\n"
         echo "--- Debug: Initial GPU info: $line ---"
     done
 
@@ -393,35 +392,35 @@ gpu-pta() {
     local gpu_ids=$(lspci -nn | grep -i "VGA compatible controller" | awk '{print $1}')
 
     if [ -z "$gpu_ids" ]; then
-        aux-log "ERROR" "No GPU found."
-        aux-nos "$function_name" "Error: No GPU found."
+        printf "ERROR: No GPU found.\\n"
+        printf "%s: Error: No GPU found.\\n" "$function_name"
         echo "--- Debug: Exiting ${function_name} as no GPU IDs found ---"
         return 1
     fi
 
-    aux-log "INFO" "Found GPU(s) with PCI ID(s): $gpu_ids"
+    printf "INFO: Found GPU(s) with PCI ID(s): $gpu_ids\\n"
     echo "--- Debug: Found GPU(s) with PCI ID(s): $gpu_ids ---"
 
     for id in $gpu_ids; do
-        aux-log "INFO" "Processing GPU with PCI ID: $id"
+        printf "INFO: Processing GPU with PCI ID: $id\\n"
         echo "--- Debug: Processing GPU ID for reattachment: $id ---"
         if [ -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
-            aux-log "INFO" "Unbinding GPU $id from current driver"
+            printf "INFO: Unbinding GPU $id from current driver\\n"
             echo "--- Debug: Unbinding 0000:$id from current driver ---"
             echo "0000:$id" > /sys/bus/pci/devices/0000:$id/driver/unbind
             if [ $? -eq 0 ]; then
-                aux-log "INFO" "Successfully unbound GPU $id"
+                printf "INFO: Successfully unbound GPU $id\\n"
                 echo "--- Debug: Successfully unbound GPU $id ---"
             else
-                aux-log "WARNING" "Failed to unbind GPU $id"
+                printf "WARNING: Failed to unbind GPU $id\\n"
                 echo "--- Debug: Failed to unbind GPU $id ---"
             fi
         else
-            aux-log "INFO" "GPU $id is not bound to any driver"
+            printf "INFO: GPU $id is not bound to any driver\\n"
             echo "--- Debug: GPU $id is not bound to any driver, skipping unbind ---"
         fi
 
-        aux-log "INFO" "Resetting driver_override for GPU $id"
+        printf "INFO: Resetting driver_override for GPU $id\\n"
         echo "--- Debug: Resetting driver_override for 0000:$id ---"
         echo > /sys/bus/pci/devices/0000:$id/driver_override
 
@@ -437,47 +436,47 @@ gpu-pta() {
                 driver="nouveau" # Or "nvidia" if preferred and installed
                 ;;
             *)
-                aux-log "ERROR" "Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment."
-                aux-nos "$function_name" "Error: Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment."
+                printf "ERROR: Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment.\\n"
+                printf "%s: Error: Unknown GPU vendor: $vendor_id. Cannot proceed with reattachment.\\n" "$function_name"
                 echo "--- Debug: Unknown GPU vendor: $vendor_id for ID $id. Skipping... ---"
                 continue # Skip to the next GPU ID
                 ;;
         esac
         echo "--- Debug: Determined driver for $id: $driver ---"
 
-        aux-log "INFO" "Setting driver_override to $driver for GPU $id"
+        printf "INFO: Setting driver_override to $driver for GPU $id\\n"
         echo "--- Debug: Setting driver_override to $driver for 0000:$id ---"
         if ! echo "$driver" > "/sys/bus/pci/devices/0000:$id/driver_override"; then
-            aux-log "WARNING" "Failed to set driver_override to $driver for GPU $id. Reattachment might be unreliable."
+            printf "WARNING: Failed to set driver_override to $driver for GPU $id. Reattachment might be unreliable.\\n"
             echo "--- Debug: WARNING - Failed to set driver_override to $driver for 0000:$id ---"
         fi
 
-        aux-log "INFO" "Attempting to load $driver driver"
+        printf "INFO: Attempting to load $driver driver\\n"
         echo "--- Debug: Attempting to load $driver driver for $id ---"
         if ! modprobe "$driver"; then
-            aux-log "ERROR" "Failed to load $driver driver. You may need to install it."
-            aux-nos "$function_name" "Error: Failed to load $driver driver. You may need to install it."
+            printf "ERROR: Failed to load $driver driver. You may need to install it.\\n"
+            printf "%s: Error: Failed to load $driver driver. You may need to install it.\\n" "$function_name"
             echo "--- Debug: Failed to load $driver driver for $id. Skipping... ---"
             continue # Skip to the next GPU ID
         else
-            aux-log "INFO" "$driver driver loaded successfully."
+            printf "INFO: $driver driver loaded successfully.\\n"
             echo "--- Debug: $driver driver loaded successfully for $id ---"
         fi
 
-        aux-log "INFO" "Probing for new driver for GPU $id"
+        printf "INFO: Probing for new driver for GPU $id\\n"
         echo "--- Debug: Probing for new driver for GPU $id (0000:$id) ---"
         echo "0000:$id" > /sys/bus/pci/drivers_probe
         if [ $? -eq 0 ]; then
-            aux-log "INFO" "Successfully probed for new driver for GPU $id"
+            printf "INFO: Successfully probed for new driver for GPU $id\\n"
             echo "--- Debug: Successfully probed for new driver for GPU $id ---"
         else
-            aux-log "WARNING" "Failed to probe for new driver for GPU $id"
+            printf "WARNING: Failed to probe for new driver for GPU $id\\n"
             echo "--- Debug: Failed to probe for new driver for GPU $id ---"
         fi
 
         # Explicitly bind the driver if it's not automatically bound
         if [ ! -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
-            aux-log "INFO" "Attempting to explicitly bind $driver to GPU $id"
+            printf "INFO: Attempting to explicitly bind $driver to GPU $id\\n"
             echo "--- Debug: Attempting to explicitly bind $driver to GPU $id (0000:$id) ---"
             
             local bind_message
@@ -486,7 +485,7 @@ gpu-pta() {
             local bind_exit_code=$?
 
             if [ $bind_exit_code -eq 0 ]; then
-                aux-log "INFO" "Successfully bound $driver to GPU $id"
+                printf "INFO: Successfully bound $driver to GPU $id\\n"
                 echo "--- Debug: Successfully bound $driver to GPU $id ---"
             else
                 # Bind command failed. Check if it's because the device is now (or was already) bound to the target driver.
@@ -498,12 +497,12 @@ gpu-pta() {
                 if [ "$current_driver_link_target" == "$driver" ]; then
                     # The bind command failed, but the device IS bound to the target driver.
                     # This is the "File exists" scenario (EEXIST). Treat as a warning.
-                    aux-log "WARNING" "Explicit bind command for $driver to GPU $id failed (exit code $bind_exit_code, message: '$bind_message'), but device is now correctly bound to $driver. Assuming success."
+                    printf "WARNING: Explicit bind command for $driver to GPU $id failed (exit code $bind_exit_code, message: '$bind_message'), but device is now correctly bound to $driver. Assuming success.\\n"
                     echo "--- Debug: Explicit bind for $driver to GPU $id failed (message: '$bind_message'), but it's now bound to $driver. Assuming OK. ---"
                 else
                     # The bind command failed, AND the device is not bound to the target driver. This is a real error.
-                    aux-log "ERROR" "Failed to bind $driver to GPU $id. Exit code: $bind_exit_code. Message: '$bind_message'. Device driver is '$current_driver_link_target'."
-                    aux-nos "$function_name" "Error: Failed to bind $driver to GPU $id. Details: $bind_message"
+                    printf "ERROR: Failed to bind $driver to GPU $id. Exit code: $bind_exit_code. Message: '$bind_message'. Device driver is '$current_driver_link_target'.\\n"
+                    printf "%s: Error: Failed to bind $driver to GPU $id. Details: $bind_message\\n" "$function_name"
                     echo "--- Debug: Failed to bind $driver to GPU $id. Error: '$bind_message'. Current driver: '$current_driver_link_target' ---"
                     # Original script continues with other GPUs, so we do the same.
                 fi
@@ -520,31 +519,31 @@ gpu-pta() {
             
             echo "--- Debug: GPU $id (0000:$id) already has a driver link, points to: $actual_bound_driver_name ---"
             if [ "$actual_bound_driver_name" == "$driver" ]; then
-                aux-log "INFO" "GPU $id already bound to target driver $driver."
+                printf "INFO: GPU $id already bound to target driver $driver.\\n"
                 echo "--- Debug: GPU $id already bound to $driver. No explicit bind needed. ---"
             else
-                aux-log "WARNING" "GPU $id is already linked to driver $actual_bound_driver_name, not the target $driver. This might be unexpected."
+                printf "WARNING: GPU $id is already linked to driver $actual_bound_driver_name, not the target $driver. This might be unexpected.\\n"
                 echo "--- Debug: GPU $id linked to $actual_bound_driver_name, but script intended $driver. Check if this is an issue. ---"
             fi
         fi
 
-        aux-log "INFO" "Clearing driver_override for GPU $id post-binding attempt"
+        printf "INFO: Clearing driver_override for GPU $id post-binding attempt\\n"
         echo "--- Debug: Clearing driver_override for 0000:$id post-binding attempt ---"
         if ! echo > "/sys/bus/pci/devices/0000:$id/driver_override"; then
-            aux-log "WARNING" "Failed to clear driver_override for GPU $id post-binding attempt."
+            printf "WARNING: Failed to clear driver_override for GPU $id post-binding attempt.\\n"
             echo "--- Debug: WARNING - Failed to clear driver_override for 0000:$id post-binding attempt ---"
         fi
     done
 
-    aux-log "INFO" "GPU driver and IOMMU group after reattachment:"
+    printf "INFO: GPU driver and IOMMU group after reattachment:\\n"
     echo "--- Debug: GPU driver and IOMMU group (after reattachment) ---"
     lspci -nnk | grep -A3 "VGA compatible controller" | while read -r line; do
-        aux-log "INFO" "$line"
+        printf "INFO: $line\\n"
         echo "--- Debug: Final GPU info: $line ---"
     done
 
-    aux-log "INFO" "GPU reattachment process completed."
-    aux-nos "$function_name" "GPU reattachment process completed. Check logs for details."
+    printf "INFO: GPU reattachment process completed.\\n"
+    printf "%s: GPU reattachment process completed. Check logs for details.\\n" "$function_name"
     echo "--- Debug: Exiting ${function_name} ---"
 }
 
