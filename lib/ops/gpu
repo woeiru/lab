@@ -1021,7 +1021,7 @@ gpu-pts() {
     fi
 
     # IOMMU Groups
-    echo -e "\\n${CYAN}--- IOMMU Groups (Filtered for GPU(s)) ---${NC}"
+    echo -e "\\n${CYAN}--- IOMMU Groups ---${NC}"
     if ! command -v find &>/dev/null || ! command -v ls &>/dev/null || ! command -v lspci &>/dev/null; then
         echo -e "${RED}Required commands (find, ls, lspci) not available to list IOMMU groups.${NC}"
     else
@@ -1033,7 +1033,7 @@ gpu-pts() {
         if [ ${#gpu_pci_bus_ids[@]} -eq 0 ]; then
             echo -e "${YELLOW}No VGA/3D controllers found to filter IOMMU groups.${NC}"
         else
-            echo -e "${CYAN}Monitoring for GPU(s) at PCI Bus IDs:${NC} ${gpu_pci_bus_ids[*]}"
+            # echo -e "${CYAN}Monitoring for GPU(s) at PCI Bus IDs:${NC} ${gpu_pci_bus_ids[*]}" # This line is commented out
             local overall_iommu_groups_found=false
             local gpu_related_group_displayed=false
 
