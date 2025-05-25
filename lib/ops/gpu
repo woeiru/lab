@@ -1256,28 +1256,6 @@ gpu-pts() {
          echo -e "     ${YELLOW}?${NC} No VGA/3D controllers found to summarize driver bindings."
     fi
 
-    # Default Boot Setting (persisted by gpu-pt3)
-    echo -e "\\n${CYAN}--- Default Boot Setting (persisted by gpu-pt3) ---${NC}"
-    local pt3_default_state_msg=""
-    if [ -f "$vfio_conf_path" ] && grep -q -E "^options vfio-pci ids=" "$vfio_conf_path"; then
-        pt3_default_state_msg="${GREEN}Persistent passthrough (gpu-pt3): ENABLED${NC}\\n"
-        pt3_default_state_msg+="  ${GREEN}- GPUs are likely assigned to vfio-pci at boot via $vfio_conf_path.${NC}"
-        if [ -f "$passthrough_blacklist_conf_path" ] && grep -qE "blacklist (nouveau|nvidia|radeon|amdgpu)" "$passthrough_blacklist_conf_path"; then
-            pt3_default_state_msg+="\\n  ${GREEN}- Host GPU drivers are appropriately blacklisted in $passthrough_blacklist_conf.${NC}"
-        else
-            pt3_default_state_msg+="\\n  ${YELLOW}- Host GPU driver blacklisting in $passthrough_blacklist_conf NOT DETECTED or file is missing/empty.${NC}"
-        fi
-    else
-        pt3_default_state_msg="${RED}Persistent passthrough (gpu-pt3): DISABLED or NOT CONFIGURED${NC}\\n"
-        pt3_default_state_msg+="  ${RED}- $vfio_conf_path is missing or does not assign GPUs to vfio-pci.${NC}"
-        if [ -f "$passthrough_blacklist_conf_path" ] && grep -qE "blacklist (nouveau|nvidia|radeon|amdgpu)" "$passthrough_blacklist_conf_path"; then
-            pt3_default_state_msg+="\\n  ${YELLOW}- Note: Host GPU drivers might still be blacklisted in $passthrough_blacklist_conf (check for inconsistency).${NC}"
-        else
-            pt3_default_state_msg+="\\n  ${RED}- Host GPU driver blacklisting in $passthrough_blacklist_conf also NOT DETECTED or file is missing/empty.${NC}"
-        fi
-    fi
-    echo -e "$pt3_default_state_msg"
-
     # Overall GPU State Determination
     echo -e "\\n${CYAN}--- Overall GPU State Summary ---${NC}"
     if $is_any_gpu_on_vfio; then
