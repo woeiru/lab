@@ -292,22 +292,48 @@ gpu-ptd() {
 
     echo "--- Debug: Getting GPU PCI IDs ---"
     local gpu_ids="" # Initialize to empty
-    LSPCI_NN_GPU_IDS_TEMP="/tmp/lspci_nn_gpu_ids_ptd.txt"
-    if lspci -nn > "$LSPCI_NN_GPU_IDS_TEMP"; then
-        gpu_ids_output=$(grep -iE "VGA compatible controller|3D controller" "$LSPCI_NN_GPU_IDS_TEMP" | awk '{print $1}')
-        if [ $? -eq 0 ] && [ -n "$gpu_ids_output" ]; then
+    local lspci_output_file="" # Ensure it's defined for rm -f robustness
+    lspci_output_file=$(mktemp /tmp/lspci_nn_gpu_ids_ptd.XXXXXX)
+
+    # Check if mktemp succeeded and created a file
+    if [ -z "$lspci_output_file" ] || ! [ -e "$lspci_output_file" ]; then
+        printf "ERROR: Failed to create temporary file for lspci output (mktemp failed).\\\\n"
+        printf "%s: Error: Failed to create temporary file for lspci output.\\\\n" "$function_name"
+        echo "--- Debug: mktemp failed for lspci_output_file. ---"
+        # gpu_ids remains empty, will be caught by the check after this block
+    elif ! lspci -nn > "$lspci_output_file"; then
+        printf "ERROR: lspci -nn command failed (for gpu_ids extraction).\\\\n"
+        printf "%s: Error: lspci -nn command failed.\\\\n" "$function_name"
+        echo "Error: lspci -nn command failed (for gpu_ids extraction in gpu-ptd)."
+        # gpu_ids remains empty
+    else
+        # lspci succeeded, now try to extract IDs
+        local gpu_ids_output
+        gpu_ids_output=$(grep -iE "VGA compatible controller|3D controller" "$lspci_output_file" | awk '{print $1}')
+        local awk_status=$? # Status of awk (last command in pipe)
+
+        if [ $awk_status -ne 0 ]; then
+            # This case implies awk itself had an error or was passed no input from a failed grep with pipefail
+            printf "ERROR: awk command failed while processing lspci output (status: %s).\\nPotentially empty output from grep: %s\\\\n" "$awk_status" "$gpu_ids_output"
+            printf "%s: Error: awk command failed during GPU ID extraction.\\\\n" "$function_name"
+            # gpu_ids remains empty
+        elif [ -z "$gpu_ids_output" ]; then
+            # awk succeeded (status 0), but grep found no matching lines, so output is empty.
+            printf "INFO: No GPU devices (VGA compatible controller or 3D controller) found in lspci output.\\\\n"
+            echo "--- Debug: grep found no relevant GPU devices in lspci output. ---"
+            # gpu_ids remains empty
+        else
+            # Both lspci, grep, and awk seem to have worked, and we have output
             gpu_ids="$gpu_ids_output"
             printf "INFO: Found GPU(s) with PCI ID(s): %s\\\\n" "$gpu_ids"
             echo "--- Debug: Found GPU IDs: $gpu_ids ---"
-        else
-            printf "WARNING: Could not extract GPU IDs from lspci output.\\\\n"
-            echo "Warning: Could not extract GPU IDs from lspci output (grep/awk step in gpu-ptd)."
         fi
-    else
-        printf "ERROR: lspci -nn command failed (for gpu_ids extraction).\\\\n"
-        echo "Error: lspci -nn command failed (for gpu_ids extraction in gpu-ptd)."
     fi
-    [ -f "$LSPCI_NN_GPU_IDS_TEMP" ] && rm -f "$LSPCI_NN_GPU_IDS_TEMP"
+
+    # Clean up the temporary file if it was created
+    if [ -n "$lspci_output_file" ] && [ -f "$lspci_output_file" ]; then
+        rm -f "$lspci_output_file"
+    fi
 
     if [ -z "$gpu_ids" ]; then
         printf "ERROR: No GPU found after lspci processing.\\\\n"
