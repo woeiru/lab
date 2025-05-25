@@ -507,15 +507,21 @@ gpu-pts() {
     local detached_mode=false
     local attached_driver=""
 
+    # Define colors
+    local CYAN='\\033[0;36m'
+    local MAGENTA='\\033[0;35m' # Magenta is often perceived as pinkish-red
+    local YELLOW='\\033[0;33m'
+    local NC='\\033[0m' # No Color
+
     echo "--- GPU Passthrough Status ---"
     echo "=============================="
 
     # Check if VFIO-PCI is loaded, a strong indicator of detached mode
     if lsmod | grep -q "vfio_pci"; then
         detached_mode=true
-        echo -e "\\n[INFO] VFIO-PCI module is loaded. GPU is likely DETACHED."
+        echo -e "\\n[INFO] ${CYAN}VFIO-PCI module is loaded. GPU is likely DETACHED.${NC}"
     else
-        echo -e "\\n[INFO] VFIO-PCI module is NOT loaded. GPU is likely ATTACHED to host."
+        echo -e "\\n[INFO] ${MAGENTA}VFIO-PCI module is NOT loaded. GPU is likely ATTACHED to host.${NC}"
     fi
 
     # Check current driver for VGA/3D controllers
@@ -529,12 +535,12 @@ gpu-pts() {
                 echo "  -> Driver: $current_driver"
                 if [ "$current_driver" == "vfio-pci" ]; then
                     detached_mode=true # Confirm detached if vfio-pci is in use
-                    echo "     Mode: DETACHED (using vfio-pci)"
+                    echo -e "     Mode: ${CYAN}DETACHED (using vfio-pci)${NC}"
                 elif [ -n "$current_driver" ]; then
                     attached_driver="$current_driver"
-                    echo "     Mode: ATTACHED (using $current_driver)"
+                    echo -e "     Mode: ${MAGENTA}ATTACHED (using $current_driver)${NC}"
                 else
-                    echo "     Mode: UNKNOWN (no specific driver listed in use)"
+                    echo -e "     Mode: ${YELLOW}UNKNOWN (no specific driver listed in use)${NC}"
                 fi
             elif echo "$line" | grep -q "Kernel modules:"; then
                  echo "  -> Modules: $(echo "$line" | awk -F': ' '{print $2}')"
@@ -546,19 +552,19 @@ gpu-pts() {
 
     echo -e "\\n--- Overall GPU State Determination ---"
     if $detached_mode; then
-        echo "Boolean DETACHED state: true (GPU is configured for passthrough or using vfio-pci)"
-        echo -e "\\n--- Summary: GPU appears to be DETACHED (for VM use) ---"
-        echo "    - VFIO-PCI module is active or a GPU is bound to vfio-pci."
+        echo -e "${CYAN}Boolean DETACHED state: true (GPU is configured for passthrough or using vfio-pci)${NC}"
+        echo -e "${CYAN}--- Summary: GPU appears to be DETACHED (for VM use) ---${NC}"
+        echo -e "${CYAN}    - VFIO-PCI module is active or a GPU is bound to vfio-pci.${NC}"
     elif [ -n "$attached_driver" ]; then
-        echo "Boolean DETACHED state: false (GPU is attached to host)"
-        echo -e "\\n--- Summary: GPU appears to be ATTACHED to host (driver: $attached_driver) ---"
-        echo "    - Host driver ($attached_driver) is likely in use."
-        echo "    - VFIO-PCI module is not managing the primary GPU(s)."
+        echo -e "${MAGENTA}Boolean DETACHED state: false (GPU is attached to host)${NC}"
+        echo -e "${MAGENTA}--- Summary: GPU appears to be ATTACHED to host (driver: $attached_driver) ---${NC}"
+        echo -e "${MAGENTA}    - Host driver ($attached_driver) is likely in use.${NC}"
+        echo -e "${MAGENTA}    - VFIO-PCI module is not managing the primary GPU(s).${NC}"
     else
-        echo "Boolean DETACHED state: false (GPU state unclear, defaulting to not actively detached)"
-        echo -e "\\n--- Summary: GPU state is UNCLEAR ---"
-        echo "    - Could not definitively determine if attached or detached."
-        echo "    - Review IOMMU groups and loaded modules below."
+        echo -e "${YELLOW}Boolean DETACHED state: false (GPU state unclear, defaulting to not actively detached)${NC}"
+        echo -e "${YELLOW}--- Summary: GPU state is UNCLEAR ---${NC}"
+        echo -e "${YELLOW}    - Could not definitively determine if attached or detached.${NC}"
+        echo -e "${YELLOW}    - Review IOMMU groups and loaded modules below.${NC}"
     fi
 
 
