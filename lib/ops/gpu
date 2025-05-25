@@ -574,7 +574,7 @@ gpu-pts() {
                     local driver_path="/sys/bus/pci/devices/${device_path}/driver"
                     if [ -L "$driver_path" ]; then
                         echo -e "\\t  Driver: $(basename $(readlink "$driver_path"))"
-                    elif [ -d "$driver_path" ]; # Some drivers might not be symlinks
+                    elif [ -d "$driver_path" ]; then # Some drivers might not be symlinks
                         echo -e "\\t  Driver: (Bound, specific name N/A)"
                     fi
                 else
