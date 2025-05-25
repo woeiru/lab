@@ -472,18 +472,53 @@ gpu-pta() {
         if [ ! -e "/sys/bus/pci/devices/0000:$id/driver" ]; then
             aux-log "INFO" "Attempting to explicitly bind $driver to GPU $id"
             echo "--- Debug: Attempting to explicitly bind $driver to GPU $id (0000:$id) ---"
-            echo "0000:$id" > /sys/bus/pci/drivers/$driver/bind
-            if [ $? -eq 0 ]; then
+            
+            local bind_message
+            # Attempt to bind and capture any output (especially stderr from the shell for the redirection)
+            bind_message=$(echo "0000:$id" > "/sys/bus/pci/drivers/$driver/bind" 2>&1)
+            local bind_exit_code=$?
+
+            if [ $bind_exit_code -eq 0 ]; then
                 aux-log "INFO" "Successfully bound $driver to GPU $id"
                 echo "--- Debug: Successfully bound $driver to GPU $id ---"
             else
-                aux-log "ERROR" "Failed to bind $driver to GPU $id"
-                aux-nos "$function_name" "Error: Failed to bind $driver to GPU $id"
-                echo "--- Debug: Failed to bind $driver to GPU $id. ---"
-                # Decide if we should return 1 or continue with other GPUs
+                # Bind command failed. Check if it's because the device is now (or was already) bound to the target driver.
+                local current_driver_link_target=""
+                if [ -L "/sys/bus/pci/devices/0000:$id/driver" ]; then
+                    current_driver_link_target=$(basename "$(readlink "/sys/bus/pci/devices/0000:$id/driver")")
+                fi
+
+                if [ "$current_driver_link_target" == "$driver" ]; then
+                    # The bind command failed, but the device IS bound to the target driver.
+                    # This is the "File exists" scenario (EEXIST). Treat as a warning.
+                    aux-log "WARNING" "Explicit bind command for $driver to GPU $id failed (exit code $bind_exit_code, message: '$bind_message'), but device is now correctly bound to $driver. Assuming success."
+                    echo "--- Debug: Explicit bind for $driver to GPU $id failed (message: '$bind_message'), but it's now bound to $driver. Assuming OK. ---"
+                else
+                    # The bind command failed, AND the device is not bound to the target driver. This is a real error.
+                    aux-log "ERROR" "Failed to bind $driver to GPU $id. Exit code: $bind_exit_code. Message: '$bind_message'. Device driver is '$current_driver_link_target'."
+                    aux-nos "$function_name" "Error: Failed to bind $driver to GPU $id. Details: $bind_message"
+                    echo "--- Debug: Failed to bind $driver to GPU $id. Error: '$bind_message'. Current driver: '$current_driver_link_target' ---"
+                    # Original script continues with other GPUs, so we do the same.
+                fi
             fi
         else
-            echo "--- Debug: GPU $id (0000:$id) already has a driver: $(readlink /sys/bus/pci/devices/0000:$id/driver) ---"
+            # This block is executed if /sys/bus/pci/devices/0000:$id/driver symlink existed initially.
+            local actual_bound_driver_name
+            # Ensure readlink output is handled safely, especially if symlink is broken/unexpected
+            if [ -L "/sys/bus/pci/devices/0000:$id/driver" ]; then
+                actual_bound_driver_name=$(basename "$(readlink "/sys/bus/pci/devices/0000:$id/driver")")
+            else
+                actual_bound_driver_name="<unknown or no symlink>"
+            fi
+            
+            echo "--- Debug: GPU $id (0000:$id) already has a driver link, points to: $actual_bound_driver_name ---"
+            if [ "$actual_bound_driver_name" == "$driver" ]; then
+                aux-log "INFO" "GPU $id already bound to target driver $driver."
+                echo "--- Debug: GPU $id already bound to $driver. No explicit bind needed. ---"
+            else
+                aux-log "WARNING" "GPU $id is already linked to driver $actual_bound_driver_name, not the target $driver. This might be unexpected."
+                echo "--- Debug: GPU $id linked to $actual_bound_driver_name, but script intended $driver. Check if this is an issue. ---"
+            fi
         fi
     done
 
