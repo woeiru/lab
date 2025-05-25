@@ -507,11 +507,11 @@ gpu-pts() {
     local detached_mode=false
     local attached_driver=""
 
-    # Define colors
-    local CYAN='\\e[0;36m'
-    local MAGENTA='\\e[0;35m' # Magenta is often perceived as pinkish-red
-    local YELLOW='\\e[0;33m'
-    local NC='\\e[0m' # No Color
+    # Define colors using printf, similar to lo1 module
+    local CYAN=$(printf '\033[0;36m')
+    local MAGENTA=$(printf '\033[0;35m') # Magenta is often perceived as pinkish-red
+    local YELLOW=$(printf '\033[0;33m')
+    local NC=$(printf '\033[0m') # No Color
 
     echo "--- GPU Passthrough Status ---"
     echo -e "=============================="
