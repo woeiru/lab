@@ -832,8 +832,7 @@ gpu-pts() {
         echo -e "${YELLOW}    - Review IOMMU groups and loaded modules above.${NC}"
     fi
 
-
-
+    echo ""
     printf "%s: GPU status check completed.\\n" "$function_name"
     echo "---------------------------------"
 }
