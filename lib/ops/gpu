@@ -1135,14 +1135,14 @@ gpu-pts() {
     # Now display the Overall GPU State Determination
     echo -e "\\n--- Overall GPU State Determination ---"
     if $is_any_gpu_on_vfio; then
-        echo -e "${GREEN} state: DETACHED (a GPU device is actively using vfio-pci).${NC}"
+        echo -e "${GREEN} state: --> DETACHED from host (a GPU device is actively using vfio-pci).${NC}"
         echo -e "${GREEN}--- Summary: GPU appears to be DETACHED (for VM use) ---${NC}"
         echo -e "${GREEN}    - At least one GPU device (VGA/3D controller) is bound to vfio-pci.${NC}"
         if [ -n "$host_drivers_for_gpu" ]; then
              echo -e "${YELLOW}    - Note: Other GPU devices might be ATTACHED to host (driver(s): $host_drivers_for_gpu). State could be MIXED.${NC}"
         fi
     elif [ -n "$host_drivers_for_gpu" ]; then
-        echo -e "${BLUE} state: ATTACHED false (GPU is attached to host driver(s): $host_drivers_for_gpu).${NC}"
+        echo -e "${BLUE} state: --> ATTACHED to host driver(s): $host_drivers_for_gpu).${NC}"
         echo -e "${BLUE}--- Summary: GPU appears to be ATTACHED to host (driver(s): $host_drivers_for_gpu) ---${NC}"
         echo -e "${BLUE}    - GPU device(s) (VGA/3D controller) are using host driver(s): $host_drivers_for_gpu.${NC}"
         echo -e "${BLUE}    - No VGA/3D controller found using vfio-pci.${NC}"
