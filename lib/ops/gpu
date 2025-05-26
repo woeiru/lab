@@ -757,11 +757,11 @@ gpu-pta() {
     local current_hostname
 
     # Define colors using printf
-    local GREEN=$(printf '\\\\033[0;32m')
-    local YELLOW=$(printf '\\\\033[0;33m')
-    local RED=$(printf '\\\\033[0;31m')
-    local CYAN=$(printf '\\\\033[0;36m')
-    local NC=$(printf '\\\\033[0m') # No Color
+    local GREEN=$(printf '\\033[0;32m')
+    local YELLOW=$(printf '\\033[0;33m')
+    local RED=$(printf '\\033[0;31m')
+    local CYAN=$(printf '\\033[0;36m')
+    local NC=$(printf '\\033[0m') # No Color
 
     current_hostname=$(hostname -s) # Get current hostname
 
