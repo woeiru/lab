@@ -804,7 +804,7 @@ gpu-pta() {
     fi
 
     if [ -n "$gpu_id_arg" ]; then
-        if ! [[ "$gpu_id_arg" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]$ ]]; then
+        if ! [[ "$gpu_id_arg" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]]; then
             printf "${RED}ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0${NC}\\\\n" "$gpu_id_arg"
             return 1
         fi
@@ -837,7 +837,7 @@ gpu-pta() {
         if [ -n "${!pci0_var_name}" ]; then
             local pci0_full_val=${!pci0_var_name}
             local short_pci0_val=${pci0_full_val#0000:}
-            if [[ "$short_pci0_val" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]$ ]]; then
+            if [[ "$short_pci0_val" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]]; then
                 if echo "$lspci_full_output_check" | grep -A3 "^$short_pci0_val" | grep -qE "VGA compatible controller|3D controller|Audio device"; then
                     if echo "$lspci_full_output_check" | grep -A3 "^$short_pci0_val" | grep -q "Kernel driver in use: vfio-pci"; then
                         gpus_to_process+=("$short_pci0_val")
@@ -859,7 +859,7 @@ gpu-pta() {
         if [ -n "${!pci1_var_name}" ]; then
             local pci1_full_val=${!pci1_var_name}
             local short_pci1_val=${pci1_full_val#0000:}
-            if [[ "$short_pci1_val" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]$ ]]; then
+            if [[ "$short_pci1_val" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]]; then
                  if echo "$lspci_full_output_check" | grep -A3 "^$short_pci1_val" | grep -qE "VGA compatible controller|3D controller|Audio device"; then
                     if echo "$lspci_full_output_check" | grep -A3 "^$short_pci1_val" | grep -q "Kernel driver in use: vfio-pci"; then
                         gpus_to_process+=("$short_pci1_val")
@@ -889,7 +889,7 @@ gpu-pta() {
             local is_relevant_device_fb=false 
 
             while IFS= read -r line_fb; do
-                if [[ "$line_fb" =~ ^([0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]) ]]; then 
+                if [[ "$line_fb" =~ ^([0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]) ]]; then 
                     if [ -n "$current_pci_id_fb" ] && $is_relevant_device_fb; then
                         if echo "$current_block_content_fb" | grep -A2 "Kernel driver in use:" | grep -q "vfio-pci"; then
                             gpus_to_process+=("$current_pci_id_fb")
@@ -1143,7 +1143,7 @@ gpu-pts() {
             local device_vendor_name_raw=$(lspci -mms "$pci_id_for_block" 2>/dev/null | cut -d'"' -f6)
             local device_name_raw=$(lspci -mms "$pci_id_for_block" 2>/dev/null | cut -d'"' -f8)
             local device_vendor_name=$(echo "$device_vendor_name_raw" | sed -E 's/ Corporation| Incorporated| Technologies Inc.//g')
-            local device_name_short=$(echo "$device_name_raw" | sed 's/ \\[.*//g' | awk '{print $1, $2}')
+            local device_name_short=$(echo "$device_name_raw" | sed 's/ \\[.*\\]//g' | awk '{print $1, $2}')
             local device_name_for_checklist="$device_vendor_name $device_name_short"
             device_name_for_checklist=$(echo "$device_name_for_checklist" | sed 's/[[:space:]]*$//')
             if [ -z "$device_name_for_checklist" ]; then device_name_for_checklist="N/A"; fi
