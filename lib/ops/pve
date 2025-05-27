@@ -712,9 +712,9 @@ pve-vpt() {
     #   Arguments: $1 (vm_id), $2 (action: 'on' or 'off').
     #   VM config file path: '$PVE_CONF_PATH_QEMU/<vm_id>.conf' (e.g., /etc/pve/qemu-server/<vm_id>.conf).
     #   Relies on several host-specific environment variables for PCI IDs, USB devices, and core counts:
-    #     - '${hostname}_node_pci0', '${hostname}_node_pci1': PCI IDs for passthrough.
-    #     - '${hostname}_core_count_on', '${hostname}_core_count_off': VM core counts for on/off states.
-    #     - '${hostname}_usb_devices[@]': An array of USB passthrough definitions (e.g., "usb0: host=1234:5678").
+    #     - '${hostname}_NODE_PCI0', '${hostname}_NODE_PCI1': PCI IDs for passthrough.
+    #     - '${hostname}_CORE_COUNT_ON', '${hostname}_CORE_COUNT_OFF': VM core counts for on/off states.
+    #     - '${hostname}_USB_DEVICES[@]': An array of USB passthrough definitions (e.g., "usb0: host=1234:5678").
     #   'on' action:
     #     - Sets 'cores' to '${!core_count_on}'.
     #     - Adds 'hostpci0', 'hostpci1', and all entries from '${!usb_devices_var}' to the config file.
@@ -738,11 +738,11 @@ pve-vpt() {
 
     # Get hostname for variable names
     local hostname=$(hostname)
-    local node_pci0="${hostname}_node_pci0"
-    local node_pci1="${hostname}_node_pci1"
-    local core_count_on="${hostname}_core_count_on"
-    local core_count_off="${hostname}_core_count_off"
-    local usb_devices_var="${hostname}_usb_devices[@]"
+    local node_pci0="${hostname}_NODE_PCI0"
+    local node_pci1="${hostname}_NODE_PCI1"
+    local core_count_on="${hostname}_CORE_COUNT_ON"
+    local core_count_off="${hostname}_CORE_COUNT_OFF"
+    local usb_devices_var="${hostname}_USB_DEVICES[@]"
 
     # Find the starting line of the VM configuration section
     local section_start=$(awk '/^\[/{print NR-1; exit}' "$vm_conf")
@@ -797,7 +797,7 @@ pve-vck() {
 
     # Technical Description:
     #   Determines which node in a Proxmox VE cluster is currently hosting the specified Virtual Machine (VM).
-    #   It iterates through a list of predefined cluster nodes (expected to be in the `cluster_nodes` array,
+    #   It iterates through a list of predefined cluster nodes (expected to be in the `CLUSTER_NODES` array,
     #   sourced from a site configuration file like `cfg/env/site1`).
     #   For each node, it uses `ssh` to execute `qm list` on remote nodes or executes `qm list` directly
     #   on the local node.
@@ -805,14 +805,14 @@ pve-vck() {
     #   If the VM is found, the function outputs the hostname of the node and returns 0.
     #   If the VM is not found on any node after checking all, it returns 1.
     #   Debug messages are printed to stderr if `set -x` or similar debugging is enabled.
-    #   The function relies on the `cluster_nodes` array being populated and `ssh` access (key-based)
+    #   The function relies on the `CLUSTER_NODES` array being populated and `ssh` access (key-based)
     #   to other cluster nodes for remote command execution.
     # Dependencies:
     #   - `qm` command-line utility (Proxmox VE).
     #   - `ssh` client for remote node checks.
     #   - `grep` utility for parsing command output.
     #   - `hostname` utility to identify the current node.
-    #   - `cluster_nodes` bash array variable (e.g., `cluster_nodes=("node1" "node2")`) defined and sourced
+    #   - `CLUSTER_NODES` bash array variable (e.g., `CLUSTER_NODES=("node1" "node2")`) defined and sourced
     #     from a configuration file (e.g., `cfg/env/site1`).
     #   - `aux-use` function for displaying usage if `vm_id` is not provided.
 
@@ -821,7 +821,7 @@ pve-vck() {
     local found_node=""
     echo "DEBUG: pve-vck: vm_id: $vm_id" >&2
 
-    # Ensure cluster_nodes is defined (expected to be an array of node hostnames, e.g., ("x1" "x2"))
+    # Ensure CLUSTER_NODES is defined (expected to be an array of node hostnames, e.g., ("x1" "x2"))
     # This array should be sourced from a configuration file, e.g., site1
     if [ -z "$vm_id" ]; then
         echo "ERR: pve-vck: VM ID not provided." >&2 # Keep existing user-facing message
@@ -830,24 +830,24 @@ pve-vck() {
         return 1
     fi
 
-    # Check if cluster_nodes array is populated
-    if ! declare -p cluster_nodes &>/dev/null || [[ ! "$(declare -p cluster_nodes)" == "declare -a "* ]]; then
-        echo "ERR: pve-vck: cluster_nodes array is not defined or not an array. Please define it in your site configuration." >&2
-        echo "DEBUG: pve-vck: cluster_nodes is not a defined array" >&2
+    # Check if CLUSTER_NODES array is populated
+    if ! declare -p CLUSTER_NODES &>/dev/null || [[ ! "$(declare -p CLUSTER_NODES)" == "declare -a "* ]]; then
+        echo "ERR: pve-vck: CLUSTER_NODES array is not defined or not an array. Please define it in your site configuration." >&2
+        echo "DEBUG: pve-vck: CLUSTER_NODES is not a defined array" >&2
         return 1
     fi
-    if [ ${#cluster_nodes[@]} -eq 0 ]; then
-        echo "ERR: pve-vck: cluster_nodes array is empty. Please define it in your site configuration." >&2 # Keep existing user-facing message
-        echo "DEBUG: pve-vck: cluster_nodes array is empty" >&2
+    if [ ${#CLUSTER_NODES[@]} -eq 0 ]; then
+        echo "ERR: pve-vck: CLUSTER_NODES array is empty. Please define it in your site configuration." >&2 # Keep existing user-facing message
+        echo "DEBUG: pve-vck: CLUSTER_NODES array is empty" >&2
         return 1
     fi
-    echo "DEBUG: pve-vck: cluster_nodes: (${cluster_nodes[*]})" >&2 # More robust way to print array
+    echo "DEBUG: pve-vck: CLUSTER_NODES: (${CLUSTER_NODES[*]})" >&2 # More robust way to print array
 
     local current_hostname
     current_hostname=$(hostname)
     echo "DEBUG: pve-vck: current_hostname: $current_hostname" >&2
 
-    for node in "${cluster_nodes[@]}"; do
+    for node in "${CLUSTER_NODES[@]}"; do
         echo "DEBUG: pve-vck: checking node: $node" >&2
         local qm_list_output
         if [ "$node" != "$current_hostname" ]; then
