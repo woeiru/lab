@@ -170,13 +170,6 @@ execute_component() {
     return $return_value
 }
 
-# Source the environment files
-source_cfg_env() {
-    # Use CFG_ENV_DIR which is defined in ric
-    source_directory "$CFG_ENV_DIR" "*" "environment configuration files"
-    return $?
-}
-
 # Source the function files
 source_lib_dep() {
     # Use LIB_OPS_DIR which is defined in ric
