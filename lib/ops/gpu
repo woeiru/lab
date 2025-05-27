@@ -91,7 +91,7 @@
 #    - Clears `driver_override`.
 #    - Attempts to load the preferred/appropriate host driver (e.g., `nvidia`, `nouveau`, `amdgpu`)
 #      if not already loaded, and binds it to the GPU.
-#    - Considers `*_nvidia_driver_preference` from site config for NVIDIA GPUs.
+#    - Considers `*_NVIDIA_DRIVER_PREFERENCE` from site config for NVIDIA GPUs.
 #      Warns if `nouveau` is preferred but blacklisted by `gpu-nds`.
 #
 # General Workflow Examples:
@@ -586,8 +586,8 @@ gpu-ptd() {
         current_hostname=$(hostname -s)
         printf "INFO: No specific GPU ID provided. Attempting to use PCI IDs from configuration for hostname '%s'.\\n" "$current_hostname"
         
-        pci0_var_name="${current_hostname}_node_pci0"
-        pci1_var_name="${current_hostname}_node_pci1"
+        pci0_var_name="${current_hostname}_NODE_PCI0"
+        pci1_var_name="${current_hostname}_NODE_PCI1"
 
         # Check if the variables are set (indirect expansion)
         if [ -n "${!pci0_var_name}" ] && [ -n "${!pci1_var_name}" ]; then
@@ -766,9 +766,9 @@ gpu-pta() {
     current_hostname=$(hostname -s) # Get current hostname
 
     # NVIDIA driver preference logic (will be used later per GPU)
-    # Example: x2_nvidia_driver_preference="nouveau" or "nvidia"
+    # Example: x2_NVIDIA_DRIVER_PREFERENCE="nouveau" or "nvidia"
     # This will be checked when an NVIDIA card is processed.
-    # local nvidia_driver_pref_var="${current_hostname}_nvidia_driver_preference"
+    # local nvidia_driver_pref_var="${current_hostname}_NVIDIA_DRIVER_PREFERENCE"
     # local preferred_nvidia_driver="${!nvidia_driver_pref_var:-nvidia}" # Default to 'nvidia'
     # printf "INFO: Default NVIDIA driver preference for host '%s' is '%s' (via var %s).\\n" "$current_hostname" "$preferred_nvidia_driver" "$nvidia_driver_pref_var"
 
@@ -776,7 +776,7 @@ gpu-pta() {
     # Technical Description:
     #   Dynamically attaches GPU(s) back to the host system from vfio-pci.
     #   Identifies GPU PCI slot IDs. If an argument is provided, only that GPU is targeted (if on vfio-pci).
-    #   If no argument, uses hostname-specific config variables (e.g., x2_node_pci0) if the devices are on vfio-pci.
+    #   If no argument, uses hostname-specific config variables (e.g., x2_NODE_PCI0) if the devices are on vfio-pci.
     #   Falls back to scanning all relevant devices (VGA/3D/Audio) on vfio-pci.
     #   For each target GPU:
     #     - Unbinds from vfio-pci (if bound).
@@ -788,7 +788,7 @@ gpu-pta() {
     #   - `lspci`, `modprobe`, `awk`, `echo`, `hostname`, `grep`, `readlink`, `basename`, `sleep`.
     #   - Root privileges for driver/module operations and sysfs access.
     # Interactions:
-    #   - Uses `*_nvidia_driver_preference` from site config for NVIDIA GPUs.
+    #   - Uses `*_NVIDIA_DRIVER_PREFERENCE` from site config for NVIDIA GPUs.
 
     printf "INFO: Starting GPU attachment process...\\n"
     printf "INFO: Identifying target GPU(s)...\\n"
@@ -828,8 +828,8 @@ gpu-pta() {
     else
         printf "INFO: No specific GPU ID provided. Attempting to use PCI IDs from configuration for hostname '%s' if they are on vfio-pci.\\n" "$current_hostname"
         
-        local pci0_var_name="${current_hostname}_node_pci0"
-        local pci1_var_name="${current_hostname}_node_pci1"
+        local pci0_var_name="${current_hostname}_NODE_PCI0"
+        local pci1_var_name="${current_hostname}_NODE_PCI1"
         local lspci_full_output_check # To avoid multiple full lspci calls
         lspci_full_output_check=$(lspci -nnk)
 
@@ -981,7 +981,7 @@ gpu-pta() {
         printf "DEBUG: Extracted vendor_id: '%s', device_id: '%s'\\n" "$vendor_id" "$device_id"
 
         if [ "$vendor_id" == "10de" ]; then 
-            local nvidia_driver_pref_var="${current_hostname}_nvidia_driver_preference"
+            local nvidia_driver_pref_var="${current_hostname}_NVIDIA_DRIVER_PREFERENCE"
             # Default to "nvidia" if var is not set or empty, otherwise use its value.
             local preferred_nvidia_driver
             if [ -n "${!nvidia_driver_pref_var}" ]; then
