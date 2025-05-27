@@ -201,8 +201,8 @@ This command is run on each Proxmox VE node to configure them to use the Qdevice
 - '<IP QDEVICE HOST>': Replace this with the actual IP address of the host running the Qdevice container.
 - '-f': Forces the operation, potentially overwriting existing configurations.
 -->
-qdevice_ip="<IP QDEVICE HOST>"
-pvecm qdevice setup "$qdevice_ip" -f 
+QDEVICE_IP="<IP QDEVICE HOST>"
+pvecm qdevice setup "$QDEVICE_IP" -f 
 
 ## On Qdevice Host
 
@@ -235,36 +235,36 @@ sudo systemctl start sshd
 <!-- 
 This section provides troubleshooting steps if the 'pvecm qdevice setup' command fails on Node 1, 
 often due to SSH host key mismatches or missing keys. 
-The variables 'node2_ip' and 'qdevice_ip' should be set to the correct IP addresses.
+The variables 'NODE2_IP' and 'QDEVICE_IP' should be set to the correct IP addresses.
 The following commands assume you are operating as the root user on the Proxmox VE node.
 -->
 
-node2_ip="<IP CLUSTER NODE 2>"  
+NODE2_IP="<IP CLUSTER NODE 2>"  
 
 ### On Node 1 - Step 1: Remove existing host keys  
 <!-- 
 These commands remove any existing SSH host keys for Node 2 and the Qdevice host from Node 1's 'known_hosts' file. 
 This is useful if the host keys have changed (e.g., due to OS reinstall or IP address reuse) and are causing SSH connection errors.
 -->
-ssh-keygen -R "$qdevice_ip"
-ssh-keygen -R "$node2_ip"  
+ssh-keygen -R "$QDEVICE_IP"
+ssh-keygen -R "$NODE2_IP"  
 
 ### Step 2: Re-scan and add current host keys  
 <!-- 
 These commands scan Node 2 and the Qdevice host for their current SSH host keys and append them to Node 1's 'known_hosts' file. 
 This ensures Node 1 has the correct keys for future SSH connections.
 -->
-ssh-keyscan -H "$qdevice_ip" >> ~/.ssh/known_hosts
-ssh-keyscan -H "$node2_ip" >> ~/.ssh/known_hosts  
+ssh-keyscan -H "$QDEVICE_IP" >> ~/.ssh/known_hosts
+ssh-keyscan -H "$NODE2_IP" >> ~/.ssh/known_hosts  
 
 ### Step 3: Verify SSH access  
 <!-- 
 These commands test SSH connectivity from Node 1 to Node 2 and the Qdevice host as the root user. 
 The 'exit' command closes each SSH session. This helps confirm that the host keys are correct and passwordless SSH (if set up) is working.
 -->
-ssh root@"$node2_ip"  
+ssh root@"$NODE2_IP"  
 exit  
-ssh root@"$qdevice_ip"  
+ssh root@"$QDEVICE_IP"  
 exit  
 
 ### Step 4: Copy SSH key
@@ -272,15 +272,15 @@ exit
 These commands copy Node 1's public SSH key to Node 2 and the Qdevice host for the root user. 
 This enables passwordless SSH authentication from Node 1 to these machines, which is often required or beneficial for cluster operations.
 -->
-ssh-copy-id root@"$qdevice_ip"  
-ssh-copy-id root@"$node2_ip"  
+ssh-copy-id root@"$QDEVICE_IP"  
+ssh-copy-id root@"$NODE2_IP"  
 
 ### Step 5: Retry Qdevice Setup on Node 1
 <!--
 After completing the above troubleshooting steps for Node 1, attempt the Qdevice setup command again on Node 1
-to verify if the issue is resolved. Ensure the 'qdevice_ip' variable is correctly set to your Qdevice's IP address.
+to verify if the issue is resolved. Ensure the 'QDEVICE_IP' variable is correctly set to your Qdevice's IP address.
 -->
-pvecm qdevice setup "$qdevice_ip" -f
+pvecm qdevice setup "$QDEVICE_IP" -f
 
 <!--
 - If this command succeeds on Node 1: Great! You will then need to ensure the same setup command is run on Node 2. If Node 2 also failed previously or you anticipate issues, proceed to the "On Node 2 - In case pvecm qdevice setup don't work" section for Node 2 before running the setup command there.
@@ -290,48 +290,48 @@ pvecm qdevice setup "$qdevice_ip" -f
 ## On Node 2 - In case pvecm qdevice setup don't work  
 <!-- 
 This section mirrors the troubleshooting steps for Node 1, but performed on Node 2, targeting Node 1 and the Qdevice host.
-The variables 'node1_ip' and 'qdevice_ip' should be set to the correct IP addresses.
+The variables 'NODE1_IP' and 'QDEVICE_IP' should be set to the correct IP addresses.
 The following commands assume you are operating as the root user on the Proxmox VE node.
 -->
-qdevice_ip="<IP QDEVICE HOST>" 
-node1_ip="<IP CLUSTER NODE 1>"   
+QDEVICE_IP="<IP QDEVICE HOST>" 
+NODE1_IP="<IP CLUSTER NODE 1>"   
 
 ### Step 1: Remove existing host keys  
 <!-- 
 Removes existing SSH host keys for Node 1 and the Qdevice host from Node 2's 'known_hosts' file.
 -->
-ssh-keygen -R "$qdevice_ip"  
-ssh-keygen -R "$node1_ip"  
+ssh-keygen -R "$QDEVICE_IP"  
+ssh-keygen -R "$NODE1_IP"  
 
 ### Step 2: Re-scan and add current host keys   
 <!-- 
 Scans Node 1 and the Qdevice host for their current SSH host keys and appends them to Node 2's 'known_hosts' file.
 -->
-ssh-keyscan -H "$qdevice_ip" >> ~/.ssh/known_hosts  
-ssh-keyscan -H "$node1_ip" >> ~/.ssh/known_hosts  
+ssh-keyscan -H "$QDEVICE_IP" >> ~/.ssh/known_hosts  
+ssh-keyscan -H "$NODE1_IP" >> ~/.ssh/known_hosts  
 
 ### Step 3: Verify SSH access  
 <!-- 
 Tests SSH connectivity from Node 2 to Node 1 and the Qdevice host as the root user.
 -->
-ssh root@"$qdevice_ip"  
+ssh root@"$QDEVICE_IP"  
 exit  
-ssh root@"$node1_ip"  
+ssh root@"$NODE1_IP"  
 exit  
 
 ### Step 4: Copy SSH key  
 <!-- 
 Copies Node 2's public SSH key to Node 1 and the Qdevice host for the root user, enabling passwordless SSH.
 -->
-ssh-copy-id root@"$qdevice_ip" 
-ssh-copy-id root@"$node1_ip"  
+ssh-copy-id root@"$QDEVICE_IP" 
+ssh-copy-id root@"$NODE1_IP"  
 
 ### Step 5: Retry Qdevice Setup on Node 2
 <!--
 After completing the above troubleshooting steps for Node 2, attempt the Qdevice setup command again on Node 2
-to verify if the issue is resolved. Ensure the 'qdevice_ip' variable is correctly set to your Qdevice's IP address.
+to verify if the issue is resolved. Ensure the 'QDEVICE_IP' variable is correctly set to your Qdevice's IP address.
 -->
-pvecm qdevice setup "$qdevice_ip" -f
+pvecm qdevice setup "$QDEVICE_IP" -f
 <!--
 - If this command succeeds (or reports the Qdevice is already configured): The Qdevice setup should now be complete for the cluster.
 - If this command still fails : Review the output carefully. You may need to re-check the previous troubleshooting steps or investigate new error messages.
