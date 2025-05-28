@@ -189,6 +189,27 @@ load_stored_passwords() {
     fi
 }
 
+# Get the appropriate password directory based on system capabilities
+# Usage: get_password_directory
+get_password_directory() {
+    local base_dirs=("/etc/lab/passwords" "/var/lib/lab/passwords" "/home/es/.lab/passwords" "/tmp/lab_passwords")
+    
+    for dir in "${base_dirs[@]}"; do
+        # Check if we can create/write to this directory
+        if mkdir -p "$dir" 2>/dev/null && [[ -w "$dir" ]]; then
+            chmod 700 "$dir" 2>/dev/null
+            echo "$dir"
+            return 0
+        fi
+    done
+    
+    # Fallback to current user's home if all else fails
+    local fallback="$HOME/.lab_passwords"
+    mkdir -p "$fallback" 2>/dev/null
+    chmod 700 "$fallback" 2>/dev/null
+    echo "$fallback"
+}
+
 # Initialize secure password management
 # Usage: init_password_management [password_dir]
 init_password_management() {
@@ -200,8 +221,19 @@ init_password_management() {
         chmod 700 "$password_dir"
     fi
     
-    # Generate passwords if they don't exist
-    if [[ ! -f "$password_dir/ct_root.pwd" ]]; then
+    # Check if password system is already initialized by looking for actual password files
+    local password_files=("ct_pbs.pwd" "ct_nfs.pwd" "ct_smb.pwd" "nfs_user.pwd" "smb_user.pwd")
+    local files_exist=true
+    
+    for file in "${password_files[@]}"; do
+        if [[ ! -f "$password_dir/$file" ]]; then
+            files_exist=false
+            break
+        fi
+    done
+    
+    if [[ "$files_exist" == "false" ]]; then
+        # Generate passwords only if they don't exist
         generate_service_passwords
         
         # Store passwords in files
@@ -210,11 +242,53 @@ init_password_management() {
         create_password_file "$password_dir/ct_smb.pwd" "$CT_SMB_PASSWORD"
         create_password_file "$password_dir/nfs_user.pwd" "$NFS_USER_PASSWORD"
         create_password_file "$password_dir/smb_user.pwd" "$SMB_USER_PASSWORD"
+        create_password_file "$password_dir/ct_root.pwd" "$CT_PBS_PASSWORD"  # Generic container root
         
         echo "Password management initialized in $password_dir"
     else
         load_stored_passwords "$password_dir"
         echo "Loaded existing passwords from $password_dir"
+    fi
+}
+
+# Initialize password management with smart directory selection
+# Usage: init_password_management_auto
+init_password_management_auto() {
+    local password_dir
+    password_dir=$(get_password_directory)
+    init_password_management "$password_dir"
+    echo "Using password directory: $password_dir"
+}
+
+# Get password file path with fallback mechanism
+# Usage: get_password_file filename
+get_password_file() {
+    local filename="$1"
+    local search_dirs=("/etc/lab/passwords" "/var/lib/lab/passwords" "/home/es/.lab/passwords" "/tmp/lab_passwords")
+    
+    for dir in "${search_dirs[@]}"; do
+        if [[ -f "$dir/$filename" ]]; then
+            echo "$dir/$filename"
+            return 0
+        fi
+    done
+    
+    # Return temp location as fallback
+    echo "/tmp/lab_passwords/$filename"
+}
+
+# Get password with smart lookup
+# Usage: get_secure_password filename [length]
+get_secure_password() {
+    local filename="$1"
+    local length="${2:-16}"
+    local password_file
+    password_file=$(get_password_file "$filename")
+    
+    if [[ -f "$password_file" ]]; then
+        cat "$password_file" 2>/dev/null
+    else
+        generate_secure_password "$length"
     fi
 }
 
