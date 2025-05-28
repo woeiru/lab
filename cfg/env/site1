@@ -269,6 +269,75 @@ define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112:113:smb:192.1
 # define_container 112 112 nfs 192.168.178.112  
 # define_container 113 113 smb 192.168.178.113
 
+# ========================================================================
+# CONTAINER OVERRIDE EXAMPLES (uncomment and modify as needed)
+# ========================================================================
+
+# Example 1: Override global defaults for all containers
+# Uncomment and modify these lines to change site-wide defaults:
+# set_container_defaults \
+#     template="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst" \
+#     memory=4096 \
+#     cpus=4 \
+#     privileged="no"
+
+# Example 2: Override specific container parameters via variables
+# Uncomment and modify these lines to override individual containers:
+# CT_111_MEMORY=16384        # Give PBS more memory (16GB)
+# CT_111_CPUS=8              # Give PBS more CPU cores
+# CT_111_PRIVILEGED=yes      # Make PBS privileged
+# CT_111_ROOTFS_SIZE=64      # Give PBS larger root filesystem
+
+# CT_112_MEMORY=4096         # NFS needs less memory
+# CT_112_CPUS=2              # NFS needs fewer cores
+# CT_112_NET_BRIDGE=vmbr1    # Put NFS on different bridge
+
+# CT_113_PRIVILEGED=no       # Web/SMB server should not be privileged
+# CT_113_MEMORY=2048         # SMB needs less memory
+# CT_113_NAMESERVER="1.1.1.1" # Use different DNS for SMB
+
+# Example 3: Override during container definition (positional parameters)
+# Uncomment and modify this line to define a container with custom parameters:
+# define_container 114 database db-server 192.168.178.114 \
+#     "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst" \
+#     "local-zfs" \
+#     "64" \
+#     "16384" \
+#     "16384" \
+#     "8.8.8.8" \
+#     "fritz.box" \
+#     '$(generate_secure_password 20)' \
+#     "8" \
+#     "yes" \
+#     "eth0" \
+#     "vmbr0" \
+#     "24" \
+#     "192.168.178.1" \
+#     "/root/.ssh/w1.pub"
+
+# Example 4: Template-specific configurations
+# Uncomment these for different container templates:
+# CT_115_TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+# CT_116_TEMPLATE="local:vztmpl/alpine-3.18-default_20230607_amd64.tar.xz"
+# CT_117_TEMPLATE="local:vztmpl/centos-9-stream-default_20221109_amd64.tar.xz"
+
+# Example 5: Network-specific overrides
+# Uncomment these for custom networking:
+# CT_118_NET_BRIDGE=vmbr1              # Use different bridge
+# CT_118_IP_ADDRESS=10.0.0.10         # Use different IP range
+# CT_118_GATEWAY=10.0.0.1             # Use different gateway
+# CT_118_CIDR=16                      # Use different subnet mask
+
+# Example 6: Security-specific overrides
+# Uncomment these for enhanced security:
+# CT_119_PRIVILEGED=no                # Unprivileged container
+# CT_119_PASSWORD='$(generate_secure_password 32)'  # Stronger password
+# CT_119_SSH_KEY_FILE="/root/.ssh/secure_key.pub"   # Different SSH key
+
+# ========================================================================
+# END CONTAINER OVERRIDE EXAMPLES
+# ========================================================================
+
 # VM creation
 #
 
@@ -290,6 +359,102 @@ VM_1_CPU="host"
 VM_1_MEMORY=8192
 VM_1_BALLOON=1
 VM_1_NET="model=virtio,bridge=vmbr0,firewall=1"
+
+# ========================================================================
+# VM OVERRIDE EXAMPLES (uncomment and modify as needed)
+# ========================================================================
+
+# Example 1: Override global VM defaults for all VMs
+# Uncomment and modify these lines to change site-wide VM defaults:
+# set_vm_defaults \
+#     ostype="l26" \
+#     machine="q35" \
+#     boot="order=scsi0" \
+#     bios="ovmf" \
+#     scsihw="virtio-scsi-pci" \
+#     agent="1" \
+#     sockets=1 \
+#     cores=4 \
+#     cpu="host" \
+#     memory=4096 \
+#     balloon=2048
+
+# Example 2: Override specific VM parameters via variables
+# Uncomment and modify these lines to override individual VMs:
+# VM_211_MEMORY=16384        # Give VM 211 more memory (16GB)
+# VM_211_CORES=12            # Give VM 211 more CPU cores
+# VM_211_SOCKETS=2           # Use dual socket configuration
+# VM_211_CPU="Skylake-Server" # Use specific CPU type
+# VM_211_BALLOON=8192        # Set memory ballooning
+
+# VM_212_OSTYPE="win11"      # Windows 11 VM
+# VM_212_MACHINE="pc-q35-8.1" # Different machine type
+# VM_212_BIOS="seabios"      # Use SeaBIOS instead of OVMF
+# VM_212_AGENT="0"           # Disable QEMU guest agent
+
+# VM_213_NET="model=e1000,bridge=vmbr1" # Use different network adapter and bridge
+# VM_213_DISK="local-zfs:128,ssd=1,discard=on,iothread=1" # ZFS storage with larger disk
+
+# Example 3: Override during VM definition (using define_vm function)
+# Uncomment and modify this line to define a VM with custom parameters:
+# define_vm 214 214 "database-vm" \
+#     "local:iso/ubuntu-22.04.3-desktop-amd64.iso" \
+#     "local-lvm:256,ssd=1,discard=on,iothread=1" \
+#     "model=virtio,bridge=vmbr0,firewall=1" \
+#     "l26" \
+#     "q35" \
+#     "order=scsi0" \
+#     "ovmf" \
+#     "local-lvm:1,efitype=4m,pre-enrolled-keys=1,size=1M" \
+#     "virtio-scsi-pci" \
+#     "1" \
+#     "2" \
+#     "16" \
+#     "host" \
+#     "32768" \
+#     "16384"
+
+# Example 4: Bulk VM creation using define_vms
+# Uncomment this for bulk VM creation:
+# define_vms "215:web-server:local:iso/debian-12.2.0-amd64-netinst.iso:local-lvm:64:model=virtio,bridge=vmbr0:216:app-server:local:iso/debian-12.2.0-amd64-netinst.iso:local-lvm:128:model=virtio,bridge=vmbr0"
+
+# Example 5: OS-specific VM configurations
+# Uncomment these for different operating systems:
+# VM_217_OSTYPE="win11"                 # Windows 11
+# VM_217_MACHINE="pc-q35-8.1"          # Windows-compatible machine
+# VM_217_BIOS="ovmf"                    # UEFI for Windows
+# VM_217_CPU="host,hidden=1,flags=+pcid" # Windows-optimized CPU
+
+# VM_218_OSTYPE="l26"                   # Linux
+# VM_218_MACHINE="q35"                  # Modern Linux machine type
+# VM_218_BIOS="ovmf"                    # UEFI support
+# VM_218_AGENT="1"                      # Enable guest agent
+
+# Example 6: Performance-specific overrides
+# Uncomment these for high-performance VMs:
+# VM_219_CORES=16                       # High core count
+# VM_219_MEMORY=65536                   # 64GB RAM
+# VM_219_BALLOON=0                      # Disable ballooning for performance
+# VM_219_CPU="host,migratable=off"      # Maximum performance CPU settings
+# VM_219_DISK="local-nvme:512,ssd=1,discard=on,iothread=1,cache=none,aio=native"
+
+# Example 7: Storage-specific configurations
+# Uncomment these for different storage backends:
+# VM_220_DISK="local-zfs:256,ssd=1"     # ZFS storage
+# VM_220_EFIDISK="local-zfs:1,efitype=4m,pre-enrolled-keys=1,size=1M"
+
+# VM_221_DISK="ceph:128,ssd=1"          # Ceph storage
+# VM_221_EFIDISK="ceph:1,efitype=4m,pre-enrolled-keys=1,size=1M"
+
+# Example 8: Network-specific configurations
+# Uncomment these for custom networking:
+# VM_222_NET="model=virtio,bridge=vmbr1,tag=100" # VLAN tagged
+# VM_223_NET="model=e1000,bridge=vmbr2"          # Different adapter type
+# VM_224_NET="model=virtio,bridge=vmbr0,rate=1000" # Bandwidth limit
+
+# ========================================================================
+# END VM OVERRIDE EXAMPLES
+# ========================================================================
 
 # NFS
 #

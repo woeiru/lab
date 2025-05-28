@@ -48,6 +48,7 @@
 #   - define_container: Create single container configuration
 #   - define_containers: Create multiple containers from string
 #   - define_vm: Create virtual machine configuration
+#   - define_vms: Create multiple VMs from string
 #   - generate_ip_sequence: Generate sequential IP addresses
 #   - validate_config: Validate current configuration
 #   - show_config_summary: Display configuration overview
@@ -311,6 +312,33 @@ define_vm() {
     export "VM_${num}_NET"
 }
 
+# Define multiple VMs from colon-separated string
+# Format: "id1:name1:iso1:disk1:net1:id2:name2:iso2:disk2:net2:..."
+define_vms() {
+    local vms_string="$1"
+    
+    if [[ -z "$vms_string" ]]; then
+        echo "ERROR: VM definition string is required"
+        return 1
+    fi
+    
+    # Split the string by colons
+    IFS=':' read -ra VM_PARTS <<< "$vms_string"
+    
+    # Process in groups of 5: id:name:iso:disk:net
+    for ((i=0; i<${#VM_PARTS[@]}; i+=5)); do
+        if [[ $((i+4)) -lt ${#VM_PARTS[@]} ]]; then
+            local id="${VM_PARTS[i]}"
+            local name="${VM_PARTS[i+1]}"
+            local iso="${VM_PARTS[i+2]}"
+            local disk="${VM_PARTS[i+3]}"
+            local net="${VM_PARTS[i+4]}"
+            
+            define_vm "$id" "$id" "$name" "$iso" "$disk" "$net"
+        fi
+    done
+}
+
 # Validate configuration
 validate_config() {
     local errors=0
@@ -407,6 +435,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo "  define_container    - Define a container configuration"
     echo "  define_containers   - Define multiple containers from array"
     echo "  define_vm          - Define a VM configuration"
+    echo "  define_vms         - Define multiple VMs from string"
     echo "  set_container_defaults - Set default container values"
     echo "  set_vm_defaults    - Set default VM values"
     echo "  generate_ip_sequence - Generate sequential IP addresses"
