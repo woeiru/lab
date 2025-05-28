@@ -200,6 +200,77 @@ source_lib_utl() {
     fi
 }
 
+# Source the environment controller configuration
+source_cfg_ecc() {
+    local ecc_file="${LAB_DIR}/cfg/core/ecc"
+    
+    tme_start_timer "cfg_ecc"
+    log "lvl" "Loading environment controller..."
+    
+    if [[ -f "${ecc_file}" ]]; then
+        if source_helper "${ecc_file}" "environment controller"; then
+            log "lvl" "Successfully loaded environment controller"
+            log "lvl" "Active configuration: Site=${SITE_NAME}, Env=${ENVIRONMENT_NAME}, Node=${NODE_NAME}"
+            return 0
+        else
+            log "lvl" "Failed to load environment controller"
+            return 1
+        fi
+    else
+        log "lvl" "Warning: Environment controller file not found: ${ecc_file}"
+        return 1
+    fi
+    
+    tme_end_timer "cfg_ecc"
+}
+
+# Source the environment configuration files with override support
+source_cfg_env() {
+    local return_value=0
+    
+    tme_start_timer "cfg_env"
+    log "lvl" "Loading environment configuration..."
+    log "lvl" "Site: ${SITE_NAME}, Environment: ${ENVIRONMENT_NAME}, Node: ${NODE_NAME}"
+    
+    # Load base site configuration
+    if [[ -f "${SITE_CONFIG_FILE}" ]]; then
+        if source_helper "${SITE_CONFIG_FILE}" "base site config (${SITE_NAME})"; then
+            log "lvl" "Successfully loaded base site configuration"
+        else
+            log "lvl" "Failed to load base site configuration"
+            return_value=1
+        fi
+    else
+        log "lvl" "Warning: Base site config file not found: ${SITE_CONFIG_FILE}"
+        return_value=1
+    fi
+    
+    # Load environment-specific overrides if they exist
+    if [[ -f "${ENV_OVERRIDE_FILE}" ]]; then
+        if source_helper "${ENV_OVERRIDE_FILE}" "environment overrides (${ENVIRONMENT_NAME})"; then
+            log "lvl" "Successfully loaded environment overrides"
+        else
+            log "lvl" "Warning: Failed to load environment overrides"
+        fi
+    else
+        log "lvl" "No environment override file found: ${ENV_OVERRIDE_FILE}"
+    fi
+    
+    # Load node-specific overrides if they exist
+    if [[ -f "${NODE_OVERRIDE_FILE}" ]]; then
+        if source_helper "${NODE_OVERRIDE_FILE}" "node overrides (${NODE_NAME})"; then
+            log "lvl" "Successfully loaded node overrides"
+        else
+            log "lvl" "Warning: Failed to load node overrides"
+        fi
+    else
+        log "lvl" "No node override file found: ${NODE_OVERRIDE_FILE}"
+    fi
+    
+    tme_end_timer "cfg_env"
+    return $return_value
+}
+
 # Source the alias files
 source_cfg_ali() {
     # Use CFG_ALI_DIR which is defined in ric
@@ -216,6 +287,7 @@ setup_components() {
     type print_error_report &>/dev/null || log "lvl" "WARNING: print_error_report function not found"
 
     local components=(
+        "source_cfg_ecc:CFG_ECC:0"
         "source_cfg_ali:CFG_ALI:0"
         "source_cfg_env:CFG_ENV:0"
 

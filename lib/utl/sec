@@ -1,0 +1,127 @@
+#!/bin/bash
+
+# Security utility functions for the lab environment
+# Provides secure password generation and credential management
+
+# Generate a secure password with specified length
+# Usage: generate_secure_password [length] [exclude_special]
+# Default length: 16, Default special chars: included
+generate_secure_password() {
+    local length=${1:-16}
+    local exclude_special=${2:-false}
+    
+    if [[ "$exclude_special" == "true" ]]; then
+        # Alphanumeric only
+        tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$length"
+    else
+        # Include special characters but avoid problematic ones
+        tr -dc 'A-Za-z0-9!@#$%^&*()_+-=' < /dev/urandom | head -c "$length"
+    fi
+    echo
+}
+
+# Generate a secure password and store it in a variable
+# Usage: store_secure_password variable_name [length] [exclude_special]
+store_secure_password() {
+    local var_name="$1"
+    local length=${2:-16}
+    local exclude_special=${3:-false}
+    
+    if [[ -z "$var_name" ]]; then
+        echo "Error: Variable name required" >&2
+        return 1
+    fi
+    
+    local password
+    password=$(generate_secure_password "$length" "$exclude_special")
+    declare -g "$var_name"="$password"
+}
+
+# Generate multiple passwords for different services
+# Usage: generate_service_passwords
+generate_service_passwords() {
+    # Container root passwords
+    store_secure_password "CT_PBS_PASSWORD" 20
+    store_secure_password "CT_NFS_PASSWORD" 20
+    store_secure_password "CT_SMB_PASSWORD" 20
+    
+    # Service user passwords
+    store_secure_password "NFS_USER_PASSWORD" 16
+    store_secure_password "SMB_USER_PASSWORD" 16
+    
+    # Database passwords (if needed)
+    store_secure_password "DB_ROOT_PASSWORD" 24
+    store_secure_password "DB_USER_PASSWORD" 20
+    
+    echo "Generated secure passwords for all services"
+}
+
+# Create a password file with proper permissions
+# Usage: create_password_file filename password
+create_password_file() {
+    local filename="$1"
+    local password="$2"
+    
+    if [[ -z "$filename" || -z "$password" ]]; then
+        echo "Error: Filename and password required" >&2
+        return 1
+    fi
+    
+    echo "$password" > "$filename"
+    chmod 600 "$filename"
+    echo "Password file created: $filename"
+}
+
+# Load passwords from secure storage
+# Usage: load_stored_passwords [password_dir]
+load_stored_passwords() {
+    local password_dir="${1:-/etc/lab/passwords}"
+    
+    if [[ -d "$password_dir" ]]; then
+        for file in "$password_dir"/*.pwd; do
+            if [[ -r "$file" ]]; then
+                local var_name
+                var_name=$(basename "$file" .pwd | tr '[:lower:]' '[:upper:]')
+                declare -g "${var_name}_PASSWORD"="$(cat "$file")"
+            fi
+        done
+        echo "Loaded passwords from $password_dir"
+    fi
+}
+
+# Initialize secure password management
+# Usage: init_password_management [password_dir]
+init_password_management() {
+    local password_dir="${1:-/etc/lab/passwords}"
+    
+    # Create password directory if it doesn't exist
+    if [[ ! -d "$password_dir" ]]; then
+        mkdir -p "$password_dir"
+        chmod 700 "$password_dir"
+    fi
+    
+    # Generate passwords if they don't exist
+    if [[ ! -f "$password_dir/ct_root.pwd" ]]; then
+        generate_service_passwords
+        
+        # Store passwords in files
+        create_password_file "$password_dir/ct_pbs.pwd" "$CT_PBS_PASSWORD"
+        create_password_file "$password_dir/ct_nfs.pwd" "$CT_NFS_PASSWORD"
+        create_password_file "$password_dir/ct_smb.pwd" "$CT_SMB_PASSWORD"
+        create_password_file "$password_dir/nfs_user.pwd" "$NFS_USER_PASSWORD"
+        create_password_file "$password_dir/smb_user.pwd" "$SMB_USER_PASSWORD"
+        
+        echo "Password management initialized in $password_dir"
+    else
+        load_stored_passwords "$password_dir"
+        echo "Loaded existing passwords from $password_dir"
+    fi
+}
+
+# Export functions for use in other scripts
+export -f generate_secure_password
+export -f store_secure_password
+export -f generate_service_passwords
+export -f create_password_file
+export -f load_stored_passwords
+export -f init_password_management
