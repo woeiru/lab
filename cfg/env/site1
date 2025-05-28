@@ -237,8 +237,11 @@ CT_MPC_3="/home"
 source /home/es/lab/lib/utl/inf
 source /home/es/lab/lib/utl/sec
 
-# Initialize secure password management (use /tmp for testing without root)
-init_password_management "/tmp/lab_passwords"
+# Initialize secure password management with smart directory selection
+# Only initialize if not already done to avoid regenerating passwords
+if [[ ! -f "/tmp/lab_passwords/ct_pbs.pwd" && ! -f "/home/es/.lab/passwords/ct_pbs.pwd" && ! -f "/etc/lab/passwords/ct_pbs.pwd" && ! -f "/var/lib/lab/passwords/ct_pbs.pwd" ]]; then
+    init_password_management_auto
+fi
 
 # Set site-wide container defaults
 set_container_defaults \
