@@ -1,3 +1,42 @@
+<!-- filepath: /home/es/lab/doc/flo/aux_src_menu_architecture.md -->
+<!--
+#######################################################################
+# Auxiliary Source Menu Architecture - Flow Documentation
+#######################################################################
+# File: /home/es/lab/doc/flo/aux_src_menu_architecture.md
+# Description: Detailed flowchart documentation of the auxiliary source
+#              menu system architecture showing execution flow, decision
+#              points, and interactive menu processing logic.
+#
+# Author: Flow Documentation Team
+# Created: 2025-05-28
+# Updated: 2025-05-28
+# Version: 1.0.0
+# Category: Technical Documentation - Flow
+#
+# Document Purpose:
+#   Provides visual flow documentation for understanding the auxiliary
+#   source menu system architecture, execution paths, and interactive
+#   decision-making processes within the deployment framework.
+#
+# Technical Scope:
+#   - Script execution flow patterns
+#   - Interactive menu system architecture
+#   - Decision tree mapping and logic flow
+#   - Argument processing and validation
+#
+# Target Audience:
+#   Software architects, system developers, and technical analysts
+#   requiring detailed understanding of menu system flow logic
+#   for maintenance, debugging, and enhancement purposes.
+#
+# Dependencies:
+#   - Mermaid flowchart rendering support
+#   - Auxiliary source framework (lib/aux/src)
+#   - Interactive menu system components
+#######################################################################
+-->
+
 ```mermaid
 flowchart TD
     A["Start: Script Execution ./script_name <args>"] --> B["setup_main"]

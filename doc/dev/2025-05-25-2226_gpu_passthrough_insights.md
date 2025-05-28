@@ -1,11 +1,37 @@
----
-title: "Insights on GPU Passthrough Debugging (gpu-pts & gpu-ptd)"
-date: 2025-05-25
-tags: [GPU, Passthrough, VFIO, Nouveau, NVIDIA, Debugging, ShellScript]
-author: "GitHub Copilot"
----
+<!--
+#######################################################################
+# Development Insights - GPU Passthrough Debugging Analysis
+#######################################################################
+# File: /home/es/lab/doc/dev/2025-05-25-2226_gpu_passthrough_insights.md
+# Description: Detailed insights and debugging documentation from GPU
+#              passthrough troubleshooting session focusing on gpu-ptd
+#              and gpu-pts shell functions within the ops/gpu script.
+#
+# Author: Development Team
+# Created: 2025-05-25
+# Updated: 2025-05-25
+# Version: 1.0.0
+# Category: Development Documentation
+#
+# Session Context:
+#   Comprehensive debugging session addressing GPU passthrough failures,
+#   specifically NVIDIA GPU binding to vfio-pci driver and resolution
+#   of "write error: No such device" messages.
+#
+# Technical Scope:
+#   - GPU passthrough functionality (lib/ops/gpu)
+#   - VFIO driver binding procedures
+#   - NVIDIA GPU hardware management
+#   - Shell function debugging and optimization
+#
+# Target Audience:
+#   GPU virtualization specialists, hardware engineers, and developers
+#   working on passthrough functionality, VFIO integration, and
+#   virtualization infrastructure within the lab environment.
+#######################################################################
+-->
 
-## 1. Overview
+# Insights on GPU Passthrough Debugging (gpu-pts & gpu-ptd)
 
 This document captures insights gained during the debugging session of the `gpu-ptd` (GPU Passthrough Detach) and `gpu-pts` (GPU Passthrough Status) shell functions within the `/home/es/lab/lib/ops/gpu` script. The primary issue was the failure of `gpu-ptd` to bind NVIDIA GPUs to the `vfio-pci` driver, accompanied by a "write error: No such device" message.
 

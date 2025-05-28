@@ -1,61 +1,39 @@
 <!--
 #######################################################################
-# Infrastructure Configuration Guide - Technical Documentation
+# Infrastructure Configuration Guide - Technical Reference
 #######################################################################
-# File: /home/es/lab/doc/man/infrastructure_guide.md
-# Description: Comprehensive technical documentation for the infrastructure
-#              configuration management system, covering IP allocation,
-#              naming conventions, security practices, and operational
-#              procedures for the lab environment.
+# File: /home/es/lab/doc/man/configuration.md
+# Description: Comprehensive technical documentation for infrastructure
+#              configuration management including IP allocation, naming
+#              conventions, security practices, and operational procedures.
 #
 # Author: Environment Management System
 # Created: 2025-05-28
-# Last Updated: 2025-05-28
+# Updated: 2025-05-28
 # Version: 1.0.0
-# License: Lab Environment Internal Use
+# Category: Technical Documentation - Manual
 #
 # Document Purpose:
 #   Provides complete reference documentation for infrastructure
 #   management including container/VM configuration, security
-#   implementation, environment switching, and troubleshooting
-#   procedures for system administrators and developers.
+#   implementation, and environment switching for system administrators.
 #
-# Coverage Areas:
-#   - IP allocation schemes and network planning
+# Key Components:
+#   - IP allocation schemes and network planning (192.168.178.0/24)
 #   - Naming conventions and organizational standards
-#   - Infrastructure utilities library documentation
+#   - Infrastructure utilities library (lib/utl/inf)
 #   - Security configuration and password management
 #   - Environment-aware configuration hierarchy
-#   - Storage configuration and management
-#   - Usage examples and practical implementations
-#   - Troubleshooting procedures and common solutions
-#   - Migration guidelines from legacy systems
 #
-# Technical Specifications:
-#   - Network: 192.168.178.0/24 with structured allocation
-#   - Infrastructure: Proxmox-based virtualization
-#   - Security: 600/700 file permissions, secure password generation
-#   - Configuration: Hierarchical environment loading
-#   - Utilities: Bash-based infrastructure management library
+# Target Audience:
+#   System administrators, infrastructure engineers, and developers
+#   responsible for container/VM deployment, network configuration,
+#   and security implementation in the lab environment.
 #
 # Dependencies:
-#   - Infrastructure utilities (/home/es/lab/lib/utl/inf)
-#   - Security utilities (/home/es/lab/lib/utl/sec)
-#   - Environment management (/home/es/lab/lib/aux/src)
-#   - Configuration files (cfg/env/*)
-#
-# Maintenance Guidelines:
-#   - Update examples when configuration changes
-#   - Validate all commands for accuracy
-#   - Keep troubleshooting section current
-#   - Document new features as they're added
-#   - Review network allocation as infrastructure grows
-#
-# Integration Points:
-#   - Works with all deployment scripts
-#   - Referenced by test suites
-#   - Used in development workflows
-#   - Supports CI/CD documentation needs
+#   - Infrastructure utilities: lib/utl/inf, lib/utl/sec
+#   - Environment management: lib/aux/src
+#   - Configuration files: cfg/env/*
 #######################################################################
 -->
 
