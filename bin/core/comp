@@ -15,11 +15,16 @@
 #   - execute_component: Executes a single named component with status tracking.
 #
 # Component Functions (perform specific initialization tasks):
-#   - source_cfg_env: Sources environment configuration files.
-#   - source_lib_ops: Sources operational function library files.
-#   - source_lib_aux: Sources auxiliary function files.
-#   - source_lib_utl: Sources utility function files.
-#   - source_cfg_ali: Sources alias configuration files.
+#
+#   Configuration (cfg):
+#     - source_cfg_env: Sources environment configuration files.
+#     - source_cfg_ecc: Sources environment controller configuration.
+#     - source_cfg_ali: Sources alias configuration files.
+#
+#   Libraries (lib):
+#     - source_lib_ops: Sources operational function library files.
+#     - source_lib_aux: Sources auxiliary function files.
+#     - source_lib_utl: Sources utility function files.
 #
 # Main Orchestration Function:
 #   - setup_components: Orchestrates the execution of all defined
