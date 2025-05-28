@@ -92,7 +92,7 @@ load_stored_passwords() {
 # Initialize secure password management
 # Usage: init_password_management [password_dir]
 init_password_management() {
-    local password_dir="${1:-/etc/lab/passwords}"
+    local password_dir="${1:-/tmp/lab_passwords}"
     
     # Create password directory if it doesn't exist
     if [[ ! -d "$password_dir" ]]; then
@@ -118,10 +118,8 @@ init_password_management() {
     fi
 }
 
-# Export functions for use in other scripts
-export -f generate_secure_password
-export -f store_secure_password
-export -f generate_service_passwords
-export -f create_password_file
-export -f load_stored_passwords
-export -f init_password_management
+# Make functions available when sourced
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    # Functions are loaded when sourced, no need to export
+    :
+fi
