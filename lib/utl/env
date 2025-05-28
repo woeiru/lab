@@ -1,0 +1,300 @@
+#!/bin/bash
+#######################################################################
+# Environment Management Utility
+#######################################################################
+# Purpose:
+#   Provides convenient functions for switching between environments,
+#   sites, and nodes. Integrates with the environment controller system.
+#
+# Functions:
+#   - env_switch: Switch environment (dev/test/staging/prod)
+#   - site_switch: Switch site (site1/site2/etc)
+#   - node_switch: Switch node (w1/w2/x1/x2/etc)
+#   - env_status: Show current environment configuration
+#   - env_list: List available environments and overrides
+#   - env_validate: Validate configuration files exist
+#
+# Usage:
+#   Source this file to get helper functions
+#   Or call directly: ./env <command> [args]
+#######################################################################
+
+# Get script directory for relative paths
+ENV_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_DIR="$(cd "${ENV_SCRIPT_DIR}/../.." && pwd)"
+ECC_FILE="${LAB_DIR}/cfg/core/ecc"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Helper function to update environment controller
+update_ecc() {
+    local var_name="$1"
+    local var_value="$2"
+    
+    if [[ ! -f "$ECC_FILE" ]]; then
+        echo -e "${RED}Error: Environment controller file not found: $ECC_FILE${NC}"
+        return 1
+    fi
+    
+    # Create backup
+    cp "$ECC_FILE" "${ECC_FILE}.bak_$(date +%Y%m%d_%H%M%S)"
+    
+    # Update the variable
+    if grep -q "^export ${var_name}=" "$ECC_FILE"; then
+        sed -i "s/^export ${var_name}=.*/export ${var_name}=\"${var_value}\"/" "$ECC_FILE"
+    elif grep -q "^${var_name}=" "$ECC_FILE"; then
+        sed -i "s/^${var_name}=.*/${var_name}=\"${var_value}\"/" "$ECC_FILE"
+    else
+        echo "export ${var_name}=\"${var_value}\"" >> "$ECC_FILE"
+    fi
+    
+    echo -e "${GREEN}Updated ${var_name} to: ${var_value}${NC}"
+}
+
+# Switch environment (dev/test/staging/prod)
+env_switch() {
+    local env="$1"
+    
+    if [[ -z "$env" ]]; then
+        echo -e "${RED}Error: Environment name required${NC}"
+        echo "Usage: env_switch <environment>"
+        echo "Available: dev, test, staging, prod"
+        return 1
+    fi
+    
+    update_ecc "ENVIRONMENT_NAME" "$env"
+    env_status
+}
+
+# Switch site
+site_switch() {
+    local site="$1"
+    
+    if [[ -z "$site" ]]; then
+        echo -e "${RED}Error: Site name required${NC}"
+        echo "Usage: site_switch <site>"
+        echo "Available sites:"
+        ls "${LAB_DIR}/cfg/env/" | grep -E '^site[0-9]+$' | sort
+        return 1
+    fi
+    
+    # Validate site exists
+    if [[ ! -f "${LAB_DIR}/cfg/env/${site}" ]]; then
+        echo -e "${RED}Error: Site configuration not found: ${site}${NC}"
+        return 1
+    fi
+    
+    update_ecc "SITE_NAME" "$site"
+    env_status
+}
+
+# Switch node
+node_switch() {
+    local node="$1"
+    
+    if [[ -z "$node" ]]; then
+        echo -e "${RED}Error: Node name required${NC}"
+        echo "Usage: node_switch <node>"
+        echo "Current hostname: $(hostname)"
+        return 1
+    fi
+    
+    update_ecc "NODE_NAME" "$node"
+    env_status
+}
+
+# Show current environment status
+env_status() {
+    echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
+    echo -e "${BLUE}        Environment Configuration${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════${NC}"
+    
+    # Source the current ECC to get values
+    if [[ -f "$ECC_FILE" ]]; then
+        source "$ECC_FILE"
+        echo -e "Site:        ${GREEN}${SITE_NAME:-unset}${NC}"
+        echo -e "Environment: ${GREEN}${ENVIRONMENT_NAME:-unset}${NC}"
+        echo -e "Node:        ${GREEN}${NODE_NAME:-unset}${NC}"
+        
+        echo -e "\n${BLUE}Configuration Files:${NC}"
+        local base_config="${LAB_DIR}/cfg/env/${SITE_NAME}"
+        local env_config="${LAB_DIR}/cfg/env/${SITE_NAME}-${ENVIRONMENT_NAME}"
+        local node_config="${LAB_DIR}/cfg/env/${SITE_NAME}-${NODE_NAME}"
+        
+        if [[ -f "$base_config" ]]; then
+            echo -e "Base:        ${GREEN}✓${NC} $base_config"
+        else
+            echo -e "Base:        ${RED}✗${NC} $base_config (missing)"
+        fi
+        
+        if [[ -f "$env_config" ]]; then
+            echo -e "Environment: ${GREEN}✓${NC} $env_config"
+        else
+            echo -e "Environment: ${YELLOW}○${NC} $env_config (optional)"
+        fi
+        
+        if [[ -f "$node_config" ]]; then
+            echo -e "Node:        ${GREEN}✓${NC} $node_config"
+        else
+            echo -e "Node:        ${YELLOW}○${NC} $node_config (optional)"
+        fi
+    else
+        echo -e "${RED}Error: Environment controller file not found${NC}"
+    fi
+    echo ""
+}
+
+# List available environments and overrides
+env_list() {
+    echo -e "\n${BLUE}Available Configurations:${NC}"
+    
+    echo -e "\n${YELLOW}Sites:${NC}"
+    ls "${LAB_DIR}/cfg/env/" 2>/dev/null | grep -E '^site[0-9]+$' | sort | sed 's/^/  /'
+    
+    echo -e "\n${YELLOW}Environment Overrides:${NC}"
+    ls "${LAB_DIR}/cfg/env/" 2>/dev/null | grep -E '^site[0-9]+-[^-]+$' | grep -v -E 'site[0-9]+-[wx][0-9]+$' | sort | sed 's/^/  /'
+    
+    echo -e "\n${YELLOW}Node Overrides:${NC}"
+    ls "${LAB_DIR}/cfg/env/" 2>/dev/null | grep -E '^site[0-9]+-[wx][0-9]+$' | sort | sed 's/^/  /'
+    echo ""
+}
+
+# Validate configuration files
+env_validate() {
+    echo -e "\n${BLUE}Validating Environment Configuration...${NC}"
+    
+    # Source current config
+    if [[ -f "$ECC_FILE" ]]; then
+        source "$ECC_FILE"
+    else
+        echo -e "${RED}Error: Environment controller file not found${NC}"
+        return 1
+    fi
+    
+    local errors=0
+    local base_config="${LAB_DIR}/cfg/env/${SITE_NAME}"
+    local env_config="${LAB_DIR}/cfg/env/${SITE_NAME}-${ENVIRONMENT_NAME}"
+    local node_config="${LAB_DIR}/cfg/env/${SITE_NAME}-${NODE_NAME}"
+    
+    # Check base configuration
+    if [[ ! -f "$base_config" ]]; then
+        echo -e "${RED}✗ Missing base site configuration: $base_config${NC}"
+        ((errors++))
+    else
+        echo -e "${GREEN}✓ Base site configuration found${NC}"
+        
+        # Basic syntax check
+        if bash -n "$base_config" 2>/dev/null; then
+            echo -e "${GREEN}  ✓ Syntax valid${NC}"
+        else
+            echo -e "${RED}  ✗ Syntax errors detected${NC}"
+            ((errors++))
+        fi
+    fi
+    
+    # Check environment override (optional)
+    if [[ -f "$env_config" ]]; then
+        echo -e "${GREEN}✓ Environment override found${NC}"
+        if bash -n "$env_config" 2>/dev/null; then
+            echo -e "${GREEN}  ✓ Syntax valid${NC}"
+        else
+            echo -e "${RED}  ✗ Syntax errors detected${NC}"
+            ((errors++))
+        fi
+    else
+        echo -e "${YELLOW}○ Environment override not found (optional)${NC}"
+    fi
+    
+    # Check node override (optional)
+    if [[ -f "$node_config" ]]; then
+        echo -e "${GREEN}✓ Node override found${NC}"
+        if bash -n "$node_config" 2>/dev/null; then
+            echo -e "${GREEN}  ✓ Syntax valid${NC}"
+        else
+            echo -e "${RED}  ✗ Syntax errors detected${NC}"
+            ((errors++))
+        fi
+    else
+        echo -e "${YELLOW}○ Node override not found (optional)${NC}"
+    fi
+    
+    if [[ $errors -eq 0 ]]; then
+        echo -e "\n${GREEN}✓ All validations passed${NC}"
+        return 0
+    else
+        echo -e "\n${RED}✗ $errors validation error(s) found${NC}"
+        return 1
+    fi
+}
+
+# Show usage
+env_usage() {
+    cat << 'EOF'
+Environment Management Utility
+
+Usage:
+  env <command> [arguments]
+
+Commands:
+  switch-env <env>     Switch environment (dev/test/staging/prod)
+  switch-site <site>   Switch site (site1/site2/etc)
+  switch-node <node>   Switch node (w1/w2/x1/x2/etc)
+  status               Show current environment configuration
+  list                 List available configurations
+  validate             Validate configuration files
+  help                 Show this help message
+
+Examples:
+  env switch-env dev
+  env switch-site site2
+  env switch-node w2
+  env status
+  env list
+  env validate
+
+Environment Variables (for automation):
+  SITE_NAME=site2 ENVIRONMENT_NAME=dev ./bin/init
+EOF
+}
+
+# Main function for command-line usage
+main() {
+    case "${1:-help}" in
+        switch-env|env)
+            env_switch "$2"
+            ;;
+        switch-site|site)
+            site_switch "$2"
+            ;;
+        switch-node|node)
+            node_switch "$2"
+            ;;
+        status|stat)
+            env_status
+            ;;
+        list|ls)
+            env_list
+            ;;
+        validate|check)
+            env_validate
+            ;;
+        help|--help|-h)
+            env_usage
+            ;;
+        *)
+            echo -e "${RED}Unknown command: $1${NC}"
+            env_usage
+            exit 1
+            ;;
+    esac
+}
+
+# If script is executed directly (not sourced), run main
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

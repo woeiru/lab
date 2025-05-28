@@ -230,66 +230,41 @@ CT_ID_3=113
 CT_MPH_3="/sto/smb"
 CT_MPC_3="/home"
 
-# container creation
+# container creation - using infrastructure utilities
 #
 
-# container 1
-CT_1_ID=111
-CT_1_TEMPLATE=local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst
-CT_1_HOSTNAME=pbs
-CT_1_STORAGE=local-zfs
-CT_1_ROOTFS_SIZE=32
-CT_1_MEMORY=8192
-CT_1_SWAP=8192
-CT_1_NAMESERVER=8.8.8.8
-CT_1_SEARCHDOMAIN=fritz.box
-CT_1_PASSWORD=password
-CT_1_CPUS=8
-CT_1_PRIVILEGED=yes
-CT_1_NET_NIC="eth0"
-CT_1_NET_BRIDGE="vmbr0"
-CT_1_IP_ADDRESS=192.168.178.111
-CT_1_CIDR=24
-CT_1_GATEWAY=192.168.178.1
-CT_1_SSH_KEY_FILE=/root/.ssh/w1.pub
-# container 2
-CT_2_ID=112
-CT_2_TEMPLATE=local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst
-CT_2_HOSTNAME=nfs
-CT_2_STORAGE=local-zfs
-CT_2_ROOTFS_SIZE=32
-CT_2_MEMORY=8192
-CT_2_SWAP=8192
-CT_2_NAMESERVER=8.8.8.8
-CT_2_SEARCHDOMAIN=fritz.box
-CT_2_PASSWORD=password
-CT_2_CPUS=8
-CT_2_PRIVILEGED=yes
-CT_2_NET_NIC="eth0"
-CT_2_NET_BRIDGE="vmbr0"
-CT_2_IP_ADDRESS=192.168.178.112
-CT_2_CIDR=24
-CT_2_GATEWAY=192.168.178.1
-CT_2_SSH_KEY_FILE=/root/.ssh/w1.pub
-# container 3
-CT_3_ID=113
-CT_3_TEMPLATE=local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst
-CT_3_HOSTNAME=smb
-CT_3_STORAGE=local-zfs
-CT_3_ROOTFS_SIZE=32
-CT_3_MEMORY=8192
-CT_3_SWAP=8192
-CT_3_NAMESERVER=8.8.8.8
-CT_3_SEARCHDOMAIN=fritz.box
-CT_3_PASSWORD=password
-CT_3_CPUS=8
-CT_3_PRIVILEGED=yes
-CT_3_NET_NIC="eth0"
-CT_3_NET_BRIDGE="vmbr0"
-CT_3_IP_ADDRESS=192.168.178.113
-CT_3_CIDR=24
-CT_3_GATEWAY=192.168.178.1
-CT_3_SSH_KEY_FILE=/root/.ssh/w1.pub
+# Load infrastructure and security utilities
+source /home/es/lab/lib/utl/inf
+source /home/es/lab/lib/utl/sec
+
+# Initialize secure password management
+init_password_management
+
+# Set site-wide container defaults
+set_container_defaults \
+    template="local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst" \
+    storage="local-zfs" \
+    rootfs_size=32 \
+    memory=8192 \
+    swap=8192 \
+    nameserver="8.8.8.8" \
+    searchdomain="fritz.box" \
+    password='$(cat /etc/lab/passwords/ct_root.pwd 2>/dev/null || generate_secure_password 20)' \
+    cpus=8 \
+    privileged="yes" \
+    net_nic="eth0" \
+    net_bridge="vmbr0" \
+    cidr=24 \
+    gateway="192.168.178.1" \
+    ssh_key_file="/root/.ssh/w1.pub"
+
+# Define containers using bulk creation
+define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112:113:smb:192.168.178.113"
+
+# Individual container definitions for reference
+# define_container 111 pbs 192.168.178.111
+# define_container 112 nfs 192.168.178.112  
+# define_container 113 smb 192.168.178.113
 
 # VM creation
 #
@@ -318,7 +293,7 @@ VM_1_NET="model=virtio,bridge=vmbr0,firewall=1"
 
 # user creation
 NFS_USERNAME_1="es"
-NFS_PASSWORD_1=""
+NFS_PASSWORD_1='$(cat /etc/lab/passwords/nfs_user.pwd 2>/dev/null || generate_secure_password 16)'
 
 # packages
 NFS_PACKAGES_ALL=(nfs-kernel-server)
@@ -337,7 +312,7 @@ NFS_OPTIONS_1="*(rw,sync,no_root_squash,no_subtree_check)"
 
 # user creation
 SMB_USERNAME_0="es"
-SMB_PASSWORD_0=""
+SMB_PASSWORD_0='$(cat /etc/lab/passwords/smb_user.pwd 2>/dev/null || generate_secure_password 16)'
 
 # packages
 SMB_PACKAGES_ALL="samba"
@@ -353,7 +328,7 @@ SMB_WRITABLE_YESNO_1="yes"
 SMB_GUESTOK_YESNO_1="yes"
 SMB_BROWSABLE_YESNO_1="yes"
 SMB_USERNAME_1="es"
-SMB_PASSWORD_1=""
+SMB_PASSWORD_1='$(cat /etc/lab/passwords/smb_user.pwd 2>/dev/null || generate_secure_password 16)'
 SMB_CREATE_MASK_1="0775"
 SMB_DIR_MASK_1="0775"
 SMB_FORCE_USER_1="es"
@@ -366,7 +341,7 @@ SMB_WRITABLE_YESNO_2="yes"
 SMB_GUESTOK_YESNO_2="yes"
 SMB_BROWSABLE_YESNO_2="yes"
 SMB_USERNAME_2="nobody"
-SMB_PASSWORD_2=""
+SMB_PASSWORD_2='$(cat /etc/lab/passwords/smb_guest.pwd 2>/dev/null || generate_secure_password 12)'
 SMB_CREATE_MASK_2="0775"
 SMB_DIR_MASK_2="0775"
 SMB_FORCE_USER_2="nobody"
