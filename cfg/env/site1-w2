@@ -13,3 +13,131 @@ CT_3_SSH_KEY_FILE=/root/.ssh/w2.pub
 
 # w2 specific hardware configurations
 VM_1_CORES=6  # w2 has fewer cores available
+
+# ========================================================================
+# NODE-SPECIFIC OVERRIDE EXAMPLES (uncomment as needed)
+# ========================================================================
+
+# Example 1: Hardware-specific resource allocation
+# Uncomment based on w2 hardware capabilities:
+# CT_111_MEMORY=4096           # w2 has less RAM available
+# CT_112_MEMORY=2048
+# CT_113_MEMORY=2048
+# CT_111_CPUS=4                # w2 has fewer CPU cores
+# CT_112_CPUS=2
+# CT_113_CPUS=2
+
+# Example 2: Node-specific storage configuration
+# Uncomment for w2-specific storage setup:
+# CT_111_STORAGE=local-lvm     # w2 uses different storage backend
+# CT_112_STORAGE=local-lvm
+# CT_113_STORAGE=local-lvm
+# CT_111_ROOTFS_SIZE=16        # Smaller storage on w2
+# CT_112_ROOTFS_SIZE=16
+# CT_113_ROOTFS_SIZE=16
+
+# Example 3: Network configuration for w2
+# Uncomment for w2-specific networking:
+# CT_111_NET_BRIDGE=vmbr1      # w2 uses different bridge
+# CT_112_NET_BRIDGE=vmbr1
+# CT_113_NET_BRIDGE=vmbr1
+# CT_111_NAMESERVER=192.168.178.120  # Use w2 as DNS server
+# CT_112_NAMESERVER=192.168.178.120
+# CT_113_NAMESERVER=192.168.178.120
+
+# Example 4: w2-specific container IDs (if needed)
+# Uncomment to use different container ID ranges on w2:
+# CT_111_ID=201                # Use 200+ range for w2
+# CT_112_ID=202
+# CT_113_ID=203
+
+# Example 5: Security configuration for w2
+# Uncomment for w2-specific security settings:
+# CT_111_PASSWORD='$(cat /tmp/lab_passwords/w2_ct_root.pwd 2>/dev/null || generate_secure_password 20)'
+# CT_112_PASSWORD='$(cat /tmp/lab_passwords/w2_ct_root.pwd 2>/dev/null || generate_secure_password 20)'
+# CT_113_PASSWORD='$(cat /tmp/lab_passwords/w2_ct_root.pwd 2>/dev/null || generate_secure_password 20)'
+
+# Example 6: w2 performance tuning
+# Uncomment for w2-specific performance settings:
+# CT_111_SWAP=4096             # More swap due to limited RAM
+# CT_112_SWAP=2048
+# CT_113_SWAP=2048
+# CT_111_PRIVILEGED=yes        # Enable privileged if needed for performance
+# CT_112_PRIVILEGED=no         # Keep services unprivileged for security
+# CT_113_PRIVILEGED=no
+
+# Example 7: Conditional configurations based on w2 capabilities
+# Uncomment if w2 has specific hardware requirements:
+# if [[ $(hostname) == "w2" ]]; then
+#     CT_111_NET_NIC="eth1"    # Use different network interface
+#     CT_111_STARTUP=0         # Don't auto-start resource-heavy containers
+# fi
+
+# ========================================================================
+# END NODE-SPECIFIC OVERRIDE EXAMPLES
+# ========================================================================
+
+# ========================================================================
+# VM NODE-SPECIFIC OVERRIDE EXAMPLES (uncomment as needed)
+# ========================================================================
+
+# Example 1: Hardware-specific VM resource allocation for w2
+# Uncomment based on w2 hardware capabilities:
+# VM_211_MEMORY=4096           # w2 has less RAM available for VMs
+# VM_211_CORES=4               # w2 has fewer CPU cores available
+# VM_211_SOCKETS=1             # Single socket due to hardware
+# VM_211_BALLOON=2048          # Conservative balloon memory
+
+# VM_212_MEMORY=2048           # Smaller secondary VM
+# VM_212_CORES=2               # Limited cores for secondary VM
+# VM_212_BALLOON=1024          # Minimal balloon
+
+# Example 2: w2-specific storage configuration
+# Uncomment for w2-specific storage setup:
+# VM_211_DISK="local-lvm:64,ssd=0"    # w2 uses different storage backend
+# VM_212_DISK="local-lvm:32,ssd=0"
+# VM_211_EFIDISK="local-lvm:1,efitype=4m,pre-enrolled-keys=1,size=1M"
+
+# Example 3: Network configuration for w2 VMs
+# Uncomment for w2-specific networking:
+# VM_211_NET="model=virtio,bridge=vmbr1"      # w2 uses different bridge
+# VM_212_NET="model=e1000,bridge=vmbr1"       # Different adapter for compatibility
+# VM_213_NET="model=virtio,bridge=vmbr1,firewall=1"
+
+# Example 4: w2-specific VM IDs (if needed)
+# Uncomment to use different VM ID ranges on w2:
+# VM_1_ID=301                  # Use 300+ range for w2 VMs
+# VM_2_ID=302
+# VM_3_ID=303
+
+# Example 5: Performance tuning for w2 VMs
+# Uncomment for w2-specific performance settings:
+# VM_211_CPU="host,migratable=on"      # Enable migration for flexibility
+# VM_211_MACHINE="pc-i440fx-8.1"      # Use older, more compatible machine type
+# VM_211_BALLOON=0                     # Disable ballooning if memory is tight
+
+# VM_212_CORES=1                       # Minimal core allocation
+# VM_212_MEMORY=1024                   # Very conservative memory
+# VM_212_AGENT="0"                     # Disable agent to save resources
+
+# Example 6: w2 VM startup configuration
+# Uncomment for w2-specific startup behavior:
+# VM_211_STARTUP="order=3,up=30"       # Delayed startup due to limited resources
+# VM_212_STARTUP="order=4,up=60"       # Even later startup
+# VM_213_STARTUP="order=1,up=0"        # Don't auto-start heavy VMs
+
+# Example 7: Conditional VM configurations based on w2 capabilities
+# Uncomment if w2 has specific hardware limitations:
+# if [[ $(hostname) == "w2" ]]; then
+#     VM_211_CORES=2               # Force lower core count on w2
+#     VM_211_MEMORY=2048           # Force lower memory on w2
+#     VM_211_BALLOON=1024          # Conservative balloon on w2
+# fi
+
+# Example 8: w2-specific VM creation using bulk function
+# Uncomment for w2-optimized VM setup:
+# define_vms "331:w2-minimal:local:iso/alpine-standard-3.18.4-x86_64.iso:local-lvm:16:model=virtio,bridge=vmbr1:332:w2-service:local:iso/debian-12.2.0-amd64-netinst.iso:local-lvm:32:model=e1000,bridge=vmbr1"
+
+# ========================================================================
+# END VM NODE-SPECIFIC OVERRIDE EXAMPLES
+# ========================================================================

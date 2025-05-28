@@ -19,3 +19,116 @@ CT_3_PASSWORD=devpass
 CT_1_PRIVILEGED=no
 CT_2_PRIVILEGED=no
 CT_3_PRIVILEGED=no
+
+# ========================================================================
+# DEVELOPMENT ENVIRONMENT OVERRIDE EXAMPLES (uncomment as needed)
+# ========================================================================
+
+# Example 1: Override global defaults for development environment
+# Uncomment to set lower resource defaults for all containers in dev:
+# set_container_defaults \
+#     memory=2048 \
+#     cpus=2 \
+#     privileged="no" \
+#     swap=2048
+
+# Example 2: Development-specific container settings
+# Uncomment these for dev-specific container configurations:
+# CT_111_MEMORY=1024           # PBS with minimal memory for dev
+# CT_111_CPUS=1                # PBS with single CPU for dev
+# CT_111_STORAGE=local         # Use local storage instead of ZFS for dev
+
+# CT_112_MEMORY=512            # Minimal NFS for dev
+# CT_112_ROOTFS_SIZE=8         # Smaller root filesystem for dev
+
+# CT_113_MEMORY=1024           # Smaller SMB for dev
+# CT_113_NET_BRIDGE=vmbr1      # Use development network bridge
+
+# Example 3: Development networking
+# Uncomment for dev-specific network settings:
+# CT_111_IP_ADDRESS=192.168.179.111    # Use dev network range
+# CT_112_IP_ADDRESS=192.168.179.112
+# CT_113_IP_ADDRESS=192.168.179.113
+# CT_111_GATEWAY=192.168.179.1         # Dev gateway
+# CT_112_GATEWAY=192.168.179.1
+# CT_113_GATEWAY=192.168.179.1
+
+# Example 4: Development templates
+# Uncomment to use lightweight templates for dev:
+# CT_111_TEMPLATE="local:vztmpl/alpine-3.18-default_20230607_amd64.tar.xz"
+# CT_112_TEMPLATE="local:vztmpl/alpine-3.18-default_20230607_amd64.tar.xz" 
+# CT_113_TEMPLATE="local:vztmpl/alpine-3.18-default_20230607_amd64.tar.xz"
+
+# Example 5: Development security settings
+# Uncomment for relaxed security in dev environment:
+# CT_111_PASSWORD=devpass123
+# CT_112_PASSWORD=devpass123
+# CT_113_PASSWORD=devpass123
+# CT_111_SSH_KEY_FILE="/root/.ssh/dev_key.pub"
+# CT_112_SSH_KEY_FILE="/root/.ssh/dev_key.pub"
+# CT_113_SSH_KEY_FILE="/root/.ssh/dev_key.pub"
+
+# Example 6: Disable services for development
+# Uncomment to create minimal development containers:
+# CT_111_STARTUP=0             # Don't auto-start containers
+# CT_112_STARTUP=0
+# CT_113_STARTUP=0
+
+# ========================================================================
+# END DEVELOPMENT OVERRIDE EXAMPLES
+# ========================================================================
+
+# ========================================================================
+# VM DEVELOPMENT OVERRIDE EXAMPLES (uncomment as needed)
+# ========================================================================
+
+# Example 1: Override global VM defaults for development environment
+# Uncomment to set lower resource defaults for all VMs in dev:
+# set_vm_defaults \
+#     cores=2 \
+#     memory=2048 \
+#     balloon=1024 \
+#     sockets=1
+
+# Example 2: Development-specific VM settings
+# Uncomment these for dev-specific VM configurations:
+# VM_211_MEMORY=1024           # Minimal memory for dev VM
+# VM_211_CORES=1               # Single core for dev
+# VM_211_BALLOON=512           # Minimal balloon memory
+# VM_211_DISK="local:32,ssd=0" # Smaller, non-SSD storage for dev
+
+# VM_212_MEMORY=2048           # Small test VM
+# VM_212_CORES=2               # Dual core for testing
+# VM_212_AGENT="0"             # Disable agent for simplicity
+
+# Example 3: Development VM templates and ISOs
+# Uncomment for lightweight development VMs:
+# VM_211_ISO="local:iso/alpine-standard-3.18.4-x86_64.iso"  # Lightweight Alpine
+# VM_212_ISO="local:iso/ubuntu-22.04.3-live-server-amd64.iso" # Ubuntu Server
+# VM_213_ISO="local:iso/debian-12.2.0-amd64-netinst.iso"   # Debian minimal
+
+# Example 4: Development networking
+# Uncomment for dev-specific network settings:
+# VM_211_NET="model=virtio,bridge=vmbr1"    # Development bridge
+# VM_212_NET="model=e1000,bridge=vmbr1"     # Different adapter for testing
+# VM_213_NET="model=virtio,bridge=vmbr0,firewall=0" # No firewall for dev
+
+# Example 5: Development storage configurations
+# Uncomment for dev-specific storage:
+# VM_211_DISK="local:16,ssd=0,cache=writeback"      # Small, cached storage
+# VM_212_DISK="local-lvm:32,ssd=0,discard=off"      # Basic LVM storage
+# VM_213_EFIDISK="local:1,efitype=4m,size=1M"       # Minimal EFI disk
+
+# Example 6: Disable auto-start for development VMs
+# Uncomment to prevent VMs from auto-starting:
+# VM_211_STARTUP="order=1,up=0"   # Don't auto-start
+# VM_212_STARTUP="order=1,up=0"
+# VM_213_STARTUP="order=1,up=0"
+
+# Example 7: Development-specific VM creation using bulk function
+# Uncomment for quick dev VM setup:
+# define_vms "221:dev-web:local:iso/alpine-standard-3.18.4-x86_64.iso:local:16:model=virtio,bridge=vmbr1:222:dev-db:local:iso/debian-12.2.0-amd64-netinst.iso:local:24:model=virtio,bridge=vmbr1"
+
+# ========================================================================
+# END VM DEVELOPMENT OVERRIDE EXAMPLES
+# ========================================================================
