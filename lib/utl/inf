@@ -1,14 +1,78 @@
 #!/bin/bash
 #######################################################################
-# Infrastructure Configuration Utilities
+# Infrastructure Configuration Utilities Library
 #######################################################################
-# Purpose:
-#   Provides helper functions for defining and managing infrastructure
-#   configurations to reduce repetitive definitions and improve
-#   maintainability of container and VM configurations.
+# File: /home/es/lab/lib/utl/inf
+# Description: Comprehensive infrastructure configuration management system
+#              providing standardized container and VM definition utilities
+#              with configurable defaults and bulk creation capabilities.
 #
-# Functions:
-#   - define_container: Create standardized container configuration
+# Author: Environment Management System
+# Created: 2025-05-28
+# Version: 1.0.0
+# License: Lab Environment Internal Use
+#
+# Dependencies:
+#   - Bash 4.0+ (for associative arrays and nameref support)
+#   - Standard UNIX utilities (tr, head, etc.)
+#
+# Purpose:
+#   This library eliminates repetitive infrastructure configuration code
+#   by providing standardized functions for container and VM definitions.
+#   It supports hierarchical defaults, bulk creation, and configuration
+#   validation to ensure consistent infrastructure deployments.
+#
+# Key Features:
+#   - Standardized container/VM creation with 19+ configurable parameters
+#   - Hierarchical default configuration system
+#   - Bulk creation from colon-separated definition strings
+#   - Automatic IP sequence generation for network planning
+#   - Configuration validation and summary reporting
+#   - Export of all variables for use in deployment scripts
+#
+# Usage Example:
+#   source /home/es/lab/lib/utl/inf
+#   set_container_defaults memory=4096 storage="local-lvm"
+#   define_container 101 101 "webserver" "192.168.1.101"
+#   define_containers "102:db:192.168.1.102:103:cache:192.168.1.103"
+#
+# Configuration Variables Created:
+#   CT_{ID}_* - Container configuration variables
+#   VM_{ID}_* - Virtual machine configuration variables
+#   CT_DEFAULT_* - Global container defaults
+#   VM_DEFAULT_* - Global VM defaults
+#
+# Functions Provided:
+#   - set_container_defaults: Configure global container defaults
+#   - set_vm_defaults: Configure global VM defaults
+#   - define_container: Create single container configuration
+#   - define_containers: Create multiple containers from string
+#   - define_vm: Create virtual machine configuration
+#   - generate_ip_sequence: Generate sequential IP addresses
+#   - validate_config: Validate current configuration
+#   - show_config_summary: Display configuration overview
+#   - show_help: Display usage information
+#
+# Security Considerations:
+#   - All variables are exported globally for deployment script access
+#   - Password defaults should use secure generation functions
+#   - File permissions should be restricted for production use
+#
+# Performance Notes:
+#   - Functions are optimized for batch processing
+#   - IP generation uses efficient arithmetic expansion
+#   - Variable creation uses declare -g for global scope
+#
+# Integration Points:
+#   - Works with security utilities (/home/es/lab/lib/utl/sec)
+#   - Integrates with environment management (/home/es/lab/lib/aux/src)
+#   - Compatible with existing deployment scripts
+#
+# Maintenance:
+#   - Update default values in global constants section
+#   - Extend parameter lists in define_* functions as needed
+#   - Add new utility functions following existing patterns
+#######################################################################
 #   - define_vm: Create standardized VM configuration  
 #   - set_container_defaults: Set default values for containers
 #   - set_vm_defaults: Set default values for VMs
