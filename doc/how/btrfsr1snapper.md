@@ -1,3 +1,44 @@
+<!--
+#######################################################################
+# Btrfs RAID 1 with Snapper Setup Guide - Technical Reference
+#######################################################################
+# File: /home/es/lab/doc/how/btrfsr1snapper.md
+# Description: Comprehensive step-by-step guide for setting up Btrfs
+#              RAID 1 configuration with Snapper snapshot management
+#              on openSUSE-based systems.
+#
+# Author: Storage Administration Team
+# Created: 2025-05-28
+# Updated: 2025-05-28
+# Version: 1.0.0
+# Category: Technical Documentation - How-To Guide
+#
+# Document Purpose:
+#   Provides detailed procedural instructions for implementing
+#   Btrfs RAID 1 storage configuration with automated snapshot
+#   management through Snapper integration.
+#
+# Technical Scope:
+#   - Btrfs filesystem RAID 1 configuration
+#   - Snapper snapshot management setup
+#   - openSUSE transactional-update integration
+#   - Storage repository configuration procedures
+#
+# Target Audience:
+#   Storage administrators, system engineers, and infrastructure
+#   specialists implementing advanced filesystem configurations
+#   with automated backup and snapshot capabilities.
+#
+# Dependencies:
+#   - openSUSE operating system
+#   - Btrfs filesystem utilities
+#   - Snapper snapshot management tools
+#   - Lab environment repository access
+#######################################################################
+-->
+
+# Btrfs RAID 1 with Snapper Setup Guide
+
 ### 1 - install basics
 transactional-update pkg in git tree
 git clone https://github.com/woeiru/lab.git
