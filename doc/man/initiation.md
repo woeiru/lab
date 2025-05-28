@@ -1,27 +1,73 @@
 # User Interaction and Configuration Guide
 
-This document outlines the various ways users can interact with and configure the behavior of this shell script system. These interactions primarily involve setting environment variables before script execution or calling specific functions provided by the system's modules once the environment is initialized.
+This document provides comprehensive guidance on configuring and interacting with the shell script system. It covers environment variables, runtime controls, verbosity settings, and advanced configuration options for optimal system operation.
+
+## Quick Start
+
+For immediate use:
+```bash
+# Basic initialization
+./bin/init
+
+# With custom logging directory
+export LOG_DIR="/custom/log/path"
+./bin/init
+
+# Quiet mode (minimal terminal output)
+export MASTER_TERMINAL_VERBOSITY="off"
+./bin/init
+```
 
 ## 1. Global Configuration via Environment Variables
 
-These variables are typically set in your shell environment *before* executing the main initialization script (e.g., `bin/init`).
+These variables must be set in your shell environment **before** executing the main initialization script (`bin/init`). They control fundamental system behavior and cannot be changed during runtime.
 
-### `LOG_DEBUG_ENABLED` (for `lo1` module)
-*   **Purpose**: Specifically enables or disables the `lo1_debug_log` messages from the advanced logging module `lo1`.
+### Verbosity Control
+
+#### `MASTER_TERMINAL_VERBOSITY`
+*   **Purpose**: Master switch controlling all terminal output across the system
+*   **Default**: `"off"` (set in `cfg/core/ric`)
+*   **Values**: `"on"` | `"off"`
+*   **Impact**: When `"off"`, suppresses all terminal output while preserving file logging
+*   **Example**:
+    ```bash
+    export MASTER_TERMINAL_VERBOSITY="on"
+    ./bin/init  # Enables verbose terminal output
+    ```
+
+#### Module-Specific Verbosity Controls
+These only take effect when `MASTER_TERMINAL_VERBOSITY="on"`:
+
+*   **`DEBUG_LOG_TERMINAL_VERBOSITY`** (`"on"` by default)
+    - Controls early initialization and verification debug output
+*   **`LO1_LOG_TERMINAL_VERBOSITY`** (`"on"` by default)
+    - Controls advanced logging module terminal output
+*   **`ERR_TERMINAL_VERBOSITY`** (`"on"` by default)
+    - Controls error handling module terminal output
+*   **`TME_TERMINAL_VERBOSITY`** (`"on"` by default)
+    - Controls timing module report output
+
+### Logging Configuration
+
+#### `LOG_DEBUG_ENABLED`
+*   **Purpose**: Enables/disables debug messages from the `lo1` advanced logging module
 *   **Module Affected**: `lib/core/lo1`
-*   **Usage**:
-    *   `1`: Enable `lo1` debug messages (this is the default set within `lo1.sh`).
-    *   `0`: Disable `lo1` debug messages.
+*   **Default**: `1` (enabled)
+*   **Values**: `1` (enable) | `0` (disable)
 *   **Example**:
     ```bash
     export LOG_DEBUG_ENABLED=0
-    # Subsequent operations will have lo1_debug_log disabled
+    ./bin/init  # Disables lo1 debug messages
     ```
 
-### Directory Path Overrides (`LOG_DIR`, `TMP_DIR`, etc.)
-*   **Purpose**: Allows customization of base directories for logs, temporary files, and potentially other system artifacts. These are defined in `cfg/core/ric`.
-*   **Modules Affected**: Potentially all modules that use these common paths (`err`, `lo1`, `lo2`, `tme`).
-*   **Usage**: Set the desired environment variable to an absolute path.
+#### Directory Path Overrides
+*   **Purpose**: Customize base directories for logs, temporary files, and system artifacts
+*   **Defined in**: `cfg/core/ric`
+*   **Modules Affected**: All core modules (`err`, `lo1`, `tme`, etc.)
+*   **Available Variables**:
+    - `LOG_DIR`: Directory for all log files (default: `${LAB_DIR}/.log`)
+    - `TMP_DIR`: Directory for temporary/state files (default: `${LAB_DIR}/.tmp`)
+
 *   **Example**:
     ```bash
     export LOG_DIR="/mnt/custom_storage/system_logs"
@@ -31,49 +77,251 @@ These variables are typically set in your shell environment *before* executing t
 
 ## 2. Runtime Control via Shell Functions
 
-These functions are available after the system's modules have been sourced, typically after `bin/init` has completed or if individual modules are sourced in an interactive session.
+These functions become available after the system's modules have been loaded, typically after `bin/init` completes successfully. They provide dynamic control over system behavior during runtime.
 
 ### Error Handling (`lib/core/err`)
 
 *   **`enable_error_trap()`**
-    *   **Purpose**: Activates the shell's `ERR` trap. When enabled, the script will typically exit immediately if a command fails.
+    *   **Purpose**: Activates the shell's `ERR` trap for immediate script termination on command failures
     *   **Usage**: `enable_error_trap`
+    *   **Note**: Global variable `ERROR_TRAP_ENABLED` reflects this state
 
 *   **`disable_error_trap()`**
-    *   **Purpose**: Deactivates the `ERR` trap.
+    *   **Purpose**: Deactivates the `ERR` trap
     *   **Usage**: `disable_error_trap`
-
-*   **Note**: The global variable `ERROR_TRAP_ENABLED` (set to `1` or `0`) also reflects and can control this state.
 
 ### Advanced Logging (`lib/core/lo1`)
 
 *   **`setlog on|off`**
-    *   **Purpose**: Enables or disables the console and file logging output of the `lo1` logging system.
-    *   **Verification**: This function is defined in `lib/core/lo1` and works by writing "on" or "off" to the state file read by the main logging function.
+    *   **Purpose**: Controls console and file logging output from the `lo1` logging system
+    *   **Implementation**: Writes state to `${TMP_DIR}/lo1_state` file
     *   **Usage**:
         ```bash
-        setlog on  # Enable lo1 console and file output
-        setlog off # Disable lo1 console and file output
+        setlog on   # Enable lo1 logging output
+        setlog off  # Disable lo1 logging output
         ```
+    *   **Verification**: Function confirmed in `lib/core/lo1`
 
 ### Timing and Performance Monitoring (`lib/core/tme`)
 
-*   **`tme_settme [options]`**
-    *   **Purpose**: The module comments in `lib/core/tme` suggest this function is intended to allow users to "control aspects of the timer's behavior or output."
-    *   **Verification**: This function is **not currently implemented** in the provided `lib/core/tme` script, though its purpose is documented in the comments.
-    *   **Usage**: `tme_settme [specific_option_here]` (if implemented)
+*   **`tme_settme [command] [value]`**
+    *   **Purpose**: Controls various aspects of the timing system behavior and output
+    *   **Implementation**: **Now fully implemented** in `lib/core/tme`
+    *   **Commands**:
+        - `report on|off`: Enable/disable timing report output
+        - `sort chron|duration`: Set report sort order (chronological vs. duration-based)
+        - `depth <number>`: Set maximum depth for timing tree display (1-9)
+    *   **Usage**:
+        ```bash
+        tme_settme report on        # Enable timing reports
+        tme_settme sort duration    # Sort by execution time
+        tme_settme depth 5          # Show up to 5 levels deep
+        ```
 
 *   **`tme_print_timing_report`**
-    *   **Purpose**: Displays a formatted report of all timed events, including durations and statuses.
+    *   **Purpose**: Displays formatted performance report of all timed operations
+    *   **Features**: 
+        - Hierarchical component display
+        - Duration and percentage calculations
+        - Color-coded output by depth
+        - Status indicators (✓ success, ✗ error, ⏳ running)
     *   **Usage**: `tme_print_timing_report`
 
-*   **Timing Report Sort Order (via `TME_SORT_ORDER_FILE_PATH`)**
-    *   **Purpose**: The `tme` module uses a variable `TME_SORT_ORDER_FILE_PATH` which points to a configuration file. Users can potentially create and edit this file to define a custom sort order for the output of `tme_print_timing_report`.
-    *   **Usage**: The exact format and content of this file are not specified in the provided snippets and would be specific to the `tme` module's implementation. You would need to consult further documentation or the `tme` script's source for details on how to structure this file.
+*   **`tme_start_timer <component> [parent]`**
+    *   **Purpose**: Start timing a named component with optional parent relationship
+    *   **Usage**: `tme_start_timer "DATABASE_INIT" "MAIN_OPERATIONS"`
+
+*   **`tme_end_timer <component> [status]`**
+    *   **Purpose**: End timing for a component with optional status
+    *   **Status Values**: `success`, `error`, `interrupted`, etc.
+    *   **Usage**: `tme_end_timer "DATABASE_INIT" "success"`
+
+### Advanced Configuration Files
+
+#### Timing Sort Order Configuration
+*   **File**: `${TMP_DIR}/tme_sort_order`
+*   **Purpose**: Persistent sort order setting for timing reports
+*   **Values**: `chron` (chronological) | `duration` (by execution time)
+*   **Management**: Controlled via `tme_settme sort` command
+
+#### Timing Report Depth Configuration  
+*   **File**: `${TMP_DIR}/tme_levels`
+*   **Purpose**: Maximum depth for hierarchical timing display
+*   **Values**: Numbers 1-9 (depth levels)
+*   **Management**: Controlled via `tme_settme depth` command
+
+#### Logging State Files
+*   **Lo1 State**: `${TMP_DIR}/lo1_state` - Controls `lo1` output (`on`/`off`)
+*   **Timing State**: `${TMP_DIR}/tme_state` - Controls timing reports (`true`/`false`)
+
+## 3. System Integration Features
+
+### Shell Integration (`bin/env/rc`)
+
+The system provides shell integration capabilities through the `bin/env/rc` script:
+
+*   **Purpose**: Inject initialization code into user shell configuration files
+*   **Supported Shells**: Bash (4+), Zsh (5+)
+*   **Features**:
+    - Non-destructive configuration updates
+    - Backup capability
+    - User-specific targeting
+*   **Usage**:
+    ```bash
+    ./bin/env/rc [-y] [-u|--user USER] [-c|--config FILE]
+    ```
+
+### Component Orchestration
+
+The system uses a component-based initialization approach:
+
+*   **Core Components**: Managed by `bin/core/comp`
+*   **Module Loading**: Progressive loading with dependency validation
+*   **Error Recovery**: Fallback to minimal environment on failures
+
+### Performance Monitoring Integration
+
+Timing is automatically integrated throughout the initialization process:
+
+*   **Main Operations**: Overall initialization timing
+*   **Module Loading**: Individual module load times
+*   **Component Setup**: Each component's setup duration
+*   **Function Registration**: Time to verify and register functions
+
+## 4. Troubleshooting and Diagnostics
+
+### Log File Locations
+
+*   **Debug Log**: `${LOG_DIR}/debug.log` - Early initialization and verification messages
+*   **Main Log**: `${LOG_DIR}/lo1.log` - Primary application and lo1 module messages  
+*   **Error Log**: `${LOG_DIR}/err.log` - System errors and warnings
+*   **Timing Log**: `${LOG_DIR}/tme.log` - Detailed timing information
+*   **Init Flow**: `${LOG_DIR}/init_flow.log` - Initialization sequence tracking
+
+### State Files for Debugging
+
+*   **Lo1 State**: `${TMP_DIR}/lo1_state` - Current logging state
+*   **Error State**: `${TMP_DIR}/err_state` - Error handling state
+*   **Timing State**: `${TMP_DIR}/tme_state` - Timing report enablement
+*   **Depth Cache**: `${TMP_DIR}/lo1_depth_cache` - Call stack depth cache
+
+### Common Issues and Solutions
+
+#### Initialization Failures
+```bash
+# Check initialization logs
+cat ${LOG_DIR}/debug.log
+cat ${LOG_DIR}/init_flow.log
+
+# Verify essential components
+ls -la ${LOG_DIR} ${TMP_DIR}
+```
+
+#### Missing Functions
+```bash
+# Check if modules loaded properly
+type -t setlog tme_settme enable_error_trap
+
+# Verify module files exist
+ls -la lib/core/{err,lo1,tme}
+```
+
+#### Performance Issues
+```bash
+# Enable timing and generate report
+tme_settme report on
+./bin/init
+tme_print_timing_report
+```
+
+## 5. Advanced Usage Patterns
+
+### Custom Environment Setup
+
+```bash
+# Create custom configuration
+export MASTER_TERMINAL_VERBOSITY="on"
+export LOG_DEBUG_ENABLED=1
+export LOG_DIR="/var/log/myapp"
+export TMP_DIR="/tmp/myapp"
+
+# Initialize with custom settings
+./bin/init
+
+# Configure runtime behavior
+setlog on
+tme_settme report on
+tme_settme sort duration
+```
+
+### Scripted Integration
+
+```bash
+#!/bin/bash
+# Example script using the system
+
+# Set environment
+export MASTER_TERMINAL_VERBOSITY="off"  # Quiet mode
+export LOG_DIR="/var/log/myproject"
+
+# Initialize system
+source ./bin/init || exit 1
+
+# Use system functions
+tme_start_timer "MY_OPERATION"
+# ... do work ...
+tme_end_timer "MY_OPERATION" "success"
+
+# Generate report
+tme_print_timing_report
+```
+
+### Development and Debugging
+
+```bash
+# Maximum verbosity for debugging
+export MASTER_TERMINAL_VERBOSITY="on"
+export DEBUG_LOG_TERMINAL_VERBOSITY="on"
+export LO1_LOG_TERMINAL_VERBOSITY="on"
+export ERR_TERMINAL_VERBOSITY="on"
+export TME_TERMINAL_VERBOSITY="on"
+export LOG_DEBUG_ENABLED=1
+
+# Initialize and monitor
+./bin/init
+tail -f ${LOG_DIR}/debug.log &
+tail -f ${LOG_DIR}/lo1.log &
+```
 
 ## General Usage Notes
 
-*   To use the functions described above (e.g., `setlog`, `enable_error_trap`), the corresponding modules must have been loaded into your current shell environment. This is typically handled by the main `bin/init` script.
-*   Environment variables should be set *before* the `init` script or relevant modules are loaded to ensure they take effect.
-*   The availability and exact behavior of functions like `setlog` and `setlogcontrol` have been verified against their source code.
-*   The function `tme_settme` is mentioned in comments within `lib/core/tme` but is not implemented in the provided version of the script. Refer to the specific module source code for the most accurate implementation details.
+*   **Module Dependencies**: Functions like `setlog`, `enable_error_trap`, and `tme_settme` require their corresponding modules to be loaded via `bin/init`
+*   **Environment Variables**: Must be set **before** running `bin/init` to take effect during initialization
+*   **Function Availability**: All runtime control functions are verified to exist in their respective modules
+*   **State Persistence**: Settings made via `setlog` and `tme_settme` persist across sessions through state files
+*   **Performance Impact**: Debug logging and verbose output can impact performance; use judiciously in production
+*   **Compatibility**: System requires Bash 4+ for full functionality
+
+## Configuration Reference
+
+### Default Values Summary
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MASTER_TERMINAL_VERBOSITY` | `"off"` | Master terminal output control |
+| `DEBUG_LOG_TERMINAL_VERBOSITY` | `"on"` | Debug message terminal output |
+| `LO1_LOG_TERMINAL_VERBOSITY` | `"on"` | Lo1 module terminal output |
+| `ERR_TERMINAL_VERBOSITY` | `"on"` | Error module terminal output |
+| `TME_TERMINAL_VERBOSITY` | `"on"` | Timing module terminal output |
+| `LOG_DEBUG_ENABLED` | `1` | Lo1 debug message enablement |
+| `LOG_DIR` | `${LAB_DIR}/.log` | Log file directory |
+| `TMP_DIR` | `${LAB_DIR}/.tmp` | Temporary/state file directory |
+
+### File Permissions
+
+Ensure proper permissions for system directories:
+```bash
+chmod 700 ${LOG_DIR} ${TMP_DIR}
+chmod 644 ${LOG_DIR}/*.log
+chmod 644 ${TMP_DIR}/*_state
+```
