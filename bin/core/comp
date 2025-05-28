@@ -356,6 +356,22 @@ source_cfg_ali() {
     return $?
 }
 
+# Source the management wrapper function files (src/mgt/ directory)
+# Contains: Management wrapper functions that handle global variable extraction
+# Purpose: Wrapper functions with -w suffix that call parameterized lib/ops functions
+source_src_mgt() {
+    # Use SRC_MGT_DIR which should be defined in ric
+    if [[ -z "$SRC_MGT_DIR" ]]; then
+        log "lvl" "WARNING: SRC_MGT_DIR not defined, using default path"
+        local src_mgt_dir="$BASE_DIR/src/mgt"
+    else
+        local src_mgt_dir="$SRC_MGT_DIR"
+    fi
+    
+    source_directory "$src_mgt_dir" "*" "management wrapper function files"
+    return $?
+}
+
 setup_components() {
     log "lvl" "Validating and executing component configuration..."
     log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
@@ -372,6 +388,7 @@ setup_components() {
         "source_lib_ops:LIB_OPS:0"
         "source_lib_utl:LIB_UTL:0"
         "source_lib_aux:LIB_AUX:0"
+        "source_src_mgt:SRC_MGT:0"
     )
 
     log "lvl" "Executing component functions..."

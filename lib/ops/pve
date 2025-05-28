@@ -36,37 +36,60 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
 # Displays an overview of specific Proxmox Virtual Environment (PVE) related functions in the script, showing their usage, shortname, and description
 # overview functions
-#  
+# <script_path>
 pve-fun() {
 
     # Technical Description:
     #   Invokes the 'aux-laf' (list available functions) utility.
-    #   '$FILEPATH_pve' (dynamically set to the full path of this script) is passed as the file to analyze.
-    #   All arguments passed to 'pve-fun' are forwarded to 'aux-laf'.
-    #   Primarily used for introspection of this script's capabilities.
+    #   Accepts script path as explicit parameter for analysis.
+    #   All remaining arguments are forwarded to 'aux-laf'.
+    #   Primarily used for introspection of script capabilities.
     # Dependencies:
     #   - 'aux-laf' function.
-    #   - '$FILEPATH_pve' environment variable.
+    # Arguments:
+    #   $1: script_path - path to the script file to analyze
 
-    aux-laf "$FILEPATH_pve" "$@"
+    local script_path="$1"
+    
+    if [ -z "$script_path" ] || [ ! -f "$script_path" ]; then
+        echo "ERROR: Valid script path required" >&2
+        return 1
+    fi
+    
+    shift
+    aux-laf "$script_path" "$@"
 }
 
 # Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
-# 
+# <config_file> <analysis_dir>
 pve-var() {
 
     # Technical Description:
     #   Utilizes 'aux-acu' (analyze configuration usage) with the '-o' (overview) flag.
-    #   '$CONFIG_pve' (dynamically set from '$SITE_CONFIG_FILE') specifies the configuration file to scan.
-    #   '$DIR_FUN/..' (parent directory of this script) is passed as the scope for usage analysis.
+    #   First argument specifies the configuration file to scan.
+    #   Second argument is passed as the scope for usage analysis.
     #   Helps in understanding how PVE-related variables from the site config are used across the project.
     # Dependencies:
     #   - 'aux-acu' function.
-    #   - '$CONFIG_pve' environment variable.
-    #   - '$DIR_FUN' environment variable.
+    # Arguments:
+    #   $1: config_file - path to the configuration file to analyze
+    #   $2: analysis_dir - directory scope for usage analysis
 
-    aux-acu -o "$CONFIG_pve" "$DIR_FUN/.."
+    local config_file="$1"
+    local analysis_dir="$2"
+    
+    if [ -z "$config_file" ] || [ ! -f "$config_file" ]; then
+        echo "ERROR: Valid config file required" >&2
+        return 1
+    fi
+    
+    if [ -z "$analysis_dir" ] || [ ! -d "$analysis_dir" ]; then
+        echo "ERROR: Valid analysis directory required" >&2
+        return 1
+    fi
+
+    aux-acu -o "$config_file" "$analysis_dir"
 }
 
 # Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources 
@@ -397,7 +420,7 @@ pve-cto() {
 
 # Deploys or modifies the VM shutdown hook for GPU reattachment
 # vm shutdown hook
-# Usage: pve-vmd <operation> <vm_id> [<vm_id2> ...]
+# Usage: pve-vmd <operation> <vm_id> <hook_script> <lib_ops_dir> [<vm_id2> ...]
 pve-vmd() {
 
     # Technical Description:
@@ -407,7 +430,7 @@ pve-vmd() {
     #   'create_or_update_hook_script' inner function generates/updates this Perl script.
     #   The Perl script logs its execution to '/var/log/gpu-reattach-hook.log'.
     #   On 'post-stop' phase, the Perl script executes:
-    #     bash -c 'source ${LIB_OPS_DIR}/pve && gpu-pta'
+    #     bash -c 'source <lib_ops_dir>/pve && gpu-pta'
     #     This implies 'gpu-pta' is another script/function responsible for the actual GPU reattachment logic.
     #   'add' uses 'qm set <vmid> -hookscript local:snippets/gpu-reattach-hook.pl'.
     #   'remove' uses 'qm set <vmid> -delete hookscript'.
@@ -415,15 +438,21 @@ pve-vmd() {
     # Dependencies:
     #   - 'qm' command-line utility.
     #   - Perl interpreter (for the hook script).
-    #   - 'gpu-pta' script/function (defined elsewhere, sourced via LIB_OPS_DIR).
-    #   - '$LIB_OPS_DIR' environment variable.
+    #   - 'gpu-pta' script/function (defined elsewhere, sourced via lib_ops_dir).
     #   - 'aux-nos' for notifications.
     #   - Directory '/var/lib/vz/snippets' must be writable.
 
     local function_name="${FUNCNAME[0]}"
-    local hook_script="/var/lib/vz/snippets/gpu-reattach-hook.pl"
     local operation="$1"
     local vm_id="$2"
+    local hook_script="$3"
+    local lib_ops_dir="$4"
+
+    # Validate required parameters
+    if [[ -z "$hook_script" || -z "$lib_ops_dir" ]]; then
+        echo "Error: Missing required parameters. Usage: $function_name <operation> <vm_id> <hook_script> <lib_ops_dir>"
+        return 1
+    fi
 
     echo "Debug: Operation: $operation, VM ID: $vm_id"
 
@@ -464,7 +493,7 @@ print \$log strftime("%Y-%m-%d %H:%M:%S", localtime) . " - VM \$vmid, Phase: \$p
 
 if (\$phase eq 'post-stop') {
     print \$log "Attempting to reattach GPU for VM \$vmid\n";
-    my \$result = system("bash -c 'source ${LIB_OPS_DIR}/pve && gpu-pta'");
+    my \$result = system("bash -c 'source $lib_ops_dir/pve && gpu-pta'");
     print \$log "gpu-pta execution result: \$result\n";
 }
 
@@ -704,45 +733,58 @@ pve-vmg() {
 
 # Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices
 # vm passthrough toggle
-# <vm_id> <on|off>
+# <vm_id> <on|off> <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>
 pve-vpt() {
 
     # Technical Description:
     #   Toggles PCIe and USB device passthrough for a Proxmox VM by modifying its configuration file.
-    #   Arguments: $1 (vm_id), $2 (action: 'on' or 'off').
-    #   VM config file path: '$PVE_CONF_PATH_QEMU/<vm_id>.conf' (e.g., /etc/pve/qemu-server/<vm_id>.conf).
-    #   Relies on several host-specific environment variables for PCI IDs, USB devices, and core counts:
-    #     - '${hostname}_NODE_PCI0', '${hostname}_NODE_PCI1': PCI IDs for passthrough.
-    #     - '${hostname}_CORE_COUNT_ON', '${hostname}_CORE_COUNT_OFF': VM core counts for on/off states.
-    #     - '${hostname}_USB_DEVICES[@]': An array of USB passthrough definitions (e.g., "usb0: host=1234:5678").
+    #   Arguments: 
+    #     $1 (vm_id): VM ID
+    #     $2 (action: 'on' or 'off')
+    #     $3 (pci0_id): PCI ID for hostpci0
+    #     $4 (pci1_id): PCI ID for hostpci1  
+    #     $5 (core_count_on): VM core count when passthrough is on
+    #     $6 (core_count_off): VM core count when passthrough is off
+    #     $7 (usb_devices_str): Space-separated USB device definitions
+    #     $8 (pve_conf_path): Path to PVE config directory
+    #   VM config file path: '<pve_conf_path>/<vm_id>.conf' (e.g., /etc/pve/qemu-server/<vm_id>.conf).
     #   'on' action:
-    #     - Sets 'cores' to '${!core_count_on}'.
-    #     - Adds 'hostpci0', 'hostpci1', and all entries from '${!usb_devices_var}' to the config file.
+    #     - Sets 'cores' to 'core_count_on'.
+    #     - Adds 'hostpci0', 'hostpci1', and USB devices to the config file.
     #       These are inserted after the first '[section_header]' line found by awk.
     #   'off' action:
-    #     - Sets 'cores' to '${!core_count_off}'.
+    #     - Sets 'cores' to 'core_count_off'.
     #     - Removes all lines starting with 'usb[0-9]*:' or 'hostpci[0-9]*:' from the config.
     # Dependencies:
     #   - 'sed', 'awk', 'hostname' utilities.
-    #   - '$PVE_CONF_PATH_QEMU' environment variable.
-    #   - Predefined, hostname-specific environment variables for device IDs and core counts.
     #   - 'aux-use' for usage display.
 
     local vm_id="$1"
     local action="$2"
-    local vm_conf="$PVE_CONF_PATH_QEMU/$vm_id.conf"
-    if [ $# -ne 2 ]; then
+    local pci0_id="$3"
+    local pci1_id="$4"
+    local core_count_on="$5"
+    local core_count_off="$6"
+    local usb_devices_str="$7"
+    local pve_conf_path="$8"
+    
+    if [ $# -ne 8 ]; then
+        echo "Error: Wrong number of arguments. Expected 8, got $#"
         aux-use
         return 1
     fi
-
-    # Get hostname for variable names
-    local hostname=$(hostname)
-    local node_pci0="${hostname}_NODE_PCI0"
-    local node_pci1="${hostname}_NODE_PCI1"
-    local core_count_on="${hostname}_CORE_COUNT_ON"
-    local core_count_off="${hostname}_CORE_COUNT_OFF"
-    local usb_devices_var="${hostname}_USB_DEVICES[@]"
+    
+    local vm_conf="$pve_conf_path/$vm_id.conf"
+    
+    # Validate required parameters
+    if [[ -z "$vm_id" || -z "$action" || -z "$pci0_id" || -z "$pci1_id" || -z "$core_count_on" || -z "$core_count_off" || -z "$pve_conf_path" ]]; then
+        echo "Error: Missing required parameters"
+        aux-use
+        return 1
+    fi
+    
+    # Parse USB devices string into array
+    IFS=' ' read -ra usb_devices <<< "$usb_devices_str"
 
     # Find the starting line of the VM configuration section
     local section_start=$(awk '/^\[/{print NR-1; exit}' "$vm_conf")
@@ -751,32 +793,34 @@ pve-vpt() {
     case "$action" in
         on)
             # Set core count based on configuration when toggled on
-            sed -i "s/cores:.*/cores: ${!core_count_on}/" "$vm_conf"
+            sed -i "s/cores:.*/cores: $core_count_on/" "$vm_conf"
 
             # Add passthrough lines
             if [ -z "$section_start" ]; then
                 # If no section found, append passthrough lines at the end of the file
-                for usb_device in "${!usb_devices_var}"; do
-                    echo "$usb_device" >> "$vm_conf"
+                for usb_device in "${usb_devices[@]}"; do
+                    [ -n "$usb_device" ] && echo "$usb_device" >> "$vm_conf"
                 done
-                echo "hostpci0: ${!node_pci0},pcie=1,x-vga=1" >> "$vm_conf"
-                echo "hostpci1: ${!node_pci1},pcie=1" >> "$vm_conf"
+                echo "hostpci0: $pci0_id,pcie=1,x-vga=1" >> "$vm_conf"
+                echo "hostpci1: $pci1_id,pcie=1" >> "$vm_conf"
             else
                 # If a section is found, insert passthrough lines at the appropriate position
-                for usb_device in "${!usb_devices_var}"; do
-                    sed -i "${section_start}a\\${usb_device}" "$vm_conf"
-                    ((section_start++))
+                for usb_device in "${usb_devices[@]}"; do
+                    if [ -n "$usb_device" ]; then
+                        sed -i "${section_start}a\\${usb_device}" "$vm_conf"
+                        ((section_start++))
+                    fi
                 done
-                sed -i "${section_start}a\\hostpci0: ${!node_pci0},pcie=1,x-vga=1" "$vm_conf"
+                sed -i "${section_start}a\\hostpci0: $pci0_id,pcie=1,x-vga=1" "$vm_conf"
                 ((section_start++))
-                sed -i "${section_start}a\\hostpci1: ${!node_pci1},pcie=1" "$vm_conf"
+                sed -i "${section_start}a\\hostpci1: $pci1_id,pcie=1" "$vm_conf"
             fi
 
             echo "Passthrough lines added to $vm_conf."
             ;;
         off)
             # Set default core count when toggled off
-            sed -i "s/cores:.*/cores: ${!core_count_off}/" "$vm_conf"
+            sed -i "s/cores:.*/cores: $core_count_off/" "$vm_conf"
 
             # Remove passthrough lines
             sed -i '/^usb[0-9]*:/d; /^hostpci[0-9]*:/d' "$vm_conf"
@@ -792,62 +836,60 @@ pve-vpt() {
 
 # Checks and reports which node in the Proxmox cluster is currently hosting a specified VM
 # vm check node
-# <vm_id>
+# <vm_id> <cluster_nodes_array>
 pve-vck() {
 
     # Technical Description:
     #   Determines which node in a Proxmox VE cluster is currently hosting the specified Virtual Machine (VM).
-    #   It iterates through a list of predefined cluster nodes (expected to be in the `CLUSTER_NODES` array,
-    #   sourced from a site configuration file like `cfg/env/site1`).
+    #   It iterates through a list of cluster nodes provided as the second parameter.
     #   For each node, it uses `ssh` to execute `qm list` on remote nodes or executes `qm list` directly
     #   on the local node.
     #   The output of `qm list` is then parsed using `grep` to check if the given `vm_id` is present.
     #   If the VM is found, the function outputs the hostname of the node and returns 0.
     #   If the VM is not found on any node after checking all, it returns 1.
     #   Debug messages are printed to stderr if `set -x` or similar debugging is enabled.
-    #   The function relies on the `CLUSTER_NODES` array being populated and `ssh` access (key-based)
-    #   to other cluster nodes for remote command execution.
     # Dependencies:
     #   - `qm` command-line utility (Proxmox VE).
     #   - `ssh` client for remote node checks.
     #   - `grep` utility for parsing command output.
     #   - `hostname` utility to identify the current node.
-    #   - `CLUSTER_NODES` bash array variable (e.g., `CLUSTER_NODES=("node1" "node2")`) defined and sourced
-    #     from a configuration file (e.g., `cfg/env/site1`).
     #   - `aux-use` function for displaying usage if `vm_id` is not provided.
 
     echo "DEBUG: pve-vck called with arguments: $@" >&2
     local vm_id="$1"
+    local cluster_nodes_str="$2"
     local found_node=""
     echo "DEBUG: pve-vck: vm_id: $vm_id" >&2
 
-    # Ensure CLUSTER_NODES is defined (expected to be an array of node hostnames, e.g., ("x1" "x2"))
-    # This array should be sourced from a configuration file, e.g., site1
     if [ -z "$vm_id" ]; then
-        echo "ERR: pve-vck: VM ID not provided." >&2 # Keep existing user-facing message
+        echo "ERR: pve-vck: VM ID not provided." >&2
         echo "DEBUG: pve-vck: vm_id is empty, calling aux-use" >&2
         aux-use
         return 1
     fi
 
-    # Check if CLUSTER_NODES array is populated
-    if ! declare -p CLUSTER_NODES &>/dev/null || [[ ! "$(declare -p CLUSTER_NODES)" == "declare -a "* ]]; then
-        echo "ERR: pve-vck: CLUSTER_NODES array is not defined or not an array. Please define it in your site configuration." >&2
-        echo "DEBUG: pve-vck: CLUSTER_NODES is not a defined array" >&2
+    if [ -z "$cluster_nodes_str" ]; then
+        echo "ERR: pve-vck: cluster_nodes parameter not provided." >&2
+        echo "DEBUG: pve-vck: cluster_nodes is empty" >&2
         return 1
     fi
-    if [ ${#CLUSTER_NODES[@]} -eq 0 ]; then
-        echo "ERR: pve-vck: CLUSTER_NODES array is empty. Please define it in your site configuration." >&2 # Keep existing user-facing message
-        echo "DEBUG: pve-vck: CLUSTER_NODES array is empty" >&2
+
+    # Parse the cluster nodes string into an array
+    IFS=' ' read -ra cluster_nodes <<< "$cluster_nodes_str"
+    
+    if [ ${#cluster_nodes[@]} -eq 0 ]; then
+        echo "ERR: pve-vck: cluster_nodes array is empty." >&2
+        echo "DEBUG: pve-vck: cluster_nodes array is empty" >&2
         return 1
     fi
-    echo "DEBUG: pve-vck: CLUSTER_NODES: (${CLUSTER_NODES[*]})" >&2 # More robust way to print array
+    
+    echo "DEBUG: pve-vck: cluster_nodes: (${cluster_nodes[*]})" >&2
 
     local current_hostname
     current_hostname=$(hostname)
     echo "DEBUG: pve-vck: current_hostname: $current_hostname" >&2
 
-    for node in "${CLUSTER_NODES[@]}"; do
+    for node in "${cluster_nodes[@]}"; do
         echo "DEBUG: pve-vck: checking node: $node" >&2
         local qm_list_output
         if [ "$node" != "$current_hostname" ]; then

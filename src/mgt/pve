@@ -1,0 +1,116 @@
+#!/bin/bash
+
+# ============================================================================
+# pve (Management Wrappers) - Function Summary
+#
+#   pve-fun-w : Wrapper for pve-fun that sources global variables and calls the pure function
+#   pve-var-w : Wrapper for pve-var that sources global variables and calls the pure function  
+#   pve-vmd-w : Wrapper for pve-vmd that sources global variables and calls the pure function
+#   pve-vck-w : Wrapper for pve-vck that sources global variables and calls the pure function
+#   pve-vpt-w : Wrapper for pve-vpt that sources global variables and calls the pure function
+#
+# ============================================================================
+
+# Define directory and file variables
+DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_FUN=$(basename "$BASH_SOURCE")
+BASE_FUN="${FILE_FUN%.*}"
+FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
+CONFIG_FUN="${SITE_CONFIG_FILE}"
+
+# Dynamically create variables based on the base name
+eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
+eval "FILE_${BASE_FUN}=\$FILE_FUN"
+eval "BASE_${BASE_FUN}=\$BASE_FUN"
+eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
+
+# Wrapper for pve-fun that extracts global variables and calls the pure function
+# overview functions (wrapper)
+pve-fun-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Extract global variable and call pure function
+    local script_path="${FILEPATH_pve}"
+    
+    pve-fun "$script_path" "$@"
+}
+
+# Wrapper for pve-var that extracts global variables and calls the pure function  
+# overview variables (wrapper)
+pve-var-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Extract global variables and call pure function
+    local config_file="${CONFIG_pve}"
+    local analysis_dir="${DIR_FUN}/.."
+    
+    pve-var "$config_file" "$analysis_dir" "$@"
+}
+
+# Wrapper for pve-vmd that extracts global variables and calls the pure function
+# vm shutdown hook (wrapper)
+pve-vmd-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Extract global variables and call pure function
+    local hook_script="/var/lib/vz/snippets/gpu-reattach-hook.pl"
+    local lib_ops_dir="${LIB_OPS_DIR}"
+    
+    local operation="$1"
+    local vm_id="$2"
+    shift 2
+    
+    pve-vmd "$operation" "$vm_id" "$hook_script" "$lib_ops_dir" "$@"
+}
+
+# Wrapper for pve-vck that extracts global variables and calls the pure function
+# vm check node (wrapper)
+pve-vck-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Extract global variables and call pure function
+    local vm_id="$1"
+    local cluster_nodes_str="${CLUSTER_NODES[*]}"
+    
+    pve-vck "$vm_id" "$cluster_nodes_str"
+}
+
+# Wrapper for pve-vpt that extracts global variables and calls the pure function
+# vm passthrough toggle (wrapper)
+pve-vpt-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Get hostname for variable names
+    local hostname=$(hostname)
+    
+    # Extract global variables
+    local vm_id="$1"
+    local action="$2"
+    local pci0_var="${hostname}_NODE_PCI0"
+    local pci1_var="${hostname}_NODE_PCI1"
+    local core_count_on_var="${hostname}_CORE_COUNT_ON"
+    local core_count_off_var="${hostname}_CORE_COUNT_OFF"
+    local usb_devices_var="${hostname}_USB_DEVICES[@]"
+    
+    # Get values from global variables
+    local pci0_id="${!pci0_var}"
+    local pci1_id="${!pci1_var}"
+    local core_count_on="${!core_count_on_var}"
+    local core_count_off="${!core_count_off_var}"
+    local usb_devices_str="${!usb_devices_var}"
+    local pve_conf_path="${PVE_CONF_PATH_QEMU}"
+    
+    # Validate required variables are set
+    if [[ -z "$pci0_id" || -z "$pci1_id" || -z "$core_count_on" || -z "$core_count_off" || -z "$pve_conf_path" ]]; then
+        echo "Error: Missing required global variables for hostname '$hostname'"
+        echo "Required: ${pci0_var}, ${pci1_var}, ${core_count_on_var}, ${core_count_off_var}, PVE_CONF_PATH_QEMU"
+        return 1
+    fi
+    
+    pve-vpt "$vm_id" "$action" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
+}

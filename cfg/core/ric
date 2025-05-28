@@ -126,6 +126,11 @@ declare -g SRC_SET_DIR
 SRC_SET_DIR="${LAB_DIR}/src/set"
 export SRC_SET_DIR
 
+# Management wrapper functions directory
+declare -g SRC_MGT_DIR
+SRC_MGT_DIR="${LAB_DIR}/src/mgt"
+export SRC_MGT_DIR
+
 # Runtime configuration
 declare -g CACHE_CLEANUP_INTERVAL
 CACHE_CLEANUP_INTERVAL=300  # 5 minutes
