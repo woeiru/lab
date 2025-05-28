@@ -1,29 +1,77 @@
-# Log File Analysis
+# Logging System Documentation
 
-This document provides an analysis of the log files found in the `.log` directory and related state files in the `.tmp` directory.
+This document provides a comprehensive analysis of the logging architecture, including log files in the `.log` directory, state files in the `.tmp` directory, and terminal verbosity controls.
 
-## Log Files in `/home/es/lab/.log`
+## Overview
+
+The lab system employs a sophisticated multi-layered logging architecture designed for both development debugging and production monitoring. The system consists of:
+
+1. **Log Files** (`${LOG_DIR}/.log/`) - Human-readable logs for different system components
+2. **State Files** (`${TMP_DIR}/.tmp/`) - Configuration and cache files for logging behavior
+3. **Terminal Verbosity Controls** - Hierarchical control system for console output
+
+### Hierarchical Verbosity System
+
+The system uses a two-tier verbosity control mechanism:
+
+- **Master Control**: `MASTER_TERMINAL_VERBOSITY` (default: "off") - Master switch for all terminal output
+- **Module-Specific Controls**: Individual verbosity settings that require master to be "on"
+  - `DEBUG_LOG_TERMINAL_VERBOSITY` (default: "on") - Early initialization debug messages
+  - `LO1_LOG_TERMINAL_VERBOSITY` (default: "on") - Advanced logging module
+  - `ERR_TERMINAL_VERBOSITY` (default: "on") - Error handling module  
+  - `TME_TERMINAL_VERBOSITY` (default: "on") - Timing module
+
+This design allows fine-grained control while maintaining a simple master override.
+
+## Log Files in `${LOG_DIR}/.log`
 
 *   **`debug.log`**:
-    *   **Purpose**: Records detailed debugging information during script execution. It's used by the `debug_log` function, which is present in both `/home/es/lab/bin/init` (a simpler version for early initialization) and `/home/es/lab/lib/core/ver` (a more robust version).
+    *   **Purpose**: Records detailed debugging information during script execution, particularly during early initialization and system verification phases.
+    *   **Format**: `[DEBUG] YYYY-MM-DD HH:MM:SS - [source_function] message`
     *   **Writing Functions**:
-        *   `debug_log` (in `bin/init` and `lib/core/ver`)
-    *   **Details**: This log captures timestamps, source functions, and messages. The `verify_path` and `verify_var` functions in `lib/core/ver` extensively use `debug_log` to record their actions. It should primarily contain messages from the core system and modules that do not have their own dedicated debug logs.
+        *   `debug_log` in `bin/init`: Simple version for early initialization before full logging system loads
+        *   `debug_log` in `lib/core/ver`: Enhanced version with verbosity controls
+    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `DEBUG_LOG_TERMINAL_VERBOSITY`
+    *   **Usage**: Primary debug channel for core system operations and modules without dedicated debug logs
+    *   **Details**: Essential for diagnosing initialization issues, path verification failures, and module loading problems
 
 *   **`err.log`**:
-    *   **Purpose**: Stores error messages encountered during script execution. It's the primary destination for error output.
-    *   **Writing Functions**: Primarily written to by functions that use the `ERROR_LOG` variable, which is defined in `cfg/core/ric` and points to this file. The `handle_error` function (likely in a module like `lib/core/err`) and `error_handler` would write to this.
-    *   **Details**: This file aggregates critical errors and warnings.
+    *   **Purpose**: Centralized error and warning repository for all system components.
+    *   **Format**: `[SEVERITY] YYYY-MM-DD HH:MM:SS - [component] message`
+    *   **Writing Functions**: 
+        *   `handle_error` in `lib/core/err`: Primary error logging function
+        *   `error_handler` in `lib/core/err`: Automatic error trap handler  
+        *   `err_process_error` in `lib/core/err`: Structured error processing
+    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `ERR_TERMINAL_VERBOSITY`
+    *   **Environment Variable**: `ERROR_LOG` (defined in `cfg/core/ric`)
+    *   **Features**: 
+        *   Supports severity levels (ERROR, WARNING)
+        *   Tracks error components and timestamps
+        *   Provides error reporting and summary functions
+    *   **Details**: Critical for production debugging and system health monitoring
 
 *   **`lo1.log`**:
-    *   **Purpose**: This is the main application log file managed by the `lo1` logging module (`lib/core/lo1`). It captures formatted log messages with timestamps, color-coding (for console output, which is also mirrored here), and indentation based on call stack depth. It also now contains debug messages specific to the `lo1` module.
+    *   **Purpose**: Main application log managed by the advanced logging module (`lib/core/lo1`). Features hierarchical indentation, color-coding, and comprehensive debug tracking.
+    *   **Format**: 
+        *   Standard: `HH:MM:SS.NN └─ message` (with colored indentation based on call stack depth)
+        *   Debug: `[LO1-DEBUG] HH:MM:SS.NN - [source] message`
     *   **Writing Functions**:
-        *   `log` (in `lib/core/lo1`): The core logging function in `lo1`.
-        *   `log_message` (in `lib/core/lo1`): A standardized logging function for modules.
-        *   `log_with_timer` (in `lib/core/lo1`): Logs messages with timing information if the `tme` module is available.
-        *   `init_logger` (in `lib/core/lo1`): Writes an initialization message to this log.
-        *   `lo1_debug_log` (in `lib/core/lo1`): Writes `[LO1-DEBUG]` prefixed messages to this log.
-    *   **Details**: Provides a structured and hierarchical view of the `lo1` module's operations and general application messages.
+        *   `log` in `lib/core/lo1`: Primary logging function with `log lvl "message"` syntax
+        *   `lo1_log_message` in `lib/core/lo1`: Standardized module logging interface
+        *   `lo1_tme_log_with_timer` in `lib/core/lo1`: Logging with timing integration
+        *   `init_logger` in `lib/core/lo1`: Logger initialization messages
+        *   `lo1_debug_log` in `lib/core/lo1`: Module-specific debug messages
+    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `LO1_LOG_TERMINAL_VERBOSITY` + local `setlog on|off`
+    *   **Environment Variables**: 
+        *   `LOG_FILE` (defined in `cfg/core/ric`)
+        *   `LOG_DEBUG_ENABLED` (controls debug message generation)
+    *   **Features**:
+        *   16-level color gradient for depth visualization (red to deep violet)
+        *   Performance-optimized depth caching
+        *   Integration with timing system for performance logging
+        *   Call stack analysis for intelligent indentation
+    *   **State Control**: Persistent on/off state via `.tmp/lo1_state` file
+    *   **Details**: The centerpiece of the logging system, providing structured hierarchical output ideal for complex script debugging
 
 *   **`lo2.log`**:
     *   **Purpose**: Records debug messages specifically from the `lo2` module (`lib/util/lo2`), which handles runtime control structure tracking.
@@ -32,70 +80,360 @@ This document provides an analysis of the log files found in the `.log` director
     *   **Details**: Contains `[LO2-DEBUG]` prefixed messages related to control flow depth calculation.
 
 *   **`tme.log`**:
-    *   **Purpose**: Records timing information for different components and functions, managed by the `tme` module (`lib/core/tme`). It logs start times, end times, durations, and statuses of timed operations.
+    *   **Purpose**: Performance monitoring and timing analysis log managed by the timing module (`lib/core/tme`). Provides detailed execution time tracking for system components.
+    *   **Format**: 
+        *   Headers: `RC Timing Log - [timestamp]` with startup information
+        *   Entries: `[START] component_name`, `[END] component_name` with duration and status
     *   **Writing Functions**:
-        *   `tme_init_timer` (in `lib/core/tme`): Writes an initial header and startup time.
-        *   `tme_start_timer` (in `lib/core/tme`): Logs the start of a timed component.
-        *   `tme_end_timer` (in `lib/core/tme`): Logs the end and duration of a timed component.
-        *   `tme_print_timing_report` (in `lib/core/tme`): Appends a formatted performance report to this log.
-        *   `tme_cleanup_timer` (in `lib/core/tme`): Logs cleanup information and total execution time.
-    *   **Details**: Essential for performance analysis and understanding execution flow timing.
+        *   `tme_init_timer` in `lib/core/tme`: Initializes log with header and startup time
+        *   `tme_start_timer` in `lib/core/tme`: Records component start time with optional parent relationship
+        *   `tme_end_timer` in `lib/core/tme`: Records end time, duration, and completion status
+        *   `tme_print_timing_report` in `lib/core/tme`: Generates formatted performance summary
+        *   `tme_cleanup_timer` in `lib/core/tme`: Final cleanup and total execution time
+    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `TME_TERMINAL_VERBOSITY`
+    *   **Environment Variables**: 
+        *   `TME_LOG_FILE` (defined in `cfg/core/ric`)
+        *   `TME_STATE_FILE` (controls report generation)
+        *   `TME_LEVELS_FILE` (controls report depth)
+    *   **Features**:
+        *   Hierarchical component timing (parent/child relationships)
+        *   Configurable sort order (chronological or duration)
+        *   Adjustable depth levels (1-9) for report detail
+        *   Color-coded terminal reports with tree visualization
+        *   Performance statistics and execution summaries
+    *   **Control Functions**: `tme_settme report on|off`, `tme_settme sort chron|duration`, `tme_settme depth N`
+    *   **Details**: Essential for performance analysis, bottleneck identification, and execution flow understanding
 
 *   **`init_flow.log`**:
-    *   **Purpose**: Tracks the execution flow of the main initialization script (`bin/init`). It records key milestones and timestamps during the module loading process, especially for debugging startup issues or verifying the order and timing of module sourcing.
-    *   **Writing Functions**: Direct `echo` statements in `bin/init` (e.g., `echo "INIT_SCRIPT_FLOW: ..."`).
-    *   **Details**: Useful for correlating with other logs (such as `lo2_entry_trace.log` and `lo2.log`) to diagnose initialization problems or unexpected script exits.
+    *   **Purpose**: Tracks the execution flow and timing of the main initialization script (`bin/init`). Critical for debugging startup issues and module loading sequence problems.
+    *   **Format**: `INIT_SCRIPT_FLOW: [description] - HH:MM:SS.NNNNNNNNN`
+    *   **Writing Functions**: Direct `echo` statements in `bin/init` at key execution milestones
+    *   **Key Tracking Points**:
+        *   Module sourcing start/completion
+        *   Component orchestrator loading
+        *   Runtime system initialization
+        *   Critical function calls (e.g., `setlogcontrol` calls)
+    *   **Terminal Output**: File-only logging (no terminal output)
+    *   **Usage Context**: Primarily used for correlating with other logs during troubleshooting
+    *   **Details**: Provides high-precision timestamps for diagnosing initialization timing and sequencing issues
 
-*   **`lo2_entry_trace.log`**:
-    *   **Purpose**: Records the exact moment the `lo2` module (`lib/util/lo2`) is sourced and begins execution. Each entry includes a timestamp, providing a trace of when the control structure tracking module is entered.
-    *   **Writing Functions**: The very first line of `lib/util/lo2` appends a message to this file (e.g., `echo "LO2_TRACE: lo2 script execution started - $(date '+%T.%N')" >> ...`).
-    *   **Details**: Used for low-level diagnostics to confirm that the `lo2` module is being sourced as expected during initialization.
+*   **Missing Log Files** (Referenced but not currently present):
+    *   **`lo2.log`**: Would contain debug messages from the `lo2` module (`lib/util/lo2`) for runtime control structure tracking
+        *   Expected format: `[LO2-DEBUG] timestamp - [source] message`
+        *   Expected functions: `lo2_debug_log` in `lib/util/lo2`
+        *   Purpose: Control flow depth calculation and DEBUG trap management
+        *   Status: Module appears to be disabled or not fully integrated into current system
+    
+    *   **`lo2_entry_trace.log`**: Would record exact moment when `lo2` module begins execution
+        *   Expected format: `LO2_TRACE: lo2 script execution started - timestamp`
+        *   Purpose: Low-level diagnostic confirmation of module sourcing
+        *   Status: Associated with the currently inactive `lo2` module
 
-## State/Temporary Files in `/home/es/lab/.tmp`
+## State and Configuration Files in `${TMP_DIR}/.tmp`
 
-These are not traditional log files but rather state files used by the logging and timing systems.
+These files control logging behavior, maintain performance caches, and store persistent configuration across system sessions.
 
-*   **`log_state`**:
-    *   **Purpose**: This file is referenced by the `LOG_STATE_FILE` variable (defined in `cfg/core/ric`). It controls the overall logging state (on/off) for the `lo1` module.
-    *   **Writing Functions**:
-        *   `init_state_files` (in `lib/core/lo1`): Initializes this file (e.g., to "true").
-        *   `setlog` (in `lib/core/lo1`): Toggles the content to "true" or "false" to enable/disable logging.
-        *   The `tme` module (`tme_start_timer`, `tme_end_timer`, `tme_print_timing_report`, `tme_cleanup_timer`) temporarily sets this to "false" to prevent its own internal logging messages from being processed by `lo1` during sensitive operations, then restores the original state.
-    *   **Details**: Acts as a toggle for the `lo1` logging output.
-
-*   **`lo1_depth_cache`** (was `lo1_depth_cache.log`):
-    *   **Purpose**: Used by the `lo1` module (`lib/core/lo1`) to cache calculated log depths. This is a performance optimization to avoid recalculating call stack depths repeatedly.
-    *   **Writing Functions**:
-        *   `cleanup_cache` (in `lib/core/lo1`): Clears this cache file periodically.
-        *   `init_state_files` (in `lib/core/lo1`): Touches/creates this file on logger initialization.
-    *   **Details**: This is more of a state/cache file than a traditional human-readable log. It's managed internally by `lo1`. Its location is now `${TMP_DIR}/lo1_depth_cache`.
-
-*   **`tme_levels`**:
-    *   **Purpose**: Controlled by the `TME_LEVELS_FILE` variable (defined in `cfg/core/ric`). It's used by the `tme` module to determine the maximum depth of the component timing tree to display in the `tme_print_timing_report`.
-    *   **Writing Functions**:
-        *   `tme_settme` (in `lib/core/tme`): Allows the user to set the desired depth level (1-9) or turn timing on/off.
-    *   **Details**: Controls the depth of the timing report output.
-
-*   **`tme_state`**:
-    *   **Purpose**: Controlled by the `TME_STATE_FILE` variable (defined in `cfg/core/ric`). This file determines if the `tme` module's timing report output is enabled or disabled.
-    *   **Writing Functions**:
-        *   `tme_settme` (in `lib/core/tme`): Sets this to "true" or "false" to enable/disable the timing report.
-    *   **Details**: A flag file to control the output of `tme_print_timing_report`.
+### Core Logging State Files
 
 *   **`lo1_state`**:
-    *   **Purpose**: Stores the persistent state ("on" or "off") of the main logging system (`lo1`). Controls whether logging output is enabled or disabled across sessions.
-    *   **Writing Functions**: `setlog` and `init_state_files` in `lib/core/lo1` write to this file. The logger reads this file on initialization to restore the previous state.
-    *   **Details**: If missing or empty, logging defaults to "on". The file is referenced as `LOG_STATE_FILE` in the environment.
+    *   **Purpose**: Stores persistent state ("on" or "off") for the main logging system (`lo1`). Controls whether logging output is enabled or disabled across sessions.
+    *   **Environment Variable**: Referenced as `LOG_STATE_FILE` in `cfg/core/ric`
+    *   **Writing Functions**:
+        *   `setlog on|off` in `lib/core/lo1`: User-controlled state toggling
+        *   `init_state_files` in `lib/core/lo1`: Initialization with default "on"
+    *   **Reading Functions**: 
+        *   `log` function reads this file before each log operation
+        *   `init_logger` reads on startup to restore previous state
+    *   **Valid Values**: "on" (enable logging) | "off" (disable logging)
+    *   **Default Behavior**: If missing or empty, defaults to "on"
+    *   **Integration**: The `tme` module temporarily modifies this file during its own logging operations to prevent recursion
+    *   **Details**: Central control point for all `lo1` logging output, respected by both file and terminal logging
 
-*   **`lo2_state`**:
-    *   **Purpose**: Stores the persistent state ("on" or "off") of the control structure tracking system (`lo2`). Controls whether runtime tracking of shell control structures is enabled.
-    *   **Writing Functions**: `setlogcontrol` and initialization logic in `lib/util/lo2` write to this file. The module reads this file on initialization to restore the previous state.
-    *   **Details**: If missing or empty, tracking defaults to "on". The file is referenced as `LOG_CONTROL_STATE_FILE` in the environment.
+### Performance and Cache Files
+
+*   **`lo1_depth_cache`**:
+    *   **Purpose**: Performance optimization cache for call stack depth calculations in the `lo1` module. Stores computed depths to avoid expensive recalculation.
+    *   **Environment Variable**: Referenced as `LOG_DEPTH_CACHE_FILE`
+    *   **Writing Functions**:
+        *   `get_base_depth` in `lib/core/lo1`: Automatically caches calculated depths
+        *   `cleanup_cache` in `lib/core/lo1`: Periodic cache clearing (every 300 seconds)
+        *   `init_state_files` in `lib/core/lo1`: Creates empty cache file on initialization
+    *   **Cache Strategy**: 
+        *   Key: Function name, Value: Calculated call stack depth
+        *   Automatic cleanup every 5 minutes to prevent stale data
+        *   Cleared on logger cleanup
+    *   **Performance Impact**: Significantly reduces CPU overhead for hierarchical logging in deep call stacks
+    *   **Data Format**: Internal associative array structure (not human-readable)
+    *   **Details**: Critical for maintaining logging performance in complex script execution scenarios
+
+### Timing System Configuration Files
+
+*   **`tme_state`**:
+    *   **Purpose**: Controls whether the timing module generates terminal reports. Separate from timing log file generation.
+    *   **Environment Variable**: Referenced as `TME_STATE_FILE` in `cfg/core/ric`
+    *   **Writing Functions**:
+        *   `tme_settme report on|off` in `lib/core/tme`: User-controlled report toggling
+        *   Automatic initialization in `tme_init_timer`: Defaults to "true" if missing
+    *   **Reading Functions**:
+        *   `tme_print_timing_report` checks this file before generating terminal output
+    *   **Valid Values**: "true" (enable reports) | "false" (disable reports)
+    *   **Default Behavior**: If missing or empty, defaults to "true"
+    *   **Details**: Controls terminal report generation while timing data continues to be logged to `tme.log`
+
+*   **`tme_levels`**:
+    *   **Purpose**: Determines the maximum depth of component hierarchy displayed in timing reports.
+    *   **Environment Variable**: Referenced as `TME_LEVELS_FILE` in `cfg/core/ric`
+    *   **Writing Functions**:
+        *   `tme_settme depth N` in `lib/core/tme`: User-controlled depth setting (1-9)
+        *   Automatic initialization in `tme_init_timer`: Defaults to "9" if missing
+    *   **Reading Functions**:
+        *   `tme_print_timing_report` uses this value to limit tree depth in reports
+        *   `print_tree_recursive` respects this depth limit during output generation
+    *   **Valid Values**: Integer 1-9 (depth levels)
+    *   **Default Behavior**: If missing or empty, defaults to "9" (maximum depth)
+    *   **Details**: Allows users to focus on high-level timing without overwhelming detail
 
 *   **`tme_sort_order`**:
-    *   **Purpose**: Determines the sort order for the timing report generated by the `tme` module. The file contains either `chron` (chronological order) or `dura` (duration, descending).
-    *   **Writing Functions**: The `tme_settme sort` command in `lib/core/tme` writes to this file. The `tme_print_timing_report` function reads this file to determine how to order components in the report.
-    *   **Details**: Defaults to `chron` if missing or empty. The file is referenced as `TME_SORT_ORDER_FILE_PATH` in the environment.
+    *   **Purpose**: Determines the sort order for components in timing reports.
+    *   **Environment Variable**: Referenced as `TME_SORT_ORDER_FILE_PATH` in `cfg/core/ric`
+    *   **Writing Functions**:
+        *   `tme_settme sort chron|duration` in `lib/core/tme`: User-controlled sort order
+        *   Automatic initialization in `tme_init_timer`: Defaults to "chron" if missing
+    *   **Reading Functions**:
+        *   `tme_print_timing_report` determines display order based on this setting
+        *   `sort_components_by_duration` function triggered when set to "duration"
+    *   **Valid Values**: "chron" (chronological order) | "duration" (longest first)
+    *   **Default Behavior**: If missing or empty, defaults to "chron"
+    *   **Details**: "chron" shows execution order; "duration" highlights performance bottlenecks
+
+### Missing State Files (Referenced but not currently present)
+
+*   **`lo2_state`**: Would store the persistent state for the `lo2` control structure tracking system
+    *   Expected environment variable: `LOG_CONTROL_STATE_FILE`
+    *   Expected functions: `setlogcontrol on|off` in `lib/util/lo2`
+    *   Status: Associated with the currently inactive `lo2` module
+
+*   **`err_state`**: Error handling system state file
+    *   Expected functions: Error tracking and reporting state management
+    *   Status: Referenced in documentation but not actively used in current system
+
+## Environment Variables and Configuration
+
+### Directory Configuration (`cfg/core/ric`)
+
+```bash
+# Base directories (can be overridden)
+LOG_DIR="${LOG_DIR:-${LAB_DIR}/.log}"     # Log file location
+TMP_DIR="${TMP_DIR:-${LAB_DIR}/.tmp}"     # State file location
+
+# Log file paths
+ERROR_LOG="${LOG_DIR}/err.log"            # Error log
+LOG_DEBUG_FILE="${LOG_DIR}/debug.log"     # Debug log  
+LOG_FILE="${LOG_DIR}/lo1.log"             # Main lo1 log
+TME_LOG_FILE="${LOG_DIR}/tme.log"         # Timing log
+
+# State file paths
+LOG_STATE_FILE="${TMP_DIR}/lo1_state"     # Lo1 on/off state
+TME_STATE_FILE="${TMP_DIR}/tme_state"     # Timing report state
+TME_LEVELS_FILE="${TMP_DIR}/tme_levels"   # Timing report depth
+```
+
+### Terminal Verbosity Controls (`cfg/core/ric`)
+
+```bash
+# Master control (default: "off")
+MASTER_TERMINAL_VERBOSITY="off"
+
+# Module-specific controls (default: "on", require master "on")
+DEBUG_LOG_TERMINAL_VERBOSITY="on"        # Early debug messages
+LO1_LOG_TERMINAL_VERBOSITY="on"          # Advanced logging
+ERR_TERMINAL_VERBOSITY="on"              # Error messages  
+TME_TERMINAL_VERBOSITY="on"              # Timing reports
+```
+
+### Behavioral Controls
+
+```bash
+# Lo1 module debug message generation (default: 1)
+LOG_DEBUG_ENABLED=1                       # 1=enable, 0=disable lo1 debug
+
+# Error handling (defined in lib/core/err)
+ERROR_COUNT_FILE="${TMP_DIR}/err_count"   # Error statistics
+ERROR_STATE_FILE="${TMP_DIR}/err_state"   # Error system state
+```
+
+## Module Architecture and Function Reference
+
+### Debug Logging Module (`bin/init`, `lib/core/ver`)
+
+**Primary Functions:**
+- `debug_log(message, [source], [level])`: Core debug logging
+  - **Location**: `bin/init` (simple), `lib/core/ver` (enhanced)
+  - **Output**: `debug.log` + conditional terminal
+  - **Format**: `[DEBUG] YYYY-MM-DD HH:MM:SS - [source] message`
+
+**Key Features:**
+- Early initialization logging before full system loads
+- Path and variable verification logging  
+- Conditional terminal output based on verbosity controls
+
+### Advanced Logging Module (`lib/core/lo1`)
+
+**Primary Functions:**
+- `log lvl "message"`: Main logging interface
+- `lo1_log_message(message, [level], [component])`: Module logging interface
+- `lo1_debug_log(message, [source])`: Internal debug logging
+- `setlog on|off`: Runtime logging control
+- `init_logger()`: System initialization
+
+**Key Features:**
+- 16-level color gradient for depth visualization
+- Hierarchical indentation based on call stack analysis
+- Performance-optimized depth caching
+- Integration with timing system
+- Persistent state management
+
+**Call Stack Analysis:**
+- `get_base_depth()`: Calculate call stack depth with caching
+- `get_indent(depth)`: Generate indentation string
+- `get_color(depth)`: Select color based on depth
+- `is_root_function(name)`: Identify execution entry points
+
+### Error Handling Module (`lib/core/err`)
+
+**Primary Functions:**
+- `handle_error(message, [component], [exit_code], [severity])`: Structured error logging
+- `error_handler(line_number, [error_code], [should_exit])`: Automatic trap handler
+- `print_error_report()`: Generate error summaries
+- `setup_error_handling()`: Initialize error tracking
+
+**Key Features:**
+- Severity levels (ERROR, WARNING)
+- Component tracking and timestamps
+- Automatic error statistics
+- Terminal and file output with verbosity controls
+
+### Timing Module (`lib/core/tme`)
+
+**Primary Functions:**
+- `tme_init_timer([log_dir])`: Initialize timing system
+- `tme_start_timer(component, [parent])`: Begin timing
+- `tme_end_timer(component, [status])`: End timing with status
+- `tme_print_timing_report()`: Generate performance report
+- `tme_settme report|sort|depth value`: Configure timing behavior
+
+**Key Features:**
+- Hierarchical component timing with parent/child relationships
+- Configurable sort order (chronological or duration)
+- Adjustable report depth (1-9 levels)
+- Color-coded terminal reports with tree visualization
+- Integration with lo1 logging system
+
+**Timer Management:**
+- Supports nested timing relationships
+- Automatic cleanup on interrupted components
+- Performance statistics and summaries
+- File and terminal output with separate controls
+
+## User Interface and Control Commands
+
+### Runtime Logging Control
+
+```bash
+# Advanced logging (lo1) control
+setlog on          # Enable lo1 logging output
+setlog off         # Disable lo1 logging output
+
+# Timing system control
+tme_settme report on|off              # Enable/disable timing reports
+tme_settme sort chron|duration        # Set report sort order
+tme_settme depth 1-9                  # Set report depth level
+```
+
+### Environment Variable Overrides
+
+```bash
+# Override default directories
+export LOG_DIR="/custom/log/path"
+export TMP_DIR="/custom/tmp/path"
+
+# Control debug message generation
+export LOG_DEBUG_ENABLED=0            # Disable lo1 debug messages
+
+# Override verbosity (requires master=on for effect)
+export MASTER_TERMINAL_VERBOSITY="on"
+export LO1_LOG_TERMINAL_VERBOSITY="off"
+```
+
+## Troubleshooting and Diagnostics
+
+### Common Issues and Solutions
+
+**Issue**: No terminal output despite logging being "on"
+- **Cause**: `MASTER_TERMINAL_VERBOSITY="off"` (default)
+- **Solution**: `export MASTER_TERMINAL_VERBOSITY="on"`
+
+**Issue**: Logging performance degradation in deep call stacks
+- **Cause**: Depth cache not functioning or too frequent cleanup
+- **Diagnostics**: Check `lo1_depth_cache` file and `[LO1-DEBUG]` messages
+- **Solution**: Verify `TMP_DIR` writable, check cache cleanup interval
+
+**Issue**: Timing reports not appearing
+- **Cause**: `TME_STATE_FILE` set to "false" or verbosity disabled
+- **Diagnostics**: Check file content and verbosity settings
+- **Solution**: `tme_settme report on` and verify `TME_TERMINAL_VERBOSITY="on"`
+
+**Issue**: Missing log files
+- **Cause**: Directory creation failure or permission issues  
+- **Diagnostics**: Check `LOG_DIR` and `TMP_DIR` existence and permissions
+- **Solution**: Verify directory paths and create manually if needed
+
+### Log File Analysis Workflow
+
+1. **Check `init_flow.log`** for initialization sequence and timing
+2. **Review `debug.log`** for early system issues and verification failures
+3. **Examine `err.log`** for errors and warnings with component context
+4. **Analyze `lo1.log`** for detailed application flow with hierarchical context
+5. **Study `tme.log`** for performance bottlenecks and timing analysis
+
+### Verbosity Configuration Matrix
+
+| Scenario | Master | Debug | Lo1 | Err | Tme | Result |
+|----------|--------|-------|-----|-----|-----|---------|
+| Silent   | off    | *     | *   | *   | *   | File logging only |
+| Selective| on     | off   | on  | on  | off | Lo1 + errors only |
+| Debug    | on     | on    | on  | on  | on  | Full output |
+| Production| on    | off   | off | on  | off | Errors only |
+
+## Integration with External Systems
+
+### Log Rotation and Archival
+
+The system creates new log files on each initialization by clearing existing files. For production use, consider:
+
+```bash
+# Backup logs before initialization
+cp ${LOG_DIR}/*.log ${LOG_DIR}/archive/$(date +%Y%m%d_%H%M%S)/
+
+# Or implement log rotation
+logrotate /etc/logrotate.d/lab-system
+```
+
+### Monitoring Integration
+
+Key files for monitoring systems:
+- `${LOG_DIR}/err.log`: Error detection and alerting
+- `${TMP_DIR}/err_state`: Error system health
+- `${LOG_DIR}/tme.log`: Performance trending
+- `${TMP_DIR}/*_state`: System component status
+
+### Development Workflow
+
+For debugging and development:
+1. Enable full verbosity: `export MASTER_TERMINAL_VERBOSITY="on"`
+2. Enable lo1 debugging: `export LOG_DEBUG_ENABLED=1`
+3. Monitor real-time: `tail -f ${LOG_DIR}/*.log`
+4. Analyze timing: `tme_settme sort duration && tme_settme depth 3`
 
 ## Summary of Key Logging Modules and Functions
 
