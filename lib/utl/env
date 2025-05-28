@@ -1,22 +1,82 @@
 #!/bin/bash
 #######################################################################
-# Environment Management Utility
+# Environment Management Utility Library
 #######################################################################
+# File: /home/es/lab/lib/utl/env
+# Description: Environment switching and management utility providing
+#              convenient functions for transitioning between development,
+#              staging, and production environments with proper context
+#              management and validation.
+#
+# Author: Environment Management System
+# Created: 2025-05-28
+# Version: 1.0.0
+# License: Lab Environment Internal Use
+#
+# Dependencies:
+#   - Environment controller configuration (cfg/core/ecc)
+#   - Site configuration files (cfg/env/site*)
+#   - Bash 4.0+ (for associative arrays)
+#   - Standard UNIX utilities (cd, pwd)
+#
 # Purpose:
-#   Provides convenient functions for switching between environments,
-#   sites, and nodes. Integrates with the environment controller system.
+#   Provides convenient command-line interface for environment
+#   management operations including site switching, environment
+#   transitions, node selection, and configuration validation
+#   with proper error handling and status reporting.
 #
-# Functions:
-#   - env_switch: Switch environment (dev/test/staging/prod)
-#   - site_switch: Switch site (site1/site2/etc)
-#   - node_switch: Switch node (w1/w2/x1/x2/etc)
-#   - env_status: Show current environment configuration
-#   - env_list: List available environments and overrides
-#   - env_validate: Validate configuration files exist
+# Key Features:
+#   - Interactive environment switching (dev/test/staging/prod)
+#   - Site management (site1/site2/etc) with validation
+#   - Node selection (w1/w2/x1/x2/etc) for cluster deployments
+#   - Environment status reporting with hierarchy display
+#   - Configuration file validation and existence checking
+#   - Available environment discovery and listing
 #
-# Usage:
-#   Source this file to get helper functions
-#   Or call directly: ./env <command> [args]
+# Functions Provided:
+#   - env_switch: Switch between environments with validation
+#   - site_switch: Change active site configuration
+#   - node_switch: Select specific node for operations
+#   - env_status: Display current environment configuration
+#   - env_list: List all available environments and overrides
+#   - env_validate: Validate configuration file existence
+#
+# Usage Examples:
+#   source /home/es/lab/lib/utl/env
+#   env_switch dev                    # Switch to development
+#   site_switch site2                 # Change to site2
+#   node_switch w2                    # Select worker node 2
+#   env_status                        # Show current config
+#   env_list                          # List available options
+#
+# Environment Hierarchy:
+#   1. Base site configuration (cfg/env/site1)
+#   2. Environment override (cfg/env/site1-dev)
+#   3. Node override (cfg/env/site1-w2)
+#
+# Integration Points:
+#   - Works with environment controller (lib/aux/src)
+#   - Integrates with infrastructure utilities
+#   - Compatible with deployment scripts
+#   - Supports CI/CD pipeline integration
+#
+# Error Handling:
+#   - Validates configuration file existence
+#   - Provides clear error messages
+#   - Graceful fallback for missing files
+#   - Non-destructive environment switching
+#
+# Security Considerations:
+#   - No sensitive data in environment variables
+#   - Proper file permission validation
+#   - Secure configuration file handling
+#   - Access control through file system permissions
+#
+# Performance Notes:
+#   - Minimal file system operations
+#   - Efficient configuration loading
+#   - Fast environment switching
+#   - Cached environment discovery
 #######################################################################
 
 # Get script directory for relative paths

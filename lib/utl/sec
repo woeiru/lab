@@ -1,4 +1,104 @@
 #!/bin/bash
+#######################################################################
+# Security Utilities Library
+#######################################################################
+# File: /home/es/lab/lib/utl/sec
+# Description: Comprehensive security management system providing secure
+#              password generation, storage, and credential management
+#              for lab environment infrastructure components.
+#
+# Author: Environment Management System
+# Created: 2025-05-28
+# Version: 1.0.0
+# License: Lab Environment Internal Use
+#
+# Dependencies:
+#   - /dev/urandom (for cryptographically secure random generation)
+#   - tr command (for character filtering)
+#   - head command (for length limiting)
+#   - Standard file system utilities (mkdir, chmod, cat)
+#
+# Purpose:
+#   Eliminates hardcoded passwords and insecure credential management
+#   by providing cryptographically secure password generation and
+#   storage mechanisms with proper file permissions and access controls.
+#
+# Key Features:
+#   - Cryptographically secure password generation using /dev/urandom
+#   - Configurable password length and character complexity
+#   - Secure file-based password storage with 600 permissions
+#   - Service-specific password management and isolation
+#   - Automatic password initialization and loading
+#   - Fallback mechanisms for missing or corrupted passwords
+#
+# Security Model:
+#   - Passwords stored in protected directory (700 permissions)
+#   - Individual password files have 600 permissions (owner read/write only)
+#   - No passwords stored in memory longer than necessary
+#   - Secure random source (/dev/urandom) for all generation
+#   - Character filtering to avoid shell metacharacter issues
+#
+# Password Categories:
+#   - Container root passwords (ct_*.pwd)
+#   - Service user passwords (service_user.pwd)
+#   - Database credentials (db_*.pwd)
+#   - Application-specific passwords (app_*.pwd)
+#
+# Usage Example:
+#   source /home/es/lab/lib/utl/sec
+#   init_password_management "/secure/passwords"
+#   password=$(generate_secure_password 20)
+#   store_secure_password "DB_PASSWORD" 24
+#
+# File Structure:
+#   /secure/passwords/
+#   ├── ct_pbs.pwd          # PBS container root password
+#   ├── ct_nfs.pwd          # NFS container root password
+#   ├── ct_smb.pwd          # SMB container root password
+#   ├── nfs_user.pwd        # NFS service user password
+#   ├── smb_user.pwd        # SMB service user password
+#   └── db_root.pwd         # Database root password
+#
+# Functions Provided:
+#   - generate_secure_password: Create cryptographically secure passwords
+#   - store_secure_password: Store password in variable with validation
+#   - generate_service_passwords: Create all service passwords at once
+#   - create_password_file: Create password file with proper permissions
+#   - load_stored_passwords: Load existing passwords from storage
+#   - init_password_management: Initialize complete password system
+#
+# Security Best Practices:
+#   - Minimum 16-character passwords for user accounts
+#   - Minimum 20-character passwords for system/root accounts
+#   - Include special characters for increased entropy
+#   - Avoid problematic characters that cause shell issues
+#   - Regular password rotation (manual process)
+#   - Secure backup of password directory
+#
+# Integration Points:
+#   - Works with infrastructure utilities (/home/es/lab/lib/utl/inf)
+#   - Integrates with configuration files (cfg/env/*)
+#   - Compatible with deployment scripts
+#   - Supports multiple password storage backends
+#
+# Error Handling:
+#   - Graceful fallback for missing password directories
+#   - Automatic password generation when files missing
+#   - Validation of password file permissions
+#   - Clear error messages for troubleshooting
+#
+# Performance Considerations:
+#   - Password generation uses efficient /dev/urandom access
+#   - File operations minimized for batch processing
+#   - Memory cleanup for security-sensitive operations
+#   - Lazy loading of passwords when needed
+#
+# Compliance Features:
+#   - Audit trail through file timestamps
+#   - Proper file permissions for security standards
+#   - No cleartext passwords in logs or memory dumps
+#   - Separation of concerns for different services
+#######################################################################
 
 # Security utility functions for the lab environment
 # Provides secure password generation and credential management
