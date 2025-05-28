@@ -1,1 +1,0 @@
-question about the CT function: what if i want to change some values .. is there something like an ovveride too ? can i simple write the exeptions under the functioncall itself and they then get overriden or ? ist this best practise ?
