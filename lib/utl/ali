@@ -243,8 +243,8 @@ ali-dyn() {
 
     echo "# --- Function Library Aliases (lib/ops) ---" >> "$CFG_ALI_DIR/dyn"
     tme_start_nested_timing "fun_aliases"
-    generate_aliases "cat" "$LIB_OPS_DIR" "${lib_dep_files[@]}"
-    generate_aliases "vim" "$LIB_OPS_DIR" "${lib_dep_files[@]}"
+    generate_aliases "cat" "$LIB_OPS_DIR" "${lib_ops_files[@]}"
+    generate_aliases "vim" "$LIB_OPS_DIR" "${lib_ops_files[@]}"
     tme_end_nested_timing "fun_aliases" "success"
     echo "" >> "$CFG_ALI_DIR/dyn"
 
