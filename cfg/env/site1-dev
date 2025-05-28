@@ -1,0 +1,21 @@
+#!/bin/bash
+# Development environment overrides for site1
+
+# Reduce resource allocation for development
+CT_1_MEMORY=2048
+CT_2_MEMORY=2048
+CT_3_MEMORY=2048
+
+CT_1_CPUS=2
+CT_2_CPUS=2
+CT_3_CPUS=2
+
+# Use different passwords for dev
+CT_1_PASSWORD=devpass
+CT_2_PASSWORD=devpass
+CT_3_PASSWORD=devpass
+
+# Development-specific settings
+CT_1_PRIVILEGED=no
+CT_2_PRIVILEGED=no
+CT_3_PRIVILEGED=no

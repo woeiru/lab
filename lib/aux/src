@@ -157,34 +157,70 @@ setup_source() {
     local BOLD='\033[1m'
     local RESET='\033[0m'
 
-    # Calculate lab root by going up one directory from the script location
-    local lab_root="$(dirname "$dir")"
-    local fun_dir="$lab_root/depl"  # CHANGED from fun to depl
-    local env_dir="$lab_root/env"
-
     printf "\n"
     printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent"
-    printf "%s┃ ${BOLD}Environment Setup${RESET}\n" "$base_indent"
+    printf "%s┃ ${BOLD}Environment-Aware Deployment Setup${RESET}\n" "$base_indent"
     printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent"
 
     if [[ -z "$SOURCE_RC_SUCCESS" ]]; then
-        # Source all files in env directory
-        printf "%s┃ Sourcing environment files from: %s\n" "$base_indent" "$env_dir"
-        for conf_file in "$env_dir"/*; do
-            if [[ -f "$conf_file" ]]; then
-                printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$conf_file")"
-                source "$conf_file" || printf "%s┃ │  └─ Failed to source %s\n" "$base_indent" "$(basename "$conf_file")"
-            fi
+        # Calculate lab root (go up to find the lab directory)
+        local lab_root="$dir"
+        while [[ "$lab_root" != "/" && ! -d "$lab_root/cfg/core" ]]; do
+            lab_root="$(dirname "$lab_root")"
         done
-
-        # Source all files in depl directory (was fun)
-        printf "%s┃ Sourcing function files from: %s\n" "$base_indent" "$fun_dir"
-        for func_file in "$fun_dir"/*; do
-            if [[ -f "$func_file" ]]; then
-                printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$func_file")"
-                source "$func_file" || printf "%s┃ │  └─ Failed to source %s\n" "$base_indent" "$(basename "$func_file")"
+        
+        if [[ ! -d "$lab_root/cfg/core" ]]; then
+            printf "%s┃ ${BOLD}WARNING:${RESET} Lab root not found, falling back to basic sourcing\n" "$base_indent"
+            lab_root="$(dirname "$(dirname "$dir")")"
+        fi
+        
+        # Use environment-aware configuration loading
+        if [[ -f "$lab_root/cfg/core/ric" ]]; then
+            printf "%s┃ Loading runtime constants...\n" "$base_indent"
+            source "$lab_root/cfg/core/ric"
+            
+            printf "%s┃ Environment: Site=${SITE_NAME}, Env=${ENVIRONMENT_NAME}, Node=${NODE_NAME}\n" "$base_indent"
+            
+            # Load environment configurations in correct order
+            printf "%s┃ Loading environment configurations...\n" "$base_indent"
+            
+            # 1. Base site configuration
+            if [[ -f "${SITE_CONFIG_FILE}" ]]; then
+                printf "%s┃ ├─ Base config: %s\n" "$base_indent" "$(basename "${SITE_CONFIG_FILE}")"
+                source "${SITE_CONFIG_FILE}" || printf "%s┃ │  └─ ${BOLD}ERROR:${RESET} Failed to source base config\n" "$base_indent"
+            else
+                printf "%s┃ ├─ ${BOLD}WARNING:${RESET} Base config not found: %s\n" "$base_indent" "${SITE_CONFIG_FILE}"
             fi
-        done
+            
+            # 2. Environment override
+            if [[ -f "${ENV_OVERRIDE_FILE}" ]]; then
+                printf "%s┃ ├─ Environment override: %s\n" "$base_indent" "$(basename "${ENV_OVERRIDE_FILE}")"
+                source "${ENV_OVERRIDE_FILE}" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source environment override\n" "$base_indent"
+            else
+                printf "%s┃ ├─ No environment override: %s\n" "$base_indent" "$(basename "${ENV_OVERRIDE_FILE}")"
+            fi
+            
+            # 3. Node override
+            if [[ -f "${NODE_OVERRIDE_FILE}" ]]; then
+                printf "%s┃ ├─ Node override: %s\n" "$base_indent" "$(basename "${NODE_OVERRIDE_FILE}")"
+                source "${NODE_OVERRIDE_FILE}" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source node override\n" "$base_indent"
+            else
+                printf "%s┃ ├─ No node override: %s\n" "$base_indent" "$(basename "${NODE_OVERRIDE_FILE}")"
+            fi
+        else
+            printf "%s┃ ${BOLD}WARNING:${RESET} Runtime constants not found, using legacy sourcing\n" "$base_indent"
+            # Fallback to old behavior
+            local env_dir="$lab_root/cfg/env"
+            if [[ -d "$env_dir" ]]; then
+                printf "%s┃ Legacy environment sourcing from: %s\n" "$base_indent" "$env_dir"
+                for conf_file in "$env_dir"/*; do
+                    if [[ -f "$conf_file" ]]; then
+                        printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$conf_file")"
+                        source "$conf_file" || printf "%s┃ │  └─ Failed to source %s\n" "$base_indent" "$(basename "$conf_file")"
+                    fi
+                done
+            fi
+        fi
 
         export SOURCE_RC_SUCCESS=1
         printf "%s┃ ${BOLD}Environment setup completed successfully${RESET}\n" "$base_indent"

@@ -1,0 +1,15 @@
+#!/bin/bash
+# Node w2 specific overrides for site1
+
+# Adjust IP addresses for w2 infrastructure
+CT_1_IP_ADDRESS=192.168.178.121
+CT_2_IP_ADDRESS=192.168.178.122
+CT_3_IP_ADDRESS=192.168.178.123
+
+# Use w2-specific SSH keys
+CT_1_SSH_KEY_FILE=/root/.ssh/w2.pub
+CT_2_SSH_KEY_FILE=/root/.ssh/w2.pub
+CT_3_SSH_KEY_FILE=/root/.ssh/w2.pub
+
+# w2 specific hardware configurations
+VM_1_CORES=6  # w2 has fewer cores available

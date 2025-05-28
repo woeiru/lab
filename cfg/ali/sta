@@ -159,4 +159,16 @@
 
     alias pts='gpu-pts'
     alias ptd='gpu-ptd'
-    alias pta='gpu-pta'     
+    alias pta='gpu-pta'
+
+    # Environment Management
+    alias env='$LIB_UTL_DIR/env'
+    alias env-dev='env switch-env dev'
+    alias env-test='env switch-env test'
+    alias env-staging='env switch-env staging'
+    alias env-prod='env switch-env prod'
+    alias env-stat='env status'
+    alias env-list='env list'
+    alias env-check='env validate'
+
+    # History

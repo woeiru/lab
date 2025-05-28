@@ -1,0 +1,354 @@
+#!/bin/bash
+#######################################################################
+# Infrastructure Configuration Utilities
+#######################################################################
+# Purpose:
+#   Provides helper functions for defining and managing infrastructure
+#   configurations to reduce repetitive definitions and improve
+#   maintainability of container and VM configurations.
+#
+# Functions:
+#   - define_container: Create standardized container configuration
+#   - define_vm: Create standardized VM configuration  
+#   - set_container_defaults: Set default values for containers
+#   - set_vm_defaults: Set default values for VMs
+#   - generate_ip_sequence: Generate sequential IP addresses
+#   - validate_config: Validate infrastructure configuration
+#
+# Usage:
+#   Source this file in environment configurations
+#   Use helper functions to define infrastructure resources
+#######################################################################
+
+# Default container configuration
+declare -g CT_DEFAULT_TEMPLATE="local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+declare -g CT_DEFAULT_STORAGE="local-zfs"
+declare -g CT_DEFAULT_ROOTFS_SIZE="32"
+declare -g CT_DEFAULT_MEMORY="8192"
+declare -g CT_DEFAULT_SWAP="8192"
+declare -g CT_DEFAULT_NAMESERVER="8.8.8.8"
+declare -g CT_DEFAULT_SEARCHDOMAIN="fritz.box"
+declare -g CT_DEFAULT_PASSWORD="password"
+declare -g CT_DEFAULT_CPUS="8"
+declare -g CT_DEFAULT_PRIVILEGED="yes"
+declare -g CT_DEFAULT_NET_NIC="eth0"
+declare -g CT_DEFAULT_NET_BRIDGE="vmbr0"
+declare -g CT_DEFAULT_CIDR="24"
+declare -g CT_DEFAULT_GATEWAY="192.168.178.1"
+declare -g CT_DEFAULT_SSH_KEY_FILE="/root/.ssh/w1.pub"
+
+# Default VM configuration
+declare -g VM_DEFAULT_OSTYPE="l26"
+declare -g VM_DEFAULT_MACHINE="q35"
+declare -g VM_DEFAULT_BOOT="order=scsi0;ide2;net0"
+declare -g VM_DEFAULT_BIOS="ovmf"
+declare -g VM_DEFAULT_SCSIHW="virtio-scsi-pci"
+declare -g VM_DEFAULT_AGENT="1"
+declare -g VM_DEFAULT_SOCKETS="1"
+declare -g VM_DEFAULT_CORES="4"
+declare -g VM_DEFAULT_CPU="host"
+declare -g VM_DEFAULT_MEMORY="4096"
+declare -g VM_DEFAULT_BALLOON="2048"
+
+# Set container defaults (can be called to override global defaults)
+set_container_defaults() {
+    local template="${1:-$CT_DEFAULT_TEMPLATE}"
+    local storage="${2:-$CT_DEFAULT_STORAGE}"
+    local rootfs_size="${3:-$CT_DEFAULT_ROOTFS_SIZE}"
+    local memory="${4:-$CT_DEFAULT_MEMORY}"
+    local swap="${5:-$CT_DEFAULT_SWAP}"
+    local nameserver="${6:-$CT_DEFAULT_NAMESERVER}"
+    local searchdomain="${7:-$CT_DEFAULT_SEARCHDOMAIN}"
+    local password="${8:-$CT_DEFAULT_PASSWORD}"
+    local cpus="${9:-$CT_DEFAULT_CPUS}"
+    local privileged="${10:-$CT_DEFAULT_PRIVILEGED}"
+    local net_nic="${11:-$CT_DEFAULT_NET_NIC}"
+    local net_bridge="${12:-$CT_DEFAULT_NET_BRIDGE}"
+    local cidr="${13:-$CT_DEFAULT_CIDR}"
+    local gateway="${14:-$CT_DEFAULT_GATEWAY}"
+    local ssh_key_file="${15:-$CT_DEFAULT_SSH_KEY_FILE}"
+    
+    CT_DEFAULT_TEMPLATE="$template"
+    CT_DEFAULT_STORAGE="$storage"
+    CT_DEFAULT_ROOTFS_SIZE="$rootfs_size"
+    CT_DEFAULT_MEMORY="$memory"
+    CT_DEFAULT_SWAP="$swap"
+    CT_DEFAULT_NAMESERVER="$nameserver"
+    CT_DEFAULT_SEARCHDOMAIN="$searchdomain"
+    CT_DEFAULT_PASSWORD="$password"
+    CT_DEFAULT_CPUS="$cpus"
+    CT_DEFAULT_PRIVILEGED="$privileged"
+    CT_DEFAULT_NET_NIC="$net_nic"
+    CT_DEFAULT_NET_BRIDGE="$net_bridge"
+    CT_DEFAULT_CIDR="$cidr"
+    CT_DEFAULT_GATEWAY="$gateway"
+    CT_DEFAULT_SSH_KEY_FILE="$ssh_key_file"
+}
+
+# Generate sequential IP addresses
+generate_ip_sequence() {
+    local base_ip="$1"      # e.g., "192.168.178"
+    local start_num="$2"    # e.g., 111
+    local count="$3"        # e.g., 3
+    local output_var="$4"   # variable name to store result array
+    
+    local -a ip_list=()
+    for ((i=0; i<count; i++)); do
+        ip_list+=("${base_ip}.$((start_num + i))")
+    done
+    
+    # Use nameref to set the array in the calling scope
+    local -n result_ref=$output_var
+    result_ref=("${ip_list[@]}")
+}
+
+# Define a container with minimal parameters
+define_container() {
+    local num="$1"
+    local id="$2"
+    local hostname="$3"
+    local ip_address="$4"
+    local template="${5:-$CT_DEFAULT_TEMPLATE}"
+    local storage="${6:-$CT_DEFAULT_STORAGE}"
+    local rootfs_size="${7:-$CT_DEFAULT_ROOTFS_SIZE}"
+    local memory="${8:-$CT_DEFAULT_MEMORY}"
+    local swap="${9:-$CT_DEFAULT_SWAP}"
+    local nameserver="${10:-$CT_DEFAULT_NAMESERVER}"
+    local searchdomain="${11:-$CT_DEFAULT_SEARCHDOMAIN}"
+    local password="${12:-$CT_DEFAULT_PASSWORD}"
+    local cpus="${13:-$CT_DEFAULT_CPUS}"
+    local privileged="${14:-$CT_DEFAULT_PRIVILEGED}"
+    local net_nic="${15:-$CT_DEFAULT_NET_NIC}"
+    local net_bridge="${16:-$CT_DEFAULT_NET_BRIDGE}"
+    local cidr="${17:-$CT_DEFAULT_CIDR}"
+    local gateway="${18:-$CT_DEFAULT_GATEWAY}"
+    local ssh_key_file="${19:-$CT_DEFAULT_SSH_KEY_FILE}"
+    
+    # Dynamically create variables
+    declare -g "CT_${num}_ID=$id"
+    declare -g "CT_${num}_TEMPLATE=$template"
+    declare -g "CT_${num}_HOSTNAME=$hostname"
+    declare -g "CT_${num}_STORAGE=$storage"
+    declare -g "CT_${num}_ROOTFS_SIZE=$rootfs_size"
+    declare -g "CT_${num}_MEMORY=$memory"
+    declare -g "CT_${num}_SWAP=$swap"
+    declare -g "CT_${num}_NAMESERVER=$nameserver"
+    declare -g "CT_${num}_SEARCHDOMAIN=$searchdomain"
+    declare -g "CT_${num}_PASSWORD=$password"
+    declare -g "CT_${num}_CPUS=$cpus"
+    declare -g "CT_${num}_PRIVILEGED=$privileged"
+    declare -g "CT_${num}_NET_NIC=$net_nic"
+    declare -g "CT_${num}_NET_BRIDGE=$net_bridge"
+    declare -g "CT_${num}_IP_ADDRESS=$ip_address"
+    declare -g "CT_${num}_CIDR=$cidr"
+    declare -g "CT_${num}_GATEWAY=$gateway"
+    declare -g "CT_${num}_SSH_KEY_FILE=$ssh_key_file"
+    
+    # Export the variables
+    export "CT_${num}_ID" "CT_${num}_TEMPLATE" "CT_${num}_HOSTNAME" "CT_${num}_STORAGE"
+    export "CT_${num}_ROOTFS_SIZE" "CT_${num}_MEMORY" "CT_${num}_SWAP" "CT_${num}_NAMESERVER"
+    export "CT_${num}_SEARCHDOMAIN" "CT_${num}_PASSWORD" "CT_${num}_CPUS" "CT_${num}_PRIVILEGED"
+    export "CT_${num}_NET_NIC" "CT_${num}_NET_BRIDGE" "CT_${num}_IP_ADDRESS" "CT_${num}_CIDR"
+    export "CT_${num}_GATEWAY" "CT_${num}_SSH_KEY_FILE"
+}
+
+# Define multiple containers from a configuration array
+define_containers() {
+    local -n containers_ref=$1
+    
+    for container_def in "${containers_ref[@]}"; do
+        # Parse container definition: "num:id:hostname:ip:template:memory:..."
+        IFS=':' read -ra CT_PARTS <<< "$container_def"
+        
+        local num="${CT_PARTS[0]}"
+        local id="${CT_PARTS[1]}"
+        local hostname="${CT_PARTS[2]}"
+        local ip_address="${CT_PARTS[3]}"
+        local template="${CT_PARTS[4]:-}"
+        local memory="${CT_PARTS[5]:-}"
+        
+        define_container "$num" "$id" "$hostname" "$ip_address" \
+                        "$template" "" "" "$memory"
+    done
+}
+
+# Set VM defaults
+set_vm_defaults() {
+    local ostype="${1:-$VM_DEFAULT_OSTYPE}"
+    local machine="${2:-$VM_DEFAULT_MACHINE}"
+    local boot="${3:-$VM_DEFAULT_BOOT}"
+    local bios="${4:-$VM_DEFAULT_BIOS}"
+    local scsihw="${5:-$VM_DEFAULT_SCSIHW}"
+    local agent="${6:-$VM_DEFAULT_AGENT}"
+    local sockets="${7:-$VM_DEFAULT_SOCKETS}"
+    local cores="${8:-$VM_DEFAULT_CORES}"
+    local cpu="${9:-$VM_DEFAULT_CPU}"
+    local memory="${10:-$VM_DEFAULT_MEMORY}"
+    local balloon="${11:-$VM_DEFAULT_BALLOON}"
+    
+    VM_DEFAULT_OSTYPE="$ostype"
+    VM_DEFAULT_MACHINE="$machine"
+    VM_DEFAULT_BOOT="$boot"
+    VM_DEFAULT_BIOS="$bios"
+    VM_DEFAULT_SCSIHW="$scsihw"
+    VM_DEFAULT_AGENT="$agent"
+    VM_DEFAULT_SOCKETS="$sockets"
+    VM_DEFAULT_CORES="$cores"
+    VM_DEFAULT_CPU="$cpu"
+    VM_DEFAULT_MEMORY="$memory"
+    VM_DEFAULT_BALLOON="$balloon"
+}
+
+# Define a VM with minimal parameters
+define_vm() {
+    local num="$1"
+    local id="$2"
+    local name="$3"
+    local iso="$4"
+    local disk="$5"
+    local net="$6"
+    local ostype="${7:-$VM_DEFAULT_OSTYPE}"
+    local machine="${8:-$VM_DEFAULT_MACHINE}"
+    local boot="${9:-$VM_DEFAULT_BOOT}"
+    local bios="${10:-$VM_DEFAULT_BIOS}"
+    local efidisk="${11:-}"
+    local scsihw="${12:-$VM_DEFAULT_SCSIHW}"
+    local agent="${13:-$VM_DEFAULT_AGENT}"
+    local sockets="${14:-$VM_DEFAULT_SOCKETS}"
+    local cores="${15:-$VM_DEFAULT_CORES}"
+    local cpu="${16:-$VM_DEFAULT_CPU}"
+    local memory="${17:-$VM_DEFAULT_MEMORY}"
+    local balloon="${18:-$VM_DEFAULT_BALLOON}"
+    
+    # Dynamically create variables
+    declare -g "VM_${num}_ID=$id"
+    declare -g "VM_${num}_NAME=$name"
+    declare -g "VM_${num}_OSTYPE=$ostype"
+    declare -g "VM_${num}_MACHINE=$machine"
+    declare -g "VM_${num}_ISO=$iso"
+    declare -g "VM_${num}_BOOT=$boot"
+    declare -g "VM_${num}_BIOS=$bios"
+    [[ -n "$efidisk" ]] && declare -g "VM_${num}_EFIDISK=$efidisk"
+    declare -g "VM_${num}_SCSIHW=$scsihw"
+    declare -g "VM_${num}_AGENT=$agent"
+    declare -g "VM_${num}_DISK=$disk"
+    declare -g "VM_${num}_SOCKETS=$sockets"
+    declare -g "VM_${num}_CORES=$cores"
+    declare -g "VM_${num}_CPU=$cpu"
+    declare -g "VM_${num}_MEMORY=$memory"
+    declare -g "VM_${num}_BALLOON=$balloon"
+    declare -g "VM_${num}_NET=$net"
+    
+    # Export the variables
+    export "VM_${num}_ID" "VM_${num}_NAME" "VM_${num}_OSTYPE" "VM_${num}_MACHINE"
+    export "VM_${num}_ISO" "VM_${num}_BOOT" "VM_${num}_BIOS"
+    [[ -n "$efidisk" ]] && export "VM_${num}_EFIDISK"
+    export "VM_${num}_SCSIHW" "VM_${num}_AGENT" "VM_${num}_DISK" "VM_${num}_SOCKETS"
+    export "VM_${num}_CORES" "VM_${num}_CPU" "VM_${num}_MEMORY" "VM_${num}_BALLOON"
+    export "VM_${num}_NET"
+}
+
+# Validate configuration
+validate_config() {
+    local errors=0
+    
+    echo "Validating infrastructure configuration..."
+    
+    # Check for required variables
+    local required_vars=(
+        "SITE_NAME" "ENVIRONMENT_NAME" "NODE_NAME"
+    )
+    
+    for var in "${required_vars[@]}"; do
+        if [[ -z "${!var:-}" ]]; then
+            echo "ERROR: Required variable $var is not set"
+            ((errors++))
+        fi
+    done
+    
+    # Check container definitions
+    local ct_num=1
+    while [[ -n "${!CT_${ct_num}_ID:-}" ]]; do
+        local id_var="CT_${ct_num}_ID"
+        local hostname_var="CT_${ct_num}_HOSTNAME" 
+        local ip_var="CT_${ct_num}_IP_ADDRESS"
+        
+        if [[ -z "${!id_var:-}" ]]; then
+            echo "ERROR: Container $ct_num missing ID"
+            ((errors++))
+        fi
+        
+        if [[ -z "${!hostname_var:-}" ]]; then
+            echo "ERROR: Container $ct_num missing hostname"
+            ((errors++))
+        fi
+        
+        if [[ -z "${!ip_var:-}" ]]; then
+            echo "ERROR: Container $ct_num missing IP address"
+            ((errors++))
+        fi
+        
+        ((ct_num++))
+    done
+    
+    if [[ $errors -eq 0 ]]; then
+        echo "Configuration validation passed"
+        return 0
+    else
+        echo "Configuration validation failed with $errors errors"
+        return 1
+    fi
+}
+
+# Show configuration summary
+show_config_summary() {
+    echo "Infrastructure Configuration Summary"
+    echo "===================================="
+    echo "Site: ${SITE_NAME:-unset}"
+    echo "Environment: ${ENVIRONMENT_NAME:-unset}"
+    echo "Node: ${NODE_NAME:-unset}"
+    echo ""
+    
+    echo "Containers:"
+    local ct_num=1
+    while [[ -n "${!CT_${ct_num}_ID:-}" ]]; do
+        local id_var="CT_${ct_num}_ID"
+        local hostname_var="CT_${ct_num}_HOSTNAME"
+        local ip_var="CT_${ct_num}_IP_ADDRESS"
+        
+        echo "  CT$ct_num: ID=${!id_var}, Host=${!hostname_var}, IP=${!ip_var}"
+        ((ct_num++))
+    done
+    
+    echo ""
+    echo "Virtual Machines:"
+    local vm_num=1
+    while [[ -n "${!VM_${vm_num}_ID:-}" ]]; do
+        local id_var="VM_${vm_num}_ID"
+        local name_var="VM_${vm_num}_NAME"
+        
+        echo "  VM$vm_num: ID=${!id_var}, Name=${!name_var}"
+        ((vm_num++))
+    done
+}
+
+# If script is executed directly, show help
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "Infrastructure Configuration Utilities"
+    echo "======================================"
+    echo ""
+    echo "This script provides helper functions for infrastructure configuration."
+    echo "It should be sourced, not executed directly."
+    echo ""
+    echo "Available functions:"
+    echo "  define_container    - Define a container configuration"
+    echo "  define_containers   - Define multiple containers from array"
+    echo "  define_vm          - Define a VM configuration"
+    echo "  set_container_defaults - Set default container values"
+    echo "  set_vm_defaults    - Set default VM values"
+    echo "  generate_ip_sequence - Generate sequential IP addresses"
+    echo "  validate_config    - Validate configuration"
+    echo "  show_config_summary - Show configuration summary"
+    echo ""
+    echo "Usage: source $0"
+fi

@@ -78,10 +78,23 @@ declare -g CFG_ENV_DIR
 CFG_ENV_DIR="${LAB_DIR}/cfg/env"
 export CFG_ENV_DIR
 
+# Master environment configuration
+declare -g SITE_NAME ENVIRONMENT_NAME NODE_NAME
+SITE_NAME="${SITE_NAME:-site1}"           # Default to site1, can be overridden
+ENVIRONMENT_NAME="${ENVIRONMENT_NAME:-prod}" # Default to prod, can be overridden  
+NODE_NAME="${NODE_NAME:-$(hostname)}"     # Default to current hostname
+export SITE_NAME ENVIRONMENT_NAME NODE_NAME
+
 # Site-wide configuration file path for depl scripts
 declare -g SITE_CONFIG_FILE
-SITE_CONFIG_FILE="${CFG_ENV_DIR}/site1"
+SITE_CONFIG_FILE="${CFG_ENV_DIR}/${SITE_NAME}"
 export SITE_CONFIG_FILE
+
+# Environment-specific override files (loaded after base config)
+declare -g ENV_OVERRIDE_FILE NODE_OVERRIDE_FILE
+ENV_OVERRIDE_FILE="${CFG_ENV_DIR}/${SITE_NAME}-${ENVIRONMENT_NAME}"
+NODE_OVERRIDE_FILE="${CFG_ENV_DIR}/${SITE_NAME}-${NODE_NAME}"
+export ENV_OVERRIDE_FILE NODE_OVERRIDE_FILE
 
 # Deployment function library path
 declare -g LIB_OPS_DIR
