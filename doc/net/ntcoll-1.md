@@ -1,3 +1,41 @@
+<!--
+#######################################################################
+# Network Topology Documentation - Collection 1
+#######################################################################
+# File: /home/es/lab/doc/net/ntcoll-1.md
+# Description: Comprehensive network topology visualization and
+#              documentation using Mermaid diagrams for lab environment
+#              infrastructure mapping and connectivity analysis.
+#
+# Author: Network Architecture Team
+# Created: 2025-05-28
+# Updated: 2025-05-28
+# Version: 1.0.0
+# Category: Technical Documentation - Network
+#
+# Document Purpose:
+#   Provides detailed network topology diagrams and connectivity
+#   documentation for understanding infrastructure layout, device
+#   relationships, and network flow within the lab environment.
+#
+# Technical Scope:
+#   - Management hypervisor network configurations
+#   - PCIe passthrough networking setups
+#   - Inter-device connectivity mapping
+#   - Network interface card assignments
+#
+# Target Audience:
+#   Network engineers, infrastructure architects, and system
+#   administrators responsible for network planning, troubleshooting,
+#   and infrastructure maintenance in virtualized environments.
+#
+# Dependencies:
+#   - Mermaid diagram rendering support
+#   - Network infrastructure components
+#   - Hypervisor platform configurations
+#######################################################################
+-->
+
 # Network Topology Graphs
 
 ```mermaid

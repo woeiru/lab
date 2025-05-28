@@ -1,3 +1,41 @@
+<!--
+#######################################################################
+# Podman Persistent Container Removal Fix - Technical Reference
+#######################################################################
+# File: /home/es/lab/doc/fix/podman_persistent_container.md
+# Description: Troubleshooting guide for resolving persistent Podman
+#              container issues where containers remain in listing
+#              despite multiple removal attempts.
+#
+# Author: Container Administration Team
+# Created: 2025-05-22
+# Updated: 2025-05-22
+# Version: 1.0.0
+# Category: Technical Documentation - Fix Guide
+#
+# Document Purpose:
+#   Provides systematic procedures for diagnosing and resolving
+#   Podman container persistence issues where standard removal
+#   commands fail to clean up container entries properly.
+#
+# Technical Scope:
+#   - Podman container lifecycle management
+#   - Container state troubleshooting procedures
+#   - Storage backend cleanup operations
+#   - Container registry and metadata repair
+#
+# Target Audience:
+#   Container administrators, DevOps engineers, and system operators
+#   managing Podman containerization infrastructure and requiring
+#   advanced troubleshooting capabilities for container cleanup.
+#
+# Dependencies:
+#   - Podman container runtime
+#   - Container storage backends
+#   - System administrative privileges
+#######################################################################
+-->
+
 # Fix: Persistent Podman Container Removal
 
 Date: 2025-05-22
