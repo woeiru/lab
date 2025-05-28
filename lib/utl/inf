@@ -152,23 +152,22 @@ define_container() {
     export "CT_${num}_GATEWAY" "CT_${num}_SSH_KEY_FILE"
 }
 
-# Define multiple containers from a configuration array
+# Define multiple containers from a configuration string
 define_containers() {
-    local -n containers_ref=$1
+    local containers_string="$1"
     
-    for container_def in "${containers_ref[@]}"; do
-        # Parse container definition: "num:id:hostname:ip:template:memory:..."
-        IFS=':' read -ra CT_PARTS <<< "$container_def"
-        
-        local num="${CT_PARTS[0]}"
-        local id="${CT_PARTS[1]}"
-        local hostname="${CT_PARTS[2]}"
-        local ip_address="${CT_PARTS[3]}"
-        local template="${CT_PARTS[4]:-}"
-        local memory="${CT_PARTS[5]:-}"
-        
-        define_container "$num" "$id" "$hostname" "$ip_address" \
-                        "$template" "" "" "$memory"
+    # Split the string by colon and process in groups of 3 (id:hostname:ip)
+    IFS=':' read -ra CT_PARTS <<< "$containers_string"
+    
+    # Process in groups of 3: id:hostname:ip
+    for ((i=0; i<${#CT_PARTS[@]}; i+=3)); do
+        if [[ $((i+2)) -lt ${#CT_PARTS[@]} ]]; then
+            local id="${CT_PARTS[i]}"
+            local hostname="${CT_PARTS[i+1]}"
+            local ip_address="${CT_PARTS[i+2]}"
+            
+            define_container "$id" "$id" "$hostname" "$ip_address"
+        fi
     done
 }
 

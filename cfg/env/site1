@@ -237,8 +237,8 @@ CT_MPC_3="/home"
 source /home/es/lab/lib/utl/inf
 source /home/es/lab/lib/utl/sec
 
-# Initialize secure password management
-init_password_management
+# Initialize secure password management (use /tmp for testing without root)
+init_password_management "/tmp/lab_passwords"
 
 # Set site-wide container defaults
 set_container_defaults \
@@ -249,7 +249,7 @@ set_container_defaults \
     swap=8192 \
     nameserver="8.8.8.8" \
     searchdomain="fritz.box" \
-    password='$(cat /etc/lab/passwords/ct_root.pwd 2>/dev/null || generate_secure_password 20)' \
+    password='$(cat /tmp/lab_passwords/ct_root.pwd 2>/dev/null || generate_secure_password 20)' \
     cpus=8 \
     privileged="yes" \
     net_nic="eth0" \
@@ -262,9 +262,9 @@ set_container_defaults \
 define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112:113:smb:192.168.178.113"
 
 # Individual container definitions for reference
-# define_container 111 pbs 192.168.178.111
-# define_container 112 nfs 192.168.178.112  
-# define_container 113 smb 192.168.178.113
+# define_container 111 111 pbs 192.168.178.111
+# define_container 112 112 nfs 192.168.178.112  
+# define_container 113 113 smb 192.168.178.113
 
 # VM creation
 #
@@ -293,7 +293,7 @@ VM_1_NET="model=virtio,bridge=vmbr0,firewall=1"
 
 # user creation
 NFS_USERNAME_1="es"
-NFS_PASSWORD_1='$(cat /etc/lab/passwords/nfs_user.pwd 2>/dev/null || generate_secure_password 16)'
+NFS_PASSWORD_1='$(cat /tmp/lab_passwords/nfs_user.pwd 2>/dev/null || generate_secure_password 16)'
 
 # packages
 NFS_PACKAGES_ALL=(nfs-kernel-server)
@@ -312,7 +312,7 @@ NFS_OPTIONS_1="*(rw,sync,no_root_squash,no_subtree_check)"
 
 # user creation
 SMB_USERNAME_0="es"
-SMB_PASSWORD_0='$(cat /etc/lab/passwords/smb_user.pwd 2>/dev/null || generate_secure_password 16)'
+SMB_PASSWORD_0='$(cat /tmp/lab_passwords/smb_user.pwd 2>/dev/null || generate_secure_password 16)'
 
 # packages
 SMB_PACKAGES_ALL="samba"
@@ -328,7 +328,7 @@ SMB_WRITABLE_YESNO_1="yes"
 SMB_GUESTOK_YESNO_1="yes"
 SMB_BROWSABLE_YESNO_1="yes"
 SMB_USERNAME_1="es"
-SMB_PASSWORD_1='$(cat /etc/lab/passwords/smb_user.pwd 2>/dev/null || generate_secure_password 16)'
+SMB_PASSWORD_1='$(cat /tmp/lab_passwords/smb_user.pwd 2>/dev/null || generate_secure_password 16)'
 SMB_CREATE_MASK_1="0775"
 SMB_DIR_MASK_1="0775"
 SMB_FORCE_USER_1="es"
@@ -341,7 +341,7 @@ SMB_WRITABLE_YESNO_2="yes"
 SMB_GUESTOK_YESNO_2="yes"
 SMB_BROWSABLE_YESNO_2="yes"
 SMB_USERNAME_2="nobody"
-SMB_PASSWORD_2='$(cat /etc/lab/passwords/smb_guest.pwd 2>/dev/null || generate_secure_password 12)'
+SMB_PASSWORD_2='$(cat /tmp/lab_passwords/smb_guest.pwd 2>/dev/null || generate_secure_password 12)'
 SMB_CREATE_MASK_2="0775"
 SMB_DIR_MASK_2="0775"
 SMB_FORCE_USER_2="nobody"
