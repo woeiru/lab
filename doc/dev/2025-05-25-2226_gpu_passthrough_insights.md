@@ -7,12 +7,6 @@
 #              passthrough troubleshooting session focusing on gpu-ptd
 #              and gpu-pts shell functions within the ops/gpu script.
 #
-# Author: Development Team
-# Created: 2025-05-25
-# Updated: 2025-05-25
-# Version: 1.0.0
-# Category: Development Documentation
-#
 # Session Context:
 #   Comprehensive debugging session addressing GPU passthrough failures,
 #   specifically NVIDIA GPU binding to vfio-pci driver and resolution

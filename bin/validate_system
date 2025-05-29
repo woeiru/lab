@@ -7,11 +7,6 @@
 #              checks and operational status verification of the
 #              environment management system components.
 #
-# Author: Environment Management System
-# Created: 2025-05-28
-# Version: 1.0.0
-# License: Lab Environment Internal Use
-#
 # Dependencies:
 #   - Bash 4.0+ (for basic scripting features)
 #   - Environment management system components

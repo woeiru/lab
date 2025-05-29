@@ -7,12 +7,6 @@
 #              log files, state management, and terminal verbosity controls
 #              for the lab environment management system.
 #
-# Author: Environment Management System
-# Created: 2025-05-28
-# Updated: 2025-05-28
-# Version: 1.0.0
-# Category: Technical Documentation - Manual
-#
 # Document Purpose:
 #   Provides detailed technical documentation for understanding and
 #   configuring the multi-layered logging architecture used throughout

@@ -7,12 +7,6 @@
 #              container issues where containers remain in listing
 #              despite multiple removal attempts.
 #
-# Author: Container Administration Team
-# Created: 2025-05-22
-# Updated: 2025-05-22
-# Version: 1.0.0
-# Category: Technical Documentation - Fix Guide
-#
 # Document Purpose:
 #   Provides systematic procedures for diagnosing and resolving
 #   Podman container persistence issues where standard removal

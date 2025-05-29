@@ -7,12 +7,6 @@
 #              configuration management including IP allocation, naming
 #              conventions, security practices, and operational procedures.
 #
-# Author: Environment Management System
-# Created: 2025-05-28
-# Updated: 2025-05-28
-# Version: 1.0.0
-# Category: Technical Documentation - Manual
-#
 # Document Purpose:
 #   Provides complete reference documentation for infrastructure
 #   management including container/VM configuration, security

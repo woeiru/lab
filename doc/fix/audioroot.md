@@ -7,12 +7,6 @@
 #              PipeWire audio issues encountered on Fedora systems with
 #              detailed diagnostic and resolution procedures.
 #
-# Author: System Administration Team
-# Created: 2024-06-06
-# Updated: 2024-06-06
-# Version: 1.0.0
-# Category: Technical Documentation - Fix Guide
-#
 # Document Purpose:
 #   Provides systematic troubleshooting procedures for diagnosing
 #   and resolving PipeWire audio configuration problems, ensuring

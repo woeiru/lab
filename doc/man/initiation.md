@@ -7,12 +7,6 @@
 #              with the shell script system including environment variables,
 #              runtime controls, and advanced configuration options.
 #
-# Author: Environment Management System
-# Created: 2025-05-28
-# Updated: 2025-05-28
-# Version: 1.0.0
-# Category: Technical Documentation - Manual
-#
 # Document Purpose:
 #   Provides complete user and developer reference for system
 #   configuration, environment variable management, runtime control

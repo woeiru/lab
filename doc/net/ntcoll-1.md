@@ -7,12 +7,6 @@
 #              documentation using Mermaid diagrams for lab environment
 #              infrastructure mapping and connectivity analysis.
 #
-# Author: Network Architecture Team
-# Created: 2025-05-28
-# Updated: 2025-05-28
-# Version: 1.0.0
-# Category: Technical Documentation - Network
-#
 # Document Purpose:
 #   Provides detailed network topology diagrams and connectivity
 #   documentation for understanding infrastructure layout, device
