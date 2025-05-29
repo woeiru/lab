@@ -581,3 +581,71 @@ The deployment framework is actively maintained and welcomes contributions:
 4. **Documentation**: Help improve and expand documentation for better usability
 
 The framework supports the lab's evolving infrastructure automation requirements and is designed for extensibility and maintainability.
+
+## Function Architecture Integration
+
+### Pure Functions vs Management Wrappers
+
+The deployment scripts integrate with a sophisticated **function separation pattern** implemented in the operations modules:
+
+#### Architecture Overview
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│ Deployment      │ -> │  Wrapper (-w)    │ -> │  Pure Function  │
+│ Script (src/set)│    │  src/mgt/*       │    │  lib/ops/*      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │
+                                v
+                       ┌──────────────────┐
+                       │  Global Config   │
+                       │  Environment     │
+                       └──────────────────┘
+```
+
+#### Implementation in Deployment Context
+
+**Deployment Scripts** (`src/set/`) call **Management Wrappers** (`src/mgt/`) which extract global variables from the environment and call **Pure Functions** (`lib/ops/`) with explicit parameters.
+
+##### Example: PVE Deployment Integration
+```bash
+# In deployment script (src/set/pve)
+source "${SRC_MGT_DIR}/pve"  # Load wrapper functions
+
+# Call wrapper function (handles global variable extraction)
+pve-vpt-w 100 on  # Enable passthrough for VM 100
+
+# The wrapper (src/mgt/pve) extracts globals and calls pure function
+# pve-vpt-w() {
+#     local hostname=$(hostname)
+#     local pci0_id="${!hostname}_NODE_PCI0"
+#     local pci1_id="${!hostname}_NODE_PCI1"
+#     # ...extract other globals
+#     pve-vpt "$vm_id" "$action" "$pci0_id" "$pci1_id" ...
+# }
+```
+
+#### Benefits for Infrastructure Deployment
+
+1. **Environment Independence**: Pure functions work regardless of deployment context
+2. **Testing Capability**: Pure functions can be unit tested independently
+3. **Configuration Flexibility**: Wrappers adapt to different environment configurations
+4. **Maintainable Automation**: Clear separation between deployment logic and infrastructure operations
+
+#### Available Function Categories
+
+**Pure Functions** (9 parameterized from PVE module):
+- `pve-fun` - Function listing and documentation
+- `pve-var` - Variable analysis and configuration review
+- `pve-vmd` - VM shutdown hook management
+- `pve-vck` - VM cluster node location checking
+- `pve-vpt` - PCI passthrough toggle operations
+- `pve-ctc` - Container creation with full configuration
+- `pve-vmc` - Virtual machine creation and setup
+- `pve-vms` - VM start/shutdown with passthrough management
+- `pve-vmg` - VM migration and orchestration
+
+**Management Wrappers** (corresponding `-w` functions):
+- Handle global variable extraction from environment
+- Provide deployment-friendly interfaces
+- Integrate with configuration hierarchy
+- Support environment-aware operations

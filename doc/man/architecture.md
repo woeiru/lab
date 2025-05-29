@@ -128,7 +128,7 @@ The project follows a domain-oriented architecture with sophisticated environmen
         -   `*.service`: Systemd services for power management.
     -   `replace/`: Text replacement utility with JSON configuration.
 
--   **Root-level files**:
+-   **`Root-level files`**:
     -   `entry.sh`: Symlink to `bin/env/rc` for easy environment setup.
     -   `STATUS.md`: Real-time project status and operational readiness indicator.
     -   `README.md`: Main project documentation and quick start guide.
@@ -143,6 +143,54 @@ A fundamental principle for the `lib/` directory is that all scripts and functio
 - **Maintainability**: Dependencies are explicit and traceable
 
 Scripts in directories like `src/set/` or `bin/` are responsible for sourcing necessary configurations (e.g., from `cfg/`) and passing them to the library functions.
+
+### Function Separation Pattern: Pure Functions vs Management Wrappers
+
+The project implements a sophisticated **separation of concerns pattern** for complex operational modules, exemplified in the PVE (Proxmox VE) system:
+
+#### Architecture Overview
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   User/Script   │ -> │  Wrapper (-w)    │ -> │  Pure Function  │
+│                 │    │  src/mgt/pve     │    │  lib/ops/pve    │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │
+                                v
+                       ┌──────────────────┐
+                       │  Global Config   │
+                       │  Environment     │
+                       └──────────────────┘
+```
+
+#### Design Principles
+- **Pure Functions** (`lib/ops/`): Accept explicit parameters, no global variable access, fully testable
+- **Wrapper Functions** (`src/mgt/`): Handle global variable extraction and call pure functions
+- **Naming Convention**: Pure functions use three-letter names, wrappers add "-w" suffix
+- **Testability**: Pure functions can be unit tested, wrappers enable integration testing
+
+#### Implementation Example
+```bash
+# Pure function (lib/ops/pve) - accepts explicit parameters
+pve-vck() {
+    local vm_id="$1"
+    local cluster_nodes_str="$2"
+    # Logic using only passed parameters
+}
+
+# Wrapper function (src/mgt/pve) - handles global variables
+pve-vck-w() {
+    source "${LIB_OPS_DIR}/pve"
+    local vm_id="$1"
+    local cluster_nodes_str="${CLUSTER_NODES[*]}"
+    pve-vck "$vm_id" "$cluster_nodes_str"
+}
+```
+
+#### Benefits
+- **Enhanced Testability**: Pure functions testable in isolation with explicit parameters
+- **Reduced Coupling**: Clear separation between logic and environment dependencies
+- **Improved Maintainability**: Global variable usage centralized in wrapper layer
+- **Flexible Deployment**: Pure functions reusable across different environments
 
 ### Environment-Aware Architecture
 The system implements a **hierarchical configuration loading system**:
@@ -235,14 +283,14 @@ The project features a sophisticated **environment-aware deployment system** tha
     -   `pve`: Proxmox VE infrastructure management
     -   `smb`: Samba file sharing configuration
 
--   **Management Scripts (`src/mgt/`)**: Advanced management utilities for:
-    -   `pve`: Proxmox VE administration and automation
+-   **Management Scripts (`src/mgt/`)**: Advanced management utilities implementing the **Function Separation Pattern**:
+    -   `pve`: 9 wrapper functions (ending in `-w`) that extract global variables and call pure functions
 
--   **Operations Modules (`lib/ops/`)**: Specialized libraries for system areas:
+-   **Operations Modules (`lib/ops/`)**: Specialized pure function libraries for system areas:
     -   `gpu`: GPU passthrough and hardware management
     -   `net`: Network configuration and routing
     -   `pbs`: Backup system integration
-    -   `pve`: Hypervisor management and VM lifecycle
+    -   `pve`: Hypervisor management and VM lifecycle (15 functions: 9 parameterized, 6 pure)
     -   `srv`: Service configuration and management
     -   `sto`: Storage pool and filesystem management
     -   `sys`: System-level operations and utilities
@@ -388,6 +436,7 @@ The project maintains comprehensive documentation organized by purpose and audie
 -   **Security implementation**: 120+ lines of comprehensive password management
 -   **Test coverage**: 375+ lines of validation and testing framework
 -   **Documentation**: 600+ lines of technical headers and guides
+-   **Function refactoring**: 9 PVE functions parameterized for pure function pattern
 
 ### Security Enhancements
 -   **Zero hardcoded passwords**: Complete elimination throughout infrastructure
@@ -399,7 +448,8 @@ The project maintains comprehensive documentation organized by purpose and audie
 -   **Environment-aware deployment**: Hierarchical configuration with context awareness
 -   **Automated testing**: Comprehensive validation framework for system reliability
 -   **Standardized infrastructure**: Consistent patterns across all deployments
--   **Enhanced maintainability**: Self-contained, stateless library design
+-   **Enhanced maintainability**: Self-contained, stateless library design with pure function separation
+-   **Improved testability**: Function separation pattern enables isolated unit testing
 
 ## Production Readiness Status
 
