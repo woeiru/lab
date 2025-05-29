@@ -204,3 +204,65 @@
 - Change management
 - Version control
 - Documentation requirements
+
+## 10. Function Design Patterns
+
+### 10.1 Pure Function Separation Pattern
+
+A sophisticated architectural pattern for managing complex operational modules:
+
+#### 10.1.1 Pattern Overview
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Client Code   │ -> │  Wrapper Layer   │ -> │  Pure Function  │
+│                 │    │  (src/mgt/)      │    │  (lib/ops/)     │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │
+                                v
+                       ┌──────────────────┐
+                       │  Global Config   │
+                       │  Environment     │
+                       └──────────────────┘
+```
+
+#### 10.1.2 Design Principles
+- **Separation of Concerns**: Business logic separated from environment dependencies
+- **Testability Enhancement**: Pure functions testable in isolation with explicit parameters
+- **Environment Independence**: Core functionality works regardless of configuration source
+- **Explicit Dependencies**: All requirements passed as parameters rather than global access
+
+#### 10.1.3 Implementation Strategy
+1. **Pure Function Layer** (`lib/ops/`):
+   - Accept explicit parameters for all required data
+   - No global variable access within function logic
+   - Stateless design enabling isolated testing
+   - Three-letter naming convention for consistency
+
+2. **Wrapper Function Layer** (`src/mgt/`):
+   - Extract global variables from environment
+   - Convert globals to explicit parameters
+   - Call pure functions with extracted data
+   - Naming convention: pure function name + "-w" suffix
+
+3. **Client Integration**:
+   - Deployment scripts call wrapper functions
+   - Wrappers handle environment-specific configuration
+   - Pure functions remain environment-agnostic
+
+#### 10.1.4 Benefits Realization
+- **Enhanced Testing**: Unit tests for pure functions, integration tests for wrappers
+- **Improved Maintainability**: Clear separation of business logic and configuration
+- **Flexible Deployment**: Same logic usable across different environments
+- **Reduced Coupling**: Explicit dependencies rather than hidden global access
+
+### 10.2 Configuration Management Patterns
+
+#### 10.2.1 Hierarchical Configuration Loading
+- Base configuration with environment-specific overrides
+- Node-specific customizations on top of environment settings
+- Runtime constants integration for path management
+
+#### 10.2.2 Environment-Aware Deployment
+- Context-sensitive configuration selection
+- Automatic environment variable management
+- Integration with deployment framework
