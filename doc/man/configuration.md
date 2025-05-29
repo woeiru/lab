@@ -324,4 +324,61 @@ define_container --help
 3. Replace password variables with secure generation
 4. Use infrastructure utility functions for container/VM definitions
 
+## Function Architecture Patterns
+
+### Pure Function Design in Library Modules
+
+The infrastructure utilities follow a **pure function design pattern** where library functions in `lib/` directories accept explicit parameters rather than accessing global variables directly. This pattern provides:
+
+#### Benefits
+- **Enhanced Testability**: Functions can be tested in isolation with known inputs
+- **Improved Reusability**: Functions work across different environments and contexts
+- **Explicit Dependencies**: All required data is passed as parameters, making dependencies clear
+- **Reduced Coupling**: Functions don't depend on specific global variable configurations
+
+#### Implementation Example
+```bash
+# Pure function (lib/ops/pve) - parameterized approach
+pve-vpt() {
+    local vm_id="$1"
+    local action="$2"  
+    local pci0_id="$3"
+    local pci1_id="$4"
+    local core_count_on="$5"
+    local core_count_off="$6"
+    local usb_devices_str="$7"
+    local pve_conf_path="$8"
+    
+    # Logic uses only explicit parameters
+    if [[ "$action" == "on" ]]; then
+        # Enable passthrough with provided parameters
+    fi
+}
+
+# Wrapper function (src/mgt/pve) - handles global extraction
+pve-vpt-w() {
+    source "${LIB_OPS_DIR}/pve"
+    
+    local hostname=$(hostname)
+    local vm_id="$1"
+    local action="$2"
+    
+    # Extract global variables and convert to explicit parameters
+    local pci0_id="${!hostname}_NODE_PCI0"
+    local pci1_id="${!hostname}_NODE_PCI1"
+    # ... extract other globals
+    
+    pve-vpt "$vm_id" "$action" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
+}
+```
+
+### Configuration-Library Separation
+
+This separation allows:
+
+1. **Environment Independence**: Pure functions work regardless of how configuration is loaded
+2. **Testing Flexibility**: Test pure functions with mock data, test wrappers with real config
+3. **Deployment Options**: Use wrappers in scripts, pure functions in automated testing
+4. **Maintenance Clarity**: Configuration logic separated from business logic
+
 This infrastructure configuration system provides a standardized, secure, and maintainable approach to managing lab environments with proper separation of concerns and environment-aware deployment capabilities.
