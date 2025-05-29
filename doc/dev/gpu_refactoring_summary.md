@@ -18,9 +18,9 @@
 - **`_gpu_get_host_driver()`**: Host driver determination
 
 ### 2. **Code Reduction**
-- **Original**: ~1,391 lines
-- **Refactored**: ~580 lines
-- **Reduction**: ~58% smaller while maintaining all functionality
+- **Original**: 1,390 lines  
+- **Refactored**: 1,018 lines
+- **Reduction**: 26.8% smaller while maintaining **ALL functionality**
 
 ### 3. **Eliminated Duplication**
 - Color definitions now centralized
@@ -40,6 +40,18 @@
 - Clear separation of concerns
 - Consistent naming conventions
 - Reduced nesting levels
+
+### 6. **Full Functionality Restored**
+- **Complete IOMMU Groups Details** - Shows device groupings for passthrough
+- **Detailed GPU Device Information** - Full lspci -nnk output with driver details
+- **Loaded Kernel Modules Display** - All GPU-related modules status
+- **Complete Workflow Checklist** - 4-step configuration validation:
+  - IOMMU enabled in kernel command line  
+  - VFIO modules in /etc/modules
+  - Nouveau blacklisted (for NVIDIA)
+  - Persistent GPU passthrough configuration files
+- **Runtime Status Analysis** - Module loading and driver binding details
+- **Comprehensive State Summary** - Detailed analysis with mixed-state detection
 
 ## Function Mapping
 
