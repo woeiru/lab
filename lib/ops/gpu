@@ -331,6 +331,125 @@ _gpu_get_host_driver() {
     esac
 }
 
+# Determine appropriate host driver for GPU (parameterized version)
+_gpu_get_host_driver_parameterized() {
+    local pci_id="$1"
+    local hostname="$2"
+    local nvidia_driver_preference="${3:-nvidia}"
+    
+    local vendor_device_id
+    vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
+    
+    if [ $? -ne 0 ] || [ -z "$vendor_device_id" ]; then
+        printf "${YELLOW}WARNING: Could not determine vendor ID for %s.${NC}\n" "$pci_id"
+        return 1
+    fi
+    
+    local vendor_id=$(echo "$vendor_device_id" | cut -d':' -f1)
+    
+    case "$vendor_id" in
+        "10de") # NVIDIA
+            echo "$nvidia_driver_preference"
+            ;;
+        "1002") # AMD
+            echo "amdgpu"
+            ;;
+        *)
+            printf "${YELLOW}WARNING: Unknown GPU vendor ID %s for %s.${NC}\n" "$vendor_id" "$pci_id"
+            return 1
+            ;;
+    esac
+}
+
+# Get PCI IDs from explicit parameters (parameterized version)
+_gpu_get_config_pci_ids_parameterized() {
+    local pci0_id="$1"
+    local pci1_id="$2"
+    local -a pci_ids=()
+    
+    if [ -n "$pci0_id" ]; then
+        local short_pci0_val=${pci0_id#0000:}
+        if _gpu_validate_pci_id "$short_pci0_val"; then
+            pci_ids+=("$short_pci0_val")
+        fi
+    fi
+    
+    if [ -n "$pci1_id" ]; then
+        local short_pci1_val=${pci1_id#0000:}
+        if _gpu_validate_pci_id "$short_pci1_val"; then
+            pci_ids+=("$short_pci1_val")
+        fi
+    fi
+    
+    printf "%s\n" "${pci_ids[@]}"
+}
+
+# Get target GPUs for processing (parameterized version)
+_gpu_get_target_gpus_parameterized() {
+    local gpu_id_arg="$1"
+    local hostname="$2"
+    local filter_driver="$3" # Optional: vfio-pci, nvidia, etc.
+    local pci0_id="$4"
+    local pci1_id="$5"
+    local -a gpus_to_process=()
+    
+    if [ -n "$gpu_id_arg" ]; then
+        # Specific GPU ID provided
+        if ! _gpu_validate_pci_id "$gpu_id_arg"; then
+            printf "${RED}ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0${NC}\n" "$gpu_id_arg"
+            return 1
+        fi
+        
+        if _gpu_is_gpu_device "$gpu_id_arg"; then
+            if [ -n "$filter_driver" ]; then
+                local current_driver
+                current_driver=$(_gpu_get_current_driver "$gpu_id_arg")
+                if [ "$current_driver" = "$filter_driver" ]; then
+                    gpus_to_process+=("$gpu_id_arg")
+                fi
+            else
+                gpus_to_process+=("$gpu_id_arg")
+            fi
+        else
+            printf "${RED}ERROR: Specified PCI ID %s is not a VGA/3D/Audio controller or does not exist.${NC}\n" "$gpu_id_arg"
+            return 1
+        fi
+    else
+        # Try to get from configuration
+        local -a config_ids
+        readarray -t config_ids < <(_gpu_get_config_pci_ids_parameterized "$pci0_id" "$pci1_id")
+        
+        # Process config IDs, but only add non-empty ones
+        for pci_id in "${config_ids[@]}"; do
+            if [ -n "$pci_id" ]; then
+                if [ -n "$filter_driver" ]; then
+                    local current_driver
+                    current_driver=$(_gpu_get_current_driver "$pci_id")
+                    if [ "$current_driver" = "$filter_driver" ]; then
+                        gpus_to_process+=("$pci_id")
+                    fi
+                else
+                    gpus_to_process+=("$pci_id")
+                fi
+            fi
+        done
+        
+        # Fallback to lspci scan if no config IDs found
+        if [ ${#gpus_to_process[@]} -eq 0 ]; then
+            local -a fallback_ids
+            readarray -t fallback_ids < <(_gpu_find_all_gpus "$filter_driver")
+            gpus_to_process+=("${fallback_ids[@]}")
+        fi
+    fi
+    
+    # Remove duplicates
+    if [ ${#gpus_to_process[@]} -gt 0 ]; then
+        readarray -t gpus_to_process < <(printf "%s\n" "${gpus_to_process[@]}" | sort -u)
+    fi
+    
+    printf "%s\n" "${gpus_to_process[@]}"
+}
+
 # Helper function to get IOMMU groups for GPU devices
 _gpu_get_iommu_groups() {
     local -a gpu_pci_bus_ids=()
@@ -487,12 +606,16 @@ _gpu_get_detailed_device_info() {
 
 # Shows a summary of selected functions in the script
 gpu-fun() {
-    aux-laf "$FILEPATH_gpu" "$@"
+    local filepath_gpu="${1:-$FILEPATH_gpu}"
+    shift
+    aux-laf "$filepath_gpu" "$@"
 }
 
 # Displays an overview of specific variables
 gpu-var() {
-    aux-acu -o "$CONFIG_gpu" "$DIR_FUN/.."
+    local config_gpu="${1:-$CONFIG_gpu}"
+    local lib_ops_parent_dir="${2:-$DIR_FUN/..}"
+    aux-acu -o "$config_gpu" "$lib_ops_parent_dir"
 }
 
 # Downloads and installs NVIDIA drivers, blacklisting Nouveau
@@ -693,12 +816,16 @@ gpu-pt3() {
 
 # Detaches the GPU from the host system for VM passthrough
 gpu-ptd() {
-    local function_name="${FUNCNAME[0]}"
     local gpu_id_arg="$1"
-    local current_hostname
+    local hostname="${2:-$(hostname -s)}"
+    local config_file="${3:-$CONFIG_FUN}"
+    local pci0_id="$4"
+    local pci1_id="$5"  
+    local nvidia_driver_preference="${6:-nvidia}"
+    
+    local function_name="${FUNCNAME[0]}"
     
     _gpu_init_colors
-    current_hostname=$(hostname -s)
     
     printf "INFO: Starting GPU detachment process\n"
 
@@ -708,8 +835,12 @@ gpu-ptd() {
         printf "${YELLOW}         VFIO passthrough may not work.${NC}\n"
     fi
 
-    # Load configuration
-    _gpu_load_config
+    # Load configuration if config file provided
+    if [ -n "$config_file" ] && [ -f "$config_file" ]; then
+        # shellcheck source=/dev/null
+        source "$config_file"
+        printf "INFO: Successfully sourced GPU configuration from %s\n" "$config_file"
+    fi
 
     # Ensure VFIO modules are loaded
     if ! _gpu_ensure_vfio_modules; then
@@ -718,7 +849,7 @@ gpu-ptd() {
 
     # Get target GPUs (exclude those already on vfio-pci)
     local -a gpus_to_process
-    readarray -t gpus_to_process < <(_gpu_get_target_gpus "$gpu_id_arg" "$current_hostname" "")
+    readarray -t gpus_to_process < <(_gpu_get_target_gpus_parameterized "$gpu_id_arg" "$hostname" "" "$pci0_id" "$pci1_id")
     
     # Filter out GPUs already on vfio-pci
     local -a filtered_gpus=()
@@ -776,21 +907,29 @@ gpu-ptd() {
 
 # Attaches the GPU back to the host system
 gpu-pta() {
-    local function_name="${FUNCNAME[0]}"
     local gpu_id_arg="$1"
-    local current_hostname
+    local hostname="${2:-$(hostname -s)}"
+    local config_file="${3:-$CONFIG_FUN}"
+    local pci0_id="$4"
+    local pci1_id="$5"
+    local nvidia_driver_preference="${6:-nvidia}"
+    
+    local function_name="${FUNCNAME[0]}"
     
     _gpu_init_colors
-    current_hostname=$(hostname -s)
     
     printf "INFO: Starting GPU attachment process...\n"
 
-    # Load configuration
-    _gpu_load_config
+    # Load configuration if config file provided
+    if [ -n "$config_file" ] && [ -f "$config_file" ]; then
+        # shellcheck source=/dev/null
+        source "$config_file"
+        printf "INFO: Successfully sourced GPU configuration from %s\n" "$config_file"
+    fi
 
     # Get target GPUs (only those on vfio-pci)
     local -a gpus_to_process
-    readarray -t gpus_to_process < <(_gpu_get_target_gpus "$gpu_id_arg" "$current_hostname" "vfio-pci")
+    readarray -t gpus_to_process < <(_gpu_get_target_gpus_parameterized "$gpu_id_arg" "$hostname" "vfio-pci" "$pci0_id" "$pci1_id")
 
     if [ ${#gpus_to_process[@]} -eq 0 ]; then
         printf "${YELLOW}No suitable GPU devices found on vfio-pci to attach.${NC}\n"
@@ -813,7 +952,7 @@ gpu-pta() {
         
         # Determine host driver
         local host_driver
-        host_driver=$(_gpu_get_host_driver "$pci_id" "$current_hostname")
+        host_driver=$(_gpu_get_host_driver_parameterized "$pci_id" "$hostname" "$nvidia_driver_preference")
         
         if [ $? -ne 0 ] || [ -z "$host_driver" ]; then
             printf "${YELLOW}WARNING: Could not determine host driver for %s. Skipping.${NC}\n" "$pci_id"
@@ -840,9 +979,22 @@ gpu-pta() {
 
 # Checks the current status of the GPU (complete detailed version)
 gpu-pts() {
+    local hostname="${1:-$(hostname -s)}"
+    local config_file="${2:-$CONFIG_FUN}"
+    local pci0_id="$3"
+    local pci1_id="$4"
+    local nvidia_driver_preference="${5:-nvidia}"
+    
     local function_name="${FUNCNAME[0]}"
     
     _gpu_init_colors
+    
+    # Load configuration if config file provided
+    if [ -n "$config_file" ] && [ -f "$config_file" ]; then
+        # shellcheck source=/dev/null
+        source "$config_file"
+        printf "INFO: Successfully sourced GPU configuration from %s\n" "$config_file" >/dev/null
+    fi
     
     # Get detailed device information
     local detailed_info
