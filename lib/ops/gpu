@@ -51,8 +51,7 @@ _gpu_extract_vendor_device_id() {
     
     if [ -n "$lspci_device_info" ]; then
         # Extract vendor:device ID from the [xxxx:yyyy] pattern
-        local vendor_device_pattern='\[[0-9a-f]{4}:[0-9a-f]{4}\]'
-        local vendor_device_id=$(echo "$lspci_device_info" | grep -o "$vendor_device_pattern" | tail -1 | sed 's/\[\|\]//g')
+        local vendor_device_id=$(echo "$lspci_device_info" | grep -o '\[[^]]*:[^]]*\]' | tail -1 | sed 's/\[\|\]//g')
         
         if [ -n "$vendor_device_id" ]; then
             local vendor_id=$(echo "$vendor_device_id" | cut -d':' -f1)
@@ -183,15 +182,18 @@ _gpu_get_target_gpus() {
         local -a config_ids
         readarray -t config_ids < <(_gpu_get_config_pci_ids "$hostname")
         
+        # Process config IDs, but only add non-empty ones
         for pci_id in "${config_ids[@]}"; do
-            if [ -n "$filter_driver" ]; then
-                local current_driver
-                current_driver=$(_gpu_get_current_driver "$pci_id")
-                if [ "$current_driver" = "$filter_driver" ]; then
+            if [ -n "$pci_id" ]; then
+                if [ -n "$filter_driver" ]; then
+                    local current_driver
+                    current_driver=$(_gpu_get_current_driver "$pci_id")
+                    if [ "$current_driver" = "$filter_driver" ]; then
+                        gpus_to_process+=("$pci_id")
+                    fi
+                else
                     gpus_to_process+=("$pci_id")
                 fi
-            else
-                gpus_to_process+=("$pci_id")
             fi
         done
         
