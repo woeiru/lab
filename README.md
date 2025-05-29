@@ -135,7 +135,7 @@ cd src/set/pve && ./pve a  # Execute specific task
 ## 📊 System Metrics
 
 ### 🏗️ Codebase Statistics
-- **Total Files**: 1,966 files across 313 directories
+- **Total Files**: 57 files across 313 directories
 - **Library Functions**: 133 operational functions in 19 library modules
 - **Operations Code**: 5,323 lines of infrastructure automation
 - **Utility Libraries**: 1,417 lines of reusable components
@@ -152,6 +152,8 @@ cd src/set/pve && ./pve a  # Execute specific task
 - **Function Separation**: Pure functions with management wrappers
 - **Security Coverage**: Zero hardcoded credentials with secure management
 - **Environment Support**: Multi-tier configuration hierarchy
+
+> 💡 **Live Metrics**: These statistics are generated in real-time using `./stats.sh`. Run it anytime to get current codebase metrics in formatted, markdown, or raw output.
 
 ## 🔧 Advanced Features
 
