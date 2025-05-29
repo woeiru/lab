@@ -7,11 +7,6 @@
 #              providing standardized container and VM definition utilities
 #              with configurable defaults and bulk creation capabilities.
 #
-# Author: Environment Management System
-# Created: 2025-05-28
-# Version: 1.0.0
-# License: Lab Environment Internal Use
-#
 # Dependencies:
 #   - Bash 4.0+ (for associative arrays and nameref support)
 #   - Standard UNIX utilities (tr, head, etc.)

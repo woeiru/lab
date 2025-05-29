@@ -7,12 +7,6 @@
 #              RAID 1 configuration with Snapper snapshot management
 #              on openSUSE-based systems.
 #
-# Author: Storage Administration Team
-# Created: 2025-05-28
-# Updated: 2025-05-28
-# Version: 1.0.0
-# Category: Technical Documentation - How-To Guide
-#
 # Document Purpose:
 #   Provides detailed procedural instructions for implementing
 #   Btrfs RAID 1 storage configuration with automated snapshot

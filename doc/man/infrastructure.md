@@ -7,12 +7,6 @@
 #              deployment scripts with environment-aware configuration
 #              management and automated provisioning capabilities.
 #
-# Author: Environment Management System
-# Created: 2025-05-28
-# Updated: 2025-05-28
-# Version: 1.0.0
-# Category: Technical Documentation - Manual
-#
 # Document Purpose:
 #   Provides detailed operational guidance for deploying and managing
 #   infrastructure components using the automated deployment framework

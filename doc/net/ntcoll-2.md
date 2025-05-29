@@ -8,12 +8,6 @@
 #              complex infrastructure relationships, meta-infrastructure
 #              components, and multi-layer network architectures.
 #
-# Author: Network Architecture Team
-# Created: 2025-05-28
-# Updated: 2025-05-28
-# Version: 1.0.0
-# Category: Technical Documentation - Network
-#
 # Document Purpose:
 #   Provides comprehensive network topology diagrams for complex
 #   infrastructure scenarios including meta-infrastructure, multi-

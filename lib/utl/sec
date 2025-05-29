@@ -7,11 +7,6 @@
 #              password generation, storage, and credential management
 #              for lab environment infrastructure components.
 #
-# Author: Environment Management System
-# Created: 2025-05-28
-# Version: 1.0.0
-# License: Lab Environment Internal Use
-#
 # Dependencies:
 #   - /dev/urandom (for cryptographically secure random generation)
 #   - tr command (for character filtering)

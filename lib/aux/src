@@ -8,11 +8,6 @@
 #              runtime constants integration, and context-aware execution
 #              for infrastructure deployment scripts.
 #
-# Author: Environment Management System
-# Created: Original framework, Enhanced: 2025-05-28
-# Version: 2.0.0 (Enhanced with environment awareness)
-# License: Lab Environment Internal Use
-#
 # Dependencies:
 #   - Runtime constants (cfg/core/ric)
 #   - Environment configurations (cfg/env/*)

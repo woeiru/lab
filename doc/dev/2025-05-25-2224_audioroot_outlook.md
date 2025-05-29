@@ -8,12 +8,6 @@
 #              audio root configuration, troubleshooting procedures,
 #              and system integration analysis.
 #
-# Author: Development Team
-# Created: 2025-05-25
-# Updated: 2025-05-25
-# Version: 1.0.0
-# Category: Development Documentation
-#
 # Session Context:
 #   Analysis and documentation of audio root configuration challenges,
 #   system integration requirements, and planned development approach

@@ -7,12 +7,6 @@
 #              structure, design principles, and sophisticated environment
 #              management system of the Lab Environment project.
 #
-# Author: Environment Management System
-# Created: 2025-05-28
-# Updated: 2025-05-28
-# Version: 1.0.0
-# Category: Technical Documentation - Manual
-#
 # Document Purpose:
 #   Serves as the definitive architectural reference for understanding
 #   the project structure, design patterns, and production-ready
