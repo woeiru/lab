@@ -18,8 +18,9 @@ LAB_DIR="$SCRIPT_DIR"
 
 # Gather all statistics
 gather_stats() {
-    local total_files=$(find "$LAB_DIR" -name "*.sh" -o -name "*.md" -o -name "*.yml" | wc -l)
-    local directories=$(find "$LAB_DIR" -type d 2>/dev/null | wc -l)
+    # Count all regular files (excluding hidden/git files) to match tree output
+    local total_files=$(find "$LAB_DIR" -type f ! -path '*/.*' | wc -l)
+    local directories=$(find "$LAB_DIR" -type d ! -path '*/.*' | wc -l)
     local lib_functions=$(grep -r "() {" "$LAB_DIR/lib/ops/" 2>/dev/null | wc -l)
     local lib_files=$(find "$LAB_DIR/lib" -name "*" -type f | wc -l)
     

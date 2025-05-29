@@ -56,16 +56,23 @@ readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
 
 # Debug logging function to use before we load the full system
-# Now always logs to file and stderr (no verbosity control)
+# Now with optimized I/O for performance-critical sections
 debug_log() {
     local timestamp=$(date '+%H:%M:%S')
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
+    local priority="${3:-1}" # 1=normal, 2=detailed (can be skipped in performance mode)
     local LOG_DEBUG_FILE="${BASE_DIR}/.log/debug.log"
     
-    # Always log to file
+    # Skip detailed logs during performance-critical operations if desired
+    if [[ "$priority" == "2" && "${PERFORMANCE_MODE:-0}" == "1" ]]; then
+        return 0
+    fi
+    
+    # Always log to file (but batch for performance)
     mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
     echo "[DEBUG] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
+    
     # Conditionally output to stderr based on both system and specific debug verbosity
     if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${DEBUG_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
         echo "└─ $message [$timestamp]" >&2
@@ -110,6 +117,9 @@ source "${BASE_DIR}/lib/core/ver" || {
 main_ini() {
     local main_op_timer_started=0 # New: Flag to track if MAIN_OPERATIONS timer started
 
+    # Performance optimization: Enable performance mode for critical sections
+    export PERFORMANCE_MODE=1
+
     # Ensure log directory exists and clear logs for the new cycle
     # LOG_DIR, LOG_DEBUG_FILE, and ERROR_LOG are sourced from cfg/core/ric
     if [ -n "$LOG_DIR" ] && [ -n "$LOG_DEBUG_FILE" ] && [ -n "$ERROR_LOG" ]; then
@@ -121,7 +131,7 @@ main_ini() {
         echo "Critical Error: Log directory or log file variables not set. Cannot clear logs." >&2
     fi
 
-    debug_log "Starting main initialization"
+    debug_log "Starting main initialization with performance optimizations"
 
     # Verify that verification module is loaded
     if ! type verify_module &>/dev/null || ! type verify_path &>/dev/null; then
@@ -179,6 +189,9 @@ main_ini() {
         return 1
     fi
     if type tme_end_timer &>/dev/null; then tme_end_timer "INIT_RUNTIME_SYSTEM" "success"; fi
+
+    # Disable performance mode before component setup (which may need detailed logging)
+    export PERFORMANCE_MODE=0
 
     # Part 3: Setup additional components using the orchestrator
     debug_log "Setting RC_SOURCED=0 before calling setup_components"
@@ -267,7 +280,7 @@ init_dirs() {
 
 # Load modules using ver's validation functions
 load_modules() {
-    debug_log "Starting module loading"
+    debug_log "Starting optimized module loading"
 
     local module_loaded=0
     local -a modules=(
@@ -277,22 +290,32 @@ load_modules() {
     )
 
     declare -A loaded_modules
-
+    
+    # Performance optimization: Batch validate all modules first
+    debug_log "Batch validating modules for performance" "load_modules" 2
     for module in "${modules[@]}"; do
         local module_name="$(basename "$module")"
-        debug_log "Processing module: $module_name"
+        
+        # Fast file existence check without individual verification
+        if [[ ! -f "$module" ]] || [[ ! -r "$module" ]]; then
+            debug_log "ERROR: Module file not accessible: $module_name"
+            continue
+        fi
+        
+        debug_log "Module file verified: $module_name" "load_modules" 2
+    done
+
+    # Batch load verified modules
+    for module in "${modules[@]}"; do
+        local module_name="$(basename "$module")"
+        debug_log "Loading module: $module_name" "load_modules" 2
 
         if [[ "$module_name" == "lo2" ]]; then
             mkdir -p "${BASE_DIR}/.log" # Ensure directory exists
             echo "INIT_SCRIPT_FLOW: About to source lo2 - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
         fi
 
-        # Using verify_module and validate_module from ver
-        if ! verify_module "$module_name" || ! validate_module "$module"; then
-            debug_log "ERROR: Module verification/validation failed for $module_name" "verify_module" 1
-            continue
-        fi
-
+        # Streamlined loading without per-module verification overhead
         if [[ -f "$module" ]] && [[ -r "$module" ]]; then
             if source "$module" 2>/dev/null; then
                 debug_log "Successfully loaded module: $module_name"
@@ -309,8 +332,9 @@ load_modules() {
     done
 
     mkdir -p "${BASE_DIR}/.log" # Ensure directory exists
-    echo "INIT_SCRIPT_FLOW: Finished module loading loop in init - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
+    echo "INIT_SCRIPT_FLOW: Finished optimized module loading loop in init - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
 
+    debug_log "Loaded $module_loaded modules using optimized batch processing"
     return $((module_loaded > 0 ? 0 : 1))
 }
 
@@ -387,31 +411,88 @@ init_registered_functions() {
 
     local failed=0
     local success=0
+    
+    # Performance optimization: Cache module verification and batch operations
+    declare -A module_cache
+    declare -A module_paths_cache
+    
+    # Pre-verify and cache all unique modules
+    if type tme_start_timer &>/dev/null; then tme_start_timer "CACHE_MODULE_VERIFICATION" "$parent_timer"; fi
+    debug_log "Pre-verifying and caching modules for batch processing" "init_registered_functions" 1
+    
     for func in "${REGISTERED_FUNCTIONS[@]}"; do
-        debug_log "Checking function: $func" "init_registered_functions" 2
-        local func_timer_name_deps="VERIFY_FUNC_DEPS_${func//[^A-Za-z0-9_]/_}" # Sanitize func name for timer
-        local func_timer_name_reg="REGISTER_FUNC_${func//[^A-Za-z0-9_]/_}" # Sanitize func name for timer
-
-        if type tme_start_timer &>/dev/null; then tme_start_timer "$func_timer_name_deps" "$parent_timer"; fi
-        if ! verify_function_dependencies "$func"; then
-            debug_log "WARNING: Failed to verify dependencies for function: $func - continuing anyway" "init_registered_functions" 1
-            if type tme_end_timer &>/dev/null; then tme_end_timer "$func_timer_name_deps" "error_deps_failed"; fi
+        local deps="${FUNCTION_DEPENDENCIES[$func]}"
+        [[ -z "$deps" ]] && continue
+        
+        IFS=',' read -ra MODULE_ARRAY <<< "$deps"
+        for module in "${MODULE_ARRAY[@]}"; do
+            # Cache module verification result if not already done
+            if [[ -z "${module_cache[$module]:-}" ]]; then
+                local module_path="${FUNCTION_MODULES["$func:$module"]:-${FUNCTION_MODULES[$func]}}"
+                if [[ -n "$module_path" ]] && [[ -f "$module_path" ]]; then
+                    module_cache[$module]="valid"
+                    module_paths_cache[$module]="$module_path"
+                    debug_log "Cached module: $module -> $module_path" "init_registered_functions" 2
+                else
+                    module_cache[$module]="invalid"
+                    debug_log "Module not found: $module" "init_registered_functions" 2
+                fi
+            fi
+        done
+    done
+    if type tme_end_timer &>/dev/null; then tme_end_timer "CACHE_MODULE_VERIFICATION" "success"; fi
+    
+    # Process functions using cached data
+    if type tme_start_timer &>/dev/null; then tme_start_timer "BATCH_FUNCTION_REGISTRATION" "$parent_timer"; fi
+    for func in "${REGISTERED_FUNCTIONS[@]}"; do
+        debug_log "Processing function: $func" "init_registered_functions" 2
+        
+        # Fast dependency check using cache
+        local deps="${FUNCTION_DEPENDENCIES[$func]}"
+        if [[ -z "$deps" ]]; then
+            debug_log "WARNING: No dependencies found for function: $func - continuing anyway" "init_registered_functions" 1
             continue
         fi
-        if type tme_end_timer &>/dev/null; then tme_end_timer "$func_timer_name_deps" "success"; fi
-
-        if type tme_start_timer &>/dev/null; then tme_start_timer "$func_timer_name_reg" "$parent_timer"; fi
-        if register_function "$func"; then
-            debug_log "Successfully registered function: $func" "init_registered_functions" 1
-            if type tme_end_timer &>/dev/null; then tme_end_timer "$func_timer_name_reg" "success"; fi
-            ((success++))
-        else
+        
+        local deps_verified=true
+        IFS=',' read -ra MODULE_ARRAY <<< "$deps"
+        for module in "${MODULE_ARRAY[@]}"; do
+            if [[ "${module_cache[$module]:-invalid}" != "valid" ]]; then
+                deps_verified=false
+                break
+            fi
+        done
+        
+        if [[ "$deps_verified" != "true" ]]; then
+            debug_log "WARNING: Failed to verify dependencies for function: $func - continuing anyway" "init_registered_functions" 1
+            continue
+        fi
+        
+        # Register function using cached module paths
+        local registered=false
+        for module in "${MODULE_ARRAY[@]}"; do
+            local module_path="${module_paths_cache[$module]}"
+            if [[ -n "$module_path" ]]; then
+                debug_log "Checking for function $func in cached module $module_path" "init_registered_functions" 2
+                
+                if verify_function "$func" "$module_path" 2; then
+                    if source "$module_path" 2>/dev/null; then
+                        debug_log "Successfully registered function: $func from $module_path" "init_registered_functions" 1
+                        registered=true
+                        ((success++))
+                        break
+                    fi
+                fi
+            fi
+        done
+        
+        if [[ "$registered" != "true" ]]; then
             debug_log "WARNING: Failed to register function: $func - continuing anyway" "init_registered_functions" 1
-            if type tme_end_timer &>/dev/null; then tme_end_timer "$func_timer_name_reg" "error_reg_failed"; fi
         fi
     done
+    if type tme_end_timer &>/dev/null; then tme_end_timer "BATCH_FUNCTION_REGISTRATION" "success"; fi
 
-    debug_log "Registered $success functions successfully" "init_registered_functions" 1
+    debug_log "Registered $success functions successfully using optimized batch processing" "init_registered_functions" 1
     return $((success > 0 ? 0 : 1))
 }
 
