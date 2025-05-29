@@ -8,12 +8,6 @@
 #              menu system architecture showing execution flow, decision
 #              points, and interactive menu processing logic.
 #
-# Author: Flow Documentation Team
-# Created: 2025-05-28
-# Updated: 2025-05-28
-# Version: 1.0.0
-# Category: Technical Documentation - Flow
-#
 # Document Purpose:
 #   Provides visual flow documentation for understanding the auxiliary
 #   source menu system architecture, execution paths, and interactive

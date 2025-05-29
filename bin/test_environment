@@ -8,11 +8,6 @@
 #              infrastructure utilities, security features, environment
 #              switching, and integration testing.
 #
-# Author: Environment Management System
-# Created: 2025-05-28
-# Version: 1.0.0
-# License: Lab Environment Internal Use
-#
 # Dependencies:
 #   - Bash 4.0+ (for associative arrays and advanced features)
 #   - All environment management system components

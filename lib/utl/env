@@ -8,11 +8,6 @@
 #              staging, and production environments with proper context
 #              management and validation.
 #
-# Author: Environment Management System
-# Created: 2025-05-28
-# Version: 1.0.0
-# License: Lab Environment Internal Use
-#
 # Dependencies:
 #   - Environment controller configuration (cfg/core/ecc)
 #   - Site configuration files (cfg/env/site*)
