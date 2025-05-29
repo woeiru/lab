@@ -8,6 +8,10 @@
 #   pve-vmd-w : Wrapper for pve-vmd that sources global variables and calls the pure function
 #   pve-vck-w : Wrapper for pve-vck that sources global variables and calls the pure function
 #   pve-vpt-w : Wrapper for pve-vpt that sources global variables and calls the pure function
+#   pve-ctc-w : Wrapper for pve-ctc that sources global variables and calls the pure function
+#   pve-vmc-w : Wrapper for pve-vmc that sources global variables and calls the pure function
+#   pve-vms-w : Wrapper for pve-vms that sources global variables and calls the pure function
+#   pve-vmg-w : Wrapper for pve-vmg that sources global variables and calls the pure function
 #
 # ============================================================================
 
@@ -23,31 +27,6 @@ eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
 eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
-
-# Wrapper for pve-fun that extracts global variables and calls the pure function
-# overview functions (wrapper)
-pve-fun-w() {
-    # Source the pure library function
-    source "${LIB_OPS_DIR}/pve"
-    
-    # Extract global variable and call pure function
-    local script_path="${FILEPATH_pve}"
-    
-    pve-fun "$script_path" "$@"
-}
-
-# Wrapper for pve-var that extracts global variables and calls the pure function  
-# overview variables (wrapper)
-pve-var-w() {
-    # Source the pure library function
-    source "${LIB_OPS_DIR}/pve"
-    
-    # Extract global variables and call pure function
-    local config_file="${CONFIG_pve}"
-    local analysis_dir="${DIR_FUN}/.."
-    
-    pve-var "$config_file" "$analysis_dir" "$@"
-}
 
 # Wrapper for pve-vmd that extracts global variables and calls the pure function
 # vm shutdown hook (wrapper)
@@ -113,4 +92,163 @@ pve-vpt-w() {
     fi
     
     pve-vpt "$vm_id" "$action" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
+}
+
+# Wrapper for pve-fun that extracts global variables and calls the pure function
+# overview functions (wrapper)
+pve-fun-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Extract global variable and call pure function
+    local script_path="${FILEPATH_pve}"
+    
+    pve-fun "$script_path" "$@"
+}
+
+# Wrapper for pve-var that extracts global variables and calls the pure function  
+# overview variables (wrapper)
+pve-var-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Extract global variables and call pure function
+    local config_file="${CONFIG_pve}"
+    local analysis_dir="${DIR_FUN}/.."
+    
+    pve-var "$config_file" "$analysis_dir" "$@"
+}
+
+# Wrapper for pve-ctc that extracts global variables and calls the pure function
+# container create (wrapper)
+pve-ctc-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Extract global variables for container creation
+    # These would typically come from site configuration
+    local id="$1"
+    local template="$2"
+    local hostname="$3"
+    local storage="$4"
+    local rootfs_size="$5"
+    local memory="$6"
+    local swap="$7"
+    local nameserver="$8"
+    local searchdomain="$9"
+    local password="${10}"
+    local cpus="${11}"
+    local privileged="${12}"
+    local ip_address="${13}"
+    local cidr="${14}"
+    local gateway="${15}"
+    local ssh_key_file="${16}"
+    local net_bridge="${17}"
+    local net_nic="${18}"
+    
+    # Call pure function with explicit parameters
+    pve-ctc "$id" "$template" "$hostname" "$storage" "$rootfs_size" "$memory" "$swap" "$nameserver" "$searchdomain" "$password" "$cpus" "$privileged" "$ip_address" "$cidr" "$gateway" "$ssh_key_file" "$net_bridge" "$net_nic"
+}
+
+# Wrapper for pve-vmc that extracts global variables and calls the pure function
+# virtual machine create (wrapper)
+pve-vmc-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Extract global variables for VM creation
+    # These would typically come from site configuration
+    local id="$1"
+    local name="$2"
+    local ostype="$3"
+    local machine="$4"
+    local iso="$5"
+    local boot="$6"
+    local bios="$7"
+    local efidisk="$8"
+    local scsihw="$9"
+    local agent="${10}"
+    local disk="${11}"
+    local sockets="${12}"
+    local cores="${13}"
+    local cpu="${14}"
+    local memory="${15}"
+    local balloon="${16}"
+    local net="${17}"
+    
+    # Call pure function with explicit parameters
+    pve-vmc "$id" "$name" "$ostype" "$machine" "$iso" "$boot" "$bios" "$efidisk" "$scsihw" "$agent" "$disk" "$sockets" "$cores" "$cpu" "$memory" "$balloon" "$net"
+}
+
+# Wrapper for pve-vms that extracts global variables and calls the pure function
+# vm start get shutdown (wrapper)
+pve-vms-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Get hostname for variable names
+    local hostname=$(hostname)
+    
+    # Extract global variables
+    local vm_id="$1"
+    local shutdown_flag="$2"
+    local cluster_nodes_str="${CLUSTER_NODES[*]}"
+    local pci0_var="${hostname}_NODE_PCI0"
+    local pci1_var="${hostname}_NODE_PCI1"
+    local core_count_on_var="${hostname}_CORE_COUNT_ON"
+    local core_count_off_var="${hostname}_CORE_COUNT_OFF"
+    local usb_devices_var="${hostname}_USB_DEVICES[@]"
+    
+    # Get values from global variables
+    local pci0_id="${!pci0_var}"
+    local pci1_id="${!pci1_var}"
+    local core_count_on="${!core_count_on_var}"
+    local core_count_off="${!core_count_off_var}"
+    local usb_devices_str="${!usb_devices_var}"
+    local pve_conf_path="${PVE_CONF_PATH_QEMU}"
+    
+    # Validate required variables are set
+    if [[ -z "$cluster_nodes_str" || -z "$pci0_id" || -z "$pci1_id" || -z "$core_count_on" || -z "$core_count_off" || -z "$pve_conf_path" ]]; then
+        echo "Error: Missing required global variables for hostname '$hostname'"
+        echo "Required: CLUSTER_NODES, ${pci0_var}, ${pci1_var}, ${core_count_on_var}, ${core_count_off_var}, PVE_CONF_PATH_QEMU"
+        return 1
+    fi
+    
+    pve-vms "$vm_id" "$cluster_nodes_str" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path" "$shutdown_flag"
+}
+
+# Wrapper for pve-vmg that extracts global variables and calls the pure function
+# vm get start (wrapper)
+pve-vmg-w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/pve"
+    
+    # Get hostname for variable names
+    local hostname=$(hostname)
+    
+    # Extract global variables
+    local vm_id="$1"
+    local cluster_nodes_str="${CLUSTER_NODES[*]}"
+    local pci0_var="${hostname}_NODE_PCI0"
+    local pci1_var="${hostname}_NODE_PCI1"
+    local core_count_on_var="${hostname}_CORE_COUNT_ON"
+    local core_count_off_var="${hostname}_CORE_COUNT_OFF"
+    local usb_devices_var="${hostname}_USB_DEVICES[@]"
+    
+    # Get values from global variables
+    local pci0_id="${!pci0_var}"
+    local pci1_id="${!pci1_var}"
+    local core_count_on="${!core_count_on_var}"
+    local core_count_off="${!core_count_off_var}"
+    local usb_devices_str="${!usb_devices_var}"
+    local pve_conf_path="${PVE_CONF_PATH_QEMU}"
+    
+    # Validate required variables are set
+    if [[ -z "$cluster_nodes_str" || -z "$pci0_id" || -z "$pci1_id" || -z "$core_count_on" || -z "$core_count_off" || -z "$pve_conf_path" ]]; then
+        echo "Error: Missing required global variables for hostname '$hostname'"
+        echo "Required: CLUSTER_NODES, ${pci0_var}, ${pci1_var}, ${core_count_on_var}, ${core_count_off_var}, PVE_CONF_PATH_QEMU"
+        return 1
+    fi
+    
+    pve-vmg "$vm_id" "$cluster_nodes_str" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
 }

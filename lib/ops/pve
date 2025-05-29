@@ -275,7 +275,7 @@ pve-cbm() {
 
 # Sets up different containers specified in cfg/env/site.
 # container create
-# <passed global variables>
+# <id> <template> <hostname> <storage> <rootfs_size> <memory> <swap> <nameserver> <searchdomain> <password> <cpus> <privileged> <ip_address> <cidr> <gateway> <ssh_key_file> <net_bridge> <net_nic>
 pve-ctc() {
 
     # Technical Description:
@@ -289,7 +289,30 @@ pve-ctc() {
     #   - 'pct' command-line utility.
     #   - Valid Proxmox VE environment and resources (template, storage, network).
     #   - An existing SSH public key file.
-    # Arguments: $1-$18 define various container parameters. See inline comments for specifics.
+    # Arguments: 
+    #   $1: id - Container ID
+    #   $2: template - Container template path
+    #   $3: hostname - Container hostname
+    #   $4: storage - Storage location
+    #   $5: rootfs_size - Root filesystem size
+    #   $6: memory - Memory allocation
+    #   $7: swap - Swap allocation
+    #   $8: nameserver - DNS nameserver
+    #   $9: searchdomain - DNS search domain
+    #   $10: password - Root password
+    #   $11: cpus - CPU count
+    #   $12: privileged - Privileged mode (yes/no)
+    #   $13: ip_address - IP address
+    #   $14: cidr - Network CIDR
+    #   $15: gateway - Network gateway
+    #   $16: ssh_key_file - SSH public key file path
+    #   $17: net_bridge - Network bridge
+    #   $18: net_nic - Network interface name
+
+    if [ $# -ne 18 ]; then
+        echo "ERROR: pve-ctc requires exactly 18 arguments" >&2
+        return 1
+    fi
 
     local id="$1"
     local template="$2"
@@ -556,7 +579,7 @@ EOL
 
 # Sets up different virtual machines specified in cfg/env/site.
 # virtual machine create
-# <passed global variables>
+# <id> <name> <ostype> <machine> <iso> <boot> <bios> <efidisk> <scsihw> <agent> <disk> <sockets> <cores> <cpu> <memory> <balloon> <net>
 pve-vmc() {
 
     # Technical Description:
@@ -569,7 +592,29 @@ pve-vmc() {
     # Dependencies:
     #   - 'qm' command-line utility.
     #   - Valid Proxmox VE environment and resources (ISO, storage, network).
-    # Arguments: $1-$17 define various VM parameters. See inline comments for specifics.
+    # Arguments: 
+    #   $1: id - VM ID
+    #   $2: name - VM name
+    #   $3: ostype - OS type
+    #   $4: machine - Machine type
+    #   $5: iso - ISO image path
+    #   $6: boot - Boot order
+    #   $7: bios - BIOS type
+    #   $8: efidisk - EFI disk configuration
+    #   $9: scsihw - SCSI hardware controller
+    #   $10: agent - QEMU guest agent setting
+    #   $11: disk - SCSI disk configuration
+    #   $12: sockets - CPU sockets
+    #   $13: cores - CPU cores
+    #   $14: cpu - CPU type
+    #   $15: memory - Memory allocation
+    #   $16: balloon - Memory ballooning
+    #   $17: net - Network configuration
+
+    if [ $# -ne 17 ]; then
+        echo "ERROR: pve-vmc requires exactly 17 arguments" >&2
+        return 1
+    fi
 
     local id="$1"
     local name="$2"
@@ -610,21 +655,30 @@ pve-vmc() {
 
 # Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration
 # vm start get shutdown
-# <vm_id> [s: optional, shutdown other node]
+# <vm_id> <cluster_nodes_str> <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path> [s: optional, shutdown other node]
 pve-vms() {
 
     # Technical Description:
     #   Starts a Proxmox VM, migrating it from another node if necessary.
-    #   Arguments: $1 (vm_id), $2 (optional 's' to shutdown the source/original node).
+    #   Arguments: 
+    #     $1 (vm_id): VM ID
+    #     $2 (cluster_nodes_str): Space-separated cluster node names
+    #     $3 (pci0_id): PCI ID for hostpci0
+    #     $4 (pci1_id): PCI ID for hostpci1
+    #     $5 (core_count_on): VM core count when passthrough is on
+    #     $6 (core_count_off): VM core count when passthrough is off
+    #     $7 (usb_devices_str): Space-separated USB device definitions
+    #     $8 (pve_conf_path): Path to PVE config directory
+    #     $9 (optional 's' to shutdown the source/original node).
     #   1. Retrieves current hostname.
-    #   2. Uses 'pve-vck <vm_id>' to determine the node currently hosting the VM ('node_id').
+    #   2. Uses 'pve-vck <vm_id> <cluster_nodes_str>' to determine the node currently hosting the VM ('node_id').
     #   3. If current hostname matches 'node_id' (VM is local):
     #      - Starts VM using 'qm start <vm_id>'.
-    #      - If $2 is 's', attempts to shut down 'node_id' (which is the current node) via SSH.
+    #      - If $9 is 's', attempts to shut down 'node_id' (which is the current node) via SSH.
     #   4. If current hostname differs from 'node_id' (VM is remote):
-    #      - Calls 'pve-vmg <vm_id>' to migrate the VM to the current node.
+    #      - Calls 'pve-vmg <vm_id> <cluster_nodes_str> <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>' to migrate the VM to the current node.
     #      - Starts VM using 'qm start <vm_id>'.
-    #      - If $2 is 's', shuts down the original remote node ('node_id') via SSH.
+    #      - If $9 is 's', shuts down the original remote node ('node_id') via SSH.
     # Dependencies:
     #   - 'pve-vck' function (to find VM's current node).
     #   - 'pve-vmg' function (to migrate VM).
@@ -633,19 +687,32 @@ pve-vms() {
     #   - 'hostname' utility.
     #   - 'aux-use' for usage display.
 
-    local hostname=$(hostname)
-
-    # Check if vm_id argument is provided
-    if [ -z "$1" ]; then
+    if [ $# -lt 8 ] || [ $# -gt 9 ]; then
+        echo "ERROR: pve-vms requires 8 or 9 arguments" >&2
         aux-use
         return 1
     fi
 
-    # Assign vm_id to a variable
-    local vm_id=$1
+    local vm_id="$1"
+    local cluster_nodes_str="$2"
+    local pci0_id="$3"
+    local pci1_id="$4"
+    local core_count_on="$5"
+    local core_count_off="$6"
+    local usb_devices_str="$7"
+    local pve_conf_path="$8"
+    local shutdown_flag="$9"
+
+    local hostname=$(hostname)
+
+    # Check if vm_id argument is provided
+    if [ -z "$vm_id" ]; then
+        aux-use
+        return 1
+    fi
 
     # Call pve-vck function to get node_id
-    local node_id=$(pve-vck "$vm_id")
+    local node_id=$(pve-vck "$vm_id" "$cluster_nodes_str")
 
     # Check if node_id is empty
     if [ -z "$node_id" ]; then
@@ -656,15 +723,15 @@ pve-vms() {
     # Main logic
     if [ "$hostname" = "$node_id" ]; then
         qm start "$vm_id"
-        if [ "$2" = "s" ]; then
+        if [ "$shutdown_flag" = "s" ]; then
             # Shutdown the other node
             echo "Shutting down node $node_id"
             ssh "root@$node_id" "shutdown now"
         fi 
     else
-        pve-vmg "$vm_id"
+        pve-vmg "$vm_id" "$cluster_nodes_str" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
         qm start "$vm_id"
-        if [ "$2" = "s" ]; then
+        if [ "$shutdown_flag" = "s" ]; then
             # Shutdown the other node
             echo "Shutting down node $node_id"
             ssh "root@$node_id" "shutdown now"
@@ -674,17 +741,25 @@ pve-vms() {
 
 # Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process
 # vm get start
-# <vm_id>
+# <vm_id> <cluster_nodes_str> <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>
 pve-vmg() {
 
     # Technical Description:
     #   Migrates a Proxmox VM from a remote node to the current node, handling PCIe passthrough.
-    #   Argument: $1 (vm_id).
-    #   1. Uses 'pve-vck <vm_id>' to find the VM's current remote node ('node').
+    #   Arguments: 
+    #     $1 (vm_id): VM ID
+    #     $2 (cluster_nodes_str): Space-separated cluster node names
+    #     $3 (pci0_id): PCI ID for hostpci0
+    #     $4 (pci1_id): PCI ID for hostpci1
+    #     $5 (core_count_on): VM core count when passthrough is on
+    #     $6 (core_count_off): VM core count when passthrough is off
+    #     $7 (usb_devices_str): Space-separated USB device definitions
+    #     $8 (pve_conf_path): Path to PVE config directory
+    #   1. Uses 'pve-vck <vm_id> <cluster_nodes_str>' to find the VM's current remote node ('node').
     #   2. If VM is found on a remote node:
-    #      a. Disables PCIe passthrough on the remote node: 'ssh <node> "pve-vpt <vm_id> off"'.
+    #      a. Disables PCIe passthrough on the remote node: 'ssh <node> "pve-vpt <vm_id> off <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>"'.
     #      b. Migrates the VM to the current node: 'ssh <node> "qm migrate <vm_id> $(hostname)"'.
-    #      c. Enables PCIe passthrough on the current (target) node: 'pve-vpt <vm_id> on'.
+    #      c. Enables PCIe passthrough on the current (target) node: 'pve-vpt <vm_id> on <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>'.
     #   Requires 'pve-vpt' to be available and executable via SSH on remote nodes.
     # Dependencies:
     #   - 'pve-vck' function.
@@ -694,19 +769,28 @@ pve-vmg() {
     #   - 'hostname' utility.
     #   - 'aux-use' for usage display.
 
-    local vm_id="$1"
-    if [ $# -ne 1 ]; then
+    if [ $# -ne 8 ]; then
+        echo "ERROR: pve-vmg requires exactly 8 arguments" >&2
         aux-use
         return 1
     fi
 
+    local vm_id="$1"
+    local cluster_nodes_str="$2"
+    local pci0_id="$3"
+    local pci1_id="$4"
+    local core_count_on="$5"
+    local core_count_off="$6"
+    local usb_devices_str="$7"
+    local pve_conf_path="$8"
+
     # Call pve-vck to check if VM exists and get the node
-    local node=$(pve-vck "$vm_id")
+    local node=$(pve-vck "$vm_id" "$cluster_nodes_str")
     if [ -n "$node" ]; then
         echo "VM found on node: $node"
 
         # Disable PCIe passthrough for the VM on the remote node
-        if ! ssh "$node" "pve-vpt $vm_id off"; then
+        if ! ssh "$node" "pve-vpt $vm_id off $pci0_id $pci1_id $core_count_on $core_count_off \"$usb_devices_str\" $pve_conf_path"; then
             echo "Failed to disable PCIe passthrough for VM on $node." >&2
             return 1
         fi
@@ -718,7 +802,7 @@ pve-vmg() {
         fi
 
         # Enable PCIe passthrough for the VM on the current node
-        if ! pve-vpt "$vm_id" on; then
+        if ! pve-vpt "$vm_id" on "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"; then
             echo "Failed to enable PCIe passthrough for VM on $(hostname)." >&2
             return 1
         fi
