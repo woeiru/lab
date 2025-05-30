@@ -22,7 +22,7 @@ For each file you analyze, evaluate:
 - **Absolute paths** (e.g., `/home/es/lab/README.md`) will NOT work on GitHub
 - **Use relative paths** from the current file's location (e.g., `../README.md`, `./subfolder/file.md`)
 - **Navigation links** must be relative to the repository structure, not filesystem structure
-- **Shell command examples** should use paths relative to repository root (e.g., `doc/` not `/home/es/lab/doc/`)
+- **Shell command examples** should use paths relative to repository root (e.g., `tmp/` not `/home/es/lab/tmp/`)
 - **Cross-references** between files must use relative paths that work in browser environments
 
 **Examples of Correct Path Usage**:
@@ -41,7 +41,7 @@ cd cfg/env/                                  # Repository-relative path
 ```markdown
 # These will NOT work on GitHub:
 [Main Documentation](/home/es/lab/README.md)     # Absolute filesystem path
-[Analysis Files](/home/es/lab/doc/ana/)          # Absolute filesystem path
+[Analysis Files](/home/es/lab/tmp/ana/)          # Absolute filesystem path
 ```
 
 #### Function Documentation

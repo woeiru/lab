@@ -12,18 +12,20 @@ This documentation repository provides structured storage and organization for a
 doc/
 ├── README.md                   # This navigation file
 ├── todo                        # Task and project tracking
-├── ana/                        # Analysis documentation and reports
-├── dev/                        # Development logs and session documentation
 ├── fix/                        # Problem resolution and troubleshooting guides
 ├── flo/                        # Flow diagrams and process documentation
 ├── how/                        # How-to guides and step-by-step procedures
 ├── man/                        # Manual and reference documentation
 └── net/                        # Network documentation and configurations
+
+tmp/
+├── ana/                        # Analysis documentation and reports (moved from doc/)
+└── dev/                        # Development logs and session documentation (moved from doc/)
 ```
 
 ## 📖 Documentation Categories
 
-### 🔍 Analysis Documentation (`ana/`)
+### 🔍 Analysis Documentation (`tmp/ana/`)
 **Purpose**: Comprehensive analysis reports and infrastructure studies  
 **Content**: Deep-dive technical analysis, infrastructure reviews, and architectural assessments  
 **Key Files**:
@@ -31,7 +33,7 @@ doc/
 - Declarative vs imperative infrastructure analysis
 - System architecture evaluations
 
-### 🔧 Development Documentation (`dev/`)
+### 🔧 Development Documentation (`tmp/dev/`)
 **Purpose**: Development session logs and project progress tracking  
 **Content**: Real-time development notes, refactoring summaries, and implementation logs  
 **Key Areas**:
@@ -137,19 +139,19 @@ doc/
 grep -r "topic" doc/
 
 # Browse by category
-ls doc/ana/     # Analysis reports
+ls tmp/ana/     # Analysis reports
 ls doc/man/     # Reference manuals
 ls doc/how/     # Procedures
 
 # View specific documentation
 cat doc/man/architecture.md
-cat doc/dev/2025-05-30-2200_performance-optimization.md
+cat tmp/dev/2025-05-30-2200_performance-optimization.md
 ```
 
 ### Contributing Documentation
 ```bash
 # Navigate to appropriate category
-cd doc/dev/     # For development logs
+cd tmp/dev/     # For development logs
 cd doc/man/     # For reference documentation
 cd doc/fix/     # For troubleshooting guides
 
@@ -162,7 +164,7 @@ echo "# New Documentation" > new_document.md
 ### Essential Reading
 - **`man/architecture.md`** - Complete system architecture overview
 - **`man/infrastructure.md`** - Infrastructure management procedures
-- **`ana/2025-05-29-0430_infrastructure_analysis_series_overview.md`** - Current analysis initiatives
+- **`../tmp/ana/2025-05-29-0430_infrastructure_analysis_series_overview.md`** - Current analysis initiatives
 
 ### Recent Updates
 - **Performance Optimization** - Latest system performance improvements
