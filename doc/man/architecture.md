@@ -1,36 +1,3 @@
-<!--
-#######################################################################
-# Lab Environment Project Architecture - Technical Reference
-#######################################################################
-# File: /home/es/lab/doc/man/architecture.md
-# Description: Comprehensive architectural documentation outlining the
-#              structure, design principles, and sophisticated environment
-#              management system of the Lab Environment project.
-#
-# Document Purpose:
-#   Serves as the definitive architectural reference for understanding
-#   the project structure, design patterns, and production-ready
-#   infrastructure automation capabilities of the lab environment.
-#
-# Key Components:
-#   - Directory structure and organization principles
-#   - Library design conventions and stateless architecture
-#   - Environment-aware configuration hierarchy
-#   - Security-first design principles
-#   - Core system modules and initialization flow
-#
-# Target Audience:
-#   Software architects, system developers, infrastructure engineers,
-#   and technical leads requiring comprehensive understanding of system
-#   design for maintenance, extension, and operational deployment.
-#
-# Dependencies:
-#   - Core framework: bin/, lib/, cfg/, src/
-#   - Environment management: lib/aux/src
-#   - Security utilities: lib/utl/sec
-#######################################################################
--->
-
 # Lab Environment Project Architecture
 
 This document outlines the comprehensive structure of the Lab Environment project, explaining the purpose of each directory, key components, and the sophisticated environment management system that provides production-ready infrastructure automation.

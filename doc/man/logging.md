@@ -1,36 +1,3 @@
-<!--
-#######################################################################
-# Logging System Documentation - Technical Reference
-#######################################################################
-# File: /home/es/lab/doc/man/logging.md
-# Description: Comprehensive analysis of the logging architecture including
-#              log files, state management, and terminal verbosity controls
-#              for the lab environment management system.
-#
-# Document Purpose:
-#   Provides detailed technical documentation for understanding and
-#   configuring the multi-layered logging architecture used throughout
-#   the lab environment system for debugging and monitoring.
-#
-# Key Components:
-#   - Log file structure and organization (${LOG_DIR}/.log/)
-#   - State file management (${TMP_DIR}/.tmp/)
-#   - Hierarchical verbosity control system
-#   - Performance optimization and caching
-#   - Integration with core system modules
-#
-# Target Audience:
-#   System administrators, developers, and troubleshooting personnel
-#   requiring deep understanding of logging infrastructure and debugging
-#   capabilities for effective system maintenance and problem resolution.
-#
-# Dependencies:
-#   - Core modules: err, lo1, lo2, tme, ver
-#   - Configuration: cfg/core/ric
-#   - Infrastructure: LOG_DIR, TMP_DIR environment variables
-#######################################################################
--->
-
 # Logging System Documentation
 
 This document provides a comprehensive analysis of the logging architecture, including log files in the `.log` directory, state files in the `.tmp` directory, and terminal verbosity controls.

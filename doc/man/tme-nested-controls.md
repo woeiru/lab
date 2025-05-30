@@ -1,35 +1,3 @@
-<!--
-#######################################################################
-# TME Nested Terminal Output Controls - Technical Reference
-#######################################################################
-# File: /home/es/lab/doc/man/tme-nested-controls.md
-# Description: Comprehensive reference for the TME module's nested terminal
-#              output control system, providing granular control over different
-#              types of performance monitoring output.
-#
-# Document Purpose:
-#   Serves as the definitive technical reference for understanding,
-#   configuring, and using the TME module's nested terminal output
-#   controls for fine-grained performance monitoring output management.
-#
-# Key Components:
-#   - Three-tier hierarchical verbosity control system
-#   - Four granular TME output categories (report, timing, debug, status)
-#   - Runtime configuration functions and environment variables
-#   - Usage examples and troubleshooting guidelines
-#
-# Target Audience:
-#   System administrators, developers, and monitoring specialists requiring
-#   detailed control over performance monitoring output for debugging,
-#   production monitoring, and system optimization.
-#
-# Dependencies:
-#   - Core TME module: lib/core/tme
-#   - Configuration: cfg/core/ric
-#   - Initialization: bin/init
-#######################################################################
--->
-
 # TME Nested Terminal Output Controls
 
 This document provides comprehensive reference for the TME (Timing and Performance Monitoring) module's nested terminal output control system, enabling granular control over different types of performance monitoring output.

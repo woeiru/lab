@@ -1,36 +1,3 @@
-<!--
-#######################################################################
-# User Interaction and Configuration Guide - Technical Reference
-#######################################################################
-# File: /home/es/lab/doc/man/initiation.md
-# Description: Comprehensive guidance for configuring and interacting
-#              with the shell script system including environment variables,
-#              runtime controls, and advanced configuration options.
-#
-# Document Purpose:
-#   Provides complete user and developer reference for system
-#   configuration, environment variable management, runtime control
-#   functions, and optimal system operation procedures.
-#
-# Key Components:
-#   - Global configuration via environment variables
-#   - Runtime control through shell functions
-#   - Verbosity and logging configuration management
-#   - Advanced configuration files and state management
-#   - Performance monitoring and debugging controls
-#
-# Target Audience:
-#   System users, developers, and administrators requiring detailed
-#   understanding of system configuration options, runtime controls,
-#   and operational procedures for effective system utilization.
-#
-# Dependencies:
-#   - Core modules: err, lo1, tme, ver
-#   - Configuration: cfg/core/ric
-#   - Initialization: bin/init
-#######################################################################
--->
-
 # User Interaction and Configuration Guide
 
 This document provides comprehensive guidance on configuring and interacting with the shell script system. It covers environment variables, runtime controls, verbosity settings, and advanced configuration options for optimal system operation.
