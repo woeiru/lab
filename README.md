@@ -289,7 +289,7 @@ cd test && ./test_complete_refactor.sh
 - **[Infrastructure Guide](doc/man/infrastructure.md)** - Deployment and IaC patterns
 - **[User Guide](doc/man/initiation.md)** - User interaction and runtime controls
 - **[Logging System](doc/man/logging.md)** - Monitoring and debugging
-- **[TME Nested Controls](doc/man/tme-nested-controls.md)** - Advanced timing control system
+- **[Verbosity Controls](doc/man/verbosity.md)** - System verbosity and output control
 
 #### Troubleshooting Documentation
 - **[Audio Root Fix](doc/fix/audioroot.md)** - Audio system troubleshooting
@@ -361,7 +361,7 @@ cd test && ./test_complete_refactor.sh
 - **[Environment Test](tst/test_environment)** - Environment testing suite
 - **[GPU Wrapper Test](tst/test_gpu_wrappers.sh)** - GPU wrapper function validation
 - **[Refactor Test](tst/test_refactor.sh)** - Basic refactoring validation
-- **[TME Nested Controls Test](tst/test_tme_nested_controls.sh)** - TME nested controls testing
+- **[Verbosity Controls Test](tst/test_verbosity_controls.sh)** - System verbosity controls testing
 
 #### Validation Scripts
 - **[GPU Refactoring Validation](tst/validate_gpu_refactoring.sh)** - GPU refactoring validation

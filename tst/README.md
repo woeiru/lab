@@ -6,7 +6,7 @@ This directory contains test and validation scripts for the lab environment mana
 
 ### Test Scripts
 
-- **`test_tme_nested_controls.sh`** - Comprehensive test for TME module's nested terminal output controls
+- **`test_verbosity_controls.sh`** - Comprehensive test for system verbosity control mechanisms
 - **`test_complete_refactor.sh`** - Test script for complete system refactoring validation
 - **`test_refactor.sh`** - Basic refactoring validation test
 
@@ -18,8 +18,8 @@ All test scripts should be run from the lab root directory:
 # Navigate to lab root (if not already there)
 cd lab/
 
-# Test TME nested controls functionality
-./tst/test_tme_nested_controls.sh
+# Test system verbosity controls functionality
+./tst/test_verbosity_controls.sh
 
 # Test complete refactoring
 ./tst/test_complete_refactor.sh
@@ -31,7 +31,7 @@ cd lab/
 ## Test Categories
 
 ### Performance Testing
-- TME module functionality and nested output controls
+- System verbosity controls and TME module functionality
 - Timing and performance monitoring validation
 
 ### System Integration Testing

@@ -137,7 +137,7 @@ tme_show_output_settings      # Show current settings
 
 Use the provided test script to verify functionality:
 ```bash
-./test_tme_nested_controls.sh
+./test_verbosity_controls.sh
 ```
 
 ### Benefits
@@ -153,4 +153,4 @@ Use the provided test script to verify functionality:
 - **cfg/core/ric**: Added 4 new nested terminal output variables
 - **lib/core/tme**: Updated all terminal output checks to use nested controls
 - **lib/core/tme**: Added 2 new control functions
-- **test_tme_nested_controls.sh**: Created comprehensive test script
+- **test_verbosity_controls.sh**: Created comprehensive test script

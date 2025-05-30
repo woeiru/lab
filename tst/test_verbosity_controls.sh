@@ -1,14 +1,14 @@
 #!/bin/bash
 #######################################################################
-# TME Nested Terminal Output Controls - Validation Test Script
+# System Verbosity Controls - Validation Test Script
 #######################################################################
-# File: /home/es/lab/tst/test_tme_nested_controls.sh
-# Description: Comprehensive test script for validating the TME module's
-#              nested terminal output control system functionality and
-#              demonstrating all supported control mechanisms.
+# File: /home/es/lab/tst/test_verbosity_controls.sh
+# Description: Comprehensive test script for validating the system's
+#              verbosity control mechanisms, including TME module's
+#              nested terminal output control system functionality.
 #
 # Test Coverage:
-#   - Basic TME nested output controls functionality
+#   - Basic system verbosity controls functionality
 #   - Runtime control functions (tme_set_output, tme_show_output_settings)
 #   - Three-tier hierarchy validation (Master → TME → Nested)
 #   - All four output categories (report, timing, debug, status)
@@ -20,7 +20,7 @@
 #   - Environment: cfg/core/ric
 #
 # Usage:
-#   cd /home/es/lab && ./tst/test_tme_nested_controls.sh
+#   cd /home/es/lab && ./tst/test_verbosity_controls.sh
 #
 # Expected Results:
 #   - Validates nested control functionality
@@ -29,8 +29,8 @@
 #   - Shows runtime configuration capabilities
 #######################################################################
 #
-# Test script for TME nested terminal output controls
-# Demonstrates how the new nested switches work within the TME module
+# Test script for system verbosity controls
+# Demonstrates how the verbosity control mechanisms work within the system
 #
 
 # Source the lab initialization to get TME module
@@ -38,7 +38,7 @@ echo "Initializing lab environment..."
 source ./bin/init
 
 echo
-echo "=== TME Nested Terminal Output Controls Test ==="
+echo "=== System Verbosity Controls Test ==="
 echo
 
 # Show current settings
