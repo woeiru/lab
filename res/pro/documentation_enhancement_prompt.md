@@ -19,9 +19,15 @@ For each file you analyze, evaluate:
 #### Function Documentation
 ```bash
 # Brief description of function purpose
-# Shortname which should represent the three letter of the fnc name .. 
+# Three word Shortname - which should represent the three letter of the fnc name .. 
 # <parameter1> <parameter2> ...
 mod_fnc() {
+    <!--
+        This section provides technical documentation for the implementation details.
+        The documentation block may be longer than one line, offering in-depth explanations,
+        usage instructions, and any relevant technical notes necessary for understanding
+        or maintaining the implementation.
+    -->
     # Implementation details
 }
 ```
