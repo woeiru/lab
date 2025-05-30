@@ -221,30 +221,6 @@ define_container 101 "webserver" "192.168.1.101"
 cd test && ./test_complete_refactor.sh
 ```
 
-## 📚 Documentation & Navigation
-
-### 📖 Technical Manuals
-Core system documentation for understanding and operating the platform:
-- **[Architecture Guide](doc/man/architecture.md)**: Complete system design overview and patterns
-- **[Configuration Manual](doc/man/configuration.md)**: Detailed configuration options and hierarchy
-- **[Infrastructure Guide](doc/man/infrastructure.md)**: Deployment patterns and IaC practices
-- **[User Guide](doc/man/initiation.md)**: User interaction and runtime controls
-- **[Logging System](doc/man/logging.md)**: Monitoring, debugging, and performance tracking
-
-### 📁 Interactive Directory Navigation
-Click any **📂 folder name** to explore system components in detail:
-- **[📂 Binary System](bin/README.md)**: Executables, initialization, and bootstrapping processes
-- **[📂 Configuration Management](cfg/README.md)**: Environment settings and automation configurations
-- **[📂 Documentation Hub](doc/README.md)**: Analysis, guides, and comprehensive reference materials
-- **[📂 Library System](lib/README.md)**: Core modules, operations libraries, and utilities
-- **[📂 Resource Management](res/README.md)**: AI resources, analytics, and knowledge base
-- **[📂 Source Code](src/README.md)**: Deployment scripts and management tools
-- **[📂 Testing Framework](tst/README.md)**: Validation scripts and system health checks
-
-### 🔍 Quick References
-- **[Complete Project Index](#-project-index)**: Comprehensive file and component listing
-- **[Interactive Directory Tree](#-interactive-directory-structure)**: Navigate with clickable folder links
-- **[System Metrics](#-system-metrics)**: Live codebase statistics and quality metrics
 
 ## 🤝 Integration Points
 
