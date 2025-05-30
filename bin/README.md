@@ -228,3 +228,7 @@ Control initialization behavior through environment variables:
 ---
 
 > **Note**: The bin directory is critical to system operation. All scripts should be thoroughly tested before deployment, and any modifications should be documented and reviewed for security and functionality impacts.
+
+---
+
+**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [Documentation](../doc/README.md) | Browse [Configuration](../cfg/README.md)

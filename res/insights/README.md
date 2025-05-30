@@ -84,7 +84,7 @@ insights/
 ### 1. Discovery Engine Setup
 ```bash
 # Initialize insight discovery
-cd /home/es/lab/res/insights/discovery
+cd res/insights/discovery
 python setup_discovery.py --data-source lab_analytics
 
 # Configure pattern recognition
@@ -355,5 +355,7 @@ response_formats:
 - **Interactive Exploration**: Enable deep dive analysis
 
 ---
+
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md) | Browse [Other AI Tools](../)
 
 *Part of the comprehensive AI Resources ecosystem - transforming data into actionable intelligence for informed decision-making.*

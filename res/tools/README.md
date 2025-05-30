@@ -166,7 +166,7 @@ tools/utilities/code_utilities/code_reviewer.py --project src/ --output review_r
 tools/utilities/code_utilities/bug_detector.py --file src/critical_module.py --severity high
 
 # Analyze code complexity
-tools/analyzers/code_analysis/architecture_analyzer.py --project /home/es/lab --output architecture_analysis.json
+tools/analyzers/code_analysis/architecture_analyzer.py --project . --output architecture_analysis.json
 ```
 
 ### Content Generation
@@ -175,7 +175,7 @@ tools/analyzers/code_analysis/architecture_analyzer.py --project /home/es/lab --
 tools/generators/documentation/api_doc_generator.py --openapi api/spec.yaml --output docs/api/
 
 # Create project README
-tools/generators/documentation/readme_generator.py --project /home/es/lab --template comprehensive
+tools/generators/documentation/readme_generator.py --project . --template comprehensive
 
 # Generate test cases
 tools/generators/code_generation/test_generator.py --source src/module.py --coverage 90
@@ -287,5 +287,7 @@ tools/config/output_format.sh --tool all --format json --include-metadata
 - **User Experience**: Enhance tool usability and accessibility
 
 ---
+
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md) | Browse [Other AI Tools](../)
 
 *Provides a comprehensive toolkit of AI-powered utilities that enhance productivity, automate complex tasks, and provide intelligent assistance across all aspects of lab operations.*
