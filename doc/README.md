@@ -101,10 +101,10 @@ doc/
 ## 🔗 Integration with ES Lab Ecosystem
 
 ### Related Directories
-- **`/home/es/lab/lib/`** - Implementation libraries referenced in documentation
-- **`/home/es/lab/cfg/`** - Configuration files documented in manual sections
-- **`/home/es/lab/src/`** - Source code related to development documentation
-- **`/home/es/lab/tst/`** - Test procedures and validation documentation
+- **`../lib/`** - Implementation libraries referenced in documentation
+- **`../cfg/`** - Configuration files documented in manual sections
+- **`../src/`** - Source code related to development documentation
+- **`../tst/`** - Test procedures and validation documentation
 
 ### Cross-Reference Points
 - Development documentation often references configuration in `cfg/`
@@ -134,24 +134,24 @@ doc/
 ### Finding Information
 ```bash
 # Search for specific topics across all documentation
-grep -r "topic" /home/es/lab/doc/
+grep -r "topic" doc/
 
 # Browse by category
-ls /home/es/lab/doc/ana/     # Analysis reports
-ls /home/es/lab/doc/man/     # Reference manuals
-ls /home/es/lab/doc/how/     # Procedures
+ls doc/ana/     # Analysis reports
+ls doc/man/     # Reference manuals
+ls doc/how/     # Procedures
 
 # View specific documentation
-cat /home/es/lab/doc/man/architecture.md
-cat /home/es/lab/doc/dev/2025-05-30-2200_performance-optimization.md
+cat doc/man/architecture.md
+cat doc/dev/2025-05-30-2200_performance-optimization.md
 ```
 
 ### Contributing Documentation
 ```bash
 # Navigate to appropriate category
-cd /home/es/lab/doc/dev/     # For development logs
-cd /home/es/lab/doc/man/     # For reference documentation
-cd /home/es/lab/doc/fix/     # For troubleshooting guides
+cd doc/dev/     # For development logs
+cd doc/man/     # For reference documentation
+cd doc/fix/     # For troubleshooting guides
 
 # Create new documentation with descriptive naming
 echo "# New Documentation" > new_document.md
@@ -186,7 +186,7 @@ echo "# New Documentation" > new_document.md
 
 ---
 
-**Navigation**: Return to [Main Lab Documentation](/home/es/lab/README.md) | Explore [AI Resources](/home/es/lab/res/README.md) | Browse [Source Code](/home/es/lab/src/README.md)
+**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [AI Resources](../res/README.md) | Browse [Source Code](../src/README.md)
 
 **Last Updated**: May 30, 2025  
 **Maintained By**: ES Lab Documentation Team  
