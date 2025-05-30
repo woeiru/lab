@@ -354,7 +354,7 @@ ERROR_STATE_FILE="${TMP_DIR}/err_state"   # Error system state
 - Performance statistics and summaries
 - File and terminal output with separate controls
 
-For detailed information about TME nested terminal output controls, see the **[TME Nested Controls Reference](tme-nested-controls.md)**.
+For detailed information about TME nested terminal output controls, see the **[Verbosity Controls Reference](verbosity.md)**.
 
 ## User Interface and Control Commands
 

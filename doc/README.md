@@ -41,7 +41,7 @@ tmp/
 - Proxmox VE (PVE) system refactoring
 - Performance optimization initiatives
 - ECC (Error Correction Code) implementation
-- TME (Time Management Engine) nested controls
+- System verbosity and output controls
 
 ### 🛠️ Problem Resolution (`fix/`)
 **Purpose**: Troubleshooting guides and solution documentation  
@@ -76,7 +76,7 @@ tmp/
 - **Infrastructure** - Infrastructure management and deployment
 - **Initiation** - System initialization and startup procedures
 - **Logging** - Logging standards and log management
-- **TME Nested Controls** - Time Management Engine control systems
+- **Verbosity Controls** - System verbosity and output control mechanisms
 
 ### 🌐 Network Documentation (`net/`)
 **Purpose**: Network configuration and topology documentation  
