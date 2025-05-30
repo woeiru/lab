@@ -48,7 +48,7 @@ source ~/.bashrc  # or ~/.zshrc
 
 Explore the infrastructure management platform using the interactive directory below. Click any **📂 folder name** for in-depth documentation and details on each system component.
 
-**📂 Quick Directory Navigation:**
+**📂 Quick Folder README Navigation:**
 - **[📂 Binary System](bin/README.md)** - Executables, initialization, and bootstrapping
 - **[📂 Configuration Management](cfg/README.md)** - Environment settings and automation configs
 - **[📂 Documentation Hub](doc/README.md)** - Analysis, guides, and reference materials
