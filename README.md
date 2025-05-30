@@ -24,10 +24,10 @@ This is a comprehensive environment management framework designed for complex in
 ./entry.sh
 
 # Verify installation  
-./bin/validate_system
+./tst/validate_system
 
 # Check system status
-./bin/test_environment
+./tst/test_environment
 ```
 
 ### Basic Usage
@@ -233,10 +233,10 @@ define_container 101 "webserver" "192.168.1.101"
 
 ```bash
 # Quick system validation
-./bin/validate_system
+./tst/validate_system
 
 # Comprehensive testing
-./bin/test_environment
+./tst/test_environment
 
 # Component-specific testing  
 cd test && ./test_complete_refactor.sh
@@ -300,7 +300,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Quick Commands:**
 ```bash
 ./entry.sh                    # Initial setup
-./bin/validate_system         # Quick validation  
+./tst/validate_system         # Quick validation  
 cd src/set/pve && ./pve      # Interactive deployment
 source lib/utl/inf           # Infrastructure utilities
 ```

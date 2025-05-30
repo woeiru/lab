@@ -1,4 +1,33 @@
 #!/bin/bash
+#######################################################################
+# TME Nested Terminal Output Controls - Validation Test Script
+#######################################################################
+# File: /home/es/lab/tst/test_tme_nested_controls.sh
+# Description: Comprehensive test script for validating the TME module's
+#              nested terminal output control system functionality and
+#              demonstrating all supported control mechanisms.
+#
+# Test Coverage:
+#   - Basic TME nested output controls functionality
+#   - Runtime control functions (tme_set_output, tme_show_output_settings)
+#   - Three-tier hierarchy validation (Master → TME → Nested)
+#   - All four output categories (report, timing, debug, status)
+#   - Control combinations and edge cases
+#
+# Dependencies:
+#   - TME module: lib/core/tme
+#   - Lab initialization: bin/init
+#   - Environment: cfg/core/ric
+#
+# Usage:
+#   cd /home/es/lab && ./tst/test_tme_nested_controls.sh
+#
+# Expected Results:
+#   - Validates nested control functionality
+#   - Demonstrates granular output control
+#   - Confirms hierarchy enforcement
+#   - Shows runtime configuration capabilities
+#######################################################################
 #
 # Test script for TME nested terminal output controls
 # Demonstrates how the new nested switches work within the TME module

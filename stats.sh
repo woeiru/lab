@@ -47,8 +47,8 @@ gather_stats() {
     local container_vars=$(grep -r "CT_.*=" "$LAB_DIR/cfg/env/" 2>/dev/null | wc -l)
     
     local test_lines=0
-    if [ -f "$LAB_DIR/bin/test_environment" ]; then
-        test_lines=$(wc -l "$LAB_DIR/bin/test_environment" | awk '{print $1}')
+    if [ -f "$LAB_DIR/tst/test_environment" ]; then
+        test_lines=$(wc -l "$LAB_DIR/tst/test_environment" | awk '{print $1}')
     fi
 
     case "${1:-formatted}" in
