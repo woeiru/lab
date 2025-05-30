@@ -169,8 +169,28 @@ export LO1_LOG_TERMINAL_VERBOSITY
 declare -g ERR_TERMINAL_VERBOSITY="on"
 export ERR_TERMINAL_VERBOSITY
 
-# Controls terminal verbosity for the tme timing module (specifically the report)
+# Controls terminal verbosity for the tme timing module
 # Set to "on" for verbose output, "off" for quiet terminal.
 # Requires MASTER_TERMINAL_VERBOSITY to also be "on".
 declare -g TME_TERMINAL_VERBOSITY="on"
 export TME_TERMINAL_VERBOSITY
+
+  # TME Module Nested Terminal Output Controls
+  # Individual switches for specific TME module outputs
+  # All require both MASTER_TERMINAL_VERBOSITY and TME_TERMINAL_VERBOSITY to be "on"
+  
+  # Controls terminal output for TME timing reports
+  declare -g TME_REPORT_TERMINAL_OUTPUT="on"
+  export TME_REPORT_TERMINAL_OUTPUT
+  
+  # Controls terminal output for TME timing measurements
+  declare -g TME_TIMING_TERMINAL_OUTPUT="on"
+  export TME_TIMING_TERMINAL_OUTPUT
+  
+  # Controls terminal output for TME debug information
+  declare -g TME_DEBUG_TERMINAL_OUTPUT="on"
+  export TME_DEBUG_TERMINAL_OUTPUT
+  
+  # Controls terminal output for TME status updates
+  declare -g TME_STATUS_TERMINAL_OUTPUT="on"
+  export TME_STATUS_TERMINAL_OUTPUT

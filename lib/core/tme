@@ -93,12 +93,12 @@ tme_init_timer() {
         fi
     elif [[ -z "$TMP_DIR" ]]; then
         # Conditionally print warning
-        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_DEBUG_TERMINAL_OUTPUT:-on}" == "on" ]]; then
             printf "Warning: TMP_DIR not set. TME_LEVELS_FILE (%s) might not be initialized properly.\n" "$TME_LEVELS_FILE" >&2
         fi
     elif [[ -z "$TME_LEVELS_FILE" ]]; then
         # Conditionally print warning
-        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_DEBUG_TERMINAL_OUTPUT:-on}" == "on" ]]; then
             printf "Warning: TME_LEVELS_FILE variable not set. Cannot initialize default depth.\n" >&2
         fi
     fi
@@ -112,12 +112,12 @@ tme_init_timer() {
         fi
     elif [[ -z "$TMP_DIR" ]]; then
         # Conditionally print warning
-        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_DEBUG_TERMINAL_OUTPUT:-on}" == "on" ]]; then
             printf "Warning: TMP_DIR not set. TME_STATE_FILE (%s) might not be initialized properly.\n" "$TME_STATE_FILE" >&2
         fi
     elif [[ -z "$TME_STATE_FILE" ]]; then
         # Conditionally print warning
-        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_DEBUG_TERMINAL_OUTPUT:-on}" == "on" ]]; then
             printf "Warning: TME_STATE_FILE variable not set. Cannot initialize default report state.\n" >&2
         fi
     fi
@@ -355,7 +355,7 @@ print_tree_recursive() {
 # The settme function to control timer output
 tme_settme() {
     if [[ "$#" -eq 0 ]]; then
-        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
             echo "Usage: tme_settme [report on|off | sort chron|duration | depth <number>]" >&2
         fi
         return 1
@@ -378,7 +378,7 @@ tme_settme() {
                 echo "false" > "$TME_STATE_FILE"
                 current_report_state="false"
             else
-                if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+                if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
                     echo "Invalid value for tme_settme report: $2. Use 'on' or 'off'." >&2
                 fi
                 return 1
@@ -389,7 +389,7 @@ tme_settme() {
                 echo "$2" > "$TME_SORT_ORDER_FILE_PATH"
                 current_sort_order="$2"
             else
-                if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+                if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
                     echo "Invalid value for tme_settme sort: $2. Use 'chron' or 'duration'." >&2
                 fi
                 return 1
@@ -400,20 +400,20 @@ tme_settme() {
                 echo "$2" > "$TME_LEVELS_FILE"
                 current_max_depth="$2"
             else
-                if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+                if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
                     echo "Invalid value for tme_settme depth: $2. Must be a number." >&2
                 fi
                 return 1
             fi
             ;;
         *)
-            if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+            if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
                 echo "Invalid command for tme_settme: $1" >&2
             fi
             return 1
             ;;
     esac
-    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
         printf "Timing Report: %s | Sort Order: %s | Max Depth: %s\n" \
             "$current_report_state" "$current_sort_order" "$current_max_depth"
     fi
@@ -421,7 +421,7 @@ tme_settme() {
 
 # Enhanced timing report
 tme_print_timing_report() {
-    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" != "on" || "${TME_TERMINAL_VERBOSITY:-on}" != "on" ]]; then
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" != "on" || "${TME_TERMINAL_VERBOSITY:-on}" != "on" || "${TME_REPORT_TERMINAL_OUTPUT:-on}" != "on" ]]; then
         return 0 # Do not print report if verbosity is off
     fi
 
@@ -493,6 +493,65 @@ tme_cleanup_timer() {
 
 }
 
+# Control nested TME terminal output switches
+tme_set_output() {
+    if [[ "$#" -lt 2 ]]; then
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
+            echo "Usage: tme_set_output <output_type> <on|off>" >&2
+            echo "Output types: report, timing, debug, status" >&2
+        fi
+        return 1
+    fi
+
+    local output_type="$1"
+    local setting="$2"
+    
+    if [[ "$setting" != "on" && "$setting" != "off" ]]; then
+        if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
+            echo "Invalid setting: $setting. Use 'on' or 'off'." >&2
+        fi
+        return 1
+    fi
+
+    case "$output_type" in
+        report)
+            export TME_REPORT_TERMINAL_OUTPUT="$setting"
+            ;;
+        timing)
+            export TME_TIMING_TERMINAL_OUTPUT="$setting"
+            ;;
+        debug)
+            export TME_DEBUG_TERMINAL_OUTPUT="$setting"
+            ;;
+        status)
+            export TME_STATUS_TERMINAL_OUTPUT="$setting"
+            ;;
+        *)
+            if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
+                echo "Invalid output type: $output_type. Use: report, timing, debug, status" >&2
+            fi
+            return 1
+            ;;
+    esac
+    
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
+        echo "TME $output_type output set to: $setting"
+    fi
+}
+
+# Display current TME terminal output settings
+tme_show_output_settings() {
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
+        echo "TME Terminal Output Settings:"
+        echo "  Master Terminal Verbosity: ${MASTER_TERMINAL_VERBOSITY:-on}"
+        echo "  TME Terminal Verbosity: ${TME_TERMINAL_VERBOSITY:-on}"
+        echo "  ├─ Report Output: ${TME_REPORT_TERMINAL_OUTPUT:-on}"
+        echo "  ├─ Timing Output: ${TME_TIMING_TERMINAL_OUTPUT:-on}"
+        echo "  ├─ Debug Output: ${TME_DEBUG_TERMINAL_OUTPUT:-on}"
+        echo "  └─ Status Output: ${TME_STATUS_TERMINAL_OUTPUT:-on}"
+    fi
+}
+
 # Add automatic initialization when sourced
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     tme_init_timer "$LOG_DIR"
@@ -509,7 +568,7 @@ export -A TME_CHILDREN
 export TME_CURRENT_PARENT
 export TME_LOG_FILE
 export TME_SORT_ORDER_FILE_PATH
-export -ga TME_COMPONENT_ORDER
+export TME_COMPONENT_ORDER
 export -f tme_init_timer
 export -f tme_start_timer
 export -f tme_stop_timer
@@ -521,5 +580,7 @@ export -f print_timing_entry
 export -f print_tree_recursive
 export -f tme_print_timing_report
 export -f tme_settme
+export -f tme_set_output
+export -f tme_show_output_settings
 export -f tme_cleanup_timer
 export -f sort_components_by_duration

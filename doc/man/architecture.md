@@ -215,7 +215,11 @@ The system implements a **hierarchical configuration loading system**:
 
 -   **Error Handling (`lib/core/err`)**: Production-grade error trapping and handling with stack traces.
 -   **Logging System (`lib/core/lo1`)**: Advanced logging with module-specific debug controls and structured output.
--   **Performance Monitoring (`lib/core/tme`)**: Timing utilities for performance analysis and optimization.
+-   **Performance Monitoring (`lib/core/tme`)**: Timing utilities for performance analysis and optimization featuring:
+    -   **Nested terminal output controls**: Granular control over different types of TME output
+    -   **Three-tier hierarchy**: Master → Module → Specific output type controls
+    -   **Runtime configuration**: Dynamic control via `tme_set_output` and `tme_show_output_settings`
+    -   **Output categories**: Report, timing, debug, and status message controls
 -   **Version Management (`lib/core/ver`)**: Version tracking and compatibility management.
 -   **Component Orchestration (`bin/core/comp`)**: Manages systematic loading and initialization of system components.
 
