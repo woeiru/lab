@@ -302,14 +302,14 @@ The project features a sophisticated **environment-aware deployment system** tha
 
 ### Testing and Validation Framework
 
--   **Comprehensive Test Suite (`bin/test_environment`)**: 375+ lines of validation logic providing:
+-   **Comprehensive Test Suite (`tst/test_environment`)**: 375+ lines of validation logic providing:
     -   **System integration testing**: End-to-end functionality validation
     -   **Module isolation testing**: Individual component verification
     -   **Configuration validation**: Environment and setup verification
     -   **Security testing**: Password and permission validation
     -   **Performance benchmarking**: Timing and resource usage analysis
 
--   **Quick Validation (`bin/validate_system`)**: Rapid operational readiness checks for:
+-   **Quick Validation (`tst/validate_system`)**: Rapid operational readiness checks for:
     -   Core module availability
     -   Configuration file integrity
     -   Environment setup validation
@@ -484,7 +484,7 @@ Next review: As needed for system changes
 
 3. **System Validation**: Verify installation with the quick validation script:
    ```bash
-   ./bin/validate_system
+   ./tst/validate_system
    ```
 
 ### Core Modules Access
