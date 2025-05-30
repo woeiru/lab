@@ -150,4 +150,4 @@ Use the Environment Configuration Controller (`core/ecc`) to select and configur
 
 ---
 
-**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [Documentation](../doc/README.md) | Browse [Source Code](../src/README.md)
+**Navigation**: Return to [Main Lab Documentation](../README.md)

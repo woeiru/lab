@@ -203,4 +203,6 @@ res/prompts/deploy.sh templates/new_template.yaml
 
 ---
 
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
+
 *Enables consistent, high-quality AI interactions across all lab operations through structured, reusable prompt templates.*

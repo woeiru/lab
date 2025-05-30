@@ -244,4 +244,6 @@ knowledge_integration:
 
 ---
 
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
+
 *Transforms organizational knowledge into an intelligent, searchable, and interconnected resource that enhances AI assistance and decision-making capabilities.*

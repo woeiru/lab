@@ -288,6 +288,6 @@ tools/config/output_format.sh --tool all --format json --include-metadata
 
 ---
 
-**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md) | Browse [Other AI Tools](../)
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
 
 *Provides a comprehensive toolkit of AI-powered utilities that enhance productivity, automate complex tasks, and provide intelligent assistance across all aspects of lab operations.*

@@ -379,4 +379,6 @@ template_engine:
 
 ---
 
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
+
 *Provides comprehensive template library that accelerates development, documentation, analysis, and reporting tasks through standardized, AI-enhanced templates.*

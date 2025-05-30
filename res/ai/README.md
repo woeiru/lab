@@ -135,4 +135,6 @@ ai/agents/switch.sh documentation_agent
 
 ---
 
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
+
 *Provides the foundational layer for all AI assistance capabilities in the lab environment.*

@@ -274,4 +274,6 @@ authentication:
 
 ---
 
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
+
 *Part of the comprehensive AI Resources ecosystem - enabling data-driven decisions through intelligent analytics and insights.*

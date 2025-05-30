@@ -281,4 +281,6 @@ training_pipeline:
 
 ---
 
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
+
 *Provides comprehensive training infrastructure that supports continuous AI capability development through high-quality datasets, educational resources, and rigorous benchmarking.*
