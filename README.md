@@ -378,14 +378,7 @@ cd test && ./test_complete_refactor.sh
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
 
-**Quick Commands:**
-```bash
-./entry.sh                    # Initial setup
-./tst/validate_system         # Quick validation  
-cd src/set/pve && ./pve      # Interactive deployment
-source lib/utl/inf           # Infrastructure utilities
-```
+---
 
 For detailed documentation, start with [`doc/man/architecture.md`](doc/man/architecture.md) for system overview or [`doc/man/initiation.md`](doc/man/initiation.md) for user guide.
