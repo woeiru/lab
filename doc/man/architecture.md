@@ -407,7 +407,7 @@ The project maintains comprehensive documentation organized by purpose and audie
 -   **`initiation.md`**: User interaction, onboarding, and configuration guide
 -   **`logging.md`**: Advanced logging system documentation and troubleshooting
 
-### Development Documentation (`doc/dev/`)
+### Development Documentation (`tmp/dev/`)
 -   **Session summaries**: Chronological development progress and decision tracking
 -   **Technical insights**: Specialized topics like audio root access and GPU passthrough
 -   **Implementation records**: Detailed completion summaries and project milestones

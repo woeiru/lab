@@ -2,7 +2,7 @@
 #######################################################################
 # Development Insights - GPU Passthrough Debugging Analysis
 #######################################################################
-# File: /home/es/lab/doc/dev/2025-05-25-2226_gpu_passthrough_insights.md
+# File: /home/es/lab/tmp/dev/2025-05-25-2226_gpu_passthrough_insights.md
 # Description: Detailed insights and debugging documentation from GPU
 #              passthrough troubleshooting session focusing on gpu-ptd
 #              and gpu-pts shell functions within the ops/gpu script.

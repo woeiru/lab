@@ -2,7 +2,7 @@
 #######################################################################
 # Infrastructure Automation Analysis Series - Overview
 #######################################################################
-# File: /home/es/lab/doc/ana/2025-05-29-0430_infrastructure_analysis_series_overview.md
+# File: /home/es/lab/tmp/ana/2025-05-29-0430_infrastructure_analysis_series_overview.md
 # Description: Comprehensive overview of planned technical analysis series
 #              documenting infrastructure automation approaches, architectural
 #              decisions, and engineering best practices for lab environment.
@@ -124,7 +124,7 @@ All episodes will reference the lab environment management system as a practical
 
 Episodes will be released with timestamp-based naming convention:
 - Format: `YYYY-MM-DD-HHMM_episode_N_topic.md`
-- Location: `/home/es/lab/doc/ana/`
+- Location: `/home/es/lab/tmp/ana/`
 - Cross-references to code examples and implementations
 
 ## 🎯 Target Outcomes
