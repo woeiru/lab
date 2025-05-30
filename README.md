@@ -50,17 +50,17 @@ Navigate through our comprehensive infrastructure management system. Click on an
 
 ```
 lab/
-├── 📂 [bin/](bin/README.md)          # Executables and core initialization
+├── 📂 bin/                           # Executables and core initialization
 │   ├── init                          # Main system initialization (487 lines)
 │   ├── core/comp                     # Component orchestrator  
 │   └── env/rc                        # Shell environment configuration
-├── 📂 [cfg/](cfg/README.md)          # Hierarchical configuration system
+├── 📂 cfg/                           # Hierarchical configuration system
 │   ├── ali/                          # System aliases and shortcuts
 │   ├── ans/                          # Ansible automation playbooks
 │   ├── core/                         # Runtime constants and system definitions
 │   ├── env/                          # Environment-specific configurations
 │   └── pod/                          # Container/pod configurations
-├── 📂 [doc/](doc/README.md)          # Comprehensive documentation ecosystem
+├── 📂 doc/                           # Comprehensive documentation ecosystem
 │   ├── ana/                          # Analysis documentation and reports
 │   ├── dev/                          # Development session summaries
 │   ├── fix/                          # Problem resolution guides
@@ -68,12 +68,12 @@ lab/
 │   ├── how/                          # How-to guides and procedures
 │   ├── man/                          # Technical manuals and references
 │   └── net/                          # Network documentation
-├── 📂 [lib/](lib/README.md)          # Modular libraries (stateless design)
+├── 📂 lib/                           # Modular libraries (stateless design)
 │   ├── aux/                          # Auxiliary libraries and integrations
 │   ├── core/                         # Essential modules (err, lo1, tme, ver)
 │   ├── ops/                          # Operations libraries (pve, gpu, sys, net)
 │   └── utl/                          # Utilities (infrastructure, security, environment)
-├── 📂 [res/](res/README.md)          # Resources and knowledge management
+├── 📂 res/                           # Resources and knowledge management
 │   ├── ai/                           # AI and machine learning resources
 │   ├── analytics/                    # Data analytics and insights
 │   ├── context/                      # Contextual information and references
@@ -87,11 +87,11 @@ lab/
 │   ├── tools/                        # Development and management tools
 │   ├── training/                     # Training materials and guides
 │   └── workflows/                    # Workflow definitions and processes
-├── 📂 [src/](src/README.md)          # Source code and deployment scripts
+├── 📂 src/                           # Source code and deployment scripts
 │   ├── mgt/                          # Management wrappers for runtime control
 │   ├── set/                          # Service deployment automation
 │   └── too/                          # Specialized tools and utilities
-└── 📂 [tst/](tst/README.md)          # Testing and validation framework
+└── 📂 tst/                           # Testing and validation framework
     ├── test_complete_refactor.sh     # Complete system refactoring validation
     ├── test_environment              # Environment testing suite
     ├── test_gpu_wrappers.sh          # GPU wrapper function validation
@@ -99,7 +99,14 @@ lab/
     └── validate_system               # System validation and health checks
 ```
 
-> 💡 **Navigation Tip**: Each 📂 folder name above is a clickable link that will take you to comprehensive documentation for that directory, including detailed file descriptions, usage patterns, and integration points.
+**📂 Quick Directory Navigation:**
+- **[📂 Binary System](bin/README.md)** - Executables, initialization, and bootstrapping
+- **[📂 Configuration Management](cfg/README.md)** - Environment settings and automation configs
+- **[📂 Documentation Hub](doc/README.md)** - Analysis, guides, and reference materials
+- **[📂 Library System](lib/README.md)** - Core modules, operations, and utilities
+- **[📂 Resource Management](res/README.md)** - AI resources, analytics, and knowledge base
+- **[📂 Source Code](src/README.md)** - Deployment scripts and management tools
+- **[📂 Testing Framework](tst/README.md)** - Validation scripts and system health checks
 
 ### Core Design Patterns
 
