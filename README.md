@@ -46,58 +46,7 @@ source ~/.bashrc  # or ~/.zshrc
 
 ### 📁 Interactive Directory Structure
 
-Navigate through our comprehensive infrastructure management system. Click on any **📂 folder name** to access detailed documentation.
-
-```
-lab/
-├── 📂 bin/                           # Executables and core initialization
-│   ├── init                          # Main system initialization (487 lines)
-│   ├── core/comp                     # Component orchestrator  
-│   └── env/rc                        # Shell environment configuration
-├── 📂 cfg/                           # Hierarchical configuration system
-│   ├── ali/                          # System aliases and shortcuts
-│   ├── ans/                          # Ansible automation playbooks
-│   ├── core/                         # Runtime constants and system definitions
-│   ├── env/                          # Environment-specific configurations
-│   └── pod/                          # Container/pod configurations
-├── 📂 doc/                           # Comprehensive documentation ecosystem
-│   ├── ana/                          # Analysis documentation and reports
-│   ├── dev/                          # Development session summaries
-│   ├── fix/                          # Problem resolution guides
-│   ├── flo/                          # Flow diagrams and processes
-│   ├── how/                          # How-to guides and procedures
-│   ├── man/                          # Technical manuals and references
-│   └── net/                          # Network documentation
-├── 📂 lib/                           # Modular libraries (stateless design)
-│   ├── aux/                          # Auxiliary libraries and integrations
-│   ├── core/                         # Essential modules (err, lo1, tme, ver)
-│   ├── ops/                          # Operations libraries (pve, gpu, sys, net)
-│   └── utl/                          # Utilities (infrastructure, security, environment)
-├── 📂 res/                           # Resources and knowledge management
-│   ├── ai/                           # AI and machine learning resources
-│   ├── analytics/                    # Data analytics and insights
-│   ├── context/                      # Contextual information and references
-│   ├── insights/                     # Project insights and analysis
-│   ├── integrations/                 # System integrations and connectors
-│   ├── knowledge/                    # Knowledge base and documentation
-│   ├── models/                       # Data models and schemas
-│   ├── optimization/                 # Performance optimization resources
-│   ├── prompts/                      # AI prompts and templates
-│   ├── templates/                    # Reusable templates and patterns
-│   ├── tools/                        # Development and management tools
-│   ├── training/                     # Training materials and guides
-│   └── workflows/                    # Workflow definitions and processes
-├── 📂 src/                           # Source code and deployment scripts
-│   ├── mgt/                          # Management wrappers for runtime control
-│   ├── set/                          # Service deployment automation
-│   └── too/                          # Specialized tools and utilities
-└── 📂 tst/                           # Testing and validation framework
-    ├── test_complete_refactor.sh     # Complete system refactoring validation
-    ├── test_environment              # Environment testing suite
-    ├── test_gpu_wrappers.sh          # GPU wrapper function validation
-    ├── test_tme_nested_controls.sh   # TME nested controls testing
-    └── validate_system               # System validation and health checks
-```
+Explore the infrastructure management platform using the interactive directory below. Click any **📂 folder name** for in-depth documentation and details on each system component.
 
 **📂 Quick Directory Navigation:**
 - **[📂 Binary System](bin/README.md)** - Executables, initialization, and bootstrapping
