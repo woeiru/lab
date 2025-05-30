@@ -50,6 +50,10 @@ declare -gA ERROR_SEVERITIES
 declare -ga ERROR_ORDER
 
 # Process error messages and log them appropriately
+# Logs errors with comprehensive metadata and supports multiple severity levels
+# Arguments: message, [component], [exit_code], [severity]
+# Returns: The provided exit code for error propagation
+# Purpose: Central error processing with file/terminal logging and metadata storage
 err_process_error() {
     local message="$1"
     local component="${2:-${FUNCNAME[1]:-main}}"
@@ -85,6 +89,10 @@ err_process_error() {
 }
 
 # Function to handle errors more comprehensively
+# Extended error handler with automatic cleanup for critical errors
+# Arguments: message, [component], [exit_code], [severity]
+# Returns: The provided exit code or triggers system exit for critical errors
+# Purpose: High-level error handling with automatic cleanup and exit control
 err_lo1_handle_error() {
     local message="$1"
     local component="${2:-${FUNCNAME[1]:-main}}"
@@ -103,6 +111,10 @@ err_lo1_handle_error() {
 }
 
 # Function to ensure clean exit from the script
+# Performs cleanup and controlled script termination
+# Arguments: [exit_code] - defaults to SUCCESS code
+# Returns: Does not return - exits script
+# Purpose: Graceful script termination with trap cleanup
 clean_exit() {
     local exit_code=${1:-${ERROR_CODES[SUCCESS]}}
     trap - ERR  # Remove the error handling trap
@@ -111,6 +123,10 @@ clean_exit() {
 }
 
 # Function to check if a component has any errors
+# Searches error tracking arrays for component-specific errors
+# Arguments: component - component name to check
+# Returns: true if component has errors, false otherwise
+# Purpose: Component-specific error state validation
 has_errors() {
     local component="$1"
     local has_error=false
@@ -126,6 +142,10 @@ has_errors() {
 }
 
 # Enhanced error handler function that only catches real errors
+# Automatic error trap handler with comprehensive error context capture
+# Arguments: line_number, [error_code], [exit_code] - typically called via trap
+# Returns: The error code from the failed command
+# Purpose: Automatic error detection and logging with full context information
 error_handler() {
     # Only proceed if ERROR_TRAP_ENABLED is set
     [[ "${ERROR_TRAP_ENABLED}" != "true" ]] && return 0
@@ -159,12 +179,20 @@ error_handler() {
 }
 
 # Function to enable error trapping
+# Activates automatic error detection and handling
+# Arguments: None
+# Returns: 0 (success)
+# Purpose: Enable automatic error trap for comprehensive error catching
 enable_error_trap() {
     ERROR_TRAP_ENABLED="true"
     trap 'error_handler $LINENO $?' ERR
 }
 
 # Function to disable error trapping
+# Deactivates automatic error detection to allow normal error handling
+# Arguments: None
+# Returns: 0 (success)
+# Purpose: Disable error trap for operations that handle errors internally
 disable_error_trap() {
     ERROR_TRAP_ENABLED="false"
     trap - ERR
@@ -188,6 +216,10 @@ safe_operation() {
 }
 
 # Enhanced error reporting function with better organization
+# Generates comprehensive error report with categorization and statistics
+# Arguments: None
+# Returns: 0 if no errors, 1 if errors occurred
+# Purpose: Generate formatted error summary for debugging and monitoring
 print_error_report() {
     local total_errors=0
     local total_warnings=0
@@ -283,6 +315,10 @@ print_error_report() {
 }
 
 # Setup function to initialize error handling
+# Initializes error tracking arrays and sets up error trap
+# Arguments: None
+# Returns: 0 (success)
+# Purpose: Initialize complete error handling system for the session
 setup_error_handling() {
     # Clear existing error tracking
     ERROR_COMPONENTS=()

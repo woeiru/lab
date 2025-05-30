@@ -560,7 +560,7 @@ export -f main_ini
 
 # --- Force timer output and print timing report at the end ---
 if type tme_settme &>/dev/null; then
-    tme_settme on
+    tme_settme report on
 fi
 if type tme_print_timing_report &>/dev/null; then
     tme_print_timing_report

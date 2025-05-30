@@ -176,6 +176,91 @@ execute_component() {
 }
 
 #######################################################################
+# CONFIGURATION LOADING FUNCTIONS
+#######################################################################
+#
+# Configuration loading functions that source environment and configuration
+# files during system initialization. These functions handle the loading
+# of different configuration categories with proper error handling.
+#
+#######################################################################
+
+# Source the environment configuration controller (core/ecc)
+# Contains: Environment Configuration Controller
+# Purpose: Load environment controller that sets SITE_NAME, ENVIRONMENT_NAME, NODE_NAME
+source_cfg_ecc() {
+    local ecc_file="${LAB_DIR}/cfg/core/ecc"
+    local description="environment configuration controller"
+    
+    log "lvl" "Sourcing ${description}: ${ecc_file}"
+    if source_helper "${ecc_file}" "${description}"; then
+        log "lvl" "Successfully sourced environment configuration controller"
+        return 0
+    else
+        log "lvl" "Failed to source environment configuration controller"
+        return 1
+    fi
+}
+
+# Source the alias configuration files (ali/ directory)
+# Contains: sta (static aliases), dyn (dynamic aliases)
+# Purpose: Load command aliases for improved command-line efficiency
+source_cfg_ali() {
+    # Use CFG_ALI_DIR which is defined in ric
+    source_directory "$CFG_ALI_DIR" "*" "alias configuration files"
+    return $?
+}
+
+# Source the environment-specific configuration files (env/ directory)
+# Contains: site configurations (site1, site1-dev, site1-w2, etc.)
+# Purpose: Load environment-specific settings based on current environment
+source_cfg_env() {
+    local site_config="${CFG_ENV_DIR}/${SITE_NAME:-site1}"
+    local env_config="${CFG_ENV_DIR}/${SITE_NAME:-site1}-${ENVIRONMENT_NAME}"
+    local node_config="${CFG_ENV_DIR}/${SITE_NAME:-site1}-${NODE_NAME}"
+    local description="environment configuration files"
+    
+    log "lvl" "Sourcing ${description} for site: ${SITE_NAME:-site1}"
+    
+    # Always source base site configuration
+    if [[ -f "$site_config" ]]; then
+        if source_helper "$site_config" "base site config ($(basename "$site_config"))"; then
+            log "lvl" "Successfully sourced base site configuration"
+        else
+            log "lvl" "Warning: Failed to source base site configuration"
+            return 1
+        fi
+    else
+        log "lvl" "Warning: Base site configuration not found: $site_config"
+        return 1
+    fi
+    
+    # Source environment override if it exists and ENVIRONMENT_NAME is not default
+    if [[ -n "${ENVIRONMENT_NAME}" && "${ENVIRONMENT_NAME}" != "prod" && -f "$env_config" ]]; then
+        if source_helper "$env_config" "environment override ($(basename "$env_config"))"; then
+            log "lvl" "Successfully sourced environment override"
+        else
+            log "lvl" "Warning: Failed to source environment override"
+        fi
+    elif [[ -n "${ENVIRONMENT_NAME}" && "${ENVIRONMENT_NAME}" != "prod" ]]; then
+        log "lvl" "No environment override found for: ${ENVIRONMENT_NAME}"
+    fi
+    
+    # Source node override if it exists and NODE_NAME is set
+    if [[ -n "${NODE_NAME}" && "${NODE_NAME}" != "$(hostname)" && -f "$node_config" ]]; then
+        if source_helper "$node_config" "node override ($(basename "$node_config"))"; then
+            log "lvl" "Successfully sourced node override"
+        else
+            log "lvl" "Warning: Failed to source node override"
+        fi
+    elif [[ -n "${NODE_NAME}" && "${NODE_NAME}" != "$(hostname)" ]]; then
+        log "lvl" "No node override found for: ${NODE_NAME}"
+    fi
+    
+    return 0
+}
+
+#######################################################################
 # LIBRARY STRUCTURE ANALYSIS AND LOADING FUNCTIONS
 #######################################################################
 #
@@ -408,7 +493,7 @@ source_lib_ops_parallel() {
     local description="operational function files (parallel mode)"
     
     tme_start_timer "LIB_OPS_PARALLEL"
-    log "inf" "Starting parallel loading of operational libraries"
+    log "lvl" "Starting parallel loading of operational libraries"
     
     # Define phases based on dependency analysis
     local phase1_modules=(gpu net pbs srv sto sys usr)  # Independent modules
@@ -418,10 +503,10 @@ source_lib_ops_parallel() {
     tme_start_timer "PARALLEL_OPS_PHASE1"
     if source_modules_parallel "$LIB_OPS_DIR" "${phase1_modules[@]}"; then
         tme_stop_timer "PARALLEL_OPS_PHASE1"
-        log "inf" "Phase 1 operational modules loaded successfully"
+        log "lvl" "Phase 1 operational modules loaded successfully"
     else
         tme_stop_timer "PARALLEL_OPS_PHASE1"
-        log "err" "Failed to load Phase 1 operational modules"
+        log "lvl" "Failed to load Phase 1 operational modules"
         tme_stop_timer "LIB_OPS_PARALLEL"
         return fallback_to_sequential "lib_ops" "Phase 1 parallel loading failed"
     fi
@@ -430,16 +515,16 @@ source_lib_ops_parallel() {
     tme_start_timer "PARALLEL_OPS_PHASE2"
     if source_modules_parallel "$LIB_OPS_DIR" "${phase2_modules[@]}"; then
         tme_stop_timer "PARALLEL_OPS_PHASE2"
-        log "inf" "Phase 2 operational modules loaded successfully"
+        log "lvl" "Phase 2 operational modules loaded successfully"
     else
         tme_stop_timer "PARALLEL_OPS_PHASE2"
-        log "err" "Failed to load Phase 2 operational modules"
+        log "lvl" "Failed to load Phase 2 operational modules"
         tme_stop_timer "LIB_OPS_PARALLEL"
         return fallback_to_sequential "lib_ops" "Phase 2 parallel loading failed"
     fi
     
     tme_stop_timer "LIB_OPS_PARALLEL"
-    log "inf" "All operational libraries loaded successfully using parallel mode"
+    log "lvl" "All operational libraries loaded successfully using parallel mode"
     return 0
 }
 
@@ -590,14 +675,14 @@ fallback_to_sequential() {
     
     # Check if fallback is enabled
     if [[ "${PARALLEL_LOADING_FALLBACK,,}" != "on" ]]; then
-        log "err" "Parallel loading failed for $component_type: $error_message"
-        log "err" "Fallback to sequential loading is disabled (PARALLEL_LOADING_FALLBACK=off)"
+        log "lvl" "Parallel loading failed for $component_type: $error_message"
+        log "lvl" "Fallback to sequential loading is disabled (PARALLEL_LOADING_FALLBACK=off)"
         return 1
     fi
     
     tme_start_timer "FALLBACK_${component_type^^}"
-    log "err" "Parallel loading failed for $component_type: $error_message"
-    log "inf" "Falling back to sequential loading for $component_type"
+    log "lvl" "Parallel loading failed for $component_type: $error_message"
+    log "lvl" "Falling back to sequential loading for $component_type"
     
     case "$component_type" in
         "lib_ops")
@@ -613,7 +698,7 @@ fallback_to_sequential() {
             source_src_mgt
             ;;
         *)
-            log "err" "Unknown component type for fallback: $component_type"
+            log "lvl" "Unknown component type for fallback: $component_type"
             return 1
             ;;
     esac
@@ -622,9 +707,9 @@ fallback_to_sequential() {
     tme_stop_timer "FALLBACK_${component_type^^}"
     
     if ((fallback_result == 0)); then
-        log "inf" "Sequential fallback successful for $component_type"
+        log "lvl" "Sequential fallback successful for $component_type"
     else
-        log "err" "Sequential fallback also failed for $component_type"
+        log "lvl" "Sequential fallback also failed for $component_type"
     fi
     
     return $fallback_result
@@ -646,9 +731,9 @@ setup_components() {
     local use_parallel_loading=false
     if [[ "${PARALLEL_LOADING_ENABLED,,}" == "on" ]]; then
         use_parallel_loading=true
-        log "inf" "Parallel loading enabled - using high-performance multi-core initialization"
+        log "lvl" "Parallel loading enabled - using high-performance multi-core initialization"
     else
-        log "inf" "Sequential loading enabled - using traditional single-threaded initialization"
+        log "lvl" "Sequential loading enabled - using traditional single-threaded initialization"
     fi
 
     # Define components with appropriate loading functions

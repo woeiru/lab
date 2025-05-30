@@ -34,6 +34,10 @@ export LOG_DEBUG_ENABLED=1
 declare -gA ROOT_FUNCTIONS=([main_rc]=1)
 
 # Enhanced debug logging - moved to top
+# Provides detailed debug logging with timestamp and source tracking
+# Arguments: message, [source] - source defaults to "unknown"
+# Returns: 0 if logging enabled, early return if disabled
+# Purpose: Detailed debug output for troubleshooting and development
 lo1_debug_log() {
     [[ "${LOG_DEBUG_ENABLED}" != "1" ]] && return 0
     local timestamp=$(date '+%H:%M:%S.%2N')
@@ -76,6 +80,10 @@ readonly CACHE_CLEANUP_INTERVAL=300  # 5 minutes
 declare -gA ROOT_FUNCTIONS=([main_rc]=1)
 
 # Update dump_stack_trace to use lo1_debug_log
+# Generates detailed stack trace for debugging function call hierarchy
+# Arguments: [func] - function name, defaults to calling function
+# Returns: 0 (always succeeds)
+# Purpose: Debug utility to trace function call stack with full context
 dump_stack_trace() {
     local func="${1:-${FUNCNAME[1]}}"
     lo1_debug_log "" "stack"
@@ -89,6 +97,10 @@ dump_stack_trace() {
 
 # Performance optimization
 # Update cleanup_cache to use lo1_debug_log
+# Cleans up cached depth data at regular intervals for memory management
+# Arguments: None
+# Returns: 0 (always succeeds)
+# Purpose: Memory optimization by clearing depth cache periodically
 cleanup_cache() {
     local current_time=$(date +%s)
     if ((current_time - LAST_CACHE_CLEANUP >= CACHE_CLEANUP_INTERVAL)); then
@@ -100,6 +112,10 @@ cleanup_cache() {
 }
 
 # Maintenance functions
+# Ensures required directories exist for logging system operation
+# Arguments: None
+# Returns: true if all directories created/exist, false if any failed
+# Purpose: Initialize directory structure required by logging system
 ensure_state_directories() {
     local dirs=("$LOG_DIR" "$TMP_DIR")
     local success=true
@@ -116,6 +132,11 @@ ensure_state_directories() {
     $success
 }
 
+# Initializes logging state files with default values
+# Creates and initializes required state files for logging system
+# Arguments: None
+# Returns: 0 (always succeeds)
+# Purpose: Set up initial state files required for logging system operation
 init_state_files() {
     [[ ! -f "$LOG_STATE_FILE" ]] && echo "on" > "$LOG_STATE_FILE"  # Changed "true" to "on"
     [[ ! -f "$LOG_DEPTH_CACHE_FILE" ]] && touch "$LOG_DEPTH_CACHE_FILE"
@@ -123,6 +144,10 @@ init_state_files() {
 }
 
 # Core functions
+# Determines if a function is considered a root function in call stack analysis
+# Arguments: func_name - name of function to check
+# Returns: 0 if root function, 1 if not
+# Purpose: Define entry points for depth calculation in call stack analysis
 is_root_function() {
     local func_name="$1"
     case "$func_name" in
