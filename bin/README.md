@@ -231,4 +231,4 @@ Control initialization behavior through environment variables:
 
 ---
 
-**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [Documentation](../doc/README.md) | Browse [Configuration](../cfg/README.md)
+**Navigation**: Return to [Main Lab Documentation](../README.md)
