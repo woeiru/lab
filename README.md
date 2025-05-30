@@ -44,18 +44,9 @@ source ~/.bashrc  # or ~/.zshrc
 
 ## 🏛️ Architecture Overview
 
-### 📁 Interactive Directory Structure
+This infrastructure management platform follows a modular, hierarchical design with clear separation of concerns across seven primary system domains. The architecture emphasizes testability, environment awareness, and enterprise-grade security patterns.
 
-Explore the infrastructure management platform using the interactive directory below. Click any **📂 folder name** for in-depth documentation and details on each system component.
-
-**📂 Quick Folder README Navigation:**
-- **[📂 Binary System](bin/README.md)** - Executables, initialization, and bootstrapping
-- **[📂 Configuration Management](cfg/README.md)** - Environment settings and automation configs
-- **[📂 Documentation Hub](doc/README.md)** - Analysis, guides, and reference materials
-- **[📂 Library System](lib/README.md)** - Core modules, operations, and utilities
-- **[📂 Resource Management](res/README.md)** - AI resources, analytics, and knowledge base
-- **[📂 Source Code](src/README.md)** - Deployment scripts and management tools
-- **[📂 Testing Framework](tst/README.md)** - Validation scripts and system health checks
+> 💡 **Navigation Tip**: For detailed exploration of each system component, see the [📚 Documentation](#-documentation) section below with comprehensive guides and directory-specific documentation.
 
 ### Core Design Patterns
 
@@ -230,20 +221,22 @@ define_container 101 "webserver" "192.168.1.101"
 cd test && ./test_complete_refactor.sh
 ```
 
-## 📚 Documentation
+## 📚 Documentation & Navigation
 
 ### 📖 Technical Manuals
-- **[Architecture Guide](doc/man/architecture.md)**: Complete system design overview
-- **[Configuration Manual](doc/man/configuration.md)**: Detailed configuration options
-- **[Infrastructure Guide](doc/man/infrastructure.md)**: Deployment and IaC patterns
+Core system documentation for understanding and operating the platform:
+- **[Architecture Guide](doc/man/architecture.md)**: Complete system design overview and patterns
+- **[Configuration Manual](doc/man/configuration.md)**: Detailed configuration options and hierarchy
+- **[Infrastructure Guide](doc/man/infrastructure.md)**: Deployment patterns and IaC practices
 - **[User Guide](doc/man/initiation.md)**: User interaction and runtime controls
-- **[Logging System](doc/man/logging.md)**: Monitoring and debugging
+- **[Logging System](doc/man/logging.md)**: Monitoring, debugging, and performance tracking
 
-### 📁 Directory Documentation
-- **[📂 Binary System](bin/README.md)**: Executables, initialization, and bootstrapping
-- **[📂 Configuration Management](cfg/README.md)**: Environment settings and automation configs
-- **[📂 Documentation Hub](doc/README.md)**: Analysis, guides, and reference materials
-- **[📂 Library System](lib/README.md)**: Core modules, operations, and utilities
+### 📁 Interactive Directory Navigation
+Click any **📂 folder name** to explore system components in detail:
+- **[📂 Binary System](bin/README.md)**: Executables, initialization, and bootstrapping processes
+- **[📂 Configuration Management](cfg/README.md)**: Environment settings and automation configurations
+- **[📂 Documentation Hub](doc/README.md)**: Analysis, guides, and comprehensive reference materials
+- **[📂 Library System](lib/README.md)**: Core modules, operations libraries, and utilities
 - **[📂 Resource Management](res/README.md)**: AI resources, analytics, and knowledge base
 - **[📂 Source Code](src/README.md)**: Deployment scripts and management tools
 - **[📂 Testing Framework](tst/README.md)**: Validation scripts and system health checks
