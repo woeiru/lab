@@ -1,36 +1,3 @@
-<!--
-#######################################################################
-# Infrastructure as Code (IaC) Deployment Guide - Technical Reference
-#######################################################################
-# File: /home/es/lab/doc/man/infrastructure.md
-# Description: Comprehensive instructions for using Infrastructure as Code
-#              deployment scripts with environment-aware configuration
-#              management and automated provisioning capabilities.
-#
-# Document Purpose:
-#   Provides detailed operational guidance for deploying and managing
-#   infrastructure components using the automated deployment framework
-#   located in src/set/ with consistent environment-aware execution.
-#
-# Key Components:
-#   - Environment-aware deployment framework (lib/aux/src)
-#   - Interactive and direct execution modes
-#   - Hierarchical configuration loading system
-#   - Standardized utility integration (lib/ops/, lib/utl/)
-#   - Comprehensive logging and error handling
-#
-# Target Audience:
-#   DevOps engineers, system administrators, and infrastructure
-#   specialists responsible for automated deployment, configuration
-#   management, and infrastructure provisioning in lab environments.
-#
-# Dependencies:
-#   - Deployment framework: lib/aux/src
-#   - Infrastructure scripts: src/set/*
-#   - Configuration hierarchy: cfg/env/*
-#######################################################################
--->
-
 # Infrastructure as Code (IaC) for `src/set/` Deployment
 
 This document provides comprehensive instructions for using the deployment scripts located in the `src/set/` directory. These scripts automate infrastructure setup and configuration tasks for various services and system components using a consistent, environment-aware framework.

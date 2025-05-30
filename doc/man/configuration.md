@@ -1,36 +1,3 @@
-<!--
-#######################################################################
-# Infrastructure Configuration Guide - Technical Reference
-#######################################################################
-# File: /home/es/lab/doc/man/configuration.md
-# Description: Comprehensive technical documentation for infrastructure
-#              configuration management including IP allocation, naming
-#              conventions, security practices, and operational procedures.
-#
-# Document Purpose:
-#   Provides complete reference documentation for infrastructure
-#   management including container/VM configuration, security
-#   implementation, and environment switching for system administrators.
-#
-# Key Components:
-#   - IP allocation schemes and network planning (192.168.178.0/24)
-#   - Naming conventions and organizational standards
-#   - Infrastructure utilities library (lib/utl/inf)
-#   - Security configuration and password management
-#   - Environment-aware configuration hierarchy
-#
-# Target Audience:
-#   System administrators, infrastructure engineers, and developers
-#   responsible for container/VM deployment, network configuration,
-#   and security implementation in the lab environment.
-#
-# Dependencies:
-#   - Infrastructure utilities: lib/utl/inf, lib/utl/sec
-#   - Environment management: lib/aux/src
-#   - Configuration files: cfg/env/*
-#######################################################################
--->
-
 # Infrastructure Configuration Guide
 
 ## Overview
