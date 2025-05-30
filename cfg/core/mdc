@@ -28,6 +28,13 @@ declare -gA MODULE_PATHS
 declare -gA MODULE_OPTS
 declare -gA MODULE_COMMANDS # New: For command-line tool dependencies
 
+# NEW: Parallel loading infrastructure
+declare -gA MODULE_DEPENDENCIES      # Module-to-module dependencies
+declare -gA MODULE_LOAD_GROUPS       # Parallel loading groups/phases
+declare -gA MODULE_LOAD_PRIORITY     # Critical path priority (1=highest, 9=lowest)
+declare -gA MODULE_CONFLICTS         # Modules that cannot load in parallel
+declare -gA COMPONENT_DEPENDENCIES   # Component-level dependencies
+
 # Initialize module requirements
 init_module_requirements() {
 debug_log "Initializing module requirements"
@@ -60,12 +67,132 @@ debug_log "Initializing module requirements"
     MODULE_PATHS[tme.LOG_DIR]="dir:true"
     MODULE_COMMANDS[tme.bc]=1 # New: 'tme' module requires 'bc' command
 
+    # NEW: Define parallel loading dependencies
+    init_parallel_dependencies
+
 debug_log "Module requirements initialization complete"
+}
+
+# NEW: Initialize parallel loading dependencies
+init_parallel_dependencies() {
+    debug_log "Initializing parallel loading dependencies"
+    
+    # Component-level dependencies (high-level)
+    COMPONENT_DEPENDENCIES[CFG_ECC]=""                    # No dependencies
+    COMPONENT_DEPENDENCIES[CFG_ALI]=""                    # No dependencies  
+    COMPONENT_DEPENDENCIES[CFG_ENV]="CFG_ECC"            # Needs environment controller
+    COMPONENT_DEPENDENCIES[LIB_OPS]=""                   # Can load independently
+    COMPONENT_DEPENDENCIES[LIB_UTL]=""                   # Can load independently
+    COMPONENT_DEPENDENCIES[LIB_AUX]="LIB_OPS,LIB_UTL"    # May use ops/utl functions
+    COMPONENT_DEPENDENCIES[SRC_MGT]="LIB_OPS"            # Wraps ops functions
+    
+    # Library-level module dependencies (granular)
+    # LIB_OPS modules (all independent at file level)
+    MODULE_DEPENDENCIES[gpu]=""
+    MODULE_DEPENDENCIES[net]=""
+    MODULE_DEPENDENCIES[pbs]=""
+    MODULE_DEPENDENCIES[pve]=""        # May conceptually depend on gpu/net but no hard file deps
+    MODULE_DEPENDENCIES[srv]=""
+    MODULE_DEPENDENCIES[sto]=""
+    MODULE_DEPENDENCIES[sys]=""
+    MODULE_DEPENDENCIES[usr]=""
+    
+    # LIB_UTL modules (may have cross-dependencies)
+    MODULE_DEPENDENCIES[ali]=""        # Independent
+    MODULE_DEPENDENCIES[env]=""        # Independent
+    MODULE_DEPENDENCIES[inf]=""        # Independent
+    MODULE_DEPENDENCIES[sec]=""        # Independent
+    MODULE_DEPENDENCIES[ssh]="sec"     # May use security functions
+    
+    # LIB_AUX modules
+    MODULE_DEPENDENCIES[lib]=""        # Independent
+    MODULE_DEPENDENCIES[src]="inf,sec" # Uses infrastructure and security utils
+    
+    # SRC_MGT modules
+    MODULE_DEPENDENCIES[mgt_gpu]="gpu"     # Wraps gpu operations
+    MODULE_DEPENDENCIES[mgt_pve]="pve"     # Wraps pve operations
+    
+    # Define parallel loading phases
+    MODULE_LOAD_GROUPS[phase1]="gpu,net,pbs,srv,sto,sys,usr,ali,env,inf,sec,lib"  # Independent modules
+    MODULE_LOAD_GROUPS[phase2]="pve,ssh,src"                                      # Dependent modules
+    MODULE_LOAD_GROUPS[phase3]="mgt_gpu,mgt_pve"                                  # Wrapper functions
+    
+    # Define load priorities (1=highest, 9=lowest) for scheduling within phases
+    MODULE_LOAD_PRIORITY[gpu]=1        # Critical for GPU operations
+    MODULE_LOAD_PRIORITY[net]=1        # Critical for network operations
+    MODULE_LOAD_PRIORITY[sys]=2        # Important system functions
+    MODULE_LOAD_PRIORITY[env]=2        # Important environment management
+    MODULE_LOAD_PRIORITY[inf]=2        # Important infrastructure utils
+    MODULE_LOAD_PRIORITY[sec]=2        # Important security functions
+    MODULE_LOAD_PRIORITY[pve]=3        # Depends on phase1 completion
+    MODULE_LOAD_PRIORITY[srv]=3        # Service management
+    MODULE_LOAD_PRIORITY[sto]=3        # Storage operations
+    MODULE_LOAD_PRIORITY[usr]=4        # User management
+    MODULE_LOAD_PRIORITY[ali]=5        # Aliases (low priority)
+    MODULE_LOAD_PRIORITY[lib]=5        # Auxiliary libraries
+    MODULE_LOAD_PRIORITY[src]=6        # Source framework
+    MODULE_LOAD_PRIORITY[ssh]=6        # SSH utilities
+    MODULE_LOAD_PRIORITY[pbs]=7        # Backup operations
+    MODULE_LOAD_PRIORITY[mgt_gpu]=8    # Management wrappers
+    MODULE_LOAD_PRIORITY[mgt_pve]=8    # Management wrappers
+    
+    # Define modules that cannot load in parallel (shared resources)
+    MODULE_CONFLICTS[gpu]=""           # No conflicts currently identified
+    MODULE_CONFLICTS[pve]=""           # No conflicts currently identified
+    
+    debug_log "Parallel loading dependencies initialized"
+}
+
+# NEW: Check if module dependencies are satisfied
+check_module_dependencies() {
+    local module="$1"
+    local deps="${MODULE_DEPENDENCIES[$module]}"
+    
+    if [[ -z "$deps" ]]; then
+        return 0  # No dependencies
+    fi
+    
+    local missing_deps=()
+    for dep in ${deps//,/ }; do
+        if [[ ! " ${LOADED_MODULES[@]} " =~ " $dep " ]]; then
+            missing_deps+=("$dep")
+        fi
+    done
+    
+    if (( ${#missing_deps[@]} > 0 )); then
+        debug_log "Module $module missing dependencies: ${missing_deps[*]}"
+        return 1
+    fi
+    
+    return 0
+}
+
+# NEW: Get modules ready for parallel loading in a phase
+get_ready_modules() {
+    local phase="$1"
+    local ready_modules=()
+    
+    local phase_modules="${MODULE_LOAD_GROUPS[$phase]}"
+    for module in ${phase_modules//,/ }; do
+        if check_module_dependencies "$module"; then
+            ready_modules+=("$module")
+        fi
+    done
+    
+    echo "${ready_modules[@]}"
 }
 
 # Export module-related functions and variables
 export -f init_module_requirements
+export -f init_parallel_dependencies
+export -f check_module_dependencies
+export -f get_ready_modules
 export -A MODULE_VARS
 export -A MODULE_PATHS
 export -A MODULE_OPTS
-export -A MODULE_COMMANDS # New: Export the commands array
+export -A MODULE_COMMANDS
+export -A MODULE_DEPENDENCIES
+export -A MODULE_LOAD_GROUPS  
+export -A MODULE_LOAD_PRIORITY
+export -A MODULE_CONFLICTS
+export -A COMPONENT_DEPENDENCIES
