@@ -1,0 +1,82 @@
+#!/bin/bash
+# ----------------------------------------------------------------------
+# Functions:
+#   a_xall: Uploads private SSH key from USB device to system for secure authentication.
+#   b_xall: Uploads public SSH key from USB device and adds it to the authorized keys for secure remote access.
+#   c_xall: Mounts a predefined NFS share using global configuration variables.
+#   d_xall: Executes a remote command via sys-sca using configured SSH aliases.
+# ----------------------------------------------------------------------
+
+declare -g -a PACKAGES_ALL
+
+# Define script location
+DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_SH="$(basename "${BASH_SOURCE[0]}")"
+BASE_SH="${FILE_SH%.*}"
+
+# Source aux file which provides logging and other core functionality
+echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/../../lib/aux/src")"
+source "$(realpath "$DIR_SH/../../lib/aux/src")"
+
+setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
+
+# Declare MENU_OPTIONS
+declare -A MENU_OPTIONS
+MENU_OPTIONS[a]="a_xall"
+MENU_OPTIONS[b]="b_xall"
+MENU_OPTIONS[c]="c_xall"
+MENU_OPTIONS[d]="d_xall"
+
+# Uploads private SSH key from USB device to system for secure authentication
+a_xall() {
+    sys-suk \
+        "$DEVICE_PATH" \
+        "$MOUNT_POINT" \
+        "$SUBFOLDER_PATH" \
+        "$UPLOAD_PATH" \
+        "$PRIVATE_KEY"
+}
+
+# Uploads public SSH key from USB device and adds it to the authorized keys for secure remote access
+b_xall() {
+    sys-suk \
+        "$DEVICE_PATH" \
+        "$MOUNT_POINT" \
+        "$SUBFOLDER_PATH" \
+        "$UPLOAD_PATH" \
+        "$PUBLIC_KEY"
+
+    sys-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
+}
+
+# Mounts a predefined NFS share using global configuration variables
+c_xall() {
+    sto-nfs \
+        "$STO_NFS_SERVER_IP" \
+        "$STO_NFS_SHARED_FOLDER" \
+        "$STO_NFS_MOUNT_POINT" \
+        "$STO_NFS_MOUNT_OPTIONS"
+}
+
+# Executes a remote command via sys-sca using configured SSH aliases
+d_xall() {
+    # Assumes SSH_USERS, ALL_IP_ARRAYS, and ARRAY_ALIASES are globally defined
+    # associative arrays (e.g., sourced from cfg/core/ric or a site configuration).
+    # sys-sca is called with the *names* of these arrays.
+    sys-sca \
+        "usr" \
+        "srv_alias" \
+        "SSH_USERS" \
+        "ALL_IP_ARRAYS" \
+        "ARRAY_ALIASES" \
+        "uptime"
+}
+
+# Handle script execution
+if [ $# -eq 0 ]; then
+    print_usage
+    clean_exit 0       # Exit cleanly with status 0
+else
+    setup_main "$@"
+    clean_exit $?
+fi
