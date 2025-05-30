@@ -194,3 +194,9 @@ export TME_TERMINAL_VERBOSITY
   # Controls terminal output for TME status updates
   declare -g TME_STATUS_TERMINAL_OUTPUT="on"
   export TME_STATUS_TERMINAL_OUTPUT
+
+# Parallel loading system configuration
+declare -g PARALLEL_LOADING_ENABLED PARALLEL_LOADING_FALLBACK
+PARALLEL_LOADING_ENABLED="${PARALLEL_LOADING_ENABLED:-on}"    # "on" for parallel, "off" for sequential
+PARALLEL_LOADING_FALLBACK="${PARALLEL_LOADING_FALLBACK:-on}"  # "on" to enable fallback, "off" to fail fast
+export PARALLEL_LOADING_ENABLED PARALLEL_LOADING_FALLBACK
