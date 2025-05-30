@@ -283,6 +283,15 @@ cd test && ./test_complete_refactor.sh
 - **[Source Code](src/README.md)** - `src/` - Deployment scripts and management tools
 - **[Testing Framework](tst/README.md)** - `tst/` - Validation scripts and system health checks
 
+#### Sub-Directory Navigation
+- **[Core Libraries](lib/core/README.md)** - `lib/core/` - Essential system libraries (error handling, logging, timing, versioning)
+- **[Operations Libraries](lib/ops/README.md)** - `lib/ops/` - Infrastructure management modules (GPU, network, storage, services)
+- **[Utility Libraries](lib/utl/README.md)** - `lib/utl/` - Development and maintenance utilities (environment, security, SSH)
+- **[Core Configuration](cfg/core/README.md)** - `cfg/core/` - Runtime constants and system parameters
+- **[Environment Configuration](cfg/env/README.md)** - `cfg/env/` - Environment-specific settings and deployments
+- **[Management Scripts](src/mgt/README.md)** - `src/mgt/` - Environment-aware operational wrappers
+- **[Manual Documentation](doc/man/README.md)** - `doc/man/` - Comprehensive reference and system manuals
+
 #### System Manuals & Architecture Documentation
 - **[System Architecture](doc/man/architecture.md)** - Complete system design overview
 - **[Configuration Manual](doc/man/configuration.md)** - Detailed configuration options
