@@ -1,9 +1,9 @@
-<!-- filepath: /home/es/lab/doc/dev/2025-05-25-2224_audioroot_outlook.md -->
+<!-- filepath: /home/es/lab/tmp/dev/2025-05-25-2224_audioroot_outlook.md -->
 <!--
 #######################################################################
 # Development Outlook - Audio Root Configuration Analysis
 #######################################################################
-# File: /home/es/lab/doc/dev/2025-05-25-2224_audioroot_outlook.md
+# File: /home/es/lab/tmp/dev/2025-05-25-2224_audioroot_outlook.md
 # Description: Development notes and outlook documentation regarding
 #              audio root configuration, troubleshooting procedures,
 #              and system integration analysis.
