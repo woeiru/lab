@@ -45,7 +45,7 @@ The lab system employs a sophisticated multi-layered logging architecture design
 
 ### Hierarchical Verbosity System
 
-The system uses a two-tier verbosity control mechanism:
+The system uses a multi-tier verbosity control mechanism:
 
 - **Master Control**: `MASTER_TERMINAL_VERBOSITY` (default: "off") - Master switch for all terminal output
 - **Module-Specific Controls**: Individual verbosity settings that require master to be "on"
@@ -53,8 +53,10 @@ The system uses a two-tier verbosity control mechanism:
   - `LO1_LOG_TERMINAL_VERBOSITY` (default: "on") - Advanced logging module
   - `ERR_TERMINAL_VERBOSITY` (default: "on") - Error handling module  
   - `TME_TERMINAL_VERBOSITY` (default: "on") - Timing module
+- **Nested Controls**: Granular controls for specific output types within modules
+  - TME Module has nested controls for reports, timing, debug, and status outputs
 
-This design allows fine-grained control while maintaining a simple master override.
+This design allows fine-grained control while maintaining simple master and module-level overrides.
 
 ## Log Files in `${LOG_DIR}/.log`
 
@@ -282,6 +284,12 @@ DEBUG_LOG_TERMINAL_VERBOSITY="on"        # Early debug messages
 LO1_LOG_TERMINAL_VERBOSITY="on"          # Advanced logging
 ERR_TERMINAL_VERBOSITY="on"              # Error messages  
 TME_TERMINAL_VERBOSITY="on"              # Timing reports
+
+# TME nested terminal output controls (default: "on", require both master and TME "on")
+TME_REPORT_TERMINAL_OUTPUT="on"          # TME timing reports
+TME_TIMING_TERMINAL_OUTPUT="on"          # TME timing measurements
+TME_DEBUG_TERMINAL_OUTPUT="on"           # TME debug information
+TME_STATUS_TERMINAL_OUTPUT="on"          # TME status updates
 ```
 
 ### Behavioral Controls
@@ -355,18 +363,31 @@ ERROR_STATE_FILE="${TMP_DIR}/err_state"   # Error system state
 - `tme_print_timing_report()`: Generate performance report
 - `tme_settme report|sort|depth value`: Configure timing behavior
 
+**Nested Terminal Output Controls:**
+- `tme_set_output <type> <on|off>`: Runtime control of specific output types
+- `tme_show_output_settings`: Display current nested control settings
+- **Output Types**: `report` (timing reports), `timing` (measurements), `debug` (warnings), `status` (configuration)
+
 **Key Features:**
 - Hierarchical component timing with parent/child relationships
 - Configurable sort order (chronological or duration)
 - Adjustable report depth (1-9 levels)
 - Color-coded terminal reports with tree visualization
+- Granular terminal output control with nested switches
 - Integration with lo1 logging system
+
+**Control Hierarchy:**
+1. `MASTER_TERMINAL_VERBOSITY` - Master switch
+2. `TME_TERMINAL_VERBOSITY` - Module switch  
+3. `TME_*_TERMINAL_OUTPUT` - Specific output type switches
 
 **Timer Management:**
 - Supports nested timing relationships
 - Automatic cleanup on interrupted components
 - Performance statistics and summaries
 - File and terminal output with separate controls
+
+For detailed information about TME nested terminal output controls, see the **[TME Nested Controls Reference](tme-nested-controls.md)**.
 
 ## User Interface and Control Commands
 
@@ -381,6 +402,10 @@ setlog off         # Disable lo1 logging output
 tme_settme report on|off              # Enable/disable timing reports
 tme_settme sort chron|duration        # Set report sort order
 tme_settme depth 1-9                  # Set report depth level
+
+# TME nested output control
+tme_set_output <type> <on|off>        # Control specific TME output types
+tme_show_output_settings              # Display current TME output settings
 ```
 
 ### Environment Variable Overrides
@@ -396,6 +421,13 @@ export LOG_DEBUG_ENABLED=0            # Disable lo1 debug messages
 # Override verbosity (requires master=on for effect)
 export MASTER_TERMINAL_VERBOSITY="on"
 export LO1_LOG_TERMINAL_VERBOSITY="off"
+
+# TME nested control examples
+export TME_TERMINAL_VERBOSITY="on"           # Enable TME module
+export TME_REPORT_TERMINAL_OUTPUT="on"       # Enable timing reports
+export TME_TIMING_TERMINAL_OUTPUT="off"      # Disable timing measurements
+export TME_DEBUG_TERMINAL_OUTPUT="on"        # Enable debug output
+export TME_STATUS_TERMINAL_OUTPUT="off"      # Disable status messages
 ```
 
 ## Troubleshooting and Diagnostics
@@ -416,6 +448,16 @@ export LO1_LOG_TERMINAL_VERBOSITY="off"
 - **Diagnostics**: Check file content and verbosity settings
 - **Solution**: `tme_settme report on` and verify `TME_TERMINAL_VERBOSITY="on"`
 
+**Issue**: Some TME outputs missing despite TME verbosity enabled
+- **Cause**: Nested TME terminal output controls disabled
+- **Diagnostics**: Check specific `TME_*_TERMINAL_OUTPUT` variables
+- **Solution**: Use `tme_set_output <type> on` or `tme_show_output_settings` to verify configuration
+
+**Issue**: TME nested controls not working
+- **Cause**: Missing hierarchy requirements (master or module verbosity disabled)
+- **Diagnostics**: Verify `MASTER_TERMINAL_VERBOSITY="on"` and `TME_TERMINAL_VERBOSITY="on"`
+- **Solution**: Enable both master and module verbosity before using nested controls
+
 **Issue**: Missing log files
 - **Cause**: Directory creation failure or permission issues  
 - **Diagnostics**: Check `LOG_DIR` and `TMP_DIR` existence and permissions
@@ -431,14 +473,75 @@ export LO1_LOG_TERMINAL_VERBOSITY="off"
 
 ### Verbosity Configuration Matrix
 
-| Scenario | Master | Debug | Lo1 | Err | Tme | Result |
-|----------|--------|-------|-----|-----|-----|---------|
-| Silent   | off    | *     | *   | *   | *   | File logging only |
-| Selective| on     | off   | on  | on  | off | Lo1 + errors only |
-| Debug    | on     | on    | on  | on  | on  | Full output |
-| Production| on    | off   | off | on  | off | Errors only |
+| Scenario | Master | Debug | Lo1 | Err | Tme | TME Nested | Result |
+|----------|--------|-------|-----|-----|-----|------------|---------|
+| Silent   | off    | *     | *   | *   | *   | *          | File logging only |
+| Selective| on     | off   | on  | on  | off | *          | Lo1 + errors only |
+| Debug    | on     | on    | on  | on  | on  | all on     | Full output |
+| Production| on    | off   | off | on  | off | *          | Errors only |
+| TME Only | on     | off   | off | off | on  | selective  | TME outputs only |
+| TME Reports| on   | off   | off | off | on  | report=on, others=off | TME reports only |
+
+**TME Nested Controls Examples:**
+- `report=off, timing=on, debug=on, status=off`: Show measurements and debug, no reports or status
+- `report=on, timing=off, debug=off, status=off`: Show only timing reports, no other TME output
+- All nested controls require both `MASTER_TERMINAL_VERBOSITY="on"` and `TME_TERMINAL_VERBOSITY="on"`
 
 ## Integration with External Systems
+
+### TME Module Nested Terminal Output Controls
+
+The TME module implements a sophisticated nested terminal output control system that provides granular control over different types of timing-related terminal output while maintaining the hierarchical verbosity requirements.
+
+#### Control Variables
+
+The following nested controls are available for the TME module:
+
+- **`TME_REPORT_TERMINAL_OUTPUT`**: Controls timing reports generated by `tme_print_timing_report`
+- **`TME_TIMING_TERMINAL_OUTPUT`**: Controls timing measurements and duration data output
+- **`TME_DEBUG_TERMINAL_OUTPUT`**: Controls TME debug information and warning messages
+- **`TME_STATUS_TERMINAL_OUTPUT`**: Controls TME status updates and configuration messages
+
+#### Control Hierarchy
+
+The nested controls implement a three-tier hierarchy:
+
+1. **`MASTER_TERMINAL_VERBOSITY`** - Must be "on" (master switch)
+2. **`TME_TERMINAL_VERBOSITY`** - Must be "on" (module switch)  
+3. **`TME_*_TERMINAL_OUTPUT`** - Individual output type switches
+
+All three levels must be "on" for specific TME output to appear in the terminal.
+
+#### Runtime Control Functions
+
+- **`tme_set_output <type> <on|off>`**: Dynamic control of output types
+  - Types: `report`, `timing`, `debug`, `status`
+  - Example: `tme_set_output debug off`
+- **`tme_show_output_settings`**: Display current configuration
+  - Shows all verbosity levels and nested control settings
+
+#### Use Cases
+
+**Development Mode**: Enable all outputs for comprehensive debugging
+```bash
+export MASTER_TERMINAL_VERBOSITY="on"
+export TME_TERMINAL_VERBOSITY="on"
+# All nested controls default to "on"
+```
+
+**Production Mode**: Show only essential timing reports
+```bash
+tme_set_output debug off    # Disable debug messages
+tme_set_output timing off   # Disable detailed measurements
+tme_set_output status off   # Disable status updates
+# Keep report output enabled for performance monitoring
+```
+
+**Silent Timing**: Collect timing data without terminal output
+```bash
+export TME_TERMINAL_VERBOSITY="off"
+# All nested controls become inactive, but file logging continues
+```
 
 ### Log Rotation and Archival
 
@@ -467,6 +570,17 @@ For debugging and development:
 2. Enable lo1 debugging: `export LOG_DEBUG_ENABLED=1`
 3. Monitor real-time: `tail -f ${LOG_DIR}/*.log`
 4. Analyze timing: `tme_settme sort duration && tme_settme depth 3`
+
+For TME-specific debugging:
+1. Enable TME verbosity: `export TME_TERMINAL_VERBOSITY="on"`
+2. Enable selective output: `tme_set_output debug on && tme_set_output status on`
+3. Monitor timing patterns: `tme_set_output timing on && tme_set_output report on`
+4. Check configuration: `tme_show_output_settings`
+
+For production monitoring:
+1. Silent mode: `export MASTER_TERMINAL_VERBOSITY="off"`
+2. Essential TME only: `tme_set_output report on && tme_set_output timing off`
+3. Error tracking: Keep `ERR_TERMINAL_VERBOSITY="on"` with master enabled
 
 ## Summary of Key Logging Modules and Functions
 

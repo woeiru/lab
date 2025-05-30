@@ -153,6 +153,11 @@ tme_start_timer "DEPLOYMENT_TASK"
 # ... perform operations ...
 tme_end_timer "DEPLOYMENT_TASK" "success"
 tme_print_timing_report
+
+# Granular output control
+tme_set_output debug off     # Disable debug messages
+tme_set_output report on     # Enable timing reports
+tme_show_output_settings     # Display current configuration
 ```
 
 ### Infrastructure Utilities
