@@ -1,6 +1,6 @@
-# TME Nested Terminal Output Controls
+# System Verbosity Controls
 
-This document provides comprehensive reference for the TME (Timing and Performance Monitoring) module's nested terminal output control system, enabling granular control over different types of performance monitoring output.
+This document provides comprehensive reference for the system's verbosity control mechanisms, including the TME (Timing and Performance Monitoring) module's nested terminal output control system, enabling granular control over different types of monitoring and system output.
 
 ## Overview
 
