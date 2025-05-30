@@ -186,7 +186,7 @@ echo "# New Documentation" > new_document.md
 
 ---
 
-**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [AI Resources](../res/README.md) | Browse [Source Code](../src/README.md)
+**Navigation**: Return to [Main Lab Documentation](../README.md)
 
 **Last Updated**: May 30, 2025  
 **Maintained By**: ES Lab Documentation Team  

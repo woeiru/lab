@@ -62,4 +62,4 @@ Ensure the lab environment is properly initialized before running tests.
 
 ---
 
-**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [Documentation](../doc/README.md) | Browse [Source Code](../src/README.md)
+**Navigation**: Return to [Main Lab Documentation](../README.md)

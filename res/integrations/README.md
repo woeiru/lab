@@ -314,4 +314,6 @@ integration_framework:
 
 ---
 
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
+
 *Provides comprehensive integration capabilities that connect AI resources with external services, creating a unified and powerful AI-enabled ecosystem.*

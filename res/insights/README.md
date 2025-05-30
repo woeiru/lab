@@ -356,6 +356,6 @@ response_formats:
 
 ---
 
-**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md) | Browse [Other AI Tools](../)
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
 
 *Part of the comprehensive AI Resources ecosystem - transforming data into actionable intelligence for informed decision-making.*

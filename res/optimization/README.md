@@ -456,6 +456,6 @@ endpoints:
 
 ---
 
-**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md) | Browse [Other AI Tools](../)
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
 
 *Part of the comprehensive AI Resources ecosystem - maximizing efficiency and performance through intelligent optimization across all lab operations.*

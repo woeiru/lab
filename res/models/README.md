@@ -252,4 +252,6 @@ model_integration:
 
 ---
 
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
+
 *Provides comprehensive model management capabilities that ensure optimal AI performance, cost-effectiveness, and continuous improvement across all lab operations.*
