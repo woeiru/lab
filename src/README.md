@@ -288,3 +288,7 @@ The `src/` directory represents the **active execution layer** of the infrastruc
 - **`set/`**: Self-sufficient deployment scripts for initial setup and multi-node operations
 
 This dual approach ensures both rapid administrative response capabilities and systematic infrastructure deployment, supporting the complete lifecycle of infrastructure management from initial deployment through ongoing operations.
+
+---
+
+**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [Documentation](../doc/README.md) | Browse [Configuration](../cfg/README.md)

@@ -5,7 +5,7 @@ This directory contains comprehensive resources for AI assistance across all asp
 ## 📂 Complete Lab Directory Structure
 
 ```
-/home/es/lab/
+lab/
 ├── entry.sh                    # Lab environment entry point
 ├── README.md                   # Main lab documentation
 ├── stats.sh                    # System statistics script
@@ -175,8 +175,8 @@ This directory serves as the central hub for all AI assistance capabilities, pro
 ## 🚀 Quick Start
 
 ```bash
-# Navigate to the lab environment
-cd /home/es/lab
+# Navigate to the lab environment (if not already there)
+cd lab/
 
 # Initialize the entire lab environment
 ./entry.sh
@@ -258,7 +258,7 @@ cat res/optimization/README.md
 The AI Resources directory integrates seamlessly with the entire ES Lab ecosystem:
 
 ### Core Lab Infrastructure
-- **`/home/es/lab`** - Main lab environment with entry.sh and stats.sh
+- **Lab Root** - Main lab environment with entry.sh and stats.sh
 - **`bin/`** - Executable binaries and initialization scripts
   - `bin/init` - Lab initialization routines
   - `bin/core/comp` - Component management systems
@@ -310,6 +310,8 @@ This structure is designed to evolve with AI technology advancement:
 - Future-proof architecture for emerging AI capabilities
 
 ---
+
+**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [Documentation](../doc/README.md) | Browse [Source Code](../src/README.md)
 
 *Last Updated: May 30, 2025*
 *Maintained by: ES Lab AI Resources Team*
