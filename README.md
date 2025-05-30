@@ -44,30 +44,62 @@ source ~/.bashrc  # or ~/.zshrc
 
 ## 🏛️ Architecture Overview
 
-### Directory Structure
+### 📁 Interactive Directory Structure
+
+Navigate through our comprehensive infrastructure management system. Click on any **📂 folder name** to access detailed documentation.
+
 ```
 lab/
-├── bin/          # Executables and core initialization
-│   ├── init      # Main system initialization (487 lines)
-│   ├── core/comp # Component orchestrator  
-│   └── env/rc    # Shell environment configuration
-├── cfg/          # Hierarchical configuration system
-│   ├── core/     # Runtime constants and system definitions
-│   ├── env/      # Environment-specific configurations
-│   └── ans/      # Ansible playbooks for automation
-├── lib/          # Modular libraries (stateless design)
-│   ├── core/     # Essential modules (err, lo1, tme, ver)
-│   ├── ops/      # Operations libraries (pve, gpu, sys, net)
-│   └── utl/      # Utilities (infrastructure, security, environment)
-├── src/          # Source code and deployment scripts
-│   ├── set/      # Service deployment (pve, nfs, pbs, smb)
-│   └── mgt/      # Management wrappers for pure functions
-├── doc/          # Comprehensive documentation ecosystem
-│   ├── man/      # Technical manuals and guides
-│   ├── dev/      # Development session summaries
-│   └── imp/      # Implementation completion records
-└── too/          # Specialized tools and utilities
+├── 📂 [bin/](bin/README.md)          # Executables and core initialization
+│   ├── init                          # Main system initialization (487 lines)
+│   ├── core/comp                     # Component orchestrator  
+│   └── env/rc                        # Shell environment configuration
+├── 📂 [cfg/](cfg/README.md)          # Hierarchical configuration system
+│   ├── ali/                          # System aliases and shortcuts
+│   ├── ans/                          # Ansible automation playbooks
+│   ├── core/                         # Runtime constants and system definitions
+│   ├── env/                          # Environment-specific configurations
+│   └── pod/                          # Container/pod configurations
+├── 📂 [doc/](doc/README.md)          # Comprehensive documentation ecosystem
+│   ├── ana/                          # Analysis documentation and reports
+│   ├── dev/                          # Development session summaries
+│   ├── fix/                          # Problem resolution guides
+│   ├── flo/                          # Flow diagrams and processes
+│   ├── how/                          # How-to guides and procedures
+│   ├── man/                          # Technical manuals and references
+│   └── net/                          # Network documentation
+├── 📂 [lib/](lib/README.md)          # Modular libraries (stateless design)
+│   ├── aux/                          # Auxiliary libraries and integrations
+│   ├── core/                         # Essential modules (err, lo1, tme, ver)
+│   ├── ops/                          # Operations libraries (pve, gpu, sys, net)
+│   └── utl/                          # Utilities (infrastructure, security, environment)
+├── 📂 [res/](res/README.md)          # Resources and knowledge management
+│   ├── ai/                           # AI and machine learning resources
+│   ├── analytics/                    # Data analytics and insights
+│   ├── context/                      # Contextual information and references
+│   ├── insights/                     # Project insights and analysis
+│   ├── integrations/                 # System integrations and connectors
+│   ├── knowledge/                    # Knowledge base and documentation
+│   ├── models/                       # Data models and schemas
+│   ├── optimization/                 # Performance optimization resources
+│   ├── prompts/                      # AI prompts and templates
+│   ├── templates/                    # Reusable templates and patterns
+│   ├── tools/                        # Development and management tools
+│   ├── training/                     # Training materials and guides
+│   └── workflows/                    # Workflow definitions and processes
+├── 📂 [src/](src/README.md)          # Source code and deployment scripts
+│   ├── mgt/                          # Management wrappers for runtime control
+│   ├── set/                          # Service deployment automation
+│   └── too/                          # Specialized tools and utilities
+└── 📂 [tst/](tst/README.md)          # Testing and validation framework
+    ├── test_complete_refactor.sh     # Complete system refactoring validation
+    ├── test_environment              # Environment testing suite
+    ├── test_gpu_wrappers.sh          # GPU wrapper function validation
+    ├── test_tme_nested_controls.sh   # TME nested controls testing
+    └── validate_system               # System validation and health checks
 ```
+
+> 💡 **Navigation Tip**: Each 📂 folder name above is a clickable link that will take you to comprehensive documentation for that directory, including detailed file descriptions, usage patterns, and integration points.
 
 ### Core Design Patterns
 
@@ -244,11 +276,26 @@ cd test && ./test_complete_refactor.sh
 
 ## 📚 Documentation
 
+### 📖 Technical Manuals
 - **[Architecture Guide](doc/man/architecture.md)**: Complete system design overview
 - **[Configuration Manual](doc/man/configuration.md)**: Detailed configuration options
 - **[Infrastructure Guide](doc/man/infrastructure.md)**: Deployment and IaC patterns
 - **[User Guide](doc/man/initiation.md)**: User interaction and runtime controls
 - **[Logging System](doc/man/logging.md)**: Monitoring and debugging
+
+### 📁 Directory Documentation
+- **[📂 Binary System](bin/README.md)**: Executables, initialization, and bootstrapping
+- **[📂 Configuration Management](cfg/README.md)**: Environment settings and automation configs
+- **[📂 Documentation Hub](doc/README.md)**: Analysis, guides, and reference materials
+- **[📂 Library System](lib/README.md)**: Core modules, operations, and utilities
+- **[📂 Resource Management](res/README.md)**: AI resources, analytics, and knowledge base
+- **[📂 Source Code](src/README.md)**: Deployment scripts and management tools
+- **[📂 Testing Framework](tst/README.md)**: Validation scripts and system health checks
+
+### 🔍 Quick References
+- **[Complete Project Index](#-project-index)**: Comprehensive file and component listing
+- **[Interactive Directory Tree](#-interactive-directory-structure)**: Navigate with clickable folder links
+- **[System Metrics](#-system-metrics)**: Live codebase statistics and quality metrics
 
 ## 🤝 Integration Points
 
@@ -290,6 +337,115 @@ cd test && ./test_complete_refactor.sh
 - **Environment Support**: Multi-tier configuration hierarchy
 
 > 💡 **Live Metrics**: These statistics are generated in real-time using `./stats.sh`. Run it anytime to get current codebase metrics in formatted, markdown, or raw output.
+
+## 📋 Project Index
+
+### 📁 Directory Documentation
+- **[Binary System](bin/README.md)** - `bin/` - Executables, initialization, and bootstrapping
+- **[Configuration Management](cfg/README.md)** - `cfg/` - Environment settings and automation configs  
+- **[Documentation Hub](doc/README.md)** - `doc/` - Analysis, guides, and reference materials
+- **[Library System](lib/README.md)** - `lib/` - Core modules, operations, and utilities
+- **[Resource Management](res/README.md)** - `res/` - AI resources, analytics, and knowledge base
+- **[Source Code](src/README.md)** - `src/` - Deployment scripts and management tools
+- **[Testing Framework](tst/README.md)** - `tst/` - Validation scripts and system health checks
+
+### 📚 Technical Documentation
+#### Architecture Documentation
+- **[System Architecture](doc/man/architecture.md)** - Complete system design overview
+- **[Configuration Manual](doc/man/configuration.md)** - Detailed configuration options
+- **[Infrastructure Guide](doc/man/infrastructure.md)** - Deployment and IaC patterns
+- **[User Guide](doc/man/initiation.md)** - User interaction and runtime controls
+- **[Logging System](doc/man/logging.md)** - Monitoring and debugging
+- **[TME Nested Controls](doc/man/tme-nested-controls.md)** - Advanced timing control system
+
+#### Analysis Documentation  
+- **[Infrastructure Analysis Overview](doc/ana/2025-05-29-0430_infrastructure_analysis_series_overview.md)** - Infrastructure management analysis series
+- **[Declarative vs Imperative Infrastructure](doc/ana/2025-05-29-0440_episode_01_declarative_vs_imperative_infrastructure.md)** - Infrastructure paradigm analysis
+
+#### Development Documentation
+- **[Performance Optimization](doc/dev/2025-05-30-2200_performance-optimization.md)** - System performance optimization strategies
+- **[TME Nested Toggles](doc/dev/2025-05-30-2300_tme_nested_toggles.md)** - Advanced timing module controls
+- **[PVE Refactoring Complete](doc/dev/2025-05-29-0200_pve_refactoring_complete.md)** - Proxmox VE refactoring summary
+- **[GPU Refactoring Complete](doc/dev/2025-05-29-0400_gpu_refactoring_complete.md)** - GPU management refactoring summary
+
+#### Troubleshooting Documentation
+- **[Audio Root Fix](doc/fix/audioroot.md)** - Audio system troubleshooting
+- **[Podman Persistent Container](doc/fix/podman_persistent_container.md)** - Container persistence solutions
+
+#### How-To Guides
+- **[Btrfs Snapshots](doc/how/btrfsr1snapper.md)** - Btrfs snapshot management with Snapper
+
+### 🔧 Core Utilities
+#### Core Libraries
+- **[Error Handling](lib/core/err)** - Advanced error handling and stack traces
+- **[Logging System](lib/core/lo1)** - Module-specific debug logging
+- **[Timing Module](lib/core/tme)** - Performance timing and monitoring
+- **[Version Management](lib/core/ver)** - Module version verification
+
+#### Operations Libraries
+- **[GPU Management](lib/ops/gpu)** - GPU passthrough management (1171+ lines)
+- **[Network Operations](lib/ops/net)** - Network configuration and management
+- **[Proxmox Backup](lib/ops/pbs)** - Proxmox Backup Server operations
+- **[Proxmox VE](lib/ops/pve)** - Proxmox VE cluster management
+- **[Service Management](lib/ops/srv)** - System service operations
+- **[Storage Operations](lib/ops/sto)** - Storage and filesystem management
+- **[System Operations](lib/ops/sys)** - System-level operations
+- **[User Management](lib/ops/usr)** - User account management
+
+#### Utility Libraries
+- **[Alias Management](lib/utl/ali)** - System alias management
+- **[Environment Utils](lib/utl/env)** - Environment configuration utilities
+- **[Infrastructure Utils](lib/utl/inf)** - Infrastructure deployment utilities
+- **[Security Utils](lib/utl/sec)** - Security and credential management
+- **[SSH Utils](lib/utl/ssh)** - SSH key and connection management
+
+### 🚀 Deployment Scripts
+#### Service Deployment
+- **[Container Deployment](src/set/c1)** - Container deployment automation
+- **[Secondary Container](src/set/c2)** - Secondary container services
+- **[Tertiary Container](src/set/c3)** - Tertiary container services
+- **[Primary Test](src/set/t1)** - Primary test deployment
+- **[Secondary Test](src/set/t2)** - Secondary test deployment
+- **[Workstation Setup](src/set/w1)** - Workstation configuration
+
+#### Management Wrappers
+- **[GPU Management](src/mgt/gpu)** - GPU wrapper functions for runtime control
+- **[PVE Management](src/mgt/pve)** - Proxmox VE wrapper functions
+
+### ⚙️ Configuration Files
+#### Core Configuration
+- **[Error Configuration](cfg/core/ecc)** - Error handling configuration
+- **[Module Configuration](cfg/core/mdc)** - Module definition and loading
+- **[Runtime Configuration](cfg/core/rdc)** - Runtime constants and definitions
+- **[Resource Configuration](cfg/core/ric)** - Resource management configuration
+
+#### Environment Configuration
+- **[Site1 Base](cfg/env/site1)** - Base site1 environment configuration
+- **[Site1 Development](cfg/env/site1-dev)** - Development environment overrides
+- **[Site1 Workstation](cfg/env/site1-w2)** - Workstation-specific configuration
+
+#### Alias Configuration
+- **[Dynamic Aliases](cfg/ali/dyn)** - Dynamic alias generation
+- **[Static Aliases](cfg/ali/sta)** - Static alias definitions
+
+### 🧪 Testing & Validation
+#### Test Scripts
+- **[Complete Refactor Test](tst/test_complete_refactor.sh)** - Complete system refactoring validation
+- **[Environment Test](tst/test_environment)** - Environment testing suite
+- **[GPU Wrapper Test](tst/test_gpu_wrappers.sh)** - GPU wrapper function validation
+- **[Refactor Test](tst/test_refactor.sh)** - Basic refactoring validation
+- **[TME Nested Controls Test](tst/test_tme_nested_controls.sh)** - TME nested controls testing
+
+#### Validation Scripts
+- **[GPU Refactoring Validation](tst/validate_gpu_refactoring.sh)** - GPU refactoring validation
+- **[System Validation](tst/validate_system)** - System validation and health checks
+
+### 🔧 System Tools
+- **[Main Entry Point](entry.sh)** - System initialization and setup
+- **[System Statistics](stats.sh)** - Live system metrics and statistics
+- **[System Initialization](bin/init)** - Core system initialization (487 lines)
+- **[Component Orchestrator](bin/core/comp)** - Component loading and orchestration
+- **[Shell Configuration](bin/env/rc)** - Shell environment configuration
 
 ## 📄 License
 
