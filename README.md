@@ -283,23 +283,13 @@ cd test && ./test_complete_refactor.sh
 - **[Source Code](src/README.md)** - `src/` - Deployment scripts and management tools
 - **[Testing Framework](tst/README.md)** - `tst/` - Validation scripts and system health checks
 
-#### Architecture Documentation
+#### System Manuals & Architecture Documentation
 - **[System Architecture](doc/man/architecture.md)** - Complete system design overview
 - **[Configuration Manual](doc/man/configuration.md)** - Detailed configuration options
 - **[Infrastructure Guide](doc/man/infrastructure.md)** - Deployment and IaC patterns
 - **[User Guide](doc/man/initiation.md)** - User interaction and runtime controls
 - **[Logging System](doc/man/logging.md)** - Monitoring and debugging
 - **[TME Nested Controls](doc/man/tme-nested-controls.md)** - Advanced timing control system
-
-#### Analysis Documentation  
-- **[Infrastructure Analysis Overview](tmp/ana/2025-05-29-0430_infrastructure_analysis_series_overview.md)** - Infrastructure management analysis series
-- **[Declarative vs Imperative Infrastructure](tmp/ana/2025-05-29-0440_episode_01_declarative_vs_imperative_infrastructure.md)** - Infrastructure paradigm analysis
-
-#### Development Documentation
-- **[Performance Optimization](tmp/dev/2025-05-30-2200_performance-optimization.md)** - System performance optimization strategies
-- **[TME Nested Toggles](tmp/dev/2025-05-30-2300_tme_nested_toggles.md)** - Advanced timing module controls
-- **[PVE Refactoring Complete](tmp/dev/2025-05-29-0200_pve_refactoring_complete.md)** - Proxmox VE refactoring summary
-- **[GPU Refactoring Complete](tmp/dev/2025-05-29-0400_gpu_refactoring_complete.md)** - GPU management refactoring summary
 
 #### Troubleshooting Documentation
 - **[Audio Root Fix](doc/fix/audioroot.md)** - Audio system troubleshooting
