@@ -147,3 +147,7 @@ Use the Environment Configuration Controller (`core/ecc`) to select and configur
 ---
 
 > **Note**: This configuration directory is central to the entire system operation. Changes should be made carefully and tested thoroughly in non-production environments first.
+
+---
+
+**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [Documentation](../doc/README.md) | Browse [Source Code](../src/README.md)

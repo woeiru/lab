@@ -15,7 +15,8 @@ This directory contains test and validation scripts for the lab environment mana
 All test scripts should be run from the lab root directory:
 
 ```bash
-cd /home/es/lab
+# Navigate to lab root (if not already there)
+cd lab/
 
 # Test TME nested controls functionality
 ./tst/test_tme_nested_controls.sh
@@ -58,3 +59,7 @@ Most test scripts depend on:
 - Environment configuration: `cfg/core/*`
 
 Ensure the lab environment is properly initialized before running tests.
+
+---
+
+**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [Documentation](../doc/README.md) | Browse [Source Code](../src/README.md)

@@ -79,7 +79,7 @@ analytics/
 ### 1. Dashboard Setup
 ```bash
 # Initialize analytics dashboard
-cd /home/es/lab/res/analytics/dashboards
+cd res/analytics/dashboards
 cp templates/basic_dashboard.json research/lab_overview.json
 
 # Configure metrics
