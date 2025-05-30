@@ -289,7 +289,9 @@ Click any **📂 folder name** to explore system components in detail:
 
 ## 📋 Project Index
 
-### 📁 Directory Documentation
+### 📚 Technical Documentation
+
+####  Directory Documentation
 - **[Binary System](bin/README.md)** - `bin/` - Executables, initialization, and bootstrapping
 - **[Configuration Management](cfg/README.md)** - `cfg/` - Environment settings and automation configs  
 - **[Documentation Hub](doc/README.md)** - `doc/` - Analysis, guides, and reference materials
@@ -298,8 +300,6 @@ Click any **📂 folder name** to explore system components in detail:
 - **[Source Code](src/README.md)** - `src/` - Deployment scripts and management tools
 - **[Testing Framework](tst/README.md)** - `tst/` - Validation scripts and system health checks
 
-
-### 📚 Technical Documentation
 #### Architecture Documentation
 - **[System Architecture](doc/man/architecture.md)** - Complete system design overview
 - **[Configuration Manual](doc/man/configuration.md)** - Detailed configuration options
