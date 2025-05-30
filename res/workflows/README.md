@@ -252,4 +252,6 @@ res/workflows/validate.sh path/to/workflow.yaml
 
 ---
 
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
+
 *Transforms operational tasks into intelligent, automated workflows that adapt and improve over time through AI assistance.*

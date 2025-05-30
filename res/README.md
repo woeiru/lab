@@ -311,7 +311,7 @@ This structure is designed to evolve with AI technology advancement:
 
 ---
 
-**Navigation**: Return to [Main Lab Documentation](../README.md) | Explore [Documentation](../doc/README.md) | Browse [Source Code](../src/README.md)
+**Navigation**: Return to [Main Lab Documentation](../README.md)
 
 *Last Updated: May 30, 2025*
 *Maintained by: ES Lab AI Resources Team*

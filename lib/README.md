@@ -271,6 +271,6 @@ lo1_debug_log "Starting operation" 1
 
 ---
 
-**Navigation**: Return to [Main Documentation](../README.md) | Browse [Configuration](../cfg/README.md) | View [Source Code](../src/README.md)
+**Navigation**: Return to [Main Lab Documentation](../README.md)
 
 *Part of the comprehensive Lab Environment Management System - providing the foundational libraries that power enterprise-grade infrastructure automation.*

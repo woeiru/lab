@@ -265,4 +265,6 @@ context_integration:
 
 ---
 
+**Navigation**: Return to [AI Resources](../README.md) | [Main Lab Documentation](../../README.md)
+
 *Provides intelligent context management that ensures the right information is available at the right time, enhancing AI assistance effectiveness and user productivity.*
