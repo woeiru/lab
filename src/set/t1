@@ -1,10 +1,8 @@
 #!/bin/bash
 # ----------------------------------------------------------------------
 # Functions:
-#   a_xall: Uploads private SSH key from USB device to system for secure authentication.
-#   b_xall: Uploads public SSH key from USB device and adds it to the authorized keys for secure remote access.
-#   c_xall: Mounts a predefined NFS share using global configuration variables.
-#   d_xall: Executes a remote command via sys-sca using configured SSH aliases.
+#   a_xall: Installs common system packages and configures global Git user credentials.
+#   b_xall: Configures global Git user credentials.
 # ----------------------------------------------------------------------
 
 declare -g -a PACKAGES_ALL
@@ -24,54 +22,18 @@ setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
 MENU_OPTIONS[b]="b_xall"
-MENU_OPTIONS[c]="c_xall"
-MENU_OPTIONS[d]="d_xall"
 
-# Uploads private SSH key from USB device to system for secure authentication
+# Installs common system packages and configures global Git user credentials
 a_xall() {
-    sys-suk \
-        "$DEVICE_PATH" \
-        "$MOUNT_POINT" \
-        "$SUBFOLDER_PATH" \
-        "$UPLOAD_PATH" \
-        "$PRIVATE_KEY"
+    sys-upa
+    sys-ipa "${PACKAGES_DEV[@]}"
 }
 
-# Uploads public SSH key from USB device and adds it to the authorized keys for secure remote access
+# Configures global Git user credentials
 b_xall() {
-    sys-suk \
-        "$DEVICE_PATH" \
-        "$MOUNT_POINT" \
-        "$SUBFOLDER_PATH" \
-        "$UPLOAD_PATH" \
-        "$PUBLIC_KEY"
-
-    sys-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
+    sys-gst "$GIT_USERNAME" "$GIT_USERMAIL"
+    
 }
-
-# Mounts a predefined NFS share using global configuration variables
-c_xall() {
-    sto-nfs \
-        "$STO_NFS_SERVER_IP" \
-        "$STO_NFS_SHARED_FOLDER" \
-        "$STO_NFS_MOUNT_POINT" \
-        "$STO_NFS_MOUNT_OPTIONS"
-}
-
-# Executes a remote command via sys-sca using configured SSH aliases
-d_xall() {
-    # Assumes SSH_USERS, ALL_IP_ARRAYS, and ARRAY_ALIASES are globally defined
-    # associative arrays (e.g., sourced from cfg/core/ric or a site configuration).
-    # sys-sca is called with the *names* of these arrays.
-    sys-sca \
-        "usr" \
-        "srv_alias" \
-        "SSH_USERS" \
-        "ALL_IP_ARRAYS" \
-        "ARRAY_ALIASES" \
-        "uptime"
-}
-
 # Handle script execution
 if [ $# -eq 0 ]; then
     print_usage
