@@ -2,7 +2,7 @@
 #######################################################################
 # Environment Management System - Comprehensive Test Suite
 #######################################################################
-# File: /home/es/lab/bin/test_environment
+# File: /home/es/lab/tst/test_environment
 # Description: Comprehensive testing framework for validating all
 #              components of the environment management system including
 #              infrastructure utilities, security features, environment
@@ -78,9 +78,9 @@
 #   - Debug mode for troubleshooting
 #
 # Usage Examples:
-#   ./bin/test_environment                    # Run all tests
-#   bash bin/test_environment                 # Alternative execution
-#   DEBUG=1 ./bin/test_environment           # Run with debug output
+#   ./tst/test_environment                    # Run all tests
+#   bash tst/test_environment                 # Alternative execution
+#   DEBUG=1 ./tst/test_environment           # Run with debug output
 #
 # Output Format:
 #   - Green checkmarks (✓) for passing tests

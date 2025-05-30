@@ -2,7 +2,7 @@
 #######################################################################
 # Environment Management System - Quick Validation Script
 #######################################################################
-# File: /home/es/lab/bin/validate_system
+# File: /home/es/lab/tst/validate_system
 # Description: Lightweight validation script for rapid system health
 #              checks and operational status verification of the
 #              environment management system components.
@@ -59,9 +59,9 @@
 #   - Troubleshooting hints
 #
 # Usage Examples:
-#   ./bin/validate_system                     # Quick system check
-#   ./bin/validate_system | grep "❌"        # Show only failures
-#   if ./bin/validate_system; then echo "OK"; fi  # Scripting usage
+#   ./tst/validate_system                     # Quick system check
+#   ./tst/validate_system | grep "❌"        # Show only failures
+#   if ./tst/validate_system; then echo "OK"; fi  # Scripting usage
 #
 # Integration Points:
 #   - Pre-deployment validation
