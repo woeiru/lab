@@ -1,4 +1,20 @@
 #!/bin/bash
+#######################################################################
+# Lab Environment Configuration Alias Generator
+#######################################################################
+# File: cfg-alias
+# Description: Automatically generates dynamic aliases for lab environment
+#              navigation and file access. Creates aliases for README files,
+#              directory navigation, and executable scripts.
+#
+# Usage: ./utl/cfg-alias
+#   Generates comprehensive alias configuration for all lab components
+#   including readme files, directories, and executable scripts
+#   
+#   Note: Requires lab environment to be already sourced/initialized
+#######################################################################
+
+set -euo pipefail
 
 # Improved readme aliases generation with error handling
 generate_readme_aliases() {
@@ -207,11 +223,11 @@ generate_aliases() {
 }
 
 # Main entry point function with cleaner timing structure
-ali-dyn() {
-    tme_start_timer "set_dynamic"
+refresh_aliases() {
+    tme_start_timer "refresh_aliases"
     log "lvl" "Setting up Navigation"
 
-    echo "# Dynamically generated aliases by set_dynamic on $(date)" > "$CFG_ALI_DIR/dyn"
+    echo "# Dynamically generated aliases by refresh_aliases on $(date)" > "$CFG_ALI_DIR/dyn"
     echo "# Version: 1.0.0" >> "$CFG_ALI_DIR/dyn"
     echo "" >> "$CFG_ALI_DIR/dyn"
 
@@ -258,6 +274,25 @@ ali-dyn() {
 
     tme_end_nested_timing "alias_processing" "success"
 
-    tme_end_timer "set_dynamic" "success"
+    tme_end_timer "refresh_aliases" "success"
 }
+
+# Execute function if script is run directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # Check if required functions are available
+    if ! declare -f cleanup_cache >/dev/null 2>&1; then
+        echo "Warning: Some lab functions not available. Sourcing required modules..."
+        # Source the missing function
+        if [[ -f "$LAB_DIR/lib/core/lo1" ]]; then
+            source "$LAB_DIR/lib/core/lo1"
+        fi
+    fi
+    
+    # Temporarily disable the 'unset variable' check for function call
+    set +u
+    refresh_aliases
+    set -u
+    echo "Alias generation completed successfully!"
+    echo "New aliases are available in: $CFG_ALI_DIR/dyn"
+fi
 
