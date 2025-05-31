@@ -231,7 +231,6 @@ test_security_utilities
 ```bash
 # Check test logs for detailed errors
 tail -20 .log/err.log
-tail -20 .log/debug.log
 
 # Validate system state after test failures
 ./tst/validate_system
