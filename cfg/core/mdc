@@ -83,7 +83,6 @@ init_parallel_dependencies() {
     COMPONENT_DEPENDENCIES[CFG_ENV]="CFG_ECC"            # Needs environment controller
     COMPONENT_DEPENDENCIES[LIB_OPS]=""                   # Can load independently
     COMPONENT_DEPENDENCIES[LIB_UTL]=""                   # Can load independently
-    COMPONENT_DEPENDENCIES[LIB_AUX]="LIB_OPS,LIB_UTL"    # May use ops/utl functions
     COMPONENT_DEPENDENCIES[SRC_MGT]="LIB_OPS"            # Wraps ops functions
     
     # Library-level module dependencies (granular)
@@ -104,17 +103,13 @@ init_parallel_dependencies() {
     MODULE_DEPENDENCIES[sec]=""        # Independent
     MODULE_DEPENDENCIES[ssh]="sec"     # May use security functions
     
-    # LIB_AUX modules
-    MODULE_DEPENDENCIES[lib]=""        # Independent
-    MODULE_DEPENDENCIES[src]="inf,sec" # Uses infrastructure and security utils
-    
     # SRC_MGT modules
     MODULE_DEPENDENCIES[mgt_gpu]="gpu"     # Wraps gpu operations
     MODULE_DEPENDENCIES[mgt_pve]="pve"     # Wraps pve operations
     
     # Define parallel loading phases
-    MODULE_LOAD_GROUPS[phase1]="gpu,net,pbs,srv,sto,sys,usr,ali,env,inf,sec,lib"  # Independent modules
-    MODULE_LOAD_GROUPS[phase2]="pve,ssh,src"                                      # Dependent modules
+    MODULE_LOAD_GROUPS[phase1]="gpu,net,pbs,srv,sto,sys,usr,ali,env,inf,sec"  # Independent modules
+    MODULE_LOAD_GROUPS[phase2]="pve,ssh"                                      # Dependent modules
     MODULE_LOAD_GROUPS[phase3]="mgt_gpu,mgt_pve"                                  # Wrapper functions
     
     # Define load priorities (1=highest, 9=lowest) for scheduling within phases
@@ -129,8 +124,6 @@ init_parallel_dependencies() {
     MODULE_LOAD_PRIORITY[sto]=3        # Storage operations
     MODULE_LOAD_PRIORITY[usr]=4        # User management
     MODULE_LOAD_PRIORITY[ali]=5        # Aliases (low priority)
-    MODULE_LOAD_PRIORITY[lib]=5        # Auxiliary libraries
-    MODULE_LOAD_PRIORITY[src]=6        # Source framework
     MODULE_LOAD_PRIORITY[ssh]=6        # SSH utilities
     MODULE_LOAD_PRIORITY[pbs]=7        # Backup operations
     MODULE_LOAD_PRIORITY[mgt_gpu]=8    # Management wrappers

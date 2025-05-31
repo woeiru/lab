@@ -691,9 +691,6 @@ fallback_to_sequential() {
         "lib_utl") 
             source_lib_utl
             ;;
-        "lib_aux")
-            source_lib_aux
-            ;;
         "src_mgt")
             source_src_mgt
             ;;
@@ -746,7 +743,6 @@ setup_components() {
             
             "source_lib_ops_parallel:LIB_OPS:0"
             "source_lib_utl_parallel:LIB_UTL:0"
-            "source_lib_aux_parallel:LIB_AUX:0"
             "source_src_mgt_parallel:SRC_MGT:0"
         )
     else
@@ -757,7 +753,6 @@ setup_components() {
             
             "source_lib_ops:LIB_OPS:0"
             "source_lib_utl:LIB_UTL:0"
-            "source_lib_aux:LIB_AUX:0"
             "source_src_mgt:SRC_MGT:0"
         )
     fi
