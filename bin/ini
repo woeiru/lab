@@ -150,7 +150,7 @@ main_ini() {
     fi
 
     # Part 1: Module dependency initialization
-    if ! init_module_system "err" "lo1" "tme"; then # Removed "lo2"
+    if ! init_module_system "err" "lo1" "tme"; then
         ini_log "Critical error: Module system initialization failed. Exiting." "main_ini" "error"
         return 1
     fi
@@ -315,33 +315,21 @@ load_modules() {
         ini_log "Module file verified: $module_name" "load_modules" 2
     done
 
-    # Batch load verified modules
-    for module in "${modules[@]}"; do
-        local module_name="$(basename "$module")"
-        ini_log "Loading module: $module_name" "load_modules" 2
-
+    # Optimized module loading loop
+    for module_name in "${modules_to_load[@]}"; do
+        # Skip lo2 module processing
         if [[ "$module_name" == "lo2" ]]; then
-            mkdir -p "${BASE_DIR}/.log" # Ensure directory exists
-            echo "INIT_SCRIPT_FLOW: About to source lo2 - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
+            continue
         fi
 
-        # Streamlined loading without per-module verification overhead
-        if [[ -f "$module" ]] && [[ -r "$module" ]]; then
-            if source "$module" 2>/dev/null; then
-                ini_log "Successfully loaded module: $module_name"
-                if [[ "$module_name" == "lo2" ]]; then
-                    mkdir -p "${BASE_DIR}/.log" # Ensure directory exists
-                    echo "INIT_SCRIPT_FLOW: Sourced lo2, about to call setlogcontrol on - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
-                fi
-                loaded_modules[$module_name]=1
-                ((module_loaded++))
-            else
-                ini_log "ERROR: Failed to source module $module_name"
-            fi
-        fi
+        source_module "$module_name"
+
+        # Conditional logging for specific modules if needed
+        # Example:
+        # if [[ "$module_name" == "specific_module" ]]; then
+        #     echo "INIT_SCRIPT_FLOW: Sourced specific_module - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
+        # fi
     done
-
-    mkdir -p "${BASE_DIR}/.log" # Ensure directory exists
     echo "INIT_SCRIPT_FLOW: Finished optimized module loading loop in ini - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
 
     ini_log "Loaded $module_loaded modules using optimized batch processing"
