@@ -143,7 +143,7 @@ cd src/set/t1 && ./t1        # Test deployment 1
 cd src/set/t2 && ./t2        # Test deployment 2
 
 # Workstation setup
-cd src/set/w1 && ./w1        # Workstation configuration
+cd src/set/h1 && ./h1        # Hypervisor configuration
 ```
 
 ## 🧪 System Validation

@@ -48,7 +48,7 @@
 #   - LAB_ROOT: Detected lab directory root
 #   - SITE: Current site identifier (default: site1)
 #   - ENVIRONMENT: Environment override (dev/test/staging/prod)
-#   - NODE: Node-specific override (w1/w2/x1/x2/etc)
+#   - NODE: Node-specific override (h1/w2/x1/x2/etc)
 #
 # Usage Examples:
 #   source /home/es/lab/lib/aux/src                    # Load with defaults

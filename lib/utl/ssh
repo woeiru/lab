@@ -27,7 +27,7 @@ add_ssh_keys() {
     local keys=(
         "$HOME/.ssh/id_rsa"
         "$HOME/.ssh/id_ed25519"
-        "$HOME/.ssh/w1"
+        "$HOME/.ssh/h1"
     )
     for key in "${keys[@]}"; do
         log "lvl-5" "Processing key: $key"

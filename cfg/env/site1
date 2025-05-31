@@ -20,7 +20,7 @@ MOUNT_POINT="/mnt/usb"
 SUBFOLDER_PATH="ssh"
 UPLOAD_PATH="/root/.ssh"
 
-KEY_NAME="w1"
+KEY_NAME="h1"
 PUBLIC_KEY="${KEY_NAME}.pub"
 PRIVATE_KEY="${KEY_NAME}"
 
@@ -50,7 +50,7 @@ CL_IPS=(
 # ip array: hypervisors
 declare -A -g HY_IPS
 HY_IPS=(
-    ["w1"]="192.168.178.110"
+    ["h1"]="192.168.178.110"
     ["w2"]="192.168.178.120"
 )
 # ip array: containers
@@ -95,7 +95,7 @@ PVE_ADR_LINE="deb http://download.proxmox.com/debian/pve bookworm pve-no-subscri
 
 
 
-# The first two letters before the first underscore (e.g., x1_, x2_, w1_, w2_) are constructed dynamically at runtime
+# The first two letters before the first underscore (e.g., x1_, x2_, h1_, w2_) are constructed dynamically at runtime
 # These prefixes are constructed dynamically at runtime based on the node name.
 
 # Add all hostnames of the cluster nodes here
@@ -118,11 +118,11 @@ x2_NODE_PCI0="0000:0a:00.0"
 x2_NODE_PCI1="0000:0a:00.1"
 x2_CORE_COUNT_ON=12
 x2_CORE_COUNT_OFF=8
-# Configuration for w1
-w1_NODE_PCI0="0000:0a:00.0"
-w1_NODE_PCI1="0000:0a:00.1"
-w1_CORE_COUNT_ON=24
-w1_CORE_COUNT_OFF=8
+# Configuration for h1
+h1_NODE_PCI0="0000:0a:00.0"
+h1_NODE_PCI1="0000:0a:00.1"
+h1_CORE_COUNT_ON=24
+h1_CORE_COUNT_OFF=8
 # Configuration for w2
 w2_NODE_PCI0="0000:08:00.0"
 w2_NODE_PCI1="0000:08:00.1"
@@ -133,7 +133,7 @@ w2_CORE_COUNT_OFF=8
 
 x1_NVIDIA_DRIVER_PREFERENCE="nvidia"
 x2_NVIDIA_DRIVER_PREFERENCE="nouveau"
-w1_NVIDIA_DRIVER_PREFERENCE="nvidia"
+h1_NVIDIA_DRIVER_PREFERENCE="nvidia"
 w2_NVIDIA_DRIVER_PREFERENCE="nouveau"
 # DEFAULT_NVIDIA_DRIVER_PREFERENCE="nouveau" # Optional: uncomment and set a global default
 
@@ -164,7 +164,7 @@ x2_USB_DEVICES=(
 
 # 1-4=usbA1-int-1.0 ; 2-4=usbA1-int-3.0 ; 2-2=usbC-int-3.1 ; 1-5=LEDCon ; 1-8=usbA2-ext-2.0 ; 1-9=usbA3-ext-2.0 ; 4-1=usbA-TBdown-ext-3.1 ; 4-2=usbA-TBup-ext-3.1 ; 4-1=usbA-10g-ext-3.1 ; 4-4=usbA-BIOS-ext-3.1 ;
 #
-w1_USB_DEVICES=(
+h1_USB_DEVICES=(
     "usb0: host=1-4"
     "usb1: host=2-4"
     "usb2: host=2-2"
@@ -249,7 +249,7 @@ set_container_defaults \
     net_bridge="vmbr0" \
     cidr=24 \
     gateway="192.168.178.1" \
-    ssh_key_file="/root/.ssh/w1.pub"
+    ssh_key_file="/root/.ssh/h1.pub"
 
 # Define containers using bulk creation
 define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112:113:smb:192.168.178.113"
@@ -303,7 +303,7 @@ define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112:113:smb:192.1
 #     "vmbr0" \
 #     "24" \
 #     "192.168.178.1" \
-#     "/root/.ssh/w1.pub"
+#     "/root/.ssh/h1.pub"
 
 # Example 4: Template-specific configurations
 # Uncomment these for different container templates:

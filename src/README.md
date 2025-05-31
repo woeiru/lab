@@ -79,7 +79,7 @@ The `set/` (setup) directory implements a **section-based deployment architectur
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │  Deployment     │ -> │   Hostname       │ -> │  Section-Based  │
 │  Command        │    │   Script         │    │  Functions      │
-│                 │    │  src/set/w1      │    │  a_xall, b_xall │
+│                 │    │  src/set/h1      │    │  a_xall, b_xall │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                 │
                                 v
@@ -102,7 +102,7 @@ The `set/` (setup) directory implements a **section-based deployment architectur
 
 | File | Hostname | Purpose | Key Sections |
 |------|----------|---------|--------------|
-| **`w1`** | Workstation 1 | Primary workstation setup | `a_xall` (repo setup), `b_xall` (packages), `c_xall` (networking) |
+| **`h1`** | Hypervisor 1 | Primary hypervisor setup | `a_xall` (repo setup), `b_xall` (packages), `c_xall` (networking) |
 | **`c1`** | Container 1 | Container host setup | `a_xall` (NFS), `b_xall` (services), `c_xall` (users) |
 | **`c2`** | Container 2 | Secondary container host | Similar to c1 with environment-specific variations |
 | **`c3`** | Container 3 | Tertiary container host | Similar to c1 with environment-specific variations |
@@ -111,32 +111,36 @@ The `set/` (setup) directory implements a **section-based deployment architectur
 
 ### **Section Naming Convention**
 
-```bash
-# Standard section pattern
-a_xall()  # Primary setup (repositories, basic config)
-b_xall()  # Package installation and services
-c_xall()  # Network configuration and connectivity
-d_xall()  # SSH keys and authentication
-i_xall()  # Storage setup (Btrfs, RAID)
-j_xall()  # Advanced storage (ZFS datasets)
-p_xall()  # Container templates
-q_xall()  # Container creation
-r_xall()  # Container configuration
-s_xall()  # Virtual machine setup
+> **Section Naming Convention**
+>
+> Each `src/set/` script organizes its deployment logic into *sections*, implemented as Bash functions with names like `a_xall`, `b_xall`, etc. The specific sections and their purposes can vary between files, depending on the needs of each host or deployment scenario. This flexible pattern allows each script to group related setup steps logically (e.g., repositories, packages, networking, storage, containers, VMs), but the exact set and order of sections is not fixed—it's tailored to the requirements of each environment.
+>
+> Typical examples:
+>
+> ```bash
+> # Example section pattern (actual sections may differ per script)
+> a_xall()  # Primary setup (e.g., repositories, basic config)
+> b_xall()  # Package installation and services
+> c_xall()  # Network configuration
+> d_xall()  # SSH keys and authentication
+> # ...additional sections as needed...
+> ```
+>
+> This approach ensures scripts remain organized and maintainable, while allowing for host-specific customization.
 ```
 
 ### **Usage Examples**
 
 ```bash
 # Interactive deployment menu
-./src/set/w1 -i
+./src/set/h1 -i
 
 # Direct section execution
 ./src/set/c1 -x a_xall     # Execute NFS server setup
-./src/set/w1 -x b_xall     # Execute package installation
+./src/set/h1 -x b_xall     # Execute package installation
 
 # Multi-node deployment via sys-sca
-sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/w1 -x a_xall"
+sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x a_xall"
 ```
 
 ### **Integration with Multi-Node Operations**
@@ -144,8 +148,8 @@ sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/w1 -x a_xall"
 The `set/` scripts are specifically designed to work with the `sys-sca` function from [`lib/ops/sys`](../lib/ops/sys) for simultaneous multi-node deployment:
 
 ```bash
-# Deploy section 'a' across all workstation nodes
-sys-sca usr ws SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/w1 -x a_xall"
+# Deploy section 'a' across all hypervisor nodes
+sys-sca usr hy SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x a_xall"
 
 # Deploy section 'b' across container nodes  
 sys-sca usr ct SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/c1 -x b_xall"
@@ -210,7 +214,7 @@ gpu-vck-w 101        # Site-specific GPU configurations applied
 
 ```bash
 # 1. Interactive deployment
-./src/set/w1 -i
+./src/set/h1 -i
 # > Select sections from menu
 # > Execute with guided prompts
 
@@ -218,7 +222,7 @@ gpu-vck-w 101        # Site-specific GPU configurations applied
 ./src/set/c1 -x a_xall
 
 # 3. Multi-node batch deployment
-sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/w1 -x b_xall"
+sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x b_xall"
 ```
 
 ---
@@ -272,7 +276,7 @@ source bin/init
 
 ```bash
 # 1. Interactive deployment
-./src/set/w1 -i       # Guided deployment for workstation
+./src/set/h1 -i       # Guided deployment for hypervisor
 
 # 2. Direct execution
 ./src/set/c1 -x a_xall # Direct NFS setup
