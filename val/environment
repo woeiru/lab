@@ -254,7 +254,7 @@ test_environment_switching() {
     log "Testing environment switching..."
     
     # Test base environment loading
-    if source /home/es/lab/lib/aux/src 2>/dev/null; then
+    if source /home/es/lab/src/aux/set 2>/dev/null; then
         success "Base environment sourcing works"
         
         # Check if environment variables are set
@@ -263,7 +263,7 @@ test_environment_switching() {
         
         # Test development environment override
         export ENVIRONMENT="dev"
-        if source /home/es/lab/lib/aux/src 2>/dev/null; then
+        if source /home/es/lab/src/aux/set 2>/dev/null; then
             success "Development environment override works"
         else
             failure "Development environment override failed"
@@ -271,7 +271,7 @@ test_environment_switching() {
         
         # Test node-specific override
         export NODE="w2"
-        if source /home/es/lab/lib/aux/src 2>/dev/null; then
+        if source /home/es/lab/src/aux/set 2>/dev/null; then
             success "Node-specific override works"
         else
             failure "Node-specific override failed"
@@ -327,7 +327,7 @@ test_deployment_scripts() {
     done
     
     # Test if aux/src can be loaded by deployment scripts
-    if source /home/es/lab/lib/aux/src 2>/dev/null; then
+    if source /home/es/lab/src/aux/set 2>/dev/null; then
         success "Deployment framework can be loaded"
         run_test "setup_source function available" declare -f setup_source > /dev/null
     else
@@ -423,7 +423,7 @@ test_complete_workflow() {
     export NODE="w2"
     
     # Test complete environment setup
-    if source /home/es/lab/lib/aux/src 2>/dev/null; then
+    if source /home/es/lab/src/aux/set 2>/dev/null; then
         success "Complete environment setup works"
         
         # Verify environment context

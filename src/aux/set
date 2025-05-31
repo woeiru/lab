@@ -2,7 +2,7 @@
 #######################################################################
 # Environment-Aware Deployment Framework
 #######################################################################
-# File: /home/es/lab/lib/aux/src
+# File: /home/es/lab/src/aux/set
 # Description: Enhanced deployment framework providing environment-aware
 #              configuration loading with hierarchical override support,
 #              runtime constants integration, and context-aware execution
@@ -51,9 +51,9 @@
 #   - NODE: Node-specific override (h1/w2/x1/x2/etc)
 #
 # Usage Examples:
-#   source /home/es/lab/lib/aux/src                    # Load with defaults
-#   ENVIRONMENT=dev source /home/es/lab/lib/aux/src    # Development environment
-#   NODE=w2 source /home/es/lab/lib/aux/src           # Node-specific config
+#   source /home/es/lab/src/aux/set                    # Load with defaults
+#   ENVIRONMENT=dev source /home/es/lab/src/aux/set    # Development environment
+#   NODE=w2 source /home/es/lab/src/aux/set           # Node-specific config
 #   
 #   # Script execution modes:
 #   ./script.sh -i                    # Interactive mode

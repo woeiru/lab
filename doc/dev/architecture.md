@@ -258,7 +258,7 @@ The project features a sophisticated **environment-aware deployment system** tha
     -   `sys`: System-level operations and utilities
     -   `usr`: User management and authentication
 
--   **Enhanced Deployment Framework (`lib/aux/src`)**: 90+ lines of framework enhancements providing:
+-   **Enhanced Deployment Framework (`src/aux/set`)**: 90+ lines of framework enhancements providing:
     -   Configuration hierarchy support
     -   Environment variable management
     -   Integration points for deployment scripts

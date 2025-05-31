@@ -28,8 +28,8 @@ FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
 
 # Source aux file which provides logging and other core functionality
-echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/../../lib/aux/src")"
-source "$(realpath "$DIR_SH/../../lib/aux/src")"
+echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/../aux/set")"
+source "$(realpath "$DIR_SH/../aux/set")"
 
 # Declare MENU_OPTIONS
 declare -A MENU_OPTIONS

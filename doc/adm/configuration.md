@@ -240,11 +240,11 @@ validate_config
 ```bash
 # Switch to development environment
 export ENVIRONMENT="dev"
-source /home/es/lab/lib/aux/src
+source /home/es/lab/src/aux/set
 
 # Switch to specific node
 export NODE="w2"
-source /home/es/lab/lib/aux/src
+source /home/es/lab/src/aux/set
 ```
 
 ## Troubleshooting
