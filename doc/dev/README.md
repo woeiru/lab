@@ -18,6 +18,9 @@ Software developers who need to:
 - **[Logging System](logging.md)** - Comprehensive logging architecture, debug systems, and log management
 - **[Verbosity Controls](verbosity.md)** - Output control mechanisms and terminal verbosity management
 
+### Testing & Validation
+- **[Testing Framework](testing.md)** - Comprehensive testing infrastructure, validation procedures, and testing standards
+
 ### Integration Guidelines
 
 #### Library Integration
@@ -30,9 +33,11 @@ Software developers who need to:
 - **Context Loading**: Use automatic environment context loading for development workflows
 
 #### Testing Framework
-- **Validation Infrastructure**: Leverage the 375+ lines of existing validation logic
-- **Test Patterns**: Follow established testing patterns in `tst/` directory
-- **Debug Workflows**: Use comprehensive debug logging and error handling systems
+- **Comprehensive Testing Infrastructure**: 499+ lines of validation logic across multiple test scripts
+- **Test Categories**: System validation, component testing, integration testing, performance testing
+- **Testing Standards**: Pure function testing, wrapper function validation, environment testing
+- **Debug Workflows**: Comprehensive debug logging and error handling systems
+- **Validation Scripts**: Quick validation (`validate_system`) and comprehensive testing (`test_environment`)
 
 ## 🔧 Development Workflows
 
@@ -74,10 +79,23 @@ tme_print_timing_report
 
 ## 🧪 Testing Standards
 
-- **Comprehensive Validation**: 499 lines of validation logic
-- **Function Separation**: Pure functions with testable parameters
-- **Environment Testing**: Multi-environment test scenarios
-- **Performance Monitoring**: Built-in timing and performance analysis
+### Testing Infrastructure
+- **Comprehensive Validation**: 499+ lines of validation logic across all test scripts
+- **Component Isolation**: Individual module testing with pure function separation
+- **Integration Testing**: End-to-end system validation and workflow testing
+- **Performance Monitoring**: Built-in timing and performance analysis during testing
+
+### Testing Categories
+- **System Validation**: Quick health checks and comprehensive system testing
+- **Component Testing**: Module-specific validation (GPU, PVE, verbosity controls)
+- **Security Testing**: Password management, permissions, and credential validation
+- **Environment Testing**: Multi-environment test scenarios and configuration validation
+
+### Development Testing Workflow
+- **Pre-Development**: `./tst/validate_system` for rapid system health checks
+- **During Development**: Component-specific testing for targeted validation
+- **Post-Development**: `./tst/test_environment` for comprehensive validation
+- **Performance Analysis**: TME timing framework for performance impact assessment
 
 ## 📖 Related Documentation
 
