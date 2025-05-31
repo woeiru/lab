@@ -56,20 +56,20 @@ export LOG_DIR TMP_DIR
 
 # Log files
 declare -g ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
-declare -g LOG_STATE_FILE LOG_DEBUG_FILE
+declare -g LOG_STATE_FILE INI_LOG_FILE
 declare -g LOG_FILE # For lo1 module
 declare -g TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 ERROR_LOG="${LOG_DIR}/err.log"
 ERROR_COUNT_FILE="${TMP_DIR}/err_count"
 ERROR_STATE_FILE="${TMP_DIR}/err_state"
 LOG_STATE_FILE="${TMP_DIR}/lo1_state" # Changed from log_state
-LOG_DEBUG_FILE="${LOG_DIR}/debug.log"
+INI_LOG_FILE="${LOG_DIR}/ini.log" # Changed from debug.log
 LOG_FILE="${LOG_DIR}/lo1.log" # Definition for lo1.log
 TME_STATE_FILE="${TMP_DIR}/tme_state"
 TME_LEVELS_FILE="${TMP_DIR}/tme_levels"
 TME_LOG_FILE="${LOG_DIR}/tme.log"
 export ERROR_LOG ERROR_COUNT_FILE ERROR_STATE_FILE
-export LOG_STATE_FILE LOG_DEBUG_FILE
+export LOG_STATE_FILE INI_LOG_FILE
 export LOG_FILE
 export TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 
