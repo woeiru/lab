@@ -18,7 +18,7 @@ The project follows a domain-oriented architecture with sophisticated environmen
 -   **`cfg/`**: Configuration files and definitions organized hierarchically.
     -   `ali/`: Alias definition files.
         -   `sta`: Static alias definitions, sourced during initialization.
-        -   `dyn`: Dynamically generated aliases (created by `lib/utl/ali`).
+        -   `dyn`: Dynamically generated aliases (created by `utl/cfg-ali`).
     -   `core/`: Core configuration files with runtime constants.
         -   `ric`: Runtime Initialization Constants (defines paths and global variables).
         -   `mdc`: Module Definition Constants.
@@ -294,7 +294,7 @@ The project features a sophisticated **environment-aware deployment system** tha
 
 ### Utility Libraries and Tools
 
--   **Alias Management (`lib/utl/ali`)**: Sophisticated command enhancement system:
+-   **Alias Management (`utl/cfg-ali`)**: Sophisticated command enhancement system:
     -   **Static aliases**: Fixed command shortcuts for common operations
     -   **Dynamic aliases**: Context-aware shortcuts generated based on environment
     -   **Command wrappers**: Enhanced functionality for existing commands
