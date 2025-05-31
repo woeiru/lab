@@ -1,4 +1,4 @@
-# 📚 Documentation Repository
+# 📚 Documentation
 
 This directory acts as the central documentation hub within the main project repository. It provides structured, categorized documentation, analysis, and reference materials to support efficient navigation and ongoing maintenance for all ES Lab projects.
 
