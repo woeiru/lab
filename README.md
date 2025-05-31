@@ -342,7 +342,7 @@ cd test && ./test_complete_refactor.sh
 - **[Tertiary Container](src/set/c3)** - Tertiary container services
 - **[Primary Test](src/set/t1)** - Primary test deployment
 - **[Secondary Test](src/set/t2)** - Secondary test deployment
-- **[Workstation Setup](src/set/w1)** - Workstation configuration
+- **[Hypervisor Setup](src/set/h1)** - Hypervisor configuration
 
 #### Management Wrappers
 - **[GPU Management](src/mgt/gpu)** - GPU wrapper functions for runtime control

@@ -95,7 +95,7 @@ declare -g CT_DEFAULT_NET_NIC="eth0"
 declare -g CT_DEFAULT_NET_BRIDGE="vmbr0"
 declare -g CT_DEFAULT_CIDR="24"
 declare -g CT_DEFAULT_GATEWAY="192.168.178.1"
-declare -g CT_DEFAULT_SSH_KEY_FILE="/root/.ssh/w1.pub"
+declare -g CT_DEFAULT_SSH_KEY_FILE="/root/.ssh/h1.pub"
 
 # Default VM configuration
 declare -g VM_DEFAULT_OSTYPE="l26"

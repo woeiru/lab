@@ -144,7 +144,7 @@ The AI Resources directory integrates seamlessly with the entire ES Lab ecosyste
 ### Source Code Integration
 - **`src/`** - Source code repository for AI-assisted development
   - `src/mgt/` - Management utilities for GPU and Proxmox VE
-  - `src/set/` - Configuration and template sets (c1-c3, t1-t2, w1)
+  - `src/set/` - Configuration and template sets (c1-c3, t1-t2, h1)
   - `src/too/` - Specialized tools and utilities (ACPI, replacement tools)
 
 ### Testing Framework
