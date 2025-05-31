@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # Purpose:     Provide enhanced logging capabilities, including color-coded output,
 #              call stack depth analysis for log indentation, and debug logging.
-# File:        lib/util/lo1
+# File:        lib/core/lo1
 #
 # Description: This module offers a sophisticated logging system for the 'lab'
 #              project. It includes functions for debug logging, colorized console
@@ -29,14 +29,24 @@
 
 verify_module "lo1" || exit 1
 
+# Configuration constants
+readonly LO1_CACHE_CLEANUP_INTERVAL=${LO1_CACHE_CLEANUP_INTERVAL:-300}  # 5 minutes
+readonly LO1_TIMESTAMP_FORMAT=${LO1_TIMESTAMP_FORMAT:-'%H:%M:%S.%2N'}
+
 # Enable debug logging by default
 export LOG_DEBUG_ENABLED=1
 declare -gA ROOT_FUNCTIONS=([main_rc]=1)
 
+# Cached log state for performance
+declare -g LOG_STATE_CACHED=""
+declare -g LOG_STATE_LAST_CHECK=0
+readonly LOG_STATE_CACHE_TTL=5  # Cache for 5 seconds
+
 # Enhanced debug logging - moved to top
 lo1_debug_log() {
     [[ "${LOG_DEBUG_ENABLED}" != "1" ]] && return 0
-    local timestamp=$(date '+%H:%M:%S.%2N')
+    local timestamp
+    printf -v timestamp '%(%H:%M:%S)T' -1
     local message="$1"
     local source="${2:-unknown}"
     printf "[LO1-DEBUG] %s - [%s] %s\n" "$timestamp" "$source" "$message" >> "$LOG_FILE"
@@ -45,24 +55,26 @@ lo1_debug_log() {
 # Define depth cache file
 declare -g LOG_DEPTH_CACHE_FILE="${TMP_DIR}/lo1_depth_cache"
 
-# Color definitions
-readonly LOG_RED=$(printf '\033[0;31m')          # Level 0  - Pure Red
-readonly LOG_RED_ORANGE=$(printf '\033[38;5;202m')  # Level 1  - Red-Orange
-readonly LOG_ORANGE=$(printf '\033[38;5;208m')      # Level 2  - Orange
-readonly LOG_ORANGE_YELLOW=$(printf '\033[38;5;214m') # Level 3  - Orange-Yellow
-readonly LOG_YELLOW=$(printf '\033[38;5;220m')      # Level 4  - Yellow
-readonly LOG_YELLOW_GREEN=$(printf '\033[38;5;112m') # Level 5  - Yellow-Green
-readonly LOG_GREEN=$(printf '\033[38;5;34m')        # Level 6  - Green
-readonly LOG_GREEN_CYAN=$(printf '\033[38;5;35m')   # Level 7  - Green-Cyan
-readonly LOG_CYAN=$(printf '\033[38;5;37m')         # Level 8  - Cyan
-readonly LOG_CYAN_BLUE=$(printf '\033[38;5;39m')    # Level 9  - Cyan-Blue
-readonly LOG_BLUE=$(printf '\033[38;5;27m')         # Level 10 - Blue
-readonly LOG_BLUE_INDIGO=$(printf '\033[38;5;57m')  # Level 11 - Blue-Indigo
-readonly LOG_INDIGO=$(printf '\033[38;5;54m')       # Level 12 - Indigo
-readonly LOG_INDIGO_VIOLET=$(printf '\033[38;5;93m') # Level 13 - Indigo-Violet
-readonly LOG_VIOLET=$(printf '\033[38;5;92m')       # Level 14 - Violet
-readonly LOG_DEEP_VIOLET=$(printf '\033[38;5;91m')  # Level 15 - Deep Violet
+# Color definitions - optimized array for faster access
 readonly LOG_NC=$(printf '\033[0m')
+readonly -a LOG_COLORS=(
+    $(printf '\033[0;31m')          # Level 0  - Pure Red
+    $(printf '\033[38;5;202m')      # Level 1  - Red-Orange
+    $(printf '\033[38;5;208m')      # Level 2  - Orange
+    $(printf '\033[38;5;214m')      # Level 3  - Orange-Yellow
+    $(printf '\033[38;5;220m')      # Level 4  - Yellow
+    $(printf '\033[38;5;112m')      # Level 5  - Yellow-Green
+    $(printf '\033[38;5;34m')       # Level 6  - Green
+    $(printf '\033[38;5;35m')       # Level 7  - Green-Cyan
+    $(printf '\033[38;5;37m')       # Level 8  - Cyan
+    $(printf '\033[38;5;39m')       # Level 9  - Cyan-Blue
+    $(printf '\033[38;5;27m')       # Level 10 - Blue
+    $(printf '\033[38;5;57m')       # Level 11 - Blue-Indigo
+    $(printf '\033[38;5;54m')       # Level 12 - Indigo
+    $(printf '\033[38;5;93m')       # Level 13 - Indigo-Violet
+    $(printf '\033[38;5;92m')       # Level 14 - Violet
+    $(printf '\033[38;5;91m')       # Level 15 - Deep Violet
+)
 
 # State tracking
 declare -A LOG_DEPTH_CACHE
@@ -70,10 +82,16 @@ declare -A LOG_PARENTS
 declare -A LOG_CHILDREN
 declare -g LOG_CURRENT_PARENT=""
 declare -i LAST_CACHE_CLEANUP=0
-readonly CACHE_CLEANUP_INTERVAL=300  # 5 minutes
 
-# Root function handling
-declare -gA ROOT_FUNCTIONS=([main_rc]=1)
+# Log state caching helper functions
+get_cached_log_state() {
+    local current_time=$(date +%s)
+    if [[ -z "$LOG_STATE_CACHED" ]] || ((current_time - LOG_STATE_LAST_CHECK >= LOG_STATE_CACHE_TTL)); then
+        LOG_STATE_CACHED=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "on")
+        LOG_STATE_LAST_CHECK=$current_time
+    fi
+    echo "$LOG_STATE_CACHED"
+}
 
 # Update dump_stack_trace to use lo1_debug_log
 dump_stack_trace() {
@@ -88,10 +106,9 @@ dump_stack_trace() {
 }
 
 # Performance optimization
-# Update cleanup_cache to use lo1_debug_log
 cleanup_cache() {
     local current_time=$(date +%s)
-    if ((current_time - LAST_CACHE_CLEANUP >= CACHE_CLEANUP_INTERVAL)); then
+    if ((current_time - LAST_CACHE_CLEANUP >= LO1_CACHE_CLEANUP_INTERVAL)); then
         lo1_debug_log "Performing cache cleanup" "cache"
         LOG_DEPTH_CACHE=()
         : > "$LOG_DEPTH_CACHE_FILE"
@@ -201,34 +218,19 @@ get_indent() {
 
 get_color() {
     local depth="$1"
-    case $depth in
-        0)  echo -n "$LOG_RED" ;;
-        1)  echo -n "$LOG_RED_ORANGE" ;;
-        2)  echo -n "$LOG_ORANGE" ;;
-        3)  echo -n "$LOG_ORANGE_YELLOW" ;;
-        4)  echo -n "$LOG_YELLOW" ;;
-        5)  echo -n "$LOG_YELLOW_GREEN" ;;
-        6)  echo -n "$LOG_GREEN" ;;
-        7)  echo -n "$LOG_GREEN_CYAN" ;;
-        8)  echo -n "$LOG_CYAN" ;;
-        9)  echo -n "$LOG_CYAN_BLUE" ;;
-        10) echo -n "$LOG_BLUE" ;;
-        11) echo -n "$LOG_BLUE_INDIGO" ;;
-        12) echo -n "$LOG_INDIGO" ;;
-        13) echo -n "$LOG_INDIGO_VIOLET" ;;
-        14) echo -n "$LOG_VIOLET" ;;
-        15) echo -n "$LOG_DEEP_VIOLET" ;;
-        *)  echo -n "$LOG_DEEP_VIOLET" ;;  # For any depth > 15, use deep violet
-    esac
+    if ((depth >= 0 && depth < ${#LOG_COLORS[@]})); then
+        echo -n "${LOG_COLORS[$depth]}"
+    else
+        echo -n "${LOG_COLORS[15]}"  # For any depth > 15, use deep violet
+    fi
 }
 
 # Main logging function
-# Update log function to use MASTER_TERMINAL_VERBOSITY
 log() {
     [[ "$1" != "lvl" ]] && { echo "Error: Invalid log command" >&2; return 1; }
     local message="$2"
     local log_enabled
-    log_enabled=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "on")  # Changed "true" to "on"
+    log_enabled=$(get_cached_log_state)
 
     local depth
     depth=$(calculate_final_depth)
@@ -237,7 +239,7 @@ log() {
     local color
     color=$(get_color "$depth")
     local timestamp
-    timestamp=$(date '+%H:%M:%S.%2N') # Modified to include milliseconds
+    printf -v timestamp '%(%H:%M:%S)T' -1
 
     # 1. Log to file if lo1 logging is enabled
     if [[ "$log_enabled" == "on" ]]; then
@@ -265,13 +267,17 @@ log() {
 setlog() {
     case "$1" in
         "off")
-            echo "off" > "$LOG_STATE_FILE"  # Changed "false" to "off"
+            echo "off" > "$LOG_STATE_FILE"
+            LOG_STATE_CACHED="off"  # Update cache immediately
+            LOG_STATE_LAST_CHECK=$(date +%s)
             if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
                 printf "%s      └─ Logging disabled%s\n" "$LOG_NC"
             fi
             ;;
         "on")
-            echo "on" > "$LOG_STATE_FILE"   # Changed "true" to "on"
+            echo "on" > "$LOG_STATE_FILE"
+            LOG_STATE_CACHED="on"  # Update cache immediately
+            LOG_STATE_LAST_CHECK=$(date +%s)
             if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
                 printf "%s      └─ Logging enabled%s\n" "$LOG_NC"
             fi
@@ -350,7 +356,8 @@ lo1_log_message() {
     local message="$1"
     local level="${2:-1}"
     local component="${3:-${FUNCNAME[1]:-main}}"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
     
     # Get indent and color based on call stack depth
     local depth
@@ -359,7 +366,7 @@ lo1_log_message() {
     indent=$(get_indent "$depth") # Use depth for indent
     local color
     color=$(get_color "$level") # Use level for color
-    local reset=$(printf '\033[0m')
+    local reset="$LOG_NC"
     
     # Format the message
     local formatted_message="${color}${indent}[$component] $message${reset}"
@@ -368,7 +375,9 @@ lo1_log_message() {
     printf "[LOG] %s - %s\n" "$timestamp" "$formatted_message" >> "$LOG_FILE"
     
     # Output to console if enabled
-    if [[ -f "$LOG_STATE_FILE" ]] && [[ "$(cat "$LOG_STATE_FILE")" == "on" ]]; then  # Changed "true" to "on"
+    local log_enabled
+    log_enabled=$(get_cached_log_state)
+    if [[ "$log_enabled" == "on" ]]; then
         printf "%s\n" "$formatted_message"
     fi
     
@@ -392,14 +401,13 @@ lo1_tme_log_with_timer() {
     return 0
 }
 
-# Update exports to include lo1_debug_log instead of debug_log
+# Export optimized functions and variables
 export LOG_FILE LOG_STATE_FILE TMP_DIR
-export -f log setlog init_logger cleanup_logger
+export -f log setlog init_logger cleanup_logger get_cached_log_state
 export -f is_root_function get_base_depth calculate_final_depth
 export -f get_indent get_color lo1_debug_log dump_stack_trace
-export -f lo1_log_message # Renamed
-export -f lo1_tme_log_with_timer # Renamed
-export -A ROOT_FUNCTIONS
+export -f lo1_log_message lo1_tme_log_with_timer
+export -A ROOT_FUNCTIONS LOG_COLORS
 
 # Initialize on source
 init_logger
