@@ -1,6 +1,71 @@
-# Dynamically generated aliases by cfg-ali on Sat May 31 11:39:13 PM CEST 2025
-# Version: 2.0.0
+# Dynamically generated aliases by cfg-ali-new
+# Generated on: $(date)
+# Version: 3.0.0 (Rewritten)
 
 # --- README File Aliases ---
 alias c-pod-qdev-md='cat "$LAB_DIR/cfg/pod/qdev/readme.md"'
 alias v-pod-qdev-md='vim "$LAB_DIR/cfg/pod/qdev/readme.md"'
+alias c-pod-shus-md='cat "$LAB_DIR/cfg/pod/shus/readme.md"'
+alias v-pod-shus-md='vim "$LAB_DIR/cfg/pod/shus/readme.md"'
+alias c-too-acpi-md='cat "$LAB_DIR/src/too/acpi/readme.md"'
+alias v-too-acpi-md='vim "$LAB_DIR/src/too/acpi/readme.md"'
+alias c-too-replace-md='cat "$LAB_DIR/src/too/replace/readme.md"'
+alias v-too-replace-md='vim "$LAB_DIR/src/too/replace/readme.md"'
+
+# --- Directory Navigation Aliases ---
+alias d-bin='cd "$LAB_DIR/bin"'
+alias d-cfg='cd "$LAB_DIR/cfg"'
+alias d-doc='cd "$LAB_DIR/doc"'
+alias d-lib='cd "$LAB_DIR/lib"'
+alias d-res='cd "$LAB_DIR/res"'
+alias d-src='cd "$LAB_DIR/src"'
+alias d-tmp='cd "$LAB_DIR/tmp"'
+alias d-utl='cd "$LAB_DIR/utl"'
+alias d-val='cd "$LAB_DIR/val"'
+
+# --- Environment File Aliases ---
+alias c.env.site1='cat "$LAB_DIR/cfg/env/site1"'
+alias v.env.site1='vim "$LAB_DIR/cfg/env/site1"'
+alias c.env.site1-dev='cat "$LAB_DIR/cfg/env/site1-dev"'
+alias v.env.site1-dev='vim "$LAB_DIR/cfg/env/site1-dev"'
+alias c.env.site1-w2='cat "$LAB_DIR/cfg/env/site1-w2"'
+alias v.env.site1-w2='vim "$LAB_DIR/cfg/env/site1-w2"'
+
+# --- Library Operation Aliases ---
+alias c.ops.gpu='cat "$LAB_DIR/lib/ops/gpu"'
+alias v.ops.gpu='vim "$LAB_DIR/lib/ops/gpu"'
+alias c.ops.net='cat "$LAB_DIR/lib/ops/net"'
+alias v.ops.net='vim "$LAB_DIR/lib/ops/net"'
+alias c.ops.pbs='cat "$LAB_DIR/lib/ops/pbs"'
+alias v.ops.pbs='vim "$LAB_DIR/lib/ops/pbs"'
+alias c.ops.pve='cat "$LAB_DIR/lib/ops/pve"'
+alias v.ops.pve='vim "$LAB_DIR/lib/ops/pve"'
+alias c.ops.srv='cat "$LAB_DIR/lib/ops/srv"'
+alias v.ops.srv='vim "$LAB_DIR/lib/ops/srv"'
+alias c.ops.sto='cat "$LAB_DIR/lib/ops/sto"'
+alias v.ops.sto='vim "$LAB_DIR/lib/ops/sto"'
+alias c.ops.sys='cat "$LAB_DIR/lib/ops/sys"'
+alias v.ops.sys='vim "$LAB_DIR/lib/ops/sys"'
+alias c.ops.usr='cat "$LAB_DIR/lib/ops/usr"'
+alias v.ops.usr='vim "$LAB_DIR/lib/ops/usr"'
+
+# --- Source Set Script Aliases ---
+alias c.set.c1='cat "$LAB_DIR/src/set/c1"'
+alias v.set.c1='vim "$LAB_DIR/src/set/c1"'
+alias b.set.c1='bash "$LAB_DIR/src/set/c1"'
+alias c.set.c2='cat "$LAB_DIR/src/set/c2"'
+alias v.set.c2='vim "$LAB_DIR/src/set/c2"'
+alias b.set.c2='bash "$LAB_DIR/src/set/c2"'
+alias c.set.c3='cat "$LAB_DIR/src/set/c3"'
+alias v.set.c3='vim "$LAB_DIR/src/set/c3"'
+alias b.set.c3='bash "$LAB_DIR/src/set/c3"'
+alias c.set.h1='cat "$LAB_DIR/src/set/h1"'
+alias v.set.h1='vim "$LAB_DIR/src/set/h1"'
+alias b.set.h1='bash "$LAB_DIR/src/set/h1"'
+alias c.set.t1='cat "$LAB_DIR/src/set/t1"'
+alias v.set.t1='vim "$LAB_DIR/src/set/t1"'
+alias b.set.t1='bash "$LAB_DIR/src/set/t1"'
+alias c.set.t2='cat "$LAB_DIR/src/set/t2"'
+alias v.set.t2='vim "$LAB_DIR/src/set/t2"'
+alias b.set.t2='bash "$LAB_DIR/src/set/t2"'
+
