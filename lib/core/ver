@@ -38,7 +38,7 @@ ver_log() {
     local level="${3:-1}" # Default verbosity level if not provided by caller
 
     # Default log file if not set
-    local VER_LOG_FILE="${VER_LOG_FILE:-${BASE_DIR}/.log/ver.log}"
+    local VER_LOG_FILE="${VER_LOG_FILE:-${BASE_DIR:-.}/.log/ver.log}"
     
     # Create the directory if it doesn't exist (for file logging)
     mkdir -p "$(dirname "$VER_LOG_FILE")" 2>/dev/null
@@ -61,10 +61,21 @@ verify_path() {
     local type="$2"
     local create="${3:-false}"
 
+    # Input validation
+    if [[ $# -lt 2 ]]; then
+        echo "Usage: verify_path <path> <type> [create]" >&2
+        return 1
+    fi
+
     ver_log "Verifying path: $path (type: $type, create: $create)" "verify_path"
 
     [[ -z "$path" ]] && {
         echo "Empty path provided" >&2
+        return 1
+    }
+
+    [[ -z "$type" ]] && {
+        echo "Empty type provided" >&2
         return 1
     }
 
@@ -112,6 +123,18 @@ verify_path() {
 
 verify_var() {
     local var_name="$1"
+
+    # Input validation
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: verify_var <variable_name>" >&2
+        return 1
+    fi
+
+    if [[ -z "$var_name" ]]; then
+        echo "Empty variable name provided" >&2
+        return 1
+    fi
+
     local var_value="${!var_name}"
 
     ver_log "Verifying variable: $var_name" "verify_var"
@@ -157,10 +180,22 @@ essential_check() {
 
 verify_module() {
     local module="$1"
+
+    # Input validation
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: verify_module <module_name>" >&2
+        return 1
+    fi
+
+    if [[ -z "$module" ]]; then
+        echo "Empty module name provided" >&2
+        return 1
+    fi
+
     ver_log "Verifying module: $module" "verify_module"
 
     # Initialize requirements if not already done
-    if [[ -z "${MODULE_VARS[*]}" && -z "${MODULE_PATHS[*]}" && -z "${MODULE_COMMANDS[*]}" ]]; then
+    if [[ ${#MODULE_VARS[@]} -eq 0 && ${#MODULE_PATHS[@]} -eq 0 && ${#MODULE_COMMANDS[@]} -eq 0 ]]; then
         if type init_module_requirements &>/dev/null; then
             init_module_requirements
         else
@@ -249,11 +284,20 @@ validate_module() {
 
     # Check file exists and is executable
     [[ ! -f "$file" ]] && { echo "Module file does not exist: $file" >&2; return 1; }
-    [[ ! -x "$file" ]] && chmod +x "$file"
+    if [[ ! -x "$file" ]]; then
+        ver_log "WARNING: Module file $file is not executable. Making it executable." "validate_module"
+        chmod +x "$file" || {
+            echo "Failed to make module file executable: $file" >&2
+            return 1
+        }
+    fi
 
     # Validate shebang
     local shebang
-    read -r shebang < "$file"
+    if ! read -r shebang < "$file" || [[ -z "$shebang" ]]; then
+        echo "Cannot read shebang from $module_name (file may be empty)" >&2
+        return 1
+    fi
     [[ "$shebang" != "#!/bin/bash" ]] && {
         echo "Invalid or missing shebang in $module_name" >&2
         return 1
@@ -287,12 +331,28 @@ verify_function_dependencies() {
         fi
     done
 
-    return $((failed > 0 ? 1 : 0))
+    return $((failed > 0))
 }
 
 verify_function() {
     local func_name="$1"
     local module_path="$2"
+
+    # Input validation
+    if [[ $# -ne 2 ]]; then
+        echo "Usage: verify_function <function_name> <module_path>" >&2
+        return 1
+    fi
+
+    if [[ -z "$func_name" ]]; then
+        echo "Empty function name provided" >&2
+        return 1
+    fi
+
+    if [[ -z "$module_path" ]]; then
+        echo "Empty module path provided" >&2
+        return 1
+    fi
 
     ver_log "Verifying function existence: $func_name in $module_path" "verify_function"
 
@@ -301,7 +361,7 @@ verify_function() {
         return 1
     fi
 
-    if ! grep -q "^[[:space:]]*$func_name[[:space:]]*(" "$module_path"; then
+    if ! grep -q "^[[:space:]]*${func_name}[[:space:]]*(" "$module_path"; then
         ver_log "ERROR: Function $func_name not found in $module_path" "verify_function"
         return 1
     fi
@@ -311,27 +371,19 @@ verify_function() {
 
 # Initialize verification system
 init_verification() {
-    local orig_trace_setting=$(set -o | grep xtrace | cut -f2)
-    set -x
+    ver_log "Starting verification initialization..." "init_verification"
 
     # Ensure log directory exists
-    mkdir -p "$(dirname "$VER_LOG_FILE")" 2>/dev/null # Changed LOG_DEBUG_FILE to VER_LOG_FILE
-
-    # Redirect output
-    exec 1> >(tee -a "$VER_LOG_FILE") 2>&1 # Changed LOG_DEBUG_FILE to VER_LOG_FILE
-
-    ver_log "Starting verification initialization..."
+    local log_file="${VER_LOG_FILE:-${BASE_DIR:-.}/.log/ver.log}"
+    mkdir -p "$(dirname "$log_file")" 2>/dev/null
 
     if ! essential_check; then
         echo "Fatal: Essential verification failed" >&2
-        echo "Check $VER_LOG_FILE for details" >&2 # Changed LOG_DEBUG_FILE to VER_LOG_FILE
+        echo "Check $log_file for details" >&2
         return 1
     fi
 
-    # Restore original trace setting
-    [[ "$orig_trace_setting" == "off" ]] && set +x
-
-    ver_log "Verification initialization completed"
+    ver_log "Verification initialization completed" "init_verification"
     return 0
 }
 
