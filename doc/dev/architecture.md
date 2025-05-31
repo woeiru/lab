@@ -173,7 +173,7 @@ The system implements a **hierarchical configuration loading system**:
     -   **Multi-shell support**: Compatible with bash and zsh environments.
     -   **Interactive and batch modes**: Supports `-y` (non-interactive), `-u`/`--user` (target user), `-c`/`--config` (config file).
     -   **Environment injection**: Automatically injects initialization code into `.bashrc` or `.zshrc`.
--   **`bin/init`**: Main initialization script automatically sourced after environment setup, providing core module loading.
+-   **`bin/ini`**: Main initialization script automatically sourced after environment setup, providing core module loading.
 
 ### Core System Modules
 

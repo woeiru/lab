@@ -20,7 +20,7 @@
 #              `init_verification` can be used to set up initial checks.
 #
 # Notes:       This module is a core, foundational component loaded directly by
-#              the main initialization script (`bin/init`) before other modules.
+#              the main initialization script (`bin/ini`) before other modules.
 #              It provides the essential verification functions needed to bootstrap
 #              the rest of the module loading system, which is why it is not
 #              defined within `cfg/core/mdc` itself.

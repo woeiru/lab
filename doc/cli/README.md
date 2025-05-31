@@ -2,12 +2,12 @@
 
 Documentation for command-line interface, system initialization, and user interaction with the Lab Environment Management System.
 
-This documentation specializes in the `bin/init` initialization process, verbosity controls, logging configuration, and runtime interaction with core modules (`err`, `lo1`, `tme`, `ver`). It covers everything needed to understand and control the system's startup behavior and operational settings.
+This documentation specializes in the `bin/ini` initialization process, verbosity controls, logging configuration, and runtime interaction with core modules (`err`, `lo1`, `tme`, `ver`). It covers everything needed to understand and control the system's startup behavior and operational settings.
 
 ## 🎯 Target Audience
 
 Command-line users who need to:
-- Initialize and configure the system via `bin/init`
+- Initialize and configure the system via `bin/ini`
 - Understand verbosity controls and logging configuration
 - Interact with core modules (err, lo1, tme, ver) at runtime
 - Control system behavior through environment variables and shell functions
@@ -25,20 +25,20 @@ Command-line users who need to:
 #### System Initialization
 ```bash
 # Initialize the system with default settings
-./bin/init
+./bin/ini
 
 # Initialize with custom verbosity
 export MASTER_TERMINAL_VERBOSITY="on"
-./bin/init
+./bin/ini
 
 # Initialize with custom log directory
 export LOG_DIR="/custom/log/path"
-./bin/init
+./bin/ini
 ```
 
 #### Runtime Controls
 ```bash
-# Available after ./bin/init completes:
+# Available after ./bin/ini completes:
 setlog on|off                 # Control lo1 logging
 enable_error_trap             # Enable error handling
 tme_settme report on          # Enable timing reports
@@ -69,18 +69,18 @@ export MASTER_TERMINAL_VERBOSITY="on"    # Enable all terminal output
 export MASTER_TERMINAL_VERBOSITY="off"   # Quiet mode (default)
 
 # Initialize with custom settings
-./bin/init
+./bin/ini
 ```
 
 ### Custom Logging
 ```bash
 # Custom log directory
 export LOG_DIR="/your/custom/log/path"
-./bin/init
+./bin/ini
 
 # Quiet mode for minimal output
 export MASTER_TERMINAL_VERBOSITY="off"
-./bin/init
+./bin/ini
 ```
 
 ### Environment Context
