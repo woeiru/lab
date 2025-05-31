@@ -187,9 +187,9 @@ For comprehensive information about TME nested controls, see the **[Verbosity Co
 
 ## 3. System Integration Features
 
-### Shell Integration (`bin/env/rc`)
+### Shell Integration (`entry.sh`)
 
-The system provides shell integration capabilities through the `bin/env/rc` script:
+The system provides shell integration capabilities through the `entry.sh` script:
 
 *   **Purpose**: Inject initialization code into user shell configuration files
 *   **Supported Shells**: Bash (4+), Zsh (5+)
@@ -199,7 +199,7 @@ The system provides shell integration capabilities through the `bin/env/rc` scri
     - User-specific targeting
 *   **Usage**:
     ```bash
-    ./bin/env/rc [-y] [-u|--user USER] [-c|--config FILE]
+    ./entry.sh [-y] [-u|--user USER] [-c|--config FILE]
     ```
 
 ### Component Orchestration
