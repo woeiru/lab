@@ -313,7 +313,7 @@ execute_component() {
 # ├── ops/           - Operational service functions (gpu, net, pbs, pve, srv, sto, sys, usr)
 # │                   Domain-specific operational functions for system management,
 # │                   infrastructure services, and hardware operations
-# └── utl/           - Specialized utility functions (ali, env, inf, sec, ssh)
+# └── utl/           - Specialized utility functions (env, inf, sec, ssh)
 #                     High-level specialized tools for infrastructure management,
 #                     security operations, and environment configuration
 #
@@ -391,7 +391,7 @@ init_password_management_if_needed() {
 }
 
 # Source the specialized utility function files (utl/ directory)
-# Contains: ali, env, inf, sec, ssh
+# Contains: env, inf, sec, ssh
 # Purpose: High-level specialized tools for infrastructure and security management
 source_lib_utl() {
     local dir_to_source="${LIB_UTL_DIR}"
