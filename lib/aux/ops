@@ -34,7 +34,7 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 #
 aux-fun() {
     # Pass all arguments directly to aux-laf
-    aux-laf "$FILEPATH_lib" "$@"
+    aux-laf "$FILEPATH_ops" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
