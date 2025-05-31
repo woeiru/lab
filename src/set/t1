@@ -1,6 +1,5 @@
 #!/bin/bash
-# -echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/../../lib/laz/src")"
-source "$(realpath "$DIR_SH/../../lib/laz/src")"-------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Functions:
 #   a_xall: Installs common system packages and configures global Git user credentials.
 #   b_xall: Configures global Git user credentials.
@@ -14,8 +13,8 @@ FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
 
 # Source aux file which provides logging and other core functionality
-echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/../../lib/aux/src")"
-source "$(realpath "$DIR_SH/../../lib/aux/src")"
+echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/../../lib/laz/src")"
+source "$(realpath "$DIR_SH/../../lib/laz/src")"
 
 setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 
