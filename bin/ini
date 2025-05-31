@@ -36,13 +36,23 @@
 #
 # Dependencies:
 #   Required files in cfg/core/:
-#   - ric (Runtime initialization constants)
+#   - ric (Runtime initialization constants - provides directory paths)
 #   - rdc (Runtime dependency constants)
 #   - mdc (Module dependency constants)
 #   Required modules in lib/core/:
+#   - err (Error handling functions)
+#   - lo1 (Logging functions)
+#   - tme (Timing functions)
 #   - ver (Verification functions)
-#   Required scripts in bin/core/:
+#   Required scripts in bin/:
 #   - orc (Component orchestrator)
+#   Required directory variables from ric:
+#   - BASE_DIR (Base lab directory path)
+#   - LOG_DIR (Logging directory path)
+#   - TMP_DIR (Temporary files directory path)
+#   - LIB_CORE_DIR (Core library directory path)
+#   - ERROR_LOG, LOG_DEBUG_FILE, LOG_FILE (Log file paths)
+#   - TME_LOG_FILE, TME_STATE_FILE (Timing system files)
 #
 #######################################################################
 

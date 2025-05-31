@@ -107,9 +107,9 @@ This design allows fine-grained control while maintaining simple master and modu
     *   **Details**: Essential for performance analysis, bottleneck identification, and execution flow understanding
 
 *   **`init_flow.log`**:
-    *   **Purpose**: Tracks the execution flow and timing of the main initialization script (`bin/init`). Critical for debugging startup issues and module loading sequence problems.
+    *   **Purpose**: Tracks the execution flow and timing of the main initialization script (`bin/ini`). Critical for debugging startup issues and module loading sequence problems.
     *   **Format**: `INIT_SCRIPT_FLOW: [description] - HH:MM:SS.NNNNNNNNN`
-    *   **Writing Functions**: Direct `echo` statements in `bin/init` at key execution milestones
+    *   **Writing Functions**: Direct `echo` statements in `bin/ini` at key execution milestones
     *   **Key Tracking Points**:
         *   Module sourcing start/completion
         *   Component orchestrator loading
@@ -272,11 +272,11 @@ ERROR_STATE_FILE="${TMP_DIR}/err_state"   # Error system state
 
 ## Module Architecture and Function Reference
 
-### Debug Logging Module (`bin/init`, `lib/core/ver`)
+### Debug Logging Module (`bin/ini`, `lib/core/ver`)
 
 **Primary Functions:**
 - `debug_log(message, [source], [level])`: Core debug logging
-  - **Location**: `bin/init` (simple), `lib/core/ver` (enhanced)
+  - **Location**: `bin/ini` (simple), `lib/core/ver` (enhanced)
   - **Output**: `debug.log` + conditional terminal
   - **Format**: `[DEBUG] YYYY-MM-DD HH:MM:SS - [source] message`
 
@@ -551,7 +551,7 @@ For production monitoring:
 
 ## Summary of Key Logging Modules and Functions
 
-*   **`bin/init` & `lib/core/ver` (`debug_log`)**:
+*   **`bin/ini` & `lib/core/ver` (`debug_log`)**:
     *   Writes to: `.log/debug.log`
     *   Purpose: Low-level debug messages, especially during initial system verification and for modules without dedicated debug logs.
 *   **`lib/core/lo1` (Advanced Logging Module)**:
