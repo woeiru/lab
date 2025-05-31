@@ -10,8 +10,7 @@ The `bin/` directory serves as the central hub for system initialization, bootst
 bin/
 ├── init              # Main System Initialization Controller
 ├── orc               # Component Orchestrator  
-└── env/              # Environment Setup and Shell Integration
-    (empty - shell configuration moved to root entry.sh)
+
 ```
 
 ## 📁 Core Files and Components
@@ -88,16 +87,16 @@ bin/
 **Usage**:
 ```bash
 # Interactive mode
-./bin/env/rc
+./entry.sh
 
 # Non-interactive mode
-./bin/env/rc -y
+./entry.sh -y
 
 # Target specific user
-./bin/env/rc -u username
+./entry.sh -u username
 
 # Specify custom config file
-./bin/env/rc -c /path/to/config
+./entry.sh -c /path/to/config
 ```
 
 **Integration Process**:
@@ -144,10 +143,10 @@ export MASTER_TERMINAL_VERBOSITY="off"
 ### Shell Integration Setup
 ```bash
 # Set up shell integration for current user
-./bin/env/rc
+./entry.sh
 
 # Automated setup for specific user
-sudo ./bin/env/rc -y -u targetuser
+sudo ./entry.sh -y -u targetuser
 ```
 
 ### Environment Variables
