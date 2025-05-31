@@ -16,9 +16,10 @@ The system uses a multi-tier verbosity control mechanism:
 
 - **Master Control**: `MASTER_TERMINAL_VERBOSITY` (default: "off") - Master switch for all terminal output
 - **Module-Specific Controls**: Individual verbosity settings that require master to be "on"
-  - `DEBUG_LOG_TERMINAL_VERBOSITY` (default: "on") - Early initialization debug messages
+  - `INI_LOG_TERMINAL_VERBOSITY` (default: "on") - Main initialization script (`bin/ini`) messages
+  - `VER_LOG_TERMINAL_VERBOSITY` (default: "on") - Verification module (`lib/core/ver`) messages
   - `LO1_LOG_TERMINAL_VERBOSITY` (default: "on") - Advanced logging module
-  - `ERR_TERMINAL_VERBOSITY` (default: "on") - Error handling module  
+  - `ERR_TERMINAL_VERBOSITY` (default: "on") - Error handling module
   - `TME_TERMINAL_VERBOSITY` (default: "on") - Timing module
 - **Nested Controls**: Granular controls for specific output types within modules
   - TME Module has nested controls for reports, timing, debug, and status outputs
@@ -27,26 +28,32 @@ This design allows fine-grained control while maintaining simple master and modu
 
 ## Log Files in `${LOG_DIR}/.log`
 
-*   **`debug.log`**:
-    *   **Purpose**: Records detailed debugging information during script execution, particularly during early initialization and system verification phases.
-    *   **Format**: `[DEBUG] YYYY-MM-DD HH:MM:SS - [source_function] message`
-    *   **Writing Functions**:
-        *   `debug_log` in `bin/ini`: Simple version for early initialization before full logging system loads
-        *   `debug_log` in `lib/core/ver`: Enhanced version with verbosity controls
-    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `DEBUG_LOG_TERMINAL_VERBOSITY`
-    *   **Usage**: Primary debug channel for core system operations and modules without dedicated debug logs
-    *   **Details**: Essential for diagnosing initialization issues, path verification failures, and module loading problems
+*   **`ini.log`**:
+    *   **Purpose**: Records detailed logging for the main initialization script (`bin/ini`).
+    *   **Format**: `[INI] HH:MM:SS - [source_function] message`
+    *   **Writing Functions**: `ini_log` in `bin/ini`.
+    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `INI_LOG_TERMINAL_VERBOSITY`.
+    *   **Usage**: Primary log for `bin/ini` script execution, essential for diagnosing early startup and script flow issues.
+    *   **Details**: Captures messages from the very beginning of the system initialization.
+
+*   **`ver.log`**:
+    *   **Purpose**: Records detailed debugging information from the verification module (`lib/core/ver`).
+    *   **Format**: `[VER] YYYY-MM-DD HH:MM:SS - [source_function] message`
+    *   **Writing Functions**: `ver_log` in `lib/core/ver`.
+    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `VER_LOG_TERMINAL_VERBOSITY`.
+    *   **Usage**: Debug channel for path, variable, and module verification processes.
+    *   **Details**: Essential for diagnosing issues related to system integrity checks, path verification failures, and module loading problems handled by the `ver` module.
 
 *   **`err.log`**:
     *   **Purpose**: Centralized error and warning repository for all system components.
     *   **Format**: `[SEVERITY] YYYY-MM-DD HH:MM:SS - [component] message`
-    *   **Writing Functions**: 
+    *   **Writing Functions**:
         *   `handle_error` in `lib/core/err`: Primary error logging function
-        *   `error_handler` in `lib/core/err`: Automatic error trap handler  
+        *   `error_handler` in `lib/core/err`: Automatic error trap handler
         *   `err_process_error` in `lib/core/err`: Structured error processing
     *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `ERR_TERMINAL_VERBOSITY`
     *   **Environment Variable**: `ERROR_LOG` (defined in `cfg/core/ric`)
-    *   **Features**: 
+    *   **Features**:
         *   Supports severity levels (ERROR, WARNING)
         *   Tracks error components and timestamps
         *   Provides error reporting and summary functions
@@ -54,7 +61,7 @@ This design allows fine-grained control while maintaining simple master and modu
 
 *   **`lo1.log`**:
     *   **Purpose**: Main application log managed by the advanced logging module (`lib/core/lo1`). Features hierarchical indentation, color-coding, and comprehensive debug tracking.
-    *   **Format**: 
+    *   **Format**:
         *   Standard: `HH:MM:SS.NN └─ message` (with colored indentation based on call stack depth)
         *   Debug: `[LO1-DEBUG] HH:MM:SS.NN - [source] message`
     *   **Writing Functions**:
@@ -64,7 +71,7 @@ This design allows fine-grained control while maintaining simple master and modu
         *   `init_logger` in `lib/core/lo1`: Logger initialization messages
         *   `lo1_debug_log` in `lib/core/lo1`: Module-specific debug messages
     *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `LO1_LOG_TERMINAL_VERBOSITY` + local `setlog on|off`
-    *   **Environment Variables**: 
+    *   **Environment Variables**:
         *   `LOG_FILE` (defined in `cfg/core/ric`)
         *   `LOG_DEBUG_ENABLED` (controls debug message generation)
     *   **Features**:
@@ -99,16 +106,7 @@ This design allows fine-grained control while maintaining simple master and modu
     *   **Details**: Provides high-precision timestamps for diagnosing initialization timing and sequencing issues
 
 *   **Missing Log Files** (Referenced but not currently present):
-    *   **`tme.log`**: Would contain timing information for operations
-        *   Expected format: `[TME] timestamp - [OPERATION_NAME] event (duration)`
-        *   Expected functions: `tme_start_timer`, `tme_end_timer` in `lib/core/tme`
-        *   Purpose: Timing analysis and performance monitoring
-        *   Status: Module appears to be disabled or not fully integrated into current system
-    
-    *   **`ini.log`**: Would record the execution flow of the initialization script
-        *   Expected format: `[INI] timestamp - [source] message`
-        *   Purpose: Low-level diagnostic confirmation of module sourcing
-        *   Status: Associated with the currently inactive `ini` module
+    *   None currently identified as missing that were previously part of the active system. `debug.log` has been replaced by `ini.log` and `ver.log`.
 
 ## State and Configuration Files in `${TMP_DIR}/.tmp`
 
@@ -122,7 +120,7 @@ These files control logging behavior, maintain performance caches, and store per
     *   **Writing Functions**:
         *   `setlog on|off` in `lib/core/lo1`: User-controlled state toggling
         *   `init_state_files` in `lib/core/lo1`: Initialization with default "on"
-    *   **Reading Functions**: 
+    *   **Reading Functions**:
         *   `log` function reads this file before each log operation
         *   `init_logger` reads on startup to restore previous state
     *   **Valid Values**: "on" (enable logging) | "off" (disable logging)
@@ -139,7 +137,7 @@ These files control logging behavior, maintain performance caches, and store per
         *   `get_base_depth` in `lib/core/lo1`: Automatically caches calculated depths
         *   `cleanup_cache` in `lib/core/lo1`: Periodic cache clearing (every 300 seconds)
         *   `init_state_files` in `lib/core/lo1`: Creates empty cache file on initialization
-    *   **Cache Strategy**: 
+    *   **Cache Strategy**:
         *   Key: Function name, Value: Calculated call stack depth
         *   Automatic cleanup every 5 minutes to prevent stale data
         *   Cleared on logger cleanup
@@ -209,7 +207,8 @@ TMP_DIR="${TMP_DIR:-${LAB_DIR}/.tmp}"     # State file location
 
 # Log file paths
 ERROR_LOG="${LOG_DIR}/err.log"            # Error log
-LOG_DEBUG_FILE="${LOG_DIR}/debug.log"     # Debug log  
+INI_LOG_FILE="${LOG_DIR}/ini.log"         # Initialization script log
+VER_LOG_FILE="${LOG_DIR}/ver.log"         # Verification module log
 LOG_FILE="${LOG_DIR}/lo1.log"             # Main lo1 log
 TME_LOG_FILE="${LOG_DIR}/tme.log"         # Timing log
 
@@ -226,9 +225,10 @@ TME_LEVELS_FILE="${TMP_DIR}/tme_levels"   # Timing report depth
 MASTER_TERMINAL_VERBOSITY="off"
 
 # Module-specific controls (default: "on", require master "on")
-DEBUG_LOG_TERMINAL_VERBOSITY="on"        # Early debug messages
+INI_LOG_TERMINAL_VERBOSITY="on"          # Initialization script messages (`bin/ini`)
+VER_LOG_TERMINAL_VERBOSITY="on"          # Verification module messages (`lib/core/ver`)
 LO1_LOG_TERMINAL_VERBOSITY="on"          # Advanced logging
-ERR_TERMINAL_VERBOSITY="on"              # Error messages  
+ERR_TERMINAL_VERBOSITY="on"              # Error messages
 TME_TERMINAL_VERBOSITY="on"              # Timing reports
 
 # TME nested terminal output controls (default: "on", require both master and TME "on")
@@ -251,18 +251,28 @@ ERROR_STATE_FILE="${TMP_DIR}/err_state"   # Error system state
 
 ## Module Architecture and Function Reference
 
-### Debug Logging Module (`bin/ini`, `lib/core/ver`)
+### Initialization Logging (`bin/ini`)
 
 **Primary Functions:**
-- `debug_log(message, [source], [level])`: Core debug logging
-  - **Location**: `bin/ini` (simple), `lib/core/ver` (enhanced)
-  - **Output**: `debug.log` + conditional terminal
-  - **Format**: `[DEBUG] YYYY-MM-DD HH:MM:SS - [source] message`
+- `ini_log(message, [source], [priority])`: Core initialization logging.
+  - **Location**: `bin/ini`
+  - **Format**: `[INI] HH:MM:SS - [source] message`
 
 **Key Features:**
-- Early initialization logging before full system loads
-- Path and variable verification logging  
-- Conditional terminal output based on verbosity controls
+- Logging for the earliest stages of system startup.
+- Conditional terminal output based on `MASTER_TERMINAL_VERBOSITY` and `INI_LOG_TERMINAL_VERBOSITY`.
+- Priority levels for messages.
+
+### Verification Logging Module (`lib/core/ver`)
+
+**Primary Functions:**
+- `ver_log(message, [source], [level])`: Core verification logging.
+  - **Location**: `lib/core/ver`
+  - **Format**: `[VER] YYYY-MM-DD HH:MM:SS - [source] message`
+
+**Key Features:**
+- Dedicated logging for path, variable, and module verification.
+- Conditional terminal output based on `MASTER_TERMINAL_VERBOSITY` and `VER_LOG_TERMINAL_VERBOSITY`.
 
 ### Advanced Logging Module (`lib/core/lo1`)
 
@@ -411,22 +421,25 @@ export TME_STATUS_TERMINAL_OUTPUT="off"      # Disable status messages
 
 ### Log File Analysis Workflow
 
-1. **Check `init_flow.log`** for initialization sequence and timing
-2. **Review `debug.log`** for early system issues and verification failures
-3. **Examine `err.log`** for errors and warnings with component context
-4. **Analyze `lo1.log`** for detailed application flow with hierarchical context
-5. **Study `tme.log`** for performance bottlenecks and timing analysis
+1. **Check `init_flow.log`** for initialization sequence and timing.
+2. **Review `ini.log`** for issues during the main `bin/ini` script execution.
+3. **Review `ver.log`** for failures in the `lib/core/ver` verification processes.
+4. **Examine `err.log`** for errors and warnings with component context.
+5. **Analyze `lo1.log`** for detailed application flow with hierarchical context.
+6. **Study `tme.log`** for performance bottlenecks and timing analysis.
 
 ### Verbosity Configuration Matrix
 
-| Scenario | Master | Debug | Lo1 | Err | Tme | TME Nested | Result |
-|----------|--------|-------|-----|-----|-----|------------|---------|
-| Silent   | off    | *     | *   | *   | *   | *          | File logging only |
-| Selective| on     | off   | on  | on  | off | *          | Lo1 + errors only |
-| Debug    | on     | on    | on  | on  | on  | all on     | Full output |
-| Production| on    | off   | off | on  | off | *          | Errors only |
-| TME Only | on     | off   | off | off | on  | selective  | TME outputs only |
-| TME Reports| on   | off   | off | off | on  | report=on, others=off | TME reports only |
+| Scenario | Master | Ini/Ver | Lo1 | Err | Tme | TME Nested | Result |
+|----------|--------|---------|-----|-----|-----|------------|---------|
+| Silent   | off    | *       | *   | *   | *   | *          | File logging only |
+| Selective| on     | off     | on  | on  | off | *          | Lo1 + errors only |
+| Debug    | on     | on      | on  | on  | on  | all on     | Full output |
+| Production| on    | off     | off | on  | off | *          | Errors only |
+| TME Only | on     | off     | off | off | on  | selective  | TME outputs only |
+| TME Reports| on   | off     | off | off | on  | report=on, others=off | TME reports only |
+
+**Note on "Ini/Ver" column**: This represents `INI_LOG_TERMINAL_VERBOSITY` and `VER_LOG_TERMINAL_VERBOSITY`. Both need to be "on" along with "Master" for their respective terminal outputs.
 
 **TME Nested Controls Examples:**
 - `report=off, timing=on, debug=on, status=off`: Show measurements and debug, no reports or status
