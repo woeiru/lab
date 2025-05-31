@@ -31,23 +31,23 @@
 # -----------------------------------------------------------------------------
 #
 # Debug logging helper - uses existing LOG_DEBUG_FILE from ruc
-debug_log() {
+ver_log() {
     local timestamp=$(date '+%H:%M:%S')
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
     local level="${3:-1}" # Default verbosity level if not provided by caller
 
     # Default log file if not set
-    local LOG_DEBUG_FILE="${LOG_DEBUG_FILE:-${BASE_DIR}/.log/debug.log}"
+    local VER_LOG_FILE="${VER_LOG_FILE:-${BASE_DIR}/.log/ver.log}"
     
     # Create the directory if it doesn't exist (for file logging)
-    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
+    mkdir -p "$(dirname "$VER_LOG_FILE")" 2>/dev/null
     
     # Format for file logging remains unchanged or can be adjusted if needed
-    echo "[DEBUG] $(date '+%Y-%m-%d %H:%M:%S') - [$source] $message" >> "$LOG_DEBUG_FILE"
+    echo "[VER] $(date '+%Y-%m-%d %H:%M:%S') - [$source] $message" >> "$VER_LOG_FILE"
 
     # Conditionally output to stderr based on both master and specific debug verbosity
-    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${DEBUG_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${VER_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
         echo "    └─ $message [$timestamp]" >&2
     fi
 }
@@ -61,7 +61,7 @@ verify_path() {
     local type="$2"
     local create="${3:-false}"
 
-    debug_log "Verifying path: $path (type: $type, create: $create)" "verify_path"
+    ver_log "Verifying path: $path (type: $type, create: $create)" "verify_path"
 
     [[ -z "$path" ]] && {
         echo "Empty path provided" >&2
@@ -76,7 +76,7 @@ verify_path() {
                         echo "Failed to create directory: $path" >&2
                         return 1
                     }
-                    debug_log "Created directory: $path"
+                    ver_log "Created directory: $path"
                 else
                     echo "Directory does not exist: $path" >&2
                     return 1
@@ -94,7 +94,7 @@ verify_path() {
                         echo "Failed to create file: $path" >&2
                         return 1
                     }
-                    debug_log "Created file: $path"
+                    ver_log "Created file: $path"
                 else
                     echo "File does not exist: $path" >&2
                     return 1
@@ -114,7 +114,7 @@ verify_var() {
     local var_name="$1"
     local var_value="${!var_name}"
 
-    debug_log "Verifying variable: $var_name" "verify_var"
+    ver_log "Verifying variable: $var_name" "verify_var"
 
     if [[ -z "$var_value" ]]; then
         echo "Variable '$var_name' is empty or undefined" >&2
@@ -157,14 +157,14 @@ essential_check() {
 
 verify_module() {
     local module="$1"
-    debug_log "Verifying module: $module" "verify_module"
+    ver_log "Verifying module: $module" "verify_module"
 
     # Initialize requirements if not already done
     if [[ -z "${MODULE_VARS[*]}" && -z "${MODULE_PATHS[*]}" && -z "${MODULE_COMMANDS[*]}" ]]; then
         if type init_module_requirements &>/dev/null; then
             init_module_requirements
         else
-            debug_log "ERROR: init_module_requirements function not found. Cannot verify module $module." "verify_module"
+            ver_log "ERROR: init_module_requirements function not found. Cannot verify module $module." "verify_module"
             return 1
         fi
     fi
@@ -178,11 +178,11 @@ verify_module() {
             # Ensure the variable name itself is not empty after stripping module prefix
             if [[ -n "$var_name" ]]; then
                 if ! verify_var "$var_name" 2>/dev/null; then
-                    debug_log "ERROR: Variable '$var_name' for module '$module' not verified." "verify_module"
+                    ver_log "ERROR: Variable '$var_name' for module '$module' not verified." "verify_module"
                     ((failed++))
                 fi
             else
-                debug_log "WARNING: Empty variable name derived for key '$var_key' in module '$module'." "verify_module"
+                ver_log "WARNING: Empty variable name derived for key '$var_key' in module '$module'." "verify_module"
             fi
         fi
     done
@@ -200,15 +200,15 @@ verify_module() {
                 # Check if path_var_name is a declared variable and not empty
                 if declare -p "$path_var_name" &>/dev/null && [[ -n "${!path_var_name}" ]]; then
                     if ! verify_path "${!path_var_name}" "$type" "$create_flag"; then # Use renamed flag
-                        debug_log "ERROR: Path '${!path_var_name}' (defined by '$path_var_name') for module '$module' not verified." "verify_module"
+                        ver_log "ERROR: Path '${!path_var_name}' (defined by '$path_var_name') for module '$module' not verified." "verify_module"
                         ((failed++))
                     fi
                 else
-                    debug_log "ERROR: Path variable '$path_var_name' for module '$module' is not set or not a valid variable." "verify_module"
+                    ver_log "ERROR: Path variable '$path_var_name' for module '$module' is not set or not a valid variable." "verify_module"
                     ((failed++))
                 fi
             else
-                debug_log "WARNING: Empty path variable name derived for key '$path_key' in module '$module'." "verify_module"
+                ver_log "WARNING: Empty path variable name derived for key '$path_key' in module '$module'." "verify_module"
             fi
         fi
     done
@@ -222,18 +222,18 @@ verify_module() {
                 if [[ -n "$cmd_name" ]]; then
                     if ! command -v "$cmd_name" &>/dev/null; then
                         echo "ERROR: Required command '$cmd_name' for module '$module' not found in PATH." >&2
-                        debug_log "ERROR: Required command '$cmd_name' for module '$module' not found in PATH." "verify_module"
+                        ver_log "ERROR: Required command '$cmd_name' for module '$module' not found in PATH." "verify_module"
                         ((failed++))
                     else
-                        debug_log "Command '$cmd_name' for module '$module' found." "verify_module"
+                        ver_log "Command '$cmd_name' for module '$module' found." "verify_module"
                     fi
                 else
-                    debug_log "WARNING: Empty command name derived for key '$cmd_key' in module '$module'." "verify_module"
+                    ver_log "WARNING: Empty command name derived for key '$cmd_key' in module '$module'." "verify_module"
                 fi
             fi
         done
     else
-        debug_log "INFO: MODULE_COMMANDS array not declared. Skipping command verification for module '$module'." "verify_module"
+        ver_log "INFO: MODULE_COMMANDS array not declared. Skipping command verification for module '$module'." "verify_module"
     fi
 
 
@@ -245,7 +245,7 @@ validate_module() {
     local file="$1"
     local module_name="$(basename "$file")"
 
-    debug_log "Validating module: $module_name"
+    ver_log "Validating module: $module_name"
 
     # Check file exists and is executable
     [[ ! -f "$file" ]] && { echo "Module file does not exist: $file" >&2; return 1; }
@@ -268,12 +268,12 @@ validate_module() {
 
 verify_function_dependencies() {
     local func_name="$1"
-    debug_log "Verifying function dependencies: $func_name" "verify_function_dependencies"
+    ver_log "Verifying function dependencies: $func_name" "verify_function_dependencies"
 
     # Get required modules for this function
     local modules="${FUNCTION_DEPENDENCIES[$func_name]}"
     [[ -z "$modules" ]] && {
-        debug_log "No dependencies found for function: $func_name" "verify_function_dependencies"
+        ver_log "No dependencies found for function: $func_name" "verify_function_dependencies"
         return 1
     }
 
@@ -282,7 +282,7 @@ verify_function_dependencies() {
 
     for module in "${MODULE_ARRAY[@]}"; do
         if ! verify_module "$module" 2>/dev/null; then
-            debug_log "ERROR: Required module '$module' not verified for function '$func_name'" "verify_function_dependencies"
+            ver_log "ERROR: Required module '$module' not verified for function '$func_name'" "verify_function_dependencies"
             ((failed++))
         fi
     done
@@ -294,15 +294,15 @@ verify_function() {
     local func_name="$1"
     local module_path="$2"
 
-    debug_log "Verifying function existence: $func_name in $module_path" "verify_function"
+    ver_log "Verifying function existence: $func_name in $module_path" "verify_function"
 
     if [[ ! -f "$module_path" ]]; then
-        debug_log "ERROR: Module file not found: $module_path" "verify_function"
+        ver_log "ERROR: Module file not found: $module_path" "verify_function"
         return 1
     fi
 
     if ! grep -q "^[[:space:]]*$func_name[[:space:]]*(" "$module_path"; then
-        debug_log "ERROR: Function $func_name not found in $module_path" "verify_function"
+        ver_log "ERROR: Function $func_name not found in $module_path" "verify_function"
         return 1
     fi
 
@@ -315,28 +315,28 @@ init_verification() {
     set -x
 
     # Ensure log directory exists
-    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
+    mkdir -p "$(dirname "$VER_LOG_FILE")" 2>/dev/null # Changed LOG_DEBUG_FILE to VER_LOG_FILE
 
     # Redirect output
-    exec 1> >(tee -a "$LOG_DEBUG_FILE") 2>&1
+    exec 1> >(tee -a "$VER_LOG_FILE") 2>&1 # Changed LOG_DEBUG_FILE to VER_LOG_FILE
 
-    debug_log "Starting verification initialization..."
+    ver_log "Starting verification initialization..."
 
     if ! essential_check; then
         echo "Fatal: Essential verification failed" >&2
-        echo "Check $LOG_DEBUG_FILE for details" >&2
+        echo "Check $VER_LOG_FILE for details" >&2 # Changed LOG_DEBUG_FILE to VER_LOG_FILE
         return 1
     fi
 
     # Restore original trace setting
     [[ "$orig_trace_setting" == "off" ]] && set +x
 
-    debug_log "Verification initialization completed"
+    ver_log "Verification initialization completed"
     return 0
 }
 
 # Export all verification functions
-export -f debug_log
+export -f ver_log
 export -f verify_path
 export -f verify_var
 export -f verify_module
