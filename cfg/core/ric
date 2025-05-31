@@ -14,7 +14,7 @@
 # Dependencies: None. Assumes BASE_DIR may be predefined in the sourcing
 #               environment if used by variables within this file.
 #
-# Usage:       Sourced during system initialization (e.g., by .lab/bin/init)
+# Usage:       Sourced during system initialization (e.g., by .lab/bin/ini)
 #              to establish the runtime environment.
 #
 # Notes:       Review and update paths and default values as per deployment needs.
