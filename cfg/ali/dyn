@@ -1,4 +1,4 @@
-# Dynamically generated aliases by set_dynamic on Sat May 31 0alias b.set.h1='bash "$LAB_DIR/src/set/h1"':22:28 PM CEST 2025
+# Dynamically generated aliases by set_dynamic on Sat May 31 11:01:05 PM CEST 2025
 # Version: 1.0.0
 
 # --- Readme Aliases ---
@@ -20,50 +20,12 @@ alias d-res='cd "$LAB_DIR/res"'
 alias d-src='cd "$LAB_DIR/src"'
 alias d-tmp='cd "$LAB_DIR/tmp"'
 alias d-tst='cd "$LAB_DIR/tst"'
+alias d-utl='cd "$LAB_DIR/utl"'
+alias d-val='cd "$LAB_DIR/val"'
 
 # --- Environment File Aliases (cfg/env) ---
-alias c.env.site1='cat "$LAB_DIR/cfg/env/site1"'
-alias c.env.site1-dev='cat "$LAB_DIR/cfg/env/site1-dev"'
-alias c.env.site1-w2='cat "$LAB_DIR/cfg/env/site1-w2"'
-alias v.env.site1='vim "$LAB_DIR/cfg/env/site1"'
-alias v.env.site1-dev='vim "$LAB_DIR/cfg/env/site1-dev"'
-alias v.env.site1-w2='vim "$LAB_DIR/cfg/env/site1-w2"'
 
 # --- Function Library Aliases (lib/ops) ---
-alias c.ops.gpu='cat "$LAB_DIR/lib/ops/gpu"'
-alias c.ops.net='cat "$LAB_DIR/lib/ops/net"'
-alias c.ops.pbs='cat "$LAB_DIR/lib/ops/pbs"'
-alias c.ops.pve='cat "$LAB_DIR/lib/ops/pve"'
-alias c.ops.srv='cat "$LAB_DIR/lib/ops/srv"'
-alias c.ops.sto='cat "$LAB_DIR/lib/ops/sto"'
-alias c.ops.sys='cat "$LAB_DIR/lib/ops/sys"'
-alias c.ops.usr='cat "$LAB_DIR/lib/ops/usr"'
-alias v.ops.gpu='vim "$LAB_DIR/lib/ops/gpu"'
-alias v.ops.net='vim "$LAB_DIR/lib/ops/net"'
-alias v.ops.pbs='vim "$LAB_DIR/lib/ops/pbs"'
-alias v.ops.pve='vim "$LAB_DIR/lib/ops/pve"'
-alias v.ops.srv='vim "$LAB_DIR/lib/ops/srv"'
-alias v.ops.sto='vim "$LAB_DIR/lib/ops/sto"'
-alias v.ops.sys='vim "$LAB_DIR/lib/ops/sys"'
-alias v.ops.usr='vim "$LAB_DIR/lib/ops/usr"'
 
 # --- Set Script Aliases (src/set) ---
-alias c.set.c1='cat "$LAB_DIR/src/set/c1"'
-alias c.set.c2='cat "$LAB_DIR/src/set/c2"'
-alias c.set.c3='cat "$LAB_DIR/src/set/c3"'
-alias c.set.t1='cat "$LAB_DIR/src/set/t1"'
-alias c.set.t2='cat "$LAB_DIR/src/set/t2"'
-alias c.set.h1='cat "$LAB_DIR/src/set/h1"'
-alias v.set.c1='vim "$LAB_DIR/src/set/c1"'
-alias v.set.c2='vim "$LAB_DIR/src/set/c2"'
-alias v.set.c3='vim "$LAB_DIR/src/set/c3"'
-alias v.set.t1='vim "$LAB_DIR/src/set/t1"'
-alias v.set.t2='vim "$LAB_DIR/src/set/t2"'
-alias v.set.h1='vim "$LAB_DIR/src/set/h1"'
-alias b.set.c1='bash "$LAB_DIR/src/set/c1"'
-alias b.set.c2='bash "$LAB_DIR/src/set/c2"'
-alias b.set.c3='bash "$LAB_DIR/src/set/c3"'
-alias b.set.t1='bash "$LAB_DIR/src/set/t1"'
-alias b.set.t2='bash "$LAB_DIR/src/set/t2"'
-alias b.set.h1='bash "$LAB_DIR/src/set/h1"'
 

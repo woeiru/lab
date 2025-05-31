@@ -121,8 +121,8 @@ generate_level_two_arrays() {
         if ((${#files[@]} > 0)); then
             log "lvl" "Creating array $array_name"
             local unique_files=($(printf "%s\n" "${files[@]}" | sort -u))
-            eval "declare -ga $array_name=(${unique_files[*]})"
-            log "lvl" "Created array $array_name with values: ${!array_name[*]}"
+            eval "declare -ga $array_name=($(printf "'%s' " "${unique_files[@]}"))"
+            log "lvl" "Created array $array_name with ${#unique_files[@]} files"
             ((success_count++))
         else
             log "lvl" "No files found in directory: $dir_path"
@@ -133,9 +133,13 @@ generate_level_two_arrays() {
     done
 
     if ((success_count == 0)); then
-        error_handler "$LINENO" "${ERROR_CODES[GENERAL_ERROR]}" "false"
+        log "lvl" "Error: No arrays created successfully"
+        error_handler "$LINENO" "${ERROR_CODES[CONFIG_ERROR]}" "false"
+        tme_end_nested_timing "gen_level_two" "error"
+        return 1
     fi
 
+    log "lvl" "Successfully created $success_count arrays"
     tme_end_nested_timing "gen_level_two" "success"
 }
 
