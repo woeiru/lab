@@ -30,7 +30,7 @@ declare -gA MODULE_COMMANDS # New: For command-line tool dependencies
 
 # Initialize module requirements
 init_module_requirements() {
-debug_log "Initializing module requirements"
+ini_log "Initializing module requirements"
 
     # Error module requirements
     MODULE_VARS[err.ERROR_LOG]=1
@@ -60,7 +60,7 @@ debug_log "Initializing module requirements"
     MODULE_PATHS[tme.LOG_DIR]="dir:true"
     MODULE_COMMANDS[tme.bc]=1 # New: 'tme' module requires 'bc' command
 
-debug_log "Module requirements initialization complete"
+ini_log "Module requirements initialization complete"
 }
 
 # Export module-related functions and variables

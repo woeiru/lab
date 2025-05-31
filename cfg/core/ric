@@ -154,8 +154,8 @@ export MASTER_TERMINAL_VERBOSITY
 # Controls terminal verbosity for early init and verification debug_log
 # Set to "on" for verbose output, "off" for quiet terminal.
 # Requires MASTER_TERMINAL_VERBOSITY to also be "on".
-declare -g DEBUG_LOG_TERMINAL_VERBOSITY="on"
-export DEBUG_LOG_TERMINAL_VERBOSITY
+declare -g VER_LOG_TERMINAL_VERBOSITY="on"
+export VER_LOG_TERMINAL_VERBOSITY
 
 # Controls terminal verbosity for the lo1 advanced logging module
 # Set to "on" for verbose output, "off" for quiet terminal.
@@ -194,3 +194,14 @@ export TME_TERMINAL_VERBOSITY
   # Controls terminal output for TME status updates
   declare -g TME_STATUS_TERMINAL_OUTPUT="on"
   export TME_STATUS_TERMINAL_OUTPUT
+
+# Source the debug_log function if it exists
+# source_if_exists "${LIB_DIR}/core/common/debug_log.sh"
+
+# export LOG_DEBUG_FILE
+export LOG_STATE_FILE INI_LOG_FILE
+
+# Add VER_LOG_FILE to exports and declare it
+declare -g VER_LOG_FILE
+VER_LOG_FILE="${LOG_DIR}/ver.log"
+export VER_LOG_FILE
