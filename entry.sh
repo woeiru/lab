@@ -81,14 +81,14 @@ init_config() {
     local determined_bin_dir
     # Heuristic to determine the correct bin directory for the init script.
 
-    # Case 1: SCRIPT_DIR is <project_root>/bin/env (standard execution of rc)
-    # Target init script would be at $SCRIPT_DIR/../$FILEPATH
-    if [[ -f "$SCRIPT_DIR/../$FILEPATH" ]]; then
-        determined_bin_dir=$(cd "$SCRIPT_DIR/.." && pwd)
-    # Case 2: SCRIPT_DIR is <project_root> (e.g., rc content eval'd by a script in project_root)
+    # Case 1: SCRIPT_DIR is <project_root> (standard execution of entry.sh)
     # Target init script would be at $SCRIPT_DIR/bin/$FILEPATH
-    elif [[ -f "$SCRIPT_DIR/bin/$FILEPATH" ]]; then
+    if [[ -f "$SCRIPT_DIR/bin/$FILEPATH" ]]; then
         determined_bin_dir=$(cd "$SCRIPT_DIR/bin" && pwd)
+    # Case 2: SCRIPT_DIR is some other location (fallback)
+    # Target init script would be at $SCRIPT_DIR/../$FILEPATH
+    elif [[ -f "$SCRIPT_DIR/../$FILEPATH" ]]; then
+        determined_bin_dir=$(cd "$SCRIPT_DIR/.." && pwd)
     else
         # Fallback to the globally defined BIN_DIR if heuristics fail.
         # This might still lead to the incorrect path in the problematic scenario.
