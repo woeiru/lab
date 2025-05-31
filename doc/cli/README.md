@@ -96,7 +96,7 @@ export NODE="your-hostname"
 ### System Health Checks
 ```bash
 # Quick system validation
-./tst/validate_system
+./val/validate_system
 
 # Comprehensive testing
 ./tst/test_environment
@@ -153,7 +153,7 @@ cd src/set/pve && ./pve a  # Execute specific task
 
 ### Troubleshooting
 - **Common Issues**: Check `../fix/` directory for known problems and solutions
-- **Validation Errors**: Run `./tst/validate_system` for diagnosis
+- **Validation Errors**: Run `./val/validate_system` for diagnosis
 - **Log Analysis**: Check `.log` directory for detailed error information
 
 ### Support Resources
@@ -166,7 +166,7 @@ cd src/set/pve && ./pve a  # Execute specific task
 ### Essential Commands
 ```bash
 ./entry.sh                    # Initialize system
-./tst/validate_system         # Quick health check
+./val/validate_system         # Quick health check
 ./tst/test_environment        # Comprehensive testing
 ./stats.sh                    # System statistics
 source ~/.bashrc              # Reload environment
