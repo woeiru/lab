@@ -383,7 +383,7 @@ cd test && ./test_complete_refactor.sh
 - **[System Statistics](stats.sh)** - Live system metrics and statistics
 - **[System Initialization](bin/init)** - Core system initialization (487 lines)
 - **[Component Orchestrator](bin/orc)** - Component loading and orchestration
-- **[Shell Configuration](bin/env/rc)** - Shell environment configuration
+- **[Shell Configuration](entry.sh)** - Shell environment configuration
 
 ## 📄 License
 
