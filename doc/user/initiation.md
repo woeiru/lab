@@ -165,7 +165,7 @@ These functions become available after the system's modules have been loaded, ty
     *   **Implementation**: Shows all verbosity levels and nested control settings
     *   **Usage**: `tme_show_output_settings`
 
-For comprehensive information about TME nested controls, see the **[Verbosity Controls Reference](verbosity.md)**.
+For comprehensive information about TME nested controls, see the **[Verbosity Controls Reference](verbosity-controls.md)**.
 
 ### Advanced Configuration Files
 

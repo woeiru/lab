@@ -298,8 +298,10 @@ cd test && ./test_complete_refactor.sh
 - **[Environment Management](doc/iac/environment-management.md)** - Multi-environment deployment patterns
 - **[User Guide](doc/user/initiation.md)** - User interaction and runtime controls
 - **[Quick Reference](doc/user/quick-reference.md)** - Essential commands and daily workflows
+- **[Verbosity Controls (User)](doc/user/verbosity-controls.md)** - User-facing verbosity configuration and controls
 - **[Logging System](doc/dev/logging.md)** - Monitoring and debugging
-- **[Verbosity Controls](doc/dev/verbosity.md)** - System verbosity and output control
+- **[Verbosity Controls (Developer)](doc/dev/verbosity.md)** - Technical implementation of verbosity controls
+- **[Testing Framework](doc/dev/testing.md)** - Comprehensive testing infrastructure and validation procedures
 
 #### Troubleshooting Documentation
 - **[Audio Root Fix](doc/fix/audioroot.md)** - Audio system troubleshooting
