@@ -87,7 +87,7 @@ The project follows a domain-oriented architecture with sophisticated environmen
     -   `replace/`: Text replacement utility with JSON configuration.
 
 -   **`Root-level files`**:
-    -   `entry.sh`: Symlink to `bin/env/rc` for easy environment setup.
+    -   `entry.sh`: Shell environment configuration script for easy environment setup.
     -   `STATUS.md`: Real-time project status and operational readiness indicator.
     -   `README.md`: Main project documentation and quick start guide.
 
@@ -167,8 +167,8 @@ The system implements a **hierarchical configuration loading system**:
 
 ### Environment Setup and Initialization
 
--   **`entry.sh`**: Root-level symlink to `bin/env/rc` providing convenient access to environment setup.
--   **`bin/env/rc`**: Primary environment configuration script with advanced capabilities:
+-   **`entry.sh`**: Root-level shell environment configuration script providing convenient access to environment setup.
+-   **Shell Configuration**: Primary environment configuration script with advanced capabilities:
     -   **Non-destructive modifications**: Creates reversible changes to shell config files.
     -   **Multi-shell support**: Compatible with bash and zsh environments.
     -   **Interactive and batch modes**: Supports `-y` (non-interactive), `-u`/`--user` (target user), `-c`/`--config` (config file).
@@ -420,9 +420,9 @@ Next review: As needed for system changes
 ## Getting Started
 
 ### Quick Setup
-1. **Environment Initialization**: Use `entry.sh` or directly execute `bin/env/rc` to configure your shell environment:
+1. **Environment Initialization**: Use `entry.sh` to configure your shell environment:
    ```bash
-   ./entry.sh  # or: ./bin/env/rc
+   ./entry.sh
    ```
 
 2. **Shell Activation**: Start a new shell session or source your updated configuration:
