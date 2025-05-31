@@ -15,15 +15,16 @@ doc/
 ├── adm/                        # System Administrator documentation
 ├── dev/                        # Developer documentation  
 ├── iac/                        # Infrastructure as Code documentation
-├── user/                       # End User documentation
-├── fix/                        # Problem resolution and troubleshooting guides
-├── flo/                        # Flow diagrams and process documentation
-├── how/                        # How-to guides and step-by-step procedures
-└── net/                        # Network documentation and configurations
+└── user/                       # End User documentation
 
 tmp/
 ├── ana/                        # Analysis documentation and reports (moved from doc/)
-└── dev/                        # Development logs and session documentation (moved from doc/)
+├── dev/                        # Development logs and session documentation (moved from doc/)
+├── fix/                        # Problem resolution and troubleshooting guides (moved from doc/)
+├── flo/                        # Flow diagrams and process documentation (moved from doc/)
+├── how/                        # How-to guides and step-by-step procedures (moved from doc/)
+├── net/                        # Network documentation and configurations (moved from doc/)
+└── pro/                        # Project documentation and planning
 ```
 
 ## 📖 Documentation Categories
@@ -78,7 +79,7 @@ tmp/
 - ECC (Error Correction Code) implementation
 - System verbosity and output controls
 
-### 🛠️ Problem Resolution (`fix/`)
+### 🛠️ Problem Resolution (`tmp/fix/`)
 **Purpose**: Troubleshooting guides and solution documentation  
 **Content**: Known issues, their root causes, and verified solutions  
 **Coverage**:
@@ -86,7 +87,7 @@ tmp/
 - Container persistence issues
 - System-specific problem resolutions
 
-### 🔄 Flow Documentation (`flo/`)
+### 🔄 Flow Documentation (`tmp/flo/`)
 **Purpose**: Process flows and architectural diagrams  
 **Content**: Visual representations of system processes and data flows  
 **Focus Areas**:
@@ -94,7 +95,7 @@ tmp/
 - System interaction patterns
 - Process workflow documentation
 
-### 📋 How-To Guides (`how/`)
+### 📋 How-To Guides (`tmp/how/`)
 **Purpose**: Step-by-step procedural documentation  
 **Content**: Practical guides for system administration and configuration  
 **Examples**:
@@ -102,24 +103,26 @@ tmp/
 - System configuration procedures
 - Administrative task workflows
 
-### 📖 Manual Documentation (`man/`)
-**Purpose**: Comprehensive reference documentation and system manuals  
-**Content**: Authoritative documentation for system components and procedures  
-**Core Documentation**:
-- **Architecture** - System design and component relationships
-- **Configuration** - System configuration standards and procedures
-- **Infrastructure** - Infrastructure management and deployment
-- **Initiation** - System initialization and startup procedures
-- **Logging** - Logging standards and log management
-- **Verbosity Controls** - System verbosity and output control mechanisms
+### 📖 Manual Documentation (`man/`) - **DEPRECATED**
+**Status**: This directory has been reorganized into audience-specific documentation  
+**Migration**: Content moved to `dev/`, `adm/`, `iac/`, and `user/` directories  
+**New Structure**: See audience-specific documentation sections above
 
-### 🌐 Network Documentation (`net/`)
+### 🌐 Network Documentation (`tmp/net/`)
 **Purpose**: Network configuration and topology documentation  
 **Content**: Network infrastructure, configurations, and connectivity documentation  
 **Coverage**:
 - Network topology collections
 - Connectivity configurations
 - Network troubleshooting guides
+
+### 📋 Project Documentation (`tmp/pro/`)
+**Purpose**: Project planning and management documentation  
+**Content**: Project specifications, planning documents, and management materials  
+**Coverage**:
+- Project planning documents
+- Management and coordination materials
+- Project-specific documentation
 
 ## 🎯 Usage Guidelines
 
@@ -152,13 +155,17 @@ tmp/
 ## 📊 Documentation Metrics
 
 ### Current Coverage
-- **Analysis Documents**: 2 comprehensive infrastructure studies
-- **Development Logs**: 13 detailed development session records
-- **Problem Solutions**: 2 verified troubleshooting guides
-- **Process Flows**: 1 architectural flow documentation
-- **Procedures**: 1 administrative how-to guide
-- **Reference Manuals**: 6 comprehensive system manuals
-- **Network Documentation**: 2 network topology collections
+- **Developer Documentation**: 4 comprehensive technical guides (architecture, API reference, logging, verbosity)
+- **Administrator Documentation**: 2 operational guides (configuration, security management)
+- **Infrastructure Documentation**: 2 deployment guides (infrastructure patterns, environment management)
+- **User Documentation**: 2 user guides (complete user guide, quick reference)
+- **Analysis Documents**: 2 comprehensive infrastructure studies (`tmp/ana/`)
+- **Development Logs**: 13 detailed development session records (`tmp/dev/`)
+- **Problem Solutions**: Verified troubleshooting guides (`tmp/fix/`)
+- **Process Flows**: Architectural flow documentation (`tmp/flo/`)
+- **Procedures**: Administrative how-to guides (`tmp/how/`)
+- **Network Documentation**: Network topology collections (`tmp/net/`)
+- **Project Documentation**: Project planning and management materials (`tmp/pro/`)
 
 ### Documentation Standards
 - **Completeness**: All major system components have reference documentation
@@ -171,15 +178,24 @@ tmp/
 ### Finding Information
 ```bash
 # Search for specific topics across all documentation
-grep -r "topic" doc/
+grep -r "topic" doc/ tmp/
 
 # Browse by category
 ls tmp/ana/     # Analysis reports
-ls doc/man/     # Reference manuals
-ls doc/how/     # Procedures
+ls doc/dev/     # Developer documentation
+ls doc/adm/     # Administrator documentation
+ls doc/iac/     # Infrastructure documentation
+ls doc/user/    # User documentation
+ls tmp/dev/     # Development logs
+ls tmp/fix/     # Problem resolution guides
+ls tmp/flo/     # Flow documentation
+ls tmp/how/     # How-to procedures
+ls tmp/net/     # Network documentation
+ls tmp/pro/     # Project documentation
 
 # View specific documentation
-cat doc/man/architecture.md
+cat doc/dev/architecture.md
+cat doc/user/quick-reference.md
 cat tmp/dev/2025-05-30-2200_performance-optimization.md
 ```
 
@@ -187,8 +203,15 @@ cat tmp/dev/2025-05-30-2200_performance-optimization.md
 ```bash
 # Navigate to appropriate category
 cd tmp/dev/     # For development logs
-cd doc/man/     # For reference documentation
-cd doc/fix/     # For troubleshooting guides
+cd doc/dev/     # For developer documentation
+cd doc/adm/     # For administrator documentation
+cd doc/iac/     # For infrastructure documentation
+cd doc/user/    # For user documentation
+cd tmp/fix/     # For troubleshooting guides
+cd tmp/how/     # For how-to procedures
+cd tmp/flo/     # For flow documentation
+cd tmp/net/     # For network documentation
+cd tmp/pro/     # For project documentation
 
 # Create new documentation with descriptive naming
 echo "# New Documentation" > new_document.md
@@ -197,11 +220,18 @@ echo "# New Documentation" > new_document.md
 ## 🔍 Key Documentation Highlights
 
 ### Essential Reading
-- **`man/architecture.md`** - Complete system architecture overview
-- **`man/infrastructure.md`** - Infrastructure management procedures
+- **`dev/architecture.md`** - Complete system architecture overview
+- **`iac/infrastructure.md`** - Infrastructure management procedures
+- **`user/quick-reference.md`** - Essential commands and daily workflows
+- **`adm/security.md`** - Security framework and credential management
 - **`../tmp/ana/2025-05-29-0430_infrastructure_analysis_series_overview.md`** - Current analysis initiatives
 
 ### Recent Updates
+- **Audience-Based Documentation Reorganization** - Complete restructuring into dev/, adm/, iac/, and user/ directories
+- **API Reference Guide** - New comprehensive developer function reference (doc/dev/api-reference.md)
+- **Security Management Guide** - Complete security framework documentation (doc/adm/security.md)
+- **Environment Management Guide** - Multi-environment deployment patterns (doc/iac/environment-management.md)
+- **Quick Reference Guide** - Essential commands and daily workflows (doc/user/quick-reference.md)
 - **Performance Optimization** - Latest system performance improvements
 - **TME Nested Controls** - Advanced time management features
 - **GPU Refactoring** - Complete GPU management system overhaul
@@ -225,6 +255,6 @@ echo "# New Documentation" > new_document.md
 
 **Navigation**: Return to [Main Lab Documentation](../README.md)
 
-**Last Updated**: May 30, 2025  
+**Last Updated**: May 31, 2025  
 **Maintained By**: ES Lab Documentation Team  
 **Documentation Version**: 1.0
