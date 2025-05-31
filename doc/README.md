@@ -185,7 +185,7 @@ ls tmp/ana/     # Analysis reports
 ls doc/dev/     # Developer documentation
 ls doc/adm/     # Administrator documentation
 ls doc/iac/     # Infrastructure documentation
-ls doc/user/    # User documentation
+ls doc/cli/    # CLI documentation
 ls tmp/dev/     # Development logs
 ls tmp/fix/     # Problem resolution guides
 ls tmp/flo/     # Flow documentation
@@ -195,7 +195,7 @@ ls tmp/pro/     # Project documentation
 
 # View specific documentation
 cat doc/dev/architecture.md
-cat doc/user/quick-reference.md
+cat doc/cli/quick-reference.md
 cat tmp/dev/2025-05-30-2200_performance-optimization.md
 ```
 
@@ -206,7 +206,7 @@ cd tmp/dev/     # For development logs
 cd doc/dev/     # For developer documentation
 cd doc/adm/     # For administrator documentation
 cd doc/iac/     # For infrastructure documentation
-cd doc/user/    # For user documentation
+cd doc/cli/    # For CLI documentation
 cd tmp/fix/     # For troubleshooting guides
 cd tmp/how/     # For how-to procedures
 cd tmp/flo/     # For flow documentation
@@ -231,7 +231,7 @@ echo "# New Documentation" > new_document.md
 - **API Reference Guide** - New comprehensive developer function reference (doc/dev/api-reference.md)
 - **Security Management Guide** - Complete security framework documentation (doc/adm/security.md)
 - **Environment Management Guide** - Multi-environment deployment patterns (doc/iac/environment-management.md)
-- **Quick Reference Guide** - Essential commands and daily workflows (doc/user/quick-reference.md)
+- **Quick Reference Guide** - Essential commands and daily workflows (doc/cli/quick-reference.md)
 - **Performance Optimization** - Latest system performance improvements
 - **TME Nested Controls** - Advanced time management features
 - **GPU Refactoring** - Complete GPU management system overhaul
