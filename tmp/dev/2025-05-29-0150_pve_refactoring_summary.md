@@ -24,7 +24,7 @@ Successfully completed the refactoring of PVE functions to separate pure library
 - **`pve-vpt-w()`** - Extracts hostname-specific device variables, calls `pve-vpt()`
 
 ### 3. Component Orchestrator Updates
-**Modified `/home/es/lab/bin/core/comp` to support management functions:**
+**Modified `/home/es/lab/bin/orc` to support management functions:**
 
 - Added `source_src_mgt()` function to load management wrapper functions
 - Updated `setup_components()` to include `"source_src_mgt:SRC_MGT:0"` in the component list
@@ -103,7 +103,7 @@ fi
 ├── lib/ops/pve                 # Pure parameterized functions (original names)
 ├── src/mgt/pve                 # Management wrapper functions (-w suffix)
 ├── cfg/core/ric                # Directory definitions (SRC_MGT_DIR added)
-├── bin/core/comp               # Component orchestrator (updated)
+├── bin/orc                      # Component orchestrator (updated)
 └── test_refactor.sh            # Verification test script
 ```
 

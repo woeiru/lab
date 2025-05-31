@@ -382,7 +382,7 @@ cd test && ./test_complete_refactor.sh
 - **[Main Entry Point](entry.sh)** - System initialization and setup
 - **[System Statistics](stats.sh)** - Live system metrics and statistics
 - **[System Initialization](bin/init)** - Core system initialization (487 lines)
-- **[Component Orchestrator](bin/core/comp)** - Component loading and orchestration
+- **[Component Orchestrator](bin/orc)** - Component loading and orchestration
 - **[Shell Configuration](bin/env/rc)** - Shell environment configuration
 
 ## 📄 License
