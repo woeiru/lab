@@ -12,10 +12,13 @@ This documentation repository provides structured storage and organization for a
 doc/
 ├── README.md                   # This navigation file
 ├── todo                        # Task and project tracking
+├── adm/                        # System Administrator documentation
+├── dev/                        # Developer documentation  
+├── iac/                        # Infrastructure as Code documentation
+├── user/                       # End User documentation
 ├── fix/                        # Problem resolution and troubleshooting guides
 ├── flo/                        # Flow diagrams and process documentation
 ├── how/                        # How-to guides and step-by-step procedures
-├── man/                        # Manual and reference documentation
 └── net/                        # Network documentation and configurations
 
 tmp/
@@ -25,6 +28,38 @@ tmp/
 
 ## 📖 Documentation Categories
 
+## 📖 Documentation Categories
+
+### 👨‍💻 Developer Documentation (`dev/`)
+**Purpose**: Technical documentation for developers integrating with the system  
+**Target Audience**: Software developers, system integrators, technical contributors  
+**Content**: System architecture, logging frameworks, verbosity controls, and integration patterns  
+**Key Documentation**:
+- **Architecture** - Complete system design overview and modular architecture patterns
+- **Logging System** - Comprehensive logging architecture and debug systems  
+- **Verbosity Controls** - Terminal output control mechanisms and configuration
+
+### 🛠️ System Administrator Documentation (`adm/`)
+**Purpose**: Operational documentation for system administrators  
+**Target Audience**: System administrators, DevOps operators, infrastructure maintainers  
+**Content**: Configuration management, monitoring, security practices, and Ansible automation  
+**Key Documentation**:
+- **Configuration Management** - Infrastructure configuration, IP allocation, and security practices
+
+### 🏗️ Infrastructure as Code Documentation (`iac/`)
+**Purpose**: Infrastructure deployment and automation documentation  
+**Target Audience**: Infrastructure teams, DevOps engineers, deployment specialists  
+**Content**: Standardized deployments, environment management, and automation patterns  
+**Key Documentation**:
+- **Infrastructure Guide** - Comprehensive IaC deployment patterns and automation scripts
+
+### 👤 End User Documentation (`user/`)
+**Purpose**: User-facing documentation for system operation  
+**Target Audience**: End users, operators, system consumers  
+**Content**: Getting started guides, user controls, and operational procedures  
+**Key Documentation**:
+- **User Guide** - Complete user interaction and configuration guide
+
 ### 🔍 Analysis Documentation (`tmp/ana/`)
 **Purpose**: Comprehensive analysis reports and infrastructure studies  
 **Content**: Deep-dive technical analysis, infrastructure reviews, and architectural assessments  
@@ -33,7 +68,7 @@ tmp/
 - Declarative vs imperative infrastructure analysis
 - System architecture evaluations
 
-### 🔧 Development Documentation (`tmp/dev/`)
+### 🔧 Development Session Logs (`tmp/dev/`)
 **Purpose**: Development session logs and project progress tracking  
 **Content**: Real-time development notes, refactoring summaries, and implementation logs  
 **Key Areas**:
