@@ -315,22 +315,31 @@ load_modules() {
         ini_log "Module file verified: $module_name" "load_modules" 2
     done
 
-    # Optimized module loading loop
-    for module_name in "${modules_to_load[@]}"; do
-        # Skip lo2 module processing
+    # Load each module (excluding lo2 which doesn't exist anymore)
+    for module in "${modules[@]}"; do
+        local module_name="$(basename "$module")"
+        
+        # Skip lo2 module processing (legacy module that no longer exists)
         if [[ "$module_name" == "lo2" ]]; then
             continue
         fi
 
-        source_module "$module_name"
-
-        # Conditional logging for specific modules if needed
-        # Example:
-        # if [[ "$module_name" == "specific_module" ]]; then
-        #     echo "INIT_SCRIPT_FLOW: Sourced specific_module - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
-        # fi
+        ini_log "Loading module: $module_name" "load_modules" 2
+        
+        if [[ -f "$module" ]] && [[ -r "$module" ]]; then
+            if source "$module" 2>/dev/null; then
+                loaded_modules["$module_name"]=1
+                ((module_loaded++))
+                ini_log "Successfully loaded module: $module_name"
+            else
+                ini_log "ERROR: Failed to source module: $module_name"
+            fi
+        else
+            ini_log "ERROR: Module file not accessible: $module_name"
+        fi
     done
-    echo "INIT_SCRIPT_FLOW: Finished optimized module loading loop in ini - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
+    
+    echo "INIT_SCRIPT_FLOW: Finished module loading loop in init - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
 
     ini_log "Loaded $module_loaded modules using optimized batch processing"
     return $((module_loaded > 0 ? 0 : 1))
