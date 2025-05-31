@@ -3,7 +3,7 @@
 # dotfiles
 #
 DOT_FILE1="/root/.bashrc"
-DOT_SOURCE1=". /root/lab/bin/init"
+DOT_SOURCE1=". /root/lab/bin/ini"
 
 # git ( gst
 #

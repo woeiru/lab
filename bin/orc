@@ -32,12 +32,29 @@
 #
 # Usage:
 #   This script is typically sourced by a main initialization script
-#   (e.g., /home/es/lab/bin/init), and then its `setup_components`
+#   (e.g., /home/es/lab/bin/ini), and then its `setup_components`
 #   function is called to perform the orchestrated setup.
 #   It relies on the `lo1` module for logging and expects certain
 #   environment variables like `BASE_DIR` and `ERROR_LOG` to be set,
 #   and functions like `tme_start_timer`, `tme_end_timer`, `error_handler`,
 #   `tme_print_timing_report`, `print_error_report` to be available.
+#
+# Dependencies:
+#   Required files in cfg/core/:
+#   - ric (Runtime initialization constants - provides directory paths)
+#   - ecc (Environment controller configuration)
+#   Required modules in lib/core/:
+#   - lo1 (Logging functions)
+#   - tme (Timing functions)
+#   - err (Error handling functions)
+#   Required directory variables from ric:
+#   - LIB_OPS_DIR (Operational function library path)
+#   - LIB_AUX_DIR (Auxiliary helper function library path)
+#   - LIB_UTL_DIR (Specialized utility function library path)
+#   - CFG_ALI_DIR (Alias configuration directory path)
+#   - SRC_MGT_DIR (Management wrapper functions directory path)
+#   - LAB_DIR (Base lab directory path)
+#   - SITE_CONFIG_FILE, ENV_OVERRIDE_FILE, NODE_OVERRIDE_FILE (Environment config paths)
 #######################################################################
 
 # Helper function to safely source files with improved error handling and logging
