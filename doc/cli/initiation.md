@@ -1,6 +1,6 @@
-# User Interaction and Configuration Guide
+# CLI Initialization and Configuration Guide
 
-This document provides comprehensive guidance on configuring and interacting with the shell script system. It covers environment variables, runtime controls, verbosity settings, and advanced configuration options for optimal system operation.
+This document provides comprehensive guidance on configuring and interacting with the system through the command-line interface. It covers the `bin/init` initialization process, environment variables, runtime controls, verbosity settings, and core module interaction for optimal system operation.
 
 ## Quick Start
 

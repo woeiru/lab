@@ -286,7 +286,7 @@ cd test && ./test_complete_refactor.sh
 - **[Developer Documentation](doc/dev/README.md)** - `doc/dev/` - System architecture, API reference, logging, and integration guides
 - **[System Administrator Documentation](doc/adm/README.md)** - `doc/adm/` - Configuration, security, monitoring, and operational management  
 - **[Infrastructure Documentation](doc/iac/README.md)** - `doc/iac/` - IaC deployment patterns, environment management, and automation
-- **[User Documentation](doc/user/README.md)** - `doc/user/` - Getting started, user guides, and daily operation procedures
+- **[CLI Documentation](doc/cli/README.md)** - `doc/cli/` - Command-line interface, initialization, and user interaction guides
 
 #### System Manuals & Architecture Documentation
 - **[System Architecture](doc/dev/architecture.md)** - Complete system design overview
@@ -295,9 +295,9 @@ cd test && ./test_complete_refactor.sh
 - **[Security Management](doc/adm/security.md)** - Security framework and credential management
 - **[Infrastructure Guide](doc/iac/infrastructure.md)** - Deployment and IaC patterns
 - **[Environment Management](doc/iac/environment-management.md)** - Multi-environment deployment patterns
-- **[User Guide](doc/user/initiation.md)** - User interaction and runtime controls
-- **[Quick Reference](doc/user/quick-reference.md)** - Essential commands and daily workflows
-- **[Verbosity Controls (User)](doc/user/verbosity-controls.md)** - User-facing verbosity configuration and controls
+- **[CLI Guide](doc/cli/initiation.md)** - Command-line interface, initialization, and runtime controls
+- **[Quick Reference](doc/cli/quick-reference.md)** - Essential commands and daily workflows
+- **[Verbosity Controls (CLI)](doc/cli/verbosity-controls.md)** - Command-line verbosity configuration and controls
 - **[Logging System](doc/dev/logging.md)** - Monitoring and debugging
 - **[Verbosity Controls (Developer)](doc/dev/verbosity.md)** - Technical implementation of verbosity controls
 - **[Testing Framework](doc/dev/testing.md)** - Comprehensive testing infrastructure and validation procedures
@@ -396,4 +396,4 @@ For detailed documentation, start with:
 - **[Developer Documentation](doc/dev/README.md)** for system architecture and integration
 - **[System Administrator Documentation](doc/adm/README.md)** for configuration and management  
 - **[Infrastructure Documentation](doc/iac/README.md)** for deployment automation
-- **[User Documentation](doc/user/README.md)** for getting started and user guides
+- **[CLI Documentation](doc/cli/README.md)** for command-line interface and initialization guides
