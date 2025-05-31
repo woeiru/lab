@@ -50,7 +50,7 @@
 #   3. Node override (cfg/env/site1-w2)
 #
 # Integration Points:
-#   - Works with environment controller (lib/aux/src)
+#   - Works with environment controller (src/aux/set)
 #   - Integrates with infrastructure utilities
 #   - Compatible with deployment scripts
 #   - Supports CI/CD pipeline integration

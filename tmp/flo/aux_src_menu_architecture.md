@@ -26,7 +26,7 @@
 #
 # Dependencies:
 #   - Mermaid flowchart rendering support
-#   - Auxiliary source framework (lib/aux/src)
+#   - Auxiliary source framework (src/aux/set)
 #   - Interactive menu system components
 #######################################################################
 -->

@@ -61,7 +61,7 @@
 #
 # Integration Points:
 #   - Works with security utilities (/home/es/lab/lib/utl/sec)
-#   - Integrates with environment management (/home/es/lab/lib/aux/src)
+#   - Integrates with environment management (/home/es/lab/src/aux/set)
 #   - Compatible with existing deployment scripts
 #
 # Maintenance:

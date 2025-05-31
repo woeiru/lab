@@ -71,7 +71,7 @@ fi
 # Test environment switching and configuration loading
 export ENVIRONMENT="dev"
 export NODE="w2"
-if source /home/es/lab/lib/aux/src 2>/dev/null; then
+if source /home/es/lab/src/aux/set 2>/dev/null; then
     success "Environment-aware loading works"
 else
     failure "Environment-aware loading failed"
