@@ -113,7 +113,7 @@ The AI Resources directory integrates seamlessly with the entire ES Lab ecosyste
 - **`bin/`** - Executable binaries and initialization scripts
   - `bin/init` - Lab initialization routines
   - `bin/orc` - Component management systems
-  - `bin/env/rc` - Runtime configuration management
+  - `entry.sh` - Runtime configuration management
 
 ### Configuration Management  
 - **`cfg/`** - Comprehensive configuration management
