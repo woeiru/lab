@@ -1,31 +1,6 @@
-# Dynamically generated aliases by set_dynamic on Sat May 31 11:01:05 PM CEST 2025
-# Version: 1.0.0
+# Dynamically generated aliases by cfg-ali on Sat May 31 11:39:13 PM CEST 2025
+# Version: 2.0.0
 
-# --- Readme Aliases ---
+# --- README File Aliases ---
 alias c-pod-qdev-md='cat "$LAB_DIR/cfg/pod/qdev/readme.md"'
 alias v-pod-qdev-md='vim "$LAB_DIR/cfg/pod/qdev/readme.md"'
-alias c-pod-shus-md='cat "$LAB_DIR/cfg/pod/shus/readme.md"'
-alias v-pod-shus-md='vim "$LAB_DIR/cfg/pod/shus/readme.md"'
-alias c-too-acpi-md='cat "$LAB_DIR/src/too/acpi/readme.md"'
-alias v-too-acpi-md='vim "$LAB_DIR/src/too/acpi/readme.md"'
-alias c-too-replace-md='cat "$LAB_DIR/src/too/replace/readme.md"'
-alias v-too-replace-md='vim "$LAB_DIR/src/too/replace/readme.md"'
-
-# --- Level One Directory Aliases ---
-alias d-bin='cd "$LAB_DIR/bin"'
-alias d-cfg='cd "$LAB_DIR/cfg"'
-alias d-doc='cd "$LAB_DIR/doc"'
-alias d-lib='cd "$LAB_DIR/lib"'
-alias d-res='cd "$LAB_DIR/res"'
-alias d-src='cd "$LAB_DIR/src"'
-alias d-tmp='cd "$LAB_DIR/tmp"'
-alias d-tst='cd "$LAB_DIR/tst"'
-alias d-utl='cd "$LAB_DIR/utl"'
-alias d-val='cd "$LAB_DIR/val"'
-
-# --- Environment File Aliases (cfg/env) ---
-
-# --- Function Library Aliases (lib/ops) ---
-
-# --- Set Script Aliases (src/set) ---
-
