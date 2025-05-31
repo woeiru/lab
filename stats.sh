@@ -2,7 +2,7 @@
 #######################################################################
 # Lab Environment Statistics Generator
 #######################################################################
-# File: /home/es/lab/stats.sh
+# File: stats.sh
 # Description: Generates real-time statistics about the lab environment
 #              codebase for documentation and monitoring purposes.
 #

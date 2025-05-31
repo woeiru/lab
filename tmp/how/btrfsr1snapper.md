@@ -2,7 +2,7 @@
 #######################################################################
 # Btrfs RAID 1 with Snapper Setup Guide - Technical Reference
 #######################################################################
-# File: /home/es/lab/doc/how/btrfsr1snapper.md
+# File: doc/how/btrfsr1snapper.md
 # Description: Comprehensive step-by-step guide for setting up Btrfs
 #              RAID 1 configuration with Snapper snapshot management
 #              on openSUSE-based systems.
