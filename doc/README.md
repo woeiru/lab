@@ -11,11 +11,12 @@ This documentation directory serves as the central hub for organizing all projec
 ```
 doc/
 ├── README.md                   # This navigation file
+├── DOCUMENTATION_STANDARDS.md # Documentation standards and guidelines
 ├── todo                        # Task and project tracking
 ├── adm/                        # System Administrator documentation
 ├── dev/                        # Developer documentation  
 ├── iac/                        # Infrastructure as Code documentation
-└── user/                       # End User documentation
+└── cli/                        # Command-line interface documentation
 
 tmp/
 ├── ana/                        # Analysis documentation and reports (moved from doc/)
@@ -29,7 +30,12 @@ tmp/
 
 ## 📖 Documentation Categories
 
-## 📖 Documentation Categories
+### 📋 Documentation Standards and Guidelines
+**Purpose**: Establish consistent standards for creating and maintaining documentation  
+**Target Audience**: All contributors and maintainers  
+**Content**: Writing standards, templates, maintenance procedures, and quality guidelines  
+**Key Documentation**:
+- **[Documentation Standards](DOCUMENTATION_STANDARDS.md)** - Comprehensive standards and templates for all documentation
 
 ### 👨‍💻 Developer Documentation (`dev/`)
 **Purpose**: Technical documentation for developers integrating with the system  

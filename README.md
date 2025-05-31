@@ -16,6 +16,109 @@ This is a comprehensive environment management framework designed for complex in
 - **🧪 Testing Framework**: 375+ lines of validation logic for system reliability
 - **📚 Enterprise Documentation**: Complete technical guides and operational runbooks
 
+## 📚 Documentation Structure
+
+Our documentation is organized across multiple locations to provide both immediate context and comprehensive guidance:
+
+### **Quick Reference (Folder READMEs)**
+- Individual folder READMEs provide immediate context when browsing directories
+- Quick orientation for developers exploring the codebase
+- Direct links to relevant detailed documentation
+
+### **Comprehensive Documentation (`/doc/`)**
+
+#### **Documentation Standards**
+- **[Documentation Standards](doc/DOCUMENTATION_STANDARDS.md)** - Writing standards, templates, and maintenance procedures
+
+#### **Developer Resources** (`/doc/dev/`)
+- **[System Architecture](doc/dev/architecture.md)** - Complete system design and modular patterns
+- **[API Reference](doc/dev/api-reference.md)** - Library function reference and integration guides
+- **[Testing Framework](doc/dev/testing.md)** - Comprehensive testing infrastructure and validation procedures
+- **[Logging System](doc/dev/logging.md)** - Monitoring, debugging, and performance analysis
+- **[Verbosity Controls](doc/dev/verbosity.md)** - Technical implementation of output controls
+
+#### **Operations & Administration** (`/doc/adm/`)
+- **[Configuration Management](doc/adm/configuration.md)** - Infrastructure configuration and deployment settings
+- **[Security Management](doc/adm/security.md)** - Security framework and credential management
+
+#### **Infrastructure as Code** (`/doc/iac/`)
+- **[Infrastructure Guide](doc/iac/infrastructure.md)** - Deployment patterns and automation scripts
+- **[Environment Management](doc/iac/environment-management.md)** - Multi-environment deployment strategies
+
+#### **Command Line Interface** (`/doc/cli/`)
+- **[User Initiation Guide](doc/cli/initiation.md)** - Getting started and command-line interface
+- **[Verbosity Controls](doc/cli/verbosity-controls.md)** - User-facing output control configuration
+
+### **Working Documentation (`/tmp/`)**
+- **Analysis Reports** (`tmp/ana/`) - Infrastructure analysis and architectural assessments
+- **Development Logs** (`tmp/dev/`) - Session logs and implementation tracking
+- **Problem Resolution** (`tmp/fix/`) - Troubleshooting guides and solutions
+- **Process Documentation** (`tmp/flo/`) - Flow diagrams and system interaction patterns
+- **How-To Guides** (`tmp/how/`) - Step-by-step procedural documentation
+- **Network Documentation** (`tmp/net/`) - Network configurations and setup guides
+- **Project Planning** (`tmp/pro/`) - Project documentation and planning materials
+
+### **Directory Structure**
+```
+📁 /doc/           # Comprehensive technical documentation
+├── 👨‍💻 dev/         # Developer guides and technical documentation  
+├── 🛠️ adm/         # System administrator operational guides
+├── 🏗️ iac/         # Infrastructure as Code deployment documentation
+└── 📱 cli/         # Command-line interface and user guides
+
+📁 /tmp/           # Working documentation and analysis
+├── 🔍 ana/         # Analysis reports and infrastructure studies
+├── 🔧 dev/         # Development session logs and progress tracking
+├── 🛠️ fix/         # Problem resolution and troubleshooting guides
+├── 🔄 flo/         # Process flows and architectural diagrams
+├── 📋 how/         # How-to guides and procedures
+├── 🌐 net/         # Network documentation and configurations
+└── 📊 pro/         # Project documentation and planning
+
+📁 Individual Folder READMEs provide immediate context and quick reference
+```
+
+## 🔗 Quick Links
+
+### **Essential Documentation**
+- **[📚 Complete Documentation Index](DOCUMENTATION_INDEX.md)** - Comprehensive index of all documentation
+- **[📋 Documentation Standards](doc/DOCUMENTATION_STANDARDS.md)** - Writing and maintenance guidelines
+- **[🏗️ System Architecture](doc/dev/architecture.md)** - Complete system design overview
+- **[🧪 Testing Framework](doc/dev/testing.md)** - Testing infrastructure and validation procedures
+
+### **Getting Started**
+- **[🚀 Quick Start Guide](#-quick-start)** - Environment setup and basic usage
+- **[📱 CLI Initiation](doc/cli/initiation.md)** - Command-line interface and user guides
+- **[⚙️ Configuration Management](doc/adm/configuration.md)** - System configuration and setup
+
+### **Developer Resources**
+- **[📖 API Reference](doc/dev/api-reference.md)** - Library functions and integration guides
+- **[📊 Logging System](doc/dev/logging.md)** - Advanced logging and performance monitoring
+- **[🔧 Verbosity Controls](doc/dev/verbosity.md)** - Output control implementation
+
+### **Operations & Infrastructure**
+- **[🛠️ Infrastructure Guide](doc/iac/infrastructure.md)** - Deployment patterns and automation
+- **[🔒 Security Management](doc/adm/security.md)** - Security framework and credential management
+- **[🌍 Environment Management](doc/iac/environment-management.md)** - Multi-environment deployment
+
+## 🔧 Documentation Tools
+
+### **Maintenance & Validation**
+```bash
+# Generate comprehensive documentation index
+./bin/doc-index
+
+# Validate all documentation links
+./bin/validate-docs
+
+# Quick system validation
+./tst/validate_system
+```
+
+### **Standards & Guidelines**
+- **[📋 Documentation Standards](doc/DOCUMENTATION_STANDARDS.md)** - Writing standards and templates
+- **[📚 Complete Index](DOCUMENTATION_INDEX.md)** - Comprehensive documentation overview
+
 
 ## 🚀 Quick Start
 
