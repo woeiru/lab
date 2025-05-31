@@ -41,9 +41,14 @@ export RC_FILES
 declare -A rc=()
 export rc
 
+# Core configuration directory
+declare -g DIC_DIR
+DIC_DIR="${LAB_DIR}/cfg/core"
+export DIC_DIR
+
 # Constants files
-declare -g MDE_FILE RDE_FILE RUC_FILE
-MDE_FILE="$DIC_DIR/mde"
+declare -g MDE_FILE RDC_FILE RIC_FILE
+MDE_FILE="$DIC_DIR/mdc"
 RDC_FILE="$DIC_DIR/rdc"
 RIC_FILE="$DIC_DIR/ric"
 export MDE_FILE RDC_FILE RIC_FILE
