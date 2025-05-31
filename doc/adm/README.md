@@ -84,7 +84,7 @@ tme_print_timing_report
 - **Component Testing**: Module-specific validation scripts (see [Testing Framework](../dev/testing.md))
 
 ### Performance Metrics
-- **Live Statistics**: `./stats.sh` for real-time metrics
+- **Live Statistics**: `./utl/doc-stats` for real-time metrics and README updates
 - **Resource Monitoring**: Built-in performance analysis
 - **Capacity Planning**: Infrastructure utilization tracking
 
