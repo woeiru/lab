@@ -51,13 +51,13 @@
 #   - LOG_DIR (Logging directory path)
 #   - TMP_DIR (Temporary files directory path)
 #   - LIB_CORE_DIR (Core library directory path)
-#   - ERROR_LOG, LOG_DEBUG_FILE, LOG_FILE (Log file paths)
+#   - ERROR_LOG, INI_LOG_FILE, LOG_FILE (Log file paths)
 #   - TME_LOG_FILE, TME_STATE_FILE (Timing system files)
 #
 #######################################################################
 
 # Output a startup message, respecting verbosity settings
-if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${DEBUG_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
     echo " ─────────────── " >&2
 fi
 
@@ -72,7 +72,7 @@ ini_log() {
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
     local priority="${3:-1}" # 1=normal, 2=detailed (can be skipped in performance mode)
-    local LOG_DEBUG_FILE="${BASE_DIR}/.log/debug.log"
+    local INI_LOG_FILE="${BASE_DIR}/.log/ini.log"
     
     # Skip detailed logs during performance-critical operations if desired
     if [[ "$priority" == "2" && "${PERFORMANCE_MODE:-0}" == "1" ]]; then
@@ -80,11 +80,11 @@ ini_log() {
     fi
     
     # Always log to file (but batch for performance)
-    mkdir -p "$(dirname "$LOG_DEBUG_FILE")" 2>/dev/null
-    echo "[INI] $timestamp - [$source] $message" >> "$LOG_DEBUG_FILE"
+    mkdir -p "$(dirname "$INI_LOG_FILE")" 2>/dev/null
+    echo "[INI] $timestamp - [$source] $message" >> "$INI_LOG_FILE"
     
-    # Conditionally output to stderr based on both system and specific debug verbosity
-    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${DEBUG_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+    # Conditionally output to stderr based on both system and specific ini log verbosity
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
         echo "└─ $message [$timestamp]" >&2
     fi
 }
@@ -131,10 +131,10 @@ main_ini() {
     export PERFORMANCE_MODE=1
 
     # Ensure log directory exists and clear logs for the new cycle
-    # LOG_DIR, LOG_DEBUG_FILE, and ERROR_LOG are sourced from cfg/core/ric
-    if [ -n "$LOG_DIR" ] && [ -n "$LOG_DEBUG_FILE" ] && [ -n "$ERROR_LOG" ]; then
+    # LOG_DIR, INI_LOG_FILE, and ERROR_LOG are sourced from cfg/core/ric
+    if [ -n "$LOG_DIR" ] && [ -n "$INI_LOG_FILE" ] && [ -n "$ERROR_LOG" ]; then
         mkdir -p "$LOG_DIR" 2>/dev/null
-        > "$LOG_DEBUG_FILE" # Clear/create debug log
+        > "$INI_LOG_FILE" # Clear/create ini log
         > "$ERROR_LOG"     # Clear/create error log
     else
         # This case should ideally not be reached if ric is sourced correctly
