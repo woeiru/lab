@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail  # Exit on error, undefined vars, pipe failures
+set -eo pipefail  # Exit on error and pipe failures, but allow unbound variables for compatibility
 
 #######################################################################
 # Component Orchestrator
@@ -81,13 +81,25 @@ validate_required_globals() {
     local required_vars=(
         "BASE_DIR" "LAB_DIR" "LIB_OPS_DIR" "LIB_AUX_DIR"
         "LIB_UTL_DIR" "CFG_ALI_DIR" "SRC_MGT_DIR"
-        "ERROR_CODES" "SITE_CONFIG_FILE" "ENV_OVERRIDE_FILE" "NODE_OVERRIDE_FILE"
+        "SITE_CONFIG_FILE" "ENV_OVERRIDE_FILE" "NODE_OVERRIDE_FILE"
+    )
+    
+    # Optional variables that may not be set initially
+    local optional_vars=(
+        "ERROR_CODES"
     )
     
     local missing_vars=()
     for var in "${required_vars[@]}"; do
         if [[ -z "${!var:-}" ]]; then
             missing_vars+=("$var")
+        fi
+    done
+    
+    # Check optional variables and warn if missing
+    for var in "${optional_vars[@]}"; do
+        if [[ -z "${!var:-}" ]]; then
+            log "lvl" "Warning: Optional variable $var not set (may be loaded later)"
         fi
     done
     
