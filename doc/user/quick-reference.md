@@ -84,20 +84,18 @@ export MASTER_TERMINAL_VERBOSITY="off"
 export LOG_DIR="/custom/log/path"
 ```
 
-## 📊 Monitoring Commands
+## 📊 System Monitoring
 
-### Performance Monitoring
+### Basic System Status
 ```bash
-# View timing reports (when enabled)
-tme_print_timing_report
+# View system statistics
+./stats.sh
 
-# Check output settings  
-tme_show_output_settings
-
-# Control output levels
-tme_set_output debug off     # Disable debug messages
-tme_set_output report on     # Enable timing reports
+# Check system health
+./tst/validate_system
 ```
+
+> **🔧 For Developers**: Performance monitoring, TME timing framework controls, and advanced monitoring commands are documented in the [Developer Logging Guide](../dev/logging.md).
 
 ### Log Management
 ```bash
@@ -148,32 +146,18 @@ cd src/set/t2 && ./t2        # Test deployment 2
 cd src/set/w1 && ./w1        # Workstation configuration
 ```
 
-## 🧪 Testing Commands
+## 🧪 System Validation
 
-### System Validation
+### Basic Health Checks
 ```bash
-# Quick validation
+# Quick system validation
 ./tst/validate_system
 
-# Comprehensive testing
+# Comprehensive system testing
 ./tst/test_environment
-
-# Component-specific testing
-./tst/test_complete_refactor.sh     # Complete system test
-./tst/test_gpu_wrappers.sh          # GPU wrapper testing
-./tst/test_verbosity_controls.sh    # Verbosity system test
-./tst/validate_gpu_refactoring.sh   # GPU refactoring validation
 ```
 
-### Performance Testing
-```bash
-# Enable timing for performance analysis
-export TME_TERMINAL_VERBOSITY="on"
-tme_start_timer "OPERATION_NAME"
-# ... perform operations ...
-tme_end_timer "OPERATION_NAME" "success"
-tme_print_timing_report
-```
+> **🔧 For Developers**: Component-specific testing, performance testing, and advanced validation procedures are documented in the [Developer Testing Guide](../dev/testing.md).
 
 ## 🔐 Security Commands
 
