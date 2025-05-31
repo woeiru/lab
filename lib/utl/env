@@ -313,7 +313,7 @@ Examples:
   env validate
 
 Environment Variables (for automation):
-  SITE_NAME=site2 ENVIRONMENT_NAME=dev ./bin/init
+  SITE_NAME=site2 ENVIRONMENT_NAME=dev ./bin/ini
 EOF
 }
 

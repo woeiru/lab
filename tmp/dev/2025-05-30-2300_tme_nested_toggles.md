@@ -111,7 +111,7 @@ export TME_DEBUG_TERMINAL_OUTPUT="off"
 # Set before initialization
 export TME_REPORT_TERMINAL_OUTPUT="off"
 export TME_DEBUG_TERMINAL_OUTPUT="off"
-source ./bin/init
+source ./bin/ini
 ```
 
 #### Runtime Control

@@ -332,7 +332,7 @@ load_modules() {
     done
 
     mkdir -p "${BASE_DIR}/.log" # Ensure directory exists
-    echo "INIT_SCRIPT_FLOW: Finished optimized module loading loop in init - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
+    echo "INIT_SCRIPT_FLOW: Finished optimized module loading loop in ini - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
 
     debug_log "Loaded $module_loaded modules using optimized batch processing"
     return $((module_loaded > 0 ? 0 : 1))

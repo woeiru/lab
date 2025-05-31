@@ -7,15 +7,15 @@ This guide explains how to control what information appears on your terminal whi
 ```bash
 # Enable all output (verbose mode)
 export MASTER_TERMINAL_VERBOSITY="on"
-./bin/init
+./bin/ini
 
 # Quiet mode (default - minimal output)
 export MASTER_TERMINAL_VERBOSITY="off"
-./bin/init
+./bin/ini
 
 # Custom log directory
 export LOG_DIR="/your/custom/log/path"
-./bin/init
+./bin/ini
 ```
 
 ## Master Control
@@ -78,7 +78,7 @@ tme_show_output_settings
 
 ### Pre-Initialization Control
 
-Set these variables before running `./bin/init`:
+Set these variables before running `./bin/ini`:
 
 ```bash
 export TME_REPORT_TERMINAL_OUTPUT="on"   # Performance reports
@@ -93,7 +93,7 @@ export TME_STATUS_TERMINAL_OUTPUT="on"   # Status messages
 ```bash
 # Complete silence
 export MASTER_TERMINAL_VERBOSITY="off"
-./bin/init
+./bin/ini
 ```
 
 ### Minimal Feedback
@@ -103,14 +103,14 @@ export MASTER_TERMINAL_VERBOSITY="on"
 export DEBUG_LOG_TERMINAL_VERBOSITY="off"
 export LO1_LOG_TERMINAL_VERBOSITY="off"
 export TME_TERMINAL_VERBOSITY="off"
-./bin/init
+./bin/ini
 ```
 
 ### Development Mode
 ```bash
 # Full output for debugging
 export MASTER_TERMINAL_VERBOSITY="on"
-./bin/init
+./bin/ini
 # All other controls default to "on"
 ```
 
@@ -119,7 +119,7 @@ export MASTER_TERMINAL_VERBOSITY="on"
 # Focus on performance data
 export MASTER_TERMINAL_VERBOSITY="on"
 export TME_TERMINAL_VERBOSITY="on"
-./bin/init
+./bin/ini
 
 # Configure for performance analysis
 tme_set_output report on     # Essential performance data
@@ -132,7 +132,7 @@ tme_set_output status off    # Reduce noise
 ```bash
 # Enable master control
 export MASTER_TERMINAL_VERBOSITY="on"
-./bin/init
+./bin/ini
 
 # Then selectively enable what you want
 tme_set_output report on     # Performance summaries
@@ -191,7 +191,7 @@ export TME_TERMINAL_VERBOSITY="off"
 **Solution**: Ensure system is initialized
 ```bash
 # Make sure system is properly initialized
-./bin/init
+./bin/ini
 
 # Verify TME module is loaded
 type -t tme_set_output

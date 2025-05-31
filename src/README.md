@@ -10,7 +10,7 @@ The `src/` directory contains the operational source code for infrastructure man
 
 | Directory | Purpose | Usage Pattern | Dependencies |
 |-----------|---------|---------------|--------------|
-| [`mgt/`](#srcmgt---runtime-infrastructure-control) | Runtime Infrastructure Control | Interactive/Individual Operations | Requires `bin/init` environment |
+| [`mgt/`](#srcmgt---runtime-infrastructure-control) | Runtime Infrastructure Control | Interactive/Individual Operations | Requires `bin/ini` environment |
 | [`set/`](#srcset---deployment--initial-setup) | Deployment & Initial Setup | Batch/Multi-node Operations | Self-sufficient via `lib/aux/src` |
 | [`too/`](#srctoo---specialized-tools) | Specialized Tools | Specific Use Cases | Varies by tool |
 
@@ -33,13 +33,13 @@ The `mgt/` (management) directory implements a **wrapper function architecture**
                        ┌──────────────────┐
                        │  Global Config   │
                        │  Environment     │
-                       │  (bin/init)      │
+                       │  (bin/ini)      │
                        └──────────────────┘
 ```
 
 ### **Key Characteristics**
 
-- **Environment Dependent**: Requires `bin/init` initialization and configuration hierarchy
+- **Environment Dependent**: Requires `bin/ini` initialization and configuration hierarchy
 - **Global Variable Extraction**: Wrappers resolve site-specific variables automatically
 - **One-to-One Mapping**: Each `lib/ops/` function gets exactly one wrapper function
 - **Immediate Operations**: Perfect for day-to-day operational tasks and troubleshooting
@@ -55,7 +55,7 @@ The `mgt/` (management) directory implements a **wrapper function architecture**
 
 ```bash
 # Initialize environment (required for mgt/ scripts)
-source bin/init
+source bin/ini
 
 # GPU passthrough operations
 ./src/mgt/gpu-vpt-w 100 on    # Enable GPU passthrough for VM 100
@@ -179,7 +179,7 @@ Contains specialized tools and utilities that don't fit the standard `mgt/` or `
 ```bash
 # Dependencies Flow
 src/mgt/* 
-├── Requires: bin/init (environment initialization)
+├── Requires: bin/ini (environment initialization)
 ├── Uses: lib/ops/* (pure functions)
 └── Accesses: cfg/env/* (site configurations)
 
@@ -191,7 +191,7 @@ src/set/*
 
 ### **Configuration Integration**
 
-- **`src/mgt/`**: Leverages the full configuration hierarchy via `bin/init`
+- **`src/mgt/`**: Leverages the full configuration hierarchy via `bin/ini`
 - **`src/set/`**: Automatically loads configuration through `lib/aux/src`
 - **Both**: Access site-specific variables from `cfg/env/site*` files
 
@@ -203,7 +203,7 @@ src/set/*
 
 ```bash
 # 1. Initialize environment
-source bin/init
+source bin/ini
 
 # 2. Execute wrapper functions with automatic variable resolution
 pve-vpt-w 100 on     # Variables like NODE_PCI0 resolved automatically
@@ -265,7 +265,7 @@ sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x b_xall"
 
 ```bash
 # 1. Initialize environment
-source bin/init
+source bin/ini
 
 # 2. Use management wrappers
 ./src/mgt/gpu         # List available GPU functions

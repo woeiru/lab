@@ -1,26 +1,26 @@
 # CLI Initialization and Configuration Guide
 
-This document provides comprehensive guidance on configuring and interacting with the system through the command-line interface. It covers the `bin/init` initialization process, environment variables, runtime controls, verbosity settings, and core module interaction for optimal system operation.
+This document provides comprehensive guidance on configuring and interacting with the system through the command-line interface. It covers the `bin/ini` initialization process, environment variables, runtime controls, verbosity settings, and core module interaction for optimal system operation.
 
 ## Quick Start
 
 For immediate use:
 ```bash
 # Basic initialization
-./bin/init
+./bin/ini
 
 # With custom logging directory
 export LOG_DIR="/custom/log/path"
-./bin/init
+./bin/ini
 
 # Quiet mode (minimal terminal output)
 export MASTER_TERMINAL_VERBOSITY="off"
-./bin/init
+./bin/ini
 ```
 
 ## 1. Global Configuration via Environment Variables
 
-These variables must be set in your shell environment **before** executing the main initialization script (`bin/init`). They control fundamental system behavior and cannot be changed during runtime.
+These variables must be set in your shell environment **before** executing the main initialization script (`bin/ini`). They control fundamental system behavior and cannot be changed during runtime.
 
 ### Verbosity Control
 
@@ -32,7 +32,7 @@ These variables must be set in your shell environment **before** executing the m
 *   **Example**:
     ```bash
     export MASTER_TERMINAL_VERBOSITY="on"
-    ./bin/init  # Enables verbose terminal output
+    ./bin/ini  # Enables verbose terminal output
     ```
 
 #### Module-Specific Verbosity Controls
@@ -70,7 +70,7 @@ These provide granular control over specific TME module output types and require
 *   **Example**:
     ```bash
     export LOG_DEBUG_ENABLED=0
-    ./bin/init  # Disables lo1 debug messages
+    ./bin/ini  # Disables lo1 debug messages
     ```
 
 #### Directory Path Overrides
@@ -85,12 +85,12 @@ These provide granular control over specific TME module output types and require
     ```bash
     export LOG_DIR="/mnt/custom_storage/system_logs"
     export TMP_DIR="/fast_ssd/temp_files"
-    ./bin/init
+    ./bin/ini
     ```
 
 ## 2. Runtime Control via Shell Functions
 
-These functions become available after the system's modules have been loaded, typically after `bin/init` completes successfully. They provide dynamic control over system behavior during runtime.
+These functions become available after the system's modules have been loaded, typically after `bin/ini` completes successfully. They provide dynamic control over system behavior during runtime.
 
 ### Error Handling (`lib/core/err`)
 
@@ -261,7 +261,7 @@ ls -la lib/core/{err,lo1,tme}
 ```bash
 # Enable timing and generate report
 tme_settme report on
-./bin/init
+./bin/ini
 tme_print_timing_report
 ```
 
@@ -277,7 +277,7 @@ export LOG_DIR="/var/log/myapp"
 export TMP_DIR="/tmp/myapp"
 
 # Initialize with custom settings
-./bin/init
+./bin/ini
 
 # Configure runtime behavior
 setlog on
@@ -296,7 +296,7 @@ export MASTER_TERMINAL_VERBOSITY="off"  # Quiet mode
 export LOG_DIR="/var/log/myproject"
 
 # Initialize system
-source ./bin/init || exit 1
+source ./bin/ini || exit 1
 
 # Use system functions
 tme_start_timer "MY_OPERATION"
@@ -319,7 +319,7 @@ export TME_TERMINAL_VERBOSITY="on"
 export LOG_DEBUG_ENABLED=1
 
 # Initialize and monitor
-./bin/init
+./bin/ini
 tail -f ${LOG_DIR}/debug.log &
 tail -f ${LOG_DIR}/lo1.log &
 ```
@@ -332,7 +332,7 @@ export MASTER_TERMINAL_VERBOSITY="on"
 export TME_TERMINAL_VERBOSITY="on"
 
 # Initialize system
-./bin/init
+./bin/ini
 
 # Selectively disable TME outputs
 tme_set_output debug off     # Disable debug messages
@@ -349,8 +349,8 @@ tme_set_output debug on      # Re-enable debug when troubleshooting
 
 ## General Usage Notes
 
-*   **Module Dependencies**: Functions like `setlog`, `enable_error_trap`, and `tme_settme` require their corresponding modules to be loaded via `bin/init`
-*   **Environment Variables**: Must be set **before** running `bin/init` to take effect during initialization
+*   **Module Dependencies**: Functions like `setlog`, `enable_error_trap`, and `tme_settme` require their corresponding modules to be loaded via `bin/ini`
+*   **Environment Variables**: Must be set **before** running `bin/ini` to take effect during initialization
 *   **Function Availability**: All runtime control functions are verified to exist in their respective modules
 *   **State Persistence**: Settings made via `setlog` and `tme_settme` persist across sessions through state files
 *   **Performance Impact**: Debug logging and verbose output can impact performance; use judiciously in production

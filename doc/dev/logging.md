@@ -31,7 +31,7 @@ This design allows fine-grained control while maintaining simple master and modu
     *   **Purpose**: Records detailed debugging information during script execution, particularly during early initialization and system verification phases.
     *   **Format**: `[DEBUG] YYYY-MM-DD HH:MM:SS - [source_function] message`
     *   **Writing Functions**:
-        *   `debug_log` in `bin/init`: Simple version for early initialization before full logging system loads
+        *   `debug_log` in `bin/ini`: Simple version for early initialization before full logging system loads
         *   `debug_log` in `lib/core/ver`: Enhanced version with verbosity controls
     *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `DEBUG_LOG_TERMINAL_VERBOSITY`
     *   **Usage**: Primary debug channel for core system operations and modules without dedicated debug logs

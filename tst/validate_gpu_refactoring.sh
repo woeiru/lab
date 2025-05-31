@@ -8,7 +8,7 @@ echo "Date: $(date)"
 echo
 
 # Load environment to test wrappers
-source /home/es/lab/bin/init 2>/dev/null || echo "Warning: Could not load full environment"
+source /home/es/lab/bin/ini 2>/dev/null || echo "Warning: Could not load full environment"
 
 echo "1. Testing Wrapper Function Availability:"
 echo "   - Checking gpu-fun-w function..."

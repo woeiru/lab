@@ -104,7 +104,7 @@ Before using the deployment scripts, ensure:
 
 2. **Environment Setup**:
    - Execute from the project root directory (`/home/es/lab/`)
-   - Source the initialization framework: `source bin/init` (recommended)
+   - Source the initialization framework: `source bin/ini` (recommended)
    - Configure environment variables if using non-default settings
 
 3. **Configuration Files**:
@@ -121,7 +121,7 @@ Before using the deployment scripts, ensure:
 cd /home/es/lab
 
 # Initialize the environment (recommended)
-source bin/init
+source bin/ini
 
 # Verify available scripts
 ls src/set/

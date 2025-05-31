@@ -65,7 +65,7 @@ readonly BIN_DIR="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
 readonly DEFAULT_CONFIG_FILES=(".zshrc" ".bashrc")
 readonly INJECT_MARKER_START="# === BEGIN MANAGED BLOCK: Shell Configuration [source: rc] ==="
 readonly INJECT_MARKER_END="# === END MANAGED BLOCK: Shell Configuration ==="
-readonly FILEPATH="init"
+readonly FILEPATH="ini"
 
 # Runtime variables
 declare -g YES_FLAG=false

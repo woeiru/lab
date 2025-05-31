@@ -16,7 +16,7 @@
 #
 # Dependencies:
 #   - TME module: lib/core/tme
-#   - Lab initialization: bin/init
+#   - Lab initialization: bin/ini
 #   - Environment: cfg/core/ric
 #
 # Usage:
@@ -35,7 +35,7 @@
 
 # Source the lab initialization to get TME module
 echo "Initializing lab environment..."
-source ./bin/init
+source ./bin/ini
 
 echo
 echo "=== System Verbosity Controls Test ==="
