@@ -5,7 +5,9 @@
 # File: /home/es/lab/tst/test_environment
 # Description: Comprehensive testing framework for validating all
 #              components of the environment management system including
-#              infrastructure utilities, security features, environment
+#              infrastructur    # Test complete environment setup
+    if source /home/es/lab/lib/laz/src 2>/dev/null; then
+        success "Complete environment setup works"tilities, security features, environment
 #              switching, and integration testing.
 #
 # Dependencies:
@@ -254,7 +256,7 @@ test_environment_switching() {
     log "Testing environment switching..."
     
     # Test base environment loading
-    if source /home/es/lab/lib/aux/src 2>/dev/null; then
+    if source /home/es/lab/lib/laz/src 2>/dev/null; then
         success "Base environment sourcing works"
         
         # Check if environment variables are set
@@ -263,7 +265,7 @@ test_environment_switching() {
         
         # Test development environment override
         export ENVIRONMENT="dev"
-        if source /home/es/lab/lib/aux/src 2>/dev/null; then
+        if source /home/es/lab/lib/laz/src 2>/dev/null; then
             success "Development environment override works"
         else
             failure "Development environment override failed"
@@ -271,7 +273,7 @@ test_environment_switching() {
         
         # Test node-specific override
         export NODE="w2"
-        if source /home/es/lab/lib/aux/src 2>/dev/null; then
+        if source /home/es/lab/lib/laz/src 2>/dev/null; then
             success "Node-specific override works"
         else
             failure "Node-specific override failed"
@@ -326,8 +328,8 @@ test_deployment_scripts() {
         run_test "Deployment script $script is executable" test -x "/home/es/lab/src/set/$script"
     done
     
-    # Test if aux/src can be loaded by deployment scripts
-    if source /home/es/lab/lib/aux/src 2>/dev/null; then
+    # Test if laz/src can be loaded by deployment scripts
+    if source /home/es/lab/lib/laz/src 2>/dev/null; then
         success "Deployment framework can be loaded"
         run_test "setup_source function available" declare -f setup_source > /dev/null
     else
