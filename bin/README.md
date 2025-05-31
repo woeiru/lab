@@ -37,7 +37,6 @@ bin/
    - Registers and validates system functions
 
 
-
 **Dependencies**:
 - **Configuration Files**: `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`
 - **Core Modules**: `lib/core/ver`, `lib/core/err`, `lib/core/lo1`, `lib/core/tme`
