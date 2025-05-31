@@ -543,9 +543,6 @@ For production monitoring:
 
 ## Summary of Key Logging Modules and Functions
 
-*   **`bin/ini` & `lib/core/ver` (`debug_log`)**:
-    *   Writes to: `.log/debug.log`
-    *   Purpose: Low-level debug messages, especially during initial system verification and for modules without dedicated debug logs.
 *   **`lib/core/lo1` (Advanced Logging Module)**:
     *   `log`, `log_message`, `log_with_timer`, `lo1_debug_log`: Write to `.log/lo1.log` (main application and `lo1` module-specific debug log).
     *   Manages `.tmp/lo1_depth_cache` (performance cache) and `.tmp/log_state` (logging on/off).

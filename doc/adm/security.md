@@ -113,12 +113,10 @@ QDEVICE_IP="192.168.1.12"  # Dedicated QDevice network
 ```bash
 # Security events logged to
 ${LOG_DIR}/.log/err.log     # Error and security violations
-${LOG_DIR}/.log/debug.log   # Detailed security operations
 ${LOG_DIR}/.log/lo1.log     # Module-specific security events
 
 # Security-related environment variables
 ERROR_LOG="${LOG_DIR}/.log/err.log"
-DEBUG_LOG="${LOG_DIR}/.log/debug.log"
 ```
 
 ### Security Validation
