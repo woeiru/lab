@@ -15,6 +15,7 @@ End users who need to:
 ### Getting Started
 - **[User Guide](initiation.md)** - Complete user interaction and configuration guide, runtime controls, and system operation
 - **[Quick Reference](quick-reference.md)** - Essential commands and daily workflow operations
+- **[Verbosity Controls](verbosity-controls.md)** - User-facing verbosity configuration and control options
 
 ### User Guidelines
 
@@ -164,8 +165,15 @@ source ~/.bashrc              # Reload environment
 - **Logs**: `.log/` - System log files
 - **Documentation**: `doc/` - All documentation
 
+### Testing and Validation
+- **Quick Validation**: `./tst/validate_system` for rapid system health checks
+- **Comprehensive Testing**: `./tst/test_environment` for full system validation
+- **Component Testing**: `./tst/test_complete_refactor.sh` for system refactoring validation
+- **Performance Testing**: TME timing framework for performance analysis
+
 ## 📖 Related Documentation
 
+- **Testing Framework**: See `../dev/testing.md` for comprehensive testing infrastructure and procedures
 - **Developers**: See `../dev/` for integration and technical details
 - **System Administrators**: See `../adm/` for system management
 - **Infrastructure Teams**: See `../iac/` for deployment automation

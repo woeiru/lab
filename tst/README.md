@@ -2,15 +2,17 @@
 
 This directory contains test and validation scripts for the lab environment management system.
 
-## Directory Contents
+> **📋 For comprehensive testing documentation, see [Developer Testing Guide](../doc/dev/testing.md)**
+
+## Quick Reference
 
 ### Test Scripts
 
 - **`test_verbosity_controls.sh`** - Comprehensive test for system verbosity control mechanisms
-- **`test_complete_refactor.sh`** - Test script for complete system refactoring validation
+- **`test_complete_refactor.sh`** - Test script for complete system refactoring validation  
 - **`test_refactor.sh`** - Basic refactoring validation test
 
-## Usage
+### Running Tests
 
 All test scripts should be run from the lab root directory:
 
@@ -28,27 +30,22 @@ cd lab/
 ./tst/test_refactor.sh
 ```
 
-## Test Categories
+## Documentation
 
-### Performance Testing
-- System verbosity controls and TME module functionality
-- Timing and performance monitoring validation
+For detailed information about:
+- **Testing Framework Architecture** → [Developer Testing Guide](../doc/dev/testing.md)
+- **Writing New Tests** → [Developer Testing Guide](../doc/dev/testing.md#writing-tests)
+- **Testing Standards** → [Developer Testing Guide](../doc/dev/testing.md#testing-standards)
+- **Performance Testing** → [Developer Testing Guide](../doc/dev/testing.md#performance-testing)
 
-### System Integration Testing
-- Complete system refactoring validation
-- Component integration and functionality testing
+## Quick Add Test Checklist
 
-### Module Testing
-- Individual module functionality validation
-- Wrapper function testing
+When adding new test scripts:
 
-## Adding New Tests
-
-When adding new test scripts to this directory:
-
-1. Follow the naming convention: `test_<feature>_<purpose>.sh`
-2. Include comprehensive technical headers with test coverage documentation
-3. Make scripts executable: `chmod +x tst/<script_name>.sh`
+1. ✅ Follow naming convention: `test_<feature>_<purpose>.sh`
+2. ✅ Include comprehensive technical headers with test coverage documentation
+3. ✅ Make scripts executable: `chmod +x tst/<script_name>.sh`
+4. ✅ Update [Developer Testing Guide](../doc/dev/testing.md) with new test documentation
 4. Update this README.md to document the new test
 
 ## Dependencies

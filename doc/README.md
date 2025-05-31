@@ -144,7 +144,7 @@ tmp/
 - **`../lib/`** - Implementation libraries referenced in documentation
 - **`../cfg/`** - Configuration files documented in manual sections
 - **`../src/`** - Source code related to development documentation
-- **`../tst/`** - Test procedures and validation documentation
+- **`../tst/`** - Test procedures and validation documentation (see [Testing Framework](dev/testing.md))
 
 ### Cross-Reference Points
 - Development documentation often references configuration in `cfg/`

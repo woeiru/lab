@@ -94,7 +94,7 @@ ansible-playbook main.yml -i inventory
 ### Health Checks
 - **Quick Validation**: `./tst/validate_system`
 - **Comprehensive Testing**: `./tst/test_environment`
-- **Component Testing**: Module-specific validation scripts
+- **Component Testing**: Module-specific validation scripts (see [Testing Framework](../dev/testing.md))
 
 ### Performance Metrics
 - **Live Statistics**: `./stats.sh` for real-time metrics
@@ -116,6 +116,7 @@ ansible-playbook main.yml -i inventory
 
 ## 📖 Related Documentation
 
+- **Testing Infrastructure**: See `../dev/testing.md` for comprehensive testing framework documentation
 - **Developers**: See `../dev/` for integration and architecture details
 - **Infrastructure Teams**: See `../iac/` for deployment automation
 - **End Users**: See `../user/` for user-facing procedures
