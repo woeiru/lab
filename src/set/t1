@@ -1,5 +1,6 @@
 #!/bin/bash
-# ----------------------------------------------------------------------
+# -echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/../../lib/laz/src")"
+source "$(realpath "$DIR_SH/../../lib/laz/src")"-------------------------------------------------------------------
 # Functions:
 #   a_xall: Installs common system packages and configures global Git user credentials.
 #   b_xall: Configures global Git user credentials.

@@ -72,9 +72,9 @@ The IaC deployment system provides automated infrastructure provisioning through
 - **Standardized utility integration** for consistent infrastructure management
 - **Comprehensive logging and error handling** for reliable operations
 
-## Core Framework: `lib/aux/src`
+## Core Framework: `lib/laz/src`
 
-All scripts within `src/set/` leverage the Environment-Aware Deployment Framework located at `lib/aux/src`. This framework provides:
+All scripts within `src/set/` leverage the Environment-Aware Deployment Framework located at `lib/laz/src`. This framework provides:
 
 ### Key Features
 
@@ -419,7 +419,7 @@ Refer to `cfg/env/site1` for complete configuration examples.
    - Verify file permissions on configuration directories
 
 3. **Function Not Found Errors**
-   - Ensure `lib/aux/src` is properly sourced
+   - Ensure `lib/laz/src` is properly sourced
    - Check that required utility functions exist in `lib/ops/`
    - Verify runtime constants are loaded from `cfg/core/ric`
 
@@ -512,7 +512,7 @@ export NODE="w1"
 1. **Built-in Documentation**: Use `./src/set/script_name` to view detailed help for any script
 2. **Function Reference**: Examine source files in `lib/ops/` for available operations and their parameters
 3. **Configuration Examples**: Review `cfg/env/site1` for complete parameter formats and examples
-4. **Framework Source**: See `lib/aux/src` source code for advanced features and customization options
+4. **Framework Source**: See `lib/laz/src` source code for advanced features and customization options
 
 ### Maintenance Tasks
 

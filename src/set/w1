@@ -1,5 +1,6 @@
 #!/bin/bash
-# ----------------------------------------------------------------------
+# ----------------echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/../../lib/laz/src")"
+source "$(realpath "$DIR_SH/../../lib/laz/src")"----------------------------------------------------
 # Functions:
 #   a_xall: Disables enterprise repository, adds community repository, and 
 #           removes subscription notice from Proxmox web interface.

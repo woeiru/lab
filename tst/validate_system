@@ -135,7 +135,7 @@ echo
 
 # Test 3: Environment Loading
 echo "3️⃣  Testing Environment Loading..."
-if source lib/aux/src 2>/dev/null; then
+if source lib/laz/src 2>/dev/null; then
     echo "   ✅ Environment loading completed"
     
     # Check if containers were defined
@@ -160,7 +160,7 @@ echo
 echo "4️⃣  Testing Environment Variables..."
 export ENVIRONMENT="dev"
 export NODE="w2"
-if source lib/aux/src 2>/dev/null; then
+if source lib/laz/src 2>/dev/null; then
     echo "   ✅ Environment-aware loading works"
     echo "   ℹ️  Environment: ${ENVIRONMENT}, Node: ${NODE}"
 else
@@ -223,7 +223,7 @@ echo
 echo "🎉 Environment Management System is operational!"
 echo
 echo "💡 Quick Start:"
-echo "   source lib/aux/src                    # Load environment"
+echo "   source lib/laz/src                    # Load environment"
 echo "   source lib/utl/inf && source lib/utl/sec  # Load utilities"
 echo "   define_container 200 200 web 192.168.1.200  # Define container"
 echo "   generate_secure_password 16           # Generate password"

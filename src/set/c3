@@ -1,5 +1,6 @@
 #!/bin/bash
-# ----------------------------------------------------------------------
+# -echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/../../lib/laz/src")"
+source "$(realpath "$DIR_SH/../../lib/laz/src")"-------------------------------------------------------------------
 # Functions:
 #   a_xall: Downloads and verifies Proxmox Backup Server GPG key, 
 #           adds repository, and installs PBS packages.

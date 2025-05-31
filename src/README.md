@@ -1,4 +1,7 @@
-# 📁 Source Code (`src/`) - Infrastructure Management Scripts
+# 📁 Source C| [`set/`](#srcset---deployment--initial-setup) | Deployment & Initial Setup | Ba- **Self-Sufficient**: Each script sources `lib/laz/src` directly, no initialization required
+- **Hostname-Based Naming**: Files correspond to actual infrastructure hostnames
+- **Section Organization**: Functions named with patterns like `a_xall`, `b_xall` for logical grouping
+- **Interactive Framework**: Built-in menu system via `lib/laz/src` for guided deploymentMulti-node Operations | Self-sufficient via `lib/laz/src` |de (`src/`) - Infrastructure Management Scripts
 
 [![Infrastructure](https://img.shields.io/badge/Type-Infrastructure%20Management-blue)](#) [![Bash](https://img.shields.io/badge/Language-Bash-green)](#) [![Environment](https://img.shields.io/badge/Environment-Multi--Site-orange)](#)
 
@@ -84,7 +87,7 @@ The `set/` (setup) directory implements a **section-based deployment architectur
                                 │
                                 v
                        ┌──────────────────┐
-                       │   lib/aux/src    │
+                       │   lib/laz/src    │
                        │  (Auto-sourced)  │
                        │  Interactive UI  │
                        └──────────────────┘
