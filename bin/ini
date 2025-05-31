@@ -56,6 +56,16 @@
 #
 #######################################################################
 
+#######################################################################
+# Constants and Configuration
+#######################################################################
+readonly LOG_PRIORITY_NORMAL=1
+readonly LOG_PRIORITY_DETAILED=2
+readonly TIMER_MAIN_OPERATIONS="MAIN_OPERATIONS"
+readonly TIMER_SOURCE_COMP="SOURCE_COMP_ORCHESTRATOR"
+readonly TIMER_INIT_RUNTIME="INIT_RUNTIME_SYSTEM"
+readonly TIMER_FINALIZE="FINALIZE_MAIN_INIT"
+
 # Output a startup message, respecting verbosity settings
 if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
     echo " ─────────────── " >&2
@@ -65,22 +75,89 @@ fi
 readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
 
+# Cache for file existence checks and directory creation
+declare -A file_existence_cache
+declare -A dir_creation_cache
+
+#######################################################################
+# Helper Functions
+#######################################################################
+
+# Cached file existence check
+check_file_cached() {
+    local file="$1"
+    local type="${2:-file}" # file or dir
+    
+    if [[ -n "${file_existence_cache[$file]:-}" ]]; then
+        [[ "${file_existence_cache[$file]}" == "true" ]]
+        return $?
+    fi
+    
+    local exists=false
+    if [[ "$type" == "dir" ]]; then
+        [[ -d "$file" ]] && exists=true
+    else
+        [[ -f "$file" ]] && exists=true
+    fi
+    
+    file_existence_cache[$file]="$exists"
+    [[ "$exists" == "true" ]]
+}
+
+# Optimized directory creation with caching
+ensure_dir_cached() {
+    local dir="$1"
+    
+    if [[ -n "${dir_creation_cache[$dir]:-}" ]]; then
+        return 0
+    fi
+    
+    if [[ ! -d "$dir" ]]; then
+        mkdir -p "$dir" 2>/dev/null || return 1
+    fi
+    dir_creation_cache[$dir]="created"
+    return 0
+}
+
+# Centralized sourcing with timer and error handling
+source_with_timer() {
+    local file="$1"
+    local timer_name="$2"
+    local parent_timer="${3:-}"
+    local error_msg="${4:-Failed to source $file}"
+    
+    if [[ -n "$parent_timer" ]]; then
+        type tme_start_timer &>/dev/null && tme_start_timer "$timer_name" "$parent_timer"
+    else
+        type tme_start_timer &>/dev/null && tme_start_timer "$timer_name"
+    fi
+    
+    if ! source "$file" 2>/dev/null; then
+        type tme_end_timer &>/dev/null && tme_end_timer "$timer_name" "error"
+        ini_log "ERROR: $error_msg"
+        return 1
+    fi
+    
+    type tme_end_timer &>/dev/null && tme_end_timer "$timer_name" "success"
+    return 0
+}
+
 # Initialization logging function to use before we load the full system
 # Now with optimized I/O for performance-critical sections
 ini_log() {
     local timestamp=$(date '+%H:%M:%S')
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
-    local priority="${3:-1}" # 1=normal, 2=detailed (can be skipped in performance mode)
+    local priority="${3:-$LOG_PRIORITY_NORMAL}"
     local INI_LOG_FILE="${BASE_DIR}/.log/ini.log"
     
     # Skip detailed logs during performance-critical operations if desired
-    if [[ "$priority" == "2" && "${PERFORMANCE_MODE:-0}" == "1" ]]; then
+    if [[ "$priority" == "$LOG_PRIORITY_DETAILED" && "${PERFORMANCE_MODE:-0}" == "1" ]]; then
         return 0
     fi
     
     # Always log to file (but batch for performance)
-    mkdir -p "$(dirname "$INI_LOG_FILE")" 2>/dev/null
+    ensure_dir_cached "$(dirname "$INI_LOG_FILE")"
     echo "[INI] $timestamp - [$source] $message" >> "$INI_LOG_FILE"
     
     # Conditionally output to stderr based on both system and specific ini log verbosity
@@ -95,27 +172,24 @@ ini_log() {
 #   1. Module dependency initialization (working with mdc)
 #   2. Runtime dependency initialization (working with rdc)
 
-# Source runtime initialization constants
+# Source core configuration files with proper error messages
 source "${BASE_DIR}/cfg/core/ric" || {
-    echo "Failed to source runtime constants" >&2
+    echo "Failed to source runtime initialization constants (ric)" >&2
     exit 1
 }
 
-# Source runtime dependency constants
 source "${BASE_DIR}/cfg/core/rdc" || {
-    echo "Failed to source dependency constants" >&2
+    echo "Failed to source runtime dependency constants (rdc)" >&2
     exit 1
 }
 
-# Source module dependency constants
 source "${BASE_DIR}/cfg/core/mdc" || {
-    echo "Failed to source dependency constants" >&2
+    echo "Failed to source module dependency constants (mdc)" >&2
     exit 1
 }
 
-# Source verification module
 source "${BASE_DIR}/lib/core/ver" || {
-    echo "Failed to source verification module" >&2
+    echo "Failed to source verification module (ver)" >&2
     exit 1
 }
 
@@ -125,104 +199,153 @@ source "${BASE_DIR}/lib/core/ver" || {
 #   - ver (lib/core/ver) for all verification functions
 ###############################################
 main_ini() {
-    local main_op_timer_started=0 # New: Flag to track if MAIN_OPERATIONS timer started
+    local main_op_timer_started=0
 
     # Performance optimization: Enable performance mode for critical sections
     export PERFORMANCE_MODE=1
 
-    # Ensure log directory exists and clear logs for the new cycle
-    # LOG_DIR, INI_LOG_FILE, and ERROR_LOG are sourced from cfg/core/ric
-    if [ -n "$LOG_DIR" ] && [ -n "$INI_LOG_FILE" ] && [ -n "$ERROR_LOG" ]; then
-        mkdir -p "$LOG_DIR" 2>/dev/null
-        > "$INI_LOG_FILE" # Clear/create ini log
-        > "$ERROR_LOG"     # Clear/create error log
-    else
-        # This case should ideally not be reached if ric is sourced correctly
-        echo "Critical Error: Log directory or log file variables not set. Cannot clear logs." >&2
+    # Initialize logging system
+    if ! init_logging_system; then
+        echo "Critical Error: Failed to initialize logging system" >&2
+        return 1
     fi
 
     ini_log "Starting main initialization with performance optimizations"
 
     # Verify that verification module is loaded
-    if ! type verify_module &>/dev/null || ! type verify_path &>/dev/null; then
-        echo "ERROR: Verification module not properly loaded" >&2
+    if ! verify_core_modules_loaded; then
+        echo "ERROR: Core verification modules not properly loaded" >&2
         return 1
     fi
 
     # Part 1: Module dependency initialization
-    if ! init_module_system "err" "lo1" "tme"; then
-        ini_log "Critical error: Module system initialization failed. Exiting." "main_ini" "error"
+    if ! init_module_system; then
+        ini_log "Critical error: Module system initialization failed. Exiting." "main_ini"
         return 1
     fi
 
-    # Initialize the timer system and clear its log file
+    # Initialize timer system and start main operations timer
+    if ! init_timer_system; then
+        ini_log "WARNING: Timer system initialization failed"
+    else
+        main_op_timer_started=1
+    fi
+
+    # Part 2: Source component orchestrator
+    if ! source_component_orchestrator "$main_op_timer_started"; then
+        return 1
+    fi
+
+    # Part 3: Runtime dependency initialization
+    if ! init_runtime_system_with_timing "$main_op_timer_started"; then
+        return 1
+    fi
+
+    # Disable performance mode before component setup
+    export PERFORMANCE_MODE=0
+
+    # Part 4: Setup additional components
+    if ! setup_components_with_finalization "$main_op_timer_started"; then
+        return 1
+    fi
+
+    ini_log "Main initialization completed successfully"
+    return 0
+}
+
+# Initialize logging system with proper error handling
+init_logging_system() {
+    if [[ -z "$LOG_DIR" ]] || [[ -z "$INI_LOG_FILE" ]] || [[ -z "$ERROR_LOG" ]]; then
+        return 1
+    fi
+    
+    ensure_dir_cached "$LOG_DIR"
+    > "$INI_LOG_FILE" # Clear/create ini log
+    > "$ERROR_LOG"    # Clear/create error log
+    return 0
+}
+
+# Verify core modules are loaded
+verify_core_modules_loaded() {
+    type verify_module &>/dev/null && type verify_path &>/dev/null
+}
+
+# Initialize timer system
+init_timer_system() {
     if type tme_init_timer &>/dev/null; then
         tme_init_timer "${BASE_DIR}/.log"
         ini_log "Timer system initialized and log cleared (${BASE_DIR}/.log/tme.log)."
-        # New: Start MAIN_OPERATIONS timer right after tme_init_timer
+        
         if type tme_start_timer &>/dev/null; then
-            tme_start_timer "MAIN_OPERATIONS"
-            main_op_timer_started=1
+            tme_start_timer "$TIMER_MAIN_OPERATIONS"
+            return 0
         else
-            ini_log "WARNING: tme_start_timer function not found. Cannot start MAIN_OPERATIONS timer."
+            ini_log "WARNING: tme_start_timer function not found."
+            return 1
         fi
     else
         ini_log "WARNING: tme_init_timer function not found after module loading."
+        return 1
     fi
+}
 
-    # Source the component orchestrator
-    # Ensure BASE_DIR is available to comp script if it needs it explicitly
-    # (though sourcing should make variables available)
+# Source component orchestrator with proper error handling
+source_component_orchestrator() {
+    local main_op_timer_started="$1"
     local comp_orchestrator_path="${BASE_DIR}/bin/orc"
-    if [[ ! -f "$comp_orchestrator_path" ]]; then
+    
+    if ! check_file_cached "$comp_orchestrator_path"; then
         ini_log "ERROR: Component orchestrator script not found at $comp_orchestrator_path"
-        if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "1"; fi
+        ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "1"
         return 1
     fi
-    # shellcheck source=bin/orc
-    if type tme_start_timer &>/dev/null; then tme_start_timer "SOURCE_COMP_ORCHESTRATOR" "MAIN_OPERATIONS"; fi
-    if ! source "$comp_orchestrator_path"; then
-        ini_log "ERROR: Failed to source component orchestrator $comp_orchestrator_path"
-        if type tme_end_timer &>/dev/null; then tme_end_timer "SOURCE_COMP_ORCHESTRATOR" "error"; fi
-        if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "1"; fi
+    
+    if ! source_with_timer "$comp_orchestrator_path" "$TIMER_SOURCE_COMP" "$TIMER_MAIN_OPERATIONS" "Failed to source component orchestrator"; then
+        ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "1"
         return 1
     fi
-    if type tme_end_timer &>/dev/null; then tme_end_timer "SOURCE_COMP_ORCHESTRATOR" "success"; fi
+    
     ini_log "Component orchestrator sourced successfully"
+    return 0
+}
 
-    # Part 2: Runtime dependency initialization (core)
-    if type tme_start_timer &>/dev/null; then tme_start_timer "INIT_RUNTIME_SYSTEM" "MAIN_OPERATIONS"; fi
+# Initialize runtime system with timing
+init_runtime_system_with_timing() {
+    local main_op_timer_started="$1"
+    
+    type tme_start_timer &>/dev/null && tme_start_timer "$TIMER_INIT_RUNTIME" "$TIMER_MAIN_OPERATIONS"
     if ! init_runtime_system; then
         ini_log "ERROR: Core runtime system initialization failed"
-        if type tme_end_timer &>/dev/null; then tme_end_timer "INIT_RUNTIME_SYSTEM" "error"; fi
-        if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "1"; fi
+        type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_INIT_RUNTIME" "error"
+        ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "1"
         return 1
     fi
-    if type tme_end_timer &>/dev/null; then tme_end_timer "INIT_RUNTIME_SYSTEM" "success"; fi
+    type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_INIT_RUNTIME" "success"
+    return 0
+}
 
-    # Disable performance mode before component setup (which may need detailed logging)
-    export PERFORMANCE_MODE=0
-
-    # Part 3: Setup additional components using the orchestrator
+# Setup components with finalization
+setup_components_with_finalization() {
+    local main_op_timer_started="$1"
+    
     ini_log "Setting RC_SOURCED=0 before calling setup_components"
     if ! setup_components; then
         ini_log "ERROR: Component setup failed via orchestrator."
-        if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "1"; fi
+        ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "1"
         return 1
     fi
 
-    if type tme_start_timer &>/dev/null; then tme_start_timer "FINALIZE_MAIN_INIT" "MAIN_OPERATIONS"; fi
+    type tme_start_timer &>/dev/null && tme_start_timer "$TIMER_FINALIZE" "$TIMER_MAIN_OPERATIONS"
     ini_log "RC_SOURCED value after setup_components: ${RC_SOURCED}"
     
-    # Modify this check to set RC_SOURCED=1 if setup_components succeeded
+    # Set RC_SOURCED=1 if setup_components succeeded
     if [[ -z "${RC_SOURCED:-}" ]] || [[ "${RC_SOURCED:-0}" -ne 1 ]]; then
         ini_log "Note: RC_SOURCED was not set to 1 by setup_components, setting it now"
         export RC_SOURCED=1
     fi
 
-    ini_log "Main initialization completed successfully"
-    if type tme_end_timer &>/dev/null; then tme_end_timer "FINALIZE_MAIN_INIT" "success"; fi
-    if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "0"; fi
+    type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_FINALIZE" "success"
+    ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "0"
     return 0
 }
 
@@ -301,32 +424,28 @@ load_modules() {
 
     declare -A loaded_modules
     
-    # Performance optimization: Batch validate all modules first
-    ini_log "Batch validating modules for performance" "load_modules" 2
+    # Performance optimization: Batch validate all modules first using cache
+    ini_log "Batch validating modules for performance" "load_modules" $LOG_PRIORITY_DETAILED
     for module in "${modules[@]}"; do
         local module_name="$(basename "$module")"
         
-        # Fast file existence check without individual verification
-        if [[ ! -f "$module" ]] || [[ ! -r "$module" ]]; then
+        # Use cached file existence check
+        if ! check_file_cached "$module" "file"; then
             ini_log "ERROR: Module file not accessible: $module_name"
             continue
         fi
         
-        ini_log "Module file verified: $module_name" "load_modules" 2
+        ini_log "Module file verified: $module_name" "load_modules" $LOG_PRIORITY_DETAILED
     done
 
-    # Load each module (excluding lo2 which doesn't exist anymore)
+    # Load each module with optimized checks
     for module in "${modules[@]}"; do
         local module_name="$(basename "$module")"
-        
-        # Skip lo2 module processing (legacy module that no longer exists)
-        if [[ "$module_name" == "lo2" ]]; then
-            continue
-        fi
 
-        ini_log "Loading module: $module_name" "load_modules" 2
+        ini_log "Loading module: $module_name" "load_modules" $LOG_PRIORITY_DETAILED
         
-        if [[ -f "$module" ]] && [[ -r "$module" ]]; then
+        # Use cached existence check and simplified loading
+        if check_file_cached "$module" "file" && [[ -r "$module" ]]; then
             if source "$module" 2>/dev/null; then
                 loaded_modules["$module_name"]=1
                 ((module_loaded++))
@@ -339,6 +458,8 @@ load_modules() {
         fi
     done
     
+    # Log completion with flow tracking
+    ensure_dir_cached "${BASE_DIR}/.log"
     echo "INIT_SCRIPT_FLOW: Finished module loading loop in init - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
 
     ini_log "Loaded $module_loaded modules using optimized batch processing"
@@ -407,16 +528,15 @@ process_runtime_config() {
 
 # Initialize registered functions with verification
 init_registered_functions() {
-    ini_log "Initializing registered functions" "init_registered_functions" 1
-    local parent_timer="INIT_REGISTERED_FUNCTIONS" # Parent timer for this overall function
+    ini_log "Initializing registered functions" "init_registered_functions" $LOG_PRIORITY_NORMAL
+    local parent_timer="INIT_REGISTERED_FUNCTIONS"
 
     # Verify REGISTERED_FUNCTIONS exists using ver's verify_var
     if ! verify_var "REGISTERED_FUNCTIONS" 1; then
-        ini_log "No registered functions found" "init_registered_functions" 1
+        ini_log "No registered functions found" "init_registered_functions" $LOG_PRIORITY_NORMAL
         return 0
     fi
 
-    local failed=0
     local success=0
     
     # Performance optimization: Cache module verification and batch operations
@@ -424,9 +544,25 @@ init_registered_functions() {
     declare -A module_paths_cache
     
     # Pre-verify and cache all unique modules
-    if type tme_start_timer &>/dev/null; then tme_start_timer "CACHE_MODULE_VERIFICATION" "$parent_timer"; fi
-    ini_log "Pre-verifying and caching modules for batch processing" "init_registered_functions" 1
+    type tme_start_timer &>/dev/null && tme_start_timer "CACHE_MODULE_VERIFICATION" "$parent_timer"
+    ini_log "Pre-verifying and caching modules for batch processing" "init_registered_functions" $LOG_PRIORITY_NORMAL
     
+    if ! cache_module_verification; then
+        ini_log "WARNING: Module caching failed, proceeding with direct verification"
+    fi
+    type tme_end_timer &>/dev/null && tme_end_timer "CACHE_MODULE_VERIFICATION" "success"
+    
+    # Process functions using cached data
+    type tme_start_timer &>/dev/null && tme_start_timer "BATCH_FUNCTION_REGISTRATION" "$parent_timer"
+    success=$(process_function_registration)
+    type tme_end_timer &>/dev/null && tme_end_timer "BATCH_FUNCTION_REGISTRATION" "success"
+
+    ini_log "Registered $success functions successfully using optimized batch processing" "init_registered_functions" $LOG_PRIORITY_NORMAL
+    return $((success > 0 ? 0 : 1))
+}
+
+# Cache module verification for performance
+cache_module_verification() {
     for func in "${REGISTERED_FUNCTIONS[@]}"; do
         local deps="${FUNCTION_DEPENDENCIES[$func]}"
         [[ -z "$deps" ]] && continue
@@ -436,71 +572,81 @@ init_registered_functions() {
             # Cache module verification result if not already done
             if [[ -z "${module_cache[$module]:-}" ]]; then
                 local module_path="${FUNCTION_MODULES["$func:$module"]:-${FUNCTION_MODULES[$func]}}"
-                if [[ -n "$module_path" ]] && [[ -f "$module_path" ]]; then
+                if [[ -n "$module_path" ]] && check_file_cached "$module_path" "file"; then
                     module_cache[$module]="valid"
                     module_paths_cache[$module]="$module_path"
-                    ini_log "Cached module: $module -> $module_path" "init_registered_functions" 2
+                    ini_log "Cached module: $module -> $module_path" "cache_module_verification" $LOG_PRIORITY_DETAILED
                 else
                     module_cache[$module]="invalid"
-                    ini_log "Module not found: $module" "init_registered_functions" 2
+                    ini_log "Module not found: $module" "cache_module_verification" $LOG_PRIORITY_DETAILED
                 fi
             fi
         done
     done
-    if type tme_end_timer &>/dev/null; then tme_end_timer "CACHE_MODULE_VERIFICATION" "success"; fi
+    return 0
+}
+
+# Process function registration using cached data
+process_function_registration() {
+    local success=0
     
-    # Process functions using cached data
-    if type tme_start_timer &>/dev/null; then tme_start_timer "BATCH_FUNCTION_REGISTRATION" "$parent_timer"; fi
     for func in "${REGISTERED_FUNCTIONS[@]}"; do
-        ini_log "Processing function: $func" "init_registered_functions" 2
+        ini_log "Processing function: $func" "process_function_registration" $LOG_PRIORITY_DETAILED
         
         # Fast dependency check using cache
         local deps="${FUNCTION_DEPENDENCIES[$func]}"
         if [[ -z "$deps" ]]; then
-            ini_log "WARNING: No dependencies found for function: $func - continuing anyway" "init_registered_functions" 1
+            ini_log "WARNING: No dependencies found for function: $func - continuing anyway" "process_function_registration" $LOG_PRIORITY_NORMAL
             continue
         fi
         
-        local deps_verified=true
-        IFS=',' read -ra MODULE_ARRAY <<< "$deps"
-        for module in "${MODULE_ARRAY[@]}"; do
-            if [[ "${module_cache[$module]:-invalid}" != "valid" ]]; then
-                deps_verified=false
-                break
+        if verify_function_dependencies "$func" "$deps"; then
+            if register_single_function "$func" "$deps"; then
+                ((success++))
             fi
-        done
-        
-        if [[ "$deps_verified" != "true" ]]; then
-            ini_log "WARNING: Failed to verify dependencies for function: $func - continuing anyway" "init_registered_functions" 1
-            continue
-        fi
-        
-        # Register function using cached module paths
-        local registered=false
-        for module in "${MODULE_ARRAY[@]}"; do
-            local module_path="${module_paths_cache[$module]}"
-            if [[ -n "$module_path" ]]; then
-                ini_log "Checking for function $func in cached module $module_path" "init_registered_functions" 2
-                
-                if verify_function "$func" "$module_path" 2; then
-                    if source "$module_path" 2>/dev/null; then
-                        ini_log "Successfully registered function: $func from $module_path" "init_registered_functions" 1
-                        registered=true
-                        ((success++))
-                        break
-                    fi
-                fi
-            fi
-        done
-        
-        if [[ "$registered" != "true" ]]; then
-            ini_log "WARNING: Failed to register function: $func - continuing anyway" "init_registered_functions" 1
         fi
     done
-    if type tme_end_timer &>/dev/null; then tme_end_timer "BATCH_FUNCTION_REGISTRATION" "success"; fi
+    
+    echo "$success"
+}
 
-    ini_log "Registered $success functions successfully using optimized batch processing" "init_registered_functions" 1
-    return $((success > 0 ? 0 : 1))
+# Verify function dependencies using cache
+verify_function_dependencies() {
+    local func="$1"
+    local deps="$2"
+    
+    IFS=',' read -ra MODULE_ARRAY <<< "$deps"
+    for module in "${MODULE_ARRAY[@]}"; do
+        if [[ "${module_cache[$module]:-invalid}" != "valid" ]]; then
+            ini_log "WARNING: Failed to verify dependencies for function: $func - continuing anyway" "verify_function_dependencies" $LOG_PRIORITY_NORMAL
+            return 1
+        fi
+    done
+    return 0
+}
+
+# Register a single function using cached module paths
+register_single_function() {
+    local func="$1"
+    local deps="$2"
+    
+    IFS=',' read -ra MODULE_ARRAY <<< "$deps"
+    for module in "${MODULE_ARRAY[@]}"; do
+        local module_path="${module_paths_cache[$module]}"
+        if [[ -n "$module_path" ]]; then
+            ini_log "Checking for function $func in cached module $module_path" "register_single_function" $LOG_PRIORITY_DETAILED
+            
+            if verify_function "$func" "$module_path" 2; then
+                if source "$module_path" 2>/dev/null; then
+                    ini_log "Successfully registered function: $func from $module_path" "register_single_function" $LOG_PRIORITY_NORMAL
+                    return 0
+                fi
+            fi
+        fi
+    done
+    
+    ini_log "WARNING: Failed to register function: $func - continuing anyway" "register_single_function" $LOG_PRIORITY_NORMAL
+    return 1
 }
 
 # Register a function with its dependencies
@@ -544,12 +690,14 @@ setup_minimal_environment() {
     export PATH="$PATH:$base_path"
     PS1="(minimal)[\u@\h \W]\$ "
 
-    # Create essential directories
+    # Create essential directories using cached creation
     local log_dir="${BASE_DIR}/.log"
     local tmp_dir="${BASE_DIR}/.tmp"
     for dir in "$log_dir" "$tmp_dir"; do
-        mkdir -p "$dir" 2>/dev/null
+        ensure_dir_cached "$dir"
     done
+    
+    ini_log "Minimal environment setup completed" "setup_minimal_environment"
 }
 
 # Execute initialization
