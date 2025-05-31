@@ -64,11 +64,6 @@ templates/code/
 │   │   ├── service.yaml.template
 │   │   ├── ingress.yaml.template
 │   │   └── configmap.yaml.template
-│   ├── ansible/            # Ansible playbook templates
-│   │   ├── server_setup.template
-│   │   ├── application_deployment.template
-│   │   ├── security_hardening.template
-│   │   └── monitoring_setup.template
 │   └── docker/             # Docker templates
 │       ├── dockerfile.template
 │       ├── docker_compose.template

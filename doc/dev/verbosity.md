@@ -445,15 +445,13 @@ tme_print_timing_report
 
 ### Automation Integration
 ```bash
-# Ansible playbook example
-- name: Configure TME for automation
-  shell: |
-    export MASTER_TERMINAL_VERBOSITY="on"
-    export TME_TERMINAL_VERBOSITY="on"
-    source ./bin/init
-    tme_set_output report on    # Keep performance data
-    tme_set_output debug off    # Reduce automation noise
-    tme_set_output timing off   # Too verbose for automation
+# Automation script example
+export MASTER_TERMINAL_VERBOSITY="on"
+export TME_TERMINAL_VERBOSITY="on"
+source ./bin/init
+tme_set_output report on    # Keep performance data
+tme_set_output debug off    # Reduce automation noise
+tme_set_output timing off   # Too verbose for automation
     tme_set_output status off   # Reduce noise
 ```
 

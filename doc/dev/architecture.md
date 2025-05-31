@@ -19,9 +19,6 @@ The project follows a domain-oriented architecture with sophisticated environmen
     -   `ali/`: Alias definition files.
         -   `sta`: Static alias definitions, sourced during initialization.
         -   `dyn`: Dynamically generated aliases (created by `lib/utl/ali`).
-    -   `ans/`: Ansible playbooks and configurations.
-        -   `main.yml`, `vars.yml`: Main playbook and centralized variables.
-        -   `mods/`: Module-specific configurations (`askpass.yml`, `keyboard.yml`, `konsole.yml`, `kwallet.yml`).
     -   `core/`: Core configuration files with runtime constants.
         -   `ric`: Runtime Initialization Constants (defines paths and global variables).
         -   `mdc`: Module Definition Constants.
@@ -283,18 +280,6 @@ The project features a sophisticated **environment-aware deployment system** tha
     -   Service accessibility
     -   Security posture verification
 
-### Ansible Integration
-
--   **Playbook Management**: Advanced automation through `cfg/ans/` with enterprise-grade orchestration:
-    -   `main.yml`: Primary entry point for infrastructure automation
-    -   `vars.yml`: Centralized variable management for consistent deployments
--   **Specialized Modules (`cfg/ans/mods/`)**: Task-specific automation for:
-    -   `askpass.yml`: Secure authentication handling
-    -   `keyboard.yml`: Input device configuration
-    -   `konsole.yml`: Terminal emulator setup
-    -   `kwallet.yml`: KDE wallet integration
--   **Usage**: Execute with `ansible-playbook cfg/ans/main.yml` for full infrastructure deployment.
-
 ### Container Management
 
 -   **Podman Integration**: Production-ready container orchestration in `cfg/pod/`:
@@ -354,10 +339,6 @@ The system implements a **hierarchical configuration architecture** providing fl
 -   **Alias Configuration (`cfg/ali/`)**: 
     -   `sta`: Static alias definitions loaded at initialization
     -   `dyn`: Dynamic aliases generated based on context and usage patterns
-
--   **Ansible Configuration (`cfg/ans/`)**:
-    -   `vars.yml`: Centralized variables for infrastructure automation
-    -   Module-specific configurations in `mods/` for specialized tasks
 
 -   **Container Configuration (`cfg/pod/`)**:
     -   Environment-specific container definitions with Containerfiles
@@ -480,7 +461,6 @@ After environment setup, these core modules are automatically available:
 - **Testing framework**: Leverage existing test infrastructure for new component validation
 
 ### For System Administrators  
-- **Deployment automation**: Use Ansible playbooks in `cfg/ans/` for infrastructure orchestration
 - **Monitoring integration**: Implement logging and performance monitoring through core modules
 - **Security compliance**: Follow established patterns for credential management and access control
 
