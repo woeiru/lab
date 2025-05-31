@@ -179,11 +179,11 @@ export TME_TERMINAL_VERBOSITY
 
 #### Before System Initialization
 ```bash
-# Set before running bin/init
+# Set before running bin/ini
 export MASTER_TERMINAL_VERBOSITY="on"
 export TME_TERMINAL_VERBOSITY="on"
 export TME_DEBUG_TERMINAL_OUTPUT="off"  # Disable debug messages
-./bin/init
+./bin/ini
 ```
 
 #### After System Initialization
@@ -261,7 +261,7 @@ TME Terminal Output Settings:
 export MASTER_TERMINAL_VERBOSITY="on"
 export TME_TERMINAL_VERBOSITY="on"
 # All nested controls default to "on"
-./bin/init
+./bin/ini
 
 # Later, reduce noise while keeping essential info
 tme_set_output debug off    # Reduce debug noise
@@ -274,7 +274,7 @@ tme_set_output timing off   # Hide detailed timing
 # Enable master controls but selective TME output
 export MASTER_TERMINAL_VERBOSITY="on"
 export TME_TERMINAL_VERBOSITY="on"
-./bin/init
+./bin/ini
 
 # Configure for production monitoring
 tme_set_output report on    # Performance reports
@@ -288,7 +288,7 @@ tme_set_output status on    # Status updates useful
 # Focus on timing and performance data
 export MASTER_TERMINAL_VERBOSITY="on"
 export TME_TERMINAL_VERBOSITY="on"
-./bin/init
+./bin/ini
 
 # Configure for performance analysis
 tme_set_output report on    # Essential for analysis
@@ -302,11 +302,11 @@ tme_set_output status off   # Reduce noise
 # Complete silence from TME module
 export MASTER_TERMINAL_VERBOSITY="on"  # Keep other modules
 export TME_TERMINAL_VERBOSITY="off"    # Disable all TME output
-./bin/init
+./bin/ini
 
 # Or selectively disable all TME outputs
 export TME_TERMINAL_VERBOSITY="on"
-./bin/init
+./bin/ini
 tme_set_output report off
 tme_set_output timing off  
 tme_set_output debug off
@@ -376,7 +376,7 @@ type -t tme_set_output
 **Solutions**:
 ```bash
 # Ensure system is initialized
-./bin/init
+./bin/ini
 
 # Verify module loading
 source lib/core/tme
@@ -430,7 +430,7 @@ tme_show_output_settings
 # Initialize with selective output
 export MASTER_TERMINAL_VERBOSITY="on"
 export TME_TERMINAL_VERBOSITY="on"
-source ./bin/init
+source ./bin/ini
 
 # Configure for script needs
 tme_set_output debug off    # Reduce noise
@@ -448,7 +448,7 @@ tme_print_timing_report
 # Automation script example
 export MASTER_TERMINAL_VERBOSITY="on"
 export TME_TERMINAL_VERBOSITY="on"
-source ./bin/init
+source ./bin/ini
 tme_set_output report on    # Keep performance data
 tme_set_output debug off    # Reduce automation noise
 tme_set_output timing off   # Too verbose for automation
@@ -460,7 +460,7 @@ tme_set_output timing off   # Too verbose for automation
 # Development session setup
 export MASTER_TERMINAL_VERBOSITY="on"
 export TME_TERMINAL_VERBOSITY="on"
-source ./bin/init
+source ./bin/ini
 
 # Start with full debugging
 echo "Development mode - full TME output"

@@ -51,7 +51,7 @@ When adding new test scripts:
 ## Dependencies
 
 Most test scripts depend on:
-- Lab initialization: `bin/init`
+- Lab initialization: `bin/ini`
 - Core modules: `lib/core/*`
 - Environment configuration: `cfg/core/*`
 

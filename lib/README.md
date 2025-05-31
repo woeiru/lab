@@ -178,7 +178,7 @@ function_name() {
 ### System Integration
 ```bash
 # Automatic loading through system initialization
-bin/init → loads core libraries
+bin/ini → loads core libraries
 entry.sh → establishes library environment
 ```
 

@@ -10,7 +10,7 @@ echo "=== GPU WRAPPER FUNCTIONS TEST ==="
 echo "Testing GPU wrapper functions after parameterization refactoring..."
 
 # Source the environment
-source /home/es/lab/bin/init
+source /home/es/lab/bin/ini
 
 echo
 echo "1. Testing gpu-fun-w (function listing)..."

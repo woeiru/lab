@@ -178,7 +178,7 @@ gpu-ptd "01:00.0" "x1" "/home/es/lab/cfg/env/site1" "0000:01:00.0" "0000:01:00.1
 
 ### Wrapper Function Usage (for scripts with environment)
 ```bash
-source /home/es/lab/bin/init  # Loads environment and wrappers
+source /home/es/lab/bin/ini  # Loads environment and wrappers
 gpu-ptd-w                     # Uses global configuration automatically
 gpu-pts-w                     # Show GPU status
 ```

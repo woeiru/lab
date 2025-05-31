@@ -20,7 +20,7 @@ Our lab environment demonstrates a sophisticated imperative automation system wi
 
 #### 1. Procedural Control Flow
 ```bash
-# Example from bin/init system
+# Example from bin/ini system
 process_environment_setup() {
     validate_prerequisites
     configure_base_system

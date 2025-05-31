@@ -128,7 +128,7 @@ _gpu_get_target_gpus_parameterized is a function
 ### Using Wrapper Functions (recommended for scripts):
 ```bash
 # Load environment and use wrapper functions
-source /home/es/lab/bin/init
+source /home/es/lab/bin/ini
 
 gpu-fun-w                    # List GPU functions
 gpu-var-w                    # Show GPU configuration  
