@@ -206,7 +206,7 @@ The system provides shell integration capabilities through the `bin/env/rc` scri
 
 The system uses a component-based initialization approach:
 
-*   **Core Components**: Managed by `bin/core/comp`
+*   **Core Components**: Managed by `bin/orc`
 *   **Module Loading**: Progressive loading with dependency validation
 *   **Error Recovery**: Fallback to minimal environment on failures
 

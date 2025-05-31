@@ -53,7 +53,7 @@ Created 9 wrapper functions with `-w` suffix that extract global variables and c
 ### 4. Infrastructure Integration
 
 **Automatic Loading:** GPU wrapper functions are automatically loaded by existing infrastructure:
-- `source_src_mgt()` function in `/home/es/lab/bin/core/comp`
+- `source_src_mgt()` function in `/home/es/lab/bin/orc`
 - Uses `SRC_MGT_DIR` configuration from `/home/es/lab/cfg/core/ric`
 - Loads all files in `/home/es/lab/src/mgt/` including new GPU wrappers
 
@@ -155,7 +155,7 @@ gpu-pts "x1" "/home/es/lab/cfg/env/site1" "0000:01:00.0" "0000:01:00.1" "nvidia"
 - `/home/es/lab/src/mgt/gpu` - 9 wrapper functions with full documentation
 
 ### Infrastructure Files (no changes needed):
-- `/home/es/lab/bin/core/comp` - Already supports GPU wrapper loading
+- `/home/es/lab/bin/orc` - Already supports GPU wrapper loading
 - `/home/es/lab/cfg/core/ric` - Already defines SRC_MGT_DIR
 
 ## Completion Status

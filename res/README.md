@@ -112,7 +112,7 @@ The AI Resources directory integrates seamlessly with the entire ES Lab ecosyste
 - **Lab Root** - Main lab environment with entry.sh and stats.sh
 - **`bin/`** - Executable binaries and initialization scripts
   - `bin/init` - Lab initialization routines
-  - `bin/core/comp` - Component management systems
+  - `bin/orc` - Component management systems
   - `bin/env/rc` - Runtime configuration management
 
 ### Configuration Management  
