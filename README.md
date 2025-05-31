@@ -235,7 +235,6 @@ cd test && ./test_complete_refactor.sh
 - **Testing Framework**: Leverage existing validation infrastructure
 
 ### For System Administrators
-- **Ansible Integration**: Use playbooks in `cfg/ans/` for automation
 - **Monitoring**: Implement logging and performance tracking
 - **Security**: Follow established credential management patterns
 

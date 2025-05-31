@@ -1,6 +1,8 @@
-# Configuration Directory (`cfg/`)
+# Configuration Director**Purpose**: Centralizes command aliases for consistent user experience across different environments and provides dynamic alias generation for project-specific shortcuts.
 
-## 📋 Overview
+### 🏗️ `core/` - Core System Configuration Controllersentralizes command aliases for consistent user experience across different environments and provides dynamic alias generation for project-specific shortcuts.
+
+### 🏗️ `core/` - Core System Configuration Controllers 📋 Overview
 
 The `cfg/` directory serves as the central configuration management hub for the entire infrastructure system. It contains environment-specific settings, automation configurations, system aliases, and deployment parameters organized in a hierarchical structure for maximum flexibility and maintainability.
 
@@ -9,7 +11,6 @@ The `cfg/` directory serves as the central configuration management hub for the 
 ```
 cfg/
 ├── ali/          # Alias Management
-├── ans/          # Ansible Automation Configuration
 ├── core/         # Core System Configuration Controllers
 ├── env/          # Environment-Specific Configurations
 └── pod/          # Container/Pod Configuration
@@ -25,18 +26,7 @@ Manages system aliases for improved command-line efficiency and standardization.
 
 **Purpose**: Centralizes command aliases for consistent user experience across different environments and provides dynamic alias generation for project-specific shortcuts.
 
-### 🤖 `ans/` - Ansible Automation Configuration
-Contains Ansible playbooks and configuration for automated system deployment and management.
-
-- **`dsk/`** - Desktop/workstation automation configurations
-  - `main.yml` - Primary Ansible playbook entry point
-  - `vars.yml` - Variable definitions for desktop automation
-  - `mods/` - Modular task definitions for specific components
-- **`tst/`** - Test environment automation configurations
-
-**Purpose**: Provides Infrastructure as Code (IaC) capabilities for consistent, repeatable system configurations and deployments.
-
-### ⚙️ `core/` - Core System Configuration Controllers
+### 🏗️ `core/` - Core System Configuration Controllers
 Central control files that manage system-wide configuration parameters and initialization.
 
 - **`ecc`** - Environment Configuration Controller (primary environment selector)
@@ -98,9 +88,8 @@ Use the Environment Configuration Controller (`core/ecc`) to select and configur
 
 ### Adding New Configurations
 1. **Environment Configs**: Add new files to `env/` following the site naming convention
-2. **Ansible Modules**: Add automation modules to `ans/dsk/mods/` or `ans/tst/`
-3. **Container Configs**: Create new subdirectories in `pod/` for new container types
-4. **Aliases**: Add static aliases to `ali/sta` or let dynamic generation handle project-specific ones
+2. **Container Configs**: Create new subdirectories in `pod/` for new container types
+3. **Aliases**: Add static aliases to `ali/sta` or let dynamic generation handle project-specific ones
 
 ## 🔐 Security Considerations
 
@@ -117,7 +106,6 @@ Use the Environment Configuration Controller (`core/ecc`) to select and configur
 - **Management Tools**: Referenced by scripts in `src/mgt/` for operational tasks
 
 ### External Dependencies
-- **Ansible**: Required for automation configurations in `ans/`
 - **Container Runtime**: Required for pod configurations (Podman/Docker)
 - **Shell Environment**: Bash shell required for alias and environment configurations
 
@@ -126,13 +114,11 @@ Use the Environment Configuration Controller (`core/ecc`) to select and configur
 ### Regular Tasks
 - **Update Environment Configs**: Keep environment-specific settings current
 - **Regenerate Dynamic Aliases**: Refresh auto-generated aliases when project structure changes
-- **Validate Ansible Playbooks**: Test automation configurations before deployment
 - **Review Access Permissions**: Ensure configuration files have appropriate security settings
 
 ### Troubleshooting
 - **Environment Issues**: Check `core/ecc` for correct environment selection
 - **Alias Problems**: Verify both `ali/sta` and `ali/dyn` are loading correctly
-- **Ansible Failures**: Review `ans/dsk/vars.yml` and module configurations
 - **Container Issues**: Validate `pod/` configurations and Containerfile syntax
 
 ## 📈 Best Practices

@@ -120,7 +120,6 @@ The AI Resources directory integrates seamlessly with the entire ES Lab ecosyste
   - `cfg/core/` - Core system configurations (ecc, mdc, rdc, ric)
   - `cfg/env/` - Environment-specific configurations (site1, site1-dev, site1-w2)
   - `cfg/ali/` - Dynamic and static alias configurations
-  - `cfg/ans/` - Ansible desktop and test configurations
   - `cfg/pod/` - Pod configurations for development and services
 
 ### Documentation Ecosystem

@@ -35,7 +35,7 @@ This analysis series provides comprehensive technical documentation exploring in
 
 ### **Episode 1: Declarative vs Imperative Infrastructure Automation**
 - **Focus**: Comparing declarative and imperative approaches to infrastructure management
-- **Case Study**: Lab environment system vs Ansible/Terraform patterns
+- **Case Study**: Lab environment system vs Configuration Management patterns
 - **Topics**: Configuration paradigms, maintainability, scalability considerations
 
 ### **Episode 2: Environment-Aware Configuration Architecture**
