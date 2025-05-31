@@ -118,3 +118,339 @@
 #   • Interactive mode: User-guided alias customization
 #   • Integration hooks: Pre/post generation callback support
 # =============================================================================
+
+set -euo pipefail
+
+# =============================================================================
+# Configuration and Validation
+# =============================================================================
+
+# Source core configuration variables if not already loaded
+if [[ -z "${LAB_DIR:-}" ]]; then
+    # Try to determine LAB_DIR from script location
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    LAB_DIR="$(dirname "$SCRIPT_DIR")"
+    
+    # Source core runtime constants
+    if [[ -f "$LAB_DIR/cfg/core/ric" ]]; then
+        source "$LAB_DIR/cfg/core/ric"
+    else
+        echo "Error: Cannot find cfg/core/ric. LAB_DIR may be incorrect: $LAB_DIR" >&2
+        exit 1
+    fi
+fi
+
+# Validate required variables
+validate_configuration() {
+    local required_vars=(
+        "LAB_DIR"
+        "CFG_ALI_DIR" 
+        "CFG_ENV_DIR"
+        "LIB_OPS_DIR"
+        "SRC_SET_DIR"
+    )
+    
+    local missing_vars=()
+    
+    for var in "${required_vars[@]}"; do
+        if [[ -z "${!var:-}" ]]; then
+            missing_vars+=("$var")
+        fi
+    done
+    
+    if [[ ${#missing_vars[@]} -gt 0 ]]; then
+        echo "Error: Missing required configuration variables:" >&2
+        printf "  - %s\n" "${missing_vars[@]}" >&2
+        echo "Please ensure cfg/core/ric is properly sourced." >&2
+        return 1
+    fi
+    
+    # Validate GENERATION_FOLDERS array exists
+    if [[ -z "${GENERATION_FOLDERS:-}" ]]; then
+        echo "Warning: GENERATION_FOLDERS not defined, using defaults" >&2
+        GENERATION_FOLDERS=("cfg/env" "lib/ops" "src/set")
+    fi
+    
+    return 0
+}
+
+# Simple logging function to replace dependency
+log_info() {
+    echo "[$(date '+%H:%M:%S')] INFO: $*" >&2
+}
+
+log_error() {
+    echo "[$(date '+%H:%M:%S')] ERROR: $*" >&2
+}
+
+log_warn() {
+    echo "[$(date '+%H:%M:%S')] WARN: $*" >&2
+}
+
+# =============================================================================
+# Core Alias Generation Functions
+# =============================================================================
+
+# Generate README file aliases (c- and v- prefixes)
+generate_readme_aliases() {
+    local found_files=0
+    local filebase_md="readme.md"
+    
+    log_info "Generating README file aliases"
+    
+    if [[ ! -d "$LAB_DIR" ]]; then
+        log_error "LAB_DIR directory does not exist: $LAB_DIR"
+        return 1
+    fi
+    
+    while IFS= read -r -d '' file; do
+        local dir=$(dirname "$file")
+        local dir_name=$(basename "$dir")
+        local parent_dir=$(basename "$(dirname "$dir")")
+        local relative_file_path="${file#$LAB_DIR/}"
+        local alias_name
+        
+        # Generate alias name based on directory structure
+        if [[ "$parent_dir" != "lab" ]]; then
+            alias_name="$parent_dir-$dir_name-md"
+        else
+            alias_name="$dir_name-md"
+        fi
+        
+        # Create aliases for current shell (internal use)
+        alias "c-$alias_name=cat '$file'"
+        alias "v-$alias_name=vim '$file'"
+        
+        # Write aliases to dyn file with $LAB_DIR variable for portability
+        echo "alias c-$alias_name='cat \"\$LAB_DIR/$relative_file_path\"'" >> "$CFG_ALI_DIR/dyn"
+        echo "alias v-$alias_name='vim \"\$LAB_DIR/$relative_file_path\"'" >> "$CFG_ALI_DIR/dyn"
+        
+        ((found_files++))
+        
+    done < <(find "$LAB_DIR" -type f -name "$filebase_md" -print0 2>/dev/null)
+    
+    if [[ $found_files -eq 0 ]]; then
+        log_warn "No README files found in $LAB_DIR"
+    else
+        log_info "Generated aliases for $found_files README files"
+    fi
+    
+    return 0
+}
+
+# Generate top-level directory navigation aliases (d- prefix)
+generate_directory_aliases() {
+    local dir_count=0
+    
+    log_info "Generating top-level directory navigation aliases"
+    
+    for dir_path in "$LAB_DIR"/*; do
+        if [[ -d "$dir_path" ]]; then
+            local base_name=$(basename "$dir_path")
+            
+            # Create alias for current shell
+            alias "d-$base_name=cd '$dir_path'"
+            
+            # Write alias to dyn file with $LAB_DIR variable
+            echo "alias d-$base_name='cd \"\$LAB_DIR/$base_name\"'" >> "$CFG_ALI_DIR/dyn"
+            
+            ((dir_count++))
+        fi
+    done
+    
+    log_info "Generated aliases for $dir_count top-level directories"
+    return 0
+}
+
+# Generate file arrays for specified directories
+generate_file_arrays() {
+    local success_count=0
+    
+    log_info "Generating file arrays for configured directories"
+    
+    for folder in "${GENERATION_FOLDERS[@]}"; do
+        local dir_path="$LAB_DIR/$folder"
+        
+        if [[ ! -d "$dir_path" ]]; then
+            log_warn "Directory not found: $dir_path"
+            continue
+        fi
+        
+        # Sanitize array name (replace / with _)
+        local array_name="${folder//\//_}_files"
+        local files=()
+        
+        # Collect files in directory
+        while IFS= read -r -d '' found_file_path; do
+            local name_without_ext=$(basename "$found_file_path")
+            files+=("$name_without_ext")
+        done < <(find "$dir_path" -maxdepth 1 -type f \( -name "*" ! -name ".*" \) -print0 2>/dev/null)
+        
+        if [[ ${#files[@]} -gt 0 ]]; then
+            # Create global array with unique sorted values
+            local unique_files=($(printf "%s\n" "${files[@]}" | sort -u))
+            eval "declare -ga $array_name=(${unique_files[*]})"
+            ((success_count++))
+            log_info "Created array $array_name with ${#unique_files[@]} files"
+        else
+            log_warn "No files found in directory: $dir_path"
+        fi
+    done
+    
+    if [[ $success_count -eq 0 ]]; then
+        log_error "Failed to generate any file arrays"
+        return 1
+    fi
+    
+    log_info "Successfully generated $success_count file arrays"
+    return 0
+}
+
+# Generate aliases for files in a specific directory
+generate_file_aliases() {
+    local alias_type="$1"
+    local directory="$2"
+    shift 2
+    local files_to_alias=("$@")
+    
+    local success_count=0
+    local folder_name=$(basename "$directory" | tr '[:upper:]' '[:lower:]')
+    local prefix=""
+    
+    # Determine alias prefix based on type
+    case "$alias_type" in
+        "cat") prefix="c" ;;
+        "vim") prefix="v" ;;
+        "bash") prefix="b" ;;
+        *)
+            log_error "Unknown alias type: $alias_type"
+            return 1
+            ;;
+    esac
+    
+    log_info "Generating $alias_type aliases for $folder_name (${#files_to_alias[@]} files)"
+    
+    for file_base_name in "${files_to_alias[@]}"; do
+        local actual_file_path="$directory/$file_base_name"
+        
+        # Validate file exists
+        if [[ ! -e "$actual_file_path" ]]; then
+            log_warn "File not found for aliasing: $actual_file_path"
+            continue
+        fi
+        
+        # For bash aliases, ensure file is executable
+        if [[ "$alias_type" == "bash" && ! -x "$actual_file_path" ]]; then
+            log_warn "File is not executable, skipping bash alias: $actual_file_path"
+            continue
+        fi
+        
+        local relative_file_path="${actual_file_path#$LAB_DIR/}"
+        local alias_name="${prefix}.${folder_name}.${file_base_name}"
+        
+        # Create alias for current shell
+        alias "$alias_name=$alias_type '$actual_file_path'"
+        
+        # Write alias to dyn file
+        echo "alias $alias_name='$alias_type \"\$LAB_DIR/$relative_file_path\"'" >> "$CFG_ALI_DIR/dyn"
+        
+        ((success_count++))
+    done
+    
+    if [[ $success_count -eq 0 ]]; then
+        log_warn "No $alias_type aliases created for $directory"
+        return 1
+    fi
+    
+    log_info "Created $success_count $alias_type aliases for $folder_name"
+    return 0
+}
+
+# =============================================================================
+# Main Alias Generation Function
+# =============================================================================
+
+refresh_aliases() {
+    log_info "Starting dynamic alias generation"
+    
+    # Validate configuration
+    if ! validate_configuration; then
+        log_error "Configuration validation failed"
+        return 1
+    fi
+    
+    # Ensure output directory exists
+    if [[ ! -d "$CFG_ALI_DIR" ]]; then
+        log_error "Output directory does not exist: $CFG_ALI_DIR"
+        return 1
+    fi
+    
+    # Initialize output file with header
+    {
+        echo "# Dynamically generated aliases by cfg-ali on $(date)"
+        echo "# Version: 2.0.0"
+        echo ""
+    } > "$CFG_ALI_DIR/dyn"
+    
+    # Generate README aliases
+    {
+        echo "# --- README File Aliases ---"
+        generate_readme_aliases
+        echo ""
+    } >> "$CFG_ALI_DIR/dyn"
+    
+    # Generate directory navigation aliases  
+    {
+        echo "# --- Top-Level Directory Aliases ---"
+        generate_directory_aliases
+        echo ""
+    } >> "$CFG_ALI_DIR/dyn"
+    
+    # Generate file arrays for configured directories
+    generate_file_arrays
+    
+    # Generate environment file aliases
+    if [[ -n "${cfg_env_files:-}" ]]; then
+        {
+            echo "# --- Environment File Aliases (cfg/env) ---"
+            generate_file_aliases "cat" "$CFG_ENV_DIR" "${cfg_env_files[@]}"
+            generate_file_aliases "vim" "$CFG_ENV_DIR" "${cfg_env_files[@]}"
+            echo ""
+        } >> "$CFG_ALI_DIR/dyn"
+    fi
+    
+    # Generate library function aliases
+    if [[ -n "${lib_ops_files:-}" ]]; then
+        {
+            echo "# --- Function Library Aliases (lib/ops) ---"
+            generate_file_aliases "cat" "$LIB_OPS_DIR" "${lib_ops_files[@]}"
+            generate_file_aliases "vim" "$LIB_OPS_DIR" "${lib_ops_files[@]}"
+            echo ""
+        } >> "$CFG_ALI_DIR/dyn"
+    fi
+    
+    # Generate source set script aliases
+    if [[ -n "${src_set_files:-}" ]]; then
+        {
+            echo "# --- Source Set Script Aliases (src/set) ---"
+            generate_file_aliases "cat" "$SRC_SET_DIR" "${src_set_files[@]}"
+            generate_file_aliases "vim" "$SRC_SET_DIR" "${src_set_files[@]}"
+            generate_file_aliases "bash" "$SRC_SET_DIR" "${src_set_files[@]}"
+            echo ""
+        } >> "$CFG_ALI_DIR/dyn"
+    fi
+    
+    log_info "Dynamic alias generation completed successfully"
+    log_info "Output written to: $CFG_ALI_DIR/dyn"
+    return 0
+}
+
+# =============================================================================
+# Script Execution
+# =============================================================================
+
+# Execute main function if script is run directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    refresh_aliases
+    exit $?
+fi
