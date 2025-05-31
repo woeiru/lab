@@ -337,7 +337,7 @@ Control deployment behavior with these variables:
 
 - **`SITE`**: Base site identifier (default: `site1`)
 - **`ENVIRONMENT`**: Environment override (`dev`, `test`, `staging`, `prod`)
-- **`NODE`**: Node-specific override (`w1`, `w2`, `x1`, `x2`, etc.)
+- **`NODE`**: Node-specific override (`h1`, `w2`, `x1`, `x2`, etc.)
 - **`LAB_ROOT`**: Lab directory root (auto-detected)
 
 ### Configuration Files
@@ -479,7 +479,7 @@ The scripts are designed for integration with automation tools:
 # Deployment automation script
 
 export ENVIRONMENT="dev"
-export NODE="w1"
+export NODE="h1"
 
 # Deploy NFS server
 ./src/set/nfs -x a_xall

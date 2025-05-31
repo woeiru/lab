@@ -11,20 +11,20 @@ This document describes the infrastructure configuration system for the lab envi
 The lab environment uses the `192.168.178.0/24` network with the following allocation scheme:
 
 #### Hypervisor Nodes
-- **w1**: `192.168.178.110` - Primary hypervisor node
+- **h1**: `192.168.178.110` - Primary hypervisor node
 - **w2**: `192.168.178.120` - Secondary hypervisor node  
 - **x1**: `192.168.178.221` - Cluster node 1
 - **x2**: `192.168.178.222` - Cluster node 2
 
 #### Container Services
 - **PBS (Proxmox Backup Server)**:
-  - Node w1: `192.168.178.111` (ID: 111)
+  - Node h1: `192.168.178.111` (ID: 111)
   - Node w2: `192.168.178.121` (ID: 121)
 - **NFS (Network File System)**:
-  - Node w1: `192.168.178.112` (ID: 112)
+  - Node h1: `192.168.178.112` (ID: 112)
   - Node w2: `192.168.178.122` (ID: 122)
 - **SMB (Samba File Server)**:
-  - Node w1: `192.168.178.113` (ID: 113)
+  - Node h1: `192.168.178.113` (ID: 113)
   - Node w2: `192.168.178.123` (ID: 123)
 
 #### Network Infrastructure
@@ -44,7 +44,7 @@ The lab environment uses the `192.168.178.0/24` network with the following alloc
 
 ### Node Naming
 - **Format**: `{prefix}{number}`
-- **Examples**: `w1`, `w2`, `x1`, `x2`
+- **Examples**: `h1`, `w2`, `x1`, `x2`
 - **Prefixes**:
   - `w` - Workstation nodes
   - `x` - Extended/cluster nodes
@@ -116,7 +116,7 @@ The infrastructure utilities provide the following defaults:
 - **Gateway**: `192.168.178.1`
 - **CIDR**: /24
 - **Privileged**: Yes
-- **SSH Key**: `/root/.ssh/w1.pub`
+- **SSH Key**: `/root/.ssh/h1.pub`
 
 ## Security Configuration
 

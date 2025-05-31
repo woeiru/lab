@@ -116,7 +116,7 @@ gpu_status                 # Show GPU allocation status
 
 # Environment management with hierarchy
 env site1-dev             # Switch to site1 development
-env w1                     # Select worker node 1
+env h1                     # Select hypervisor node 1
 env_status                 # Display current context
 ```
 

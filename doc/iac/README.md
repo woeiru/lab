@@ -115,7 +115,7 @@ export NODE="prod-node1"
 |--------|---------|---------------------|
 | **c1, c2, c3** | Container Services | Multi-tier container deployment |
 | **t1, t2** | Test Infrastructure | Test environment provisioning |
-| **w1** | Workstation Setup | Development workstation configuration |
+| **h1** | Hypervisor Setup | Development hypervisor configuration |
 
 ## 📊 Infrastructure Metrics
 

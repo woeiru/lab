@@ -19,22 +19,22 @@ Node-Specific Settings (runtime)
 - **Development (`dev`)**: Development and testing workloads
 - **Testing (`test`)**: Staging and integration testing
 - **Production (`prod`)**: Production workloads
-- **Workstation (`w1`, `w2`)**: Individual workstation configurations
+- **Hypervisor (`h1`, `w2`)**: Individual hypervisor configurations
 
 ## 🏗️ Environment Configuration
 
 ### Base Site Configuration (`cfg/env/site1`)
 ```bash
 # Infrastructure definitions
-export CLUSTER_NODES=("w1" "w2" "x1" "x2")
-export HYPERVISOR_NODES=("w1:192.168.178.110" "w2:192.168.178.120")
+export CLUSTER_NODES=("h1" "w2" "x1" "x2")
+export HYPERVISOR_NODES=("h1:192.168.178.110" "w2:192.168.178.120")
 export NETWORK_BASE="192.168.178"
 export STORAGE_BACKEND="local-lvm"
 
 # Container service definitions
-export PBS_NODES=("w1:111:192.168.178.111" "w2:121:192.168.178.121")
-export NFS_NODES=("w1:112:192.168.178.112" "w2:122:192.168.178.122")
-export SMB_NODES=("w1:113:192.168.178.113" "w2:123:192.168.178.123")
+export PBS_NODES=("h1:111:192.168.178.111" "w2:121:192.168.178.121")
+export NFS_NODES=("h1:112:192.168.178.112" "w2:122:192.168.178.122")
+export SMB_NODES=("h1:113:192.168.178.113" "w2:123:192.168.178.123")
 ```
 
 ### Environment-Specific Overrides

@@ -77,7 +77,7 @@ x1_NVIDIA_DRIVER_PREFERENCE="nvidia"
 x2_NODE_PCI0="0000:03:00.0"
 x2_NODE_PCI1="0000:03:00.1" 
 x2_NVIDIA_DRIVER_PREFERENCE="nvidia"
-# Similar for w1, w2 nodes
+# Similar for h1, w2 nodes
 ```
 
 ## Validation Testing

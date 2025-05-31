@@ -23,7 +23,7 @@
 # Key Features:
 #   - Interactive environment switching (dev/test/staging/prod)
 #   - Site management (site1/site2/etc) with validation
-#   - Node selection (w1/w2/x1/x2/etc) for cluster deployments
+#   - Node selection (h1/w2/x1/x2/etc) for cluster deployments
 #   - Environment status reporting with hierarchy display
 #   - Configuration file validation and existence checking
 #   - Available environment discovery and listing
@@ -298,7 +298,7 @@ Usage:
 Commands:
   switch-env <env>     Switch environment (dev/test/staging/prod)
   switch-site <site>   Switch site (site1/site2/etc)
-  switch-node <node>   Switch node (w1/w2/x1/x2/etc)
+  switch-node <node>   Switch node (h1/w2/x1/x2/etc)
   status               Show current environment configuration
   list                 List available configurations
   validate             Validate configuration files
