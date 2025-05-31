@@ -48,7 +48,7 @@ ver_log() {
 
     # Conditionally output to stderr based on both master and specific debug verbosity
     if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${VER_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
-        echo "    └─ $message [$timestamp]" >&2
+        echo -e "    \033[38;5;208m└─ $message [$timestamp]\033[0m" >&2
     fi
 }
 
