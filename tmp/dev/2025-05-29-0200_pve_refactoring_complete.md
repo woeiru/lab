@@ -65,7 +65,7 @@ These functions were already pure and required no parameterization:
 - **Naming Convention**: Maintained original three-letter function names in `lib/ops/`, added `-w` suffix for wrappers in `src/mgt/`
 
 ### Infrastructure Enhancements
-- **Component Orchestrator**: Enhanced `/home/es/lab/bin/core/comp` with `source_src_mgt()` function
+- **Component Orchestrator**: Enhanced `/home/es/lab/bin/orc` with `source_src_mgt()` function
 - **Configuration**: Added `SRC_MGT_DIR` definition to `/home/es/lab/cfg/core/ric`
 - **Loading System**: Updated component system to automatically load management wrapper functions
 
@@ -89,7 +89,7 @@ These functions were already pure and required no parameterization:
 ### Modified Files
 - `/home/es/lab/lib/ops/pve` - Parameterized 9 functions
 - `/home/es/lab/src/mgt/pve` - Created 9 wrapper functions  
-- `/home/es/lab/bin/core/comp` - Added management wrapper loading
+- `/home/es/lab/bin/orc` - Added management wrapper loading
 - `/home/es/lab/cfg/core/ric` - Added SRC_MGT_DIR configuration
 
 ### New Files

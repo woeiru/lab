@@ -165,7 +165,7 @@ local nvidia_driver_preference="${!nvidia_driver_pref_var:-nvidia}"
   - Follows PVE wrapper architecture
 
 ### Infrastructure (No Changes Required)
-- **Existing**: `/home/es/lab/bin/core/comp` - Already supports GPU wrappers via `source_src_mgt`
+- **Existing**: `/home/es/lab/bin/orc` - Already supports GPU wrappers via `source_src_mgt`
 - **Existing**: `/home/es/lab/cfg/core/ric` - SRC_MGT_DIR properly configured
 
 ## USAGE EXAMPLES

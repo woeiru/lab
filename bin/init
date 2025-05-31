@@ -13,7 +13,7 @@
 #     * Runtime Constants (ric): System-wide configuration constants
 #     * Module Dependencies (mdc): Module relationship definitions
 #     * Runtime Dependencies (rdc): Runtime environment requirements
-#     * Component Orchestrator (comp): Manages setup of additional system components
+#     * Component Orchestrator (orc): Manages setup of additional system components
 #
 # Initialization Flow:
 #   1. Module System Initialization:
@@ -22,7 +22,7 @@
 #      - Loads and verifies essential modules (err, lo1, tme)
 #
 #   2. Core System Configuration & Runtime Initialization:
-#      - Sources the Component Orchestrator (bin/core/comp)
+#      - Sources the Component Orchestrator (bin/orc)
 #      - Initializes core runtime system (processes configurations, loads dependencies)
 #      - Registers and validates system functions
 #
@@ -42,7 +42,7 @@
 #   Required modules in lib/core/:
 #   - ver (Verification functions)
 #   Required scripts in bin/core/:
-#   - comp (Component orchestrator)
+#   - orc (Component orchestrator)
 #
 #######################################################################
 
@@ -163,13 +163,13 @@ main_ini() {
     # Source the component orchestrator
     # Ensure BASE_DIR is available to comp script if it needs it explicitly
     # (though sourcing should make variables available)
-    local comp_orchestrator_path="${BASE_DIR}/bin/core/comp"
+    local comp_orchestrator_path="${BASE_DIR}/bin/orc"
     if [[ ! -f "$comp_orchestrator_path" ]]; then
         debug_log "ERROR: Component orchestrator script not found at $comp_orchestrator_path"
         if ((main_op_timer_started)); then type tme_end_timer &>/dev/null && tme_end_timer "MAIN_OPERATIONS" "1"; fi
         return 1
     fi
-    # shellcheck source=bin/core/comp
+    # shellcheck source=bin/orc
     if type tme_start_timer &>/dev/null; then tme_start_timer "SOURCE_COMP_ORCHESTRATOR" "MAIN_OPERATIONS"; fi
     if ! source "$comp_orchestrator_path"; then
         debug_log "ERROR: Failed to source component orchestrator $comp_orchestrator_path"

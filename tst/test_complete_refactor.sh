@@ -10,7 +10,7 @@ echo "Testing all parameterized functions and wrappers..."
 source /home/es/lab/cfg/core/ric
 
 # Source the component orchestrator
-source /home/es/lab/bin/core/comp
+source /home/es/lab/bin/orc
 
 # Test all pure functions with explicit parameters
 echo

@@ -9,8 +9,7 @@ The `bin/` directory serves as the central hub for system initialization, bootst
 ```
 bin/
 ├── init              # Main System Initialization Controller
-├── core/             # Core Initialization Components
-│   └── comp          # Component Orchestrator
+├── orc               # Component Orchestrator  
 └── env/              # Environment Setup and Shell Integration
     └── rc            # Shell Configuration Injector
 ```
@@ -34,7 +33,7 @@ bin/
    - Loads and verifies core modules (`err`, `lo1`, `tme`)
 
 2. **Core System Configuration**:
-   - Sources the Component Orchestrator (`bin/core/comp`)
+   - Sources the Component Orchestrator (`bin/orc`)
    - Initializes runtime system with configuration processing
    - Registers and validates system functions
 
@@ -46,9 +45,9 @@ bin/
 **Dependencies**:
 - **Configuration Files**: `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`
 - **Core Modules**: `lib/core/ver`, `lib/core/err`, `lib/core/lo1`, `lib/core/tme`
-- **Component Orchestrator**: `bin/core/comp`
+- **Component Orchestrator**: `bin/orc`
 
-### ⚙️ `core/comp` - Component Orchestrator
+### ⚙️ `orc` - Component Orchestrator
 
 **Purpose**: Manages the sequential execution of system components during initialization with dependency awareness and status tracking.
 

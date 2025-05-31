@@ -11,7 +11,7 @@ The project follows a domain-oriented architecture with sophisticated environmen
     -   `test_environment`: Comprehensive test suite for system validation (375+ lines).
     -   `validate_system`: Quick validation script for operational readiness checks.
     -   `core/`: Core system components.
-        -   `comp`: Component orchestrator for loading and initialization.
+        -   `orc`: Component orchestrator for loading and initialization.
     -   `env/`: Environment setup scripts.
         -   `rc`: Primary script for shell environment configuration.
 
@@ -185,7 +185,7 @@ The system implements a **hierarchical configuration loading system**:
     -   **Runtime configuration**: Dynamic control via `tme_set_output` and `tme_show_output_settings`
     -   **Output categories**: Report, timing, debug, and status message controls
 -   **Version Management (`lib/core/ver`)**: Version tracking and compatibility management.
--   **Component Orchestration (`bin/core/comp`)**: Manages systematic loading and initialization of system components.
+-   **Component Orchestration (`bin/orc`)**: Manages systematic loading and initialization of system components.
 
 ### Environment Management System
 
