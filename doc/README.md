@@ -43,7 +43,7 @@ tmp/
 ### 🛠️ System Administrator Documentation (`adm/`)
 **Purpose**: Operational documentation for system administrators  
 **Target Audience**: System administrators, DevOps operators, infrastructure maintainers  
-**Content**: Configuration management, monitoring, security practices, and Ansible automation  
+**Content**: Configuration management, monitoring, and security practices  
 **Key Documentation**:
 - **Configuration Management** - Infrastructure configuration, IP allocation, and security practices
 

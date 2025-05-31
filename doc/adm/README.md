@@ -8,7 +8,6 @@ System administrators who need to:
 - Configure and manage system infrastructure
 - Implement monitoring and performance tracking
 - Manage security and credential systems
-- Use Ansible automation for deployment
 
 ## 📚 Documentation Index
 
@@ -17,11 +16,6 @@ System administrators who need to:
 - **[Security Management](security.md)** - Comprehensive security framework, credential management, and access controls
 
 ### Administration Guidelines
-
-#### Ansible Integration
-- **Automation Playbooks**: Use playbooks in `cfg/ans/` for standardized automation
-- **Configuration Management**: Leverage Ansible for consistent system configuration
-- **Module Integration**: Extend existing Ansible modules for custom workflows
 
 #### Monitoring & Performance
 - **Logging Systems**: Implement comprehensive logging and performance tracking
@@ -63,13 +57,6 @@ tme_print_timing_report
 # - Automatic secure permissions
 # - Fallback mechanisms
 # - Zero hardcoded passwords
-```
-
-### Ansible Automation
-```bash
-# Run standardized playbooks
-cd cfg/ans/
-ansible-playbook main.yml -i inventory
 ```
 
 ## 🏗️ Infrastructure Management

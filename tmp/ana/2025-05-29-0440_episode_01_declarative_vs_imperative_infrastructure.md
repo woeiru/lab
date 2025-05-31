@@ -65,9 +65,9 @@ deploy_service() {
 
 ## Declarative Alternative Analysis
 
-### Ansible/Terraform Comparison
+### Configuration Management Comparison
 
-#### Ansible Approach
+#### Declarative Approach
 ```yaml
 # Declarative equivalent
 - name: Ensure lab services are running
@@ -119,11 +119,11 @@ deploy_service() {
 
 #### Gradual Declarative Integration
 ```bash
-# Hybrid approach: Use Ansible for standardized tasks
-run_ansible_playbook() {
+# Hybrid approach: Use configuration management for standardized tasks
+run_config_management() {
     local playbook=$1
-    if command -v ansible-playbook >/dev/null 2>&1; then
-        ansible-playbook "$playbook"
+    if command -v config-mgmt >/dev/null 2>&1; then
+        config-mgmt "$playbook"
     else
         # Fallback to imperative implementation
         execute_fallback_procedure "$playbook"
@@ -160,7 +160,7 @@ run_ansible_playbook() {
    - Improve error handling and recovery
 
 2. **Selective Integration**
-   - Use Ansible for standardized OS configuration
+   - Use configuration management for standardized OS configuration
    - Maintain custom scripts for lab-specific logic
    - Implement hybrid execution frameworks
 
@@ -168,7 +168,7 @@ run_ansible_playbook() {
 1. **Gradual Migration**
    - Convert repetitive tasks to declarative modules
    - Maintain imperative logic for complex scenarios
-   - Develop organization-specific Ansible modules
+   - Develop organization-specific configuration modules
 
 2. **Best of Both Worlds**
    - Declarative base configuration management
@@ -204,4 +204,4 @@ run_ansible_playbook() {
 - [← Series Overview](2025-05-29-0430_infrastructure_analysis_series_overview.md)
 - [→ Episode 2: Service Orchestration Patterns](2025-05-29-0450_episode_02_service_orchestration_patterns.md)
 
-**Tags:** `infrastructure`, `automation`, `architecture`, `declarative`, `imperative`, `ansible`, `shell-scripting`, `devops`
+**Tags:** `infrastructure`, `automation`, `architecture`, `declarative`, `imperative`, `configuration-management`, `shell-scripting`, `devops`

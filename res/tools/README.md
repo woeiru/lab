@@ -133,8 +133,7 @@ tools/generators/
 └── infrastructure/          # Infrastructure code generation
     ├── terraform_generator.py # Terraform configuration generation
     ├── kubernetes_generator.py # Kubernetes manifest generation
-    ├── docker_generator.py   # Dockerfile generation
-    └── ansible_generator.py  # Ansible playbook generation
+    └── docker_generator.py   # Dockerfile generation
 ```
 
 ### Generation Capabilities
