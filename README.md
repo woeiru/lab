@@ -81,7 +81,7 @@ Development logs, analysis reports, and operational documentation organized by c
 - **[`utl/doc-index`](utl/doc-index)** - Updates this documentation section automatically
 - **[`val/validate-docs`](val/validate-docs)** - Validates internal links in markdown files
 - **[`val/validate_system`](val/validate_system)** - Quick system health validation
-- **[`utl/stats.sh`](utl/stats.sh)** - Generate real-time codebase statistics
+- **[`utl/doc-stats`](utl/doc-stats)** - Generate real-time codebase statistics and update README metrics
 
 ```bash
 # Update documentation index in README.md
@@ -91,7 +91,10 @@ Development logs, analysis reports, and operational documentation organized by c
 ./val/validate-docs
 
 # Generate codebase statistics  
-./utl/stats.sh
+./utl/doc-stats
+
+# Update README metrics automatically
+./utl/doc-stats --update
 ```
 
 
@@ -325,26 +328,25 @@ cd test && ./test_complete_refactor.sh
 ## 📊 System Metrics
 
 ### 🏗️ Codebase Statistics
-- **Total Files**: 111 files across 40 directories
-- **Library Functions**: 133 operational functions in 19 library modules
-- **Operations Code**: 5,323 lines of infrastructure automation
-- **Utility Libraries**: 1,417 lines of reusable components
+- **Total Files**: 122 files across 50 directories
+- **Library Functions**: 133 operational functions in 20 library modules
+- **Operations Code**: 5323 lines of infrastructure automation
+- **Utility Libraries**: 1402 lines of reusable components
 - **Wrapper Functions**: 18 environment-integration wrappers
 
 ### 📚 Documentation & Configuration
-- **Technical Documentation**: 2,453 lines across 39 markdown files
-- **Configuration Files**: 22 environment and system config files
-- **Deployment Scripts**: 8 service-specific deployment modules
+- **Technical Documentation**: 5405 lines across 58 markdown files
+- **Configuration Files**: 17 environment and system config files
+- **Deployment Scripts**: 19 service-specific deployment modules
 - **Container Variables**: 108 container configuration parameters
 
 ### 🧪 Quality Assurance
-- **Test Framework**: 499 lines of comprehensive validation logic
+- **Test Framework**: 494 lines of comprehensive validation logic
 - **Function Separation**: Pure functions with management wrappers
 - **Security Coverage**: Zero hardcoded credentials with secure management
 - **Environment Support**: Multi-tier configuration hierarchy
 
-> 💡 **Live Metrics**: These statistics are generated in real-time using `./stats.sh`. Run it anytime to get current codebase metrics in formatted, markdown, or raw output.
-
+> 💡 **Live Metrics**: These statistics are generated in real-time using `./utl/doc-stats`. Run it anytime to get current codebase metrics in formatted, markdown, or raw output.
 
 
 ## 📋 Project Index
@@ -458,7 +460,7 @@ cd test && ./test_complete_refactor.sh
 
 ### 🔧 System Tools
 - **[Main Entry Point](entry.sh)** - System initialization and setup
-- **[System Statistics](stats.sh)** - Live system metrics and statistics
+- **[System Statistics](utl/doc-stats)** - Live system metrics and statistics with README auto-update
 - **[System Initialization](bin/ini)** - Core system initialization (487 lines)
 - **[Component Orchestrator](bin/orc)** - Component loading and orchestration
 - **[Shell Configuration](entry.sh)** - Shell environment configuration

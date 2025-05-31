@@ -6,7 +6,7 @@
 
 ### Documentation Tools
 - **[`doc-index`](doc-index)** - Generates comprehensive documentation index with cross-references and metadata
-- **[`stats.sh`](stats.sh)** - Generates real-time statistics about the lab environment codebase
+- **[`doc-stats`](doc-stats)** - Generates real-time statistics about the lab environment codebase and updates README metrics
 
 ## Usage
 
@@ -15,7 +15,17 @@
 ./utl/doc-index
 
 # Generate codebase statistics
-./utl/stats.sh
+# Generate system metrics (formatted output)
+./utl/doc-stats
+
+# Update README.md with current metrics
+./utl/doc-stats --update
+
+# Generate markdown table format
+./utl/doc-stats --markdown
+
+# Generate raw numbers only
+./utl/doc-stats --raw
 ```
 
 ## Generated Outputs

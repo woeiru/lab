@@ -314,7 +314,7 @@ main() {
 - **[`utl/doc-index`](utl/doc-index)** - Updates this documentation section automatically
 - **[`val/validate-docs`](val/validate-docs)** - Validates internal links in markdown files
 - **[`val/validate_system`](val/validate_system)** - Quick system health validation
-- **[`utl/stats.sh`](utl/stats.sh)** - Generate real-time codebase statistics
+- **[`utl/doc-stats`](utl/doc-stats)** - Generate real-time codebase statistics and update README metrics
 
 ```bash
 # Update documentation index in README.md
@@ -324,7 +324,10 @@ main() {
 ./val/validate-docs
 
 # Generate codebase statistics  
-./utl/stats.sh
+./utl/doc-stats
+
+# Update README metrics automatically
+./utl/doc-stats --update
 ```
 
 EOF

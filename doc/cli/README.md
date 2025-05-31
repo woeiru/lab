@@ -108,7 +108,7 @@ cd tst && ./test_complete_refactor.sh
 ### Performance Monitoring
 ```bash
 # View system statistics
-./stats.sh
+./utl/doc-stats
 
 # Monitor timing (when enabled)
 tme_print_timing_report
@@ -157,7 +157,7 @@ cd src/set/pve && ./pve a  # Execute specific task
 - **Log Analysis**: Check `.log` directory for detailed error information
 
 ### Support Resources
-- **System Statistics**: `./stats.sh` for current system metrics
+- **System Statistics**: `./utl/doc-stats` for current system metrics and README updates
 - **Test Framework**: Comprehensive validation scripts in `tst/` directory
 - **Example Configurations**: Reference configurations in `cfg/env/`
 
@@ -168,7 +168,7 @@ cd src/set/pve && ./pve a  # Execute specific task
 ./entry.sh                    # Initialize system
 ./val/validate_system         # Quick health check
 ./tst/test_environment        # Comprehensive testing
-./stats.sh                    # System statistics
+./utl/doc-stats               # System statistics
 source ~/.bashrc              # Reload environment
 ```
 

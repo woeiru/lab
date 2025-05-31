@@ -45,7 +45,7 @@ res/workflows/execute.sh <workflow_name>
 res/knowledge/search.sh <query>
 
 # Check system statistics
-./stats.sh
+./utl/doc-stats
 
 # Access configuration management
 source cfg/core/ecc
@@ -109,7 +109,7 @@ cat res/optimization/README.md
 The AI Resources directory integrates seamlessly with the entire ES Lab ecosystem:
 
 ### Core Lab Infrastructure
-- **Lab Root** - Main lab environment with entry.sh and stats.sh
+- **Lab Root** - Main lab environment with entry.sh and doc-stats utilities
 - **`bin/`** - Executable binaries and initialization scripts
   - `bin/ini` - Lab initialization routines
   - `bin/orc` - Component management systems
