@@ -1,51 +1,64 @@
-# 👤 User Documentation
+# 🖥️ CLI Documentation
 
-Documentation for end users operating the Lab Environment Management System.
+Documentation for command-line interface, system initialization, and user interaction with the Lab Environment Management System.
+
+This documentation specializes in the `bin/init` initialization process, verbosity controls, logging configuration, and runtime interaction with core modules (`err`, `lo1`, `tme`, `ver`). It covers everything needed to understand and control the system's startup behavior and operational settings.
 
 ## 🎯 Target Audience
 
-End users who need to:
-- Get started with the system quickly and efficiently
-- Understand basic system operations and controls
-- Configure user-accessible system options
-- Perform common tasks and operations
+Command-line users who need to:
+- Initialize and configure the system via `bin/init`
+- Understand verbosity controls and logging configuration
+- Interact with core modules (err, lo1, tme, ver) at runtime
+- Control system behavior through environment variables and shell functions
+- Troubleshoot initialization and module loading issues
 
 ## 📚 Documentation Index
 
 ### Getting Started
-- **[User Guide](initiation.md)** - Complete user interaction and configuration guide, runtime controls, and system operation
-- **[Quick Reference](quick-reference.md)** - Essential commands and daily workflow operations
-- **[Verbosity Controls](verbosity-controls.md)** - User-facing verbosity configuration and control options
+- **[Initialization Guide](initiation.md)** - Complete guide to system initialization, configuration, and runtime controls
+- **[Quick Reference](quick-reference.md)** - Essential CLI commands and daily workflow operations
+- **[Verbosity Controls](verbosity-controls.md)** - Comprehensive verbosity configuration and control options
 
-### User Guidelines
+### CLI Guidelines
 
-#### Quick Start
+#### System Initialization
 ```bash
-# Initialize the environment
-./entry.sh
+# Initialize the system with default settings
+./bin/init
 
-# Verify installation  
-./tst/validate_system
+# Initialize with custom verbosity
+export MASTER_TERMINAL_VERBOSITY="on"
+./bin/init
 
-# Check system status
-./tst/test_environment
+# Initialize with custom log directory
+export LOG_DIR="/custom/log/path"
+./bin/init
 ```
 
-#### Basic Operations
+#### Runtime Controls
 ```bash
-# Source core system (automatic after setup)
-source ~/.bashrc  # or ~/.zshrc
-
-# Available core modules:
-# - err: Advanced error handling and stack traces
-# - lo1: Module-specific debug logging  
-# - tme: Performance timing and monitoring
+# Available after ./bin/init completes:
+setlog on|off                 # Control lo1 logging
+enable_error_trap             # Enable error handling
+tme_settme report on          # Enable timing reports
+tme_print_timing_report       # Display performance data
 ```
 
-#### User Controls
-- **Environment Variables**: Configure system behavior before initialization
-- **Verbosity Controls**: Manage terminal output and logging levels
-- **Runtime Configuration**: Customize system operation for your workflow
+#### Core Module Interaction
+```bash
+# Error handling module (err)
+enable_error_trap / disable_error_trap
+
+# Advanced logging module (lo1)  
+setlog on / setlog off
+
+# Timing module (tme)
+tme_settme report on|off
+tme_settme sort chron|duration
+tme_start_timer "COMPONENT"
+tme_end_timer "COMPONENT" "success"
+```
 
 ## 🔧 User Configuration
 

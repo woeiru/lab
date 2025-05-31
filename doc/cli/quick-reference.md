@@ -186,7 +186,7 @@ cfg/core/                   # Core system configuration
 
 ### Documentation
 ```bash
-doc/user/                   # User documentation (this guide)
+doc/cli/                   # CLI documentation (this guide)
 doc/dev/                    # Developer documentation  
 doc/adm/                    # Administrator documentation
 doc/iac/                    # Infrastructure documentation
