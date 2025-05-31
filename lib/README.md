@@ -229,7 +229,6 @@ env_validate_config     # Validate configuration files
 ```bash
 # Enable comprehensive debugging
 export LOG_DEBUG_ENABLED=1
-export LOG_DEBUG_FILE="/tmp/lib_debug.log"
 
 # Run operations with detailed logging
 lo1_debug_log "Starting operation" 1
