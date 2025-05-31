@@ -36,10 +36,7 @@ bin/
    - Initializes runtime system with configuration processing
    - Registers and validates system functions
 
-3. **Component Setup**:
-   - Orchestrates loading of configuration files (`cfg/`)
-   - Sources library modules (`lib/core/`, `lib/ops/`, `lib/utl/`, `lib/aux/`)
-   - Applies environment-specific settings and aliases
+
 
 **Dependencies**:
 - **Configuration Files**: `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`
@@ -66,44 +63,10 @@ bin/
   - `execute_component`: Individual component execution with status tracking
   - `source_helper`: Safe file sourcing with error handling
 
-**Loading Order**:
-1. **Configuration** (`cfg/`): Environment settings and aliases
-2. **Core Libraries** (`lib/core/`): Essential system functions
-3. **Operational Libraries** (`lib/ops/`): Domain-specific operations
-4. **Utility Libraries** (`lib/utl/`): Specialized tools
-5. **Auxiliary Libraries** (`lib/aux/`): Helper and analysis functions
-
-### 🐚 `entry.sh` (Root Level) - Shell Configuration Injector
-
-**Purpose**: Provides shell integration capabilities by injecting system initialization code into user shell configuration files in a controlled and reversible manner. Located in the root directory for easy access.
-
-**Key Features**:
-- **Multi-Shell Support**: Compatible with Bash (4+) and Zsh (5+)
-- **Non-Destructive Updates**: Manages configuration blocks with clear markers
-- **User Targeting**: Supports user-specific configuration injection
-- **Interactive/Automated Modes**: Flexible execution options
-- **Backup Capability**: Safe configuration management with rollback support
-
-**Usage**:
-```bash
-# Interactive mode
-./entry.sh
-
-# Non-interactive mode
-./entry.sh -y
-
-# Target specific user
-./entry.sh -u username
-
-# Specify custom config file
-./entry.sh -c /path/to/config
-```
-
-**Integration Process**:
-1. Verifies shell compatibility and user permissions
-2. Locates or creates appropriate shell configuration file
-3. Injects or updates initialization code block with markers
-4. Manages shell restart for changes to take effect
+ **Component Setup**:
+   - Orchestrates loading of configuration files (`cfg/`)
+   - Sources library modules (`lib/core/`, `lib/ops/`, `lib/utl/`, `lib/aux/`)
+   - Applies environment-specific settings and aliases
 
 ## 🔧 Key Features
 
@@ -123,31 +86,6 @@ bin/
 - **Environment Detection**: Automatic environment-specific configuration loading
 - **Shell Integration**: Seamless integration with user shell environments
 - **Cross-Platform Support**: Compatible with various Unix-like systems
-
-## 🚀 Usage Guidelines
-
-### Basic Initialization
-```bash
-# Standard system initialization
-./bin/init
-
-# With custom log directory
-export LOG_DIR="/custom/log/path"
-./bin/init
-
-# Quiet mode (minimal output)
-export MASTER_TERMINAL_VERBOSITY="off"
-./bin/init
-```
-
-### Shell Integration Setup
-```bash
-# Set up shell integration for current user
-./entry.sh
-
-# Automated setup for specific user
-sudo ./entry.sh -y -u targetuser
-```
 
 ### Environment Variables
 Control initialization behavior through environment variables:
