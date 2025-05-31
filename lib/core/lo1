@@ -14,7 +14,7 @@
 #
 # Dependencies: Relies on 'verify_module' for module integrity checks.
 #               Uses environment variables such as LOG_DIR, TMP_DIR,
-#               LOG_DEBUG_ENABLED, LOG_DEBUG_FILE, LOG_STATE_FILE, and LOG_FILE.
+#               LOG_DEBUG_ENABLED, LOG_STATE_FILE, and LOG_FILE.
 #
 # Usage:       Sourced by other modules and scripts for consistent logging.
 #              Use 'setlog on|off' to enable or disable logging output to console.
@@ -136,7 +136,6 @@ ensure_state_directories() {
 init_state_files() {
     [[ ! -f "$LOG_STATE_FILE" ]] && echo "on" > "$LOG_STATE_FILE"  # Changed "true" to "on"
     [[ ! -f "$LOG_DEPTH_CACHE_FILE" ]] && touch "$LOG_DEPTH_CACHE_FILE"
-    [[ ! -f "$LOG_DEBUG_FILE" ]] && touch "$LOG_DEBUG_FILE"
 }
 
 # Core functions

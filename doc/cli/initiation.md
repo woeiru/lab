@@ -223,7 +223,8 @@ Timing is automatically integrated throughout the initialization process:
 
 ### Log File Locations
 
-*   **Debug Log**: `${LOG_DIR}/debug.log` - Early initialization and verification messages
+*   **Init Log**: `${LOG_DIR}/ini.log` - Initialization and verification messages
+*   **Verification Log**: `${LOG_DIR}/ver.log` - Module verification and status messages
 *   **Main Log**: `${LOG_DIR}/lo1.log` - Primary application and lo1 module messages  
 *   **Error Log**: `${LOG_DIR}/err.log` - System errors and warnings
 *   **Timing Log**: `${LOG_DIR}/tme.log` - Detailed timing information
@@ -241,7 +242,8 @@ Timing is automatically integrated throughout the initialization process:
 #### Initialization Failures
 ```bash
 # Check initialization logs
-cat ${LOG_DIR}/debug.log
+cat ${LOG_DIR}/ini.log
+cat ${LOG_DIR}/ver.log
 cat ${LOG_DIR}/init_flow.log
 
 # Verify essential components
@@ -320,7 +322,8 @@ export LOG_DEBUG_ENABLED=1
 
 # Initialize and monitor
 ./bin/ini
-tail -f ${LOG_DIR}/debug.log &
+tail -f ${LOG_DIR}/ini.log &
+tail -f ${LOG_DIR}/ver.log &
 tail -f ${LOG_DIR}/lo1.log &
 ```
 

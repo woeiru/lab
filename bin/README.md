@@ -116,7 +116,8 @@ Control initialization behavior through environment variables:
 ## 📊 Monitoring and Debugging
 
 ### Log Files
-- **Debug Log**: `${LOG_DIR}/debug.log` - Detailed initialization tracking
+- **Init Log**: `${LOG_DIR}/ini.log` - Initialization sequence tracking
+- **Verification Log**: `${LOG_DIR}/ver.log` - Module verification messages
 - **Error Log**: `${LOG_DIR}/error.log` - Error messages and failures
 - **Timer Log**: `${LOG_DIR}/tme.log` - Performance timing analysis
 - **Flow Log**: `${LOG_DIR}/init_flow.log` - Initialization flow tracking
