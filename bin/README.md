@@ -11,7 +11,7 @@ bin/
 ├── init              # Main System Initialization Controller
 ├── orc               # Component Orchestrator  
 └── env/              # Environment Setup and Shell Integration
-    └── rc            # Shell Configuration Injector
+    (empty - shell configuration moved to root entry.sh)
 ```
 
 ## 📁 Core Files and Components
@@ -74,9 +74,9 @@ bin/
 4. **Utility Libraries** (`lib/utl/`): Specialized tools
 5. **Auxiliary Libraries** (`lib/aux/`): Helper and analysis functions
 
-### 🐚 `env/rc` - Shell Configuration Injector
+### 🐚 `entry.sh` (Root Level) - Shell Configuration Injector
 
-**Purpose**: Provides shell integration capabilities by injecting system initialization code into user shell configuration files in a controlled and reversible manner.
+**Purpose**: Provides shell integration capabilities by injecting system initialization code into user shell configuration files in a controlled and reversible manner. Located in the root directory for easy access.
 
 **Key Features**:
 - **Multi-Shell Support**: Compatible with Bash (4+) and Zsh (5+)
