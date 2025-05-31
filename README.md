@@ -408,7 +408,7 @@ cd test && ./test_complete_refactor.sh
 - **[User Management](lib/ops/usr)** - User account management
 
 #### Utility Libraries
-- **[Alias Management](lib/utl/ali)** - System alias management
+- **[Alias Management](utl/cfg-ali)** - Dynamic alias generation system
 - **[Environment Utils](lib/utl/env)** - Environment configuration utilities
 - **[Infrastructure Utils](lib/utl/inf)** - Infrastructure deployment utilities
 - **[Security Utils](lib/utl/sec)** - Security and credential management

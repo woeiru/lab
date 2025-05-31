@@ -1,7 +1,7 @@
 #!/bin/bash
 
-    # Ansible
-    alias ali='ali-dyn'
+    # Alias generation
+    alias ali='$LAB_DIR/utl/cfg-ali'
     alias ap='ansible-playbook'
 
     # Bash

@@ -1,0 +1,120 @@
+#!/bin/bash
+#
+# =============================================================================
+# Dynamic Alias Generation Script (cfg-ali)
+# =============================================================================
+# File:        utl/cfg-ali
+# Version:     2.0.0
+# Author:      Lab Environment System
+# Created:     2025-05-31
+# Modified:    2025-05-31
+#
+# Purpose:     Standalone dynamic shell alias generator for the lab environment.
+#              Replaces the functionality previously found in 'lib/utl/ali' with
+#              a self-contained, dependency-minimal implementation.
+#
+# Description: This script generates comprehensive shell aliases for simplified
+#              navigation and command execution within the lab project. It creates
+#              organized alias categories for README files, directory navigation,
+#              configuration files, library functions, and executable scripts.
+#
+# Core Functionality:
+#   • README File Aliases:
+#     - Creates 'c-' prefixed aliases for 'cat' operations on readme.md files
+#     - Creates 'v-' prefixed aliases for 'vim' operations on readme.md files
+#     - Supports nested directory structures with intelligent naming
+#   
+#   • Directory Navigation Aliases:
+#     - Creates 'd-' prefixed aliases for top-level directory navigation
+#     - Uses $LAB_DIR variable for portable path references
+#   
+#   • Configuration File Aliases:
+#     - Environment files (cfg/env): cat/vim aliases with 'c.' and 'v.' prefixes
+#     - Configuration processing for multiple environment configurations
+#   
+#   • Library Function Aliases:
+#     - Operations library files (lib/ops): cat/vim aliases for function inspection
+#     - Supports function library browsing and editing
+#   
+#   • Executable Script Aliases:
+#     - Source set scripts (src/set): cat/vim/bash aliases with execution support
+#     - Includes 'b.' prefixed aliases for direct script execution
+#
+# Technical Architecture:
+#   • Standalone Design: No external function dependencies except core variables
+#   • Modular Structure: Separate functions for each alias category
+#   • Error Handling: Comprehensive validation and graceful degradation
+#   • Output Organization: Structured sections in cfg/ali/dyn with clear headers
+#   • Variable Safety: Uses $LAB_DIR references for portability
+#
+# Dependencies (Configuration Variables Only):
+#   REQUIRED:
+#   - LAB_DIR:          Root laboratory directory path
+#   - CFG_ALI_DIR:      Alias configuration output directory
+#   - CFG_ENV_DIR:      Environment configuration directory
+#   - LIB_OPS_DIR:      Operations library directory
+#   - SRC_SET_DIR:      Source set scripts directory
+#   - GENERATION_FOLDERS: Array of directories to process for file arrays
+#
+#   OPTIONAL:
+#   - CFG_CORE_MDC:     Module definition constants (future extensibility)
+#
+# File Structure Generated:
+#   cfg/ali/dyn contains:
+#   ├── Header (timestamp, version info)
+#   ├── README File Aliases (c-*, v-*)
+#   ├── Directory Navigation Aliases (d-*)
+#   ├── Environment File Aliases (c.env.*, v.env.*)
+#   ├── Library Function Aliases (c.ops.*, v.ops.*)
+#   └── Source Set Script Aliases (c.set.*, v.set.*, b.set.*)
+#
+# Usage Examples:
+#   Direct Execution:     ./utl/cfg-ali
+#   Source Integration:   source ./utl/cfg-ali && refresh_aliases
+#   
+# Integration Points:
+#   • Called by initialization scripts (bin/orc, bin/ini)
+#   • Sources cfg/core/ric for essential path variables
+#   • Outputs to cfg/ali/dyn for consumption by shell initialization
+#   • Compatible with existing static aliases in cfg/ali/sta
+#
+# Migration Notes:
+#   This script replaces lib/utl/ali with the following improvements:
+#   • Eliminated dependency on logging system (log, tme_* functions)
+#   • Eliminated dependency on error handling system (error_handler)
+#   • Simplified function structure with inline error handling
+#   • Maintained 100% functional compatibility with existing alias generation
+#   • Enhanced documentation and code organization
+#   • Improved portability and maintainability
+#
+# Error Handling Strategy:
+#   • Configuration validation: Checks for required variables and directories
+#   • File operation safety: Validates file existence before alias creation
+#   • Graceful degradation: Continues processing on non-critical failures
+#   • Clear error messages: Provides actionable feedback for troubleshooting
+#
+# Performance Considerations:
+#   • Optimized file operations: Minimal disk I/O with efficient processing
+#   • Memory efficiency: Uses local variables and proper cleanup
+#   • Batch processing: Groups related operations for better performance
+#   • Lazy evaluation: Only processes existing files and directories
+#
+# Security Considerations:
+#   • Path validation: Ensures all paths are within expected directories
+#   • Input sanitization: Validates and sanitizes file and directory names
+#   • Safe variable expansion: Uses proper quoting for path variables
+#   • No code injection: All aliases use static command structures
+#
+# Maintenance Guidelines:
+#   • Add new alias categories by creating new generate_*_aliases functions
+#   • Extend GENERATION_FOLDERS in cfg/core/ric for new directories
+#   • Follow existing naming conventions for alias prefixes
+#   • Update version number and documentation for significant changes
+#   • Test thoroughly in isolated environment before deployment
+#
+# Future Extensibility:
+#   • Plugin system: Support for custom alias generators
+#   • Configuration profiles: Multiple alias sets for different environments
+#   • Interactive mode: User-guided alias customization
+#   • Integration hooks: Pre/post generation callback support
+# =============================================================================

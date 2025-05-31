@@ -24,7 +24,6 @@ lib/
 │   ├── sys            # System administration utilities
 │   └── usr            # User and permission management
 └── utl/              # Utility libraries (development and maintenance)
-    ├── ali            # Alias management and command shortcuts
     ├── env            # Environment switching and management (356+ lines)
     ├── inf            # Infrastructure information and discovery
     ├── sec            # Security utilities and credential management
@@ -63,7 +62,6 @@ lib/
 | Module | Purpose | Lines of Code | Functionality |
 |--------|---------|---------------|---------------|
 | **env** | Environment Management | 356+ | • Site switching (dev/staging/prod)<br>• Configuration validation<br>• Hierarchy management<br>• Status reporting |
-| **ali** | Alias Management | - | • Command shortcuts<br>• Dynamic aliases<br>• Context-aware commands<br>• Productivity enhancement |
 | **inf** | Infrastructure Discovery | - | • Resource enumeration<br>• Capacity reporting<br>• Health assessment<br>• Topology mapping |
 | **sec** | Security Utilities | - | • Credential management<br>• Encryption/decryption<br>• Certificate handling<br>• Security scanning |
 | **ssh** | SSH Management | - | • Key distribution<br>• Connection pooling<br>• Tunnel management<br>• Authentication |
