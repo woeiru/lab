@@ -283,13 +283,23 @@ cd test && ./test_complete_refactor.sh
 - **[Source Code](src/README.md)** - `src/` - Deployment scripts and management tools
 - **[Testing Framework](tst/README.md)** - `tst/` - Validation scripts and system health checks
 
+#### Audience-Specific Documentation
+- **[Developer Documentation](doc/dev/README.md)** - `doc/dev/` - System architecture, API reference, logging, and integration guides
+- **[System Administrator Documentation](doc/adm/README.md)** - `doc/adm/` - Configuration, security, monitoring, and operational management  
+- **[Infrastructure Documentation](doc/iac/README.md)** - `doc/iac/` - IaC deployment patterns, environment management, and automation
+- **[User Documentation](doc/user/README.md)** - `doc/user/` - Getting started, user guides, and daily operation procedures
+
 #### System Manuals & Architecture Documentation
-- **[System Architecture](doc/man/architecture.md)** - Complete system design overview
-- **[Configuration Manual](doc/man/configuration.md)** - Detailed configuration options
-- **[Infrastructure Guide](doc/man/infrastructure.md)** - Deployment and IaC patterns
-- **[User Guide](doc/man/initiation.md)** - User interaction and runtime controls
-- **[Logging System](doc/man/logging.md)** - Monitoring and debugging
-- **[Verbosity Controls](doc/man/verbosity.md)** - System verbosity and output control
+- **[System Architecture](doc/dev/architecture.md)** - Complete system design overview
+- **[API Reference](doc/dev/api-reference.md)** - Developer library function reference
+- **[Configuration Manual](doc/adm/configuration.md)** - Detailed configuration options
+- **[Security Management](doc/adm/security.md)** - Security framework and credential management
+- **[Infrastructure Guide](doc/iac/infrastructure.md)** - Deployment and IaC patterns
+- **[Environment Management](doc/iac/environment-management.md)** - Multi-environment deployment patterns
+- **[User Guide](doc/user/initiation.md)** - User interaction and runtime controls
+- **[Quick Reference](doc/user/quick-reference.md)** - Essential commands and daily workflows
+- **[Logging System](doc/dev/logging.md)** - Monitoring and debugging
+- **[Verbosity Controls](doc/dev/verbosity.md)** - System verbosity and output control
 
 #### Troubleshooting Documentation
 - **[Audio Root Fix](doc/fix/audioroot.md)** - Audio system troubleshooting
@@ -381,4 +391,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-For detailed documentation, start with [`doc/man/architecture.md`](doc/man/architecture.md) for system overview or [`doc/man/initiation.md`](doc/man/initiation.md) for user guide.
+For detailed documentation, start with:
+- **[Developer Documentation](doc/dev/README.md)** for system architecture and integration
+- **[System Administrator Documentation](doc/adm/README.md)** for configuration and management  
+- **[Infrastructure Documentation](doc/iac/README.md)** for deployment automation
+- **[User Documentation](doc/user/README.md)** for getting started and user guides
