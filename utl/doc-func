@@ -1,12 +1,25 @@
 #!/bin/bash
+#######################################################################
+# Lab Environment Function Metadata Table Generator
+#######################################################################
+# File: doc-func
+# Description: Automatic function metadata table generator that populates 
+#              the function metadata table in doc/dev/functions.md using 
+#              aux-ffl and aux-laf to extract function information from lib/ directories
+#
+# Usage: ./doc-func
+#   (default)   Updates the function metadata table in doc/dev/functions.md
+#######################################################################
 
-# utl/doc-func - Automatic function metadata table generator
-# Populates the function metadata table in doc/dev/functions.md
-# Uses aux-ffl and aux-laf to extract function information from lib/ directories
+set -euo pipefail
 
-# Set script directory and lab root
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LAB_DIR="$(dirname "$SCRIPT_DIR")"
+# Initialize lab environment
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Set LAB_DIR if not already set
+if [[ -z "${LAB_DIR:-}" ]]; then
+    readonly LAB_DIR="$(dirname "$SCRIPT_DIR")"
+fi
 
 # Source required utilities
 source "$LAB_DIR/lib/ops/aux"
