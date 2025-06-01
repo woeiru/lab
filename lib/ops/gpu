@@ -640,21 +640,27 @@ _gpu_get_detailed_device_info() {
 # MAIN FUNCTIONS (Refactored)
 # ============================================================================
 
-# Shows a summary of selected functions in the script
+# Shows a summary of selected functions in the script, displaying their usage, shortname, and description
+# general functions utility
+# [filepath] [options...]
 gpu-fun() {
     local filepath_gpu="${1:-$FILEPATH_gpu}"
     shift
     aux-laf "$filepath_gpu" "$@"
 }
 
-# Displays an overview of specific variables
+# Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
+# general variables utility
+# [config_file] [lib_parent_dir]
 gpu-var() {
     local config_gpu="${1:-$CONFIG_gpu}"
     local lib_ops_parent_dir="${2:-$DIR_FUN/..}"
     aux-acu -o "$config_gpu" "$lib_ops_parent_dir"
 }
 
-# Downloads and installs NVIDIA drivers, blacklisting Nouveau
+# Downloads and installs NVIDIA drivers, blacklisting Nouveau drivers first
+# nvidia driver setup
+# [driver_version]
 gpu-nds() {
     local drv_ver="${1:-550.142}"
     local url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${drv_ver}/NVIDIA-Linux-x86_64-${drv_ver}.run"
@@ -692,6 +698,8 @@ EOF
 }
 
 # Configures initial GRUB and EFI settings for GPU passthrough
+# passthrough step one
+#
 gpu-pt1() {
     local function_name="${FUNCNAME[0]}"
     
@@ -711,6 +719,8 @@ gpu-pt1() {
 }
 
 # Adds necessary kernel modules for GPU passthrough
+# passthrough step two
+#
 gpu-pt2() {
     local function_name="${FUNCNAME[0]}"
     
@@ -730,6 +740,8 @@ gpu-pt2() {
 }
 
 # Finalizes or reverts GPU passthrough setup
+# passthrough step three
+# <enable|disable>
 gpu-pt3() {
     local action="$1"
     local function_name="${FUNCNAME[0]}"
@@ -851,6 +863,8 @@ gpu-pt3() {
 }
 
 # Detaches the GPU from the host system for VM passthrough
+# passthrough detach
+# [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id]
 gpu-ptd() {
     local gpu_id_arg="$1"
     local hostname="${2:-$(hostname -s)}"
@@ -942,6 +956,8 @@ gpu-ptd() {
 }
 
 # Attaches the GPU back to the host system
+# passthrough attach
+# [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id] [nvidia_driver_preference]
 gpu-pta() {
     local gpu_id_arg="$1"
     local hostname="${2:-$(hostname -s)}"
@@ -1014,6 +1030,8 @@ gpu-pta() {
 }
 
 # Checks the current status of the GPU (complete detailed version)
+# passthrough status
+# [hostname] [config_file] [pci0_id] [pci1_id] [nvidia_driver_preference]
 gpu-pts() {
     local hostname="${1:-$(hostname -s)}"
     local config_file="${2:-$CONFIG_FUN}"
