@@ -101,20 +101,15 @@ ENV_OVERRIDE_FILE="${CFG_ENV_DIR}/${SITE_NAME}-${ENVIRONMENT_NAME}"
 NODE_OVERRIDE_FILE="${CFG_ENV_DIR}/${SITE_NAME}-${NODE_NAME}"
 export ENV_OVERRIDE_FILE NODE_OVERRIDE_FILE
 
-# Deployment function library path
-declare -g LIB_OPS_DIR
-LIB_OPS_DIR="${LAB_DIR}/lib/ops"
-export LIB_OPS_DIR
-
-# Deployment function library path
-declare -g SRC_AUX_DIR
-SRC_AUX_DIR="${LAB_DIR}/src/aux"
-export SRC_AUX_DIR
-
 # Core library path
 declare -g LIB_CORE_DIR
 LIB_CORE_DIR="${LAB_DIR}/lib/core"
 export LIB_CORE_DIR
+
+# Deployment function library path
+declare -g LIB_OPS_DIR
+LIB_OPS_DIR="${LAB_DIR}/lib/ops"
+export LIB_OPS_DIR
 
 # Utility library path
 declare -g LIB_UTL_DIR
@@ -126,15 +121,20 @@ declare -g CFG_ALI_DIR
 CFG_ALI_DIR="${LAB_DIR}/cfg/ali"
 export CFG_ALI_DIR
 
-# Generation directory for gen scripts
-declare -g SRC_SET_DIR
-SRC_SET_DIR="${LAB_DIR}/src/set"
-export SRC_SET_DIR
+# Deployment function library path
+declare -g SRC_AUX_DIR
+SRC_AUX_DIR="${LAB_DIR}/src/aux"
+export SRC_AUX_DIR
 
 # Management wrapper functions directory
 declare -g SRC_MGT_DIR
 SRC_MGT_DIR="${LAB_DIR}/src/mgt"
 export SRC_MGT_DIR
+
+# Generation directory for gen scripts
+declare -g SRC_SET_DIR
+SRC_SET_DIR="${LAB_DIR}/src/set"
+export SRC_SET_DIR
 
 # Runtime configuration
 declare -g CACHE_CLEANUP_INTERVAL
