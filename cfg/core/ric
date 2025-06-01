@@ -112,9 +112,9 @@ LIB_OPS_DIR="${LAB_DIR}/lib/ops"
 export LIB_OPS_DIR
 
 # Utility library path
-declare -g LIB_UTL_DIR
-LIB_UTL_DIR="${LAB_DIR}/lib/utl"
-export LIB_UTL_DIR
+declare -g LIB_GEN_DIR
+LIB_GEN_DIR="${LAB_DIR}/lib/gen"
+export LIB_GEN_DIR
 
 # Alias configuration path
 declare -g CFG_ALI_DIR

@@ -177,9 +177,9 @@ test_infrastructure_utilities() {
     log "Testing infrastructure utilities..."
     
     # Test if infrastructure utilities can be sourced
-    run_test "Source infrastructure utilities" test -f /home/es/lab/lib/utl/inf
+    run_test "Source infrastructure utilities" test -f /home/es/lab/lib/gen/inf
     
-    if source /home/es/lab/lib/utl/inf 2>/dev/null; then
+    if source /home/es/lab/lib/gen/inf 2>/dev/null; then
         success "Infrastructure utilities loaded successfully"
         
         # Test default configuration functions
@@ -211,9 +211,9 @@ test_security_utilities() {
     log "Testing security utilities..."
     
     # Test if security utilities can be sourced
-    run_test "Source security utilities" test -f /home/es/lab/lib/utl/sec
+    run_test "Source security utilities" test -f /home/es/lab/lib/gen/sec
     
-    if source /home/es/lab/lib/utl/sec 2>/dev/null; then
+    if source /home/es/lab/lib/gen/sec 2>/dev/null; then
         success "Security utilities loaded successfully"
         
         # Test password generation functions
@@ -340,8 +340,8 @@ test_container_configuration() {
     log "Testing container configuration..."
     
     # Load utilities
-    source /home/es/lab/lib/utl/inf 2>/dev/null
-    source /home/es/lab/lib/utl/sec 2>/dev/null
+    source /home/es/lab/lib/gen/inf 2>/dev/null
+    source /home/es/lab/lib/gen/sec 2>/dev/null
     
     # Test container definition
     if define_container 999 "test" "192.168.178.999" memory=4096 2>/dev/null; then
@@ -378,7 +378,7 @@ test_container_configuration() {
 test_password_security() {
     log "Testing password security..."
     
-    source /home/es/lab/lib/utl/sec 2>/dev/null
+    source /home/es/lab/lib/gen/sec 2>/dev/null
     
     # Create temporary password directory for testing
     local temp_dir="/tmp/test_passwords_$$"

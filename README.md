@@ -169,7 +169,7 @@ Node-Specific Settings (runtime)
 
 ### Security Framework  
 - **Password Management**: 120+ lines of secure credential handling
-- **Zero Hardcoded Secrets**: All credentials managed through `lib/utl/sec`
+- **Zero Hardcoded Secrets**: All credentials managed through `lib/gen/sec`
 - **Proper Permissions**: Automatic 600 permissions for sensitive files
 - **Fallback Mechanisms**: Graceful handling of missing credentials
 
@@ -227,7 +227,7 @@ tme_show_output_settings     # Display current configuration
 ### Infrastructure Utilities
 ```bash
 # Standardized container creation
-source lib/utl/inf
+source lib/gen/inf
 define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112"
 validate_config && show_config_summary
 ```
@@ -406,10 +406,10 @@ cd test && ./test_complete_refactor.sh
 
 #### Utility Libraries
 - **[Alias Management](utl/cfg-ali)** - Dynamic alias generation system
-- **[Environment Utils](lib/utl/env)** - Environment configuration utilities
-- **[Infrastructure Utils](lib/utl/inf)** - Infrastructure deployment utilities
-- **[Security Utils](lib/utl/sec)** - Security and credential management
-- **[SSH Utils](lib/utl/ssh)** - SSH key and connection management
+- **[Environment Utils](lib/gen/env)** - Environment configuration utilities
+- **[Infrastructure Utils](lib/gen/inf)** - Infrastructure deployment utilities
+- **[Security Utils](lib/gen/sec)** - Security and credential management
+- **[SSH Utils](lib/gen/ssh)** - SSH key and connection management
 
 
 ### 🚀 Deployment Scripts

@@ -20,7 +20,7 @@
 #
 # Dependencies:
 #   - Lab environment codebase for examples and case studies
-#   - Infrastructure utilities: lib/utl/inf, lib/utl/sec
+#   - Infrastructure utilities: lib/gen/inf, lib/gen/sec
 #   - Environment framework: src/aux/set
 #######################################################################
 -->
