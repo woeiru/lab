@@ -106,8 +106,6 @@ process_library_functions() {
         fi
     done
     
-    # Keep JSON files for reference (they will be overwritten on next run)
-    echo "JSON files preserved in: $tmp_dir"
 }
 
 # Function to update the documentation file
