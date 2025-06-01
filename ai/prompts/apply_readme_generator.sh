@@ -2,7 +2,7 @@
 #######################################################################
 # Directory README Generator - Template Application Script
 #######################################################################
-# File: res/prompts/apply_readme_generator.sh
+# File: ai/prompts/apply_readme_generator.sh
 # Description: Easy-to-use script for applying the directory README 
 #              generator template to any target directory.
 #######################################################################

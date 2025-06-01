@@ -135,28 +135,28 @@ examples:
 ### Apply Template
 ```bash
 # Use a template directly
-res/prompts/apply.sh code_analysis --file src/example.py --focus security
+ai/prompts/apply.sh code_analysis --file src/example.py --focus security
 
 # Execute prompt chain
-res/prompts/chain.sh complete_code_review --repository /path/to/repo
+ai/prompts/chain.sh complete_code_review --repository /path/to/repo
 
 # List available templates
-res/prompts/list.sh --category development
+ai/prompts/list.sh --category development
 
 # Validate template
-res/prompts/validate.sh templates/code_analysis.yaml
+ai/prompts/validate.sh templates/code_analysis.yaml
 ```
 
 ### Template Creation
 ```bash
 # Create new template
-res/prompts/create.sh --name new_template --category infrastructure
+ai/prompts/create.sh --name new_template --category infrastructure
 
 # Test template
-res/prompts/test.sh templates/new_template.yaml --sample-data test.json
+ai/prompts/test.sh templates/new_template.yaml --sample-data test.json
 
 # Deploy template
-res/prompts/deploy.sh templates/new_template.yaml
+ai/prompts/deploy.sh templates/new_template.yaml
 ```
 
 ## 🔧 Integration Features
