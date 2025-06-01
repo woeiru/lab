@@ -1,0 +1,116 @@
+#!/bin/bash
+
+# utl/doc-func - Automatic function metadata table generator
+# Populates the function metadata table in doc/dev/functions.md
+# Uses aux-ffl and aux-laf to extract function information from lib/ directories
+
+# Set script directory and lab root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Source required utilities
+source "$LAB_DIR/lib/ops/aux"
+
+# Define library directories
+LIB_CORE_DIR="$LAB_DIR/lib/core"
+LIB_OPS_DIR="$LAB_DIR/lib/ops"
+LIB_GEN_DIR="$LAB_DIR/lib/gen"
+
+# Output file
+DOC_FILE="$LAB_DIR/doc/dev/functions.md"
+
+# Function to generate metadata table
+generate_function_table() {
+    echo "| Library | Module | Function | Description |"
+    echo "|---------|--------|----------|-------------|"
+    
+    # Process core functions
+    echo "<!-- CORE FUNCTIONS -->"
+    aux-ffl aux-laf "" "$LIB_CORE_DIR" | while read -r line; do
+        if [[ -n "$line" ]]; then
+            module=$(echo "$line" | awk -F: '{print $1}')
+            func=$(echo "$line" | awk -F: '{print $2}')
+            desc=$(echo "$line" | awk -F: '{print $3}')
+            echo "| core | $module | $func | $desc |"
+        fi
+    done
+    
+    # Process ops functions
+    echo "<!-- OPS FUNCTIONS -->"
+    aux-ffl aux-laf "" "$LIB_OPS_DIR" | while read -r line; do
+        if [[ -n "$line" ]]; then
+            module=$(echo "$line" | awk -F: '{print $1}')
+            func=$(echo "$line" | awk -F: '{print $2}')
+            desc=$(echo "$line" | awk -F: '{print $3}')
+            echo "| ops | $module | $func | $desc |"
+        fi
+    done
+    
+    # Process gen functions
+    echo "<!-- GEN FUNCTIONS -->"
+    aux-ffl aux-laf "" "$LIB_GEN_DIR" | while read -r line; do
+        if [[ -n "$line" ]]; then
+            module=$(echo "$line" | awk -F: '{print $1}')
+            func=$(echo "$line" | awk -F: '{print $2}')
+            desc=$(echo "$line" | awk -F: '{print $3}')
+            echo "| gen | $module | $func | $desc |"
+        fi
+    done
+}
+
+# Function to update the documentation file
+update_documentation() {
+    local temp_file=$(mktemp)
+    local in_auto_section=false
+    
+    echo "Updating function metadata table in $DOC_FILE..."
+    
+    # Read the original file and replace the auto-generated section
+    while IFS= read -r line; do
+        if [[ "$line" == *"<!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->"* ]]; then
+            echo "$line" >> "$temp_file"
+            echo "<!-- Command: aux-ffl aux-laf \"\" \"\$LIB_CORE_DIR\" & aux-ffl aux-laf \"\" \"\$LIB_OPS_DIR\" & aux-ffl aux-laf \"\" \"\$LIB_GEN_DIR\" -->" >> "$temp_file"
+            echo "" >> "$temp_file"
+            generate_function_table >> "$temp_file"
+            echo "" >> "$temp_file"
+            in_auto_section=true
+        elif [[ "$line" == *"<!-- END AUTO-GENERATED SECTION -->"* ]]; then
+            echo "$line" >> "$temp_file"
+            in_auto_section=false
+        elif [[ "$in_auto_section" == false ]]; then
+            echo "$line" >> "$temp_file"
+        fi
+    done < "$DOC_FILE"
+    
+    # Replace the original file
+    mv "$temp_file" "$DOC_FILE"
+    echo "Function metadata table updated successfully."
+}
+
+# Main execution
+main() {
+    echo "Generating function metadata table..."
+    echo "Processing libraries: core, ops, gen"
+    
+    # Check if required directories exist
+    for dir in "$LIB_CORE_DIR" "$LIB_OPS_DIR" "$LIB_GEN_DIR"; do
+        if [[ ! -d "$dir" ]]; then
+            echo "Error: Directory $dir not found"
+            exit 1
+        fi
+    done
+    
+    # Check if documentation file exists
+    if [[ ! -f "$DOC_FILE" ]]; then
+        echo "Error: Documentation file $DOC_FILE not found"
+        exit 1
+    fi
+    
+    # Update the documentation
+    update_documentation
+    
+    echo "Function metadata table generation complete."
+}
+
+# Execute main function
+main "$@"
