@@ -84,8 +84,8 @@ alias c.env.site1-w2='cat "$LAB_DIR/cfg/env/site1-w2"'
 alias v.env.site1-w2='vim "$LAB_DIR/cfg/env/site1-w2"'
 
 # --- Library Operation Aliases ---
-alias c.ops.aux='cat "$LAB_DIR/lib/ops/aux"'
-alias v.ops.aux='vim "$LAB_DIR/lib/ops/aux"'
+alias c.gen.aux='cat "$LAB_DIR/lib/gen/aux"'
+alias v.gen.aux='vim "$LAB_DIR/lib/gen/aux"'
 alias c.ops.gpu='cat "$LAB_DIR/lib/ops/gpu"'
 alias v.ops.gpu='vim "$LAB_DIR/lib/ops/gpu"'
 alias c.ops.net='cat "$LAB_DIR/lib/ops/net"'
