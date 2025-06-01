@@ -150,6 +150,78 @@ generate_documentation_table() {
     echo ""
 }
 
+# Function to extract category metadata from README files
+extract_category_metadata_from_readme() {
+    local category="$1"
+    local readme_path="$DOC_DIR/${category,,}/README.md"  # Convert to lowercase for directory
+    
+    if [[ -f "$readme_path" ]]; then
+        # Extract the first line with # (title) and the description
+        local title_line=$(grep -m1 '^# ' "$readme_path" 2>/dev/null)
+        local description_line=$(sed -n '3p' "$readme_path" 2>/dev/null)  # Usually line 3 has the description
+        
+        if [[ -n "$title_line" ]]; then
+            # Extract emoji and clean title from the README
+            local icon=$(echo "$title_line" | grep -o '[[:space:]]*[^[:alnum:][:space:]]' | head -1 | tr -d ' ')
+            local clean_title=$(echo "$title_line" | sed 's/^# *//' | sed 's/^[^[:alnum:][:space:]]*//')
+            
+            # Use description from README if available, otherwise use a generic one
+            local description="$description_line"
+            if [[ -z "$description" || "$description" =~ ^[[:space:]]*$ ]]; then
+                description="Documentation category: $category"
+            fi
+            
+            echo "${icon}|${description}|${clean_title}"
+        else
+            # Fallback if README parsing fails
+            echo "📄|Documentation category: $category|$category Documentation"
+        fi
+    else
+        # Fallback if README doesn't exist
+        echo "📄|Documentation category: $category|$category Documentation"
+    fi
+}
+
+# Function to generate all documentation categories dynamically
+generate_all_documentation_categories() {
+    # Generate JSON output for the documentation directory
+    aux-lad -j "$DOC_DIR" >/dev/null 2>&1
+    
+    local json_file="$LAB_DIR/.tmp/doc/doc.json"
+    if [[ ! -f "$json_file" ]]; then
+        echo "*No documentation found*"
+        return
+    fi
+    
+    # Extract unique categories from JSON, excluding Hub and Index types
+    local categories
+    if command -v jq >/dev/null 2>&1; then
+        # Use jq for proper JSON parsing
+        categories=$(jq -r '.documents[].type' "$json_file" 2>/dev/null | grep -v -E '^(Hub|Index)$' | sort -u)
+    else
+        # Fallback to grep/sed approach
+        categories=$(grep -o '"type":"[^"]*"' "$json_file" | cut -d'"' -f4 | grep -v -E '^(Hub|Index)$' | sort -u)
+    fi
+    
+    # Generate documentation table for each category
+    while IFS= read -r category; do
+        if [[ -n "$category" ]]; then
+            local metadata=$(extract_category_metadata_from_readme "$category")
+            local icon="${metadata%%|*}"
+            local temp="${metadata#*|}"
+            local description="${temp%%|*}"
+            local display_name="${temp#*|}"
+            
+            # Clean up description if it's empty or just whitespace
+            if [[ -z "$description" || "$description" =~ ^[[:space:]]*$ ]]; then
+                description="Documentation for $category"
+            fi
+            
+            generate_documentation_table "$display_name" "$icon" "$description" "$category"
+        fi
+    done <<< "$categories"
+}
+
 # Generate the comprehensive documentation index
 generate_documentation_index() {
     local total_docs=$(count_total_documents)
@@ -167,13 +239,8 @@ This index provides a comprehensive overview of all documentation in the system:
 
 EOF
 
-    # Generate sections for each documentation category
-    generate_documentation_table "Documentation Hub" "📚" "Central navigation and documentation organization" "Hub"
-    generate_documentation_table "Developer Documentation" "👨‍💻" "Technical guides, API references, and integration documentation" "Developer"
-    generate_documentation_table "System Administrator Documentation" "🛠️" "Operations, configuration, and system management guides" "Admin"
-    generate_documentation_table "Infrastructure as Code Documentation" "🏗️" "Infrastructure automation, deployment guides, and environment management" "IaC"
-    generate_documentation_table "Command-Line Interface Documentation" "📱" "CLI guides, command references, and user interaction documentation" "CLI"
-    generate_documentation_table "Core Documentation" "📋" "Standards, architecture principles, and foundational documents" "Core"
+    # Generate sections for each documentation category dynamically
+    generate_all_documentation_categories
     
     cat << 'EOF'
 
