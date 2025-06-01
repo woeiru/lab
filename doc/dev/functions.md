@@ -47,7 +47,6 @@ The `lib/` folder contains three categories of pure functions:
 
 | Library | Module | Function | Description |
 |---------|--------|----------|-------------|
-<!-- CORE FUNCTIONS -->
 | core | err | err_process_error |  |
 | core | err | err_lo1_handle_error |  |
 | core | err | clean_exit |  |
