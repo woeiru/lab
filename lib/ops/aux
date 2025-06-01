@@ -141,6 +141,7 @@ aux-ffl() {
 aux-laf() {
     local truncate_mode=false
     local break_mode=false
+    local json_mode=false
     local file_name
     local lib_ops_dir="${LIB_OPS_DIR:-}"
     local src_set_dir="${SRC_SET_DIR:-}"
@@ -154,6 +155,10 @@ aux-laf() {
                 ;;
             -b)
                 break_mode=true
+                shift
+                ;;
+            -j)
+                json_mode=true
                 shift
                 ;;
             *)
@@ -365,6 +370,83 @@ aux-laf() {
     if ! $break_mode; then
         print_separator
     fi
+    
+    # JSON output mode
+    if $json_mode; then
+        # Create .tmp directory if it doesn't exist
+        local tmp_dir="$(dirname "$file_name")/.tmp"
+        mkdir -p "$tmp_dir"
+        
+        # Generate JSON filename based on input file
+        local json_file="$tmp_dir/$(basename "$file_name").json"
+        
+        # Start JSON output
+        echo "{" > "$json_file"
+        echo "  \"file\": \"$file_name\"," >> "$json_file"
+        echo "  \"functions\": [" >> "$json_file"
+        
+        # Re-process file for JSON output
+        local line_number=0
+        local first_function=true
+        while IFS= read -r line; do
+            ((line_number++))
+            if [[ $line =~ ^[a-zA-Z_][a-zA-Z0-9_-]*\(\) ]]; then
+                # Extract function name without parentheses
+                func_name=$(echo "$line" | awk -F '[(|)]' '{print $1}')
+                # Calculate function size
+                func_start_line=$line_number
+                func_end_line=$(tail -n +$((func_start_line+1)) "$file_name" | grep -n '^}' | head -1 | cut -d: -f1)
+                func_size=$((func_end_line + 1))  # +1 to include the closing brace
+                
+                # Count the number of calls to the function
+                func_calls=$(count_calls "$func_name")
+                
+                # Use directory parameters if available, otherwise show empty
+                if [[ -n "$lib_ops_dir" && -d "$lib_ops_dir" ]]; then
+                    callsfun=$(count_calls_folder "$func_name" "$lib_ops_dir" "$file_name" 2>/dev/null || echo "")
+                else
+                    callsfun=""
+                fi
+                
+                if [[ -n "$src_set_dir" && -d "$src_set_dir" ]]; then
+                    callsgen=$(count_calls_folder "$func_name" "$src_set_dir" "$file_name" 2>/dev/null || echo "")
+                else
+                    callsgen=""
+                fi
+                
+                # Get comments for arguments, shortname, and description
+                description=$(get_comment $((line_number-3)))
+                shortname=$(get_comment $((line_number-2)))
+                arguments=$(get_comment $((line_number-1)))
+                
+                # Add comma before function object if not first
+                if [[ "$first_function" == false ]]; then
+                    echo "    ," >> "$json_file"
+                fi
+                first_function=false
+                
+                # Write function object to JSON
+                echo "    {" >> "$json_file"
+                echo "      \"name\": \"$func_name\"," >> "$json_file"
+                echo "      \"arguments\": \"$arguments\"," >> "$json_file"
+                echo "      \"shortname\": \"$shortname\"," >> "$json_file"
+                echo "      \"description\": \"$description\"," >> "$json_file"
+                echo "      \"size\": $func_size," >> "$json_file"
+                echo "      \"location\": $line_number," >> "$json_file"
+                echo "      \"calls_in_file\": $func_calls," >> "$json_file"
+                echo "      \"calls_in_lib\": \"$callsfun\"," >> "$json_file"
+                echo "      \"calls_in_src\": \"$callsgen\"" >> "$json_file"
+                echo "    }" >> "$json_file"
+            fi
+        done < "$file_name"
+        
+        # Close JSON
+        echo "  ]" >> "$json_file"
+        echo "}" >> "$json_file"
+        
+        echo "JSON output written to: $json_file"
+    fi
+    
     echo ""
 }
 
