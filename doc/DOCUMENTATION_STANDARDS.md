@@ -38,14 +38,6 @@ This document establishes consistent standards, templates, and procedures for cr
 │   ├── 🛠️ adm/                 # System administrator guides
 │   ├── 🏗️ iac/                 # Infrastructure as Code documentation
 │   └── 📱 cli/                 # Command-line interface guides
-├── 📁 tmp/                     # Working documentation
-│   ├── 🔍 ana/                 # Analysis reports
-│   ├── 🔧 dev/                 # Development session logs
-│   ├── 🛠️ fix/                 # Problem resolution guides
-│   ├── 🔄 flo/                 # Process flows and diagrams
-│   ├── 📋 how/                 # How-to guides
-│   ├── 🌐 net/                 # Network documentation
-│   └── 📊 pro/                 # Project planning documents
 └── 📁 Individual Folder READMEs # Context-specific quick reference
 ```
 
@@ -56,12 +48,6 @@ This document establishes consistent standards, templates, and procedures for cr
 - **Comprehensive**: Complete guides and references
 - **Stable**: Long-term documentation with formal maintenance
 - **Cross-Referenced**: Linked with other documentation
-
-#### **Working Documentation (`/tmp/`)**
-- **Dynamic**: Frequently updated analysis and logs
-- **Contextual**: Specific to projects or investigations
-- **Detailed**: In-depth technical analysis and troubleshooting
-- **Temporary**: May be archived or integrated into formal docs
 
 #### **Folder READMEs**
 - **Immediate Context**: Quick orientation for directory contents
