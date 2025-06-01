@@ -47,62 +47,62 @@ The `lib/` folder contains three categories of pure functions:
 
 | Library | Module | Function | Description |
 |---------|--------|----------|-------------|
-| core | err | err_process_error |  |
-| core | err | err_lo1_handle_error |  |
-| core | err | clean_exit |  |
-| core | err | has_errors |  |
-| core | err | error_handler |  |
-| core | err | enable_error_trap |  |
-| core | err | disable_error_trap |  |
-| core | err | dangerous_operation |  |
-| core | err | safe_operation |  |
-| core | err | print_error_report |  |
-| core | err | setup_error_handling |  |
-| core | err | register_cleanup |  |
-| core | err | main_cleanup |  |
-| core | err | main_error_handler |  |
-| core | err | init_traps |  |
-| core | lo1 | lo1_debug_log |  |
-| core | lo1 | get_cached_log_state |  |
-| core | lo1 | dump_stack_trace |  |
-| core | lo1 | cleanup_cache |  |
-| core | lo1 | ensure_state_directories |  |
-| core | lo1 | init_state_files |  |
-| core | lo1 | is_root_function |  |
-| core | lo1 | get_base_depth |  |
-| core | lo1 | calculate_final_depth |  |
-| core | lo1 | get_indent |  |
-| core | lo1 | get_color |  |
-| core | lo1 | log |  |
-| core | lo1 | setlog |  |
-| core | lo1 | init_logger |  |
-| core | lo1 | cleanup_logger |  |
-| core | lo1 | lo1_log_message |  |
-| core | lo1 | lo1_tme_log_with_timer |  |
-| core | tme | tme_init_timer |  |
-| core | tme | tme_start_timer |  |
-| core | tme | tme_stop_timer |  |
-| core | tme | tme_end_timer |  |
-| core | tme | calculate_component_depth |  |
-| core | tme | print_timing_entry |  |
-| core | tme | sort_components_by_duration |  |
-| core | tme | print_tree_recursive |  |
-| core | tme | tme_settme |  |
-| core | tme | tme_print_timing_report |  |
-| core | tme | tme_start_nested_timing |  |
-| core | tme | tme_end_nested_timing |  |
-| core | tme | tme_cleanup_timer |  |
-| core | tme | tme_set_output |  |
-| core | tme | tme_show_output_settings |  |
-| core | ver | ver_log | ----------------------------------------------------------------------------- |
-| core | ver | verify_path | Path and Variable Verification |
-| core | ver | verify_var |  |
-| core | ver | essential_check | Module Verification |
-| core | ver | verify_module |  |
-| core | ver | validate_module |  |
-| core | ver | verify_function_dependencies | Function and Dependency Verification |
-| core | ver | verify_function |  |
-| core | ver | init_verification |  |
+| core | err | err_process_error | Process error messages and log them appropriately |
+| core | err | err_lo1_handle_error | Function to handle errors more comprehensively |
+| core | err | clean_exit | Ensure clean exit from the script with proper trap cleanup |
+| core | err | has_errors | Check if a component has any recorded errors |
+| core | err | error_handler | Enhanced error handler that catches real errors when trapping enabled |
+| core | err | enable_error_trap | Enable error trapping to catch command failures automatically |
+| core | err | disable_error_trap | Disable error trapping to prevent automatic script termination |
+| core | err | dangerous_operation | Example of wrapping dangerous operations with error trapping |
+| core | err | safe_operation | Example of safe operations that don't need error trapping |
+| core | err | print_error_report | Generate comprehensive error report with categorized issues |
+| core | err | setup_error_handling | Initialize error handling system and clear existing tracking |
+| core | err | register_cleanup | Register cleanup function for module teardown operations |
+| core | err | main_cleanup | Orchestrate cleanup sequence for all registered modules |
+| core | err | main_error_handler | Central error handler that delegates to module error handlers |
+| core | err | init_traps | Initialize trap system with EXIT and ERR handlers |
+| core | lo1 | lo1_debug_log | Enhanced debug logging - moved to top |
+| core | lo1 | get_cached_log_state | Retrieve cached log state to optimize file access performance |
+| core | lo1 | dump_stack_trace | Display detailed stack trace for debugging function calls |
+| core | lo1 | cleanup_cache | Periodic cleanup of depth cache to optimize performance |
+| core | lo1 | ensure_state_directories | Create required logging directories if they don't exist |
+| core | lo1 | init_state_files | Initialize state files for logging |
+| core | lo1 | is_root_function | Check if given function is a root function for depth calculation |
+| core | lo1 | get_base_depth | Calculate base depth for call stack indentation in logs |
+| core | lo1 | calculate_final_depth | Calculate final depth for logging |
+| core | lo1 | get_indent | Get indentation string based on depth |
+| core | lo1 | get_color | Get color based on depth level |
+| core | lo1 | log | Main logging function |
+| core | lo1 | setlog | Logger control |
+| core | lo1 | init_logger | Initialize logger system and setup logging environment |
+| core | lo1 | cleanup_logger | Clean up logger state and reset cache variables |
+| core | lo1 | lo1_log_message | Standard logging function for modules to use |
+| core | lo1 | lo1_tme_log_with_timer | Log message with timing information if TME module available |
+| core | tme | tme_init_timer | Initialize timer system with log directory and configuration files |
+| core | tme | tme_start_timer | Start timing a component with optional parent for nested timing |
+| core | tme | tme_stop_timer | Stop timing for component using end_timer for compatibility |
+| core | tme | tme_end_timer | End timing for component and calculate duration |
+| core | tme | calculate_component_depth | Calculate depth of component in timing tree hierarchy |
+| core | tme | print_timing_entry | Print formatted timing entry with color and indentation |
+| core | tme | sort_components_by_duration | Sort array of component names by their durations in descending order |
+| core | tme | print_tree_recursive | Recursively print component tree with proper indentation and sorting |
+| core | tme | tme_settme | Control timer output settings for report, sort order and depth |
+| core | tme | tme_print_timing_report | Generate comprehensive timing report with hierarchical display |
+| core | tme | tme_start_nested_timing | Start nested timing for a component with automatic parent tracking |
+| core | tme | tme_end_nested_timing | End nested timing for a component with success status |
+| core | tme | tme_cleanup_timer | Cleanup timer system and end any running timers |
+| core | tme | tme_set_output | Control individual TME terminal output verbosity settings |
+| core | tme | tme_show_output_settings | Display current TME terminal output verbosity configuration |
+| core | ver | ver_log | Debug logging with timestamp and conditional terminal output |
+| core | ver | verify_path | Verify path existence and optionally create if missing |
+| core | ver | verify_var | Verify that a variable is set and not empty |
+| core | ver | essential_check | Perform essential checks for critical system variables and paths |
+| core | ver | verify_module | Verify module integrity using configuration data and validation |
+| core | ver | validate_module | Validate module file existence, permissions and shebang |
+| core | ver | verify_function_dependencies | Verify that all dependencies for a function are available |
+| core | ver | verify_function | Verify function exists in specified module file |
+| core | ver | init_verification | Initialize verification system and perform essential checks |
 | ops | aux | aux-fun | Shows a summary of selected functions in the script, displaying their usage, shortname, and description |
 | ops | aux | aux-var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
 | ops | aux | aux-log |  |
@@ -113,12 +113,12 @@ The `lib/` folder contains three categories of pure functions:
 | ops | aux | aux-nos | Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information |
 | ops | aux | aux-flc | Displays the source code of a specified function from the library folder, including its description, shortname, and usage |
 | ops | aux | aux-use | Displays the usage information, shortname, and description of the calling function, helping users understand how to use it |
-| ops | gpu | _gpu_init_colors | ============================================================================ |
-| ops | gpu | _gpu_validate_pci_id |  |
-| ops | gpu | _gpu_extract_vendor_device_id |  |
-| ops | gpu | _gpu_get_current_driver |  |
-| ops | gpu | _gpu_is_gpu_device |  |
-| ops | gpu | _gpu_load_config |  |
+| ops | gpu | _gpu_init_colors | Initialize color constants for GPU management output formatting |
+| ops | gpu | _gpu_validate_pci_id | Validate PCI ID format using regex pattern matching |
+| ops | gpu | _gpu_extract_vendor_device_id | Extract vendor and device IDs from lspci output for PCI device |
+| ops | gpu | _gpu_get_current_driver | Get current driver bound to specified PCI device |
+| ops | gpu | _gpu_is_gpu_device | Check if PCI device is GPU-related hardware type |
+| ops | gpu | _gpu_load_config | Load GPU configuration file if available and readable |
 | ops | gpu | _gpu_get_config_pci_ids |  |
 | ops | gpu | _gpu_find_all_gpus |  |
 | ops | gpu | _gpu_get_target_gpus |  |

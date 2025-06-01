@@ -50,6 +50,8 @@ declare -gA ERROR_SEVERITIES
 declare -ga ERROR_ORDER
 
 # Process error messages and log them appropriately
+# Error Processing - ERP
+# <message> <component> <exit_code> <severity>
 err_process_error() {
     local message="$1"
     local component="${2:-${FUNCNAME[1]:-main}}"
@@ -85,6 +87,8 @@ err_process_error() {
 }
 
 # Function to handle errors more comprehensively
+# Error Logging One - ELO
+# <message> <component> <exit_code> <severity>
 err_lo1_handle_error() {
     local message="$1"
     local component="${2:-${FUNCNAME[1]:-main}}"
@@ -102,7 +106,9 @@ err_lo1_handle_error() {
     return $exit_code
 }
 
-# Function to ensure clean exit from the script
+# Ensure clean exit from the script with proper trap cleanup
+# Clean Exit - CEX
+# <exit_code>
 clean_exit() {
     local exit_code=${1:-${ERROR_CODES[SUCCESS]}}
     trap - ERR  # Remove the error handling trap
@@ -110,7 +116,9 @@ clean_exit() {
     exit $exit_code
 }
 
-# Function to check if a component has any errors
+# Check if a component has any recorded errors
+# Has Errors - HER
+# <component>
 has_errors() {
     local component="$1"
     local has_error=false
@@ -125,7 +133,9 @@ has_errors() {
     $has_error
 }
 
-# Enhanced error handler function that only catches real errors
+# Enhanced error handler that catches real errors when trapping enabled
+# Error Handler - EHR
+# <line_number> <error_code>
 error_handler() {
     # Only proceed if ERROR_TRAP_ENABLED is set
     [[ "${ERROR_TRAP_ENABLED}" != "true" ]] && return 0
@@ -158,20 +168,25 @@ error_handler() {
     return $error_code
 }
 
-# Function to enable error trapping
+# Enable error trapping to catch command failures automatically
+# Enable Error Trap - EET
+# 
 enable_error_trap() {
     ERROR_TRAP_ENABLED="true"
     trap 'error_handler $LINENO $?' ERR
 }
 
-# Function to disable error trapping
+# Disable error trapping to prevent automatic script termination
+# Disable Error Trap - DET
+# 
 disable_error_trap() {
     ERROR_TRAP_ENABLED="false"
     trap - ERR
 }
 
-# Example usage in your scripts:
-# Wrap dangerous operations with error trapping
+# Example of wrapping dangerous operations with error trapping
+# Dangerous Operation Example - DOE
+# 
 dangerous_operation() {
     enable_error_trap
     # Your dangerous operation here
@@ -179,7 +194,9 @@ dangerous_operation() {
     disable_error_trap
 }
 
-# For package management and other safe operations, don't use error trapping
+# Example of safe operations that don't need error trapping
+# Safe Operation Example - SOE
+# 
 safe_operation() {
     disable_error_trap
     # Your safe operation here
@@ -187,7 +204,9 @@ safe_operation() {
     enable_error_trap  # Re-enable if needed after the operation
 }
 
-# Enhanced error reporting function with better organization
+# Generate comprehensive error report with categorized issues
+# Print Error Report - PER
+# 
 print_error_report() {
     local total_errors=0
     local total_warnings=0
@@ -282,7 +301,9 @@ print_error_report() {
     return $((total_errors > 0 ? 1 : 0))
 }
 
-# Setup function to initialize error handling
+# Initialize error handling system and clear existing tracking
+# Setup Error Handling - SEH
+# 
 setup_error_handling() {
     # Clear existing error tracking
     ERROR_COMPONENTS=()
@@ -296,7 +317,9 @@ setup_error_handling() {
     trap 'error_handler $LINENO' ERR
 }
 
-# Central trap registration system
+# Register cleanup function for module teardown operations
+# Register Cleanup - RCU
+# <module> <function>
 register_cleanup() {
     local module="$1"
     local function="$2"
@@ -309,7 +332,9 @@ register_cleanup() {
     fi
 }
 
-# Main cleanup orchestrator
+# Orchestrate cleanup sequence for all registered modules
+# Main Cleanup - MCU
+# 
 main_cleanup() {
     log "lvl" "Starting main cleanup sequence"
 
@@ -331,7 +356,9 @@ main_cleanup() {
     log "lvl" "Main cleanup sequence completed"
 }
 
-# Central error handler
+# Central error handler that delegates to module error handlers
+# Main Error Handler - MEH
+# <line_number> <error_code>
 main_error_handler() {
     local line_number="$1"
     local error_code="$2"
@@ -342,7 +369,9 @@ main_error_handler() {
     fi
 }
 
-# Initialize trap system
+# Initialize trap system with EXIT and ERR handlers
+# Initialize Traps - ITR
+# 
 init_traps() {
     if [[ "$TRAP_INITIALIZED" != "true" ]]; then
         # Remove any existing traps
