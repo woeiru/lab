@@ -72,7 +72,7 @@ This document establishes consistent standards, templates, and procedures for cr
 
 ### Document Headers
 
-Every documentation file must include:
+Every documentation file must include a standardized header for automated processing:
 
 ```markdown
 <!-- filepath: /relative/path/to/file.md -->
@@ -83,6 +83,44 @@ Brief description of the document's purpose and scope.
 ## 🎯 Overview (if applicable)
 
 High-level summary of contents and objectives.
+```
+
+#### **Header Requirements for Automated Processing**
+
+To ensure compatibility with the documentation indexing system (`utl/doc-index` and `aux-lad`):
+
+1. **Title Line**: Must be the first `# ` heading in the file
+   - Format: `# Document Title`
+   - Avoid emojis in the title itself (they can be in section headers)
+   - Keep titles descriptive but concise
+
+2. **Description**: Must be the first paragraph after the title
+   - Should be a single paragraph (not a list or multiple paragraphs)
+   - Provide a clear, concise summary of the document's purpose
+   - Avoid starting with asterisks or markdown formatting
+
+3. **File Path Comment**: Include the file path comment at the top
+   - Format: `<!-- filepath: /relative/path/to/file.md -->`
+   - This helps with automated processing and tracking
+
+#### **Examples of Correct Headers**
+
+```markdown
+<!-- filepath: /doc/dev/architecture.md -->
+# Lab Environment Project Architecture
+
+This document outlines the comprehensive structure of the Lab Environment project, explaining the purpose of each directory, key components, and the sophisticated environment management system.
+
+## 🎯 System Overview
+```
+
+```markdown
+<!-- filepath: /doc/adm/README.md -->
+# System Administrator Documentation
+
+Documentation for system administrators managing the Lab Environment infrastructure.
+
+## 📚 Documentation Index
 ```
 
 ### Required Metadata
