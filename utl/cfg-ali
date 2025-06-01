@@ -114,26 +114,30 @@ echo "Starting alias generation..."
 # Generate README aliases using external commands to avoid hanging
 echo "# --- README File Aliases ---" >> "$OUTPUT_FILE"
 
-# Process README files one by one
-for readme_file in $(find "$LAB_DIR" -type f -name "readme.md" 2>/dev/null); do
+# Process README files recursively (both README.md and readme.md)
+for readme_file in $(find "$LAB_DIR" -type f \( -name "README.md" -o -name "readme.md" \) 2>/dev/null | sort); do
     if [[ -f "$readme_file" ]]; then
-        dir=$(dirname "$readme_file")
-        dir_name=$(basename "$dir")
-        parent_dir=$(basename "$(dirname "$dir")")
         relative_path="${readme_file#$LAB_DIR/}"
         
-        # Generate alias name
-        if [[ "$parent_dir" != "lab" ]]; then
-            alias_name="$parent_dir-$dir_name-md"
+        # Generate meaningful alias name from the directory path
+        dir_path=$(dirname "$relative_path")
+        
+        # Handle root README files
+        if [[ "$dir_path" == "." ]]; then
+            alias_name="root.md"
         else
-            alias_name="$dir_name-md"
+            # Convert directory path to alias name (replace / with .)
+            alias_name=$(echo "$dir_path" | tr '/' '.').md
         fi
         
-        # Write aliases directly
-        echo "alias c-$alias_name='cat \"\$LAB_DIR/$relative_path\"'" >> "$OUTPUT_FILE"
-        echo "alias v-$alias_name='vim \"\$LAB_DIR/$relative_path\"'" >> "$OUTPUT_FILE"
+        # Ensure alias name doesn't start with a dot
+        alias_name=${alias_name#.}
         
-        echo "Created aliases for: $relative_path"
+        # Write aliases directly
+        echo "alias c.$alias_name='cat \"\$LAB_DIR/$relative_path\"'" >> "$OUTPUT_FILE"
+        echo "alias v.$alias_name='vim \"\$LAB_DIR/$relative_path\"'" >> "$OUTPUT_FILE"
+        
+        echo "Created aliases for: $relative_path -> c.$alias_name, v.$alias_name"
     fi
 done
 
