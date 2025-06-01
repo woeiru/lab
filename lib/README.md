@@ -66,9 +66,9 @@ lib/
 | **sec** | Security Utilities | - | • Credential management<br>• Encryption/decryption<br>• Certificate handling<br>• Security scanning |
 | **ssh** | SSH Management | - | • Key distribution<br>• Connection pooling<br>• Tunnel management<br>• Authentication |
 
-### 📦 Auxiliary Functions (`lib/ops/aux`)
+### 📦 Auxiliary Functions (`lib/gen/aux`)
 **Auxiliary Function Libraries**
-- Moved from `lib/aux/` to `lib/ops/aux` for better organization
+- Moved from `lib/aux/` to `lib/gen/aux` for better organization
 - Contains pure auxiliary functions for analysis and utility operations
 
 | Component | Purpose | Integration Type |

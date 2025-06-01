@@ -64,7 +64,7 @@ bin/
 
  **Component Setup**:
    - Orchestrates loading of configuration files (`cfg/`)
-   - Sources library modules (`lib/core/`, `lib/ops/`, `lib/gen/`, `lib/ops/aux, src/aux/`)
+   - Sources library modules (`lib/core/`, `lib/ops/`, `lib/gen/`, `lib/gen/aux, src/aux/`)
    - Applies environment-specific settings and aliases
 
 ## 🔧 Key Features
