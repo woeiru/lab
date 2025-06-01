@@ -25,15 +25,15 @@ generate_function_table() {
     echo "|---------|--------|----------|-------------|"
     
     # Process core functions
-    echo "<!-- CORE FUNCTIONS -->"
+
     process_library_functions "core" "$LIB_CORE_DIR"
     
     # Process ops functions
-    echo "<!-- OPS FUNCTIONS -->"
+  
     process_library_functions "ops" "$LIB_OPS_DIR"
     
     # Process gen functions
-    echo "<!-- GEN FUNCTIONS -->"
+
     process_library_functions "gen" "$LIB_GEN_DIR"
 }
 
