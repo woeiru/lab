@@ -30,7 +30,9 @@
 #              `verify_module` calls.
 # -----------------------------------------------------------------------------
 #
-# Debug logging helper - uses existing LOG_DEBUG_FILE from ruc
+# Debug logging with timestamp and conditional terminal output
+# Verification Log - VLG
+# <message> <source> <level>
 ver_log() {
     local timestamp=$(date '+%H:%M:%S')
     local message="$1"
@@ -56,6 +58,9 @@ ver_log() {
 # Path and Variable Verification
 ###########################################
 
+# Verify path existence and optionally create if missing
+# Verify Path - VPT
+# <path> <type> <create>
 verify_path() {
     local path="$1"
     local type="$2"
@@ -121,6 +126,9 @@ verify_path() {
     return 0
 }
 
+# Verify that a variable is set and not empty
+# Verify Variable - VVR
+# <var_name>
 verify_var() {
     local var_name="$1"
 
@@ -151,6 +159,9 @@ verify_var() {
 # Module Verification
 ###########################################
 
+# Perform essential checks for critical system variables and paths
+# Essential Check - ECK
+# 
 essential_check() {
     # Set CONS_LOADED flag to indicate constants are loaded
     CONS_LOADED=1
@@ -178,6 +189,9 @@ essential_check() {
     return 0
 }
 
+# Verify module integrity using configuration data and validation
+# Verify Module - VMD
+# <module>
 verify_module() {
     local module="$1"
 
@@ -276,6 +290,9 @@ verify_module() {
     return 0
 }
 
+# Validate module file existence, permissions and shebang
+# Validate Module - VAM
+# <file>
 validate_module() {
     local file="$1"
     local module_name="$(basename "$file")"
@@ -310,6 +327,9 @@ validate_module() {
 # Function and Dependency Verification
 ###########################################
 
+# Verify that all dependencies for a function are available
+# Verify Function Dependencies - VFD
+# <func_name>
 verify_function_dependencies() {
     local func_name="$1"
     ver_log "Verifying function dependencies: $func_name" "verify_function_dependencies"
@@ -334,6 +354,9 @@ verify_function_dependencies() {
     return $((failed > 0))
 }
 
+# Verify function exists in specified module file
+# Verify Function - VFN
+# <func_name> <module_path>
 verify_function() {
     local func_name="$1"
     local module_path="$2"
@@ -369,7 +392,9 @@ verify_function() {
     return 0
 }
 
-# Initialize verification system
+# Initialize verification system and perform essential checks
+# Initialize Verification - IVR
+# 
 init_verification() {
     ver_log "Starting verification initialization..." "init_verification"
 
