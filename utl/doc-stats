@@ -75,8 +75,8 @@ gather_stats() {
     fi
     
     local util_lines=0
-    if [ -d "$LAB_DIR/lib/utl" ]; then
-        util_lines=$(wc -l "$LAB_DIR/lib/utl"/* 2>/dev/null | tail -1 | awk '{print $1}')
+    if [ -d "$LAB_DIR/lib/gen" ]; then
+        util_lines=$(wc -l "$LAB_DIR/lib/gen"/* 2>/dev/null | tail -1 | awk '{print $1}')
     fi
     
     local wrapper_functions=$(grep -r "\-w() {" "$LAB_DIR/src/mgt/" 2>/dev/null | wc -l)

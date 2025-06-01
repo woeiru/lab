@@ -2,7 +2,7 @@
 #######################################################################
 # Environment Management Utility Library
 #######################################################################
-# File: lib/utl/env
+# File: lib/gen/env
 # Description: Environment switching and management utility providing
 #              convenient functions for transitioning between development,
 #              staging, and production environments with proper context
@@ -37,7 +37,7 @@
 #   - env_validate: Validate configuration file existence
 #
 # Usage Examples:
-#   source lib/utl/env
+#   source lib/gen/env
 #   env_switch dev                    # Switch to development
 #   site_switch site2                 # Change to site2
 #   node_switch w2                    # Select worker node 2

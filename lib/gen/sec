@@ -2,7 +2,7 @@
 #######################################################################
 # Security Utilities Library
 #######################################################################
-# File: /home/es/lab/lib/utl/sec
+# File: /home/es/lab/lib/gen/sec
 # Description: Comprehensive security management system providing secure
 #              password generation, storage, and credential management
 #              for lab environment infrastructure components.
@@ -40,7 +40,7 @@
 #   - Application-specific passwords (app_*.pwd)
 #
 # Usage Example:
-#   source /home/es/lab/lib/utl/sec
+#   source /home/es/lab/lib/gen/sec
 #   init_password_management "/secure/passwords"
 #   password=$(generate_secure_password 20)
 #   store_secure_password "DB_PASSWORD" 24
@@ -71,7 +71,7 @@
 #   - Secure backup of password directory
 #
 # Integration Points:
-#   - Works with infrastructure utilities (/home/es/lab/lib/utl/inf)
+#   - Works with infrastructure utilities (/home/es/lab/lib/gen/inf)
 #   - Integrates with configuration files (cfg/env/*)
 #   - Compatible with deployment scripts
 #   - Supports multiple password storage backends

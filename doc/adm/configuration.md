@@ -59,7 +59,7 @@ The lab environment uses the `192.168.178.0/24` network with the following alloc
 ## Infrastructure Utilities
 
 ### Location
-Infrastructure configuration utilities are located in `/home/es/lab/lib/utl/inf`
+Infrastructure configuration utilities are located in `/home/es/lab/lib/gen/inf`
 
 ### Key Functions
 
@@ -122,7 +122,7 @@ The infrastructure utilities provide the following defaults:
 
 ### Password Management
 
-Security utilities are located in `/home/es/lab/lib/utl/sec` and provide:
+Security utilities are located in `/home/es/lab/lib/gen/sec` and provide:
 
 #### Secure Password Generation
 ```bash
@@ -211,8 +211,8 @@ The deployment system displays:
 ### Creating a New Container
 ```bash
 # Load utilities
-source /home/es/lab/lib/utl/inf
-source /home/es/lab/lib/utl/sec
+source /home/es/lab/lib/gen/inf
+source /home/es/lab/lib/gen/sec
 
 # Initialize security
 init_password_management
@@ -280,8 +280,8 @@ define_container --help
 4. Update deployment scripts to source utilities
 
 ### Configuration Updates
-1. Add `source /home/es/lab/lib/utl/inf` to configuration files
-2. Add `source /home/es/lab/lib/utl/sec` for security features
+1. Add `source /home/es/lab/lib/gen/inf` to configuration files
+2. Add `source /home/es/lab/lib/gen/sec` for security features
 3. Replace password variables with secure generation
 4. Use infrastructure utility functions for container/VM definitions
 

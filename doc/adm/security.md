@@ -4,7 +4,7 @@ Comprehensive security practices and credential management for system administra
 
 ## 🔐 Security Framework Overview
 
-The Lab Environment Management System implements a **security-first** approach with zero hardcoded passwords and comprehensive credential management through the `lib/utl/sec` utility library.
+The Lab Environment Management System implements a **security-first** approach with zero hardcoded passwords and comprehensive credential management through the `lib/gen/sec` utility library.
 
 ### Core Security Principles
 
@@ -16,7 +16,7 @@ The Lab Environment Management System implements a **security-first** approach w
 
 ## 🛡️ Credential Management
 
-### Security Utilities (`lib/utl/sec`)
+### Security Utilities (`lib/gen/sec`)
 - **120+ lines** of secure credential handling code
 - **Automatic permission management** for sensitive files
 - **Zero hardcoded passwords** across the entire system
@@ -37,16 +37,16 @@ cfg/env/site1-prod/node-specific/hostname.credentials
 ### Best Practices
 1. **Never commit credentials** to version control
 2. **Use environment-specific** credential files
-3. **Implement proper file permissions** (automatic via lib/utl/sec)
+3. **Implement proper file permissions** (automatic via lib/gen/sec)
 4. **Regular credential rotation** procedures
 5. **Audit credential access** through logging
 
 ## 🔑 SSH Key Management
 
-### SSH Utilities (`lib/utl/ssh`)
+### SSH Utilities (`lib/gen/ssh`)
 ```bash
 # SSH key generation and distribution
-# Handled through lib/utl/ssh with secure patterns
+# Handled through lib/gen/ssh with secure patterns
 
 # Example usage in deployment scripts
 cd src/set/pve
@@ -166,14 +166,14 @@ export ENVIRONMENT="prod"
 export SECURITY_LEVEL="high"
 
 # Load security configuration
-source lib/utl/sec
+source lib/gen/sec
 # Automatic credential loading with secure patterns
 ```
 
 ### Container Security
 ```bash
 # Secure container deployment
-# Through lib/utl/inf with security validation
+# Through lib/gen/inf with security validation
 
 define_containers "111:pbs:192.168.178.111"
 # - Automatic security context

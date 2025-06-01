@@ -84,7 +84,7 @@ export NODE="$(hostname)"
 #### Infrastructure Utilities Pattern
 ```bash
 # Environment-aware infrastructure deployment
-source lib/utl/inf
+source lib/gen/inf
 
 # Set environment-specific defaults
 set_container_defaults \

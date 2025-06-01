@@ -40,7 +40,7 @@ Infrastructure teams and DevOps engineers who need to:
 ### Container Infrastructure
 ```bash
 # Standardized container creation
-source lib/utl/inf
+source lib/gen/inf
 define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112"
 validate_config && show_config_summary
 
