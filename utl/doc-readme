@@ -106,6 +106,9 @@ generate_documentation_table() {
                 local doc_lines=$(echo "$doc_json" | jq -r '.lines')
                 local doc_words=$(echo "$doc_json" | jq -r '.words')
                 
+                # Remove 'doc/' prefix from path since we're generating for doc/README.md
+                doc_path="${doc_path#doc/}"
+                
                 echo "- **[$doc_title]($doc_path)** - *($doc_lines lines, $doc_words words)* - $doc_description"
             fi
         done > "$temp_output"
@@ -124,6 +127,9 @@ generate_documentation_table() {
                     local doc_description=$(echo "$doc_line" | sed -n 's/.*"description":"\([^"]*\)".*/\1/p')
                     local doc_lines=$(echo "$doc_line" | sed -n 's/.*"lines":\([0-9]*\).*/\1/p')
                     local doc_words=$(echo "$doc_line" | sed -n 's/.*"words":\([0-9]*\).*/\1/p')
+                    
+                    # Remove 'doc/' prefix from path since we're generating for doc/README.md
+                    doc_path="${doc_path#doc/}"
                     
                     echo "- **[$doc_title]($doc_path)** - *($doc_lines lines, $doc_words words)* - $doc_description"
                 fi
