@@ -25,7 +25,7 @@ if [[ -z "${LAB_DIR:-}" ]]; then
 fi
 
 # Source required utilities
-source "$LAB_DIR/lib/ops/aux"
+source "$LAB_DIR/lib/gen/aux"
 
 # Configuration
 readonly DOC_DIR="$LAB_DIR/doc"
@@ -179,7 +179,7 @@ EOF
 
 ### **🔧 Documentation Tools**
 - **[`utl/doc-index`](utl/doc-index)** - Updates this documentation section automatically using `aux-lad`
-- **[`lib/ops/aux` (aux-lad)](lib/ops/aux)** - Documentation listing and analysis function
+- **[`lib/gen/aux` (aux-lad)](lib/gen/aux)** - Documentation listing and analysis function
 - **[`utl/doc-func`](utl/doc-func)** - Function metadata table generator using `aux-laf`
 - **[`utl/doc-stats`](utl/doc-stats)** - Generate real-time codebase statistics and update README metrics
 
