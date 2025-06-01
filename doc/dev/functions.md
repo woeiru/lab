@@ -1,199 +1,88 @@
-# API Reference Guide
-
-Quick reference for developers using the Lab Environment Management System libraries.
-
-## 🎯 Core Libraries
-
-### Error Handling (`lib/core/err`)
-```bash
-# Error handling functions
-handle_error "component" "message" "severity"
-error_handler                    # Automatic error trap handler
-err_process_error               # Structured error processing
-
-# Usage example
-handle_error "deployment" "Container creation failed" "ERROR"
-```
-
-### Logging System (`lib/core/lo1`)
-```bash
-# Advanced logging functions
-lo1_log "module" "message" "level"
-lo1_debug "module" "debug_message"
-lo1_info "module" "info_message"
-
-# Usage example
-lo1_log "gpu" "GPU detached successfully" "info"
-```
-
-### Timing Module (`lib/core/tme`)
-```bash
-# Performance timing functions
-tme_start_timer "operation_name"
-tme_end_timer "operation_name" "status"
-tme_print_timing_report
-tme_set_output debug off
-tme_show_output_settings
-
-# Usage example
-tme_start_timer "CONTAINER_DEPLOYMENT"
-# ... your operations ...
-tme_end_timer "CONTAINER_DEPLOYMENT" "success"
-```
-
-## 🚀 Operations Libraries
-
-### Proxmox VE (`lib/ops/pve`)
-```bash
-# Pure functions (parameterized)
-pve-vmc vm_id cluster_nodes           # VM cluster management
-pve-ctc container_id nodes            # Container cluster creation
-pve-nds node_list                     # Node status check
-
-# Wrapper functions (environment-aware)
-pve-vmc-w vm_id                       # Uses CLUSTER_NODES environment
-pve-ctc-w container_id                # Uses environment configuration
-```
-
-### GPU Management (`lib/ops/gpu`)
-```bash
-# Pure functions
-gpu-pts gpu_id                        # GPU passthrough status
-gpu-ptd gpu_id                        # Detach GPU for passthrough
-gpu-pta gpu_id                        # Attach GPU to host
-
-# Wrapper functions
-gpu-pts-w                             # Status check (environment-aware)
-gpu-ptd-w gpu_id                      # Detach with environment context
-gpu-pta-w gpu_id                      # Attach with environment context
-```
-
-### System Operations (`lib/ops/sys`)
-```bash
-# System management functions
-sys-pkg-install package_list          # Package installation
-sys-usr-create username options       # User creation
-sys-host-config hostname settings     # Host configuration
-```
-
-## 🛠️ Utility Libraries
-
-### Infrastructure Utilities (`lib/gen/inf`)
-```bash
-# Container management
-define_containers "id:name:ip:id2:name2:ip2"
-set_container_defaults memory=4096 storage="local-lvm"
-validate_config
-show_config_summary
-
-# Usage example
-define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112"
-validate_config && show_config_summary
-```
-
-### Security Utilities (`lib/gen/sec`)
-```bash
-# Credential management (120+ lines of secure handling)
-# - Zero hardcoded passwords
-# - Automatic 600 permissions
-# - Graceful fallback mechanisms
-# Functions are internal - use through wrapper scripts
-```
-
-### Environment Utilities (`lib/gen/env`)
-```bash
-# Environment configuration
-load_environment_config site environment
-validate_environment_hierarchy
-set_node_specific_overrides
-```
-
-## 🔧 Integration Patterns
-
-### Pure Function Pattern
-```bash
-# Library function (lib/ops/)
-function_name() {
-    local param1="$1"
-    local param2="$2"
-    local param3="$3"
+<!-- 
+    This documentation focuses exclusively on generic pure functions from the lib/ folder.
+    Pure functions are stateless, parameterized, and environment-independent.
+    They provide predictable behavior and are fully testable with explicit inputs.
     
-    # Pure logic with explicit parameters
-    # No environment dependencies
-    # Fully testable
-}
-```
+    The lib/ folder contains three categories of pure functions:
+    - lib/core/  : Core system utilities (error handling, logging, timing)
+    - lib/ops/   : Operations functions (infrastructure management)
+    - lib/gen/   : General utilities (environment, security, infrastructure)
+-->
 
-### Wrapper Function Pattern
-```bash
-# Wrapper function (src/mgt/)
-function_name-w() {
-    local env_param1="${ENV_VARIABLE1}"
-    local env_param2="${ENV_VARIABLE2}"
-    
-    # Call pure function with environment context
-    function_name "$param" "$env_param1" "$env_param2"
-}
-```
+# Pure Functions Reference
 
-### Environment Integration
-```bash
-# Load environment context
-source lib/gen/env
-load_environment_config "$SITE" "$ENVIRONMENT"
+Generic pure functions available in the Lab Environment Management System.
 
-# Use environment-aware functions
-pve-vmc-w "$vm_id"  # Uses CLUSTER_NODES from environment
-gpu-pts-w           # Uses GPU configuration from environment
-```
+## 📚 Library Structure
 
-## 📊 Function Reference
+The `lib/` folder contains three categories of pure functions:
 
-### Core Modules (4 modules)
+### Core Utilities (`lib/core/`)
 - **err**: Error handling and stack traces
-- **lo1**: Module-specific debug logging  
+- **lo1**: Module-specific debug logging
 - **tme**: Performance timing and monitoring
 - **ver**: Module version verification
 
-### Operations Modules (8 modules)
-- **gpu**: GPU passthrough management (9 functions)
+### Operations Functions (`lib/ops/`)
+- **aux**: Auxiliary operations and utilities
+- **gpu**: GPU passthrough management
 - **net**: Network configuration and management
 - **pbs**: Proxmox Backup Server operations
-- **pve**: Proxmox VE cluster management (15 functions)
+- **pve**: Proxmox VE cluster management
 - **srv**: System service operations
 - **sto**: Storage and filesystem management
 - **sys**: System-level operations
 - **usr**: User account management
 
-### Utility Modules (5 modules)
-- **ali**: System alias management
+### General Utilities (`lib/gen/`)
 - **env**: Environment configuration utilities
-- **inf**: Infrastructure deployment utilities (355+ lines)
-- **sec**: Security and credential management (120+ lines)
+- **inf**: Infrastructure deployment utilities
+- **sec**: Security and credential management
 - **ssh**: SSH key and connection management
 
-## 🧪 Testing Integration
+## 🔍 Function Metadata Table
 
-### Function Testing
-```bash
-# Test pure functions with explicit parameters
-pve-vmc "101" "node1,node2,node3"
+<!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->
+<!-- This section is automatically populated by utl/doc-func -->
+<!-- Command: aux-ffl aux-laf "" "$LIB_CORE_DIR" & aux-ffl aux-laf "" "$LIB_OPS_DIR" & aux-ffl aux-laf "" "$LIB_GEN_DIR" -->
 
-# Test wrapper functions with environment
-export CLUSTER_NODES=("test-node1" "test-node2")
-pve-vmc-w "101"
+```
+[Automated function metadata table will be inserted here by utl/doc-func]
 ```
 
-### Validation Framework
-```bash
-# Use existing validation infrastructure
-./tst/validate_system
-./tst/test_environment
-./tst/test_complete_refactor.sh
+<!-- END AUTO-GENERATED SECTION -->
 
-# Component-specific testing
-./tst/test_gpu_wrappers.sh
-./tst/validate_gpu_refactoring.sh
+## 🎯 Pure Function Characteristics
+
+### Design Principles
+- **Stateless**: No global state dependencies
+- **Parameterized**: All inputs via explicit parameters
+- **Predictable**: Same inputs always produce same outputs
+- **Testable**: Can be tested in isolation
+
+### Usage Pattern
+```bash
+# Pure function call
+function_name "param1" "param2" "param3"
+
+# No environment variables required
+# No side effects on global state
+# Fully deterministic behavior
+```
+
+## 🔧 Integration
+
+To use pure functions in your scripts:
+
+```bash
+# Source the required library modules
+source "$LIB_CORE_DIR/err"
+source "$LIB_OPS_DIR/pve"
+source "$LIB_GEN_DIR/inf"
+
+# Call functions with explicit parameters
+pve-vmc "101" "node1,node2,node3"
+handle_error "component" "message" "ERROR"
 ```
 
 ## 📖 Related Documentation
