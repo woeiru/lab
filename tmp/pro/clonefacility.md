@@ -1,0 +1,1 @@
+i like what  we produced  . can u please create a prompt that will ensure the same output which we got here in this example when i iapply the prompt again with another folder save the prompt inside the folder res/prompts/template .. read the README inside this folder to understand the standards 
