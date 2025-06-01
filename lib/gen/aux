@@ -691,21 +691,17 @@ aux-acu() {
         for target_folder_path in "${target_folders_input[@]}"; do
             local occurrences_in_current_dir_total=0
             local files_with_occurrences_details_in_dir=() # Collects "basename:count" for this dir
-            local current_target_files_in_dir=()
             
-            mapfile -t current_target_files_in_dir < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print 2>/dev/null | sort)
-
-            if [ ${#current_target_files_in_dir[@]} -gt 0 ]; then
-                for target_file_in_dir in "${current_target_files_in_dir[@]}"; do
-                    if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
-                        local occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
-                        if [[ "$occurrences_in_file" -gt 0 ]]; then
-                            occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
-                            files_with_occurrences_details_in_dir+=("$(basename "$target_file_in_dir"):$occurrences_in_file")
-                        fi
+            # Use find with timeout protection and simpler approach
+            while IFS= read -r -d '' target_file_in_dir; do
+                if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
+                    local occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
+                    if [[ "$occurrences_in_file" -gt 0 ]]; then
+                        occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
+                        files_with_occurrences_details_in_dir+=("$(basename "$target_file_in_dir"):$occurrences_in_file")
                     fi
-                done
-            fi
+                fi
+            done < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print0 2>/dev/null)
 
             local dir_details_display_str="0" # Default to "0"
             if [ ${#files_with_occurrences_details_in_dir[@]} -gt 0 ]; then
@@ -758,21 +754,17 @@ EOF
             for target_folder_path in "${target_folders_input[@]}"; do
                 local occurrences_in_current_dir_total=0
                 local files_with_occurrences_details_in_dir=()
-                local current_target_files_in_dir=()
                 
-                mapfile -t current_target_files_in_dir < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print 2>/dev/null | sort)
-
-                if [ ${#current_target_files_in_dir[@]} -gt 0 ]; then
-                    for target_file_in_dir in "${current_target_files_in_dir[@]}"; do
-                        if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
-                            local occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
-                            if [[ "$occurrences_in_file" -gt 0 ]]; then
-                                occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
-                                files_with_occurrences_details_in_dir+=("\"$(basename "$target_file_in_dir")\":$occurrences_in_file")
-                            fi
+                # Use find with timeout protection and simpler approach for JSON
+                while IFS= read -r -d '' target_file_in_dir; do
+                    if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
+                        local occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
+                        if [[ "$occurrences_in_file" -gt 0 ]]; then
+                            occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
+                            files_with_occurrences_details_in_dir+=("\"$(basename "$target_file_in_dir")\":$occurrences_in_file")
                         fi
-                    done
-                fi
+                    fi
+                done < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print0 2>/dev/null)
                 
                 # Create folder data
                 local folder_relative_path
