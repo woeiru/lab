@@ -199,6 +199,7 @@ EOF
 update_readme_file() {
     local temp_file=$(mktemp)
     local in_doc_section=false
+    local found_first_section=false
     
     log "Creating backup of doc/README.md..."
     cp "$OUTPUT_FILE" "$BACKUP_FILE"
@@ -207,34 +208,37 @@ update_readme_file() {
     
     # Read the original file and replace the documentation section
     while IFS= read -r line; do
-        if [[ "$line" == "## 🎯 Purpose" ]]; then
-            # Write the Purpose section
-            echo "$line" >> "$temp_file"
-            # Continue reading until we find the next ## section
-            while IFS= read -r next_line; do
-                if [[ "$next_line" =~ ^##[[:space:]] ]]; then
-                    # Found next section, insert our documentation index before it
-                    echo "" >> "$temp_file"
-                    generate_documentation_index >> "$temp_file"
-                    echo "$next_line" >> "$temp_file"
-                    break
-                else
-                    echo "$next_line" >> "$temp_file"
-                fi
-            done
-        elif [[ "$line" == "## 📊 Documentation Index" ]]; then
+        if [[ "$line" == "## 📊 Documentation Index" ]]; then
             # Skip existing documentation index section
             in_doc_section=true
             continue
         elif [[ "$in_doc_section" == true && "$line" =~ ^##[[:space:]] ]]; then
-            # Found the next section, stop skipping
-            echo "$line" >> "$temp_file"
+            # Found the next section after doc index, stop skipping and insert new index
             in_doc_section=false
-        elif [[ "$in_doc_section" == false ]]; then
+            echo "" >> "$temp_file"
+            generate_documentation_index >> "$temp_file"
             echo "$line" >> "$temp_file"
+        elif [[ "$in_doc_section" == false ]]; then
+            # Not in doc section, write the line
+            echo "$line" >> "$temp_file"
+            
+            # Check if this is the first ## section we encounter
+            if [[ "$line" =~ ^##[[:space:]] && "$found_first_section" == false ]]; then
+                found_first_section=true
+                # Insert documentation index after the first section
+                echo "" >> "$temp_file"
+                generate_documentation_index >> "$temp_file"
+            fi
         fi
         # If in_doc_section is true, we skip the line (don't write it)
     done < "$OUTPUT_FILE"
+    
+    # If we never found an existing doc section and never found a first section,
+    # append the documentation index at the end
+    if [[ "$in_doc_section" == false && "$found_first_section" == false ]]; then
+        echo "" >> "$temp_file"
+        generate_documentation_index >> "$temp_file"
+    fi
     
     # Replace the original file
     mv "$temp_file" "$OUTPUT_FILE"
