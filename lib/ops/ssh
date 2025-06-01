@@ -1,0 +1,291 @@
+# filepath: /home/es/lab/lib/ops/ssh
+#!/bin/bash
+
+# ============================================================================
+# ssh - Function Summary
+#
+#   ssh-fun : Displays an overview of SSH-related functions in the script, showing their usage, shortname, and description.
+#   ssh-var : Displays an overview of SSH-specific variables defined in the configuration file, showing their names, values, and usage.
+#   ssh-key : Adds SSH keys to the SSH agent for authentication, supporting multiple key types and paths.
+#   ssh-lst : Lists SSH keys currently loaded in the agent with detailed information.
+#   ssh-rmv : Removes all SSH keys from the agent for security cleanup.
+#   ssh-gen : Generates new SSH keys with specified type and comment.
+#   ssh-cpy : Copies SSH public key to remote host for passwordless authentication.
+#   ssh-agt : Starts SSH agent and ensures it's running for key management.
+#
+# ============================================================================
+
+# Define directory and file variables
+DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_FUN=$(basename "$BASH_SOURCE")
+BASE_FUN="${FILE_FUN%.*}"
+FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
+CONFIG_FUN="${SITE_CONFIG_FILE}"
+
+# Dynamically create variables based on the base name
+eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
+eval "FILE_${BASE_FUN}=\$FILE_FUN"
+eval "BASE_${BASE_FUN}=\$BASE_FUN"
+eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
+
+# Displays an overview of SSH-related functions in the script, showing their usage, shortname, and description
+# overview functions
+# <script_path>
+ssh-fun() {
+    # Technical Description:
+    #   Invokes the 'aux-laf' (list available functions) utility.
+    #   Accepts script path as explicit parameter for analysis.
+    #   All remaining arguments are forwarded to 'aux-laf'.
+    #   Primarily used for introspection of script capabilities.
+    # Dependencies:
+    #   - 'aux-laf' function.
+    # Arguments:
+    #   $1: script_path - path to the script file to analyze
+    #   $@: additional arguments forwarded to aux-laf
+    # Returns:
+    #   Exit status of aux-laf command
+    # Examples:
+    #   ssh-fun "/path/to/script"
+    
+    local script_path="$1"
+    shift
+    source "${LIB_GEN_DIR}/aux"
+    aux-laf "$script_path" "$@"
+}
+
+# Displays an overview of SSH-specific variables defined in the configuration file, showing their names, values, and usage
+# overview variables  
+# <config_file> <lib_parent_dir>
+ssh-var() {
+    # Technical Description:
+    #   Invokes the 'aux-lav' (list available variables) utility.
+    #   Accepts config file path and library parent directory as explicit parameters.
+    #   Searches for SSH-related variables and displays their definitions.
+    # Dependencies:
+    #   - 'aux-lav' function.
+    # Arguments:
+    #   $1: config_file - path to configuration file to analyze
+    #   $2: lib_parent_dir - parent directory of libraries for context
+    # Returns:
+    #   Exit status of aux-lav command
+    # Examples:
+    #   ssh-var "/path/to/config" "/path/to/lib/.."
+    
+    local config_file="$1"
+    local lib_parent_dir="$2"
+    source "${LIB_GEN_DIR}/aux"
+    aux-lav "$config_file" "$lib_parent_dir" "ssh"
+}
+
+# Adds SSH keys to the SSH agent for authentication, supporting multiple key types and paths
+# add ssh keys
+# <key_paths_array[@]>
+ssh-key() {
+    # Technical Description:
+    #   Loads specified SSH keys into the SSH agent if not already loaded.
+    #   Starts SSH agent if not running. Validates key existence before loading.
+    #   Uses ssh-keygen fingerprint comparison to avoid duplicate key loading.
+    # Dependencies:
+    #   - ssh-add, ssh-agent, ssh-keygen commands
+    # Arguments:
+    #   $1: key_paths_array[@] - array of SSH key file paths to load
+    # Returns:
+    #   0 on success, non-zero on failure
+    # Examples:
+    #   ssh-key "${SSH_KEY_PATHS[@]}"
+    
+    local -n key_paths_ref=$1
+    
+    log "lvl-4" "Adding SSH keys to the agent"
+    
+    # Start SSH agent if not running
+    if [ -z "$SSH_AUTH_SOCK" ]; then
+        log "lvl-5" "Starting ssh-agent"
+        eval "$(ssh-agent -s)" > /dev/null || {
+            log "lvl-6" "Failed to start ssh-agent"
+            return 1
+        }
+    fi
+    
+    # Load each key if not already loaded
+    for key in "${key_paths_ref[@]}"; do
+        log "lvl-5" "Processing key: $key"
+        if [[ -f "$key" ]]; then
+            # Check if key is already loaded using fingerprint comparison
+            local key_fingerprint
+            key_fingerprint=$(ssh-keygen -lf "$key" 2>/dev/null | awk '{print $2}')
+            if [[ -n "$key_fingerprint" ]] && ! ssh-add -l 2>/dev/null | grep -q "$key_fingerprint"; then
+                ssh-add "$key" || log "lvl-6" "Failed to add key: $key"
+            else
+                log "lvl-6" "Key already loaded or invalid: $key"
+            fi
+        else
+            log "lvl-6" "Key file not found: $key"
+        fi
+    done
+    
+    log "lvl-5" "SSH keys processing completed"
+}
+
+# Lists SSH keys currently loaded in the agent with detailed information
+# list ssh keys
+#
+ssh-lst() {
+    # Technical Description:
+    #   Displays all SSH keys currently loaded in the SSH agent.
+    #   Shows key fingerprints, types, and associated files.
+    # Dependencies:
+    #   - ssh-add command
+    # Arguments:
+    #   None
+    # Returns:
+    #   0 if keys found, 1 if no keys or agent not running
+    # Examples:
+    #   ssh-lst
+    
+    log "lvl-3" "Listing SSH keys in the agent"
+    ssh-add -l || {
+        log "lvl-4" "No keys found or ssh-agent is not running"
+        return 1
+    }
+}
+
+# Removes all SSH keys from the agent for security cleanup
+# remove ssh keys
+#
+ssh-rmv() {
+    # Technical Description:
+    #   Removes all SSH keys from the SSH agent for security purposes.
+    #   Useful for cleanup or when switching between different key sets.
+    # Dependencies:
+    #   - ssh-add command
+    # Arguments:
+    #   None
+    # Returns:
+    #   0 on success, 1 on failure
+    # Examples:
+    #   ssh-rmv
+    
+    log "lvl-3" "Removing all SSH keys from the agent"
+    ssh-add -D || {
+        log "lvl-4" "Failed to remove SSH keys"
+        return 1
+    }
+}
+
+# Generates new SSH keys with specified type and comment
+# generate ssh key
+# <key_type> <comment> <output_path>
+ssh-gen() {
+    # Technical Description:
+    #   Creates new SSH key pair using specified algorithm and comment.
+    #   Supports ed25519 (recommended) and rsa key types.
+    # Dependencies:
+    #   - ssh-keygen command
+    # Arguments:
+    #   $1: key_type - type of key to generate (ed25519, rsa)
+    #   $2: comment - comment to embed in the key
+    #   $3: output_path - path where to save the key (optional, defaults to ~/.ssh/id_<type>)
+    # Returns:
+    #   0 on success, non-zero on failure
+    # Examples:
+    #   ssh-gen "ed25519" "user@lab" "/root/.ssh/id_ed25519"
+    #   ssh-gen "rsa" "user@lab"
+    
+    local key_type="$1"
+    local comment="$2"
+    local output_path="$3"
+    
+    # Set default output path if not specified
+    if [[ -z "$output_path" ]]; then
+        output_path="$HOME/.ssh/id_${key_type}"
+    fi
+    
+    log "lvl-4" "Generating SSH key: type=$key_type, comment=$comment, path=$output_path"
+    
+    case "$key_type" in
+        ed25519)
+            ssh-keygen -t ed25519 -C "$comment" -f "$output_path" || {
+                log "lvl-5" "Failed to generate ed25519 key"
+                return 1
+            }
+            ;;
+        rsa)
+            ssh-keygen -t rsa -b 4096 -C "$comment" -f "$output_path" || {
+                log "lvl-5" "Failed to generate RSA key"
+                return 1
+            }
+            ;;
+        *)
+            log "lvl-5" "Unsupported key type: $key_type"
+            return 1
+            ;;
+    esac
+    
+    log "lvl-5" "SSH key generated successfully: $output_path"
+}
+
+# Copies SSH public key to remote host for passwordless authentication
+# copy ssh key
+# <public_key_path> <target_host>
+ssh-cpy() {
+    # Technical Description:
+    #   Copies SSH public key to remote host's authorized_keys file.
+    #   Enables passwordless SSH authentication to the target host.
+    # Dependencies:
+    #   - ssh-copy-id command
+    # Arguments:
+    #   $1: public_key_path - path to the public key file
+    #   $2: target_host - target host in format [user@]hostname[:port]
+    # Returns:
+    #   0 on success, non-zero on failure
+    # Examples:
+    #   ssh-cpy "/root/.ssh/id_ed25519.pub" "root@192.168.1.100"
+    #   ssh-cpy "/root/.ssh/id_rsa.pub" "user@example.com"
+    
+    local public_key_path="$1"
+    local target_host="$2"
+    
+    if [[ ! -f "$public_key_path" ]]; then
+        log "lvl-5" "Public key file not found: $public_key_path"
+        return 1
+    fi
+    
+    log "lvl-4" "Copying SSH key to host: $target_host"
+    ssh-copy-id -i "$public_key_path" "$target_host" || {
+        log "lvl-5" "Failed to copy SSH key to $target_host"
+        return 1
+    }
+    
+    log "lvl-5" "SSH key copied successfully to $target_host"
+}
+
+# Starts SSH agent and ensures it's running for key management
+# start ssh agent
+#
+ssh-agt() {
+    # Technical Description:
+    #   Starts SSH agent if not already running and exports environment variables.
+    #   Ensures SSH_AUTH_SOCK and SSH_AGENT_PID are properly set.
+    # Dependencies:
+    #   - ssh-agent command
+    # Arguments:
+    #   None
+    # Returns:
+    #   0 if agent started or already running, 1 on failure
+    # Examples:
+    #   ssh-agt
+    
+    if [ -n "$SSH_AUTH_SOCK" ] && ssh-add -l >/dev/null 2>&1; then
+        log "lvl-4" "SSH agent is already running"
+        return 0
+    fi
+    
+    log "lvl-4" "Starting SSH agent"
+    eval "$(ssh-agent -s)" || {
+        log "lvl-5" "Failed to start ssh-agent"
+        return 1
+    }
+    
+    log "lvl-5" "SSH agent started successfully"
+}
