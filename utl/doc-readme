@@ -30,7 +30,6 @@ source "$LAB_DIR/lib/gen/aux"
 # Configuration
 readonly DOC_DIR="$LAB_DIR/doc"
 readonly OUTPUT_FILE="$LAB_DIR/doc/README.md"
-readonly BACKUP_FILE="$LAB_DIR/doc/README.md.backup"
 
 # Color definitions
 readonly RED='\033[0;31m'
@@ -200,9 +199,6 @@ update_readme_file() {
     local temp_file=$(mktemp)
     local in_doc_section=false
     local found_first_section=false
-    
-    log "Creating backup of doc/README.md..."
-    cp "$OUTPUT_FILE" "$BACKUP_FILE"
     
     log "Updating documentation index section in doc/README.md..."
     
