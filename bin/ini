@@ -636,7 +636,7 @@ register_single_function() {
         if [[ -n "$module_path" ]]; then
             ini_log "Checking for function $func in cached module $module_path" "register_single_function" $LOG_PRIORITY_DETAILED
             
-            if verify_function "$func" "$module_path" 2; then
+            if verify_function "$func" "$module_path"; then
                 if source "$module_path" 2>/dev/null; then
                     ini_log "Successfully registered function: $func from $module_path" "register_single_function" $LOG_PRIORITY_NORMAL
                     return 0
@@ -669,7 +669,7 @@ register_function() {
         if [[ -n "$module_path" ]] && [[ -f "$module_path" ]]; then
             ini_log "Checking for function $func_name in module $module_path" "register_function" 2
             
-            if verify_function "$func_name" "$module_path" 2; then
+            if verify_function "$func_name" "$module_path"; then
                 if source "$module_path" 2>/dev/null; then
                     ini_log "Successfully registered function: $func_name from $module_path" "register_function" 1
                     success=1
