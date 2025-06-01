@@ -111,6 +111,8 @@ declare -g VM_DEFAULT_MEMORY="4096"
 declare -g VM_DEFAULT_BALLOON="2048"
 
 # Set container defaults (can be called to override global defaults)
+# set container defaults
+# [template] [storage] [rootfs_size] [memory] [swap] [nameserver] [searchdomain] [gateway] [cores] [arch] [ostype] [unprivileged] [onboot] [startup] [protection] [tags] [features] [hookscript] [description]
 set_container_defaults() {
     local template="${1:-$CT_DEFAULT_TEMPLATE}"
     local storage="${2:-$CT_DEFAULT_STORAGE}"
@@ -145,7 +147,9 @@ set_container_defaults() {
     CT_DEFAULT_SSH_KEY_FILE="$ssh_key_file"
 }
 
-# Generate sequential IP addresses
+# Generate sequential IP addresses for network planning
+# generate ip sequence
+# <base_ip> <start_num> <count> <output_var>
 generate_ip_sequence() {
     local base_ip="$1"      # e.g., "192.168.178"
     local start_num="$2"    # e.g., 111
@@ -162,7 +166,9 @@ generate_ip_sequence() {
     result_ref=("${ip_list[@]}")
 }
 
-# Define a container with minimal parameters
+# Define a container with minimal parameters and default fallbacks
+# define container
+# <num> <id> <hostname> <ip_address> [template] [storage] [rootfs_size] [memory] [swap] [nameserver] [searchdomain] [gateway] [cores] [arch] [ostype] [unprivileged] [onboot] [startup] [protection] [tags] [features] [hookscript] [description]
 define_container() {
     local num="$1"
     local id="$2"
@@ -212,7 +218,9 @@ define_container() {
     export "CT_${num}_GATEWAY" "CT_${num}_SSH_KEY_FILE"
 }
 
-# Define multiple containers from a configuration string
+# Define multiple containers from a configuration string with colon separation
+# define containers
+# <containers_string>
 define_containers() {
     local containers_string="$1"
     
@@ -231,7 +239,9 @@ define_containers() {
     done
 }
 
-# Set VM defaults
+# Set VM defaults for virtual machine configuration
+# set vm defaults
+# [ostype] [machine] [boot] [memory] [balloon] [cores] [sockets] [numa] [cpu_type] [vga] [disk_size] [disk_format] [network] [onboot] [startup] [protection] [tags] [description]
 set_vm_defaults() {
     local ostype="${1:-$VM_DEFAULT_OSTYPE}"
     local machine="${2:-$VM_DEFAULT_MACHINE}"
@@ -258,7 +268,9 @@ set_vm_defaults() {
     VM_DEFAULT_BALLOON="$balloon"
 }
 
-# Define a VM with minimal parameters
+# Define a VM with minimal parameters and default fallbacks
+# define vm
+# <num> <id> <name> <iso> [ostype] [machine] [boot] [memory] [balloon] [cores] [sockets] [numa] [cpu_type] [vga] [disk_size] [disk_format] [network] [onboot] [startup] [protection] [tags] [description]
 define_vm() {
     local num="$1"
     local id="$2"
@@ -307,8 +319,9 @@ define_vm() {
     export "VM_${num}_NET"
 }
 
-# Define multiple VMs from colon-separated string
-# Format: "id1:name1:iso1:disk1:net1:id2:name2:iso2:disk2:net2:..."
+# Define multiple VMs from colon-separated string with bulk creation
+# define vms
+# <vms_string>
 define_vms() {
     local vms_string="$1"
     
@@ -334,7 +347,9 @@ define_vms() {
     done
 }
 
-# Validate configuration
+# Validate configuration completeness and consistency
+# validate config
+#
 validate_config() {
     local errors=0
     
@@ -386,7 +401,9 @@ validate_config() {
     fi
 }
 
-# Show configuration summary
+# Show configuration summary with overview of containers and VMs
+# show config summary
+#
 show_config_summary() {
     echo "Infrastructure Configuration Summary"
     echo "===================================="

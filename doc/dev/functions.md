@@ -105,7 +105,7 @@ The `lib/` folder contains three categories of pure functions:
 | core | ver | init_verification | Initialize verification system and perform essential checks |
 | ops | aux | aux-fun | Shows a summary of selected functions in the script, displaying their usage, shortname, and description |
 | ops | aux | aux-var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
-| ops | aux | aux-log |  |
+| ops | aux | aux-log | Logging function. Prints a timestamped log message with a log level |
 | ops | aux | aux-ffl | Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed |
 | ops | aux | aux-laf | Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability |
 | ops | aux | aux-acu | Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files |
@@ -131,15 +131,15 @@ The `lib/` folder contains three categories of pure functions:
 | ops | gpu | _gpu_get_target_gpus_parameterized | Get target GPUs for processing with explicit parameters |
 | ops | gpu | _gpu_get_iommu_groups | Get IOMMU groups containing GPU devices for passthrough validation |
 | ops | gpu | _gpu_get_detailed_device_info | Get detailed GPU device information including driver status and bindings |
-| ops | gpu | gpu-fun | ============================================================================ |
-| ops | gpu | gpu-var |  |
-| ops | gpu | gpu-nds |  |
-| ops | gpu | gpu-pt1 |  |
-| ops | gpu | gpu-pt2 |  |
-| ops | gpu | gpu-pt3 |  |
-| ops | gpu | gpu-ptd |  |
-| ops | gpu | gpu-pta |  |
-| ops | gpu | gpu-pts |  |
+| ops | gpu | gpu-fun | Shows a summary of selected functions in the script, displaying their usage, shortname, and description |
+| ops | gpu | gpu-var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
+| ops | gpu | gpu-nds | Downloads and installs NVIDIA drivers, blacklisting Nouveau drivers first |
+| ops | gpu | gpu-pt1 | Configures initial GRUB and EFI settings for GPU passthrough |
+| ops | gpu | gpu-pt2 | Adds necessary kernel modules for GPU passthrough |
+| ops | gpu | gpu-pt3 | Finalizes or reverts GPU passthrough setup |
+| ops | gpu | gpu-ptd | Detaches the GPU from the host system for VM passthrough |
+| ops | gpu | gpu-pta | Attaches the GPU back to the host system |
+| ops | gpu | gpu-pts | Checks the current status of the GPU (complete detailed version) |
 | ops | net | net-fun | Displays an overview of specific functions in the script, showing their usage, shortname, and description |
 | ops | net | net-var | Displays an overview of specific variables in network configuration |
 | ops | net | net-uni | Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system |
@@ -223,39 +223,39 @@ The `lib/` folder contains three categories of pure functions:
 | ops | usr | usr-cap | Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation |
 | ops | usr | usr-rif | Replaces all occurrences of a string in files within a given folder |
 | ops | usr | usr-ans | Navigates to the Ansible project directory, runs the playbook, then returns to the original directory |
-| gen | env | update_ecc |  |
-| gen | env | env_switch |  |
-| gen | env | site_switch |  |
-| gen | env | node_switch |  |
-| gen | env | env_status |  |
-| gen | env | env_list |  |
-| gen | env | env_validate |  |
-| gen | env | env_usage |  |
-| gen | env | main |  |
-| gen | inf | set_container_defaults |  |
-| gen | inf | generate_ip_sequence |  |
-| gen | inf | define_container |  |
-| gen | inf | define_containers |  |
-| gen | inf | set_vm_defaults |  |
-| gen | inf | define_vm |  |
-| gen | inf | define_vms |  |
-| gen | inf | validate_config |  |
-| gen | inf | show_config_summary |  |
+| gen | env | update_ecc | Helper function to update environment controller configuration |
+| gen | env | env_switch | Switch environment (dev/test/staging/prod) with validation |
+| gen | env | site_switch | Switch site configuration with validation and listing |
+| gen | env | node_switch | Switch node configuration for cluster deployments |
+| gen | env | env_status | Show current environment status with configuration hierarchy display |
+| gen | env | env_list | List available environments and overrides with discovery |
+| gen | env | env_validate | Validate configuration files existence and accessibility |
+| gen | env | env_usage | Show usage information and command examples |
+| gen | env | main | Main function for command-line usage and argument processing |
+| gen | inf | set_container_defaults | Set container defaults (can be called to override global defaults) |
+| gen | inf | generate_ip_sequence | Generate sequential IP addresses for network planning |
+| gen | inf | define_container | Define a container with minimal parameters and default fallbacks |
+| gen | inf | define_containers | Define multiple containers from a configuration string with colon separation |
+| gen | inf | set_vm_defaults | Set VM defaults for virtual machine configuration |
+| gen | inf | define_vm | Define a VM with minimal parameters and default fallbacks |
+| gen | inf | define_vms | Define multiple VMs from colon-separated string with bulk creation |
+| gen | inf | validate_config | Validate configuration completeness and consistency |
+| gen | inf | show_config_summary | Show configuration summary with overview of containers and VMs |
 | gen | sec | generate_secure_password | Generate a secure password with specified length |
-| gen | sec | store_secure_password |  |
-| gen | sec | generate_service_passwords |  |
-| gen | sec | create_password_file |  |
-| gen | sec | load_stored_passwords |  |
-| gen | sec | get_password_directory |  |
-| gen | sec | init_password_management |  |
-| gen | sec | init_password_management_auto |  |
-| gen | sec | get_password_file |  |
-| gen | sec | get_secure_password |  |
-| gen | ssh | set_ssh |  |
-| gen | ssh | setup_ssh |  |
-| gen | ssh | add_ssh_keys |  |
-| gen | ssh | list_ssh_keys |  |
-| gen | ssh | remove_ssh_keys |  |
+| gen | sec | store_secure_password | Generate a secure password and store it in a variable |
+| gen | sec | generate_service_passwords | Generate multiple passwords for different services and store them |
+| gen | sec | create_password_file | Create a password file with proper permissions and security |
+| gen | sec | load_stored_passwords | Load passwords from secure storage into environment variables |
+| gen | sec | get_password_directory | Get the appropriate password directory based on system capabilities |
+| gen | sec | init_password_management | Initialize secure password management system with directory setup |
+| gen | sec | init_password_management_auto | Initialize password management with automatic directory selection |
+| gen | sec | get_password_file | Get password file path with fallback mechanism and validation |
+| gen | sec | get_secure_password | Get password with smart lookup and generation fallback |
+| gen | ssh | set_ssh | Set up SSH environment with keys and aliases |
+| gen | ssh | setup_ssh | Set up SSH keys and create convenient aliases |
+| gen | ssh | add_ssh_keys | Add SSH keys to the SSH agent for authentication |
+| gen | ssh | list_ssh_keys | List SSH keys currently loaded in the agent |
+| gen | ssh | remove_ssh_keys | Remove all SSH keys from the agent |
 
 <!-- END AUTO-GENERATED SECTION -->
 
