@@ -532,7 +532,7 @@ init_registered_functions() {
     local parent_timer="INIT_REGISTERED_FUNCTIONS"
 
     # Verify REGISTERED_FUNCTIONS exists using ver's verify_var
-    if ! verify_var "REGISTERED_FUNCTIONS" 1; then
+    if ! verify_var "REGISTERED_FUNCTIONS"; then
         ini_log "No registered functions found" "init_registered_functions" $LOG_PRIORITY_NORMAL
         return 0
     fi
@@ -558,7 +558,7 @@ init_registered_functions() {
     type tme_end_timer &>/dev/null && tme_end_timer "BATCH_FUNCTION_REGISTRATION" "success"
 
     ini_log "Registered $success functions successfully using optimized batch processing" "init_registered_functions" $LOG_PRIORITY_NORMAL
-    return $((success > 0 ? 0 : 1))
+    return 0
 }
 
 # Cache module verification for performance

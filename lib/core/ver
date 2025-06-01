@@ -75,12 +75,12 @@ verify_path() {
     ver_log "Verifying path: $path (type: $type, create: $create)" "verify_path"
 
     [[ -z "$path" ]] && {
-        echo "Empty path provided" >&2
+        ver_log "ERROR: Empty path provided" "verify_path"
         return 1
     }
 
     [[ -z "$type" ]] && {
-        echo "Empty type provided" >&2
+        ver_log "ERROR: Empty type provided" "verify_path"
         return 1
     }
 
@@ -94,7 +94,7 @@ verify_path() {
                     }
                     ver_log "Created directory: $path"
                 else
-                    echo "Directory does not exist: $path" >&2
+                    ver_log "ERROR: Directory does not exist: $path" "verify_path"
                     return 1
                 fi
             fi
@@ -112,13 +112,13 @@ verify_path() {
                     }
                     ver_log "Created file: $path"
                 else
-                    echo "File does not exist: $path" >&2
+                    ver_log "ERROR: File does not exist: $path" "verify_path"
                     return 1
                 fi
             fi
             ;;
         *)
-            echo "Invalid path type: $type" >&2
+            ver_log "ERROR: Invalid path type: $type" "verify_path"
             return 1
             ;;
     esac
@@ -134,21 +134,20 @@ verify_var() {
 
     # Input validation
     if [[ $# -ne 1 ]]; then
-        echo "Usage: verify_var <variable_name>" >&2
+        ver_log "ERROR: Usage: verify_var <variable_name>" "verify_var"
         return 1
     fi
 
     if [[ -z "$var_name" ]]; then
-        echo "Empty variable name provided" >&2
+        ver_log "ERROR: Empty variable name provided" "verify_var"
         return 1
     fi
 
-    local var_value="${!var_name}"
-
     ver_log "Verifying variable: $var_name" "verify_var"
 
-    if [[ -z "$var_value" ]]; then
-        echo "Variable '$var_name' is empty or undefined" >&2
+    # Check if the variable is declared (works for both regular variables and arrays)
+    if ! declare -p "$var_name" &>/dev/null; then
+        ver_log "ERROR: Variable '$var_name' is not declared" "verify_var"
         return 1
     fi
 
@@ -202,7 +201,7 @@ verify_module() {
     fi
 
     if [[ -z "$module" ]]; then
-        echo "Empty module name provided" >&2
+        ver_log "ERROR: Empty module name provided" "verify_module"
         return 1
     fi
 
