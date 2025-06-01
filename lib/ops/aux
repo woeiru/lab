@@ -8,11 +8,13 @@
 #   aux-log      : Logging function. Prints a timestamped log message with a log level.
 #   aux-ffl      : Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed.
 #   aux-laf      : Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability.
+#   aux-lad      : Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options.
 #   aux-acu      : Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files.
 #   aux-mev      : Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters.
 #   aux-nos      : Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information.
 #   aux-flc      : Displays the source code of a specified function from the library folder, including its description, shortname, and usage.
 #   aux-use      : Displays the usage information, shortname, and description of the calling function, helping users understand how to use it.
+#   aux-lad      : Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options.
 #
 # ============================================================================
 
@@ -818,4 +820,303 @@ aux-use() {
     echo "Shortname:      $shortname"
     echo "Usage:          $funcname" "$usage"
 
+}
+
+# Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options
+# list all documentation
+# <file/directory name> [-t] [-b] [-j]
+aux-lad() {
+    local truncate_mode=false
+    local break_mode=false
+    local json_mode=false
+    local doc_path
+    local lab_dir="${LAB_DIR:-}"
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -t)
+                truncate_mode=true
+                shift
+                ;;
+            -b)
+                break_mode=true
+                shift
+                ;;
+            -j)
+                json_mode=true
+                shift
+                ;;
+            *)
+                doc_path="$1"
+                shift
+                ;;
+        esac
+    done
+
+    # Default to doc directory if no path provided
+    if [ -z "$doc_path" ]; then
+        if [[ -n "$lab_dir" ]]; then
+            doc_path="$lab_dir/doc"
+        else
+            echo "Error: No documentation path provided and LAB_DIR not set"
+            aux-use
+            return 1
+        fi
+    fi
+
+    # Column width parameters for documentation table
+    local col_width_1=12  # Type
+    local col_width_2=20  # Path
+    local col_width_3=25  # Title
+    local col_width_4=40  # Description
+    local col_width_5=6   # Lines
+    local col_width_6=6   # Words
+    local col_width_7=8   # Modified
+
+    # Function to truncate and pad strings
+    truncate_and_pad() {
+        local str="$1"
+        local width="$2"
+        if [ ${#str} -gt $width ]; then
+            echo "${str:0:$((width-2))}.."
+        else
+            printf "%-${width}s" "$str"
+        fi
+    }
+
+    # Function to wrap text
+    wrap_text() {
+        local text="$1"
+        local width="$2"
+        echo "$text" | fold -s -w "$width"
+    }
+
+    # Function to print a row
+    print_row() {
+        if $break_mode; then
+            local col1=$(wrap_text "$1" $col_width_1)
+            local col2=$(wrap_text "$2" $col_width_2)
+            local col3=$(wrap_text "$3" $col_width_3)
+            local col4=$(wrap_text "$4" $col_width_4)
+            local col5=$(wrap_text "$5" $col_width_5)
+            local col6=$(wrap_text "$6" $col_width_6)
+            local col7=$(wrap_text "$7" $col_width_7)
+            
+            local IFS=$'\n'
+            local lines1=($col1)
+            local lines2=($col2)
+            local lines3=($col3)
+            local lines4=($col4)
+            local lines5=($col5)
+            local lines6=($col6)
+            local lines7=($col7)
+            
+            local max_lines=${#lines1[@]}
+            for arr in lines2 lines3 lines4 lines5 lines6 lines7; do
+                local -n arr_ref=$arr
+                if [[ ${#arr_ref[@]} -gt $max_lines ]]; then
+                    max_lines=${#arr_ref[@]}
+                fi
+            done
+            
+            for i in $(seq 0 $((max_lines-1))); do
+                printf "| %-${col_width_1}s | %-${col_width_2}s | %-${col_width_3}s | %-${col_width_4}s | %-${col_width_5}s | %-${col_width_6}s | %-${col_width_7}s |\n" \
+                    "${lines1[$i]:-}" \
+                    "${lines2[$i]:-}" \
+                    "${lines3[$i]:-}" \
+                    "${lines4[$i]:-}" \
+                    "${lines5[$i]:-}" \
+                    "${lines6[$i]:-}" \
+                    "${lines7[$i]:-}"
+            done
+        elif $truncate_mode; then
+            printf "| %s | %s | %s | %s | %s | %s | %s |\n" \
+                "$(truncate_and_pad "$1" $col_width_1)" \
+                "$(truncate_and_pad "$2" $col_width_2)" \
+                "$(truncate_and_pad "$3" $col_width_3)" \
+                "$(truncate_and_pad "$4" $col_width_4)" \
+                "$(truncate_and_pad "$5" $col_width_5)" \
+                "$(truncate_and_pad "$6" $col_width_6)" \
+                "$(truncate_and_pad "$7" $col_width_7)"
+        else
+            printf "| %s | %s | %s | %s | %s | %s | %s |\n" \
+                "$1" "$2" "$3" "$4" "$5" "$6" "$7"
+        fi
+    }
+
+    # Function to print separator
+    print_separator() {
+        local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + 20))
+        printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' '-')"
+    }
+
+    print_separator_2() {
+        local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + 20))
+        printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' ' ')"
+    }
+
+    # Function to extract title from markdown file
+    extract_title() {
+        local file="$1"
+        if [[ -f "$file" ]]; then
+            local title=$(grep -m1 '^# ' "$file" 2>/dev/null | sed 's/^# //' | sed 's/[🎯👨‍💻🛠️🏗️📱🔍🔧🛠️📋🌐📊]*//' | xargs)
+            if [[ -n "$title" ]]; then
+                echo "$title"
+            else
+                basename "$file" .md
+            fi
+        else
+            basename "$file" .md
+        fi
+    }
+
+    # Function to extract description from markdown file
+    extract_description() {
+        local file="$1"
+        if [[ -f "$file" ]]; then
+            # Look for first paragraph after title that doesn't start with ##
+            local desc=$(awk '/^# /{flag=1; next} flag && /^[A-Za-z*]/ && !/^##/{print; exit}' "$file" 2>/dev/null | sed 's/^\*//; s/\*$//' | xargs)
+            if [[ -n "$desc" ]]; then
+                echo "$desc"
+            else
+                echo "No description available"
+            fi
+        else
+            echo "No description available"
+        fi
+    }
+
+    # Function to get file statistics
+    get_file_stats() {
+        local file="$1"
+        if [[ -f "$file" ]]; then
+            local lines=$(wc -l < "$file" 2>/dev/null || echo "0")
+            local words=$(wc -w < "$file" 2>/dev/null || echo "0")
+            local modified=$(stat -c %y "$file" 2>/dev/null | cut -d' ' -f1 || echo "unknown")
+            echo "$lines:$words:$modified"
+        else
+            echo "0:0:unknown"
+        fi
+    }
+
+    # Function to determine document type
+    get_doc_type() {
+        local file="$1"
+        local relative_path="${file#$lab_dir/}"
+        
+        if [[ "$file" =~ README\.md$ ]]; then
+            if [[ "$relative_path" == "doc/README.md" ]]; then
+                echo "Hub"
+            else
+                echo "Index"
+            fi
+        elif [[ "$relative_path" =~ ^doc/dev/ ]]; then
+            echo "Developer"
+        elif [[ "$relative_path" =~ ^doc/adm/ ]]; then
+            echo "Admin"
+        elif [[ "$relative_path" =~ ^doc/iac/ ]]; then
+            echo "IaC"
+        elif [[ "$relative_path" =~ ^doc/cli/ ]]; then
+            echo "CLI"
+        elif [[ "$relative_path" =~ ^doc/ ]]; then
+            echo "Core"
+        else
+            echo "Other"
+        fi
+    }
+
+    # JSON output preparation
+    local json_docs=()
+    
+    # Print table header
+    print_separator
+    print_row "Type" "Path" "Title" "Description" "Lines" "Words" "Modified"
+    print_separator
+
+    # Process documentation files
+    if [[ -d "$doc_path" ]]; then
+        # Find all markdown files in the documentation directory
+        while IFS= read -r -d '' file; do
+            local relative_path="${file#$lab_dir/}"
+            local doc_type=$(get_doc_type "$file")
+            local title=$(extract_title "$file")
+            local description=$(extract_description "$file")
+            local stats=$(get_file_stats "$file")
+            local lines=$(echo "$stats" | cut -d: -f1)
+            local words=$(echo "$stats" | cut -d: -f2)
+            local modified=$(echo "$stats" | cut -d: -f3)
+            
+            # Print table row
+            print_row "$doc_type" "$relative_path" "$title" "$description" "$lines" "$words" "$modified"
+            if $break_mode; then
+                print_separator_2
+            fi
+            
+            # Store for JSON output
+            if $json_mode; then
+                json_docs+=("{\"type\":\"$doc_type\",\"path\":\"$relative_path\",\"title\":\"$title\",\"description\":\"$(echo "$description" | sed 's/"/\\"/g')\",\"lines\":$lines,\"words\":$words,\"modified\":\"$modified\"}")
+            fi
+            
+        done < <(find "$doc_path" -name "*.md" -type f -print0 | sort -z)
+    elif [[ -f "$doc_path" && "$doc_path" =~ \.md$ ]]; then
+        # Process single file
+        local relative_path="${doc_path#$lab_dir/}"
+        local doc_type=$(get_doc_type "$doc_path")
+        local title=$(extract_title "$doc_path")
+        local description=$(extract_description "$doc_path")
+        local stats=$(get_file_stats "$doc_path")
+        local lines=$(echo "$stats" | cut -d: -f1)
+        local words=$(echo "$stats" | cut -d: -f2)
+        local modified=$(echo "$stats" | cut -d: -f3)
+        
+        print_row "$doc_type" "$relative_path" "$title" "$description" "$lines" "$words" "$modified"
+        
+        if $json_mode; then
+            json_docs+=("{\"type\":\"$doc_type\",\"path\":\"$relative_path\",\"title\":\"$title\",\"description\":\"$(echo "$description" | sed 's/"/\\"/g')\",\"lines\":$lines,\"words\":$words,\"modified\":\"$modified\"}")
+        fi
+    else
+        echo "Error: '$doc_path' is not a valid markdown file or directory"
+        return 1
+    fi
+
+    if ! $break_mode; then
+        print_separator
+    fi
+    
+    # JSON output mode
+    if $json_mode; then
+        # Create centralized .tmp/doc directory if it doesn't exist
+        local tmp_dir="$lab_dir/.tmp/doc"
+        mkdir -p "$tmp_dir"
+        
+        # Generate JSON filename based on input path
+        local relative_path="${doc_path#$lab_dir/}"
+        local json_filename="${relative_path//\//_}.json"
+        local json_file="$tmp_dir/$json_filename"
+        
+        # Remove existing JSON file if it exists (flush)
+        [[ -f "$json_file" ]] && rm -f "$json_file"
+        
+        # Write JSON output
+        echo "{" > "$json_file"
+        echo "  \"source\": \"$doc_path\"," >> "$json_file"
+        echo "  \"generated\": \"$(date -Iseconds)\"," >> "$json_file"
+        echo "  \"total_documents\": ${#json_docs[@]}," >> "$json_file"
+        echo "  \"documents\": [" >> "$json_file"
+        
+        for i in "${!json_docs[@]}"; do
+            echo "    ${json_docs[$i]}" >> "$json_file"
+            if [[ $i -lt $((${#json_docs[@]} - 1)) ]]; then
+                echo "    ," >> "$json_file"
+            fi
+        done
+        
+        echo "  ]" >> "$json_file"
+        echo "}" >> "$json_file"
+        
+        echo "JSON output written to: $json_file"
+    fi
+    
+    echo ""
 }

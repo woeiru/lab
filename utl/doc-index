@@ -4,8 +4,8 @@
 #######################################################################
 # File: doc-index
 # Description: Automatically generates comprehensive documentation index 
-#              with cross-references and updates the Documentation 
-#              Structure section in README.md
+#              using aux-lad for autonomous documentation discovery and 
+#              updates the Documentation Structure section in README.md
 #
 # Usage: ./doc-index [--update|--analyze|--dry-run]
 #   --update    Update the Documentation Structure section in README.md
@@ -16,7 +16,7 @@
 
 set -euo pipefail
 
-# Initialize lab environment - simple approach
+# Initialize lab environment
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Set LAB_DIR if not already set
@@ -24,28 +24,20 @@ if [[ -z "${LAB_DIR:-}" ]]; then
     readonly LAB_DIR="$(dirname "$SCRIPT_DIR")"
 fi
 
-# Configuration using lab environment variables
+# Source required utilities
+source "$LAB_DIR/lib/ops/aux"
+
+# Configuration
 readonly DOC_DIR="$LAB_DIR/doc"
-readonly WORKING_DOC_DIR="$LAB_DIR/tmp"
 readonly OUTPUT_FILE="$LAB_DIR/README.md"
 readonly BACKUP_FILE="$LAB_DIR/README.md.backup"
 
-# Color definitions (using lab infrastructure if available, fallback otherwise)
-if [[ -n "${LOG_NC:-}" ]]; then
-    # Use lab color infrastructure
-    readonly RED="${LOG_COLORS[0]:-\033[0;31m}"
-    readonly GREEN='\033[0;32m'
-    readonly YELLOW='\033[1;33m'
-    readonly BLUE='\033[0;34m'
-    readonly NC="${LOG_NC}"
-else
-    # Fallback color definitions
-    readonly RED='\033[0;31m'
-    readonly GREEN='\033[0;32m'
-    readonly YELLOW='\033[1;33m'
-    readonly BLUE='\033[0;34m'
-    readonly NC='\033[0m'
-fi
+# Color definitions
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m'
 
 # Enhanced logging functions
 log() { 
@@ -64,235 +56,219 @@ error() {
     echo -e "${RED}❌${NC} $*"
 }
 
-# Function to get file metadata
-get_file_info() {
-    local file="$1"
-    local lines word_count
+# Function to count total documents using aux-lad JSON output
+count_total_documents() {
+    # Generate JSON output and count documents
+    aux-lad -j "$DOC_DIR" >/dev/null 2>&1
     
-    if [[ -f "$file" ]]; then
-        lines=$(wc -l < "$file" 2>/dev/null || echo "0")
-        word_count=$(wc -w < "$file" 2>/dev/null || echo "0")
-        echo "$lines lines, $word_count words"
+    local json_file="$LAB_DIR/.tmp/doc/doc.json"
+    if [[ -f "$json_file" ]]; then
+        grep '"total_documents":' "$json_file" | awk -F: '{print $2}' | tr -d ' ,'
     else
-        echo "File not found"
+        echo "0"
     fi
 }
 
-# Function to extract title from markdown file
-get_title() {
-    local file="$1"
-    if [[ -f "$file" ]]; then
-        grep -m1 '^# ' "$file" 2>/dev/null | sed 's/^# //' || basename "$file" .md
-    else
-        basename "$file" .md
+# Function to generate documentation table from aux-lad JSON output
+generate_documentation_table() {
+    local category="$1"
+    local icon="$2"
+    local description="$3"
+    local filter_pattern="$4"
+    
+    # Generate JSON output for the documentation directory
+    aux-lad -j "$DOC_DIR" >/dev/null 2>&1
+    
+    local json_file="$LAB_DIR/.tmp/doc/doc.json"
+    if [[ ! -f "$json_file" ]]; then
+        echo "*No documentation found*"
+        return
     fi
+    
+    echo "#### $icon $category"
+    echo "**Purpose**: $description"
+    echo ""
+    
+    # Use a simpler approach - directly parse the aux-lad output and filter
+    # First, let's just re-run aux-lad and parse its table output directly
+    local temp_table="/tmp/aux_lad_output_$$"
+    aux-lad "$DOC_DIR" > "$temp_table" 2>/dev/null
+    
+    # Parse the table output and filter by type
+    local found_docs=false
+    while IFS='|' read -r type_col path_col title_col desc_col lines_col words_col modified_col; do
+        # Clean up the columns (remove leading/trailing spaces and pipe characters)
+        local doc_type=$(echo "$type_col" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        local doc_path=$(echo "$path_col" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        local doc_title=$(echo "$title_col" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        local doc_description=$(echo "$desc_col" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        local doc_lines=$(echo "$lines_col" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        local doc_words=$(echo "$words_col" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        
+        # Skip header and separator lines
+        if [[ "$doc_type" =~ ^(Type|[-+]+)$ ]] || [[ -z "$doc_type" ]]; then
+            continue
+        fi
+        
+        # Check if this document matches our filter
+        if [[ "$doc_type" == "$filter_pattern" ]]; then
+            echo "- **[$doc_title]($doc_path)** - *($doc_lines lines, $doc_words words)* - $doc_description"
+            found_docs=true
+        fi
+    done < "$temp_table"
+    
+    # Clean up temp file
+    rm -f "$temp_table"
+    
+    # If no documents found, show a placeholder
+    if [[ "$found_docs" == false ]]; then
+        echo "*No documents found in this category*"
+    fi
+    
+    echo ""
 }
 
-# Function to extract description from markdown file
-get_description() {
-    local file="$1"
-    if [[ -f "$file" ]]; then
-        # Look for first paragraph after title
-        awk '/^# /{flag=1; next} flag && /^[A-Za-z]/{print; exit}' "$file" 2>/dev/null || echo "No description available"
-    else
-        echo "No description available"
-    fi
-}
-
-# Function to find cross-references
-find_cross_references() {
-    local file="$1"
-    local basename_file
-    basename_file=$(basename "$file" .md)
+# Generate the comprehensive documentation index
+generate_documentation_index() {
+    local total_docs=$(count_total_documents)
     
-    if [[ -f "$file" ]]; then
-        # Find files that reference this one
-        grep -r "\[$basename_file\]" "$LAB_DIR"/{doc,tmp,*.md} 2>/dev/null | \
-            grep -v "$file" | \
-            cut -d: -f1 | \
-            sort -u | \
-            head -5 || true
-    fi
-}
-
-# Generate the documentation index
-generate_index() {
-    log "Updating documentation sections in README.md..."
-    
-    # Create backup
-    cp "$OUTPUT_FILE" "$BACKUP_FILE"
-    
-    # Generate new documentation section
-    local temp_doc_section="/tmp/doc_section_$$"
-    
-    cat > "$temp_doc_section" << 'EOF'
+    cat << EOF
 ## 📚 Documentation Structure
 
 *Auto-updated documentation index with real-time metadata*
 
 > **Last Updated**: $(date '+%Y-%m-%d %H:%M:%S')  
-> **Generated By**: `utl/doc-index`  
-> **Total Documents**: Calculated automatically
+> **Generated By**: \`utl/doc-index\` using \`aux-lad\`  
+> **Total Documents**: $total_docs documents
 
 Our documentation is organized for both quick reference and comprehensive guidance:
 
 ### **📋 Quick Reference (Folder READMEs)**
 Individual folder READMEs provide immediate context when browsing directories with quick orientation for developers and direct links to detailed documentation.
 
-### **📖 Comprehensive Documentation (`/doc/`)**
+### **📖 Comprehensive Documentation (\`/doc/\`)**
 
 EOF
 
-    # Count total documents
-    local total_docs
-    total_docs=$(find "$LAB_DIR" -name "*.md" | wc -l)
+    # Generate sections for each documentation category
+    generate_documentation_table "Documentation Hub" "📚" "Central navigation and documentation organization" "Hub"
+    generate_documentation_table "Developer Documentation" "👨‍💻" "Technical guides, API references, and integration documentation" "Developer"
+    generate_documentation_table "System Administrator Documentation" "🛠️" "Operations, configuration, and system management guides" "Admin"
+    generate_documentation_table "Infrastructure as Code Documentation" "🏗️" "Infrastructure automation, deployment guides, and environment management" "IaC"
+    generate_documentation_table "Command-Line Interface Documentation" "📱" "CLI guides, command references, and user interaction documentation" "CLI"
+    generate_documentation_table "Core Documentation" "📋" "Standards, architecture principles, and foundational documents" "Core"
     
-    # Update the total count in the temp file
-    sed -i "s/Calculated automatically/$total_docs documents/" "$temp_doc_section"
-    sed -i "s/\$(date '+%Y-%m-%d %H:%M:%S')/$(date '+%Y-%m-%d %H:%M:%S')/" "$temp_doc_section"
-}
+    cat << 'EOF'
 
-# Function to process documentation directory
-process_doc_directory() {
-    local category="$1"
-    local dir="$2"
-    local icon="$3"
-    local description="$4"
-    local temp_doc_section="/tmp/doc_section_$$"
-    
-    cat >> "$temp_doc_section" << EOF
-
-#### $icon $category (\`${dir#$LAB_DIR/}/\`)
-**Purpose**: $description
-
-EOF
-    
-    if [[ -d "$dir" ]]; then
-        # Process README first if it exists
-        if [[ -f "$dir/README.md" ]]; then
-            local title desc info
-            title=$(get_title "$dir/README.md")
-            desc=$(get_description "$dir/README.md")
-            info=$(get_file_info "$dir/README.md")
-            
-            cat >> "$temp_doc_section" << EOF
-- **[${title}](${dir#$LAB_DIR/}/README.md)** - *($info)* - $desc
-
-EOF
-        fi
-        
-        # Process all other markdown files
-        find "$dir" -name "*.md" -not -name "README.md" | sort | while read -r file; do
-            local title desc info rel_path
-            title=$(get_title "$file")
-            desc=$(get_description "$file")
-            info=$(get_file_info "$file")
-            rel_path="${file#$LAB_DIR/}"
-            
-            cat >> "$temp_doc_section" << EOF
-- **[$title]($rel_path)** - *($info)* - $desc
-EOF
-        done
-    else
-        echo "*Directory not found: $dir*" >> "$temp_doc_section"
-    fi
-}
-
-# Function to process working documentation
-process_working_docs() {
-    local temp_doc_section="/tmp/doc_section_$$"
-    
-    cat >> "$temp_doc_section" << 'EOF'
-
-### **📋 Working Documentation (`/tmp/`)**
-Development logs, analysis reports, and operational documentation organized by category:
-
-EOF
-    
-    local subdirs=("ana:🔍:Analysis Reports"
-                   "dev:🔧:Development Logs" 
-                   "fix:🛠️:Problem Resolution"
-                   "flo:🔄:Process Flows"
-                   "how:📋:How-To Guides"
-                   "net:🌐:Network Documentation"
-                   "pro:📊:Project Documentation")
-    
-    for subdir_info in "${subdirs[@]}"; do
-        IFS=':' read -r subdir icon desc <<< "$subdir_info"
-        local full_path="$WORKING_DOC_DIR/$subdir"
-        
-        if [[ -d "$full_path" ]]; then
-            local file_count
-            file_count=$(find "$full_path" -name "*.md" | wc -l)
-            if [[ $file_count -gt 0 ]]; then
-                cat >> "$temp_doc_section" << EOF
-- **$icon $desc** (\`tmp/$subdir/\`) - $file_count documents
-EOF
-            fi
-        fi
-    done
-}
-
-# Function to generate cross-reference map
-generate_cross_references() {
-    cat >> "$OUTPUT_FILE" << 'EOF'
-
-## 🔗 Cross-References and Relationships
-
-This section shows how documents reference each other, helping you navigate related content.
-
-EOF
-    
-    # Find documents with the most references
-    log "Analyzing cross-references..."
-    
-    local temp_refs="/tmp/doc_refs_$$"
-    find "$LAB_DIR" -name "*.md" -exec grep -l '\[.*\](' {} \; > "$temp_refs" 2>/dev/null || true
-    
-    if [[ -s "$temp_refs" ]]; then
-        cat >> "$OUTPUT_FILE" << 'EOF'
-### 📊 Most Referenced Documents
-
-EOF
-        
-        # This is a simplified version - you could make it more sophisticated
-        head -10 "$temp_refs" | while read -r file; do
-            local rel_path="${file#$LAB_DIR/}"
-            local title
-            title=$(get_title "$file")
-            echo "- **[$title]($rel_path)**" >> "$OUTPUT_FILE"
-        done
-    fi
-    
-    rm -f "$temp_refs"
-}
-
-# Function to add footer
-add_footer() {
-    cat >> "$OUTPUT_FILE" << 'EOF'
-
----
-
-## 🔄 Index Maintenance
-
-This documentation index is automatically generated. To update:
+### **🔧 Documentation Tools**
+- **[`utl/doc-index`](utl/doc-index)** - Updates this documentation section automatically using `aux-lad`
+- **[`lib/ops/aux` (aux-lad)](lib/ops/aux)** - Documentation listing and analysis function
+- **[`utl/doc-func`](utl/doc-func)** - Function metadata table generator using `aux-laf`
+- **[`utl/doc-stats`](utl/doc-stats)** - Generate real-time codebase statistics and update README metrics
 
 ```bash
-# Regenerate the complete index
+# Update documentation index in README.md
 ./utl/doc-index
 
-# The index includes:
-# - All markdown files in doc/ and tmp/
-# - Cross-reference analysis
-# - File metadata (lines, words)
-# - Document relationships
+# List all documentation with metadata
+aux-lad doc
+
+# Generate documentation metadata as JSON
+aux-lad -j doc
+
+# Update function metadata table
+./utl/doc-func
 ```
 
-**Navigation**: Return to [Main README](README.md) | [Documentation Hub](doc/README.md)
+EOF
+}
+
+# Function to update the README.md file
+update_readme_file() {
+    local temp_file=$(mktemp)
+    local in_doc_section=false
+    
+    log "Creating backup of README.md..."
+    cp "$OUTPUT_FILE" "$BACKUP_FILE"
+    
+    log "Updating documentation section in README.md..."
+    
+    # Read the original file and replace the documentation section
+    while IFS= read -r line; do
+        if [[ "$line" == "## 📚 Documentation Structure" ]]; then
+            # Generate the new documentation section
+            generate_documentation_index >> "$temp_file"
+            in_doc_section=true
+            # Skip until we find the next ## section or end of file
+            continue
+        elif [[ "$in_doc_section" == true && "$line" =~ ^##[[:space:]] ]]; then
+            # Found the next section, stop skipping
+            echo "$line" >> "$temp_file"
+            in_doc_section=false
+        elif [[ "$in_doc_section" == false ]]; then
+            echo "$line" >> "$temp_file"
+        fi
+        # If in_doc_section is true, we skip the line (don't write it)
+    done < "$OUTPUT_FILE"
+    
+    # Replace the original file
+    mv "$temp_file" "$OUTPUT_FILE"
+    success "Documentation index updated successfully in README.md"
+}
+
+# Function to analyze documentation without updating files
+analyze_documentation() {
+    log "Analyzing documentation structure..."
+    
+    local total_docs=$(count_total_documents)
+    
+    cat << EOF
+📚 Documentation Analysis Report
+===============================
+
+📊 Overview:
+- Total Documents: $total_docs
+- Documentation Directory: $DOC_DIR
+- Analysis Method: Autonomous using aux-lad
+
+🏗️ Structure Analysis:
+EOF
+    
+    # Show the documentation structure that would be generated
+    echo ""
+    echo "Documentation categories found:"
+    aux-lad "$DOC_DIR" | grep -E "^\| (Developer|Admin|IaC|CLI|Core|Hub|Index)" | awk -F'|' '{print "- " $2 ": " $3}' | sort | uniq -c
+    
+    echo ""
+    echo "📋 Sample of documentation that would be indexed:"
+    aux-lad -t "$DOC_DIR"
+}
+
+# Function to preview changes without updating
+preview_changes() {
+    log "Generating preview of documentation index changes..."
+    
+    cat << 'EOF'
+📋 Preview of Documentation Index Changes
+=========================================
+
+The following content would replace the "Documentation Structure" section in README.md:
 
 ---
+EOF
 
-*This index was automatically generated by the Lab Environment Management System documentation tools.*
+    generate_documentation_index
+
+    cat << 'EOF'
+---
+
+🔍 Changes Summary:
+- Automatically discovered documentation using aux-lad
+- Generated categorized documentation listings
+- Included real-time metadata (lines, words, modification dates)
+- Organized by documentation type and purpose
+
+To apply these changes, run: ./utl/doc-index --update
 EOF
 }
 
@@ -300,202 +276,34 @@ EOF
 main() {
     local action="${1:-update}"
     
-    case "$action" in
-        --update)
-            update_documentation_index
-            ;;
-        --analyze)
-            log "Analyzing documentation structure..."
-            analyze_documentation
-            ;;
-        --dry-run)
-            log "Previewing documentation changes (dry run)..."
-            preview_documentation_changes
-            ;;
-        *)
-            update_documentation_index
-            ;;
-    esac
-}
-
-# Function to update documentation index
-update_documentation_index() {
-    log "Updating documentation sections in README.md..."
-    
-    # Ensure output directory exists
-    mkdir -p "$(dirname "$OUTPUT_FILE")"
-    
-    # Create backup
-    cp "$OUTPUT_FILE" "$BACKUP_FILE"
-    
-    # Generate the documentation section
-    generate_index
-    
-    # Process main documentation categories
-    process_doc_directory "Developer Documentation" "$DOC_DIR/dev" "👨‍💻" "Technical guides, API references, and integration documentation"
-    process_doc_directory "System Administrator Documentation" "$DOC_DIR/adm" "🛠️" "Operations, configuration, and system management guides"
-    process_doc_directory "Infrastructure as Code Documentation" "$DOC_DIR/iac" "🏗️" "Deployment patterns, automation, and infrastructure management"
-    process_doc_directory "Command Line Interface Documentation" "$DOC_DIR/cli" "📱" "User guides, command references, and interface documentation"
-    
-    # Process working documentation
-    process_working_docs
-    
-    # Add documentation tools section
-    local temp_doc_section="/tmp/doc_section_$$"
-    cat >> "$temp_doc_section" << 'EOF'
-
-### **🔧 Documentation Tools**
-- **[`utl/doc-index`](utl/doc-index)** - Updates this documentation section automatically
-- **[`val/validate-docs`](val/validate-docs)** - Validates internal links in markdown files
-- **[`val/validate_system`](val/validate_system)** - Quick system health validation
-- **[`utl/doc-stats`](utl/doc-stats)** - Generate real-time codebase statistics and update README metrics
-
-```bash
-# Update documentation index in README.md
-./utl/doc-index
-
-# Validate documentation links
-./val/validate-docs
-
-# Generate codebase statistics  
-./utl/doc-stats
-
-# Update README metrics automatically
-./utl/doc-stats --update
-```
-
-EOF
-    
-    # Now update the README.md by replacing the documentation section
-    # Find the start and end of the documentation section
-    local start_line end_line
-    start_line=$(grep -n "^## 📚 Documentation Structure" "$OUTPUT_FILE" | head -1 | cut -d: -f1)
-    end_line=$(grep -n "^## 🔧 Documentation Tools" "$OUTPUT_FILE" | head -1 | cut -d: -f1)
-    
-    if [[ -n "$start_line" && -n "$end_line" ]]; then
-        # Replace the section between these lines
-        {
-            head -n $((start_line - 1)) "$OUTPUT_FILE"
-            cat "$temp_doc_section"
-            tail -n +$((end_line + 1)) "$OUTPUT_FILE" | sed '/^### \*\*Maintenance & Validation\*\*/,/^### \*\*Standards & Guidelines\*\*/d'
-        } > "${OUTPUT_FILE}.tmp"
-        mv "${OUTPUT_FILE}.tmp" "$OUTPUT_FILE"
-    elif [[ -n "$start_line" ]]; then
-        # Just replace from documentation section to end of file
-        {
-            head -n $((start_line - 1)) "$OUTPUT_FILE"
-            cat "$temp_doc_section"
-            echo ""
-            echo "## 🚀 Quick Start"
-        } > "${OUTPUT_FILE}.tmp"
-        
-        # Add the rest of the file starting from Quick Start
-        tail -n +1 "$BACKUP_FILE" | sed -n '/^## 🚀 Quick Start/,$p' >> "${OUTPUT_FILE}.tmp"
-        mv "${OUTPUT_FILE}.tmp" "$OUTPUT_FILE"
-    else
-        warning "Could not find documentation section markers in README.md"
-        return 1
+    # Ensure documentation directory exists
+    if [[ ! -d "$DOC_DIR" ]]; then
+        error "Documentation directory not found: $DOC_DIR"
+        exit 1
     fi
     
-    # Clean up
-    rm -f "$temp_doc_section"
+    # Ensure README.md exists
+    if [[ ! -f "$OUTPUT_FILE" ]]; then
+        error "README.md not found: $OUTPUT_FILE"
+        exit 1
+    fi
     
-    success "Documentation sections updated in README.md"
-    success "Backup created: $BACKUP_FILE"
-    
-    local total_lines
-    total_lines=$(wc -l < "$OUTPUT_FILE")
-    log "Updated README.md ($total_lines lines total)"
-}
-
-# Function to analyze documentation structure
-analyze_documentation() {
-    local total_docs doc_lines
-    total_docs=$(find "$LAB_DIR" -name "*.md" | wc -l)
-    doc_lines=$(find "$LAB_DIR" -name "*.md" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}')
-    
-    cat << EOF
-📚 Documentation Analysis Report
-===============================
-
-📊 Overview:
-  - Total Documentation Files: $total_docs
-  - Total Documentation Lines: $doc_lines
-  - Primary Documentation (doc/): $(find "$DOC_DIR" -name "*.md" 2>/dev/null | wc -l) files
-  - Working Documentation (tmp/): $(find "$WORKING_DOC_DIR" -name "*.md" 2>/dev/null | wc -l) files
-
-🏗️ Structure Analysis:
-EOF
-
-    # Analyze each category
-    local categories=("dev:👨‍💻:Developer Documentation"
-                     "adm:🛠️:System Administrator Documentation" 
-                     "iac:🏗️:Infrastructure as Code Documentation"
-                     "cli:📱:Command Line Interface Documentation")
-    
-    for cat_info in "${categories[@]}"; do
-        IFS=':' read -r cat_dir cat_icon cat_name <<< "$cat_info"
-        local full_path="$DOC_DIR/$cat_dir"
-        if [[ -d "$full_path" ]]; then
-            local file_count line_count
-            file_count=$(find "$full_path" -name "*.md" | wc -l)
-            line_count=$(find "$full_path" -name "*.md" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
-            echo "  - $cat_icon $cat_name: $file_count files, $line_count lines"
-        fi
-    done
-    
-    echo ""
-    echo "Generated: $(date)"
-}
-
-# Function to preview documentation changes
-preview_documentation_changes() {
-    log "Previewing documentation index changes..."
-    
-    local temp_preview="/tmp/doc_preview_$$"
-    
-    # Generate preview content
-    cat > "$temp_preview" << 'EOF'
-## 📚 Documentation Structure
-
-*Auto-updated documentation index with real-time metadata*
-
-> **Last Updated**: $(date '+%Y-%m-%d %H:%M:%S')  
-> **Generated By**: `utl/doc-index`  
-> **Total Documents**: Calculated automatically
-
-EOF
-    
-    # Update with actual values
-    local total_docs
-    total_docs=$(find "$LAB_DIR" -name "*.md" | wc -l)
-    sed -i "s/Calculated automatically/$total_docs documents/" "$temp_preview"
-    sed -i "s/\$(date '+%Y-%m-%d %H:%M:%S')/$(date '+%Y-%m-%d %H:%M:%S')/" "$temp_preview"
-    
-    cat << 'EOF'
-📋 Preview of Documentation Index Changes
-=========================================
-
-The following content would be added to README.md:
-
-EOF
-    
-    cat "$temp_preview"
-    
-    cat << 'EOF'
-
-[... additional sections would be generated ...]
-
-🔍 Changes Summary:
-  - Documentation Structure section would be updated
-  - Cross-references would be analyzed
-  - File metadata would be refreshed
-  - Working documentation would be indexed
-
-To apply these changes, run: ./utl/doc-index --update
-EOF
-    
-    rm -f "$temp_preview"
+    case "$action" in
+        --update|update)
+            update_readme_file
+            ;;
+        --analyze|analyze)
+            analyze_documentation
+            ;;
+        --dry-run|dry-run|preview)
+            preview_changes
+            ;;
+        *)
+            error "Invalid action: $action"
+            echo "Usage: $0 [--update|--analyze|--dry-run]"
+            exit 1
+            ;;
+    esac
 }
 
 # Execute if run directly
