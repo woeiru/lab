@@ -373,12 +373,18 @@ aux-laf() {
     
     # JSON output mode
     if $json_mode; then
-        # Create .tmp directory if it doesn't exist
-        local tmp_dir="$(dirname "$file_name")/.tmp"
+        # Create centralized .tmp/doc directory if it doesn't exist
+        local lab_dir="${LAB_DIR:-$(cd "$(dirname "$file_name")" && while [[ ! -f "entry.sh" && "$PWD" != "/" ]]; do cd ..; done && pwd)}"
+        local tmp_dir="$lab_dir/.tmp/doc"
         mkdir -p "$tmp_dir"
         
-        # Generate JSON filename based on input file
-        local json_file="$tmp_dir/$(basename "$file_name").json"
+        # Generate JSON filename based on input file path structure
+        local relative_path="${file_name#$lab_dir/}"
+        local json_filename="${relative_path//\//_}.json"
+        local json_file="$tmp_dir/$json_filename"
+        
+        # Remove existing JSON file if it exists (flush)
+        [[ -f "$json_file" ]] && rm -f "$json_file"
         
         # Start JSON output
         echo "{" > "$json_file"
