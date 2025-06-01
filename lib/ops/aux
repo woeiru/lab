@@ -34,7 +34,7 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 #
 aux-fun() {
     # Pass all arguments directly to aux-laf
-    aux-laf "$FILEPATH_lib" "$@"
+    aux-laf "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
@@ -53,44 +53,64 @@ aux-log() {
 
 # Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
 # function folder loop
-# <function> <flag> <path> [extra_args ..]
+# <function> <flag> <path> [max_depth] [current_depth] [extra_args ..]
 aux-ffl() {
-    local fnc
-    local flag
-    local folder
-    local extra_args=()
-    fnc="$1"
-    flag="$2"
-    folder="$3"
+    local fnc="$1"
+    local flag="$2"
+    local folder="$3"
     shift 3
-    # Collect remaining arguments as extra_args
-    while [[ $# -gt 0 ]]; do
-        extra_args+=("$1")
+    
+    # Handle optional parameters
+    local max_depth=10
+    local current_depth=0
+    local extra_args=()
+    
+    # Check if next argument is a number (max_depth)
+    if [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]]; then
+        max_depth="$1"
         shift
-    done
+        
+        # Check if next argument is also a number (current_depth)
+        if [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]]; then
+            current_depth="$1"
+            shift
+        fi
+    fi
+    
+    # Remaining arguments are extra_args
+    extra_args=("$@")
+    
+    # Check recursion depth to prevent infinite loops
+    if [[ $current_depth -ge $max_depth ]]; then
+        echo "Warning: Maximum recursion depth ($max_depth) reached for folder: $folder"
+        return 1
+    fi
 
     if [[ -d "$folder" ]]; then
         for file in "$folder"/{*,.[!.]*,..?*}; do
+            # Skip if file doesn't exist (failed glob)
+            [[ -e "$file" ]] || continue
+            
             if [[ -f "$file" ]]; then
-                line_count=$(wc -l < "$file")
+                line_count=$(wc -l < "$file" 2>/dev/null || echo "0")
                 
                 # Get the file extension
                 file_extension="${file##*.}"
                 
                 if [[ "$file_extension" == "conf" ]]; then
                     # Count variables in .conf files
-                    variable_count=$(grep -cE '^[a-zA-Z0-9_]+=' "$file")
+                    variable_count=$(grep -cE '^[a-zA-Z0-9_]+=' "$file" 2>/dev/null || echo "0")
                     count_type="Variables"
                     count_value=$variable_count
                 else
                     # Count functions in other files
-                    function_count=$(grep -cE '^[a-zA-Z0-9_-]+\(\)[[:space:]]*\{' "$file")
+                    function_count=$(grep -cE '^[a-zA-Z0-9_-]+\(\)[[:space:]]*\{' "$file" 2>/dev/null || echo "0")
                     count_type="Functions"
                     count_value=$function_count
                 fi
                 
                 # Get the real path of the file
-                real_path=$(realpath "$file")
+                real_path=$(realpath "$file" 2>/dev/null || echo "$file")
                 # Extract the filename (prefix) from the path
                 filename=$(basename "$real_path")
                 # Extract the prefix (part before the first dot)
@@ -100,13 +120,17 @@ aux-ffl() {
                 
                 echo -e "$dir_path\e[32m$prefix\e[0m${filename#$prefix} - Contains \e[31m$line_count\e[0m Lines and \e[33m$count_value\e[0m $count_type"
                 
-                "$fnc" "$flag" "$file" "${extra_args[@]}"
+                # Call the function with error handling
+                if ! "$fnc" "$flag" "$file" "${extra_args[@]}" 2>/dev/null; then
+                    echo "Warning: Function '$fnc' failed for file: $file" >&2
+                fi
             elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
-                aux-ffl "$fnc" "$flag" "$file" "${extra_args[@]}"
+                # Recursive call with incremented depth
+                aux-ffl "$fnc" "$flag" "$file" "$max_depth" "$((current_depth + 1))" "${extra_args[@]}"
             fi
         done
     else
-        echo "Invalid folder: $folder"
+        echo "Invalid folder: $folder" >&2
         return 1
     fi
 }
@@ -118,6 +142,8 @@ aux-laf() {
     local truncate_mode=false
     local break_mode=false
     local file_name
+    local lib_ops_dir="${LIB_OPS_DIR:-}"
+    local src_set_dir="${SRC_SET_DIR:-}"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -247,15 +273,20 @@ aux-laf() {
     local line_number=0
     declare -a comments=()
 
-    # Read all comments into an array
-    while IFS= read -r line; do
+    # Read all comments into an array with error handling
+    if [[ ! -r "$file_name" ]]; then
+        echo "Error: Cannot read file '$file_name'"
+        return 1
+    fi
+    
+    while IFS= read -r line || [[ -n "$line" ]]; do
         ((line_number++))
         if [[ $line =~ ^[[:space:]]*# ]]; then
             comments[$line_number]="${line#"${line%%[![:space:]]*}"}"  # Remove leading whitespace
             comments[$line_number]="${comments[$line_number]#\# }"    # Remove leading '# '
             comments[$line_number]="${comments[$line_number]#\#}"     # Remove leading '#' if there's no space after it
         fi
-    done < "$file_name"
+    done < "$file_name" 2>/dev/null
 
     # Counts all function calls
     count_calls() {
@@ -304,8 +335,19 @@ aux-laf() {
             
             # Count the number of calls to the function
             func_calls=$(count_calls "$func_name")
-            callsfun=$(count_calls_folder "$func_name" "$LIB_OPS_DIR" "$file_name")
-            callsgen=$(count_calls_folder "$func_name" "$SRC_SET_DIR" "$file_name")
+            
+            # Use directory parameters if available, otherwise show empty
+            if [[ -n "$lib_ops_dir" && -d "$lib_ops_dir" ]]; then
+                callsfun=$(count_calls_folder "$func_name" "$lib_ops_dir" "$file_name" 2>/dev/null || echo "")
+            else
+                callsfun=""
+            fi
+            
+            if [[ -n "$src_set_dir" && -d "$src_set_dir" ]]; then
+                callsgen=$(count_calls_folder "$func_name" "$src_set_dir" "$file_name" 2>/dev/null || echo "")
+            else
+                callsgen=""
+            fi
             
             # Get comments for arguments, shortname, and description
             description=$(get_comment $((line_number-3)))
@@ -625,7 +667,15 @@ aux-flc() {
     # Extract the library prefix from the function name
     func_name="$1"
     lib_prefix="${func_name%%-*}"
-    lib_file="${LIB_OPS_DIR}/${lib_prefix}"
+    # Use LIB_OPS_DIR if available, otherwise try to determine relative path
+    local lib_ops_dir="${LIB_OPS_DIR:-}"
+    if [ -z "$lib_ops_dir" ]; then
+        # Try to determine lib directory relative to current script
+        local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        lib_ops_dir="$(dirname "$script_dir")/ops"
+    fi
+    
+    lib_file="${lib_ops_dir}/${lib_prefix}"
 
     # Check if the library file exists
     if [ ! -f "$lib_file" ]; then
