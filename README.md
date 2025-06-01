@@ -37,7 +37,7 @@ Individual folder READMEs provide immediate context when browsing directories wi
 
 - **[👨‍💻 Developer Documentation](doc/dev/README.md)** - *(104 lines, 481 words)* - Documentation for developers integrating with the Lab Environment Management System.
 
-- **[API Reference Guide](doc/dev/api-reference.md)** - *(203 lines, 614 words)* - Quick reference for developers using the Lab Environment Management System libraries.
+- **[API Reference Guide](doc/dev/functions.md)** - *(203 lines, 614 words)* - Quick reference for developers using the Lab Environment Management System libraries.
 - **[Lab Environment Project Architecture](doc/dev/architecture.md)** - *(505 lines, 2898 words)* - This document outlines the comprehensive structure of the Lab Environment project, explaining the purpose of each directory, key components, and the sophisticated environment management system that provides production-ready infrastructure automation.
 - **[Logging System Documentation](doc/dev/logging.md)** - *(554 lines, 3130 words)* - This document provides a comprehensive analysis of the logging architecture, including log files in the `.log` directory, state files in the `.tmp` directory, and terminal verbosity controls.
 - **[Testing Framework and Validation Guide](doc/dev/testing.md)** - *(317 lines, 1077 words)* - Comprehensive testing documentation for the Lab Environment Management System, including testing infrastructure, validation procedures, and development testing practices.
@@ -367,7 +367,7 @@ cd test && ./test_complete_refactor.sh
 
 #### System Manuals & Architecture Documentation
 - **[System Architecture](doc/dev/architecture.md)** - Complete system design overview
-- **[API Reference](doc/dev/api-reference.md)** - Developer library function reference
+- **[API Reference](doc/dev/functions.md)** - Developer library function reference
 - **[Configuration Manual](doc/adm/configuration.md)** - Detailed configuration options
 - **[Security Management](doc/adm/security.md)** - Security framework and credential management
 - **[Infrastructure Guide](doc/iac/infrastructure.md)** - Deployment and IaC patterns
