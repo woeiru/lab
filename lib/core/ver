@@ -362,17 +362,17 @@ verify_function() {
 
     # Input validation
     if [[ $# -ne 2 ]]; then
-        echo "Usage: verify_function <function_name> <module_path>" >&2
+        ver_log "ERROR: Usage: verify_function <function_name> <module_path>" "verify_function"
         return 1
     fi
 
     if [[ -z "$func_name" ]]; then
-        echo "Empty function name provided" >&2
+        ver_log "ERROR: Empty function name provided" "verify_function"
         return 1
     fi
 
     if [[ -z "$module_path" ]]; then
-        echo "Empty module path provided" >&2
+        ver_log "ERROR: Empty module path provided" "verify_function"
         return 1
     fi
 

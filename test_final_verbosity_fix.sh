@@ -30,6 +30,16 @@ if echo "$stderr_output" | grep -q "Usage: verify_var"; then
 else
     echo "✅ PASSED: No 'Usage: verify_var' message found when verbosity is off"
 fi
+
+# Test 3.5: Check that the new "Usage: verify_function" message doesn't appear with verbosity off
+echo "Test 3.5: Checking that the 'Usage: verify_function' message doesn't appear"
+echo "Running with verbosity off and checking stderr..."
+if echo "$stderr_output" | grep -q "Usage: verify_function"; then
+    echo "❌ FAILED: The 'Usage: verify_function' message still appears!"
+    echo "Output: $stderr_output"
+else
+    echo "✅ PASSED: No 'Usage: verify_function' message found when verbosity is off"
+fi
 echo
 
 # Test 4: Check that the system completes successfully
@@ -58,4 +68,5 @@ echo "Summary: The verbosity control fix should ensure:"
 echo "1. When MASTER_TERMINAL_VERBOSITY=off, no terminal output appears"
 echo "2. When MASTER_TERMINAL_VERBOSITY=on, initialization messages appear"
 echo "3. The 'Usage: verify_var' message no longer appears incorrectly"
-echo "4. The system completes initialization successfully"
+echo "4. The 'Usage: verify_function' message no longer appears incorrectly"
+echo "5. The system completes initialization successfully"
