@@ -11,8 +11,8 @@
 # Dependencies:
 #   - Runtime constants (cfg/core/ric)
 #   - Environment configurations (cfg/env/*)
-#   - Infrastructure utilities (lib/utl/inf)
-#   - Security utilities (lib/utl/sec)
+#   - Infrastructure utilities (lib/gen/inf)
+#   - Security utilities (lib/gen/sec)
 #   - Bash 4.0+ (for associative arrays and advanced features)
 #
 # Purpose:

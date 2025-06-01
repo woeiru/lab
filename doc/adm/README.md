@@ -23,7 +23,7 @@ System administrators who need to:
 - **Health Checks**: Regular system validation and health monitoring
 
 #### Security Management
-- **Credential Management**: Follow established patterns in `lib/utl/sec`
+- **Credential Management**: Follow established patterns in `lib/gen/sec`
 - **Zero Hardcoded Secrets**: All credentials managed through secure utilities
 - **Permission Management**: Automatic 600 permissions for sensitive files
 - **Access Control**: Implement proper user and system access controls
@@ -53,7 +53,7 @@ tme_print_timing_report
 
 ### Security Management
 ```bash
-# Credential management (via lib/utl/sec)
+# Credential management (via lib/gen/sec)
 # - Automatic secure permissions
 # - Fallback mechanisms
 # - Zero hardcoded passwords

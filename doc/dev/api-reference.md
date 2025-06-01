@@ -78,7 +78,7 @@ sys-host-config hostname settings     # Host configuration
 
 ## 🛠️ Utility Libraries
 
-### Infrastructure Utilities (`lib/utl/inf`)
+### Infrastructure Utilities (`lib/gen/inf`)
 ```bash
 # Container management
 define_containers "id:name:ip:id2:name2:ip2"
@@ -91,7 +91,7 @@ define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112"
 validate_config && show_config_summary
 ```
 
-### Security Utilities (`lib/utl/sec`)
+### Security Utilities (`lib/gen/sec`)
 ```bash
 # Credential management (120+ lines of secure handling)
 # - Zero hardcoded passwords
@@ -100,7 +100,7 @@ validate_config && show_config_summary
 # Functions are internal - use through wrapper scripts
 ```
 
-### Environment Utilities (`lib/utl/env`)
+### Environment Utilities (`lib/gen/env`)
 ```bash
 # Environment configuration
 load_environment_config site environment
@@ -139,7 +139,7 @@ function_name-w() {
 ### Environment Integration
 ```bash
 # Load environment context
-source lib/utl/env
+source lib/gen/env
 load_environment_config "$SITE" "$ENVIRONMENT"
 
 # Use environment-aware functions

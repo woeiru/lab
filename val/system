@@ -98,7 +98,7 @@ echo
 # Test 1: Infrastructure Utilities
 echo "1️⃣  Testing Infrastructure Utilities..."
 cd /home/es/lab
-if source lib/utl/inf 2>/dev/null; then
+if source lib/gen/inf 2>/dev/null; then
     echo "   ✅ Infrastructure utilities loaded"
     
     # Test container definition
@@ -118,7 +118,7 @@ echo
 
 # Test 2: Security Utilities
 echo "2️⃣  Testing Security Utilities..."
-if source lib/utl/sec 2>/dev/null; then
+if source lib/gen/sec 2>/dev/null; then
     echo "   ✅ Security utilities loaded"
     
     # Test password generation
@@ -224,6 +224,6 @@ echo "🎉 Environment Management System is operational!"
 echo
 echo "💡 Quick Start:"
 echo "   source src/aux/set                    # Load environment"
-echo "   source lib/utl/inf && source lib/utl/sec  # Load utilities"
+echo "   source lib/gen/inf && source lib/gen/sec  # Load utilities"
 echo "   define_container 200 200 web 192.168.1.200  # Define container"
 echo "   generate_secure_password 16           # Generate password"

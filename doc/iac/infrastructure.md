@@ -90,7 +90,7 @@ Each deployment script defines a `MENU_OPTIONS` associative array mapping letter
 
 - **Configuration hierarchy**: `cfg/env/site1` → `cfg/env/site1-dev` → `cfg/env/site1-w2` 
 - **Runtime constants integration** with automatic LAB_ROOT detection
-- **Infrastructure and security utility loading** from `lib/ops/` and `lib/utl/`
+- **Infrastructure and security utility loading** from `lib/ops/` and `lib/gen/`
 - **Environment variable context** (`SITE`, `ENVIRONMENT`, `NODE`)
 
 ## Prerequisites
@@ -502,7 +502,7 @@ export NODE="h1"
 
 - **Core Libraries**: `lib/core/` - Error handling, logging, and timing modules
 - **Operations Libraries**: `lib/ops/` - System, storage, and service management functions
-- **Utility Libraries**: `lib/utl/` - Infrastructure, security, and environment utilities
+- **Utility Libraries**: `lib/gen/` - Infrastructure, security, and environment utilities
 - **Configuration Files**: `cfg/` - Environment configurations and runtime constants
 
 ## Support and Maintenance

@@ -56,7 +56,7 @@ lib/
 | **sys** | System Administration | - | • Package management<br>• System monitoring<br>• Resource allocation<br>• Security hardening |
 | **usr** | User Management | - | • Permission control<br>• Authentication<br>• Access management<br>• Audit logging |
 
-### 🛠️ Utility Libraries (`lib/utl/`)
+### 🛠️ Utility Libraries (`lib/gen/`)
 **Development & Maintenance Tools**
 
 | Module | Purpose | Lines of Code | Functionality |
@@ -86,7 +86,7 @@ lib/
 # Manual library sourcing (if needed)
 source lib/core/err    # Error handling
 source lib/core/lo1    # Enhanced logging
-source lib/utl/env     # Environment management
+source lib/gen/env     # Environment management
 ```
 
 ### 2. Core Library Usage

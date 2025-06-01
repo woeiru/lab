@@ -158,7 +158,7 @@ The system implements a **hierarchical configuration loading system**:
 4. **Runtime Constants Integration**: Centralized path management through `cfg/core/ric`
 
 ### Security-First Design
-- **Zero hardcoded passwords**: All credentials managed through `lib/utl/sec`
+- **Zero hardcoded passwords**: All credentials managed through `lib/gen/sec`
 - **Secure password generation**: Configurable length and complexity
 - **Proper file permissions**: Sensitive files protected with 600 permissions
 - **Fallback mechanisms**: Graceful handling of missing credentials
@@ -199,7 +199,7 @@ The project features a sophisticated **environment-aware deployment system** tha
 -   **Environment Context Display**: Shows Site, Environment, and Node during deployment.
 -   **Backward Compatibility**: Maintains compatibility with legacy sourcing methods.
 
--   **Environment Utilities (`lib/utl/env`)**: 80+ lines of enhanced environment management providing:
+-   **Environment Utilities (`lib/gen/env`)**: 80+ lines of enhanced environment management providing:
     -   Dynamic environment switching
     -   Configuration validation
     -   Environment-specific variable loading
@@ -207,7 +207,7 @@ The project features a sophisticated **environment-aware deployment system** tha
 
 ### Infrastructure Management System
 
--   **Infrastructure Utilities (`lib/utl/inf`)**: Comprehensive 355+ line utility library providing:
+-   **Infrastructure Utilities (`lib/gen/inf`)**: Comprehensive 355+ line utility library providing:
     -   **Standardized container/VM definitions** with 19+ configurable parameters
     -   **Bulk creation functions** for efficient multi-container setup
     -   **Configuration validation** and summary reporting
@@ -228,7 +228,7 @@ The project features a sophisticated **environment-aware deployment system** tha
 
 ### Security Framework
 
--   **Security Utilities (`lib/utl/sec`)**: 120+ line comprehensive security framework featuring:
+-   **Security Utilities (`lib/gen/sec`)**: 120+ line comprehensive security framework featuring:
     -   **Zero hardcoded passwords**: Complete elimination of embedded credentials
     -   **Secure password generation**: Configurable length and complexity requirements
     -   **Encrypted storage**: Proper file permissions (600) for sensitive data
@@ -300,7 +300,7 @@ The project features a sophisticated **environment-aware deployment system** tha
     -   **Command wrappers**: Enhanced functionality for existing commands
     -   **On-demand generation**: Dynamic alias creation outputting to `cfg/ali/dyn`
 
--   **SSH Utilities (`lib/utl/ssh`)**: Secure shell management and automation tools for:
+-   **SSH Utilities (`lib/gen/ssh`)**: Secure shell management and automation tools for:
     -   Connection management and key handling
     -   Automated deployment over SSH
     -   Security policy enforcement
@@ -445,13 +445,13 @@ After environment setup, these core modules are automatically available:
 ### Advanced Usage
 - **Infrastructure deployment**: Use `src/set/` scripts with environment-aware configuration
 - **Container management**: Deploy standardized containers via `cfg/pod/` definitions
-- **Security management**: Leverage `lib/utl/sec` for credential management
+- **Security management**: Leverage `lib/gen/sec` for credential management
 - **Testing and validation**: Run `bin/test_environment` for comprehensive system testing
 
 ### Configuration Customization
 - **Environment-specific settings**: Modify `cfg/env/site1-dev` or `site1-w2` for custom environments
-- **Infrastructure parameters**: Use `lib/utl/inf` utilities for standardized container/VM definitions
-- **Security policies**: Configure password requirements and storage through `lib/utl/sec`
+- **Infrastructure parameters**: Use `lib/gen/inf` utilities for standardized container/VM definitions
+- **Security policies**: Configure password requirements and storage through `lib/gen/sec`
 
 ## Integration and Extension
 
