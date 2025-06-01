@@ -2,10 +2,6 @@
 
 This directory serves as the central documentation hub for the Lab Environment Management System. It provides structured, audience-specific documentation designed for maintainability, discoverability, and practical value across all system components.
 
-## 🎯 Purpose
-
-This documentation hub establishes consistent standards and provides comprehensive guides for different user roles. It ensures documentation remains accessible, current, and actionable while supporting efficient navigation and ongoing maintenance for all Lab projects.
-
 
 ## 📊 Documentation Index
 
@@ -55,7 +51,6 @@ This index provides a comprehensive overview of all documentation in the system:
 
 *No documents found in this category*
 
-
 ### **🔧 Documentation Tools**
 - **[`utl/doc-readme`](../utl/doc-readme)** - Updates this documentation index automatically using `aux-lad`
 - **[`lib/gen/aux` (aux-lad)](../lib/gen/aux)** - Documentation listing and analysis function
@@ -75,82 +70,6 @@ aux-lad -j doc
 # Update function metadata table
 ./utl/doc-func
 ```
-
-## 📂 Documentation Structure
-
-### Primary Documentation (`/doc/`)
-
-```
-doc/
-├── README.md                   # This navigation hub (includes documentation standards)
-├── 👨‍💻 dev/                  # Developer documentation
-├── 🛠️ adm/                   # System administrator guides
-├── 🏗️ iac/                   # Infrastructure as Code documentation
-└── 📱 cli/                   # Command-line interface guides
-```
-
-### Documentation Philosophy
-
-#### Core Principles
-1. **Progressive Disclosure**: Start simple, provide depth on demand
-2. **Audience Awareness**: Different docs for different roles
-3. **Discoverability**: Documentation should be easy to find
-4. **Maintainability**: Documentation should be easy to update
-5. **Actionability**: Provide clear, executable guidance
-
-#### Quality Standards
-- **Accuracy**: All information must be current and verified
-- **Clarity**: Use clear, concise language appropriate for the audience
-- **Completeness**: Cover all necessary information without overwhelming
-- **Consistency**: Follow established patterns and conventions
-
-## 📖 Documentation Categories
-
-### 📋 Documentation Standards and Guidelines
-**Purpose**: Establish consistent standards for creating and maintaining documentation  
-**Target Audience**: All contributors and maintainers  
-**Content**: Writing standards, templates, maintenance procedures, and quality guidelines  
-**Location**: Integrated into this README for easy access and maintenance
-
-### 👨‍💻 Developer Documentation (`dev/`)
-**Purpose**: Technical documentation for developers integrating with the system  
-**Target Audience**: Software developers, system integrators, technical contributors  
-**Content**: System architecture, logging frameworks, verbosity controls, and integration patterns  
-**Key Features**:
-- Technical depth with implementation details and code examples
-- API focus documenting interfaces, parameters, and return values
-- Integration guidance showing how components work together
-- Performance considerations including timing and optimization notes
-
-### 🛠️ System Administrator Documentation (`adm/`)
-**Purpose**: Operational documentation for system administrators  
-**Target Audience**: System administrators, DevOps operators, infrastructure maintainers  
-**Content**: Configuration management, monitoring, and security practices  
-**Key Features**:
-- Operational focus emphasizing deployment and maintenance procedures
-- Security emphasis highlighting security implications and best practices
-- Configuration details providing complete configuration examples
-- Troubleshooting including common issues and diagnostic procedures
-
-### 🏗️ Infrastructure as Code Documentation (`iac/`)
-**Purpose**: Infrastructure deployment and automation documentation  
-**Target Audience**: Infrastructure teams, DevOps engineers, deployment specialists  
-**Content**: Standardized deployments, environment management, and automation patterns  
-**Key Features**:
-- Automation focus emphasizing repeatable deployment patterns
-- Environment management covering multi-environment scenarios
-- Scalability addressing enterprise-scale considerations
-- Standards compliance referencing industry best practices
-
-### 📱 CLI Documentation (`cli/`)
-**Purpose**: Command-line interface documentation and user guides  
-**Target Audience**: End users, operators, system consumers  
-**Content**: Getting started guides, user controls, and operational procedures  
-**Key Features**:
-- User-centric focus on end-user workflows and common tasks
-- Step-by-step providing clear, sequential instructions
-- Examples including practical command examples with expected output
-- Quick reference providing summary tables and cheat sheets
 
 ## 📝 Documentation Standards
 
