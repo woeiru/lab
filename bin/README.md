@@ -55,7 +55,7 @@ bin/
 - **Library Loading**:
   - `source_lib_ops`: Operational function libraries
   - `source_lib_aux`: Auxiliary helper functions
-  - `source_lib_utl`: Specialized utility functions
+  - `source_lib_gen`: General utility functions
 
 - **Component Management**:
   - `setup_components`: Main orchestration function
