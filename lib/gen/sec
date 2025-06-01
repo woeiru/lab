@@ -116,7 +116,8 @@ generate_secure_password() {
 }
 
 # Generate a secure password and store it in a variable
-# Usage: store_secure_password variable_name [length] [exclude_special]
+# store secure password
+# <var_name> [length] [exclude_special]
 store_secure_password() {
     local var_name="$1"
     local length=${2:-16}
@@ -132,8 +133,9 @@ store_secure_password() {
     declare -g "$var_name"="$password"
 }
 
-# Generate multiple passwords for different services
-# Usage: generate_service_passwords
+# Generate multiple passwords for different services and store them
+# generate service passwords
+#
 generate_service_passwords() {
     # Container root passwords
     store_secure_password "CT_PBS_PASSWORD" 20
@@ -151,8 +153,9 @@ generate_service_passwords() {
     echo "Generated secure passwords for all services"
 }
 
-# Create a password file with proper permissions
-# Usage: create_password_file filename password
+# Create a password file with proper permissions and security
+# create password file
+# <filename> <password>
 create_password_file() {
     local filename="$1"
     local password="$2"
@@ -167,8 +170,9 @@ create_password_file() {
     echo "Password file created: $filename"
 }
 
-# Load passwords from secure storage
-# Usage: load_stored_passwords [password_dir]
+# Load passwords from secure storage into environment variables
+# load stored passwords
+# [password_dir]
 load_stored_passwords() {
     local password_dir="${1:-/etc/lab/passwords}"
     
@@ -185,7 +189,8 @@ load_stored_passwords() {
 }
 
 # Get the appropriate password directory based on system capabilities
-# Usage: get_password_directory
+# get password directory
+#
 get_password_directory() {
     local base_dirs=("/etc/lab/passwords" "/var/lib/lab/passwords" "/home/es/.lab/passwords" "/tmp/lab_passwords")
     
@@ -205,8 +210,9 @@ get_password_directory() {
     echo "$fallback"
 }
 
-# Initialize secure password management
-# Usage: init_password_management [password_dir]
+# Initialize secure password management system with directory setup
+# init password management
+# [password_dir]
 init_password_management() {
     local password_dir="${1:-/tmp/lab_passwords}"
     
@@ -247,7 +253,9 @@ init_password_management() {
 }
 
 # Initialize password management with smart directory selection
-# Usage: init_password_management_auto
+# Initialize password management with automatic directory selection
+# init password management auto
+#
 init_password_management_auto() {
     local password_dir
     password_dir=$(get_password_directory)
@@ -255,8 +263,9 @@ init_password_management_auto() {
     echo "Using password directory: $password_dir"
 }
 
-# Get password file path with fallback mechanism
-# Usage: get_password_file filename
+# Get password file path with fallback mechanism and validation
+# get password file
+# <filename>
 get_password_file() {
     local filename="$1"
     local search_dirs=("/etc/lab/passwords" "/var/lib/lab/passwords" "/home/es/.lab/passwords" "/tmp/lab_passwords")
@@ -272,8 +281,9 @@ get_password_file() {
     echo "/tmp/lab_passwords/$filename"
 }
 
-# Get password with smart lookup
-# Usage: get_secure_password filename [length]
+# Get password with smart lookup and generation fallback
+# get secure password
+# <filename> [length]
 get_secure_password() {
     local filename="$1"
     local length="${2:-16}"

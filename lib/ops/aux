@@ -44,7 +44,9 @@ aux-var() {
     aux-acu -o "$CONFIG_gpu" "$DIR_FUN/.."
 }
 
-# Logging function
+# Logging function. Prints a timestamped log message with a log level
+# log
+# <log_level> <message>
 aux-log() {
     local log_level="$1"
     local message="$2"

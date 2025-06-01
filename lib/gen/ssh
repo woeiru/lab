@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Set up SSH environment with keys and aliases
+# set ssh
+#
 set_ssh() {
     log "lvl-2" "Setting up environment"
 
@@ -9,6 +12,9 @@ set_ssh() {
     log "lvl-3" "Static functions setup completed"
 }
 
+# Set up SSH keys and create convenient aliases
+# setup ssh
+#
 setup_ssh() {
     log "lvl-3" "Setting up SSH keys and aliases"
     add_ssh_keys
@@ -18,6 +24,9 @@ setup_ssh() {
     log "lvl-5" "SSH aliases created"
 }
 
+# Add SSH keys to the SSH agent for authentication
+# add ssh keys
+#
 add_ssh_keys() {
     log "lvl-4" "Adding SSH keys to the agent"
     if [ -z "$SSH_AUTH_SOCK" ]; then
@@ -38,11 +47,17 @@ add_ssh_keys() {
     log "lvl-5" "SSH keys added successfully"
 }
 
+# List SSH keys currently loaded in the agent
+# list ssh keys
+#
 list_ssh_keys() {
     log "lvl-3" "Listing SSH keys in the agent"
     ssh-add -l || log "lvl-4" "No keys found or ssh-agent is not running"
 }
 
+# Remove all SSH keys from the agent
+# remove ssh keys
+#
 remove_ssh_keys() {
     log "lvl-3" "Removing all SSH keys from the agent"
     ssh-add -D || log "lvl-4" "Failed to remove SSH keys"
