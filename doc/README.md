@@ -234,7 +234,7 @@ echo "# New Documentation" > new_document.md
 
 ### Recent Updates
 - **Audience-Based Documentation Reorganization** - Complete restructuring into dev/, adm/, iac/, and user/ directories
-- **API Reference Guide** - New comprehensive developer function reference (doc/dev/api-reference.md)
+- **API Reference Guide** - New comprehensive developer function reference (doc/dev/functions.md)
 - **Security Management Guide** - Complete security framework documentation (doc/adm/security.md)
 - **Environment Management Guide** - Multi-environment deployment patterns (doc/iac/environment-management.md)
 - **Quick Reference Guide** - Essential commands and daily workflows (doc/cli/quick-reference.md)
