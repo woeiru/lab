@@ -107,7 +107,9 @@ _gpu_load_config() {
     fi
 }
 
-# Get PCI IDs from hostname-based configuration
+# Get PCI IDs from hostname-based configuration variables
+# GPU Get Config PCI IDs - GGP
+# <hostname>
 _gpu_get_config_pci_ids() {
     local hostname="$1"
     local -a pci_ids=()
@@ -134,7 +136,9 @@ _gpu_get_config_pci_ids() {
     printf "%s\n" "${pci_ids[@]}"
 }
 
-# Find all GPU devices via lspci scan
+# Find all GPU devices via lspci scan with optional driver filter
+# GPU Find All GPUs - GFA
+# <filter_driver>
 _gpu_find_all_gpus() {
     local filter_driver="$1" # Optional: only return GPUs using specific driver
     local -a gpu_ids=()
@@ -161,7 +165,9 @@ _gpu_find_all_gpus() {
     printf "%s\n" "${gpu_ids[@]}"
 }
 
-# Get target GPUs for processing (handles all the logic for determining which GPUs to process)
+# Get target GPUs for processing with comprehensive selection logic
+# GPU Get Target GPUs - GGT
+# <gpu_id_arg> <hostname> <filter_driver>
 _gpu_get_target_gpus() {
     local gpu_id_arg="$1"
     local hostname="$2"
@@ -225,7 +231,9 @@ _gpu_get_target_gpus() {
     printf "%s\n" "${gpus_to_process[@]}"
 }
 
-# Ensure VFIO modules are loaded
+# Ensure required VFIO kernel modules are loaded for GPU passthrough
+# GPU Ensure VFIO Modules - GEV
+# 
 _gpu_ensure_vfio_modules() {
     local modules=(vfio vfio_iommu_type1 vfio_pci)
     
@@ -248,7 +256,9 @@ _gpu_ensure_vfio_modules() {
     return 0
 }
 
-# Unbind device from current driver
+# Unbind PCI device from its current driver safely
+# GPU Unbind Device - GUD
+# <pci_id>
 _gpu_unbind_device() {
     local pci_id="$1"
     local full_pci_id="0000:$pci_id"
@@ -272,7 +282,9 @@ _gpu_unbind_device() {
     fi
 }
 
-# Bind device to specific driver
+# Bind PCI device to specified driver with vendor/device ID setup
+# GPU Bind Device - GBD
+# <pci_id> <target_driver>
 _gpu_bind_device() {
     local pci_id="$1"
     local target_driver="$2"
@@ -307,7 +319,9 @@ _gpu_bind_device() {
     fi
 }
 
-# Determine appropriate host driver for GPU
+# Determine appropriate host driver for GPU based on vendor ID
+# GPU Get Host Driver - GGH
+# <pci_id> <hostname>
 _gpu_get_host_driver() {
     local pci_id="$1"
     local hostname="$2"
@@ -343,7 +357,9 @@ _gpu_get_host_driver() {
     esac
 }
 
-# Determine appropriate host driver for GPU (parameterized version)
+# Determine appropriate host driver for GPU with explicit parameters
+# GPU Get Host Driver Parameterized - GHP
+# <pci_id> <hostname> <nvidia_driver_preference>
 _gpu_get_host_driver_parameterized() {
     local pci_id="$1"
     local hostname="$2"
@@ -373,7 +389,9 @@ _gpu_get_host_driver_parameterized() {
     esac
 }
 
-# Get PCI IDs from explicit parameters (parameterized version)
+# Get PCI IDs from explicit parameters without hostname lookup
+# GPU Get Config PCI IDs Parameterized - GCP
+# <pci0_id> <pci1_id>
 _gpu_get_config_pci_ids_parameterized() {
     local pci0_id="$1"
     local pci1_id="$2"
@@ -396,7 +414,9 @@ _gpu_get_config_pci_ids_parameterized() {
     printf "%s\n" "${pci_ids[@]}"
 }
 
-# Get target GPUs for processing (parameterized version)
+# Get target GPUs for processing with explicit parameters
+# GPU Get Target GPUs Parameterized - GTP
+# <gpu_id_arg> <hostname> <filter_driver> <pci0_id> <pci1_id>
 _gpu_get_target_gpus_parameterized() {
     local gpu_id_arg="$1"
     local hostname="$2"
@@ -462,7 +482,9 @@ _gpu_get_target_gpus_parameterized() {
     printf "%s\n" "${gpus_to_process[@]}"
 }
 
-# Helper function to get IOMMU groups for GPU devices
+# Get IOMMU groups containing GPU devices for passthrough validation
+# GPU Get IOMMU Groups - GIG
+# 
 _gpu_get_iommu_groups() {
     local -a gpu_pci_bus_ids=()
     while IFS= read -r line; do
@@ -518,7 +540,9 @@ _gpu_get_iommu_groups() {
     fi
 }
 
-# Helper function to get detailed GPU device information
+# Get detailed GPU device information including driver status and bindings
+# GPU Get Detailed Device Info - GDI
+# 
 _gpu_get_detailed_device_info() {
     local temp_lspci_gpu_blocks="/tmp/gpu_pts_blocks.$$"
     lspci -nnk | grep -A4 -iE "VGA compatible controller|3D controller" > "$temp_lspci_gpu_blocks"

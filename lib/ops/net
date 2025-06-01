@@ -30,8 +30,9 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 net-fun() {
     aux-laf "$FILEPATH_net" "$@"
 }
-# Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
-#
+# Displays an overview of specific variables in network configuration
+# Network Variables - NEV
+# 
 net-var() {
     aux-acu -o "$CONFIG_net" "$DIR_FUN/.."
 }
