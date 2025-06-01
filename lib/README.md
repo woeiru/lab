@@ -20,14 +20,14 @@ lib/
 │   ├── pbs            # Proxmox Backup Server operations
 │   ├── pve            # Proxmox VE cluster management
 │   ├── srv            # Service deployment and lifecycle management
+│   ├── ssh            # SSH connection and key management
 │   ├── sto            # Storage orchestration and management
 │   ├── sys            # System administration utilities
 │   └── usr            # User and permission management
 └── utl/              # Utility libraries (development and maintenance)
     ├── env            # Environment switching and management (356+ lines)
     ├── inf            # Infrastructure information and discovery
-    ├── sec            # Security utilities and credential management
-    └── ssh            # SSH connection and key management
+    └── sec            # Security utilities and credential management
 ```
 
 ## Core Library Categories
@@ -51,6 +51,7 @@ lib/
 | **pve** | Proxmox VE Operations | Major | • Cluster management<br>• VM lifecycle<br>• Resource allocation<br>• High availability |
 | **pbs** | Backup Management | - | • Automated backups<br>• Retention policies<br>• Disaster recovery<br>• Data verification |
 | **srv** | Service Orchestration | - | • Container deployment<br>• Service discovery<br>• Health monitoring<br>• Scaling policies |
+| **ssh** | SSH Management | - | • Key distribution<br>• Agent management<br>• Authentication<br>• Connection automation |
 | **sto** | Storage Management | - | • Volume provisioning<br>• Snapshot management<br>• Performance tuning<br>• Capacity planning |
 | **net** | Network Configuration | - | • VLAN management<br>• Firewall rules<br>• Load balancing<br>• Network segmentation |
 | **sys** | System Administration | - | • Package management<br>• System monitoring<br>• Resource allocation<br>• Security hardening |
@@ -64,7 +65,6 @@ lib/
 | **env** | Environment Management | 356+ | • Site switching (dev/staging/prod)<br>• Configuration validation<br>• Hierarchy management<br>• Status reporting |
 | **inf** | Infrastructure Discovery | - | • Resource enumeration<br>• Capacity reporting<br>• Health assessment<br>• Topology mapping |
 | **sec** | Security Utilities | - | • Credential management<br>• Encryption/decryption<br>• Certificate handling<br>• Security scanning |
-| **ssh** | SSH Management | - | • Key distribution<br>• Connection pooling<br>• Tunnel management<br>• Authentication |
 
 ### 📦 Auxiliary Functions (`lib/gen/aux`)
 **Auxiliary Function Libraries**

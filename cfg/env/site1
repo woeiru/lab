@@ -33,6 +33,16 @@ SSH_USERS=(
     ["e"]="es"
 )
 
+# ssh configuration ( ssh
+#
+SSH_TARGET_IP="192.168.178.100"  # Default target IP for SSH operations
+SSH_KEY_COMMENT="woeiru/lab"     # Comment for generated SSH keys
+SSH_KEY_PATHS=(                  # Default SSH key paths to load
+    "$HOME/.ssh/id_rsa"
+    "$HOME/.ssh/id_ed25519"
+    "$HOME/.ssh/h1"
+)
+
 # ip array index
 declare -a -g ALL_IP_ARRAYS=("CT_IPS" "HY_IPS")
 # ip array shortcuts
