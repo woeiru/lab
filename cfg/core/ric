@@ -107,9 +107,9 @@ LIB_OPS_DIR="${LAB_DIR}/lib/ops"
 export LIB_OPS_DIR
 
 # Deployment function library path
-declare -g LIB_AUX_DIR
-LIB_AUX_DIR="${LAB_DIR}/lib/aux"
-export LIB_AUX_DIR
+declare -g SRC_AUX_DIR
+SRC_AUX_DIR="${LAB_DIR}/src/aux"
+export SRC_AUX_DIR
 
 # Core library path
 declare -g LIB_CORE_DIR
