@@ -103,7 +103,6 @@ The `lib/` folder contains three categories of pure functions:
 | core | ver | verify_function_dependencies | Function and Dependency Verification |
 | core | ver | verify_function |  |
 | core | ver | init_verification |  |
-JSON files preserved in: /home/es/lab/.tmp/doc
 | ops | aux | aux-fun | Shows a summary of selected functions in the script, displaying their usage, shortname, and description |
 | ops | aux | aux-var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
 | ops | aux | aux-log |  |
@@ -224,7 +223,6 @@ JSON files preserved in: /home/es/lab/.tmp/doc
 | ops | usr | usr-cap | Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation |
 | ops | usr | usr-rif | Replaces all occurrences of a string in files within a given folder |
 | ops | usr | usr-ans | Navigates to the Ansible project directory, runs the playbook, then returns to the original directory |
-JSON files preserved in: /home/es/lab/.tmp/doc
 | gen | env | update_ecc |  |
 | gen | env | env_switch |  |
 | gen | env | site_switch |  |
@@ -258,7 +256,6 @@ JSON files preserved in: /home/es/lab/.tmp/doc
 | gen | ssh | add_ssh_keys |  |
 | gen | ssh | list_ssh_keys |  |
 | gen | ssh | remove_ssh_keys |  |
-JSON files preserved in: /home/es/lab/.tmp/doc
 
 <!-- END AUTO-GENERATED SECTION -->
 
