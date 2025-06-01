@@ -462,10 +462,18 @@ aux-laf() {
 
 # Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
-# <sort mode: -o|-a|""|> <config file or directory> <target folder1> [target folder2 ...]
+# <sort mode: -o|-a|-j|""|> <config file or directory> <target folder1> [target folder2 ...]
 aux-acu() {
     local sort_mode_arg="$1"
     local conf_source="$2"
+    local json_mode=false
+    
+    # Check if JSON mode is requested
+    if [[ "$sort_mode_arg" == "-j" ]]; then
+        json_mode=true
+        sort_mode_arg="-o"  # Default to original order for JSON
+    fi
+    
     shift 2 # Remove sort_mode and conf_source from arguments
     local target_folders_input=("$@") # Remaining arguments are the target folders
 
@@ -476,8 +484,8 @@ aux-acu() {
     # Adjusted width for individual target directory occurrence columns to show details
     local tab_width_per_dir_occ=40 # Increased width
 
-    local usage_message="Usage: aux-acu <-o|-a|\"\"> <config file or directory> <target folder1> [target folder2 ...]"
-    local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  \"\": defaults to -o (original order)"
+    local usage_message="Usage: aux-acu <-o|-a|-j|\"\"> <config file or directory> <target folder1> [target folder2 ...]"
+    local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  \"\": defaults to -o (original order)"
 
     if [ ${#target_folders_input[@]} -eq 0 ]; then
         echo "Error: At least one target folder must be specified."
@@ -493,7 +501,7 @@ aux-acu() {
     fi
 
     if [[ "$sort_mode" != "-o" && "$sort_mode" != "-a" ]]; then
-        echo "Invalid sort mode: '$sort_mode_arg'. Use -o, -a, or an empty string (which defaults to -o)."
+        echo "Invalid sort mode: '$sort_mode_arg'. Use -o, -a, -j, or an empty string (which defaults to -o)."
         echo -e "$usage_message\n$sort_mode_details"
         # Consider calling aux-use if it's generic enough or pass specific usage.
         return 1
@@ -712,6 +720,107 @@ aux-acu() {
     done
 
     _aux_acu_print_footer
+    
+    # Generate JSON output if requested
+    if [[ "$json_mode" == true ]]; then
+        # Create JSON output directory
+        local lab_dir="${LAB_DIR:-$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")}"
+        local tmp_dir="$lab_dir/.tmp/doc"
+        mkdir -p "$tmp_dir"
+        
+        # Generate JSON filename based on config source
+        local relative_path="${conf_source#$lab_dir/}"
+        local json_filename="${relative_path//\//_}.json"
+        local json_file="$tmp_dir/$json_filename"
+        
+        # Count total variables
+        local total_variables=${#vars_to_iterate[@]}
+        
+        # Write JSON header
+        cat > "$json_file" << EOF
+{
+  "analysis_type": "variable_usage",
+  "timestamp": "$(date -Iseconds)",
+  "config_source": "$conf_source",
+  "target_folders": [$(printf '"%s",' "${target_folders_input[@]}" | sed 's/,$//')],
+  "sort_mode": "$sort_mode",
+  "total_variables": $total_variables,
+  "variables": [
+EOF
+        
+        # Process variables for JSON
+        local first_var=true
+        for var_name in "${vars_to_iterate[@]}"; do
+            local var_value="${config_vars[$var_name]}"
+            local overall_total_occurrences_for_var=0
+            local folders_data=()
+            
+            for target_folder_path in "${target_folders_input[@]}"; do
+                local occurrences_in_current_dir_total=0
+                local files_with_occurrences_details_in_dir=()
+                local current_target_files_in_dir=()
+                
+                mapfile -t current_target_files_in_dir < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print 2>/dev/null | sort)
+
+                if [ ${#current_target_files_in_dir[@]} -gt 0 ]; then
+                    for target_file_in_dir in "${current_target_files_in_dir[@]}"; do
+                        if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
+                            local occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
+                            if [[ "$occurrences_in_file" -gt 0 ]]; then
+                                occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
+                                files_with_occurrences_details_in_dir+=("\"$(basename "$target_file_in_dir")\":$occurrences_in_file")
+                            fi
+                        fi
+                    done
+                fi
+                
+                # Create folder data
+                local folder_relative_path
+                if [[ -n "$LAB_DIR" && "$target_folder_path" == "$LAB_DIR"* ]]; then
+                    folder_relative_path="${target_folder_path#$LAB_DIR}"
+                    folder_relative_path="${folder_relative_path#/}"
+                    [[ -z "$folder_relative_path" ]] && folder_relative_path="."
+                else
+                    folder_relative_path=$(basename "$target_folder_path")
+                fi
+                
+                local files_json=""
+                if [ ${#files_with_occurrences_details_in_dir[@]} -gt 0 ]; then
+                    files_json=$(printf '{%s},' "${files_with_occurrences_details_in_dir[@]}" | sed 's/,$//')
+                else
+                    files_json="{}"
+                fi
+                
+                folders_data+=("    {\"path\":\"$folder_relative_path\",\"total_occurrences\":$occurrences_in_current_dir_total,\"files\":$files_json}")
+                overall_total_occurrences_for_var=$((overall_total_occurrences_for_var + occurrences_in_current_dir_total))
+            done
+            
+            # Add comma if not first variable
+            if [[ "$first_var" == false ]]; then
+                echo "    ," >> "$json_file"
+            fi
+            first_var=false
+            
+            # Write variable JSON object
+            cat >> "$json_file" << EOF
+    {
+      "name": "$var_name",
+      "value": "$(echo "$var_value" | sed 's/"/\\"/g')",
+      "total_occurrences": $overall_total_occurrences_for_var,
+      "usage_by_folder": [
+$(printf '%s,\n' "${folders_data[@]}" | sed 's/,$//')
+      ]
+    }
+EOF
+        done
+        
+        # Close JSON
+        echo "" >> "$json_file"
+        echo "  ]" >> "$json_file"
+        echo "}" >> "$json_file"
+        
+        echo "JSON output written to: $json_file"
+    fi
 }
 
 # Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters
