@@ -111,13 +111,20 @@ parse_variables_simple() {
             
             # Extract value
             local var_value=""
-            if [[ "$var_block" =~ \"value\":[[:space:]]*\"([^\"]*)\" ]]; then
+            # First try to match quoted values with escaped quotes (most common case)
+            if [[ "$var_block" =~ \"value\":[[:space:]]*\"(\\\"[^\\\"]*\\\")\", ]]; then
                 var_value="${BASH_REMATCH[1]}"
+                # Remove escaped quotes if present (e.g., \"value\" -> value)
+                var_value="${var_value//\\\"/\"}"
+            # Then try to match simple quoted values
+            elif [[ "$var_block" =~ \"value\":[[:space:]]*\"([^\"]*)\", ]]; then
+                var_value="${BASH_REMATCH[1]}"
+            # Then try to match unquoted values (arrays, numbers, etc.)
             elif [[ "$var_block" =~ \"value\":[[:space:]]*([^,]+), ]]; then
-                # Handle non-quoted values
                 var_value="${BASH_REMATCH[1]}"
-                # Remove trailing comma if present
-                var_value="${var_value%,}"
+                # Clean up any trailing whitespace
+                var_value="${var_value## }"
+                var_value="${var_value%% }"
             fi
             
             # Extract total occurrences
