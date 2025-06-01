@@ -14,7 +14,7 @@ Software developers who need to:
 
 ### System Architecture & Design
 - **[System Architecture](architecture.md)** - Complete system design overview, modular architecture, and design patterns
-- **[API Reference](api-reference.md)** - Quick reference for library functions and integration patterns
+- **[API Reference](functions.md)** - Quick reference for library functions and integration patterns
 - **[Logging System](logging.md)** - Comprehensive logging architecture, debug systems, and log management
 - **[Verbosity Controls](verbosity.md)** - Output control mechanisms and terminal verbosity management
 
