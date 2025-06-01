@@ -80,10 +80,8 @@ EOF
 
 # Function to process variables using fallback method only
 process_variables_from_json() {
-    echo "# Using direct variable analysis (bypassing aux-acu)"
-    echo "*Direct Analysis: Variable extraction from config files*"
-    
     # Always use fallback method to avoid aux-acu hanging issue
+    # No debug output here to avoid breaking markdown table format
     extract_variables_fallback
 }
 
