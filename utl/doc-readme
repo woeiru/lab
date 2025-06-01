@@ -205,27 +205,29 @@ update_readme_file() {
     local temp_file=$(mktemp)
     local in_doc_section=false
     local found_first_section=false
+    local doc_section_found=false
     
     log "Updating documentation index section in doc/README.md..."
     
     # Read the original file and replace the documentation section
     while IFS= read -r line; do
         if [[ "$line" == "## 📊 Documentation Index" ]]; then
-            # Skip existing documentation index section
+            # Found existing documentation index section - mark it and insert new one
+            doc_section_found=true
             in_doc_section=true
-            continue
-        elif [[ "$in_doc_section" == true && "$line" =~ ^##[[:space:]] ]]; then
-            # Found the next section after doc index, stop skipping and insert new index
-            in_doc_section=false
             echo "" >> "$temp_file"
             generate_documentation_index >> "$temp_file"
+            continue
+        elif [[ "$in_doc_section" == true && "$line" =~ ^##[[:space:]] ]]; then
+            # Found the next section after doc index, stop skipping
+            in_doc_section=false
             echo "$line" >> "$temp_file"
         elif [[ "$in_doc_section" == false ]]; then
             # Not in doc section, write the line
             echo "$line" >> "$temp_file"
             
-            # Check if this is the first ## section we encounter
-            if [[ "$line" =~ ^##[[:space:]] && "$found_first_section" == false ]]; then
+            # Check if this is the first ## section we encounter (and no doc section exists yet)
+            if [[ "$line" =~ ^##[[:space:]] && "$found_first_section" == false && "$doc_section_found" == false ]]; then
                 found_first_section=true
                 # Insert documentation index after the first section
                 echo "" >> "$temp_file"
@@ -237,7 +239,7 @@ update_readme_file() {
     
     # If we never found an existing doc section and never found a first section,
     # append the documentation index at the end
-    if [[ "$in_doc_section" == false && "$found_first_section" == false ]]; then
+    if [[ "$doc_section_found" == false && "$found_first_section" == false ]]; then
         echo "" >> "$temp_file"
         generate_documentation_index >> "$temp_file"
     fi
