@@ -12,8 +12,7 @@ This documentation hub establishes consistent standards and provides comprehensi
 
 ```
 doc/
-├── README.md                   # This navigation hub
-├── DOCUMENTATION_STANDARDS.md # Documentation standards and guidelines  
+├── README.md                   # This navigation hub (includes documentation standards)
 ├── 👨‍💻 dev/                  # Developer documentation
 ├── 🛠️ adm/                   # System administrator guides
 ├── 🏗️ iac/                   # Infrastructure as Code documentation
@@ -41,8 +40,7 @@ doc/
 **Purpose**: Establish consistent standards for creating and maintaining documentation  
 **Target Audience**: All contributors and maintainers  
 **Content**: Writing standards, templates, maintenance procedures, and quality guidelines  
-**Key Documentation**:
-- **[Documentation Standards](DOCUMENTATION_STANDARDS.md)** - Comprehensive standards and templates for all documentation
+**Location**: Integrated into this README for easy access and maintenance
 
 ### 👨‍💻 Developer Documentation (`dev/`)
 **Purpose**: Technical documentation for developers integrating with the system  

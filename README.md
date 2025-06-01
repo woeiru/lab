@@ -66,7 +66,7 @@ Individual folder READMEs provide immediate context when browsing directories wi
 #### 📋 Core Documentation
 **Purpose**: Standards, architecture principles, and foundational documents
 
-- **[Documentation Standards and Guidelines](doc/DOCUMENTATION_STANDARDS.md)** - *(463 lines, 1926 words)* - Comprehensive documentation standards for the Lab Environment Management System
+- **[Documentation Hub](doc/README.md)** - Comprehensive documentation standards and guidelines integrated into the central documentation hub
 
 
 ### **🔧 Documentation Tools**
