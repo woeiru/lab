@@ -207,11 +207,24 @@ update_readme_file() {
     
     # Read the original file and replace the documentation section
     while IFS= read -r line; do
-        if [[ "$line" == "## 📊 Documentation Index" ]]; then
-            # Generate the new documentation section
-            generate_documentation_index >> "$temp_file"
+        if [[ "$line" == "## 🎯 Purpose" ]]; then
+            # Write the Purpose section
+            echo "$line" >> "$temp_file"
+            # Continue reading until we find the next ## section
+            while IFS= read -r next_line; do
+                if [[ "$next_line" =~ ^##[[:space:]] ]]; then
+                    # Found next section, insert our documentation index before it
+                    echo "" >> "$temp_file"
+                    generate_documentation_index >> "$temp_file"
+                    echo "$next_line" >> "$temp_file"
+                    break
+                else
+                    echo "$next_line" >> "$temp_file"
+                fi
+            done
+        elif [[ "$line" == "## 📊 Documentation Index" ]]; then
+            # Skip existing documentation index section
             in_doc_section=true
-            # Skip until we find the next ## section or end of file
             continue
         elif [[ "$in_doc_section" == true && "$line" =~ ^##[[:space:]] ]]; then
             # Found the next section, stop skipping
