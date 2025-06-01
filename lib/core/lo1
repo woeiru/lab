@@ -43,6 +43,8 @@ declare -g LOG_STATE_LAST_CHECK=0
 readonly LOG_STATE_CACHE_TTL=5  # Cache for 5 seconds
 
 # Enhanced debug logging - moved to top
+# Debug Log One - DLO
+# <message> <source>
 lo1_debug_log() {
     [[ "${LOG_DEBUG_ENABLED}" != "1" ]] && return 0
     local timestamp
@@ -83,7 +85,9 @@ declare -A LOG_CHILDREN
 declare -g LOG_CURRENT_PARENT=""
 declare -i LAST_CACHE_CLEANUP=0
 
-# Log state caching helper functions
+# Retrieve cached log state to optimize file access performance
+# Get Cached Log State - GCL
+# 
 get_cached_log_state() {
     local current_time=$(date +%s)
     if [[ -z "$LOG_STATE_CACHED" ]] || ((current_time - LOG_STATE_LAST_CHECK >= LOG_STATE_CACHE_TTL)); then
@@ -93,7 +97,9 @@ get_cached_log_state() {
     echo "$LOG_STATE_CACHED"
 }
 
-# Update dump_stack_trace to use lo1_debug_log
+# Display detailed stack trace for debugging function calls
+# Dump Stack Trace - DST
+# <func>
 dump_stack_trace() {
     local func="${1:-${FUNCNAME[1]}}"
     lo1_debug_log "" "stack"
@@ -105,7 +111,9 @@ dump_stack_trace() {
     done
 }
 
-# Performance optimization
+# Periodic cleanup of depth cache to optimize performance
+# Cleanup Cache - CCH
+# 
 cleanup_cache() {
     local current_time=$(date +%s)
     if ((current_time - LAST_CACHE_CLEANUP >= LO1_CACHE_CLEANUP_INTERVAL)); then
@@ -116,7 +124,9 @@ cleanup_cache() {
     fi
 }
 
-# Maintenance functions
+# Create required logging directories if they don't exist
+# Ensure State Directories - ESD
+# 
 ensure_state_directories() {
     local dirs=("$LOG_DIR" "$TMP_DIR")
     local success=true
@@ -133,12 +143,17 @@ ensure_state_directories() {
     $success
 }
 
+# Initialize state files for logging
+# Initialize State Files - ISF
+# 
 init_state_files() {
     [[ ! -f "$LOG_STATE_FILE" ]] && echo "on" > "$LOG_STATE_FILE"  # Changed "true" to "on"
     [[ ! -f "$LOG_DEPTH_CACHE_FILE" ]] && touch "$LOG_DEPTH_CACHE_FILE"
 }
 
-# Core functions
+# Check if given function is a root function for depth calculation
+# Is Root Function - IRF
+# <func_name>
 is_root_function() {
     local func_name="$1"
     case "$func_name" in
@@ -147,7 +162,9 @@ is_root_function() {
     esac
 }
 
-# Update get_base_depth to use lo1_debug_log
+# Calculate base depth for call stack indentation in logs
+# Get Base Depth - GBD
+# 
 get_base_depth() {
     local current_func="${FUNCNAME[1]:-main}"
 
@@ -193,10 +210,16 @@ get_base_depth() {
     echo "$depth"
 }
 
+# Calculate final depth for logging
+# Calculate Final Depth - CFD
+# 
 calculate_final_depth() {
     get_base_depth
 }
 
+# Get indentation string based on depth
+# Get Indent - GIN
+# <depth>
 get_indent() {
     local depth="$1"
     local indent=""
@@ -215,6 +238,9 @@ get_indent() {
     echo -n "$indent└─"
 }
 
+# Get color based on depth level
+# Get Color - GCO
+# <depth>
 get_color() {
     local depth="$1"
     if ((depth >= 0 && depth < ${#LOG_COLORS[@]})); then
@@ -225,6 +251,8 @@ get_color() {
 }
 
 # Main logging function
+# Main Log Function - LOG
+# <lvl> <message>
 log() {
     [[ "$1" != "lvl" ]] && { echo "Error: Invalid log command" >&2; return 1; }
     local message="$2"
@@ -263,6 +291,8 @@ log() {
 }
 
 # Logger control
+# Set Log State - SLG
+# <state>
 setlog() {
     case "$1" in
         "off")
@@ -288,8 +318,9 @@ setlog() {
     esac
 }
 
-# Initialization and cleanup
-# Update init_logger to use lo1_debug_log
+# Initialize logger system and setup logging environment
+# Initialize Logger - ILG
+# 
 init_logger() {
     ensure_state_directories # Ensure $LOG_DIR and $TMP_DIR exist
 
@@ -335,7 +366,9 @@ init_logger() {
     lo1_debug_log "Logger initialization completed." "init_logger"
 }
 
-# Update cleanup_logger to use lo1_debug_log
+# Clean up logger state and reset cache variables
+# Cleanup Logger - CLG
+# 
 cleanup_logger() {
     lo1_debug_log "Cleaning up logger state" "cleanup"
     LOG_DEPTH_CACHE=()
@@ -351,6 +384,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 fi
 
 # Standard logging function for modules to use
+# Log Message One - LMO
+# <message> <level> <component>
 lo1_log_message() {
     local message="$1"
     local level="${2:-1}"
@@ -383,7 +418,9 @@ lo1_log_message() {
     return 0
 }
 
-# Logging function with timing information
+# Log message with timing information if TME module available
+# Log Message Timer One - LTO
+# <message> <component> <level>
 lo1_tme_log_with_timer() {
     local message="$1"
     local component="${2:-${FUNCNAME[1]:-main}}"

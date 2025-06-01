@@ -23,7 +23,9 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # HELPER FUNCTIONS
 # ============================================================================
 
-# Initialize color constants
+# Initialize color constants for GPU management output formatting
+# GPU Initialize Colors - GIC
+# 
 _gpu_init_colors() {
     readonly GREEN=$(printf '\033[0;32m')
     readonly YELLOW=$(printf '\033[0;33m')
@@ -37,13 +39,17 @@ _gpu_init_colors() {
     readonly QUESTION_MARK="${YELLOW}?${NC}"
 }
 
-# Validate PCI ID format
+# Validate PCI ID format using regex pattern matching
+# GPU Validate PCI ID - GVP
+# <pci_id>
 _gpu_validate_pci_id() {
     local pci_id="$1"
     [[ "$pci_id" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]]
 }
 
-# Extract vendor and device IDs from lspci output
+# Extract vendor and device IDs from lspci output for PCI device
+# GPU Extract Vendor Device ID - GEV
+# <pci_id>
 _gpu_extract_vendor_device_id() {
     local pci_id="$1"
     local lspci_device_info
@@ -63,7 +69,9 @@ _gpu_extract_vendor_device_id() {
     return 1
 }
 
-# Get current driver for a PCI device
+# Get current driver bound to specified PCI device
+# GPU Get Current Driver - GGC
+# <pci_id>
 _gpu_get_current_driver() {
     local pci_id="$1"
     local full_pci_id="0000:$pci_id"
@@ -76,13 +84,17 @@ _gpu_get_current_driver() {
     fi
 }
 
-# Check if device is GPU-related (VGA/3D/Audio)
+# Check if PCI device is GPU-related hardware type
+# GPU Is GPU Device - GIG
+# <pci_id>
 _gpu_is_gpu_device() {
     local pci_id="$1"
     lspci -s "$pci_id" -nn 2>/dev/null | grep -qE "VGA compatible controller|3D controller|Audio device"
 }
 
-# Load configuration file if available
+# Load GPU configuration file if available and readable
+# GPU Load Config - GLC
+# 
 _gpu_load_config() {
     if [ -n "$CONFIG_FUN" ] && [ -f "$CONFIG_FUN" ]; then
         # shellcheck source=/dev/null

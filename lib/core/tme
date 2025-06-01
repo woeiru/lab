@@ -57,7 +57,9 @@ readonly TME_VIOLET=$(printf '\033[1;35m')
 readonly TME_WHITE=$(printf '\033[1;37m')
 readonly TME_NC=$(printf '\033[0m')
 
-# Initialize timer system with optional log file
+# Initialize timer system with log directory and configuration files
+# Timer Initialize - TIN
+# <log_dir>
 tme_init_timer() {
     local log_dir="${1:-$TME_LOG_DIR}"
 
@@ -142,7 +144,9 @@ tme_init_timer() {
     } >> "$TME_LOG_FILE"
 }
 
-# Start timing a component with optional parent component
+# Start timing a component with optional parent for nested timing
+# Timer Start - TST
+# <component> <parent>
 tme_start_timer() {
     local component="$1"
     local parent="${2:-$TME_CURRENT_PARENT}"
@@ -176,14 +180,18 @@ tme_start_timer() {
     echo "$orig_log_state" > "$LOG_STATE_FILE"
 }
 
-# Stop timing for a component (alias for end_timer for compatibility)
+# Stop timing for component using end_timer for compatibility
+# Timer Stop - TSP
+# <component> <status>
 tme_stop_timer() {
     local component="$1"
     local status="${2:-success}"
     tme_end_timer "$component" "$status"
 }
 
-# End timing for a component
+# End timing for component and calculate duration
+# Timer End - TEN
+# <component> <status>
 tme_end_timer() {
     local component="$1"
     local status="${2:-success}"
@@ -215,7 +223,9 @@ tme_end_timer() {
     echo "$orig_log_state" > "$LOG_STATE_FILE"
 }
 
-# Calculate the depth of a component in the timing tree
+# Calculate depth of component in timing tree hierarchy
+# Calculate Component Depth - CCD
+# <component>
 calculate_component_depth() {
     local component="$1"
     local depth=0
@@ -229,7 +239,9 @@ calculate_component_depth() {
     echo "$depth"
 }
 
-# Print formatted timing entry
+# Print formatted timing entry with color and indentation
+# Print Timing Entry - PTE
+# <component> <depth>
 print_timing_entry() {
     local component="$1"
     local base_indent="$2"
@@ -279,7 +291,9 @@ print_timing_entry() {
         "$TME_NC"
 }
 
-# Helper function to sort an array of component names by their TME_DURATIONS
+# Sort array of component names by their durations in descending order
+# Sort Components By Duration - SCD
+# <_components_ref>
 sort_components_by_duration() {
     local -n _components_ref=$1
     local temp_file
@@ -303,7 +317,9 @@ sort_components_by_duration() {
     _components_ref=("${sorted_comp_names[@]}")
 }
 
-# Recursive function to print the component tree
+# Recursively print component tree with proper indentation and sorting
+# Print Tree Recursive - PTR
+# <component> <current_indent> <total_time> <sort_order>
 print_tree_recursive() {
     local component="$1"
     local current_indent="$2"
@@ -352,7 +368,9 @@ print_tree_recursive() {
     fi
 }
 
-# The settme function to control timer output
+# Control timer output settings for report, sort order and depth
+# Set Timer Settings - STS
+# <action> <value>
 tme_settme() {
     if [[ "$#" -eq 0 ]]; then
         if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
@@ -419,7 +437,9 @@ tme_settme() {
     fi
 }
 
-# Enhanced timing report
+# Generate comprehensive timing report with hierarchical display
+# Timer Print Report - TPR
+# 
 tme_print_timing_report() {
     if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" != "on" || "${TME_TERMINAL_VERBOSITY:-on}" != "on" || "${TME_REPORT_TERMINAL_OUTPUT:-on}" != "on" ]]; then
         return 0 # Do not print report if verbosity is off
@@ -462,17 +482,25 @@ tme_print_timing_report() {
     printf "\n"
 }
 
-# Example of how to use nested timing
+# Start nested timing for a component with automatic parent tracking
+# Timer Start Nested - TSN
+# <component>
 tme_start_nested_timing() {
     local component="$1"
     tme_start_timer "$component"
 }
 
+# End nested timing for a component with success status
+# Timer End Nested - TEN
+# <component>
 tme_end_nested_timing() {
     local component="$1"
     tme_end_timer "$component"
 }
 
+# Cleanup timer system and end any running timers
+# Timer Cleanup - TCL
+# 
 tme_cleanup_timer() {
     local orig_log_state
     orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
@@ -493,7 +521,9 @@ tme_cleanup_timer() {
 
 }
 
-# Control nested TME terminal output switches
+# Control individual TME terminal output verbosity settings
+# Timer Set Output - TSO
+# <output_type> <on|off>
 tme_set_output() {
     if [[ "$#" -lt 2 ]]; then
         if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
@@ -539,7 +569,9 @@ tme_set_output() {
     fi
 }
 
-# Display current TME terminal output settings
+# Display current TME terminal output verbosity configuration
+# Timer Show Output Settings - TSS
+# 
 tme_show_output_settings() {
     if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_TERMINAL_VERBOSITY:-on}" == "on" && "${TME_STATUS_TERMINAL_OUTPUT:-on}" == "on" ]]; then
         echo "TME Terminal Output Settings:"
