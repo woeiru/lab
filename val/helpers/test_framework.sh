@@ -36,7 +36,18 @@ readonly NC='\033[0m' # No Color
 # Framework initialization
 framework_init() {
     FRAMEWORK_START_TIME=$(date +%s)
-    echo -e "${BLUE}[FRAMEWORK]${NC} Test framework initialized"
+    
+    # Set LAB_ROOT if not already set
+    if [[ -z "$LAB_ROOT" ]]; then
+        LAB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        # Navigate up to find the lab root
+        while [[ "$LAB_ROOT" != "/" ]] && [[ ! -f "$LAB_ROOT/entry.sh" ]]; do
+            LAB_ROOT="$(dirname "$LAB_ROOT")"
+        done
+        export LAB_ROOT
+    fi
+    
+    echo -e "${BLUE}[FRAMEWORK]${NC} Test framework initialized (LAB_ROOT: $LAB_ROOT)"
 }
 
 # Logging functions
@@ -230,6 +241,21 @@ cleanup_test_env() {
     fi
 }
 
+# Test header and footer for formatted output
+test_header() {
+    local test_name="$1"
+    echo
+    echo -e "${PURPLE}╔══════════════════════════════════════╗${NC}"
+    echo -e "${PURPLE}║$(printf "%-38s" "          $test_name")║${NC}"
+    echo -e "${PURPLE}╚══════════════════════════════════════╝${NC}"
+    echo
+}
+
+test_footer() {
+    echo
+    print_test_summary
+}
+
 # Test summary and results
 print_test_summary() {
     local end_time=$(date +%s)
@@ -286,4 +312,7 @@ export -f framework_init test_log test_info test_success test_failure test_warni
 export -f run_test test_function_exists test_file_exists test_dir_exists test_command_exists
 export -f test_var_set test_source test_function_output test_with_timeout run_test_group
 export -f start_performance_test end_performance_test create_test_env cleanup_test_env
-export -f print_test_summary run_test_suite
+export -f test_header test_footer print_test_summary run_test_suite
+
+# Auto-initialize framework when sourced
+framework_init
