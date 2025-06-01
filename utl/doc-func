@@ -26,7 +26,7 @@ generate_function_table() {
     
     # Process core functions
     echo "<!-- CORE FUNCTIONS -->"
-    aux-ffl aux-laf "-b" "$LIB_CORE_DIR" | while read -r line; do
+    aux-ffl aux-laf "" "$LIB_CORE_DIR" | while read -r line; do
         if [[ -n "$line" ]]; then
             module=$(echo "$line" | awk -F: '{print $1}')
             func=$(echo "$line" | awk -F: '{print $2}')
@@ -37,7 +37,7 @@ generate_function_table() {
     
     # Process ops functions
     echo "<!-- OPS FUNCTIONS -->"
-    aux-ffl aux-laf "-b" "$LIB_OPS_DIR" | while read -r line; do
+    aux-ffl aux-laf "" "$LIB_OPS_DIR" | while read -r line; do
         if [[ -n "$line" ]]; then
             module=$(echo "$line" | awk -F: '{print $1}')
             func=$(echo "$line" | awk -F: '{print $2}')
@@ -48,7 +48,7 @@ generate_function_table() {
     
     # Process gen functions
     echo "<!-- GEN FUNCTIONS -->"
-    aux-ffl aux-laf "-b" "$LIB_GEN_DIR" | while read -r line; do
+    aux-ffl aux-laf "" "$LIB_GEN_DIR" | while read -r line; do
         if [[ -n "$line" ]]; then
             module=$(echo "$line" | awk -F: '{print $1}')
             func=$(echo "$line" | awk -F: '{print $2}')
