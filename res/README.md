@@ -139,7 +139,8 @@ The AI Resources directory integrates seamlessly with the entire ES Lab ecosyste
   - `lib/core/` - Core libraries (error handling, time management, versioning)
   - `lib/ops/` - Operations libraries (GPU, network, storage, system management)
   - `lib/utl/` - Utility libraries (aliases, environment, security, SSH)
-  - `lib/aux/` - Auxiliary libraries and source utilities
+  - `lib/ops/aux` - Auxiliary function libraries
+  - `src/aux/` - Auxiliary framework utilities
 
 ### Source Code Integration
 - **`src/`** - Source code repository for AI-assisted development

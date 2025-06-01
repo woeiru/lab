@@ -42,7 +42,7 @@ trap cleanup EXIT INT TERM
 #
 #   Libraries (lib):
 #     - source_lib_ops: Sources operational function library files.
-#     - source_lib_aux: Sources auxiliary function files.
+#     - source_src_aux: Sources auxiliary framework files.
 #     - source_lib_utl: Sources utility function files.
 #
 # Main Orchestration Function:
@@ -68,7 +68,7 @@ trap cleanup EXIT INT TERM
 #   - err (Error handling functions)
 #   Required directory variables from ric:
 #   - LIB_OPS_DIR (Operational function library path)
-#   - LIB_AUX_DIR (Auxiliary helper function library path)
+#   - SRC_AUX_DIR (Auxiliary helper function library path)
 #   - LIB_UTL_DIR (Specialized utility function library path)
 #   - CFG_ALI_DIR (Alias configuration directory path)
 #   - SRC_MGT_DIR (Management wrapper functions directory path)
@@ -79,7 +79,7 @@ trap cleanup EXIT INT TERM
 # Validate required global variables
 validate_required_globals() {
     local required_vars=(
-        "BASE_DIR" "LAB_DIR" "LIB_OPS_DIR" "LIB_AUX_DIR"
+        "BASE_DIR" "LAB_DIR" "LIB_OPS_DIR" "SRC_AUX_DIR"
         "LIB_UTL_DIR" "CFG_ALI_DIR" "SRC_MGT_DIR"
         "SITE_CONFIG_FILE" "ENV_OVERRIDE_FILE" "NODE_OVERRIDE_FILE"
     )
@@ -347,14 +347,14 @@ source_lib_ops() {
 # Source the auxiliary helper function files (aux/ directory)
 # Contains: lib, src
 # Purpose: Development and analysis utilities, function introspection tools
-source_lib_aux() {
-    # Validate LIB_AUX_DIR is set
-    if [[ -z "${LIB_AUX_DIR:-}" ]]; then
-        log "lvl" "Error: LIB_AUX_DIR not set, cannot source auxiliary helper function files"
+source_src_aux() {
+    # Validate SRC_AUX_DIR is set
+    if [[ -z "${SRC_AUX_DIR:-}" ]]; then
+        log "lvl" "Error: SRC_AUX_DIR not set, cannot source auxiliary framework files"
         return 1
     fi
-    
-    source_directory "$LIB_AUX_DIR" "*" "auxiliary helper function files"
+
+    source_directory "$SRC_AUX_DIR" "*" "auxiliary framework files"
     return $?
 }
 
@@ -576,7 +576,7 @@ setup_components() {
         "source_cfg_env:CFG_ENV:$COMPONENT_OPTIONAL"
         "source_lib_ops:LIB_OPS:$COMPONENT_OPTIONAL"
         "source_lib_utl:LIB_UTL:$COMPONENT_OPTIONAL"
-        "source_lib_aux:LIB_AUX:$COMPONENT_OPTIONAL"
+        "source_src_aux:SRC_AUX:$COMPONENT_OPTIONAL"
         "source_src_mgt:SRC_MGT:$COMPONENT_OPTIONAL"
     )
 
