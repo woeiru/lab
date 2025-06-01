@@ -30,9 +30,8 @@ This document establishes consistent standards, templates, and procedures for cr
 ```
 📁 Project Root
 ├── README.md                    # Project overview and quick start
-├── DOCUMENTATION_INDEX.md       # Auto-generated comprehensive index
-├── 📁 doc/                     # Structured documentation
-│   ├── README.md               # Documentation hub navigation
+├── 📁 doc/                      # Structured documentation
+│   ├── README.md                # Documentation hub navigation
 │   ├── DOCUMENTATION_STANDARDS.md  # This file
 │   ├── 👨‍💻 dev/                # Developer documentation
 │   ├── 🛠️ adm/                 # System administrator guides
