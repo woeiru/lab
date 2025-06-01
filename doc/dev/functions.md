@@ -119,18 +119,18 @@ The `lib/` folder contains three categories of pure functions:
 | ops | gpu | _gpu_get_current_driver | Get current driver bound to specified PCI device |
 | ops | gpu | _gpu_is_gpu_device | Check if PCI device is GPU-related hardware type |
 | ops | gpu | _gpu_load_config | Load GPU configuration file if available and readable |
-| ops | gpu | _gpu_get_config_pci_ids |  |
-| ops | gpu | _gpu_find_all_gpus |  |
-| ops | gpu | _gpu_get_target_gpus |  |
-| ops | gpu | _gpu_ensure_vfio_modules |  |
-| ops | gpu | _gpu_unbind_device |  |
-| ops | gpu | _gpu_bind_device |  |
-| ops | gpu | _gpu_get_host_driver |  |
-| ops | gpu | _gpu_get_host_driver_parameterized |  |
-| ops | gpu | _gpu_get_config_pci_ids_parameterized |  |
-| ops | gpu | _gpu_get_target_gpus_parameterized |  |
-| ops | gpu | _gpu_get_iommu_groups |  |
-| ops | gpu | _gpu_get_detailed_device_info |  |
+| ops | gpu | _gpu_get_config_pci_ids | Get PCI IDs from hostname-based configuration variables |
+| ops | gpu | _gpu_find_all_gpus | Find all GPU devices via lspci scan with optional driver filter |
+| ops | gpu | _gpu_get_target_gpus | Get target GPUs for processing with comprehensive selection logic |
+| ops | gpu | _gpu_ensure_vfio_modules | Ensure required VFIO kernel modules are loaded for GPU passthrough |
+| ops | gpu | _gpu_unbind_device | Unbind PCI device from its current driver safely |
+| ops | gpu | _gpu_bind_device | Bind PCI device to specified driver with vendor/device ID setup |
+| ops | gpu | _gpu_get_host_driver | Determine appropriate host driver for GPU based on vendor ID |
+| ops | gpu | _gpu_get_host_driver_parameterized | Determine appropriate host driver for GPU with explicit parameters |
+| ops | gpu | _gpu_get_config_pci_ids_parameterized | Get PCI IDs from explicit parameters without hostname lookup |
+| ops | gpu | _gpu_get_target_gpus_parameterized | Get target GPUs for processing with explicit parameters |
+| ops | gpu | _gpu_get_iommu_groups | Get IOMMU groups containing GPU devices for passthrough validation |
+| ops | gpu | _gpu_get_detailed_device_info | Get detailed GPU device information including driver status and bindings |
 | ops | gpu | gpu-fun | ============================================================================ |
 | ops | gpu | gpu-var |  |
 | ops | gpu | gpu-nds |  |
@@ -141,7 +141,7 @@ The `lib/` folder contains three categories of pure functions:
 | ops | gpu | gpu-pta |  |
 | ops | gpu | gpu-pts |  |
 | ops | net | net-fun | Displays an overview of specific functions in the script, showing their usage, shortname, and description |
-| ops | net | net-var |  |
+| ops | net | net-var | Displays an overview of specific variables in network configuration |
 | ops | net | net-uni | Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system |
 | ops | net | net-fsr | Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding |
 | ops | net | net-fas | Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration |
