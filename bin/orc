@@ -43,7 +43,7 @@ trap cleanup EXIT INT TERM
 #   Libraries (lib):
 #     - source_lib_ops: Sources operational function library files.
 #     - source_src_aux: Sources auxiliary framework files.
-#     - source_lib_utl: Sources utility function files.
+#     - source_lib_gen: Sources general utility function files.
 #
 # Main Orchestration Function:
 #   - setup_components: Orchestrates the execution of all defined
@@ -69,7 +69,7 @@ trap cleanup EXIT INT TERM
 #   Required directory variables from ric:
 #   - LIB_OPS_DIR (Operational function library path)
 #   - SRC_AUX_DIR (Auxiliary helper function library path)
-#   - LIB_UTL_DIR (Specialized utility function library path)
+#   - LIB_GEN_DIR (General utility function library path)
 #   - CFG_ALI_DIR (Alias configuration directory path)
 #   - SRC_MGT_DIR (Management wrapper functions directory path)
 #   - LAB_DIR (Base lab directory path)
@@ -80,7 +80,7 @@ trap cleanup EXIT INT TERM
 validate_required_globals() {
     local required_vars=(
         "BASE_DIR" "LAB_DIR" "LIB_OPS_DIR" "SRC_AUX_DIR"
-        "LIB_UTL_DIR" "CFG_ALI_DIR" "SRC_MGT_DIR"
+        "LIB_GEN_DIR" "CFG_ALI_DIR" "SRC_MGT_DIR"
         "SITE_CONFIG_FILE" "ENV_OVERRIDE_FILE" "NODE_OVERRIDE_FILE"
     )
     
@@ -393,9 +393,9 @@ init_password_management_if_needed() {
 # Source the specialized utility function files (utl/ directory)
 # Contains: env, inf, sec, ssh
 # Purpose: High-level specialized tools for infrastructure and security management
-source_lib_utl() {
-    local dir_to_source="${LIB_UTL_DIR}"
-    local description="specialized utility function files"
+source_lib_gen() {
+    local dir_to_source="${LIB_GEN_DIR}"
+    local description="general utility function files"
     local pattern="*"
 
     log "lvl" "Sourcing ${description} from ${dir_to_source}"
@@ -575,7 +575,7 @@ setup_components() {
         "source_cfg_ali:CFG_ALI:$COMPONENT_OPTIONAL"
         "source_cfg_env:CFG_ENV:$COMPONENT_OPTIONAL"
         "source_lib_ops:LIB_OPS:$COMPONENT_OPTIONAL"
-        "source_lib_utl:LIB_UTL:$COMPONENT_OPTIONAL"
+        "source_lib_gen:LIB_UTL:$COMPONENT_OPTIONAL"
         "source_src_aux:SRC_AUX:$COMPONENT_OPTIONAL"
         "source_src_mgt:SRC_MGT:$COMPONENT_OPTIONAL"
     )

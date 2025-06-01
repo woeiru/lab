@@ -164,7 +164,7 @@
     alias pta='gpu-pta'
 
     # Environment Management
-    alias env='$LIB_UTL_DIR/env'
+    alias env='$LIB_GEN_DIR/env'
     alias env-dev='env switch-env dev'
     alias env-test='env switch-env test'
     alias env-staging='env switch-env staging'
