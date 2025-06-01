@@ -4,13 +4,13 @@ This directory contains comprehensive resources for AI assistance across all asp
 
 ## 📍 AI Resources Directory Position
 
-The **`res/`** directory serves as the dedicated AI Resources hub within the lab, providing AI assistance across all lab operations, including:
+The **`ai/`** directory serves as the dedicated AI Resources hub within the lab, providing AI assistance across all lab operations, including:
 
 - **Configuration Management** (`cfg/`) - AI-assisted configuration optimization
 - **Documentation** (`doc/`) - AI-enhanced documentation generation and analysis  
 - **Library Operations** (`lib/`) - AI-powered utility and function optimization
 - **Source Code** (`src/`) - AI-assisted development and code generation
-- **Testing** (`tst/`) - AI-driven test automation and validation
+- **Testing** (`val/`) - AI-driven test automation and validation
 
 ## 🎯 Purpose
 
