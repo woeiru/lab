@@ -1,5 +1,11 @@
 #!/bin/bash
-set -eo pipefail  # Exit on error and pipe failures, but allow unbound variables for compatibility
+# Only enable strict error handling in non-interactive shells to prevent terminal crashes
+if [[ ! -t 0 || "${-}" != *i* ]]; then
+    set -eo pipefail  # Exit on error and pipe failures, but allow unbound variables for compatibility
+else
+    # In interactive shells, use a more lenient error handling approach
+    set -o pipefail  # Still catch pipe failures, but don't exit on errors
+fi
 
 #######################################################################
 # Component Orchestrator

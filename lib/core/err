@@ -392,6 +392,24 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     setup_error_handling
 fi
 
+# Command not found handler to prevent terminal crashes in interactive shells
+# This function is called automatically by bash when a command is not found
+command_not_found_handle() {
+    local command="$1"
+    local exit_code=127
+    
+    # Display a user-friendly error message
+    echo "bash: $command: command not found" >&2
+    
+    # Log the command not found event if logging is available
+    if type err_process_error &>/dev/null; then
+        err_process_error "command_not_found" "Command not found: $command" "$exit_code" "WARNING"
+    fi
+    
+    # Return the standard exit code for command not found, but don't exit the shell
+    return $exit_code
+}
+
 # Export functions and variables
 export -f clean_exit
 export -f has_errors
@@ -404,3 +422,4 @@ export -f register_cleanup
 export -f main_cleanup
 export -f main_error_handler
 export -f init_traps
+export -f command_not_found_handle
