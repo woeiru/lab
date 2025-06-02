@@ -3,8 +3,8 @@
 # ============================================================================
 # pbs - Function Summary
 #
-#   pbs-fun : Shows a summary of selected functions in the script.
-#   pbs-var : Displays an overview of specific variables defined in the configuration file.
+#   pbs_fun : Shows a summary of selected functions in the script.
+#   pbs_var : Displays an overview of specific variables defined in the configuration file.
 #   pbs-dav : Downloads Proxmox GPG key and verifies checksums.
 #   pbs-adr : Adds Proxmox repository to sources.list.
 #   pbs-rda : Restores datastore configuration file.
@@ -28,20 +28,20 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # show an overview of specific functions
 # overview functions
 #  
-pbs-fun() {
-    aux-laf "$FILEPATH_pbs" "$@"
+pbs_fun() {
+    aux_laf "$FILEPATH_pbs" "$@"
 }
 # show an overview of specific variables
 # overview variables
 #  
-pbs-var() {
-    aux-acu -o "$CONFIG_pbs" "$DIR_FUN/.."
+pbs_var() {
+    aux_acu -o "$CONFIG_pbs" "$DIR_FUN/.."
 }
 
 # Download Proxmox GPG key and verify checksums.
 # download and verify
 #   
-pbs-dav() {
+pbs_dav() {
     # Download the GPG key
     wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
 
@@ -69,30 +69,30 @@ pbs-dav() {
 # Add Proxmox repository to sources.list if not already present.
 # setup sources.list
 #   
-pbs-adr() {
+pbs_adr() {
     local function_name="${FUNCNAME[0]}"
     line_to_add="deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription"
     file="/etc/apt/sources.list"
 
     if grep -Fxq "$line_to_add" "$file"; then
-        aux-nos "$function_name" "Line already exists in $file"
+        aux_nos "$function_name" "Line already exists in $file"
     else
         echo "$line_to_add" >> "$file"
-        aux-nos "$function_name" "Line added to $file"
+        aux_nos "$function_name" "Line added to $file"
     fi
 }
 
 # Restore datastore configuration file with given parameters.
 # restore datastore
 # <datastore_config> <datastore_name> <datastore_path>
-pbs-rda() {
+pbs_rda() {
         local function_name="${FUNCNAME[0]}"
 	local datastore_config="$1"
 	local datastore_name="$2"
 	local datastore_path="$3"
 
      if [ $# -ne 3 ]; then
-       aux-use
+       aux_use
        return 1
      fi
 
@@ -122,13 +122,13 @@ pbs-rda() {
         echo "$combined_lines"
     fi
 
-    aux-nos "$function_name" "executed ( $1 $2 $3 )"
+    aux_nos "$function_name" "executed ( $1 $2 $3 )"
 }
 
 # Monitors and displays various aspects of the Proxmox Backup Server
 # pbs monitor
 # [option]
-pbs-mon() {
+pbs_mon() {
     local function_name="${FUNCNAME[0]}"
     local option=""
 
@@ -146,7 +146,7 @@ pbs-mon() {
         echo "9. Show backup schedule"
         echo "10. Display network statistics"
         echo "11. All of the above"
-        aux-mev "option" "Enter option number" "11"
+        aux_mev "option" "Enter option number" "11"
     else
         option="$1"
     fi
@@ -205,5 +205,5 @@ pbs-mon() {
             ;;
     esac
 
-    aux-nos "$function_name" "PBS monitoring completed"
+    aux_nos "$function_name" "PBS monitoring completed"
 }

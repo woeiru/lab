@@ -150,7 +150,7 @@ Configuration options and setup instructions.
 
 ### Automated Documentation
 - **`utl/doc-hub`**: Updates documentation index automatically
-- **`lib/gen/aux` (aux-lad)**: Documentation discovery and categorization
+- **`lib/gen/aux` (aux_lad)**: Documentation discovery and categorization
 - **`utl/doc-func`**: Function metadata table generation
 - **`utl/doc-stats`**: Codebase statistics and metrics
 

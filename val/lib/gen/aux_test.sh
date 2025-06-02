@@ -35,28 +35,28 @@ source lib/gen/aux 2>/dev/null
 
 # Test that core auxiliary functions exist
 functions_found=0
-if declare -f aux-fun >/dev/null; then
+if declare -f aux_fun >/dev/null; then
     ((functions_found++))
 fi
-if declare -f aux-var >/dev/null; then
+if declare -f aux_var >/dev/null; then
     ((functions_found++))
 fi
-if declare -f aux-log >/dev/null; then
+if declare -f aux_log >/dev/null; then
     ((functions_found++))
 fi
-if declare -f aux-laf >/dev/null; then
+if declare -f aux_laf >/dev/null; then
     ((functions_found++))
 fi
-if declare -f aux-acu >/dev/null; then
+if declare -f aux_acu >/dev/null; then
     ((functions_found++))
 fi
-if declare -f aux-nos >/dev/null; then
+if declare -f aux_nos >/dev/null; then
     ((functions_found++))
 fi
-if declare -f aux-flc >/dev/null; then
+if declare -f aux_flc >/dev/null; then
     ((functions_found++))
 fi
-if declare -f aux-use >/dev/null; then
+if declare -f aux_use >/dev/null; then
     ((functions_found++))
 fi
 
@@ -79,17 +79,17 @@ cd "$LAB_DIR"
 source lib/gen/aux 2>/dev/null
 
 # Test logging functionality
-if declare -f aux-log >/dev/null; then
+if declare -f aux_log >/dev/null; then
     # Test basic logging
-    log_output=$(aux-log "INFO" "Test message" 2>&1)
+    log_output=$(aux_log "INFO" "Test message" 2>&1)
     if [[ "$log_output" =~ "INFO" ]] && [[ "$log_output" =~ "Test message" ]]; then
         exit 0
     fi
 fi
 
 # Test notification functionality
-if declare -f aux-nos >/dev/null; then
-    nos_output=$(aux-nos "test_function" "executed successfully" 2>&1)
+if declare -f aux_nos >/dev/null; then
+    nos_output=$(aux_nos "test_function" "executed successfully" 2>&1)
     if [[ "$nos_output" =~ "test_function" ]] && [[ "$nos_output" =~ "executed successfully" ]]; then
         exit 0
     fi
@@ -116,21 +116,21 @@ source lib/gen/aux 2>/dev/null
 # Test function listing capabilities
 analysis_tools=0
 
-# Test if aux-laf (list all functions) works
-if declare -f aux-laf >/dev/null; then
+# Test if aux_laf (list all functions) works
+if declare -f aux_laf >/dev/null; then
     # Test with the aux library itself
-    if aux-laf "$LAB_DIR/lib/gen/aux" -t 2>/dev/null | grep -q "aux-"; then
+    if aux_laf "$LAB_DIR/lib/gen/aux" -t 2>/dev/null | grep -q "aux-"; then
         ((analysis_tools++))
     fi
 fi
 
-# Test if aux-flc (function library cat) works  
-if declare -f aux-flc >/dev/null; then
+# Test if aux_flc (function library cat) works  
+if declare -f aux_flc >/dev/null; then
     ((analysis_tools++))
 fi
 
-# Test if aux-use (usage information) works
-if declare -f aux-use >/dev/null; then
+# Test if aux_use (usage information) works
+if declare -f aux_use >/dev/null; then
     ((analysis_tools++))
 fi
 
@@ -153,14 +153,14 @@ cd "$LAB_DIR"
 source lib/gen/aux 2>/dev/null
 
 # Test variable analysis functionality
-if declare -f aux-acu >/dev/null; then
+if declare -f aux_acu >/dev/null; then
     # Create a test config file
     test_config="/tmp/test_config_$$"
     echo 'TEST_VAR1="value1"' > "$test_config"
     echo 'TEST_VAR2="value2"' > "$test_config"
     
     # Test variable analysis (don't fail if no matches found)
-    if aux-acu -o "$test_config" "$LAB_DIR/lib" 2>/dev/null; then
+    if aux_acu -o "$test_config" "$LAB_DIR/lib" 2>/dev/null; then
         rm -f "$test_config"
         exit 0
     fi
@@ -169,7 +169,7 @@ if declare -f aux-acu >/dev/null; then
 fi
 
 # Test variable modification functionality
-if declare -f aux-mev >/dev/null; then
+if declare -f aux_mev >/dev/null; then
     exit 0
 fi
 
@@ -194,13 +194,13 @@ source lib/gen/aux 2>/dev/null
 # Test file processing capabilities
 file_tools=0
 
-# Test if aux-ffl (file folder loop) exists
-if declare -f aux-ffl >/dev/null; then
+# Test if aux_ffl (file folder loop) exists
+if declare -f aux_ffl >/dev/null; then
     ((file_tools++))
 fi
 
-# Test if aux-lad (list all documentation) exists
-if declare -f aux-lad >/dev/null; then
+# Test if aux_lad (list all documentation) exists
+if declare -f aux_lad >/dev/null; then
     ((file_tools++))
 fi
 
@@ -313,10 +313,10 @@ start_time=$(date +%s.%N)
 
 source lib/gen/aux 2>/dev/null
 
-if declare -f aux-log >/dev/null; then
+if declare -f aux_log >/dev/null; then
     # Test multiple log operations
     for i in {1..10}; do
-        aux-log "TEST" "Performance test $i" >/dev/null 2>&1
+        aux_log "TEST" "Performance test $i" >/dev/null 2>&1
     done
 fi
 
@@ -349,16 +349,16 @@ source lib/gen/aux 2>/dev/null
 # Test error handling in auxiliary functions
 error_handling=0
 
-# Test aux-use without parameters (should handle gracefully)
-if declare -f aux-use >/dev/null; then
-    if aux-use 2>/dev/null; then
+# Test aux_use without parameters (should handle gracefully)
+if declare -f aux_use >/dev/null; then
+    if aux_use 2>/dev/null; then
         ((error_handling++))
     fi
 fi
 
-# Test aux-flc with invalid function (should handle gracefully)
-if declare -f aux-flc >/dev/null; then
-    if aux-flc "nonexistent_function" 2>/dev/null; then
+# Test aux_flc with invalid function (should handle gracefully)
+if declare -f aux_flc >/dev/null; then
+    if aux_flc "nonexistent_function" 2>/dev/null; then
         ((error_handling++))
     else
         # Function should return error but not crash

@@ -16,7 +16,7 @@ fi
 
 # Test: PBS functions exist
 test_pbs_functions_exist() {
-    local functions=("pbs-fun" "pbs-var" "pbs-dav" "pbs-adr" "pbs-rda" "pbs-mon")
+    local functions=("pbs_fun" "pbs_var" "pbs-dav" "pbs-adr" "pbs-rda" "pbs-mon")
     local existing=()
     
     for func in "${functions[@]}"; do

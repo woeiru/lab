@@ -643,25 +643,25 @@ _gpu_get_detailed_device_info() {
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # general functions utility
 # [filepath] [options...]
-gpu-fun() {
+gpu_fun() {
     local filepath_gpu="${1:-$FILEPATH_gpu}"
     shift
-    aux-laf "$filepath_gpu" "$@"
+    aux_laf "$filepath_gpu" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # general variables utility
 # [config_file] [lib_parent_dir]
-gpu-var() {
+gpu_var() {
     local config_gpu="${1:-$CONFIG_gpu}"
     local lib_ops_parent_dir="${2:-$DIR_FUN/..}"
-    aux-acu -o "$config_gpu" "$lib_ops_parent_dir"
+    aux_acu -o "$config_gpu" "$lib_ops_parent_dir"
 }
 
 # Downloads and installs NVIDIA drivers, blacklisting Nouveau drivers first
 # nvidia driver setup
 # [driver_version]
-gpu-nds() {
+gpu_nds() {
     local drv_ver="${1:-550.142}"
     local url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${drv_ver}/NVIDIA-Linux-x86_64-${drv_ver}.run"
     local installer="NVIDIA-Linux-x86_64-${drv_ver}.run"
@@ -700,7 +700,7 @@ EOF
 # Configures initial GRUB and EFI settings for GPU passthrough
 # passthrough step one
 #
-gpu-pt1() {
+gpu_pt1() {
     local function_name="${FUNCNAME[0]}"
     
     echo "Executing section 1:"
@@ -721,7 +721,7 @@ gpu-pt1() {
 # Adds necessary kernel modules for GPU passthrough
 # passthrough step two
 #
-gpu-pt2() {
+gpu_pt2() {
     local function_name="${FUNCNAME[0]}"
     
     echo "Executing section 2:"
@@ -742,7 +742,7 @@ gpu-pt2() {
 # Finalizes or reverts GPU passthrough setup
 # passthrough step three
 # <enable|disable>
-gpu-pt3() {
+gpu_pt3() {
     local action="$1"
     local function_name="${FUNCNAME[0]}"
     
@@ -865,7 +865,7 @@ gpu-pt3() {
 # Detaches the GPU from the host system for VM passthrough
 # passthrough detach
 # [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id]
-gpu-ptd() {
+gpu_ptd() {
     local gpu_id_arg="$1"
     local hostname="${2:-$(hostname -s)}"
     local config_file="${3:-$CONFIG_FUN}"
@@ -958,7 +958,7 @@ gpu-ptd() {
 # Attaches the GPU back to the host system
 # passthrough attach
 # [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id] [nvidia_driver_preference]
-gpu-pta() {
+gpu_pta() {
     local gpu_id_arg="$1"
     local hostname="${2:-$(hostname -s)}"
     local config_file="${3:-$CONFIG_FUN}"
@@ -1032,7 +1032,7 @@ gpu-pta() {
 # Checks the current status of the GPU (complete detailed version)
 # passthrough status
 # [hostname] [config_file] [pci0_id] [pci1_id] [nvidia_driver_preference]
-gpu-pts() {
+gpu_pts() {
     local hostname="${1:-$(hostname -s)}"
     local config_file="${2:-$CONFIG_FUN}"
     local pci0_id="$3"
@@ -1123,7 +1123,7 @@ gpu-pts() {
     if /usr/bin/grep -E -q 'iommu=pt|intel_iommu=on|amd_iommu=on' /proc/cmdline; then
         iommu_enabled_cmdline_status="$CHECK_MARK"
     fi
-    echo -e "   ${iommu_enabled_cmdline_status} IOMMU Enabled in Kernel Command Line (gpu-pt1)"
+    echo -e "   ${iommu_enabled_cmdline_status} IOMMU Enabled in Kernel Command Line (gpu_pt1)"
 
     local vfio_modules_in_etc_modules_status="$CROSS_MARK"
     local vfio_ok=0; local vfio_iommu_type1_ok=0; local vfio_pci_ok=0
@@ -1135,7 +1135,7 @@ gpu-pts() {
     if [ "$vfio_ok" -eq 1 ] && [ "$vfio_iommu_type1_ok" -eq 1 ] && [ "$vfio_pci_ok" -eq 1 ]; then
         vfio_modules_in_etc_modules_status="$CHECK_MARK"
     fi
-    echo -e "   ${vfio_modules_in_etc_modules_status} Core VFIO modules in $modules_file_path (gpu-pt2)"
+    echo -e "   ${vfio_modules_in_etc_modules_status} Core VFIO modules in $modules_file_path (gpu_pt2)"
 
     # 2. NVIDIA Host Driver Setup (Optional Configuration)
     echo -e "${MAGENTA}2. NVIDIA Host Driver Setup (Optional Configuration):${NC}"
@@ -1149,8 +1149,8 @@ gpu-pts() {
     fi
     echo -e "   ${nouveau_blacklisted_status} Nouveau blacklisted for NVIDIA driver ($blacklist_nouveau_conf_path) (gpu-nds)"
 
-    # 3. Persistent GPU Passthrough Configuration (gpu-pt3 enable status)
-    echo -e "${MAGENTA}3. Persistent GPU Passthrough Configuration (gpu-pt3 enable):${NC}"
+    # 3. Persistent GPU Passthrough Configuration (gpu_pt3 enable status)
+    echo -e "${MAGENTA}3. Persistent GPU Passthrough Configuration (gpu_pt3 enable):${NC}"
     local persistent_vfio_ids_status="$CROSS_MARK"
     if [ -f "$vfio_conf_path" ] && grep -qE "^options vfio-pci ids=" "$vfio_conf_path"; then
         persistent_vfio_ids_status="$CHECK_MARK"

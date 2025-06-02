@@ -43,7 +43,7 @@ generate_documentation_table "Documentation Hub" "📚" "Central navigation..." 
 ### Phase 2: Full Dynamic Category Discovery
 Implemented a completely autonomous system that:
 
-1. **Discovers categories dynamically** from `aux-lad` JSON output
+1. **Discovers categories dynamically** from `aux_lad` JSON output
 2. **Extracts metadata from actual README files** in each category directory
 3. **Handles edge cases gracefully** with fallback mechanisms
 
@@ -78,7 +78,7 @@ extract_category_metadata_from_readme() {
 #### 2. `generate_all_documentation_categories()`
 ```bash
 generate_all_documentation_categories() {
-    # Get categories from aux-lad JSON output, excluding Hub and Index
+    # Get categories from aux_lad JSON output, excluding Hub and Index
     if command -v jq >/dev/null 2>&1; then
         categories=$(jq -r '.documents[].type' "$json_file" | grep -v -E '^(Hub|Index)$' | sort -u)
     else
@@ -99,7 +99,7 @@ generate_all_documentation_categories() {
 
 The new system extracts real data from existing documentation structure:
 
-### From `aux-lad` JSON Output:
+### From `aux_lad` JSON Output:
 - **Categories discovered**: Admin, CLI, Core, Developer, IaC
 - **Document metadata**: paths, titles, descriptions, line counts, word counts
 - **Automatic filtering**: Excludes Hub and Index types
@@ -147,7 +147,7 @@ Generated documentation index now shows:
 2. **Consistency**: Always matches actual README file content
 3. **Accuracy**: Real-time metadata extraction from source files
 4. **Resilience**: Multiple fallback mechanisms for edge cases
-5. **Automation**: Fully autonomous operation via `aux-lad` integration
+5. **Automation**: Fully autonomous operation via `aux_lad` integration
 
 ## Future-Proofing
 
@@ -155,7 +155,7 @@ The system will automatically handle:
 - New documentation categories added to the system
 - Changes to README file titles or descriptions
 - Restructuring of documentation directories
-- Addition of new metadata fields in `aux-lad` output
+- Addition of new metadata fields in `aux_lad` output
 
 ## Validation
 
@@ -174,7 +174,7 @@ The updated system successfully:
 ## Technical Approach
 
 The solution leverages existing infrastructure:
-- **`aux-lad`**: For autonomous documentation discovery and metadata extraction
+- **`aux_lad`**: For autonomous documentation discovery and metadata extraction
 - **JSON parsing**: Both `jq` (preferred) and fallback shell methods
 - **README parsing**: Structured extraction of titles and descriptions
 - **Shell scripting**: Robust pattern matching and text processing

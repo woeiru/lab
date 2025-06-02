@@ -598,7 +598,7 @@ pve-vpt-w 100 on  # Enable passthrough for VM 100
 - `pve-fun` - Function listing and documentation
 - `pve-var` - Variable analysis and configuration review
 - `pve-vmd` - VM shutdown hook management
-- `pve-vck` - VM cluster node location checking
+- `pve_vck` - VM cluster node location checking
 - `pve-vpt` - PCI passthrough toggle operations
 - `pve-ctc` - Container creation with full configuration
 - `pve-vmc` - Virtual machine creation and setup

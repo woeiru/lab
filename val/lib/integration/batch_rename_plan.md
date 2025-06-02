@@ -16,7 +16,7 @@ Based on function discovery, we have these patterns:
 
 ### General Libraries (`lib/gen/`)
 - **Pattern**: `module-action` (dashes)
-- **Examples**: `aux-laf`, `aux-ffl`, `env-switch`
+- **Examples**: `aux_laf`, `aux_ffl`, `env-switch`
 - **Status**: ✅ Already consistent
 
 ## Proposed Standardization Strategy
@@ -42,8 +42,8 @@ After analysis, the current naming conventions are actually quite good:
 **Goal**: Ensure consistent action suffixes
 
 **Changes**:
-- `gpu-pt1` → `gpu-passthrough-enable`
-- `gpu-pt2` → `gpu-passthrough-disable`
+- `gpu_pt1` → `gpu-passthrough-enable`
+- `gpu_pt2` → `gpu-passthrough-disable`
 - `pve-vpt` → `pve-vm-passthrough-toggle`
 - `sys-gio` → `sys-git-operations`
 
@@ -51,10 +51,10 @@ After analysis, the current naming conventions are actually quite good:
 **Goal**: More descriptive auxiliary function names
 
 **Changes**:
-- `aux-laf` → `aux-list-all-functions`
-- `aux-ffl` → `aux-foreach-file-list`
-- `aux-acu` → `aux-analyze-config-usage`
-- `aux-nos` → `aux-notify-operation-status`
+- `aux_laf` → `aux-list-all-functions`
+- `aux_ffl` → `aux-foreach-file-list`
+- `aux_acu` → `aux-analyze-config-usage`
+- `aux_nos` → `aux-notify-operation-status`
 
 ## Implementation Strategy
 

@@ -173,9 +173,9 @@ test_function_naming_conventions() {
     
     local convention_violations=0
     local expected_patterns=(
-        "aux-[a-z]{3}"      # aux-fun, aux-var, aux-log
+        "aux-[a-z]{3}"      # aux_fun, aux_var, aux_log
         "pve-[a-z]{3}"      # pve-fun, pve-var, pve-vms
-        "gpu-[a-z]{3}"      # gpu-fun, gpu-var, gpu-pts
+        "gpu-[a-z]{3}"      # gpu-fun, gpu_var, gpu_pts
         "sys-[a-z]{3}"      # sys-fun, sys-var, sys-gio
         "[a-z]{3}-[a-z]{3}" # Generic three-letter patterns
     )
@@ -376,8 +376,8 @@ test_batch_rename_scenario() {
     
     # Define a test rename mapping (old_name -> new_name)
     local test_renames=(
-        "aux-fun:aux-functions"
-        "aux-var:aux-variables"
+        "aux_fun:aux-functions"
+        "aux_var:aux-variables"
         "pve-fun:pve-functions"
         "gpu-fun:gpu-functions"
     )

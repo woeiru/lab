@@ -22,10 +22,10 @@ echo
 
 echo "📋 Batch 2: Operations Function Suffixes"
 echo "=============================================="
-echo "  gpu-pt1 → gpu-passthrough-enable"
+echo "  gpu_pt1 → gpu-passthrough-enable"
 echo "    Location: lib/ops/gpu"
 echo
-echo "  gpu-pt2 → gpu-passthrough-disable"
+echo "  gpu_pt2 → gpu-passthrough-disable"
 echo "    Location: lib/ops/gpu"
 echo
 echo "  pve-vpt → pve-vm-passthrough-toggle"
@@ -37,16 +37,16 @@ echo
 
 echo "📋 Batch 3: Auxiliary Functions"
 echo "=============================================="
-echo "  aux-laf → aux-list-all-functions"
+echo "  aux_laf → aux-list-all-functions"
 echo "    Location: lib/gen/aux"
 echo
-echo "  aux-ffl → aux-foreach-file-list"
+echo "  aux_ffl → aux-foreach-file-list"
 echo "    Location: lib/gen/aux"
 echo
-echo "  aux-acu → aux-analyze-config-usage"
+echo "  aux_acu → aux-analyze-config-usage"
 echo "    Location: lib/gen/aux"
 echo
-echo "  aux-nos → aux-notify-operation-status"
+echo "  aux_nos → aux-notify-operation-status"
 echo "    Location: lib/gen/aux"
 echo
 

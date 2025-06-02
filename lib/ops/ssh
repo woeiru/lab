@@ -6,11 +6,11 @@
 #
 #   ssh-fun : Displays an overview of SSH-related functions in the script, showing their usage, shortname, and description.
 #   ssh-var : Displays an overview of SSH-specific variables defined in the configuration file, showing their names, values, and usage.
-#   ssh-key : Adds SSH keys to the SSH agent for authentication, supporting multiple key types and paths.
-#   ssh-lst : Lists SSH keys currently loaded in the agent with detailed information.
+#   ssh_key : Adds SSH keys to the SSH agent for authentication, supporting multiple key types and paths.
+#   ssh_lst : Lists SSH keys currently loaded in the agent with detailed information.
 #   ssh-rmv : Removes all SSH keys from the agent for security cleanup.
 #   ssh-gen : Generates new SSH keys with specified type and comment.
-#   ssh-cpy : Copies SSH public key to remote host for passwordless authentication.
+#   ssh_cpy : Copies SSH public key to remote host for passwordless authentication.
 #   ssh-agt : Starts SSH agent and ensures it's running for key management.
 #
 # ============================================================================
@@ -31,32 +31,32 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # Displays an overview of SSH-related functions in the script, showing their usage, shortname, and description
 # overview functions
 # <script_path>
-ssh-fun() {
+ssh_fun() {
     # Technical Description:
-    #   Invokes the 'aux-laf' (list available functions) utility.
+    #   Invokes the 'aux_laf' (list available functions) utility.
     #   Accepts script path as explicit parameter for analysis.
-    #   All remaining arguments are forwarded to 'aux-laf'.
+    #   All remaining arguments are forwarded to 'aux_laf'.
     #   Primarily used for introspection of script capabilities.
     # Dependencies:
-    #   - 'aux-laf' function.
+    #   - 'aux_laf' function.
     # Arguments:
     #   $1: script_path - path to the script file to analyze
-    #   $@: additional arguments forwarded to aux-laf
+    #   $@: additional arguments forwarded to aux_laf
     # Returns:
-    #   Exit status of aux-laf command
+    #   Exit status of aux_laf command
     # Examples:
     #   ssh-fun "/path/to/script"
     
     local script_path="$1"
     shift
     source "${LIB_GEN_DIR}/aux"
-    aux-laf "$script_path" "$@"
+    aux_laf "$script_path" "$@"
 }
 
 # Displays an overview of SSH-specific variables defined in the configuration file, showing their names, values, and usage
 # overview variables  
 # <config_file> <lib_parent_dir>
-ssh-var() {
+ssh_var() {
     # Technical Description:
     #   Invokes the 'aux-lav' (list available variables) utility.
     #   Accepts config file path and library parent directory as explicit parameters.
@@ -80,7 +80,7 @@ ssh-var() {
 # Adds SSH keys to the SSH agent for authentication, supporting multiple key types and paths
 # add ssh keys
 # <key_paths_array[@]>
-ssh-key() {
+ssh_key() {
     # Technical Description:
     #   Loads specified SSH keys into the SSH agent if not already loaded.
     #   Starts SSH agent if not running. Validates key existence before loading.
@@ -92,7 +92,7 @@ ssh-key() {
     # Returns:
     #   0 on success, non-zero on failure
     # Examples:
-    #   ssh-key "${SSH_KEY_PATHS[@]}"
+    #   ssh_key "${SSH_KEY_PATHS[@]}"
     
     local -n key_paths_ref=$1
     
@@ -130,7 +130,7 @@ ssh-key() {
 # Lists SSH keys currently loaded in the agent with detailed information
 # list ssh keys
 #
-ssh-lst() {
+ssh_lst() {
     # Technical Description:
     #   Displays all SSH keys currently loaded in the SSH agent.
     #   Shows key fingerprints, types, and associated files.
@@ -141,7 +141,7 @@ ssh-lst() {
     # Returns:
     #   0 if keys found, 1 if no keys or agent not running
     # Examples:
-    #   ssh-lst
+    #   ssh_lst
     
     log "lvl-3" "Listing SSH keys in the agent"
     ssh-add -l || {
@@ -153,7 +153,7 @@ ssh-lst() {
 # Removes all SSH keys from the agent for security cleanup
 # remove ssh keys
 #
-ssh-rmv() {
+ssh_rmv() {
     # Technical Description:
     #   Removes all SSH keys from the SSH agent for security purposes.
     #   Useful for cleanup or when switching between different key sets.
@@ -176,7 +176,7 @@ ssh-rmv() {
 # Generates new SSH keys with specified type and comment
 # generate ssh key
 # <key_type> <comment> <output_path>
-ssh-gen() {
+ssh_gen() {
     # Technical Description:
     #   Creates new SSH key pair using specified algorithm and comment.
     #   Supports ed25519 (recommended) and rsa key types.
@@ -228,7 +228,7 @@ ssh-gen() {
 # Copies SSH public key to remote host for passwordless authentication
 # copy ssh key
 # <public_key_path> <target_host>
-ssh-cpy() {
+ssh_cpy() {
     # Technical Description:
     #   Copies SSH public key to remote host's authorized_keys file.
     #   Enables passwordless SSH authentication to the target host.
@@ -240,8 +240,8 @@ ssh-cpy() {
     # Returns:
     #   0 on success, non-zero on failure
     # Examples:
-    #   ssh-cpy "/root/.ssh/id_ed25519.pub" "root@192.168.1.100"
-    #   ssh-cpy "/root/.ssh/id_rsa.pub" "user@example.com"
+    #   ssh_cpy "/root/.ssh/id_ed25519.pub" "root@192.168.1.100"
+    #   ssh_cpy "/root/.ssh/id_rsa.pub" "user@example.com"
     
     local public_key_path="$1"
     local target_host="$2"
@@ -263,7 +263,7 @@ ssh-cpy() {
 # Starts SSH agent and ensures it's running for key management
 # start ssh agent
 #
-ssh-agt() {
+ssh_agt() {
     # Technical Description:
     #   Starts SSH agent if not already running and exports environment variables.
     #   Ensures SSH_AUTH_SOCK and SSH_AGENT_PID are properly set.

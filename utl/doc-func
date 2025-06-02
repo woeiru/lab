@@ -5,7 +5,7 @@
 # File: doc-func
 # Description: Automatic function metadata table generator that populates 
 #              the function metadata table in doc/dev/functions.md using 
-#              aux-ffl and aux-laf to extract function information from lib/ directories
+#              aux_ffl and aux_laf to extract function information from lib/ directories
 #
 # Usage: ./doc-func
 #   (default)   Updates the function metadata table in doc/dev/functions.md
@@ -45,8 +45,8 @@ count_library_functions() {
     # Process each file in the library directory
     for file in "$lib_dir"/*; do
         if [[ -f "$file" ]]; then
-            # Generate JSON output using aux-laf with -j flag
-            aux-laf -j "$file" >/dev/null 2>&1
+            # Generate JSON output using aux_laf with -j flag
+            aux_laf -j "$file" >/dev/null 2>&1
             
             # Generate JSON filename based on file path structure
             local relative_path="${file#$LAB_DIR/}"
@@ -115,8 +115,8 @@ process_library_functions() {
     # Process each file in the library directory
     for file in "$lib_dir"/*; do
         if [[ -f "$file" ]]; then
-            # Generate JSON output using aux-laf with -j flag
-            aux-laf -j "$file" >/dev/null 2>&1
+            # Generate JSON output using aux_laf with -j flag
+            aux_laf -j "$file" >/dev/null 2>&1
             
             # Generate JSON filename based on file path structure
             local relative_path="${file#$LAB_DIR/}"
@@ -185,7 +185,7 @@ update_documentation() {
     while IFS= read -r line; do
         if [[ "$line" == *"<!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->"* ]]; then
             echo "$line" >> "$temp_file"
-            echo "<!-- Command: aux-ffl aux-laf \"\" \"\$LIB_CORE_DIR\" & aux-ffl aux-laf \"\" \"\$LIB_OPS_DIR\" & aux-ffl aux-laf \"\" \"\$LIB_GEN_DIR\" -->" >> "$temp_file"
+            echo "<!-- Command: aux_ffl aux_laf \"\" \"\$LIB_CORE_DIR\" & aux_ffl aux_laf \"\" \"\$LIB_OPS_DIR\" & aux_ffl aux_laf \"\" \"\$LIB_GEN_DIR\" -->" >> "$temp_file"
             echo "" >> "$temp_file"
             
             # Generate function table with real-time data

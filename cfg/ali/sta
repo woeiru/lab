@@ -42,17 +42,17 @@
 
     # Function shortcuts
     alias sca='sys-sca'
-    alias flc='aux-flc'
+    alias flc='aux_flc'
     alias cto='pve-cto'
 
     # Function chaining
-    alias fun-core='aux-ffl aux-laf "" "$LIB_CORE_DIR"'
-    alias fun-ops='aux-ffl aux-laf "" "$LIB_OPS_DIR"'
-    alias fun-gen='aux-ffl aux-laf "" "$LIB_GEN_DIR"'
-    alias var='aux-ffl aux-acu "" "$CFG_ENV_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR"'
+    alias fun-core='aux_ffl aux_laf "" "$LIB_CORE_DIR"'
+    alias fun-ops='aux_ffl aux_laf "" "$LIB_OPS_DIR"'
+    alias fun-gen='aux_ffl aux_laf "" "$LIB_GEN_DIR"'
+    alias var='aux_ffl aux_acu "" "$CFG_ENV_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR"'
 
     # Function makros
-    alias v1='gpu-ptd ; qm start 211'
+    alias v1='gpu_ptd ; qm start 211'
 
     # Git commands
     alias g='git'
@@ -156,12 +156,12 @@
     # Unsorted (you may want to organize these later)
     alias pr='kquitapp5 plasmashell && kstart5 plasmashell'
     alias gdi='git diff --no-index -- /dev/null'
-    alias light='plasma-apply-lookandfeel -a org.kde.breeze.desktop && usr-ckp 1'
-    alias dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop && usr-ckp 2'
+    alias light='plasma-apply-lookandfeel -a org.kde.breeze.desktop && usr_ckp 1'
+    alias dark='plasma-apply-lookandfeel -a org.kde.breezedark.desktop && usr_ckp 2'
 
-    alias pts='gpu-pts'
-    alias ptd='gpu-ptd'
-    alias pta='gpu-pta'
+    alias pts='gpu_pts'
+    alias ptd='gpu_ptd'
+    alias pta='gpu_pta'
 
     # Environment Management
     alias env='$LIB_GEN_DIR/env'
