@@ -66,12 +66,12 @@ sys-gst → sys_gst
 sys-sst → sys_sst
 sys_ust → sys_ust
 sys_sdc → sys_sdc
-sys-suk → sys_suk
-sys_spi → sys_spi
-sys-sks → sys_sks
-sys_sak → sys_sak
+sys-suk → ssh_suk
+ssh_spi → ssh_spi
+sys-sks → ssh_sks
+ssh_sak → ssh_sak
 sys-hos → sys_hos
-sys-sca → sys_sca
+sys-sca → ssh_sca
 sys-gre → sys_gre
 sys-loi → sys_loi
 
