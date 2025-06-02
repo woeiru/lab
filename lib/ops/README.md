@@ -12,10 +12,17 @@ This document defines the mandatory parameter validation standard for all functi
 
 #### 1. Parameter Validation Pattern
 
-All functions must implement parameter validation using this pattern:
+All functions must implement parameter validation using this enhanced pattern:
 
 ```bash
 function_name() {
+    # Handle help flag first
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # Then validate parameter count
     if [ $# -ne EXPECTED_COUNT ]; then
         aux_use
         return 1
@@ -27,16 +34,24 @@ function_name() {
 
 #### 2. Comment Block Format
 
-Functions must include properly formatted comment blocks for `aux_use` to display:
+Functions must include properly formatted comment blocks for both `aux_use` and `aux_tec`:
 
 ```bash
 # Function description
 # shortname or mnemonic
 # <parameter1> <parameter2> or (no parameters)
 function_name() {
+    # TECHNICAL DETAILS:
+    # Detailed explanation of function behavior
+    # Implementation notes, examples, edge cases
+    
     # Implementation...
 }
 ```
+
+**Note**: 
+- `aux_use` extracts the **three comment lines above** the function name for usage display
+- `aux_tec` extracts the **technical details block under** the function name for detailed help
 
 #### 3. Special Cases
 
@@ -59,6 +74,16 @@ function_name() {
 # copy files
 # <source_path> <destination_path>
 usr_copy() {
+    # TECHNICAL DETAILS:
+    # Performs recursive copy with preservation of permissions
+    # Validates source exists before attempting copy
+    # Creates destination directory if needed
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 2 ]; then
         aux_use
         return 1
@@ -76,6 +101,16 @@ usr_copy() {
 # list functions
 # (no parameters)
 usr_list() {
+    # TECHNICAL DETAILS:
+    # Scans function files and extracts function names
+    # Filters by prefix pattern, sorts alphabetically
+    # Excludes internal helper functions
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 0 ]; then
         aux_use
         return 1
@@ -91,24 +126,25 @@ usr_list() {
 # overview functions
 # [function_name_filter]
 usr_fun() {
+    # TECHNICAL DETAILS:
+    # Optional parameters - no validation needed
+    # Pass all arguments to processing function
+    # Supports filtering by function name pattern
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     # Optional parameters - no validation needed
     # Pass all arguments to processing function
     aux_laf "$FILEPATH_usr" "$@"
 }
 ```
+    aux_laf "$FILEPATH_usr" "$@"
+}
+```
 
-### Implementation Status
-
-This standard has been successfully implemented across the `usr` library:
-
-- ✅ `usr_fun` - Optional parameter support
-- ✅ `usr_var` - No parameters validation
-- ✅ `usr_ckp` - Single parameter validation
-- ✅ `usr_vsf` - No parameters validation
-- ✅ `usr_swt` - Multiple parameters with aux_use
-- ✅ `usr_adr` - Two parameters validation
-- ✅ `usr_rif` - Smart validation with options and positional args
-- ✅ `usr_ans` - Two parameters validation
 
 ### Future Considerations
 
