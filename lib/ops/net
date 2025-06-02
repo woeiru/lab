@@ -15,21 +15,89 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
 # Displays an overview of specific functions in the script, showing their usage, shortname, and description
 # overview functions
-#
+# [function_name_filter]
 net_fun() {
+    # Technical Description:
+    #   Scans the network operations module and extracts function documentation
+    #   Provides formatted overview of available functions with descriptions
+    #   Supports optional filtering by function name pattern
+    #   Uses aux_laf utility for consistent function listing across modules
+    # Dependencies:
+    #   - aux_laf function from auxiliary module
+    #   - Read access to network operations module file
+    #   - Standard POSIX shell utilities for text processing
+    # Arguments:
+    #   $1: function_name_filter - optional pattern to filter function names (default: show all)
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     aux_laf "$FILEPATH_net" "$@"
 }
 # Displays an overview of specific variables in network configuration
 # Network Variables - NEV
-# 
+# -x (execute)
 net_var() {
+    # Technical Description:
+    #   Extracts and displays network-related configuration variables
+    #   Scans configuration files and parent directories for variable definitions
+    #   Uses aux_acu utility with output formatting for variable display
+    #   Provides comprehensive view of network configuration state
+    # Dependencies:
+    #   - aux_acu function from auxiliary module
+    #   - Read access to configuration files and parent directories
+    #   - Network configuration file defined in CONFIG_net variable
+    # Arguments:
+    #   $1: -x - explicit execution flag required for consistency
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+    
     aux_acu -o "$CONFIG_net" "$DIR_FUN/.."
 }
 
 # Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
 # udev network interface
-# [interactive]
+# -x (execute)
 net_uni() {
+    # Technical Description:
+    #   Interactive network interface renaming utility with comprehensive system integration
+    #   Displays available network interfaces and their MAC addresses for user selection
+    #   Creates persistent udev rules to maintain interface naming across reboots
+    #   Updates network configuration files to reflect new interface names
+    #   Provides optional system reboot to apply changes immediately
+    #   Uses temporary file operations for safe configuration updates
+    # Dependencies:
+    #   - 'ip' command for network interface enumeration
+    #   - 'awk' for MAC address extraction from ip output
+    #   - 'udevadm' for udev rule management and reloading
+    #   - 'sed' for configuration file text replacement
+    #   - Write access to /etc/udev/rules.d/ directory
+    #   - Write access to /etc/network/interfaces file
+    #   - Root privileges for system configuration changes
+    #   - 'reboot' command for optional system restart
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety due to system-level changes
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+    
     # Prompt user for the new interface name
     read -p "Enter the new interface name (e.g., nic1): " INTERFACE_NAME
 
@@ -71,12 +139,33 @@ net_uni() {
 # firewall (add) service (and) reload
 # <service>
 net_fsr() {
-    local function_name="${FUNCNAME[0]}"
-    local fw_service="$1"
+    # Technical Description:
+    #   Adds a firewall service to the permanent firewalld configuration
+    #   Checks for firewall-cmd availability before attempting configuration
+    #   Makes service changes persistent across system reboots
+    #   Reloads firewall configuration to apply changes immediately
+    #   Provides notification of successful execution via aux_nos
+    # Dependencies:
+    #   - 'firewall-cmd' command from firewalld package
+    #   - 'command' builtin for utility availability checking
+    #   - aux_nos function for operation notification
+    #   - Root privileges for firewall configuration changes
+    # Arguments:
+    #   $1: service - name of the firewall service to add (e.g., 'ssh', 'http', 'https')
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 1 ]; then
-	aux_use
+        aux_use
         return 1
     fi
+    
+    local function_name="${FUNCNAME[0]}"
+    local fw_service="$1"
+    
    # Open firewall ports
     if command -v firewall-cmd > /dev/null; then
         firewall-cmd --permanent --add-service=$fw_service
@@ -91,13 +180,32 @@ net_fsr() {
 # firewall allow service
 # <service>
 net_fas() {
-    local function_name="${FUNCNAME[0]}"
-    local fwd_as_1="$1"
-
+    # Technical Description:
+    #   Configures firewalld to allow a specific service through the firewall
+    #   Checks firewall daemon state before attempting configuration changes
+    #   Makes service allowance persistent across system reboots
+    #   Reloads firewall configuration to apply changes immediately
+    #   Provides notification of successful execution via aux_nos
+    # Dependencies:
+    #   - 'firewall-cmd' command from firewalld package
+    #   - aux_nos function for operation notification
+    #   - Active firewalld daemon service
+    #   - Root privileges for firewall configuration changes
+    # Arguments:
+    #   $1: service - name of the firewall service to allow (e.g., 'ssh', 'http', 'https')
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 1 ]; then
-	aux_use
+        aux_use
         return 1
     fi
+    
+    local function_name="${FUNCNAME[0]}"
+    local fwd_as_1="$1"
 
     firewall-cmd --state
     firewall-cmd --add-service="$fwd_as_1" --permanent
@@ -112,12 +220,24 @@ net_fas() {
 # add host entry
 # <ip_address> <hostname>
 net_hos() {
-    # TECHNICAL DETAILS:
-    # Manages /etc/hosts file entries safely
-    # Updates existing entries if hostname exists with different IP
-    # Adds new entries if hostname doesn't exist
-    # Uses temporary file for safe sed operations
-    # Validates input parameters before processing
+    # Technical Description:
+    #   Manages /etc/hosts file entries with safe update mechanisms
+    #   Validates existing entries and updates IP addresses when hostnames conflict
+    #   Creates new entries for previously unknown hostnames
+    #   Uses temporary file operations for atomic updates to prevent corruption
+    #   Provides detailed logging of all operations performed
+    # Dependencies:
+    #   - 'grep' for pattern matching in hosts file
+    #   - 'sed' for text replacement operations
+    #   - 'mktemp' for temporary file creation
+    #   - 'sudo' for elevated privileges when modifying system files
+    #   - 'tee' for appending to files with privilege escalation
+    #   - aux_tec function for technical help display
+    #   - aux_use function for usage information display
+    #   - Write access to /etc/hosts file
+    # Arguments:
+    #   $1: ip_address - IP address to associate with hostname (IPv4 or IPv6 format)
+    #   $2: hostname - hostname to add or update in hosts file
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
