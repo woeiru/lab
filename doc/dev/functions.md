@@ -213,12 +213,12 @@ Functions are organized by library modules for systematic access and reference.
 | ops | sys | sys_sst | Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled |
 | ops | sys | sys_ust | Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation |
 | ops | sys | sys_sdc | Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not |
-| ops | sys | sys_suk | Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device |
-| ops | sys | sys_spi | Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist |
-| ops | sys | sys_sks | Generates an SSH key pair and handles the transfer process |
-| ops | sys | sys_sak | Appends the content of a specified public SSH key file to the authorized_keys file. |
+| ops | sys | ssh_suk | Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device |
+| ops | sys | ssh_spi | Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist |
+| ops | sys | ssh_sks | Generates an SSH key pair and handles the transfer process |
+| ops | sys | ssh_sak | Appends the content of a specified public SSH key file to the authorized_keys file. |
 | ops | sys | sys_loi | Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration |
-| ops | sys | sys_sca | Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely |
+| ops | sys | ssh_sca | Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely |
 | ops | sys | sys_gre | An interactive Bash function that guides users through Git history navigation, offering options for reset type and subsequent actions, with built-in safeguards and explanations. |
 | ops | sys | sys_hos | Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits. |
 | ops | usr | usr_fun | Shows a summary of selected functions in the script, displaying their usage, shortname, and description |

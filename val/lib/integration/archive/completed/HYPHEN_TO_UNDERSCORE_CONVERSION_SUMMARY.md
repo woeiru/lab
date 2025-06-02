@@ -106,12 +106,12 @@ sys-gst  → sys_gst     # Get system time
 sys-sst  → sys_sst     # Set system time
 sys-ust  → sys_ust     # Update system time
 sys-sdc  → sys_sdc     # System disk check
-sys-suk  → sys_suk     # System update kernel
-sys-spi  → sys_spi     # System package info
-sys-sks  → sys_sks     # System kernel status
-sys-sak  → sys_sak     # System activate kernel
+sys-suk  → ssh_suk     # System update kernel
+sys-spi  → ssh_spi     # System package info
+sys-sks  → ssh_sks     # System kernel status
+sys-sak  → ssh_sak     # System activate kernel
 sys-loi  → sys_loi     # Login operations
-sys-sca  → sys_sca     # System configuration audit
+sys-sca  → ssh_sca     # System configuration audit
 sys-gre  → sys_gre     # Git repository operations
 sys-hos  → sys_hos     # Host operations
 ```
@@ -152,7 +152,7 @@ The following alias file required manual updates:
 **Example Updates in sta file:**
 ```bash
 # Updated aliases
-alias sca='sys_sca'    # was: sys-sca
+alias sca='ssh_sca'    # was: sys-sca
 alias flc='aux_flc'    # was: aux-flc
 alias cto='pve_cto'    # was: pve-cto
 alias gg='sys_gio'     # was: sys-gio
