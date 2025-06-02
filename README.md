@@ -167,9 +167,9 @@ cd src/set/pve && ./pve q  # Create containers
 ### GPU Passthrough Management
 ```bash
 # Environment-aware GPU management
-gpu-pts-w    # Check GPU status (wrapper function)
-gpu-ptd-w 1  # Detach GPU for passthrough
-gpu-pta-w 1  # Attach GPU back to host
+gpu_pts-w    # Check GPU status (wrapper function)
+gpu_ptd-w 1  # Detach GPU for passthrough
+gpu_pta-w 1  # Attach GPU back to host
 ```
 
 ### Proxmox Cluster Setup

@@ -63,9 +63,9 @@ cd src/set/pve
 ### GPU Infrastructure Management
 ```bash
 # GPU passthrough for infrastructure
-gpu-pts-w    # Check GPU status
-gpu-ptd-w 1  # Detach GPU for passthrough
-gpu-pta-w 1  # Attach GPU back to host
+gpu_pts-w    # Check GPU status
+gpu_ptd-w 1  # Detach GPU for passthrough
+gpu_pta-w 1  # Attach GPU back to host
 ```
 
 ## 🌍 Environment Management

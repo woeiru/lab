@@ -54,7 +54,7 @@
 #   # Use wrapper functions in scripts that have global environment loaded
 #   pve-fun-w                    # List available functions
 #   pve-var-w                    # Show configuration variables
-#   pve-vck-w 100                # Check VM 100 location
+#   pve_vck-w 100                # Check VM 100 location
 #   pve-vpt-w 100 on             # Enable passthrough for VM 100
 #   pve-vms-w 100                # Start VM 100 with passthrough
 #
@@ -72,7 +72,7 @@
 #   pve-fun-w : List available PVE functions (wrapper for pve-fun)
 #   pve-var-w : Display PVE configuration variables (wrapper for pve-var)  
 #   pve-vmd-w : VM shutdown hook management (wrapper for pve-vmd)
-#   pve-vck-w : VM cluster node location check (wrapper for pve-vck)
+#   pve_vck-w : VM cluster node location check (wrapper for pve_vck)
 #   pve-vpt-w : VM PCI passthrough toggle (wrapper for pve-vpt)
 #   pve-ctc-w : Container creation with full configuration (wrapper for pve-ctc)
 #   pve-vmc-w : Virtual machine creation with full configuration (wrapper for pve-vmc)
@@ -111,9 +111,9 @@ pve-vmd-w() {
     pve-vmd "$operation" "$vm_id" "$hook_script" "$lib_ops_dir" "$@"
 }
 
-# Wrapper for pve-vck that extracts global variables and calls the pure function
+# Wrapper for pve_vck that extracts global variables and calls the pure function
 # vm check node (wrapper)
-pve-vck-w() {
+pve_vck-w() {
     # Source the pure library function
     source "${LIB_OPS_DIR}/pve"
     
@@ -121,7 +121,7 @@ pve-vck-w() {
     local vm_id="$1"
     local cluster_nodes_str="${CLUSTER_NODES[*]}"
     
-    pve-vck "$vm_id" "$cluster_nodes_str"
+    pve_vck "$vm_id" "$cluster_nodes_str"
 }
 
 # Wrapper for pve-vpt that extracts global variables and calls the pure function

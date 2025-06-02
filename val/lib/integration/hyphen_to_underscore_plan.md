@@ -35,25 +35,25 @@ Based on function discovery, we have identified **195 functions** across the lib
 ### Target Functions (Sample - Full list auto-generated):
 ```
 # lib/gen/aux
-aux-fun → aux_fun
-aux-var → aux_var
-aux-log → aux_log
-aux-ffl → aux_ffl
-aux-laf → aux_laf
-aux-acu → aux_acu
-aux-mev → aux_mev
-aux-nos → aux_nos
-aux-flc → aux_flc
-aux-use → aux_use
-aux-lad → aux_lad
+aux_fun → aux_fun
+aux_var → aux_var
+aux_log → aux_log
+aux_ffl → aux_ffl
+aux_laf → aux_laf
+aux_acu → aux_acu
+aux_mev → aux_mev
+aux_nos → aux_nos
+aux_flc → aux_flc
+aux_use → aux_use
+aux_lad → aux_lad
 
 # lib/ops/gpu
 gpu-fun → gpu_fun
-gpu-var → gpu_var
+gpu_var → gpu_var
 gpu-nds → gpu_nds
-gpu-pta → gpu_pta
-gpu-ptd → gpu_ptd
-gpu-pts → gpu_pts
+gpu_pta → gpu_pta
+gpu_ptd → gpu_ptd
+gpu_pts → gpu_pts
 
 # lib/ops/sys
 sys-fun → sys_fun
@@ -64,12 +64,12 @@ sys-upa → sys_upa
 sys-ipa → sys_ipa
 sys-gst → sys_gst
 sys-sst → sys_sst
-sys-ust → sys_ust
-sys-sdc → sys_sdc
+sys_ust → sys_ust
+sys_sdc → sys_sdc
 sys-suk → sys_suk
-sys-spi → sys_spi
+sys_spi → sys_spi
 sys-sks → sys_sks
-sys-sak → sys_sak
+sys_sak → sys_sak
 sys-hos → sys_hos
 sys-sca → sys_sca
 sys-gre → sys_gre
@@ -77,17 +77,17 @@ sys-loi → sys_loi
 
 # lib/ops/usr  
 usr-fun → usr_fun
-usr-var → usr_var
-usr-ckp → usr_ckp
-usr-vsf → usr_vsf
-usr-cff → usr_cff
+usr_var → usr_var
+usr_ckp → usr_ckp
+usr_vsf → usr_vsf
+usr_cff → usr_cff
 usr-duc → usr_duc
 usr-cif → usr_cif
-usr-rsf → usr_rsf
-usr-rsd → usr_rsd
-usr-swt → usr_swt
+usr_rsf → usr_rsf
+usr_rsd → usr_rsd
+usr_swt → usr_swt
 usr-adr → usr_adr
-usr-cap → usr_cap
+usr_cap → usr_cap
 usr-rif → usr_rif
 usr-ans → usr_ans
 

@@ -6,7 +6,7 @@
 #   srv-fun : Shows a summary of selected functions in the script.
 #   srv-var : Displays an overview of specific variables defined in the configuration file.
 #   nfs-set : Sets up an NFS share with prompted or provided information.
-#   nfs-apl : Applies NFS configuration (creates folder, updates /etc/exports, restarts server).
+#   nfs_apl : Applies NFS configuration (creates folder, updates /etc/exports, restarts server).
 #   nfs-mon : Monitors and displays various aspects of the NFS server.
 #   smb-set : Sets up a Samba share with prompted or provided configuration details.
 #   smb-apl : Applies Samba configuration (creates folder, updates cfg/env/site, restarts server, sets passwords).
@@ -30,39 +30,39 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # Displays an overview of specific NFS-related functions in the script, showing their usage, shortname, and description
 # overview functions
 # 
-srv-fun() {
-    aux-laf "$FILEPATH_srv" "$@"
+srv_fun() {
+    aux_laf "$FILEPATH_srv" "$@"
 }
 # Displays an overview of NFS-specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 # 
-srv-var() {
-    aux-acu -o "$CONFIG_srv" "$DIR_FUN/.."
+srv_var() {
+    aux_acu -o "$CONFIG_srv" "$DIR_FUN/.."
 }
 
 # Sets up an NFS share by prompting for necessary information (NFS header, shared folder, and options) and applying the configuration
 # nfs setup
 # <nfs_header> <shared_folder> <nfs_options>
-nfs-set() {
+nfs_set() {
     local function_name="${FUNCNAME[0]}"
     local nfs_header="$1"
     local shared_folder="$2"
     local nfs_options="$3"
 
     # Prompt for missing inputs
-    aux-mev "nfs_header" "Enter NFS header" "$nfs_header"
-    aux-mev "shared_folder" "Enter path to shared folder" "$shared_folder"
-    aux-mev "nfs_options" "Enter NFS options" "$nfs_options"
+    aux_mev "nfs_header" "Enter NFS header" "$nfs_header"
+    aux_mev "shared_folder" "Enter path to shared folder" "$shared_folder"
+    aux_mev "nfs_options" "Enter NFS options" "$nfs_options"
 
     # Apply the NFS configuration
-    nfs-apl "$nfs_header" "$shared_folder" "$nfs_options"
-    aux-nos "$function_name" "NFS setup complete"
+    nfs_apl "$nfs_header" "$shared_folder" "$nfs_options"
+    aux_nos "$function_name" "NFS setup complete"
 }
 
 # Applies NFS configuration by creating the shared folder if needed, updating /etc/exports, and restarting the NFS server
 # nfs apply config
 # <nfs_header> <shared_folder> <nfs_options>
-nfs-apl() {
+nfs_apl() {
     local function_name="${FUNCNAME[0]}"
     local nfs_header="$1"
     local shared_folder="$2"
@@ -90,13 +90,13 @@ nfs-apl() {
 
     # Print confirmation message
     echo "NFS server configured. Shared folder: $shared_folder"
-    aux-nos "$function_name" "NFS configuration applied"
+    aux_nos "$function_name" "NFS configuration applied"
 }
 
 # Monitors and displays various aspects of the NFS server
 # nfs monitor
 # [option]
-nfs-mon() {
+nfs_mon() {
     local function_name="${FUNCNAME[0]}"
     local option=""
 
@@ -112,7 +112,7 @@ nfs-mon() {
         echo "7. Show NFS mount points"
         echo "8. Display RPC information"
         echo "9. All of the above"
-        aux-mev "option" "Enter option number" "9"
+        aux_mev "option" "Enter option number" "9"
     else
         option="$1"
     fi
@@ -162,13 +162,13 @@ nfs-mon() {
             ;;
     esac
 
-    aux-nos "$function_name" "NFS monitoring completed"
+    aux_nos "$function_name" "NFS monitoring completed"
 }
 
 # Sets up a Samba share by prompting for missing configuration details and applying the configuration. Handles various share parameters including permissions, guest access, and file masks
 # samba setup 1
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
-smb-set() {
+smb_set() {
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
 	local shared_folder="$2"
@@ -183,26 +183,26 @@ smb-set() {
 	local force_group="${11}"
 
     # Prompt for missing inputs
-    aux-mev "smb_header" "Enter Samba header" "$smb_header"
-    aux-mev "shared_folder" "Enter path to shared folder" "$shared_folder"
+    aux_mev "smb_header" "Enter Samba header" "$smb_header"
+    aux_mev "shared_folder" "Enter path to shared folder" "$shared_folder"
 
     if [ "$smb_header" != "nobody" ]; then
-        aux-mev "username" "Enter Samba username" "$username"
+        aux_mev "username" "Enter Samba username" "$username"
 
         while [ -z "$smb_password" ]; do
-            aux-mev "smb_password" "Enter Samba password (cannot be empty)" "$smb_password"
+            aux_mev "smb_password" "Enter Samba password (cannot be empty)" "$smb_password"
         done
     fi
 
     # Apply the Samba configuration
     smb-apl "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
-    aux-nos "$function_name" "Samba setup complete"
+    aux_nos "$function_name" "Samba setup complete"
 }
 
 # Applies Samba configuration by creating the shared folder if needed, updating cfg/env/site. with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares
 # samba apply config
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
-smb-apl() {
+smb_apl() {
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
 	local shared_folder="$2"
@@ -258,13 +258,13 @@ smb-apl() {
 
     # Print confirmation message
     echo "Samba server configured. Shared folder: $shared_folder"
-    aux-nos "$function_name" "Samba configuration applied"
+    aux_nos "$function_name" "Samba configuration applied"
 }
 
 # Monitors and displays various aspects of the SMB server
 # smb monitor
 # [option]
-smb-mon() {
+smb_mon() {
     local function_name="${FUNCNAME[0]}"
     local option=""
 
@@ -280,7 +280,7 @@ smb-mon() {
         echo "7. Show SMB version information"
         echo "8. Display SMB user list"
         echo "9. All of the above"
-        aux-mev "option" "Enter option number" "9"
+        aux_mev "option" "Enter option number" "9"
     else
         option="$1"
     fi
@@ -330,6 +330,6 @@ smb-mon() {
             ;;
     esac
 
-    aux-nos "$function_name" "SMB monitoring completed"
+    aux_nos "$function_name" "SMB monitoring completed"
 }
 

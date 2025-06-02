@@ -24,8 +24,8 @@ MENU_OPTIONS[b]="b_xall"
 # Installs NFS server packages, enables the NFS service, and creates a user account for NFS management
 a_xall() {
     sys-ipa "$NFS_PACKAGES_ALL"
-    sys-sdc "$NFS_SYSD_CHECK"
-    sys-ust "$NFS_USERNAME_1" "$NFS_PASSWORD_1"
+    sys_sdc "$NFS_SYSD_CHECK"
+    sys_ust "$NFS_USERNAME_1" "$NFS_PASSWORD_1"
 }
 
 # Configures NFS exports by setting up a shared folder with specified access permissions

@@ -43,7 +43,7 @@ The `lib/` folder contains three categories of pure functions:
 ## 🔍 Function Metadata Table
 
 <!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->
-<!-- Command: aux-ffl aux-laf "" "$LIB_CORE_DIR" & aux-ffl aux-laf "" "$LIB_OPS_DIR" & aux-ffl aux-laf "" "$LIB_GEN_DIR" -->
+<!-- Command: aux_ffl aux_laf "" "$LIB_CORE_DIR" & aux_ffl aux_laf "" "$LIB_OPS_DIR" & aux_ffl aux_laf "" "$LIB_GEN_DIR" -->
 
 *Auto-updated function metadata table with real-time analysis*
 
@@ -116,16 +116,16 @@ Functions are organized by library modules for systematic access and reference.
 | core | ver | verify_function_dependencies | Verify that all dependencies for a function are available |
 | core | ver | verify_function | Verify function exists in specified module file |
 | core | ver | init_verification | Initialize verification system and perform essential checks |
-| ops | aux | aux-fun | Shows a summary of selected functions in the script, displaying their usage, shortname, and description |
-| ops | aux | aux-var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
-| ops | aux | aux-log | Logging function. Prints a timestamped log message with a log level |
-| ops | aux | aux-ffl | Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed |
-| ops | aux | aux-laf | Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability |
-| ops | aux | aux-acu | Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files |
-| ops | aux | aux-mev | Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters |
-| ops | aux | aux-nos | Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information |
-| ops | aux | aux-flc | Displays the source code of a specified function from the library folder, including its description, shortname, and usage |
-| ops | aux | aux-use | Displays the usage information, shortname, and description of the calling function, helping users understand how to use it |
+| ops | aux | aux_fun | Shows a summary of selected functions in the script, displaying their usage, shortname, and description |
+| ops | aux | aux_var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
+| ops | aux | aux_log | Logging function. Prints a timestamped log message with a log level |
+| ops | aux | aux_ffl | Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed |
+| ops | aux | aux_laf | Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability |
+| ops | aux | aux_acu | Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files |
+| ops | aux | aux_mev | Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters |
+| ops | aux | aux_nos | Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information |
+| ops | aux | aux_flc | Displays the source code of a specified function from the library folder, including its description, shortname, and usage |
+| ops | aux | aux_use | Displays the usage information, shortname, and description of the calling function, helping users understand how to use it |
 | ops | gpu | _gpu_init_colors | Initialize color constants for GPU management output formatting |
 | ops | gpu | _gpu_validate_pci_id | Validate PCI ID format using regex pattern matching |
 | ops | gpu | _gpu_extract_vendor_device_id | Extract vendor and device IDs from lspci output for PCI device |
@@ -145,21 +145,21 @@ Functions are organized by library modules for systematic access and reference.
 | ops | gpu | _gpu_get_iommu_groups | Get IOMMU groups containing GPU devices for passthrough validation |
 | ops | gpu | _gpu_get_detailed_device_info | Get detailed GPU device information including driver status and bindings |
 | ops | gpu | gpu-fun | Shows a summary of selected functions in the script, displaying their usage, shortname, and description |
-| ops | gpu | gpu-var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
+| ops | gpu | gpu_var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
 | ops | gpu | gpu-nds | Downloads and installs NVIDIA drivers, blacklisting Nouveau drivers first |
-| ops | gpu | gpu-pt1 | Configures initial GRUB and EFI settings for GPU passthrough |
-| ops | gpu | gpu-pt2 | Adds necessary kernel modules for GPU passthrough |
-| ops | gpu | gpu-pt3 | Finalizes or reverts GPU passthrough setup |
-| ops | gpu | gpu-ptd | Detaches the GPU from the host system for VM passthrough |
-| ops | gpu | gpu-pta | Attaches the GPU back to the host system |
-| ops | gpu | gpu-pts | Checks the current status of the GPU (complete detailed version) |
-| ops | net | net-fun | Displays an overview of specific functions in the script, showing their usage, shortname, and description |
-| ops | net | net-var | Displays an overview of specific variables in network configuration |
+| ops | gpu | gpu_pt1 | Configures initial GRUB and EFI settings for GPU passthrough |
+| ops | gpu | gpu_pt2 | Adds necessary kernel modules for GPU passthrough |
+| ops | gpu | gpu_pt3 | Finalizes or reverts GPU passthrough setup |
+| ops | gpu | gpu_ptd | Detaches the GPU from the host system for VM passthrough |
+| ops | gpu | gpu_pta | Attaches the GPU back to the host system |
+| ops | gpu | gpu_pts | Checks the current status of the GPU (complete detailed version) |
+| ops | net | net_fun | Displays an overview of specific functions in the script, showing their usage, shortname, and description |
+| ops | net | net_var | Displays an overview of specific variables in network configuration |
 | ops | net | net-uni | Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system |
 | ops | net | net-fsr | Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding |
-| ops | net | net-fas | Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration |
-| ops | pbs | pbs-fun | show an overview of specific functions |
-| ops | pbs | pbs-var | show an overview of specific variables |
+| ops | net | net_fas | Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration |
+| ops | pbs | pbs_fun | show an overview of specific functions |
+| ops | pbs | pbs_var | show an overview of specific variables |
 | ops | pbs | pbs-dav | Download Proxmox GPG key and verify checksums. |
 | ops | pbs | pbs-adr | Add Proxmox repository to sources.list if not already present. |
 | ops | pbs | pbs-rda | Restore datastore configuration file with given parameters. |
@@ -169,7 +169,7 @@ Functions are organized by library modules for systematic access and reference.
 | ops | pve | pve-dsr | Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources  |
 | ops | pve | pve-rsn | Removes the Proxmox subscription notice by modifying the web interface JavaScript file, with an option to restart the pveproxy service  |
 | ops | pve | pve-clu | Updates the Proxmox VE Appliance Manager (pveam) container template list |
-| ops | pve | pve-cdo | Downloads a specified container template to a given storage location, with error handling and options to list available templates |
+| ops | pve | pve_cdo | Downloads a specified container template to a given storage location, with error handling and options to list available templates |
 | ops | pve | pve-cbm | Configures a bind mount for a specified Proxmox container, linking a host directory to a container directory |
 | ops | pve | pve-ctc | Sets up different containers specified in cfg/env/site. |
 | ops | pve | pve-cto | Manages multiple Proxmox containers by starting, stopping, enabling, or disabling them, supporting individual IDs, ranges, or all containers |
@@ -178,19 +178,19 @@ Functions are organized by library modules for systematic access and reference.
 | ops | pve | pve-vms | Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration |
 | ops | pve | pve-vmg | Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process |
 | ops | pve | pve-vpt | Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices |
-| ops | pve | pve-vck | Checks and reports which node in the Proxmox cluster is currently hosting a specified VM |
+| ops | pve | pve_vck | Checks and reports which node in the Proxmox cluster is currently hosting a specified VM |
 | ops | srv | srv-fun | Displays an overview of specific NFS-related functions in the script, showing their usage, shortname, and description |
 | ops | srv | srv-var | Displays an overview of NFS-specific variables defined in the configuration file, showing their names, values, and usage across different files |
 | ops | srv | nfs-set | Sets up an NFS share by prompting for necessary information (NFS header, shared folder, and options) and applying the configuration |
-| ops | srv | nfs-apl | Applies NFS configuration by creating the shared folder if needed, updating /etc/exports, and restarting the NFS server |
+| ops | srv | nfs_apl | Applies NFS configuration by creating the shared folder if needed, updating /etc/exports, and restarting the NFS server |
 | ops | srv | nfs-mon | Monitors and displays various aspects of the NFS server |
 | ops | srv | smb-set | Sets up a Samba share by prompting for missing configuration details and applying the configuration. Handles various share parameters including permissions, guest access, and file masks |
 | ops | srv | smb-apl | Applies Samba configuration by creating the shared folder if needed, updating cfg/env/site. with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares |
 | ops | srv | smb-mon | Monitors and displays various aspects of the SMB server |
 | ops | sto | sto-fun | Displays an overview of specific functions in the script, showing their usage, shortname, and description |
 | ops | sto | sto-var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
-| ops | sto | sto-fea | Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry |
-| ops | sto | sto-fec | Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters |
+| ops | sto | sto_fea | Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry |
+| ops | sto | sto_fec | Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters |
 | ops | sto | sto-nfs | Mounts an NFS share interactively or with provided arguments |
 | ops | sto | sto-bfs-tra | Transforms a folder into a Btrfs subvolume, optionally setting attributes (e.g., disabling COW). Handles multiple folders, preserving content and ownership. |
 | ops | sto | sto-bfs-ra1 | Creates a Btrfs RAID 1 filesystem on two specified devices, mounts it, and optionally adds an entry to /etc/fstab |
@@ -201,7 +201,7 @@ Functions are organized by library modules for systematic access and reference.
 | ops | sto | sto-bfs-sfr | Resyncs a Btrfs snapshot subvolume to a flat folder using rsync, excluding specific directories (.snapshots and .ssh) and preserving attributes |
 | ops | sto | sto-bfs-hub | Creates a backup subvolume for a user's home directory on a backup drive, then sends and receives Btrfs snapshots incrementally, managing full and incremental backups |
 | ops | sto | sto-bfs-snd | Recursively deletes a Btrfs parent subvolume and all its nested child subvolumes, with options for interactive mode and forced deletion |
-| ops | sto | sto-zfs-cpo | Creates a ZFS pool on a specified drive in a Proxmox VE environment |
+| ops | sto | sto_zfs_cpo | Creates a ZFS pool on a specified drive in a Proxmox VE environment |
 | ops | sto | sto-zfs-dim | Creates a new ZFS dataset or uses an existing one, sets its mountpoint, and ensures it's mounted at the specified path |
 | ops | sto | sto-zfs-dbs | Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency |
 | ops | sys | sys-fun | Shows a summary of specific functions in the script, displaying their usage, shortname, and description |
@@ -212,28 +212,28 @@ Functions are organized by library modules for systematic access and reference.
 | ops | sys | sys-ipa | Installs specified packages using the system's package manager |
 | ops | sys | sys-gst | Configures git globally with a specified username and email, essential for proper commit attribution |
 | ops | sys | sys-sst | Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled |
-| ops | sys | sys-ust | Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation |
-| ops | sys | sys-sdc | Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not |
+| ops | sys | sys_ust | Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation |
+| ops | sys | sys_sdc | Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not |
 | ops | sys | sys-suk | Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device |
-| ops | sys | sys-spi | Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist |
+| ops | sys | sys_spi | Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist |
 | ops | sys | sys-sks | Generates an SSH key pair and handles the transfer process |
-| ops | sys | sys-sak | Appends the content of a specified public SSH key file to the authorized_keys file. |
+| ops | sys | sys_sak | Appends the content of a specified public SSH key file to the authorized_keys file. |
 | ops | sys | sys-loi | Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration |
 | ops | sys | sys-sca | Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely |
 | ops | sys | sys-gre | An interactive Bash function that guides users through Git history navigation, offering options for reset type and subsequent actions, with built-in safeguards and explanations. |
 | ops | sys | sys-hos | Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits. |
 | ops | usr | usr-fun | Shows a summary of selected functions in the script, displaying their usage, shortname, and description |
-| ops | usr | usr-var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
-| ops | usr | usr-ckp | Changes the Konsole profile for the current user by updating the konsolerc file |
-| ops | usr | usr-vsf | Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename |
-| ops | usr | usr-cff | Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name |
+| ops | usr | usr_var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
+| ops | usr | usr_ckp | Changes the Konsole profile for the current user by updating the konsolerc file |
+| ops | usr | usr_vsf | Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename |
+| ops | usr | usr_cff | Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name |
 | ops | usr | usr-duc | Compares data usage between two paths up to a specified depth. Displays results in a tabular format with color-coded differences |
 | ops | usr | usr-cif | Concatenates and displays the contents of all files within a specified folder, separating each file's content with a line of dashes |
-| ops | usr | usr-rsf | Replaces strings in files within a specified folder and its subfolders. If in a git repository, it stages changes and shows the diff |
-| ops | usr | usr-rsd | Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding |
-| ops | usr | usr-swt | Schedules a system wake-up using rtcwake. Supports absolute or relative time input and different sleep states (mem/disk) |
+| ops | usr | usr_rsf | Replaces strings in files within a specified folder and its subfolders. If in a git repository, it stages changes and shows the diff |
+| ops | usr | usr_rsd | Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding |
+| ops | usr | usr_swt | Schedules a system wake-up using rtcwake. Supports absolute or relative time input and different sleep states (mem/disk) |
 | ops | usr | usr-adr | Adds a specific line to a target if not already present |
-| ops | usr | usr-cap | Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation |
+| ops | usr | usr_cap | Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation |
 | ops | usr | usr-rif | Replaces all occurrences of a string in files within a given folder |
 | ops | usr | usr-ans | Navigates to the Ansible project directory, runs the playbook, then returns to the original directory |
 | gen | env | update_ecc | Helper function to update environment controller configuration |

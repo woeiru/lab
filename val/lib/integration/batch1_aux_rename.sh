@@ -26,17 +26,17 @@ echo -e "${GREEN}✓ Backup created: $BACKUP_DIR${NC}"
 
 # Define the first batch - aux functions only
 declare -A BATCH1_FUNCTIONS=(
-    ["aux-fun"]="aux_fun"
-    ["aux-var"]="aux_var" 
-    ["aux-log"]="aux_log"
-    ["aux-ffl"]="aux_ffl"
-    ["aux-laf"]="aux_laf"
-    ["aux-acu"]="aux_acu"
-    ["aux-mev"]="aux_mev"
-    ["aux-nos"]="aux_nos"
-    ["aux-flc"]="aux_flc"
-    ["aux-use"]="aux_use"
-    ["aux-lad"]="aux_lad"
+    ["aux_fun"]="aux_fun"
+    ["aux_var"]="aux_var" 
+    ["aux_log"]="aux_log"
+    ["aux_ffl"]="aux_ffl"
+    ["aux_laf"]="aux_laf"
+    ["aux_acu"]="aux_acu"
+    ["aux_mev"]="aux_mev"
+    ["aux_nos"]="aux_nos"
+    ["aux_flc"]="aux_flc"
+    ["aux_use"]="aux_use"
+    ["aux_lad"]="aux_lad"
 )
 
 echo -e "${YELLOW}📋 Batch 1 Functions to rename:${NC}"

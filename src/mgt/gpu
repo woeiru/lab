@@ -30,7 +30,7 @@
 #   - Consistency: All wrapper functions follow the same pattern and naming convention
 #
 # NAMING CONVENTION:
-#   - Pure functions: Three-letter names (e.g., gpu-fun, gpu-var, gpu-nds)
+#   - Pure functions: Three-letter names (e.g., gpu-fun, gpu_var, gpu-nds)
 #   - Wrapper functions: Pure function name + "-w" suffix (e.g., gpu-fun-w)
 #   - Global variables: Follow established site configuration patterns
 #
@@ -53,14 +53,14 @@
 # USAGE EXAMPLES:
 #   # Use wrapper functions in scripts that have global environment loaded
 #   gpu-fun-w                    # List available functions
-#   gpu-var-w                    # Show configuration variables
+#   gpu_var-w                    # Show configuration variables
 #   gpu-nds-w 550.142            # Download/install NVIDIA drivers
-#   gpu-pt1-w                    # Configure GRUB for GPU passthrough
-#   gpu-pt2-w                    # Add VFIO modules
-#   gpu-pt3-w enable             # Enable persistent GPU passthrough
-#   gpu-ptd-w                    # Detach GPU for VM use
-#   gpu-pta-w                    # Attach GPU back to host
-#   gpu-pts-w                    # Show GPU status
+#   gpu_pt1-w                    # Configure GRUB for GPU passthrough
+#   gpu_pt2-w                    # Add VFIO modules
+#   gpu_pt3-w enable             # Enable persistent GPU passthrough
+#   gpu_ptd-w                    # Detach GPU for VM use
+#   gpu_pta-w                    # Attach GPU back to host
+#   gpu_pts-w                    # Show GPU status
 #
 # TESTING:
 #   - Unit tests can call pure functions directly with explicit parameters
@@ -74,14 +74,14 @@
 #
 # FUNCTION INVENTORY:
 #   gpu-fun-w : List available GPU functions (wrapper for gpu-fun)
-#   gpu-var-w : Display GPU configuration variables (wrapper for gpu-var)
+#   gpu_var-w : Display GPU configuration variables (wrapper for gpu_var)
 #   gpu-nds-w : NVIDIA driver download/install (wrapper for gpu-nds)
-#   gpu-pt1-w : GRUB/EFI GPU passthrough setup (wrapper for gpu-pt1)
-#   gpu-pt2-w : VFIO kernel modules setup (wrapper for gpu-pt2)
-#   gpu-pt3-w : Persistent GPU passthrough configuration (wrapper for gpu-pt3)
-#   gpu-ptd-w : GPU detachment for VM passthrough (wrapper for gpu-ptd)
-#   gpu-pta-w : GPU attachment back to host (wrapper for gpu-pta)
-#   gpu-pts-w : GPU status and configuration check (wrapper for gpu-pts)
+#   gpu_pt1-w : GRUB/EFI GPU passthrough setup (wrapper for gpu_pt1)
+#   gpu_pt2-w : VFIO kernel modules setup (wrapper for gpu_pt2)
+#   gpu_pt3-w : Persistent GPU passthrough configuration (wrapper for gpu_pt3)
+#   gpu_ptd-w : GPU detachment for VM passthrough (wrapper for gpu_ptd)
+#   gpu_pta-w : GPU attachment back to host (wrapper for gpu_pta)
+#   gpu_pts-w : GPU status and configuration check (wrapper for gpu_pts)
 #
 # ============================================================================
 
@@ -110,9 +110,9 @@ gpu-fun-w() {
     gpu-fun "$filepath_gpu" "$@"
 }
 
-# Wrapper for gpu-var that extracts global variables and calls the pure function
+# Wrapper for gpu_var that extracts global variables and calls the pure function
 # displays an overview of specific variables (wrapper)
-gpu-var-w() {
+gpu_var-w() {
     # Source the pure library function
     source "${LIB_OPS_DIR}/gpu"
     
@@ -120,7 +120,7 @@ gpu-var-w() {
     local config_gpu="${SITE_CONFIG_FILE}"
     local lib_ops_parent_dir="${LIB_OPS_DIR}/.."
     
-    gpu-var "$config_gpu" "$lib_ops_parent_dir"
+    gpu_var "$config_gpu" "$lib_ops_parent_dir"
 }
 
 # Wrapper for gpu-nds that extracts global variables and calls the pure function  
@@ -133,39 +133,39 @@ gpu-nds-w() {
     gpu-nds "$@"
 }
 
-# Wrapper for gpu-pt1 that extracts global variables and calls the pure function
+# Wrapper for gpu_pt1 that extracts global variables and calls the pure function
 # configures initial GRUB and EFI settings for GPU passthrough (wrapper)
-gpu-pt1-w() {
+gpu_pt1-w() {
     # Source the pure library function
     source "${LIB_OPS_DIR}/gpu"
     
     # No global variable dependencies for this function
-    gpu-pt1
+    gpu_pt1
 }
 
-# Wrapper for gpu-pt2 that extracts global variables and calls the pure function
+# Wrapper for gpu_pt2 that extracts global variables and calls the pure function
 # adds necessary kernel modules for GPU passthrough (wrapper)
-gpu-pt2-w() {
+gpu_pt2-w() {
     # Source the pure library function
     source "${LIB_OPS_DIR}/gpu"
     
     # No global variable dependencies for this function
-    gpu-pt2
+    gpu_pt2
 }
 
-# Wrapper for gpu-pt3 that extracts global variables and calls the pure function
+# Wrapper for gpu_pt3 that extracts global variables and calls the pure function
 # finalizes or reverts GPU passthrough setup (wrapper)
-gpu-pt3-w() {
+gpu_pt3-w() {
     # Source the pure library function
     source "${LIB_OPS_DIR}/gpu"
     
     # No global variable dependencies for this function (action is passed as parameter)
-    gpu-pt3 "$@"
+    gpu_pt3 "$@"
 }
 
-# Wrapper for gpu-ptd that extracts global variables and calls the pure function
+# Wrapper for gpu_ptd that extracts global variables and calls the pure function
 # detaches the GPU from the host system for VM passthrough (wrapper)
-gpu-ptd-w() {
+gpu_ptd-w() {
     # Source the pure library function
     source "${LIB_OPS_DIR}/gpu"
     
@@ -183,12 +183,12 @@ gpu-ptd-w() {
     local pci1_id="${!pci1_var:-}"
     local nvidia_driver_preference="${!nvidia_driver_pref_var:-nvidia}"
     
-    gpu-ptd "$gpu_id_arg" "$hostname" "$config_file" "$pci0_id" "$pci1_id" "$nvidia_driver_preference"
+    gpu_ptd "$gpu_id_arg" "$hostname" "$config_file" "$pci0_id" "$pci1_id" "$nvidia_driver_preference"
 }
 
-# Wrapper for gpu-pta that extracts global variables and calls the pure function
+# Wrapper for gpu_pta that extracts global variables and calls the pure function
 # attaches the GPU back to the host system (wrapper)
-gpu-pta-w() {
+gpu_pta-w() {
     # Source the pure library function
     source "${LIB_OPS_DIR}/gpu"
     
@@ -206,12 +206,12 @@ gpu-pta-w() {
     local pci1_id="${!pci1_var:-}"
     local nvidia_driver_preference="${!nvidia_driver_pref_var:-nvidia}"
     
-    gpu-pta "$gpu_id_arg" "$hostname" "$config_file" "$pci0_id" "$pci1_id" "$nvidia_driver_preference"
+    gpu_pta "$gpu_id_arg" "$hostname" "$config_file" "$pci0_id" "$pci1_id" "$nvidia_driver_preference"
 }
 
-# Wrapper for gpu-pts that extracts global variables and calls the pure function
+# Wrapper for gpu_pts that extracts global variables and calls the pure function
 # checks the current status of the GPU (complete detailed version) (wrapper)
-gpu-pts-w() {
+gpu_pts-w() {
     # Source the pure library function
     source "${LIB_OPS_DIR}/gpu"
     
@@ -228,5 +228,5 @@ gpu-pts-w() {
     local pci1_id="${!pci1_var:-}"
     local nvidia_driver_preference="${!nvidia_driver_pref_var:-nvidia}"
     
-    gpu-pts "$hostname" "$config_file" "$pci0_id" "$pci1_id" "$nvidia_driver_preference"
+    gpu_pts "$hostname" "$config_file" "$pci0_id" "$pci1_id" "$nvidia_driver_preference"
 }

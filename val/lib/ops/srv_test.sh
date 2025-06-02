@@ -16,7 +16,7 @@ fi
 
 # Test: Service functions exist
 test_service_functions_exist() {
-    local functions=("srv-fun" "srv-var" "nfs-set" "nfs-apl" "nfs-mon" "smb-set" "smb-apl" "smb-mon")
+    local functions=("srv-fun" "srv-var" "nfs-set" "nfs_apl" "nfs-mon" "smb-set" "smb-apl" "smb-mon")
     local existing=()
     
     for func in "${functions[@]}"; do

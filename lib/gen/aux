@@ -3,18 +3,18 @@
 # ============================================================================
 # aux/src - Function Summary
 #
-#   aux-fun      : Shows a summary of selected functions in the script, displaying their usage, shortname, and description.
-#   aux-var      : Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files.
-#   aux-log      : Logging function. Prints a timestamped log message with a log level.
-#   aux-ffl      : Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed.
-#   aux-laf      : Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability.
-#   aux-lad      : Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options.
-#   aux-acu      : Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files.
-#   aux-mev      : Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters.
-#   aux-nos      : Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information.
-#   aux-flc      : Displays the source code of a specified function from the library folder, including its description, shortname, and usage.
-#   aux-use      : Displays the usage information, shortname, and description of the calling function, helping users understand how to use it.
-#   aux-lad      : Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options.
+#   aux_fun      : Shows a summary of selected functions in the script, displaying their usage, shortname, and description.
+#   aux_var      : Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files.
+#   aux_log      : Logging function. Prints a timestamped log message with a log level.
+#   aux_ffl      : Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed.
+#   aux_laf      : Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability.
+#   aux_lad      : Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options.
+#   aux_acu      : Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files.
+#   aux_mev      : Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters.
+#   aux_nos      : Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information.
+#   aux_flc      : Displays the source code of a specified function from the library folder, including its description, shortname, and usage.
+#   aux_use      : Displays the usage information, shortname, and description of the calling function, helping users understand how to use it.
+#   aux_lad      : Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options.
 #
 # ============================================================================
 
@@ -34,22 +34,22 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
-aux-fun() {
-    # Pass all arguments directly to aux-laf
-    aux-laf "$@"
+aux_fun() {
+    # Pass all arguments directly to aux_laf
+    aux_laf "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
-aux-var() {
-    aux-acu -o "$CONFIG_gpu" "$DIR_FUN/.."
+aux_var() {
+    aux_acu -o "$CONFIG_gpu" "$DIR_FUN/.."
 }
 
 # Logging function. Prints a timestamped log message with a log level
 # log
 # <log_level> <message>
-aux-log() {
+aux_log() {
     local log_level="$1"
     local message="$2"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$log_level] $message"
@@ -58,7 +58,7 @@ aux-log() {
 # Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
 # function folder loop
 # <function> <flag> <path> [max_depth] [current_depth] [extra_args ..]
-aux-ffl() {
+aux_ffl() {
     local fnc="$1"
     local flag="$2"
     local folder="$3"
@@ -130,7 +130,7 @@ aux-ffl() {
                 fi
             elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
                 # Recursive call with incremented depth
-                aux-ffl "$fnc" "$flag" "$file" "$max_depth" "$((current_depth + 1))" "${extra_args[@]}"
+                aux_ffl "$fnc" "$flag" "$file" "$max_depth" "$((current_depth + 1))" "${extra_args[@]}"
             fi
         done
     else
@@ -142,7 +142,7 @@ aux-ffl() {
 # Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
 # list all functions
 # <file name> [-t] [-b]
-aux-laf() {
+aux_laf() {
     local truncate_mode=false
     local break_mode=false
     local json_mode=false
@@ -173,7 +173,7 @@ aux-laf() {
     done
 
     if [ -z "$file_name" ]; then
-        aux-use
+        aux_use
         return 1
     fi
 
@@ -463,7 +463,7 @@ aux-laf() {
 # Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
 # <sort mode: -o|-a|-j|""|> <config file or directory> <target folder1> [target folder2 ...]
-aux-acu() {
+aux_acu() {
     local sort_mode_arg="$1"
     local conf_source="$2"
     local json_mode=false
@@ -484,7 +484,7 @@ aux-acu() {
     # Adjusted width for individual target directory occurrence columns to show details
     local tab_width_per_dir_occ=40 # Increased width
 
-    local usage_message="Usage: aux-acu <-o|-a|-j|\"\"> <config file or directory> <target folder1> [target folder2 ...]"
+    local usage_message="Usage: aux_acu <-o|-a|-j|\"\"> <config file or directory> <target folder1> [target folder2 ...]"
     local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  \"\": defaults to -o (original order)"
 
     if [ ${#target_folders_input[@]} -eq 0 ]; then
@@ -503,7 +503,7 @@ aux-acu() {
     if [[ "$sort_mode" != "-o" && "$sort_mode" != "-a" ]]; then
         echo "Invalid sort mode: '$sort_mode_arg'. Use -o, -a, -j, or an empty string (which defaults to -o)."
         echo -e "$usage_message\n$sort_mode_details"
-        # Consider calling aux-use if it's generic enough or pass specific usage.
+        # Consider calling aux_use if it's generic enough or pass specific usage.
         return 1
     fi
 
@@ -818,13 +818,13 @@ EOF
 # Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters
 # main eval variable
 # <var_name> <prompt_message> <current_value>
-aux-mev() {
+aux_mev() {
     local var_name=$1
     local prompt_message=$2
     local current_value=$3
 
     if [ $# -ne 3 ]; then
-	aux-use
+	aux_use
         return 1
     fi
 
@@ -839,7 +839,7 @@ aux-mev() {
 # Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information
 # main display notification
 # <function_name> <status>
-aux-nos() {
+aux_nos() {
     local function_name="$1"
     local status="$2"
 
@@ -850,10 +850,10 @@ aux-nos() {
 # Displays the source code of a specified function from the library folder, including its description, shortname, and usage
 # function library cat
 # <function_name>
-aux-flc() {
+aux_flc() {
     # Check if a function name is provided
     if [ -z "$1" ]; then
-        aux-use
+        aux_use
         return 1
     fi
 
@@ -892,7 +892,7 @@ aux-flc() {
 # Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
 # function usage information
 #
-aux-use() {
+aux_use() {
     local caller_line=$(caller 0)
     local caller_function=$(echo $caller_line | awk '{print $2}')
     local script_file="${BASH_SOURCE[1]}"
@@ -926,7 +926,7 @@ aux-use() {
 # Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options
 # list all documentation
 # <file/directory name> [-t] [-b] [-j]
-aux-lad() {
+aux_lad() {
     local truncate_mode=false
     local break_mode=false
     local json_mode=false
@@ -961,7 +961,7 @@ aux-lad() {
             doc_path="$lab_dir/doc"
         else
             echo "Error: No documentation path provided and LAB_DIR not set"
-            aux-use
+            aux_use
             return 1
         fi
     fi
