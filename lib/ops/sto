@@ -15,21 +15,87 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
 # Displays an overview of specific functions in the script, showing their usage, shortname, and description
 # overview functions
-#
+# [function_name_filter]
 sto_fun() {
+    # Technical Description:
+    #   Displays comprehensive overview of available storage functions with optional filtering
+    #   Processes all arguments and forwards them to the analysis function
+    #   Supports pattern-based filtering for function name matching
+    #   Provides formatted output with usage information and descriptions
+    # Dependencies:
+    #   - 'aux_laf' function for list and filter operations
+    #   - Access to function definition files
+    #   - Pattern matching utilities for filtering
+    # Arguments:
+    #   $1: function_name_filter (optional) - pattern to filter function names
+    #   Additional arguments are passed through to aux_laf
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # Optional parameters - no validation needed
+    # Pass all arguments to processing function
     aux_laf "$FILEPATH_sto" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
-#
+# -x (execute)
 sto_var() {
+    # Technical Description:
+    #   Scans configuration files for variable definitions and displays usage statistics
+    #   Analyzes variable usage patterns across the codebase
+    #   Provides insights into configuration management and variable dependencies
+    #   Generates formatted output showing variable names, values, and file usage counts
+    # Dependencies:
+    #   - 'aux_acu' function for variable analysis and configuration processing
+    #   - Read access to configuration files and source directories
+    #   - Pattern matching utilities for variable identification
+    # Arguments:
+    #   $1: -x - explicit execution flag required for consistency
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+    
     aux_acu -o "$CONFIG_sto" "$DIR_FUN/.."
 }
 
 # Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry
 # fstab entry auto
-#
+# -x (execute)
 sto_fea() {
+    # Technical Description:
+    #   Performs blkid scan to identify available storage devices with UUID information
+    #   Filters results to show only sd* devices for safety and relevance
+    #   Provides interactive device selection through numbered list interface
+    #   Validates root privileges before attempting fstab modifications
+    #   Creates standardized fstab entries with default mounting options
+    # Dependencies:
+    #   - 'blkid' command for device UUID identification
+    #   - 'grep' for device filtering
+    #   - 'sed' for text processing and UUID extraction
+    #   - Root privileges for /etc/fstab modification
+    #   - Write access to /etc/fstab file
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
     # Perform blkid and filter entries with sd*
     blkid_output=$(blkid | grep '/dev/sd*')
 
@@ -66,8 +132,33 @@ sto_fea() {
 
 # Adds custom entries to /etc/fstab using device UUIDs. Allows user to specify mount point, filesystem, mount options, and other parameters
 # fstab entry custom
-# <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>"
+# <line_number> <mount_point> <filesystem> <mount_options> <fsck_pass_number> <mount_at_boot_priority>
 sto_fec() {
+  # Technical Description:
+  #   Provides advanced fstab entry creation with full customization options
+  #   Extracts UUID from blkid output based on user-specified line number
+  #   Validates UUID extraction and provides error handling for invalid selections
+  #   Creates fully customizable fstab entries with user-specified parameters
+  #   Includes device listing functionality when called without parameters
+  # Dependencies:
+  #   - 'blkid' command for device UUID identification
+  #   - 'sed' for UUID extraction from blkid output
+  #   - 'nl' for numbered device listing
+  #   - 'aux_use' function for usage information display
+  #   - Write access to /etc/fstab file
+  # Arguments:
+  #   Called without parameters: displays numbered list of available devices
+  #   $1: line_number - line number from blkid output to extract UUID
+  #   $2: mount_point - filesystem mount point path
+  #   $3: filesystem - filesystem type (ext4, btrfs, xfs, etc.)
+  #   $4: mount_options - mount options (defaults, rw, etc.)
+  #   $5: fsck_pass_number - filesystem check pass number (0, 1, 2)
+  #   $6: mount_at_boot_priority - mount priority at boot (0, 1, 2)
+  
+  if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+      aux_tec
+      return 0
+  fi
   if [ $# -eq 0 ]; then
     # List blkid output with line numbers
     echo "Available devices:"
@@ -105,13 +196,36 @@ sto_fec() {
 
 # Mounts an NFS share interactively or with provided arguments
 # network file share
-# [server_ip] [shared_folder] [mount_point] [options]
+# <server_ip> <shared_folder> <mount_point> <options>
 sto_nfs() {
+    # Technical Description:
+    #   Establishes NFS mount connections with comprehensive validation and error handling
+    #   Creates mount point directories automatically if they don't exist
+    #   Performs mount operation with user-specified NFS options
+    #   Verifies successful mount through system mount table verification
+    #   Provides detailed status reporting throughout the mount process
+    # Dependencies:
+    #   - 'mount' command with NFS support
+    #   - 'mkdir' for mount point creation
+    #   - 'grep' for mount verification
+    #   - 'sudo' for privileged operations
+    #   - NFS client utilities and kernel modules
+    #   - Network connectivity to NFS server
+    #   - 'aux_use' and 'aux_nos' functions for messaging
+    # Arguments:
+    #   $1: server_ip - IP address or hostname of the NFS server
+    #   $2: shared_folder - path to the shared folder on the NFS server
+    #   $3: mount_point - local directory path where NFS share will be mounted
+    #   $4: options - NFS mount options (e.g., "rw,sync,hard,intr")
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local function_name="${FUNCNAME[0]}"
 
     if [ $# -ne 4 ]; then
-        echo "Usage: $function_name <server_ip> <shared_folder> <mount_point> <options>"
-        aux_use # Assuming aux_use displays detailed usage
+        aux_use
         return 1
     fi
 
@@ -148,11 +262,33 @@ sto_nfs() {
 
 # Transforms a folder into a Btrfs subvolume, optionally setting attributes (e.g., disabling COW). Handles multiple folders, preserving content and ownership.
 # transforming folder subvolume
-# <folder_name> <user_name> <C>
+# <attribute_flag> <user_name> <folder_name> [additional_folders...]
 sto_bfs_tra() {
+    # Technical Description:
+    #   Converts regular directories to Btrfs subvolumes with attribute management
+    #   Preserves directory contents by moving to temporary location during conversion
+    #   Sets filesystem attributes like Copy-on-Write (COW) disable for performance
+    #   Manages ownership transfer to specified user account
+    #   Supports batch processing of multiple directories in single operation
+    # Dependencies:
+    #   - 'btrfs' command with subvolume support
+    #   - 'chattr' for filesystem attribute management
+    #   - 'chown' for ownership changes
+    #   - 'mv' for directory operations
+    #   - 'rm' for cleanup operations
+    #   - Btrfs filesystem mounted and accessible
+    #   - Root or appropriate privileges for subvolume creation
+    # Arguments:
+    #   $1: attribute_flag - filesystem attribute to set (C for no-COW, or - for none)
+    #   $2: user_name - username for subvolume ownership
+    #   $3+: folder_name(s) - one or more folder names to convert to subvolumes
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     if [ $# -lt 3 ]; then
-        echo "Usage: sto-bfs-tra <attribute_flag> <user_name> <folder_name> [<additional_folders>...]"
-        echo "Attribute flags: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
+        aux_use
         return 1
     fi
 
@@ -161,7 +297,8 @@ sto_bfs_tra() {
     shift 2
 
     if [[ ! "$attr_flag" =~ ^[acdeijsuACDST-]$ ]]; then
-        echo "Invalid attribute flag. Use one of: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
+        echo "Error: Invalid attribute flag. Use one of: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
+        aux_use
         return 1
     fi
 
@@ -202,6 +339,29 @@ sto_bfs_tra() {
 # btrfs raid 1
 # <device1> <device2> <mount_point>
 sto_bfs_ra1() {
+    # Technical Description:
+    #   Creates a Btrfs RAID 1 filesystem with mirrored data and metadata
+    #   Configures both data and metadata redundancy across two devices
+    #   Establishes mount point and performs initial filesystem mount
+    #   Provides filesystem status verification and space usage reporting
+    #   Offers optional /etc/fstab integration with degraded mode support
+    # Dependencies:
+    #   - 'mkfs.btrfs' command for filesystem creation
+    #   - 'btrfs' command for management operations
+    #   - 'blkid' for UUID extraction
+    #   - 'mkdir' for mount point creation
+    #   - 'mount' for filesystem mounting
+    #   - Two available block devices for RAID configuration
+    #   - 'aux_use' and 'aux_nos' functions for messaging
+    # Arguments:
+    #   $1: device1 - first block device path (e.g., /dev/sdb)
+    #   $2: device2 - second block device path (e.g., /dev/sdc)
+    #   $3: mount_point - directory path where filesystem will be mounted
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local function_name="${FUNCNAME[0]}"
     local device1="$1"
     local device2="$2"
@@ -242,8 +402,30 @@ sto_bfs_ra1() {
 
 # Checks and lists subvolume status of folders in a specified path. Supports filtering by folder type (regular, hidden, or both) and subvolume status.
 # check subvolume folder
-# <path> <folder_type: 1=regular, 2=hidden, 3=both> <yes=show subvolumes, no=show non-subvolumes, all=show all>
+# <path> <folder_type> <filter>
 sto_bfs_csf() {
+    # Technical Description:
+    #   Analyzes directory structure to identify Btrfs subvolumes vs regular folders
+    #   Supports filtering by folder visibility (regular, hidden, or both types)
+    #   Cross-references folders with Btrfs subvolume list for accurate status
+    #   Provides formatted output showing folder paths and subvolume status
+    #   Enables selective display based on subvolume status filtering criteria
+    # Dependencies:
+    #   - 'btrfs' command with subvolume listing capabilities
+    #   - 'find' for directory traversal and filtering
+    #   - 'grep' for pattern matching and filtering
+    #   - 'sort' for alphabetical ordering
+    #   - Access to Btrfs filesystem for subvolume enumeration
+    #   - 'aux_use' function for usage information
+    # Arguments:
+    #   $1: path - directory path to analyze for subvolumes
+    #   $2: folder_type - folder visibility filter (1=regular, 2=hidden, 3=both)
+    #   $3: filter - subvolume status filter (yes=subvolumes, no=folders, all=both)
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local path="$1"
     local folder_type="$2"
     local filter="$3"
@@ -300,6 +482,27 @@ sto_bfs_csf() {
 # snapper home create
 # <configname>
 sto_bfs_shc() {
+    # Technical Description:
+    #   Creates new Snapper snapshots with intelligent configuration selection
+    #   Automatically discovers and selects from available home_* configurations
+    #   Provides interactive configuration selection when multiple options exist
+    #   Handles special 'home' keyword for automatic configuration detection
+    #   Executes snapper create command with proper configuration context
+    # Dependencies:
+    #   - 'snapper' command with configuration management
+    #   - 'awk' for configuration list processing
+    #   - 'wc' for counting configuration entries
+    #   - 'head' for selecting single configuration
+    #   - 'grep' for configuration validation
+    #   - Properly configured Snapper installation
+    #   - 'aux_use' function for usage information
+    # Arguments:
+    #   $1: configname - Snapper configuration name or 'home' for auto-selection
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local configname=$1
 
     if [ -z "$configname" ]; then
@@ -339,13 +542,34 @@ sto_bfs_shc() {
 }
 # Deletes a specified Snapper snapshot from a given configuration or automatically selects a 'home_*' configuration if multiple exist
 # snapper home delete
-# <configname> <snapshot>
+# <snapshot> [configname]
 sto_bfs_shd() {
+    # Technical Description:
+    #   Removes specific Snapper snapshots with flexible configuration handling
+    #   Supports both explicit configuration specification and automatic detection
+    #   Automatically discovers and selects from available home_* configurations
+    #   Provides interactive configuration selection when multiple options exist
+    #   Executes snapper delete command with proper configuration and snapshot context
+    # Dependencies:
+    #   - 'snapper' command with snapshot management capabilities
+    #   - 'awk' for configuration list processing
+    #   - 'wc' for counting configuration entries
+    #   - 'head' for selecting single configuration
+    #   - 'grep' for configuration validation
+    #   - Properly configured Snapper installation
+    # Arguments:
+    #   $1: snapshot - snapshot number or identifier to delete
+    #   $2: configname (optional) - Snapper configuration name
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local configname
     local snapshot
 
     if [ $# -eq 0 ]; then
-        echo "Usage: sto-bfs-shd <snapshot> [<configname>]"
+        aux_use
         return 1
     elif [ $# -eq 1 ]; then
         snapshot=$1
@@ -389,6 +613,27 @@ sto_bfs_shd() {
 # snapper home list
 # <configname>
 sto_bfs_shl() {
+    # Technical Description:
+    #   Displays comprehensive Snapper snapshot listings with intelligent configuration selection
+    #   Automatically discovers and selects from available home_* configurations
+    #   Provides interactive configuration selection when multiple options exist
+    #   Handles special 'home' keyword for automatic configuration detection
+    #   Executes snapper list command with proper configuration context
+    # Dependencies:
+    #   - 'snapper' command with snapshot listing capabilities
+    #   - 'awk' for configuration list processing
+    #   - 'wc' for counting configuration entries
+    #   - 'head' for selecting single configuration
+    #   - 'grep' for configuration validation
+    #   - Properly configured Snapper installation
+    #   - 'aux_use' function for usage information
+    # Arguments:
+    #   $1: configname - Snapper configuration name or 'home' for auto-selection
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local configname=$1
 
     if [ -z "$configname" ]; then
@@ -429,8 +674,28 @@ sto_bfs_shl() {
 
 # Resyncs a Btrfs snapshot subvolume to a flat folder using rsync, excluding specific directories (.snapshots and .ssh) and preserving attributes
 # snapshot flat resync
-# <snapshot subvolume> <target folder>
+# <snapshot_subvolume> <target_folder>
 sto_bfs_sfr() {
+    # Technical Description:
+    #   Synchronizes Btrfs snapshot contents to regular filesystem directories
+    #   Preserves file attributes, permissions, and extended attributes during sync
+    #   Excludes sensitive directories (.snapshots, .ssh) for security and consistency
+    #   Performs deletions to ensure target matches source exactly
+    #   Provides detailed transfer progress and comprehensive error reporting
+    # Dependencies:
+    #   - 'rsync' with extended attribute support (-aAXv flags)
+    #   - Read access to source snapshot subvolume
+    #   - Write access to target folder location
+    #   - Sufficient disk space for complete synchronization
+    #   - 'aux_use' function for usage information
+    # Arguments:
+    #   $1: snapshot_subvolume - path to source Btrfs snapshot subvolume
+    #   $2: target_folder - destination directory for synchronized content
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local snapshot_sub="$1"
     local target_folder="$2"
 
@@ -454,8 +719,33 @@ sto_bfs_sfr() {
 }
 # Creates a backup subvolume for a user's home directory on a backup drive, then sends and receives Btrfs snapshots incrementally, managing full and incremental backups
 # home user backups
-# <user> <snapshots: "all">
+# <username> <snapshot_option>
 sto_bfs_hub() {
+    # Technical Description:
+    #   Manages comprehensive Btrfs snapshot backup system for user home directories
+    #   Creates backup subvolumes and directory structures automatically
+    #   Performs incremental Btrfs send/receive operations for efficient transfers
+    #   Handles both full initial backups and subsequent incremental updates
+    #   Manages snapshot metadata (info.xml) preservation and logging
+    #   Provides detailed logging with timestamps for audit and troubleshooting
+    # Dependencies:
+    #   - 'btrfs' command with send/receive capabilities
+    #   - 'date' for timestamp generation
+    #   - 'ls' and 'sort' for snapshot enumeration
+    #   - 'mkdir' for directory creation
+    #   - 'cp' for metadata file copying
+    #   - 'xmllint' for XML processing
+    #   - Source and backup Btrfs filesystems
+    #   - Appropriate permissions for snapshot operations
+    #   - 'aux_use' function for usage information
+    # Arguments:
+    #   $1: username - target user account name for backup operations
+    #   $2: snapshot_option - snapshot processing mode (typically "all")
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local username="$1"
     local snapshot_option="$2"
     local source_sub="/home/$username"
@@ -597,8 +887,30 @@ sto_bfs_hub() {
 
 # Recursively deletes a Btrfs parent subvolume and all its nested child subvolumes, with options for interactive mode and forced deletion
 # subvolume nested delete
-# <parent subvolume>
+# [-i|-f] <parent_subvolume>
 sto_bfs_snd() {
+    # Technical Description:
+    #   Performs recursive deletion of Btrfs subvolume hierarchies safely
+    #   Traverses subvolume tree from leaves to root for proper deletion order
+    #   Supports interactive confirmation mode for safety (-i flag)
+    #   Provides forced deletion mode for automated operations (-f flag)
+    #   Handles both absolute and relative path specifications
+    #   Includes comprehensive error handling and rollback on failures
+    # Dependencies:
+    #   - 'btrfs' command with subvolume management capabilities
+    #   - 'awk' and 'sed' for output processing
+    #   - POSIX getopts for flag parsing
+    #   - Access to Btrfs filesystem for subvolume operations
+    #   - Appropriate permissions for subvolume deletion
+    # Arguments:
+    #   -i: interactive mode - prompts for confirmation before each deletion
+    #   -f: force mode - performs deletion without confirmation prompts
+    #   $1: parent_subvolume - path to parent subvolume for recursive deletion
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local target_path=""
     local interactive=false
     local force=false
@@ -698,13 +1010,32 @@ sto_bfs_snd() {
 # zfs create pool
 # <pool_name> <drive_name_or_path>
 sto_zfs_cpo() {
+    # Technical Description:
+    #   Creates new ZFS storage pools on specified block devices
+    #   Validates pool name uniqueness and device availability before creation
+    #   Performs safety checks to prevent data loss on existing devices
+    #   Provides interactive confirmation for destructive operations
+    #   Displays pool status and configuration after successful creation
+    # Dependencies:
+    #   - 'zpool' command for ZFS pool management
+    #   - 'sudo' for privileged operations
+    #   - ZFS kernel modules loaded and functional
+    #   - Target block device available and accessible
+    #   - 'aux_use' and 'aux_nos' functions for messaging
+    # Arguments:
+    #   $1: pool_name - name for the new ZFS pool
+    #   $2: drive_name_or_path - block device path (e.g., /dev/sdX)
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local function_name="${FUNCNAME[0]}"
     local pool_name="$1"
     local drive_name="$2"
 
     if [ $# -ne 2 ]; then
-        echo "Usage: $function_name <pool_name> <drive_name_or_path>"
-        aux_use || true # Call aux_use if it exists, otherwise ignore error
+        aux_use
         return 1
     fi
 
@@ -745,6 +1076,27 @@ sto_zfs_cpo() {
 # zfs directory mount
 # <pool_name> <dataset_name> <mountpoint_path>
 sto_zfs_dim() {
+    # Technical Description:
+    #   Manages ZFS dataset creation and mountpoint configuration
+    #   Creates datasets automatically if they don't exist in the specified pool
+    #   Establishes and configures custom mountpoint locations
+    #   Creates required directory structures for mountpoints
+    #   Validates and reports final mounting status with detailed feedback
+    # Dependencies:
+    #   - 'zfs' command for dataset management
+    #   - 'mkdir' for directory creation
+    #   - Existing ZFS pool for dataset creation
+    #   - Appropriate permissions for ZFS operations
+    #   - 'aux_use' and 'aux_nos' functions for messaging
+    # Arguments:
+    #   $1: pool_name - existing ZFS pool name
+    #   $2: dataset_name - name for the dataset within the pool
+    #   $3: mountpoint_path - local directory path for dataset mounting
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local function_name="${FUNCNAME[0]}"
     local pool_name="$1"
     local dataset_name="$2"
@@ -792,6 +1144,28 @@ sto_zfs_dim() {
 # zfs dataset backup
 # <sourcepoolname> <destinationpoolname> <datasetname>
 sto_zfs_dbs() {
+    # Technical Description:
+    #   Manages ZFS snapshot creation and replication between pools
+    #   Creates timestamped snapshots with hour-based naming convention
+    #   Handles both initial full sends and incremental transfers for efficiency
+    #   Automatically detects existing snapshots for incremental operations
+    #   Provides interactive confirmation and detailed command preview
+    # Dependencies:
+    #   - 'zfs' command with snapshot and send/receive capabilities
+    #   - 'date' for timestamp generation
+    #   - 'grep' and 'tail' for snapshot discovery
+    #   - Source and destination ZFS pools accessible
+    #   - Appropriate permissions for ZFS snapshot operations
+    #   - 'aux_use' function for usage information
+    # Arguments:
+    #   $1: sourcepoolname - source ZFS pool name
+    #   $2: destinationpoolname - destination ZFS pool name
+    #   $3: datasetname - dataset name within both pools
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
     local sourcepoolname="$1"
     local destinationpoolname="$2"
     local datasetname="$3"
