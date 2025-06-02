@@ -175,7 +175,7 @@ pve_cdo() {
     local function_name="${FUNCNAME[0]}"
     local ct_dl_sto="$1"
     local ct_dl="$2"
-
+    
     # Attempt to download the template
     if ! pveam download "$ct_dl_sto" "$ct_dl" 2>/dev/null; then
         echo "Error: Unable to download template '$ct_dl'."
