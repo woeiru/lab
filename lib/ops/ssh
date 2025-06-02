@@ -784,3 +784,62 @@ ssh_sak() {
     fi
     echo "SSH key append operation completed successfully."
 }
+
+# Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
+# loop operation ip
+# <ip_array> <operation>
+ssh_loi() {
+    # TECHNICAL DETAILS:
+    # ip_array: hy,ct - IP array name from configuration
+    # operation: bypass = Perform initial SSH login to bypass StrictHostKeyChecking
+    # operation: refresh = Remove the SSH key for the given IP from known_hosts
+    # Iterates through all IPs in specified array and performs operation
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+    
+    local ip_type=$1
+    local operation=$2
+    local ip_array_name="${ip_type^^}_IPS"
+
+    # Ensure the array exists
+    if ! declare -p "$ip_array_name" >/dev/null 2>&1; then
+        echo "Invalid IP type: $ip_type"
+        return 1
+    fi
+
+    # Get the associative array
+    declare -n IP_ARRAY="$ip_array_name"
+
+    for KEY in "${!IP_ARRAY[@]}"; do
+        IP=${IP_ARRAY[$KEY]}
+
+        if [ -n "$IP" ]; then
+            if [ "$operation" == "bypass" ]; then
+                echo "Performing SSH login to bypass StrictHostKeyChecking for $IP"
+                ssh -o StrictHostKeyChecking=no root@"$IP" "exit"
+                if [ $? -ne 0 ]; then
+                    echo "Failed to SSH into $IP"
+                fi
+            elif [ "$operation" == "refresh" ]; then
+                echo "Removing SSH key for $IP from known_hosts"
+                ssh-keygen -R "$IP"
+                if [ $? -ne 0 ]; then
+                    echo "Failed to remove SSH key for $IP"
+                fi
+            else
+                echo "Invalid operation: $operation"
+                return 1
+            fi
+        else
+            echo "IP is empty for key $KEY"
+        fi
+    done
+}

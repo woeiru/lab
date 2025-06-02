@@ -73,7 +73,7 @@ ssh_sak → ssh_sak
 sys-hos → sys_hos
 sys-sca → ssh_sca
 sys-gre → sys_gre
-sys-loi → sys_loi
+sys-loi → ssh_loi
 
 # lib/ops/usr  
 usr-fun → usr_fun
