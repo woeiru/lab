@@ -15,23 +15,61 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
 # Shows a summary of specific functions in the script, displaying their usage, shortname, and description
 # overview functions
-#
+# [function_name_filter]
 sys_fun() {
-    # Pass all arguments directly to aux_laf
+    # TECHNICAL DETAILS:
+    # Optional parameters - no validation needed
+    # Pass all arguments to processing function
+    # Supports filtering by function name pattern
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # Optional parameters - no validation needed
+    # Pass all arguments to processing function
     aux_laf "$FILEPATH_gen" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
-#
+# (no parameters)
 sys_var() {
+    # TECHNICAL DETAILS:
+    # Scans configuration files and extracts variable definitions
+    # Displays usage across different files and contexts
+    # No parameters required - operates on default configuration
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 0 ]; then
+        aux_use
+        return 1
+    fi
+    
     aux_acu -o "$CONFIG_gen" "$DIR_FUN/.."
 }
 
 # Manages git operations, ensuring the local repository syncs with the remote.
-# Performs status check, pull, commit, and push operations as needed.
-# sys_gio [commit message]
+# git sync operations
+# [commit_message]
 sys_gio() {
+    # TECHNICAL DETAILS:
+    # Performs status check, pull, commit, and push operations as needed
+    # If commit message provided, uses it for commits
+    # Otherwise commits with empty message when changes detected
+    # Handles both clean working tree updates and dirty tree commits
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # Optional parameters - no validation needed
     local dir="${DIR_FUN:-.}/.."
     local branch="${GIT_BRANCH:-master}"
     local commit_message=""
@@ -74,9 +112,24 @@ sys_gio() {
 }
 
 # Detects the system's package manager
-# detect package all
-#
+# detect package manager
+# (no parameters)
 sys_dpa() {
+    # TECHNICAL DETAILS:
+    # Checks for common package managers: apt, dnf, yum, zypper
+    # Returns the detected package manager name or 'unknown'
+    # Used by other functions to determine installation commands
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 0 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local pman="unknown"
 
@@ -94,14 +147,30 @@ sys_dpa() {
 }
 
 # Updates and upgrades system packages using the detected package manager
-# update packages all
-#
+# update packages system
+# (no parameters)
 sys_upa() {
+    # TECHNICAL DETAILS:
+    # Uses sys_dpa to detect package manager automatically
+    # Performs both update (refresh) and upgrade (install) operations
+    # Supports apt, dnf, yum, and zypper package managers
+    # Provides detailed success/failure feedback
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 0 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
 
     # Get package manager using sys-dpa
     local pman
-    pman=$(sys-dpa)
+    pman=$(sys_dpa)
 
     if [ "$pman" = "unknown" ]; then
         aux_nos "$function_name" "Could not detect a supported package manager"
@@ -135,18 +204,30 @@ sys_upa() {
 }
 
 # Installs specified packages using the system's package manager
-# install packages all
+# install packages system
 # <pak1> <pak2> ...
 sys_ipa() {
-    local function_name="${FUNCNAME[0]}"
+    # TECHNICAL DETAILS:
+    # Filters out already installed packages before attempting installation
+    # Uses detected package manager from sys_dpa function
+    # Supports multiple packages in single command
+    # Provides feedback on installation status
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -lt 1 ]; then
         aux_use
         return 1
     fi
+    
+    local function_name="${FUNCNAME[0]}"
 
     # Get package manager using sys-dpa
     local pman
-    pman=$(sys-dpa)
+    pman=$(sys_dpa)
     if [ "$pman" = "unknown" ]; then
         aux_nos "$function_name" "Could not detect a supported package manager"
         return 1
@@ -156,7 +237,17 @@ sys_ipa() {
     local packages_to_install=()
     for package in "$@"; do
         case "$pman" in
+            apt)
+                if ! dpkg -l "$package" &>/dev/null; then
+                    packages_to_install+=("$package")
+                fi
+                ;;
             dnf|yum)
+                if ! rpm -q "$package" &>/dev/null; then
+                    packages_to_install+=("$package")
+                fi
+                ;;
+            zypper)
                 if ! rpm -q "$package" &>/dev/null; then
                     packages_to_install+=("$package")
                 fi
@@ -172,8 +263,14 @@ sys_ipa() {
 
     # Install filtered packages
     case "$pman" in
+        apt)
+            apt install -y "${packages_to_install[@]}"
+            ;;
         dnf|yum)
             $pman install -y "${packages_to_install[@]}"
+            ;;
+        zypper)
+            zypper install -y "${packages_to_install[@]}"
             ;;
     esac
 
@@ -191,14 +288,24 @@ sys_ipa() {
 # git set config
 # <username> <usermail>
 sys_gst() {
+    # TECHNICAL DETAILS:
+    # Sets global git configuration for user.name and user.email
+    # Essential for proper commit attribution in git operations
+    # Both username and email are required parameters
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local usermail="$2"
-
-    if [ $# -ne 2 ]; then
-	aux_use
-        return 1
-    fi
 
     git config --global user.name "$username"
     git config --global user.email "$usermail"
@@ -207,11 +314,27 @@ sys_gst() {
 }
 
 # Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
-# setup sysstat
-#
+# setup sysstat service
+# (no parameters)
 sys_sst() {
-  # Step 1: Install sysstat
-  install_pakages sysstat
+    # TECHNICAL DETAILS:
+    # Installs sysstat package for system performance monitoring
+    # Enables sysstat in /etc/default/sysstat configuration
+    # Starts and enables the systemd service
+    # Essential for system performance data collection
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 0 ]; then
+        aux_use
+        return 1
+    fi
+    
+    # Step 1: Install sysstat
+    sys_ipa sysstat
 
   # Step 2: Enable sysstat
   sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
@@ -227,14 +350,25 @@ sys_sst() {
 # user setup
 # <username> <password>
 sys_ust() {
+    # TECHNICAL DETAILS:
+    # Creates new system user with home directory
+    # Sets password using chpasswd for security
+    # Validates successful user creation with id command
+    # Provides interactive prompts if parameters missing
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local password="$2"
-
-    if [ $# -ne 2 ]; then
-	aux_use
-        return 1
-    fi
 
     # Prompt for user details
     aux_mev "username" "Enter new username" "$username"
@@ -259,13 +393,24 @@ sys_ust() {
 # systemd setup service
 # <service>
 sys_sdc() {
-    local function_name="${FUNCNAME[0]}"
-    local service="$1"
-
+    # TECHNICAL DETAILS:
+    # Enables service for automatic startup on boot
+    # Starts service immediately if not running
+    # Verifies service status and provides interactive continuation
+    # Handles service activation failures gracefully
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 1 ]; then
-	aux_use
+        aux_use
         return 1
     fi
+    
+    local function_name="${FUNCNAME[0]}"
+    local service="$1"
 
     # Enable and start smbd service
     systemctl enable "$service"
@@ -293,16 +438,28 @@ sys_sdc() {
 # ssh upload keyfile
 # <device_path> <mount_point> <subfolder_path> <upload_path> <file_name>
 sys_suk() {
+    # TECHNICAL DETAILS:
+    # Mounts external device at specified mount point
+    # Copies SSH key from device subfolder to target location
+    # Handles mount point creation if needed
+    # Safely unmounts device after operation
+    # Provides interactive confirmation for all paths
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 5 ]; then
+        aux_use
+        return 1
+    fi
+    
     local device_path="$1"
     local mount_point="$2"
     local subfolder_path="$3"
     local upload_path="$4"
     local file_name="$5"
-
-    if [ $# -ne 5 ]; then
-	aux_use
-        return 1
-    fi
 
     local full_path
     local upload_full_path
@@ -359,17 +516,28 @@ sys_suk() {
 # ssh private identifier
 # <user> <keyname>
 sys_spi() {
-    local keyname=$2
-    local user=$2
+    # TECHNICAL DETAILS:
+    # Creates .ssh directory structure if missing
+    # Adds IdentityFile entry to SSH config for specified key
+    # Handles both root and regular user configurations
+    # Sets proper ownership and permissions (600) for security
+    # Avoids duplicate entries in config file
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+    
+    local user="$1"
+    local keyname="$2"
     local ssh_dir
     local config_file
     local user_home
-
-    if [ $# -ne 2 ]; then
-	aux_use
-        return 1
-    fi
-
 
     if [ "$user" == "root" ]; then
         ssh_dir="/root/.ssh"
@@ -404,8 +572,20 @@ sys_spi() {
 
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
-# client-side generation: sys-sks -c [-d] <server_address> <key_name> [encryption_type] / server-side generation: sys-sks -s [-d] <client_address> <key_name> [encryption_type]
+# <mode> <remote_address> <key_name> [encryption_type]
 sys_sks() {
+    # TECHNICAL DETAILS:
+    # Client-side generation: sys_sks -c [-d] <server_address> <key_name> [encryption_type]
+    # Server-side generation: sys_sks -s [-d] <client_address> <key_name> [encryption_type]
+    # Supports rsa, dsa, ecdsa, ed25519 encryption types (default: ed25519)
+    # Optional -d flag removes original key after successful transfer
+    # Handles secure key transfer via SCP
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     local mode=""
     local deduplicate=false
     local remote_address=""
@@ -433,10 +613,7 @@ sys_sks() {
 
     # Check if required arguments are provided
     if [[ -z "$mode" || -z "$remote_address" || -z "$key_name" ]]; then
-        echo "Usage: sys-sks -s [-d] <client_address> <key_name> [encryption_type] # for server-side generation"
-        echo "       sys-sks -c [-d] <server_address> <key_name> [encryption_type] # for client-side generation"
-        echo "       -d: Optional. If provided, removes the original key after successful transfer."
-        echo "If encryption_type is not specified, ed25519 will be used by default."
+        aux_use
         return 1
     fi
 
@@ -517,19 +694,31 @@ sys_sks() {
 }
 
 # Appends the content of a specified public SSH key file to the authorized_keys file.
-# Provides informational output and restarts the SSH service.
-# Usage: sys_sak -c <server_address> <key_name> *for client-side operation /// sys_sak -s <client_address> <key_name> *for server-side operation
+# ssh append key
+# <mode> <remote_address> <key_name>
 sys_sak() {
+    # TECHNICAL DETAILS:
+    # Client-side operation: sys_sak -c <server_address> <key_name>
+    # Server-side operation: sys_sak -s <client_address> <key_name>
+    # Appends public key to authorized_keys file safely
+    # Sets proper permissions (600) on authorized_keys
+    # Restarts SSH service after key addition
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 3 ]; then
+        aux_use
+        return 1
+    fi
+    
     local mode="$1"
     local remote_address="$2"
     local key_name="$3"
     local ssh_dir="/root/.ssh"
     local authorized_keys_path="$ssh_dir/authorized_keys"
-    if [ $# -ne 3 ]; then
-        echo "Usage: sys_sak -c <server_address> <key_name> # for client-side operation"
-        echo "       sys_sak -s <client_address> <key_name> # for server-side operation"
-        return 1
-    fi
     case "$mode" in
         -c) # Client-side operation
             local public_key_path="$HOME/.ssh/${key_name}.pub"
@@ -581,17 +770,27 @@ sys_sak() {
 
 # Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
 # loop operation ip
-# <ip array: hy,ct> <operation: bypass = Perform initial SSH login to bypass StrictHostKeyChecking / refresh = Remove the SSH key for the given IP from known_hosts>
+# <ip_array> <operation>
 sys_loi() {
+    # TECHNICAL DETAILS:
+    # ip_array: hy,ct - IP array name from configuration
+    # operation: bypass = Perform initial SSH login to bypass StrictHostKeyChecking
+    # operation: refresh = Remove the SSH key for the given IP from known_hosts
+    # Iterates through all IPs in specified array and performs operation
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+    
     local ip_type=$1
     local operation=$2
     local ip_array_name="${ip_type^^}_IPS"
-
-    # Ensure both parameters are provided
-    if [ -z "$ip_type" ] || [ -z "$operation" ]; then
-	  aux_use
-	  return 1
-    fi
 
     # Ensure the array exists
     if ! declare -p "$ip_array_name" >/dev/null 2>&1; then
@@ -632,13 +831,25 @@ sys_loi() {
 # ssh custom aliases
 # <usershortcut> <servershortcut> <ssh_users_array_name> <all_ip_arrays_array_name> <array_aliases_array_name> [command]
 sys_sca() {
-    echo "Debug: Number of arguments: $#"
-    echo "Debug: All arguments: $*"
-
+    # TECHNICAL DETAILS:
+    # Resolves user and server shortcuts from configuration arrays
+    # Supports single server, multiple servers, or entire arrays
+    # Can execute commands remotely on multiple servers
+    # Uses nameref declarations for dynamic array access
+    # Handles 'all' keyword for operations across all server arrays
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -lt 5 ]; then
         aux_use
         return 1
     fi
+    
+    echo "Debug: Number of arguments: $#"
+    echo "Debug: All arguments: $*"
 
     local user_shortcut=$1
     local server_shortcuts=$2
@@ -789,9 +1000,26 @@ sys_sca() {
 }
 
 # An interactive Bash function that guides users through Git history navigation, offering options for reset type and subsequent actions, with built-in safeguards and explanations.
-# GRE: Git Reset Explorer
-# Usage: sys-gre  # Then follow prompts, e.g., enter '2' for commits, '3' for hard reset, '2' to create new branch 'feat
+# git reset explorer
+# (no parameters)
 sys_gre() {
+    # TECHNICAL DETAILS:
+    # Interactive Git Reset Explorer with guided prompts
+    # Offers soft, mixed, and hard reset options with explanations
+    # Provides post-reset actions: keep state, create branch, force push, new commit
+    # Includes safety prompts and status display
+    # Educational tool for understanding git reset operations
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 0 ]; then
+        aux_use
+        return 1
+    fi
+    
     echo "Welcome to the Git Reset Explorer (sys-gre)!"
     echo "This function will guide you through the process of moving back in Git history."
     echo
@@ -862,18 +1090,30 @@ sys_gre() {
 }
 
 # Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits.
-# add host
+# add host entry
 # <ip_address> <hostname>
 sys_hos() {
+    # TECHNICAL DETAILS:
+    # Manages /etc/hosts file entries safely
+    # Updates existing entries if hostname exists with different IP
+    # Adds new entries if hostname doesn't exist
+    # Uses temporary file for safe sed operations
+    # Validates input parameters before processing
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local ip_address="$1"
     local hostname="$2"
     local hosts_file="/etc/hosts"
-
-    if [ -z "$ip_address" ] || [ -z "$hostname" ]; then
-        echo "ERR: $function_name: IP address and hostname must be provided." >&2
-        return 1
-    fi
 
     # Check if the entry already exists with the same IP
     if grep -q -w "$hostname" "$hosts_file"; then
