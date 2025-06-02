@@ -5,10 +5,10 @@
 #
 #   pbs_fun : Shows a summary of selected functions in the script.
 #   pbs_var : Displays an overview of specific variables defined in the configuration file.
-#   pbs-dav : Downloads Proxmox GPG key and verifies checksums.
-#   pbs-adr : Adds Proxmox repository to sources.list.
-#   pbs-rda : Restores datastore configuration file.
-#   pbs-mon : Monitors and displays various aspects of the Proxmox Backup Server.
+#   pbs_dav : Downloads Proxmox GPG key and verifies checksums.
+#   pbs_adr : Adds Proxmox repository to sources.list.
+#   pbs_rda : Restores datastore configuration file.
+#   pbs_mon : Monitors and displays various aspects of the Proxmox Backup Server.
 #
 # ============================================================================
 

@@ -5,8 +5,8 @@
 #
 #   net_fun : Shows a summary of selected functions in the script.
 #   net_var : Displays an overview of specific variables defined in the configuration file.
-#   net-uni : Renames a network interface by updating udev rules and network configuration.
-#   net-fsr : Adds a specified service to firewalld and reloads the firewall.
+#   net_uni : Renames a network interface by updating udev rules and network configuration.
+#   net_fsr : Adds a specified service to firewalld and reloads the firewall.
 #   net_fas : Allows a specified service through the firewall using firewall-cmd.
 #
 # ============================================================================

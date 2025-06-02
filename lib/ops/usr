@@ -3,19 +3,19 @@
 # ============================================================================
 # usr - Function Summary
 #
-#   usr-fun : Shows a summary of selected functions in the script.
+#   usr_fun : Shows a summary of selected functions in the script.
 #   usr_var : Displays an overview of specific variables defined in the configuration file.
 #   usr_ckp : Changes the Konsole profile for the current user.
 #   usr_vsf : Prompts the user to select a file from the current directory.
 #   usr_cff : Counts files in directories based on specified visibility.
-#   usr-duc : Compares data usage between two paths up to a specified depth.
-#   usr-cif : Concatenates and displays the contents of all files within a folder.
+#   usr_duc : Compares data usage between two paths up to a specified depth.
+#   usr_cif : Concatenates and displays the contents of all files within a folder.
 #   usr_rsf : Replaces strings in files within a folder (and subfolders), stages git changes if applicable.
 #   usr_rsd : Performs an rsync operation from a source to a destination path with confirmation.
 #   usr_swt : Schedules a system wake-up using rtcwake.
-#   usr-adr : Adds a specific line to a target file if not already present.
+#   usr_adr : Adds a specific line to a target file if not already present.
 #   usr_cap : Appends a line to a file if it does not already exist.
-#   usr-rif : Replaces all occurrences of a string in files within a given folder (dry run, recursive, interactive options).
+#   usr_rif : Replaces all occurrences of a string in files within a given folder (dry run, recursive, interactive options).
 #
 # ============================================================================
 

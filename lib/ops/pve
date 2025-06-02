@@ -3,20 +3,20 @@
 # ============================================================================
 # pve - Function Summary
 #
-#   pve-fun : Displays an overview of specific Proxmox Virtual Environment (PVE) related functions in the script, showing their usage, shortname, and description.
-#   pve-var : Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files.
-#   pve-dsr : Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources.
-#   pve-rsn : Removes the Proxmox subscription notice by modifying the web interface JavaScript file, with an option to restart the pveproxy service.
-#   pve-clu : Updates the Proxmox VE Appliance Manager (pveam) container template list.
-#   pve-cdo : Downloads a specified container template to a given storage location, with error handling and options to list available templates.
-#   pve-cbm : Configures a bind mount for a specified Proxmox container, linking a host directory to a container directory.
-#   pve-ctc : Sets up different containers specified in cfg/env/site.
-#   pve-cto : Manages multiple Proxmox containers by starting, stopping, enabling, or disabling them, supporting individual IDs, ranges, or all containers.
-#   pve-vmd : Deploys or modifies the VM shutdown hook for GPU reattachment.
-#   pve-vmc : Sets up different virtual machines specified in cfg/env/site.
-#   pve-vms : Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration.
-#   pve-vmg : Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process.
-#   pve-vpt : Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices.
+#   pve_fun : Displays an overview of specific Proxmox Virtual Environment (PVE) related functions in the script, showing their usage, shortname, and description.
+#   pve_var : Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files.
+#   pve_dsr : Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources.
+#   pve_rsn : Removes the Proxmox subscription notice by modifying the web interface JavaScript file, with an option to restart the pveproxy service.
+#   pve_clu : Updates the Proxmox VE Appliance Manager (pveam) container template list.
+#   pve_cdo : Downloads a specified container template to a given storage location, with error handling and options to list available templates.
+#   pve_cbm : Configures a bind mount for a specified Proxmox container, linking a host directory to a container directory.
+#   pve_ctc : Sets up different containers specified in cfg/env/site.
+#   pve_cto : Manages multiple Proxmox containers by starting, stopping, enabling, or disabling them, supporting individual IDs, ranges, or all containers.
+#   pve_vmd : Deploys or modifies the VM shutdown hook for GPU reattachment.
+#   pve_vmc : Sets up different virtual machines specified in cfg/env/site.
+#   pve_vms : Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration.
+#   pve_vmg : Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process.
+#   pve_vpt : Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices.
 #   pve_vck : Checks and reports which node in the Proxmox cluster is currently hosting a specified VM.
 #
 # ============================================================================

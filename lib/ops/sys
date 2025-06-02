@@ -3,21 +3,21 @@
 # ============================================================================
 # sys - Function Summary
 #
-#   sys-fun : Shows a summary of specific functions in the script.
-#   sys-var : Displays an overview of specific variables defined in the configuration file.
-#   sys-gio : Manages git operations (status, pull, commit, push).
-#   sys-dpa : Detects the system's package manager.
-#   sys-upa : Updates and upgrades system packages.
-#   sys-ipa : Installs specified packages using the system's package manager.
-#   sys-gst : Configures git globally with a username and email.
-#   sys-sst : Installs, enables, and starts the sysstat service.
+#   sys_fun : Shows a summary of specific functions in the script.
+#   sys_var : Displays an overview of specific variables defined in the configuration file.
+#   sys_gio : Manages git operations (status, pull, commit, push).
+#   sys_dpa : Detects the system's package manager.
+#   sys_upa : Updates and upgrades system packages.
+#   sys_ipa : Installs specified packages using the system's package manager.
+#   sys_gst : Configures git globally with a username and email.
+#   sys_sst : Installs, enables, and starts the sysstat service.
 #   sys_ust : Creates a new user with a specified username and password.
 #   sys_sdc : Enables and starts a specified systemd service.
-#   sys-suk : Uploads an SSH key from a device to a specified folder.
+#   sys_suk : Uploads an SSH key from a device to a specified folder.
 #   sys_spi : Appends a private SSH key identifier to the SSH config file for a user.
-#   sys-sks : Generates an SSH key pair and handles transfer (client/server side).
+#   sys_sks : Generates an SSH key pair and handles transfer (client/server side).
 #   sys_sak : Appends a public SSH key to authorized_keys (client/server side).
-#   sys-hos : Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits.
+#   sys_hos : Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits.
 #
 # ============================================================================
 
