@@ -220,7 +220,7 @@ Functions are organized by library modules for systematic access and reference.
 | ops | sys | ssh_loi | Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration |
 | ops | sys | ssh_sca | Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely |
 | ops | sys | sys_gre | An interactive Bash function that guides users through Git history navigation, offering options for reset type and subsequent actions, with built-in safeguards and explanations. |
-| ops | sys | sys_hos | Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits. |
+| ops | sys | net_hos | Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits. |
 | ops | usr | usr_fun | Shows a summary of selected functions in the script, displaying their usage, shortname, and description |
 | ops | usr | usr_var | Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files |
 | ops | usr | usr_ckp | Changes the Konsole profile for the current user by updating the konsolerc file |

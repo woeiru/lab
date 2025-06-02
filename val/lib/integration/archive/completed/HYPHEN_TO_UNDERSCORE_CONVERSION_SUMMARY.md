@@ -113,7 +113,7 @@ sys-sak  → ssh_sak     # System activate kernel
 sys-loi  → ssh_loi     # Login operations
 sys-sca  → ssh_sca     # System configuration audit
 sys-gre  → sys_gre     # Git repository operations
-sys-hos  → sys_hos     # Host operations
+sys-hos  → net_hos     # Host operations
 ```
 
 ## Safety Measures Implemented
