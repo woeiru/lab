@@ -110,7 +110,7 @@ sys-suk  → ssh_suk     # System update kernel
 sys-spi  → ssh_spi     # System package info
 sys-sks  → ssh_sks     # System kernel status
 sys-sak  → ssh_sak     # System activate kernel
-sys-loi  → sys_loi     # Login operations
+sys-loi  → ssh_loi     # Login operations
 sys-sca  → ssh_sca     # System configuration audit
 sys-gre  → sys_gre     # Git repository operations
 sys-hos  → sys_hos     # Host operations
