@@ -1,0 +1,73 @@
+#!/bin/bash
+
+LAB_DIR="/home/es/lab"
+source "$LAB_DIR/lib/gen/aux"
+
+LIB_OPS_DIR="$LAB_DIR/lib/ops"
+
+# Test just the GPU library
+echo "=== TESTING GPU LIBRARY ==="
+file="$LIB_OPS_DIR/gpu"
+relative_path="${file#$LAB_DIR/}"
+json_filename="${relative_path//\//_}.json"
+json_file="$LAB_DIR/.tmp/doc/$json_filename"
+module_name=$(basename "$file")
+
+echo "File: $file"
+echo "JSON file: $json_file"
+echo "Module name: $module_name"
+
+# Generate JSON
+aux_laf -j "$file" >/dev/null 2>&1
+
+if [[ -f "$json_file" ]]; then
+    echo "JSON file exists, checking gpu_fun function:"
+    grep -A3 -B1 '"name": "gpu_fun"' "$json_file"
+    
+    echo ""
+    echo "Now processing JSON..."
+    
+    in_functions=false
+    in_function=false
+    func_name=""
+    func_desc=""
+    
+    while IFS= read -r line; do
+        line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        
+        if [[ "$line" == '"functions": [' ]]; then
+            in_functions=true
+            continue
+        fi
+        
+        if [[ "$in_functions" == true && "$line" == "{" ]]; then
+            in_function=true
+            func_name=""
+            func_desc=""
+            continue
+        fi
+        
+        if [[ "$in_function" == true ]]; then
+            if [[ "$line" =~ \"name\":[[:space:]]*\"([^\"]+)\" ]]; then
+                func_name="${BASH_REMATCH[1]}"
+                echo "DEBUG: Found function name: '$func_name'"
+            elif [[ "$line" =~ \"description\":[[:space:]]*\"([^\"]*)\" ]]; then
+                func_desc="${BASH_REMATCH[1]}"
+            elif [[ "$line" == "}" ]]; then
+                if [[ -n "$func_name" && "$func_name" == "gpu_fun" ]]; then
+                    echo "DEBUG: About to output: | ops | $module_name | $func_name | $func_desc |"
+                    echo "| ops | $module_name | $func_name | $func_desc |"
+                    break
+                fi
+                in_function=false
+            fi
+        fi
+        
+        if [[ "$line" == "]" && "$in_functions" == true ]]; then
+            in_functions=false
+            break
+        fi
+    done < "$json_file"
+else
+    echo "JSON file not found!"
+fi
