@@ -1,12 +1,3 @@
-<!-- 
-    This documentation provides comprehensive analysis of variable usage across the lab environment.
-    Variables are analyzed from configuration files and their usage patterns across different modules.
-    
-    The analysis covers:
-    - cfg/env/  : Environment-specific configuration files
-    - lib/ops/  : Operations function libraries
-    - src/set/  : Deployment and setup automation scripts
--->
 
 # Variable Usage Documentation
 
