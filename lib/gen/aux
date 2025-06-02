@@ -897,29 +897,110 @@ aux_use() {
     local caller_function=$(echo $caller_line | awk '{print $2}')
     local script_file="${BASH_SOURCE[1]}"
 
-    # Use grep to locate the function's declaration line number
-    local function_start_line=$(grep -n -m 1 "^[[:space:]]*${caller_function}()" "$script_file" | cut -d: -f1)
-
-    if [ -z "$function_start_line" ]; then
-        echo "Function not found."
-        return
+    # Handle special cases where caller detection fails or script_file is invalid
+    if [[ -z "$caller_function" || "$caller_function" == "main" ]] || [[ ! -f "$script_file" || "$script_file" == "environment" ]]; then
+        # Try to get the actual calling function from the call stack
+        local caller_line_1=$(caller 1)
+        if [[ -n "$caller_line_1" ]]; then
+            local potential_function=$(echo $caller_line_1 | awk '{print $2}')
+            local potential_script=$(echo $caller_line_1 | awk '{print $3}')
+            
+            # Only use if we have a valid script file
+            if [[ -f "$potential_script" && "$potential_script" != "environment" ]]; then
+                caller_function="$potential_function"
+                script_file="$potential_script"
+            fi
+        fi
+        
+        # If still no valid function name or script file, provide general usage
+        if [[ -z "$caller_function" || "$caller_function" == "main" ]] || [[ ! -f "$script_file" || "$script_file" == "environment" ]]; then
+            echo "Usage: This function displays usage information for the calling function."
+            echo "Description: Extracts and displays the comment block above a function definition."
+            echo "Shortname: function usage information"
+            echo ""
+            echo "Function should be called from within another function that has:"
+            echo "  # Description comment (3 lines before function)"
+            echo "  # Shortname comment (2 lines before function)"
+            echo "  # Usage parameters comment (1 line before function)"
+            echo "  function_name() {"
+            echo "      aux_use"
+            echo "  }"
+            echo ""
+            echo "Note: aux_use works best when called from functions defined in script files,"
+            echo "      not from interactive sessions or sourced environments."
+            return 0
+        fi
     fi
 
-    # Calculate the line number of the comment
+    # Validate that script file exists and is readable
+    if [[ ! -f "$script_file" || ! -r "$script_file" ]]; then
+        echo "Error: Cannot read script file: $script_file"
+        echo "Note: aux_use requires the calling function to be defined in a readable script file."
+        return 1
+    fi
+
+    # Use more flexible grep patterns to find the function
+    local function_start_line
+    
+    # Try different function declaration patterns
+    function_start_line=$(grep -n -E "^[[:space:]]*${caller_function}[[:space:]]*\(\)" "$script_file" | head -1 | cut -d: -f1)
+    
+    if [[ -z "$function_start_line" ]]; then
+        # Try pattern without spaces around parentheses
+        function_start_line=$(grep -n -E "^[[:space:]]*${caller_function}\(\)" "$script_file" | head -1 | cut -d: -f1)
+    fi
+    
+    if [[ -z "$function_start_line" ]]; then
+        # Try pattern with 'function' keyword
+        function_start_line=$(grep -n -E "^[[:space:]]*function[[:space:]]+${caller_function}" "$script_file" | head -1 | cut -d: -f1)
+    fi
+
+    if [[ -z "$function_start_line" ]]; then
+        echo "Error: Function '$caller_function' not found in $script_file"
+        echo "Note: aux_use expects functions to be declared as 'function_name()' or 'function function_name'"
+        return 1
+    fi
+
+    # Validate function_start_line is a number
+    if ! [[ "$function_start_line" =~ ^[0-9]+$ ]]; then
+        echo "Error: Invalid line number detected: $function_start_line"
+        return 1
+    fi
+
+    # Calculate the line numbers for comments (with bounds checking)
     local description_line=$((function_start_line - 3))
     local shortname_line=$((function_start_line - 2))
     local usage_line=$((function_start_line - 1))
+    
+    # Ensure we don't try to read negative line numbers
+    if [[ $description_line -lt 1 ]]; then
+        description_line=1
+    fi
+    if [[ $shortname_line -lt 1 ]]; then
+        shortname_line=1
+    fi
+    if [[ $usage_line -lt 1 ]]; then
+        usage_line=1
+    fi
 
-    # Use sed to get the comment line and strip off leading "# "
-    local description=$(sed -n "${description_line}s/^# //p" "$script_file")
-    local shortname=$(sed -n "${shortname_line}s/^# //p" "$script_file")
-    local usage=$(sed -n "${usage_line}s/^# //p" "$script_file")
-    local funcname=${caller_function}
+    # Extract comments with better error handling
+    local description=$(sed -n "${description_line}s/^# //p" "$script_file" 2>/dev/null || echo "")
+    local shortname=$(sed -n "${shortname_line}s/^# //p" "$script_file" 2>/dev/null || echo "")
+    local usage=$(sed -n "${usage_line}s/^# //p" "$script_file" 2>/dev/null || echo "")
+    
+    # Remove any remaining leading/trailing whitespace
+    description=$(echo "$description" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    shortname=$(echo "$shortname" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    usage=$(echo "$usage" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
-    # Display the comment
-    echo "Description:    $description"
-    echo "Shortname:      $shortname"
-    echo "Usage:          $funcname" "$usage"
+    # Display the information with fallbacks for missing comments
+    echo "Function:       $caller_function"
+    echo "Description:    ${description:-No description available}"
+    echo "Shortname:      ${shortname:-No shortname available}"
+    echo "Usage:          $caller_function ${usage:-<parameters not documented>}"
+    
+    # Additional helpful information
+    echo "Location:       $script_file:$function_start_line"
 
 }
 
