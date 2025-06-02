@@ -15,14 +15,53 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
 # Displays an overview of specific NFS-related functions in the script, showing their usage, shortname, and description
 # overview functions
-# 
+# [function_name_filter]
 srv_fun() {
+    # Technical Description:
+    #   Extracts and displays function information from the srv module file
+    #   Uses aux_laf utility to parse function definitions and comments
+    #   Provides formatted output showing function names, descriptions, and usage
+    #   Supports optional filtering by function name pattern
+    # Dependencies:
+    #   - aux_laf function for parsing and formatting
+    #   - Read access to srv module file
+    #   - Standard POSIX shell utilities
+    # Arguments:
+    #   $1: [function_name_filter] - optional pattern to filter functions (default: show all)
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     aux_laf "$FILEPATH_srv" "$@"
 }
 # Displays an overview of NFS-specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
-# 
+# -x (execute)
 srv_var() {
+    # Technical Description:
+    #   Scans configuration files and related directories for srv-related variables
+    #   Uses aux_acu utility with overview flag to extract variable definitions
+    #   Displays variable names, values, and their usage context
+    #   Provides comprehensive view of configuration state for troubleshooting
+    # Dependencies:
+    #   - aux_acu function for configuration analysis
+    #   - Read access to configuration files and directories
+    #   - Standard POSIX shell utilities
+    # Arguments:
+    #   $1: -x - explicit execution flag required for consistency
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+    
     aux_acu -o "$CONFIG_srv" "$DIR_FUN/.."
 }
 
@@ -30,6 +69,31 @@ srv_var() {
 # nfs setup
 # <nfs_header> <shared_folder> <nfs_options>
 nfs_set() {
+    # Technical Description:
+    #   Interactive NFS share setup function that collects required parameters
+    #   Prompts user for missing information using aux_mev utility
+    #   Validates inputs and delegates to nfs_apl for actual configuration
+    #   Provides user-friendly interface for NFS share creation
+    # Dependencies:
+    #   - aux_mev function for interactive parameter collection
+    #   - nfs_apl function for configuration application
+    #   - aux_nos function for success notification
+    #   - Standard POSIX shell utilities
+    # Arguments:
+    #   $1: nfs_header - identifier/name for the NFS export
+    #   $2: shared_folder - absolute path to directory to be shared
+    #   $3: nfs_options - NFS export options (e.g., "*(rw,sync,no_subtree_check)")
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 3 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local nfs_header="$1"
     local shared_folder="$2"
@@ -49,6 +113,35 @@ nfs_set() {
 # nfs apply config
 # <nfs_header> <shared_folder> <nfs_options>
 nfs_apl() {
+    # Technical Description:
+    #   Direct NFS configuration application function without user interaction
+    #   Creates shared directory with appropriate permissions if it doesn't exist
+    #   Updates /etc/exports file with new NFS export entry
+    #   Restarts NFS services to apply configuration changes
+    #   Performs duplicate detection to avoid configuration conflicts
+    # Dependencies:
+    #   - mkdir command for directory creation
+    #   - chmod command for permission setting
+    #   - grep command for duplicate detection
+    #   - tee command for file writing
+    #   - exportfs command for NFS export management
+    #   - systemctl command for service management
+    #   - Root privileges for system configuration
+    # Arguments:
+    #   $1: nfs_header - identifier/name for the NFS export
+    #   $2: shared_folder - absolute path to directory to be shared
+    #   $3: nfs_options - NFS export options (e.g., "*(rw,sync,no_subtree_check)")
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 3 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local nfs_header="$1"
     local shared_folder="$2"
@@ -81,13 +174,43 @@ nfs_apl() {
 
 # Monitors and displays various aspects of the NFS server
 # nfs monitor
-# [option]
+# <option>
 nfs_mon() {
+    # Technical Description:
+    #   Comprehensive NFS server monitoring and status reporting function
+    #   Provides multiple monitoring options through interactive menu or direct parameter
+    #   Displays server status, exports, connections, statistics, and logs
+    #   Supports both individual checks and comprehensive system overview
+    #   Uses systemctl, exportfs, ss, nfsstat, and journalctl for data collection
+    # Dependencies:
+    #   - systemctl command for service status
+    #   - exportfs command for export information
+    #   - ss command for network connections
+    #   - nfsstat command for NFS statistics
+    #   - ps command for process information
+    #   - journalctl command for log access
+    #   - df command for mount point information
+    #   - rpcinfo command for RPC information
+    #   - aux_mev function for interactive input
+    #   - aux_nos function for completion notification
+    # Arguments:
+    #   $1: option - monitoring option number (1-9) or descriptive text
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
-    local option=""
+    local option="$1"
 
-    # If no argument is provided, prompt for option
-    if [ $# -eq 0 ]; then
+    # If menu option provided, show interactive menu
+    if [ "$option" = "menu" ] || [ "$option" = "0" ]; then
         echo "NFS Monitoring Options:"
         echo "1. Show NFS server status"
         echo "2. Display current NFS exports"
@@ -99,8 +222,6 @@ nfs_mon() {
         echo "8. Display RPC information"
         echo "9. All of the above"
         aux_mev "option" "Enter option number" "9"
-    else
-        option="$1"
     fi
 
     case "$option" in
@@ -138,12 +259,13 @@ nfs_mon() {
             ;;
         9|"All of the above")
             for i in {1..8}; do
-                nfs-mon "$i"
+                nfs_mon "$i"
                 echo "----------------------------------------"
             done
             ;;
         *)
-            echo "Invalid option"
+            echo "Invalid option: $option"
+            aux_use
             return 1
             ;;
     esac
@@ -152,9 +274,43 @@ nfs_mon() {
 }
 
 # Sets up a Samba share by prompting for missing configuration details and applying the configuration. Handles various share parameters including permissions, guest access, and file masks
-# samba setup 1
+# samba setup
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
 smb_set() {
+    # Technical Description:
+    #   Interactive Samba share setup function with comprehensive parameter collection
+    #   Prompts user for missing configuration parameters using aux_mev utility
+    #   Handles both user-specific and 'nobody' share configurations
+    #   Validates required fields and delegates to smb_apl for actual configuration
+    #   Enforces password requirement for non-anonymous shares
+    # Dependencies:
+    #   - aux_mev function for interactive parameter collection
+    #   - smb_apl function for configuration application
+    #   - aux_nos function for success notification
+    #   - Standard POSIX shell utilities
+    # Arguments:
+    #   $1: smb_header - share name/identifier in Samba configuration
+    #   $2: shared_folder - absolute path to directory to be shared
+    #   $3: username - Samba username for access (or 'nobody' for guest access)
+    #   $4: smb_password - password for Samba user authentication
+    #   $5: writable_yesno - whether share is writable (yes/no)
+    #   $6: guestok_yesno - whether guest access is allowed (yes/no)
+    #   $7: browseable_yesno - whether share appears in network browsing (yes/no)
+    #   $8: create_mask - file creation permission mask (e.g., 0744)
+    #   $9: dir_mask - directory creation permission mask (e.g., 0755)
+    #   $10: force_user - force all operations as this user
+    #   $11: force_group - force all operations as this group
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 11 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
 	local shared_folder="$2"
@@ -181,7 +337,7 @@ smb_set() {
     fi
 
     # Apply the Samba configuration
-    smb-apl "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
+    smb_apl "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
     aux_nos "$function_name" "Samba setup complete"
 }
 
@@ -189,6 +345,45 @@ smb_set() {
 # samba apply config
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
 smb_apl() {
+    # Technical Description:
+    #   Direct Samba configuration application function without user interaction
+    #   Creates shared directory with appropriate permissions if it doesn't exist
+    #   Updates /etc/samba/smb.conf with new share configuration block
+    #   Manages user authentication through smbpasswd for non-guest shares
+    #   Restarts Samba services to apply configuration changes
+    #   Performs duplicate detection to avoid configuration conflicts
+    # Dependencies:
+    #   - mkdir command for directory creation
+    #   - chmod command for permission setting
+    #   - grep command for duplicate detection
+    #   - tee command for file writing
+    #   - systemctl command for service management
+    #   - id command for user existence checking
+    #   - smbpasswd command for user password management
+    #   - Root privileges for system configuration
+    # Arguments:
+    #   $1: smb_header - share name/identifier in Samba configuration
+    #   $2: shared_folder - absolute path to directory to be shared
+    #   $3: username - Samba username for access (or 'nobody' for guest access)
+    #   $4: smb_password - password for Samba user authentication
+    #   $5: writable_yesno - whether share is writable (yes/no)
+    #   $6: guestok_yesno - whether guest access is allowed (yes/no)
+    #   $7: browseable_yesno - whether share appears in network browsing (yes/no)
+    #   $8: create_mask - file creation permission mask (e.g., 0744)
+    #   $9: dir_mask - directory creation permission mask (e.g., 0755)
+    #   $10: force_user - force all operations as this user
+    #   $11: force_group - force all operations as this group
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 11 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
 	local smb_header="$1"
 	local shared_folder="$2"
@@ -249,13 +444,42 @@ smb_apl() {
 
 # Monitors and displays various aspects of the SMB server
 # smb monitor
-# [option]
+# <option>
 smb_mon() {
+    # Technical Description:
+    #   Comprehensive SMB/Samba server monitoring and status reporting function
+    #   Provides multiple monitoring options through interactive menu or direct parameter
+    #   Displays server status, shares, connections, configuration, and logs
+    #   Supports both individual checks and comprehensive system overview
+    #   Uses systemctl, smbstatus, testparm, and journalctl for data collection
+    # Dependencies:
+    #   - systemctl command for service status
+    #   - smbstatus command for share and connection information
+    #   - testparm command for configuration validation
+    #   - ps command for process information
+    #   - journalctl command for log access
+    #   - smbd command for version information
+    #   - pdbedit command for user management
+    #   - aux_mev function for interactive input
+    #   - aux_nos function for completion notification
+    # Arguments:
+    #   $1: option - monitoring option number (1-9) or descriptive text
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
-    local option=""
+    local option="$1"
 
-    # If no argument is provided, prompt for option
-    if [ $# -eq 0 ]; then
+    # If menu option provided, show interactive menu
+    if [ "$option" = "menu" ] || [ "$option" = "0" ]; then
         echo "SMB Monitoring Options:"
         echo "1. Show SMB server status"
         echo "2. Display current SMB shares"
@@ -267,8 +491,6 @@ smb_mon() {
         echo "8. Display SMB user list"
         echo "9. All of the above"
         aux_mev "option" "Enter option number" "9"
-    else
-        option="$1"
     fi
 
     case "$option" in
@@ -306,12 +528,13 @@ smb_mon() {
             ;;
         9|"All of the above")
             for i in {1..8}; do
-                smb-mon "$i"
+                smb_mon "$i"
                 echo "----------------------------------------"
             done
             ;;
         *)
-            echo "Invalid option"
+            echo "Invalid option: $option"
+            aux_use
             return 1
             ;;
     esac
