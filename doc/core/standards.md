@@ -144,12 +144,12 @@ Configuration options and setup instructions.
 - **Regular updates**: Keep documentation current with system changes
 - **Version tracking**: Document major changes and their impact
 - **Link validation**: Ensure all internal and external links work
-- **Automated generation**: Use tools like `doc-readme` for index maintenance
+- **Automated generation**: Use tools like `doc-hub` for index maintenance
 
 ## 🛠️ Documentation Tools
 
 ### Automated Documentation
-- **`utl/doc-readme`**: Updates documentation index automatically
+- **`utl/doc-hub`**: Updates documentation index automatically
 - **`lib/gen/aux` (aux-lad)**: Documentation discovery and categorization
 - **`utl/doc-func`**: Function metadata table generation
 - **`utl/doc-stats`**: Codebase statistics and metrics
@@ -182,7 +182,7 @@ Configuration options and setup instructions.
 1. Identify documentation needs or changes
 2. Draft updates following templates and standards
 3. Review for technical accuracy and clarity
-4. Update automated indices using `doc-readme`
+4. Update automated indices using `doc-hub`
 5. Validate all links and references
 
 ---
