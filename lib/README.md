@@ -41,9 +41,20 @@ Functions must include properly formatted comment blocks for both `aux_use` and 
 # shortname or mnemonic
 # <parameter1> <parameter2> or (no parameters)
 function_name() {
-    # TECHNICAL DETAILS:
-    # Detailed explanation of function behavior
-    # Implementation notes, examples, edge cases
+    # Technical Description:
+    #   Detailed explanation of function behavior and implementation
+    #   Step-by-step description of what the function does
+    #   Any important implementation notes or algorithms used
+    # Dependencies:
+    #   - Required external commands or utilities
+    #   - Required functions from other modules
+    #   - Required system permissions or privileges
+    #   - Network access or file system requirements
+    # Arguments:
+    #   $1: parameter_name - description of the parameter and its purpose
+    #   $2: parameter_name - description of the parameter and its purpose
+    #   [For functions with no parameters, omit the Arguments section]
+    #   [For functions with optional parameters, mark them as optional]
     
     # Implementation...
 }
@@ -52,6 +63,8 @@ function_name() {
 **Note**: 
 - `aux_use` extracts the **three comment lines above** the function name for usage display
 - `aux_tec` extracts the **technical details block under** the function name for detailed help
+- Technical details should be structured with clear sections: Technical Description, Dependencies, and Arguments
+- Use proper indentation and formatting for readability
 
 #### 3. Special Cases
 
@@ -74,10 +87,19 @@ function_name() {
 # copy files
 # <source_path> <destination_path>
 usr_copy() {
-    # TECHNICAL DETAILS:
-    # Performs recursive copy with preservation of permissions
-    # Validates source exists before attempting copy
-    # Creates destination directory if needed
+    # Technical Description:
+    #   Performs recursive copy with preservation of permissions and metadata
+    #   Validates source exists before attempting copy operation
+    #   Creates destination directory structure if needed
+    #   Handles symbolic links and special files appropriately
+    # Dependencies:
+    #   - 'cp' command with recursive support
+    #   - 'mkdir' for directory creation
+    #   - Read permissions on source directory
+    #   - Write permissions on destination parent directory
+    # Arguments:
+    #   $1: source_path - absolute or relative path to source file or directory
+    #   $2: destination_path - absolute or relative path to destination location
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -101,10 +123,16 @@ usr_copy() {
 # list functions
 # (no parameters)
 usr_list() {
-    # TECHNICAL DETAILS:
-    # Scans function files and extracts function names
-    # Filters by prefix pattern, sorts alphabetically
-    # Excludes internal helper functions
+    # Technical Description:
+    #   Scans function files and extracts function names using pattern matching
+    #   Filters functions by prefix pattern to exclude internal helpers
+    #   Sorts results alphabetically for consistent output
+    #   Provides clean, formatted output suitable for user interaction
+    # Dependencies:
+    #   - 'grep' for pattern matching in source files
+    #   - 'sort' for alphabetical ordering
+    #   - Read access to function definition files
+    #   - Standard POSIX shell utilities
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
