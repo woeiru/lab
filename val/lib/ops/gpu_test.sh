@@ -51,8 +51,8 @@ source lib/ops/gpu 2>/dev/null
 
 # Test core GPU functions exist
 if declare -f gpu-fun >/dev/null && \
-   declare -f gpu-var >/dev/null && \
-   declare -f gpu-pts >/dev/null; then
+   declare -f gpu_var >/dev/null && \
+   declare -f gpu_pts >/dev/null; then
     exit 0
 else
     exit 1
@@ -101,8 +101,8 @@ test_gpu_wrapper_functions() {
     
     # Test wrapper functions are available
     test_function_exists "gpu-fun-w" "GPU function wrapper exists"
-    test_function_exists "gpu-var-w" "GPU variable wrapper exists" 
-    test_function_exists "gpu-pts-w" "GPU status wrapper exists"
+    test_function_exists "gpu_var-w" "GPU variable wrapper exists" 
+    test_function_exists "gpu_pts-w" "GPU status wrapper exists"
 }
 
 test_gpu_wrapper_execution() {
@@ -122,8 +122,8 @@ source bin/ini 2>/dev/null
 
 # Test that wrapper functions can execute
 if gpu-fun-w >/dev/null 2>&1 && \
-   gpu-var-w >/dev/null 2>&1 && \
-   gpu-pts-w >/dev/null 2>&1; then
+   gpu_var-w >/dev/null 2>&1 && \
+   gpu_pts-w >/dev/null 2>&1; then
     exit 0
 else
     exit 1
@@ -141,9 +141,9 @@ test_gpu_status_functionality() {
         return
     fi
     
-    # Test that gpu-pts-w provides meaningful status information
+    # Test that gpu_pts-w provides meaningful status information
     local output
-    if output=$(gpu-pts-w 2>/dev/null); then
+    if output=$(gpu_pts-w 2>/dev/null); then
         if echo "$output" | grep -q -E "(GPU|Status|PCI|Device)"; then
             test_success "GPU status provides meaningful output"
         else
@@ -162,7 +162,7 @@ test_gpu_configuration_access() {
     
     # Test that GPU configuration can be accessed
     local output
-    if output=$(gpu-var-w 2>/dev/null); then
+    if output=$(gpu_var-w 2>/dev/null); then
         if [[ -n "$output" ]]; then
             test_success "GPU configuration is accessible"
         else
@@ -190,13 +190,13 @@ source bin/ini 2>/dev/null
 
 # Test that pure functions exist
 pure_functions_exist=false
-if declare -f gpu-fun >/dev/null && declare -f gpu-var >/dev/null; then
+if declare -f gpu-fun >/dev/null && declare -f gpu_var >/dev/null; then
     pure_functions_exist=true
 fi
 
 # Test that wrapper functions exist
 wrapper_functions_exist=false
-if declare -f gpu-fun-w >/dev/null && declare -f gpu-var-w >/dev/null; then
+if declare -f gpu-fun-w >/dev/null && declare -f gpu_var-w >/dev/null; then
     wrapper_functions_exist=true
 fi
 
@@ -219,7 +219,7 @@ test_gpu_performance() {
     fi
     
     start_performance_test "GPU wrapper execution"
-    gpu-pts-w >/dev/null 2>&1
+    gpu_pts-w >/dev/null 2>&1
     end_performance_test "GPU wrapper execution" 3000  # 3 second threshold
 }
 

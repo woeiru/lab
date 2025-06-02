@@ -129,18 +129,18 @@ The project implements a sophisticated **separation of concerns pattern** for co
 #### Implementation Example
 ```bash
 # Pure function (lib/ops/pve) - accepts explicit parameters
-pve-vck() {
+pve_vck() {
     local vm_id="$1"
     local cluster_nodes_str="$2"
     # Logic using only passed parameters
 }
 
 # Wrapper function (src/mgt/pve) - handles global variables
-pve-vck-w() {
+pve_vck-w() {
     source "${LIB_OPS_DIR}/pve"
     local vm_id="$1"
     local cluster_nodes_str="${CLUSTER_NODES[*]}"
-    pve-vck "$vm_id" "$cluster_nodes_str"
+    pve_vck "$vm_id" "$cluster_nodes_str"
 }
 ```
 

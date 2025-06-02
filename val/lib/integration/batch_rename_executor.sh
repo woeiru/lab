@@ -160,8 +160,8 @@ execute_batch_2() {
     echo
     
     local renames=(
-        "gpu-pt1:gpu-passthrough-enable:$LAB_ROOT/lib/ops/gpu"
-        "gpu-pt2:gpu-passthrough-disable:$LAB_ROOT/lib/ops/gpu"
+        "gpu_pt1:gpu-passthrough-enable:$LAB_ROOT/lib/ops/gpu"
+        "gpu_pt2:gpu-passthrough-disable:$LAB_ROOT/lib/ops/gpu"
         "pve-vpt:pve-vm-passthrough-toggle:$LAB_ROOT/lib/ops/pve"
         "sys-gio:sys-git-operations:$LAB_ROOT/lib/ops/sys"
     )
@@ -181,10 +181,10 @@ execute_batch_3() {
     echo
     
     local renames=(
-        "aux-laf:aux-list-all-functions:$LAB_ROOT/lib/gen/aux"
-        "aux-ffl:aux-foreach-file-list:$LAB_ROOT/lib/gen/aux"
-        "aux-acu:aux-analyze-config-usage:$LAB_ROOT/lib/gen/aux"
-        "aux-nos:aux-notify-operation-status:$LAB_ROOT/lib/gen/aux"
+        "aux_laf:aux-list-all-functions:$LAB_ROOT/lib/gen/aux"
+        "aux_ffl:aux-foreach-file-list:$LAB_ROOT/lib/gen/aux"
+        "aux_acu:aux-analyze-config-usage:$LAB_ROOT/lib/gen/aux"
+        "aux_nos:aux-notify-operation-status:$LAB_ROOT/lib/gen/aux"
     )
     
     for rename_spec in "${renames[@]}"; do

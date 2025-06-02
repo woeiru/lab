@@ -31,7 +31,7 @@
 #   - Consistency: All wrapper functions follow the same pattern and naming convention
 #
 # NAMING CONVENTION:
-#   - Pure functions: Three-letter names (e.g., ssh-fun, ssh-var, ssh-key)
+#   - Pure functions: Three-letter names (e.g., ssh-fun, ssh-var, ssh_key)
 #   - Wrapper functions: Pure function name + "-w" suffix (e.g., ssh-fun-w)
 #   - Global variables: Follow established site configuration patterns
 #
@@ -54,11 +54,11 @@
 #   # Use wrapper functions in scripts that have global environment loaded
 #   ssh-fun-w                    # List available functions
 #   ssh-var-w                    # Show configuration variables
-#   ssh-key-w                    # Load SSH keys from configuration
-#   ssh-lst-w                    # List loaded SSH keys
+#   ssh_key-w                    # Load SSH keys from configuration
+#   ssh_lst-w                    # List loaded SSH keys
 #   ssh-rmv-w                    # Remove all SSH keys
 #   ssh-gen-w ed25519            # Generate ed25519 key with default comment
-#   ssh-cpy-w ~/.ssh/id_ed25519.pub root@192.168.1.100  # Copy key to host
+#   ssh_cpy-w ~/.ssh/id_ed25519.pub root@192.168.1.100  # Copy key to host
 #   ssh-agt-w                    # Start SSH agent
 #
 # TESTING:
@@ -74,11 +74,11 @@
 # FUNCTION INVENTORY:
 #   ssh-fun-w : List available SSH functions (wrapper for ssh-fun)
 #   ssh-var-w : Display SSH configuration variables (wrapper for ssh-var)
-#   ssh-key-w : Load SSH keys from configuration (wrapper for ssh-key)
-#   ssh-lst-w : List SSH keys in agent (wrapper for ssh-lst)
+#   ssh_key-w : Load SSH keys from configuration (wrapper for ssh_key)
+#   ssh_lst-w : List SSH keys in agent (wrapper for ssh_lst)
 #   ssh-rmv-w : Remove all SSH keys from agent (wrapper for ssh-rmv)
 #   ssh-gen-w : Generate SSH keys with defaults (wrapper for ssh-gen)
-#   ssh-cpy-w : Copy SSH key to remote host (wrapper for ssh-cpy)
+#   ssh_cpy-w : Copy SSH key to remote host (wrapper for ssh_cpy)
 #   ssh-agt-w : Start SSH agent (wrapper for ssh-agt)
 #
 # ============================================================================
@@ -162,22 +162,22 @@ ssh-var-w() {
     ssh-var "$config_file" "$lib_parent_dir"
 }
 
-# Wrapper for ssh-key that extracts global variables and calls the pure function
+# Wrapper for ssh_key that extracts global variables and calls the pure function
 # loads SSH keys from configuration into agent (wrapper)
-ssh-key-w() {
+ssh_key-w() {
     # Technical Description:
-    #   Wrapper function that sources the pure ssh-key library function and
+    #   Wrapper function that sources the pure ssh_key library function and
     #   calls it with SSH key paths from global configuration.
     # Dependencies:
     #   - LIB_OPS_DIR global variable
     #   - SSH_KEY_PATHS global array variable
-    #   - ssh-key pure function from lib/ops/ssh
+    #   - ssh_key pure function from lib/ops/ssh
     # Arguments:
     #   None
     # Returns:
-    #   Exit status of ssh-key command
+    #   Exit status of ssh_key command
     # Examples:
-    #   ssh-key-w
+    #   ssh_key-w
     
     # Validate required global variables
     if [[ -z "${LIB_OPS_DIR}" ]]; then
@@ -192,24 +192,24 @@ ssh-key-w() {
     
     # Source and call pure function
     source "${LIB_OPS_DIR}/ssh"
-    ssh-key SSH_KEY_PATHS
+    ssh_key SSH_KEY_PATHS
 }
 
-# Wrapper for ssh-lst that extracts global variables and calls the pure function
+# Wrapper for ssh_lst that extracts global variables and calls the pure function
 # lists SSH keys currently loaded in agent (wrapper)
-ssh-lst-w() {
+ssh_lst-w() {
     # Technical Description:
-    #   Wrapper function that sources the pure ssh-lst library function and
+    #   Wrapper function that sources the pure ssh_lst library function and
     #   calls it directly (no parameters needed).
     # Dependencies:
     #   - LIB_OPS_DIR global variable
-    #   - ssh-lst pure function from lib/ops/ssh
+    #   - ssh_lst pure function from lib/ops/ssh
     # Arguments:
     #   None
     # Returns:
-    #   Exit status of ssh-lst command
+    #   Exit status of ssh_lst command
     # Examples:
-    #   ssh-lst-w
+    #   ssh_lst-w
     
     # Validate required global variables
     if [[ -z "${LIB_OPS_DIR}" ]]; then
@@ -219,7 +219,7 @@ ssh-lst-w() {
     
     # Source and call pure function
     source "${LIB_OPS_DIR}/ssh"
-    ssh-lst
+    ssh_lst
 }
 
 # Wrapper for ssh-rmv that extracts global variables and calls the pure function
@@ -290,25 +290,25 @@ ssh-gen-w() {
     ssh-gen "$key_type" "$comment" "$output_path"
 }
 
-# Wrapper for ssh-cpy that extracts global variables and calls the pure function
+# Wrapper for ssh_cpy that extracts global variables and calls the pure function
 # copies SSH key to remote host with optional defaults (wrapper)
-ssh-cpy-w() {
+ssh_cpy-w() {
     # Technical Description:
-    #   Wrapper function that sources the pure ssh-cpy library function and
+    #   Wrapper function that sources the pure ssh_cpy library function and
     #   calls it with public key path and target host. Uses SSH_TARGET_IP as
     #   default if target_host parameter contains only username.
     # Dependencies:
     #   - LIB_OPS_DIR global variable
     #   - SSH_TARGET_IP global variable (optional)
-    #   - ssh-cpy pure function from lib/ops/ssh
+    #   - ssh_cpy pure function from lib/ops/ssh
     # Arguments:
     #   $1: public_key_path - path to the public key file
     #   $2: target_host - target host in format [user@]hostname[:port]
     # Returns:
-    #   Exit status of ssh-cpy command
+    #   Exit status of ssh_cpy command
     # Examples:
-    #   ssh-cpy-w /root/.ssh/id_ed25519.pub root@192.168.1.100
-    #   ssh-cpy-w /root/.ssh/id_rsa.pub root@  # uses SSH_TARGET_IP
+    #   ssh_cpy-w /root/.ssh/id_ed25519.pub root@192.168.1.100
+    #   ssh_cpy-w /root/.ssh/id_rsa.pub root@  # uses SSH_TARGET_IP
     
     local public_key_path="$1"
     local target_host="$2"
@@ -316,13 +316,13 @@ ssh-cpy-w() {
     # Validate required parameters
     if [[ -z "$public_key_path" ]]; then
         echo "Error: public_key_path parameter required" >&2
-        echo "Usage: ssh-cpy-w <public_key_path> <target_host>" >&2
+        echo "Usage: ssh_cpy-w <public_key_path> <target_host>" >&2
         return 1
     fi
     
     if [[ -z "$target_host" ]]; then
         echo "Error: target_host parameter required" >&2
-        echo "Usage: ssh-cpy-w <public_key_path> <target_host>" >&2
+        echo "Usage: ssh_cpy-w <public_key_path> <target_host>" >&2
         return 1
     fi
     
@@ -339,7 +339,7 @@ ssh-cpy-w() {
     
     # Source and call pure function
     source "${LIB_OPS_DIR}/ssh"
-    ssh-cpy "$public_key_path" "$target_host"
+    ssh_cpy "$public_key_path" "$target_host"
 }
 
 # Wrapper for ssh-agt that extracts global variables and calls the pure function

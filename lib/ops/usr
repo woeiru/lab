@@ -4,17 +4,17 @@
 # usr - Function Summary
 #
 #   usr-fun : Shows a summary of selected functions in the script.
-#   usr-var : Displays an overview of specific variables defined in the configuration file.
-#   usr-ckp : Changes the Konsole profile for the current user.
-#   usr-vsf : Prompts the user to select a file from the current directory.
-#   usr-cff : Counts files in directories based on specified visibility.
+#   usr_var : Displays an overview of specific variables defined in the configuration file.
+#   usr_ckp : Changes the Konsole profile for the current user.
+#   usr_vsf : Prompts the user to select a file from the current directory.
+#   usr_cff : Counts files in directories based on specified visibility.
 #   usr-duc : Compares data usage between two paths up to a specified depth.
 #   usr-cif : Concatenates and displays the contents of all files within a folder.
-#   usr-rsf : Replaces strings in files within a folder (and subfolders), stages git changes if applicable.
-#   usr-rsd : Performs an rsync operation from a source to a destination path with confirmation.
-#   usr-swt : Schedules a system wake-up using rtcwake.
+#   usr_rsf : Replaces strings in files within a folder (and subfolders), stages git changes if applicable.
+#   usr_rsd : Performs an rsync operation from a source to a destination path with confirmation.
+#   usr_swt : Schedules a system wake-up using rtcwake.
 #   usr-adr : Adds a specific line to a target file if not already present.
-#   usr-cap : Appends a line to a file if it does not already exist.
+#   usr_cap : Appends a line to a file if it does not already exist.
 #   usr-rif : Replaces all occurrences of a string in files within a given folder (dry run, recursive, interactive options).
 #
 # ============================================================================
@@ -35,21 +35,21 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
-usr-fun() {
-    # Pass all arguments directly to aux-laf
-    aux-laf "$FILEPATH_usr" "$@"
+usr_fun() {
+    # Pass all arguments directly to aux_laf
+    aux_laf "$FILEPATH_usr" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
-usr-var() {
-    aux-acu -o "$CONFIG_usr" "$DIR_FUN/.."
+usr_var() {
+    aux_acu -o "$CONFIG_usr" "$DIR_FUN/.."
 }
 
 # Changes the Konsole profile for the current user by updating the konsolerc file
 # change konsole profile
 # <profile_number>
-usr-ckp() {
+usr_ckp() {
     local profile_number="$1"
     local username
     local konsole_profile_path
@@ -109,7 +109,7 @@ usr-ckp() {
 # Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
 # variable select filename
 #
-usr-vsf() {
+usr_vsf() {
     files=($(ls))
     echo "Select a file by entering its index:"
     for i in "${!files[@]}"; do
@@ -123,9 +123,9 @@ usr-vsf() {
 # Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name
 # count files folder
 # <path> <folder_type: 1=regular, 2=hidden, 3=both>
-usr-cff() {
+usr_cff() {
     if [ $# -ne 2 ]; then
-        aux-use
+        aux_use
         return 1
     fi
 
@@ -171,13 +171,13 @@ usr-cff() {
 # Compares data usage between two paths up to a specified depth. Displays results in a tabular format with color-coded differences
 # data usage comparison
 # <path1> <path2> <depth>
-usr-duc() {
+usr_duc() {
     local path1=$1
     local path2=$2
     local depth=$3
 
     if [ $# -ne 3 ]; then
-        aux-use
+        aux_use
         return 1
     fi
 
@@ -238,10 +238,10 @@ usr-duc() {
 # Concatenates and displays the contents of all files within a specified folder, separating each file's content with a line of dashes
 # cat in folder
 # <path>
-usr-cif() {
+usr_cif() {
     # Check if exactly one argument (directory path) is provided
     if [ $# -ne 1 ]; then
-        aux-use
+        aux_use
         return 1
     fi
 
@@ -264,13 +264,13 @@ usr-cif() {
 # Replaces strings in files within a specified folder and its subfolders.
 # replace strings folder
 # <foldername> <old_string> <new_string>
-usr-rsf() {
+usr_rsf() {
     local foldername="$1"
     local old_string="$2"
     local new_string="$3"
 
     if [ $# -ne 3 ]; then
-        aux-use
+        aux_use
         return 1
     fi
 
@@ -291,9 +291,9 @@ usr-rsf() {
 # Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding
 # rsync source (to) destination
 # <source_path> <destination_path>
-usr-rsd() {
+usr_rsd() {
     if [ $# -ne 2 ]; then
-        aux-use
+        aux_use
         return 1
     fi
     local source_path="$1"
@@ -334,10 +334,10 @@ usr-rsd() {
 # Schedules a system wake-up using rtcwake. Supports absolute or relative time input and different sleep states (mem/disk)
 # sheduled wakeup timer
 # <-r for relative or -a for absolute> <time> <state>
-usr-swt() {
+usr_swt() {
     # Check if correct number of arguments is provided
     if [ $# -lt 3 ]; then
-        echo "Usage: usr-swt [-a|-r] <time> <state>"
+        echo "Usage: usr_swt [-a|-r] <time> <state>"
         echo "  -a: absolute time (e.g., 7, 7:00, 2024-07-20 07:00)"
         echo "  -r: relative time (e.g., 6, 6:30 for 6 hours 30 minutes)"
         echo "  state: mem or disk"
@@ -439,7 +439,7 @@ usr-swt() {
 # Adds a specific line to a target if not already present
 # adding line (to) target
 #
-usr-adr() {
+usr_adr() {
     local function_name="${FUNCNAME[0]}"
     local file="$1"
     local line_to_add="$2"
@@ -447,19 +447,19 @@ usr-adr() {
 
     # Check if both arguments were provided
     if [ -z "$file" ] || [ -z "$line_to_add" ]; then
-        aux-nos "$function_name" "Error: Both file path and line to add must be provided"
+        aux_nos "$function_name" "Error: Both file path and line to add must be provided"
         return 1
     fi
 
     # Check if the file exists and is writable
     if [ ! -w "$file" ]; then
-        aux-nos "$function_name" "Error: $file does not exist or is not writable"
+        aux_nos "$function_name" "Error: $file does not exist or is not writable"
         return 1
     fi
 
     # Check if the line already exists in the file
     if grep -Fxq "$line_to_add" "$file"; then
-        aux-nos "$function_name" "Line already exists in $file"
+        aux_nos "$function_name" "Line already exists in $file"
         return 0
     fi
 
@@ -469,10 +469,10 @@ usr-adr() {
 
     # Use mv to atomically replace the original file
     if mv "$temp_file" "$file"; then
-        aux-nos "$function_name" "Line added to $file"
+        aux_nos "$function_name" "Line added to $file"
         return 0
     else
-        aux-nos "$function_name" "Error: Failed to update $file"
+        aux_nos "$function_name" "Error: Failed to update $file"
         rm -f "$temp_file"
         return 1
     fi
@@ -481,12 +481,12 @@ usr-adr() {
 # Appends a line to a file if it does not already exist, preventing duplicate entries and providing feedback on the operation
 # check append create
 # <file> <line>
-usr-cap() {
+usr_cap() {
     local file="$1"
     local line="$2"
 
     if [ $# -ne 2 ]; then
-	aux-use
+	aux_use
         return 1
     fi
 
@@ -504,7 +504,7 @@ usr-cap() {
 # Replaces all occurrences of a string in files within a given folder
 # Usage: usr-rif [-d] [-r] [-i] <path> <old_string> <new_string>
 # Options: -d (dry run), -r (recursive), -i (interactive)
-usr-rif() {
+usr_rif() {
     local recursive=false
     local interactive=false
     local dry_run=false
@@ -626,7 +626,7 @@ usr-rif() {
 # Navigates to the Ansible project directory, runs the playbook, then returns to the original directory
 # ansible deployment desk
 # Usage: usr-ans <ansible_pro_path> <ansible_site_path>
-usr-ans() {
+usr_ans() {
     # Check if two arguments are provided
     if [ $# -ne 2 ]; then
         echo "Error: Incorrect number of arguments. Usage: usr-ans <ansible_pro_path> <ansible_site_path>"

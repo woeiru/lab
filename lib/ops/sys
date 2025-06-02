@@ -11,12 +11,12 @@
 #   sys-ipa : Installs specified packages using the system's package manager.
 #   sys-gst : Configures git globally with a username and email.
 #   sys-sst : Installs, enables, and starts the sysstat service.
-#   sys-ust : Creates a new user with a specified username and password.
-#   sys-sdc : Enables and starts a specified systemd service.
+#   sys_ust : Creates a new user with a specified username and password.
+#   sys_sdc : Enables and starts a specified systemd service.
 #   sys-suk : Uploads an SSH key from a device to a specified folder.
-#   sys-spi : Appends a private SSH key identifier to the SSH config file for a user.
+#   sys_spi : Appends a private SSH key identifier to the SSH config file for a user.
 #   sys-sks : Generates an SSH key pair and handles transfer (client/server side).
-#   sys-sak : Appends a public SSH key to authorized_keys (client/server side).
+#   sys_sak : Appends a public SSH key to authorized_keys (client/server side).
 #   sys-hos : Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits.
 #
 # ============================================================================
@@ -37,22 +37,22 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # Shows a summary of specific functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
-sys-fun() {
-    # Pass all arguments directly to aux-laf
-    aux-laf "$FILEPATH_gen" "$@"
+sys_fun() {
+    # Pass all arguments directly to aux_laf
+    aux_laf "$FILEPATH_gen" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
-sys-var() {
-    aux-acu -o "$CONFIG_gen" "$DIR_FUN/.."
+sys_var() {
+    aux_acu -o "$CONFIG_gen" "$DIR_FUN/.."
 }
 
 # Manages git operations, ensuring the local repository syncs with the remote.
 # Performs status check, pull, commit, and push operations as needed.
-# sys-gio [commit message]
-sys-gio() {
+# sys_gio [commit message]
+sys_gio() {
     local dir="${DIR_FUN:-.}/.."
     local branch="${GIT_BRANCH:-master}"
     local commit_message=""
@@ -97,7 +97,7 @@ sys-gio() {
 # Detects the system's package manager
 # detect package all
 #
-sys-dpa() {
+sys_dpa() {
     local function_name="${FUNCNAME[0]}"
     local pman="unknown"
 
@@ -117,7 +117,7 @@ sys-dpa() {
 # Updates and upgrades system packages using the detected package manager
 # update packages all
 #
-sys-upa() {
+sys_upa() {
     local function_name="${FUNCNAME[0]}"
 
     # Get package manager using sys-dpa
@@ -125,7 +125,7 @@ sys-upa() {
     pman=$(sys-dpa)
 
     if [ "$pman" = "unknown" ]; then
-        aux-nos "$function_name" "Could not detect a supported package manager"
+        aux_nos "$function_name" "Could not detect a supported package manager"
         return 1
     fi
 
@@ -141,16 +141,16 @@ sys-upa() {
             zypper refresh -y && zypper update -y
             ;;
         *)
-            aux-nos "$function_name" "Unsupported package manager: $pman"
+            aux_nos "$function_name" "Unsupported package manager: $pman"
             return 1
             ;;
     esac
 
     if [ $? -eq 0 ]; then
-        aux-nos "$function_name" "System update and upgrade completed successfully"
+        aux_nos "$function_name" "System update and upgrade completed successfully"
         return 0
     else
-        aux-nos "$function_name" "Failed to update and upgrade system"
+        aux_nos "$function_name" "Failed to update and upgrade system"
         return 1
     fi
 }
@@ -158,10 +158,10 @@ sys-upa() {
 # Installs specified packages using the system's package manager
 # install packages all
 # <pak1> <pak2> ...
-sys-ipa() {
+sys_ipa() {
     local function_name="${FUNCNAME[0]}"
     if [ $# -lt 1 ]; then
-        aux-use
+        aux_use
         return 1
     fi
 
@@ -169,7 +169,7 @@ sys-ipa() {
     local pman
     pman=$(sys-dpa)
     if [ "$pman" = "unknown" ]; then
-        aux-nos "$function_name" "Could not detect a supported package manager"
+        aux_nos "$function_name" "Could not detect a supported package manager"
         return 1
     fi
 
@@ -187,7 +187,7 @@ sys-ipa() {
 
     # If no packages need installation, exit successfully
     if [ ${#packages_to_install[@]} -eq 0 ]; then
-        aux-nos "$function_name" "All packages are already installed"
+        aux_nos "$function_name" "All packages are already installed"
         return 0
     fi
 
@@ -200,10 +200,10 @@ sys-ipa() {
 
     local exit_status=$?
     if [ $exit_status -eq 0 ]; then
-        aux-nos "$function_name" "Successfully installed packages: ${packages_to_install[*]}"
+        aux_nos "$function_name" "Successfully installed packages: ${packages_to_install[*]}"
         return 0
     else
-        aux-nos "$function_name" "Failed to install packages: ${packages_to_install[*]}"
+        aux_nos "$function_name" "Failed to install packages: ${packages_to_install[*]}"
         return 1
     fi
 }
@@ -211,26 +211,26 @@ sys-ipa() {
 # Configures git globally with a specified username and email, essential for proper commit attribution
 # git set config
 # <username> <usermail>
-sys-gst() {
+sys_gst() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local usermail="$2"
 
     if [ $# -ne 2 ]; then
-	aux-use
+	aux_use
         return 1
     fi
 
     git config --global user.name "$username"
     git config --global user.email "$usermail"
 
-    aux-nos "$function_name" "executed ( $1 $2 )"
+    aux_nos "$function_name" "executed ( $1 $2 )"
 }
 
 # Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
 # setup sysstat
 #
-sys-sst() {
+sys_sst() {
   # Step 1: Install sysstat
   install_pakages sysstat
 
@@ -247,20 +247,20 @@ sys-sst() {
 # Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
 # user setup
 # <username> <password>
-sys-ust() {
+sys_ust() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local password="$2"
 
     if [ $# -ne 2 ]; then
-	aux-use
+	aux_use
         return 1
     fi
 
     # Prompt for user details
-    aux-mev "username" "Enter new username" "$username"
+    aux_mev "username" "Enter new username" "$username"
     while [ -z "$password" ]; do
-        aux-mev "password" "Enter password for $username" "$password"
+        aux_mev "password" "Enter password for $username" "$password"
     done
 
     # Create the user
@@ -269,9 +269,9 @@ sys-ust() {
 
     # Check if user creation was successful
     if id -u "$username" > /dev/null 2>&1; then
-        aux-nos "$function_name" "User $username created successfully"
+        aux_nos "$function_name" "User $username created successfully"
     else
-        aux-nos "$function_name" "Failed to create user $username"
+        aux_nos "$function_name" "Failed to create user $username"
         return 1
     fi
 }
@@ -279,12 +279,12 @@ sys-ust() {
 # Enables and starts a specified systemd service. Checks if the service is active and prompts for continuation if it's not
 # systemd setup service
 # <service>
-sys-sdc() {
+sys_sdc() {
     local function_name="${FUNCNAME[0]}"
     local service="$1"
 
     if [ $# -ne 1 ]; then
-	aux-use
+	aux_use
         return 1
     fi
 
@@ -295,15 +295,15 @@ sys-sdc() {
     # Check if service is active
     systemctl is-active --quiet "$service"
     if [ $? -eq 0 ]; then
-        aux-nos "$function_name" "$service is active"
+        aux_nos "$function_name" "$service is active"
     else
         read -p "$service is not active. Do you want to continue anyway? [Y/n] " choice
         case "$choice" in
             [yY]|[yY][eE][sS])
-                aux-nos "$function_name" "$service is not active"
+                aux_nos "$function_name" "$service is not active"
                 ;;
             *)
-                aux-nos "$function_name" "$service is not active. Exiting."
+                aux_nos "$function_name" "$service is not active. Exiting."
                 return 1
                 ;;
         esac
@@ -313,7 +313,7 @@ sys-sdc() {
 # Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
 # ssh upload keyfile
 # <device_path> <mount_point> <subfolder_path> <upload_path> <file_name>
-sys-suk() {
+sys_suk() {
     local device_path="$1"
     local mount_point="$2"
     local subfolder_path="$3"
@@ -321,7 +321,7 @@ sys-suk() {
     local file_name="$5"
 
     if [ $# -ne 5 ]; then
-	aux-use
+	aux_use
         return 1
     fi
 
@@ -336,11 +336,11 @@ sys-suk() {
     echo ""
 
     # Evaluate and confirm variables
-    aux-mev "device_path" "Enter the device path" $device_path
-    aux-mev "mount_point" "Enter the mount point" $mount_point
-    aux-mev "subfolder_path" "Enter the subfolder(s) on the device" $subfolder_path
-    aux-mev "file_name" "Enter the file name" $file_name
-    aux-mev "upload_path" "Enter the upload path" $upload_path
+    aux_mev "device_path" "Enter the device path" $device_path
+    aux_mev "mount_point" "Enter the mount point" $mount_point
+    aux_mev "subfolder_path" "Enter the subfolder(s) on the device" $subfolder_path
+    aux_mev "file_name" "Enter the file name" $file_name
+    aux_mev "upload_path" "Enter the upload path" $upload_path
 
     full_path="$mount_point/$subfolder_path/$file_name"
     upload_full_path="$upload_path/$file_name"
@@ -379,7 +379,7 @@ sys-suk() {
 # Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist
 # ssh private identifier
 # <user> <keyname>
-sys-spi() {
+sys_spi() {
     local keyname=$2
     local user=$2
     local ssh_dir
@@ -387,7 +387,7 @@ sys-spi() {
     local user_home
 
     if [ $# -ne 2 ]; then
-	aux-use
+	aux_use
         return 1
     fi
 
@@ -426,7 +426,7 @@ sys-spi() {
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
 # client-side generation: sys-sks -c [-d] <server_address> <key_name> [encryption_type] / server-side generation: sys-sks -s [-d] <client_address> <key_name> [encryption_type]
-sys-sks() {
+sys_sks() {
     local mode=""
     local deduplicate=false
     local remote_address=""
@@ -539,16 +539,16 @@ sys-sks() {
 
 # Appends the content of a specified public SSH key file to the authorized_keys file.
 # Provides informational output and restarts the SSH service.
-# Usage: sys-sak -c <server_address> <key_name> *for client-side operation /// sys-sak -s <client_address> <key_name> *for server-side operation
-sys-sak() {
+# Usage: sys_sak -c <server_address> <key_name> *for client-side operation /// sys_sak -s <client_address> <key_name> *for server-side operation
+sys_sak() {
     local mode="$1"
     local remote_address="$2"
     local key_name="$3"
     local ssh_dir="/root/.ssh"
     local authorized_keys_path="$ssh_dir/authorized_keys"
     if [ $# -ne 3 ]; then
-        echo "Usage: sys-sak -c <server_address> <key_name> # for client-side operation"
-        echo "       sys-sak -s <client_address> <key_name> # for server-side operation"
+        echo "Usage: sys_sak -c <server_address> <key_name> # for client-side operation"
+        echo "       sys_sak -s <client_address> <key_name> # for server-side operation"
         return 1
     fi
     case "$mode" in
@@ -603,14 +603,14 @@ sys-sak() {
 # Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
 # loop operation ip
 # <ip array: hy,ct> <operation: bypass = Perform initial SSH login to bypass StrictHostKeyChecking / refresh = Remove the SSH key for the given IP from known_hosts>
-sys-loi() {
+sys_loi() {
     local ip_type=$1
     local operation=$2
     local ip_array_name="${ip_type^^}_IPS"
 
     # Ensure both parameters are provided
     if [ -z "$ip_type" ] || [ -z "$operation" ]; then
-	  aux-use
+	  aux_use
 	  return 1
     fi
 
@@ -652,12 +652,12 @@ sys-loi() {
 # Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
 # ssh custom aliases
 # <usershortcut> <servershortcut> <ssh_users_array_name> <all_ip_arrays_array_name> <array_aliases_array_name> [command]
-sys-sca() {
+sys_sca() {
     echo "Debug: Number of arguments: $#"
     echo "Debug: All arguments: $*"
 
     if [ $# -lt 5 ]; then
-        aux-use
+        aux_use
         return 1
     fi
 
@@ -812,7 +812,7 @@ sys-sca() {
 # An interactive Bash function that guides users through Git history navigation, offering options for reset type and subsequent actions, with built-in safeguards and explanations.
 # GRE: Git Reset Explorer
 # Usage: sys-gre  # Then follow prompts, e.g., enter '2' for commits, '3' for hard reset, '2' to create new branch 'feat
-sys-gre() {
+sys_gre() {
     echo "Welcome to the Git Reset Explorer (sys-gre)!"
     echo "This function will guide you through the process of moving back in Git history."
     echo
@@ -885,7 +885,7 @@ sys-gre() {
 # Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits.
 # add host
 # <ip_address> <hostname>
-sys-hos() {
+sys_hos() {
     local function_name="${FUNCNAME[0]}"
     local ip_address="$1"
     local hostname="$2"

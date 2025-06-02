@@ -73,7 +73,7 @@ c_xall() {
 d_xall() {
     sys-sks -s root@"${CL_IPS[t1]}" "$KEY_NAME"
 
-    sys-sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
+    sys_sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
 # Creates a RAID 1 Btrfs filesystem across two devices with the specified mount point

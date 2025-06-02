@@ -35,13 +35,13 @@ else
 fi
 echo
 
-# Test pve-vck with explicit cluster nodes
-echo "Testing pve-vck with explicit cluster nodes:"
-if command -v pve-vck >/dev/null 2>&1; then
+# Test pve_vck with explicit cluster nodes
+echo "Testing pve_vck with explicit cluster nodes:"
+if command -v pve_vck >/dev/null 2>&1; then
     # Test with dummy values (will fail but should show proper parameter handling)
-    pve-vck "999" "node1 node2" 2>/dev/null || echo "pve-vck test completed (expected to fail without real cluster)"
+    pve_vck "999" "node1 node2" 2>/dev/null || echo "pve_vck test completed (expected to fail without real cluster)"
 else
-    echo "pve-vck function not found"
+    echo "pve_vck function not found"
 fi
 echo
 
@@ -73,11 +73,11 @@ if [ -f "$BASE_DIR/cfg/env/site1" ]; then
     fi
     echo
     
-    echo "Testing pve-vck-w wrapper:"
-    if command -v pve-vck-w >/dev/null 2>&1; then
-        pve-vck-w "999" 2>/dev/null || echo "pve-vck-w test completed (expected to fail without real cluster)"
+    echo "Testing pve_vck-w wrapper:"
+    if command -v pve_vck-w >/dev/null 2>&1; then
+        pve_vck-w "999" 2>/dev/null || echo "pve_vck-w test completed (expected to fail without real cluster)"
     else
-        echo "pve-vck-w function not found"
+        echo "pve_vck-w function not found"
     fi
     echo
     

@@ -3,11 +3,11 @@
 # ============================================================================
 # net - Function Summary
 #
-#   net-fun : Shows a summary of selected functions in the script.
-#   net-var : Displays an overview of specific variables defined in the configuration file.
+#   net_fun : Shows a summary of selected functions in the script.
+#   net_var : Displays an overview of specific variables defined in the configuration file.
 #   net-uni : Renames a network interface by updating udev rules and network configuration.
 #   net-fsr : Adds a specified service to firewalld and reloads the firewall.
-#   net-fas : Allows a specified service through the firewall using firewall-cmd.
+#   net_fas : Allows a specified service through the firewall using firewall-cmd.
 #
 # ============================================================================
 
@@ -27,20 +27,20 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # Displays an overview of specific functions in the script, showing their usage, shortname, and description
 # overview functions
 #
-net-fun() {
-    aux-laf "$FILEPATH_net" "$@"
+net_fun() {
+    aux_laf "$FILEPATH_net" "$@"
 }
 # Displays an overview of specific variables in network configuration
 # Network Variables - NEV
 # 
-net-var() {
-    aux-acu -o "$CONFIG_net" "$DIR_FUN/.."
+net_var() {
+    aux_acu -o "$CONFIG_net" "$DIR_FUN/.."
 }
 
 # Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system
 # udev network interface
 # [interactive]
-net-uni() {
+net_uni() {
     # Prompt user for the new interface name
     read -p "Enter the new interface name (e.g., nic1): " INTERFACE_NAME
 
@@ -81,18 +81,18 @@ net-uni() {
 # Adds a specified service to the firewalld configuration and reloads the firewall. Checks for the presence of firewall-cmd before proceeding
 # firewall (add) service (and) reload
 # <service>
-net-fsr() {
+net_fsr() {
     local function_name="${FUNCNAME[0]}"
     local fw_service="$1"
     if [ $# -ne 1 ]; then
-	aux-use
+	aux_use
         return 1
     fi
    # Open firewall ports
     if command -v firewall-cmd > /dev/null; then
         firewall-cmd --permanent --add-service=$fw_service
         firewall-cmd --reload
-	aux-nos "$function_name" "executed ( $1 )"
+	aux_nos "$function_name" "executed ( $1 )"
     else
         echo "firewall-cmd not found, skipping firewall configuration."
     fi
@@ -101,12 +101,12 @@ net-fsr() {
 # Allows a specified service through the firewall using firewall-cmd, making the change permanent and reloading the firewall configuration
 # firewall allow service
 # <service>
-net-fas() {
+net_fas() {
     local function_name="${FUNCNAME[0]}"
     local fwd_as_1="$1"
 
     if [ $# -ne 1 ]; then
-	aux-use
+	aux_use
         return 1
     fi
 
@@ -114,5 +114,5 @@ net-fas() {
     firewall-cmd --add-service="$fwd_as_1" --permanent
     firewall-cmd --reload
 
-    aux-nos "$function_name" "executed"
+    aux_nos "$function_name" "executed"
 }
