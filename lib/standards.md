@@ -64,9 +64,33 @@ function_name() {
 - `aux_use` extracts the **three comment lines above** the function name for usage display
 - `aux_tec` extracts the **technical details block under** the function name for detailed help
 - Technical details should be structured with clear sections: Technical Description, Dependencies, and Arguments
-- Use proper indentation and formatting for readability
+- Use proper indentation (3 spaces for section content) and formatting for readability
+- Each section should start with a descriptive header followed by detailed bullet points
+- Maintain consistent formatting across all functions in the module
 
-#### 3. Special Cases
+#### 3. Technical Details Structure
+
+The technical details block must follow this structured format:
+
+- **Technical Description**: A comprehensive explanation of what the function does, including:
+  - Step-by-step breakdown of the function's operation
+  - Implementation approach and algorithms used
+  - Important behavioral notes and edge cases
+  - Integration with other system components
+
+- **Dependencies**: A complete list of requirements, including:
+  - External command-line utilities needed
+  - Required functions from other modules
+  - System permissions or privileges required
+  - Network access, file system, or hardware requirements
+
+- **Arguments**: Detailed parameter documentation (omit if no parameters):
+  - Each parameter with its variable name and purpose
+  - Expected format, type, or valid values
+  - Optional parameters clearly marked
+  - Variable parameter functions with explanation
+
+#### 4. Special Cases
 
 - **Functions with no parameters**: Use `(no parameters)` in comment and validate `$# -ne 0`
 - **Functions with optional parameters**: Document optional parameters as `[optional_param]`
@@ -78,6 +102,9 @@ function_name() {
 2. **Consistent UX**: All functions provide uniform error messages via `aux_use`
 3. **Self-Documenting**: Usage information is embedded in the code
 4. **Maintainability**: Standard validation pattern across all functions
+5. **Comprehensive Documentation**: Structured technical details with clear sections
+6. **Dependency Tracking**: Clear identification of external requirements and prerequisites
+7. **Operational Clarity**: Detailed understanding of function behavior and integration
 
 ### Examples
 
@@ -154,10 +181,18 @@ usr_list() {
 # overview functions
 # [function_name_filter]
 usr_fun() {
-    # TECHNICAL DETAILS:
-    # Optional parameters - no validation needed
-    # Pass all arguments to processing function
-    # Supports filtering by function name pattern
+    # Technical Description:
+    #   Displays comprehensive overview of available functions with optional filtering
+    #   Processes all arguments and forwards them to the analysis function
+    #   Supports pattern-based filtering for function name matching
+    #   Provides formatted output with usage information and descriptions
+    # Dependencies:
+    #   - 'aux_laf' function for list and filter operations
+    #   - Access to function definition files
+    #   - Pattern matching utilities for filtering
+    # Arguments:
+    #   $1: function_name_filter (optional) - pattern to filter function names
+    #   Additional arguments are passed through to aux_laf
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -185,6 +220,19 @@ For functions that perform actions but traditionally take no parameters, conside
 # cleanup system
 # -x (execute)
 sys_cleanup() {
+    # Technical Description:
+    #   Performs comprehensive system cleanup operations safely
+    #   Requires explicit execution flag to prevent accidental runs
+    #   Removes temporary files, clears caches, and optimizes system state
+    #   Provides detailed logging of all cleanup operations performed
+    # Dependencies:
+    #   - Various system utilities for cleanup operations
+    #   - Write permissions for temporary directories
+    #   - Sufficient disk space for temporary operations
+    #   - Root or sudo privileges for system-level cleanup
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety
+    
     if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
@@ -215,8 +263,23 @@ To apply this standard to other libraries:
 1. Audit all functions for parameter validation
 2. Add `aux_use` calls for validation failures
 3. Update comment blocks for proper `aux_use` display
-4. Test each function with incorrect parameters
-5. Document any special cases or exceptions
+4. **Restructure technical details with proper sections**:
+   - Technical Description (comprehensive function explanation)
+   - Dependencies (all requirements and prerequisites)
+   - Arguments (detailed parameter documentation)
+5. Test each function with incorrect parameters
+6. Verify help functionality with `--help` flag
+7. Document any special cases or exceptions
+
+### Enhanced Technical Documentation
+
+The improved technical details format provides:
+
+1. **Structured Information**: Clear separation of description, dependencies, and arguments
+2. **Comprehensive Coverage**: Detailed explanation of function behavior and requirements
+3. **Maintenance Clarity**: Easy identification of external dependencies and system requirements
+4. **User Guidance**: Detailed parameter documentation for proper function usage
+5. **Operational Context**: Understanding of how functions integrate with the broader system
 
 ### Testing
 
