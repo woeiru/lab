@@ -3,14 +3,14 @@
 # ============================================================================
 # srv - Function Summary
 #
-#   srv-fun : Shows a summary of selected functions in the script.
-#   srv-var : Displays an overview of specific variables defined in the configuration file.
-#   nfs-set : Sets up an NFS share with prompted or provided information.
+#   srv_fun : Shows a summary of selected functions in the script.
+#   srv_var : Displays an overview of specific variables defined in the configuration file.
+#   nfs_set : Sets up an NFS share with prompted or provided information.
 #   nfs_apl : Applies NFS configuration (creates folder, updates /etc/exports, restarts server).
-#   nfs-mon : Monitors and displays various aspects of the NFS server.
-#   smb-set : Sets up a Samba share with prompted or provided configuration details.
-#   smb-apl : Applies Samba configuration (creates folder, updates cfg/env/site, restarts server, sets passwords).
-#   smb-mon : Monitors and displays various aspects of the SMB server.
+#   nfs_mon : Monitors and displays various aspects of the NFS server.
+#   smb_set : Sets up a Samba share with prompted or provided configuration details.
+#   smb_apl : Applies Samba configuration (creates folder, updates cfg/env/site, restarts server, sets passwords).
+#   smb_mon : Monitors and displays various aspects of the SMB server.
 #
 # ============================================================================
 

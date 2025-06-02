@@ -3,22 +3,22 @@
 # ============================================================================
 # sto - Function Summary
 #
-#   sto-fun : Shows a summary of selected functions in the script.
-#   sto-var : Displays an overview of specific variables defined in the configuration file.
+#   sto_fun : Shows a summary of selected functions in the script.
+#   sto_var : Displays an overview of specific variables defined in the configuration file.
 #   sto_fea : Adds auto-mount entries for devices to /etc/fstab using blkid.
 #   sto_fec : Adds custom entries to /etc/fstab using device UUIDs.
-#   sto-nfs : Mounts an NFS share interactively or with provided arguments.
-#   sto-bfs-tra : Transforms a folder into a Btrfs subvolume, optionally setting attributes.
-#   sto-bfs-ra1 : Creates a Btrfs RAID 1 filesystem on two devices, mounts it, and optionally updates fstab.
-#   sto-bfs-csf : Checks and lists subvolume status of folders in a specified path.
-#   sto-bfs-shc : Creates a new Snapper snapshot for a specified or auto-selected configuration.
-#   sto-bfs-shd : Deletes a specified Snapper snapshot from a given or auto-selected configuration.
-#   sto-bfs-shl : Lists Snapper snapshots for a specified or auto-selected configuration.
-#   sto-bfs-sfr : Resyncs a Btrfs snapshot subvolume to a flat folder using rsync.
-#   sto-bfs-hub : Creates/manages Btrfs snapshots for user home directory backups.
-#   sto-bfs-snd : Recursively deletes a Btrfs parent subvolume and its nested children.
-#   sto-zfs-dim : Creates or uses an existing ZFS dataset, sets its mountpoint, and ensures it is mounted.
-#   sto-zfs-dbs : Creates and sends ZFS snapshots from a source to a destination pool (full/incremental).
+#   sto_nfs : Mounts an NFS share interactively or with provided arguments.
+#   sto_bfs_tra : Transforms a folder into a Btrfs subvolume, optionally setting attributes.
+#   sto_bfs_ra1 : Creates a Btrfs RAID 1 filesystem on two devices, mounts it, and optionally updates fstab.
+#   sto_bfs_csf : Checks and lists subvolume status of folders in a specified path.
+#   sto_bfs_shc : Creates a new Snapper snapshot for a specified or auto-selected configuration.
+#   sto_bfs_shd : Deletes a specified Snapper snapshot from a given or auto-selected configuration.
+#   sto_bfs_shl : Lists Snapper snapshots for a specified or auto-selected configuration.
+#   sto_bfs_sfr : Resyncs a Btrfs snapshot subvolume to a flat folder using rsync.
+#   sto_bfs_hub : Creates/manages Btrfs snapshots for user home directory backups.
+#   sto_bfs_snd : Recursively deletes a Btrfs parent subvolume and its nested children.
+#   sto_zfs_dim : Creates or uses an existing ZFS dataset, sets its mountpoint, and ensures it is mounted.
+#   sto_zfs_dbs : Creates and sends ZFS snapshots from a source to a destination pool (full/incremental).
 #   sto_zfs_cpo : Creates a ZFS pool on a specified drive in a Proxmox VE environment.
 #
 # ============================================================================
