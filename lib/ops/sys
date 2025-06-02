@@ -17,10 +17,18 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 # [function_name_filter]
 sys_fun() {
-    # TECHNICAL DETAILS:
-    # Optional parameters - no validation needed
-    # Pass all arguments to processing function
-    # Supports filtering by function name pattern
+    # Technical Description:
+    #   Analyzes function definitions within script files and displays comprehensive overview
+    #   Supports optional filtering by function name patterns for targeted analysis
+    #   Extracts function metadata including usage patterns, shortnames, and descriptions
+    #   Processes function documentation and presents it in a structured format
+    # Dependencies:
+    #   - aux_laf function for function analysis and formatting
+    #   - aux_tec function for technical details display
+    #   - FILEPATH_gen variable for target file path
+    #   - Read permissions on source files
+    # Arguments:
+    #   $1: [function_name_filter] - optional pattern to filter functions by name
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -34,19 +42,27 @@ sys_fun() {
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
-# (no parameters)
+# -x (execute)
 sys_var() {
-    # TECHNICAL DETAILS:
-    # Scans configuration files and extracts variable definitions
-    # Displays usage across different files and contexts
-    # No parameters required - operates on default configuration
+    # Technical Description:
+    #   Scans configuration files and extracts variable definitions using auxiliary functions
+    #   Displays variable usage patterns across different files and contexts
+    #   Analyzes configuration structure and provides comprehensive overview of variable usage
+    #   Operates on default configuration files within the project directory structure
+    # Dependencies:
+    #   - aux_acu function for configuration analysis
+    #   - CONFIG_gen variable for configuration file path
+    #   - DIR_FUN variable for directory navigation
+    #   - Read permissions on configuration files
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    if [ $# -ne 0 ]; then
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
     fi
@@ -58,11 +74,20 @@ sys_var() {
 # git sync operations
 # [commit_message]
 sys_gio() {
-    # TECHNICAL DETAILS:
-    # Performs status check, pull, commit, and push operations as needed
-    # If commit message provided, uses it for commits
-    # Otherwise commits with empty message when changes detected
-    # Handles both clean working tree updates and dirty tree commits
+    # Technical Description:
+    #   Comprehensive git synchronization workflow handling both clean and dirty working trees
+    #   Performs fetch, status check, pull for clean trees, and add/commit/push for dirty trees
+    #   Supports optional commit messages, defaults to empty message when not provided
+    #   Handles branch management with configurable default branch via GIT_BRANCH variable
+    #   Includes error handling for each git operation with descriptive failure messages
+    # Dependencies:
+    #   - git command line tool with full functionality
+    #   - GIT_BRANCH environment variable for branch configuration
+    #   - DIR_FUN variable for directory navigation
+    #   - Write permissions for git operations and directory access
+    #   - Network connectivity for remote operations
+    # Arguments:
+    #   $1: [commit_message] - optional commit message for changes, space-separated words combined
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -113,19 +138,26 @@ sys_gio() {
 
 # Detects the system's package manager
 # detect package manager
-# (no parameters)
+# -x (execute)
 sys_dpa() {
-    # TECHNICAL DETAILS:
-    # Checks for common package managers: apt, dnf, yum, zypper
-    # Returns the detected package manager name or 'unknown'
-    # Used by other functions to determine installation commands
+    # Technical Description:
+    #   Scans system for available package managers using command availability checks
+    #   Tests for presence of common package managers: apt, dnf, yum, zypper in priority order
+    #   Returns detected package manager name for use by other package management functions
+    #   Provides fallback 'unknown' result when no supported package manager found
+    # Dependencies:
+    #   - command utility for testing command availability
+    #   - Standard package managers: apt, dnf, yum, or zypper installed on system
+    #   - No special permissions required beyond command execution
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    if [ $# -ne 0 ]; then
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
     fi
@@ -148,29 +180,38 @@ sys_dpa() {
 
 # Updates and upgrades system packages using the detected package manager
 # update packages system
-# (no parameters)
+# -x (execute)
 sys_upa() {
-    # TECHNICAL DETAILS:
-    # Uses sys_dpa to detect package manager automatically
-    # Performs both update (refresh) and upgrade (install) operations
-    # Supports apt, dnf, yum, and zypper package managers
-    # Provides detailed success/failure feedback
+    # Technical Description:
+    #   Performs comprehensive system package update and upgrade operations
+    #   Uses sys_dpa to automatically detect the appropriate package manager
+    #   Executes both refresh (update) and upgrade operations in sequence
+    #   Supports apt, dnf, yum, and zypper package managers with appropriate commands
+    #   Provides detailed feedback on operation success or failure with specific error messages
+    # Dependencies:
+    #   - sys_dpa function for package manager detection
+    #   - Detected package manager (apt, dnf, yum, or zypper) installed and functional
+    #   - Root or sudo privileges for package management operations
+    #   - Network connectivity for downloading package updates
+    #   - aux_nos function for status reporting
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    if [ $# -ne 0 ]; then
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
     fi
     
     local function_name="${FUNCNAME[0]}"
 
-    # Get package manager using sys-dpa
+    # Get package manager using sys_dpa
     local pman
-    pman=$(sys-dpa)
+    pman=$(sys_dpa -x)
 
     if [ "$pman" = "unknown" ]; then
         aux_nos "$function_name" "Could not detect a supported package manager"
@@ -207,11 +248,20 @@ sys_upa() {
 # install packages system
 # <pak1> <pak2> ...
 sys_ipa() {
-    # TECHNICAL DETAILS:
-    # Filters out already installed packages before attempting installation
-    # Uses detected package manager from sys_dpa function
-    # Supports multiple packages in single command
-    # Provides feedback on installation status
+    # Technical Description:
+    #   Intelligently installs system packages using detected package manager
+    #   Filters out already installed packages to avoid redundant operations
+    #   Supports installation of multiple packages in a single operation
+    #   Handles different package managers with appropriate installation commands
+    #   Provides comprehensive feedback on installation status and results
+    # Dependencies:
+    #   - sys_dpa function for package manager detection
+    #   - Package manager utilities: dpkg (apt), rpm (dnf/yum/zypper)
+    #   - Root or sudo privileges for package installation
+    #   - Network connectivity for downloading packages
+    #   - aux_nos function for status reporting
+    # Arguments:
+    #   $1, $2, ...: package_name - names of packages to install from system repositories
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -225,9 +275,9 @@ sys_ipa() {
     
     local function_name="${FUNCNAME[0]}"
 
-    # Get package manager using sys-dpa
+    # Get package manager using sys_dpa
     local pman
-    pman=$(sys-dpa)
+    pman=$(sys_dpa -x)
     if [ "$pman" = "unknown" ]; then
         aux_nos "$function_name" "Could not detect a supported package manager"
         return 1
@@ -263,8 +313,18 @@ sys_ipa() {
 
     # Install filtered packages
     case "$pman" in
+        apt)
+            apt install -y "${packages_to_install[@]}"
+            ;;
         dnf|yum)
             $pman install -y "${packages_to_install[@]}"
+            ;;
+        zypper)
+            zypper install -y "${packages_to_install[@]}"
+            ;;
+        *)
+            aux_nos "$function_name" "Unsupported package manager: $pman"
+            return 1
             ;;
     esac
 
@@ -282,10 +342,19 @@ sys_ipa() {
 # git set config
 # <username> <usermail>
 sys_gst() {
-    # TECHNICAL DETAILS:
-    # Sets global git configuration for user.name and user.email
-    # Essential for proper commit attribution in git operations
-    # Both username and email are required parameters
+    # Technical Description:
+    #   Configures global git user identity settings for proper commit attribution
+    #   Sets both user.name and user.email in the global git configuration
+    #   Essential prerequisite for git operations requiring user identification
+    #   Configuration persists across all git repositories for the current user
+    #   Validates successful configuration and provides execution feedback
+    # Dependencies:
+    #   - git command line tool with configuration capabilities
+    #   - Write permissions for git global configuration file (~/.gitconfig)
+    #   - aux_nos function for status notification
+    # Arguments:
+    #   $1: username - git user name for commit attribution (spaces allowed)
+    #   $2: usermail - git user email address for commit identification
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -309,46 +378,66 @@ sys_gst() {
 
 # Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
 # setup sysstat service
-# (no parameters)
+# -x (execute)
 sys_sst() {
-    # TECHNICAL DETAILS:
-    # Installs sysstat package for system performance monitoring
-    # Enables sysstat in /etc/default/sysstat configuration
-    # Starts and enables the systemd service
-    # Essential for system performance data collection
+    # Technical Description:
+    #   Comprehensive setup of sysstat service for system performance monitoring
+    #   Installs sysstat package using system package manager
+    #   Modifies /etc/default/sysstat configuration to enable data collection
+    #   Enables and starts the systemd service for automatic startup and immediate operation
+    #   Essential for system performance data collection and historical analysis
+    # Dependencies:
+    #   - sys_ipa function for package installation
+    #   - systemctl command for service management
+    #   - sed command for configuration file modification
+    #   - Root or sudo privileges for system service and configuration changes
+    #   - Write permissions for /etc/default/sysstat file
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    if [ $# -ne 0 ]; then
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
     fi
     
     # Step 1: Install sysstat
-    install_pakages sysstat
+    sys_ipa sysstat
 
-  # Step 2: Enable sysstat
-  sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
+    # Step 2: Enable sysstat
+    sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
 
-  # Step 3: Start the sysstat service
-  systemctl enable sysstat
-  systemctl start sysstat
+    # Step 3: Start the sysstat service
+    systemctl enable sysstat
+    systemctl start sysstat
 
-  echo "sysstat has been installed, enabled, and started."
+    echo "sysstat has been installed, enabled, and started."
 }
 
 # Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
 # user setup
 # <username> <password>
 sys_ust() {
-    # TECHNICAL DETAILS:
-    # Creates new system user with home directory
-    # Sets password using chpasswd for security
-    # Validates successful user creation with id command
-    # Provides interactive prompts if parameters missing
+    # Technical Description:
+    #   Creates new system user account with home directory and specified credentials
+    #   Uses useradd command for user creation with automatic home directory creation
+    #   Sets user password securely using chpasswd for encrypted password storage
+    #   Validates successful user creation using id command verification
+    #   Provides interactive prompts and comprehensive error handling
+    # Dependencies:
+    #   - useradd command for user account creation
+    #   - chpasswd command for secure password setting
+    #   - id command for user existence verification
+    #   - aux_mev function for interactive input prompting
+    #   - aux_nos function for status notification
+    #   - Root or sudo privileges for user management operations
+    # Arguments:
+    #   $1: username - desired username for the new system account
+    #   $2: password - initial password for the new user account
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -387,11 +476,20 @@ sys_ust() {
 # systemd setup service
 # <service>
 sys_sdc() {
-    # TECHNICAL DETAILS:
-    # Enables service for automatic startup on boot
-    # Starts service immediately if not running
-    # Verifies service status and provides interactive continuation
-    # Handles service activation failures gracefully
+    # Technical Description:
+    #   Comprehensive systemd service management with enable, start, and verification operations
+    #   Enables service for automatic startup on system boot using systemctl enable
+    #   Starts service immediately for current session using systemctl start
+    #   Verifies service activation status and provides interactive continuation options
+    #   Handles service activation failures gracefully with user choice prompts
+    # Dependencies:
+    #   - systemctl command for systemd service management
+    #   - systemctl is-active command for service status verification
+    #   - aux_tec and aux_use functions for help and usage display
+    #   - aux_nos function for status notification
+    #   - Root or sudo privileges for service management operations
+    # Arguments:
+    #   $1: service - name of the systemd service to enable and start
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -430,21 +528,29 @@ sys_sdc() {
 
 # An interactive Bash function that guides users through Git history navigation, offering options for reset type and subsequent actions, with built-in safeguards and explanations.
 # git reset explorer
-# (no parameters)
+# -x (execute)
 sys_gre() {
-    # TECHNICAL DETAILS:
-    # Interactive Git Reset Explorer with guided prompts
-    # Offers soft, mixed, and hard reset options with explanations
-    # Provides post-reset actions: keep state, create branch, force push, new commit
-    # Includes safety prompts and status display
-    # Educational tool for understanding git reset operations
+    # Technical Description:
+    #   Interactive Git Reset Explorer providing guided workflow for git history manipulation
+    #   Offers comprehensive reset options: soft, mixed, and hard with detailed explanations
+    #   Provides post-reset action choices: keep state, create branch, force push, or new commit
+    #   Includes safety prompts and educational information for understanding git reset operations
+    #   Features status display and commit information for complete workflow transparency
+    # Dependencies:
+    #   - git command line tool with full reset, branch, and status capabilities
+    #   - git log command for commit history display
+    #   - Interactive shell environment for user input prompts
+    #   - Working git repository with commit history
+    #   - Network connectivity for push operations (if selected)
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    if [ $# -ne 0 ]; then
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
     fi
@@ -516,61 +622,4 @@ sys_gre() {
     echo
     echo "Current commit:"
     git log -1 --oneline
-}
-
-# Manages git operations, ensuring the local repository syncs with the remote.
-# git sync operations
-# [commit_message]
-sys_gio() {
-    # TECHNICAL DETAILS:
-    # Performs status check, pull, commit, and push operations as needed
-    # If commit message provided, uses it for commits
-    # Otherwise commits with empty message when changes detected
-    # Handles both clean working tree updates and dirty tree commits
-    
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
-    fi
-    
-    # Optional parameters - no validation needed
-    local dir="${DIR_FUN:-.}/.."
-    local branch="${GIT_BRANCH:-master}"
-    local commit_message=""
-
-    # If arguments are provided, use them as the commit message
-    if [ $# -gt 0 ]; then
-        commit_message="$*"
-    fi
-
-    # Navigate to the git folder
-    cd "$dir" || { echo "Failed to change directory to $dir"; return 1; }
-
-    # Fetch updates from remote
-    git fetch origin "$branch" || { echo "Failed to fetch from remote"; return 1; }
-
-    # Get the current status
-    local status_output
-    status_output=$(git status --porcelain)
-    if [[ -z "$status_output" ]]; then
-        echo "Working tree clean. Checking for updates..."
-        if git rev-list HEAD...origin/"$branch" --count | grep -q "^0$"; then
-            echo "Local branch is up to date with origin/$branch."
-        else
-            echo "Updates available. Pulling changes..."
-            git pull origin "$branch" || { echo "Failed to pull changes"; return 1; }
-        fi
-    else
-        echo "Changes detected. Committing and pushing..."
-        git add . || { echo "Failed to stage changes"; return 1; }
-        if [[ -n "$commit_message" ]]; then
-            git commit -m "$commit_message" || { echo "Failed to commit changes"; return 1; }
-        else
-            git commit --allow-empty-message -m "" || { echo "Failed to commit changes"; return 1; }
-        fi
-        git push origin "$branch" || { echo "Failed to push changes"; return 1; }
-    fi
-
-    # Return to the previous directory
-    cd - > /dev/null || { echo "Failed to return to previous directory"; return 1; }
 }
