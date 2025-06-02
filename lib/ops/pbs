@@ -13,23 +13,87 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
-# show an overview of specific functions
+# Shows function overview with optional filtering
 # overview functions
-#  
+# [function_name_filter]
 pbs_fun() {
+    # Technical Description:
+    #   Displays formatted list of all functions in the PBS module
+    #   Uses aux_laf utility to parse function definitions and extract documentation
+    #   Provides optional filtering by function name pattern
+    #   Shows function descriptions, mnemonics, and parameter requirements
+    # Dependencies:
+    #   - aux_laf function from auxiliary library
+    #   - Read access to PBS module file
+    #   - grep for pattern matching if filtering is used
+    # Arguments:
+    #   $1: function_name_filter (optional) - pattern to filter function names
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     aux_laf "$FILEPATH_pbs" "$@"
 }
-# show an overview of specific variables
+# Shows configuration variables overview
 # overview variables
-#  
+# -x (execute)
 pbs_var() {
+    # Technical Description:
+    #   Displays configuration variables specific to PBS module
+    #   Uses aux_acu utility to scan and format variable definitions
+    #   Shows variable names, values, and usage context from configuration files
+    #   Provides organized view of PBS-related environment and configuration settings
+    # Dependencies:
+    #   - aux_acu function from auxiliary library
+    #   - Read access to configuration files
+    #   - CONFIG_pbs environment variable must be set
+    # Arguments:
+    #   $1: -x - explicit execution flag required for consistency
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+    
     aux_acu -o "$CONFIG_pbs" "$DIR_FUN/.."
 }
 
-# Download Proxmox GPG key and verify checksums.
+# Download Proxmox GPG key and verify checksums
 # download and verify
-#   
+# -x (execute)
 pbs_dav() {
+    # Technical Description:
+    #   Downloads the official Proxmox GPG key for Debian Bookworm from enterprise repository
+    #   Performs dual checksum verification using both SHA512 and MD5 algorithms
+    #   Validates downloaded key against known good checksums to ensure integrity
+    #   Places key in system trusted keyring for APT package verification
+    # Dependencies:
+    #   - wget for downloading files from remote URLs
+    #   - sha512sum for SHA512 checksum calculation
+    #   - md5sum for MD5 checksum calculation
+    #   - awk for text processing
+    #   - Write permissions to /etc/apt/trusted.gpg.d/
+    #   - Network access to enterprise.proxmox.com
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety due to system modifications
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+    
     # Download the GPG key
     wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
 
@@ -54,10 +118,33 @@ pbs_dav() {
     fi
 }
 
-# Add Proxmox repository to sources.list if not already present.
+# Add Proxmox repository to sources.list if not already present
 # setup sources.list
-#   
+# -x (execute)
 pbs_adr() {
+    # Technical Description:
+    #   Adds the Proxmox Backup Server repository line to APT sources.list
+    #   Checks for existing repository entry to prevent duplicates
+    #   Uses no-subscription repository for free access to PBS packages
+    #   Provides feedback on whether line was added or already existed
+    # Dependencies:
+    #   - grep for pattern matching in files
+    #   - echo for writing to files
+    #   - aux_nos function for notification output
+    #   - Write permissions to /etc/apt/sources.list
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety due to system modifications
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     line_to_add="deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription"
     file="/etc/apt/sources.list"
@@ -70,21 +157,42 @@ pbs_adr() {
     fi
 }
 
-# Restore datastore configuration file with given parameters.
+# Restore datastore configuration file with given parameters
 # restore datastore
 # <datastore_config> <datastore_name> <datastore_path>
 pbs_rda() {
-        local function_name="${FUNCNAME[0]}"
-	local datastore_config="$1"
-	local datastore_name="$2"
-	local datastore_path="$3"
+    # Technical Description:
+    #   Creates or updates the Proxmox Backup Server datastore configuration
+    #   Validates configuration parameters and file existence before processing
+    #   Uses pattern matching to check for existing datastore entries
+    #   Creates configuration file structure with proper formatting if missing
+    # Dependencies:
+    #   - grep with Perl regex support (-Pzo flags)
+    #   - echo with escape sequence support (-e flag)
+    #   - aux_use function for usage display
+    #   - aux_nos function for notification output
+    #   - Write permissions to /etc/proxmox-backup/datastore.cfg
+    # Arguments:
+    #   $1: datastore_config - configuration identifier or backup source
+    #   $2: datastore_name - unique name for the datastore entry
+    #   $3: datastore_path - filesystem path where datastore will be located
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 3 ]; then
+        aux_use
+        return 1
+    fi
+    
+    local function_name="${FUNCNAME[0]}"
+    local datastore_config="$1"
+    local datastore_name="$2"
+    local datastore_path="$3"
 
-     if [ $# -ne 3 ]; then
-       aux_use
-       return 1
-     fi
-
- # Define the file path to the configuration file
+    # Define the file path to the configuration file
     local file="/etc/proxmox-backup/datastore.cfg"
     # Define the combined lines to be checked within the file
     local combined_lines="datastore: $datastore_name\n\tpath $datastore_path"
@@ -117,6 +225,29 @@ pbs_rda() {
 # pbs monitor
 # [option]
 pbs_mon() {
+    # Technical Description:
+    #   Comprehensive monitoring tool for Proxmox Backup Server operations
+    #   Provides interactive menu system when no option specified
+    #   Executes specific monitoring commands based on user selection
+    #   Covers service status, datastore info, tasks, configuration, and system metrics
+    # Dependencies:
+    #   - systemctl for service status checking
+    #   - proxmox-backup-manager for PBS-specific operations
+    #   - cat for file content display
+    #   - ps and grep for process monitoring
+    #   - journalctl for log analysis
+    #   - df for storage usage statistics
+    #   - ss for network connection monitoring
+    #   - aux_mev function for menu interaction
+    #   - aux_nos function for notification output
+    # Arguments:
+    #   $1: option (optional) - monitoring option number (1-11) or descriptive string
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local option=""
 
@@ -183,7 +314,7 @@ pbs_mon() {
             ;;
         11|"All of the above")
             for i in {1..10}; do
-                pbs-mon "$i"
+                pbs_mon "$i"
                 echo "----------------------------------------"
             done
             ;;
