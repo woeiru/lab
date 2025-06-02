@@ -24,14 +24,26 @@ ssh_fun() {
     #   All remaining arguments are forwarded to 'aux_laf'.
     #   Primarily used for introspection of script capabilities.
     # Dependencies:
-    #   - 'aux_laf' function.
+    #   - 'aux_laf' function from aux module
+    #   - LIB_GEN_DIR environment variable
+    #   - Read access to script files
     # Arguments:
     #   $1: script_path - path to the script file to analyze
     #   $@: additional arguments forwarded to aux_laf
     # Returns:
     #   Exit status of aux_laf command
     # Examples:
-    #   ssh-fun "/path/to/script"
+    #   ssh_fun "/path/to/script"
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -lt 1 ]; then
+        aux_use
+        return 1
+    fi
     
     local script_path="$1"
     shift
@@ -48,14 +60,26 @@ ssh_var() {
     #   Accepts config file path and library parent directory as explicit parameters.
     #   Searches for SSH-related variables and displays their definitions.
     # Dependencies:
-    #   - 'aux-lav' function.
+    #   - 'aux-lav' function from aux module
+    #   - LIB_GEN_DIR environment variable
+    #   - Read access to configuration files
     # Arguments:
     #   $1: config_file - path to configuration file to analyze
     #   $2: lib_parent_dir - parent directory of libraries for context
     # Returns:
     #   Exit status of aux-lav command
     # Examples:
-    #   ssh-var "/path/to/config" "/path/to/lib/.."
+    #   ssh_var "/path/to/config" "/path/to/lib/.."
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
     
     local config_file="$1"
     local lib_parent_dir="$2"
@@ -71,14 +95,29 @@ ssh_key() {
     #   Loads specified SSH keys into the SSH agent if not already loaded.
     #   Starts SSH agent if not running. Validates key existence before loading.
     #   Uses ssh-keygen fingerprint comparison to avoid duplicate key loading.
+    #   Processes array reference to handle multiple keys efficiently.
     # Dependencies:
-    #   - ssh-add, ssh-agent, ssh-keygen commands
+    #   - ssh-add command for key management
+    #   - ssh-agent command for agent management
+    #   - ssh-keygen command for fingerprint generation
+    #   - log function for status reporting
+    #   - awk for fingerprint extraction
     # Arguments:
-    #   $1: key_paths_array[@] - array of SSH key file paths to load
+    #   $1: key_paths_array[@] - nameref to array of SSH key file paths to load
     # Returns:
     #   0 on success, non-zero on failure
     # Examples:
-    #   ssh_key "${SSH_KEY_PATHS[@]}"
+    #   ssh_key "SSH_KEY_PATHS"
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ]; then
+        aux_use
+        return 1
+    fi
     
     local -n key_paths_ref=$1
     
@@ -115,19 +154,32 @@ ssh_key() {
 
 # Lists SSH keys currently loaded in the agent with detailed information
 # list ssh keys
-#
+# -x (execute)
 ssh_lst() {
     # Technical Description:
     #   Displays all SSH keys currently loaded in the SSH agent.
     #   Shows key fingerprints, types, and associated files.
+    #   Provides clear status when no keys are loaded or agent is not running.
     # Dependencies:
-    #   - ssh-add command
+    #   - ssh-add command for listing keys
+    #   - log function for status reporting
+    #   - Running SSH agent with SSH_AUTH_SOCK set
     # Arguments:
-    #   None
+    #   $1: -x - explicit execution flag required for consistency
     # Returns:
     #   0 if keys found, 1 if no keys or agent not running
     # Examples:
-    #   ssh_lst
+    #   ssh_lst -x
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
     
     log "lvl-3" "Listing SSH keys in the agent"
     ssh-add -l || {
@@ -138,19 +190,32 @@ ssh_lst() {
 
 # Removes all SSH keys from the agent for security cleanup
 # remove ssh keys
-#
+# -x (execute)
 ssh_rmv() {
     # Technical Description:
     #   Removes all SSH keys from the SSH agent for security purposes.
     #   Useful for cleanup or when switching between different key sets.
+    #   Provides clear feedback on operation success or failure.
     # Dependencies:
-    #   - ssh-add command
+    #   - ssh-add command for key removal
+    #   - log function for status reporting
+    #   - Running SSH agent with loaded keys
     # Arguments:
-    #   None
+    #   $1: -x - explicit execution flag required for safety and consistency
     # Returns:
     #   0 on success, 1 on failure
     # Examples:
-    #   ssh-rmv
+    #   ssh_rmv -x
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
     
     log "lvl-3" "Removing all SSH keys from the agent"
     ssh-add -D || {
@@ -161,22 +226,37 @@ ssh_rmv() {
 
 # Generates new SSH keys with specified type and comment
 # generate ssh key
-# <key_type> <comment> <output_path>
+# <key_type> <comment> [output_path]
 ssh_gen() {
     # Technical Description:
     #   Creates new SSH key pair using specified algorithm and comment.
-    #   Supports ed25519 (recommended) and rsa key types.
+    #   Supports ed25519 (recommended) and rsa key types with appropriate parameters.
+    #   Sets default output path if not specified, creates directory structure if needed.
+    #   Provides comprehensive logging throughout the generation process.
     # Dependencies:
-    #   - ssh-keygen command
+    #   - ssh-keygen command for key generation
+    #   - log function for status reporting
+    #   - Write permissions to output directory
+    #   - HOME environment variable for default paths
     # Arguments:
     #   $1: key_type - type of key to generate (ed25519, rsa)
-    #   $2: comment - comment to embed in the key
+    #   $2: comment - comment to embed in the key for identification
     #   $3: output_path - path where to save the key (optional, defaults to ~/.ssh/id_<type>)
     # Returns:
     #   0 on success, non-zero on failure
     # Examples:
-    #   ssh-gen "ed25519" "user@lab" "/root/.ssh/id_ed25519"
-    #   ssh-gen "rsa" "user@lab"
+    #   ssh_gen "ed25519" "user@lab" "/root/.ssh/id_ed25519"
+    #   ssh_gen "rsa" "user@lab"
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+        aux_use
+        return 1
+    fi
     
     local key_type="$1"
     local comment="$2"
@@ -218,16 +298,31 @@ ssh_cpy() {
     # Technical Description:
     #   Copies SSH public key to remote host's authorized_keys file.
     #   Enables passwordless SSH authentication to the target host.
+    #   Validates key file existence before attempting copy operation.
+    #   Uses ssh-copy-id for secure and proper key installation.
     # Dependencies:
-    #   - ssh-copy-id command
+    #   - ssh-copy-id command for secure key copying
+    #   - log function for status reporting
+    #   - Network connectivity to target host
+    #   - SSH access to target host (may require password)
     # Arguments:
-    #   $1: public_key_path - path to the public key file
+    #   $1: public_key_path - absolute path to the public key file
     #   $2: target_host - target host in format [user@]hostname[:port]
     # Returns:
     #   0 on success, non-zero on failure
     # Examples:
     #   ssh_cpy "/root/.ssh/id_ed25519.pub" "root@192.168.1.100"
     #   ssh_cpy "/root/.ssh/id_rsa.pub" "user@example.com"
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
     
     local public_key_path="$1"
     local target_host="$2"
@@ -248,19 +343,34 @@ ssh_cpy() {
 
 # Starts SSH agent and ensures it's running for key management
 # start ssh agent
-#
+# -x (execute)
 ssh_agt() {
     # Technical Description:
     #   Starts SSH agent if not already running and exports environment variables.
     #   Ensures SSH_AUTH_SOCK and SSH_AGENT_PID are properly set.
+    #   Checks for existing agent before starting new one to avoid conflicts.
+    #   Provides clear feedback on agent status and startup success.
     # Dependencies:
-    #   - ssh-agent command
+    #   - ssh-agent command for agent management
+    #   - ssh-add command for agent testing
+    #   - log function for status reporting
+    #   - eval for environment variable setting
     # Arguments:
-    #   None
+    #   $1: -x - explicit execution flag required for safety and consistency
     # Returns:
     #   0 if agent started or already running, 1 on failure
     # Examples:
-    #   ssh-agt
+    #   ssh_agt -x
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
     
     if [ -n "$SSH_AUTH_SOCK" ] && ssh-add -l >/dev/null 2>&1; then
         log "lvl-4" "SSH agent is already running"
@@ -280,12 +390,30 @@ ssh_agt() {
 # ssh custom aliases
 # <usershortcut> <servershortcut> <ssh_users_array_name> <all_ip_arrays_array_name> <array_aliases_array_name> [command]
 ssh_sca() {
-    # TECHNICAL DETAILS:
-    # Resolves user and server shortcuts from configuration arrays
-    # Supports single server, multiple servers, or entire arrays
-    # Can execute commands remotely on multiple servers
-    # Uses nameref declarations for dynamic array access
-    # Handles 'all' keyword for operations across all server arrays
+    # Technical Description:
+    #   Resolves user and server shortcuts from configuration arrays using nameref declarations.
+    #   Supports single server, multiple servers, or entire arrays for batch operations.
+    #   Can execute commands remotely on multiple servers with proper error handling.
+    #   Uses dynamic array access for flexible configuration management.
+    #   Handles 'all' keyword for operations across all server arrays.
+    #   Provides comprehensive debugging output for troubleshooting connections.
+    # Dependencies:
+    #   - ssh command for remote connections
+    #   - declare with nameref support for dynamic array access
+    #   - eval for command execution
+    #   - Array variables passed by name for configuration
+    # Arguments:
+    #   $1: usershortcut - shortcut key for user lookup in ssh_users_array
+    #   $2: servershortcut - shortcut key(s) for server lookup, supports comma-separated values
+    #   $3: ssh_users_array_name - name of associative array containing user mappings
+    #   $4: all_ip_arrays_array_name - name of array containing all IP array names
+    #   $5: array_aliases_array_name - name of associative array containing array aliases
+    #   $6+: command - optional command to execute on remote server(s)
+    # Returns:
+    #   0 on success, 1 on parameter validation failure or connection errors
+    # Examples:
+    #   ssh_sca "r" "web1" "SSH_USERS" "ALL_IP_ARRAYS" "ARRAY_ALIASES"
+    #   ssh_sca "r" "web1,web2" "SSH_USERS" "ALL_IP_ARRAYS" "ARRAY_ALIASES" "uptime"
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -452,12 +580,31 @@ ssh_sca() {
 # ssh upload keyfile
 # <device_path> <mount_point> <subfolder_path> <upload_path> <file_name>
 ssh_suk() {
-    # TECHNICAL DETAILS:
-    # Mounts external device at specified mount point
-    # Copies SSH key from device subfolder to target location
-    # Handles mount point creation if needed
-    # Safely unmounts device after operation
-    # Provides interactive confirmation for all paths
+    # Technical Description:
+    #   Mounts external device at specified mount point and copies SSH key files.
+    #   Creates mount point directory if it doesn't exist for seamless operation.
+    #   Copies SSH key from device subfolder to target location with validation.
+    #   Safely unmounts device after operation to prevent data corruption.
+    #   Provides interactive confirmation for all paths using aux_mev utility.
+    #   Displays system information (lsblk, /mnt contents) for user guidance.
+    # Dependencies:
+    #   - mount/umount commands for device management
+    #   - cp command for file copying
+    #   - mkdir command for directory creation
+    #   - lsblk command for device listing
+    #   - ls command for directory listing
+    #   - aux_mev function for interactive variable confirmation
+    #   - Device must be properly formatted and accessible
+    # Arguments:
+    #   $1: device_path - path to the device (e.g., /dev/sdb1)
+    #   $2: mount_point - directory where device will be mounted
+    #   $3: subfolder_path - path within the mounted device to the key file
+    #   $4: upload_path - destination directory for the key file
+    #   $5: file_name - name of the key file to copy
+    # Returns:
+    #   0 on success, 1 on mount, copy, or unmount failure
+    # Examples:
+    #   ssh_suk "/dev/sdb1" "/mnt/usb" "ssh_keys" "/root/.ssh" "id_ed25519"
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -531,12 +678,28 @@ ssh_suk() {
 # ssh private identifier
 # <user> <keyname>
 ssh_spi() {
-    # TECHNICAL DETAILS:
-    # Creates .ssh directory structure if missing
-    # Adds IdentityFile entry to SSH config for specified key
-    # Handles both root and regular user configurations
-    # Sets proper ownership and permissions (600) for security
-    # Avoids duplicate entries in config file
+    # Technical Description:
+    #   Creates .ssh directory structure if missing with proper permissions.
+    #   Adds IdentityFile entry to SSH config for specified key with Host * scope.
+    #   Handles both root and regular user configurations with appropriate paths.
+    #   Sets proper ownership and permissions (600) for security compliance.
+    #   Avoids duplicate entries by checking existing config content.
+    #   Creates config file with proper structure if it doesn't exist.
+    # Dependencies:
+    #   - mkdir command for directory creation
+    #   - grep command for duplicate detection
+    #   - echo command for config file writing
+    #   - chown command for ownership setting
+    #   - chmod command for permission setting
+    #   - Appropriate privileges for user directory access
+    # Arguments:
+    #   $1: user - username (root or regular user) for configuration
+    #   $2: keyname - name of the SSH key file (without path)
+    # Returns:
+    #   0 on success, 1 on failure or invalid user
+    # Examples:
+    #   ssh_spi "root" "id_ed25519_lab"
+    #   ssh_spi "alice" "id_rsa_work"
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -590,12 +753,34 @@ ssh_spi() {
 # ssh key swap
 # <mode> <remote_address> <key_name> [encryption_type]
 ssh_sks() {
-    # TECHNICAL DETAILS:
-    # Client-side generation: ssh_sks -c [-d] <server_address> <key_name> [encryption_type]
-    # Server-side generation: ssh_sks -s [-d] <client_address> <key_name> [encryption_type]
-    # Supports rsa, dsa, ecdsa, ed25519 encryption types (default: ed25519)
-    # Optional -d flag removes original key after successful transfer
-    # Handles secure key transfer via SCP
+    # Technical Description:
+    #   Generates SSH key pairs with flexible client-server distribution options.
+    #   Client-side generation (-c) creates keys locally and transfers public key to server.
+    #   Server-side generation (-s) creates keys on server and transfers private key to client.
+    #   Supports multiple encryption types with ed25519 as secure default.
+    #   Optional deduplication (-d) removes original key after successful transfer.
+    #   Handles secure key transfer via SCP with proper error checking.
+    #   Sets appropriate permissions and handles directory creation automatically.
+    # Dependencies:
+    #   - ssh-keygen command for key generation
+    #   - scp command for secure file transfer
+    #   - ssh command for remote operations
+    #   - mkdir command for directory creation
+    #   - rm command for deduplication
+    #   - chmod command for permission setting
+    #   - Network connectivity to remote host
+    #   - SSH access to remote host
+    # Arguments:
+    #   $1: mode - operation mode (-c for client-side, -s for server-side)
+    #   $2: remote_address - target host in format [user@]hostname[:port]
+    #   $3: key_name - name for the generated key files
+    #   $4: encryption_type - key algorithm (ed25519, rsa, dsa, ecdsa) [optional, default: ed25519]
+    #   Additional flags: -d for deduplication (removes original after transfer)
+    # Returns:
+    #   0 on success, 1 on parameter validation failure or operation errors
+    # Examples:
+    #   ssh_sks "-c" "root@192.168.1.100" "lab_key" "ed25519"
+    #   ssh_sks "-s" "-d" "user@server.com" "work_key" "rsa"
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -714,12 +899,31 @@ ssh_sks() {
 # ssh append key
 # <mode> <remote_address> <key_name>
 ssh_sak() {
-    # TECHNICAL DETAILS:
-    # Client-side operation: ssh_sak -c <server_address> <key_name>
-    # Server-side operation: ssh_sak -s <client_address> <key_name>
-    # Appends public key to authorized_keys file safely
-    # Sets proper permissions (600) on authorized_keys
-    # Restarts SSH service after key addition
+    # Technical Description:
+    #   Manages authorized_keys file updates for SSH key-based authentication.
+    #   Client-side operation (-c) transfers local public key to remote authorized_keys.
+    #   Server-side operation (-s) appends local public key to local authorized_keys.
+    #   Creates .ssh directory structure if missing with proper permissions.
+    #   Sets secure permissions (600) on authorized_keys file for security compliance.
+    #   Restarts SSH service after key addition to ensure configuration reload.
+    #   Validates key file existence before attempting operations.
+    # Dependencies:
+    #   - ssh command for remote operations
+    #   - cat command for file content operations
+    #   - mkdir command for directory creation
+    #   - chmod command for permission setting
+    #   - systemctl command for service management
+    #   - File system access to SSH directories
+    #   - Network connectivity for client-side operations
+    # Arguments:
+    #   $1: mode - operation mode (-c for client-side, -s for server-side)
+    #   $2: remote_address - target host in format [user@]hostname[:port] (for client mode)
+    #   $3: key_name - name of the SSH key file (without .pub extension)
+    # Returns:
+    #   0 on success, 1 on parameter validation failure or operation errors
+    # Examples:
+    #   ssh_sak "-c" "root@192.168.1.100" "id_ed25519"
+    #   ssh_sak "-s" "localhost" "lab_key"
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -789,11 +993,27 @@ ssh_sak() {
 # loop operation ip
 # <ip_array> <operation>
 ssh_loi() {
-    # TECHNICAL DETAILS:
-    # ip_array: hy,ct - IP array name from configuration
-    # operation: bypass = Perform initial SSH login to bypass StrictHostKeyChecking
-    # operation: refresh = Remove the SSH key for the given IP from known_hosts
-    # Iterates through all IPs in specified array and performs operation
+    # Technical Description:
+    #   Performs batch SSH operations across IP ranges defined in configuration arrays.
+    #   Bypass operation performs initial SSH login to accept host keys automatically.
+    #   Refresh operation removes SSH host keys from known_hosts for clean reconnections.
+    #   Dynamically resolves IP array names using uppercase convention with _IPS suffix.
+    #   Iterates through all IPs in specified array and performs operation with error handling.
+    #   Provides detailed feedback for each operation including success/failure status.
+    # Dependencies:
+    #   - ssh command with StrictHostKeyChecking option
+    #   - ssh-keygen command for known_hosts management
+    #   - declare command with nameref support
+    #   - Configuration arrays with proper naming convention
+    #   - Network connectivity to target hosts
+    # Arguments:
+    #   $1: ip_array - IP array identifier (e.g., 'hy', 'ct') resolves to HY_IPS, CT_IPS
+    #   $2: operation - operation type ('bypass' for host key acceptance, 'refresh' for known_hosts cleanup)
+    # Returns:
+    #   0 on success, 1 on parameter validation failure or invalid array/operation
+    # Examples:
+    #   ssh_loi "hy" "bypass"
+    #   ssh_loi "ct" "refresh"
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
