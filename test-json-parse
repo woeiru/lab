@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Simple test to parse one JSON file
+json_file="/home/es/lab/.tmp/doc/lib_gen_aux.json"
+
+echo "Testing JSON parsing for: $json_file"
+
+if [[ -f "$json_file" ]]; then
+    echo "File exists, parsing..."
+    
+    in_functions=false
+    in_function=false
+    func_name=""
+    func_desc=""
+    count=0
+    
+    while IFS= read -r line; do
+        count=$((count + 1))
+        if [[ $count -gt 100 ]]; then
+            echo "Stopping after 100 lines to prevent infinite loop"
+            break
+        fi
+        
+        # Remove leading/trailing whitespace
+        line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        
+        echo "Line $count: '$line'"
+        
+        if [[ "$line" == '"functions": [' ]]; then
+            echo "Found functions start"
+            in_functions=true
+            continue
+        fi
+        
+        if [[ "$in_functions" == true && "$line" == "{" ]]; then
+            echo "Found function start"
+            in_function=true
+            func_name=""
+            func_desc=""
+            continue
+        fi
+        
+        if [[ "$in_function" == true ]]; then
+            if [[ "$line" =~ \"name\":[[:space:]]*\"([^\"]+)\" ]]; then
+                func_name="${BASH_REMATCH[1]}"
+                echo "Found function name: $func_name"
+            elif [[ "$line" =~ \"description\":[[:space:]]*\"([^\"]*)\" ]]; then
+                func_desc="${BASH_REMATCH[1]}"
+                echo "Found description: $func_desc"
+            elif [[ "$line" == "}" ]]; then
+                echo "Function end - outputting: gen | aux | $func_name | $func_desc"
+                in_function=false
+            fi
+        fi
+        
+        if [[ "$line" == "]" && "$in_functions" == true ]]; then
+            echo "Functions array ended"
+            in_functions=false
+            break
+        fi
+    done < "$json_file"
+else
+    echo "JSON file not found: $json_file"
+fi
