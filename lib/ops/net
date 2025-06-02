@@ -105,3 +105,170 @@ net_fas() {
 
     aux_nos "$function_name" "executed"
 }
+
+
+# Manages git operations, ensuring the local repository syncs with the remote.
+# git sync operations
+# [commit_message]
+sys_gio() {
+    # TECHNICAL DETAILS:
+    # Performs status check, pull, commit, and push operations as needed
+    # If commit message provided, uses it for commits
+    # Otherwise commits with empty message when changes detected
+    # Handles both clean working tree updates and dirty tree commits
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # Optional parameters - no validation needed
+    local dir="${DIR_FUN:-.}/.."
+    local branch="${GIT_BRANCH:-master}"
+    local commit_message=""
+
+    # If arguments are provided, use them as the commit message
+    if [ $# -gt 0 ]; then
+        commit_message="$*"
+    fi
+
+    # Navigate to the git folder
+    cd "$dir" || { echo "Failed to change directory to $dir"; return 1; }
+
+    # Fetch updates from remote
+    git fetch origin "$branch" || { echo "Failed to fetch from remote"; return 1; }
+
+    # Get the current status
+    local status_output
+    status_output=$(git status --porcelain)
+    if [[ -z "$status_output" ]]; then
+        echo "Working tree clean. Checking for updates..."
+        if git rev-list HEAD...origin/"$branch" --count | grep -q "^0$"; then
+            echo "Local branch is up to date with origin/$branch."
+        else
+            echo "Updates available. Pulling changes..."
+            git pull origin "$branch" || { echo "Failed to pull changes"; return 1; }
+        fi
+    else
+        echo "Changes detected. Committing and pushing..."
+        git add . || { echo "Failed to stage changes"; return 1; }
+        if [[ -n "$commit_message" ]]; then
+            git commit -m "$commit_message" || { echo "Failed to commit changes"; return 1; }
+        else
+            git commit --allow-empty-message -m "" || { echo "Failed to commit changes"; return 1; }
+        fi
+        git push origin "$branch" || { echo "Failed to push changes"; return 1; }
+    fi
+
+    # Return to the previous directory
+    cd - > /dev/null || { echo "Failed to return to previous directory"; return 1; }
+}
+
+# Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
+# loop operation ip
+# <ip_array> <operation>
+sys_loi() {
+    # TECHNICAL DETAILS:
+    # ip_array: hy,ct - IP array name from configuration
+    # operation: bypass = Perform initial SSH login to bypass StrictHostKeyChecking
+    # operation: refresh = Remove the SSH key for the given IP from known_hosts
+    # Iterates through all IPs in specified array and performs operation
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+    
+    local ip_type=$1
+    local operation=$2
+    local ip_array_name="${ip_type^^}_IPS"
+
+    # Ensure the array exists
+    if ! declare -p "$ip_array_name" >/dev/null 2>&1; then
+        echo "Invalid IP type: $ip_type"
+        return 1
+    fi
+
+    # Get the associative array
+    declare -n IP_ARRAY="$ip_array_name"
+
+    for KEY in "${!IP_ARRAY[@]}"; do
+        IP=${IP_ARRAY[$KEY]}
+
+        if [ -n "$IP" ]; then
+            if [ "$operation" == "bypass" ]; then
+                echo "Performing SSH login to bypass StrictHostKeyChecking for $IP"
+                ssh -o StrictHostKeyChecking=no root@"$IP" "exit"
+                if [ $? -ne 0 ]; then
+                    echo "Failed to SSH into $IP"
+                fi
+            elif [ "$operation" == "refresh" ]; then
+                echo "Removing SSH key for $IP from known_hosts"
+                ssh-keygen -R "$IP"
+                if [ $? -ne 0 ]; then
+                    echo "Failed to remove SSH key for $IP"
+                fi
+            else
+                echo "Invalid operation: $operation"
+                return 1
+            fi
+        else
+            echo "IP is empty for key $KEY"
+        fi
+    done
+}
+
+# Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits.
+# add host entry
+# <ip_address> <hostname>
+sys_hos() {
+    # TECHNICAL DETAILS:
+    # Manages /etc/hosts file entries safely
+    # Updates existing entries if hostname exists with different IP
+    # Adds new entries if hostname doesn't exist
+    # Uses temporary file for safe sed operations
+    # Validates input parameters before processing
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+    
+    local function_name="${FUNCNAME[0]}"
+    local ip_address="$1"
+    local hostname="$2"
+    local hosts_file="/etc/hosts"
+
+    # Check if the entry already exists with the same IP
+    if grep -q -w "$hostname" "$hosts_file"; then
+        # Hostname exists, check if IP needs update
+        if grep -q -w "$ip_address\\s\\+$hostname" "$hosts_file"; then
+            echo "INF: $function_name: Host entry for $hostname ($ip_address) already exists and is correct."
+            return 0
+        else
+            # Hostname exists, but IP is different. Update the line.
+            # Use a temporary file for sed to avoid issues with /etc/hosts
+            local temp_file
+            temp_file=$(mktemp)
+            sed "s/.*\\s\\+$hostname$/$ip_address\\t$hostname/" "$hosts_file" > "$temp_file" && sudo cp "$temp_file" "$hosts_file"
+            rm "$temp_file"
+            echo "INF: $function_name: Updated host entry for $hostname to $ip_address."
+            return 0
+        fi
+    else
+        # Hostname does not exist, add new entry
+        echo -e "$ip_address\\t$hostname" | sudo tee -a "$hosts_file" > /dev/null
+        echo "INF: $function_name: Added host entry for $hostname ($ip_address)."
+        return 0
+    fi
+}
