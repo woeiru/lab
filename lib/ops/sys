@@ -518,3 +518,59 @@ sys_gre() {
     git log -1 --oneline
 }
 
+# Manages git operations, ensuring the local repository syncs with the remote.
+# git sync operations
+# [commit_message]
+sys_gio() {
+    # TECHNICAL DETAILS:
+    # Performs status check, pull, commit, and push operations as needed
+    # If commit message provided, uses it for commits
+    # Otherwise commits with empty message when changes detected
+    # Handles both clean working tree updates and dirty tree commits
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # Optional parameters - no validation needed
+    local dir="${DIR_FUN:-.}/.."
+    local branch="${GIT_BRANCH:-master}"
+    local commit_message=""
+
+    # If arguments are provided, use them as the commit message
+    if [ $# -gt 0 ]; then
+        commit_message="$*"
+    fi
+
+    # Navigate to the git folder
+    cd "$dir" || { echo "Failed to change directory to $dir"; return 1; }
+
+    # Fetch updates from remote
+    git fetch origin "$branch" || { echo "Failed to fetch from remote"; return 1; }
+
+    # Get the current status
+    local status_output
+    status_output=$(git status --porcelain)
+    if [[ -z "$status_output" ]]; then
+        echo "Working tree clean. Checking for updates..."
+        if git rev-list HEAD...origin/"$branch" --count | grep -q "^0$"; then
+            echo "Local branch is up to date with origin/$branch."
+        else
+            echo "Updates available. Pulling changes..."
+            git pull origin "$branch" || { echo "Failed to pull changes"; return 1; }
+        fi
+    else
+        echo "Changes detected. Committing and pushing..."
+        git add . || { echo "Failed to stage changes"; return 1; }
+        if [[ -n "$commit_message" ]]; then
+            git commit -m "$commit_message" || { echo "Failed to commit changes"; return 1; }
+        else
+            git commit --allow-empty-message -m "" || { echo "Failed to commit changes"; return 1; }
+        fi
+        git push origin "$branch" || { echo "Failed to push changes"; return 1; }
+    fi
+
+    # Return to the previous directory
+    cd - > /dev/null || { echo "Failed to return to previous directory"; return 1; }
+}

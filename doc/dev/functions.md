@@ -217,7 +217,7 @@ Functions are organized by library modules for systematic access and reference.
 | ops | sys | ssh_spi | Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist |
 | ops | sys | ssh_sks | Generates an SSH key pair and handles the transfer process |
 | ops | sys | ssh_sak | Appends the content of a specified public SSH key file to the authorized_keys file. |
-| ops | sys | sys_loi | Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration |
+| ops | sys | ssh_loi | Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration |
 | ops | sys | ssh_sca | Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely |
 | ops | sys | sys_gre | An interactive Bash function that guides users through Git history navigation, offering options for reset type and subsequent actions, with built-in safeguards and explanations. |
 | ops | sys | sys_hos | Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits. |
