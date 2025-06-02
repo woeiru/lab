@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Test just the file update logic
+LAB_DIR="/home/es/lab"
+DOC_FILE="$LAB_DIR/doc/dev/functions.md"
+
+echo "Testing file update logic..."
+
+temp_file=$(mktemp)
+echo "Created temp file: $temp_file"
+
+in_auto_section=false
+line_count=0
+
+while IFS= read -r line; do
+    line_count=$((line_count + 1))
+    
+    if [[ $line_count -gt 50 ]]; then
+        echo "Processed $line_count lines, stopping test"
+        break
+    fi
+    
+    echo "Line $line_count: Processing..."
+    
+    if [[ "$line" == *"AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY"* ]]; then
+        echo "Found start marker at line $line_count"
+        echo "$line" >> "$temp_file"
+        in_auto_section=true
+    elif [[ "$line" == *"END AUTO-GENERATED SECTION"* ]]; then
+        echo "Found end marker at line $line_count"
+        echo "$line" >> "$temp_file"
+        in_auto_section=false
+    elif [[ "$in_auto_section" == false ]]; then
+        echo "$line" >> "$temp_file"
+    else
+        echo "Skipping line in auto section: $line_count"
+    fi
+done < "$DOC_FILE"
+
+echo "Processed $line_count lines total"
+echo "Temp file size:"
+wc -l "$temp_file"
+rm "$temp_file"
