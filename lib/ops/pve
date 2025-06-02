@@ -27,10 +27,20 @@ pve_fun() {
     # Arguments:
     #   $1: script_path - path to the script file to analyze
 
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -lt 1 ]; then
+        aux_use
+        return 1
+    fi
+
     local script_path="$1"
     
     if [ -z "$script_path" ] || [ ! -f "$script_path" ]; then
-        echo "ERROR: Valid script path required" >&2
+        aux_use
         return 1
     fi
     
@@ -53,16 +63,26 @@ pve_var() {
     #   $1: config_file - path to the configuration file to analyze
     #   $2: analysis_dir - directory scope for usage analysis
 
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+
     local config_file="$1"
     local analysis_dir="$2"
     
     if [ -z "$config_file" ] || [ ! -f "$config_file" ]; then
-        echo "ERROR: Valid config file required" >&2
+        aux_use
         return 1
     fi
     
     if [ -z "$analysis_dir" ] || [ ! -d "$analysis_dir" ]; then
-        echo "ERROR: Valid analysis directory required" >&2
+        aux_use
         return 1
     fi
 
@@ -71,7 +91,7 @@ pve_var() {
 
 # Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources 
 # disable repository
-#  
+# -x (execute)
 pve_dsr() {
     # Technical Description:
     #   Modifies Proxmox VE APT repository configuration files to disable them.
@@ -84,6 +104,18 @@ pve_dsr() {
     #   - 'sed' utility for in-place file editing.
     #   - 'aux_nos' function for status messages.
     #   - Root privileges are required to modify files in /etc/apt/.
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
 
     local function_name="${FUNCNAME[0]}"
     files=(
@@ -103,9 +135,8 @@ pve_dsr() {
 
 # Removes the Proxmox subscription notice by modifying the web interface JavaScript file, with an option to restart the pveproxy service 
 # remove sub notice
-#   
+# -x (execute)
 pve_rsn() {
-
     # Technical Description:
     #   Removes the "No valid subscription" notice from the Proxmox VE web interface.
     #   Modifies the JavaScript file '/usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js'.
@@ -118,6 +149,18 @@ pve_rsn() {
     #   - 'systemctl' for service management.
     #   - 'aux_nos' for status messages.
     #   - Root privileges required for file modification and service restart.
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
 
     local function_name="${FUNCNAME[0]}"
     sed -Ezi.bak "s/(Ext\.Msg\.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
@@ -133,9 +176,8 @@ pve_rsn() {
 
 # Updates the Proxmox VE Appliance Manager (pveam) container template list
 # container list update
-#  
+# -x (execute)
 pve_clu() {
-
     # Technical Description:
     #   Updates the local cache of available LXC container templates for Proxmox VE.
     #   Executes the 'pveam update' command. 'pveam' is the Proxmox VE Appliance Manager.
@@ -145,6 +187,18 @@ pve_clu() {
     #   - 'pveam' command-line utility.
     #   - 'aux_nos' function.
     #   - Network access to Proxmox template repositories.
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
 
     local function_name="${FUNCNAME[0]}"
 
@@ -155,22 +209,31 @@ pve_clu() {
 
 # Downloads a specified container template to a given storage location, with error handling and options to list available templates
 # container downloads
-#   
+# <storage_id> <template_name>
 pve_cdo() {
-
     # Technical Description:
     #   Downloads a specified LXC container template to a designated Proxmox VE storage.
     #   Uses 'pveam download <storage_id> <template_name>'. Output is initially suppressed (2>/dev/null).
-    #   Arguments:
-    #     $1 (ct_dl_sto): The ID of the Proxmox storage where the template will be downloaded.
-    #     $2 (ct_dl): The name of the container template to download (e.g., 'alpine-3.18-default_20230615_amd64.tar.xz').
     #   Includes interactive error handling:
     #     - If download fails, it prompts the user to view available templates ('pveam available').
     #     - If the user agrees, it then prompts if they want to try downloading a different template.
-    #     - If yes, it recursively calls 'pve-cdo' with the new template name.
+    #     - If yes, it recursively calls 'pve_cdo' with the new template name.
     # Dependencies:
     #   - 'pveam' command-line utility.
     #   - User interaction for error handling.
+    # Arguments:
+    #   $1: storage_id - The ID of the Proxmox storage where the template will be downloaded
+    #   $2: template_name - The name of the container template to download (e.g., 'alpine-3.18-default_20230615_amd64.tar.xz')
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
 
     local function_name="${FUNCNAME[0]}"
     local ct_dl_sto="$1"
@@ -192,7 +255,7 @@ pve_cdo() {
             
             if [[ "$retry_answer" =~ ^[Yy]$ ]]; then
                 read -p "Enter the name of the template you'd like to download: " new_ct_dl
-                pve-cdo "$ct_dl_sto" "$new_ct_dl"
+                pve_cdo "$ct_dl_sto" "$new_ct_dl"
                 return
             fi
         fi
@@ -207,39 +270,38 @@ pve_cdo() {
 # container bindmount
 # <vmid> <mphost> <mpcontainer>
 pve_cbm() {
-
     # Technical Description:
     #   Configures a bind mount for a Proxmox LXC container.
     #   Uses 'pct set <vmid> -mp0 <host_path>,mp=<container_path>' to define the mount point.
     #   '-mp0' refers to mount point 0; additional mount points would use -mp1, -mp2, etc.
-    #   Arguments:
-    #     $1 (vmid): The numeric ID of the LXC container.
-    #     $2 (mphost): The absolute path on the Proxmox host to be mounted into the container.
-    #     $3 (mpcontainer): The absolute path inside the container where the host path will be mounted.
-    #   Requires exactly 3 arguments; otherwise, 'aux_use' is called.
+    #   Requires exactly 3 arguments; validates all parameters before execution.
     # Dependencies:
     #   - 'pct' command-line utility.
     #   - 'aux_use' for usage display on incorrect arguments.
     #   - 'aux_nos' for success notification.
+    # Arguments:
+    #   $1: vmid - The numeric ID of the LXC container
+    #   $2: mphost - The absolute path on the Proxmox host to be mounted into the container
+    #   $3: mpcontainer - The absolute path inside the container where the host path will be mounted
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 3 ]; then
+        aux_use
+        return 1
+    fi
 
     local function_name="${FUNCNAME[0]}"
     local vmid="$1"
     local mphost="$2"
     local mpcontainer="$3"
-    if [ $# -ne 3 ]; then
-	aux_use
-        return 1
-    fi
-
-    # Debugging output to check the parameters
-    echo "Function: $function_name"
-    echo "VMID: $vmid"
-    echo "MPHOST: $mphost"
-    echo "MPCONTAINER: $mpcontainer"
 
     # Ensure all arguments are provided
     if [[ -z "$vmid" || -z "$mphost" || -z "$mpcontainer" ]]; then
-        echo "Error: Missing arguments."
+        aux_use
         return 1
     fi
 
@@ -285,8 +347,13 @@ pve_ctc() {
     #   $17: net_bridge - Network bridge
     #   $18: net_nic - Network interface name
 
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 18 ]; then
-        echo "ERROR: pve-ctc requires exactly 18 arguments" >&2
+        aux_use
         return 1
     fi
 
@@ -335,7 +402,6 @@ pve_ctc() {
 # container toggle
 # <start|stop|enable|disable> <containers|all>
 pve_cto() {
-
     # Technical Description:
     #   Manages the state (start, stop) and on-boot behavior (enable, disable) of Proxmox LXC containers.
     #   First argument 'action': 'start', 'stop', 'enable', or 'disable'.
@@ -351,13 +417,25 @@ pve_cto() {
     #   - 'pct' command-line utility.
     #   - 'sed' and 'awk' utilities.
     #   - Container configuration files at '/etc/pve/lxc/'.
+    # Arguments:
+    #   $1: action - The action to perform: start, stop, enable, or disable
+    #   $2+: containers - Container IDs, ranges (e.g., 100-105), or 'all'
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -lt 2 ]; then
+        aux_use
+        return 1
+    fi
 
     local action=$1
     shift
     
     if [[ $action != "start" && $action != "stop" && $action != "enable" && $action != "disable" ]]; then
-        echo "Invalid action: $action"
-        echo "Usage: pve-cto <start|stop|enable|disable> <containers|all>"
+        aux_use
         return 1
     fi
     
@@ -419,9 +497,8 @@ pve_cto() {
 
 # Deploys or modifies the VM shutdown hook for GPU reattachment
 # vm shutdown hook
-# Usage: pve-vmd <operation> <vm_id> <hook_script> <lib_ops_dir> [<vm_id2> ...]
+# <operation> <vm_id> <hook_script> <lib_ops_dir> [vm_id2...]
 pve_vmd() {
-
     # Technical Description:
     #   Manages a VM shutdown hook script for GPU reattachment in Proxmox VE.
     #   Operations: 'add', 'remove', 'debug', specified as the first argument ($1). VM ID is $2.
@@ -440,6 +517,22 @@ pve_vmd() {
     #   - 'gpu_pta' script/function (defined elsewhere, sourced via lib_ops_dir).
     #   - 'aux_nos' for notifications.
     #   - Directory '/var/lib/vz/snippets' must be writable.
+    # Arguments:
+    #   $1: operation - The operation to perform: add, remove, or debug
+    #   $2: vm_id - The VM ID to configure
+    #   $3: hook_script - Path to the hook script
+    #   $4: lib_ops_dir - Directory containing the ops library
+    #   $5+: additional_vm_ids (optional) - Additional VM IDs to configure
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -lt 4 ]; then
+        aux_use
+        return 1
+    fi
 
     local function_name="${FUNCNAME[0]}"
     local operation="$1"
@@ -449,7 +542,7 @@ pve_vmd() {
 
     # Validate required parameters
     if [[ -z "$hook_script" || -z "$lib_ops_dir" ]]; then
-        echo "Error: Missing required parameters. Usage: $function_name <operation> <vm_id> <hook_script> <lib_ops_dir>"
+        aux_use
         return 1
     fi
 
@@ -587,8 +680,13 @@ pve_vmc() {
     #   $16: balloon - Memory ballooning
     #   $17: net - Network configuration
 
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 17 ]; then
-        echo "ERROR: pve-vmc requires exactly 17 arguments" >&2
+        aux_use
         return 1
     fi
 
@@ -663,8 +761,12 @@ pve_vms() {
     #   - 'hostname' utility.
     #   - 'aux_use' for usage display.
 
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -lt 8 ] || [ $# -gt 9 ]; then
-        echo "ERROR: pve-vms requires 8 or 9 arguments" >&2
         aux_use
         return 1
     fi
@@ -745,8 +847,12 @@ pve_vmg() {
     #   - 'hostname' utility.
     #   - 'aux_use' for usage display.
 
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 8 ]; then
-        echo "ERROR: pve-vmg requires exactly 8 arguments" >&2
         aux_use
         return 1
     fi
@@ -819,6 +925,16 @@ pve_vpt() {
     #   - 'sed', 'awk', 'hostname' utilities.
     #   - 'aux_use' for usage display.
 
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 8 ]; then
+        aux_use
+        return 1
+    fi
+    
     local vm_id="$1"
     local action="$2"
     local pci0_id="$3"
@@ -828,17 +944,10 @@ pve_vpt() {
     local usb_devices_str="$7"
     local pve_conf_path="$8"
     
-    if [ $# -ne 8 ]; then
-        echo "Error: Wrong number of arguments. Expected 8, got $#"
-        aux_use
-        return 1
-    fi
-    
     local vm_conf="$pve_conf_path/$vm_id.conf"
     
     # Validate required parameters
     if [[ -z "$vm_id" || -z "$action" || -z "$pci0_id" || -z "$pci1_id" || -z "$core_count_on" || -z "$core_count_off" || -z "$pve_conf_path" ]]; then
-        echo "Error: Missing required parameters"
         aux_use
         return 1
     fi
@@ -915,6 +1024,11 @@ pve_vck() {
     #   - `hostname` utility to identify the current node.
     #   - `aux_use` function for displaying usage if `vm_id` is not provided.
 
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
     echo "DEBUG: pve_vck called with arguments: $@" >&2
     local vm_id="$1"
     local cluster_nodes_str="$2"
@@ -931,6 +1045,7 @@ pve_vck() {
     if [ -z "$cluster_nodes_str" ]; then
         echo "ERR: pve_vck: cluster_nodes parameter not provided." >&2
         echo "DEBUG: pve_vck: cluster_nodes is empty" >&2
+        aux_use
         return 1
     fi
 
