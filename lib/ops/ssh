@@ -4,14 +4,14 @@
 # ============================================================================
 # ssh - Function Summary
 #
-#   ssh-fun : Displays an overview of SSH-related functions in the script, showing their usage, shortname, and description.
-#   ssh-var : Displays an overview of SSH-specific variables defined in the configuration file, showing their names, values, and usage.
+#   ssh_fun : Displays an overview of SSH-related functions in the script, showing their usage, shortname, and description.
+#   ssh_var : Displays an overview of SSH-specific variables defined in the configuration file, showing their names, values, and usage.
 #   ssh_key : Adds SSH keys to the SSH agent for authentication, supporting multiple key types and paths.
 #   ssh_lst : Lists SSH keys currently loaded in the agent with detailed information.
-#   ssh-rmv : Removes all SSH keys from the agent for security cleanup.
-#   ssh-gen : Generates new SSH keys with specified type and comment.
+#   ssh_rmv : Removes all SSH keys from the agent for security cleanup.
+#   ssh_gen : Generates new SSH keys with specified type and comment.
 #   ssh_cpy : Copies SSH public key to remote host for passwordless authentication.
-#   ssh-agt : Starts SSH agent and ensures it's running for key management.
+#   ssh_agt : Starts SSH agent and ensures it's running for key management.
 #
 # ============================================================================
 
