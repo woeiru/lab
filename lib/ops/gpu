@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# ============================================================================
-# gpu - GPU Passthrough Management (Refactored)
-#
-# Improved structure with helper functions, reduced duplication, and better organization
-# ============================================================================
-
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")

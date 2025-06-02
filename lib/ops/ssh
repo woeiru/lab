@@ -1,20 +1,6 @@
 # filepath: /home/es/lab/lib/ops/ssh
 #!/bin/bash
 
-# ============================================================================
-# ssh - Function Summary
-#
-#   ssh_fun : Displays an overview of SSH-related functions in the script, showing their usage, shortname, and description.
-#   ssh_var : Displays an overview of SSH-specific variables defined in the configuration file, showing their names, values, and usage.
-#   ssh_key : Adds SSH keys to the SSH agent for authentication, supporting multiple key types and paths.
-#   ssh_lst : Lists SSH keys currently loaded in the agent with detailed information.
-#   ssh_rmv : Removes all SSH keys from the agent for security cleanup.
-#   ssh_gen : Generates new SSH keys with specified type and comment.
-#   ssh_cpy : Copies SSH public key to remote host for passwordless authentication.
-#   ssh_agt : Starts SSH agent and ensures it's running for key management.
-#
-# ============================================================================
-
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")

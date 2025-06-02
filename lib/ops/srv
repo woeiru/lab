@@ -1,19 +1,5 @@
 #!/bin/bash
 
-# ============================================================================
-# srv - Function Summary
-#
-#   srv_fun : Shows a summary of selected functions in the script.
-#   srv_var : Displays an overview of specific variables defined in the configuration file.
-#   nfs_set : Sets up an NFS share with prompted or provided information.
-#   nfs_apl : Applies NFS configuration (creates folder, updates /etc/exports, restarts server).
-#   nfs_mon : Monitors and displays various aspects of the NFS server.
-#   smb_set : Sets up a Samba share with prompted or provided configuration details.
-#   smb_apl : Applies Samba configuration (creates folder, updates cfg/env/site, restarts server, sets passwords).
-#   smb_mon : Monitors and displays various aspects of the SMB server.
-#
-# ============================================================================
-
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
