@@ -15,15 +15,25 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
-#
+# [function_name_filter]
 usr_fun() {
+    # Validate that the required variable is set
+    if [ -z "$FILEPATH_usr" ]; then
+        echo "Error: FILEPATH_usr is not set. Cannot display function overview."
+        return 1
+    fi
+
     # Pass all arguments directly to aux_laf
     aux_laf "$FILEPATH_usr" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
-#
+# (no parameters)
 usr_var() {
+    if [ $# -ne 0 ]; then
+        aux_use
+        return 1
+    fi
     aux_acu -o "$CONFIG_usr" "$DIR_FUN/.."
 }
 
@@ -31,6 +41,11 @@ usr_var() {
 # change konsole profile
 # <profile_number>
 usr_ckp() {
+    if [ $# -ne 1 ]; then
+        aux_use
+        return 1
+    fi
+    
     local profile_number="$1"
     local username
     local konsole_profile_path
@@ -89,8 +104,13 @@ usr_ckp() {
 
 # Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
 # variable select filename
-#
+# (no parameters)
 usr_vsf() {
+    if [ $# -ne 0 ]; then
+        aux_use
+        return 1
+    fi
+    
     files=($(ls))
     echo "Select a file by entering its index:"
     for i in "${!files[@]}"; do
@@ -318,10 +338,7 @@ usr_rsd() {
 usr_swt() {
     # Check if correct number of arguments is provided
     if [ $# -lt 3 ]; then
-        echo "Usage: usr_swt [-a|-r] <time> <state>"
-        echo "  -a: absolute time (e.g., 7, 7:00, 2024-07-20 07:00)"
-        echo "  -r: relative time (e.g., 6, 6:30 for 6 hours 30 minutes)"
-        echo "  state: mem or disk"
+        aux_use
         return 1
     fi
 
@@ -419,14 +436,19 @@ usr_swt() {
 
 # Adds a specific line to a target if not already present
 # adding line (to) target
-#
+# <file> <line>
 usr_adr() {
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local file="$1"
     local line_to_add="$2"
     local temp_file=$(mktemp)
 
-    # Check if both arguments were provided
+    # Check if both arguments were provided (redundant now but keeping for safety)
     if [ -z "$file" ] || [ -z "$line_to_add" ]; then
         aux_nos "$function_name" "Error: Both file path and line to add must be provided"
         return 1
@@ -486,6 +508,22 @@ usr_cap() {
 # Usage: usr-rif [-d] [-r] [-i] <path> <old_string> <new_string>
 # Options: -d (dry run), -r (recursive), -i (interactive)
 usr_rif() {
+    # Check minimum required arguments (path, old_string, new_string)
+    local min_args=3
+    local positional_args=0
+    
+    # Count positional arguments (non-option arguments)
+    for arg in "$@"; do
+        if [[ ! "$arg" =~ ^- ]]; then
+            ((positional_args++))
+        fi
+    done
+    
+    if [ $positional_args -lt $min_args ]; then
+        aux_use
+        return 1
+    fi
+    
     local recursive=false
     local interactive=false
     local dry_run=false
@@ -606,11 +644,11 @@ usr_rif() {
 
 # Navigates to the Ansible project directory, runs the playbook, then returns to the original directory
 # ansible deployment desk
-# Usage: usr-ans <ansible_pro_path> <ansible_site_path>
+# <ansible_pro_path> <ansible_site_path>
 usr_ans() {
     # Check if two arguments are provided
     if [ $# -ne 2 ]; then
-        echo "Error: Incorrect number of arguments. Usage: usr-ans <ansible_pro_path> <ansible_site_path>"
+        aux_use
         return 1
     fi
 
