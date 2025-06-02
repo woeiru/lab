@@ -70,7 +70,7 @@ sys-suk → ssh_suk
 ssh_spi → ssh_spi
 sys-sks → ssh_sks
 ssh_sak → ssh_sak
-sys-hos → sys_hos
+sys-hos → net_hos
 sys-sca → ssh_sca
 sys-gre → sys_gre
 sys-loi → ssh_loi

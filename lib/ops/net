@@ -111,7 +111,7 @@ net_fas() {
 # Adds or updates a host entry in /etc/hosts. If IP or hostname is empty, logs an error and exits.
 # add host entry
 # <ip_address> <hostname>
-sys_hos() {
+net_hos() {
     # TECHNICAL DETAILS:
     # Manages /etc/hosts file entries safely
     # Updates existing entries if hostname exists with different IP
