@@ -17,6 +17,24 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 # [function_name_filter]
 usr_fun() {
+    # Technical Description:
+    #   Extracts and displays function documentation from the current script file
+    #   Parses function comment blocks to show usage, shortname, and description
+    #   Supports optional filtering by function name pattern for targeted display
+    #   Uses aux_laf utility to format and present function information consistently
+    # Dependencies:
+    #   - aux_laf function for listing and formatting function documentation
+    #   - FILEPATH_usr variable must be properly initialized
+    #   - grep and awk utilities for text processing
+    #   - Read access to the function definition file
+    # Arguments:
+    #   $1: function_name_filter (optional) - pattern to filter displayed functions
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     # Validate that the required variable is set
     if [ -z "$FILEPATH_usr" ]; then
         echo "Error: FILEPATH_usr is not set. Cannot display function overview."
@@ -28,12 +46,31 @@ usr_fun() {
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
-# (no parameters)
+# -x (execute)
 usr_var() {
-    if [ $# -ne 0 ]; then
+    # Technical Description:
+    #   Scans configuration files and workspace directories to extract variable definitions
+    #   Analyzes variable usage patterns across multiple files in the project
+    #   Provides comprehensive overview of variable names, values, and cross-file dependencies
+    #   Uses aux_acu utility with overview mode to format and display results
+    # Dependencies:
+    #   - aux_acu function with -o (overview) option
+    #   - CONFIG_usr variable pointing to site configuration file
+    #   - DIR_FUN variable for workspace directory navigation
+    #   - Read access to configuration files and workspace directories
+    # Arguments:
+    #   $1: -x - explicit execution flag required for consistency
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
     fi
+    
     aux_acu -o "$CONFIG_usr" "$DIR_FUN/.."
 }
 
@@ -41,6 +78,26 @@ usr_var() {
 # change konsole profile
 # <profile_number>
 usr_ckp() {
+    # Technical Description:
+    #   Updates Konsole terminal emulator default profile configuration for current user
+    #   Validates profile existence in user's Konsole profile directory before applying changes
+    #   Modifies konsolerc configuration file to set new default profile
+    #   Handles both root and regular user environments with appropriate path resolution
+    #   Creates or updates [Desktop Entry] section with DefaultProfile setting
+    # Dependencies:
+    #   - whoami command for user identification
+    #   - grep and sed utilities for file processing
+    #   - Konsole profile files in ~/.local/share/konsole/
+    #   - Write access to ~/.config/konsolerc file
+    #   - Valid Konsole installation and profile structure
+    # Arguments:
+    #   $1: profile_number - numeric identifier of the Konsole profile to set as default
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 1 ]; then
         aux_use
         return 1
@@ -104,9 +161,27 @@ usr_ckp() {
 
 # Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
 # variable select filename
-# (no parameters)
+# -x (execute)
 usr_vsf() {
-    if [ $# -ne 0 ]; then
+    # Technical Description:
+    #   Creates interactive file selection interface for current working directory
+    #   Lists all files with numeric indices for easy selection by user input
+    #   Captures user selection and stores result in variable for further processing
+    #   Provides numbered menu system with read prompt for user interaction
+    # Dependencies:
+    #   - ls command for file listing
+    #   - read command for user input capture
+    #   - Standard bash array functionality
+    #   - Access to current working directory
+    # Arguments:
+    #   $1: -x - explicit execution flag required for interactive operations
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
     fi
@@ -125,6 +200,27 @@ usr_vsf() {
 # count files folder
 # <path> <folder_type: 1=regular, 2=hidden, 3=both>
 usr_cff() {
+    # Technical Description:
+    #   Performs directory traversal to count files based on visibility criteria
+    #   Supports three counting modes: regular files only, hidden files only, or both types
+    #   Uses find command with appropriate name patterns for file type filtering
+    #   Displays results in formatted table with directory names and file counts
+    #   Sorts output alphabetically by directory name for consistent presentation
+    # Dependencies:
+    #   - find command with -mindepth, -maxdepth, -type, and -name options
+    #   - wc command for line counting
+    #   - printf for formatted output
+    #   - sort command for alphabetical ordering
+    #   - Read access to specified directory path
+    # Arguments:
+    #   $1: path - target directory path to analyze for file counting
+    #   $2: folder_type - numeric type: 1 (regular), 2 (hidden), 3 (both)
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 2 ]; then
         aux_use
         return 1
@@ -173,14 +269,38 @@ usr_cff() {
 # data usage comparison
 # <path1> <path2> <depth>
 usr_duc() {
-    local path1=$1
-    local path2=$2
-    local depth=$3
-
+    # Technical Description:
+    #   Performs parallel disk usage analysis on two directory trees up to specified depth
+    #   Converts relative paths to absolute paths for accurate comparison
+    #   Uses du command to gather size information and processes output for alignment
+    #   Implements color-coded output highlighting size differences between paths
+    #   Formats results in human-readable units (B, K, M, G) with tabular presentation
+    #   Uses join operation to correlate corresponding subdirectories between paths
+    # Dependencies:
+    #   - du command with -b (bytes) and -d (depth) options
+    #   - realpath for absolute path conversion
+    #   - join command for data correlation
+    #   - awk for data processing and formatting
+    #   - column command for table formatting
+    #   - sed and sort utilities for output processing
+    # Arguments:
+    #   $1: path1 - first directory path for comparison analysis
+    #   $2: path2 - second directory path for comparison analysis  
+    #   $3: depth - maximum directory depth for recursive analysis
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 3 ]; then
         aux_use
         return 1
     fi
+    
+    local path1=$1
+    local path2=$2
+    local depth=$3
 
     # Convert relative paths to absolute paths
     path1=$(realpath "$path1")
@@ -240,6 +360,25 @@ usr_duc() {
 # cat in folder
 # <path>
 usr_cif() {
+    # Technical Description:
+    #   Iterates through all files in specified directory and displays their contents sequentially
+    #   Validates directory existence before processing to prevent errors
+    #   Adds visual separators between file contents for clear distinction
+    #   Skips subdirectories and only processes regular files in the target directory
+    #   Provides file identification headers before each file's content display
+    # Dependencies:
+    #   - cat command for file content display
+    #   - test operators for directory and file validation
+    #   - bash file globbing for directory traversal
+    #   - Read access to specified directory and contained files
+    # Arguments:
+    #   $1: path - directory path containing files to concatenate and display
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     # Check if exactly one argument (directory path) is provided
     if [ $# -ne 1 ]; then
         aux_use
@@ -266,14 +405,36 @@ usr_cif() {
 # replace strings folder
 # <foldername> <old_string> <new_string>
 usr_rsf() {
-    local foldername="$1"
-    local old_string="$2"
-    local new_string="$3"
-
+    # Technical Description:
+    #   Performs recursive string replacement across all files in specified directory tree
+    #   Uses find command to locate all regular files within the directory structure
+    #   Applies sed substitution to replace all occurrences of target string
+    #   Provides feedback on which files were modified during the operation
+    #   Changes working directory to specified folder for relative path processing
+    # Dependencies:
+    #   - find command for recursive file discovery
+    #   - grep for string matching and validation
+    #   - sed with -i option for in-place file editing
+    #   - cd command for directory navigation
+    #   - Write access to target directory and contained files
+    # Arguments:
+    #   $1: foldername - target directory path for recursive string replacement
+    #   $2: old_string - original string pattern to search and replace
+    #   $3: new_string - replacement string to substitute for old_string
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 3 ]; then
         aux_use
         return 1
     fi
+    
+    local foldername="$1"
+    local old_string="$2"
+    local new_string="$3"
 
     # Navigate to the specified folder
     cd "$foldername" || { echo "Folder not found: $foldername"; return 1; }
@@ -293,6 +454,26 @@ usr_rsf() {
 # rsync source (to) destination
 # <source_path> <destination_path>
 usr_rsd() {
+    # Technical Description:
+    #   Executes rsync file synchronization with interactive preview and confirmation
+    #   Creates destination directory structure if it doesn't exist before transfer
+    #   Displays dry-run preview of files to be transferred for user review
+    #   Prompts user for explicit confirmation before executing actual transfer operation
+    #   Uses rsync with archive mode, verbose output, and human-readable progress
+    # Dependencies:
+    #   - rsync command with -a, -v, -h, and -n options
+    #   - mkdir with -p option for directory creation
+    #   - read command for user input capture
+    #   - Write access to destination path and parent directories
+    # Arguments:
+    #   $1: source_path - source directory or file path for rsync operation
+    #   $2: destination_path - target destination path for file transfer
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 2 ]; then
         aux_use
         return 1
@@ -336,6 +517,29 @@ usr_rsd() {
 # sheduled wakeup timer
 # <-r for relative or -a for absolute> <time> <state>
 usr_swt() {
+    # Technical Description:
+    #   Implements system sleep scheduling with automatic wake-up using RTC (Real-Time Clock)
+    #   Supports both absolute time (specific date/time) and relative time (hours:minutes from now)
+    #   Handles multiple time input formats including HH:MM, HH, and full date-time strings
+    #   Automatically adjusts absolute times to next occurrence if time has already passed today
+    #   Provides interactive confirmation with readable time display before system sleep
+    #   Supports different sleep states: 'mem' (suspend-to-RAM) and 'disk' (hibernate)
+    # Dependencies:
+    #   - rtcwake command with -m, -l, -t, and -v options
+    #   - date command for time parsing and calculation
+    #   - sudo privileges for system sleep operations
+    #   - RTC hardware support for wake-up functionality
+    #   - Read command for user confirmation input
+    # Arguments:
+    #   $1: mode - time mode flag: -r (relative) or -a (absolute)
+    #   $2: time - time specification format depends on mode selection
+    #   $3: state - sleep state: 'mem' (suspend) or 'disk' (hibernate)
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     # Check if correct number of arguments is provided
     if [ $# -lt 3 ]; then
         aux_use
@@ -438,6 +642,27 @@ usr_swt() {
 # adding line (to) target
 # <file> <line>
 usr_adr() {
+    # Technical Description:
+    #   Safely appends a line to a file only if the exact line doesn't already exist
+    #   Uses atomic file operations with temporary file to prevent data corruption
+    #   Performs exact line matching using grep with fixed string and full line options
+    #   Validates file existence and write permissions before attempting modifications
+    #   Provides detailed feedback on operation success, failure, or line already present
+    # Dependencies:
+    #   - grep command with -F (fixed string) and -x (exact line) options
+    #   - mktemp for secure temporary file creation
+    #   - cat and mv commands for atomic file operations
+    #   - rm command for temporary file cleanup on failure
+    #   - Write access to target file and temporary file directory
+    # Arguments:
+    #   $1: file - target file path where line should be added
+    #   $2: line - exact line content to add to the file
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 2 ]; then
         aux_use
         return 1
@@ -485,13 +710,32 @@ usr_adr() {
 # check append create
 # <file> <line>
 usr_cap() {
-    local file="$1"
-    local line="$2"
-
+    # Technical Description:
+    #   Checks for line existence in target file before appending to prevent duplicates
+    #   Uses grep with fixed string matching to verify line presence or absence
+    #   Appends line using shell redirection when line is not found in file
+    #   Provides clear feedback indicating whether line was appended or already present
+    #   Simpler implementation compared to usr_adr without atomic operations
+    # Dependencies:
+    #   - grep command with -F (fixed string) and -x (exact line) options
+    #   - echo command for line appending via shell redirection
+    #   - Write access to target file for append operations
+    # Arguments:
+    #   $1: file - target file path for line checking and appending
+    #   $2: line - exact line content to check and potentially append
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     if [ $# -ne 2 ]; then
 	aux_use
         return 1
     fi
+    
+    local file="$1"
+    local line="$2"
 
 
     # Check if the line is already present in the file
@@ -505,9 +749,34 @@ usr_cap() {
 }
 
 # Replaces all occurrences of a string in files within a given folder
-# Usage: usr-rif [-d] [-r] [-i] <path> <old_string> <new_string>
-# Options: -d (dry run), -r (recursive), -i (interactive)
+# replace in files
+# <path> <old_string> <new_string> [options: -d -r -i]
 usr_rif() {
+    # Technical Description:
+    #   Advanced file content replacement tool with multiple operation modes and safety features
+    #   Supports recursive directory traversal, interactive confirmation, and dry-run preview
+    #   Implements colored output for enhanced readability and file modification tracking
+    #   Excludes git directories by default with option to include them if needed
+    #   Provides comprehensive summary statistics of files found, modified, and skipped
+    #   Uses find with flexible filtering and sed for actual string replacements
+    # Dependencies:
+    #   - find command with -type, -maxdepth, and -not path options
+    #   - grep for string matching and line number identification
+    #   - sed with -i option for in-place file editing
+    #   - realpath for absolute path conversion
+    #   - read command for interactive user input
+    #   - ANSI color code support for terminal output
+    # Arguments:
+    #   $1: path - target directory path for file processing
+    #   $2: old_string - original string pattern to search and replace
+    #   $3: new_string - replacement string to substitute for old_string
+    #   Additional options: -d (dry run), -r (recursive), -i (interactive), --include-git
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     # Check minimum required arguments (path, old_string, new_string)
     local min_args=3
     local positional_args=0
@@ -646,6 +915,27 @@ usr_rif() {
 # ansible deployment desk
 # <ansible_pro_path> <ansible_site_path>
 usr_ans() {
+    # Technical Description:
+    #   Executes Ansible playbook deployment with automatic directory management
+    #   Preserves current working directory by storing and restoring it after execution
+    #   Navigates to specified Ansible project directory before running playbook
+    #   Runs ansible-playbook command with provided site configuration file
+    #   Handles directory navigation errors and prevents execution in wrong location
+    # Dependencies:
+    #   - ansible-playbook command from Ansible installation
+    #   - cd command for directory navigation
+    #   - pwd command for current directory capture
+    #   - Read access to Ansible project directory
+    #   - Execute permissions on Ansible playbook files
+    # Arguments:
+    #   $1: ansible_pro_path - path to Ansible project directory containing playbooks
+    #   $2: ansible_site_path - path to Ansible site configuration file or playbook
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
     # Check if two arguments are provided
     if [ $# -ne 2 ]; then
         aux_use
