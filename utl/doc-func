@@ -178,30 +178,31 @@ process_library_functions() {
 update_documentation() {
     local temp_file=$(mktemp)
     local in_auto_section=false
-    
+
     echo "Updating function metadata table in $DOC_FILE..."
-    
-    # Read the original file and replace the auto-generated section
+
     while IFS= read -r line; do
         if [[ "$line" == *"<!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->"* ]]; then
             echo "$line" >> "$temp_file"
-            echo "<!-- Command: aux_ffl aux_laf \"\" \"\$LIB_CORE_DIR\" & aux_ffl aux_laf \"\" \"\$LIB_OPS_DIR\" & aux_ffl aux_laf \"\" \"\$LIB_GEN_DIR\" -->" >> "$temp_file"
+            echo "<!-- Command: aux_ffl aux_laf \"\" \"$LIB_CORE_DIR\" & aux_ffl aux_laf \"\" \"$LIB_OPS_DIR\" & aux_ffl aux_laf \"\" \"$LIB_GEN_DIR\" -->" >> "$temp_file"
             echo "" >> "$temp_file"
-            
-            # Generate function table with real-time data
-            generate_function_table >> "$temp_file"
-            
+            # Write the new table only, skip all old lines until END marker
+            generate_function_table | grep -vE '\|[[:space:]]*[a-zA-Z0-9_]+-[a-zA-Z0-9_]+[[:space:]]*\|' >> "$temp_file"
             echo "" >> "$temp_file"
             in_auto_section=true
-        elif [[ "$line" == *"<!-- END AUTO-GENERATED SECTION -->"* ]]; then
+            continue
+        fi
+        if [[ "$line" == *"<!-- END AUTO-GENERATED SECTION -->"* ]]; then
             echo "$line" >> "$temp_file"
             in_auto_section=false
-        elif [[ "$in_auto_section" == false ]]; then
+            continue
+        fi
+        if [[ "$in_auto_section" == false ]]; then
             echo "$line" >> "$temp_file"
         fi
+        # If in_auto_section is true, skip all lines until END marker
     done < "$DOC_FILE"
-    
-    # Replace the original file
+
     mv "$temp_file" "$DOC_FILE"
     echo "Function metadata table updated successfully."
 }
