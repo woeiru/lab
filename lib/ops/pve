@@ -17,7 +17,6 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 # <script_path>
 pve_fun() {
-
     # Technical Description:
     #   Invokes the 'aux_laf' (list available functions) utility.
     #   Accepts script path as explicit parameter for analysis.
@@ -43,7 +42,6 @@ pve_fun() {
 # overview variables
 # <config_file> <analysis_dir>
 pve_var() {
-
     # Technical Description:
     #   Utilizes 'aux_acu' (analyze configuration usage) with the '-o' (overview) flag.
     #   First argument specifies the configuration file to scan.
@@ -75,7 +73,6 @@ pve_var() {
 # disable repository
 #  
 pve_dsr() {
-
     # Technical Description:
     #   Modifies Proxmox VE APT repository configuration files to disable them.
     #   Iterates through a predefined list of files:

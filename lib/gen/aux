@@ -1015,52 +1015,13 @@ aux_tec() {
 
     # Handle special cases where caller detection fails or script_file is invalid
     if [[ -z "$caller_function" || "$caller_function" == "main" ]] || [[ ! -f "$script_file" || "$script_file" == "environment" ]]; then
-        # Try to get the actual calling function from the call stack
-        local caller_line_1=$(caller 1)
-        if [[ -n "$caller_line_1" ]]; then
-            local potential_function=$(echo $caller_line_1 | awk '{print $2}')
-            local potential_script=$(echo $caller_line_1 | awk '{print $3}')
-            
-            # Only use if we have a valid script file
-            if [[ -f "$potential_script" && "$potential_script" != "environment" ]]; then
-                caller_function="$potential_function"
-                script_file="$potential_script"
-            fi
-        fi
-        
-        # If still no valid function name or script file, provide general usage
-        if [[ -z "$caller_function" || "$caller_function" == "main" ]] || [[ ! -f "$script_file" || "$script_file" == "environment" ]]; then
-            echo "Technical Documentation: This function displays technical description for the calling function."
-            echo "Description: Extracts and displays the technical documentation block below a function definition."
-            echo "Shortname: function technical description"
-            echo ""
-            echo "Function should be called from within another function that has:"
-            echo "  function_name() {"
-            echo "      # Technical Description:"
-            echo "      #   Detailed technical information about the function"
-            echo "      #   Multi-line description of implementation details"
-            echo "      # Dependencies:"
-            echo "      #   - list of dependencies"
-            echo "      # Arguments:"
-            echo "      #   \$1: parameter description"
-            echo "      # Returns:"
-            echo "      #   return value description"
-            echo "      # Examples:"
-            echo "      #   usage examples"
-            echo "      "
-            echo "      aux_tec"
-            echo "  }"
-            echo ""
-            echo "Note: aux_tec reads technical documentation from comment blocks below the function definition"
-            echo "      until the first empty line or non-comment line is encountered."
-            return 0
-        fi
+        echo "Error: Unable to detect calling function or script file" >&2
+        return 1
     fi
 
     # Validate that script file exists and is readable
     if [[ ! -f "$script_file" || ! -r "$script_file" ]]; then
-        echo "Error: Cannot read script file: $script_file"
-        echo "Note: aux_tec requires the calling function to be defined in a readable script file."
+        echo "Error: Cannot read script file '$script_file'" >&2
         return 1
     fi
 
@@ -1071,39 +1032,39 @@ aux_tec() {
     function_start_line=$(grep -n -E "^[[:space:]]*${caller_function}[[:space:]]*\(\)" "$script_file" | head -1 | cut -d: -f1)
     
     if [[ -z "$function_start_line" ]]; then
-        # Try pattern without spaces around parentheses
         function_start_line=$(grep -n -E "^[[:space:]]*${caller_function}\(\)" "$script_file" | head -1 | cut -d: -f1)
     fi
     
     if [[ -z "$function_start_line" ]]; then
-        # Try pattern with 'function' keyword
         function_start_line=$(grep -n -E "^[[:space:]]*function[[:space:]]+${caller_function}" "$script_file" | head -1 | cut -d: -f1)
     fi
 
     if [[ -z "$function_start_line" ]]; then
-        echo "Error: Function '$caller_function' not found in $script_file"
-        echo "Note: aux_tec expects functions to be declared as 'function_name()' or 'function function_name'"
+        echo "Error: Function '$caller_function' not found in '$script_file'" >&2
         return 1
     fi
 
     # Validate function_start_line is a number
     if ! [[ "$function_start_line" =~ ^[0-9]+$ ]]; then
-        echo "Error: Invalid line number detected: $function_start_line"
+        echo "Error: Invalid line number detected" >&2
         return 1
     fi
 
     # Find the opening brace line (should be right after function declaration)
     local brace_line=$((function_start_line + 1))
     
-    # Read lines after the opening brace until first empty line or non-comment line
+    # Start looking for comments after the opening brace
     local current_line=$((brace_line + 1))
     local max_lines=$(wc -l < "$script_file")
     local technical_description=""
     local found_content=false
+    local search_limit=3  # Only look within 3 lines after the brace
+    local lines_checked=0
     
     # Extract technical documentation
-    while [[ $current_line -le $max_lines ]]; do
-        local line_content=$(sed -n "${current_line}p" "$script_file" 2>/dev/null)
+    while [[ $current_line -le $max_lines && $lines_checked -lt $search_limit ]]; do
+        local line_content
+        line_content=$(sed -n "${current_line}p" "$script_file" 2>/dev/null)
         
         # Check if line is empty or whitespace only
         if [[ -z "$line_content" || "$line_content" =~ ^[[:space:]]*$ ]]; then
@@ -1111,31 +1072,39 @@ aux_tec() {
             if [[ "$found_content" == true ]]; then
                 break
             fi
-            # Otherwise, skip empty lines at the beginning
+            # Otherwise, skip empty lines at the beginning and continue searching
             ((current_line++))
+            ((lines_checked++))
             continue
         fi
         
         # Check if line is a comment
         if [[ "$line_content" =~ ^[[:space:]]*# ]]; then
+            # Found a comment, mark that we found content
             found_content=true
-            # Remove leading whitespace and comment marker
-            local clean_line="${line_content#"${line_content%%[![:space:]]*}"}"
-            clean_line="${clean_line#\#}"
-            clean_line="${clean_line# }"  # Remove one space after #
+            
+            # Extract comment text (remove leading whitespace and # symbol)
+            local comment_text="${line_content#"${line_content%%[![:space:]]*}"}"  # Remove leading whitespace
+            comment_text="${comment_text#\#}"  # Remove #
+            comment_text="${comment_text#[[:space:]]}"  # Remove space after #
             
             # Add to technical description
             if [[ -n "$technical_description" ]]; then
-                technical_description+=$'\n'"$clean_line"
+                technical_description="${technical_description}\n  ${comment_text}"
             else
-                technical_description="$clean_line"
+                technical_description="  ${comment_text}"
             fi
         else
-            # Non-comment line encountered, stop reading
+            # If we found comments before and now hit a non-comment, non-empty line, stop
+            if [[ "$found_content" == true ]]; then
+                break
+            fi
+            # If we haven't found any comments yet and hit a non-comment line, stop searching
             break
         fi
         
         ((current_line++))
+        ((lines_checked++))
     done
 
     # Display the technical documentation
@@ -1144,26 +1113,9 @@ aux_tec() {
     echo ""
     
     if [[ -n "$technical_description" ]]; then
-        echo "Technical Documentation:"
-        echo "$technical_description"
+        echo -e "$technical_description"
     else
-        echo "No technical documentation found below function definition."
-        echo ""
-        echo "Expected format:"
-        echo "  function_name() {"
-        echo "      # Technical Description:"
-        echo "      #   Detailed description of the function"
-        echo "      # Dependencies:"
-        echo "      #   - list of dependencies"
-        echo "      # Arguments:"
-        echo "      #   \$1: parameter description"
-        echo "      # Returns:"
-        echo "      #   return value description"
-        echo "      # Examples:"
-        echo "      #   usage examples"
-        echo "      "
-        echo "      # function implementation..."
-        echo "  }"
+        echo "  No technical documentation found within 3 lines after function definition."
     fi
 }
 
