@@ -6,9 +6,6 @@ The Lab Library System provides the foundational code modules that power the ent
 ## Directory Structure
 ```
 lib/
-├── aux/              # Auxiliary libraries and external resources
-│   ├── lib            # External library integrations
-│   └── src            # Auxiliary source components
 ├── core/             # Core system libraries (critical infrastructure)
 │   ├── err            # Advanced error handling and reporting
 │   ├── lo1            # Enhanced logging with color and depth tracking
@@ -24,10 +21,11 @@ lib/
 │   ├── sto            # Storage orchestration and management
 │   ├── sys            # System administration utilities
 │   └── usr            # User and permission management
-└── utl/              # Utility libraries (development and maintenance)
-    ├── env            # Environment switching and management (356+ lines)
+├── gen/              # Utility libraries (development and maintenance)
+    ├── env            # Environment switching and management (373 lines)
     ├── inf            # Infrastructure information and discovery
-    └── sec            # Security utilities and credential management
+    ├── sec            # Security utilities and credential management
+    └── aux            # Auxiliary function library (1223 lines)
 ```
 
 ## Core Library Categories
@@ -35,46 +33,43 @@ lib/
 ### 🔧 Core Libraries (`lib/core/`)
 **Mission-Critical Infrastructure Components**
 
-| Module | Purpose | Key Features |
-|--------|---------|--------------|
-| **err** | Error Handling & Reporting | • Comprehensive error codes<br>• Stack trace analysis<br>• Error trapping mechanism<br>• Cleanup function registry |
-| **lo1** | Advanced Logging System | • Color-coded output<br>• Call stack depth tracking<br>• Debug logging controls<br>• Performance optimized caching |
-| **tme** | Performance Monitoring | • High-precision timing<br>• Function performance analysis<br>• Execution profiling<br>• Bottleneck identification |
-| **ver** | Module Verification | • Integrity checking<br>• Version management<br>• Dependency validation<br>• Load order enforcement |
+| Module | Purpose | Lines of Code | Key Features |
+|--------|---------|---------------|--------------|
+| **tme** | Performance Monitoring | 618 | • High-precision timing<br>• Function performance analysis<br>• Execution profiling<br>• Bottleneck identification |
+| **lo1** | Advanced Logging System | 449 | • Color-coded output<br>• Call stack depth tracking<br>• Debug logging controls<br>• Performance optimized caching |
+| **ver** | Module Verification | 423 | • Integrity checking<br>• Version management<br>• Dependency validation<br>• Load order enforcement |
+| **err** | Error Handling & Reporting | 406 | • Comprehensive error codes<br>• Stack trace analysis<br>• Error trapping mechanism<br>• Cleanup function registry |
 
 ### ⚙️ Operations Libraries (`lib/ops/`)
 **Infrastructure Management & Automation**
 
 | Module | Purpose | Lines of Code | Key Capabilities |
 |--------|---------|---------------|------------------|
-| **gpu** | GPU Passthrough Management | 1171+ | • Device isolation<br>• VFIO configuration<br>• Performance optimization<br>• Hot-plug support |
-| **pve** | Proxmox VE Operations | Major | • Cluster management<br>• VM lifecycle<br>• Resource allocation<br>• High availability |
-| **pbs** | Backup Management | - | • Automated backups<br>• Retention policies<br>• Disaster recovery<br>• Data verification |
-| **srv** | Service Orchestration | - | • Container deployment<br>• Service discovery<br>• Health monitoring<br>• Scaling policies |
-| **ssh** | SSH Management | - | • Key distribution<br>• Agent management<br>• Authentication<br>• Connection automation |
-| **sto** | Storage Management | - | • Volume provisioning<br>• Snapshot management<br>• Performance tuning<br>• Capacity planning |
-| **net** | Network Configuration | - | • VLAN management<br>• Firewall rules<br>• Load balancing<br>• Network segmentation |
-| **sys** | System Administration | - | • Package management<br>• System monitoring<br>• Resource allocation<br>• Security hardening |
-| **usr** | User Management | - | • Permission control<br>• Authentication<br>• Access management<br>• Audit logging |
+| **gpu** | GPU Passthrough Management | 1224 | • Device isolation<br>• VFIO configuration<br>• Performance optimization<br>• Hot-plug support |
+| **pve** | Proxmox VE Operations | 1022 | • Cluster management<br>• VM lifecycle<br>• Resource allocation<br>• High availability |
+| **sto** | Storage Management | 875 | • Volume provisioning<br>• Snapshot management<br>• Performance tuning<br>• Capacity planning |
+| **sys** | System Administration | 921 | • Package management<br>• System monitoring<br>• Resource allocation<br>• Security hardening |
+| **usr** | User Management | 674 | • Permission control<br>• Authentication<br>• Access management<br>• Audit logging |
+| **srv** | Service Orchestration | 335 | • Container deployment<br>• Service discovery<br>• Health monitoring<br>• Scaling policies |
+| **ssh** | SSH Management | 290 | • Key distribution<br>• Agent management<br>• Authentication<br>• Connection automation |
+| **pbs** | Backup Management | 209 | • Automated backups<br>• Retention policies<br>• Disaster recovery<br>• Data verification |
+| **net** | Network Configuration | 118 | • VLAN management<br>• Firewall rules<br>• Load balancing<br>• Network segmentation |
 
 ### 🛠️ Utility Libraries (`lib/gen/`)
 **Development & Maintenance Tools**
 
 | Module | Purpose | Lines of Code | Functionality |
 |--------|---------|---------------|---------------|
-| **env** | Environment Management | 356+ | • Site switching (dev/staging/prod)<br>• Configuration validation<br>• Hierarchy management<br>• Status reporting |
-| **inf** | Infrastructure Discovery | - | • Resource enumeration<br>• Capacity reporting<br>• Health assessment<br>• Topology mapping |
-| **sec** | Security Utilities | - | • Credential management<br>• Encryption/decryption<br>• Certificate handling<br>• Security scanning |
+| **env** | Environment Management | 373 | • Site switching (dev/staging/prod)<br>• Configuration validation<br>• Hierarchy management<br>• Status reporting |
+| **inf** | Infrastructure Discovery | 458 | • Resource enumeration<br>• Capacity reporting<br>• Health assessment<br>• Topology mapping |
+| **sec** | Security Utilities | 304 | • Credential management<br>• Encryption/decryption<br>• Certificate handling<br>• Security scanning |
+| **aux** | Auxiliary Functions | 1223 | • Pure auxiliary functions<br>• Analysis operations<br>• Utility operations<br>• Helper functions |
 
 ### 📦 Auxiliary Functions (`lib/gen/aux`)
-**Auxiliary Function Libraries**
-- Moved from `lib/aux/` to `lib/gen/aux` for better organization
+**Auxiliary Function Library**
+- Single comprehensive library file (1223 lines)
 - Contains pure auxiliary functions for analysis and utility operations
-
-| Component | Purpose | Integration Type |
-|-----------|---------|------------------|
-| **lib** | External Library Bindings | Third-party integrations |
-| **src** | Auxiliary Source Components | Custom extensions |
+- Provides helper functions and utility operations for the entire system
 
 ## Quick Start Guide
 
