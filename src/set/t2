@@ -46,7 +46,7 @@ b_xall() {
         "$UPLOAD_PATH" \
         "$PUBLIC_KEY"
 
-    sys_sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
+    ssh_sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
 }
 
 # Mounts a predefined NFS share using global configuration variables

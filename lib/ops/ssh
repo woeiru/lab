@@ -279,7 +279,7 @@ ssh_agt() {
 # Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
 # ssh custom aliases
 # <usershortcut> <servershortcut> <ssh_users_array_name> <all_ip_arrays_array_name> <array_aliases_array_name> [command]
-sys_sca() {
+ssh_sca() {
     # TECHNICAL DETAILS:
     # Resolves user and server shortcuts from configuration arrays
     # Supports single server, multiple servers, or entire arrays
@@ -451,7 +451,7 @@ sys_sca() {
 # Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
 # ssh upload keyfile
 # <device_path> <mount_point> <subfolder_path> <upload_path> <file_name>
-sys_suk() {
+ssh_suk() {
     # TECHNICAL DETAILS:
     # Mounts external device at specified mount point
     # Copies SSH key from device subfolder to target location
@@ -530,7 +530,7 @@ sys_suk() {
 # Appends a private SSH key identifier to the SSH config file for a specified user. Creates the .ssh directory and config file if they don't exist
 # ssh private identifier
 # <user> <keyname>
-sys_spi() {
+ssh_spi() {
     # TECHNICAL DETAILS:
     # Creates .ssh directory structure if missing
     # Adds IdentityFile entry to SSH config for specified key
@@ -589,10 +589,10 @@ sys_spi() {
 # Generates an SSH key pair and handles the transfer process
 # ssh key swap
 # <mode> <remote_address> <key_name> [encryption_type]
-sys_sks() {
+ssh_sks() {
     # TECHNICAL DETAILS:
-    # Client-side generation: sys_sks -c [-d] <server_address> <key_name> [encryption_type]
-    # Server-side generation: sys_sks -s [-d] <client_address> <key_name> [encryption_type]
+    # Client-side generation: ssh_sks -c [-d] <server_address> <key_name> [encryption_type]
+    # Server-side generation: ssh_sks -s [-d] <client_address> <key_name> [encryption_type]
     # Supports rsa, dsa, ecdsa, ed25519 encryption types (default: ed25519)
     # Optional -d flag removes original key after successful transfer
     # Handles secure key transfer via SCP
@@ -713,10 +713,10 @@ sys_sks() {
 # Appends the content of a specified public SSH key file to the authorized_keys file.
 # ssh append key
 # <mode> <remote_address> <key_name>
-sys_sak() {
+ssh_sak() {
     # TECHNICAL DETAILS:
-    # Client-side operation: sys_sak -c <server_address> <key_name>
-    # Server-side operation: sys_sak -s <client_address> <key_name>
+    # Client-side operation: ssh_sak -c <server_address> <key_name>
+    # Server-side operation: ssh_sak -s <client_address> <key_name>
     # Appends public key to authorized_keys file safely
     # Sets proper permissions (600) on authorized_keys
     # Restarts SSH service after key addition
