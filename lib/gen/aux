@@ -795,27 +795,6 @@ EOF
     fi
 }
 
-# Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters
-# main eval variable
-# <var_name> <prompt_message> <current_value>
-aux_mev() {
-    local var_name=$1
-    local prompt_message=$2
-    local current_value=$3
-
-    if [ $# -ne 3 ]; then
-	aux_use
-        return 1
-    fi
-
-    read -p "$prompt_message [$current_value]: " input
-    if [ -n "$input" ]; then
-        eval "$var_name=\"$input\""
-    else
-        eval "$var_name=\"$current_value\""
-    fi
-}
-
 # Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information
 # main display notification
 # <function_name> <status>
