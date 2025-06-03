@@ -41,53 +41,6 @@
 #   aux_acu "" cfg/env lib/ops          # Analyze variable usage
 #   aux_ffl aux_laf "" lib/ops 5        # Process files recursively
 #
-# Output Formats:
-#   - Table Format: Default formatted tables with configurable columns
-#   - JSON Format: Structured data for programmatic processing (-j flag)
-#   - Truncated Format: Compact view for large datasets (-t flag)
-#   - Break Mode: Line-by-line display for detailed analysis (-b flag)
-#
-# Configuration Integration:
-#   - Reads from SITE_CONFIG_FILE environment variable
-#   - Supports multiple configuration file formats
-#   - Integrates with lib/ops and src/set directory structures
-#   - Automatically resolves LAB_DIR-relative paths
-#
-# Analysis Capabilities:
-#   - Function size calculation and call frequency analysis
-#   - Variable occurrence counting across multiple directories
-#   - Documentation statistics (lines, words, modification dates)
-#   - Cross-reference analysis for function and variable usage
-#
-# Performance Features:
-#   - Configurable recursion depth limits
-#   - Efficient file processing with error handling
-#   - Memory-conscious processing for large codebases
-#   - Parallel processing support for directory analysis
-#
-# Security Considerations:
-#   - Safe file path handling with validation
-#   - Protection against directory traversal attacks
-#   - Proper permission checking before file operations
-#   - Sanitized output for shell metacharacter safety
-#
-# Error Handling:
-#   - Graceful degradation for missing files or directories
-#   - Comprehensive error reporting with context information
-#   - Fallback mechanisms for incomplete or corrupted data
-#   - Clear user feedback for invalid operations
-#
-# Integration Points:
-#   - Works with all lib/ops/ modules for function analysis
-#   - Integrates with cfg/env/ configuration management
-#   - Supports src/set/ deployment script analysis
-#   - Compatible with documentation generation utilities
-#
-# Maintenance Notes:
-#   - Function patterns may need updates for new coding standards
-#   - Column widths configurable for different terminal sizes
-#   - JSON output schema versioned for compatibility
-#   - Regular expression patterns tuned for performance
 #######################################################################
 
 # Define directory and file variables
