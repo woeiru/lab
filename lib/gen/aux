@@ -806,48 +806,6 @@ aux_nos() {
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
 }
 
-# Displays the source code of a specified function from the library folder, including its description, shortname, and usage
-# function library cat
-# <function_name>
-aux_flc() {
-    # Check if a function name is provided
-    if [ -z "$1" ]; then
-        aux_use
-        return 1
-    fi
-
-    # Extract the library prefix from the function name
-    func_name="$1"
-    lib_prefix="${func_name%%-*}"
-    # Use LIB_OPS_DIR if available, otherwise try to determine relative path
-    local lib_ops_dir="${LIB_OPS_DIR:-}"
-    if [ -z "$lib_ops_dir" ]; then
-        # Try to determine lib directory relative to current script
-        local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        lib_ops_dir="$(dirname "$script_dir")/ops"
-    fi
-    
-    lib_file="${lib_ops_dir}/${lib_prefix}"
-
-    # Check if the library file exists
-    if [ ! -f "$lib_file" ]; then
-        echo "Library file $lib_file not found!"
-        return 1
-    fi
-
-    # Search for the function definition in the library file
-    start_line=$(grep -n "^[[:space:]]*${func_name}[[:space:]]*()" "$lib_file" | cut -d: -f1)
-    start_line=$((start_line - 3))
-
-    if [ -z "$start_line" ]; then
-        echo "Function $func_name not found in $lib_file"
-        return 1
-    fi
-
-    # Extract the function source code
-    awk "NR >= $start_line { print; if (/^\}$/) exit }" "$lib_file"
-}
-
 # Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
 # function usage information
 #
