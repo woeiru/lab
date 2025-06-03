@@ -131,6 +131,7 @@ This pattern:
 
 - **Functions with optional parameters**: Document optional parameters as `[optional_param]`
 - **Functions with variable parameters**: Implement smart validation counting required vs optional arguments
+- **Infrastructure/Utility Functions**: Core utility functions in the `aux` module (like `aux_use`, `aux_tec`, `aux_laf`, `aux_acu`) are exempted from the `-x` flag requirement as they are infrastructure functions designed to be called by other functions to implement the standards themselves
 
 ### Benefits
 
