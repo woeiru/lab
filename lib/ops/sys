@@ -432,7 +432,6 @@ sys_ust() {
     #   - useradd command for user account creation
     #   - chpasswd command for secure password setting
     #   - id command for user existence verification
-    #   - aux_mev function for interactive input prompting
     #   - aux_nos function for status notification
     #   - Root or sudo privileges for user management operations
     # Arguments:
@@ -452,12 +451,6 @@ sys_ust() {
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local password="$2"
-
-    # Prompt for user details
-    aux_mev "username" "Enter new username" "$username"
-    while [ -z "$password" ]; do
-        aux_mev "password" "Enter password for $username" "$password"
-    done
 
     # Create the user
     useradd -m "$username"
