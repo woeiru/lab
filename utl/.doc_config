@@ -1,0 +1,58 @@
+# Lab Environment Documentation Orchestrator Configuration
+# This file allows customization of documentation generation behavior
+
+# Execution preferences
+PARALLEL=false           # Set to true to enable parallel execution by default
+VERBOSE=false           # Set to true for detailed output by default
+CONTINUE_ON_ERROR=false # Set to true to continue on errors by default
+
+# Timing estimates (in seconds) - can be overridden for custom generators
+# These help with progress reporting and planning
+CUSTOM_TIMING_ESTIMATES=(
+    # "custom_generator:10"
+    # "another_generator:5"
+)
+
+# Custom generator dependencies - define dependencies for custom generators
+# Format: GENERATOR_NAME="dependency1 dependency2"
+CUSTOM_DEPENDENCIES=(
+    # "hub:functions variables"  # Example: hub depends on functions and variables
+)
+
+# Logging preferences
+LOG_TIMESTAMPS=true     # Include timestamps in log output
+LOG_COLORS=true         # Enable colored output
+LOG_VERBOSE_ERRORS=true # Show detailed error information
+
+# Performance settings
+MAX_PARALLEL_JOBS=4     # Maximum number of parallel jobs (0 = auto-detect)
+TIMEOUT_SECONDS=300     # Maximum time to wait for each generator (0 = no timeout)
+
+# Notification settings (for future extension)
+NOTIFY_ON_COMPLETION=false  # Send notification when all generators complete
+NOTIFY_ON_ERROR=false       # Send notification on generator failures
+
+# Custom script discovery
+CUSTOM_SCRIPT_PATTERNS=(
+    "doc-*"           # Standard pattern
+    "generate-*"      # Alternative pattern for custom generators
+    "*-docs"          # Another alternative pattern
+)
+
+# Directory settings (usually auto-detected, but can be overridden)
+# DOC_OUTPUT_DIR="$LAB_DIR/doc"
+# LOG_OUTPUT_DIR="$LAB_DIR/.tmp/doc"
+
+# Backup settings
+CREATE_BACKUPS=true     # Create backups before modifying documentation files
+BACKUP_COUNT=5          # Number of backups to keep
+
+# Report settings
+GENERATE_HTML_REPORT=false  # Generate HTML report in addition to console output
+REPORT_INCLUDE_DIFFS=false  # Include file diffs in reports
+REPORT_INCLUDE_METRICS=true # Include timing and performance metrics
+
+# Integration settings (for CI/CD environments)
+CI_MODE=false           # Enable CI-friendly output format
+FAIL_ON_WARNINGS=false  # Treat warnings as failures
+REQUIRE_ALL_SUCCESS=true # Require all generators to succeed
