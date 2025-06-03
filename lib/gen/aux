@@ -1066,11 +1066,9 @@ aux_tec() {
     local max_lines=$(wc -l < "$script_file")
     local technical_description=""
     local found_content=false
-    local search_limit=3  # Only look within 3 lines after the brace
-    local lines_checked=0
     
-    # Extract technical documentation
-    while [[ $current_line -le $max_lines && $lines_checked -lt $search_limit ]]; do
+    # Extract technical documentation until first empty line
+    while [[ $current_line -le $max_lines ]]; do
         local line_content
         line_content=$(sed -n "${current_line}p" "$script_file" 2>/dev/null)
         
@@ -1082,7 +1080,6 @@ aux_tec() {
             fi
             # Otherwise, skip empty lines at the beginning and continue searching
             ((current_line++))
-            ((lines_checked++))
             continue
         fi
         
@@ -1112,7 +1109,6 @@ aux_tec() {
         fi
         
         ((current_line++))
-        ((lines_checked++))
     done
 
     # Display the technical documentation
