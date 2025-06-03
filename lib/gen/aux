@@ -1,24 +1,3 @@
-#!/bin/bash
-
-# ============================================================================
-# aux/src - Function Summary
-#
-#   aux_fun      : Shows a summary of selected functions in the script, displaying their usage, shortname, and description.
-#   aux_var      : Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files.
-#   aux_log      : Logging function. Prints a timestamped log message with a log level.
-#   aux_ffl      : Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed.
-#   aux_laf      : Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability.
-#   aux_lad      : Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options.
-#   aux_acu      : Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files.
-#   aux_mev      : Prompts the user to input or confirm a variable's value, allowing for easy customization of script parameters.
-#   aux_nos      : Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information.
-#   aux_flc      : Displays the source code of a specified function from the library folder, including its description, shortname, and usage.
-#   aux_use      : Displays the usage information, shortname, and description of the calling function, helping users understand how to use it.
-#   aux_lad      : Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options.
-#   aux_tec      : Displays the technical description and documentation of the calling function, reading the detailed information located below the function definition
-#
-# ============================================================================
-
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
