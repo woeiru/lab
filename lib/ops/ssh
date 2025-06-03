@@ -585,7 +585,7 @@ ssh_suk() {
     #   Creates mount point directory if it doesn't exist for seamless operation.
     #   Copies SSH key from device subfolder to target location with validation.
     #   Safely unmounts device after operation to prevent data corruption.
-    #   Provides interactive confirmation for all paths using aux_mev utility.
+    #   Validates all required parameters before proceeding.
     #   Displays system information (lsblk, /mnt contents) for user guidance.
     # Dependencies:
     #   - mount/umount commands for device management
@@ -593,7 +593,6 @@ ssh_suk() {
     #   - mkdir command for directory creation
     #   - lsblk command for device listing
     #   - ls command for directory listing
-    #   - aux_mev function for interactive variable confirmation
     #   - Device must be properly formatted and accessible
     # Arguments:
     #   $1: device_path - path to the device (e.g., /dev/sdb1)
@@ -633,12 +632,6 @@ ssh_suk() {
     echo ""
 
     # Evaluate and confirm variables
-    aux_mev "device_path" "Enter the device path" $device_path
-    aux_mev "mount_point" "Enter the mount point" $mount_point
-    aux_mev "subfolder_path" "Enter the subfolder(s) on the device" $subfolder_path
-    aux_mev "file_name" "Enter the file name" $file_name
-    aux_mev "upload_path" "Enter the upload path" $upload_path
-
     full_path="$mount_point/$subfolder_path/$file_name"
     upload_full_path="$upload_path/$file_name"
 

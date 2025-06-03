@@ -70,12 +70,10 @@ srv_var() {
 # <nfs_header> <shared_folder> <nfs_options>
 nfs_set() {
     # Technical Description:
-    #   Interactive NFS share setup function that collects required parameters
-    #   Prompts user for missing information using aux_mev utility
+    #   NFS share setup function that validates required parameters.
     #   Validates inputs and delegates to nfs_apl for actual configuration
-    #   Provides user-friendly interface for NFS share creation
+    #   Provides automated interface for NFS share creation
     # Dependencies:
-    #   - aux_mev function for interactive parameter collection
     #   - nfs_apl function for configuration application
     #   - aux_nos function for success notification
     #   - Standard POSIX shell utilities
@@ -98,11 +96,6 @@ nfs_set() {
     local nfs_header="$1"
     local shared_folder="$2"
     local nfs_options="$3"
-
-    # Prompt for missing inputs
-    aux_mev "nfs_header" "Enter NFS header" "$nfs_header"
-    aux_mev "shared_folder" "Enter path to shared folder" "$shared_folder"
-    aux_mev "nfs_options" "Enter NFS options" "$nfs_options"
 
     # Apply the NFS configuration
     nfs_apl "$nfs_header" "$shared_folder" "$nfs_options"
@@ -191,7 +184,6 @@ nfs_mon() {
     #   - journalctl command for log access
     #   - df command for mount point information
     #   - rpcinfo command for RPC information
-    #   - aux_mev function for interactive input
     #   - aux_nos function for completion notification
     # Arguments:
     #   $1: option - monitoring option number (1-9) or descriptive text
@@ -221,7 +213,7 @@ nfs_mon() {
         echo "7. Show NFS mount points"
         echo "8. Display RPC information"
         echo "9. All of the above"
-        aux_mev "option" "Enter option number" "9"
+        option="9"
     fi
 
     case "$option" in
@@ -278,13 +270,12 @@ nfs_mon() {
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
 smb_set() {
     # Technical Description:
-    #   Interactive Samba share setup function with comprehensive parameter collection
-    #   Prompts user for missing configuration parameters using aux_mev utility
+    #   Samba share setup function with comprehensive parameter validation
+    #   Validates required configuration parameters before proceeding
     #   Handles both user-specific and 'nobody' share configurations
     #   Validates required fields and delegates to smb_apl for actual configuration
     #   Enforces password requirement for non-anonymous shares
     # Dependencies:
-    #   - aux_mev function for interactive parameter collection
     #   - smb_apl function for configuration application
     #   - aux_nos function for success notification
     #   - Standard POSIX shell utilities
@@ -323,18 +314,6 @@ smb_set() {
 	local dir_mask="$9"
 	local force_user="${10}"
 	local force_group="${11}"
-
-    # Prompt for missing inputs
-    aux_mev "smb_header" "Enter Samba header" "$smb_header"
-    aux_mev "shared_folder" "Enter path to shared folder" "$shared_folder"
-
-    if [ "$smb_header" != "nobody" ]; then
-        aux_mev "username" "Enter Samba username" "$username"
-
-        while [ -z "$smb_password" ]; do
-            aux_mev "smb_password" "Enter Samba password (cannot be empty)" "$smb_password"
-        done
-    fi
 
     # Apply the Samba configuration
     smb_apl "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
@@ -460,7 +439,6 @@ smb_mon() {
     #   - journalctl command for log access
     #   - smbd command for version information
     #   - pdbedit command for user management
-    #   - aux_mev function for interactive input
     #   - aux_nos function for completion notification
     # Arguments:
     #   $1: option - monitoring option number (1-9) or descriptive text
@@ -490,7 +468,7 @@ smb_mon() {
         echo "7. Show SMB version information"
         echo "8. Display SMB user list"
         echo "9. All of the above"
-        aux_mev "option" "Enter option number" "9"
+        option="9"
     fi
 
     case "$option" in

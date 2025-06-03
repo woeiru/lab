@@ -238,7 +238,6 @@ pbs_mon() {
     #   - journalctl for log analysis
     #   - df for storage usage statistics
     #   - ss for network connection monitoring
-    #   - aux_mev function for menu interaction
     #   - aux_nos function for notification output
     # Arguments:
     #   $1: option (optional) - monitoring option number (1-11) or descriptive string
@@ -265,7 +264,7 @@ pbs_mon() {
         echo "9. Show backup schedule"
         echo "10. Display network statistics"
         echo "11. All of the above"
-        aux_mev "option" "Enter option number" "11"
+        option="11"
     else
         option="$1"
     fi
