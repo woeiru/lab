@@ -995,7 +995,7 @@ aux_use() {
     usage=$(echo "$usage" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
     # Display the information with fallbacks for missing comments
-    echo "Function:       $caller_function"
+
     echo "Description:    ${description:-No description available}"
     echo "Shortname:      ${shortname:-No shortname available}"
     echo "Usage:          $caller_function ${usage:-<parameters not documented>}"
