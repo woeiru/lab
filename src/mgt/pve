@@ -58,16 +58,6 @@
 #   pve_vpt_w 100 on             # Enable passthrough for VM 100
 #   pve_vms_w 100                # Start VM 100 with passthrough
 #
-# TESTING:
-#   - Unit tests can call pure functions directly with explicit parameters
-#   - Integration tests can call wrapper functions with environment loaded
-#   - See /too/test/test_complete_refactor.sh for comprehensive tests
-#
-# REFACTORING HISTORY:
-#   Created: 2025-01-29 - Separated 9 wrapper functions from pure functions
-#   Purpose: Enable testing and reduce global variable coupling
-#   Documentation: See /doc/dev/2025-05-29-*_pve_*.md for details
-#
 # FUNCTION INVENTORY:
 #   pve_fun_w : List available PVE functions (wrapper for pve-fun)
 #   pve_var_w : Display PVE configuration variables (wrapper for pve-var)  
