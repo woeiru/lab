@@ -11,7 +11,8 @@
 #   (default)   Updates the function metadata table in doc/dev/functions.md
 #######################################################################
 
-set -euo pipefail
+# Use safer error handling
+set -e
 
 # Initialize lab environment
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

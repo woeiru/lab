@@ -11,7 +11,7 @@
 #   (default)   Updates the variable usage table in doc/dev/variables.md
 #######################################################################
 
-set -euo pipefail
+set -e
 
 # Initialize lab environment
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
