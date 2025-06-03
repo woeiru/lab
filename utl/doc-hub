@@ -14,7 +14,7 @@
 #   (default)   Update doc/README.md with current documentation index
 #######################################################################
 
-set -euo pipefail
+set -e
 
 # Initialize lab environment
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

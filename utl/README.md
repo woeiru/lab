@@ -4,21 +4,46 @@
 
 ## Scripts Overview
 
-### Documentation Tools
-- **[`doc-index`](doc-index)** - Generates comprehensive documentation index with cross-references and metadata
-- **[`doc-stats`](doc-stats)** - Generates real-time statistics about the lab environment codebase and updates README metrics
+### Documentation Generation
+- **[`run_all_doc.sh`](run_all_doc.sh)** - **Orchestrator for all documentation generators with dependency management**
+- **[`doc-func`](doc-func)** - Function metadata table generator using `aux_laf`
+- **[`doc-var`](doc-var)** - Variable usage documentation generator using `aux_acu`  
+- **[`doc-hub`](doc-hub)** - Documentation index generator using `aux_lad`
+- **[`doc-stats`](doc-stats)** - System metrics generator with real-time codebase analysis
 
-## Usage
+### Configuration Management
+- **[`cfg-ali`](cfg-ali)** - Configuration alias management utility
 
+## 🚀 Quick Start
+
+### Generate All Documentation
 ```bash
-# Generate documentation index
-./utl/doc-index
+# Run all documentation generators with intelligent dependency resolution
+./utl/run_all_doc.sh
 
-# Generate codebase statistics
+# Run in parallel where dependencies allow
+./utl/run_all_doc.sh --parallel
+
+# Preview what would be executed
+./utl/run_all_doc.sh --dry-run --verbose
+
+# Run specific generators only
+./utl/run_all_doc.sh functions stats
+```
+
+### Individual Generator Usage
+```bash
+# Generate function metadata table
+./utl/doc-func
+
+# Generate variable usage documentation  
+./utl/doc-var
+
+# Generate documentation index
+./utl/doc-hub
+
 # Generate system metrics (formatted output)
 ./utl/doc-stats
-
-# Update README.md with current metrics
 ./utl/doc-stats --update
 
 # Generate markdown table format
