@@ -34,7 +34,10 @@ NOTIFY_ON_ERROR=false       # Send notification on generator failures
 
 # Custom script discovery
 CUSTOM_SCRIPT_PATTERNS=(
-    "doc-*"           # Standard pattern
+    "func"            # Function metadata generator
+    "hub"             # Documentation index generator  
+    "stats"           # System metrics generator
+    "var"             # Variable documentation generator
     "generate-*"      # Alternative pattern for custom generators
     "*-docs"          # Another alternative pattern
 )

@@ -37,10 +37,10 @@ fi
 
 # Available generators
 GENERATORS=(
-    "functions:doc-func:Function metadata table generator"
-    "variables:doc-var:Variable usage documentation generator" 
-    "stats:doc-stats:System metrics generator"
-    "hub:doc-hub:Documentation index generator"
+    "functions:func:Function metadata table generator"
+    "variables:var:Variable usage documentation generator" 
+    "stats:stats:System metrics generator"
+    "hub:hub:Documentation index generator"
 )
 
 # Dependencies (hub depends on functions and variables)
@@ -75,10 +75,10 @@ OPTIONS:
     --verbose       Show detailed progress information
 
 TARGETS:
-    functions       Generate function metadata table (doc-func)
-    variables       Generate variable usage documentation (doc-var)
-    stats           Generate system metrics (doc-stats) 
-    hub             Generate documentation index (doc-hub)
+    functions       Generate function metadata table (func)
+    variables       Generate variable usage documentation (var)
+    stats           Generate system metrics (stats) 
+    hub             Generate documentation index (hub)
 
 CONFIGURATION:
     Project Root: $PROJECT_ROOT
