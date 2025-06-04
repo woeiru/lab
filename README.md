@@ -264,5 +264,5 @@ cd test && ./test_complete_refactor.sh
 - **Security Coverage**: Zero hardcoded credentials with secure management
 - **Environment Support**: Multi-tier configuration hierarchy
 
-> 💡 **Live Metrics**: These statistics are generated in real-time using `./utl/doc-stats`. Run it anytime to get current codebase metrics in formatted, markdown, or raw output.
+> 💡 **Live Metrics**: These statistics are generated in real-time using `./utl/doc/stats`. Run it anytime to get current codebase metrics in formatted, markdown, or raw output.
 

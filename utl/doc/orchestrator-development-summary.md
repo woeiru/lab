@@ -6,7 +6,7 @@
 
 ## 🎯 Project Objective
 
-Create a portable, self-contained documentation orchestrator that centralizes execution of four documentation utility scripts (`doc-func`, `doc-hub`, `doc-stats`, `doc-var`) with intelligent dependency management and complete portability.
+Create a portable, self-contained documentation orchestrator that centralizes execution of four documentation utility scripts (`func`, `hub`, `stats`, `var`) with intelligent dependency management and complete portability.
 
 ## ✅ **FINAL ACHIEVEMENT: PORTABLE DOCUMENTATION SYSTEM**
 
@@ -19,10 +19,10 @@ utl/doc/
 ├── .doc_config         # Configuration with portable paths
 ├── README.md          # Comprehensive documentation
 ├── run_all_doc.sh     # 🏆 Main orchestrator (production-ready)
-├── doc-func           # Function metadata generator (portable)
-├── doc-hub            # Documentation index generator (portable)
-├── doc-stats          # System metrics generator (portable)
-└── doc-var            # Variable documentation generator (portable)
+├── func               # Function metadata generator (portable)
+├── hub                # Documentation index generator (portable)
+├── stats              # System metrics generator (portable)
+└── var                # Variable documentation generator (portable)
 ```
 
 ## ✅ Completed Achievements
@@ -125,7 +125,7 @@ bash run_all_doc_production.sh hub --verbose    # Dependency-aware execution
 **Problem Identified**: The `set -euo pipefail` bash strict mode was causing silent failures in the execution environment.
 
 **Solution Applied**:
-- ✅ **Fixed all generator scripts**: Replaced `set -euo pipefail` with `set -e` in `doc-func`, `doc-var`, `doc-hub`, `doc-stats`
+- ✅ **Fixed all generator scripts**: Replaced `set -euo pipefail` with `set -e` in `func`, `var`, `hub`, `stats`
 - ✅ **Rebuilt orchestrator**: Created production version without problematic bash constructs
 - ✅ **Verified functionality**: All generators now execute successfully
 - ✅ **Tested integration**: Full orchestrator workflow confirmed working
@@ -275,10 +275,10 @@ doc-all hub --verbose
 ```bash
 # Generator registry with metadata
 GENERATORS=(
-    "functions:doc-func:Function metadata table generator"
-    "variables:doc-var:Variable usage documentation generator"  
-    "stats:doc-stats:System metrics generator"
-    "hub:doc-hub:Documentation index generator"
+    "functions:func:Function metadata table generator"
+    "variables:var:Variable usage documentation generator"  
+    "stats:stats:System metrics generator"
+    "hub:hub:Documentation index generator"
 )
 
 # Command execution pattern
@@ -301,10 +301,10 @@ main() {
 ```bash
 # Dependency resolution with topological sort
 AVAILABLE_GENERATORS=(
-    "functions:doc-func:Function metadata table generator::5"
-    "variables:doc-var:Variable usage documentation generator::3"  
-    "stats:doc-stats:System metrics generator::4"
-    "hub:doc-hub:Documentation index generator:functions,variables:7"
+    "functions:func:Function metadata table generator::5"
+    "variables:var:Variable usage documentation generator::3"  
+    "stats:stats:System metrics generator::4"
+    "hub:hub:Documentation index generator:functions,variables:7"
 )
 
 # Parallel execution capability
