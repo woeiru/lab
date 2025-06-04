@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # Configuration
-AI_SERVICE="${AI_SERVICE:-mock}"  # Options: ollama, openai, mock
+AI_SERVICE="${AI_SERVICE:-mock}"  # Options: ollama, openai, gemini, mock
 WORK_DIR="/tmp/ai_doc_work_$$"
 LAB_ROOT="${LAB_ROOT:-/home/es/lab}"
 
@@ -154,6 +154,18 @@ call_ai() {
                 -d "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":$(cat "$prompt_file" | jq -Rs .)}]}" \
                 2>/dev/null | jq -r '.choices[0].message.content // "Error: No response"' > "$output_file"
             ;;
+        "gemini")
+            if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+                error "GEMINI_API_KEY not set"
+                return 1
+            fi
+            # Escape the prompt content for JSON
+            local escaped_prompt=$(cat "$prompt_file" | jq -Rs .)
+            curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=$GEMINI_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d "{\"contents\":[{\"parts\":[{\"text\":$escaped_prompt}]}]}" \
+                2>/dev/null | jq -r '.candidates[0].content.parts[0].text // "Error: No response"' > "$output_file"
+            ;;
         "mock")
             log "Using mock AI (for testing)"
             local dir_name=$(basename "$1" | sed 's/\.txt$//')
@@ -268,7 +280,7 @@ OPTIONS:
     --force                           # Overwrite existing READMEs
     --hierarchical                    # Bottom-up generation
     --max-depth N                     # Max depth for hierarchical (default: 3)
-    --ai-service SERVICE              # AI service: ollama, openai, mock
+    --ai-service SERVICE              # AI service: ollama, openai, gemini, mock
 
 EXAMPLES:
     # Test with mock AI
@@ -279,10 +291,14 @@ EXAMPLES:
     
     # Use with OpenAI
     AI_SERVICE=openai OPENAI_API_KEY=sk-... $0 /home/es/lab/lib
+    
+    # Use with Gemini
+    AI_SERVICE=gemini GEMINI_API_KEY=your-key $0 /home/es/lab/lib
 
 ENVIRONMENT:
     AI_SERVICE      # AI service to use (default: mock)
     OPENAI_API_KEY  # Required for OpenAI service
+    GEMINI_API_KEY  # Required for Gemini service
     LAB_ROOT        # Lab root directory
 EOF
 }
