@@ -6,6 +6,56 @@ Comprehensive documentation standards and conventions for the Lab Environment Ma
 
 This document establishes the foundational standards for all documentation within the Lab Environment Management System. These standards ensure consistency, maintainability, and accessibility across technical guides, API references, and operational documentation.
 
+## 📚 Documentation Philosophy: Two Distinct Types
+
+### README Files → **Orientation and Quick Start**
+**Purpose**: Immediate understanding and actionability  
+**Location**: In each directory (`directory/README.md`)  
+**Audience**: Anyone encountering this directory for the first time
+
+**Characteristics**:
+- **Immediate orientation** - "What is this folder/component for?"
+- **Quick start focus** - "How do I use this right now?"
+- **Self-contained** - Doesn't assume prior knowledge of the system
+- **Action-oriented** - Focused on "what can I do here?"
+- **Scannable format** - Quick overview with bullet points and tables
+
+**Content Focus**:
+- Directory structure and file purposes
+- Essential usage examples and commands
+- Basic troubleshooting
+- Links to comprehensive documentation
+
+### Comprehensive Documentation → **Deep Understanding and Mastery**
+**Purpose**: Complete workflows and detailed explanations  
+**Location**: In `doc/` folder organized by audience  
+**Audience**: Users seeking thorough understanding and advanced usage
+
+**Characteristics**:
+- **Deep understanding** - "Why does this work this way?"
+- **Complete workflows** - End-to-end procedures
+- **Educational focus** - Teaches concepts and principles
+- **Cross-cutting coverage** - Spans multiple components
+- **Reference quality** - Comprehensive and authoritative
+
+**Content Focus**:
+- Conceptual foundations and design principles
+- Complete step-by-step procedures
+- Advanced use cases and edge cases
+- Integration patterns and troubleshooting
+- Cross-references to related topics
+
+### Documentation Relationship
+**Learning Progression**:
+1. **README** → "I understand what this is and can use it immediately"
+2. **Comprehensive Docs** → "I understand how this works and can master it completely"
+
+**Cross-Reference Pattern**:
+- README files link to comprehensive docs for deep dives
+- Comprehensive docs assume basic familiarity from README files
+
+---
+
 ## 📝 Document Structure Requirements
 
 ### Mandatory Header Format
@@ -51,6 +101,122 @@ All documentation must include:
 - **Consistent formatting**: Uniform approach to code blocks, lists, and emphasis
 
 ## 📋 Document Templates
+
+### README File Template
+```markdown
+<!-- filepath: /path/to/README.md -->
+# Directory Name (`directory/`)
+
+## 📋 Overview
+[What this directory/component does - 1-2 sentences]
+
+## 🗂️ Directory Structure / Key Files
+[List of files/subdirs with brief purpose]
+- `file1` - Purpose and basic usage
+- `file2` - Purpose and basic usage
+- `subdir/` - What this subdirectory contains
+
+## 🚀 Quick Start
+[Essential commands to get started immediately]
+```bash
+# Basic usage example
+command --option value
+```
+
+## 📊 Quick Reference
+[Most common usage patterns in table format]
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `cmd1` | Basic operation | `cmd1 --flag` |
+| `cmd2` | Advanced operation | `cmd2 param` |
+
+## 🔗 Related Documentation
+[Links to comprehensive docs for deeper understanding]
+- [Component Guide](../doc/category/component.md) - Complete workflows
+- [Architecture Overview](../doc/dev/architecture.md) - Design principles
+```
+
+### Comprehensive Documentation Template
+```markdown
+<!-- filepath: /home/es/lab/doc/category/topic.md -->
+# Topic Title
+
+[What this document covers and who should read it]
+
+## 🎯 Overview
+[High-level summary and learning objectives]
+
+## 🏗️ Concepts & Architecture
+[How things work and why they're designed this way]
+
+### Key Concepts
+[Fundamental ideas and terminology]
+
+### Design Patterns
+[Architectural decisions and patterns used]
+
+## 🔧 Complete Procedures
+[Step-by-step workflows with examples]
+
+### Basic Workflow
+[Standard procedure with all steps]
+
+### Advanced Usage
+[Complex scenarios and edge cases]
+
+## 🔍 Reference & Troubleshooting
+[Quick reference tables, common issues, solutions]
+
+### Configuration Reference
+[Complete parameter listings]
+
+### Common Issues
+[Problem-solution pairs]
+
+## 🔗 Related Topics
+[Cross-references to other documentation]
+
+---
+
+**Navigation**: Return to [Parent](../README.md) | [Main](../../README.md)
+```
+
+### Content Guidelines by Documentation Type
+
+#### README Files - DO Include:
+- **Immediate purpose and context** - What is this directory for?
+- **Directory structure overview** - What files/folders are here?
+- **File-by-file descriptions** - Brief purpose of each component
+- **Essential usage examples** - Copy-paste ready commands
+- **Quick start instructions** - Get running immediately
+- **Basic troubleshooting** - Common issues and quick fixes
+- **Links to detailed docs** - Where to go for more information
+
+#### README Files - DON'T Include:
+- **Deep architectural explanations** - Save for comprehensive docs
+- **Complete workflows** - Only essential steps
+- **Complex troubleshooting** - Advanced scenarios go in comprehensive docs
+- **Design philosophy** - Architectural decisions belong in design docs
+- **Cross-component integration** - Complex interactions go in comprehensive docs
+
+#### Comprehensive Docs - DO Include:
+- **Conceptual foundations** - Why things work this way
+- **Complete step-by-step procedures** - Full workflows with all details
+- **Design principles and decisions** - Architectural reasoning
+- **Advanced use cases and edge cases** - Complex scenarios
+- **Integration patterns** - How components work together
+- **Comprehensive troubleshooting** - Detailed problem-solving
+- **Best practices and standards** - How to do things right
+- **Cross-references** - Links to related concepts and procedures
+
+#### Comprehensive Docs - DON'T Include:
+- **Basic "what is this" orientation** - That belongs in README files
+- **Simple copy-paste commands** - Without proper context and explanation
+- **Directory-specific file listings** - That's README content
+- **Redundant quick-start info** - Avoid duplicating README content
+
+### Legacy Document Template
 
 ### Standard Document Template
 ```markdown
@@ -153,6 +319,9 @@ Configuration options and setup instructions.
 - **`lib/gen/aux` (aux_lad)**: Documentation discovery and categorization
 - **`utl/doc-func`**: Function metadata table generation
 - **`utl/doc-stats`**: Codebase statistics and metrics
+
+### Documentation Creation
+- **[Documentation Creation Metaprompt](metaprompt.md)**: Comprehensive guide for creating new documentation using AI assistants and established patterns
 
 ### Manual Documentation
 - Follow templates for consistency
