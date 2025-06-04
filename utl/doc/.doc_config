@@ -39,9 +39,12 @@ CUSTOM_SCRIPT_PATTERNS=(
     "*-docs"          # Another alternative pattern
 )
 
-# Directory settings (usually auto-detected, but can be overridden)
-# DOC_OUTPUT_DIR="$LAB_DIR/doc"
-# LOG_OUTPUT_DIR="$LAB_DIR/.tmp/doc"
+# Directory settings - Configure paths for portable operation
+# Set these paths to make the project work from any location
+PROJECT_ROOT="/home/es/lab"                    # Root of the lab environment
+DOC_OUTPUT_DIR="/home/es/lab/doc"              # Where to write documentation
+LOG_OUTPUT_DIR="/home/es/lab/.tmp/doc"         # Where to write logs
+SCRIPT_DIR=""                                  # Auto-detected from script location
 
 # Backup settings
 CREATE_BACKUPS=true     # Create backups before modifying documentation files

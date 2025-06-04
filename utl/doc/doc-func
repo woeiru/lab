@@ -17,9 +17,10 @@ set -e
 # Initialize lab environment
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Set LAB_DIR if not already set
+# Set LAB_DIR if not already set - adjust for new location in utl/doc
 if [[ -z "${LAB_DIR:-}" ]]; then
-    readonly LAB_DIR="$(dirname "$SCRIPT_DIR")"
+    # Script is now in utl/doc, so LAB_DIR is two levels up
+    readonly LAB_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 fi
 
 # Source required utilities
