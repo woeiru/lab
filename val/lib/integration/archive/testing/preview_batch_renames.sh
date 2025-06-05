@@ -37,13 +37,13 @@ echo
 
 echo "📋 Batch 3: Auxiliary Functions"
 echo "=============================================="
-echo "  aux_laf → aux-list-all-functions"
+echo "  ana_laf → aux-list-all-functions"
 echo "    Location: lib/gen/aux"
 echo
 echo "  aux_ffl → aux-foreach-file-list"
 echo "    Location: lib/gen/aux"
 echo
-echo "  aux_acu → aux-analyze-config-usage"
+echo "  ana_acu → aux-analyze-config-usage"
 echo "    Location: lib/gen/aux"
 echo
 echo "  aux_nos → aux-notify-operation-status"

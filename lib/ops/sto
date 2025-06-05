@@ -23,12 +23,12 @@ sto_fun() {
     #   Supports pattern-based filtering for function name matching
     #   Provides formatted output with usage information and descriptions
     # Dependencies:
-    #   - 'aux_laf' function for list and filter operations
+    #   - 'ana_laf' function for list and filter operations
     #   - Access to function definition files
     #   - Pattern matching utilities for filtering
     # Arguments:
     #   $1: function_name_filter (optional) - pattern to filter function names
-    #   Additional arguments are passed through to aux_laf
+    #   Additional arguments are passed through to ana_laf
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -37,7 +37,7 @@ sto_fun() {
     
     # Optional parameters - no validation needed
     # Pass all arguments to processing function
-    aux_laf "$FILEPATH_sto" "$@"
+    ana_laf "$FILEPATH_sto" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
@@ -49,7 +49,7 @@ sto_var() {
     #   Provides insights into configuration management and variable dependencies
     #   Generates formatted output showing variable names, values, and file usage counts
     # Dependencies:
-    #   - 'aux_acu' function for variable analysis and configuration processing
+    #   - 'ana_acu' function for variable analysis and configuration processing
     #   - Read access to configuration files and source directories
     #   - Pattern matching utilities for variable identification
     # Arguments:
@@ -65,7 +65,7 @@ sto_var() {
         return 1
     fi
     
-    aux_acu -o "$CONFIG_sto" "$DIR_FUN/.."
+    ana_acu -o "$CONFIG_sto" "$DIR_FUN/.."
 }
 
 # Adds auto-mount entries for devices to /etc/fstab using blkid. Allows user to select a device UUID and automatically creates the appropriate fstab entry

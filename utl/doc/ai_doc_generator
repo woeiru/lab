@@ -58,35 +58,35 @@ EOF
        "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
     
     # PHASE 1: Function Intelligence (from func module)
-    if command -v aux_laf >/dev/null 2>&1 && [[ -d "$target_dir" ]]; then
-        log "🔧 Analyzing functions with aux_laf (func module integration)..."
-        if aux_laf "$target_dir" -j > "$WORK_DIR/functions.json" 2>/dev/null; then
+    if command -v ana_laf >/dev/null 2>&1 && [[ -d "$target_dir" ]]; then
+        log "🔧 Analyzing functions with ana_laf (func module integration)..."
+        if ana_laf "$target_dir" -j > "$WORK_DIR/functions.json" 2>/dev/null; then
             jq --slurpfile funcs "$WORK_DIR/functions.json" '.functions = $funcs[0] // []' \
                "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
         fi
     fi
     
     # PHASE 2: Configuration Intelligence (from var module)
-    if command -v aux_acu >/dev/null 2>&1 && [[ -d "$target_dir" ]]; then
-        log "⚙️ Analyzing variables with aux_acu (var module integration)..."
+    if command -v ana_acu >/dev/null 2>&1 && [[ -d "$target_dir" ]]; then
+        log "⚙️ Analyzing variables with ana_acu (var module integration)..."
         # Analyze the target directory and related config locations
-        if aux_acu -j "" "$target_dir" "$LAB_ROOT/cfg/env" "$LAB_ROOT/lib/ops" > "$WORK_DIR/variables.json" 2>/dev/null; then
+        if ana_acu -j "" "$target_dir" "$LAB_ROOT/cfg/env" "$LAB_ROOT/lib/ops" > "$WORK_DIR/variables.json" 2>/dev/null; then
             jq --slurpfile vars "$WORK_DIR/variables.json" '.variables = $vars[0] // []' \
                "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
         fi
     fi
     
     # PHASE 3: Documentation Context (from hub module)  
-    if command -v aux_lad >/dev/null 2>&1; then
-        log "📚 Analyzing documentation context with aux_lad (hub module integration)..."
+    if command -v ana_lad >/dev/null 2>&1; then
+        log "📚 Analyzing documentation context with ana_lad (hub module integration)..."
         # Analyze both the target directory and the overall doc structure
-        if aux_lad -j "$target_dir" > "$WORK_DIR/local_docs.json" 2>/dev/null; then
+        if ana_lad -j "$target_dir" > "$WORK_DIR/local_docs.json" 2>/dev/null; then
             jq --slurpfile docs "$WORK_DIR/local_docs.json" '.documentation = $docs[0] // []' \
                "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
         fi
         
         # Get project-wide documentation context
-        if aux_lad -j "$LAB_ROOT/doc" > "$WORK_DIR/project_docs.json" 2>/dev/null; then
+        if ana_lad -j "$LAB_ROOT/doc" > "$WORK_DIR/project_docs.json" 2>/dev/null; then
             jq --slurpfile pdocs "$WORK_DIR/project_docs.json" '.project_documentation = $pdocs[0] // []' \
                "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
         fi

@@ -43,7 +43,7 @@ The `lib/` folder contains three categories of pure functions:
 ## 🔍 Function Metadata Table
 
 <!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->
-<!-- Command: aux_ffl aux_laf "" "/home/es/lab/lib/core" & aux_ffl aux_laf "" "/home/es/lab/lib/ops" & aux_ffl aux_laf "" "/home/es/lab/lib/gen" -->
+<!-- Command: aux_ffl ana_laf "" "/home/es/lab/lib/core" & aux_ffl ana_laf "" "/home/es/lab/lib/ops" & aux_ffl ana_laf "" "/home/es/lab/lib/gen" -->
 
 *Auto-updated function metadata table with real-time analysis*
 

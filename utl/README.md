@@ -11,7 +11,7 @@ System utilities and tools for configuration management, documentation generatio
 - `ali` - Alias management and configuration utility
 
 ### Documentation Tools (`doc/`)
-- `hub` - Automated documentation index generator using aux_lad
+- `hub` - Automated documentation index generator using ana_lad
 - `func` - Function metadata table generation utility
 - `stats` - Codebase statistics and metrics generator
 - `var` - Variable documentation and analysis tool

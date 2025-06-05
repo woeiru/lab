@@ -23,7 +23,7 @@ sys_fun() {
     #   Extracts function metadata including usage patterns, shortnames, and descriptions
     #   Processes function documentation and presents it in a structured format
     # Dependencies:
-    #   - aux_laf function for function analysis and formatting
+    #   - ana_laf function for function analysis and formatting
     #   - aux_tec function for technical details display
     #   - FILEPATH_gen variable for target file path
     #   - Read permissions on source files
@@ -37,7 +37,7 @@ sys_fun() {
     
     # Optional parameters - no validation needed
     # Pass all arguments to processing function
-    aux_laf "$FILEPATH_gen" "$@"
+    ana_laf "$FILEPATH_gen" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
@@ -50,7 +50,7 @@ sys_var() {
     #   Analyzes configuration structure and provides comprehensive overview of variable usage
     #   Operates on default configuration files within the project directory structure
     # Dependencies:
-    #   - aux_acu function for configuration analysis
+    #   - ana_acu function for configuration analysis
     #   - CONFIG_gen variable for configuration file path
     #   - DIR_FUN variable for directory navigation
     #   - Read permissions on configuration files
@@ -67,7 +67,7 @@ sys_var() {
         return 1
     fi
     
-    aux_acu -o "$CONFIG_gen" "$DIR_FUN/.."
+    ana_acu -o "$CONFIG_gen" "$DIR_FUN/.."
 }
 
 # Manages git operations, ensuring the local repository syncs with the remote.

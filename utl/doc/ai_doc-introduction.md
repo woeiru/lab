@@ -2,7 +2,7 @@
 
 ## 🎯 What This System Does for You
 
-The AI Documentation Generator is a **strategic documentation automation system** that transforms your existing Lab Environment into a **self-documenting infrastructure**. Instead of manually writing README files for hundreds of directories, this system leverages your existing analysis tools (`aux_laf`, `aux_acu`, `aux_lad`) and combines them with AI to generate **consistent, user-focused documentation** across your entire project.
+The AI Documentation Generator is a **strategic documentation automation system** that transforms your existing Lab Environment into a **self-documenting infrastructure**. Instead of manually writing README files for hundreds of directories, this system leverages your existing analysis tools (`ana_laf`, `ana_acu`, `ana_lad`) and combines them with AI to generate **consistent, user-focused documentation** across your entire project.
 
 **Key Value Proposition:**
 - ⚡ **30 seconds** instead of 30 minutes per directory documentation
@@ -15,9 +15,9 @@ The AI Documentation Generator is a **strategic documentation automation system*
 ### **Phase 1: Metadata Intelligence** (Your Existing Tools)
 ```bash
 # Your existing analysis infrastructure
-aux_laf lib/ops -j    # → Function analysis (structured JSON)
-aux_acu lib/ops -j    # → Variable usage patterns (structured JSON)  
-aux_lad lib/ops -j    # → Documentation relationships (structured JSON)
+ana_laf lib/ops -j    # → Function analysis (structured JSON)
+ana_acu lib/ops -j    # → Variable usage patterns (structured JSON)  
+ana_lad lib/ops -j    # → Documentation relationships (structured JSON)
 ```
 
 ### **Phase 2: AI Content Generation** (New Layer)
@@ -173,9 +173,9 @@ echo "./utl/doc/ai_doc_generator --hierarchical ." >> utl/doc/run_all_doc.sh
 ### **Built on Your Existing Investment**
 This system doesn't replace your tools - it **amplifies them**:
 
-- **`aux_laf`** → Function metadata extraction
-- **`aux_acu`** → Variable usage analysis  
-- **`aux_lad`** → Documentation structure discovery
+- **`ana_laf`** → Function metadata extraction
+- **`ana_acu`** → Variable usage analysis  
+- **`ana_lad`** → Documentation structure discovery
 - **AI Layer** → Transforms metadata into user-focused content
 
 ### **Extensible Architecture**
