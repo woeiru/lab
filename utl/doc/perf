@@ -1,24 +1,7 @@
 #!/bin/bash
+#######################################################################
 # Performance Intelligence Module
-# Analyze resource usage patterns
-analyze_resource_usage() {
-    local target_dir="$1"
-    local memory_patterns=0
-    local cpu_patterns=0 
-    local io_patterns=0
-    local disk_patterns=0
-    
-    # Memory-intensive patterns
-    memory_patterns=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "malloc\|calloc\|array\|buffer\|cache" {} \; 2>/dev/null | wc -l || echo "0")
-    
-    # CPU-intensive patterns
-    cpu_patterns=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "for.*in.*do\|while.*do\|parallel\|xargs.*-P\|sort.*-k\|awk.*BEGIN" {} \; 2>/dev/null | wc -l || echo "0")
-    
-    # I/O patterns
-    io_patterns=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "read\|write\|cat\|tee\|pipe\|>\|<\|>>" {} \; 2>/dev/null | wc -l || echo "0")
-    
-    # Disk usage patterns
-    disk_patterns=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "tmp\|log\|\.cache\|mktemp\|tempfile" {} \; 2>/dev/null | wc -l || echo "0")ced AI Documentation Generator System
+# Enhanced AI Documentation Generator System
 # Collects performance-related metadata for intelligent documentation
 
 # TECHNICAL SPECIFICATION:

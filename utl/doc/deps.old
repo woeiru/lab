@@ -53,18 +53,14 @@ map_source_dependencies() {
     local absolute_deps=0
     
     # Source command usage
-    source_count=$(grep -rc "^[[:space:]]*source\|^[[:space:]]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
-    source_count=${source_count:-0}
+    source_count=$(grep -rc "^[[:space:]]*source\|^[[:space:]]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
     
     # Import-like patterns
-    import_patterns=$(grep -rc "include\|require\|load.*lib\|import" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
-    import_patterns=${import_patterns:-0}
+    import_patterns=$(grep -rc "include\|require\|load.*lib\|import" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
     
     # Relative vs absolute path dependencies
-    relative_deps=$(grep -rc "source.*\./\|source.*\.\./" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
-    relative_deps=${relative_deps:-0}
-    absolute_deps=$(grep -rc "source.*/\|source.*\$" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
-    absolute_deps=${absolute_deps:-0}
+    relative_deps=$(grep -rc "source.*\./\|source.*\.\./" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    absolute_deps=$(grep -rc "source.*/\|source.*\$" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
     
     cat << EOF
   "source_dependencies": {
@@ -85,12 +81,10 @@ analyze_function_calls() {
     local recursive_patterns=0
     
     # Total function calls
-    function_calls=$(grep -rc "[a-zA-Z_][a-zA-Z0-9_]*(" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
-    function_calls=${function_calls:-0}
+    function_calls=$(grep -rc "[a-zA-Z_][a-zA-Z0-9_]*(" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
     
     # External function calls (with namespace/module prefixes)
-    external_calls=$(grep -rc "[a-zA-Z_][a-zA-Z0-9_]*::[a-zA-Z_]\|[a-zA-Z_][a-zA-Z0-9_]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
-    external_calls=${external_calls:-0}
+    external_calls=$(grep -rc "[a-zA-Z_][a-zA-Z0-9_]*::[a-zA-Z_]\|[a-zA-Z_][a-zA-Z0-9_]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
     
     # Internal function calls
     internal_calls=$((function_calls - external_calls))

@@ -635,9 +635,15 @@ main() {
     done
     
     if [[ -z "$target_dir" ]]; then
-        error "No directory specified"
-        usage
-        exit 1
+        # When called from orchestrator without parameters, use lab root
+        if [[ -n "${LAB_DIR:-}" ]]; then
+            target_dir="$LAB_DIR"
+            log "Using LAB_DIR as target: $target_dir"
+        else
+            error "No directory specified"
+            usage
+            exit 1
+        fi
     fi
     
     # Initialize
