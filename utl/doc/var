@@ -24,6 +24,7 @@ fi
 
 # Source required utilities
 source "$LAB_DIR/lib/gen/aux"
+source "$LAB_DIR/lib/gen/ana"
 
 # Define target directories
 CFG_ENV_DIR="$LAB_DIR/cfg/env"

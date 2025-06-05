@@ -25,6 +25,7 @@ fi
 
 # Source required utilities
 source "$LAB_DIR/lib/gen/aux"
+source "$LAB_DIR/lib/gen/ana"
 
 # Define library directories
 LIB_CORE_DIR="$LAB_DIR/lib/core"
