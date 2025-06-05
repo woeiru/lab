@@ -43,94 +43,201 @@ OUTPUT_FORMAT="json"
 #    - Testing documentation quality
 
 # IMPLEMENTATION FUNCTIONS:
-# detect_test_files()          - Find and categorize test files
-# analyze_test_coverage()      - Assess coverage patterns
-# identify_frameworks()        - Detect testing frameworks
-# evaluate_test_quality()      - Score test quality metrics
-# assess_qa_maturity()         - Evaluate QA process maturity
-# analyze_test_patterns()      - Identify testing best practices
-# compile_test_metadata()      - Generate JSON output
 
-# JSON OUTPUT STRUCTURE:
-# {
-#   "test_coverage": {
-#     "test_files": {...},
-#     "coverage_ratio": {...},
-#     "critical_path_coverage": {...},
-#     "untested_functions": [...]
-#   },
-#   "testing_frameworks": {
-#     "detected_frameworks": [...],
-#     "test_runners": [...],
-#     "assertion_patterns": {...},
-#     "mock_usage": {...}
-#   },
-#   "test_quality": {
-#     "complexity_metrics": {...},
-#     "maintainability_score": {...},
-#     "isolation_quality": {...},
-#     "data_management": {...}
-#   },
-#   "qa_maturity": {
-#     "ci_integration": {...},
-#     "automation_level": {...},
-#     "quality_gates": [...],
-#     "documentation_quality": {...}
-#   }
-# }
+# Detect and categorize test files
+detect_test_files() {
+    local target_dir="$1"
+    local test_files=0
+    local unit_tests=0
+    local integration_tests=0
+    local e2e_tests=0
+    
+    # Test file patterns
+    test_files=$(find "$target_dir" -name "*test*" -o -name "*spec*" -o -name "test_*" -o -name "*_test*" 2>/dev/null | wc -l || echo "0")
+    
+    # Unit test indicators
+    unit_tests=$(find "$target_dir" -name "*unit*test*" -o -name "test_unit_*" -o -name "*_unit_test*" 2>/dev/null | wc -l || echo "0")
+    
+    # Integration test indicators
+    integration_tests=$(find "$target_dir" -name "*integration*test*" -o -name "*int_test*" -o -name "test_integration_*" 2>/dev/null | wc -l || echo "0")
+    
+    # End-to-end test indicators
+    e2e_tests=$(find "$target_dir" -name "*e2e*" -o -name "*end*to*end*" -o -name "*system*test*" 2>/dev/null | wc -l || echo "0")
+    
+    cat << EOF
+  "test_file_analysis": {
+    "total_test_files": $test_files,
+    "unit_tests": $unit_tests,
+    "integration_tests": $integration_tests,
+    "e2e_tests": $e2e_tests
+  }
+EOF
+}
 
-# TEST FILE PATTERNS TO DETECT:
-# - *test*.sh, *spec*.sh (test files)
-# - test/, tests/, spec/ (test directories)
-# - .bats files (Bash Automated Testing System)
-# - assert*, check* (assertion functions)
-# - setup*, teardown* (test fixtures)
+# Analyze test coverage patterns
+analyze_test_coverage() {
+    local target_dir="$1"
+    local source_files=0
+    local tested_functions=0
+    local assertion_count=0
+    local coverage_ratio=0
+    
+    # Count source files
+    source_files=$(find "$target_dir" -name "*.sh" -not -path "*/test*" 2>/dev/null | wc -l || echo "1")
+    
+    # Count functions with tests (heuristic)
+    tested_functions=$(find "$target_dir" -name "*.sh" -exec grep -l "test.*function\|function.*test" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Count assertions
+    assertion_count=$(grep -rc "assert\|expect\|should\|assertEquals\|\[\[.*==.*\]\]" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Calculate coverage ratio
+    if [[ $source_files -gt 0 ]]; then
+        coverage_ratio=$((tested_functions * 100 / source_files))
+    fi
+    
+    cat << EOF
+  "test_coverage": {
+    "source_files": $source_files,
+    "tested_functions": $tested_functions,
+    "assertion_count": $assertion_count,
+    "coverage_ratio_percent": $coverage_ratio
+  }
+EOF
+}
 
-# TESTING FRAMEWORK SIGNATURES:
-# - bats: @test annotations, run commands
-# - shunit2: testXXX functions, assertions
-# - custom: assert functions, test runners
-# - CI/CD: .github/, .gitlab-ci.yml, Jenkinsfile
+# Identify testing frameworks
+identify_frameworks() {
+    local target_dir="$1"
+    local bats_usage=0
+    local shunit2_usage=0
+    local custom_framework=0
+    local framework_commands=0
+    
+    # BATS framework detection
+    bats_usage=$(find "$target_dir" -name "*.bats" -o -exec grep -l "@test\|bats" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # shUnit2 framework detection
+    shunit2_usage=$(find "$target_dir" -exec grep -l "shunit2\|testCase\|setUp\|tearDown" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Custom framework indicators
+    custom_framework=$(find "$target_dir" -exec grep -l "run_test\|test_runner\|test_suite" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Framework command usage
+    framework_commands=$(find "$target_dir" -exec grep -l "prove\|tap\|junit\|mocha\|jest" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    cat << EOF
+  "testing_frameworks": {
+    "bats_usage": $bats_usage,
+    "shunit2_usage": $shunit2_usage,
+    "custom_framework": $custom_framework,
+    "framework_commands": $framework_commands
+  }
+EOF
+}
 
-# QUALITY METRICS:
-# - Test-to-code ratio
-# - Function coverage percentage
-# - Test complexity (lines, assertions)
-# - Test isolation score
-# - Documentation coverage
+# Evaluate test quality metrics
+evaluate_test_quality() {
+    local target_dir="$1"
+    local test_complexity=0
+    local test_isolation=0
+    local mock_usage=0
+    local test_documentation=0
+    
+    # Test complexity (lines per test)
+    local test_lines=$(find "$target_dir" -name "*test*" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+    local test_count=$(find "$target_dir" -name "*test*" 2>/dev/null | wc -l || echo "1")
+    if [[ $test_count -gt 0 ]]; then
+        test_complexity=$((test_lines / test_count))
+    fi
+    
+    # Test isolation indicators
+    test_isolation=$(grep -rc "setUp\|tearDown\|before\|after\|cleanup" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Mock/stub usage
+    mock_usage=$(find "$target_dir" -exec grep -l "mock\|stub\|fake\|double" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Test documentation
+    test_documentation=$(find "$target_dir" -exec grep -l "# Test:\|# Testing\|describe\|it(" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    cat << EOF
+  "test_quality": {
+    "avg_test_complexity": $test_complexity,
+    "test_isolation_score": $test_isolation,
+    "mock_usage": $mock_usage,
+    "test_documentation": $test_documentation
+  }
+EOF
+}
 
-# INTEGRATION POINTS:
-# - Called by ai_doc_generator Phase 12
-# - Integrates with func module for function coverage
-# - Works with file analysis for test discovery
-# - Requires: target directory path
-# - Outputs: JSON testing intelligence metadata
+# Assess QA maturity
+assess_qa_maturity() {
+    local target_dir="$1"
+    local ci_integration=0
+    local automated_testing=0
+    local quality_gates=0
+    local test_reporting=0
+    
+    # CI/CD integration indicators
+    ci_integration=$(find "$target_dir" -name ".github" -o -name ".gitlab-ci*" -o -name "Jenkinsfile" -o -name ".travis*" 2>/dev/null | wc -l || echo "0")
+    
+    # Automated testing indicators
+    automated_testing=$(find "$target_dir" -exec grep -l "npm test\|make test\|./run_tests\|pytest" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Quality gates
+    quality_gates=$(grep -rc "coverage.*threshold\|quality.*gate\|sonar\|lint" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Test reporting
+    test_reporting=$(find "$target_dir" -name "*report*" -o -name "*result*" -o -name "coverage*" 2>/dev/null | wc -l || echo "0")
+    
+    cat << EOF
+  "qa_maturity": {
+    "ci_integration": $ci_integration,
+    "automated_testing": $automated_testing,
+    "quality_gates": $quality_gates,
+    "test_reporting": $test_reporting
+  }
+EOF
+}
 
-# COVERAGE ANALYSIS TECHNIQUES:
-# - Cross-reference test files with source files
-# - Function name matching in test files
-# - Test case enumeration and categorization
-# - Critical path identification through function analysis
+# Generate complete testing metadata
+generate_testing_metadata() {
+    local target_dir="$1"
+    local output_file="${2:-/dev/stdout}"
+    
+    if [[ ! -d "$target_dir" ]]; then
+        echo '{"error": "Target directory not found"}' > "$output_file"
+        return 1
+    fi
+    
+    cat << EOF > "$output_file"
+{
+  "module": "$MODULE_NAME",
+  "version": "$MODULE_VERSION",
+  "phase": $MODULE_PHASE,
+  "analysis_target": "$target_dir",
+  "timestamp": "$(date -Iseconds)",
+$(detect_test_files "$target_dir"),
+$(analyze_test_coverage "$target_dir"),
+$(identify_frameworks "$target_dir"),
+$(evaluate_test_quality "$target_dir"),
+$(assess_qa_maturity "$target_dir")
+}
+EOF
+}
 
-# USAGE EXAMPLES:
-# ./test /path/to/analyze                    # Analyze testing patterns
-# ./test -j /path/to/analyze                 # JSON output
-# ./test --coverage /path/to/analyze         # Focus on coverage analysis
-# ./test --help                              # Show usage
-
-# DEVELOPMENT STATUS: MODULE SHELL CREATED
-# TODO: Implement test file detection algorithms
-# TODO: Add framework identification logic
-# TODO: Create coverage analysis engine
-# TODO: Build quality metrics calculation
-# TODO: Add QA maturity assessment
-# TODO: Integrate with existing func module for coverage mapping
-
-# Placeholder main function
+# Main function
 main() {
-    echo "# Testing Intelligence Module - Implementation Pending"
-    echo "# This module will analyze testing coverage and QA maturity"
-    echo "# Integration ready for ai_doc_generator Phase 12"
+    local target_dir="$1"
+    local output_file="${2:-}"
+    
+    if [[ -z "$target_dir" ]]; then
+        echo "Usage: $0 <target_directory> [output_file]" >&2
+        echo "Testing Intelligence Module - Analyzes testing patterns and quality" >&2
+        return 1
+    fi
+    
+    generate_testing_metadata "$target_dir" "$output_file"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

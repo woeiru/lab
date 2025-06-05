@@ -43,103 +43,230 @@ OUTPUT_FORMAT="json"
 #    - Troubleshooting accessibility
 
 # IMPLEMENTATION FUNCTIONS:
-# analyze_cli_design()         - Evaluate command-line interface quality
-# assess_help_systems()        - Analyze help and usage patterns
-# evaluate_error_handling()    - Review error message quality
-# check_accessibility()        - Assess accessibility features
-# analyze_user_feedback()      - Evaluate feedback mechanisms
-# assess_documentation_ux()    - Review documentation user experience
-# compile_ux_metadata()        - Generate JSON output
 
-# JSON OUTPUT STRUCTURE:
-# {
-#   "interface_quality": {
-#     "cli_design": {...},
-#     "help_effectiveness": {...},
-#     "error_clarity": {...},
-#     "feedback_patterns": {...}
-#   },
-#   "accessibility": {
-#     "color_usage": {...},
-#     "text_readability": {...},
-#     "navigation_support": {...},
-#     "screen_reader_friendly": {...}
-#   },
-#   "interaction_design": {
-#     "input_validation": {...},
-#     "progressive_disclosure": {...},
-#     "default_values": {...},
-#     "workflow_optimization": {...}
-#   },
-#   "documentation_ux": {
-#     "structure_quality": {...},
-#     "comment_helpfulness": {...},
-#     "example_clarity": {...},
-#     "troubleshooting_access": {...}
-#   }
-# }
+# Analyze command-line interface design
+analyze_cli_design() {
+    local target_dir="$1"
+    local help_options=0
+    local usage_messages=0
+    local interactive_prompts=0
+    local default_values=0
+    
+    # Help option patterns
+    help_options=$(grep -rc "\-h\|\-\-help\|help()" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Usage message patterns
+    usage_messages=$(grep -rc "Usage:\|usage:\|USAGE" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Interactive prompts
+    interactive_prompts=$(grep -rc "read.*-p\|select\|echo.*\".*?\"\|printf.*\".*?\"" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Default value usage
+    default_values=$(grep -rc "\${.*:-.*}\|\${.*:=.*}" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    cat << EOF
+  "cli_design": {
+    "help_options": $help_options,
+    "usage_messages": $usage_messages,
+    "interactive_prompts": $interactive_prompts,
+    "default_values": $default_values
+  }
+EOF
+}
 
-# UX PATTERNS TO ANALYZE:
-# - CLI Design: Option parsing, argument validation, subcommands
-# - Help Systems: --help, usage(), man pages, inline help
-# - Error Messages: Specificity, actionability, context
-# - Feedback: Progress indicators, confirmations, warnings
-# - Accessibility: Color independence, text alternatives
+# Assess help and usage systems
+assess_help_systems() {
+    local target_dir="$1"
+    local help_files=0
+    local man_pages=0
+    local inline_help=0
+    local help_completeness=0
+    
+    # Help files
+    help_files=$(find "$target_dir" -name "*help*" -o -name "HELP*" -o -name "*.help" 2>/dev/null | wc -l || echo "0")
+    
+    # Man pages
+    man_pages=$(find "$target_dir" -name "*.1" -o -name "*.man" -o -path "*/man/*" 2>/dev/null | wc -l || echo "0")
+    
+    # Inline help documentation
+    inline_help=$(find "$target_dir" -exec grep -l "# Help:\|# Usage:\|# Description:" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Help completeness score
+    local total_scripts=$(find "$target_dir" -name "*.sh" 2>/dev/null | wc -l || echo "1")
+    local help_opts=$(grep -rc "\-h\|\-\-help\|help()" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    if [[ $total_scripts -gt 0 ]]; then
+        help_completeness=$((help_opts * 100 / total_scripts))
+    fi
+    
+    cat << EOF
+  "help_systems": {
+    "help_files": $help_files,
+    "man_pages": $man_pages,
+    "inline_help": $inline_help,
+    "help_completeness_percent": $help_completeness
+  }
+EOF
+}
 
-# QUALITY INDICATORS:
-# - Help message completeness and clarity
-# - Error message actionability score
-# - User input validation robustness
-# - Documentation structure and navigation
-# - Example code quality and relevance
+# Evaluate error handling and messaging
+evaluate_error_handling() {
+    local target_dir="$1"
+    local error_messages=0
+    local actionable_errors=0
+    local error_codes=0
+    local user_friendly_errors=0
+    
+    # Error message patterns
+    error_messages=$(grep -rc "echo.*error\|echo.*Error\|echo.*ERROR\|printf.*error" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Actionable error messages
+    actionable_errors=$(find "$target_dir" -exec grep -l "Try:\|Please:\|Check:\|Ensure:" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Error code usage
+    error_codes=$(grep -rc "exit [1-9]\|return [1-9]" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # User-friendly error indicators
+    user_friendly_errors=$(grep -rc "Sorry\|Unfortunately\|Unable to\|Failed to" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    cat << EOF
+  "error_handling": {
+    "error_messages": $error_messages,
+    "actionable_errors": $actionable_errors,
+    "error_codes": $error_codes,
+    "user_friendly_errors": $user_friendly_errors
+  }
+EOF
+}
 
-# CLI UX ASSESSMENT CRITERIA:
-# - Consistent option naming (-v/--verbose)
-# - Logical argument order and grouping
-# - Appropriate default behaviors
-# - Clear success/failure feedback
-# - Graceful error handling
+# Check accessibility features
+check_accessibility() {
+    local target_dir="$1"
+    local color_usage=0
+    local screen_reader_support=0
+    local keyboard_navigation=0
+    local text_alternatives=0
+    
+    # Color usage patterns
+    color_usage=$(grep -rc "tput.*color\|\\\\033\[\|\\\\e\[\|ANSI" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Screen reader support indicators
+    screen_reader_support=$(find "$target_dir" -exec grep -l "aria-\|alt=\|title=" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Keyboard navigation
+    keyboard_navigation=$(find "$target_dir" -exec grep -l "read.*-n1\|trap.*INT\|stty" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Text alternatives for visual elements
+    text_alternatives=$(find "$target_dir" -exec grep -l "# Visual:\|# Display:\|# Shows:" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    cat << EOF
+  "accessibility": {
+    "color_usage": $color_usage,
+    "screen_reader_support": $screen_reader_support,
+    "keyboard_navigation": $keyboard_navigation,
+    "text_alternatives": $text_alternatives
+  }
+EOF
+}
 
-# DOCUMENTATION UX METRICS:
-# - README structure (headings, sections, flow)
-# - Code comment density and quality
-# - Example completeness and runability
-# - Troubleshooting section presence and quality
-# - Navigation aids (TOC, links, breadcrumbs)
+# Analyze user feedback mechanisms
+analyze_user_feedback() {
+    local target_dir="$1"
+    local progress_indicators=0
+    local confirmation_prompts=0
+    local verbose_modes=0
+    local quiet_modes=0
+    
+    # Progress indicators
+    progress_indicators=$(grep -rc "progress\|spinner\|\\.\\.\\.\|%.*complete" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Confirmation prompts
+    confirmation_prompts=$(grep -rc "Are you sure\|Continue\?.*y/n\|Proceed\?" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Verbose mode support
+    verbose_modes=$(grep -rc "\-v\|\-\-verbose\|VERBOSE" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Quiet mode support
+    quiet_modes=$(grep -rc "\-q\|\-\-quiet\|QUIET\|\-\-silent" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    cat << EOF
+  "user_feedback": {
+    "progress_indicators": $progress_indicators,
+    "confirmation_prompts": $confirmation_prompts,
+    "verbose_modes": $verbose_modes,
+    "quiet_modes": $quiet_modes
+  }
+EOF
+}
 
-# INTEGRATION POINTS:
-# - Called by ai_doc_generator Phase 13
-# - Works with hub module for documentation analysis
-# - Integrates with existing CLI pattern detection
-# - Requires: target directory path
-# - Outputs: JSON UX intelligence metadata
+# Assess documentation user experience
+assess_documentation_ux() {
+    local target_dir="$1"
+    local readme_files=0
+    local code_examples=0
+    local troubleshooting_sections=0
+    local getting_started_guides=0
+    
+    # README files
+    readme_files=$(find "$target_dir" -name "README*" -o -name "readme*" 2>/dev/null | wc -l || echo "0")
+    
+    # Code examples in documentation
+    code_examples=$(grep -rc "# Example:\|\`\`\`\|    \\\$\|    #" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Troubleshooting sections
+    troubleshooting_sections=$(find "$target_dir" -exec grep -l "Troubleshoot\|FAQ\|Common.*Issues\|Known.*Problems" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Getting started guides
+    getting_started_guides=$(grep -rc "Getting.*Started\|Quick.*Start\|Installation\|Setup" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    cat << EOF
+  "documentation_ux": {
+    "readme_files": $readme_files,
+    "code_examples": $code_examples,
+    "troubleshooting_sections": $troubleshooting_sections,
+    "getting_started_guides": $getting_started_guides
+  }
+EOF
+}
 
-# ACCESSIBILITY CONSIDERATIONS:
-# - Color-blind friendly patterns
-# - High contrast text usage
-# - Clear information hierarchy
-# - Alternative text for visual elements
-# - Keyboard-only operation support
+# Generate complete UX metadata
+generate_ux_metadata() {
+    local target_dir="$1"
+    local output_file="${2:-/dev/stdout}"
+    
+    if [[ ! -d "$target_dir" ]]; then
+        echo '{"error": "Target directory not found"}' > "$output_file"
+        return 1
+    fi
+    
+    cat << EOF > "$output_file"
+{
+  "module": "$MODULE_NAME",
+  "version": "$MODULE_VERSION",
+  "phase": $MODULE_PHASE,
+  "analysis_target": "$target_dir",
+  "timestamp": "$(date -Iseconds)",
+$(analyze_cli_design "$target_dir"),
+$(assess_help_systems "$target_dir"),
+$(evaluate_error_handling "$target_dir"),
+$(check_accessibility "$target_dir"),
+$(analyze_user_feedback "$target_dir"),
+$(assess_documentation_ux "$target_dir")
+}
+EOF
+}
 
-# USAGE EXAMPLES:
-# ./ux /path/to/analyze                      # Analyze UX patterns
-# ./ux -j /path/to/analyze                   # JSON output
-# ./ux --accessibility /path/to/analyze      # Focus on accessibility
-# ./ux --help                                # Show usage
-
-# DEVELOPMENT STATUS: MODULE SHELL CREATED
-# TODO: Implement CLI design quality assessment
-# TODO: Add help system effectiveness analysis
-# TODO: Create error message quality evaluation
-# TODO: Build accessibility checker
-# TODO: Add documentation UX analysis
-# TODO: Integrate with existing hub module for doc analysis
-
-# Placeholder main function
+# Main function
 main() {
-    echo "# UX Intelligence Module - Implementation Pending"
-    echo "# This module will analyze user experience and interface quality"
-    echo "# Integration ready for ai_doc_generator Phase 13"
+    local target_dir="$1"
+    local output_file="${2:-}"
+    
+    if [[ -z "$target_dir" ]]; then
+        echo "Usage: $0 <target_directory> [output_file]" >&2
+        echo "UX Intelligence Module - Analyzes user experience patterns" >&2
+        return 1
+    fi
+    
+    generate_ux_metadata "$target_dir" "$output_file"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
