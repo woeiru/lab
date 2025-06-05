@@ -1,9 +1,9 @@
 #!/bin/bash
 #######################################################################
-# Auxiliary Utilities Library
+# Analysis Utilities Library
 #######################################################################
-# File: lib/gen/aux
-# Description: Comprehensive auxiliary utilities providing function introspection,
+# File: lib/gen/ana
+# Description: Comprehensive analysis utilities providing function introspection,
 #              variable analysis, documentation generation, and system monitoring
 #              capabilities for the lab environment infrastructure.
 #
@@ -67,7 +67,7 @@ ana_fun() {
 # overview variables
 #
 ana_var() {
-    ana_acu -o "$CONFIG_aux" "$DIR_FUN/.."
+    ana_acu -o "$CONFIG_ana" "$DIR_FUN/.."
 }
 
 # Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
