@@ -1,6 +1,24 @@
 #!/bin/bash
 # Performance Intelligence Module
-# Part of the Enhanced AI Documentation Generator System
+# Analyze resource usage patterns
+analyze_resource_usage() {
+    local target_dir="$1"
+    local memory_patterns=0
+    local cpu_patterns=0 
+    local io_patterns=0
+    local disk_patterns=0
+    
+    # Memory-intensive patterns
+    memory_patterns=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "malloc\|calloc\|array\|buffer\|cache" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # CPU-intensive patterns
+    cpu_patterns=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "for.*in.*do\|while.*do\|parallel\|xargs.*-P\|sort.*-k\|awk.*BEGIN" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # I/O patterns
+    io_patterns=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "read\|write\|cat\|tee\|pipe\|>\|<\|>>" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Disk usage patterns
+    disk_patterns=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "tmp\|log\|\.cache\|mktemp\|tempfile" {} \; 2>/dev/null | wc -l || echo "0")ced AI Documentation Generator System
 # Collects performance-related metadata for intelligent documentation
 
 # TECHNICAL SPECIFICATION:
@@ -43,11 +61,150 @@ OUTPUT_FORMAT="json"
 #    - Resource cleanup patterns
 
 # IMPLEMENTATION FUNCTIONS:
-# analyze_resource_usage()     - Detect memory, CPU, I/O patterns
-# detect_bottlenecks()         - Identify performance constraints
-# assess_scalability()         - Evaluate scaling capabilities
-# find_optimizations()         - Suggest improvement opportunities
-# generate_perf_metadata()     - Compile performance intelligence JSON
+
+# Analyze resource usage patterns
+analyze_resource_usage() {
+    local target_dir="$1"
+    local memory_patterns=0
+    local cpu_patterns=0
+    local io_patterns=0
+    local disk_patterns=0
+    
+    # Memory usage patterns
+    memory_patterns=$(grep -rc "malloc\|calloc\|array\|buffer\|cache" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # CPU intensive patterns  
+    cpu_patterns=$(grep -rc "for.*in.*do\|while.*do\|parallel\|xargs.*-P\|sort.*-k\|awk.*BEGIN" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # I/O operation patterns
+    io_patterns=$(grep -rc "read\|write\|cat\|tee\|pipe\|>\|<\|>>" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Disk usage patterns
+    disk_patterns=$(grep -rc "tmp\|log\|\.cache\|mktemp\|tempfile" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    cat << EOF
+  "resource_usage": {
+    "memory_intensive": $memory_patterns,
+    "cpu_intensive": $cpu_patterns,
+    "io_operations": $io_patterns,
+    "disk_usage": $disk_patterns
+  }
+EOF
+}
+
+# Detect performance bottlenecks
+detect_bottlenecks() {
+    local target_dir="$1"
+    local blocking_ops=0
+    local sync_patterns=0
+    local resource_contention=0
+    
+    # Blocking operations
+    blocking_ops=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "wait\|sleep\|lock\|mutex\|semaphore\|sync" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Synchronous patterns  
+    sync_patterns=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "command.*-v.*&&" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Resource contention indicators
+    resource_contention=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "flock\|lockfile\|pid.*file\|\.lock" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    cat << EOF
+  "bottleneck_indicators": {
+    "blocking_operations": $blocking_ops,
+    "synchronous_patterns": $sync_patterns,
+    "resource_contention": $resource_contention
+  }
+EOF
+}
+
+# Assess scalability capabilities
+assess_scalability() {
+    local target_dir="$1"
+    local parallel_support=0
+    local batch_processing=0
+    local queue_management=0
+    
+    # Parallel processing support
+    parallel_support=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "xargs.*-P\|parallel\|&.*wait\|background.*job" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Batch processing capabilities
+    batch_processing=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "batch\|bulk\|chunk\|slice\|segment" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Queue management
+    queue_management=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "queue\|stack\|buffer.*size\|pool" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    cat << EOF
+  "scalability": {
+    "parallel_support": $parallel_support,
+    "batch_processing": $batch_processing,
+    "queue_management": $queue_management
+  }
+EOF
+}
+
+# Find optimization opportunities
+find_optimizations() {
+    local target_dir="$1"
+    local caching_opportunities=0
+    local redundant_operations=0
+    local cleanup_patterns=0
+    
+    # Caching opportunities
+    caching_opportunities=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "cache\|memoize\|store.*result\|\.tmp\|temporary" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Redundant operations detection
+    redundant_operations=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "grep.*grep\|sort.*sort\|find.*find\|awk.*awk" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    # Resource cleanup patterns
+    cleanup_patterns=$(find "$target_dir" -name "*.sh" -type f -exec grep -l "trap.*EXIT\|rm.*-rf\|cleanup\|teardown" {} \; 2>/dev/null | wc -l || echo "0")
+    
+    cat << EOF
+  "optimization_opportunities": {
+    "caching_potential": $caching_opportunities,
+    "redundant_operations": $redundant_operations,
+    "cleanup_patterns": $cleanup_patterns
+  }
+EOF
+}
+
+# Generate complete performance metadata
+generate_perf_metadata() {
+    local target_dir="$1"
+    local output_file="${2:-/dev/stdout}"
+    
+    if [[ ! -d "$target_dir" ]]; then
+        echo '{"error": "Target directory not found"}' > "$output_file"
+        return 1
+    fi
+    
+    cat << EOF > "$output_file"
+{
+  "module": "$MODULE_NAME",
+  "version": "$MODULE_VERSION", 
+  "phase": $MODULE_PHASE,
+  "analysis_target": "$target_dir",
+  "timestamp": "$(date -Iseconds)",
+$(analyze_resource_usage "$target_dir"),
+$(detect_bottlenecks "$target_dir"),
+$(assess_scalability "$target_dir"),
+$(find_optimizations "$target_dir")
+}
+EOF
+}
+
+# Main function
+main() {
+    local target_dir="$1"
+    local output_file="${2:-}"
+    
+    if [[ -z "$target_dir" ]]; then
+        echo "Usage: $0 <target_directory> [output_file]" >&2
+        echo "Performance Intelligence Module - Analyzes performance patterns" >&2
+        return 1
+    fi
+    
+    generate_perf_metadata "$target_dir" "$output_file"
+}
 
 # JSON OUTPUT STRUCTURE:
 # {
@@ -85,19 +242,7 @@ OUTPUT_FORMAT="json"
 # ./perf -j /path/to/analyze                 # JSON output
 # ./perf --help                              # Show usage
 
-# DEVELOPMENT STATUS: MODULE SHELL CREATED
-# TODO: Implement core analysis functions
-# TODO: Add performance pattern detection
-# TODO: Create scalability assessment logic
-# TODO: Build optimization opportunity finder
-
-# Placeholder main function
-main() {
-    echo "# Performance Intelligence Module - Implementation Pending"
-    echo "# This module will analyze performance patterns and resource usage"
-    echo "# Integration ready for ai_doc_generator Phase 10"
-}
-
+# Execute main function if called directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
 fi
