@@ -60,6 +60,9 @@ count_library_functions() {
                 # Count functions in this file by counting function objects
                 local file_function_count
                 file_function_count=$(grep -c '"name":' "$json_file" 2>/dev/null || echo "0")
+                # Clean the variable to ensure it's a valid number
+                file_function_count=$(echo "$file_function_count" | grep -o '[0-9]*' | head -1)
+                file_function_count=${file_function_count:-0}
                 function_count=$((function_count + file_function_count))
             fi
         fi
