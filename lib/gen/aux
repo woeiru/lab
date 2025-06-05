@@ -60,15 +60,14 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 #
 aux_fun() {
-    # Pass all arguments directly to aux_laf
-    aux_laf "$@"
+    aux_laf "$FILEPATH_aux" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
 aux_var() {
-    aux_acu -o "$CONFIG_gpu" "$DIR_FUN/.."
+    aux_acu -o "$CONFIG_aux" "$DIR_FUN/.."
 }
 
 # Logging function. Prints a timestamped log message with a log level
