@@ -1,0 +1,260 @@
+#!/bin/bash
+# Dependency Graph Intelligence Module
+# P    # Source command usage
+    source_count=$(grep -rc "^[[:space:]]*source\|^[[:space:]]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+        source_count=$(grep -rc "^[[:space:]]*source\|^[[:space:]]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')=${    source_count=$(grep -rc "^[[:space:]]*source\|^[[:space:]]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')##*=}:-0}
+    source_count=${source_count:-0}
+    
+    # Import/include patterns
+    import_patterns=$(grep -rc "include\|require\|load.*lib\|import" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+        import_patterns=$(grep -rc "include\|require\|load.*lib\|import" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')=${    import_patterns=$(grep -rc "include\|require\|load.*lib\|import" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')##*=}:-0}
+    import_patterns=${import_patterns:-0}f the Enhanced AI Documentation Generator System
+# Analyzes inter-module relationships and dependency structures
+
+# TECHNICAL SPECIFICATION:
+# Module: Dependency Graph Intelligence (deps)
+# Purpose: Map dependency relationships, detect circular dependencies, analyze architecture
+# Output: JSON metadata for AI documentation generation  
+# Integration: Phase 11 of ai_doc_generator comprehensive metadata collection
+
+set -euo pipefail
+
+# MODULE METADATA
+MODULE_NAME="Dependency Graph Intelligence"
+MODULE_VERSION="1.0.0"
+MODULE_PHASE="11"
+OUTPUT_FORMAT="json"
+
+# DEPENDENCY ANALYSIS CATEGORIES:
+# 1. INTER-MODULE RELATIONSHIPS
+#    - Source/import relationships (source, . commands)
+#    - Function call dependencies
+#    - Variable sharing patterns
+#    - Configuration dependencies
+
+# 2. ARCHITECTURAL ANALYSIS
+#    - Layer separation detection
+#    - Component isolation scoring
+#    - Interface definition analysis
+#    - Abstraction level assessment
+
+# 3. CIRCULAR DEPENDENCY DETECTION
+#    - Direct circular dependencies
+#    - Indirect dependency loops
+#    - Mutual dependency identification
+#    - Dependency chain analysis
+
+# 4. DEPENDENCY HEALTH METRICS
+#    - Coupling strength measurement
+#    - Cohesion assessment
+#    - Dependency fan-in/fan-out
+#    - Critical path analysis
+
+# IMPLEMENTATION FUNCTIONS:
+
+# Map source/import dependencies
+map_source_dependencies() {
+    local target_dir="$1"
+    local source_count=0
+    local import_patterns=0
+    local relative_deps=0
+    local absolute_deps=0
+    
+    # Source command usage
+    source_count=$(grep -rc "^[[:space:]]*source\|^[[:space:]]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        source_count=$(grep -rc "^[[:space:]]*source\|^[[:space:]]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    source_count=$(grep -rc "^[[:space:]]*source\|^[[:space:]]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    # Import-like patterns
+    import_patterns=$(grep -rc "include\|require\|load.*lib\|import" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        import_patterns=$(grep -rc "include\|require\|load.*lib\|import" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    import_patterns=$(grep -rc "include\|require\|load.*lib\|import" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    # Relative vs absolute path dependencies
+    relative_deps=$(grep -rc "source.*\./\|source.*\.\./" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+        relative_deps=$(grep -rc "source.*\./\|source.*\.\./" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')=${    relative_deps=$(grep -rc "source.*\./\|source.*\.\./" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')##*=}:-0}
+    relative_deps=${relative_deps:-0}
+    
+    absolute_deps=$(grep -rc "source.*/\|source.*\$" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+        absolute_deps=$(grep -rc "source.*/\|source.*\$" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')=${    absolute_deps=$(grep -rc "source.*/\|source.*\$" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')##*=}:-0}
+    absolute_deps=${absolute_deps:-0}
+    
+    cat << EOF
+  "source_dependencies": {
+    "source_commands": $source_count,
+    "import_patterns": $import_patterns,
+    "relative_dependencies": $relative_deps,
+    "absolute_dependencies": $absolute_deps
+  }
+EOF
+}
+
+# Analyze function call dependencies  
+analyze_function_calls() {
+    local target_dir="$1"
+    local function_calls=0
+    local external_calls=0
+    local internal_calls=0
+    local recursive_patterns=0
+    
+    # Total function calls
+    function_calls=$(grep -rc "[a-zA-Z_][a-zA-Z0-9_]*(" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        function_calls=$(grep -rc "[a-zA-Z_][a-zA-Z0-9_]*(" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    function_calls=$(grep -rc "[a-zA-Z_][a-zA-Z0-9_]*(" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    # External function calls (with namespace/module prefixes)
+    external_calls=$(grep -rc "[a-zA-Z_][a-zA-Z0-9_]*::[a-zA-Z_]\|[a-zA-Z_][a-zA-Z0-9_]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        external_calls=$(grep -rc "[a-zA-Z_][a-zA-Z0-9_]*::[a-zA-Z_]\|[a-zA-Z_][a-zA-Z0-9_]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    external_calls=$(grep -rc "[a-zA-Z_][a-zA-Z0-9_]*::[a-zA-Z_]\|[a-zA-Z_][a-zA-Z0-9_]*\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    # Internal function calls
+    internal_calls=$((function_calls - external_calls))
+    
+    # Recursive patterns
+    recursive_patterns=$(grep -rc "^\s*[a-zA-Z_][a-zA-Z0-9_]*.*\$1(" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        recursive_patterns=$(grep -rc "^\s*[a-zA-Z_][a-zA-Z0-9_]*.*\$1(" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    recursive_patterns=$(grep -rc "^\s*[a-zA-Z_][a-zA-Z0-9_]*.*\$1(" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    cat << EOF
+  "function_dependencies": {
+    "total_function_calls": $function_calls,
+    "external_calls": $external_calls,
+    "internal_calls": $internal_calls,
+    "recursive_patterns": $recursive_patterns
+  }
+EOF
+}
+
+# Detect circular dependencies
+detect_circular_deps() {
+    local target_dir="$1"
+    local potential_cycles=0
+    local mutual_deps=0
+    local chain_length=0
+    
+    # Potential circular patterns (simplified heuristic)
+    potential_cycles=$(grep -rc "source.*\\\$.*\\\$\|include.*\\\$.*\\\$" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        potential_cycles=$(grep -rc "source.*\\\$.*\\\$\|include.*\\\$.*\\\$" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    potential_cycles=$(grep -rc "source.*\\\$.*\\\$\|include.*\\\$.*\\\$" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    # Mutual dependency indicators
+    mutual_deps=$(grep -rc "if.*source\|case.*source\|while.*source" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        mutual_deps=$(grep -rc "if.*source\|case.*source\|while.*source" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    mutual_deps=$(grep -rc "if.*source\|case.*source\|while.*source" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    # Dependency chain depth (estimate)
+    chain_length=$(find "$target_dir" -name "*.sh" -exec grep -l "source" {} \; 2>/dev/null | wc -l )
+    
+    cat << EOF
+  "circular_dependency_risk": {
+    "potential_cycles": $potential_cycles,
+    "mutual_dependencies": $mutual_deps,
+    "dependency_chain_depth": $chain_length
+  }
+EOF
+}
+
+# Assess architectural quality
+assess_architecture() {
+    local target_dir="$1"
+    local layer_separation=0
+    local interface_definitions=0
+    local abstraction_levels=0
+    local modularity_score=0
+    
+    # Layer separation indicators
+    layer_separation=$(find "$target_dir" -name "*interface*" -o -name "*api*" -o -name "*facade*" 2>/dev/null | wc -l )
+    
+    # Interface definitions
+    interface_definitions=$(grep -rc "function.*().*{" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        interface_definitions=$(grep -rc "function.*().*{" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    interface_definitions=$(grep -rc "function.*().*{" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    # Abstraction levels (estimate based on directory depth)
+    abstraction_levels=$(find "$target_dir" -type d | awk -F'/' '{print NF}' | sort -nr | head -1 || echo "1")
+    
+    # Modularity score (files vs directories ratio)
+    local file_count=$(find "$target_dir" -type f | wc -l || echo "1")
+    local dir_count=$(find "$target_dir" -type d | wc -l || echo "1")
+    modularity_score=$((file_count / dir_count))
+    
+    cat << EOF
+  "architecture_quality": {
+    "layer_separation": $layer_separation,
+    "interface_definitions": $interface_definitions,
+    "abstraction_levels": $abstraction_levels,
+    "modularity_score": $modularity_score
+  }
+EOF
+}
+
+# Calculate coupling metrics
+calculate_coupling() {
+    local target_dir="$1"
+    local tight_coupling=0
+    local loose_coupling=0
+    local fan_in=0
+    local fan_out=0
+    
+    # Tight coupling indicators
+    tight_coupling=$(grep -rc "global\|export.*-f\|shared.*var" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        tight_coupling=$(grep -rc "global\|export.*-f\|shared.*var" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    tight_coupling=$(grep -rc "global\|export.*-f\|shared.*var" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    # Loose coupling indicators  
+    loose_coupling=$(grep -rc "local\|readonly\|declare.*-r" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        loose_coupling=$(grep -rc "local\|readonly\|declare.*-r" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    loose_coupling=$(grep -rc "local\|readonly\|declare.*-r" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    # Fan-in (how many things depend on this)
+    fan_in=$(grep -rc "source.*$(basename "$target_dir")" "$(dirname "$target_dir")" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        fan_in=$(grep -rc "source.*$(basename "$target_dir")" "$(dirname "$target_dir")" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    fan_in=$(grep -rc "source.*$(basename "$target_dir")" "$(dirname "$target_dir")" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    # Fan-out (how many things this depends on)
+    fan_out=$(grep -rc "source\|include\|require" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )
+        fan_out=$(grep -rc "source\|include\|require" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )=${    fan_out=$(grep -rc "source\|include\|require" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' )##*=}:-0}
+    
+    cat << EOF
+  "coupling_metrics": {
+    "tight_coupling_indicators": $tight_coupling,
+    "loose_coupling_indicators": $loose_coupling,
+    "fan_in": $fan_in,
+    "fan_out": $fan_out
+  }
+EOF
+}
+
+# Generate complete dependency metadata
+generate_dependency_metadata() {
+    local target_dir="$1"
+    local output_file="${2:-/dev/stdout}"
+    
+    if [[ ! -d "$target_dir" ]]; then
+        echo '{"error": "Target directory not found"}' > "$output_file"
+        return 1
+    fi
+    
+    cat << EOF > "$output_file"
+{
+  "module": "$MODULE_NAME",
+  "version": "$MODULE_VERSION",
+  "phase": $MODULE_PHASE,
+  "analysis_target": "$target_dir",
+  "timestamp": "$(date -Iseconds)",
+$(map_source_dependencies "$target_dir"),
+$(analyze_function_calls "$target_dir"),
+$(detect_circular_deps "$target_dir"),
+$(assess_architecture "$target_dir"),
+$(calculate_coupling "$target_dir")
+}
+EOF
+}
+
+# Main function
+main() {
+    local target_dir="$1"
+    local output_file="${2:-}"
+    
+    if [[ -z "$target_dir" ]]; then
+        echo "Usage: $0 <target_directory> [output_file]" >&2
+        echo "Dependency Graph Intelligence Module - Analyzes module relationships" >&2
+        return 1
+    fi
+    
+    generate_dependency_metadata "$target_dir" "$output_file"
+}
+
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
