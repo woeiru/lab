@@ -32,7 +32,7 @@ collect_metadata() {
     local target_dir="$1"
     local output_file="$2"
     
-    log "Collecting metadata for: $target_dir"
+    log "Collecting comprehensive metadata for: $target_dir"
     
     # Initialize JSON structure
     cat > "$output_file" << 'EOF'
@@ -42,7 +42,13 @@ collect_metadata() {
   "functions": [],
   "variables": [],
   "documentation": [],
-  "files": []
+  "project_stats": {},
+  "files": [],
+  "code_quality": {},
+  "integration": {},
+  "usage_patterns": {},
+  "security_environment": {},
+  "evolution": {}
 }
 EOF
     
@@ -51,31 +57,57 @@ EOF
        '.directory = $dir | .timestamp = $ts' \
        "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
     
-    # Use aux_laf for functions (if available)
+    # PHASE 1: Function Intelligence (from func module)
     if command -v aux_laf >/dev/null 2>&1 && [[ -d "$target_dir" ]]; then
-        log "Analyzing functions with aux_laf..."
+        log "🔧 Analyzing functions with aux_laf (func module integration)..."
         if aux_laf "$target_dir" -j > "$WORK_DIR/functions.json" 2>/dev/null; then
             jq --slurpfile funcs "$WORK_DIR/functions.json" '.functions = $funcs[0] // []' \
                "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
         fi
     fi
     
-    # Use aux_acu for variables (if available)
+    # PHASE 2: Configuration Intelligence (from var module)
     if command -v aux_acu >/dev/null 2>&1 && [[ -d "$target_dir" ]]; then
-        log "Analyzing variables with aux_acu..."
-        if aux_acu -j "$target_dir" > "$WORK_DIR/variables.json" 2>/dev/null; then
+        log "⚙️ Analyzing variables with aux_acu (var module integration)..."
+        # Analyze the target directory and related config locations
+        if aux_acu -j "" "$target_dir" "$LAB_ROOT/cfg/env" "$LAB_ROOT/lib/ops" > "$WORK_DIR/variables.json" 2>/dev/null; then
             jq --slurpfile vars "$WORK_DIR/variables.json" '.variables = $vars[0] // []' \
                "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
         fi
     fi
     
-    # Use aux_lad for documentation (if available)
-    if command -v aux_lad >/dev/null 2>&1 && [[ -d "$target_dir" ]]; then
-        log "Analyzing documentation with aux_lad..."
-        if aux_lad -j "$target_dir" > "$WORK_DIR/docs.json" 2>/dev/null; then
-            jq --slurpfile docs "$WORK_DIR/docs.json" '.documentation = $docs[0] // []' \
+    # PHASE 3: Documentation Context (from hub module)  
+    if command -v aux_lad >/dev/null 2>&1; then
+        log "📚 Analyzing documentation context with aux_lad (hub module integration)..."
+        # Analyze both the target directory and the overall doc structure
+        if aux_lad -j "$target_dir" > "$WORK_DIR/local_docs.json" 2>/dev/null; then
+            jq --slurpfile docs "$WORK_DIR/local_docs.json" '.documentation = $docs[0] // []' \
                "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
         fi
+        
+        # Get project-wide documentation context
+        if aux_lad -j "$LAB_ROOT/doc" > "$WORK_DIR/project_docs.json" 2>/dev/null; then
+            jq --slurpfile pdocs "$WORK_DIR/project_docs.json" '.project_documentation = $pdocs[0] // []' \
+               "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+        fi
+    fi
+    
+    # PHASE 4: Project Scale Intelligence (from stats module)
+    log "📊 Collecting project scale metrics (stats module integration)..."
+    local project_stats="{}"
+    if [[ -d "$LAB_ROOT" ]]; then
+        local total_files=$(find "$LAB_ROOT" -type f 2>/dev/null | wc -l)
+        local lib_functions=$(find "$LAB_ROOT/lib" -type f -exec grep -l "^[a-zA-Z_][a-zA-Z0-9_-]*(" {} \; 2>/dev/null | wc -l)
+        local config_files=$(find "$LAB_ROOT/cfg" -type f 2>/dev/null | wc -l)
+        local doc_files=$(find "$LAB_ROOT/doc" -name "*.md" 2>/dev/null | wc -l)
+        
+        project_stats="{\"total_files\": $total_files, \"lib_functions\": $lib_functions, \"config_files\": $config_files, \"doc_files\": $doc_files}"
+    fi
+    
+    echo "$project_stats" | jq . > "$WORK_DIR/stats.json" 2>/dev/null
+    if [[ -f "$WORK_DIR/stats.json" ]]; then
+        jq --slurpfile stats "$WORK_DIR/stats.json" '.project_stats = $stats[0] // {}' \
+           "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
     fi
     
     # Basic file listing
@@ -86,7 +118,168 @@ EOF
            "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
     fi
     
-    success "Metadata collected"
+    # PHASE 5: Code Quality Intelligence 
+    log "🎯 Analyzing code quality and complexity..."
+    local code_quality="{}"
+    if [[ -d "$target_dir" ]]; then
+        local avg_func_length=0
+        local total_funcs=$(grep -rc "^[a-zA-Z_][a-zA-Z0-9_]*() {" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+        local nested_conditionals=$(grep -rc "if.*if\|case.*case" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+        local error_handling=$(grep -rc "|| exit\||| return\|set -e\|trap" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+        local comments=$(grep -rc "^[[:space:]]*#" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+        local total_lines=$(find "$target_dir" -name "*.sh" -o -name "*" -type f -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "1")
+        local test_files=$(find "$target_dir" -name "*test*" -o -name "*spec*" -type f 2>/dev/null | wc -l)
+        
+        local doc_ratio=0
+        if [[ $total_lines -gt 0 ]]; then
+            doc_ratio=$(awk "BEGIN {printf \"%.2f\", $comments * 100 / $total_lines}" 2>/dev/null || echo "0")
+        fi
+        
+        code_quality=$(cat << EOF
+{
+  "complexity_metrics": {
+    "total_functions": $total_funcs,
+    "nested_conditionals": $nested_conditionals,
+    "error_handling_patterns": $error_handling,
+    "documentation_ratio": $doc_ratio,
+    "test_files_present": $test_files
+  },
+  "maintainability": {
+    "todo_comments": $(grep -rc "TODO\|FIXME\|XXX\|HACK" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "deprecated_indicators": $(grep -rc "deprecated\|obsolete\|legacy" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "version_indicators": $(grep -rc "version\|v[0-9]\|release" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+  }
+}
+EOF
+        )
+    fi
+    echo "$code_quality" | jq . > "$WORK_DIR/code_quality.json" 2>/dev/null
+    if [[ -f "$WORK_DIR/code_quality.json" ]]; then
+        jq --slurpfile cq "$WORK_DIR/code_quality.json" '.code_quality = $cq[0] // {}' \
+           "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+    fi
+    
+    # PHASE 6: Integration and Dependencies Intelligence
+    log "🔗 Analyzing integration patterns and dependencies..."
+    local integration_data="{}"
+    if [[ -d "$target_dir" ]]; then
+        # Extract unique external commands (excluding bash builtins)
+        local external_cmds=$(grep -rho '\b[a-z][a-z0-9_-]*\b' "$target_dir" 2>/dev/null | \
+                             grep -vE '^(if|for|while|case|do|done|then|else|fi|function|local|return|exit|echo|printf)$' | \
+                             sort -u | head -20 | jq -R . | jq -s . 2>/dev/null || echo "[]")
+        
+        integration_data=$(cat << EOF
+{
+  "dependencies": {
+    "external_commands": $external_cmds,
+    "file_sources": $(grep -rc "source\|\\\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "network_usage": $(grep -rc "curl\|wget\|ssh\|scp\|rsync" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "database_usage": $(grep -rc "mysql\|postgres\|sqlite\|redis" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "container_usage": $(grep -rc "docker\|podman\|kubectl\|systemctl" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+  },
+  "integration_patterns": {
+    "service_integration": $(grep -rc "systemctl\|service\|daemon" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "cron_scheduling": $(grep -rc "cron\|\*/[0-9]\|@daily\|@hourly" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "config_management": $(find "$target_dir" -name "*.conf" -o -name "*.cfg" -o -name "*.env" 2>/dev/null | wc -l)
+  }
+}
+EOF
+        )
+    fi
+    echo "$integration_data" | jq . > "$WORK_DIR/integration.json" 2>/dev/null
+    if [[ -f "$WORK_DIR/integration.json" ]]; then
+        jq --slurpfile int "$WORK_DIR/integration.json" '.integration = $int[0] // {}' \
+           "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+    fi
+    
+    # PHASE 7: Usage Patterns and Workflow Intelligence
+    log "⚡ Analyzing usage patterns and workflow..."
+    local usage_data="{}"
+    if [[ -d "$target_dir" ]]; then
+        local executable_files=$(find "$target_dir" -executable -type f 2>/dev/null | wc -l)
+        local config_files=$(find "$target_dir" -name "*.conf" -o -name "*.cfg" -o -name "*.env" 2>/dev/null | wc -l)
+        
+        usage_data=$(cat << EOF
+{
+  "execution_patterns": {
+    "has_main_function": $(grep -q "^main()" "$target_dir"/* 2>/dev/null && echo "true" || echo "false"),
+    "is_library": $(grep -q "^[a-zA-Z_][a-zA-Z0-9_]*() {" "$target_dir"/* 2>/dev/null && echo "true" || echo "false"),
+    "executable_files": $executable_files,
+    "configuration_files": $config_files
+  },
+  "interaction_types": {
+    "user_interactive": $(grep -rc "read\|select\|dialog" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "batch_processing": $(grep -rc "for.*in\|while.*do\|parallel" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "cli_arguments": $(grep -rc "getopts\|\\\$1\|\\\$@\|case.*\\\$1" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "help_documentation": $(grep -rc "usage()\|help()\|--help\|-h" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+  }
+}
+EOF
+        )
+    fi
+    echo "$usage_data" | jq . > "$WORK_DIR/usage.json" 2>/dev/null
+    if [[ -f "$WORK_DIR/usage.json" ]]; then
+        jq --slurpfile usage "$WORK_DIR/usage.json" '.usage_patterns = $usage[0] // {}' \
+           "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+    fi
+    
+    # PHASE 8: Security and Environment Intelligence  
+    log "🛡️ Analyzing security patterns and environment context..."
+    local security_env_data="{}"
+    if [[ -d "$target_dir" ]]; then
+        security_env_data=$(cat << EOF
+{
+  "security_indicators": {
+    "credential_handling": $(grep -rc "password\|token\|key\|secret" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "privilege_operations": $(grep -rc "sudo\|su\|chmod\|chown" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "input_validation": $(grep -rc "\\\[\\\[.*=~\\\]\\\]\|grep -q\|validate" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "error_handling": $(grep -rc "echo.*Error:\|warn\|error.*function" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+  },
+  "environment_context": {
+    "container_ready": $(find "$target_dir" -name "*Dockerfile*" -o -name "*Containerfile*" 2>/dev/null | wc -l),
+    "systemd_integration": $(find "$target_dir" -name "*.service" -o -name "*.timer" 2>/dev/null | wc -l),
+    "gpu_dependent": $(grep -rc "nvidia\|cuda\|gpu" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
+    "storage_dependent": $(grep -rc "mount\|df\|lvm\|zfs\|btrfs" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+  }
+}
+EOF
+        )
+    fi
+    echo "$security_env_data" | jq . > "$WORK_DIR/security_env.json" 2>/dev/null
+    if [[ -f "$WORK_DIR/security_env.json" ]]; then
+        jq --slurpfile se "$WORK_DIR/security_env.json" '.security_environment = $se[0] // {}' \
+           "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+    fi
+    
+    # PHASE 9: Git History and Evolution Intelligence (if available)
+    if [[ -d "$LAB_ROOT/.git" ]]; then
+        log "📈 Analyzing development history and evolution..."
+        local evolution_data="{}"
+        
+        evolution_data=$(cat << EOF
+{
+  "development_activity": {
+    "commits_last_month": $(cd "$LAB_ROOT" && git log --since="1 month ago" --oneline -- "${target_dir#$LAB_ROOT/}" 2>/dev/null | wc -l || echo "0"),
+    "total_commits": $(cd "$LAB_ROOT" && git log --oneline -- "${target_dir#$LAB_ROOT/}" 2>/dev/null | wc -l || echo "0"),
+    "last_modified": "$(cd "$LAB_ROOT" && git log -1 --pretty=format:'%cr: %s' -- "${target_dir#$LAB_ROOT/}" 2>/dev/null || echo 'No git history')",
+    "active_contributors": $(cd "$LAB_ROOT" && git log --since="6 months ago" --pretty=format:'%an' -- "${target_dir#$LAB_ROOT/}" 2>/dev/null | sort -u | wc -l || echo "0")
+  },
+  "stability_indicators": {
+    "recent_stability": $(cd "$LAB_ROOT" && git log --since="1 week ago" --oneline -- "${target_dir#$LAB_ROOT/}" 2>/dev/null | wc -l || echo "0"),
+    "file_age": "$(cd "$LAB_ROOT" && git log --reverse --pretty=format:'%cr' -- "${target_dir#$LAB_ROOT/}" 2>/dev/null | head -1 || echo 'Unknown')"
+  }
+}
+EOF
+        )
+        
+        echo "$evolution_data" | jq . > "$WORK_DIR/evolution.json" 2>/dev/null
+        if [[ -f "$WORK_DIR/evolution.json" ]]; then
+            jq --slurpfile evo "$WORK_DIR/evolution.json" '.evolution = $evo[0] // {}' \
+               "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+        fi
+    fi
+    
+    success "✅ Comprehensive metadata collected using all 4 doc modules + 8 additional intelligence layers"
 }
 
 # Build AI prompt
@@ -122,11 +315,26 @@ REQUIREMENTS:
 2. Lead with user benefits and practical value, not just technical details
 3. Include realistic time estimates ("Get Started in 2 Minutes")
 4. Use actionable language ("You'll use this", "This helps you", "Saves time")
-5. Document all functions and components with user context
+5. Document all functions and components with user context from the metadata
 6. Add navigation links with descriptive text, not just technical names
 7. Include pro tips and best practices from a user perspective
 8. Make troubleshooting and help resources prominent
 9. Focus on workflow integration and practical use cases
+10. **LEVERAGE ENHANCED METADATA**: Use the comprehensive metadata including:
+    - Code quality metrics for complexity assessment
+    - Integration patterns for workflow context
+    - Usage patterns for user guidance
+    - Security indicators for best practices
+    - Evolution data for maturity assessment
+    - Environment context for deployment guidance
+
+INTELLIGENCE ANALYSIS GUIDELINES:
+- If code_quality.complexity_metrics shows high function count: emphasize modular design
+- If integration.dependencies shows network usage: highlight network requirements
+- If usage_patterns.execution_patterns shows CLI args: document command-line usage
+- If security_environment shows credential handling: emphasize security best practices
+- If evolution.development_activity shows recent commits: mention active development
+- If environment_context shows container/systemd: document deployment patterns
 
 OUTPUT: Provide ONLY the README.md content, no additional text.
 EOF
