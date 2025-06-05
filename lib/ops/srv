@@ -75,7 +75,7 @@ nfs_set() {
     #   Provides automated interface for NFS share creation
     # Dependencies:
     #   - nfs_apl function for configuration application
-    #   - aux_nos function for success notification
+    #   - aux_log function for success notification
     #   - Standard POSIX shell utilities
     # Arguments:
     #   $1: nfs_header - identifier/name for the NFS export
@@ -99,7 +99,7 @@ nfs_set() {
 
     # Apply the NFS configuration
     nfs_apl "$nfs_header" "$shared_folder" "$nfs_options"
-    aux_nos "$function_name" "NFS setup complete"
+    aux_log "INFO" "$function_name: NFS setup complete"
 }
 
 # Applies NFS configuration by creating the shared folder if needed, updating /etc/exports, and restarting the NFS server
@@ -162,7 +162,7 @@ nfs_apl() {
 
     # Print confirmation message
     echo "NFS server configured. Shared folder: $shared_folder"
-    aux_nos "$function_name" "NFS configuration applied"
+    aux_log "INFO" "$function_name: NFS configuration applied"
 }
 
 # Monitors and displays various aspects of the NFS server
@@ -184,7 +184,7 @@ nfs_mon() {
     #   - journalctl command for log access
     #   - df command for mount point information
     #   - rpcinfo command for RPC information
-    #   - aux_nos function for completion notification
+    #   - aux_log function for completion notification
     # Arguments:
     #   $1: option - monitoring option number (1-9) or descriptive text
     
@@ -262,7 +262,7 @@ nfs_mon() {
             ;;
     esac
 
-    aux_nos "$function_name" "NFS monitoring completed"
+    aux_log "INFO" "$function_name: NFS monitoring completed"
 }
 
 # Sets up a Samba share by prompting for missing configuration details and applying the configuration. Handles various share parameters including permissions, guest access, and file masks
@@ -277,7 +277,7 @@ smb_set() {
     #   Enforces password requirement for non-anonymous shares
     # Dependencies:
     #   - smb_apl function for configuration application
-    #   - aux_nos function for success notification
+    #   - aux_log function for success notification
     #   - Standard POSIX shell utilities
     # Arguments:
     #   $1: smb_header - share name/identifier in Samba configuration
@@ -317,7 +317,7 @@ smb_set() {
 
     # Apply the Samba configuration
     smb_apl "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
-    aux_nos "$function_name" "Samba setup complete"
+    aux_log "INFO" "$function_name: Samba setup complete"
 }
 
 # Applies Samba configuration by creating the shared folder if needed, updating cfg/env/site. with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares
@@ -418,7 +418,7 @@ smb_apl() {
 
     # Print confirmation message
     echo "Samba server configured. Shared folder: $shared_folder"
-    aux_nos "$function_name" "Samba configuration applied"
+    aux_log "INFO" "$function_name: Samba configuration applied"
 }
 
 # Monitors and displays various aspects of the SMB server
@@ -439,7 +439,7 @@ smb_mon() {
     #   - journalctl command for log access
     #   - smbd command for version information
     #   - pdbedit command for user management
-    #   - aux_nos function for completion notification
+    #   - aux_log function for completion notification
     # Arguments:
     #   $1: option - monitoring option number (1-9) or descriptive text
     
@@ -517,6 +517,6 @@ smb_mon() {
             ;;
     esac
 
-    aux_nos "$function_name" "SMB monitoring completed"
+    aux_log "INFO" "$function_name: SMB monitoring completed"
 }
 

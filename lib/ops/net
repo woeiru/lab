@@ -144,11 +144,11 @@ net_fsr() {
     #   Checks for firewall-cmd availability before attempting configuration
     #   Makes service changes persistent across system reboots
     #   Reloads firewall configuration to apply changes immediately
-    #   Provides notification of successful execution via aux_nos
+    #   Provides notification of successful execution via aux_log
     # Dependencies:
     #   - 'firewall-cmd' command from firewalld package
     #   - 'command' builtin for utility availability checking
-    #   - aux_nos function for operation notification
+    #   - aux_log function for operation notification
     #   - Root privileges for firewall configuration changes
     # Arguments:
     #   $1: service - name of the firewall service to add (e.g., 'ssh', 'http', 'https')
@@ -170,7 +170,7 @@ net_fsr() {
     if command -v firewall-cmd > /dev/null; then
         firewall-cmd --permanent --add-service=$fw_service
         firewall-cmd --reload
-	aux_nos "$function_name" "executed ( $1 )"
+	aux_log "INFO" "$function_name: executed ( $1 )"
     else
         echo "firewall-cmd not found, skipping firewall configuration."
     fi
@@ -185,10 +185,10 @@ net_fas() {
     #   Checks firewall daemon state before attempting configuration changes
     #   Makes service allowance persistent across system reboots
     #   Reloads firewall configuration to apply changes immediately
-    #   Provides notification of successful execution via aux_nos
+    #   Provides notification of successful execution via aux_log
     # Dependencies:
     #   - 'firewall-cmd' command from firewalld package
-    #   - aux_nos function for operation notification
+    #   - aux_log function for operation notification
     #   - Active firewalld daemon service
     #   - Root privileges for firewall configuration changes
     # Arguments:
@@ -211,7 +211,7 @@ net_fas() {
     firewall-cmd --add-service="$fwd_as_1" --permanent
     firewall-cmd --reload
 
-    aux_nos "$function_name" "executed"
+    aux_log "INFO" "$function_name: executed"
 }
 
 

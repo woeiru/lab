@@ -99,10 +99,10 @@ pve_dsr() {
     #     - "/etc/apt/sources.list.d/pve-enterprise.list"
     #     - "/etc/apt/sources.list.d/ceph.list"
     #   Uses 'sed -i' to comment out lines starting with 'deb' (e.g., 'deb http://...' becomes '#deb http://...').
-    #   Calls 'aux_nos' for notifications about actions taken or if files are not found.
+    #   Calls 'aux_log' for notifications about actions taken or if files are not found.
     # Dependencies:
     #   - 'sed' utility for in-place file editing.
-    #   - 'aux_nos' function for status messages.
+    #   - 'aux_log' function for status messages.
     #   - Root privileges are required to modify files in /etc/apt/.
     # Arguments:
     #   $1: -x - explicit execution flag required for safety and consistency
@@ -126,9 +126,9 @@ pve_dsr() {
     for file in "${files[@]}"; do
         if [ -f "$file" ]; then
             sed -i '/^deb/ s/^/#/' "$file"
-            aux_nos "$function_name" "Changes applied to $file"
+            aux_log "INFO" "$function_name: Changes applied to $file"
         else
-            aux_nos "$function_name" "File $file not found."
+            aux_log "WARN" "$function_name: File $file not found."
         fi
     done
 }
@@ -147,7 +147,7 @@ pve_rsn() {
     # Dependencies:
     #   - 'sed' utility (GNU version for -z and -i).
     #   - 'systemctl' for service management.
-    #   - 'aux_nos' for status messages.
+    #   - 'aux_log' for status messages.
     #   - Root privileges required for file modification and service restart.
     # Arguments:
     #   $1: -x - explicit execution flag required for safety and consistency
@@ -168,9 +168,9 @@ pve_rsn() {
     # Prompt user whether to restart the service
     read -p "Do you want to restart the pveproxy.service now? (y/n): " choice
     case "$choice" in
-        y|Y ) systemctl restart pveproxy.service && aux_nos "$function_name" "Service restarted successfully.";;
-        n|N ) aux_nos "$function_name" "Service not restarted.";;
-        * ) aux_nos "$function_name" "Invalid choice. Service not restarted.";;
+        y|Y ) systemctl restart pveproxy.service && aux_log "INFO" "$function_name: Service restarted successfully.";;
+        n|N ) aux_log "INFO" "$function_name: Service not restarted.";;
+        * ) aux_log "WARN" "$function_name: Invalid choice. Service not restarted.";;
     esac
 }
 
@@ -182,10 +182,10 @@ pve_clu() {
     #   Updates the local cache of available LXC container templates for Proxmox VE.
     #   Executes the 'pveam update' command. 'pveam' is the Proxmox VE Appliance Manager.
     #   This command fetches the latest list of templates from the configured sources.
-    #   Calls 'aux_nos' to confirm execution.
+    #   Calls 'aux_log' to confirm execution.
     # Dependencies:
     #   - 'pveam' command-line utility.
-    #   - 'aux_nos' function.
+    #   - 'aux_log' function.
     #   - Network access to Proxmox template repositories.
     # Arguments:
     #   $1: -x - explicit execution flag required for safety and consistency
@@ -204,7 +204,7 @@ pve_clu() {
 
     pveam update
 
-    aux_nos "$function_name" "executed"
+    aux_log "INFO" "$function_name: executed"
 }
 
 # Downloads a specified container template to a given storage location, with error handling and options to list available templates
@@ -278,7 +278,7 @@ pve_cbm() {
     # Dependencies:
     #   - 'pct' command-line utility.
     #   - 'aux_use' for usage display on incorrect arguments.
-    #   - 'aux_nos' for success notification.
+    #   - 'aux_log' for success notification.
     # Arguments:
     #   $1: vmid - The numeric ID of the LXC container
     #   $2: mphost - The absolute path on the Proxmox host to be mounted into the container
@@ -308,7 +308,7 @@ pve_cbm() {
     # Properly quote the entire argument for -mp0
     pct set "$vmid" -mp0 "$mphost,mp=$mpcontainer"
 
-    aux_nos "$function_name" "executed ( $vmid / $mphost / $mpcontainer )"
+    aux_log "INFO" "$function_name: executed ( $vmid / $mphost / $mpcontainer )"
 }
 
 # Sets up different containers specified in cfg/env/site.
@@ -515,7 +515,7 @@ pve_vmd() {
     #   - 'qm' command-line utility.
     #   - Perl interpreter (for the hook script).
     #   - 'gpu_pta' script/function (defined elsewhere, sourced via lib_ops_dir).
-    #   - 'aux_nos' for notifications.
+    #   - 'aux_log' for notifications.
     #   - Directory '/var/lib/vz/snippets' must be writable.
     # Arguments:
     #   $1: operation - The operation to perform: add, remove, or debug
@@ -643,7 +643,7 @@ EOL
             ;;
     esac
 
-    aux_nos "$function_name" "Hook $operation completed for VM $vm_id"
+    aux_log "INFO" "$function_name: Hook $operation completed for VM $vm_id"
 }
 
 # Sets up different virtual machines specified in cfg/env/site.
