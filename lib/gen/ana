@@ -1,0 +1,1046 @@
+#!/bin/bash
+#######################################################################
+# Auxiliary Utilities Library
+#######################################################################
+# File: lib/gen/aux
+# Description: Comprehensive auxiliary utilities providing function introspection,
+#              variable analysis, documentation generation, and system monitoring
+#              capabilities for the lab environment infrastructure.
+#
+# Dependencies:
+#   - Bash 4.0+ (for associative arrays and advanced parameter handling)
+#   - Standard UNIX utilities (awk, grep, sed, find, wc, date)
+#   - File system access for reading configuration and source files
+#   - Optional: LAB_DIR environment variable for path resolution
+#
+# Purpose:
+#   This library serves as the central auxiliary toolkit for the lab environment,
+#   providing essential utilities for introspection, analysis, and documentation
+#   generation. It enables dynamic discovery of functions and variables across
+#   the codebase while supporting multiple output formats and analysis modes.
+#
+# Key Features:
+#   - Function introspection and metadata extraction from source files
+#   - Variable usage analysis across configuration and source directories
+#   - Documentation discovery and metadata generation with statistics
+#   - Recursive file processing with configurable depth control
+#   - Multi-format output support (table, JSON, truncated views)
+#   - Real-time logging with timestamp integration
+#   - Usage and technical documentation display for functions
+#
+# Function Categories:
+#   - Overview Functions: aux_fun, aux_var - High-level summaries
+#   - Analysis Functions: aux_laf, aux_acu, aux_lad - Detailed analysis
+#   - Utility Functions: aux_log, aux_ffl - Supporting operations
+#   - Documentation Functions: aux_use, aux_tec - Help system
+#
+# Usage Examples:
+#   source lib/gen/aux
+#   aux_fun                              # Show function overview
+#   aux_laf "/path/to/file" -t          # List functions with truncation
+#   aux_acu "" cfg/env lib/ops          # Analyze variable usage
+#   aux_ffl aux_laf "" lib/ops 5        # Process files recursively
+#
+#######################################################################
+
+# Define directory and file variables
+DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_FUN=$(basename "$BASH_SOURCE")
+BASE_FUN="${FILE_FUN%.*}"
+FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
+CONFIG_FUN="${SITE_CONFIG_FILE}"
+
+# Dynamically create variables based on the base name
+eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
+eval "FILE_${BASE_FUN}=\$FILE_FUN"
+eval "BASE_${BASE_FUN}=\$BASE_FUN"
+eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
+
+# Shows a summary of selected functions in the script, displaying their usage, shortname, and description
+# overview functions
+#
+ana_fun() {
+    aux_laf "$FILEPATH_ana" "$@"
+}
+
+# Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
+# overview variables
+#
+ana_var() {
+    aux_acu -o "$CONFIG_aux" "$DIR_FUN/.."
+}
+
+# Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
+# list all functions
+# <file name> [-t] [-b]
+aux_laf() {
+    local truncate_mode=false
+    local break_mode=false
+    local json_mode=false
+    local file_name
+    local lib_ops_dir="${LIB_OPS_DIR:-}"
+    local src_set_dir="${SRC_SET_DIR:-}"
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -t)
+                truncate_mode=true
+                shift
+                ;;
+            -b)
+                break_mode=true
+                shift
+                ;;
+            -j)
+                json_mode=true
+                shift
+                ;;
+            *)
+                file_name="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [ -z "$file_name" ]; then
+        aux_use
+        return 1
+    fi
+
+    # Column width parameters
+    local col_width_1=7
+    local col_width_2=16
+    local col_width_3=18
+    local col_width_4=36
+    local col_width_5=4
+    local col_width_6=4
+    local col_width_7=4
+    local col_width_8=4
+    local col_width_9=4
+
+    # Function to truncate and pad strings
+    truncate_and_pad() {
+        local str="$1"
+        local width="$2"
+        if [ ${#str} -gt $width ]; then
+            echo "${str:0:$((width-2))}.."
+        else
+            printf "%-${width}s" "$str"
+        fi
+    }
+
+    # Function to wrap text
+    wrap_text() {
+        local text="$1"
+        local width="$2"
+        echo "$text" | fold -s -w "$width"
+    }
+
+    # Function to print a row (including header and data rows)
+    print_row() {
+        if $break_mode; then
+            local col1=$(wrap_text "$1" $col_width_1)
+            local col2=$(wrap_text "$2" $col_width_2)
+            local col3=$(wrap_text "$3" $col_width_3)
+            local col4=$(wrap_text "$4" $col_width_4)
+            local col5=$(wrap_text "$5" $col_width_5)
+            local col6=$(wrap_text "$6" $col_width_6)
+            local col7=$(wrap_text "$7" $col_width_7)
+            local col8=$(wrap_text "$8" $col_width_8)
+            local col9=$(wrap_text "$9" $col_width_9)
+            
+            local IFS=$'\n'
+            local lines1=($col1)
+            local lines2=($col2)
+            local lines3=($col3)
+            local lines4=($col4)
+            local lines5=($col5)
+            local lines6=($col6)
+            local lines7=($col7)
+            local lines8=($col8)
+            local lines9=($col9)
+            
+            local max_lines=$(( ${#lines1[@]} > ${#lines2[@]} ? ${#lines1[@]} : ${#lines2[@]} ))
+            max_lines=$(( max_lines > ${#lines3[@]} ? max_lines : ${#lines3[@]} ))
+            max_lines=$(( max_lines > ${#lines4[@]} ? max_lines : ${#lines4[@]} ))
+            max_lines=$(( max_lines > ${#lines5[@]} ? max_lines : ${#lines5[@]} ))
+            max_lines=$(( max_lines > ${#lines6[@]} ? max_lines : ${#lines6[@]} ))
+            max_lines=$(( max_lines > ${#lines7[@]} ? max_lines : ${#lines7[@]} ))
+            max_lines=$(( max_lines > ${#lines8[@]} ? max_lines : ${#lines8[@]} ))
+            max_lines=$(( max_lines > ${#lines9[@]} ? max_lines : ${#lines9[@]} ))
+            
+            for i in $(seq 0 $((max_lines-1))); do
+                printf "| %-${col_width_1}s | %-${col_width_2}s | %-${col_width_3}s | %-${col_width_4}s | %-${col_width_5}s | %-${col_width_6}s | %-${col_width_7}s | %-${col_width_8}s | %-${col_width_9}s |\n" \
+                    "${lines1[$i]:-}" \
+                    "${lines2[$i]:-}" \
+                    "${lines3[$i]:-}" \
+                    "${lines4[$i]:-}" \
+                    "${lines5[$i]:-}" \
+                    "${lines6[$i]:-}" \
+                    "${lines7[$i]:-}" \
+                    "${lines8[$i]:-}" \
+                    "${lines9[$i]:-}"
+            done
+        elif $truncate_mode; then
+            printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n" \
+                "$(truncate_and_pad "$1" $col_width_1)" \
+                "$(truncate_and_pad "$2" $col_width_2)" \
+                "$(truncate_and_pad "$3" $col_width_3)" \
+                "$(truncate_and_pad "$4" $col_width_4)" \
+                "$(truncate_and_pad "$5" $col_width_5)" \
+                "$(truncate_and_pad "$6" $col_width_6)" \
+                "$(truncate_and_pad "$7" $col_width_7)" \
+                "$(truncate_and_pad "$8" $col_width_8)" \
+                "$(truncate_and_pad "$9" $col_width_9)"
+        else
+            printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n" \
+                "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9"
+        fi
+    }
+
+    # Function to print a separator line
+    print_separator() {
+        local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + col_width_8 + col_width_9 + 26))
+        printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' '-')"
+    }
+
+    print_separator_2() {
+        local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + col_width_8 + col_width_9 + 26))
+        printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' ' ')"
+    }
+
+    local line_number=0
+    declare -a comments=()
+
+    # Read all comments into an array with error handling
+    if [[ ! -r "$file_name" ]]; then
+        echo "Error: Cannot read file '$file_name'"
+        return 1
+    fi
+    
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        ((line_number++))
+        if [[ $line =~ ^[[:space:]]*# ]]; then
+            comments[$line_number]="${line#"${line%%[![:space:]]*}"}"  # Remove leading whitespace
+            comments[$line_number]="${comments[$line_number]#\# }"    # Remove leading '# '
+            comments[$line_number]="${comments[$line_number]#\#}"     # Remove leading '#' if there's no space after it
+        fi
+    done < "$file_name" 2>/dev/null
+
+    # Counts all function calls
+    count_calls() {
+        local func_name="$1"
+        local count=$(awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' "$file_name")
+        echo "${count}"
+    }
+
+    # Counts all function calls in a folder, excluding a specific file
+    count_calls_folder() {
+        local func_name="$1"
+        local folder_name="$2"
+        local exclude_file="$3"
+        local count=$(find "$folder_name" -type f ! -name "$(basename "$exclude_file")" -exec awk -v func_name="$func_name" '{ for (i=1; i<=NF; i++) if ($i == func_name) count++ } END { print count }' {} + | awk '{sum += $1} END {if (sum == 0) print ""; else print sum}')
+        echo "${count}"
+    }
+
+    # Function to get comment or empty string
+    get_comment() {
+        local line_num=$1
+        local comment="${comments[$line_num]:-}"
+        # Return empty string if comment is just whitespace
+        if [[ -z "${comment// }" ]]; then
+            echo ""
+        else
+            echo "$comment"
+        fi
+    }
+
+    # Print table header
+    print_separator
+    print_row "Func" "Arguments" "Shortname" "Description" "Size" "Loc" "file" "lib" "src"
+    print_separator
+
+    # Loop through all lines in the file again
+    line_number=0
+    while IFS= read -r line; do
+        ((line_number++))
+        if [[ $line =~ ^[a-zA-Z_][a-zA-Z0-9_-]*\(\) ]]; then
+            # Extract function name without parentheses
+            func_name=$(echo "$line" | awk -F '[(|)]' '{print $1}')
+            # Calculate function size
+            func_start_line=$line_number
+            func_end_line=$(tail -n +$((func_start_line+1)) "$file_name" | grep -n '^}' | head -1 | cut -d: -f1)
+            func_size=$((func_end_line + 1))  # +1 to include the closing brace
+            
+            # Count the number of calls to the function
+            func_calls=$(count_calls "$func_name")
+            
+            # Use directory parameters if available, otherwise show empty
+            if [[ -n "$lib_ops_dir" && -d "$lib_ops_dir" ]]; then
+                callsfun=$(count_calls_folder "$func_name" "$lib_ops_dir" "$file_name" 2>/dev/null || echo "")
+            else
+                callsfun=""
+            fi
+            
+            if [[ -n "$src_set_dir" && -d "$src_set_dir" ]]; then
+                callsgen=$(count_calls_folder "$func_name" "$src_set_dir" "$file_name" 2>/dev/null || echo "")
+            else
+                callsgen=""
+            fi
+            
+            # Get comments for arguments, shortname, and description
+            description=$(get_comment $((line_number-3)))
+            shortname=$(get_comment $((line_number-2)))
+            arguments=$(get_comment $((line_number-1)))
+
+            # Print function information
+            print_row "$func_name" "$arguments" "$shortname" "$description" "$func_size" "$line_number" "$func_calls" "$callsfun" "$callsgen"
+            if $break_mode; then
+                print_separator_2
+            fi
+        fi
+    done < "$file_name"
+
+    if ! $break_mode; then
+        print_separator
+    fi
+    
+    # JSON output mode
+    if $json_mode; then
+        # Create centralized .tmp/doc directory if it doesn't exist
+        local lab_dir="${LAB_DIR:-$(cd "$(dirname "$file_name")" && while [[ ! -f "entry.sh" && "$PWD" != "/" ]]; do cd ..; done && pwd)}"
+        local tmp_dir="$lab_dir/.tmp/doc"
+        mkdir -p "$tmp_dir"
+        
+        # Generate JSON filename based on input file path structure
+        local relative_path="${file_name#$lab_dir/}"
+        local json_filename="${relative_path//\//_}.json"
+        local json_file="$tmp_dir/$json_filename"
+        
+        # Remove existing JSON file if it exists (flush)
+        [[ -f "$json_file" ]] && rm -f "$json_file"
+        
+        # Start JSON output
+        echo "{" > "$json_file"
+        echo "  \"file\": \"$file_name\"," >> "$json_file"
+        echo "  \"functions\": [" >> "$json_file"
+        
+        # Re-process file for JSON output
+        local line_number=0
+        local first_function=true
+        while IFS= read -r line; do
+            ((line_number++))
+            if [[ $line =~ ^[a-zA-Z_][a-zA-Z0-9_-]*\(\) ]]; then
+                # Extract function name without parentheses
+                func_name=$(echo "$line" | awk -F '[(|)]' '{print $1}')
+                # Calculate function size
+                func_start_line=$line_number
+                func_end_line=$(tail -n +$((func_start_line+1)) "$file_name" | grep -n '^}' | head -1 | cut -d: -f1)
+                func_size=$((func_end_line + 1))  # +1 to include the closing brace
+                
+                # Count the number of calls to the function
+                func_calls=$(count_calls "$func_name")
+                
+                # Use directory parameters if available, otherwise show empty
+                if [[ -n "$lib_ops_dir" && -d "$lib_ops_dir" ]]; then
+                    callsfun=$(count_calls_folder "$func_name" "$lib_ops_dir" "$file_name" 2>/dev/null || echo "")
+                else
+                    callsfun=""
+                fi
+                
+                if [[ -n "$src_set_dir" && -d "$src_set_dir" ]]; then
+                    callsgen=$(count_calls_folder "$func_name" "$src_set_dir" "$file_name" 2>/dev/null || echo "")
+                else
+                    callsgen=""
+                fi
+                
+                # Get comments for arguments, shortname, and description
+                description=$(get_comment $((line_number-3)))
+                shortname=$(get_comment $((line_number-2)))
+                arguments=$(get_comment $((line_number-1)))
+                
+                # Add comma before function object if not first
+                if [[ "$first_function" == false ]]; then
+                    echo "    ," >> "$json_file"
+                fi
+                first_function=false
+                
+                # Write function object to JSON
+                echo "    {" >> "$json_file"
+                echo "      \"name\": \"$func_name\"," >> "$json_file"
+                echo "      \"arguments\": \"$arguments\"," >> "$json_file"
+                echo "      \"shortname\": \"$shortname\"," >> "$json_file"
+                echo "      \"description\": \"$description\"," >> "$json_file"
+                echo "      \"size\": $func_size," >> "$json_file"
+                echo "      \"location\": $line_number," >> "$json_file"
+                echo "      \"calls_in_file\": $func_calls," >> "$json_file"
+                echo "      \"calls_in_lib\": \"$callsfun\"," >> "$json_file"
+                echo "      \"calls_in_src\": \"$callsgen\"" >> "$json_file"
+                echo "    }" >> "$json_file"
+            fi
+        done < "$file_name"
+        
+        # Close JSON
+        echo "  ]" >> "$json_file"
+        echo "}" >> "$json_file"
+        
+        echo "JSON output written to: $json_file"
+    fi
+    
+    echo ""
+}
+
+# Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options
+# list all documentation
+# <file/directory name> [-t] [-b] [-j]
+aux_lad() {
+    local truncate_mode=false
+    local break_mode=false
+    local json_mode=false
+    local doc_path
+    local lab_dir="${LAB_DIR:-}"
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -t)
+                truncate_mode=true
+                shift
+                ;;
+            -b)
+                break_mode=true
+                shift
+                ;;
+            -j)
+                json_mode=true
+                shift
+                ;;
+            *)
+                doc_path="$1"
+                shift
+                ;;
+        esac
+    done
+
+    # Default to doc directory if no path provided
+    if [ -z "$doc_path" ]; then
+        if [[ -n "$lab_dir" ]]; then
+            doc_path="$lab_dir/doc"
+        else
+            echo "Error: No documentation path provided and LAB_DIR not set"
+            aux_use
+            return 1
+        fi
+    fi
+
+    # Column width parameters for documentation table
+    local col_width_1=12  # Type
+    local col_width_2=20  # Path
+    local col_width_3=25  # Title
+    local col_width_4=40  # Description
+    local col_width_5=6   # Lines
+    local col_width_6=6   # Words
+    local col_width_7=8   # Modified
+
+    # Function to truncate and pad strings
+    truncate_and_pad() {
+        local str="$1"
+        local width="$2"
+        if [ ${#str} -gt $width ]; then
+            echo "${str:0:$((width-2))}.."
+        else
+            printf "%-${width}s" "$str"
+        fi
+    }
+
+    # Function to wrap text
+    wrap_text() {
+        local text="$1"
+        local width="$2"
+        echo "$text" | fold -s -w "$width"
+    }
+
+    # Function to print a row
+    print_row() {
+        if $break_mode; then
+            local col1=$(wrap_text "$1" $col_width_1)
+            local col2=$(wrap_text "$2" $col_width_2)
+            local col3=$(wrap_text "$3" $col_width_3)
+            local col4=$(wrap_text "$4" $col_width_4)
+            local col5=$(wrap_text "$5" $col_width_5)
+            local col6=$(wrap_text "$6" $col_width_6)
+            local col7=$(wrap_text "$7" $col_width_7)
+            
+            local IFS=$'\n'
+            local lines1=($col1)
+            local lines2=($col2)
+            local lines3=($col3)
+            local lines4=($col4)
+            local lines5=($col5)
+            local lines6=($col6)
+            local lines7=($col7)
+            
+            local max_lines=${#lines1[@]}
+            for arr in lines2 lines3 lines4 lines5 lines6 lines7; do
+                local -n arr_ref=$arr
+                if [[ ${#arr_ref[@]} -gt $max_lines ]]; then
+                    max_lines=${#arr_ref[@]}
+                fi
+            done
+            
+            for i in $(seq 0 $((max_lines-1))); do
+                printf "| %-${col_width_1}s | %-${col_width_2}s | %-${col_width_3}s | %-${col_width_4}s | %-${col_width_5}s | %-${col_width_6}s | %-${col_width_7}s |\n" \
+                    "${lines1[$i]:-}" \
+                    "${lines2[$i]:-}" \
+                    "${lines3[$i]:-}" \
+                    "${lines4[$i]:-}" \
+                    "${lines5[$i]:-}" \
+                    "${lines6[$i]:-}" \
+                    "${lines7[$i]:-}"
+            done
+        elif $truncate_mode; then
+            printf "| %s | %s | %s | %s | %s | %s | %s |\n" \
+                "$(truncate_and_pad "$1" $col_width_1)" \
+                "$(truncate_and_pad "$2" $col_width_2)" \
+                "$(truncate_and_pad "$3" $col_width_3)" \
+                "$(truncate_and_pad "$4" $col_width_4)" \
+                "$(truncate_and_pad "$5" $col_width_5)" \
+                "$(truncate_and_pad "$6" $col_width_6)" \
+                "$(truncate_and_pad "$7" $col_width_7)"
+        else
+            printf "| %s | %s | %s | %s | %s | %s | %s |\n" \
+                "$1" "$2" "$3" "$4" "$5" "$6" "$7"
+        fi
+    }
+
+    # Function to print separator
+    print_separator() {
+        local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + 20))
+        printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' '-')"
+    }
+
+    print_separator_2() {
+        local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + 20))
+        printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' ' ')"
+    }
+
+    # Function to extract title from markdown file
+    extract_title() {
+        local file="$1"
+        if [[ -f "$file" ]]; then
+            local title=$(grep -m1 '^# ' "$file" 2>/dev/null | sed 's/^# //' | sed 's/[🎯👨‍💻🛠️🏗️📱🔍🔧🛠️📋🌐📊]*//' | xargs)
+            if [[ -n "$title" ]]; then
+                echo "$title"
+            else
+                basename "$file" .md
+            fi
+        else
+            basename "$file" .md
+        fi
+    }
+
+    # Function to extract description from markdown file
+    extract_description() {
+        local file="$1"
+        if [[ -f "$file" ]]; then
+            # Look for first paragraph after title that doesn't start with ##
+            local desc=$(awk '/^# /{flag=1; next} flag && /^[A-Za-z*]/ && !/^##/{print; exit}' "$file" 2>/dev/null | sed 's/^\*//; s/\*$//' | xargs)
+            if [[ -n "$desc" ]]; then
+                echo "$desc"
+            else
+                echo "No description available"
+            fi
+        else
+            echo "No description available"
+        fi
+    }
+
+    # Function to get file statistics
+    get_file_stats() {
+        local file="$1"
+        if [[ -f "$file" ]]; then
+            local lines=$(wc -l < "$file" 2>/dev/null || echo "0")
+            local words=$(wc -w < "$file" 2>/dev/null || echo "0")
+            local modified=$(stat -c %y "$file" 2>/dev/null | cut -d' ' -f1 || echo "unknown")
+            echo "$lines:$words:$modified"
+        else
+            echo "0:0:unknown"
+        fi
+    }
+
+    # Function to determine document type
+    get_doc_type() {
+        local file="$1"
+        local relative_path="${file#$lab_dir/}"
+        
+        if [[ "$file" =~ README\.md$ ]]; then
+            if [[ "$relative_path" == "doc/README.md" ]]; then
+                echo "Hub"
+            else
+                echo "Index"
+            fi
+        elif [[ "$relative_path" =~ ^doc/dev/ ]]; then
+            echo "Developer"
+        elif [[ "$relative_path" =~ ^doc/adm/ ]]; then
+            echo "Admin"
+        elif [[ "$relative_path" =~ ^doc/iac/ ]]; then
+            echo "IaC"
+        elif [[ "$relative_path" =~ ^doc/cli/ ]]; then
+            echo "CLI"
+        elif [[ "$relative_path" =~ ^doc/ ]]; then
+            echo "Core"
+        else
+            echo "Other"
+        fi
+    }
+
+    # JSON output preparation
+    local json_docs=()
+    
+    # Print table header
+    print_separator
+    print_row "Type" "Path" "Title" "Description" "Lines" "Words" "Modified"
+    print_separator
+
+    # Process documentation files
+    if [[ -d "$doc_path" ]]; then
+        # Find all markdown files in the documentation directory
+        while IFS= read -r -d '' file; do
+            local relative_path="${file#$lab_dir/}"
+            local doc_type=$(get_doc_type "$file")
+            local title=$(extract_title "$file")
+            local description=$(extract_description "$file")
+            local stats=$(get_file_stats "$file")
+            local lines=$(echo "$stats" | cut -d: -f1)
+            local words=$(echo "$stats" | cut -d: -f2)
+            local modified=$(echo "$stats" | cut -d: -f3)
+            
+            # Print table row
+            print_row "$doc_type" "$relative_path" "$title" "$description" "$lines" "$words" "$modified"
+            if $break_mode; then
+                print_separator_2
+            fi
+            
+            # Store for JSON output
+            if $json_mode; then
+                json_docs+=("{\"type\":\"$doc_type\",\"path\":\"$relative_path\",\"title\":\"$title\",\"description\":\"$(echo "$description" | sed 's/"/\\"/g')\",\"lines\":$lines,\"words\":$words,\"modified\":\"$modified\"}")
+            fi
+            
+        done < <(find "$doc_path" -name "*.md" -type f -print0 | sort -z)
+    elif [[ -f "$doc_path" && "$doc_path" =~ \.md$ ]]; then
+        # Process single file
+        local relative_path="${doc_path#$lab_dir/}"
+        local doc_type=$(get_doc_type "$doc_path")
+        local title=$(extract_title "$doc_path")
+        local description=$(extract_description "$doc_path")
+        local stats=$(get_file_stats "$doc_path")
+        local lines=$(echo "$stats" | cut -d: -f1)
+        local words=$(echo "$stats" | cut -d: -f2)
+        local modified=$(echo "$stats" | cut -d: -f3)
+        
+        print_row "$doc_type" "$relative_path" "$title" "$description" "$lines" "$words" "$modified"
+        
+        if $json_mode; then
+            json_docs+=("{\"type\":\"$doc_type\",\"path\":\"$relative_path\",\"title\":\"$title\",\"description\":\"$(echo "$description" | sed 's/"/\\"/g')\",\"lines\":$lines,\"words\":$words,\"modified\":\"$modified\"}")
+        fi
+    else
+        echo "Error: '$doc_path' is not a valid markdown file or directory"
+        return 1
+    fi
+
+    if ! $break_mode; then
+        print_separator
+    fi
+    
+    # JSON output mode
+    if $json_mode; then
+        # Create centralized .tmp/doc directory if it doesn't exist
+        local tmp_dir="$lab_dir/.tmp/doc"
+        mkdir -p "$tmp_dir"
+        
+        # Generate JSON filename based on input path
+        local relative_path="${doc_path#$lab_dir/}"
+        local json_filename="${relative_path//\//_}.json"
+        local json_file="$tmp_dir/$json_filename"
+        
+        # Remove existing JSON file if it exists (flush)
+        [[ -f "$json_file" ]] && rm -f "$json_file"
+        
+        # Write JSON output
+        echo "{" > "$json_file"
+        echo "  \"source\": \"$doc_path\"," >> "$json_file"
+        echo "  \"generated\": \"$(date -Iseconds)\"," >> "$json_file"
+        echo "  \"total_documents\": ${#json_docs[@]}," >> "$json_file"
+        echo "  \"documents\": [" >> "$json_file"
+        
+        for i in "${!json_docs[@]}"; do
+            echo "    ${json_docs[$i]}" >> "$json_file"
+            if [[ $i -lt $((${#json_docs[@]} - 1)) ]]; then
+                echo "    ," >> "$json_file"
+            fi
+        done
+        
+        echo "  ]" >> "$json_file"
+        echo "}" >> "$json_file"
+        
+        echo "JSON output written to: $json_file"
+    fi
+    
+    echo ""
+}
+
+# Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files
+# analyze config usage
+# <sort mode: -o|-a|-j|""|> <config file or directory> <target folder1> [target folder2 ...]
+aux_acu() {
+    local sort_mode_arg="$1"
+    local conf_source="$2"
+    local json_mode=false
+    
+    # Check if JSON mode is requested
+    if [[ "$sort_mode_arg" == "-j" ]]; then
+        json_mode=true
+        sort_mode_arg="-o"  # Default to original order for JSON
+    fi
+    
+    shift 2 # Remove sort_mode and conf_source from arguments
+    local target_folders_input=("$@") # Remaining arguments are the target folders
+
+    # Customizable column widths
+    local tab_width_var_names=24
+    local tab_width_var_values=30
+    local tab_width_total_occ=10
+    # Adjusted width for individual target directory occurrence columns to show details
+    local tab_width_per_dir_occ=40 # Increased width
+
+    local usage_message="Usage: aux_acu <-o|-a|-j|\"\"> <config file or directory> <target folder1> [target folder2 ...]"
+    local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  \"\": defaults to -o (original order)"
+
+    if [ ${#target_folders_input[@]} -eq 0 ]; then
+        echo "Error: At least one target folder must be specified."
+        echo -e "$usage_message\n$sort_mode_details"
+        return 1
+    fi
+
+    local sort_mode
+    if [[ -z "$sort_mode_arg" ]]; then
+        sort_mode="-o" # Default to original order if sort_mode_arg is empty
+    else
+        sort_mode="$sort_mode_arg"
+    fi
+
+    if [[ "$sort_mode" != "-o" && "$sort_mode" != "-a" ]]; then
+        echo "Invalid sort mode: '$sort_mode_arg'. Use -o, -a, -j, or an empty string (which defaults to -o)."
+        echo -e "$usage_message\n$sort_mode_details"
+        # Consider calling aux_use if it's generic enough or pass specific usage.
+        return 1
+    fi
+
+    if [[ ! -f "$conf_source" && ! -d "$conf_source" ]]; then
+        echo "Config source '$conf_source' is not a valid file or directory."
+        return 1
+    fi
+
+    for tf_path in "${target_folders_input[@]}"; do
+        if [[ ! -d "$tf_path" ]]; then
+            echo "Error: Target folder '$tf_path' does not exist."
+            return 1
+        fi
+    done
+
+    declare -A config_vars
+    declare -a var_order # To store variables in their original order from the config
+
+    # --- Helper function to read config file (no changes needed from previous version) ---
+    _aux_acu_read_config_file() {
+        local current_conf_source_path="$1"
+        local files_to_process=()
+
+        if [[ -d "$current_conf_source_path" ]]; then
+            local item
+            for item in "$current_conf_source_path"/*; do
+                if [[ -f "$item" ]]; then
+                    files_to_process+=("$item")
+                fi
+            done
+            if [ ${#files_to_process[@]} -eq 0 ]; then
+                echo "Warning: No configuration files found in directory '$current_conf_source_path'." >&2
+                return
+            fi
+        elif [[ -f "$current_conf_source_path" ]]; then
+            files_to_process+=("$current_conf_source_path")
+        else
+            echo "Error: Invalid config source path '$current_conf_source_path' in _aux_acu_read_config_file." >&2
+            return 1
+        fi
+
+        local current_conf_file var value line
+        for current_conf_file in "${files_to_process[@]}"; do
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                if [[ "$line" =~ ^[[:space:]]*# || -z "$line" || "$line" =~ ^[[:space:]]*declare || ! "$line" =~ = ]]; then
+                    continue
+                fi
+                local var_raw value_raw
+                var_raw=$(echo "$line" | cut -d'=' -f1)
+                value_raw=$(echo "$line" | cut -d'=' -f2-)
+                var=$(echo "$var_raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                if [[ ! "$var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+                    continue
+                fi
+                value=$(echo "$value_raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"\\(.*\\)"$/\\1/' -e "s/^'\\([^']*\)'$/\\1/")
+                if [[ -n "$var" ]]; then
+                    config_vars["$var"]="$value"
+                    if ! printf '%s\\n' "${var_order[@]}" | grep -qFx "$var"; then
+                        var_order+=("$var")
+                    fi
+                fi
+            done < "$current_conf_file"
+        done
+    }
+
+    # --- Helper function to truncate strings (no changes needed) ---
+    _aux_acu_truncate_string() {
+        local str="$1"
+        local max_length="$2"
+        if [ "${#str}" -gt "$max_length" ]; then
+            if [ "$max_length" -lt 2 ]; then
+                 printf "%.*s" "$max_length" "$str"
+            else
+                printf "%.*s.." "$((max_length-2))" "$str"
+            fi
+        else
+            printf "%-${max_length}s" "$str" # Ensures left alignment and padding
+        fi
+    }
+    
+    # --- Helper functions for table printing (MODIFIED) ---
+    _aux_acu_print_separator() {
+        local line="+"
+        local h_var_segment h_val_segment h_occ_segment h_dir_segment # Declared on one line
+
+        # For "Variable" column
+        h_var_segment=$(printf '%*s' "$((${tab_width_var_names} + 1))" '' | tr ' ' '-')
+        line+="${h_var_segment}-+"
+
+        # For "Value" column
+        h_val_segment=$(printf '%*s' "$((${tab_width_var_values} + 1))" '' | tr ' ' '-')
+        line+="${h_val_segment}-+"
+
+        # For "Total Occ." column
+        h_occ_segment=$(printf '%*s' "$((${tab_width_total_occ} + 1))" '' | tr ' ' '-')
+        line+="${h_occ_segment}-+"
+
+        # For each target directory column
+        for _ in "${target_folders_input[@]}"; do # No need for target_folder_path variable here
+            h_dir_segment=$(printf '%*s' "$((${tab_width_per_dir_occ} + 1))" '' | tr ' ' '-')
+            line+="${h_dir_segment}-+"
+        done
+        printf "%s\n" "$line"
+    }
+
+    _aux_acu_print_header() {
+        _aux_acu_print_separator
+        local header_string="| "
+        header_string+=$(printf "%-${tab_width_var_names}s | " "Variable")
+        header_string+=$(printf "%-${tab_width_var_values}s | " "Value")
+        header_string+=$(printf "%-${tab_width_total_occ}s | " "Total Occ.")
+        for target_folder_path in "${target_folders_input[@]}"; do
+            local display_path_for_header
+            if [[ -n "$LAB_DIR" && "$target_folder_path" == "$LAB_DIR"* ]]; then
+                # Path is under LAB_DIR (or is LAB_DIR itself)
+                # Remove $LAB_DIR prefix.
+                # e.g., LAB_DIR="/home/es/lab", target="/home/es/lab/foo" -> display_path_for_header becomes "/foo"
+                # e.g., LAB_DIR="/home/es/lab/", target="/home/es/lab/foo" -> display_path_for_header becomes "foo"
+                display_path_for_header="${target_folder_path#$LAB_DIR}"
+                
+                # Remove leading slash if present (e.g. if LAB_DIR had no trailing slash)
+                # "/foo" -> "foo"; "foo" -> "foo"; "" -> ""
+                display_path_for_header="${display_path_for_header#/}"
+
+                if [[ -z "$display_path_for_header" ]]; then
+                    # This case occurs if target_folder_path was $LAB_DIR or $LAB_DIR/
+                    # (after stripping prefix and leading slash, it's empty)
+                    display_path_for_header="."
+                fi
+            else
+                # Fallback: LAB_DIR not set, or path not under LAB_DIR
+                display_path_for_header=$(basename "$target_folder_path")
+            fi
+            local dir_name_header=$(_aux_acu_truncate_string "$display_path_for_header" "$tab_width_per_dir_occ")
+            header_string+=$(printf "%-${tab_width_per_dir_occ}s | " "$dir_name_header")
+        done
+        printf "%s\n" "$header_string"
+        _aux_acu_print_separator
+    }
+
+    _aux_acu_print_row() {
+        local var_name_in_row="$1"
+        local var_value_in_row="$2"
+        local overall_total_occurrences_in_row="$3"
+        shift 3
+        local per_dir_detail_strings_in_row=("$@") # Array of "file:count,..." strings or "0"
+
+        local row_string="| "
+        row_string+=$(printf "%s | " "$(_aux_acu_truncate_string "$var_name_in_row" "$tab_width_var_names")")
+        row_string+=$(printf "%s | " "$(_aux_acu_truncate_string "$var_value_in_row" "$tab_width_var_values")")
+        row_string+=$(printf "%${tab_width_total_occ}s | " "$overall_total_occurrences_in_row")
+
+        for detail_str_for_dir in "${per_dir_detail_strings_in_row[@]}"; do
+            # Truncate and left-align the detail string for the directory column
+            row_string+=$(printf "%s | " "$(_aux_acu_truncate_string "$detail_str_for_dir" "$tab_width_per_dir_occ")")
+        done
+        printf "%s\n" "$row_string"
+    }
+
+    _aux_acu_print_footer() {
+        _aux_acu_print_separator
+    }
+
+    # --- Main logic ---
+    _aux_acu_read_config_file "$conf_source"
+    if [ ${#var_order[@]} -eq 0 ]; then
+        echo "No variables found in config source '$conf_source'."
+        return
+    fi
+    
+    local -a vars_to_iterate
+    if [[ "$sort_mode" == "-a" ]]; then
+        mapfile -t vars_to_iterate < <(printf "%s\n" "${var_order[@]}" | sort)
+    else # -o (original order) or default
+        vars_to_iterate=("${var_order[@]}")
+    fi
+
+    _aux_acu_print_header
+
+    for var_name in "${vars_to_iterate[@]}"; do
+        local var_value="${config_vars[$var_name]}"
+        local overall_total_occurrences_for_var=0
+        local per_dir_details_for_row=() # Stores "file:count,..." or "0" for each target dir
+
+        for target_folder_path in "${target_folders_input[@]}"; do
+            local occurrences_in_current_dir_total=0
+            local files_with_occurrences_details_in_dir=() # Collects "basename:count" for this dir
+            
+            # Use find with timeout protection and simpler approach
+            while IFS= read -r -d '' target_file_in_dir; do
+                if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
+                    local occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
+                    if [[ "$occurrences_in_file" -gt 0 ]]; then
+                        occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
+                        files_with_occurrences_details_in_dir+=("$(basename "$target_file_in_dir"):$occurrences_in_file")
+                    fi
+                fi
+            done < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print0 2>/dev/null)
+
+            local dir_details_display_str="0" # Default to "0"
+            if [ ${#files_with_occurrences_details_in_dir[@]} -gt 0 ]; then
+                dir_details_display_str=$(IFS=,; echo "${files_with_occurrences_details_in_dir[*]}")
+            fi
+            per_dir_details_for_row+=("$dir_details_display_str")
+            
+            overall_total_occurrences_for_var=$((overall_total_occurrences_for_var + occurrences_in_current_dir_total))
+        done
+        
+        _aux_acu_print_row "$var_name" "$var_value" "$overall_total_occurrences_for_var" "${per_dir_details_for_row[@]}"
+    done
+
+    _aux_acu_print_footer
+    
+    # Generate JSON output if requested
+    if [[ "$json_mode" == true ]]; then
+        # Create JSON output directory
+        local lab_dir="${LAB_DIR:-$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")}"
+        local tmp_dir="$lab_dir/.tmp/doc"
+        mkdir -p "$tmp_dir"
+        
+        # Generate JSON filename based on config source
+        local relative_path="${conf_source#$lab_dir/}"
+        local json_filename="${relative_path//\//_}.json"
+        local json_file="$tmp_dir/$json_filename"
+        
+        # Count total variables
+        local total_variables=${#vars_to_iterate[@]}
+        
+        # Write JSON header
+        cat > "$json_file" << EOF
+{
+  "analysis_type": "variable_usage",
+  "timestamp": "$(date -Iseconds)",
+  "config_source": "$conf_source",
+  "target_folders": [$(printf '"%s",' "${target_folders_input[@]}" | sed 's/,$//')],
+  "sort_mode": "$sort_mode",
+  "total_variables": $total_variables,
+  "variables": [
+EOF
+        
+        # Process variables for JSON
+        local first_var=true
+        for var_name in "${vars_to_iterate[@]}"; do
+            local var_value="${config_vars[$var_name]}"
+            local overall_total_occurrences_for_var=0
+            local folders_data=()
+            
+            for target_folder_path in "${target_folders_input[@]}"; do
+                local occurrences_in_current_dir_total=0
+                local files_with_occurrences_details_in_dir=()
+                
+                # Use find with timeout protection and simpler approach for JSON
+                while IFS= read -r -d '' target_file_in_dir; do
+                    if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
+                        local occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
+                        if [[ "$occurrences_in_file" -gt 0 ]]; then
+                            occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
+                            files_with_occurrences_details_in_dir+=("\"$(basename "$target_file_in_dir")\":$occurrences_in_file")
+                        fi
+                    fi
+                done < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print0 2>/dev/null)
+                
+                # Create folder data
+                local folder_relative_path
+                if [[ -n "$LAB_DIR" && "$target_folder_path" == "$LAB_DIR"* ]]; then
+                    folder_relative_path="${target_folder_path#$LAB_DIR}"
+                    folder_relative_path="${folder_relative_path#/}"
+                    [[ -z "$folder_relative_path" ]] && folder_relative_path="."
+                else
+                    folder_relative_path=$(basename "$target_folder_path")
+                fi
+                
+                local files_json=""
+                if [ ${#files_with_occurrences_details_in_dir[@]} -gt 0 ]; then
+                    files_json=$(printf '{%s},' "${files_with_occurrences_details_in_dir[@]}" | sed 's/,$//')
+                else
+                    files_json="{}"
+                fi
+                
+                folders_data+=("    {\"path\":\"$folder_relative_path\",\"total_occurrences\":$occurrences_in_current_dir_total,\"files\":$files_json}")
+                overall_total_occurrences_for_var=$((overall_total_occurrences_for_var + occurrences_in_current_dir_total))
+            done
+            
+            # Add comma if not first variable
+            if [[ "$first_var" == false ]]; then
+                echo "    ," >> "$json_file"
+            fi
+            first_var=false
+            
+            # Write variable JSON object
+            cat >> "$json_file" << EOF
+    {
+      "name": "$var_name",
+      "value": "$(echo "$var_value" | sed 's/"/\\"/g')",
+      "total_occurrences": $overall_total_occurrences_for_var,
+      "usage_by_folder": [
+$(printf '%s,\n' "${folders_data[@]}" | sed 's/,$//')
+      ]
+    }
+EOF
+        done
+        
+        # Close JSON
+        echo "" >> "$json_file"
+        echo "  ]" >> "$json_file"
+        echo "}" >> "$json_file"
+        
+        echo "JSON output written to: $json_file"
+    fi
+}
