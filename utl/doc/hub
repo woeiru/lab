@@ -305,6 +305,7 @@ update_readme_file() {
     local in_doc_section=false
     local found_first_section=false
     local doc_section_found=false
+    local last_line_was_blank=false
     
     log "Updating documentation index section in doc/README.md..."
     
@@ -314,23 +315,38 @@ update_readme_file() {
             # Found existing documentation index section - mark it and insert new one
             doc_section_found=true
             in_doc_section=true
-            echo "" >> "$temp_file"
+            # Add a single blank line before the new documentation index
+            if [[ "$last_line_was_blank" == false ]]; then
+                echo "" >> "$temp_file"
+            fi
             generate_documentation_index >> "$temp_file"
             continue
         elif [[ "$in_doc_section" == true && "$line" =~ ^##[[:space:]] ]]; then
             # Found the next section after doc index, stop skipping
             in_doc_section=false
             echo "$line" >> "$temp_file"
+            last_line_was_blank=false
         elif [[ "$in_doc_section" == false ]]; then
-            # Not in doc section, write the line
-            echo "$line" >> "$temp_file"
-            
-            # Check if this is the first ## section we encounter (and no doc section exists yet)
-            if [[ "$line" =~ ^##[[:space:]] && "$found_first_section" == false && "$doc_section_found" == false ]]; then
-                found_first_section=true
-                # Insert documentation index after the first section
-                echo "" >> "$temp_file"
-                generate_documentation_index >> "$temp_file"
+            # Not in doc section, handle blank lines carefully
+            if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+                # This is a blank line
+                if [[ "$last_line_was_blank" == false ]]; then
+                    echo "$line" >> "$temp_file"
+                    last_line_was_blank=true
+                fi
+                # Skip multiple consecutive blank lines
+            else
+                # This is a non-blank line
+                echo "$line" >> "$temp_file"
+                last_line_was_blank=false
+                
+                # Check if this is the first ## section we encounter (and no doc section exists yet)
+                if [[ "$line" =~ ^##[[:space:]] && "$found_first_section" == false && "$doc_section_found" == false ]]; then
+                    found_first_section=true
+                    # Insert documentation index after the first section
+                    echo "" >> "$temp_file"
+                    generate_documentation_index >> "$temp_file"
+                fi
             fi
         fi
         # If in_doc_section is true, we skip the line (don't write it)
