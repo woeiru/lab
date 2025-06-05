@@ -27,6 +27,7 @@ fi
 
 # Source required utilities
 source "$LAB_DIR/lib/gen/aux"
+source "$LAB_DIR/lib/gen/ana"
 
 # Configuration
 readonly DOC_DIR="$LAB_DIR/doc"
