@@ -41,11 +41,13 @@ GENERATORS=(
     "variables:var:Variable usage documentation generator" 
     "stats:stats:System metrics generator"
     "hub:hub:Documentation index generator"
+    "ai_docs:ai_doc_generator:AI-powered README generation with 13-phase intelligence"
 )
 
 # Dependencies (hub depends on functions and variables)
 declare -A DEPENDENCIES
 DEPENDENCIES[hub]="functions variables"
+DEPENDENCIES[ai_docs]="functions variables hub stats"
 
 # Logging
 log_info() {
@@ -79,6 +81,7 @@ TARGETS:
     variables       Generate variable usage documentation (var)
     stats           Generate system metrics (stats) 
     hub             Generate documentation index (hub)
+    ai_docs         Generate AI-powered README with comprehensive intelligence analysis
 
 CONFIGURATION:
     Project Root: $PROJECT_ROOT
@@ -86,8 +89,9 @@ CONFIGURATION:
     Config File: $CONFIG_FILE
 
 EXAMPLES:
-    $(basename "$0")                    # Run all generators
+    $(basename "$0")                    # Run all generators (including AI documentation)
     $(basename "$0") functions stats   # Run specific generators
+    $(basename "$0") ai_docs           # Run AI documentation generator only
     $(basename "$0") --dry-run          # Preview execution
 
 EOF

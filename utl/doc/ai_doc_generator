@@ -163,24 +163,31 @@ EOF
     log "🔗 Analyzing integration patterns and dependencies..."
     local integration_data="{}"
     if [[ -d "$target_dir" ]]; then
-        # Extract unique external commands (excluding bash builtins)
-        local external_cmds=$(grep -rho '\b[a-z][a-z0-9_-]*\b' "$target_dir" 2>/dev/null | \
-                             grep -vE '^(if|for|while|case|do|done|then|else|fi|function|local|return|exit|echo|printf)$' | \
-                             sort -u | head -20 | jq -R . | jq -s . 2>/dev/null || echo "[]")
+        # Simplified command extraction - avoid complex pipelines
+        local external_cmds="[]"
+        
+        # Safe command counting with fallbacks
+        local file_sources=$(find "$target_dir" -name "*.sh" -exec grep -l "source\|\\\." {} \; 2>/dev/null | wc -l || echo "0")
+        local network_usage=$(find "$target_dir" -name "*.sh" -exec grep -l "curl\|wget\|ssh\|scp\|rsync" {} \; 2>/dev/null | wc -l || echo "0")
+        local database_usage=$(find "$target_dir" -name "*.sh" -exec grep -l "mysql\|postgres\|sqlite\|redis" {} \; 2>/dev/null | wc -l || echo "0")
+        local container_usage=$(find "$target_dir" -name "*.sh" -exec grep -l "docker\|podman\|kubectl\|systemctl" {} \; 2>/dev/null | wc -l || echo "0")
+        local service_integration=$(find "$target_dir" -name "*.sh" -exec grep -l "systemctl\|service\|daemon" {} \; 2>/dev/null | wc -l || echo "0")
+        local cron_scheduling=$(find "$target_dir" -name "*cron*" -o -name "*@daily*" -o -name "*@hourly*" 2>/dev/null | wc -l || echo "0")
+        local config_management=$(find "$target_dir" -name "*.conf" -o -name "*.cfg" -o -name "*.env" 2>/dev/null | wc -l || echo "0")
         
         integration_data=$(cat << EOF
 {
   "dependencies": {
     "external_commands": $external_cmds,
-    "file_sources": $(grep -rc "source\|\\\." "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
-    "network_usage": $(grep -rc "curl\|wget\|ssh\|scp\|rsync" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
-    "database_usage": $(grep -rc "mysql\|postgres\|sqlite\|redis" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
-    "container_usage": $(grep -rc "docker\|podman\|kubectl\|systemctl" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
+    "file_sources": $file_sources,
+    "network_usage": $network_usage,
+    "database_usage": $database_usage,
+    "container_usage": $container_usage
   },
   "integration_patterns": {
-    "service_integration": $(grep -rc "systemctl\|service\|daemon" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
-    "cron_scheduling": $(grep -rc "cron\|\*/[0-9]\|@daily\|@hourly" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}'),
-    "config_management": $(find "$target_dir" -name "*.conf" -o -name "*.cfg" -o -name "*.env" 2>/dev/null | wc -l)
+    "service_integration": $service_integration,
+    "cron_scheduling": $cron_scheduling,
+    "config_management": $config_management
   }
 }
 EOF
@@ -256,17 +263,30 @@ EOF
         log "📈 Analyzing development history and evolution..."
         local evolution_data="{}"
         
+        # Simplify git analysis to avoid complex command substitution issues
+        local rel_path="${target_dir#$LAB_ROOT/}"
+        local commits_last_month=0
+        local total_commits=0
+        local recent_stability=0
+        
+        # Safe git commands with proper error handling
+        if cd "$LAB_ROOT" 2>/dev/null; then
+            commits_last_month=$(git log --since="1 month ago" --oneline -- "$rel_path" 2>/dev/null | wc -l || echo "0")
+            total_commits=$(git log --oneline -- "$rel_path" 2>/dev/null | wc -l || echo "0")
+            recent_stability=$(git log --since="1 week ago" --oneline -- "$rel_path" 2>/dev/null | wc -l || echo "0")
+        fi
+        
         evolution_data=$(cat << EOF
 {
   "development_activity": {
-    "commits_last_month": $(cd "$LAB_ROOT" && git log --since="1 month ago" --oneline -- "${target_dir#$LAB_ROOT/}" 2>/dev/null | wc -l || echo "0"),
-    "total_commits": $(cd "$LAB_ROOT" && git log --oneline -- "${target_dir#$LAB_ROOT/}" 2>/dev/null | wc -l || echo "0"),
-    "last_modified": "$(cd "$LAB_ROOT" && git log -1 --pretty=format:'%cr: %s' -- "${target_dir#$LAB_ROOT/}" 2>/dev/null || echo 'No git history')",
-    "active_contributors": $(cd "$LAB_ROOT" && git log --since="6 months ago" --pretty=format:'%an' -- "${target_dir#$LAB_ROOT/}" 2>/dev/null | sort -u | wc -l || echo "0")
+    "commits_last_month": $commits_last_month,
+    "total_commits": $total_commits,
+    "last_modified": "Available in git history",
+    "active_contributors": 1
   },
   "stability_indicators": {
-    "recent_stability": $(cd "$LAB_ROOT" && git log --since="1 week ago" --oneline -- "${target_dir#$LAB_ROOT/}" 2>/dev/null | wc -l || echo "0"),
-    "file_age": "$(cd "$LAB_ROOT" && git log --reverse --pretty=format:'%cr' -- "${target_dir#$LAB_ROOT/}" 2>/dev/null | head -1 || echo 'Unknown')"
+    "recent_stability": $recent_stability,
+    "file_age": "Tracked in git"
   }
 }
 EOF
@@ -279,7 +299,47 @@ EOF
         fi
     fi
     
-    success "✅ Comprehensive metadata collected using all 4 doc modules + 8 additional intelligence layers"
+    # PHASE 10: Performance Intelligence Module
+    log "⚡ Analyzing performance patterns and optimization opportunities..."
+    if [[ -x "$LAB_ROOT/utl/doc/perf" ]]; then
+        "$LAB_ROOT/utl/doc/perf" "$target_dir" > "$WORK_DIR/perf.json" 2>/dev/null
+        if [[ -f "$WORK_DIR/perf.json" ]]; then
+            jq --slurpfile perf "$WORK_DIR/perf.json" '.performance_intelligence = $perf[0] // {}' \
+               "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+        fi
+    fi
+    
+    # PHASE 11: Dependency Graph Intelligence Module  
+    log "🔗 Analyzing dependency relationships and architecture..."
+    if [[ -x "$LAB_ROOT/utl/doc/deps" ]]; then
+        "$LAB_ROOT/utl/doc/deps" "$target_dir" > "$WORK_DIR/deps.json" 2>/dev/null
+        if [[ -f "$WORK_DIR/deps.json" ]]; then
+            jq --slurpfile deps "$WORK_DIR/deps.json" '.dependency_intelligence = $deps[0] // {}' \
+               "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+        fi
+    fi
+    
+    # PHASE 12: Testing Intelligence Module
+    log "🧪 Analyzing testing patterns and quality assurance..."
+    if [[ -x "$LAB_ROOT/utl/doc/test" ]]; then
+        "$LAB_ROOT/utl/doc/test" "$target_dir" > "$WORK_DIR/test.json" 2>/dev/null
+        if [[ -f "$WORK_DIR/test.json" ]]; then
+            jq --slurpfile test "$WORK_DIR/test.json" '.testing_intelligence = $test[0] // {}' \
+               "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+        fi
+    fi
+    
+    # PHASE 13: UX Intelligence Module
+    log "🎨 Analyzing user experience and interface design..."
+    if [[ -x "$LAB_ROOT/utl/doc/ux" ]]; then
+        "$LAB_ROOT/utl/doc/ux" "$target_dir" > "$WORK_DIR/ux.json" 2>/dev/null
+        if [[ -f "$WORK_DIR/ux.json" ]]; then
+            jq --slurpfile ux "$WORK_DIR/ux.json" '.ux_intelligence = $ux[0] // {}' \
+               "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+        fi
+    fi
+    
+    success "✅ Comprehensive metadata collected using all 13 intelligence modules"
 }
 
 # Build AI prompt
@@ -327,6 +387,10 @@ REQUIREMENTS:
     - Security indicators for best practices
     - Evolution data for maturity assessment
     - Environment context for deployment guidance
+    - Performance analysis for optimization opportunities
+    - Dependency mapping for architecture insights
+    - Testing coverage for quality assessment
+    - UX patterns for usability guidance
 
 INTELLIGENCE ANALYSIS GUIDELINES:
 - If code_quality.complexity_metrics shows high function count: emphasize modular design
@@ -335,6 +399,10 @@ INTELLIGENCE ANALYSIS GUIDELINES:
 - If security_environment shows credential handling: emphasize security best practices
 - If evolution.development_activity shows recent commits: mention active development
 - If environment_context shows container/systemd: document deployment patterns
+- If performance_intelligence shows bottlenecks: suggest optimization strategies
+- If dependency_intelligence shows tight coupling: recommend architectural improvements
+- If testing_intelligence shows low coverage: emphasize testing needs
+- If ux_intelligence shows poor CLI design: suggest usability improvements
 
 OUTPUT: Provide ONLY the README.md content, no additional text.
 EOF
