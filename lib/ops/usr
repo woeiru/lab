@@ -21,9 +21,9 @@ usr_fun() {
     #   Extracts and displays function documentation from the current script file
     #   Parses function comment blocks to show usage, shortname, and description
     #   Supports optional filtering by function name pattern for targeted display
-    #   Uses aux_laf utility to format and present function information consistently
+    #   Uses ana_laf utility to format and present function information consistently
     # Dependencies:
-    #   - aux_laf function for listing and formatting function documentation
+    #   - ana_laf function for listing and formatting function documentation
     #   - FILEPATH_usr variable must be properly initialized
     #   - grep and awk utilities for text processing
     #   - Read access to the function definition file
@@ -41,8 +41,8 @@ usr_fun() {
         return 1
     fi
 
-    # Pass all arguments directly to aux_laf
-    aux_laf "$FILEPATH_usr" "$@"
+    # Pass all arguments directly to ana_laf
+    ana_laf "$FILEPATH_usr" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
@@ -52,9 +52,9 @@ usr_var() {
     #   Scans configuration files and workspace directories to extract variable definitions
     #   Analyzes variable usage patterns across multiple files in the project
     #   Provides comprehensive overview of variable names, values, and cross-file dependencies
-    #   Uses aux_acu utility with overview mode to format and display results
+    #   Uses ana_acu utility with overview mode to format and display results
     # Dependencies:
-    #   - aux_acu function with -o (overview) option
+    #   - ana_acu function with -o (overview) option
     #   - CONFIG_usr variable pointing to site configuration file
     #   - DIR_FUN variable for workspace directory navigation
     #   - Read access to configuration files and workspace directories
@@ -71,7 +71,7 @@ usr_var() {
         return 1
     fi
     
-    aux_acu -o "$CONFIG_usr" "$DIR_FUN/.."
+    ana_acu -o "$CONFIG_usr" "$DIR_FUN/.."
 }
 
 # Changes the Konsole profile for the current user by updating the konsolerc file

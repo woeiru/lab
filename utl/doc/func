@@ -5,7 +5,7 @@
 # File: func
 # Description: Automatic function metadata table generator that populates 
 #              the function metadata table in doc/dev/functions.md using 
-#              aux_ffl and aux_laf to extract function information from lib/ directories
+#              aux_ffl and ana_laf to extract function information from lib/ directories
 #
 # Usage: ./func
 #   (default)   Updates the function metadata table in doc/dev/functions.md
@@ -47,8 +47,8 @@ count_library_functions() {
     # Process each file in the library directory
     for file in "$lib_dir"/*; do
         if [[ -f "$file" ]]; then
-            # Generate JSON output using aux_laf with -j flag
-            aux_laf -j "$file" >/dev/null 2>&1
+            # Generate JSON output using ana_laf with -j flag
+            ana_laf -j "$file" >/dev/null 2>&1
             
             # Generate JSON filename based on file path structure
             local relative_path="${file#$LAB_DIR/}"
@@ -117,8 +117,8 @@ process_library_functions() {
     # Process each file in the library directory
     for file in "$lib_dir"/*; do
         if [[ -f "$file" ]]; then
-            # Generate JSON output using aux_laf with -j flag
-            aux_laf -j "$file" >/dev/null 2>&1
+            # Generate JSON output using ana_laf with -j flag
+            ana_laf -j "$file" >/dev/null 2>&1
             
             # Generate JSON filename based on file path structure
             local relative_path="${file#$LAB_DIR/}"
@@ -186,7 +186,7 @@ update_documentation() {
     while IFS= read -r line; do
         if [[ "$line" == *"<!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->"* ]]; then
             echo "$line" >> "$temp_file"
-            echo "<!-- Command: aux_ffl aux_laf \"\" \"$LIB_CORE_DIR\" & aux_ffl aux_laf \"\" \"$LIB_OPS_DIR\" & aux_ffl aux_laf \"\" \"$LIB_GEN_DIR\" -->" >> "$temp_file"
+            echo "<!-- Command: aux_ffl ana_laf \"\" \"$LIB_CORE_DIR\" & aux_ffl ana_laf \"\" \"$LIB_OPS_DIR\" & aux_ffl ana_laf \"\" \"$LIB_GEN_DIR\" -->" >> "$temp_file"
             echo "" >> "$temp_file"
             # Write the new table only, skip all old lines until END marker
             generate_function_table | grep -vE '\|[[:space:]]*[a-zA-Z0-9_]+-[a-zA-Z0-9_]+[[:space:]]*\|' >> "$temp_file"

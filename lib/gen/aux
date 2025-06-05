@@ -30,16 +30,16 @@
 #
 # Function Categories:
 #   - Overview Functions: aux_fun, aux_var - High-level summaries
-#   - Analysis Functions: aux_laf, aux_acu, aux_lad - Detailed analysis
+#   - Analysis Functions: ana_laf, ana_acu, ana_lad - Detailed analysis
 #   - Utility Functions: aux_log, aux_ffl - Supporting operations
 #   - Documentation Functions: aux_use, aux_tec - Help system
 #
 # Usage Examples:
 #   source lib/gen/aux
 #   aux_fun                              # Show function overview
-#   aux_laf "/path/to/file" -t          # List functions with truncation
-#   aux_acu "" cfg/env lib/ops          # Analyze variable usage
-#   aux_ffl aux_laf "" lib/ops 5        # Process files recursively
+#   ana_laf "/path/to/file" -t          # List functions with truncation
+#   ana_acu "" cfg/env lib/ops          # Analyze variable usage
+#   aux_ffl ana_laf "" lib/ops 5        # Process files recursively
 #
 #######################################################################
 
@@ -60,14 +60,14 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 #
 aux_fun() {
-    aux_laf "$FILEPATH_aux" "$@"
+    ana_laf "$FILEPATH_aux" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
 aux_var() {
-    aux_acu -o "$CONFIG_aux" "$DIR_FUN/.."
+    ana_acu -o "$CONFIG_aux" "$DIR_FUN/.."
 }
 
 # Logging function. Prints a timestamped log message with a log level

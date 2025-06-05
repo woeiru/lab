@@ -19,11 +19,11 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 srv_fun() {
     # Technical Description:
     #   Extracts and displays function information from the srv module file
-    #   Uses aux_laf utility to parse function definitions and comments
+    #   Uses ana_laf utility to parse function definitions and comments
     #   Provides formatted output showing function names, descriptions, and usage
     #   Supports optional filtering by function name pattern
     # Dependencies:
-    #   - aux_laf function for parsing and formatting
+    #   - ana_laf function for parsing and formatting
     #   - Read access to srv module file
     #   - Standard POSIX shell utilities
     # Arguments:
@@ -34,7 +34,7 @@ srv_fun() {
         return 0
     fi
     
-    aux_laf "$FILEPATH_srv" "$@"
+    ana_laf "$FILEPATH_srv" "$@"
 }
 # Displays an overview of NFS-specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
@@ -42,11 +42,11 @@ srv_fun() {
 srv_var() {
     # Technical Description:
     #   Scans configuration files and related directories for srv-related variables
-    #   Uses aux_acu utility with overview flag to extract variable definitions
+    #   Uses ana_acu utility with overview flag to extract variable definitions
     #   Displays variable names, values, and their usage context
     #   Provides comprehensive view of configuration state for troubleshooting
     # Dependencies:
-    #   - aux_acu function for configuration analysis
+    #   - ana_acu function for configuration analysis
     #   - Read access to configuration files and directories
     #   - Standard POSIX shell utilities
     # Arguments:
@@ -62,7 +62,7 @@ srv_var() {
         return 1
     fi
     
-    aux_acu -o "$CONFIG_srv" "$DIR_FUN/.."
+    ana_acu -o "$CONFIG_srv" "$DIR_FUN/.."
 }
 
 # Sets up an NFS share by prompting for necessary information (NFS header, shared folder, and options) and applying the configuration

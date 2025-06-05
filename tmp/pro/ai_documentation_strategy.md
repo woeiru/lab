@@ -24,9 +24,9 @@ find /home/es/lab -type d -exec sh -c 'ls -la "$1" | grep -q "^d" && echo "has_d
 ./utl/doc/run_all_doc.sh  # Generate comprehensive metadata
 
 # AI processes:
-# - Function metadata from aux_laf
-# - Variable usage from aux_acu  
-# - Documentation structure from aux_lad
+# - Function metadata from ana_laf
+# - Variable usage from ana_acu  
+# - Documentation structure from ana_lad
 # - System metrics from stats
 ```
 
@@ -51,9 +51,9 @@ find /home/es/lab -type d -exec sh -c 'ls -la "$1" | grep -q "^d" && echo "has_d
 ## 🛠️ AI Documentation Tools
 
 ### Existing Infrastructure (Already Available)
-- **Function Analysis**: `aux_laf` + `utl/doc/func`
-- **Variable Analysis**: `aux_acu` + `utl/doc/var`
-- **Documentation Discovery**: `aux_lad` + `utl/doc/hub`
+- **Function Analysis**: `ana_laf` + `utl/doc/func`
+- **Variable Analysis**: `ana_acu` + `utl/doc/var`
+- **Documentation Discovery**: `ana_lad` + `utl/doc/hub`
 - **Metrics Generation**: `utl/doc/stats`
 - **Orchestration**: `utl/doc/run_all_doc.sh`
 
@@ -62,19 +62,19 @@ find /home/es/lab -type d -exec sh -c 'ls -la "$1" | grep -q "^d" && echo "has_d
 1. **Code Analysis AI**
    ```bash
    # Use existing function analysis as input for AI
-   aux_laf /home/es/lab/lib/core/err -j  # JSON output for AI processing
+   ana_laf /home/es/lab/lib/core/err -j  # JSON output for AI processing
    ```
 
 2. **Pattern Recognition AI**
    ```bash
    # Feed variable usage patterns to AI
-   aux_acu -j cfg/env lib/ops src/set  # JSON for AI analysis
+   ana_acu -j cfg/env lib/ops src/set  # JSON for AI analysis
    ```
 
 3. **Documentation Generation AI**
    ```bash
    # Use existing documentation metadata
-   aux_lad -j doc  # JSON documentation structure for AI
+   ana_lad -j doc  # JSON documentation structure for AI
    ```
 
 ## 🔧 Modern AI Documentation Tools
@@ -115,7 +115,7 @@ cd tmp/ai_docs
 find /home/es/lab -type d -not -path "*/.*" -exec test ! -f {}/README.md \; -print
 
 # Analyze existing documentation coverage
-aux_lad /home/es/lab -j > current_docs.json
+ana_lad /home/es/lab -j > current_docs.json
 ```
 
 ### Step 3: AI-Assisted Documentation Generation
@@ -167,7 +167,7 @@ find /home/es/lab -name "*.md" -exec grep -l "\[.*\](.*)" {} \;
 
 Your project already has excellent infrastructure. The AI strategy should:
 
-1. **Leverage Existing Metadata**: Use JSON outputs from `aux_laf`, `aux_acu`, `aux_lad`
+1. **Leverage Existing Metadata**: Use JSON outputs from `ana_laf`, `ana_acu`, `ana_lad`
 2. **Maintain Auto-Generation**: Keep existing auto-generated sections
 3. **Enhance Manual Sections**: Use AI to improve human-written documentation
 4. **Preserve Architecture**: Maintain current directory structure and patterns

@@ -6,7 +6,7 @@
 
 ## 🎯 Project Objective
 
-Create an AI-powered documentation generator that leverages existing lab tools (`aux_laf`, `aux_acu`, `aux_lad`) and enhances them with **9 additional metadata intelligence layers** to generate comprehensive, user-focused README.md files across the entire lab environment. **Complete 13-phase intelligence system** for maximum AI context and documentation quality.
+Create an AI-powered documentation generator that leverages existing lab tools (`ana_laf`, `ana_acu`, `ana_lad`) and enhances them with **9 additional metadata intelligence layers** to generate comprehensive, user-focused README.md files across the entire lab environment. **Complete 13-phase intelligence system** for maximum AI context and documentation quality.
 
 ## ✅ **COMPLETED ACHIEVEMENTS**
 
@@ -19,9 +19,9 @@ Create an AI-powered documentation generator that leverages existing lab tools (
 **13 Intelligence Layers Architected** (9 Implemented + 4 Module Shells Created):
 
 #### **Phase 1-4: Existing Module Integration** ✅
-- ✅ **Function Intelligence** (from `func` module) - `aux_laf -j` integration
-- ✅ **Variable Intelligence** (from `var` module) - `aux_acu -j` integration  
-- ✅ **Documentation Context** (from `hub` module) - `aux_lad -j` integration
+- ✅ **Function Intelligence** (from `func` module) - `ana_laf -j` integration
+- ✅ **Variable Intelligence** (from `var` module) - `ana_acu -j` integration  
+- ✅ **Documentation Context** (from `hub` module) - `ana_lad -j` integration
 - ✅ **Project Scale Metrics** (from `stats` module) - Quantitative analysis
 
 #### **Phase 5-9: Enhanced Intelligence Layers** ✅ **IMPLEMENTED & WORKING**
@@ -110,7 +110,7 @@ Create an AI-powered documentation generator that leverages existing lab tools (
 
 ### **Priority 2: Missing Core Modules** 📋
 
-#### **A. `aux_laf` Integration Enhancement**
+#### **A. `ana_laf` Integration Enhancement**
 **Status**: ✅ Basic integration, needs enrichment
 **Missing**:
 - Function relationship mapping
@@ -118,7 +118,7 @@ Create an AI-powered documentation generator that leverages existing lab tools (
 - Function complexity scoring
 - Call graph generation
 
-#### **B. `aux_acu` Integration Enhancement** 
+#### **B. `ana_acu` Integration Enhancement** 
 **Status**: ✅ Basic integration, needs enrichment
 **Missing**:
 - Variable dependency mapping
@@ -126,7 +126,7 @@ Create an AI-powered documentation generator that leverages existing lab tools (
 - Environment-specific variable usage
 - Variable validation patterns
 
-#### **C. `aux_lad` Integration Enhancement**
+#### **C. `ana_lad` Integration Enhancement**
 **Status**: ✅ Basic integration, needs enrichment  
 **Missing**:
 - Documentation quality scoring
@@ -275,9 +275,9 @@ DEPENDENCIES[ai_docs]="functions variables hub stats"  # NEW
 {
   "directory": "string",
   "timestamp": "ISO-8601",
-  "functions": "array",           // Phase 1: aux_laf integration
-  "variables": "array",           // Phase 2: aux_acu integration
-  "documentation": "array",       // Phase 3: aux_lad integration  
+  "functions": "array",           // Phase 1: ana_laf integration
+  "variables": "array",           // Phase 2: ana_acu integration
+  "documentation": "array",       // Phase 3: ana_lad integration  
   "project_stats": "object",      // Phase 4: stats analysis
   "files": "array",
   
