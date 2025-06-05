@@ -50,9 +50,10 @@ fi
 if declare -f aux_acu >/dev/null; then
     ((functions_found++))
 fi
-if declare -f aux_nos >/dev/null; then
-    ((functions_found++))
-fi
+# aux_nos function has been removed - using aux_log instead
+# if declare -f aux_nos >/dev/null; then
+#     ((functions_found++))
+# fi
 if declare -f aux_flc >/dev/null; then
     ((functions_found++))
 fi
@@ -87,10 +88,11 @@ if declare -f aux_log >/dev/null; then
     fi
 fi
 
-# Test notification functionality
-if declare -f aux_nos >/dev/null; then
-    nos_output=$(aux_nos "test_function" "executed successfully" 2>&1)
-    if [[ "$nos_output" =~ "test_function" ]] && [[ "$nos_output" =~ "executed successfully" ]]; then
+# Test notification functionality (aux_nos has been replaced with aux_log)
+if declare -f aux_log >/dev/null; then
+    # Test basic logging with notification format
+    log_output=$(aux_log "INFO" "test_function: executed successfully" 2>&1)
+    if [[ "$log_output" =~ "test_function" ]] && [[ "$log_output" =~ "executed successfully" ]]; then
         exit 0
     fi
 fi
