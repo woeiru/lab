@@ -1,47 +1,19 @@
 #!/bin/bash
-#######################################################################
-# Auxiliary Utilities Library
-#######################################################################
-# File: lib/gen/aux
-# Description: Comprehensive auxiliary utilities providing function introspection,
-#              variable analysis, documentation generation, and system monitoring
-#              capabilities for the lab environment infrastructure.
+###############################################################################
+# Auxiliary Utilities Library - lib/gen/aux
+###############################################################################
+# Provides function introspection, variable analysis, documentation generation,
+# and system monitoring capabilities for the lab environment.
 #
-# Dependencies:
-#   - Bash 4.0+ (for associative arrays and advanced parameter handling)
-#   - Standard UNIX utilities (awk, grep, sed, find, wc, date)
-#   - File system access for reading configuration and source files
-#   - Optional: LAB_DIR environment variable for path resolution
+# Dependencies: Bash 4.0+, standard UNIX utilities (awk, grep, sed, find, wc)
 #
-# Purpose:
-#   This library serves as the central auxiliary toolkit for the lab environment,
-#   providing essential utilities for introspection, analysis, and documentation
-#   generation. It enables dynamic discovery of functions and variables across
-#   the codebase while supporting multiple output formats and analysis modes.
+# Main Functions:
+#   aux_fun, aux_var - Overview summaries
+#   aux_log, aux_ffl - Utility operations  
+#   aux_use, aux_tec - Help system
 #
-# Key Features:
-#   - Function introspection and metadata extraction from source files
-#   - Variable usage analysis across configuration and source directories
-#   - Documentation discovery and metadata generation with statistics
-#   - Recursive file processing with configurable depth control
-#   - Multi-format output support (table, JSON, truncated views)
-#   - Real-time logging with timestamp integration
-#   - Usage and technical documentation display for functions
-#
-# Function Categories:
-#   - Overview Functions: aux_fun, aux_var - High-level summaries
-#   - Analysis Functions: ana_laf, ana_acu, ana_lad - Detailed analysis
-#   - Utility Functions: aux_log, aux_ffl - Supporting operations
-#   - Documentation Functions: aux_use, aux_tec - Help system
-#
-# Usage Examples:
-#   source lib/gen/aux
-#   aux_fun                              # Show function overview
-#   ana_laf "/path/to/file" -t          # List functions with truncation
-#   ana_acu "" cfg/env lib/ops          # Analyze variable usage
-#   aux_ffl ana_laf "" lib/ops 5        # Process files recursively
-#
-#######################################################################
+# Usage: source lib/gen/aux
+###############################################################################
 
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
