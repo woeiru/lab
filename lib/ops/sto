@@ -211,7 +211,7 @@ sto_nfs() {
     #   - 'sudo' for privileged operations
     #   - NFS client utilities and kernel modules
     #   - Network connectivity to NFS server
-    #   - 'aux_use' and 'aux_nos' functions for messaging
+    #   - 'aux_use' and 'aux_log' functions for messaging
     # Arguments:
     #   $1: server_ip - IP address or hostname of the NFS server
     #   $2: shared_folder - path to the shared folder on the NFS server
@@ -257,7 +257,7 @@ sto_nfs() {
         return 1
     fi
 
-    aux_nos "$function_name" "NFS mount completed"
+    aux_log "INFO" "$function_name: NFS mount completed"
 }
 
 # Transforms a folder into a Btrfs subvolume, optionally setting attributes (e.g., disabling COW). Handles multiple folders, preserving content and ownership.
@@ -352,7 +352,7 @@ sto_bfs_ra1() {
     #   - 'mkdir' for mount point creation
     #   - 'mount' for filesystem mounting
     #   - Two available block devices for RAID configuration
-    #   - 'aux_use' and 'aux_nos' functions for messaging
+    #   - 'aux_use' and 'aux_log' functions for messaging
     # Arguments:
     #   $1: device1 - first block device path (e.g., /dev/sdb)
     #   $2: device2 - second block device path (e.g., /dev/sdc)
@@ -397,7 +397,7 @@ sto_bfs_ra1() {
         echo "Entry not added to /etc/fstab."
     fi
 
-    aux_nos "$function_name" "executed ( $1 $2 $3 )"
+    aux_log "INFO" "$function_name: executed ( $1 $2 $3 )"
 }
 
 # Checks and lists subvolume status of folders in a specified path. Supports filtering by folder type (regular, hidden, or both) and subvolume status.
@@ -1021,7 +1021,7 @@ sto_zfs_cpo() {
     #   - 'sudo' for privileged operations
     #   - ZFS kernel modules loaded and functional
     #   - Target block device available and accessible
-    #   - 'aux_use' and 'aux_nos' functions for messaging
+    #   - 'aux_use' and 'aux_log' functions for messaging
     # Arguments:
     #   $1: pool_name - name for the new ZFS pool
     #   $2: drive_name_or_path - block device path (e.g., /dev/sdX)
@@ -1060,7 +1060,7 @@ sto_zfs_cpo() {
         if sudo zpool create "$pool_name" "$drive_name"; then
             echo "ZFS pool '$pool_name' created successfully on '$drive_name'."
             sudo zpool status "$pool_name"
-            aux_nos "$function_name" "executed ( pool: $pool_name, drive: $drive_name )" || true # Call aux_nos if it exists
+            aux_log "INFO" "$function_name: executed ( pool: $pool_name, drive: $drive_name )"
         else
             echo "Error: Failed to create ZFS pool '$pool_name'."
             return 1
@@ -1087,7 +1087,7 @@ sto_zfs_dim() {
     #   - 'mkdir' for directory creation
     #   - Existing ZFS pool for dataset creation
     #   - Appropriate permissions for ZFS operations
-    #   - 'aux_use' and 'aux_nos' functions for messaging
+    #   - 'aux_use' and 'aux_log' functions for messaging
     # Arguments:
     #   $1: pool_name - existing ZFS pool name
     #   $2: dataset_name - name for the dataset within the pool
@@ -1137,7 +1137,7 @@ sto_zfs_dim() {
         echo "ZFS dataset '$dataset_path' is already mounted at '$expected_mountpoint'."
     fi
 
-    aux_nos "$function_name" "executed ( $pool_name / $dataset_name )"
+    aux_log "INFO" "$function_name: executed ( $pool_name / $dataset_name )"
 }
 
 # Creates and sends ZFS snapshots from a source pool to a destination pool. Supports initial full sends and incremental sends for efficiency

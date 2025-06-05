@@ -32,7 +32,7 @@
 #   - Overview Functions: aux_fun, aux_var - High-level summaries
 #   - Analysis Functions: aux_laf, aux_acu, aux_lad - Detailed analysis
 #   - Utility Functions: aux_log, aux_ffl - Supporting operations
-#   - Documentation Functions: aux_use, aux_tec, aux_nos - Help system
+#   - Documentation Functions: aux_use, aux_tec - Help system
 #
 # Usage Examples:
 #   source lib/gen/aux
@@ -77,7 +77,22 @@ aux_var() {
 aux_log() {
     local log_level="$1"
     local message="$2"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$log_level] $message"
+    
+    # Enhanced version with integration to main logging system
+    if type -t log &>/dev/null; then
+        # If main logging system is available, use it for consistency
+        case "$log_level" in
+            ERROR|WARN|WARNING)
+                log "lvl" "[$log_level] $message"
+                ;;
+            *)
+                log "lvl" "[$log_level] $message"
+                ;;
+        esac
+    else
+        # Fallback to simple echo if main logging not available
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$log_level] $message"
+    fi
 }
 
 # Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
@@ -840,16 +855,7 @@ EOF
     fi
 }
 
-# Logs a function's execution status with a timestamp, providing a simple way to track script progress and debugging information
-# main display notification
-# <function_name> <status>
-aux_nos() {
-    local function_name="$1"
-    local status="$2"
 
-
-    echo "[$(date +"%Y-%m-%d %H:%M:%S")] $function_name: $status"
-}
 
 # Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
 # function usage information

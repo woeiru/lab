@@ -675,19 +675,19 @@ usr_adr() {
 
     # Check if both arguments were provided (redundant now but keeping for safety)
     if [ -z "$file" ] || [ -z "$line_to_add" ]; then
-        aux_nos "$function_name" "Error: Both file path and line to add must be provided"
+        aux_log "ERROR" "$function_name: Error: Both file path and line to add must be provided"
         return 1
     fi
 
     # Check if the file exists and is writable
     if [ ! -w "$file" ]; then
-        aux_nos "$function_name" "Error: $file does not exist or is not writable"
+        aux_log "ERROR" "$function_name: Error: $file does not exist or is not writable"
         return 1
     fi
 
     # Check if the line already exists in the file
     if grep -Fxq "$line_to_add" "$file"; then
-        aux_nos "$function_name" "Line already exists in $file"
+        aux_log "INFO" "$function_name: Line already exists in $file"
         return 0
     fi
 
@@ -697,10 +697,10 @@ usr_adr() {
 
     # Use mv to atomically replace the original file
     if mv "$temp_file" "$file"; then
-        aux_nos "$function_name" "Line added to $file"
+        aux_log "INFO" "$function_name: Line added to $file"
         return 0
     else
-        aux_nos "$function_name" "Error: Failed to update $file"
+        aux_log "ERROR" "$function_name: Error: Failed to update $file"
         rm -f "$temp_file"
         return 1
     fi

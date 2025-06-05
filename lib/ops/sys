@@ -193,7 +193,7 @@ sys_upa() {
     #   - Detected package manager (apt, dnf, yum, or zypper) installed and functional
     #   - Root or sudo privileges for package management operations
     #   - Network connectivity for downloading package updates
-    #   - aux_nos function for status reporting
+    #   - aux_log function for status reporting
     # Arguments:
     #   $1: -x - explicit execution flag required for safety and consistency
     
@@ -214,7 +214,7 @@ sys_upa() {
     pman=$(sys_dpa -x)
 
     if [ "$pman" = "unknown" ]; then
-        aux_nos "$function_name" "Could not detect a supported package manager"
+        aux_log "ERROR" "$function_name: Could not detect a supported package manager"
         return 1
     fi
 
@@ -230,16 +230,16 @@ sys_upa() {
             zypper refresh -y && zypper update -y
             ;;
         *)
-            aux_nos "$function_name" "Unsupported package manager: $pman"
+            aux_log "ERROR" "$function_name: Unsupported package manager: $pman"
             return 1
             ;;
     esac
 
     if [ $? -eq 0 ]; then
-        aux_nos "$function_name" "System update and upgrade completed successfully"
+        aux_log "INFO" "$function_name: System update and upgrade completed successfully"
         return 0
     else
-        aux_nos "$function_name" "Failed to update and upgrade system"
+        aux_log "ERROR" "$function_name: Failed to update and upgrade system"
         return 1
     fi
 }
@@ -259,7 +259,7 @@ sys_ipa() {
     #   - Package manager utilities: dpkg (apt), rpm (dnf/yum/zypper)
     #   - Root or sudo privileges for package installation
     #   - Network connectivity for downloading packages
-    #   - aux_nos function for status reporting
+    #   - aux_log function for status reporting
     # Arguments:
     #   $1, $2, ...: package_name - names of packages to install from system repositories
     
@@ -279,7 +279,7 @@ sys_ipa() {
     local pman
     pman=$(sys_dpa -x)
     if [ "$pman" = "unknown" ]; then
-        aux_nos "$function_name" "Could not detect a supported package manager"
+        aux_log "ERROR" "$function_name: Could not detect a supported package manager"
         return 1
     fi
 
@@ -307,7 +307,7 @@ sys_ipa() {
 
     # If no packages need installation, exit successfully
     if [ ${#packages_to_install[@]} -eq 0 ]; then
-        aux_nos "$function_name" "All packages are already installed"
+        aux_log "INFO" "$function_name: All packages are already installed"
         return 0
     fi
 
@@ -323,17 +323,17 @@ sys_ipa() {
             zypper install -y "${packages_to_install[@]}"
             ;;
         *)
-            aux_nos "$function_name" "Unsupported package manager: $pman"
+            aux_log "ERROR" "$function_name: Unsupported package manager: $pman"
             return 1
             ;;
     esac
 
     local exit_status=$?
     if [ $exit_status -eq 0 ]; then
-        aux_nos "$function_name" "Successfully installed packages: ${packages_to_install[*]}"
+        aux_log "INFO" "$function_name: Successfully installed packages: ${packages_to_install[*]}"
         return 0
     else
-        aux_nos "$function_name" "Failed to install packages: ${packages_to_install[*]}"
+        aux_log "ERROR" "$function_name: Failed to install packages: ${packages_to_install[*]}"
         return 1
     fi
 }
@@ -351,7 +351,7 @@ sys_gst() {
     # Dependencies:
     #   - git command line tool with configuration capabilities
     #   - Write permissions for git global configuration file (~/.gitconfig)
-    #   - aux_nos function for status notification
+    #   - aux_log function for status notification
     # Arguments:
     #   $1: username - git user name for commit attribution (spaces allowed)
     #   $2: usermail - git user email address for commit identification
@@ -373,7 +373,7 @@ sys_gst() {
     git config --global user.name "$username"
     git config --global user.email "$usermail"
 
-    aux_nos "$function_name" "executed ( $1 $2 )"
+    aux_log "INFO" "$function_name: executed ( $1 $2 )"
 }
 
 # Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
@@ -432,7 +432,7 @@ sys_ust() {
     #   - useradd command for user account creation
     #   - chpasswd command for secure password setting
     #   - id command for user existence verification
-    #   - aux_nos function for status notification
+    #   - aux_log function for status notification
     #   - Root or sudo privileges for user management operations
     # Arguments:
     #   $1: username - desired username for the new system account
@@ -458,9 +458,9 @@ sys_ust() {
 
     # Check if user creation was successful
     if id -u "$username" > /dev/null 2>&1; then
-        aux_nos "$function_name" "User $username created successfully"
+        aux_log "INFO" "$function_name: User $username created successfully"
     else
-        aux_nos "$function_name" "Failed to create user $username"
+        aux_log "ERROR" "$function_name: Failed to create user $username"
         return 1
     fi
 }
@@ -479,7 +479,7 @@ sys_sdc() {
     #   - systemctl command for systemd service management
     #   - systemctl is-active command for service status verification
     #   - aux_tec and aux_use functions for help and usage display
-    #   - aux_nos function for status notification
+    #   - aux_log function for status notification
     #   - Root or sudo privileges for service management operations
     # Arguments:
     #   $1: service - name of the systemd service to enable and start
@@ -504,15 +504,15 @@ sys_sdc() {
     # Check if service is active
     systemctl is-active --quiet "$service"
     if [ $? -eq 0 ]; then
-        aux_nos "$function_name" "$service is active"
+        aux_log "INFO" "$function_name: $service is active"
     else
         read -p "$service is not active. Do you want to continue anyway? [Y/n] " choice
         case "$choice" in
             [yY]|[yY][eE][sS])
-                aux_nos "$function_name" "$service is not active"
+                aux_log "WARN" "$function_name: $service is not active"
                 ;;
             *)
-                aux_nos "$function_name" "$service is not active. Exiting."
+                aux_log "ERROR" "$function_name: $service is not active. Exiting."
                 return 1
                 ;;
         esac

@@ -130,7 +130,7 @@ pbs_adr() {
     # Dependencies:
     #   - grep for pattern matching in files
     #   - echo for writing to files
-    #   - aux_nos function for notification output
+    #   - aux_log function for notification output
     #   - Write permissions to /etc/apt/sources.list
     # Arguments:
     #   $1: -x - explicit execution flag required for safety due to system modifications
@@ -150,10 +150,10 @@ pbs_adr() {
     file="/etc/apt/sources.list"
 
     if grep -Fxq "$line_to_add" "$file"; then
-        aux_nos "$function_name" "Line already exists in $file"
+        aux_log "INFO" "$function_name: Line already exists in $file"
     else
         echo "$line_to_add" >> "$file"
-        aux_nos "$function_name" "Line added to $file"
+        aux_log "INFO" "$function_name: Line added to $file"
     fi
 }
 
@@ -170,7 +170,7 @@ pbs_rda() {
     #   - grep with Perl regex support (-Pzo flags)
     #   - echo with escape sequence support (-e flag)
     #   - aux_use function for usage display
-    #   - aux_nos function for notification output
+    #   - aux_log function for notification output
     #   - Write permissions to /etc/proxmox-backup/datastore.cfg
     # Arguments:
     #   $1: datastore_config - configuration identifier or backup source
@@ -218,7 +218,7 @@ pbs_rda() {
         echo "$combined_lines"
     fi
 
-    aux_nos "$function_name" "executed ( $1 $2 $3 )"
+    aux_log "INFO" "$function_name: executed ( $1 $2 $3 )"
 }
 
 # Monitors and displays various aspects of the Proxmox Backup Server
@@ -238,7 +238,7 @@ pbs_mon() {
     #   - journalctl for log analysis
     #   - df for storage usage statistics
     #   - ss for network connection monitoring
-    #   - aux_nos function for notification output
+    #   - aux_log function for notification output
     # Arguments:
     #   $1: option (optional) - monitoring option number (1-11) or descriptive string
     
@@ -323,5 +323,5 @@ pbs_mon() {
             ;;
     esac
 
-    aux_nos "$function_name" "PBS monitoring completed"
+    aux_log "INFO" "$function_name: PBS monitoring completed"
 }
