@@ -21,9 +21,9 @@ net_fun() {
     #   Scans the network operations module and extracts function documentation
     #   Provides formatted overview of available functions with descriptions
     #   Supports optional filtering by function name pattern
-    #   Uses aux_laf utility for consistent function listing across modules
+    #   Uses ana_laf utility for consistent function listing across modules
     # Dependencies:
-    #   - aux_laf function from auxiliary module
+    #   - ana_laf function from auxiliary module
     #   - Read access to network operations module file
     #   - Standard POSIX shell utilities for text processing
     # Arguments:
@@ -34,7 +34,7 @@ net_fun() {
         return 0
     fi
     
-    aux_laf "$FILEPATH_net" "$@"
+    ana_laf "$FILEPATH_net" "$@"
 }
 # Displays an overview of specific variables in network configuration
 # Network Variables - NEV
@@ -43,10 +43,10 @@ net_var() {
     # Technical Description:
     #   Extracts and displays network-related configuration variables
     #   Scans configuration files and parent directories for variable definitions
-    #   Uses aux_acu utility with output formatting for variable display
+    #   Uses ana_acu utility with output formatting for variable display
     #   Provides comprehensive view of network configuration state
     # Dependencies:
-    #   - aux_acu function from auxiliary module
+    #   - ana_acu function from auxiliary module
     #   - Read access to configuration files and parent directories
     #   - Network configuration file defined in CONFIG_net variable
     # Arguments:
@@ -62,7 +62,7 @@ net_var() {
         return 1
     fi
     
-    aux_acu -o "$CONFIG_net" "$DIR_FUN/.."
+    ana_acu -o "$CONFIG_net" "$DIR_FUN/.."
 }
 
 # Guides the user through renaming a network interface by updating udev rules and network configuration, with an option to reboot the system

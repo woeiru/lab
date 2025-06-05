@@ -4,14 +4,14 @@
 #######################################################################
 # File: utl/doc/ai_doc_prototype
 # Description: Working prototype of AI-powered documentation generation
-#              that integrates with existing lab tools (aux_laf, aux_acu, aux_lad)
+#              that integrates with existing lab tools (ana_laf, ana_acu, ana_lad)
 #
 # Usage: ./ai_doc_prototype <directory_path> [ai_service]
 #   directory_path: Target directory to document
 #   ai_service: ollama|openai|mock (default: mock for testing)
 #
 # Dependencies:
-#   - Existing lab tools: aux_laf, aux_acu, aux_lad
+#   - Existing lab tools: ana_laf, ana_acu, ana_lad
 #   - Optional: Ollama (for local AI) or OpenAI API key
 #   - jq (for JSON parsing)
 #######################################################################
@@ -186,9 +186,9 @@ collect_metadata() {
         log "Analyzing functions..."
         for file in "$target_dir"/*; do
             if [[ -f "$file" && -x "$file" ]]; then
-                if aux_laf "$file" -j >/dev/null 2>&1; then
+                if ana_laf "$file" -j >/dev/null 2>&1; then
                     metadata_summary+="## Functions in $(basename "$file")\n"
-                    metadata_summary+="$(aux_laf "$file" 2>/dev/null | head -10 || echo 'No functions found')\n\n"
+                    metadata_summary+="$(ana_laf "$file" 2>/dev/null | head -10 || echo 'No functions found')\n\n"
                 fi
             fi
         done
@@ -197,9 +197,9 @@ collect_metadata() {
     # Try to get documentation structure if this is a doc directory
     if [[ "$target_dir" =~ doc ]]; then
         log "Analyzing documentation structure..."
-        if aux_lad "$target_dir" >/dev/null 2>&1; then
+        if ana_lad "$target_dir" >/dev/null 2>&1; then
             metadata_summary+="## Documentation Analysis\n"
-            metadata_summary+="$(aux_lad "$target_dir" 2>/dev/null | head -10 || echo 'No documentation metadata available')\n\n"
+            metadata_summary+="$(ana_lad "$target_dir" 2>/dev/null | head -10 || echo 'No documentation metadata available')\n\n"
         fi
     fi
     
@@ -411,8 +411,8 @@ SETUP:
     export OPENAI_API_KEY="your-api-key-here"
 
 The generated documentation integrates with your existing lab tools:
-- Uses aux_laf for function analysis
-- Uses aux_lad for documentation structure
+- Uses ana_laf for function analysis
+- Uses ana_lad for documentation structure
 - Follows established project patterns and style
 EOF
 }

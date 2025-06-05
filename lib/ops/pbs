@@ -19,11 +19,11 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 pbs_fun() {
     # Technical Description:
     #   Displays formatted list of all functions in the PBS module
-    #   Uses aux_laf utility to parse function definitions and extract documentation
+    #   Uses ana_laf utility to parse function definitions and extract documentation
     #   Provides optional filtering by function name pattern
     #   Shows function descriptions, mnemonics, and parameter requirements
     # Dependencies:
-    #   - aux_laf function from auxiliary library
+    #   - ana_laf function from auxiliary library
     #   - Read access to PBS module file
     #   - grep for pattern matching if filtering is used
     # Arguments:
@@ -34,7 +34,7 @@ pbs_fun() {
         return 0
     fi
     
-    aux_laf "$FILEPATH_pbs" "$@"
+    ana_laf "$FILEPATH_pbs" "$@"
 }
 # Shows configuration variables overview
 # overview variables
@@ -42,11 +42,11 @@ pbs_fun() {
 pbs_var() {
     # Technical Description:
     #   Displays configuration variables specific to PBS module
-    #   Uses aux_acu utility to scan and format variable definitions
+    #   Uses ana_acu utility to scan and format variable definitions
     #   Shows variable names, values, and usage context from configuration files
     #   Provides organized view of PBS-related environment and configuration settings
     # Dependencies:
-    #   - aux_acu function from auxiliary library
+    #   - ana_acu function from auxiliary library
     #   - Read access to configuration files
     #   - CONFIG_pbs environment variable must be set
     # Arguments:
@@ -62,7 +62,7 @@ pbs_var() {
         return 1
     fi
     
-    aux_acu -o "$CONFIG_pbs" "$DIR_FUN/.."
+    ana_acu -o "$CONFIG_pbs" "$DIR_FUN/.."
 }
 
 # Download Proxmox GPG key and verify checksums

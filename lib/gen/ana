@@ -30,16 +30,16 @@
 #
 # Function Categories:
 #   - Overview Functions: aux_fun, aux_var - High-level summaries
-#   - Analysis Functions: aux_laf, aux_acu, aux_lad - Detailed analysis
+#   - Analysis Functions: ana_laf, ana_acu, ana_lad - Detailed analysis
 #   - Utility Functions: aux_log, aux_ffl - Supporting operations
 #   - Documentation Functions: aux_use, aux_tec - Help system
 #
 # Usage Examples:
 #   source lib/gen/aux
 #   aux_fun                              # Show function overview
-#   aux_laf "/path/to/file" -t          # List functions with truncation
-#   aux_acu "" cfg/env lib/ops          # Analyze variable usage
-#   aux_ffl aux_laf "" lib/ops 5        # Process files recursively
+#   ana_laf "/path/to/file" -t          # List functions with truncation
+#   ana_acu "" cfg/env lib/ops          # Analyze variable usage
+#   aux_ffl ana_laf "" lib/ops 5        # Process files recursively
 #
 #######################################################################
 
@@ -60,20 +60,20 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # overview functions
 #
 ana_fun() {
-    aux_laf "$FILEPATH_ana" "$@"
+    ana_laf "$FILEPATH_ana" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
 # overview variables
 #
 ana_var() {
-    aux_acu -o "$CONFIG_aux" "$DIR_FUN/.."
+    ana_acu -o "$CONFIG_aux" "$DIR_FUN/.."
 }
 
 # Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
 # list all functions
 # <file name> [-t] [-b]
-aux_laf() {
+ana_laf() {
     local truncate_mode=false
     local break_mode=false
     local json_mode=false
@@ -394,7 +394,7 @@ aux_laf() {
 # Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options
 # list all documentation
 # <file/directory name> [-t] [-b] [-j]
-aux_lad() {
+ana_lad() {
     local truncate_mode=false
     local break_mode=false
     local json_mode=false
@@ -693,7 +693,7 @@ aux_lad() {
 # Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
 # <sort mode: -o|-a|-j|""|> <config file or directory> <target folder1> [target folder2 ...]
-aux_acu() {
+ana_acu() {
     local sort_mode_arg="$1"
     local conf_source="$2"
     local json_mode=false
@@ -714,7 +714,7 @@ aux_acu() {
     # Adjusted width for individual target directory occurrence columns to show details
     local tab_width_per_dir_occ=40 # Increased width
 
-    local usage_message="Usage: aux_acu <-o|-a|-j|\"\"> <config file or directory> <target folder1> [target folder2 ...]"
+    local usage_message="Usage: ana_acu <-o|-a|-j|\"\"> <config file or directory> <target folder1> [target folder2 ...]"
     local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  \"\": defaults to -o (original order)"
 
     if [ ${#target_folders_input[@]} -eq 0 ]; then
@@ -753,7 +753,7 @@ aux_acu() {
     declare -a var_order # To store variables in their original order from the config
 
     # --- Helper function to read config file (no changes needed from previous version) ---
-    _aux_acu_read_config_file() {
+    _ana_acu_read_config_file() {
         local current_conf_source_path="$1"
         local files_to_process=()
 
@@ -771,7 +771,7 @@ aux_acu() {
         elif [[ -f "$current_conf_source_path" ]]; then
             files_to_process+=("$current_conf_source_path")
         else
-            echo "Error: Invalid config source path '$current_conf_source_path' in _aux_acu_read_config_file." >&2
+            echo "Error: Invalid config source path '$current_conf_source_path' in _ana_acu_read_config_file." >&2
             return 1
         fi
 
@@ -800,7 +800,7 @@ aux_acu() {
     }
 
     # --- Helper function to truncate strings (no changes needed) ---
-    _aux_acu_truncate_string() {
+    _ana_acu_truncate_string() {
         local str="$1"
         local max_length="$2"
         if [ "${#str}" -gt "$max_length" ]; then
@@ -815,7 +815,7 @@ aux_acu() {
     }
     
     # --- Helper functions for table printing (MODIFIED) ---
-    _aux_acu_print_separator() {
+    _ana_acu_print_separator() {
         local line="+"
         local h_var_segment h_val_segment h_occ_segment h_dir_segment # Declared on one line
 
@@ -839,8 +839,8 @@ aux_acu() {
         printf "%s\n" "$line"
     }
 
-    _aux_acu_print_header() {
-        _aux_acu_print_separator
+    _ana_acu_print_header() {
+        _ana_acu_print_separator
         local header_string="| "
         header_string+=$(printf "%-${tab_width_var_names}s | " "Variable")
         header_string+=$(printf "%-${tab_width_var_values}s | " "Value")
@@ -867,14 +867,14 @@ aux_acu() {
                 # Fallback: LAB_DIR not set, or path not under LAB_DIR
                 display_path_for_header=$(basename "$target_folder_path")
             fi
-            local dir_name_header=$(_aux_acu_truncate_string "$display_path_for_header" "$tab_width_per_dir_occ")
+            local dir_name_header=$(_ana_acu_truncate_string "$display_path_for_header" "$tab_width_per_dir_occ")
             header_string+=$(printf "%-${tab_width_per_dir_occ}s | " "$dir_name_header")
         done
         printf "%s\n" "$header_string"
-        _aux_acu_print_separator
+        _ana_acu_print_separator
     }
 
-    _aux_acu_print_row() {
+    _ana_acu_print_row() {
         local var_name_in_row="$1"
         local var_value_in_row="$2"
         local overall_total_occurrences_in_row="$3"
@@ -882,23 +882,23 @@ aux_acu() {
         local per_dir_detail_strings_in_row=("$@") # Array of "file:count,..." strings or "0"
 
         local row_string="| "
-        row_string+=$(printf "%s | " "$(_aux_acu_truncate_string "$var_name_in_row" "$tab_width_var_names")")
-        row_string+=$(printf "%s | " "$(_aux_acu_truncate_string "$var_value_in_row" "$tab_width_var_values")")
+        row_string+=$(printf "%s | " "$(_ana_acu_truncate_string "$var_name_in_row" "$tab_width_var_names")")
+        row_string+=$(printf "%s | " "$(_ana_acu_truncate_string "$var_value_in_row" "$tab_width_var_values")")
         row_string+=$(printf "%${tab_width_total_occ}s | " "$overall_total_occurrences_in_row")
 
         for detail_str_for_dir in "${per_dir_detail_strings_in_row[@]}"; do
             # Truncate and left-align the detail string for the directory column
-            row_string+=$(printf "%s | " "$(_aux_acu_truncate_string "$detail_str_for_dir" "$tab_width_per_dir_occ")")
+            row_string+=$(printf "%s | " "$(_ana_acu_truncate_string "$detail_str_for_dir" "$tab_width_per_dir_occ")")
         done
         printf "%s\n" "$row_string"
     }
 
-    _aux_acu_print_footer() {
-        _aux_acu_print_separator
+    _ana_acu_print_footer() {
+        _ana_acu_print_separator
     }
 
     # --- Main logic ---
-    _aux_acu_read_config_file "$conf_source"
+    _ana_acu_read_config_file "$conf_source"
     if [ ${#var_order[@]} -eq 0 ]; then
         echo "No variables found in config source '$conf_source'."
         return
@@ -911,7 +911,7 @@ aux_acu() {
         vars_to_iterate=("${var_order[@]}")
     fi
 
-    _aux_acu_print_header
+    _ana_acu_print_header
 
     for var_name in "${vars_to_iterate[@]}"; do
         local var_value="${config_vars[$var_name]}"
@@ -942,10 +942,10 @@ aux_acu() {
             overall_total_occurrences_for_var=$((overall_total_occurrences_for_var + occurrences_in_current_dir_total))
         done
         
-        _aux_acu_print_row "$var_name" "$var_value" "$overall_total_occurrences_for_var" "${per_dir_details_for_row[@]}"
+        _ana_acu_print_row "$var_name" "$var_value" "$overall_total_occurrences_for_var" "${per_dir_details_for_row[@]}"
     done
 
-    _aux_acu_print_footer
+    _ana_acu_print_footer
     
     # Generate JSON output if requested
     if [[ "$json_mode" == true ]]; then

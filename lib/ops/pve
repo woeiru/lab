@@ -18,12 +18,12 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # <script_path>
 pve_fun() {
     # Technical Description:
-    #   Invokes the 'aux_laf' (list available functions) utility.
+    #   Invokes the 'ana_laf' (list available functions) utility.
     #   Accepts script path as explicit parameter for analysis.
-    #   All remaining arguments are forwarded to 'aux_laf'.
+    #   All remaining arguments are forwarded to 'ana_laf'.
     #   Primarily used for introspection of script capabilities.
     # Dependencies:
-    #   - 'aux_laf' function.
+    #   - 'ana_laf' function.
     # Arguments:
     #   $1: script_path - path to the script file to analyze
 
@@ -45,7 +45,7 @@ pve_fun() {
     fi
     
     shift
-    aux_laf "$script_path" "$@"
+    ana_laf "$script_path" "$@"
 }
 
 # Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files
@@ -53,12 +53,12 @@ pve_fun() {
 # <config_file> <analysis_dir>
 pve_var() {
     # Technical Description:
-    #   Utilizes 'aux_acu' (analyze configuration usage) with the '-o' (overview) flag.
+    #   Utilizes 'ana_acu' (analyze configuration usage) with the '-o' (overview) flag.
     #   First argument specifies the configuration file to scan.
     #   Second argument is passed as the scope for usage analysis.
     #   Helps in understanding how PVE-related variables from the site config are used across the project.
     # Dependencies:
-    #   - 'aux_acu' function.
+    #   - 'ana_acu' function.
     # Arguments:
     #   $1: config_file - path to the configuration file to analyze
     #   $2: analysis_dir - directory scope for usage analysis
@@ -86,7 +86,7 @@ pve_var() {
         return 1
     fi
 
-    aux_acu -o "$config_file" "$analysis_dir"
+    ana_acu -o "$config_file" "$analysis_dir"
 }
 
 # Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources 

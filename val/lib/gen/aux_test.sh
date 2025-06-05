@@ -44,10 +44,10 @@ fi
 if declare -f aux_log >/dev/null; then
     ((functions_found++))
 fi
-if declare -f aux_laf >/dev/null; then
+if declare -f ana_laf >/dev/null; then
     ((functions_found++))
 fi
-if declare -f aux_acu >/dev/null; then
+if declare -f ana_acu >/dev/null; then
     ((functions_found++))
 fi
 # aux_nos function has been removed - using aux_log instead
@@ -118,10 +118,10 @@ source lib/gen/aux 2>/dev/null
 # Test function listing capabilities
 analysis_tools=0
 
-# Test if aux_laf (list all functions) works
-if declare -f aux_laf >/dev/null; then
+# Test if ana_laf (list all functions) works
+if declare -f ana_laf >/dev/null; then
     # Test with the aux library itself
-    if aux_laf "$LAB_DIR/lib/gen/aux" -t 2>/dev/null | grep -q "aux-"; then
+    if ana_laf "$LAB_DIR/lib/gen/aux" -t 2>/dev/null | grep -q "aux-"; then
         ((analysis_tools++))
     fi
 fi
@@ -155,14 +155,14 @@ cd "$LAB_DIR"
 source lib/gen/aux 2>/dev/null
 
 # Test variable analysis functionality
-if declare -f aux_acu >/dev/null; then
+if declare -f ana_acu >/dev/null; then
     # Create a test config file
     test_config="/tmp/test_config_$$"
     echo 'TEST_VAR1="value1"' > "$test_config"
     echo 'TEST_VAR2="value2"' > "$test_config"
     
     # Test variable analysis (don't fail if no matches found)
-    if aux_acu -o "$test_config" "$LAB_DIR/lib" 2>/dev/null; then
+    if ana_acu -o "$test_config" "$LAB_DIR/lib" 2>/dev/null; then
         rm -f "$test_config"
         exit 0
     fi
@@ -201,8 +201,8 @@ if declare -f aux_ffl >/dev/null; then
     ((file_tools++))
 fi
 
-# Test if aux_lad (list all documentation) exists
-if declare -f aux_lad >/dev/null; then
+# Test if ana_lad (list all documentation) exists
+if declare -f ana_lad >/dev/null; then
     ((file_tools++))
 fi
 

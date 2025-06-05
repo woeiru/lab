@@ -640,7 +640,7 @@ _gpu_get_detailed_device_info() {
 gpu_fun() {
     local filepath_gpu="${1:-$FILEPATH_gpu}"
     shift
-    aux_laf "$filepath_gpu" "$@"
+    ana_laf "$filepath_gpu" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
@@ -649,7 +649,7 @@ gpu_fun() {
 gpu_var() {
     local config_gpu="${1:-$CONFIG_gpu}"
     local lib_ops_parent_dir="${2:-$DIR_FUN/..}"
-    aux_acu -o "$config_gpu" "$lib_ops_parent_dir"
+    ana_acu -o "$config_gpu" "$lib_ops_parent_dir"
 }
 
 # Downloads and installs NVIDIA drivers, blacklisting Nouveau drivers first

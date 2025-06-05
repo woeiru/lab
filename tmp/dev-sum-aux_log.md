@@ -62,7 +62,7 @@ Example outputs:
 ### Module Architecture
 The `aux_log` function is part of the auxiliary functions module (`lib/gen/aux`), which provides:
 - **Overview Functions**: `aux_fun`, `aux_var` - High-level summaries
-- **Analysis Functions**: `aux_laf`, `aux_acu`, `aux_lad` - Detailed analysis
+- **Analysis Functions**: `ana_laf`, `ana_acu`, `ana_lad` - Detailed analysis
 - **Utility Functions**: `aux_log`, `aux_ffl` - Supporting operations
 - **Documentation Functions**: `aux_use`, `aux_tec` - Help system
 

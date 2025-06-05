@@ -39,13 +39,13 @@ aux_fun → aux_fun
 aux_var → aux_var
 aux_log → aux_log
 aux_ffl → aux_ffl
-aux_laf → aux_laf
-aux_acu → aux_acu
+ana_laf → ana_laf
+ana_acu → ana_acu
 aux_mev → aux_mev
 aux_nos → aux_nos
 aux_flc → aux_flc
 aux_use → aux_use
-aux_lad → aux_lad
+ana_lad → ana_lad
 
 # lib/ops/gpu
 gpu-fun → gpu_fun

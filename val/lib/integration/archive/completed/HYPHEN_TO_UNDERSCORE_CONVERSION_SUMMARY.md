@@ -72,13 +72,13 @@ aux-fun  → aux_fun     # General function utilities
 aux-var  → aux_var     # Variable operations
 aux-log  → aux_log     # Logging functions
 aux-ffl  → aux_ffl     # File list operations
-aux-laf  → aux_laf     # List and filter operations
-aux-acu  → aux_acu     # Accumulator functions
+aux-laf  → ana_laf     # List and filter operations
+aux-acu  → ana_acu     # Accumulator functions
 aux-mev  → aux_mev     # Menu/event handling
 aux-nos  → aux_nos     # Number operations
 aux-flc  → aux_flc     # File check operations
 aux-use  → aux_use     # Usage/utility functions
-aux-lad  → aux_lad     # List and display operations
+aux-lad  → ana_lad     # List and display operations
 ```
 
 ### GPU Functions (9 total)

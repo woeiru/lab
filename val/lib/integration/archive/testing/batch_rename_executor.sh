@@ -181,9 +181,9 @@ execute_batch_3() {
     echo
     
     local renames=(
-        "aux_laf:aux-list-all-functions:$LAB_ROOT/lib/gen/aux"
+        "ana_laf:aux-list-all-functions:$LAB_ROOT/lib/gen/aux"
         "aux_ffl:aux-foreach-file-list:$LAB_ROOT/lib/gen/aux"
-        "aux_acu:aux-analyze-config-usage:$LAB_ROOT/lib/gen/aux"
+        "ana_acu:aux-analyze-config-usage:$LAB_ROOT/lib/gen/aux"
         "aux_nos:aux-notify-operation-status:$LAB_ROOT/lib/gen/aux"
     )
     

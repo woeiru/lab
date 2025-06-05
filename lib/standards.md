@@ -131,7 +131,7 @@ This pattern:
 
 - **Functions with optional parameters**: Document optional parameters as `[optional_param]`
 - **Functions with variable parameters**: Implement smart validation counting required vs optional arguments
-- **Infrastructure/Utility Functions**: Core utility functions in the `aux` module (like `aux_use`, `aux_tec`, `aux_laf`, `aux_acu`) are exempted from the `-x` flag requirement as they are infrastructure functions designed to be called by other functions to implement the standards themselves
+- **Infrastructure/Utility Functions**: Core utility functions in the `aux` module (like `aux_use`, `aux_tec`, `ana_laf`, `ana_acu`) are exempted from the `-x` flag requirement as they are infrastructure functions designed to be called by other functions to implement the standards themselves
 
 ### Benefits
 
@@ -226,12 +226,12 @@ usr_fun() {
     #   Supports pattern-based filtering for function name matching
     #   Provides formatted output with usage information and descriptions
     # Dependencies:
-    #   - 'aux_laf' function for list and filter operations
+    #   - 'ana_laf' function for list and filter operations
     #   - Access to function definition files
     #   - Pattern matching utilities for filtering
     # Arguments:
     #   $1: function_name_filter (optional) - pattern to filter function names
-    #   Additional arguments are passed through to aux_laf
+    #   Additional arguments are passed through to ana_laf
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -240,7 +240,7 @@ usr_fun() {
     
     # Optional parameters - no validation needed
     # Pass all arguments to processing function
-    aux_laf "$FILEPATH_usr" "$@"
+    ana_laf "$FILEPATH_usr" "$@"
 }
 ```
 

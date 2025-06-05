@@ -18,7 +18,7 @@ Documentation Output (Human-Readable)
 
 ### Example 1: Function Documentation AI Layer
 
-**Input**: JSON from your existing `aux_laf` tool
+**Input**: JSON from your existing `ana_laf` tool
 ```json
 {
   "functions": [
@@ -108,9 +108,9 @@ analyze_directory() {
     local dir_path="$1"
     
     # Use your existing tools to gather data
-    local function_count=$(aux_laf "$dir_path"/* | wc -l)
-    local file_stats=$(aux_lad "$dir_path")
-    local variable_usage=$(aux_acu -j cfg/env "$dir_path")
+    local function_count=$(ana_laf "$dir_path"/* | wc -l)
+    local file_stats=$(ana_lad "$dir_path")
+    local variable_usage=$(ana_acu -j cfg/env "$dir_path")
     
     # Create comprehensive prompt
     local ai_prompt="Analyze this directory:
@@ -195,9 +195,9 @@ echo "Generating metadata..."
 ./utl/doc/run_all_doc.sh
 
 # Step 2: Extract JSON data for AI processing
-aux_laf -j lib/ops/gpu > .tmp/gpu_functions.json
-aux_acu -j cfg/env lib/ops > .tmp/variable_usage.json
-aux_lad -j lib/ops > .tmp/directory_structure.json
+ana_laf -j lib/ops/gpu > .tmp/gpu_functions.json
+ana_acu -j cfg/env lib/ops > .tmp/variable_usage.json
+ana_lad -j lib/ops > .tmp/directory_structure.json
 ```
 
 ### Phase 2: AI Processing Layer
@@ -336,11 +336,11 @@ generate_ai_docs() {
     if [[ -d "$target_dir" ]]; then
         # Get function metadata if it's a code directory
         if find "$target_dir" -name "*.sh" -o -name "*" -type f | head -1 | grep -q .; then
-            aux_laf -j "$target_dir"/* > .tmp/ai_analysis/functions.json 2>/dev/null || true
+            ana_laf -j "$target_dir"/* > .tmp/ai_analysis/functions.json 2>/dev/null || true
         fi
         
         # Get directory structure
-        aux_lad -j "$target_dir" > .tmp/ai_analysis/structure.json 2>/dev/null || true
+        ana_lad -j "$target_dir" > .tmp/ai_analysis/structure.json 2>/dev/null || true
     fi
     
     # Step 2: Build comprehensive prompt
@@ -426,7 +426,7 @@ find . -type d -not -path "*/.*" -exec test ! -f {}/README.md \; -print | \
 ## 🎯 Summary
 
 The AI layer is essentially:
-1. **Data Collection**: Your existing tools (`aux_laf`, `aux_acu`, `aux_lad`)
+1. **Data Collection**: Your existing tools (`ana_laf`, `ana_acu`, `ana_lad`)
 2. **Context Building**: Structured prompts with metadata + style examples
 3. **AI Processing**: Local or cloud AI services for natural language generation
 4. **Quality Assurance**: Automated validation of generated content
