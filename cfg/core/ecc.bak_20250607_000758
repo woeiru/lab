@@ -27,11 +27,11 @@ export SITE_NAME="site1"
 
 # Environment selection (deployment type within the site)
 # Options: dev, test, staging, prod
-export ENVIRONMENT_NAME="dev"
+export ENVIRONMENT_NAME="${ENVIRONMENT_NAME:-prod}"
 
 # Node selection (which specific machine within the environment)
 # Auto-detected from hostname but can be overridden
-export NODE_NAME="h1"
+export NODE_NAME="${NODE_NAME:-$(hostname)}"
 
 # Debug output for verification
 # debug_log "Environment Controller: SITE_NAME=${SITE_NAME}, ENVIRONMENT_NAME=${ENVIRONMENT_NAME}, NODE_NAME=${NODE_NAME}"
