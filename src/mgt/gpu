@@ -98,31 +98,6 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
-# Wrapper for gpu-fun that extracts global variables and calls the pure function
-# shows a summary of selected functions in the script (wrapper)
-gpu_fun_w() {
-    # Source the pure library function
-    source "${LIB_OPS_DIR}/gpu"
-    
-    # Extract global variables and call pure function
-    local filepath_gpu="${LIB_OPS_DIR}/gpu"
-    
-    gpu_fun "$filepath_gpu" "$@"
-}
-
-# Wrapper for gpu_var that extracts global variables and calls the pure function
-# displays an overview of specific variables (wrapper)
-gpu_var_w() {
-    # Source the pure library function
-    source "${LIB_OPS_DIR}/gpu"
-    
-    # Extract global variables and call pure function
-    local config_gpu="${SITE_CONFIG_FILE}"
-    local lib_ops_parent_dir="${LIB_OPS_DIR}/.."
-    
-    gpu_var "$config_gpu" "$lib_ops_parent_dir"
-}
-
 # Wrapper for gpu-nds that extracts global variables and calls the pure function  
 # downloads and installs NVIDIA drivers, blacklisting Nouveau (wrapper)
 gpu_nds_w() {
