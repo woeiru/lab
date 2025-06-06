@@ -66,89 +66,6 @@ aux_log() {
     fi
 }
 
-# Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
-# function folder loop
-# <function> <flag> <path> [max_depth] [current_depth] [extra_args ..]
-aux_ffl() {
-    local fnc="$1"
-    local flag="$2"
-    local folder="$3"
-    shift 3
-    
-    # Handle optional parameters
-    local max_depth=10
-    local current_depth=0
-    local extra_args=()
-    
-    # Check if next argument is a number (max_depth)
-    if [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]]; then
-        max_depth="$1"
-        shift
-        
-        # Check if next argument is also a number (current_depth)
-        if [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]]; then
-            current_depth="$1"
-            shift
-        fi
-    fi
-    
-    # Remaining arguments are extra_args
-    extra_args=("$@")
-    
-    # Check recursion depth to prevent infinite loops
-    if [[ $current_depth -ge $max_depth ]]; then
-        echo "Warning: Maximum recursion depth ($max_depth) reached for folder: $folder"
-        return 1
-    fi
-
-    if [[ -d "$folder" ]]; then
-        for file in "$folder"/{*,.[!.]*,..?*}; do
-            # Skip if file doesn't exist (failed glob)
-            [[ -e "$file" ]] || continue
-            
-            if [[ -f "$file" ]]; then
-                line_count=$(wc -l < "$file" 2>/dev/null || echo "0")
-                
-                # Get the file extension
-                file_extension="${file##*.}"
-                
-                if [[ "$file_extension" == "conf" ]]; then
-                    # Count variables in .conf files
-                    variable_count=$(grep -cE '^[a-zA-Z0-9_]+=' "$file" 2>/dev/null || echo "0")
-                    count_type="Variables"
-                    count_value=$variable_count
-                else
-                    # Count functions in other files
-                    function_count=$(grep -cE '^[a-zA-Z0-9_-]+\(\)[[:space:]]*\{' "$file" 2>/dev/null || echo "0")
-                    count_type="Functions"
-                    count_value=$function_count
-                fi
-                
-                # Get the real path of the file
-                real_path=$(realpath "$file" 2>/dev/null || echo "$file")
-                # Extract the filename (prefix) from the path
-                filename=$(basename "$real_path")
-                # Extract the prefix (part before the first dot)
-                prefix="${filename%%.*}"
-                # Get the directory path with the trailing slash
-                dir_path=$(dirname "$real_path")/
-                
-                echo -e "$dir_path\e[32m$prefix\e[0m${filename#$prefix} - Contains \e[31m$line_count\e[0m Lines and \e[33m$count_value\e[0m $count_type"
-                
-                # Call the function with error handling
-                if ! "$fnc" "$flag" "$file" "${extra_args[@]}" 2>/dev/null; then
-                    echo "Warning: Function '$fnc' failed for file: $file" >&2
-                fi
-            elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
-                # Recursive call with incremented depth
-                aux_ffl "$fnc" "$flag" "$file" "$max_depth" "$((current_depth + 1))" "${extra_args[@]}"
-            fi
-        done
-    else
-        echo "Invalid folder: $folder" >&2
-        return 1
-    fi
-}
 
 # Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
 # function usage information
@@ -372,5 +289,89 @@ aux_tec() {
         echo -e "$technical_description"
     else
         echo "  No technical documentation found within 3 lines after function definition."
+    fi
+}
+
+# Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed
+# function folder loop
+# <function> <flag> <path> [max_depth] [current_depth] [extra_args ..]
+aux_ffl() {
+    local fnc="$1"
+    local flag="$2"
+    local folder="$3"
+    shift 3
+    
+    # Handle optional parameters
+    local max_depth=10
+    local current_depth=0
+    local extra_args=()
+    
+    # Check if next argument is a number (max_depth)
+    if [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]]; then
+        max_depth="$1"
+        shift
+        
+        # Check if next argument is also a number (current_depth)
+        if [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]]; then
+            current_depth="$1"
+            shift
+        fi
+    fi
+    
+    # Remaining arguments are extra_args
+    extra_args=("$@")
+    
+    # Check recursion depth to prevent infinite loops
+    if [[ $current_depth -ge $max_depth ]]; then
+        echo "Warning: Maximum recursion depth ($max_depth) reached for folder: $folder"
+        return 1
+    fi
+
+    if [[ -d "$folder" ]]; then
+        for file in "$folder"/{*,.[!.]*,..?*}; do
+            # Skip if file doesn't exist (failed glob)
+            [[ -e "$file" ]] || continue
+            
+            if [[ -f "$file" ]]; then
+                line_count=$(wc -l < "$file" 2>/dev/null || echo "0")
+                
+                # Get the file extension
+                file_extension="${file##*.}"
+                
+                if [[ "$file_extension" == "conf" ]]; then
+                    # Count variables in .conf files
+                    variable_count=$(grep -cE '^[a-zA-Z0-9_]+=' "$file" 2>/dev/null || echo "0")
+                    count_type="Variables"
+                    count_value=$variable_count
+                else
+                    # Count functions in other files
+                    function_count=$(grep -cE '^[a-zA-Z0-9_-]+\(\)[[:space:]]*\{' "$file" 2>/dev/null || echo "0")
+                    count_type="Functions"
+                    count_value=$function_count
+                fi
+                
+                # Get the real path of the file
+                real_path=$(realpath "$file" 2>/dev/null || echo "$file")
+                # Extract the filename (prefix) from the path
+                filename=$(basename "$real_path")
+                # Extract the prefix (part before the first dot)
+                prefix="${filename%%.*}"
+                # Get the directory path with the trailing slash
+                dir_path=$(dirname "$real_path")/
+                
+                echo -e "$dir_path\e[32m$prefix\e[0m${filename#$prefix} - Contains \e[31m$line_count\e[0m Lines and \e[33m$count_value\e[0m $count_type"
+                
+                # Call the function with error handling
+                if ! "$fnc" "$flag" "$file" "${extra_args[@]}" 2>/dev/null; then
+                    echo "Warning: Function '$fnc' failed for file: $file" >&2
+                fi
+            elif [[ -d "$file" && "$file" != "$folder"/. && "$file" != "$folder"/.. ]]; then
+                # Recursive call with incremented depth
+                aux_ffl "$fnc" "$flag" "$file" "$max_depth" "$((current_depth + 1))" "${extra_args[@]}"
+            fi
+        done
+    else
+        echo "Invalid folder: $folder" >&2
+        return 1
     fi
 }
