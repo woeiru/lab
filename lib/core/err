@@ -16,9 +16,9 @@
 #               cleanup registration messages).
 #
 # Usage:       Sourced by other modules and scripts to handle errors consistently.
-#              `err_setup_error_handling` or `err_enable_error_trap` can be called to
-#              activate error trapping. `err_process_error` or `err_lo1_handle_error` are used
-#              to report errors. `err_print_error_report` generates a summary.
+#              `err_setup_handling` or `err_enable_trap` can be called to
+#              activate error trapping. `err_process` or `err_lo1_handle` are used
+#              to report errors. `err_print_report` generates a summary.
 #
 # Notes:       ERROR_TRAP_ENABLED controls the ERR trap. CLEANUP_FUNCTIONS are
 #              used for a central cleanup mechanism. Assumes ver_verify_module is
@@ -52,7 +52,7 @@ declare -ga ERROR_ORDER
 # Process error messages and log them appropriately
 # Error Processing - ERP
 # <message> <component> <exit_code> <severity>
-err_process_error() {
+err_process() {
     local message="$1"
     local component="${2:-${FUNCNAME[1]:-main}}"
     local exit_code="${3:-${ERROR_CODES[GENERAL_ERROR]}}"
@@ -89,14 +89,14 @@ err_process_error() {
 # Function to handle errors more comprehensively
 # Error Logging One - ELO
 # <message> <component> <exit_code> <severity>
-err_lo1_handle_error() {
+err_lo1_handle() {
     local message="$1"
     local component="${2:-${FUNCNAME[1]:-main}}"
     local exit_code="${3:-${ERROR_CODES[GENERAL_ERROR]}}"
     local severity="${4:-ERROR}"
     
     # Process the error
-    err_process_error "$message" "$component" "$exit_code" "$severity"
+    err_process "$message" "$component" "$exit_code" "$severity"
     
     # For critical errors, terminate the script
     if [[ "$severity" == "CRITICAL" || "$exit_code" -ne "${ERROR_CODES[OPTIONAL_WARNING]}" ]]; then
@@ -119,7 +119,7 @@ err_clean_exit() {
 # Check if a component has any recorded errors
 # Has Errors - HER
 # <component>
-err_has_errors() {
+err_has() {
     local component="$1"
     local has_error=false
 
@@ -171,7 +171,7 @@ err_handler() {
 # Enable error trapping to catch command failures automatically
 # Enable Error Trap - EET
 # 
-err_enable_error_trap() {
+err_enable_trap() {
     ERROR_TRAP_ENABLED="true"
     trap 'err_handler $LINENO $?' ERR
 }
@@ -179,7 +179,7 @@ err_enable_error_trap() {
 # Disable error trapping to prevent automatic script termination
 # Disable Error Trap - DET
 # 
-err_disable_error_trap() {
+err_disable_trap() {
     ERROR_TRAP_ENABLED="false"
     trap - ERR
 }
@@ -188,26 +188,26 @@ err_disable_error_trap() {
 # Dangerous Operation Example - DOE
 # 
 err_dangerous_operation() {
-    err_enable_error_trap
+    err_enable_trap
     # Your dangerous operation here
     rm -rf some_important_directory/
-    err_disable_error_trap
+    err_disable_trap
 }
 
 # Example of safe operations that don't need error trapping
 # Safe Operation Example - SOE
 # 
 err_safe_operation() {
-    err_disable_error_trap
+    err_disable_trap
     # Your safe operation here
     dnf update
-    err_enable_error_trap  # Re-enable if needed after the operation
+    err_enable_trap  # Re-enable if needed after the operation
 }
 
 # Generate comprehensive error report with categorized issues
 # Print Error Report - PER
 # 
-err_print_error_report() {
+err_print_report() {
     local total_errors=0
     local total_warnings=0
     declare -A error_types
@@ -304,7 +304,7 @@ err_print_error_report() {
 # Initialize error handling system and clear existing tracking
 # Setup Error Handling - SEH
 # 
-err_setup_error_handling() {
+err_setup_handling() {
     # Clear existing error tracking
     ERROR_COMPONENTS=()
     ERROR_MESSAGES=()
@@ -389,7 +389,7 @@ err_init_traps() {
 
 # Add automatic initialization when sourced
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    err_setup_error_handling
+    err_setup_handling
 fi
 
 # Command not found handler to prevent terminal crashes in interactive shells
@@ -402,8 +402,8 @@ command_not_found_handle() {
     echo "bash: $command: command not found" >&2
     
     # Log the command not found event if logging is available
-    if type err_process_error &>/dev/null; then
-        err_process_error "command_not_found" "Command not found: $command" "$exit_code" "WARNING"
+    if type err_process &>/dev/null; then
+        err_process "command_not_found" "Command not found: $command" "$exit_code" "WARNING"
     fi
     
     # Return the standard exit code for command not found, but don't exit the shell
@@ -412,16 +412,16 @@ command_not_found_handle() {
 
 # Export functions and variables
 export -f err_clean_exit
-export -f err_has_errors
+export -f err_has
 export -f err_handler
-export -f err_process_error
-export -f err_lo1_handle_error
-export -f err_print_error_report
-export -f err_setup_error_handling
+export -f err_process
+export -f err_lo1_handle
+export -f err_print_report
+export -f err_setup_handling
 export -f err_register_cleanup
 export -f err_main_cleanup
 export -f err_main_handler
 export -f err_init_traps
-export -f err_enable_error_trap
-export -f err_disable_error_trap
+export -f err_enable_trap
+export -f err_disable_trap
 export -f command_not_found_handle

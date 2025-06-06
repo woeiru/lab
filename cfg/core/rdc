@@ -30,32 +30,32 @@ declare -gA FUNCTION_MODULES
 
 # Initialize core function dependencies
 FUNCTION_DEPENDENCIES=(
-    ["err_process_error"]="err"
+    ["err_process"]="err"
     ["lo1_log_message"]="lo1"
     ["tme_start_timer"]="tme"
     ["tme_stop_timer"]="tme"
-    ["err_lo1_handle_error"]="err,lo1"
+    ["err_lo1_handle"]="err,lo1"
     ["lo1_tme_log_with_timer"]="lo1,tme"
 )
 
 # Initialize registered functions array
 REGISTERED_FUNCTIONS=(
-    "err_process_error"
+    "err_process"
     "lo1_log_message"
     "tme_start_timer"
     "tme_stop_timer"
-    "err_lo1_handle_error"
+    "err_lo1_handle"
     "lo1_tme_log_with_timer"
 )
 
 # Initialize function module mappings
 FUNCTION_MODULES=(
-    ["err_process_error"]="${LIB_CORE_DIR}/err"
+    ["err_process"]="${LIB_CORE_DIR}/err"
     ["lo1_log_message"]="${LIB_CORE_DIR}/lo1"
     ["tme_start_timer"]="${LIB_CORE_DIR}/tme"
     ["tme_stop_timer"]="${LIB_CORE_DIR}/tme"
-    ["err_lo1_handle_error:err"]="${LIB_CORE_DIR}/err"
-    ["err_lo1_handle_error:lo1"]="${LIB_CORE_DIR}/lo1"
+    ["err_lo1_handle:err"]="${LIB_CORE_DIR}/err"
+    ["err_lo1_handle:lo1"]="${LIB_CORE_DIR}/lo1"
     ["lo1_tme_log_with_timer:lo1"]="${LIB_CORE_DIR}/lo1"
     ["lo1_tme_log_with_timer:tme"]="${LIB_CORE_DIR}/tme"
 )
