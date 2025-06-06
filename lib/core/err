@@ -16,9 +16,9 @@
 #               cleanup registration messages).
 #
 # Usage:       Sourced by other modules and scripts to handle errors consistently.
-#              `setup_error_handling` or `enable_error_trap` can be called to
+#              `err_setup_error_handling` or `err_enable_error_trap` can be called to
 #              activate error trapping. `err_process_error` or `err_lo1_handle_error` are used
-#              to report errors. `print_error_report` generates a summary.
+#              to report errors. `err_print_error_report` generates a summary.
 #
 # Notes:       ERROR_TRAP_ENABLED controls the ERR trap. CLEANUP_FUNCTIONS are
 #              used for a central cleanup mechanism. Assumes ver_verify_module is
@@ -100,7 +100,7 @@ err_lo1_handle_error() {
     
     # For critical errors, terminate the script
     if [[ "$severity" == "CRITICAL" || "$exit_code" -ne "${ERROR_CODES[OPTIONAL_WARNING]}" ]]; then
-        clean_exit "$exit_code"
+        err_clean_exit "$exit_code"
     fi
     
     return $exit_code
@@ -109,7 +109,7 @@ err_lo1_handle_error() {
 # Ensure clean exit from the script with proper trap cleanup
 # Clean Exit - CEX
 # <exit_code>
-clean_exit() {
+err_clean_exit() {
     local exit_code=${1:-${ERROR_CODES[SUCCESS]}}
     trap - ERR  # Remove the error handling trap
     trap - EXIT # Remove exit trap if present
@@ -119,7 +119,7 @@ clean_exit() {
 # Check if a component has any recorded errors
 # Has Errors - HER
 # <component>
-has_errors() {
+err_has_errors() {
     local component="$1"
     local has_error=false
 
@@ -136,7 +136,7 @@ has_errors() {
 # Enhanced error handler that catches real errors when trapping enabled
 # Error Handler - EHR
 # <line_number> <error_code>
-error_handler() {
+err_error_handler() {
     # Only proceed if ERROR_TRAP_ENABLED is set
     [[ "${ERROR_TRAP_ENABLED}" != "true" ]] && return 0
 
@@ -171,15 +171,15 @@ error_handler() {
 # Enable error trapping to catch command failures automatically
 # Enable Error Trap - EET
 # 
-enable_error_trap() {
+err_enable_error_trap() {
     ERROR_TRAP_ENABLED="true"
-    trap 'error_handler $LINENO $?' ERR
+    trap 'err_error_handler $LINENO $?' ERR
 }
 
 # Disable error trapping to prevent automatic script termination
 # Disable Error Trap - DET
 # 
-disable_error_trap() {
+err_disable_error_trap() {
     ERROR_TRAP_ENABLED="false"
     trap - ERR
 }
@@ -187,27 +187,27 @@ disable_error_trap() {
 # Example of wrapping dangerous operations with error trapping
 # Dangerous Operation Example - DOE
 # 
-dangerous_operation() {
-    enable_error_trap
+err_dangerous_operation() {
+    err_enable_error_trap
     # Your dangerous operation here
     rm -rf some_important_directory/
-    disable_error_trap
+    err_disable_error_trap
 }
 
 # Example of safe operations that don't need error trapping
 # Safe Operation Example - SOE
 # 
-safe_operation() {
-    disable_error_trap
+err_safe_operation() {
+    err_disable_error_trap
     # Your safe operation here
     dnf update
-    enable_error_trap  # Re-enable if needed after the operation
+    err_enable_error_trap  # Re-enable if needed after the operation
 }
 
 # Generate comprehensive error report with categorized issues
 # Print Error Report - PER
 # 
-print_error_report() {
+err_print_error_report() {
     local total_errors=0
     local total_warnings=0
     declare -A error_types
@@ -304,7 +304,7 @@ print_error_report() {
 # Initialize error handling system and clear existing tracking
 # Setup Error Handling - SEH
 # 
-setup_error_handling() {
+err_setup_error_handling() {
     # Clear existing error tracking
     ERROR_COMPONENTS=()
     ERROR_MESSAGES=()
@@ -314,13 +314,13 @@ setup_error_handling() {
     ERROR_ORDER=()
 
     # Set up error handling trap
-    trap 'error_handler $LINENO' ERR
+    trap 'err_error_handler $LINENO' ERR
 }
 
 # Register cleanup function for module teardown operations
 # Register Cleanup - RCU
 # <module> <function>
-register_cleanup() {
+err_register_cleanup() {
     local module="$1"
     local function="$2"
 
@@ -335,7 +335,7 @@ register_cleanup() {
 # Orchestrate cleanup sequence for all registered modules
 # Main Cleanup - MCU
 # 
-main_cleanup() {
+err_main_cleanup() {
     log "lvl" "Starting main cleanup sequence"
 
     # First cleanup logging system
@@ -359,28 +359,28 @@ main_cleanup() {
 # Central error handler that delegates to module error handlers
 # Main Error Handler - MEH
 # <line_number> <error_code>
-main_error_handler() {
+err_main_error_handler() {
     local line_number="$1"
     local error_code="$2"
 
     # Call error handler from err module if available
-    if type error_handler &>/dev/null; then
-        error_handler "$line_number" "$error_code"
+    if type err_error_handler &>/dev/null; then
+        err_error_handler "$line_number" "$error_code"
     fi
 }
 
 # Initialize trap system with EXIT and ERR handlers
 # Initialize Traps - ITR
 # 
-init_traps() {
+err_init_traps() {
     if [[ "$TRAP_INITIALIZED" != "true" ]]; then
         # Remove any existing traps
         trap - EXIT
         trap - ERR
 
         # Set up main traps
-        trap main_cleanup EXIT
-        trap 'main_error_handler $LINENO $?' ERR
+        trap err_main_cleanup EXIT
+        trap 'err_main_error_handler $LINENO $?' ERR
 
         TRAP_INITIALIZED=true
     fi
@@ -389,7 +389,7 @@ init_traps() {
 
 # Add automatic initialization when sourced
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    setup_error_handling
+    err_setup_error_handling
 fi
 
 # Command not found handler to prevent terminal crashes in interactive shells
@@ -411,15 +411,17 @@ command_not_found_handle() {
 }
 
 # Export functions and variables
-export -f clean_exit
-export -f has_errors
-export -f error_handler
-export -f err_process_error # Renamed
-export -f err_lo1_handle_error # Renamed
-export -f print_error_report
-export -f setup_error_handling
-export -f register_cleanup
-export -f main_cleanup
-export -f main_error_handler
-export -f init_traps
+export -f err_clean_exit
+export -f err_has_errors
+export -f err_error_handler
+export -f err_process_error
+export -f err_lo1_handle_error
+export -f err_print_error_report
+export -f err_setup_error_handling
+export -f err_register_cleanup
+export -f err_main_cleanup
+export -f err_main_error_handler
+export -f err_init_traps
+export -f err_enable_error_trap
+export -f err_disable_error_trap
 export -f command_not_found_handle
