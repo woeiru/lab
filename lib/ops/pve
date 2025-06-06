@@ -946,13 +946,19 @@ pve_vpt() {
     # Parse USB devices string into array
     # The usb_devices_str contains newline-separated USB device definitions,
     # where each device definition may contain spaces (e.g., "usb1: host=3-1")
+    echo "DEBUG: usb_devices_str received: '$usb_devices_str'" >&2
     local usb_devices=()
     if [ -n "$usb_devices_str" ]; then
         # Read the newline-separated string into an array
         while IFS= read -r line; do
+            echo "DEBUG: processing line: '$line'" >&2
             [[ -n "$line" ]] && usb_devices+=("$line")
         done <<< "$usb_devices_str"
     fi
+    echo "DEBUG: usb_devices array length: ${#usb_devices[@]}" >&2
+    for i in "${!usb_devices[@]}"; do
+        echo "DEBUG: usb_devices[$i]: '${usb_devices[i]}'" >&2
+    done
 
     # Find the starting line of the VM configuration section
     local section_start=$(awk '/^\[/{print NR-1; exit}' "$vm_conf")
