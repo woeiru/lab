@@ -30,8 +30,8 @@
 #
 # Functions Provided:
 #   - env_switch: Switch between environments with validation
-#   - site_switch: Change active site configuration
-#   - node_switch: Select specific node for operations
+#   - env_site_switch: Change active site configuration
+#   - env_node_switch: Select specific node for operations
 #   - env_status: Display current environment configuration
 #   - env_list: List all available environments and overrides
 #   - env_validate: Validate configuration file existence
@@ -39,8 +39,8 @@
 # Usage Examples:
 #   source lib/gen/env
 #   env_switch dev                    # Switch to development
-#   site_switch site2                 # Change to site2
-#   node_switch w2                    # Select worker node 2
+#   env_site_switch site2             # Change to site2
+#   env_node_switch w2                # Select worker node 2
 #   env_status                        # Show current config
 #   env_list                          # List available options
 #
@@ -133,12 +133,12 @@ env_switch() {
 # Switch site configuration with validation and listing
 # site switch
 # <site>
-site_switch() {
+env_site_switch() {
     local site="$1"
     
     if [[ -z "$site" ]]; then
         echo -e "${RED}Error: Site name required${NC}"
-        echo "Usage: site_switch <site>"
+        echo "Usage: env_site_switch <site>"
         echo "Available sites:"
         ls "${LAB_DIR}/cfg/env/" | grep -E '^site[0-9]+$' | sort
         return 1
@@ -157,12 +157,12 @@ site_switch() {
 # Switch node configuration for cluster deployments
 # node switch
 # <node>
-node_switch() {
+env_node_switch() {
     local node="$1"
     
     if [[ -z "$node" ]]; then
         echo -e "${RED}Error: Node name required${NC}"
-        echo "Usage: node_switch <node>"
+        echo "Usage: env_node_switch <node>"
         echo "Current hostname: $(hostname)"
         return 1
     fi
@@ -342,10 +342,10 @@ main() {
             env_switch "$2"
             ;;
         switch-site|site)
-            site_switch "$2"
+            env_site_switch "$2"
             ;;
         switch-node|node)
-            node_switch "$2"
+            env_node_switch "$2"
             ;;
         status|stat)
             env_status

@@ -248,8 +248,8 @@ Functions are organized by library modules for systematic access and reference.
 | gen | aux | aux_ffl | Recursively processes files in a directory and its subdirectories using a specified function, allowing for additional arguments to be passed |
 | gen | env | update_ecc | Helper function to update environment controller configuration |
 | gen | env | env_switch | Switch environment (dev/test/staging/prod) with validation |
-| gen | env | site_switch | Switch site configuration with validation and listing |
-| gen | env | node_switch | Switch node configuration for cluster deployments |
+| gen | env | env_site_switch | Switch site configuration with validation and listing |
+| gen | env | env_node_switch | Switch node configuration for cluster deployments |
 | gen | env | env_status | Show current environment status with configuration hierarchy display |
 | gen | env | env_list | List available environments and overrides with discovery |
 | gen | env | env_validate | Validate configuration files existence and accessibility |
