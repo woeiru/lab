@@ -71,7 +71,7 @@ cd "$LAB_DIR"
 
 # Source ini and check if verification functions are available
 if source bin/ini 2>/dev/null; then
-    if declare -f verify_path >/dev/null && declare -f verify_module >/dev/null; then
+    if declare -f ver_verify_path >/dev/null && declare -f ver_verify_module >/dev/null; then
         exit 0
     else
         exit 1
