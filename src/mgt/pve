@@ -30,7 +30,7 @@
 #   - Consistency: All wrapper functions follow the same pattern and naming convention
 #
 # NAMING CONVENTION:
-#   - Pure functions: Three-letter names (e.g., pve-fun, pve-var, pve-vmd)
+#   - Pure functions: Three-letter names (e.g., pve_fun, pve_var, pve_vmd)
 #   - Wrapper functions: Pure function name + "-w" suffix (e.g., pve_fun_w)
 #   - Global variables: Follow established site configuration patterns
 #
@@ -59,15 +59,15 @@
 #   pve_vms_w 100                # Start VM 100 with passthrough
 #
 # FUNCTION INVENTORY:
-#   pve_fun_w : List available PVE functions (wrapper for pve-fun)
-#   pve_var_w : Display PVE configuration variables (wrapper for pve-var)  
-#   pve_vmd_w : VM shutdown hook management (wrapper for pve-vmd)
+#   pve_fun_w : List available PVE functions (wrapper for pve_fun)
+#   pve_var_w : Display PVE configuration variables (wrapper for pve_var)  
+#   pve_vmd_w : VM shutdown hook management (wrapper for pve_vmd)
 #   pve_vck_w : VM cluster node location check (wrapper for pve_vck)
-#   pve_vpt_w : VM PCI passthrough toggle (wrapper for pve-vpt)
-#   pve_ctc_w : Container creation with full configuration (wrapper for pve-ctc)
-#   pve_vmc_w : Virtual machine creation with full configuration (wrapper for pve-vmc)
-#   pve_vms_w : VM start/shutdown with passthrough management (wrapper for pve-vms)
-#   pve_vmg_w : VM migration and start orchestration (wrapper for pve-vmg)
+#   pve_vpt_w : VM PCI passthrough toggle (wrapper for pve_vpt)
+#   pve_ctc_w : Container creation with full configuration (wrapper for pve_ctc)
+#   pve_vmc_w : Virtual machine creation with full configuration (wrapper for pve_vmc)
+#   pve_vms_w : VM start/shutdown with passthrough management (wrapper for pve_vms)
+#   pve_vmg_w : VM migration and start orchestration (wrapper for pve_vmg)
 #
 # ============================================================================
 
@@ -84,7 +84,7 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
-# Wrapper for pve-vmd that extracts global variables and calls the pure function
+# Wrapper for pve_vmd that extracts global variables and calls the pure function
 # vm shutdown hook (wrapper)
 pve_vmd_w() {
     # Source the pure library function
@@ -114,7 +114,7 @@ pve_vck_w() {
     pve_vck "$vm_id" "$cluster_nodes_str"
 }
 
-# Wrapper for pve-vpt that extracts global variables and calls the pure function
+# Wrapper for pve_vpt that extracts global variables and calls the pure function
 # vm passthrough toggle (wrapper)
 pve_vpt_w() {
     # Source the pure library function
@@ -150,7 +150,7 @@ pve_vpt_w() {
     pve_vpt "$vm_id" "$action" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
 }
 
-# Wrapper for pve-fun that extracts global variables and calls the pure function
+# Wrapper for pve_fun that extracts global variables and calls the pure function
 # overview functions (wrapper)
 pve_fun_w() {
     # Source the pure library function
@@ -162,7 +162,7 @@ pve_fun_w() {
     pve_fun "$script_path" "$@"
 }
 
-# Wrapper for pve-var that extracts global variables and calls the pure function  
+# Wrapper for pve_var that extracts global variables and calls the pure function  
 # overview variables (wrapper)
 pve_var_w() {
     # Source the pure library function
@@ -175,7 +175,7 @@ pve_var_w() {
     pve_var "$config_file" "$analysis_dir" "$@"
 }
 
-# Wrapper for pve-ctc that extracts global variables and calls the pure function
+# Wrapper for pve_ctc that extracts global variables and calls the pure function
 # container create (wrapper)
 pve_ctc_w() {
     # Source the pure library function
@@ -206,7 +206,7 @@ pve_ctc_w() {
     pve_ctc "$id" "$template" "$hostname" "$storage" "$rootfs_size" "$memory" "$swap" "$nameserver" "$searchdomain" "$password" "$cpus" "$privileged" "$ip_address" "$cidr" "$gateway" "$ssh_key_file" "$net_bridge" "$net_nic"
 }
 
-# Wrapper for pve-vmc that extracts global variables and calls the pure function
+# Wrapper for pve_vmc that extracts global variables and calls the pure function
 # virtual machine create (wrapper)
 pve_vmc_w() {
     # Source the pure library function
@@ -236,7 +236,7 @@ pve_vmc_w() {
     pve_vmc "$id" "$name" "$ostype" "$machine" "$iso" "$boot" "$bios" "$efidisk" "$scsihw" "$agent" "$disk" "$sockets" "$cores" "$cpu" "$memory" "$balloon" "$net"
 }
 
-# Wrapper for pve-vms that extracts global variables and calls the pure function
+# Wrapper for pve_vms that extracts global variables and calls the pure function
 # vm start get shutdown (wrapper)
 pve_vms_w() {
     # Source the pure library function
@@ -273,7 +273,7 @@ pve_vms_w() {
     pve_vms "$vm_id" "$cluster_nodes_str" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path" "$shutdown_flag"
 }
 
-# Wrapper for pve-vmg that extracts global variables and calls the pure function
+# Wrapper for pve_vmg that extracts global variables and calls the pure function
 # vm get start (wrapper)
 pve_vmg_w() {
     # Source the pure library function
