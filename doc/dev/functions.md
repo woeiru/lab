@@ -60,17 +60,17 @@ Functions are organized by library modules for systematic access and reference.
 
 | Library | Module | Function | Description |
 |---------|--------|----------|-------------|
-| core | err | err_process_error | Process error messages and log them appropriately |
-| core | err | err_lo1_handle_error | Function to handle errors more comprehensively |
+| core | err | err_process | Process error messages and log them appropriately |
+| core | err | err_lo1_handle | Function to handle errors more comprehensively |
 | core | err | clean_exit | Ensure clean exit from the script with proper trap cleanup |
-| core | err | has_errors | Check if a component has any recorded errors |
+| core | err | has | Check if a component has any recorded errors |
 | core | err | error_handler | Enhanced error handler that catches real errors when trapping enabled |
-| core | err | enable_error_trap | Enable error trapping to catch command failures automatically |
-| core | err | disable_error_trap | Disable error trapping to prevent automatic script termination |
+| core | err | enable_trap | Enable error trapping to catch command failures automatically |
+| core | err | disable_trap | Disable error trapping to prevent automatic script termination |
 | core | err | dangerous_operation | Example of wrapping dangerous operations with error trapping |
 | core | err | safe_operation | Example of safe operations that don't need error trapping |
-| core | err | print_error_report | Generate comprehensive error report with categorized issues |
-| core | err | setup_error_handling | Initialize error handling system and clear existing tracking |
+| core | err | print_report | Generate comprehensive error report with categorized issues |
+| core | err | setup_handling | Initialize error handling system and clear existing tracking |
 | core | err | register_cleanup | Register cleanup function for module teardown operations |
 | core | err | main_cleanup | Orchestrate cleanup sequence for all registered modules |
 | core | err | main_error_handler | Central error handler that delegates to module error handlers |
