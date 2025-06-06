@@ -35,13 +35,11 @@ usr_fun() {
         return 0
     fi
     
-    # Validate that the required variable is set
-    if [ -z "$FILEPATH_usr" ]; then
-        echo "Error: FILEPATH_usr is not set. Cannot display function overview."
-        return 1
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
     fi
-
-    # Pass all arguments directly to ana_laf
+    
     ana_laf "$FILEPATH_usr" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files

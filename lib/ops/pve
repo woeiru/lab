@@ -31,19 +31,7 @@ pve_fun() {
         aux_tec
         return 0
     fi
-    
-    if [ $# -lt 1 ]; then
-        aux_use
-        return 1
-    fi
 
-    local script_path="$1"
-    
-    if [ -z "$script_path" ] || [ ! -f "$script_path" ]; then
-        aux_use
-        return 1
-    fi
-    
     ana_laf "$FILEPATH_pve" "$@"
 }
 
