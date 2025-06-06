@@ -44,8 +44,7 @@ pve_fun() {
         return 1
     fi
     
-    shift
-    ana_laf "$script_path" "$@"
+    ana_laf "$FILEPATH_pve" "$@"
 }
 
 # Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files
