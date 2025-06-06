@@ -959,21 +959,34 @@ pve_vpt() {
             if [ -z "$section_start" ]; then
                 # If no section found, append passthrough lines at the end of the file
                 for usb_device in "${usb_devices[@]}"; do
-                    [ -n "$usb_device" ] && echo "$usb_device" >> "$vm_conf"
+                    [ -n "$usb_device" ] && printf '%s\n' "$usb_device" >> "$vm_conf"
                 done
                 echo "hostpci0: $pci0_id,pcie=1,x-vga=1" >> "$vm_conf"
                 echo "hostpci1: $pci1_id,pcie=1" >> "$vm_conf"
             else
                 # If a section is found, insert passthrough lines at the appropriate position
+                # Create a temporary file for safe insertion
+                temp_file="${vm_conf}.tmp"
+                
+                # Copy everything up to the insertion point
+                head -n "$section_start" "$vm_conf" > "$temp_file"
+                
+                # Add USB devices
                 for usb_device in "${usb_devices[@]}"; do
                     if [ -n "$usb_device" ]; then
-                        sed -i "${section_start}a\\${usb_device}" "$vm_conf"
-                        ((section_start++))
+                        printf '%s\n' "$usb_device" >> "$temp_file"
                     fi
                 done
-                sed -i "${section_start}a\\hostpci0: $pci0_id,pcie=1,x-vga=1" "$vm_conf"
-                ((section_start++))
-                sed -i "${section_start}a\\hostpci1: $pci1_id,pcie=1" "$vm_conf"
+                
+                # Add PCI devices
+                echo "hostpci0: $pci0_id,pcie=1,x-vga=1" >> "$temp_file"
+                echo "hostpci1: $pci1_id,pcie=1" >> "$temp_file"
+                
+                # Copy the rest of the file
+                tail -n +$((section_start + 1)) "$vm_conf" >> "$temp_file"
+                
+                # Replace the original file
+                mv "$temp_file" "$vm_conf"
             fi
 
             echo "Passthrough lines added to $vm_conf."
@@ -982,8 +995,8 @@ pve_vpt() {
             # Set default core count when toggled off
             sed -i "s/cores:.*/cores: $core_count_off/" "$vm_conf"
 
-            # Remove passthrough lines
-            sed -i '/^usb[0-9]*:/d; /^hostpci[0-9]*:/d' "$vm_conf"
+            # Remove passthrough lines and orphaned host= lines
+            sed -i '/^usb[0-9]*:/d; /^hostpci[0-9]*:/d; /^host=/d' "$vm_conf"
 
             echo "Passthrough lines removed from $vm_conf."
             ;;
