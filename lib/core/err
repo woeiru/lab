@@ -136,7 +136,7 @@ err_has_errors() {
 # Enhanced error handler that catches real errors when trapping enabled
 # Error Handler - EHR
 # <line_number> <error_code>
-err_error_handler() {
+err_handler() {
     # Only proceed if ERROR_TRAP_ENABLED is set
     [[ "${ERROR_TRAP_ENABLED}" != "true" ]] && return 0
 
@@ -173,7 +173,7 @@ err_error_handler() {
 # 
 err_enable_error_trap() {
     ERROR_TRAP_ENABLED="true"
-    trap 'err_error_handler $LINENO $?' ERR
+    trap 'err_handler $LINENO $?' ERR
 }
 
 # Disable error trapping to prevent automatic script termination
@@ -314,7 +314,7 @@ err_setup_error_handling() {
     ERROR_ORDER=()
 
     # Set up error handling trap
-    trap 'err_error_handler $LINENO' ERR
+    trap 'err_handler $LINENO' ERR
 }
 
 # Register cleanup function for module teardown operations
@@ -359,13 +359,13 @@ err_main_cleanup() {
 # Central error handler that delegates to module error handlers
 # Main Error Handler - MEH
 # <line_number> <error_code>
-err_main_error_handler() {
+err_main_handler() {
     local line_number="$1"
     local error_code="$2"
 
     # Call error handler from err module if available
-    if type err_error_handler &>/dev/null; then
-        err_error_handler "$line_number" "$error_code"
+    if type err_handler &>/dev/null; then
+        err_handler "$line_number" "$error_code"
     fi
 }
 
@@ -380,7 +380,7 @@ err_init_traps() {
 
         # Set up main traps
         trap err_main_cleanup EXIT
-        trap 'err_main_error_handler $LINENO $?' ERR
+        trap 'err_main_handler $LINENO $?' ERR
 
         TRAP_INITIALIZED=true
     fi
@@ -413,14 +413,14 @@ command_not_found_handle() {
 # Export functions and variables
 export -f err_clean_exit
 export -f err_has_errors
-export -f err_error_handler
+export -f err_handler
 export -f err_process_error
 export -f err_lo1_handle_error
 export -f err_print_error_report
 export -f err_setup_error_handling
 export -f err_register_cleanup
 export -f err_main_cleanup
-export -f err_main_error_handler
+export -f err_main_handler
 export -f err_init_traps
 export -f err_enable_error_trap
 export -f err_disable_error_trap
