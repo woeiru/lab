@@ -141,9 +141,15 @@ pve_vpt_w() {
     
     # Handle USB devices array properly - convert to newline-separated string
     local usb_devices_str=""
+    echo "DEBUG WRAPPER: hostname='$hostname'" >&2
+    echo "DEBUG WRAPPER: usb_devices_var='$usb_devices_var'" >&2
+    echo "DEBUG WRAPPER: checking if variable exists: '${!usb_devices_var}'" >&2
     if [ -n "${!usb_devices_var}" ]; then
         # Use printf to join array elements with newlines
         usb_devices_str=$(printf '%s\n' "${!usb_devices_var}")
+        echo "DEBUG WRAPPER: usb_devices_str after printf: '$usb_devices_str'" >&2
+    else
+        echo "DEBUG WRAPPER: USB devices variable is empty or undefined" >&2
     fi
     local pve_conf_path="${PVE_CONF_PATH_QEMU}"
     
