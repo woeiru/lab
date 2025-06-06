@@ -361,7 +361,7 @@ init_module_system() {
     ini_log "Starting module system initialization"
 
     # Essential verification check from ver module
-    if ! essential_check; then
+    if ! ver_essential_check; then
         ini_log "ERROR: Essential system check failed"
         return 1
     fi
@@ -388,18 +388,18 @@ init_module_system() {
     return 0
 }
 
-# Initialize directories using ver's verify_path
+# Initialize directories using ver's ver_verify_path
 init_dirs() {
     ini_log "Starting directory initialization"
 
     # Updated directory paths to use BASE_DIR
-    # Removed .log and .tmp as they are handled by essential_check
+    # Removed .log and .tmp as they are handled by ver_essential_check
     local required_dirs=(
         "${BASE_DIR}/lib"
         "${BASE_DIR}/cfg"
     )
 
-    # Using verify_path from ver module
+    # Using ver_verify_path from ver module
     for dir in "${required_dirs[@]}"; do
         if ! ver_verify_path "$dir" "dir" "true"; then
             ini_log "ERROR: Failed to verify/create directory: $dir"
@@ -480,7 +480,7 @@ init_runtime_system() {
     # Updated with BASE_DIR - using rdc file which exists
     local rde_path="${BASE_DIR}/cfg/core/rdc"
 
-    # Verify runtime dependency file exists using ver's verify_path
+    # Verify runtime dependency file exists using ver's ver_verify_path
     if type tme_start_timer &>/dev/null; then tme_start_timer "VERIFY_RDC_PATH" "$parent_timer"; fi
     if ! ver_verify_path "$rde_path" "file" "false"; then
         ini_log "ERROR: Runtime dependencies file not found"
@@ -531,7 +531,7 @@ init_registered_functions() {
     ini_log "Initializing registered functions" "init_registered_functions" $LOG_PRIORITY_NORMAL
     local parent_timer="INIT_REGISTERED_FUNCTIONS"
 
-    # Verify REGISTERED_FUNCTIONS exists using ver's verify_var
+    # Verify REGISTERED_FUNCTIONS exists using ver's ver_verify_var
     if ! ver_verify_var "REGISTERED_FUNCTIONS"; then
         ini_log "No registered functions found" "init_registered_functions" $LOG_PRIORITY_NORMAL
         return 0
@@ -636,7 +636,7 @@ register_single_function() {
         if [[ -n "$module_path" ]]; then
             ini_log "Checking for function $func in cached module $module_path" "register_single_function" $LOG_PRIORITY_DETAILED
             
-            if verify_function "$func" "$module_path"; then
+            if ver_verify_function "$func" "$module_path"; then
                 if source "$module_path" 2>/dev/null; then
                     ini_log "Successfully registered function: $func from $module_path" "register_single_function" $LOG_PRIORITY_NORMAL
                     return 0
@@ -669,7 +669,7 @@ register_function() {
         if [[ -n "$module_path" ]] && [[ -f "$module_path" ]]; then
             ini_log "Checking for function $func_name in module $module_path" "register_function" 2
             
-            if verify_function "$func_name" "$module_path"; then
+            if ver_verify_function "$func_name" "$module_path"; then
                 if source "$module_path" 2>/dev/null; then
                     ini_log "Successfully registered function: $func_name from $module_path" "register_function" 1
                     success=1
