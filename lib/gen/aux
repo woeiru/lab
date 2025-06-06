@@ -374,3 +374,238 @@ aux_ffl() {
         return 1
     fi
 }
+
+# Validates input values against specified criteria without environmental dependencies
+# value validation
+# <value> <validation_type> [criteria]
+aux_val() {
+    local value="$1"
+    local validation_type="$2"
+    local criteria="$3"
+    
+    case "$validation_type" in
+        "empty")
+            [[ -z "$value" ]] && return 0 || return 1
+            ;;
+        "not_empty")
+            [[ -n "$value" ]] && return 0 || return 1
+            ;;
+        "numeric")
+            [[ "$value" =~ ^[0-9]+$ ]] && return 0 || return 1
+            ;;
+        "alpha")
+            [[ "$value" =~ ^[a-zA-Z]+$ ]] && return 0 || return 1
+            ;;
+        "alphanum")
+            [[ "$value" =~ ^[a-zA-Z0-9]+$ ]] && return 0 || return 1
+            ;;
+        "file_exists")
+            [[ -f "$value" ]] && return 0 || return 1
+            ;;
+        "dir_exists")
+            [[ -d "$value" ]] && return 0 || return 1
+            ;;
+        "min_length")
+            [[ ${#value} -ge ${criteria:-1} ]] && return 0 || return 1
+            ;;
+        "max_length")
+            [[ ${#value} -le ${criteria:-100} ]] && return 0 || return 1
+            ;;
+        "regex")
+            [[ "$value" =~ $criteria ]] && return 0 || return 1
+            ;;
+        *)
+            echo "Error: Unknown validation type: $validation_type" >&2
+            return 2
+            ;;
+    esac
+}
+
+# Performs checks and validations with clear pass/fail results
+# check validation
+# <check_type> <target> [parameters]
+aux_chk() {
+    local check_type="$1"
+    local target="$2"
+    shift 2
+    local parameters=("$@")
+    
+    case "$check_type" in
+        "command")
+            command -v "$target" >/dev/null 2>&1 && return 0 || return 1
+            ;;
+        "function")
+            declare -f "$target" >/dev/null 2>&1 && return 0 || return 1
+            ;;
+        "variable")
+            [[ -n "${!target}" ]] && return 0 || return 1
+            ;;
+        "permission")
+            local perm="${parameters[0]:-r}"
+            case "$perm" in
+                "r") [[ -r "$target" ]] && return 0 || return 1 ;;
+                "w") [[ -w "$target" ]] && return 0 || return 1 ;;
+                "x") [[ -x "$target" ]] && return 0 || return 1 ;;
+                *) return 2 ;;
+            esac
+            ;;
+        "process")
+            pgrep -f "$target" >/dev/null 2>&1 && return 0 || return 1
+            ;;
+        "network")
+            ping -c 1 "$target" >/dev/null 2>&1 && return 0 || return 1
+            ;;
+        "port")
+            local port="${parameters[0]:-80}"
+            if command -v nc >/dev/null 2>&1; then
+                nc -z "$target" "$port" >/dev/null 2>&1 && return 0 || return 1
+            elif command -v timeout >/dev/null 2>&1; then
+                timeout 3 bash -c "echo >/dev/tcp/$target/$port" >/dev/null 2>&1 && return 0 || return 1
+            else
+                return 2
+            fi
+            ;;
+        *)
+            echo "Error: Unknown check type: $check_type" >&2
+            return 2
+            ;;
+    esac
+}
+
+# Executes commands with error handling and result capture
+# command execution
+# <command> [args...]
+aux_cmd() {
+    local command="$1"
+    shift
+    local args=("$@")
+    
+    # Validate command exists
+    if ! command -v "$command" >/dev/null 2>&1; then
+        echo "Error: Command '$command' not found" >&2
+        return 127
+    fi
+    
+    # Execute command with error handling
+    local output
+    local exit_code
+    
+    if output=$("$command" "${args[@]}" 2>&1); then
+        exit_code=$?
+        if [[ -n "$output" ]]; then
+            echo "$output"
+        fi
+        return $exit_code
+    else
+        exit_code=$?
+        echo "Error: Command '$command ${args[*]}' failed with exit code $exit_code" >&2
+        if [[ -n "$output" ]]; then
+            echo "Output: $output" >&2
+        fi
+        return $exit_code
+    fi
+}
+
+# Prompts user for input with validation and default values
+# ask user input
+# <prompt> [default_value] [validation_type]
+aux_ask() {
+    local prompt="$1"
+    local default_value="$2" 
+    local validation_type="$3"
+    local user_input
+    
+    # Display prompt with default value if provided
+    if [[ -n "$default_value" ]]; then
+        echo -n "$prompt [$default_value]: "
+    else
+        echo -n "$prompt: "
+    fi
+    
+    # Read user input
+    read -r user_input
+    
+    # Use default if no input provided
+    if [[ -z "$user_input" && -n "$default_value" ]]; then
+        user_input="$default_value"
+    fi
+    
+    # Validate input if validation type specified
+    if [[ -n "$validation_type" ]]; then
+        if ! aux_val "$user_input" "$validation_type"; then
+            echo "Error: Invalid input. Please try again." >&2
+            aux_ask "$prompt" "$default_value" "$validation_type"
+            return $?
+        fi
+    fi
+    
+    echo "$user_input"
+}
+
+# Array manipulation and processing utilities
+# array operations
+# <operation> <array_name> [parameters...]
+aux_arr() {
+    local operation="$1"
+    local array_name="$2"
+    shift 2
+    local parameters=("$@")
+    
+    case "$operation" in
+        "length")
+            local -n arr_ref="$array_name"
+            echo "${#arr_ref[@]}"
+            ;;
+        "contains")
+            local search_value="${parameters[0]}"
+            local -n arr_ref="$array_name"
+            for element in "${arr_ref[@]}"; do
+                [[ "$element" == "$search_value" ]] && return 0
+            done
+            return 1
+            ;;
+        "add")
+            local new_value="${parameters[0]}"
+            local -n arr_ref="$array_name"
+            arr_ref+=("$new_value")
+            ;;
+        "remove")
+            local remove_value="${parameters[0]}"
+            local -n arr_ref="$array_name"
+            local new_array=()
+            for element in "${arr_ref[@]}"; do
+                [[ "$element" != "$remove_value" ]] && new_array+=("$element")
+            done
+            arr_ref=("${new_array[@]}")
+            ;;
+        "join")
+            local delimiter="${parameters[0]:-,}"
+            local -n arr_ref="$array_name"
+            local result=""
+            for i in "${!arr_ref[@]}"; do
+                if [[ $i -eq 0 ]]; then
+                    result="${arr_ref[i]}"
+                else
+                    result="${result}${delimiter}${arr_ref[i]}"
+                fi
+            done
+            echo "$result"
+            ;;
+        "sort")
+            local -n arr_ref="$array_name"
+            readarray -t arr_ref < <(printf '%s\n' "${arr_ref[@]}" | sort)
+            ;;
+        "unique")
+            local -n arr_ref="$array_name"
+            readarray -t arr_ref < <(printf '%s\n' "${arr_ref[@]}" | sort -u)
+            ;;
+        "print")
+            local -n arr_ref="$array_name"
+            printf '%s\n' "${arr_ref[@]}"
+            ;;
+        *)
+            echo "Error: Unknown array operation: $operation" >&2
+            return 1
+            ;;
+    esac
+}

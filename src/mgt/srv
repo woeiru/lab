@@ -1,0 +1,182 @@
+#!/bin/bash
+
+# ============================================================================
+# SYSTEM SERVICE MANAGEMENT WRAPPER FUNCTIONS
+# ============================================================================
+#
+# DESCRIPTION:
+#   This file contains management wrapper functions for system service
+#   operations. These wrappers bridge the gap between pure library functions
+#   in /lib/ops/srv and the global configuration environment, providing a
+#   clean separation between testable pure functions and environment-dependent
+#   management layer functions.
+#
+# ARCHITECTURE:
+#   ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+#   │   User/Script   │ -> │  Wrapper (_w)    │ -> │  Pure Function  │
+#   │                 │    │  src/mgt/srv     │    │  lib/ops/srv    │
+#   └─────────────────┘    └──────────────────┘    └─────────────────┘
+#                                   │
+#                                   v
+#                          ┌──────────────────┐
+#                          │  Global Config   │
+#                          │  Environment     │
+#                          └──────────────────┘
+#
+# DESIGN PRINCIPLES:
+#   - Separation of Concerns: Pure functions handle logic, wrappers handle globals
+#   - Testability: Pure functions can be tested in isolation with explicit parameters
+#   - Maintainability: Global variable dependencies are centralized in wrappers
+#   - Consistency: All wrapper functions follow the same pattern and naming convention
+#
+# NAMING CONVENTION:
+#   - Pure functions: Three-letter names (e.g., srv_fun, srv_var, nfs_set)
+#   - Wrapper functions: Pure function name + "_w" suffix (e.g., srv_fun_w)
+#   - Global variables: Follow established site configuration patterns
+#
+# WRAPPER PATTERN:
+#   Each wrapper function follows this standardized pattern:
+#   1. Source the pure library function from ${LIB_OPS_DIR}/srv
+#   2. Extract global variables and convert to explicit parameters
+#   3. Validate required parameters (with error handling for missing globals)
+#   4. Call the pure function with explicit parameters
+#   5. Return the result unchanged
+#
+# GLOBAL DEPENDENCIES:
+#   - LIB_OPS_DIR: Path to pure function libraries
+#   - SITE_CONFIG_FILE: Path to site configuration file
+#   - Service-specific global variables as defined in site configuration
+#
+# USAGE EXAMPLES:
+#   # Use wrapper functions in scripts that have global environment loaded
+#   srv_fun_w                        # List available functions
+#   srv_var_w                        # Show configuration variables
+#   nfs_set_w header /path options   # Setup NFS share
+#   nfs_apl_w header /path options   # Apply NFS configuration
+#   nfs_mon_w 1                      # Monitor NFS service
+#   smb_set_w header /path user pass # Setup Samba share
+#   smb_apl_w header /path user pass # Apply Samba configuration
+#   smb_mon_w 1                      # Monitor Samba service
+#
+# TESTING:
+#   - Unit tests can call pure functions directly with explicit parameters
+#   - Integration tests can call wrapper functions with environment loaded
+#   - Pure functions are isolated from global state dependencies
+#
+# REFACTORING HISTORY:
+#   Created: 2025-06-07 - Separated 8 wrapper functions from pure functions
+#   Purpose: Enable testing and reduce global variable coupling
+#   Follows: GPU and PVE refactoring pattern established in src/mgt/
+#
+# FUNCTION INVENTORY:
+#   srv_fun_w : List available service functions (wrapper for srv_fun)
+#   srv_var_w : Display service configuration variables (wrapper for srv_var)
+#   nfs_set_w : NFS share setup (wrapper for nfs_set)
+#   nfs_apl_w : NFS configuration application (wrapper for nfs_apl)
+#   nfs_mon_w : NFS monitoring operations (wrapper for nfs_mon)
+#   smb_set_w : Samba share setup (wrapper for smb_set)
+#   smb_apl_w : Samba configuration application (wrapper for smb_apl)
+#   smb_mon_w : Samba monitoring operations (wrapper for smb_mon)
+#
+# ============================================================================
+
+# ============================================================================
+# VARIABLE CREATION FOR FUNCTION ANALYSIS TOOLS
+# ============================================================================
+# Create wrapper-specific variables for function analysis tools to avoid
+# namespace collisions with main library files. These variables enable tools
+# like srv_fun_w to correctly analyze wrapper functions instead of being
+# overwritten by main library variables.
+
+# Define directory and file variables for wrapper identification
+DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_FUN=$(basename "$BASH_SOURCE")
+BASE_FUN="${FILE_FUN%.*}"
+FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
+CONFIG_FUN="${SITE_CONFIG_FILE}"
+
+# Create wrapper-specific variables (avoiding collision with library variables)
+eval "FILEPATH_${BASE_FUN}_wrapper=\$FILEPATH_FUN"
+eval "FILE_${BASE_FUN}_wrapper=\$FILE_FUN"
+eval "BASE_${BASE_FUN}_wrapper=\$BASE_FUN"
+eval "CONFIG_${BASE_FUN}_wrapper=\$CONFIG_FUN"
+
+# Wrapper for srv_fun that extracts global variables and calls the pure function
+# overview functions (wrapper)
+srv_fun_w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/srv"
+    
+    # No global variable dependencies for this function
+    srv_fun "$@"
+}
+
+# Wrapper for srv_var that extracts global variables and calls the pure function
+# overview variables (wrapper)
+srv_var_w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/srv"
+    
+    # No global variable dependencies for this function
+    srv_var "$@"
+}
+
+# Wrapper for nfs_set that extracts global variables and calls the pure function
+# nfs setup (wrapper)
+nfs_set_w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/srv"
+    
+    # No global variable dependencies for this function
+    nfs_set "$@"
+}
+
+# Wrapper for nfs_apl that extracts global variables and calls the pure function
+# nfs apply (wrapper)
+nfs_apl_w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/srv"
+    
+    # No global variable dependencies for this function
+    nfs_apl "$@"
+}
+
+# Wrapper for nfs_mon that extracts global variables and calls the pure function
+# nfs monitor (wrapper)
+nfs_mon_w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/srv"
+    
+    # No global variable dependencies for this function
+    nfs_mon "$@"
+}
+
+# Wrapper for smb_set that extracts global variables and calls the pure function
+# samba setup (wrapper)
+smb_set_w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/srv"
+    
+    # No global variable dependencies for this function
+    smb_set "$@"
+}
+
+# Wrapper for smb_apl that extracts global variables and calls the pure function
+# samba apply (wrapper)
+smb_apl_w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/srv"
+    
+    # No global variable dependencies for this function
+    smb_apl "$@"
+}
+
+# Wrapper for smb_mon that extracts global variables and calls the pure function
+# samba monitor (wrapper)
+smb_mon_w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/srv"
+    
+    # No global variable dependencies for this function
+    smb_mon "$@"
+}
