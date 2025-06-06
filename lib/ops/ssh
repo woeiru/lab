@@ -40,15 +40,12 @@ ssh_fun() {
         return 0
     fi
     
-    if [ $# -lt 1 ]; then
-        aux_use
-        return 1
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
     fi
     
-    local script_path="$1"
-    shift
-    source "${LIB_GEN_DIR}/aux"
-    ana_laf "$script_path" "$@"
+    ana_laf "$FILEPATH_ssh" "$@"
 }
 
 # Displays an overview of SSH-specific variables defined in the configuration file, showing their names, values, and usage
