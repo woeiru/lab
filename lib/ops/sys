@@ -35,9 +35,12 @@ sys_fun() {
         return 0
     fi
     
-    # Optional parameters - no validation needed
-    # Pass all arguments to processing function
-    ana_laf "$FILEPATH_gen" "$@"
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    ana_laf "$FILEPATH_sys" "$@"
 }
 
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
