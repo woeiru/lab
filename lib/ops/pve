@@ -741,12 +741,12 @@ pve_vms() {
     #      - Starts VM using 'qm start <vm_id>'.
     #      - If $9 is 's', attempts to shut down 'node_id' (which is the current node) via SSH.
     #   4. If current hostname differs from 'node_id' (VM is remote):
-    #      - Calls 'pve-vmg <vm_id> <cluster_nodes_str> <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>' to migrate the VM to the current node.
+    #      - Calls 'pve_vmg <vm_id> <cluster_nodes_str> <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>' to migrate the VM to the current node.
     #      - Starts VM using 'qm start <vm_id>'.
     #      - If $9 is 's', shuts down the original remote node ('node_id') via SSH.
     # Dependencies:
     #   - 'pve_vck' function (to find VM's current node).
-    #   - 'pve-vmg' function (to migrate VM).
+    #   - 'pve_vmg' function (to migrate VM).
     #   - 'qm' command-line utility.
     #   - 'ssh' for remote shutdown.
     #   - 'hostname' utility.
@@ -798,7 +798,7 @@ pve_vms() {
             ssh "root@$node_id" "shutdown now"
         fi 
     else
-        pve-vmg "$vm_id" "$cluster_nodes_str" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
+        pve_vmg "$vm_id" "$cluster_nodes_str" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
         qm start "$vm_id"
         if [ "$shutdown_flag" = "s" ]; then
             # Shutdown the other node
@@ -826,13 +826,13 @@ pve_vmg() {
     #     $8 (pve_conf_path): Path to PVE config directory
     #   1. Uses 'pve_vck <vm_id> <cluster_nodes_str>' to find the VM's current remote node ('node').
     #   2. If VM is found on a remote node:
-    #      a. Disables PCIe passthrough on the remote node: 'ssh <node> "pve-vpt <vm_id> off <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>"'.
+    #      a. Disables PCIe passthrough on the remote node: 'ssh <node> "source ${LIB_OPS_DIR}/pve && pve_vpt <vm_id> off <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>"'.
     #      b. Migrates the VM to the current node: 'ssh <node> "qm migrate <vm_id> $(hostname)"'.
-    #      c. Enables PCIe passthrough on the current (target) node: 'pve-vpt <vm_id> on <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>'.
-    #   Requires 'pve-vpt' to be available and executable via SSH on remote nodes.
+    #      c. Enables PCIe passthrough on the current (target) node: 'pve_vpt <vm_id> on <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>'.
+    #   Requires 'pve_vpt' to be available and executable via SSH on remote nodes.
     # Dependencies:
     #   - 'pve_vck' function.
-    #   - 'pve-vpt' function (both locally and on remote nodes).
+    #   - 'pve_vpt' function (both locally and on remote nodes).
     #   - 'qm' command-line utility (on remote node for migration).
     #   - 'ssh' for remote command execution.
     #   - 'hostname' utility.
@@ -863,7 +863,7 @@ pve_vmg() {
         echo "VM found on node: $node"
 
         # Disable PCIe passthrough for the VM on the remote node
-        if ! ssh "$node" "pve-vpt $vm_id off $pci0_id $pci1_id $core_count_on $core_count_off \"$usb_devices_str\" $pve_conf_path"; then
+        if ! ssh "$node" "source \${LIB_OPS_DIR}/pve && pve_vpt $vm_id off $pci0_id $pci1_id $core_count_on $core_count_off \"$usb_devices_str\" $pve_conf_path"; then
             echo "Failed to disable PCIe passthrough for VM on $node." >&2
             return 1
         fi
@@ -875,7 +875,7 @@ pve_vmg() {
         fi
 
         # Enable PCIe passthrough for the VM on the current node
-        if ! pve-vpt "$vm_id" on "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"; then
+        if ! pve_vpt "$vm_id" on "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"; then
             echo "Failed to enable PCIe passthrough for VM on $(hostname)." >&2
             return 1
         fi
@@ -988,8 +988,9 @@ pve_vpt() {
             echo "Passthrough lines removed from $vm_conf."
             ;;
         *)
-            echo "Invalid parameter. Usage: pve-vpt <VM_ID> <on|off>"
-            exit 1
+            echo "Invalid parameter. Usage: pve_vpt <VM_ID> <on|off>"
+            aux_use
+            return 1
             ;;
     esac
 }
