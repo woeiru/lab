@@ -372,7 +372,7 @@ init_module_system() {
         return 1
     fi
 
-    # Initialize directories using ver's verify_path
+    # Initialize directories using ver's ver_verify_path
     if ! init_dirs; then
         ini_log "ERROR: Directory initialization failed"
         return 1
@@ -401,7 +401,7 @@ init_dirs() {
 
     # Using verify_path from ver module
     for dir in "${required_dirs[@]}"; do
-        if ! verify_path "$dir" "dir" "true"; then
+        if ! ver_verify_path "$dir" "dir" "true"; then
             ini_log "ERROR: Failed to verify/create directory: $dir"
             return 1
         fi
@@ -469,8 +469,8 @@ load_modules() {
 ###########################################
 # PART 2: Runtime Dependency Management
 # Uses verification functions:
-#   - verify_path() from ver
-#   - verify_var() from ver
+#   - ver_verify_path() from ver
+#   - ver_verify_var() from ver
 ###########################################
 
 init_runtime_system() {
@@ -482,7 +482,7 @@ init_runtime_system() {
 
     # Verify runtime dependency file exists using ver's verify_path
     if type tme_start_timer &>/dev/null; then tme_start_timer "VERIFY_RDC_PATH" "$parent_timer"; fi
-    if ! verify_path "$rde_path" "file" "false"; then
+    if ! ver_verify_path "$rde_path" "file" "false"; then
         ini_log "ERROR: Runtime dependencies file not found"
         if type tme_end_timer &>/dev/null; then tme_end_timer "VERIFY_RDC_PATH" "error"; fi
         return 1
@@ -532,7 +532,7 @@ init_registered_functions() {
     local parent_timer="INIT_REGISTERED_FUNCTIONS"
 
     # Verify REGISTERED_FUNCTIONS exists using ver's verify_var
-    if ! verify_var "REGISTERED_FUNCTIONS"; then
+    if ! ver_verify_var "REGISTERED_FUNCTIONS"; then
         ini_log "No registered functions found" "init_registered_functions" $LOG_PRIORITY_NORMAL
         return 0
     fi
@@ -600,7 +600,7 @@ process_function_registration() {
             continue
         fi
         
-        if verify_function_dependencies "$func" "$deps"; then
+        if ver_verify_function_dependencies "$func" "$deps"; then
             if register_single_function "$func" "$deps"; then
                 ((success++))
             fi
