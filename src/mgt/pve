@@ -144,12 +144,21 @@ pve_vpt_w() {
     echo "DEBUG WRAPPER: hostname='$hostname'" >&2
     echo "DEBUG WRAPPER: usb_devices_var='$usb_devices_var'" >&2
     echo "DEBUG WRAPPER: checking if variable exists: '${!usb_devices_var}'" >&2
-    if [ -n "${!usb_devices_var}" ]; then
-        # Use printf to join array elements with newlines
-        usb_devices_str=$(printf '%s\n' "${!usb_devices_var}")
-        echo "DEBUG WRAPPER: usb_devices_str after printf: '$usb_devices_str'" >&2
+    
+    # Check if the array variable exists and has elements
+    # Use declare -p to avoid "too many arguments" error with spaces in array expansion
+    local array_name="${usb_devices_var%[@]*}"  # Remove [@] to get base array name
+    if declare -p "$array_name" >/dev/null 2>&1; then
+        # Array exists, now check if it has elements
+        if [[ -n "${!usb_devices_var}" ]]; then
+            # Use printf to join array elements with newlines
+            usb_devices_str=$(printf '%s\n' "${!usb_devices_var}")
+            echo "DEBUG WRAPPER: usb_devices_str after printf: '$usb_devices_str'" >&2
+        else
+            echo "DEBUG WRAPPER: USB devices array exists but is empty" >&2
+        fi
     else
-        echo "DEBUG WRAPPER: USB devices variable is empty or undefined" >&2
+        echo "DEBUG WRAPPER: USB devices array variable '$array_name' is not defined" >&2
     fi
     local pve_conf_path="${PVE_CONF_PATH_QEMU}"
     
@@ -276,9 +285,16 @@ pve_vms_w() {
     
     # Handle USB devices array properly - convert to newline-separated string
     local usb_devices_str=""
-    if [ -n "${!usb_devices_var}" ]; then
-        # Use printf to join array elements with newlines
-        usb_devices_str=$(printf '%s\n' "${!usb_devices_var}")
+    
+    # Check if the array variable exists and has elements
+    # Use declare -p to avoid "too many arguments" error with spaces in array expansion
+    local array_name="${usb_devices_var%[@]*}"  # Remove [@] to get base array name
+    if declare -p "$array_name" >/dev/null 2>&1; then
+        # Array exists, now check if it has elements
+        if [[ -n "${!usb_devices_var}" ]]; then
+            # Use printf to join array elements with newlines
+            usb_devices_str=$(printf '%s\n' "${!usb_devices_var}")
+        fi
     fi
     local pve_conf_path="${PVE_CONF_PATH_QEMU}"
     
@@ -318,9 +334,16 @@ pve_vmg_w() {
     
     # Handle USB devices array properly - convert to newline-separated string
     local usb_devices_str=""
-    if [ -n "${!usb_devices_var}" ]; then
-        # Use printf to join array elements with newlines
-        usb_devices_str=$(printf '%s\n' "${!usb_devices_var}")
+    
+    # Check if the array variable exists and has elements
+    # Use declare -p to avoid "too many arguments" error with spaces in array expansion
+    local array_name="${usb_devices_var%[@]*}"  # Remove [@] to get base array name
+    if declare -p "$array_name" >/dev/null 2>&1; then
+        # Array exists, now check if it has elements
+        if [[ -n "${!usb_devices_var}" ]]; then
+            # Use printf to join array elements with newlines
+            usb_devices_str=$(printf '%s\n' "${!usb_devices_var}")
+        fi
     fi
     local pve_conf_path="${PVE_CONF_PATH_QEMU}"
     
