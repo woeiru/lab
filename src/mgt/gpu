@@ -125,7 +125,7 @@ gpu_var_w() {
 
 # Wrapper for gpu-nds that extracts global variables and calls the pure function  
 # downloads and installs NVIDIA drivers, blacklisting Nouveau (wrapper)
-gpu-nds_w() {
+gpu_nds_w() {
     # Source the pure library function
     source "${LIB_OPS_DIR}/gpu"
     
