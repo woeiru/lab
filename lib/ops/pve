@@ -950,7 +950,7 @@ pve_vpt() {
     if [ -n "$usb_devices_str" ]; then
         # Read the newline-separated string into an array
         while IFS= read -r line; do
-            [ -n "$line" ] && usb_devices+=("$line")
+            [[ -n "$line" ]] && usb_devices+=("$line")
         done <<< "$usb_devices_str"
     fi
 
@@ -967,7 +967,7 @@ pve_vpt() {
             if [ -z "$section_start" ]; then
                 # If no section found, append passthrough lines at the end of the file
                 for usb_device in "${usb_devices[@]}"; do
-                    [ -n "$usb_device" ] && printf '%s\n' "$usb_device" >> "$vm_conf"
+                    [[ -n "$usb_device" ]] && printf '%s\n' "$usb_device" >> "$vm_conf"
                 done
                 echo "hostpci0: $pci0_id,pcie=1,x-vga=1" >> "$vm_conf"
                 echo "hostpci1: $pci1_id,pcie=1" >> "$vm_conf"
@@ -981,7 +981,7 @@ pve_vpt() {
                 
                 # Add USB devices
                 for usb_device in "${usb_devices[@]}"; do
-                    if [ -n "$usb_device" ]; then
+                    if [[ -n "$usb_device" ]]; then
                         printf '%s\n' "$usb_device" >> "$temp_file"
                     fi
                 done
