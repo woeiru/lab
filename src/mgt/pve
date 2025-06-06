@@ -147,7 +147,7 @@ pve_vpt_w() {
     
     # Check if the array variable exists and has elements
     # Use declare -p to avoid "too many arguments" error with spaces in array expansion
-    local array_name="${usb_devices_var%[@]*}"  # Remove [@] to get base array name
+    local array_name="${usb_devices_var%\[@\]*}"  # Remove [@] to get base array name
     if declare -p "$array_name" >/dev/null 2>&1; then
         # Array exists, now check if it has elements
         if [[ -n "${!usb_devices_var}" ]]; then
@@ -288,7 +288,7 @@ pve_vms_w() {
     
     # Check if the array variable exists and has elements
     # Use declare -p to avoid "too many arguments" error with spaces in array expansion
-    local array_name="${usb_devices_var%[@]*}"  # Remove [@] to get base array name
+    local array_name="${usb_devices_var%\[@\]*}"  # Remove [@] to get base array name
     if declare -p "$array_name" >/dev/null 2>&1; then
         # Array exists, now check if it has elements
         if [[ -n "${!usb_devices_var}" ]]; then
@@ -337,7 +337,7 @@ pve_vmg_w() {
     
     # Check if the array variable exists and has elements
     # Use declare -p to avoid "too many arguments" error with spaces in array expansion
-    local array_name="${usb_devices_var%[@]*}"  # Remove [@] to get base array name
+    local array_name="${usb_devices_var%\[@\]*}"  # Remove [@] to get base array name
     if declare -p "$array_name" >/dev/null 2>&1; then
         # Array exists, now check if it has elements
         if [[ -n "${!usb_devices_var}" ]]; then
