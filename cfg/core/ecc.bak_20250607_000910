@@ -31,7 +31,7 @@ export ENVIRONMENT_NAME="dev"
 
 # Node selection (which specific machine within the environment)
 # Auto-detected from hostname but can be overridden
-export NODE_NAME="h1"
+export NODE_NAME="${NODE_NAME:-$(hostname)}"
 
 # Debug output for verification
 # debug_log "Environment Controller: SITE_NAME=${SITE_NAME}, ENVIRONMENT_NAME=${ENVIRONMENT_NAME}, NODE_NAME=${NODE_NAME}"
