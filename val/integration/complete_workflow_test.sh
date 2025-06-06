@@ -29,7 +29,7 @@ if source bin/ini 2>/dev/null; then
     if declare -f err_log >/dev/null && \
        declare -f lo1_log >/dev/null && \
        declare -f tme_start_timer >/dev/null && \
-       declare -f verify_path >/dev/null; then
+       declare -f ver_verify_path >/dev/null; then
         exit 0
     else
         exit 1
@@ -295,7 +295,7 @@ export FAKE_VAR="missing_component"
 # Should still load core functionality even with issues
 if source bin/ini 2>/dev/null; then
     # Core functions should still be available
-    if declare -f verify_path >/dev/null; then
+    if declare -f ver_verify_path >/dev/null; then
         exit 0
     else
         exit 1

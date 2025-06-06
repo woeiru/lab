@@ -13,7 +13,7 @@
 #              formatted report of all timed events. It also logs timing
 #              information to a dedicated file.
 #
-# Dependencies: Relies on 'verify_module' for module integrity.
+# Dependencies: Relies on 'ver_verify_module' for module integrity.
 #               Uses environment variables: TME_LOG_DIR (or a passed argument to
 #               tme_init_timer), LOG_STATE_FILE (for managing log output during its
 #               own logging), TME_LEVELS_FILE, TME_STATE_FILE.
@@ -31,7 +31,7 @@
 # -----------------------------------------------------------------------------
 
 
-verify_module "tme" || exit 1
+ver_verify_module "tme" || exit 1
 
 # Performance monitoring setup
 declare -gA TME_START_TIMES     # Stores component start times

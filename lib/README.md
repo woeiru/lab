@@ -51,7 +51,7 @@ source lib/gen/sec      # Security functions
 ## 📊 Quick Reference
 | Module Category | Purpose | Key Functions |
 |----------------|---------|---------------|
-| `core/` | System fundamentals | `log`, `error`, `tme_start_timer`, `verify_module` |
+| `core/` | System fundamentals | `log`, `error`, `tme_start_timer`, `ver_verify_module` |
 | `gen/` | General utilities | Environment, infrastructure, security helpers |
 | `ops/` | Operations | GPU, network, storage, service management |
 

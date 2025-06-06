@@ -12,7 +12,7 @@
 #              output based on log levels or depth, and utilities to calculate
 #              and cache logging depths to represent call stack hierarchy.
 #
-# Dependencies: Relies on 'verify_module' for module integrity checks.
+# Dependencies: Relies on 'ver_verify_module' for module integrity checks.
 #               Uses environment variables such as LOG_DIR, TMP_DIR,
 #               LOG_DEBUG_ENABLED, LOG_STATE_FILE, and LOG_FILE.
 #
@@ -27,7 +27,7 @@
 #              Color definitions are provided for rich terminal output.
 # -----------------------------------------------------------------------------
 
-verify_module "lo1" || exit 1
+ver_verify_module "lo1" || exit 1
 
 # Configuration constants
 readonly LO1_CACHE_CLEANUP_INTERVAL=${LO1_CACHE_CLEANUP_INTERVAL:-300}  # 5 minutes
