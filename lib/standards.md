@@ -1,5 +1,15 @@
 # Library Standards
 
+## Function Naming Convention
+
+To ensure clarity, prevent naming collisions, and enhance maintainability, especially when this toolkit is sourced into other projects, all primary functions within modules in the `/lib` directory must adhere to a three-letter module prefix convention.
+
+**Convention:** `[module_prefix]_[function_name]`
+
+*   **Purpose:** The prefix immediately identifies the module a function belongs to, acting as a de facto namespace in the global Bash environment. This is crucial for preventing conflicts when the toolkit is integrated into diverse projects.
+*   **Application:** This convention applies to all functions intended for external use or those representing core functionalities of a module.
+*   **Exceptions:** Internal helper functions, not intended for direct external calls, may omit the prefix if their scope is strictly confined to their defining module and they do not risk global name collisions.
+
 ## Parameter Validation Standard
 
 This document defines the mandatory parameter validation standard for all functions in the `ops` library. This standard ensures consistent error handling, improves usability, and follows software engineering best practices.
