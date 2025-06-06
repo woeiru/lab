@@ -94,14 +94,14 @@ These functions become available after the system's modules have been loaded, ty
 
 ### Error Handling (`lib/core/err`)
 
-*   **`enable_error_trap()`**
+*   **`enable_trap()`**
     *   **Purpose**: Activates the shell's `ERR` trap for immediate script termination on command failures
-    *   **Usage**: `enable_error_trap`
+    *   **Usage**: `enable_trap`
     *   **Note**: Global variable `ERROR_TRAP_ENABLED` reflects this state
 
-*   **`disable_error_trap()`**
+*   **`disable_trap()`**
     *   **Purpose**: Deactivates the `ERR` trap
-    *   **Usage**: `disable_error_trap`
+    *   **Usage**: `disable_trap`
 
 ### Advanced Logging (`lib/core/lo1`)
 
@@ -253,7 +253,7 @@ ls -la ${LOG_DIR} ${TMP_DIR}
 #### Missing Functions
 ```bash
 # Check if modules loaded properly
-type -t setlog tme_settme enable_error_trap
+type -t setlog tme_settme enable_trap
 
 # Verify module files exist
 ls -la lib/core/{err,lo1,tme}
@@ -352,7 +352,7 @@ tme_set_output debug on      # Re-enable debug when troubleshooting
 
 ## General Usage Notes
 
-*   **Module Dependencies**: Functions like `setlog`, `enable_error_trap`, and `tme_settme` require their corresponding modules to be loaded via `bin/ini`
+*   **Module Dependencies**: Functions like `setlog`, `enable_trap`, and `tme_settme` require their corresponding modules to be loaded via `bin/ini`
 *   **Environment Variables**: Must be set **before** running `bin/ini` to take effect during initialization
 *   **Function Availability**: All runtime control functions are verified to exist in their respective modules
 *   **State Persistence**: Settings made via `setlog` and `tme_settme` persist across sessions through state files

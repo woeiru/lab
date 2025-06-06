@@ -50,7 +50,7 @@ This design allows fine-grained control while maintaining simple master and modu
     *   **Writing Functions**:
         *   `handle_error` in `lib/core/err`: Primary error logging function
         *   `error_handler` in `lib/core/err`: Automatic error trap handler
-        *   `err_process_error` in `lib/core/err`: Structured error processing
+        *   `err_process` in `lib/core/err`: Structured error processing
     *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `ERR_TERMINAL_VERBOSITY`
     *   **Environment Variable**: `ERROR_LOG` (defined in `cfg/core/ric`)
     *   **Features**:

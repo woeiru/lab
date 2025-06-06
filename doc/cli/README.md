@@ -40,7 +40,7 @@ export LOG_DIR="/custom/log/path"
 ```bash
 # Available after ./bin/ini completes:
 setlog on|off                 # Control lo1 logging
-enable_error_trap             # Enable error handling
+enable_trap             # Enable error handling
 tme_settme report on          # Enable timing reports
 tme_print_timing_report       # Display performance data
 ```
@@ -48,7 +48,7 @@ tme_print_timing_report       # Display performance data
 #### Core Module Interaction
 ```bash
 # Error handling module (err)
-enable_error_trap / disable_error_trap
+enable_trap / disable_trap
 
 # Advanced logging module (lo1)  
 setlog on / setlog off
