@@ -3,6 +3,7 @@
 # Security Utilities Library
 #######################################################################
 # File: /home/es/lab/lib/gen/sec
+# Module Prefix: sec_
 # Description: Comprehensive security management system providing secure
 #              password generation, storage, and credential management
 #              for lab environment infrastructure components.
@@ -25,6 +26,8 @@
 #   - Service-specific password management and isolation
 #   - Automatic password initialization and loading
 #   - Fallback mechanisms for missing or corrupted passwords
+#   - Module prefix convention (sec_) for namespace isolation
+#   - Backward compatibility aliases for existing scripts
 #
 # Security Model:
 #   - Passwords stored in protected directory (700 permissions)
@@ -41,9 +44,9 @@
 #
 # Usage Example:
 #   source /home/es/lab/lib/gen/sec
-#   init_password_management "/secure/passwords"
-#   password=$(generate_secure_password 20)
-#   store_secure_password "DB_PASSWORD" 24
+#   sec_init_password_management "/secure/passwords"
+#   password=$(sec_generate_secure_password 20)
+#   sec_store_secure_password "DB_PASSWORD" 24
 #
 # File Structure:
 #   /secure/passwords/
@@ -55,12 +58,12 @@
 #   └── db_root.pwd         # Database root password
 #
 # Functions Provided:
-#   - generate_secure_password: Create cryptographically secure passwords
-#   - store_secure_password: Store password in variable with validation
-#   - generate_service_passwords: Create all service passwords at once
-#   - create_password_file: Create password file with proper permissions
-#   - load_stored_passwords: Load existing passwords from storage
-#   - init_password_management: Initialize complete password system
+#   - sec_generate_secure_password: Create cryptographically secure passwords
+#   - sec_store_secure_password: Store password in variable with validation
+#   - sec_generate_service_passwords: Create all service passwords at once
+#   - sec_create_password_file: Create password file with proper permissions
+#   - sec_load_stored_passwords: Load existing passwords from storage
+#   - sec_init_password_management: Initialize complete password system
 #
 # Security Best Practices:
 #   - Minimum 16-character passwords for user accounts
@@ -99,9 +102,9 @@
 # Provides secure password generation and credential management
 
 # Generate a secure password with specified length
-# Usage: generate_secure_password [length] [exclude_special]
+# Usage: sec_generate_secure_password [length] [exclude_special]
 # Default length: 16, Default special chars: included
-generate_secure_password() {
+sec_generate_secure_password() {
     local length=${1:-16}
     local exclude_special=${2:-false}
     
@@ -118,7 +121,7 @@ generate_secure_password() {
 # Generate a secure password and store it in a variable
 # store secure password
 # <var_name> [length] [exclude_special]
-store_secure_password() {
+sec_store_secure_password() {
     local var_name="$1"
     local length=${2:-16}
     local exclude_special=${3:-false}
@@ -129,26 +132,26 @@ store_secure_password() {
     fi
     
     local password
-    password=$(generate_secure_password "$length" "$exclude_special")
+    password=$(sec_generate_secure_password "$length" "$exclude_special")
     declare -g "$var_name"="$password"
 }
 
 # Generate multiple passwords for different services and store them
 # generate service passwords
 #
-generate_service_passwords() {
+sec_generate_service_passwords() {
     # Container root passwords
-    store_secure_password "CT_PBS_PASSWORD" 20
-    store_secure_password "CT_NFS_PASSWORD" 20
-    store_secure_password "CT_SMB_PASSWORD" 20
+    sec_store_secure_password "CT_PBS_PASSWORD" 20
+    sec_store_secure_password "CT_NFS_PASSWORD" 20
+    sec_store_secure_password "CT_SMB_PASSWORD" 20
     
     # Service user passwords
-    store_secure_password "NFS_USER_PASSWORD" 16
-    store_secure_password "SMB_USER_PASSWORD" 16
+    sec_store_secure_password "NFS_USER_PASSWORD" 16
+    sec_store_secure_password "SMB_USER_PASSWORD" 16
     
     # Database passwords (if needed)
-    store_secure_password "DB_ROOT_PASSWORD" 24
-    store_secure_password "DB_USER_PASSWORD" 20
+    sec_store_secure_password "DB_ROOT_PASSWORD" 24
+    sec_store_secure_password "DB_USER_PASSWORD" 20
     
     echo "Generated secure passwords for all services"
 }
@@ -156,7 +159,7 @@ generate_service_passwords() {
 # Create a password file with proper permissions and security
 # create password file
 # <filename> <password>
-create_password_file() {
+sec_create_password_file() {
     local filename="$1"
     local password="$2"
     
@@ -173,7 +176,7 @@ create_password_file() {
 # Load passwords from secure storage into environment variables
 # load stored passwords
 # [password_dir]
-load_stored_passwords() {
+sec_load_stored_passwords() {
     local password_dir="${1:-/etc/lab/passwords}"
     
     if [[ -d "$password_dir" ]]; then
@@ -191,7 +194,7 @@ load_stored_passwords() {
 # Get the appropriate password directory based on system capabilities
 # get password directory
 #
-get_password_directory() {
+sec_get_password_directory() {
     local base_dirs=("/etc/lab/passwords" "/var/lib/lab/passwords" "/home/es/.lab/passwords" "/tmp/lab_passwords")
     
     for dir in "${base_dirs[@]}"; do
@@ -213,7 +216,7 @@ get_password_directory() {
 # Initialize secure password management system with directory setup
 # init password management
 # [password_dir]
-init_password_management() {
+sec_init_password_management() {
     local password_dir="${1:-/tmp/lab_passwords}"
     
     # Create password directory if it doesn't exist
@@ -235,19 +238,19 @@ init_password_management() {
     
     if [[ "$files_exist" == "false" ]]; then
         # Generate passwords only if they don't exist
-        generate_service_passwords
+        sec_generate_service_passwords
         
         # Store passwords in files
-        create_password_file "$password_dir/ct_pbs.pwd" "$CT_PBS_PASSWORD"
-        create_password_file "$password_dir/ct_nfs.pwd" "$CT_NFS_PASSWORD"
-        create_password_file "$password_dir/ct_smb.pwd" "$CT_SMB_PASSWORD"
-        create_password_file "$password_dir/nfs_user.pwd" "$NFS_USER_PASSWORD"
-        create_password_file "$password_dir/smb_user.pwd" "$SMB_USER_PASSWORD"
-        create_password_file "$password_dir/ct_root.pwd" "$CT_PBS_PASSWORD"  # Generic container root
+        sec_create_password_file "$password_dir/ct_pbs.pwd" "$CT_PBS_PASSWORD"
+        sec_create_password_file "$password_dir/ct_nfs.pwd" "$CT_NFS_PASSWORD"
+        sec_create_password_file "$password_dir/ct_smb.pwd" "$CT_SMB_PASSWORD"
+        sec_create_password_file "$password_dir/nfs_user.pwd" "$NFS_USER_PASSWORD"
+        sec_create_password_file "$password_dir/smb_user.pwd" "$SMB_USER_PASSWORD"
+        sec_create_password_file "$password_dir/ct_root.pwd" "$CT_PBS_PASSWORD"  # Generic container root
         
         echo "Password management initialized in $password_dir"
     else
-        load_stored_passwords "$password_dir"
+        sec_load_stored_passwords "$password_dir"
         echo "Loaded existing passwords from $password_dir"
     fi
 }
@@ -256,17 +259,17 @@ init_password_management() {
 # Initialize password management with automatic directory selection
 # init password management auto
 #
-init_password_management_auto() {
+sec_init_password_management_auto() {
     local password_dir
-    password_dir=$(get_password_directory)
-    init_password_management "$password_dir"
+    password_dir=$(sec_get_password_directory)
+    sec_init_password_management "$password_dir"
     echo "Using password directory: $password_dir"
 }
 
 # Get password file path with fallback mechanism and validation
 # get password file
 # <filename>
-get_password_file() {
+sec_get_password_file() {
     local filename="$1"
     local search_dirs=("/etc/lab/passwords" "/var/lib/lab/passwords" "/home/es/.lab/passwords" "/tmp/lab_passwords")
     
@@ -284,16 +287,16 @@ get_password_file() {
 # Get password with smart lookup and generation fallback
 # get secure password
 # <filename> [length]
-get_secure_password() {
+sec_get_secure_password() {
     local filename="$1"
     local length="${2:-16}"
     local password_file
-    password_file=$(get_password_file "$filename")
+    password_file=$(sec_get_password_file "$filename")
     
     if [[ -f "$password_file" ]]; then
         cat "$password_file" 2>/dev/null
     else
-        generate_secure_password "$length"
+        sec_generate_secure_password "$length"
     fi
 }
 
@@ -302,3 +305,22 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
     # Functions are loaded when sourced, no need to export
     :
 fi
+
+#######################################################################
+# Backward Compatibility Aliases
+# These aliases maintain compatibility with existing scripts
+# that may use the old function names without the sec_ prefix
+#######################################################################
+
+# Legacy function aliases for backward compatibility
+# These will be deprecated in future versions
+generate_secure_password() { sec_generate_secure_password "$@"; }
+store_secure_password() { sec_store_secure_password "$@"; }
+generate_service_passwords() { sec_generate_service_passwords "$@"; }
+create_password_file() { sec_create_password_file "$@"; }
+load_stored_passwords() { sec_load_stored_passwords "$@"; }
+get_password_directory() { sec_get_password_directory "$@"; }
+init_password_management() { sec_init_password_management "$@"; }
+init_password_management_auto() { sec_init_password_management_auto "$@"; }
+get_password_file() { sec_get_password_file "$@"; }
+get_secure_password() { sec_get_secure_password "$@"; }
