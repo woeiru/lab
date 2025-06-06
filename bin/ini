@@ -267,7 +267,7 @@ init_logging_system() {
 
 # Verify core modules are loaded
 verify_core_modules_loaded() {
-    type verify_module &>/dev/null && type verify_path &>/dev/null
+    type ver_verify_module &>/dev/null && type ver_verify_path &>/dev/null
 }
 
 # Initialize timer system
@@ -352,9 +352,9 @@ setup_components_with_finalization() {
 ###########################################
 # PART 1: Module Dependency Management
 # Uses verification functions:
-#   - verify_module() from ver
-#   - verify_path() from ver
-#   - validate_module() from ver
+#   - ver_verify_module() from ver
+#   - ver_verify_path() from ver
+#   - ver_validate_module() from ver
 ###########################################
 
 init_module_system() {
