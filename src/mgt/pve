@@ -71,18 +71,19 @@
 #
 # ============================================================================
 
-# Define directory and file variables
+# Define directory and file variables for wrapper identification
+# Note: We don't create FILEPATH_pve here to avoid overwriting the library variable
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
 BASE_FUN="${FILE_FUN%.*}"
 FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
 CONFIG_FUN="${SITE_CONFIG_FILE}"
 
-# Dynamically create variables based on the base name
-eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
-eval "FILE_${BASE_FUN}=\$FILE_FUN"
-eval "BASE_${BASE_FUN}=\$BASE_FUN"
-eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
+# Create wrapper-specific variables (avoiding collision with library variables)
+eval "FILEPATH_${BASE_FUN}_wrapper=\$FILEPATH_FUN"
+eval "FILE_${BASE_FUN}_wrapper=\$FILE_FUN"
+eval "BASE_${BASE_FUN}_wrapper=\$BASE_FUN"
+eval "CONFIG_${BASE_FUN}_wrapper=\$CONFIG_FUN"
 
 # Wrapper for pve_vmd that extracts global variables and calls the pure function
 # vm shutdown hook (wrapper)
