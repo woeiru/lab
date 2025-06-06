@@ -59,7 +59,7 @@
     alias gcmb='git commit -m "base"'
     alias go='git push origin master'
     alias gp='git pull'
-    alias gg='sys-gio'
+    alias gg='sys_gio'
     alias gr1='git revert HEAD~1'
 
     # History
@@ -100,9 +100,9 @@
     # Snapper (filesystem snapshot management)
     if [ -s "$DIR_LIB/ops/sto" ]; then
         source "$DIR_LIB/ops/sto"
-        alias shl='sto-bfs-shl home'
-        alias shc='sto-bfs-shc home'
-        alias shd='sto-bfs-shd'
+        alias shl='sto_bfs_shl home'
+        alias shc='sto_bfs_shc home'
+        alias shd='sto_bfs_shd'
     fi
 
     # System statistics
