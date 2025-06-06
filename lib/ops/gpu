@@ -634,22 +634,57 @@ _gpu_get_detailed_device_info() {
 # MAIN FUNCTIONS (Refactored)
 # ============================================================================
 
-# Shows a summary of selected functions in the script, displaying their usage, shortname, and description
-# general functions utility
-# [filepath] [options...]
+# Shows function overview with optional filtering
+# overview functions
+# [function_name_filter]
 gpu_fun() {
-    local filepath_gpu="${1:-$FILEPATH_gpu}"
-    shift
-    ana_laf "$filepath_gpu" "$@"
+    # Technical Description:
+    #   Displays formatted list of all functions in the GPU module
+    #   Uses ana_laf utility to parse function definitions and extract documentation
+    #   Provides optional filtering by function name pattern
+    #   Shows function descriptions, mnemonics, and parameter requirements
+    # Dependencies:
+    #   - ana_laf function from auxiliary library
+    #   - Read access to GPU module file
+    #   - grep for pattern matching if filtering is used
+    # Arguments:
+    #   $1: function_name_filter (optional) - pattern to filter function names
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    ana_laf "$FILEPATH_gpu" "$@"
 }
 
-# Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
-# general variables utility
-# [config_file] [lib_parent_dir]
+# Shows configuration variables overview
+# overview variables
+# -x (execute)
 gpu_var() {
-    local config_gpu="${1:-$CONFIG_gpu}"
-    local lib_ops_parent_dir="${2:-$DIR_FUN/..}"
-    ana_acu -o "$config_gpu" "$lib_ops_parent_dir"
+    # Technical Description:
+    #   Displays configuration variables specific to GPU module
+    #   Uses ana_acu utility to scan and format variable definitions
+    #   Shows variable names, values, and usage context from configuration files
+    #   Provides organized view of GPU-related environment and configuration settings
+    # Dependencies:
+    #   - ana_acu function from auxiliary library
+    #   - Read access to configuration files
+    #   - CONFIG_gpu environment variable must be set
+    # Arguments:
+    #   $1: -x - explicit execution flag required for consistency
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+    
+    ana_acu -o "$CONFIG_gpu" "$DIR_FUN/.."
 }
 
 # Downloads and installs NVIDIA drivers, blacklisting Nouveau drivers first
