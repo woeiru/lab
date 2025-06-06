@@ -32,7 +32,11 @@ pve_fun() {
         return 0
     fi
 
-    ana_laf "$FILEPATH_pve" "$@"
+    # Use the provided script_path parameter or fall back to FILEPATH_pve
+    local script_path="${1:-$FILEPATH_pve}"
+    shift # Remove script_path from arguments so remaining args can be forwarded
+    
+    ana_laf "$script_path" "$@"
 }
 
 # Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files

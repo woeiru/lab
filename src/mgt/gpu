@@ -30,7 +30,7 @@
 #   - Consistency: All wrapper functions follow the same pattern and naming convention
 #
 # NAMING CONVENTION:
-#   - Pure functions: Three-letter names (e.g., gpu-fun, gpu_var, gpu-nds)
+#   - Pure functions: Three-letter names (e.g., gpu_fun, gpu_var, gpu_nds)
 #   - Wrapper functions: Pure function name + "_w" suffix (e.g., gpu_fun_w)
 #   - Global variables: Follow established site configuration patterns
 #
@@ -73,9 +73,9 @@
 #   Follows: PVE refactoring pattern established in src/mgt/pve
 #
 # FUNCTION INVENTORY:
-#   gpu_fun_w : List available GPU functions (wrapper for gpu-fun)
+#   gpu_fun_w : List available GPU functions (wrapper for gpu_fun)
 #   gpu_var_w : Display GPU configuration variables (wrapper for gpu_var)
-#   gpu_nds_w : NVIDIA driver download/install (wrapper for gpu-nds)
+#   gpu_nds_w : NVIDIA driver download/install (wrapper for gpu_nds)
 #   gpu_pt1_w : GRUB/EFI GPU passthrough setup (wrapper for gpu_pt1)
 #   gpu_pt2_w : VFIO kernel modules setup (wrapper for gpu_pt2)
 #   gpu_pt3_w : Persistent GPU passthrough configuration (wrapper for gpu_pt3)
@@ -85,18 +85,47 @@
 #
 # ============================================================================
 
-# Define directory and file variables
+# ============================================================================
+# VARIABLE CREATION FOR FUNCTION ANALYSIS TOOLS
+# ============================================================================
+# Create wrapper-specific variables for function analysis tools to avoid
+# namespace collisions with main library files. These variables enable tools
+# like gpu_fun_w to correctly analyze wrapper functions instead of being
+# overwritten by main library variables.
+
+# Define directory and file variables for wrapper identification
+# Note: We don't create FILEPATH_pve here to avoid overwriting the library variable
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
 BASE_FUN="${FILE_FUN%.*}"
 FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
 CONFIG_FUN="${SITE_CONFIG_FILE}"
 
-# Dynamically create variables based on the base name
-eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
-eval "FILE_${BASE_FUN}=\$FILE_FUN"
-eval "BASE_${BASE_FUN}=\$BASE_FUN"
-eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
+# Create wrapper-specific variables (avoiding collision with library variables)
+eval "FILEPATH_${BASE_FUN}_wrapper=\$FILEPATH_FUN"
+eval "FILE_${BASE_FUN}_wrapper=\$FILE_FUN"
+eval "BASE_${BASE_FUN}_wrapper=\$BASE_FUN"
+eval "CONFIG_${BASE_FUN}_wrapper=\$CONFIG_FUN"
+
+# Wrapper for gpu_fun that extracts global variables and calls the pure function
+# overview functions (wrapper)
+gpu_fun_w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/gpu"
+    
+    # No global variable dependencies for this function
+    gpu_fun "$@"
+}
+
+# Wrapper for gpu_var that extracts global variables and calls the pure function
+# overview variables (wrapper)
+gpu_var_w() {
+    # Source the pure library function
+    source "${LIB_OPS_DIR}/gpu"
+    
+    # No global variable dependencies for this function
+    gpu_var "$@"
+}
 
 # Wrapper for gpu-nds that extracts global variables and calls the pure function  
 # downloads and installs NVIDIA drivers, blacklisting Nouveau (wrapper)
