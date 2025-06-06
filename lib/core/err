@@ -21,11 +21,11 @@
 #              to report errors. `print_error_report` generates a summary.
 #
 # Notes:       ERROR_TRAP_ENABLED controls the ERR trap. CLEANUP_FUNCTIONS are
-#              used for a central cleanup mechanism. Assumes verify_module is
-#              available if the first line `verify_module "err" || exit 1` is active.
+#              used for a central cleanup mechanism. Assumes ver_verify_module is
+#              available if the first line `ver_verify_module "err" || exit 1` is active.
 # -----------------------------------------------------------------------------
 
-verify_module "err" || exit 1
+ver_verify_module "err" || exit 1
 
 # Define error codes with descriptive names
 declare -gA ERROR_CODES=(
