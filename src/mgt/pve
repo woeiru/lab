@@ -138,7 +138,13 @@ pve_vpt_w() {
     local pci1_id="${!pci1_var}"
     local core_count_on="${!core_count_on_var}"
     local core_count_off="${!core_count_off_var}"
-    local usb_devices_str="${!usb_devices_var}"
+    
+    # Handle USB devices array properly - convert to newline-separated string
+    local usb_devices_str=""
+    if [ -n "${!usb_devices_var}" ]; then
+        # Use printf to join array elements with newlines
+        usb_devices_str=$(printf '%s\n' "${!usb_devices_var}")
+    fi
     local pve_conf_path="${PVE_CONF_PATH_QEMU}"
     
     # Validate required variables are set
@@ -261,7 +267,13 @@ pve_vms_w() {
     local pci1_id="${!pci1_var}"
     local core_count_on="${!core_count_on_var}"
     local core_count_off="${!core_count_off_var}"
-    local usb_devices_str="${!usb_devices_var}"
+    
+    # Handle USB devices array properly - convert to newline-separated string
+    local usb_devices_str=""
+    if [ -n "${!usb_devices_var}" ]; then
+        # Use printf to join array elements with newlines
+        usb_devices_str=$(printf '%s\n' "${!usb_devices_var}")
+    fi
     local pve_conf_path="${PVE_CONF_PATH_QEMU}"
     
     # Validate required variables are set
@@ -297,7 +309,13 @@ pve_vmg_w() {
     local pci1_id="${!pci1_var}"
     local core_count_on="${!core_count_on_var}"
     local core_count_off="${!core_count_off_var}"
-    local usb_devices_str="${!usb_devices_var}"
+    
+    # Handle USB devices array properly - convert to newline-separated string
+    local usb_devices_str=""
+    if [ -n "${!usb_devices_var}" ]; then
+        # Use printf to join array elements with newlines
+        usb_devices_str=$(printf '%s\n' "${!usb_devices_var}")
+    fi
     local pve_conf_path="${PVE_CONF_PATH_QEMU}"
     
     # Validate required variables are set
