@@ -8,18 +8,9 @@ that might arise when connecting Proxmox VE nodes to the Qdevice.
 
 ## Prerequisites
 
+No Corosync packages needed on the host OS; the container provides everything required.
+
 **Static IP Address for Qdevice Host:** The host machine for the Qdevice *must* have a static IP address or a DHCP reservation to ensure its IP address does not change. This is critical for stable communication with the Proxmox VE cluster.
-
-**Proxmox VE Nodes:**
-Ensure the `corosync-qdevice` package is installed on all Proxmox VE nodes in the cluster. This package allows the nodes to communicate with the QNetd server. You can typically install it using:
-```bash
-sudo apt update
-sudo apt install corosync-qdevice
-```
-
-**Qdevice Host:**
-The Qdevice host itself (the machine running the Podman container) does not require any specific Corosync packages to be installed on its operating system for this setup. The necessary `corosync-qnetd` service is provided by the container.
-You will, however, need Podman installed to build and run the container.
 
 **Setting a Static IP on SUSE Linux with NetworkManager (e.g., for interface `enp3s0` to `192.168.178.223`):**
 
@@ -105,6 +96,14 @@ If your SUSE Linux system uses NetworkManager, you can configure a static IP add
     Ensure `enp3s0` shows the IP `192.168.178.223/24`, the default route points to your gateway via `enp3s0`, and that DNS resolution works.
 
 ---
+
+**Proxmox VE Nodes:**
+Ensure the `corosync-qdevice` package is installed on all Proxmox VE nodes in the cluster. This package allows the nodes to communicate with the QNetd server. You can typically install it using:
+```bash
+sudo apt update
+sudo apt install corosync-qdevice
+```
+
 
 ## On qdevice host
 
