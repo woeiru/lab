@@ -1,1 +1,0 @@
-generate_secure_password() { sec_generate_secure_password "$@"; }
