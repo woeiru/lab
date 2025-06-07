@@ -305,22 +305,3 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
     # Functions are loaded when sourced, no need to export
     :
 fi
-
-#######################################################################
-# Backward Compatibility Aliases
-# These aliases maintain compatibility with existing scripts
-# that may use the old function names without the sec_ prefix
-#######################################################################
-
-# Legacy function aliases for backward compatibility
-# These will be deprecated in future versions
-generate_secure_password() { sec_generate_secure_password "$@"; }
-store_secure_password() { sec_store_secure_password "$@"; }
-generate_service_passwords() { sec_generate_service_passwords "$@"; }
-create_password_file() { sec_create_password_file "$@"; }
-load_stored_passwords() { sec_load_stored_passwords "$@"; }
-get_password_directory() { sec_get_password_directory "$@"; }
-init_password_management() { sec_init_password_management "$@"; }
-init_password_management_auto() { sec_init_password_management_auto "$@"; }
-get_password_file() { sec_get_password_file "$@"; }
-get_secure_password() { sec_get_secure_password "$@"; }
