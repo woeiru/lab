@@ -579,9 +579,9 @@ setup_components() {
     local components=(
         "source_cfg_ecc:CFG_ECC:$COMPONENT_OPTIONAL"
         "source_cfg_ali:CFG_ALI:$COMPONENT_OPTIONAL"
-        "source_cfg_env:CFG_ENV:$COMPONENT_OPTIONAL"
         "source_lib_ops:LIB_OPS:$COMPONENT_OPTIONAL"
         "source_lib_gen:LIB_UTL:$COMPONENT_OPTIONAL"
+        "source_cfg_env:CFG_ENV:$COMPONENT_OPTIONAL"
         "source_src_aux:SRC_AUX:$COMPONENT_OPTIONAL"
         "source_src_mgt:SRC_MGT:$COMPONENT_OPTIONAL"
     )

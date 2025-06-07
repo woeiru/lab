@@ -440,6 +440,27 @@ inf_show_config_summary() {
     done
 }
 
+# Compatibility aliases for functions called without inf_ prefix
+# These ensure backward compatibility with existing configuration files
+# Note: Using functions instead of aliases to ensure they work in subshells
+set_container_defaults() { inf_set_container_defaults "$@"; }
+define_container() { inf_define_container "$@"; }
+define_containers() { inf_define_containers "$@"; }
+set_vm_defaults() { inf_set_vm_defaults "$@"; }
+define_vm() { inf_define_vm "$@"; }
+define_vms() { inf_define_vms "$@"; }
+generate_ip_sequence() { inf_generate_ip_sequence "$@"; }
+validate_config() { inf_validate_config "$@"; }
+show_config_summary() { inf_show_config_summary "$@"; }
+
+# Export all functions to make them available in subshells
+export -f inf_set_container_defaults inf_define_container inf_define_containers
+export -f inf_set_vm_defaults inf_define_vm inf_define_vms
+export -f inf_generate_ip_sequence inf_validate_config inf_show_config_summary
+export -f set_container_defaults define_container define_containers
+export -f set_vm_defaults define_vm define_vms
+export -f generate_ip_sequence validate_config show_config_summary
+
 # If script is executed directly, show help
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo "Infrastructure Configuration Utilities"
@@ -458,6 +479,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo "  inf_generate_ip_sequence - Generate sequential IP addresses"
     echo "  inf_validate_config    - Validate configuration"
     echo "  inf_show_config_summary - Show configuration summary"
+    echo ""
+    echo "Compatibility aliases (without inf_ prefix) are also available."
     echo ""
     echo "Usage: source $0"
 fi
