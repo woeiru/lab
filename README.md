@@ -18,29 +18,48 @@ This is a comprehensive environment management framework designed for complex in
 
 ## 🚀 Quick Start
 
-### Environment Setup
+The Lab Environment Management System provides a streamlined command-line interface through the `./lab` command for optimal user experience.
+
+### Initial Setup
 ```bash
-# Initialize the environment (supports bash/zsh)
-./entry.sh
+# First-time system initialization
+./lab init
 
-# Verify installation  
-./val/validate_system
+# Verify system status
+./lab status
 
-# Check system status
-./tst/test_environment
+# Run comprehensive validation
+./lab validate
 ```
 
-### Basic Usage
-```bash
-# Source core system (automatic after setup)
-source ~/.bashrc  # or ~/.zshrc
+### Available Commands
 
-# Available core modules:
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `./lab init` | Setup shell integration | First time setup or reconfiguration |
+| `./lab status` | Check initialization status | Verify system readiness |
+| `./lab validate` | Run comprehensive test suite | System verification and troubleshooting |
+| `./lab help` | Display detailed usage help | When you need guidance |
+
+### Daily Usage
+```bash
+# After initialization, core modules are automatically available:
 # - err: Advanced error handling and stack traces
 # - lo1: Module-specific debug logging  
 # - tme: Performance timing and monitoring
 # - Environment hierarchy management
+
+# System functions are sourced automatically in new shell sessions
+# Use deployment scripts and infrastructure commands directly
 ```
+
+### Architecture Benefits
+
+The new entry point structure provides:
+- **Clear User Journey**: Setup → Verification → Daily Usage
+- **Professional CLI Pattern**: Follows industry standard conventions
+- **Separation of Concerns**: User interface vs. system configuration
+- **Built-in Validation**: Integrated test runner with comprehensive coverage
 
 
 ## 🏛️ Architecture Overview

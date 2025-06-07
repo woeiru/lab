@@ -1,0 +1,104 @@
+#!/bin/bash
+#######################################################################
+# Lab Environment Management System - Main Entry Point
+#######################################################################
+# Purpose: Primary command-line interface for the Lab system
+#
+# Usage:
+#   ./lab init          Setup/configure shell integration
+#   ./lab status        Check system status  
+#   ./lab validate      Run system validation
+#   ./lab help          Show detailed help
+#######################################################################
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+readonly LAB_ROOT="$SCRIPT_DIR"
+
+show_usage() {
+    cat << 'EOF'
+╔══════════════════════════════════════════════════════════════════╗
+║              Lab Environment Management System                   ║
+╚══════════════════════════════════════════════════════════════════╝
+
+A sophisticated infrastructure automation and environment management platform.
+
+COMMANDS:
+    init            Setup shell integration (first-time setup)
+    status          Check system initialization status
+    validate        Run system validation tests
+    help            Show detailed help and documentation
+    
+EXAMPLES:
+    ./lab init                    # First-time setup
+    ./lab status                  # Check if system is ready
+    ./lab validate               # Run validation tests
+
+For detailed documentation, see: README.md
+
+After running 'init', restart your shell or run: source ~/.bashrc
+Then you can use the lab functions directly in your shell.
+EOF
+}
+
+check_init_status() {
+    if [[ -f "${HOME}/.lab_initialized" ]]; then
+        echo "✓ Lab system has been initialized"
+        
+        # Check if shell integration is working
+        if command -v ini >/dev/null 2>&1 || [[ -n "${LAB_ROOT:-}" ]]; then
+            echo "✓ Shell integration is active"
+        else
+            echo "⚠ Shell integration not detected. Try restarting your shell or run: source ~/.bashrc"
+        fi
+        
+        return 0
+    else
+        echo "✗ Lab system not initialized. Run: ./lab init"
+        return 1
+    fi
+}
+
+main() {
+    case "${1:-help}" in
+        init|setup)
+            echo "Running initial setup..."
+            exec "${LAB_ROOT}/entry.sh" "${@:2}"
+            ;;
+        status)
+            check_init_status
+            ;;
+        validate|test)
+            if check_init_status >/dev/null; then
+                if [[ -f "${LAB_ROOT}/val/validate_system" ]]; then
+                    exec "${LAB_ROOT}/val/validate_system" "${@:2}"
+                elif [[ -f "${LAB_ROOT}/val/run_all_tests.sh" ]]; then
+                    exec "${LAB_ROOT}/val/run_all_tests.sh" "${@:2}"
+                else
+                    echo "Validation scripts not found"
+                    exit 1
+                fi
+            else
+                echo "Please run './lab init' first"
+                exit 1
+            fi
+            ;;
+        help|--help|-h)
+            show_usage
+            echo ""
+            echo "For more detailed documentation:"
+            echo "  • README.md - System overview and architecture"
+            echo "  • doc/ - Complete technical documentation"
+            echo "  • val/ - Validation and testing framework"
+            ;;
+        *)
+            echo "Unknown command: ${1:-}"
+            echo ""
+            show_usage
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
