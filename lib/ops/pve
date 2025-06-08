@@ -1042,22 +1042,22 @@ pve_vck() {
         return 0
     fi
 
-    echo "DEBUG: pve_vck called with arguments: $@" >&2
+    aux_dbg "called with arguments: $@"
     local vm_id="$1"
     local cluster_nodes_str="$2"
     local found_node=""
-    echo "DEBUG: pve_vck: vm_id: $vm_id" >&2
+    aux_dbg "vm_id: $vm_id"
 
     if [ -z "$vm_id" ]; then
         echo "ERR: pve_vck: VM ID not provided." >&2
-        echo "DEBUG: pve_vck: vm_id is empty, calling aux_use" >&2
+        aux_dbg "vm_id is empty, calling aux_use"
         aux_use
         return 1
     fi
 
     if [ -z "$cluster_nodes_str" ]; then
         echo "ERR: pve_vck: cluster_nodes parameter not provided." >&2
-        echo "DEBUG: pve_vck: cluster_nodes is empty" >&2
+        aux_dbg "cluster_nodes is empty"
         aux_use
         return 1
     fi
@@ -1067,15 +1067,15 @@ pve_vck() {
     
     if [ ${#cluster_nodes[@]} -eq 0 ]; then
         echo "ERR: pve_vck: cluster_nodes array is empty." >&2
-        echo "DEBUG: pve_vck: cluster_nodes array is empty" >&2
+        aux_dbg "cluster_nodes array is empty"
         return 1
     fi
     
-    echo "DEBUG: pve_vck: cluster_nodes: (${cluster_nodes[*]})" >&2
+    aux_dbg "cluster_nodes: (${cluster_nodes[*]})"
 
     local current_hostname
     current_hostname=$(hostname)
-    echo "DEBUG: pve_vck: current_hostname: $current_hostname" >&2
+    aux_dbg "current_hostname: $current_hostname"
 
     for node in "${cluster_nodes[@]}"; do
         echo "DEBUG: pve_vck: checking node: $node" >&2

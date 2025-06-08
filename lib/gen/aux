@@ -78,6 +78,56 @@ aux_log() {
     fi
 }
 
+# Standardized debug logging with timestamp and function name for ops modules
+# debug log
+# <message> [level]
+aux_dbg() {
+    local message="$1"
+    local level="${2:-DEBUG}"
+    
+    # Get the calling function name from the call stack
+    local caller_function="${FUNCNAME[1]:-main}"
+    local timestamp
+    printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
+    
+    # Check if we should output debug messages
+    # Respect the existing logging infrastructure
+    local should_output=false
+    
+    # Check if we have the main logging system available
+    if type -t log &>/dev/null && type -t lo1_get_cached_log_state &>/dev/null; then
+        # Use the existing lo1 logging system
+        local log_state
+        log_state=$(lo1_get_cached_log_state)
+        if [[ "$log_state" == "on" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
+            should_output=true
+        fi
+    else
+        # Fallback check - use environment variable or assume debug is wanted
+        if [[ "${AUX_DEBUG_ENABLED:-1}" == "1" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
+            should_output=true
+        fi
+    fi
+    
+    # Format the debug message
+    local formatted_message="[$level] $timestamp - [$caller_function] $message"
+    
+    # Output to appropriate channels
+    if [[ "$should_output" == "true" ]]; then
+        # Send to stderr for debug output
+        echo "$formatted_message" >&2
+    fi
+    
+    # Always log to file if we have logging system available
+    if type -t log &>/dev/null; then
+        # Use the main logging system for file output
+        log "[$level] [$caller_function] $message"
+    elif [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+        # Fallback file logging
+        echo "$formatted_message" >> "${LOG_DIR}/aux_debug.log"
+    fi
+}
+
 # Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
 # function usage information
 #
@@ -620,4 +670,23 @@ aux_arr() {
             return 1
             ;;
     esac
+}
+
+# Enhanced logging functions with different levels
+# info log
+# <message>
+aux_info() {
+    aux_dbg "$1" "INFO"
+}
+
+# warning log  
+# <message>
+aux_warn() {
+    aux_dbg "$1" "WARN"
+}
+
+# error log
+# <message>
+aux_err() {
+    aux_dbg "$1" "ERROR"
 }
