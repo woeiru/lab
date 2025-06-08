@@ -1,7 +1,12 @@
 #!/bin/bash
 
-# Source enhanced auxiliary logging system
-source lib/gen/aux
+# Enhanced auxiliary logging fallback mechanism
+if [[ -z "$RC_SOURCED" ]]; then
+    # Calculate relative path from current script location
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    AUX_PATH="$SCRIPT_DIR/../gen/aux"
+    source "$AUX_PATH"
+fi
 
 # ============================================================================
 # GPU Driver and Passthrough Function Interactions - Technical Overview
