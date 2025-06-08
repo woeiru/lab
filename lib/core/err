@@ -326,7 +326,7 @@ err_register_cleanup() {
 
     [[ -z "$module" || -z "$function" ]] && { echo "Error: Module and function must be provided to register_cleanup." >&2; return 1; }
     if [[ -n "$function" && $(type -t "$function") == "function" ]]; then
-        type log >/dev/null 2>&1 && log "lvl" "Registered cleanup for module: $module" || { if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${ERR_TERMINAL_VERBOSITY:-on}" == "on" ]]; then echo "Registered cleanup for module: $module"; fi; }
+        err_process "Registered cleanup for module: $module" "err_register_cleanup" "${ERROR_CODES[SUCCESS]}" "INFO"
     else
         return 1
     fi
@@ -336,7 +336,7 @@ err_register_cleanup() {
 # Main Cleanup - MCU
 # 
 err_main_cleanup() {
-    log "lvl" "Starting main cleanup sequence"
+    err_process "Starting main cleanup sequence" "err_main_cleanup" "${ERROR_CODES[SUCCESS]}" "INFO"
 
     # First cleanup logging system
     if [[ -n "${CLEANUP_FUNCTIONS[lo]}" ]]; then
@@ -353,7 +353,7 @@ err_main_cleanup() {
         ${CLEANUP_FUNCTIONS[err]}
     fi
 
-    log "lvl" "Main cleanup sequence completed"
+    err_process "Main cleanup sequence completed" "err_main_cleanup" "${ERROR_CODES[SUCCESS]}" "INFO"
 }
 
 # Central error handler that delegates to module error handlers
