@@ -105,7 +105,7 @@ validate_required_globals() {
     # Check optional variables and warn if missing
     for var in "${optional_vars[@]}"; do
         if [[ -z "${!var:-}" ]]; then
-            log "lvl" "Warning: Optional variable $var not set (may be loaded later)"
+            lo1_log "lvl" "Warning: Optional variable $var not set (may be loaded later)"
         fi
     done
     
@@ -124,7 +124,7 @@ source_helper() {
     
     # Input validation
     if [[ -z "$file" ]]; then
-        log "lvl" " Error: No file specified for source_helper"
+        lo1_log "lvl" " Error: No file specified for source_helper"
         return 1
     fi
 
@@ -132,7 +132,7 @@ source_helper() {
 
     # Verify the file exists
     if [[ ! -f "$file" ]]; then
-        log "lvl" " Warning: File $description ($file) not found."
+        lo1_log "lvl" " Warning: File $description ($file) not found."
         handle_error "File not found: $file" "source_helper" "${ERROR_CODES[FILE_NOT_FOUND]}" "WARNING"
         tme_end_timer "source_$description"
         return 1
@@ -140,7 +140,7 @@ source_helper() {
 
     # Verify the file is readable
     if [[ ! -r "$file" ]]; then
-        log "lvl" " Warning: File $description ($file) is not readable."
+        lo1_log "lvl" " Warning: File $description ($file) is not readable."
         handle_error "File not readable: $file" "source_helper" "${ERROR_CODES[PERMISSION_DENIED]}" "WARNING"
         tme_end_timer "source_$description"
         return 1
@@ -149,7 +149,7 @@ source_helper() {
     # Create secure temporary file
     local temp_error
     if ! temp_error=$(mktemp); then
-        log "lvl" " Error: Failed to create temporary file for error capture"
+        lo1_log "lvl" " Error: Failed to create temporary file for error capture"
         error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
         tme_end_timer "source_$description"
         return 1
@@ -160,7 +160,7 @@ source_helper() {
 
     # Source the file and capture any errors
     if source "$file" 2>"$temp_error"; then
-        log "lvl" "Successfully sourced: $description"
+        lo1_log "lvl" "Successfully sourced: $description"
         tme_end_timer "source_$description" "success"
         rm -f "$temp_error"
         unset TEMP_ERROR_FILE
@@ -168,7 +168,7 @@ source_helper() {
     else
         local error_output
         error_output=$(cat "$temp_error" 2>/dev/null || echo "Failed to read error output")
-        log "lvl" "Error sourcing $description: $error_output"
+        lo1_log "lvl" "Error sourcing $description: $error_output"
         rm -f "$temp_error"
         unset TEMP_ERROR_FILE
         error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
@@ -185,7 +185,7 @@ source_directory() {
     
     # Input validation
     if [[ -z "$dir" ]]; then
-        log "lvl" " Error: No directory specified for source_directory"
+        lo1_log "lvl" " Error: No directory specified for source_directory"
         return 1
     fi
     
@@ -194,17 +194,17 @@ source_directory() {
     fi
 
     tme_start_timer "dir_$description"
-    log "lvl" "Sourcing $description: $dir"
+    lo1_log "lvl" "Sourcing $description: $dir"
 
     if [[ ! -d "$dir" ]]; then
-        log "lvl" " Warning: Directory $dir not found. Skipping."
+        lo1_log "lvl" " Warning: Directory $dir not found. Skipping."
         tme_end_timer "dir_$description"
         return 1
     fi
 
     # Check if directory is readable
     if [[ ! -r "$dir" ]]; then
-        log "lvl" " Error: Directory $dir is not readable"
+        lo1_log "lvl" " Error: Directory $dir is not readable"
         tme_end_timer "dir_$description"
         return 1
     fi
@@ -215,14 +215,14 @@ source_directory() {
     local temp_file_list
     
     if ! temp_file_list=$(mktemp); then
-        log "lvl" " Error: Failed to create temporary file for file listing"
+        lo1_log "lvl" " Error: Failed to create temporary file for file listing"
         tme_end_timer "dir_$description"
         return 1
     fi
 
     # Get sorted list of files
     if ! find "$dir" -maxdepth 1 -type f -name "$pattern" -print0 | sort -z > "$temp_file_list"; then
-        log "lvl" " Error: Failed to list files in $dir"
+        lo1_log "lvl" " Error: Failed to list files in $dir"
         rm -f "$temp_file_list"
         tme_end_timer "dir_$description"
         return 1
@@ -239,15 +239,15 @@ source_directory() {
     rm -f "$temp_file_list"
 
     if ((total_count == 0)); then
-        log "lvl" " Warning: No matching files found in $dir for pattern '$pattern'"
+        lo1_log "lvl" " Warning: No matching files found in $dir for pattern '$pattern'"
         tme_end_timer "dir_$description"
         return 1
     elif ((success_count == 0)); then
-        log "lvl" " Warning: No files were successfully sourced from $dir (0/$total_count)"
+        lo1_log "lvl" " Warning: No files were successfully sourced from $dir (0/$total_count)"
         tme_end_timer "dir_$description"
         return 1
     else
-        log "lvl" "Successfully sourced $success_count/$total_count files from $dir"
+        lo1_log "lvl" "Successfully sourced $success_count/$total_count files from $dir"
         tme_end_timer "dir_$description"
         return 0
     fi
@@ -262,39 +262,39 @@ execute_component() {
     
     # Input validation
     if [[ -z "$func" ]]; then
-        log "lvl" " Error: No function specified for execute_component"
+        lo1_log "lvl" " Error: No function specified for execute_component"
         return 1
     fi
     
     if [[ -z "$component" ]]; then
-        log "lvl" " Error: No component name specified for execute_component"
+        lo1_log "lvl" " Error: No component name specified for execute_component"
         return 1
     fi
 
     tme_start_timer "$component"
-    log "lvl" " Executing component: $component ..."
+    lo1_log "lvl" " Executing component: $component ..."
 
     if ! type "$func" &>/dev/null; then
-        log "lvl" " Error: Function $func not found for component $component"
+        lo1_log "lvl" " Error: Function $func not found for component $component"
         local continue_on_error="$([[ $required -eq $COMPONENT_OPTIONAL ]] && echo true || echo false)"
         error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$continue_on_error"
         tme_end_timer "$component"
         return 1
     elif "$func"; then
         export "$success_var=1"
-        log "lvl" " Component $component completed successfully"
+        lo1_log "lvl" " Component $component completed successfully"
         tme_end_timer "$component"
         return 0
     else
         unset "$success_var"
         local msg="Component $component failed"
         if ((required == COMPONENT_REQUIRED)); then
-            log "lvl" " Error: $msg"
+            lo1_log "lvl" " Error: $msg"
             error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
             tme_end_timer "$component"
             return 1
         else
-            log "lvl" " Warning: $msg (optional component)"
+            lo1_log "lvl" " Warning: $msg (optional component)"
             error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
             tme_end_timer "$component"
             return 0
@@ -342,7 +342,7 @@ execute_component() {
 source_lib_ops() {
     # Validate LIB_OPS_DIR is set
     if [[ -z "${LIB_OPS_DIR:-}" ]]; then
-        log "lvl" "Error: LIB_OPS_DIR not set, cannot source operational function files"
+        lo1_log "lvl" "Error: LIB_OPS_DIR not set, cannot source operational function files"
         return 1
     fi
     
@@ -356,7 +356,7 @@ source_lib_ops() {
 source_src_aux() {
     # Validate SRC_AUX_DIR is set
     if [[ -z "${SRC_AUX_DIR:-}" ]]; then
-        log "lvl" "Error: SRC_AUX_DIR not set, cannot source auxiliary framework files"
+        lo1_log "lvl" "Error: SRC_AUX_DIR not set, cannot source auxiliary framework files"
         return 1
     fi
 
@@ -367,7 +367,7 @@ source_src_aux() {
 # Initialize password management if needed and available
 init_password_management_if_needed() {
     if ! type init_password_management_auto &>/dev/null; then
-        log "lvl" "Note: Password management functions not available (sec utilities may not be loaded)"
+        lo1_log "lvl" "Note: Password management functions not available (sec utilities may not be loaded)"
         return 0
     fi
     
@@ -381,17 +381,17 @@ init_password_management_if_needed() {
     
     for dir in "${password_dirs[@]}"; do
         if [[ -f "${dir}/ct_pbs.pwd" ]]; then
-            log "lvl" "Password management already initialized in ${dir}"
+            lo1_log "lvl" "Password management already initialized in ${dir}"
             return 0
         fi
     done
     
-    log "lvl" "Initializing secure password management system..."
+    lo1_log "lvl" "Initializing secure password management system..."
     if init_password_management_auto; then
-        log "lvl" "Password management system initialized successfully"
+        lo1_log "lvl" "Password management system initialized successfully"
         return 0
     else
-        log "lvl" "Warning: Failed to initialize password management system"
+        lo1_log "lvl" "Warning: Failed to initialize password management system"
         return 1
     fi
 }
@@ -404,16 +404,16 @@ source_lib_gen() {
     local description="general utility function files"
     local pattern="*"
 
-    log "lvl" "Sourcing ${description} from ${dir_to_source}"
+    lo1_log "lvl" "Sourcing ${description} from ${dir_to_source}"
     if source_directory "${dir_to_source}" "${pattern}" "${description}"; then
-        log "lvl" "Successfully sourced ${description}."
+        lo1_log "lvl" "Successfully sourced ${description}."
         
         # Post-loading initialization for specialized utilities
         init_password_management_if_needed
         
         return 0
     else
-        log "lvl" "Failed to source ${description} from ${dir_to_source}."
+        lo1_log "lvl" "Failed to source ${description} from ${dir_to_source}."
         return 1
     fi
 }
@@ -422,28 +422,28 @@ source_lib_gen() {
 source_cfg_ecc() {
     # Validate LAB_DIR is set
     if [[ -z "${LAB_DIR:-}" ]]; then
-        log "lvl" "Error: LAB_DIR not set, cannot locate environment controller"
+        lo1_log "lvl" "Error: LAB_DIR not set, cannot locate environment controller"
         return 1
     fi
     
     local ecc_file="${LAB_DIR}/cfg/core/ecc"
     
     tme_start_timer "cfg_ecc"
-    log "lvl" "Loading environment controller from: ${ecc_file}"
+    lo1_log "lvl" "Loading environment controller from: ${ecc_file}"
     
     if [[ -f "${ecc_file}" ]]; then
         if source_helper "${ecc_file}" "environment controller"; then
-            log "lvl" "Successfully loaded environment controller"
-            log "lvl" "Active configuration: Site=${SITE_NAME:-unset}, Env=${ENVIRONMENT_NAME:-unset}, Node=${NODE_NAME:-unset}"
+            lo1_log "lvl" "Successfully loaded environment controller"
+            lo1_log "lvl" "Active configuration: Site=${SITE_NAME:-unset}, Env=${ENVIRONMENT_NAME:-unset}, Node=${NODE_NAME:-unset}"
             tme_end_timer "cfg_ecc"
             return 0
         else
-            log "lvl" "Failed to load environment controller"
+            lo1_log "lvl" "Failed to load environment controller"
             tme_end_timer "cfg_ecc"
             return 1
         fi
     else
-        log "lvl" "Warning: Environment controller file not found: ${ecc_file}"
+        lo1_log "lvl" "Warning: Environment controller file not found: ${ecc_file}"
         tme_end_timer "cfg_ecc"
         return 1
     fi
@@ -457,26 +457,26 @@ source_cfg_env() {
     local required_vars=("SITE_CONFIG_FILE" "ENV_OVERRIDE_FILE" "NODE_OVERRIDE_FILE" "SITE_NAME" "ENVIRONMENT_NAME" "NODE_NAME")
     for var in "${required_vars[@]}"; do
         if [[ -z "${!var:-}" ]]; then
-            log "lvl" "Error: Required variable $var not set for environment configuration"
+            lo1_log "lvl" "Error: Required variable $var not set for environment configuration"
             return 1
         fi
     done
     
     tme_start_timer "cfg_env"
-    log "lvl" "Loading environment configuration..."
-    log "lvl" "Site: ${SITE_NAME}, Environment: ${ENVIRONMENT_NAME}, Node: ${NODE_NAME}"
+    lo1_log "lvl" "Loading environment configuration..."
+    lo1_log "lvl" "Site: ${SITE_NAME}, Environment: ${ENVIRONMENT_NAME}, Node: ${NODE_NAME}"
     
     # Load base site configuration (required)
     if [[ -f "${SITE_CONFIG_FILE}" ]]; then
         if source_helper "${SITE_CONFIG_FILE}" "base site config (${SITE_NAME})"; then
-            log "lvl" "Successfully loaded base site configuration"
+            lo1_log "lvl" "Successfully loaded base site configuration"
         else
-            log "lvl" "Error: Failed to load base site configuration"
+            lo1_log "lvl" "Error: Failed to load base site configuration"
             tme_end_timer "cfg_env"
             return 1
         fi
     else
-        log "lvl" "Error: Base site config file not found: ${SITE_CONFIG_FILE}"
+        lo1_log "lvl" "Error: Base site config file not found: ${SITE_CONFIG_FILE}"
         tme_end_timer "cfg_env"
         return 1
     fi
@@ -484,25 +484,25 @@ source_cfg_env() {
     # Load environment-specific overrides (optional)
     if [[ -f "${ENV_OVERRIDE_FILE}" ]]; then
         if source_helper "${ENV_OVERRIDE_FILE}" "environment overrides (${ENVIRONMENT_NAME})"; then
-            log "lvl" "Successfully loaded environment overrides"
+            lo1_log "lvl" "Successfully loaded environment overrides"
         else
-            log "lvl" "Warning: Failed to load environment overrides"
+            lo1_log "lvl" "Warning: Failed to load environment overrides"
             # Don't fail for optional overrides
         fi
     else
-        log "lvl" "No environment override file found: ${ENV_OVERRIDE_FILE}"
+        lo1_log "lvl" "No environment override file found: ${ENV_OVERRIDE_FILE}"
     fi
     
     # Load node-specific overrides (optional)
     if [[ -f "${NODE_OVERRIDE_FILE}" ]]; then
         if source_helper "${NODE_OVERRIDE_FILE}" "node overrides (${NODE_NAME})"; then
-            log "lvl" "Successfully loaded node overrides"
+            lo1_log "lvl" "Successfully loaded node overrides"
         else
-            log "lvl" "Warning: Failed to load node overrides"
+            lo1_log "lvl" "Warning: Failed to load node overrides"
             # Don't fail for optional overrides
         fi
     else
-        log "lvl" "No node override file found: ${NODE_OVERRIDE_FILE}"
+        lo1_log "lvl" "No node override file found: ${NODE_OVERRIDE_FILE}"
     fi
     
     tme_end_timer "cfg_env"
@@ -513,7 +513,7 @@ source_cfg_env() {
 source_cfg_ali() {
     # Validate CFG_ALI_DIR is set
     if [[ -z "${CFG_ALI_DIR:-}" ]]; then
-        log "lvl" "Error: CFG_ALI_DIR not set, cannot source alias configuration files"
+        lo1_log "lvl" "Error: CFG_ALI_DIR not set, cannot source alias configuration files"
         return 1
     fi
     
@@ -530,10 +530,10 @@ source_src_mgt() {
     # Use SRC_MGT_DIR which should be defined in ric
     if [[ -z "${SRC_MGT_DIR:-}" ]]; then
         if [[ -z "${BASE_DIR:-}" ]]; then
-            log "lvl" "Error: Neither SRC_MGT_DIR nor BASE_DIR is defined"
+            lo1_log "lvl" "Error: Neither SRC_MGT_DIR nor BASE_DIR is defined"
             return 1
         fi
-        log "lvl" "Warning: SRC_MGT_DIR not defined, using default path"
+        lo1_log "lvl" "Warning: SRC_MGT_DIR not defined, using default path"
         src_mgt_dir="${BASE_DIR}/src/mgt"
     else
         src_mgt_dir="$SRC_MGT_DIR"
@@ -541,7 +541,7 @@ source_src_mgt() {
     
     # Validate the directory exists before attempting to source
     if [[ ! -d "$src_mgt_dir" ]]; then
-        log "lvl" "Warning: Management wrapper directory not found: $src_mgt_dir"
+        lo1_log "lvl" "Warning: Management wrapper directory not found: $src_mgt_dir"
         return 1
     fi
     
@@ -550,12 +550,12 @@ source_src_mgt() {
 }
 
 setup_components() {
-    log "lvl" "Validating and executing component configuration..."
-    log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
+    lo1_log "lvl" "Validating and executing component configuration..."
+    lo1_log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
     
     # Validate required globals first
     if ! validate_required_globals; then
-        log "lvl" "Error: Required global variables validation failed"
+        lo1_log "lvl" "Error: Required global variables validation failed"
         return 1
     fi
     
@@ -566,13 +566,13 @@ setup_components() {
     if type tme_print_timing_report &>/dev/null; then
         has_timing_report=true
     else
-        log "lvl" "Warning: tme_print_timing_report function not found"
+        lo1_log "lvl" "Warning: tme_print_timing_report function not found"
     fi
     
     if type print_error_report &>/dev/null; then
         has_error_report=true
     else
-        log "lvl" "Warning: print_error_report function not found"
+        lo1_log "lvl" "Warning: print_error_report function not found"
     fi
 
     # Component definitions: function:name:required_flag
@@ -586,7 +586,7 @@ setup_components() {
         "source_src_mgt:SRC_MGT:$COMPONENT_OPTIONAL"
     )
 
-    log "lvl" "Executing component functions..."
+    lo1_log "lvl" "Executing component functions..."
 
     local failed_required=0
     local successful_components=0
@@ -599,23 +599,23 @@ setup_components() {
             ((successful_components++))
         elif ((required == COMPONENT_REQUIRED)); then
             failed_required=1
-            log "lvl" " Required component $name ($func) failed. Halting further component setup."
+            lo1_log "lvl" " Required component $name ($func) failed. Halting further component setup."
             break
         fi
     done
 
-    log "lvl" "Component execution summary: $successful_components/$total_components components loaded successfully"
+    lo1_log "lvl" "Component execution summary: $successful_components/$total_components components loaded successfully"
 
     if ((failed_required)); then
         unset RC_SOURCED
-        log "lvl" " RC initialization failed: required component(s) failed"
-        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
+        lo1_log "lvl" " RC initialization failed: required component(s) failed"
+        lo1_log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
         [[ "$has_error_report" == "true" ]] && print_error_report
         return 1
     else
         export RC_SOURCED=1
-        log "lvl" " RC initialization completed successfully"
-        log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
+        lo1_log "lvl" " RC initialization completed successfully"
+        lo1_log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
         [[ "$has_error_report" == "true" ]] && print_error_report
         return 0
     fi
