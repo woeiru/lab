@@ -390,3 +390,87 @@ Now you can proceed with the normal Qdevice setup procedure from the beginning,
 starting with building/running the container and then running the setup commands.
 -->
 Follow the standard setup procedure from the "On qdevice host" section.
+
+## Handling Inconsistent Qdevice State During Setup
+
+<!-- 
+This section covers a specific scenario that can occur during the Qdevice setup process 
+when the certificate distribution succeeds but the final cluster configuration step fails.
+This results in an inconsistent state where pvecm status shows a Qdevice but 
+pvecm qdevice remove says "No QDevice configured!"
+-->
+
+### When this happens:
+- `pvecm qdevice setup` completes certificate distribution but fails at "add QDevice to cluster configuration"
+- `pvecm status` shows "Qdevice (votes 0)" 
+- `pvecm qdevice remove` reports "No QDevice configured!"
+
+### Resolution:
+1. **Clean up the inconsistent state**:
+   ```bash
+   # Stop corosync-qdevice service on all nodes
+   systemctl stop corosync-qdevice
+   
+   # Remove certificates on ALL cluster nodes
+   rm -rf /etc/corosync/qdevice/net/nssdb
+   
+   # Clean up SSH known_hosts
+   ssh-keygen -f "/root/.ssh/known_hosts" -R "192.168.178.223"
+   # Replace with your actual Qdevice IP
+   ```
+
+2. **Restart corosync on all nodes**:
+   ```bash
+   systemctl restart corosync
+   ```
+
+3. **Verify clean state**:
+   ```bash
+   pvecm status
+   ```
+   Should show no mention of Qdevice and Expected votes = number of nodes.
+
+4. **Retry the setup**:
+   ```bash
+   QDEVICE_IP="192.168.178.223"
+   pvecm qdevice setup "$QDEVICE_IP" -f
+   ```
+
+---
+
+## Troubleshooting
+
+### Current Problem Status (In Progress)
+
+**Issue:** Qdevice reinstall after fresh OS install on Qdevice host is showing inconsistent state.
+
+**Environment:**
+- 2-node Proxmox VE cluster: x1 (192.168.178.221), x2 (192.168.178.222)
+- Qdevice host: 192.168.178.223 (fresh OS install)
+- Container 'qd' running on Qdevice host with SSH enabled
+
+**Problem Description:**
+Despite performing cleanup steps on node x1, `pvecm status` still shows "Qdevice (votes 0)" indicating persistent configuration that needs to be fully removed before retry. The system is in an inconsistent state where:
+- `pvecm status` shows "Qdevice (votes 0)" 
+- `pvecm qdevice remove` reports "No QDevice configured!"
+
+**Work Completed:**
+1. ✅ Added comprehensive cleanup procedures to README
+2. ✅ Performed partial cleanup on node x1:
+   - Stopped corosync-qdevice service
+   - Removed certificates: `rm -rf /etc/corosync/qdevice/net/nssdb`
+   - Cleaned SSH known_hosts: `ssh-keygen -f "/root/.ssh/known_hosts" -R "192.168.178.223"`
+   - Restarted corosync: `systemctl restart corosync`
+3. ✅ Created backup of `/etc/pve/corosync.conf` as `corosync.conf.backup`
+
+**Next Steps Required:**
+1. Complete cleanup on node x2 (same steps as done on x1)
+2. Remove persistent Qdevice configuration that's still showing in `pvecm status` 
+3. Verify clean state with `pvecm status` (should show no Qdevice mention)
+4. Retry complete fresh Qdevice setup using `pvecm qdevice setup` command
+5. Complete container commitment and final setup steps once Qdevice is working
+
+**Current State Files:**
+- `/etc/pve/corosync.conf` - Cluster configuration (backed up)
+- Container 'qd' ready on Qdevice host at 192.168.178.223
+- Node x1 partially cleaned, node x2 cleanup pending
