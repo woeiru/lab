@@ -57,58 +57,6 @@ aux_var() {
     ana_acu -o "$CONFIG_aux" "$DIR_FUN/.."
 }
 
-# General purpose logging function for operational messages with explicit log levels
-# operational log
-# <log_level> <message>
-aux_log() {
-    # USE CASES:
-    #   - Service start/stop messages
-    #   - Authentication events  
-    #   - Configuration changes
-    #   - Error conditions
-    #   - Performance metrics
-    #   - User actions
-    #   - Production monitoring
-    #   - Important operational events that should always be logged
-    # 
-    # CHARACTERISTICS:
-    #   - Requires explicit log level (INFO, WARN, ERROR, etc.)
-    #   - No automatic function context (you specify what you're logging)
-    #   - Always logs if main logging system is available
-    #   - Suitable for production environments
-    #   - Goes to operational logs (aux_operational.log)
-    #
-    # EXAMPLES:
-    #   aux_log "INFO" "User authentication successful for user: $username"
-    #   aux_log "ERROR" "Database connection failed"
-    #   aux_log "WARN" "Configuration file missing, using defaults"
-    
-    local log_level="$1"
-    local message="$2"
-    
-    # Validate parameters
-    if [[ -z "$log_level" || -z "$message" ]]; then
-        echo "Error: aux_log requires both log_level and message parameters" >&2
-        return 1
-    fi
-    
-    # Enhanced version with integration to main logging system
-    if type -t log &>/dev/null; then
-        # If main logging system is available, use it for consistency
-        log "[$log_level] $message"
-    else
-        # Fallback to simple echo if main logging not available
-        local timestamp
-        printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
-        echo "[$timestamp] [$log_level] $message"
-        
-        # Also log to file if LOG_DIR is available
-        if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-            echo "[$timestamp] [$log_level] $message" >> "${LOG_DIR}/aux_operational.log"
-        fi
-    fi
-}
-
 # Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
 # function usage information
 #
@@ -651,6 +599,58 @@ aux_arr() {
             return 1
             ;;
     esac
+}
+
+# General purpose logging function for operational messages with explicit log levels
+# operational log
+# <log_level> <message>
+aux_log() {
+    # USE CASES:
+    #   - Service start/stop messages
+    #   - Authentication events  
+    #   - Configuration changes
+    #   - Error conditions
+    #   - Performance metrics
+    #   - User actions
+    #   - Production monitoring
+    #   - Important operational events that should always be logged
+    # 
+    # CHARACTERISTICS:
+    #   - Requires explicit log level (INFO, WARN, ERROR, etc.)
+    #   - No automatic function context (you specify what you're logging)
+    #   - Always logs if main logging system is available
+    #   - Suitable for production environments
+    #   - Goes to operational logs (aux_operational.log)
+    #
+    # EXAMPLES:
+    #   aux_log "INFO" "User authentication successful for user: $username"
+    #   aux_log "ERROR" "Database connection failed"
+    #   aux_log "WARN" "Configuration file missing, using defaults"
+    
+    local log_level="$1"
+    local message="$2"
+    
+    # Validate parameters
+    if [[ -z "$log_level" || -z "$message" ]]; then
+        echo "Error: aux_log requires both log_level and message parameters" >&2
+        return 1
+    fi
+    
+    # Enhanced version with integration to main logging system
+    if type -t log &>/dev/null; then
+        # If main logging system is available, use it for consistency
+        log "[$log_level] $message"
+    else
+        # Fallback to simple echo if main logging not available
+        local timestamp
+        printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
+        echo "[$timestamp] [$log_level] $message"
+        
+        # Also log to file if LOG_DIR is available
+        if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+            echo "[$timestamp] [$log_level] $message" >> "${LOG_DIR}/aux_operational.log"
+        fi
+    fi
 }
 
 # Development/debug logging with automatic function context and timestamp
