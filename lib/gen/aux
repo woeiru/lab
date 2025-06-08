@@ -9,7 +9,9 @@
 #
 # Main Functions:
 #   aux_fun, aux_var - Overview summaries
-#   aux_log, aux_ffl - Utility operations  
+#   aux_log, aux_dbg - Logging operations (operational & debug)
+#   aux_info, aux_warn, aux_err - Convenience logging functions  
+#   aux_ffl - File operations
 #   aux_use, aux_tec - Help system
 #   aux_val, aux_chk - Validation and checks
 #   aux_cmd, aux_ask - Command execution and user interaction
@@ -17,7 +19,8 @@
 #
 # Function Categories:
 #   Overview:     aux_fun, aux_var
-#   Utilities:    aux_log, aux_ffl
+#   Logging:      aux_log, aux_dbg, aux_info, aux_warn, aux_err
+#   Utilities:    aux_ffl
 #   Help System:  aux_use, aux_tec
 #   Validation:   aux_val, aux_chk
 #   Execution:    aux_cmd
@@ -54,36 +57,96 @@ aux_var() {
     ana_acu -o "$CONFIG_aux" "$DIR_FUN/.."
 }
 
-# Logging function. Prints a timestamped log message with a log level
-# log
+# General purpose logging function for operational messages with explicit log levels
+# operational log
 # <log_level> <message>
 aux_log() {
+    # USE CASES:
+    #   - Service start/stop messages
+    #   - Authentication events  
+    #   - Configuration changes
+    #   - Error conditions
+    #   - Performance metrics
+    #   - User actions
+    #   - Production monitoring
+    #   - Important operational events that should always be logged
+    # 
+    # CHARACTERISTICS:
+    #   - Requires explicit log level (INFO, WARN, ERROR, etc.)
+    #   - No automatic function context (you specify what you're logging)
+    #   - Always logs if main logging system is available
+    #   - Suitable for production environments
+    #   - Goes to operational logs (aux_operational.log)
+    #
+    # EXAMPLES:
+    #   aux_log "INFO" "User authentication successful for user: $username"
+    #   aux_log "ERROR" "Database connection failed"
+    #   aux_log "WARN" "Configuration file missing, using defaults"
+    
     local log_level="$1"
     local message="$2"
+    
+    # Validate parameters
+    if [[ -z "$log_level" || -z "$message" ]]; then
+        echo "Error: aux_log requires both log_level and message parameters" >&2
+        return 1
+    fi
     
     # Enhanced version with integration to main logging system
     if type -t log &>/dev/null; then
         # If main logging system is available, use it for consistency
-        case "$log_level" in
-            ERROR|WARN|WARNING)
-                log "lvl" "[$log_level] $message"
-                ;;
-            *)
-                log "lvl" "[$log_level] $message"
-                ;;
-        esac
+        log "[$log_level] $message"
     else
         # Fallback to simple echo if main logging not available
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$log_level] $message"
+        local timestamp
+        printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
+        echo "[$timestamp] [$log_level] $message"
+        
+        # Also log to file if LOG_DIR is available
+        if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+            echo "[$timestamp] [$log_level] $message" >> "${LOG_DIR}/aux_operational.log"
+        fi
     fi
 }
 
-# Standardized debug logging with timestamp and function name for ops modules
+# Development/debug logging with automatic function context and timestamp
 # debug log
 # <message> [level]
 aux_dbg() {
+    # USE CASES:
+    #   - Development debugging and troubleshooting
+    #   - Function entry/exit tracing
+    #   - Variable value inspection
+    #   - Control flow verification
+    #   - Performance investigation
+    #   - Error condition analysis
+    #   - Development-time diagnostics
+    #   - Temporary debugging during code development
+    # 
+    # CHARACTERISTICS:
+    #   - Automatically captures calling function name from call stack
+    #   - Auto-generates timestamp for each message
+    #   - Integrates with existing lo1 logging system and verbosity controls
+    #   - Output controlled by MASTER_TERMINAL_VERBOSITY and logging state
+    #   - Optional log level parameter (defaults to DEBUG)
+    #   - Sends to stderr for terminal output, log files for persistence
+    #   - Suitable for development/debugging environments
+    #   - Goes to debug logs (aux_debug.log) when available
+    #
+    # EXAMPLES:
+    #   aux_dbg "Starting configuration validation"
+    #   aux_dbg "Found $count items in array" "INFO"
+    #   aux_dbg "Variable value: user=$username, status=$status"
+    #   aux_dbg "Entering error handling branch" "WARN"
+    
     local message="$1"
     local level="${2:-DEBUG}"
+    
+    # Validate message parameter
+    if [[ -z "$message" ]]; then
+        echo "Error: aux_dbg requires a message parameter" >&2
+        return 1
+    fi
     
     # Get the calling function name from the call stack
     local caller_function="${FUNCNAME[1]:-main}"
@@ -109,7 +172,7 @@ aux_dbg() {
         fi
     fi
     
-    # Format the debug message
+    # Format the debug message with function context
     local formatted_message="[$level] $timestamp - [$caller_function] $message"
     
     # Output to appropriate channels
