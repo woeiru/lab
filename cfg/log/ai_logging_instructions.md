@@ -181,7 +181,7 @@ Configure appropriate log formats and ensure the function is ready for productio
 
 ### Legacy Code Enhancement
 ```
-Modernize this legacy code by integrating the enhanced logging system without changing core functionality. Add structured logging that provides operational visibility, error tracking, and performance monitoring. Use the auxiliary logging functions appropriately and ensure backward compatibility while adding enterprise-grade observability.
+Modernize this legacy code by integrating the enhanced logging system without changing core functionality. Add structured logging that provides operational visibility, error tracking, and performance monitoring. Us the auxiliary logging functions appropriately and ensure backward compatibility while adding enterprise-grade observability.
 
 Focus on adding value through logging without disrupting existing behavior.
 ```

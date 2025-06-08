@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Source enhanced auxiliary logging system
+source lib/gen/aux
+
 # ============================================================================
 # GPU Driver and Passthrough Function Interactions - Technical Overview
 #
@@ -144,6 +147,8 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # GPU Initialize Colors - GIC
 # 
 _gpu_init_colors() {
+    aux_dbg "Function ${FUNCNAME[0]} started" "component=gpu,operation=color_init"
+    
     readonly GREEN=$(printf '\033[0;32m')
     readonly YELLOW=$(printf '\033[0;33m')
     readonly RED=$(printf '\033[0;31m')
@@ -154,6 +159,8 @@ _gpu_init_colors() {
     readonly CHECK_MARK="${GREEN}✓${NC}"
     readonly CROSS_MARK="${RED}✗${NC}"
     readonly QUESTION_MARK="${YELLOW}?${NC}"
+    
+    aux_dbg "Color constants initialized" "component=gpu,operation=color_init,status=complete"
 }
 
 # Validate PCI ID format using regex pattern matching
@@ -161,7 +168,15 @@ _gpu_init_colors() {
 # <pci_id>
 _gpu_validate_pci_id() {
     local pci_id="$1"
-    [[ "$pci_id" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]]
+    aux_dbg "Validating PCI ID format" "component=gpu,operation=validate_pci,pci_id=${pci_id}"
+    
+    if [[ "$pci_id" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]]; then
+        aux_dbg "PCI ID validation successful" "component=gpu,operation=validate_pci,pci_id=${pci_id},result=valid"
+        return 0
+    else
+        aux_warn "PCI ID validation failed" "component=gpu,operation=validate_pci,pci_id=${pci_id},result=invalid,expected_format=XX:XX.X"
+        return 1
+    fi
 }
 
 # Extract vendor and device IDs from lspci output for PCI device
@@ -169,6 +184,8 @@ _gpu_validate_pci_id() {
 # <pci_id>
 _gpu_extract_vendor_device_id() {
     local pci_id="$1"
+    aux_dbg "Extracting vendor and device ID" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id}"
+    
     local lspci_device_info
     lspci_device_info=$(lspci -s "$pci_id" -nn 2>/dev/null)
     
@@ -179,9 +196,14 @@ _gpu_extract_vendor_device_id() {
         if [ -n "$vendor_device_id" ]; then
             local vendor_id=$(echo "$vendor_device_id" | cut -d':' -f1)
             local device_id=$(echo "$vendor_device_id" | cut -d':' -f2)
+            aux_dbg "Successfully extracted vendor and device ID" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id},vendor_id=${vendor_id},device_id=${device_id}"
             echo "${vendor_id}:${device_id}"
             return 0
+        else
+            aux_warn "Could not parse vendor:device ID from lspci output" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id},lspci_info=${lspci_device_info}"
         fi
+    else
+        aux_warn "No lspci output for PCI device" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id}"
     fi
     return 1
 }
@@ -194,9 +216,14 @@ _gpu_get_current_driver() {
     local full_pci_id="0000:$pci_id"
     local driver_path="/sys/bus/pci/devices/$full_pci_id/driver"
     
+    aux_dbg "Checking current driver binding" "component=gpu,operation=get_current_driver,pci_id=${pci_id},driver_path=${driver_path}"
+    
     if [ -L "$driver_path" ]; then
-        basename "$(readlink -f "$driver_path")"
+        local driver_name=$(basename "$(readlink -f "$driver_path")")
+        aux_dbg "Driver found" "component=gpu,operation=get_current_driver,pci_id=${pci_id},driver=${driver_name}"
+        echo "$driver_name"
     else
+        aux_dbg "No driver bound" "component=gpu,operation=get_current_driver,pci_id=${pci_id},driver=none"
         echo "none"
     fi
 }
@@ -206,19 +233,31 @@ _gpu_get_current_driver() {
 # <pci_id>
 _gpu_is_gpu_device() {
     local pci_id="$1"
-    lspci -s "$pci_id" -nn 2>/dev/null | grep -qE "VGA compatible controller|3D controller|Audio device"
+    aux_dbg "Checking if device is GPU-related" "component=gpu,operation=is_gpu_device,pci_id=${pci_id}"
+    
+    if lspci -s "$pci_id" -nn 2>/dev/null | grep -qE "VGA compatible controller|3D controller|Audio device"; then
+        aux_dbg "Device confirmed as GPU-related" "component=gpu,operation=is_gpu_device,pci_id=${pci_id},result=true"
+        return 0
+    else
+        aux_dbg "Device is not GPU-related" "component=gpu,operation=is_gpu_device,pci_id=${pci_id},result=false"
+        return 1
+    fi
 }
 
 # Load GPU configuration file if available and readable
 # GPU Load Config - GLC
 # 
 _gpu_load_config() {
+    aux_info "Loading GPU configuration" "component=gpu,operation=load_config,config_file=${CONFIG_FUN}"
+    
     if [ -n "$CONFIG_FUN" ] && [ -f "$CONFIG_FUN" ]; then
         # shellcheck source=/dev/null
         source "$CONFIG_FUN"
+        aux_info "Successfully sourced PCI configuration" "component=gpu,operation=load_config,config_file=${CONFIG_FUN},status=success"
         printf "INFO: Successfully sourced PCI configuration from %s\n" "$CONFIG_FUN"
         return 0
     else
+        aux_warn "PCI Configuration file not found or not set" "component=gpu,operation=load_config,config_file=${CONFIG_FUN},status=failed"
         printf "${YELLOW}WARNING: PCI Configuration file '%s' not found or not set.${NC}\n" "$CONFIG_FUN"
         return 1
     fi
@@ -352,24 +391,31 @@ _gpu_get_target_gpus() {
 # GPU Ensure VFIO Modules - GEV
 # 
 _gpu_ensure_vfio_modules() {
+    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=ensure_vfio_modules"
     local modules=(vfio vfio_iommu_type1 vfio_pci)
     
     for module in "${modules[@]}"; do
         if lsmod | grep -q "^${module}"; then
+            aux_info "Module already loaded" "component=gpu,operation=ensure_vfio_modules,module=${module},status=already_loaded"
             printf "INFO: Module %s is already loaded.\n" "$module"
         else
+            aux_info "Attempting to load module" "component=gpu,operation=ensure_vfio_modules,module=${module},status=loading"
             printf "INFO: Attempting to load module %s...\n" "$module"
             if modprobe "$module"; then
+                aux_info "Module loaded successfully" "component=gpu,operation=ensure_vfio_modules,module=${module},status=loaded"
                 printf "INFO: Module %s loaded successfully.\n" "$module"
             else
+                aux_err "Failed to load module" "component=gpu,operation=ensure_vfio_modules,module=${module},status=failed,error=modprobe_failed"
                 printf "${RED}ERROR: Failed to load module %s.${NC}\n" "$module"
                 if [ "$module" = "vfio_pci" ]; then
+                    aux_err "Critical module vfio_pci failed to load, exiting" "component=gpu,operation=ensure_vfio_modules,module=${module},status=critical_failure"
                     printf "${RED}Exiting due to failure to load critical module vfio_pci.${NC}\n"
                     return 1
                 fi
             fi
         fi
     done
+    aux_info "VFIO modules check completed" "component=gpu,operation=ensure_vfio_modules,status=complete"
     return 0
 }
 
@@ -381,19 +427,25 @@ _gpu_unbind_device() {
     local full_pci_id="0000:$pci_id"
     local driver_path="/sys/bus/pci/devices/$full_pci_id/driver"
     
+    aux_info "Attempting to unbind device" "component=gpu,operation=unbind_device,pci_id=${pci_id},driver_path=${driver_path}"
+    
     if [ -L "$driver_path" ]; then
         local current_driver
         current_driver=$(basename "$(readlink -f "$driver_path")")
+        aux_info "Unbinding GPU from current driver" "component=gpu,operation=unbind_device,pci_id=${pci_id},current_driver=${current_driver}"
         printf "INFO: Unbinding GPU %s from %s...\n" "$pci_id" "$current_driver"
         
         if echo "$full_pci_id" > "$driver_path/unbind"; then
+            aux_info "Successfully unbound GPU" "component=gpu,operation=unbind_device,pci_id=${pci_id},previous_driver=${current_driver},status=success"
             printf "INFO: Successfully unbound GPU %s from %s.\n" "$pci_id" "$current_driver"
             return 0
         else
+            aux_warn "Failed to unbind GPU" "component=gpu,operation=unbind_device,pci_id=${pci_id},current_driver=${current_driver},status=failed"
             printf "${YELLOW}WARNING: Failed to unbind GPU %s from %s.${NC}\n" "$pci_id" "$current_driver"
             return 1
         fi
     else
+        aux_info "GPU not bound to any driver" "component=gpu,operation=unbind_device,pci_id=${pci_id},status=not_bound"
         printf "INFO: GPU %s is not currently bound to any driver.\n" "$pci_id"
         return 0
     fi
@@ -408,8 +460,11 @@ _gpu_bind_device() {
     local full_pci_id="0000:$pci_id"
     local driver_bind_path="/sys/bus/pci/drivers/$target_driver/bind"
     
+    aux_info "Attempting to bind device to driver" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver}"
+    
     # Check if driver directory exists
     if [ ! -d "/sys/bus/pci/drivers/$target_driver" ]; then
+        aux_err "PCI driver directory does not exist" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},error=driver_dir_missing"
         printf "${RED}ERROR: PCI driver directory for %s does not exist.${NC}\n" "$target_driver"
         return 1
     fi
@@ -417,6 +472,7 @@ _gpu_bind_device() {
     printf "INFO: Attempting to bind GPU %s to driver %s...\n" "$pci_id" "$target_driver"
     
     if echo "$full_pci_id" > "$driver_bind_path"; then
+        aux_info "Bind operation initiated" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},status=initiated"
         printf "INFO: Successfully initiated bind for GPU %s to %s.\n" "$pci_id" "$target_driver"
         sleep 1
         
@@ -424,13 +480,16 @@ _gpu_bind_device() {
         local current_driver
         current_driver=$(_gpu_get_current_driver "$pci_id")
         if [ "$current_driver" = "$target_driver" ]; then
+            aux_info "GPU successfully bound to target driver" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},current_driver=${current_driver},status=success"
             printf "${GREEN}SUCCESS: GPU %s is now bound to %s.${NC}\n" "$pci_id" "$target_driver"
             return 0
         else
+            aux_warn "GPU may not have bound correctly" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},current_driver=${current_driver},status=verification_failed"
             printf "${YELLOW}WARNING: GPU %s may not have bound to %s correctly. Current driver: %s${NC}\n" "$pci_id" "$target_driver" "$current_driver"
             return 1
         fi
     else
+        aux_err "Failed to bind GPU to driver" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},status=failed,error=bind_operation_failed"
         printf "${RED}ERROR: Failed to bind GPU %s to %s.${NC}\n" "$pci_id" "$target_driver"
         return 1
     fi
@@ -779,12 +838,17 @@ gpu_fun() {
     #   gpu_fun "vfio"            # Show only functions containing "vfio"
     #   gpu_fun "^gpu_pt"         # Show only passthrough functions
     
+    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=function_overview,filter=${1:-none}"
+    
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_info "Displaying help information" "component=gpu,operation=function_overview,action=help"
         aux_tec
         return 0
     fi
     
+    aux_perf "Starting function analysis" "component=gpu,operation=function_overview,file=${FILEPATH_gpu}"
     ana_laf "$FILEPATH_gpu" "$@"
+    aux_info "Function overview completed" "component=gpu,operation=function_overview,status=complete"
 }
 
 # Shows configuration variables overview
@@ -810,17 +874,23 @@ gpu_var() {
     #   - ${hostname}_NVIDIA_DRIVER_PREFERENCE: Preferred NVIDIA driver (nvidia/nouveau)
     #   - Site-wide GPU configuration parameters
     
+    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=variable_overview,args=$*"
+    
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_info "Displaying help information" "component=gpu,operation=variable_overview,action=help"
         aux_tec
         return 0
     fi
     
     if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_warn "Invalid arguments provided" "component=gpu,operation=variable_overview,expected=-x,received=$*"
         aux_use
         return 1
     fi
     
+    aux_info "Analyzing GPU configuration variables" "component=gpu,operation=variable_overview,config_file=${CONFIG_gpu}"
     ana_acu -o "$CONFIG_gpu" "$DIR_FUN/.."
+    aux_info "Variable overview completed" "component=gpu,operation=variable_overview,status=complete"
 }
 
 # Downloads and installs NVIDIA drivers, blacklisting Nouveau drivers first
@@ -853,35 +923,53 @@ gpu_nds() {
     local url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${drv_ver}/NVIDIA-Linux-x86_64-${drv_ver}.run"
     local installer="NVIDIA-Linux-x86_64-${drv_ver}.run"
 
+    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=nvidia_driver_setup,driver_version=${drv_ver}"
+    aux_business "NVIDIA driver installation initiated" "component=gpu,operation=nvidia_driver_setup,driver_version=${drv_ver},installer_url=${url}"
+    
     _gpu_init_colors
 
+    aux_info "Blacklisting Nouveau driver" "component=gpu,operation=nvidia_driver_setup,step=blacklist_nouveau"
     echo "1) Blacklisting Nouveau..."
     cat <<EOF | tee /etc/modprobe.d/blacklist-nouveau.conf
 blacklist nouveau
 options nouveau modeset=0
 EOF
+    aux_perf "Updating initramfs" "component=gpu,operation=nvidia_driver_setup,step=update_initramfs"
     update-initramfs -u
 
+    aux_info "Installing prerequisites" "component=gpu,operation=nvidia_driver_setup,step=install_prerequisites"
     echo "2) Installing prerequisites..."
     apt update
     apt install -y dkms build-essential pve-headers-$(uname -r)
 
+    aux_info "Downloading NVIDIA driver" "component=gpu,operation=nvidia_driver_setup,step=download,driver_version=${drv_ver},url=${url}"
     echo "3) Downloading NVIDIA driver ${drv_ver}..."
-    wget -q "${url}" -O "${installer}" || { echo "Download failed"; return 1; }
-    chmod +x "${installer}"
+    if wget -q "${url}" -O "${installer}"; then
+        aux_info "Driver download successful" "component=gpu,operation=nvidia_driver_setup,step=download,status=success,file=${installer}"
+        chmod +x "${installer}"
+    else
+        aux_err "Driver download failed" "component=gpu,operation=nvidia_driver_setup,step=download,status=failed,url=${url}"
+        echo "Download failed"
+        return 1
+    fi
 
+    aux_info "Installing NVIDIA driver with DKMS" "component=gpu,operation=nvidia_driver_setup,step=install_driver,installer=${installer}"
     echo "4) Installing driver with DKMS support..."
     ./"${installer}" --dkms --silent
+    aux_business "NVIDIA driver installation completed" "component=gpu,operation=nvidia_driver_setup,step=install_driver,status=complete,driver_version=${drv_ver}"
 
     echo "5) Finalizing—reboot recommended."
     read -p "Reboot now? [y/N] " yn
     if [[ "$yn" =~ ^[Yy]$ ]]; then
+        aux_info "System reboot initiated by user" "component=gpu,operation=nvidia_driver_setup,step=reboot,action=immediate"
         reboot
     else
+        aux_info "System reboot deferred by user" "component=gpu,operation=nvidia_driver_setup,step=reboot,action=deferred"
         echo "You can reboot later with: reboot"
     fi
 
     echo "6) After reboot, verify with: nvidia-smi"
+    aux_info "NVIDIA driver setup completed" "component=gpu,operation=nvidia_driver_setup,status=complete,verification_command=nvidia-smi"
 }
 
 # Configures initial GRUB and EFI settings for GPU passthrough
@@ -911,18 +999,28 @@ gpu_pt1() {
     #   - After reboot, proceed with gpu_pt2 for VFIO kernel module setup
     local function_name="${FUNCNAME[0]}"
     
+    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_step1,phase=initial_setup"
+    aux_business "GPU passthrough phase 1 initiated" "component=gpu,operation=passthrough_step1,phase=iommu_setup,step=grub_configuration"
+    
     echo "Executing section 1:"
+    aux_info "Checking EFI boot manager status" "component=gpu,operation=passthrough_step1,step=efi_check"
     efibootmgr -v
 
     # Edit GRUB configuration
+    aux_info "Modifying GRUB configuration for IOMMU" "component=gpu,operation=passthrough_step1,step=grub_config,parameter=iommu=pt"
     sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt"/' /etc/default/grub
+    
+    aux_perf "Updating GRUB configuration" "component=gpu,operation=passthrough_step1,step=grub_update"
     update-grub
     update-grub2
 
     # Install grub-efi-amd64
+    aux_info "Installing GRUB EFI package" "component=gpu,operation=passthrough_step1,step=grub_efi_install,package=grub-efi-amd64"
     apt install grub-efi-amd64 -y
 
+    aux_business "GPU passthrough phase 1 completed, system reboot required" "component=gpu,operation=passthrough_step1,phase=complete,next_step=reboot"
     printf "%s: Completed section 1, system will reboot now.\n" "$function_name"
+    aux_info "System reboot initiated" "component=gpu,operation=passthrough_step1,step=reboot,reason=iommu_kernel_parameter"
     reboot
 }
 
@@ -954,18 +1052,26 @@ gpu_pt2() {
     #   - After reboot, proceed with gpu_pt3 for specific GPU device configuration
     local function_name="${FUNCNAME[0]}"
     
+    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_step2,phase=vfio_modules"
+    aux_business "GPU passthrough phase 2 initiated" "component=gpu,operation=passthrough_step2,phase=vfio_setup,step=module_configuration"
+    
     echo "Executing section 2:"
 
     # Add modules to /etc/modules
     local modules=(vfio vfio_iommu_type1 vfio_pci)
+    aux_info "Adding VFIO modules to /etc/modules" "component=gpu,operation=passthrough_step2,step=add_modules,modules=${modules[*]}"
     for module in "${modules[@]}"; do
+        aux_dbg "Adding module to /etc/modules" "component=gpu,operation=passthrough_step2,step=add_modules,module=${module}"
         echo "$module" >> /etc/modules
     done
 
     # Update initramfs
+    aux_perf "Updating initramfs for all kernels" "component=gpu,operation=passthrough_step2,step=update_initramfs"
     update-initramfs -u -k all
 
+    aux_business "GPU passthrough phase 2 completed, system reboot required" "component=gpu,operation=passthrough_step2,phase=complete,next_step=reboot"
     printf "%s: Completed section 2, system will reboot now.\n" "$function_name"
+    aux_info "System reboot initiated" "component=gpu,operation=passthrough_step2,step=reboot,reason=vfio_module_loading"
     reboot
 }
 
@@ -1162,25 +1268,35 @@ gpu_ptd() {
     
     local function_name="${FUNCNAME[0]}"
     
+    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_detach,hostname=${hostname},gpu_id=${gpu_id_arg:-auto},config_file=${config_file}"
+    aux_business "GPU detachment process initiated" "component=gpu,operation=passthrough_detach,target_state=vfio-pci,hostname=${hostname}"
+    
     _gpu_init_colors
     
     printf "INFO: Starting GPU detachment process\n"
 
     # Check IOMMU
     if ! grep -q 'iommu=pt\|intel_iommu=on\|amd_iommu=on' /proc/cmdline; then
+        aux_warn "IOMMU not enabled in kernel command line" "component=gpu,operation=passthrough_detach,check=iommu,status=disabled,impact=vfio_may_fail"
         printf "${YELLOW}WARNING: IOMMU does not appear to be enabled in kernel command line.${NC}\n"
         printf "${YELLOW}         VFIO passthrough may not work.${NC}\n"
+    else
+        aux_info "IOMMU enabled in kernel" "component=gpu,operation=passthrough_detach,check=iommu,status=enabled"
     fi
 
     # Load configuration if config file provided
     if [ -n "$config_file" ] && [ -f "$config_file" ]; then
         # shellcheck source=/dev/null
         source "$config_file"
+        aux_info "GPU configuration loaded for detachment" "component=gpu,operation=passthrough_detach,config_file=${config_file},status=success"
         printf "INFO: Successfully sourced GPU configuration from %s\n" "$config_file"
+    else
+        aux_warn "GPU configuration file not available for detachment" "component=gpu,operation=passthrough_detach,config_file=${config_file},status=unavailable"
     fi
 
     # Ensure VFIO modules are loaded
     if ! _gpu_ensure_vfio_modules; then
+        aux_err "VFIO modules loading failed" "component=gpu,operation=passthrough_detach,step=vfio_modules,status=failed"
         return 1
     fi
 
@@ -1201,14 +1317,17 @@ gpu_ptd() {
     done
 
     if [ ${#filtered_gpus[@]} -eq 0 ]; then
+        aux_warn "No suitable GPU devices found for detachment" "component=gpu,operation=passthrough_detach,target_gpus=0,reason=no_suitable_devices"
         printf "No suitable GPU devices found for detachment.\n"
         return 0
     fi
 
+    aux_info "Processing GPUs for detachment" "component=gpu,operation=passthrough_detach,gpu_count=${#filtered_gpus[@]},gpu_ids=${filtered_gpus[*]}"
     printf "INFO: Processing GPU IDs for detachment: %s\n" "${filtered_gpus[*]}"
 
     # Process each GPU
     for pci_id in "${filtered_gpus[@]}"; do
+        aux_info "Processing individual GPU for detachment" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=individual_processing"
         printf "--- Processing GPU %s ---\n" "$pci_id"
         
         # Unbind from current driver
@@ -1219,26 +1338,37 @@ gpu_ptd() {
         printf "INFO: Setting driver_override to vfio-pci for GPU %s...\n" "$pci_id"
         
         if echo "vfio-pci" > "/sys/bus/pci/devices/$full_pci_id/driver_override"; then
+            aux_info "Driver override set successfully" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},driver_override=vfio-pci,status=success"
             printf "INFO: Successfully set driver_override for %s.\n" "$pci_id"
             
             # Trigger re-probe
             if echo "$full_pci_id" > "/sys/bus/pci/drivers_probe"; then
+                aux_info "Driver re-probe triggered" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=reprobe,status=success"
                 printf "INFO: Re-probe triggered for %s.\n" "$pci_id"
                 sleep 1
+            else
+                aux_warn "Driver re-probe failed" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=reprobe,status=failed"
             fi
+        else
+            aux_err "Failed to set driver override" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},driver_override=vfio-pci,status=failed"
         fi
         
         # Verify binding or try direct bind
         local current_driver
         current_driver=$(_gpu_get_current_driver "$pci_id")
         if [ "$current_driver" = "vfio-pci" ]; then
+            aux_info "GPU successfully bound to vfio-pci" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},final_driver=vfio-pci,status=success"
             printf "INFO: GPU %s successfully bound to vfio-pci.\n" "$pci_id"
         else
+            aux_info "Attempting direct bind to vfio-pci" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=direct_bind,current_driver=${current_driver}"
             printf "INFO: Attempting direct bind to vfio-pci for %s...\n" "$pci_id"
-            _gpu_bind_device "$pci_id" "vfio-pci"
+            if ! _gpu_bind_device "$pci_id" "vfio-pci"; then
+                aux_err "Direct bind to vfio-pci failed" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=direct_bind,status=failed"
+            fi
         fi
     done
 
+    aux_business "GPU detachment process completed" "component=gpu,operation=passthrough_detach,processed_gpus=${#filtered_gpus[@]},status=complete"
     printf "INFO: GPU detachment process completed.\n"
 }
 
