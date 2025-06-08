@@ -77,6 +77,7 @@ If your SUSE Linux system uses NetworkManager, you can configure a static IP add
     ```bash
     # Check current routes
     ip route
+    # Look for a line like: "default via 192.168.178.1 dev enp3s0" - if missing, add it manually
     # Add default route (if missing)
     sudo ip route add default via 192.168.178.1 dev enp3s0 
     # Verify route is added
