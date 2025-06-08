@@ -122,43 +122,6 @@ gpu_pts_w
 # RTX 5000 detected in IOMMU Group 18 (Device 2d04) ✅
 ```
 
-## Key Lessons Learned
-
-### Why Manual Compilation Was Required
-1. **Repository Limitations**: Proxmox 8.4.1 repositories only provided kernels up to 6.2.16
-2. **RTX 5000 Requirements**: Need kernel 6.14.6+ for VFIO patches
-3. **No Alternative**: Manual compilation was the only viable path
-
-### Critical Configuration Points
-1. **VFIO Options**: All required VFIO options were already enabled in existing config
-2. **Build Dependencies**: Extended dependency list required (libssl-dev, libelf-dev, bc, flex, bison)
-3. **Boot Management**: Proxmox-boot-tool integration essential for proper kernel management
-4. **NVIDIA DKMS**: Expected to fail on new kernel, will rebuild later if needed
-
-### Time Investment
-- **Download**: ~5 minutes (144MB kernel source)
-- **Compilation**: ~45 minutes (32-core system)
-- **Installation**: ~10 minutes
-- **Testing**: ~5 minutes
-- **Total**: ~65 minutes
-
-## Alternative Approaches (For Reference)
-
-### Repository Method (Attempted but Insufficient)
-```bash
-# This approach was tried first but kernels were too old
-apt update
-apt search pve-kernel | grep -E '6\.(1[4-9]|2[0-9])'
-# Result: No kernels found meeting RTX 5000 requirements
-```
-
-### deb-pkg Method (Attempted but Failed)
-```bash
-# This failed due to git repository requirement
-make -j32 deb-pkg
-# Error: creating source package requires git repository
-```
-
 ## Common Issues Encountered & Solutions
 
 ### Issue 1: NVIDIA DKMS Build Failure
@@ -264,6 +227,43 @@ apt install pve-kernel-6.2.16-5-pve
 # WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
 ```
 **Solution**: Normal behavior in automated scripts, can be ignored or suppressed with `-qq` flag.
+
+## Key Lessons Learned
+
+### Why Manual Compilation Was Required
+1. **Repository Limitations**: Proxmox 8.4.1 repositories only provided kernels up to 6.2.16
+2. **RTX 5000 Requirements**: Need kernel 6.14.6+ for VFIO patches
+3. **No Alternative**: Manual compilation was the only viable path
+
+### Critical Configuration Points
+1. **VFIO Options**: All required VFIO options were already enabled in existing config
+2. **Build Dependencies**: Extended dependency list required (libssl-dev, libelf-dev, bc, flex, bison)
+3. **Boot Management**: Proxmox-boot-tool integration essential for proper kernel management
+4. **NVIDIA DKMS**: Expected to fail on new kernel, will rebuild later if needed
+
+### Time Investment
+- **Download**: ~5 minutes (144MB kernel source)
+- **Compilation**: ~45 minutes (32-core system)
+- **Installation**: ~10 minutes
+- **Testing**: ~5 minutes
+- **Total**: ~65 minutes
+
+## Alternative Approaches (For Reference)
+
+### Repository Method (Attempted but Insufficient)
+```bash
+# This approach was tried first but kernels were too old
+apt update
+apt search pve-kernel | grep -E '6\.(1[4-9]|2[0-9])'
+# Result: No kernels found meeting RTX 5000 requirements
+```
+
+### deb-pkg Method (Attempted but Failed)
+```bash
+# This failed due to git repository requirement
+make -j32 deb-pkg
+# Error: creating source package requires git repository
+```
 
 ## Troubleshooting Reference
 
