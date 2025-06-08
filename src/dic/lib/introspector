@@ -1,0 +1,421 @@
+#!/bin/bash
+
+# ============================================================================
+# DEPENDENCY INJECTION CONTAINER - FUNCTION INTROSPECTOR
+# ============================================================================
+#
+# DESCRIPTION:
+#   Function signature analysis and introspection engine. Analyzes pure
+#   library functions to understand their parameter requirements for
+#   automatic dependency injection.
+#
+# CAPABILITIES:
+#   - Extract function parameter names from function definitions
+#   - Analyze parameter types (scalars, arrays, special cases)
+#   - Cache function signatures for performance
+#   - Handle complex parameter patterns
+#
+# ============================================================================
+
+# ============================================================================
+# FUNCTION SIGNATURE EXTRACTION
+# ============================================================================
+
+# Get function signature (parameter names)
+ops_get_function_signature() {
+    local function_name="$1"
+    
+    ops_debug "Analyzing signature for: $function_name"
+    
+    # Check cache first
+    if [[ "$OPS_CACHE" == "1" && -n "${FUNCTION_SIGNATURE_CACHE[$function_name]}" ]]; then
+        echo "${FUNCTION_SIGNATURE_CACHE[$function_name]}"
+        ops_debug "Using cached signature: $function_name"
+        return 0
+    fi
+    
+    # Check if function exists
+    if ! declare -f "$function_name" >/dev/null 2>&1; then
+        ops_debug "Function not found: $function_name"
+        return 1
+    fi
+    
+    # Extract parameter names from function definition
+    local signature
+    if signature=$(ops_extract_parameters "$function_name"); then
+        # Cache the signature (even if empty)
+        if [[ "$OPS_CACHE" == "1" ]]; then
+            FUNCTION_SIGNATURE_CACHE["$function_name"]="$signature"
+            ops_debug "Cached signature: $function_name -> $signature"
+        fi
+        
+        echo "$signature"
+        return 0
+    else
+        ops_debug "Could not extract signature for: $function_name"
+        return 1
+    fi
+}
+
+# Extract parameter names from function definition
+ops_extract_parameters() {
+    local function_name="$1"
+    
+    # Get function definition
+    local function_def
+    function_def=$(declare -f "$function_name")
+    
+    if [[ -z "$function_def" ]]; then
+        return 1
+    fi
+    
+    # Strategy 1: Look for explicit parameter assignments
+    # Pattern: local param_name="$1"
+    local params_method1
+    params_method1=$(echo "$function_def" | grep -o 'local [a-z_][a-z0-9_]*="$[0-9]\+' | cut -d'"' -f1 | cut -d' ' -f2 | sort -n)
+    
+    if [[ -n "$params_method1" ]]; then
+        echo "$params_method1"
+        ops_debug "Extracted parameters (method 1): $params_method1"
+        return 0
+    fi
+    
+    # Strategy 2: Look for positional parameter usage
+    # Pattern: Extract variables that reference $1, $2, etc.
+    local params_method2
+    params_method2=$(ops_extract_positional_params "$function_def")
+    
+    if [[ -n "$params_method2" ]]; then
+        echo "$params_method2"
+        ops_debug "Extracted parameters (method 2): $params_method2"
+        return 0
+    fi
+    
+    # Strategy 3: Use function-specific knowledge
+    local params_method3
+    if params_method3=$(ops_get_known_signature "$function_name"); then
+        echo "$params_method3"
+        ops_debug "Extracted parameters (method 3): $params_method3"
+        return 0
+    fi
+    
+    ops_debug "Could not extract parameters for: $function_name"
+    return 1
+}
+
+# Extract parameters that reference positional arguments
+ops_extract_positional_params() {
+    local function_def="$1"
+    
+    # Look for patterns like: local var="$1"
+    local positional_vars
+    positional_vars=$(echo "$function_def" | grep -o 'local [a-z_][a-z0-9_]*="\$[0-9]\+' | sort -t'$' -k2 -n)
+    
+    # Extract variable names in order
+    local param_names=""
+    while IFS= read -r line; do
+        if [[ -n "$line" ]]; then
+            local var_name
+            var_name=$(echo "$line" | cut -d'=' -f1 | cut -d' ' -f2)
+            param_names="$param_names $var_name"
+        fi
+    done <<< "$positional_vars"
+    
+    echo "$param_names" | xargs
+}
+
+# Get known function signatures for common functions
+ops_get_known_signature() {
+    local function_name="$1"
+    
+    case "$function_name" in
+        # PVE functions
+        pve_vck)
+            echo "vm_id cluster_nodes"
+            ;;
+        pve_vpt)
+            echo "vm_id action pci0_id pci1_id core_count_on core_count_off usb_devices_str pve_conf_path"
+            ;;
+        pve_vms)
+            echo "vm_id cluster_nodes pci0_id pci1_id core_count_on core_count_off usb_devices_str pve_conf_path shutdown_flag"
+            ;;
+        pve_vmg)
+            echo "vm_id cluster_nodes pci0_id pci1_id core_count_on core_count_off usb_devices_str pve_conf_path"
+            ;;
+        pve_vmd)
+            echo "operation vm_id hook_script lib_ops_dir"
+            ;;
+        pve_ctc)
+            echo "id template hostname storage rootfs_size memory swap nameserver searchdomain password cpus privileged ip_address cidr gateway ssh_key_file net_bridge net_nic"
+            ;;
+        pve_vmc)
+            echo "id name ostype machine iso boot bios efidisk scsihw agent disk sockets cores cpu memory balloon net"
+            ;;
+        pve_fun)
+            echo "script_path"
+            ;;
+        pve_var)
+            echo "config_file analysis_dir"
+            ;;
+        pve_rsn)
+            echo ""  # No parameters needed, just expects -x flag
+            ;;
+        pve_dsr)
+            echo ""  # No parameters needed, just expects -x flag
+            ;;
+        pve_clu)
+            echo ""  # No parameters needed, just expects -x flag
+            ;;
+            
+        # GPU functions
+        gpu_vck)
+            echo "vm_id"
+            ;;
+        gpu_vpt)
+            echo "vm_id action"
+            ;;
+            
+        # System functions
+        sys_sst)
+            echo ""  # No parameters needed, just expects -x flag
+            ;;
+        sys_gst)
+            echo "username usermail"
+            ;;
+            
+        # System functions
+        sys_sca)
+            echo "user_type scope ssh_users ip_arrays aliases command"
+            ;;
+            
+        # SSH functions
+        ssh_key)
+            echo "operation key_name"
+            ;;
+        ssh_con)
+            echo "user host command"
+            ;;
+            
+        # Generic functions that don't need specific signatures
+        *_fun)
+            echo "script_path"
+            ;;
+        *_var)
+            echo "config_file analysis_dir"
+            ;;
+            
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# ============================================================================
+# PARAMETER TYPE ANALYSIS
+# ============================================================================
+
+# Analyze parameter types and special requirements
+ops_analyze_parameter_types() {
+    local function_name="$1"
+    local signature="$2"
+    
+    ops_debug "Analyzing parameter types for: $function_name"
+    
+    local typed_params=""
+    
+    for param in $signature; do
+        local param_type="scalar"
+        local param_special=""
+        
+        # Detect parameter types based on naming patterns
+        case "$param" in
+            *_nodes|cluster_nodes)
+                param_type="array"
+                param_special="space_separated"
+                ;;
+            usb_devices*|*_devices)
+                param_type="array"
+                param_special="newline_separated"
+                ;;
+            *_path|*_dir)
+                param_type="path"
+                ;;
+            *_id)
+                param_type="identifier"
+                ;;
+            *_flag)
+                param_type="boolean"
+                ;;
+        esac
+        
+        typed_params="$typed_params ${param}:${param_type}:${param_special}"
+        ops_debug "Parameter type: $param -> $param_type ($param_special)"
+    done
+    
+    echo "$typed_params"
+}
+
+# ============================================================================
+# SIGNATURE VALIDATION
+# ============================================================================
+
+# Validate function signature consistency
+ops_validate_signature() {
+    local function_name="$1"
+    local signature="$2"
+    
+    # Basic validation
+    if [[ -z "$signature" ]]; then
+        ops_debug "Empty signature for: $function_name"
+        return 1
+    fi
+    
+    # Check for reasonable parameter count
+    local param_count
+    param_count=$(echo "$signature" | wc -w)
+    
+    if [[ $param_count -gt 20 ]]; then
+        ops_debug "Suspiciously high parameter count ($param_count) for: $function_name"
+        return 1
+    fi
+    
+    # Validate parameter naming conventions
+    for param in $signature; do
+        if [[ ! "$param" =~ ^[a-z][a-z0-9_]*$ ]]; then
+            ops_debug "Invalid parameter name: $param in $function_name"
+            return 1
+        fi
+    done
+    
+    ops_debug "Signature validation passed for: $function_name"
+    return 0
+}
+
+# ============================================================================
+# CACHING MANAGEMENT
+# ============================================================================
+
+# Preload signatures for common functions
+ops_preload_signatures() {
+    ops_debug "Preloading function signatures"
+    
+    # List of commonly used functions to preload
+    local common_functions=(
+        "pve_vck" "pve_vpt" "pve_vms" "pve_vmg"
+        "gpu_vck" "gpu_vpt"
+        "sys_sca"
+        "ssh_key" "ssh_con"
+    )
+    
+    for func in "${common_functions[@]}"; do
+        ops_get_function_signature "$func" >/dev/null 2>&1
+    done
+    
+    ops_debug "Preloaded ${#common_functions[@]} function signatures"
+}
+
+# Clear signature cache
+ops_clear_signature_cache() {
+    FUNCTION_SIGNATURE_CACHE=()
+    ops_debug "Cleared function signature cache"
+}
+
+# Show signature cache statistics
+ops_show_cache_stats() {
+    local cache_size=${#FUNCTION_SIGNATURE_CACHE[@]}
+    
+    echo "Function Signature Cache Statistics:"
+    echo "  Cached signatures: $cache_size"
+    
+    if [[ $cache_size -gt 0 ]]; then
+        echo "  Functions:"
+        for func in "${!FUNCTION_SIGNATURE_CACHE[@]}"; do
+            echo "    $func -> ${FUNCTION_SIGNATURE_CACHE[$func]}"
+        done
+    fi
+}
+
+# ============================================================================
+# SIGNATURE DEBUGGING AND ANALYSIS
+# ============================================================================
+
+# Show detailed function analysis
+ops_analyze_function() {
+    local function_name="$1"
+    
+    echo "Function Analysis: $function_name"
+    echo "===================="
+    
+    # Check if function exists
+    if ! declare -f "$function_name" >/dev/null 2>&1; then
+        echo "  Status: Function not found"
+        return 1
+    fi
+    
+    echo "  Status: Function exists"
+    
+    # Get signature
+    local signature
+    if signature=$(ops_get_function_signature "$function_name"); then
+        echo "  Signature: $signature"
+        
+        # Analyze parameter types
+        local typed_params
+        typed_params=$(ops_analyze_parameter_types "$function_name" "$signature")
+        echo "  Parameter Types:"
+        for param_info in $typed_params; do
+            echo "    $param_info"
+        done
+        
+        # Validate signature
+        if ops_validate_signature "$function_name" "$signature"; then
+            echo "  Validation: PASS"
+        else
+            echo "  Validation: FAIL"
+        fi
+    else
+        echo "  Signature: Could not extract"
+    fi
+    
+    # Show function definition (first few lines)
+    echo "  Definition (preview):"
+    declare -f "$function_name" | head -10 | sed 's/^/    /'
+}
+
+# Test signature extraction for all functions in a module
+ops_test_module_signatures() {
+    local module="$1"
+    local lib_path="${LIB_OPS_DIR}/${module}"
+    
+    if [[ ! -f "$lib_path" ]]; then
+        echo "Error: Module '$module' not found"
+        return 1
+    fi
+    
+    echo "Testing signatures for module: $module"
+    echo "======================================"
+    
+    # Source the module
+    source "$lib_path"
+    
+    # Extract function names
+    local functions
+    functions=$(grep "^${module}_[a-z_]*(" "$lib_path" | cut -d'(' -f1)
+    
+    local total=0
+    local success=0
+    
+    for func in $functions; do
+        echo -n "  $func: "
+        if ops_get_function_signature "$func" >/dev/null; then
+            echo "OK"
+            ((success++))
+        else
+            echo "FAIL"
+        fi
+        ((total++))
+    done
+    
+    echo ""
+    echo "Results: $success/$total functions analyzed successfully"
+}

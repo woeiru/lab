@@ -1,0 +1,343 @@
+#!/bin/bash
+
+# ============================================================================
+# DEPENDENCY INJECTION CONTAINER - INJECTION ENGINE
+# ============================================================================
+#
+# DESCRIPTION:
+#   Core dependency injection engine that handles variable resolution and
+#   injection into pure library functions. Supports multiple injection
+#   strategies: convention-based, configuration-driven, and custom handlers.
+#
+# INJECTION STRATEGIES:
+#   1. Convention-based: Automatic lowercase → UPPERCASE mapping
+#   2. Configuration-driven: Complex mappings from config files
+#   3. Custom handlers: Function-specific injection logic
+#
+# ============================================================================
+
+# ============================================================================
+# CONVENTION-BASED INJECTION
+# ============================================================================
+
+# Resolve variables using naming conventions
+ops_resolve_by_convention() {
+    local function_name="$1"
+    local signature="$2"
+    
+    ops_debug "Resolving by convention for: $function_name"
+    
+    local resolved_args=""
+    local hostname=$(hostname)
+    
+    # Process each parameter in the signature
+    for param in $signature; do
+        local global_var=""
+        local resolved_value=""
+        
+        # Apply naming conventions
+        case "$param" in
+            # Standard conversions
+            vm_id|vmid)
+                global_var="VM_ID"
+                ;;
+            node_id|nodeid)
+                global_var="NODE_ID"
+                ;;
+            cluster_nodes)
+                global_var="CLUSTER_NODES"
+                resolved_value="\${CLUSTER_NODES[*]}"
+                ;;
+            storage_path)
+                global_var="STORAGE_PATH"
+                ;;
+            pve_conf_path)
+                global_var="PVE_CONF_PATH_QEMU"
+                ;;
+            
+            # Hostname-specific variables (common patterns)
+            pci0_id)
+                global_var="${hostname}_NODE_PCI0"
+                ;;
+            pci1_id)
+                global_var="${hostname}_NODE_PCI1"
+                ;;
+            core_count_on)
+                global_var="${hostname}_CORE_COUNT_ON"
+                ;;
+            core_count_off)
+                global_var="${hostname}_CORE_COUNT_OFF"
+                ;;
+            usb_devices|usb_devices_str)
+                # Special handling for USB device arrays
+                local array_var="${hostname}_USB_DEVICES[@]"
+                if declare -p "${hostname}_USB_DEVICES" >/dev/null 2>&1; then
+                    resolved_value="\"\$(printf '%s\n' \"\${${array_var}}\")\""
+                else
+                    resolved_value='""'
+                fi
+                ;;
+            
+            # Generic uppercase conversion
+            *)
+                global_var=$(echo "$param" | tr '[:lower:]' '[:upper:]')
+                ;;
+        esac
+        
+        # Resolve the value if not already set
+        if [[ -z "$resolved_value" ]]; then
+            if [[ -n "${!global_var}" ]]; then
+                resolved_value="\"${!global_var}\""
+            else
+                resolved_value='""'
+                ops_debug "Convention resolution: $param -> $global_var (empty)"
+            fi
+        fi
+        
+        resolved_args="$resolved_args $resolved_value"
+        ops_debug "Convention resolution: $param -> $global_var -> $resolved_value"
+    done
+    
+    echo "$resolved_args"
+}
+
+# ============================================================================
+# CONFIGURATION-DRIVEN INJECTION
+# ============================================================================
+
+# Resolve variables using configuration mappings
+ops_resolve_by_config() {
+    local function_name="$1"
+    local signature="$2"
+    
+    ops_debug "Resolving by configuration for: $function_name"
+    
+    local config_file="${DIC_CONFIG_DIR}/mappings.conf"
+    if [[ ! -f "$config_file" ]]; then
+        ops_debug "Configuration file not found: $config_file"
+        return 1
+    fi
+    
+    local resolved_args=""
+    local hostname=$(hostname)
+    
+    # Check if function has specific mappings
+    local in_function_section=0
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// }" ]] && continue
+        
+        # Check for function section
+        if [[ "$line" =~ ^\[([^\]]+)\]$ ]]; then
+            local section_name="${BASH_REMATCH[1]}"
+            if [[ "$section_name" == "$function_name" ]]; then
+                in_function_section=1
+                ops_debug "Found configuration section for: $function_name"
+            else
+                in_function_section=0
+            fi
+            continue
+        fi
+        
+        # Process mappings in function section
+        if [[ $in_function_section -eq 1 && "$line" =~ ^([^=]+)=(.+)$ ]]; then
+            local param_name="${BASH_REMATCH[1]}"
+            local mapping_value="${BASH_REMATCH[2]}"
+            
+            # Expand variables in mapping value
+            local expanded_value
+            expanded_value=$(eval echo "\"$mapping_value\"")
+            
+            ops_debug "Config mapping: $param_name -> $mapping_value -> $expanded_value"
+            
+            # Store the mapping for later use
+            eval "CONFIG_MAPPING_${param_name}=\"$expanded_value\""
+        fi
+    done < "$config_file"
+    
+    # Process each parameter using configuration mappings
+    for param in $signature; do
+        local mapping_var="CONFIG_MAPPING_${param}"
+        local resolved_value="${!mapping_var}"
+        
+        if [[ -n "$resolved_value" ]]; then
+            resolved_args="$resolved_args \"$resolved_value\""
+            ops_debug "Config resolution: $param -> $resolved_value"
+        else
+            resolved_args="$resolved_args \"\""
+            ops_debug "Config resolution: $param -> (not found)"
+        fi
+    done
+    
+    echo "$resolved_args"
+}
+
+# ============================================================================
+# CUSTOM INJECTION HANDLERS
+# ============================================================================
+
+# Resolve variables using custom handlers
+ops_resolve_by_custom() {
+    local function_name="$1"
+    local signature="$2"
+    
+    ops_debug "Resolving by custom handler for: $function_name"
+    
+    # Check if custom handler exists
+    local handler_function="ops_custom_inject_${function_name}"
+    if declare -f "$handler_function" >/dev/null 2>&1; then
+        ops_debug "Using custom handler: $handler_function"
+        "$handler_function" "$signature"
+    else
+        ops_debug "No custom handler found for: $function_name"
+        return 1
+    fi
+}
+
+# ============================================================================
+# CUSTOM INJECTION HANDLERS FOR SPECIFIC FUNCTIONS
+# ============================================================================
+
+# Custom injection handler for pve_vpt (complex GPU passthrough)
+ops_custom_inject_pve_vpt() {
+    local signature="$1"
+    local hostname=$(hostname)
+    
+    ops_debug "Custom injection for pve_vpt"
+    
+    # Complex variable resolution for GPU passthrough
+    local vm_id_val=""
+    local action_val=""
+    local pci0_id_val="${!hostname}_NODE_PCI0"
+    local pci1_id_val="${!hostname}_NODE_PCI1"
+    local core_count_on_val="${!hostname}_CORE_COUNT_ON"
+    local core_count_off_val="${!hostname}_CORE_COUNT_OFF"
+    local pve_conf_path_val="${PVE_CONF_PATH_QEMU}"
+    
+    # Handle USB devices array specially
+    local usb_devices_str=""
+    local usb_array_name="${hostname}_USB_DEVICES"
+    if declare -p "$usb_array_name" >/dev/null 2>&1; then
+        local usb_array_ref="${usb_array_name}[@]"
+        if [[ -n "${!usb_array_ref}" ]]; then
+            usb_devices_str=$(printf '%s\n' "${!usb_array_ref}")
+        fi
+    fi
+    
+    # Arguments come from command line (vm_id and action)
+    # Other variables are injected from globals
+    echo "\"\" \"\" \"$pci0_id_val\" \"$pci1_id_val\" \"$core_count_on_val\" \"$core_count_off_val\" \"$usb_devices_str\" \"$pve_conf_path_val\""
+}
+
+# Custom injection handler for pve_vms (VM start with passthrough)
+ops_custom_inject_pve_vms() {
+    local signature="$1"
+    local hostname=$(hostname)
+    
+    ops_debug "Custom injection for pve_vms"
+    
+    # Similar to pve_vpt but includes cluster nodes
+    local cluster_nodes_str="${CLUSTER_NODES[*]}"
+    local pci0_id_val="${!hostname}_NODE_PCI0"
+    local pci1_id_val="${!hostname}_NODE_PCI1"
+    local core_count_on_val="${!hostname}_CORE_COUNT_ON"
+    local core_count_off_val="${!hostname}_CORE_COUNT_OFF"
+    local pve_conf_path_val="${PVE_CONF_PATH_QEMU}"
+    
+    # Handle USB devices array
+    local usb_devices_str=""
+    local usb_array_name="${hostname}_USB_DEVICES"
+    if declare -p "$usb_array_name" >/dev/null 2>&1; then
+        local usb_array_ref="${usb_array_name}[@]"
+        if [[ -n "${!usb_array_ref}" ]]; then
+            usb_devices_str=$(printf '%s\n' "${!usb_array_ref}")
+        fi
+    fi
+    
+    # Arguments: vm_id, cluster_nodes, pci0_id, pci1_id, core_count_on, core_count_off, usb_devices, pve_conf_path, shutdown_flag
+    echo "\"\" \"$cluster_nodes_str\" \"$pci0_id_val\" \"$pci1_id_val\" \"$core_count_on_val\" \"$core_count_off_val\" \"$usb_devices_str\" \"$pve_conf_path_val\" \"\""
+}
+
+# Custom injection handler for ssh_sca (system scan - complex array handling)
+ops_custom_inject_ssh_sca() {
+    local signature="$1"
+    
+    ops_debug "Custom injection for ssh_sca"
+    
+    # ssh_sca has complex parameter patterns that need special handling
+    # This is a pass-through handler - let user provide all arguments
+    echo ""
+}
+
+# ============================================================================
+# VARIABLE VALIDATION AND HELPERS
+# ============================================================================
+
+# Validate that required variables are available
+ops_validate_injection_variables() {
+    local function_name="$1"
+    local hostname=$(hostname)
+    
+    # Function-specific validation
+    case "$function_name" in
+        pve_vpt|pve_vms|pve_vmg)
+            # GPU passthrough functions need specific variables
+            local required_vars=(
+                "${hostname}_NODE_PCI0"
+                "${hostname}_NODE_PCI1"  
+                "${hostname}_CORE_COUNT_ON"
+                "${hostname}_CORE_COUNT_OFF"
+                "PVE_CONF_PATH_QEMU"
+            )
+            
+            for var in "${required_vars[@]}"; do
+                if [[ -z "${!var}" ]]; then
+                    echo "Error: Required variable '$var' not set for $function_name"
+                    return 1
+                fi
+            done
+            ;;
+        pve_vck|pve_vms)
+            # Cluster-aware functions need cluster nodes
+            if [[ -z "${CLUSTER_NODES[*]}" ]]; then
+                echo "Error: CLUSTER_NODES not set for $function_name"
+                return 1
+            fi
+            ;;
+    esac
+    
+    return 0
+}
+
+# Get variable resolution cache key
+ops_get_cache_key() {
+    local function_name="$1"
+    local method="$2"
+    local hostname=$(hostname)
+    echo "${function_name}_${method}_${hostname}"
+}
+
+# Cache resolved variables
+ops_cache_resolution() {
+    local cache_key="$1"
+    local resolved_vars="$2"
+    
+    if [[ "$OPS_CACHE" == "1" ]]; then
+        VARIABLE_RESOLUTION_CACHE["$cache_key"]="$resolved_vars"
+        ops_debug "Cached resolution: $cache_key"
+    fi
+}
+
+# Get cached resolution
+ops_get_cached_resolution() {
+    local cache_key="$1"
+    
+    if [[ "$OPS_CACHE" == "1" && -n "${VARIABLE_RESOLUTION_CACHE[$cache_key]}" ]]; then
+        echo "${VARIABLE_RESOLUTION_CACHE[$cache_key]}"
+        ops_debug "Using cached resolution: $cache_key"
+        return 0
+    fi
+    
+    return 1
+}
