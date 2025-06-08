@@ -1475,6 +1475,25 @@ gpu_pta() {
         
         # Bind to host driver
         _gpu_bind_device "$pci_id" "$host_driver"
+        
+        # Perform hardware reset to clear passthrough state corruption
+        local full_pci_id="0000:$pci_id"
+        if [ -w "/sys/bus/pci/devices/$full_pci_id/reset" ]; then
+            aux_info "Performing GPU hardware reset" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=hardware_reset,action=initiated"
+            printf "INFO: Performing hardware reset for GPU %s to clear passthrough state...\n" "$pci_id"
+            if echo 1 > "/sys/bus/pci/devices/$full_pci_id/reset" 2>/dev/null; then
+                aux_info "GPU hardware reset successful" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=hardware_reset,status=success"
+                printf "${GREEN}SUCCESS: Hardware reset completed for GPU %s.${NC}\n" "$pci_id"
+                # Give hardware time to stabilize after reset
+                sleep 2
+            else
+                aux_warn "GPU hardware reset failed" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=hardware_reset,status=failed"
+                printf "${YELLOW}WARNING: Hardware reset failed for GPU %s. Some hardware state issues may persist.${NC}\n" "$pci_id"
+            fi
+        else
+            aux_warn "GPU hardware reset not available" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=hardware_reset,status=unavailable"
+            printf "${YELLOW}WARNING: Hardware reset not available for GPU %s.${NC}\n" "$pci_id"
+        fi
     done
 
     printf "INFO: GPU attachment process completed.\n"
