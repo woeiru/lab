@@ -1,8 +1,4 @@
-# Configuration Director**Purpose**: Centralizes command aliases for consistent user experience across different environments and provides dynamic alias generation for project-specific shortcuts.
-
-### 🏗️ `core/` - Core System Configuration Controllersentralizes command aliases for consistent user experience across different environments and provides dynamic alias generation for project-specific shortcuts.
-
-### 🏗️ `core/` - Core System Configuration Controllers 📋 Overview
+# Configuration Directory
 
 The `cfg/` directory serves as the central configuration management hub for the entire infrastructure system. It contains environment-specific settings, automation configurations, system aliases, and deployment parameters organized in a hierarchical structure for maximum flexibility and maintainability.
 
@@ -11,8 +7,9 @@ The `cfg/` directory serves as the central configuration management hub for the 
 ```
 cfg/
 ├── ali/          # Alias Management
-├── core/         # Core System Configuration Controllers
+├── core/         # Core System Configuration Controllers  
 ├── env/          # Environment-Specific Configurations
+├── log/          # Logging System Configuration
 └── pod/          # Container/Pod Configuration
 ```
 
@@ -45,13 +42,24 @@ Site and environment-specific configuration files that define parameters for dif
 
 **Purpose**: Enables multi-environment support with environment-specific variables, allowing the same codebase to operate across development, testing, and production environments.
 
+### 📊 `log/` - Logging System Configuration
+Configuration files and documentation for the enhanced auxiliary logging system.
+
+- **`fluentd.conf`** - Fluentd configuration for centralized log collection
+- **`filebeat.yml`** - Elastic Filebeat configuration for shipping to Elastic Stack
+- **`usage_examples.md`** - Implementation examples and deployment patterns
+- **`enhanced_logging_dev_summary.md`** - Complete development summary and technical details
+- **`enhanced_logging_next_steps.md`** - Optional enhancement roadmap
+
+**Purpose**: Provides ready-to-deploy configurations for enterprise-grade structured logging with cluster metadata support. Integrates with the enhanced auxiliary logging system (`lib/gen/aux`) to enable centralized log aggregation across distributed environments.
+
 ### 🐳 `pod/` - Container/Pod Configuration
 Configuration files for containerized applications and pod deployments.
 
 - **`qdev/`** - Development container configurations
-- **`shus/`** - Specialized container configurations
+- **`shus/`** - Production container configurations
 
-**Purpose**: Manages container-specific settings, Containerfiles, and pod deployment parameters for consistent containerized application deployment.
+**Purpose**: Manages container-specific configurations and deployment parameters for various containerized workloads.
 
 ## 🔧 Key Features
 

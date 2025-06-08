@@ -61,11 +61,13 @@ Successfully transformed the auxiliary logging system from basic console output 
 /home/es/lab/
 ├── lib/gen/aux                           # Enhanced logging system (1029 lines)
 ├── test_enhanced_logging.sh              # Comprehensive test suite (84 lines)
-├── doc/dev/logging_config/
+├── cfg/log/                              # Logging system configuration
 │   ├── README.md                         # Configuration overview
 │   ├── fluentd.conf                      # Fluentd shipping config
 │   ├── filebeat.yml                      # Filebeat shipping config
-│   └── usage_examples.md                 # Implementation examples
+│   ├── usage_examples.md                 # Implementation examples
+│   ├── enhanced_logging_dev_summary.md   # Development summary
+│   └── enhanced_logging_next_steps.md    # Enhancement roadmap
 └── .log/
     ├── aux_operational.log               # Human-readable ops logs
     ├── aux_operational.jsonl             # JSON structured ops logs
