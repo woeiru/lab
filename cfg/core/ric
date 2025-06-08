@@ -183,7 +183,7 @@ export ERR_TERMINAL_VERBOSITY
 # Controls terminal verbosity for the tme timing module
 # Set to "on" for verbose output, "off" for quiet terminal.
 # Requires MASTER_TERMINAL_VERBOSITY to also be "on".
-declare -g TME_TERMINAL_VERBOSITY="on"
+declare -g TME_TERMINAL_VERBOSITY="off"
 export TME_TERMINAL_VERBOSITY
 
   # TME Module Nested Terminal Output Controls
