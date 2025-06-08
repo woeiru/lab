@@ -1,0 +1,491 @@
+#!/bin/bash
+
+# ============================================================================
+# DEPENDENCY INJECTION CONTAINER - VARIABLE RESOLVER
+# ============================================================================
+#
+# DESCRIPTION:
+#   Variable resolution engine that handles the mapping between function
+#   parameter names and global variables using multiple resolution strategies.
+#   Supports convention-based, configuration-driven, and custom resolution.
+#
+# RESOLUTION STRATEGIES:
+#   1. Direct mapping: vm_id → VM_ID
+#   2. Hostname-specific: pci0_id → ${hostname}_NODE_PCI0
+#   3. Array handling: cluster_nodes → ${CLUSTER_NODES[*]}
+#   4. Configuration-based: Custom mappings from config files
+#   5. Fallback chains: Multiple strategies for complex cases
+#
+# ============================================================================
+
+# ============================================================================
+# VARIABLE RESOLUTION CORE
+# ============================================================================
+
+# Main variable resolution dispatcher
+ops_resolve_variable() {
+    local param_name="$1"
+    local resolution_method="$2"
+    local function_context="$3"
+    
+    ops_debug "Resolving variable: $param_name (method: $resolution_method)"
+    
+    local resolved_value=""
+    
+    case "$resolution_method" in
+        convention)
+            resolved_value=$(ops_resolve_by_convention_single "$param_name")
+            ;;
+        config)
+            resolved_value=$(ops_resolve_by_config_single "$param_name" "$function_context")
+            ;;
+        hostname_specific)
+            resolved_value=$(ops_resolve_hostname_specific "$param_name")
+            ;;
+        array)
+            resolved_value=$(ops_resolve_array_variable "$param_name")
+            ;;
+        auto|*)
+            # Try multiple strategies in order
+            resolved_value=$(ops_resolve_auto "$param_name" "$function_context")
+            ;;
+    esac
+    
+    ops_debug "Resolution result: $param_name -> $resolved_value"
+    echo "$resolved_value"
+}
+
+# Auto-resolution using multiple strategies
+ops_resolve_auto() {
+    local param_name="$1"
+    local function_context="$2"
+    
+    # Strategy 1: Check for direct global variable match
+    local direct_value
+    direct_value=$(ops_resolve_by_convention_single "$param_name")
+    if [[ "$direct_value" != '""' ]]; then
+        echo "$direct_value"
+        return 0
+    fi
+    
+    # Strategy 2: Check hostname-specific variables
+    local hostname_value
+    hostname_value=$(ops_resolve_hostname_specific "$param_name")
+    if [[ "$hostname_value" != '""' ]]; then
+        echo "$hostname_value"
+        return 0
+    fi
+    
+    # Strategy 3: Check array variables
+    local array_value
+    array_value=$(ops_resolve_array_variable "$param_name")
+    if [[ "$array_value" != '""' ]]; then
+        echo "$array_value"
+        return 0
+    fi
+    
+    # Strategy 4: Check configuration mappings
+    local config_value
+    config_value=$(ops_resolve_by_config_single "$param_name" "$function_context")
+    if [[ "$config_value" != '""' ]]; then
+        echo "$config_value"
+        return 0
+    fi
+    
+    # Strategy 5: Apply special case rules
+    local special_value
+    special_value=$(ops_resolve_special_cases "$param_name" "$function_context")
+    if [[ "$special_value" != '""' ]]; then
+        echo "$special_value"
+        return 0
+    fi
+    
+    # No resolution found
+    echo '""'
+}
+
+# ============================================================================
+# CONVENTION-BASED RESOLUTION
+# ============================================================================
+
+# Resolve single variable using naming conventions
+ops_resolve_by_convention_single() {
+    local param_name="$1"
+    
+    # Direct uppercase conversion
+    local global_var=$(echo "$param_name" | tr '[:lower:]' '[:upper:]')
+    
+    if [[ -n "${!global_var}" ]]; then
+        echo "\"${!global_var}\""
+        return 0
+    fi
+    
+    echo '""'
+}
+
+# ============================================================================
+# HOSTNAME-SPECIFIC RESOLUTION
+# ============================================================================
+
+# Resolve hostname-specific variables
+ops_resolve_hostname_specific() {
+    local param_name="$1"
+    local hostname=$(hostname)
+    
+    # Common hostname-specific patterns
+    local hostname_var=""
+    
+    case "$param_name" in
+        pci0_id|pci_0_id)
+            hostname_var="${hostname}_NODE_PCI0"
+            ;;
+        pci1_id|pci_1_id)
+            hostname_var="${hostname}_NODE_PCI1"
+            ;;
+        core_count_on)
+            hostname_var="${hostname}_CORE_COUNT_ON"
+            ;;
+        core_count_off)
+            hostname_var="${hostname}_CORE_COUNT_OFF"
+            ;;
+        gpu_device|gpu_id)
+            hostname_var="${hostname}_GPU_DEVICE"
+            ;;
+        node_pci*)
+            # Extract number from parameter name
+            local pci_num=$(echo "$param_name" | grep -o '[0-9]\+')
+            hostname_var="${hostname}_NODE_PCI${pci_num}"
+            ;;
+        *)
+            # Generic hostname-specific pattern
+            local upper_param=$(echo "$param_name" | tr '[:lower:]' '[:upper:]')
+            hostname_var="${hostname}_${upper_param}"
+            ;;
+    esac
+    
+    if [[ -n "${!hostname_var}" ]]; then
+        echo "\"${!hostname_var}\""
+        ops_debug "Hostname-specific resolution: $param_name -> $hostname_var -> ${!hostname_var}"
+        return 0
+    fi
+    
+    echo '""'
+}
+
+# ============================================================================
+# ARRAY VARIABLE RESOLUTION
+# ============================================================================
+
+# Resolve array variables with special handling
+ops_resolve_array_variable() {
+    local param_name="$1"
+    local hostname=$(hostname)
+    
+    case "$param_name" in
+        cluster_nodes)
+            if [[ -n "${CLUSTER_NODES[*]}" ]]; then
+                echo "\"${CLUSTER_NODES[*]}\""
+                return 0
+            fi
+            ;;
+        usb_devices|usb_devices_str)
+            # Handle USB device arrays with newline separation
+            local usb_array_name="${hostname}_USB_DEVICES"
+            if declare -p "$usb_array_name" >/dev/null 2>&1; then
+                local usb_array_ref="${usb_array_name}[@]"
+                if [[ -n "${!usb_array_ref}" ]]; then
+                    local usb_str
+                    usb_str=$(printf '%s\n' "${!usb_array_ref}")
+                    echo "\"$usb_str\""
+                    return 0
+                fi
+            fi
+            ;;
+        *_nodes)
+            # Generic nodes array handling
+            local array_name=$(echo "$param_name" | tr '[:lower:]' '[:upper:]')
+            if declare -p "$array_name" >/dev/null 2>&1; then
+                local array_ref="${array_name}[*]"
+                echo "\"${!array_ref}\""
+                return 0
+            fi
+            ;;
+        *_list|*_array)
+            # Generic list/array handling
+            local base_name=$(echo "$param_name" | sed 's/_list$//' | sed 's/_array$//')
+            local array_name=$(echo "$base_name" | tr '[:lower:]' '[:upper:]')
+            if declare -p "$array_name" >/dev/null 2>&1; then
+                local array_ref="${array_name}[*]"
+                echo "\"${!array_ref}\""
+                return 0
+            fi
+            ;;
+    esac
+    
+    echo '""'
+}
+
+# ============================================================================
+# CONFIGURATION-BASED RESOLUTION
+# ============================================================================
+
+# Resolve single variable using configuration mappings
+ops_resolve_by_config_single() {
+    local param_name="$1"
+    local function_context="$2"
+    
+    local config_file="${DIC_CONFIG_DIR}/mappings.conf"
+    if [[ ! -f "$config_file" ]]; then
+        echo '""'
+        return 1
+    fi
+    
+    # Look for function-specific mapping
+    local mapping_value=""
+    local in_function_section=0
+    
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// }" ]] && continue
+        
+        # Check for function section
+        if [[ "$line" =~ ^\[([^\]]+)\]$ ]]; then
+            local section_name="${BASH_REMATCH[1]}"
+            if [[ "$section_name" == "$function_context" ]]; then
+                in_function_section=1
+            else
+                in_function_section=0
+            fi
+            continue
+        fi
+        
+        # Process mappings in function section
+        if [[ $in_function_section -eq 1 && "$line" =~ ^([^=]+)=(.+)$ ]]; then
+            local config_param="${BASH_REMATCH[1]}"
+            local config_mapping="${BASH_REMATCH[2]}"
+            
+            if [[ "$config_param" == "$param_name" ]]; then
+                # Expand variables in mapping
+                mapping_value=$(eval echo "\"$config_mapping\"")
+                break
+            fi
+        fi
+    done < "$config_file"
+    
+    if [[ -n "$mapping_value" ]]; then
+        echo "\"$mapping_value\""
+        return 0
+    fi
+    
+    echo '""'
+}
+
+# ============================================================================
+# SPECIAL CASE RESOLUTION
+# ============================================================================
+
+# Handle special cases that don't fit standard patterns
+ops_resolve_special_cases() {
+    local param_name="$1"
+    local function_context="$2"
+    
+    case "$param_name" in
+        pve_conf_path)
+            if [[ -n "$PVE_CONF_PATH_QEMU" ]]; then
+                echo "\"$PVE_CONF_PATH_QEMU\""
+                return 0
+            fi
+            ;;
+        lib_ops_dir)
+            if [[ -n "$LIB_OPS_DIR" ]]; then
+                echo "\"$LIB_OPS_DIR\""
+                return 0
+            fi
+            ;;
+        script_path)
+            # For _fun functions, resolve to the corresponding script path
+            local module=$(echo "$function_context" | cut -d'_' -f1)
+            local script_var="FILEPATH_${module}"
+            if [[ -n "${!script_var}" ]]; then
+                echo "\"${!script_var}\""
+                return 0
+            fi
+            ;;
+        config_file)
+            # For _var functions, resolve to the corresponding config file
+            local module=$(echo "$function_context" | cut -d'_' -f1)
+            local config_var="CONFIG_${module}"
+            if [[ -n "${!config_var}" ]]; then
+                echo "\"${!config_var}\""
+                return 0
+            fi
+            ;;
+        analysis_dir)
+            # Common pattern for analysis directories
+            if [[ -n "$DIR_FUN" ]]; then
+                echo "\"${DIR_FUN}/..\""
+                return 0
+            fi
+            ;;
+        hook_script)
+            # Common GPU hook script path
+            echo "\"/var/lib/vz/snippets/gpu-reattach-hook.pl\""
+            return 0
+            ;;
+    esac
+    
+    echo '""'
+}
+
+# ============================================================================
+# VARIABLE VALIDATION
+# ============================================================================
+
+# Validate resolved variable value
+ops_validate_resolved_value() {
+    local param_name="$1"
+    local resolved_value="$2"
+    local validation_level="$3"
+    
+    # Remove quotes for validation
+    local clean_value=$(echo "$resolved_value" | sed 's/^"\(.*\)"$/\1/')
+    
+    case "$validation_level" in
+        strict)
+            if [[ -z "$clean_value" ]]; then
+                echo "Error: Required parameter '$param_name' resolved to empty value"
+                return 1
+            fi
+            ;;
+        warn)
+            if [[ -z "$clean_value" ]]; then
+                echo "Warning: Parameter '$param_name' resolved to empty value" >&2
+            fi
+            ;;
+        silent)
+            # No validation
+            ;;
+    esac
+    
+    return 0
+}
+
+# ============================================================================
+# RESOLUTION DEBUGGING
+# ============================================================================
+
+# Show variable resolution details
+ops_debug_resolution() {
+    local param_name="$1"
+    local function_context="$2"
+    
+    echo "Variable Resolution Debug: $param_name"
+    echo "======================================="
+    
+    echo "Function Context: $function_context"
+    echo ""
+    
+    # Test each resolution strategy
+    echo "Resolution Strategies:"
+    
+    echo "  1. Convention-based:"
+    local conv_result
+    conv_result=$(ops_resolve_by_convention_single "$param_name")
+    echo "     Result: $conv_result"
+    
+    echo "  2. Hostname-specific:"
+    local hostname_result
+    hostname_result=$(ops_resolve_hostname_specific "$param_name")
+    echo "     Result: $hostname_result"
+    
+    echo "  3. Array handling:"
+    local array_result
+    array_result=$(ops_resolve_array_variable "$param_name")
+    echo "     Result: $array_result"
+    
+    echo "  4. Configuration-based:"
+    local config_result
+    config_result=$(ops_resolve_by_config_single "$param_name" "$function_context")
+    echo "     Result: $config_result"
+    
+    echo "  5. Special cases:"
+    local special_result
+    special_result=$(ops_resolve_special_cases "$param_name" "$function_context")
+    echo "     Result: $special_result"
+    
+    echo ""
+    echo "Auto-resolution result:"
+    local auto_result
+    auto_result=$(ops_resolve_auto "$param_name" "$function_context")
+    echo "  Final: $auto_result"
+}
+
+# Test resolution for multiple variables
+ops_test_resolution() {
+    local function_context="$1"
+    shift
+    local param_names=("$@")
+    
+    echo "Testing variable resolution for: $function_context"
+    echo "=================================================="
+    
+    for param in "${param_names[@]}"; do
+        echo "Parameter: $param"
+        local result
+        result=$(ops_resolve_auto "$param" "$function_context")
+        echo "  Resolved: $result"
+        echo ""
+    done
+}
+
+# ============================================================================
+# PERFORMANCE OPTIMIZATION
+# ============================================================================
+
+# Cache frequently used resolutions
+ops_cache_variable_resolution() {
+    local cache_key="$1"
+    local resolved_value="$2"
+    
+    if [[ "$OPS_CACHE" == "1" ]]; then
+        VARIABLE_RESOLUTION_CACHE["$cache_key"]="$resolved_value"
+        ops_debug "Cached variable resolution: $cache_key -> $resolved_value"
+    fi
+}
+
+# Get cached variable resolution
+ops_get_cached_variable_resolution() {
+    local cache_key="$1"
+    
+    if [[ "$OPS_CACHE" == "1" && -n "${VARIABLE_RESOLUTION_CACHE[$cache_key]}" ]]; then
+        echo "${VARIABLE_RESOLUTION_CACHE[$cache_key]}"
+        ops_debug "Using cached variable resolution: $cache_key"
+        return 0
+    fi
+    
+    return 1
+}
+
+# Preload common variable resolutions
+ops_preload_variable_resolutions() {
+    local hostname=$(hostname)
+    
+    # Common variables to preload
+    local common_vars=(
+        "vm_id" "cluster_nodes" "pci0_id" "pci1_id"
+        "core_count_on" "core_count_off" "usb_devices_str"
+        "pve_conf_path" "lib_ops_dir"
+    )
+    
+    for var in "${common_vars[@]}"; do
+        local cache_key="${var}_${hostname}"
+        if ! ops_get_cached_variable_resolution "$cache_key" >/dev/null; then
+            local resolved
+            resolved=$(ops_resolve_auto "$var" "generic")
+            ops_cache_variable_resolution "$cache_key" "$resolved"
+        fi
+    done
+    
+    ops_debug "Preloaded ${#common_vars[@]} variable resolutions"
+}
