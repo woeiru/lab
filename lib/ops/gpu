@@ -1,21 +1,6 @@
 #!/bin/bash
 
 # ============================================================================
-# gpu - Function Summary
-#
-#   gpu_fun : Shows function overview with optional filtering and descriptions.
-#   gpu_var : Displays configuration variables overview specific to GPU module.
-#   gpu_nds : Downloads and installs NVIDIA drivers, blacklisting Nouveau for host use.
-#   gpu_pt1 : Configures initial GRUB and EFI settings for GPU passthrough, installs packages, and reboots.
-#   gpu_pt2 : Adds kernel modules for GPU passthrough, updates initramfs, and reboots.
-#   gpu_pt3 : Finalizes or reverts GPU passthrough setup (VFIO-PCI IDs, blacklisting drivers for passthrough).
-#   gpu_ptd : Detaches the GPU from the host system for VM passthrough (dynamic).
-#   gpu_pta : Attaches the GPU back to the host system (dynamic).
-#   gpu_pts : Checks the current status of the GPU passthrough setup.
-#
-# ============================================================================
-#
-# ============================================================================
 # GPU Driver and Passthrough Function Interactions - Technical Overview
 #
 # This section outlines crucial interactions between different GPU management

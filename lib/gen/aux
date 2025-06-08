@@ -109,88 +109,6 @@ aux_log() {
     fi
 }
 
-# Development/debug logging with automatic function context and timestamp
-# debug log
-# <message> [level]
-aux_dbg() {
-    # USE CASES:
-    #   - Development debugging and troubleshooting
-    #   - Function entry/exit tracing
-    #   - Variable value inspection
-    #   - Control flow verification
-    #   - Performance investigation
-    #   - Error condition analysis
-    #   - Development-time diagnostics
-    #   - Temporary debugging during code development
-    # 
-    # CHARACTERISTICS:
-    #   - Automatically captures calling function name from call stack
-    #   - Auto-generates timestamp for each message
-    #   - Integrates with existing lo1 logging system and verbosity controls
-    #   - Output controlled by MASTER_TERMINAL_VERBOSITY and logging state
-    #   - Optional log level parameter (defaults to DEBUG)
-    #   - Sends to stderr for terminal output, log files for persistence
-    #   - Suitable for development/debugging environments
-    #   - Goes to debug logs (aux_debug.log) when available
-    #
-    # EXAMPLES:
-    #   aux_dbg "Starting configuration validation"
-    #   aux_dbg "Found $count items in array" "INFO"
-    #   aux_dbg "Variable value: user=$username, status=$status"
-    #   aux_dbg "Entering error handling branch" "WARN"
-    
-    local message="$1"
-    local level="${2:-DEBUG}"
-    
-    # Validate message parameter
-    if [[ -z "$message" ]]; then
-        echo "Error: aux_dbg requires a message parameter" >&2
-        return 1
-    fi
-    
-    # Get the calling function name from the call stack
-    local caller_function="${FUNCNAME[1]:-main}"
-    local timestamp
-    printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
-    
-    # Check if we should output debug messages
-    # Respect the existing logging infrastructure
-    local should_output=false
-    
-    # Check if we have the main logging system available
-    if type -t log &>/dev/null && type -t lo1_get_cached_log_state &>/dev/null; then
-        # Use the existing lo1 logging system
-        local log_state
-        log_state=$(lo1_get_cached_log_state)
-        if [[ "$log_state" == "on" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
-            should_output=true
-        fi
-    else
-        # Fallback check - use environment variable or assume debug is wanted
-        if [[ "${AUX_DEBUG_ENABLED:-1}" == "1" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
-            should_output=true
-        fi
-    fi
-    
-    # Format the debug message with function context
-    local formatted_message="[$level] $timestamp - [$caller_function] $message"
-    
-    # Output to appropriate channels
-    if [[ "$should_output" == "true" ]]; then
-        # Send to stderr for debug output
-        echo "$formatted_message" >&2
-    fi
-    
-    # Always log to file if we have logging system available
-    if type -t log &>/dev/null; then
-        # Use the main logging system for file output
-        log "[$level] [$caller_function] $message"
-    elif [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-        # Fallback file logging
-        echo "$formatted_message" >> "${LOG_DIR}/aux_debug.log"
-    fi
-}
-
 # Displays the usage information, shortname, and description of the calling function, helping users understand how to use it
 # function usage information
 #
@@ -733,6 +651,88 @@ aux_arr() {
             return 1
             ;;
     esac
+}
+
+# Development/debug logging with automatic function context and timestamp
+# debug log
+# <message> [level]
+aux_dbg() {
+    # USE CASES:
+    #   - Development debugging and troubleshooting
+    #   - Function entry/exit tracing
+    #   - Variable value inspection
+    #   - Control flow verification
+    #   - Performance investigation
+    #   - Error condition analysis
+    #   - Development-time diagnostics
+    #   - Temporary debugging during code development
+    # 
+    # CHARACTERISTICS:
+    #   - Automatically captures calling function name from call stack
+    #   - Auto-generates timestamp for each message
+    #   - Integrates with existing lo1 logging system and verbosity controls
+    #   - Output controlled by MASTER_TERMINAL_VERBOSITY and logging state
+    #   - Optional log level parameter (defaults to DEBUG)
+    #   - Sends to stderr for terminal output, log files for persistence
+    #   - Suitable for development/debugging environments
+    #   - Goes to debug logs (aux_debug.log) when available
+    #
+    # EXAMPLES:
+    #   aux_dbg "Starting configuration validation"
+    #   aux_dbg "Found $count items in array" "INFO"
+    #   aux_dbg "Variable value: user=$username, status=$status"
+    #   aux_dbg "Entering error handling branch" "WARN"
+    
+    local message="$1"
+    local level="${2:-DEBUG}"
+    
+    # Validate message parameter
+    if [[ -z "$message" ]]; then
+        echo "Error: aux_dbg requires a message parameter" >&2
+        return 1
+    fi
+    
+    # Get the calling function name from the call stack
+    local caller_function="${FUNCNAME[1]:-main}"
+    local timestamp
+    printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
+    
+    # Check if we should output debug messages
+    # Respect the existing logging infrastructure
+    local should_output=false
+    
+    # Check if we have the main logging system available
+    if type -t log &>/dev/null && type -t lo1_get_cached_log_state &>/dev/null; then
+        # Use the existing lo1 logging system
+        local log_state
+        log_state=$(lo1_get_cached_log_state)
+        if [[ "$log_state" == "on" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
+            should_output=true
+        fi
+    else
+        # Fallback check - use environment variable or assume debug is wanted
+        if [[ "${AUX_DEBUG_ENABLED:-1}" == "1" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
+            should_output=true
+        fi
+    fi
+    
+    # Format the debug message with function context
+    local formatted_message="[$level] $timestamp - [$caller_function] $message"
+    
+    # Output to appropriate channels
+    if [[ "$should_output" == "true" ]]; then
+        # Send to stderr for debug output
+        echo "$formatted_message" >&2
+    fi
+    
+    # Always log to file if we have logging system available
+    if type -t log &>/dev/null; then
+        # Use the main logging system for file output
+        log "[$level] [$caller_function] $message"
+    elif [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+        # Fallback file logging
+        echo "$formatted_message" >> "${LOG_DIR}/aux_debug.log"
+    fi
 }
 
 # Enhanced logging functions with different levels
