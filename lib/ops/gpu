@@ -1,5 +1,143 @@
 #!/bin/bash
 
+# ============================================================================
+# gpu - Function Summary
+#
+#   gpu_fun : Shows function overview with optional filtering and descriptions.
+#   gpu_var : Displays configuration variables overview specific to GPU module.
+#   gpu_nds : Downloads and installs NVIDIA drivers, blacklisting Nouveau for host use.
+#   gpu_pt1 : Configures initial GRUB and EFI settings for GPU passthrough, installs packages, and reboots.
+#   gpu_pt2 : Adds kernel modules for GPU passthrough, updates initramfs, and reboots.
+#   gpu_pt3 : Finalizes or reverts GPU passthrough setup (VFIO-PCI IDs, blacklisting drivers for passthrough).
+#   gpu_ptd : Detaches the GPU from the host system for VM passthrough (dynamic).
+#   gpu_pta : Attaches the GPU back to the host system (dynamic).
+#   gpu_pts : Checks the current status of the GPU passthrough setup.
+#
+# ============================================================================
+#
+# ============================================================================
+# GPU Driver and Passthrough Function Interactions - Technical Overview
+#
+# This section outlines crucial interactions between different GPU management
+# functions, particularly concerning driver blacklisting, preferences, and
+# dynamic vs. persistent configurations.
+#
+# Persistent Configuration (Primarily via `gpu_pt1`, `gpu_pt2`, `gpu_pt3`):
+#   - These functions establish the boot-time default state for GPU passthrough.
+#   - `gpu_pt3 enable`: Configures the system to assign specified GPUs to `vfio-pci`
+#     at boot, creating persistent blacklists for host drivers for those GPUs.
+#     This is the most robust way to dedicate GPUs for passthrough.
+#   - `gpu_pt3 disable`: Reverts the persistent passthrough configuration, allowing
+#     host drivers to claim GPUs at boot (defaulting to host usage).
+#
+# Dynamic Switching (`gpu_ptd`, `gpu_pta`):
+#   - These functions allow runtime switching of GPU control between the host and
+#     `vfio-pci` (for VMs) *without requiring a reboot*.
+#   - They are designed to be as self-sufficient as possible, meaning they can
+#     often work even if the persistent state set by `gpu_pt3` is for host usage
+#     (i.e., after `gpu_pt3 disable` or if `gpu_pt3 enable` was never run).
+#   - `gpu_ptd` (Detach): Attempts to dynamically prepare the system for passthrough
+#     by loading necessary VFIO modules, unbinding host drivers, and binding `vfio-pci`.
+#   - `gpu_pta` (Attach): Attempts to dynamically return GPU control to the host by
+#     unbinding `vfio-pci`, loading necessary host drivers, and binding them.
+#
+# Blacklist Files:
+#   - `/etc/modprobe.d/blacklist-nouveau.conf`:
+#       - Created/Managed by: `gpu_nds` (NVIDIA Driver Setup).
+#       - Purpose: Persistently blacklists `nouveau` if NVIDIA proprietary drivers
+#         are installed for host use.
+#
+#   - `/etc/modprobe.d/zz-vfio-gpu-blacklist.conf`:
+#       - Created/Managed by: `gpu_pt3 enable`.
+#       - Removed by: `gpu_pt3 disable`.
+#       - Purpose: Persistently blacklists host drivers (`nouveau`, `nvidia`,
+#         `amdgpu`, `radeon`) for GPUs intended for passthrough at boot.
+#         `gpu_ptd` does *not* create this file but attempts to achieve a similar
+#         effect for the current session by unloading host drivers.
+#
+# Key Interactions & Considerations:
+#
+# 1. `gpu_nds` (NVIDIA Driver Setup):
+#    - Installs NVIDIA proprietary drivers and can blacklist `nouveau` for host use.
+#    This is independent of passthrough but affects which driver (`nvidia` or `nouveau`)
+#    `gpu_pta` might try to load for an NVIDIA GPU if it's the host preference.
+#
+# 2. `gpu_pt1`, `gpu_pt2` (Initial Passthrough Setup):
+#    - These set up essential prerequisites like IOMMU kernel parameters and ensure
+#      VFIO kernel modules are listed in `/etc/modules`.
+#    - While `gpu_ptd` attempts to load VFIO modules dynamically, having these base
+#      prerequisites met (especially IOMMU in kernel cmdline) is highly recommended
+#      for `gpu_ptd` to succeed reliably.
+#
+# 3. `gpu_pt3 enable` (Persistent Passthrough):
+#    - Provides the most stable environment for passthrough by ensuring GPUs are
+#      bound to `vfio-pci` from boot and host drivers are blacklisted.
+#    - If you primarily use GPUs for passthrough, this is the recommended default state.
+#
+# 4. `gpu_pt3 disable` (Persistent Host GPU Usage):
+#    - Sets the system to use GPUs with host drivers by default after boot.
+#    - This is the state from which `gpu_ptd` can be used to dynamically switch
+#      a GPU to `vfio-pci` for a VM session.
+#
+# 5. `gpu_ptd` (Dynamic Detach for VM):
+#    - Will attempt to load `vfio`, `vfio_iommu_type1`, and `vfio_pci` if not present.
+#    - Will attempt to unbind host drivers (e.g., `nvidia`, `nouveau`, `amdgpu`).
+#    - Uses `driver_override` to bind `vfio-pci` to the target GPU(s).
+#    - Its changes are not persistent across reboots.
+#    - If IOMMU is not enabled in the kernel, `gpu_ptd` will warn but cannot fix it.
+#
+# 6. `gpu_pta` (Dynamic Attach to Host):
+#    - Unbinds `vfio-pci`.
+#    - Clears `driver_override`.
+#    - Attempts to load the preferred/appropriate host driver (e.g., `nvidia`, `nouveau`, `amdgpu`)
+#      if not already loaded, and binds it to the GPU.
+#    - Considers hostname-specific `*_NVIDIA_DRIVER_PREFERENCE` from site config for NVIDIA GPUs.
+#      Warns if `nouveau` is preferred but blacklisted by `gpu_nds`.
+#
+# General Workflow Examples:
+#
+#   Initial One-Time Setup (Common for both scenarios below):
+#     1. Run `gpu_pt1`: Configures GRUB/EFI for IOMMU, installs related packages.
+#        Reboot as prompted.
+#     2. Run `gpu_pt2`: Adds necessary kernel modules (vfio, vfio_iommu_type1, vfio_pci)
+#        to /etc/modules for them to be loaded at boot, updates initramfs.
+#        Reboot as prompted.
+#     3. (Optional) Run `gpu_nds`: If using an NVIDIA GPU and proprietary drivers are
+#        desired for host usage (when GPU is attached to host). This blacklists nouveau
+#        and installs the NVIDIA driver. Reboot if prompted.
+#
+#   Scenario A: GPU Primarily for Passthrough (Persistent Setup)
+#     (After completing the Initial One-Time Setup)
+#     a. Run `gpu_pt3 enable`: Assigns specified GPU(s) to `vfio-pci` at boot.
+#        This involves creating /etc/modprobe.d/vfio.conf with the GPU IDs and
+#        blacklisting their host drivers (e.g., nvidia, amdgpu, nouveau) in
+#        /etc/modprobe.d/zz-vfio-gpu-blacklist.conf. Reboot.
+#        The GPU is now persistently configured for VM passthrough.
+#     b. (Optional) If the GPU needs to be temporarily used by the host:
+#        Run `gpu_pta` to attach it to host drivers.
+#        Run `gpu_ptd` to detach it again for VM use. (No reboots needed for these).
+#
+#   Scenario B: GPU Primarily for Host, Dynamic Passthrough as Needed
+#     (After completing the Initial One-Time Setup)
+#     a. Ensure the system boots with the GPU attached to host drivers.
+#        This is the default state if `gpu_pt3 enable` has not been run for the GPU,
+#        or if `gpu_pt3 disable` was run to revert a persistent passthrough setup.
+#        (If `gpu_nds` was run, the NVIDIA GPU will use proprietary drivers; otherwise,
+#        it might use nouveau or amdgpu for AMD).
+#     b. When passthrough is needed for a VM: Run `gpu_ptd` for the target GPU.
+#        This dynamically attempts to:
+#          - Ensure VFIO modules are loaded (they should be if `gpu_pt2` was run).
+#          - Unbind the GPU from its host driver.
+#          - Bind the GPU to `vfio-pci`.
+#     c. After VM use: Run `gpu_pta` for the target GPU. This dynamically:
+#          - Unbinds the GPU from `vfio-pci`.
+#          - Rebinds the GPU to its appropriate host driver.
+#     d. Note: If dynamic switching (`gpu_ptd`) faces issues (e.g., host drivers
+#        re-asserting control, or instability), using `gpu_pt3 enable` (Scenario A)
+#        for a persistent passthrough setup is generally more robust.
+#
+# ============================================================================
+
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_FUN=$(basename "$BASH_SOURCE")
@@ -639,16 +777,22 @@ _gpu_get_detailed_device_info() {
 # [function_name_filter]
 gpu_fun() {
     # Technical Description:
-    #   Displays formatted list of all functions in the GPU module
-    #   Uses ana_laf utility to parse function definitions and extract documentation
-    #   Provides optional filtering by function name pattern
-    #   Shows function descriptions, mnemonics, and parameter requirements
+    #   Displays formatted list of all functions in the GPU module with detailed documentation.
+    #   Uses ana_laf utility to parse function definitions and extract comprehensive documentation
+    #   including function names, descriptions, mnemonics, and parameter requirements.
+    #   Provides optional filtering by function name pattern for focused analysis.
+    #   Shows both helper functions (prefixed with _gpu_) and main user-facing functions.
     # Dependencies:
-    #   - ana_laf function from auxiliary library
-    #   - Read access to GPU module file
+    #   - ana_laf function from auxiliary library for function analysis
+    #   - Read access to GPU module file for parsing function definitions
     #   - grep for pattern matching if filtering is used
     # Arguments:
     #   $1: function_name_filter (optional) - pattern to filter function names
+    #   --help/-h: Display technical usage information
+    # Usage Examples:
+    #   gpu_fun                    # List all functions in GPU module
+    #   gpu_fun "vfio"            # Show only functions containing "vfio"
+    #   gpu_fun "^gpu_pt"         # Show only passthrough functions
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -663,16 +807,23 @@ gpu_fun() {
 # -x (execute)
 gpu_var() {
     # Technical Description:
-    #   Displays configuration variables specific to GPU module
-    #   Uses ana_acu utility to scan and format variable definitions
-    #   Shows variable names, values, and usage context from configuration files
+    #   Displays comprehensive overview of configuration variables specific to GPU module
+    #   Uses ana_acu utility to scan and format variable definitions from configuration files
+    #   Shows variable names, current values, and usage context within GPU management
     #   Provides organized view of GPU-related environment and configuration settings
+    #   including hostname-specific PCI device mappings and driver preferences.
     # Dependencies:
-    #   - ana_acu function from auxiliary library
-    #   - Read access to configuration files
-    #   - CONFIG_gpu environment variable must be set
+    #   - ana_acu function from auxiliary library for configuration analysis
+    #   - Read access to configuration files for variable extraction
+    #   - CONFIG_gpu environment variable must be set for proper operation
     # Arguments:
-    #   $1: -x - explicit execution flag required for consistency
+    #   $1: -x - explicit execution flag required for consistency with module pattern
+    #   --help/-h: Display technical usage information
+    # Configuration Variables Displayed:
+    #   - ${hostname}_NODE_PCI0: Primary GPU PCI ID for the current host
+    #   - ${hostname}_NODE_PCI1: Secondary GPU PCI ID for the current host
+    #   - ${hostname}_NVIDIA_DRIVER_PREFERENCE: Preferred NVIDIA driver (nvidia/nouveau)
+    #   - Site-wide GPU configuration parameters
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -691,6 +842,28 @@ gpu_var() {
 # nvidia driver setup
 # [driver_version]
 gpu_nds() {
+    # Technical Description:
+    #   Comprehensive NVIDIA proprietary driver installation process that handles
+    #   the complete workflow from Nouveau blacklisting to driver compilation and installation.
+    #   Automatically downloads specified NVIDIA driver version, prepares system by
+    #   blacklisting conflicting Nouveau drivers, installs necessary build dependencies,
+    #   and compiles drivers with DKMS support for kernel module persistence.
+    #   Creates persistent blacklist configuration to prevent Nouveau from loading.
+    # Dependencies:
+    #   - Internet connectivity for driver download from NVIDIA servers
+    #   - Root privileges for system modification (blacklists, driver installation)
+    #   - Build tools: dkms, build-essential, kernel headers
+    #   - update-initramfs for initrd regeneration
+    # Arguments:
+    #   $1: driver_version (optional) - NVIDIA driver version (default: 550.142)
+    # System Changes:
+    #   - Creates /etc/modprobe.d/blacklist-nouveau.conf with Nouveau blacklist
+    #   - Installs NVIDIA driver with DKMS support for automatic kernel rebuilds
+    #   - Updates initramfs to apply blacklist changes
+    #   - Prompts for system reboot to activate new driver configuration
+    # Post-Installation:
+    #   - Verify installation with: nvidia-smi
+    #   - Driver will be automatically rebuilt for kernel updates via DKMS
     local drv_ver="${1:-550.142}"
     local url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${drv_ver}/NVIDIA-Linux-x86_64-${drv_ver}.run"
     local installer="NVIDIA-Linux-x86_64-${drv_ver}.run"
@@ -730,6 +903,27 @@ EOF
 # passthrough step one
 #
 gpu_pt1() {
+    # Technical Description:
+    #   First phase of GPU passthrough setup that establishes fundamental system-level
+    #   requirements for IOMMU (Input-Output Memory Management Unit) functionality.
+    #   Modifies GRUB configuration to enable IOMMU support in kernel command line,
+    #   which is essential for hardware virtualization and PCI device isolation.
+    #   Updates both GRUB legacy and GRUB2 configurations and ensures EFI boot manager
+    #   compatibility. This step must be completed before VFIO module setup.
+    # Dependencies:
+    #   - Root privileges for GRUB configuration modification
+    #   - EFI boot environment support
+    #   - grub-efi-amd64 package installation capability
+    # System Changes:
+    #   - Modifies /etc/default/grub to add "iommu=pt" to GRUB_CMDLINE_LINUX_DEFAULT
+    #   - Regenerates GRUB configuration files via update-grub and update-grub2
+    #   - Installs grub-efi-amd64 package for EFI system compatibility
+    #   - Requires system reboot for kernel command line changes to take effect
+    # Prerequisites:
+    #   - System must support hardware virtualization (VT-x/AMD-V)
+    #   - IOMMU must be supported and enabled in BIOS/UEFI settings
+    # Next Steps:
+    #   - After reboot, proceed with gpu_pt2 for VFIO kernel module setup
     local function_name="${FUNCNAME[0]}"
     
     echo "Executing section 1:"
@@ -751,6 +945,28 @@ gpu_pt1() {
 # passthrough step two
 #
 gpu_pt2() {
+    # Technical Description:
+    #   Second phase of GPU passthrough setup that configures essential VFIO kernel modules
+    #   for Virtual Function I/O support. Adds vfio, vfio_iommu_type1, and vfio_pci modules
+    #   to /etc/modules to ensure they load automatically at boot time. These modules are
+    #   fundamental for PCI device passthrough functionality, enabling the kernel to
+    #   manage device isolation and provide secure device access to virtual machines.
+    #   Updates initramfs to include VFIO modules in early boot environment.
+    # Dependencies:
+    #   - Successful completion of gpu_pt1 (IOMMU enabled in kernel command line)
+    #   - Root privileges for system file modification
+    #   - initramfs-tools for initrd generation
+    # System Changes:
+    #   - Adds "vfio", "vfio_iommu_type1", "vfio_pci" entries to /etc/modules
+    #   - Regenerates initramfs for all kernel versions via update-initramfs
+    #   - Ensures VFIO modules are available during early boot process
+    #   - Requires system reboot for module loading changes to take effect
+    # Module Functions:
+    #   - vfio: Core Virtual Function I/O framework
+    #   - vfio_iommu_type1: IOMMU driver for device isolation and memory management
+    #   - vfio_pci: PCI device binding interface for device passthrough
+    # Next Steps:
+    #   - After reboot, proceed with gpu_pt3 for specific GPU device configuration
     local function_name="${FUNCNAME[0]}"
     
     echo "Executing section 2:"
@@ -772,6 +988,32 @@ gpu_pt2() {
 # passthrough step three
 # <enable|disable>
 gpu_pt3() {
+    # Technical Description:
+    #   Final configuration phase for persistent GPU passthrough setup that handles
+    #   device-specific binding and driver blacklisting. Creates or removes modprobe
+    #   configurations that permanently assign detected GPU devices to vfio-pci driver
+    #   and blacklists conflicting host drivers. When enabling, scans all GPU devices
+    #   and generates vendor:device ID mappings for VFIO assignment. When disabling,
+    #   removes persistent configurations to restore normal host GPU functionality.
+    # Dependencies:
+    #   - Successful completion of gpu_pt1 and gpu_pt2 (IOMMU and VFIO modules)
+    #   - Root privileges for modprobe configuration management
+    #   - lspci utility for GPU device detection and ID extraction
+    # Arguments:
+    #   $1: action - "enable" to configure persistent passthrough, "disable" to revert
+    # System Changes (enable):
+    #   - Creates /etc/modprobe.d/vfio.conf with "options vfio-pci ids=<gpu_ids>"
+    #   - Creates /etc/modprobe.d/zz-vfio-gpu-blacklist.conf blacklisting host drivers
+    #   - Blacklists nvidia, nouveau (NVIDIA), amdgpu, radeon (AMD) as appropriate
+    #   - Updates initramfs to apply driver binding changes
+    # System Changes (disable):
+    #   - Removes /etc/modprobe.d/vfio.conf and zz-vfio-gpu-blacklist.conf
+    #   - Restores normal host driver binding for GPU devices
+    #   - Updates initramfs to apply configuration removal
+    # Device Detection:
+    #   - Automatically detects all VGA and 3D controller devices via lspci
+    #   - Extracts vendor:device IDs for VFIO binding configuration
+    #   - Handles both NVIDIA (10de) and AMD (1002) GPU vendors
     local action="$1"
     local function_name="${FUNCNAME[0]}"
     
@@ -893,8 +1135,39 @@ gpu_pt3() {
 
 # Detaches the GPU from the host system for VM passthrough
 # passthrough detach
-# [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id]
+# [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id] [nvidia_driver_preference]
 gpu_ptd() {
+    # Technical Description:
+    #   Dynamic GPU detachment function that performs runtime switching of GPU control
+    #   from host drivers to vfio-pci for virtual machine passthrough without requiring
+    #   system reboot. Attempts to be self-sufficient by loading required VFIO modules,
+    #   unbinding current host drivers, and binding target GPUs to vfio-pci using
+    #   driver_override mechanism. Validates IOMMU availability and provides warnings
+    #   for potential issues. Designed to work with both persistent and non-persistent
+    #   GPU passthrough configurations.
+    # Dependencies:
+    #   - IOMMU enabled in kernel (set by gpu_pt1, verified but not enforced)
+    #   - VFIO kernel modules available (loaded dynamically if needed)
+    #   - Root privileges for driver binding operations
+    #   - Target GPU devices not critical for current display output
+    # Arguments:
+    #   $1: gpu_id_arg (optional) - specific PCI ID (e.g., "01:00.0") to process
+    #   $2: hostname (optional) - hostname for config lookup (default: current hostname)
+    #   $3: config_file (optional) - configuration file path (default: SITE_CONFIG_FILE)
+    #   $4: pci0_id (optional) - explicit primary PCI ID parameter
+    #   $5: pci1_id (optional) - explicit secondary PCI ID parameter
+    #   $6: nvidia_driver_preference (optional) - preferred NVIDIA driver (default: nvidia)
+    # Operations Performed:
+    #   - Validates IOMMU kernel parameter presence in /proc/cmdline
+    #   - Loads vfio, vfio_iommu_type1, vfio_pci modules if not already loaded
+    #   - Identifies target GPU devices from parameters or configuration
+    #   - Unbinds GPUs from current host drivers (nvidia, nouveau, amdgpu, radeon)
+    #   - Sets driver_override to "vfio-pci" and triggers driver re-probe
+    #   - Verifies successful binding to vfio-pci driver
+    # Device Selection Priority:
+    #   1. Explicit gpu_id_arg parameter
+    #   2. Configuration file hostname-specific PCI IDs
+    #   3. Automatic detection of all GPU devices via lspci scan
     local gpu_id_arg="$1"
     local hostname="${2:-$(hostname -s)}"
     local config_file="${3:-$CONFIG_FUN}"
@@ -988,6 +1261,40 @@ gpu_ptd() {
 # passthrough attach
 # [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id] [nvidia_driver_preference]
 gpu_pta() {
+    # Technical Description:
+    #   Dynamic GPU attachment function that performs runtime switching of GPU control
+    #   from vfio-pci back to appropriate host drivers for normal system usage.
+    #   Intelligently determines correct host driver based on GPU vendor ID and
+    #   configuration preferences, handles driver loading if necessary, and manages
+    #   the complete transition from virtualization-ready state back to host control.
+    #   Provides the reverse operation of gpu_ptd for flexible GPU management workflows.
+    # Dependencies:
+    #   - Target GPU devices currently bound to vfio-pci driver
+    #   - Appropriate host drivers available (nvidia, nouveau, amdgpu, radeon)
+    #   - Root privileges for driver binding and module loading operations
+    #   - Configuration file access for driver preference settings
+    # Arguments:
+    #   $1: gpu_id_arg (optional) - specific PCI ID (e.g., "01:00.0") to process
+    #   $2: hostname (optional) - hostname for config lookup (default: current hostname)
+    #   $3: config_file (optional) - configuration file path (default: SITE_CONFIG_FILE)
+    #   $4: pci0_id (optional) - explicit primary PCI ID parameter
+    #   $5: pci1_id (optional) - explicit secondary PCI ID parameter
+    #   $6: nvidia_driver_preference (optional) - preferred NVIDIA driver (default: nvidia)
+    # Operations Performed:
+    #   - Identifies GPUs currently bound to vfio-pci driver
+    #   - Unbinds target GPUs from vfio-pci driver
+    #   - Clears driver_override setting to allow normal driver binding
+    #   - Determines appropriate host driver based on vendor ID and preferences
+    #   - Loads required host driver module if not already loaded
+    #   - Binds GPU devices to determined host driver
+    #   - Verifies successful attachment to host driver
+    # Driver Selection Logic:
+    #   - NVIDIA GPUs (10de): Uses hostname_NVIDIA_DRIVER_PREFERENCE or "nvidia" default
+    #   - AMD GPUs (1002): Uses "amdgpu" driver
+    #   - Considers blacklist conflicts and warns if preferred driver is unavailable
+    # Configuration Integration:
+    #   - Respects ${hostname}_NVIDIA_DRIVER_PREFERENCE configuration variable
+    #   - Warns if nouveau is preferred but blacklisted by gpu_nds installation
     local gpu_id_arg="$1"
     local hostname="${2:-$(hostname -s)}"
     local config_file="${3:-$CONFIG_FUN}"
@@ -1062,6 +1369,39 @@ gpu_pta() {
 # passthrough status
 # [hostname] [config_file] [pci0_id] [pci1_id] [nvidia_driver_preference]
 gpu_pts() {
+    # Technical Description:
+    #   Comprehensive GPU passthrough status analysis function that provides detailed
+    #   system state information across all aspects of GPU passthrough configuration.
+    #   Performs thorough examination of IOMMU groups, device bindings, kernel modules,
+    #   configuration files, and runtime status to present complete picture of current
+    #   GPU passthrough setup. Includes both high-level summary and detailed technical
+    #   information for troubleshooting and verification purposes.
+    # Dependencies:
+    #   - lspci utility for GPU device detection and information retrieval
+    #   - Access to /sys/bus/pci for driver binding status
+    #   - Access to /proc/cmdline for kernel parameter verification
+    #   - Access to configuration files in /etc/modprobe.d and /etc/modules
+    #   - find, ls utilities for IOMMU group enumeration
+    # Arguments:
+    #   $1: hostname (optional) - hostname for config lookup (default: current hostname)
+    #   $2: config_file (optional) - configuration file path (default: SITE_CONFIG_FILE)
+    #   $3: pci0_id (optional) - explicit primary PCI ID parameter
+    #   $4: pci1_id (optional) - explicit secondary PCI ID parameter
+    #   $5: nvidia_driver_preference (optional) - preferred NVIDIA driver (default: nvidia)
+    # Information Displayed:
+    #   - IOMMU Groups: Detailed device listings for GPU-containing IOMMU groups
+    #   - GPU Device Details: Complete lspci output with driver binding information
+    #   - Kernel Modules: Currently loaded GPU and VFIO related modules
+    #   - Configuration Status: Initial system preparation checklist (gpu_pt1, gpu_pt2)
+    #   - NVIDIA Setup: Driver installation and Nouveau blacklist status
+    #   - Persistent Configuration: GPU assignment and blacklist file status
+    #   - Runtime Status: Current module loading and driver binding state
+    #   - Overall Summary: High-level determination of GPU state (ATTACHED/DETACHED/MIXED)
+    # Status Classifications:
+    #   - ATTACHED: GPUs bound to host drivers (nvidia, nouveau, amdgpu, radeon)
+    #   - DETACHED: GPUs bound to vfio-pci for VM passthrough
+    #   - MIXED: Some GPUs attached to host, others detached for VMs
+    #   - UNCLEAR: Ambiguous state requiring further investigation
     local hostname="${1:-$(hostname -s)}"
     local config_file="${2:-$CONFIG_FUN}"
     local pci0_id="$3"
