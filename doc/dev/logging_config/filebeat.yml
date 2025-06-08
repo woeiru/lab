@@ -1,0 +1,150 @@
+# Filebeat Configuration for Enhanced Logging System
+# Ship logs to Elasticsearch via Filebeat
+
+filebeat.inputs:
+
+# Operational logs in JSON format
+- type: log
+  id: aux-operational-json
+  enabled: true
+  paths:
+    - /home/es/lab/.log/aux_operational.jsonl
+  json.keys_under_root: true
+  json.add_error_key: true
+  json.message_key: message
+  fields:
+    log_type: operational
+    component: aux_enhanced_logging
+    environment: ${ENVIRONMENT:production}
+    cluster: ${CLUSTER_NAME:lab-cluster}
+  fields_under_root: true
+  processors:
+    - add_host_metadata:
+        when.not.contains.tags: forwarded
+    - add_docker_metadata: ~
+    - add_kubernetes_metadata: ~
+
+# Debug logs in JSON format  
+- type: log
+  id: aux-debug-json
+  enabled: true
+  paths:
+    - /home/es/lab/.log/aux_debug.jsonl
+  json.keys_under_root: true
+  json.add_error_key: true
+  json.message_key: message
+  fields:
+    log_type: debug
+    component: aux_enhanced_logging
+    environment: ${ENVIRONMENT:production}
+    cluster: ${CLUSTER_NAME:lab-cluster}
+  fields_under_root: true
+
+# Operational logs in human-readable format (fallback)
+- type: log
+  id: aux-operational-human
+  enabled: true
+  paths:
+    - /home/es/lab/.log/aux_operational.log
+  exclude_lines: ['^\s*$', '^timestamp=.*']  # Skip empty lines and KV format
+  multiline.pattern: '^\['
+  multiline.negate: true
+  multiline.match: after
+  fields:
+    log_type: operational_human
+    component: aux_enhanced_logging
+    environment: ${ENVIRONMENT:production}
+    cluster: ${CLUSTER_NAME:lab-cluster}
+  fields_under_root: true
+
+# Global processor pipeline
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_process_metadata:
+      match_pids: ['ppid', 'name']
+      target: process
+  - add_locale:
+      format: offset
+  - rename:
+      fields:
+        - from: "agent.hostname"
+          to: "node_name"
+      ignore_missing: true
+  - drop_fields:
+      fields: ["agent.ephemeral_id", "agent.id", "ecs.version"]
+
+# Output configuration
+output.elasticsearch:
+  hosts: ["${ELASTICSEARCH_HOST:elasticsearch.logging.svc.cluster.local:9200}"]
+  protocol: "https"
+  username: "${ELASTICSEARCH_USER:elastic}"
+  password: "${ELASTICSEARCH_PASSWORD:changeme}"
+  ssl.verification_mode: none
+  
+  # Index routing based on log type
+  indices:
+    - index: "lab-operational-%{+yyyy.MM.dd}"
+      when.equals:
+        log_type: "operational"
+    - index: "lab-debug-%{+yyyy.MM.dd}"
+      when.equals:
+        log_type: "debug"
+    - index: "lab-human-%{+yyyy.MM.dd}"
+      when.equals:
+        log_type: "operational_human"
+
+  # Index lifecycle policies
+  ilm.enabled: true
+  ilm.rollover_alias: "lab-logs"
+  ilm.pattern: "lab-*"
+  ilm.policy: |
+    {
+      "policy": {
+        "phases": {
+          "hot": {
+            "actions": {
+              "rollover": {
+                "max_size": "10GB",
+                "max_age": "1d"
+              }
+            }
+          },
+          "warm": {
+            "min_age": "1d",
+            "actions": {
+              "allocate": {
+                "number_of_replicas": 0
+              }
+            }
+          },
+          "cold": {
+            "min_age": "30d",
+            "actions": {
+              "allocate": {
+                "number_of_replicas": 0
+              }
+            }
+          },
+          "delete": {
+            "min_age": "90d"
+          }
+        }
+      }
+    }
+
+# Logging configuration
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+
+# Monitoring
+monitoring.enabled: true
+monitoring.elasticsearch:
+  hosts: ["${ELASTICSEARCH_HOST:elasticsearch.logging.svc.cluster.local:9200}"]
+  username: "${ELASTICSEARCH_USER:elastic}"
+  password: "${ELASTICSEARCH_PASSWORD:changeme}"
