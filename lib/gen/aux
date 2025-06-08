@@ -11,6 +11,18 @@
 #   aux_fun, aux_var - Overview summaries
 #   aux_log, aux_ffl - Utility operations  
 #   aux_use, aux_tec - Help system
+#   aux_val, aux_chk - Validation and checks
+#   aux_cmd, aux_ask - Command execution and user interaction
+#   aux_arr - Array manipulation utilities
+#
+# Function Categories:
+#   Overview:     aux_fun, aux_var
+#   Utilities:    aux_log, aux_ffl
+#   Help System:  aux_use, aux_tec
+#   Validation:   aux_val, aux_chk
+#   Execution:    aux_cmd
+#   Interaction:  aux_ask
+#   Data:         aux_arr
 #
 # Usage: source lib/gen/aux
 ###############################################################################
