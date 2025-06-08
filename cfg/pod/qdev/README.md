@@ -335,3 +335,58 @@ pvecm qdevice setup "$QDEVICE_IP" -f
 - If this command succeeds (or reports the Qdevice is already configured): The Qdevice setup should now be complete for the cluster.
 - If this command still fails : Review the output carefully. You may need to re-check the previous troubleshooting steps or investigate new error messages.
 -->
+
+---
+
+## Qdevice Reinstall/Cleanup Procedure
+
+<!-- 
+This section covers the proper cleanup procedure when you need to reinstall the Qdevice 
+(e.g., after a fresh OS install on the Qdevice host). The order of operations is important 
+to avoid certificate conflicts and ensure a clean setup.
+-->
+
+### When to use this procedure:
+- After reinstalling the OS on the Qdevice host
+- When switching to a new Qdevice host
+- When experiencing persistent certificate or connection issues
+
+### Step 1: Remove Qdevice from cluster configuration (on any cluster node)
+<!-- 
+Remove the Qdevice from the cluster configuration first. This cleans up the cluster's 
+expectation of the Qdevice and allows for a fresh setup.
+-->
+```bash
+pvecm qdevice remove
+```
+
+### Step 2: Clean up certificates on ALL cluster nodes
+<!-- 
+After removing the Qdevice from the cluster configuration, clean up the old certificates 
+on each node. This prevents certificate conflicts during the new setup.
+Run these commands on EACH Proxmox VE node in the cluster.
+-->
+```bash
+# Remove old Qdevice certificates
+rm -rf /etc/corosync/qdevice/net/nssdb
+
+# Remove old SSH host keys for the Qdevice host
+ssh-keygen -f "/root/.ssh/known_hosts" -R "192.168.178.223"
+# Replace 192.168.178.223 with your actual Qdevice host IP
+```
+
+### Step 3: Verify cluster status
+<!-- 
+Check that the Qdevice has been completely removed from the cluster configuration.
+-->
+```bash
+pvecm status
+```
+You should see no mention of "Qdevice" in the output, and "Expected votes" should equal the number of cluster nodes.
+
+### Step 4: Proceed with fresh Qdevice setup
+<!-- 
+Now you can proceed with the normal Qdevice setup procedure from the beginning, 
+starting with building/running the container and then running the setup commands.
+-->
+Follow the standard setup procedure from the "On qdevice host" section.
