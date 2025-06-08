@@ -47,7 +47,7 @@ If your SUSE Linux system uses NetworkManager, you can configure a static IP add
         ```bash
         sudo nmcli connection down <connection_name> && sudo nmcli connection up <connection_name>
         # or
-        # sudo systemctl NetworkManager restart
+        # sudo systemctl restart NetworkManager
         ```
         (Replace `<connection_name>` with the name of your connection, often the same as the interface name like `enp3s0`).
 
