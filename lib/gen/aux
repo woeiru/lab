@@ -366,6 +366,74 @@ aux_ffl() {
     fi
 }
 
+# Array manipulation and processing utilities
+# array operations
+# <operation> <array_name> [parameters...]
+aux_arr() {
+    local operation="$1"
+    local array_name="$2"
+    shift 2
+    local parameters=("$@")
+    
+    case "$operation" in
+        "length")
+            local -n arr_ref="$array_name"
+            echo "${#arr_ref[@]}"
+            ;;
+        "contains")
+            local search_value="${parameters[0]}"
+            local -n arr_ref="$array_name"
+            for element in "${arr_ref[@]}"; do
+                [[ "$element" == "$search_value" ]] && return 0
+            done
+            return 1
+            ;;
+        "add")
+            local new_value="${parameters[0]}"
+            local -n arr_ref="$array_name"
+            arr_ref+=("$new_value")
+            ;;
+        "remove")
+            local remove_value="${parameters[0]}"
+            local -n arr_ref="$array_name"
+            local new_array=()
+            for element in "${arr_ref[@]}"; do
+                [[ "$element" != "$remove_value" ]] && new_array+=("$element")
+            done
+            arr_ref=("${new_array[@]}")
+            ;;
+        "join")
+            local delimiter="${parameters[0]:-,}"
+            local -n arr_ref="$array_name"
+            local result=""
+            for i in "${!arr_ref[@]}"; do
+                if [[ $i -eq 0 ]]; then
+                    result="${arr_ref[i]}"
+                else
+                    result="${result}${delimiter}${arr_ref[i]}"
+                fi
+            done
+            echo "$result"
+            ;;
+        "sort")
+            local -n arr_ref="$array_name"
+            readarray -t arr_ref < <(printf '%s\n' "${arr_ref[@]}" | sort)
+            ;;
+        "unique")
+            local -n arr_ref="$array_name"
+            readarray -t arr_ref < <(printf '%s\n' "${arr_ref[@]}" | sort -u)
+            ;;
+        "print")
+            local -n arr_ref="$array_name"
+            printf '%s\n' "${arr_ref[@]}"
+            ;;
+        *)
+            echo "Error: Unknown array operation: $operation" >&2
+            return 1
+            ;;
+    esac
+}
+
 # Validates input values against specified criteria without environmental dependencies
 # value validation
 # <value> <validation_type> [criteria]
@@ -531,74 +599,6 @@ aux_ask() {
     fi
     
     echo "$user_input"
-}
-
-# Array manipulation and processing utilities
-# array operations
-# <operation> <array_name> [parameters...]
-aux_arr() {
-    local operation="$1"
-    local array_name="$2"
-    shift 2
-    local parameters=("$@")
-    
-    case "$operation" in
-        "length")
-            local -n arr_ref="$array_name"
-            echo "${#arr_ref[@]}"
-            ;;
-        "contains")
-            local search_value="${parameters[0]}"
-            local -n arr_ref="$array_name"
-            for element in "${arr_ref[@]}"; do
-                [[ "$element" == "$search_value" ]] && return 0
-            done
-            return 1
-            ;;
-        "add")
-            local new_value="${parameters[0]}"
-            local -n arr_ref="$array_name"
-            arr_ref+=("$new_value")
-            ;;
-        "remove")
-            local remove_value="${parameters[0]}"
-            local -n arr_ref="$array_name"
-            local new_array=()
-            for element in "${arr_ref[@]}"; do
-                [[ "$element" != "$remove_value" ]] && new_array+=("$element")
-            done
-            arr_ref=("${new_array[@]}")
-            ;;
-        "join")
-            local delimiter="${parameters[0]:-,}"
-            local -n arr_ref="$array_name"
-            local result=""
-            for i in "${!arr_ref[@]}"; do
-                if [[ $i -eq 0 ]]; then
-                    result="${arr_ref[i]}"
-                else
-                    result="${result}${delimiter}${arr_ref[i]}"
-                fi
-            done
-            echo "$result"
-            ;;
-        "sort")
-            local -n arr_ref="$array_name"
-            readarray -t arr_ref < <(printf '%s\n' "${arr_ref[@]}" | sort)
-            ;;
-        "unique")
-            local -n arr_ref="$array_name"
-            readarray -t arr_ref < <(printf '%s\n' "${arr_ref[@]}" | sort -u)
-            ;;
-        "print")
-            local -n arr_ref="$array_name"
-            printf '%s\n' "${arr_ref[@]}"
-            ;;
-        *)
-            echo "Error: Unknown array operation: $operation" >&2
-            return 1
-            ;;
-    esac
 }
 
 # General purpose logging function for operational messages with explicit log levels
