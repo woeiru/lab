@@ -1,0 +1,37 @@
+---
+- name: Configure Konsole
+  when: config_desk_1 | bool
+  block:
+    - name: Ensure .local/share/konsole directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/.local/share/konsole"
+        state: directory
+        mode: '0755'
+
+    - name: Create Konsole Profile 1
+      ansible.builtin.copy:
+        content: |
+          [Appearance]
+          ColorScheme=SolarizedLight
+          Font=Noto Sans Mono,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+          [General]
+          Name=Profile 1
+          Parent=FALLBACK/
+          TerminalColumns=133
+          TerminalRows=44
+        dest: "{{ ansible_user_dir }}/.local/share/konsole/Profile 1.profile"
+        mode: '0644'
+
+    - name: Create Konsole Profile 2
+      ansible.builtin.copy:
+        content: |
+          [Appearance]
+          ColorScheme=LinuxColors
+          Font=Noto Sans Mono,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+          [General]
+          Name=Profile 2
+          Parent=FALLBACK/
+          TerminalColumns=133
+          TerminalRows=144
+        dest: "{{ ansible_user_dir }}/.local/share/konsole/Profile 2.profile"
+        mode: '0644'
