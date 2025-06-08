@@ -105,7 +105,6 @@ sudo apt update
 sudo apt install corosync-qdevice
 ```
 
-
 ## On qdevice host
 
 ### Disable ssh to liberate the port 22
@@ -152,9 +151,9 @@ from accessing the host's '/etc/corosync' directory. These commands change the S
 of the directory to 'container_file_t' or 'svirt_sandbox_file_t', which are standard labels 
 allowing container runtimes to access host files/directories.
 To check the current SELinux context of the directory, you can use: `ls -Zd /etc/corosync`
+# Alternative context sudo chcon -Rt svirt_sandbox_file_t /etc/corosync - may not work on all systems (e.g., openSUSE)
 -->
 sudo chcon -Rt container_file_t /etc/corosync  
-sudo chcon -Rt svirt_sandbox_file_t /etc/corosync  
 
 ### Run container
 <!-- 
