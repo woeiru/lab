@@ -601,9 +601,9 @@ aux_ask() {
     echo "$user_input"
 }
 
-# General purpose logging function for operational messages with explicit log levels
+# General purpose logging function for operational messages with explicit log levels and cluster support
 # operational log
-# <log_level> <message>
+# <log_level> <message> [context_data]
 aux_log() {
     # USE CASES:
     #   - Service start/stop messages
@@ -621,14 +621,17 @@ aux_log() {
     #   - Always logs if main logging system is available
     #   - Suitable for production environments
     #   - Goes to operational logs (aux_operational.log)
+    #   - Supports structured output formats for cluster aggregation
     #
     # EXAMPLES:
     #   aux_log "INFO" "User authentication successful for user: $username"
     #   aux_log "ERROR" "Database connection failed"
     #   aux_log "WARN" "Configuration file missing, using defaults"
+    #   aux_log "AUDIT" "User $user performed action $action" "user_id=$user,action=$action"
     
     local log_level="$1"
     local message="$2"
+    local context_data="${3:-}"
     
     # Validate parameters
     if [[ -z "$log_level" || -z "$message" ]]; then
@@ -636,21 +639,69 @@ aux_log() {
         return 1
     fi
     
-    # Enhanced version with integration to main logging system
-    if type -t log &>/dev/null; then
-        # If main logging system is available, use it for consistency
-        log "[$log_level] $message"
-    else
-        # Fallback to simple echo if main logging not available
-        local timestamp
-        printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
-        echo "[$timestamp] [$log_level] $message"
-        
-        # Also log to file if LOG_DIR is available
-        if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-            echo "[$timestamp] [$log_level] $message" >> "${LOG_DIR}/aux_operational.log"
-        fi
-    fi
+    # Generate structured metadata
+    local timestamp
+    printf -v timestamp '%(%Y-%m-%dT%H:%M:%S)T' -1
+    local timestamp_epoch=$(date +%s)
+    
+    # Cluster and service context
+    local cluster_metadata
+    cluster_metadata=$(aux_get_cluster_metadata)
+    
+    # Choose output format based on AUX_LOG_FORMAT
+    case "${AUX_LOG_FORMAT:-human}" in
+        "json")
+            local json_log
+            json_log=$(aux_format_json_log "$timestamp" "$log_level" "$message" "" "$cluster_metadata" "$context_data" "operational")
+            echo "$json_log"
+            
+            # File output
+            if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+                echo "$json_log" >> "${LOG_DIR}/aux_operational.jsonl"
+            fi
+            ;;
+        "csv")
+            local csv_log
+            csv_log=$(aux_format_csv_log "$timestamp" "$log_level" "$message" "" "$cluster_metadata" "$context_data")
+            echo "$csv_log"
+            
+            # File output with header if new file
+            if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+                if [[ ! -f "${LOG_DIR}/aux_operational.csv" ]]; then
+                    echo "timestamp,level,message,function,node_id,cluster_id,service,context" >> "${LOG_DIR}/aux_operational.csv"
+                fi
+                echo "$csv_log" >> "${LOG_DIR}/aux_operational.csv"
+            fi
+            ;;
+        "kv"|"keyvalue")
+            local kv_log="timestamp=$timestamp level=$log_level message=\"$message\" type=operational"
+            [[ -n "$cluster_metadata" ]] && kv_log="$kv_log $cluster_metadata"
+            [[ -n "$context_data" ]] && kv_log="$kv_log $context_data"
+            echo "$kv_log"
+            
+            # File output
+            if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+                echo "$kv_log" >> "${LOG_DIR}/aux_operational.log"
+            fi
+            ;;
+        "human"|*)
+            # Enhanced version with integration to main logging system
+            if type -t log &>/dev/null; then
+                # If main logging system is available, use it for consistency
+                log "[$log_level] $message"
+            else
+                # Fallback to enhanced human-readable format
+                local formatted_message="[$timestamp] [$log_level] $message"
+                [[ -n "$context_data" ]] && formatted_message="$formatted_message [$context_data]"
+                echo "$formatted_message"
+                
+                # Also log to file if LOG_DIR is available
+                if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+                    echo "$formatted_message" >> "${LOG_DIR}/aux_operational.log"
+                fi
+            fi
+            ;;
+    esac
 }
 
 # Development/debug logging with automatic function context and timestamp
@@ -716,40 +767,263 @@ aux_dbg() {
         fi
     fi
     
-    # Format the debug message with function context
-    local formatted_message="[$level] $timestamp - [$caller_function] $message"
+    # Capture additional context for structured logging
+    local script_file="${BASH_SOURCE[1]:-unknown}"
+    local line_number="${BASH_LINENO[0]:-0}"
+    local cluster_metadata
+    cluster_metadata=$(aux_get_cluster_metadata)
     
-    # Output to appropriate channels
-    if [[ "$should_output" == "true" ]]; then
-        # Send to stderr for debug output
-        echo "$formatted_message" >&2
+    # Choose output format based on AUX_LOG_FORMAT
+    case "${AUX_LOG_FORMAT:-human}" in
+        "json")
+            local json_log
+            json_log=$(aux_format_json_log "$timestamp" "$level" "$message" "$caller_function" "$cluster_metadata" "" "debug")
+            
+            # Output to appropriate channels
+            if [[ "$should_output" == "true" ]]; then
+                echo "$json_log" >&2
+            fi
+            
+            # File logging
+            if type -t log &>/dev/null; then
+                log "[$level] [$caller_function] $message"
+            elif [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+                echo "$json_log" >> "${LOG_DIR}/aux_debug.jsonl"
+            fi
+            ;;
+        "csv")
+            local csv_log
+            csv_log=$(aux_format_csv_log "$timestamp" "$level" "$message" "$caller_function" "$cluster_metadata" "")
+            
+            # Output to appropriate channels
+            if [[ "$should_output" == "true" ]]; then
+                echo "$csv_log" >&2
+            fi
+            
+            # File logging with header
+            if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+                if [[ ! -f "${LOG_DIR}/aux_debug.csv" ]]; then
+                    echo "timestamp,level,message,function,node_id,cluster_id,service,context" >> "${LOG_DIR}/aux_debug.csv"
+                fi
+                echo "$csv_log" >> "${LOG_DIR}/aux_debug.csv"
+            fi
+            ;;
+        "kv"|"keyvalue")
+            local kv_log="timestamp=$timestamp level=$level function=$caller_function message=\"$message\" type=debug"
+            [[ -n "$cluster_metadata" ]] && kv_log="$kv_log $cluster_metadata"
+            
+            # Output to appropriate channels
+            if [[ "$should_output" == "true" ]]; then
+                echo "$kv_log" >&2
+            fi
+            
+            # File logging
+            if type -t log &>/dev/null; then
+                log "[$level] [$caller_function] $message"
+            elif [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+                echo "$kv_log" >> "${LOG_DIR}/aux_debug.log"
+            fi
+            ;;
+        "human"|*)
+            # Format the debug message with function context
+            local formatted_message="[$level] $timestamp - [$caller_function] $message"
+            
+            # Output to appropriate channels
+            if [[ "$should_output" == "true" ]]; then
+                echo "$formatted_message" >&2
+            fi
+            
+            # Always log to file if we have logging system available
+            if type -t log &>/dev/null; then
+                log "[$level] [$caller_function] $message"
+            elif [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+                echo "$formatted_message" >> "${LOG_DIR}/aux_debug.log"
+            fi
+            ;;
+    esac
+}
+
+# Cluster metadata collection for distributed logging
+# cluster metadata
+#
+aux_get_cluster_metadata() {
+    # Collect cluster and service context information
+    local metadata=""
+    
+    # Node identification
+    local node_id="${NODE_ID:-${HOSTNAME:-$(hostname 2>/dev/null || echo 'unknown')}}"
+    local cluster_id="${CLUSTER_ID:-${CLUSTER_NAME:-$(echo ${node_id} | cut -d'-' -f1-2 2>/dev/null || echo 'default')}}"
+    
+    # Service context
+    local service_name="${SERVICE_NAME:-${0##*/}}"
+    local pod_name="${POD_NAME:-${HOSTNAME:-unknown}}"
+    local namespace="${NAMESPACE:-default}"
+    
+    # Build metadata string
+    metadata="node_id=$node_id cluster_id=$cluster_id service=$service_name"
+    [[ -n "${pod_name}" && "${pod_name}" != "unknown" ]] && metadata="$metadata pod=$pod_name"
+    [[ -n "${namespace}" && "${namespace}" != "default" ]] && metadata="$metadata namespace=$namespace"
+    [[ -n "${APP_VERSION:-}" ]] && metadata="$metadata version=$APP_VERSION"
+    
+    echo "$metadata"
+}
+
+# JSON log formatter for structured logging
+# json log formatter
+# <timestamp> <level> <message> <function> <cluster_metadata> <context_data> <log_type>
+aux_format_json_log() {
+    local timestamp="$1"
+    local level="$2" 
+    local message="$3"
+    local function_name="$4"
+    local cluster_metadata="$5"
+    local context_data="$6"
+    local log_type="${7:-debug}"
+    
+    # Escape JSON strings
+    message=$(printf '%s' "$message" | sed 's/"/\\"/g')
+    function_name=$(printf '%s' "$function_name" | sed 's/"/\\"/g')
+    
+    # Build base JSON
+    local json="{\"timestamp\":\"$timestamp\",\"level\":\"$level\",\"message\":\"$message\",\"type\":\"$log_type\""
+    
+    # Add function if provided
+    [[ -n "$function_name" ]] && json="${json},\"function\":\"$function_name\""
+    
+    # Add cluster metadata
+    if [[ -n "$cluster_metadata" ]]; then
+        # Parse key=value pairs from cluster_metadata
+        local node_id=$(echo "$cluster_metadata" | grep -o 'node_id=[^[:space:]]*' | cut -d'=' -f2)
+        local cluster_id=$(echo "$cluster_metadata" | grep -o 'cluster_id=[^[:space:]]*' | cut -d'=' -f2)
+        local service=$(echo "$cluster_metadata" | grep -o 'service=[^[:space:]]*' | cut -d'=' -f2)
+        
+        [[ -n "$node_id" ]] && json="${json},\"node_id\":\"$node_id\""
+        [[ -n "$cluster_id" ]] && json="${json},\"cluster_id\":\"$cluster_id\""
+        [[ -n "$service" ]] && json="${json},\"service\":\"$service\""
     fi
     
-    # Always log to file if we have logging system available
-    if type -t log &>/dev/null; then
-        # Use the main logging system for file output
-        log "[$level] [$caller_function] $message"
-    elif [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-        # Fallback file logging
-        echo "$formatted_message" >> "${LOG_DIR}/aux_debug.log"
+    # Add context data if provided
+    if [[ -n "$context_data" ]]; then
+        # Simple approach: add context as a string field
+        context_data=$(printf '%s' "$context_data" | sed 's/"/\\"/g')
+        json="${json},\"context\":\"$context_data\""
+    fi
+    
+    # Add process information
+    json="${json},\"pid\":$$"
+    [[ -n "${TRACE_ID:-}" ]] && json="${json},\"trace_id\":\"$TRACE_ID\""
+    [[ -n "${REQUEST_ID:-}" ]] && json="${json},\"request_id\":\"$REQUEST_ID\""
+    
+    json="${json}}"
+    echo "$json"
+}
+
+# CSV log formatter for structured logging
+# csv log formatter  
+# <timestamp> <level> <message> <function> <cluster_metadata> <context_data>
+aux_format_csv_log() {
+    local timestamp="$1"
+    local level="$2"
+    local message="$3" 
+    local function_name="$4"
+    local cluster_metadata="$5"
+    local context_data="$6"
+    
+    # Escape CSV values (quote and escape internal quotes)
+    message=$(printf '%s' "$message" | sed 's/"/""/g')
+    function_name=$(printf '%s' "$function_name" | sed 's/"/""/g')
+    context_data=$(printf '%s' "$context_data" | sed 's/"/""/g')
+    
+    # Extract cluster info
+    local node_id=$(echo "$cluster_metadata" | grep -o 'node_id=[^[:space:]]*' | cut -d'=' -f2)
+    local cluster_id=$(echo "$cluster_metadata" | grep -o 'cluster_id=[^[:space:]]*' | cut -d'=' -f2)
+    local service=$(echo "$cluster_metadata" | grep -o 'service=[^[:space:]]*' | cut -d'=' -f2)
+    
+    # Build CSV line: timestamp,level,message,function,node_id,cluster_id,service,context
+    printf '"%s","%s","%s","%s","%s","%s","%s","%s"' \
+           "$timestamp" "$level" "$message" "$function_name" \
+           "${node_id:-}" "${cluster_id:-}" "${service:-}" "$context_data"
+}
+
+# Tracing utilities for correlation across distributed systems
+# start trace
+# [trace_name]
+aux_start_trace() {
+    local trace_name="${1:-trace}"
+    export TRACE_ID="${trace_name}_$(date +%s)_$$_$(shuf -i 1000-9999 -n 1 2>/dev/null || echo $RANDOM)"
+    export REQUEST_ID="req_$(date +%s%N 2>/dev/null || date +%s)_$$"
+    aux_dbg "Started trace: $TRACE_ID" "TRACE"
+}
+
+# end trace
+#
+aux_end_trace() {
+    if [[ -n "${TRACE_ID:-}" ]]; then
+        aux_dbg "Ended trace: $TRACE_ID" "TRACE"
+        unset TRACE_ID REQUEST_ID
     fi
 }
 
-# Enhanced logging functions with different levels
-# info log
-# <message>
+# Metrics integration for performance monitoring
+# log metric
+# <metric_name> <metric_value> [metric_type]
+aux_metric() {
+    local metric_name="$1"
+    local metric_value="$2"
+    local metric_type="${3:-counter}"
+    
+    # Log as structured data
+    aux_dbg "Metric: $metric_name=$metric_value (type:$metric_type)" "METRIC"
+    
+    # Also send to metrics system if available
+    if [[ -n "${METRICS_ENDPOINT:-}" ]] && command -v curl >/dev/null 2>&1; then
+        curl -X POST "${METRICS_ENDPOINT}/metrics" \
+             -H "Content-Type: application/json" \
+             -d "{\"name\":\"$metric_name\",\"value\":$metric_value,\"type\":\"$metric_type\",\"service\":\"${SERVICE_NAME:-unknown}\",\"timestamp\":$(date +%s)}" \
+             >/dev/null 2>&1 &
+    fi
+}
+
+# Specialized logging functions for different operational contexts
+# business logic log
+# <message> [context_data]
+aux_business() {
+    aux_log "BUSINESS" "$1" "${2:-}"
+}
+
+# security event log
+# <message> [context_data]  
+aux_security() {
+    aux_log "SECURITY" "$1" "${2:-}"
+}
+
+# audit trail log
+# <message> [context_data]
+aux_audit() {
+    aux_log "AUDIT" "$1" "${2:-}"
+}
+
+# performance event log
+# <message> [context_data]
+aux_perf() {
+    aux_log "PERFORMANCE" "$1" "${2:-}"
+}
+
+# Convenience logging functions using aux_log for operational logging
+# info level log
+# <message> [context_data]
 aux_info() {
-    aux_dbg "$1" "INFO"
+    aux_log "INFO" "$1" "${2:-}"
 }
 
-# warning log  
-# <message>
+# warning level log
+# <message> [context_data]
 aux_warn() {
-    aux_dbg "$1" "WARN"
+    aux_log "WARN" "$1" "${2:-}"
 }
 
-# error log
-# <message>
+# error level log
+# <message> [context_data]
 aux_err() {
-    aux_dbg "$1" "ERROR"
+    aux_log "ERROR" "$1" "${2:-}"
 }
