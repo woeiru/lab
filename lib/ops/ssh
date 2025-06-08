@@ -118,35 +118,35 @@ ssh_key() {
     
     local -n key_paths_ref=$1
     
-    log "lvl-4" "Adding SSH keys to the agent"
+    log "lvl" "Adding SSH keys to the agent"
     
     # Start SSH agent if not running
     if [ -z "$SSH_AUTH_SOCK" ]; then
-        log "lvl-5" "Starting ssh-agent"
+        log "lvl" "Starting ssh-agent"
         eval "$(ssh-agent -s)" > /dev/null || {
-            log "lvl-6" "Failed to start ssh-agent"
+            log "lvl" "Failed to start ssh-agent"
             return 1
         }
     fi
     
     # Load each key if not already loaded
     for key in "${key_paths_ref[@]}"; do
-        log "lvl-5" "Processing key: $key"
+        log "lvl" "Processing key: $key"
         if [[ -f "$key" ]]; then
             # Check if key is already loaded using fingerprint comparison
             local key_fingerprint
             key_fingerprint=$(ssh-keygen -lf "$key" 2>/dev/null | awk '{print $2}')
             if [[ -n "$key_fingerprint" ]] && ! ssh-add -l 2>/dev/null | grep -q "$key_fingerprint"; then
-                ssh-add "$key" || log "lvl-6" "Failed to add key: $key"
+                ssh-add "$key" || log "lvl" "Failed to add key: $key"
             else
-                log "lvl-6" "Key already loaded or invalid: $key"
+                log "lvl" "Key already loaded or invalid: $key"
             fi
         else
-            log "lvl-6" "Key file not found: $key"
+            log "lvl" "Key file not found: $key"
         fi
     done
     
-    log "lvl-5" "SSH keys processing completed"
+    log "lvl" "SSH keys processing completed"
 }
 
 # Lists SSH keys currently loaded in the agent with detailed information
@@ -178,9 +178,9 @@ ssh_lst() {
         return 1
     fi
     
-    log "lvl-3" "Listing SSH keys in the agent"
+    log "lvl" "Listing SSH keys in the agent"
     ssh-add -l || {
-        log "lvl-4" "No keys found or ssh-agent is not running"
+        log "lvl" "No keys found or ssh-agent is not running"
         return 1
     }
 }
@@ -214,9 +214,9 @@ ssh_rmv() {
         return 1
     fi
     
-    log "lvl-3" "Removing all SSH keys from the agent"
+    log "lvl" "Removing all SSH keys from the agent"
     ssh-add -D || {
-        log "lvl-4" "Failed to remove SSH keys"
+        log "lvl" "Failed to remove SSH keys"
         return 1
     }
 }
@@ -264,28 +264,28 @@ ssh_gen() {
         output_path="$HOME/.ssh/id_${key_type}"
     fi
     
-    log "lvl-4" "Generating SSH key: type=$key_type, comment=$comment, path=$output_path"
+    log "lvl" "Generating SSH key: type=$key_type, comment=$comment, path=$output_path"
     
     case "$key_type" in
         ed25519)
             ssh-keygen -t ed25519 -C "$comment" -f "$output_path" || {
-                log "lvl-5" "Failed to generate ed25519 key"
+                log "lvl" "Failed to generate ed25519 key"
                 return 1
             }
             ;;
         rsa)
             ssh-keygen -t rsa -b 4096 -C "$comment" -f "$output_path" || {
-                log "lvl-5" "Failed to generate RSA key"
+                log "lvl" "Failed to generate RSA key"
                 return 1
             }
             ;;
         *)
-            log "lvl-5" "Unsupported key type: $key_type"
+            log "lvl" "Unsupported key type: $key_type"
             return 1
             ;;
     esac
     
-    log "lvl-5" "SSH key generated successfully: $output_path"
+    log "lvl" "SSH key generated successfully: $output_path"
 }
 
 # Copies SSH public key to remote host for passwordless authentication
@@ -325,17 +325,17 @@ ssh_cpy() {
     local target_host="$2"
     
     if [[ ! -f "$public_key_path" ]]; then
-        log "lvl-5" "Public key file not found: $public_key_path"
+        log "lvl" "Public key file not found: $public_key_path"
         return 1
     fi
     
-    log "lvl-4" "Copying SSH key to host: $target_host"
+    log "lvl" "Copying SSH key to host: $target_host"
     ssh-copy-id -i "$public_key_path" "$target_host" || {
-        log "lvl-5" "Failed to copy SSH key to $target_host"
+        log "lvl" "Failed to copy SSH key to $target_host"
         return 1
     }
     
-    log "lvl-5" "SSH key copied successfully to $target_host"
+    log "lvl" "SSH key copied successfully to $target_host"
 }
 
 # Starts SSH agent and ensures it's running for key management
@@ -370,17 +370,17 @@ ssh_agt() {
     fi
     
     if [ -n "$SSH_AUTH_SOCK" ] && ssh-add -l >/dev/null 2>&1; then
-        log "lvl-4" "SSH agent is already running"
+        log "lvl" "SSH agent is already running"
         return 0
     fi
     
-    log "lvl-4" "Starting SSH agent"
+    log "lvl" "Starting SSH agent"
     eval "$(ssh-agent -s)" || {
-        log "lvl-5" "Failed to start ssh-agent"
+        log "lvl" "Failed to start ssh-agent"
         return 1
     }
     
-    log "lvl-5" "SSH agent started successfully"
+    log "lvl" "SSH agent started successfully"
 }
 
 # Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely
