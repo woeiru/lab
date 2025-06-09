@@ -190,3 +190,73 @@ Changes: Enhanced VGA console restoration logic
         - Maintained proper timing (sleep 1) between unbind/rebind
 Ready for: Final test with both new functions (gpu_ptd_w + gpu_pta_w)
 ```
+
+### Final Test Results with Enhanced Fix:
+```
+Date: 2025-06-09 18:18-18:19
+Test: gpu_ptd_w + gpu_pta_w (both new functions with VGA console fix)
+Result: FAIL ❌ - Display still black
+Details:
+- GPU detachment: SUCCESS (gpu_ptd_w worked perfectly)
+- VM start/stop: SUCCESS (VM ran properly with GPU passthrough)
+- GPU reattachment: PARTIAL SUCCESS
+  - Driver binding: SUCCESS (nouveau bound, /dev/fb0 exists)
+  - VGA console restoration: FAILED (display remained black)
+  - vtcon1: Restored but vtcon0 remained unbound (0)
+Conclusion: VGA console manipulation is NOT the solution
+```
+
+## Phase 2: Minimal Function Approach
+
+### Root Cause Analysis (Updated):
+The problem is NOT VGA console restoration. The working old `gpu-pta` function has:
+- **NO VGA console manipulation at all**
+- **NO hardware reset**  
+- **NO complex logging**
+- **Simple driver binding sequence**
+
+The new `gpu_pta_w` function added features that are BREAKING the display:
+1. Hardware reset functionality
+2. VGA console restoration attempts
+3. Complex error handling and logging
+
+### New Strategy: Strip Down to Minimal Working State
+
+**Key Insight**: Preserve ONLY the flexible driver detection (needed for nvidia support on other nodes) while removing ALL enhancement features that could interfere with display.
+
+### Minimal Implementation:
+```
+Date: 2025-06-09 18:20
+Location: /root/lab/lib/ops/gpu lines 1499-1517
+Changes: Stripped down gpu_pta_w to minimal state
+        - Removed ALL VGA console manipulation
+        - Removed hardware reset functionality  
+        - Removed complex error handling
+        - Kept ONLY flexible driver detection (_gpu_get_host_driver_parameterized)
+        - Kept basic binding sequence: unbind → clear override → modprobe → drivers_probe → explicit bind
+        - Matches working gpu-pta logic exactly, just with flexible driver selection
+```
+
+### Next Test Plan:
+```
+1. Reboot system (clean state)
+2. Test: gpu_ptd_w + gpu_pta_w (minimal version)
+3. Expected: Should work since it now matches old gpu-pta logic exactly
+4. If successful: Problem was the enhancement features (VGA console/hardware reset)
+5. If failed: Issue is in the flexible driver detection logic itself
+```
+
+### Minimal vs Enhanced Feature Comparison:
+```
+Working Old gpu-pta:
+✅ Vendor-based driver selection (1002=amdgpu, 10de=nouveau)
+✅ Basic binding: unbind → clear override → modprobe → drivers_probe → bind
+❌ No nvidia driver support
+❌ Fixed to nouveau for NVIDIA cards
+
+New Minimal gpu_pta_w:
+✅ Flexible driver detection (supports nvidia/nouveau based on config)
+✅ Same basic binding sequence as working function
+❌ Removed hardware reset (was breaking display)
+❌ Removed VGA console manipulation (was breaking display)
+```
