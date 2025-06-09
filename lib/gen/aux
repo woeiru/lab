@@ -685,20 +685,14 @@ aux_log() {
             fi
             ;;
         "human"|*)
-            # Enhanced version with integration to main logging system
-            if type -t log &>/dev/null; then
-                # If main logging system is available, use it for consistency
-                log "[$log_level] $message"
-            else
-                # Fallback to enhanced human-readable format
-                local formatted_message="[$timestamp] [$log_level] $message"
-                [[ -n "$context_data" ]] && formatted_message="$formatted_message [$context_data]"
-                echo "$formatted_message"
-                
-                # Also log to file if LOG_DIR is available
-                if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                    echo "$formatted_message" >> "${LOG_DIR}/aux_operational.log"
-                fi
+            # Enhanced human-readable format (independent of main logging system)
+            local formatted_message="[$timestamp] [$log_level] $message"
+            [[ -n "$context_data" ]] && formatted_message="$formatted_message [$context_data]"
+            echo "$formatted_message"
+            
+            # Also log to file if LOG_DIR is available
+            if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+                echo "$formatted_message" >> "${LOG_DIR}/aux_operational.log"
             fi
             ;;
     esac
@@ -749,22 +743,12 @@ aux_dbg() {
     printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
     
     # Check if we should output debug messages
-    # Respect the existing logging infrastructure
+    # Independent auxiliary logging system (no dependency on main logging)
     local should_output=false
     
-    # Check if we have the main logging system available
-    if type -t log &>/dev/null && type -t lo1_get_cached_log_state &>/dev/null; then
-        # Use the existing lo1 logging system
-        local log_state
-        log_state=$(lo1_get_cached_log_state)
-        if [[ "$log_state" == "on" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
-            should_output=true
-        fi
-    else
-        # Fallback check - use environment variable or assume debug is wanted
-        if [[ "${AUX_DEBUG_ENABLED:-1}" == "1" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
-            should_output=true
-        fi
+    # Use environment variables for auxiliary debug output control
+    if [[ "${AUX_DEBUG_ENABLED:-1}" == "1" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
+        should_output=true
     fi
     
     # Capture additional context for structured logging
@@ -784,10 +768,8 @@ aux_dbg() {
                 echo "$json_log" >&2
             fi
             
-            # File logging
-            if type -t log &>/dev/null; then
-                log "[$level] [$caller_function] $message"
-            elif [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+            # File logging (independent of main logging system)
+            if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
                 echo "$json_log" >> "${LOG_DIR}/aux_debug.jsonl"
             fi
             ;;
@@ -817,10 +799,8 @@ aux_dbg() {
                 echo "$kv_log" >&2
             fi
             
-            # File logging
-            if type -t log &>/dev/null; then
-                log "[$level] [$caller_function] $message"
-            elif [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+            # File logging (independent of main logging system)
+            if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
                 echo "$kv_log" >> "${LOG_DIR}/aux_debug.log"
             fi
             ;;
@@ -833,10 +813,8 @@ aux_dbg() {
                 echo "$formatted_message" >&2
             fi
             
-            # Always log to file if we have logging system available
-            if type -t log &>/dev/null; then
-                log "[$level] [$caller_function] $message"
-            elif [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+            # Always log to file (independent of main logging system)
+            if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
                 echo "$formatted_message" >> "${LOG_DIR}/aux_debug.log"
             fi
             ;;
