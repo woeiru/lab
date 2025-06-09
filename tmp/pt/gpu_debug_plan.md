@@ -432,3 +432,58 @@ fi
 - ✅ **Future Proof**: Extensible architecture for additional driver support
 
 **The breakthrough was understanding that NVIDIA driver needs explicit modeset=1 for console framebuffer support, while nouveau enables it by default.**
+
+---
+
+## Post-Implementation Issue: Code Logic Failure (2025-06-09 19:20)
+
+### Problem Discovered
+After implementing the nvidia modeset=1 fix in gpu_pta_w function, testing revealed the code didn't execute properly:
+
+**Current State After gpu_pta_w Execution**:
+```bash
+lsmod | grep nvidia
+nvidia_drm            131072  0
+nvidia_modeset       1724416  1 nvidia_drm
+nvidia              11636736  1 nvidia_modeset
+
+cat /sys/module/nvidia_drm/parameters/modeset
+N  # ← Still N, not Y!
+```
+
+**Result**: Black screen persisted, /dev/fb0 missing
+
+### Magic Fix Command (DOCUMENTED)
+**The manual command that works every time**:
+```bash
+rmmod nvidia_drm && modprobe nvidia_drm modeset=1
+```
+
+**Immediate Result**:
+- `cat /sys/module/nvidia_drm/parameters/modeset` → `Y`
+- `ls /dev/fb*` → `/dev/fb0` (framebuffer device created)
+- Display restored instantly
+
+### Root Cause Analysis Required
+**Possible Issues in gpu_pta_w Implementation**:
+
+1. **Driver Detection Issue**: `host_driver` variable might not be set to "nvidia"
+2. **Condition Logic Failure**: The `if [ "$host_driver" = "nvidia" ]` condition might not execute
+3. **Execution Order**: The nvidia-specific code might execute before proper driver binding
+4. **rmmod Permission**: The `rmmod nvidia_drm` might fail silently in the function context
+
+### Next Steps to Fix
+1. **Debug host_driver Detection**: Add debug output to verify what driver is detected
+2. **Add Execution Logging**: Add printf statements to confirm nvidia-specific code executes
+3. **Error Handling**: Check if rmmod/modprobe commands fail silently
+4. **Execution Timing**: Ensure nvidia modeset fix runs after successful driver binding
+5. **Test Isolation**: Test the nvidia modeset logic separately from main function
+
+### Critical Lesson
+**Implementation ≠ Execution**: Even correctly written code can fail due to:
+- Variable scope issues
+- Silent command failures  
+- Execution path problems
+- Timing dependencies
+
+The manual fix proves the solution works - now we need to debug why the automated implementation doesn't execute the same logic.
