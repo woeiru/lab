@@ -144,11 +144,14 @@ reboot
 
 ### Test A Results (gpu-ptd + gpu_pta_w):
 ```
-Date: 
-Result: [ PASS / FAIL ]
-Display Status: 
-Driver Status:
-Notes:
+Date: 2025-06-09 17:28  
+Result: FAIL ❌
+Display Status: Black screen - vtcon0 unbound, console not displaying
+Driver Status: nouveau driver bound correctly, /dev/fb0 exists
+Notes: New attach function (gpu_pta_w) has display restoration issues
+      - GPU binding works (nouveau active, boot_vga=1)
+      - But VGA console restoration is incomplete
+      - Problem is in gpu_pta_w VGA console logic
 ```
 
 ### Test B Results (gpu_ptd_w + gpu-pta):  
