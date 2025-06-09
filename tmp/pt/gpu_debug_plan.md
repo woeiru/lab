@@ -435,6 +435,75 @@ fi
 
 ---
 
+## CRITICAL EXECUTION FAILURE: Color Variable Conflicts (2025-06-09 22:10)
+
+### New Issue Discovered After Implementation
+
+**Problem**: The gpu_pta_w function completed successfully BUT the nvidia_drm modeset=1 logic **never executed**.
+
+**Test Results**:
+```bash
+gpu_ptd_w && qm start 111  # ✅ SUCCESS - VM started with GPU passthrough
+qm stop 111               # ✅ SUCCESS - VM stopped  
+gpu_pta_w                 # ⚠️ PARTIAL SUCCESS - GPUs reattached but no display
+```
+
+### Root Cause Analysis
+
+**Function Output Issues**:
+```bash
+-bash: GREEN: readonly variable
+-bash: YELLOW: readonly variable  
+-bash: RED: readonly variable
+-bash: CYAN: readonly variable
+-bash: MAGENTA: readonly variable
+-bash: INDIGO_BLUE: readonly variable
+-bash: NC: readonly variable
+-bash: CHECK_MARK: readonly variable
+-bash: CROSS_MARK: readonly variable
+-bash: QUESTION_MARK: readonly variable
+```
+
+**Missing Execution Evidence**:
+- ❌ No "INFO: NVIDIA GPUs detected - configuring framebuffer display support..." message
+- ❌ No nvidia_drm reload debug output  
+- ❌ modeset parameter remained N instead of Y
+- ❌ No /dev/fb0 framebuffer device created
+- ❌ Display remained black
+
+**Manual Fix Verification**:
+```bash
+# Manual command works perfectly:
+rmmod nvidia_drm && modprobe nvidia_drm modeset=1
+Result: ✅ modeset=Y, /dev/fb0 created, display restored immediately
+```
+
+### Technical Analysis
+
+**GPU Binding Status**: ✅ **SUCCESSFUL**
+- GPU 3b:00.0: bound to nvidia driver correctly
+- GPU 3b:00.1: bound to snd_hda_intel driver correctly  
+
+**Function Logic Status**: ✅ **SHOULD WORK**
+- has_nvidia_gpu detection logic should find nvidia driver on 3b:00.0
+- nvidia_drm modeset=1 reload logic is correctly implemented
+- Post-processing architecture is correct
+
+**Execution Status**: ❌ **FAILED**
+- Color variable "readonly" errors suggest sourcing conflicts
+- Function terminated early before reaching nvidia_drm configuration
+- nvidia framebuffer logic block never executed
+
+### Root Cause: Color Variable Sourcing Conflicts
+
+**Problem Source**: Each wrapper function sources `/root/lab/lib/ops/gpu` which redefines color variables that are already set as readonly from previous sourcing operations.
+
+**Impact**: The bash "readonly variable" errors likely cause the function to terminate early, preventing the nvidia_drm modeset=1 logic from executing.
+
+**Architecture Issue**: Multiple sourcing of the same file with color variable definitions creates conflicts that interrupt function execution flow.
+
+---
+
 ## Post-Implementation Issue: Code Logic Failure (2025-06-09 19:20)
 
 ### Problem Discovered
