@@ -3,6 +3,105 @@
 ## Session Overview
 Investigation and resolution of GPU passthrough reattachment issues, specifically addressing hardware state corruption after VM shutdown and GPU return to host.
 
+## Latest Session Update (2025-06-09)
+**Investigation of gpu_pta_w Function Issues on Node x2**
+
+### Problem Report
+User reported that gpu_pta_w function was not working on node x2 (GTX 1650 with nouveau driver), even though all other improved GPU functions were working correctly after the module revamp from tmp/pt/gpuold to lib/ops/gpu.
+
+### Root Cause Analysis
+**FALSE ALARM - Functions Working as Designed**
+
+The issue was not a malfunction but a misunderstanding of the new enhanced function design:
+
+1. **Enhanced Logic**: The new `gpu_pta_w` function only processes GPUs currently bound to vfio-pci (in passthrough mode)
+2. **Semantic Precision**: Unlike the old version, it doesn't attempt to attach GPUs already attached to host drivers
+3. **User's GPU State**: The GTX 1650 was already bound to nouveau (host mode), so gpu_pta_w correctly had nothing to process
+
+### Function Validation Results
+**Both gpu_ptd_w and gpu_pta_w functions working perfectly on node x2:**
+
+- ✅ **gpu_ptd_w "0a:00.0"**: Successfully detached GTX 1650 from nouveau → vfio-pci
+- ✅ **gpu_pta_w "0a:00.0"**: Successfully attached GTX 1650 from vfio-pci → nouveau  
+- ✅ **Hardware reset included**: Critical PCI function-level reset performed during attachment
+- ✅ **Enhanced logging**: Comprehensive operation tracking throughout process
+- ✅ **Configuration integration**: Properly uses x2_NVIDIA_DRIVER_PREFERENCE=nouveau
+
+### Key Improvements Over Original Implementation
+**Original gpu-pta function (tmp/pt/gpuold:213-306) vs New gpu_pta function (lib/ops/gpu:1383-1505):**
+
+1. **Missing in Original**:
+   - ❌ No hardware reset (PCI function-level reset)
+   - ❌ Fixed driver selection (always nouveau for NVIDIA)
+   - ❌ No configuration integration
+   - ❌ Basic error handling
+
+2. **Enhanced in New Version**:
+   - ✅ Includes critical hardware reset (lines 1484-1501)
+   - ✅ Intelligent driver selection respecting hostname preferences
+   - ✅ Comprehensive error handling and validation
+   - ✅ Structured logging with aux_info/aux_warn/aux_error
+   - ✅ Pure function + wrapper pattern for better maintainability
+
+### Current Status for Node x2
+- **Hardware**: GTX 1650 with nouveau driver
+- **Module Status**: All GPU functions operational and enhanced
+- **Ready for Production**: Can proceed to test on node x1 with RTX 5060ti/nvidia drivers
+
+### Critical Display Issue Discovery and Fix (2025-06-09)
+**Black Screen Problem After gpu_pta_w Execution**
+
+### Root Cause Identified
+While the new gpu_pta function was working correctly for GPU driver binding and hardware reset, it was missing critical **VGA console restoration** that caused display blackout after GPU passthrough return.
+
+**Issue Analysis:**
+- VGA arbitration remained functional (`decodes=io+mem` maintained)
+- GPU hardware reset was working correctly
+- Driver binding successful (nouveau properly bound)
+- **Missing**: VGA console rebinding after passthrough operations
+
+**Evidence from dmesg:**
+```
+nouveau 0000:0a:00.0: vgaarb: deactivate vga console
+```
+
+**VT Console State Analysis:**
+- vtcon0 (dummy device): unbound (0)
+- vtcon1 (frame buffer device): bound (1) but not properly reactivated after GPU operations
+
+### Solution Implemented
+**Added VGA Console Restoration to gpu_pta function (lib/ops/gpu:1503-1518):**
+
+```bash
+# Restore VGA console after GPU reattachment to fix display issues
+if [ -w "/sys/class/vtconsole/vtcon1/bind" ]; then
+    # Unbind and rebind framebuffer console to restore display
+    echo 0 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null
+    sleep 1
+    echo 1 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null
+fi
+```
+
+**Validation Results:**
+- Manual console restoration test successful
+- dmesg confirmed proper console switching:
+  ```
+  Console: switching to colour dummy device 80x25
+  Console: switching to colour frame buffer device 240x67
+  ```
+
+### Enhanced gpu_pta Function Features
+**Final implementation now includes:**
+1. ✅ **Hardware reset** (missing in original) - clears passthrough state corruption
+2. ✅ **VGA console restoration** (missing in both versions) - fixes display blackout
+3. ✅ **Enhanced error handling** with structured logging
+4. ✅ **Configuration integration** with hostname-specific preferences
+5. ✅ **Intelligent driver selection** respecting user preferences
+
+**Status**: Ready for full testing after reboot to validate complete display restoration workflow.
+
+---
+
 ## Problem Statement
 After successful GPU passthrough detachment (`gpu_ptd_w`) → VM operation → VM shutdown → GPU reattachment (`gpu_pta_w`), the GPU would bind to nvidia driver but exhibit:
 - Black screen (no display output)
