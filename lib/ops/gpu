@@ -1526,7 +1526,7 @@ gpu_pta() {
     
     # Check if any GPU was bound to nvidia driver
     local has_nvidia_gpu=false
-    for pci_id in $gpu_list; do
+    for pci_id in "${gpus_to_process[@]}"; do
         local current_driver=$(lspci -nnk -s "${pci_id}" | awk '/Kernel driver in use:/ {print $5}')
         if [ "$current_driver" = "nvidia" ]; then
             has_nvidia_gpu=true

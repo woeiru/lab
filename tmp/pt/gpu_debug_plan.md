@@ -1206,3 +1206,85 @@ printf: usage: printf [-v var] format [arguments]
 - Check for remaining printf formatting issues
 - Verify nvidia_drm logic execution with debug output
 - Investigate any new error patterns in function output
+
+---
+
+## CRITICAL VARIABLE BUG DISCOVERED & FIXED (2025-06-09 22:59)
+
+### 🎯 ROOT CAUSE IDENTIFIED: Undefined Variable in NVIDIA Detection Logic
+
+**The Real Problem**: The nvidia_drm modeset=1 logic was never executing due to a critical variable name bug.
+
+**Bug Details**:
+```bash
+# BROKEN CODE in gpu_pta function (line 1529):
+for pci_id in $gpu_list; do  # ❌ $gpu_list was NEVER DEFINED!
+
+# CORRECT CODE after fix:
+for pci_id in "${gpus_to_process[@]}"; do  # ✅ Uses the actual GPU array
+```
+
+**Impact Analysis**:
+- ✅ Color variable conflicts were fixed (printf errors resolved)
+- ✅ Functions executed completely without hanging
+- ❌ **But nvidia_drm logic never ran because the detection loop never executed**
+- ❌ `$gpu_list` was undefined, so `for pci_id in $gpu_list` was an empty loop
+- ❌ `has_nvidia_gpu` remained `false`, nvidia modeset logic skipped entirely
+
+**Discovery Process**:
+1. ✅ Printf formatting errors were fixed
+2. ✅ Functions completed without timeout
+3. ❌ Still no "INFO: NVIDIA GPUs detected" message in output
+4. 🔍 **Investigation revealed `$gpu_list` was undefined variable**
+5. 🔧 **Fixed: Changed to `"${gpus_to_process[@]}"`** (the actual GPU array)
+
+### Fix Implementation (2025-06-09 22:59)
+
+**Location**: `/root/lab/lib/ops/gpu` line 1529
+
+**Change Applied**:
+```bash
+# Before (BROKEN):
+for pci_id in $gpu_list; do              # undefined variable
+
+# After (FIXED):  
+for pci_id in "${gpus_to_process[@]}"; do  # correct GPU array
+```
+
+**Expected Result**: 
+- ✅ nvidia detection loop will now execute properly
+- ✅ `has_nvidia_gpu=true` will be set for nvidia-bound GPUs
+- ✅ "INFO: NVIDIA GPUs detected" message should appear
+- ✅ nvidia_drm modeset=1 logic should execute automatically
+- ✅ Display should restore without manual intervention
+
+### Technical Insight
+
+**The Diagnostic Evolution - Final Chapter**:
+1. **Phase 1**: VGA console manipulation (misguided)
+2. **Phase 2**: nvidia_drm modeset=1 discovery (correct solution)
+3. **Phase 3**: Per-GPU vs post-processing (architectural fix)
+4. **Phase 4**: Printf formatting conflicts (execution environment)
+5. **Phase 5**: **FINAL** - Undefined variable prevented logic execution
+
+**Key Lesson**: **Variable scope and naming consistency is critical**. Even perfectly correct logic fails if the variables it depends on don't exist. This bug was hidden by the previous printf formatting errors that prevented thorough execution analysis.
+
+### Next Test Plan
+
+**Current State**: 
+- ✅ GPUs bound to nvidia driver (successful gpu_pta_w execution)
+- ❌ modeset=N, no /dev/fb0, black screen (nvidia logic didn't run)
+
+**Test Method**: 
+```bash
+exec bash                    # Fresh shell environment
+gpu_pta_w                   # Test fixed function
+```
+
+**Success Criteria**:
+- ✅ "INFO: NVIDIA GPUs detected - configuring framebuffer display support..." message appears
+- ✅ nvidia_drm reload logic executes
+- ✅ Final result: modeset=Y, /dev/fb0 exists, display restored
+- ✅ No manual intervention required
+
+**If Successful**: Both gpu_ptd_w and gpu_pta_w functions are fully operational with automatic display restoration for cross-platform nvidia/nouveau support.
