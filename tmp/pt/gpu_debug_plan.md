@@ -43,19 +43,25 @@ fi
 ✅ **Display Restoration**: Proper framebuffer console support
 ✅ **Production Ready**: Tested on both hardware configurations
 
-### Current Issue (Node x1 only)
-❌ **Display Still Black**: Despite modeset=Y, physical display remains black
-- Function execution: ✅ Complete success
-- GPU binding: ✅ nvidia driver active
-- Modeset parameter: ✅ modeset=Y confirmed
-- Missing: Additional NVIDIA-specific display restoration steps
+### Current Issue (Node x1 only) - UPDATED 2025-06-10
+❌ **rmmod nvidia_drm Failing Silently**: Enhanced debug reveals the core problem
+- Function execution: ✅ Complete success without hanging
+- GPU binding: ✅ Both GPU functions (3b:00.0, 3b:00.1) bound to nvidia driver
+- Post-processing logic: ❌ rmmod nvidia_drm fails silently in automated function
+- Manual fix: ✅ `rmmod nvidia_drm && modprobe nvidia_drm modeset=1` works perfectly
+
+### Root Cause Identified (2025-06-10)
+**The rmmod step in post-processing nvidia_drm reload is failing silently**:
+- Debug output shows: `modprobe nvidia_drm modeset=1` returns success but module stays loaded
+- Manual verification: nvidia_drm module remains loaded with modeset=N after function
+- Manual fix works: Proves the approach is correct but automated rmmod fails
 
 ### Next Investigation Required
-The modeset=1 parameter alone is insufficient for NVIDIA display restoration. Additional components needed:
-- VGA arbitration configuration
-- Console rebinding timing
-- Hardware reset requirements
-- Display manager integration
+Debug why `rmmod nvidia_drm` fails in automated function but works manually:
+- Module usage/dependency conflicts
+- Permission/context differences between function and manual execution  
+- Timing issues during automated execution
+- Error messages from failed rmmod attempts
 
 ## Recovery Commands
 ```bash
