@@ -1548,7 +1548,7 @@ gpu_pta() {
         printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
         
         # Remove nvidia_drm if loaded
-        if lsmod | grep -q "^nvidia_drm"; then
+        if [ -d "/sys/module/nvidia_drm" ]; then
             printf "DEBUG: nvidia_drm module currently loaded, attempting removal...\n"
             printf "DEBUG: Module usage before removal: $(lsmod | grep nvidia_drm)\n"
             
