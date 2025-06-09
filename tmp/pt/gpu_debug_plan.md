@@ -617,6 +617,117 @@ We're missing:
 
 **The problem is deeper than just modeset parameter - we need to identify what additional steps are required for complete NVIDIA display restoration.**
 
+## SYSTEMATIC HANGING ISSUE DEBUG (2025-06-09 21:45)
+
+### Critical Problem: Function vs Manual Command Discrepancy
+
+**Manual Command (Always Works)**:
+```bash
+rmmod nvidia_drm && modprobe nvidia_drm modeset=1
+Result: Instant success, modeset=Y, display restored
+```
+
+**Function Execution (Hangs)**:
+```bash
+gpu_pta_w execution:
+- Hangs during: modprobe nvidia_drm modeset=1
+- Timeout after 2+ minutes
+- Same command that works manually
+```
+
+### Root Cause Theories & Systematic Testing
+
+#### Theory 1: Module Dependency Race Condition ✅ IMPLEMENTED
+**Hypothesis**: Commands execute too quickly in succession, causing timing conflicts
+**Test Implementation**:
+- Added 3-second delay after `modprobe -r nvidia_drm`
+- Added 2-second delay after `rmmod` fallback
+- Added 30-second timeout to `modprobe nvidia_drm modeset=1`
+**Debug Output**: Added timing information to track execution flow
+
+#### Theory 2: Execution Environment Differences ✅ IMPLEMENTED  
+**Hypothesis**: Function executes in different environment context than manual commands
+**Test Implementation**:
+- Capture PWD, USER, UID, PATH, SHELL variables
+- Count open file descriptors during execution
+- Compare function environment vs manual execution environment
+**Debug Output**: Full environment state logged before critical operations
+
+#### Theory 3: Resource/File Descriptor Issues ✅ IMPLEMENTED
+**Hypothesis**: Function has open resources preventing proper module operations
+**Test Implementation**:
+- Check processes using nvidia modules before operation
+- Count /dev/nvidia* devices 
+- Check /proc/driver/nvidia status
+- Identify resource locks that could block module operations
+**Debug Output**: Resource usage state before modprobe operations
+
+#### Theory 4: Module State Conflicts ✅ IMPLEMENTED
+**Hypothesis**: Module dependency state differs between manual and function execution
+**Test Implementation**:
+- Explicit module state checking before nvidia_drm loading
+- Log nvidia, nvidia_modeset, nvidia_drm module states
+- Track reference counts for each module
+**Debug Output**: Complete module dependency state before critical operations
+
+### Enhanced Debug Implementation
+
+**Multi-Theory Debug Function** (gpu_pta in /root/lab/lib/ops/gpu):
+```bash
+Lines 1538-1580: Comprehensive debug output covering all theories
+- Environment variables and execution context
+- Resource usage and file descriptor counts  
+- Module states and dependency tracking
+- Timing delays to prevent race conditions
+- 30-second timeout to prevent infinite hangs
+```
+
+### Test Execution Plan
+
+**Test Cycle**:
+```bash
+1. reboot                    # Clean system state
+2. gpu_ptd_w                 # Detach GPU  
+3. qm start 111              # Start VM
+4. qm stop 111               # Stop VM
+5. gpu_pta_w                 # Attach GPU (with debug output)
+```
+
+**Expected Debug Output**:
+- **Environment**: Compare execution context vs manual
+- **Resources**: Identify blocking processes/file handles
+- **Timing**: Determine if delays prevent hanging
+- **Module State**: Verify dependency states are correct
+- **Execution Point**: Pinpoint exact hanging location
+
+### Success Criteria
+
+**If Theory 1 (Race Condition) is correct**:
+- Function completes without hanging due to timing delays
+- Debug shows timing was the critical factor
+
+**If Theory 2 (Environment) is correct**:
+- Environment debug reveals execution context differences
+- PATH, permissions, or environment variables differ from manual execution
+
+**If Theory 3 (Resources) is correct**:
+- Resource debug shows blocking processes or file handles
+- Processes using nvidia modules prevent proper module operations
+
+**If Theory 4 (Module State) is correct**:
+- Module state debug shows dependency conflicts
+- Module reference counts or states differ from manual execution expectations
+
+### Next Steps After Test
+
+**Based on debug output**:
+1. **Identify which theory debug output reveals the root cause**
+2. **Implement targeted fix for the specific issue found**
+3. **Remove debug output once issue is resolved**
+4. **Document the final solution in this debug plan**
+
+**This systematic approach ensures we isolate the exact cause of the hanging issue through comprehensive debugging data.**
+
 ## FUNCTION EXECUTION DEBUGGING (2025-06-09 21:10)
 
 ### Issue: Automated Function vs Manual Command Discrepancy
