@@ -1558,15 +1558,54 @@ gpu_pta() {
         
         # Load nvidia_drm with modeset=1
         printf "INFO: Loading nvidia_drm with modeset=1...\n"
+        
+        # EXECUTION CONTEXT DEBUG: Compare with manual command environment
+        printf "DEBUG: Function execution context:\n"
+        printf "  - PID: $$\n"
+        printf "  - PPID: $PPID\n"
+        printf "  - PWD: $PWD\n"
+        printf "  - USER: $USER\n"
+        printf "  - SHELL: $SHELL\n"
+        printf "  - Function stack depth: ${#FUNCNAME[@]}\n"
+        printf "  - Open FDs: $(ls /proc/$$/fd | wc -l)\n"
+        
+        # MODULE STATE BEFORE MODPROBE
+        printf "DEBUG: Module state before modprobe nvidia_drm modeset=1:\n"
+        lsmod | grep -E "(nvidia|^Module)" || printf "  No nvidia modules found\n"
+        
+        # EXECUTE MODPROBE WITH DETAILED TRACKING
+        printf "DEBUG: Executing: modprobe nvidia_drm modeset=1\n"
         if modprobe nvidia_drm modeset=1; then
+            printf "DEBUG: modprobe command returned success (exit code 0)\n"
+            
+            # IMMEDIATE VERIFICATION - Check module state right after modprobe
+            printf "DEBUG: Immediate post-modprobe verification:\n"
+            printf "  - nvidia_drm loaded: "
+            if lsmod | grep -q "^nvidia_drm"; then
+                printf "YES\n"
+                printf "  - modeset parameter: $(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo 'UNKNOWN')\n"
+                printf "  - framebuffer devices: $(ls /dev/fb* 2>/dev/null || echo 'NONE')\n"
+                printf "  - VGA arbiter state: $(cat /sys/bus/pci/devices/0000:3b:00.0/boot_vga 2>/dev/null || echo 'UNKNOWN')\n"
+            else
+                printf "NO - MODULE NOT LOADED!\n"
+            fi
+            
+            # FINAL STATUS CHECK
             local final_modeset_status=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "UNKNOWN")
             if [ "$final_modeset_status" = "Y" ]; then
                 printf "SUCCESS: NVIDIA framebuffer display support enabled (modeset=Y).\n"
+                
+                # POST-SUCCESS VERIFICATION
+                printf "DEBUG: Post-success system state:\n"
+                printf "  - Framebuffer devices: $(ls /dev/fb* 2>/dev/null && echo ' (CREATED)' || echo 'NONE (MISSING!)')\n"
+                printf "  - Console drivers: $(cat /sys/class/vtconsole/vtcon*/name 2>/dev/null || echo 'UNKNOWN')\n"
+                printf "  - VT console bind status: $(cat /sys/class/vtconsole/vtcon*/bind 2>/dev/null | paste -sd ' ' || echo 'UNKNOWN')\n"
             else
                 printf "WARNING: modeset parameter not set correctly (status: %s)\n" "$final_modeset_status"
             fi
         else
-            printf "ERROR: Failed to load nvidia_drm with modeset=1\n"
+            local modprobe_exit_code=$?
+            printf "ERROR: Failed to load nvidia_drm with modeset=1 (exit code: %d)\n" "$modprobe_exit_code"
         fi
     fi
 
