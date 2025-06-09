@@ -1114,3 +1114,95 @@ modprobe nvidia_drm modeset=1  # Load with correct parameter
 
 **If Test Succeeds**: Both architectural issues resolved, GPU passthrough fully functional
 **If Test Fails**: Additional debugging required for nvidia_drm logic execution
+
+---
+
+## PRINTF FORMATTING & COLOR VARIABLE CONFLICTS FIXED (2025-06-09 22:35)
+
+### Issues Identified from Latest Test Output
+
+**Critical Problems Found**:
+```bash
+-bash: printf: --: invalid option
+printf: usage: printf [-v var] format [arguments]
+```
+
+**Root Cause Analysis**:
+1. **Color variable conflicts**: Variables like `${CYAN}`, `${NC}` were set as readonly, then cleared to empty strings
+2. **Printf formatting errors**: When color variables expand to empty strings, printf sees `--- Processing GPU` as options starting with `--`
+3. **Function termination**: These errors prevent functions from reaching the nvidia_drm modeset logic
+
+### Fix Implementation (2025-06-09 22:35)
+
+**Location**: `/root/lab/lib/ops/gpu`
+**Changes Applied**:
+
+1. **Removed all color variables from printf statements**:
+   - `printf "${CYAN}--- Processing GPU %s ---${NC}\n"` → `printf "INFO: Processing GPU %s for detachment\n"`
+   - Fixed 15+ printf statements with color variable formatting issues
+   - Maintained informational content while removing problematic formatting
+
+2. **Color variable initialization**:
+   - Color variables remain set to empty strings to prevent readonly conflicts
+   - All printf statements now use plain text without color codes
+
+### Architectural Solution Confirmation
+
+**Per-GPU vs Post-Processing Approach**:
+```bash
+✅ CORRECT (Implemented): Single nvidia_drm reload after all GPUs processed
+❌ BROKEN (Previous): Per-GPU nvidia_drm reload causing "module in use" errors
+```
+
+**Expected Fix Result**:
+- ✅ No more `printf: --: invalid option` errors
+- ✅ Functions execute completely without early termination
+- ✅ nvidia_drm modeset=1 logic executes after all GPU binding
+- ✅ Display restoration should work automatically
+
+### Test Plan After Printf Fix
+
+**Test Sequence**:
+```bash
+1. reboot                    # Clean system state
+2. gpu_ptd_w                 # Detach GPUs to vfio-pci
+3. qm start 111              # Start VM with GPU passthrough
+4. qm stop 111               # Stop VM
+5. gpu_pta_w                 # Reattach GPUs with automated display fix
+```
+
+**Success Criteria**:
+- ✅ No printf formatting errors in function output
+- ✅ Functions complete without hanging or timeout
+- ✅ nvidia_drm modeset=1 logic executes (should see "INFO: NVIDIA GPUs detected" message)
+- ✅ Final status: modeset=Y, /dev/fb0 exists, display restored
+- ✅ No manual intervention required
+
+**Failure Indicators**:
+- ❌ Printf formatting errors persist
+- ❌ Functions hang or timeout
+- ❌ nvidia_drm logic doesn't execute
+- ❌ modeset remains N, no /dev/fb0, black screen
+
+### Technical Insight
+
+**The Diagnostic Evolution**:
+1. **Phase 1**: Thought VGA console manipulation was needed
+2. **Phase 2**: Discovered nvidia_drm modeset=1 was the solution
+3. **Phase 3**: Found per-GPU reload caused "module in use" conflicts
+4. **Phase 4**: Identified printf formatting prevented logic execution
+5. **Phase 5**: **CURRENT** - Fixed printf formatting to enable automated solution
+
+**Key Lesson**: **Execution environment issues can prevent perfectly correct logic from running**. The nvidia_drm modeset fix was architecturally correct, but printf formatting errors caused early function termination before the fix could execute.
+
+### Next Steps
+
+**If Test Succeeds**: 
+- Document final working solution
+- Both new functions (gpu_ptd_w + gpu_pta_w) fully operational
+- GPU passthrough with automatic display restoration achieved
+
+**If Test Still Fails**:
+- Check for remaining printf formatting issues
+- Verify nvidia_drm logic execution with debug output
+- Investigate any new error patterns in function output

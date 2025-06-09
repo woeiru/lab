@@ -261,7 +261,7 @@ _gpu_load_config() {
         return 0
     else
         aux_warn "PCI Configuration file not found or not set" "component=gpu,operation=load_config,config_file=${CONFIG_FUN},status=failed"
-        printf "${YELLOW}WARNING: PCI Configuration file '%s' not found or not set.${NC}\n" "$CONFIG_FUN"
+        printf "WARNING: PCI Configuration file '%s' not found or not set.\n" "$CONFIG_FUN"
         return 1
     fi
 }
@@ -336,7 +336,7 @@ _gpu_get_target_gpus() {
     if [ -n "$gpu_id_arg" ]; then
         # Specific GPU ID provided
         if ! _gpu_validate_pci_id "$gpu_id_arg"; then
-            printf "${RED}ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0${NC}\n" "$gpu_id_arg"
+            printf "ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0\n" "$gpu_id_arg"
             return 1
         fi
         
@@ -351,7 +351,7 @@ _gpu_get_target_gpus() {
                 gpus_to_process+=("$gpu_id_arg")
             fi
         else
-            printf "${RED}ERROR: Specified PCI ID %s is not a VGA/3D/Audio controller or does not exist.${NC}\n" "$gpu_id_arg"
+            printf "ERROR: Specified PCI ID %s is not a VGA/3D/Audio controller or does not exist.\n" "$gpu_id_arg"
             return 1
         fi
     else
@@ -409,10 +409,10 @@ _gpu_ensure_vfio_modules() {
                 printf "INFO: Module %s loaded successfully.\n" "$module"
             else
                 aux_err "Failed to load module" "component=gpu,operation=ensure_vfio_modules,module=${module},status=failed,error=modprobe_failed"
-                printf "${RED}ERROR: Failed to load module %s.${NC}\n" "$module"
+                printf "ERROR: Failed to load module %s.\n" "$module"
                 if [ "$module" = "vfio_pci" ]; then
                     aux_err "Critical module vfio_pci failed to load, exiting" "component=gpu,operation=ensure_vfio_modules,module=${module},status=critical_failure"
-                    printf "${RED}Exiting due to failure to load critical module vfio_pci.${NC}\n"
+                    printf "ERROR: Exiting due to failure to load critical module vfio_pci.\n"
                     return 1
                 fi
             fi
@@ -444,7 +444,7 @@ _gpu_unbind_device() {
             return 0
         else
             aux_warn "Failed to unbind GPU" "component=gpu,operation=unbind_device,pci_id=${pci_id},current_driver=${current_driver},status=failed"
-            printf "${YELLOW}WARNING: Failed to unbind GPU %s from %s.${NC}\n" "$pci_id" "$current_driver"
+            printf "WARNING: Failed to unbind GPU %s from %s.\n" "$pci_id" "$current_driver"
             return 1
         fi
     else
@@ -468,7 +468,7 @@ _gpu_bind_device() {
     # Check if driver directory exists
     if [ ! -d "/sys/bus/pci/drivers/$target_driver" ]; then
         aux_err "PCI driver directory does not exist" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},error=driver_dir_missing"
-        printf "${RED}ERROR: PCI driver directory for %s does not exist.${NC}\n" "$target_driver"
+        printf "ERROR: PCI driver directory for %s does not exist.\n" "$target_driver"
         return 1
     fi
     
@@ -484,16 +484,16 @@ _gpu_bind_device() {
         current_driver=$(_gpu_get_current_driver "$pci_id")
         if [ "$current_driver" = "$target_driver" ]; then
             aux_info "GPU successfully bound to target driver" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},current_driver=${current_driver},status=success"
-            printf "${GREEN}SUCCESS: GPU %s is now bound to %s.${NC}\n" "$pci_id" "$target_driver"
+            printf "SUCCESS: GPU %s is now bound to %s.\n" "$pci_id" "$target_driver"
             return 0
         else
             aux_warn "GPU may not have bound correctly" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},current_driver=${current_driver},status=verification_failed"
-            printf "${YELLOW}WARNING: GPU %s may not have bound to %s correctly. Current driver: %s${NC}\n" "$pci_id" "$target_driver" "$current_driver"
+            printf "WARNING: GPU %s may not have bound to %s correctly. Current driver: %s\n" "$pci_id" "$target_driver" "$current_driver"
             return 1
         fi
     else
         aux_err "Failed to bind GPU to driver" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},status=failed,error=bind_operation_failed"
-        printf "${RED}ERROR: Failed to bind GPU %s to %s.${NC}\n" "$pci_id" "$target_driver"
+        printf "ERROR: Failed to bind GPU %s to %s.\n" "$pci_id" "$target_driver"
         return 1
     fi
 }
@@ -509,7 +509,7 @@ _gpu_get_host_driver() {
     vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
     
     if [ $? -ne 0 ] || [ -z "$vendor_device_id" ]; then
-        printf "${YELLOW}WARNING: Could not determine vendor ID for %s.${NC}\n" "$pci_id"
+        printf "WARNING: Could not determine vendor ID for %s.\n" "$pci_id"
         return 1
     fi
     
@@ -530,7 +530,7 @@ _gpu_get_host_driver() {
             echo "amdgpu"
             ;;
         *)
-            printf "${YELLOW}WARNING: Unknown GPU vendor ID %s for %s.${NC}\n" "$vendor_id" "$pci_id"
+            printf "WARNING: Unknown GPU vendor ID %s for %s.\n" "$vendor_id" "$pci_id"
             return 1
             ;;
     esac
@@ -548,7 +548,7 @@ _gpu_get_host_driver_parameterized() {
     vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
     
     if [ $? -ne 0 ] || [ -z "$vendor_device_id" ]; then
-        printf "${YELLOW}WARNING: Could not determine vendor ID for %s.${NC}\n" "$pci_id"
+        printf "WARNING: Could not determine vendor ID for %s.\n" "$pci_id"
         return 1
     fi
     
@@ -562,7 +562,7 @@ _gpu_get_host_driver_parameterized() {
             echo "amdgpu"
             ;;
         *)
-            printf "${YELLOW}WARNING: Unknown GPU vendor ID %s for %s.${NC}\n" "$vendor_id" "$pci_id"
+            printf "WARNING: Unknown GPU vendor ID %s for %s.\n" "$vendor_id" "$pci_id"
             return 1
             ;;
     esac
@@ -607,7 +607,7 @@ _gpu_get_target_gpus_parameterized() {
     if [ -n "$gpu_id_arg" ]; then
         # Specific GPU ID provided
         if ! _gpu_validate_pci_id "$gpu_id_arg"; then
-            printf "${RED}ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0${NC}\n" "$gpu_id_arg"
+            printf "ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0\n" "$gpu_id_arg"
             return 1
         fi
         
@@ -622,7 +622,7 @@ _gpu_get_target_gpus_parameterized() {
                 gpus_to_process+=("$gpu_id_arg")
             fi
         else
-            printf "${RED}ERROR: Specified PCI ID %s is not a VGA/3D/Audio controller or does not exist.${NC}\n" "$gpu_id_arg"
+            printf "ERROR: Specified PCI ID %s is not a VGA/3D/Audio controller or does not exist.\n" "$gpu_id_arg"
             return 1
         fi
     else
@@ -1281,8 +1281,8 @@ gpu_ptd() {
     # Check IOMMU
     if ! grep -q 'iommu=pt\|intel_iommu=on\|amd_iommu=on' /proc/cmdline; then
         aux_warn "IOMMU not enabled in kernel command line" "component=gpu,operation=passthrough_detach,check=iommu,status=disabled,impact=vfio_may_fail"
-        printf "${YELLOW}WARNING: IOMMU does not appear to be enabled in kernel command line.${NC}\n"
-        printf "${YELLOW}         VFIO passthrough may not work.${NC}\n"
+        printf "WARNING: IOMMU does not appear to be enabled in kernel command line.\n"
+        printf "         VFIO passthrough may not work.\n"
     else
         aux_info "IOMMU enabled in kernel" "component=gpu,operation=passthrough_detach,check=iommu,status=enabled"
     fi
@@ -1308,7 +1308,7 @@ gpu_ptd() {
                 printf "INFO: Successfully unloaded %s driver.\n" "$driver"
             else
                 aux_warn "GPU driver unload failed" "component=gpu,operation=passthrough_detach,driver=${driver},status=failed"
-                printf "${YELLOW}WARNING: Failed to unload %s driver. Continuing anyway.${NC}\n" "$driver"
+                printf "WARNING: Failed to unload %s driver. Continuing anyway.\n" "$driver"
             fi
         else
             printf "INFO: %s driver not loaded.\n" "$driver"
@@ -1349,7 +1349,7 @@ gpu_ptd() {
     # Process each GPU
     for pci_id in "${filtered_gpus[@]}"; do
         aux_info "Processing individual GPU for detachment" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=individual_processing"
-        printf "--- Processing GPU %s ---\n" "$pci_id"
+        printf "INFO: Processing GPU %s for detachment\n" "$pci_id"
         
         # Unbind from current driver
         _gpu_unbind_device "$pci_id"
@@ -1456,7 +1456,7 @@ gpu_pta() {
     readarray -t gpus_to_process < <(_gpu_get_target_gpus_parameterized "$gpu_id_arg" "$hostname" "vfio-pci" "$pci0_id" "$pci1_id")
 
     if [ ${#gpus_to_process[@]} -eq 0 ]; then
-        printf "${YELLOW}No suitable GPU devices found on vfio-pci to attach.${NC}\n"
+        printf "WARNING: No suitable GPU devices found on vfio-pci to attach.\n"
         return 0
     fi
 
@@ -1464,7 +1464,7 @@ gpu_pta() {
 
     # Process each GPU
     for pci_id in "${gpus_to_process[@]}"; do
-        printf "${CYAN}--- Processing GPU %s for attachment to host ---${NC}\n" "$pci_id"
+        printf "INFO: Processing GPU %s for attachment to host\n" "$pci_id"
         
         # Unbind from vfio-pci
         _gpu_unbind_device "$pci_id"
@@ -1479,7 +1479,7 @@ gpu_pta() {
         host_driver=$(_gpu_get_host_driver_parameterized "$pci_id" "$hostname" "$nvidia_driver_preference")
         
         if [ $? -ne 0 ] || [ -z "$host_driver" ]; then
-            printf "${YELLOW}WARNING: Could not determine host driver for %s. Skipping.${NC}\n" "$pci_id"
+            printf "WARNING: Could not determine host driver for %s. Skipping.\n" "$pci_id"
             continue
         fi
         
@@ -1489,7 +1489,7 @@ gpu_pta() {
         if ! lsmod | grep -q "^${host_driver//-/_}"; then
             printf "INFO: Host driver module %s not loaded. Attempting to load...\n" "$host_driver"
             if ! modprobe "$host_driver"; then
-                printf "${RED}ERROR: Failed to load module %s. Cannot attach GPU %s.${NC}\n" "$host_driver" "$pci_id"
+                printf "ERROR: Failed to load module %s. Cannot attach GPU %s.\n" "$host_driver" "$pci_id"
                 continue
             fi
         fi
@@ -1508,13 +1508,13 @@ gpu_pta() {
         if [ ! -e "/sys/bus/pci/devices/0000:$pci_id/driver" ]; then
             printf "INFO: Attempting to explicitly bind %s to GPU %s\n" "$host_driver" "$pci_id"
             if echo "0000:$pci_id" > "/sys/bus/pci/drivers/$host_driver/bind" 2>/dev/null; then
-                printf "${GREEN}SUCCESS: GPU %s is now bound to %s.${NC}\n" "$pci_id" "$host_driver"
+                printf "SUCCESS: GPU %s is now bound to %s.\n" "$pci_id" "$host_driver"
             else
-                printf "${RED}ERROR: Failed to bind %s to GPU %s${NC}\n" "$host_driver" "$pci_id"
+                printf "ERROR: Failed to bind %s to GPU %s\n" "$host_driver" "$pci_id"
                 continue
             fi
         else
-            printf "${GREEN}SUCCESS: GPU %s is now bound to %s.${NC}\n" "$pci_id" "$host_driver"
+            printf "SUCCESS: GPU %s is now bound to %s.\n" "$pci_id" "$host_driver"
         fi
         
         # Skip per-GPU nvidia_drm reload - will be done once after all GPUs processed
