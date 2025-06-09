@@ -1531,33 +1531,35 @@ gpu_pta() {
             fi
             
             # Force reload nvidia_drm with modeset=1 for framebuffer console support
-            # This is the critical fix - always force reload to ensure modeset=1 is applied
+            # This is the critical fix - use modprobe -r for more reliable unloading
             printf "DEBUG: Force reloading nvidia_drm with modeset=1\n"
             printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
             
-            # Unload nvidia_drm if loaded
+            # Use modprobe -r for more reliable removal (handles dependencies)
+            printf "DEBUG: Removing nvidia_drm module using modprobe -r\n"
+            modprobe -r nvidia_drm 2>/dev/null || true
+            
+            # Verify removal
             if lsmod | grep -q "^nvidia_drm"; then
-                printf "DEBUG: Unloading existing nvidia_drm module\n"
-                if rmmod nvidia_drm 2>/dev/null; then
-                    printf "DEBUG: Successfully unloaded nvidia_drm\n"
-                else
-                    printf "DEBUG: Failed to unload nvidia_drm (may be in use), continuing anyway\n"
-                fi
+                printf "DEBUG: nvidia_drm still loaded after modprobe -r, trying rmmod\n"
+                rmmod nvidia_drm 2>/dev/null || printf "DEBUG: rmmod also failed, module may be in use\n"
+            else
+                printf "DEBUG: nvidia_drm successfully removed\n"
             fi
             
             # Load nvidia_drm with modeset=1
             printf "DEBUG: Loading nvidia_drm with modeset=1\n"
             if modprobe nvidia_drm modeset=1; then
-                printf "DEBUG: Successfully loaded nvidia_drm with modeset=1\n"
+                printf "DEBUG: modprobe command completed\n"
                 local final_modeset_status=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "UNKNOWN")
                 printf "DEBUG: Final modeset status: %s\n" "$final_modeset_status"
                 if [ "$final_modeset_status" = "Y" ]; then
                     printf "INFO: NVIDIA framebuffer display support enabled successfully.\n"
                 else
-                    printf "WARNING: modeset parameter may not be properly set (status: %s)\n" "$final_modeset_status"
+                    printf "WARNING: modeset parameter not set correctly (status: %s)\n" "$final_modeset_status"
                 fi
             else
-                printf "DEBUG: Failed to load nvidia_drm with modeset=1\n"
+                printf "ERROR: Failed to load nvidia_drm with modeset=1\n"
             fi
         fi
     done
