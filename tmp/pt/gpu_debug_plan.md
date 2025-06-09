@@ -332,3 +332,103 @@ The wrapper function architecture worked perfectly:
 **"Enhancement" features can break working systems.** The minimal approach that matches working logic exactly, with only essential new features (flexible driver detection), was the correct solution. Debugging led us down the wrong path by focusing on console bind status rather than actual display functionality.
 
 **Final Status**: Both new functions (gpu_ptd_w + gpu_pta_w) now work perfectly with full display restoration and maintain backward compatibility while adding nvidia driver support for other nodes.
+
+---
+
+## ULTIMATE BREAKTHROUGH: Cross-Platform Success (2025-06-09 19:05)
+
+### Final Solution Discovery
+
+**The Root Cause**: NVIDIA driver requires `modeset=1` parameter for framebuffer console support, unlike nouveau which enables it by default.
+
+### Critical Fix Implementation
+
+**Problem**: RTX 5060 Ti on node x1 with NVIDIA driver showed black screen after GPU reattachment despite successful driver binding.
+
+**Discovery Process**:
+1. ✅ GPU bound to nvidia driver correctly
+2. ✅ boot_vga=1 set properly  
+3. ❌ No /dev/fb0 framebuffer device
+4. ❌ Display remained black
+
+**Solution**: Load nvidia_drm with `modeset=1` parameter:
+```bash
+# Manual fix that worked immediately:
+rmmod nvidia_drm nvidia_modeset nvidia
+modprobe nvidia
+modprobe nvidia_modeset
+modprobe nvidia_drm modeset=1  # ← This was the key!
+```
+
+**Result**: Display instantly restored with /dev/fb0 created!
+
+### Implementation in gpu_pta_w
+
+**Enhanced the function with NVIDIA-specific handling**:
+```bash
+# NVIDIA driver specific: Load DRM modules with proper framebuffer support
+if [ "$host_driver" = "nvidia" ]; then
+    printf "INFO: Loading NVIDIA DRM modules with framebuffer support for display...\n"
+    # Load nvidia_modeset if not loaded
+    if ! lsmod | grep -q "^nvidia_modeset"; then
+        modprobe nvidia_modeset
+    fi
+    # Load nvidia_drm with modeset=1 for framebuffer console support
+    if ! lsmod | grep -q "^nvidia_drm"; then
+        modprobe nvidia_drm modeset=1
+    else
+        # If already loaded, check if modeset is enabled
+        local modeset_status=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "N")
+        if [ "$modeset_status" = "N" ]; then
+            printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
+            rmmod nvidia_drm 2>/dev/null || true
+            modprobe nvidia_drm modeset=1
+        fi
+    fi
+fi
+```
+
+### Cross-Platform Compatibility Achieved
+
+**Node x2 (GTX 1650 + nouveau)**:
+- ✅ Works with minimal gpu_pta_w (no special handling needed)
+- ✅ nouveau automatically provides framebuffer support
+
+**Node x1 (RTX 5060 Ti + nvidia)**:
+- ✅ Works with enhanced gpu_pta_w + nvidia modeset=1 handling
+- ✅ nvidia driver with modeset=1 provides framebuffer support
+
+### Architecture Success
+
+**Final Achievement**: Single codebase now supports:
+1. ✅ **Auto-detection**: Functions work without arguments using hostname config
+2. ✅ **Driver Flexibility**: nouveau on older cards, nvidia on newer cards
+3. ✅ **Display Compatibility**: Proper framebuffer support for both drivers
+4. ✅ **Cross-Platform**: Works on both node x2 and node x1
+5. ✅ **Backward Compatibility**: Maintains same interface as old functions
+
+### Key Technical Insights
+
+**Driver Behavior Differences**:
+- **nouveau**: Automatically enables KMS (Kernel Mode Setting) and framebuffer
+- **nvidia**: Requires explicit `modeset=1` parameter for KMS and framebuffer
+
+**Diagnostic Lesson**:
+- Console bind status (vtcon0/vtcon1) is NOT a reliable indicator
+- Framebuffer device existence (/dev/fb*) is the real indicator
+- Visual confirmation is the ultimate test
+
+**Architecture Lesson**:
+- Minimal approach works best (strip unnecessary enhancements)
+- Driver-specific handling only where absolutely necessary
+- Preserve working logic, add only essential new features
+
+### Ultimate Conclusion
+
+**SUCCESS**: The gpu_ptd_w and gpu_pta_w functions now provide full GPU passthrough capability with:
+- ✅ **Universal Compatibility**: Works with nouveau and nvidia drivers
+- ✅ **Display Restoration**: Proper framebuffer console support
+- ✅ **Production Ready**: Tested on both hardware configurations
+- ✅ **Future Proof**: Extensible architecture for additional driver support
+
+**The breakthrough was understanding that NVIDIA driver needs explicit modeset=1 for console framebuffer support, while nouveau enables it by default.**

@@ -1496,6 +1496,27 @@ gpu_pta() {
             fi
         fi
         
+        # NVIDIA driver specific: Load DRM modules with proper framebuffer support
+        if [ "$host_driver" = "nvidia" ]; then
+            printf "INFO: Loading NVIDIA DRM modules with framebuffer support for display...\n"
+            # Load nvidia_modeset if not loaded
+            if ! lsmod | grep -q "^nvidia_modeset"; then
+                modprobe nvidia_modeset
+            fi
+            # Load nvidia_drm with modeset=1 for framebuffer console support
+            if ! lsmod | grep -q "^nvidia_drm"; then
+                modprobe nvidia_drm modeset=1
+            else
+                # If already loaded, check if modeset is enabled
+                local modeset_status=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "N")
+                if [ "$modeset_status" = "N" ]; then
+                    printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
+                    rmmod nvidia_drm 2>/dev/null || true
+                    modprobe nvidia_drm modeset=1
+                fi
+            fi
+        fi
+        
         # Simple minimal attachment - based on working gpu-pta function
         printf "INFO: Attempting to bind GPU %s to driver %s using minimal approach...\n" "$pci_id" "$host_driver"
         
