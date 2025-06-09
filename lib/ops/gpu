@@ -1519,79 +1519,58 @@ gpu_pta() {
             printf "${GREEN}SUCCESS: GPU %s is now bound to %s.${NC}\n" "$pci_id" "$host_driver"
         fi
         
-        # NVIDIA driver specific: Enable framebuffer console support AFTER successful binding
-        if [ "$host_driver" = "nvidia" ]; then
-            printf "DEBUG: Entering post-binding NVIDIA modeset fix\n"
-            printf "INFO: Configuring NVIDIA DRM for framebuffer display support...\n"
-            
-            # Load nvidia_modeset if not loaded
-            if ! lsmod | grep -q "^nvidia_modeset"; then
-                printf "DEBUG: Loading nvidia_modeset module\n"
-                modprobe nvidia_modeset
-            fi
-            
-            # Force reload nvidia_drm with modeset=1 for framebuffer console support
-            # This is the critical fix - use modprobe -r for more reliable unloading
-            printf "DEBUG: Force reloading nvidia_drm with modeset=1\n"
-            printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
-            
-            # THEORY 2 TEST: Environment debugging
-            printf "DEBUG: EXECUTION ENVIRONMENT:\n"
-            printf "DEBUG: PWD=%s\n" "$(pwd)"
-            printf "DEBUG: USER=%s\n" "${USER:-unknown}"
-            printf "DEBUG: UID=%s\n" "$(id -u)"
-            printf "DEBUG: PATH=%s\n" "${PATH}"
-            printf "DEBUG: SHELL=%s\n" "${SHELL:-unknown}"
-            printf "DEBUG: Open file descriptors: %s\n" "$(ls /proc/$$/fd | wc -l)"
-            
-            # THEORY 3 TEST: Check for resource/file descriptor issues
-            printf "DEBUG: PRE-MODPROBE RESOURCE CHECK:\n"
-            printf "DEBUG: Processes using nvidia modules: %s\n" "$(lsof 2>/dev/null | grep nvidia | wc -l || echo '0')"
-            printf "DEBUG: /dev/nvidia* devices: %s\n" "$(ls /dev/nvidia* 2>/dev/null | wc -l || echo '0')"
-            printf "DEBUG: /proc/driver/nvidia status: %s\n" "$(ls /proc/driver/nvidia 2>/dev/null | wc -l || echo '0')"
-            
-            # Use modprobe -r for more reliable removal (handles dependencies)
-            printf "DEBUG: Removing nvidia_drm module using modprobe -r\n"
-            modprobe -r nvidia_drm 2>/dev/null || true
-            
-            # THEORY 1 TEST: Add delay after module removal
-            printf "DEBUG: Waiting 3 seconds for module removal to complete...\n"
-            sleep 3
-            
-            # Verify removal
-            if lsmod | grep -q "^nvidia_drm"; then
-                printf "DEBUG: nvidia_drm still loaded after modprobe -r, trying rmmod\n"
-                rmmod nvidia_drm 2>/dev/null || printf "DEBUG: rmmod also failed, module may be in use\n"
-                # Additional delay after rmmod
-                printf "DEBUG: Waiting 2 seconds after rmmod...\n"
-                sleep 2
-            else
-                printf "DEBUG: nvidia_drm successfully removed\n"
-            fi
-            
-            # THEORY 4 TEST: Module state conflicts - explicit state checking
-            printf "DEBUG: MODULE STATE BEFORE LOADING:\n"
-            printf "DEBUG: nvidia module: %s\n" "$(lsmod | grep '^nvidia ' | awk '{print $3}' || echo 'not loaded')"
-            printf "DEBUG: nvidia_modeset module: %s\n" "$(lsmod | grep '^nvidia_modeset' | awk '{print $3}' || echo 'not loaded')"
-            printf "DEBUG: nvidia_drm module: %s\n" "$(lsmod | grep '^nvidia_drm' || echo 'not loaded')"
-            
-            # Load nvidia_drm with modeset=1
-            printf "DEBUG: Loading nvidia_drm with modeset=1 (MULTI-THEORY DEBUG TEST)\n"
-            printf "DEBUG: Executing: timeout 30 modprobe nvidia_drm modeset=1\n"
-            if timeout 30 modprobe nvidia_drm modeset=1; then
-                printf "DEBUG: modprobe command completed\n"
-                local final_modeset_status=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "UNKNOWN")
-                printf "DEBUG: Final modeset status: %s\n" "$final_modeset_status"
-                if [ "$final_modeset_status" = "Y" ]; then
-                    printf "INFO: NVIDIA framebuffer display support enabled successfully.\n"
-                else
-                    printf "WARNING: modeset parameter not set correctly (status: %s)\n" "$final_modeset_status"
-                fi
-            else
-                printf "ERROR: Failed to load nvidia_drm with modeset=1\n"
-            fi
+        # Skip per-GPU nvidia_drm reload - will be done once after all GPUs processed
+    done
+
+    # CRITICAL FIX: NVIDIA DRM modeset reload AFTER all GPUs processed
+    # This prevents "module in use" errors when processing multiple GPUs
+    printf "INFO: Checking for NVIDIA driver configuration...\n"
+    
+    # Check if any GPU was bound to nvidia driver
+    local has_nvidia_gpu=false
+    for pci_id in $gpu_list; do
+        local current_driver=$(lspci -nnk -s "${pci_id}" | awk '/Kernel driver in use:/ {print $5}')
+        if [ "$current_driver" = "nvidia" ]; then
+            has_nvidia_gpu=true
+            break
         fi
     done
+    
+    # If NVIDIA GPUs found, configure framebuffer support
+    if [ "$has_nvidia_gpu" = "true" ]; then
+        printf "INFO: NVIDIA GPUs detected - configuring framebuffer display support...\n"
+        
+        # Load nvidia_modeset if not loaded
+        if ! lsmod | grep -q "^nvidia_modeset"; then
+            printf "INFO: Loading nvidia_modeset module...\n"
+            modprobe nvidia_modeset
+        fi
+        
+        # THE CRITICAL FIX: Reload nvidia_drm with modeset=1 ONCE for all GPUs
+        printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
+        
+        # Remove nvidia_drm if loaded
+        if lsmod | grep -q "^nvidia_drm"; then
+            printf "INFO: Removing nvidia_drm module...\n"
+            if ! rmmod nvidia_drm 2>/dev/null; then
+                printf "WARNING: nvidia_drm module in use, attempting modprobe -r...\n"
+                modprobe -r nvidia_drm 2>/dev/null || printf "WARNING: Could not remove nvidia_drm\n"
+            fi
+        fi
+        
+        # Load nvidia_drm with modeset=1
+        printf "INFO: Loading nvidia_drm with modeset=1...\n"
+        if modprobe nvidia_drm modeset=1; then
+            local final_modeset_status=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "UNKNOWN")
+            if [ "$final_modeset_status" = "Y" ]; then
+                printf "SUCCESS: NVIDIA framebuffer display support enabled (modeset=Y).\n"
+            else
+                printf "WARNING: modeset parameter not set correctly (status: %s)\n" "$final_modeset_status"
+            fi
+        else
+            printf "ERROR: Failed to load nvidia_drm with modeset=1\n"
+        fi
+    fi
 
     printf "INFO: GPU attachment process completed.\n"
 }
