@@ -1496,55 +1496,24 @@ gpu_pta() {
             fi
         fi
         
-        # Bind to host driver
-        _gpu_bind_device "$pci_id" "$host_driver"
+        # Simple minimal attachment - based on working gpu-pta function
+        printf "INFO: Attempting to bind GPU %s to driver %s using minimal approach...\n" "$pci_id" "$host_driver"
         
-        # Perform hardware reset to clear passthrough state corruption
-        local full_pci_id="0000:$pci_id"
-        if [ -w "/sys/bus/pci/devices/$full_pci_id/reset" ]; then
-            aux_info "Performing GPU hardware reset" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=hardware_reset,action=initiated"
-            printf "INFO: Performing hardware reset for GPU %s to clear passthrough state...\n" "$pci_id"
-            if echo 1 > "/sys/bus/pci/devices/$full_pci_id/reset" 2>/dev/null; then
-                aux_info "GPU hardware reset successful" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=hardware_reset,status=success"
-                printf "${GREEN}SUCCESS: Hardware reset completed for GPU %s.${NC}\n" "$pci_id"
-                # Give hardware time to stabilize after reset
-                sleep 2
+        # Probe for new driver (like the working old function)
+        printf "INFO: Probing for new driver for GPU %s\n" "$pci_id"
+        echo "0000:$pci_id" > /sys/bus/pci/drivers_probe
+        
+        # Explicitly bind the driver if it's not automatically bound (like the working old function)
+        if [ ! -e "/sys/bus/pci/devices/0000:$pci_id/driver" ]; then
+            printf "INFO: Attempting to explicitly bind %s to GPU %s\n" "$host_driver" "$pci_id"
+            if echo "0000:$pci_id" > "/sys/bus/pci/drivers/$host_driver/bind" 2>/dev/null; then
+                printf "${GREEN}SUCCESS: GPU %s is now bound to %s.${NC}\n" "$pci_id" "$host_driver"
             else
-                aux_warn "GPU hardware reset failed" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=hardware_reset,status=failed"
-                printf "${YELLOW}WARNING: Hardware reset failed for GPU %s. Some hardware state issues may persist.${NC}\n" "$pci_id"
+                printf "${RED}ERROR: Failed to bind %s to GPU %s${NC}\n" "$host_driver" "$pci_id"
+                continue
             fi
         else
-            aux_warn "GPU hardware reset not available" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=hardware_reset,status=unavailable"
-            printf "${YELLOW}WARNING: Hardware reset not available for GPU %s.${NC}\n" "$pci_id"
-        fi
-        
-        # Restore VGA console after GPU reattachment to fix display issues
-        aux_info "Restoring VGA console" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,action=initiated"
-        printf "INFO: Restoring VGA console for GPU %s...\n" "$pci_id"
-        
-        # First restore vtcon1 (framebuffer console)
-        if [ -w "/sys/class/vtconsole/vtcon1/bind" ]; then
-            if echo 0 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null && sleep 1 && echo 1 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null; then
-                aux_info "VGA framebuffer console restoration successful" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,vtcon=vtcon1,status=success"
-                printf "INFO: VGA framebuffer console (vtcon1) restored for GPU %s.\n" "$pci_id"
-            else
-                aux_warn "VGA framebuffer console restoration failed" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,vtcon=vtcon1,status=failed"
-                printf "${YELLOW}WARNING: VGA framebuffer console (vtcon1) restoration failed for GPU %s.${NC}\n" "$pci_id"
-            fi
-        fi
-        
-        # Then restore vtcon0 (system console) for complete display restoration
-        if [ -w "/sys/class/vtconsole/vtcon0/bind" ]; then
-            if echo 0 > /sys/class/vtconsole/vtcon0/bind 2>/dev/null && sleep 1 && echo 1 > /sys/class/vtconsole/vtcon0/bind 2>/dev/null; then
-                aux_info "VGA system console restoration successful" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,vtcon=vtcon0,status=success"
-                printf "${GREEN}SUCCESS: VGA console fully restored for GPU %s.${NC}\n" "$pci_id"
-            else
-                aux_warn "VGA system console restoration failed" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,vtcon=vtcon0,status=failed"
-                printf "${YELLOW}WARNING: VGA system console (vtcon0) restoration failed for GPU %s. Display may require manual intervention.${NC}\n" "$pci_id"
-            fi
-        else
-            aux_warn "VGA console control not available" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,status=unavailable"
-            printf "${YELLOW}WARNING: VGA console control not available for GPU %s.${NC}\n" "$pci_id"
+            printf "${GREEN}SUCCESS: GPU %s is now bound to %s.${NC}\n" "$pci_id" "$host_driver"
         fi
     done
 
