@@ -1288,3 +1288,92 @@ gpu_pta_w                   # Test fixed function
 - ✅ No manual intervention required
 
 **If Successful**: Both gpu_ptd_w and gpu_pta_w functions are fully operational with automatic display restoration for cross-platform nvidia/nouveau support.
+
+---
+
+## UNDEFINED VARIABLE BUG FIXED - PARTIAL SUCCESS (2025-06-09 23:33)
+
+### ✅ MAJOR BREAKTHROUGH: Function Execution Issue Resolved
+
+**Root Cause Discovered & Fixed**: The nvidia_drm modeset=1 logic was never executing due to a critical undefined variable bug.
+
+**The Bug**:
+```bash
+# BROKEN CODE in gpu_pta function (line 1529):
+for pci_id in $gpu_list; do  # ❌ $gpu_list was NEVER DEFINED!
+
+# FIXED CODE:
+for pci_id in "${gpus_to_process[@]}"; do  # ✅ Uses the actual GPU array
+```
+
+### Test Results After Fix (2025-06-09 23:33)
+
+**Function Execution**: ✅ **COMPLETE SUCCESS**
+```bash
+gpu_pta_w execution:
+✅ "INFO: NVIDIA GPUs detected - configuring framebuffer display support..." message appeared
+✅ nvidia_drm reload logic executed properly  
+✅ "SUCCESS: NVIDIA framebuffer display support enabled (modeset=Y)" confirmed
+✅ No hanging or timeout issues
+✅ Function completed end-to-end without errors
+```
+
+**Technical Status**: ✅ **LOGIC EXECUTION SUCCESSFUL**
+- GPU binding: ✅ Both GPUs bound to nvidia/snd_hda_intel correctly
+- Driver status: ✅ nvidia driver active on 3b:00.0
+- Modeset parameter: ✅ modeset=Y confirmed
+- Function flow: ✅ Complete execution without interruption
+
+**Display Status**: ❌ **STILL BROKEN STATE**
+- Console output: ❌ No display on physical screen
+- Framebuffer: ❌ No /dev/fb0 device created
+- VGA console: Boot_vga=1 but no visual output
+
+### Critical Finding: Logic vs. Display Restoration Gap
+
+**Key Insight**: The undefined variable fix successfully resolved the **function execution** problem, but revealed a deeper issue with **display restoration logic**.
+
+**What Works Now**:
+✅ Function executes completely without hanging
+✅ NVIDIA detection logic runs properly
+✅ nvidia_drm modeset=1 parameter applied correctly
+✅ All GPU binding operations successful
+
+**What Still Doesn't Work**:
+❌ Physical display remains black despite modeset=Y
+❌ No framebuffer device creation despite correct module configuration
+❌ Console output not visible on physical screen
+
+### Architecture Success vs. Display Problem
+
+**Function Architecture**: ✅ **FULLY OPERATIONAL**
+- Variable scoping issues resolved
+- Cross-platform driver detection working
+- Error handling and logging functional
+- Both gpu_ptd_w and gpu_pta_w execute properly
+
+**Display Restoration Logic**: ❌ **INSUFFICIENT**
+- modeset=Y parameter alone not sufficient for NVIDIA display restoration
+- Additional steps or different approach required
+- Problem is deeper than module parameter configuration
+
+### Next Steps After Reboot
+
+**Immediate Test Plan**:
+```bash
+reboot                              # Clean system state
+gpu_ptd_w && qm start 111           # Detach GPUs, start VM
+qm stop 111 && gpu_pta_w            # Stop VM, reattach with fixed function
+```
+
+**Success Criteria**:
+- ✅ Function execution (should work based on fix)
+- ❌ Display restoration (still needs investigation)
+
+**If Display Still Fails**: Need to investigate additional NVIDIA-specific display restoration requirements beyond modeset=1 parameter.
+
+### Technical Lesson Learned
+
+**Execution vs. Functionality**: Fixing function execution bugs doesn't automatically resolve the underlying technical problem. The undefined variable was preventing us from testing whether the nvidia modeset logic actually works for display restoration.
+
+**Current Status**: Ready for clean end-to-end test to determine if display restoration works in proper GPU passthrough cycle, rather than partial state testing.
