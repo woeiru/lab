@@ -169,10 +169,24 @@ Notes: New detach function (gpu_ptd_w) works fine with old attach
 ### Root Cause Identified:
 ```
 Problem Function: gpu_pta_w (new attach function)
-Specific Issue: VGA console restoration logic in gpu_pta_w is incomplete
+Specific Issue: VGA console restoration logic in gpu_pta_w was incomplete
                - GPU binding works (nouveau loads, boot_vga=1, /dev/fb0 exists)
-               - But vtcon0 remains unbound (stays at 0 instead of 1)
-               - Old gpu-pta function properly restores VGA console
-Fix Required: Compare VGA console restoration between old gpu-pta and new gpu_pta_w
-             Focus on vtcon0/vtcon1 binding sequence and timing
+               - But vtcon0 remained unbound (stayed at 0 instead of 1)
+               - Old gpu-pta function has no VGA console code but somehow works
+Fix Applied: Enhanced VGA console restoration in gpu_pta_w
+           - Added both vtcon1 (framebuffer) and vtcon0 (system) restoration
+           - Proper sequence: vtcon1 first, then vtcon0
+           - Better error handling and logging for each console type
+```
+
+### Fix Implementation:
+```
+Date: 2025-06-09 17:42
+Location: /root/lab/lib/ops/gpu lines 1521-1548
+Changes: Enhanced VGA console restoration logic
+        - Restore vtcon1 (framebuffer console) first
+        - Then restore vtcon0 (system console) for complete display
+        - Added detailed logging for each step
+        - Maintained proper timing (sleep 1) between unbind/rebind
+Ready for: Final test with both new functions (gpu_ptd_w + gpu_pta_w)
 ```
