@@ -730,7 +730,41 @@ done
 3. **New Implementation Superior**: Enhanced error handling, hardware reset, and VGA console restoration
 4. **Importance of Systematic Testing**: The test pattern revealed the true root cause
 
-**STATUS**: All GPU passthrough functions now enhanced and ready for production use on both nodes.
+## LATEST SESSION UPDATE (2025-06-09) - Still Black Screen After Enhancement
+
+**Current Issue**: Even after implementing the VGA console restoration fix in gpu_pta_w function, the screen still remains black after the passthrough cycle (gpu_ptd_w → gpu_pta_w). The old combination (gpu-ptd → gpu-pta) worked without display issues.
+
+**Key Finding**: While the enhanced gpu_pta_w function includes all necessary improvements (hardware reset + VGA console restoration), there may be additional differences between the old and new implementations that are causing the persistent display issue.
+
+**Next Investigation Required**:
+1. **Compare old vs new implementation differences** beyond the already-identified hardware reset
+2. **Test if the issue is in gpu_ptd_w** (the detach process) rather than gpu_pta_w
+3. **Verify VGA console restoration is executing correctly** in the current implementation
+4. **Check if additional display subsystem restoration steps are needed**
+
+**Status**: The enhanced functions are technically superior but still not achieving the same display restoration success as the old versions.
+
+## CRITICAL BUG DISCOVERED (2025-06-09) - Driver Detection Pattern Failure
+
+**MAJOR FINDING**: Both old and new implementations have incorrect driver detection patterns that prevent proper driver unloading:
+
+- **Old Pattern**: `lsmod | grep -q $driver` ❌ WRONG
+- **New Pattern**: `lsmod | grep -q "^${driver//-/_}"` ❌ WRONG  
+- **Correct Pattern**: `lsmod | awk 'NR>1 {print $1}' | grep -q "$driver"` ✅ WORKS
+
+**Impact**: Neither implementation properly unloads GPU drivers before detachment, which could cause:
+1. Driver conflicts during passthrough setup
+2. Incomplete hardware state transitions  
+3. Display restoration failures after reattachment
+
+**Evidence**:
+- `nouveau` driver currently loaded but both patterns fail to detect it
+- Driver unloading steps likely failing silently in both versions
+- This could explain why display restoration works inconsistently
+
+**Next Action**: Fix driver detection pattern in the new implementation and test complete passthrough cycle.
+
+**STATUS**: Critical bug identified - driver detection patterns broken in both implementations.
 
 ---
 
