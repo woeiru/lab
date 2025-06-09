@@ -487,3 +487,58 @@ rmmod nvidia_drm && modprobe nvidia_drm modeset=1
 - Timing dependencies
 
 The manual fix proves the solution works - now we need to debug why the automated implementation doesn't execute the same logic.
+
+## EXECUTION TIMING ISSUE DISCOVERED & FIXED (2025-06-09 19:58)
+
+### Root Cause Identified: Wrong Execution Order
+
+**Problem**: The NVIDIA modeset=1 logic was running at the WRONG TIME in the gpu_pta_w function:
+
+**Original Broken Sequence**:
+```
+1. Load nvidia driver module
+2. Try to configure nvidia_drm modeset=1  ← TOO EARLY! GPU not bound yet
+3. Bind GPU to nvidia driver
+4. Report success
+```
+
+**Manual Fix That Works**:
+```
+rmmod nvidia_drm && modprobe nvidia_drm modeset=1
+```
+This works because it runs AFTER the GPU is already bound to nvidia driver.
+
+### Solution Implemented
+
+**Fixed Sequence in gpu_pta_w**:
+```
+1. Load nvidia driver module  
+2. Bind GPU to nvidia driver
+3. Report success
+4. Configure nvidia_drm modeset=1  ← NOW CORRECT! After successful binding
+```
+
+### Code Changes Made
+
+**Location**: `/root/lab/lib/ops/gpu` lines 1522-1559
+
+**Changes**:
+- **Moved** NVIDIA modeset=1 logic from lines 1502-1535 (before binding)
+- **To** lines 1522-1559 (after successful binding)
+- **Added** detailed debug output to track execution
+- **Improved** error handling for rmmod/modprobe operations
+
+### Key Technical Insight
+
+**Timing is Critical**: The `rmmod nvidia_drm && modprobe nvidia_drm modeset=1` command only works properly when:
+1. The GPU is already bound to the nvidia driver
+2. The nvidia driver is fully loaded and active
+3. The framebuffer subsystem can properly initialize
+
+**Previous Implementation Failure**: Running modeset=1 configuration before GPU binding meant the framebuffer console couldn't properly initialize because the GPU wasn't available to the nvidia driver yet.
+
+### Expected Result
+
+The gpu_pta_w function should now work automatically without requiring the manual `rmmod nvidia_drm && modprobe nvidia_drm modeset=1` fix, because it now executes the same logic at the correct time in the process.
+
+**Status**: Ready for testing to confirm the fix works end-to-end.
