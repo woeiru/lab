@@ -543,6 +543,80 @@ The gpu_pta_w function should now work automatically without requiring the manua
 
 **Status**: Ready for testing to confirm the fix works end-to-end.
 
+## MODPROBE -R TESTING RESULTS (2025-06-09 21:27)
+
+### Test Execution
+**Command Sequence**:
+```bash
+gpu_ptd_w && qm start 111  # ✅ SUCCESS
+qm stop 111               # ✅ SUCCESS  
+gpu_pta_w                 # ⚠️ PARTIAL SUCCESS / TIMEOUT
+```
+
+### Results Analysis
+
+**GPU Binding**: ✅ **SUCCESS**
+- GPU successfully bound to nvidia driver
+- `lspci -s 3b:00.0` shows `Kernel driver in use: nvidia`
+
+**NVIDIA Modeset Parameter**: ✅ **SUCCESS**
+- `cat /sys/module/nvidia_drm/parameters/modeset` → `Y`
+- The modprobe -r logic successfully set modeset=1
+
+**Function Execution**: ⚠️ **TIMEOUT ISSUE**
+- Function hung at final step: `DEBUG: Loading nvidia_drm with modeset=1`
+- Timeout occurred after 2 minutes during `modprobe nvidia_drm modeset=1`
+
+**Display Status**: ❌ **FAILED**
+- Console display is still BLACK SCREEN
+- Terminal commands work through SSH connection only
+- **Black screen issue persists despite modeset=Y**
+
+**Framebuffer Status**: ❌ **MISSING**
+- No `/dev/fb*` devices exist despite modeset=Y
+- This might be expected behavior for NVIDIA driver
+
+### Key Findings
+
+#### 1. **Modeset Parameter Success BUT Display Still Fails**
+- ✅ modeset=Y parameter set correctly
+- ✅ GPU bound to nvidia driver successfully
+- ❌ **Display still shows BLACK SCREEN**
+- ❌ Console not functional on physical display
+
+#### 2. **Critical Discovery: modeset=Y ≠ Working Display**
+The fundamental assumption was **WRONG**:
+- `modeset=Y` parameter is set correctly
+- GPU binding to nvidia driver works
+- **BUT the display is still black**
+- **modeset=Y is necessary but NOT sufficient for display restoration**
+
+#### 3. **Missing Components Analysis**
+Despite having:
+- ✅ modeset=Y
+- ✅ nvidia driver bound
+- ✅ Function timeout at final step
+
+We're missing:
+- ❌ `/dev/fb*` framebuffer devices
+- ❌ Actual display output
+- ❌ Working console
+
+### Critical Realization
+
+**THE MODESET=1 APPROACH IS INCOMPLETE**: Setting `modeset=Y` alone doesn't restore display functionality. There are additional steps or components required for NVIDIA display restoration that we haven't identified yet.
+
+### Further Debugging Required
+
+**Next Investigation Areas**:
+1. **VGA Arbitration**: Check if VGA arbitration needs explicit configuration
+2. **Console Rebinding**: Check if console rebinding is still needed despite modeset=Y  
+3. **Display Manager**: Check if display manager/X11 components need restart
+4. **Hardware Reset**: Check if hardware reset is actually needed
+5. **Timing Issues**: Check if there are timing dependencies we're missing
+
+**The problem is deeper than just modeset parameter - we need to identify what additional steps are required for complete NVIDIA display restoration.**
+
 ## FUNCTION EXECUTION DEBUGGING (2025-06-09 21:10)
 
 ### Issue: Automated Function vs Manual Command Discrepancy
