@@ -1521,14 +1521,26 @@ gpu_pta() {
         # Restore VGA console after GPU reattachment to fix display issues
         aux_info "Restoring VGA console" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,action=initiated"
         printf "INFO: Restoring VGA console for GPU %s...\n" "$pci_id"
+        
+        # First restore vtcon1 (framebuffer console)
         if [ -w "/sys/class/vtconsole/vtcon1/bind" ]; then
-            # Unbind and rebind framebuffer console to restore display
             if echo 0 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null && sleep 1 && echo 1 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null; then
-                aux_info "VGA console restoration successful" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,status=success"
-                printf "${GREEN}SUCCESS: VGA console restored for GPU %s.${NC}\n" "$pci_id"
+                aux_info "VGA framebuffer console restoration successful" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,vtcon=vtcon1,status=success"
+                printf "INFO: VGA framebuffer console (vtcon1) restored for GPU %s.\n" "$pci_id"
             else
-                aux_warn "VGA console restoration failed" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,status=failed"
-                printf "${YELLOW}WARNING: VGA console restoration failed for GPU %s. Display may require manual intervention.${NC}\n" "$pci_id"
+                aux_warn "VGA framebuffer console restoration failed" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,vtcon=vtcon1,status=failed"
+                printf "${YELLOW}WARNING: VGA framebuffer console (vtcon1) restoration failed for GPU %s.${NC}\n" "$pci_id"
+            fi
+        fi
+        
+        # Then restore vtcon0 (system console) for complete display restoration
+        if [ -w "/sys/class/vtconsole/vtcon0/bind" ]; then
+            if echo 0 > /sys/class/vtconsole/vtcon0/bind 2>/dev/null && sleep 1 && echo 1 > /sys/class/vtconsole/vtcon0/bind 2>/dev/null; then
+                aux_info "VGA system console restoration successful" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,vtcon=vtcon0,status=success"
+                printf "${GREEN}SUCCESS: VGA console fully restored for GPU %s.${NC}\n" "$pci_id"
+            else
+                aux_warn "VGA system console restoration failed" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,vtcon=vtcon0,status=failed"
+                printf "${YELLOW}WARNING: VGA system console (vtcon0) restoration failed for GPU %s. Display may require manual intervention.${NC}\n" "$pci_id"
             fi
         else
             aux_warn "VGA console control not available" "component=gpu,operation=gpu_attachment,pci_id=${pci_id},step=vga_console_restore,status=unavailable"
