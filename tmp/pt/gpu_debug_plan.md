@@ -543,6 +543,95 @@ The gpu_pta_w function should now work automatically without requiring the manua
 
 **Status**: Ready for testing to confirm the fix works end-to-end.
 
+## FUNCTION EXECUTION DEBUGGING (2025-06-09 21:10)
+
+### Issue: Automated Function vs Manual Command Discrepancy
+
+**Manual Command (Works Every Time)**:
+```bash
+rmmod nvidia_drm && modprobe nvidia_drm modeset=1
+Result: modeset=Y, /dev/fb0 created, display restored
+```
+
+**Function Execution (Fails)**:
+```bash
+gpu_pta_w output:
+DEBUG: Successfully loaded nvidia_drm with modeset=1
+DEBUG: Final modeset status: N  ← Problem: Still N instead of Y
+```
+
+### Root Cause Analysis
+
+**Key Discovery**: `modprobe nvidia_drm modeset=1` on an already-loaded module:
+- ✅ Returns exit code 0 (appears successful)
+- ❌ Does NOT change the modeset parameter
+- ❌ Parameter remains at previous value (N)
+
+**Implication**: The `rmmod nvidia_drm` in the function must be failing silently, leaving the module loaded with `modeset=N`.
+
+### Debug Investigation Results
+
+**Manual Test Sequence**:
+1. `cat /sys/module/nvidia_drm/parameters/modeset` → `N`
+2. `modprobe nvidia_drm modeset=1` → exit code 0
+3. `cat /sys/module/nvidia_drm/parameters/modeset` → Still `N` (unchanged!)
+4. `rmmod nvidia_drm && modprobe nvidia_drm modeset=1` → `Y` (works!)
+
+**Conclusion**: The function's `rmmod nvidia_drm` is not executing properly or failing silently, so the subsequent `modprobe nvidia_drm modeset=1` operates on an already-loaded module and cannot change the parameter.
+
+### Proposed Fix
+
+**Enhanced Error Handling**: Make the rmmod more robust and verify it actually unloads:
+
+```bash
+# Force unload with verification
+if lsmod | grep -q "^nvidia_drm"; then
+    printf "DEBUG: Attempting to unload nvidia_drm\n"
+    if rmmod nvidia_drm 2>/dev/null; then
+        printf "DEBUG: rmmod command returned success\n"
+        # Verify it's actually unloaded
+        if lsmod | grep -q "^nvidia_drm"; then
+            printf "ERROR: nvidia_drm still loaded despite rmmod success\n"
+        else
+            printf "DEBUG: nvidia_drm successfully unloaded\n"
+        fi
+    else
+        printf "ERROR: rmmod nvidia_drm failed\n"
+    fi
+fi
+```
+
+**Alternative Approach**: Use `modprobe -r` (remove) instead of `rmmod`:
+```bash
+modprobe -r nvidia_drm 2>/dev/null || true
+modprobe nvidia_drm modeset=1
+```
+
+### ENHANCED FIX IMPLEMENTATION (2025-06-09 21:15)
+
+**Problem**: The `rmmod nvidia_drm` in gpu_pta function was failing silently, leaving the module loaded with `modeset=N`. When `modprobe nvidia_drm modeset=1` runs on an already-loaded module, it returns success but doesn't change the parameter.
+
+**Solution Applied**: Enhanced the nvidia_drm reload logic in `/root/lab/lib/ops/gpu` lines 1533-1563:
+
+**Key Changes**:
+1. **Replaced `rmmod` with `modprobe -r`**: More reliable removal that handles dependencies
+2. **Added verification step**: Check if module is actually unloaded after removal attempt
+3. **Fallback to rmmod**: If `modprobe -r` fails, try `rmmod` as backup
+4. **Enhanced debug output**: Track each step of the removal and reload process
+
+**Expected Behavior**: 
+- The function should now successfully unload `nvidia_drm` 
+- Reload it with `modeset=1` parameter
+- Final status should show `modeset=Y`
+- `/dev/fb0` framebuffer device should be created
+- Display should be restored automatically
+
+**Next Test Plan After Reboot**:
+1. Clean system reboot
+2. Run full cycle: `gpu_ptd_w && qm start 111 && qm stop 111 && gpu_pta_w`
+3. Check if `modeset=Y` and `/dev/fb0` exists without manual intervention
+4. Verify display is working
+
 ## MODPROBE PARAMETER OVERRIDE ISSUE DISCOVERED & FIXED (2025-06-09 20:51)
 
 ### Root Cause Identified: Module Parameter Cannot Be Changed on Already-Loaded Module
