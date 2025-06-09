@@ -152,24 +152,18 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # GPU Initialize Colors - GIC
 # 
 _gpu_init_colors() {
-    aux_dbg "Function ${FUNCNAME[0]} started" "component=gpu,operation=color_init"
-    
-    # Only initialize colors if not already defined (prevents readonly variable conflicts)
-    if [[ -z "$GREEN" ]]; then
-        readonly GREEN=$(printf '\033[0;32m')
-        readonly YELLOW=$(printf '\033[0;33m')
-        readonly RED=$(printf '\033[0;31m')
-        readonly CYAN=$(printf '\033[0;36m')
-        readonly MAGENTA=$(printf '\033[0;35m')
-        readonly INDIGO_BLUE=$(printf '\033[38;2;75;0;130m')
-        readonly NC=$(printf '\033[0m') # No Color
-        readonly CHECK_MARK="${GREEN}✓${NC}"
-        readonly CROSS_MARK="${RED}✗${NC}"
-        readonly QUESTION_MARK="${YELLOW}?${NC}"
-        aux_dbg "Color constants initialized" "component=gpu,operation=color_init,status=complete"
-    else
-        aux_dbg "Color constants already initialized, skipping" "component=gpu,operation=color_init,status=skip"
-    fi
+    # Color initialization disabled to prevent readonly variable conflicts
+    # Setting all color variables to empty strings
+    GREEN=""
+    YELLOW=""
+    RED=""
+    CYAN=""
+    MAGENTA=""
+    INDIGO_BLUE=""
+    NC=""
+    CHECK_MARK="✓"
+    CROSS_MARK="✗"
+    QUESTION_MARK="?"
 }
 
 # Validate PCI ID format using regex pattern matching
