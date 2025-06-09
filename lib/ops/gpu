@@ -1499,41 +1499,6 @@ gpu_pta() {
         # DEBUG: Check host_driver value
         printf "DEBUG: host_driver='%s' (comparing to 'nvidia')\n" "$host_driver"
         
-        # NVIDIA driver specific: Load DRM modules with proper framebuffer support
-        if [ "$host_driver" = "nvidia" ]; then
-            printf "DEBUG: Entering NVIDIA-specific code section\n"
-            printf "INFO: Loading NVIDIA DRM modules with framebuffer support for display...\n"
-            # Load nvidia_modeset if not loaded
-            if ! lsmod | grep -q "^nvidia_modeset"; then
-                modprobe nvidia_modeset
-            fi
-            # Load nvidia_drm with modeset=1 for framebuffer console support
-            if ! lsmod | grep -q "^nvidia_drm"; then
-                modprobe nvidia_drm modeset=1
-            else
-                # If already loaded, check if modeset is enabled
-                local modeset_status=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "N")
-                if [ "$modeset_status" = "N" ]; then
-                    printf "DEBUG: Found modeset=N, executing reload sequence\n"
-                    printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
-                    if rmmod nvidia_drm 2>/dev/null; then
-                        printf "DEBUG: Successfully unloaded nvidia_drm\n"
-                    else
-                        printf "DEBUG: rmmod nvidia_drm failed or module not loaded\n"
-                    fi
-                    if modprobe nvidia_drm modeset=1; then
-                        printf "DEBUG: Successfully loaded nvidia_drm with modeset=1\n"
-                    else
-                        printf "DEBUG: Failed to load nvidia_drm with modeset=1\n"
-                    fi
-                else
-                    printf "DEBUG: modeset already enabled (status=%s)\n" "$modeset_status"
-                fi
-            fi
-        else
-            printf "DEBUG: Not nvidia driver, skipping nvidia-specific setup\n"
-        fi
-        
         # Simple minimal attachment - based on working gpu-pta function
         printf "INFO: Attempting to bind GPU %s to driver %s using minimal approach...\n" "$pci_id" "$host_driver"
         
@@ -1552,6 +1517,45 @@ gpu_pta() {
             fi
         else
             printf "${GREEN}SUCCESS: GPU %s is now bound to %s.${NC}\n" "$pci_id" "$host_driver"
+        fi
+        
+        # NVIDIA driver specific: Enable framebuffer console support AFTER successful binding
+        if [ "$host_driver" = "nvidia" ]; then
+            printf "DEBUG: Entering post-binding NVIDIA modeset fix\n"
+            printf "INFO: Configuring NVIDIA DRM for framebuffer display support...\n"
+            
+            # Load nvidia_modeset if not loaded
+            if ! lsmod | grep -q "^nvidia_modeset"; then
+                printf "DEBUG: Loading nvidia_modeset module\n"
+                modprobe nvidia_modeset
+            fi
+            
+            # Handle nvidia_drm with modeset=1 for framebuffer console support
+            if ! lsmod | grep -q "^nvidia_drm"; then
+                printf "DEBUG: Loading nvidia_drm with modeset=1\n"
+                modprobe nvidia_drm modeset=1
+            else
+                # If already loaded, check if modeset is enabled
+                local modeset_status=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "N")
+                printf "DEBUG: Current modeset status: %s\n" "$modeset_status"
+                if [ "$modeset_status" = "N" ]; then
+                    printf "DEBUG: Found modeset=N, executing reload sequence\n"
+                    printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
+                    if rmmod nvidia_drm 2>/dev/null; then
+                        printf "DEBUG: Successfully unloaded nvidia_drm\n"
+                        if modprobe nvidia_drm modeset=1; then
+                            printf "DEBUG: Successfully loaded nvidia_drm with modeset=1\n"
+                            printf "INFO: NVIDIA framebuffer display support enabled.\n"
+                        else
+                            printf "DEBUG: Failed to load nvidia_drm with modeset=1\n"
+                        fi
+                    else
+                        printf "DEBUG: Failed to unload nvidia_drm, may be in use\n"
+                    fi
+                else
+                    printf "DEBUG: modeset already enabled (status=%s)\n" "$modeset_status"
+                fi
+            fi
         fi
     done
 
