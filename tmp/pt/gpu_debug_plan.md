@@ -542,3 +542,50 @@ This works because it runs AFTER the GPU is already bound to nvidia driver.
 The gpu_pta_w function should now work automatically without requiring the manual `rmmod nvidia_drm && modprobe nvidia_drm modeset=1` fix, because it now executes the same logic at the correct time in the process.
 
 **Status**: Ready for testing to confirm the fix works end-to-end.
+
+## MODPROBE PARAMETER OVERRIDE ISSUE DISCOVERED & FIXED (2025-06-09 20:51)
+
+### Root Cause Identified: Module Parameter Cannot Be Changed on Already-Loaded Module
+
+**Problem**: Even after moving NVIDIA modeset logic to correct execution timing, the function still failed because:
+
+**Discovery Process**:
+1. ✅ Function logs showed NVIDIA modeset logic was executing
+2. ✅ GPU binding to nvidia driver was successful  
+3. ❌ modeset parameter remained `N` instead of `Y`
+4. ❌ No `/dev/fb0` framebuffer device created
+5. ❌ Display remained black
+
+**Technical Issue**: `modprobe nvidia_drm modeset=1` on an already-loaded module **does NOT change the parameter**. Module parameters can only be set during initial loading.
+
+**Failed Logic in gpu_pta Function**:
+```bash
+# This does NOT work if nvidia_drm is already loaded:
+if ! lsmod | grep -q "^nvidia_drm"; then
+    modprobe nvidia_drm modeset=1  # ← Only works if module not loaded
+else
+    # Complex conditional logic that failed to execute properly
+fi
+```
+
+### Solution Implemented
+
+**Architecture Insight**: The issue was in the **pure function** `gpu_pta` in `/root/lab/lib/ops/gpu`, not the wrapper `gpu_pta_w` in `/root/lab/src/mgt/gpu`.
+
+**Corrected Logic** (lines 1533-1561):
+```bash
+# Force reload nvidia_drm with modeset=1 for framebuffer console support
+# Always force reload to ensure modeset=1 is applied
+if lsmod | grep -q "^nvidia_drm"; then
+    rmmod nvidia_drm  # Unload existing module
+fi
+modprobe nvidia_drm modeset=1  # Load with correct parameter
+```
+
+**Key Changes**:
+1. **Removed Complex Conditionals**: Eliminated conditional logic that was failing to execute
+2. **Force Reload Always**: Always unload and reload `nvidia_drm` for NVIDIA GPUs
+3. **Parameter Verification**: Added final check to confirm `modeset=Y` is properly set
+4. **Better Debug Logging**: Track each step of the reload process
+
+**Expected Result**: The `gpu_pta_w` function should now automatically apply the same fix as the manual command `rmmod nvidia_drm && modprobe nvidia_drm modeset=1`.
