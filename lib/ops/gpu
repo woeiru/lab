@@ -1299,6 +1299,24 @@ gpu_ptd() {
         aux_warn "GPU configuration file not available for detachment" "component=gpu,operation=passthrough_detach,config_file=${config_file},status=unavailable"
     fi
 
+    # Unload GPU drivers to prevent conflicts (critical fix from old gpu-ptd)
+    local drivers_to_unload=(nouveau nvidia amdgpu radeon)
+    for driver in "${drivers_to_unload[@]}"; do
+        if lsmod | grep -q "^${driver//-/_}"; then
+            aux_info "Unloading GPU driver for clean detachment" "component=gpu,operation=passthrough_detach,driver=${driver},action=unload"
+            printf "INFO: Unloading %s driver for clean detachment...\n" "$driver"
+            if modprobe -r "$driver" 2>/dev/null; then
+                aux_info "GPU driver unloaded successfully" "component=gpu,operation=passthrough_detach,driver=${driver},status=success"
+                printf "INFO: Successfully unloaded %s driver.\n" "$driver"
+            else
+                aux_warn "GPU driver unload failed" "component=gpu,operation=passthrough_detach,driver=${driver},status=failed"
+                printf "${YELLOW}WARNING: Failed to unload %s driver. Continuing anyway.${NC}\n" "$driver"
+            fi
+        else
+            printf "INFO: %s driver not loaded.\n" "$driver"
+        fi
+    done
+
     # Ensure VFIO modules are loaded
     if ! _gpu_ensure_vfio_modules; then
         aux_err "VFIO modules loading failed" "component=gpu,operation=passthrough_detach,step=vfio_modules,status=failed"
