@@ -1496,8 +1496,12 @@ gpu_pta() {
             fi
         fi
         
+        # DEBUG: Check host_driver value
+        printf "DEBUG: host_driver='%s' (comparing to 'nvidia')\n" "$host_driver"
+        
         # NVIDIA driver specific: Load DRM modules with proper framebuffer support
         if [ "$host_driver" = "nvidia" ]; then
+            printf "DEBUG: Entering NVIDIA-specific code section\n"
             printf "INFO: Loading NVIDIA DRM modules with framebuffer support for display...\n"
             # Load nvidia_modeset if not loaded
             if ! lsmod | grep -q "^nvidia_modeset"; then
@@ -1510,11 +1514,24 @@ gpu_pta() {
                 # If already loaded, check if modeset is enabled
                 local modeset_status=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "N")
                 if [ "$modeset_status" = "N" ]; then
+                    printf "DEBUG: Found modeset=N, executing reload sequence\n"
                     printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
-                    rmmod nvidia_drm 2>/dev/null || true
-                    modprobe nvidia_drm modeset=1
+                    if rmmod nvidia_drm 2>/dev/null; then
+                        printf "DEBUG: Successfully unloaded nvidia_drm\n"
+                    else
+                        printf "DEBUG: rmmod nvidia_drm failed or module not loaded\n"
+                    fi
+                    if modprobe nvidia_drm modeset=1; then
+                        printf "DEBUG: Successfully loaded nvidia_drm with modeset=1\n"
+                    else
+                        printf "DEBUG: Failed to load nvidia_drm with modeset=1\n"
+                    fi
+                else
+                    printf "DEBUG: modeset already enabled (status=%s)\n" "$modeset_status"
                 fi
             fi
+        else
+            printf "DEBUG: Not nvidia driver, skipping nvidia-specific setup\n"
         fi
         
         # Simple minimal attachment - based on working gpu-pta function
