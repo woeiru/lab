@@ -60,7 +60,7 @@
 #
 # Integration Points:
 #   - Works with security utilities (/home/es/lab/lib/gen/sec)
-#   - Integrates with environment management (/home/es/lab/src/aux/set)
+#   - Integrates with environment management (/home/es/lab/src/set/.menu)
 #   - Compatible with existing deployment scripts
 #
 # Maintenance:

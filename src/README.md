@@ -11,7 +11,7 @@ The `src/` directory contains the operational source code for infrastructure man
 | Directory | Purpose | Usage Pattern | Dependencies |
 |-----------|---------|---------------|--------------|
 | [`mgt/`](#srcmgt---runtime-infrastructure-control) | Runtime Infrastructure Control | Interactive/Individual Operations | Requires `bin/ini` environment |
-| [`set/`](#srcset---deployment--initial-setup) | Deployment & Initial Setup | Batch/Multi-node Operations | Self-sufficient via `src/aux/set` |
+| [`set/`](#srcset---deployment--initial-setup) | Deployment & Initial Setup | Batch/Multi-node Operations | Self-sufficient via `src/set/.menu` |
 | [`too/`](#srctoo---specialized-tools) | Specialized Tools | Specific Use Cases | Varies by tool |
 
 ---
@@ -84,7 +84,7 @@ The `set/` (setup) directory implements a **section-based deployment architectur
                                 │
                                 v
                        ┌──────────────────┐
-                       │   src/aux/set    │
+                       │   src/set/.menu  │
                        │  (Auto-sourced)  │
                        │  Interactive UI  │
                        └──────────────────┘
@@ -92,10 +92,10 @@ The `set/` (setup) directory implements a **section-based deployment architectur
 
 ### **Key Characteristics**
 
-- **Self-Sufficient**: Each script sources `src/aux/set` directly, no initialization required
+- **Self-Sufficient**: Each script sources `src/set/.menu` directly, no initialization required
 - **Hostname-Based Naming**: Files correspond to actual infrastructure hostnames
 - **Section Organization**: Functions named with patterns like `a_xall`, `b_xall` for logical grouping
-- **Interactive Framework**: Built-in menu system via `src/aux/set` for guided deployment
+- **Interactive Framework**: Built-in menu system via `src/set/.menu` for guided deployment
 - **Multi-Node Capable**: Designed for remote execution and batch operations
 
 ### **Files in `src/set/`**
@@ -184,7 +184,7 @@ src/mgt/*
 └── Accesses: cfg/env/* (site configurations)
 
 src/set/*
-├── Sources: src/aux/set (interactive framework)
+├── Sources: src/set/.menu (interactive framework)
 ├── Uses: lib/ops/* (direct function calls)
 └── Self-manages: Configuration loading and variable resolution
 ```
@@ -192,7 +192,7 @@ src/set/*
 ### **Configuration Integration**
 
 - **`src/mgt/`**: Leverages the full configuration hierarchy via `bin/ini`
-- **`src/set/`**: Automatically loads configuration through `src/aux/set`
+- **`src/set/`**: Automatically loads configuration through `src/set/.menu`
 - **Both**: Access site-specific variables from `cfg/env/site*` files
 
 ---
