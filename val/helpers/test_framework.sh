@@ -39,11 +39,21 @@ framework_init() {
     
     # Set LAB_ROOT if not already set
     if [[ -z "$LAB_ROOT" ]]; then
+        # Start from the script's directory
         LAB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        # Navigate up to find the lab root
-        while [[ "$LAB_ROOT" != "/" ]] && [[ ! -f "$LAB_ROOT/entry.sh" ]]; do
+        
+        # Navigate up to find the lab root (look for bin/ini or README.md)
+        while [[ "$LAB_ROOT" != "/" ]]; do
+            if [[ -f "$LAB_ROOT/bin/ini" ]] && [[ -d "$LAB_ROOT/lib" ]] && [[ -d "$LAB_ROOT/cfg" ]]; then
+                break
+            fi
             LAB_ROOT="$(dirname "$LAB_ROOT")"
         done
+        
+        # Fallback to /home/es/lab if not found
+        if [[ "$LAB_ROOT" == "/" ]] || [[ ! -d "$LAB_ROOT/lib" ]]; then
+            LAB_ROOT="/home/es/lab"
+        fi
         export LAB_ROOT
     fi
     
