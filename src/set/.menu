@@ -1,95 +1,23 @@
 #!/bin/bash
 #######################################################################
-# Environment-Aware Deployment Framework
+# Environment Configuration Loader
 #######################################################################
 # File: /home/es/lab/src/set/.menu
-# Description: Enhanced deployment framework providing environment-aware
-#              configuration loading with hierarchical override support,
-#              runtime constants integration, and context-aware execution
-#              for infrastructure deployment scripts.
+# 
+# Purpose: Provides environment-aware configuration loading with
+#          hierarchical overrides and menu-driven script execution.
 #
-# Dependencies:
-#   - Runtime constants (cfg/core/ric)
-#   - Environment configurations (cfg/env/*)
-#   - Infrastructure utilities (lib/gen/inf)
-#   - Security utilities (lib/gen/sec)
-#   - Bash 4.0+ (for associative arrays and advanced features)
+# Features:
+#   - Dynamic sourcing of cfg/env/*, lib/ops/*, and local files
+#   - Hierarchical config: base → environment → node overrides
+#   - Interactive (-i) and direct execution (-x) modes
+#   - Runtime constants integration (cfg/core/ric)
 #
-# Purpose:
-#   Provides a comprehensive framework for executing deployment scripts
-#   with environment-aware configuration loading, interactive and direct
-#   execution modes, and standardized utility integration for consistent
-#   infrastructure management across different environments.
-#
-# Key Enhancements (v2.0.0):
-#   - Hierarchical configuration loading (base → environment → node)
-#   - Runtime constants integration with proper LAB_ROOT detection
-#   - Environment context display during deployment operations
-#   - Automatic infrastructure and security utility loading
-#   - Enhanced error handling and validation
-#   - Backward compatibility with legacy sourcing methods
-#
-# Configuration Hierarchy:
-#   1. Base Site Configuration: cfg/env/site1
-#   2. Environment Override: cfg/env/site1-dev (if ENVIRONMENT=dev)
-#   3. Node Override: cfg/env/site1-w2 (if NODE=w2)
-#
-# Key Functions:
-#   - setup_source: Enhanced environment initialization with hierarchy
-#   - get_section_ids: Identifies executable sections within scripts
-#   - get_section_description: Retrieves descriptions for script sections
-#   - print_usage: Displays help and usage instructions
-#   - setup_main: Parses command-line arguments and routes to execution modes
-#   - setup_interactive_mode: Provides menu-driven interface
-#   - setup_executing_mode: Direct execution of specified sections
-#   - setup_display_menu: Formats and displays script content
-#
-# Environment Variables Set:
-#   - LAB_ROOT: Detected lab directory root
-#   - SITE: Current site identifier (default: site1)
-#   - ENVIRONMENT: Environment override (dev/test/staging/prod)
-#   - NODE: Node-specific override (h1/w2/x1/x2/etc)
-#
-# Usage Examples:
-#   source /home/es/lab/src/set/.menu                    # Load with defaults
-#   ENVIRONMENT=dev source /home/es/lab/src/set/.menu    # Development environment
-#   NODE=w2 source /home/es/lab/src/set/.menu           # Node-specific config
-#   
-#   # Script execution modes:
+# Usage:
+#   source .menu                      # Load configurations
 #   ./script.sh -i                    # Interactive mode
 #   ./script.sh -x section_name       # Execute specific section
-#   ./script.sh --help               # Display usage information
-#
-# Integration Points:
-#   - Used by all deployment scripts in lib/ops/
-#   - Integrates with infrastructure utilities
-#   - Compatible with security management
-#   - Supports CI/CD pipeline integration
-#   - Works with testing and validation frameworks
-#
-# Security Features:
-#   - Secure configuration loading with validation
-#   - Proper file permission checking
-#   - Environment isolation and context management
-#   - No sensitive data exposure in process lists
-#
-# Performance Optimizations:
-#   - Efficient configuration hierarchy processing
-#   - Minimal file system operations
-#   - Cached utility loading
-#   - Fast environment context switching
-#
-# Error Handling:
-#   - Comprehensive validation of configuration files
-#   - Graceful fallback for missing overrides
-#   - Clear error messages with troubleshooting hints
-#   - Non-destructive error recovery
-#
-# Maintenance Guidelines:
-#   - Keep configuration hierarchy logic centralized
-#   - Update environment variable documentation
-#   - Test configuration loading with all combinations
-#   - Maintain backward compatibility with existing scripts
+#   ENVIRONMENT=dev source .menu      # Environment override
 #######################################################################
 
 # ==============================================================================
