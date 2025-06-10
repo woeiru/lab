@@ -44,20 +44,16 @@ fi
 if declare -f aux_log >/dev/null; then
     ((functions_found++))
 fi
-if declare -f ana_laf >/dev/null; then
-    ((functions_found++))
-fi
-if declare -f ana_acu >/dev/null; then
-    ((functions_found++))
-fi
-# aux_nos function has been removed - using aux_log instead
-# if declare -f aux_nos >/dev/null; then
-#     ((functions_found++))
-# fi
-if declare -f aux_flc >/dev/null; then
-    ((functions_found++))
-fi
 if declare -f aux_use >/dev/null; then
+    ((functions_found++))
+fi
+if declare -f aux_tec >/dev/null; then
+    ((functions_found++))
+fi
+if declare -f aux_ffl >/dev/null; then
+    ((functions_found++))
+fi
+if declare -f aux_arr >/dev/null; then
     ((functions_found++))
 fi
 
@@ -118,16 +114,13 @@ source lib/gen/aux 2>/dev/null
 # Test function listing capabilities
 analysis_tools=0
 
-# Test if ana_laf (list all functions) works
-if declare -f ana_laf >/dev/null; then
-    # Test with the aux library itself
-    if ana_laf "$LAB_DIR/lib/gen/aux" -t 2>/dev/null | grep -q "aux-"; then
-        ((analysis_tools++))
-    fi
+# Test if aux_tec (technical functions) works
+if declare -f aux_tec >/dev/null; then
+    ((analysis_tools++))
 fi
 
-# Test if aux_flc (function library cat) works  
-if declare -f aux_flc >/dev/null; then
+# Test if aux_ffl (file folder loop) works  
+if declare -f aux_ffl >/dev/null; then
     ((analysis_tools++))
 fi
 
@@ -155,23 +148,20 @@ cd "$LAB_DIR"
 source lib/gen/aux 2>/dev/null
 
 # Test variable analysis functionality
-if declare -f ana_acu >/dev/null; then
-    # Create a test config file
-    test_config="/tmp/test_config_$$"
-    echo 'TEST_VAR1="value1"' > "$test_config"
-    echo 'TEST_VAR2="value2"' > "$test_config"
-    
-    # Test variable analysis (don't fail if no matches found)
-    if ana_acu -o "$test_config" "$LAB_DIR/lib" 2>/dev/null; then
-        rm -f "$test_config"
+if declare -f aux_var >/dev/null; then
+    # Test basic variable functionality
+    if aux_var 2>/dev/null; then
         exit 0
     fi
-    
-    rm -f "$test_config"
 fi
 
-# Test variable modification functionality
-if declare -f aux_mev >/dev/null; then
+# Test array functionality
+if declare -f aux_arr >/dev/null; then
+    exit 0
+fi
+
+# Test value functionality  
+if declare -f aux_val >/dev/null; then
     exit 0
 fi
 

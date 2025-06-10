@@ -21,7 +21,28 @@ test_tme_module_exists() {
 }
 
 test_tme_module_sourceable() {
-    test_source "$TME_LIB" "TME module can be sourced"
+    # Try to source TME module, handling verification dependency gracefully
+    local test_env=$(create_test_env "tme_source")
+    
+    cat > "$test_env/test_source.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="/home/es/lab"
+cd "$LAB_DIR"
+
+# Define a minimal ver_verify_module function for testing
+ver_verify_module() { return 0; }
+
+# Try to source the TME module
+if source lib/core/tme 2>/dev/null; then
+    exit 0
+else
+    exit 1
+fi
+EOF
+    chmod +x "$test_env/test_source.sh"
+    
+    run_test "TME module can be sourced" "$test_env/test_source.sh"
+    cleanup_test_env "$test_env"
 }
 
 test_tme_core_functions() {

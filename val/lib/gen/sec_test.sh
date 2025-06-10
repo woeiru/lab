@@ -34,9 +34,9 @@ cd "$LAB_DIR"
 source lib/gen/sec 2>/dev/null
 
 # Test that core security functions exist
-if declare -f generate_secure_password >/dev/null && \
-   declare -f store_secure_password >/dev/null && \
-   declare -f init_password_management >/dev/null; then
+if declare -f sec_generate_secure_password >/dev/null && \
+   declare -f sec_store_secure_password >/dev/null && \
+   declare -f sec_init_password_management >/dev/null; then
     exit 0
 else
     exit 1
