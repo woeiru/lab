@@ -1548,12 +1548,36 @@ gpu_pta() {
         printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
         
         # Remove nvidia_drm if loaded
-        if lsmod | grep -q "^nvidia_drm"; then
-            printf "INFO: Removing nvidia_drm module...\n"
-            if ! rmmod nvidia_drm 2>/dev/null; then
-                printf "WARNING: nvidia_drm module in use, attempting modprobe -r...\n"
-                modprobe -r nvidia_drm 2>/dev/null || printf "WARNING: Could not remove nvidia_drm\n"
+        if [ -d "/sys/module/nvidia_drm" ]; then
+            printf "DEBUG: nvidia_drm module currently loaded, attempting removal...\n"
+            printf "DEBUG: Module usage before removal: $(lsmod | grep nvidia_drm)\n"
+            
+            if rmmod nvidia_drm 2>/tmp/rmmod_error.log; then
+                printf "DEBUG: rmmod nvidia_drm succeeded\n"
+            else
+                local rmmod_exit_code=$?
+                printf "DEBUG: rmmod nvidia_drm failed (exit code: %d)\n" "$rmmod_exit_code"
+                printf "DEBUG: rmmod error output: $(cat /tmp/rmmod_error.log 2>/dev/null || echo 'no error log')\n"
+                
+                printf "DEBUG: Attempting modprobe -r nvidia_drm...\n"
+                if modprobe -r nvidia_drm 2>/tmp/modprobe_r_error.log; then
+                    printf "DEBUG: modprobe -r nvidia_drm succeeded\n"
+                else
+                    local modprobe_r_exit_code=$?
+                    printf "DEBUG: modprobe -r nvidia_drm failed (exit code: %d)\n" "$modprobe_r_exit_code"
+                    printf "DEBUG: modprobe -r error output: $(cat /tmp/modprobe_r_error.log 2>/dev/null || echo 'no error log')\n"
+                fi
             fi
+            
+            # Verify module state after removal attempts
+            printf "DEBUG: Module state after removal attempts:\n"
+            if lsmod | grep -q "^nvidia_drm"; then
+                printf "DEBUG: nvidia_drm still loaded: $(lsmod | grep nvidia_drm)\n"
+            else
+                printf "DEBUG: nvidia_drm successfully removed\n"
+            fi
+        else
+            printf "DEBUG: nvidia_drm module not currently loaded\n"
         fi
         
         # Load nvidia_drm with modeset=1
