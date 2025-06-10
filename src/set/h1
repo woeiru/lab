@@ -27,9 +27,9 @@ DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
 
-# Source aux file which provides logging and other core functionality
-echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/../aux/set")"
-source "$(realpath "$DIR_SH/../aux/set")"
+# Source menu file which provides logging and other core functionality
+echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/.menu")"
+source "$(realpath "$DIR_SH/.menu")"
 
 # Declare MENU_OPTIONS
 declare -A MENU_OPTIONS
