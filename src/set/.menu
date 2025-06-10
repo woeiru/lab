@@ -679,7 +679,18 @@ expand_variables() {
 get_function_description() {
     local func_name="$1"
     local lib_name="${func_name%%-*}"
-    local lib_file="${LIB_OPS_DIR}/${lib_name}"
+    
+    # Construct LIB_OPS_DIR if not set by global configuration
+    local lib_ops_dir
+    if [[ -n "${LIB_OPS_DIR}" ]]; then
+        lib_ops_dir="${LIB_OPS_DIR}"
+    else
+        # Calculate relative path from current script location
+        local script_dir="$(dirname "${BASH_SOURCE[0]}")"
+        lib_ops_dir="$(realpath "${script_dir}/../../lib/ops")"
+    fi
+    
+    local lib_file="${lib_ops_dir}/${lib_name}"
 
     if [ ! -f "$lib_file" ]; then
         printf "      Library file not found: %s\n" "$lib_file"
