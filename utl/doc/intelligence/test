@@ -1,0 +1,32 @@
+#!/bin/bash
+#######################################################################
+# Testing Intelligence Module
+# Enhanced AI Documentation Generator System
+# Analyzes testing patterns and quality assurance metrics
+
+set -euo pipefail
+
+# PORTABLE: Auto-detect LAB_ROOT from intelligence subfolder location
+if [[ -z "${LAB_ROOT:-}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # Script is in utl/doc/intelligence, so LAB_ROOT is three levels up
+    LAB_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
+fi
+
+MODULE_NAME="Testing Intelligence"
+MODULE_VERSION="1.0.0"
+
+main() {
+    local target_dir="$1"
+    
+    if [[ -z "$target_dir" ]]; then
+        echo "Usage: $0 <target_directory>" >&2
+        return 1
+    fi
+    
+    echo "{\"module\": \"$MODULE_NAME\", \"target\": \"$target_dir\", \"lab_root\": \"$LAB_ROOT\"}"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

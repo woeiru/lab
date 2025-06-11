@@ -1,0 +1,103 @@
+#!/bin/bash
+#######################################################################
+# Performance Intelligence Module
+# Enhanced AI Documentation Generator System
+# Collects performance-related metadata for intelligent documentation
+
+# TECHNICAL SPECIFICATION:
+# Module: Performance Intelligence (perf)
+# Purpose: Analyze performance patterns, resource usage, and optimization opportunities
+# Output: JSON metadata for AI documentation generation
+# Integration: Phase 10 of ai_doc_generator comprehensive metadata collection
+
+set -euo pipefail
+
+# MODULE METADATA
+MODULE_NAME="Performance Intelligence"
+MODULE_VERSION="1.0.0"
+MODULE_PHASE="10"
+OUTPUT_FORMAT="json"
+
+# PORTABLE: Auto-detect LAB_ROOT from intelligence subfolder location
+if [[ -z "${LAB_ROOT:-}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # Script is in utl/doc/intelligence, so LAB_ROOT is three levels up
+    LAB_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
+fi
+
+# PERFORMANCE ANALYSIS CATEGORIES:
+# 1. RESOURCE USAGE PATTERNS
+#    - Memory allocation patterns (large arrays, buffers)
+#    - CPU-intensive operations (loops, calculations)
+#    - I/O operations (file access, network calls)
+#    - Disk usage patterns (temporary files, logs)
+
+# 2. SCALABILITY INDICATORS
+#    - Parallel processing usage (xargs -P, background jobs)
+#    - Queue management patterns
+#    - Load balancing indicators
+#    - Batch processing capabilities
+
+# 3. PERFORMANCE BOTTLENECK DETECTION
+#    - Synchronous vs asynchronous patterns
+#    - Blocking operations identification
+#    - Resource contention indicators
+#    - Performance-critical sections
+
+# 4. OPTIMIZATION OPPORTUNITIES
+#    - Caching patterns and opportunities
+#    - Redundant operations detection
+#    - Inefficient algorithms identification
+#    - Resource cleanup patterns
+
+# IMPLEMENTATION FUNCTIONS:
+
+# Analyze resource usage patterns
+analyze_resource_usage() {
+    local target_dir="$1"
+    local memory_patterns=0
+    local cpu_patterns=0
+    local io_patterns=0
+    local disk_patterns=0
+    
+    # Memory usage patterns
+    memory_patterns=$(grep -rc "malloc\|calloc\|array\|buffer\|cache" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # CPU intensive patterns  
+    cpu_patterns=$(grep -rc "for.*in.*do\|while.*do\|parallel\|xargs.*-P\|sort.*-k\|awk.*BEGIN" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # I/O operation patterns
+    io_patterns=$(grep -rc "read\|write\|cat\|tee\|pipe\|>\|<\|>>" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    # Disk usage patterns
+    disk_patterns=$(grep -rc "tmp\|log\|\.cache\|mktemp\|tempfile" "$target_dir" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}' || echo "0")
+    
+    cat << EOF
+  "resource_usage": {
+    "memory_intensive": $memory_patterns,
+    "cpu_intensive": $cpu_patterns,
+    "io_operations": $io_patterns,
+    "disk_usage": $disk_patterns
+  }
+EOF
+}
+
+# Main function
+main() {
+    local target_dir="$1"
+    local output_file="${2:-}"
+    
+    if [[ -z "$target_dir" ]]; then
+        echo "Usage: $0 <target_directory> [output_file]" >&2
+        echo "Performance Intelligence Module - Analyzes performance patterns" >&2
+        return 1
+    fi
+    
+    # Simple test implementation
+    echo "{\"module\": \"$MODULE_NAME\", \"version\": \"$MODULE_VERSION\", \"target\": \"$target_dir\"}"
+}
+
+# Execute main function if called directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
