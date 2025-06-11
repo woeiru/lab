@@ -32,6 +32,7 @@ run_dic_test_suite() {
         "dic_basic_test.sh:DIC Basic Functions:Core functionality and parameter injection"
         "dic_integration_test.sh:DIC Integration:Complete system integration testing"
         "dic_simple_test.sh:DIC Simple:Quick validation checks"
+        "dic_phase1_completion_test.sh:DIC Phase 1:Phase 1 completion validation"
     )
     
     local failed_tests=()
@@ -51,7 +52,7 @@ run_dic_test_suite() {
         local test_output
         local test_exit_code
         
-        if test_output=$(cd /home/es/lab && "$test_path" 2>&1); then
+        if test_output=$(cd /root/lab && "$test_path" 2>&1); then
             test_exit_code=$?
         else
             test_exit_code=$?
@@ -112,8 +113,8 @@ main() {
         exit 1
     fi
     
-    if [[ ! -f "/home/es/lab/src/dic/ops" ]]; then
-        test_failure "DIC system not found at /home/es/lab/src/dic/ops"
+    if [[ ! -f "/root/lab/src/dic/ops" ]]; then
+        test_failure "DIC system not found at /root/lab/src/dic/ops"
         print_test_summary
         exit 1
     fi
