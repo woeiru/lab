@@ -164,4 +164,7 @@
     alias env-list='env list'
     alias env-check='env validate'
 
+    # DIC Operations Engine
+    alias ops='$LAB_DIR/src/dic/ops'
+
     # History
