@@ -1,58 +1,140 @@
-# Target directories for documentation generation
-# These directories will have README files generated/updated by the documentation system
+#######################################################################
+# Documentation System Target Configuration
+#######################################################################
+# This file controls which directories and files are processed by the
+# documentation generation system. All paths are relative to LAB_ROOT.
+#
+# Usage: Modify these arrays to control documentation generation behavior
+# Location: utl/doc/config/targets
+#######################################################################
 
+# TARGET_DIRECTORIES: Main list of directories for documentation processing
+# - Used by: func, hub, var, stats generators
+# - Purpose: Defines which directories contain code/content to document
+# - Format: Relative paths from LAB_ROOT (e.g., "lib/core" = /home/es/lab/lib/core)
 TARGET_DIRECTORIES=(
-    "lib/core"
-    "lib/ops" 
-    "lib/gen"
-    "src/dic"
-    "cfg/core"
-    "cfg/pod"
-    "utl/doc"
-    "arc/ans"
-    "arc/too"
-    "val/core"
-    "val/lib"
+    "lib/core"     # Core library functions and utilities
+    "lib/ops"      # Operations and infrastructure functions 
+    "lib/gen"      # General purpose functions and generators
+    "src/dic"      # DIC (Data Integration Components) source code
+    "cfg/core"     # Core configuration files and templates
+    "cfg/pod"      # Container/pod configuration files
+    "utl/doc"      # Documentation utilities and generators
+    "arc/ans"      # Ansible automation scripts and playbooks
+    "arc/too"      # Tool configurations and utilities
+    "val/core"     # Core validation and testing scripts
+    "val/lib"      # Library validation and test suites
 )
 
-# Exclude patterns - directories to skip during documentation generation
+# EXCLUDE_PATTERNS: Directories to skip during documentation generation
+# - Purpose: Prevents processing of temporary, hidden, or third-party content
+# - Format: Shell glob patterns that match paths to exclude
+# - Applied to: All generators when scanning target directories
 EXCLUDE_PATTERNS=(
-    "*/.*"        # Hidden directories
-    "*/tmp/*"     # Temporary directories
-    "*/.git/*"    # Git directories
-    "*/node_modules/*"  # Node.js dependencies
-    "*/vendor/*"  # Third-party vendor code
+    "*/.*"              # Hidden directories (e.g., .git, .cache, .tmp)
+    "*/tmp/*"           # Temporary directories and their contents
+    "*/.git/*"          # Git version control directories
+    "*/node_modules/*"  # Node.js package dependencies
+    "*/vendor/*"        # Third-party vendor code and libraries
+    "*/__pycache__/*"   # Python bytecode cache directories
+    "*/build/*"         # Build output directories
+    "*/dist/*"          # Distribution/compiled output directories
 )
 
-# AI Documentation specific targets - directories that benefit most from AI analysis
+# AI_DOC_TARGETS: Directories optimized for AI-powered README generation
+# - Used by: ai_doc_generator when no directory specified on command line
+# - Purpose: Defines high-value directories that benefit most from AI analysis
+# - Selection criteria: Complex code, user-facing components, frequently updated
+# - Format: Relative paths from LAB_ROOT, subset of TARGET_DIRECTORIES
 AI_DOC_TARGETS=(
-    "lib/ops"
-    "lib/core"
-    "src/dic" 
-    "cfg/pod"
-    "utl/doc"
+    "lib/ops"      # Operations library - complex infrastructure code
+    "lib/core"     # Core library - fundamental system functions
+    "src/dic"      # DIC system - main application logic
+    "cfg/pod"      # Container configs - deployment-critical
+    "utl/doc"      # Documentation system - meta-documentation
 )
 
-# Priority levels for documentation updates
-# HIGH: Critical system components that need frequent updates
-# MEDIUM: Important but stable components  
-# LOW: Supplementary or rarely changing components
+# PRIORITY LEVELS: Documentation update scheduling and resource allocation
+# - Purpose: Helps prioritize documentation efforts and CI/CD scheduling
+# - Usage: Can be used by scripts to determine update frequency
+# - Categories: HIGH (daily), MEDIUM (weekly), LOW (monthly/as-needed)
+
+# HIGH_PRIORITY: Critical system components requiring frequent documentation updates
+# - Update frequency: Daily or on every significant change
+# - Rationale: Core functionality, frequently modified, user-facing
 HIGH_PRIORITY=(
-    "lib/core"
-    "lib/ops"
-    "src/dic"
+    "lib/core"     # Core library - foundational functions, high change rate
+    "lib/ops"      # Operations - infrastructure changes affect many users
+    "src/dic"      # Main application logic - primary user interface
 )
 
+# MEDIUM_PRIORITY: Important but stable components with moderate update needs
+# - Update frequency: Weekly or on minor releases
+# - Rationale: Important functionality, moderate change rate
 MEDIUM_PRIORITY=(
-    "lib/gen"
-    "cfg/core"
-    "utl/doc"
+    "lib/gen"      # General utilities - stable but occasionally enhanced
+    "cfg/core"     # Core configs - important but change infrequently
+    "utl/doc"      # Documentation tools - stable infrastructure
 )
 
+# LOW_PRIORITY: Supplementary components with minimal update requirements
+# - Update frequency: Monthly or as-needed basis
+# - Rationale: Supporting components, rarely change, limited user impact
 LOW_PRIORITY=(
-    "cfg/pod"
-    "arc/ans"
-    "arc/too"
-    "val/core"
-    "val/lib"
+    "cfg/pod"      # Container configs - set-and-forget configuration
+    "arc/ans"      # Ansible scripts - automation, infrequent changes
+    "arc/too"      # Tool configs - utility scripts, stable
+    "val/core"     # Validation scripts - testing infrastructure
+    "val/lib"      # Test suites - validation code, stable
 )
+
+#######################################################################
+# GENERATOR OUTPUT CONFIGURATION
+#######################################################################
+# Controls where each documentation generator writes its output.
+# This prevents generators from conflicting with each other.
+#######################################################################
+
+# GENERATOR_OUTPUT_FILES: Maps each generator to its specific output file
+# - Purpose: Ensures each generator has a dedicated output location
+# - Format: [generator_name]="relative/path/from/LAB_ROOT"
+# - Fallback: If not specified, generators use hardcoded defaults
+# - Validation: Generators check if target file exists before writing
+declare -A GENERATOR_OUTPUT_FILES
+GENERATOR_OUTPUT_FILES[func]="doc/dev/functions.md"     # Function metadata tables
+GENERATOR_OUTPUT_FILES[hub]="doc/README.md"             # Documentation index/hub
+GENERATOR_OUTPUT_FILES[stats]="README.md"               # System metrics (root README)
+GENERATOR_OUTPUT_FILES[var]="doc/dev/variables.md"      # Variable usage documentation
+GENERATOR_OUTPUT_FILES[ai_docs]=""                      # AI generator creates files in target directories
+
+# GENERATOR_SECTIONS: Section names for generators that update specific parts of files
+# - Purpose: Enables generators to update only their designated sections
+# - Usage: Used with AUTO-GENERATED SECTION markers in markdown files
+# - Format: [generator_name]="Section Header Name"
+# - Implementation: Generators look for <!-- AUTO-GENERATED SECTION: [name] -->
+declare -A GENERATOR_SECTIONS
+GENERATOR_SECTIONS[func]="Function Metadata Table"      # Updates function tables in doc/dev/functions.md
+GENERATOR_SECTIONS[hub]="Documentation Structure"       # Updates doc index in doc/README.md
+GENERATOR_SECTIONS[stats]="System Metrics"              # Updates metrics table in README.md
+GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable tables in doc/dev/variables.md
+
+#######################################################################
+# CONFIGURATION EXAMPLES AND USAGE NOTES
+#######################################################################
+#
+# Adding a new target directory:
+#   1. Add to TARGET_DIRECTORIES array: "new/directory"
+#   2. Add to appropriate priority level
+#   3. Optionally add to AI_DOC_TARGETS if complex
+#
+# Creating a new generator:
+#   1. Add output file: GENERATOR_OUTPUT_FILES[newgen]="path/to/output.md"
+#   2. Add section name: GENERATOR_SECTIONS[newgen]="Section Name"
+#   3. Update run_all_doc.sh GENERATORS array
+#
+# Changing output locations:
+#   - Simply modify the GENERATOR_OUTPUT_FILES mapping
+#   - Generators automatically use the new location
+#   - Ensure target directories exist
+#
+#######################################################################

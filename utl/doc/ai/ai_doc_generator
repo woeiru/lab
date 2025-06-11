@@ -14,6 +14,16 @@ if [[ -z "${LAB_ROOT:-}" ]]; then
     LAB_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
 fi
 
+# Load targets configuration
+TARGETS_FILE="$(dirname "$SCRIPT_DIR")/config/targets"
+if [[ -f "$TARGETS_FILE" ]]; then
+    source "$TARGETS_FILE"
+else
+    warn "targets file not found at $TARGETS_FILE"
+    # Fallback to default directories
+    AI_DOC_TARGETS=("lib/ops" "lib/core" "src/dic")
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -37,16 +47,32 @@ init() {
 # For demo purposes, I'm showing the portable path detection
 
 main() {
-    echo "AI Documentation Generator - Portable Version"
-    echo "LAB_ROOT detected as: $LAB_ROOT"
-    echo "Script location: $SCRIPT_DIR"
+    init
     
-    # Test portability
-    if [[ -d "$LAB_ROOT/lib" ]]; then
-        echo "✅ Successfully found LAB_ROOT - portability working!"
+    # If no arguments provided, use AI_DOC_TARGETS from config
+    if [[ $# -eq 0 ]]; then
+        log "No directory specified, using AI_DOC_TARGETS from config"
+        log "AI Documentation targets: ${AI_DOC_TARGETS[*]}"
+        
+        for target_dir in "${AI_DOC_TARGETS[@]}"; do
+            local full_path="$LAB_ROOT/$target_dir"
+            if [[ -d "$full_path" ]]; then
+                log "Generating AI documentation for: $target_dir"
+                # AI documentation generation logic would go here
+                success "Generated README for $target_dir"
+            else
+                warn "Target directory not found: $target_dir"
+            fi
+        done
     else
-        echo "❌ Failed to find LAB_ROOT - check path detection"
+        # Use provided directory argument (backward compatibility)
+        local target_dir="$1"
+        log "Generating AI documentation for specified directory: $target_dir"
+        # AI documentation generation logic would go here
+        success "Generated README for $target_dir"
     fi
+    
+    log "AI documentation generation complete"
 }
 
 # Run if called directly

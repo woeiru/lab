@@ -28,3 +28,51 @@ fi
 # Source required utilities
 source "$LAB_DIR/lib/gen/aux"
 source "$LAB_DIR/lib/gen/ana"
+
+# Load targets configuration
+TARGETS_FILE="$(dirname "$SCRIPT_DIR")/config/targets"
+if [[ -f "$TARGETS_FILE" ]]; then
+    source "$TARGETS_FILE"
+else
+    echo "Warning: targets file not found at $TARGETS_FILE"
+    # Fallback to default directories
+    TARGET_DIRECTORIES=("doc" "lib" "src" "cfg")
+fi
+
+# Get output file from configuration
+if [[ -n "${GENERATOR_OUTPUT_FILES[hub]:-}" ]]; then
+    DOC_FILE="$LAB_DIR/${GENERATOR_OUTPUT_FILES[hub]}"
+else
+    # Fallback to default
+    DOC_FILE="$LAB_DIR/doc/README.md"
+fi
+
+# Main function
+main() {
+    echo "Hub Generator - Using targets configuration"
+    echo "LAB_DIR detected as: $LAB_DIR"
+    echo "Target directories: ${TARGET_DIRECTORIES[*]}"
+    
+    # Process each target directory for documentation discovery
+    for target_dir in "${TARGET_DIRECTORIES[@]}"; do
+        local full_path="$LAB_DIR/$target_dir"
+        if [[ -d "$full_path" ]]; then
+            echo "Processing documentation in: $target_dir"
+            # Use ana_lad for autonomous documentation discovery
+            if command -v ana_lad >/dev/null 2>&1; then
+                ana_lad "$full_path" || echo "Warning: ana_lad failed for $target_dir"
+            else
+                echo "Warning: ana_lad not available, skipping $target_dir"
+            fi
+        else
+            echo "Warning: Target directory not found: $target_dir"
+        fi
+    done
+    
+    echo "Documentation index generation complete."
+}
+
+# Execute main function if run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
