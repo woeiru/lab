@@ -12,10 +12,10 @@
 #   - User-specific configuration targeting
 #
 # Usage:
-#   ./lab init          Setup/configure shell integration
-#   ./lab status        Check system status  
-#   ./lab validate      Run system validation
-#   ./lab help          Show detailed help
+#   ./go init          Setup/configure shell integration
+#   ./go status        Check system status  
+#   ./go validate      Run system validation
+#   ./go help          Show detailed help
 #######################################################################
 
 set -euo pipefail
@@ -247,7 +247,7 @@ parse_init_arguments() {
 # Show usage for init command
 show_init_usage() {
     cat << 'EOF'
-Usage: ./lab init [-y] [-u|--user USER] [-c|--config FILE] [-h|--help]
+Usage: ./go init [-y] [-u|--user USER] [-c|--config FILE] [-h|--help]
 
 Setup shell integration for the Lab Environment Management System.
 
@@ -258,9 +258,9 @@ Options:
   -h, --help      Show this help message
 
 Examples:
-  ./lab init                    # Interactive setup
-  ./lab init -y                 # Non-interactive setup
-  ./lab init -u john -y         # Setup for specific user, non-interactive
+  ./go init                    # Interactive setup
+  ./go init -y                 # Non-interactive setup
+  ./go init -u john -y         # Setup for specific user, non-interactive
 EOF
 }
 
@@ -307,8 +307,8 @@ setup_shell_integration() {
     printf "Setup completed successfully!\n\n"
     printf "Next steps:\n"
     printf "1. Restart your shell or run: source %s\n" "$CONFIG_FILE"
-    printf "2. Verify with: ./lab status\n"
-    printf "3. Run tests with: ./lab validate\n\n"
+    printf "2. Verify with: ./go status\n"
+    printf "3. Run tests with: ./go validate\n\n"
     
     if [[ "$YES_FLAG" == "false" ]]; then
         read -p "Press Enter to restart shell or Ctrl+C to continue manually..."
@@ -331,9 +331,9 @@ COMMANDS:
     help            Show detailed help and documentation
     
 EXAMPLES:
-    ./lab init                    # First-time setup
-    ./lab status                  # Check if system is ready
-    ./lab validate               # Run validation tests
+    ./go init                    # First-time setup
+    ./go status                  # Check if system is ready
+    ./go validate               # Run validation tests
 
 For detailed documentation, see: README.md
 
@@ -355,7 +355,7 @@ check_init_status() {
         
         return 0
     else
-        echo "✗ Lab system not initialized. Run: ./lab init"
+        echo "✗ Lab system not initialized. Run: ./go init"
         return 1
     fi
 }
@@ -380,7 +380,7 @@ main() {
                     exit 1
                 fi
             else
-                echo "Please run './lab init' first"
+                echo "Please run './go init' first"
                 exit 1
             fi
             ;;

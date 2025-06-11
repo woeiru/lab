@@ -18,28 +18,27 @@ This is a comprehensive environment management framework designed for complex in
 
 ## 🚀 Quick Start
 
-The Lab Environment Management System provides a streamlined command-line interface through the `./lab` command for optimal user experience.
+The Lab Environment Management System provides a streamlined command-line interface through the `./go` command for optimal user experience.
 
 ### Initial Setup
 ```bash
 # First-time system initialization
-./lab init
+./go init
 
 # Verify system status
-./lab status
+./go status
 
 # Run comprehensive validation
-./lab validate
+./go validate
 ```
 
 ### Available Commands
 
 | Command | Purpose | When to Use |
 |---------|---------|-------------|
-| `./lab init` | Setup shell integration | First time setup or reconfiguration |
-| `./lab status` | Check initialization status | Verify system readiness |
-| `./lab validate` | Run comprehensive test suite | System verification and troubleshooting |
-| `./lab help` | Display detailed usage help | When you need guidance |
+| `./go status` | Check initialization status | Verify system readiness |
+| `./go validate` | Run comprehensive test suite | System verification and troubleshooting |
+| `./go help` | Display detailed usage help | When you need guidance |
 
 ### Daily Usage
 ```bash
