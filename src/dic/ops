@@ -46,6 +46,19 @@ DIC_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 DIC_LIB_DIR="${DIC_DIR}/lib"
 DIC_CONFIG_DIR="${DIC_DIR}/config"
 
+# Default configuration - moved here to ensure OPS_DEBUG is set before use
+OPS_DEBUG=${OPS_DEBUG:-0}
+OPS_VALIDATE=${OPS_VALIDATE:-warn}
+OPS_CACHE=${OPS_CACHE:-1}
+OPS_METHOD=${OPS_METHOD:-auto}
+
+# Debug output function - moved here to be available early
+ops_debug() {
+    if [[ "$OPS_DEBUG" == "1" ]]; then
+        echo "[DIC] $*" >&2
+    fi
+}
+
 # Source required utility libraries for analysis functions
 ops_source_utility_libraries() {
     # Ensure required directories are set
@@ -77,11 +90,23 @@ source "${DIC_LIB_DIR}/resolver"
 # Source utility libraries for analysis functions
 ops_source_utility_libraries
 
-# Default configuration
-OPS_DEBUG=${OPS_DEBUG:-0}
-OPS_VALIDATE=${OPS_VALIDATE:-warn}
-OPS_CACHE=${OPS_CACHE:-1}
-OPS_METHOD=${OPS_METHOD:-auto}
+# Source environment configuration if available
+ops_source_environment_config() {
+    local lab_dir="${LAB_DIR:-/root/lab}"
+    local env_config="${lab_dir}/cfg/env/site1"
+    
+    if [[ -f "$env_config" ]]; then
+        ops_debug "Sourcing environment config: $env_config"
+        source "$env_config" 2>/dev/null || {
+            ops_debug "Warning: Could not source environment config"
+        }
+    else
+        ops_debug "Environment config not found: $env_config"
+    fi
+}
+
+# Source environment configuration
+ops_source_environment_config
 
 # Cache for function signatures and variable resolutions
 declare -A FUNCTION_SIGNATURE_CACHE
@@ -234,10 +259,16 @@ ops_inject_and_execute() {
         ((param_index++))
     done
     
-    ops_debug "Final arguments: ${final_args[*]}"
+    ops_debug "Final arguments count: ${#final_args[@]}"
+    ops_debug "Final arguments array: ${final_args[*]}"
+    local i=0
+    for arg in "${final_args[@]}"; do
+        ops_debug "  Arg $i: [$arg]"
+        ((i++))
+    done
     
     # Execute function with final arguments
-    ops_debug "Executing: $function_name ${final_args[*]}"
+    ops_debug "Executing: $function_name with ${#final_args[@]} arguments"
     "$function_name" "${final_args[@]}"
 }
 
@@ -343,10 +374,15 @@ ops_resolve_single_variable() {
             resolved_value="${VM_ID:-}"
             ;;
         cluster_nodes|cluster_nodes_str)
+            ops_debug "Resolving cluster_nodes: checking CLUSTER_NODES array"
+            ops_debug "CLUSTER_NODES array length: ${#CLUSTER_NODES[@]}"
+            ops_debug "CLUSTER_NODES content: [${CLUSTER_NODES[*]}]"
             if [[ -n "${CLUSTER_NODES[*]}" ]]; then
                 resolved_value="${CLUSTER_NODES[*]}"
+                ops_debug "Resolved cluster_nodes to: [$resolved_value]"
             else
                 resolved_value=""
+                ops_debug "CLUSTER_NODES is empty, resolved to empty string"
             fi
             ;;
         pci0_id)
@@ -488,12 +524,6 @@ ops_show_function_help() {
     echo "  Use OPS_DEBUG=1 to see variable injection details"
 }
 
-# Debug output
-ops_debug() {
-    if [[ "$OPS_DEBUG" == "1" ]]; then
-        echo "[DIC] $*" >&2
-    fi
-}
 
 # ============================================================================
 # MAIN EXECUTION
