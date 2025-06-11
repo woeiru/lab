@@ -13,7 +13,7 @@
 #
 # ============================================================================
 
-set -e
+# set -e removed - test scripts should handle errors gracefully
 
 # Colors for output
 RED='\033[0;31m'
@@ -29,6 +29,7 @@ TESTS_FAILED=0
 
 # Initialize lab environment
 cd /home/es/lab
+LAB_DIR="/home/es/lab"
 source bin/ini
 
 # Test utilities
@@ -38,12 +39,12 @@ log_info() {
 
 log_success() {
     echo -e "${GREEN}[PASS]${NC} $1"
-    ((TESTS_PASSED++))
+    TESTS_PASSED=$((TESTS_PASSED + 1))
 }
 
 log_error() {
     echo -e "${RED}[FAIL]${NC} $1"
-    ((TESTS_FAILED++))
+    TESTS_FAILED=$((TESTS_FAILED + 1))
 }
 
 log_warning() {
@@ -51,7 +52,7 @@ log_warning() {
 }
 
 test_start() {
-    ((TESTS_TOTAL++))
+    TESTS_TOTAL=$((TESTS_TOTAL + 1))
     echo -e "\n${BLUE}TEST $TESTS_TOTAL:${NC} $1"
 }
 
@@ -79,7 +80,8 @@ setup_test_environment() {
     
     # Set up cluster configuration if not present
     if [[ -z "$CLUSTER_NODES" ]]; then
-        export CLUSTER_NODES=("x1" "x2")
+        CLUSTER_NODES=("x1" "x2")
+        export CLUSTER_NODES
         log_info "Set default CLUSTER_NODES"
     fi
     
@@ -94,7 +96,7 @@ setup_test_environment() {
 # Test Phase 1: Core DIC Engine Functionality
 test_dic_core() {
     test_start "DIC Core Engine - Help System"
-    if "\"$LAB_DIR/src/dic/ops\"" --help >/dev/null 2>&1; then
+    if "$LAB_DIR/src/dic/ops" --help >/dev/null 2>&1; then
         log_success "Help system working"
     else
         log_error "Help system failed"
@@ -184,8 +186,11 @@ main() {
     echo
 
     setup_test_environment
+    echo "DEBUG: About to run test_dic_core"
     test_dic_core
+    echo "DEBUG: About to run test_utility_functions"
     test_utility_functions  
+    echo "DEBUG: About to run test_parameter_injection"
     test_parameter_injection
     
     echo
