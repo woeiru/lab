@@ -94,7 +94,7 @@ setup_test_environment() {
 # Test Phase 1: Core DIC Engine Functionality
 test_dic_core() {
     test_start "DIC Core Engine - Help System"
-    if src/dic/ops --help >/dev/null 2>&1; then
+    if "\"$LAB_DIR/src/dic/ops\"" --help >/dev/null 2>&1; then
         log_success "Help system working"
     else
         log_error "Help system failed"

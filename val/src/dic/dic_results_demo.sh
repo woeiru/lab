@@ -49,7 +49,7 @@ echo "Command: ops pve vpt 100 on"
 echo "Expected: Full parameter injection and execution"
 echo
 echo "Result:"
-OPS_DEBUG=1 src/dic/ops pve vpt 100 on 2>&1 | grep -E "(Extracted parameters|Final arguments|Executing:)" | head -3
+OPS_DEBUG=1 $LAB_DIR/src/dic/ops pve vpt 100 on 2>&1 | grep -E "(Extracted parameters|Final arguments|Executing:)" | head -3
 echo
 
 echo "✅ ARCHITECTURE VERIFICATION:"
