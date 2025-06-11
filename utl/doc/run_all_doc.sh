@@ -7,7 +7,7 @@ set -e
 
 # Configuration - PORTABLE with subfolder support
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$SCRIPT_DIR/config/.doc_config"
+CONFIG_FILE="$SCRIPT_DIR/config/doc_config"
 
 # Load basic configuration
 PROJECT_ROOT=""
