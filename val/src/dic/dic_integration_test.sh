@@ -72,7 +72,7 @@ setup_test_environment() {
         export "${hostname}_NODE_PCI1"="0000:01:00.1"
         export "${hostname}_CORE_COUNT_ON"="8"
         export "${hostname}_CORE_COUNT_OFF"="4"
-        export "${hostname}_USB_DEVICES"=("046d:c52b" "1234:5678")
+        declare -a "${hostname}_USB_DEVICES"=("046d:c52b" "1234:5678")
         
         log_info "Created test variables for hostname '$hostname'"
     fi
@@ -94,7 +94,7 @@ setup_test_environment() {
 # Test Phase 1: Core DIC Engine Functionality
 test_dic_core() {
     test_start "DIC Core Engine - Help System"
-    if src/dic/ops --help >/dev/null 2>&1; then
+    if "$LAB_DIR/src/dic/ops" --help >/dev/null 2>&1; then
         log_success "Help system working"
     else
         log_error "Help system failed"

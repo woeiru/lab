@@ -20,6 +20,7 @@ declare -A TEST_CATEGORIES=(
     ["core"]="Core system tests"
     ["lib"]="Library function tests"
     ["integration"]="Integration tests"
+    ["src"]="Source component tests (including DIC)"
     ["legacy"]="Legacy validation scripts"
     ["all"]="All test categories"
 )
@@ -39,6 +40,9 @@ discover_tests() {
         "integration")
             tests+=($(find "$VAL_DIR/integration" -name "*_test.sh" -type f 2>/dev/null | sort))
             ;;
+        "src")
+            tests+=($(find "$VAL_DIR/src" -name "*_test.sh" -type f 2>/dev/null | sort))
+            ;;
         "legacy")
             # Legacy scripts (existing ones)
             local legacy_scripts=("system" "environment" "refactor" "complete_refactor" 
@@ -53,6 +57,7 @@ discover_tests() {
             tests+=($(discover_tests "core"))
             tests+=($(discover_tests "lib"))
             tests+=($(discover_tests "integration"))
+            tests+=($(discover_tests "src"))
             tests+=($(discover_tests "legacy"))
             ;;
     esac
@@ -126,6 +131,7 @@ Examples:
   $0 core              # Run only core tests  
   $0 lib               # Run only library tests
   $0 integration       # Run only integration tests
+  $0 src               # Run only source component tests (including DIC)
   $0 legacy            # Run only legacy validation scripts
   $0 --list            # Show available tests
 EOF
@@ -157,6 +163,8 @@ list_tests() {
             test_type="LIB"
         elif [[ "$test" =~ /integration/ ]]; then
             test_type="INTEGRATION"
+        elif [[ "$test" =~ /src/ ]]; then
+            test_type="SRC"
         elif [[ ! "$test" =~ _test\.sh$ ]]; then
             test_type="LEGACY"
         fi
@@ -272,7 +280,7 @@ main() {
                 quick="true"
                 shift
                 ;;
-            core|lib|integration|legacy|all)
+            core|lib|integration|src|legacy|all)
                 category="$1"
                 shift
                 ;;
