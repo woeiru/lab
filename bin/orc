@@ -141,7 +141,7 @@ source_helper() {
     # Verify the file is readable
     if [[ ! -r "$file" ]]; then
         lo1_log "lvl" " Warning: File $description ($file) is not readable."
-        handle_error "File not readable: $file" "source_helper" "${ERROR_CODES[PERMISSION_DENIED]}" "WARNING"
+        err_process "File not readable: $file" "source_helper" "${ERROR_CODES[PERMISSION_DENIED]}" "WARNING"
         tme_end_timer "source_$description"
         return 1
     fi
@@ -150,7 +150,7 @@ source_helper() {
     local temp_error
     if ! temp_error=$(mktemp); then
         lo1_log "lvl" " Error: Failed to create temporary file for error capture"
-        error_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
+        err_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
         tme_end_timer "source_$description"
         return 1
     fi
@@ -171,7 +171,7 @@ source_helper() {
         lo1_log "lvl" "Error sourcing $description: $error_output"
         rm -f "$temp_error"
         unset TEMP_ERROR_FILE
-        error_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
+        err_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
         tme_end_timer "source_$description" "error"
         return 1
     fi
@@ -277,7 +277,7 @@ execute_component() {
     if ! type "$func" &>/dev/null; then
         lo1_log "lvl" " Error: Function $func not found for component $component"
         local continue_on_error="$([[ $required -eq $COMPONENT_OPTIONAL ]] && echo true || echo false)"
-        error_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$continue_on_error"
+        err_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$continue_on_error"
         tme_end_timer "$component"
         return 1
     elif "$func"; then
@@ -290,12 +290,12 @@ execute_component() {
         local msg="Component $component failed"
         if ((required == COMPONENT_REQUIRED)); then
             lo1_log "lvl" " Error: $msg"
-            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
+            err_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
             tme_end_timer "$component"
             return 1
         else
             lo1_log "lvl" " Warning: $msg (optional component)"
-            error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
+            err_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
             tme_end_timer "$component"
             return 0
         fi
@@ -569,10 +569,10 @@ setup_components() {
         lo1_log "lvl" "Warning: tme_print_timing_report function not found"
     fi
     
-    if type print_error_report &>/dev/null; then
+    if type err_print_report &>/dev/null; then
         has_error_report=true
     else
-        lo1_log "lvl" "Warning: print_error_report function not found"
+        lo1_log "lvl" "Warning: err_print_report function not found"
     fi
 
     # Component definitions: function:name:required_flag
@@ -610,13 +610,13 @@ setup_components() {
         unset RC_SOURCED
         lo1_log "lvl" " RC initialization failed: required component(s) failed"
         lo1_log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
-        [[ "$has_error_report" == "true" ]] && print_error_report
+        [[ "$has_error_report" == "true" ]] && err_print_report
         return 1
     else
         export RC_SOURCED=1
         lo1_log "lvl" " RC initialization completed successfully"
         lo1_log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
-        [[ "$has_error_report" == "true" ]] && print_error_report
+        [[ "$has_error_report" == "true" ]] && err_print_report
         return 0
     fi
 }
