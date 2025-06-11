@@ -28,7 +28,7 @@ TESTS_PASSED=0
 TESTS_FAILED=0
 
 # Initialize lab environment
-cd /home/es/lab
+cd /root/lab
 source bin/ini
 
 # Test utilities
@@ -146,6 +146,14 @@ test_utility_functions() {
 test_parameter_injection() {
     local hostname=$(hostname | cut -d'.' -f1)
     
+    test_start "Parameter Injection - Environment Config Loading"
+    local output=$(OPS_DEBUG=1 src/dic/ops pve vck 100 2>&1)
+    if echo "$output" | grep -q "Sourcing environment config.*cfg/env/site1"; then
+        log_success "Environment configuration loading working"
+    else
+        log_warning "Environment configuration not loaded or not visible in debug"
+    fi
+    
     test_start "Parameter Injection - Simple Function (sys dpa)"
     local output=$(OPS_DEBUG=1 src/dic/ops sys dpa -x 2>&1)
     if echo "$output" | grep -q "Executing.*sys_dpa.*-x"; then
@@ -173,6 +181,15 @@ test_parameter_injection() {
         echo "$output" | grep "hostname" || echo "No hostname processing found"
     fi
     
+    test_start "Parameter Injection - CLUSTER_NODES Array Resolution"
+    local output=$(OPS_DEBUG=1 src/dic/ops pve vck 100 2>&1)
+    if echo "$output" | grep -q "CLUSTER_NODES.*x1.*x2"; then
+        log_success "CLUSTER_NODES array resolution working"
+    else
+        log_warning "CLUSTER_NODES array resolution may need verification"
+        echo "$output" | grep "CLUSTER_NODES" || echo "No CLUSTER_NODES debug output found"
+    fi
+    
     test_start "Parameter Injection - PCI Variable Access"
     local pci_var="${hostname}_NODE_PCI0"
     if [[ -n "${!pci_var}" ]]; then
@@ -185,6 +202,19 @@ test_parameter_injection() {
         fi
     else
         log_error "PCI variable $pci_var not set"
+    fi
+    
+    test_start "Parameter Injection - USB Devices Array Resolution"
+    local usb_var="${hostname}_USB_DEVICES"
+    if declare -p "$usb_var" >/dev/null 2>&1; then
+        local output=$(OPS_DEBUG=1 src/dic/ops pve vck 100 2>&1)
+        if echo "$output" | grep -q "usb_devices"; then
+            log_success "USB devices array resolution working"
+        else
+            log_warning "USB devices array available but resolution needs verification"
+        fi
+    else
+        log_warning "USB devices array $usb_var not configured for this hostname"
     fi
 }
 
