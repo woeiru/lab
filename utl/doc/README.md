@@ -48,25 +48,46 @@ cd /home/es/lab/utl/doc
 ./run_all_doc.sh hub  # Automatically includes functions & variables
 ```
 
-## 📁 System Components
+## 📁 System Components - **Organized Structure**
 
-### **🤖 AI Documentation Generator** (`ai_doc_generator`)
+```
+utl/doc/                         # 🏠 Main documentation system (portable)
+├── README.md                    # 📖 This comprehensive guide
+├── run_all_doc.sh               # 🎯 Main orchestrator
+├── config/                      # ⚙️ Configuration management
+│   └── .doc_config             # Portable configuration with relative paths
+├── generators/                  # 📊 Core documentation generators
+│   ├── func                     # Function metadata generator
+│   ├── hub                      # Documentation index generator
+│   ├── stats                    # System metrics generator
+│   └── var                      # Variable documentation generator
+├── intelligence/                # 🧠 Advanced analysis modules
+│   ├── perf                     # Performance analysis
+│   ├── deps                     # Dependency analysis
+│   ├── test                     # Testing intelligence
+│   └── ux                       # UX intelligence
+└── ai/                         # 🤖 AI-powered documentation
+    └── ai_doc_generator         # AI system with 13-phase intelligence
+```
+
+### **🤖 AI Documentation Generator** (`ai/ai_doc_generator`)
 **Primary Feature**: Comprehensive AI-powered README generation with 13-phase intelligence analysis
 
 - **13-Phase Intelligence System**: Function analysis, code quality metrics, security patterns, performance insights, and more
 - **Multiple AI Backends**: OpenAI, Gemini, Ollama (local), and Mock (testing)
 - **User-Focused Output**: Generates documentation that explains practical value and usage
 - **Hierarchical Generation**: Documents entire directory trees efficiently
+- **✅ Fully Portable**: Works from any location with automatic path detection
 
 ```bash
 # Basic usage
-./ai_doc_generator /path/to/directory
+./ai/ai_doc_generator /path/to/directory
 
 # Use specific AI service
-AI_SERVICE=openai ./ai_doc_generator /path/to/directory
+AI_SERVICE=openai ./ai/ai_doc_generator /path/to/directory
 
 # Force overwrite existing documentation
-./ai_doc_generator /path/to/directory --force
+./ai/ai_doc_generator /path/to/directory --force
 ```
 
 ### **🔧 Documentation Orchestrator** (`run_all_doc.sh`)

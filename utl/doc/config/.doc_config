@@ -42,11 +42,11 @@ CUSTOM_SCRIPT_PATTERNS=(
     "*-docs"          # Another alternative pattern
 )
 
-# Directory settings - Configure paths for portable operation
-# Set these paths to make the project work from any location
-PROJECT_ROOT="/home/es/lab"                    # Root of the lab environment
-DOC_OUTPUT_DIR="/home/es/lab/doc"              # Where to write documentation
-LOG_OUTPUT_DIR="/home/es/lab/.tmp/doc"         # Where to write logs
+# Directory settings - PORTABLE CONFIGURATION
+# Uses relative paths from doc folder location for complete portability
+PROJECT_ROOT="../.."                    # Relative to doc folder (../../)
+DOC_OUTPUT_DIR="../../doc"              # Relative to doc folder
+LOG_OUTPUT_DIR="../../.tmp/doc"         # Relative to doc folder
 SCRIPT_DIR=""                                  # Auto-detected from script location
 
 # Backup settings

@@ -5,9 +5,9 @@
 
 set -e
 
-# Configuration
+# Configuration - PORTABLE with subfolder support
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$SCRIPT_DIR/.doc_config"
+CONFIG_FILE="$SCRIPT_DIR/config/.doc_config"
 
 # Load basic configuration
 PROJECT_ROOT=""
@@ -166,12 +166,27 @@ get_execution_order() {
 # Run a single generator
 run_generator() {
     local name="$1"
-    local script_path="$SCRIPT_DIR/doc-$name"
+    local script_path=""
     
-    # Find script for the generator
+    # Find script for the generator - PORTABLE subfolder search
     for gen in "${GENERATORS[@]}"; do
         if [[ "$(echo "$gen" | cut -d: -f1)" == "$name" ]]; then
-            script_path="$SCRIPT_DIR/$(echo "$gen" | cut -d: -f2)"
+            local script_name="$(echo "$gen" | cut -d: -f2)"
+            
+            # Search in multiple locations for portability
+            local search_paths=(
+                "$SCRIPT_DIR/$script_name"                    # Current directory (backward compatibility)
+                "$SCRIPT_DIR/generators/$script_name"         # Generators subfolder
+                "$SCRIPT_DIR/intelligence/$script_name"       # Intelligence subfolder
+                "$SCRIPT_DIR/ai/$script_name"                 # AI subfolder
+            )
+            
+            for path in "${search_paths[@]}"; do
+                if [[ -x "$path" ]]; then
+                    script_path="$path"
+                    break
+                fi
+            done
             break
         fi
     done

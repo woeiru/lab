@@ -7,7 +7,12 @@ set -euo pipefail
 # Configuration
 AI_SERVICE="${AI_SERVICE:-mock}"  # Options: ollama, openai, gemini, mock
 WORK_DIR="/tmp/ai_doc_work_$$"
-LAB_ROOT="${LAB_ROOT:-/home/es/lab}"
+# PORTABLE: Auto-detect LAB_ROOT from script location
+if [[ -z "${LAB_ROOT:-}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # Script is in utl/doc/ai, so LAB_ROOT is three levels up
+    LAB_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
+fi
 
 # Colors
 RED='\033[0;31m'

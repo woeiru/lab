@@ -1,0 +1,30 @@
+#!/bin/bash
+#######################################################################
+# Lab Environment Documentation README Generator
+#######################################################################
+# File: hub
+# Description: Automatically generates comprehensive documentation index 
+#              using ana_lad for autonomous documentation discovery and 
+#              updates the Documentation Structure section in doc/README.md
+#
+# Usage: ./hub [--update|--analyze|--dry-run]
+#   --update    Update the Documentation Structure section in doc/README.md
+#   --analyze   Show documentation analysis without updating files
+#   --dry-run   Preview changes without modifying doc/README.md
+#   (default)   Update doc/README.md with current documentation index
+#######################################################################
+
+set -e
+
+# Initialize lab environment
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Set LAB_DIR if not already set - PORTABLE for generators subfolder
+if [[ -z "${LAB_DIR:-}" ]]; then
+    # Script is now in utl/doc/generators, so LAB_DIR is three levels up
+    readonly LAB_DIR="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")" 
+fi
+
+# Source required utilities
+source "$LAB_DIR/lib/gen/aux"
+source "$LAB_DIR/lib/gen/ana"
