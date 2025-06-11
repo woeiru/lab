@@ -13,7 +13,7 @@
 #
 # ============================================================================
 
-set -e
+# set -e removed - test scripts should handle errors gracefully
 
 # Colors for output
 RED='\033[0;31m'
@@ -72,7 +72,8 @@ setup_test_environment() {
         export "${hostname}_NODE_PCI1"="0000:01:00.1"
         export "${hostname}_CORE_COUNT_ON"="8"
         export "${hostname}_CORE_COUNT_OFF"="4"
-        declare -a "${hostname}_USB_DEVICES"=("046d:c52b" "1234:5678")
+        # Create array using proper bash syntax
+        eval "${hostname}_USB_DEVICES=(\"046d:c52b\" \"1234:5678\")"
         
         log_info "Created test variables for hostname '$hostname'"
     fi
