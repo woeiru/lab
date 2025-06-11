@@ -1,0 +1,35 @@
+bash: ops_debug: command not found
+environment: line 7: Command not found: ops_debug-1749676225030508666: syntax error in expression (error token is "not found: ops_debug-1749676225030508666")
+[DIC] Executing: pve_vpt with args: 100 on
+[DIC] Injecting dependencies for: pve_vpt
+[DIC] Analyzing signature for: pve_vpt
+[DIC] Extracted parameters (method 1): vm_id action pci0_id pci1_id core_count_on core_count_off usb_devices_str pve_conf_path 
+[DIC] Cached signature: pve_vpt -> vm_id action pci0_id pci1_id core_count_on core_count_off usb_devices_str pve_conf_path 
+[DIC] Function signature: vm_id action pci0_id pci1_id core_count_on core_count_off usb_devices_str pve_conf_path 
+[DIC] Using user argument for vm_id: 100
+[DIC] Using user argument for action: on
+[DIC] Using sanitized hostname: localhost
+[DIC] Resolved pci0_id -> 0000:01:00.0
+[DIC] Injected variable for pci0_id: 0000:01:00.0
+[DIC] Using sanitized hostname: localhost
+[DIC] Resolved pci1_id -> 0000:01:00.1
+[DIC] Injected variable for pci1_id: 0000:01:00.1
+[DIC] Using sanitized hostname: localhost
+[DIC] Resolved core_count_on -> 8
+[DIC] Injected variable for core_count_on: 8
+[DIC] Using sanitized hostname: localhost
+[DIC] Resolved core_count_off -> 4
+[DIC] Injected variable for core_count_off: 4
+[DIC] Using sanitized hostname: localhost
+[DIC] Resolved usb_devices_str -> 
+[DIC] Injected variable for usb_devices_str: 
+[DIC] Using sanitized hostname: localhost
+[DIC] Resolved pve_conf_path -> /etc/pve/qemu-server
+[DIC] Injected variable for pve_conf_path: /etc/pve/qemu-server
+[DIC] Final arguments: 100 on 0000:01:00.0 0000:01:00.1 8 4  /etc/pve/qemu-server
+[DIC] Executing: pve_vpt 100 on 0000:01:00.0 0000:01:00.1 8 4  /etc/pve/qemu-server
+awk: fatal: cannot open file `/etc/pve/qemu-server/100.conf' for reading: No such file or directory
+sed: can't read /etc/pve/qemu-server/100.conf: No such file or directory
+/home/es/lab/lib/ops/pve: line 972: /etc/pve/qemu-server/100.conf: No such file or directory
+/home/es/lab/lib/ops/pve: line 973: /etc/pve/qemu-server/100.conf: No such file or directory
+Passthrough lines added to /etc/pve/qemu-server/100.conf.
