@@ -1,0 +1,4 @@
+Description:    Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices
+Shortname:      vm passthrough toggle
+Usage:          pve_vpt <vm_id> <on|off> <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>
+Location:       /home/es/lab/lib/ops/pve:894
