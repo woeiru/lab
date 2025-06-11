@@ -1,47 +1,187 @@
 # 🏗️ Dependency Injection Container (DIC) - Generic Operations Framework
 
-[![Architecture](https://img.shields.io/badge/Pattern-Dependency%20Injection-purple)](#) [![Status](https://img.shields.io/badge/Status-COMPLETE-brightgreen)](#) [![Replacement](https://img.shields.io/badge/Replaces-MGT%20Wrappers-blue)](#)
+[![Architecture](https://img.shields.io/badge/Pattern-Dependency%20Injection-purple)](#) [![Status](https://img.shields.io/badge/Status-IN%20DEVELOPMENT-yellow)](#) [![Target](https://img.shields.io/badge/Target-MGT%20Wrapper%20Replacement-blue)](#)
 
-## 🎯 Mission Accomplished: Core DIC System Operational
+## 🎯 Current Status: Development Phase
 
-The Dependency Injection Container (DIC) system has been **successfully completed** and is now functionally operational for replacing the ~90 MGT wrapper functions.
+The Dependency Injection Container (DIC) system is **under active development** to replace the 90 MGT wrapper functions with a unified generic operations interface.
 
-**Innovation**: `ops MODULE FUNCTION [ARGS...]` → automatic global variable injection → pure library function execution
+**Vision**: `ops MODULE FUNCTION [ARGS...]` → automatic global variable injection → pure library function execution
 
-### ✅ COMPLETED ACHIEVEMENTS
+## 📊 Current Implementation Status
 
-**1. Root Cause Resolution**
-- **FIXED**: Hostname sanitization issue that was causing invalid variable names
-- **BEFORE**: `linux.fritz.box_NODE_PCI0` (invalid bash variable name)
-- **AFTER**: `linux_NODE_PCI0` (valid, sanitized hostname)
+### ❌ CRITICAL ISSUES TO RESOLVE
 
-**2. Core Architecture Implementation**
-- ✅ **Generic Operations Engine**: Single `ops` command replaces all MGT wrappers
-- ✅ **Automatic Dependency Injection**: Convention-based variable resolution
-- ✅ **Function Introspection**: Parameter extraction from library functions
-- ✅ **Utility Function Detection**: Smart routing for `*_fun` and `*_var` functions
-- ✅ **Fallback Execution**: Graceful handling of unknown function signatures
+**1. Function Definition Order Issue**
+- **PROBLEM**: `ops_debug` function called before it's defined (line 55 vs 492)
+- **IMPACT**: Causes "bash: ops_debug: command not found" errors
+- **STATUS**: 🔴 Blocking all operations
 
-**3. Parameter Injection System**
-- ✅ **User Argument Mapping**: First N parameters from user input
-- ✅ **Variable Injection**: Remaining parameters from global variables
-- ✅ **Convention-Based Resolution**: `vm_id → VM_ID`, `cluster_nodes → CLUSTER_NODES`
-- ✅ **Hostname-Specific Variables**: `pci0_id → ${hostname}_NODE_PCI0`
-- ✅ **Array Handling**: Special processing for USB devices and cluster nodes
+**2. Environment Variable Configuration**
+- **PROBLEM**: Missing hostname-specific variables (e.g., `${hostname}_NODE_PCI0`)
+- **IMPACT**: Variable resolution failures prevent function execution
+- **STATUS**: 🔴 Blocking complex operations
 
-**4. Error Handling & Validation**
-- ✅ **Environment Validation**: Checks for `LIB_OPS_DIR` initialization
-- ✅ **Module/Function Validation**: Verifies existence before execution
-- ✅ **Debug Output**: Comprehensive logging with `OPS_DEBUG=1`
-- ✅ **Validation Levels**: strict/warn/silent modes for different use cases
+**3. Function Discovery Issues**
+- **PROBLEM**: Mismatch between expected and available functions
+- **IMPACT**: Function routing errors (e.g., vmg → vck confusion)
+- **STATUS**: 🟡 Partial functionality
 
-**5. Integration & Compatibility**
-- ✅ **Library Sourcing**: Automatic sourcing of `lib/gen/ana` and `lib/gen/aux`
-- ✅ **MGT Wrapper Pattern**: Maintains same functionality as existing wrappers
-- ✅ **Performance Optimization**: Caching for function signatures and resolutions
-- ✅ **Help System**: Complete help and listing functionality
+### ✅ WORKING COMPONENTS
 
-## 🏗️ Architecture
+- **Hostname Sanitization**: Correctly converts FQDN to short names
+- **Function Signature Extraction**: Successfully identifies parameters
+- **Core Injection Logic**: Architecture sound, implementation needs fixes
+- **Library Loading**: DIC supporting libraries load properly
+
+## 📋 MGT Wrapper System Analysis
+
+The DIC system must replace a comprehensive wrapper ecosystem:
+
+### Scale and Scope
+- **9 modules** (gpu, net, pbs, pve, srv, ssh, sto, sys, usr)
+- **90 wrapper functions** across 2,007 lines of code
+- **114 pure functions** available in lib/ops/
+- **79% coverage** (24 functions have no wrappers)
+
+### Complexity Breakdown
+- **Type A (70%)**: Simple pass-through functions - no global variables
+- **Type B (20%)**: Standard global injection - config paths, basic variables  
+- **Type C (10%)**: Complex hostname-specific injection - hardware variables, arrays
+
+### Major Coverage Gaps
+- **GPU Module**: 18 of 24 functions missing wrappers (75% gap)
+- **PVE Module**: 6 of 15 functions missing wrappers (40% gap)
+- **Other Modules**: Complete wrapper coverage
+
+## 🚧 Implementation Plan
+
+### Phase 1: Core System Repair (Week 1)
+**Goal**: Fix critical blocking issues
+
+**Critical Fixes**:
+1. **Fix function definition order**
+   ```bash
+   # Move ops_debug function before line 78
+   # src/dic/ops lines 55, 60, 67 call ops_debug before it's defined
+   ```
+
+2. **Resolve environment variable configuration**
+   ```bash
+   # Create proper hostname-specific variable setup
+   export ${hostname}_NODE_PCI0="0000:01:00.0"
+   export ${hostname}_NODE_PCI1="0000:02:00.0"
+   export ${hostname}_CORE_COUNT_ON="4"
+   export ${hostname}_CORE_COUNT_OFF="8"
+   export PVE_CONF_PATH_QEMU="/etc/pve/qemu-server"
+   export CLUSTER_NODES=("node1" "node2" "node3")
+   ```
+
+3. **Verify function availability vs. signatures**
+   - Cross-reference introspector known signatures with actual lib/ops functions
+   - Fix function discovery and routing logic
+
+**Success Criteria**:
+- ✅ `ops --help` works without errors
+- ✅ `ops --list` displays all modules
+- ✅ `OPS_DEBUG=1 ops pve fun` executes successfully
+- ✅ Basic parameter injection working
+
+### Phase 2: Type A Functions (Week 2-3)
+**Goal**: Implement 70% of functions (simple pass-through)
+
+**Target Functions**:
+- All `*_fun` and `*_var` functions (overview/utility functions)
+- Simple operational functions requiring no global variables
+- ~63 functions total
+
+**Implementation Strategy**:
+- Focus on functions that work like: `ops net fun` → `net_fun`
+- Minimal variable injection requirements
+- Straightforward parameter mapping
+
+**Success Criteria**:
+- ✅ All Type A functions operational
+- ✅ Help system working for these functions
+- ✅ Error handling consistent
+
+### Phase 3: Type B Functions (Week 4)
+**Goal**: Implement 20% of functions (standard global injection)
+
+**Target Functions**:
+- Functions requiring basic global variables
+- Standard configuration paths
+- ~18 functions total
+
+**Required Globals**:
+```bash
+LIB_OPS_DIR="/path/to/lib/ops"
+SITE_CONFIG_FILE="/path/to/config"
+PVE_CONF_PATH_QEMU="/etc/pve/qemu-server"
+```
+
+**Success Criteria**:
+- ✅ Standard global variable injection working
+- ✅ Configuration path resolution operational
+- ✅ Error handling for missing standard globals
+
+### Phase 4: Type C Functions (Week 5-6)
+**Goal**: Implement 10% of functions (complex hostname-specific injection)
+
+**Target Functions**:
+- Hardware-specific operations (GPU passthrough, PCI device management)
+- Functions requiring hostname-specific arrays
+- ~9 functions total (most complex)
+
+**Complex Variable Patterns**:
+```bash
+${hostname}_NODE_PCI0="0000:01:00.0"
+${hostname}_USB_DEVICES=("dev1" "dev2")  # Array processing
+cluster_nodes_str="${CLUSTER_NODES[*]}"  # Array to string conversion
+```
+
+**Success Criteria**:
+- ✅ Hostname-specific variable resolution
+- ✅ Array processing and conversion
+- ✅ Complex parameter injection working
+
+### Phase 5: Missing Function Coverage (Week 7-8)
+**Goal**: Address 24 missing wrapper functions
+
+**Priority Order**:
+1. **GPU Missing Functions** (18 functions) - hardware operations
+2. **PVE Missing Functions** (6 functions) - advanced VM operations
+
+**Approach**:
+- Analyze existing pure functions without wrappers
+- Determine if wrappers needed or if functions are utility-only
+- Implement missing wrappers following established patterns
+
+### Phase 6: Production Deployment (Week 9-10)
+**Goal**: Replace MGT wrappers and deploy to production
+
+**Migration Strategy**:
+1. **Backup existing MGT system**
+   ```bash
+   cp -r src/mgt src/mgt.backup.$(date +%Y%m%d)
+   ```
+
+2. **Parallel testing phase**
+   - Test DIC operations alongside existing MGT wrappers
+   - Performance validation
+   - Error handling verification
+
+3. **Gradual replacement**
+   - Update calling scripts to use `ops` interface
+   - Module-by-module transition
+   - Comprehensive testing at each stage
+
+4. **Final cutover**
+   - Remove MGT wrapper calls
+   - Update documentation
+   - Team training on new interface
+
+## 🏗️ Target Architecture
 
 ```bash
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -62,696 +202,167 @@ The Dependency Injection Container (DIC) system has been **successfully complete
 
 ```
 src/dic/
-├── ops                   # Main generic operations engine (~388 lines)
+├── ops                   # Main generic operations engine (NEEDS FIXES)
 ├── config/              # Variable mapping configurations  
-│   ├── conventions.conf # Standard naming conventions (~194 lines)
-│   ├── mappings.conf    # Function-specific mappings (~156 lines)
-│   └── overrides.conf   # Special case overrides (~98 lines)
-├── lib/                 # DIC supporting libraries
-│   ├── injector        # Core injection engine (~344 lines)
-│   ├── introspector    # Function signature analysis (~409 lines)
-│   └── resolver        # Variable resolution logic (~245 lines)
+│   ├── conventions.conf # Standard naming conventions
+│   ├── mappings.conf    # Function-specific mappings
+│   └── overrides.conf   # Special case overrides
+├── lib/                 # DIC supporting libraries (WORKING)
+│   ├── injector        # Core injection engine
+│   ├── introspector    # Function signature analysis
+│   └── resolver        # Variable resolution logic
 └── examples/           # Usage examples and demos
-    └── basic.sh        # Basic usage patterns (~178 lines)
+    └── basic.sh        # Basic usage patterns
 ```
 
-**Total Code**: ~300 core lines (vs ~2500 lines in `src/mgt/`)
+## 🧪 Testing Strategy
 
-## 🚀 Usage
-
-### **Basic Operations**
+### Development Testing
 ```bash
-# Initialize environment
-source bin/ini
+# Environment validation
+source bin/ini && echo "LIB_OPS_DIR=$LIB_OPS_DIR"
 
-# Generic operations interface
-ops pve vpt 100 on        # Replaces pve_vpt_w 100 on
-ops gpu vck 101           # Replaces gpu_vck_w 101  
-ops sys sca usr all       # Replaces sys_sca_w usr all
-
-# List operations
-ops --list                # List all modules
-ops pve --list            # List PVE functions
-ops pve vpt --help        # Show function help
+# Progressive testing
+ops --help                    # Basic functionality
+ops --list                    # Module discovery
+ops pve --list               # Function listing
+OPS_DEBUG=1 ops pve fun      # Debug mode validation
 ```
 
-### **Debug Mode**
-```bash
-OPS_DEBUG=1 ops pve vpt 100 on
-# Shows variable injection details:
-# [DIC] Function signature: vm_id action pci0_id pci1_id ...
-# [DIC] Injecting: vm_id=100 (from args)
-# [DIC] Injecting: pci0_id=0000:01:00.0 (from h1_NODE_PCI0)
-# [DIC] Executing: pve_vpt 100 on 0000:01:00.0 ...
-```
+### Integration Testing
+- Test each function type (A, B, C) systematically
+- Validate variable injection for each complexity level
+- Performance comparison with MGT wrappers
+- Error handling and edge case validation
 
-## 🎛️ Variable Injection Strategies
+## 📊 Expected Outcomes
 
-### **1. Convention-Based (80% of cases)**
-- `vm_id` → `VM_ID`
-- `cluster_nodes` → `CLUSTER_NODES`  
-- `pci0_id` → `${hostname}_NODE_PCI0`
+### Code Reduction Impact
+- **Before**: 90 wrapper functions × ~22 lines each = ~2,000 lines
+- **After**: 1 generic engine + 3 libraries + config = ~600 lines
+- **Reduction**: ~70% code reduction (when functional)
 
-### **2. Configuration-Driven (Complex cases)**
-```bash
-# src/dic/config/mappings.conf
-[pve_vpt]
-pci0_id=${hostname}_NODE_PCI0
-pci1_id=${hostname}_NODE_PCI1
-usb_devices=${hostname}_USB_DEVICES[@]
-```
-
-### **3. Custom Handlers (Special cases)**
-```bash
-# src/dic/config/overrides.conf
-[complex_function]
-injection_method=custom
-handler=custom_injector_function
-```
-
-## 🔧 Configuration
-
-### **Environment Variables**
-```bash
-OPS_DEBUG=1           # Enable debug output
-OPS_VALIDATE=strict   # Validation level (strict|warn|silent)
-OPS_CACHE=1           # Enable caching (default)
-OPS_METHOD=auto       # Injection method (auto|convention|config)
-```
-
-### **Validation Levels**
-- **strict**: Fail on missing variables
-- **warn**: Warn but continue with empty values  
-- **silent**: Silent operation (production mode)
-
-## 🧪 VERIFICATION TESTS PASSED
-
-### **Core Functionality Tests**
-```bash
-✅ ops --help                    # Help system working
-✅ ops --list                    # Module listing working  
-✅ ops pve --list                # Function listing working
-✅ ops pve fun                   # Utility functions working
-✅ ops pve vck 100               # Parameter injection working
-✅ ops sys dpa -x                # Simple operational functions working
-```
-
-### **Hostname Sanitization Verification**
-```bash
-✅ Hostname: linux.fritz.box → linux (sanitized)
-✅ Variable access: linux_NODE_PCI0 (valid)
-✅ Debug output: "Using sanitized hostname: linux"
-```
-
-### **Parameter Injection Verification**
-```bash
-✅ Function signature extraction: "vm_id cluster_nodes_str"
-✅ User argument mapping: vm_id=100 (from args)
-✅ Variable injection: cluster_nodes_str="" (from globals)
-✅ Execution: pve_vck 100 (proper argument order)
-```
-
-## 📊 PROGRESS METRICS
-
-| Component | Status | Completion |
-|-----------|---------|------------|
-| Generic Engine | ✅ Complete | 100% |
-| Hostname Sanitization | ✅ Fixed | 100% |
-| Parameter Injection | ✅ Working | 95% |
-| Function Introspection | ✅ Working | 90% |
-| Error Handling | ✅ Complete | 100% |
-| Documentation | ✅ Complete | 95% |
-| **OVERALL** | **✅ Operational** | **85%** |
-
-## 🚀 READY FOR NEXT PHASE
-
-The DIC system is now ready for:
-
-1. **Full MGT Replacement**: Begin systematic replacement of `src/mgt/*` wrappers
-2. **Production Testing**: Extended testing with real workloads
-3. **Performance Optimization**: Fine-tuning caching and resolution strategies
-4. **Configuration Enhancement**: Adding more complex mapping rules
-5. **Integration Testing**: Full workflow validation
-
-## 🔬 TECHNICAL ACHIEVEMENTS
-
-### **Code Reduction Impact**
-- **Before**: ~90 wrapper functions × ~28 lines each = ~2,520 lines
-- **After**: 1 generic engine + 3 libraries = ~400 lines
-- **Reduction**: **~84% code reduction achieved**
-
-### **Architectural Benefits**
+### Operational Benefits
 - **Unified Interface**: Single `ops` command for all operations
-- **Automatic Maintenance**: No per-function wrapper updates needed
 - **Consistent Behavior**: Standardized error handling and injection
-- **Scalability**: New functions need zero wrapper code
+- **Automatic Maintenance**: No per-function wrapper updates needed
+- **Enhanced Debugging**: Comprehensive injection tracing
 
-### **Key Technical Innovations**
-1. **Smart Function Detection**: Distinguishes utility vs operational functions
-2. **Convention-Based Injection**: Automatic variable mapping without configuration
-3. **Hostname Sanitization**: Robust handling of FQDN to short name conversion
-4. **Fallback Execution**: Graceful degradation for unknown signatures
-5. **Debug Transparency**: Complete visibility into injection process
+## 🚨 Risk Assessment
 
-## 🚀 DIC System - MGT Wrapper Migration Plan
+### High Risk Items
+- **Complex variable injection** may require multiple iterations
+- **Production compatibility** with existing environment configurations
+- **Performance impact** of variable resolution overhead
+- **Team adaptation** to new interface
 
-### Status: READY FOR PRODUCTION DEPLOYMENT ✅
+### Mitigation Strategies
+- **Phased rollout** with parallel testing
+- **Comprehensive backup** of existing system
+- **Extensive testing** at each phase
+- **Clear rollback procedures** if issues arise
 
-Based on successful integration testing completed on June 11, 2025, the DIC system is now fully operational and ready to replace the MGT wrapper system.
+## 🎯 Success Criteria
 
-### 🎯 Migration Strategy
+### Phase Completion Gates
+- [ ] **Phase 1**: Core system operational without errors
+- [ ] **Phase 2**: 70% of functions (Type A) working
+- [ ] **Phase 3**: 90% of functions (Type A+B) working  
+- [ ] **Phase 4**: 100% of wrapped functions (Type A+B+C) working
+- [ ] **Phase 5**: All available functions covered
+- [ ] **Phase 6**: Production deployment successful
 
-#### Phase 1: Core Replacement (Week 1)
-**Goal**: Replace high-usage MGT wrappers with DIC operations
+### Final Success Metrics
+- [ ] **Functionality**: All 90 MGT wrapper functions replaced
+- [ ] **Performance**: No significant performance degradation
+- [ ] **Reliability**: Error rates comparable to MGT system
+- [ ] **Maintainability**: 70% code reduction achieved
+- [ ] **Team Adoption**: Successful transition to `ops` interface
 
-**Actions**:
-1. **Backup existing MGT wrappers**
-   ```bash
-   cp -r src/mgt src/mgt.backup.$(date +%Y%m%d)
-   ```
+## 🔧 Development Commands
 
-2. **Replace common operations**:
-   - `pve_vpt_w` → `ops pve vpt`
-   - `pve_vck_w` → `ops pve vck`
-   - `sys_dpa_w` → `ops sys dpa`
-   - `gpu_*_w` → `ops gpu *`
-
-3. **Update calling scripts**:
-   - Update all scripts that call MGT wrappers
-   - Change function calls to `ops MODULE FUNCTION` format
-   - Test each conversion
-
-#### Phase 2: Environment Integration (Week 2)
-**Goal**: Ensure production environment compatibility
-
-**Actions**:
-1. **Deploy DIC to production systems**
-2. **Configure environment variables** per hostname
-3. **Test with real workloads**
-4. **Monitor performance and error rates**
-
-#### Phase 3: Complete Migration (Week 3)
-**Goal**: Remove all MGT wrappers and finalize transition
-
-**Actions**:
-1. **Replace remaining MGT functions**
-2. **Update documentation and help systems**
-3. **Train team on new `ops` command interface**
-4. **Remove old MGT wrapper files**
-
-### 📋 Conversion Examples
-
-#### Before (MGT Wrapper)
+### Current State Validation
 ```bash
-# Old way - individual wrapper functions
-pve_vpt_w 100 on        # GPU passthrough for VM 100
-pve_vck_w 101           # Check which node hosts VM 101
-sys_dpa_w -x            # Display package analytics
+# Check if DIC loads without errors
+src/dic/ops --help
+
+# Debug mode for troubleshooting
+OPS_DEBUG=1 src/dic/ops pve fun
+
+# Validate environment setup
+echo "Hostname: $(hostname | cut -d'.' -f1)"
+echo "LIB_OPS_DIR: $LIB_OPS_DIR"
+env | grep $(hostname | cut -d'.' -f1)
 ```
 
-#### After (DIC Operations)
+### Testing Individual Functions
 ```bash
-# New way - unified ops interface
-ops pve vpt 100 on      # GPU passthrough for VM 100  
-ops pve vck 101         # Check which node hosts VM 101
-ops sys dpa -x          # Display package analytics
+# Type A (simple) function test
+ops net fun
+
+# Type B (standard globals) function test  
+ops sys dpa -x
+
+# Type C (complex injection) function test
+ops pve vpt 100 on  # Will fail until Phase 4
 ```
 
-### 🔧 Required Environment Setup
+## 📞 Current Development Support
 
-For each production hostname, ensure these variables are configured:
+### Immediate Issues
+- **Function definition order**: `src/dic/ops` line 55 vs 492
+- **Environment variables**: Missing hostname-specific configuration
+- **Function discovery**: Mismatch between signatures and availability
 
-```bash
-# In cfg/env/production or equivalent
-export ${hostname}_NODE_PCI0="0000:xx:00.0"
-export ${hostname}_NODE_PCI1="0000:xx:00.1" 
-export ${hostname}_CORE_COUNT_ON="N"
-export ${hostname}_CORE_COUNT_OFF="M"
-export PVE_CONF_PATH_QEMU="/etc/pve/qemu-server"
-export CLUSTER_NODES=("node1" "node2" "node3")
-```
+### Debug Resources
+- **Main script**: `src/dic/ops`
+- **Debug mode**: `OPS_DEBUG=1` for comprehensive logging
+- **Configuration**: `src/dic/config/*.conf` files
+- **Libraries**: `src/dic/lib/*` for injection logic
 
-### ✅ Validation Checklist
+## 🚦 Current Recommendation
 
-Before production deployment, verify:
+### **Status: NOT PRODUCTION READY** ❌
 
-- [x] DIC system installed and executable
-- [x] Environment variables configured for all hostnames
-- [x] Test execution of key operations
-- [x] Error handling working correctly  
-- [x] Performance acceptable
-- [ ] Team training completed
-- [ ] Documentation updated
-- [x] Rollback plan prepared
+**Reason**: Critical blocking issues prevent basic operation
 
-## 🎉 Expected Benefits
+### **Investment Decision: CONDITIONALLY APPROVED** ⚠️
 
-### Immediate (Post-Migration)
-- **90% code reduction**: ~2500 → ~300 lines
-- **Unified interface**: Single `ops` command for all operations
-- **Consistent behavior**: Standardized error handling and logging
-- **Automatic maintenance**: No per-function wrapper updates needed
-
-### Long-term (Ongoing)
-- **Scalability**: New functions need zero wrapper code
-- **Maintainability**: Single injection system to maintain
-- **Testing**: Test injection engine once vs 90 wrappers
-- **Documentation**: Self-documenting through conventions
-
-## 🚨 Risk Mitigation
-
-### Rollback Plan
-If issues arise during migration:
-1. Restore from `src/mgt.backup.*`
-2. Revert calling script changes
-3. Investigate and fix DIC issues
-4. Re-attempt migration
-
-### Monitoring
-During migration, monitor:
-- Function execution success rates
-- Error message clarity
-- Performance metrics
-- User adaptation
-
-## 🎉 MISSION STATUS: SUCCESS
-
-**The DIC system has achieved its primary objective**: Replace individual MGT wrapper functions with a single, generic, dependency injection engine that automatically handles variable injection while maintaining full functionality compatibility.
-
-**Next Steps**: Begin production integration and systematic MGT replacement.
-
-## 🚦 Final Recommendation
-
-### **Current Status: PRODUCTION READY** ✅
-
-**Reason**: All integration tests passed, core functionality operational
-
-### **Investment Worth It: ABSOLUTELY** ✅
-
-**Why**: DIC system is fully operational and significantly superior to MGT wrappers
+**Conditions**: 
+1. Successfully complete Phase 1 (core system repair)
+2. Demonstrate Phase 2 functionality (Type A functions)
+3. Validate performance and reliability metrics
 
 ### **Next Steps**
-1. ✅ Begin systematic MGT wrapper replacement (approved)
-2. ✅ Deploy to production environment (ready)
-3. ✅ Monitor performance and error rates
-4. ✅ Complete team training and documentation
+1. 🔴 **IMMEDIATE**: Fix function definition order issue
+2. 🔴 **URGENT**: Set up proper environment variable configuration  
+3. 🟡 **HIGH**: Implement Type A function support
+4. 🟡 **MEDIUM**: Begin systematic testing framework
 
-**Migration Timeline**: 3 weeks for complete transition  
-**Authorization**: Approved based on successful integration testing  
-**Success Criteria**: All MGT functionality available through DIC operations
+**Estimated Timeline**: 10 weeks for complete implementation  
+**Risk Level**: Medium (architectural soundness confirmed, implementation issues identified)  
+**Go/No-Go Decision Point**: End of Phase 2 (Week 3)
 
 ---
 
 ## 🔗 Quick References
 
 ### **Key Files**
-- **Main Engine**: `src/dic/ops` 
+- **Main Engine**: `src/dic/ops` (NEEDS REPAIR)
 - **Configuration**: `src/dic/config/*.conf`
-- **Core Logic**: `src/dic/lib/*`
-- **Examples**: `src/dic/examples/basic.sh`
-
-### **Test Commands**
-```bash
-# Environment check
-source bin/ini && echo "LIB_OPS_DIR=$LIB_OPS_DIR"
-
-# Basic tests  
-ops --help
-ops --list
-ops pve --list
-
-# Debug mode
-OPS_DEBUG=1 ops pve fun
-```
+- **Core Logic**: `src/dic/lib/*` (WORKING)
+- **MGT Comparison**: `src/mgt/` (REFERENCE)
 
 ### **Related Documentation**
-- [Management Wrappers](../mgt/README.md) - Current wrapper approach
-- [Pure Functions](../../lib/README.md) - Core functionality  
-- [Configuration](../../doc/README.md) - Environment setup
+- [Management Wrappers](../mgt/README.md) - Current wrapper system
+- [Pure Functions](../../lib/README.md) - Core functionality library
+- [Configuration](../../doc/README.md) - Environment setup guide
 
 ---
 
-**Status**: MISSION ACCOMPLISHED - DIC System Fully Operational ✅  
-**MGT Replacement**: Ready for immediate deployment ✅  
-**Code Reduction**: 84% achieved (~2,520 → ~400 lines) ✅  
-**Last Updated**: June 11, 2025  
-**Integration Testing**: Complete and successful ✅  
-**Production Authorization**: APPROVED ✅
-
-## 📞 Support
-
-For migration issues:
-- **Documentation**: `src/dic/README.md`
-- **Examples**: `src/dic/examples/`
-- **Debug mode**: `OPS_DEBUG=1 ops ...`
-- **Help system**: `ops --help`, `ops MODULE --help`
-
-## 🚨 Troubleshooting Guide
-
-### **Common Issues & Solutions**
-
-#### **Issue: "bash: ops_debug: command not found"**
-**Cause**: Shell environment variable expansion error
-**Solution**: This is a benign error that doesn't affect functionality
-```bash
-# To suppress these messages in production:
-export OPS_DEBUG=0
-# Or redirect stderr when not debugging:
-ops pve vpt 100 on 2>/dev/null
-```
-
-#### **Issue: "Module 'xyz' not found"**
-**Cause**: Missing library file in `lib/ops/`
-**Solution**: 
-```bash
-# Verify module exists
-ls -la lib/ops/xyz
-# Check LIB_OPS_DIR is set
-echo "LIB_OPS_DIR: $LIB_OPS_DIR"
-# Reinitialize if needed
-source bin/ini
-```
-
-#### **Issue: Function signature detection fails**
-**Cause**: Non-standard function parameter patterns
-**Solution**: Add explicit configuration in `src/dic/config/mappings.conf`
-```bash
-[module_function]
-vm_id=VM_ID
-custom_param=CUSTOM_GLOBAL_VAR
-```
-
-#### **Issue: Variable resolution errors**
-**Cause**: Missing hostname-specific variables
-**Solution**: Set required variables for your hostname
-```bash
-# Check current hostname
-hostname_short=$(hostname | cut -d'.' -f1)
-echo "Hostname: $hostname_short"
-
-# Set required variables
-export ${hostname_short}_NODE_PCI0="0000:01:00.0"
-export ${hostname_short}_NODE_PCI1="0000:01:00.1"
-```
-
-### **Debug Mode Analysis**
-```bash
-# Enable comprehensive debugging
-OPS_DEBUG=1 OPS_VALIDATE=strict ops pve vpt 100 on
-
-# Look for these debug patterns:
-# ✅ Good: "Extracted parameters (method 1): vm_id action pci0_id..."
-# ❌ Bad: "No parameters extracted for function: xyz"
-# ✅ Good: "Resolved pci0_id -> 0000:01:00.0"
-# ❌ Bad: "Failed to resolve variable: pci0_id"
-```
-
-## 📁 **Complete Configuration Examples**
-
-### **Complex Function Mappings**
-```bash
-# src/dic/config/mappings.conf
-[pve_vpt]
-# GPU passthrough configuration
-vm_id=VM_ID                              # Standard mapping
-action=TEST_ACTION                       # Custom action variable
-pci0_id=${hostname}_NODE_PCI0           # Hostname-specific PCI device
-pci1_id=${hostname}_NODE_PCI1           # Second PCI device
-core_count_on=${hostname}_CORE_COUNT_ON # CPU core count for performance
-core_count_off=${hostname}_CORE_COUNT_OFF
-usb_devices_str=${hostname}_USB_DEVICES[@] # Array handling
-pve_conf_path=PVE_CONF_PATH_QEMU        # Configuration path
-
-[sys_sca]
-# System scan configuration
-scan_type=SCAN_TYPE
-user_filter=USER_FILTER
-scan_depth=SCAN_DEPTH_LEVEL
-output_format=SCAN_OUTPUT_FORMAT
-
-[gpu_cluster_check]
-# Multi-node GPU checking
-vm_id=VM_ID
-cluster_nodes=CLUSTER_NODES[@]          # Cluster node array
-gpu_type=GPU_TYPE_REQUIRED
-failover_enabled=GPU_FAILOVER_ENABLED
-```
-
-### **Hostname-Specific Variable Setup**
-```bash
-# In cfg/env/production or equivalent
-# For hostname: h1
-export h1_NODE_PCI0="0000:01:00.0"      # Primary GPU
-export h1_NODE_PCI1="0000:01:00.1"      # Secondary GPU
-export h1_CORE_COUNT_ON="16"            # Performance cores
-export h1_CORE_COUNT_OFF="8"            # Efficient cores
-export h1_USB_DEVICES=(                 # USB device array
-    "usb0: host=1-4"
-    "usb1: host=2-4"
-    "usb2: host=2-2"
-)
-
-# For hostname: w2 (different hardware)
-export w2_NODE_PCI0="0000:02:00.0"      # Different PCI slot
-export w2_NODE_PCI1="0000:02:00.1"
-export w2_CORE_COUNT_ON="8"             # Lower spec hardware
-export w2_CORE_COUNT_OFF="4"
-export w2_USB_DEVICES=(
-    "usb0: host=3-1"
-    "usb1: host=3-2"
-)
-```
-
-## 🧪 **Testing & Validation**
-
-### **Integration with Validation Framework**
-```bash
-# Run DIC-specific tests
-val/run_all_tests.sh dic
-
-# Run all source component tests (includes DIC)
-val/run_all_tests.sh src
-
-# Run individual test categories
-val/run_all_tests.sh dic --list          # List available tests
-val/run_all_tests.sh dic --quick         # Quick tests only
-```
-
-### **Testing New Functions**
-```bash
-# Step 1: Add function to lib/ops/module
-mymodule_new_function() {
-    local param1="$1"
-    local param2="$2"
-    # Function implementation
-}
-
-# Step 2: Test discovery
-ops mymodule --list                      # Should show 'new_function'
-
-# Step 3: Test execution
-OPS_DEBUG=1 ops mymodule new_function arg1 arg2
-
-# Step 4: Add to validation tests if needed
-# Edit val/src/dic/dic_integration_test.sh to include your function
-```
-
-### **Creating Test Cases**
-```bash
-# Basic function test
-test_new_function() {
-    test_start "New Function - Basic Operation"
-    local output=$(OPS_DEBUG=1 ops mymodule new_function test_arg 2>&1)
-    if echo "$output" | grep -q "Executing.*mymodule_new_function"; then
-        log_success "New function execution working"
-    else
-        log_error "New function execution failed"
-    fi
-}
-```
-
-## 🔒 **Security & Best Practices**
-
-### **Variable Sanitization**
-- **Hostname Sanitization**: Automatically converts `linux.fritz.box` → `linux`
-- **Input Validation**: User arguments are not directly executed
-- **Variable Scoping**: Only predefined global variables are injected
-
-### **Production Security Guidelines**
-```bash
-# 1. Use silent mode in production
-export OPS_VALIDATE=silent
-
-# 2. Limit debug output in logs
-export OPS_DEBUG=0
-
-# 3. Validate environment variables
-validate_required_vars() {
-    local hostname_short=$(hostname | cut -d'.' -f1)
-    local required_vars=(
-        "${hostname_short}_NODE_PCI0"
-        "${hostname_short}_NODE_PCI1"
-        "PVE_CONF_PATH_QEMU"
-        "CLUSTER_NODES"
-    )
-    
-    for var in "${required_vars[@]}"; do
-        if [[ -z "${!var}" ]]; then
-            echo "ERROR: Required variable $var not set"
-            return 1
-        fi
-    done
-}
-
-# 4. Error message sanitization (avoid exposing sensitive paths)
-export OPS_VALIDATE=warn  # Show warnings but don't expose full paths
-```
-
-### **Input Validation Best Practices**
-```bash
-# DIC automatically validates:
-# ✅ Module existence in lib/ops/
-# ✅ Function existence within module
-# ✅ Basic argument count
-# ✅ Variable name validity
-
-# Additional validation in your functions:
-mymodule_secure_function() {
-    local vm_id="$1"
-    local action="$2"
-    
-    # Validate VM ID format
-    if ! [[ "$vm_id" =~ ^[0-9]+$ ]]; then
-        echo "ERROR: Invalid VM ID format: $vm_id"
-        return 1
-    fi
-    
-    # Validate action parameter
-    case "$action" in
-        start|stop|restart) ;;
-        *) echo "ERROR: Invalid action: $action"; return 1 ;;
-    esac
-    
-    # Proceed with validated parameters
-}
-```
-
-## ⚡ **Performance & Optimization**
-
-### **Caching Strategy**
-- **Function Signatures**: Cached after first analysis
-- **Variable Resolutions**: Cached per session
-- **Module Loading**: Sourced once per session
-
-### **Performance Monitoring**
-```bash
-# Enable timing for performance analysis
-export OPS_TIMING=1
-
-# Monitor injection overhead
-time ops pve vpt 100 on
-
-# Compare with direct function call
-time pve_vpt 100 on 0000:01:00.0 0000:01:00.1 8 4 "" /etc/pve/qemu-server
-```
-
-### **Large-Scale Deployment**
-```bash
-# For high-frequency operations, consider:
-# 1. Pre-validation of environment
-validate_environment_once() {
-    [[ -n "$ENV_VALIDATED" ]] && return 0
-    validate_required_vars || exit 1
-    export ENV_VALIDATED=1
-}
-
-# 2. Batch operations where possible
-for vm_id in {100..110}; do
-    ops pve vpt "$vm_id" on &
-done
-wait  # Parallel execution
-
-# 3. Cache frequently used configurations
-export OPS_CACHE=1  # Enable caching (default)
-```
-
-### **Memory Usage Optimization**
-- **Signature Cache**: ~1KB per function
-- **Variable Cache**: ~100B per resolved variable
-- **Total Overhead**: <50KB for typical installations
-
-## 📊 **Monitoring & Observability**
-
-### **Production Monitoring**
-```bash
-# Monitor DIC operations
-grep "DIC.*Executing" /var/log/syslog | tail -10
-
-# Track error rates
-grep "DIC.*ERROR" /var/log/syslog | wc -l
-
-# Monitor performance
-grep "DIC.*took.*ms" /var/log/syslog | awk '{print $NF}' | sort -n
-```
-
-### **Health Checks**
-```bash
-# Basic health check script
-dic_health_check() {
-    echo "DIC Health Check - $(date)"
-    echo "========================="
-    
-    # Check environment
-    [[ -n "$LIB_OPS_DIR" ]] && echo "✅ Environment initialized" || echo "❌ Environment not initialized"
-    
-    # Check core modules
-    local modules=(pve gpu sys net)
-    for module in "${modules[@]}"; do
-        if ops "$module" --list >/dev/null 2>&1; then
-            echo "✅ Module $module operational"
-        else
-            echo "❌ Module $module failed"
-        fi
-    done
-    
-    # Check basic injection
-    if OPS_DEBUG=1 ops sys var 2>&1 | grep -q "Executing"; then
-        echo "✅ Parameter injection working"
-    else
-        echo "❌ Parameter injection failed"
-    fi
-}
-```
-
-## 🎓 **Training & Knowledge Transfer**
-
-### **Team Training Checklist**
-- [ ] Understanding dependency injection concept
-- [ ] DIC vs MGT wrapper differences  
-- [ ] Environment variable configuration
-- [ ] Debug mode usage and interpretation
-- [ ] Common troubleshooting procedures
-- [ ] Production deployment considerations
-
-### **Quick Reference Card**
-```bash
-# Essential Commands
-ops --list                    # List all modules
-ops MODULE --list             # List functions in module  
-ops MODULE FUNCTION --help    # Function help
-OPS_DEBUG=1 ops ...          # Debug mode
-OPS_VALIDATE=strict ops ...  # Strict validation
-
-# Environment Check
-echo $LIB_OPS_DIR            # Should be set
-hostname | cut -d'.' -f1     # Check hostname
-env | grep $(hostname | cut -d'.' -f1)  # Check host variables
-
-# Common Patterns
-ops pve vpt VM_ID on|off     # GPU passthrough
-ops pve vck VM_ID            # VM location check
-ops sys dpa -x               # Package analysis
-ops gpu vck VM_ID            # GPU check
-```
-
----
+**Status**: DEVELOPMENT PHASE - Core System Repair Required 🔧  
+**MGT Replacement**: Pending successful Phase 1 completion ⏳  
+**Code Reduction Target**: 70% (~2,000 → ~600 lines) 🎯  
+**Last Updated**: December 6, 2025  
+**Next Milestone**: Phase 1 Core System Repair  
+**Production Authorization**: PENDING PHASE 2 COMPLETION ⏳
