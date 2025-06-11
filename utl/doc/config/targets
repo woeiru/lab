@@ -1,0 +1,58 @@
+# Target directories for documentation generation
+# These directories will have README files generated/updated by the documentation system
+
+TARGET_DIRECTORIES=(
+    "lib/core"
+    "lib/ops" 
+    "lib/gen"
+    "src/dic"
+    "cfg/core"
+    "cfg/pod"
+    "utl/doc"
+    "arc/ans"
+    "arc/too"
+    "val/core"
+    "val/lib"
+)
+
+# Exclude patterns - directories to skip during documentation generation
+EXCLUDE_PATTERNS=(
+    "*/.*"        # Hidden directories
+    "*/tmp/*"     # Temporary directories
+    "*/.git/*"    # Git directories
+    "*/node_modules/*"  # Node.js dependencies
+    "*/vendor/*"  # Third-party vendor code
+)
+
+# AI Documentation specific targets - directories that benefit most from AI analysis
+AI_DOC_TARGETS=(
+    "lib/ops"
+    "lib/core"
+    "src/dic" 
+    "cfg/pod"
+    "utl/doc"
+)
+
+# Priority levels for documentation updates
+# HIGH: Critical system components that need frequent updates
+# MEDIUM: Important but stable components  
+# LOW: Supplementary or rarely changing components
+HIGH_PRIORITY=(
+    "lib/core"
+    "lib/ops"
+    "src/dic"
+)
+
+MEDIUM_PRIORITY=(
+    "lib/gen"
+    "cfg/core"
+    "utl/doc"
+)
+
+LOW_PRIORITY=(
+    "cfg/pod"
+    "arc/ans"
+    "arc/too"
+    "val/core"
+    "val/lib"
+)
