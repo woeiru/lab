@@ -46,10 +46,36 @@ DIC_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 DIC_LIB_DIR="${DIC_DIR}/lib"
 DIC_CONFIG_DIR="${DIC_DIR}/config"
 
+# Source required utility libraries for analysis functions
+ops_source_utility_libraries() {
+    # Ensure required directories are set
+    local lab_dir="${LAB_DIR:-/home/es/lab}"
+    local lib_gen_dir="${LIB_GEN_DIR:-${lab_dir}/lib/gen}"
+    
+    ops_debug "Sourcing utility libraries from: $lib_gen_dir"
+    
+    # Source analysis utilities if needed
+    if [[ -f "${lib_gen_dir}/ana" ]]; then
+        source "${lib_gen_dir}/ana" 2>/dev/null || {
+            ops_debug "Warning: Could not source analysis library"
+        }
+    fi
+    
+    # Source auxiliary utilities if needed  
+    if [[ -f "${lib_gen_dir}/aux" ]]; then
+        source "${lib_gen_dir}/aux" 2>/dev/null || {
+            ops_debug "Warning: Could not source auxiliary library"
+        }
+    fi
+}
+
 # Source DIC libraries
 source "${DIC_LIB_DIR}/injector"
 source "${DIC_LIB_DIR}/introspector"
 source "${DIC_LIB_DIR}/resolver"
+
+# Source utility libraries for analysis functions
+ops_source_utility_libraries
 
 # Default configuration
 OPS_DEBUG=${OPS_DEBUG:-0}
@@ -150,60 +176,69 @@ ops_execute() {
         return 1
     fi
     
-    # Perform dependency injection and execute
-    ops_inject_and_execute "$full_function" "$@"
+    # Check if this is a utility function that doesn't need injection
+    if ops_is_utility_function "$full_function"; then
+        ops_debug "Utility function detected, executing without injection: $full_function"
+        "$full_function" "$@"
+    else
+        # Perform dependency injection and execute
+        ops_inject_and_execute "$full_function" "$@"
+    fi
 }
 
 # Inject dependencies and execute function
 ops_inject_and_execute() {
     local function_name="$1"
     shift
+    local user_args=("$@")
     
     ops_debug "Injecting dependencies for: $function_name"
     
     # Get function signature
     local signature
     if ! signature=$(ops_get_function_signature "$function_name"); then
-        echo "Error: Could not analyze function signature for '$function_name'"
-        return 1
+        ops_debug "Could not analyze function signature, executing with user args only"
+        "$function_name" "${user_args[@]}"
+        return
     fi
     
     ops_debug "Function signature: $signature"
     
-    # Resolve variables based on method
-    local resolved_vars
-    case "$OPS_METHOD" in
-        convention)
-            resolved_vars=$(ops_resolve_by_convention "$function_name" "$signature")
-            ;;
-        config)
-            resolved_vars=$(ops_resolve_by_config "$function_name" "$signature")
-            ;;
-        custom)
-            resolved_vars=$(ops_resolve_by_custom "$function_name" "$signature")
-            ;;
-        auto|*)
-            # Try convention first, then config, then custom
-            resolved_vars=$(ops_resolve_by_convention "$function_name" "$signature")
-            if [[ -z "$resolved_vars" ]]; then
-                resolved_vars=$(ops_resolve_by_config "$function_name" "$signature")
-            fi
-            if [[ -z "$resolved_vars" ]]; then
-                resolved_vars=$(ops_resolve_by_custom "$function_name" "$signature")
-            fi
-            ;;
-    esac
-    
-    ops_debug "Resolved variables: $resolved_vars"
-    
-    # Validate required variables
-    if ! ops_validate_variables "$function_name" "$resolved_vars"; then
-        return 1
+    # If signature is empty, just pass through user arguments
+    if [[ -z "$signature" ]]; then
+        ops_debug "Empty signature, executing with user args only"
+        "$function_name" "${user_args[@]}"
+        return
     fi
     
-    # Execute function with injected variables and user arguments
-    ops_debug "Executing: $function_name $resolved_vars $*"
-    eval "$function_name $resolved_vars \"\$@\""
+    # Convert signature to array
+    local -a params
+    read -ra params <<< "$signature"
+    
+    # Build final arguments array
+    local -a final_args
+    local param_index=0
+    
+    for param in "${params[@]}"; do
+        if [[ $param_index -lt ${#user_args[@]} ]]; then
+            # Use user-provided argument
+            final_args+=("${user_args[$param_index]}")
+            ops_debug "Using user argument for $param: ${user_args[$param_index]}"
+        else
+            # Inject variable for this parameter
+            local injected_value
+            injected_value=$(ops_resolve_single_variable "$function_name" "$param")
+            final_args+=("$injected_value")
+            ops_debug "Injected variable for $param: $injected_value"
+        fi
+        ((param_index++))
+    done
+    
+    ops_debug "Final arguments: ${final_args[*]}"
+    
+    # Execute function with final arguments
+    ops_debug "Executing: $function_name ${final_args[*]}"
+    "$function_name" "${final_args[@]}"
 }
 
 # ============================================================================
@@ -266,6 +301,96 @@ ops_validate_variables() {
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
+
+# Check if a function is a utility function that doesn't need injection
+ops_is_utility_function() {
+    local function_name="$1"
+    
+    # Utility functions that call ana_laf, ana_acu, aux_tec etc.
+    case "$function_name" in
+        *_fun|*_var)
+            ops_debug "Detected utility function: $function_name"
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# Sanitize hostname to get short name (remove domain)
+ops_get_short_hostname() {
+    local full_hostname=$(hostname)
+    
+    # Extract just the first part before any dots
+    echo "${full_hostname%%.*}"
+}
+
+# Resolve a single variable for a parameter
+ops_resolve_single_variable() {
+    local function_name="$1"
+    local param="$2"
+    
+    # Try convention-based resolution first
+    local resolved_value=""
+    local hostname=$(ops_get_short_hostname)
+    
+    ops_debug "Using sanitized hostname: $hostname"
+    
+    # Apply naming conventions
+    case "$param" in
+        vm_id|vmid)
+            resolved_value="${VM_ID:-}"
+            ;;
+        cluster_nodes|cluster_nodes_str)
+            if [[ -n "${CLUSTER_NODES[*]}" ]]; then
+                resolved_value="${CLUSTER_NODES[*]}"
+            else
+                resolved_value=""
+            fi
+            ;;
+        pci0_id)
+            local var_name="${hostname}_NODE_PCI0"
+            resolved_value="${!var_name:-}"
+            ;;
+        pci1_id)
+            local var_name="${hostname}_NODE_PCI1"
+            resolved_value="${!var_name:-}"
+            ;;
+        core_count_on)
+            local var_name="${hostname}_CORE_COUNT_ON"
+            resolved_value="${!var_name:-}"
+            ;;
+        core_count_off)
+            local var_name="${hostname}_CORE_COUNT_OFF"
+            resolved_value="${!var_name:-}"
+            ;;
+        usb_devices_str|usb_devices)
+            # Handle USB device arrays with newline separation
+            local usb_array_name="${hostname}_USB_DEVICES"
+            if declare -p "$usb_array_name" >/dev/null 2>&1; then
+                local usb_array_ref="${usb_array_name}[@]"
+                if [[ -n "${!usb_array_ref}" ]]; then
+                    resolved_value=$(printf '%s\n' "${!usb_array_ref}")
+                fi
+            fi
+            ;;
+        pve_conf_path)
+            resolved_value="${PVE_CONF_PATH_QEMU:-}"
+            ;;
+        lib_ops_dir)
+            resolved_value="${LIB_OPS_DIR:-}"
+            ;;
+        *)
+            # Generic uppercase conversion
+            local global_var=$(echo "$param" | tr '[:lower:]' '[:upper:]')
+            resolved_value="${!global_var:-}"
+            ;;
+    esac
+    
+    ops_debug "Resolved $param -> $resolved_value"
+    echo "$resolved_value"
+}
 
 # Show main help
 ops_show_help() {
