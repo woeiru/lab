@@ -27,13 +27,23 @@ fi
 source "$LAB_DIR/lib/gen/aux"
 source "$LAB_DIR/lib/gen/ana"
 
-# Define library directories
-LIB_CORE_DIR="$LAB_DIR/lib/core"
-LIB_OPS_DIR="$LAB_DIR/lib/ops"
-LIB_GEN_DIR="$LAB_DIR/lib/gen"
+# Load targets configuration
+TARGETS_FILE="$(dirname "$SCRIPT_DIR")/config/targets"
+if [[ -f "$TARGETS_FILE" ]]; then
+    source "$TARGETS_FILE"
+else
+    echo "Warning: targets file not found at $TARGETS_FILE"
+    # Fallback to hardcoded directories
+    TARGET_DIRECTORIES=("lib/core" "lib/ops" "lib/gen")
+fi
 
-# Output file
-DOC_FILE="$LAB_DIR/doc/dev/functions.md"
+# Get output file from configuration
+if [[ -n "${GENERATOR_OUTPUT_FILES[func]:-}" ]]; then
+    DOC_FILE="$LAB_DIR/${GENERATOR_OUTPUT_FILES[func]}"
+else
+    # Fallback to default
+    DOC_FILE="$LAB_DIR/doc/dev/functions.md"
+fi
 
 # Function to count functions from a library directory
 count_library_functions() {
@@ -78,13 +88,15 @@ generate_function_table() {
     # First, count all functions by processing them and counting output lines
     local total_functions=0
     
-    # Count functions from each library
-    local core_count ops_count gen_count
-    core_count=$(count_library_functions "core" "$LIB_CORE_DIR")
-    ops_count=$(count_library_functions "ops" "$LIB_OPS_DIR")
-    gen_count=$(count_library_functions "gen" "$LIB_GEN_DIR")
-    
-    total_functions=$((core_count + ops_count + gen_count))
+    # Count functions from all target directories
+    for target_dir in "${TARGET_DIRECTORIES[@]}"; do
+        local full_path="$LAB_DIR/$target_dir"
+        if [[ -d "$full_path" && "$target_dir" == lib/* ]]; then
+            local lib_name=$(basename "$target_dir")
+            local count=$(count_library_functions "$lib_name" "$full_path")
+            total_functions=$((total_functions + count))
+        fi
+    done
     
     # Generate header with actual function count
     cat << EOF
@@ -105,10 +117,14 @@ Functions are organized by library modules for systematic access and reference.
 |---------|--------|----------|-------------|
 EOF
     
-    # Process and output functions from each library
-    process_library_functions "core" "$LIB_CORE_DIR"
-    process_library_functions "ops" "$LIB_OPS_DIR"
-    process_library_functions "gen" "$LIB_GEN_DIR"
+    # Process and output functions from all target lib directories
+    for target_dir in "${TARGET_DIRECTORIES[@]}"; do
+        local full_path="$LAB_DIR/$target_dir"
+        if [[ -d "$full_path" && "$target_dir" == lib/* ]]; then
+            local lib_name=$(basename "$target_dir")
+            process_library_functions "$lib_name" "$full_path"
+        fi
+    done
 }
 
 # Function to process functions from a library directory using JSON output
@@ -220,15 +236,22 @@ update_documentation() {
 # Main execution
 main() {
     echo "Generating function metadata table..."
-    echo "Processing libraries: core, ops, gen"
+    echo "Processing target directories from config: ${TARGET_DIRECTORIES[*]}"
     
-    # Check if required directories exist
-    for dir in "$LIB_CORE_DIR" "$LIB_OPS_DIR" "$LIB_GEN_DIR"; do
-        if [[ ! -d "$dir" ]]; then
-            echo "Error: Directory $dir not found"
-            exit 1
+    # Check if required lib directories exist
+    local lib_dirs_found=false
+    for target_dir in "${TARGET_DIRECTORIES[@]}"; do
+        local full_path="$LAB_DIR/$target_dir"
+        if [[ -d "$full_path" && "$target_dir" == lib/* ]]; then
+            lib_dirs_found=true
+            echo "Found lib directory: $target_dir"
         fi
     done
+    
+    if [[ "$lib_dirs_found" == "false" ]]; then
+        echo "Error: No lib directories found in targets configuration"
+        exit 1
+    fi
     
     # Check if documentation file exists
     if [[ ! -f "$DOC_FILE" ]]; then
