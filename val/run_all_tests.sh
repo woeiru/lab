@@ -21,6 +21,7 @@ declare -A TEST_CATEGORIES=(
     ["lib"]="Library function tests"
     ["integration"]="Integration tests"
     ["src"]="Source component tests (including DIC)"
+    ["dic"]="DIC system tests"
     ["legacy"]="Legacy validation scripts"
     ["all"]="All test categories"
 )
@@ -41,7 +42,13 @@ discover_tests() {
             tests+=($(find "$VAL_DIR/integration" -name "*_test.sh" -type f 2>/dev/null | sort))
             ;;
         "src")
-            tests+=($(find "$VAL_DIR/src" -name "*_test.sh" -type f 2>/dev/null | sort))
+            # Find all src tests except DIC tests (to avoid duplicates)
+            tests+=($(find "$VAL_DIR/src" -name "*_test.sh" -type f -not -path "*/dic/*" 2>/dev/null | sort))
+            # Include DIC tests specifically
+            tests+=($(find "$VAL_DIR/src/dic" -name "dic_*_test.sh" -type f 2>/dev/null | sort))
+            ;;
+        "dic")
+            tests+=($(find "$VAL_DIR/src/dic" -name "dic_*_test.sh" -type f 2>/dev/null | sort))
             ;;
         "legacy")
             # Legacy scripts (existing ones)
@@ -54,11 +61,20 @@ discover_tests() {
             done
             ;;
         "all"|*)
-            tests+=($(discover_tests "core"))
-            tests+=($(discover_tests "lib"))
-            tests+=($(discover_tests "integration"))
-            tests+=($(discover_tests "src"))
-            tests+=($(discover_tests "legacy"))
+            # Directly collect all tests to avoid recursion
+            tests+=($(find "$VAL_DIR/core" -name "*_test.sh" -type f 2>/dev/null | sort))
+            tests+=($(find "$VAL_DIR/lib" -name "*_test.sh" -type f 2>/dev/null | sort))
+            tests+=($(find "$VAL_DIR/integration" -name "*_test.sh" -type f 2>/dev/null | sort))
+            tests+=($(find "$VAL_DIR/src" -name "*_test.sh" -type f -not -path "*/dic/*" 2>/dev/null | sort))
+            tests+=($(find "$VAL_DIR/src/dic" -name "dic_*_test.sh" -type f 2>/dev/null | sort))
+            # Legacy scripts
+            local legacy_scripts=("system" "environment" "refactor" "complete_refactor" 
+                                 "gpu_refactoring" "gpu_wrappers" "verbosity_controls")
+            for script in "${legacy_scripts[@]}"; do
+                if [[ -f "$VAL_DIR/$script" ]]; then
+                    tests+=("$VAL_DIR/$script")
+                fi
+            done
             ;;
     esac
     
@@ -132,6 +148,7 @@ Examples:
   $0 lib               # Run only library tests
   $0 integration       # Run only integration tests
   $0 src               # Run only source component tests (including DIC)
+  $0 dic               # Run only DIC system tests
   $0 legacy            # Run only legacy validation scripts
   $0 --list            # Show available tests
 EOF
@@ -280,7 +297,7 @@ main() {
                 quick="true"
                 shift
                 ;;
-            core|lib|integration|src|legacy|all)
+            core|lib|integration|src|dic|legacy|all)
                 category="$1"
                 shift
                 ;;
