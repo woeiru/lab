@@ -405,3 +405,353 @@ For migration issues:
 - **Examples**: `src/dic/examples/`
 - **Debug mode**: `OPS_DEBUG=1 ops ...`
 - **Help system**: `ops --help`, `ops MODULE --help`
+
+## 🚨 Troubleshooting Guide
+
+### **Common Issues & Solutions**
+
+#### **Issue: "bash: ops_debug: command not found"**
+**Cause**: Shell environment variable expansion error
+**Solution**: This is a benign error that doesn't affect functionality
+```bash
+# To suppress these messages in production:
+export OPS_DEBUG=0
+# Or redirect stderr when not debugging:
+ops pve vpt 100 on 2>/dev/null
+```
+
+#### **Issue: "Module 'xyz' not found"**
+**Cause**: Missing library file in `lib/ops/`
+**Solution**: 
+```bash
+# Verify module exists
+ls -la lib/ops/xyz
+# Check LIB_OPS_DIR is set
+echo "LIB_OPS_DIR: $LIB_OPS_DIR"
+# Reinitialize if needed
+source bin/ini
+```
+
+#### **Issue: Function signature detection fails**
+**Cause**: Non-standard function parameter patterns
+**Solution**: Add explicit configuration in `src/dic/config/mappings.conf`
+```bash
+[module_function]
+vm_id=VM_ID
+custom_param=CUSTOM_GLOBAL_VAR
+```
+
+#### **Issue: Variable resolution errors**
+**Cause**: Missing hostname-specific variables
+**Solution**: Set required variables for your hostname
+```bash
+# Check current hostname
+hostname_short=$(hostname | cut -d'.' -f1)
+echo "Hostname: $hostname_short"
+
+# Set required variables
+export ${hostname_short}_NODE_PCI0="0000:01:00.0"
+export ${hostname_short}_NODE_PCI1="0000:01:00.1"
+```
+
+### **Debug Mode Analysis**
+```bash
+# Enable comprehensive debugging
+OPS_DEBUG=1 OPS_VALIDATE=strict ops pve vpt 100 on
+
+# Look for these debug patterns:
+# ✅ Good: "Extracted parameters (method 1): vm_id action pci0_id..."
+# ❌ Bad: "No parameters extracted for function: xyz"
+# ✅ Good: "Resolved pci0_id -> 0000:01:00.0"
+# ❌ Bad: "Failed to resolve variable: pci0_id"
+```
+
+## 📁 **Complete Configuration Examples**
+
+### **Complex Function Mappings**
+```bash
+# src/dic/config/mappings.conf
+[pve_vpt]
+# GPU passthrough configuration
+vm_id=VM_ID                              # Standard mapping
+action=TEST_ACTION                       # Custom action variable
+pci0_id=${hostname}_NODE_PCI0           # Hostname-specific PCI device
+pci1_id=${hostname}_NODE_PCI1           # Second PCI device
+core_count_on=${hostname}_CORE_COUNT_ON # CPU core count for performance
+core_count_off=${hostname}_CORE_COUNT_OFF
+usb_devices_str=${hostname}_USB_DEVICES[@] # Array handling
+pve_conf_path=PVE_CONF_PATH_QEMU        # Configuration path
+
+[sys_sca]
+# System scan configuration
+scan_type=SCAN_TYPE
+user_filter=USER_FILTER
+scan_depth=SCAN_DEPTH_LEVEL
+output_format=SCAN_OUTPUT_FORMAT
+
+[gpu_cluster_check]
+# Multi-node GPU checking
+vm_id=VM_ID
+cluster_nodes=CLUSTER_NODES[@]          # Cluster node array
+gpu_type=GPU_TYPE_REQUIRED
+failover_enabled=GPU_FAILOVER_ENABLED
+```
+
+### **Hostname-Specific Variable Setup**
+```bash
+# In cfg/env/production or equivalent
+# For hostname: h1
+export h1_NODE_PCI0="0000:01:00.0"      # Primary GPU
+export h1_NODE_PCI1="0000:01:00.1"      # Secondary GPU
+export h1_CORE_COUNT_ON="16"            # Performance cores
+export h1_CORE_COUNT_OFF="8"            # Efficient cores
+export h1_USB_DEVICES=(                 # USB device array
+    "usb0: host=1-4"
+    "usb1: host=2-4"
+    "usb2: host=2-2"
+)
+
+# For hostname: w2 (different hardware)
+export w2_NODE_PCI0="0000:02:00.0"      # Different PCI slot
+export w2_NODE_PCI1="0000:02:00.1"
+export w2_CORE_COUNT_ON="8"             # Lower spec hardware
+export w2_CORE_COUNT_OFF="4"
+export w2_USB_DEVICES=(
+    "usb0: host=3-1"
+    "usb1: host=3-2"
+)
+```
+
+## 🧪 **Testing & Validation**
+
+### **Integration with Validation Framework**
+```bash
+# Run DIC-specific tests
+val/run_all_tests.sh dic
+
+# Run all source component tests (includes DIC)
+val/run_all_tests.sh src
+
+# Run individual test categories
+val/run_all_tests.sh dic --list          # List available tests
+val/run_all_tests.sh dic --quick         # Quick tests only
+```
+
+### **Testing New Functions**
+```bash
+# Step 1: Add function to lib/ops/module
+mymodule_new_function() {
+    local param1="$1"
+    local param2="$2"
+    # Function implementation
+}
+
+# Step 2: Test discovery
+ops mymodule --list                      # Should show 'new_function'
+
+# Step 3: Test execution
+OPS_DEBUG=1 ops mymodule new_function arg1 arg2
+
+# Step 4: Add to validation tests if needed
+# Edit val/src/dic/dic_integration_test.sh to include your function
+```
+
+### **Creating Test Cases**
+```bash
+# Basic function test
+test_new_function() {
+    test_start "New Function - Basic Operation"
+    local output=$(OPS_DEBUG=1 ops mymodule new_function test_arg 2>&1)
+    if echo "$output" | grep -q "Executing.*mymodule_new_function"; then
+        log_success "New function execution working"
+    else
+        log_error "New function execution failed"
+    fi
+}
+```
+
+## 🔒 **Security & Best Practices**
+
+### **Variable Sanitization**
+- **Hostname Sanitization**: Automatically converts `linux.fritz.box` → `linux`
+- **Input Validation**: User arguments are not directly executed
+- **Variable Scoping**: Only predefined global variables are injected
+
+### **Production Security Guidelines**
+```bash
+# 1. Use silent mode in production
+export OPS_VALIDATE=silent
+
+# 2. Limit debug output in logs
+export OPS_DEBUG=0
+
+# 3. Validate environment variables
+validate_required_vars() {
+    local hostname_short=$(hostname | cut -d'.' -f1)
+    local required_vars=(
+        "${hostname_short}_NODE_PCI0"
+        "${hostname_short}_NODE_PCI1"
+        "PVE_CONF_PATH_QEMU"
+        "CLUSTER_NODES"
+    )
+    
+    for var in "${required_vars[@]}"; do
+        if [[ -z "${!var}" ]]; then
+            echo "ERROR: Required variable $var not set"
+            return 1
+        fi
+    done
+}
+
+# 4. Error message sanitization (avoid exposing sensitive paths)
+export OPS_VALIDATE=warn  # Show warnings but don't expose full paths
+```
+
+### **Input Validation Best Practices**
+```bash
+# DIC automatically validates:
+# ✅ Module existence in lib/ops/
+# ✅ Function existence within module
+# ✅ Basic argument count
+# ✅ Variable name validity
+
+# Additional validation in your functions:
+mymodule_secure_function() {
+    local vm_id="$1"
+    local action="$2"
+    
+    # Validate VM ID format
+    if ! [[ "$vm_id" =~ ^[0-9]+$ ]]; then
+        echo "ERROR: Invalid VM ID format: $vm_id"
+        return 1
+    fi
+    
+    # Validate action parameter
+    case "$action" in
+        start|stop|restart) ;;
+        *) echo "ERROR: Invalid action: $action"; return 1 ;;
+    esac
+    
+    # Proceed with validated parameters
+}
+```
+
+## ⚡ **Performance & Optimization**
+
+### **Caching Strategy**
+- **Function Signatures**: Cached after first analysis
+- **Variable Resolutions**: Cached per session
+- **Module Loading**: Sourced once per session
+
+### **Performance Monitoring**
+```bash
+# Enable timing for performance analysis
+export OPS_TIMING=1
+
+# Monitor injection overhead
+time ops pve vpt 100 on
+
+# Compare with direct function call
+time pve_vpt 100 on 0000:01:00.0 0000:01:00.1 8 4 "" /etc/pve/qemu-server
+```
+
+### **Large-Scale Deployment**
+```bash
+# For high-frequency operations, consider:
+# 1. Pre-validation of environment
+validate_environment_once() {
+    [[ -n "$ENV_VALIDATED" ]] && return 0
+    validate_required_vars || exit 1
+    export ENV_VALIDATED=1
+}
+
+# 2. Batch operations where possible
+for vm_id in {100..110}; do
+    ops pve vpt "$vm_id" on &
+done
+wait  # Parallel execution
+
+# 3. Cache frequently used configurations
+export OPS_CACHE=1  # Enable caching (default)
+```
+
+### **Memory Usage Optimization**
+- **Signature Cache**: ~1KB per function
+- **Variable Cache**: ~100B per resolved variable
+- **Total Overhead**: <50KB for typical installations
+
+## 📊 **Monitoring & Observability**
+
+### **Production Monitoring**
+```bash
+# Monitor DIC operations
+grep "DIC.*Executing" /var/log/syslog | tail -10
+
+# Track error rates
+grep "DIC.*ERROR" /var/log/syslog | wc -l
+
+# Monitor performance
+grep "DIC.*took.*ms" /var/log/syslog | awk '{print $NF}' | sort -n
+```
+
+### **Health Checks**
+```bash
+# Basic health check script
+dic_health_check() {
+    echo "DIC Health Check - $(date)"
+    echo "========================="
+    
+    # Check environment
+    [[ -n "$LIB_OPS_DIR" ]] && echo "✅ Environment initialized" || echo "❌ Environment not initialized"
+    
+    # Check core modules
+    local modules=(pve gpu sys net)
+    for module in "${modules[@]}"; do
+        if ops "$module" --list >/dev/null 2>&1; then
+            echo "✅ Module $module operational"
+        else
+            echo "❌ Module $module failed"
+        fi
+    done
+    
+    # Check basic injection
+    if OPS_DEBUG=1 ops sys var 2>&1 | grep -q "Executing"; then
+        echo "✅ Parameter injection working"
+    else
+        echo "❌ Parameter injection failed"
+    fi
+}
+```
+
+## 🎓 **Training & Knowledge Transfer**
+
+### **Team Training Checklist**
+- [ ] Understanding dependency injection concept
+- [ ] DIC vs MGT wrapper differences  
+- [ ] Environment variable configuration
+- [ ] Debug mode usage and interpretation
+- [ ] Common troubleshooting procedures
+- [ ] Production deployment considerations
+
+### **Quick Reference Card**
+```bash
+# Essential Commands
+ops --list                    # List all modules
+ops MODULE --list             # List functions in module  
+ops MODULE FUNCTION --help    # Function help
+OPS_DEBUG=1 ops ...          # Debug mode
+OPS_VALIDATE=strict ops ...  # Strict validation
+
+# Environment Check
+echo $LIB_OPS_DIR            # Should be set
+hostname | cut -d'.' -f1     # Check hostname
+env | grep $(hostname | cut -d'.' -f1)  # Check host variables
+
+# Common Patterns
+ops pve vpt VM_ID on|off     # GPU passthrough
+ops pve vck VM_ID            # VM location check
+ops sys dpa -x               # Package analysis
+ops gpu vck VM_ID            # GPU check
+```
+
+---
