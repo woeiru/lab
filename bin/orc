@@ -133,7 +133,7 @@ source_helper() {
     # Verify the file exists
     if [[ ! -f "$file" ]]; then
         lo1_log "lvl" " Warning: File $description ($file) not found."
-        handle_error "File not found: $file" "source_helper" "${ERROR_CODES[FILE_NOT_FOUND]}" "WARNING"
+        err_process "File not found: $file" "source_helper" "${ERROR_CODES[FILE_NOT_FOUND]}" "WARNING"
         tme_end_timer "source_$description"
         return 1
     fi
