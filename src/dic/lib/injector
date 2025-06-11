@@ -30,6 +30,9 @@ ops_resolve_by_convention() {
     local resolved_args=""
     local hostname=$(hostname)
     
+    # Sanitize hostname to extract short name (remove domain)
+    hostname="${hostname%%.*}"
+    
     # Process each parameter in the signature
     for param in $signature; do
         local global_var=""
@@ -121,6 +124,9 @@ ops_resolve_by_config() {
     local resolved_args=""
     local hostname=$(hostname)
     
+    # Sanitize hostname to extract short name (remove domain)
+    hostname="${hostname%%.*}"
+    
     # Check if function has specific mappings
     local in_function_section=0
     while IFS= read -r line; do
@@ -204,6 +210,9 @@ ops_custom_inject_pve_vpt() {
     local signature="$1"
     local hostname=$(hostname)
     
+    # Sanitize hostname to extract short name (remove domain)
+    hostname="${hostname%%.*}"
+    
     ops_debug "Custom injection for pve_vpt"
     
     # Complex variable resolution for GPU passthrough
@@ -234,6 +243,9 @@ ops_custom_inject_pve_vpt() {
 ops_custom_inject_pve_vms() {
     local signature="$1"
     local hostname=$(hostname)
+    
+    # Sanitize hostname to extract short name (remove domain)
+    hostname="${hostname%%.*}"
     
     ops_debug "Custom injection for pve_vms"
     
@@ -278,6 +290,9 @@ ops_custom_inject_ssh_sca() {
 ops_validate_injection_variables() {
     local function_name="$1"
     local hostname=$(hostname)
+    
+    # Sanitize hostname to extract short name (remove domain)
+    hostname="${hostname%%.*}"
     
     # Function-specific validation
     case "$function_name" in

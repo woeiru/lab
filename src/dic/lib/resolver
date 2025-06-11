@@ -132,6 +132,9 @@ ops_resolve_hostname_specific() {
     local param_name="$1"
     local hostname=$(hostname)
     
+    # Sanitize hostname to extract short name (remove domain)
+    hostname="${hostname%%.*}"
+    
     # Common hostname-specific patterns
     local hostname_var=""
     
@@ -180,6 +183,9 @@ ops_resolve_hostname_specific() {
 ops_resolve_array_variable() {
     local param_name="$1"
     local hostname=$(hostname)
+    
+    # Sanitize hostname to extract short name (remove domain)
+    hostname="${hostname%%.*}"
     
     case "$param_name" in
         cluster_nodes)
