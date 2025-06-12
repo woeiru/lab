@@ -14,6 +14,9 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
+# Source auxiliary functions library for .std compliance
+source "${DIR_FUN}/../gen/aux"
+
 # Displays an overview of SSH-related functions in the script, showing their usage, shortname, and description
 # overview functions
 # <script_path>
@@ -40,9 +43,13 @@ ssh_fun() {
         return 0
     fi
     
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
+    # Parameter validation using aux_val (optional parameters allowed)
+    if [ $# -gt 0 ]; then
+        if ! aux_val "$FILEPATH_ssh" "file_exists"; then
+            aux_err "SSH script file not found: $FILEPATH_ssh"
+            aux_use
+            return 1
+        fi
     fi
     
     ana_laf "$FILEPATH_ssh" "$@"
@@ -78,6 +85,29 @@ ssh_var() {
         return 1
     fi
     
+    # Parameter validation using aux_val
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Config file path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Library parent directory cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$1" "file_exists"; then
+        aux_err "Config file not found: $1"
+        return 2
+    fi
+    
+    if ! aux_val "$2" "dir_exists"; then
+        aux_err "Library parent directory not found: $2"
+        return 2
+    fi
+    
     local config_file="$1"
     local lib_parent_dir="$2"
     source "${LIB_GEN_DIR}/aux"
@@ -97,7 +127,6 @@ ssh_key() {
     #   - ssh-add command for key management
     #   - ssh-agent command for agent management
     #   - ssh-keygen command for fingerprint generation
-    #   - log function for status reporting
     #   - awk for fingerprint extraction
     # Arguments:
     #   $1: key_paths_array[@] - nameref to array of SSH key file paths to load
@@ -116,37 +145,73 @@ ssh_key() {
         return 1
     fi
     
+    # Parameter validation using aux_val
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Array name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks using aux_chk
+    if ! aux_chk "command" "ssh-add"; then
+        aux_err "ssh-add command not found - required for SSH key management"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "ssh-agent"; then
+        aux_err "ssh-agent command not found - required for SSH agent management"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "ssh-keygen"; then
+        aux_err "ssh-keygen command not found - required for fingerprint generation"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "awk"; then
+        aux_err "awk command not found - required for fingerprint extraction"
+        return 127
+    fi
+    
     local -n key_paths_ref=$1
     
-    log "lvl" "Adding SSH keys to the agent"
+    aux_info "Adding SSH keys to the agent" "array_name=$1"
     
     # Start SSH agent if not running
     if [ -z "$SSH_AUTH_SOCK" ]; then
-        log "lvl" "Starting ssh-agent"
-        eval "$(ssh-agent -s)" > /dev/null || {
-            log "lvl" "Failed to start ssh-agent"
-            return 1
-        }
+        aux_info "Starting ssh-agent"
+        if ! eval "$(ssh-agent -s)" > /dev/null; then
+            aux_err "Failed to start ssh-agent"
+            return 2
+        fi
+        aux_info "SSH agent started successfully"
     fi
     
     # Load each key if not already loaded
     for key in "${key_paths_ref[@]}"; do
-        log "lvl" "Processing key: $key"
-        if [[ -f "$key" ]]; then
-            # Check if key is already loaded using fingerprint comparison
-            local key_fingerprint
-            key_fingerprint=$(ssh-keygen -lf "$key" 2>/dev/null | awk '{print $2}')
-            if [[ -n "$key_fingerprint" ]] && ! ssh-add -l 2>/dev/null | grep -q "$key_fingerprint"; then
-                ssh-add "$key" || log "lvl" "Failed to add key: $key"
+        aux_info "Processing SSH key" "key_path=$key"
+        
+        if ! aux_val "$key" "file_exists"; then
+            aux_warn "SSH key file not found" "key_path=$key"
+            continue
+        fi
+        
+        # Check if key is already loaded using fingerprint comparison
+        local key_fingerprint
+        key_fingerprint=$(ssh-keygen -lf "$key" 2>/dev/null | awk '{print $2}')
+        
+        if [[ -n "$key_fingerprint" ]] && ! ssh-add -l 2>/dev/null | grep -q "$key_fingerprint"; then
+            if ssh-add "$key"; then
+                aux_info "SSH key added successfully" "key_path=$key,fingerprint=$key_fingerprint"
             else
-                log "lvl" "Key already loaded or invalid: $key"
+                aux_err "Failed to add SSH key" "key_path=$key"
             fi
         else
-            log "lvl" "Key file not found: $key"
+            aux_info "SSH key already loaded or invalid" "key_path=$key"
         fi
     done
     
-    log "lvl" "SSH keys processing completed"
+    aux_info "SSH keys processing completed" "array_name=$1"
 }
 
 # Lists SSH keys currently loaded in the agent with detailed information
@@ -159,7 +224,6 @@ ssh_lst() {
     #   Provides clear status when no keys are loaded or agent is not running.
     # Dependencies:
     #   - ssh-add command for listing keys
-    #   - log function for status reporting
     #   - Running SSH agent with SSH_AUTH_SOCK set
     # Arguments:
     #   $1: -x - explicit execution flag required for consistency
@@ -178,11 +242,21 @@ ssh_lst() {
         return 1
     fi
     
-    log "lvl" "Listing SSH keys in the agent"
-    ssh-add -l || {
-        log "lvl" "No keys found or ssh-agent is not running"
+    # Dependency checks using aux_chk
+    if ! aux_chk "command" "ssh-add"; then
+        aux_err "ssh-add command not found - required for listing SSH keys"
+        return 127
+    fi
+    
+    aux_info "Listing SSH keys in the agent"
+    
+    if ssh-add -l; then
+        aux_info "SSH keys listed successfully"
+        return 0
+    else
+        aux_warn "No SSH keys found or ssh-agent is not running"
         return 1
-    }
+    fi
 }
 
 # Removes all SSH keys from the agent for security cleanup
@@ -195,7 +269,6 @@ ssh_rmv() {
     #   Provides clear feedback on operation success or failure.
     # Dependencies:
     #   - ssh-add command for key removal
-    #   - log function for status reporting
     #   - Running SSH agent with loaded keys
     # Arguments:
     #   $1: -x - explicit execution flag required for safety and consistency
@@ -214,11 +287,21 @@ ssh_rmv() {
         return 1
     fi
     
-    log "lvl" "Removing all SSH keys from the agent"
-    ssh-add -D || {
-        log "lvl" "Failed to remove SSH keys"
-        return 1
-    }
+    # Dependency checks using aux_chk
+    if ! aux_chk "command" "ssh-add"; then
+        aux_err "ssh-add command not found - required for SSH key removal"
+        return 127
+    fi
+    
+    aux_info "Removing all SSH keys from the agent"
+    
+    if ssh-add -D; then
+        aux_info "All SSH keys removed successfully from agent"
+        return 0
+    else
+        aux_err "Failed to remove SSH keys from agent"
+        return 2
+    fi
 }
 
 # Generates new SSH keys with specified type and comment
@@ -255,6 +338,25 @@ ssh_gen() {
         return 1
     fi
     
+    # Parameter validation using aux_val
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Key type cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Comment cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks using aux_chk
+    if ! aux_chk "command" "ssh-keygen"; then
+        aux_err "ssh-keygen command not found - required for SSH key generation"
+        return 127
+    fi
+    
     local key_type="$1"
     local comment="$2"
     local output_path="$3"
@@ -264,28 +366,28 @@ ssh_gen() {
         output_path="$HOME/.ssh/id_${key_type}"
     fi
     
-    log "lvl" "Generating SSH key: type=$key_type, comment=$comment, path=$output_path"
+    aux_info "Generating SSH key" "type=$key_type,comment=$comment,path=$output_path"
     
     case "$key_type" in
         ed25519)
             ssh-keygen -t ed25519 -C "$comment" -f "$output_path" || {
-                log "lvl" "Failed to generate ed25519 key"
+                aux_err "Failed to generate ed25519 key" "path=$output_path"
                 return 1
             }
             ;;
         rsa)
             ssh-keygen -t rsa -b 4096 -C "$comment" -f "$output_path" || {
-                log "lvl" "Failed to generate RSA key"
+                aux_err "Failed to generate RSA key" "path=$output_path"
                 return 1
             }
             ;;
         *)
-            log "lvl" "Unsupported key type: $key_type"
+            aux_err "Unsupported key type" "type=$key_type"
             return 1
             ;;
     esac
     
-    log "lvl" "SSH key generated successfully: $output_path"
+    aux_info "SSH key generated successfully" "path=$output_path,type=$key_type"
 }
 
 # Copies SSH public key to remote host for passwordless authentication
@@ -321,21 +423,42 @@ ssh_cpy() {
         return 1
     fi
     
-    local public_key_path="$1"
-    local target_host="$2"
-    
-    if [[ ! -f "$public_key_path" ]]; then
-        log "lvl" "Public key file not found: $public_key_path"
+    # Parameter validation using aux_val
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Public key path cannot be empty"
+        aux_use
         return 1
     fi
     
-    log "lvl" "Copying SSH key to host: $target_host"
-    ssh-copy-id -i "$public_key_path" "$target_host" || {
-        log "lvl" "Failed to copy SSH key to $target_host"
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Target host cannot be empty"
+        aux_use
         return 1
-    }
+    fi
     
-    log "lvl" "SSH key copied successfully to $target_host"
+    if ! aux_val "$1" "file_exists"; then
+        aux_err "Public key file not found" "path=$1"
+        return 2
+    fi
+    
+    # Dependency checks using aux_chk
+    if ! aux_chk "command" "ssh-copy-id"; then
+        aux_err "ssh-copy-id command not found - required for SSH key copying"
+        return 127
+    fi
+    
+    local public_key_path="$1"
+    local target_host="$2"
+    
+    aux_info "Copying SSH key to host" "key_path=$public_key_path,target=$target_host"
+    
+    if ssh-copy-id -i "$public_key_path" "$target_host"; then
+        aux_info "SSH key copied successfully" "target=$target_host"
+        return 0
+    else
+        aux_err "Failed to copy SSH key" "target=$target_host"
+        return 2
+    fi
 }
 
 # Starts SSH agent and ensures it's running for key management
@@ -369,18 +492,31 @@ ssh_agt() {
         return 1
     fi
     
+    # Dependency checks using aux_chk
+    if ! aux_chk "command" "ssh-agent"; then
+        aux_err "ssh-agent command not found - required for SSH agent management"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "ssh-add"; then
+        aux_err "ssh-add command not found - required for SSH agent testing"
+        return 127
+    fi
+    
     if [ -n "$SSH_AUTH_SOCK" ] && ssh-add -l >/dev/null 2>&1; then
-        log "lvl" "SSH agent is already running"
+        aux_info "SSH agent is already running" "auth_sock=$SSH_AUTH_SOCK"
         return 0
     fi
     
-    log "lvl" "Starting SSH agent"
-    eval "$(ssh-agent -s)" || {
-        log "lvl" "Failed to start ssh-agent"
-        return 1
-    }
+    aux_info "Starting SSH agent"
     
-    log "lvl" "SSH agent started successfully"
+    if eval "$(ssh-agent -s)"; then
+        aux_info "SSH agent started successfully" "auth_sock=$SSH_AUTH_SOCK,pid=$SSH_AGENT_PID"
+        return 0
+    else
+        aux_err "Failed to start ssh-agent"
+        return 2
+    fi
 }
 
 # Resolves custom SSH aliases using the configuration file. Supports connecting to single or multiple servers, executing commands remotely

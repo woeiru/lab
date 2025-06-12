@@ -35,11 +35,8 @@ sys_fun() {
         return 0
     fi
     
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
-    fi
-    
+    # Optional parameters - no validation needed
+    # Pass all arguments to processing function
     ana_laf "$FILEPATH_sys" "$@"
 }
 
@@ -69,6 +66,9 @@ sys_var() {
         aux_use
         return 1
     fi
+    
+    # Debug logging for development insights
+    aux_dbg "Analyzing configuration variables in $CONFIG_gen"
     
     ana_acu -o "$CONFIG_gen" "$DIR_FUN/.."
 }
@@ -107,36 +107,75 @@ sys_gio() {
         commit_message="$*"
     fi
 
+    # Dependency checks
+    if ! aux_chk "command" "git"; then
+        aux_err "git command not found - required for repository operations"
+        return 127
+    fi
+
+    # Validate directory exists
+    if ! aux_chk "dir_exists" "$dir"; then
+        aux_err "Directory not found: $dir"
+        return 2
+    fi
+
+    aux_info "Starting git synchronization" "dir=$dir,branch=$branch"
+    aux_dbg "Commit message: ${commit_message:-empty}"
+
     # Navigate to the git folder
-    cd "$dir" || { echo "Failed to change directory to $dir"; return 1; }
+    if ! aux_cmd "cd" "$dir"; then
+        aux_err "Failed to change directory to $dir"
+        return 1
+    fi
 
     # Fetch updates from remote
-    git fetch origin "$branch" || { echo "Failed to fetch from remote"; return 1; }
+    if ! aux_cmd "git" "fetch" "origin" "$branch"; then
+        aux_err "Failed to fetch from remote" "branch=$branch"
+        return 1
+    fi
 
     # Get the current status
     local status_output
     status_output=$(git status --porcelain)
     if [[ -z "$status_output" ]]; then
-        echo "Working tree clean. Checking for updates..."
+        aux_info "Working tree clean, checking for updates"
         if git rev-list HEAD...origin/"$branch" --count | grep -q "^0$"; then
-            echo "Local branch is up to date with origin/$branch."
+            aux_info "Local branch is up to date" "branch=origin/$branch"
         else
-            echo "Updates available. Pulling changes..."
-            git pull origin "$branch" || { echo "Failed to pull changes"; return 1; }
+            aux_info "Updates available, pulling changes" "branch=$branch"
+            if ! aux_cmd "git" "pull" "origin" "$branch"; then
+                aux_err "Failed to pull changes" "branch=$branch"
+                return 1
+            fi
         fi
     else
-        echo "Changes detected. Committing and pushing..."
-        git add . || { echo "Failed to stage changes"; return 1; }
-        if [[ -n "$commit_message" ]]; then
-            git commit -m "$commit_message" || { echo "Failed to commit changes"; return 1; }
-        else
-            git commit --allow-empty-message -m "" || { echo "Failed to commit changes"; return 1; }
+        aux_info "Changes detected, committing and pushing"
+        if ! aux_cmd "git" "add" "."; then
+            aux_err "Failed to stage changes"
+            return 1
         fi
-        git push origin "$branch" || { echo "Failed to push changes"; return 1; }
+        if [[ -n "$commit_message" ]]; then
+            if ! aux_cmd "git" "commit" "-m" "$commit_message"; then
+                aux_err "Failed to commit changes" "message=$commit_message"
+                return 1
+            fi
+        else
+            if ! aux_cmd "git" "commit" "--allow-empty-message" "-m" ""; then
+                aux_err "Failed to commit changes" "message=empty"
+                return 1
+            fi
+        fi
+        if ! aux_cmd "git" "push" "origin" "$branch"; then
+            aux_err "Failed to push changes" "branch=$branch"
+            return 1
+        fi
+        aux_info "Successfully pushed changes" "branch=$branch"
     fi
 
     # Return to the previous directory
-    cd - > /dev/null || { echo "Failed to return to previous directory"; return 1; }
+    if ! aux_cmd "cd" "-"; then
+        aux_warn "Failed to return to previous directory"
+    fi
 }
 
 # Detects the system's package manager
@@ -168,16 +207,19 @@ sys_dpa() {
     local function_name="${FUNCNAME[0]}"
     local pman="unknown"
 
-    if command -v apt &> /dev/null; then
+    aux_dbg "Detecting system package manager"
+
+    if aux_chk "command" "apt"; then
         pman="apt"
-    elif command -v dnf &> /dev/null; then
+    elif aux_chk "command" "dnf"; then
         pman="dnf"
-    elif command -v yum &> /dev/null; then
+    elif aux_chk "command" "yum"; then
         pman="yum"
-    elif command -v zypper &> /dev/null; then
+    elif aux_chk "command" "zypper"; then
         pman="zypper"
     fi
 
+    aux_dbg "Detected package manager: $pman"
     echo "$pman"
 }
 
@@ -217,34 +259,46 @@ sys_upa() {
     pman=$(sys_dpa -x)
 
     if [ "$pman" = "unknown" ]; then
-        aux_log "ERROR" "$function_name: Could not detect a supported package manager"
+        aux_err "Could not detect a supported package manager"
         return 1
     fi
 
+    aux_info "Starting system package update and upgrade" "package_manager=$pman"
+    
     # Define commands based on package manager
     case "$pman" in
         apt)
-            apt update -y && apt upgrade -y
+            if aux_cmd "apt" "update" "-y" && aux_cmd "apt" "upgrade" "-y"; then
+                aux_info "System update and upgrade completed successfully" "package_manager=$pman"
+                return 0
+            else
+                aux_err "Failed to update and upgrade system" "package_manager=$pman"
+                return 1
+            fi
             ;;
         dnf|yum)
-            $pman update -y && $pman upgrade -y
+            if aux_cmd "$pman" "update" "-y" && aux_cmd "$pman" "upgrade" "-y"; then
+                aux_info "System update and upgrade completed successfully" "package_manager=$pman"
+                return 0
+            else
+                aux_err "Failed to update and upgrade system" "package_manager=$pman"
+                return 1
+            fi
             ;;
         zypper)
-            zypper refresh -y && zypper update -y
+            if aux_cmd "zypper" "refresh" "-y" && aux_cmd "zypper" "update" "-y"; then
+                aux_info "System update and upgrade completed successfully" "package_manager=$pman"
+                return 0
+            else
+                aux_err "Failed to update and upgrade system" "package_manager=$pman"
+                return 1
+            fi
             ;;
         *)
-            aux_log "ERROR" "$function_name: Unsupported package manager: $pman"
+            aux_err "Unsupported package manager: $pman"
             return 1
             ;;
     esac
-
-    if [ $? -eq 0 ]; then
-        aux_log "INFO" "$function_name: System update and upgrade completed successfully"
-        return 0
-    else
-        aux_log "ERROR" "$function_name: Failed to update and upgrade system"
-        return 1
-    fi
 }
 
 # Installs specified packages using the system's package manager
@@ -276,15 +330,27 @@ sys_ipa() {
         return 1
     fi
     
+    # Validate input parameters
+    for package in "$@"; do
+        if ! aux_val "$package" "not_empty"; then
+            aux_err "Package name cannot be empty: $package"
+            aux_use
+            return 1
+        fi
+    done
+    
     local function_name="${FUNCNAME[0]}"
 
     # Get package manager using sys_dpa
     local pman
     pman=$(sys_dpa -x)
     if [ "$pman" = "unknown" ]; then
-        aux_log "ERROR" "$function_name: Could not detect a supported package manager"
+        aux_err "Could not detect a supported package manager"
         return 1
     fi
+
+    aux_info "Starting package installation" "package_manager=$pman,packages=$*"
+    aux_dbg "Filtering already installed packages"
 
     # Filter out already installed packages
     local packages_to_install=()
@@ -293,16 +359,25 @@ sys_ipa() {
             apt)
                 if ! dpkg -l "$package" &>/dev/null; then
                     packages_to_install+=("$package")
+                    aux_dbg "Package needs installation: $package"
+                else
+                    aux_dbg "Package already installed: $package"
                 fi
                 ;;
             dnf|yum)
                 if ! rpm -q "$package" &>/dev/null; then
                     packages_to_install+=("$package")
+                    aux_dbg "Package needs installation: $package"
+                else
+                    aux_dbg "Package already installed: $package"
                 fi
                 ;;
             zypper)
                 if ! rpm -q "$package" &>/dev/null; then
                     packages_to_install+=("$package")
+                    aux_dbg "Package needs installation: $package"
+                else
+                    aux_dbg "Package already installed: $package"
                 fi
                 ;;
         esac
@@ -310,35 +385,46 @@ sys_ipa() {
 
     # If no packages need installation, exit successfully
     if [ ${#packages_to_install[@]} -eq 0 ]; then
-        aux_log "INFO" "$function_name: All packages are already installed"
+        aux_info "All packages are already installed"
         return 0
     fi
+
+    aux_info "Installing packages" "packages=${packages_to_install[*]}"
 
     # Install filtered packages
     case "$pman" in
         apt)
-            apt install -y "${packages_to_install[@]}"
+            if aux_cmd "apt" "install" "-y" "${packages_to_install[@]}"; then
+                aux_info "Successfully installed packages" "packages=${packages_to_install[*]}"
+                return 0
+            else
+                aux_err "Failed to install packages" "packages=${packages_to_install[*]}"
+                return 1
+            fi
             ;;
         dnf|yum)
-            $pman install -y "${packages_to_install[@]}"
+            if aux_cmd "$pman" "install" "-y" "${packages_to_install[@]}"; then
+                aux_info "Successfully installed packages" "packages=${packages_to_install[*]}"
+                return 0
+            else
+                aux_err "Failed to install packages" "packages=${packages_to_install[*]}"
+                return 1
+            fi
             ;;
         zypper)
-            zypper install -y "${packages_to_install[@]}"
+            if aux_cmd "zypper" "install" "-y" "${packages_to_install[@]}"; then
+                aux_info "Successfully installed packages" "packages=${packages_to_install[*]}"
+                return 0
+            else
+                aux_err "Failed to install packages" "packages=${packages_to_install[*]}"
+                return 1
+            fi
             ;;
         *)
-            aux_log "ERROR" "$function_name: Unsupported package manager: $pman"
+            aux_err "Unsupported package manager: $pman"
             return 1
             ;;
     esac
-
-    local exit_status=$?
-    if [ $exit_status -eq 0 ]; then
-        aux_log "INFO" "$function_name: Successfully installed packages: ${packages_to_install[*]}"
-        return 0
-    else
-        aux_log "ERROR" "$function_name: Failed to install packages: ${packages_to_install[*]}"
-        return 1
-    fi
 }
 
 # Configures git globally with a specified username and email, essential for proper commit attribution
@@ -369,14 +455,37 @@ sys_gst() {
         return 1
     fi
     
+    # Validate input parameters
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Username cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Email cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency check
+    if ! aux_chk "command" "git"; then
+        aux_err "git command not found - required for configuration"
+        return 127
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local usermail="$2"
 
-    git config --global user.name "$username"
-    git config --global user.email "$usermail"
+    aux_info "Configuring global git user identity" "username=$username,email=$usermail"
 
-    aux_log "INFO" "$function_name: executed ( $1 $2 )"
+    if aux_cmd "git" "config" "--global" "user.name" "$username" && aux_cmd "git" "config" "--global" "user.email" "$usermail"; then
+        aux_info "Git configuration completed successfully" "username=$username,email=$usermail"
+    else
+        aux_err "Failed to configure git user identity" "username=$username,email=$usermail"
+        return 1
+    fi
 }
 
 # Installs, enables, and starts the sysstat service for system performance monitoring. Modifies the configuration to ensure it's enabled
@@ -408,17 +517,41 @@ sys_sst() {
         return 1
     fi
     
+    # Dependency checks
+    if ! aux_chk "command" "systemctl"; then
+        aux_err "systemctl command not found - required for service management"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "sed"; then
+        aux_err "sed command not found - required for configuration modification"
+        return 127
+    fi
+    
+    aux_info "Setting up sysstat service for system monitoring"
+    
     # Step 1: Install sysstat
-    sys_ipa sysstat
+    aux_info "Installing sysstat package"
+    if ! sys_ipa sysstat; then
+        aux_err "Failed to install sysstat package"
+        return 1
+    fi
 
     # Step 2: Enable sysstat
-    sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
+    aux_info "Enabling sysstat data collection"
+    if ! aux_cmd "sed" "-i" "s/ENABLED=\"false\"/ENABLED=\"true\"/" "/etc/default/sysstat"; then
+        aux_err "Failed to modify sysstat configuration"
+        return 1
+    fi
 
     # Step 3: Start the sysstat service
-    systemctl enable sysstat
-    systemctl start sysstat
-
-    echo "sysstat has been installed, enabled, and started."
+    aux_info "Enabling and starting sysstat service"
+    if aux_cmd "systemctl" "enable" "sysstat" && aux_cmd "systemctl" "start" "sysstat"; then
+        aux_info "sysstat service setup completed successfully"
+    else
+        aux_err "Failed to enable or start sysstat service"
+        return 1
+    fi
 }
 
 # Creates a new user with a specified username and password, prompting for input if not provided. Verifies successful user creation
@@ -451,19 +584,57 @@ sys_ust() {
         return 1
     fi
     
+    # Validate input parameters
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Username cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Password cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks
+    if ! aux_chk "command" "useradd"; then
+        aux_err "useradd command not found - required for user creation"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "chpasswd"; then
+        aux_err "chpasswd command not found - required for password setting"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "id"; then
+        aux_err "id command not found - required for user verification"
+        return 127
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local username="$1"
     local password="$2"
 
+    aux_info "Creating new user account" "username=$username"
+
     # Create the user
-    useradd -m "$username"
-    echo "$username:$password" | chpasswd
+    if ! aux_cmd "useradd" "-m" "$username"; then
+        aux_err "Failed to create user account" "username=$username"
+        return 1
+    fi
+    
+    if ! echo "$username:$password" | aux_cmd "chpasswd"; then
+        aux_err "Failed to set user password" "username=$username"
+        return 1
+    fi
 
     # Check if user creation was successful
     if id -u "$username" > /dev/null 2>&1; then
-        aux_log "INFO" "$function_name: User $username created successfully"
+        aux_info "User created successfully" "username=$username"
     else
-        aux_log "ERROR" "$function_name: Failed to create user $username"
+        aux_err "Failed to create user" "username=$username"
         return 1
     fi
 }
@@ -497,25 +668,43 @@ sys_sdc() {
         return 1
     fi
     
+    # Validate input parameter
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Service name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency check
+    if ! aux_chk "command" "systemctl"; then
+        aux_err "systemctl command not found - required for service management"
+        return 127
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     local service="$1"
 
-    # Enable and start smbd service
-    systemctl enable "$service"
-    systemctl start "$service"
+    aux_info "Enabling and starting systemd service" "service=$service"
+
+    # Enable and start service
+    if aux_cmd "systemctl" "enable" "$service" && aux_cmd "systemctl" "start" "$service"; then
+        aux_info "Service operations completed" "service=$service"
+    else
+        aux_err "Failed to enable or start service" "service=$service"
+        return 1
+    fi
 
     # Check if service is active
-    systemctl is-active --quiet "$service"
-    if [ $? -eq 0 ]; then
-        aux_log "INFO" "$function_name: $service is active"
+    if systemctl is-active --quiet "$service"; then
+        aux_info "Service is active and running" "service=$service"
     else
-        read -p "$service is not active. Do you want to continue anyway? [Y/n] " choice
+        local choice=$(aux_ask "$service is not active. Do you want to continue anyway?" "no" "yes_no")
         case "$choice" in
-            [yY]|[yY][eE][sS])
-                aux_log "WARN" "$function_name: $service is not active"
+            "yes")
+                aux_warn "Service is not active but continuing" "service=$service"
                 ;;
             *)
-                aux_log "ERROR" "$function_name: $service is not active. Exiting."
+                aux_err "Service is not active, exiting" "service=$service"
                 return 1
                 ;;
         esac
@@ -551,71 +740,94 @@ sys_gre() {
         return 1
     fi
     
-    echo "Welcome to the Git Reset Explorer (sys-gre)!"
-    echo "This function will guide you through the process of moving back in Git history."
-    echo
+    # Dependency checks
+    if ! aux_chk "command" "git"; then
+        aux_err "git command not found - required for repository operations"
+        return 127
+    fi
+    
+    aux_info "Starting Git Reset Explorer"
+    
+    aux_info "Welcome to the Git Reset Explorer (sys-gre)!"
+    aux_info "This function will guide you through the process of moving back in Git history."
 
     # Step 1: Determine how many commits to go back
-    read -p "How many commits do you want to go back? " num_commits
+    local num_commits=$(aux_ask "How many commits do you want to go back?" "1" "numeric")
+    aux_dbg "User selected commits to go back: $num_commits"
 
     # Step 2: Determine the reset type
-    echo
-    echo "What type of reset do you want to perform?"
-    echo "1. Soft (move HEAD but leave staging and working directory unchanged)"
-    echo "2. Mixed (move HEAD and reset staging, but leave working directory unchanged)"
-    echo "3. Hard (move HEAD, reset staging, and reset working directory)"
-    read -p "Enter your choice (1/2/3): " reset_type
+    aux_info "Reset type options:"
+    aux_info "1. Soft (move HEAD but leave staging and working directory unchanged)"
+    aux_info "2. Mixed (move HEAD and reset staging, but leave working directory unchanged)"
+    aux_info "3. Hard (move HEAD, reset staging, and reset working directory)"
+    local reset_type=$(aux_ask "Enter your choice (1/2/3)" "2" "choice_123")
 
     # Construct the reset command
+    local reset_cmd
     case $reset_type in
         1) reset_cmd="git reset --soft HEAD~$num_commits" ;;
         2) reset_cmd="git reset HEAD~$num_commits" ;;
         3) reset_cmd="git reset --hard HEAD~$num_commits" ;;
-        *) echo "Invalid choice. Exiting."; return 1 ;;
+        *) 
+            aux_err "Invalid choice: $reset_type"
+            return 1 
+            ;;
     esac
 
     # Execute the reset command
-    echo
-    echo "Executing: $reset_cmd"
-    eval $reset_cmd
+    aux_info "Executing git reset" "command=$reset_cmd"
+    if ! aux_cmd "bash" "-c" "$reset_cmd"; then
+        aux_err "Failed to execute git reset" "command=$reset_cmd"
+        return 1
+    fi
 
     # Step 3: Handle the new state
-    echo
-    echo "Reset complete. What would you like to do with this new state?"
-    echo "1. Keep this state (do nothing further)"
-    echo "2. Create a new branch at this point"
-    echo "3. Force push this state to the remote (caution: rewrites history)"
-    echo "4. Create a new commit with this state"
-    read -p "Enter your choice (1/2/3/4): " state_choice
+    aux_info "Reset complete. Post-reset action options:"
+    aux_info "1. Keep this state (do nothing further)"
+    aux_info "2. Create a new branch at this point"
+    aux_info "3. Force push this state to the remote (caution: rewrites history)"
+    aux_info "4. Create a new commit with this state"
+    local state_choice=$(aux_ask "Enter your choice (1/2/3/4)" "1" "choice_1234")
 
     case $state_choice in
         1)
-            echo "Keeping the current state. No further action needed."
+            aux_info "Keeping the current state. No further action needed."
             ;;
         2)
-            read -p "Enter the name for the new branch: " branch_name
-            git checkout -b $branch_name
-            echo "Created and switched to new branch: $branch_name"
+            local branch_name=$(aux_ask "Enter the name for the new branch" "" "not_empty")
+            if aux_cmd "git" "checkout" "-b" "$branch_name"; then
+                aux_info "Created and switched to new branch" "branch=$branch_name"
+            else
+                aux_err "Failed to create new branch" "branch=$branch_name"
+                return 1
+            fi
             ;;
         3)
-            read -p "Enter the name of the remote branch to force push to: " remote_branch
-            git push -f origin HEAD:$remote_branch
-            echo "Force pushed to $remote_branch. Remote history has been rewritten."
+            local remote_branch=$(aux_ask "Enter the name of the remote branch to force push to" "" "not_empty")
+            if aux_cmd "git" "push" "-f" "origin" "HEAD:$remote_branch"; then
+                aux_warn "Force pushed to remote - history has been rewritten" "branch=$remote_branch"
+            else
+                aux_err "Failed to force push" "branch=$remote_branch"
+                return 1
+            fi
             ;;
         4)
-            read -p "Enter a commit message: " commit_message
-            git commit -m "$commit_message"
-            echo "Created a new commit with the message: $commit_message"
+            local commit_message=$(aux_ask "Enter a commit message" "" "not_empty")
+            if aux_cmd "git" "commit" "-m" "$commit_message"; then
+                aux_info "Created new commit" "message=$commit_message"
+            else
+                aux_err "Failed to create commit" "message=$commit_message"
+                return 1
+            fi
             ;;
         *)
-            echo "Invalid choice. No further action taken."
+            aux_warn "Invalid choice - no further action taken" "choice=$state_choice"
             ;;
     esac
 
-    echo
-    echo "Gen-gre process complete. Your repository is now in the following state:"
+    aux_info "Git Reset Explorer process complete"
+    aux_info "Current repository state:"
     git status
-    echo
-    echo "Current commit:"
+    aux_info "Current commit:"
     git log -1 --oneline
 }

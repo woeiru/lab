@@ -35,11 +35,6 @@ usr_fun() {
         return 0
     fi
     
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
-    fi
-    
     ana_laf "$FILEPATH_usr" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
@@ -101,7 +96,19 @@ usr_ckp() {
         return 1
     fi
     
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Profile number cannot be empty"
+        aux_use
+        return 1
+    fi
+    
     local profile_number="$1"
+    # Check dependencies
+    if ! aux_chk "command" "whoami"; then
+        aux_err "whoami command not found"
+        return 127
+    fi
+    
     local username
     local konsole_profile_path
     local profile_name
@@ -113,17 +120,17 @@ usr_ckp() {
         konsole_profile_path="$HOME/.local/share/konsole"
     fi
     if [ ! -d "$konsole_profile_path" ]; then
-        echo "Error: Konsole profile directory not found at $konsole_profile_path"
-        return 1
+        aux_err "Konsole profile directory not found at $konsole_profile_path"
+        return 2
     fi
     if ! [[ "$profile_number" =~ ^[0-9]+$ ]]; then
-        echo "Error: Invalid profile number. Please provide a positive integer."
+        aux_err "Invalid profile number. Please provide a positive integer"
         return 1
     fi
     profile_name="Profile $profile_number.profile"
     if [ ! -f "$konsole_profile_path/$profile_name" ]; then
-        echo "Error: Profile $profile_number does not exist in $konsole_profile_path"
-        return 1
+        aux_err "Profile $profile_number does not exist in $konsole_profile_path"
+        return 2
     fi
     local konsolerc_path
     if [ "$username" = "root" ]; then
@@ -132,8 +139,8 @@ usr_ckp() {
         konsolerc_path="$HOME/.config/konsolerc"
     fi
     if [ ! -f "$konsolerc_path" ]; then
-        echo "Error: Konsole configuration file not found at $konsolerc_path"
-        return 1
+        aux_err "Konsole configuration file not found at $konsolerc_path"
+        return 2
     fi
     
     # Check if [Desktop Entry] section exists
@@ -189,9 +196,9 @@ usr_vsf() {
     for i in "${!files[@]}"; do
         echo "$i: ${files[$i]}"
     done
-    read -p "Enter the index of the file you want: " index
+    local index=$(aux_ask "Enter the index of the file you want" "" "numeric")
     sel="${files[$index]}"
-    echo "$selected_file"
+    echo "$sel"
 }
 
 # Counts files in directories based on specified visibility (regular, hidden, or both). Displays results sorted by directory name
@@ -224,9 +231,32 @@ usr_cff() {
         return 1
     fi
 
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "numeric"; then
+        aux_err "Folder type must be numeric (1, 2, or 3)"
+        aux_use
+        return 1
+    fi
+
     local path="$1"
     local folder_type="$2"
 
+    # Check dependencies
+    if ! aux_chk "command" "find"; then
+        aux_err "find command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "wc"; then
+        aux_err "wc command not found"
+        return 127
+    fi
+    
     # count files in a directory
     count_files() {
         local dir="$1"
@@ -296,13 +326,49 @@ usr_duc() {
         return 1
     fi
     
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "First path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Second path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$3" "numeric"; then
+        aux_err "Depth must be numeric"
+        aux_use
+        return 1
+    fi
+    
     local path1=$1
     local path2=$2
     local depth=$3
 
+    # Check dependencies
+    if ! aux_chk "command" "du"; then
+        aux_err "du command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "realpath"; then
+        aux_err "realpath command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "join"; then
+        aux_err "join command not found"
+        return 127
+    fi
+
     # Convert relative paths to absolute paths
+    aux_dbg "Converting paths to absolute: $path1, $path2"
     path1=$(realpath "$path1")
     path2=$(realpath "$path2")
+    aux_dbg "Absolute paths: $path1, $path2"
 
     # remove base path and sort by subpath
     process_du() {
@@ -382,11 +448,17 @@ usr_cif() {
         aux_use
         return 1
     fi
+    
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Directory path cannot be empty"
+        aux_use
+        return 1
+    fi
 
     # Check if the argument is a directory
     if [ ! -d "$1" ]; then
-        echo "$1 is not a directory."
-        return 1
+        aux_err "$1 is not a directory"
+        return 2
     fi
 
     # Concatenate all files within the directory
@@ -430,12 +502,40 @@ usr_rsf() {
         return 1
     fi
     
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Folder name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Old string cannot be empty"
+        aux_use
+        return 1
+    fi
+    
     local foldername="$1"
     local old_string="$2"
     local new_string="$3"
 
+    # Check dependencies
+    if ! aux_chk "command" "find"; then
+        aux_err "find command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "grep"; then
+        aux_err "grep command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "sed"; then
+        aux_err "sed command not found"
+        return 127
+    fi
+
     # Navigate to the specified folder
-    cd "$foldername" || { echo "Folder not found: $foldername"; return 1; }
+    cd "$foldername" || { aux_err "Folder not found: $foldername"; return 2; }
 
     # Run the substitution command with a check for modified files
     find . -type f -exec sh -c '
@@ -476,31 +576,62 @@ usr_rsd() {
         aux_use
         return 1
     fi
+    
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Source path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Destination path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
     local source_path="$1"
     local destination_path="$2"
 
+    # Check dependencies
+    if ! aux_chk "command" "rsync"; then
+        aux_err "rsync command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "mkdir"; then
+        aux_err "mkdir command not found"
+        return 127
+    fi
+
     # Check if destination path exists
     if [ ! -d "$destination_path" ]; then
-        echo "Destination path $destination_path will be created."
+        aux_info "Destination path $destination_path will be created"
         mkdir -p "$destination_path"
     fi
     # Check again
     if [ ! -d "$destination_path" ]; then
-        echo "Destination path $destination_path could not been created."
-        return 1
+        aux_err "Destination path $destination_path could not be created"
+        return 2
     fi
 
     # Display files to be transferred
     echo "Files to be transferred from $source_path to $destination_path:"
-    rsync -avhn "$source_path/" "$destination_path/"
+    if ! aux_cmd "rsync" "-avhn" "$source_path/" "$destination_path/"; then
+        aux_err "Failed to preview rsync operation"
+        return 2
+    fi
 
     # Ask for confirmation
-    read -p "Do you want to proceed with the transfer? (y/n): " confirm
+    local confirm=$(aux_ask "Do you want to proceed with the transfer? (y/n)" "n" "not_empty")
     case $confirm in
         [Yy])   # Proceed with the transfer
                 # Perform the transfer
-                rsync -avh --human-readable "$source_path/" "$destination_path/"
-                echo "Transfer completed successfully."
+                if aux_cmd "rsync" "-avh" "--human-readable" "$source_path/" "$destination_path/"; then
+                    aux_info "Transfer completed successfully"
+                else
+                    aux_err "Transfer failed"
+                    return 2
+                fi
                 ;;
         [Nn])   # Abort the transfer
                 echo "Transfer aborted."
@@ -544,15 +675,50 @@ usr_swt() {
         return 1
     fi
 
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Mode cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Time cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$3" "not_empty"; then
+        aux_err "State cannot be empty"
+        aux_use
+        return 1
+    fi
+
     local mode="$1"
     local input_time="$2"
     local state="$3"
     local wake_seconds
+    
+    # Check dependencies
+    if ! aux_chk "command" "rtcwake"; then
+        aux_err "rtcwake command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "date"; then
+        aux_err "date command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "sudo"; then
+        aux_err "sudo command not found - required for system sleep operations"
+        return 127
+    fi
+    
     local now=$(date +%s)
 
     # Validate sleep state
     if [[ "$state" != "mem" && "$state" != "disk" ]]; then
-        echo "Invalid sleep state. Use 'mem' or 'disk'."
+        aux_err "Invalid sleep state. Use 'mem' or 'disk'"
         return 1
     fi
 
@@ -573,7 +739,7 @@ usr_swt() {
                 elif [[ $input =~ ^[0-9]{1,2}$ ]]; then
                     parsed_time=$(date -d "today $input:00" +%s)
                 else
-                    echo "Invalid time format."
+                    aux_err "Invalid time format"
                     return 1
                 fi
 
@@ -599,13 +765,13 @@ usr_swt() {
             elif [[ $input_time =~ ^[0-9]+$ ]]; then
                 hours=$input_time
             else
-                echo "Invalid relative time format."
+                aux_err "Invalid relative time format"
                 return 1
             fi
             wake_seconds=$((now + hours*3600 + minutes*60))
             ;;
         *)
-            echo "Invalid mode. Use -a for absolute time or -r for relative time."
+            aux_err "Invalid mode. Use -a for absolute time or -r for relative time"
             return 1
             ;;
     esac
@@ -617,12 +783,15 @@ usr_swt() {
     echo "System will wake up at: $wake_time_readable"
     echo "Time until wake-up: $duration_readable"
     echo "Sleep state: $state"
-    read -p "Do you want to proceed with putting the system to sleep? (y/n): " answer
+    local answer=$(aux_ask "Do you want to proceed with putting the system to sleep? (y/n)" "n" "not_empty")
 
     if [[ $answer =~ ^[Yy]$ ]]; then
         echo "Putting system to sleep using state '$state'. It will wake up at $wake_time_readable"
 
-        sudo rtcwake -m $state -l -t "$wake_seconds" -v
+        if ! aux_cmd "sudo" "rtcwake" "-m" "$state" "-l" "-t" "$wake_seconds" "-v"; then
+            aux_err "Failed to execute rtcwake command"
+            return 2
+        fi
         sleep_result=$?
         if [ $sleep_result -eq 0 ]; then
             echo "System woke up successfully."
@@ -662,6 +831,18 @@ usr_adr() {
     fi
     
     if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "File path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Line to add cannot be empty"
         aux_use
         return 1
     fi
@@ -729,6 +910,18 @@ usr_cap() {
     
     if [ $# -ne 2 ]; then
 	aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "File path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Line cannot be empty"
+        aux_use
         return 1
     fi
     
@@ -823,8 +1016,8 @@ usr_rif() {
                 elif [[ -z "$replace_string" ]]; then
                     replace_string="$1"
                 else
-                    echo "Error: Too many arguments."
-                    echo "Usage: usr-rif [-r] [-i] [-d] [--include-git] <directory> <search_string> <replace_string>"
+                    aux_err "Too many arguments"
+                    aux_use
                     return 1
                 fi
                 shift
@@ -834,16 +1027,50 @@ usr_rif() {
 
     # Check if required arguments are provided
     if [[ -z "$directory" || -z "$search_string" || -z "$replace_string" ]]; then
-        echo "Error: Missing required arguments."
-        echo "Usage: usr-rif [-r] [-i] [-d] [--include-git] <directory> <search_string> <replace_string>"
+        aux_err "Missing required arguments"
+        aux_use
+        return 1
+    fi
+    
+    # Validate arguments using aux_val
+    if ! aux_val "$directory" "not_empty"; then
+        aux_err "Directory path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$search_string" "not_empty"; then
+        aux_err "Search string cannot be empty"
+        aux_use
         return 1
     fi
 
     # Validate and normalize directory path
     directory=$(realpath "$directory")
     if [[ ! -d "$directory" ]]; then
-        echo "Error: '$directory' is not a valid directory."
-        return 1
+        aux_err "'$directory' is not a valid directory"
+        return 2
+    fi
+
+    # Check dependencies
+    if ! aux_chk "command" "find"; then
+        aux_err "find command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "grep"; then
+        aux_err "grep command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "sed"; then
+        aux_err "sed command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "realpath"; then
+        aux_err "realpath command not found"
+        return 127
     fi
 
     # Construct find command
@@ -851,10 +1078,12 @@ usr_rif() {
     [[ "$recursive" != true ]] && find_cmd+=" -maxdepth 1"
     [[ "$ignore_git" == true ]] && find_cmd+=" -not -path '*/\.git/*'"
 
+    aux_dbg "Starting file search" "directory=$directory,search_string=$search_string,replace_string=$replace_string,recursive=$recursive,interactive=$interactive,dry_run=$dry_run"
     echo "Searching for files containing '$search_string' in '$directory'..."
     while IFS= read -r file; do
         if grep -q "$search_string" "$file" 2>/dev/null; then
             ((files_found++))
+            aux_dbg "Found match in file: $file"
             printf "\nFound match in file: ${GREEN}%s${NC}\n" "$file"
             if [[ "$dry_run" == true ]]; then
                 echo "Would modify: $file"
@@ -872,7 +1101,7 @@ usr_rif() {
             elif [[ "$interactive" == true ]]; then
                 echo "=== INTERACTIVE MODE ==="
                 echo -e "Modify '${GREEN}$file${NC}'? (${YELLOW}y${NC}/${YELLOW}n${NC}): "
-                read -r user_response
+                local user_response=$(aux_ask "Modify file? (y/n)" "n" "not_empty")
                 if [[ $user_response =~ ^[Yy]$ ]]; then
                     if sed -i "s/$search_string/$replace_string/g" "$file"; then
                         echo -e "${GREEN}Modified:${NC} $file"
@@ -895,6 +1124,7 @@ usr_rif() {
         fi
     done < <(eval "$find_cmd")
 
+    aux_dbg "Operation completed" "files_found=$files_found,files_modified=$files_modified,files_skipped=$files_skipped"
     echo -e "\nSummary:"
     echo "  Files found with matches: $files_found"
     echo "  Files modified: $files_modified"
@@ -940,9 +1170,32 @@ usr_ans() {
         return 1
     fi
 
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Ansible project path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Ansible site path cannot be empty"
+        aux_use
+        return 1
+    fi
+
     # Store the Ansible path and site path from the arguments
     local ansible_pro_path="$1"
     local ansible_site_path="$2"
+
+    # Check dependencies
+    if ! aux_chk "command" "ansible-playbook"; then
+        aux_err "ansible-playbook command not found"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "pwd"; then
+        aux_err "pwd command not found"
+        return 127
+    fi
 
     # Store the current directory
     local current_dir=$(pwd)
@@ -951,7 +1204,11 @@ usr_ans() {
     cd "$ansible_pro_path" || return
 
     # Execute the Ansible playbook with the provided site path
-    ansible-playbook "$ansible_site_path"
+    if ! aux_cmd "ansible-playbook" "$ansible_site_path"; then
+        aux_err "Failed to execute Ansible playbook"
+        cd "$current_dir" || return
+        return 2
+    fi
 
     # Return to the previous directory
     cd "$current_dir" || return
