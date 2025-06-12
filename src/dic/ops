@@ -31,7 +31,8 @@
 #   ops sys sca usr all             # System scan all users
 #   ops --list                      # List all available modules
 #   ops MODULE --list               # List functions in specific module
-#   ops MODULE FUNCTION --help      # Show function help
+#   ops MODULE FUNCTION --help      # Show function help\
+#   ...
 #
 # ENVIRONMENT VARIABLES:
 #   OPS_DEBUG=1          # Enable debug output
