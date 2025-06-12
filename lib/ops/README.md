@@ -438,8 +438,8 @@ Beyond the core help system (`aux_use` and `aux_tec`), functions should leverage
 **Optional:** `aux_dbg`, `aux_cmd`, `aux_ask` (for confirmations)
 
 ```bash
-# System service management function
-ops_restart_service() {
+# System service enable/start function (actual example from sys module)
+sys_sdc() {
     # Validation (REQUIRED)
     if ! aux_val "$service_name" "not_empty"; then
         aux_err "Service name cannot be empty"
@@ -454,13 +454,13 @@ ops_restart_service() {
     fi
     
     # Operational logging (REQUIRED)
-    aux_info "Restarting service" "service=$service_name"
+    aux_info "Enabling and starting service" "service=$service_name"
     
     # Safe command execution (RECOMMENDED)
-    if aux_cmd "systemctl" "restart" "$service_name"; then
-        aux_info "Service restart successful" "service=$service_name"
+    if aux_cmd "systemctl" "enable" "$service_name" && aux_cmd "systemctl" "start" "$service_name"; then
+        aux_info "Service operation successful" "service=$service_name"
     else
-        aux_err "Service restart failed" "service=$service_name"
+        aux_err "Service operation failed" "service=$service_name"
         return 2
     fi
 }
@@ -472,20 +472,20 @@ ops_restart_service() {
 **Optional:** `aux_dbg`, `aux_chk`, `aux_cmd`
 
 ```bash
-# Interactive setup function
-usr_setup_config() {
+# Interactive network interface setup function (actual example from net module)
+net_uni() {
     # User interaction (REQUIRED)
-    local username=$(aux_ask "Enter username" "" "not_empty")
-    local email=$(aux_ask "Enter email address" "" "regex" "^[^@]+@[^@]+\.[^@]+$")
+    local interface=$(aux_ask "Enter network interface name" "eth0" "not_empty")
+    local new_name=$(aux_ask "Enter new interface name" "" "not_empty")
     
     # Validation (REQUIRED)
-    if ! aux_val "$username" "alphanum"; then
-        aux_err "Username must be alphanumeric"
+    if ! aux_val "$interface" "alphanum"; then
+        aux_err "Interface name must be alphanumeric"
         return 1
     fi
     
     # User feedback (REQUIRED)
-    aux_info "Creating configuration for user: $username"
+    aux_info "Configuring network interface: $interface -> $new_name"
 }
 ```
 
@@ -495,23 +495,23 @@ usr_setup_config() {
 **Optional:** `aux_arr`, `aux_info`, `aux_warn`
 
 ```bash
-# Data processing function
-ana_process_logs() {
+# Data processing function example (using actual aux functions)
+usr_cff() {
     # Validation (REQUIRED)
-    if ! aux_val "$log_file" "file_exists"; then
-        aux_err "Log file not found: $log_file"
+    if ! aux_val "$directory_path" "dir_exists"; then
+        aux_err "Directory not found: $directory_path"
         return 2
     fi
     
     # Debug logging (RECOMMENDED for complex processing)
-    aux_dbg "Starting log analysis for file: $log_file"
+    aux_dbg "Starting file count analysis for directory: $directory_path"
     
     # Array operations (OPTIONAL for data manipulation)
-    local errors=()
-    aux_arr "add" "errors" "$error_line"
+    local file_list=()
+    aux_arr "add" "file_list" "$file_entry"
     
-    local error_count=$(aux_arr "length" "errors")
-    aux_dbg "Found $error_count errors in log file"
+    local file_count=$(aux_arr "length" "file_list")
+    aux_dbg "Processed $file_count files from directory"
 }
 ```
 
@@ -521,17 +521,18 @@ ana_process_logs() {
 **Optional:** `aux_dbg`, `aux_info`
 
 ```bash
-# Simple utility function
-utl_format_output() {
-    # Minimal validation (REQUIRED)
-    if ! aux_val "$input_data" "not_empty"; then
-        aux_err "Input data cannot be empty"
-        aux_use
-        return 1
+# Simple utility function example (using actual pattern from usr module)
+usr_fun() {
+    # Validation (REQUIRED)
+    if ! aux_val "$function_filter" "not_empty"; then
+        # Optional parameter - no error needed
     fi
     
     # Optional debug for development
-    aux_dbg "Formatting output data: ${#input_data} characters"
+    aux_dbg "Listing functions with filter: ${function_filter:-none}"
+    
+    # Implementation using ana_laf
+    ana_laf "$FILEPATH_usr" "$@"
 }
 ```
 
