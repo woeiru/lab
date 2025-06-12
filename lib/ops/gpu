@@ -148,23 +148,7 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # HELPER FUNCTIONS
 # ============================================================================
 
-# Initialize color constants for GPU management output formatting
-# GPU Initialize Colors - GIC
-# 
-_gpu_init_colors() {
-    # Color initialization disabled to prevent readonly variable conflicts
-    # Setting all color variables to empty strings
-    GREEN=""
-    YELLOW=""
-    RED=""
-    CYAN=""
-    MAGENTA=""
-    INDIGO_BLUE=""
-    NC=""
-    CHECK_MARK="✓"
-    CROSS_MARK="✗"
-    QUESTION_MARK="?"
-}
+
 
 # Validate PCI ID format using regex pattern matching
 # GPU Validate PCI ID - GVP
@@ -914,8 +898,6 @@ gpu_nds() {
     aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=nvidia_driver_setup,driver_version=${drv_ver}"
     aux_business "NVIDIA driver installation initiated" "component=gpu,operation=nvidia_driver_setup,driver_version=${drv_ver},installer_url=${url}"
     
-    _gpu_init_colors
-
     aux_info "Blacklisting Nouveau driver" "component=gpu,operation=nvidia_driver_setup,step=blacklist_nouveau"
     echo "1) Blacklisting Nouveau..."
     cat <<EOF | tee /etc/modprobe.d/blacklist-nouveau.conf
@@ -1096,8 +1078,6 @@ gpu_pt3() {
     local action="$1"
     local function_name="${FUNCNAME[0]}"
     
-    _gpu_init_colors
-    
     if [ -z "$action" ]; then
         printf "Usage: %s <enable|disable>\n" "$function_name"
         return 1
@@ -1259,8 +1239,6 @@ gpu_ptd() {
     aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_detach,hostname=${hostname},gpu_id=${gpu_id_arg:-auto},config_file=${config_file}"
     aux_business "GPU detachment process initiated" "component=gpu,operation=passthrough_detach,target_state=vfio-pci,hostname=${hostname}"
     
-    _gpu_init_colors
-    
     aux_info "Starting GPU detachment process" "component=gpu,operation=passthrough_detach,step=initialization"
 
     # Check IOMMU
@@ -1412,8 +1390,6 @@ gpu_pta() {
     local nvidia_driver_preference="${6:-nvidia}"
     
     local function_name="${FUNCNAME[0]}"
-    
-    _gpu_init_colors
     
     aux_info "Starting GPU attachment process" "component=gpu,operation=passthrough_attach,step=initialization"
 
@@ -1653,8 +1629,6 @@ gpu_pts() {
     local nvidia_driver_preference="${5:-nvidia}"
     
     local function_name="${FUNCNAME[0]}"
-    
-    _gpu_init_colors
     
     # Load configuration if config file provided
     if [ -n "$config_file" ] && [ -f "$config_file" ]; then
