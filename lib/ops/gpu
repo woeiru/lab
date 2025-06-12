@@ -257,11 +257,9 @@ _gpu_load_config() {
         # shellcheck source=/dev/null
         source "$CONFIG_FUN"
         aux_info "Successfully sourced PCI configuration" "component=gpu,operation=load_config,config_file=${CONFIG_FUN},status=success"
-        printf "INFO: Successfully sourced PCI configuration from %s\n" "$CONFIG_FUN"
         return 0
     else
         aux_warn "PCI Configuration file not found or not set" "component=gpu,operation=load_config,config_file=${CONFIG_FUN},status=failed"
-        printf "WARNING: PCI Configuration file '%s' not found or not set.\n" "$CONFIG_FUN"
         return 1
     fi
 }
@@ -400,19 +398,14 @@ _gpu_ensure_vfio_modules() {
     for module in "${modules[@]}"; do
         if lsmod | grep -q "^${module}"; then
             aux_info "Module already loaded" "component=gpu,operation=ensure_vfio_modules,module=${module},status=already_loaded"
-            printf "INFO: Module %s is already loaded.\n" "$module"
         else
             aux_info "Attempting to load module" "component=gpu,operation=ensure_vfio_modules,module=${module},status=loading"
-            printf "INFO: Attempting to load module %s...\n" "$module"
             if modprobe "$module"; then
                 aux_info "Module loaded successfully" "component=gpu,operation=ensure_vfio_modules,module=${module},status=loaded"
-                printf "INFO: Module %s loaded successfully.\n" "$module"
             else
                 aux_err "Failed to load module" "component=gpu,operation=ensure_vfio_modules,module=${module},status=failed,error=modprobe_failed"
-                printf "ERROR: Failed to load module %s.\n" "$module"
                 if [ "$module" = "vfio_pci" ]; then
                     aux_err "Critical module vfio_pci failed to load, exiting" "component=gpu,operation=ensure_vfio_modules,module=${module},status=critical_failure"
-                    printf "ERROR: Exiting due to failure to load critical module vfio_pci.\n"
                     return 1
                 fi
             fi
@@ -436,20 +429,16 @@ _gpu_unbind_device() {
         local current_driver
         current_driver=$(basename "$(readlink -f "$driver_path")")
         aux_info "Unbinding GPU from current driver" "component=gpu,operation=unbind_device,pci_id=${pci_id},current_driver=${current_driver}"
-        printf "INFO: Unbinding GPU %s from %s...\n" "$pci_id" "$current_driver"
         
         if echo "$full_pci_id" > "$driver_path/unbind"; then
             aux_info "Successfully unbound GPU" "component=gpu,operation=unbind_device,pci_id=${pci_id},previous_driver=${current_driver},status=success"
-            printf "INFO: Successfully unbound GPU %s from %s.\n" "$pci_id" "$current_driver"
             return 0
         else
             aux_warn "Failed to unbind GPU" "component=gpu,operation=unbind_device,pci_id=${pci_id},current_driver=${current_driver},status=failed"
-            printf "WARNING: Failed to unbind GPU %s from %s.\n" "$pci_id" "$current_driver"
             return 1
         fi
     else
         aux_info "GPU not bound to any driver" "component=gpu,operation=unbind_device,pci_id=${pci_id},status=not_bound"
-        printf "INFO: GPU %s is not currently bound to any driver.\n" "$pci_id"
         return 0
     fi
 }
@@ -468,15 +457,13 @@ _gpu_bind_device() {
     # Check if driver directory exists
     if [ ! -d "/sys/bus/pci/drivers/$target_driver" ]; then
         aux_err "PCI driver directory does not exist" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},error=driver_dir_missing"
-        printf "ERROR: PCI driver directory for %s does not exist.\n" "$target_driver"
         return 1
     fi
     
-    printf "INFO: Attempting to bind GPU %s to driver %s...\n" "$pci_id" "$target_driver"
+    aux_info "Attempting to bind GPU to driver" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},step=bind_attempt"
     
     if echo "$full_pci_id" > "$driver_bind_path"; then
         aux_info "Bind operation initiated" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},status=initiated"
-        printf "INFO: Successfully initiated bind for GPU %s to %s.\n" "$pci_id" "$target_driver"
         sleep 1
         
         # Verify binding
@@ -484,11 +471,9 @@ _gpu_bind_device() {
         current_driver=$(_gpu_get_current_driver "$pci_id")
         if [ "$current_driver" = "$target_driver" ]; then
             aux_info "GPU successfully bound to target driver" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},current_driver=${current_driver},status=success"
-            printf "SUCCESS: GPU %s is now bound to %s.\n" "$pci_id" "$target_driver"
             return 0
         else
             aux_warn "GPU may not have bound correctly" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},current_driver=${current_driver},status=verification_failed"
-            printf "WARNING: GPU %s may not have bound to %s correctly. Current driver: %s\n" "$pci_id" "$target_driver" "$current_driver"
             return 1
         fi
     else
@@ -1276,7 +1261,7 @@ gpu_ptd() {
     
     _gpu_init_colors
     
-    printf "INFO: Starting GPU detachment process\n"
+    aux_info "Starting GPU detachment process" "component=gpu,operation=passthrough_detach,step=initialization"
 
     # Check IOMMU
     if ! grep -q 'iommu=pt\|intel_iommu=on\|amd_iommu=on' /proc/cmdline; then
@@ -1292,7 +1277,6 @@ gpu_ptd() {
         # shellcheck source=/dev/null
         source "$config_file"
         aux_info "GPU configuration loaded for detachment" "component=gpu,operation=passthrough_detach,config_file=${config_file},status=success"
-        printf "INFO: Successfully sourced GPU configuration from %s\n" "$config_file"
     else
         aux_warn "GPU configuration file not available for detachment" "component=gpu,operation=passthrough_detach,config_file=${config_file},status=unavailable"
     fi
@@ -1302,16 +1286,13 @@ gpu_ptd() {
     for driver in "${drivers_to_unload[@]}"; do
         if lsmod | grep -q "^${driver//-/_}"; then
             aux_info "Unloading GPU driver for clean detachment" "component=gpu,operation=passthrough_detach,driver=${driver},action=unload"
-            printf "INFO: Unloading %s driver for clean detachment...\n" "$driver"
             if modprobe -r "$driver" 2>/dev/null; then
                 aux_info "GPU driver unloaded successfully" "component=gpu,operation=passthrough_detach,driver=${driver},status=success"
-                printf "INFO: Successfully unloaded %s driver.\n" "$driver"
             else
                 aux_warn "GPU driver unload failed" "component=gpu,operation=passthrough_detach,driver=${driver},status=failed"
-                printf "WARNING: Failed to unload %s driver. Continuing anyway.\n" "$driver"
             fi
         else
-            printf "INFO: %s driver not loaded.\n" "$driver"
+            aux_info "GPU driver not loaded" "component=gpu,operation=passthrough_detach,driver=${driver},status=not_loaded"
         fi
     done
 
@@ -1333,39 +1314,34 @@ gpu_ptd() {
         if [ "$current_driver" != "vfio-pci" ]; then
             filtered_gpus+=("$pci_id")
         else
-            printf "INFO: GPU %s is already on vfio-pci. Skipping.\n" "$pci_id"
+            aux_info "GPU already on vfio-pci, skipping" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},status=already_attached"
         fi
     done
 
     if [ ${#filtered_gpus[@]} -eq 0 ]; then
         aux_warn "No suitable GPU devices found for detachment" "component=gpu,operation=passthrough_detach,target_gpus=0,reason=no_suitable_devices"
-        printf "No suitable GPU devices found for detachment.\n"
         return 0
     fi
 
     aux_info "Processing GPUs for detachment" "component=gpu,operation=passthrough_detach,gpu_count=${#filtered_gpus[@]},gpu_ids=${filtered_gpus[*]}"
-    printf "INFO: Processing GPU IDs for detachment: %s\n" "${filtered_gpus[*]}"
 
     # Process each GPU
     for pci_id in "${filtered_gpus[@]}"; do
         aux_info "Processing individual GPU for detachment" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=individual_processing"
-        printf "INFO: Processing GPU %s for detachment\n" "$pci_id"
         
         # Unbind from current driver
         _gpu_unbind_device "$pci_id"
         
         # Set driver override and bind to vfio-pci
         local full_pci_id="0000:$pci_id"
-        printf "INFO: Setting driver_override to vfio-pci for GPU %s...\n" "$pci_id"
+        aux_info "Setting driver override to vfio-pci" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=driver_override"
         
         if echo "vfio-pci" > "/sys/bus/pci/devices/$full_pci_id/driver_override"; then
             aux_info "Driver override set successfully" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},driver_override=vfio-pci,status=success"
-            printf "INFO: Successfully set driver_override for %s.\n" "$pci_id"
             
             # Trigger re-probe
             if echo "$full_pci_id" > "/sys/bus/pci/drivers_probe"; then
                 aux_info "Driver re-probe triggered" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=reprobe,status=success"
-                printf "INFO: Re-probe triggered for %s.\n" "$pci_id"
                 sleep 1
             else
                 aux_warn "Driver re-probe failed" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=reprobe,status=failed"
@@ -1379,10 +1355,8 @@ gpu_ptd() {
         current_driver=$(_gpu_get_current_driver "$pci_id")
         if [ "$current_driver" = "vfio-pci" ]; then
             aux_info "GPU successfully bound to vfio-pci" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},final_driver=vfio-pci,status=success"
-            printf "INFO: GPU %s successfully bound to vfio-pci.\n" "$pci_id"
         else
             aux_info "Attempting direct bind to vfio-pci" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=direct_bind,current_driver=${current_driver}"
-            printf "INFO: Attempting direct bind to vfio-pci for %s...\n" "$pci_id"
             if ! _gpu_bind_device "$pci_id" "vfio-pci"; then
                 aux_err "Direct bind to vfio-pci failed" "component=gpu,operation=passthrough_detach,pci_id=${pci_id},step=direct_bind,status=failed"
             fi
@@ -1390,7 +1364,6 @@ gpu_ptd() {
     done
 
     aux_business "GPU detachment process completed" "component=gpu,operation=passthrough_detach,processed_gpus=${#filtered_gpus[@]},status=complete"
-    printf "INFO: GPU detachment process completed.\n"
 }
 
 # Attaches the GPU back to the host system
@@ -1442,13 +1415,13 @@ gpu_pta() {
     
     _gpu_init_colors
     
-    printf "INFO: Starting GPU attachment process...\n"
+    aux_info "Starting GPU attachment process" "component=gpu,operation=passthrough_attach,step=initialization"
 
     # Load configuration if config file provided
     if [ -n "$config_file" ] && [ -f "$config_file" ]; then
         # shellcheck source=/dev/null
         source "$config_file"
-        printf "INFO: Successfully sourced GPU configuration from %s\n" "$config_file"
+        aux_info "GPU configuration loaded for attachment" "component=gpu,operation=passthrough_attach,config_file=${config_file},status=success"
     fi
 
     # Get target GPUs (only those on vfio-pci)
@@ -1456,22 +1429,22 @@ gpu_pta() {
     readarray -t gpus_to_process < <(_gpu_get_target_gpus_parameterized "$gpu_id_arg" "$hostname" "vfio-pci" "$pci0_id" "$pci1_id")
 
     if [ ${#gpus_to_process[@]} -eq 0 ]; then
-        printf "WARNING: No suitable GPU devices found on vfio-pci to attach.\n"
+        aux_warn "No suitable GPU devices found on vfio-pci to attach" "component=gpu,operation=passthrough_attach,target_gpus=0,reason=no_vfio_devices"
         return 0
     fi
 
-    printf "INFO: Final list of GPU IDs to process for attachment: %s\n" "${gpus_to_process[*]}"
+    aux_info "Final list of GPU IDs to process for attachment" "component=gpu,operation=passthrough_attach,gpu_count=${#gpus_to_process[@]},gpu_ids=${gpus_to_process[*]}"
 
     # Process each GPU
     for pci_id in "${gpus_to_process[@]}"; do
-        printf "INFO: Processing GPU %s for attachment to host\n" "$pci_id"
+        aux_info "Processing GPU for attachment to host" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},step=individual_processing"
         
         # Unbind from vfio-pci
         _gpu_unbind_device "$pci_id"
         
         # Clear driver override
         local full_pci_id="0000:$pci_id"
-        printf "INFO: Clearing driver_override for %s...\n" "$pci_id"
+        aux_info "Clearing driver override" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},step=clear_override"
         echo > "/sys/bus/pci/devices/$full_pci_id/driver_override"
         
         # Determine host driver
@@ -1479,17 +1452,17 @@ gpu_pta() {
         host_driver=$(_gpu_get_host_driver_parameterized "$pci_id" "$hostname" "$nvidia_driver_preference")
         
         if [ $? -ne 0 ] || [ -z "$host_driver" ]; then
-            printf "WARNING: Could not determine host driver for %s. Skipping.\n" "$pci_id"
+            aux_warn "Could not determine host driver, skipping GPU" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},status=skipped"
             continue
         fi
         
-        printf "INFO: Target host driver for GPU %s: %s\n" "$pci_id" "$host_driver"
+        aux_info "Target host driver determined" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver}"
         
         # Load host driver module if needed
         if ! lsmod | grep -q "^${host_driver//-/_}"; then
-            printf "INFO: Host driver module %s not loaded. Attempting to load...\n" "$host_driver"
+            aux_info "Loading host driver module" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},action=load_module"
             if ! modprobe "$host_driver"; then
-                printf "ERROR: Failed to load module %s. Cannot attach GPU %s.\n" "$host_driver" "$pci_id"
+                aux_err "Failed to load host driver module" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},status=failed"
                 continue
             fi
         fi
@@ -1498,23 +1471,23 @@ gpu_pta() {
         printf "DEBUG: host_driver='%s' (comparing to 'nvidia')\n" "$host_driver"
         
         # Simple minimal attachment - based on working gpu-pta function
-        printf "INFO: Attempting to bind GPU %s to driver %s using minimal approach...\n" "$pci_id" "$host_driver"
+        aux_info "Attempting to bind GPU to driver using minimal approach" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},approach=minimal"
         
         # Probe for new driver (like the working old function)
-        printf "INFO: Probing for new driver for GPU %s\n" "$pci_id"
+        aux_info "Probing for new driver" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},step=probe"
         echo "0000:$pci_id" > /sys/bus/pci/drivers_probe
         
         # Explicitly bind the driver if it's not automatically bound (like the working old function)
         if [ ! -e "/sys/bus/pci/devices/0000:$pci_id/driver" ]; then
-            printf "INFO: Attempting to explicitly bind %s to GPU %s\n" "$host_driver" "$pci_id"
+            aux_info "Attempting explicit driver bind" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},step=explicit_bind"
             if echo "0000:$pci_id" > "/sys/bus/pci/drivers/$host_driver/bind" 2>/dev/null; then
-                printf "SUCCESS: GPU %s is now bound to %s.\n" "$pci_id" "$host_driver"
+                aux_info "GPU successfully bound to host driver" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},status=success"
             else
-                printf "ERROR: Failed to bind %s to GPU %s\n" "$host_driver" "$pci_id"
+                aux_err "Failed to bind driver to GPU" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},status=failed"
                 continue
             fi
         else
-            printf "SUCCESS: GPU %s is now bound to %s.\n" "$pci_id" "$host_driver"
+            aux_info "GPU successfully bound to host driver" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},status=success"
         fi
         
         # Skip per-GPU nvidia_drm reload - will be done once after all GPUs processed
@@ -1522,7 +1495,7 @@ gpu_pta() {
 
     # CRITICAL FIX: NVIDIA DRM modeset reload AFTER all GPUs processed
     # This prevents "module in use" errors when processing multiple GPUs
-    printf "INFO: Checking for NVIDIA driver configuration...\n"
+    aux_info "Checking for NVIDIA driver configuration" "component=gpu,operation=passthrough_attach,step=nvidia_config_check"
     
     # Check if any GPU was bound to nvidia driver
     local has_nvidia_gpu=false
@@ -1536,16 +1509,16 @@ gpu_pta() {
     
     # If NVIDIA GPUs found, configure framebuffer support
     if [ "$has_nvidia_gpu" = "true" ]; then
-        printf "INFO: NVIDIA GPUs detected - configuring framebuffer display support...\n"
+        aux_info "NVIDIA GPUs detected, configuring framebuffer display support" "component=gpu,operation=passthrough_attach,step=nvidia_framebuffer_config"
         
         # Load nvidia_modeset if not loaded
         if ! lsmod | grep -q "^nvidia_modeset"; then
-            printf "INFO: Loading nvidia_modeset module...\n"
+            aux_info "Loading nvidia_modeset module" "component=gpu,operation=passthrough_attach,step=load_nvidia_modeset"
             modprobe nvidia_modeset
         fi
         
         # THE CRITICAL FIX: Reload nvidia_drm with modeset=1 ONCE for all GPUs
-        printf "INFO: Reloading nvidia_drm with modeset=1 for display support...\n"
+        aux_info "Reloading nvidia_drm with modeset=1 for display support" "component=gpu,operation=passthrough_attach,step=nvidia_drm_reload"
         
         # Remove nvidia_drm if loaded
         if [ -d "/sys/module/nvidia_drm" ]; then
@@ -1581,7 +1554,7 @@ gpu_pta() {
         fi
         
         # Load nvidia_drm with modeset=1
-        printf "INFO: Loading nvidia_drm with modeset=1...\n"
+        aux_info "Loading nvidia_drm with modeset=1" "component=gpu,operation=passthrough_attach,step=nvidia_drm_load"
         
         # EXECUTION CONTEXT DEBUG: Compare with manual command environment
         printf "DEBUG: Function execution context:\n"
@@ -1633,7 +1606,7 @@ gpu_pta() {
         fi
     fi
 
-    printf "INFO: GPU attachment process completed.\n"
+    aux_business "GPU attachment process completed" "component=gpu,operation=passthrough_attach,status=complete"
 }
 
 # Checks the current status of the GPU (complete detailed version)
@@ -1687,7 +1660,7 @@ gpu_pts() {
     if [ -n "$config_file" ] && [ -f "$config_file" ]; then
         # shellcheck source=/dev/null
         source "$config_file"
-        printf "INFO: Successfully sourced GPU configuration from %s\n" "$config_file" >/dev/null
+        aux_info "GPU configuration loaded for status check" "component=gpu,operation=passthrough_status,config_file=${config_file},status=success"
     fi
     
     # Get detailed device information
