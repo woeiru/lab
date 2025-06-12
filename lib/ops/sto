@@ -35,9 +35,11 @@ sto_fun() {
         return 0
     fi
     
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
+    # Optional parameter - validate if provided
+    if [ $# -gt 0 ] && ! aux_val "$1" "not_empty"; then
+        aux_err "Function filter cannot be empty"
+        aux_use
+        return 1
     fi
     
     ana_laf "$FILEPATH_sto" "$@"
@@ -64,6 +66,12 @@ sto_var() {
     fi
     
     if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Execution flag cannot be empty"
         aux_use
         return 1
     fi
@@ -99,10 +107,28 @@ sto_fea() {
         aux_use
         return 1
     fi
+    
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Execution flag cannot be empty"
+        aux_use
+        return 1
+    fi
+    # Check dependencies
+    if ! aux_chk "command" "blkid"; then
+        aux_err "blkid command not found - required for device UUID identification"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "grep"; then
+        aux_err "grep command not found - required for device filtering"
+        return 127
+    fi
+
     # Perform blkid and filter entries with sd*
     blkid_output=$(blkid | grep '/dev/sd*')
 
     # Display filtered results
+    aux_info "Scanning storage devices" "filter=sd*"
     echo "Filtered entries with sd*:"
     echo "$blkid_output"
 
@@ -115,21 +141,21 @@ sto_fea() {
     # Extract UUID from the chosen line
     TARGET_UUID=$(echo "$chosen_line" | grep -oP ' UUID="\K[^"]*')
 
-    echo "The selected UUID is: $TARGET_UUID"
+    aux_info "UUID selected" "uuid=$TARGET_UUID"
 
     # Check if the device's UUID is already present in /etc/fstab
     if grep -q "UUID=$TARGET_UUID" /etc/fstab; then
-        echo "This UUID is already present in /etc/fstab."
+        aux_warn "UUID already exists in fstab" "uuid=$TARGET_UUID"
     else
         # Check if the script is run as root
         if [ "$EUID" -ne 0 ]; then
-            echo "Please run this script as root to modify /etc/fstab."
-            exit 1
+            aux_err "Root privileges required for fstab modification"
+            return 1
         fi
 
         # Append entry to /etc/fstab for auto-mounting
         echo "UUID=$TARGET_UUID /mnt/auto auto defaults 0 0" >> /etc/fstab
-        echo "Entry added to /etc/fstab for auto-mounting."
+        aux_info "Fstab entry added" "uuid=$TARGET_UUID,mountpoint=/mnt/auto"
     fi
 }
 
@@ -173,6 +199,43 @@ sto_fec() {
     return 1
   fi
 
+  # Validate all parameters
+  if ! aux_val "$1" "numeric"; then
+    aux_err "Line number must be numeric: $1"
+    aux_use
+    return 1
+  fi
+  
+  if ! aux_val "$2" "not_empty"; then
+    aux_err "Mount point cannot be empty"
+    aux_use
+    return 1
+  fi
+  
+  if ! aux_val "$3" "not_empty"; then
+    aux_err "Filesystem type cannot be empty"
+    aux_use
+    return 1
+  fi
+  
+  if ! aux_val "$4" "not_empty"; then
+    aux_err "Mount options cannot be empty"
+    aux_use
+    return 1
+  fi
+  
+  if ! aux_val "$5" "numeric"; then
+    aux_err "FSCK pass number must be numeric: $5"
+    aux_use
+    return 1
+  fi
+  
+  if ! aux_val "$6" "numeric"; then
+    aux_err "Mount priority must be numeric: $6"
+    aux_use
+    return 1
+  fi
+
   line_number=$1
   mount_point=$2
   filesystem=$3
@@ -180,12 +243,25 @@ sto_fec() {
   fsck_pass_number=$5
   mount_at_boot_priority=$6
 
+  # Check dependencies
+  if ! aux_chk "command" "blkid"; then
+    aux_err "blkid command not found - required for device UUID identification"
+    return 127
+  fi
+  
+  if ! aux_chk "command" "sed"; then
+    aux_err "sed command not found - required for UUID extraction"
+    return 127
+  fi
+
   # Extract the UUID based on the specified line number
   uuid=$(blkid | sed -n "${line_number}s/.*UUID=\"\([^\"]*\)\".*/\1/p")
   if [ -z "$uuid" ]; then
-    echo "Error: No UUID found at line $line_number"
+    aux_err "No UUID found at specified line" "line=$line_number"
     return 1
   fi
+
+  aux_info "Creating fstab entry" "uuid=$uuid,mountpoint=$mount_point,filesystem=$filesystem"
 
   # Create the fstab entry
   fstab_entry="UUID=${uuid} ${mount_point} ${filesystem} ${mount_options} ${fsck_pass_number} ${mount_at_boot_priority}"
@@ -193,8 +269,7 @@ sto_fec() {
   # Append the entry to /etc/fstab
   echo "$fstab_entry" >> /etc/fstab
 
-  echo "Entry added to /etc/fstab:"
-  echo "$fstab_entry"
+  aux_info "Fstab entry created successfully" "entry=$fstab_entry"
 }
 
 # Mounts an NFS share interactively or with provided arguments
@@ -232,31 +307,68 @@ sto_nfs() {
         return 1
     fi
 
+    # Validate all parameters
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Server IP cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Shared folder cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$3" "not_empty"; then
+        aux_err "Mount point cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$4" "not_empty"; then
+        aux_err "Mount options cannot be empty"
+        aux_use
+        return 1
+    fi
+
     local server_ip="$1"
     local shared_folder="$2"
     local mount_point="$3"
     local options="$4"
 
+    # Check dependencies
+    if ! aux_chk "command" "mount"; then
+        aux_err "mount command not found - required for NFS mounting"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "mkdir"; then
+        aux_err "mkdir command not found - required for mount point creation"
+        return 127
+    fi
+
     # Create the mount point if it doesn't exist
     if [ ! -d "$mount_point" ]; then
-        echo "Creating mount point $mount_point"
+        aux_info "Creating mount point" "path=$mount_point"
         sudo mkdir -p "$mount_point"
     fi
 
+    aux_info "Starting NFS mount operation" "server=$server_ip,share=$shared_folder,mountpoint=$mount_point"
+    
     # Perform the mount
-    echo "Mounting NFS share..."
     if sudo mount -t nfs -o "$options" "${server_ip}:${shared_folder}" "$mount_point"; then
-        echo "NFS share mounted successfully at $mount_point"
+        aux_info "NFS mount successful" "mountpoint=$mount_point"
     else
-        echo "Failed to mount NFS share"
+        aux_err "NFS mount failed" "server=$server_ip,share=$shared_folder"
         return 1
     fi
 
     # Verify the mount
     if mount | grep -q "$mount_point"; then
-        echo "Mount verified successfully"
+        aux_info "Mount verification successful" "mountpoint=$mount_point"
     else
-        echo "Mount verification failed"
+        aux_err "Mount verification failed" "mountpoint=$mount_point"
         return 1
     fi
 
@@ -295,9 +407,38 @@ sto_bfs_tra() {
         return 1
     fi
 
+    # Validate required parameters
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Attribute flag cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "User name cannot be empty"
+        aux_use
+        return 1
+    fi
+
     local attr_flag="$1"
     local user_name="$2"
     shift 2
+
+    # Check dependencies
+    if ! aux_chk "command" "btrfs"; then
+        aux_err "btrfs command not found - required for subvolume operations"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "chattr"; then
+        aux_err "chattr command not found - required for filesystem attributes"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "chown"; then
+        aux_err "chown command not found - required for ownership changes"
+        return 127
+    fi
 
     if [[ ! "$attr_flag" =~ ^[acdeijsuACDST-]$ ]]; then
         echo "Error: Invalid attribute flag. Use one of: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
