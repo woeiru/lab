@@ -122,8 +122,10 @@ sys_gio() {
     aux_info "Starting git synchronization" "dir=$dir,branch=$branch"
     aux_dbg "Commit message: ${commit_message:-empty}"
 
-    # Navigate to the git folder
-    if ! aux_cmd "cd" "$dir"; then
+    # Store current directory and navigate to the git folder
+    local original_dir
+    original_dir=$(pwd)
+    if ! cd "$dir" 2>/dev/null; then
         aux_err "Failed to change directory to $dir"
         return 1
     fi
@@ -172,9 +174,9 @@ sys_gio() {
         aux_info "Successfully pushed changes" "branch=$branch"
     fi
 
-    # Return to the previous directory
-    if ! cd - >/dev/null 2>&1; then
-        aux_warn "Failed to return to previous directory"
+    # Return to the original directory
+    if ! cd "$original_dir" 2>/dev/null; then
+        aux_warn "Failed to return to original directory: $original_dir"
     fi
 }
 
