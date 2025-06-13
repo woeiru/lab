@@ -524,6 +524,12 @@ aux_chk() {
                 return 2
             fi
             ;;
+        "dir_exists")
+            [[ -d "$target" ]] && return 0 || return 1
+            ;;
+        "file_exists")
+            [[ -f "$target" ]] && return 0 || return 1
+            ;;
         *)
             echo "Error: Unknown check type: $check_type" >&2
             return 2
