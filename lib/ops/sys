@@ -173,7 +173,7 @@ sys_gio() {
     fi
 
     # Return to the previous directory
-    if ! aux_cmd "cd" "-"; then
+    if ! cd - >/dev/null 2>&1; then
         aux_warn "Failed to return to previous directory"
     fi
 }
