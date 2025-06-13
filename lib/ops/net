@@ -24,6 +24,7 @@ net_fun() {
     #   Uses ana_laf utility for consistent function listing across modules
     # Dependencies:
     #   - ana_laf function from auxiliary module
+    #   - aux_chk, aux_info, aux_err functions
     #   - Read access to network operations module file
     #   - Standard POSIX shell utilities for text processing
     # Arguments:
@@ -33,6 +34,26 @@ net_fun() {
         aux_tec
         return 0
     fi
+    
+    # Dependency checks (REQUIRED for functions using other modules)
+    if ! aux_chk "function" "ana_laf"; then
+        aux_err "ana_laf function not found - required for function listing"
+        return 127
+    fi
+    
+    if ! aux_chk "file_exists" "$FILEPATH_net"; then
+        aux_err "Network operations module file not found: $FILEPATH_net"
+        return 2
+    fi
+    
+    # Optional parameter validation (no strict requirement)
+    if [ $# -gt 0 ] && ! aux_val "$1" "not_empty"; then
+        aux_err "Function name filter cannot be empty if provided"
+        return 1
+    fi
+    
+    # Operational logging
+    aux_info "Displaying network operations functions" "filter=${1:-none}"
     
     ana_laf "$FILEPATH_net" "$@"
 }
@@ -47,6 +68,7 @@ net_var() {
     #   Provides comprehensive view of network configuration state
     # Dependencies:
     #   - ana_acu function from auxiliary module
+    #   - aux_chk, aux_info, aux_err functions
     #   - Read access to configuration files and parent directories
     #   - Network configuration file defined in CONFIG_net variable
     # Arguments:
@@ -61,6 +83,20 @@ net_var() {
         aux_use
         return 1
     fi
+    
+    # Dependency checks (REQUIRED for functions using other modules)
+    if ! aux_chk "function" "ana_acu"; then
+        aux_err "ana_acu function not found - required for configuration analysis"
+        return 127
+    fi
+    
+    if ! aux_chk "dir_exists" "$DIR_FUN/.."; then
+        aux_err "Parent directory not accessible for configuration scanning"
+        return 2
+    fi
+    
+    # Operational logging
+    aux_info "Displaying network configuration variables"
     
     ana_acu -o "$CONFIG_net" "$DIR_FUN/.."
 }
@@ -85,6 +121,7 @@ net_uni() {
     #   - Write access to /etc/network/interfaces file
     #   - Root privileges for system configuration changes
     #   - 'reboot' command for optional system restart
+    #   - aux_ask, aux_chk, aux_info, aux_warn, aux_err functions
     # Arguments:
     #   $1: -x - explicit execution flag required for safety due to system-level changes
     
@@ -98,40 +135,110 @@ net_uni() {
         return 1
     fi
     
-    # Prompt user for the new interface name
-    read -p "Enter the new interface name (e.g., nic1): " INTERFACE_NAME
-
-    # Get the list of available network interfaces and their MAC addresses
-    echo "Available network interfaces and their MAC addresses:"
+    # Dependency checks (REQUIRED for system functions)
+    if ! aux_chk "command" "ip"; then
+        aux_err "ip command not found - required for network interface operations"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "udevadm"; then
+        aux_err "udevadm command not found - required for udev rule management"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "awk"; then
+        aux_err "awk command not found - required for MAC address extraction"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "sed"; then
+        aux_err "sed command not found - required for configuration file updates"
+        return 127
+    fi
+    
+    if ! aux_chk "dir_writable" "/etc/udev/rules.d"; then
+        aux_err "Write access required to /etc/udev/rules.d directory"
+        return 2
+    fi
+    
+    if ! aux_chk "file_writable" "/etc/network/interfaces"; then
+        aux_err "Write access required to /etc/network/interfaces file"
+        return 2
+    fi
+    
+    # Operational logging (REQUIRED for system changes)
+    aux_info "Starting network interface renaming process"
+    
+    # User interaction (REQUIRED for interactive functions)
+    local INTERFACE_NAME=$(aux_ask "Enter the new interface name (e.g., nic1)" "" "not_empty")
+    
+    # Input validation (REQUIRED)
+    if ! aux_val "$INTERFACE_NAME" "alphanum"; then
+        aux_err "Interface name must be alphanumeric"
+        return 1
+    fi
+    
+    # Display available network interfaces
+    aux_info "Available network interfaces and their MAC addresses:"
     ip addr
-
-    # Prompt user to enter the NIC name from the list
-    read -p "Enter the network interface name whose MAC address you want to associate with the new name: " SELECTED_INTERFACE
+    
+    local SELECTED_INTERFACE=$(aux_ask "Enter the network interface name whose MAC address you want to associate with the new name" "" "not_empty")
+    
+    # Validate selected interface exists
+    if ! ip addr show dev "$SELECTED_INTERFACE" >/dev/null 2>&1; then
+        aux_err "Network interface not found: $SELECTED_INTERFACE"
+        return 2
+    fi
 
     # Retrieve MAC address for the selected interface
-    MAC_ADDRESS=$(ip addr show dev "$SELECTED_INTERFACE" | awk '/ether/{print $2}')
-    echo "MAC address for $SELECTED_INTERFACE: $MAC_ADDRESS"
-
-    # Create or edit the udev rule file
-    echo 'SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="'"$MAC_ADDRESS"'", NAME="'"$INTERFACE_NAME"'"' > /etc/udev/rules.d/70-persistent-net.rules
-
-    # Reload udev rules
-    udevadm control --reload-rules
-    udevadm trigger
-
-    echo "Udev rule applied. The interface name '$INTERFACE_NAME' has been assigned to MAC address '$MAC_ADDRESS'."
-
-    # Make changes in the network configuration file
-    sed -i 's/'"$SELECTED_INTERFACE"'/'"$INTERFACE_NAME"'/g' /etc/network/interfaces
-
-    echo "Network configuration updated. The interface name has been replaced in the configuration file."
-
-    # Perform system reboot
-    read -p "Do you want to reboot the system now? (y/n): " REBOOT_CONFIRM
-    if [ "$REBOOT_CONFIRM" = "y" ]; then
-        reboot
+    local MAC_ADDRESS=$(ip addr show dev "$SELECTED_INTERFACE" | awk '/ether/{print $2}')
+    
+    # Validate MAC address was found
+    if ! aux_val "$MAC_ADDRESS" "not_empty"; then
+        aux_err "Could not retrieve MAC address for interface: $SELECTED_INTERFACE"
+        return 2
+    fi
+    
+    aux_info "MAC address for $SELECTED_INTERFACE: $MAC_ADDRESS"
+    
+    # Safe command execution (REQUIRED for system operations)
+    aux_info "Creating udev rule for interface renaming" "interface=$INTERFACE_NAME,mac=$MAC_ADDRESS"
+    
+    if ! echo 'SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="'"$MAC_ADDRESS"'", NAME="'"$INTERFACE_NAME"'"' > /etc/udev/rules.d/70-persistent-net.rules; then
+        aux_err "Failed to create udev rule file"
+        return 2
+    fi
+    
+    # Reload udev rules with error handling
+    if aux_cmd "udevadm" "control" "--reload-rules" && aux_cmd "udevadm" "trigger"; then
+        aux_info "Udev rules reloaded successfully"
     else
-        echo "System reboot was not executed. Please manually restart the system to apply the changes."
+        aux_err "Failed to reload udev rules"
+        return 2
+    fi
+    
+    aux_info "Udev rule applied. The interface name '$INTERFACE_NAME' has been assigned to MAC address '$MAC_ADDRESS'."
+    
+    # Update network configuration file safely
+    aux_info "Updating network configuration file"
+    if aux_cmd "sed" "-i" "s/$SELECTED_INTERFACE/$INTERFACE_NAME/g" "/etc/network/interfaces"; then
+        aux_info "Network configuration updated successfully"
+    else
+        aux_warn "Failed to update network configuration file - manual update may be required"
+    fi
+    
+    # User confirmation for reboot
+    local REBOOT_CONFIRM=$(aux_ask "Do you want to reboot the system now to apply changes?" "no" "yes_no")
+    if [ "$REBOOT_CONFIRM" = "yes" ]; then
+        aux_info "Initiating system reboot"
+        if aux_cmd "reboot"; then
+            return 0
+        else
+            aux_err "Failed to initiate system reboot"
+            return 2
+        fi
+    else
+        aux_warn "System reboot was not executed. Please manually restart the system to apply the changes."
     fi
 }
 
@@ -147,8 +254,7 @@ net_fsr() {
     #   Provides notification of successful execution via aux_log
     # Dependencies:
     #   - 'firewall-cmd' command from firewalld package
-    #   - 'command' builtin for utility availability checking
-    #   - aux_log function for operation notification
+    #   - aux_val, aux_chk, aux_info, aux_err, aux_cmd functions
     #   - Root privileges for firewall configuration changes
     # Arguments:
     #   $1: service - name of the firewall service to add (e.g., 'ssh', 'http', 'https')
@@ -163,16 +269,30 @@ net_fsr() {
         return 1
     fi
     
-    local function_name="${FUNCNAME[0]}"
+    # Parameter validation (REQUIRED)
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Service name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
     local fw_service="$1"
     
-   # Open firewall ports
-    if command -v firewall-cmd > /dev/null; then
-        firewall-cmd --permanent --add-service=$fw_service
-        firewall-cmd --reload
-	aux_log "INFO" "$function_name: executed ( $1 )"
+    # Dependency checks (REQUIRED for system functions)
+    if ! aux_chk "command" "firewall-cmd"; then
+        aux_err "firewall-cmd command not found - required for firewall operations"
+        return 127
+    fi
+    
+    # Operational logging (REQUIRED for system changes)
+    aux_info "Adding firewall service to permanent configuration" "service=$fw_service"
+    
+    # Safe command execution (REQUIRED for system operations)
+    if aux_cmd "firewall-cmd" "--permanent" "--add-service=$fw_service" && aux_cmd "firewall-cmd" "--reload"; then
+        aux_info "Firewall service configuration successful" "service=$fw_service"
     else
-        echo "firewall-cmd not found, skipping firewall configuration."
+        aux_err "Failed to configure firewall service" "service=$fw_service"
+        return 2
     fi
 }
 
@@ -188,7 +308,7 @@ net_fas() {
     #   Provides notification of successful execution via aux_log
     # Dependencies:
     #   - 'firewall-cmd' command from firewalld package
-    #   - aux_log function for operation notification
+    #   - aux_val, aux_chk, aux_info, aux_err, aux_cmd functions
     #   - Active firewalld daemon service
     #   - Root privileges for firewall configuration changes
     # Arguments:
@@ -204,14 +324,38 @@ net_fas() {
         return 1
     fi
     
-    local function_name="${FUNCNAME[0]}"
-    local fwd_as_1="$1"
-
-    firewall-cmd --state
-    firewall-cmd --add-service="$fwd_as_1" --permanent
-    firewall-cmd --reload
-
-    aux_log "INFO" "$function_name: executed"
+    # Parameter validation (REQUIRED)
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Service name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    local fwd_service="$1"
+    
+    # Dependency checks (REQUIRED for system functions)
+    if ! aux_chk "command" "firewall-cmd"; then
+        aux_err "firewall-cmd command not found - required for firewall operations"
+        return 127
+    fi
+    
+    # Check firewall daemon state
+    aux_info "Checking firewall daemon state"
+    if ! aux_cmd "firewall-cmd" "--state"; then
+        aux_err "Firewall daemon is not running"
+        return 2
+    fi
+    
+    # Operational logging (REQUIRED for system changes)
+    aux_info "Allowing firewall service through firewall" "service=$fwd_service"
+    
+    # Safe command execution (REQUIRED for system operations)
+    if aux_cmd "firewall-cmd" "--add-service=$fwd_service" "--permanent" && aux_cmd "firewall-cmd" "--reload"; then
+        aux_info "Firewall service allowance successful" "service=$fwd_service"
+    else
+        aux_err "Failed to allow firewall service" "service=$fwd_service"
+        return 2
+    fi
 }
 
 
@@ -232,8 +376,7 @@ net_hos() {
     #   - 'mktemp' for temporary file creation
     #   - 'sudo' for elevated privileges when modifying system files
     #   - 'tee' for appending to files with privilege escalation
-    #   - aux_tec function for technical help display
-    #   - aux_use function for usage information display
+    #   - aux_val, aux_chk, aux_info, aux_warn, aux_err functions
     #   - Write access to /etc/hosts file
     # Arguments:
     #   $1: ip_address - IP address to associate with hostname (IPv4 or IPv6 format)
@@ -249,31 +392,96 @@ net_hos() {
         return 1
     fi
     
-    local function_name="${FUNCNAME[0]}"
+    # Parameter validation (REQUIRED)
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "IP address cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Hostname cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Validate IP address format (basic validation)
+    if ! aux_val "$1" "ip_address"; then
+        aux_err "Invalid IP address format: $1"
+        return 1
+    fi
+    
+    # Validate hostname format
+    if ! aux_val "$2" "hostname"; then
+        aux_err "Invalid hostname format: $2"
+        return 1
+    fi
+    
     local ip_address="$1"
     local hostname="$2"
     local hosts_file="/etc/hosts"
+    
+    # Dependency checks (REQUIRED for system functions)
+    if ! aux_chk "command" "grep"; then
+        aux_err "grep command not found - required for hosts file operations"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "sed"; then
+        aux_err "sed command not found - required for text operations"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "mktemp"; then
+        aux_err "mktemp command not found - required for temporary file operations"
+        return 127
+    fi
+    
+    if ! aux_chk "file_exists" "$hosts_file"; then
+        aux_err "Hosts file not found: $hosts_file"
+        return 2
+    fi
+    
+    # Operational logging (REQUIRED for file operations)
+    aux_info "Managing hosts file entry" "hostname=$hostname,ip=$ip_address"
 
     # Check if the entry already exists with the same IP
     if grep -q -w "$hostname" "$hosts_file"; then
         # Hostname exists, check if IP needs update
         if grep -q -w "$ip_address\\s\\+$hostname" "$hosts_file"; then
-            echo "INF: $function_name: Host entry for $hostname ($ip_address) already exists and is correct."
+            aux_info "Host entry already exists and is correct" "hostname=$hostname,ip=$ip_address"
             return 0
         else
             # Hostname exists, but IP is different. Update the line.
+            aux_info "Updating existing host entry" "hostname=$hostname,old_ip=existing,new_ip=$ip_address"
+            
             # Use a temporary file for sed to avoid issues with /etc/hosts
             local temp_file
-            temp_file=$(mktemp)
-            sed "s/.*\\s\\+$hostname$/$ip_address\\t$hostname/" "$hosts_file" > "$temp_file" && sudo cp "$temp_file" "$hosts_file"
-            rm "$temp_file"
-            echo "INF: $function_name: Updated host entry for $hostname to $ip_address."
-            return 0
+            if temp_file=$(mktemp); then
+                if sed "s/.*\\s\\+$hostname$/$ip_address\\t$hostname/" "$hosts_file" > "$temp_file" && sudo cp "$temp_file" "$hosts_file"; then
+                    rm "$temp_file"
+                    aux_info "Successfully updated host entry" "hostname=$hostname,ip=$ip_address"
+                    return 0
+                else
+                    rm "$temp_file" 2>/dev/null
+                    aux_err "Failed to update host entry" "hostname=$hostname,ip=$ip_address"
+                    return 2
+                fi
+            else
+                aux_err "Failed to create temporary file for hosts update"
+                return 2
+            fi
         fi
     else
         # Hostname does not exist, add new entry
-        echo -e "$ip_address\\t$hostname" | sudo tee -a "$hosts_file" > /dev/null
-        echo "INF: $function_name: Added host entry for $hostname ($ip_address)."
-        return 0
+        aux_info "Adding new host entry" "hostname=$hostname,ip=$ip_address"
+        
+        if echo -e "$ip_address\\t$hostname" | sudo tee -a "$hosts_file" > /dev/null; then
+            aux_info "Successfully added host entry" "hostname=$hostname,ip=$ip_address"
+            return 0
+        else
+            aux_err "Failed to add host entry" "hostname=$hostname,ip=$ip_address"
+            return 2
+        fi
     fi
 }

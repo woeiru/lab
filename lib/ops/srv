@@ -65,22 +65,26 @@ srv_var() {
     ana_acu -o "$CONFIG_srv" "$DIR_FUN/.."
 }
 
-# Sets up an NFS share by prompting for necessary information (NFS header, shared folder, and options) and applying the configuration
+# Sets up an NFS share by configuring export parameters and applying settings
 # nfs setup
 # <nfs_header> <shared_folder> <nfs_options>
-nfs_set() {
+srv_nfs_set() {
     # Technical Description:
-    #   NFS share setup function that validates required parameters.
-    #   Validates inputs and delegates to nfs_apl for actual configuration
-    #   Provides automated interface for NFS share creation
+    #   High-level NFS share setup function that orchestrates complete share configuration
+    #   Validates all required parameters using auxiliary validation functions
+    #   Delegates actual configuration work to srv_nfs_apl for implementation
+    #   Provides user-friendly interface with comprehensive error handling and logging
+    #   Ensures all parameters are properly validated before configuration begins
     # Dependencies:
-    #   - nfs_apl function for configuration application
-    #   - aux_log function for success notification
-    #   - Standard POSIX shell utilities
+    #   - srv_nfs_apl function for actual NFS configuration implementation
+    #   - aux_val function for parameter validation
+    #   - aux_err, aux_info functions for operational logging
+    #   - aux_use function for usage display on errors
+    #   - Standard POSIX shell utilities for variable handling
     # Arguments:
-    #   $1: nfs_header - identifier/name for the NFS export
-    #   $2: shared_folder - absolute path to directory to be shared
-    #   $3: nfs_options - NFS export options (e.g., "*(rw,sync,no_subtree_check)")
+    #   $1: nfs_header - identifier/name for the NFS export entry
+    #   $2: shared_folder - absolute path to directory to be shared via NFS
+    #   $3: nfs_options - NFS export options string (e.g., "*(rw,sync,no_subtree_check)")
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -97,33 +101,58 @@ nfs_set() {
     local shared_folder="$2"
     local nfs_options="$3"
 
+    # Parameter validation
+    if ! aux_val "$nfs_header" "not_empty"; then
+        aux_err "NFS header cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$shared_folder" "not_empty"; then
+        aux_err "Shared folder path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$nfs_options" "not_empty"; then
+        aux_err "NFS options cannot be empty"
+        aux_use
+        return 1
+    fi
+
+    aux_info "Starting NFS share setup" "header=$nfs_header,folder=$shared_folder"
+    
     # Apply the NFS configuration
-    nfs_apl "$nfs_header" "$shared_folder" "$nfs_options"
-    aux_log "INFO" "$function_name: NFS setup complete"
+    srv_nfs_apl "$nfs_header" "$shared_folder" "$nfs_options"
+    aux_info "NFS setup completed successfully" "header=$nfs_header"
 }
 
-# Applies NFS configuration by creating the shared folder if needed, updating /etc/exports, and restarting the NFS server
+# Applies NFS configuration by updating exports and restarting services
 # nfs apply config
 # <nfs_header> <shared_folder> <nfs_options>
-nfs_apl() {
+srv_nfs_apl() {
     # Technical Description:
-    #   Direct NFS configuration application function without user interaction
-    #   Creates shared directory with appropriate permissions if it doesn't exist
-    #   Updates /etc/exports file with new NFS export entry
-    #   Restarts NFS services to apply configuration changes
-    #   Performs duplicate detection to avoid configuration conflicts
+    #   Low-level NFS configuration implementation function that performs actual system changes
+    #   Validates parameters and checks for required system dependencies before proceeding
+    #   Creates shared directory with appropriate permissions (777) if it doesn't exist
+    #   Updates /etc/exports file with new NFS export entry using atomic operations
+    #   Performs duplicate detection to prevent configuration conflicts in exports file
+    #   Restarts NFS services using exportfs and systemctl to apply configuration changes
+    #   Provides comprehensive error handling with detailed logging throughout the process
     # Dependencies:
-    #   - mkdir command for directory creation
-    #   - chmod command for permission setting
-    #   - grep command for duplicate detection
-    #   - tee command for file writing
-    #   - exportfs command for NFS export management
-    #   - systemctl command for service management
-    #   - Root privileges for system configuration
+    #   - aux_val, aux_chk, aux_info, aux_err, aux_warn, aux_cmd functions for operations
+    #   - exportfs command for NFS export management and validation
+    #   - systemctl command for NFS service management (nfs-server)
+    #   - mkdir command for directory creation with -p flag support
+    #   - chmod command for setting directory permissions
+    #   - grep command for duplicate detection in configuration files
+    #   - tee command for atomic file writing operations
+    #   - touch command for creating missing configuration files
+    #   - Root privileges required for system configuration and service management
     # Arguments:
-    #   $1: nfs_header - identifier/name for the NFS export
-    #   $2: shared_folder - absolute path to directory to be shared
-    #   $3: nfs_options - NFS export options (e.g., "*(rw,sync,no_subtree_check)")
+    #   $1: nfs_header - identifier/name for the NFS export entry
+    #   $2: shared_folder - absolute path to directory to be shared via NFS
+    #   $3: nfs_options - NFS export options string (e.g., "*(rw,sync,no_subtree_check)")
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -139,36 +168,76 @@ nfs_apl() {
     local nfs_header="$1"
     local shared_folder="$2"
     local nfs_options="$3"
+
+    # Parameter validation
+    if ! aux_val "$nfs_header" "not_empty"; then
+        aux_err "NFS header cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$shared_folder" "not_empty"; then
+        aux_err "Shared folder path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks
+    if ! aux_chk "command" "exportfs"; then
+        aux_err "exportfs command not found - NFS utilities required"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "systemctl"; then
+        aux_err "systemctl command not found - systemd required"
+        return 127
+    fi
+    
+    if ! aux_chk "file_exists" "/etc/exports"; then
+        aux_warn "Creating /etc/exports file"
+        touch /etc/exports
+    fi
+
+    aux_info "Applying NFS configuration" "header=$nfs_header,folder=$shared_folder"
 
     # Check if the shared folder exists, create it if not
     if [ ! -d "$shared_folder" ]; then
-        mkdir -p "$shared_folder"
-        chmod -R 777 "$shared_folder"
-        echo "Shared folder created: $shared_folder"
+        if aux_cmd "mkdir" "-p" "$shared_folder"; then
+            aux_cmd "chmod" "-R" "777" "$shared_folder"
+            aux_info "Shared folder created" "path=$shared_folder"
+        else
+            aux_err "Failed to create shared folder" "path=$shared_folder"
+            return 2
+        fi
     fi
 
     # Check if the NFS export already exists in /etc/exports
     if grep -qF "$shared_folder" /etc/exports; then
-        echo "NFS export already exists in /etc/exports. Skipping addition."
+        aux_warn "NFS export already exists in /etc/exports" "path=$shared_folder"
     else
         # Append NFS export line to /etc/exports
-        echo "$shared_folder $nfs_options" | tee -a /etc/exports > /dev/null
-        echo "NFS export added to /etc/exports."
+        if echo "$shared_folder $nfs_options" | tee -a /etc/exports > /dev/null; then
+            aux_info "NFS export added to /etc/exports" "path=$shared_folder"
+        else
+            aux_err "Failed to update /etc/exports" "path=$shared_folder"
+            return 2
+        fi
     fi
 
     # Restart NFS server
-    exportfs -ra
-    systemctl restart nfs-server
-
-    # Print confirmation message
-    echo "NFS server configured. Shared folder: $shared_folder"
-    aux_log "INFO" "$function_name: NFS configuration applied"
+    aux_info "Restarting NFS services"
+    if aux_cmd "exportfs" "-ra" && aux_cmd "systemctl" "restart" "nfs-server"; then
+        aux_info "NFS server configured successfully" "folder=$shared_folder"
+    else
+        aux_err "Failed to restart NFS services"
+        return 2
+    fi
 }
 
-# Monitors and displays various aspects of the NFS server
+# Monitors and displays comprehensive NFS server status and statistics
 # nfs monitor
 # <option>
-nfs_mon() {
+srv_nfs_mon() {
     # Technical Description:
     #   Comprehensive NFS server monitoring and status reporting function
     #   Provides multiple monitoring options through interactive menu or direct parameter
@@ -200,6 +269,27 @@ nfs_mon() {
     
     local function_name="${FUNCNAME[0]}"
     local option="$1"
+    
+    # Parameter validation
+    if ! aux_val "$option" "not_empty"; then
+        aux_err "Monitoring option cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks for monitoring commands
+    local missing_deps=()
+    if ! aux_chk "command" "systemctl"; then
+        missing_deps+=("systemctl")
+    fi
+    if ! aux_chk "command" "exportfs"; then
+        missing_deps+=("exportfs") 
+    fi
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        aux_err "Missing required dependencies: ${missing_deps[*]}"
+        return 127
+    fi
 
     # If menu option provided, show interactive menu
     if [ "$option" = "menu" ] || [ "$option" = "0" ]; then
@@ -251,46 +341,49 @@ nfs_mon() {
             ;;
         9|"All of the above")
             for i in {1..8}; do
-                nfs_mon "$i"
+                srv_nfs_mon "$i"
                 echo "----------------------------------------"
             done
             ;;
         *)
-            echo "Invalid option: $option"
+            aux_err "Invalid monitoring option: $option"
             aux_use
             return 1
             ;;
     esac
 
-    aux_log "INFO" "$function_name: NFS monitoring completed"
+    aux_info "NFS monitoring completed" "option=$option"
 }
 
-# Sets up a Samba share by prompting for missing configuration details and applying the configuration. Handles various share parameters including permissions, guest access, and file masks
+# Sets up a Samba share with comprehensive configuration parameters
 # samba setup
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
-smb_set() {
+srv_smb_set() {
     # Technical Description:
-    #   Samba share setup function with comprehensive parameter validation
-    #   Validates required configuration parameters before proceeding
-    #   Handles both user-specific and 'nobody' share configurations
-    #   Validates required fields and delegates to smb_apl for actual configuration
-    #   Enforces password requirement for non-anonymous shares
+    #   High-level Samba share setup function that orchestrates complete SMB share configuration
+    #   Validates all 11 required parameters using auxiliary validation functions
+    #   Supports both authenticated user shares and anonymous guest shares
+    #   Handles comprehensive share parameters including permissions, access controls, and security settings
+    #   Delegates actual configuration implementation to srv_smb_apl for system-level changes
+    #   Provides user-friendly interface with detailed error handling and operational logging
     # Dependencies:
-    #   - smb_apl function for configuration application
-    #   - aux_log function for success notification
-    #   - Standard POSIX shell utilities
+    #   - srv_smb_apl function for actual Samba configuration implementation
+    #   - aux_val function for parameter validation and input checking
+    #   - aux_err, aux_info functions for operational logging and error reporting
+    #   - aux_use function for usage display when validation fails
+    #   - Standard POSIX shell utilities for variable handling and assignment
     # Arguments:
-    #   $1: smb_header - share name/identifier in Samba configuration
-    #   $2: shared_folder - absolute path to directory to be shared
-    #   $3: username - Samba username for access (or 'nobody' for guest access)
-    #   $4: smb_password - password for Samba user authentication
-    #   $5: writable_yesno - whether share is writable (yes/no)
-    #   $6: guestok_yesno - whether guest access is allowed (yes/no)
-    #   $7: browseable_yesno - whether share appears in network browsing (yes/no)
-    #   $8: create_mask - file creation permission mask (e.g., 0744)
-    #   $9: dir_mask - directory creation permission mask (e.g., 0755)
-    #   $10: force_user - force all operations as this user
-    #   $11: force_group - force all operations as this group
+    #   $1: smb_header - share name/identifier that appears in Samba configuration
+    #   $2: shared_folder - absolute path to directory to be shared via SMB
+    #   $3: username - Samba username for access control (or 'nobody' for guest access)
+    #   $4: smb_password - password for Samba user authentication and access
+    #   $5: writable_yesno - whether share allows write access (yes/no)
+    #   $6: guestok_yesno - whether anonymous guest access is permitted (yes/no)
+    #   $7: browseable_yesno - whether share appears in network browsing lists (yes/no)
+    #   $8: create_mask - octal permission mask for new file creation (e.g., 0744)
+    #   $9: dir_mask - octal permission mask for new directory creation (e.g., 0755)
+    #   $10: force_user - force all file operations to run as this system user
+    #   $11: force_group - force all file operations to run as this system group
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -315,43 +408,70 @@ smb_set() {
 	local force_user="${10}"
 	local force_group="${11}"
 
+    # Parameter validation
+    if ! aux_val "$smb_header" "not_empty"; then
+        aux_err "Samba header cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$shared_folder" "not_empty"; then
+        aux_err "Shared folder path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$username" "not_empty"; then
+        aux_err "Username cannot be empty"
+        aux_use
+        return 1
+    fi
+
+    aux_info "Starting Samba share setup" "header=$smb_header,folder=$shared_folder,user=$username"
+
     # Apply the Samba configuration
-    smb_apl "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
-    aux_log "INFO" "$function_name: Samba setup complete"
+    srv_smb_apl "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
+    aux_info "Samba setup completed successfully" "header=$smb_header"
 }
 
-# Applies Samba configuration by creating the shared folder if needed, updating cfg/env/site. with share details, restarting the Samba service, and setting up user passwords. Supports both user-specific and 'nobody' shares
+# Applies Samba configuration by updating smb.conf and managing user authentication
 # samba apply config
 # <smb_header> <shared_folder> <username> <smb_password> <writable_yesno> <guestok_yesno> <browseable_yesno> <create_mask> <dir_mask> <force_user> <force_group>
-smb_apl() {
+srv_smb_apl() {
     # Technical Description:
-    #   Direct Samba configuration application function without user interaction
-    #   Creates shared directory with appropriate permissions if it doesn't exist
-    #   Updates /etc/samba/smb.conf with new share configuration block
-    #   Manages user authentication through smbpasswd for non-guest shares
-    #   Restarts Samba services to apply configuration changes
-    #   Performs duplicate detection to avoid configuration conflicts
+    #   Low-level Samba configuration implementation function that performs actual system changes
+    #   Validates parameters and checks for required Samba system dependencies before proceeding
+    #   Creates shared directory with appropriate permissions (777) if it doesn't exist
+    #   Updates /etc/samba/smb.conf with comprehensive share configuration block
+    #   Manages user authentication through smbpasswd for authenticated shares
+    #   Handles both user-specific and anonymous guest share configurations appropriately
+    #   Restarts Samba services using systemctl to apply all configuration changes
+    #   Performs duplicate detection to prevent configuration conflicts in smb.conf
+    #   Provides comprehensive error handling with detailed logging throughout the process
     # Dependencies:
-    #   - mkdir command for directory creation
-    #   - chmod command for permission setting
-    #   - grep command for duplicate detection
-    #   - tee command for file writing
-    #   - systemctl command for service management
-    #   - id command for user existence checking
-    #   - smbpasswd command for user password management
-    #   - Root privileges for system configuration
+    #   - aux_val, aux_chk, aux_info, aux_err, aux_warn, aux_cmd functions for operations
+    #   - systemctl command for Samba service management (smb/smbd)
+    #   - smbpasswd command for Samba user password management and authentication
+    #   - mkdir command for directory creation with -p flag support
+    #   - chmod command for setting directory permissions to 777
+    #   - grep command for duplicate detection in Samba configuration files
+    #   - tee command for atomic file writing operations to smb.conf
+    #   - id command for system user existence validation
+    #   - echo command for password input to smbpasswd via pipe
+    #   - Root privileges required for system configuration and service management
+    #   - /etc/samba/smb.conf file must exist and be writable
     # Arguments:
-    #   $1: smb_header - share name/identifier in Samba configuration
-    #   $2: shared_folder - absolute path to directory to be shared
-    #   $3: username - Samba username for access (or 'nobody' for guest access)
-    #   $4: smb_password - password for Samba user authentication
-    #   $5: writable_yesno - whether share is writable (yes/no)
-    #   $6: guestok_yesno - whether guest access is allowed (yes/no)
-    #   $7: browseable_yesno - whether share appears in network browsing (yes/no)
-    #   $8: create_mask - file creation permission mask (e.g., 0744)
-    #   $9: dir_mask - directory creation permission mask (e.g., 0755)
-    #   $10: force_user - force all operations as this user
-    #   $11: force_group - force all operations as this group
+    #   $1: smb_header - share name/identifier that appears in Samba configuration
+    #   $2: shared_folder - absolute path to directory to be shared via SMB
+    #   $3: username - Samba username for access control (or 'nobody' for guest access)
+    #   $4: smb_password - password for Samba user authentication and access
+    #   $5: writable_yesno - whether share allows write access (yes/no)
+    #   $6: guestok_yesno - whether anonymous guest access is permitted (yes/no)
+    #   $7: browseable_yesno - whether share appears in network browsing lists (yes/no)
+    #   $8: create_mask - octal permission mask for new file creation (e.g., 0744)
+    #   $9: dir_mask - octal permission mask for new directory creation (e.g., 0755)
+    #   $10: force_user - force all file operations to run as this system user
+    #   $11: force_group - force all file operations to run as this system group
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -376,19 +496,54 @@ smb_apl() {
 	local force_user="${10}"
 	local force_group="${11}"
 
-    # Check if the shared folder exists, create it if not
-    if [ ! -d "$shared_folder" ]; then
-        mkdir -p "$shared_folder"
-        chmod -R 777 "$shared_folder"
-        echo "Shared folder created: $shared_folder"
+    # Parameter validation
+    if ! aux_val "$smb_header" "not_empty"; then
+        aux_err "Samba header cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$shared_folder" "not_empty"; then
+        aux_err "Shared folder path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks
+    if ! aux_chk "command" "systemctl"; then
+        aux_err "systemctl command not found - systemd required"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "smbpasswd"; then
+        aux_err "smbpasswd command not found - Samba utilities required"
+        return 127
+    fi
+    
+    if ! aux_chk "file_exists" "/etc/samba/smb.conf"; then
+        aux_err "Samba configuration file not found: /etc/samba/smb.conf"
+        return 2
     fi
 
-    # Check if the Samba configuration block already exists in cfg/env/site.
+    aux_info "Applying Samba configuration" "header=$smb_header,folder=$shared_folder,user=$username"
+
+    # Check if the shared folder exists, create it if not
+    if [ ! -d "$shared_folder" ]; then
+        if aux_cmd "mkdir" "-p" "$shared_folder"; then
+            aux_cmd "chmod" "-R" "777" "$shared_folder"
+            aux_info "Shared folder created" "path=$shared_folder"
+        else
+            aux_err "Failed to create shared folder" "path=$shared_folder"
+            return 2
+        fi
+    fi
+
+    # Check if the Samba configuration block already exists in smb.conf
     if grep -qF "[$smb_header]" /etc/samba/smb.conf; then
-        echo "Samba configuration block already exists in cfg/env/site. Skipping addition."
+        aux_warn "Samba configuration block already exists" "header=$smb_header"
     else
-        # Append Samba configuration lines to cfg/env/site.
-        {
+        # Append Samba configuration lines to smb.conf
+        if {
             echo "[$smb_header]"
             echo "    path = $shared_folder"
             echo "    writable = $writable_yesno"
@@ -398,33 +553,48 @@ smb_apl() {
             echo "    dir mask = $dir_mask"
             echo "    force user = $force_user"
             echo "    force group = $force_group"
-        } | tee -a /etc/samba/smb.conf > /dev/null
-        echo "Samba configuration block added to cfg/env/site."
+        } | tee -a /etc/samba/smb.conf > /dev/null; then
+            aux_info "Samba configuration block added" "header=$smb_header"
+        else
+            aux_err "Failed to update Samba configuration" "header=$smb_header"
+            return 2
+        fi
     fi
 
     # Restart Samba
-    systemctl restart smb
+    aux_info "Restarting Samba service"
+    if aux_cmd "systemctl" "restart" "smb"; then
+        aux_info "Samba service restarted successfully"
+    else
+        aux_err "Failed to restart Samba service"
+        return 2
+    fi
 
     # Set Samba user password only if smb_header is not "nobody"
     if [ "$smb_header" != "nobody" ]; then
-        if id -u "$username" > /dev/null 2>&1; then
-            echo -e "$smb_password\n$smb_password" | smbpasswd -a -s "$username"
+        if aux_chk "command" "id" && id -u "$username" > /dev/null 2>&1; then
+            aux_info "Setting Samba password for user" "user=$username"
+            if echo -e "$smb_password\n$smb_password" | smbpasswd -a -s "$username"; then
+                aux_info "Samba password set successfully" "user=$username"
+            else
+                aux_err "Failed to set Samba password" "user=$username"
+                return 2
+            fi
         else
-            echo "User $username does not exist. Please create the user before setting Samba password."
+            aux_err "User does not exist on system" "user=$username"
+            return 2
         fi
     else
-        echo "Skipping password setup for the nobody section."
+        aux_info "Skipping password setup for anonymous share"
     fi
 
-    # Print confirmation message
-    echo "Samba server configured. Shared folder: $shared_folder"
-    aux_log "INFO" "$function_name: Samba configuration applied"
+    aux_info "Samba server configured successfully" "folder=$shared_folder,header=$smb_header"
 }
 
-# Monitors and displays various aspects of the SMB server
+# Monitors and displays comprehensive SMB server status and statistics
 # smb monitor
 # <option>
-smb_mon() {
+srv_smb_mon() {
     # Technical Description:
     #   Comprehensive SMB/Samba server monitoring and status reporting function
     #   Provides multiple monitoring options through interactive menu or direct parameter
@@ -455,6 +625,27 @@ smb_mon() {
     
     local function_name="${FUNCNAME[0]}"
     local option="$1"
+    
+    # Parameter validation
+    if ! aux_val "$option" "not_empty"; then
+        aux_err "Monitoring option cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks for monitoring commands
+    local missing_deps=()
+    if ! aux_chk "command" "systemctl"; then
+        missing_deps+=("systemctl")
+    fi
+    if ! aux_chk "command" "smbstatus"; then
+        missing_deps+=("smbstatus")
+    fi
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        aux_err "Missing required dependencies: ${missing_deps[*]}"
+        return 127
+    fi
 
     # If menu option provided, show interactive menu
     if [ "$option" = "menu" ] || [ "$option" = "0" ]; then
@@ -506,17 +697,17 @@ smb_mon() {
             ;;
         9|"All of the above")
             for i in {1..8}; do
-                smb_mon "$i"
+                srv_smb_mon "$i"
                 echo "----------------------------------------"
             done
             ;;
         *)
-            echo "Invalid option: $option"
+            aux_err "Invalid monitoring option: $option"
             aux_use
             return 1
             ;;
     esac
 
-    aux_log "INFO" "$function_name: SMB monitoring completed"
+    aux_info "SMB monitoring completed" "option=$option"
 }
 
