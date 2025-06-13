@@ -805,22 +805,28 @@ gpu_fun() {
     # Arguments:
     #   $1: function_name_filter (optional) - pattern to filter function names
     #   --help/-h: Display technical usage information
-    # Usage Examples:
-    #   gpu_fun                    # List all functions in GPU module
-    #   gpu_fun "vfio"            # Show only functions containing "vfio"
-    #   gpu_fun "^gpu_pt"         # Show only passthrough functions
-    
-    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=function_overview,filter=${1:-none}"
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_info "Displaying help information" "component=gpu,operation=function_overview,action=help"
         aux_tec
         return 0
     fi
     
-    aux_perf "Starting function analysis" "component=gpu,operation=function_overview,file=${FILEPATH_gpu}"
+    # Optional parameter - no strict validation needed
+    # But validate if provided
+    if [ $# -gt 1 ]; then
+        aux_err "Too many parameters provided"
+        aux_use
+        return 1
+    fi
+    
+    if [ $# -eq 1 ] && ! aux_val "$1" "not_empty"; then
+        aux_err "Filter parameter cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    aux_dbg "Starting function analysis" "filter=${1:-none}"
     ana_laf "$FILEPATH_gpu" "$@"
-    aux_info "Function overview completed" "component=gpu,operation=function_overview,status=complete"
 }
 
 # Shows configuration variables overview
@@ -839,30 +845,25 @@ gpu_var() {
     #   - CONFIG_gpu environment variable must be set for proper operation
     # Arguments:
     #   $1: -x - explicit execution flag required for consistency with module pattern
-    #   --help/-h: Display technical usage information
-    # Configuration Variables Displayed:
-    #   - ${hostname}_NODE_PCI0: Primary GPU PCI ID for the current host
-    #   - ${hostname}_NODE_PCI1: Secondary GPU PCI ID for the current host
-    #   - ${hostname}_NVIDIA_DRIVER_PREFERENCE: Preferred NVIDIA driver (nvidia/nouveau)
-    #   - Site-wide GPU configuration parameters
-    
-    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=variable_overview,args=$*"
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_info "Displaying help information" "component=gpu,operation=variable_overview,action=help"
         aux_tec
         return 0
     fi
     
     if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
-        aux_warn "Invalid arguments provided" "component=gpu,operation=variable_overview,expected=-x,received=$*"
+        aux_err "Invalid parameters - requires -x flag"
         aux_use
         return 1
     fi
     
-    aux_info "Analyzing GPU configuration variables" "component=gpu,operation=variable_overview,config_file=${CONFIG_gpu}"
+    if ! aux_chk "var_set" "CONFIG_gpu"; then
+        aux_err "CONFIG_gpu environment variable not set"
+        return 2
+    fi
+    
+    aux_dbg "Analyzing GPU configuration variables" "config_file=${CONFIG_gpu}"
     ana_acu -o "$CONFIG_gpu" "$DIR_FUN/.."
-    aux_info "Variable overview completed" "component=gpu,operation=variable_overview,status=complete"
 }
 
 # Downloads and installs NVIDIA drivers, blacklisting Nouveau drivers first
@@ -881,65 +882,106 @@ gpu_nds() {
     #   - Root privileges for system modification (blacklists, driver installation)
     #   - Build tools: dkms, build-essential, kernel headers
     #   - update-initramfs for initrd regeneration
+    #   - wget command for downloading drivers
     # Arguments:
     #   $1: driver_version (optional) - NVIDIA driver version (default: 550.142)
-    # System Changes:
-    #   - Creates /etc/modprobe.d/blacklist-nouveau.conf with Nouveau blacklist
-    #   - Installs NVIDIA driver with DKMS support for automatic kernel rebuilds
-    #   - Updates initramfs to apply blacklist changes
-    #   - Prompts for system reboot to activate new driver configuration
-    # Post-Installation:
-    #   - Verify installation with: nvidia-smi
-    #   - Driver will be automatically rebuilt for kernel updates via DKMS
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # Optional parameter validation
+    if [ $# -gt 1 ]; then
+        aux_err "Too many parameters provided"
+        aux_use
+        return 1
+    fi
+    
+    if [ $# -eq 1 ] && ! aux_val "$1" "not_empty"; then
+        aux_err "Driver version parameter cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Check system dependencies
+    if ! aux_chk "command" "wget"; then
+        aux_err "wget command not found - required for driver download"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "update-initramfs"; then
+        aux_err "update-initramfs command not found - required for system configuration"
+        return 127
+    fi
+    
     local drv_ver="${1:-550.142}"
     local url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${drv_ver}/NVIDIA-Linux-x86_64-${drv_ver}.run"
     local installer="NVIDIA-Linux-x86_64-${drv_ver}.run"
 
-    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=nvidia_driver_setup,driver_version=${drv_ver}"
-    aux_business "NVIDIA driver installation initiated" "component=gpu,operation=nvidia_driver_setup,driver_version=${drv_ver},installer_url=${url}"
+    aux_info "Starting NVIDIA driver installation" "driver_version=${drv_ver}"
     
-    aux_info "Blacklisting Nouveau driver" "component=gpu,operation=nvidia_driver_setup,step=blacklist_nouveau"
+    aux_info "Blacklisting Nouveau driver"
     echo "1) Blacklisting Nouveau..."
-    cat <<EOF | tee /etc/modprobe.d/blacklist-nouveau.conf
+    if aux_cmd "tee" "/etc/modprobe.d/blacklist-nouveau.conf" <<EOF
 blacklist nouveau
 options nouveau modeset=0
 EOF
-    aux_perf "Updating initramfs" "component=gpu,operation=nvidia_driver_setup,step=update_initramfs"
-    update-initramfs -u
-
-    aux_info "Installing prerequisites" "component=gpu,operation=nvidia_driver_setup,step=install_prerequisites"
-    echo "2) Installing prerequisites..."
-    apt update
-    apt install -y dkms build-essential pve-headers-$(uname -r)
-
-    aux_info "Downloading NVIDIA driver" "component=gpu,operation=nvidia_driver_setup,step=download,driver_version=${drv_ver},url=${url}"
-    echo "3) Downloading NVIDIA driver ${drv_ver}..."
-    if wget -q "${url}" -O "${installer}"; then
-        aux_info "Driver download successful" "component=gpu,operation=nvidia_driver_setup,step=download,status=success,file=${installer}"
-        chmod +x "${installer}"
+    then
+        aux_info "Nouveau blacklist created successfully"
     else
-        aux_err "Driver download failed" "component=gpu,operation=nvidia_driver_setup,step=download,status=failed,url=${url}"
-        echo "Download failed"
-        return 1
+        aux_err "Failed to create Nouveau blacklist"
+        return 2
+    fi
+    
+    aux_info "Updating initramfs"
+    if aux_cmd "update-initramfs" "-u"; then
+        aux_info "Initramfs updated successfully"
+    else
+        aux_err "Failed to update initramfs"
+        return 2
     fi
 
-    aux_info "Installing NVIDIA driver with DKMS" "component=gpu,operation=nvidia_driver_setup,step=install_driver,installer=${installer}"
+    aux_info "Installing prerequisites"
+    echo "2) Installing prerequisites..."
+    if aux_cmd "apt" "update" && aux_cmd "apt" "install" "-y" "dkms" "build-essential" "pve-headers-$(uname -r)"; then
+        aux_info "Prerequisites installed successfully"
+    else
+        aux_err "Failed to install prerequisites"
+        return 2
+    fi
+
+    aux_info "Downloading NVIDIA driver" "version=${drv_ver}"
+    echo "3) Downloading NVIDIA driver ${drv_ver}..."
+    if aux_cmd "wget" "-q" "${url}" "-O" "${installer}"; then
+        aux_info "Driver download successful" "file=${installer}"
+        chmod +x "${installer}"
+    else
+        aux_err "Driver download failed" "url=${url}"
+        return 2
+    fi
+
+    aux_info "Installing NVIDIA driver with DKMS" "installer=${installer}"
     echo "4) Installing driver with DKMS support..."
-    ./"${installer}" --dkms --silent
-    aux_business "NVIDIA driver installation completed" "component=gpu,operation=nvidia_driver_setup,step=install_driver,status=complete,driver_version=${drv_ver}"
+    if aux_cmd "./${installer}" "--dkms" "--silent"; then
+        aux_info "NVIDIA driver installation completed" "version=${drv_ver}"
+    else
+        aux_err "NVIDIA driver installation failed"
+        return 2
+    fi
 
     echo "5) Finalizing—reboot recommended."
-    read -p "Reboot now? [y/N] " yn
-    if [[ "$yn" =~ ^[Yy]$ ]]; then
-        aux_info "System reboot initiated by user" "component=gpu,operation=nvidia_driver_setup,step=reboot,action=immediate"
+    local reboot_choice=$(aux_ask "Reboot now?" "N" "yes_no")
+    if [[ "$reboot_choice" =~ ^[Yy]$ ]]; then
+        aux_info "System reboot initiated by user"
         reboot
     else
-        aux_info "System reboot deferred by user" "component=gpu,operation=nvidia_driver_setup,step=reboot,action=deferred"
+        aux_info "System reboot deferred by user"
         echo "You can reboot later with: reboot"
     fi
 
     echo "6) After reboot, verify with: nvidia-smi"
-    aux_info "NVIDIA driver setup completed" "component=gpu,operation=nvidia_driver_setup,status=complete,verification_command=nvidia-smi"
+    aux_info "NVIDIA driver setup completed" "verification_command=nvidia-smi"
 }
 
 # Configures initial GRUB and EFI settings for GPU passthrough
@@ -1216,6 +1258,38 @@ gpu_ptd() {
     #   $4: pci0_id (optional) - explicit primary PCI ID parameter
     #   $5: pci1_id (optional) - explicit secondary PCI ID parameter
     #   $6: nvidia_driver_preference (optional) - preferred NVIDIA driver (default: nvidia)
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # Variable parameter count validation - max 6 parameters
+    if [ $# -gt 6 ]; then
+        aux_err "Too many parameters provided (maximum 6)"
+        aux_use
+        return 1
+    fi
+    
+    # Validate individual parameters if provided
+    for param in "$@"; do
+        if ! aux_val "$param" "not_empty"; then
+            aux_err "Parameter cannot be empty: $param"
+            aux_use
+            return 1
+        fi
+    done
+    
+    # Check critical system dependencies
+    if ! aux_chk "command" "lspci"; then
+        aux_err "lspci command not found - required for GPU identification"
+        return 127
+    fi
+    
+    if ! aux_chk "dir_exists" "/sys/bus/pci/drivers"; then
+        aux_err "PCI driver system not available"
+        return 2
+    fi
     # Operations Performed:
     #   - Validates IOMMU kernel parameter presence in /proc/cmdline
     #   - Loads vfio, vfio_iommu_type1, vfio_pci modules if not already loaded
@@ -1360,9 +1434,46 @@ gpu_pta() {
     #   - Appropriate host drivers available (nvidia, nouveau, amdgpu, radeon)
     #   - Root privileges for driver binding and module loading operations
     #   - Configuration file access for driver preference settings
+    #   - lspci command for GPU identification
     # Arguments:
     #   $1: gpu_id_arg (optional) - specific PCI ID (e.g., "01:00.0") to process
     #   $2: hostname (optional) - hostname for config lookup (default: current hostname)
+    #   $3: config_file (optional) - configuration file path
+    #   $4: pci0_id (optional) - explicit primary PCI ID parameter
+    #   $5: pci1_id (optional) - explicit secondary PCI ID parameter
+    #   $6: nvidia_driver_preference (optional) - preferred NVIDIA driver
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # Variable parameter count validation - max 6 parameters
+    if [ $# -gt 6 ]; then
+        aux_err "Too many parameters provided (maximum 6)"
+        aux_use
+        return 1
+    fi
+    
+    # Validate individual parameters if provided
+    for param in "$@"; do
+        if ! aux_val "$param" "not_empty"; then
+            aux_err "Parameter cannot be empty: $param"
+            aux_use
+            return 1
+        fi
+    done
+    
+    # Check critical system dependencies
+    if ! aux_chk "command" "lspci"; then
+        aux_err "lspci command not found - required for GPU identification"
+        return 127
+    fi
+    
+    if ! aux_chk "dir_exists" "/sys/bus/pci/drivers"; then
+        aux_err "PCI driver system not available"
+        return 2
+    fi
     #   $3: config_file (optional) - configuration file path (default: SITE_CONFIG_FILE)
     #   $4: pci0_id (optional) - explicit primary PCI ID parameter
     #   $5: pci1_id (optional) - explicit secondary PCI ID parameter
@@ -1604,6 +1715,42 @@ gpu_pts() {
     #   - find, ls utilities for IOMMU group enumeration
     # Arguments:
     #   $1: hostname (optional) - hostname for config lookup (default: current hostname)
+    #   $2: config_file (optional) - configuration file path
+    #   $3: pci0_id (optional) - explicit primary PCI ID parameter
+    #   $4: pci1_id (optional) - explicit secondary PCI ID parameter
+    #   $5: nvidia_driver_preference (optional) - preferred NVIDIA driver
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # Variable parameter count validation - max 5 parameters
+    if [ $# -gt 5 ]; then
+        aux_err "Too many parameters provided (maximum 5)"
+        aux_use
+        return 1
+    fi
+    
+    # Validate individual parameters if provided
+    for param in "$@"; do
+        if ! aux_val "$param" "not_empty"; then
+            aux_err "Parameter cannot be empty: $param"
+            aux_use
+            return 1
+        fi
+    done
+    
+    # Check critical system dependencies
+    if ! aux_chk "command" "lspci"; then
+        aux_err "lspci command not found - required for GPU identification"
+        return 127
+    fi
+    
+    if ! aux_chk "file_exists" "/proc/cmdline"; then
+        aux_err "/proc/cmdline not accessible - required for kernel parameter verification"
+        return 2
+    fi
     #   $2: config_file (optional) - configuration file path (default: SITE_CONFIG_FILE)
     #   $3: pci0_id (optional) - explicit primary PCI ID parameter
     #   $4: pci1_id (optional) - explicit secondary PCI ID parameter

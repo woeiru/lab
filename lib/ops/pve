@@ -2,6 +2,9 @@
 
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+# Source auxiliary functions library
+source "${DIR_FUN}/../gen/aux"
 FILE_FUN=$(basename "$BASH_SOURCE")
 BASE_FUN="${FILE_FUN%.*}"
 FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
@@ -67,12 +70,26 @@ pve_var() {
     local config_file="$1"
     local analysis_dir="$2"
     
-    if [ -z "$config_file" ] || [ ! -f "$config_file" ]; then
+    if ! aux_val "$config_file" "not_empty"; then
+        aux_err "Configuration file path cannot be empty"
         aux_use
         return 1
     fi
     
-    if [ -z "$analysis_dir" ] || [ ! -d "$analysis_dir" ]; then
+    if ! aux_chk "file_exists" "$config_file"; then
+        aux_err "Configuration file not found: $config_file"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$analysis_dir" "not_empty"; then
+        aux_err "Analysis directory path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_chk "dir_exists" "$analysis_dir"; then
+        aux_err "Analysis directory not found: $analysis_dir"
         aux_use
         return 1
     fi
@@ -109,17 +126,23 @@ pve_dsr() {
     fi
 
     local function_name="${FUNCNAME[0]}"
+    
+    aux_dbg "Starting disable repository operation"
     files=(
         "/etc/apt/sources.list.d/pve-enterprise.list"
         "/etc/apt/sources.list.d/ceph.list"
     )
 
     for file in "${files[@]}"; do
-        if [ -f "$file" ]; then
-            sed -i '/^deb/ s/^/#/' "$file"
-            aux_log "INFO" "$function_name: Changes applied to $file"
+        if aux_chk "file_exists" "$file"; then
+            if aux_cmd "sed" "-i" "/^deb/ s/^/#/" "$file"; then
+                aux_info "Repository disabled" "file=$file"
+            else
+                aux_err "Failed to disable repository" "file=$file"
+                return 2
+            fi
         else
-            aux_log "WARN" "$function_name: File $file not found."
+            aux_warn "Repository file not found" "file=$file"
         fi
     done
 }
@@ -154,15 +177,47 @@ pve_rsn() {
     fi
 
     local function_name="${FUNCNAME[0]}"
-    sed -Ezi.bak "s/(Ext\.Msg\.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
+    
+    # Dependency checks
+    if ! aux_chk "command" "sed"; then
+        aux_err "sed command not found - required for file modification"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "systemctl"; then
+        aux_err "systemctl command not found - required for service management"
+        return 127
+    fi
+    
+    aux_dbg "Starting subscription notice removal"
+    local js_file="/usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js"
+    
+    if ! aux_chk "file_exists" "$js_file"; then
+        aux_err "Proxmox JavaScript file not found: $js_file"
+        return 2
+    fi
+    
+    aux_info "Modifying Proxmox subscription notice" "file=$js_file"
+    
+    if aux_cmd "sed" "-Ezi.bak" "s/(Ext\.Msg\.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" "$js_file"; then
+        aux_info "Subscription notice modified successfully"
+    else
+        aux_err "Failed to modify subscription notice"
+        return 2
+    fi
 
     # Prompt user whether to restart the service
-    read -p "Do you want to restart the pveproxy.service now? (y/n): " choice
-    case "$choice" in
-        y|Y ) systemctl restart pveproxy.service && aux_log "INFO" "$function_name: Service restarted successfully.";;
-        n|N ) aux_log "INFO" "$function_name: Service not restarted.";;
-        * ) aux_log "WARN" "$function_name: Invalid choice. Service not restarted.";;
-    esac
+    local restart_choice=$(aux_ask "Restart pveproxy.service now?" "n" "y_or_n")
+    if [ "$restart_choice" = "y" ]; then
+        if aux_cmd "systemctl" "restart" "pveproxy.service"; then
+            aux_info "Service restarted successfully" "service=pveproxy"
+        else
+            aux_err "Failed to restart service" "service=pveproxy"
+            return 2
+        fi
+    else
+        aux_info "Service restart skipped by user"
+    fi
 }
 
 # Updates the Proxmox VE Appliance Manager (pveam) container template list
@@ -192,10 +247,22 @@ pve_clu() {
     fi
 
     local function_name="${FUNCNAME[0]}"
+    
+    # Dependency checks
+    if ! aux_chk "command" "pveam"; then
+        aux_err "pveam command not found - Proxmox VE Appliance Manager required"
+        return 127
+    fi
+    
+    aux_info "Updating container template list"
+    aux_dbg "Executing pveam update"
 
-    pveam update
-
-    aux_log "INFO" "$function_name: executed"
+    if aux_cmd "pveam" "update"; then
+        aux_info "Container template list updated successfully"
+    else
+        aux_err "Failed to update container template list"
+        return 2
+    fi
 }
 
 # Downloads a specified container template to a given storage location, with error handling and options to list available templates
@@ -230,30 +297,56 @@ pve_cdo() {
     local ct_dl_sto="$1"
     local ct_dl="$2"
     
+    # Parameter validation
+    if ! aux_val "$ct_dl_sto" "not_empty"; then
+        aux_err "Storage ID cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$ct_dl" "not_empty"; then
+        aux_err "Template name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks
+    if ! aux_chk "command" "pveam"; then
+        aux_err "pveam command not found - Proxmox VE Appliance Manager required"
+        return 127
+    fi
+    
+    aux_info "Starting template download" "storage=$ct_dl_sto,template=$ct_dl"
+    aux_dbg "Attempting to download template: $ct_dl to storage: $ct_dl_sto"
+    
     # Attempt to download the template
-    if ! pveam download "$ct_dl_sto" "$ct_dl" 2>/dev/null; then
-        echo "Error: Unable to download template '$ct_dl'."
+    if aux_cmd "pveam" "download" "$ct_dl_sto" "$ct_dl"; then
+        aux_info "Template downloaded successfully" "storage=$ct_dl_sto,template=$ct_dl"
+        return 0
+    else
+        aux_err "Failed to download template" "storage=$ct_dl_sto,template=$ct_dl"
         
         # Ask user if they want to see available templates
-        read -p "Would you like to see a list of available templates? (y/n): " answer
+        local show_templates=$(aux_ask "Show available templates?" "n" "y_or_n")
         
-        if [[ "$answer" =~ ^[Yy]$ ]]; then
-            echo "Available templates:"
-            pveam available
-            
-            # Ask user if they want to try downloading a different template
-            read -p "Would you like to try downloading a different template? (y/n): " retry_answer
-            
-            if [[ "$retry_answer" =~ ^[Yy]$ ]]; then
-                read -p "Enter the name of the template you'd like to download: " new_ct_dl
-                pve_cdo "$ct_dl_sto" "$new_ct_dl"
-                return
+        if [ "$show_templates" = "y" ]; then
+            aux_info "Displaying available templates"
+            if aux_cmd "pveam" "available"; then
+                # Ask user if they want to try downloading a different template
+                local retry_download=$(aux_ask "Try downloading a different template?" "n" "y_or_n")
+                
+                if [ "$retry_download" = "y" ]; then
+                    local new_template=$(aux_ask "Enter template name" "" "not_empty")
+                    aux_dbg "Retrying download with new template: $new_template"
+                    pve_cdo "$ct_dl_sto" "$new_template"
+                    return
+                fi
+            else
+                aux_err "Failed to list available templates"
             fi
         fi
         
-        echo "$function_name: Failed to download template ( $ct_dl )"
-    else
-        echo "$function_name: Successfully downloaded template ( $ct_dl )"
+        return 2
     fi
 }
 
@@ -290,16 +383,52 @@ pve_cbm() {
     local mphost="$2"
     local mpcontainer="$3"
 
-    # Ensure all arguments are provided
-    if [[ -z "$vmid" || -z "$mphost" || -z "$mpcontainer" ]]; then
+    # Parameter validation
+    if ! aux_val "$vmid" "not_empty"; then
+        aux_err "Container ID cannot be empty"
         aux_use
         return 1
     fi
+    
+    if ! aux_val "$vmid" "numeric"; then
+        aux_err "Container ID must be numeric: $vmid"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$mphost" "not_empty"; then
+        aux_err "Host mount path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$mpcontainer" "not_empty"; then
+        aux_err "Container mount path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks
+    if ! aux_chk "command" "pct"; then
+        aux_err "pct command not found - Proxmox Container Toolkit required"
+        return 127
+    fi
+    
+    if ! aux_chk "dir_exists" "$mphost"; then
+        aux_err "Host mount path does not exist: $mphost"
+        return 2
+    fi
+    
+    aux_info "Configuring bind mount" "vmid=$vmid,host_path=$mphost,container_path=$mpcontainer"
+    aux_dbg "Setting up mount point 0 for container $vmid"
 
-    # Properly quote the entire argument for -mp0
-    pct set "$vmid" -mp0 "$mphost,mp=$mpcontainer"
-
-    aux_log "INFO" "$function_name: executed ( $vmid / $mphost / $mpcontainer )"
+    # Configure the bind mount
+    if aux_cmd "pct" "set" "$vmid" "-mp0" "$mphost,mp=$mpcontainer"; then
+        aux_info "Bind mount configured successfully" "vmid=$vmid,host_path=$mphost,container_path=$mpcontainer"
+    else
+        aux_err "Failed to configure bind mount" "vmid=$vmid,host_path=$mphost,container_path=$mpcontainer"
+        return 2
+    fi
 }
 
 # Sets up different containers specified in cfg/env/site.
@@ -367,26 +496,72 @@ pve_ctc() {
     local net_bridge="${17}"
     local net_nic="${18}"
 
-    if [ ! -f "$ssh_key_file" ]; then
-        echo "SSH key file $ssh_key_file does not exist. Aborting."
+    # Critical parameter validation
+    if ! aux_val "$id" "not_empty"; then
+        aux_err "Container ID cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$id" "numeric"; then
+        aux_err "Container ID must be numeric: $id"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$template" "not_empty"; then
+        aux_err "Template path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$hostname" "not_empty"; then
+        aux_err "Hostname cannot be empty"
+        aux_use
         return 1
     fi
 
-    # Correcting the parameters passed to pct create
-    pct create "$id" "$template" \
-        --hostname "$hostname" \
-        --storage "$storage" \
-        --rootfs "$storage:$rootfs_size" \
-        --memory "$memory" \
-        --swap "$swap" \
-        --net0 "name=$net_nic,bridge=$net_bridge,ip=$ip_address/$cidr,gw=$gateway" \
-        --nameserver "$nameserver" \
-        --searchdomain "$searchdomain" \
-        --password "$password" \
-        --cores "$cpus" \
-        --features "keyctl=1,nesting=1" \
-        $(if [ "$privileged" == "no" ]; then echo "--unprivileged"; fi) \
-        --ssh-public-keys "$ssh_key_file"
+    # Dependency checks
+    if ! aux_chk "command" "pct"; then
+        aux_err "pct command not found - Proxmox Container Toolkit required"
+        return 127
+    fi
+
+    if ! aux_chk "file_exists" "$ssh_key_file"; then
+        aux_err "SSH key file does not exist: $ssh_key_file"
+        return 2
+    fi
+    
+    aux_info "Creating LXC container" "id=$id,hostname=$hostname,template=$template"
+    aux_dbg "Container configuration: memory=$memory,cpus=$cpus,storage=$storage"
+
+    # Create the container
+    local create_args=(
+        "$id" "$template"
+        "--hostname" "$hostname"
+        "--storage" "$storage"
+        "--rootfs" "$storage:$rootfs_size"
+        "--memory" "$memory"
+        "--swap" "$swap"
+        "--net0" "name=$net_nic,bridge=$net_bridge,ip=$ip_address/$cidr,gw=$gateway"
+        "--nameserver" "$nameserver"
+        "--searchdomain" "$searchdomain"
+        "--password" "$password"
+        "--cores" "$cpus"
+        "--features" "keyctl=1,nesting=1"
+        "--ssh-public-keys" "$ssh_key_file"
+    )
+    
+    if [ "$privileged" = "no" ]; then
+        create_args+=("--unprivileged")
+    fi
+    
+    if aux_cmd "pct" "create" "${create_args[@]}"; then
+        aux_info "Container created successfully" "id=$id,hostname=$hostname"
+    else
+        aux_err "Failed to create container" "id=$id,hostname=$hostname"
+        return 2
+    fi
 }
 
 # Manages multiple Proxmox containers by starting, stopping, enabling, or disabling them, supporting individual IDs, ranges, or all containers
@@ -1048,16 +1223,20 @@ pve_vck() {
     local found_node=""
     aux_dbg "vm_id: $vm_id"
 
-    if [ -z "$vm_id" ]; then
-        echo "ERR: pve_vck: VM ID not provided." >&2
-        aux_dbg "vm_id is empty, calling aux_use"
+    if ! aux_val "$vm_id" "not_empty"; then
+        aux_err "VM ID cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$vm_id" "numeric"; then
+        aux_err "VM ID must be numeric: $vm_id"
         aux_use
         return 1
     fi
 
-    if [ -z "$cluster_nodes_str" ]; then
-        echo "ERR: pve_vck: cluster_nodes parameter not provided." >&2
-        aux_dbg "cluster_nodes is empty"
+    if ! aux_val "$cluster_nodes_str" "not_empty"; then
+        aux_err "Cluster nodes parameter cannot be empty"
         aux_use
         return 1
     fi
