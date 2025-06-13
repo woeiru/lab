@@ -1,4 +1,15 @@
 # Library Standards
+# Technical Standards and Compliance Framework for lib/ops
+# 
+# Purpose: Mandatory technical requirements and implementation patterns
+# Type: Compliance Framework - defines WHAT must be implemented and HOW
+# Scope: All operational functions in lib/ops modules
+# Companion: .guide (Best Practices and Excellence Framework)
+#
+# Last Updated: 2025-06-14
+# Maintainer: Lab Environment Management System
+
+# Library Standards
 
 ## Function Naming Convention
 
