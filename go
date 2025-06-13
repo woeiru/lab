@@ -28,6 +28,8 @@ readonly DEFAULT_CONFIG_FILES=(".zshrc" ".bashrc")
 readonly INJECT_MARKER_START="# === BEGIN MANAGED BLOCK: Shell Configuration [source: lab] ==="
 readonly INJECT_MARKER_END="# === END MANAGED BLOCK: Shell Configuration ==="
 readonly FILEPATH="bin/ini"
+readonly TMP_DIR="$SCRIPT_DIR/.tmp"
+readonly SETTINGS_FILE="$TMP_DIR/go_settings"
 
 # Runtime variables for shell injection
 declare -g YES_FLAG=false
@@ -264,16 +266,16 @@ Examples:
 EOF
 }
 
-# Execute the shell injection setup
+# Execute the shell integration setup (initialization phase)
 setup_shell_integration() {
     printf "╔════════════════════════════════════════════════════════════════╗\n"
     printf "║                Lab Environment Shell Integration               ║\n"
     printf "╚════════════════════════════════════════════════════════════════╝\n\n"
     
-    printf "This will set up shell integration by:\n"
-    printf "• Configuring your shell (Bash/Zsh)\n"
-    printf "• Injecting initialization code into your shell config\n"
-    printf "• Creating necessary system markers\n\n"
+    printf "This will configure shell integration settings and save them for later use.\n"
+    printf "Settings will be saved to enable 'on/off' switching:\n"
+    printf "• ./go on  - Enable shell integration\n"
+    printf "• ./go off - Disable shell integration\n\n"
     
     # Check if this is the first run
     if [ ! -f "${HOME}/.lab_initialized" ]; then
@@ -300,20 +302,16 @@ setup_shell_integration() {
     set_config_file || return 1
     printf "✓ Shell config file set\n\n"
     
-    printf "Step 5: Injecting lab integration...\n"
-    inject_content || return 1
-    printf "✓ Shell integration injected\n\n"
+    printf "Step 5: Saving settings...\n"
+    save_settings || return 1
+    printf "✓ Settings saved\n\n"
     
-    printf "Setup completed successfully!\n\n"
+    printf "Initialization completed successfully!\n\n"
     printf "Next steps:\n"
-    printf "1. Restart your shell or run: source %s\n" "$CONFIG_FILE"
-    printf "2. Verify with: ./go status\n"
-    printf "3. Run tests with: ./go validate\n\n"
-    
-    if [[ "$YES_FLAG" == "false" ]]; then
-        read -p "Press Enter to restart shell or Ctrl+C to continue manually..."
-        exec "$SHELL"
-    fi
+    printf "1. Run './go on' to enable shell integration\n"
+    printf "2. Run './go off' to disable shell integration\n"
+    printf "3. Verify with: ./go status\n"
+    printf "4. Run tests with: ./go validate\n\n"
 }
 
 show_usage() {
@@ -325,26 +323,42 @@ show_usage() {
 A sophisticated infrastructure automation and environment management platform.
 
 COMMANDS:
-    init            Setup shell integration (first-time setup)
+    init            Initialize and configure shell integration settings
+    on              Enable shell integration (activate saved settings)
+    off             Disable shell integration (remove from shell config)
     status          Check system initialization status
     validate        Run system validation tests
     help            Show detailed help and documentation
     
 EXAMPLES:
-    ./go init                    # First-time setup
+    ./go init                    # First-time setup (configure settings)
+    ./go on                      # Enable shell integration
+    ./go off                     # Disable shell integration
     ./go status                  # Check if system is ready
     ./go validate               # Run validation tests
 
+WORKFLOW:
+    1. Run './go init' to configure settings (only needed once)
+    2. Use './go on' to enable shell integration
+    3. Use './go off' to disable shell integration
+    4. Repeat steps 2-3 as needed
+
 For detailed documentation, see: README.md
 
-After running 'init', restart your shell or run: source ~/.bashrc
-Then you can use the lab functions directly in your shell.
+Settings are saved in .tmp/go_settings after running 'init'.
 EOF
 }
 
 check_init_status() {
     if [[ -f "${HOME}/.lab_initialized" ]]; then
         echo "✓ Lab system has been initialized"
+        
+        # Check if settings file exists
+        if [[ -f "$SETTINGS_FILE" ]]; then
+            echo "✓ Settings file found (on/off commands available)"
+        else
+            echo "⚠ Settings file not found. Run './go init' to configure settings."
+        fi
         
         # Check if shell integration is working
         if command -v ini >/dev/null 2>&1 || [[ -n "${LAB_ROOT:-}" ]]; then
@@ -358,6 +372,144 @@ check_init_status() {
         echo "✗ Lab system not initialized. Run: ./go init"
         return 1
     fi
+}
+
+#######################################################################
+# Settings Management Functions
+#######################################################################
+
+# Save current settings to temporary file
+save_settings() {
+    # Create .tmp directory if it doesn't exist
+    if [[ ! -d "$TMP_DIR" ]]; then
+        mkdir -p "$TMP_DIR" || {
+            printf "Error: Failed to create temporary directory: %s\n" "$TMP_DIR" >&2
+            return 1
+        }
+        printf "Created temporary directory: %s\n" "$TMP_DIR"
+    fi
+    
+    local settings_content
+    settings_content=$(cat << EOF
+TARGET_USER="$TARGET_USER"
+TARGET_HOME="$TARGET_HOME"
+CONFIG_FILE="$CONFIG_FILE"
+INJECT_CONTENT="$INJECT_CONTENT"
+EOF
+)
+    
+    echo "$settings_content" > "$SETTINGS_FILE"
+    printf "Settings saved to: %s\n" "$SETTINGS_FILE"
+    return 0
+}
+
+# Load settings from temporary file
+load_settings() {
+    if [[ ! -f "$SETTINGS_FILE" ]]; then
+        printf "Error: Settings file not found: %s\n" "$SETTINGS_FILE" >&2
+        printf "Please run './go init' first to generate settings.\n" >&2
+        return 1
+    fi
+    
+    # Source the settings file
+    source "$SETTINGS_FILE"
+    
+    # Validate that required variables are set
+    if [[ -z "$TARGET_USER" || -z "$TARGET_HOME" || -z "$CONFIG_FILE" || -z "$INJECT_CONTENT" ]]; then
+        printf "Error: Invalid settings found in %s\n" "$SETTINGS_FILE" >&2
+        printf "Please run './go init' to regenerate settings.\n" >&2
+        return 1
+    fi
+    
+    printf "Settings loaded from: %s\n" "$SETTINGS_FILE"
+    printf "Target user: %s\n" "$TARGET_USER"
+    printf "Config file: %s\n" "$CONFIG_FILE"
+    return 0
+}
+
+# Remove injection content from config file
+remove_content() {
+    printf "Removing lab integration from config file '%s'...\n" "$CONFIG_FILE"
+    
+    if [[ -z "$CONFIG_FILE" || ! -f "$CONFIG_FILE" ]]; then
+        printf "Error: Invalid config file: %s\n" "${CONFIG_FILE}"
+        return 1
+    fi
+    
+    local temp_new_config
+    temp_new_config=$(mktemp)
+    if [[ -z "$temp_new_config" || ! -f "$temp_new_config" ]]; then
+        printf "Error: Failed to create temporary file.\n"
+        return 1
+    fi
+    
+    # Use awk to filter out managed blocks and any bare instance of INJECT_CONTENT
+    awk -v sm="$INJECT_MARKER_START" -v em="$INJECT_MARKER_END" -v ic="$INJECT_CONTENT" '
+        BEGIN { in_block = 0 }
+        $0 == sm { in_block = 1; next }
+        $0 == em { in_block = 0; next }
+        !in_block && $0 != ic { print }
+    ' "$CONFIG_FILE" > "$temp_new_config"
+    
+    # Compare the newly constructed temp file with the original
+    if diff -q "$CONFIG_FILE" "$temp_new_config" >/dev/null; then
+        printf "Configuration file '%s' has no lab integration to remove.\n" "$CONFIG_FILE"
+        rm "$temp_new_config"
+        return 0 
+    else
+        printf "Removing lab integration from configuration file '%s'.\n" "$CONFIG_FILE"
+        local backup_file="${CONFIG_FILE}.bak_$(date +%Y%m%d_%H%M%S)"
+        cp "$CONFIG_FILE" "$backup_file"
+        if [[ $? -ne 0 ]]; then
+            printf "Error: Failed to create backup file '%s'. Aborting update.\n" "$backup_file"
+            rm "$temp_new_config"
+            return 1
+        fi
+        
+        mv "$temp_new_config" "$CONFIG_FILE"
+        if [[ $? -ne 0 ]]; then
+            printf "Error: Failed to move temporary file to '%s'. Check permissions.\n" "$CONFIG_FILE"
+            cp "$backup_file" "$CONFIG_FILE" 
+            rm "$temp_new_config"
+            return 1
+        fi
+        printf "Lab integration removed successfully. Backup created at '%s'.\n" "$backup_file"
+        return 0
+    fi
+}
+
+# Handle the "on" command - enable shell integration
+handle_on_command() {
+    printf "╔════════════════════════════════════════════════════════════════╗\n"
+    printf "║                 Enabling Shell Integration                     ║\n"
+    printf "╚════════════════════════════════════════════════════════════════╝\n\n"
+    
+    # Load settings from .tmp file
+    load_settings || return 1
+    
+    printf "Enabling lab integration...\n"
+    inject_content || return 1
+    
+    printf "\n✓ Shell integration enabled successfully!\n\n"
+    printf "Next steps:\n"
+    printf "1. Restart your shell or run: source %s\n" "$CONFIG_FILE"
+    printf "2. Verify with: ./go status\n\n"
+}
+
+# Handle the "off" command - disable shell integration
+handle_off_command() {
+    printf "╔════════════════════════════════════════════════════════════════╗\n"
+    printf "║                Disabling Shell Integration                     ║\n"
+    printf "╚════════════════════════════════════════════════════════════════╝\n\n"
+    
+    # Load settings from .tmp file
+    load_settings || return 1
+    
+    printf "Disabling lab integration...\n"
+    remove_content || return 1
+    
+    printf "\n✓ Shell integration disabled successfully!\n\n"
+    printf "To re-enable, run: ./go on\n\n"
 }
 
 main() {
@@ -383,6 +535,12 @@ main() {
                 echo "Please run './go init' first"
                 exit 1
             fi
+            ;;
+        on)
+            handle_on_command
+            ;;
+        off)
+            handle_off_command
             ;;
         help|--help|-h)
             show_usage
