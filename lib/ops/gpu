@@ -103,7 +103,7 @@ fi
 #     (After completing the Initial One-Time Setup)
 #     a. Run `gpu_pt3 enable`: Assigns specified GPU(s) to `vfio-pci` at boot.
 #        This involves creating /etc/modprobe.d/vfio.conf with the GPU IDs and
-#        blacklisting their host drivers (e.g., nvidia, amdgpu, nouveau) in
+#        blacklisting their host drivers (e.g., nvidia, amgpu, nouveau) in
 #        /etc/modprobe.d/zz-vfio-gpu-blacklist.conf. Reboot.
 #        The GPU is now persistently configured for VM passthrough.
 #     b. (Optional) If the GPU needs to be temporarily used by the host:
@@ -802,6 +802,69 @@ _gpu_get_detailed_device_info() {
     echo "DEVICES_PROCESSED:$vga_devices_processed"
 }
 
+# Helper function to create continuation script for multi-step reboot process
+# GPU Create Continuation Script - GCC
+# <action> <no_reboot>
+_gpu_create_continuation_script() {
+    local action="$1"
+    local no_reboot="$2"
+    local service_path="/etc/systemd/system/gpu-ptp-continue.service"
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local gpu_script_path="$script_dir/gpu"
+    local working_dir="$PWD"
+    
+    aux_info "Creating continuation mechanism for GPU passthrough setup" "component=gpu,operation=create_continuation,service_path=${service_path}"
+    
+    # Store working directory for continuation
+    echo "$working_dir" > "./.tmp/gpu_ptp_workdir"
+    
+    # Create systemd service for automatic continuation
+    cat > "$service_path" << EOF
+[Unit]
+Description=GPU Passthrough Setup Continuation
+After=multi-user.target
+Wants=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'WORKDIR="\$(cat "$working_dir/.tmp/gpu_ptp_workdir" 2>/dev/null || echo "$working_dir")"; cd "\$WORKDIR" && source "$gpu_script_path" && gpu_ptp all $action $([ "$no_reboot" = "true" ] && echo "--no-reboot")'
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    # Enable the service
+    systemctl enable gpu-ptp-continue.service
+    aux_info "Created systemd service for continuation" "component=gpu,operation=create_continuation,service=gpu-ptp-continue.service,working_dir=${working_dir}"
+}
+
+# Helper function to cleanup continuation mechanism
+# GPU Cleanup Continuation Script - GCL
+# 
+_gpu_cleanup_continuation_script() {
+    local service_path="/etc/systemd/system/gpu-ptp-continue.service"
+    local progress_file="./.tmp/gpu_ptp_progress"
+    local workdir_file="./.tmp/gpu_ptp_workdir"
+    
+    aux_info "Cleaning up GPU passthrough continuation mechanism" "component=gpu,operation=cleanup_continuation"
+    
+    # Disable and remove systemd service
+    if [ -f "$service_path" ]; then
+        systemctl disable gpu-ptp-continue.service 2>/dev/null || true
+        rm -f "$service_path"
+        systemctl daemon-reload
+        aux_info "Removed continuation service" "component=gpu,operation=cleanup_continuation,service=gpu-ptp-continue.service"
+    fi
+    
+    # Remove progress and working directory files
+    rm -f "$progress_file" "$workdir_file"
+    aux_info "Removed progress tracking files" "component=gpu,operation=cleanup_continuation,files=${progress_file},${workdir_file}"
+}
+
 # ============================================================================
 # MAIN FUNCTIONS (Refactored)
 # ============================================================================
@@ -999,322 +1062,565 @@ EOF
     aux_info "NVIDIA driver setup completed" "verification_command=nvidia-smi"
 }
 
-# Configures initial GRUB and EFI settings for GPU passthrough
-# passthrough step one
-# -x (execute)
-gpu_pt1() {
+# Unified GPU passthrough preparation function
+# passthrough preparation
+# <step> [action] [--no-reboot]
+gpu_ptp() {
     # Technical Description:
-    #   First phase of GPU passthrough setup that establishes fundamental system-level
-    #   requirements for IOMMU (Input-Output Memory Management Unit) functionality.
-    #   Modifies GRUB configuration to enable IOMMU support in kernel command line,
-    #   which is essential for hardware virtualization and PCI device isolation.
-    #   Updates both GRUB legacy and GRUB2 configurations and ensures EFI boot manager
-    #   compatibility. This step must be completed before VFIO module setup.
+    #   Unified GPU passthrough preparation function that consolidates the functionality
+    #   of gpu_pt1, gpu_pt2, and gpu_pt3 into a single parameterized function. Handles
+    #   all phases of GPU passthrough setup from IOMMU kernel parameter configuration
+    #   through VFIO module setup to final device binding and driver blacklisting.
+    #   Supports granular control over each step while maintaining the complete workflow.
     # Dependencies:
-    #   - Root privileges for GRUB configuration modification
-    #   - EFI boot environment support
-    #   - grub-efi-amd64 package installation capability
-    #   - update-grub and update-grub2 commands
-    #   - sed command for file editing
-    #   - apt command for package installation
+    #   - Root privileges for system configuration modification
+    #   - EFI boot environment support (step 1)
+    #   - GRUB configuration tools (step 1)
+    #   - VFIO kernel modules availability (step 2)
+    #   - PCI device detection utilities (step 3)
     # Arguments:
-    #   $1: -x - explicit execution flag required for safety and consistency
+    #   $1: step - "1" (IOMMU/GRUB), "2" (VFIO modules), "3" (device binding), "all" (complete setup)
+    #   $2: action (optional) - For step 3: "enable" or "disable" (default: enable)
+    #   $3: --no-reboot (optional) - Skip automatic reboot after configuration
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
-        aux_err "Invalid parameters - requires -x flag"
+    if [ $# -lt 1 ] || [ $# -gt 3 ]; then
+        aux_err "Invalid number of parameters (1-3 required)"
         aux_use
         return 1
     fi
     
-    # Check critical system dependencies
-    if ! aux_chk "command" "sed"; then
-        aux_err "sed command not found - required for GRUB configuration"
-        return 127
-    fi
+    local step="$1"
+    local action="${2:-enable}"
+    local no_reboot=false
     
-    if ! aux_chk "command" "update-grub"; then
-        aux_err "update-grub command not found - required for GRUB configuration"
-        return 127
-    fi
-    
-    if ! aux_chk "command" "apt"; then
-        aux_err "apt command not found - required for package installation"
-        return 127
-    fi
-    
-    if ! aux_chk "command" "efibootmgr"; then
-        aux_err "efibootmgr command not found - required for EFI boot management"
-        return 127
-    fi
-    local function_name="${FUNCNAME[0]}"
-    
-    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_step1,phase=initial_setup"
-    aux_business "GPU passthrough phase 1 initiated" "component=gpu,operation=passthrough_step1,phase=iommu_setup,step=grub_configuration"
-    
-    aux_info "Executing GPU passthrough step 1 configuration" "component=gpu,operation=passthrough_step1,step=execution"
-    aux_info "Checking EFI boot manager status" "component=gpu,operation=passthrough_step1,step=efi_check"
-    efibootmgr -v
-
-    # Edit GRUB configuration
-    aux_info "Modifying GRUB configuration for IOMMU" "component=gpu,operation=passthrough_step1,step=grub_config,parameter=iommu=pt"
-    sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt"/' /etc/default/grub
-    
-    aux_perf "Updating GRUB configuration" "component=gpu,operation=passthrough_step1,step=grub_update"
-    update-grub
-    update-grub2
-
-    # Install grub-efi-amd64
-    aux_info "Installing GRUB EFI package" "component=gpu,operation=passthrough_step1,step=grub_efi_install,package=grub-efi-amd64"
-    apt install grub-efi-amd64 -y
-
-    aux_business "GPU passthrough phase 1 completed, system reboot required" "component=gpu,operation=passthrough_step1,phase=complete,next_step=reboot"
-    aux_info "GPU passthrough step 1 completed, initiating system reboot" "component=gpu,operation=passthrough_step1,step=completion_notice"
-    aux_info "System reboot initiated" "component=gpu,operation=passthrough_step1,step=reboot,reason=iommu_kernel_parameter"
-    reboot
-}
-
-# Adds necessary kernel modules for GPU passthrough
-# passthrough step two
-# -x (execute)
-gpu_pt2() {
-    # Technical Description:
-    #   Second phase of GPU passthrough setup that configures essential VFIO kernel modules
-    #   for Virtual Function I/O support. Adds vfio, vfio_iommu_type1, and vfio_pci modules
-    #   to /etc/modules to ensure they load automatically at boot time. These modules are
-    #   fundamental for PCI device passthrough functionality, enabling the kernel to
-    #   manage device isolation and provide secure device access to virtual machines.
-    #   Updates initramfs to include VFIO modules in early boot environment.
-    # Dependencies:
-    #   - Successful completion of gpu_pt1 (IOMMU enabled in kernel command line)
-    #   - Root privileges for system file modification
-    #   - initramfs-tools for initrd generation
-    #   - update-initramfs command
-    #   - Write access to /etc/modules file
-    # Arguments:
-    #   $1: -x - explicit execution flag required for safety and consistency
-    
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
-    fi
-    
-    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
-        aux_err "Invalid parameters - requires -x flag"
-        aux_use
-        return 1
-    fi
-    
-    # Check critical system dependencies
-    if ! aux_chk "command" "update-initramfs"; then
-        aux_err "update-initramfs command not found - required for initrd generation"
-        return 127
-    fi
-    
-    if ! aux_chk "permission" "/etc/modules" "w"; then
-        aux_err "/etc/modules not writable - required for module configuration"
-        return 2
-    fi
-    local function_name="${FUNCNAME[0]}"
-    
-    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_step2,phase=vfio_modules"
-    aux_business "GPU passthrough phase 2 initiated" "component=gpu,operation=passthrough_step2,phase=vfio_setup,step=module_configuration"
-    
-    aux_info "Executing GPU passthrough step 2" "component=gpu,operation=passthrough_step2,step=section_start"
-
-    # Add modules to /etc/modules
-    local modules=(vfio vfio_iommu_type1 vfio_pci)
-    aux_info "Adding VFIO modules to /etc/modules" "component=gpu,operation=passthrough_step2,step=add_modules,modules=${modules[*]}"
-    for module in "${modules[@]}"; do
-        aux_dbg "Adding module to /etc/modules" "component=gpu,operation=passthrough_step2,step=add_modules,module=${module}"
-        echo "$module" >> /etc/modules
-    done
-
-    # Update initramfs
-    aux_perf "Updating initramfs for all kernels" "component=gpu,operation=passthrough_step2,step=update_initramfs"
-    update-initramfs -u -k all
-
-    aux_business "GPU passthrough phase 2 completed, system reboot required" "component=gpu,operation=passthrough_step2,phase=complete,next_step=reboot"
-    aux_info "GPU passthrough step 2 completed, initiating system reboot" "component=gpu,operation=passthrough_step2,step=completion_notice"
-    aux_info "System reboot initiated" "component=gpu,operation=passthrough_step2,step=reboot,reason=vfio_module_loading"
-    reboot
-}
-
-# Finalizes or reverts GPU passthrough setup
-# passthrough step three
-# <enable|disable>
-gpu_pt3() {
-    # Technical Description:
-    #   Final configuration phase for persistent GPU passthrough setup that handles
-    #   device-specific binding and driver blacklisting. Creates or removes modprobe
-    #   configurations that permanently assign detected GPU devices to vfio-pci driver
-    #   and blacklists conflicting host drivers. When enabling, scans all GPU devices
-    #   and generates vendor:device ID mappings for VFIO assignment. When disabling,
-    #   removes persistent configurations to restore normal host GPU functionality.
-    # Dependencies:
-    #   - Successful completion of gpu_pt1 and gpu_pt2 (IOMMU and VFIO modules)
-    #   - Root privileges for modprobe configuration management
-    #   - lspci utility for GPU device detection and ID extraction
-    #   - update-initramfs command for applying configuration changes
-    #   - Write access to /etc/modprobe.d/ directory
-    # Arguments:
-    #   $1: action - "enable" to configure persistent passthrough, "disable" to revert
-    
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
-    fi
-    
-    if [ $# -ne 1 ]; then
-        aux_err "Exactly one parameter required"
-        aux_use
-        return 1
-    fi
-    
-    if [ -z "$1" ]; then
-        aux_err "Action parameter cannot be empty"
-        aux_use
-        return 1
-    fi
-    
-    # Validate action parameter
-    if [ "$1" != "enable" ] && [ "$1" != "disable" ]; then
-        aux_err "Invalid action: $1. Must be 'enable' or 'disable'"
-        aux_use
-        return 1
-    fi
-    
-    # Check critical system dependencies
-    if ! aux_chk "command" "lspci"; then
-        aux_err "lspci command not found - required for GPU device detection"
-        return 127
-    fi
-    
-    if ! aux_chk "command" "update-initramfs"; then
-        aux_err "update-initramfs command not found - required for applying changes"
-        return 127
-    fi
-    
-    if [ ! -d "/etc/modprobe.d" ] || [ ! -w "/etc/modprobe.d" ]; then
-        aux_err "/etc/modprobe.d directory not writable - required for configuration"
-        return 2
-    fi    
-    local action="$1"
-    local function_name="${FUNCNAME[0]}"
-    
-    aux_info "Starting GPU passthrough configuration" "action=${action}"
-
-    local vfio_conf="/etc/modprobe.d/vfio.conf"
-    local passthrough_blacklist_conf="/etc/modprobe.d/zz-vfio-gpu-blacklist.conf"
-    local modules_file="/etc/modules"
-
-    if [ "$action" = "enable" ]; then
-        aux_info "Configuring GPU passthrough (vfio-pci)" "component=gpu,operation=passthrough_step3,action=enable"
-        
-        # Get all GPU vendor:device IDs
-        local -a gpu_ids
-        readarray -t gpu_ids < <(_gpu_find_all_gpus)
-        
-        if [ ${#gpu_ids[@]} -eq 0 ]; then
-            aux_info "No GPU devices found for passthrough configuration" "component=gpu,operation=passthrough_step3,action=enable,gpu_count=0"
-            return 0
+    # Check for --no-reboot flag
+    if [ "$2" = "--no-reboot" ] || [ "$3" = "--no-reboot" ]; then
+        no_reboot=true
+        # Adjust action if --no-reboot was passed as second parameter
+        if [ "$2" = "--no-reboot" ]; then
+            action="enable"
         fi
-
-        local vfio_options_line="options vfio-pci ids="
-        local ids_to_add=""
-        local nvidia_gpus_for_vfio=false
-        local amd_gpus_for_vfio=false
-
-        for pci_id in "${gpu_ids[@]}"; do
-            local vendor_device_id
-            vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
-            
-            if [ $? -eq 0 ] && [ -n "$vendor_device_id" ]; then
-                aux_info "Found GPU for passthrough configuration" "component=gpu,operation=passthrough_step3,pci_id=${pci_id},vendor_device_id=${vendor_device_id}"
+    fi
+    
+    # Validate step parameter
+    if [[ ! "$step" =~ ^(1|2|3|all)$ ]]; then
+        aux_err "Invalid step: $step. Must be '1', '2', '3', or 'all'"
+        aux_use
+        return 1
+    fi
+    
+    # Validate action for step 3
+    if [ "$step" = "3" ] || [ "$step" = "all" ]; then
+        if [ "$action" != "enable" ] && [ "$action" != "disable" ] && [ "$action" != "--no-reboot" ]; then
+            aux_err "Invalid action for step 3: $action. Must be 'enable' or 'disable'"
+            aux_use
+            return 1
+        fi
+        # Reset action to enable if it was --no-reboot
+        if [ "$action" = "--no-reboot" ]; then
+            action="enable"
+        fi
+    fi
+    
+    local function_name="${FUNCNAME[0]}"
+    aux_info "Starting GPU passthrough preparation" "step=${step},action=${action},no_reboot=${no_reboot}"
+    
+    # Handle "all" step with proper sequencing and reboot management
+    if [ "$step" = "all" ]; then
+        # Ensure .tmp directory exists
+        mkdir -p ./.tmp
+        
+        # Use a fixed progress file name (not process-specific)
+        local progress_file="./.tmp/gpu_ptp_progress"
+        local current_step=1
+        
+        # Check if we're resuming from a previous step
+        if [ -f "$progress_file" ]; then
+            current_step=$(cat "$progress_file")
+            aux_info "Resuming GPU passthrough setup from step $current_step" "component=gpu,operation=passthrough_preparation,resume_step=${current_step}"
+        else
+            aux_info "Starting complete GPU passthrough setup (all steps)" "component=gpu,operation=passthrough_preparation,sequence=all"
+            # Create startup script for automatic continuation after reboot
+            _gpu_create_continuation_script "$action" "$no_reboot"
+        fi
+        
+        # Execute steps sequentially with proper reboot handling
+        case "$current_step" in
+            1)
+                aux_info "Executing step 1 of complete setup: IOMMU/GRUB configuration" "component=gpu,operation=passthrough_preparation,sequence=all,step=1"
                 
-                if [ -n "$ids_to_add" ]; then
-                    ids_to_add+=","
+                # Step 1 dependency checks
+                if ! aux_chk "command" "sed"; then
+                    aux_err "sed command not found - required for GRUB configuration"
+                    return 127
                 fi
-                ids_to_add+="$vendor_device_id"
-
-                local vendor_id=$(echo "$vendor_device_id" | cut -d':' -f1)
-                case "$vendor_id" in
-                    "10de") nvidia_gpus_for_vfio=true ;;
-                    "1002") amd_gpus_for_vfio=true ;;
-                esac
-            fi
-        done
-
-        if [ -n "$ids_to_add" ]; then
-            vfio_options_line+="$ids_to_add"
-            echo "$vfio_options_line" | tee "$vfio_conf" > /dev/null
-            aux_info "Created VFIO configuration file" "component=gpu,operation=passthrough_step3,config_file=${vfio_conf},ids=${ids_to_add}"
-            cat "$vfio_conf"
-        fi
-
-        # Create blacklist file
-        aux_info "Creating GPU driver blacklist for passthrough" "component=gpu,operation=passthrough_step3,action=create_blacklist"
-        rm -f "$passthrough_blacklist_conf"
-        touch "$passthrough_blacklist_conf"
-
-        if $nvidia_gpus_for_vfio; then
-            {
-                echo "blacklist nouveau"
-                echo "options nouveau modeset=0"
-                echo "blacklist nvidia"
-            } | tee -a "$passthrough_blacklist_conf" > /dev/null
-        fi
-
-        if $amd_gpus_for_vfio; then
-            {
-                echo "blacklist radeon"
-                echo "blacklist amdgpu"
-            } | tee -a "$passthrough_blacklist_conf" > /dev/null
-        fi
-
-        # Ensure VFIO modules are in /etc/modules
-        local vfio_modules=(vfio vfio_iommu_type1 vfio_pci)
-        for module in "${vfio_modules[@]}"; do
-            if ! grep -qP "^\s*${module}\s*(#.*)?$" "$modules_file"; then
-                echo "$module" | tee -a "$modules_file" > /dev/null
-                aux_info "Added VFIO module to modules file" "component=gpu,operation=passthrough_step3,module=${module},file=${modules_file}"
-            else
-                # Uncomment if commented
-                if grep -qP "^\s*#\s*${module}" "$modules_file"; then
-                    sed -i "s/^\s*#\s*${module}/${module}/" "$modules_file"
-                    aux_info "Uncommented VFIO module in modules file" "component=gpu,operation=passthrough_step3,module=${module},file=${modules_file}"
+                
+                if ! aux_chk "command" "update-grub"; then
+                    aux_err "update-grub command not found - required for GRUB configuration"
+                    return 127
                 fi
-            fi
-        done
+                
+                if ! aux_chk "command" "apt"; then
+                    aux_err "apt command not found - required for package installation"
+                    return 127
+                fi
+                
+                if ! aux_chk "command" "efibootmgr"; then
+                    aux_err "efibootmgr command not found - required for EFI boot management"
+                    return 127
+                fi
+                
+                aux_business "GPU passthrough phase 1 initiated" "component=gpu,operation=passthrough_preparation,phase=iommu_setup,step=grub_configuration"
+                
+                aux_info "Checking EFI boot manager status" "component=gpu,operation=passthrough_preparation,step=efi_check"
+                efibootmgr -v
 
-    elif [ "$action" = "disable" ]; then
-        aux_info "Reverting GPU passthrough configuration" "component=gpu,operation=passthrough_step3,action=disable"
-        
-        # Remove configuration files
-        rm -f "$vfio_conf"
-        rm -f "$passthrough_blacklist_conf"
+                # Edit GRUB configuration
+                aux_info "Modifying GRUB configuration for IOMMU" "component=gpu,operation=passthrough_preparation,step=grub_config,parameter=iommu=pt"
+                sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt"/' /etc/default/grub
+                
+                aux_perf "Updating GRUB configuration" "component=gpu,operation=passthrough_preparation,step=grub_update"
+                update-grub
+                update-grub2
 
-        # Comment out VFIO modules
-        local vfio_modules=(vfio vfio_iommu_type1 vfio_pci)
-        for module in "${vfio_modules[@]}"; do
-            if grep -qP "^\s*${module}" "$modules_file"; then
-                sed -i "s/^\s*${module}/# ${module}/" "$modules_file"
-                aux_info "Commented out VFIO module in modules file" "component=gpu,operation=passthrough_step3,module=${module},file=${modules_file}"
-            fi
-        done
+                # Install grub-efi-amd64
+                aux_info "Installing GRUB EFI package" "component=gpu,operation=passthrough_preparation,step=grub_efi_install,package=grub-efi-amd64"
+                apt install grub-efi-amd64 -y
+
+                aux_business "GPU passthrough phase 1 completed" "component=gpu,operation=passthrough_preparation,phase=complete,next_step=reboot"
+                
+                # Set up for step 2 after reboot
+                echo "2" > "$progress_file"
+                
+                if [ "$no_reboot" = false ]; then
+                    aux_info "Step 1 complete - rebooting to continue with step 2" "component=gpu,operation=passthrough_preparation,sequence=all,next_step=2"
+                    aux_info "After reboot, run: gpu_ptp all" "component=gpu,operation=passthrough_preparation,instruction=resume"
+                    reboot
+                else
+                    aux_info "Step 1 complete - reboot required before step 2" "component=gpu,operation=passthrough_preparation,sequence=all,reboot_deferred=true"
+                fi
+                ;;
+                
+            2)
+                aux_info "Executing step 2 of complete setup: VFIO modules" "component=gpu,operation=passthrough_preparation,sequence=all,step=2"
+                
+                # Step 2 dependency checks
+                if ! aux_chk "command" "update-initramfs"; then
+                    aux_err "update-initramfs command not found - required for initrd generation"
+                    return 127
+                fi
+                
+                if ! aux_chk "permission" "/etc/modules" "w"; then
+                    aux_err "/etc/modules not writable - required for module configuration"
+                    return 2
+                fi
+                
+                aux_business "GPU passthrough phase 2 initiated" "component=gpu,operation=passthrough_preparation,phase=vfio_setup,step=module_configuration"
+
+                # Add modules to /etc/modules
+                local modules=(vfio vfio_iommu_type1 vfio_pci)
+                aux_info "Adding VFIO modules to /etc/modules" "component=gpu,operation=passthrough_preparation,step=add_modules,modules=${modules[*]}"
+                for module in "${modules[@]}"; do
+                    aux_dbg "Adding module to /etc/modules" "component=gpu,operation=passthrough_preparation,step=add_modules,module=${module}"
+                    echo "$module" >> /etc/modules
+                done
+
+                # Update initramfs
+                aux_perf "Updating initramfs for all kernels" "component=gpu,operation=passthrough_preparation,step=update_initramfs"
+                update-initramfs -u -k all
+
+                aux_business "GPU passthrough phase 2 completed" "component=gpu,operation=passthrough_preparation,phase=complete,next_step=reboot"
+                
+                # Set up for step 3 after reboot
+                echo "3" > "$progress_file"
+                
+                if [ "$no_reboot" = false ]; then
+                    aux_info "Step 2 complete - rebooting to continue with step 3" "component=gpu,operation=passthrough_preparation,sequence=all,next_step=3"
+                    aux_info "After reboot, run: gpu_ptp all ${action}" "component=gpu,operation=passthrough_preparation,instruction=resume"
+                    reboot
+                else
+                    aux_info "Step 2 complete - reboot required before step 3" "component=gpu,operation=passthrough_preparation,sequence=all,reboot_deferred=true"
+                fi
+                ;;
+                
+            3)
+                aux_info "Executing step 3 of complete setup: device binding" "component=gpu,operation=passthrough_preparation,sequence=all,step=3,action=${action}"
+                
+                # Step 3 dependency checks
+                if ! aux_chk "command" "lspci"; then
+                    aux_err "lspci command not found - required for GPU device detection"
+                    return 127
+                fi
+                
+                if ! aux_chk "command" "update-initramfs"; then
+                    aux_err "update-initramfs command not found - required for applying changes"
+                    return 127
+                fi
+                
+                if [ ! -d "/etc/modprobe.d" ] || [ ! -w "/etc/modprobe.d" ]; then
+                    aux_err "/etc/modprobe.d directory not writable - required for configuration"
+                    return 2
+                fi
+                
+                aux_info "Starting GPU passthrough device configuration" "action=${action}"
+
+                local vfio_conf="/etc/modprobe.d/vfio.conf"
+                local passthrough_blacklist_conf="/etc/modprobe.d/zz-vfio-gpu-blacklist.conf"
+                local modules_file="/etc/modules"
+
+                if [ "$action" = "enable" ]; then
+                    aux_info "Configuring GPU passthrough (vfio-pci)" "component=gpu,operation=passthrough_preparation,action=enable"
+                    
+                    # Get all GPU vendor:device IDs
+                    local -a gpu_ids
+                    readarray -t gpu_ids < <(_gpu_find_all_gpus)
+                    
+                    if [ ${#gpu_ids[@]} -eq 0 ]; then
+                        aux_info "No GPU devices found for passthrough configuration" "component=gpu,operation=passthrough_preparation,action=enable,gpu_count=0"
+                        # Clean up progress file and return
+                        rm -f "$progress_file"
+                        return 0
+                    fi
+
+                    local vfio_options_line="options vfio-pci ids="
+                    local ids_to_add=""
+                    local nvidia_gpus_for_vfio=false
+                    local amd_gpus_for_vfio=false
+
+                    for pci_id in "${gpu_ids[@]}"; do
+                        local vendor_device_id
+                        vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
+                        
+                        if [ $? -eq 0 ] && [ -n "$vendor_device_id" ]; then
+                            aux_info "Found GPU for passthrough configuration" "component=gpu,operation=passthrough_preparation,pci_id=${pci_id},vendor_device_id=${vendor_device_id}"
+                            
+                            if [ -n "$ids_to_add" ]; then
+                                ids_to_add+=","
+                            fi
+                            ids_to_add+="$vendor_device_id"
+
+                            local vendor_id=$(echo "$vendor_device_id" | cut -d':' -f1)
+                            case "$vendor_id" in
+                                "10de") nvidia_gpus_for_vfio=true ;;
+                                "1002") amd_gpus_for_vfio=true ;;
+                            esac
+                        fi
+                    done
+
+                    if [ -n "$ids_to_add" ]; then
+                        vfio_options_line+="$ids_to_add"
+                        echo "$vfio_options_line" | tee "$vfio_conf" > /dev/null
+                        aux_info "Created VFIO configuration file" "component=gpu,operation=passthrough_preparation,config_file=${vfio_conf},ids=${ids_to_add}"
+                        cat "$vfio_conf"
+                    fi
+
+                    # Create blacklist file
+                    aux_info "Creating GPU driver blacklist for passthrough" "component=gpu,operation=passthrough_preparation,action=create_blacklist"
+                    rm -f "$passthrough_blacklist_conf"
+                    touch "$passthrough_blacklist_conf"
+
+                    if $nvidia_gpus_for_vfio; then
+                        {
+                            echo "blacklist nouveau"
+                            echo "options nouveau modeset=0"
+                            echo "blacklist nvidia"
+                        } | tee -a "$passthrough_blacklist_conf" > /dev/null
+                    fi
+
+                    if $amd_gpus_for_vfio; then
+                        {
+                            echo "blacklist radeon"
+                            echo "blacklist amdgpu"
+                        } | tee -a "$passthrough_blacklist_conf" > /dev/null
+                    fi
+
+                    # Ensure VFIO modules are in /etc/modules
+                    local vfio_modules=(vfio vfio_iommu_type1 vfio_pci)
+                    for module in "${vfio_modules[@]}"; do
+                        if ! grep -qP "^\s*${module}\s*(#.*)?$" "$modules_file"; then
+                            echo "$module" | tee -a "$modules_file" > /dev/null
+                            aux_info "Added VFIO module to modules file" "component=gpu,operation=passthrough_preparation,module=${module},file=${modules_file}"
+                        else
+                            # Uncomment if commented
+                            if grep -qP "^\s*#\s*${module}" "$modules_file"; then
+                                sed -i "s/^\s*#\s*${module}/${module}/" "$modules_file"
+                                aux_info "Uncommented VFIO module in modules file" "component=gpu,operation=passthrough_preparation,module=${module},file=${modules_file}"
+                            fi
+                        fi
+                    done
+
+                elif [ "$action" = "disable" ]; then
+                    aux_info "Reverting GPU passthrough configuration" "component=gpu,operation=passthrough_preparation,action=disable"
+                    
+                    # Remove configuration files
+                    rm -f "$vfio_conf"
+                    rm -f "$passthrough_blacklist_conf"
+
+                    # Comment out VFIO modules
+                    local vfio_modules=(vfio vfio_iommu_type1 vfio_pci)
+                    for module in "${vfio_modules[@]}"; do
+                        if grep -qP "^\s*${module}" "$modules_file"; then
+                            sed -i "s/^\s*${module}/# ${module}/" "$modules_file"
+                            aux_info "Commented out VFIO module in modules file" "component=gpu,operation=passthrough_preparation,module=${module},file=${modules_file}"
+                        fi
+                    done
+                fi
+
+                aux_info "Updating initramfs" "component=gpu,operation=passthrough_preparation,status=updating_initramfs"
+                update-initramfs -u -k all
+                
+                # Clean up progress file and continuation mechanism - we're done
+                _gpu_cleanup_continuation_script
+                
+                aux_info "All GPU passthrough preparation steps completed successfully" "component=gpu,operation=passthrough_preparation,sequence=all,status=complete"
+                
+                if [ "$no_reboot" = false ]; then
+                    aux_info "Final reboot for complete GPU passthrough setup" "component=gpu,operation=passthrough_preparation,sequence=all,final_reboot=true"
+                    reboot
+                else
+                    aux_info "Setup complete - manual reboot recommended for changes to take full effect" "component=gpu,operation=passthrough_preparation,sequence=all,reboot_deferred=true"
+                fi
+                ;;
+        esac
         
-    else
-        aux_err "Invalid action specified" "component=gpu,operation=passthrough_step3,action=${action},valid_actions=enable|disable"
-        return 1
+        return 0
     fi
 
-    aux_info "Updating initramfs" "component=gpu,operation=passthrough_step3,status=updating_initramfs"
-    update-initramfs -u -k all
-    aux_info "Configuration applied - reboot required for changes to take full effect" "component=gpu,operation=passthrough_step3,status=complete,action_required=reboot"
+    # Individual step execution (original logic)
+    # Step 1: IOMMU and GRUB configuration
+    if [ "$step" = "1" ]; then
+        aux_info "Executing GPU passthrough step 1: IOMMU/GRUB configuration" "component=gpu,operation=passthrough_preparation,step=1"
+        
+        # Check critical system dependencies for step 1
+        if ! aux_chk "command" "sed"; then
+            aux_err "sed command not found - required for GRUB configuration"
+            return 127
+        fi
+        
+        if ! aux_chk "command" "update-grub"; then
+            aux_err "update-grub command not found - required for GRUB configuration"
+            return 127
+        fi
+        
+        if ! aux_chk "command" "apt"; then
+            aux_err "apt command not found - required for package installation"
+            return 127
+        fi
+        
+        if ! aux_chk "command" "efibootmgr"; then
+            aux_err "efibootmgr command not found - required for EFI boot management"
+            return 127
+        fi
+        
+        aux_business "GPU passthrough phase 1 initiated" "component=gpu,operation=passthrough_preparation,phase=iommu_setup,step=grub_configuration"
+        
+        aux_info "Checking EFI boot manager status" "component=gpu,operation=passthrough_preparation,step=efi_check"
+        efibootmgr -v
+
+        # Edit GRUB configuration
+        aux_info "Modifying GRUB configuration for IOMMU" "component=gpu,operation=passthrough_preparation,step=grub_config,parameter=iommu=pt"
+        sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt"/' /etc/default/grub
+        
+        aux_perf "Updating GRUB configuration" "component=gpu,operation=passthrough_preparation,step=grub_update"
+        update-grub
+        update-grub2
+
+        # Install grub-efi-amd64
+        aux_info "Installing GRUB EFI package" "component=gpu,operation=passthrough_preparation,step=grub_efi_install,package=grub-efi-amd64"
+        apt install grub-efi-amd64 -y
+
+        aux_business "GPU passthrough phase 1 completed" "component=gpu,operation=passthrough_preparation,phase=complete,next_step=reboot"
+        
+        if [ "$no_reboot" = false ]; then
+            aux_info "System reboot initiated for step 1" "component=gpu,operation=passthrough_preparation,step=reboot,reason=iommu_kernel_parameter"
+            reboot
+        fi
+    fi
+    
+    # Step 2: VFIO module configuration
+    if [ "$step" = "2" ]; then
+        aux_info "Executing GPU passthrough step 2: VFIO modules" "component=gpu,operation=passthrough_preparation,step=2"
+        
+        # Check critical system dependencies for step 2
+        if ! aux_chk "command" "update-initramfs"; then
+            aux_err "update-initramfs command not found - required for initrd generation"
+            return 127
+        fi
+        
+        if ! aux_chk "permission" "/etc/modules" "w"; then
+            aux_err "/etc/modules not writable - required for module configuration"
+            return 2
+        fi
+        
+        aux_business "GPU passthrough phase 2 initiated" "component=gpu,operation=passthrough_preparation,phase=vfio_setup,step=module_configuration"
+
+        # Add modules to /etc/modules
+        local modules=(vfio vfio_iommu_type1 vfio_pci)
+        aux_info "Adding VFIO modules to /etc/modules" "component=gpu,operation=passthrough_preparation,step=add_modules,modules=${modules[*]}"
+        for module in "${modules[@]}"; do
+            aux_dbg "Adding module to /etc/modules" "component=gpu,operation=passthrough_preparation,step=add_modules,module=${module}"
+            echo "$module" >> /etc/modules
+        done
+
+        # Update initramfs
+        aux_perf "Updating initramfs for all kernels" "component=gpu,operation=passthrough_preparation,step=update_initramfs"
+        update-initramfs -u -k all
+
+        aux_business "GPU passthrough phase 2 completed" "component=gpu,operation=passthrough_preparation,phase=complete,next_step=reboot"
+        
+        if [ "$no_reboot" = false ]; then
+            aux_info "System reboot initiated for step 2" "component=gpu,operation=passthrough_preparation,step=reboot,reason=vfio_module_loading"
+            reboot
+        fi
+    fi
+    
+    # Step 3: Device binding and driver configuration
+    if [ "$step" = "3" ]; then
+        aux_info "Executing GPU passthrough step 3: device binding" "component=gpu,operation=passthrough_preparation,sequence=all,step=3,action=${action}"
+        
+        # Step 3 dependency checks
+        if ! aux_chk "command" "lspci"; then
+            aux_err "lspci command not found - required for GPU device detection"
+            return 127
+        fi
+        
+        if ! aux_chk "command" "update-initramfs"; then
+            aux_err "update-initramfs command not found - required for applying changes"
+            return 127
+        fi
+        
+        if [ ! -d "/etc/modprobe.d" ] || [ ! -w "/etc/modprobe.d" ]; then
+            aux_err "/etc/modprobe.d directory not writable - required for configuration"
+            return 2
+        fi
+        
+        aux_info "Starting GPU passthrough device configuration" "action=${action}"
+
+        local vfio_conf="/etc/modprobe.d/vfio.conf"
+        local passthrough_blacklist_conf="/etc/modprobe.d/zz-vfio-gpu-blacklist.conf"
+        local modules_file="/etc/modules"
+
+        if [ "$action" = "enable" ]; then
+            aux_info "Configuring GPU passthrough (vfio-pci)" "component=gpu,operation=passthrough_preparation,action=enable"
+            
+            # Get all GPU vendor:device IDs
+            local -a gpu_ids
+            readarray -t gpu_ids < <(_gpu_find_all_gpus)
+            
+            if [ ${#gpu_ids[@]} -eq 0 ]; then
+                aux_info "No GPU devices found for passthrough configuration" "component=gpu,operation=passthrough_preparation,action=enable,gpu_count=0"
+                # Clean up progress file and return
+                rm -f "$progress_file"
+                return 0
+            fi
+
+            local vfio_options_line="options vfio-pci ids="
+            local ids_to_add=""
+            local nvidia_gpus_for_vfio=false
+            local amd_gpus_for_vfio=false
+
+            for pci_id in "${gpu_ids[@]}"; do
+                local vendor_device_id
+                vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
+                
+                if [ $? -eq 0 ] && [ -n "$vendor_device_id" ]; then
+                    aux_info "Found GPU for passthrough configuration" "component=gpu,operation=passthrough_preparation,pci_id=${pci_id},vendor_device_id=${vendor_device_id}"
+                    
+                    if [ -n "$ids_to_add" ]; then
+                        ids_to_add+=","
+                    fi
+                    ids_to_add+="$vendor_device_id"
+
+                    local vendor_id=$(echo "$vendor_device_id" | cut -d':' -f1)
+                    case "$vendor_id" in
+                        "10de") nvidia_gpus_for_vfio=true ;;
+                        "1002") amd_gpus_for_vfio=true ;;
+                    esac
+                fi
+            done
+
+            if [ -n "$ids_to_add" ]; then
+                vfio_options_line+="$ids_to_add"
+                echo "$vfio_options_line" | tee "$vfio_conf" > /dev/null
+                aux_info "Created VFIO configuration file" "component=gpu,operation=passthrough_preparation,config_file=${vfio_conf},ids=${ids_to_add}"
+                cat "$vfio_conf"
+            fi
+
+            # Create blacklist file
+            aux_info "Creating GPU driver blacklist for passthrough" "component=gpu,operation=passthrough_preparation,action=create_blacklist"
+            rm -f "$passthrough_blacklist_conf"
+            touch "$passthrough_blacklist_conf"
+
+            if $nvidia_gpus_for_vfio; then
+                {
+                    echo "blacklist nouveau"
+                    echo "options nouveau modeset=0"
+                    echo "blacklist nvidia"
+                } | tee -a "$passthrough_blacklist_conf" > /dev/null
+            fi
+
+            if $amd_gpus_for_vfio; then
+                {
+                    echo "blacklist radeon"
+                    echo "blacklist amdgpu"
+                } | tee -a "$passthrough_blacklist_conf" > /dev/null
+            fi
+
+            # Ensure VFIO modules are in /etc/modules
+            local vfio_modules=(vfio vfio_iommu_type1 vfio_pci)
+            for module in "${vfio_modules[@]}"; do
+                if ! grep -qP "^\s*${module}\s*(#.*)?$" "$modules_file"; then
+                    echo "$module" | tee -a "$modules_file" > /dev/null
+                    aux_info "Added VFIO module to modules file" "component=gpu,operation=passthrough_preparation,module=${module},file=${modules_file}"
+                else
+                    # Uncomment if commented
+                    if grep -qP "^\s*#\s*${module}" "$modules_file"; then
+                        sed -i "s/^\s*#\s*${module}/${module}/" "$modules_file"
+                        aux_info "Uncommented VFIO module in modules file" "component=gpu,operation=passthrough_preparation,module=${module},file=${modules_file}"
+                    fi
+                fi
+            done
+
+        elif [ "$action" = "disable" ]; then
+            aux_info "Reverting GPU passthrough configuration" "component=gpu,operation=passthrough_preparation,action=disable"
+            
+            # Remove configuration files
+            rm -f "$vfio_conf"
+            rm -f "$passthrough_blacklist_conf"
+
+            # Comment out VFIO modules
+            local vfio_modules=(vfio vfio_iommu_type1 vfio_pci)
+            for module in "${vfio_modules[@]}"; do
+                if grep -qP "^\s*${module}" "$modules_file"; then
+                    sed -i "s/^\s*${module}/# ${module}/" "$modules_file"
+                    aux_info "Commented out VFIO module in modules file" "component=gpu,operation=passthrough_preparation,module=${module},file=${modules_file}"
+                fi
+            done
+        fi
+
+        aux_info "Updating initramfs" "component=gpu,operation=passthrough_preparation,status=updating_initramfs"
+        update-initramfs -u -k all
+        
+        # Clean up progress file - we're done
+        rm -f "$progress_file"
+        
+        aux_info "All GPU passthrough preparation steps completed successfully" "component=gpu,operation=passthrough_preparation,sequence=all,status=complete"
+        
+        if [ "$no_reboot" = false ]; then
+            aux_info "Final reboot for complete GPU passthrough setup" "component=gpu,operation=passthrough_preparation,sequence=all,final_reboot=true"
+            reboot
+        else
+            aux_info "Setup complete - manual reboot recommended for changes to take full effect" "component=gpu,operation=passthrough_preparation,sequence=all,reboot_deferred=true"
+        fi
+        ;;
+    esac
+    
+    return 0
 }
 
 # Detaches the GPU from the host system for VM passthrough
