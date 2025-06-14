@@ -337,7 +337,7 @@ _gpu_get_target_gpus() {
     if [ -n "$gpu_id_arg" ]; then
         # Specific GPU ID provided
         if ! _gpu_validate_pci_id "$gpu_id_arg"; then
-            printf "ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0\n" "$gpu_id_arg"
+            aux_err "Invalid PCI ID format provided" "pci_id=${gpu_id_arg},expected_format=XX:XX.X"
             return 1
         fi
         
@@ -352,7 +352,7 @@ _gpu_get_target_gpus() {
                 gpus_to_process+=("$gpu_id_arg")
             fi
         else
-            printf "ERROR: Specified PCI ID %s is not a VGA/3D/Audio controller or does not exist.\n" "$gpu_id_arg"
+            aux_err "Specified PCI ID is not a VGA/3D/Audio controller or does not exist" "pci_id=${gpu_id_arg},function=standard"
             return 1
         fi
     else
@@ -481,7 +481,6 @@ _gpu_bind_device() {
         fi
     else
         aux_err "Failed to bind GPU to driver" "component=gpu,operation=bind_device,pci_id=${pci_id},target_driver=${target_driver},status=failed,error=bind_operation_failed"
-        printf "ERROR: Failed to bind GPU %s to %s.\n" "$pci_id" "$target_driver"
         return 1
     fi
 }
@@ -595,7 +594,7 @@ _gpu_get_target_gpus_parameterized() {
     if [ -n "$gpu_id_arg" ]; then
         # Specific GPU ID provided
         if ! _gpu_validate_pci_id "$gpu_id_arg"; then
-            printf "ERROR: Invalid PCI ID format provided: %s. Expected format like 01:00.0\n" "$gpu_id_arg"
+            aux_err "Invalid PCI ID format provided" "pci_id=${gpu_id_arg},expected_format=XX:XX.X,function=parameterized"
             return 1
         fi
         
@@ -610,7 +609,7 @@ _gpu_get_target_gpus_parameterized() {
                 gpus_to_process+=("$gpu_id_arg")
             fi
         else
-            printf "ERROR: Specified PCI ID %s is not a VGA/3D/Audio controller or does not exist.\n" "$gpu_id_arg"
+            aux_err "Specified PCI ID is not a VGA/3D/Audio controller or does not exist" "pci_id=${gpu_id_arg},function=parameterized"
             return 1
         fi
     else
@@ -940,7 +939,7 @@ gpu_nds() {
     aux_info "Starting NVIDIA driver installation" "driver_version=${drv_ver}"
     
     aux_info "Blacklisting Nouveau driver"
-    echo "1) Blacklisting Nouveau..."
+    aux_info "Creating Nouveau driver blacklist configuration" "component=gpu,operation=nvidia_driver_setup,step=blacklist_nouveau"
     if aux_cmd "tee" "/etc/modprobe.d/blacklist-nouveau.conf" <<EOF
 blacklist nouveau
 options nouveau modeset=0
@@ -961,7 +960,7 @@ EOF
     fi
 
     aux_info "Installing prerequisites"
-    echo "2) Installing prerequisites..."
+    aux_info "Installing build prerequisites for NVIDIA driver compilation" "component=gpu,operation=nvidia_driver_setup,step=prerequisites"
     if aux_cmd "apt" "update" && aux_cmd "apt" "install" "-y" "dkms" "build-essential" "pve-headers-$(uname -r)"; then
         aux_info "Prerequisites installed successfully"
     else
@@ -1076,7 +1075,7 @@ gpu_pt1() {
     apt install grub-efi-amd64 -y
 
     aux_business "GPU passthrough phase 1 completed, system reboot required" "component=gpu,operation=passthrough_step1,phase=complete,next_step=reboot"
-    printf "%s: Completed section 1, system will reboot now.\n" "$function_name"
+    aux_info "GPU passthrough step 1 completed, initiating system reboot" "component=gpu,operation=passthrough_step1,step=completion_notice"
     aux_info "System reboot initiated" "component=gpu,operation=passthrough_step1,step=reboot,reason=iommu_kernel_parameter"
     reboot
 }
@@ -1127,7 +1126,7 @@ gpu_pt2() {
     aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_step2,phase=vfio_modules"
     aux_business "GPU passthrough phase 2 initiated" "component=gpu,operation=passthrough_step2,phase=vfio_setup,step=module_configuration"
     
-    echo "Executing section 2:"
+    aux_info "Executing GPU passthrough step 2" "component=gpu,operation=passthrough_step2,step=section_start"
 
     # Add modules to /etc/modules
     local modules=(vfio vfio_iommu_type1 vfio_pci)
@@ -1142,7 +1141,7 @@ gpu_pt2() {
     update-initramfs -u -k all
 
     aux_business "GPU passthrough phase 2 completed, system reboot required" "component=gpu,operation=passthrough_step2,phase=complete,next_step=reboot"
-    printf "%s: Completed section 2, system will reboot now.\n" "$function_name"
+    aux_info "GPU passthrough step 2 completed, initiating system reboot" "component=gpu,operation=passthrough_step2,step=completion_notice"
     aux_info "System reboot initiated" "component=gpu,operation=passthrough_step2,step=reboot,reason=vfio_module_loading"
     reboot
 }
@@ -1223,7 +1222,7 @@ gpu_pt3() {
         readarray -t gpu_ids < <(_gpu_find_all_gpus)
         
         if [ ${#gpu_ids[@]} -eq 0 ]; then
-            printf "No GPU devices found. Nothing to do.\n"
+            aux_info "No GPU devices found for passthrough configuration" "component=gpu,operation=passthrough_step3,action=enable,gpu_count=0"
             return 0
         fi
 
