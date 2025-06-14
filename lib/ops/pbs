@@ -94,17 +94,49 @@ pbs_dav() {
         return 1
     fi
     
+    # Dependency checks
+    if ! aux_chk "command" "wget"; then
+        aux_err "wget command not found - required for downloading files"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "sha512sum"; then
+        aux_err "sha512sum command not found - required for checksum verification"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "md5sum"; then
+        aux_err "md5sum command not found - required for checksum verification"
+        return 127
+    fi
+    
+    if ! aux_chk "permission" "/etc/apt/trusted.gpg.d" "w"; then
+        aux_err "No write permission to GPG directory" "path=/etc/apt/trusted.gpg.d"
+        return 2
+    fi
+    
+    aux_info "Starting Proxmox GPG key download and verification" "operation=download_verify_gpg"
+    aux_dbg "Downloading GPG key from enterprise.proxmox.com" "step=download_key"
+    
     # Download the GPG key
-    wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
+    if aux_cmd "wget" "https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg" "-O" "/etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg"; then
+        aux_info "GPG key downloaded successfully" "path=/etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg"
+    else
+        aux_err "Failed to download GPG key" "url=https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg"
+        return 2
+    fi
 
+    aux_dbg "Starting checksum verification" "step=verify_checksums"
+    
     # Verify SHA512 checksum
     sha512_expected="7da6fe34168adc6e479327ba517796d4702fa2f8b4f0a9833f5ea6e6b48f6507a6da403a274fe201595edc86a84463d50383d07f64bdde2e3658108db7d6dc87"
     sha512_actual=$(sha512sum /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg | awk '{print $1}')
 
     if [ "$sha512_actual" == "$sha512_expected" ]; then
-        echo "SHA512 checksum verified successfully."
+        aux_info "SHA512 checksum verified successfully" "checksum_type=sha512,status=verified"
     else
-        echo "SHA512 checksum verification failed."
+        aux_err "SHA512 checksum verification failed" "expected=$sha512_expected,actual=$sha512_actual"
+        return 2
     fi
 
     # Verify MD5 checksum
@@ -112,10 +144,13 @@ pbs_dav() {
     md5_actual=$(md5sum /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg | awk '{print $1}')
 
     if [ "$md5_actual" == "$md5_expected" ]; then
-        echo "MD5 checksum verified successfully."
+        aux_info "MD5 checksum verified successfully" "checksum_type=md5,status=verified"
     else
-        echo "MD5 checksum verification failed."
+        aux_err "MD5 checksum verification failed" "expected=$md5_expected,actual=$md5_actual"
+        return 2
     fi
+    
+    aux_info "GPG key download and verification completed successfully" "operation=download_verify_gpg,status=completed"
 }
 
 # Add Proxmox repository to sources.list if not already present
@@ -145,15 +180,39 @@ pbs_adr() {
         return 1
     fi
     
+    # Dependency checks
+    if ! aux_chk "command" "grep"; then
+        aux_err "grep command not found - required for file operations"
+        return 127
+    fi
+    
+    if ! aux_chk "file_exists" "/etc/apt/sources.list"; then
+        aux_err "APT sources.list file not found" "path=/etc/apt/sources.list"
+        return 2
+    fi
+    
+    if ! aux_chk "permission" "/etc/apt/sources.list" "w"; then
+        aux_err "No write permission to sources.list" "path=/etc/apt/sources.list"
+        return 2
+    fi
+    
     local function_name="${FUNCNAME[0]}"
     line_to_add="deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription"
     file="/etc/apt/sources.list"
 
+    aux_info "Setting up Proxmox repository in sources.list" "operation=setup_repository"
+    aux_dbg "Checking for existing repository entry" "step=check_existing"
+
     if grep -Fxq "$line_to_add" "$file"; then
-        aux_log "INFO" "$function_name: Line already exists in $file"
+        aux_warn "Repository line already exists in sources.list" "file=$file,status=exists"
     else
-        echo "$line_to_add" >> "$file"
-        aux_log "INFO" "$function_name: Line added to $file"
+        aux_dbg "Adding repository line to sources.list" "step=add_repository"
+        if echo "$line_to_add" >> "$file"; then
+            aux_info "Repository line added successfully" "file=$file,repository=pbs-no-subscription"
+        else
+            aux_err "Failed to add repository line" "file=$file,operation=append"
+            return 2
+        fi
     fi
 }
 
@@ -191,34 +250,85 @@ pbs_rda() {
     local datastore_config="$1"
     local datastore_name="$2"
     local datastore_path="$3"
+    
+    # Parameter validation
+    if ! aux_val "$datastore_config" "not_empty"; then
+        aux_err "Datastore config cannot be empty" "parameter=datastore_config"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$datastore_name" "not_empty"; then
+        aux_err "Datastore name cannot be empty" "parameter=datastore_name"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$datastore_path" "not_empty"; then
+        aux_err "Datastore path cannot be empty" "parameter=datastore_path"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks
+    if ! aux_chk "command" "grep"; then
+        aux_err "grep command not found - required for file operations"
+        return 127
+    fi
 
     # Define the file path to the configuration file
     local file="/etc/proxmox-backup/datastore.cfg"
     # Define the combined lines to be checked within the file
     local combined_lines="datastore: $datastore_name\n\tpath $datastore_path"
 
+    aux_info "Starting datastore configuration restore" "name=$datastore_name,path=$datastore_path"
+    aux_dbg "Configuration parameters validated" "config=$datastore_config,name=$datastore_name"
+
     # Check if the file exists
     if [[ -f "$file" ]]; then
-        echo "$file exists."
+        aux_info "Configuration file exists" "file=$file"
+        aux_dbg "Checking for existing datastore configuration" "step=check_existing"
 
         # Check if the combined lines are present in the file in sequence
-        if grep -Pzo "(?s)$combined_lines" "$file"; then
-            echo "The lines are present in sequence in $file."
+        if grep -Pzo "(?s)$combined_lines" "$file" > /dev/null; then
+            aux_warn "Datastore configuration already exists" "name=$datastore_name,file=$file"
         else
-            echo "The lines are not present in sequence in $file. Adding the lines."
+            aux_info "Adding datastore configuration to existing file" "name=$datastore_name"
+            aux_dbg "Appending configuration lines" "step=append_config"
             # Append the combined lines to the file
-            echo -e "$combined_lines" >> "$file"
-            echo "Lines added to $file."
+            if echo -e "$combined_lines" >> "$file"; then
+                aux_info "Datastore configuration added successfully" "name=$datastore_name,file=$file"
+            else
+                aux_err "Failed to add datastore configuration" "name=$datastore_name,file=$file"
+                return 2
+            fi
         fi
     else
-        echo "$file does not exist. Creating the file and adding the lines."
+        aux_info "Configuration file does not exist, creating new file" "file=$file"
+        
+        # Check if directory exists and is writable
+        local config_dir=$(dirname "$file")
+        if ! aux_chk "dir_exists" "$config_dir"; then
+            aux_err "Configuration directory does not exist" "dir=$config_dir"
+            return 2
+        fi
+        
+        if ! aux_chk "permission" "$config_dir" "w"; then
+            aux_err "No write permission to configuration directory" "dir=$config_dir"
+            return 2
+        fi
+        
+        aux_dbg "Creating new configuration file" "step=create_file"
         # Create the file and add the combined lines
-        echo -e "$combined_lines" > "$file"
-        echo "File created and lines added."
-        echo "$combined_lines"
+        if echo -e "$combined_lines" > "$file"; then
+            aux_info "Configuration file created with datastore settings" "file=$file,name=$datastore_name"
+        else
+            aux_err "Failed to create configuration file" "file=$file"
+            return 2
+        fi
     fi
 
-    aux_log "INFO" "$function_name: executed ( $1 $2 $3 )"
+    aux_info "Datastore configuration restore completed successfully" "name=$datastore_name,config=$datastore_config"
 }
 
 # Monitors and displays various aspects of the Proxmox Backup Server
@@ -249,9 +359,31 @@ pbs_mon() {
     
     local function_name="${FUNCNAME[0]}"
     local option=""
+    
+    # Parameter validation for provided options
+    if [ $# -gt 1 ]; then
+        aux_err "Too many parameters provided" "expected=0_or_1,provided=$#"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks for monitoring commands
+    local missing_deps=()
+    if ! aux_chk "command" "systemctl"; then
+        missing_deps+=("systemctl")
+    fi
+    if ! aux_chk "command" "proxmox-backup-manager"; then
+        missing_deps+=("proxmox-backup-manager")
+    fi
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        aux_err "Missing required dependencies for monitoring" "missing=${missing_deps[*]}"
+        return 127
+    fi
 
     # If no argument is provided, prompt for option
     if [ $# -eq 0 ]; then
+        aux_info "Starting PBS monitoring with interactive menu" "mode=interactive"
         echo "Proxmox Backup Server Monitoring Options:"
         echo "1. Show PBS service status"
         echo "2. Display datastore information"
@@ -267,7 +399,17 @@ pbs_mon() {
         option="11"
     else
         option="$1"
+        aux_info "Starting PBS monitoring with specific option" "option=$option"
     fi
+    
+    # Validate option if provided
+    if ! aux_val "$option" "not_empty"; then
+        aux_err "Monitoring option cannot be empty" "parameter=option"
+        aux_use
+        return 1
+    fi
+    
+    aux_dbg "PBS monitoring initialized" "option=$option,mode=${mode:-direct}"
 
     case "$option" in
         1|"Show PBS service status")
@@ -312,16 +454,19 @@ pbs_mon() {
             ss -tuna | grep -E ':8007|:8008'
             ;;
         11|"All of the above")
+            aux_dbg "Running comprehensive monitoring" "step=all_options"
             for i in {1..10}; do
+                aux_dbg "Executing monitoring option $i" "step=option_$i"
                 pbs_mon "$i"
                 echo "----------------------------------------"
             done
             ;;
         *)
-            echo "Invalid option"
+            aux_err "Invalid monitoring option provided" "option=$option,valid_range=1-11"
+            aux_use
             return 1
             ;;
     esac
 
-    aux_log "INFO" "$function_name: PBS monitoring completed"
+    aux_info "PBS monitoring completed successfully" "option=$option,status=completed"
 }

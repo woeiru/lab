@@ -206,17 +206,36 @@ pve_rsn() {
         return 2
     fi
 
-    # Prompt user whether to restart the service
-    local restart_choice=$(aux_ask "Restart pveproxy.service now?" "n" "y_or_n")
+    # Enhanced user interaction for service restart
+    aux_info "Service restart is recommended for changes to take effect"
+    local restart_choice=$(aux_ask "Restart pveproxy.service now? (recommended)" "y" "y_or_n")
+    
     if [ "$restart_choice" = "y" ]; then
+        aux_info "Restarting pveproxy service as requested"
         if aux_cmd "systemctl" "restart" "pveproxy.service"; then
             aux_info "Service restarted successfully" "service=pveproxy"
+            
+            # Check service status after restart
+            if aux_cmd "systemctl" "is-active" "pveproxy.service" >/dev/null 2>&1; then
+                aux_info "Service is running properly after restart" "service=pveproxy"
+            else
+                aux_warn "Service may not be running properly after restart" "service=pveproxy"
+                local check_status=$(aux_ask "Check service status?" "y" "y_or_n")
+                if [ "$check_status" = "y" ]; then
+                    aux_cmd "systemctl" "status" "pveproxy.service"
+                fi
+            fi
         else
             aux_err "Failed to restart service" "service=pveproxy"
+            local check_logs=$(aux_ask "Check service logs for troubleshooting?" "y" "y_or_n")
+            if [ "$check_logs" = "y" ]; then
+                aux_cmd "journalctl" "-u" "pveproxy.service" "--lines=20"
+            fi
             return 2
         fi
     else
         aux_info "Service restart skipped by user"
+        aux_warn "Manual restart required later: systemctl restart pveproxy.service" "service=pveproxy"
     fi
 }
 
@@ -326,23 +345,50 @@ pve_cdo() {
     else
         aux_err "Failed to download template" "storage=$ct_dl_sto,template=$ct_dl"
         
-        # Ask user if they want to see available templates
-        local show_templates=$(aux_ask "Show available templates?" "n" "y_or_n")
+        # Enhanced user interaction for template selection
+        local show_templates=$(aux_ask "Show available templates for selection?" "y" "y_or_n")
         
         if [ "$show_templates" = "y" ]; then
             aux_info "Displaying available templates"
             if aux_cmd "pveam" "available"; then
-                # Ask user if they want to try downloading a different template
-                local retry_download=$(aux_ask "Try downloading a different template?" "n" "y_or_n")
+                aux_info "Templates listed successfully"
+                
+                # Enhanced template selection with validation
+                local retry_download=$(aux_ask "Try downloading a different template?" "y" "y_or_n")
                 
                 if [ "$retry_download" = "y" ]; then
-                    local new_template=$(aux_ask "Enter template name" "" "not_empty")
-                    aux_dbg "Retrying download with new template: $new_template"
-                    pve_cdo "$ct_dl_sto" "$new_template"
-                    return
+                    while true; do
+                        local new_template=$(aux_ask "Enter template name (or 'cancel' to abort)" "" "not_empty")
+                        
+                        if [ "$new_template" = "cancel" ]; then
+                            aux_info "Template download cancelled by user"
+                            return 1
+                        fi
+                        
+                        # Validate template name format
+                        if aux_val "$new_template" "regex" ".*\.(tar\.(xz|gz)|tgz)$"; then
+                            aux_dbg "Retrying download with new template: $new_template"
+                            pve_cdo "$ct_dl_sto" "$new_template"
+                            return $?
+                        else
+                            aux_warn "Invalid template format" "template=$new_template,expected_format=*.tar.xz,*.tar.gz,*.tgz"
+                            local continue_choice=$(aux_ask "Try again with different template name?" "y" "y_or_n")
+                            if [ "$continue_choice" != "y" ]; then
+                                aux_info "Template selection cancelled by user"
+                                return 1
+                            fi
+                        fi
+                    done
                 fi
             else
                 aux_err "Failed to list available templates"
+                local manual_entry=$(aux_ask "Enter template name manually?" "n" "y_or_n")
+                if [ "$manual_entry" = "y" ]; then
+                    local manual_template=$(aux_ask "Enter template name" "" "not_empty")
+                    aux_info "Attempting manual template download" "template=$manual_template"
+                    pve_cdo "$ct_dl_sto" "$manual_template"
+                    return $?
+                fi
             fi
         fi
         
@@ -609,55 +655,98 @@ pve_cto() {
         local vmid=$1
         local config_file="/etc/pve/lxc/${vmid}.conf"
         
-        if [[ ! -f "$config_file" ]]; then
-            echo "ERROR: Config file for container $vmid does not exist"
+        if ! aux_chk "file_exists" "$config_file"; then
+            aux_err "Config file for container does not exist" "vmid=$vmid,config_file=$config_file"
             return 1
         fi
         
         case $action in
             start)
-                echo "Starting container $vmid"
-                pct start "$vmid"
+                aux_info "Starting container" "vmid=$vmid"
+                if aux_cmd "pct" "start" "$vmid"; then
+                    aux_info "Container started successfully" "vmid=$vmid"
+                else
+                    aux_err "Failed to start container" "vmid=$vmid"
+                    return 2
+                fi
                 ;;
             stop)
-                echo "Stopping container $vmid"
-                pct stop "$vmid"
+                aux_info "Stopping container" "vmid=$vmid"
+                if aux_cmd "pct" "stop" "$vmid"; then
+                    aux_info "Container stopped successfully" "vmid=$vmid"
+                else
+                    aux_err "Failed to stop container" "vmid=$vmid"
+                    return 2
+                fi
                 ;;
             enable|disable)
                 local onboot_value=$([[ $action == "enable" ]] && echo 1 || echo 0)
-                echo "Setting onboot to $onboot_value for container $vmid"
+                aux_info "Setting onboot configuration" "vmid=$vmid,onboot=$onboot_value"
                 
-                sed -i '/^onboot:/d' "$config_file"
-                echo "onboot: $onboot_value" >> "$config_file"
-                
-                echo "Container $vmid configuration updated:"
-                grep '^onboot:' "$config_file" || echo "ERROR: onboot entry not found after modification"
+                if aux_cmd "sed" "-i" "/^onboot:/d" "$config_file" && 
+                   aux_cmd "sh" "-c" "echo 'onboot: $onboot_value' >> '$config_file'"; then
+                    
+                    if aux_chk "command" "grep" && grep -q '^onboot:' "$config_file"; then
+                        aux_info "Container configuration updated successfully" "vmid=$vmid,onboot=$onboot_value"
+                    else
+                        aux_err "onboot entry not found after modification" "vmid=$vmid"
+                        return 2
+                    fi
+                else
+                    aux_err "Failed to update container configuration" "vmid=$vmid"
+                    return 2
+                fi
                 ;;
         esac
     }
     
+    # Dependency checks
+    if ! aux_chk "command" "pct"; then
+        aux_err "pct command not found - Proxmox Container Toolkit required"
+        return 127
+    fi
+    
+    aux_info "Starting container management operation" "action=$action,targets=$*"
+    
     if [[ $1 == "all" ]]; then
-        echo "Processing all containers"
-        container_ids=$(pct list | awk 'NR>1 {print $1}')
+        aux_info "Processing all containers"
+        aux_dbg "Retrieving list of all containers"
+        
+        if ! container_ids=$(aux_cmd "pct" "list" | awk 'NR>1 {print $1}'); then
+            aux_err "Failed to retrieve container list"
+            return 2
+        fi
+        
+        local container_count=0
         for vmid in $container_ids; do
+            aux_dbg "Processing container in batch" "vmid=$vmid,action=$action"
             handle_action "$vmid"
+            ((container_count++))
         done
+        aux_info "Processed containers in batch" "action=$action,count=$container_count"
     else
         for arg in "$@"; do
             if [[ $arg == *-* ]]; then
                 IFS='-' read -r start end <<< "$arg"
+                aux_info "Processing container range" "start=$start,end=$end,action=$action"
                 for (( vmid=start; vmid<=end; vmid++ )); do
+                    aux_dbg "Processing container in range" "vmid=$vmid,action=$action"
                     handle_action "$vmid"
                 done
             else
+                aux_dbg "Processing individual container" "vmid=$arg,action=$action"
                 handle_action "$arg"
             fi
         done
     fi
     
     if [[ $action == "start" || $action == "stop" ]]; then
-        echo "Current container status:"
-        pct list
+        aux_info "Displaying current container status"
+        if aux_cmd "pct" "list"; then
+            aux_info "Container status displayed successfully"
+        else
+            aux_warn "Failed to display container status"
+        fi
     fi
 }
 
@@ -712,21 +801,46 @@ pve_vmd() {
         return 1
     fi
 
-    echo "Debug: Operation: $operation, VM ID: $vm_id"
+    aux_dbg "Function parameters" "operation=$operation,vm_id=$vm_id,hook_script=$hook_script,lib_ops_dir=$lib_ops_dir"
 
-    # Validate the provided operation.
-    if [[ ! "$operation" =~ ^(add|remove|debug)$ ]]; then
-        echo "Error: Invalid operation. Use 'add', 'remove', or 'debug'."
+    # Parameter validation
+    if ! aux_val "$operation" "not_empty"; then
+        aux_err "Operation parameter cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$vm_id" "numeric"; then
+        aux_err "VM ID must be numeric: $vm_id"
+        aux_use
         return 1
     fi
 
-    # Ensure the directory for Proxmox snippets exists, creating it if necessary.
-    # This directory is where the hook script will be stored.
-    if [ ! -d "/var/lib/vz/snippets" ]; then
-        echo "Creating /var/lib/vz/snippets directory..."
-        if ! mkdir -p "/var/lib/vz/snippets"; then
-            echo "Error: Failed to create /var/lib/vz/snippets directory. Aborting."
-            return 1
+    # Validate the provided operation
+    if [[ ! "$operation" =~ ^(add|remove|debug)$ ]]; then
+        aux_err "Invalid operation specified" "operation=$operation,valid_operations=add,remove,debug"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks
+    if ! aux_chk "command" "qm"; then
+        aux_err "qm command not found - Proxmox VE required"
+        return 127
+    fi
+
+    aux_info "Starting VM hook management" "operation=$operation,vm_id=$vm_id"
+    aux_dbg "Hook script path: $hook_script, Lib ops dir: $lib_ops_dir"
+
+    # Ensure the directory for Proxmox snippets exists, creating it if necessary
+    local snippets_dir="/var/lib/vz/snippets"
+    if ! aux_chk "dir_exists" "$snippets_dir"; then
+        aux_info "Creating Proxmox snippets directory" "directory=$snippets_dir"
+        if aux_cmd "mkdir" "-p" "$snippets_dir"; then
+            aux_info "Snippets directory created successfully" "directory=$snippets_dir"
+        else
+            aux_err "Failed to create snippets directory" "directory=$snippets_dir"
+            return 2
         fi
     fi
 
@@ -734,6 +848,7 @@ pve_vmd() {
     # The script is written in Perl and logs its activity.
     # On VM 'post-stop', it executes 'gpu_pta' to handle GPU reattachment.
     create_or_update_hook_script() {
+        aux_dbg "Creating hook script" "script_path=$hook_script"
         if ! cat > "$hook_script" << EOL
 #!/usr/bin/perl
 
@@ -758,15 +873,16 @@ if (\$phase eq 'post-stop') {
 close(\$log);
 EOL
         then
-            echo "Error: Failed to create or update hook script. Aborting."
-            return 1
+            aux_err "Failed to create or update hook script" "script_path=$hook_script"
+            return 2
         fi
 
-        if ! chmod 755 "$hook_script"; then
-            echo "Error: Failed to set permissions on hook script. Aborting."
-            return 1
+        if aux_cmd "chmod" "755" "$hook_script"; then
+            aux_info "Hook script created/updated and made executable" "script_path=$hook_script"
+        else
+            aux_err "Failed to set permissions on hook script" "script_path=$hook_script"
+            return 2
         fi
-        echo "Hook script created/updated and made executable."
     }
 
     # Create or update hook script
@@ -775,41 +891,70 @@ EOL
     fi
 
     if [ "$operation" = "debug" ]; then
-        echo "Debugging hook setup:"
-        echo "1. Checking hook script existence and permissions:"
-        ls -l "$hook_script"
-        echo "2. Checking hook script content:"
-        cat "$hook_script"
-        echo "3. Checking Proxmox VM configurations for hook references:"
-        grep -r "hookscript" /etc/pve/qemu-server/
-        echo "4. Manually triggering hook script:"
-        perl "$hook_script" "$vm_id" "post-stop"
-        echo "5. Checking log file:"
-        cat /var/log/gpu-reattach-hook.log
+        aux_info "Starting debug mode for hook setup" "vm_id=$vm_id"
+        
+        aux_info "Checking hook script existence and permissions"
+        if aux_cmd "ls" "-l" "$hook_script"; then
+            aux_info "Hook script permissions checked"
+        else
+            aux_warn "Hook script not found or permission issue" "script=$hook_script"
+        fi
+        
+        aux_info "Checking hook script content"
+        if aux_cmd "cat" "$hook_script"; then
+            aux_info "Hook script content displayed"
+        else
+            aux_warn "Could not display hook script content" "script=$hook_script"
+        fi
+        
+        aux_info "Checking Proxmox VM configurations for hook references"
+        if aux_cmd "grep" "-r" "hookscript" "/etc/pve/qemu-server/"; then
+            aux_info "Hook references found in VM configurations"
+        else
+            aux_warn "No hook references found in VM configurations"
+        fi
+        
+        aux_info "Manually triggering hook script for testing" "vm_id=$vm_id"
+        if aux_cmd "perl" "$hook_script" "$vm_id" "post-stop"; then
+            aux_info "Hook script test execution completed"
+        else
+            aux_warn "Hook script test execution failed"
+        fi
+        
+        aux_info "Checking log file contents"
+        if aux_cmd "cat" "/var/log/gpu-reattach-hook.log"; then
+            aux_info "Log file contents displayed"
+        else
+            aux_warn "Could not display log file contents" "log_file=/var/log/gpu-reattach-hook.log"
+        fi
+        
         return 0
     fi
 
     # Perform operation
     case "$operation" in
         add)
-            if qm set "$vm_id" -hookscript "local:snippets/$(basename "$hook_script")"; then
-                echo "Hook applied to VM $vm_id"
+            local hook_name="local:snippets/$(basename "$hook_script")"
+            aux_info "Adding hook to VM" "vm_id=$vm_id,hook_script=$hook_name"
+            if aux_cmd "qm" "set" "$vm_id" "-hookscript" "$hook_name"; then
+                aux_info "Hook applied to VM successfully" "vm_id=$vm_id,hook_script=$hook_name"
             else
-                echo "Failed to apply hook to VM $vm_id"
-                return 1
+                aux_err "Failed to apply hook to VM" "vm_id=$vm_id,hook_script=$hook_name"
+                return 2
             fi
             ;;
         remove)
-            if qm set "$vm_id" -delete hookscript; then
-                echo "Hook removed from VM $vm_id"
+            aux_info "Removing hook from VM" "vm_id=$vm_id"
+            if aux_cmd "qm" "set" "$vm_id" "-delete" "hookscript"; then
+                aux_info "Hook removed from VM successfully" "vm_id=$vm_id"
             else
-                echo "Failed to remove hook from VM $vm_id"
-                return 1
+                aux_err "Failed to remove hook from VM" "vm_id=$vm_id"
+                return 2
             fi
             ;;
     esac
 
-    aux_log "INFO" "$function_name: Hook $operation completed for VM $vm_id"
+    aux_info "Hook operation completed successfully" "operation=$operation,vm_id=$vm_id"
 }
 
 # Sets up different virtual machines specified in cfg/env/site.
@@ -874,23 +1019,56 @@ pve_vmc() {
     local balloon="${16}"
     local net="${17}"
 
-    qm create "$id" \
-        --name "$name" \
-        --ostype "$ostype" \
-        --machine "$machine" \
-        --ide2 "$iso,media=cdrom" \
-        --boot "$boot" \
-        --bios "$bios" \
-        --efidisk0 "$efidisk" \
-        --scsihw "$scsihw" \
-        --agent "$agent" \
-        --scsi0 "$disk" \
-        --sockets "$sockets" \
-        --cores "$cores" \
-        --cpu "$cpu" \
-        --memory "$memory" \
-        --balloon "$balloon" \
-        --net0 "$net"
+    # Critical parameter validation
+    if ! aux_val "$id" "not_empty"; then
+        aux_err "VM ID cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$id" "numeric"; then
+        aux_err "VM ID must be numeric: $id"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$name" "not_empty"; then
+        aux_err "VM name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks
+    if ! aux_chk "command" "qm"; then
+        aux_err "qm command not found - Proxmox VE required"
+        return 127
+    fi
+    
+    aux_info "Creating QEMU/KVM virtual machine" "id=$id,name=$name,ostype=$ostype"
+    aux_dbg "VM configuration" "machine=$machine,memory=$memory,cpu=$cpu,cores=$cores"
+    
+    if aux_cmd "qm" "create" "$id" \
+        "--name" "$name" \
+        "--ostype" "$ostype" \
+        "--machine" "$machine" \
+        "--ide2" "$iso,media=cdrom" \
+        "--boot" "$boot" \
+        "--bios" "$bios" \
+        "--efidisk0" "$efidisk" \
+        "--scsihw" "$scsihw" \
+        "--agent" "$agent" \
+        "--scsi0" "$disk" \
+        "--sockets" "$sockets" \
+        "--cores" "$cores" \
+        "--cpu" "$cpu" \
+        "--memory" "$memory" \
+        "--balloon" "$balloon" \
+        "--net0" "$net"; then
+        aux_info "VM created successfully" "id=$id,name=$name"
+    else
+        aux_err "Failed to create VM" "id=$id,name=$name"
+        return 2
+    fi
 }
 
 # Starts a VM on the current node or migrates it from another node, with an option to shut down the source node after migration
@@ -949,36 +1127,92 @@ pve_vms() {
 
     local hostname=$(hostname)
 
-    # Check if vm_id argument is provided
-    if [ -z "$vm_id" ]; then
+    # Parameter validation
+    if ! aux_val "$vm_id" "not_empty"; then
+        aux_err "VM ID cannot be empty"
         aux_use
         return 1
     fi
+    
+    if ! aux_val "$vm_id" "numeric"; then
+        aux_err "VM ID must be numeric: $vm_id"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$cluster_nodes_str" "not_empty"; then
+        aux_err "Cluster nodes parameter cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks
+    if ! aux_chk "command" "qm"; then
+        aux_err "qm command not found - Proxmox VE required"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "hostname"; then
+        aux_err "hostname command not found"
+        return 127
+    fi
+    
+    aux_info "Starting VM management operation" "vm_id=$vm_id,operation=start_or_migrate"
+    aux_dbg "Cluster nodes: $cluster_nodes_str"
 
     # Call pve_vck function to get node_id
+    aux_dbg "Checking VM location across cluster nodes"
     local node_id=$(pve_vck "$vm_id" "$cluster_nodes_str")
 
     # Check if node_id is empty
     if [ -z "$node_id" ]; then
-        echo "Node ID is empty. Cannot proceed."
+        aux_err "VM not found on any cluster node" "vm_id=$vm_id"
         return 1
     fi
+    
+    aux_info "VM found on cluster node" "vm_id=$vm_id,node_id=$node_id"
 
     # Main logic
     if [ "$hostname" = "$node_id" ]; then
-        qm start "$vm_id"
+        aux_info "VM is on local node, starting directly" "vm_id=$vm_id,node=$hostname"
+        if aux_cmd "qm" "start" "$vm_id"; then
+            aux_info "VM started successfully" "vm_id=$vm_id"
+        else
+            aux_err "Failed to start VM" "vm_id=$vm_id"
+            return 2
+        fi
+        
         if [ "$shutdown_flag" = "s" ]; then
-            # Shutdown the other node
-            echo "Shutting down node $node_id"
-            ssh "root@$node_id" "shutdown now"
+            aux_info "Shutting down local node as requested" "node=$node_id"
+            if aux_cmd "ssh" "root@$node_id" "shutdown now"; then
+                aux_info "Node shutdown initiated" "node=$node_id"
+            else
+                aux_warn "Failed to initiate node shutdown" "node=$node_id"
+            fi
         fi 
     else
-        pve_vmg "$vm_id" "$cluster_nodes_str" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
-        qm start "$vm_id"
-        if [ "$shutdown_flag" = "s" ]; then
-            # Shutdown the other node
-            echo "Shutting down node $node_id"
-            ssh "root@$node_id" "shutdown now"
+        aux_info "VM is on remote node, migrating to local node" "vm_id=$vm_id,from_node=$node_id,to_node=$hostname"
+        if pve_vmg "$vm_id" "$cluster_nodes_str" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"; then
+            aux_info "VM migration completed successfully"
+            
+            if aux_cmd "qm" "start" "$vm_id"; then
+                aux_info "VM started successfully after migration" "vm_id=$vm_id"
+            else
+                aux_err "Failed to start VM after migration" "vm_id=$vm_id"
+                return 2
+            fi
+            
+            if [ "$shutdown_flag" = "s" ]; then
+                aux_info "Shutting down source node as requested" "node=$node_id"
+                if aux_cmd "ssh" "root@$node_id" "shutdown now"; then
+                    aux_info "Source node shutdown initiated" "node=$node_id"
+                else
+                    aux_warn "Failed to initiate source node shutdown" "node=$node_id"
+                fi
+            fi
+        else
+            aux_err "VM migration failed" "vm_id=$vm_id,from_node=$node_id"
+            return 2
         fi
     fi
 }
@@ -1032,35 +1266,74 @@ pve_vmg() {
     local usb_devices_str="$7"
     local pve_conf_path="$8"
 
+    # Parameter validation
+    if ! aux_val "$vm_id" "numeric"; then
+        aux_err "VM ID must be numeric: $vm_id"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$cluster_nodes_str" "not_empty"; then
+        aux_err "Cluster nodes parameter cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks
+    if ! aux_chk "command" "ssh"; then
+        aux_err "ssh command not found - required for remote operations"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "hostname"; then
+        aux_err "hostname command not found"
+        return 127
+    fi
+    
+    local current_hostname=$(hostname)
+    aux_info "Starting VM migration process" "vm_id=$vm_id,target_node=$current_hostname"
+    aux_dbg "Migration parameters" "pci0_id=$pci0_id,pci1_id=$pci1_id,core_count_on=$core_count_on,core_count_off=$core_count_off"
+
     # Call pve_vck to check if VM exists and get the node
+    aux_dbg "Locating VM on cluster nodes"
     local node=$(pve_vck "$vm_id" "$cluster_nodes_str")
+    
     if [ -n "$node" ]; then
-        echo "VM found on node: $node"
+        aux_info "VM found on source node" "vm_id=$vm_id,source_node=$node"
 
         # Disable PCIe passthrough for the VM on the remote node
-        if ! ssh "$node" "source \${LIB_OPS_DIR}/pve && pve_vpt $vm_id off $pci0_id $pci1_id $core_count_on $core_count_off \"$usb_devices_str\" $pve_conf_path"; then
-            echo "Failed to disable PCIe passthrough for VM on $node." >&2
-            return 1
+        aux_info "Disabling PCIe passthrough on source node" "vm_id=$vm_id,source_node=$node"
+        if aux_cmd "ssh" "$node" "source \${LIB_OPS_DIR}/pve && pve_vpt $vm_id off $pci0_id $pci1_id $core_count_on $core_count_off \"$usb_devices_str\" $pve_conf_path"; then
+            aux_info "PCIe passthrough disabled successfully on source node" "vm_id=$vm_id,source_node=$node"
+        else
+            aux_err "Failed to disable PCIe passthrough for VM on source node" "vm_id=$vm_id,source_node=$node"
+            return 2
         fi
 
         # Migrate the VM to the current node
-        if ! ssh "$node" "qm migrate $vm_id $(hostname)"; then
-            echo "Failed to migrate VM from $node to $(hostname)." >&2
-            return 1
+        aux_info "Migrating VM to current node" "vm_id=$vm_id,from=$node,to=$current_hostname"
+        if aux_cmd "ssh" "$node" "qm migrate $vm_id $current_hostname"; then
+            aux_info "VM migration completed successfully" "vm_id=$vm_id,from=$node,to=$current_hostname"
+        else
+            aux_err "Failed to migrate VM" "vm_id=$vm_id,from=$node,to=$current_hostname"
+            return 2
         fi
 
         # Enable PCIe passthrough for the VM on the current node
-        if ! pve_vpt "$vm_id" on "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"; then
-            echo "Failed to enable PCIe passthrough for VM on $(hostname)." >&2
-            return 1
+        aux_info "Enabling PCIe passthrough on target node" "vm_id=$vm_id,target_node=$current_hostname"
+        if pve_vpt "$vm_id" on "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"; then
+            aux_info "PCIe passthrough enabled successfully on target node" "vm_id=$vm_id,target_node=$current_hostname"
+        else
+            aux_err "Failed to enable PCIe passthrough for VM on target node" "vm_id=$vm_id,target_node=$current_hostname"
+            return 2
         fi
 
-        echo "VM migrated and PCIe passthrough enabled."
-        return 0  # Return success once VM is found and migrated
+        aux_info "VM migration and PCIe passthrough configuration completed successfully" "vm_id=$vm_id"
+        return 0
     fi
 
-    echo "VM not found on any other node."
-    return 1  # Return failure if VM is not found
+    aux_warn "VM not found on any cluster node" "vm_id=$vm_id"
+    return 1
 }
 
 # Toggles PCIe passthrough configuration for a specified VM, modifying its configuration file to enable or disable passthrough devices
@@ -1110,81 +1383,200 @@ pve_vpt() {
     local usb_devices_str="$7"
     local pve_conf_path="$8"
     
-    local vm_conf="$pve_conf_path/$vm_id.conf"
-    
-    # Validate required parameters
-    if [[ -z "$vm_id" || -z "$action" || -z "$pci0_id" || -z "$pci1_id" || -z "$core_count_on" || -z "$core_count_off" || -z "$pve_conf_path" ]]; then
+    # Comprehensive parameter validation
+    if ! aux_val "$vm_id" "not_empty"; then
+        aux_err "VM ID cannot be empty"
         aux_use
         return 1
     fi
     
-    # Parse USB devices string into array
-    # The usb_devices_str contains newline-separated USB device definitions,
-    # where each device definition may contain spaces (e.g., "usb1: host=3-1")
+    if ! aux_val "$vm_id" "numeric"; then
+        aux_err "VM ID must be numeric: $vm_id"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$action" "not_empty"; then
+        aux_err "Action parameter cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if [[ "$action" != "on" && "$action" != "off" ]]; then
+        aux_err "Action must be 'on' or 'off'" "action=$action"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$pci0_id" "not_empty"; then
+        aux_err "PCI0 ID cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$pci1_id" "not_empty"; then
+        aux_err "PCI1 ID cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$core_count_on" "numeric"; then
+        aux_err "Core count (on) must be numeric: $core_count_on"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$core_count_off" "numeric"; then
+        aux_err "Core count (off) must be numeric: $core_count_off"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$pve_conf_path" "not_empty"; then
+        aux_err "PVE configuration path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_chk "dir_exists" "$pve_conf_path"; then
+        aux_err "PVE configuration directory does not exist" "path=$pve_conf_path"
+        return 2
+    fi
+    
+    aux_info "Starting PCIe passthrough toggle" "vm_id=$vm_id,action=$action"
+    aux_dbg "Passthrough configuration" "pci0_id=$pci0_id,pci1_id=$pci1_id,core_on=$core_count_on,core_off=$core_count_off"
+    
+    local vm_conf="$pve_conf_path/$vm_id.conf"
+    
+    # Check if VM configuration file exists
+    if ! aux_chk "file_exists" "$vm_conf"; then
+        aux_err "VM configuration file does not exist" "vm_id=$vm_id,config_file=$vm_conf"
+        return 2
+    fi
+    
+    # Parse USB devices string into array using aux_arr utilities
     local usb_devices=()
     if [ -n "$usb_devices_str" ]; then
+        aux_dbg "Parsing USB devices configuration" "usb_devices_input=$usb_devices_str"
         # Read the newline-separated string into an array
         while IFS= read -r line; do
-            [[ -n "$line" ]] && usb_devices+=("$line")
+            if [[ -n "$line" ]]; then
+                aux_arr "add" "usb_devices" "$line"
+                aux_dbg "Added USB device to configuration" "device=$line"
+            fi
         done <<< "$usb_devices_str"
+        
+        local device_count=$(aux_arr "length" "usb_devices")
+        aux_dbg "USB devices parsed" "count=$device_count"
     fi
 
     # Find the starting line of the VM configuration section
-    local section_start=$(awk '/^\[/{print NR-1; exit}' "$vm_conf")
+    aux_dbg "Analyzing VM configuration file structure" "config_file=$vm_conf"
+    local section_start
+    if ! section_start=$(aux_cmd "awk" "/^\\[/{print NR-1; exit}" "$vm_conf"); then
+        aux_warn "Could not analyze configuration file structure" "config_file=$vm_conf"
+        section_start=""
+    fi
+    aux_dbg "Configuration section analysis" "section_start=$section_start"
 
     # Action based on the parameter
     case "$action" in
         on)
             # Set core count based on configuration when toggled on
-            sed -i "s/cores:.*/cores: $core_count_on/" "$vm_conf"
+            aux_info "Setting VM cores for passthrough-on mode" "vm_id=$vm_id,cores=$core_count_on"
+            if aux_cmd "sed" "-i" "s/cores:.*/cores: $core_count_on/" "$vm_conf"; then
+                aux_dbg "Core count updated successfully" "cores=$core_count_on"
+            else
+                aux_err "Failed to update core count" "cores=$core_count_on"
+                return 2
+            fi
 
             # Add passthrough lines
             if [ -z "$section_start" ]; then
                 # If no section found, append passthrough lines at the end of the file
+                aux_dbg "Adding USB devices to end of configuration file" "vm_conf=$vm_conf"
                 for usb_device in "${usb_devices[@]}"; do
-                    [[ -n "$usb_device" ]] && printf '%s\n' "$usb_device" >> "$vm_conf"
+                    if [[ -n "$usb_device" ]]; then
+                        if ! aux_cmd "sh" "-c" "echo '$usb_device' >> '$vm_conf'"; then
+                            aux_err "Failed to add USB device to configuration" "device=$usb_device"
+                            return 2
+                        fi
+                        aux_dbg "Added USB device" "device=$usb_device"
+                    fi
                 done
-                echo "hostpci0: $pci0_id,pcie=1,x-vga=1" >> "$vm_conf"
-                echo "hostpci1: $pci1_id,pcie=1" >> "$vm_conf"
+                if ! aux_cmd "sh" "-c" "echo 'hostpci0: $pci0_id,pcie=1,x-vga=1' >> '$vm_conf'" ||
+                   ! aux_cmd "sh" "-c" "echo 'hostpci1: $pci1_id,pcie=1' >> '$vm_conf'"; then
+                    aux_err "Failed to add PCI passthrough configuration" "vm_id=$vm_id"
+                    return 2
+                fi
             else
                 # If a section is found, insert passthrough lines at the appropriate position
                 # Create a temporary file for safe insertion
                 temp_file="${vm_conf}.tmp"
                 
                 # Copy everything up to the insertion point
-                head -n "$section_start" "$vm_conf" > "$temp_file"
+                if ! aux_cmd "head" "-n" "$section_start" "$vm_conf"; then
+                    aux_err "Failed to copy configuration file header" "vm_conf=$vm_conf,temp_file=$temp_file"
+                    return 2
+                fi > "$temp_file"
                 
                 # Add USB devices
+                aux_dbg "Adding USB devices to temporary configuration file" "temp_file=$temp_file"
                 for usb_device in "${usb_devices[@]}"; do
                     if [[ -n "$usb_device" ]]; then
-                        printf '%s\n' "$usb_device" >> "$temp_file"
+                        if ! aux_cmd "sh" "-c" "echo '$usb_device' >> '$temp_file'"; then
+                            aux_err "Failed to add USB device to temp file" "device=$usb_device,temp_file=$temp_file"
+                            return 2
+                        fi
+                        aux_dbg "Added USB device to temp file" "device=$usb_device"
                     fi
                 done
                 
                 # Add PCI devices
-                echo "hostpci0: $pci0_id,pcie=1,x-vga=1" >> "$temp_file"
-                echo "hostpci1: $pci1_id,pcie=1" >> "$temp_file"
+                if ! aux_cmd "sh" "-c" "echo 'hostpci0: $pci0_id,pcie=1,x-vga=1' >> '$temp_file'" ||
+                   ! aux_cmd "sh" "-c" "echo 'hostpci1: $pci1_id,pcie=1' >> '$temp_file'"; then
+                    aux_err "Failed to add PCI configuration to temp file" "temp_file=$temp_file"
+                    return 2
+                fi
                 
                 # Copy the rest of the file
-                tail -n +$((section_start + 1)) "$vm_conf" >> "$temp_file"
+                if ! aux_cmd "tail" "-n" "+$((section_start + 1))" "$vm_conf"; then
+                    aux_err "Failed to copy remainder of configuration file" "vm_conf=$vm_conf,temp_file=$temp_file"
+                    return 2
+                fi >> "$temp_file"
                 
                 # Replace the original file
-                mv "$temp_file" "$vm_conf"
+                if aux_cmd "mv" "$temp_file" "$vm_conf"; then
+                    aux_dbg "Configuration file updated successfully" "temp_file=$temp_file,vm_conf=$vm_conf"
+                else
+                    aux_err "Failed to update configuration file" "temp_file=$temp_file,vm_conf=$vm_conf"
+                    return 2
+                fi
             fi
 
-            echo "Passthrough lines added to $vm_conf."
+            aux_info "Passthrough configuration enabled successfully" "vm_id=$vm_id,config_file=$vm_conf"
             ;;
         off)
             # Set default core count when toggled off
-            sed -i "s/cores:.*/cores: $core_count_off/" "$vm_conf"
+            aux_info "Setting VM cores for passthrough-off mode" "vm_id=$vm_id,cores=$core_count_off"
+            if aux_cmd "sed" "-i" "s/cores:.*/cores: $core_count_off/" "$vm_conf"; then
+                aux_dbg "Core count updated successfully" "cores=$core_count_off"
+            else
+                aux_err "Failed to update core count" "cores=$core_count_off"
+                return 2
+            fi
 
             # Remove passthrough lines and orphaned host= lines
-            sed -i '/^usb[0-9]*:/d; /^hostpci[0-9]*:/d; /^host=/d' "$vm_conf"
-
-            echo "Passthrough lines removed from $vm_conf."
+            aux_info "Removing passthrough configuration from VM" "vm_id=$vm_id"
+            if aux_cmd "sed" "-i" "/^usb[0-9]*:/d; /^hostpci[0-9]*:/d; /^host=/d" "$vm_conf"; then
+                aux_info "Passthrough configuration removed successfully" "vm_id=$vm_id,config_file=$vm_conf"
+            else
+                aux_err "Failed to remove passthrough configuration" "vm_id=$vm_id,config_file=$vm_conf"
+                return 2
+            fi
             ;;
         *)
-            echo "Invalid parameter. Usage: pve_vpt <VM_ID> <on|off>"
+            aux_err "Invalid action parameter" "action=$action,valid_actions=on,off"
             aux_use
             return 1
             ;;
@@ -1245,60 +1637,76 @@ pve_vck() {
     IFS=' ' read -ra cluster_nodes <<< "$cluster_nodes_str"
     
     if [ ${#cluster_nodes[@]} -eq 0 ]; then
-        echo "ERR: pve_vck: cluster_nodes array is empty." >&2
-        aux_dbg "cluster_nodes array is empty"
+        aux_err "Cluster nodes array is empty after parsing" "cluster_nodes_str=$cluster_nodes_str"
         return 1
     fi
     
-    aux_dbg "cluster_nodes: (${cluster_nodes[*]})"
+    aux_dbg "Parsed cluster nodes" "cluster_nodes=(${cluster_nodes[*]}),count=${#cluster_nodes[@]}"
 
     local current_hostname
-    current_hostname=$(hostname)
-    aux_dbg "current_hostname: $current_hostname"
+    if ! current_hostname=$(aux_cmd "hostname"); then
+        aux_err "Failed to determine current hostname"
+        return 2
+    fi
+    aux_dbg "Current hostname determined" "hostname=$current_hostname"
 
+    # Dependency checks
+    if ! aux_chk "command" "qm"; then
+        aux_err "qm command not found - Proxmox VE required"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "ssh"; then
+        aux_err "ssh command not found - required for remote node checks"
+        return 127
+    fi
+    
+    aux_info "Starting VM location search across cluster" "vm_id=$vm_id,node_count=${#cluster_nodes[@]}"
+    
     for node in "${cluster_nodes[@]}"; do
-        echo "DEBUG: pve_vck: checking node: $node" >&2
+        aux_dbg "Checking node for VM" "node=$node,vm_id=$vm_id"
         local qm_list_output
+        
         if [ "$node" != "$current_hostname" ]; then
-            echo "DEBUG: pve_vck: checking remote node $node via ssh qm list for vm_id $vm_id" >&2
+            aux_dbg "Checking remote node via SSH" "node=$node,vm_id=$vm_id"
             # Capture output and errors from ssh command
-            qm_list_output=$(ssh "$node" "qm list")
-            local ssh_exit_code=$?
-            echo "DEBUG: pve_vck: ssh $node \\"qm list\\" exit code: $ssh_exit_code" >&2
-            echo "DEBUG: pve_vck: output from ssh $node \\"qm list\\":" >&2
-            echo "$qm_list_output" >&2 # Print the raw output
-
-            if [ $ssh_exit_code -eq 0 ] && echo "$qm_list_output" | grep -q -w -- "$vm_id"; then
-                echo "DEBUG: pve_vck: VM $vm_id found on remote node $node" >&2
-                found_node="$node"
-                break
+            if qm_list_output=$(aux_cmd "ssh" "$node" "qm list"); then
+                aux_dbg "SSH qm list successful" "node=$node"
+                
+                if echo "$qm_list_output" | aux_cmd "grep" "-q" "-w" "--" "$vm_id"; then
+                    aux_info "VM found on remote node" "vm_id=$vm_id,node=$node"
+                    found_node="$node"
+                    break
+                else
+                    aux_dbg "VM not found on remote node" "vm_id=$vm_id,node=$node"
+                fi
             else
-                echo "DEBUG: pve_vck: VM $vm_id NOT found on remote node $node (ssh qm list or grep failed)" >&2
+                aux_warn "Failed to execute qm list on remote node" "node=$node"
             fi
         else
-            echo "DEBUG: pve_vck: checking local node $node via qm list for vm_id $vm_id" >&2
-            qm_list_output=$(qm list)
-            local qm_exit_code=$?
-            echo "DEBUG: pve_vck: local qm list exit code: $qm_exit_code" >&2
-            echo "DEBUG: pve_vck: output from local qm list:" >&2
-            echo "$qm_list_output" >&2 # Print the raw output
-
-            if [ $qm_exit_code -eq 0 ] && echo "$qm_list_output" | grep -q -w -- "$vm_id"; then
-                echo "DEBUG: pve_vck: VM $vm_id found on local node $node" >&2
-                found_node="$node"
-                break
+            aux_dbg "Checking local node" "node=$node,vm_id=$vm_id"
+            if qm_list_output=$(aux_cmd "qm" "list"); then
+                aux_dbg "Local qm list successful"
+                
+                if echo "$qm_list_output" | aux_cmd "grep" "-q" "-w" "--" "$vm_id"; then
+                    aux_info "VM found on local node" "vm_id=$vm_id,node=$node"
+                    found_node="$node"
+                    break
+                else
+                    aux_dbg "VM not found on local node" "vm_id=$vm_id,node=$node"
+                fi
             else
-                echo "DEBUG: pve_vck: VM $vm_id NOT found on local node $node (local qm list or grep failed)" >&2
+                aux_warn "Failed to execute qm list on local node" "node=$node"
             fi
         fi
     done
 
     if [ -n "$found_node" ]; then
-        echo "DEBUG: pve_vck: final found_node: $found_node, returning 0" >&2
+        aux_info "VM location search completed successfully" "vm_id=$vm_id,found_node=$found_node"
         echo "$found_node" # This is the actual output for command substitution
         return 0
     else
-        echo "DEBUG: pve_vck: VM $vm_id not found on any cluster node, returning 1" >&2
+        aux_warn "VM not found on any cluster node" "vm_id=$vm_id,nodes_checked=${#cluster_nodes[@]}"
         # No stdout echo here, so command substitution gets empty string
         return 1
     fi
