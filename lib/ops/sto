@@ -123,39 +123,90 @@ sto_fea() {
         aux_err "grep command not found - required for device filtering"
         return 127
     fi
+    
+    # Check root privileges for fstab modifications
+    if [ "$EUID" -ne 0 ]; then
+        aux_err "Root privileges required for fstab operations"
+        return 1
+    fi
 
     # Perform blkid and filter entries with sd*
-    blkid_output=$(blkid | grep '/dev/sd*')
+    aux_info "Starting device scan" "operation=blkid,filter=sd*"
+    if ! blkid_output=$(aux_cmd "blkid"); then
+        aux_err "Failed to execute blkid command"
+        return 2
+    fi
+    
+    blkid_output=$(echo "$blkid_output" | grep '/dev/sd*')
+    
+    # Validate scan results
+    if [[ -z "$blkid_output" ]]; then
+        aux_warn "No sd* devices found during scan"
+        return 1
+    fi
 
     # Display filtered results
-    aux_info "Scanning storage devices" "filter=sd*"
+    aux_info "Device scan completed" "devices_found=$(echo "$blkid_output" | wc -l)"
     echo "Filtered entries with sd*:"
     echo "$blkid_output"
 
-    # Prompt for the line number
-    read -p "Enter the line number to retrieve the UUID: " line_number
+    # Interactive device selection with validation
+    local line_number
+    line_number=$(aux_ask "Enter the line number to retrieve the UUID" "" "numeric")
+    
+    if ! aux_val "$line_number" "numeric"; then
+        aux_err "Line number must be numeric: $line_number"
+        return 1
+    fi
 
     # Retrieve UUID based on the chosen line number
     chosen_line=$(echo "$blkid_output" | sed -n "${line_number}p")
+    
+    if [[ -z "$chosen_line" ]]; then
+        aux_err "Invalid line number - no device found" "line=$line_number"
+        return 1
+    fi
 
     # Extract UUID from the chosen line
     TARGET_UUID=$(echo "$chosen_line" | grep -oP ' UUID="\K[^"]*')
+    
+    if [[ -z "$TARGET_UUID" ]]; then
+        aux_err "No UUID found in selected device" "line=$line_number"
+        return 1
+    fi
 
-    aux_info "UUID selected" "uuid=$TARGET_UUID"
+    aux_info "UUID selected" "uuid=$TARGET_UUID,device_line=$line_number"
 
     # Check if the device's UUID is already present in /etc/fstab
-    if grep -q "UUID=$TARGET_UUID" /etc/fstab; then
+    if aux_chk "file_exists" "/etc/fstab" && grep -q "UUID=$TARGET_UUID" /etc/fstab; then
         aux_warn "UUID already exists in fstab" "uuid=$TARGET_UUID"
-    else
-        # Check if the script is run as root
-        if [ "$EUID" -ne 0 ]; then
-            aux_err "Root privileges required for fstab modification"
-            return 1
-        fi
+        return 0
+    fi
 
-        # Append entry to /etc/fstab for auto-mounting
-        echo "UUID=$TARGET_UUID /mnt/auto auto defaults 0 0" >> /etc/fstab
-        aux_info "Fstab entry added" "uuid=$TARGET_UUID,mountpoint=/mnt/auto"
+    # Create mount directory if it doesn't exist
+    if ! aux_chk "dir_exists" "/mnt/auto"; then
+        aux_info "Creating mount directory" "path=/mnt/auto"
+        if ! aux_cmd "mkdir" "-p" "/mnt/auto"; then
+            aux_err "Failed to create mount directory" "path=/mnt/auto"
+            return 2
+        fi
+    fi
+
+    # Backup existing fstab before modification
+    local backup_file="/etc/fstab.backup.$(date +%s)"
+    aux_info "Creating fstab backup" "backup_file=$backup_file"
+    if ! aux_cmd "cp" "/etc/fstab" "$backup_file"; then
+        aux_err "Failed to create fstab backup"
+        return 2
+    fi
+
+    # Append entry to /etc/fstab for auto-mounting
+    local fstab_entry="UUID=$TARGET_UUID /mnt/auto auto defaults 0 0"
+    if echo "$fstab_entry" >> /etc/fstab; then
+        aux_info "Fstab entry added successfully" "uuid=$TARGET_UUID,mountpoint=/mnt/auto,backup=$backup_file"
+    else
+        aux_err "Failed to add fstab entry" "uuid=$TARGET_UUID"
+        return 2
     fi
 }
 
@@ -253,23 +304,65 @@ sto_fec() {
     aux_err "sed command not found - required for UUID extraction"
     return 127
   fi
+  
+  if ! aux_chk "command" "nl"; then
+    aux_err "nl command not found - required for device listing"
+    return 127
+  fi
 
-  # Extract the UUID based on the specified line number
-  uuid=$(blkid | sed -n "${line_number}s/.*UUID=\"\([^\"]*\)\".*/\1/p")
+  # Extract the UUID based on the specified line number with enhanced error handling
+  aux_info "Extracting UUID from device list" "line_number=$line_number"
+  
+  local blkid_output
+  if ! blkid_output=$(aux_cmd "blkid"); then
+    aux_err "Failed to execute blkid command"
+    return 2
+  fi
+  
+  uuid=$(echo "$blkid_output" | sed -n "${line_number}s/.*UUID=\"\([^\"]*\)\".*/\1/p")
   if [ -z "$uuid" ]; then
     aux_err "No UUID found at specified line" "line=$line_number"
+    aux_info "Available devices:" 
+    echo "$blkid_output" | nl -v 1
     return 1
   fi
 
-  aux_info "Creating fstab entry" "uuid=$uuid,mountpoint=$mount_point,filesystem=$filesystem"
+  aux_info "UUID extracted successfully" "uuid=$uuid,line=$line_number"
+  aux_info "Creating fstab entry" "uuid=$uuid,mountpoint=$mount_point,filesystem=$filesystem,options=$mount_options"
+
+  # Check if mount point directory exists, create if needed
+  if ! aux_chk "dir_exists" "$mount_point"; then
+    aux_info "Creating mount point directory" "path=$mount_point"
+    if ! aux_cmd "mkdir" "-p" "$mount_point"; then
+      aux_err "Failed to create mount point directory" "path=$mount_point"
+      return 2
+    fi
+  fi
+
+  # Create backup of fstab before modification
+  local backup_file="/etc/fstab.backup.$(date +%s)"
+  aux_info "Creating fstab backup" "backup_file=$backup_file"
+  if ! aux_cmd "cp" "/etc/fstab" "$backup_file"; then
+    aux_err "Failed to create fstab backup"
+    return 2
+  fi
 
   # Create the fstab entry
   fstab_entry="UUID=${uuid} ${mount_point} ${filesystem} ${mount_options} ${fsck_pass_number} ${mount_at_boot_priority}"
 
-  # Append the entry to /etc/fstab
-  echo "$fstab_entry" >> /etc/fstab
+  # Check if UUID already exists in fstab
+  if aux_chk "file_exists" "/etc/fstab" && grep -q "UUID=$uuid" /etc/fstab; then
+    aux_warn "UUID already exists in fstab" "uuid=$uuid"
+    return 0
+  fi
 
-  aux_info "Fstab entry created successfully" "entry=$fstab_entry"
+  # Append the entry to /etc/fstab
+  if echo "$fstab_entry" >> /etc/fstab; then
+    aux_info "Fstab entry created successfully" "entry=$fstab_entry,backup=$backup_file"
+  else
+    aux_err "Failed to append entry to fstab" "entry=$fstab_entry"
+    return 2
+  fi
 }
 
 # Mounts an NFS share interactively or with provided arguments
@@ -347,32 +440,75 @@ sto_nfs() {
         aux_err "mkdir command not found - required for mount point creation"
         return 127
     fi
-
-    # Create the mount point if it doesn't exist
-    if [ ! -d "$mount_point" ]; then
-        aux_info "Creating mount point" "path=$mount_point"
-        sudo mkdir -p "$mount_point"
+    
+    if ! aux_chk "command" "sudo"; then
+        aux_err "sudo command not found - required for privileged operations"
+        return 127
+    fi
+    
+    # Test network connectivity to NFS server
+    aux_info "Testing network connectivity" "server=$server_ip"
+    if ! aux_chk "network" "$server_ip"; then
+        aux_warn "Network connectivity test failed" "server=$server_ip"
+        local confirm=$(aux_ask "Continue despite network test failure?" "no" "alpha")
+        if [[ "$confirm" != "yes" ]]; then
+            aux_err "Operation aborted due to network connectivity issues"
+            return 1
+        fi
+    else
+        aux_info "Network connectivity confirmed" "server=$server_ip"
     fi
 
-    aux_info "Starting NFS mount operation" "server=$server_ip,share=$shared_folder,mountpoint=$mount_point"
-    
-    # Perform the mount
-    if sudo mount -t nfs -o "$options" "${server_ip}:${shared_folder}" "$mount_point"; then
-        aux_info "NFS mount successful" "mountpoint=$mount_point"
+    # Create the mount point if it doesn't exist
+    if ! aux_chk "dir_exists" "$mount_point"; then
+        aux_info "Creating mount point" "path=$mount_point"
+        if ! aux_cmd "sudo" "mkdir" "-p" "$mount_point"; then
+            aux_err "Failed to create mount point" "path=$mount_point"
+            return 2
+        fi
+        aux_info "Mount point created successfully" "path=$mount_point"
     else
-        aux_err "NFS mount failed" "server=$server_ip,share=$shared_folder"
-        return 1
+        aux_info "Mount point already exists" "path=$mount_point"
+    fi
+
+    aux_info "Starting NFS mount operation" "server=$server_ip,share=$shared_folder,mountpoint=$mount_point,options=$options"
+    
+    # Check if already mounted
+    if mount | grep -q "$mount_point"; then
+        aux_warn "Mount point already in use" "mountpoint=$mount_point"
+        local confirm=$(aux_ask "Unmount existing mount first?" "no" "alpha")
+        if [[ "$confirm" == "yes" ]]; then
+            aux_info "Unmounting existing mount" "mountpoint=$mount_point"
+            if ! aux_cmd "sudo" "umount" "$mount_point"; then
+                aux_err "Failed to unmount existing mount" "mountpoint=$mount_point"
+                return 2
+            fi
+        else
+            aux_err "Mount point already in use" "mountpoint=$mount_point"
+            return 1
+        fi
+    fi
+    
+    # Perform the mount using aux_cmd for better error handling
+    if aux_cmd "sudo" "mount" "-t" "nfs" "-o" "$options" "${server_ip}:${shared_folder}" "$mount_point"; then
+        aux_info "NFS mount successful" "server=$server_ip,share=$shared_folder,mountpoint=$mount_point"
+    else
+        aux_err "NFS mount failed" "server=$server_ip,share=$shared_folder,options=$options"
+        return 2
     fi
 
     # Verify the mount
     if mount | grep -q "$mount_point"; then
         aux_info "Mount verification successful" "mountpoint=$mount_point"
+        # Display mount details
+        local mount_info=$(mount | grep "$mount_point")
+        aux_info "Mount details" "info=$mount_info"
     else
         aux_err "Mount verification failed" "mountpoint=$mount_point"
-        return 1
+        return 2
     fi
 
-    aux_log "INFO" "$function_name: NFS mount completed"
+    aux_log "INFO" "$function_name: NFS mount completed successfully" "server=$server_ip,share=$shared_folder,mountpoint=$mount_point"
 }
 
 # Transforms a folder into a Btrfs subvolume, optionally setting attributes (e.g., disabling COW). Handles multiple folders, preserving content and ownership.
@@ -439,6 +575,17 @@ sto_bfs_tra() {
         aux_err "chown command not found - required for ownership changes"
         return 127
     fi
+    
+    if ! aux_chk "command" "sudo"; then
+        aux_err "sudo command not found - required for privileged operations"
+        return 127
+    fi
+    
+    # Validate user exists
+    if ! aux_chk "variable" "user_name" || ! id "$user_name" >/dev/null 2>&1; then
+        aux_err "User does not exist" "user=$user_name"
+        return 1
+    fi
 
     if [[ ! "$attr_flag" =~ ^[acdeijsuACDST-]$ ]]; then
         echo "Error: Invalid attribute flag. Use one of: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
@@ -447,35 +594,78 @@ sto_bfs_tra() {
     fi
 
     for folder_name in "$@"; do
+        aux_info "Processing folder for subvolume conversion" "folder=$folder_name,user=$user_name,attribute=$attr_flag"
+        
+        # Validate folder exists and is a directory
+        if ! aux_chk "dir_exists" "$folder_name"; then
+            aux_err "Folder does not exist" "folder=$folder_name"
+            continue
+        fi
+        
         local old_swap="${folder_name}-old"
+        
+        # Check if backup folder already exists
+        if aux_chk "dir_exists" "$old_swap"; then
+            aux_err "Backup folder already exists" "backup=$old_swap"
+            continue
+        fi
 
-        # Move current folder to folder_name-old
-        mv "$folder_name" "$old_swap"
+        # Move current folder to folder_name-old with error handling
+        aux_info "Creating backup of original folder" "original=$folder_name,backup=$old_swap"
+        if ! aux_cmd "mv" "$folder_name" "$old_swap"; then
+            aux_err "Failed to create backup" "folder=$folder_name"
+            continue
+        fi
 
-        # Create new subvolume
-        sudo btrfs subvolume create "$folder_name"
+        # Create new subvolume with error handling
+        aux_info "Creating Btrfs subvolume" "subvolume=$folder_name"
+        if ! aux_cmd "sudo" "btrfs" "subvolume" "create" "$folder_name"; then
+            aux_err "Failed to create subvolume" "subvolume=$folder_name"
+            # Restore original folder on failure
+            aux_cmd "mv" "$old_swap" "$folder_name"
+            continue
+        fi
 
         # Change ownership to specified user
-        sudo chown "$user_name": "$folder_name"
+        aux_info "Setting ownership" "subvolume=$folder_name,user=$user_name"
+        if ! aux_cmd "sudo" "chown" "$user_name:" "$folder_name"; then
+            aux_err "Failed to set ownership" "subvolume=$folder_name,user=$user_name"
+        fi
 
         # Set attribute if specified
         if [ "$attr_flag" = "C" ]; then
-            sudo chattr +C "$folder_name"
-            echo "COW disabled for $folder_name"
+            if aux_cmd "sudo" "chattr" "+C" "$folder_name"; then
+                aux_info "COW disabled successfully" "subvolume=$folder_name"
+            else
+                aux_warn "Failed to disable COW" "subvolume=$folder_name"
+            fi
         elif [ "$attr_flag" != "-" ]; then
-            sudo chattr +"$attr_flag" "$folder_name"
-            echo "Attribute '$attr_flag' set for $folder_name"
+            if aux_cmd "sudo" "chattr" "+$attr_flag" "$folder_name"; then
+                aux_info "Attribute set successfully" "subvolume=$folder_name,attribute=$attr_flag"
+            else
+                aux_warn "Failed to set attribute" "subvolume=$folder_name,attribute=$attr_flag"
+            fi
         else
-            echo "No attribute set for $folder_name"
+            aux_info "No attribute specified" "subvolume=$folder_name"
         fi
 
-        # Move contents from old folder to new one
-        mv "$old_swap"/* "$folder_name"
+        # Move contents from old folder to new one with error handling
+        aux_info "Restoring folder contents" "from=$old_swap,to=$folder_name"
+        if [ "$(ls -A "$old_swap" 2>/dev/null)" ]; then
+            if ! aux_cmd "mv" "$old_swap"/* "$folder_name"; then
+                aux_warn "Failed to move some contents" "from=$old_swap,to=$folder_name"
+            fi
+        else
+            aux_info "Original folder was empty" "folder=$old_swap"
+        fi
 
-        # Remove old folder
-        rm -r "$old_swap"
+        # Remove old folder with error handling
+        aux_info "Cleaning up backup folder" "backup=$old_swap"
+        if ! aux_cmd "rm" "-r" "$old_swap"; then
+            aux_warn "Failed to remove backup folder" "backup=$old_swap"
+        fi
 
-        echo "Processed folder: $folder_name"
+        aux_info "Folder conversion completed" "subvolume=$folder_name,user=$user_name,attribute=$attr_flag"
     done
 }
 
@@ -511,37 +701,121 @@ sto_bfs_ra1() {
     local device2="$2"
     local mount_point="$3"
     if [ $# -ne 3 ]; then
-	aux_use
+        aux_use
         return 1
     fi
-
-    # Create Btrfs RAID 1 filesystem
-    mkfs.btrfs -m raid1 -d raid1 "$device1" "$device2"
+    
+    # Validate parameters
+    if ! aux_val "$device1" "not_empty"; then
+        aux_err "Device1 cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$device2" "not_empty"; then
+        aux_err "Device2 cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$mount_point" "not_empty"; then
+        aux_err "Mount point cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Check dependencies
+    if ! aux_chk "command" "mkfs.btrfs"; then
+        aux_err "mkfs.btrfs command not found - required for filesystem creation"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "btrfs"; then
+        aux_err "btrfs command not found - required for filesystem management"
+        return 127
+    fi
+    
+    # Validate devices exist
+    if ! aux_chk "file_exists" "$device1"; then
+        aux_err "Device1 does not exist" "device=$device1"
+        return 1
+    fi
+    
+    if ! aux_chk "file_exists" "$device2"; then
+        aux_err "Device2 does not exist" "device=$device2"
+        return 1
+    fi
+    
+    # Create Btrfs RAID 1 filesystem with enhanced logging
+    aux_info "Creating Btrfs RAID 1 filesystem" "device1=$device1,device2=$device2,mount_point=$mount_point"
+    if ! aux_cmd "mkfs.btrfs" "-m" "raid1" "-d" "raid1" "$device1" "$device2"; then
+        aux_err "Failed to create Btrfs RAID 1 filesystem" "device1=$device1,device2=$device2"
+        return 2
+    fi
 
     # Create mount point and mount the filesystem
-    mkdir -p "$mount_point"
-    mount "$device1" "$mount_point"
+    aux_info "Creating mount point" "path=$mount_point"
+    if ! aux_cmd "mkdir" "-p" "$mount_point"; then
+        aux_err "Failed to create mount point" "path=$mount_point"
+        return 2
+    fi
+    
+    aux_info "Mounting filesystem" "device=$device1,mount_point=$mount_point"
+    if ! aux_cmd "mount" "$device1" "$mount_point"; then
+        aux_err "Failed to mount filesystem" "device=$device1,mount_point=$mount_point"
+        return 2
+    fi
 
     # Verify the RAID 1 setup
-    btrfs filesystem show "$mount_point"
-    btrfs filesystem df "$mount_point"
+    aux_info "Verifying RAID 1 setup" "mount_point=$mount_point"
+    if ! aux_cmd "btrfs" "filesystem" "show" "$mount_point"; then
+        aux_warn "Failed to show filesystem info" "mount_point=$mount_point"
+    fi
+    
+    if ! aux_cmd "btrfs" "filesystem" "df" "$mount_point"; then
+        aux_warn "Failed to show filesystem usage" "mount_point=$mount_point"
+    fi
 
-    # Optionally add to fstab
+    # Optionally add to fstab with enhanced error handling
     local uuid
-    uuid=$(sudo blkid -s UUID -o value "$device1")
+    aux_info "Extracting UUID for fstab entry" "device=$device1"
+    if ! uuid=$(aux_cmd "sudo" "blkid" "-s" "UUID" "-o" "value" "$device1"); then
+        aux_err "Failed to extract UUID" "device=$device1"
+        return 2
+    fi
+    
+    if [[ -z "$uuid" ]]; then
+        aux_err "Empty UUID extracted" "device=$device1"
+        return 2
+    fi
+    
     local fstab_entry="UUID=$uuid $mount_point btrfs defaults,degraded 0 0"
+    aux_info "Proposed fstab entry" "entry=$fstab_entry"
 
     echo "The following line will be added to /etc/fstab:"
     echo "$fstab_entry"
-    read -p "Do you want to add this line to /etc/fstab? [y/N]: " response
+    
+    local response=$(aux_ask "Do you want to add this line to /etc/fstab?" "N" "alpha")
     if [[ "$response" =~ ^[Yy]$ ]]; then
-        echo "$fstab_entry" | sudo tee -a /etc/fstab
-        echo "Entry added to /etc/fstab."
+        # Create backup before modifying fstab
+        local backup_file="/etc/fstab.backup.$(date +%s)"
+        aux_info "Creating fstab backup" "backup_file=$backup_file"
+        if ! aux_cmd "sudo" "cp" "/etc/fstab" "$backup_file"; then
+            aux_err "Failed to create fstab backup"
+            return 2
+        fi
+        
+        if echo "$fstab_entry" | sudo tee -a /etc/fstab >/dev/null; then
+            aux_info "Fstab entry added successfully" "entry=$fstab_entry,backup=$backup_file"
+        else
+            aux_err "Failed to add fstab entry" "entry=$fstab_entry"
+            return 2
+        fi
     else
-        echo "Entry not added to /etc/fstab."
+        aux_info "Fstab entry not added per user choice"
     fi
 
-    aux_log "INFO" "$function_name: executed ( $1 $2 $3 )"
+    aux_log "INFO" "$function_name: Btrfs RAID 1 creation completed successfully" "device1=$device1,device2=$device2,mount_point=$mount_point,uuid=$uuid"
 }
 
 # Checks and lists subvolume status of folders in a specified path. Supports filtering by folder type (regular, hidden, or both) and subvolume status.
@@ -575,51 +849,114 @@ sto_bfs_csf() {
     local filter="$3"
 
     # Check if arguments are provided
-    if [ -z "$path" ] || [ -z "$folder_type" ] || [ -z "$filter" ]; then
+    if [ $# -ne 3 ]; then
+        aux_use
+        return 1
+    fi
+    
+    # Validate parameters
+    if ! aux_val "$path" "not_empty"; then
+        aux_err "Path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$folder_type" "numeric"; then
+        aux_err "Folder type must be numeric (1, 2, or 3)" "provided=$folder_type"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$filter" "not_empty"; then
+        aux_err "Filter cannot be empty"
         aux_use
         return 1
     fi
 
     # Check if the path exists and is a directory
-    if [ ! -d "$path" ]; then
-        echo "Error: $path is not a valid directory."
+    if ! aux_chk "dir_exists" "$path"; then
+        aux_err "Directory does not exist" "path=$path"
         return 1
+    fi
+    
+    # Check dependencies
+    if ! aux_chk "command" "btrfs"; then
+        aux_err "btrfs command not found - required for subvolume operations"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "find"; then
+        aux_err "find command not found - required for directory traversal"
+        return 127
     fi
 
     # Get the output of 'btrfs sub list' in the specified directory
+    aux_info "Scanning for subvolumes" "path=$path,folder_type=$folder_type,filter=$filter"
     local subvol_output
-    subvol_output=$(btrfs sub list -o "$path")
+    if ! subvol_output=$(aux_cmd "btrfs" "sub" "list" "-o" "$path"); then
+        aux_err "Failed to list subvolumes" "path=$path"
+        return 2
+    fi
 
     # Get the list of folders based on folder type and sort alphabetically
     local all_folders
     if [ "$folder_type" -eq 1 ]; then
+        aux_info "Finding regular folders" "path=$path"
         all_folders=$(find "$path" -mindepth 1 -maxdepth 1 ! -name ".*" -type d -exec basename {} \; | sort)
     elif [ "$folder_type" -eq 2 ]; then
+        aux_info "Finding hidden folders" "path=$path"
         all_folders=$(find "$path" -mindepth 1 -maxdepth 1 -name ".*" -type d -exec basename {} \; | sort)
     elif [ "$folder_type" -eq 3 ]; then
+        aux_info "Finding all folders" "path=$path"
         all_folders=$(find "$path" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
     else
-        echo "Error: Invalid folder type argument. Please specify 1, 2, or 3."
+        aux_err "Invalid folder type argument" "valid_options=1,2,3,provided=$folder_type"
+        aux_use
         return 1
     fi
+    
+    # Count found folders
+    local folder_count=$(echo "$all_folders" | wc -w)
+    aux_info "Folder scan completed" "folders_found=$folder_count,type=$folder_type"
 
+    # Validate filter argument
+    if [[ "$filter" != "yes" && "$filter" != "no" && "$filter" != "all" ]]; then
+        aux_err "Invalid filter argument" "valid_options=yes,no,all,provided=$filter"
+        aux_use
+        return 1
+    fi
+    
+    aux_info "Processing folders with filter" "filter=$filter"
+    
     # Iterate over each folder and filter based on the third argument
     local folder_name
+    local processed_count=0
+    local subvol_count=0
+    local regular_count=0
+    
     for folder_name in $all_folders; do
         local is_subvol="no"
         if echo "$subvol_output" | grep -q "$path/$folder_name"; then
             is_subvol="yes"
+            ((subvol_count++))
+        else
+            ((regular_count++))
         fi
 
         # Print the folder path and whether it is a subvolume based on the filter
         if [ "$filter" == "yes" ] && [ "$is_subvol" == "yes" ]; then
             printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
+            ((processed_count++))
         elif [ "$filter" == "no" ] && [ "$is_subvol" == "no" ]; then
             printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
+            ((processed_count++))
         elif [ "$filter" == "all" ]; then
             printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
+            ((processed_count++))
         fi
     done
+    
+    aux_info "Analysis completed" "total_folders=$folder_count,subvolumes=$subvol_count,regular=$regular_count,displayed=$processed_count"
 }
 
 # Creates a new Snapper snapshot for the specified configuration or automatically selects a 'home_*' configuration if multiple exist
@@ -1182,35 +1519,79 @@ sto_zfs_cpo() {
         aux_use
         return 1
     fi
+    
+    # Validate parameters
+    if ! aux_val "$pool_name" "not_empty"; then
+        aux_err "Pool name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$drive_name" "not_empty"; then
+        aux_err "Drive name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Check dependencies
+    if ! aux_chk "command" "zpool"; then
+        aux_err "zpool command not found - required for ZFS pool management"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "sudo"; then
+        aux_err "sudo command not found - required for privileged operations"
+        return 127
+    fi
 
     # Check if the pool already exists
+    aux_info "Checking for existing pool" "pool_name=$pool_name"
     if zpool list "$pool_name" &>/dev/null; then
-        echo "Error: ZFS pool '$pool_name' already exists."
+        aux_err "ZFS pool already exists" "pool_name=$pool_name"
         return 1
     fi
 
-    # Check if the drive exists (basic check)
-    if [ ! -b "$drive_name" ] && [ ! -e "$drive_name" ]; then
-        echo "Error: Drive '$drive_name' not found or is not a block device."
-        echo "Please provide a valid drive path (e.g., /dev/sdx or /dev/disk/by-id/your-disk-id)."
+    # Check if the drive exists (enhanced validation)
+    aux_info "Validating drive" "drive_name=$drive_name"
+    if ! aux_chk "file_exists" "$drive_name"; then
+        aux_err "Drive not found" "drive_name=$drive_name"
+        aux_info "Expected format" "examples=/dev/sdx,/dev/disk/by-id/your-disk-id"
         return 1
     fi
-
-    echo "Attempting to create ZFS pool '$pool_name' on drive '$drive_name'."
-    read -p "Are you sure you want to proceed? This will erase data on '$drive_name'. [y/N]: " confirmation
-
-    if [[ "$confirmation" =~ ^[Yy]$ ]]; then
-        echo "Creating ZFS pool '$pool_name' on '$drive_name'..."
-        if sudo zpool create "$pool_name" "$drive_name"; then
-            echo "ZFS pool '$pool_name' created successfully on '$drive_name'."
-            sudo zpool status "$pool_name"
-            aux_log "INFO" "$function_name: executed ( pool: $pool_name, drive: $drive_name )"
-        else
-            echo "Error: Failed to create ZFS pool '$pool_name'."
+    
+    # Additional safety check for block device
+    if [ ! -b "$drive_name" ]; then
+        aux_warn "Drive exists but may not be a block device" "drive_name=$drive_name"
+        local confirm=$(aux_ask "Continue anyway?" "no" "alpha")
+        if [[ "$confirm" != "yes" ]]; then
+            aux_info "Operation cancelled by user"
             return 1
         fi
+    fi
+
+    aux_warn "This operation will DESTROY all data" "drive=$drive_name"
+    aux_info "Pool creation parameters" "pool_name=$pool_name,drive_name=$drive_name"
+    
+    local confirmation=$(aux_ask "Are you sure you want to proceed? This will erase data on '$drive_name'" "N" "alpha")
+
+    if [[ "$confirmation" =~ ^[Yy]$ ]]; then
+        aux_info "Starting ZFS pool creation" "pool_name=$pool_name,drive_name=$drive_name"
+        if aux_cmd "sudo" "zpool" "create" "$pool_name" "$drive_name"; then
+            aux_info "ZFS pool created successfully" "pool_name=$pool_name,drive_name=$drive_name"
+            
+            # Display pool status
+            aux_info "Displaying pool status"
+            if ! aux_cmd "sudo" "zpool" "status" "$pool_name"; then
+                aux_warn "Failed to display pool status" "pool_name=$pool_name"
+            fi
+            
+            aux_log "INFO" "$function_name: ZFS pool creation completed successfully" "pool_name=$pool_name,drive_name=$drive_name"
+        else
+            aux_err "Failed to create ZFS pool" "pool_name=$pool_name,drive_name=$drive_name"
+            return 2
+        fi
     else
-        echo "ZFS pool creation aborted by user."
+        aux_info "ZFS pool creation cancelled by user" "pool_name=$pool_name"
         return 1
     fi
 }

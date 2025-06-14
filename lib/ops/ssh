@@ -529,11 +529,13 @@ ssh_sca() {
     #   Can execute commands remotely on multiple servers with proper error handling.
     #   Uses dynamic array access for flexible configuration management.
     #   Handles 'all' keyword for operations across all server arrays.
-    #   Provides comprehensive debugging output for troubleshooting connections.
+    #   Provides comprehensive logging throughout the connection process.
     # Dependencies:
     #   - ssh command for remote connections
     #   - declare with nameref support for dynamic array access
-    #   - eval for command execution
+    #   - aux_val for parameter validation
+    #   - aux_cmd for safe command execution
+    #   - aux_dbg, aux_info, aux_warn, aux_err for logging
     #   - Array variables passed by name for configuration
     # Arguments:
     #   $1: usershortcut - shortcut key for user lookup in ssh_users_array
@@ -558,8 +560,44 @@ ssh_sca() {
         return 1
     fi
     
-    echo "Debug: Number of arguments: $#"
-    echo "Debug: All arguments: $*"
+    # Parameter validation using aux_val
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "User shortcut cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Server shortcut cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$3" "not_empty"; then
+        aux_err "SSH users array name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$4" "not_empty"; then
+        aux_err "All IP arrays name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$5" "not_empty"; then
+        aux_err "Array aliases name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks using aux_chk
+    if ! aux_chk "command" "ssh"; then
+        aux_err "ssh command not found - required for SSH connections"
+        return 127
+    fi
+
+    aux_dbg "Starting SSH custom aliases resolution" "args=$#,user_shortcut=$1,server_shortcuts=$2"
 
     local user_shortcut=$1
     local server_shortcuts=$2
@@ -574,39 +612,45 @@ ssh_sca() {
     declare -n _all_ip_arrays_ref="$all_ip_arrays_name"
     declare -n _array_aliases_ref="$array_aliases_name"
 
-    echo "Debug: User shortcut: $user_shortcut"
+    aux_dbg "Resolving user shortcut" "shortcut=$user_shortcut"
 
     # Resolve user name from shortcut
     local user_name="${_ssh_users_ref[$user_shortcut]}"
-    echo "Debug: Resolved user name: $user_name"
+    aux_dbg "User resolution result" "user_name=$user_name"
 
     if [[ -z $user_name ]]; then
-        echo "Error: Unknown user shortcut '$user_shortcut'"
-        echo "Debug: SSH _ USERS (passed name: $ssh_users_array_name) array contents: ${_ssh_users_ref[@]}"
-        echo "Debug: SSH _ USERS (passed name: $ssh_users_array_name) keys: ${!_ssh_users_ref[@]}"
+        aux_err "Unknown user shortcut" "shortcut=$user_shortcut,available_keys=${!_ssh_users_ref[*]}"
         return 1
     fi
 
-    echo "Debug: Server shortcuts (raw): $server_shortcuts"
-    echo "Debug: ALL_IP_ARRAYS (passed name: $all_ip_arrays_name): ${_all_ip_arrays_ref[*]}"
+    aux_info "SSH alias resolution started" "user=$user_name,server_shortcuts=$server_shortcuts"
 
     # Function to handle an array of servers
     handle_server_array() {
         local array_name=$1
-        declare -n server_array=$array_name # This correctly refers to an individual IP array by its name
-        echo "Debug: Processing array: $array_name"
-        echo "Debug: Array contents: ${!server_array[*]}"
+        declare -n server_array=$array_name
+        aux_dbg "Processing server array" "array_name=$array_name,server_count=${#server_array[@]}"
+        
         for server_shortcut in "${!server_array[@]}"; do
             local server_ip=${server_array[$server_shortcut]}
-            echo "Debug: Resolved server IP for $server_shortcut: $server_ip"
-            # Construct the SSH command
-            local ssh_command="ssh ${user_name}@${server_ip}"
+            aux_dbg "Processing server" "shortcut=$server_shortcut,ip=$server_ip"
+            
+            # Construct and execute the SSH command
             if [[ -n $command ]]; then
-                ssh_command+=" \"$command\""
+                aux_info "Executing remote command" "server=$server_shortcut,ip=$server_ip,command=$command"
+                if aux_cmd "ssh" "${user_name}@${server_ip}" "$command"; then
+                    aux_info "Remote command executed successfully" "server=$server_shortcut"
+                else
+                    aux_err "Remote command failed" "server=$server_shortcut,ip=$server_ip"
+                fi
+            else
+                aux_info "Opening SSH session" "server=$server_shortcut,ip=$server_ip"
+                if aux_cmd "ssh" "${user_name}@${server_ip}"; then
+                    aux_info "SSH session completed" "server=$server_shortcut"
+                else
+                    aux_err "SSH session failed" "server=$server_shortcut,ip=$server_ip"
+                fi
             fi
-            # Execute the SSH command
-            echo "Executing: $ssh_command"
-            eval $ssh_command
         done
     }
 
@@ -621,13 +665,13 @@ ssh_sca() {
             for alias in "${aliases[@]}"; do
                 if [[ ${input,,} == ${alias,,} ]]; then
                     normalized=$array
-                    echo "Debug: Match found, normalized '$input' to '$normalized'" >&2
+                    aux_dbg "Alias match found" "input=$input,normalized=$normalized"
                     break 2
                 fi
             done
         done
 
-        echo "Debug: Normalized '$input' to '$normalized'" >&2
+        aux_dbg "Shortcut normalization" "input=$input,output=$normalized"
         echo "$normalized"
     }
 
@@ -635,78 +679,100 @@ ssh_sca() {
     find_server_ip() {
         local shortcut=$1
         local ip=""
-        local array_name_found="" # Renamed to avoid conflict with outer scope 'array_name' if any
-        for current_array_name in "${_all_ip_arrays_ref[@]}"; do # Iterate over names in _all_ip_arrays_ref
-            echo "Debug: Searching for '$shortcut' in '$current_array_name'" >&2
-            declare -n current_array_ref=$current_array_name # Nameref to the actual IP array
-            echo "Debug: $current_array_name contents: ${!current_array_ref[*]}" >&2
+        local array_name_found=""
+        
+        for current_array_name in "${_all_ip_arrays_ref[@]}"; do
+            aux_dbg "Searching for server" "shortcut=$shortcut,array=$current_array_name"
+            declare -n current_array_ref=$current_array_name
+            
             if [[ -n ${current_array_ref[$shortcut]} ]]; then
                 ip=${current_array_ref[$shortcut]}
                 array_name_found=$current_array_name
-                echo "Debug: Found '$shortcut' in '$current_array_name'" >&2
+                aux_dbg "Server found" "shortcut=$shortcut,ip=$ip,array=$array_name_found"
                 break
             fi
         done
-        echo "Debug: Found IP for $shortcut: $ip (from $array_name_found)" >&2
+        
+        if [[ -z "$ip" ]]; then
+            aux_warn "Server not found" "shortcut=$shortcut"
+        fi
+        
         echo "$ip"
     }
 
     # Function to check if input is an array name
     is_array_name() {
         local input=$1
-        echo "Debug: Checking if '$input' is an array name" >&2
+        aux_dbg "Checking if input is array name" "input=$input"
+        
         if [[ $input == "all" ]]; then
-            echo "Debug: '$input' is 'all'" >&2
+            aux_dbg "Input is 'all' keyword" "input=$input"
             return 0
         fi
-        for array_iter_name in "${_all_ip_arrays_ref[@]}"; do # Iterate over names in _all_ip_arrays_ref
+        
+        for array_iter_name in "${_all_ip_arrays_ref[@]}"; do
             if [[ $input == $array_iter_name ]]; then
-                echo "Debug: '$input' matches array '$array_iter_name'" >&2
+                aux_dbg "Input matches array name" "input=$input,array=$array_iter_name"
                 return 0
             fi
         done
-        echo "Debug: '$input' is not an array name" >&2
+        
+        aux_dbg "Input is not an array name" "input=$input"
         return 1
     }
 
     # Normalize the server shortcuts
     local normalized_shortcuts=$(normalize_shortcut "$server_shortcuts")
-    echo "Debug: Normalized server shortcuts: $normalized_shortcuts"
+    aux_dbg "Server shortcuts normalized" "original=$server_shortcuts,normalized=$normalized_shortcuts"
 
     # Handle server_shortcuts
     if is_array_name "$normalized_shortcuts"; then
-        echo "Debug: Processing as array name"
+        aux_info "Processing as array operation" "array=$normalized_shortcuts"
+        
         if [[ $normalized_shortcuts == "all" ]]; then
-            echo "Debug: Processing all servers"
-            for array_to_handle in "${_all_ip_arrays_ref[@]}"; do # Iterate over names in _all_ip_arrays_ref
+            aux_info "Processing all server arrays" "total_arrays=${#_all_ip_arrays_ref[@]}"
+            for array_to_handle in "${_all_ip_arrays_ref[@]}"; do
                 handle_server_array $array_to_handle
             done
         else
-            echo "Debug: Processing specific IP array: $normalized_shortcuts"
+            aux_info "Processing specific server array" "array=$normalized_shortcuts"
             handle_server_array $normalized_shortcuts
         fi
     else
-        echo "Debug: Processing as individual server(s)"
+        aux_info "Processing as individual server(s)" "servers=$normalized_shortcuts"
         IFS=',' read -ra servers <<< "$normalized_shortcuts"
+        
         if [[ ${#servers[@]} -gt 1 && -z $command ]]; then
-            echo "Error: No command provided for multiple servers"
+            aux_err "No command provided for multiple servers" "server_count=${#servers[@]}"
             return 1
         fi
+        
         for server_shortcut_iter in "${servers[@]}"; do
             local server_ip=$(find_server_ip "$server_shortcut_iter")
             if [[ -z $server_ip ]]; then
-                echo "Error: Unknown server shortcut '$server_shortcut_iter'"
+                aux_err "Unknown server shortcut" "shortcut=$server_shortcut_iter"
                 return 1
             fi
-            local ssh_command="ssh ${user_name}@${server_ip}"
+            
             if [[ -n $command ]]; then
-                ssh_command+=" \"$command\""
+                aux_info "Executing remote command on single server" "server=$server_shortcut_iter,ip=$server_ip,command=$command"
+                if aux_cmd "ssh" "${user_name}@${server_ip}" "$command"; then
+                    aux_info "Remote command executed successfully" "server=$server_shortcut_iter"
+                else
+                    aux_err "Remote command failed" "server=$server_shortcut_iter,ip=$server_ip"
+                fi
+            else
+                aux_info "Opening SSH session to single server" "server=$server_shortcut_iter,ip=$server_ip"
+                if aux_cmd "ssh" "${user_name}@${server_ip}"; then
+                    aux_info "SSH session completed" "server=$server_shortcut_iter"
+                else
+                    aux_err "SSH session failed" "server=$server_shortcut_iter,ip=$server_ip"
+                fi
             fi
-            echo "Executing: $ssh_command"
-            eval $ssh_command
         done
     fi
-    echo "Debug: Raw command: $command"
+    
+    aux_info "SSH custom aliases operation completed" "user=$user_name,servers=$server_shortcuts"
 }
 
 # Uploads an SSH key from a plugged-in device to a specified folder (default: /root/.ssh). Handles mounting, file copying, and unmounting of the device
@@ -720,12 +786,17 @@ ssh_suk() {
     #   Safely unmounts device after operation to prevent data corruption.
     #   Validates all required parameters before proceeding.
     #   Displays system information (lsblk, /mnt contents) for user guidance.
+    #   Uses auxiliary functions for proper validation, logging, and safe command execution.
     # Dependencies:
     #   - mount/umount commands for device management
     #   - cp command for file copying
     #   - mkdir command for directory creation
     #   - lsblk command for device listing
     #   - ls command for directory listing
+    #   - aux_val for parameter validation
+    #   - aux_chk for dependency checking
+    #   - aux_cmd for safe command execution
+    #   - aux_info, aux_warn, aux_err for logging
     #   - Device must be properly formatted and accessible
     # Arguments:
     #   $1: device_path - path to the device (e.g., /dev/sdb1)
@@ -734,7 +805,7 @@ ssh_suk() {
     #   $4: upload_path - destination directory for the key file
     #   $5: file_name - name of the key file to copy
     # Returns:
-    #   0 on success, 1 on mount, copy, or unmount failure
+    #   0 on success, 1 on parameter validation failure, 2 on operation failure
     # Examples:
     #   ssh_suk "/dev/sdb1" "/mnt/usb" "ssh_keys" "/root/.ssh" "id_ed25519"
     
@@ -748,55 +819,163 @@ ssh_suk() {
         return 1
     fi
     
+    # Parameter validation using aux_val
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Device path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Mount point cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$3" "not_empty"; then
+        aux_err "Subfolder path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$4" "not_empty"; then
+        aux_err "Upload path cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$5" "not_empty"; then
+        aux_err "File name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks using aux_chk
+    if ! aux_chk "command" "mount"; then
+        aux_err "mount command not found - required for device mounting"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "umount"; then
+        aux_err "umount command not found - required for device unmounting"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "cp"; then
+        aux_err "cp command not found - required for file copying"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "mkdir"; then
+        aux_err "mkdir command not found - required for directory creation"
+        return 127
+    fi
+    
     local device_path="$1"
     local mount_point="$2"
     local subfolder_path="$3"
     local upload_path="$4"
     local file_name="$5"
+    local full_path="$mount_point/$subfolder_path/$file_name"
+    local upload_full_path="$upload_path/$file_name"
 
-    local full_path
-    local upload_full_path
+    aux_info "Starting SSH key upload from device" "device=$device_path,mount_point=$mount_point,file=$file_name"
 
-    echo ""
-    lsblk
-    echo ""
-    echo "ls /mnt output :"
-    ls /mnt
-    echo ""
+    # Display system information for user guidance
+    aux_info "Displaying current block devices"
+    if aux_chk "command" "lsblk"; then
+        lsblk
+    else
+        aux_warn "lsblk command not available - skipping device listing"
+    fi
+    
+    aux_info "Displaying current /mnt contents"
+    if aux_cmd "ls" "/mnt"; then
+        aux_dbg "Successfully listed /mnt contents"
+    else
+        aux_warn "Could not list /mnt contents" "/mnt may not exist or be accessible"
+    fi
 
-    # Evaluate and confirm variables
-    full_path="$mount_point/$subfolder_path/$file_name"
-    upload_full_path="$upload_path/$file_name"
+    # Validate device path exists
+    if ! aux_chk "file_exists" "$device_path"; then
+        aux_err "Device not found" "device_path=$device_path"
+        return 2
+    fi
 
-    # Check if mount point exists
-    if [ ! -d "$mount_point" ]; then
-        echo "Mount Point $mount_point will be created."
-	mkdir -p $mount_point
+    # Validate upload directory exists
+    if ! aux_val "$upload_path" "dir_exists"; then
+        aux_warn "Upload directory does not exist, creating it" "path=$upload_path"
+        if ! aux_cmd "mkdir" "-p" "$upload_path"; then
+            aux_err "Failed to create upload directory" "path=$upload_path"
+            return 2
+        fi
+    fi
+
+    # Check if mount point exists, create if needed
+    if ! aux_val "$mount_point" "dir_exists"; then
+        aux_info "Creating mount point directory" "path=$mount_point"
+        if ! aux_cmd "mkdir" "-p" "$mount_point"; then
+            aux_err "Failed to create mount point directory" "path=$mount_point"
+            return 2
+        fi
     fi
 
     # Mount the device
-    mount $device_path $mount_point
+    aux_info "Mounting device" "device=$device_path,mount_point=$mount_point"
+    if ! aux_cmd "mount" "$device_path" "$mount_point"; then
+        aux_err "Failed to mount device" "device=$device_path,mount_point=$mount_point"
+        return 2
+    fi
+    
+    aux_info "Device mounted successfully" "device=$device_path,mount_point=$mount_point"
 
-    # Check if mount was successful
-    if [ $? -ne 0 ]; then
-        echo "Failed to mount $device_path at $mount_point"
-        return 1
+    # Validate the source file exists on the mounted device
+    if ! aux_val "$full_path" "file_exists"; then
+        aux_err "SSH key file not found on mounted device" "path=$full_path"
+        # Clean up by unmounting
+        if aux_cmd "umount" "$mount_point"; then
+            aux_info "Device unmounted after error" "mount_point=$mount_point"
+        else
+            aux_warn "Failed to unmount device after error" "mount_point=$mount_point"
+        fi
+        return 2
     fi
 
     # Copy the SSH key to the upload path
-    cp $full_path $upload_full_path
+    aux_info "Copying SSH key file" "source=$full_path,destination=$upload_full_path"
+    if ! aux_cmd "cp" "$full_path" "$upload_full_path"; then
+        aux_err "Failed to copy SSH key file" "source=$full_path,destination=$upload_full_path"
+        # Clean up by unmounting
+        if aux_cmd "umount" "$mount_point"; then
+            aux_info "Device unmounted after copy failure" "mount_point=$mount_point"
+        else
+            aux_warn "Failed to unmount device after copy failure" "mount_point=$mount_point"
+        fi
+        return 2
+    fi
+    
+    aux_info "SSH key file copied successfully" "destination=$upload_full_path"
 
-    # Check if copy was successful
-    if [ $? -ne 0 ]; then
-        echo "Failed to copy $full_path to $upload_path"
-        umount $mount_point
-        return 1
+    # Set proper permissions on the copied key
+    if aux_chk "command" "chmod"; then
+        if aux_cmd "chmod" "600" "$upload_full_path"; then
+            aux_info "SSH key permissions set" "file=$upload_full_path,permissions=600"
+        else
+            aux_warn "Failed to set SSH key permissions" "file=$upload_full_path"
+        fi
     fi
 
     # Unmount the device
-    umount $mount_point
+    aux_info "Unmounting device" "mount_point=$mount_point"
+    if ! aux_cmd "umount" "$mount_point"; then
+        aux_err "Failed to unmount device" "mount_point=$mount_point"
+        # Note: We don't return error here as the copy was successful
+        aux_warn "SSH key copied but device unmount failed - manual unmount may be required"
+    else
+        aux_info "Device unmounted successfully" "mount_point=$mount_point"
+    fi
 
-    echo "SSH key successfully uploaded to $upload_path"
+    aux_info "SSH key upload completed successfully" "file=$upload_full_path"
 }
 
 
@@ -811,18 +990,23 @@ ssh_spi() {
     #   Sets proper ownership and permissions (600) for security compliance.
     #   Avoids duplicate entries by checking existing config content.
     #   Creates config file with proper structure if it doesn't exist.
+    #   Uses auxiliary functions for validation, logging, and safe command execution.
     # Dependencies:
     #   - mkdir command for directory creation
     #   - grep command for duplicate detection
     #   - echo command for config file writing
     #   - chown command for ownership setting
     #   - chmod command for permission setting
+    #   - aux_val for parameter validation
+    #   - aux_chk for dependency checking
+    #   - aux_cmd for safe command execution
+    #   - aux_info, aux_warn, aux_err for logging
     #   - Appropriate privileges for user directory access
     # Arguments:
     #   $1: user - username (root or regular user) for configuration
     #   $2: keyname - name of the SSH key file (without path)
     # Returns:
-    #   0 on success, 1 on failure or invalid user
+    #   0 on success, 1 on parameter validation failure, 2 on operation failure
     # Examples:
     #   ssh_spi "root" "id_ed25519_lab"
     #   ssh_spi "alice" "id_rsa_work"
@@ -837,41 +1021,143 @@ ssh_spi() {
         return 1
     fi
     
+    # Parameter validation using aux_val
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Username cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Key name cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Validate username contains only valid characters
+    if ! aux_val "$1" "alphanum"; then
+        aux_err "Username must contain only alphanumeric characters" "user=$1"
+        return 1
+    fi
+    
+    # Dependency checks using aux_chk
+    if ! aux_chk "command" "mkdir"; then
+        aux_err "mkdir command not found - required for directory creation"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "grep"; then
+        aux_err "grep command not found - required for duplicate detection"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "chown"; then
+        aux_err "chown command not found - required for ownership setting"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "chmod"; then
+        aux_err "chmod command not found - required for permission setting"
+        return 127
+    fi
+    
     local user="$1"
     local keyname="$2"
     local ssh_dir
     local config_file
     local user_home
 
+    aux_info "Starting SSH private identifier configuration" "user=$user,keyname=$keyname"
+
+    # Determine user paths
     if [ "$user" == "root" ]; then
         ssh_dir="/root/.ssh"
         user_home="/root"
+        aux_dbg "Configuring for root user" "ssh_dir=$ssh_dir"
     else
         ssh_dir="/home/$user/.ssh"
         user_home="/home/$user"
+        aux_dbg "Configuring for regular user" "user=$user,ssh_dir=$ssh_dir"
+        
+        # Validate user home directory exists
+        if ! aux_val "$user_home" "dir_exists"; then
+            aux_err "User home directory does not exist" "user=$user,home=$user_home"
+            return 2
+        fi
     fi
 
     config_file="$ssh_dir/config"
+    local identity_file_line="    IdentityFile $user_home/.ssh/$keyname"
 
     # Create the .ssh directory if it doesn't exist
-    mkdir -p $ssh_dir
+    if ! aux_val "$ssh_dir" "dir_exists"; then
+        aux_info "Creating SSH directory" "directory=$ssh_dir"
+        if ! aux_cmd "mkdir" "-p" "$ssh_dir"; then
+            aux_err "Failed to create SSH directory" "directory=$ssh_dir"
+            return 2
+        fi
+        
+        # Set proper permissions on .ssh directory
+        if ! aux_cmd "chmod" "700" "$ssh_dir"; then
+            aux_warn "Failed to set SSH directory permissions" "directory=$ssh_dir"
+        fi
+        
+        # Set proper ownership on .ssh directory (skip for root)
+        if [ "$user" != "root" ]; then
+            if ! aux_cmd "chown" "$user:$user" "$ssh_dir"; then
+                aux_warn "Failed to set SSH directory ownership" "directory=$ssh_dir,user=$user"
+            fi
+        fi
+    fi
 
-    # Define the configuration line to add
-    identity_file_line="    IdentityFile $user_home/.ssh/$keyname"
+    # Validate the SSH key file exists
+    local key_file_path="$user_home/.ssh/$keyname"
+    if ! aux_val "$key_file_path" "file_exists"; then
+        aux_warn "SSH key file does not exist" "path=$key_file_path"
+        # Continue anyway as key might be added later
+    fi
+
+    aux_dbg "Checking for existing configuration" "config_file=$config_file,identity_line=$identity_file_line"
 
     # Check if the IdentityFile line already exists
-    if ! grep -qx "$identity_file_line" "$config_file" 2>/dev/null; then
-        # Append the configuration to the config file
-        echo -e "\nHost *\n$identity_file_line" >> $config_file
-
-        # Set the correct permissions
-        chown $user:$user $config_file
-        chmod 600 $config_file
-
-        echo "SSH config file updated at $config_file"
-    else
-        echo "Configuration already exists in $config_file"
+    if [ -f "$config_file" ] && grep -qx "$identity_file_line" "$config_file" 2>/dev/null; then
+        aux_info "SSH key configuration already exists" "config_file=$config_file,keyname=$keyname"
+        return 0
     fi
+
+    # Append the configuration to the config file
+    aux_info "Adding SSH key configuration" "config_file=$config_file,keyname=$keyname"
+    
+    # Create config file with proper Host * block if it doesn't exist
+    if [ ! -f "$config_file" ]; then
+        aux_dbg "Creating new SSH config file" "config_file=$config_file"
+        if ! echo -e "Host *\n$identity_file_line" > "$config_file"; then
+            aux_err "Failed to create SSH config file" "config_file=$config_file"
+            return 2
+        fi
+    else
+        aux_dbg "Appending to existing SSH config file" "config_file=$config_file"
+        if ! echo -e "\nHost *\n$identity_file_line" >> "$config_file"; then
+            aux_err "Failed to append to SSH config file" "config_file=$config_file"
+            return 2
+        fi
+    fi
+
+    # Set the correct permissions on config file
+    if ! aux_cmd "chmod" "600" "$config_file"; then
+        aux_err "Failed to set SSH config file permissions" "config_file=$config_file"
+        return 2
+    fi
+    
+    # Set proper ownership on config file (skip for root)
+    if [ "$user" != "root" ]; then
+        if ! aux_cmd "chown" "$user:$user" "$config_file"; then
+            aux_err "Failed to set SSH config file ownership" "config_file=$config_file,user=$user"
+            return 2
+        fi
+    fi
+
+    aux_info "SSH key configuration completed successfully" "config_file=$config_file,keyname=$keyname"
 }
 
 
@@ -1125,11 +1411,15 @@ ssh_loi() {
     #   Refresh operation removes SSH host keys from known_hosts for clean reconnections.
     #   Dynamically resolves IP array names using uppercase convention with _IPS suffix.
     #   Iterates through all IPs in specified array and performs operation with error handling.
-    #   Provides detailed feedback for each operation including success/failure status.
+    #   Uses auxiliary functions for proper validation, logging, and safe command execution.
     # Dependencies:
     #   - ssh command with StrictHostKeyChecking option
     #   - ssh-keygen command for known_hosts management
     #   - declare command with nameref support
+    #   - aux_val for parameter validation
+    #   - aux_chk for dependency checking
+    #   - aux_cmd for safe command execution
+    #   - aux_info, aux_warn, aux_err for logging
     #   - Configuration arrays with proper naming convention
     #   - Network connectivity to target hosts
     # Arguments:
@@ -1151,41 +1441,102 @@ ssh_loi() {
         return 1
     fi
     
+    # Parameter validation using aux_val
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "IP array identifier cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Operation type cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Validate operation type
+    if [[ "$2" != "bypass" && "$2" != "refresh" ]]; then
+        aux_err "Invalid operation type" "operation=$2,valid_operations=bypass,refresh"
+        aux_use
+        return 1
+    fi
+    
+    # Dependency checks using aux_chk
+    if ! aux_chk "command" "ssh"; then
+        aux_err "ssh command not found - required for SSH operations"
+        return 127
+    fi
+    
+    if [[ "$2" == "refresh" ]] && ! aux_chk "command" "ssh-keygen"; then
+        aux_err "ssh-keygen command not found - required for known_hosts management"
+        return 127
+    fi
+    
     local ip_type=$1
     local operation=$2
     local ip_array_name="${ip_type^^}_IPS"
 
+    aux_info "Starting SSH loop operation" "ip_array=$ip_array_name,operation=$operation"
+
     # Ensure the array exists
     if ! declare -p "$ip_array_name" >/dev/null 2>&1; then
-        echo "Invalid IP type: $ip_type"
+        aux_err "Invalid IP array identifier" "ip_type=$ip_type,expected_array=$ip_array_name"
         return 1
     fi
 
     # Get the associative array
     declare -n IP_ARRAY="$ip_array_name"
+    
+    local total_ips=${#IP_ARRAY[@]}
+    local processed_ips=0
+    local successful_ops=0
+    local failed_ops=0
+
+    aux_info "Processing IP array" "array=$ip_array_name,total_ips=$total_ips,operation=$operation"
 
     for KEY in "${!IP_ARRAY[@]}"; do
         IP=${IP_ARRAY[$KEY]}
+        ((processed_ips++))
 
-        if [ -n "$IP" ]; then
-            if [ "$operation" == "bypass" ]; then
-                echo "Performing SSH login to bypass StrictHostKeyChecking for $IP"
-                ssh -o StrictHostKeyChecking=no root@"$IP" "exit"
-                if [ $? -ne 0 ]; then
-                    echo "Failed to SSH into $IP"
-                fi
-            elif [ "$operation" == "refresh" ]; then
-                echo "Removing SSH key for $IP from known_hosts"
-                ssh-keygen -R "$IP"
-                if [ $? -ne 0 ]; then
-                    echo "Failed to remove SSH key for $IP"
-                fi
-            else
-                echo "Invalid operation: $operation"
-                return 1
-            fi
-        else
-            echo "IP is empty for key $KEY"
+        if ! aux_val "$IP" "not_empty"; then
+            aux_warn "Empty IP address found" "key=$KEY,array=$ip_array_name"
+            ((failed_ops++))
+            continue
         fi
+
+        aux_dbg "Processing IP" "key=$KEY,ip=$IP,progress=$processed_ips/$total_ips"
+
+        case "$operation" in
+            "bypass")
+                aux_info "Bypassing StrictHostKeyChecking" "ip=$IP,key=$KEY"
+                if aux_cmd "ssh" "-o" "StrictHostKeyChecking=no" "-o" "ConnectTimeout=10" "root@$IP" "exit"; then
+                    aux_info "SSH bypass successful" "ip=$IP,key=$KEY"
+                    ((successful_ops++))
+                else
+                    aux_err "SSH bypass failed" "ip=$IP,key=$KEY"
+                    ((failed_ops++))
+                fi
+                ;;
+            "refresh")
+                aux_info "Removing SSH key from known_hosts" "ip=$IP,key=$KEY"
+                if aux_cmd "ssh-keygen" "-R" "$IP"; then
+                    aux_info "SSH key removal successful" "ip=$IP,key=$KEY"
+                    ((successful_ops++))
+                else
+                    aux_err "SSH key removal failed" "ip=$IP,key=$KEY"
+                    ((failed_ops++))
+                fi
+                ;;
+        esac
     done
+
+    aux_info "SSH loop operation completed" "array=$ip_array_name,operation=$operation,total=$total_ips,successful=$successful_ops,failed=$failed_ops"
+    
+    # Return success if at least some operations succeeded
+    if [[ $successful_ops -gt 0 ]]; then
+        return 0
+    else
+        aux_err "All SSH operations failed" "operation=$operation,failed_count=$failed_ops"
+        return 2
+    fi
 }

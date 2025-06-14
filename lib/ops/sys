@@ -36,6 +36,7 @@ sys_fun() {
     fi
     
     # Optional parameters - no validation needed
+    aux_dbg "Listing functions with filter: ${1:-none}"
     # Pass all arguments to processing function
     ana_laf "$FILEPATH_sys" "$@"
 }
@@ -68,9 +69,9 @@ sys_var() {
     fi
     
     # Debug logging for development insights
-    aux_dbg "Analyzing configuration variables in $CONFIG_gen"
+    aux_dbg "Analyzing configuration variables in $CONFIG_sys"
     
-    ana_acu -o "$CONFIG_gen" "$DIR_FUN/.."
+    ana_acu -o "$CONFIG_sys" "$DIR_FUN/.."
 }
 
 # Manages git operations, ensuring the local repository syncs with the remote.
@@ -125,6 +126,18 @@ sys_gio() {
     # Store current directory and navigate to the git folder
     local original_dir
     original_dir=$(pwd)
+    
+    # Validate directory exists and is accessible
+    if ! aux_chk "dir_exists" "$dir"; then
+        aux_err "Directory not found: $dir"
+        return 2
+    fi
+    
+    if ! aux_chk "permission" "$dir" "r"; then
+        aux_err "No read permission for directory: $dir"
+        return 2
+    fi
+    
     if ! cd "$dir" 2>/dev/null; then
         aux_err "Failed to change directory to $dir"
         return 1
@@ -138,13 +151,26 @@ sys_gio() {
 
     # Get the current status
     local status_output
-    status_output=$(git status --porcelain)
+    if ! status_output=$(git status --porcelain 2>&1); then
+        aux_err "Failed to get git status"
+        return 2
+    fi
+    
     if [[ -z "$status_output" ]]; then
         aux_info "Working tree clean, checking for updates"
-        if git rev-list HEAD...origin/"$branch" --count | grep -q "^0$"; then
-            aux_info "Local branch is up to date" "branch=origin/$branch"
+        local behind_count
+        if behind_count=$(git rev-list HEAD...origin/"$branch" --count 2>/dev/null); then
+            if [[ "$behind_count" == "0" ]]; then
+                aux_info "Local branch is up to date" "branch=origin/$branch"
+            else
+                aux_info "Updates available, pulling changes" "branch=$branch,commits_behind=$behind_count"
+                if ! aux_cmd "git" "pull" "origin" "$branch"; then
+                    aux_err "Failed to pull changes" "branch=$branch"
+                    return 1
+                fi
+            fi
         else
-            aux_info "Updates available, pulling changes" "branch=$branch"
+            aux_warn "Unable to check remote status, attempting pull" "branch=$branch"
             if ! aux_cmd "git" "pull" "origin" "$branch"; then
                 aux_err "Failed to pull changes" "branch=$branch"
                 return 1
@@ -354,71 +380,70 @@ sys_ipa() {
     aux_info "Starting package installation" "package_manager=$pman,packages=$*"
     aux_dbg "Filtering already installed packages"
 
-    # Filter out already installed packages
+    # Filter out already installed packages using improved validation
     local packages_to_install=()
+    aux_dbg "Checking installation status for ${#@} packages"
+    
     for package in "$@"; do
+        local is_installed=false
         case "$pman" in
             apt)
-                if ! dpkg -l "$package" &>/dev/null; then
-                    packages_to_install+=("$package")
-                    aux_dbg "Package needs installation: $package"
-                else
-                    aux_dbg "Package already installed: $package"
+                if aux_cmd "dpkg" "-l" "$package" >/dev/null 2>&1; then
+                    is_installed=true
                 fi
                 ;;
-            dnf|yum)
-                if ! rpm -q "$package" &>/dev/null; then
-                    packages_to_install+=("$package")
-                    aux_dbg "Package needs installation: $package"
-                else
-                    aux_dbg "Package already installed: $package"
-                fi
-                ;;
-            zypper)
-                if ! rpm -q "$package" &>/dev/null; then
-                    packages_to_install+=("$package")
-                    aux_dbg "Package needs installation: $package"
-                else
-                    aux_dbg "Package already installed: $package"
+            dnf|yum|zypper)
+                if aux_cmd "rpm" "-q" "$package" >/dev/null 2>&1; then
+                    is_installed=true
                 fi
                 ;;
         esac
+        
+        if [[ "$is_installed" == "true" ]]; then
+            aux_dbg "Package already installed: $package"
+        else
+            packages_to_install+=("$package")
+            aux_dbg "Package needs installation: $package"
+        fi
     done
 
     # If no packages need installation, exit successfully
-    if [ ${#packages_to_install[@]} -eq 0 ]; then
+    if [[ ${#packages_to_install[@]} -eq 0 ]]; then
         aux_info "All packages are already installed"
         return 0
     fi
 
-    aux_info "Installing packages" "packages=${packages_to_install[*]}"
+    local package_list
+    printf -v package_list '%s,' "${packages_to_install[@]}"
+    package_list="${package_list%,}"  # Remove trailing comma
+    aux_info "Installing packages" "count=${#packages_to_install[@]},packages=$package_list"
 
-    # Install filtered packages
+    # Install filtered packages with improved error handling
     case "$pman" in
         apt)
             if aux_cmd "apt" "install" "-y" "${packages_to_install[@]}"; then
-                aux_info "Successfully installed packages" "packages=${packages_to_install[*]}"
+                aux_info "Successfully installed packages" "packages=$package_list"
                 return 0
             else
-                aux_err "Failed to install packages" "packages=${packages_to_install[*]}"
+                aux_err "Failed to install packages" "packages=$package_list"
                 return 1
             fi
             ;;
         dnf|yum)
             if aux_cmd "$pman" "install" "-y" "${packages_to_install[@]}"; then
-                aux_info "Successfully installed packages" "packages=${packages_to_install[*]}"
+                aux_info "Successfully installed packages" "packages=$package_list"
                 return 0
             else
-                aux_err "Failed to install packages" "packages=${packages_to_install[*]}"
+                aux_err "Failed to install packages" "packages=$package_list"
                 return 1
             fi
             ;;
         zypper)
             if aux_cmd "zypper" "install" "-y" "${packages_to_install[@]}"; then
-                aux_info "Successfully installed packages" "packages=${packages_to_install[*]}"
+                aux_info "Successfully installed packages" "packages=$package_list"
                 return 0
             else
-                aux_err "Failed to install packages" "packages=${packages_to_install[*]}"
+                aux_err "Failed to install packages" "packages=$package_list"
                 return 1
             fi
             ;;
@@ -632,11 +657,12 @@ sys_ust() {
         return 1
     fi
 
-    # Check if user creation was successful
-    if id -u "$username" > /dev/null 2>&1; then
+    # Verify user creation was successful using aux_chk
+    if aux_chk "command" "id" && id -u "$username" > /dev/null 2>&1; then
         aux_info "User created successfully" "username=$username"
+        aux_dbg "User verification completed: $(id "$username")"
     else
-        aux_err "Failed to create user" "username=$username"
+        aux_err "Failed to create user or verify creation" "username=$username"
         return 1
     fi
 }
@@ -696,17 +722,26 @@ sys_sdc() {
         return 1
     fi
 
-    # Check if service is active
-    if systemctl is-active --quiet "$service"; then
+    # Check if service is active using aux utilities
+    aux_dbg "Verifying service status" "service=$service"
+    if aux_cmd "systemctl" "is-active" "--quiet" "$service"; then
         aux_info "Service is active and running" "service=$service"
     else
-        local choice=$(aux_ask "$service is not active. Do you want to continue anyway?" "no" "yes_no")
-        case "$choice" in
-            "yes")
-                aux_warn "Service is not active but continuing" "service=$service"
+        aux_warn "Service is not active after start attempt" "service=$service"
+        local choice=$(aux_ask "$service is not active. Do you want to continue anyway?" "no")
+        
+        # Validate user input
+        if ! aux_val "$choice" "not_empty"; then
+            aux_err "Invalid input received"
+            return 1
+        fi
+        
+        case "${choice,,}" in  # Convert to lowercase
+            "yes"|"y")
+                aux_warn "Service is not active but continuing" "service=$service,user_choice=$choice"
                 ;;
             *)
-                aux_err "Service is not active, exiting" "service=$service"
+                aux_err "Service is not active, exiting" "service=$service,user_choice=$choice"
                 return 1
                 ;;
         esac
@@ -757,12 +792,18 @@ sys_gre() {
     local num_commits=$(aux_ask "How many commits do you want to go back?" "1" "numeric")
     aux_dbg "User selected commits to go back: $num_commits"
 
-    # Step 2: Determine the reset type
+    # Step 2: Determine the reset type with validation
     aux_info "Reset type options:"
     aux_info "1. Soft (move HEAD but leave staging and working directory unchanged)"
     aux_info "2. Mixed (move HEAD and reset staging, but leave working directory unchanged)"
     aux_info "3. Hard (move HEAD, reset staging, and reset working directory)"
-    local reset_type=$(aux_ask "Enter your choice (1/2/3)" "2" "choice_123")
+    local reset_type=$(aux_ask "Enter your choice (1/2/3)" "2")
+    
+    # Validate reset type choice
+    if ! aux_val "$reset_type" "regex" "^[123]$"; then
+        aux_err "Invalid reset type choice: $reset_type"
+        return 1
+    fi
 
     # Construct the reset command
     local reset_cmd
@@ -789,14 +830,27 @@ sys_gre() {
     aux_info "2. Create a new branch at this point"
     aux_info "3. Force push this state to the remote (caution: rewrites history)"
     aux_info "4. Create a new commit with this state"
-    local state_choice=$(aux_ask "Enter your choice (1/2/3/4)" "1" "choice_1234")
+    local state_choice=$(aux_ask "Enter your choice (1/2/3/4)" "1")
+    
+    # Validate state choice
+    if ! aux_val "$state_choice" "regex" "^[1234]$"; then
+        aux_err "Invalid state choice: $state_choice"
+        return 1
+    fi
 
     case $state_choice in
         1)
             aux_info "Keeping the current state. No further action needed."
             ;;
         2)
-            local branch_name=$(aux_ask "Enter the name for the new branch" "" "not_empty")
+            local branch_name=$(aux_ask "Enter the name for the new branch" "")
+            if ! aux_val "$branch_name" "not_empty"; then
+                aux_err "Branch name cannot be empty"
+                return 1
+            fi
+            if ! aux_val "$branch_name" "alphanum"; then
+                aux_warn "Branch name contains special characters, proceeding anyway" "branch=$branch_name"
+            fi
             if aux_cmd "git" "checkout" "-b" "$branch_name"; then
                 aux_info "Created and switched to new branch" "branch=$branch_name"
             else
@@ -805,7 +859,17 @@ sys_gre() {
             fi
             ;;
         3)
-            local remote_branch=$(aux_ask "Enter the name of the remote branch to force push to" "" "not_empty")
+            local remote_branch=$(aux_ask "Enter the name of the remote branch to force push to" "")
+            if ! aux_val "$remote_branch" "not_empty"; then
+                aux_err "Remote branch name cannot be empty"
+                return 1
+            fi
+            aux_warn "About to force push - this will rewrite remote history" "branch=$remote_branch"
+            local confirm=$(aux_ask "Are you sure you want to force push? (yes/no)" "no")
+            if [[ "${confirm,,}" != "yes" ]]; then
+                aux_info "Force push cancelled by user"
+                return 0
+            fi
             if aux_cmd "git" "push" "-f" "origin" "HEAD:$remote_branch"; then
                 aux_warn "Force pushed to remote - history has been rewritten" "branch=$remote_branch"
             else
@@ -814,7 +878,11 @@ sys_gre() {
             fi
             ;;
         4)
-            local commit_message=$(aux_ask "Enter a commit message" "" "not_empty")
+            local commit_message=$(aux_ask "Enter a commit message" "")
+            if ! aux_val "$commit_message" "not_empty"; then
+                aux_err "Commit message cannot be empty"
+                return 1
+            fi
             if aux_cmd "git" "commit" "-m" "$commit_message"; then
                 aux_info "Created new commit" "message=$commit_message"
             else
@@ -829,7 +897,11 @@ sys_gre() {
 
     aux_info "Git Reset Explorer process complete"
     aux_info "Current repository state:"
-    git status
+    if ! aux_cmd "git" "status"; then
+        aux_warn "Failed to display git status"
+    fi
     aux_info "Current commit:"
-    git log -1 --oneline
+    if ! aux_cmd "git" "log" "-1" "--oneline"; then
+        aux_warn "Failed to display current commit"
+    fi
 }
