@@ -93,7 +93,7 @@ lsmod | grep vfio          # All VFIO modules loaded
 cat /proc/cmdline | grep iommu    # Confirmed: iommu=pt
 
 # Test RTX 5000 detection
-source /root/lab/src/mgt/pve && gpu_pts_w
+source /root/lab/src/dic/ops && ops gpu passthrough status
 # Confirmed: RTX 5000 GPU detected in IOMMU Group 18 (Device 2d04)
 ```
 

@@ -7,7 +7,7 @@
 # Comprehensive test suite for the DIC system integration, covering:
 # - Environment setup and variable initialization
 # - Core DIC functionality validation  
-# - MGT wrapper replacement verification
+# - Legacy wrapper replacement verification completed
 # - Performance and error handling testing
 # - Production readiness assessment
 #
@@ -207,10 +207,10 @@ main() {
     
     if [[ $pass_rate -ge 80 ]]; then
         printf "Overall Status: %sEXCELLENT%s (%d%% pass rate)\n" "$GREEN" "$NC" $pass_rate
-        echo "✅ DIC system is ready for MGT replacement"
+        echo "✅ DIC system is ready for legacy system replacement"
     else
         printf "Overall Status: %sNEEDS WORK%s (%d%% pass rate)\n" "$YELLOW" "$NC" $pass_rate
-        echo "🔧 DIC system needs fixes before MGT replacement"
+        echo "🔧 DIC system needs fixes before legacy system replacement"
     fi
     
     echo "============================================================================"

@@ -25,7 +25,7 @@ Software developers who need to:
 
 #### Library Integration
 - **Stateless Functions**: Import pure functions from `lib/ops/` with explicit parameters
-- **Wrapper Pattern**: Use environment-aware wrappers from `src/mgt/` for runtime integration
+- **DIC Pattern**: Use unified operations interface from `src/dic/` for all infrastructure integration
 - **Function Separation**: Understand the distinction between pure and wrapper functions
 
 #### Environment Awareness
@@ -50,11 +50,9 @@ function_name() {
     # Pure logic with explicit parameters
 }
 
-# Wrapper function pattern (src/mgt/)
-function_name-w() {
-    local env_param="${ENV_VARIABLE}"
-    function_name "$param" "$env_param"
-}
+# DIC operations pattern (src/dic/)
+ops module operation param
+# Unified interface with dependency injection
 ```
 
 ### Debug and Testing

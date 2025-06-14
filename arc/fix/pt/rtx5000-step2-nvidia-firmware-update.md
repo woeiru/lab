@@ -35,10 +35,10 @@ ssh root@x1
 qm stop 111
 
 # Attach GPU back to host for firmware update
-source /root/lab/src/mgt/pve && gpu_pta_w
+source /root/lab/src/dic/ops && ops gpu passthrough analyze
 
 # Verify GPU is attached to host
-source /root/lab/src/mgt/pve && gpu_pts_w | grep "Overall GPU State"
+source /root/lab/src/dic/ops && ops gpu passthrough status | grep "Overall GPU State"
 ```
 
 ### Step 2.3: Firmware Update Process
@@ -85,7 +85,7 @@ lspci -vv -s 3b:00.0 | grep -i rom
 # After firmware update is complete:
 
 # 1. Detach GPU for passthrough again
-source /root/lab/src/mgt/pve && gpu_ptd_w
+source /root/lab/src/dic/ops && ops gpu passthrough disable
 
 # 2. Update VM configuration to enable ROM-Bar
 qm set 111 -hostpci0 0000:3b:00.0,pcie=1,x-vga=1,rombar=1

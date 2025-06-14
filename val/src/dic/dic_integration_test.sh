@@ -7,7 +7,7 @@
 # Comprehensive test suite for the DIC system integration, covering:
 # - Environment setup and variable initialization
 # - Core DIC functionality validation  
-# - MGT wrapper replacement verification
+# - Legacy wrapper replacement verification completed
 # - Performance and error handling testing
 # - Production readiness assessment
 #
@@ -296,15 +296,15 @@ test_performance() {
     fi
 }
 
-# Test Phase 7: MGT Replacement Verification
-test_mgt_replacement() {
-    test_start "MGT Replacement - Function Equivalence Check"
+# Test Phase 7: Legacy System Replacement Verification
+test_legacy_replacement() {
+    test_start "Legacy System Replacement - Function Equivalence Check"
     
     # Test a few key functions that should work the same way
-    local mgt_functions=("pve_fun" "sys_dpa" "gpu_fun")
+    local legacy_functions=("pve_fun" "sys_dpa" "gpu_fun")
     local equivalent_found=0
     
-    for func in "${mgt_functions[@]}"; do
+    for func in "${legacy_functions[@]}"; do
         local module=${func%_*}
         local operation=${func#*_}
         
@@ -313,12 +313,12 @@ test_mgt_replacement() {
         fi
     done
     
-    if [[ $equivalent_found -eq ${#mgt_functions[@]} ]]; then
-        log_success "All tested MGT functions have DIC equivalents working"
+    if [[ $equivalent_found -eq ${#legacy_functions[@]} ]]; then
+        log_success "All tested legacy functions have DIC equivalents working"
     elif [[ $equivalent_found -gt 0 ]]; then
-        log_warning "Some MGT functions have working DIC equivalents ($equivalent_found/${#mgt_functions[@]})"
+        log_warning "Some legacy functions have working DIC equivalents ($equivalent_found/${#legacy_functions[@]})"
     else
-        log_error "No MGT functions have working DIC equivalents"
+        log_error "No legacy functions have working DIC equivalents"
     fi
 }
 
@@ -338,22 +338,22 @@ generate_summary() {
     
     if [[ $pass_rate -ge 90 ]]; then
         printf "Overall Status: %sEXCELLENT%s (%d%% pass rate)\n" "$GREEN" "$NC" $pass_rate
-        echo "✅ DIC system is ready for production MGT replacement"
+        echo "✅ DIC system is ready for production legacy system replacement"
     elif [[ $pass_rate -ge 75 ]]; then
         printf "Overall Status: %sGOOD%s (%d%% pass rate)\n" "$YELLOW" "$NC" $pass_rate  
         echo "⚠️  DIC system is mostly ready, minor fixes needed"
     elif [[ $pass_rate -ge 50 ]]; then
         printf "Overall Status: %sFAIR%s (%d%% pass rate)\n" "$YELLOW" "$NC" $pass_rate
-        echo "🔧 DIC system needs significant fixes before MGT replacement"
+        echo "🔧 DIC system needs significant fixes before legacy system replacement"
     else
         printf "Overall Status: %sPOOR%s (%d%% pass rate)\n" "$RED" "$NC" $pass_rate
-        echo "❌ DIC system not ready for MGT replacement"
+        echo "❌ DIC system not ready for legacy system replacement"
     fi
     
     echo
     echo "Next Steps:"
     if [[ $TESTS_FAILED -eq 0 ]]; then
-        echo "1. Begin systematic MGT wrapper replacement"
+        echo "1. Begin systematic legacy wrapper system replacement"
         echo "2. Deploy to production environment"
         echo "3. Monitor performance and error rates"
     else
@@ -383,7 +383,7 @@ main() {
     test_complex_operations
     test_error_handling
     test_performance
-    test_mgt_replacement
+    test_legacy_replacement
     
     generate_summary
     

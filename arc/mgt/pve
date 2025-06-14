@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# ⚠️ ARCHIVED LEGACY SYSTEM ⚠️
+# This file has been moved to arc/mgt/ and is no longer active
+# REPLACED BY: src/dic/ops - Unified DIC operations interface
+# Date archived: June 2025
+
 # ============================================================================
 # PVE MANAGEMENT WRAPPER FUNCTIONS
 # ============================================================================

@@ -4,66 +4,65 @@
 
 ## 🎯 Purpose
 
-The `src/` directory contains the operational source code for infrastructure management, providing two distinct operational paradigms: **immediate runtime control** (`mgt/`) and **initial deployment automation** (`set/`). This directory represents the active execution layer of the infrastructure management system.
+The `src/` directory contains the operational source code for infrastructure management, providing distinct operational paradigms: **dependency injection operations** (`dic/`) and **initial deployment automation** (`set/`). This directory represents the active execution layer of the infrastructure management system.
 
 ## 📋 Quick Contents Overview
 
 | Directory | Purpose | Usage Pattern | Dependencies |
 |-----------|---------|---------------|--------------|
-| [`mgt/`](#srcmgt---runtime-infrastructure-control) | Runtime Infrastructure Control | Interactive/Individual Operations | Requires `bin/ini` environment |
+| [`dic/`](#srcdic---dependency-injection-operations) | Dependency Injection Operations | Unified Operations Interface | Requires DIC configuration |
 | [`set/`](#srcset---deployment--initial-setup) | Deployment & Initial Setup | Batch/Multi-node Operations | Self-sufficient via `src/set/.menu` |
-| [`too/`](#srctoo---specialized-tools) | Specialized Tools | Specific Use Cases | Varies by tool |
 
 ---
 
-## 🔧 `src/mgt/` - Runtime Infrastructure Control
+## 🔧 `src/dic/` - Dependency Injection Operations
 
-### **Architecture: Wrapper Pattern for Immediate Operations**
+### **Architecture: Unified Operations Interface**
 
-The `mgt/` (management) directory implements a **wrapper function architecture** designed for spontaneous infrastructure administration tasks. Each function in `lib/ops/` receives a corresponding `-w` (wrapper) function that handles global variable extraction and environment-specific operations.
+The `dic/` (dependency injection container) directory provides a **unified operations interface** that has successfully replaced the legacy wrapper function architecture. This system provides streamlined infrastructure administration through a standardized dependency injection pattern.
 
 ```bash
-# Architecture Flow
+# DIC Architecture Flow
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Admin CLI     │ -> │  Wrapper (-w)    │ -> │  Pure Function  │
-│   Commands      │    │  src/mgt/*       │    │  lib/ops/*      │
+│   Admin CLI     │ -> │  DIC Operations  │ -> │  Pure Functions │
+│   Commands      │    │  src/dic/ops     │    │  lib/ops/*      │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                 │
                                 v
                        ┌──────────────────┐
-                       │  Global Config   │
-                       │  Environment     │
-                       │  (bin/ini)      │
+                       │  DIC Container   │
+                       │  Configuration   │
+                       │  (src/dic/config)│
                        └──────────────────┘
 ```
 
 ### **Key Characteristics**
 
-- **Environment Dependent**: Requires `bin/ini` initialization and configuration hierarchy
-- **Global Variable Extraction**: Wrappers resolve site-specific variables automatically
-- **One-to-One Mapping**: Each `lib/ops/` function gets exactly one wrapper function
-- **Immediate Operations**: Perfect for day-to-day operational tasks and troubleshooting
+- **Configuration Driven**: Uses DIC container configuration for dependency resolution
+- **Unified Interface**: Single operations interface across all infrastructure functions  
+- **Type-Safe Operations**: Strongly typed function parameters and return values
+- **Production Ready**: Optimized for reliability and performance
 
-### **Files in `src/mgt/`**
+### **Files in `src/dic/`**
 
-| File | Purpose | Key Functions | Related Lib Module |
-|------|---------|---------------|-------------------|
-| **`gpu`** | GPU Passthrough Management | `gpu-*-w` functions | [`lib/ops/gpu`](../lib/ops/gpu) |
-| **`pve`** | Proxmox VE Operations | `pve-*-w` functions | [`lib/ops/pve`](../lib/ops/pve) |
+| File | Purpose | Key Functions | Documentation |
+|------|---------|---------------|---------------|
+| **`ops`** | Main Operations Interface | All infrastructure operations | [`dic/README.md`](dic/README.md) |
+| **`config/`** | DIC Configuration | Container setup and dependencies | Configuration documentation |
 
 ### **Usage Examples**
 
 ```bash
-# Initialize environment (required for mgt/ scripts)
-source bin/ini
+# DIC operations (no environment initialization required)
+source src/dic/ops
 
 # GPU passthrough operations
-./src/mgt/gpu-vpt-w 100 on    # Enable GPU passthrough for VM 100
-./src/mgt/gpu-vck-w 101       # Check GPU configuration for VM 101
+ops gpu passthrough enable 100   # Enable GPU passthrough for VM 100
+ops gpu check 101               # Check GPU configuration for VM 101
 
 # Proxmox VE operations  
-./src/mgt/pve-vst-w 102       # Check VM status
-./src/mgt/pve-vcr-w newvm     # Create new VM with site-specific config
+ops pve vm status 102           # Check VM status
+ops pve vm create newvm         # Create new VM with configuration
 ```
 
 ---
@@ -161,7 +160,7 @@ sys-sca usr ct SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/c1 -x b_xall"
 
 ### **Purpose**
 
-Contains specialized tools and utilities that don't fit the standard `mgt/` or `set/` patterns. These are purpose-built solutions for specific infrastructure needs.
+Contains specialized tools and utilities that don't fit the standard operational patterns. These are purpose-built solutions for specific infrastructure needs.
 
 ### **Contents**
 
@@ -178,8 +177,8 @@ Contains specialized tools and utilities that don't fit the standard `mgt/` or `
 
 ```bash
 # Dependencies Flow
-src/mgt/* 
-├── Requires: bin/ini (environment initialization)
+src/dic/* 
+├── Uses: src/dic/config/* (DIC configuration)
 ├── Uses: lib/ops/* (pure functions)
 └── Accesses: cfg/env/* (site configurations)
 
@@ -191,7 +190,7 @@ src/set/*
 
 ### **Configuration Integration**
 
-- **`src/mgt/`**: Leverages the full configuration hierarchy via `bin/ini`
+- **`src/dic/`**: Uses DIC container configuration for dependency injection
 - **`src/set/`**: Automatically loads configuration through `src/set/.menu`
 - **Both**: Access site-specific variables from `cfg/env/site*` files
 
@@ -199,15 +198,15 @@ src/set/*
 
 ## 🎛️ Usage Patterns
 
-### **Operational Control Pattern (`src/mgt/`)**
+### **DIC Operations Pattern (`src/dic/`)**
 
 ```bash
-# 1. Initialize environment
-source bin/ini
+# 1. Source DIC operations
+source src/dic/ops
 
-# 2. Execute wrapper functions with automatic variable resolution
-pve-vpt-w 100 on     # Variables like NODE_PCI0 resolved automatically
-gpu-vck-w 101        # Site-specific GPU configurations applied
+# 2. Execute operations through unified interface
+ops pve vm start 100         # Start VM with automatic configuration resolution
+ops gpu passthrough 101      # Configure GPU passthrough with site-specific settings
 ```
 
 ### **Deployment Pattern (`src/set/`)**
@@ -231,20 +230,20 @@ sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x b_xall"
 
 ### **Separation of Concerns**
 
-| Aspect | `src/mgt/` | `src/set/` |
+| Aspect | `src/dic/` | `src/set/` |
 |--------|------------|------------|
-| **Purpose** | Runtime operations | Initial deployment |
-| **Dependencies** | Environment-dependent | Self-sufficient |
-| **Variable Resolution** | Global environment | Auto-loading |
-| **Use Case** | Individual admin tasks | Batch deployment |
-| **Testing** | Pure functions testable | Sections testable |
+| **Purpose** | Unified operations | Initial deployment |
+| **Dependencies** | DIC configuration | Self-sufficient |
+| **Variable Resolution** | Dependency injection | Auto-loading |
+| **Use Case** | All admin tasks | Batch deployment |
+| **Testing** | Type-safe operations | Sections testable |
 
 ### **Design Principles**
 
-1. **Operational Flexibility**: Two distinct patterns for different operational needs
-2. **Environment Isolation**: `mgt/` for environment-aware, `set/` for self-contained
-3. **Scalability**: `set/` enables multi-node operations, `mgt/` enables rapid iteration
-4. **Maintainability**: Clear separation between immediate control and deployment automation
+1. **Operational Unification**: Single interface for all operational needs
+2. **Dependency Injection**: Clean separation of concerns through DIC pattern
+3. **Scalability**: Both patterns enable efficient operations at scale
+4. **Maintainability**: Clear separation between operations and deployment automation
 5. **Testability**: Pure functions in `lib/ops/` can be tested independently
 
 ---
@@ -264,12 +263,12 @@ sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x b_xall"
 ### **For Runtime Operations**
 
 ```bash
-# 1. Initialize environment
-source bin/ini
+# 1. Source DIC operations
+source src/dic/ops
 
-# 2. Use management wrappers
-./src/mgt/gpu         # List available GPU functions
-./src/mgt/pve         # List available Proxmox functions
+# 2. Use unified operations interface
+ops gpu list          # List available GPU functions
+ops pve list          # List available Proxmox functions
 ```
 
 ### **For Deployment Operations**
@@ -288,10 +287,10 @@ source bin/ini
 
 The `src/` directory represents the **active execution layer** of the infrastructure management system, providing two complementary operational paradigms:
 
-- **`mgt/`**: Environment-aware wrappers for immediate operational control
+- **`dic/`**: Unified dependency injection operations for all infrastructure control
 - **`set/`**: Self-sufficient deployment scripts for initial setup and multi-node operations
 
-This dual approach ensures both rapid administrative response capabilities and systematic infrastructure deployment, supporting the complete lifecycle of infrastructure management from initial deployment through ongoing operations.
+This dual approach ensures both efficient operational control through a standardized interface and systematic infrastructure deployment, supporting the complete lifecycle of infrastructure management from initial deployment through ongoing operations.
 
 ---
 

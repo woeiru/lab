@@ -111,7 +111,7 @@ Use the Environment Configuration Controller (`core/ecc`) to select and configur
 ### Core System Integration
 - **Initialization**: Loaded during system initialization via `bin/ini`
 - **Library Integration**: Used by modules in `lib/` for environment-aware operations
-- **Management Tools**: Referenced by scripts in `src/mgt/` for operational tasks
+- **Management Tools**: Referenced by DIC operations in `src/dic/` for operational tasks
 
 ### External Dependencies
 - **Container Runtime**: Required for pod configurations (Podman/Docker)

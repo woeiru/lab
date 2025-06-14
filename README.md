@@ -78,7 +78,7 @@ pve-vmc() {
     # Pure logic with explicit parameters
 }
 
-# Wrapper Functions (src/mgt/) - Environment integration  
+# DIC Operations (src/dic/) - Unified infrastructure interface  
 pve-vmc-w() {
     local cluster_nodes="${CLUSTER_NODES[*]}"
     pve-vmc "$vm_id" "$cluster_nodes"

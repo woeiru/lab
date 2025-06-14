@@ -77,7 +77,6 @@ trap cleanup EXIT INT TERM
 #   - SRC_AUX_DIR (Auxiliary helper function library path)
 #   - LIB_GEN_DIR (General utility function library path)
 #   - CFG_ALI_DIR (Alias configuration directory path)
-#   - SRC_MGT_DIR (Management wrapper functions directory path)
 #   - LAB_DIR (Base lab directory path)
 #   - SITE_CONFIG_FILE, ENV_OVERRIDE_FILE, NODE_OVERRIDE_FILE (Environment config paths)
 #######################################################################
@@ -86,7 +85,7 @@ trap cleanup EXIT INT TERM
 validate_required_globals() {
     local required_vars=(
         "BASE_DIR" "LAB_DIR" "LIB_OPS_DIR" "SRC_AUX_DIR"
-        "LIB_GEN_DIR" "CFG_ALI_DIR" "SRC_MGT_DIR"
+        "LIB_GEN_DIR" "CFG_ALI_DIR"
         "SITE_CONFIG_FILE" "ENV_OVERRIDE_FILE" "NODE_OVERRIDE_FILE"
     )
     
@@ -521,34 +520,6 @@ source_cfg_ali() {
     return $?
 }
 
-# Source the management wrapper function files (src/mgt/ directory)
-# Contains: Management wrapper functions that handle global variable extraction
-# Purpose: Wrapper functions with -w suffix that call parameterized lib/ops functions
-source_src_mgt() {
-    local src_mgt_dir
-    
-    # Use SRC_MGT_DIR which should be defined in ric
-    if [[ -z "${SRC_MGT_DIR:-}" ]]; then
-        if [[ -z "${BASE_DIR:-}" ]]; then
-            lo1_log "lvl" "Error: Neither SRC_MGT_DIR nor BASE_DIR is defined"
-            return 1
-        fi
-        lo1_log "lvl" "Warning: SRC_MGT_DIR not defined, using default path"
-        src_mgt_dir="${BASE_DIR}/src/mgt"
-    else
-        src_mgt_dir="$SRC_MGT_DIR"
-    fi
-    
-    # Validate the directory exists before attempting to source
-    if [[ ! -d "$src_mgt_dir" ]]; then
-        lo1_log "lvl" "Warning: Management wrapper directory not found: $src_mgt_dir"
-        return 1
-    fi
-    
-    source_directory "$src_mgt_dir" "*" "management wrapper function files"
-    return $?
-}
-
 setup_components() {
     lo1_log "lvl" "Validating and executing component configuration..."
     lo1_log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
@@ -583,7 +554,6 @@ setup_components() {
         "source_lib_gen:LIB_UTL:$COMPONENT_OPTIONAL"
         "source_cfg_env:CFG_ENV:$COMPONENT_OPTIONAL"
         "source_src_aux:SRC_AUX:$COMPONENT_OPTIONAL"
-        "source_src_mgt:SRC_MGT:$COMPONENT_OPTIONAL"
     )
 
     lo1_log "lvl" "Executing component functions..."

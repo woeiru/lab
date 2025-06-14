@@ -12,7 +12,8 @@
 #
 # DESIGN PRINCIPLES:
 # - Pure functions (lib/ops/usr): No global dependencies, explicit parameters
-# - Wrapper functions (src/mgt/usr): Extract globals, call pure functions
+# - ARCHIVED: Legacy wrapper functions (src/mgt/usr): Extracted globals, called pure functions
+# - REPLACED BY: DIC operations (src/dic/ops): Unified interface with dependency injection
 # - Clean separation: Environmental concerns isolated from business logic
 # - Testability: Pure functions easily unit tested, wrappers handle integration
 #

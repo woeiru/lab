@@ -316,7 +316,7 @@ pve-vpt() {
     fi
 }
 
-# Wrapper function (src/mgt/pve) - handles global extraction
+# DIC operations (src/dic/ops) - handles dependency injection
 pve-vpt-w() {
     source "${LIB_OPS_DIR}/pve"
     
