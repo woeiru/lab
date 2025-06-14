@@ -156,12 +156,22 @@ net_uni() {
         return 127
     fi
     
-    if ! aux_chk "dir_writable" "/etc/udev/rules.d"; then
+    if ! aux_chk "dir_exists" "/etc/udev/rules.d"; then
+        aux_err "Directory not found: /etc/udev/rules.d"
+        return 2
+    fi
+    
+    if ! aux_chk "permission" "/etc/udev/rules.d" "w"; then
         aux_err "Write access required to /etc/udev/rules.d directory"
         return 2
     fi
     
-    if ! aux_chk "file_writable" "/etc/network/interfaces"; then
+    if ! aux_chk "file_exists" "/etc/network/interfaces"; then
+        aux_err "Network interfaces file not found: /etc/network/interfaces"
+        return 2
+    fi
+    
+    if ! aux_chk "permission" "/etc/network/interfaces" "w"; then
         aux_err "Write access required to /etc/network/interfaces file"
         return 2
     fi
@@ -172,9 +182,15 @@ net_uni() {
     # User interaction (REQUIRED for interactive functions)
     local INTERFACE_NAME=$(aux_ask "Enter the new interface name (e.g., nic1)" "" "not_empty")
     
-    # Input validation (REQUIRED)
-    if ! aux_val "$INTERFACE_NAME" "alphanum"; then
-        aux_err "Interface name must be alphanumeric"
+    # Input validation (REQUIRED) - enhanced validation for interface names
+    if ! aux_val "$INTERFACE_NAME" "regex" "^[a-zA-Z][a-zA-Z0-9_-]{0,14}$"; then
+        aux_err "Invalid interface name format. Must start with letter, contain only alphanumeric, underscore, or hyphen, max 15 chars" "interface=$INTERFACE_NAME"
+        return 1
+    fi
+    
+    # Check if interface name is already in use
+    if ip addr show dev "$INTERFACE_NAME" >/dev/null 2>&1; then
+        aux_err "Interface name already exists on system" "interface=$INTERFACE_NAME"
         return 1
     fi
     
@@ -183,6 +199,12 @@ net_uni() {
     ip addr
     
     local SELECTED_INTERFACE=$(aux_ask "Enter the network interface name whose MAC address you want to associate with the new name" "" "not_empty")
+    
+    # Enhanced validation of selected interface
+    if ! aux_val "$SELECTED_INTERFACE" "not_empty"; then
+        aux_err "Selected interface name cannot be empty"
+        return 1
+    fi
     
     # Validate selected interface exists
     if ! ip addr show dev "$SELECTED_INTERFACE" >/dev/null 2>&1; then
@@ -193,19 +215,48 @@ net_uni() {
     # Retrieve MAC address for the selected interface
     local MAC_ADDRESS=$(ip addr show dev "$SELECTED_INTERFACE" | awk '/ether/{print $2}')
     
-    # Validate MAC address was found
+    # Validate MAC address was found and has correct format
     if ! aux_val "$MAC_ADDRESS" "not_empty"; then
         aux_err "Could not retrieve MAC address for interface: $SELECTED_INTERFACE"
         return 2
     fi
     
+    # Validate MAC address format
+    local mac_regex="^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$"
+    if ! aux_val "$MAC_ADDRESS" "regex" "$mac_regex"; then
+        aux_err "Invalid MAC address format retrieved" "mac=$MAC_ADDRESS,interface=$SELECTED_INTERFACE"
+        return 2
+    fi
+    
     aux_info "MAC address for $SELECTED_INTERFACE: $MAC_ADDRESS"
     
-    # Safe command execution (REQUIRED for system operations)
+    # Safe command execution with rollback mechanism (REQUIRED for system operations)
+    local udev_rules_file="/etc/udev/rules.d/70-persistent-net.rules"
+    local backup_file="${udev_rules_file}.backup.$(date +%s)"
+    
+    # Create backup if file exists
+    if [ -f "$udev_rules_file" ]; then
+        if ! cp "$udev_rules_file" "$backup_file"; then
+            aux_err "Failed to create backup of udev rules file"
+            return 2
+        fi
+        aux_info "Created backup of existing udev rules" "backup_file=$backup_file"
+    fi
+    
     aux_info "Creating udev rule for interface renaming" "interface=$INTERFACE_NAME,mac=$MAC_ADDRESS"
     
-    if ! echo 'SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="'"$MAC_ADDRESS"'", NAME="'"$INTERFACE_NAME"'"' > /etc/udev/rules.d/70-persistent-net.rules; then
+    # Create new udev rule with error handling
+    local udev_rule='SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="'"$MAC_ADDRESS"'", NAME="'"$INTERFACE_NAME"'"'
+    if ! echo "$udev_rule" > "$udev_rules_file"; then
         aux_err "Failed to create udev rule file"
+        # Restore backup if it exists
+        if [ -f "$backup_file" ]; then
+            if cp "$backup_file" "$udev_rules_file"; then
+                aux_info "Restored backup udev rules file"
+            else
+                aux_err "Failed to restore backup - manual intervention required"
+            fi
+        fi
         return 2
     fi
     
@@ -219,16 +270,31 @@ net_uni() {
     
     aux_info "Udev rule applied. The interface name '$INTERFACE_NAME' has been assigned to MAC address '$MAC_ADDRESS'."
     
-    # Update network configuration file safely
+    # Update network configuration file safely with backup
+    local interfaces_file="/etc/network/interfaces"
+    local interfaces_backup="${interfaces_file}.backup.$(date +%s)"
+    
+    aux_info "Creating backup of network interfaces configuration"
+    if ! cp "$interfaces_file" "$interfaces_backup"; then
+        aux_err "Failed to backup network interfaces file"
+        return 2
+    fi
+    
     aux_info "Updating network configuration file"
-    if aux_cmd "sed" "-i" "s/$SELECTED_INTERFACE/$INTERFACE_NAME/g" "/etc/network/interfaces"; then
-        aux_info "Network configuration updated successfully"
+    if aux_cmd "sed" "-i" "s/$SELECTED_INTERFACE/$INTERFACE_NAME/g" "$interfaces_file"; then
+        aux_info "Network configuration updated successfully" "backup_file=$interfaces_backup"
     else
-        aux_warn "Failed to update network configuration file - manual update may be required"
+        aux_err "Failed to update network configuration file - restoring backup"
+        if cp "$interfaces_backup" "$interfaces_file"; then
+            aux_info "Successfully restored network configuration backup"
+        else
+            aux_err "Failed to restore backup - manual intervention required" "backup_file=$interfaces_backup"
+        fi
+        return 2
     fi
     
     # User confirmation for reboot
-    local REBOOT_CONFIRM=$(aux_ask "Do you want to reboot the system now to apply changes?" "no" "yes_no")
+    local REBOOT_CONFIRM=$(aux_ask "Do you want to reboot the system now to apply changes? (yes/no)" "no")
     if [ "$REBOOT_CONFIRM" = "yes" ]; then
         aux_info "Initiating system reboot"
         if aux_cmd "reboot"; then
@@ -269,10 +335,16 @@ net_fsr() {
         return 1
     fi
     
-    # Parameter validation (REQUIRED)
+    # Parameter validation (REQUIRED) - enhanced service name validation
     if ! aux_val "$1" "not_empty"; then
         aux_err "Service name cannot be empty"
         aux_use
+        return 1
+    fi
+    
+    # Validate service name format (alphanumeric with hyphens allowed)
+    if ! aux_val "$1" "regex" "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$"; then
+        aux_err "Invalid service name format. Must be alphanumeric with optional hyphens/underscores, max 64 chars" "service=$1"
         return 1
     fi
     
@@ -282,6 +354,18 @@ net_fsr() {
     if ! aux_chk "command" "firewall-cmd"; then
         aux_err "firewall-cmd command not found - required for firewall operations"
         return 127
+    fi
+    
+    # Check if firewalld service is running
+    if ! aux_chk "process" "firewalld"; then
+        aux_warn "Firewalld service does not appear to be running" "service=firewalld"
+    fi
+    
+    # Validate service exists in firewalld
+    if ! firewall-cmd --get-services | grep -q "\b$fw_service\b"; then
+        aux_err "Service not recognized by firewalld" "service=$fw_service"
+        aux_info "Available services: $(firewall-cmd --get-services | tr ' ' ',')"
+        return 1
     fi
     
     # Operational logging (REQUIRED for system changes)
@@ -324,10 +408,16 @@ net_fas() {
         return 1
     fi
     
-    # Parameter validation (REQUIRED)
+    # Parameter validation (REQUIRED) - enhanced service name validation
     if ! aux_val "$1" "not_empty"; then
         aux_err "Service name cannot be empty"
         aux_use
+        return 1
+    fi
+    
+    # Validate service name format (alphanumeric with hyphens allowed)
+    if ! aux_val "$1" "regex" "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$"; then
+        aux_err "Invalid service name format. Must be alphanumeric with optional hyphens/underscores, max 64 chars" "service=$1"
         return 1
     fi
     
@@ -344,6 +434,13 @@ net_fas() {
     if ! aux_cmd "firewall-cmd" "--state"; then
         aux_err "Firewall daemon is not running"
         return 2
+    fi
+    
+    # Validate service exists in firewalld
+    if ! firewall-cmd --get-services | grep -q "\b$fwd_service\b"; then
+        aux_err "Service not recognized by firewalld" "service=$fwd_service"
+        aux_info "Available services: $(firewall-cmd --get-services | tr ' ' ',')"
+        return 1
     fi
     
     # Operational logging (REQUIRED for system changes)
@@ -405,14 +502,16 @@ net_hos() {
         return 1
     fi
     
-    # Validate IP address format (basic validation)
-    if ! aux_val "$1" "ip_address"; then
+    # Validate IP address format (using regex pattern)
+    local ip_regex="^([0-9]{1,3}\.){3}[0-9]{1,3}$|^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$"
+    if ! aux_val "$1" "regex" "$ip_regex"; then
         aux_err "Invalid IP address format: $1"
         return 1
     fi
     
-    # Validate hostname format
-    if ! aux_val "$2" "hostname"; then
+    # Validate hostname format (using regex for basic hostname validation)
+    local hostname_regex="^[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?$"
+    if ! aux_val "$2" "regex" "$hostname_regex"; then
         aux_err "Invalid hostname format: $2"
         return 1
     fi
@@ -445,6 +544,20 @@ net_hos() {
     # Operational logging (REQUIRED for file operations)
     aux_info "Managing hosts file entry" "hostname=$hostname,ip=$ip_address"
 
+    # Validate configuration before making changes
+    aux_info "Validating hosts file configuration" "hostname=$hostname,ip=$ip_address"
+    
+    # Check for potential conflicts (same IP with different hostname)
+    local existing_hostname=$(grep -E "^$ip_address\s+" "$hosts_file" | awk '{print $2}' | head -1)
+    if [ -n "$existing_hostname" ] && [ "$existing_hostname" != "$hostname" ]; then
+        aux_warn "IP address already assigned to different hostname" "ip=$ip_address,existing_hostname=$existing_hostname,new_hostname=$hostname"
+        local confirm=$(aux_ask "Continue with this change? This will replace the existing hostname mapping (yes/no)" "no")
+        if [ "$confirm" != "yes" ]; then
+            aux_info "Operation cancelled by user"
+            return 0
+        fi
+    fi
+    
     # Check if the entry already exists with the same IP
     if grep -q -w "$hostname" "$hosts_file"; then
         # Hostname exists, check if IP needs update
@@ -455,16 +568,36 @@ net_hos() {
             # Hostname exists, but IP is different. Update the line.
             aux_info "Updating existing host entry" "hostname=$hostname,old_ip=existing,new_ip=$ip_address"
             
-            # Use a temporary file for sed to avoid issues with /etc/hosts
+            # Safe file operation with backup and atomic update
+            local backup_file="${hosts_file}.backup.$(date +%s)"
             local temp_file
+            
+            # Create backup
+            if ! cp "$hosts_file" "$backup_file"; then
+                aux_err "Failed to create backup of hosts file"
+                return 2
+            fi
+            
+            # Use atomic update with temporary file
             if temp_file=$(mktemp); then
-                if sed "s/.*\\s\\+$hostname$/$ip_address\\t$hostname/" "$hosts_file" > "$temp_file" && sudo cp "$temp_file" "$hosts_file"; then
-                    rm "$temp_file"
-                    aux_info "Successfully updated host entry" "hostname=$hostname,ip=$ip_address"
-                    return 0
+                if sed "s/.*\\s\\+$hostname$/$ip_address\\t$hostname/" "$hosts_file" > "$temp_file"; then
+                    if sudo cp "$temp_file" "$hosts_file"; then
+                        rm "$temp_file"
+                        aux_info "Successfully updated host entry" "hostname=$hostname,ip=$ip_address,backup_file=$backup_file"
+                        return 0
+                    else
+                        # Restore backup on failure
+                        rm "$temp_file" 2>/dev/null
+                        if cp "$backup_file" "$hosts_file"; then
+                            aux_err "Failed to update hosts file - backup restored" "hostname=$hostname,ip=$ip_address"
+                        else
+                            aux_err "Failed to update hosts file and restore backup - manual intervention required" "backup_file=$backup_file"
+                        fi
+                        return 2
+                    fi
                 else
                     rm "$temp_file" 2>/dev/null
-                    aux_err "Failed to update host entry" "hostname=$hostname,ip=$ip_address"
+                    aux_err "Failed to process hosts file with sed" "hostname=$hostname,ip=$ip_address"
                     return 2
                 fi
             else
@@ -473,14 +606,27 @@ net_hos() {
             fi
         fi
     else
-        # Hostname does not exist, add new entry
-        aux_info "Adding new host entry" "hostname=$hostname,ip=$ip_address"
+        # Hostname does not exist, add new entry with backup
+        local backup_file="${hosts_file}.backup.$(date +%s)"
+        
+        # Create backup before adding new entry
+        if ! cp "$hosts_file" "$backup_file"; then
+            aux_err "Failed to create backup of hosts file"
+            return 2
+        fi
+        
+        aux_info "Adding new host entry" "hostname=$hostname,ip=$ip_address,backup_file=$backup_file"
         
         if echo -e "$ip_address\\t$hostname" | sudo tee -a "$hosts_file" > /dev/null; then
             aux_info "Successfully added host entry" "hostname=$hostname,ip=$ip_address"
             return 0
         else
-            aux_err "Failed to add host entry" "hostname=$hostname,ip=$ip_address"
+            aux_err "Failed to add host entry - restoring backup" "hostname=$hostname,ip=$ip_address"
+            if cp "$backup_file" "$hosts_file"; then
+                aux_info "Successfully restored hosts file backup"
+            else
+                aux_err "Failed to restore backup - manual intervention required" "backup_file=$backup_file"
+            fi
             return 2
         fi
     fi
