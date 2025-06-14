@@ -138,6 +138,25 @@ BASE_FUN="${FILE_FUN%.*}"
 FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
 CONFIG_FUN="${SITE_CONFIG_FILE}"
 
+# Color definitions for output formatting (conditional to avoid conflicts)
+if [[ -z "$NC" ]]; then
+    readonly NC=$(printf '\033[0m')               # No Color / Reset
+    readonly RED=$(printf '\033[0;31m')           # Red
+    readonly GREEN=$(printf '\033[0;32m')         # Green
+    readonly YELLOW=$(printf '\033[0;33m')        # Yellow
+    readonly BLUE=$(printf '\033[0;34m')          # Blue
+    readonly MAGENTA=$(printf '\033[0;35m')       # Magenta
+    readonly CYAN=$(printf '\033[0;36m')          # Cyan
+    readonly WHITE=$(printf '\033[0;37m')         # White
+fi
+
+# Status markers for display (conditional to avoid conflicts)
+if [[ -z "$CHECK_MARK" ]]; then
+    readonly CHECK_MARK="✓"
+    readonly CROSS_MARK="✗"
+    readonly QUESTION_MARK="?"
+fi
+
 # Dynamically create variables based on the base name
 eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
 eval "FILE_${BASE_FUN}=\$FILE_FUN"
@@ -811,15 +830,14 @@ gpu_fun() {
         return 0
     fi
     
-    # Optional parameter - no strict validation needed
-    # But validate if provided
+    # Optional parameter validation
     if [ $# -gt 1 ]; then
         aux_err "Too many parameters provided"
         aux_use
         return 1
     fi
     
-    if [ $# -eq 1 ] && ! aux_val "$1" "not_empty"; then
+    if [ $# -eq 1 ] && [ -z "$1" ]; then
         aux_err "Filter parameter cannot be empty"
         aux_use
         return 1
@@ -857,7 +875,7 @@ gpu_var() {
         return 1
     fi
     
-    if ! aux_chk "var_set" "CONFIG_gpu"; then
+    if ! aux_chk "variable" "CONFIG_gpu"; then
         aux_err "CONFIG_gpu environment variable not set"
         return 2
     fi
@@ -898,7 +916,7 @@ gpu_nds() {
         return 1
     fi
     
-    if [ $# -eq 1 ] && ! aux_val "$1" "not_empty"; then
+    if [ $# -eq 1 ] && [ -z "$1" ]; then
         aux_err "Driver version parameter cannot be empty"
         aux_use
         return 1
@@ -986,7 +1004,7 @@ EOF
 
 # Configures initial GRUB and EFI settings for GPU passthrough
 # passthrough step one
-#
+# -x (execute)
 gpu_pt1() {
     # Technical Description:
     #   First phase of GPU passthrough setup that establishes fundamental system-level
@@ -999,16 +1017,43 @@ gpu_pt1() {
     #   - Root privileges for GRUB configuration modification
     #   - EFI boot environment support
     #   - grub-efi-amd64 package installation capability
-    # System Changes:
-    #   - Modifies /etc/default/grub to add "iommu=pt" to GRUB_CMDLINE_LINUX_DEFAULT
-    #   - Regenerates GRUB configuration files via update-grub and update-grub2
-    #   - Installs grub-efi-amd64 package for EFI system compatibility
-    #   - Requires system reboot for kernel command line changes to take effect
-    # Prerequisites:
-    #   - System must support hardware virtualization (VT-x/AMD-V)
-    #   - IOMMU must be supported and enabled in BIOS/UEFI settings
-    # Next Steps:
-    #   - After reboot, proceed with gpu_pt2 for VFIO kernel module setup
+    #   - update-grub and update-grub2 commands
+    #   - sed command for file editing
+    #   - apt command for package installation
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_err "Invalid parameters - requires -x flag"
+        aux_use
+        return 1
+    fi
+    
+    # Check critical system dependencies
+    if ! aux_chk "command" "sed"; then
+        aux_err "sed command not found - required for GRUB configuration"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "update-grub"; then
+        aux_err "update-grub command not found - required for GRUB configuration"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "apt"; then
+        aux_err "apt command not found - required for package installation"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "efibootmgr"; then
+        aux_err "efibootmgr command not found - required for EFI boot management"
+        return 127
+    fi
     local function_name="${FUNCNAME[0]}"
     
     aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_step1,phase=initial_setup"
@@ -1038,7 +1083,7 @@ gpu_pt1() {
 
 # Adds necessary kernel modules for GPU passthrough
 # passthrough step two
-#
+# -x (execute)
 gpu_pt2() {
     # Technical Description:
     #   Second phase of GPU passthrough setup that configures essential VFIO kernel modules
@@ -1051,17 +1096,32 @@ gpu_pt2() {
     #   - Successful completion of gpu_pt1 (IOMMU enabled in kernel command line)
     #   - Root privileges for system file modification
     #   - initramfs-tools for initrd generation
-    # System Changes:
-    #   - Adds "vfio", "vfio_iommu_type1", "vfio_pci" entries to /etc/modules
-    #   - Regenerates initramfs for all kernel versions via update-initramfs
-    #   - Ensures VFIO modules are available during early boot process
-    #   - Requires system reboot for module loading changes to take effect
-    # Module Functions:
-    #   - vfio: Core Virtual Function I/O framework
-    #   - vfio_iommu_type1: IOMMU driver for device isolation and memory management
-    #   - vfio_pci: PCI device binding interface for device passthrough
-    # Next Steps:
-    #   - After reboot, proceed with gpu_pt3 for specific GPU device configuration
+    #   - update-initramfs command
+    #   - Write access to /etc/modules file
+    # Arguments:
+    #   $1: -x - explicit execution flag required for safety and consistency
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_err "Invalid parameters - requires -x flag"
+        aux_use
+        return 1
+    fi
+    
+    # Check critical system dependencies
+    if ! aux_chk "command" "update-initramfs"; then
+        aux_err "update-initramfs command not found - required for initrd generation"
+        return 127
+    fi
+    
+    if ! aux_chk "permission" "/etc/modules" "w"; then
+        aux_err "/etc/modules not writable - required for module configuration"
+        return 2
+    fi
     local function_name="${FUNCNAME[0]}"
     
     aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_step2,phase=vfio_modules"
@@ -1102,28 +1162,54 @@ gpu_pt3() {
     #   - Successful completion of gpu_pt1 and gpu_pt2 (IOMMU and VFIO modules)
     #   - Root privileges for modprobe configuration management
     #   - lspci utility for GPU device detection and ID extraction
+    #   - update-initramfs command for applying configuration changes
+    #   - Write access to /etc/modprobe.d/ directory
     # Arguments:
     #   $1: action - "enable" to configure persistent passthrough, "disable" to revert
-    # System Changes (enable):
-    #   - Creates /etc/modprobe.d/vfio.conf with "options vfio-pci ids=<gpu_ids>"
-    #   - Creates /etc/modprobe.d/zz-vfio-gpu-blacklist.conf blacklisting host drivers
-    #   - Blacklists nvidia, nouveau (NVIDIA), amdgpu, radeon (AMD) as appropriate
-    #   - Updates initramfs to apply driver binding changes
-    # System Changes (disable):
-    #   - Removes /etc/modprobe.d/vfio.conf and zz-vfio-gpu-blacklist.conf
-    #   - Restores normal host driver binding for GPU devices
-    #   - Updates initramfs to apply configuration removal
-    # Device Detection:
-    #   - Automatically detects all VGA and 3D controller devices via lspci
-    #   - Extracts vendor:device IDs for VFIO binding configuration
-    #   - Handles both NVIDIA (10de) and AMD (1002) GPU vendors
+    
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 1 ]; then
+        aux_err "Exactly one parameter required"
+        aux_use
+        return 1
+    fi
+    
+    if [ -z "$1" ]; then
+        aux_err "Action parameter cannot be empty"
+        aux_use
+        return 1
+    fi
+    
+    # Validate action parameter
+    if [ "$1" != "enable" ] && [ "$1" != "disable" ]; then
+        aux_err "Invalid action: $1. Must be 'enable' or 'disable'"
+        aux_use
+        return 1
+    fi
+    
+    # Check critical system dependencies
+    if ! aux_chk "command" "lspci"; then
+        aux_err "lspci command not found - required for GPU device detection"
+        return 127
+    fi
+    
+    if ! aux_chk "command" "update-initramfs"; then
+        aux_err "update-initramfs command not found - required for applying changes"
+        return 127
+    fi
+    
+    if [ ! -d "/etc/modprobe.d" ] || [ ! -w "/etc/modprobe.d" ]; then
+        aux_err "/etc/modprobe.d directory not writable - required for configuration"
+        return 2
+    fi    
     local action="$1"
     local function_name="${FUNCNAME[0]}"
     
-    if [ -z "$action" ]; then
-        printf "Usage: %s <enable|disable>\n" "$function_name"
-        return 1
-    fi
+    aux_info "Starting GPU passthrough configuration" "action=${action}"
 
     local vfio_conf="/etc/modprobe.d/vfio.conf"
     local passthrough_blacklist_conf="/etc/modprobe.d/zz-vfio-gpu-blacklist.conf"
@@ -1286,7 +1372,7 @@ gpu_ptd() {
         return 127
     fi
     
-    if ! aux_chk "dir_exists" "/sys/bus/pci/drivers"; then
+    if [ ! -d "/sys/bus/pci/drivers" ]; then
         aux_err "PCI driver system not available"
         return 2
     fi
@@ -1470,7 +1556,7 @@ gpu_pta() {
         return 127
     fi
     
-    if ! aux_chk "dir_exists" "/sys/bus/pci/drivers"; then
+    if [ ! -d "/sys/bus/pci/drivers" ]; then
         aux_err "PCI driver system not available"
         return 2
     fi
@@ -1747,7 +1833,7 @@ gpu_pts() {
         return 127
     fi
     
-    if ! aux_chk "file_exists" "/proc/cmdline"; then
+    if [ ! -f "/proc/cmdline" ] || [ ! -r "/proc/cmdline" ]; then
         aux_err "/proc/cmdline not accessible - required for kernel parameter verification"
         return 2
     fi
