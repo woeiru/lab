@@ -1255,55 +1255,55 @@ ssh_sks() {
             chmod 700 "$ssh_dir"
             generate_key "$ssh_dir/$key_name"
             if [ $? -ne 0 ]; then
-                echo "Failed to generate SSH key pair."
+                aux_err "SSH key pair generation failed" "component=ssh,operation=key_generation,location=server,key_type=$encryption_type"
                 return 1
             fi
-            echo "SSH key pair generated on server using $encryption_type encryption."
-            echo "Transferring private key to client..."
+            aux_info "SSH key pair generated on server" "component=ssh,operation=key_generation,encryption_type=$encryption_type,location=server"
+            aux_info "Transferring private key to client" "component=ssh,operation=key_transfer,direction=server_to_client,key_type=private"
             scp "$ssh_dir/$key_name" "${remote_address}:~/.ssh/"
             if [ $? -ne 0 ]; then
-                echo "Failed to transfer private key to client."
+                aux_err "Private key transfer to client failed" "component=ssh,operation=key_transfer,remote_address=$remote_address"
                 return 1
             fi
-            echo "Private key transferred to client successfully."
+            aux_info "Private key transferred to client successfully" "component=ssh,operation=key_transfer,remote_address=$remote_address,status=success"
             if $deduplicate; then
                 rm "$ssh_dir/$key_name"
-                echo "Private key removed from server (deduplication)."
+                aux_info "Private key removed from server" "component=ssh,operation=deduplication,key_type=private,reason=cleanup"
             fi
-            echo "Public key file: $ssh_dir/${key_name}.pub"
+            aux_info "Public key file location" "component=ssh,operation=key_generation,file_path=$ssh_dir/${key_name}.pub,key_type=public"
             ;;
         -c) # Client-side generation
             generate_key "$HOME/.ssh/$key_name"
             if [ $? -ne 0 ]; then
-                echo "Failed to generate SSH key pair."
+                aux_err "SSH key pair generation failed" "component=ssh,operation=key_generation,location=client,key_type=$encryption_type"
                 return 1
             fi
-            echo "SSH key pair generated on client using $encryption_type encryption."
-            echo "Transferring public key to server..."
+            aux_info "SSH key pair generated on client" "component=ssh,operation=key_generation,encryption_type=$encryption_type,location=client"
+            aux_info "Transferring public key to server" "component=ssh,operation=key_transfer,direction=client_to_server,key_type=public"
             scp "$HOME/.ssh/${key_name}.pub" "${remote_address}:/tmp/"
             if [ $? -ne 0 ]; then
-                echo "Failed to transfer public key to server."
+                aux_err "Public key transfer to server failed" "component=ssh,operation=key_transfer,remote_address=$remote_address"
                 return 1
             fi
             ssh "$remote_address" "mkdir -p $ssh_dir && mv /tmp/${key_name}.pub $ssh_dir/"
             if [ $? -ne 0 ]; then
-                echo "Failed to move public key on server."
+                aux_err "Failed to move public key on server" "component=ssh,operation=key_placement,remote_address=$remote_address"
                 return 1
             fi
-            echo "Public key transferred to server and saved in $ssh_dir/${key_name}.pub"
-            echo "Private key file on client: $HOME/.ssh/$key_name"
+            aux_info "Public key transferred and saved on server" "component=ssh,operation=key_transfer,file_path=$ssh_dir/${key_name}.pub,status=success"
+            aux_info "Private key file location on client" "component=ssh,operation=key_generation,file_path=$HOME/.ssh/$key_name,key_type=private"
 
             if $deduplicate; then
                 rm "$HOME/.ssh/${key_name}.pub"
-                echo "Public key removed from client's .ssh folder (deduplication)."
+                aux_info "Public key removed from client" "component=ssh,operation=deduplication,key_type=public,reason=cleanup"
             fi
             ;;
         *)
-            echo "Invalid mode. Use -s for server-side or -c for client-side generation."
+            aux_err "Invalid mode specified for SSH key generation" "component=ssh,operation=key_generation,mode=$mode,valid_modes=-s,-c"
             return 1
             ;;
     esac
-    echo "SSH key generation and transfer completed successfully."
+    aux_info "SSH key generation and transfer completed successfully" "component=ssh,operation=key_generation,mode=$mode,remote_address=$remote_address,key_name=$key_name"
 }
 
 
@@ -1357,48 +1357,48 @@ ssh_sak() {
             local public_key_path="$HOME/.ssh/${key_name}.pub"
             # Check if the public key exists
             if [ ! -f "$public_key_path" ]; then
-                echo "Error: Public key '$public_key_path' does not exist."
+                aux_err "Public key file not found" "component=ssh,operation=key_append,key_path=$public_key_path,location=client"
                 return 1
             fi
             # Transfer and append the public key on the server
             ssh "$remote_address" "mkdir -p $ssh_dir && cat >> $authorized_keys_path" < "$public_key_path"
             if [ $? -ne 0 ]; then
-                echo "Error: Failed to append public key to authorized_keys on the server."
+                aux_err "Failed to append public key to authorized_keys on server" "component=ssh,operation=key_append,remote_address=$remote_address"
                 return 1
             fi
-            echo "Public key appended to authorized_keys on the server."
+            aux_info "Public key appended to authorized_keys on server" "component=ssh,operation=key_append,remote_address=$remote_address,status=success"
             ;;
         -s) # Server-side operation
             local public_key_path="$ssh_dir/${key_name}.pub"
             # Check if the public key exists
             if [ ! -f "$public_key_path" ]; then
-                echo "Error: Public key '$public_key_path' does not exist on the server."
+                aux_err "Public key file not found on server" "component=ssh,operation=key_append,key_path=$public_key_path,location=server"
                 return 1
             fi
             # Append the public key to authorized_keys
             cat "$public_key_path" >> "$authorized_keys_path"
             if [ $? -ne 0 ]; then
-                echo "Error: Failed to append public key to authorized_keys."
+                aux_err "Failed to append public key to authorized_keys" "component=ssh,operation=key_append,authorized_keys_path=$authorized_keys_path"
                 return 1
             fi
-            echo "Public key appended to authorized_keys on the server."
+            aux_info "Public key appended to authorized_keys on server" "component=ssh,operation=key_append,authorized_keys_path=$authorized_keys_path,status=success"
             ;;
         *)
-            echo "Invalid mode. Use -c for client-side or -s for server-side operation."
+            aux_err "Invalid mode specified for SSH key append" "component=ssh,operation=key_append,mode=$mode,valid_modes=-c,-s"
             return 1
             ;;
     esac
     # Ensure correct permissions
     chmod 600 "$authorized_keys_path"
     # Restart SSH service
-    echo "Restarting SSH service..."
+    aux_info "Restarting SSH service" "component=ssh,operation=service_restart"
     if systemctl restart sshd; then
-        echo "SSH service restarted successfully."
+        aux_info "SSH service restarted successfully" "component=ssh,operation=service_restart,status=success"
     else
-        echo "Error: Failed to restart SSH service. Please check the service manually."
+        aux_err "Failed to restart SSH service" "component=ssh,operation=service_restart,status=failed"
         return 1
     fi
-    echo "SSH key append operation completed successfully."
+    aux_info "SSH key append operation completed successfully" "component=ssh,operation=key_append,remote_address=$remote_address,key_name=$key_name"
 }
 
 # Loops a specified SSH operation (bypass StrictHostKeyChecking or refresh known_hosts) through a range of IPs defined in the configuration
