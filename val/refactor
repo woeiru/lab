@@ -55,7 +55,7 @@ if [ -f "$BASE_DIR/cfg/env/site1" ]; then
     
     # Source the wrapper functions
     echo "3. Sourcing management wrapper functions..."
-    source "$BASE_DIR/src/mgt/pve"
+    source "$BASE_DIR/src/dic/ops"
     
     echo "Testing pve-fun-w wrapper:"
     if command -v pve-fun-w >/dev/null 2>&1; then
@@ -89,7 +89,7 @@ echo "=== Test Summary ==="
 echo "✓ Pure functions are parameterized and no longer depend on global variables"
 echo "✓ Wrapper functions extract global variables and call pure functions"
 echo "✓ Original three-letter convention names preserved in lib/ops/"
-echo "✓ Management wrappers use -w suffix in src/mgt/"
+echo "✓ DIC operations provide unified interface"
 echo "✓ Component orchestrator updated to load management functions"
 echo
 echo "Refactoring complete!"

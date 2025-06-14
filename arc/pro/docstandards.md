@@ -166,7 +166,7 @@ Each significant directory should have its own README.md file following establis
 
 **Priority Classification for Folder READMEs:**
 - **Critical**: Major navigation points (doc/, lib/, src/, cfg/, bin/)
-- **High**: Functional areas (lib/core/, lib/ops/, src/mgt/, cfg/env/)
+- **High**: Functional areas (lib/core/, lib/ops/, src/dic/, cfg/env/)
 - **Medium**: Specialized areas (doc/man/, cfg/ans/, specific operation modules)
 - **Low**: Simple directories with obvious purposes
 

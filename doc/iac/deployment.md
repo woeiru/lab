@@ -586,7 +586,7 @@ The deployment scripts integrate with a sophisticated **function separation patt
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │ Deployment      │ -> │  Wrapper (-w)    │ -> │  Pure Function  │
-│ Script (src/set)│    │  src/mgt/*       │    │  lib/ops/*      │
+│ Script (src/set)│    │  src/dic/ops     │    │  lib/ops/*      │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                 │
                                 v
@@ -598,17 +598,17 @@ The deployment scripts integrate with a sophisticated **function separation patt
 
 #### Implementation in Deployment Context
 
-**Deployment Scripts** (`src/set/`) call **Management Wrappers** (`src/mgt/`) which extract global variables from the environment and call **Pure Functions** (`lib/ops/`) with explicit parameters.
+**Deployment Scripts** (`src/set/`) call **DIC Operations** (`src/dic/ops`) which handle dependency injection and call **Pure Functions** (`lib/ops/`) with explicit parameters.
 
 ##### Example: PVE Deployment Integration
 ```bash
 # In deployment script (src/set/h1)
-source "${SRC_MGT_DIR}/pve"  # Load wrapper functions
+source "${SRC_DIC_DIR}/ops"  # Load DIC operations
 
 # Call wrapper function (handles global variable extraction)
 pve-vpt-w 100 on  # Enable passthrough for VM 100
 
-# The wrapper (src/mgt/pve) extracts globals and calls pure function
+# The DIC operations (src/dic/ops) handle dependency injection and call pure functions
 # pve-vpt-w() {
 #     local hostname=$(hostname)
 #     local pci0_id="${!hostname}_NODE_PCI0"

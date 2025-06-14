@@ -19,7 +19,7 @@ Follow the patterns and templates defined below.
 **Architecture**: Modular, hierarchical design with domain-oriented organization  
 **Key Patterns**: 
 - Pure functions (`lib/`) - Stateless, parameterized
-- Wrapper functions (`src/mgt/`) - Environment integration  
+- DIC operations (`src/dic/`) - Unified infrastructure interface  
 - Deployment scripts (`src/set/`) - Initial setup automation
 - Hierarchical config (`cfg/`) - Base → environment → node overrides
 

@@ -14,7 +14,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
 # Test configuration
 readonly TEST_LAB_DIR="/home/es/lab"
 readonly GPU_LIB="$TEST_LAB_DIR/lib/ops/gpu"
-readonly GPU_MGT="$TEST_LAB_DIR/src/mgt/gpu"
+readonly GPU_DIC="$TEST_LAB_DIR/src/dic/ops"
 
 # Setup for tests
 setup_gpu_environment() {
@@ -90,7 +90,7 @@ EOF
 
 # Wrapper function tests
 test_gpu_management_exists() {
-    test_file_exists "$GPU_MGT" "GPU management wrapper exists"
+    test_file_exists "$GPU_DIC" "GPU DIC operations exists"
 }
 
 test_gpu_wrapper_functions() {

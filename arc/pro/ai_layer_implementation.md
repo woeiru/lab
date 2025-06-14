@@ -54,7 +54,7 @@ generate_function_docs() {
 $function_data
 
 Generate comprehensive documentation following this project's patterns:
-- Use wrapper function patterns from src/mgt/
+- Use DIC operations patterns from src/dic/
 - Include practical usage examples
 - Follow emoji conventions (🔧, 📋, etc.)
 - Reference related functions and dependencies"
@@ -96,7 +96,7 @@ Directory: /home/es/lab/lib/ops/gpu
 Files: gpu (210 lines, 15 functions)
 Purpose: GPU passthrough management
 Dependencies: lib/gen/inf, lib/core/err
-Usage patterns: Called by src/mgt/gpu
+Usage patterns: Called by src/dic/ops
 ```
 
 **AI Processing Layer**:

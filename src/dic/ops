@@ -463,7 +463,7 @@ DEPENDENCY INJECTION:
     - Hostname-specific: pci0_id → ${hostname}_NODE_PCI0
     
     This eliminates the need for individual wrapper functions while maintaining
-    the same functionality as the src/mgt/ approach.
+    the same functionality as the legacy arc/mgt/ approach.
 
 For more information, see: src/dic/README.md
 EOF
