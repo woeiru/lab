@@ -607,6 +607,22 @@ aux_ask() {
     echo "$user_input"
 }
 
+# Get color for log level
+# <log_level>
+aux_get_log_color() {
+    local log_level="$1"
+    case "${log_level,,}" in  # Convert to lowercase for comparison
+        "business")     echo -n "$AUX_LOG_BUSINESS" ;;
+        "security")     echo -n "$AUX_LOG_SECURITY" ;;
+        "audit")        echo -n "$AUX_LOG_AUDIT" ;;
+        "performance")  echo -n "$AUX_LOG_PERFORMANCE" ;;
+        "info")         echo -n "$AUX_LOG_INFO" ;;
+        "warn")         echo -n "$AUX_LOG_WARN" ;;
+        "error")        echo -n "$AUX_LOG_ERROR" ;;
+        *)              echo -n "$AUX_LOG_INFO" ;;  # Default to info color
+    esac
+}
+
 # General purpose logging function for operational messages with explicit log levels and cluster support
 # operational log
 # <log_level> <message> [context_data]
@@ -658,7 +674,7 @@ aux_log() {
     case "${AUX_LOG_FORMAT:-human}" in
         "json")
             local json_log
-            json_log=$(aux_format_json_log "$timestamp" "$log_level" "$message" "" "$cluster_metadata" "$context_data" "operational")
+            json_log=$(aux_format_json_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" "operational")
             echo "$json_log"
             
             # File output
@@ -668,7 +684,7 @@ aux_log() {
             ;;
         "csv")
             local csv_log
-            csv_log=$(aux_format_csv_log "$timestamp" "$log_level" "$message" "" "$cluster_metadata" "$context_data")
+            csv_log=$(aux_format_csv_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data")
             echo "$csv_log"
             
             # File output with header if new file
@@ -680,7 +696,7 @@ aux_log() {
             fi
             ;;
         "kv"|"keyvalue")
-            local kv_log="timestamp=$timestamp level=$log_level message=\"$message\" type=operational"
+            local kv_log="timestamp=$timestamp level=${log_level,,} message=\"$message\" type=operational"
             [[ -n "$cluster_metadata" ]] && kv_log="$kv_log $cluster_metadata"
             [[ -n "$context_data" ]] && kv_log="$kv_log $context_data"
             echo "$kv_log"
@@ -691,14 +707,18 @@ aux_log() {
             fi
             ;;
         "human"|*)
-            # Enhanced human-readable format (independent of main logging system)
-            local formatted_message="[$timestamp] [$log_level] $message"
+            # Enhanced human-readable format with colors (independent of main logging system)
+            local log_color
+            log_color=$(aux_get_log_color "$log_level")
+            local formatted_message="[$timestamp] ${log_color}[${log_level,,}]${AUX_LOG_NC} $message"
             [[ -n "$context_data" ]] && formatted_message="$formatted_message [$context_data]"
             echo "$formatted_message"
             
-            # Also log to file if LOG_DIR is available
+            # Also log to file if LOG_DIR is available (without colors for file)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                echo "$formatted_message" >> "${LOG_DIR}/aux_operational.log"
+                local file_message="[$timestamp] [${log_level,,}] $message"
+                [[ -n "$context_data" ]] && file_message="$file_message [$context_data]"
+                echo "$file_message" >> "${LOG_DIR}/aux_operational.log"
             fi
             ;;
     esac
@@ -767,7 +787,7 @@ aux_dbg() {
     case "${AUX_LOG_FORMAT:-human}" in
         "json")
             local json_log
-            json_log=$(aux_format_json_log "$timestamp" "$level" "$message" "$caller_function" "$cluster_metadata" "" "debug")
+            json_log=$(aux_format_json_log "$timestamp" "${level,,}" "$message" "$caller_function" "$cluster_metadata" "" "debug")
             
             # Output to appropriate channels
             if [[ "$should_output" == "true" ]]; then
@@ -781,7 +801,7 @@ aux_dbg() {
             ;;
         "csv")
             local csv_log
-            csv_log=$(aux_format_csv_log "$timestamp" "$level" "$message" "$caller_function" "$cluster_metadata" "")
+            csv_log=$(aux_format_csv_log "$timestamp" "${level,,}" "$message" "$caller_function" "$cluster_metadata" "")
             
             # Output to appropriate channels
             if [[ "$should_output" == "true" ]]; then
@@ -797,7 +817,7 @@ aux_dbg() {
             fi
             ;;
         "kv"|"keyvalue")
-            local kv_log="timestamp=$timestamp level=$level function=$caller_function message=\"$message\" type=debug"
+            local kv_log="timestamp=$timestamp level=${level,,} function=$caller_function message=\"$message\" type=debug"
             [[ -n "$cluster_metadata" ]] && kv_log="$kv_log $cluster_metadata"
             
             # Output to appropriate channels
@@ -811,17 +831,20 @@ aux_dbg() {
             fi
             ;;
         "human"|*)
-            # Format the debug message with function context
-            local formatted_message="[$level] $timestamp - [$caller_function] $message"
+            # Format the debug message with function context and colors
+            local log_color
+            log_color=$(aux_get_log_color "$level")
+            local formatted_message="${log_color}[${level,,}]${AUX_LOG_NC} $timestamp - [$caller_function] $message"
             
-            # Output to appropriate channels
+            # Output to appropriate channels (with colors)
             if [[ "$should_output" == "true" ]]; then
                 echo "$formatted_message" >&2
             fi
             
-            # Always log to file (independent of main logging system)
+            # Always log to file (independent of main logging system, without colors)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                echo "$formatted_message" >> "${LOG_DIR}/aux_debug.log"
+                local file_message="[${level,,}] $timestamp - [$caller_function] $message"
+                echo "$file_message" >> "${LOG_DIR}/aux_debug.log"
             fi
             ;;
     esac
@@ -968,46 +991,56 @@ aux_metric() {
     fi
 }
 
+# Color definitions for log levels (nice color palette)
+readonly AUX_LOG_NC=$(printf '\033[0m')         # No Color / Reset
+readonly AUX_LOG_BUSINESS=$(printf '\033[38;5;99m')      # Purple - business logic
+readonly AUX_LOG_SECURITY=$(printf '\033[38;5;196m')     # Bright Red - security alerts
+readonly AUX_LOG_AUDIT=$(printf '\033[38;5;208m')        # Orange - audit trails  
+readonly AUX_LOG_PERFORMANCE=$(printf '\033[38;5;45m')   # Bright Cyan - performance
+readonly AUX_LOG_INFO=$(printf '\033[38;5;39m')          # Blue - info messages
+readonly AUX_LOG_WARN=$(printf '\033[38;5;220m')         # Yellow - warnings
+readonly AUX_LOG_ERROR=$(printf '\033[38;5;160m')        # Dark Red - errors
+
 # Specialized logging functions for different operational contexts
 # business logic log
 # <message> [context_data]
 aux_business() {
-    aux_log "BUSINESS" "$1" "${2:-}"
+    aux_log "business" "$1" "${2:-}"
 }
 
 # security event log
 # <message> [context_data]  
 aux_security() {
-    aux_log "SECURITY" "$1" "${2:-}"
+    aux_log "security" "$1" "${2:-}"
 }
 
 # audit trail log
 # <message> [context_data]
 aux_audit() {
-    aux_log "AUDIT" "$1" "${2:-}"
+    aux_log "audit" "$1" "${2:-}"
 }
 
 # performance event log
 # <message> [context_data]
 aux_perf() {
-    aux_log "PERFORMANCE" "$1" "${2:-}"
+    aux_log "performance" "$1" "${2:-}"
 }
 
 # Convenience logging functions using aux_log for operational logging
 # info level log
 # <message> [context_data]
 aux_info() {
-    aux_log "INFO" "$1" "${2:-}"
+    aux_log "info" "$1" "${2:-}"
 }
 
 # warning level log
 # <message> [context_data]
 aux_warn() {
-    aux_log "WARN" "$1" "${2:-}"
+    aux_log "warn" "$1" "${2:-}"
 }
 
 # error level log
 # <message> [context_data]
 aux_err() {
-    aux_log "ERROR" "$1" "${2:-}"
+    aux_log "error" "$1" "${2:-}"
 }
