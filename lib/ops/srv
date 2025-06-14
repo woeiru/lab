@@ -121,6 +121,7 @@ srv_nfs_set() {
     fi
 
     aux_info "Starting NFS share setup" "header=$nfs_header,folder=$shared_folder"
+    aux_dbg "NFS setup parameters validated successfully" "header=$nfs_header,options=$nfs_options"
     
     # Apply the NFS configuration
     srv_nfs_apl "$nfs_header" "$shared_folder" "$nfs_options"
@@ -194,11 +195,16 @@ srv_nfs_apl() {
     fi
     
     if ! aux_chk "file_exists" "/etc/exports"; then
-        aux_warn "Creating /etc/exports file"
+        aux_warn "Creating /etc/exports file" "path=/etc/exports"
+        if ! aux_chk "permission" "/etc" "w"; then
+            aux_err "No write permission to /etc directory" "path=/etc,operation=create_exports"
+            return 2
+        fi
         touch /etc/exports
     fi
 
     aux_info "Applying NFS configuration" "header=$nfs_header,folder=$shared_folder"
+    aux_dbg "Starting NFS configuration process" "operation=srv_nfs_apl,step=directory_check"
 
     # Check if the shared folder exists, create it if not
     if [ ! -d "$shared_folder" ]; then
@@ -225,11 +231,12 @@ srv_nfs_apl() {
     fi
 
     # Restart NFS server
-    aux_info "Restarting NFS services"
+    aux_info "Restarting NFS services" "operation=restart_nfs_server"
+    aux_dbg "Reloading NFS exports and restarting service" "step=service_restart"
     if aux_cmd "exportfs" "-ra" && aux_cmd "systemctl" "restart" "nfs-server"; then
-        aux_info "NFS server configured successfully" "folder=$shared_folder"
+        aux_info "NFS server configured successfully" "folder=$shared_folder,header=$nfs_header"
     else
-        aux_err "Failed to restart NFS services"
+        aux_err "Failed to restart NFS services" "operation=service_restart,exports_reload=exportfs,service_restart=nfs-server"
         return 2
     fi
 }
@@ -428,6 +435,7 @@ srv_smb_set() {
     fi
 
     aux_info "Starting Samba share setup" "header=$smb_header,folder=$shared_folder,user=$username"
+    aux_dbg "Samba parameters validated" "writable=$writable_yesno,guest_ok=$guestok_yesno,browseable=$browseable_yesno"
 
     # Apply the Samba configuration
     srv_smb_apl "$smb_header" "$shared_folder" "$username" "$smb_password" "$writable_yesno" "$guestok_yesno" "$browseable_yesno" "$create_mask" "$dir_mask" "$force_user" "$force_group"
@@ -521,11 +529,17 @@ srv_smb_apl() {
     fi
     
     if ! aux_chk "file_exists" "/etc/samba/smb.conf"; then
-        aux_err "Samba configuration file not found: /etc/samba/smb.conf"
+        aux_err "Samba configuration file not found" "path=/etc/samba/smb.conf,operation=smb_config_check"
+        return 2
+    fi
+    
+    if ! aux_chk "permission" "/etc/samba/smb.conf" "w"; then
+        aux_err "No write permission to Samba configuration" "path=/etc/samba/smb.conf,operation=write_check"
         return 2
     fi
 
     aux_info "Applying Samba configuration" "header=$smb_header,folder=$shared_folder,user=$username"
+    aux_dbg "Starting Samba configuration process" "operation=srv_smb_apl,step=directory_check"
 
     # Check if the shared folder exists, create it if not
     if [ ! -d "$shared_folder" ]; then
@@ -562,30 +576,32 @@ srv_smb_apl() {
     fi
 
     # Restart Samba
-    aux_info "Restarting Samba service"
+    aux_info "Restarting Samba service" "operation=restart_samba"
+    aux_dbg "Restarting SMB daemon to apply configuration" "step=service_restart"
     if aux_cmd "systemctl" "restart" "smb"; then
-        aux_info "Samba service restarted successfully"
+        aux_info "Samba service restarted successfully" "service=smb"
     else
-        aux_err "Failed to restart Samba service"
+        aux_err "Failed to restart Samba service" "service=smb,operation=restart"
         return 2
     fi
 
     # Set Samba user password only if smb_header is not "nobody"
     if [ "$smb_header" != "nobody" ]; then
+        aux_dbg "Setting up user authentication" "user=$username,operation=password_setup"
         if aux_chk "command" "id" && id -u "$username" > /dev/null 2>&1; then
             aux_info "Setting Samba password for user" "user=$username"
             if echo -e "$smb_password\n$smb_password" | smbpasswd -a -s "$username"; then
                 aux_info "Samba password set successfully" "user=$username"
             else
-                aux_err "Failed to set Samba password" "user=$username"
+                aux_err "Failed to set Samba password" "user=$username,operation=smbpasswd"
                 return 2
             fi
         else
-            aux_err "User does not exist on system" "user=$username"
+            aux_err "User does not exist on system" "user=$username,operation=user_validation"
             return 2
         fi
     else
-        aux_info "Skipping password setup for anonymous share"
+        aux_info "Skipping password setup for anonymous share" "mode=guest_access"
     fi
 
     aux_info "Samba server configured successfully" "folder=$shared_folder,header=$smb_header"
