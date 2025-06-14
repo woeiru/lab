@@ -26,7 +26,7 @@ This guide establishes comprehensive quality standards for implementing high-qua
 - Use `aux_val` for all input validation
 - Implement help flag handling (`--help`/`-h`) 
 - Provide meaningful usage information via `aux_use`
-- Follow execution flag pattern (`-x`) for destructive operations
+- Follow execution flag pattern (`-x`) for functions executed without parameters
 
 **Stateless Design**: Functions should be environment-independent
 - No hardcoded paths or values
