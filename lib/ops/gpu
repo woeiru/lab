@@ -968,8 +968,7 @@ EOF
         return 2
     fi
 
-    aux_info "Downloading NVIDIA driver" "version=${drv_ver}"
-    echo "3) Downloading NVIDIA driver ${drv_ver}..."
+    aux_info "Downloading NVIDIA driver" "component=gpu,operation=nvidia_driver_setup,step=download,version=${drv_ver}"
     if aux_cmd "wget" "-q" "${url}" "-O" "${installer}"; then
         aux_info "Driver download successful" "file=${installer}"
         chmod +x "${installer}"
@@ -978,8 +977,7 @@ EOF
         return 2
     fi
 
-    aux_info "Installing NVIDIA driver with DKMS" "installer=${installer}"
-    echo "4) Installing driver with DKMS support..."
+    aux_info "Installing NVIDIA driver with DKMS" "component=gpu,operation=nvidia_driver_setup,step=install,installer=${installer}"
     if aux_cmd "./${installer}" "--dkms" "--silent"; then
         aux_info "NVIDIA driver installation completed" "version=${drv_ver}"
     else
@@ -987,17 +985,17 @@ EOF
         return 2
     fi
 
-    echo "5) Finalizing—reboot recommended."
+    aux_info "NVIDIA driver installation finalized" "component=gpu,operation=nvidia_driver_setup,step=finalization,reboot_recommended=true"
     local reboot_choice=$(aux_ask "Reboot now?" "N" "yes_no")
     if [[ "$reboot_choice" =~ ^[Yy]$ ]]; then
         aux_info "System reboot initiated by user"
         reboot
     else
         aux_info "System reboot deferred by user"
-        echo "You can reboot later with: reboot"
+        aux_info "Manual reboot command available" "component=gpu,operation=nvidia_driver_setup,command=reboot"
     fi
 
-    echo "6) After reboot, verify with: nvidia-smi"
+    aux_info "Post-installation verification command available" "component=gpu,operation=nvidia_driver_setup,command=nvidia-smi"
     aux_info "NVIDIA driver setup completed" "verification_command=nvidia-smi"
 }
 
@@ -1058,7 +1056,7 @@ gpu_pt1() {
     aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_step1,phase=initial_setup"
     aux_business "GPU passthrough phase 1 initiated" "component=gpu,operation=passthrough_step1,phase=iommu_setup,step=grub_configuration"
     
-    echo "Executing section 1:"
+    aux_info "Executing GPU passthrough step 1 configuration" "component=gpu,operation=passthrough_step1,step=execution"
     aux_info "Checking EFI boot manager status" "component=gpu,operation=passthrough_step1,step=efi_check"
     efibootmgr -v
 
