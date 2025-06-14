@@ -1850,14 +1850,20 @@ gpu_pts() {
     
     local function_name="${FUNCNAME[0]}"
     
+    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_status,hostname=${hostname},config_file=${config_file}"
+    aux_business "GPU passthrough status analysis initiated" "component=gpu,operation=passthrough_status,hostname=${hostname}"
+    
     # Load configuration if config file provided
     if [ -n "$config_file" ] && [ -f "$config_file" ]; then
         # shellcheck source=/dev/null
         source "$config_file"
         aux_info "GPU configuration loaded for status check" "component=gpu,operation=passthrough_status,config_file=${config_file},status=success"
+    else
+        aux_dbg "No configuration file provided or file not found" "component=gpu,operation=passthrough_status,config_file=${config_file:-none}"
     fi
     
     # Get detailed device information
+    aux_info "Gathering detailed GPU device information" "component=gpu,operation=passthrough_status,step=device_analysis"
     local detailed_info
     detailed_info=$(_gpu_get_detailed_device_info)
     
@@ -1887,6 +1893,8 @@ gpu_pts() {
                 ;;
         esac
     done <<< "$detailed_info"
+    
+    aux_dbg "Device information parsing completed" "component=gpu,operation=passthrough_status,vfio_status=${is_any_gpu_on_vfio},host_drivers=${host_drivers_for_gpu},devices_processed=${vga_devices_processed}"
     
     # Define configuration file paths
     local modules_file_path="/etc/modules"
@@ -2025,6 +2033,25 @@ gpu_pts() {
         fi
         echo -e "  - Review IOMMU groups and loaded kernel modules above."
     fi
+
+    # Log operational summary
+    local gpu_state="UNKNOWN"
+    if [ "$is_any_gpu_on_vfio" = "true" ]; then
+        if [ -n "$host_drivers_for_gpu" ]; then
+            gpu_state="MIXED"
+        else
+            gpu_state="DETACHED"
+        fi
+    elif [ -n "$host_drivers_for_gpu" ]; then
+        gpu_state="ATTACHED"
+    elif [ "$vga_devices_processed" = "true" ]; then
+        gpu_state="UNCLEAR"
+    else
+        gpu_state="N/A"
+    fi
+    
+    aux_business "GPU passthrough status analysis completed" "component=gpu,operation=passthrough_status,gpu_state=${gpu_state},vfio_gpus=${is_any_gpu_on_vfio},host_drivers=${host_drivers_for_gpu}"
+    aux_info "Function ${FUNCNAME[0]} completed" "component=gpu,operation=passthrough_status,status=complete,gpu_state=${gpu_state}"
 
     echo -e "\n--- GPU status check completed. (${function_name}) ---"
     echo -e "===================================================="
