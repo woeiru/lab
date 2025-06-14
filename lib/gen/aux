@@ -2,6 +2,10 @@
 ###############################################################################
 # Auxiliary Utilities Library - lib/gen/aux
 ###############################################################################
+
+# Prevent multiple sourcing
+[[ -n "${AUX_LOADED:-}" ]] && return 0
+readonly AUX_LOADED=1
 # Provides function introspection, variable analysis, documentation generation,
 # and system monitoring capabilities for the lab environment.
 #
