@@ -267,31 +267,60 @@ _gpu_load_config() {
     fi
 }
 
-# Get PCI IDs from hostname-based configuration variables
+# Get PCI IDs from hostname-based configuration variables or explicit parameters
 # GPU Get Config PCI IDs - GGP
-# <hostname>
+# <mode> <param1> [param2]
 _gpu_get_config_pci_ids() {
-    local hostname="$1"
+    local mode="$1"      # "hostname" or "explicit"
+    local param1="$2"    # hostname (for "hostname" mode) or pci0_id (for "explicit" mode)
+    local param2="$3"    # pci1_id (only for "explicit" mode)
     local -a pci_ids=()
     
-    local pci0_var_name="${hostname}_NODE_PCI0"
-    local pci1_var_name="${hostname}_NODE_PCI1"
-    
-    if [ -n "${!pci0_var_name}" ]; then
-        local pci0_full_val=${!pci0_var_name}
-        local short_pci0_val=${pci0_full_val#0000:}
-        if _gpu_validate_pci_id "$short_pci0_val"; then
-            pci_ids+=("$short_pci0_val")
-        fi
-    fi
-    
-    if [ -n "${!pci1_var_name}" ]; then
-        local pci1_full_val=${!pci1_var_name}
-        local short_pci1_val=${pci1_full_val#0000:}
-        if _gpu_validate_pci_id "$short_pci1_val"; then
-            pci_ids+=("$short_pci1_val")
-        fi
-    fi
+    case "$mode" in
+        "hostname")
+            local hostname="$param1"
+            local pci0_var_name="${hostname}_NODE_PCI0"
+            local pci1_var_name="${hostname}_NODE_PCI1"
+            
+            if [ -n "${!pci0_var_name}" ]; then
+                local pci0_full_val=${!pci0_var_name}
+                local short_pci0_val=${pci0_full_val#0000:}
+                if _gpu_validate_pci_id "$short_pci0_val"; then
+                    pci_ids+=("$short_pci0_val")
+                fi
+            fi
+            
+            if [ -n "${!pci1_var_name}" ]; then
+                local pci1_full_val=${!pci1_var_name}
+                local short_pci1_val=${pci1_full_val#0000:}
+                if _gpu_validate_pci_id "$short_pci1_val"; then
+                    pci_ids+=("$short_pci1_val")
+                fi
+            fi
+            ;;
+        "explicit")
+            local pci0_id="$param1"
+            local pci1_id="$param2"
+            
+            if [ -n "$pci0_id" ]; then
+                local short_pci0_val=${pci0_id#0000:}
+                if _gpu_validate_pci_id "$short_pci0_val"; then
+                    pci_ids+=("$short_pci0_val")
+                fi
+            fi
+            
+            if [ -n "$pci1_id" ]; then
+                local short_pci1_val=${pci1_id#0000:}
+                if _gpu_validate_pci_id "$short_pci1_val"; then
+                    pci_ids+=("$short_pci1_val")
+                fi
+            fi
+            ;;
+        *)
+            aux_err "Invalid mode: $mode. Use 'hostname' or 'explicit'"
+            return 1
+            ;;
+    esac
     
     printf "%s\n" "${pci_ids[@]}"
 }
@@ -325,19 +354,41 @@ _gpu_find_all_gpus() {
     printf "%s\n" "${gpu_ids[@]}"
 }
 
-# Get target GPUs for processing with comprehensive selection logic
-# GPU Get Target GPUs - GGT
-# <gpu_id_arg> <hostname> <filter_driver>
+# Get target GPUs for processing with hostname-based or explicit parameters
+# GPU Get Target GPUs - GTG
+# <mode> <gpu_id_arg> <hostname_or_filter> [filter_driver] [pci0_id] [pci1_id]
 _gpu_get_target_gpus() {
-    local gpu_id_arg="$1"
-    local hostname="$2"
-    local filter_driver="$3" # Optional: vfio-pci, nvidia, etc.
+    local mode="$1"          # "hostname" or "explicit"
+    local gpu_id_arg="$2"    
+    local param3="$3"        # hostname (for "hostname" mode) or filter_driver (for "explicit" mode)
+    local param4="$4"        # filter_driver (for "hostname" mode) or pci0_id (for "explicit" mode)
+    local param5="$5"        # pci0_id (only for "hostname" mode) or pci1_id (for "explicit" mode)
+    local param6="$6"        # pci1_id (only for "hostname" mode)
     local -a gpus_to_process=()
+    
+    # Parse parameters based on mode
+    local hostname filter_driver pci0_id pci1_id
+    case "$mode" in
+        "hostname")
+            hostname="$param3"
+            filter_driver="$param4"
+            # No explicit PCI IDs in hostname mode
+            ;;
+        "explicit")
+            filter_driver="$param3"
+            pci0_id="$param4"
+            pci1_id="$param5"
+            ;;
+        *)
+            aux_err "Invalid mode: $mode. Use 'hostname' or 'explicit'"
+            return 1
+            ;;
+    esac
     
     if [ -n "$gpu_id_arg" ]; then
         # Specific GPU ID provided
         if ! _gpu_validate_pci_id "$gpu_id_arg"; then
-            aux_err "Invalid PCI ID format provided" "pci_id=${gpu_id_arg},expected_format=XX:XX.X"
+            aux_err "Invalid PCI ID format provided" "pci_id=${gpu_id_arg},expected_format=XX:XX.X,mode=${mode}"
             return 1
         fi
         
@@ -352,13 +403,20 @@ _gpu_get_target_gpus() {
                 gpus_to_process+=("$gpu_id_arg")
             fi
         else
-            aux_err "Specified PCI ID is not a VGA/3D/Audio controller or does not exist" "pci_id=${gpu_id_arg},function=standard"
+            aux_err "Specified PCI ID is not a VGA/3D/Audio controller or does not exist" "pci_id=${gpu_id_arg},mode=${mode}"
             return 1
         fi
     else
         # Try to get from configuration
         local -a config_ids
-        readarray -t config_ids < <(_gpu_get_config_pci_ids "$hostname")
+        case "$mode" in
+            "hostname")
+                readarray -t config_ids < <(_gpu_get_config_pci_ids "hostname" "$hostname")
+                ;;
+            "explicit")
+                readarray -t config_ids < <(_gpu_get_config_pci_ids "explicit" "$pci0_id" "$pci1_id")
+                ;;
+        esac
         
         # Process config IDs, but only add non-empty ones
         for pci_id in "${config_ids[@]}"; do
@@ -487,10 +545,12 @@ _gpu_bind_device() {
 
 # Determine appropriate host driver for GPU based on vendor ID
 # GPU Get Host Driver - GGH
-# <pci_id> <hostname>
+# <mode> <pci_id> [hostname_or_nvidia_preference] [nvidia_driver_preference]
 _gpu_get_host_driver() {
-    local pci_id="$1"
-    local hostname="$2"
+    local mode="$1"  # "hostname" or "explicit"
+    local pci_id="$2"
+    local param3="$3"  # hostname (for "hostname" mode) or nvidia_driver_preference (for "explicit" mode)
+    local param4="$4"  # nvidia_driver_preference (only used in "hostname" mode with explicit preference)
     
     local vendor_device_id
     vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
@@ -504,14 +564,29 @@ _gpu_get_host_driver() {
     
     case "$vendor_id" in
         "10de") # NVIDIA
-            local nvidia_driver_pref_var="${hostname}_NVIDIA_DRIVER_PREFERENCE"
-            local preferred_nvidia_driver
-            if [ -n "${!nvidia_driver_pref_var}" ]; then
-                preferred_nvidia_driver="${!nvidia_driver_pref_var}"
-            else
-                preferred_nvidia_driver="nvidia"
-            fi
-            echo "$preferred_nvidia_driver"
+            case "$mode" in
+                "hostname")
+                    local hostname="$param3"
+                    local nvidia_driver_pref_var="${hostname}_NVIDIA_DRIVER_PREFERENCE"
+                    local preferred_nvidia_driver
+                    if [ -n "${!nvidia_driver_pref_var}" ]; then
+                        preferred_nvidia_driver="${!nvidia_driver_pref_var}"
+                    elif [ -n "$param4" ]; then
+                        preferred_nvidia_driver="$param4"
+                    else
+                        preferred_nvidia_driver="nvidia"
+                    fi
+                    echo "$preferred_nvidia_driver"
+                    ;;
+                "explicit")
+                    local nvidia_driver_preference="${param3:-nvidia}"
+                    echo "$nvidia_driver_preference"
+                    ;;
+                *)
+                    aux_err "Invalid mode: $mode. Use 'hostname' or 'explicit'"
+                    return 1
+                    ;;
+            esac
             ;;
         "1002") # AMD
             echo "amdgpu"
@@ -523,130 +598,11 @@ _gpu_get_host_driver() {
     esac
 }
 
-# Determine appropriate host driver for GPU with explicit parameters
-# GPU Get Host Driver Parameterized - GHP
-# <pci_id> <hostname> <nvidia_driver_preference>
-_gpu_get_host_driver_parameterized() {
-    local pci_id="$1"
-    local hostname="$2"
-    local nvidia_driver_preference="${3:-nvidia}"
-    
-    local vendor_device_id
-    vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
-    
-    if [ $? -ne 0 ] || [ -z "$vendor_device_id" ]; then
-        aux_warn "Could not determine vendor ID for GPU device" "component=gpu,operation=get_host_driver_parameterized,pci_id=${pci_id}"
-        return 1
-    fi
-    
-    local vendor_id=$(echo "$vendor_device_id" | cut -d':' -f1)
-    
-    case "$vendor_id" in
-        "10de") # NVIDIA
-            echo "$nvidia_driver_preference"
-            ;;
-        "1002") # AMD
-            echo "amdgpu"
-            ;;
-        *)
-            aux_warn "Unknown GPU vendor ID for device" "component=gpu,operation=get_host_driver_parameterized,vendor_id=${vendor_id},pci_id=${pci_id}"
-            return 1
-            ;;
-    esac
-}
 
-# Get PCI IDs from explicit parameters without hostname lookup
-# GPU Get Config PCI IDs Parameterized - GCP
-# <pci0_id> <pci1_id>
-_gpu_get_config_pci_ids_parameterized() {
-    local pci0_id="$1"
-    local pci1_id="$2"
-    local -a pci_ids=()
-    
-    if [ -n "$pci0_id" ]; then
-        local short_pci0_val=${pci0_id#0000:}
-        if _gpu_validate_pci_id "$short_pci0_val"; then
-            pci_ids+=("$short_pci0_val")
-        fi
-    fi
-    
-    if [ -n "$pci1_id" ]; then
-        local short_pci1_val=${pci1_id#0000:}
-        if _gpu_validate_pci_id "$short_pci1_val"; then
-            pci_ids+=("$short_pci1_val")
-        fi
-    fi
-    
-    printf "%s\n" "${pci_ids[@]}"
-}
 
-# Get target GPUs for processing with explicit parameters
-# GPU Get Target GPUs Parameterized - GTP
-# <gpu_id_arg> <hostname> <filter_driver> <pci0_id> <pci1_id>
-_gpu_get_target_gpus_parameterized() {
-    local gpu_id_arg="$1"
-    local hostname="$2"
-    local filter_driver="$3" # Optional: vfio-pci, nvidia, etc.
-    local pci0_id="$4"
-    local pci1_id="$5"
-    local -a gpus_to_process=()
-    
-    if [ -n "$gpu_id_arg" ]; then
-        # Specific GPU ID provided
-        if ! _gpu_validate_pci_id "$gpu_id_arg"; then
-            aux_err "Invalid PCI ID format provided" "pci_id=${gpu_id_arg},expected_format=XX:XX.X,function=parameterized"
-            return 1
-        fi
-        
-        if _gpu_is_gpu_device "$gpu_id_arg"; then
-            if [ -n "$filter_driver" ]; then
-                local current_driver
-                current_driver=$(_gpu_get_current_driver "$gpu_id_arg")
-                if [ "$current_driver" = "$filter_driver" ]; then
-                    gpus_to_process+=("$gpu_id_arg")
-                fi
-            else
-                gpus_to_process+=("$gpu_id_arg")
-            fi
-        else
-            aux_err "Specified PCI ID is not a VGA/3D/Audio controller or does not exist" "pci_id=${gpu_id_arg},function=parameterized"
-            return 1
-        fi
-    else
-        # Try to get from configuration
-        local -a config_ids
-        readarray -t config_ids < <(_gpu_get_config_pci_ids_parameterized "$pci0_id" "$pci1_id")
-        
-        # Process config IDs, but only add non-empty ones
-        for pci_id in "${config_ids[@]}"; do
-            if [ -n "$pci_id" ]; then
-                if [ -n "$filter_driver" ]; then
-                    local current_driver
-                    current_driver=$(_gpu_get_current_driver "$pci_id")
-                    if [ "$current_driver" = "$filter_driver" ]; then
-                        gpus_to_process+=("$pci_id")
-                    fi
-                else
-                    gpus_to_process+=("$pci_id")
-                fi
-            fi
-        done
-        
-        # Fallback to lspci scan if no config IDs found
-        if [ ${#gpus_to_process[@]} -eq 0 ]; then
-            local -a fallback_ids
-            readarray -t fallback_ids < <(_gpu_find_all_gpus "$filter_driver")
-            gpus_to_process+=("${fallback_ids[@]}")
-        fi
-    fi
-    
-    # Remove duplicates
-    if [ ${#gpus_to_process[@]} -gt 0 ]; then
-        readarray -t gpus_to_process < <(printf "%s\n" "${gpus_to_process[@]}" | sort -u)
-    fi
-    
-    printf "%s\n" "${gpus_to_process[@]}"
-}
+
+
+
 
 # Get IOMMU groups containing GPU devices for passthrough validation
 # GPU Get IOMMU Groups - GIG
@@ -1606,19 +1562,11 @@ gpu_ptp() {
         aux_info "Updating initramfs" "component=gpu,operation=passthrough_preparation,status=updating_initramfs"
         update-initramfs -u -k all
         
-        # Clean up progress file - we're done
-        rm -f "$progress_file"
-        
-        aux_info "All GPU passthrough preparation steps completed successfully" "component=gpu,operation=passthrough_preparation,sequence=all,status=complete"
-        
         if [ "$no_reboot" = false ]; then
-            aux_info "Final reboot for complete GPU passthrough setup" "component=gpu,operation=passthrough_preparation,sequence=all,final_reboot=true"
+            aux_info "System reboot initiated for step 3" "component=gpu,operation=passthrough_preparation,step=reboot,reason=driver_blacklist_changes"
             reboot
-        else
-            aux_info "Setup complete - manual reboot recommended for changes to take full effect" "component=gpu,operation=passthrough_preparation,sequence=all,reboot_deferred=true"
         fi
-        ;;
-    esac
+    fi
     
     return 0
 }
@@ -1743,7 +1691,7 @@ gpu_ptd() {
 
     # Get target GPUs (exclude those already on vfio-pci)
     local -a gpus_to_process
-    readarray -t gpus_to_process < <(_gpu_get_target_gpus_parameterized "$gpu_id_arg" "$hostname" "" "$pci0_id" "$pci1_id")
+    readarray -t gpus_to_process < <(_gpu_get_target_gpus "explicit" "$gpu_id_arg" "" "$pci0_id" "$pci1_id")
     
     # Filter out GPUs already on vfio-pci
     local -a filtered_gpus=()
@@ -1900,7 +1848,7 @@ gpu_pta() {
 
     # Get target GPUs (only those on vfio-pci)
     local -a gpus_to_process
-    readarray -t gpus_to_process < <(_gpu_get_target_gpus_parameterized "$gpu_id_arg" "$hostname" "vfio-pci" "$pci0_id" "$pci1_id")
+    readarray -t gpus_to_process < <(_gpu_get_target_gpus "explicit" "$gpu_id_arg" "vfio-pci" "$pci0_id" "$pci1_id")
 
     if [ ${#gpus_to_process[@]} -eq 0 ]; then
         aux_warn "No suitable GPU devices found on vfio-pci to attach" "component=gpu,operation=passthrough_attach,target_gpus=0,reason=no_vfio_devices"
@@ -1923,7 +1871,7 @@ gpu_pta() {
         
         # Determine host driver
         local host_driver
-        host_driver=$(_gpu_get_host_driver_parameterized "$pci_id" "$hostname" "$nvidia_driver_preference")
+        host_driver=$(_gpu_get_host_driver "explicit" "$pci_id" "$nvidia_driver_preference")
         
         if [ $? -ne 0 ] || [ -z "$host_driver" ]; then
             aux_warn "Could not determine host driver, skipping GPU" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},status=skipped"
