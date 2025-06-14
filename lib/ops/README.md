@@ -30,16 +30,16 @@ gpu_ptd "01:00.0" "server01" "/path/config" "01:00.0" "02:00.0" "nvidia"
 ### Layer 1: Pure Functions (`lib/ops/*`)
 **Purpose**: Core operational logic without environmental dependencies
 **Characteristics**:
-- Parameterized helper functions (e.g., `_gpu_get_target_gpus_parameterized`)
+- Mode-based helper functions (e.g., `_gpu_get_target_gpus("explicit", ...)`)
 - Configuration fallback chains: explicit → hostname-specific → auto-detection
 - Comprehensive parameter validation and error handling
 - Structured logging integration via `aux_*` functions
 
 **Example**:
 ```bash
-# GPU module provides both modes
-_gpu_get_config_pci_ids()              # Hostname-based lookup
-_gpu_get_config_pci_ids_parameterized() # Explicit parameters
+# GPU module uses single functions with mode parameter
+_gpu_get_config_pci_ids("hostname", hostname)     # Hostname-based lookup
+_gpu_get_config_pci_ids("explicit", pci0, pci1)   # Explicit parameters
 ```
 
 ### Layer 2: DIC Injection (`src/dic/ops`)
@@ -92,24 +92,29 @@ src/dic/ops pve vck 100
 # Processes: usb_devices_str="dev1 dev2 dev3"
 ```
 
-### Parameterized Helper Pattern
+### Mode-Based Function Pattern
 
-Functions implement **dual configuration support**:
+Functions implement **dual mode support** through a single function:
 
 ```bash
-# Standard configuration-based function
+# Single function supports both hostname-based and explicit parameter modes
 _gpu_get_target_gpus() {
-    local hostname="$1"
-    # Uses: _gpu_get_config_pci_ids "$hostname"
-    # Looks up: ${hostname}_NODE_PCI0, ${hostname}_NODE_PCI1
-}
-
-# Parameterized equivalent for DIC integration
-_gpu_get_target_gpus_parameterized() {
-    local pci0_id="$4"
-    local pci1_id="$5" 
-    # Uses: _gpu_get_config_pci_ids_parameterized "$pci0_id" "$pci1_id"
-    # Direct parameter usage without hostname lookup
+    local mode="$1"        # "hostname" or "explicit"
+    local gpu_id_arg="$2"
+    local param3="$3"      # hostname OR filter_driver
+    local param4="$4"      # filter_driver OR pci0_id
+    local param5="$5"      # pci1_id (for explicit mode)
+    
+    case "$mode" in
+        "hostname")
+            # Uses: _gpu_get_config_pci_ids "hostname" "$hostname"
+            # Looks up: ${hostname}_NODE_PCI0, ${hostname}_NODE_PCI1
+            ;;
+        "explicit")
+            # Uses: _gpu_get_config_pci_ids "explicit" "$pci0_id" "$pci1_id"
+            # Direct parameter usage without hostname lookup
+            ;;
+    esac
 }
 ```
 
