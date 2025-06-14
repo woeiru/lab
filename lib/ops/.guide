@@ -284,3 +284,20 @@ Apply these quality standards in the following order:
 3. **Utility Functions**: sys, usr, pbs (user-facing)
 
 Focus on one module at a time to ensure thorough implementation and testing of quality standards.
+
+## Structured Logging Excellence
+
+**Structured Logging Excellence**
+```bash
+# Pattern: Comprehensive operational logging with context
+aux_info "Operation milestone reached" "component=module,operation=function,step=phase,target=resource"
+aux_warn "Non-critical condition detected" "component=module,condition=specific_issue,impact=degraded_performance"
+aux_err "Critical failure occurred" "component=module,operation=function,error=specific_error,recovery_action=suggested_fix"
+aux_dbg "Detailed execution state" "component=module,step=current_step,variables=state_data"
+```
+
+**Message Quality Standards**
+- Human-readable messages that describe what happened
+- Structured context data for filtering and analysis
+- Consistent key naming across all modules
+- Actionable information in error messages

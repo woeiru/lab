@@ -319,6 +319,228 @@ Verify standard compliance by calling each function with incorrect parameters:
 - **Functions should output errors to stderr when appropriate**
 - **Return codes should follow the standard conventions**
 
+## Structured Logging Standard
+
+All functions in the `ops` library must implement structured logging to ensure consistent operational visibility, debugging capability, and audit trail generation. This standard defines how to replace traditional echo/printf statements with structured logging functions.
+
+### Core Principles
+
+**No Raw Output**: Functions must not use printf/echo for user-facing messages. All operational communication must go through structured logging functions.
+
+**Contextual Information**: All log messages must include structured context data in key-value format for filtering, searching, and analysis.
+
+**Consistent Categorization**: Log messages must be categorized by purpose and severity using appropriate auxiliary functions.
+
+### Logging Function Categories
+
+#### 1. Operational Logging Functions
+
+**`aux_info`** - Informational operational messages
+```bash
+# WHEN: Normal operation progress, status updates, successful operations
+# FORMAT: aux_info "human_readable_message" "key1=value1,key2=value2,..."
+
+aux_info "Starting GPU passthrough configuration" "component=gpu,operation=passthrough_step3,action=enable"
+aux_info "Service restarted successfully" "service=nginx,status=active,pid=1234"
+aux_info "Configuration file created" "file=/etc/config.conf,size=2048"
+```
+
+**`aux_warn`** - Warning conditions that don't stop operation
+```bash
+# WHEN: Non-fatal issues, fallback scenarios, deprecated usage
+# FORMAT: aux_warn "warning_description" "context_data"
+
+aux_warn "Configuration file missing, using defaults" "file=/etc/missing.conf,fallback=/etc/default.conf"
+aux_warn "IOMMU not enabled - GPU passthrough may fail" "component=gpu,iommu_status=disabled"
+```
+
+**`aux_err`** - Error conditions requiring attention
+```bash
+# WHEN: Operation failures, system errors, invalid configurations
+# FORMAT: aux_err "error_description" "error_context_data"
+
+aux_err "Failed to bind GPU to driver" "component=gpu,pci_id=01:00.0,driver=vfio-pci,error=permission_denied"
+aux_err "Service startup failed" "service=nginx,exit_code=1,error=config_invalid"
+```
+
+#### 2. Development/Debug Logging Functions
+
+**`aux_dbg`** - Development and troubleshooting information
+```bash
+# WHEN: Detailed execution tracing, variable inspection, flow debugging
+# FORMAT: aux_dbg "debug_message" "debug_context"
+
+aux_dbg "Function execution context" "component=gpu,pid=$$,user=$USER,funcname_depth=${#FUNCNAME[@]}"
+aux_dbg "Processing configuration section" "section=network,item_count=5,validation_status=passed"
+```
+
+#### 3. Specialized Logging Functions
+
+**`aux_business`** - Business logic and workflow events
+```bash
+# WHEN: Major workflow milestones, business process completion
+aux_business "GPU detachment process initiated" "component=gpu,target_state=vfio-pci,hostname=${hostname}"
+```
+
+**`aux_audit`** - Security and compliance events
+```bash
+# WHEN: Security-relevant actions, configuration changes, access events
+aux_audit "System configuration modified" "component=gpu,action=blacklist_driver,user=$USER"
+```
+
+### Context Data Format Standard
+
+All context data must follow the structured key-value format:
+
+**Format**: `"key1=value1,key2=value2,key3=value3"`
+
+**Required Keys**:
+- `component`: Module/subsystem name (gpu, net, sys, etc.)
+- `operation`: Specific function or process name
+
+**Recommended Keys**:
+- `status`: success, failed, pending, complete
+- `step`: initialization, validation, execution, cleanup
+- `target`: resource being operated on
+- `action`: specific action being performed
+
+**Example Context Patterns**:
+```bash
+# GPU module example
+"component=gpu,operation=passthrough_detach,step=initialization,hostname=server01"
+
+# Network module example  
+"component=net,operation=interface_config,target=eth0,action=set_ip,ip=192.168.1.10"
+
+# System module example
+"component=sys,operation=service_control,service=nginx,action=restart,status=success"
+```
+
+### User-Facing Output Conversion Rules
+
+#### Convert to Structured Logging
+
+**Progress Messages**: printf "Configuring..." → `aux_info "Configuring component" "context"`
+```bash
+# OLD (remove):
+printf "Configuring GPU passthrough (vfio-pci)...\n"
+
+# NEW (structured):
+aux_info "Configuring GPU passthrough (vfio-pci)" "component=gpu,operation=passthrough_step3,action=enable"
+```
+
+**Warning Messages**: printf "WARNING:" → `aux_warn`
+```bash
+# OLD (remove):
+printf "WARNING: Could not determine vendor ID for %s.\n" "$pci_id"
+
+# NEW (structured):
+aux_warn "Could not determine vendor ID for GPU device" "component=gpu,operation=get_host_driver,pci_id=${pci_id}"
+```
+
+**Error Messages**: printf "ERROR:" → `aux_err`
+```bash
+# OLD (remove):
+printf "ERROR: Failed to load nvidia_drm with modeset=1 (exit code: %d)\n" "$exit_code"
+
+# NEW (structured):
+aux_err "Failed to load nvidia_drm with modeset=1" "component=gpu,step=modprobe_execute,status=failed,exit_code=${exit_code}"
+```
+
+**Debug Messages**: printf "DEBUG:" → `aux_dbg`
+```bash
+# OLD (remove):
+printf "DEBUG: host_driver='%s' (comparing to 'nvidia')\n" "$host_driver"
+
+# NEW (structured):
+aux_dbg "Host driver determination result" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver}"
+```
+
+#### Keep Traditional echo/printf
+
+**Function Return Values**: Data returned to calling functions
+```bash
+# KEEP (legitimate data return):
+echo "$driver_name"
+echo "${vendor_id}:${device_id}"
+printf "%s\n" "${pci_ids[@]}"
+```
+
+**Data Processing Pipelines**: Internal data manipulation
+```bash
+# KEEP (data processing):
+local vendor_id=$(echo "$vendor_device_id" | cut -d':' -f1)
+if echo "$line" | grep -qE "VGA compatible controller"; then
+```
+
+**File Operations**: Writing configuration to system files
+```bash
+# KEEP (file content generation):
+echo "$vfio_options_line" | tee "$vfio_conf" > /dev/null
+echo "$module" | tee -a "$modules_file" > /dev/null
+```
+
+**User Interface Display**: Formatted status output with colors
+```bash
+# KEEP (intentional UI display):
+echo -e "${CYAN}--- IOMMU Groups (Details) ---${NC}"
+echo -e "   ${CHECK_MARK} IOMMU Enabled in Kernel Command Line"
+```
+
+### Implementation Requirements
+
+#### 1. Audit Existing Output
+- Identify all printf/echo statements in functions
+- Categorize as user-facing messages vs. data processing
+- Plan conversion strategy for each user-facing message
+
+#### 2. Convert User-Facing Messages
+- Replace progress messages with `aux_info`
+- Replace warnings with `aux_warn`
+- Replace errors with `aux_err`
+- Replace debug output with `aux_dbg`
+
+#### 3. Add Context Data
+- Include component and operation in all messages
+- Add relevant technical context (pci_id, service_name, file_path)
+- Use consistent key naming across modules
+
+#### 4. Validate Conversion
+- Ensure no user-facing printf/echo remains
+- Verify all structured logging includes proper context
+- Test logging output in different formats (human, json, csv)
+
+### Quality Metrics
+
+**Structured Logging Coverage**: 100% of user-facing output must use structured logging
+**Context Completeness**: All log messages must include component and operation context
+**Message Consistency**: Similar operations across modules must use consistent message patterns
+**Format Compliance**: All context data must follow key=value,key=value format
+
+### Examples by Module Type
+
+#### System Operations (gpu, sys, pve)
+```bash
+aux_info "Starting system operation" "component=gpu,operation=driver_setup,action=enable"
+aux_warn "System dependency missing" "component=sys,dependency=systemctl,impact=service_management_unavailable"
+aux_err "System operation failed" "component=pve,operation=vm_create,vm_id=101,error=insufficient_resources"
+```
+
+#### Network Operations (net, srv, ssh)
+```bash
+aux_info "Network interface configured" "component=net,interface=eth0,ip=192.168.1.10,status=up"
+aux_warn "SSH connection timeout" "component=ssh,host=server01,timeout=30s,retry_count=3"
+aux_err "Network service binding failed" "component=srv,service=nginx,port=80,error=address_in_use"
+```
+
+#### User Operations (usr, file management)
+```bash
+aux_info "File operation completed" "component=usr,operation=copy,source=/src/file,dest=/dst/file,size=1024"
+aux_dbg "Directory traversal progress" "component=usr,operation=scan,current_dir=/home,files_processed=157"
+```
+
+---
+
 ## Auxiliary Functions Integration Standard
 
 Beyond the core help system (`aux_use` and `aux_tec`), functions should leverage the comprehensive `aux` library to ensure consistent behavior, proper error handling, and enhanced functionality across the operations library.
@@ -734,5 +956,3 @@ function_name() {
 1. Review and optimize auxiliary function usage
 2. Implement tracing for distributed operations
 3. Add metrics collection where appropriate
-
----

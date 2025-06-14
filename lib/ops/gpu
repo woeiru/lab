@@ -496,7 +496,7 @@ _gpu_get_host_driver() {
     vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
     
     if [ $? -ne 0 ] || [ -z "$vendor_device_id" ]; then
-        printf "WARNING: Could not determine vendor ID for %s.\n" "$pci_id"
+        aux_warn "Could not determine vendor ID for GPU device" "component=gpu,operation=get_host_driver,pci_id=${pci_id}"
         return 1
     fi
     
@@ -517,7 +517,7 @@ _gpu_get_host_driver() {
             echo "amdgpu"
             ;;
         *)
-            printf "WARNING: Unknown GPU vendor ID %s for %s.\n" "$vendor_id" "$pci_id"
+            aux_warn "Unknown GPU vendor ID for device" "component=gpu,operation=get_host_driver,vendor_id=${vendor_id},pci_id=${pci_id}"
             return 1
             ;;
     esac
@@ -535,7 +535,7 @@ _gpu_get_host_driver_parameterized() {
     vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
     
     if [ $? -ne 0 ] || [ -z "$vendor_device_id" ]; then
-        printf "WARNING: Could not determine vendor ID for %s.\n" "$pci_id"
+        aux_warn "Could not determine vendor ID for GPU device" "component=gpu,operation=get_host_driver_parameterized,pci_id=${pci_id}"
         return 1
     fi
     
@@ -549,7 +549,7 @@ _gpu_get_host_driver_parameterized() {
             echo "amdgpu"
             ;;
         *)
-            printf "WARNING: Unknown GPU vendor ID %s for %s.\n" "$vendor_id" "$pci_id"
+            aux_warn "Unknown GPU vendor ID for device" "component=gpu,operation=get_host_driver_parameterized,vendor_id=${vendor_id},pci_id=${pci_id}"
             return 1
             ;;
     esac
@@ -658,7 +658,7 @@ _gpu_get_iommu_groups() {
     done < <(lspci -nn | grep -iE "VGA compatible controller|3D controller")
 
     if [ ${#gpu_pci_bus_ids[@]} -eq 0 ]; then
-        echo "No VGA/3D controllers found to filter IOMMU groups."
+        aux_info "No VGA/3D controllers found to filter IOMMU groups" "component=gpu,operation=get_iommu_groups,gpu_count=0"
         return 1
     fi
 
@@ -698,10 +698,10 @@ _gpu_get_iommu_groups() {
     done
 
     if ! $overall_iommu_groups_found; then
-        echo "No IOMMU groups found by 'find' command."
+        aux_warn "No IOMMU groups found by find command" "component=gpu,operation=get_iommu_groups,status=no_groups_found"
         return 1
     elif ! $gpu_related_group_displayed; then
-        echo "No IOMMU groups found containing the identified GPU(s): ${gpu_pci_bus_ids[*]}"
+        aux_warn "No IOMMU groups found containing identified GPUs" "component=gpu,operation=get_iommu_groups,gpu_pci_ids=${gpu_pci_bus_ids[*]}"
         return 1
     fi
 }
@@ -1215,7 +1215,7 @@ gpu_pt3() {
     local modules_file="/etc/modules"
 
     if [ "$action" = "enable" ]; then
-        printf "Configuring GPU passthrough (vfio-pci)...\n"
+        aux_info "Configuring GPU passthrough (vfio-pci)" "component=gpu,operation=passthrough_step3,action=enable"
         
         # Get all GPU vendor:device IDs
         local -a gpu_ids
@@ -1236,7 +1236,7 @@ gpu_pt3() {
             vendor_device_id=$(_gpu_extract_vendor_device_id "$pci_id")
             
             if [ $? -eq 0 ] && [ -n "$vendor_device_id" ]; then
-                printf "Found GPU: %s with ID %s\n" "$pci_id" "$vendor_device_id"
+                aux_info "Found GPU for passthrough configuration" "component=gpu,operation=passthrough_step3,pci_id=${pci_id},vendor_device_id=${vendor_device_id}"
                 
                 if [ -n "$ids_to_add" ]; then
                     ids_to_add+=","
@@ -1254,12 +1254,12 @@ gpu_pt3() {
         if [ -n "$ids_to_add" ]; then
             vfio_options_line+="$ids_to_add"
             echo "$vfio_options_line" | tee "$vfio_conf" > /dev/null
-            printf "Content of %s:\n" "$vfio_conf"
+            aux_info "Created VFIO configuration file" "component=gpu,operation=passthrough_step3,config_file=${vfio_conf},ids=${ids_to_add}"
             cat "$vfio_conf"
         fi
 
         # Create blacklist file
-        printf "Creating GPU driver blacklist for passthrough...\n"
+        aux_info "Creating GPU driver blacklist for passthrough" "component=gpu,operation=passthrough_step3,action=create_blacklist"
         rm -f "$passthrough_blacklist_conf"
         touch "$passthrough_blacklist_conf"
 
@@ -1283,18 +1283,18 @@ gpu_pt3() {
         for module in "${vfio_modules[@]}"; do
             if ! grep -qP "^\s*${module}\s*(#.*)?$" "$modules_file"; then
                 echo "$module" | tee -a "$modules_file" > /dev/null
-                printf "Added %s to %s.\n" "$module" "$modules_file"
+                aux_info "Added VFIO module to modules file" "component=gpu,operation=passthrough_step3,module=${module},file=${modules_file}"
             else
                 # Uncomment if commented
                 if grep -qP "^\s*#\s*${module}" "$modules_file"; then
                     sed -i "s/^\s*#\s*${module}/${module}/" "$modules_file"
-                    printf "Uncommented %s in %s.\n" "$module" "$modules_file"
+                    aux_info "Uncommented VFIO module in modules file" "component=gpu,operation=passthrough_step3,module=${module},file=${modules_file}"
                 fi
             fi
         done
 
     elif [ "$action" = "disable" ]; then
-        printf "Reverting GPU passthrough configuration...\n"
+        aux_info "Reverting GPU passthrough configuration" "component=gpu,operation=passthrough_step3,action=disable"
         
         # Remove configuration files
         rm -f "$vfio_conf"
@@ -1305,18 +1305,18 @@ gpu_pt3() {
         for module in "${vfio_modules[@]}"; do
             if grep -qP "^\s*${module}" "$modules_file"; then
                 sed -i "s/^\s*${module}/# ${module}/" "$modules_file"
-                printf "Commented out %s in %s.\n" "$module" "$modules_file"
+                aux_info "Commented out VFIO module in modules file" "component=gpu,operation=passthrough_step3,module=${module},file=${modules_file}"
             fi
         done
         
     else
-        printf "Invalid action: %s. Use 'enable' or 'disable'.\n" "$action"
+        aux_err "Invalid action specified" "component=gpu,operation=passthrough_step3,action=${action},valid_actions=enable|disable"
         return 1
     fi
 
-    printf "Updating initramfs...\n"
+    aux_info "Updating initramfs" "component=gpu,operation=passthrough_step3,status=updating_initramfs"
     update-initramfs -u -k all
-    printf "Configuration applied. A reboot is required for changes to take full effect.\n"
+    aux_info "Configuration applied - reboot required for changes to take full effect" "component=gpu,operation=passthrough_step3,status=complete,action_required=reboot"
 }
 
 # Detaches the GPU from the host system for VM passthrough
@@ -1402,9 +1402,7 @@ gpu_ptd() {
 
     # Check IOMMU
     if ! grep -q 'iommu=pt\|intel_iommu=on\|amd_iommu=on' /proc/cmdline; then
-        aux_warn "IOMMU not enabled in kernel command line" "component=gpu,operation=passthrough_detach,check=iommu,status=disabled,impact=vfio_may_fail"
-        printf "WARNING: IOMMU does not appear to be enabled in kernel command line.\n"
-        printf "         VFIO passthrough may not work.\n"
+        aux_warn "IOMMU not enabled in kernel command line - VFIO passthrough may not work" "component=gpu,operation=passthrough_detach,check=iommu,status=disabled,impact=vfio_may_fail"
     else
         aux_info "IOMMU enabled in kernel" "component=gpu,operation=passthrough_detach,check=iommu,status=enabled"
     fi
@@ -1639,8 +1637,8 @@ gpu_pta() {
             fi
         fi
         
-        # DEBUG: Check host_driver value
-        printf "DEBUG: host_driver='%s' (comparing to 'nvidia')\n" "$host_driver"
+        # Check host_driver value
+        aux_dbg "Host driver determination result" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver}"
         
         # Simple minimal attachment - based on working gpu-pta function
         aux_info "Attempting to bind GPU to driver using minimal approach" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},approach=minimal"
@@ -1694,87 +1692,79 @@ gpu_pta() {
         
         # Remove nvidia_drm if loaded
         if [ -d "/sys/module/nvidia_drm" ]; then
-            printf "DEBUG: nvidia_drm module currently loaded, attempting removal...\n"
-            printf "DEBUG: Module usage before removal: $(lsmod | grep nvidia_drm)\n"
+            aux_dbg "nvidia_drm module currently loaded, attempting removal" "component=gpu,operation=passthrough_attach,step=nvidia_drm_removal,status=attempting"
+            local module_usage=$(lsmod | grep nvidia_drm)
+            aux_dbg "Module usage before removal" "component=gpu,operation=passthrough_attach,step=nvidia_drm_removal,module_usage=${module_usage}"
             
             if rmmod nvidia_drm 2>/tmp/rmmod_error.log; then
-                printf "DEBUG: rmmod nvidia_drm succeeded\n"
+                aux_dbg "rmmod nvidia_drm succeeded" "component=gpu,operation=passthrough_attach,step=nvidia_drm_removal,method=rmmod,status=success"
             else
                 local rmmod_exit_code=$?
-                printf "DEBUG: rmmod nvidia_drm failed (exit code: %d)\n" "$rmmod_exit_code"
-                printf "DEBUG: rmmod error output: $(cat /tmp/rmmod_error.log 2>/dev/null || echo 'no error log')\n"
+                local rmmod_error=$(cat /tmp/rmmod_error.log 2>/dev/null || echo 'no error log')
+                aux_dbg "rmmod nvidia_drm failed, trying modprobe -r" "component=gpu,operation=passthrough_attach,step=nvidia_drm_removal,method=rmmod,status=failed,exit_code=${rmmod_exit_code},error=${rmmod_error}"
                 
-                printf "DEBUG: Attempting modprobe -r nvidia_drm...\n"
                 if modprobe -r nvidia_drm 2>/tmp/modprobe_r_error.log; then
-                    printf "DEBUG: modprobe -r nvidia_drm succeeded\n"
+                    aux_dbg "modprobe -r nvidia_drm succeeded" "component=gpu,operation=passthrough_attach,step=nvidia_drm_removal,method=modprobe_r,status=success"
                 else
                     local modprobe_r_exit_code=$?
-                    printf "DEBUG: modprobe -r nvidia_drm failed (exit code: %d)\n" "$modprobe_r_exit_code"
-                    printf "DEBUG: modprobe -r error output: $(cat /tmp/modprobe_r_error.log 2>/dev/null || echo 'no error log')\n"
+                    local modprobe_r_error=$(cat /tmp/modprobe_r_error.log 2>/dev/null || echo 'no error log')
+                    aux_warn "Failed to remove nvidia_drm module" "component=gpu,operation=passthrough_attach,step=nvidia_drm_removal,method=modprobe_r,status=failed,exit_code=${modprobe_r_exit_code},error=${modprobe_r_error}"
                 fi
             fi
             
             # Verify module state after removal attempts
-            printf "DEBUG: Module state after removal attempts:\n"
             if lsmod | grep -q "^nvidia_drm"; then
-                printf "DEBUG: nvidia_drm still loaded: $(lsmod | grep nvidia_drm)\n"
+                local nvidia_drm_status=$(lsmod | grep nvidia_drm)
+                aux_dbg "nvidia_drm still loaded after removal attempts" "component=gpu,operation=passthrough_attach,step=nvidia_drm_removal,status=still_loaded,module_info=${nvidia_drm_status}"
             else
-                printf "DEBUG: nvidia_drm successfully removed\n"
+                aux_dbg "nvidia_drm successfully removed" "component=gpu,operation=passthrough_attach,step=nvidia_drm_removal,status=removed"
             fi
         else
-            printf "DEBUG: nvidia_drm module not currently loaded\n"
+            aux_dbg "nvidia_drm module not currently loaded" "component=gpu,operation=passthrough_attach,step=nvidia_drm_removal,status=not_loaded"
         fi
         
         # Load nvidia_drm with modeset=1
         aux_info "Loading nvidia_drm with modeset=1" "component=gpu,operation=passthrough_attach,step=nvidia_drm_load"
         
         # EXECUTION CONTEXT DEBUG: Compare with manual command environment
-        printf "DEBUG: Function execution context:\n"
-        printf "  - PID: $$\n"
-        printf "  - PPID: $PPID\n"
-        printf "  - PWD: $PWD\n"
-        printf "  - USER: $USER\n"
-        printf "  - SHELL: $SHELL\n"
-        printf "  - Function stack depth: ${#FUNCNAME[@]}\n"
-        printf "  - Open FDs: $(ls /proc/$$/fd | wc -l)\n"
+        # Log execution context for debugging
+        aux_dbg "Function execution context" "component=gpu,operation=passthrough_attach,pid=$$,ppid=$PPID,pwd=$PWD,user=$USER,shell=$SHELL,funcname_depth=${#FUNCNAME[@]},open_fds=$(ls /proc/$$/fd | wc -l)"
         
         # MODULE STATE BEFORE MODPROBE
-        printf "DEBUG: Module state before modprobe nvidia_drm modeset=1:\n"
-        lsmod | grep -E "(nvidia|^Module)" || printf "  No nvidia modules found\n"
+        local nvidia_modules_before=$(lsmod | grep -E "(nvidia)" || echo "No nvidia modules found")
+        aux_dbg "Module state before modprobe nvidia_drm modeset=1" "component=gpu,operation=passthrough_attach,step=pre_modprobe,nvidia_modules=${nvidia_modules_before}"
         
         # EXECUTE MODPROBE WITH DETAILED TRACKING
-        printf "DEBUG: Executing: modprobe nvidia_drm modeset=1\n"
+        aux_dbg "Executing modprobe nvidia_drm modeset=1" "component=gpu,operation=passthrough_attach,step=modprobe_execute"
         if modprobe nvidia_drm modeset=1; then
-            printf "DEBUG: modprobe command returned success (exit code 0)\n"
+            aux_dbg "modprobe command returned success" "component=gpu,operation=passthrough_attach,step=modprobe_execute,status=success,exit_code=0"
             
             # IMMEDIATE VERIFICATION - Check module state right after modprobe
-            printf "DEBUG: Immediate post-modprobe verification:\n"
-            printf "  - nvidia_drm loaded: "
             if lsmod | grep -q "^nvidia_drm"; then
-                printf "YES\n"
-                printf "  - modeset parameter: $(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo 'UNKNOWN')\n"
-                printf "  - framebuffer devices: $(ls /dev/fb* 2>/dev/null || echo 'NONE')\n"
-                printf "  - VGA arbiter state: $(cat /sys/bus/pci/devices/0000:3b:00.0/boot_vga 2>/dev/null || echo 'UNKNOWN')\n"
+                local modeset_param=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo 'UNKNOWN')
+                local fb_devices=$(ls /dev/fb* 2>/dev/null || echo 'NONE')
+                local vga_arbiter=$(cat /sys/bus/pci/devices/0000:3b:00.0/boot_vga 2>/dev/null || echo 'UNKNOWN')
+                aux_dbg "nvidia_drm module loaded successfully" "component=gpu,operation=passthrough_attach,step=verification,nvidia_drm_loaded=yes,modeset=${modeset_param},fb_devices=${fb_devices},vga_arbiter=${vga_arbiter}"
             else
-                printf "NO - MODULE NOT LOADED!\n"
+                aux_err "nvidia_drm module not loaded after modprobe" "component=gpu,operation=passthrough_attach,step=verification,nvidia_drm_loaded=no"
             fi
             
             # FINAL STATUS CHECK
             local final_modeset_status=$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "UNKNOWN")
             if [ "$final_modeset_status" = "Y" ]; then
-                printf "SUCCESS: NVIDIA framebuffer display support enabled (modeset=Y).\n"
+                aux_info "NVIDIA framebuffer display support enabled successfully" "component=gpu,operation=passthrough_attach,step=final_check,modeset=Y,status=success"
                 
                 # POST-SUCCESS VERIFICATION
-                printf "DEBUG: Post-success system state:\n"
-                printf "  - Framebuffer devices: $(ls /dev/fb* 2>/dev/null && echo ' (CREATED)' || echo 'NONE (MISSING!)')\n"
-                printf "  - Console drivers: $(cat /sys/class/vtconsole/vtcon*/name 2>/dev/null || echo 'UNKNOWN')\n"
-                printf "  - VT console bind status: $(cat /sys/class/vtconsole/vtcon*/bind 2>/dev/null | paste -sd ' ' || echo 'UNKNOWN')\n"
+                local fb_devices_post=$(ls /dev/fb* 2>/dev/null && echo ' (CREATED)' || echo 'NONE (MISSING!)')
+                local console_drivers=$(cat /sys/class/vtconsole/vtcon*/name 2>/dev/null || echo 'UNKNOWN')
+                local vt_bind_status=$(cat /sys/class/vtconsole/vtcon*/bind 2>/dev/null | paste -sd ' ' || echo 'UNKNOWN')
+                aux_dbg "Post-success system state verification" "component=gpu,operation=passthrough_attach,step=post_success,fb_devices=${fb_devices_post},console_drivers=${console_drivers},vt_bind_status=${vt_bind_status}"
             else
-                printf "WARNING: modeset parameter not set correctly (status: %s)\n" "$final_modeset_status"
+                aux_warn "modeset parameter not set correctly" "component=gpu,operation=passthrough_attach,step=final_check,modeset_status=${final_modeset_status}"
             fi
         else
             local modprobe_exit_code=$?
-            printf "ERROR: Failed to load nvidia_drm with modeset=1 (exit code: %d)\n" "$modprobe_exit_code"
+            aux_err "Failed to load nvidia_drm with modeset=1" "component=gpu,operation=passthrough_attach,step=modprobe_execute,status=failed,exit_code=${modprobe_exit_code}"
         fi
     fi
 

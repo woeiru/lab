@@ -113,14 +113,14 @@ usr_ckp() {
     local konsole_profile_path
     local profile_name
     username=$(whoami)
-    echo "Changing Konsole profile for user: $username"
+    aux_info "Starting Konsole profile change" "user=$username,profile=$profile_number"
     if [ "$username" = "root" ]; then
         konsole_profile_path="/root/.local/share/konsole"
     else
         konsole_profile_path="$HOME/.local/share/konsole"
     fi
     if [ ! -d "$konsole_profile_path" ]; then
-        aux_err "Konsole profile directory not found at $konsole_profile_path"
+        aux_err "Konsole profile directory not found" "path=$konsole_profile_path,user=$username"
         return 2
     fi
     if ! [[ "$profile_number" =~ ^[0-9]+$ ]]; then
@@ -129,7 +129,7 @@ usr_ckp() {
     fi
     profile_name="Profile $profile_number.profile"
     if [ ! -f "$konsole_profile_path/$profile_name" ]; then
-        aux_err "Profile $profile_number does not exist in $konsole_profile_path"
+        aux_err "Konsole profile does not exist" "profile=$profile_number,path=$konsole_profile_path"
         return 2
     fi
     local konsolerc_path
@@ -139,29 +139,31 @@ usr_ckp() {
         konsolerc_path="$HOME/.config/konsolerc"
     fi
     if [ ! -f "$konsolerc_path" ]; then
-        aux_err "Konsole configuration file not found at $konsolerc_path"
+        aux_err "Konsole configuration file not found" "path=$konsolerc_path,user=$username"
         return 2
     fi
+    
+    aux_dbg "Updating Konsole configuration" "profile=$profile_number,config_file=$konsolerc_path"
     
     # Check if [Desktop Entry] section exists
     if ! grep -q '^\[Desktop Entry\]' "$konsolerc_path"; then
         # If it doesn't exist, add it and the DefaultProfile line
         echo -e "\n[Desktop Entry]\nDefaultProfile=Profile $profile_number.profile" >> "$konsolerc_path"
-        echo "Added [Desktop Entry] section with DefaultProfile to $konsolerc_path"
+        aux_info "Added [Desktop Entry] section with DefaultProfile" "config_file=$konsolerc_path"
     else
         # If [Desktop Entry] exists, check if DefaultProfile line exists
         if ! sed -n '/^\[Desktop Entry\]/,/^\[/p' "$konsolerc_path" | grep -q '^DefaultProfile='; then
             # If it doesn't exist, add it to the [Desktop Entry] section
             sed -i '/^\[Desktop Entry\]/a DefaultProfile=Profile '"$profile_number"'.profile' "$konsolerc_path"
-            echo "Added DefaultProfile line to $konsolerc_path"
+            aux_info "Added DefaultProfile line" "config_file=$konsolerc_path"
         else
             # If it exists, update it
             sed -i '/^\[Desktop Entry\]/,/^\[/ s/^DefaultProfile=.*/DefaultProfile=Profile '"$profile_number"'.profile/' "$konsolerc_path"
-            echo "Updated existing DefaultProfile line in $konsolerc_path"
+            aux_info "Updated existing DefaultProfile line" "config_file=$konsolerc_path"
         fi
     fi
     
-    echo "Konsole default profile updated to Profile $profile_number for user $username."
+    aux_info "Konsole profile update completed" "user=$username,profile=$profile_number"
 }
 
 # Prompts the user to select a file from the current directory by displaying a numbered list of files and returning the chosen filename
@@ -191,13 +193,36 @@ usr_vsf() {
         return 1
     fi
     
+    # Check dependencies
+    if ! aux_chk "command" "ls"; then
+        aux_err "ls command not found"
+        return 127
+    fi
+    
+    aux_dbg "Starting file selection in current directory"
+    
     files=($(ls))
+    if [ ${#files[@]} -eq 0 ]; then
+        aux_warn "No files found in current directory"
+        return 1
+    fi
+    
+    aux_info "Displaying file selection menu" "file_count=${#files[@]}"
     echo "Select a file by entering its index:"
     for i in "${!files[@]}"; do
         echo "$i: ${files[$i]}"
     done
+    
     local index=$(aux_ask "Enter the index of the file you want" "" "numeric")
+    
+    # Validate index range
+    if [ "$index" -lt 0 ] || [ "$index" -ge ${#files[@]} ]; then
+        aux_err "Invalid file index" "index=$index,max_index=$((${#files[@]}-1))"
+        return 1
+    fi
+    
     sel="${files[$index]}"
+    aux_info "File selected" "filename=$sel,index=$index"
     echo "$sel"
 }
 
@@ -257,6 +282,8 @@ usr_cff() {
         return 127
     fi
     
+    aux_dbg "Starting file count analysis" "path=$path,folder_type=$folder_type"
+    
     # count files in a directory
     count_files() {
         local dir="$1"
@@ -267,6 +294,7 @@ usr_cff() {
     print_directory_info() {
         local dir="$1"
         local file_count=$(count_files "$dir")
+        aux_dbg "Processed directory" "dir=$dir,file_count=$file_count"
         printf "%-20s %5s\n" "$dir" "$file_count"
     }
 
@@ -288,7 +316,8 @@ usr_cff() {
             done
             ;;
         *)
-            echo "Invalid folder type. Please provide either 1, 2, or 3."
+            aux_err "Invalid folder type" "provided=$folder_type,valid_options=1,2,3"
+            return 1
             ;;
     esac | sort
 }
@@ -457,18 +486,25 @@ usr_cif() {
 
     # Check if the argument is a directory
     if [ ! -d "$1" ]; then
-        aux_err "$1 is not a directory"
+        aux_err "Path is not a directory" "path=$1"
         return 2
     fi
+    
+    aux_info "Starting file concatenation" "directory=$1"
+    local file_count=0
 
     # Concatenate all files within the directory
     for file in "$1"/*; do
         if [ -f "$file" ]; then
+            ((file_count++))
+            aux_dbg "Processing file" "filename=$file"
             echo "Contents of $file:"
             cat "$file"
             echo "-----------------------------------"
         fi
     done
+    
+    aux_info "File concatenation completed" "files_processed=$file_count"
 }
 
 # Replaces strings in files within a specified folder and its subfolders.
@@ -534,9 +570,14 @@ usr_rsf() {
         return 127
     fi
 
+    aux_info "Starting recursive string replacement" "folder=$foldername,old_string=$old_string,new_string=$new_string"
+    
     # Navigate to the specified folder
-    cd "$foldername" || { aux_err "Folder not found: $foldername"; return 2; }
+    cd "$foldername" || { aux_err "Folder not found" "path=$foldername"; return 2; }
 
+    aux_dbg "Starting file search and replacement"
+    local files_modified=0
+    
     # Run the substitution command with a check for modified files
     find . -type f -exec sh -c '
         for file; do
@@ -545,7 +586,14 @@ usr_rsf() {
                 echo "Modified $file"
             fi
         done
-    ' "$old_string" "$new_string" {} +
+    ' "$old_string" "$new_string" {} + | while read -r line; do
+        if [[ "$line" == Modified* ]]; then
+            ((files_modified++))
+            aux_dbg "File modified" "filename=${line#Modified }"
+        fi
+    done
+    
+    aux_info "String replacement completed" "files_modified=$files_modified"
 }
 
 # Performs an rsync operation from a source to a destination path. Displays files to be transferred and prompts for confirmation before proceeding
@@ -603,21 +651,28 @@ usr_rsd() {
         return 127
     fi
 
+    aux_info "Starting rsync operation" "source=$source_path,destination=$destination_path"
+    
     # Check if destination path exists
     if [ ! -d "$destination_path" ]; then
-        aux_info "Destination path $destination_path will be created"
-        mkdir -p "$destination_path"
+        aux_info "Creating destination directory" "path=$destination_path"
+        if ! mkdir -p "$destination_path"; then
+            aux_err "Failed to create destination directory" "path=$destination_path"
+            return 2
+        fi
     fi
-    # Check again
+    
+    # Verify destination is accessible
     if [ ! -d "$destination_path" ]; then
-        aux_err "Destination path $destination_path could not be created"
+        aux_err "Destination path could not be created or accessed" "path=$destination_path"
         return 2
     fi
 
     # Display files to be transferred
+    aux_info "Generating transfer preview" "source=$source_path,destination=$destination_path"
     echo "Files to be transferred from $source_path to $destination_path:"
     if ! aux_cmd "rsync" "-avhn" "$source_path/" "$destination_path/"; then
-        aux_err "Failed to preview rsync operation"
+        aux_err "Failed to preview rsync operation" "source=$source_path,destination=$destination_path"
         return 2
     fi
 
@@ -625,18 +680,20 @@ usr_rsd() {
     local confirm=$(aux_ask "Do you want to proceed with the transfer? (y/n)" "n" "not_empty")
     case $confirm in
         [Yy])   # Proceed with the transfer
+                aux_info "Starting file transfer" "source=$source_path,destination=$destination_path"
                 # Perform the transfer
                 if aux_cmd "rsync" "-avh" "--human-readable" "$source_path/" "$destination_path/"; then
-                    aux_info "Transfer completed successfully"
+                    aux_info "Transfer completed successfully" "source=$source_path,destination=$destination_path"
                 else
-                    aux_err "Transfer failed"
+                    aux_err "Transfer failed" "source=$source_path,destination=$destination_path"
                     return 2
                 fi
                 ;;
         [Nn])   # Abort the transfer
-                echo "Transfer aborted."
+                aux_info "Transfer aborted by user"
                 ;;
         *)      # Invalid input
+                aux_warn "Invalid confirmation input" "input=$confirm"
                 echo "Invalid input. Please enter 'y' or 'n'."
                 ;;
     esac
@@ -716,9 +773,11 @@ usr_swt() {
     
     local now=$(date +%s)
 
+    aux_info "Preparing system wake-up timer" "mode=$mode,time=$input_time,state=$state"
+    
     # Validate sleep state
     if [[ "$state" != "mem" && "$state" != "disk" ]]; then
-        aux_err "Invalid sleep state. Use 'mem' or 'disk'"
+        aux_err "Invalid sleep state" "provided=$state,valid_options=mem,disk"
         return 1
     fi
 
@@ -780,27 +839,32 @@ usr_swt() {
     local duration_readable=$(date -u -d @"$duration" +'%-Hh %-Mm %-Ss')
     local wake_time_readable=$(date -d @"$wake_seconds" +'%Y-%m-%d %H:%M:%S')
 
+    aux_info "Wake-up timer configured" "wake_time=$wake_time_readable,duration=$duration_readable,state=$state"
     echo "System will wake up at: $wake_time_readable"
     echo "Time until wake-up: $duration_readable"
     echo "Sleep state: $state"
     local answer=$(aux_ask "Do you want to proceed with putting the system to sleep? (y/n)" "n" "not_empty")
 
     if [[ $answer =~ ^[Yy]$ ]]; then
+        aux_info "Initiating system sleep" "state=$state,wake_time=$wake_time_readable"
         echo "Putting system to sleep using state '$state'. It will wake up at $wake_time_readable"
 
         if ! aux_cmd "sudo" "rtcwake" "-m" "$state" "-l" "-t" "$wake_seconds" "-v"; then
-            aux_err "Failed to execute rtcwake command"
+            aux_err "Failed to execute rtcwake command" "state=$state,wake_seconds=$wake_seconds"
             return 2
         fi
         sleep_result=$?
         if [ $sleep_result -eq 0 ]; then
+            aux_info "System wake-up successful"
             echo "System woke up successfully."
             return 0
         else
+            aux_err "System sleep failed" "state=$state,exit_code=$sleep_result"
             echo "Failed to sleep using state: $state (Exit code: $sleep_result)"
             return 1
         fi
     else
+        aux_info "System sleep cancelled by user"
         echo "Operation cancelled."
     fi
 }
@@ -851,35 +915,43 @@ usr_adr() {
     local file="$1"
     local line_to_add="$2"
     local temp_file=$(mktemp)
+    
+    aux_info "Starting atomic line addition" "file=$file"
+    aux_dbg "Line to add" "content=$line_to_add"
 
     # Check if both arguments were provided (redundant now but keeping for safety)
     if [ -z "$file" ] || [ -z "$line_to_add" ]; then
-        aux_log "ERROR" "$function_name: Error: Both file path and line to add must be provided"
+        aux_err "Both file path and line to add must be provided" "function=$function_name"
         return 1
     fi
 
     # Check if the file exists and is writable
     if [ ! -w "$file" ]; then
-        aux_log "ERROR" "$function_name: Error: $file does not exist or is not writable"
+        aux_err "File does not exist or is not writable" "file=$file,function=$function_name"
         return 1
     fi
 
     # Check if the line already exists in the file
     if grep -Fxq "$line_to_add" "$file"; then
-        aux_log "INFO" "$function_name: Line already exists in $file"
+        aux_info "Line already exists in file" "file=$file"
         return 0
     fi
 
     # Create a temporary file with the new content
-    cat "$file" > "$temp_file"
+    if ! cat "$file" > "$temp_file"; then
+        aux_err "Failed to create temporary file" "temp_file=$temp_file"
+        rm -f "$temp_file"
+        return 2
+    fi
+    
     echo "$line_to_add" >> "$temp_file"
 
     # Use mv to atomically replace the original file
     if mv "$temp_file" "$file"; then
-        aux_log "INFO" "$function_name: Line added to $file"
+        aux_info "Line added to file successfully" "file=$file"
         return 0
     else
-        aux_log "ERROR" "$function_name: Error: Failed to update $file"
+        aux_err "Failed to update file atomically" "file=$file,temp_file=$temp_file"
         rm -f "$temp_file"
         return 1
     fi
@@ -927,14 +999,17 @@ usr_cap() {
     
     local file="$1"
     local line="$2"
-
+    
+    aux_dbg "Checking line existence in file" "file=$file"
 
     # Check if the line is already present in the file
     if ! grep -Fxq "$line" "$file"; then
         # If not, append the line to the file
         echo "$line" >> "$file"
+        aux_info "Line appended to file" "file=$file"
         echo "Line appended to $file"
     else
+        aux_info "Line already present in file" "file=$file"
         echo "Line already present in $file"
     fi
 }
@@ -1078,12 +1153,12 @@ usr_rif() {
     [[ "$recursive" != true ]] && find_cmd+=" -maxdepth 1"
     [[ "$ignore_git" == true ]] && find_cmd+=" -not -path '*/\.git/*'"
 
-    aux_dbg "Starting file search" "directory=$directory,search_string=$search_string,replace_string=$replace_string,recursive=$recursive,interactive=$interactive,dry_run=$dry_run"
+    aux_info "Starting file replacement operation" "directory=$directory,search_string=$search_string,replace_string=$replace_string,recursive=$recursive,interactive=$interactive,dry_run=$dry_run"
     echo "Searching for files containing '$search_string' in '$directory'..."
     while IFS= read -r file; do
         if grep -q "$search_string" "$file" 2>/dev/null; then
             ((files_found++))
-            aux_dbg "Found match in file: $file"
+            aux_dbg "Found match in file" "filename=$file"
             printf "\nFound match in file: ${GREEN}%s${NC}\n" "$file"
             if [[ "$dry_run" == true ]]; then
                 echo "Would modify: $file"
@@ -1105,36 +1180,44 @@ usr_rif() {
                 if [[ $user_response =~ ^[Yy]$ ]]; then
                     if sed -i "s/$search_string/$replace_string/g" "$file"; then
                         echo -e "${GREEN}Modified:${NC} $file"
+                        aux_info "File modified in interactive mode" "filename=$file"
                         ((files_modified++))
                     else
                         echo -e "${RED}Failed to modify:${NC} $file"
+                        aux_err "Failed to modify file in interactive mode" "filename=$file"
                     fi
                 else
                     echo -e "${YELLOW}Skipped:${NC} $file"
+                    aux_info "File skipped by user in interactive mode" "filename=$file"
                     ((files_skipped++))
                 fi
             else
                 if sed -i "s/$search_string/$replace_string/g" "$file"; then
                     echo -e "${GREEN}Modified:${NC} $file"
+                    aux_info "File modified" "filename=$file"
                     ((files_modified++))
                 else
                     echo -e "${RED}Failed to modify:${NC} $file"
+                    aux_err "Failed to modify file" "filename=$file"
                 fi
             fi
         fi
     done < <(eval "$find_cmd")
 
-    aux_dbg "Operation completed" "files_found=$files_found,files_modified=$files_modified,files_skipped=$files_skipped"
+    aux_info "File replacement operation completed" "files_found=$files_found,files_modified=$files_modified,files_skipped=$files_skipped,directory=$directory"
     echo -e "\nSummary:"
     echo "  Files found with matches: $files_found"
     echo "  Files modified: $files_modified"
     [[ "$interactive" == true ]] && echo "  Files skipped: $files_skipped"
 
     if [[ "$dry_run" == true ]]; then
+        aux_info "Dry run completed" "potential_modifications=$files_found"
         echo "Dry run completed. $files_found file(s) would be modified."
     elif [[ $files_modified -eq 0 ]]; then
+        aux_warn "No files were modified" "directory=$directory,search_string=$search_string"
         echo "No files were modified in '$directory'."
     else
+        aux_info "Files modified successfully" "count=$files_modified,directory=$directory"
         echo "$files_modified file(s) were modified in '$directory'."
     fi
 }
@@ -1197,19 +1280,32 @@ usr_ans() {
         return 127
     fi
 
+    aux_info "Starting Ansible deployment" "project_path=$ansible_pro_path,site_path=$ansible_site_path"
+    
     # Store the current directory
     local current_dir=$(pwd)
+    aux_dbg "Stored current directory" "current_dir=$current_dir"
 
     # Navigate to the specified Ansible directory
-    cd "$ansible_pro_path" || return
-
-    # Execute the Ansible playbook with the provided site path
-    if ! aux_cmd "ansible-playbook" "$ansible_site_path"; then
-        aux_err "Failed to execute Ansible playbook"
-        cd "$current_dir" || return
+    aux_dbg "Navigating to Ansible project directory" "path=$ansible_pro_path"
+    if ! cd "$ansible_pro_path"; then
+        aux_err "Failed to navigate to Ansible project directory" "path=$ansible_pro_path"
         return 2
     fi
 
+    # Execute the Ansible playbook with the provided site path
+    aux_info "Executing Ansible playbook" "site_path=$ansible_site_path"
+    if ! aux_cmd "ansible-playbook" "$ansible_site_path"; then
+        aux_err "Failed to execute Ansible playbook" "site_path=$ansible_site_path,project_path=$ansible_pro_path"
+        cd "$current_dir" || return
+        return 2
+    fi
+    
+    aux_info "Ansible playbook execution completed successfully"
+
     # Return to the previous directory
-    cd "$current_dir" || return
+    aux_dbg "Returning to original directory" "original_dir=$current_dir"
+    if ! cd "$current_dir"; then
+        aux_warn "Failed to return to original directory" "original_dir=$current_dir"
+    fi
 }
