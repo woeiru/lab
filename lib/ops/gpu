@@ -1573,49 +1573,77 @@ gpu_ptp() {
 
 # Detaches the GPU from the host system for VM passthrough
 # passthrough detach
-# [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id] [nvidia_driver_preference]
+# Usage: gpu_ptd [-d driver] [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id]
 gpu_ptd() {
     # Technical Description:
     #   Dynamic GPU detachment function that performs runtime switching of GPU control
     #   from host drivers to vfio-pci for virtual machine passthrough without requiring
-    #   system reboot. Attempts to be self-sufficient by loading required VFIO modules,
-    #   unbinding current host drivers, and binding target GPUs to vfio-pci using
-    #   driver_override mechanism. Validates IOMMU availability and provides warnings
-    #   for potential issues. Designed to work with both persistent and non-persistent
-    #   GPU passthrough configurations.
+    #   system reboot. Features explicit driver preference via -d flag for clear control
+    #   over which host driver to prefer when GPU is later reattached.
+    #   Loads required VFIO modules, unbinds current host drivers, and binds target GPUs
+    #   to vfio-pci using driver_override mechanism. Validates IOMMU availability.
     # Dependencies:
     #   - IOMMU enabled in kernel (set by gpu_pt1, verified but not enforced)
     #   - VFIO kernel modules available (loaded dynamically if needed)
     #   - Root privileges for driver binding operations
     #   - Target GPU devices not critical for current display output
+    # Usage:
+    #   gpu_ptd -d nvidia      # Detach GPU, prefer nvidia for later reattach
+    #   gpu_ptd -d nouveau     # Detach GPU, prefer nouveau for later reattach
+    #   gpu_ptd -d lookup      # Use hostname-based driver preference lookup
+    #   gpu_ptd               # Default to lookup mode
     # Arguments:
+    #   -d driver: Driver preference for later reattachment (nvidia|nouveau|amdgpu|radeon|lookup)
     #   $1: gpu_id_arg (optional) - specific PCI ID (e.g., "01:00.0") to process
     #   $2: hostname (optional) - hostname for config lookup (default: current hostname)
     #   $3: config_file (optional) - configuration file path (default: SITE_CONFIG_FILE)
     #   $4: pci0_id (optional) - explicit primary PCI ID parameter
     #   $5: pci1_id (optional) - explicit secondary PCI ID parameter
-    #   $6: nvidia_driver_preference (optional) - preferred NVIDIA driver (default: nvidia)
     
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
-    fi
+    # Parse -d flag for driver preference
+    local driver_mode="lookup"  # Default to hostname lookup
+    local args=()
     
-    # Variable parameter count validation - max 6 parameters
-    if [ $# -gt 6 ]; then
-        aux_err "Too many parameters provided (maximum 6)"
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--driver)
+                driver_mode="$2"
+                shift 2
+                ;;
+            -h|--help)
+                aux_tec
+                return 0
+                ;;
+            *)
+                args+=("$1")
+                shift
+                ;;
+        esac
+    done
+    
+    # Restore positional parameters from args array
+    set -- "${args[@]}"
+    
+    # Validate driver mode
+    case "$driver_mode" in
+        nvidia|nouveau|amdgpu|radeon|lookup)
+            # Valid driver modes
+            ;;
+        *)
+            aux_err "Invalid driver mode: $driver_mode" "component=gpu,operation=passthrough_detach,valid_modes=nvidia|nouveau|amdgpu|radeon|lookup"
+            aux_use
+            return 1
+            ;;
+    esac
+    
+    # Variable parameter count validation - max 5 parameters now (removed nvidia_driver_preference)
+    if [ $# -gt 5 ]; then
+        aux_err "Too many parameters provided (maximum 5)"
         aux_use
         return 1
     fi
     
-    # Validate individual parameters if provided
-    for param in "$@"; do
-        if ! aux_val "$param" "not_empty"; then
-            aux_err "Parameter cannot be empty: $param"
-            aux_use
-            return 1
-        fi
-    done
+    # Skip parameter validation - allow empty parameters for optional arguments
     
     # Check critical system dependencies
     if ! aux_chk "command" "lspci"; then
@@ -1634,21 +1662,24 @@ gpu_ptd() {
     #   - Unbinds GPUs from current host drivers (nvidia, nouveau, amdgpu, radeon)
     #   - Sets driver_override to "vfio-pci" and triggers driver re-probe
     #   - Verifies successful binding to vfio-pci driver
+    #   - Stores driver preference for later reattachment (via -d flag or lookup)
     # Device Selection Priority:
     #   1. Explicit gpu_id_arg parameter
     #   2. Configuration file hostname-specific PCI IDs
     #   3. Automatic detection of all GPU devices via lspci scan
+    # Driver Preference Logic:
+    #   - Explicit mode (-d nvidia/nouveau/amdgpu/radeon): Uses specified driver preference
+    #   - Lookup mode (-d lookup or default): Uses hostname_NVIDIA_DRIVER_PREFERENCE
     local gpu_id_arg="$1"
     local hostname="${2:-$(hostname -s)}"
     local config_file="${3:-$CONFIG_FUN}"
     local pci0_id="$4"
-    local pci1_id="$5"  
-    local nvidia_driver_preference="${6:-nvidia}"
+    local pci1_id="$5"
     
     local function_name="${FUNCNAME[0]}"
     
-    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_detach,hostname=${hostname},gpu_id=${gpu_id_arg:-auto},config_file=${config_file}"
-    aux_business "GPU detachment process initiated" "component=gpu,operation=passthrough_detach,target_state=vfio-pci,hostname=${hostname}"
+    aux_info "Function ${FUNCNAME[0]} started" "component=gpu,operation=passthrough_detach,hostname=${hostname},gpu_id=${gpu_id_arg:-auto},config_file=${config_file},driver_mode=${driver_mode}"
+    aux_business "GPU detachment process initiated" "component=gpu,operation=passthrough_detach,target_state=vfio-pci,hostname=${hostname},driver_preference=${driver_mode}"
     
     aux_info "Starting GPU detachment process" "component=gpu,operation=passthrough_detach,step=initialization"
 
@@ -1755,49 +1786,78 @@ gpu_ptd() {
 
 # Attaches the GPU back to the host system
 # passthrough attach
-# [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id] [nvidia_driver_preference]
+# Usage: gpu_pta [-d driver] [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id]
 gpu_pta() {
     # Technical Description:
     #   Dynamic GPU attachment function that performs runtime switching of GPU control
     #   from vfio-pci back to appropriate host drivers for normal system usage.
-    #   Intelligently determines correct host driver based on GPU vendor ID and
-    #   configuration preferences, handles driver loading if necessary, and manages
-    #   the complete transition from virtualization-ready state back to host control.
+    #   Features explicit driver selection via -d flag for clear control over which
+    #   driver to use, eliminating confusion from hostname-based lookups.
     #   Provides the reverse operation of gpu_ptd for flexible GPU management workflows.
     # Dependencies:
     #   - Target GPU devices currently bound to vfio-pci driver
     #   - Appropriate host drivers available (nvidia, nouveau, amdgpu, radeon)
     #   - Root privileges for driver binding and module loading operations
-    #   - Configuration file access for driver preference settings
+    #   - Configuration file access for driver preference settings (lookup mode only)
     #   - lspci command for GPU identification
+    # Usage:
+    #   gpu_pta -d nvidia      # Explicitly use nvidia driver
+    #   gpu_pta -d nouveau     # Explicitly use nouveau driver
+    #   gpu_pta -d amdgpu      # Explicitly use amdgpu driver
+    #   gpu_pta -d lookup      # Use hostname-based driver lookup
+    #   gpu_pta               # Default to lookup mode
     # Arguments:
+    #   -d driver: Explicit driver selection (nvidia|nouveau|amdgpu|radeon|lookup)
     #   $1: gpu_id_arg (optional) - specific PCI ID (e.g., "01:00.0") to process
     #   $2: hostname (optional) - hostname for config lookup (default: current hostname)
     #   $3: config_file (optional) - configuration file path
     #   $4: pci0_id (optional) - explicit primary PCI ID parameter
     #   $5: pci1_id (optional) - explicit secondary PCI ID parameter
-    #   $6: nvidia_driver_preference (optional) - preferred NVIDIA driver
     
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
-    fi
+    # Parse -d flag for driver selection
+    local driver_mode="lookup"  # Default to hostname lookup
+    local args=()
     
-    # Variable parameter count validation - max 6 parameters
-    if [ $# -gt 6 ]; then
-        aux_err "Too many parameters provided (maximum 6)"
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--driver)
+                driver_mode="$2"
+                shift 2
+                ;;
+            -h|--help)
+                aux_tec
+                return 0
+                ;;
+            *)
+                args+=("$1")
+                shift
+                ;;
+        esac
+    done
+    
+    # Restore positional parameters from args array
+    set -- "${args[@]}"
+    
+    # Validate driver mode
+    case "$driver_mode" in
+        nvidia|nouveau|amdgpu|radeon|lookup)
+            # Valid driver modes
+            ;;
+        *)
+            aux_err "Invalid driver mode: $driver_mode" "component=gpu,operation=passthrough_attach,valid_modes=nvidia|nouveau|amdgpu|radeon|lookup"
+            aux_use
+            return 1
+            ;;
+    esac
+    
+    # Variable parameter count validation - max 5 parameters now (removed nvidia_driver_preference)
+    if [ $# -gt 5 ]; then
+        aux_err "Too many parameters provided (maximum 5)"
         aux_use
         return 1
     fi
     
-    # Validate individual parameters if provided
-    for param in "$@"; do
-        if ! aux_val "$param" "not_empty"; then
-            aux_err "Parameter cannot be empty: $param"
-            aux_use
-            return 1
-        fi
-    done
+    # Skip parameter validation - allow empty parameters for optional arguments
     
     # Check critical system dependencies
     if ! aux_chk "command" "lspci"; then
@@ -1809,23 +1869,19 @@ gpu_pta() {
         aux_err "PCI driver system not available"
         return 2
     fi
-    #   $3: config_file (optional) - configuration file path (default: SITE_CONFIG_FILE)
-    #   $4: pci0_id (optional) - explicit primary PCI ID parameter
-    #   $5: pci1_id (optional) - explicit secondary PCI ID parameter
-    #   $6: nvidia_driver_preference (optional) - preferred NVIDIA driver (default: nvidia)
     # Operations Performed:
-    #   - Identifies GPUs currently bound to vfio-pci driver
-    #   - Unbinds target GPUs from vfio-pci driver
+    #   - Identifies GPUs currently bound to vfio-pci driver or unbound
+    #   - Unbinds target GPUs from vfio-pci driver if bound
     #   - Clears driver_override setting to allow normal driver binding
-    #   - Determines appropriate host driver based on vendor ID and preferences
+    #   - Uses explicit driver selection via -d flag or hostname lookup
     #   - Loads required host driver module if not already loaded
-    #   - Binds GPU devices to determined host driver
+    #   - Binds GPU devices to selected driver
     #   - Verifies successful attachment to host driver
     # Driver Selection Logic:
-    #   - NVIDIA GPUs (10de): Uses hostname_NVIDIA_DRIVER_PREFERENCE or "nvidia" default
-    #   - AMD GPUs (1002): Uses "amdgpu" driver
+    #   - Explicit mode (-d nvidia/nouveau/amdgpu/radeon): Uses specified driver
+    #   - Lookup mode (-d lookup or default): Uses hostname_NVIDIA_DRIVER_PREFERENCE
     #   - Considers blacklist conflicts and warns if preferred driver is unavailable
-    # Configuration Integration:
+    # Configuration Integration (lookup mode only):
     #   - Respects ${hostname}_NVIDIA_DRIVER_PREFERENCE configuration variable
     #   - Warns if nouveau is preferred but blacklisted by gpu_nds installation
     local gpu_id_arg="$1"
@@ -1833,11 +1889,10 @@ gpu_pta() {
     local config_file="${3:-$CONFIG_FUN}"
     local pci0_id="$4"
     local pci1_id="$5"
-    local nvidia_driver_preference="${6:-nvidia}"
     
     local function_name="${FUNCNAME[0]}"
     
-    aux_info "Starting GPU attachment process" "component=gpu,operation=passthrough_attach,step=initialization"
+    aux_info "Starting GPU attachment process" "component=gpu,operation=passthrough_attach,step=initialization,driver_mode=${driver_mode}"
 
     # Load configuration if config file provided
     if [ -n "$config_file" ] && [ -f "$config_file" ]; then
@@ -1848,7 +1903,7 @@ gpu_pta() {
 
     # Get target GPUs (any GPU, not filtering by driver since we want to attach unbound ones too)
     local -a gpus_to_process
-    readarray -t gpus_to_process < <(_gpu_get_target_gpus "explicit" "$gpu_id_arg" "" "$pci0_id" "$pci1_id")
+    readarray -t gpus_to_process < <(_gpu_get_target_gpus "hostname" "$gpu_id_arg" "$hostname" "" "$pci0_id" "$pci1_id")
 
     if [ ${#gpus_to_process[@]} -eq 0 ]; then
         aux_warn "No suitable GPU devices found to attach" "component=gpu,operation=passthrough_attach,target_gpus=0,reason=no_gpu_devices"
@@ -1869,16 +1924,24 @@ gpu_pta() {
         aux_info "Clearing driver override" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},step=clear_override"
         echo > "/sys/bus/pci/devices/$full_pci_id/driver_override"
         
-        # Determine host driver
+        # Determine host driver based on mode
         local host_driver
-        host_driver=$(_gpu_get_host_driver "explicit" "$pci_id" "$nvidia_driver_preference")
         
-        if [ $? -ne 0 ] || [ -z "$host_driver" ]; then
-            aux_warn "Could not determine host driver, skipping GPU" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},status=skipped"
-            continue
+        if [ "$driver_mode" = "lookup" ]; then
+            # Use hostname-based lookup for driver preference
+            host_driver=$(_gpu_get_host_driver "hostname" "$pci_id" "$hostname" "nvidia")
+            
+            if [ $? -ne 0 ] || [ -z "$host_driver" ]; then
+                aux_warn "Could not determine host driver via lookup, skipping GPU" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},status=skipped,mode=lookup"
+                continue
+            fi
+        else
+            # Use explicit driver from -d flag
+            host_driver="$driver_mode"
+            aux_info "Using explicit driver from -d flag" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},mode=explicit"
         fi
         
-        aux_info "Target host driver determined" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver}"
+        aux_info "Target host driver determined" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},mode=${driver_mode}"
         
         # Load host driver module if needed
         if ! lsmod | grep -q "^${host_driver//-/_}"; then
