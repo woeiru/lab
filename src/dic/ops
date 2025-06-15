@@ -168,7 +168,20 @@ ops_main() {
         return 0
     fi
     
-    # Execute the operation
+    # NEW: Handle no arguments - show injection preview
+    if [[ $# -eq 0 ]]; then
+        ops_show_injection_preview "$module" "$function"
+        return 0
+    fi
+    
+    # NEW: Handle -x flag - execute with full injection
+    if [[ "$1" == "-x" ]]; then
+        shift
+        ops_execute "$module" "$function" "$@"
+        return $?
+    fi
+    
+    # Execute the operation (with user-provided arguments)
     ops_execute "$module" "$function" "$@"
 }
 
@@ -244,6 +257,16 @@ ops_inject_and_execute() {
     # Build final arguments array
     local -a final_args
     local param_index=0
+    
+    # Special handling for GPU functions that need -d flag
+    if [[ "$function_name" =~ ^gpu_(ptd|pta)$ ]]; then
+        # Add -d flag with driver preference if not already provided
+        if [[ ${#user_args[@]} -eq 0 ]] || [[ "${user_args[0]}" != "-d" ]]; then
+            local driver_pref="${GPU_DRIVER_PREFERENCE:-lookup}"
+            final_args+=("-d" "$driver_pref")
+            ops_debug "Auto-injected -d flag for GPU function: -d $driver_pref"
+        fi
+    fi
     
     for param in "${params[@]}"; do
         if [[ $param_index -lt ${#user_args[@]} ]]; then
@@ -418,6 +441,10 @@ ops_resolve_single_variable() {
         lib_ops_dir)
             resolved_value="${LIB_OPS_DIR:-}"
             ;;
+        driver_mode|gpu_driver_preference)
+            # Handle GPU driver preference for -d flag
+            resolved_value="${GPU_DRIVER_PREFERENCE:-lookup}"
+            ;;
         *)
             # Generic uppercase conversion
             local global_var=$(echo "$param" | tr '[:lower:]' '[:upper:]')
@@ -523,6 +550,111 @@ ops_show_function_help() {
     echo "  This function will be executed with automatic dependency injection"
     echo "  Global variables will be resolved based on parameter names"
     echo "  Use OPS_DEBUG=1 to see variable injection details"
+}
+
+# Show injection preview - display parameters and available global variable mappings
+ops_show_injection_preview() {
+    local module="$1"
+    local function="$2"
+    local full_function="${module}_${function}"
+    
+    # Validate and source the library module
+    local lib_path="${LIB_OPS_DIR}/${module}"
+    if [[ ! -f "$lib_path" ]]; then
+        echo "Error: Library module not found: $lib_path"
+        return 1
+    fi
+    
+    source "$lib_path"
+    
+    # Check if function exists
+    if ! declare -f "$full_function" >/dev/null 2>&1; then
+        echo "Error: Function '$full_function' not found in module '$module'"
+        return 1
+    fi
+    
+    echo "Function: $full_function"
+    echo "Parameters and available injections:"
+    
+    # Get function signature
+    local signature
+    if ! signature=$(ops_get_function_signature "$full_function"); then
+        echo "  Could not analyze function signature"
+        echo "  Use: ops $module $function --help for function documentation"
+        return 1
+    fi
+    
+    if [[ -z "$signature" ]]; then
+        echo "  No parameters detected"
+        echo "  Use: ops $module $function --help for function documentation"
+        return 1
+    fi
+    
+    # Convert signature to array and show each parameter with injection info
+    local -a params
+    read -ra params <<< "$signature"
+    
+    for param in "${params[@]}"; do
+        local injected_value=$(ops_resolve_single_variable "$full_function" "$param")
+        local global_var_name=$(ops_get_global_variable_name "$param")
+        
+        printf "  %-15s → %s" "$param" "$global_var_name"
+        if [[ -n "$injected_value" ]]; then
+            printf "=%s" "$injected_value"
+        else
+            printf " (not set)"
+        fi
+        echo
+    done
+    
+    echo
+    echo "Usage:"
+    echo "  ops $module $function -x                    # Execute with injected variables"
+    echo "  ops $module $function [args...]             # Execute with custom arguments"
+    echo "  ops $module $function --help                # Show detailed function help"
+}
+
+# Get global variable name for a parameter (for display purposes)
+ops_get_global_variable_name() {
+    local param="$1"
+    local hostname=$(ops_get_short_hostname)
+    
+    case "$param" in
+        vm_id|vmid)
+            echo "VM_ID"
+            ;;
+        cluster_nodes|cluster_nodes_str)
+            echo "CLUSTER_NODES"
+            ;;
+        pci0_id)
+            echo "${hostname}_NODE_PCI0"
+            ;;
+        pci1_id)
+            echo "${hostname}_NODE_PCI1"
+            ;;
+        core_count_on)
+            echo "${hostname}_CORE_COUNT_ON"
+            ;;
+        core_count_off)
+            echo "${hostname}_CORE_COUNT_OFF"
+            ;;
+        usb_devices_str|usb_devices)
+            echo "${hostname}_USB_DEVICES"
+            ;;
+        pve_conf_path)
+            echo "PVE_CONF_PATH_QEMU"
+            ;;
+        lib_ops_dir)
+            echo "LIB_OPS_DIR"
+            ;;
+        driver_mode|gpu_driver_preference)
+            echo "GPU_DRIVER_PREFERENCE"
+            ;;
+        *)
+            # Generic uppercase conversion
+            echo "$(echo "$param" | tr '[:lower:]' '[:upper:]')"
+            ;;
+    esac
 }
 
 
