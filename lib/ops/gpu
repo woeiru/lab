@@ -1600,6 +1600,18 @@ gpu_ptd() {
     #   $4: pci0_id (optional) - explicit primary PCI ID parameter
     #   $5: pci1_id (optional) - explicit secondary PCI ID parameter
     
+    # Handle help flag first
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # If no parameters provided, show usage
+    if [ $# -eq 0 ]; then
+        aux_use
+        return 1
+    fi
+    
     # Parse -d flag for driver preference
     local driver_mode="lookup"  # Default to hostname lookup
     local args=()
@@ -1609,10 +1621,6 @@ gpu_ptd() {
             -d|--driver)
                 driver_mode="$2"
                 shift 2
-                ;;
-            -h|--help)
-                aux_tec
-                return 0
                 ;;
             *)
                 args+=("$1")
@@ -1814,6 +1822,18 @@ gpu_pta() {
     #   $4: pci0_id (optional) - explicit primary PCI ID parameter
     #   $5: pci1_id (optional) - explicit secondary PCI ID parameter
     
+    # Handle help flag first
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    # If no parameters provided, show usage
+    if [ $# -eq 0 ]; then
+        aux_use
+        return 1
+    fi
+    
     # Parse -d flag for driver selection
     local driver_mode="lookup"  # Default to hostname lookup
     local args=()
@@ -1823,10 +1843,6 @@ gpu_pta() {
             -d|--driver)
                 driver_mode="$2"
                 shift 2
-                ;;
-            -h|--help)
-                aux_tec
-                return 0
                 ;;
             *)
                 args+=("$1")
