@@ -37,7 +37,7 @@ This dual-paradigm architecture ensures both **operational efficiency** through 
 │  │                                                             │    │
 │  │  ┌─────────────────────┐    ┌────────────────────────────┐  │    │
 │  │  │   DIC Container     │    │      Pure Functions        │  │    │
-│  │  │   (src/dic/*)       │───►│      (lib/ops/*)           │  │    │
+│  │  │   (src/dic/*)       │◄───│      (lib/ops/*)           │  │    │
 │  │  │                     │    │                            │  │    │
 │  │  │                     │    │                            │  │    │
 │  │  └─────────────────────┘    └────────────────────────────┘  │    │
@@ -45,10 +45,10 @@ This dual-paradigm architecture ensures both **operational efficiency** through 
 │                                    │                                │
 │                                    ▼                                │
 │  ┌─────────────────────────────────────────────────────────────┐    │
-│  │               set/ (Section Deployment Engine)              │    │
+│  │               set/ (Set Deployment Playbooks)               │    │
 │  │                                                             │    │
 │  │  ┌───────────────────────────────────────────────────────┐  │    │
-│  │  │  Section Framework (.menu + hostname scripts)         │  │    │
+│  │  │      Framework     ( .menu + DIC calls  )             │  │    │
 │  │  │                                                       │  │    │
 │  │  │  a_xall() { ops pve dsr -j; ops usr adr -j; }         │  │    │     
 │  │  │  b_xall() { ops sys ipa -j; }                         │  │    │
@@ -58,17 +58,7 @@ This dual-paradigm architecture ensures both **operational efficiency** through 
 │  │  └───────────────────────────────────────────────────────┘  │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
-│  │  ┌─────────────────────────────────────────────────────┐    │    │
-│  │  │  Section Framework (.menu + hostname scripts)       │    │    │
-│  │  │                                                     │    │    │
-│  │  │  a_xall() { ops pve dsr -j; ops usr adr -j; }       │    │    │
-│  │  │  b_xall() { ops sys ipa -j; }                       │    │    │
-│  │  │  c_xall() { ops sys hos x1 -j; ops sys hos x2 -j; } │    │    │
-│  │  │                                                     │    │    │
-│  │  │  src/set/h1, src/set/c1, src/set/c2, src/set/t1     │    │    │
-│  │  └─────────────────────────────────────────────────────┘    │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────────┘
+
                                │
                                ▼
                     ┌─────────────────────────────┐
