@@ -686,7 +686,7 @@ ops_show_injection_preview() {
     fi
     
     echo "Legend:"
-    echo "  $(col_apply notification "{notification}")$(col_apply parameter " <param:value>") → Parameter will be auto-injected with shown value"
+    echo "  <param:value> → Parameter will be auto-injected with shown value"
     echo "  <param>       → Parameter requires manual input (no global variable found)"
     echo "  -j flag       → Execute with dependency injection (auto-resolves parameters)"
     echo "  -x flag       → Execute with explicit validation (recommended for automation)"
