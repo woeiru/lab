@@ -121,19 +121,84 @@ server01_USB_DEVICES=("device1" "device2" "device3")
 ## Execution Modes: Deep Technical Analysis
 
 ### **Mode 1: Hybrid Execution (Direct Mode)**
-*Partial Specification + Intelligent Auto-Completion*
+*The Sweet Spot: User Control + Intelligent Automation*
+
+#### **The Problem This Solves**
+
+Traditional infrastructure functions force an "all-or-nothing" approach:
 
 ```bash
-ops pve vpt 100 on    # User provides 2 parameters, DIC completes remaining 6
+# Traditional pure function: Must specify ALL parameters
+pve_vpt 100 on 01:00.0 02:00.0 8 4 "dev1 dev2" /etc/config    # ✅ All 8 parameters
+pve_vpt 100 on                                                 # ❌ Fails - missing parameters
 ```
 
-**Technical Flow:**
-1. **User Input Processing**: `[100, on]` captured as user arguments
-2. **Signature Analysis**: Function requires 8 parameters total
-3. **Hybrid Resolution**: User args fill positions 0-1, DIC resolves positions 2-7
-4. **Parameter Completion**: Final array `[100, on, "01:00.0", "02:00.0", 8, 4, "dev1 dev2", "/etc/config"]`
+**Problems:**
+- **Cognitive Overload**: Remember 8+ parameters for every operation
+- **Environment Context Lost**: Same parameters on different servers
+- **Error Prone**: Easy to mix up hardware-specific values
 
-**Debug Trace Example:**
+#### **The Hybrid Solution**
+
+```bash
+ops pve vpt 100 on    # ✅ User provides 2, DIC intelligently completes 6
+```
+
+**How Parameter Assignment Works:**
+
+```bash
+# Function signature analysis reveals:
+pve_vpt vm_id action pci0_id pci1_id core_count_on core_count_off usb_devices_str pve_conf_path
+#         ↑     ↑       ↑       ↑         ↑             ↑              ↑               ↑
+#       USER  USER    DIC     DIC       DIC           DIC            DIC             DIC
+#      [100]  [on]  [01:00.0][02:00.0]  [8]           [4]      [dev1 dev2]    [/etc/config]
+```
+
+**Resolution Process:**
+1. **User Arguments**: Fill positions 1-2 with your provided values
+2. **Smart Resolution**: DIC resolves positions 3-8 using environment hierarchy:
+   - `pci0_id` → `server01_NODE_PCI0` → `01:00.0` (hostname-specific)
+   - `core_count_on` → `CORE_COUNT_ON` → `8` (global default)
+   - `usb_devices_str` → `server01_USB_DEVICES` → `dev1 dev2` (array conversion)
+
+#### **Progressive Specification Patterns**
+
+**Start Simple, Add Detail As Needed:**
+
+```bash
+# Level 1: Business Logic Only (most common)
+ops pve vpt 100 on
+# Perfect for: Daily operations, standard configurations
+
+# Level 2: Hardware Overrides (testing different hardware)  
+ops pve vpt 100 on 03:00.0 04:00.0
+# Perfect for: Testing with different GPU assignments
+
+# Level 3: Performance Tuning (custom resource allocation)
+ops pve vpt 100 on 03:00.0 04:00.0 16 8
+# Perfect for: High-performance workloads, custom CPU allocation
+
+# Level 4: Complete Override (development/debugging)
+ops pve vpt 100 on 03:00.0 04:00.0 16 8 "custom_device" /tmp/test_config
+# Perfect for: Development testing, non-standard configurations
+```
+
+#### **When Resolution Fails**
+
+If DIC cannot resolve required parameters, you get clear guidance:
+
+```bash
+$ ops pve vpt on
+[ERROR] VM ID cannot be empty
+[RESOLUTION] DIC tried: server01_VM_ID (not found) → VM_ID (not found) → no defaults
+[SUGGESTIONS] 
+  1. Set environment: export VM_ID=100
+  2. Provide argument: ops pve vpt 100 on
+  3. Use injection mode: ops pve vpt -j (resolves all automatically)
+```
+
+#### **Debug Trace Example**
+
 ```bash
 $ OPS_DEBUG=1 ops pve vpt 100 on
 [DIC] Function signature: vm_id action pci0_id pci1_id core_count_on core_count_off usb_devices_str pve_conf_path
@@ -144,10 +209,13 @@ $ OPS_DEBUG=1 ops pve vpt 100 on
 [DIC] Final arguments array: [100] [on] [01:00.0] [02:00.0] [8] [4] [dev1 dev2] [/etc/config]
 ```
 
-**Use Cases:**
-- **Interactive Override**: `ops pve vpt 101 off` (change VM and action, keep environment)
-- **Progressive Specification**: `ops pve vpt 100 on 02:00.0` (override specific hardware)
-- **Development Testing**: Mix known values with environment defaults
+#### **Why Hybrid Mode is Powerful**
+
+- **Cognitive Efficiency**: Focus on what you're changing, not infrastructure details
+- **Environment Awareness**: Automatic hostname-specific configuration
+- **Error Reduction**: Less typing = fewer mistakes
+- **Progressive Complexity**: Simple by default, detailed when needed
+- **Debugging Friendly**: Full parameter tracing with `OPS_DEBUG=1`
 
 ### **Mode 2: Injection Execution (`-j` flag)**
 *Zero-Configuration Automation*
