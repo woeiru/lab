@@ -345,8 +345,80 @@ source_lib_ops() {
         return 1
     fi
     
-    source_directory "$LIB_OPS_DIR" "*" "operational function files"
-    return $?
+    # Source only executable shell script files, excluding documentation files
+    # Use source_directory with a custom approach to filter out documentation files
+    local dir="$LIB_OPS_DIR"
+    local description="operational function files"
+    
+    # Input validation
+    if [[ ! -d "$dir" ]]; then
+        lo1_log "lvl" " Warning: Directory $dir not found. Skipping."
+        return 1
+    fi
+
+    # Check if directory is readable
+    if [[ ! -r "$dir" ]]; then
+        lo1_log "lvl" " Error: Directory $dir is not readable"
+        return 1
+    fi
+
+    tme_start_timer "dir_$description"
+    lo1_log "lvl" "Sourcing $description: $dir"
+
+    # Process files directly without building array for better performance
+    local success_count=0
+    local total_count=0
+    local temp_file_list
+    
+    if ! temp_file_list=$(mktemp); then
+        lo1_log "lvl" " Error: Failed to create temporary file for file listing"
+        tme_end_timer "dir_$description"
+        return 1
+    fi
+
+    # Get sorted list of files, excluding documentation files
+    # Exclude files with extensions: .md, .txt, .guide, .spec, .readme, .doc
+    # Also exclude files starting with . (hidden files) and README* files
+    if ! find "$dir" -maxdepth 1 -type f \
+        ! -name "*.md" \
+        ! -name "*.txt" \
+        ! -name "*.guide" \
+        ! -name "*.spec" \
+        ! -name "*.readme" \
+        ! -name "*.doc" \
+        ! -name ".*" \
+        ! -name "README*" \
+        ! -name "readme*" \
+        -print0 | sort -z > "$temp_file_list"; then
+        lo1_log "lvl" " Error: Failed to list files in $dir"
+        rm -f "$temp_file_list"
+        tme_end_timer "dir_$description"
+        return 1
+    fi
+
+    # Process each file
+    while IFS= read -r -d '' file; do
+        ((total_count++))
+        if source_helper "$file" "$(basename "$file")"; then
+            ((success_count++))
+        fi
+    done < "$temp_file_list"
+
+    rm -f "$temp_file_list"
+
+    if ((total_count == 0)); then
+        lo1_log "lvl" " Warning: No matching files found in $dir (after excluding documentation files)"
+        tme_end_timer "dir_$description"
+        return 1
+    elif ((success_count == 0)); then
+        lo1_log "lvl" " Warning: No files were successfully sourced from $dir (0/$total_count)"
+        tme_end_timer "dir_$description"
+        return 1
+    else
+        lo1_log "lvl" "Successfully sourced $success_count/$total_count operational function files from $dir"
+        tme_end_timer "dir_$description"
+        return 0
+    fi
 }
 
 # Source the auxiliary helper function files (aux/ directory)
