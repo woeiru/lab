@@ -544,12 +544,9 @@ ops_show_module_help() {
 ops_show_function_help() {
     local module="$1"
     local function="$2"
-    local full_function="${module}_${function}"
     
-    echo "Help for function '$full_function':"
-    echo "  This function will be executed with automatic dependency injection"
-    echo "  Global variables will be resolved based on parameter names"
-    echo "  Use OPS_DEBUG=1 to see variable injection details"
+    # Simply call the actual function with --help to trigger aux_tec
+    "${module}_${function}" --help
 }
 
 # Show injection preview - display parameters and available global variable mappings
@@ -574,44 +571,52 @@ ops_show_injection_preview() {
     fi
     
     echo "Function: $full_function"
-    echo "Parameters and available injections:"
-    
-    # Get function signature
-    local signature
-    if ! signature=$(ops_get_function_signature "$full_function"); then
-        echo "  Could not analyze function signature"
-        echo "  Use: ops $module $function --help for function documentation"
-        return 1
-    fi
-    
-    if [[ -z "$signature" ]]; then
-        echo "  No parameters detected"
-        echo "  Use: ops $module $function --help for function documentation"
-        return 1
-    fi
-    
-    # Convert signature to array and show each parameter with injection info
-    local -a params
-    read -ra params <<< "$signature"
-    
-    for param in "${params[@]}"; do
-        local injected_value=$(ops_resolve_single_variable "$full_function" "$param")
-        local global_var_name=$(ops_get_global_variable_name "$param")
-        
-        printf "  %-15s → %s" "$param" "$global_var_name"
-        if [[ -n "$injected_value" ]]; then
-            printf "=%s" "$injected_value"
-        else
-            printf " (not set)"
-        fi
-        echo
-    done
-    
+    echo "Usage preview with variable injection:"
     echo
-    echo "Usage:"
-    echo "  ops $module $function -x                    # Execute with injected variables"
-    echo "  ops $module $function [args...]             # Execute with custom arguments"
-    echo "  ops $module $function --help                # Show detailed function help"
+    
+    # Call the function with no arguments to get aux_use output
+    local usage_output
+    if ! usage_output=$("$full_function" 2>&1); then
+        echo "  Could not get usage information"
+        echo "  Use: ops $module $function --help for function documentation"
+        return 1
+    fi
+    
+    # Process the usage output to inject global variable values into placeholders
+    local enhanced_output
+    enhanced_output=$(echo "$usage_output" | while IFS= read -r line; do
+        # Process each line, looking for <parameter> patterns
+        local processed_line="$line"
+        
+        # Find all <parameter> patterns in the line
+        while [[ $processed_line =~ \<([^>]+)\> ]]; do
+            local param="${BASH_REMATCH[1]}"
+            local placeholder="<$param>"
+            
+            # Try to find matching global variable using existing ops logic
+            local var_value
+            var_value=$(ops_resolve_single_variable "$full_function" "$param" 2>/dev/null || true)
+            
+            # Replace placeholder with enhanced version
+            if [[ -n "$var_value" ]]; then
+                local enhanced_placeholder="<$param:$var_value>"
+                processed_line="${processed_line/$placeholder/$enhanced_placeholder}"
+            else
+                # No match found, keep original placeholder
+                processed_line="${processed_line/$placeholder/$placeholder}"
+            fi
+        done
+        
+        echo "$processed_line"
+    done)
+    
+    echo "$enhanced_output"
+    echo
+    echo "Legend: <param:value> shows injected values, <param> shows missing variables"
+    echo
+    echo "Usage examples:"
+    echo "  ops $module $function -x      # Execute with auto-injection"
+    echo "  ops $module $function --help  # Show function help"
 }
 
 # Get global variable name for a parameter (for display purposes)
