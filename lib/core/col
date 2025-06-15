@@ -1,0 +1,188 @@
+#!/bin/bash
+#
+# -----------------------------------------------------------------------------
+# Module: Centralized Color Management (col)
+# -----------------------------------------------------------------------------
+# Purpose:     Provide standardized color definitions and utilities for
+#              consistent terminal output across all lab modules
+# File:        lib/core/col
+#
+# Description: This module centralizes all color definitions to ensure
+#              consistency and avoid duplication across the codebase.
+#              It provides semantic colors for different message types,
+#              depth-based colors for logging hierarchy, and utility
+#              functions for color management.
+#
+# Dependencies: None (core module)
+#
+# Usage:       Sourced by bin/ini for system-wide availability
+#              Use COL_* constants for colors and col_* functions for utilities
+#
+# Notes:       Colors are optimized for both dark and light terminals
+#              All colors include proper reset sequences
+# -----------------------------------------------------------------------------
+
+# Prevent multiple sourcing
+[[ -n "${COL_LOADED:-}" ]] && return 0
+readonly COL_LOADED=1
+
+# =============================================================================
+# CORE COLOR DEFINITIONS
+# =============================================================================
+
+# Reset and basic colors
+readonly COL_RESET=$(printf '\033[0m')
+readonly COL_BOLD=$(printf '\033[1m')
+readonly COL_DIM=$(printf '\033[2m')
+
+# =============================================================================
+# SEMANTIC COLORS (for message types)
+# =============================================================================
+
+# Information and status
+readonly COL_INFO=$(printf '\033[38;5;39m')          # Blue - info messages
+readonly COL_SUCCESS=$(printf '\033[38;5;46m')       # Green - success messages
+readonly COL_WARN=$(printf '\033[38;5;220m')         # Yellow - warnings
+readonly COL_ERROR=$(printf '\033[38;5;160m')        # Dark Red - errors
+readonly COL_CRITICAL=$(printf '\033[38;5;196m')     # Bright Red - critical/security
+
+# Content types
+readonly COL_NOTIFICATION=$(printf '\033[38;5;99m')  # Purple - notifications/highlights
+readonly COL_PARAMETER=$(printf '\033[38;5;45m')     # Bright Cyan - parameters/values
+readonly COL_METADATA=$(printf '\033[38;5;242m')     # Grey - metadata/secondary info
+readonly COL_BUSINESS=$(printf '\033[38;5;99m')      # Purple - business logic
+readonly COL_AUDIT=$(printf '\033[38;5;208m')        # Orange - audit trails
+readonly COL_PERFORMANCE=$(printf '\033[38;5;45m')   # Bright Cyan - performance
+
+# =============================================================================
+# DEPTH-BASED COLORS (for hierarchical logging)
+# =============================================================================
+
+# Array of colors for different depth levels (0-15)
+readonly -a COL_DEPTH=(
+    $(printf '\033[0;31m')          # Level 0  - Pure Red
+    $(printf '\033[38;5;202m')      # Level 1  - Red-Orange
+    $(printf '\033[38;5;208m')      # Level 2  - Orange
+    $(printf '\033[38;5;214m')      # Level 3  - Orange-Yellow
+    $(printf '\033[38;5;220m')      # Level 4  - Yellow
+    $(printf '\033[38;5;226m')      # Level 5  - Light Yellow
+    $(printf '\033[38;5;154m')      # Level 6  - Yellow-Green
+    $(printf '\033[38;5;118m')      # Level 7  - Light Green
+    $(printf '\033[38;5;82m')       # Level 8  - Green
+    $(printf '\033[38;5;46m')       # Level 9  - Bright Green
+    $(printf '\033[38;5;51m')       # Level 10 - Cyan
+    $(printf '\033[38;5;45m')       # Level 11 - Bright Cyan
+    $(printf '\033[38;5;39m')       # Level 12 - Blue
+    $(printf '\033[38;5;33m')       # Level 13 - Bright Blue
+    $(printf '\033[38;5;99m')       # Level 14 - Purple
+    $(printf '\033[38;5;129m')      # Level 15 - Bright Purple
+)
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+# Get color for a specific depth level
+# Usage: col_get_depth_color <depth>
+col_get_depth_color() {
+    local depth="$1"
+    if ((depth >= 0 && depth < ${#COL_DEPTH[@]})); then
+        echo -n "${COL_DEPTH[$depth]}"
+    else
+        echo -n "${COL_DEPTH[15]}"  # For any depth > 15, use deep purple
+    fi
+}
+
+# Get semantic color by name
+# Usage: col_get_semantic <type>
+col_get_semantic() {
+    local type="$1"
+    case "${type,,}" in  # Convert to lowercase
+        "info")         echo -n "$COL_INFO" ;;
+        "success")      echo -n "$COL_SUCCESS" ;;
+        "warn"|"warning") echo -n "$COL_WARN" ;;
+        "error")        echo -n "$COL_ERROR" ;;
+        "critical"|"security") echo -n "$COL_CRITICAL" ;;
+        "notification"|"notify") echo -n "$COL_NOTIFICATION" ;;
+        "parameter"|"param") echo -n "$COL_PARAMETER" ;;
+        "metadata"|"meta") echo -n "$COL_METADATA" ;;
+        "business")     echo -n "$COL_BUSINESS" ;;
+        "audit")        echo -n "$COL_AUDIT" ;;
+        "performance"|"perf") echo -n "$COL_PERFORMANCE" ;;
+        *)              echo -n "$COL_INFO" ;;  # Default to info
+    esac
+}
+
+# Apply color to text with automatic reset
+# Usage: col_apply <color_type> <text>
+col_apply() {
+    local color_type="$1"
+    shift
+    local text="$*"
+    
+    local color
+    if [[ "$color_type" =~ ^[0-9]+$ ]]; then
+        # Numeric input - treat as depth
+        color=$(col_get_depth_color "$color_type")
+    else
+        # String input - treat as semantic type
+        color=$(col_get_semantic "$color_type")
+    fi
+    
+    echo -n "${color}${text}${COL_RESET}"
+}
+
+# Check if terminal supports colors
+col_is_terminal_capable() {
+    [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]] && [[ -n "${TERM:-}" ]]
+}
+
+# Disable colors if terminal doesn't support them
+if ! col_is_terminal_capable; then
+    # Redefine all color constants as empty strings
+    for var in $(compgen -v COL_); do
+        if [[ ! "$(declare -p "$var" 2>/dev/null)" =~ readonly ]]; then
+            declare -gr "$var"=""
+        fi
+    done
+fi
+
+# =============================================================================
+# BACKWARD COMPATIBILITY ALIASES
+# =============================================================================
+
+# Aliases for existing aux color system (only if not already defined)
+[[ -z "${AUX_LOG_NC:-}" ]] && readonly AUX_LOG_NC="$COL_RESET"
+[[ -z "${AUX_LOG_GREY:-}" ]] && readonly AUX_LOG_GREY="$COL_METADATA"
+[[ -z "${AUX_LOG_BUSINESS:-}" ]] && readonly AUX_LOG_BUSINESS="$COL_BUSINESS"
+[[ -z "${AUX_LOG_SECURITY:-}" ]] && readonly AUX_LOG_SECURITY="$COL_CRITICAL"
+[[ -z "${AUX_LOG_AUDIT:-}" ]] && readonly AUX_LOG_AUDIT="$COL_AUDIT"
+[[ -z "${AUX_LOG_PERFORMANCE:-}" ]] && readonly AUX_LOG_PERFORMANCE="$COL_PERFORMANCE"
+[[ -z "${AUX_LOG_INFO:-}" ]] && readonly AUX_LOG_INFO="$COL_INFO"
+[[ -z "${AUX_LOG_WARN:-}" ]] && readonly AUX_LOG_WARN="$COL_WARN"
+[[ -z "${AUX_LOG_ERROR:-}" ]] && readonly AUX_LOG_ERROR="$COL_ERROR"
+
+# Aliases for existing lo1 color system (only if not already defined)
+[[ -z "${LOG_NC:-}" ]] && readonly LOG_NC="$COL_RESET"
+if [[ -z "${LOG_COLORS:-}" ]]; then
+    readonly -a LOG_COLORS=("${COL_DEPTH[@]}")
+fi
+
+# =============================================================================
+# EXPORTS
+# =============================================================================
+
+# Export color constants
+export COL_RESET COL_BOLD COL_DIM
+export COL_INFO COL_SUCCESS COL_WARN COL_ERROR COL_CRITICAL
+export COL_NOTIFICATION COL_PARAMETER COL_METADATA
+export COL_BUSINESS COL_AUDIT COL_PERFORMANCE
+
+# Export backward compatibility aliases
+export AUX_LOG_NC AUX_LOG_GREY AUX_LOG_BUSINESS AUX_LOG_SECURITY
+export AUX_LOG_AUDIT AUX_LOG_PERFORMANCE AUX_LOG_INFO AUX_LOG_WARN AUX_LOG_ERROR
+export LOG_NC
+
+# Export arrays and functions
+export -a COL_DEPTH LOG_COLORS
+export -f col_get_depth_color col_get_semantic col_apply col_is_terminal_capable
