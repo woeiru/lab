@@ -631,6 +631,10 @@ ops_show_injection_preview() {
         return 1
     fi
     
+    # Pre-analyze for global variable availability
+    local has_resolvable_vars=false
+    local resolvable_count=0
+    
     # Process the usage output to inject global variable values into placeholders
     local enhanced_output=""
     while IFS= read -r line; do
@@ -656,6 +660,8 @@ ops_show_injection_preview() {
             if [[ -n "$var_value" ]]; then
                 local enhanced_placeholder="<$param:$var_value>"
                 processed_line="${processed_line/$placeholder/$enhanced_placeholder}"
+                has_resolvable_vars=true
+                ((resolvable_count++))
             fi
             
             # Remove this placeholder from temp_line to avoid infinite loop
@@ -666,9 +672,19 @@ ops_show_injection_preview() {
     done <<< "$usage_output"
     
     echo "$enhanced_output"
-    echo
+    
+    # Show global variable notification if any variables can be resolved
+    if [[ "$has_resolvable_vars" == "true" ]]; then
+        if [[ $resolvable_count -eq 1 ]]; then
+            echo "{notification} Global variable available for automatic injection"
+        else
+            echo "{notification} $resolvable_count global variables available for automatic injection"
+        fi
+        echo
+    fi
+    
     echo "Legend:"
-    echo "  <param:value> → Parameter will be auto-injected with shown value"
+    echo "  {notification} <param:value> → Parameter will be auto-injected with shown value"
     echo "  <param>       → Parameter requires manual input (no global variable found)"
     echo "  -j flag       → Execute with dependency injection (auto-resolves parameters)"
     echo "  -x flag       → Execute with explicit validation (recommended for automation)"
@@ -678,21 +694,20 @@ ops_show_injection_preview() {
     echo "Usage examples:"
     
     # Check if function requires -x flag (explicit execution pattern)
-    if echo "$enhanced_output" | grep -q "\-x"; then
-        echo "  ops $module $function -x      # Execute with auto-injection (explicit execution required)"
-        echo "  ops $module $function -j      # Execute with dependency injection preview"
+    if echo "$enhanced_output" | grep -q "\-x (execute)"; then
+        # Function requires -x flag for execution (no parameters needed)
+        echo "  ops $module $function -x      # Execute with explicit validation (required for this function)"
         echo "  ops $module $function --help  # Show detailed function documentation"
         echo "  ops $module $function         # Show this usage preview"
     else
-        # Check if function has injectable parameters (has <param> patterns)
+        # Check if function has parameters that require values
         if echo "$enhanced_output" | grep -q "<[^>]*>"; then
-            echo "  ops $module $function -j      # Execute with full parameter auto-injection"
-            echo "  ops $module $function -x      # Execute with explicit validation"
-            
-            # Show hybrid examples if parameters are detected
-            local param_count=$(echo "$enhanced_output" | grep -o "<[^>]*>" | wc -l)
-            if [ "$param_count" -gt 0 ]; then
+            # Function has parameters - check if any can be auto-injected
+            if [[ "$has_resolvable_vars" == "true" ]]; then
+                echo "  ops $module $function -j      # Execute with full parameter auto-injection"
                 echo "  ops $module $function <args>  # Provide some parameters, auto-inject others"
+            else
+                echo "  ops $module $function <args>  # Provide required parameters"
             fi
             echo "  ops $module $function         # Show this usage preview"
         else
