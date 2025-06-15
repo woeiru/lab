@@ -628,11 +628,51 @@ ops_show_injection_preview() {
     
     echo "$enhanced_output"
     echo
-    echo "Legend: <param:value> shows injected values, <param> shows missing variables"
+    echo "Legend:"
+    echo "  <param:value> → Parameter will be auto-injected with shown value"
+    echo "  <param>       → Parameter requires manual input (no global variable found)"
+    echo "  -j flag       → Execute with dependency injection (auto-resolves parameters)"
+    echo "  -x flag       → Execute with explicit validation (recommended for automation)"
     echo
+    
+    # Generate intelligent usage examples based on function characteristics
     echo "Usage examples:"
-    echo "  ops $module $function -x      # Execute with auto-injection"
-    echo "  ops $module $function --help  # Show function help"
+    
+    # Check if function requires -x flag (explicit execution pattern)
+    if echo "$enhanced_output" | grep -q "\-x"; then
+        echo "  ops $module $function -x      # Execute with auto-injection (explicit execution required)"
+        echo "  ops $module $function -j      # Execute with dependency injection preview"
+        echo "  ops $module $function --help  # Show detailed function documentation"
+        echo "  ops $module $function         # Show this usage preview"
+    else
+        # Check if function has injectable parameters (has <param> patterns)
+        if echo "$enhanced_output" | grep -q "<[^>]*>"; then
+            echo "  ops $module $function -j      # Execute with full parameter auto-injection"
+            echo "  ops $module $function -x      # Execute with explicit validation"
+            
+            # Show hybrid examples if parameters are detected
+            local param_count=$(echo "$enhanced_output" | grep -o "<[^>]*>" | wc -l)
+            if [ "$param_count" -gt 0 ]; then
+                echo "  ops $module $function <args>  # Provide some parameters, auto-inject others"
+            fi
+            echo "  ops $module $function         # Show this usage preview"
+        else
+            echo "  ops $module $function         # Execute function (no parameters required)"
+        fi
+        echo "  ops $module $function --help  # Show detailed function documentation"
+    fi
+    
+    # Add injection-specific examples if variables were found
+    local has_injected_values=$(echo "$enhanced_output" | grep -q "<[^>]*:[^>]*>" && echo "true" || echo "false")
+    if [ "$has_injected_values" = "true" ]; then
+        echo
+        echo "Configuration preview:"
+        echo "$enhanced_output" | grep -o "<[^>]*:[^>]*>" | sort -u | while read -r injected; do
+            local param=$(echo "$injected" | sed 's/<\([^:]*\):.*/\1/')
+            local value=$(echo "$injected" | sed 's/<[^:]*:\([^>]*\)>.*/\1/')
+            echo "  └─ $param = $value"
+        done
+    fi
 }
 
 # Get global variable name for a parameter (for display purposes)
