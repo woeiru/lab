@@ -658,7 +658,7 @@ ops_show_injection_preview() {
             
             # Replace placeholder with enhanced version
             if [[ -n "$var_value" ]]; then
-                local enhanced_placeholder="<$param:$var_value>"
+                local enhanced_placeholder="$(col_apply parameter "<$param:$var_value>")"
                 processed_line="${processed_line/$placeholder/$enhanced_placeholder}"
                 has_resolvable_vars=true
                 ((resolvable_count++))
@@ -675,16 +675,18 @@ ops_show_injection_preview() {
     
     # Show global variable notification if any variables can be resolved
     if [[ "$has_resolvable_vars" == "true" ]]; then
+        local notification_text
         if [[ $resolvable_count -eq 1 ]]; then
-            echo "{notification} Global variable available for automatic injection"
+            notification_text="Global variable available for automatic injection"
         else
-            echo "{notification} $resolvable_count global variables available for automatic injection"
+            notification_text="$resolvable_count global variables available for automatic injection"
         fi
+        echo "$(col_apply notification "{notification}")$(col_apply notification " $notification_text")"
         echo
     fi
     
     echo "Legend:"
-    echo "  {notification} <param:value> → Parameter will be auto-injected with shown value"
+    echo "  $(col_apply notification "{notification}")$(col_apply parameter " <param:value>") → Parameter will be auto-injected with shown value"
     echo "  <param>       → Parameter requires manual input (no global variable found)"
     echo "  -j flag       → Execute with dependency injection (auto-resolves parameters)"
     echo "  -x flag       → Execute with explicit validation (recommended for automation)"

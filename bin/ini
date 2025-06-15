@@ -40,6 +40,7 @@
 #   - rdc (Runtime dependency constants)
 #   - mdc (Module dependency constants)
 #   Required modules in lib/core/:
+#   - col (Centralized color management)
 #   - err (Error handling functions)
 #   - lo1 (Logging functions)
 #   - tme (Timing functions)
@@ -417,6 +418,7 @@ load_modules() {
 
     local module_loaded=0
     local -a modules=(
+        "${BASE_DIR}/lib/core/col"
         "${BASE_DIR}/lib/core/err"
         "${BASE_DIR}/lib/core/lo1"
         "${BASE_DIR}/lib/core/tme"
