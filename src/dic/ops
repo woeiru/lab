@@ -548,9 +548,25 @@ ops_show_module_help() {
 ops_show_function_help() {
     local module="$1"
     local function="$2"
+    local full_function="${module}_${function}"
     
-    # Simply call the actual function with --help to trigger aux_tec
-    "${module}_${function}" --help
+    # Validate and source the library module
+    local lib_path="${LIB_OPS_DIR}/${module}"
+    if [[ ! -f "$lib_path" ]]; then
+        echo "Error: Library module not found: $lib_path"
+        return 1
+    fi
+    
+    source "$lib_path"
+    
+    # Check if function exists
+    if ! declare -f "$full_function" >/dev/null 2>&1; then
+        echo "Error: Function '$full_function' not found in module '$module'"
+        return 1
+    fi
+    
+    # Call the actual function with --help to trigger aux_tec
+    "$full_function" --help
 }
 
 # Show injection preview - display parameters and available global variable mappings
