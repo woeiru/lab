@@ -591,8 +591,6 @@ ops_show_injection_preview() {
     fi
     
     echo "Function: $full_function"
-    echo "Usage preview with variable injection:"
-    echo
     
     # Call the function with no arguments to get aux_use output
     # Some functions output usage to stdout, others to stderr when they fail
@@ -606,6 +604,17 @@ ops_show_injection_preview() {
         usage_output=$("$full_function" 2>&1 >/dev/null)
     fi
     
+    # Extract and display location information directly under function headline
+    if [[ -n "$usage_output" ]]; then
+        local location_line=$(echo "$usage_output" | grep "^Location:" | head -1)
+        if [[ -n "$location_line" ]]; then
+            echo "$location_line"
+        fi
+    fi
+    
+    echo "Usage preview with variable injection:"
+    echo
+    
     # If still no output, it means the function doesn't provide usage via aux_use
     if [[ -z "$usage_output" ]]; then
         echo "  Parameter injection preview not available"
@@ -617,6 +626,11 @@ ops_show_injection_preview() {
     # Process the usage output to inject global variable values into placeholders
     local enhanced_output
     enhanced_output=$(echo "$usage_output" | while IFS= read -r line; do
+        # Skip the location line since we've already displayed it
+        if [[ "$line" =~ ^Location:[[:space:]]* ]]; then
+            continue
+        fi
+        
         # Process each line, looking for <parameter> patterns
         local processed_line="$line"
         
