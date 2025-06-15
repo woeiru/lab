@@ -1846,12 +1846,12 @@ gpu_pta() {
         aux_info "GPU configuration loaded for attachment" "component=gpu,operation=passthrough_attach,config_file=${config_file},status=success"
     fi
 
-    # Get target GPUs (only those on vfio-pci)
+    # Get target GPUs (any GPU, not filtering by driver since we want to attach unbound ones too)
     local -a gpus_to_process
-    readarray -t gpus_to_process < <(_gpu_get_target_gpus "explicit" "$gpu_id_arg" "vfio-pci" "$pci0_id" "$pci1_id")
+    readarray -t gpus_to_process < <(_gpu_get_target_gpus "explicit" "$gpu_id_arg" "" "$pci0_id" "$pci1_id")
 
     if [ ${#gpus_to_process[@]} -eq 0 ]; then
-        aux_warn "No suitable GPU devices found on vfio-pci to attach" "component=gpu,operation=passthrough_attach,target_gpus=0,reason=no_vfio_devices"
+        aux_warn "No suitable GPU devices found to attach" "component=gpu,operation=passthrough_attach,target_gpus=0,reason=no_gpu_devices"
         return 0
     fi
 
@@ -1883,9 +1883,9 @@ gpu_pta() {
         # Load host driver module if needed
         if ! lsmod | grep -q "^${host_driver//-/_}"; then
             aux_info "Loading host driver module" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},action=load_module"
-            if ! modprobe "$host_driver"; then
-                aux_err "Failed to load host driver module" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},status=failed"
-                continue
+            if ! modprobe "$host_driver" 2>/dev/null; then
+                aux_warn "Failed to load host driver module (may already be built-in)" "component=gpu,operation=passthrough_attach,pci_id=${pci_id},host_driver=${host_driver},status=failed"
+                # Continue anyway - driver might be built-in or loadable on demand
             fi
         fi
         
