@@ -1218,7 +1218,7 @@ pve_vms() {
 }
 
 # Migrates a VM from a remote node to the current node, handling PCIe passthrough disable/enable during the process
-# vm get start
+# vm get
 # <vm_id> <cluster_nodes_str> <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>
 pve_vmg() {
 
@@ -1584,7 +1584,7 @@ pve_vpt() {
 }
 
 # Checks and reports which node in the Proxmox cluster is currently hosting a specified VM
-# vm check node
+# vm check
 # <vm_id> <cluster_nodes_array>
 pve_vck() {
 
