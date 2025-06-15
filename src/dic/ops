@@ -590,6 +590,8 @@ ops_show_injection_preview() {
         return 1
     fi
     
+    echo "Usage preview with variable injection:"
+    echo
     echo "Function: $full_function"
     
     # Call the function with no arguments to get aux_use output
@@ -611,8 +613,6 @@ ops_show_injection_preview() {
             echo "$location_line"
         fi
     fi
-    
-    echo "Usage preview with variable injection:"
     echo
     
     # If still no output, it means the function doesn't provide usage via aux_use
