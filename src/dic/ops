@@ -579,9 +579,21 @@ ops_show_injection_preview() {
     echo
     
     # Call the function with no arguments to get aux_use output
+    # Some functions output usage to stdout, others to stderr when they fail
     local usage_output
-    if ! usage_output=$("$full_function" 2>&1); then
-        echo "  Could not get usage information"
+    
+    # First try capturing stdout (normal case)
+    usage_output=$("$full_function" 2>/dev/null)
+    
+    # If no stdout output, try capturing stderr (functions that output usage on error)
+    if [[ -z "$usage_output" ]]; then
+        usage_output=$("$full_function" 2>&1 >/dev/null)
+    fi
+    
+    # If still no output, it means the function doesn't provide usage via aux_use
+    if [[ -z "$usage_output" ]]; then
+        echo "  Parameter injection preview not available"
+        echo "  This function requires specific arguments"
         echo "  Use: ops $module $function --help for function documentation"
         return 1
     fi
