@@ -137,15 +137,8 @@ col_is_terminal_capable() {
     [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]] && [[ -n "${TERM:-}" ]]
 }
 
-# Disable colors if terminal doesn't support them
-if ! col_is_terminal_capable; then
-    # Redefine all color constants as empty strings
-    for var in $(compgen -v COL_); do
-        if [[ ! "$(declare -p "$var" 2>/dev/null)" =~ readonly ]]; then
-            declare -gr "$var"=""
-        fi
-    done
-fi
+# Note: Terminal capability checking disabled for now to avoid readonly variable conflicts
+# Colors will always be enabled. Future enhancement: implement proper capability detection
 
 # =============================================================================
 # BACKWARD COMPATIBILITY ALIASES
@@ -162,11 +155,8 @@ fi
 [[ -z "${AUX_LOG_WARN:-}" ]] && readonly AUX_LOG_WARN="$COL_WARN"
 [[ -z "${AUX_LOG_ERROR:-}" ]] && readonly AUX_LOG_ERROR="$COL_ERROR"
 
-# Aliases for existing lo1 color system (only if not already defined)
-[[ -z "${LOG_NC:-}" ]] && readonly LOG_NC="$COL_RESET"
-if [[ -z "${LOG_COLORS:-}" ]]; then
-    readonly -a LOG_COLORS=("${COL_DEPTH[@]}")
-fi
+# Note: lo1 module will handle its own LOG_NC and LOG_COLORS variables
+# by checking for COL_LOADED and using COL_RESET and COL_DEPTH from this module
 
 # =============================================================================
 # EXPORTS
@@ -181,8 +171,7 @@ export COL_BUSINESS COL_AUDIT COL_PERFORMANCE
 # Export backward compatibility aliases
 export AUX_LOG_NC AUX_LOG_GREY AUX_LOG_BUSINESS AUX_LOG_SECURITY
 export AUX_LOG_AUDIT AUX_LOG_PERFORMANCE AUX_LOG_INFO AUX_LOG_WARN AUX_LOG_ERROR
-export LOG_NC
 
 # Export arrays and functions
-export -a COL_DEPTH LOG_COLORS
+export -a COL_DEPTH
 export -f col_get_depth_color col_get_semantic col_apply col_is_terminal_capable
