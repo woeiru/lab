@@ -248,133 +248,122 @@ DIC Container
 ---
 
 ## Deployment Architecture (`src/set/`)
-# Section-Based Infrastructure Provisioning
+# Section-Based Infrastructure Provisioning with DIC Integration
 
-### **Core Innovation: Systematic Section-Based Deployment**
+### **Core Innovation: DIC-Orchestrated Deployment Sections**
 
-The `set/` directory implements a **section-based deployment architecture** designed for systematic infrastructure provisioning, multi-node orchestration, and repeatable deployment procedures.
+The `set/` directory implements a **section-based deployment architecture** that orchestrates **groups of DIC operations** for systematic infrastructure provisioning, multi-node coordination, and repeatable deployment procedures.
 
 #### **Deployment Challenge: Infrastructure Complexity**
 
-Traditional infrastructure deployment suffers from procedural complexity and coordination challenges:
+Traditional infrastructure deployment suffers from procedural complexity and parameter management challenges:
 
 ```bash
-# Traditional Approach: Monolithic, Error-Prone
+# Traditional Approach: Manual parameter management, error-prone
 ./deploy_everything.sh    # Black box, no granular control, difficult to debug
 ```
 
-#### **Section-Based Solution: Modular, Testable, Coordinated**
+#### **DIC-Orchestrated Solution: Intelligent Section-Based Deployment**
 
 ```bash
-# Section-Based Approach: Granular, Debuggable, Coordinated
-./src/set/h1 -x a_xall    # Repository setup (specific, testable)
-./src/set/h1 -x b_xall    # Package installation (isolated, recoverable)
-./src/set/h1 -x c_xall    # Network configuration (targeted, verifiable)
+# Section-Based DIC Approach: Intelligent, Debuggable, Environment-Aware
+./src/set/h1 -x a_xall    # Repository setup with DIC parameter injection
+./src/set/h1 -x b_xall    # Package installation with environment awareness
+./src/set/h1 -x c_xall    # Network configuration with hostname-specific resolution
 ```
 
-### **Technical Implementation Deep Dive**
+### **Technical Implementation: Set as DIC Wrapper**
 
-#### **1. Hostname-Based Script Architecture**
+#### **1. Section Function Architecture - DIC Operation Groups**
 
 ```bash
 # File Naming Convention: Matches Infrastructure Topology
-src/set/h1    # Hypervisor 1 (primary hypervisor setup)
-src/set/c1    # Container 1 (container host configuration)  
-src/set/c2    # Container 2 (secondary container host)
-src/set/c3    # Container 3 (tertiary container host)
-src/set/t1    # Test Node 1 (development/testing setup)
-src/set/t2    # Test Node 2 (secondary test node)
+src/set/h1    # Hypervisor 1 (primary hypervisor setup) - DIC orchestration
+src/set/c1    # Container 1 (container host configuration) - DIC orchestration
+src/set/c2    # Container 2 (secondary container host) - DIC orchestration
+src/set/c3    # Container 3 (tertiary container host) - DIC orchestration
+src/set/t1    # Test Node 1 (development/testing setup) - DIC orchestration
+src/set/t2    # Test Node 2 (secondary test node) - DIC orchestration
 ```
 
-**Design Principle**: Each script contains the complete deployment logic for its corresponding infrastructure node, enabling **targeted deployment** and **isolated testing**.
+**Design Principle**: Each script contains **coordinated DIC operation groups** for its corresponding infrastructure node, enabling **intelligent parameter resolution** and **environment-aware deployment**.
 
-#### **2. Section Organization Architecture**
+#### **2. Section Organization Architecture with DIC Integration**
 
 ```bash
-# Section Function Naming Pattern
-a_xall()  # Primary setup (repositories, basic configuration)
-b_xall()  # Package installation and services
-c_xall()  # Network configuration  
-d_xall()  # SSH keys and authentication
-i_xall()  # Storage setup (RAID, Btrfs)
-j_xall()  # ZFS datasets and configuration
-p_xall()  # Container template management
-q_xall()  # Container creation and configuration
-r_xall()  # Bind mount configuration
-s_xall()  # Virtual machine creation and setup
+# Section Function Pattern - DIC Operation Orchestration
+a_xall() {    # Primary setup (repositories, basic configuration)
+    ops pve dsr -j         # DIC handles parameter injection
+    ops usr adr -j         # Environment-aware configuration
+    ops pve rsn -j         # Hostname-specific resolution
+}
+
+b_xall() {    # Package installation and services
+    ops sys ipa -j         # Package array auto-resolution
+}
+
+c_xall() {    # Network configuration  
+    ops sys hos x1 -j      # Hostname-specific IP resolution
+    ops sys hos x2 -j      # Environment-aware host configuration
+    ops sys hos qdevice -j # Intelligent parameter management
+}
 ```
 
 **Technical Benefits:**
-- **Granular Execution**: Test individual deployment steps
-- **Failure Recovery**: Re-run failed sections without full restart
-- **Incremental Deployment**: Progressive infrastructure buildout
-- **Debugging Capability**: Isolate issues to specific configuration areas
+- **Intelligent Parameter Management**: DIC handles all configuration resolution
+- **Environment Awareness**: Automatic hostname-specific configuration injection
+- **Debugging Capability**: Full parameter tracing across deployment sections
+- **Configuration Consistency**: Same config hierarchy for operations and deployment
+- **Failure Recovery**: Re-run failed sections with full parameter visibility
 
-#### **3. Self-Sufficient Framework Integration**
+#### **3. DIC Integration Framework**
 
 ```bash
-# Automatic Framework Loading
-# Every script sources .menu for complete functionality
-DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+# Automatic DIC Loading in every set script
+# Source menu file which provides logging and other core functionality
 source "$(realpath "$DIR_SH/.menu")"
 
-# .menu provides:
-# 1. Logging functions (lo1_inf, lo1_err, etc.)  
-# 2. Configuration loading (cfg/env/site*)
-# 3. Interactive menu system (MENU_OPTIONS array)
-# 4. Environment validation and setup
+# Source DIC operations for intelligent parameter resolution
+source "$DIR_SH/../dic/ops"
+
+# Now all 'ops' commands are available with full DIC functionality
 ```
 
-#### **4. Multi-Node Orchestration Architecture**
+**Integration Benefits:**
+- **Seamless DIC Access**: All set scripts can use `ops` commands
+- **Parameter Resolution**: Automatic hostname-specific variable lookup
+- **Environment Context**: Full configuration hierarchy available
+- **Debug Capabilities**: DIC tracing available during deployment
+
+### **Execution Modes and DIC Integration**
+
+#### **Interactive Mode: Guided DIC-Orchestrated Deployment**
 
 ```bash
-# Integration with sys-sca (System Scale) for coordination
-sys-sca usr TYPE SSH_USERS IP_ARRAYS ALIASES "COMMAND"
-
-# Example: Deploy section 'a' across all hypervisor nodes
-sys-sca usr hy SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x a_xall"
-
-# Deployment Coordination Flow:
-┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
-│   Central Control   │───▶│   sys-sca Engine    │───▶│   Target Nodes      │
-│   (Orchestrator)    │    │   (Distribution)    │    │   (Execution)       │
-└─────────────────────┘    └─────────────────────┘    └─────────────────────┘
-          │                           │                           │
-          │                           │                           │
-    Command Definition      SSH Connection Pool      Section Execution
-    Target Selection        Error Aggregation        Local Configuration
-    Progress Monitoring     Result Collection        Environment Context
-```
-
-### **Execution Modes and Integration**
-
-#### **Interactive Mode: Guided Deployment**
-
-```bash
-./src/set/h1 -i    # Interactive menu-driven deployment
+./src/set/h1 -i    # Interactive menu-driven deployment with DIC operations
 ```
 
 **Technical Flow:**
 1. **Menu Presentation**: Display available sections with descriptions
 2. **User Selection**: Choose sections for execution
-3. **Dependency Validation**: Check prerequisites for selected sections
-4. **Sequential Execution**: Run sections in logical order
-5. **Progress Reporting**: Real-time status and error handling
+3. **DIC Integration**: Each section executes DIC operations with parameter injection
+4. **Parameter Resolution**: Automatic hostname-specific configuration applied
+5. **Progress Reporting**: Real-time status with DIC debugging capabilities
 
-#### **Direct Mode: Targeted Execution**
+#### **Direct Mode: Targeted DIC Operation Groups**
 
 ```bash
-./src/set/c1 -x a_xall    # Direct section execution
+./src/set/c1 -x a_xall    # Direct section execution with DIC orchestration
 ```
 
 **Technical Flow:**
 1. **Section Validation**: Verify section exists and is executable
-2. **Environment Loading**: Source `.menu` and load configuration
-3. **Prerequisite Check**: Validate required variables and dependencies
-4. **Function Execution**: Run section function with full context
-5. **Result Reporting**: Log success/failure with detailed output
+2. **DIC Loading**: Source DIC operations and load configuration hierarchy
+3. **Operation Execution**: Run coordinated DIC operations with intelligent parameter resolution
+4. **Environment Context**: Automatic hostname-specific variable injection
+5. **Result Reporting**: DIC tracing and structured logging output
 
-#### **Batch Mode: Multi-Node Coordination**
+#### **Batch Mode: Multi-Node DIC Coordination**
 
 ```bash
 sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x b_xall"
@@ -383,43 +372,51 @@ sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x b_xall"
 **Technical Flow:**
 1. **Target Resolution**: Resolve node groups and connection parameters
 2. **Parallel Distribution**: Establish SSH connections to all targets
-3. **Coordinated Execution**: Run sections simultaneously across nodes
-4. **Result Aggregation**: Collect and consolidate results from all nodes
-5. **Error Coordination**: Handle failures gracefully across the cluster
+3. **DIC-Coordinated Execution**: Each node runs DIC operations with local hostname resolution
+4. **Environment-Aware Results**: Each node applies its hostname-specific configuration
+5. **Centralized Aggregation**: Collect results with DIC parameter visibility
 
-### **Configuration Integration and Context**
+### **Configuration Integration and DIC Context**
 
-#### **Environment-Aware Configuration Loading**
+#### **Environment-Aware DIC Configuration Loading**
 
 ```bash
-# Configuration Hierarchy (loaded by .menu)
+# Configuration Hierarchy (automatically loaded by DIC)
 cfg/env/site1       # Primary site configuration
 cfg/env/site1-dev   # Development environment overrides
 cfg/env/site1-w2    # Workstation-specific configuration
 
-# Automatic Variable Resolution
-NODE_IP_ADDRESS="192.168.1.100"     # From site configuration
-CONTAINER_TEMPLATES=("ubuntu-22")    # From environment file
-ZFS_DATASETS=("data" "backup")       # From deployment specification
+# DIC Automatic Variable Resolution Examples
+NODE_IP_ADDRESS="192.168.1.100"           # Global variable
+server01_NODE_PCI0="01:00.0"             # Hostname-specific variable
+CONTAINER_TEMPLATES=("ubuntu-22")         # Array automatically converted
+ZFS_DATASETS=("data" "backup")           # Array processing for iteration
 ```
 
-#### **Dynamic Configuration Processing**
+#### **DIC-Enhanced Configuration Processing**
 
 ```bash
-# Example: Container Creation with Dynamic Configuration
+# Example: Container Creation with DIC Parameter Resolution
 q_xall() {
-    for container_name in "${CONTAINER_NAMES[@]}"; do
-        container_id="${container_name##*-}"  # Extract ID from name
-        container_template="${CONTAINER_TEMPLATES[0]}"  # Default template
-        
-        # Create with environment-specific parameters
-        pct create "$container_id" \
-            "$container_template" \
-            --hostname "$container_name" \
-            --net0 "name=eth0,bridge=vmbr0,ip=${container_base_ip}${container_id}/24,gw=${GATEWAY_IP}" \
-            --storage "$STORAGE_POOL"
-    done
+    # DIC automatically handles CT_*_* variable iteration and parameter injection
+    ops pve ctc -j
+    
+    # Behind the scenes, DIC resolves:
+    # - CT_1_ID, CT_1_TEMPLATE, CT_1_HOSTNAME, CT_1_STORAGE
+    # - CT_2_ID, CT_2_TEMPLATE, CT_2_HOSTNAME, CT_2_STORAGE
+    # - etc., and calls pve_ctc with proper parameters for each container
 }
+
+# Example: Multi-ZFS Dataset Creation with DIC
+j_xall() {
+    ops sto zfs dim -j
+    
+    # DIC automatically iterates over:
+    # - ZFS_POOL_NAME1, ZFS_DATASET_NAME1, ZFS_MOUNTPOINT_NAME1
+    # - ZFS_POOL_NAME2, ZFS_DATASET_NAME2, ZFS_MOUNTPOINT_NAME2  
+    # - etc., and calls sto_zfs_dim for each dataset configuration
+}
+```
 ```
 
 ---
@@ -428,33 +425,40 @@ q_xall() {
 
 ### **Cross-Paradigm Integration Patterns**
 
-#### **DIC + Set Integration: Operational Continuity**
+#### **Set + DIC Integration: DIC-Orchestrated Deployment to Operations**
 
 ```bash
-# Deployment Phase (src/set/)
-./src/set/h1 -x a_xall    # Initial hypervisor setup
-./src/set/h1 -x s_xall    # VM creation and configuration
+# Deployment Phase (src/set/) - DIC Operation Groups
+./src/set/h1 -x a_xall    # Repository setup: ops pve dsr -j, ops usr adr -j, ops pve rsn -j
+./src/set/h1 -x s_xall    # VM creation: ops pve vmc -j (with DIC parameter injection)
 
-# Operational Phase (src/dic/)  
+# Operational Phase (src/dic/) - Individual DIC Operations
 source src/dic/ops
 ops pve vm start 100      # Start VMs with intelligent parameter resolution
 ops gpu passthrough 101   # Configure GPU with environment awareness
 ```
 
-**Integration Value**: Seamless transition from **deployment** to **operations** with consistent configuration context and parameter management.
+**Integration Value**: Seamless transition from **DIC-orchestrated deployment** to **individual DIC operations** with consistent configuration context and parameter management throughout the entire infrastructure lifecycle.
 
 #### **Configuration Continuity Architecture**
 
 ```bash
-# Shared Configuration Foundation
+# Shared Configuration Foundation - Used by Both Set and DIC
 cfg/env/site1
-├── HYPERVISOR_IPS=("192.168.1.10" "192.168.1.11")    # Used by set/ for deployment
-├── VM_IDS=("100" "101" "102")                         # Used by set/ for creation  
-├── NODE_PCI0="01:00.0"                                # Used by dic/ for operations
-└── STORAGE_POOLS=("local-zfs" "backup")               # Used by both paradigms
+├── HYPERVISOR_IPS=("192.168.1.10" "192.168.1.11")    # Used by set/ DIC operations
+├── VM_IDS=("100" "101" "102")                         # Used by set/ for creation (ops pve vmc -j)
+├── server01_NODE_PCI0="01:00.0"                       # Used by set/ and individual DIC ops
+├── server01_CT_1_ID="200"                             # Used by set/ DIC container creation
+└── STORAGE_POOLS=("local-zfs" "backup")               # Used by both paradigms via DIC
 
-# Result: Consistent Environment Context Across Operational Phases
+# Result: Unified DIC Parameter Resolution Across All Operational Phases
 ```
+
+**Architecture Benefits:**
+- **Unified Parameter System**: Both set sections and individual operations use DIC
+- **Consistent Environment Context**: Same hostname-specific variable resolution
+- **Seamless Workflow**: Deploy with set sections, operate with individual DIC calls
+- **Debug Continuity**: Same DIC tracing capabilities in deployment and operations
 
 ### **Error Handling and Recovery Architecture**
 
