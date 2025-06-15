@@ -165,14 +165,16 @@ aux_use() {
     shortname=$(echo "$shortname" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
     usage=$(echo "$usage" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
+    # Location information
+    echo "Location:       $script_file:$function_start_line"
+
     # Display the information with fallbacks for missing comments
 
     echo "Description:    ${description:-No description available}"
     echo "Shortname:      ${shortname:-No shortname available}"
     echo "Usage:          $caller_function ${usage:-<parameters not documented>}"
     
-    # Additional helpful information
-    echo "Location:       $script_file:$function_start_line"
+
 
 }
 
