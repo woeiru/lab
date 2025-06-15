@@ -647,8 +647,8 @@ _gpu_get_iommu_groups() {
         done
 
         if $this_group_contains_gpu; then
-            echo -e "\nIOMMU Group ${group_id}:"
-            echo -e "${devices_in_group_output%\n}" 
+            aux_info "IOMMU Group details" "component=gpu,operation=get_iommu_groups,group_id=${group_id}"
+            aux_info "Group devices information" "component=gpu,operation=get_iommu_groups,group_id=${group_id},devices=${devices_in_group_output%\n}"
             gpu_related_group_displayed=true
         fi
     done

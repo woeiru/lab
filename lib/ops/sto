@@ -147,7 +147,7 @@ sto_fea() {
 
     # Display filtered results
     aux_info "Device scan completed" "devices_found=$(echo "$blkid_output" | wc -l)"
-    echo "Filtered entries with sd*:"
+    aux_info "Displaying filtered device entries" "component=sto,operation=device_scan,filter=sd_devices"
     echo "$blkid_output"
 
     # Interactive device selection with validation
@@ -241,7 +241,7 @@ sto_fec() {
   fi
   if [ $# -eq 0 ]; then
     # List blkid output with line numbers
-    echo "Available devices:"
+    aux_info "Displaying available devices for selection" "component=sto,operation=device_select"
     blkid | nl -v 1
     aux_use
     return 0
@@ -588,7 +588,7 @@ sto_bfs_tra() {
     fi
 
     if [[ ! "$attr_flag" =~ ^[acdeijsuACDST-]$ ]]; then
-        echo "Error: Invalid attribute flag. Use one of: a, c, d, e, i, j, s, u, A, C, D, S, T, or '-' for no attribute"
+        aux_err "Invalid attribute flag" "component=sto,operation=set_file_attributes,provided_flag=$attribute,valid_flags=a,c,d,e,i,j,s,u,A,C,D,S,T,-"
         aux_use
         return 1
     fi
@@ -792,8 +792,7 @@ sto_bfs_ra1() {
     local fstab_entry="UUID=$uuid $mount_point btrfs defaults,degraded 0 0"
     aux_info "Proposed fstab entry" "entry=$fstab_entry"
 
-    echo "The following line will be added to /etc/fstab:"
-    echo "$fstab_entry"
+    aux_info "Displaying fstab entry to be added" "component=sto,operation=mount_fstab,entry=$fstab_entry"
     
     local response=$(aux_ask "Do you want to add this line to /etc/fstab?" "N" "alpha")
     if [[ "$response" =~ ^[Yy]$ ]]; then
@@ -945,12 +944,15 @@ sto_bfs_csf() {
 
         # Print the folder path and whether it is a subvolume based on the filter
         if [ "$filter" == "yes" ] && [ "$is_subvol" == "yes" ]; then
+            aux_info "Subvolume listing entry" "component=sto,operation=list_subvolumes,path=$path/$folder_name,is_subvolume=$is_subvol,filter=$filter"
             printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
             ((processed_count++))
         elif [ "$filter" == "no" ] && [ "$is_subvol" == "no" ]; then
+            aux_info "Directory listing entry" "component=sto,operation=list_subvolumes,path=$path/$folder_name,is_subvolume=$is_subvol,filter=$filter"
             printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
             ((processed_count++))
         elif [ "$filter" == "all" ]; then
+            aux_info "Filesystem entry" "component=sto,operation=list_subvolumes,path=$path/$folder_name,is_subvolume=$is_subvol,filter=$filter"
             printf "%-40s %-3s\n" "$path/$folder_name" "$is_subvol"
             ((processed_count++))
         fi
@@ -999,26 +1001,25 @@ sto_bfs_shc() {
         config_count=$(echo "$configs" | wc -l)
 
         if [ "$config_count" -eq 0 ]; then
-            echo "No configurations found starting with 'home_'."
+            aux_info "No snapper configurations found" "component=sto,operation=snapper_create,config_prefix=home_"
             return 1
         elif [ "$config_count" -eq 1 ]; then
             configname=$(echo "$configs" | head -n 1)
-            echo "Using configuration: $configname"
+            aux_info "Using single configuration found" "component=sto,operation=snapper_create,configname=$configname"
         else
-            echo "Multiple configurations found starting with 'home_':"
-            echo "$configs"
-            echo "Please enter the configuration name to use:"
-            read selected_config
+            aux_info "Multiple configurations found, user selection required" "component=sto,operation=snapper_create,config_count=$config_count"
+            aux_info "Available configurations" "component=sto,operation=snapper_create,configurations=$configs"
+            local selected_config=$(aux_ask "Please enter the configuration name to use" "" "not_empty")
             if echo "$configs" | grep -q "^$selected_config$"; then
                 configname=$selected_config
             else
-                echo "Invalid configuration selected."
+                aux_err "Invalid configuration selected" "component=sto,operation=snapper_create,selected_config=$selected_config"
                 return 1
             fi
         fi
     fi
 
-    echo "snapper -c "$configname" create"
+    aux_info "Creating snapper snapshot" "component=sto,operation=snapper_create,configname=$configname"
     snapper -c "$configname" create
 }
 # Deletes a specified Snapper snapshot from a given configuration or automatically selects a 'home_*' configuration if multiple exist
@@ -1067,26 +1068,25 @@ sto_bfs_shd() {
         config_count=$(echo "$configs" | wc -l)
 
         if [ "$config_count" -eq 0 ]; then
-            echo "No configurations found starting with 'home_'."
+            aux_info "No snapper configurations found" "component=sto,operation=snapper_delete,config_prefix=home_"
             return 1
         elif [ "$config_count" -eq 1 ]; then
             configname=$(echo "$configs" | head -n 1)
-            echo "Using configuration: $configname"
+            aux_info "Using single configuration found" "component=sto,operation=snapper_delete,configname=$configname"
         else
-            echo "Multiple configurations found starting with 'home_':"
-            echo "$configs"
-            echo "Please enter the configuration name to use:"
-            read selected_config
+            aux_info "Multiple configurations found, user selection required" "component=sto,operation=snapper_delete,config_count=$config_count"
+            aux_info "Available configurations" "component=sto,operation=snapper_delete,configurations=$configs"
+            local selected_config=$(aux_ask "Please enter the configuration name to use" "" "not_empty")
             if echo "$configs" | grep -q "^$selected_config$"; then
                 configname=$selected_config
             else
-                echo "Invalid configuration selected."
+                aux_err "Invalid configuration selected" "component=sto,operation=snapper_delete,selected_config=$selected_config"
                 return 1
             fi
         fi
     fi
 
-    echo "snapper -c "$configname" delete "$snapshot""
+    aux_info "Deleting snapper snapshot" "component=sto,operation=snapper_delete,configname=$configname,snapshot=$snapshot"
     snapper -c "$configname" delete "$snapshot"
 }
 
@@ -1130,26 +1130,25 @@ sto_bfs_shl() {
         config_count=$(echo "$configs" | wc -l)
 
         if [ "$config_count" -eq 0 ]; then
-            echo "No configurations found starting with 'home_'."
+            aux_info "No snapper configurations found" "component=sto,operation=snapper_list,config_prefix=home_"
             return 1
         elif [ "$config_count" -eq 1 ]; then
             configname=$(echo "$configs" | head -n 1)
-            echo "Using configuration: $configname"
+            aux_info "Using single configuration found" "component=sto,operation=snapper_list,configname=$configname"
         else
-            echo "Multiple configurations found starting with 'home_':"
-            echo "$configs"
-            echo "Please enter the configuration name to use:"
-            read selected_config
+            aux_info "Multiple configurations found, user selection required" "component=sto,operation=snapper_list,config_count=$config_count"
+            aux_info "Available configurations" "component=sto,operation=snapper_list,configurations=$configs"
+            local selected_config=$(aux_ask "Please enter the configuration name to use" "" "not_empty")
             if echo "$configs" | grep -q "^$selected_config$"; then
                 configname=$selected_config
             else
-                echo "Invalid configuration selected."
+                aux_err "Invalid configuration selected" "component=sto,operation=snapper_list,selected_config=$selected_config"
                 return 1
             fi
         fi
     fi
 
-    echo "snapper -c "$configname" list"
+    aux_info "Listing snapper snapshots" "component=sto,operation=snapper_list,configname=$configname"
     snapper -c "$configname" list
 }
 
@@ -1195,7 +1194,7 @@ sto_bfs_sfr() {
     # Check rsync exit status
     local rsync_status=$?
     if [ $rsync_status -ne 0 ]; then
-        echo "rsync encountered an error. Exit status: $rsync_status"
+        aux_err "Rsync operation failed" "component=sto,operation=snapshot_resync,rsync_exit_status=$rsync_status,source=$snapshot_subvolume,target=$target_folder"
     fi
 }
 # Creates a backup subvolume for a user's home directory on a backup drive, then sends and receives Btrfs snapshots incrementally, managing full and incremental backups

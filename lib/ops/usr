@@ -207,10 +207,9 @@ usr_vsf() {
         return 1
     fi
     
-    aux_info "Displaying file selection menu" "file_count=${#files[@]}"
-    echo "Select a file by entering its index:"
+    aux_info "Displaying file selection menu" "component=usr,operation=file_selection,file_count=${#files[@]}"
     for i in "${!files[@]}"; do
-        echo "$i: ${files[$i]}"
+        aux_info "File option available" "component=usr,operation=file_selection,index=$i,filename=${files[$i]}"
     done
     
     local index=$(aux_ask "Enter the index of the file you want" "" "numeric")
@@ -294,7 +293,6 @@ usr_cff() {
     print_directory_info() {
         local dir="$1"
         local file_count=$(count_files "$dir")
-        aux_dbg "Processed directory" "dir=$dir,file_count=$file_count"
         printf "%-20s %5s\n" "$dir" "$file_count"
     }
 
@@ -497,10 +495,8 @@ usr_cif() {
     for file in "$1"/*; do
         if [ -f "$file" ]; then
             ((file_count++))
-            aux_dbg "Processing file" "filename=$file"
-            echo "Contents of $file:"
+            aux_info "Displaying file contents" "component=usr,operation=file_concatenate,filename=$file"
             cat "$file"
-            echo "-----------------------------------"
         fi
     done
     
@@ -583,7 +579,7 @@ usr_rsf() {
         for file; do
             if grep -q "$0" "$file"; then
                 sed -i -e "s/$0/$1/g" "$file"
-                echo "Modified $file"
+                aux_info "File modification completed" "component=usr,operation=file_replace,filename=$file,status=success"
             fi
         done
     ' "$old_string" "$new_string" {} + | while read -r line; do
@@ -670,7 +666,7 @@ usr_rsd() {
 
     # Display files to be transferred
     aux_info "Generating transfer preview" "source=$source_path,destination=$destination_path"
-    echo "Files to be transferred from $source_path to $destination_path:"
+    aux_info "Displaying transfer file list" "component=usr,operation=file_transfer,source_path=$source_path,destination_path=$destination_path"
     if ! aux_cmd "rsync" "-avhn" "$source_path/" "$destination_path/"; then
         aux_err "Failed to preview rsync operation" "source=$source_path,destination=$destination_path"
         return 2
@@ -694,7 +690,7 @@ usr_rsd() {
                 ;;
         *)      # Invalid input
                 aux_warn "Invalid confirmation input" "input=$confirm"
-                echo "Invalid input. Please enter 'y' or 'n'."
+                aux_warn "Invalid input received, expecting y or n" "component=usr,operation=file_transfer,input=$user_input"
                 ;;
     esac
 }
@@ -840,14 +836,12 @@ usr_swt() {
     local wake_time_readable=$(date -d @"$wake_seconds" +'%Y-%m-%d %H:%M:%S')
 
     aux_info "Wake-up timer configured" "wake_time=$wake_time_readable,duration=$duration_readable,state=$state"
-    echo "System will wake up at: $wake_time_readable"
-    echo "Time until wake-up: $duration_readable"
-    echo "Sleep state: $state"
+    aux_info "System wake-up configuration" "component=usr,operation=schedule_wake,wake_time=$wake_time_readable,duration=$duration_readable,sleep_state=$state"
     local answer=$(aux_ask "Do you want to proceed with putting the system to sleep? (y/n)" "n" "not_empty")
 
     if [[ $answer =~ ^[Yy]$ ]]; then
         aux_info "Initiating system sleep" "state=$state,wake_time=$wake_time_readable"
-        echo "Putting system to sleep using state '$state'. It will wake up at $wake_time_readable"
+        aux_info "Initiating system sleep" "component=usr,operation=schedule_wake,sleep_state=$state,wake_time=$wake_time_readable"
 
         if ! aux_cmd "sudo" "rtcwake" "-m" "$state" "-l" "-t" "$wake_seconds" "-v"; then
             aux_err "Failed to execute rtcwake command" "state=$state,wake_seconds=$wake_seconds"
@@ -856,16 +850,16 @@ usr_swt() {
         sleep_result=$?
         if [ $sleep_result -eq 0 ]; then
             aux_info "System wake-up successful"
-            echo "System woke up successfully."
+            aux_info "System wake-up successful" "component=usr,operation=schedule_wake,sleep_state=$state"
             return 0
         else
             aux_err "System sleep failed" "state=$state,exit_code=$sleep_result"
-            echo "Failed to sleep using state: $state (Exit code: $sleep_result)"
+            aux_err "System sleep failed" "component=usr,operation=schedule_wake,sleep_state=$state,exit_code=$sleep_result"
             return 1
         fi
     else
         aux_info "System sleep cancelled by user"
-        echo "Operation cancelled."
+        aux_info "Operation cancelled by user" "component=usr,operation=schedule_wake"
     fi
 }
 
@@ -1007,10 +1001,10 @@ usr_cap() {
         # If not, append the line to the file
         echo "$line" >> "$file"
         aux_info "Line appended to file" "file=$file"
-        echo "Line appended to $file"
+        aux_info "Line appended to file" "component=usr,operation=append_line,filename=$file,line_added=true"
     else
         aux_info "Line already present in file" "file=$file"
-        echo "Line already present in $file"
+        aux_info "Line already exists in file" "component=usr,operation=append_line,filename=$file,line_added=false"
     fi
 }
 
@@ -1154,50 +1148,44 @@ usr_rif() {
     [[ "$ignore_git" == true ]] && find_cmd+=" -not -path '*/\.git/*'"
 
     aux_info "Starting file replacement operation" "directory=$directory,search_string=$search_string,replace_string=$replace_string,recursive=$recursive,interactive=$interactive,dry_run=$dry_run"
-    echo "Searching for files containing '$search_string' in '$directory'..."
+    aux_info "Starting file search operation" "component=usr,operation=file_replace,search_string=$search_string,directory=$directory"
     while IFS= read -r file; do
         if grep -q "$search_string" "$file" 2>/dev/null; then
             ((files_found++))
-            aux_dbg "Found match in file" "filename=$file"
-            printf "\nFound match in file: ${GREEN}%s${NC}\n" "$file"
+            aux_info "File match found" "component=usr,operation=file_replace,filename=$file"
             if [[ "$dry_run" == true ]]; then
-                echo "Would modify: $file"
-                echo "Changes to be made:"
+                aux_info "Dry run mode - would modify file" "component=usr,operation=file_replace,filename=$file"
+                aux_info "Changes preview available" "component=usr,operation=file_replace,filename=$file"
                 grep -n "$search_string" "$file" | while IFS= read -r line; do
                     line_num=$(echo "$line" | cut -d: -f1)
                     content=$(echo "$line" | cut -d: -f2-)
                     match_start=$(echo "$content" | grep -b -o "$search_string" | cut -d: -f1)
-                    printf "${RED}%s${NC}:%s${YELLOW}%s${NC}%s\n" \
-                        "$line_num" \
-                        "${content:0:$match_start}" \
-                        "$search_string" \
-                        "${content:$((match_start + ${#search_string}))}"
+                    aux_dbg "Match details" "component=usr,operation=file_replace,line_number=$line_num,match_content=$search_string,before_context=${content:0:$match_start},after_context=${content:$((match_start + ${#search_string}))}"
                 done
             elif [[ "$interactive" == true ]]; then
-                echo "=== INTERACTIVE MODE ==="
-                echo -e "Modify '${GREEN}$file${NC}'? (${YELLOW}y${NC}/${YELLOW}n${NC}): "
+                aux_info "Interactive mode confirmation required" "component=usr,operation=file_replace,filename=$file"
                 local user_response=$(aux_ask "Modify file? (y/n)" "n" "not_empty")
                 if [[ $user_response =~ ^[Yy]$ ]]; then
                     if sed -i "s/$search_string/$replace_string/g" "$file"; then
-                        echo -e "${GREEN}Modified:${NC} $file"
+                        aux_info "File modification completed" "component=usr,operation=file_replace,filename=$file,status=success"
                         aux_info "File modified in interactive mode" "filename=$file"
                         ((files_modified++))
                     else
-                        echo -e "${RED}Failed to modify:${NC} $file"
+                        aux_err "File modification failed" "component=usr,operation=file_replace,filename=$file,status=failed"
                         aux_err "Failed to modify file in interactive mode" "filename=$file"
                     fi
                 else
-                    echo -e "${YELLOW}Skipped:${NC} $file"
+                    aux_info "File modification skipped by user" "component=usr,operation=file_replace,filename=$file,status=skipped"
                     aux_info "File skipped by user in interactive mode" "filename=$file"
                     ((files_skipped++))
                 fi
             else
                 if sed -i "s/$search_string/$replace_string/g" "$file"; then
-                    echo -e "${GREEN}Modified:${NC} $file"
+                    aux_info "File modification completed" "component=usr,operation=file_replace,filename=$file,status=success"
                     aux_info "File modified" "filename=$file"
                     ((files_modified++))
                 else
-                    echo -e "${RED}Failed to modify:${NC} $file"
+                    aux_err "File modification failed" "component=usr,operation=file_replace,filename=$file,status=failed"
                     aux_err "Failed to modify file" "filename=$file"
                 fi
             fi
@@ -1205,20 +1193,17 @@ usr_rif() {
     done < <(eval "$find_cmd")
 
     aux_info "File replacement operation completed" "files_found=$files_found,files_modified=$files_modified,files_skipped=$files_skipped,directory=$directory"
-    echo -e "\nSummary:"
-    echo "  Files found with matches: $files_found"
-    echo "  Files modified: $files_modified"
-    [[ "$interactive" == true ]] && echo "  Files skipped: $files_skipped"
+    aux_info "File replacement operation summary" "component=usr,operation=file_replace,files_found=$files_found,files_modified=$files_modified,files_skipped=${files_skipped:-0}"
 
     if [[ "$dry_run" == true ]]; then
         aux_info "Dry run completed" "potential_modifications=$files_found"
-        echo "Dry run completed. $files_found file(s) would be modified."
+        aux_info "Dry run completed" "component=usr,operation=file_replace,files_to_modify=$files_found"
     elif [[ $files_modified -eq 0 ]]; then
         aux_warn "No files were modified" "directory=$directory,search_string=$search_string"
-        echo "No files were modified in '$directory'."
+        aux_info "No files modified" "component=usr,operation=file_replace,directory=$directory,files_modified=0"
     else
         aux_info "Files modified successfully" "count=$files_modified,directory=$directory"
-        echo "$files_modified file(s) were modified in '$directory'."
+        aux_info "File modification operation completed" "component=usr,operation=file_replace,directory=$directory,files_modified=$files_modified"
     fi
 }
 

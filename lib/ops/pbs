@@ -384,18 +384,18 @@ pbs_mon() {
     # If no argument is provided, prompt for option
     if [ $# -eq 0 ]; then
         aux_info "Starting PBS monitoring with interactive menu" "mode=interactive"
-        echo "Proxmox Backup Server Monitoring Options:"
-        echo "1. Show PBS service status"
-        echo "2. Display datastore information"
-        echo "3. Show running tasks"
-        echo "4. Display server configuration"
-        echo "5. Check PBS-related processes"
-        echo "6. View recent PBS logs"
-        echo "7. Show storage usage"
-        echo "8. Display user and API token information"
-        echo "9. Show backup schedule"
-        echo "10. Display network statistics"
-        echo "11. All of the above"
+        aux_info "PBS monitoring menu" "component=pbs,operation=monitor_interactive"
+        aux_info "Option 1: Show PBS service status" "component=pbs,operation=monitor_menu"
+        aux_info "Option 2: Display datastore information" "component=pbs,operation=monitor_menu"
+        aux_info "Option 3: Show running tasks" "component=pbs,operation=monitor_menu"
+        aux_info "Option 4: Display server configuration" "component=pbs,operation=monitor_menu"
+        aux_info "Option 5: Check PBS-related processes" "component=pbs,operation=monitor_menu"
+        aux_info "Option 6: View recent PBS logs" "component=pbs,operation=monitor_menu"
+        aux_info "Option 7: Show storage usage" "component=pbs,operation=monitor_menu"
+        aux_info "Option 8: Display user and API token information" "component=pbs,operation=monitor_menu"
+        aux_info "Option 9: Show backup schedule" "component=pbs,operation=monitor_menu"
+        aux_info "Option 10: Display network statistics" "component=pbs,operation=monitor_menu"
+        aux_info "Option 11: All of the above" "component=pbs,operation=monitor_menu"
         option="11"
     else
         option="$1"
@@ -413,44 +413,44 @@ pbs_mon() {
 
     case "$option" in
         1|"Show PBS service status")
-            echo "PBS Service Status:"
+            aux_info "Displaying PBS service status" "component=pbs,operation=monitor_service_status"
             systemctl status proxmox-backup
             ;;
         2|"Display datastore information")
-            echo "Datastore Information:"
+            aux_info "Displaying datastore information" "component=pbs,operation=monitor_datastore"
             proxmox-backup-manager datastore list
             ;;
         3|"Show running tasks")
-            echo "Running Tasks:"
+            aux_info "Displaying running tasks" "component=pbs,operation=monitor_tasks"
             proxmox-backup-manager task list --limit 10
             ;;
         4|"Display server configuration")
-            echo "Server Configuration:"
+            aux_info "Displaying server configuration" "component=pbs,operation=monitor_config"
             cat /etc/proxmox-backup/proxmox-backup.ini
             ;;
         5|"Check PBS-related processes")
-            echo "PBS-related Processes:"
+            aux_info "Displaying PBS-related processes" "component=pbs,operation=monitor_processes"
             ps aux | grep -E 'proxmox-backup'
             ;;
         6|"View recent PBS logs")
-            echo "Recent PBS Logs:"
+            aux_info "Displaying recent PBS logs" "component=pbs,operation=monitor_logs"
             journalctl -u proxmox-backup -n 50
             ;;
         7|"Show storage usage")
-            echo "Storage Usage:"
+            aux_info "Displaying storage usage" "component=pbs,operation=monitor_storage"
             df -h /proxmox-backup
             ;;
         8|"Display user and API token information")
-            echo "User and API Token Information:"
+            aux_info "Displaying user and API token information" "component=pbs,operation=monitor_users"
             proxmox-backup-manager user list
             proxmox-backup-manager api-token list
             ;;
         9|"Show backup schedule")
-            echo "Backup Schedule:"
+            aux_info "Displaying backup schedule" "component=pbs,operation=monitor_schedule"
             proxmox-backup-manager schedule list
             ;;
         10|"Display network statistics")
-            echo "Network Statistics:"
+            aux_info "Displaying network statistics" "component=pbs,operation=monitor_network"
             ss -tuna | grep -E ':8007|:8008'
             ;;
         11|"All of the above")
