@@ -30,42 +30,42 @@ This dual-paradigm architecture ensures both **operational efficiency** through 
 ```bash
 # Operational Execution Layer Architecture
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        src/ - Execution Layer                      │
+│                        src/ - Execution Layer                       │
 │                                                                     │
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │               dic/ (DIC Operations Core)                    │    │
 │  │                                                             │    │
-│  │  ┌─────────────────────┐    ┌─────────────────────────────┐  │    │
+│  │  ┌─────────────────────┐    ┌────────────────────────────┐  │    │
 │  │  │   DIC Container     │    │      Pure Functions        │  │    │
 │  │  │   (src/dic/*)       │───►│      (lib/ops/*)           │  │    │
 │  │  │                     │    │                            │  │    │
 │  │  │                     │    │                            │  │    │
-│  │  └─────────────────────┘    └─────────────────────────────┘  │    │
+│  │  └─────────────────────┘    └────────────────────────────┘  │    │
 │  └─────────────────────────────────┬───────────────────────────┘    │
-│                                    │                               │
-│                                    ▼                               │
+│                                    │                                │
+│                                    ▼                                │
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │               set/ (Section Deployment Engine)              │    │
 │  │                                                             │    │
-│  │  ┌─────────────────────────────────────────────────────────┐  │    │
-│  │  │  Section Framework (.menu + hostname scripts)          │    │
-│  │  │                                                        │    │
-│  │  │  a_xall() { ops pve dsr -j; ops usr adr -j; }          │    │
-│  │  │  b_xall() { ops sys ipa -j; }                          │    │
-│  │  │  c_xall() { ops sys hos x1 -j; ops sys hos x2 -j; }    │    │
-│  │  │                                                        │    │
-│  │  │  src/set/h1, src/set/c1, src/set/c2, src/set/t1        │    │
-│  │  └─────────────────────────────────────────────────────────┘  │    │
+│  │  ┌───────────────────────────────────────────────────────┐  │    │
+│  │  │  Section Framework (.menu + hostname scripts)         │  │    │
+│  │  │                                                       │  │    │
+│  │  │  a_xall() { ops pve dsr -j; ops usr adr -j; }         │  │    │     
+│  │  │  b_xall() { ops sys ipa -j; }                         │  │    │
+│  │  │  c_xall() { ops sys hos x1 -j; ops sys hos x2 -j; }   │  │    │
+│  │  │                                                       │  │    │
+│  │  │  src/set/h1, src/set/c1, src/set/c2, src/set/t1       │  │    │
+│  │  └───────────────────────────────────────────────────────┘  │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
 │  │  ┌─────────────────────────────────────────────────────┐    │    │
-│  │  │  Section Framework (.menu + hostname scripts)      │    │    │
+│  │  │  Section Framework (.menu + hostname scripts)       │    │    │
 │  │  │                                                     │    │    │
-│  │  │  a_xall() { ops pve dsr -j; ops usr adr -j; }      │    │    │
-│  │  │  b_xall() { ops sys ipa -j; }                      │    │    │
-│  │  │  c_xall() { ops sys hos x1 -j; ops sys hos x2 -j; }│    │    │
+│  │  │  a_xall() { ops pve dsr -j; ops usr adr -j; }       │    │    │
+│  │  │  b_xall() { ops sys ipa -j; }                       │    │    │
+│  │  │  c_xall() { ops sys hos x1 -j; ops sys hos x2 -j; } │    │    │
 │  │  │                                                     │    │    │
-│  │  │  src/set/h1, src/set/c1, src/set/c2, src/set/t1    │    │    │
+│  │  │  src/set/h1, src/set/c1, src/set/c2, src/set/t1     │    │    │
 │  │  └─────────────────────────────────────────────────────┘    │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
