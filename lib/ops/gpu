@@ -2104,7 +2104,7 @@ gpu_pta() {
 
 # Checks the current status of the GPU (complete detailed version)
 # passthrough status
-# [hostname] [config_file] [pci0_id] [pci1_id] [nvidia_driver_preference]
+# -x (execute)
 gpu_pts() {
     # Technical Description:
     #   Comprehensive GPU passthrough status analysis function that provides detailed
@@ -2120,32 +2120,17 @@ gpu_pts() {
     #   - Access to configuration files in /etc/modprobe.d and /etc/modules
     #   - find, ls utilities for IOMMU group enumeration
     # Arguments:
-    #   $1: hostname (optional) - hostname for config lookup (default: current hostname)
-    #   $2: config_file (optional) - configuration file path
-    #   $3: pci0_id (optional) - explicit primary PCI ID parameter
-    #   $4: pci1_id (optional) - explicit secondary PCI ID parameter
-    #   $5: nvidia_driver_preference (optional) - preferred NVIDIA driver
+    #   $1: -x - explicit execution flag required for safety and consistency
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    # Variable parameter count validation - max 5 parameters
-    if [ $# -gt 5 ]; then
-        aux_err "Too many parameters provided (maximum 5)"
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
     fi
-    
-    # Validate individual parameters if provided
-    for param in "$@"; do
-        if ! aux_val "$param" "not_empty"; then
-            aux_err "Parameter cannot be empty: $param"
-            aux_use
-            return 1
-        fi
-    done
     
     # Check critical system dependencies
     if ! aux_chk "command" "lspci"; then
@@ -2157,29 +2142,10 @@ gpu_pts() {
         aux_err "/proc/cmdline not accessible - required for kernel parameter verification"
         return 2
     fi
-    #   $2: config_file (optional) - configuration file path (default: SITE_CONFIG_FILE)
-    #   $3: pci0_id (optional) - explicit primary PCI ID parameter
-    #   $4: pci1_id (optional) - explicit secondary PCI ID parameter
-    #   $5: nvidia_driver_preference (optional) - preferred NVIDIA driver (default: nvidia)
-    # Information Displayed:
-    #   - IOMMU Groups: Detailed device listings for GPU-containing IOMMU groups
-    #   - GPU Device Details: Complete lspci output with driver binding information
-    #   - Kernel Modules: Currently loaded GPU and VFIO related modules
-    #   - Configuration Status: Initial system preparation checklist (gpu_pt1, gpu_pt2)
-    #   - NVIDIA Setup: Driver installation and Nouveau blacklist status
-    #   - Persistent Configuration: GPU assignment and blacklist file status
-    #   - Runtime Status: Current module loading and driver binding state
-    #   - Overall Summary: High-level determination of GPU state (ATTACHED/DETACHED/MIXED)
-    # Status Classifications:
-    #   - ATTACHED: GPUs bound to host drivers (nvidia, nouveau, amdgpu, radeon)
-    #   - DETACHED: GPUs bound to vfio-pci for VM passthrough
-    #   - MIXED: Some GPUs attached to host, others detached for VMs
-    #   - UNCLEAR: Ambiguous state requiring further investigation
-    local hostname="${1:-$(hostname -s)}"
-    local config_file="${2:-$CONFIG_FUN}"
-    local pci0_id="$3"
-    local pci1_id="$4"
-    local nvidia_driver_preference="${5:-nvidia}"
+    
+    # Get configuration values from global variables (DIC injection)
+    local hostname=$(hostname -s)
+    local config_file="$CONFIG_FUN"
     
     local function_name="${FUNCNAME[0]}"
     
