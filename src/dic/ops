@@ -446,9 +446,17 @@ ops_resolve_single_variable() {
             resolved_value="${GPU_DRIVER_PREFERENCE:-lookup}"
             ;;
         *)
-            # Generic uppercase conversion
-            local global_var=$(echo "$param" | tr '[:lower:]' '[:upper:]')
-            resolved_value="${!global_var:-}"
+            # Avoid resolving common parameter names to unrelated environment variables
+            case "$param" in
+                path|directory|dir|file|filename|folder|foldername|source|destination|source_path|destination_path|old_string|new_string|search_string|replace_string|command|args|arguments|options|operation|action|mode|type|name|value|input|output|text|data|content|message|description|comment|title|label|tag|id|key|password|user|username|email|url|port|host|hostname|address|ip|mac|device|interface|service|process|script|program|application|tool|utility|function|method|procedure|algorithm|config|configuration|setting|parameter|param|variable|var|flag|option|switch|enable|disable|on|off|yes|no|true|false|start|stop|status|state|check|test|validate|verify|create|delete|add|remove|update|modify|change|edit|set|get|list|show|display|print|output|log|debug|info|warn|error|fail|success|ok|result|return|exit|quit|end|finish|complete|done|ready|busy|wait|timeout|delay|sleep|pause|resume|continue|retry|repeat|loop|count|size|length|width|height|depth|level|priority|weight|score|rank|order|index|position|location|coordinate|x|y|z|min|max|avg|sum|total|first|last|next|prev|previous|current|selected|active|enabled|disabled|visible|hidden|public|private|local|global|temp|temporary|cache|backup|restore|copy|move|rename|link|alias|symlink|shortcut)
+                    resolved_value=""
+                    ;;
+                *)
+                    # Generic uppercase conversion for non-common parameters
+                    local global_var=$(echo "$param" | tr '[:lower:]' '[:upper:]')
+                    resolved_value="${!global_var:-}"
+                    ;;
+            esac
             ;;
     esac
     
@@ -624,8 +632,8 @@ ops_show_injection_preview() {
     fi
     
     # Process the usage output to inject global variable values into placeholders
-    local enhanced_output
-    enhanced_output=$(echo "$usage_output" | while IFS= read -r line; do
+    local enhanced_output=""
+    while IFS= read -r line; do
         # Skip the location line since we've already displayed it
         if [[ "$line" =~ ^Location:[[:space:]]* ]]; then
             continue
@@ -634,8 +642,9 @@ ops_show_injection_preview() {
         # Process each line, looking for <parameter> patterns
         local processed_line="$line"
         
-        # Find all <parameter> patterns in the line
-        while [[ $processed_line =~ \<([^>]+)\> ]]; do
+        # Find all <parameter> patterns in the line (excluding already processed ones with colons)
+        local temp_line="$processed_line"
+        while [[ $temp_line =~ \<([^:>]+)\> ]]; do
             local param="${BASH_REMATCH[1]}"
             local placeholder="<$param>"
             
@@ -647,14 +656,14 @@ ops_show_injection_preview() {
             if [[ -n "$var_value" ]]; then
                 local enhanced_placeholder="<$param:$var_value>"
                 processed_line="${processed_line/$placeholder/$enhanced_placeholder}"
-            else
-                # No match found, keep original placeholder
-                processed_line="${processed_line/$placeholder/$placeholder}"
             fi
+            
+            # Remove this placeholder from temp_line to avoid infinite loop
+            temp_line="${temp_line/$placeholder/}"
         done
         
-        echo "$processed_line"
-    done)
+        enhanced_output="$enhanced_output$processed_line"$'\n'
+    done <<< "$usage_output"
     
     echo "$enhanced_output"
     echo
