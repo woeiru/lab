@@ -16,6 +16,9 @@ BASE_SH="${FILE_SH%.*}"
 echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/.menu")"
 source "$(realpath "$DIR_SH/.menu")"
 
+# Source DIC operations for intelligent parameter resolution
+source "$DIR_SH/../dic/ops"
+
 # Declare MENU_OPTIONS
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
@@ -23,14 +26,14 @@ MENU_OPTIONS[b]="b_xall"
 
 # Downloads and verifies Proxmox Backup Server GPG key, adds repository, and installs PBS packages
 a_xall() {
-    pbs-dav
-    pbs-adr
-    sys-ipa "$PBS_PACKAGES_ALL"
+    ops pbs dav -j
+    ops pbs adr -j
+    ops sys ipa -j
 }
 
 # Configures PBS datastore with specified name and path for backup storage
 b_xall() {
-	pbs-rda "$PBS_DATASTORE_CONFIG" "$PBS_DATASTORE_NAME" "$PBS_DATASTORE_PATH"
+    ops pbs rda -j
 }
 
 # Handle script execution

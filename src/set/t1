@@ -16,6 +16,9 @@ BASE_SH="${FILE_SH%.*}"
 echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/.menu")"
 source "$(realpath "$DIR_SH/.menu")"
 
+# Source DIC operations for intelligent parameter resolution
+source "$DIR_SH/../dic/ops"
+
 setup_source "$DIR_SH" "$FILE_SH" "$BASE_SH"
 
 # Declare MENU_OPTIONS
@@ -25,14 +28,13 @@ MENU_OPTIONS[b]="b_xall"
 
 # Installs common system packages and configures global Git user credentials
 a_xall() {
-    sys-upa
-    sys-ipa "${PACKAGES_DEV[@]}"
+    ops sys upa -j
+    ops sys ipa -j
 }
 
 # Configures global Git user credentials
 b_xall() {
-    sys-gst "$GIT_USERNAME" "$GIT_USERMAIL"
-    
+    ops sys gst -j
 }
 # Handle script execution
 if [ $# -eq 0 ]; then

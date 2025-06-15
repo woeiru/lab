@@ -31,6 +31,9 @@ BASE_SH="${FILE_SH%.*}"
 echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/.menu")"
 source "$(realpath "$DIR_SH/.menu")"
 
+# Source DIC operations for intelligent parameter resolution
+source "$DIR_SH/../dic/ops"
+
 # Declare MENU_OPTIONS
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
@@ -46,194 +49,65 @@ MENU_OPTIONS[s]="s_xall"
 
 # Disables enterprise repository, adds community repository, and removes subscription notice from Proxmox web interface
 a_xall() {
-    pve-dsr
-    usr-adr "$PVE_ADR_FILE" "$PVE_ADR_LINE"
-    pve-rsn
+    ops pve dsr -j
+    ops usr adr -j
+    ops pve rsn -j
 }
 
 # Installs required system packages including corosync-qdevice for cluster management
 b_xall() {
-    sys-ipa "$PVE_PACKAGES_ALL"
+    ops sys ipa -j
 }
 
 # Sets up /etc/hosts entries for Proxmox nodes (x1, x2) and QDevice
 c_xall() {
-
-    # Variables NODE1_IP, NODE2_IP, QDEVICE_IP are expected to be sourced from site1
-    # Function sys-hos is expected to be available (sourced from lib/ops/sys)
-    # sys-hos will handle checks for empty variables.
-
-    sys-hos "$NODE1_IP" "x1"
-    sys-hos "$NODE2_IP" "x2"
-    sys-hos "$QDEVICE_IP" "qdevice"
-
+    # DIC will auto-resolve NODE1_IP, NODE2_IP, QDEVICE_IP from environment
+    # and inject appropriate hostname mappings
+    ops sys hos x1 -j
+    ops sys hos x2 -j
+    ops sys hos qdevice -j
 }
 
 # Generates and distributes SSH keys for secure communication between client and server nodes
 d_xall() {
-    sys-sks -s root@"${CL_IPS[t1]}" "$KEY_NAME"
-
-    ssh_sak -s "$UPLOAD_PATH" "$PUBLIC_KEY"
+    ops sys sks -j
+    ops ssh sak -j
 }
 
 # Creates a RAID 1 Btrfs filesystem across two devices with the specified mount point
 i_xall() {
-    sto-bfs-ra1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
+    ops sto bfs ra1 -j
 }
 
 # Creates and configures multiple ZFS datasets with their respective mount points based on configuration
 j_xall() {
-    local i=1
-    while true; do
-        pool_var="ZFS_POOL_NAME$i"
-        dataset_var="ZFS_DATASET_NAME$i"
-        mountpoint_var="ZFS_MOUNTPOINT_NAME$i"
-        
-        if [ -n "${!pool_var}" ] && [ -n "${!dataset_var}" ] && [ -n "${!mountpoint_var}" ]; then
-            sto-zfs-dim "${!pool_var}" "${!dataset_var}" "${!mountpoint_var}"
-        else
-            break
-        fi
-        
-        ((i++))
-    done
-    
-    zfs list
+    # DIC will handle iteration over ZFS_POOL_NAME*, ZFS_DATASET_NAME*, ZFS_MOUNTPOINT_NAME* arrays
+    ops sto zfs dim -j
 }
 
 # Updates container template list, downloads specified template, and updates container configuration
 p_xall() {
-    pve-clu
-    pve-cdo "$CT_DL_STO" "$CT_DL_1"
-    usr-cuc
+    ops pve clu -j
+    ops pve cdo -j
+    ops usr cuc -j
 }
 
 # Creates multiple Proxmox containers using configuration parameters from cfg/env/site
 q_xall() {
-    local i=1
-    while true; do
-        id_var="CT_${i}_ID"
-        template_var="CT_${i}_TEMPLATE"
-        hostname_var="CT_${i}_HOSTNAME"
-        storage_var="CT_${i}_STORAGE"
-        rootfs_size_var="CT_${i}_ROOTFS_SIZE"
-        memory_var="CT_${i}_MEMORY"
-        swap_var="CT_${i}_SWAP"
-        nameserver_var="CT_${i}_NAMESERVER"
-        searchdomain_var="CT_${i}_SEARCHDOMAIN"
-        password_var="CT_${i}_PASSWORD"
-        cpus_var="CT_${i}_CPUS"
-        privileged_var="CT_${i}_PRIVILEGED"
-        ip_address_var="CT_${i}_IP_ADDRESS"
-        cidr_var="CT_${i}_CIDR"
-        gateway_var="CT_${i}_GATEWAY"
-        ssh_key_file_var="CT_${i}_SSH_KEY_FILE"
-        net_bridge_var="CT_${i}_NET_BRIDGE"
-        net_nic_var="CT_${i}_NET_NIC"
-
-        if [ -n "${!id_var}" ] && [ -n "${!template_var}" ] && [ -n "${!hostname_var}" ] && [ -n "${!storage_var}" ]; then
-            # Check if the container with the given ID already exists
-            if pct status "${!id_var}" &>/dev/null; then
-                echo "Container with ID ${!id_var} already exists. Skipping..."
-            else
-                pve-ctc \
-                    "${!id_var}" \
-                    "${!template_var}" \
-                    "${!hostname_var}" \
-                    "${!storage_var}" \
-                    "${!rootfs_size_var}" \
-                    "${!memory_var}" \
-                    "${!swap_var}" \
-                    "${!nameserver_var}" \
-                    "${!searchdomain_var}" \
-                    "${!password_var}" \
-                    "${!cpus_var}" \
-                    "${!privileged_var}" \
-                    "${!ip_address_var}" \
-                    "${!cidr_var}" \
-                    "${!gateway_var}" \
-                    "${!ssh_key_file_var}" \
-                    "${!net_bridge_var}" \
-                    "${!net_nic_var}"
-            fi
-        else
-            break
-        fi
-
-        ((i++))
-    done
+    # DIC will handle iteration over CT_*_* configuration arrays and create containers
+    ops pve ctc -j
 }
 
 # Configures bind mounts for all defined containers to link host and container directories
 r_xall() {
-    local i=1
-    while true; do
-        eval CT_ID=\$CT_ID_$i
-        eval CT_MPH=\$CT_MPH_$i
-        eval CT_MPC=\$CT_MPC_$i
-
-        if [ -n "$CT_ID" ] && [ -n "$CT_MPH" ] && [ -n "$CT_MPC" ]; then
-            pve-cbm "$CT_ID" "$CT_MPH" "$CT_MPC"
-        else
-            break
-        fi
-
-        ((i++))
-    done
+    # DIC will handle iteration over CT_ID_*, CT_MPH_*, CT_MPC_* arrays
+    ops pve cbm -j
 }
 
 # Creates multiple virtual machines using the specifications defined in cfg/env/site
 s_xall() {
-    local i=1
-    while true; do
-        id_var="VM_${i}_ID"
-        name_var="VM_${i}_NAME"
-        ostype_var="VM_${i}_OSTYPE"
-        machine_var="VM_${i}_MACHINE"
-        iso_var="VM_${i}_ISO"
-        boot_var="VM_${i}_BOOT"
-        bios_var="VM_${i}_BIOS"
-        efidisk_var="VM_${i}_EFIDISK"
-        scsihw_var="VM_${i}_SCSIHW"
-        agent_var="VM_${i}_AGENT"
-        disk_var="VM_${i}_DISK"
-        sockets_var="VM_${i}_SOCKETS"
-        cores_var="VM_${i}_CORES"
-        cpu_var="VM_${i}_CPU"
-        memory_var="VM_${i}_MEMORY"
-        balloon_var="VM_${i}_BALLOON"
-        net_var="VM_${i}_NET"
-
-        if [ -n "${!id_var}" ] && [ -n "${!name_var}" ] && [ -n "${!ostype_var}" ]; then
-            # Check if the VM with the given ID already exists
-            if qm status "${!id_var}" &>/dev/null; then
-                echo "VM with ID ${!id_var} already exists. Skipping..."
-            else
-                pve-vmc \
-                    "${!id_var}" \
-                    "${!name_var}" \
-                    "${!ostype_var}" \
-                    "${!machine_var}" \
-                    "${!iso_var}" \
-                    "${!boot_var}" \
-                    "${!bios_var}" \
-                    "${!efidisk_var}" \
-                    "${!scsihw_var}" \
-                    "${!agent_var}" \
-                    "${!disk_var}" \
-                    "${!sockets_var}" \
-                    "${!cores_var}" \
-                    "${!cpu_var}" \
-                    "${!memory_var}" \
-                    "${!balloon_var}" \
-                    "${!net_var}"
-            fi
-        else
-            break
-        fi
-
-        ((i++))
-    done
+    # DIC will handle iteration over VM_*_* configuration arrays and create VMs
+    ops pve vmc -j
 }
 
 # Handle script execution

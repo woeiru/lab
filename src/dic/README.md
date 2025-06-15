@@ -5,6 +5,32 @@
 
 The DIC transforms operational complexity through **intelligent parameter management**, providing three distinct execution modes that adapt to different operational contexts while maintaining function purity and environmental consistency.
 
+### **Integration with Set-Based Deployment Architecture**
+
+The DIC serves as the **operational execution engine** for the `src/set/` deployment framework. Set scripts should **never call pure functions directly** - instead, they orchestrate **groups of DIC operations** that execute together as coordinated deployment sections.
+
+```bash
+# ❌ INCORRECT: Direct pure function calls in src/set/
+a_xall() {
+    pve-dsr                    # Direct pure function call
+    usr-adr "$file" "$line"    # Manual parameter management
+    pve-rsn                    # No intelligent parameter resolution
+}
+
+# ✅ CORRECT: DIC operation orchestration in src/set/
+a_xall() {
+    ops pve dsr -j             # DIC handles parameter injection
+    ops usr adr -j             # Environment-aware configuration
+    ops pve rsn -j             # Intelligent parameter resolution
+}
+```
+
+**Architectural Benefits:**
+- **Consistent Parameter Management**: All operations use the same intelligent resolution
+- **Environment Awareness**: Automatic hostname-specific configuration injection
+- **Debugging Capability**: Full parameter tracing across deployment sections
+- **Configuration Consistency**: Same config hierarchy for both development and deployment
+
 ### **The Parameter Management Problem**
 
 Traditional operational tools force users into rigid parameter patterns:
@@ -563,9 +589,170 @@ DIC integrates with multiple system layers through **well-defined interfaces**:
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### **Set Integration Architecture: DIC as Deployment Engine**
+
+The DIC serves as the **core execution engine** for the `src/set/` deployment framework, providing intelligent parameter management for coordinated infrastructure provisioning.
+
+#### **Set-to-DIC Integration Pattern**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  src/set/ - Deployment Orchestration       │
+├─────────────────────────────────────────────────────────────┤
+│ Section Functions: a_xall(), b_xall(), c_xall(), etc.      │
+│   ├─ ops pve dsr -j    # DIC injection mode for deployment │
+│   ├─ ops usr adr -j    # Environment-aware configuration   │
+│   ├─ ops sys ipa -j    # Automatic parameter resolution    │
+│   └─ ops sto bfs -j    # Hostname-specific variable lookup │
+├─────────────────────────────────────────────────────────────┤
+│                     ▼ DIC Processing ▼                     │
+├─────────────────────────────────────────────────────────────┤
+│ DIC Engine: Parameter Resolution + Environment Injection   │
+│   ├─ Configuration Loading: cfg/env/site*                  │
+│   ├─ Hostname Resolution: server01_*, server02_*           │
+│   ├─ Array Processing: Convert arrays to function params   │
+│   └─ Debug Tracing: Complete deployment parameter visibility│
+├─────────────────────────────────────────────────────────────┤
+│                   ▼ Pure Function Execution ▼              │
+├─────────────────────────────────────────────────────────────┤
+│ lib/ops/*: Core Business Logic (stateless, testable)       │
+│   ├─ pve_dsr(): Disable enterprise repos                   │
+│   ├─ usr_adr(): Add repository lines                       │
+│   ├─ sys_ipa(): Install package arrays                     │
+│   └─ sto_bfs_ra1(): Create RAID-1 Btrfs filesystems        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### **Deployment Section Transformation Examples**
+
+**Before (Direct Pure Function Calls):**
+```bash
+# ❌ OLD PATTERN: Manual parameter management in src/set/h1
+a_xall() {
+    pve-dsr                                    # No parameter visibility
+    usr-adr "$PVE_ADR_FILE" "$PVE_ADR_LINE"   # Manual configuration lookup
+    pve-rsn                                    # No environment awareness
+}
+
+b_xall() {
+    sys-ipa "$PVE_PACKAGES_ALL"               # Direct variable reference
+}
+
+i_xall() {
+    sto-bfs-ra1 "$BTRFS_1_DEVICE_1" "$BTRFS_1_DEVICE_2" "$BTRFS_1_MP_1"
+    #           Manual device specification - no hostname awareness
+}
+```
+
+**After (DIC Operation Orchestration):**
+```bash
+# ✅ NEW PATTERN: DIC-orchestrated deployment in src/set/h1
+a_xall() {
+    ops pve dsr -j                   # Auto-inject all parameters
+    ops usr adr -j                   # Environment-aware file/line resolution
+    ops pve rsn -j                   # Hostname-specific configuration
+}
+
+b_xall() {
+    ops sys ipa -j                   # Package array auto-resolution
+}
+
+i_xall() {
+    ops sto bfs ra1 -j              # Hostname-specific device mapping
+    # DIC resolves: server01_BTRFS_DEVICE_1, server01_BTRFS_DEVICE_2, etc.
+}
+```
+
+#### **Configuration Integration Benefits**
+
+**Environment-Aware Deployment:**
+```bash
+# Configuration (cfg/env/site1)
+server01_BTRFS_DEVICE_1="/dev/nvme0n1"
+server01_BTRFS_DEVICE_2="/dev/nvme1n1"
+server02_BTRFS_DEVICE_1="/dev/sda"
+server02_BTRFS_DEVICE_2="/dev/sdb"
+
+# Deployment execution automatically adapts to hostname
+# On server01:
+ops sto bfs ra1 -j  # Uses nvme devices
+
+# On server02:  
+ops sto bfs ra1 -j  # Uses SATA devices
+```
+
+**Deployment Debugging and Tracing:**
+```bash
+# Enable deployment debugging
+export OPS_DEBUG=1
+./src/set/h1 -x a_xall
+
+# Complete parameter visibility during deployment
+[DIC] Section: a_xall
+[DIC] Operation 1: ops pve dsr -j
+[DIC] ├─ Function: pve_dsr (0 parameters required)
+[DIC] ├─ Execution: pve_dsr
+[DIC] └─ Result: ✓ Enterprise repository disabled
+
+[DIC] Operation 2: ops usr adr -j  
+[DIC] ├─ Function: usr_adr (2 parameters required)
+[DIC] ├─ Resolved: file_path -> PVE_ADR_FILE -> /etc/apt/sources.list.d/pve-enterprise.list
+[DIC] ├─ Resolved: line_content -> PVE_ADR_LINE -> deb http://download.proxmox.com/...
+[DIC] ├─ Execution: usr_adr "/etc/apt/sources.list.d/pve-enterprise.list" "deb http://..."
+[DIC] └─ Result: ✓ Community repository added
+```
+
+#### **Multi-Node Deployment Coordination**
+
+**DIC-Enabled sys-sca Integration:**
+```bash
+# Deploy section across multiple nodes with DIC parameter consistency
+sys-sca usr hy SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x a_xall"
+
+# Each node automatically resolves its hostname-specific configuration:
+# server01: Uses server01_* variables
+# server02: Uses server02_* variables  
+# server03: Uses server03_* variables
+
+# Result: Consistent deployment logic with node-specific configuration
+```
+
+#### **Development and Testing Benefits**
+
+**Individual Operation Testing:**
+```bash
+# Test specific operations in isolation during development
+ops pve dsr -j                    # Test repository management
+ops sys ipa -j                    # Test package installation
+ops sto bfs ra1 -j               # Test storage configuration
+
+# Full section testing with parameter visibility
+OPS_DEBUG=1 ./src/set/h1 -x i_xall
+```
+
+**Pure Function Development Workflow:**
+```bash
+# 1. Develop pure function with explicit parameters (lib/ops/sto)
+sto_bfs_ra1() {
+    local device1="$1" device2="$2" mountpoint="$3"
+    # ... implementation
+}
+
+# 2. Test pure function directly
+sto_bfs_ra1 "/dev/nvme0n1" "/dev/nvme1n1" "/mnt/data"
+
+# 3. Add DIC integration (src/dic/ops)
+ops sto bfs ra1 -j   # Auto-resolves device parameters
+
+# 4. Use in deployment sections (src/set/*)
+i_xall() {
+    ops sto bfs ra1 -j
+}
+```
+
 ### **Legacy System Migration Strategy**
 
-DIC provides **seamless migration** from legacy wrapper approaches:
+DIC provides **seamless migration** from traditional operational tooling through:
 
 ```bash
 # Phase 1: Legacy Wrapper (arc/mgt approach)
