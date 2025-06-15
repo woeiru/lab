@@ -174,8 +174,8 @@ ops_main() {
         return 0
     fi
     
-    # NEW: Handle -x flag - execute with full injection
-    if [[ "$1" == "-x" ]]; then
+    # NEW: Handle -j flag - execute with dependency injection
+    if [[ "$1" == "-j" ]]; then
         shift
         ops_execute "$module" "$function" "$@"
         return $?
@@ -462,7 +462,9 @@ ops_show_help() {
 Dependency Injection Container (DIC) - Generic Operations Engine
 
 USAGE:
-    ops MODULE FUNCTION [ARGS...]       Execute operation with auto-injection
+    ops MODULE FUNCTION [ARGS...]       Execute operation directly
+    ops MODULE FUNCTION -j              Execute with dependency injection  
+    ops MODULE FUNCTION -x              Execute with explicit flag (if required by function)
     ops --list                          List all available modules
     ops MODULE --list                   List functions in specific module
     ops MODULE FUNCTION --help          Show function help
@@ -470,6 +472,8 @@ USAGE:
 
 EXAMPLES:
     ops pve vpt 100 on                  Enable passthrough for VM 100
+    ops pve vpt -j                      Enable passthrough with dependency injection
+    ops gpu pts -x                      Check GPU status (function requires -x flag)
     ops gpu vck 101                     Check GPU configuration for VM 101
     ops sys sca usr all                 System scan all users
     ops pve --list                      List all PVE functions
