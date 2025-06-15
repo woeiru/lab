@@ -2202,42 +2202,42 @@ gpu_pts() {
     local passthrough_blacklist_conf_path="/etc/modprobe.d/zz-vfio-gpu-blacklist.conf"
 
     # --- IOMMU Groups (Details) ---
-    echo -e "\n${CYAN}--- IOMMU Groups (Details) ---${NC}"
+    aux_info "IOMMU Groups analysis" "component=gpu,operation=passthrough_status,step=iommu_groups"
     if ! command -v find &>/dev/null || ! command -v ls &>/dev/null || ! command -v lspci &>/dev/null; then
-        echo -e "${RED}Required commands (find, ls, lspci) not available to list IOMMU groups.${NC}"
+        aux_err "Required commands (find, ls, lspci) not available to list IOMMU groups" "component=gpu,operation=passthrough_status,missing_commands=find,ls,lspci"
     else
         _gpu_get_iommu_groups
     fi
 
     # --- GPU Device Details (lspci -nnk) ---
-    echo -e "\n${CYAN}--- GPU Device Details (lspci -nnk) ---${NC}"
+    aux_info "GPU Device Details analysis" "component=gpu,operation=passthrough_status,step=device_details"
     if [ -n "$all_device_blocks_output" ]; then
+        aux_info "GPU device blocks found" "component=gpu,operation=passthrough_status,device_blocks_found=true"
         echo -e "${YELLOW}${all_device_blocks_output%\\n\\n}${NC}"
     elif [ "$vga_devices_processed" = "true" ]; then 
-         echo -e "${YELLOW}No detailed GPU device blocks were formatted (e.g. lspci output was unusual or parsing issue).${NC}"
+        aux_warn "No detailed GPU device blocks formatted" "component=gpu,operation=passthrough_status,issue=parsing_issue"
     else 
-         echo -e "${YELLOW}No VGA compatible or 3D controllers found by lspci to display details.${NC}"
+        aux_warn "No VGA compatible or 3D controllers found" "component=gpu,operation=passthrough_status,vga_devices=none"
     fi
 
     # --- Loaded Kernel Modules (GPU related) ---
-    echo -e "\n${CYAN}--- Loaded Kernel Modules (GPU related) ---${NC}"
+    aux_info "Loaded Kernel Modules analysis" "component=gpu,operation=passthrough_status,step=kernel_modules"
     if lsmod | command grep -E "vfio|nvidia|nouveau|amdgpu|radeon" --color=never; then
         : 
     else
-        echo -e "${YELLOW}No common GPU-related modules (vfio, nvidia, nouveau, amdgpu, radeon) loaded.${NC}"
+        aux_info "No common GPU-related modules loaded" "component=gpu,operation=passthrough_status,gpu_modules=none"
     fi
 
-    echo -e "\n${CYAN}--- GPU Passthrough Workflow & Runtime Status ---${NC}"
-    echo -e "${CYAN}==================================================${NC}"
+    aux_info "GPU Passthrough Workflow & Runtime Status analysis" "component=gpu,operation=passthrough_status,step=workflow_status"
 
     # 1. Initial System Preparation (Configuration)
-    echo -e "${MAGENTA}1. Initial System Preparation (Configuration):${NC}"
+    aux_info "Initial System Preparation check" "component=gpu,operation=passthrough_status,step=system_preparation"
     
     local iommu_enabled_cmdline_status="$CROSS_MARK"
     if /usr/bin/grep -E -q 'iommu=pt|intel_iommu=on|amd_iommu=on' /proc/cmdline; then
         iommu_enabled_cmdline_status="$CHECK_MARK"
     fi
-    echo -e "   ${iommu_enabled_cmdline_status} IOMMU Enabled in Kernel Command Line (gpu_pt1)"
+    aux_info "IOMMU Enabled in Kernel Command Line status" "component=gpu,operation=passthrough_status,iommu_enabled=${iommu_enabled_cmdline_status},step=gpu_pt1"
 
     local vfio_modules_in_etc_modules_status="$CROSS_MARK"
     local vfio_ok=0; local vfio_iommu_type1_ok=0; local vfio_pci_ok=0
@@ -2249,10 +2249,10 @@ gpu_pts() {
     if [ "$vfio_ok" -eq 1 ] && [ "$vfio_iommu_type1_ok" -eq 1 ] && [ "$vfio_pci_ok" -eq 1 ]; then
         vfio_modules_in_etc_modules_status="$CHECK_MARK"
     fi
-    echo -e "   ${vfio_modules_in_etc_modules_status} Core VFIO modules in $modules_file_path (gpu_pt2)"
+    aux_info "Core VFIO modules in /etc/modules status" "component=gpu,operation=passthrough_status,vfio_modules=${vfio_modules_in_etc_modules_status},step=gpu_pt2,file=${modules_file_path}"
 
     # 2. NVIDIA Host Driver Setup (Optional Configuration)
-    echo -e "${MAGENTA}2. NVIDIA Host Driver Setup (Optional Configuration):${NC}"
+    aux_info "NVIDIA Host Driver Setup check" "component=gpu,operation=passthrough_status,step=nvidia_setup"
     local nouveau_blacklisted_status="$QUESTION_MARK (Not found)"
     if [ -f "$blacklist_nouveau_conf_path" ]; then
         if grep -q "blacklist nouveau" "$blacklist_nouveau_conf_path"; then
