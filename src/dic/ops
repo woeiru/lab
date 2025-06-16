@@ -56,7 +56,12 @@ OPS_METHOD=${OPS_METHOD:-auto}
 # Debug output function - moved here to be available early
 ops_debug() {
     if [[ "$OPS_DEBUG" == "1" ]]; then
-        echo "[DIC] $*" >&2
+        # Use aux_dbg if available, fallback to echo with timestamp if not
+        if type aux_dbg &>/dev/null; then
+            aux_dbg "$*" "DIC"
+        else
+            echo "[DIC] $(date '+%Y-%m-%d %H:%M:%S') - $*" >&2
+        fi
     fi
 }
 
@@ -139,7 +144,7 @@ ops_main() {
             return $?
             ;;
         "")
-            echo "Error: No module specified"
+            aux_err "No module specified" "component=dic,operation=main,step=module_validation"
             ops_show_usage
             return 1
             ;;
@@ -156,7 +161,7 @@ ops_main() {
             return 0
             ;;
         "")
-            echo "Error: No function specified for module '$module'"
+            aux_err "No function specified for module '$module'" "component=dic,operation=main,step=function_validation,module=$module"
             ops_show_usage
             return 1
             ;;
@@ -203,7 +208,7 @@ ops_execute() {
     # Source the library module
     local lib_path="${LIB_OPS_DIR}/${module}"
     if [[ ! -f "$lib_path" ]]; then
-        echo "Error: Library module not found: $lib_path"
+        aux_err "Library module not found: $lib_path" "component=dic,operation=execute,step=source_library,module=$module,lib_path=$lib_path"
         return 1
     fi
     
@@ -211,7 +216,7 @@ ops_execute() {
     
     # Check if function exists
     if ! declare -f "$full_function" >/dev/null 2>&1; then
-        echo "Error: Function '$full_function' not found in module '$module'"
+        aux_err "Function '$full_function' not found in module '$module'" "component=dic,operation=execute,step=function_validation,function=$full_function,module=$module"
         return 1
     fi
     
@@ -307,13 +312,13 @@ ops_validate_operation() {
     
     # Check if LIB_OPS_DIR is set
     if [[ -z "$LIB_OPS_DIR" ]]; then
-        echo "Error: LIB_OPS_DIR not set. Please run 'source bin/ini' first."
+        aux_err "LIB_OPS_DIR not set. Please run 'source bin/ini' first." "component=dic,operation=validate,step=environment_check,missing_var=LIB_OPS_DIR"
         return 1
     fi
     
     # Check if module exists
     if [[ ! -f "${LIB_OPS_DIR}/${module}" ]]; then
-        echo "Error: Module '$module' not found in ${LIB_OPS_DIR}/"
+        aux_err "Module '$module' not found in ${LIB_OPS_DIR}/" "component=dic,operation=validate,step=module_check,module=$module,lib_dir=$LIB_OPS_DIR"
         echo "Available modules:"
         ops_list_modules
         return 1
@@ -332,7 +337,7 @@ ops_validate_variables() {
             # Check for empty variables
             for var in $resolved_vars; do
                 if [[ "$var" == '""' || "$var" == "''" ]]; then
-                    echo "Error: Required variable is empty for function '$function_name'"
+                    aux_err "Required variable is empty for function '$function_name'" "component=dic,operation=validate_variables,validation_level=strict,function=$function_name,empty_var=$var"
                     return 1
                 fi
             done
@@ -341,7 +346,7 @@ ops_validate_variables() {
             # Warn about empty variables
             for var in $resolved_vars; do
                 if [[ "$var" == '""' || "$var" == "''" ]]; then
-                    echo "Warning: Variable is empty for function '$function_name': $var"
+                    aux_warn "Variable is empty for function '$function_name': $var" "component=dic,operation=validate_variables,validation_level=warn,function=$function_name,empty_var=$var"
                 fi
             done
             ;;
@@ -525,7 +530,7 @@ ops_list_modules() {
             fi
         done
     else
-        echo "  Error: LIB_OPS_DIR not found. Please run 'source bin/ini' first."
+        aux_err "LIB_OPS_DIR not found. Please run 'source bin/ini' first." "component=dic,operation=list_modules,missing_dir=$LIB_OPS_DIR"
     fi
 }
 
@@ -535,7 +540,7 @@ ops_list_functions() {
     local lib_path="${LIB_OPS_DIR}/${module}"
     
     if [[ ! -f "$lib_path" ]]; then
-        echo "Error: Module '$module' not found"
+        aux_err "Module '$module' not found" "component=dic,operation=list_functions,module=$module,lib_path=$lib_path"
         return 1
     fi
     
@@ -561,7 +566,7 @@ ops_show_function_help() {
     # Validate and source the library module
     local lib_path="${LIB_OPS_DIR}/${module}"
     if [[ ! -f "$lib_path" ]]; then
-        echo "Error: Library module not found: $lib_path"
+        aux_err "Library module not found: $lib_path" "component=dic,operation=show_function_help,module=$module,lib_path=$lib_path"
         return 1
     fi
     
@@ -569,7 +574,7 @@ ops_show_function_help() {
     
     # Check if function exists
     if ! declare -f "$full_function" >/dev/null 2>&1; then
-        echo "Error: Function '$full_function' not found in module '$module'"
+        aux_err "Function '$full_function' not found in module '$module'" "component=dic,operation=show_function_help,function=$full_function,module=$module"
         return 1
     fi
     
@@ -586,7 +591,7 @@ ops_show_injection_preview() {
     # Validate and source the library module
     local lib_path="${LIB_OPS_DIR}/${module}"
     if [[ ! -f "$lib_path" ]]; then
-        echo "Error: Library module not found: $lib_path"
+        aux_err "Library module not found: $lib_path" "component=dic,operation=show_injection_preview,module=$module,lib_path=$lib_path"
         return 1
     fi
     
@@ -594,7 +599,7 @@ ops_show_injection_preview() {
     
     # Check if function exists
     if ! declare -f "$full_function" >/dev/null 2>&1; then
-        echo "Error: Function '$full_function' not found in module '$module'"
+        aux_err "Function '$full_function' not found in module '$module'" "component=dic,operation=show_injection_preview,function=$full_function,module=$module"
         return 1
     fi
     
@@ -685,6 +690,7 @@ ops_show_injection_preview() {
         echo
     fi
     
+    echo ""
     echo "Legend:"
     echo "  <param:value> → Parameter will be auto-injected with shown value"
     echo "  <param>       → Parameter requires manual input (no global variable found)"
@@ -783,7 +789,7 @@ ops_get_global_variable_name() {
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     # Check if running in correct environment
     if [[ -z "$LIB_OPS_DIR" ]]; then
-        echo "Error: Environment not initialized. Please run 'source bin/ini' first."
+        aux_err "Environment not initialized. Please run 'source bin/ini' first." "component=dic,operation=main_entry,step=environment_check,missing_var=LIB_OPS_DIR"
         exit 1
     fi
     

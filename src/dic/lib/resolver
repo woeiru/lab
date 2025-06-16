@@ -360,13 +360,13 @@ ops_validate_resolved_value() {
     case "$validation_level" in
         strict)
             if [[ -z "$clean_value" ]]; then
-                echo "Error: Required parameter '$param_name' resolved to empty value"
+                aux_err "Required parameter '$param_name' resolved to empty value" "component=dic_resolver,operation=validate_resolved_value,param=$param_name,validation_level=strict"
                 return 1
             fi
             ;;
         warn)
             if [[ -z "$clean_value" ]]; then
-                echo "Warning: Parameter '$param_name' resolved to empty value" >&2
+                aux_warn "Parameter '$param_name' resolved to empty value" "component=dic_resolver,operation=validate_resolved_value,param=$param_name,validation_level=warn"
             fi
             ;;
         silent)
@@ -433,14 +433,14 @@ ops_test_resolution() {
     shift
     local param_names=("$@")
     
-    echo "Testing variable resolution for: $function_context"
-    echo "=================================================="
+    aux_info "Testing variable resolution for: $function_context" "component=dic_resolver,operation=test_resolution,context=$function_context,param_count=${#param_names[@]}"
+    aux_info "==================================================" "component=dic_resolver,operation=test_resolution,context=$function_context"
     
     for param in "${param_names[@]}"; do
-        echo "Parameter: $param"
+        aux_info "Parameter: $param" "component=dic_resolver,operation=test_resolution,context=$function_context,param=$param"
         local result
         result=$(ops_resolve_auto "$param" "$function_context")
-        echo "  Resolved: $result"
+        aux_info "  Resolved: $result" "component=dic_resolver,operation=test_resolution,context=$function_context,param=$param,result=$result"
         echo ""
     done
 }

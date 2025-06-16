@@ -388,12 +388,12 @@ ops_test_module_signatures() {
     local lib_path="${LIB_OPS_DIR}/${module}"
     
     if [[ ! -f "$lib_path" ]]; then
-        echo "Error: Module '$module' not found"
+        aux_err "Module '$module' not found" "component=dic_introspector,operation=test_module_signatures,module=$module,lib_path=$lib_path"
         return 1
     fi
     
-    echo "Testing signatures for module: $module"
-    echo "======================================"
+    aux_info "Testing signatures for module: $module" "component=dic_introspector,operation=test_module_signatures,module=$module"
+    aux_info "======================================" "component=dic_introspector,operation=test_module_signatures,module=$module"
     
     # Source the module
     source "$lib_path"
@@ -406,16 +406,15 @@ ops_test_module_signatures() {
     local success=0
     
     for func in $functions; do
-        echo -n "  $func: "
         if ops_get_function_signature "$func" >/dev/null; then
-            echo "OK"
+            aux_info "  $func: OK" "component=dic_introspector,operation=test_module_signatures,module=$module,function=$func,result=ok"
             ((success++))
         else
-            echo "FAIL"
+            aux_warn "  $func: FAIL" "component=dic_introspector,operation=test_module_signatures,module=$module,function=$func,result=fail"
         fi
         ((total++))
     done
     
     echo ""
-    echo "Results: $success/$total functions analyzed successfully"
+    aux_info "Results: $success/$total functions analyzed successfully" "component=dic_introspector,operation=test_module_signatures,module=$module,success=$success,total=$total"
 }

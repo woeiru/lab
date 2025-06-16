@@ -308,7 +308,7 @@ ops_validate_injection_variables() {
             
             for var in "${required_vars[@]}"; do
                 if [[ -z "${!var}" ]]; then
-                    echo "Error: Required variable '$var' not set for $function_name"
+                    aux_err "Required variable '$var' not set for $function_name" "component=dic_injector,operation=validate_injection_variables,function=$function_name,missing_var=$var"
                     return 1
                 fi
             done
@@ -316,7 +316,7 @@ ops_validate_injection_variables() {
         pve_vck|pve_vms)
             # Cluster-aware functions need cluster nodes
             if [[ -z "${CLUSTER_NODES[*]}" ]]; then
-                echo "Error: CLUSTER_NODES not set for $function_name"
+                aux_err "CLUSTER_NODES not set for $function_name" "component=dic_injector,operation=validate_injection_variables,function=$function_name,missing_var=CLUSTER_NODES"
                 return 1
             fi
             ;;
