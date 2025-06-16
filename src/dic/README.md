@@ -433,10 +433,16 @@ source /tmp/gpu_config && ops pve vpt -j
 DIC implements **context-aware parameter resolution**:
 
 ```bash
-# GPU-specific logic in DIC resolution
+# GPU-specific logic in DIC resolution (FIXED: 2025-06-16)
 if [[ "$function_name" =~ ^gpu_(ptd|pta)$ ]]; then
-    # Auto-inject driver preference for GPU functions
-    if [[ ${#user_args[@]} -eq 0 ]] || [[ "${user_args[0]}" != "-d" ]]; then
+    # If user provided -d flag, use their args directly without injection
+    if [[ ${#user_args[@]} -gt 0 ]] && [[ "${user_args[0]}" == "-d" ]]; then
+        ops_debug "User provided -d flag, executing directly: ${user_args[*]}"
+        "$function_name" "${user_args[@]}"
+        return
+    fi
+    # Add -d flag with driver preference if not already provided
+    if [[ ${#user_args[@]} -eq 0 ]]; then
         local driver_pref="${GPU_DRIVER_PREFERENCE:-lookup}"
         final_args+=("-d" "$driver_pref")
         ops_debug "Auto-injected -d flag for GPU function: -d $driver_pref"
@@ -450,7 +456,13 @@ $ ops gpu ptd -j
 [DIC] GPU function detected: gpu_ptd
 [DIC] Auto-injecting driver preference: -d nvidia
 [DIC] Final call: gpu_ptd -d nvidia server01 /etc/config 01:00.0 02:00.0 nvidia
+
+$ ops gpu pta -d lookup
+[DIC] User provided -d flag, executing directly: -d lookup
+[DIC] Final call: gpu_pta -d lookup (no parameter injection conflicts)
 ```
+
+**Critical Fix (2025-06-16):** The DIC wrapper now properly handles user-provided `-d` flags for GPU functions, preventing parameter injection conflicts that previously caused malformed function calls and "permission denied" errors.
 
 ## Error Handling and Recovery Strategies
 

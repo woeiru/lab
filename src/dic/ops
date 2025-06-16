@@ -265,8 +265,14 @@ ops_inject_and_execute() {
     
     # Special handling for GPU functions that need -d flag
     if [[ "$function_name" =~ ^gpu_(ptd|pta)$ ]]; then
+        # If user provided -d flag, use their args directly without injection
+        if [[ ${#user_args[@]} -gt 0 ]] && [[ "${user_args[0]}" == "-d" ]]; then
+            ops_debug "User provided -d flag, executing directly: ${user_args[*]}"
+            "$function_name" "${user_args[@]}"
+            return
+        fi
         # Add -d flag with driver preference if not already provided
-        if [[ ${#user_args[@]} -eq 0 ]] || [[ "${user_args[0]}" != "-d" ]]; then
+        if [[ ${#user_args[@]} -eq 0 ]]; then
             local driver_pref="${GPU_DRIVER_PREFERENCE:-lookup}"
             final_args+=("-d" "$driver_pref")
             ops_debug "Auto-injected -d flag for GPU function: -d $driver_pref"
