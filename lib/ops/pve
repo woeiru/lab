@@ -1565,7 +1565,23 @@ pve_vmg() {
     local node=$(pve_vck "$vm_id" "$cluster_nodes_str")
     
     if [ -n "$node" ]; then
+        # Sanitize hostname to prevent SSH command injection
+        node=$(echo "$node" | tr -d '\033\040-\057\072-\100\133-\140\173-\177')
         aux_info "VM found on source node" "vm_id=$vm_id,source_node=$node"
+        
+        # Check if VM is already on the current node - skip migration if so
+        if [ "$node" = "$current_hostname" ]; then
+            aux_info "VM is already on current node, skipping migration" "vm_id=$vm_id,node=$node"
+            # Just run passthrough configuration directly
+            aux_info "Configuring PCIe passthrough on current node" "vm_id=$vm_id,node=$current_hostname"
+            if pve_vpt "$vm_id" on "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"; then
+                aux_info "PCIe passthrough configured successfully" "vm_id=$vm_id,node=$current_hostname"
+                return 0
+            else
+                aux_err "Failed to configure PCIe passthrough" "vm_id=$vm_id,node=$current_hostname"
+                return 2
+            fi
+        fi
 
         # Disable PCIe passthrough for the VM on the remote node
         aux_info "Disabling PCIe passthrough on source node" "vm_id=$vm_id,source_node=$node"

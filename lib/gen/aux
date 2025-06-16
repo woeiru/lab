@@ -696,7 +696,7 @@ aux_log() {
         "json")
             local json_log
             json_log=$(aux_format_json_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" "operational")
-            echo "$json_log"
+            echo "$json_log" >&2
             
             # File output
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
@@ -706,7 +706,7 @@ aux_log() {
         "csv")
             local csv_log
             csv_log=$(aux_format_csv_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data")
-            echo "$csv_log"
+            echo "$csv_log" >&2
             
             # File output with header if new file
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
@@ -720,7 +720,7 @@ aux_log() {
             local kv_log="timestamp=$timestamp level=${log_level,,} message=\"$message\" type=operational"
             [[ -n "$cluster_metadata" ]] && kv_log="$kv_log $cluster_metadata"
             [[ -n "$context_data" ]] && kv_log="$kv_log $context_data"
-            echo "$kv_log"
+            echo "$kv_log" >&2
             
             # File output
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
@@ -733,7 +733,7 @@ aux_log() {
             log_color=$(aux_get_log_color "$log_level")
             local formatted_message="${AUX_LOG_GREY}[${AUX_LOG_NC}$timestamp${AUX_LOG_GREY}]${AUX_LOG_NC} ${log_color}[${log_level,,}]${AUX_LOG_NC} $message"
             [[ -n "$context_data" ]] && formatted_message="$formatted_message ${AUX_LOG_GREY}[$context_data]${AUX_LOG_NC}"
-            echo "$formatted_message"
+            echo "$formatted_message" >&2
             
             # Also log to file if LOG_DIR is available (without colors for file)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
