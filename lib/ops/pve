@@ -766,6 +766,19 @@ pve_vmd() {
     #   'add' uses 'qm set <vmid> -hookscript local:snippets/gpu-reattach-hook.pl'.
     #   'remove' uses 'qm set <vmid> -delete hookscript'.
     #   'debug' provides diagnostic info (script content, permissions, qm config, manual trigger).
+    #
+    #   IMPORTANT: The Proxmox hookscript only triggers on host-initiated shutdowns.
+    #   For guest-initiated shutdowns, use the vm-shutdown-monitor system:
+    #     - Service: /etc/systemd/system/vm-shutdown-monitor@.service
+    #     - Timer: /etc/systemd/system/vm-shutdown-monitor@.timer  
+    #     - Script: /usr/local/bin/check-vm-status.sh
+    #     - Enable: systemctl enable vm-shutdown-monitor@<vmid>.timer
+    #     - Start: systemctl start vm-shutdown-monitor@<vmid>.timer
+    #     - Logs: /var/log/vm-shutdown-monitor.log
+    #   The monitor checks VM state every 5 seconds and triggers GPU reattachment
+    #   when it detects a running -> stopped transition (guest-initiated shutdown).
+    #   Note: GPU lookup mode only processes devices bound to vfio-pci, ensuring
+    #   efficient reattachment of main GPU while audio may remain on vfio-pci.
     # Dependencies:
     #   - 'qm' command-line utility.
     #   - Perl interpreter (for the hook script).
