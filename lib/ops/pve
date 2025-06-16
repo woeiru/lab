@@ -752,7 +752,7 @@ pve_cto() {
 
 # Deploys or modifies the VM shutdown hook for GPU reattachment
 # vm shutdown hook
-# <operation> <vm_id> <hook_script> <lib_ops_dir> [vm_id2...]
+# <operation> <vm_id> <lib_ops_dir> [vm_id2...]
 pve_vmd() {
     # Technical Description:
     #   Manages a VM shutdown hook script for GPU reattachment in Proxmox VE.
@@ -775,16 +775,15 @@ pve_vmd() {
     # Arguments:
     #   $1: operation - The operation to perform: add, remove, or debug
     #   $2: vm_id - The VM ID to configure
-    #   $3: hook_script - Path to the hook script
-    #   $4: lib_ops_dir - Directory containing the ops library
-    #   $5+: additional_vm_ids (optional) - Additional VM IDs to configure
+    #   $3: lib_ops_dir - Directory containing the ops library
+    #   $4+: additional_vm_ids (optional) - Additional VM IDs to configure (not yet implemented)
 
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    if [ $# -lt 4 ]; then
+    if [ $# -lt 3 ]; then
         aux_use
         return 1
     fi
@@ -792,16 +791,16 @@ pve_vmd() {
     local function_name="${FUNCNAME[0]}"
     local operation="$1"
     local vm_id="$2"
-    local hook_script="$3"
-    local lib_ops_dir="$4"
+    local lib_ops_dir="$3"
+    local hook_script="/var/lib/vz/snippets/gpu-reattach-hook.pl"
 
     # Validate required parameters
-    if [[ -z "$hook_script" || -z "$lib_ops_dir" ]]; then
+    if [[ -z "$lib_ops_dir" ]]; then
         aux_use
         return 1
     fi
 
-    aux_dbg "Function parameters" "operation=$operation,vm_id=$vm_id,hook_script=$hook_script,lib_ops_dir=$lib_ops_dir"
+    aux_dbg "Function parameters" "operation=$operation,vm_id=$vm_id,lib_ops_dir=$lib_ops_dir,hook_script=$hook_script"
 
     # Parameter validation
     if ! aux_val "$operation" "not_empty"; then
