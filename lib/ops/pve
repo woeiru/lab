@@ -1,5 +1,53 @@
 #!/bin/bash
 
+# ===============================================================================
+# PROXMOX VIRTUAL ENVIRONMENT (PVE) MANAGEMENT MODULE
+# ===============================================================================
+#
+# This module provides a comprehensive set of functions for managing Proxmox VE
+# clusters, VMs, and related infrastructure. The functions follow an orchestration
+# pattern where higher-level functions coordinate multiple specialized operations.
+#
+# ORCHESTRATION ARCHITECTURE:
+# ---------------------------
+# 
+# Primary Orchestrators:
+#   • pve_vms() - VM startup orchestrator that handles local/remote VM operations
+#                 Coordinates: pve_vck → pve_vmg → pve_vpt as needed
+#   
+# Service Functions:
+#   • pve_vck() - VM location discovery service (finds which node hosts a VM)
+#   • pve_vmg() - VM migration orchestrator (handles cross-node VM migration)
+#                 Coordinates: pve_vck → pve_vpt (disable) → qm migrate → pve_vpt (enable)
+#   • pve_vpt() - PCIe passthrough configuration service (enable/disable GPU passthrough)
+#   
+# Management Functions:
+#   • pve_vmc() - VM creation with advanced configuration
+#   • pve_vmd() - VM deletion and cleanup
+#   • pve_clu() - Cluster operations and status
+#   • pve_cbm() - Backup management
+#   • pve_ctc() - Container creation
+#   • pve_cto() - Container operations
+#   
+# Utility Functions:
+#   • pve_fun() - Function overview and introspection
+#   • pve_var() - Variable analysis and usage
+#   • pve_dsr() - Repository management
+#   • pve_rsn() - Network restart operations
+#
+# TYPICAL WORKFLOW EXAMPLE:
+# -------------------------
+# 1. pve_vms() called to start VM on current node
+# 2. pve_vck() locates VM across cluster nodes
+# 3. If VM is remote: pve_vmg() orchestrates migration
+#    - pve_vpt() disables passthrough on source
+#    - qm migrate moves VM to target node
+#    - pve_vpt() enables passthrough on target
+# 4. VM started locally with qm start
+# 5. Optional source node shutdown via SSH
+#
+# ===============================================================================
+
 # Define directory and file variables
 DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
