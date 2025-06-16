@@ -12,28 +12,29 @@
 # ---------------------------
 # 
 # Primary Orchestrators:
-#   • pve_vms() - VM startup orchestrator that handles local/remote VM operations
+#   • pve_vms() - vm start get shutdown - VM startup orchestrator that handles local/remote VM operations
 #                 Coordinates: pve_vck → pve_vmg → pve_vpt as needed
 #   
 # Service Functions:
-#   • pve_vck() - VM location discovery service (finds which node hosts a VM)
-#   • pve_vmg() - VM migration orchestrator (handles cross-node VM migration)
+#   • pve_vck() - vm check - VM location discovery service (finds which node hosts a VM)
+#   • pve_vmg() - vm get - VM migration orchestrator (handles cross-node VM migration)
 #                 Coordinates: pve_vck → pve_vpt (disable) → qm migrate → pve_vpt (enable)
-#   • pve_vpt() - PCIe passthrough configuration service (enable/disable GPU passthrough)
+#   • pve_vpt() - vm passthrough toggle - PCIe passthrough configuration service (enable/disable GPU passthrough)
 #   
 # Management Functions:
-#   • pve_vmc() - VM creation with advanced configuration
-#   • pve_vmd() - VM deletion and cleanup
-#   • pve_clu() - Cluster operations and status
-#   • pve_cbm() - Backup management
-#   • pve_ctc() - Container creation
-#   • pve_cto() - Container operations
+#   • pve_vmc() - virtual machine create - VM creation with advanced configuration
+#   • pve_vmd() - vm shutdown hook - VM deletion and cleanup with shutdown hooks
+#   • pve_clu() - container list update - Container template list management
+#   • pve_cbm() - container bindmount - Container bind mount operations
+#   • pve_ctc() - container create - Container creation and configuration
+#   • pve_cto() - container toggle - Container start/stop/enable/disable operations
+#   • pve_cdo() - container downloads - Container template download management
 #   
 # Utility Functions:
-#   • pve_fun() - Function overview and introspection
-#   • pve_var() - Variable analysis and usage
-#   • pve_dsr() - Repository management
-#   • pve_rsn() - Network restart operations
+#   • pve_fun() - overview functions - Function overview and introspection
+#   • pve_var() - overview variables - Variable analysis and usage
+#   • pve_dsr() - disable repository - Repository management and disabling
+#   • pve_rsn() - remove sub notice - Subscription notice removal
 #
 # TYPICAL WORKFLOW EXAMPLE:
 # -------------------------
