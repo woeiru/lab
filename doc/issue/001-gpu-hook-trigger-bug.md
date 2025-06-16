@@ -188,12 +188,29 @@ $ lspci -k -s 0a:00.0
 Kernel driver in use: vfio-pci  # Despite successful attachment reports
 ```
 
-### Root Cause Hypothesis
-The `pve_vms` orchestrator appears to leave the GPU in an inconsistent state where:
-1. Driver binding reports success but actual hardware state is corrupted
-2. GPU hardware becomes unresponsive to driver attachment commands
-3. Only a full detach/reattach cycle can restore functionality
-4. This suggests hardware-level GPU state corruption or incomplete driver unbinding
+### Root Cause Identified
+**CONFIRMED**: The issue is in the `pve_vms` function's automatic GPU management logic (/root/lab/lib/ops/pve:1417-1439).
+
+**The Problem**:
+1. `pve_vms` automatically calls `$LAB_DIR/dic/ops gpu ptd -d lookup` when GPU status is "ATTACHED"
+2. This automatic detachment leaves the GPU in an **inconsistent hardware state**
+3. Unlike direct `gpu ptd` usage, the automatic detachment within `pve_vms` workflow corrupts GPU state
+4. Subsequent `gpu pta` commands report success but GPU remains functionally unusable
+5. Only manual `gpu ptd` followed by `gpu pta` can restore proper GPU state
+
+**Code Location**: `/root/lab/lib/ops/pve` lines 1424-1435:
+```bash
+local gpu_status=$("$LAB_DIR/dic/ops" gpu pts 2>/dev/null | grep -o "ATTACHED\|DETACHED" | head -n1)
+if [ "$gpu_status" = "ATTACHED" ]; then
+    aux_info "GPU is attached to host, performing detach for VM passthrough"
+    if ! "$LAB_DIR/dic/ops" gpu ptd -d lookup; then
+        aux_warn "GPU detach operation failed, VM may not have GPU access"
+    else
+        aux_info "GPU successfully detached for VM passthrough"
+    fi
+```
+
+**Why This Breaks**: The automated detachment within the `pve_vms` execution context leaves the GPU hardware in a corrupted state where driver binding operations report success but don't actually work.
 
 ### Root Cause Investigation Plan
 
