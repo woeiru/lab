@@ -59,32 +59,15 @@ lo1_debug_log() {
 declare -g LOG_DEPTH_CACHE_FILE="${TMP_DIR}/lo1_depth_cache"
 
 # Color definitions - use centralized color system from lib/core/col
-# If col module is available, use its colors; otherwise define our own
+# If col module is available, use its colors; otherwise use no colors
 if [[ -n "${COL_LOADED:-}" ]]; then
     # Use centralized colors from col module
     readonly LOG_NC="$COL_RESET"
     readonly -a LOG_COLORS=("${COL_DEPTH[@]}")
 else
-    # Fallback: define our own colors if col module is not available
-    readonly LOG_NC=$(printf '\033[0m')
-    readonly -a LOG_COLORS=(
-        $(printf '\033[0;31m')          # Level 0  - Pure Red
-        $(printf '\033[38;5;202m')      # Level 1  - Red-Orange
-        $(printf '\033[38;5;208m')      # Level 2  - Orange
-        $(printf '\033[38;5;214m')      # Level 3  - Orange-Yellow
-        $(printf '\033[38;5;220m')      # Level 4  - Yellow
-        $(printf '\033[38;5;112m')      # Level 5  - Yellow-Green
-        $(printf '\033[38;5;34m')       # Level 6  - Green
-        $(printf '\033[38;5;35m')       # Level 7  - Green-Cyan
-        $(printf '\033[38;5;37m')       # Level 8  - Cyan
-        $(printf '\033[38;5;39m')       # Level 9  - Cyan-Blue
-        $(printf '\033[38;5;27m')       # Level 10 - Blue
-        $(printf '\033[38;5;57m')       # Level 11 - Blue-Indigo
-        $(printf '\033[38;5;54m')       # Level 12 - Indigo
-        $(printf '\033[38;5;93m')       # Level 13 - Indigo-Violet
-        $(printf '\033[38;5;92m')       # Level 14 - Violet
-        $(printf '\033[38;5;91m')       # Level 15 - Deep Violet
-    )
+    # Fallback: no colors if col module is not available
+    readonly LOG_NC=""
+    readonly -a LOG_COLORS=("" "" "" "" "" "" "" "" "" "")
 fi
 
 # State tracking
@@ -255,7 +238,8 @@ lo1_get_color() {
     if ((depth >= 0 && depth < ${#LOG_COLORS[@]})); then
         echo -n "${LOG_COLORS[$depth]}"
     else
-        echo -n "${LOG_COLORS[15]}"  # For any depth > 15, use deep violet
+        # For any depth >= 10, use the last color (index 9)
+        echo -n "${LOG_COLORS[9]}"
     fi
 }
 

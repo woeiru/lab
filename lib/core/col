@@ -58,24 +58,20 @@ readonly COL_PERFORMANCE=$(printf '\033[38;5;45m')   # Bright Cyan - performance
 # DEPTH-BASED COLORS (for hierarchical logging)
 # =============================================================================
 
-# Array of colors for different depth levels (0-15)
+# Array of colors for different depth levels (0-9) - Viridis color palette
+# Viridis is a perceptually uniform colormap that transitions smoothly from
+# dark purple through blue, cyan, green, to yellow
 readonly -a COL_DEPTH=(
-    $(printf '\033[0;31m')          # Level 0  - Pure Red
-    $(printf '\033[38;5;202m')      # Level 1  - Red-Orange
-    $(printf '\033[38;5;208m')      # Level 2  - Orange
-    $(printf '\033[38;5;214m')      # Level 3  - Orange-Yellow
-    $(printf '\033[38;5;220m')      # Level 4  - Yellow
-    $(printf '\033[38;5;226m')      # Level 5  - Light Yellow
-    $(printf '\033[38;5;154m')      # Level 6  - Yellow-Green
-    $(printf '\033[38;5;118m')      # Level 7  - Light Green
-    $(printf '\033[38;5;82m')       # Level 8  - Green
-    $(printf '\033[38;5;46m')       # Level 9  - Bright Green
-    $(printf '\033[38;5;51m')       # Level 10 - Cyan
-    $(printf '\033[38;5;45m')       # Level 11 - Bright Cyan
-    $(printf '\033[38;5;39m')       # Level 12 - Blue
-    $(printf '\033[38;5;33m')       # Level 13 - Bright Blue
-    $(printf '\033[38;5;99m')       # Level 14 - Purple
-    $(printf '\033[38;5;129m')      # Level 15 - Bright Purple
+    $(printf '\033[38;5;53m')       # Level 0  - Dark Purple (viridis start)
+    $(printf '\033[38;5;54m')       # Level 1  - Purple
+    $(printf '\033[38;5;55m')       # Level 2  - Purple-Blue
+    $(printf '\033[38;5;25m')       # Level 3  - Dark Blue
+    $(printf '\033[38;5;31m')       # Level 4  - Blue
+    $(printf '\033[38;5;37m')       # Level 5  - Blue-Cyan
+    $(printf '\033[38;5;43m')       # Level 6  - Cyan-Green
+    $(printf '\033[38;5;49m')       # Level 7  - Green
+    $(printf '\033[38;5;148m')      # Level 8  - Yellow-Green
+    $(printf '\033[38;5;226m')      # Level 9  - Yellow (viridis end)
 )
 
 # =============================================================================
@@ -89,7 +85,8 @@ col_get_depth_color() {
     if ((depth >= 0 && depth < ${#COL_DEPTH[@]})); then
         echo -n "${COL_DEPTH[$depth]}"
     else
-        echo -n "${COL_DEPTH[15]}"  # For any depth > 15, use deep purple
+        # For any depth >= 10, use the last color (yellow)
+        echo -n "${COL_DEPTH[9]}"
     fi
 }
 
