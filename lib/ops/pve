@@ -1314,7 +1314,7 @@ pve_vmc() {
 pve_vms() {
 
     # Technical Description:
-    #   Starts a Proxmox VM, migrating it from another node if necessary.
+    #   Starts a Proxmox VM, migrating it from another node if necessary, with automatic GPU passthrough management.
     #   Arguments: 
     #     $1 (vm_id): VM ID
     #     $2 (cluster_nodes_str): Space-separated cluster node names
@@ -1327,10 +1327,13 @@ pve_vms() {
     #     $9 (optional 's' to shutdown the source/original node).
     #   1. Retrieves current hostname.
     #   2. Uses 'pve_vck <vm_id> <cluster_nodes_str>' to determine the node currently hosting the VM ('node_id').
-    #   3. If current hostname matches 'node_id' (VM is local):
+    #   3. GPU Passthrough Management (if LAB_DIR/dic/ops available):
+    #      - Always runs '$LAB_DIR/dic/ops gpu pts -x' to display current GPU passthrough status.
+    #      - If GPU is in ATTACHED mode to host, runs '$LAB_DIR/dic/ops gpu ptd -d lookup' to detach for VM use.
+    #   4. If current hostname matches 'node_id' (VM is local):
     #      - Starts VM using 'qm start <vm_id>'.
     #      - If $9 is 's', attempts to shut down 'node_id' (which is the current node) via SSH.
-    #   4. If current hostname differs from 'node_id' (VM is remote):
+    #   5. If current hostname differs from 'node_id' (VM is remote):
     #      - Calls 'pve_vmg <vm_id> <cluster_nodes_str> <pci0_id> <pci1_id> <core_count_on> <core_count_off> <usb_devices_str> <pve_conf_path>' to migrate the VM to the current node.
     #      - Starts VM using 'qm start <vm_id>'.
     #      - If $9 is 's', shuts down the original remote node ('node_id') via SSH.
@@ -1341,6 +1344,7 @@ pve_vms() {
     #   - 'ssh' for remote shutdown.
     #   - 'hostname' utility.
     #   - 'aux_use' for usage display.
+    #   - '$LAB_DIR/dic/ops' for GPU passthrough management (optional).
 
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -1408,6 +1412,31 @@ pve_vms() {
     fi
     
     aux_info "VM found on cluster node" "vm_id=$vm_id,node_id=$node_id"
+
+    # GPU Passthrough Management
+    aux_info "Checking GPU passthrough status"
+    if [ -n "$LAB_DIR" ] && [ -x "$LAB_DIR/dic/ops" ]; then
+        # Always check current GPU passthrough status first
+        aux_dbg "Running GPU passthrough status check"
+        if ! "$LAB_DIR/dic/ops" gpu pts -x; then
+            aux_warn "GPU passthrough status check failed, continuing without GPU management"
+        else
+            # Check if GPU is in attached mode to host and needs detachment
+            local gpu_status=$("$LAB_DIR/dic/ops" gpu pts 2>/dev/null | grep -o "ATTACHED\|DETACHED" | head -n1)
+            if [ "$gpu_status" = "ATTACHED" ]; then
+                aux_info "GPU is attached to host, performing detach for VM passthrough"
+                if ! "$LAB_DIR/dic/ops" gpu ptd -d lookup; then
+                    aux_warn "GPU detach operation failed, VM may not have GPU access"
+                else
+                    aux_info "GPU successfully detached for VM passthrough"
+                fi
+            else
+                aux_dbg "GPU status: $gpu_status - no detach needed"
+            fi
+        fi
+    else
+        aux_warn "LAB_DIR not set or dic/ops not executable, skipping GPU management"
+    fi
 
     # Main logic
     if [ "$hostname" = "$node_id" ]; then
