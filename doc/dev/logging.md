@@ -1,200 +1,162 @@
 # Logging System Documentation
 
-This document provides a comprehensive analysis of the logging architecture, including log files in the `.log` directory, state files in the `.tmp` directory, and terminal verbosity controls.
+This document provides a comprehensive analysis of the logging architecture throughout the entire lab project, explaining the relationship between different logging systems and how they work together.
 
 ## Overview
 
-The lab system employs a sophisticated multi-layered logging architecture designed for both development debugging and production monitoring. The system consists of:
+The lab system implements a **multi-layered logging architecture** with three distinct but integrated logging systems:
 
-1. **Log Files** (`${LOG_DIR}/.log/`) - Human-readable logs for different system components
-2. **State Files** (`${TMP_DIR}/.tmp/`) - Configuration and cache files for logging behavior
-3. **Terminal Verbosity Controls** - Hierarchical control system for console output
+1. **Enhanced Auxiliary Logging** (`lib/gen/aux`) - **PRIMARY** system for all `lib/ops` functions and modern structured logging
+2. **Core Module Logging** (`lib/core/lo1`, `lib/core/err`, `lib/core/tme`) - Legacy system for core infrastructure
+3. **Initialization Logging** (`bin/ini`, `lib/core/ver`) - Bootstrap and verification specific logging
 
-### Hierarchical Verbosity System
+### Logging System Hierarchy
 
-The system uses a multi-tier verbosity control mechanism:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Enhanced Auxiliary Logging (lib/gen/aux) - PRIMARY SYSTEM      │
+│ ├─ All lib/ops functions use structured logging                 │
+│ ├─ Supports JSON, CSV, key-value, and human formats            │
+│ ├─ Enterprise-grade features: tracing, metrics, cluster info   │
+│ └─ Files: aux_operational.{log,jsonl,csv}, aux_debug.{log,jsonl,csv} │
+├─────────────────────────────────────────────────────────────────┤
+│ Component Orchestrator (bin/orc) - Uses lo1 Logging            │
+│ └─ File: lo1.log                                               │
+├─────────────────────────────────────────────────────────────────┤
+│ Core Infrastructure Logging (lib/core/*)                       │
+│ ├─ lo1.log - Advanced hierarchical logging with colors         │
+│ ├─ err.log - Centralized error handling                        │
+│ ├─ tme.log - Timing and performance data                       │
+│ └─ State files in .tmp/ for runtime configuration              │
+├─────────────────────────────────────────────────────────────────┤
+│ Initialization & Bootstrap (bin/ini, lib/core/ver)              │
+│ ├─ ini.log - Startup sequence and module loading               │
+│ ├─ ver.log - System verification and validation                │
+│ └─ init_flow.log - High-precision initialization timing        │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-- **Master Control**: `MASTER_TERMINAL_VERBOSITY` (default: "off") - Master switch for all terminal output
-- **Module-Specific Controls**: Individual verbosity settings that require master to be "on"
-  - `INI_LOG_TERMINAL_VERBOSITY` (default: "on") - Main initialization script (`bin/ini`) messages
-  - `VER_LOG_TERMINAL_VERBOSITY` (default: "on") - Verification module (`lib/core/ver`) messages
-  - `LO1_LOG_TERMINAL_VERBOSITY` (default: "on") - Advanced logging module
-  - `ERR_TERMINAL_VERBOSITY` (default: "on") - Error handling module
-  - `TME_TERMINAL_VERBOSITY` (default: "on") - Timing module
-- **Nested Controls**: Granular controls for specific output types within modules
-  - TME Module has nested controls for reports, timing, debug, and status outputs
+### Verbosity Control Hierarchy
 
-This design allows fine-grained control while maintaining simple master and module-level overrides.
+The system uses **hierarchical verbosity controls** with a master switch pattern:
 
-## Log Files in `${LOG_DIR}/.log`
+- **`MASTER_TERMINAL_VERBOSITY`** (default: "off") - Global terminal output control
+- **Module-specific switches** - Individual controls that require master to be "on":
+  - `INI_LOG_TERMINAL_VERBOSITY` - Initialization messages
+  - `VER_LOG_TERMINAL_VERBOSITY` - Verification messages  
+  - `LO1_LOG_TERMINAL_VERBOSITY` - Advanced logging output
+  - `ERR_TERMINAL_VERBOSITY` - Error messages
+  - `TME_TERMINAL_VERBOSITY` - Timing reports
+- **Enhanced auxiliary controls** - Independent system with own verbosity:
+  - `AUX_DEBUG_ENABLED` - Controls aux debug output
+  - Independent of other verbosity systems but respects `MASTER_TERMINAL_VERBOSITY`
 
-*   **`ini.log`**:
-    *   **Purpose**: Records detailed logging for the main initialization script (`bin/ini`).
-    *   **Format**: `[INI] HH:MM:SS - [source_function] message`
-    *   **Writing Functions**: `ini_log` in `bin/ini`.
-    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `INI_LOG_TERMINAL_VERBOSITY`.
-    *   **Usage**: Primary log for `bin/ini` script execution, essential for diagnosing early startup and script flow issues.
-    *   **Details**: Captures messages from the very beginning of the system initialization.
+## Log Files Generated
 
-*   **`ver.log`**:
-    *   **Purpose**: Records detailed debugging information from the verification module (`lib/core/ver`).
-    *   **Format**: `[VER] YYYY-MM-DD HH:MM:SS - [source_function] message`
-    *   **Writing Functions**: `ver_log` in `lib/core/ver`.
-    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `VER_LOG_TERMINAL_VERBOSITY`.
-    *   **Usage**: Debug channel for path, variable, and module verification processes.
-    *   **Details**: Essential for diagnosing issues related to system integrity checks, path verification failures, and module loading problems handled by the `ver` module.
+### Enhanced Auxiliary Logging Files (`lib/gen/aux`)
 
-*   **`err.log`**:
-    *   **Purpose**: Centralized error and warning repository for all system components.
-    *   **Format**: `[SEVERITY] YYYY-MM-DD HH:MM:SS - [component] message`
-    *   **Writing Functions**:
-        *   `handle_error` in `lib/core/err`: Primary error logging function
-        *   `error_handler` in `lib/core/err`: Automatic error trap handler
-        *   `err_process` in `lib/core/err`: Structured error processing
-    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `ERR_TERMINAL_VERBOSITY`
-    *   **Environment Variable**: `ERROR_LOG` (defined in `cfg/core/ric`)
-    *   **Features**:
-        *   Supports severity levels (ERROR, WARNING)
-        *   Tracks error components and timestamps
-        *   Provides error reporting and summary functions
-    *   **Details**: Critical for production debugging and system health monitoring
+The **primary logging system** used by all `lib/ops` functions and modern components:
 
-*   **`lo1.log`**:
-    *   **Purpose**: Main application log managed by the advanced logging module (`lib/core/lo1`). Features hierarchical indentation, color-coding, and comprehensive debug tracking.
-    *   **Format**:
-        *   Standard: `HH:MM:SS.NN └─ message` (with colored indentation based on call stack depth)
-        *   Debug: `[LO1-DEBUG] HH:MM:SS.NN - [source] message`
-    *   **Writing Functions**:
-        *   `log` in `lib/core/lo1`: Primary logging function with `log lvl "message"` syntax
-        *   `lo1_log_message` in `lib/core/lo1`: Standardized module logging interface
-        *   `lo1_tme_log_with_timer` in `lib/core/lo1`: Logging with timing integration
-        *   `init_logger` in `lib/core/lo1`: Logger initialization messages
-        *   `lo1_debug_log` in `lib/core/lo1`: Module-specific debug messages
-    *   **Terminal Output**: Controlled by `MASTER_TERMINAL_VERBOSITY` + `LO1_LOG_TERMINAL_VERBOSITY` + local `setlog on|off`
-    *   **Environment Variables**:
-        *   `LOG_FILE` (defined in `cfg/core/ric`)
-        *   `LOG_DEBUG_ENABLED` (controls debug message generation)
-    *   **Features**:
-        *   16-level color gradient for depth visualization (red to deep violet)
-        *   Performance-optimized depth caching
-        *   Integration with timing system for performance logging
-        *   Call stack analysis for intelligent indentation
-    *   **State Control**: Persistent on/off state via `.tmp/lo1_state` file
-    *   **Details**: The centerpiece of the logging system, providing structured hierarchical output ideal for complex script debugging
+**Operational Logs (Business Events)**:
+- **`aux_operational.log`** - Human-readable operational events and business logic
+- **`aux_operational.jsonl`** - JSON Lines format for structured log aggregation (Elasticsearch, etc.)
+- **`aux_operational.csv`** - CSV format for data analysis tools
 
-*   **`tme.log`**:
-    *   **Purpose**: Records timing information for various operations.
-    *   **Generated by**: `tme` module (`lib/core/tme`)
-    *   **Key Functions**:
-        *   `tme_init_timer`
-        *   `tme_start_timer`
-        *   `tme_end_timer`
-        *   `tme_print_timing_report`
-    *   **Details**: Contains `[TME]` prefixed messages related to timer operations
+**Debug Logs (Development)**:
+- **`aux_debug.log`** - Human-readable debug information with function context
+- **`aux_debug.jsonl`** - JSON Lines format for debug data aggregation
+- **`aux_debug.csv`** - CSV format debug logs
 
-*   **`init_flow.log`**:
-    *   **Purpose**: Tracks the execution flow and timing of the main initialization script (`bin/ini`). Critical for debugging startup issues and module loading sequence problems.
-    *   **Format**: `INIT_SCRIPT_FLOW: [description] - HH:MM:SS.NNNNNNNNN`
-    *   **Writing Functions**: Direct `echo` statements in `bin/ini` at key execution milestones
-    *   **Key Tracking Points**:
-        *   Module sourcing start/completion
-        *   Component orchestrator loading
-        *   Runtime system initialization
-        *   Critical function calls (e.g., `setlogcontrol` calls)
-    *   **Terminal Output**: File-only logging (no terminal output)
-    *   **Usage Context**: Primarily used for correlating with other logs during troubleshooting
-    *   **Details**: Provides high-precision timestamps for diagnosing initialization timing and sequencing issues
+**Generated by functions**:
+- `aux_log()` - General operational logging with explicit levels
+- `aux_info()`, `aux_warn()`, `aux_err()` - Convenience operational functions
+- `aux_business()`, `aux_security()`, `aux_audit()`, `aux_perf()` - Specialized logging
+- `aux_dbg()` - Development and debug logging
 
-*   **Missing Log Files** (Referenced but not currently present):
-    *   None currently identified as missing that were previously part of the active system. `debug.log` has been replaced by `ini.log` and `ver.log`.
+**Format control**: Set via `AUX_LOG_FORMAT` environment variable:
+- `json` - Structured JSON with cluster metadata
+- `csv` - Comma-separated values with headers
+- `kv` - Key-value pairs (Splunk-compatible)
+- `human` - Default colored terminal format
 
-## State and Configuration Files in `${TMP_DIR}/.tmp`
+### Core Infrastructure Logs (`lib/core/*`)
 
-These files control logging behavior, maintain performance caches, and store persistent configuration across system sessions.
+**`lo1.log`**:
+- **Purpose**: Advanced hierarchical logging with color-coded indentation
+- **Used by**: `bin/orc` (Component Orchestrator) and other core infrastructure
+- **Format**: `HH:MM:SS.NN └─ message` with colored depth visualization
+- **Features**: 16-level color gradient, call stack depth caching, timing integration
+- **Control**: `setlog on|off` command, state persisted in `.tmp/lo1_state`
+
+**`err.log`**:
+- **Purpose**: Centralized error and warning repository
+- **Format**: `[SEVERITY] YYYY-MM-DD HH:MM:SS - [component] message`
+- **Functions**: `handle_error()`, `error_handler()`, `err_process()`
+- **Features**: Severity levels, component tracking, error statistics
+
+**`tme.log`**:
+- **Purpose**: Timing and performance measurement data
+- **Functions**: `tme_start_timer()`, `tme_end_timer()`, `tme_print_timing_report()`
+- **Features**: Hierarchical timing, configurable reports, performance analysis
+
+### Initialization and Bootstrap Logs
+
+**`ini.log`**:
+- **Purpose**: Main initialization script (`bin/ini`) logging
+- **Format**: `[INI] HH:MM:SS - [source_function] message`
+- **Function**: `ini_log()` embedded in `bin/ini`
+- **Usage**: Startup sequence debugging, module loading issues
+
+**`ver.log`**:
+- **Purpose**: System verification and validation logging
+- **Format**: `[VER] YYYY-MM-DD HH:MM:SS - [source_function] message`
+- **Function**: `ver_log()` in `lib/core/ver`
+- **Usage**: Path verification, module integrity checks, dependency validation
+
+**`init_flow.log`**:
+- **Purpose**: High-precision initialization timing and flow tracking
+- **Format**: `INIT_SCRIPT_FLOW: [description] - HH:MM:SS.NNNNNNNNN`
+- **Usage**: Correlating initialization timing, diagnosing startup performance
+
+## State and Configuration Files (`.tmp/`)
+
+### Enhanced Auxiliary System State
+
+The auxiliary logging system is **stateless by design** - it requires no persistent state files and is controlled entirely through environment variables:
+
+- **`AUX_LOG_FORMAT`** - Controls output format (json|csv|kv|human)
+- **`AUX_DEBUG_ENABLED`** - Controls debug output (1|0)
+- **`MASTER_TERMINAL_VERBOSITY`** - Master terminal control (on|off)
 
 ### Core Logging State Files
 
-*   **`lo1_state`**:
-    *   **Purpose**: Stores persistent state ("on" or "off") for the main logging system (`lo1`). Controls whether logging output is enabled or disabled across sessions.
-    *   **Environment Variable**: Referenced as `LOG_STATE_FILE` in `cfg/core/ric`
-    *   **Writing Functions**:
-        *   `setlog on|off` in `lib/core/lo1`: User-controlled state toggling
-        *   `init_state_files` in `lib/core/lo1`: Initialization with default "on"
-    *   **Reading Functions**:
-        *   `log` function reads this file before each log operation
-        *   `init_logger` reads on startup to restore previous state
-    *   **Valid Values**: "on" (enable logging) | "off" (disable logging)
-    *   **Default Behavior**: If missing or empty, defaults to "on"
-    *   **Integration**: The `tme` module temporarily modifies this file during its own logging operations to prevent recursion
-    *   **Details**: Central control point for all `lo1` logging output, respected by both file and terminal logging
+**`lo1_state`**:
+- **Purpose**: Persistent on/off state for lo1 logging system
+- **Values**: "on" | "off"
+- **Control**: `setlog on|off` command
+- **Default**: "on" if missing
 
-### Performance and Cache Files
+**`lo1_depth_cache`**:
+- **Purpose**: Performance cache for call stack depth calculations
+- **Usage**: Automatically managed by lo1 for hierarchical indentation
+- **Cleanup**: Automatic every 300 seconds
 
-*   **`lo1_depth_cache`**:
-    *   **Purpose**: Performance optimization cache for call stack depth calculations in the `lo1` module. Stores computed depths to avoid expensive recalculation.
-    *   **Environment Variable**: Referenced as `LOG_DEPTH_CACHE_FILE`
-    *   **Writing Functions**:
-        *   `get_base_depth` in `lib/core/lo1`: Automatically caches calculated depths
-        *   `cleanup_cache` in `lib/core/lo1`: Periodic cache clearing (every 300 seconds)
-        *   `init_state_files` in `lib/core/lo1`: Creates empty cache file on initialization
-    *   **Cache Strategy**:
-        *   Key: Function name, Value: Calculated call stack depth
-        *   Automatic cleanup every 5 minutes to prevent stale data
-        *   Cleared on logger cleanup
-    *   **Performance Impact**: Significantly reduces CPU overhead for hierarchical logging in deep call stacks
-    *   **Data Format**: Internal associative array structure (not human-readable)
-    *   **Details**: Critical for maintaining logging performance in complex script execution scenarios
+### Timing System State Files
 
-### Timing System Configuration Files
+**`tme_state`**:
+- **Purpose**: Controls timing report generation
+- **Values**: "true" | "false"
+- **Control**: `tme_settme report on|off`
 
-*   **`tme_state`**:
-    *   **Purpose**: Controls whether the timing module generates terminal reports. Separate from timing log file generation.
-    *   **Environment Variable**: Referenced as `TME_STATE_FILE` in `cfg/core/ric`
-    *   **Writing Functions**:
-        *   `tme_settme report on|off` in `lib/core/tme`: User-controlled report toggling
-        *   Automatic initialization in `tme_init_timer`: Defaults to "true" if missing
-    *   **Reading Functions**:
-        *   `tme_print_timing_report` checks this file before generating terminal output
-    *   **Valid Values**: "true" (enable reports) | "false" (disable reports)
-    *   **Default Behavior**: If missing or empty, defaults to "true"
-    *   **Details**: Controls terminal report generation while timing data continues to be logged to `tme.log`
+**`tme_levels`**:
+- **Purpose**: Maximum depth for timing report hierarchy
+- **Values**: Integer 1-9
+- **Control**: `tme_settme depth N`
 
-*   **`tme_levels`**:
-    *   **Purpose**: Determines the maximum depth of component hierarchy displayed in timing reports.
-    *   **Environment Variable**: Referenced as `TME_LEVELS_FILE` in `cfg/core/ric`
-    *   **Writing Functions**:
-        *   `tme_settme depth N` in `lib/core/tme`: User-controlled depth setting (1-9)
-        *   Automatic initialization in `tme_init_timer`: Defaults to "9" if missing
-    *   **Reading Functions**:
-        *   `tme_print_timing_report` uses this value to limit tree depth in reports
-        *   `print_tree_recursive` respects this depth limit during output generation
-    *   **Valid Values**: Integer 1-9 (depth levels)
-    *   **Default Behavior**: If missing or empty, defaults to "9" (maximum depth)
-    *   **Details**: Allows users to focus on high-level timing without overwhelming detail
-
-*   **`tme_sort_order`**:
-    *   **Purpose**: Determines the sort order for components in timing reports.
-    *   **Environment Variable**: Referenced as `TME_SORT_ORDER_FILE_PATH` in `cfg/core/ric`
-    *   **Writing Functions**:
-        *   `tme_settme sort chron|duration` in `lib/core/tme`: User-controlled sort order
-        *   Automatic initialization in `tme_init_timer`: Defaults to "chron" if missing
-    *   **Reading Functions**:
-        *   `tme_print_timing_report` determines display order based on this setting
-        *   `sort_components_by_duration` function triggered when set to "duration"
-    *   **Valid Values**: "chron" (chronological order) | "duration" (longest first)
-    *   **Default Behavior**: If missing or empty, defaults to "chron"
-    *   **Details**: "chron" shows execution order; "duration" highlights performance bottlenecks
-
-### Missing State Files (Referenced but not currently present)
-
-*   **`lo2_state`**: Would store the persistent state for the `lo2` control structure tracking system
-    *   Expected environment variable: `LOG_CONTROL_STATE_FILE`
-    *   Expected functions: `setlogcontrol on|off` in `lib/util/lo2`
-    *   Status: Associated with the currently inactive `lo2` module
-
-*   **`err_state`**: Error handling system state file
-    *   Expected functions: Error tracking and reporting state management
-    *   Status: Referenced in documentation but not actively used in current system
+**`tme_sort_order`**:
+- **Purpose**: Sort order for timing reports
+- **Values**: "chron" | "duration" 
+- **Control**: `tme_settme sort chron|duration`
 
 ## Environment Variables and Configuration
 
@@ -205,12 +167,16 @@ These files control logging behavior, maintain performance caches, and store per
 LOG_DIR="${LOG_DIR:-${LAB_DIR}/.log}"     # Log file location
 TMP_DIR="${TMP_DIR:-${LAB_DIR}/.tmp}"     # State file location
 
-# Log file paths
+# Core infrastructure log files
 ERROR_LOG="${LOG_DIR}/err.log"            # Error log
-INI_LOG_FILE="${LOG_DIR}/ini.log"         # Initialization script log
-VER_LOG_FILE="${LOG_DIR}/ver.log"         # Verification module log
-LOG_FILE="${LOG_DIR}/lo1.log"             # Main lo1 log
+INI_LOG_FILE="${LOG_DIR}/ini.log"         # Initialization log
+VER_LOG_FILE="${LOG_DIR}/ver.log"         # Verification log
+LOG_FILE="${LOG_DIR}/lo1.log"             # Advanced logging
 TME_LOG_FILE="${LOG_DIR}/tme.log"         # Timing log
+
+# Enhanced auxiliary logs (auto-generated by lib/gen/aux)
+# aux_operational.{log,jsonl,csv}         # Operational events
+# aux_debug.{log,jsonl,csv}               # Debug information
 
 # State file paths
 LOG_STATE_FILE="${TMP_DIR}/lo1_state"     # Lo1 on/off state
@@ -218,337 +184,341 @@ TME_STATE_FILE="${TMP_DIR}/tme_state"     # Timing report state
 TME_LEVELS_FILE="${TMP_DIR}/tme_levels"   # Timing report depth
 ```
 
-### Terminal Verbosity Controls (`cfg/core/ric`)
+### Enhanced Auxiliary Logging Configuration
+
+```bash
+# Output format control
+export AUX_LOG_FORMAT="json"              # json|csv|kv|human
+
+# Debug output control
+export AUX_DEBUG_ENABLED="1"              # 1=enable, 0=disable
+
+# Cluster metadata (for distributed systems)
+export CLUSTER_ID="production-cluster-01"
+export SERVICE_NAME="user-service"
+export NODE_ID="${HOSTNAME}"
+
+# Performance metrics integration
+export METRICS_ENDPOINT="http://metrics-server:8080"
+
+# Distributed tracing (auto-generated when using aux_start_trace)
+# TRACE_ID - Correlation ID for request tracing
+# REQUEST_ID - Unique request identifier
+```
+
+### Core Infrastructure Logging Controls
 
 ```bash
 # Master control (default: "off")
 MASTER_TERMINAL_VERBOSITY="off"
 
-# Module-specific controls (default: "on", require master "on")
-INI_LOG_TERMINAL_VERBOSITY="on"          # Initialization script messages (`bin/ini`)
-VER_LOG_TERMINAL_VERBOSITY="on"          # Verification module messages (`lib/core/ver`)
+# Module-specific controls (require master "on")
+INI_LOG_TERMINAL_VERBOSITY="on"          # Initialization messages
+VER_LOG_TERMINAL_VERBOSITY="on"          # Verification messages  
 LO1_LOG_TERMINAL_VERBOSITY="on"          # Advanced logging
 ERR_TERMINAL_VERBOSITY="on"              # Error messages
 TME_TERMINAL_VERBOSITY="on"              # Timing reports
 
-# TME nested terminal output controls (default: "on", require both master and TME "on")
-TME_REPORT_TERMINAL_OUTPUT="on"          # TME timing reports
-TME_TIMING_TERMINAL_OUTPUT="on"          # TME timing measurements
-TME_DEBUG_TERMINAL_OUTPUT="on"           # TME debug information
-TME_STATUS_TERMINAL_OUTPUT="on"          # TME status updates
-```
-
-### Behavioral Controls
-
-```bash
-# Lo1 module debug message generation (default: 1)
+# Lo1 debug message generation
 LOG_DEBUG_ENABLED=1                       # 1=enable, 0=disable lo1 debug
 
-# Error handling (defined in lib/core/err)
-ERROR_COUNT_FILE="${TMP_DIR}/err_count"   # Error statistics
-ERROR_STATE_FILE="${TMP_DIR}/err_state"   # Error system state
+# TME nested controls (require both master and TME "on")
+TME_REPORT_TERMINAL_OUTPUT="on"          # Timing reports
+TME_TIMING_TERMINAL_OUTPUT="on"          # Timing measurements
+TME_DEBUG_TERMINAL_OUTPUT="on"           # Debug information
+TME_STATUS_TERMINAL_OUTPUT="on"          # Status updates
 ```
 
-## Module Architecture and Function Reference
+## Function Reference by Logging System
 
-### Initialization Logging (`bin/ini`)
+### Enhanced Auxiliary Logging (`lib/gen/aux`) - PRIMARY SYSTEM
 
-**Primary Functions:**
-- `ini_log(message, [source], [priority])`: Core initialization logging.
-  - **Location**: `bin/ini`
-  - **Format**: `[INI] HH:MM:SS - [source] message`
-
-**Key Features:**
-- Logging for the earliest stages of system startup.
-- Conditional terminal output based on `MASTER_TERMINAL_VERBOSITY` and `INI_LOG_TERMINAL_VERBOSITY`.
-- Priority levels for messages.
-
-### Verification Logging Module (`lib/core/ver`)
-
-**Primary Functions:**
-- `ver_log(message, [source], [level])`: Core verification logging.
-  - **Location**: `lib/core/ver`
-  - **Format**: `[VER] YYYY-MM-DD HH:MM:SS - [source] message`
-
-**Key Features:**
-- Dedicated logging for path, variable, and module verification.
-- Conditional terminal output based on `MASTER_TERMINAL_VERBOSITY` and `VER_LOG_TERMINAL_VERBOSITY`.
-
-### Advanced Logging Module (`lib/core/lo1`)
-
-**Primary Functions:**
-- `log lvl "message"`: Main logging interface
-- `lo1_log_message(message, [level], [component])`: Module logging interface
-- `lo1_debug_log(message, [source])`: Internal debug logging
-- `setlog on|off`: Runtime logging control
-- `init_logger()`: System initialization
-
-**Key Features:**
-- 16-level color gradient for depth visualization
-- Hierarchical indentation based on call stack analysis
-- Performance-optimized depth caching
-- Integration with timing system
-- Persistent state management
-
-**Call Stack Analysis:**
-- `get_base_depth()`: Calculate call stack depth with caching
-- `get_indent(depth)`: Generate indentation string
-- `get_color(depth)`: Select color based on depth
-- `is_root_function(name)`: Identify execution entry points
-
-### Error Handling Module (`lib/core/err`)
-
-**Primary Functions:**
-- `handle_error(message, [component], [exit_code], [severity])`: Structured error logging
-- `error_handler(line_number, [error_code], [should_exit])`: Automatic trap handler
-- `print_error_report()`: Generate error summaries
-- `setup_error_handling()`: Initialize error tracking
-
-**Key Features:**
-- Severity levels (ERROR, WARNING)
-- Component tracking and timestamps
-- Automatic error statistics
-- Terminal and file output with verbosity controls
-
-### Timing Module (`lib/core/tme`)
-
-**Primary Functions:**
-- `tme_init_timer([log_dir])`: Initialize timing system
-- `tme_start_timer(component, [parent])`: Begin timing
-- `tme_end_timer(component, [status])`: End timing with status
-- `tme_print_timing_report()`: Generate performance report
-- `tme_settme report|sort|depth value`: Configure timing behavior
-
-**Nested Terminal Output Controls:**
-- `tme_set_output <type> <on|off>`: Runtime control of output types
-- `tme_show_output_settings`: Display current nested control settings
-- **Output Types**: `report` (timing reports), `timing` (measurements), `debug` (warnings), `status` (configuration)
-
-**Key Features:**
-- Hierarchical component timing with parent/child relationships
-- Configurable sort order (chronological or duration)
-- Adjustable report depth (1-9 levels)
-- Color-coded terminal reports with tree visualization
-- Granular terminal output control with nested switches
-- Integration with lo1 logging system
-
-**Control Hierarchy:**
-1. `MASTER_TERMINAL_VERBOSITY` - Master switch
-2. `TME_TERMINAL_VERBOSITY` - Module switch  
-3. `TME_*_TERMINAL_OUTPUT` - Specific output type switches
-
-**Timer Management:**
-- Supports nested timing relationships
-- Automatic cleanup on interrupted components
-- Performance statistics and summaries
-- File and terminal output with separate controls
-
-For detailed information about TME nested terminal output controls, see the **[Verbosity Controls Reference](verbosity.md)**.
-
-## User Interface and Control Commands
-
-### Runtime Logging Control
-
+**Operational Logging Functions**:
 ```bash
-# Advanced logging (lo1) control
-setlog on          # Enable lo1 logging output
-setlog off         # Disable lo1 logging output
+# General operational logging with explicit levels
+aux_log "INFO" "Service started successfully" "user_count=150,status=active"
+aux_log "ERROR" "Database connection failed" "host=db.example.com,timeout=30s"
 
-# Timing system control
-tme_settme report on|off              # Enable/disable timing reports
-tme_settme sort chron|duration        # Set report sort order
-tme_settme depth 1-9                  # Set report depth level
+# Convenience functions for common levels
+aux_info "User authentication successful" "user_id=123,method=oauth"
+aux_warn "Configuration file not found, using defaults" "file=/etc/app.conf"
+aux_err "Failed to process request" "request_id=abc123,error=timeout"
 
-# TME nested output control
-tme_set_output <type> <on|off>        # Control specific TME output types
-tme_show_output_settings              # Display current TME output settings
+# Specialized logging for specific domains
+aux_business "Order completed successfully" "order_id=12345,amount=99.99,customer=premium"
+aux_security "Failed login attempt" "ip=192.168.1.100,user=admin,attempts=3"
+aux_audit "Admin privileges granted" "admin=john,target_user=jane,permissions=write"
+aux_perf "Database query completed" "duration=250ms,table=users,rows=150"
 ```
 
-### Environment Variable Overrides
+**Development and Debug Logging**:
+```bash
+# Automatic function context capture
+aux_dbg "Starting validation process"               # Auto-captures calling function
+aux_dbg "Found 5 items in configuration" "INFO"    # Optional severity level
+aux_dbg "Variable state: count=$count, status=$status"
+
+# Distributed tracing
+aux_start_trace "user_registration"               # Generates correlation IDs
+aux_dbg "Processing user data"                     # Includes trace context
+aux_end_trace                                      # Closes trace span
+
+# Performance metrics
+aux_metric "response_time" 125.5 "gauge"          # Performance monitoring
+aux_metric "cache_hits" 8543 "counter"            # Operational metrics
+```
+
+**Key Features**:
+- **Structured Context**: All functions support `key=value,key2=value2` context data
+- **Multiple Formats**: Automatic output in JSON, CSV, key-value, or human-readable
+- **Cluster Metadata**: Automatic collection of node, cluster, and service information
+- **Independent Operation**: No dependencies on other logging systems
+- **Production Ready**: Designed for centralized log aggregation and monitoring
+
+### Core Infrastructure Logging (`lib/core/*`)
+
+**Advanced Logging Module (`lib/core/lo1`)**:
+```bash
+# Main logging interface (used by bin/orc)
+log lvl "Component initialization completed"
+
+# Module logging interface
+lo1_log_message "Service started" 1 "orchestrator"
+
+# Runtime control
+setlog on                                          # Enable logging output
+setlog off                                         # Disable logging output
+
+# Debug logging (internal)
+lo1_debug_log "Cache updated" "component_name"
+```
+
+**Error Handling (`lib/core/err`)**:
+```bash
+# Structured error logging
+handle_error "Operation failed" "gpu_module" 1 "ERROR"
+
+# Automatic trap handler (set via trap)
+error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
+
+# Error reporting
+print_error_report                                 # Generate error summary
+```
+
+**Timing Module (`lib/core/tme`)**:
+```bash
+# Timer management
+tme_start_timer "component_name" "parent_component"
+tme_end_timer "component_name" "success"
+
+# Report generation
+tme_print_timing_report                            # Generate performance report
+
+# Configuration
+tme_settme report on|off                           # Control reports
+tme_settme sort chron|duration                     # Set sort order
+tme_settme depth 1-9                               # Set report depth
+```
+
+### Initialization Logging
+
+**Initialization Script (`bin/ini`)**:
+```bash
+# Internal logging function (embedded in bin/ini)
+ini_log "Module loading completed" "init_system" "$LOG_PRIORITY_NORMAL"
+```
+
+**Verification Module (`lib/core/ver`)**:
+```bash
+# System verification logging
+ver_log "Path validation completed" "verify_paths" 1
+```
+
+## Usage Patterns and Best Practices
+
+### For New lib/ops Functions
+
+**REQUIRED**: All `lib/ops` functions must use the enhanced auxiliary logging system according to the `.spec` standard:
 
 ```bash
-# Override default directories
-export LOG_DIR="/custom/log/path"
-export TMP_DIR="/custom/tmp/path"
+#!/bin/bash
+# Source the enhanced logging system
+source lib/gen/aux
 
-# Control debug message generation
-export LOG_DEBUG_ENABLED=0            # Disable lo1 debug messages
+# Example GPU passthrough function
+gpu_passthrough() {
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+    
+    if [ $# -ne 3 ]; then
+        aux_use
+        return 1
+    fi
+    
+    local gpu_id="$1"
+    local host="$2"
+    local driver="$3"
+    
+    # Entry logging
+    aux_info "GPU passthrough initiated" "gpu_id=$gpu_id,host=$host,driver=$driver"
+    
+    # Business logic with error handling
+    if ! validate_gpu "$gpu_id"; then
+        aux_err "GPU validation failed" "gpu_id=$gpu_id,error=device_not_found"
+        return 1
+    fi
+    
+    # Debug information
+    aux_dbg "GPU device located and validated"
+    
+    # Performance tracking
+    aux_start_trace "gpu_passthrough_${gpu_id}"
+    
+    # Execute operations with audit trail
+    aux_audit "GPU driver binding initiated" "gpu_id=$gpu_id,driver=$driver,admin=$USER"
+    
+    # Success logging
+    aux_business "GPU passthrough completed" "gpu_id=$gpu_id,host=$host,status=active"
+    aux_end_trace
+}
+```
 
-# Override verbosity (requires master=on for effect)
+### For Core Infrastructure
+
+Use `lib/core/lo1` for orchestration and core system components:
+
+```bash
+# In bin/orc or similar infrastructure code
+lo1_log "lvl" "Component orchestration started"
+tme_start_timer "component_setup"
+
+# Execute components with timing
+execute_component "source_lib_ops" "LIB_OPS" "$COMPONENT_REQUIRED"
+
+lo1_log "lvl" "All components initialized successfully"
+tme_end_timer "component_setup" "success"
+```
+
+### For Initialization and Bootstrap
+
+Use specific initialization logging for startup sequences:
+
+```bash
+# In bin/ini
+ini_log "Loading core modules" "bootstrap" "$LOG_PRIORITY_NORMAL"
+
+# In lib/core/ver
+ver_log "Verifying system dependencies" "verify_deps" 1
+```
+
+## Configuration Scenarios
+
+### Development Environment
+
+```bash
+# Enable all logging for comprehensive debugging
 export MASTER_TERMINAL_VERBOSITY="on"
-export LO1_LOG_TERMINAL_VERBOSITY="off"
+export AUX_DEBUG_ENABLED="1"
+export AUX_LOG_FORMAT="human"
+export LOG_DEBUG_ENABLED="1"
 
-# TME nested control examples
-export TME_TERMINAL_VERBOSITY="on"           # Enable TME module
-export TME_REPORT_TERMINAL_OUTPUT="on"       # Enable timing reports
-export TME_TIMING_TERMINAL_OUTPUT="off"      # Disable timing measurements
-export TME_DEBUG_TERMINAL_OUTPUT="on"        # Enable debug output
-export TME_STATUS_TERMINAL_OUTPUT="off"      # Disable status messages
+# Enhanced auxiliary functions provide rich debug output
+aux_dbg "Development mode enabled"
+setlog on  # Enable lo1 output
 ```
 
-## Troubleshooting and Diagnostics
+### Production Environment
 
-### Common Issues and Solutions
-
-**Issue**: No terminal output despite logging being "on"
-- **Cause**: `MASTER_TERMINAL_VERBOSITY="off"` (default)
-- **Solution**: `export MASTER_TERMINAL_VERBOSITY="on"`
-
-**Issue**: Logging performance degradation in deep call stacks
-- **Cause**: Depth cache not functioning or too frequent cleanup
-- **Diagnostics**: Check `lo1_depth_cache` file and `[LO1-DEBUG]` messages
-- **Solution**: Verify `TMP_DIR` writable, check cache cleanup interval
-
-**Issue**: Timing reports not appearing
-- **Cause**: `TME_STATE_FILE` set to "false" or verbosity disabled
-- **Diagnostics**: Check file content and verbosity settings
-- **Solution**: `tme_settme report on` and verify `TME_TERMINAL_VERBOSITY="on"`
-
-**Issue**: Some TME outputs missing despite TME verbosity enabled
-- **Cause**: Nested TME terminal output controls disabled
-- **Diagnostics**: Check specific `TME_*_TERMINAL_OUTPUT` variables
-- **Solution**: Use `tme_set_output <type> on` or `tme_show_output_settings` to verify configuration
-
-**Issue**: TME nested controls not working
-- **Cause**: Missing hierarchy requirements (master or module verbosity disabled)
-- **Diagnostics**: Verify `MASTER_TERMINAL_VERBOSITY="on"` and `TME_TERMINAL_VERBOSITY="on"`
-- **Solution**: Enable both master and module verbosity before using nested controls
-
-**Issue**: Missing log files
-- **Cause**: Directory creation failure or permission issues  
-- **Diagnostics**: Check `LOG_DIR` and `TMP_DIR` existence and permissions
-- **Solution**: Verify directory paths and create manually if needed
-
-### Log File Analysis Workflow
-
-1. **Check `init_flow.log`** for initialization sequence and timing.
-2. **Review `ini.log`** for issues during the main `bin/ini` script execution.
-3. **Review `ver.log`** for failures in the `lib/core/ver` verification processes.
-4. **Examine `err.log`** for errors and warnings with component context.
-5. **Analyze `lo1.log`** for detailed application flow with hierarchical context.
-6. **Study `tme.log`** for performance bottlenecks and timing analysis.
-
-### Verbosity Configuration Matrix
-
-| Scenario | Master | Ini/Ver | Lo1 | Err | Tme | TME Nested | Result |
-|----------|--------|---------|-----|-----|-----|------------|---------|
-| Silent   | off    | *       | *   | *   | *   | *          | File logging only |
-| Selective| on     | off     | on  | on  | off | *          | Lo1 + errors only |
-| Debug    | on     | on      | on  | on  | on  | all on     | Full output |
-| Production| on    | off     | off | on  | off | *          | Errors only |
-| TME Only | on     | off     | off | off | on  | selective  | TME outputs only |
-| TME Reports| on   | off     | off | off | on  | report=on, others=off | TME reports only |
-
-**Note on "Ini/Ver" column**: This represents `INI_LOG_TERMINAL_VERBOSITY` and `VER_LOG_TERMINAL_VERBOSITY`. Both need to be "on" along with "Master" for their respective terminal outputs.
-
-**TME Nested Controls Examples:**
-- `report=off, timing=on, debug=on, status=off`: Show measurements and debug, no reports or status
-- `report=on, timing=off, debug=off, status=off`: Show only timing reports, no other TME output
-- All nested controls require both `MASTER_TERMINAL_VERBOSITY="on"` and `TME_TERMINAL_VERBOSITY="on"`
-
-## Integration with External Systems
-
-### TME Module Nested Terminal Output Controls
-
-The TME module implements a sophisticated nested terminal output control system that provides granular control over different types of timing-related terminal output while maintaining the hierarchical verbosity requirements.
-
-#### Control Variables
-
-The following nested controls are available for the TME module:
-
-- **`TME_REPORT_TERMINAL_OUTPUT`**: Controls timing reports generated by `tme_print_timing_report`
-- **`TME_TIMING_TERMINAL_OUTPUT`**: Controls timing measurements and duration data output
-- **`TME_DEBUG_TERMINAL_OUTPUT`**: Controls TME debug information and warning messages
-- **`TME_STATUS_TERMINAL_OUTPUT`**: Controls TME status updates and configuration messages
-
-#### Control Hierarchy
-
-The nested controls implement a three-tier hierarchy:
-
-1. **`MASTER_TERMINAL_VERBOSITY`** - Must be "on" (master switch)
-2. **`TME_TERMINAL_VERBOSITY`** - Must be "on" (module switch)  
-3. **`TME_*_TERMINAL_OUTPUT`** - Individual output type switches
-
-All three levels must be "on" for specific TME output to appear in the terminal.
-
-#### Runtime Control Functions
-
-- **`tme_set_output <type> <on|off>`**: Dynamic control of output types
-  - Types: `report`, `timing`, `debug`, `status`
-  - Example: `tme_set_output debug off`
-- **`tme_show_output_settings`**: Display current configuration
-  - Shows all verbosity levels and nested control settings
-
-#### Use Cases
-
-**Development Mode**: Enable all outputs for comprehensive debugging
 ```bash
+# Structured logging for centralized aggregation
+export AUX_LOG_FORMAT="json"
+export CLUSTER_ID="production-cluster-01"
+export SERVICE_NAME="lab-ops"
+
+# Silent terminal, structured logs only
+export MASTER_TERMINAL_VERBOSITY="off"
+export AUX_DEBUG_ENABLED="0"
+
+# Production operations logged in structured format
+aux_business "Service deployment completed" "version=2.1.0,environment=production"
+```
+
+### Testing Environment
+
+```bash
+# Mixed approach - structured output with selective terminal
+export AUX_LOG_FORMAT="json"
 export MASTER_TERMINAL_VERBOSITY="on"
-export TME_TERMINAL_VERBOSITY="on"
-# All nested controls default to "on"
+export ERR_TERMINAL_VERBOSITY="on"      # Errors to terminal
+export AUX_DEBUG_ENABLED="1"            # Debug to files
+
+# Testing with both systems
+aux_info "Test suite started" "suite=integration,test_count=25"
+lo1_log "lvl" "Test infrastructure initialized"
 ```
 
-**Production Mode**: Show only essential timing reports
-```bash
-tme_set_output debug off    # Disable debug messages
-tme_set_output timing off   # Disable detailed measurements
-tme_set_output status off   # Disable status updates
-# Keep report output enabled for performance monitoring
-```
+## Log File Analysis Workflow
 
-**Silent Timing**: Collect timing data without terminal output
-```bash
-export TME_TERMINAL_VERBOSITY="off"
-# All nested controls become inactive, but file logging continues
-```
-
-### Log Rotation and Archival
-
-The system creates new log files on each initialization by clearing existing files. For production use, consider:
+### 1. Current System Status
 
 ```bash
-# Backup logs before initialization
-cp ${LOG_DIR}/*.log ${LOG_DIR}/archive/$(date +%Y%m%d_%H%M%S)/
+# Check enhanced auxiliary logs (primary system)
+tail -f "${LOG_DIR}/aux_operational.log"           # Human-readable operations
+jq . "${LOG_DIR}/aux_operational.jsonl"            # Structured operational data
+tail -f "${LOG_DIR}/aux_debug.log"                 # Development debug output
 
-# Or implement log rotation
-logrotate /etc/logrotate.d/lab-system
+# Check core infrastructure
+tail -f "${LOG_DIR}/lo1.log"                       # Orchestration and core systems
+tail -f "${LOG_DIR}/err.log"                       # Error analysis
 ```
 
-### Monitoring Integration
+### 2. Initialization Issues
 
-Key files for monitoring systems:
-- `${LOG_DIR}/err.log`: Error detection and alerting
-- `${TMP_DIR}/err_state`: Error system health
-- `${LOG_DIR}/tme.log`: Performance trending
-- `${TMP_DIR}/*_state`: System component status
+```bash
+# Startup sequence analysis
+tail -f "${LOG_DIR}/init_flow.log"                 # High-precision timing
+tail -f "${LOG_DIR}/ini.log"                       # Initialization details
+tail -f "${LOG_DIR}/ver.log"                       # Verification failures
+```
 
-### Development Workflow
+### 3. Performance Analysis
 
-For debugging and development:
-1. Enable full verbosity: `export MASTER_TERMINAL_VERBOSITY="on"`
-2. Enable lo1 debugging: `export LOG_DEBUG_ENABLED=1`
-3. Monitor real-time: `tail -f ${LOG_DIR}/*.log`
-4. Analyze timing: `tme_settme sort duration && tme_settme depth 3`
+```bash
+# Timing and performance
+tail -f "${LOG_DIR}/tme.log"                       # Core system timing
+grep "aux_perf\|aux_metric" "${LOG_DIR}/aux_operational.log"  # Application performance
+```
 
-For TME-specific debugging:
-1. Enable TME verbosity: `export TME_TERMINAL_VERBOSITY="on"`
-2. Enable selective output: `tme_set_output debug on && tme_set_output status on`
-3. Monitor timing patterns: `tme_set_output timing on && tme_set_output report on`
-4. Check configuration: `tme_show_output_settings`
+### 4. Security and Audit
 
-For production monitoring:
-1. Silent mode: `export MASTER_TERMINAL_VERBOSITY="off"`
-2. Essential TME only: `tme_set_output report on && tme_set_output timing off`
-3. Error tracking: Keep `ERR_TERMINAL_VERBOSITY="on"` with master enabled
+```bash
+# Security events
+grep "aux_security\|aux_audit" "${LOG_DIR}/aux_operational.log"
+jq 'select(.level=="security" or .level=="audit")' "${LOG_DIR}/aux_operational.jsonl"
+```
 
-## Summary of Key Logging Modules and Functions
+## Migration from Legacy Documentation
 
-*   **`lib/core/lo1` (Advanced Logging Module)**:
-    *   `log`, `log_message`, `log_with_timer`, `lo1_debug_log`: Write to `.log/lo1.log` (main application and `lo1` module-specific debug log).
-    *   Manages `.tmp/lo1_depth_cache` (performance cache) and `.tmp/log_state` (logging on/off).
-*   **`tme` module (Timing and Performance Module)**:
-    *   `tme_start_timer`, `tme_end_timer`, `tme_print_timing_report`: Write to `.log/tme.log` (timing details).
-    *   Manages `.tmp/tme_levels` (report depth) and `.tmp/tme_state` (report on/off).
-*   **Error Handling (e.g., `lib/core/err`)**:
-    *   Writes to: `.log/err.log` (via `ERROR_LOG` variable).
-    *   Purpose: Centralized error reporting.
+The previous logging documentation described a legacy architecture. Key changes:
+
+**REPLACED**:
+- Complex hierarchical verbosity matrices
+- Legacy module dependencies
+- Outdated file references
+
+**ENHANCED**:
+- **Primary focus on enhanced auxiliary logging** (`lib/gen/aux`)
+- **Clear separation of concerns** between logging systems
+- **Production-ready structured logging** with enterprise features
+- **Simplified configuration** with environment variables
+- **Modern observability features** (tracing, metrics, cluster metadata)
+
+**CURRENT STATE**:
+- All `lib/ops` functions use enhanced auxiliary logging
+- Core infrastructure uses `lib/core/lo1` system  
+- Initialization uses specialized bootstrap logging
+- All systems coexist and serve different purposes
+
+This architecture provides both **development agility** (through comprehensive debug logging) and **operational excellence** (through structured, aggregatable logs) while maintaining **backward compatibility** with existing core infrastructure.
