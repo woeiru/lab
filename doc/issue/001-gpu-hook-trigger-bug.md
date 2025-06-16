@@ -127,18 +127,19 @@ The original issue was that `pve_vms` function did not automatically register ho
 
 ---
 
-## Issue #001b: GPU Persistent Binding Issue After pve_vms Usage
+## Issue #001b: GPU Re-binding After Hook Execution
 
 ### Summary
-GPU attachment fails to work properly after using `pve_vms` orchestrator. The GPU becomes persistently bound to vfio-pci and cannot be successfully reattached to host drivers, even when using direct `gpu pta` commands.
+Hook system successfully triggers and executes GPU reattachment, but GPU gets automatically rebound to vfio-pci after successful attachment to nouveau driver.
 
 ### Problem Description
 **Critical Discovery (2025-06-17 01:31:36):**
-The issue is more complex than initially identified. After using `pve_vms`, the GPU enters a state where:
+The issue is that while the hook system executes successfully and reports successful GPU attachment to nouveau driver, the GPU gets automatically rebound to vfio-pci shortly after. This results in:
 1. Hook system executes successfully and reports successful GPU attachment
-2. Manual `gpu pta -d lookup` also reports successful attachment
-3. **However**: Display remains black and GPU is functionally unusable
-4. Only solution is to use `gpu ptd` followed by `gpu pta` to restore functionality
+2. GPU briefly binds to nouveau driver (confirmed in logs)
+3. **However**: GPU gets automatically rebound to vfio-pci afterward
+4. Display remains black and GPU is functionally unusable
+5. Only solution is to use `gpu ptd` followed by `gpu pta` to restore functionality
 
 **Comparison of Working vs Broken States:**
 
@@ -168,75 +169,74 @@ The issue is more complex than initially identified. After using `pve_vms`, the 
 ```
 
 ### Evidence
-**Hook Execution Logs (2025-06-17 01:19:11):**
+**Hook Execution Logs (Multiple instances from 2025-06-16):**
 ```
-GPU successfully bound to host driver [pci_id=0a:00.0,host_driver=nouveau,status=success]
-GPU successfully bound to host driver [pci_id=0a:00.1,host_driver=nouveau,status=success]  
-GPU attachment process completed [status=complete]
+17:52:28 - GPU successfully bound to host driver [pci_id=0a:00.0,host_driver=nouveau,status=success]
+17:52:28 - GPU successfully bound to host driver [pci_id=0a:00.1,host_driver=nouveau,status=success]
+17:52:28 - GPU attachment process completed [status=complete]
+
+18:40:32 - GPU successfully bound to host driver [pci_id=0a:00.0,host_driver=nouveau,status=success]
+18:40:32 - GPU successfully bound to host driver [pci_id=0a:00.1,host_driver=nouveau,status=success]
+18:40:32 - GPU attachment process completed [status=complete]
+
+21:41:56 - GPU successfully bound to host driver [pci_id=0a:00.0,host_driver=nouveau,status=success]
+21:41:56 - GPU successfully bound to host driver [pci_id=0a:00.1,host_driver=nouveau,status=success]
+21:41:56 - GPU attachment process completed [status=complete]
 ```
 
-**Manual Attachment Logs (2025-06-17 01:31:36):**
-```
-GPU successfully bound to host driver [pci_id=0a:00.0,host_driver=nouveau,status=success]
-GPU successfully bound to host driver [pci_id=0a:00.1,host_driver=nouveau,status=success]
-GPU attachment process completed [status=complete]
-```
+**Pattern Identified:**
+Multiple successful hook executions show the GPU attachment process completes successfully, but the GPU gets automatically rebound to vfio-pci afterward by an external process or system configuration.
 
-**Current GPU State:**
-```
-$ lspci -k -s 0a:00.0
-Kernel driver in use: vfio-pci  # Despite successful attachment reports
-```
+### Root Cause Analysis
+**UPDATED DIAGNOSIS (2025-06-17):**
 
-### Root Cause Identified
-**CONFIRMED**: The issue is in the `pve_vms` function's automatic GPU management logic (/root/lab/lib/ops/pve:1417-1439).
+The issue is **NOT** in the `pve_vms` function as previously suspected. The root cause is an **automatic rebinding system** that rebinds the GPU to vfio-pci after successful hook execution.
 
-**The Problem**:
-1. `pve_vms` automatically calls `$LAB_DIR/dic/ops gpu ptd -d lookup` when GPU status is "ATTACHED"
-2. This automatic detachment leaves the GPU in an **inconsistent hardware state**
-3. Unlike direct `gpu ptd` usage, the automatic detachment within `pve_vms` workflow corrupts GPU state
-4. Subsequent `gpu pta` commands report success but GPU remains functionally unusable
-5. Only manual `gpu ptd` followed by `gpu pta` can restore proper GPU state
+**Key Findings**:
+1. Hook system executes successfully and binds GPU to nouveau driver
+2. GPU attachment process completes with success status
+3. **External process** automatically rebinds GPU back to vfio-pci
+4. This rebinding happens **after** hook completion but **before** user can use GPU
+5. Timing suggests udev rules, systemd service, or kernel module configuration
 
-**Code Location**: `/root/lab/lib/ops/pve` lines 1424-1435:
-```bash
-local gpu_status=$("$LAB_DIR/dic/ops" gpu pts 2>/dev/null | grep -o "ATTACHED\|DETACHED" | head -n1)
-if [ "$gpu_status" = "ATTACHED" ]; then
-    aux_info "GPU is attached to host, performing detach for VM passthrough"
-    if ! "$LAB_DIR/dic/ops" gpu ptd -d lookup; then
-        aux_warn "GPU detach operation failed, VM may not have GPU access"
-    else
-        aux_info "GPU successfully detached for VM passthrough"
-    fi
-```
+**Evidence Analysis**:
+- Multiple hook executions show identical pattern: success → automatic rebinding
+- Hook logs show successful nouveau binding at exact timestamps
+- GPU becomes unusable despite successful attachment reports
+- Only manual `gpu ptd` → `gpu pta` cycle breaks the rebinding cycle
 
-**Why This Breaks**: The automated detachment within the `pve_vms` execution context leaves the GPU hardware in a corrupted state where driver binding operations report success but don't actually work.
+**System Suspects**:
+1. **udev rules** that automatically bind GPU devices to vfio-pci
+2. **Persistent device configuration** in `/sys/bus/pci/drivers/`
+3. **systemd services** managing GPU state
+4. **Kernel module** loading order or dependencies
 
 ### Root Cause Investigation Plan
 
-#### Phase 1: State Corruption Analysis  
-- [ ] Compare GPU hardware state before/after `pve_vms` vs direct commands
-- [ ] Check GPU power management states during different startup methods
-- [ ] Verify complete driver unbinding during `pve_vms` execution
-- [ ] Analyze IOMMU group state differences between methods
+#### Phase 1: Automatic Rebinding Investigation (HIGH PRIORITY)
+- [ ] Check udev rules that might rebind GPU to vfio-pci
+- [ ] Monitor GPU driver changes in real-time during next test
+- [ ] Verify systemd services that might affect GPU binding
+- [ ] Check kernel command line parameters for persistent GPU assignment
+- [ ] Measure time between successful reattachment and rebinding
 
-#### Phase 2: pve_vms Workflow Analysis
-- [ ] Trace exact GPU operations performed by `pve_vms` function 
-- [ ] Compare GPU state transitions: direct vs pve_vms orchestrator
-- [ ] Identify missing cleanup or initialization steps in pve_vms
-- [ ] Check for race conditions in GPU state management
+#### Phase 2: System Configuration Analysis
+- [ ] Examine `/etc/udev/rules.d/` for GPU-specific binding rules
+- [ ] Check `/sys/bus/pci/drivers/vfio-pci/` for persistent device IDs
+- [ ] Analyze kernel module dependencies and loading order
+- [ ] Review systemd unit files for GPU management services
 
-#### Phase 3: Hardware State Verification
-- [ ] Monitor PCI configuration space during different startup methods
-- [ ] Check GPU memory mapping and BAR (Base Address Register) states
-- [ ] Verify GPU reset states and power management transitions
-- [ ] Test with different VM configurations to isolate triggering factors
+#### Phase 3: Real-time Monitoring
+- [ ] Set up continuous monitoring of GPU driver binding during hook execution
+- [ ] Track system calls and kernel events during rebinding process
+- [ ] Monitor dmesg/journal logs for automatic driver binding messages
+- [ ] Implement timing analysis to identify exact rebinding trigger
 
-#### Phase 4: Driver Stack Investigation  
-- [ ] Compare kernel module loading/unloading between methods
-- [ ] Check for residual vfio-pci state after reported successful attachment
-- [ ] Verify nouveau driver initialization completeness
-- [ ] Test alternative host drivers to isolate driver-specific issues
+#### Phase 4: Prevention Strategy Development
+- [ ] Test blacklisting vfio-pci temporarily to confirm rebinding source
+- [ ] Develop hook enhancement to prevent automatic rebinding
+- [ ] Create persistent nouveau binding mechanism
+- [ ] Test alternative GPU management approaches
 
 ### Test Procedure
 **Controlled State Testing:**
