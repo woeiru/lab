@@ -174,13 +174,13 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # <pci_id>
 _gpu_validate_pci_id() {
     local pci_id="$1"
-    aux_dbg "Validating PCI ID format" "component=gpu,operation=validate_pci,pci_id=${pci_id}"
+    aux_dbg "Validating PCI ID format" "component=gpu,operation=validate_pci,pci_id=${pci_id}" >&2
     
     if [[ "$pci_id" =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]]; then
-        aux_dbg "PCI ID validation successful" "component=gpu,operation=validate_pci,pci_id=${pci_id},result=valid"
+        aux_dbg "PCI ID validation successful" "component=gpu,operation=validate_pci,pci_id=${pci_id},result=valid" >&2
         return 0
     else
-        aux_warn "PCI ID validation failed" "component=gpu,operation=validate_pci,pci_id=${pci_id},result=invalid,expected_format=XX:XX.X"
+        aux_warn "PCI ID validation failed" "component=gpu,operation=validate_pci,pci_id=${pci_id},result=invalid,expected_format=XX:XX.X" >&2
         return 1
     fi
 }
@@ -190,7 +190,7 @@ _gpu_validate_pci_id() {
 # <pci_id>
 _gpu_extract_vendor_device_id() {
     local pci_id="$1"
-    aux_dbg "Extracting vendor and device ID" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id}"
+    aux_dbg "Extracting vendor and device ID" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id}" >&2
     
     local lspci_device_info
     lspci_device_info=$(lspci -s "$pci_id" -nn 2>/dev/null)
@@ -202,14 +202,14 @@ _gpu_extract_vendor_device_id() {
         if [ -n "$vendor_device_id" ]; then
             local vendor_id=$(echo "$vendor_device_id" | cut -d':' -f1)
             local device_id=$(echo "$vendor_device_id" | cut -d':' -f2)
-            aux_dbg "Successfully extracted vendor and device ID" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id},vendor_id=${vendor_id},device_id=${device_id}"
+            aux_dbg "Successfully extracted vendor and device ID" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id},vendor_id=${vendor_id},device_id=${device_id}" >&2
             echo "${vendor_id}:${device_id}"
             return 0
         else
-            aux_warn "Could not parse vendor:device ID from lspci output" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id},lspci_info=${lspci_device_info}"
+            aux_warn "Could not parse vendor:device ID from lspci output" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id},lspci_info=${lspci_device_info}" >&2
         fi
     else
-        aux_warn "No lspci output for PCI device" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id}"
+        aux_warn "No lspci output for PCI device" "component=gpu,operation=extract_vendor_device,pci_id=${pci_id}" >&2
     fi
     return 1
 }
@@ -380,7 +380,7 @@ _gpu_get_target_gpus() {
             pci1_id="$param5"
             ;;
         *)
-            aux_err "Invalid mode: $mode. Use 'hostname' or 'explicit'"
+            aux_err "Invalid mode: $mode. Use 'hostname' or 'explicit'" >&2
             return 1
             ;;
     esac
@@ -388,7 +388,7 @@ _gpu_get_target_gpus() {
     if [ -n "$gpu_id_arg" ]; then
         # Specific GPU ID provided
         if ! _gpu_validate_pci_id "$gpu_id_arg"; then
-            aux_err "Invalid PCI ID format provided" "pci_id=${gpu_id_arg},expected_format=XX:XX.X,mode=${mode}"
+            aux_err "Invalid PCI ID format provided" "pci_id=${gpu_id_arg},expected_format=XX:XX.X,mode=${mode}" >&2
             return 1
         fi
         
@@ -403,7 +403,7 @@ _gpu_get_target_gpus() {
                 gpus_to_process+=("$gpu_id_arg")
             fi
         else
-            aux_err "Specified PCI ID is not a VGA/3D/Audio controller or does not exist" "pci_id=${gpu_id_arg},mode=${mode}"
+            aux_err "Specified PCI ID is not a VGA/3D/Audio controller or does not exist" "pci_id=${gpu_id_arg},mode=${mode}" >&2
             return 1
         fi
     else
