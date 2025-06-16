@@ -897,8 +897,146 @@ EOL
         fi
     }
 
+    # Function to set up vm-shutdown-monitor system for guest-initiated shutdowns
+    setup_vm_shutdown_monitor() {
+        aux_info "Setting up vm-shutdown-monitor system" "vm_id=$vm_id"
+        
+        # Create the check-vm-status.sh script
+        local check_script="/usr/local/bin/check-vm-status.sh"
+        aux_dbg "Creating vm status check script" "script_path=$check_script"
+        
+        if ! cat > "$check_script" << 'EOF'
+#!/bin/bash
+VMID="$1"
+STATE_FILE="/tmp/vm-${VMID}-state"
+LOG_FILE="/var/log/vm-shutdown-monitor.log"
+
+# Get current VM status
+CURRENT_STATE=$(qm status "$VMID" 2>/dev/null | awk '{print $2}')
+
+# If qm command fails, assume VM doesn't exist
+if [[ -z "$CURRENT_STATE" ]]; then
+    CURRENT_STATE="nonexistent"
+fi
+
+# Check if we have a previous state recorded
+if [[ -f "$STATE_FILE" ]]; then
+    PREVIOUS_STATE=$(cat "$STATE_FILE")
+    
+    # Detect transition from running to stopped
+    if [[ "$PREVIOUS_STATE" == "running" && "$CURRENT_STATE" == "stopped" ]]; then
+        echo "$(date): VM $VMID shutdown detected (guest-initiated)" | tee -a "$LOG_FILE"
+        
+        # Trigger GPU reattachment using DIC wrapper with proper initialization
+        echo "$(date): Executing GPU reattachment for VM $VMID using DIC gpu pta" | tee -a "$LOG_FILE"
+        
+        # Set LAB_DIR if not already set (fallback to /root/lab for backward compatibility)
+        LAB_DIR=${LAB_DIR:-/root/lab}
+        cd "$LAB_DIR"
+        
+        # Properly initialize the lab environment and ensure aux module is loaded
+        export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        
+        # Create a wrapper script to ensure proper environment setup
+        cat > /tmp/gpu-reattach-wrapper.sh << 'WRAPPER_EOF'
+#!/bin/bash
+cd /root/lab
+export LAB_DIR=/root/lab
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Source the lab initialization script to set up environment variables
+source bin/ini >/dev/null 2>&1
+
+# Initialize lab framework
+./go >/dev/null 2>&1
+
+# Call GPU reattachment using pure function with lookup mode
+source "$LAB_DIR/lib/ops/gpu" && gpu_pta -d lookup
+WRAPPER_EOF
+        
+        chmod +x /tmp/gpu-reattach-wrapper.sh
+        /tmp/gpu-reattach-wrapper.sh 2>&1 | tee -a "$LOG_FILE"
+        rm -f /tmp/gpu-reattach-wrapper.sh
+    fi
+fi
+
+# Store current state for next check
+echo "$CURRENT_STATE" > "$STATE_FILE"
+EOF
+        then
+            aux_err "Failed to create vm status check script" "script_path=$check_script"
+            return 2
+        fi
+        
+        if aux_cmd "chmod" "755" "$check_script"; then
+            aux_info "VM status check script created successfully" "script_path=$check_script"
+        else
+            aux_err "Failed to set permissions on vm status check script" "script_path=$check_script"
+            return 2
+        fi
+        
+        # Create systemd service file
+        local service_file="/etc/systemd/system/vm-shutdown-monitor@.service"
+        aux_dbg "Creating systemd service file" "service_file=$service_file"
+        
+        if ! cat > "$service_file" << EOF
+[Unit]
+Description=VM %i Shutdown Monitor
+After=pve-cluster.service
+
+[Service]
+Type=oneshot
+ExecStart=$check_script %i
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        then
+            aux_err "Failed to create systemd service file" "service_file=$service_file"
+            return 2
+        fi
+        
+        # Create systemd timer file
+        local timer_file="/etc/systemd/system/vm-shutdown-monitor@.timer"
+        aux_dbg "Creating systemd timer file" "timer_file=$timer_file"
+        
+        if ! cat > "$timer_file" << EOF
+[Unit]
+Description=VM %i Shutdown Monitor Timer
+Requires=vm-shutdown-monitor@%i.service
+
+[Timer]
+OnCalendar=*:*:0/5
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+        then
+            aux_err "Failed to create systemd timer file" "timer_file=$timer_file"
+            return 2
+        fi
+        
+        # Reload systemd
+        if aux_cmd "systemctl" "daemon-reload"; then
+            aux_info "Systemd daemon reloaded successfully"
+        else
+            aux_err "Failed to reload systemd daemon"
+            return 2
+        fi
+        
+        aux_info "VM shutdown monitor system created successfully" "vm_id=$vm_id"
+    }
+
     # Create or update hook script
     if ! create_or_update_hook_script; then
+        return 1
+    fi
+    
+    # Set up vm-shutdown-monitor system
+    if ! setup_vm_shutdown_monitor; then
         return 1
     fi
 
@@ -954,6 +1092,22 @@ EOL
                 aux_err "Failed to apply hook to VM" "vm_id=$vm_id,hook_script=$hook_name"
                 return 2
             fi
+            
+            # Enable and start vm-shutdown-monitor timer for guest-initiated shutdowns
+            aux_info "Enabling vm-shutdown-monitor system" "vm_id=$vm_id"
+            if aux_cmd "systemctl" "enable" "vm-shutdown-monitor@$vm_id.timer"; then
+                aux_info "VM shutdown monitor timer enabled successfully" "vm_id=$vm_id"
+            else
+                aux_err "Failed to enable VM shutdown monitor timer" "vm_id=$vm_id"
+                return 2
+            fi
+            
+            if aux_cmd "systemctl" "start" "vm-shutdown-monitor@$vm_id.timer"; then
+                aux_info "VM shutdown monitor timer started successfully" "vm_id=$vm_id"
+            else
+                aux_err "Failed to start VM shutdown monitor timer" "vm_id=$vm_id"
+                return 2
+            fi
             ;;
         remove)
             aux_info "Removing hook from VM" "vm_id=$vm_id"
@@ -962,6 +1116,28 @@ EOL
             else
                 aux_err "Failed to remove hook from VM" "vm_id=$vm_id"
                 return 2
+            fi
+            
+            # Stop and disable vm-shutdown-monitor timer
+            aux_info "Disabling vm-shutdown-monitor system" "vm_id=$vm_id"
+            if aux_cmd "systemctl" "stop" "vm-shutdown-monitor@$vm_id.timer"; then
+                aux_info "VM shutdown monitor timer stopped successfully" "vm_id=$vm_id"
+            else
+                aux_warn "Failed to stop VM shutdown monitor timer" "vm_id=$vm_id"
+            fi
+            
+            if aux_cmd "systemctl" "disable" "vm-shutdown-monitor@$vm_id.timer"; then
+                aux_info "VM shutdown monitor timer disabled successfully" "vm_id=$vm_id"
+            else
+                aux_warn "Failed to disable VM shutdown monitor timer" "vm_id=$vm_id"
+            fi
+            
+            # Clean up state file
+            local state_file="/tmp/vm-${vm_id}-state"
+            if aux_cmd "rm" "-f" "$state_file"; then
+                aux_info "VM state file removed" "state_file=$state_file"
+            else
+                aux_warn "Failed to remove VM state file" "state_file=$state_file"
             fi
             ;;
     esac
