@@ -9,7 +9,14 @@ readonly AUX_LOADED=1
 # Provides function introspection, variable analysis, documentation generation,
 # and system monitoring capabilities for the lab environment.
 #
-# Dependencies: Bash 4.0+, standard UNIX utilities (awk, grep, sed, find, wc)
+# Dependencies: 
+#   - Bash 4.0+, standard UNIX utilities (awk, grep, sed, find, wc)
+#   - lib/core/col (centralized color management) - optional but recommended
+#
+# Color Integration:
+#   - Uses centralized color management from lib/core/col if available
+#   - Falls back to local color definitions if col module not loaded
+#   - Colors are automatically integrated via backward compatibility aliases
 #
 # Main Functions:
 #   aux_fun, aux_var - Overview summaries
@@ -613,10 +620,18 @@ aux_ask() {
     echo "$user_input"
 }
 
-# Get color for log level
+# Get color for log level using centralized color management
 # <log_level>
 aux_get_log_color() {
     local log_level="$1"
+    
+    # Use centralized color system if available
+    if [[ -n "${COL_LOADED:-}" ]] && type col_get_semantic &>/dev/null; then
+        col_get_semantic "${log_level,,}"
+        return
+    fi
+    
+    # Fallback to local color definitions
     case "${log_level,,}" in  # Convert to lowercase for comparison
         "business")     echo -n "$AUX_LOG_BUSINESS" ;;
         "security")     echo -n "$AUX_LOG_SECURITY" ;;
@@ -997,16 +1012,33 @@ aux_metric() {
     fi
 }
 
-# Color definitions for log levels (nice color palette)
-readonly AUX_LOG_NC=$(printf '\033[0m')         # No Color / Reset
-readonly AUX_LOG_GREY=$(printf '\033[38;5;242m')         # Grey - parameters and metadata
-readonly AUX_LOG_BUSINESS=$(printf '\033[38;5;99m')      # Purple - business logic
-readonly AUX_LOG_SECURITY=$(printf '\033[38;5;196m')     # Bright Red - security alerts
-readonly AUX_LOG_AUDIT=$(printf '\033[38;5;208m')        # Orange - audit trails  
-readonly AUX_LOG_PERFORMANCE=$(printf '\033[38;5;45m')   # Bright Cyan - performance
-readonly AUX_LOG_INFO=$(printf '\033[38;5;39m')          # Blue - info messages
-readonly AUX_LOG_WARN=$(printf '\033[38;5;220m')         # Yellow - warnings
-readonly AUX_LOG_ERROR=$(printf '\033[38;5;160m')        # Dark Red - errors
+# =============================================================================
+# COLOR INTEGRATION
+# =============================================================================
+# Use centralized color management from col module if available, 
+# otherwise define minimal fallback colors
+
+if [[ -n "${COL_LOADED:-}" ]]; then
+    # Use centralized colors from col module - these are already exported
+    # as backward compatibility aliases: AUX_LOG_*, so we don't need to redefine them
+    # Note: Centralized color management is active
+    :  # No action needed - colors are available via backward compatibility aliases
+else
+    # Fallback color definitions (only if col module not loaded)
+    readonly AUX_LOG_NC=$(printf '\033[0m')                 # No Color / Reset
+    readonly AUX_LOG_GREY=$(printf '\033[38;5;242m')        # Grey - parameters and metadata
+    readonly AUX_LOG_BUSINESS=$(printf '\033[38;5;99m')     # Purple - business logic
+    readonly AUX_LOG_SECURITY=$(printf '\033[38;5;196m')    # Bright Red - security alerts
+    readonly AUX_LOG_AUDIT=$(printf '\033[38;5;208m')       # Orange - audit trails  
+    readonly AUX_LOG_PERFORMANCE=$(printf '\033[38;5;45m')  # Bright Cyan - performance
+    readonly AUX_LOG_INFO=$(printf '\033[38;5;39m')         # Blue - info messages
+    readonly AUX_LOG_WARN=$(printf '\033[38;5;220m')        # Yellow - warnings
+    readonly AUX_LOG_ERROR=$(printf '\033[38;5;160m')       # Dark Red - errors
+    
+    # Export fallback colors
+    export AUX_LOG_NC AUX_LOG_GREY AUX_LOG_BUSINESS AUX_LOG_SECURITY
+    export AUX_LOG_AUDIT AUX_LOG_PERFORMANCE AUX_LOG_INFO AUX_LOG_WARN AUX_LOG_ERROR
+fi
 
 # Specialized logging functions for different operational contexts
 # business logic log
