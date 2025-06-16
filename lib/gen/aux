@@ -20,7 +20,7 @@ readonly AUX_LOADED=1
 #
 # Main Functions:
 #   aux_fun, aux_var - Overview summaries
-#   aux_log, aux_dbg - Logging operations (operational & debug)
+#   aux_log, aux_dbg - Consolidated logging operations (all to aux.log/aux.json)
 #   aux_info, aux_warn, aux_err - Convenience logging functions  
 #   aux_ffl - File operations
 #   aux_use, aux_tec - Help system
@@ -30,7 +30,7 @@ readonly AUX_LOADED=1
 #
 # Function Categories:
 #   Overview:     aux_fun, aux_var
-#   Logging:      aux_log, aux_dbg, aux_info, aux_warn, aux_err
+#   Logging:      aux_log, aux_dbg, aux_info, aux_warn, aux_err (all consolidated)
 #   Utilities:    aux_ffl
 #   Help System:  aux_use, aux_tec
 #   Validation:   aux_val, aux_chk
@@ -663,7 +663,7 @@ aux_log() {
     #   - No automatic function context (you specify what you're logging)
     #   - Always logs if main logging system is available
     #   - Suitable for production environments
-    #   - Goes to operational logs (aux_operational.log)
+    #   - Goes to consolidated aux logs (aux.log, aux.json)
     #   - Supports structured output formats for cluster aggregation
     #
     # EXAMPLES:
@@ -700,7 +700,7 @@ aux_log() {
             
             # File output
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                echo "$json_log" >> "${LOG_DIR}/aux_operational.jsonl"
+                echo "$json_log" >> "${LOG_DIR}/aux.json"
             fi
             ;;
         "csv")
@@ -710,10 +710,10 @@ aux_log() {
             
             # File output with header if new file
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                if [[ ! -f "${LOG_DIR}/aux_operational.csv" ]]; then
-                    echo "timestamp,level,message,function,node_id,cluster_id,service,context" >> "${LOG_DIR}/aux_operational.csv"
+                if [[ ! -f "${LOG_DIR}/aux.csv" ]]; then
+                    echo "timestamp,level,message,function,node_id,cluster_id,service,context" >> "${LOG_DIR}/aux.csv"
                 fi
-                echo "$csv_log" >> "${LOG_DIR}/aux_operational.csv"
+                echo "$csv_log" >> "${LOG_DIR}/aux.csv"
             fi
             ;;
         "kv"|"keyvalue")
@@ -724,7 +724,7 @@ aux_log() {
             
             # File output
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                echo "$kv_log" >> "${LOG_DIR}/aux_operational.log"
+                echo "$kv_log" >> "${LOG_DIR}/aux.log"
             fi
             ;;
         "human"|*)
@@ -739,7 +739,7 @@ aux_log() {
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
                 local file_message="[$timestamp] [${log_level,,}] $message"
                 [[ -n "$context_data" ]] && file_message="$file_message [$context_data]"
-                echo "$file_message" >> "${LOG_DIR}/aux_operational.log"
+                echo "$file_message" >> "${LOG_DIR}/aux.log"
             fi
             ;;
     esac
@@ -762,12 +762,12 @@ aux_dbg() {
     # CHARACTERISTICS:
     #   - Automatically captures calling function name from call stack
     #   - Auto-generates timestamp for each message
-    #   - Integrates with existing lo1 logging system and verbosity controls
+    #   - Integrates with existing logging system and verbosity controls
     #   - Output controlled by MASTER_TERMINAL_VERBOSITY and logging state
     #   - Optional log level parameter (defaults to DEBUG)
     #   - Sends to stderr for terminal output, log files for persistence
     #   - Suitable for development/debugging environments
-    #   - Goes to debug logs (aux_debug.log) when available
+    #   - Goes to consolidated aux logs (aux.log, aux.json) with debug level
     #
     # EXAMPLES:
     #   aux_dbg "Starting configuration validation"
@@ -815,9 +815,9 @@ aux_dbg() {
                 echo "$json_log" >&2
             fi
             
-            # File logging (independent of main logging system)
+            # File logging (consolidated to aux.json)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                echo "$json_log" >> "${LOG_DIR}/aux_debug.jsonl"
+                echo "$json_log" >> "${LOG_DIR}/aux.json"
             fi
             ;;
         "csv")
@@ -829,12 +829,12 @@ aux_dbg() {
                 echo "$csv_log" >&2
             fi
             
-            # File logging with header
+            # File logging with header (consolidated to aux.csv)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                if [[ ! -f "${LOG_DIR}/aux_debug.csv" ]]; then
-                    echo "timestamp,level,message,function,node_id,cluster_id,service,context" >> "${LOG_DIR}/aux_debug.csv"
+                if [[ ! -f "${LOG_DIR}/aux.csv" ]]; then
+                    echo "timestamp,level,message,function,node_id,cluster_id,service,context" >> "${LOG_DIR}/aux.csv"
                 fi
-                echo "$csv_log" >> "${LOG_DIR}/aux_debug.csv"
+                echo "$csv_log" >> "${LOG_DIR}/aux.csv"
             fi
             ;;
         "kv"|"keyvalue")
@@ -846,9 +846,9 @@ aux_dbg() {
                 echo "$kv_log" >&2
             fi
             
-            # File logging (independent of main logging system)
+            # File logging (consolidated to aux.log)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                echo "$kv_log" >> "${LOG_DIR}/aux_debug.log"
+                echo "$kv_log" >> "${LOG_DIR}/aux.log"
             fi
             ;;
         "human"|*)
@@ -862,10 +862,10 @@ aux_dbg() {
                 echo "$formatted_message" >&2
             fi
             
-            # Always log to file (independent of main logging system, without colors)
+            # Always log to file (consolidated to aux.log, without colors)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
                 local file_message="[${level,,}] $timestamp - [$caller_function] $message"
-                echo "$file_message" >> "${LOG_DIR}/aux_debug.log"
+                echo "$file_message" >> "${LOG_DIR}/aux.log"
             fi
             ;;
     esac
