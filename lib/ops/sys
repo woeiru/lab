@@ -76,46 +76,70 @@ sys_var() {
 
 # Manages git operations, ensuring the local repository syncs with the remote.
 # git sync operations
-# [commit_message]
+# [--dir <path>] [--branch <name>] [--auto|--safe|--force|--dry-run] [--ai-commit] [commit_message]
 sys_gio() {
     # Technical Description:
-    #   Advanced git synchronization workflow with intelligent conflict resolution and AI-powered commit messages
-    #   Performs comprehensive git operations: fetch, merge analysis, conflict detection, commit generation
-    #   Supports multiple sync strategies: auto, safe, force, dry-run with smart commit message generation
-    #   Handles branch management, stash operations, and automatic backup creation for safety
+    #   Advanced parameterized git synchronization workflow with intelligent repository detection
+    #   Auto-detects git repository location (current directory first, then fallback paths)
+    #   Handles all file states: tracked changes, untracked files, and staged content
+    #   Supports multiple sync strategies with comprehensive conflict resolution
     #   Includes pattern-based commit message templates and AI integration capabilities
+    #   Completely parameterized - no dependency on legacy environment variables
     # Dependencies:
     #   - git command line tool with full functionality
-    #   - GIT_BRANCH environment variable for branch configuration
-    #   - DIR_FUN variable for directory navigation
-    #   - AI_COMMIT_ENABLED for AI-powered commit message generation
     #   - Write permissions for git operations and directory access
     #   - Network connectivity for remote operations
     # Arguments:
-    #   $1: [options] - operation flags: --auto, --safe, --force, --dry-run, --ai-commit
-    #   $2+: [commit_message] - optional commit message or pattern, supports templates
+    #   --dir <path>     : Target git repository directory (auto-detected if not specified)
+    #   --branch <name>  : Git branch to sync with (defaults to current branch or 'master')
+    #   --auto           : Intelligent sync with conflict detection (default)
+    #   --safe           : Safe mode - create backup branch before operations
+    #   --force          : Force sync - override conflicts with remote state
+    #   --dry-run        : Preview operations without executing
+    #   --ai-commit      : Generate AI-powered commit messages
+    #   [commit_message] : Optional commit message or template pattern
 
-    local USAGE="Usage: sys_gio [--auto|--safe|--force|--dry-run] [--ai-commit] [commit_message]"
+    local USAGE="Usage: sys_gio [--dir <path>] [--branch <name>] [--auto|--safe|--force|--dry-run] [--ai-commit] [commit_message]"
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         echo "$USAGE"
-        echo "Options:"
-        echo "  --auto      Intelligent sync with conflict detection (default)"
-        echo "  --safe      Safe mode - stash changes before sync"
-        echo "  --force     Force sync - override conflicts"
-        echo "  --dry-run   Preview operations without executing"
-        echo "  --ai-commit Generate AI-powered commit messages"
         echo ""
-        echo "Templates:"
-        echo "  :fix        'fix: [AI generated description]'"
-        echo "  :feat       'feat: [AI generated description]'"
-        echo "  :docs       'docs: [AI generated description]'"
-        echo "  :refactor   'refactor: [AI generated description]'"
-        echo "  :chore      'chore: [AI generated description]'"
+        echo "Directory Options:"
+        echo "  --dir <path>    Target git repository (auto-detected if omitted)"
+        echo ""
+        echo "Branch Options:"
+        echo "  --branch <name> Target branch (defaults to current branch or 'master')"
+        echo ""
+        echo "Sync Mode Options:"
+        echo "  --auto          Intelligent sync with conflict detection (default)"
+        echo "  --safe          Safe mode - create backup branch before operations"
+        echo "  --force         Force sync - override conflicts with remote state"
+        echo "  --dry-run       Preview operations without executing"
+        echo ""
+        echo "Commit Options:"
+        echo "  --ai-commit     Generate AI-powered commit messages"
+        echo ""
+        echo "Commit Message Templates:"
+        echo "  :fix            'fix: [AI generated description]'"
+        echo "  :feat           'feat: [AI generated description]'"
+        echo "  :docs           'docs: [AI generated description]'"
+        echo "  :refactor       'refactor: [AI generated description]'"
+        echo "  :chore          'chore: [AI generated description]'"
+        echo "  :auto           Smart commit type detection based on changes"
+        echo ""
+        echo "Examples:"
+        echo "  sys_gio                                    # Auto-detect repo, sync current branch"
+        echo "  sys_gio --dir /path/to/repo               # Sync specific repository"
+        echo "  sys_gio --branch develop                  # Sync specific branch"
+        echo "  sys_gio --safe :fix                       # Safe mode with fix template"
+        echo "  sys_gio --ai-commit 'custom message'      # AI-enhanced custom message"
+        echo "  sys_gio --dry-run                         # Preview operations only"
         return 0
     fi
     
-    # Parse options
+    # Parse parameters
+    local target_dir=""
+    local branch=""
     local sync_mode="auto"
     local ai_commit_enabled=false
     local dry_run=false
@@ -123,6 +147,22 @@ sys_gio() {
     
     while [[ $# -gt 0 ]]; do
         case $1 in
+            --dir)
+                if [[ -z "$2" ]]; then
+                    aux_err "Missing argument for --dir option"
+                    return 1
+                fi
+                target_dir="$2"
+                shift 2
+                ;;
+            --branch)
+                if [[ -z "$2" ]]; then
+                    aux_err "Missing argument for --branch option"
+                    return 1
+                fi
+                branch="$2"
+                shift 2
+                ;;
             --auto) sync_mode="auto"; shift ;;
             --safe) sync_mode="safe"; shift ;;
             --force) sync_mode="force"; shift ;;
@@ -133,66 +173,120 @@ sys_gio() {
         esac
     done
     
-    # Core configuration
-    local dir="${DIR_FUN:-.}/.."
-    local branch="${GIT_BRANCH:-master}"
-    local backup_branch="backup-$(date +%Y%m%d-%H%M%S)"
+    # Smart directory detection
+    local working_dir
+    local original_dir=$(pwd)
     
-    # Enhanced dependency checks
+    if [[ -n "$target_dir" ]]; then
+        # Use specified directory
+        working_dir="$target_dir"
+        if ! aux_chk "dir_exists" "$working_dir"; then
+            aux_err "Specified directory not found: $working_dir"
+            return 2
+        fi
+    else
+        # Auto-detect git repository
+        working_dir="$original_dir"
+        
+        # Check if current directory is a git repo
+        if ! git rev-parse --git-dir >/dev/null 2>&1; then
+            # Fallback: check if we're in a subdirectory of a git repo
+            local temp_dir="$original_dir"
+            local found_repo=false
+            
+            while [[ "$temp_dir" != "/" ]]; do
+                if [[ -d "$temp_dir/.git" ]]; then
+                    working_dir="$temp_dir"
+                    found_repo=true
+                    break
+                fi
+                temp_dir=$(dirname "$temp_dir")
+            done
+            
+            if ! $found_repo; then
+                aux_err "No git repository found in current directory or parent directories"
+                aux_info "Use --dir option to specify a git repository path"
+                return 2
+            fi
+        fi
+    fi
+    
+    # Enhanced dependency check
     if ! aux_chk "command" "git"; then
         aux_err "git command not found - required for repository operations"
         return 127
     fi
     
-    if ! aux_chk "dir_exists" "$dir"; then
-        aux_err "Directory not found: $dir"
-        return 2
-    fi
-    
-    aux_info "Starting intelligent git synchronization" "mode=$sync_mode,branch=$branch,ai=$ai_commit_enabled"
-    
-    # Store current directory and navigate to git repo
-    local original_dir
-    original_dir=$(pwd)
-    
-    if ! cd "$dir" 2>/dev/null; then
-        aux_err "Failed to change directory to $dir"
+    # Navigate to working directory
+    if ! cd "$working_dir" 2>/dev/null; then
+        aux_err "Failed to change directory to: $working_dir"
         return 1
     fi
     
     # Verify we're in a git repository
     if ! git rev-parse --git-dir >/dev/null 2>&1; then
-        aux_err "Not in a git repository: $dir"
+        aux_err "Not in a git repository: $working_dir"
         cd "$original_dir" 2>/dev/null
         return 2
     fi
     
-    # Smart fetch with progress
-    aux_info "Fetching updates from remote..."
-    if ! aux_cmd "git" "fetch" "origin" "$branch" "--prune"; then
-        aux_err "Failed to fetch from remote" "branch=$branch"
-        cd "$original_dir" 2>/dev/null
-        return 1
+    # Smart branch detection
+    if [[ -z "$branch" ]]; then
+        # Try to get current branch
+        branch=$(git branch --show-current 2>/dev/null)
+        if [[ -z "$branch" ]]; then
+            # Fallback to default branch or master
+            branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "master")
+        fi
     fi
     
-    # Analyze repository state
-    local status_output changes_count ahead_count behind_count
+    local backup_branch="backup-$(date +%Y%m%d-%H%M%S)"
+    
+    aux_info "Starting intelligent git synchronization" "dir=$working_dir,mode=$sync_mode,branch=$branch,ai=$ai_commit_enabled"
+    
+    # Smart fetch with enhanced error handling
+    aux_info "Fetching updates from remote..."
+    if ! aux_cmd "git" "fetch" "origin" "$branch" "--prune"; then
+        # Try to fetch all branches if specific branch fails
+        if ! aux_cmd "git" "fetch" "origin" "--prune"; then
+            aux_warn "Failed to fetch from remote - continuing with local operations only"
+        else
+            aux_info "Fetched all branches successfully"
+        fi
+    fi
+    
+    # Comprehensive repository state analysis
+    local status_output changes_count ahead_count behind_count untracked_count modified_count staged_count
     status_output=$(git status --porcelain 2>/dev/null)
-    changes_count=$(echo "$status_output" | wc -l)
+    
+    # Enhanced change counting
+    if [[ -n "$status_output" ]]; then
+        changes_count=$(echo "$status_output" | wc -l)
+        untracked_count=$(echo "$status_output" | grep -c "^??" 2>/dev/null | tr -d '\n' || echo "0")
+        modified_count=$(echo "$status_output" | grep -c "^ M\|^MM\|^ T" 2>/dev/null | tr -d '\n' || echo "0")
+        staged_count=$(echo "$status_output" | grep -c "^M \|^A \|^D \|^R \|^C " 2>/dev/null | tr -d '\n' || echo "0")
+    else
+        changes_count=0
+        untracked_count=0
+        modified_count=0
+        staged_count=0
+    fi
+    
+    # Calculate ahead/behind counts with error handling
     ahead_count=$(git rev-list origin/"$branch"..HEAD --count 2>/dev/null || echo "0")
     behind_count=$(git rev-list HEAD..origin/"$branch" --count 2>/dev/null || echo "0")
     
-    aux_info "Repository analysis" "local_changes=$changes_count,ahead=$ahead_count,behind=$behind_count"
+    aux_info "Repository analysis" "total_changes=$changes_count,untracked=$untracked_count,modified=$modified_count,staged=$staged_count,ahead=$ahead_count,behind=$behind_count"
     
-    # Handle different scenarios intelligently
-    if [[ -z "$status_output" && "$behind_count" == "0" && "$ahead_count" == "0" ]]; then
+    # Handle clean repository case
+    if [[ "$changes_count" -eq 0 && "$behind_count" == "0" && "$ahead_count" == "0" ]]; then
         aux_info "Repository is clean and up-to-date"
         cd "$original_dir" 2>/dev/null
         return 0
     fi
     
     # Create safety backup in safe mode
-    if [[ "$sync_mode" == "safe" && -n "$status_output" ]]; then
+    if [[ "$sync_mode" == "safe" && "$changes_count" -gt 0 ]]; then
         aux_info "Creating safety backup branch: $backup_branch"
         if $dry_run; then
             aux_info "[DRY-RUN] Would create backup branch: $backup_branch"
@@ -201,9 +295,20 @@ sys_gio() {
         fi
     fi
     
-    # Handle local changes
-    if [[ -n "$status_output" ]]; then
-        aux_info "Processing local changes..."
+    # Enhanced local changes handling
+    if [[ "$changes_count" -gt 0 ]]; then
+        aux_info "Processing local changes..." "untracked=$untracked_count,modified=$modified_count,staged=$staged_count"
+        
+        # Show what will be staged
+        if [[ "$untracked_count" -gt 0 ]]; then
+            aux_info "Found $untracked_count untracked files - will be staged"
+        fi
+        if [[ "$modified_count" -gt 0 ]]; then
+            aux_info "Found $modified_count modified files - will be staged"
+        fi
+        if [[ "$staged_count" -gt 0 ]]; then
+            aux_info "Found $staged_count already staged files"
+        fi
         
         # Generate intelligent commit message
         local final_commit_message
@@ -218,37 +323,42 @@ sys_gio() {
         aux_info "Generated commit message: $final_commit_message"
         
         if $dry_run; then
-            aux_info "[DRY-RUN] Would commit changes with message: $final_commit_message"
+            aux_info "[DRY-RUN] Would stage all changes and commit with message: $final_commit_message"
         else
-            # Stage and commit changes
+            # Stage ALL changes (tracked, modified, and untracked)
+            aux_info "Staging all changes..."
             if ! aux_cmd "git" "add" "."; then
                 aux_err "Failed to stage changes"
                 cd "$original_dir" 2>/dev/null
                 return 1
             fi
             
+            # Commit the staged changes
             if ! aux_cmd "git" "commit" "-m" "$final_commit_message"; then
                 aux_err "Failed to commit changes"
                 cd "$original_dir" 2>/dev/null
                 return 1
             fi
+            
+            aux_info "Successfully committed changes" "files_committed=$changes_count"
         fi
     fi
     
     # Handle synchronization with remote
     if [[ "$behind_count" -gt 0 ]]; then
-        aux_info "Syncing with remote changes..."
+        aux_info "Syncing with remote changes..." "behind_count=$behind_count"
         
         case "$sync_mode" in
             "force")
                 if $dry_run; then
-                    aux_info "[DRY-RUN] Would force pull from origin/$branch"
+                    aux_info "[DRY-RUN] Would force reset to origin/$branch"
                 else
                     if ! aux_cmd "git" "reset" "--hard" "origin/$branch"; then
                         aux_err "Failed to force sync with remote"
                         cd "$original_dir" 2>/dev/null
                         return 1
                     fi
+                    aux_info "Force synced with remote branch"
                 fi
                 ;;
             "safe")
@@ -261,6 +371,7 @@ sys_gio() {
                         cd "$original_dir" 2>/dev/null
                         return 3
                     fi
+                    aux_info "Successfully merged remote changes"
                 fi
                 ;;
             *)
@@ -278,6 +389,7 @@ sys_gio() {
                         cd "$original_dir" 2>/dev/null
                         return 1
                     fi
+                    aux_info "Successfully pulled remote changes"
                 fi
                 ;;
         esac
@@ -288,7 +400,7 @@ sys_gio() {
     current_ahead_count=$(git rev-list origin/"$branch"..HEAD --count 2>/dev/null || echo "0")
     
     if [[ "$current_ahead_count" -gt 0 ]]; then
-        aux_info "Pushing local changes to remote..."
+        aux_info "Pushing local changes to remote..." "commits_to_push=$current_ahead_count"
         if $dry_run; then
             aux_info "[DRY-RUN] Would push $current_ahead_count commits to origin/$branch"
         else
@@ -307,7 +419,7 @@ sys_gio() {
         git branch -d "$backup_branch" 2>/dev/null || aux_warn "Could not clean up backup branch: $backup_branch"
     fi
     
-    aux_info "Git synchronization completed successfully" "mode=$sync_mode"
+    aux_info "Git synchronization completed successfully" "mode=$sync_mode,branch=$branch,directory=$working_dir"
     
     # Return to original directory
     if ! cd "$original_dir" 2>/dev/null; then
