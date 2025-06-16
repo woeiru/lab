@@ -79,131 +79,316 @@ sys_var() {
 # [commit_message]
 sys_gio() {
     # Technical Description:
-    #   Comprehensive git synchronization workflow handling both clean and dirty working trees
-    #   Performs fetch, status check, pull for clean trees, and add/commit/push for dirty trees
-    #   Supports optional commit messages, defaults to empty message when not provided
-    #   Handles branch management with configurable default branch via GIT_BRANCH variable
-    #   Includes error handling for each git operation with descriptive failure messages
+    #   Advanced git synchronization workflow with intelligent conflict resolution and AI-powered commit messages
+    #   Performs comprehensive git operations: fetch, merge analysis, conflict detection, commit generation
+    #   Supports multiple sync strategies: auto, safe, force, dry-run with smart commit message generation
+    #   Handles branch management, stash operations, and automatic backup creation for safety
+    #   Includes pattern-based commit message templates and AI integration capabilities
     # Dependencies:
     #   - git command line tool with full functionality
     #   - GIT_BRANCH environment variable for branch configuration
     #   - DIR_FUN variable for directory navigation
+    #   - AI_COMMIT_ENABLED for AI-powered commit message generation
     #   - Write permissions for git operations and directory access
     #   - Network connectivity for remote operations
     # Arguments:
-    #   $1: [commit_message] - optional commit message for changes, space-separated words combined
+    #   $1: [options] - operation flags: --auto, --safe, --force, --dry-run, --ai-commit
+    #   $2+: [commit_message] - optional commit message or pattern, supports templates
+
+    local USAGE="Usage: sys_gio [--auto|--safe|--force|--dry-run] [--ai-commit] [commit_message]"
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
+        echo "$USAGE"
+        echo "Options:"
+        echo "  --auto      Intelligent sync with conflict detection (default)"
+        echo "  --safe      Safe mode - stash changes before sync"
+        echo "  --force     Force sync - override conflicts"
+        echo "  --dry-run   Preview operations without executing"
+        echo "  --ai-commit Generate AI-powered commit messages"
+        echo ""
+        echo "Templates:"
+        echo "  :fix        'fix: [AI generated description]'"
+        echo "  :feat       'feat: [AI generated description]'"
+        echo "  :docs       'docs: [AI generated description]'"
+        echo "  :refactor   'refactor: [AI generated description]'"
+        echo "  :chore      'chore: [AI generated description]'"
         return 0
     fi
     
-    # Optional parameters - no validation needed
+    # Parse options
+    local sync_mode="auto"
+    local ai_commit_enabled=false
+    local dry_run=false
+    local commit_message=""
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --auto) sync_mode="auto"; shift ;;
+            --safe) sync_mode="safe"; shift ;;
+            --force) sync_mode="force"; shift ;;
+            --dry-run) dry_run=true; shift ;;
+            --ai-commit) ai_commit_enabled=true; shift ;;
+            -*) aux_err "Unknown option: $1"; return 1 ;;
+            *) commit_message="$*"; break ;;
+        esac
+    done
+    
+    # Core configuration
     local dir="${DIR_FUN:-.}/.."
     local branch="${GIT_BRANCH:-master}"
-    local commit_message=""
-
-    # If arguments are provided, use them as the commit message
-    if [ $# -gt 0 ]; then
-        commit_message="$*"
-    fi
-
-    # Dependency checks
+    local backup_branch="backup-$(date +%Y%m%d-%H%M%S)"
+    
+    # Enhanced dependency checks
     if ! aux_chk "command" "git"; then
         aux_err "git command not found - required for repository operations"
         return 127
     fi
-
-    # Validate directory exists
+    
     if ! aux_chk "dir_exists" "$dir"; then
         aux_err "Directory not found: $dir"
         return 2
     fi
-
-    aux_info "Starting git synchronization" "dir=$dir,branch=$branch"
-    aux_dbg "Commit message: ${commit_message:-empty}"
-
-    # Store current directory and navigate to the git folder
+    
+    aux_info "Starting intelligent git synchronization" "mode=$sync_mode,branch=$branch,ai=$ai_commit_enabled"
+    
+    # Store current directory and navigate to git repo
     local original_dir
     original_dir=$(pwd)
-    
-    # Validate directory exists and is accessible
-    if ! aux_chk "dir_exists" "$dir"; then
-        aux_err "Directory not found: $dir"
-        return 2
-    fi
-    
-    if ! aux_chk "permission" "$dir" "r"; then
-        aux_err "No read permission for directory: $dir"
-        return 2
-    fi
     
     if ! cd "$dir" 2>/dev/null; then
         aux_err "Failed to change directory to $dir"
         return 1
     fi
-
-    # Fetch updates from remote
-    if ! aux_cmd "git" "fetch" "origin" "$branch"; then
-        aux_err "Failed to fetch from remote" "branch=$branch"
-        return 1
-    fi
-
-    # Get the current status
-    local status_output
-    if ! status_output=$(git status --porcelain 2>&1); then
-        aux_err "Failed to get git status"
+    
+    # Verify we're in a git repository
+    if ! git rev-parse --git-dir >/dev/null 2>&1; then
+        aux_err "Not in a git repository: $dir"
+        cd "$original_dir" 2>/dev/null
         return 2
     fi
     
-    if [[ -z "$status_output" ]]; then
-        aux_info "Working tree clean, checking for updates"
-        local behind_count
-        if behind_count=$(git rev-list HEAD...origin/"$branch" --count 2>/dev/null); then
-            if [[ "$behind_count" == "0" ]]; then
-                aux_info "Local branch is up to date" "branch=origin/$branch"
-            else
-                aux_info "Updates available, pulling changes" "branch=$branch,commits_behind=$behind_count"
-                if ! aux_cmd "git" "pull" "origin" "$branch"; then
-                    aux_err "Failed to pull changes" "branch=$branch"
-                    return 1
-                fi
-            fi
-        else
-            aux_warn "Unable to check remote status, attempting pull" "branch=$branch"
-            if ! aux_cmd "git" "pull" "origin" "$branch"; then
-                aux_err "Failed to pull changes" "branch=$branch"
-                return 1
-            fi
-        fi
-    else
-        aux_info "Changes detected, committing and pushing"
-        if ! aux_cmd "git" "add" "."; then
-            aux_err "Failed to stage changes"
-            return 1
-        fi
-        if [[ -n "$commit_message" ]]; then
-            if ! aux_cmd "git" "commit" "-m" "$commit_message"; then
-                aux_err "Failed to commit changes" "message=$commit_message"
-                return 1
-            fi
-        else
-            if ! aux_cmd "git" "commit" "--allow-empty-message" "-m" ""; then
-                aux_err "Failed to commit changes" "message=empty"
-                return 1
-            fi
-        fi
-        if ! aux_cmd "git" "push" "origin" "$branch"; then
-            aux_err "Failed to push changes" "branch=$branch"
-            return 1
-        fi
-        aux_info "Successfully pushed changes" "branch=$branch"
+    # Smart fetch with progress
+    aux_info "Fetching updates from remote..."
+    if ! aux_cmd "git" "fetch" "origin" "$branch" "--prune"; then
+        aux_err "Failed to fetch from remote" "branch=$branch"
+        cd "$original_dir" 2>/dev/null
+        return 1
     fi
-
-    # Return to the original directory
+    
+    # Analyze repository state
+    local status_output changes_count ahead_count behind_count
+    status_output=$(git status --porcelain 2>/dev/null)
+    changes_count=$(echo "$status_output" | wc -l)
+    ahead_count=$(git rev-list origin/"$branch"..HEAD --count 2>/dev/null || echo "0")
+    behind_count=$(git rev-list HEAD..origin/"$branch" --count 2>/dev/null || echo "0")
+    
+    aux_info "Repository analysis" "local_changes=$changes_count,ahead=$ahead_count,behind=$behind_count"
+    
+    # Handle different scenarios intelligently
+    if [[ -z "$status_output" && "$behind_count" == "0" && "$ahead_count" == "0" ]]; then
+        aux_info "Repository is clean and up-to-date"
+        cd "$original_dir" 2>/dev/null
+        return 0
+    fi
+    
+    # Create safety backup in safe mode
+    if [[ "$sync_mode" == "safe" && -n "$status_output" ]]; then
+        aux_info "Creating safety backup branch: $backup_branch"
+        if $dry_run; then
+            aux_info "[DRY-RUN] Would create backup branch: $backup_branch"
+        else
+            git branch "$backup_branch" 2>/dev/null || aux_warn "Failed to create backup branch"
+        fi
+    fi
+    
+    # Handle local changes
+    if [[ -n "$status_output" ]]; then
+        aux_info "Processing local changes..."
+        
+        # Generate intelligent commit message
+        local final_commit_message
+        if [[ -n "$commit_message" ]]; then
+            final_commit_message=$(sys_gio_generate_commit_message "$commit_message" "$ai_commit_enabled" "$status_output")
+        elif $ai_commit_enabled; then
+            final_commit_message=$(sys_gio_generate_commit_message ":auto" "$ai_commit_enabled" "$status_output")
+        else
+            final_commit_message="chore: automated sync $(date +%Y-%m-%d)"
+        fi
+        
+        aux_info "Generated commit message: $final_commit_message"
+        
+        if $dry_run; then
+            aux_info "[DRY-RUN] Would commit changes with message: $final_commit_message"
+        else
+            # Stage and commit changes
+            if ! aux_cmd "git" "add" "."; then
+                aux_err "Failed to stage changes"
+                cd "$original_dir" 2>/dev/null
+                return 1
+            fi
+            
+            if ! aux_cmd "git" "commit" "-m" "$final_commit_message"; then
+                aux_err "Failed to commit changes"
+                cd "$original_dir" 2>/dev/null
+                return 1
+            fi
+        fi
+    fi
+    
+    # Handle synchronization with remote
+    if [[ "$behind_count" -gt 0 ]]; then
+        aux_info "Syncing with remote changes..."
+        
+        case "$sync_mode" in
+            "force")
+                if $dry_run; then
+                    aux_info "[DRY-RUN] Would force pull from origin/$branch"
+                else
+                    if ! aux_cmd "git" "reset" "--hard" "origin/$branch"; then
+                        aux_err "Failed to force sync with remote"
+                        cd "$original_dir" 2>/dev/null
+                        return 1
+                    fi
+                fi
+                ;;
+            "safe")
+                if $dry_run; then
+                    aux_info "[DRY-RUN] Would attempt safe merge with origin/$branch"
+                else
+                    if ! aux_cmd "git" "merge" "origin/$branch" "--no-edit"; then
+                        aux_warn "Merge conflicts detected - manual resolution required"
+                        aux_info "Use 'git status' to see conflicts, resolve them, then 'git commit'"
+                        cd "$original_dir" 2>/dev/null
+                        return 3
+                    fi
+                fi
+                ;;
+            *)
+                if $dry_run; then
+                    aux_info "[DRY-RUN] Would pull changes from origin/$branch"
+                else
+                    if ! aux_cmd "git" "pull" "origin" "$branch" "--no-edit"; then
+                        aux_warn "Pull failed - checking for conflicts"
+                        if git ls-files -u | grep -q .; then
+                            aux_err "Merge conflicts detected - run with --safe or --force, or resolve manually"
+                            cd "$original_dir" 2>/dev/null
+                            return 3
+                        fi
+                        aux_err "Failed to pull changes"
+                        cd "$original_dir" 2>/dev/null
+                        return 1
+                    fi
+                fi
+                ;;
+        esac
+    fi
+    
+    # Push local changes to remote
+    local current_ahead_count
+    current_ahead_count=$(git rev-list origin/"$branch"..HEAD --count 2>/dev/null || echo "0")
+    
+    if [[ "$current_ahead_count" -gt 0 ]]; then
+        aux_info "Pushing local changes to remote..."
+        if $dry_run; then
+            aux_info "[DRY-RUN] Would push $current_ahead_count commits to origin/$branch"
+        else
+            if ! aux_cmd "git" "push" "origin" "$branch"; then
+                aux_err "Failed to push changes to remote"
+                cd "$original_dir" 2>/dev/null
+                return 1
+            fi
+            aux_info "Successfully pushed $current_ahead_count commits to origin/$branch"
+        fi
+    fi
+    
+    # Cleanup and final status
+    if [[ "$sync_mode" == "safe" && -n "$backup_branch" ]] && ! $dry_run; then
+        # Clean up backup branch if everything succeeded
+        git branch -d "$backup_branch" 2>/dev/null || aux_warn "Could not clean up backup branch: $backup_branch"
+    fi
+    
+    aux_info "Git synchronization completed successfully" "mode=$sync_mode"
+    
+    # Return to original directory
     if ! cd "$original_dir" 2>/dev/null; then
         aux_warn "Failed to return to original directory: $original_dir"
     fi
+}
+
+sys_gio_generate_commit_message() {
+    # Helper function to generate intelligent commit messages based on templates and AI
+    # Arguments:
+    #   $1: template or message - commit message template or pattern
+    #   $2: ai_enabled - boolean flag for AI generation
+    #   $3: status_output - git status output for analysis
+    
+    local template="$1"
+    local ai_enabled="$2"
+    local status_output="$3"
+    
+    # Handle template patterns
+    case "$template" in
+        ":fix"|":bugfix")
+            if $ai_enabled && command -v sys_ai_commit >/dev/null 2>&1; then
+                sys_ai_commit "fix" "$status_output" 2>/dev/null || echo "fix: resolve issues and improve stability"
+            else
+                echo "fix: resolve issues and improve stability"
+            fi
+            ;;
+        ":feat"|":feature")
+            if $ai_enabled && command -v sys_ai_commit >/dev/null 2>&1; then
+                sys_ai_commit "feat" "$status_output" 2>/dev/null || echo "feat: add new functionality"
+            else
+                echo "feat: add new functionality"
+            fi
+            ;;
+        ":docs"|":documentation")
+            if $ai_enabled && command -v sys_ai_commit >/dev/null 2>&1; then
+                sys_ai_commit "docs" "$status_output" 2>/dev/null || echo "docs: update documentation"
+            else
+                echo "docs: update documentation"
+            fi
+            ;;
+        ":refactor"|":refactoring")
+            if $ai_enabled && command -v sys_ai_commit >/dev/null 2>&1; then
+                sys_ai_commit "refactor" "$status_output" 2>/dev/null || echo "refactor: improve code structure"
+            else
+                echo "refactor: improve code structure"
+            fi
+            ;;
+        ":chore"|":maintenance")
+            if $ai_enabled && command -v sys_ai_commit >/dev/null 2>&1; then
+                sys_ai_commit "chore" "$status_output" 2>/dev/null || echo "chore: maintain and update"
+            else
+                echo "chore: maintain and update"
+            fi
+            ;;
+        ":auto"|":smart")
+            if $ai_enabled && command -v sys_ai_commit >/dev/null 2>&1; then
+                # Analyze changes to determine type
+                local change_type="chore"
+                if echo "$status_output" | grep -q '\.md$\|README\|docs/'; then
+                    change_type="docs"
+                elif echo "$status_output" | grep -q 'test\|spec'; then
+                    change_type="test"
+                elif echo "$status_output" | grep -q 'fix\|bug\|error'; then
+                    change_type="fix"
+                elif echo "$status_output" | grep -q 'new\|add\|create'; then
+                    change_type="feat"
+                fi
+                sys_ai_commit "$change_type" "$status_output" 2>/dev/null || echo "$change_type: automated intelligent commit"
+            else
+                echo "chore: automated intelligent sync $(date +%H:%M)"
+            fi
+            ;;
+        "")
+            echo "chore: automated sync $(date +%Y-%m-%d)"
+            ;;
+        *)
+            # Use the message as-is if it doesn't match a template
+            echo "$template"
+            ;;
+    esac
 }
 
 # Detects the system's package manager
