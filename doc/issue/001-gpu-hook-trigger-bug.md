@@ -127,21 +127,55 @@ The original issue was that `pve_vms` function did not automatically register ho
 
 ---
 
-## Issue #001b: GPU Re-binding After Hook Execution
+## Issue #001b: GPU Persistent Binding Issue After pve_vms Usage
 
 ### Summary
-Hook system successfully triggers and executes GPU reattachment, but GPU gets automatically rebound to vfio-pci after successful attachment to nouveau driver.
+GPU attachment fails to work properly after using `pve_vms` orchestrator. The GPU becomes persistently bound to vfio-pci and cannot be successfully reattached to host drivers, even when using direct `gpu pta` commands.
 
 ### Problem Description
-**Sequence of Events:**
-1. VM 111 started via `pve_vms` orchestrator (01:17:46)
-2. VM shutdown detected by hook system (01:19:09) 
-3. GPU reattachment executed successfully (01:19:11)
-4. GPU bound to nouveau driver with "GPU attachment process completed"
-5. **Issue**: GPU is currently bound to vfio-pci despite successful reattachment
+**Critical Discovery (2025-06-17 01:31:36):**
+The issue is more complex than initially identified. After using `pve_vms`, the GPU enters a state where:
+1. Hook system executes successfully and reports successful GPU attachment
+2. Manual `gpu pta -d lookup` also reports successful attachment
+3. **However**: Display remains black and GPU is functionally unusable
+4. Only solution is to use `gpu ptd` followed by `gpu pta` to restore functionality
+
+**Comparison of Working vs Broken States:**
+
+**Working Sequence (Normal Operation):**
+```bash
+./src/dic/ops gpu ptd -d lookup && qm start 111
+# VM runs, shutdown from guest
+# Hook executes, GPU successfully reattaches
+# Display works, GPU available to host
+```
+
+**Broken Sequence (After pve_vms):**
+```bash
+./src/dic/ops pve vms 111
+# VM runs, shutdown from guest  
+# Hook reports successful execution
+# GPU shows as bound to nouveau in logs
+# Display remains black, GPU unusable
+# Manual 'gpu pta -d lookup' also reports success but doesn't work
+```
+
+**Recovery Sequence (Only Working Fix):**
+```bash
+./src/dic/ops gpu ptd -d lookup
+./src/dic/ops gpu pta -d lookup
+# Display restored, GPU functional
+```
 
 ### Evidence
 **Hook Execution Logs (2025-06-17 01:19:11):**
+```
+GPU successfully bound to host driver [pci_id=0a:00.0,host_driver=nouveau,status=success]
+GPU successfully bound to host driver [pci_id=0a:00.1,host_driver=nouveau,status=success]  
+GPU attachment process completed [status=complete]
+```
+
+**Manual Attachment Logs (2025-06-17 01:31:36):**
 ```
 GPU successfully bound to host driver [pci_id=0a:00.0,host_driver=nouveau,status=success]
 GPU successfully bound to host driver [pci_id=0a:00.1,host_driver=nouveau,status=success]
@@ -151,43 +185,53 @@ GPU attachment process completed [status=complete]
 **Current GPU State:**
 ```
 $ lspci -k -s 0a:00.0
-Kernel driver in use: vfio-pci
+Kernel driver in use: vfio-pci  # Despite successful attachment reports
 ```
+
+### Root Cause Hypothesis
+The `pve_vms` orchestrator appears to leave the GPU in an inconsistent state where:
+1. Driver binding reports success but actual hardware state is corrupted
+2. GPU hardware becomes unresponsive to driver attachment commands
+3. Only a full detach/reattach cycle can restore functionality
+4. This suggests hardware-level GPU state corruption or incomplete driver unbinding
 
 ### Root Cause Investigation Plan
 
-#### Phase 1: Immediate State Analysis
-- [ ] Check udev rules that might rebind GPU to vfio-pci
-- [ ] Monitor GPU driver changes in real-time during next test
-- [ ] Verify systemd services that might affect GPU binding
-- [ ] Check kernel command line parameters for persistent GPU assignment
+#### Phase 1: State Corruption Analysis  
+- [ ] Compare GPU hardware state before/after `pve_vms` vs direct commands
+- [ ] Check GPU power management states during different startup methods
+- [ ] Verify complete driver unbinding during `pve_vms` execution
+- [ ] Analyze IOMMU group state differences between methods
 
-#### Phase 2: Timing Analysis  
-- [ ] Measure time between successful reattachment and rebinding
-- [ ] Check if rebinding happens immediately or after delay
-- [ ] Identify what process/service triggers the rebinding
+#### Phase 2: pve_vms Workflow Analysis
+- [ ] Trace exact GPU operations performed by `pve_vms` function 
+- [ ] Compare GPU state transitions: direct vs pve_vms orchestrator
+- [ ] Identify missing cleanup or initialization steps in pve_vms
+- [ ] Check for race conditions in GPU state management
 
-#### Phase 3: Process Identification
-- [ ] Monitor system processes during GPU state changes
-- [ ] Check for competing GPU management services
-- [ ] Verify Proxmox VE services interaction with GPU states
+#### Phase 3: Hardware State Verification
+- [ ] Monitor PCI configuration space during different startup methods
+- [ ] Check GPU memory mapping and BAR (Base Address Register) states
+- [ ] Verify GPU reset states and power management transitions
+- [ ] Test with different VM configurations to isolate triggering factors
 
-#### Phase 4: Configuration Analysis
-- [ ] Review complete system GPU passthrough configuration
-- [ ] Check for conflicting GPU management configurations
-- [ ] Verify boot-time GPU binding configuration
+#### Phase 4: Driver Stack Investigation  
+- [ ] Compare kernel module loading/unloading between methods
+- [ ] Check for residual vfio-pci state after reported successful attachment
+- [ ] Verify nouveau driver initialization completeness
+- [ ] Test alternative host drivers to isolate driver-specific issues
 
 ### Test Procedure
-1. Start VM 111 via `pve_vms`
-2. Monitor GPU state: `watch -n 1 'lspci -k -s 0a:00.0'`
-3. Shutdown VM from guest
-4. Observe GPU state changes in real-time
-5. Identify exact moment of rebinding and triggering process
+**Controlled State Testing:**
+1. **Baseline Test**: `gpu ptd` → `qm start 111` → shutdown → verify working
+2. **Problem Test**: `pve vms 111` → shutdown → attempt `gpu pta` → verify broken  
+3. **Recovery Test**: `gpu ptd` → `gpu pta` → verify working
+4. **Hardware State Monitoring**: Monitor `/sys/bus/pci/devices/0000:0a:00.0/` during each test
 
 ### Expected Resolution
-- Identify the process/service causing automatic rebinding
-- Prevent unwanted rebinding while preserving legitimate GPU management
-- Ensure GPU remains attached to host after successful hook execution
+- Identify the specific operation in `pve_vms` that corrupts GPU hardware state
+- Implement proper GPU state cleanup/initialization in pve_vms workflow  
+- Ensure GPU hardware remains in consistent state regardless of startup method
 
 ### Priority
 **High** - Hook system works but GPU doesn't remain available to host
