@@ -456,6 +456,13 @@ ops_resolve_single_variable() {
             # Handle GPU driver preference for -d flag
             resolved_value="${GPU_DRIVER_PREFERENCE:-lookup}"
             ;;
+        # VM parameter resolution - handle VM_1_ prefixed variables
+        id|name|ostype|machine|iso|boot|bios|efidisk|scsihw|agent|disk|sockets|cores|cpu|memory|balloon|net)
+            # Try VM_1_ prefixed variables first (for pve_vmc function)
+            local vm_var="VM_1_$(echo "$param" | tr '[:lower:]' '[:upper:]')"
+            resolved_value="${!vm_var:-}"
+            ops_debug "VM parameter resolution: $param -> $vm_var = $resolved_value"
+            ;;
         *)
             # Avoid resolving common parameter names to unrelated environment variables
             case "$param" in
