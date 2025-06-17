@@ -41,13 +41,13 @@
     alias ee='exit'
 
     # Function chaining
-    alias funcore='aux_ffl ana_laf "" "$LIB_CORE_DIR"'
-    alias funops='aux_ffl ana_laf "" "$LIB_OPS_DIR"'
-    alias fungen='aux_ffl ana_laf "" "$LIB_GEN_DIR"'
+    alias fun-core='aux_ffl ana_laf "" "$LIB_CORE_DIR"'
+    alias fun-ops='aux_ffl ana_laf "" "$LIB_OPS_DIR"'
+    alias fun-gen='aux_ffl ana_laf "" "$LIB_GEN_DIR"'
     alias var='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR"'
 
     # Function makros
-    alias v1='gpu_ptd ; qm start 211'
+    alias v111='ops gpu ptd -d lookup && qm start 111'
 
     # Git commands
     alias g='git'
