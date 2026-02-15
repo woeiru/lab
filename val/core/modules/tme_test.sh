@@ -173,7 +173,22 @@ test_timing_report() {
 export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
+# Define a minimal ver_verify_module function for testing
+ver_verify_module() { return 0; }
+
 source lib/core/tme 2>/dev/null
+
+# Ensure verbosity is ON for this test
+export MASTER_TERMINAL_VERBOSITY="on"
+export TME_TERMINAL_VERBOSITY="on"
+export TME_REPORT_TERMINAL_OUTPUT="on"
+
+# Initialize TME
+export LOG_DIR="$LAB_DIR/.log"
+export TMP_DIR="$LAB_DIR/.tmp"
+export LOG_STATE_FILE="$TMP_DIR/log_state"
+mkdir -p "$LOG_DIR" "$TMP_DIR"
+tme_init_timer "$LOG_DIR" 2>/dev/null
 
 # Create some timing data
 tme_start_timer "REPORT_TEST" 2>/dev/null
@@ -185,9 +200,11 @@ if report_output=$(tme_print_timing_report 2>/dev/null); then
     if echo "$report_output" | grep -q "REPORT_TEST"; then
         exit 0
     else
+        echo "Pattern REPORT_TEST not found in output: $report_output" >&2
         exit 1
     fi
 else
+    echo "tme_print_timing_report failed" >&2
     exit 1
 fi
 EOF
