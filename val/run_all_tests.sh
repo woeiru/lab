@@ -13,7 +13,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/helpers/test_framework.sh"
 
 # Configuration
 readonly VAL_DIR="$(dirname "${BASH_SOURCE[0]}")"
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 
 # Test categories
 declare -A TEST_CATEGORIES=(

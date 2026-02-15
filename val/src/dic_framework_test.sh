@@ -1,10 +1,5 @@
 #!/bin/bash
-#########run_dic_test_suite() {
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}                    DIC SYSTEM TESTS${NC}"
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}Dependency Injection Container validation${NC}"
-    echo############################################################
+#######################################################################
 # DIC Framework Integration Test
 #######################################################################
 # File: val/src/dic_framework_test.sh
@@ -25,7 +20,8 @@ readonly SUITE_NAME="DIC System Integration"
 
 # Test discovery and execution
 run_dic_test_suite() {
-    test_section "DIC SYSTEM TESTS" "Dependency Injection Container validation"
+    test_header "DIC SYSTEM TESTS"
+    test_info "Dependency Injection Container validation"
     
     # Define DIC test cases
     local dic_tests=(
@@ -52,7 +48,7 @@ run_dic_test_suite() {
         local test_output
         local test_exit_code
         
-        if test_output=$(cd /root/lab && "$test_path" 2>&1); then
+        if test_output=$(cd "$LAB_ROOT" && "$test_path" 2>&1); then
             test_exit_code=$?
         else
             test_exit_code=$?
@@ -113,8 +109,8 @@ main() {
         exit 1
     fi
     
-    if [[ ! -f "/root/lab/src/dic/ops" ]]; then
-        test_failure "DIC system not found at /root/lab/src/dic/ops"
+    if [[ ! -f "$LAB_ROOT/src/dic/ops" ]]; then
+        test_failure "DIC system not found at $LAB_ROOT/src/dic/ops"
         print_test_summary
         exit 1
     fi

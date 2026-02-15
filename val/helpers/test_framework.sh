@@ -50,11 +50,17 @@ framework_init() {
             LAB_ROOT="$(dirname "$LAB_ROOT")"
         done
         
-        # Fallback to /home/es/lab if not found
+        # Fallback to the lab root relative to this script
         if [[ "$LAB_ROOT" == "/" ]] || [[ ! -d "$LAB_ROOT/lib" ]]; then
-            LAB_ROOT="/home/es/lab"
+            LAB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
         fi
         export LAB_ROOT
+    fi
+
+    # Mock ver_verify_module for tests that source core modules directly
+    if ! declare -f ver_verify_module >/dev/null 2>&1; then
+        ver_verify_module() { return 0; }
+        export -f ver_verify_module
     fi
     
     echo -e "${BLUE}[FRAMEWORK]${NC} Test framework initialized (LAB_ROOT: $LAB_ROOT)"
@@ -259,6 +265,23 @@ test_header() {
     echo -e "${PURPLE}║$(printf "%-38s" "          $test_name")║${NC}"
     echo -e "${PURPLE}╚══════════════════════════════════════╝${NC}"
     echo
+}
+
+# BDD-style helpers
+describe() {
+    echo -e "${CYAN}Description: $1${NC}"
+}
+
+it() {
+    echo -e "  - it $1"
+}
+
+pass() {
+    test_success "$1"
+}
+
+fail() {
+    test_failure "$1"
 }
 
 test_footer() {

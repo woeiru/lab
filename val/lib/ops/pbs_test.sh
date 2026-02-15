@@ -227,19 +227,16 @@ test_network_connectivity() {
 main() {
     test_header "$TEST_NAME"
     
-    local tests=(
-        "test_pbs_functions_exist"
-        "test_pbs_service_check"
-        "test_pbs_config_structure"
-        "test_datastore_config_validation"
-        "test_pbs_monitoring_capabilities"
-        "test_repository_management"
-        "test_backup_verification"
-        "test_storage_integration"
-        "test_network_connectivity"
-    )
+    run_test "PBS functions exist" test_pbs_functions_exist
+    run_test "PBS service check" test_pbs_service_check
+    run_test "PBS config structure" test_pbs_config_structure
+    run_test "Datastore config validation" test_datastore_config_validation
+    run_test "PBS monitoring capabilities" test_pbs_monitoring_capabilities
+    run_test "Repository management" test_repository_management
+    run_test "Backup verification" test_backup_verification
+    run_test "Storage integration" test_storage_integration
+    run_test "Network connectivity" test_network_connectivity
     
-    run_tests "${tests[@]}"
     test_footer
 }
 

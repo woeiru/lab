@@ -11,7 +11,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../helpers/test_framework.sh"
 
 # Test configuration
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 readonly VAL_DIR="$TEST_LAB_DIR/val"
 
 # ANSI colors for output formatting

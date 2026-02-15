@@ -11,7 +11,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
 
 # Test configuration
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 readonly SEC_LIB="$TEST_LAB_DIR/lib/gen/sec"
 
 # Test functions
@@ -28,7 +28,7 @@ test_security_functions_available() {
     
     cat > "$test_env/test_functions.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/sec 2>/dev/null
@@ -53,7 +53,7 @@ test_password_generation() {
     
     cat > "$test_env/test_password.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/sec 2>/dev/null
@@ -82,7 +82,7 @@ test_password_complexity() {
     
     cat > "$test_env/test_complexity.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/sec 2>/dev/null
@@ -116,7 +116,7 @@ test_secure_storage() {
     
     cat > "$test_env/test_storage.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/sec 2>/dev/null
@@ -165,7 +165,7 @@ test_password_store_function() {
     
     cat > "$test_env/test_store.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/sec 2>/dev/null
@@ -196,7 +196,7 @@ test_security_performance() {
     local test_env=$(create_test_env "sec_performance")
     cat > "$test_env/perf_test.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/sec 2>/dev/null
@@ -219,7 +219,7 @@ test_error_handling() {
     
     cat > "$test_env/test_errors.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/sec 2>/dev/null

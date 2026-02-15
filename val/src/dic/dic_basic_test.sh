@@ -28,8 +28,8 @@ TESTS_PASSED=0
 TESTS_FAILED=0
 
 # Initialize lab environment
-cd /home/es/lab
-LAB_DIR="/home/es/lab"
+cd $LAB_ROOT
+LAB_DIR="$LAB_ROOT"
 source bin/ini
 
 # Test utilities

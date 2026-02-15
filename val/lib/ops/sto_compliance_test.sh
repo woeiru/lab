@@ -4,10 +4,10 @@
 # Tests parameter validation, dependency checks, and operational logging
 
 # Load test framework
-source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/../helpers/test_framework.sh"
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/../../helpers/test_framework.sh"
 
 # Load sto module
-source /home/es/lab/lib/ops/sto
+source $LAB_ROOT/lib/ops/sto
 
 # Test parameter validation compliance
 test_sto_parameter_validation() {

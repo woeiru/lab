@@ -12,7 +12,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
 
 # Test configuration
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 readonly GPU_LIB="$TEST_LAB_DIR/lib/ops/gpu"
 readonly GPU_DIC="$TEST_LAB_DIR/src/dic/ops"
 
@@ -43,7 +43,7 @@ test_gpu_pure_functions() {
     
     cat > "$test_env/test_pure.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Source the pure GPU library
@@ -70,13 +70,13 @@ test_gpu_function_parameters() {
     
     cat > "$test_env/test_params.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/ops/gpu 2>/dev/null
 
 # Test gpu-fun with explicit script path parameter
-if gpu-fun "/home/es/lab/lib/ops/gpu" >/dev/null 2>&1; then
+if gpu-fun "$LAB_ROOT/lib/ops/gpu" >/dev/null 2>&1; then
     exit 0
 else
     exit 1
@@ -115,7 +115,7 @@ test_gpu_wrapper_execution() {
     
     cat > "$test_env/test_wrappers.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source bin/ini 2>/dev/null
@@ -179,7 +179,7 @@ test_gpu_refactoring_compliance() {
     
     cat > "$test_env/test_refactoring.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Source pure library
@@ -229,7 +229,7 @@ test_gpu_error_handling() {
     
     cat > "$test_env/test_errors.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/ops/gpu 2>/dev/null

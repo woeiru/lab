@@ -9,10 +9,10 @@
 #######################################################################
 
 # Source test framework
-source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../helpers/test_framework.sh"
 
 # Test configuration
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 
 # Integration test functions
 test_complete_initialization() {
@@ -20,7 +20,7 @@ test_complete_initialization() {
     
     cat > "$test_env/test_complete_init.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test complete initialization sequence
@@ -49,7 +49,7 @@ test_environment_loading_workflow() {
     
     cat > "$test_env/test_env_workflow.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test environment loading workflow
@@ -80,7 +80,7 @@ test_component_integration() {
     
     cat > "$test_env/test_integration.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Load full environment
@@ -118,7 +118,7 @@ test_pure_wrapper_integration() {
     
     cat > "$test_env/test_pure_wrapper.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Load environment for wrappers
@@ -156,7 +156,7 @@ test_configuration_hierarchy() {
     
     cat > "$test_env/test_config_hierarchy.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 export ENVIRONMENT="dev"
 export NODE="w2"
 cd "$LAB_DIR"
@@ -203,7 +203,7 @@ test_logging_integration() {
     
     cat > "$test_env/test_logging.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source bin/ini 2>/dev/null
@@ -230,7 +230,7 @@ test_security_integration() {
     
     cat > "$test_env/test_security.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/sec 2>/dev/null
@@ -266,7 +266,7 @@ test_performance_integration() {
     local test_env=$(create_test_env "performance_integration")
     cat > "$test_env/perf_test.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Time complete environment loading
@@ -286,7 +286,7 @@ test_error_resilience() {
     
     cat > "$test_env/test_resilience.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test that system handles missing components gracefully

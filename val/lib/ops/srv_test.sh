@@ -317,20 +317,17 @@ test_service_security() {
 main() {
     test_header "$TEST_NAME"
     
-    local tests=(
-        "test_service_functions_exist"
-        "test_nfs_service_capabilities"
-        "test_smb_service_capabilities"
-        "test_service_config_management"
-        "test_service_monitoring"
-        "test_file_sharing_operations"
-        "test_user_permission_management"
-        "test_network_service_config"
-        "test_service_lifecycle"
-        "test_service_security"
-    )
+    run_test "Service functions exist" test_service_functions_exist
+    run_test "NFS service capabilities" test_nfs_service_capabilities
+    run_test "SMB service capabilities" test_smb_service_capabilities
+    run_test "Service config management" test_service_config_management
+    run_test "Service monitoring" test_service_monitoring
+    run_test "File sharing operations" test_file_sharing_operations
+    run_test "User and permission management" test_user_permission_management
+    run_test "Network service config" test_network_service_config
+    run_test "Service lifecycle" test_service_lifecycle
+    run_test "Service security" test_service_security
     
-    run_tests "${tests[@]}"
     test_footer
 }
 

@@ -12,7 +12,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
 
 # Test configuration
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 readonly GPU_LIB="$TEST_LAB_DIR/lib/ops/gpu"
 readonly AUX_LIB="$TEST_LAB_DIR/lib/gen/aux"
 
@@ -66,7 +66,7 @@ test_gpu_parameter_validation_compliance() {
     
     cat > "$test_env/test_gpu_validation.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/aux 2>/dev/null
@@ -136,7 +136,7 @@ test_gpu_help_system_compliance() {
     
     cat > "$test_env/test_gpu_help.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/aux 2>/dev/null
@@ -187,7 +187,7 @@ test_gpu_error_handling_compliance() {
     
     cat > "$test_env/test_gpu_errors.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Check GPU module for error handling patterns
@@ -233,7 +233,7 @@ test_gpu_dependency_validation_compliance() {
     
     cat > "$test_env/test_gpu_dependencies.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Check GPU module for dependency validation patterns
@@ -280,7 +280,7 @@ test_gpu_aux_integration_compliance() {
     
     cat > "$test_env/test_gpu_aux.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Check GPU module for aux function integration
@@ -346,7 +346,7 @@ test_gpu_function_standards() {
     
     cat > "$test_env/test_${func_name}.sh" << EOF
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "\$LAB_DIR"
 
 source lib/gen/aux 2>/dev/null

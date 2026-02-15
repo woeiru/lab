@@ -98,7 +98,7 @@ ops_source_utility_libraries
 
 # Source environment configuration if available
 ops_source_environment_config() {
-    local lab_dir="${LAB_DIR:-/root/lab}"
+    local lab_dir="${LAB_ROOT:-${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}}"
     local env_config="${lab_dir}/cfg/env/site1"
     
     if [[ -f "$env_config" ]]; then

@@ -12,7 +12,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
 
 # Test configuration
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 readonly TME_LIB="$TEST_LAB_DIR/lib/core/tme"
 
 # Test functions
@@ -26,7 +26,7 @@ test_tme_module_sourceable() {
     
     cat > "$test_env/test_source.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Define a minimal ver_verify_module function for testing
@@ -50,7 +50,7 @@ test_tme_core_functions() {
     
     cat > "$test_env/test_functions.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/core/tme 2>/dev/null
@@ -76,10 +76,17 @@ test_timing_functionality() {
     
     cat > "$test_env/test_timing.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/core/tme 2>/dev/null
+
+# Initialize TME
+export LOG_DIR="$LAB_DIR/.log"
+export TMP_DIR="$LAB_DIR/.tmp"
+export LOG_STATE_FILE="$TMP_DIR/log_state"
+mkdir -p "$LOG_DIR" "$TMP_DIR"
+tme_init_timer "$LOG_DIR" 2>/dev/null
 
 # Test basic timing functionality
 tme_start_timer "TEST_OPERATION" 2>/dev/null
@@ -104,7 +111,7 @@ test_verbosity_controls() {
     
     cat > "$test_env/test_verbosity.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/core/tme 2>/dev/null
@@ -135,7 +142,7 @@ test_nested_timing() {
     
     cat > "$test_env/test_nested.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/core/tme 2>/dev/null
@@ -163,7 +170,7 @@ test_timing_report() {
     
     cat > "$test_env/test_report.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/core/tme 2>/dev/null
@@ -195,7 +202,7 @@ test_output_categories() {
     
     cat > "$test_env/test_categories.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/core/tme 2>/dev/null
@@ -227,7 +234,7 @@ test_performance_monitoring() {
     local test_env=$(create_test_env "tme_performance")
     cat > "$test_env/perf_test.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/core/tme 2>/dev/null
@@ -251,7 +258,7 @@ test_environment_integration() {
     
     cat > "$test_env/test_integration.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test that TME integrates with the initialization system

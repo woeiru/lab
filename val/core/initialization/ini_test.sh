@@ -12,7 +12,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
 
 # Test configuration
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 readonly INI_SCRIPT="$TEST_LAB_DIR/bin/ini"
 
 # Test functions
@@ -39,13 +39,13 @@ test_core_modules_loading() {
     
     cat > "$test_env/test_ini_modules.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test sourcing ini (should load core modules)
 if source bin/ini 2>/dev/null; then
     # Check if core modules are loaded
-    if declare -f err_log >/dev/null && declare -f lo1_log >/dev/null && declare -f tme_start_timer >/dev/null; then
+    if declare -f err_process >/dev/null && declare -f lo1_log >/dev/null && declare -f tme_start_timer >/dev/null; then
         exit 0
     else
         exit 1
@@ -66,7 +66,7 @@ test_dependency_verification() {
     
     cat > "$test_env/test_dependencies.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Source ini and check if verification functions are available
@@ -92,7 +92,7 @@ test_environment_variables() {
     
     cat > "$test_env/test_env_vars.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 if source bin/ini 2>/dev/null; then
@@ -118,12 +118,12 @@ test_logging_initialization() {
     
     cat > "$test_env/test_logging.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 if source bin/ini 2>/dev/null; then
     # Test if logging functions work
-    if lo1_log "test" "test_function" 2>/dev/null; then
+    if lo1_log "lvl" "test" 2>/dev/null; then
         exit 0
     else
         exit 1
@@ -144,7 +144,7 @@ test_performance_init() {
     local test_env=$(create_test_env "ini_performance")
     cat > "$test_env/perf_test.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 source bin/ini >/dev/null 2>&1
 EOF

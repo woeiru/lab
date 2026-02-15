@@ -28,7 +28,9 @@ TESTS_PASSED=0
 TESTS_FAILED=0
 
 # Initialize lab environment
-cd /root/lab
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+LAB_ROOT="${LAB_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
+cd "$LAB_ROOT"
 source bin/ini
 
 # Test utilities

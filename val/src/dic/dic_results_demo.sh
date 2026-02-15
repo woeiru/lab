@@ -15,7 +15,7 @@ echo "Environment: $(hostname)"
 echo "Test Status: COMPLETE SUCCESS ✅"
 echo
 
-cd /home/es/lab
+cd $LAB_ROOT
 source bin/ini >/dev/null 2>&1
 
 # Set up test environment

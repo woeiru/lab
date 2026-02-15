@@ -10,7 +10,7 @@ echo "Hostname: $(hostname)"
 echo
 
 # Initialize environment
-cd /home/es/lab
+cd $LAB_ROOT
 source bin/ini
 
 # Setup test variables for current hostname

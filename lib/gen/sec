@@ -108,6 +108,12 @@ sec_generate_secure_password() {
     local length=${1:-16}
     local exclude_special=${2:-false}
     
+    # Validate length
+    if [[ ! "$length" =~ ^[0-9]+$ ]] || [[ "$length" -le 0 ]]; then
+        echo "Error: Password length must be a positive integer" >&2
+        return 1
+    fi
+    
     if [[ "$exclude_special" == "true" ]]; then
         # Alphanumeric only
         tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$length"
@@ -300,8 +306,24 @@ sec_get_secure_password() {
     fi
 }
 
+# Compatibility aliases for functions called without sec_ prefix
+generate_secure_password() { sec_generate_secure_password "$@"; }
+store_secure_password() { sec_store_secure_password "$@"; }
+init_password_management() { sec_init_password_management "$@"; }
+generate_service_passwords() { sec_generate_service_passwords "$@"; }
+load_stored_passwords() { sec_load_stored_passwords "$@"; }
+get_secure_password() { sec_get_secure_password "$@"; }
+
+# Export all functions to make them available in subshells
+export -f sec_generate_secure_password sec_store_secure_password
+export -f sec_init_password_management sec_generate_service_passwords
+export -f sec_load_stored_passwords sec_get_secure_password
+export -f generate_secure_password store_secure_password
+export -f init_password_management generate_service_passwords
+export -f load_stored_passwords get_secure_password
+
 # Make functions available when sourced
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
-    # Functions are loaded when sourced, no need to export
+    # Functions are loaded when sourced
     :
 fi

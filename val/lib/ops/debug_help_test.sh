@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /home/es/lab
+cd $LAB_ROOT
 source lib/ops/gpu 2>/dev/null
 
 echo "=== Testing GPU Help System ==="

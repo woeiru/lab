@@ -4,7 +4,7 @@
 # This tests both the pure parameterized functions and the wrapper functions
 
 # Set up basic environment
-export BASE_DIR="/home/es/lab"
+export BASE_DIR="$LAB_ROOT"
 export LIB_OPS_DIR="$BASE_DIR/lib/ops"
 
 echo "=== Testing Refactored PVE Functions ==="

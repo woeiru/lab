@@ -59,7 +59,7 @@ test_lab_root_variable() {
     if [[ -n "$LAB_ROOT" ]] && [[ -d "$LAB_ROOT" ]]; then
         echo "✓ LAB_ROOT environment variable is set: $LAB_ROOT"
         return 0
-    elif [[ -d "/home/es/lab" ]]; then
+    elif [[ -d "$LAB_ROOT" ]]; then
         echo "✓ Lab directory exists at expected location"
         return 0
     else
@@ -98,7 +98,7 @@ EOF
 
 # Test: Configuration directory access
 test_config_directory_access() {
-    local config_dirs=("$LAB_ROOT/cfg" "/home/es/lab/cfg")
+    local config_dirs=("$LAB_ROOT/cfg" "$LAB_ROOT/cfg")
     local found_config=false
     
     for dir in "${config_dirs[@]}"; do

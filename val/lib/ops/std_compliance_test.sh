@@ -12,7 +12,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
 
 # Test configuration
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 readonly LIB_OPS_DIR="$TEST_LAB_DIR/lib/ops"
 readonly AUX_LIB="$TEST_LAB_DIR/lib/gen/aux"
 
@@ -39,7 +39,7 @@ test_parameter_validation_compliance() {
     
     cat > "$test_env/test_validation.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Source aux library
@@ -105,7 +105,7 @@ test_help_system_compliance() {
     
     cat > "$test_env/test_help.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 help_compliant=0
@@ -159,7 +159,7 @@ test_error_handling_compliance() {
     
     cat > "$test_env/test_errors.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 error_compliant=0
@@ -216,7 +216,7 @@ test_documentation_compliance() {
     
     cat > "$test_env/test_docs.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 doc_compliant=0
@@ -287,7 +287,7 @@ test_aux_integration_compliance() {
     
     cat > "$test_env/test_aux_integration.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 aux_compliant=0
@@ -379,7 +379,7 @@ test_aux_function_usage() {
     
     cat > "$test_env/test_aux_specific.sh" << EOF
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "\$LAB_DIR"
 
 usage_count=0
@@ -413,7 +413,7 @@ test_system_ops_compliance() {
     
     cat > "$test_env/test_system_ops.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 compliant_count=0
@@ -462,7 +462,7 @@ test_utility_functions_compliance() {
     
     cat > "$test_env/test_utilities.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 compliant_count=0
@@ -513,7 +513,7 @@ test_backward_compatibility() {
     
     cat > "$test_env/test_backward.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Source environment
@@ -546,7 +546,7 @@ test_function_execution_safety() {
     
     cat > "$test_env/test_execution.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test that functions with --help don't cause errors

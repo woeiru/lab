@@ -6,7 +6,7 @@ echo "=== PVE Module .std Standards Compliance Test ==="
 echo
 
 # Setup
-cd /home/es/lab
+cd $LAB_ROOT
 source lib/ops/pve
 
 test_count=0

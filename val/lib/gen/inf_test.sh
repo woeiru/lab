@@ -11,7 +11,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
 
 # Test configuration
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 readonly INF_LIB="$TEST_LAB_DIR/lib/gen/inf"
 
 # Test functions
@@ -28,7 +28,7 @@ test_infrastructure_functions_available() {
     
     cat > "$test_env/test_functions.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/inf 2>/dev/null
@@ -73,7 +73,7 @@ test_container_definition() {
     
     cat > "$test_env/test_containers.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/inf 2>/dev/null
@@ -120,7 +120,7 @@ test_vm_definition() {
     
     cat > "$test_env/test_vms.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/inf 2>/dev/null
@@ -170,7 +170,7 @@ test_ip_generation() {
     
     cat > "$test_env/test_ip_generation.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/inf 2>/dev/null
@@ -210,7 +210,7 @@ test_configuration_validation() {
     
     cat > "$test_env/test_validation.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/inf 2>/dev/null
@@ -255,7 +255,7 @@ test_default_configurations() {
     
     cat > "$test_env/test_defaults.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/inf 2>/dev/null
@@ -307,7 +307,7 @@ test_bulk_creation() {
     
     cat > "$test_env/test_bulk_creation.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/inf 2>/dev/null
@@ -354,7 +354,7 @@ test_variable_export() {
     
     cat > "$test_env/test_variable_export.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/inf 2>/dev/null
@@ -394,7 +394,7 @@ test_infrastructure_integration() {
     
     cat > "$test_env/test_integration.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test integration with other components
@@ -438,7 +438,7 @@ test_infrastructure_performance() {
     
     cat > "$test_env/test_performance.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test infrastructure utilities performance
@@ -481,7 +481,7 @@ test_error_handling() {
     
     cat > "$test_env/test_error_handling.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/inf 2>/dev/null

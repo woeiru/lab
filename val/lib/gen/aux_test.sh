@@ -11,7 +11,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
 
 # Test configuration
-readonly TEST_LAB_DIR="/home/es/lab"
+readonly TEST_LAB_DIR="$LAB_ROOT"
 readonly AUX_LIB="$TEST_LAB_DIR/lib/gen/aux"
 
 # Test functions
@@ -28,7 +28,7 @@ test_auxiliary_functions_available() {
     
     cat > "$test_env/test_functions.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/aux 2>/dev/null
@@ -70,7 +70,7 @@ test_logging_functionality() {
     
     cat > "$test_env/test_logging.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/aux 2>/dev/null
@@ -106,7 +106,7 @@ test_function_analysis_tools() {
     
     cat > "$test_env/test_analysis.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/aux 2>/dev/null
@@ -142,7 +142,7 @@ test_variable_analysis_capabilities() {
     
     cat > "$test_env/test_variables.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/aux 2>/dev/null
@@ -178,7 +178,7 @@ test_file_processing_capabilities() {
     
     cat > "$test_env/test_file_processing.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/aux 2>/dev/null
@@ -214,7 +214,7 @@ test_auxiliary_utilities() {
     
     cat > "$test_env/test_utilities.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test if auxiliary utilities can integrate with library system
@@ -256,7 +256,7 @@ test_configuration_integration() {
     
     cat > "$test_env/test_config_integration.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/aux 2>/dev/null
@@ -297,7 +297,7 @@ test_auxiliary_performance() {
     
     cat > "$test_env/test_performance.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test auxiliary functions performance
@@ -333,7 +333,7 @@ test_error_handling() {
     
     cat > "$test_env/test_error_handling.sh" << 'EOF'
 #!/bin/bash
-export LAB_DIR="/home/es/lab"
+export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 source lib/gen/aux 2>/dev/null

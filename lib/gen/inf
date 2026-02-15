@@ -160,9 +160,14 @@ inf_generate_ip_sequence() {
         ip_list+=("${base_ip}.$((start_num + i))")
     done
     
-    # Use nameref to set the array in the calling scope
-    local -n result_ref=$output_var
-    result_ref=("${ip_list[@]}")
+    if [[ -n "$output_var" ]]; then
+        # Use nameref to set the array in the calling scope
+        local -n result_ref=$output_var
+        result_ref=("${ip_list[@]}")
+    else
+        # Just echo the list
+        echo "${ip_list[@]}"
+    fi
 }
 
 # Define a container with minimal parameters and default fallbacks
