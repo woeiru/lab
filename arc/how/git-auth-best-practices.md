@@ -22,6 +22,11 @@ The goal is to rely on **Standard Unix Protocols** (SSH) that are:
 *   **Concept**: Use `~/.ssh/config` to create human-readable aliases for your servers.
 *   **Example**: `git push lab-local` instead of `git push es@192.168.178.50:/srv/git/lab.git`.
 
+### 3. Git Credential Cache (HTTPS Alternative)
+**Best for**: Users who must use HTTPS but want to avoid manual pasting.
+*   **Concept**: Git keeps your token in memory for a temporary window.
+*   **Security Note**: ⚠️ **Less Secure.** While the `cache` mode stores credentials in RAM, they are still transmitted over HTTPS, and any misconfiguration (like using `store` mode) can leave tokens in plain text on the disk.
+
 ---
 
 ## 🛠️ Setup Guide: SSH Agent Forwarding
@@ -45,6 +50,19 @@ The goal is to rely on **Standard Unix Protocols** (SSH) that are:
 
 ### B. On the Lab VMs
 **Nothing**. Because of the config above, any VM you enter will automatically have access to your Git identity for the duration of the session.
+
+### C. Setting up Git Credential Cache (HTTPS)
+Use this if you cannot use SSH but want to "log in" once per session.
+
+1.  **Enable the cache**:
+    ```bash
+    # Set cache to 8 hours (28800 seconds)
+    git config --global credential.helper 'cache --timeout=28800'
+    ```
+2.  **Authenticate**:
+    *   Run `git push`.
+    *   Enter your username and Personal Access Token (PAT).
+    *   Git will now keep these in memory. You won't be asked again until the timeout expires or the machine reboots.
 
 ---
 
