@@ -346,6 +346,7 @@ export -f run_test test_function_exists test_file_exists test_dir_exists test_co
 export -f test_var_set test_source test_function_output test_with_timeout run_test_group
 export -f start_performance_test end_performance_test create_test_env cleanup_test_env
 export -f test_header test_footer print_test_summary run_test_suite
+export -f describe it pass fail
 
 # Auto-initialize framework when sourced
 framework_init

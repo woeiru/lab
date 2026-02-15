@@ -180,18 +180,18 @@ ip_works=0
 
 if declare -f generate_ip_sequence >/dev/null; then
     # Test generating IP sequence
-    ip_sequence=$(generate_ip_sequence "192.168.1.100" 3 2>/dev/null)
+    ip_sequence=$(generate_ip_sequence "192.168.1" 100 3 2>/dev/null)
     if [[ -n "$ip_sequence" ]] && [[ "$ip_sequence" =~ "192.168.1.100" ]]; then
         ((ip_works++))
     fi
     
     # Test with different starting IP - just check function works
-    if generate_ip_sequence "10.0.0.50" 2 2>/dev/null; then
+    if generate_ip_sequence "10.0.0" 50 2 2>/dev/null; then
         ((ip_works++))
     fi
     
     # Test edge case (count = 1)
-    ip_sequence3=$(generate_ip_sequence "172.16.1.10" 1 2>/dev/null)
+    ip_sequence3=$(generate_ip_sequence "172.16.1" 10 1 2>/dev/null)
     if [[ "$ip_sequence3" == "172.16.1.10" ]]; then
         ((ip_works++))
     fi
