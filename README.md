@@ -284,3 +284,6 @@ cd test && ./test_complete_refactor.sh
 
 > 💡 **Live Metrics**: These statistics are generated in real-time using `./utl/doc-stats`. Run it anytime to get current codebase metrics in formatted, markdown, or raw output.
 
+
+---
+*Last validated: 2026-02-15*
