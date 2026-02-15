@@ -500,7 +500,7 @@ ana_lad() {
     extract_title() {
         local file="$1"
         if [[ -f "$file" ]]; then
-            local title=$(grep -m1 '^# ' "$file" 2>/dev/null | sed 's/^# //' | sed 's/[🎯👨‍💻🛠️🏗️📱🔍🔧🛠️📋🌐📊]*//' | xargs)
+            local title=$(grep -m1 '^# ' "$file" 2>/dev/null | sed 's/^# //' | sed 's/[🎯👨‍💻🛠️🏗️📱🔍🔧🛠️📋🌐📊]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             if [[ -n "$title" ]]; then
                 echo "$title"
             else
@@ -516,7 +516,7 @@ ana_lad() {
         local file="$1"
         if [[ -f "$file" ]]; then
             # Look for first paragraph after title that doesn't start with ##
-            local desc=$(awk '/^# /{flag=1; next} flag && /^[A-Za-z*]/ && !/^##/{print; exit}' "$file" 2>/dev/null | sed 's/^\*//; s/\*$//' | xargs)
+            local desc=$(awk '/^# /{flag=1; next} flag && /^[A-Za-z*]/ && !/^##/{print; exit}' "$file" 2>/dev/null | sed 's/^\*//; s/\*$//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             if [[ -n "$desc" ]]; then
                 echo "$desc"
             else

@@ -35,6 +35,14 @@ fi
 [[ -z "$PROJECT_ROOT" ]] && PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 [[ -z "$DOC_OUTPUT_DIR" ]] && DOC_OUTPUT_DIR="$PROJECT_ROOT/doc"
 
+# Resolve relative paths to absolute paths relative to SCRIPT_DIR
+if [[ "$PROJECT_ROOT" == .* ]]; then
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/$PROJECT_ROOT" && pwd)"
+fi
+if [[ "$DOC_OUTPUT_DIR" == .* ]]; then
+    DOC_OUTPUT_DIR="$(cd "$SCRIPT_DIR/$DOC_OUTPUT_DIR" && pwd)"
+fi
+
 # Available generators
 GENERATORS=(
     "functions:func:Function metadata table generator"

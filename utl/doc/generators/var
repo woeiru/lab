@@ -57,7 +57,9 @@ main() {
             echo "Processing variables in: $target_dir"
             # Use ana_acu for variable usage analysis
             if command -v ana_acu >/dev/null 2>&1; then
-                ana_acu "$full_path" || echo "Warning: ana_acu failed for $target_dir"
+                # Determine config source (use CONFIG_ana from sourced ana library)
+                local config_source="${CONFIG_ana:-${SITE_CONFIG_FILE:-$LAB_DIR/cfg/env/site1}}"
+                ana_acu "-o" "$config_source" "$full_path" || echo "Warning: ana_acu failed for $target_dir"
             else
                 echo "Warning: ana_acu not available, skipping $target_dir"
             fi
