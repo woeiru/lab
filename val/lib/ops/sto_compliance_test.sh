@@ -6,7 +6,8 @@
 # Load test framework
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/../../helpers/test_framework.sh"
 
-# Load sto module
+# Load aux and sto modules
+source $LAB_ROOT/lib/gen/aux
 source $LAB_ROOT/lib/ops/sto
 
 # Test parameter validation compliance

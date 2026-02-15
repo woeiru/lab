@@ -23,6 +23,8 @@ FRAMEWORK_TESTS_RUN=0
 FRAMEWORK_TESTS_PASSED=0
 FRAMEWORK_TESTS_FAILED=0
 FRAMEWORK_START_TIME=""
+TESTS_PASSED=0
+TESTS_FAILED=0
 
 # Colors for output
 readonly RED='\033[0;31m'
@@ -278,10 +280,12 @@ it() {
 
 pass() {
     test_success "$1"
+    ((TESTS_PASSED++)) || true
 }
 
 fail() {
     test_failure "$1"
+    ((TESTS_FAILED++)) || true
 }
 
 test_footer() {
