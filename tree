@@ -40,6 +40,8 @@
 │   │   ├── configuration.md
 │   │   ├── README.md
 │   │   └── security.md
+│   ├── arc
+│   │   └── architecture-map.md
 │   ├── cli
 │   │   ├── initiation.md
 │   │   ├── README.md
@@ -186,4 +188,4 @@
         │       └── test_output.txt
         └── dic_framework_test.sh
 
-47 directories, 140 files
+48 directories, 141 files

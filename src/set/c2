@@ -34,7 +34,7 @@ a_xall() {
 # Sets up multiple Samba shares with different access permissions for regular and guest users
 b_xall() {
     # DIC will handle iteration over SMB share configurations
-    ops smb set -j
+    ops srv smb_set -j
 }
 
 # Handle script execution

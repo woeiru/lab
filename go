@@ -14,6 +14,7 @@
 # Usage:
 #   ./go init          Setup/configure shell integration
 #   ./go status        Check system status  
+#   ./go doctor        Run bootstrap preflight checks
 #   ./go validate      Run system validation
 #   ./go help          Show detailed help
 #######################################################################
@@ -327,6 +328,7 @@ COMMANDS:
     on              Enable shell integration (activate saved settings)
     off             Disable shell integration (remove from shell config)
     status          Check system initialization status
+    doctor          Run bootstrap preflight checks
     validate        Run system validation tests
     help            Show detailed help and documentation
     
@@ -335,6 +337,7 @@ EXAMPLES:
     ./go on                      # Enable shell integration
     ./go off                     # Disable shell integration
     ./go status                  # Check if system is ready
+    ./go doctor                  # Run preflight checks
     ./go validate               # Run validation tests
 
 WORKFLOW:
@@ -372,6 +375,139 @@ check_init_status() {
         echo "✗ Lab system not initialized. Run: ./go init"
         return 1
     fi
+}
+
+doctor_print_ok() {
+    local message="$1"
+    printf "OK   %s\n" "$message"
+}
+
+doctor_print_warn() {
+    local message="$1"
+    printf "WARN %s\n" "$message"
+}
+
+doctor_print_fail() {
+    local message="$1"
+    printf "FAIL %s\n" "$message"
+}
+
+run_doctor() {
+    local errors=0
+    local warnings=0
+
+    printf "Running lab bootstrap preflight checks...\n"
+    printf "Repository root: %s\n\n" "$LAB_ROOT"
+
+    local required_dirs=(
+        "bin"
+        "cfg/core"
+        "cfg/env"
+        "cfg/ali"
+        "lib/core"
+        "lib/ops"
+        "lib/gen"
+        "src/dic"
+        "src/set"
+        "val"
+    )
+    local rel_dir
+    for rel_dir in "${required_dirs[@]}"; do
+        if [[ -d "${LAB_ROOT}/${rel_dir}" ]]; then
+            doctor_print_ok "Required directory exists: ${rel_dir}"
+        else
+            doctor_print_fail "Required directory missing: ${rel_dir}"
+            errors=$((errors + 1))
+        fi
+    done
+
+    local required_files=(
+        "go"
+        "bin/ini"
+        "bin/orc"
+        "cfg/core/ric"
+        "cfg/core/mdc"
+        "src/dic/ops"
+        "lib/ops/srv"
+    )
+    local rel_file
+    for rel_file in "${required_files[@]}"; do
+        if [[ -f "${LAB_ROOT}/${rel_file}" ]]; then
+            doctor_print_ok "Required file exists: ${rel_file}"
+        else
+            doctor_print_fail "Required file missing: ${rel_file}"
+            errors=$((errors + 1))
+        fi
+    done
+
+    if [[ -d "${LAB_ROOT}/src/aux" ]]; then
+        doctor_print_ok "Optional directory present: src/aux"
+    else
+        doctor_print_warn "Optional directory missing: src/aux (referenced by cfg/core/ric)"
+        warnings=$((warnings + 1))
+    fi
+
+    local required_cmds=(bash awk find sort mktemp diff bc)
+    local cmd
+    for cmd in "${required_cmds[@]}"; do
+        if command -v "$cmd" >/dev/null 2>&1; then
+            doctor_print_ok "Required command available: $cmd"
+        else
+            doctor_print_fail "Required command not found: $cmd"
+            errors=$((errors + 1))
+        fi
+    done
+
+    if grep -q '^srv_nfs_set()' "${LAB_ROOT}/lib/ops/srv"; then
+        doctor_print_ok "Found function: srv_nfs_set"
+    else
+        doctor_print_fail "Missing function in lib/ops/srv: srv_nfs_set"
+        errors=$((errors + 1))
+    fi
+
+    if grep -q '^srv_smb_set()' "${LAB_ROOT}/lib/ops/srv"; then
+        doctor_print_ok "Found function: srv_smb_set"
+    else
+        doctor_print_fail "Missing function in lib/ops/srv: srv_smb_set"
+        errors=$((errors + 1))
+    fi
+
+    if grep -q 'ops srv nfs_set -j' "${LAB_ROOT}/src/set/c1"; then
+        doctor_print_ok "Set mapping valid: src/set/c1 -> ops srv nfs_set -j"
+    else
+        doctor_print_fail "Invalid mapping in src/set/c1: expected 'ops srv nfs_set -j'"
+        errors=$((errors + 1))
+    fi
+
+    if grep -q 'ops srv smb_set -j' "${LAB_ROOT}/src/set/c2"; then
+        doctor_print_ok "Set mapping valid: src/set/c2 -> ops srv smb_set -j"
+    else
+        doctor_print_fail "Invalid mapping in src/set/c2: expected 'ops srv smb_set -j'"
+        errors=$((errors + 1))
+    fi
+
+    if grep -q 'ops nfs set -j' "${LAB_ROOT}/src/set/c1"; then
+        doctor_print_fail "Legacy stale call still present in src/set/c1: ops nfs set -j"
+        errors=$((errors + 1))
+    else
+        doctor_print_ok "No stale legacy call in src/set/c1"
+    fi
+
+    if grep -q 'ops smb set -j' "${LAB_ROOT}/src/set/c2"; then
+        doctor_print_fail "Legacy stale call still present in src/set/c2: ops smb set -j"
+        errors=$((errors + 1))
+    else
+        doctor_print_ok "No stale legacy call in src/set/c2"
+    fi
+
+    printf "\nSummary: %d error(s), %d warning(s)\n" "$errors" "$warnings"
+    if ((errors > 0)); then
+        printf "Doctor status: FAILED\n"
+        return 1
+    fi
+
+    printf "Doctor status: PASS\n"
+    return 0
 }
 
 #######################################################################
@@ -520,6 +656,9 @@ main() {
             ;;
         status)
             check_init_status
+            ;;
+        doctor)
+            run_doctor
             ;;
         validate|test)
             if check_init_status >/dev/null; then

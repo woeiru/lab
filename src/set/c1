@@ -33,7 +33,7 @@ a_xall() {
 
 # Configures NFS exports by setting up a shared folder with specified access permissions
 b_xall() {
-    ops nfs set -j
+    ops srv nfs_set -j
 }
 
 # Handle script execution
