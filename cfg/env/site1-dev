@@ -10,10 +10,10 @@ CT_1_CPUS=2
 CT_2_CPUS=2
 CT_3_CPUS=2
 
-# Use different passwords for dev
-CT_1_PASSWORD=devpass
-CT_2_PASSWORD=devpass
-CT_3_PASSWORD=devpass
+# Development passwords must come from secure generation/storage, never plaintext defaults.
+CT_1_PASSWORD="${CT_1_PASSWORD:-$(get_secure_password ct_root.pwd 20 2>/dev/null || sec_get_secure_password ct_root.pwd 20 2>/dev/null || generate_secure_password 20 2>/dev/null || tr -dc 'A-Za-z0-9!@#$%^&*()_+-=' </dev/urandom | head -c 20)}"
+CT_2_PASSWORD="${CT_2_PASSWORD:-$(get_secure_password ct_root.pwd 20 2>/dev/null || sec_get_secure_password ct_root.pwd 20 2>/dev/null || generate_secure_password 20 2>/dev/null || tr -dc 'A-Za-z0-9!@#$%^&*()_+-=' </dev/urandom | head -c 20)}"
+CT_3_PASSWORD="${CT_3_PASSWORD:-$(get_secure_password ct_root.pwd 20 2>/dev/null || sec_get_secure_password ct_root.pwd 20 2>/dev/null || generate_secure_password 20 2>/dev/null || tr -dc 'A-Za-z0-9!@#$%^&*()_+-=' </dev/urandom | head -c 20)}"
 
 # Development-specific settings
 CT_1_PRIVILEGED=no
@@ -61,9 +61,9 @@ CT_3_PRIVILEGED=no
 
 # Example 5: Development security settings
 # Uncomment for relaxed security in dev environment:
-# CT_111_PASSWORD=devpass123
-# CT_112_PASSWORD=devpass123
-# CT_113_PASSWORD=devpass123
+# CT_111_PASSWORD="$(get_secure_password ct_root.pwd 20)"
+# CT_112_PASSWORD="$(get_secure_password ct_root.pwd 20)"
+# CT_113_PASSWORD="$(get_secure_password ct_root.pwd 20)"
 # CT_111_SSH_KEY_FILE="/root/.ssh/dev_key.pub"
 # CT_112_SSH_KEY_FILE="/root/.ssh/dev_key.pub"
 # CT_113_SSH_KEY_FILE="/root/.ssh/dev_key.pub"

@@ -8,12 +8,15 @@
 #              optional test categories for targeted testing.
 #######################################################################
 
-# Source test framework
-source "$(dirname "${BASH_SOURCE[0]}")/helpers/test_framework.sh"
-
 # Configuration
-readonly VAL_DIR="$(dirname "${BASH_SOURCE[0]}")"
-readonly TEST_LAB_DIR="$LAB_ROOT"
+readonly VAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly TEST_LAB_DIR="$(cd "${VAL_DIR}/.." && pwd)"
+
+# Keep compatibility for tests that rely on LAB_ROOT.
+export LAB_ROOT="${LAB_ROOT:-$TEST_LAB_DIR}"
+
+# Source test framework
+source "${VAL_DIR}/helpers/test_framework.sh"
 
 # Test categories
 declare -A TEST_CATEGORIES=(

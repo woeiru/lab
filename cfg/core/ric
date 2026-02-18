@@ -121,11 +121,6 @@ declare -g CFG_ALI_DIR
 CFG_ALI_DIR="${LAB_DIR}/cfg/ali"
 export CFG_ALI_DIR
 
-# Deployment function library path
-declare -g SRC_AUX_DIR
-SRC_AUX_DIR="${LAB_DIR}/src/aux"
-export SRC_AUX_DIR
-
 # Generation directory for gen scripts
 declare -g SRC_SET_DIR
 SRC_SET_DIR="${LAB_DIR}/src/set"

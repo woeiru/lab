@@ -53,7 +53,7 @@ export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test environment loading workflow
-if source src/aux/set 2>/dev/null; then
+if source bin/ini 2>/dev/null; then
     # Check if environment variables are properly set
     if [[ -n "${LAB_ROOT:-}" ]] && [[ -n "${SITE:-}" ]]; then
         # Test that infrastructure utilities are available
@@ -162,7 +162,7 @@ export NODE="w2"
 cd "$LAB_DIR"
 
 # Test configuration hierarchy loading
-if source src/aux/set 2>/dev/null; then
+if source bin/ini 2>/dev/null; then
     # Should load site1-dev-w2 configuration if available
     # or fall back appropriately
     if [[ "${ENVIRONMENT}" == "dev" ]] && [[ "${NODE}" == "w2" ]]; then
@@ -271,7 +271,6 @@ cd "$LAB_DIR"
 
 # Time complete environment loading
 source bin/ini >/dev/null 2>&1
-source src/aux/set >/dev/null 2>&1
 EOF
     chmod +x "$test_env/perf_test.sh"
     

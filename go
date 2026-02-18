@@ -47,7 +47,7 @@ declare -g INJECT_CONTENT=""
 init_injection_config() {
     local determined_bin_dir
     
-    # Determine the correct bin directory for the init script
+    # Determine the correct bin directory for the ini script
     if [[ -f "$SCRIPT_DIR/$FILEPATH" ]]; then
         determined_bin_dir="$SCRIPT_DIR"
     elif [[ -f "$SCRIPT_DIR/bin/ini" ]]; then
@@ -440,13 +440,6 @@ run_doctor() {
         fi
     done
 
-    if [[ -d "${LAB_ROOT}/src/aux" ]]; then
-        doctor_print_ok "Optional directory present: src/aux"
-    else
-        doctor_print_warn "Optional directory missing: src/aux (referenced by cfg/core/ric)"
-        warnings=$((warnings + 1))
-    fi
-
     local required_cmds=(bash awk find sort mktemp diff bc)
     local cmd
     for cmd in "${required_cmds[@]}"; do
@@ -498,6 +491,14 @@ run_doctor() {
         errors=$((errors + 1))
     else
         doctor_print_ok "No stale legacy call in src/set/c2"
+    fi
+
+    # Guardrail: reject committed insecure plaintext password defaults
+    if grep -REn '^[[:space:]]*CT_[A-Za-z0-9_]*PASSWORD[[:space:]]*=[[:space:]]*["'\'']?(password|devpass|devpass123|changeme)["'\'']?[[:space:]]*$' "${LAB_ROOT}/cfg/env" >/dev/null 2>&1; then
+        doctor_print_fail "Insecure plaintext CT_*_PASSWORD default found in cfg/env"
+        errors=$((errors + 1))
+    else
+        doctor_print_ok "No insecure plaintext CT_*_PASSWORD defaults in cfg/env"
     fi
 
     printf "\nSummary: %d error(s), %d warning(s)\n" "$errors" "$warnings"

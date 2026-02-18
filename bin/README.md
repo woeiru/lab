@@ -8,14 +8,14 @@ The `bin/` directory serves as the central hub for system initialization, bootst
 
 ```
 bin/
-├── init              # Main System Initialization Controller
+├── ini               # Main System Initialization Controller
 ├── orc               # Component Orchestrator  
 
 ```
 
 ## 📁 Core Files and Components
 
-### 🚀 `init` - Main System Initialization Controller
+### 🚀 `ini` - Main System Initialization Controller
 
 **Purpose**: The primary system initialization script that orchestrates the entire environment bootstrap process through a modular, dependency-aware approach.
 
@@ -54,7 +54,6 @@ bin/
 
 - **Library Loading**:
   - `source_lib_ops`: Operational function libraries
-  - `source_lib_aux`: Auxiliary helper functions
   - `source_lib_gen`: General utility functions
 
 - **Component Management**:
@@ -64,7 +63,7 @@ bin/
 
  **Component Setup**:
    - Orchestrates loading of configuration files (`cfg/`)
-   - Sources library modules (`lib/core/`, `lib/ops/`, `lib/gen/`, `lib/gen/aux, src/aux/`)
+   - Sources library modules (`lib/core/`, `lib/ops/`, `lib/gen/`)
    - Applies environment-specific settings and aliases
 
 ## 🔧 Key Features

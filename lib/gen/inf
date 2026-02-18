@@ -87,7 +87,7 @@ declare -g CT_DEFAULT_MEMORY="8192"
 declare -g CT_DEFAULT_SWAP="8192"
 declare -g CT_DEFAULT_NAMESERVER="8.8.8.8"
 declare -g CT_DEFAULT_SEARCHDOMAIN="fritz.box"
-declare -g CT_DEFAULT_PASSWORD="password"
+declare -g CT_DEFAULT_PASSWORD=""
 declare -g CT_DEFAULT_CPUS="8"
 declare -g CT_DEFAULT_PRIVILEGED="yes"
 declare -g CT_DEFAULT_NET_NIC="eth0"
@@ -95,6 +95,35 @@ declare -g CT_DEFAULT_NET_BRIDGE="vmbr0"
 declare -g CT_DEFAULT_CIDR="24"
 declare -g CT_DEFAULT_GATEWAY="192.168.178.1"
 declare -g CT_DEFAULT_SSH_KEY_FILE="/root/.ssh/h1.pub"
+
+# Resolve container password without relying on insecure literals.
+inf_resolve_container_password() {
+    local candidate="${1:-}"
+
+    if [[ -n "$candidate" ]]; then
+        printf '%s\n' "$candidate"
+        return 0
+    fi
+
+    if declare -f get_secure_password >/dev/null 2>&1; then
+        get_secure_password "ct_root.pwd" 20
+        return 0
+    fi
+
+    if declare -f sec_get_secure_password >/dev/null 2>&1; then
+        sec_get_secure_password "ct_root.pwd" 20
+        return 0
+    fi
+
+    if declare -f generate_secure_password >/dev/null 2>&1; then
+        generate_secure_password 20
+        return 0
+    fi
+
+    # Last-resort local generation when sec utilities are unavailable.
+    tr -dc 'A-Za-z0-9!@#$%^&*()_+-=' < /dev/urandom | head -c 20
+    echo
+}
 
 # Default VM configuration
 declare -g VM_DEFAULT_OSTYPE="l26"
@@ -129,6 +158,7 @@ inf_set_container_defaults() {
     local gateway="${14:-$CT_DEFAULT_GATEWAY}"
     local ssh_key_file="${15:-$CT_DEFAULT_SSH_KEY_FILE}"
     
+    password="$(inf_resolve_container_password "$password")"
     CT_DEFAULT_TEMPLATE="$template"
     CT_DEFAULT_STORAGE="$storage"
     CT_DEFAULT_ROOTFS_SIZE="$rootfs_size"
@@ -194,6 +224,7 @@ inf_define_container() {
     local gateway="${18:-$CT_DEFAULT_GATEWAY}"
     local ssh_key_file="${19:-$CT_DEFAULT_SSH_KEY_FILE}"
     
+    password="$(inf_resolve_container_password "$password")"
     # Dynamically create variables
     declare -g "CT_${num}_ID=$id"
     declare -g "CT_${num}_TEMPLATE=$template"

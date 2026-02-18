@@ -1,5 +1,7 @@
 # Architecture Map
 
+Status updated: 2026-02-18
+
 ## Architecture Map
 - `./go` is the user-facing CLI and shell-integrator, not the runtime loader itself (`go:30`, `go:521`).
 - Runtime boot path is:
@@ -39,18 +41,17 @@
 - Proxmox/admin tools inferred from ops modules (`lib/ops/pve`, `lib/ops/sto`, `lib/ops/sys`)
 
 ## Identified Risks
-1. Module name mismatch likely breaks workflows: `ops nfs set -j` / `ops smb set -j` in set scripts, but no `lib/ops/nfs` or `lib/ops/smb` module exists (`src/set/c1:36`, `src/set/c2:37`, `src/dic/ops:326`, `lib/ops/srv`).
-2. Config references non-existent aux directory: `SRC_AUX_DIR="${LAB_DIR}/src/aux"` while `src/aux` is missing (`cfg/core/ric:126`). It is optional, but this degrades intended orchestration (`bin/orc:628`).
-3. Doc/runtime naming drift: docs describe `bin/init`, code uses `bin/ini` and `go` injects `bin/ini` (`bin/README.md`, `go:30`).
-4. Security drift in configs: hardcoded dev passwords and insecure default `CT_DEFAULT_PASSWORD="password"` (`cfg/env/site1-dev:14`, `lib/gen/inf:87`).
-5. Test harness fragility: `TEST_LAB_DIR="$LAB_ROOT"` can be empty if environment is not preloaded (`val/run_all_tests.sh:16`).
+1. Module name mismatch likely breaks workflows: `ops nfs set -j` / `ops smb set -j` in set scripts, but no `lib/ops/nfs` or `lib/ops/smb` module exists (`src/set/c1:36`, `src/set/c2:37`, `src/dic/ops:326`, `lib/ops/srv`). `RESOLVED 2026-02-18`
+2. Config references non-existent aux directory: `SRC_AUX_DIR="${LAB_DIR}/src/aux"` while `src/aux` is missing (`cfg/core/ric:126`). It is optional, but this degrades intended orchestration (`bin/orc:628`). `RESOLVED 2026-02-18`
+3. Doc/runtime naming drift: docs describe `bin/init`, code uses `bin/ini` and `go` injects `bin/ini` (`bin/README.md`, `go:30`). `RESOLVED 2026-02-18`
+4. Security drift in configs: hardcoded dev passwords and insecure default `CT_DEFAULT_PASSWORD="password"` (`cfg/env/site1-dev:14`, `lib/gen/inf:87`). `RESOLVED 2026-02-18`
+5. Test harness fragility: `TEST_LAB_DIR="$LAB_ROOT"` can be empty if environment is not preloaded (`val/run_all_tests.sh:16`). `RESOLVED 2026-02-18`
 
 ## Suggested Improvements
-1. Fix set-to-ops module mapping: either rename calls to `ops srv nfs_set`/`ops srv smb_set` style or add compatibility modules/aliases.
-2. Remove or implement `src/aux`; if intentionally absent, stop exporting `SRC_AUX_DIR` and remove component loading noise.
-3. Standardize naming/docs on `ini` vs `init` across `README`, `bin/README.md`, and help text.
-4. Replace insecure defaults with `sec_*` generated credentials and disallow plaintext dev passwords in committed env files.
-5. Add a lightweight bootstrap checker command (`./go doctor`) to validate expected dirs/modules/env before running set scripts.
-6. Make tests self-contained by deriving repo root from script location instead of `LAB_ROOT` env dependency.
-
+1. Fix set-to-ops module mapping: either rename calls to `ops srv nfs_set`/`ops srv smb_set` style or add compatibility modules/aliases. `COMPLETED 2026-02-18`
+2. Remove or implement `src/aux`; if intentionally absent, stop exporting `SRC_AUX_DIR` and remove component loading noise. `COMPLETED 2026-02-18`
+3. Standardize naming/docs on `ini` vs `init` across `README`, `bin/README.md`, and help text. `COMPLETED 2026-02-18`
+4. Replace insecure defaults with `sec_*` generated credentials and disallow plaintext dev passwords in committed env files. `COMPLETED 2026-02-18`
+5. Add a lightweight bootstrap checker command (`./go doctor`) to validate expected dirs/modules/env before running set scripts. `COMPLETED 2026-02-18`
+6. Make tests self-contained by deriving repo root from script location instead of `LAB_ROOT` env dependency. `COMPLETED 2026-02-18`
 Architecture model confidence is above 90% for control flow, module boundaries, and main failure modes.
