@@ -1,0 +1,189 @@
+.
+├── bin
+│   ├── ini
+│   ├── orc
+│   └── README.md
+├── cfg
+│   ├── ali
+│   │   ├── dyn
+│   │   └── sta
+│   ├── core
+│   │   ├── ecc
+│   │   ├── mdc
+│   │   ├── rdc
+│   │   └── ric
+│   ├── env
+│   │   ├── site1
+│   │   ├── site1-dev
+│   │   └── site1-w2
+│   ├── log
+│   │   ├── ai_logging_instructions.md
+│   │   ├── enhanced_logging_dev_summary.md
+│   │   ├── enhanced_logging_next_steps.md
+│   │   ├── filebeat.yml
+│   │   ├── fluentd.conf
+│   │   ├── README.md
+│   │   └── usage_examples.md
+│   ├── pod
+│   │   ├── qdev
+│   │   │   ├── Containerfile
+│   │   │   ├── README.md
+│   │   │   └── startcqd.sh
+│   │   └── shus
+│   │       ├── Containerfile
+│   │       ├── entrypoint.sh
+│   │       ├── README.md
+│   │       └── smb.conf.template
+│   └── README.md
+├── doc
+│   ├── adm
+│   │   ├── configuration.md
+│   │   ├── README.md
+│   │   └── security.md
+│   ├── cli
+│   │   ├── initiation.md
+│   │   ├── README.md
+│   │   └── verbosity.md
+│   ├── dev
+│   │   ├── functions.md
+│   │   ├── logging.md
+│   │   ├── README.md
+│   │   └── variables.md
+│   ├── iac
+│   │   ├── deployment.md
+│   │   ├── environment.md
+│   │   └── README.md
+│   ├── issue
+│   │   ├── 001-gpu-hook-trigger-bug.md
+│   │   ├── 002-filepath-pve-legacy-reference.md
+│   │   └── 003-dic-injection-flag-failure.md
+│   └── README.md
+├── go
+├── lib
+│   ├── core
+│   │   ├── col
+│   │   ├── err
+│   │   ├── lo1
+│   │   ├── tme
+│   │   └── ver
+│   ├── gen
+│   │   ├── ana
+│   │   ├── aux
+│   │   ├── env
+│   │   ├── inf
+│   │   └── sec
+│   └── ops
+│       ├── gpu
+│       ├── net
+│       ├── pbs
+│       ├── pve
+│       ├── README.md
+│       ├── srv
+│       ├── ssh
+│       ├── sto
+│       ├── sys
+│       └── usr
+├── README.md
+├── src
+│   ├── dic
+│   │   ├── config
+│   │   │   ├── conventions.conf
+│   │   │   ├── mappings.conf
+│   │   │   └── overrides.conf
+│   │   ├── DIC_INTEGRATION_SUMMARY.md
+│   │   ├── examples
+│   │   │   └── basic.sh
+│   │   ├── lib
+│   │   │   ├── injector
+│   │   │   ├── introspector
+│   │   │   └── resolver
+│   │   ├── ops
+│   │   └── README.md
+│   ├── README.md
+│   └── set
+│       ├── c1
+│       ├── c2
+│       ├── c3
+│       ├── h1
+│       ├── t1
+│       └── t2
+├── tree
+├── utl
+│   ├── cfg
+│   │   └── ali
+│   └── doc
+│       ├── ai
+│       │   └── ai_doc_generator
+│       ├── config
+│       │   ├── settings
+│       │   └── targets
+│       ├── generators
+│       │   ├── func
+│       │   ├── hub
+│       │   ├── stats
+│       │   └── var
+│       ├── intelligence
+│       │   ├── deps
+│       │   ├── perf
+│       │   ├── test
+│       │   └── ux
+│       ├── README.md
+│       └── run_all_doc.sh
+└── val
+    ├── core
+    │   ├── config
+    │   │   └── cfg_test.sh
+    │   ├── initialization
+    │   │   └── ini_test.sh
+    │   └── modules
+    │       ├── err_test.sh
+    │       ├── lo1_test.sh
+    │       ├── tme_test.sh
+    │       └── ver_test.sh
+    ├── helpers
+    │   └── test_framework.sh
+    ├── integration
+    │   └── complete_workflow_test.sh
+    ├── lib
+    │   ├── gen
+    │   │   ├── aux_test.sh
+    │   │   ├── env_test.sh
+    │   │   ├── inf_test.sh
+    │   │   └── sec_test.sh
+    │   ├── integration
+    │   │   └── README.md
+    │   ├── ops
+    │   │   ├── debug_help_test.sh
+    │   │   ├── gpu_std_compliance_test.sh
+    │   │   ├── gpu_test.sh
+    │   │   ├── net_test.sh
+    │   │   ├── pbs_test.sh
+    │   │   ├── pve_compliance_test.sh
+    │   │   ├── PVE_STD_COMPLIANCE_SUMMARY.md
+    │   │   ├── pve_std_compliance_test.sh
+    │   │   ├── srv_test.sh
+    │   │   ├── ssh_std_compliance_test.sh
+    │   │   ├── ssh_test.sh
+    │   │   ├── std_compliance_plan.md
+    │   │   ├── std_compliance_test.sh
+    │   │   ├── sto_compliance_test.sh
+    │   │   ├── sto_test.sh
+    │   │   ├── sys_test.sh
+    │   │   └── usr_test.sh
+    │   └── run_all_tests.sh
+    ├── README.md
+    ├── refactor
+    ├── run_all_tests.sh
+    └── src
+        ├── dic
+        │   ├── dic_basic_test.sh
+        │   ├── dic_integration_test.sh
+        │   ├── dic_phase1_completion_test.sh
+        │   ├── dic_results_demo.sh
+        │   ├── dic_simple_test.sh
+        │   └── outputs
+        │       ├── test_output_final.txt
+        │       └── test_output.txt
+        └── dic_framework_test.sh
+
+47 directories, 140 files
