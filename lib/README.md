@@ -1,5 +1,9 @@
 # Library Modules (`lib/`)
 
+## Navigation
+- [Repository Root](../README.md)
+- [Documentation Hub](../doc/README.md)
+
 Shell library layer for runtime services, infrastructure operations, and shared generators.
 
 This folder provides:
@@ -119,3 +123,11 @@ Targeted library tests:
 - `lib/` is sourced Bash code, not a compiled package.
 - Preferred operational entrypoint is `ops ...` via runtime bootstrap, not direct ad-hoc sourcing.
 - Keep new library functions parameterized and compatible with DIC dispatch patterns in `src/dic/ops`.
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.

@@ -1,5 +1,9 @@
 # 🏗️ Infrastructure as Code Documentation
 
+## Navigation
+- [Repository Root](../../README.md)
+- [Documentation Hub](../README.md)
+
 Documentation for infrastructure teams and DevOps engineers managing deployment automation.
 
 ## 🎯 Target Audience
@@ -165,3 +169,11 @@ export NODE="prod-node1"
 - **Developers**: See `../dev/` for library integration and architecture
 - **System Administrators**: See `../adm/` for operational procedures  
 - **End Users**: See `../user/` for user-facing procedures
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.

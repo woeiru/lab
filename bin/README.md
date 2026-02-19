@@ -1,5 +1,9 @@
 # Binary/Executable Directory (`bin/`)
 
+## Navigation
+- [Repository Root](../README.md)
+- [Documentation Hub](../doc/README.md)
+
 ## 📋 Overview
 
 The `bin/` directory serves as the central hub for system initialization, bootstrapping, and component orchestration within the infrastructure system. It contains the primary initialization scripts that manage the startup sequence, environment configuration, and modular loading of all system components.
@@ -167,3 +171,15 @@ Control initialization behavior through environment variables:
 ---
 
 **Navigation**: Return to [Main Lab Documentation](../README.md)
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
+
+## Related Docs
+- [Repository Root](../README.md)
+- [Documentation Hub](../doc/README.md)

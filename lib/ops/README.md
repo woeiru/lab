@@ -1,4 +1,8 @@
 # Operations Library Architecture
+
+## Navigation
+- [Repository Root](../../README.md)
+- [Documentation Hub](../../doc/README.md)
 # lib/ops - Pure Operational Functions with DIC Integration
 
 ## Overview
@@ -216,3 +220,11 @@ This architecture represents a **migration to pure functions with DIC integratio
 3. **Future**: Full DIC integration across all operational modules
 
 The result is an architecture that supports both **development agility** (through pure functions) and **operational simplicity** (through automatic configuration injection).
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.

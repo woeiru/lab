@@ -1,5 +1,9 @@
 # Configuration Directory
 
+## Navigation
+- [Repository Root](../README.md)
+- [Documentation Hub](../doc/README.md)
+
 The `cfg/` directory serves as the central configuration management hub for the entire infrastructure system. It contains environment-specific settings, automation configurations, system aliases, and deployment parameters organized in a hierarchical structure for maximum flexibility and maintainability.
 
 ## 🗂️ Directory Structure
@@ -145,3 +149,15 @@ Use the Environment Configuration Controller (`core/ecc`) to select and configur
 ---
 
 **Navigation**: Return to [Main Lab Documentation](../README.md)
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
+
+## Related Docs
+- [Repository Root](../README.md)
+- [Documentation Hub](../doc/README.md)

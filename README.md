@@ -1,5 +1,9 @@
 # Lab Environment Management System
 
+## Navigation
+- [Repository Root](README.md)
+- [Documentation Hub](doc/README.md)
+
 Shell-based infrastructure automation for multi-environment lab operations.
 
 This repository provides:
@@ -124,3 +128,15 @@ Key guides:
 - This is a sourced Bash platform, not a conventional compiled build system.
 - Shell integration is managed through explicit begin/end markers in your shell config file.
 - Run `./go help` anytime for the current command surface.
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
+
+## Related Docs
+- [Repository Root](README.md)
+- [Documentation Hub](doc/README.md)

@@ -1,5 +1,9 @@
 # 👨‍💻 Developer Documentation
 
+## Navigation
+- [Repository Root](../../README.md)
+- [Documentation Hub](../README.md)
+
 Documentation for developers integrating with the Lab Environment Management System.
 
 ## 🎯 Target Audience
@@ -100,3 +104,11 @@ tme_print_timing_report
 - **System Administration**: See `../adm/` for operational procedures
 - **Infrastructure Teams**: See `../iac/` for deployment patterns
 - **End Users**: See `../user/` for user-facing documentation
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.

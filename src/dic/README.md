@@ -1,4 +1,8 @@
 # Dependency Injection Container (DIC)
+
+## Navigation
+- [Repository Root](../../README.md)
+- [Documentation Hub](../../doc/README.md)
 # Intelligent Parameter Resolution and Execution Engine
 
 ## Core Value Proposition
@@ -944,3 +948,11 @@ The Dependency Injection Container represents a **paradigm shift** from traditio
 - **Comprehensive diagnostics** enabling rapid troubleshooting and optimization
 
 The DIC eliminates the traditional trade-off between operational simplicity and technical flexibility, enabling both **automated production workflows** and **precise development control** through a single, sophisticated interface that scales from simple operations to complex multi-environment deployments.
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Related Docs
+- [Repository Root](../../README.md)
+- [Documentation Hub](../../doc/README.md)

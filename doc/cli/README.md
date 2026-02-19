@@ -1,5 +1,9 @@
 # 🖥️ CLI Documentation
 
+## Navigation
+- [Repository Root](../../README.md)
+- [Documentation Hub](../README.md)
+
 Documentation for command-line interface, system initialization, and user interaction with the Lab Environment Management System.
 
 This documentation specializes in the `bin/ini` initialization process, verbosity controls, logging configuration, and runtime interaction with core modules (`err`, `lo1`, `tme`, `ver`). It covers everything needed to understand and control the system's startup behavior and operational settings.
@@ -190,3 +194,7 @@ source ~/.bashrc              # Reload environment
 - **Developers**: See `../dev/` for integration and technical details
 - **System Administrators**: See `../adm/` for system management
 - **Infrastructure Teams**: See `../iac/` for deployment automation
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.

@@ -1,5 +1,9 @@
 # Library Integration Test Suite
 
+## Navigation
+- [Repository Root](../../../README.md)
+- [Documentation Hub](../../../doc/README.md)
+
 This directory contains a comprehensive test suite designed for mass function renaming operations across the `/lib` directory structure. The suite provides validation, safety mechanisms, and automation tools to ensure reliable large-scale refactoring.
 
 ## 📁 File Overview
@@ -33,3 +37,15 @@ This directory contains a comprehensive test suite designed for mass function re
 ## 🎯 Purpose
 
 This suite enables safe, validated, and automated mass function renaming across the entire library system while maintaining code integrity and providing comprehensive audit trails for enterprise development workflows.
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
+
+## Related Docs
+- [Repository Root](../../../README.md)
+- [Documentation Hub](../../../doc/README.md)

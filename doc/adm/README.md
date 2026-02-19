@@ -1,5 +1,9 @@
 # 🛠️ System Administrator Documentation
 
+## Navigation
+- [Repository Root](../../README.md)
+- [Documentation Hub](../README.md)
+
 Documentation for system administrators managing the Lab Environment infrastructure.
 
 ## 🎯 Target Audience
@@ -107,3 +111,11 @@ tme_print_timing_report
 - **Developers**: See `../dev/` for integration and architecture details
 - **Infrastructure Teams**: See `../iac/` for deployment automation
 - **End Users**: See `../user/` for user-facing procedures
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.

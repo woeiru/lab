@@ -1,5 +1,9 @@
 # Qdevice setup
 
+## Navigation
+- [Repository Root](../../../README.md)
+- [Documentation Hub](../../../doc/README.md)
+
 <!-- 
 This guide details the configuration of a Qdevice (quorum device) host using Podman containers. 
 It covers initial setup, container creation, cluster integration, and troubleshooting steps for SSH connectivity issues 
@@ -450,3 +454,15 @@ pvecm qdevice remove says "No QDevice configured!"
    - Total votes: 3
    - Qdevice with 1 vote (not 0)
    - Flags: Quorate Qdevice
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
+
+## Related Docs
+- [Repository Root](../../../README.md)
+- [Documentation Hub](../../../doc/README.md)

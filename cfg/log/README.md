@@ -1,4 +1,8 @@
 # Logging Configuration - cfg/log/
+
+## Navigation
+- [Repository Root](../../README.md)
+- [Documentation Hub](../../doc/README.md)
 # Enhanced Auxiliary Logging System Configuration
 
 This directory contains all configuration files, deployment examples, and documentation for the enhanced auxiliary logging system (`lib/gen/aux`). The enhanced logging system provides enterprise-grade structured logging with cluster metadata support for distributed environments.
@@ -66,3 +70,15 @@ The enhanced auxiliary logging system is located in `lib/gen/aux` and provides:
    - Copy `fluentd.conf` or `filebeat.yml` to your log shipper
    - Configure endpoints and credentials
    - Monitor `${LOG_DIR}/aux_operational.jsonl` for structured logs
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
+
+## Related Docs
+- [Repository Root](../../README.md)
+- [Documentation Hub](../../doc/README.md)

@@ -1,4 +1,8 @@
 # Source Code Architecture (`src/`)
+
+## Navigation
+- [Repository Root](../README.md)
+- [Documentation Hub](../doc/README.md)
 # Operational Execution Layer - Advanced Infrastructure Management
 
 [![Architecture](https://img.shields.io/badge/Architecture-Dual%20Paradigm-blue)](#) [![Execution](https://img.shields.io/badge/Execution-Production%20Ready-green)](#) [![Integration](https://img.shields.io/badge/Integration-Multi--Site-orange)](#)
@@ -649,3 +653,11 @@ sys-sca usr all SSH_USERS ALL_IP_ARRAYS ARRAY_ALIASES "./src/set/h1 -x b_xall"
 ---
 
 **Navigation**: [← Return to Main Documentation](../README.md) | [DIC Technical Details →](dic/README.md)
+
+## Common Tasks
+- Start with the quick-start or workflow sections in this file.
+- From repo root, run `./go doctor` and `./go validate` after changes.
+
+## Troubleshooting
+- Confirm commands are run from the expected directory (usually repo root).
+- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
