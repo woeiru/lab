@@ -350,6 +350,6 @@ handle_error "component" "message" "ERROR"
 
 ## 📖 Related Documentation
 
-- **[System Architecture](architecture.md)** - Complete system design
+- **[System Architecture](../arc/architecture-map.md)** - Complete system design
 - **[Logging System](logging.md)** - Debug and logging frameworks
-- **[Verbosity Controls](verbosity.md)** - Output control mechanisms
+- **[Verbosity Controls](../cli/verbosity.md)** - Output control mechanisms

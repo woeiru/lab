@@ -213,5 +213,5 @@ define_containers "111:pbs:192.168.178.111"
 ## 📖 Related Documentation
 
 - **[Configuration Management](configuration.md)** - Secure configuration practices
-- **[Infrastructure Guide](../iac/infrastructure.md)** - Secure deployment patterns
+- **[Infrastructure Guide](../iac/deployment.md)** - Secure deployment patterns
 - **[Logging System](../dev/logging.md)** - Security event logging

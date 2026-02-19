@@ -220,14 +220,14 @@ Variables are analyzed across three key directories:
 
 ## 🔧 Variable Analysis Tools
 
-- **[`utl/doc-var`](../utl/doc-var)** - Updates this variable usage documentation automatically using `ana_acu`
-- **[`lib/gen/aux` (ana_acu)](../lib/gen/aux)** - Variable usage analysis function with JSON output support
-- **[`utl/doc-func`](../utl/doc-func)** - Function metadata table generator
-- **[`utl/doc-index`](../utl/doc-index)** - Documentation index generator
+- **[`utl/doc-var`](../../utl/doc/generators/var)** - Updates this variable usage documentation automatically using `ana_acu`
+- **[`lib/gen/ana` (ana_acu)](../../lib/gen/ana)** - Variable usage analysis function with JSON output support
+- **[`utl/doc-func`](../../utl/doc/generators/func)** - Function metadata table generator
+- **[`utl/doc-index`](../../utl/doc/generators/hub)** - Documentation index generator
 
 ```bash
 # Update variable usage documentation
-./utl/doc-var
+./utl/doc/run_all_doc.sh variables
 
 # Analyze variable usage manually
 ana_acu "" cfg/env lib/ops src/set
@@ -242,5 +242,5 @@ ana_acu -a cfg/env lib/ops src/set  # Alphabetical order
 ## 📖 Related Documentation
 
 - **[Functions Reference](functions.md)** - Pure function documentation and metadata
-- **[System Architecture](architecture.md)** - Complete system design and variable flow
+- **[System Architecture](../arc/architecture-map.md)** - Complete system design and variable flow
 - **[Configuration Guide](../adm/configuration.md)** - Configuration file formats and variable definitions

@@ -1,8 +1,8 @@
 # Binary/Executable Directory (`bin/`)
 
 ## Navigation
-- [Repository Root](../README.md)
-- [Documentation Hub](../doc/README.md)
+- [Repository Root](../../README.md)
+- [Documentation Hub](../README.md)
 
 ## 📋 Overview
 
@@ -170,7 +170,7 @@ Control initialization behavior through environment variables:
 
 ---
 
-**Navigation**: Return to [Main Lab Documentation](../README.md)
+**Navigation**: Return to [Main Lab Documentation](../../README.md)
 
 ## Common Tasks
 - Start with the quick-start or workflow sections in this file.
@@ -181,5 +181,5 @@ Control initialization behavior through environment variables:
 - Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
 
 ## Related Docs
-- [Repository Root](../README.md)
-- [Documentation Hub](../doc/README.md)
+- [Repository Root](../../README.md)
+- [Documentation Hub](../README.md)

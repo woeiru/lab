@@ -271,6 +271,6 @@ export ENVIRONMENT="prod" && ./tst/validate_system
 
 ## 📖 Related Documentation
 
-- **[Infrastructure Guide](infrastructure.md)** - Deployment automation patterns
+- **[Infrastructure Guide](deployment.md)** - Deployment automation patterns
 - **[Configuration Management](../adm/configuration.md)** - Detailed configuration options
 - **[Security Management](../adm/security.md)** - Environment security practices

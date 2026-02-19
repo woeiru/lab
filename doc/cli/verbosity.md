@@ -4,7 +4,7 @@ User guide for managing system verbosity and terminal output controls, including
 
 ## 🎯 Overview
 
-This document provides **user instructions** for configuring and managing system verbosity. For technical implementation details and developer information, see the [Developer Verbosity Guide](../dev/verbosity.md).
+This document provides **user instructions** for configuring and managing system verbosity. For technical implementation details and developer information, see the [Developer Verbosity Guide](../dev/logging.md).
 
 The system provides a three-tier verbosity control system that allows you to manage what information appears in your terminal, from complete silence to detailed debugging output.
 
@@ -507,8 +507,8 @@ export TME_TERMINAL_VERBOSITY="off"
 - **[Configuration Guide](../adm/configuration.md)**: System configuration management
 
 For technical details and implementation information, see:
-- **[Developer Verbosity Guide](../dev/verbosity.md)**: Technical implementation details
-- **[Architecture Guide](../core/architecture.md)**: System design patterns
+- **[Developer Verbosity Guide](../dev/logging.md)**: Technical implementation details
+- **[Architecture Guide](../arc/architecture-map.md)**: System design patterns
 
 ## 🔧 Quick Reference
 

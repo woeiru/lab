@@ -1,8 +1,8 @@
 # Qdevice setup
 
 ## Navigation
-- [Repository Root](../../../README.md)
-- [Documentation Hub](../../../doc/README.md)
+- [Repository Root](../../README.md)
+- [Documentation Hub](../README.md)
 
 <!-- 
 This guide details the configuration of a Qdevice (quorum device) host using Podman containers. 
@@ -464,5 +464,5 @@ pvecm qdevice remove says "No QDevice configured!"
 - Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
 
 ## Related Docs
-- [Repository Root](../../../README.md)
-- [Documentation Hub](../../../doc/README.md)
+- [Repository Root](../../README.md)
+- [Documentation Hub](../README.md)
