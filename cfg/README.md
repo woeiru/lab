@@ -8,14 +8,12 @@ The `cfg/` directory serves as the central configuration management hub for the 
 
 ## Directory Structure
 
-```
 cfg/
 ├── ali/          # Alias Management
-├── core/         # Core System Configuration Controllers  
+├── core/         # Core System Configuration Controllers
 ├── env/          # Environment-Specific Configurations
 ├── log/          # Logging System Configuration
 └── pod/          # Container/Pod Configuration
-```
 
 ## Child READMEs
 
@@ -24,7 +22,7 @@ cfg/
 
 ## Subdirectories
 
-### 🔗 `ali/` - Alias Management
+### `ali/` - Alias Management
 Manages system aliases for improved command-line efficiency and standardization.
 
 - **`dyn`** - Dynamically generated aliases (auto-updated by scripts)
@@ -32,7 +30,7 @@ Manages system aliases for improved command-line efficiency and standardization.
 
 **Purpose**: Centralizes command aliases for consistent user experience across different environments and provides dynamic alias generation for project-specific shortcuts.
 
-### 🏗️ `core/` - Core System Configuration Controllers
+### `core/` - Core System Configuration Controllers
 Central control files that manage system-wide configuration parameters and initialization.
 
 - **`ecc`** - Environment Configuration Controller (primary environment selector)
@@ -42,7 +40,7 @@ Central control files that manage system-wide configuration parameters and initi
 
 **Purpose**: Provides centralized control points for system-wide configuration management, ensuring consistent environment setup and resource allocation.
 
-### 🌍 `env/` - Environment-Specific Configurations
+### `env/` - Environment-Specific Configurations
 Site and environment-specific configuration files that define parameters for different deployment targets.
 
 - **`site1`** - Production site configuration
@@ -51,7 +49,7 @@ Site and environment-specific configuration files that define parameters for dif
 
 **Purpose**: Enables multi-environment support with environment-specific variables, allowing the same codebase to operate across development, testing, and production environments.
 
-### 📊 `log/` - Logging System Configuration
+### `log/` - Logging System Configuration
 Configuration files and documentation for the enhanced auxiliary logging system.
 
 - **`fluentd.conf`** - Fluentd configuration for centralized log collection
@@ -62,7 +60,7 @@ Configuration files and documentation for the enhanced auxiliary logging system.
 
 **Purpose**: Provides ready-to-deploy configurations for enterprise-grade structured logging with cluster metadata support. Integrates with the enhanced auxiliary logging system (`lib/gen/aux`) to enable centralized log aggregation across distributed environments.
 
-### 🐳 `pod/` - Container/Pod Configuration
+### `pod/` - Container/Pod Configuration
 Configuration files for containerized applications and pod deployments.
 
 - **`qdev/`** - Development container configurations
@@ -98,10 +96,8 @@ Configuration files for containerized applications and pod deployments.
 ### Environment Selection
 Use the Environment Configuration Controller (`core/ecc`) to select and configure the target environment:
 
-```bash
 # Environment selection is handled automatically during initialization
 # Manual override can be done by modifying core/ecc
-```
 
 ### Adding New Configurations
 1. **Environment Configs**: Add new files to `env/` following the site naming convention

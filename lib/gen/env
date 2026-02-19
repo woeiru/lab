@@ -192,19 +192,19 @@ env_status() {
         local node_config="${LAB_DIR}/cfg/env/${SITE_NAME}-${NODE_NAME}"
         
         if [[ -f "$base_config" ]]; then
-            echo -e "Base:        ${GREEN}✓${NC} $base_config"
+            echo -e "Base:        ${GREEN}${NC} $base_config"
         else
-            echo -e "Base:        ${RED}✗${NC} $base_config (missing)"
+            echo -e "Base:        ${RED}${NC} $base_config (missing)"
         fi
         
         if [[ -f "$env_config" ]]; then
-            echo -e "Environment: ${GREEN}✓${NC} $env_config"
+            echo -e "Environment: ${GREEN}${NC} $env_config"
         else
             echo -e "Environment: ${YELLOW}○${NC} $env_config (optional)"
         fi
         
         if [[ -f "$node_config" ]]; then
-            echo -e "Node:        ${GREEN}✓${NC} $node_config"
+            echo -e "Node:        ${GREEN}${NC} $node_config"
         else
             echo -e "Node:        ${YELLOW}○${NC} $node_config (optional)"
         fi
@@ -252,27 +252,27 @@ env_validate() {
     
     # Check base configuration
     if [[ ! -f "$base_config" ]]; then
-        echo -e "${RED}✗ Missing base site configuration: $base_config${NC}"
+        echo -e "${RED} Missing base site configuration: $base_config${NC}"
         ((errors++))
     else
-        echo -e "${GREEN}✓ Base site configuration found${NC}"
+        echo -e "${GREEN} Base site configuration found${NC}"
         
         # Basic syntax check
         if bash -n "$base_config" 2>/dev/null; then
-            echo -e "${GREEN}  ✓ Syntax valid${NC}"
+            echo -e "${GREEN}   Syntax valid${NC}"
         else
-            echo -e "${RED}  ✗ Syntax errors detected${NC}"
+            echo -e "${RED}   Syntax errors detected${NC}"
             ((errors++))
         fi
     fi
     
     # Check environment override (optional)
     if [[ -f "$env_config" ]]; then
-        echo -e "${GREEN}✓ Environment override found${NC}"
+        echo -e "${GREEN} Environment override found${NC}"
         if bash -n "$env_config" 2>/dev/null; then
-            echo -e "${GREEN}  ✓ Syntax valid${NC}"
+            echo -e "${GREEN}   Syntax valid${NC}"
         else
-            echo -e "${RED}  ✗ Syntax errors detected${NC}"
+            echo -e "${RED}   Syntax errors detected${NC}"
             ((errors++))
         fi
     else
@@ -281,11 +281,11 @@ env_validate() {
     
     # Check node override (optional)
     if [[ -f "$node_config" ]]; then
-        echo -e "${GREEN}✓ Node override found${NC}"
+        echo -e "${GREEN} Node override found${NC}"
         if bash -n "$node_config" 2>/dev/null; then
-            echo -e "${GREEN}  ✓ Syntax valid${NC}"
+            echo -e "${GREEN}   Syntax valid${NC}"
         else
-            echo -e "${RED}  ✗ Syntax errors detected${NC}"
+            echo -e "${RED}   Syntax errors detected${NC}"
             ((errors++))
         fi
     else
@@ -293,10 +293,10 @@ env_validate() {
     fi
     
     if [[ $errors -eq 0 ]]; then
-        echo -e "\n${GREEN}✓ All validations passed${NC}"
+        echo -e "\n${GREEN} All validations passed${NC}"
         return 0
     else
-        echo -e "\n${RED}✗ $errors validation error(s) found${NC}"
+        echo -e "\n${RED} $errors validation error(s) found${NC}"
         return 1
     fi
 }

@@ -635,14 +635,14 @@ generate_compliance_report() {
     
     # Recommendations
     if [[ $overall_percent -lt 80 ]]; then
-        echo "🔴 RECOMMENDATIONS:"
+        echo " RECOMMENDATIONS:"
         [[ $val_percent -lt 90 ]] && echo "   • Add aux_val parameter validation to more functions"
         [[ $help_percent -lt 90 ]] && echo "   • Implement aux_use/aux_tec help system in more functions"
         [[ $error_percent -lt 80 ]] && echo "   • Add proper error handling with aux_err"
         [[ $doc_percent -lt 70 ]] && echo "   • Improve function documentation"
         [[ $aux_percent -lt 60 ]] && echo "   • Increase aux function integration"
     else
-        echo "✅ GOOD COMPLIANCE - Ready for production!"
+        echo " GOOD COMPLIANCE - Ready for production!"
     fi
     echo ""
 }
@@ -660,7 +660,7 @@ main() {
     test_file_exists "$AUX_LIB" "aux library exists"
     
     echo ""
-    echo "🔍 Running .std standards compliance tests..."
+    echo " Running .std standards compliance tests..."
     echo ""
     
     # Core compliance tests

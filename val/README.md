@@ -8,7 +8,6 @@
 `val/` contains the test framework and runners used to verify bootstrap behavior, library operations, and integration workflows.
 
 ## Quick Start
-```bash
 # Full suite
 ./val/run_all_tests.sh
 
@@ -18,7 +17,6 @@
 ./val/run_all_tests.sh core
 ./val/run_all_tests.sh lib
 ./val/run_all_tests.sh integration
-```
 
 ## Structure
 - `val/helpers/`: shared test framework utilities.

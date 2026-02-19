@@ -50,25 +50,19 @@ Resolution order typically follows:
 ## Example Patterns
 
 ### Runtime (hybrid)
-```bash
 ops pve vpt 100 on
-```
 User provides key arguments; DIC injects remaining values.
 
 ### Runtime (injection)
-```bash
 ops pve vpt -j
-```
 DIC resolves all parameters from environment/config.
 
 ### Deployment (section orchestration)
-```bash
 a_xall() {
   ops pve dsr -j
   ops usr adr -j
   ops pve rsn -j
 }
-```
 
 ## Failure Modes and Diagnostics
 - Missing parameter mapping: run with `OPS_DEBUG=1` and inspect resolution trace.

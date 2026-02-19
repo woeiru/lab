@@ -289,23 +289,23 @@ setup_shell_integration() {
     # Execute setup steps
     printf "Step 1: Checking shell compatibility...\n"
     check_shell_version || return 1
-    printf "✓ Shell compatibility verified\n\n"
+    printf "Shell compatibility verified\n\n"
     
     printf "Step 2: Initializing configuration...\n"
     init_injection_config || return 1
-    printf "✓ Configuration initialized\n\n"
+    printf "Configuration initialized\n\n"
     
     printf "Step 3: Setting target user...\n"
     init_target_user || return 1
-    printf "✓ Target user configured\n\n"
+    printf "Target user configured\n\n"
     
     printf "Step 4: Configuring shell file...\n"
     set_config_file || return 1
-    printf "✓ Shell config file set\n\n"
+    printf "Shell config file set\n\n"
     
     printf "Step 5: Saving settings...\n"
     save_settings || return 1
-    printf "✓ Settings saved\n\n"
+    printf "Settings saved\n\n"
     
     printf "Initialization completed successfully!\n\n"
     printf "Next steps:\n"
@@ -354,25 +354,25 @@ EOF
 
 check_init_status() {
     if [[ -f "${HOME}/.lab_initialized" ]]; then
-        echo "✓ Lab system has been initialized"
+        echo "Lab system has been initialized"
         
         # Check if settings file exists
         if [[ -f "$SETTINGS_FILE" ]]; then
-            echo "✓ Settings file found (on/off commands available)"
+            echo "Settings file found (on/off commands available)"
         else
-            echo "⚠ Settings file not found. Run './go init' to configure settings."
+            echo "Settings file not found. Run './go init' to configure settings."
         fi
         
         # Check if shell integration is working
         if command -v ini >/dev/null 2>&1 || [[ -n "${LAB_ROOT:-}" ]]; then
-            echo "✓ Shell integration is active"
+            echo "Shell integration is active"
         else
-            echo "⚠ Shell integration not detected. Try restarting your shell or run: source ~/.bashrc"
+            echo "Shell integration not detected. Try restarting your shell or run: source ~/.bashrc"
         fi
         
         return 0
     else
-        echo "✗ Lab system not initialized. Run: ./go init"
+        echo "Lab system not initialized. Run: ./go init"
         return 1
     fi
 }
@@ -627,7 +627,7 @@ handle_on_command() {
     printf "Enabling lab integration...\n"
     inject_content || return 1
     
-    printf "\n✓ Shell integration enabled successfully!\n\n"
+    printf "\nShell integration enabled successfully!\n\n"
     printf "Next steps:\n"
     printf "1. Restart your shell or run: source %s\n" "$CONFIG_FILE"
     printf "2. Verify with: ./go status\n\n"
@@ -645,7 +645,7 @@ handle_off_command() {
     printf "Disabling lab integration...\n"
     remove_content || return 1
     
-    printf "\n✓ Shell integration disabled successfully!\n\n"
+    printf "\nShell integration disabled successfully!\n\n"
     printf "To re-enable, run: ./go on\n\n"
 }
 

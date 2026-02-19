@@ -8,7 +8,6 @@
 `utl/doc/` automates documentation generation for code, structure, and metadata across the repository.
 
 ## Quick Start
-```bash
 cd /home/es/lab/utl/doc
 
 # Run full documentation pipeline
@@ -19,7 +18,6 @@ cd /home/es/lab/utl/doc
 
 # Inspect generated injection sink
 cat /home/es/lab/doc/dev/generated-doc-injections.md
-```
 
 ## Structure
 - `run_all_doc.sh`: top-level orchestration for documentation tasks.

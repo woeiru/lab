@@ -143,22 +143,22 @@ generate_phase1_summary() {
     echo
     
     if [[ $TESTS_FAILED -eq 0 ]]; then
-        printf "Phase 1 Status: %sCOMPLETE%s ✅\n" "$GREEN" "$NC"
+        printf "Phase 1 Status: %sCOMPLETE%s \n" "$GREEN" "$NC"
         echo "All critical blocking issues have been resolved!"
         echo
         echo "Phase 1 Achievements:"
-        echo "✅ Fixed function definition order (ops_debug moved to top)"
-        echo "✅ Implemented automatic environment configuration sourcing"
-        echo "✅ Resolved CLUSTER_NODES array inheritance issue"
-        echo "✅ All function types (A, B, C) are operational"
-        echo "✅ DIC system ready for Phase 2 development"
+        echo " Fixed function definition order (ops_debug moved to top)"
+        echo " Implemented automatic environment configuration sourcing"
+        echo " Resolved CLUSTER_NODES array inheritance issue"
+        echo " All function types (A, B, C) are operational"
+        echo " DIC system ready for Phase 2 development"
     else
-        printf "Phase 1 Status: %sINCOMPLETE%s ❌\n" "$RED" "$NC"
+        printf "Phase 1 Status: %sINCOMPLETE%s \n" "$RED" "$NC"
         echo "Some critical issues remain unresolved."
         echo
         echo "Remaining Issues:"
-        echo "❌ $TESTS_FAILED test(s) failed"
-        echo "🔧 Phase 1 requires additional fixes before Phase 2"
+        echo " $TESTS_FAILED test(s) failed"
+        echo " Phase 1 requires additional fixes before Phase 2"
     fi
     
     echo

@@ -110,10 +110,10 @@ generate_function_table() {
 
 This table provides a comprehensive overview of all functions available across the lab environment libraries:
 
-### **📋 Function Library Overview**
+### ** Function Library Overview**
 Functions are organized by library modules for systematic access and reference.
 
-### **📖 Function Metadata Table**
+### ** Function Metadata Table**
 
 | Library | Module | Function | Description |
 |---------|--------|----------|-------------|

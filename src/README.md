@@ -10,7 +10,6 @@
 - `src/set/`: set-based deployment workflows that orchestrate DIC operations.
 
 ## Quick Start
-```bash
 # Run health checks before source-layer changes
 ./go doctor
 ./go validate
@@ -20,7 +19,6 @@ ops sys ipa -j
 
 # Example set workflow (depends on environment setup)
 # source src/set/<target>
-```
 
 ## Structure
 - `src/dic/`: DIC command surface and parameter resolution engine.

@@ -1,6 +1,6 @@
-# 📋 .std Standards Implementation Plan for lib/ops Functions
+# .std Standards Implementation Plan for lib/ops Functions
 
-## 🎯 Project Overview
+## Project Overview
 
 **Objective**: Apply the comprehensive `.std` standards to all `lib/ops` functions and implement robust testing to monitor the integration process.
 
@@ -10,9 +10,9 @@
 
 ---
 
-## 📊 Current State Analysis
+## Current State Analysis
 
-### ✅ What's Already Working
+### What's Already Working
 - **Test Framework**: Robust framework in `val/helpers/test_framework.sh`
 - **Aux Library**: Comprehensive `lib/gen/aux` with all required functions
 - **Partial Integration**: Some functions already use `aux_*` functions:
@@ -21,7 +21,7 @@
   - `pve` module: Uses `aux_use`, `aux_tec`
 - **Documentation**: Excellent `.std` standard document with patterns
 
-### 🔍 Current Gaps
+### Current Gaps
 1. **Inconsistent Integration**: Not all functions follow the integration matrix
 2. **Missing Validation**: Many functions lack proper `aux_val` usage
 3. **Incomplete Error Handling**: Missing `aux_err` and `aux_chk` in critical functions
@@ -30,7 +30,7 @@
 
 ---
 
-## 🏗️ Implementation Strategy
+## Implementation Strategy
 
 ### Phase 1: Foundation (Week 1)
 **Goal**: Establish testing framework and baseline compliance
@@ -107,22 +107,19 @@
 
 ---
 
-## 🧪 Testing Strategy
+## Testing Strategy
 
 ### Test Categories
 
 #### 1. Compliance Tests (`std_compliance_test.sh`)
-```bash
 # Test that ALL functions follow the standards
 test_function_parameter_validation()
 test_function_help_system()
 test_function_error_handling()
 test_function_documentation()
 test_aux_integration_compliance()
-```
 
 #### 2. Integration Tests (`aux_integration_test.sh`)
-```bash
 # Test auxiliary function integration
 test_aux_val_integration()
 test_aux_chk_integration()
@@ -130,32 +127,25 @@ test_aux_log_integration()
 test_aux_cmd_integration()
 test_aux_ask_integration()
 test_aux_arr_integration()
-```
 
 #### 3. Function Category Tests
-```bash
 # Test by function type
 test_system_ops_functions()        # gpu, net, pve, srv, sto, sys
 test_user_interactive_functions()  # Functions with aux_ask
 test_data_processing_functions()   # Functions with aux_arr
 test_utility_functions()          # usr, basic helpers
-```
 
 #### 4. Environment Tests
-```bash
 # Test different environments
 test_development_environment()
 test_production_environment()
 test_testing_environment()
-```
 
 #### 5. Regression Tests
-```bash
 # Ensure changes don't break existing functionality
 test_existing_function_behavior()
 test_backward_compatibility()
 test_wrapper_function_compatibility()
-```
 
 ### Automated Compliance Checking
 
@@ -174,7 +164,7 @@ test_wrapper_function_compatibility()
 
 ---
 
-## 📊 Integration Priority Matrix
+## Integration Priority Matrix
 
 | Module | Functions | Priority | Complexity | Aux Functions Needed |
 |--------|-----------|----------|------------|---------------------|
@@ -208,10 +198,9 @@ test_wrapper_function_compatibility()
 
 ---
 
-## 🔧 Implementation Templates
+## Implementation Templates
 
 ### Template 1: System Operation Function
-```bash
 # System operation with full aux integration
 module_function() {
     # Technical Description:
@@ -220,38 +209,38 @@ module_function() {
     #   [All requirements and prerequisites]
     # Arguments:
     #   [Detailed parameter documentation]
-    
+
     # Help (ALWAYS)
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
-    
+
     # Parameter validation (ALWAYS)
     if [ $# -ne 2 ]; then
         aux_use
         return 1
     fi
-    
+
     # Input validation (ALWAYS)
     if ! aux_val "$1" "not_empty"; then
         aux_err "Service name cannot be empty"
         aux_use
         return 1
     fi
-    
+
     # Dependency checks (MUST for system functions)
     if ! aux_chk "command" "systemctl"; then
         aux_err "systemctl command not found"
         return 127
     fi
-    
+
     # Debug logging (SHOULD for complex operations)
     aux_dbg "Starting service operation: $1 -> $2"
-    
+
     # Operational logging (MUST for system changes)
     aux_info "Performing service operation" "service=$1,action=$2"
-    
+
     # Safe command execution (SHOULD for external commands)
     if aux_cmd "systemctl" "$2" "$1"; then
         aux_info "Service operation successful" "service=$1,action=$2"
@@ -260,10 +249,8 @@ module_function() {
         return 2
     fi
 }
-```
 
 ### Template 2: User Interactive Function
-```bash
 # Interactive function with user-focused integration
 module_interactive() {
     # Help (ALWAYS)
@@ -271,26 +258,24 @@ module_interactive() {
         aux_tec
         return 0
     fi
-    
+
     # User interaction (REQUIRED)
     local config_file=$(aux_ask "Enter configuration file path" "/etc/default/config" "file_exists")
     local service_name=$(aux_ask "Enter service name" "" "not_empty")
-    
+
     # Validation (ALWAYS)
     if ! aux_val "$service_name" "alphanum"; then
         aux_err "Service name must be alphanumeric"
         return 1
     fi
-    
+
     # User feedback (MUST)
     aux_info "Configuring service: $service_name"
-    
+
     # Implementation...
 }
-```
 
 ### Template 3: Utility Function
-```bash
 # Simple utility with minimal integration
 module_utility() {
     # Help (ALWAYS)
@@ -298,28 +283,27 @@ module_utility() {
         aux_tec
         return 0
     fi
-    
+
     # Parameter validation (ALWAYS)
     if [ $# -ne 1 ]; then
         aux_use
         return 1
     fi
-    
+
     if ! aux_val "$1" "not_empty"; then
         aux_err "Parameter cannot be empty"
         return 1
     fi
-    
+
     # Optional debug for development
     aux_dbg "Processing utility function with: $1"
-    
+
     # Implementation...
 }
-```
 
 ---
 
-## 📈 Success Metrics
+## Success Metrics
 
 ### Compliance Targets
 - **100%** of functions have parameter validation (`aux_val`)
@@ -344,7 +328,7 @@ module_utility() {
 
 ---
 
-## 🚀 Deliverables
+## Deliverables
 
 ### Week 1 Deliverables
 1. **Compliance Testing Framework**
@@ -383,7 +367,7 @@ module_utility() {
 
 ---
 
-## 🔗 Dependencies and Prerequisites
+## Dependencies and Prerequisites
 
 ### System Requirements
 - Bash 4.0+ for aux function compatibility
@@ -392,22 +376,18 @@ module_utility() {
 - Standard UNIX utilities (grep, awk, sed)
 
 ### Development Environment
-```bash
 export AUX_DEBUG_ENABLED=1
 export MASTER_TERMINAL_VERBOSITY="on"
 export AUX_LOG_FORMAT="human"
-```
 
 ### Testing Environment
-```bash
 export AUX_DEBUG_ENABLED=1
 export AUX_LOG_FORMAT="kv"
 export LOG_DIR="/tmp/aux_testing"
-```
 
 ---
 
-## 🎯 Next Steps
+## Next Steps
 
 1. **Immediate Actions**:
    - Create compliance testing framework

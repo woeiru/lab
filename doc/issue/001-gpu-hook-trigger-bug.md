@@ -11,20 +11,16 @@ VM shutdown hooks fail to trigger when VM is started via `pve_vms` orchestrator,
 ## Problem Description
 
 ### Scenario 1: Direct Command (Working)
-```bash
 ./src/dic/ops gpu ptd -d lookup && qm start 111
 # VM starts successfully
 # VM shutdown from guest triggers hook correctly
 # GPU reattaches to host as expected
-```
 
 ### Scenario 2: Via pve_vms Orchestrator (Bug)
-```bash
 ./src/dic/ops pve vms 111
 # VM starts successfully through orchestrator
 # VM shutdown from guest does NOT trigger hook
 # GPU remains detached from host
-```
 
 ## Root Cause Analysis
 
@@ -47,7 +43,6 @@ The hook system requires:
 ## Technical Details
 
 ### pve_vms GPU Management (lib/ops/pve:1417-1439)
-```bash
 # Conditional GPU detachment based on current status
 local gpu_status=$("$LAB_DIR/dic/ops" gpu pts 2>/dev/null | grep -o "ATTACHED\|DETACHED" | head -n1)
 if [ "$gpu_status" = "ATTACHED" ]; then
@@ -55,17 +50,14 @@ if [ "$gpu_status" = "ATTACHED" ]; then
         aux_warn "GPU detach operation failed, VM may not have GPU access"
     fi
 fi
-```
 
 ### Hook System (lib/ops/pve:957-1014)
-```bash
 # Hook wrapper with environment setup
 cd /root/lab
 export LAB_DIR=/root/lab
 source bin/ini >/dev/null 2>&1
 ./go >/dev/null 2>&1
 source "$LAB_DIR/lib/ops/gpu" && gpu_pta -d lookup
-```
 
 ## Reproduction Steps
 1. Ensure VM 111 exists and has GPU passthrough configured
@@ -81,9 +73,7 @@ source "$LAB_DIR/lib/ops/gpu" && gpu_pta -d lookup
 
 ## Workaround
 Use direct GPU passthrough command instead of pve_vms orchestrator:
-```bash
 ./src/dic/ops gpu ptd -d lookup && qm start 111
-```
 
 ## Investigation Status
 - [x] Analyzed pve_vms function implementation
@@ -144,33 +134,26 @@ The issue is that while the hook system executes successfully and reports succes
 **Comparison of Working vs Broken States:**
 
 **Working Sequence (Normal Operation):**
-```bash
 ./src/dic/ops gpu ptd -d lookup && qm start 111
 # VM runs, shutdown from guest
 # Hook executes, GPU successfully reattaches
 # Display works, GPU available to host
-```
 
 **Broken Sequence (After pve_vms):**
-```bash
 ./src/dic/ops pve vms 111
-# VM runs, shutdown from guest  
+# VM runs, shutdown from guest
 # Hook reports successful execution
 # GPU shows as bound to nouveau in logs
 # Display remains black, GPU unusable
 # Manual 'gpu pta -d lookup' also reports success but doesn't work
-```
 
 **Recovery Sequence (Only Working Fix):**
-```bash
 ./src/dic/ops gpu ptd -d lookup
 ./src/dic/ops gpu pta -d lookup
 # Display restored, GPU functional
-```
 
 ### Evidence
 **Hook Execution Logs (Multiple instances from 2025-06-16):**
-```
 17:52:28 - GPU successfully bound to host driver [pci_id=0a:00.0,host_driver=nouveau,status=success]
 17:52:28 - GPU successfully bound to host driver [pci_id=0a:00.1,host_driver=nouveau,status=success]
 17:52:28 - GPU attachment process completed [status=complete]
@@ -182,7 +165,6 @@ The issue is that while the hook system executes successfully and reports succes
 21:41:56 - GPU successfully bound to host driver [pci_id=0a:00.0,host_driver=nouveau,status=success]
 21:41:56 - GPU successfully bound to host driver [pci_id=0a:00.1,host_driver=nouveau,status=success]
 21:41:56 - GPU attachment process completed [status=complete]
-```
 
 **Pattern Identified:**
 Multiple successful hook executions show the GPU attachment process completes successfully, but the GPU gets automatically rebound to vfio-pci afterward by an external process or system configuration.
@@ -241,13 +223,13 @@ The issue is **NOT** in the `pve_vms` function as previously suspected. The root
 ### Test Procedure
 **Controlled State Testing:**
 1. **Baseline Test**: `gpu ptd` → `qm start 111` → shutdown → verify working
-2. **Problem Test**: `pve vms 111` → shutdown → attempt `gpu pta` → verify broken  
+2. **Problem Test**: `pve vms 111` → shutdown → attempt `gpu pta` → verify broken
 3. **Recovery Test**: `gpu ptd` → `gpu pta` → verify working
 4. **Hardware State Monitoring**: Monitor `/sys/bus/pci/devices/0000:0a:00.0/` during each test
 
 ### Expected Resolution
 - Identify the specific operation in `pve_vms` that corrupts GPU hardware state
-- Implement proper GPU state cleanup/initialization in pve_vms workflow  
+- Implement proper GPU state cleanup/initialization in pve_vms workflow
 - Ensure GPU hardware remains in consistent state regardless of startup method
 
 ### Priority
@@ -255,14 +237,14 @@ The issue is **NOT** in the `pve_vms` function as previously suspected. The root
 
 ### Labels
 - bug
-- gpu-passthrough  
+- gpu-passthrough
 - hook-system
 - driver-binding
 - follow-up
 
 ---
 *Created: 2025-06-16*
-*Reporter: System Analysis*  
+*Reporter: System Analysis*
 *Assignee: Lab Maintainer*
 *Resolved: 2025-06-17*
 *Resolution: Debug analysis confirmed system working correctly*

@@ -260,14 +260,14 @@ run_tests() {
     if [[ ${#failed_tests[@]} -gt 0 ]]; then
         echo -e "${RED}Failed Tests:${NC}"
         for test in "${failed_tests[@]}"; do
-            echo -e "  ${RED}✗${NC} $test"
+            echo -e "  ${RED}${NC} $test"
         done
     fi
     
     if [[ ${#skipped_tests[@]} -gt 0 ]]; then
         echo -e "${YELLOW}Skipped Tests:${NC}"
         for test in "${skipped_tests[@]}"; do
-            echo -e "  ${YELLOW}⊘${NC} $test"
+            echo -e "  ${YELLOW}[SKIP]${NC} $test"
         done
     fi
     

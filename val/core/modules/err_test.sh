@@ -33,10 +33,10 @@ test_error_output() {
     output=$(err_process "TEST_ERROR" "Test error message" 2>&1) || true
     
     if [[ -n "$output" ]]; then
-        echo "✓ Error function produces output"
+        echo " Error function produces output"
         return 0
     else
-        echo "✗ Error function produces no output"
+        echo " Error function produces no output"
         return 1
     fi
 }
@@ -52,10 +52,10 @@ test_error_exit_behavior() {
     
     local exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
-        echo "✓ Error function exits with non-zero code"
+        echo " Error function exits with non-zero code"
         return 0
     else
-        echo "✓ Error function completed (exit behavior varies)"
+        echo " Error function completed (exit behavior varies)"
         return 0
     fi
 }
@@ -71,10 +71,10 @@ test_warning_no_exit() {
     
     local exit_code=$?
     if [[ $exit_code -eq 0 ]]; then
-        echo "✓ Warning does not cause exit"
+        echo " Warning does not cause exit"
         return 0
     else
-        echo "✓ Warning handling completed"
+        echo " Warning handling completed"
         return 0
     fi
 }

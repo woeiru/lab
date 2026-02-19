@@ -22,14 +22,12 @@ This document provides comprehensive instructions for using the deployment scrip
 
 ### NFS File Server Setup
 
-```bash
 # Complete NFS server deployment
 ./src/set/c1 -x a_xall
 ./src/set/c1 -x b_xall
 
 # Or interactive mode for guided setup
 ./src/set/c1 -i
-```
 
 ## Security Considerations
 
@@ -48,14 +46,12 @@ This document provides comprehensive instructions for using the deployment scrip
 
 ### Security-Related Variables
 
-```bash
 # SSH configuration
 SSH_USERS=("admin" "operator")
 KEY_NAME="lab-cluster"
 
 # Network isolation
 QDEVICE_IP="192.168.1.12"  # Dedicated QDevice network
-```
 
 ### Audit Trail
 
@@ -82,7 +78,7 @@ The framework provides comprehensive logging for security auditing:
 The IaC deployment system provides automated infrastructure provisioning through:
 
 - **Environment-aware configuration loading** with hierarchical overrides
-- **Interactive and direct execution modes** for flexible deployment approaches  
+- **Interactive and direct execution modes** for flexible deployment approaches
 - **Standardized utility integration** for consistent infrastructure management
 - **Comprehensive logging and error handling** for reliable operations
 
@@ -92,17 +88,17 @@ All scripts within `src/set/` leverage the Environment-Aware Deployment Framewor
 
 ### Key Features
 
-*   **Interactive Mode**: Menu-driven interface for selecting and executing specific deployment tasks
-*   **Direct Execution Mode**: Command-line execution of specific tasks for automation and scripting
-*   **Environment Context Management**: Automatic loading of base, environment, and node-specific configurations
-*   **Hierarchical Configuration Loading**: Supports base → environment → node configuration overrides
-*   **Usage Information**: Dynamic help generation based on script functions and configuration
+* **Interactive Mode**: Menu-driven interface for selecting and executing specific deployment tasks
+* **Direct Execution Mode**: Command-line execution of specific tasks for automation and scripting
+* **Environment Context Management**: Automatic loading of base, environment, and node-specific configurations
+* **Hierarchical Configuration Loading**: Supports base → environment → node configuration overrides
+* **Usage Information**: Dynamic help generation based on script functions and configuration
 
 ### Architecture
 
 Each deployment script defines a `MENU_OPTIONS` associative array mapping letter keys (e.g., `a`, `b`) to task functions (named `a_xall`, `b_xall`, etc.). The framework provides:
 
-- **Configuration hierarchy**: `cfg/env/site1` → `cfg/env/site1-dev` → `cfg/env/site1-w2` 
+- **Configuration hierarchy**: `cfg/env/site1` → `cfg/env/site1-dev` → `cfg/env/site1-w2`
 - **Runtime constants integration** with automatic LAB_ROOT detection
 - **Infrastructure and security utility loading** from `lib/ops/` and `lib/gen/`
 - **Environment variable context** (`SITE`, `ENVIRONMENT`, `NODE`)
@@ -149,7 +145,6 @@ Before using the deployment scripts, ensure:
 
 ### 1. First-Time Setup
 
-```bash
 # Navigate to lab directory
 cd /home/es/lab
 
@@ -158,37 +153,30 @@ source bin/ini
 
 # Verify available scripts
 ls src/set/
-```
 
 ### 2. Interactive Exploration
 
-```bash
 # Explore development setup options
 ./src/set/t1
 
 # Use interactive mode for guided setup
 ./src/set/t1 -i
-```
 
 ### 3. Direct Deployment
 
-```bash
 # Quick development environment setup
 ./src/set/t1 -x a_xall
 
 # NFS server deployment
 ./src/set/c1 -x a_xall && ./src/set/c1 -x b_xall
-```
 
 ### 4. Environment-Specific Deployment
 
-```bash
 # Development environment
 ENVIRONMENT=dev ./src/set/h1 -x a_xall
 
 # Production node
 ENVIRONMENT=prod NODE=w2 ./src/set/h1 -x a_xall
-```
 
 ## Usage Patterns
 
@@ -197,14 +185,10 @@ All scripts from `src/set/` follow consistent invocation patterns. Ensure you ar
 ### 1. Displaying Usage and Help
 
 To see available tasks and options for any script:
-```bash
 ./src/set/script_name
-```
 
 **Example**:
-```bash
 ./src/set/t1
-```
 
 This displays the framework's help information, including:
 - Available task sections and their descriptions
@@ -215,16 +199,12 @@ This displays the framework's help information, including:
 ### 2. Interactive Mode
 
 For menu-driven task selection:
-```bash
 ./src/set/script_name -i [display_option] [-s section]
-```
 
 **Examples**:
-```bash
 ./src/set/t1 -i              # Interactive mode with default display
 ./src/set/h1 -i 3            # Interactive mode with function descriptions
 ./src/set/c1 -i -s a         # Focus on section 'a' only
-```
 
 **Display Options**:
 - `1`: Default display (default)
@@ -237,26 +217,21 @@ For menu-driven task selection:
 ### 3. Direct Task Execution
 
 For automation and scripting:
-```bash
 ./src/set/script_name -x task_function_name
-```
 
 **Examples**:
-```bash
 ./src/set/t1 -x a_xall       # Install packages and configure Git
 ./src/set/h1 -x b_xall       # Install Proxmox packages only
 ./src/set/c1 -x b_xall       # Configure NFS exports only
-```
 
 ### 4. Environment Context
 
 Scripts automatically load configuration based on environment variables:
 
-```bash
 # Default (site1)
 ./src/set/h1 -x a_xall
 
-# Development environment 
+# Development environment
 ENVIRONMENT=dev ./src/set/h1 -x a_xall
 
 # Node-specific configuration
@@ -264,7 +239,6 @@ NODE=w2 ./src/set/h1 -x a_xall
 
 # Combined environment and node
 ENVIRONMENT=dev NODE=w2 ./src/set/h1 -x a_xall
-```
 
 ## Available Deployment Scripts
 
@@ -274,40 +248,36 @@ The following scripts are available in `src/set/` for infrastructure deployment:
 **Purpose**: Configures development workstations and tools
 
 **Available Tasks**:
-*   **`a_xall`**: Installs common system packages and configures global Git user credentials
-*   **`b_xall`**: Configures global Git user credentials only
+* **`a_xall`**: Installs common system packages and configures global Git user credentials
+* **`b_xall`**: Configures global Git user credentials only
 
 **Use Cases**: Initial workstation setup, developer onboarding, Git configuration standardization
 
 **Example Usage**:
-```bash
 ./src/set/t1 -x a_xall    # Full development setup
 ./src/set/t1 -x b_xall    # Git configuration only
-```
 
 ### 2. `src/set/c1` - Network File System Setup
 **Purpose**: Deploys and configures NFS server infrastructure
 
 **Available Tasks**:
-*   **`a_xall`**: Installs NFS server packages, enables the NFS service, and creates NFS management user account
-*   **`b_xall`**: Configures NFS exports by setting up shared folders with specified access permissions
+* **`a_xall`**: Installs NFS server packages, enables the NFS service, and creates NFS management user account
+* **`b_xall`**: Configures NFS exports by setting up shared folders with specified access permissions
 
 **Use Cases**: Centralized file storage, shared development environments, backup destinations
 
 **Configuration Requirements**: NFS-related variables in site configuration (`NFS_PACKAGES_ALL`, `NFS_USERNAME_1`, etc.)
 
 **Example Usage**:
-```bash
 ./src/set/c1 -x a_xall    # Install and enable NFS server
 ./src/set/c1 -x b_xall    # Configure shares only
-```
 
-### 3. `src/set/c3` - Proxmox Backup Server Setup  
+### 3. `src/set/c3` - Proxmox Backup Server Setup
 **Purpose**: Installs and configures Proxmox Backup Server
 
 **Available Tasks**:
-*   **`a_xall`**: Downloads and verifies Proxmox Backup Server GPG key, adds repository, and installs PBS packages
-*   **`b_xall`**: Configures PBS datastore with specified name and path for backup storage
+* **`a_xall`**: Downloads and verifies Proxmox Backup Server GPG key, adds repository, and installs PBS packages
+* **`b_xall`**: Configures PBS datastore with specified name and path for backup storage
 
 **Use Cases**: Enterprise backup infrastructure, Proxmox ecosystem integration, automated backup management
 
@@ -317,16 +287,16 @@ The following scripts are available in `src/set/` for infrastructure deployment:
 **Purpose**: Comprehensive Proxmox VE cluster setup and management
 
 **Available Tasks**:
-*   **`a_xall`**: Disables enterprise repository, adds community repository, and removes subscription notice
-*   **`b_xall`**: Installs required system packages including corosync-qdevice for cluster management  
-*   **`c_xall`**: Sets up /etc/hosts entries for Proxmox nodes (x1, x2) and QDevice
-*   **`d_xall`**: Generates and distributes SSH keys for secure communication between nodes
-*   **`i_xall`**: Creates a RAID 1 Btrfs filesystem across two devices with specified mount point
-*   **`j_xall`**: Creates and configures multiple ZFS datasets with their respective mount points
-*   **`p_xall`**: Updates container template list, downloads specified template, and updates configuration
-*   **`q_xall`**: Creates multiple Proxmox containers using configuration parameters from site config
-*   **`r_xall`**: Configures bind mounts for all defined containers to link host and container directories
-*   **`s_xall`**: Creates multiple virtual machines using specifications defined in site configuration
+* **`a_xall`**: Disables enterprise repository, adds community repository, and removes subscription notice
+* **`b_xall`**: Installs required system packages including corosync-qdevice for cluster management
+* **`c_xall`**: Sets up /etc/hosts entries for Proxmox nodes (x1, x2) and QDevice
+* **`d_xall`**: Generates and distributes SSH keys for secure communication between nodes
+* **`i_xall`**: Creates a RAID 1 Btrfs filesystem across two devices with specified mount point
+* **`j_xall`**: Creates and configures multiple ZFS datasets with their respective mount points
+* **`p_xall`**: Updates container template list, downloads specified template, and updates configuration
+* **`q_xall`**: Creates multiple Proxmox containers using configuration parameters from site config
+* **`r_xall`**: Configures bind mounts for all defined containers to link host and container directories
+* **`s_xall`**: Creates multiple virtual machines using specifications defined in site configuration
 
 **Use Cases**: Virtualization infrastructure, container platforms, high-availability clusters
 
@@ -336,8 +306,8 @@ The following scripts are available in `src/set/` for infrastructure deployment:
 **Purpose**: Deploys Windows-compatible file sharing services
 
 **Available Tasks**:
-*   **`a_xall`**: Installs Samba packages, enables the SMB service, and creates initial user account for Samba access
-*   **`b_xall`**: Sets up multiple Samba shares with different access permissions for regular and guest users
+* **`a_xall`**: Installs Samba packages, enables the SMB service, and creates initial user account for Samba access
+* **`b_xall`**: Sets up multiple Samba shares with different access permissions for regular and guest users
 
 **Use Cases**: Windows integration, mixed-environment file sharing, legacy system support
 
@@ -347,10 +317,10 @@ The following scripts are available in `src/set/` for infrastructure deployment:
 **Purpose**: Provides utility functions for system operations and testing
 
 **Available Tasks**:
-*   **`a_xall`**: Uploads private SSH key from USB device to system for secure authentication
-*   **`b_xall`**: Uploads public SSH key from USB device and adds it to authorized keys
-*   **`c_xall`**: Mounts a predefined NFS share using global configuration variables
-*   **`d_xall`**: Executes remote commands via SSH using configured aliases
+* **`a_xall`**: Uploads private SSH key from USB device to system for secure authentication
+* **`b_xall`**: Uploads public SSH key from USB device and adds it to authorized keys
+* **`c_xall`**: Mounts a predefined NFS share using global configuration variables
+* **`d_xall`**: Executes remote commands via SSH using configured aliases
 
 **Use Cases**: Key management, temporary mounts, remote command execution, system testing
 
@@ -361,7 +331,7 @@ The following scripts are available in `src/set/` for infrastructure deployment:
 The framework uses a three-tier configuration hierarchy:
 
 1. **Base Configuration**: `cfg/env/site1` (default site)
-2. **Environment Override**: `cfg/env/site1-dev` (when `ENVIRONMENT=dev`)  
+2. **Environment Override**: `cfg/env/site1-dev` (when `ENVIRONMENT=dev`)
 3. **Node Override**: `cfg/env/site1-w2` (when `NODE=w2`)
 
 ### Environment Variables
@@ -377,12 +347,11 @@ Control deployment behavior with these variables:
 
 Each script requires specific configuration variables. Common patterns:
 
-```bash
 # Package lists
 PACKAGES_DEV=("git" "vim" "curl" "wget")
 NFS_PACKAGES_ALL=("nfs-kernel-server" "nfs-common")
 
-# Service configuration  
+# Service configuration
 NFS_USERNAME_1="nfsuser"
 NFS_SHARED_FOLDER_1="/export/shared"
 
@@ -390,7 +359,6 @@ NFS_SHARED_FOLDER_1="/export/shared"
 NODE1_IP="192.168.1.10"
 NODE2_IP="192.168.1.11"
 QDEVICE_IP="192.168.1.12"
-```
 
 Refer to `cfg/env/site1` for complete configuration examples.
 
@@ -398,21 +366,18 @@ Refer to `cfg/env/site1` for complete configuration examples.
 
 ### Development Environment Setup
 
-```bash
 # Complete development workstation setup
 ./src/set/t1 -i
 
 # Or direct execution
 ./src/set/t1 -x a_xall
-```
 
 ### Proxmox Cluster Deployment
 
-```bash
 # Step 1: Repository and package setup
 ./src/set/h1 -x a_xall
 
-# Step 2: Install cluster packages  
+# Step 2: Install cluster packages
 ./src/set/h1 -x b_xall
 
 # Step 3: Configure networking
@@ -424,18 +389,15 @@ Refer to `cfg/env/site1` for complete configuration examples.
 # Step 5: Create storage (interactive selection)
 ./src/set/h1 -i -s i    # Btrfs RAID 1
 ./src/set/h1 -i -s j    # ZFS datasets
-```
 
 ### NFS File Server Setup
 
-```bash
 # Complete NFS server deployment
 ./src/set/c1 -x a_xall
 ./src/set/c1 -x b_xall
 
 # Or interactive mode for guided setup
 ./src/set/c1 -i
-```
 
 ## Troubleshooting
 
@@ -464,50 +426,41 @@ Refer to `cfg/env/site1` for complete configuration examples.
 ### Debug Mode
 
 Enable detailed logging:
-```bash
 set -x
 ./src/set/script_name -x function_name
 set +x
-```
 
 ### Validation
 
 Check configuration before deployment:
-```bash
 # View loaded configuration
 ./src/set/script_name -i 2    # Expand variables
 
 # Test specific sections
 ./src/set/script_name -i -s section_id
-```
 
 ## Advanced Usage
 
 ### Batch Operations
 
 Execute multiple tasks in sequence:
-```bash
 # Proxmox cluster setup sequence
 for task in a_xall b_xall c_xall d_xall; do
     ./src/set/h1 -x $task
 done
-```
 
 ### Environment-Specific Deployments
 
-```bash
 # Development environment
 ENVIRONMENT=dev ./src/set/h1 -x a_xall
 
 # Production node w2
 ENVIRONMENT=prod NODE=w2 ./src/set/h1 -x a_xall
-```
 
 ### Integration with Automation
 
 The scripts are designed for integration with automation tools:
 
-```bash
 #!/bin/bash
 # Deployment automation script
 
@@ -521,7 +474,6 @@ export NODE="h1"
 # Deploy Proxmox
 ./src/set/h1 -x a_xall
 ./src/set/h1 -x b_xall
-```
 
 ## Related Documentation
 
@@ -583,7 +535,6 @@ The framework supports the lab's evolving infrastructure automation requirements
 The deployment scripts integrate with a sophisticated **function separation pattern** implemented in the operations modules:
 
 #### Architecture Overview
-```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │ Deployment      │ -> │  Wrapper (-w)    │ -> │  Pure Function  │
 │ Script (src/set)│    │  src/dic/ops     │    │  lib/ops/*      │
@@ -594,14 +545,12 @@ The deployment scripts integrate with a sophisticated **function separation patt
                        │  Global Config   │
                        │  Environment     │
                        └──────────────────┘
-```
 
 #### Implementation in Deployment Context
 
 **Deployment Scripts** (`src/set/`) call **DIC Operations** (`src/dic/ops`) which handle dependency injection and call **Pure Functions** (`lib/ops/`) with explicit parameters.
 
 ##### Example: PVE Deployment Integration
-```bash
 # In deployment script (src/set/h1)
 source "${SRC_DIC_DIR}/ops"  # Load DIC operations
 
@@ -616,7 +565,6 @@ pve-vpt-w 100 on  # Enable passthrough for VM 100
 #     # ...extract other globals
 #     pve-vpt "$vm_id" "$action" "$pci0_id" "$pci1_id" ...
 # }
-```
 
 #### Benefits for Infrastructure Deployment
 

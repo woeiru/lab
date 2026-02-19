@@ -12,7 +12,6 @@ The lab system implements a **multi-layered logging architecture** with three di
 
 ### Logging System Hierarchy
 
-```
 ┌─────────────────────────────────────────────────────────────────┐
 │ Enhanced Auxiliary Logging (lib/gen/aux) - PRIMARY SYSTEM      │
 │ ├─ All lib/ops functions use structured logging                 │
@@ -34,7 +33,6 @@ The lab system implements a **multi-layered logging architecture** with three di
 │ ├─ ver.log - System verification and validation                │
 │ └─ init_flow.log - High-precision initialization timing        │
 └─────────────────────────────────────────────────────────────────┘
-```
 
 ### Verbosity Control Hierarchy
 
@@ -43,7 +41,7 @@ The system uses **hierarchical verbosity controls** with a master switch pattern
 - **`MASTER_TERMINAL_VERBOSITY`** (default: "off") - Global terminal output control
 - **Module-specific switches** - Individual controls that require master to be "on":
   - `INI_LOG_TERMINAL_VERBOSITY` - Initialization messages
-  - `VER_LOG_TERMINAL_VERBOSITY` - Verification messages  
+  - `VER_LOG_TERMINAL_VERBOSITY` - Verification messages
   - `LO1_LOG_TERMINAL_VERBOSITY` - Advanced logging output
   - `ERR_TERMINAL_VERBOSITY` - Error messages
   - `TME_TERMINAL_VERBOSITY` - Timing reports
@@ -70,7 +68,7 @@ The **primary logging system** used by all `lib/ops` functions and modern compon
 
 **Format control**: Set via `AUX_LOG_FORMAT` environment variable:
 - `json` - Structured JSON with cluster metadata (writes to aux.json)
-- `csv` - Comma-separated values with headers (writes to aux.csv) 
+- `csv` - Comma-separated values with headers (writes to aux.csv)
 - `kv` - Key-value pairs (Splunk-compatible, writes to aux.log)
 - `human` - Default colored terminal format (writes to aux.log)
 
@@ -155,14 +153,13 @@ The auxiliary logging system is **stateless by design** - it requires no persist
 
 **`tme_sort_order`**:
 - **Purpose**: Sort order for timing reports
-- **Values**: "chron" | "duration" 
+- **Values**: "chron" | "duration"
 - **Control**: `tme_settme sort chron|duration`
 
 ## Environment Variables and Configuration
 
 ### Directory Configuration (`cfg/core/ric`)
 
-```bash
 # Base directories (can be overridden)
 LOG_DIR="${LOG_DIR:-${LAB_DIR}/.log}"     # Log file location
 TMP_DIR="${TMP_DIR:-${LAB_DIR}/.tmp}"     # State file location
@@ -183,11 +180,9 @@ TME_LOG_FILE="${LOG_DIR}/tme.log"         # Timing log
 LOG_STATE_FILE="${TMP_DIR}/lo1_state"     # Lo1 on/off state
 TME_STATE_FILE="${TMP_DIR}/tme_state"     # Timing report state
 TME_LEVELS_FILE="${TMP_DIR}/tme_levels"   # Timing report depth
-```
 
 ### Enhanced Auxiliary Logging Configuration
 
-```bash
 # Output format control
 export AUX_LOG_FORMAT="json"              # json|csv|kv|human
 
@@ -205,17 +200,15 @@ export METRICS_ENDPOINT="http://metrics-server:8080"
 # Distributed tracing (auto-generated when using aux_start_trace)
 # TRACE_ID - Correlation ID for request tracing
 # REQUEST_ID - Unique request identifier
-```
 
 ### Core Infrastructure Logging Controls
 
-```bash
 # Master control (default: "off")
 MASTER_TERMINAL_VERBOSITY="off"
 
 # Module-specific controls (require master "on")
 INI_LOG_TERMINAL_VERBOSITY="on"          # Initialization messages
-VER_LOG_TERMINAL_VERBOSITY="on"          # Verification messages  
+VER_LOG_TERMINAL_VERBOSITY="on"          # Verification messages
 LO1_LOG_TERMINAL_VERBOSITY="on"          # Advanced logging
 ERR_TERMINAL_VERBOSITY="on"              # Error messages
 TME_TERMINAL_VERBOSITY="on"              # Timing reports
@@ -228,14 +221,12 @@ TME_REPORT_TERMINAL_OUTPUT="on"          # Timing reports
 TME_TIMING_TERMINAL_OUTPUT="on"          # Timing measurements
 TME_DEBUG_TERMINAL_OUTPUT="on"           # Debug information
 TME_STATUS_TERMINAL_OUTPUT="on"          # Status updates
-```
 
 ## Function Reference by Logging System
 
 ### Enhanced Auxiliary Logging (`lib/gen/aux`) - PRIMARY SYSTEM
 
 **Operational Logging Functions**:
-```bash
 # General operational logging with explicit levels
 aux_log "INFO" "Service started successfully" "user_count=150,status=active"
 aux_log "ERROR" "Database connection failed" "host=db.example.com,timeout=30s"
@@ -250,10 +241,8 @@ aux_business "Order completed successfully" "order_id=12345,amount=99.99,custome
 aux_security "Failed login attempt" "ip=192.168.1.100,user=admin,attempts=3"
 aux_audit "Admin privileges granted" "admin=john,target_user=jane,permissions=write"
 aux_perf "Database query completed" "duration=250ms,table=users,rows=150"
-```
 
 **Development and Debug Logging**:
-```bash
 # Automatic function context capture
 aux_dbg "Starting validation process"               # Auto-captures calling function
 aux_dbg "Found 5 items in configuration" "INFO"    # Optional severity level
@@ -267,7 +256,6 @@ aux_end_trace                                      # Closes trace span
 # Performance metrics
 aux_metric "response_time" 125.5 "gauge"          # Performance monitoring
 aux_metric "cache_hits" 8543 "counter"            # Operational metrics
-```
 
 **Key Features**:
 - **Structured Context**: All functions support `key=value,key2=value2` context data
@@ -279,7 +267,6 @@ aux_metric "cache_hits" 8543 "counter"            # Operational metrics
 ### Core Infrastructure Logging (`lib/core/*`)
 
 **Advanced Logging Module (`lib/core/lo1`)**:
-```bash
 # Main logging interface (used by bin/orc)
 log lvl "Component initialization completed"
 
@@ -292,10 +279,8 @@ setlog off                                         # Disable logging output
 
 # Debug logging (internal)
 lo1_debug_log "Cache updated" "component_name"
-```
 
 **Error Handling (`lib/core/err`)**:
-```bash
 # Structured error logging
 handle_error "Operation failed" "gpu_module" 1 "ERROR"
 
@@ -304,10 +289,8 @@ error_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
 
 # Error reporting
 print_error_report                                 # Generate error summary
-```
 
 **Timing Module (`lib/core/tme`)**:
-```bash
 # Timer management
 tme_start_timer "component_name" "parent_component"
 tme_end_timer "component_name" "success"
@@ -319,21 +302,16 @@ tme_print_timing_report                            # Generate performance report
 tme_settme report on|off                           # Control reports
 tme_settme sort chron|duration                     # Set sort order
 tme_settme depth 1-9                               # Set report depth
-```
 
 ### Initialization Logging
 
 **Initialization Script (`bin/ini`)**:
-```bash
 # Internal logging function (embedded in bin/ini)
 ini_log "Module loading completed" "init_system" "$LOG_PRIORITY_NORMAL"
-```
 
 **Verification Module (`lib/core/ver`)**:
-```bash
 # System verification logging
 ver_log "Path validation completed" "verify_paths" 1
-```
 
 ## Usage Patterns and Best Practices
 
@@ -341,7 +319,6 @@ ver_log "Path validation completed" "verify_paths" 1
 
 **REQUIRED**: All `lib/ops` functions must use the enhanced auxiliary logging system according to the `.spec` standard:
 
-```bash
 #!/bin/bash
 # Source the enhanced logging system
 source lib/gen/aux
@@ -352,45 +329,43 @@ gpu_passthrough() {
         aux_tec
         return 0
     fi
-    
+
     if [ $# -ne 3 ]; then
         aux_use
         return 1
     fi
-    
+
     local gpu_id="$1"
     local host="$2"
     local driver="$3"
-    
+
     # Entry logging
     aux_info "GPU passthrough initiated" "gpu_id=$gpu_id,host=$host,driver=$driver"
-    
+
     # Business logic with error handling
     if ! validate_gpu "$gpu_id"; then
         aux_err "GPU validation failed" "gpu_id=$gpu_id,error=device_not_found"
         return 1
     fi
-    
+
     # Debug information
     aux_dbg "GPU device located and validated"
-    
+
     # Performance tracking
     aux_start_trace "gpu_passthrough_${gpu_id}"
-    
+
     # Execute operations with audit trail
     aux_audit "GPU driver binding initiated" "gpu_id=$gpu_id,driver=$driver,admin=$USER"
-    
+
     # Success logging
     aux_business "GPU passthrough completed" "gpu_id=$gpu_id,host=$host,status=active"
     aux_end_trace
 }
-```
 
 ### For Core Infrastructure
 
 Use `lib/core/lo1` for orchestration and core system components:
 
-```bash
 # In bin/orc or similar infrastructure code
 lo1_log "lvl" "Component orchestration started"
 tme_start_timer "component_setup"
@@ -400,25 +375,21 @@ execute_component "source_lib_ops" "LIB_OPS" "$COMPONENT_REQUIRED"
 
 lo1_log "lvl" "All components initialized successfully"
 tme_end_timer "component_setup" "success"
-```
 
 ### For Initialization and Bootstrap
 
 Use specific initialization logging for startup sequences:
 
-```bash
 # In bin/ini
 ini_log "Loading core modules" "bootstrap" "$LOG_PRIORITY_NORMAL"
 
 # In lib/core/ver
 ver_log "Verifying system dependencies" "verify_deps" 1
-```
 
 ## Configuration Scenarios
 
 ### Development Environment
 
-```bash
 # Enable all logging for comprehensive debugging
 export MASTER_TERMINAL_VERBOSITY="on"
 export AUX_DEBUG_ENABLED="1"
@@ -428,11 +399,9 @@ export LOG_DEBUG_ENABLED="1"
 # Enhanced auxiliary functions provide rich debug output
 aux_dbg "Development mode enabled"
 setlog on  # Enable lo1 output
-```
 
 ### Production Environment
 
-```bash
 # Structured logging for centralized aggregation
 export AUX_LOG_FORMAT="json"
 export CLUSTER_ID="production-cluster-01"
@@ -444,11 +413,9 @@ export AUX_DEBUG_ENABLED="0"
 
 # Production operations logged in structured format
 aux_business "Service deployment completed" "version=2.1.0,environment=production"
-```
 
 ### Testing Environment
 
-```bash
 # Mixed approach - structured output with selective terminal
 export AUX_LOG_FORMAT="json"
 export MASTER_TERMINAL_VERBOSITY="on"
@@ -458,13 +425,11 @@ export AUX_DEBUG_ENABLED="1"            # Debug to files
 # Testing with both systems
 aux_info "Test suite started" "suite=integration,test_count=25"
 lo1_log "lvl" "Test infrastructure initialized"
-```
 
 ## Log File Analysis Workflow
 
 ### 1. Current System Status
 
-```bash
 # Check enhanced auxiliary logs (primary system)
 tail -f "${LOG_DIR}/aux_operational.log"           # Human-readable operations
 jq . "${LOG_DIR}/aux_operational.jsonl"            # Structured operational data
@@ -473,32 +438,25 @@ tail -f "${LOG_DIR}/aux_debug.log"                 # Development debug output
 # Check core infrastructure
 tail -f "${LOG_DIR}/lo1.log"                       # Orchestration and core systems
 tail -f "${LOG_DIR}/err.log"                       # Error analysis
-```
 
 ### 2. Initialization Issues
 
-```bash
 # Startup sequence analysis
 tail -f "${LOG_DIR}/init_flow.log"                 # High-precision timing
 tail -f "${LOG_DIR}/ini.log"                       # Initialization details
 tail -f "${LOG_DIR}/ver.log"                       # Verification failures
-```
 
 ### 3. Performance Analysis
 
-```bash
 # Timing and performance
 tail -f "${LOG_DIR}/tme.log"                       # Core system timing
 grep "aux_perf\|aux_metric" "${LOG_DIR}/aux_operational.log"  # Application performance
-```
 
 ### 4. Security and Audit
 
-```bash
 # Security events
 grep "aux_security\|aux_audit" "${LOG_DIR}/aux_operational.log"
 jq 'select(.level=="security" or .level=="audit")' "${LOG_DIR}/aux_operational.jsonl"
-```
 
 ## Migration from Legacy Documentation
 
@@ -518,7 +476,7 @@ The previous logging documentation described a legacy architecture. Key changes:
 
 **CURRENT STATE**:
 - All `lib/ops` functions use enhanced auxiliary logging
-- Core infrastructure uses `lib/core/lo1` system  
+- Core infrastructure uses `lib/core/lo1` system
 - Initialization uses specialized bootstrap logging
 - All systems coexist and serve different purposes
 

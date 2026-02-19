@@ -8,7 +8,6 @@
 `lib/ops/` provides pure operational functions for infrastructure domains (GPU, network, storage, system, etc.) and is designed for DIC-driven injection via `src/dic/ops`.
 
 ## Quick Start
-```bash
 # Use through DIC (recommended)
 ops sys ipa -j
 ops gpu ptd -j
@@ -16,7 +15,6 @@ ops gpu ptd -j
 # Validate after ops-library changes
 ./go doctor
 ./go validate
-```
 
 ## Structure
 - Domain modules under `lib/ops/*` with explicit-parameter pure functions.

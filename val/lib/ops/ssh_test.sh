@@ -26,10 +26,10 @@ test_ssh_functions_exist() {
     done
     
     if [[ ${#existing[@]} -gt 0 ]]; then
-        echo "✓ Found SSH functions: ${existing[*]}"
+        echo " Found SSH functions: ${existing[*]}"
         return 0
     else
-        echo "✓ SSH library loaded (functions may have different names)"
+        echo " SSH library loaded (functions may have different names)"
         return 0
     fi
 }
@@ -59,10 +59,10 @@ test_ssh_client_availability() {
     fi
     
     if [[ ${#ssh_tools[@]} -ge 2 ]]; then
-        echo "✓ SSH client tools available: ${ssh_tools[*]}"
+        echo " SSH client tools available: ${ssh_tools[*]}"
         return 0
     else
-        echo "✗ Insufficient SSH client tools available"
+        echo " Insufficient SSH client tools available"
         return 1
     fi
 }
@@ -78,7 +78,7 @@ test_ssh_config_validation() {
             config_found=true
             if [[ -r "$config_file" ]]; then
                 config_readable=true
-                echo "✓ SSH config file found and readable: $config_file"
+                echo " SSH config file found and readable: $config_file"
                 break
             fi
         fi
@@ -88,11 +88,11 @@ test_ssh_config_validation() {
         if [[ "$config_readable" == "true" ]]; then
             return 0
         else
-            echo "✓ SSH config file found but not readable"
+            echo " SSH config file found but not readable"
             return 0
         fi
     else
-        echo "✓ No SSH config files found (using defaults)"
+        echo " No SSH config files found (using defaults)"
         return 0
     fi
 }
@@ -115,7 +115,7 @@ test_ssh_key_management() {
     local temp_key="/tmp/test_ssh_key_$$"
     if command -v ssh-keygen &>/dev/null; then
         if ssh-keygen -t ed25519 -f "$temp_key" -N "" -C "test key" &>/dev/null; then
-            echo "✓ SSH key generation works"
+            echo " SSH key generation works"
             rm -f "$temp_key" "$temp_key.pub" 2>/dev/null
             
             if [[ ${#existing_keys[@]} -gt 0 ]]; then
@@ -128,10 +128,10 @@ test_ssh_key_management() {
     fi
     
     if [[ ${#existing_keys[@]} -gt 0 ]]; then
-        echo "✓ SSH keys exist: ${existing_keys[*]}"
+        echo " SSH keys exist: ${existing_keys[*]}"
         return 0
     else
-        echo "✓ SSH key management test completed"
+        echo " SSH key management test completed"
         return 0
     fi
 }
@@ -145,11 +145,11 @@ test_ssh_directory_permissions() {
         dir_perms=$(stat -c "%a" "$ssh_dir" 2>/dev/null) || dir_perms="unknown"
         
         if [[ "$dir_perms" == "700" ]]; then
-            echo "✓ SSH directory permissions correct ($dir_perms)"
+            echo " SSH directory permissions correct ($dir_perms)"
         elif [[ "$dir_perms" != "unknown" ]]; then
-            echo "⚠ SSH directory permissions ($dir_perms) - should be 700"
+            echo " SSH directory permissions ($dir_perms) - should be 700"
         else
-            echo "✓ SSH directory exists (permissions check unavailable)"
+            echo " SSH directory exists (permissions check unavailable)"
         fi
         
         # Check key file permissions if they exist
@@ -170,12 +170,12 @@ test_ssh_directory_permissions() {
         done
         
         if [[ $total_keys -gt 0 ]]; then
-            echo "✓ SSH key permissions checked ($correct_permissions/$total_keys correct)"
+            echo " SSH key permissions checked ($correct_permissions/$total_keys correct)"
         fi
         
         return 0
     else
-        echo "✓ No SSH directory found (normal for new users)"
+        echo " No SSH directory found (normal for new users)"
         return 0
     fi
 }
@@ -193,14 +193,14 @@ test_ssh_agent_functionality() {
             local loaded_keys
             loaded_keys=$(ssh-add -l 2>/dev/null | wc -l) || loaded_keys=0
             
-            echo "✓ SSH agent is running ($loaded_keys keys loaded)"
+            echo " SSH agent is running ($loaded_keys keys loaded)"
         else
-            echo "✓ SSH agent is running (ssh-add not available)"
+            echo " SSH agent is running (ssh-add not available)"
         fi
     elif command -v ssh-agent &>/dev/null; then
-        echo "✓ SSH agent available but not running"
+        echo " SSH agent available but not running"
     else
-        echo "✓ SSH agent not available"
+        echo " SSH agent not available"
     fi
     
     return 0
@@ -214,7 +214,7 @@ test_known_hosts_management() {
         local host_count
         host_count=$(wc -l < "$known_hosts_file" 2>/dev/null) || host_count=0
         
-        echo "✓ Known hosts file exists ($host_count entries)"
+        echo " Known hosts file exists ($host_count entries)"
         
         # Check file permissions
         local file_perms
@@ -226,12 +226,12 @@ test_known_hosts_management() {
             echo "  File permissions: $file_perms"
         fi
     else
-        echo "✓ No known hosts file (normal for new users)"
+        echo " No known hosts file (normal for new users)"
     fi
     
     # Test ssh-keyscan if available
     if command -v ssh-keyscan &>/dev/null; then
-        echo "✓ SSH key scanning capability available"
+        echo " SSH key scanning capability available"
     fi
     
     return 0
@@ -253,16 +253,16 @@ test_local_ssh_connectivity() {
     fi
     
     if [[ "$localhost_ssh" == "true" ]]; then
-        echo "✓ SSH server appears to be running locally"
+        echo " SSH server appears to be running locally"
         
         # Test localhost connection (non-interactive)
         if timeout 5 ssh -o BatchMode=yes -o ConnectTimeout=2 localhost exit 2>/dev/null; then
-            echo "✓ Local SSH connectivity works"
+            echo " Local SSH connectivity works"
         else
-            echo "✓ SSH server detected (authentication may be required)"
+            echo " SSH server detected (authentication may be required)"
         fi
     else
-        echo "✓ No SSH server detected locally (normal)"
+        echo " No SSH server detected locally (normal)"
     fi
     
     return 0
@@ -298,10 +298,10 @@ test_ssh_security_features() {
     fi
     
     if [[ ${#security_features[@]} -gt 0 ]]; then
-        echo "✓ SSH security features available: ${security_features[*]}"
+        echo " SSH security features available: ${security_features[*]}"
         return 0
     else
-        echo "✓ Basic SSH security features available"
+        echo " Basic SSH security features available"
         return 0
     fi
 }
@@ -328,11 +328,11 @@ test_ssh_file_transfer() {
     echo "test transfer content" > "$test_file"
     
     if [[ -f "$test_file" ]] && [[ ${#transfer_tools[@]} -gt 0 ]]; then
-        echo "✓ SSH file transfer tools available: ${transfer_tools[*]}"
+        echo " SSH file transfer tools available: ${transfer_tools[*]}"
         rm -f "$test_file"
         return 0
     else
-        echo "✗ SSH file transfer capabilities limited"
+        echo " SSH file transfer capabilities limited"
         rm -f "$test_file"
         return 1
     fi

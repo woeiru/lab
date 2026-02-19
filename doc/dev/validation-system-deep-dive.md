@@ -8,24 +8,20 @@
 This document describes the validation and testing framework under `val/`, including test categories, framework behavior, and maintenance patterns.
 
 ## Quick Start
-```bash
 ./val/run_all_tests.sh
 ./val/run_all_tests.sh --list
 ./val/run_all_tests.sh --quick
 ./val/run_all_tests.sh core
 ./val/run_all_tests.sh lib
 ./val/run_all_tests.sh integration
-```
 
 ## Architecture
-```text
 val/
 ├── helpers/            # shared framework helpers
 ├── core/               # bootstrap/config/runtime tests
 ├── lib/                # library domain tests
 ├── integration/        # cross-component tests
 └── run_all_tests.sh    # master runner
-```
 
 ## Framework Features
 - standardized helper functions for assertions and setup/cleanup
@@ -41,12 +37,10 @@ val/
 - integration tests: `val/integration/<feature>_test.sh`
 
 ### Typical Test Flow
-```bash
 source val/helpers/test_framework.sh
 
 test_function_exists "my_function" "Description"
 run_test "My behavior" command_to_test
-```
 
 ## Migration and Maintenance
 - keep legacy scripts isolated from active test paths

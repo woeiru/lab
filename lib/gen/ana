@@ -500,7 +500,7 @@ ana_lad() {
     extract_title() {
         local file="$1"
         if [[ -f "$file" ]]; then
-            local title=$(grep -m1 '^# ' "$file" 2>/dev/null | sed 's/^# //' | sed 's/[🎯👨‍💻🛠️🏗️📱🔍🔧🛠️📋🌐📊]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            local title=$(grep -m1 '^# ' "$file" 2>/dev/null | sed 's/^# //' | sed 's/[‍]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             if [[ -n "$title" ]]; then
                 echo "$title"
             else

@@ -12,28 +12,28 @@ for func in gpu_fun gpu_var gpu_nds gpu_ptd gpu_pta gpu_pts; do
     echo "Testing function: $func"
     
     if declare -f "$func" >/dev/null 2>&1; then
-        echo "  ✓ Function exists"
+        echo "   Function exists"
         ((functions_tested++))
         
         # Test --help flag
         echo "  Testing --help flag..."
         if $func --help >/dev/null 2>&1; then
-            echo "  ✓ --help works"
+            echo "   --help works"
             ((help_score++))
         else
-            echo "  ✗ --help failed (exit code: $?)"
+            echo "   --help failed (exit code: $?)"
         fi
         
         # Test -h flag
         echo "  Testing -h flag..."
         if $func -h >/dev/null 2>&1; then
-            echo "  ✓ -h works"
+            echo "   -h works"
             ((help_score++))
         else
-            echo "  ✗ -h failed (exit code: $?)"
+            echo "   -h failed (exit code: $?)"
         fi
     else
-        echo "  ✗ Function does not exist"
+        echo "   Function does not exist"
     fi
     echo ""
 done
@@ -44,7 +44,7 @@ echo "Help calls working: $help_score"
 echo "Expected: $((functions_tested * 2))"
 
 if [[ $help_score -eq $((functions_tested * 2)) ]]; then
-    echo "✅ All help tests passed!"
+    echo " All help tests passed!"
 else
-    echo "❌ Some help tests failed"
+    echo " Some help tests failed"
 fi

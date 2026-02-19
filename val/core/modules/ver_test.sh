@@ -24,10 +24,10 @@ test_verbosity_functions_exist() {
     done
     
     if [[ ${#missing[@]} -eq 0 ]]; then
-        echo "✓ All verbosity functions exist"
+        echo " All verbosity functions exist"
         return 0
     else
-        echo "✗ Missing verbosity functions: ${missing[*]}"
+        echo " Missing verbosity functions: ${missing[*]}"
         return 1
     fi
 }
@@ -43,9 +43,9 @@ test_verbosity_levels() {
         current_level=$(get_verbosity 2>/dev/null) || current_level="unknown"
         
         if [[ "$current_level" == "$level" ]]; then
-            echo "✓ Verbosity level $level set and retrieved correctly"
+            echo " Verbosity level $level set and retrieved correctly"
         else
-            echo "✗ Verbosity level $level failed (got $current_level)"
+            echo " Verbosity level $level failed (got $current_level)"
             return 1
         fi
     done
@@ -59,9 +59,9 @@ test_verbose_mode_detection() {
     set_verbosity 2 2>/dev/null || true
     
     if is_verbose 2>/dev/null; then
-        echo "✓ Verbose mode detection works"
+        echo " Verbose mode detection works"
     else
-        echo "✗ Verbose mode detection failed"
+        echo " Verbose mode detection failed"
         return 1
     fi
     
@@ -69,10 +69,10 @@ test_verbose_mode_detection() {
     set_verbosity 0 2>/dev/null || true
     
     if ! is_verbose 2>/dev/null; then
-        echo "✓ Quiet mode detection works"
+        echo " Quiet mode detection works"
         return 0
     else
-        echo "✗ Quiet mode detection failed"
+        echo " Quiet mode detection failed"
         return 1
     fi
 }
@@ -83,9 +83,9 @@ test_debug_mode_detection() {
     set_verbosity 3 2>/dev/null || true
     
     if is_debug 2>/dev/null; then
-        echo "✓ Debug mode detection works"
+        echo " Debug mode detection works"
     else
-        echo "✗ Debug mode detection failed"
+        echo " Debug mode detection failed"
         return 1
     fi
     
@@ -93,10 +93,10 @@ test_debug_mode_detection() {
     set_verbosity 1 2>/dev/null || true
     
     if ! is_debug 2>/dev/null; then
-        echo "✓ Non-debug mode detection works"
+        echo " Non-debug mode detection works"
         return 0
     else
-        echo "✗ Non-debug mode detection failed"
+        echo " Non-debug mode detection failed"
         return 1
     fi
 }
@@ -112,9 +112,9 @@ test_environment_variable_integration() {
     source "${LAB_ROOT}/lib/core/ver" 2>/dev/null || true
     
     if is_verbose 2>/dev/null; then
-        echo "✓ VERBOSE environment variable integration works"
+        echo " VERBOSE environment variable integration works"
     else
-        echo "✗ VERBOSE environment variable integration failed"
+        echo " VERBOSE environment variable integration failed"
         export VERBOSE="$original_verbose"
         export DEBUG="$original_debug"
         return 1
@@ -125,9 +125,9 @@ test_environment_variable_integration() {
     source "${LAB_ROOT}/lib/core/ver" 2>/dev/null || true
     
     if is_debug 2>/dev/null; then
-        echo "✓ DEBUG environment variable integration works"
+        echo " DEBUG environment variable integration works"
     else
-        echo "✗ DEBUG environment variable integration failed"
+        echo " DEBUG environment variable integration failed"
         export VERBOSE="$original_verbose"
         export DEBUG="$original_debug"
         return 1
@@ -152,12 +152,12 @@ test_invalid_verbosity_levels() {
         
         # Should either reject invalid level or handle gracefully
         if [[ "$new_level" == "$level" ]] && [[ "$level" =~ ^[0-3]$ ]]; then
-            echo "✗ Invalid verbosity level '$level' was accepted"
+            echo " Invalid verbosity level '$level' was accepted"
             return 1
         fi
     done
     
-    echo "✓ Invalid verbosity levels handled appropriately"
+    echo " Invalid verbosity levels handled appropriately"
     return 0
 }
 

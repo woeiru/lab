@@ -74,25 +74,25 @@ test_log() {
 }
 
 test_info() {
-    echo -e "${CYAN}ℹ${NC} $1"
+    echo -e "${CYAN}[INFO]${NC} $1"
 }
 
 test_success() {
-    echo -e "${GREEN}✓${NC} $1"
+    echo -e "${GREEN}[PASS]${NC} $1"
     ((FRAMEWORK_TESTS_PASSED++))
 }
 
 test_failure() {
-    echo -e "${RED}✗${NC} $1"
+    echo -e "${RED}[FAIL]${NC} $1"
     ((FRAMEWORK_TESTS_FAILED++))
 }
 
 test_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+    echo -e "${YELLOW}[WARN]${NC} $1"
 }
 
 test_skip() {
-    echo -e "${YELLOW}⊘${NC} $1 (skipped)"
+    echo -e "${YELLOW}[SKIP]${NC} $1 (skipped)"
 }
 
 # Core test execution function

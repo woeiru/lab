@@ -61,18 +61,18 @@ run_test_suite() {
     ((TOTAL_SUITES++))
     
     if [[ ! -f "$test_file" ]]; then
-        echo -e "${YELLOW}⚠️  SKIP: ${suite_name} (test file not found: $test_file)${NC}"
+        echo -e "${YELLOW}  SKIP: ${suite_name} (test file not found: $test_file)${NC}"
         ((SKIPPED_SUITES++))
         return 0
     fi
     
     if [[ ! -x "$test_file" ]]; then
-        echo -e "${YELLOW}⚠️  SKIP: ${suite_name} (test file not executable: $test_file)${NC}"
+        echo -e "${YELLOW}  SKIP: ${suite_name} (test file not executable: $test_file)${NC}"
         ((SKIPPED_SUITES++))
         return 0
     fi
     
-    echo -e "${CYAN}🧪  Running: ${suite_name}${NC}"
+    echo -e "${CYAN}  Running: ${suite_name}${NC}"
     echo -e "${PURPLE}   Category: ${category}${NC}"
     echo -e "${PURPLE}   File: ${test_file}${NC}"
     echo
@@ -84,14 +84,14 @@ run_test_suite() {
         local end_time=$(date +%s.%N)
         local duration=$(echo "$end_time - $start_time" | bc 2>/dev/null || echo "0.1")
         echo
-        echo -e "${GREEN}✅ PASS: ${suite_name} (${duration}s)${NC}"
+        echo -e "${GREEN} PASS: ${suite_name} (${duration}s)${NC}"
         ((PASSED_SUITES++))
         return 0
     else
         local end_time=$(date +%s.%N)
         local duration=$(echo "$end_time - $start_time" | bc 2>/dev/null || echo "0.1")
         echo
-        echo -e "${RED}❌ FAIL: ${suite_name} (${duration}s)${NC}"
+        echo -e "${RED} FAIL: ${suite_name} (${duration}s)${NC}"
         ((FAILED_SUITES++))
         return 1
     fi
@@ -196,10 +196,10 @@ print_results() {
     echo
     
     if [[ $FAILED_SUITES -eq 0 ]]; then
-        echo -e "${GREEN}🎉 All tests passed! Library system is functioning correctly.${NC}"
+        echo -e "${GREEN} All tests passed! Library system is functioning correctly.${NC}"
         local status="SUCCESS"
     else
-        echo -e "${RED}❌ Some tests failed. Please review the failures above.${NC}"
+        echo -e "${RED} Some tests failed. Please review the failures above.${NC}"
         local status="FAILURE"
     fi
     

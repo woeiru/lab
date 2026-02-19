@@ -5,7 +5,6 @@
 
 ### 1. Simple Operational Logging
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
@@ -17,11 +16,9 @@ aux_err "Database connection failed"
 # Operational logging with explicit levels
 aux_log "INFO" "User authentication successful" "user_id=12345,method=oauth"
 aux_log "ERROR" "Payment processing failed" "order_id=67890,amount=99.99,error=timeout"
-```
 
 ### 2. Structured Logging with Context
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
@@ -33,11 +30,9 @@ export SERVICE_NAME="user-service"
 # Log with rich context
 aux_log "INFO" "Order created" "user_id=123,order_id=456,total=99.99,currency=USD"
 aux_log "AUDIT" "Admin action performed" "admin_user=john,action=user_delete,target_user=jane"
-```
 
 ### 3. Debug Logging for Development
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
@@ -53,13 +48,11 @@ aux_dbg "Validation completed successfully"
 # Debug with variable inspection
 local user_count=25
 aux_dbg "Processing batch: user_count=$user_count, batch_size=10"
-```
 
 ## Advanced Usage Patterns
 
 ### 4. Distributed Tracing
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
@@ -74,11 +67,9 @@ aux_log "INFO" "User registration completed successfully"
 
 # End the trace
 aux_end_trace
-```
 
 ### 5. Performance Monitoring
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
@@ -89,11 +80,9 @@ aux_metric "requests_processed" 1 "counter"
 
 # Performance logging
 aux_perf "Database query completed" "duration=250ms,table=users,rows=150"
-```
 
 ### 6. Specialized Logging Types
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
@@ -108,13 +97,11 @@ aux_audit "Data export performed" "user=analyst,dataset=customer_data,records=50
 
 # Performance events
 aux_perf "Cache refresh completed" "cache_type=user_sessions,size=10MB,duration=2.3s"
-```
 
 ## Cluster Deployment Examples
 
 ### 7. Kubernetes Pod Configuration
 
-```yaml
 # kubernetes-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -158,11 +145,9 @@ spec:
       volumes:
       - name: log-volume
         emptyDir: {}
-```
 
 ### 8. Docker Compose Configuration
 
-```yaml
 # docker-compose.yml
 version: '3.8'
 services:
@@ -183,13 +168,11 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: docker.app
-```
 
 ## Log Format Examples
 
 ### 9. Different Output Formats
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
@@ -212,46 +195,44 @@ aux_log "INFO" "User login" "user_id=123,ip=192.168.1.1"
 export AUX_LOG_FORMAT="human"
 aux_log "INFO" "User login" "user_id=123,ip=192.168.1.1"
 # Output: [2025-06-08T23:58:51] [INFO] User login [user_id=123,ip=192.168.1.1]
-```
 
 ## Error Handling and Validation
 
 ### 10. Robust Error Handling
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
 # Function with comprehensive logging
 process_user_data() {
     local user_id="$1"
-    
+
     # Validate input
     if [[ -z "$user_id" ]]; then
         aux_err "Missing required parameter: user_id"
         return 1
     fi
-    
+
     aux_info "Starting user data processing" "user_id=$user_id"
-    
+
     # Start tracing for this operation
     aux_start_trace "process_user_data"
-    
+
     # Simulate processing with debug logging
     aux_dbg "Fetching user data from database"
-    
+
     if ! fetch_user_data "$user_id"; then
         aux_err "Failed to fetch user data" "user_id=$user_id"
         aux_end_trace
         return 1
     fi
-    
+
     aux_dbg "Processing user preferences"
     aux_metric "users_processed" 1 "counter"
-    
+
     aux_info "User data processing completed" "user_id=$user_id"
     aux_end_trace
-    
+
     return 0
 }
 
@@ -260,13 +241,11 @@ if ! process_user_data "12345"; then
     aux_err "User processing pipeline failed"
     exit 1
 fi
-```
 
 ## Integration with Existing Systems
 
 ### 11. Integration with Main Logging System
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
@@ -283,13 +262,11 @@ fi
 # - lo1 logging system (lib/core/lo1)
 # - Master verbosity controls (MASTER_TERMINAL_VERBOSITY)
 # - Existing log directories (LOG_DIR)
-```
 
 ## Best Practices
 
 ### 12. Production Deployment Best Practices
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
@@ -306,11 +283,9 @@ aux_audit "Service configuration loaded" "config_file=$CONFIG_FILE"
 
 # Performance monitoring
 aux_metric "service_startup_time" "$startup_duration" "gauge"
-```
 
 ### 13. Development Environment Setup
 
-```bash
 #!/bin/bash
 source lib/gen/aux
 
@@ -324,7 +299,6 @@ export LOG_DEBUG_ENABLED="1"          # Enable lo1 debug logging
 aux_info "Development environment initialized"
 aux_dbg "Debug logging enabled for development"
 aux_dbg "Log files will be created in: ${LOG_DIR:-$PWD/.log}"
-```
 
 This enhanced logging system provides enterprise-level logging capabilities with:
 - Multiple output formats for different systems

@@ -8,11 +8,9 @@
 `utl/` contains utility tooling that supports repository operations, especially documentation and utility configuration workflows.
 
 ## Quick Start
-```bash
 # Documentation utility entrypoint
 cd /home/es/lab/utl/doc
 ./run_all_doc.sh --list
-```
 
 ## Structure
 - `utl/doc/`: documentation generation system and orchestrators.

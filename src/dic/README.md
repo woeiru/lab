@@ -8,7 +8,6 @@
 `src/dic/` provides the operational command layer (`ops`) that maps user intent to pure functions in `lib/ops/*` with adaptive parameter resolution.
 
 ## Quick Start
-```bash
 # Show available ops and usage
 ops --help
 
@@ -20,7 +19,6 @@ ops pve vpt -j
 
 # Debug parameter resolution
 OPS_DEBUG=1 ops pve vpt 100 on
-```
 
 ## Structure
 - `src/dic/ops`: main DIC dispatcher and execution logic.

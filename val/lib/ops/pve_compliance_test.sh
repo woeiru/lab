@@ -24,10 +24,10 @@ run_test() {
     echo "Running test ${test_count}: ${test_name}"
     
     if $test_function; then
-        echo "✅ PASS: ${test_name}"
+        echo " PASS: ${test_name}"
         ((passed_tests++))
     else
-        echo "❌ FAIL: ${test_name}"
+        echo " FAIL: ${test_name}"
     fi
     echo ""
 }
@@ -222,10 +222,10 @@ main() {
     echo ""
     
     if [[ $passed_tests -eq $test_count ]]; then
-        echo "✅ All tests passed - PVE module is .std compliant!"
+        echo " All tests passed - PVE module is .std compliant!"
         return 0
     else
-        echo "❌ Some tests failed - compliance issues found"
+        echo " Some tests failed - compliance issues found"
         return 1
     fi
 }

@@ -17,23 +17,17 @@ The Dependency Injection Container (DIC) provides a consistent operational inter
 ## Execution Modes
 
 ### 1. Hybrid Mode
-```bash
 ops pve vpt 100 on
-```
 - user supplies initial arguments
 - DIC fills remaining required parameters
 
 ### 2. Injection Mode (`-j`)
-```bash
 ops pve vpt -j
-```
 - DIC resolves all required parameters from config/env
 - useful for automation and repeatable workflows
 
 ### 3. Explicit/Pass-through Mode (`-x`)
-```bash
 ops gpu pts -x
-```
 - control flags pass through to function-level validation behavior
 
 ## Resolution Hierarchy
@@ -52,9 +46,7 @@ This enables both manual overrides and zero-config automation.
 
 ## Debugging Workflow
 Use resolution tracing for any unexpected behavior:
-```bash
 OPS_DEBUG=1 ops pve vpt 100 on
-```
 Check for:
 - resolved variable source (user/hostname/global/default)
 - final argument list and call target

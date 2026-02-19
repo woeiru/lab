@@ -8,7 +8,6 @@
 `bin/` contains the bootstrap and orchestration entry scripts that initialize runtime configuration, load modules, and prepare the shell-integrated environment.
 
 ## Quick Start
-```bash
 # Initialize and integrate shell
 ./go init
 ./go on
@@ -16,7 +15,6 @@
 # Verify runtime health
 ./go status
 ./go doctor
-```
 
 ## Structure
 - `bin/ini`: primary initialization controller.

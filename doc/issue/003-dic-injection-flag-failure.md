@@ -29,25 +29,19 @@ When using the `-j` flag with DIC operations (e.g., `./src/dic/ops pve vmc -j`),
 ### Evidence of Issue
 
 #### Working Variable Resolution
-```bash
 # Direct function call works perfectly
-source bin/ini && pve_vmc 211 "fedora-vm" "l26" "q35" "..." 
-# Result: ✅ VM created successfully
-```
+source bin/ini && pve_vmc 211 "fedora-vm" "l26" "q35" "..."
+# Result:  VM created successfully
 
 #### Working DIC Preview
-```bash
 ./src/dic/ops pve vmc
-# Result: ✅ Shows all 17 parameters with correct values
+# Result:  Shows all 17 parameters with correct values
 # Shows: "17 global variables available for automatic injection"
-```
 
 #### Failing DIC Execution
-```bash
 ./src/dic/ops pve vmc -j
-# Result: ❌ Shows usage instead of executing
+# Result:  Shows usage instead of executing
 # Expected: Should execute with auto-injected VM_1_* variables
-```
 
 ### Root Cause Analysis
 
@@ -77,11 +71,9 @@ The issue appears to be in the `ops_inject_and_execute()` function where:
 ### Debug Information
 
 Debug output shows function reaches execution but fails:
-```bash
 OPS_DEBUG=1 ./src/dic/ops pve vmc -j
 # Shows: Function signature analysis starting
 # Then: Falls back to usage display
-```
 
 ### Recommended Investigation Areas
 
@@ -93,9 +85,7 @@ OPS_DEBUG=1 ./src/dic/ops pve vmc -j
 ### Workaround
 
 Until fixed, use direct function calls with manual parameter specification:
-```bash
 source bin/ini && pve_vmc $(echo "$VM_1_ID" "$VM_1_NAME" "$VM_1_OSTYPE" ...)
-```
 
 ### Related Issues
 - None identified

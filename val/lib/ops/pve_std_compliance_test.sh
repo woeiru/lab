@@ -21,10 +21,10 @@ test_check() {
     echo -n "Test ${test_count}: ${test_name}... "
     
     if eval "$test_command" >/dev/null 2>&1; then
-        echo "✅ PASS"
+        echo " PASS"
         ((passed_tests++))
     else
-        echo "❌ FAIL"
+        echo " FAIL"
     fi
 }
 
@@ -60,20 +60,20 @@ echo "Failed: $((test_count - passed_tests))"
 
 if [[ $passed_tests -eq $test_count ]]; then
     echo
-    echo "✅ ALL TESTS PASSED - PVE module is .std compliant!"
+    echo " ALL TESTS PASSED - PVE module is .std compliant!"
     echo
     echo "The pve module successfully implements:"
-    echo "  ✓ Auxiliary library integration"
-    echo "  ✓ Parameter validation using aux_val"
-    echo "  ✓ Dependency checking using aux_chk"
-    echo "  ✓ Operational logging using aux_info/aux_err"
-    echo "  ✓ Safe command execution using aux_cmd"
-    echo "  ✓ Help system integration"
-    echo "  ✓ Proper return codes"
+    echo "   Auxiliary library integration"
+    echo "   Parameter validation using aux_val"
+    echo "   Dependency checking using aux_chk"
+    echo "   Operational logging using aux_info/aux_err"
+    echo "   Safe command execution using aux_cmd"
+    echo "   Help system integration"
+    echo "   Proper return codes"
     echo
     exit 0
 else
     echo
-    echo "❌ Some tests failed - compliance issues found"
+    echo " Some tests failed - compliance issues found"
     exit 1
 fi

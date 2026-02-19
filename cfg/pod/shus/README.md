@@ -26,7 +26,6 @@ Choose one mode and run the corresponding section:
 ## ROOTFUL SETUP
 ### Variables
 
-```bash
 export CT_NAME=shus
 export CT_IMAGE=ishus
 export CT_DIR=/root/lab/con/
@@ -36,11 +35,9 @@ export SMB_USER_PASSWORD=<smb_password>
 export NODE_NAME=<node_name>
 export SUBFOLDER=dat
 export SHARENAME=dat
-```
 
 ### Container deployment
 
-```bash
 podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 
 mkdir -p /home/${USER_NAME}/${SUBFOLDER}
@@ -57,11 +54,9 @@ podman run -d \
   ${CT_IMAGE}
 
 podman start ${CT_NAME}
-```
 
 ### Firewall persistence
 
-```bash
 sudo iptables -L -v -n
 
 iptables -A INPUT -p tcp --dport 1139 -j ACCEPT
@@ -72,12 +67,10 @@ iptables -A INPUT -p tcp --dport 1445 -j ACCEPT
 reboot
 
 iptables-restore < /etc/sysconfig/iptables
-```
 
 ## ROOTLESS SETUP
 ### Variables
 
-```bash
 export CT_NAME=shus
 export CT_IMAGE=ishus
 export CT_DIR=/home/es/lab/con/
@@ -87,11 +80,9 @@ export SMB_USER_PASSWORD=<smb_password>
 export NODE_NAME=<node_name>
 export SUBFOLDER=dat
 export SHARENAME=dat
-```
 
 ### Container deployment
 
-```bash
 sudo setenforce 0
 podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 sudo setenforce 1
@@ -110,11 +101,9 @@ podman run -d \
   ${CT_IMAGE}
 
 podman start ${CT_NAME}
-```
 
 ### NAT and firewall setup
 
-```bash
 sudo iptables -L -v -n
 
 sudo iptables -t nat -A PREROUTING -p tcp --dport 139 -j DNAT --to-destination 192.168.178.110:1139
@@ -130,20 +119,16 @@ sudo /sbin/iptables-save > /etc/sysconfig/iptables
 reboot
 
 iptables-restore < /etc/sysconfig/iptables
-```
 
 ### systemd service setup
 
-```bash
 podman generate systemd --new --files --name ${CT_NAME}
 sudo mv container-${CT_NAME}.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable container-${CT_NAME}.service
-```
 
 ### Testing
 
-```bash
 ls -Z <path>
 lsof -i -P -n
 ss -tuln
@@ -151,7 +136,6 @@ smbclient -L ${NODE_NAME} -U ${SMB_USER_NAME}
 smbclient //${NODE_NAME}/${SHARENAME} -U ${SMB_USER_NAME}
 pdbedit -L
 sudo tcpdump -i any port 139 or port 445
-```
 
 ## Common Tasks
 - Set mode-specific variables for the target host and security context.

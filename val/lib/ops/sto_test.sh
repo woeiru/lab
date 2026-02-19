@@ -26,10 +26,10 @@ test_storage_functions_exist() {
     done
     
     if [[ ${#existing[@]} -gt 0 ]]; then
-        echo "✓ Found storage functions: ${existing[*]}"
+        echo " Found storage functions: ${existing[*]}"
         return 0
     else
-        echo "✓ Storage library loaded (functions may have different names)"
+        echo " Storage library loaded (functions may have different names)"
         return 0
     fi
 }
@@ -47,13 +47,13 @@ test_disk_space_checking() {
             available_space=$(echo "$disk_info" | awk 'NR==2 {print $5}' | tr -d '%')
             
             if [[ "$available_space" =~ ^[0-9]+$ ]] && [[ $available_space -le 100 ]]; then
-                echo "✓ Disk space checking works (root filesystem: ${available_space}% used)"
+                echo " Disk space checking works (root filesystem: ${available_space}% used)"
                 return 0
             fi
         fi
     fi
     
-    echo "✗ Disk space checking failed"
+    echo " Disk space checking failed"
     return 1
 }
 
@@ -78,10 +78,10 @@ test_filesystem_info() {
     fi
     
     if [[ ${#mount_points[@]} -gt 0 ]]; then
-        echo "✓ Filesystem information retrieval works (${#mount_points[@]} mount points found)"
+        echo " Filesystem information retrieval works (${#mount_points[@]} mount points found)"
         return 0
     else
-        echo "✗ Filesystem information retrieval failed"
+        echo " Filesystem information retrieval failed"
         return 1
     fi
 }
@@ -110,10 +110,10 @@ test_storage_device_detection() {
     fi
     
     if [[ ${#block_devices[@]} -gt 0 ]]; then
-        echo "✓ Storage device detection works (found: ${block_devices[*]})"
+        echo " Storage device detection works (found: ${block_devices[*]})"
         return 0
     else
-        echo "✓ Storage device detection completed (no devices detected)"
+        echo " Storage device detection completed (no devices detected)"
         return 0
     fi
 }
@@ -134,13 +134,13 @@ test_directory_operations() {
         
         # Test directory permissions
         if [[ -d "$test_dir" ]] && [[ -w "$test_dir" ]] && [[ -r "$test_dir" ]]; then
-            echo "✓ Directory operations work (size: $dir_size)"
+            echo " Directory operations work (size: $dir_size)"
             rm -rf "$test_dir"
             return 0
         fi
     fi
     
-    echo "✗ Directory operations failed"
+    echo " Directory operations failed"
     rm -rf "$test_dir" 2>/dev/null || true
     return 1
 }
@@ -153,7 +153,7 @@ test_file_operations() {
     
     # Test file creation and writing
     echo "$test_content" > "$test_file" || {
-        echo "✗ File creation failed"
+        echo " File creation failed"
         return 1
     }
     
@@ -162,9 +162,9 @@ test_file_operations() {
     read_content=$(cat "$test_file" 2>/dev/null)
     
     if [[ "$read_content" == "$test_content" ]]; then
-        echo "✓ File read/write operations work"
+        echo " File read/write operations work"
     else
-        echo "✗ File read/write operations failed"
+        echo " File read/write operations failed"
         rm -f "$test_file"
         return 1
     fi
@@ -175,14 +175,14 @@ test_file_operations() {
         checksum2=$(echo "$test_content" | sha256sum | awk '{print $1}' 2>/dev/null)
         
         if [[ "$checksum1" == "$checksum2" ]]; then
-            echo "✓ File integrity verification works"
+            echo " File integrity verification works"
         else
-            echo "✓ File integrity verification attempted"
+            echo " File integrity verification attempted"
         fi
     elif command -v md5sum &>/dev/null; then
-        echo "✓ File integrity tools available (md5sum)"
+        echo " File integrity tools available (md5sum)"
     else
-        echo "✓ File integrity test completed (no checksum tools)"
+        echo " File integrity test completed (no checksum tools)"
     fi
     
     rm -f "$test_file"
@@ -221,12 +221,12 @@ test_storage_monitoring() {
     fi
     
     if [[ ${#monitoring_tools[@]} -gt 0 ]] || [[ ${#storage_metrics[@]} -gt 0 ]]; then
-        echo "✓ Storage monitoring capabilities available"
+        echo " Storage monitoring capabilities available"
         [[ ${#monitoring_tools[@]} -gt 0 ]] && echo "  Tools: ${monitoring_tools[*]}"
         [[ ${#storage_metrics[@]} -gt 0 ]] && echo "  Metrics: ${storage_metrics[*]}"
         return 0
     else
-        echo "✗ Storage monitoring capabilities limited"
+        echo " Storage monitoring capabilities limited"
         return 1
     fi
 }
@@ -252,7 +252,7 @@ test_backup_restore_capabilities() {
     
     # Test basic backup functionality
     mkdir -p "$test_source" || {
-        echo "✗ Cannot create test source directory"
+        echo " Cannot create test source directory"
         return 1
     }
     
@@ -273,13 +273,13 @@ test_backup_restore_capabilities() {
     rm -rf "$test_source" "$test_backup" 2>/dev/null || true
     
     if [[ "$backup_success" == "true" ]]; then
-        echo "✓ Backup and restore capabilities work (tools: ${backup_tools[*]})"
+        echo " Backup and restore capabilities work (tools: ${backup_tools[*]})"
         return 0
     elif [[ ${#backup_tools[@]} -gt 0 ]]; then
-        echo "✓ Backup tools available: ${backup_tools[*]}"
+        echo " Backup tools available: ${backup_tools[*]}"
         return 0
     else
-        echo "✗ Limited backup and restore capabilities"
+        echo " Limited backup and restore capabilities"
         return 1
     fi
 }
@@ -296,7 +296,7 @@ test_storage_performance() {
     
     if command -v dd &>/dev/null; then
         dd if=/dev/zero of="$test_file" bs=1024 count=1024 2>/dev/null || {
-            echo "✗ Storage performance test failed (write)"
+            echo " Storage performance test failed (write)"
             return 1
         }
         
@@ -313,11 +313,11 @@ test_storage_performance() {
         cat "$test_file" > /dev/null 2>&1
         end_time=$(date +%s.%N 2>/dev/null) || end_time=$(date +%s)
         
-        echo "✓ Storage performance testing works (write/read duration: $duration)"
+        echo " Storage performance testing works (write/read duration: $duration)"
         rm -f "$test_file"
         return 0
     else
-        echo "✗ Storage performance testing requires dd command"
+        echo " Storage performance testing requires dd command"
         return 1
     fi
 }

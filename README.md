@@ -14,7 +14,6 @@ This repository provides:
 
 ## Quick Start
 
-```bash
 # 1) First-time setup (saves settings to .tmp/go_settings)
 ./go init
 
@@ -29,13 +28,10 @@ This repository provides:
 
 # 5) Run validation suite
 ./go validate
-```
 
 To disable shell integration later:
 
-```bash
 ./go off
-```
 
 ## CLI Commands
 
@@ -80,7 +76,6 @@ Core runtime/config files:
 
 ## Repository Layout
 
-```text
 bin/        bootstrap and orchestration scripts (ini, orc)
 cfg/        core, environment, alias, and logging configuration
 lib/core/   core runtime modules (err, lo1, tme, ver, col)
@@ -91,7 +86,6 @@ src/set/    section-based deployment/playbooks
 val/        validation and test framework
 doc/        main technical documentation hub
 utl/        utility scripts
-```
 
 ## Component READMEs
 
@@ -108,18 +102,14 @@ Non-documentation top-level README index (non-redundant tree):
 
 Primary checks:
 
-```bash
 ./go doctor
 ./go validate
-```
 
 Direct test runner:
 
-```bash
 ./val/run_all_tests.sh
 ./val/run_all_tests.sh --list
 ./val/run_all_tests.sh --quick
-```
 
 ## Documentation Map
 

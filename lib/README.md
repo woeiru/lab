@@ -15,7 +15,6 @@ This folder provides:
 
 Typical usage in this repository is through `./go` + runtime bootstrap:
 
-```bash
 # Initialize and enable shell integration
 ./go init
 ./go on
@@ -23,14 +22,11 @@ Typical usage in this repository is through `./go` + runtime bootstrap:
 # Validate repository and test suite
 ./go doctor
 ./go validate
-```
 
 For direct operation dispatch (after runtime is loaded):
 
-```bash
 # Example DIC call into lib/ops
 ops srv nfs_set -j
-```
 
 ## Architecture At A Glance
 
@@ -49,7 +45,6 @@ Library domains:
 
 ## Folder Layout
 
-```text
 lib/core/
   col  err  lo1  tme  ver
 
@@ -59,7 +54,6 @@ lib/ops/
 
 lib/gen/
   ana  aux  env  inf  sec
-```
 
 ## Child READMEs
 
@@ -102,17 +96,13 @@ Shared support libraries:
 
 Repository-level checks:
 
-```bash
 ./go doctor
 ./go validate
-```
 
 Targeted library tests:
 
-```bash
 ./val/run_all_tests.sh lib
 ./val/run_all_tests.sh --list
-```
 
 ## Related Docs
 

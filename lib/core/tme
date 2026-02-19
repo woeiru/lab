@@ -270,8 +270,8 @@ print_timing_entry() {
 
     local status_icon
     case "$status" in
-        "success") status_icon="✓" ;;
-        "error_no_start") status_icon="✗" ;;
+        "success") status_icon="" ;;
+        "error_no_start") status_icon="" ;;
         "running") status_icon="⏳" ;;
         *) status_icon="?" ;;
     esac

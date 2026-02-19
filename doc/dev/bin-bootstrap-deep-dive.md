@@ -4,22 +4,20 @@
 - [Repository Root](../../README.md)
 - [Documentation Hub](../README.md)
 
-## 📋 Overview
+## Overview
 
 The `bin/` directory serves as the central hub for system initialization, bootstrapping, and component orchestration within the infrastructure system. It contains the primary initialization scripts that manage the startup sequence, environment configuration, and modular loading of all system components.
 
-## 🗂️ Directory Structure
+## Directory Structure
 
-```
 bin/
 ├── ini               # Main System Initialization Controller
-├── orc               # Component Orchestrator  
+├── orc               # Component Orchestrator
 
-```
 
-## 📁 Core Files and Components
+## Core Files and Components
 
-### 🚀 `ini` - Main System Initialization Controller
+### `ini` - Main System Initialization Controller
 
 **Purpose**: The primary system initialization script that orchestrates the entire environment bootstrap process through a modular, dependency-aware approach.
 
@@ -46,7 +44,7 @@ bin/
 - **Core Modules**: `lib/core/ver`, `lib/core/err`, `lib/core/lo1`, `lib/core/tme`
 - **Component Orchestrator**: `bin/orc`
 
-### ⚙️ `orc` - Component Orchestrator
+### `orc` - Component Orchestrator
 
 **Purpose**: Manages the sequential execution of system components during initialization with dependency awareness and status tracking.
 
@@ -70,7 +68,7 @@ bin/
    - Sources library modules (`lib/core/`, `lib/ops/`, `lib/gen/`)
    - Applies environment-specific settings and aliases
 
-## 🔧 Key Features
+## Key Features
 
 ### Hierarchical Initialization
 - **Dependency-Aware Loading**: Components loaded in correct order based on dependencies
@@ -98,7 +96,7 @@ Control initialization behavior through environment variables:
 - **`DEBUG_LOG_TERMINAL_VERBOSITY`**: Control debug output (`on`/`off`)
 - **`PERFORMANCE_MODE`**: Enable performance optimizations (`0`/`1`)
 
-## 🔗 Integration Points
+## Integration Points
 
 ### System Components
 - **Configuration Management**: Loads all `cfg/` configurations
@@ -116,7 +114,7 @@ Control initialization behavior through environment variables:
 - **Configuration Files**: Required for environment-specific behavior
 - **Log Directories**: Must be writable for debug and error logging
 
-## 📊 Monitoring and Debugging
+## Monitoring and Debugging
 
 ### Log Files
 - **Init Log**: `${LOG_DIR}/ini.log` - Initialization sequence tracking
@@ -137,7 +135,7 @@ Control initialization behavior through environment variables:
 - **Shell Compatibility**: Check Bash version (4+ required)
 - **Path Issues**: Ensure correct working directory during execution
 
-## 📈 Best Practices
+## Best Practices
 
 ### System Initialization
 1. **Environment Preparation**: Set required environment variables before initialization
@@ -157,7 +155,7 @@ Control initialization behavior through environment variables:
 3. **Performance Monitoring**: Analyze timing logs for optimization opportunities
 4. **Error Analysis**: Regularly review error patterns for system improvements
 
-## 🔐 Security Considerations
+## Security Considerations
 
 - **File Permissions**: Initialization scripts should have appropriate execute permissions
 - **User Context**: Consider security implications of shell integration

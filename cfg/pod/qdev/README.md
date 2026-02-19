@@ -8,7 +8,6 @@
 This directory contains Podman-based setup material for a Proxmox qdevice/qnetd host used to stabilize cluster quorum.
 
 ## Quick Start
-```bash
 # 1) Build qdevice image from this directory
 cd "$LAB_DIR/cfg/pod/qdev"
 sudo podman build . -t iq --format docker
@@ -21,7 +20,6 @@ sudo chown 701:701 /etc/corosync
 sudo podman run -d --name=qd --cap-drop=ALL --privileged \
   -p 22:22 -p 5403:5403 \
   -v /etc/corosync:/etc/corosync localhost/iq
-```
 
 ## Structure
 - `Containerfile` and local assets: image/runtime definition.

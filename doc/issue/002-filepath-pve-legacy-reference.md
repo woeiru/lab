@@ -1,16 +1,14 @@
 # Issue 002: FILEPATH_pve Legacy Reference Bug
 
-**Date:** June 17, 2025  
-**Status:** RESOLVED  
-**Severity:** Medium  
-**Component:** DIC System / Environment Variables  
+**Date:** June 17, 2025
+**Status:** RESOLVED
+**Severity:** Medium
+**Component:** DIC System / Environment Variables
 
 ## Problem Description
 
 The `pve_fun` command was failing with the error:
-```
 Error: Cannot read file '/home/es/lab/lib/gen/pve'
-```
 
 This occurred despite the `pve` file having been moved from `lib/gen/pve` to `lib/ops/pve` approximately 500 commits ago.
 
@@ -35,9 +33,7 @@ This occurred despite the `pve` file having been moved from `lib/gen/pve` to `li
 ## Resolution
 
 **Immediate Fix:**
-```bash
 export FILEPATH_pve="/home/es/lab/lib/ops/pve"
-```
 
 **Verification:**
 - `pve_fun` command now works correctly
@@ -75,5 +71,5 @@ export FILEPATH_pve="/home/es/lab/lib/ops/pve"
 - Potential similar issues with other moved files (gpu, net, etc.)
 
 ---
-**Resolution Confirmed:** ✅ `pve_fun` command functional  
+**Resolution Confirmed:** `pve_fun` command functional
 **Follow-up Required:** Identify and fix persistent configuration source

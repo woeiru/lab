@@ -16,7 +16,7 @@ test_config_directory_structure() {
     local missing_dirs=()
     
     if [[ ! -d "$config_root" ]]; then
-        echo "✗ Configuration root directory not found: $config_root"
+        echo " Configuration root directory not found: $config_root"
         return 1
     fi
     
@@ -27,10 +27,10 @@ test_config_directory_structure() {
     done
     
     if [[ ${#missing_dirs[@]} -eq 0 ]]; then
-        echo "✓ Configuration directory structure is complete"
+        echo " Configuration directory structure is complete"
         return 0
     else
-        echo "✗ Missing configuration directories: ${missing_dirs[*]}"
+        echo " Missing configuration directories: ${missing_dirs[*]}"
         return 1
     fi
 }
@@ -48,10 +48,10 @@ test_core_config_files() {
     done
     
     if [[ ${#existing_files[@]} -gt 0 ]]; then
-        echo "✓ Found core configuration files: ${existing_files[*]}"
+        echo " Found core configuration files: ${existing_files[*]}"
         return 0
     else
-        echo "✗ No core configuration files found"
+        echo " No core configuration files found"
         return 1
     fi
 }
@@ -68,10 +68,10 @@ test_environment_config_files() {
     fi
     
     if [[ ${#env_files[@]} -gt 0 ]]; then
-        echo "✓ Found environment configuration files: ${env_files[*]}"
+        echo " Found environment configuration files: ${env_files[*]}"
         return 0
     else
-        echo "✗ No environment configuration files found"
+        echo " No environment configuration files found"
         return 1
     fi
 }
@@ -98,13 +98,13 @@ test_config_file_syntax() {
     done < <(find "$config_root" -type f -print0 2>/dev/null)
     
     if [[ $files_checked -eq 0 ]]; then
-        echo "✗ No configuration files found to check"
+        echo " No configuration files found to check"
         return 1
     elif [[ ${#syntax_errors[@]} -eq 0 ]]; then
-        echo "✓ Configuration file syntax validation passed ($files_checked files)"
+        echo " Configuration file syntax validation passed ($files_checked files)"
         return 0
     else
-        echo "✗ Configuration files with syntax errors: ${syntax_errors[*]}"
+        echo " Configuration files with syntax errors: ${syntax_errors[*]}"
         return 1
     fi
 }
@@ -131,10 +131,10 @@ test_config_loading_performance() {
     duration=$(echo "$end_time - $start_time" | bc 2>/dev/null || echo "unknown")
     
     if [[ "$duration" != "unknown" ]] && (( $(echo "$duration < 5.0" | bc -l 2>/dev/null || echo 0) )); then
-        echo "✓ Configuration loading performance acceptable (${duration}s, $files_loaded files)"
+        echo " Configuration loading performance acceptable (${duration}s, $files_loaded files)"
         return 0
     else
-        echo "✓ Configuration loading completed ($files_loaded files)"
+        echo " Configuration loading completed ($files_loaded files)"
         return 0
     fi
 }
@@ -159,7 +159,7 @@ test_config_variable_validation() {
     done
     
     if [[ ${#config_vars[@]} -gt 0 ]]; then
-        echo "✓ Found configuration variables: ${#config_vars[@]} total"
+        echo " Found configuration variables: ${#config_vars[@]} total"
         if [[ ${#undefined_vars[@]} -eq 0 ]]; then
             echo "  All configuration variables are defined"
         else
@@ -167,7 +167,7 @@ test_config_variable_validation() {
         fi
         return 0
     else
-        echo "✓ Configuration variable validation completed (no pattern matches)"
+        echo " Configuration variable validation completed (no pattern matches)"
         return 0
     fi
 }
@@ -184,10 +184,10 @@ test_pod_config_structure() {
     fi
     
     if [[ ${#pod_dirs[@]} -gt 0 ]]; then
-        echo "✓ Found pod configurations: ${pod_dirs[*]}"
+        echo " Found pod configurations: ${pod_dirs[*]}"
         return 0
     else
-        echo "✗ No pod configurations found"
+        echo " No pod configurations found"
         return 1
     fi
 }
@@ -204,10 +204,10 @@ test_alias_config_structure() {
     fi
     
     if [[ ${#alias_files[@]} -gt 0 ]]; then
-        echo "✓ Found alias configurations: ${alias_files[*]}"
+        echo " Found alias configurations: ${alias_files[*]}"
         return 0
     else
-        echo "✗ No alias configurations found"
+        echo " No alias configurations found"
         return 1
     fi
 }
@@ -220,7 +220,7 @@ test_config_backup_capability() {
     
     # Create backup directory
     mkdir -p "$backup_dir" || {
-        echo "✗ Cannot create backup directory"
+        echo " Cannot create backup directory"
         return 1
     }
     
@@ -241,10 +241,10 @@ test_config_backup_capability() {
     rm -rf "$backup_dir"
     
     if [[ $files_backed_up -gt 0 ]]; then
-        echo "✓ Configuration backup capability works ($files_backed_up files)"
+        echo " Configuration backup capability works ($files_backed_up files)"
         return 0
     else
-        echo "✗ Configuration backup capability failed"
+        echo " Configuration backup capability failed"
         return 1
     fi
 }

@@ -5,7 +5,6 @@ This document provides prompt templates and instructions for guiding AI assistan
 ## Core Logging Integration Instructions
 
 ### Basic Integration Prompt
-```
 When working with functions in this lab environment, always integrate the enhanced logging system by:
 
 1. Source the logging system with `source lib/gen/aux` at the beginning of scripts
@@ -18,13 +17,11 @@ When working with functions in this lab environment, always integrate the enhanc
 4. Use specialized logging for specific domains when appropriate
 
 The enhanced logging system is located in `lib/gen/aux` and provides enterprise-grade structured logging with cluster metadata support.
-```
 
 ### Function Enhancement Prompt
-```
 Enhance existing functions by adding comprehensive logging using the auxiliary logging system:
 
-- Add entry/exit logging with `aux_info "Function ${FUNCNAME[0]} started"` 
+- Add entry/exit logging with `aux_info "Function ${FUNCNAME[0]} started"`
 - Log parameter validation with `aux_dbg "Validating parameters: param1=$1, param2=$2"`
 - Log decision points with `aux_info` or `aux_warn` as appropriate
 - Log errors with `aux_err "Error in ${FUNCNAME[0]}: description" "context=details"`
@@ -33,35 +30,27 @@ Enhance existing functions by adding comprehensive logging using the auxiliary l
 - Include correlation context using structured key=value pairs
 
 Configure output format with `export AUX_LOG_FORMAT="json"` for structured logging or leave default for human-readable output.
-```
 
 ## Specific Use Case Instructions
 
 ### Error Handling Enhancement
-```
 When adding error handling to functions, integrate structured logging:
 
 Replace basic error handling like:
-```bash
 if [ $? -ne 0 ]; then
     echo "Error occurred"
     return 1
 fi
-```
 
 With enhanced logging:
-```bash
 if [ $? -ne 0 ]; then
     aux_err "Operation failed in ${FUNCNAME[0]}" "exit_code=$?,operation=command_name,context=additional_info"
     return 1
 fi
-```
 
 This provides structured error data for centralized monitoring and alerting.
-```
 
 ### Performance Monitoring Integration
-```
 Add performance monitoring to functions using the enhanced logging system:
 
 1. Start timing with `aux_start_trace "operation_name"`
@@ -70,10 +59,8 @@ Add performance monitoring to functions using the enhanced logging system:
 4. Log resource usage with `aux_metric "resource_usage" "cpu=45%,memory=2GB,disk_io=150MB/s"`
 
 This enables performance analysis and capacity planning through centralized log aggregation.
-```
 
 ### Business Logic Logging
-```
 When working with business logic functions, add appropriate business event logging:
 
 - Use `aux_business` for workflow events: `aux_business "Order processed" "order_id=12345,status=completed,amount=99.99"`
@@ -81,12 +68,10 @@ When working with business logic functions, add appropriate business event loggi
 - Use `aux_security` for security events: `aux_security "Authentication attempt" "user=admin,method=oauth,result=success,ip=192.168.1.100"`
 
 This creates structured audit trails for compliance and business intelligence.
-```
 
 ## Advanced Integration Prompts
 
 ### Distributed System Context
-```
 When working with functions that may run in distributed environments, ensure cluster-aware logging:
 
 1. The logging system automatically captures cluster metadata (node_id, cluster_id, service name)
@@ -100,10 +85,8 @@ When working with functions that may run in distributed environments, ensure clu
 4. Log service boundaries with `aux_info "Service boundary crossed" "from=service_a,to=service_b,operation=data_sync"`
 
 This enables request tracing across microservices and distributed systems.
-```
 
 ### Configuration and Environment Logging
-```
 Enhance configuration and environment management functions with structured logging:
 
 1. Log configuration loading: `aux_info "Configuration loaded" "source=config_file,environment=production,values_count=25"`
@@ -112,10 +95,8 @@ Enhance configuration and environment management functions with structured loggi
 4. Log environment transitions: `aux_business "Environment switch" "from=development,to=production,validation=passed"`
 
 Use `AUX_LOG_FORMAT="json"` for structured ingestion into configuration management systems.
-```
 
 ### Integration Testing and Validation
-```
 When creating or enhancing test functions, integrate comprehensive logging:
 
 1. Log test execution: `aux_info "Test suite started" "suite=integration,test_count=15,environment=testing"`
@@ -124,12 +105,10 @@ When creating or enhancing test functions, integrate comprehensive logging:
 4. Log validation steps: `aux_dbg "Validation checkpoint" "step=input_validation,data=user_input,status=valid"`
 
 This provides detailed test execution logs for CI/CD pipeline analysis and debugging.
-```
 
 ## Environment Configuration Instructions
 
 ### Quick Setup Prompt
-```
 Before implementing logging enhancements, set up the logging environment:
 
 1. Source the enhanced logging system: `source lib/gen/aux`
@@ -138,15 +117,13 @@ Before implementing logging enhancements, set up the logging environment:
 4. Set cluster context if applicable:
    ```bash
    export CLUSTER_ID="production-cluster-01"
-   export NODE_ID="worker-node-03" 
+   export NODE_ID="worker-node-03"
    export SERVICE_NAME="application-service"
    ```
 
 Log files will be automatically created in `${LOG_DIR}/.log/` directory with appropriate formats for centralized collection.
-```
 
 ### Deployment Context Prompt
-```
 When preparing functions for production deployment, ensure logging is configured for centralized collection:
 
 1. Use JSON format for structured ingestion: `export AUX_LOG_FORMAT="json"`
@@ -156,35 +133,28 @@ When preparing functions for production deployment, ensure logging is configured
 5. Test log output with `cfg/log/usage_examples.md` patterns
 
 The system outputs to multiple formats simultaneously for different analysis tools and monitoring systems.
-```
 
 ## Example Integration Prompts
 
 ### Function Modernization
-```
 Take this existing function and enhance it with comprehensive logging using the auxiliary logging system. Add appropriate entry/exit logging, parameter validation logging, error handling with structured context, and performance monitoring. Use the specialized logging functions (aux_business, aux_security, aux_audit, aux_perf) where appropriate based on the function's purpose.
 
 Source the logging system with `source lib/gen/aux` and configure structured output if needed.
-```
 
 ### New Function Development
-```
 Create a new function that includes enterprise-grade logging from the start. Use the enhanced auxiliary logging system (`lib/gen/aux`) to provide:
 - Structured operational logging with cluster metadata
-- Comprehensive error handling with contextual information  
+- Comprehensive error handling with contextual information
 - Performance monitoring and metrics collection
 - Business logic event tracking where applicable
 - Debug logging for troubleshooting support
 
 Configure appropriate log formats and ensure the function is ready for production deployment with centralized log collection.
-```
 
 ### Legacy Code Enhancement
-```
 Modernize this legacy code by integrating the enhanced logging system without changing core functionality. Add structured logging that provides operational visibility, error tracking, and performance monitoring. Us the auxiliary logging functions appropriately and ensure backward compatibility while adding enterprise-grade observability.
 
 Focus on adding value through logging without disrupting existing behavior.
-```
 
 ## Usage Notes
 

@@ -59,13 +59,13 @@ run_dic_test_suite() {
         local failed_count=0
         local total_count=0
         
-        if echo "$test_output" | grep -q "TESTS_PASSED\|Tests passed\|✓"; then
-            passed_count=$(echo "$test_output" | grep -o "TESTS_PASSED=[0-9]*\|Tests passed: [0-9]*\|✓.*[0-9]*" | grep -o "[0-9]*" | tail -1)
+        if echo "$test_output" | grep -q "TESTS_PASSED\|Tests passed\|"; then
+            passed_count=$(echo "$test_output" | grep -o "TESTS_PASSED=[0-9]*\|Tests passed: [0-9]*\|.*[0-9]*" | grep -o "[0-9]*" | tail -1)
             passed_count=${passed_count:-0}
         fi
         
-        if echo "$test_output" | grep -q "TESTS_FAILED\|Tests failed\|✗"; then
-            failed_count=$(echo "$test_output" | grep -o "TESTS_FAILED=[0-9]*\|Tests failed: [0-9]*\|✗.*[0-9]*" | grep -o "[0-9]*" | tail -1)
+        if echo "$test_output" | grep -q "TESTS_FAILED\|Tests failed\|"; then
+            failed_count=$(echo "$test_output" | grep -o "TESTS_FAILED=[0-9]*\|Tests failed: [0-9]*\|.*[0-9]*" | grep -o "[0-9]*" | tail -1)
             failed_count=${failed_count:-0}
         fi
         

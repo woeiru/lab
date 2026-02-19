@@ -23,7 +23,7 @@ The enhanced logging system supports multiple output formats:
 - `${LOG_DIR}/aux_operational.jsonl` - JSON Lines format for structured ingestion
 - `${LOG_DIR}/aux_operational.csv` - CSV format with headers
 
-### Debug Logs  
+### Debug Logs
 - `${LOG_DIR}/aux_debug.log` - Human-readable debug information
 - `${LOG_DIR}/aux_debug.jsonl` - JSON Lines format for debug data
 - `${LOG_DIR}/aux_debug.csv` - CSV format debug logs
@@ -33,7 +33,7 @@ The enhanced logging system supports multiple output formats:
 This directory provides ready-to-deploy configurations for various log shipping and aggregation platforms:
 
 - **`fluentd.conf`** - Fluentd configuration for JSON log shipping to Elasticsearch/OpenSearch
-- **`filebeat.yml`** - Elastic Filebeat configuration for shipping to the Elastic Stack  
+- **`filebeat.yml`** - Elastic Filebeat configuration for shipping to the Elastic Stack
 - **`usage_examples.md`** - Comprehensive implementation examples and deployment patterns
 - **`enhanced_logging_dev_summary.md`** - Complete development summary and technical details
 - **`enhanced_logging_next_steps.md`** - Optional enhancement roadmap and implementation guide
@@ -63,7 +63,7 @@ The enhanced auxiliary logging system is located in `lib/gen/aux` and provides:
 3. **Use logging functions:**
    ```bash
    aux_info "Application started successfully"
-   aux_business "Order processed" "order_id=12345,amount=99.99"  
+   aux_business "Order processed" "order_id=12345,amount=99.99"
    aux_security "Login attempt" "user=admin,ip=192.168.1.100"
    ```
 

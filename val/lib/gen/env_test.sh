@@ -24,10 +24,10 @@ test_environment_functions_exist() {
     done
     
     if [[ ${#existing[@]} -gt 0 ]]; then
-        echo "✓ Found environment functions: ${existing[*]}"
+        echo " Found environment functions: ${existing[*]}"
         return 0
     else
-        echo "✓ Environment library loaded (functions may have different names)"
+        echo " Environment library loaded (functions may have different names)"
         return 0
     fi
 }
@@ -44,11 +44,11 @@ test_environment_variable_operations() {
     local retrieved_value="${!test_var}"
     
     if [[ "$retrieved_value" == "$test_value" ]]; then
-        echo "✓ Environment variable operations work"
+        echo " Environment variable operations work"
         unset "$test_var"
         return 0
     else
-        echo "✗ Environment variable operations failed"
+        echo " Environment variable operations failed"
         unset "$test_var"
         return 1
     fi
@@ -57,13 +57,13 @@ test_environment_variable_operations() {
 # Test: LAB_ROOT environment variable
 test_lab_root_variable() {
     if [[ -n "$LAB_ROOT" ]] && [[ -d "$LAB_ROOT" ]]; then
-        echo "✓ LAB_ROOT environment variable is set: $LAB_ROOT"
+        echo " LAB_ROOT environment variable is set: $LAB_ROOT"
         return 0
     elif [[ -d "$LAB_ROOT" ]]; then
-        echo "✓ Lab directory exists at expected location"
+        echo " Lab directory exists at expected location"
         return 0
     else
-        echo "✗ LAB_ROOT not set and lab directory not found"
+        echo " LAB_ROOT not set and lab directory not found"
         return 1
     fi
 }
@@ -83,14 +83,14 @@ EOF
     # Test if we can source the file
     if source "$test_env_file" 2>/dev/null; then
         if [[ "$TEST_ENV_VAR1" == "value1" ]] && [[ "$TEST_ENV_VAR2" == "value2" ]]; then
-            echo "✓ Environment file loading works"
+            echo " Environment file loading works"
             rm -f "$test_env_file"
             unset TEST_ENV_VAR1 TEST_ENV_VAR2 TEST_ENV_VAR3
             return 0
         fi
     fi
     
-    echo "✗ Environment file loading failed"
+    echo " Environment file loading failed"
     rm -f "$test_env_file"
     unset TEST_ENV_VAR1 TEST_ENV_VAR2 TEST_ENV_VAR3
     return 1
@@ -103,7 +103,7 @@ test_config_directory_access() {
     
     for dir in "${config_dirs[@]}"; do
         if [[ -d "$dir" ]]; then
-            echo "✓ Configuration directory accessible: $dir"
+            echo " Configuration directory accessible: $dir"
             found_config=true
             break
         fi
@@ -112,7 +112,7 @@ test_config_directory_access() {
     if [[ "$found_config" == "true" ]]; then
         return 0
     else
-        echo "✗ No configuration directory found"
+        echo " No configuration directory found"
         return 1
     fi
 }
@@ -129,10 +129,10 @@ test_environment_validation() {
     done
     
     if [[ ${#missing_vars[@]} -eq 0 ]]; then
-        echo "✓ Required environment variables present"
+        echo " Required environment variables present"
         return 0
     else
-        echo "✗ Missing required environment variables: ${missing_vars[*]}"
+        echo " Missing required environment variables: ${missing_vars[*]}"
         return 1
     fi
 }
@@ -157,11 +157,11 @@ test_environment_backup_restore() {
     
     # Verify restoration
     if [[ "${!test_var}" == "$original_value" ]]; then
-        echo "✓ Environment backup and restore works"
+        echo " Environment backup and restore works"
         unset "$test_var"
         return 0
     else
-        echo "✗ Environment backup and restore failed"
+        echo " Environment backup and restore failed"
         unset "$test_var"
         return 1
     fi
@@ -173,18 +173,18 @@ test_shell_environment_detection() {
     local shell_name="${SHELL##*/}"
     
     if [[ -n "$SHELL" ]]; then
-        echo "✓ Shell environment detected: $SHELL"
+        echo " Shell environment detected: $SHELL"
     else
-        echo "✗ Cannot detect shell environment"
+        echo " Cannot detect shell environment"
         return 1
     fi
     
     # Test bash-specific features
     if [[ "$shell_name" == "bash" ]] || [[ -n "$BASH_VERSION" ]]; then
-        echo "✓ Bash environment confirmed"
+        echo " Bash environment confirmed"
         return 0
     else
-        echo "✓ Non-bash shell environment detected"
+        echo " Non-bash shell environment detected"
         return 0
     fi
 }
@@ -196,22 +196,22 @@ test_working_directory_management() {
     
     # Create test directory
     mkdir -p "$temp_dir" || {
-        echo "✗ Cannot create test directory"
+        echo " Cannot create test directory"
         return 1
     }
     
     # Change to test directory
     cd "$temp_dir" || {
-        echo "✗ Cannot change to test directory"
+        echo " Cannot change to test directory"
         rm -rf "$temp_dir"
         return 1
     }
     
     # Verify directory change
     if [[ "$PWD" == "$temp_dir" ]]; then
-        echo "✓ Working directory change works"
+        echo " Working directory change works"
     else
-        echo "✗ Working directory change failed"
+        echo " Working directory change failed"
         cd "$original_pwd"
         rm -rf "$temp_dir"
         return 1
@@ -222,10 +222,10 @@ test_working_directory_management() {
     rm -rf "$temp_dir"
     
     if [[ "$PWD" == "$original_pwd" ]]; then
-        echo "✓ Working directory restoration works"
+        echo " Working directory restoration works"
         return 0
     else
-        echo "✗ Working directory restoration failed"
+        echo " Working directory restoration failed"
         return 1
     fi
 }

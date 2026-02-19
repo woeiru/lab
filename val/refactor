@@ -86,10 +86,10 @@ else
 fi
 
 echo "=== Test Summary ==="
-echo "✓ Pure functions are parameterized and no longer depend on global variables"
-echo "✓ Wrapper functions extract global variables and call pure functions"
-echo "✓ Original three-letter convention names preserved in lib/ops/"
-echo "✓ DIC operations provide unified interface"
-echo "✓ Component orchestrator updated to load management functions"
+echo " Pure functions are parameterized and no longer depend on global variables"
+echo " Wrapper functions extract global variables and call pure functions"
+echo " Original three-letter convention names preserved in lib/ops/"
+echo " DIC operations provide unified interface"
+echo " Component orchestrator updated to load management functions"
 echo
 echo "Refactoring complete!"

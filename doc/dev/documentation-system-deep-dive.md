@@ -10,7 +10,6 @@ This document describes the current `utl/doc` documentation generation system, i
 ## Current Architecture
 
 ### Module Layout
-```text
 utl/doc/
 ├── run_all_doc.sh              # Orchestrator
 ├── config/
@@ -26,7 +25,6 @@ utl/doc/
     ├── perf
     ├── test
     └── ux
-```
 
 ### Orchestration Flow
 1. `run_all_doc.sh` loads settings.
@@ -45,10 +43,8 @@ Configured in `utl/doc/config/targets`:
 - `stats` -> `System Metrics`
 
 Each section must exist with markers:
-```md
 <!-- AUTO-GENERATED SECTION: Section Name -->
 <!-- END AUTO-GENERATED SECTION -->
-```
 
 ## Generator Responsibilities
 
@@ -84,7 +80,6 @@ Controls:
 
 ## Operational Commands
 
-```bash
 # List generators
 ./utl/doc/run_all_doc.sh --list
 
@@ -96,7 +91,6 @@ Controls:
 
 # Run a subset
 ./utl/doc/run_all_doc.sh functions stats
-```
 
 ## Troubleshooting
 - If a generator fails, verify the target sink file exists and includes required marker blocks.

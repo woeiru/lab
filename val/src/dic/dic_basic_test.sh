@@ -207,10 +207,10 @@ main() {
     
     if [[ $pass_rate -ge 80 ]]; then
         printf "Overall Status: %sEXCELLENT%s (%d%% pass rate)\n" "$GREEN" "$NC" $pass_rate
-        echo "✅ DIC system is ready for legacy system replacement"
+        echo " DIC system is ready for legacy system replacement"
     else
         printf "Overall Status: %sNEEDS WORK%s (%d%% pass rate)\n" "$YELLOW" "$NC" $pass_rate
-        echo "🔧 DIC system needs fixes before legacy system replacement"
+        echo " DIC system needs fixes before legacy system replacement"
     fi
     
     echo "============================================================================"

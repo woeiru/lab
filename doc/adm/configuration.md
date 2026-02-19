@@ -12,7 +12,7 @@ The lab environment uses the `192.168.178.0/24` network with the following alloc
 
 #### Hypervisor Nodes
 - **h1**: `192.168.178.110` - Primary hypervisor node
-- **w2**: `192.168.178.120` - Secondary hypervisor node  
+- **w2**: `192.168.178.120` - Secondary hypervisor node
 - **x1**: `192.168.178.221` - Cluster node 1
 - **x2**: `192.168.178.222` - Cluster node 2
 
@@ -64,16 +64,13 @@ Infrastructure configuration utilities are located in `/home/es/lab/lib/gen/inf`
 ### Key Functions
 
 #### Container Definition
-```bash
 # Define a single container
 define_container id hostname ip_address [additional_params...]
 
 # Define multiple containers from array
 define_containers "id1:hostname1:ip1:id2:hostname2:ip2:..."
-```
 
 #### Default Configuration
-```bash
 # Set container defaults
 set_container_defaults \
     template="..." \
@@ -81,15 +78,13 @@ set_container_defaults \
     memory=8192 \
     ...
 
-# Set VM defaults  
+# Set VM defaults
 set_vm_defaults \
     ostype="..." \
     machine="..." \
     ...
-```
 
 #### Utility Functions
-```bash
 # Generate sequential IPs
 generate_ip_sequence base_ip count
 
@@ -98,7 +93,6 @@ validate_config
 
 # Show configuration summary
 show_config_summary
-```
 
 ### Default Container Configuration
 
@@ -125,7 +119,6 @@ The infrastructure utilities provide the following defaults:
 Security utilities are located in `/home/es/lab/lib/gen/sec` and provide:
 
 #### Secure Password Generation
-```bash
 # Generate secure password (default 16 chars)
 generate_secure_password [length] [exclude_special]
 
@@ -134,26 +127,23 @@ store_secure_password variable_name [length] [exclude_special]
 
 # Generate all service passwords
 generate_service_passwords
-```
 
 #### Password Storage
 - **Location**: `/etc/lab/passwords/`
 - **Permissions**: 700 (directory), 600 (files)
 - **Files**:
   - `ct_pbs.pwd` - PBS container root password
-  - `ct_nfs.pwd` - NFS container root password  
+  - `ct_nfs.pwd` - NFS container root password
   - `ct_smb.pwd` - SMB container root password
   - `nfs_user.pwd` - NFS service user password
   - `smb_user.pwd` - SMB service user password
 
 #### Password Initialization
-```bash
 # Initialize password management
 init_password_management [password_dir]
 
 # Load existing passwords
 load_stored_passwords [password_dir]
-```
 
 ### Security Best Practices
 
@@ -209,7 +199,6 @@ The deployment system displays:
 ## Usage Examples
 
 ### Creating a New Container
-```bash
 # Load utilities
 source /home/es/lab/lib/gen/inf
 source /home/es/lab/lib/gen/sec
@@ -225,19 +214,15 @@ define_container 114 "web" "192.168.178.114" \
 
 # Or use bulk creation
 define_containers "114:web:192.168.178.114:115:db:192.168.178.115"
-```
 
 ### Viewing Configuration
-```bash
 # Show current configuration summary
 show_config_summary
 
 # Validate configuration
 validate_config
-```
 
 ### Environment Switching
-```bash
 # Switch to development environment
 export ENVIRONMENT="dev"
 source /home/es/lab/src/aux/set
@@ -245,7 +230,6 @@ source /home/es/lab/src/aux/set
 # Switch to specific node
 export NODE="w2"
 source /home/es/lab/src/aux/set
-```
 
 ## Troubleshooting
 
@@ -257,7 +241,6 @@ source /home/es/lab/src/aux/set
 4. **Storage Problems**: Ensure ZFS/Btrfs datasets are available
 
 ### Validation Commands
-```bash
 # Check configuration
 validate_config
 
@@ -269,7 +252,6 @@ generate_secure_password 20
 
 # Verify infrastructure utilities
 define_container --help
-```
 
 ## Migration Guide
 
@@ -298,18 +280,17 @@ The infrastructure utilities follow a **pure function design pattern** where lib
 - **Reduced Coupling**: Functions don't depend on specific global variable configurations
 
 #### Implementation Example
-```bash
 # Pure function (lib/ops/pve) - parameterized approach
 pve-vpt() {
     local vm_id="$1"
-    local action="$2"  
+    local action="$2"
     local pci0_id="$3"
     local pci1_id="$4"
     local core_count_on="$5"
     local core_count_off="$6"
     local usb_devices_str="$7"
     local pve_conf_path="$8"
-    
+
     # Logic uses only explicit parameters
     if [[ "$action" == "on" ]]; then
         # Enable passthrough with provided parameters
@@ -319,19 +300,18 @@ pve-vpt() {
 # DIC operations (src/dic/ops) - handles dependency injection
 pve-vpt-w() {
     source "${LIB_OPS_DIR}/pve"
-    
+
     local hostname=$(hostname)
     local vm_id="$1"
     local action="$2"
-    
+
     # Extract global variables and convert to explicit parameters
     local pci0_id="${!hostname}_NODE_PCI0"
     local pci1_id="${!hostname}_NODE_PCI1"
     # ... extract other globals
-    
+
     pve-vpt "$vm_id" "$action" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
 }
-```
 
 ### Configuration-Library Separation
 

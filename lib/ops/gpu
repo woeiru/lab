@@ -152,8 +152,8 @@ fi
 
 # Status markers for display (conditional to avoid conflicts)
 if [[ -z "$CHECK_MARK" ]]; then
-    readonly CHECK_MARK="✓"
-    readonly CROSS_MARK="✗"
+    readonly CHECK_MARK=""
+    readonly CROSS_MARK=""
     readonly QUESTION_MARK="?"
 fi
 
@@ -696,17 +696,17 @@ _gpu_get_detailed_device_info() {
 
                     if echo "$current_gpu_block_content" | grep -q "Kernel driver in use: vfio-pci"; then
                         is_any_gpu_on_vfio=true
-                        gpu_details_for_checklist+="     ✓ GPU $pci_id_for_block ($device_name_for_checklist) on vfio-pci\n"
+                        gpu_details_for_checklist+="      GPU $pci_id_for_block ($device_name_for_checklist) on vfio-pci\n"
                     elif driver_line=$(echo "$current_gpu_block_content" | grep "Kernel driver in use:"); then
                         local driver_name=$(echo "$driver_line" | awk -F': ' '{print $2}')
                         if [ -n "$driver_name" ]; then
                             if [ -z "$host_drivers_for_gpu" ]; then host_drivers_for_gpu="$driver_name"; elif [[ ! "$host_drivers_for_gpu" =~ "$driver_name" ]]; then host_drivers_for_gpu="$host_drivers_for_gpu, $driver_name"; fi
                             gpu_details_for_checklist+="     * GPU $pci_id_for_block ($device_name_for_checklist) on $driver_name\n"
                         else
-                            gpu_details_for_checklist+="     ✗ GPU $pci_id_for_block ($device_name_for_checklist) on UNKNOWN driver\n"
+                            gpu_details_for_checklist+="      GPU $pci_id_for_block ($device_name_for_checklist) on UNKNOWN driver\n"
                         fi
                     else
-                        gpu_details_for_checklist+="     ✗ GPU $pci_id_for_block ($device_name_for_checklist) UNBOUND or no driver info\n"
+                        gpu_details_for_checklist+="      GPU $pci_id_for_block ($device_name_for_checklist) UNBOUND or no driver info\n"
                     fi
                 fi
                 current_gpu_block_content="$line_from_grep"
@@ -733,17 +733,17 @@ _gpu_get_detailed_device_info() {
 
             if echo "$current_gpu_block_content" | grep -q "Kernel driver in use: vfio-pci"; then
                 is_any_gpu_on_vfio=true
-                gpu_details_for_checklist+="     ✓ GPU $pci_id_for_block ($device_name_for_checklist) on vfio-pci\n"
+                gpu_details_for_checklist+="      GPU $pci_id_for_block ($device_name_for_checklist) on vfio-pci\n"
             elif driver_line=$(echo "$current_gpu_block_content" | grep "Kernel driver in use:"); then
                 local driver_name=$(echo "$driver_line" | awk -F': ' '{print $2}')
                 if [ -n "$driver_name" ]; then
                     if [ -z "$host_drivers_for_gpu" ]; then host_drivers_for_gpu="$driver_name"; elif [[ ! "$host_drivers_for_gpu" =~ "$driver_name" ]]; then host_drivers_for_gpu="$host_drivers_for_gpu, $driver_name"; fi
                     gpu_details_for_checklist+="     * GPU $pci_id_for_block ($device_name_for_checklist) on $driver_name\n"
                 else
-                    gpu_details_for_checklist+="     ✗ GPU $pci_id_for_block ($device_name_for_checklist) on UNKNOWN driver\n"
+                    gpu_details_for_checklist+="      GPU $pci_id_for_block ($device_name_for_checklist) on UNKNOWN driver\n"
                 fi
             else
-                gpu_details_for_checklist+="     ✗ GPU $pci_id_for_block ($device_name_for_checklist) UNBOUND or no driver info\n"
+                gpu_details_for_checklist+="      GPU $pci_id_for_block ($device_name_for_checklist) UNBOUND or no driver info\n"
             fi
         fi
     fi

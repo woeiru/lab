@@ -21,13 +21,11 @@ All functions in `lib/ops` are designed as **stateless, pure functions** that:
 ### DIC Integration Pattern
 Functions support **dual-mode operation**:
 
-```bash
 # DIC Mode (Production) - Configuration injected automatically
 src/dic/ops gpu ptd              # Hostname-specific config injected
 
-# Pure Mode (Testing/Standalone) - All parameters explicit  
+# Pure Mode (Testing/Standalone) - All parameters explicit
 gpu_ptd "01:00.0" "server01" "/path/config" "01:00.0" "02:00.0" "nvidia"
-```
 
 ## Architecture Layers
 
@@ -40,11 +38,9 @@ gpu_ptd "01:00.0" "server01" "/path/config" "01:00.0" "02:00.0" "nvidia"
 - Structured logging integration via `aux_*` functions
 
 **Example**:
-```bash
 # GPU module uses single functions with mode parameter
 _gpu_get_config_pci_ids("hostname", hostname)     # Hostname-based lookup
 _gpu_get_config_pci_ids("explicit", pci0, pci1)   # Explicit parameters
-```
 
 ### Layer 2: DIC Injection (`src/dic/ops`)
 **Purpose**: Automatic dependency resolution and parameter injection
@@ -75,32 +71,27 @@ _gpu_get_config_pci_ids("explicit", pci0, pci1)   # Explicit parameters
 ### Configuration Injection Examples
 
 **GPU Passthrough Configuration**:
-```bash
 # Configuration (cfg/env/site1)
 server01_NODE_PCI0="0000:01:00.0"
-server01_NODE_PCI1="0000:02:00.0" 
+server01_NODE_PCI1="0000:02:00.0"
 server01_NVIDIA_DRIVER_PREFERENCE="nvidia"
 
 # DIC automatically injects these when calling:
 src/dic/ops gpu ptd
 # Resolves to: gpu_ptd "" "server01" "$SITE_CONFIG_FILE" "01:00.0" "02:00.0" "nvidia"
-```
 
 **Array Processing**:
-```bash
 # Configuration with arrays
 server01_USB_DEVICES=("dev1" "dev2" "dev3")
 
 # DIC converts arrays to space-separated strings for injection
 src/dic/ops pve vck 100
 # Processes: usb_devices_str="dev1 dev2 dev3"
-```
 
 ### Mode-Based Function Pattern
 
 Functions implement **dual mode support** through a single function:
 
-```bash
 # Single function supports both hostname-based and explicit parameter modes
 _gpu_get_target_gpus() {
     local mode="$1"        # "hostname" or "explicit"
@@ -108,7 +99,7 @@ _gpu_get_target_gpus() {
     local param3="$3"      # hostname OR filter_driver
     local param4="$4"      # filter_driver OR pci0_id
     local param5="$5"      # pci1_id (for explicit mode)
-    
+
     case "$mode" in
         "hostname")
             # Uses: _gpu_get_config_pci_ids "hostname" "$hostname"
@@ -120,36 +111,32 @@ _gpu_get_target_gpus() {
             ;;
     esac
 }
-```
 
 ## Module Design Patterns
 
 ### Configuration Fallback Chain
 All modules implement consistent parameter resolution:
 
-```bash
 function_implementation() {
     local target_resource
-    
+
     # 1. Explicit parameter (highest priority)
     if [ -n "$explicit_param" ]; then
         target_resource="$explicit_param"
-    
+
     # 2. Hostname-specific configuration
     elif [ -n "${!hostname_var}" ]; then
         target_resource="${!hostname_var}"
-    
+
     # 3. Auto-detection fallback
     else
         target_resource=$(auto_detect_function)
     fi
 }
-```
 
 ### Error Handling Consistency
 All functions follow structured error handling:
 
-```bash
 # Parameter validation with structured context
 if ! aux_val "$param" "not_empty"; then
     aux_err "Parameter validation failed" "component=module,param=$param"
@@ -161,7 +148,6 @@ if ! aux_chk "command" "required_tool"; then
     aux_err "Required dependency missing" "component=module,dependency=required_tool"
     return 127
 fi
-```
 
 ## Integration Benefits
 
@@ -171,7 +157,7 @@ fi
 - **Mocking capabilities** for integration testing
 - **Debugging clarity** with full parameter visibility
 
-### Production Benefits  
+### Production Benefits
 - **Automatic configuration** reduces operational complexity
 - **Environment-specific** settings via hostname variables
 - **Consistent behavior** across different deployment scenarios
@@ -193,7 +179,6 @@ fi
 5. **Write validation tests** for both pure and DIC modes
 
 ### Testing Strategy
-```bash
 # Test pure function directly
 gpu_ptd "01:00.0" "testhost" "/test/config" "01:00.0" "02:00.0" "nvidia"
 
@@ -202,12 +187,11 @@ OPS_DEBUG=1 src/dic/ops gpu ptd
 
 # Test configuration fallbacks
 unset server01_NODE_PCI0  # Test auto-detection path
-```
 
 ## Related Documentation
 
 - **`.spec`**: Technical standards and compliance requirements
-- **`.guide`**: Implementation best practices and quality standards  
+- **`.guide`**: Implementation best practices and quality standards
 - **`/src/dic/README.md`**: DIC system architecture and usage
 - **`/val/lib/ops/`**: Testing frameworks and validation suites
 
