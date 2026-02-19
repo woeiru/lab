@@ -28,6 +28,7 @@ ops sys ipa -j
 
 ## Child READMEs
 - DIC operations layer: [src/dic/README.md](./dic/README.md)
+- Set deployment workflows: [doc/iac/deployment.md](../doc/iac/deployment.md)
 
 ## Common Tasks
 - Use `src/dic/` for day-2 operations and maintenance.
