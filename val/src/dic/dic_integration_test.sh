@@ -340,16 +340,16 @@ generate_summary() {
     
     if [[ $pass_rate -ge 90 ]]; then
         printf "Overall Status: %sEXCELLENT%s (%d%% pass rate)\n" "$GREEN" "$NC" $pass_rate
-        echo " DIC system is ready for production legacy system replacement"
+        echo "DIC system is ready for production legacy system replacement"
     elif [[ $pass_rate -ge 75 ]]; then
         printf "Overall Status: %sGOOD%s (%d%% pass rate)\n" "$YELLOW" "$NC" $pass_rate  
         echo "  DIC system is mostly ready, minor fixes needed"
     elif [[ $pass_rate -ge 50 ]]; then
         printf "Overall Status: %sFAIR%s (%d%% pass rate)\n" "$YELLOW" "$NC" $pass_rate
-        echo " DIC system needs significant fixes before legacy system replacement"
+        echo "DIC system needs significant fixes before legacy system replacement"
     else
         printf "Overall Status: %sPOOR%s (%d%% pass rate)\n" "$RED" "$NC" $pass_rate
-        echo " DIC system not ready for legacy system replacement"
+        echo "DIC system not ready for legacy system replacement"
     fi
     
     echo

@@ -44,7 +44,7 @@ echo "Help calls working: $help_score"
 echo "Expected: $((functions_tested * 2))"
 
 if [[ $help_score -eq $((functions_tested * 2)) ]]; then
-    echo " All help tests passed!"
+    echo "All help tests passed!"
 else
-    echo " Some help tests failed"
+    echo "Some help tests failed"
 fi

@@ -415,11 +415,11 @@ generate_gpu_compliance_report() {
     echo "╚══════════════════════════════════════════════════════════════════╝"
     
     if [[ $percentage -ge 80 ]]; then
-        echo " GPU Module is .std compliant!"
+        echo "GPU Module is .std compliant!"
     elif [[ $percentage -ge 60 ]]; then
         echo "  GPU Module has good compliance but could be improved"
     else
-        echo " GPU Module needs significant compliance improvements"
+        echo "GPU Module needs significant compliance improvements"
     fi
     echo ""
 }
@@ -442,7 +442,7 @@ main() {
     fi
     
     echo ""
-    echo " Testing GPU module .std standards compliance..."
+    echo "Testing GPU module .std standards compliance..."
     echo ""
     
     # Core compliance tests

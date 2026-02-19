@@ -26,10 +26,10 @@ test_pbs_functions_exist() {
     done
     
     if [[ ${#existing[@]} -gt 0 ]]; then
-        echo " Found PBS functions: ${existing[*]}"
+        echo "Found PBS functions: ${existing[*]}"
         return 0
     else
-        echo " PBS functions tested (library not loaded)"
+        echo "PBS functions tested (library not loaded)"
         return 0
     fi
 }
@@ -38,13 +38,13 @@ test_pbs_functions_exist() {
 test_pbs_service_check() {
     # Check if PBS service exists or if we can check its status
     if systemctl list-unit-files | grep -q "proxmox-backup"; then
-        echo " PBS service unit files detected"
+        echo "PBS service unit files detected"
         return 0
     elif command -v proxmox-backup-manager &>/dev/null; then
-        echo " PBS manager command available"
+        echo "PBS manager command available"
         return 0
     else
-        echo " PBS service checked (not installed)"
+        echo "PBS service checked (not installed)"
         return 0
     fi
 }
@@ -64,7 +64,7 @@ test_pbs_config_structure() {
         fi
     done
     
-    echo " PBS configuration paths checked"
+    echo "PBS configuration paths checked"
     if [[ ${#existing_paths[@]} -gt 0 ]]; then
         echo "  Found: ${existing_paths[*]}"
     fi
@@ -78,13 +78,13 @@ test_datastore_config_validation() {
     if [[ -f "$config_path" ]]; then
         # Check if config file has expected structure
         if grep -q "datastore:" "$config_path" 2>/dev/null; then
-            echo " Datastore configuration format valid"
+            echo "Datastore configuration format valid"
         else
-            echo " Datastore configuration exists but format unknown"
+            echo "Datastore configuration exists but format unknown"
         fi
         return 0
     else
-        echo " Datastore configuration tested (not configured)"
+        echo "Datastore configuration tested (not configured)"
         return 0
     fi
 }
@@ -112,10 +112,10 @@ test_pbs_monitoring_capabilities() {
     fi
     
     if [[ ${#monitoring_commands[@]} -gt 0 ]]; then
-        echo " PBS monitoring capabilities: ${monitoring_commands[*]}"
+        echo "PBS monitoring capabilities: ${monitoring_commands[*]}"
         return 0
     else
-        echo " PBS monitoring tested (limited capabilities)"
+        echo "PBS monitoring tested (limited capabilities)"
         return 0
     fi
 }
@@ -136,10 +136,10 @@ test_repository_management() {
     
     # Test basic repository operations
     if command -v apt &>/dev/null && [[ ${#accessible_files[@]} -gt 0 ]]; then
-        echo " Repository management capabilities available"
+        echo "Repository management capabilities available"
         return 0
     else
-        echo " Repository management tested (limited access)"
+        echo "Repository management tested (limited access)"
         return 0
     fi
 }
@@ -162,10 +162,10 @@ test_backup_verification() {
     fi
     
     if [[ ${#verification_tools[@]} -gt 0 ]]; then
-        echo " Backup verification tools: ${verification_tools[*]}"
+        echo "Backup verification tools: ${verification_tools[*]}"
         return 0
     else
-        echo " Insufficient backup verification tools"
+        echo "Insufficient backup verification tools"
         return 1
     fi
 }
@@ -188,10 +188,10 @@ test_storage_integration() {
     fi
     
     if [[ ${#storage_commands[@]} -ge 2 ]]; then
-        echo " Storage integration commands: ${storage_commands[*]}"
+        echo "Storage integration commands: ${storage_commands[*]}"
         return 0
     else
-        echo " Insufficient storage management commands"
+        echo "Insufficient storage management commands"
         return 1
     fi
 }
@@ -215,10 +215,10 @@ test_network_connectivity() {
     
     # Test basic connectivity if tools available
     if [[ ${#network_tools[@]} -gt 0 ]]; then
-        echo " Network connectivity tools: ${network_tools[*]}"
+        echo "Network connectivity tools: ${network_tools[*]}"
         return 0
     else
-        echo " Network connectivity tested (limited tools)"
+        echo "Network connectivity tested (limited tools)"
         return 0
     fi
 }

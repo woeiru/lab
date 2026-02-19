@@ -239,10 +239,10 @@ main() {
     echo "Failed: $TESTS_FAILED"
     
     if [ $TESTS_FAILED -eq 0 ]; then
-        echo " All tests passed - sto module is .std compliant"
+        echo "All tests passed - sto module is .std compliant"
         return 0
     else
-        echo " Some tests failed - compliance issues found"
+        echo "Some tests failed - compliance issues found"
         return 1
     fi
 }

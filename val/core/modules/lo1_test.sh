@@ -24,10 +24,10 @@ test_logging_functions_exist() {
     done
     
     if [[ ${#missing[@]} -eq 0 ]]; then
-        echo " All logging functions exist"
+        echo "All logging functions exist"
         return 0
     else
-        echo " Missing logging functions: ${missing[*]}"
+        echo "Missing logging functions: ${missing[*]}"
         return 1
     fi
 }
@@ -41,11 +41,11 @@ test_log_file_operations() {
     log "$test_message" "$test_log" 2>/dev/null || true
     
     if [[ -f "$test_log" ]] && grep -q "$test_message" "$test_log" 2>/dev/null; then
-        echo " Log file creation and writing works"
+        echo "Log file creation and writing works"
         rm -f "$test_log"
         return 0
     else
-        echo " Log file creation or writing failed"
+        echo "Log file creation or writing failed"
         rm -f "$test_log"
         return 1
     fi
@@ -66,13 +66,13 @@ test_log_level_filtering() {
         line_count=$(wc -l < "$test_log" 2>/dev/null || echo "0")
         
         if [[ $line_count -gt 0 ]]; then
-            echo " Log level filtering produces output"
+            echo "Log level filtering produces output"
             rm -f "$test_log"
             return 0
         fi
     fi
     
-    echo " Log level filtering failed to produce output"
+    echo "Log level filtering failed to produce output"
     rm -f "$test_log"
     return 1
 }
@@ -88,11 +88,11 @@ test_log_rotation() {
     
     # Check if log file exists and has content
     if [[ -f "$test_log" ]] && [[ -s "$test_log" ]]; then
-        echo " Log rotation test setup successful"
+        echo "Log rotation test setup successful"
         rm -f "$test_log"*
         return 0
     else
-        echo " Log rotation test setup failed"
+        echo "Log rotation test setup failed"
         rm -f "$test_log"*
         return 1
     fi
@@ -109,20 +109,20 @@ test_timestamp_formatting() {
         # Check if log contains timestamp-like patterns
         if grep -E '\[[0-9]{4}-[0-9]{2}-[0-9]{2}.*\]' "$test_log" &>/dev/null || \
            grep -E '[0-9]{4}-[0-9]{2}-[0-9]{2}' "$test_log" &>/dev/null; then
-            echo " Timestamp formatting appears to work"
+            echo "Timestamp formatting appears to work"
             rm -f "$test_log"
             return 0
         fi
         
         # If no timestamp found, check if message was logged at all
         if grep -q "$test_message" "$test_log" 2>/dev/null; then
-            echo " Logging works (timestamp format may vary)"
+            echo "Logging works (timestamp format may vary)"
             rm -f "$test_log"
             return 0
         fi
     fi
     
-    echo " Timestamp formatting test failed"
+    echo "Timestamp formatting test failed"
     rm -f "$test_log"
     return 1
 }
@@ -138,14 +138,14 @@ test_log_cleanup() {
         # Test if cleanup function exists and works
         if command -v "cleanup_logs" &> /dev/null; then
             cleanup_logs "$test_log" 2>/dev/null || true
-            echo " Log cleanup function exists"
+            echo "Log cleanup function exists"
         else
-            echo " Log cleanup function not implemented (optional)"
+            echo "Log cleanup function not implemented (optional)"
         fi
         rm -f "$test_log"
         return 0
     else
-        echo " Log cleanup test setup failed"
+        echo "Log cleanup test setup failed"
         return 1
     fi
 }
@@ -176,14 +176,14 @@ test_concurrent_logging() {
         line_count=$(wc -l < "$test_log" 2>/dev/null || echo "0")
         
         if [[ $line_count -ge 10 ]]; then
-            echo " Concurrent logging appears to work"
+            echo "Concurrent logging appears to work"
         else
-            echo " Concurrent logging test completed (may have limitations)"
+            echo "Concurrent logging test completed (may have limitations)"
         fi
         rm -f "$test_log"
         return 0
     else
-        echo " Concurrent logging test failed"
+        echo "Concurrent logging test failed"
         return 1
     fi
 }

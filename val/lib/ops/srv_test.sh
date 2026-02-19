@@ -26,10 +26,10 @@ test_service_functions_exist() {
     done
     
     if [[ ${#existing[@]} -gt 0 ]]; then
-        echo " Found service functions: ${existing[*]}"
+        echo "Found service functions: ${existing[*]}"
         return 0
     else
-        echo " Service functions tested (library not loaded)"
+        echo "Service functions tested (library not loaded)"
         return 0
     fi
 }
@@ -60,10 +60,10 @@ test_nfs_service_capabilities() {
     fi
     
     if [[ ${#nfs_components[@]} -gt 0 ]]; then
-        echo " NFS service capabilities: ${nfs_components[*]}"
+        echo "NFS service capabilities: ${nfs_components[*]}"
         return 0
     else
-        echo " NFS service tested (not installed)"
+        echo "NFS service tested (not installed)"
         return 0
     fi
 }
@@ -94,10 +94,10 @@ test_smb_service_capabilities() {
     fi
     
     if [[ ${#smb_components[@]} -gt 0 ]]; then
-        echo " SMB service capabilities: ${smb_components[*]}"
+        echo "SMB service capabilities: ${smb_components[*]}"
         return 0
     else
-        echo " SMB service tested (not installed)"
+        echo "SMB service tested (not installed)"
         return 0
     fi
 }
@@ -119,13 +119,13 @@ test_service_config_management() {
     
     # Test basic file operations needed for service config
     if command -v tee &>/dev/null && command -v grep &>/dev/null; then
-        echo " Service configuration management tools available"
+        echo "Service configuration management tools available"
         if [[ ${#accessible_configs[@]} -gt 0 ]]; then
             echo "  Accessible configs: ${accessible_configs[*]}"
         fi
         return 0
     else
-        echo " Insufficient configuration management tools"
+        echo "Insufficient configuration management tools"
         return 1
     fi
 }
@@ -155,10 +155,10 @@ test_service_monitoring() {
     fi
     
     if [[ ${#monitoring_tools[@]} -ge 2 ]]; then
-        echo " Service monitoring tools: ${monitoring_tools[*]}"
+        echo "Service monitoring tools: ${monitoring_tools[*]}"
         return 0
     else
-        echo " Insufficient service monitoring tools"
+        echo "Insufficient service monitoring tools"
         return 1
     fi
 }
@@ -187,10 +187,10 @@ test_file_sharing_operations() {
     fi
     
     if [[ ${#sharing_tools[@]} -ge 2 ]]; then
-        echo " File sharing operations: ${sharing_tools[*]}"
+        echo "File sharing operations: ${sharing_tools[*]}"
         return 0
     else
-        echo " Insufficient file sharing capabilities"
+        echo "Insufficient file sharing capabilities"
         return 1
     fi
 }
@@ -218,10 +218,10 @@ test_user_permission_management() {
     fi
     
     if [[ ${#user_tools[@]} -ge 2 ]]; then
-        echo " User permission management: ${user_tools[*]}"
+        echo "User permission management: ${user_tools[*]}"
         return 0
     else
-        echo " Insufficient user management tools"
+        echo "Insufficient user management tools"
         return 1
     fi
 }
@@ -247,10 +247,10 @@ test_network_service_config() {
     fi
     
     if [[ ${#network_tools[@]} -gt 0 ]]; then
-        echo " Network service configuration: ${network_tools[*]}"
+        echo "Network service configuration: ${network_tools[*]}"
         return 0
     else
-        echo " Network service configuration tested (limited access)"
+        echo "Network service configuration tested (limited access)"
         return 0
     fi
 }
@@ -277,10 +277,10 @@ test_service_lifecycle() {
     fi
     
     if [[ ${#lifecycle_tools[@]} -gt 0 ]]; then
-        echo " Service lifecycle management: ${lifecycle_tools[*]}"
+        echo "Service lifecycle management: ${lifecycle_tools[*]}"
         return 0
     else
-        echo " Insufficient service lifecycle tools"
+        echo "Insufficient service lifecycle tools"
         return 1
     fi
 }
@@ -309,7 +309,7 @@ test_service_security() {
         security_features+=("mandatory-access-control")
     fi
     
-    echo " Service security features: ${security_features[*]:-none}"
+    echo "Service security features: ${security_features[*]:-none}"
     return 0
 }
 

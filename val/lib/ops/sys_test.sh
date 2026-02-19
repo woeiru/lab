@@ -24,10 +24,10 @@ test_system_info_functions_exist() {
     done
     
     if [[ ${#existing[@]} -gt 0 ]]; then
-        echo " Found system info functions: ${existing[*]}"
+        echo "Found system info functions: ${existing[*]}"
         return 0
     else
-        echo " System operations library loaded (functions may have different names)"
+        echo "System operations library loaded (functions may have different names)"
         return 0
     fi
 }
@@ -45,10 +45,10 @@ test_system_status_check() {
     done
     
     if [[ ${#failed[@]} -eq 0 ]]; then
-        echo " Basic system commands available"
+        echo "Basic system commands available"
         return 0
     else
-        echo " Missing basic system commands: ${failed[*]}"
+        echo "Missing basic system commands: ${failed[*]}"
         return 1
     fi
 }
@@ -66,13 +66,13 @@ test_process_management() {
     
     # Test if we can at least list processes
     if ps aux &>/dev/null; then
-        echo " Process listing capability verified"
+        echo "Process listing capability verified"
         if [[ ${#existing[@]} -gt 0 ]]; then
             echo "  Found process functions: ${existing[*]}"
         fi
         return 0
     else
-        echo " Cannot list processes"
+        echo "Cannot list processes"
         return 1
     fi
 }
@@ -90,16 +90,16 @@ test_service_management() {
     
     # Test systemctl availability (common on modern Linux)
     if command -v systemctl &> /dev/null; then
-        echo " Service management capability (systemctl) available"
+        echo "Service management capability (systemctl) available"
         if [[ ${#existing[@]} -gt 0 ]]; then
             echo "  Found service functions: ${existing[*]}"
         fi
         return 0
     elif command -v service &> /dev/null; then
-        echo " Service management capability (service) available"
+        echo "Service management capability (service) available"
         return 0
     else
-        echo " Service management tested (limited capability)"
+        echo "Service management tested (limited capability)"
         return 0
     fi
 }
@@ -130,10 +130,10 @@ test_resource_monitoring() {
     fi
     
     if [[ ${#working_commands[@]} -ge 2 ]]; then
-        echo " Resource monitoring capabilities: ${working_commands[*]}"
+        echo "Resource monitoring capabilities: ${working_commands[*]}"
         return 0
     else
-        echo " Insufficient resource monitoring capabilities"
+        echo "Insufficient resource monitoring capabilities"
         return 1
     fi
 }
@@ -151,13 +151,13 @@ test_network_interface_check() {
     
     # Test basic network commands
     if ip addr &>/dev/null || ifconfig &>/dev/null; then
-        echo " Network interface checking capability available"
+        echo "Network interface checking capability available"
         if [[ ${#existing[@]} -gt 0 ]]; then
             echo "  Found network functions: ${existing[*]}"
         fi
         return 0
     else
-        echo " Network interface checking tested (limited tools)"
+        echo "Network interface checking tested (limited tools)"
         return 0
     fi
 }
@@ -173,16 +173,16 @@ test_filesystem_operations() {
         
         # Test basic file operations
         if [[ -f "$test_file" ]] && [[ -d "$test_dir" ]]; then
-            echo " File system operations work"
+            echo "File system operations work"
             rm -rf "$test_dir"
             return 0
         else
-            echo " File system operations failed"
+            echo "File system operations failed"
             rm -rf "$test_dir"
             return 1
         fi
     else
-        echo " Cannot create test directory"
+        echo "Cannot create test directory"
         return 1
     fi
 }
@@ -217,13 +217,13 @@ test_system_health_check() {
     fi
     
     if [[ ${#health_indicators[@]} -gt 0 ]]; then
-        echo " System health check collected: ${health_indicators[*]}"
+        echo "System health check collected: ${health_indicators[*]}"
         if [[ ${#warnings[@]} -gt 0 ]]; then
             echo "  Warnings: ${warnings[*]}"
         fi
         return 0
     else
-        echo " System health check failed to collect indicators"
+        echo "System health check failed to collect indicators"
         return 1
     fi
 }

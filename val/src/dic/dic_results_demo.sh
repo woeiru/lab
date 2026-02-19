@@ -8,7 +8,7 @@
 # ============================================================================
 
 echo "============================================================================"
-echo " DIC SYSTEM INTEGRATION TEST - FINAL RESULTS "
+echo "DIC SYSTEM INTEGRATION TEST - FINAL RESULTS "
 echo "============================================================================"
 echo "Date: $(date)"
 echo "Environment: $(hostname)"
@@ -27,7 +27,7 @@ export "${hostname_short}_CORE_COUNT_OFF"="4"
 export PVE_CONF_PATH_QEMU="/etc/pve/qemu-server"
 export CLUSTER_NODES=("x1" "x2")
 
-echo " VALIDATED FUNCTIONALITY:"
+echo "VALIDATED FUNCTIONALITY:"
 echo "┌─────────────────────────────────────────────────────────────────────────┐"
 echo "│ 1. Function Signature Detection     Working                            │"
 echo "│ 2. User Argument Mapping           Working                            │"
@@ -42,7 +42,7 @@ echo "│ 10. Debug Output                   Working                            
 echo "└─────────────────────────────────────────────────────────────────────────┘"
 echo
 
-echo " DETAILED TEST EVIDENCE:"
+echo "DETAILED TEST EVIDENCE:"
 echo "----------------------------------------"
 echo "Test: Complex function with 8 parameters (pve_vpt)"
 echo "Command: ops pve vpt 100 on"
@@ -52,7 +52,7 @@ echo "Result:"
 OPS_DEBUG=1 $LAB_DIR/src/dic/ops pve vpt 100 on 2>&1 | grep -E "(Extracted parameters|Final arguments|Executing:)" | head -3
 echo
 
-echo " ARCHITECTURE VERIFICATION:"
+echo "ARCHITECTURE VERIFICATION:"
 echo "┌─────────────────────────────────────────────────────────────────────────┐"
 echo "│ • Generic Operations Engine        Fully operational                   │"
 echo "│ • Dependency Injection System      Fully operational                   │"
@@ -63,7 +63,7 @@ echo "│ • Error Recovery                   Fully operational                
 echo "└─────────────────────────────────────────────────────────────────────────┘"
 echo
 
-echo " COMPARISON TO COMPLETION REPORT CLAIMS:"
+echo "COMPARISON TO COMPLETION REPORT CLAIMS:"
 echo "┌─────────────────────────────────────────────────────────────────────────┐"
 echo "│ Report Claim                    │ Test Result      │ Status             │"
 echo "├─────────────────────────────────┼──────────────────┼────────────────────┤"
@@ -76,7 +76,7 @@ echo "│ Ready for Legacy Replacement    │  Confirmed      │ TRUE          
 echo "└─────────────────────────────────────────────────────────────────────────┘"
 echo
 
-echo " PRODUCTION READINESS ASSESSMENT:"
+echo "PRODUCTION READINESS ASSESSMENT:"
 echo "┌─────────────────────────────────────────────────────────────────────────┐"
 echo "│ Component                       │ Status           │ Ready for Prod     │"
 echo "├─────────────────────────────────┼──────────────────┼────────────────────┤"
@@ -88,7 +88,7 @@ echo "│ Test Coverage                   │  Comprehensive  │ YES           
 echo "└─────────────────────────────────────────────────────────────────────────┘"
 echo
 
-echo " FINAL VERDICT:"
+echo "FINAL VERDICT:"
 echo "┌─────────────────────────────────────────────────────────────────────────┐"
 echo "│                                                                         │"
 echo "│   DIC SYSTEM HAS SUCCESSFULLY REPLACED LEGACY SYSTEM               │"
@@ -104,7 +104,7 @@ echo "│                                                                       
 echo "└─────────────────────────────────────────────────────────────────────────┘"
 echo
 
-echo " NEXT STEPS:"
+echo "NEXT STEPS:"
 echo "1.  Legacy src/mgt/* wrapper functions successfully replaced by DIC system"
 echo "2.  Deploy DIC system to production environment"  
 echo "3.  Monitor performance and error rates"

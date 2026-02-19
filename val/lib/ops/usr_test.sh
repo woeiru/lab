@@ -24,10 +24,10 @@ test_user_functions_exist() {
     done
     
     if [[ ${#existing[@]} -gt 0 ]]; then
-        echo " Found user management functions: ${existing[*]}"
+        echo "Found user management functions: ${existing[*]}"
         return 0
     else
-        echo " User management library loaded (functions may have different names)"
+        echo "User management library loaded (functions may have different names)"
         return 0
     fi
 }
@@ -38,10 +38,10 @@ test_current_user_info() {
     current_user=$(whoami 2>/dev/null) || current_user=$(id -un 2>/dev/null) || current_user="unknown"
     
     if [[ "$current_user" != "unknown" ]] && [[ -n "$current_user" ]]; then
-        echo " Current user detection works: $current_user"
+        echo "Current user detection works: $current_user"
         return 0
     else
-        echo " Cannot determine current user"
+        echo "Cannot determine current user"
         return 1
     fi
 }
@@ -53,19 +53,19 @@ test_user_existence_check() {
     
     # Test existing user (current user)
     if id "$current_user" &>/dev/null; then
-        echo " User existence check works for existing user: $current_user"
+        echo "User existence check works for existing user: $current_user"
     else
-        echo " User existence check failed for current user"
+        echo "User existence check failed for current user"
         return 1
     fi
     
     # Test non-existing user
     local fake_user="nonexistent_user_$$"
     if ! id "$fake_user" &>/dev/null; then
-        echo " User existence check works for non-existing user"
+        echo "User existence check works for non-existing user"
         return 0
     else
-        echo " User existence check failed for non-existing user"
+        echo "User existence check failed for non-existing user"
         return 1
     fi
 }
@@ -80,10 +80,10 @@ test_user_groups_info() {
     groups=$(groups "$current_user" 2>/dev/null) || groups=$(id -Gn "$current_user" 2>/dev/null)
     
     if [[ -n "$groups" ]]; then
-        echo " User groups information retrieval works: $groups"
+        echo "User groups information retrieval works: $groups"
         return 0
     else
-        echo " Cannot retrieve user groups information"
+        echo "Cannot retrieve user groups information"
         return 1
     fi
 }
@@ -98,9 +98,9 @@ test_user_id_info() {
     user_id=$(id -u "$current_user" 2>/dev/null)
     
     if [[ -n "$user_id" ]] && [[ "$user_id" =~ ^[0-9]+$ ]]; then
-        echo " User ID retrieval works: $user_id"
+        echo "User ID retrieval works: $user_id"
     else
-        echo " Cannot retrieve user ID"
+        echo "Cannot retrieve user ID"
         return 1
     fi
     
@@ -109,10 +109,10 @@ test_user_id_info() {
     group_id=$(id -g "$current_user" 2>/dev/null)
     
     if [[ -n "$group_id" ]] && [[ "$group_id" =~ ^[0-9]+$ ]]; then
-        echo " Group ID retrieval works: $group_id"
+        echo "Group ID retrieval works: $group_id"
         return 0
     else
-        echo " Cannot retrieve group ID"
+        echo "Cannot retrieve group ID"
         return 1
     fi
 }
@@ -127,10 +127,10 @@ test_user_home_directory() {
     home_dir=$(getent passwd "$current_user" 2>/dev/null | cut -d: -f6) || home_dir="$HOME"
     
     if [[ -n "$home_dir" ]] && [[ -d "$home_dir" ]]; then
-        echo " User home directory detection works: $home_dir"
+        echo "User home directory detection works: $home_dir"
         return 0
     else
-        echo " Cannot determine user home directory"
+        echo "Cannot determine user home directory"
         return 1
     fi
 }
@@ -145,10 +145,10 @@ test_user_shell_info() {
     user_shell=$(getent passwd "$current_user" 2>/dev/null | cut -d: -f7) || user_shell="$SHELL"
     
     if [[ -n "$user_shell" ]]; then
-        echo " User shell information works: $user_shell"
+        echo "User shell information works: $user_shell"
         return 0
     else
-        echo " Cannot determine user shell"
+        echo "Cannot determine user shell"
         return 1
     fi
 }
@@ -159,24 +159,24 @@ test_permission_checking() {
     
     # Create a test file
     echo "test" > "$test_file" 2>/dev/null || {
-        echo " Cannot create test file for permission check"
+        echo "Cannot create test file for permission check"
         return 1
     }
     
     # Test read permission
     if [[ -r "$test_file" ]]; then
-        echo " Read permission check works"
+        echo "Read permission check works"
     else
-        echo " Read permission check failed"
+        echo "Read permission check failed"
         rm -f "$test_file"
         return 1
     fi
     
     # Test write permission
     if [[ -w "$test_file" ]]; then
-        echo " Write permission check works"
+        echo "Write permission check works"
     else
-        echo " Write permission check failed"
+        echo "Write permission check failed"
         rm -f "$test_file"
         return 1
     fi
@@ -184,9 +184,9 @@ test_permission_checking() {
     # Test execute permission
     chmod +x "$test_file"
     if [[ -x "$test_file" ]]; then
-        echo " Execute permission check works"
+        echo "Execute permission check works"
     else
-        echo " Execute permission check failed"
+        echo "Execute permission check failed"
         rm -f "$test_file"
         return 1
     fi
@@ -199,16 +199,16 @@ test_permission_checking() {
 test_sudo_privileges() {
     # Test if user has sudo privileges (non-destructive check)
     if sudo -n true 2>/dev/null; then
-        echo " User has passwordless sudo privileges"
+        echo "User has passwordless sudo privileges"
         return 0
     elif timeout 1 sudo -S true <<< "" 2>/dev/null; then
-        echo " User has sudo privileges (password required)"
+        echo "User has sudo privileges (password required)"
         return 0
     elif command -v sudo &>/dev/null; then
-        echo " Sudo command available (privileges unknown)"
+        echo "Sudo command available (privileges unknown)"
         return 0
     else
-        echo " Sudo privileges test completed (sudo not available)"
+        echo "Sudo privileges test completed (sudo not available)"
         return 0
     fi
 }
@@ -224,10 +224,10 @@ test_process_ownership() {
     process_owner=$(ps -o user= -p "$shell_pid" 2>/dev/null | tr -d ' ')
     
     if [[ "$process_owner" == "$current_user" ]]; then
-        echo " Process ownership detection works"
+        echo "Process ownership detection works"
         return 0
     else
-        echo " Process ownership detection failed (expected: $current_user, got: $process_owner)"
+        echo "Process ownership detection failed (expected: $current_user, got: $process_owner)"
         return 1
     fi
 }

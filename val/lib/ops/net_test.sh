@@ -24,10 +24,10 @@ test_network_functions_exist() {
     done
     
     if [[ ${#existing[@]} -gt 0 ]]; then
-        echo " Found network functions: ${existing[*]}"
+        echo "Found network functions: ${existing[*]}"
         return 0
     else
-        echo " Network library loaded (functions may have different names)"
+        echo "Network library loaded (functions may have different names)"
         return 0
     fi
 }
@@ -52,10 +52,10 @@ test_network_interface_detection() {
     fi
     
     if [[ ${#interfaces[@]} -gt 0 ]]; then
-        echo " Network interfaces detected: ${interfaces[*]}"
+        echo "Network interfaces detected: ${interfaces[*]}"
         return 0
     else
-        echo " Network interface detection completed (no external interfaces found)"
+        echo "Network interface detection completed (no external interfaces found)"
         return 0
     fi
 }
@@ -63,16 +63,16 @@ test_network_interface_detection() {
 # Test: Loopback connectivity
 test_loopback_connectivity() {
     if ping -c 1 -W 1 127.0.0.1 &>/dev/null; then
-        echo " Loopback connectivity works (IPv4)"
+        echo "Loopback connectivity works (IPv4)"
     else
-        echo " Loopback connectivity failed (IPv4)"
+        echo "Loopback connectivity failed (IPv4)"
         return 1
     fi
     
     if ping -c 1 -W 1 ::1 &>/dev/null 2>&1; then
-        echo " Loopback connectivity works (IPv6)"
+        echo "Loopback connectivity works (IPv6)"
     else
-        echo " IPv6 loopback not available (normal on some systems)"
+        echo "IPv6 loopback not available (normal on some systems)"
     fi
     
     return 0
@@ -93,13 +93,13 @@ test_dns_resolution() {
     done
     
     if [[ ${#resolved_domains[@]} -gt 0 ]]; then
-        echo " DNS resolution works for: ${resolved_domains[*]}"
+        echo "DNS resolution works for: ${resolved_domains[*]}"
         if [[ ${#failed_domains[@]} -gt 0 ]]; then
             echo "  Failed to resolve: ${failed_domains[*]}"
         fi
         return 0
     else
-        echo " DNS resolution failed for all test domains"
+        echo "DNS resolution failed for all test domains"
         return 1
     fi
 }
@@ -125,12 +125,12 @@ test_port_connectivity() {
     done
     
     if [[ ${#localhost_tests[@]} -gt 0 ]] || [[ ${#available_ports[@]} -gt 0 ]]; then
-        echo " Port connectivity testing capability confirmed"
+        echo "Port connectivity testing capability confirmed"
         [[ ${#localhost_tests[@]} -gt 0 ]] && echo "  Open localhost ports: ${localhost_tests[*]}"
         [[ ${#available_ports[@]} -gt 0 ]] && echo "  Netcat tests: ${available_ports[*]}"
         return 0
     else
-        echo " Port connectivity testing completed (no open test ports)"
+        echo "Port connectivity testing completed (no open test ports)"
         return 0
     fi
 }
@@ -150,13 +150,13 @@ test_network_tools_availability() {
     done
     
     if [[ ${#available_tools[@]} -ge 3 ]]; then
-        echo " Network tools available: ${available_tools[*]}"
+        echo "Network tools available: ${available_tools[*]}"
         if [[ ${#missing_tools[@]} -gt 0 ]]; then
             echo "  Missing tools: ${missing_tools[*]}"
         fi
         return 0
     else
-        echo " Insufficient network tools available: ${available_tools[*]}"
+        echo "Insufficient network tools available: ${available_tools[*]}"
         return 1
     fi
 }
@@ -173,10 +173,10 @@ test_internet_connectivity() {
     done
     
     if [[ ${#reachable_hosts[@]} -gt 0 ]]; then
-        echo " Internet connectivity confirmed: ${reachable_hosts[*]}"
+        echo "Internet connectivity confirmed: ${reachable_hosts[*]}"
         return 0
     else
-        echo " Internet connectivity test completed (no external access)"
+        echo "Internet connectivity test completed (no external access)"
         return 0
     fi
 }
@@ -206,10 +206,10 @@ test_network_config_retrieval() {
     fi
     
     if [[ ${#config_items[@]} -ge 2 ]]; then
-        echo " Network configuration retrieval works: ${config_items[*]}"
+        echo "Network configuration retrieval works: ${config_items[*]}"
         return 0
     else
-        echo " Network configuration retrieval limited: ${config_items[*]}"
+        echo "Network configuration retrieval limited: ${config_items[*]}"
         return 1
     fi
 }
@@ -239,10 +239,10 @@ test_bandwidth_testing_capability() {
     fi
     
     if [[ ${#bandwidth_tools[@]} -gt 0 ]]; then
-        echo " Bandwidth testing tools available: ${bandwidth_tools[*]}"
+        echo "Bandwidth testing tools available: ${bandwidth_tools[*]}"
         return 0
     else
-        echo " Bandwidth testing capability limited (no specialized tools)"
+        echo "Bandwidth testing capability limited (no specialized tools)"
         return 0
     fi
 }
@@ -271,10 +271,10 @@ test_network_security_features() {
     fi
     
     if [[ ${#security_features[@]} -gt 0 ]]; then
-        echo " Network security features available: ${security_features[*]}"
+        echo "Network security features available: ${security_features[*]}"
         return 0
     else
-        echo " Network security features test completed (basic tools only)"
+        echo "Network security features test completed (basic tools only)"
         return 0
     fi
 }

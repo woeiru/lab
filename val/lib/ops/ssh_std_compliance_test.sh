@@ -24,10 +24,10 @@ run_test() {
     echo "Running test ${test_count}: ${test_name}"
     
     if $test_function; then
-        echo " PASS: ${test_name}"
+        echo "PASS: ${test_name}"
         ((passed_tests++))
     else
-        echo " FAIL: ${test_name}"
+        echo "FAIL: ${test_name}"
     fi
     echo ""
 }
@@ -158,7 +158,7 @@ test_technical_docs() {
 }
 
 # Main test execution
-echo " SSH Module .std Standards Compliance Test Suite"
+echo "SSH Module .std Standards Compliance Test Suite"
 echo "=================================================="
 echo ""
 
@@ -176,9 +176,9 @@ echo "=================================================="
 echo "Test Results: ${passed_tests}/${test_count} tests passed"
 
 if [[ $passed_tests -eq $test_count ]]; then
-    echo " ALL TESTS PASSED - SSH module is .std compliant!"
+    echo "ALL TESTS PASSED - SSH module is .std compliant!"
     exit 0
 else
-    echo " Some tests failed - SSH module needs additional work"
+    echo "Some tests failed - SSH module needs additional work"
     exit 1
 fi
