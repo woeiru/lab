@@ -17,6 +17,11 @@ cfg/
 └── pod/          # Container/Pod Configuration
 ```
 
+## Child READMEs
+
+- Logging configuration: [cfg/log/README.md](./log/README.md)
+- Pod and container configuration: [cfg/pod/qdev/README.md](./pod/qdev/README.md), [cfg/pod/shus/README.md](./pod/shus/README.md)
+
 ## Subdirectories
 
 ### 🔗 `ali/` - Alias Management

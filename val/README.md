@@ -27,6 +27,9 @@
 - `val/integration/`: end-to-end workflow tests.
 - `val/run_all_tests.sh`: top-level test runner.
 
+## Child READMEs
+- Library integration suite: [val/lib/integration/README.md](./lib/integration/README.md)
+
 ## Common Tasks
 - Run `--quick` during local iteration and full suite before merge.
 - Add new tests next to the relevant layer (`core`, `lib`, or `integration`).

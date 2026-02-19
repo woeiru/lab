@@ -26,6 +26,9 @@ ops sys ipa -j
 - `src/dic/`: DIC command surface and parameter resolution engine.
 - `src/set/`: grouped deployment sections and orchestration scripts.
 
+## Child READMEs
+- DIC operations layer: [src/dic/README.md](./dic/README.md)
+
 ## Common Tasks
 - Use `src/dic/` for day-2 operations and maintenance.
 - Use `src/set/` for initial provisioning and repeatable section-based rollout.

@@ -61,6 +61,10 @@ lib/gen/
   ana  aux  env  inf  sec
 ```
 
+## Child READMEs
+
+- Operations library: [lib/ops/README.md](./ops/README.md)
+
 ## Core Modules
 
 Primary runtime services:

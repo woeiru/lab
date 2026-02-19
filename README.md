@@ -101,7 +101,7 @@ Non-documentation top-level README index (non-redundant tree):
 - Configuration: [cfg/README.md](cfg/README.md)
 - Libraries: [lib/README.md](lib/README.md)
 - Source execution: [src/README.md](src/README.md)
-- Utilities: [utl/doc/README.md](utl/doc/README.md)
+- Utilities: [utl/README.md](utl/README.md)
 - Validation: [val/README.md](val/README.md)
 
 ## Validation

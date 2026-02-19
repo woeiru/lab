@@ -39,6 +39,7 @@ cd /home/es/lab/utl/doc
 - Review script output and `.log/` artifacts if generation fails.
 
 ## Related Docs
+- [Utilities Root](../README.md)
 - [Documentation System Deep Dive (full reference)](../../doc/dev/documentation-system-deep-dive.md)
 - [Documentation Hub](../../doc/README.md)
 - [README Style Guide](../../doc/dev/readme-style-guide.md)
