@@ -3,12 +3,12 @@
 # Lab Environment Function Metadata Table Generator
 #######################################################################
 # File: func
-# Description: Automatic function metadata table generator that populates 
-#              the function metadata table in doc/dev/functions.md using 
-#              aux_ffl and ana_laf to extract function information from lib/ directories
+# Description: Automatic function metadata table generator that populates
+#              the configured injection section in the configured output file
+#              using ana_laf-derived metadata from lib/ directories.
 #
 # Usage: ./func
-#   (default)   Updates the function metadata table in doc/dev/functions.md
+#   (default)   Updates the configured "Function Metadata Table" section
 #######################################################################
 
 # Use safer error handling
@@ -41,9 +41,11 @@ fi
 if [[ -n "${GENERATOR_OUTPUT_FILES[func]:-}" ]]; then
     DOC_FILE="$LAB_DIR/${GENERATOR_OUTPUT_FILES[func]}"
 else
-    # Fallback to default
-    DOC_FILE="$LAB_DIR/doc/dev/functions.md"
+    # Fallback to single injection sink
+    DOC_FILE="$LAB_DIR/doc/dev/generated-doc-injections.md"
 fi
+
+SECTION_NAME="${GENERATOR_SECTIONS[func]:-Function Metadata Table}"
 
 # Function to count functions from a library directory
 count_library_functions() {
@@ -205,15 +207,13 @@ update_documentation() {
     local temp_file=$(mktemp)
     local in_auto_section=false
 
-    echo "Updating function metadata table in $DOC_FILE..."
+    echo "Updating function metadata section '$SECTION_NAME' in $DOC_FILE..."
 
     while IFS= read -r line; do
-        if [[ "$line" == *"<!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->"* ]]; then
+        if [[ "$line" == *"<!-- AUTO-GENERATED SECTION: $SECTION_NAME -->"* ]]; then
             echo "$line" >> "$temp_file"
-            echo "<!-- Command: aux_ffl ana_laf \"\" \"$LIB_CORE_DIR\" & aux_ffl ana_laf \"\" \"$LIB_OPS_DIR\" & aux_ffl ana_laf \"\" \"$LIB_GEN_DIR\" -->" >> "$temp_file"
             echo "" >> "$temp_file"
-            # Write the new table only, skip all old lines until END marker
-            generate_function_table | grep -vE '\|[[:space:]]*[a-zA-Z0-9_]+-[a-zA-Z0-9_]+[[:space:]]*\|' >> "$temp_file"
+            generate_function_table >> "$temp_file"
             echo "" >> "$temp_file"
             in_auto_section=true
             continue

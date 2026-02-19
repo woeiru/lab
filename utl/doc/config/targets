@@ -41,19 +41,6 @@ EXCLUDE_PATTERNS=(
     "*/dist/*"          # Distribution/compiled output directories
 )
 
-# AI_DOC_TARGETS: Directories optimized for AI-powered README generation
-# - Used by: ai_doc_generator when no directory specified on command line
-# - Purpose: Defines high-value directories that benefit most from AI analysis
-# - Selection criteria: Complex code, user-facing components, frequently updated
-# - Format: Relative paths from LAB_ROOT, subset of TARGET_DIRECTORIES
-AI_DOC_TARGETS=(
-    "lib/ops"      # Operations library - complex infrastructure code
-    "lib/core"     # Core library - fundamental system functions
-    "src/dic"      # DIC system - main application logic
-    "cfg/pod"      # Container configs - deployment-critical
-    "utl/doc"      # Documentation system - meta-documentation
-)
-
 # PRIORITY LEVELS: Documentation update scheduling and resource allocation
 # - Purpose: Helps prioritize documentation efforts and CI/CD scheduling
 # - Usage: Can be used by scripts to determine update frequency
@@ -101,11 +88,10 @@ LOW_PRIORITY=(
 # - Fallback: If not specified, generators use hardcoded defaults
 # - Validation: Generators check if target file exists before writing
 declare -A GENERATOR_OUTPUT_FILES
-GENERATOR_OUTPUT_FILES[func]="doc/dev/functions.md"     # Function metadata tables
-GENERATOR_OUTPUT_FILES[hub]="doc/README.md"             # Documentation index/hub
-GENERATOR_OUTPUT_FILES[stats]="README.md"               # System metrics (root README)
-GENERATOR_OUTPUT_FILES[var]="doc/dev/variables.md"      # Variable usage documentation
-GENERATOR_OUTPUT_FILES[ai_docs]=""                      # AI generator creates files in target directories
+GENERATOR_OUTPUT_FILES[func]="doc/dev/generated-doc-injections.md"   # Function metadata section sink
+GENERATOR_OUTPUT_FILES[hub]="doc/dev/generated-doc-injections.md"    # Documentation structure section sink
+GENERATOR_OUTPUT_FILES[stats]="doc/dev/generated-doc-injections.md"  # System metrics section sink
+GENERATOR_OUTPUT_FILES[var]="doc/dev/generated-doc-injections.md"    # Variable usage section sink
 
 # GENERATOR_SECTIONS: Section names for generators that update specific parts of files
 # - Purpose: Enables generators to update only their designated sections
@@ -113,10 +99,10 @@ GENERATOR_OUTPUT_FILES[ai_docs]=""                      # AI generator creates f
 # - Format: [generator_name]="Section Header Name"
 # - Implementation: Generators look for <!-- AUTO-GENERATED SECTION: [name] -->
 declare -A GENERATOR_SECTIONS
-GENERATOR_SECTIONS[func]="Function Metadata Table"      # Updates function tables in doc/dev/functions.md
-GENERATOR_SECTIONS[hub]="Documentation Structure"       # Updates doc index in doc/README.md
-GENERATOR_SECTIONS[stats]="System Metrics"              # Updates metrics table in README.md
-GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable tables in doc/dev/variables.md
+GENERATOR_SECTIONS[func]="Function Metadata Table"
+GENERATOR_SECTIONS[hub]="Documentation Structure"
+GENERATOR_SECTIONS[stats]="System Metrics"
+GENERATOR_SECTIONS[var]="Variable Usage Table"
 
 #######################################################################
 # CONFIGURATION EXAMPLES AND USAGE NOTES
@@ -125,7 +111,6 @@ GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable table
 # Adding a new target directory:
 #   1. Add to TARGET_DIRECTORIES array: "new/directory"
 #   2. Add to appropriate priority level
-#   3. Optionally add to AI_DOC_TARGETS if complex
 #
 # Creating a new generator:
 #   1. Add output file: GENERATOR_OUTPUT_FILES[newgen]="path/to/output.md"

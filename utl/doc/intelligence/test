@@ -1,7 +1,7 @@
 #!/bin/bash
 #######################################################################
 # Testing Intelligence Module
-# Enhanced AI Documentation Generator System
+# Documentation Analysis System
 # Analyzes testing patterns and quality assurance metrics
 
 set -euo pipefail

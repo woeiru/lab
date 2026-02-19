@@ -17,29 +17,29 @@ cd /home/es/lab/utl/doc
 # List available generators
 ./run_all_doc.sh --list
 
-# Generate AI documentation for a target directory
-./ai/ai_doc_generator /home/es/lab/lib/ops
+# Inspect generated injection sink
+cat /home/es/lab/doc/dev/generated-doc-injections.md
 ```
 
 ## Structure
 - `run_all_doc.sh`: top-level orchestration for documentation tasks.
-- `generators/`: non-AI generators (functions, variables, hub, stats).
-- `ai/ai_doc_generator`: AI-assisted README/documentation generation.
-- `intelligence/`: analysis modules used by AI generation flows.
-- `config/.doc_config`: local configuration for doc generation.
+- `generators/`: generators (`func`, `var`, `hub`, `stats`).
+- `intelligence/`: analysis helper modules for documentation quality/performance checks.
+- `config/settings` and `config/targets`: doc system configuration.
 
 ## Common Tasks
 - Regenerate documentation after structural changes.
-- Run targeted generators during incremental changes.
+- Run targeted generators during incremental changes (`functions`, `variables`, `stats`, `hub`).
 - Use `--dry-run` before broad generation in active branches.
 
 ## Troubleshooting
 - Verify scripts are executed from `utl/doc/` or with correct absolute paths.
 - Check executable permissions on generators and orchestrator scripts.
-- Review script output and `.log/` artifacts if generation fails.
+- Confirm marker blocks exist in `doc/dev/generated-doc-injections.md` for each generator section.
 
 ## Related Docs
 - [Utilities Root](../README.md)
 - [Documentation System Deep Dive (full reference)](../../doc/dev/documentation-system-deep-dive.md)
+- [Generated Injection Sink](../../doc/dev/generated-doc-injections.md)
 - [Documentation Hub](../../doc/README.md)
 - [README Style Guide](../../doc/dev/readme-style-guide.md)

@@ -1,14 +1,14 @@
 #!/bin/bash
 #######################################################################
 # Performance Intelligence Module
-# Enhanced AI Documentation Generator System
+# Documentation Analysis System
 # Collects performance-related metadata for intelligent documentation
 
 # TECHNICAL SPECIFICATION:
 # Module: Performance Intelligence (perf)
 # Purpose: Analyze performance patterns, resource usage, and optimization opportunities
-# Output: JSON metadata for AI documentation generation
-# Integration: Phase 10 of ai_doc_generator comprehensive metadata collection
+# Output: JSON metadata for documentation generation
+# Integration: performance analysis phase for documentation tooling
 
 set -euo pipefail
 

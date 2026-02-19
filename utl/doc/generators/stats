@@ -38,9 +38,10 @@ fi
 if [[ -n "${GENERATOR_OUTPUT_FILES[stats]:-}" ]]; then
     readonly OUTPUT_FILE="$LAB_DIR/${GENERATOR_OUTPUT_FILES[stats]}"
 else
-    # Fallback to default
-    readonly OUTPUT_FILE="$LAB_DIR/README.md"
+    # Fallback to single injection sink
+    readonly OUTPUT_FILE="$LAB_DIR/doc/dev/generated-doc-injections.md"
 fi
+SECTION_NAME="${GENERATOR_SECTIONS[stats]:-System Metrics}"
 readonly BACKUP_FILE="$OUTPUT_FILE.backup"
 
 # Generate statistics from target directories
@@ -122,10 +123,10 @@ update_output_file() {
     local stats_content=$(FORMAT=markdown generate_stats)
     
     # Check if section markers exist
-    if grep -q "<!-- AUTO-GENERATED SECTION: System Metrics -->" "$OUTPUT_FILE"; then
+    if grep -q "<!-- AUTO-GENERATED SECTION: $SECTION_NAME -->" "$OUTPUT_FILE"; then
         # Use awk to replace the content between markers
-        awk -v stats="$stats_content" '
-            /<!-- AUTO-GENERATED SECTION: System Metrics -->/ {
+        awk -v stats="$stats_content" -v section="$SECTION_NAME" '
+            index($0, "<!-- AUTO-GENERATED SECTION: " section " -->") {
                 print $0
                 print stats
                 skip = 1
@@ -140,9 +141,9 @@ update_output_file() {
         mv "$temp_file" "$OUTPUT_FILE"
         echo "Successfully updated $OUTPUT_FILE"
     else
-        echo "Warning: AUTO-GENERATED SECTION markers not found in $OUTPUT_FILE"
+        echo "Warning: AUTO-GENERATED SECTION marker for '$SECTION_NAME' not found in $OUTPUT_FILE"
         echo "Please add the following markers to $OUTPUT_FILE:"
-        echo "<!-- AUTO-GENERATED SECTION: System Metrics -->"
+        echo "<!-- AUTO-GENERATED SECTION: $SECTION_NAME -->"
         echo "<!-- END AUTO-GENERATED SECTION -->"
         rm "$temp_file"
         return 1
