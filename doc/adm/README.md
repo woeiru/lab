@@ -6,14 +6,14 @@
 
 Documentation for system administrators managing the Lab Environment infrastructure.
 
-## 🎯 Target Audience
+## Target Audience
 
 System administrators who need to:
 - Configure and manage system infrastructure
 - Implement monitoring and performance tracking
 - Manage security and credential systems
 
-## 📚 Documentation Index
+## Documentation Index
 
 ### Core Administration
 - **[Configuration Management](configuration.md)** - Infrastructure configuration, IP allocation, naming conventions, and security practices
@@ -32,7 +32,7 @@ System administrators who need to:
 - **Permission Management**: Automatic 600 permissions for sensitive files
 - **Access Control**: Implement proper user and system access controls
 
-## 🔧 Administrative Workflows
+## Administrative Workflows
 
 ### System Configuration
 ```bash
@@ -63,7 +63,7 @@ tme_print_timing_report
 # - Zero hardcoded passwords
 ```
 
-## 🏗️ Infrastructure Management
+## Infrastructure Management
 
 ### Network Configuration
 - **IP Allocation**: Standardized `192.168.178.0/24` network scheme
@@ -80,7 +80,7 @@ tme_print_timing_report
 - **Bulk Creation**: Colon-separated definition strings
 - **Service Management**: PBS, NFS, SMB container management
 
-## 📊 System Monitoring
+## System Monitoring
 
 ### Health Checks
 - **Quick Validation**: `./tst/validate_system`
@@ -92,7 +92,7 @@ tme_print_timing_report
 - **Resource Monitoring**: Built-in performance analysis
 - **Capacity Planning**: Infrastructure utilization tracking
 
-## 🔐 Security Framework
+## Security Framework
 
 ### Credential Management
 - **120+ lines** of secure credential handling
@@ -105,7 +105,7 @@ tme_print_timing_report
 - **Node-specific security** configurations
 - **SSH key management** and distribution
 
-## 📖 Related Documentation
+## Related Docs
 
 - **Testing Infrastructure**: See `../dev/testing.md` for comprehensive testing framework documentation
 - **Developers**: See `../dev/` for integration and architecture details

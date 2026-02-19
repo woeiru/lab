@@ -6,7 +6,7 @@
 
 Documentation for developers integrating with the Lab Environment Management System.
 
-## 🎯 Target Audience
+## Target Audience
 
 Software developers who need to:
 - Integrate with the system's library functions
@@ -14,7 +14,7 @@ Software developers who need to:
 - Implement testing and debugging workflows
 - Work with the logging and verbosity control systems
 
-## 📚 Documentation Index
+## Documentation Index
 
 ### System Architecture & Design
 - **[System Architecture](architecture.md)** - Complete system design overview, modular architecture, and design patterns
@@ -43,7 +43,7 @@ Software developers who need to:
 - **Debug Workflows**: Comprehensive debug logging and error handling systems
 - **Validation Scripts**: Quick validation (`validate_system`) and comprehensive testing (`test_environment`)
 
-## 🔧 Development Workflows
+## Development Workflows
 
 ### Library Function Development
 ```bash
@@ -79,7 +79,7 @@ tme_end_timer "OPERATION_NAME" "success"
 tme_print_timing_report
 ```
 
-## 🧪 Testing Standards
+## Testing Standards
 
 ### Testing Infrastructure
 - **Comprehensive Validation**: 499+ lines of validation logic across all test scripts
@@ -99,7 +99,7 @@ tme_print_timing_report
 - **Post-Development**: `./tst/test_environment` for comprehensive validation
 - **Performance Analysis**: TME timing framework for performance impact assessment
 
-## 📖 Related Documentation
+## Related Docs
 
 - **System Administration**: See `../adm/` for operational procedures
 - **Infrastructure Teams**: See `../iac/` for deployment patterns

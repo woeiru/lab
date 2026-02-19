@@ -110,7 +110,7 @@ Targeted library tests:
 ./val/run_all_tests.sh --list
 ```
 
-## Related Documentation
+## Related Docs
 
 - `README.md` (repository entrypoint and workflow)
 - `doc/arc/architecture-map.md` (runtime architecture map)

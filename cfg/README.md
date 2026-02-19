@@ -6,7 +6,7 @@
 
 The `cfg/` directory serves as the central configuration management hub for the entire infrastructure system. It contains environment-specific settings, automation configurations, system aliases, and deployment parameters organized in a hierarchical structure for maximum flexibility and maintainability.
 
-## 🗂️ Directory Structure
+## Directory Structure
 
 ```
 cfg/
@@ -17,7 +17,7 @@ cfg/
 └── pod/          # Container/Pod Configuration
 ```
 
-## 📁 Subdirectories
+## Subdirectories
 
 ### 🔗 `ali/` - Alias Management
 Manages system aliases for improved command-line efficiency and standardization.
@@ -65,7 +65,7 @@ Configuration files for containerized applications and pod deployments.
 
 **Purpose**: Manages container-specific configurations and deployment parameters for various containerized workloads.
 
-## 🔧 Key Features
+## Key Features
 
 ### Hierarchical Configuration Management
 - **Environment-First Design**: Configurations cascade from environment-specific to component-specific
@@ -82,7 +82,7 @@ Configuration files for containerized applications and pod deployments.
 - **Development Workflows**: Specialized configurations for development and testing
 - **Production Ready**: Production-grade configuration management with validation
 
-## 🚀 Usage Guidelines
+## Usage Guidelines
 
 ### Configuration Loading Order
 1. **Core Controllers** (`core/`) - Load system-wide parameters
@@ -103,14 +103,14 @@ Use the Environment Configuration Controller (`core/ecc`) to select and configur
 2. **Container Configs**: Create new subdirectories in `pod/` for new container types
 3. **Aliases**: Add static aliases to `ali/sta` or let dynamic generation handle project-specific ones
 
-## 🔐 Security Considerations
+## Security Considerations
 
 - **Sensitive Data**: Avoid storing passwords or secrets directly in configuration files
 - **Environment Isolation**: Ensure development configurations don't leak into production
 - **Access Control**: Maintain appropriate file permissions for configuration files
 - **Version Control**: Use git for configuration version management and change tracking
 
-## 🔗 Integration Points
+## Integration Points
 
 ### Core System Integration
 - **Initialization**: Loaded during system initialization via `bin/ini`
@@ -121,7 +121,7 @@ Use the Environment Configuration Controller (`core/ecc`) to select and configur
 - **Container Runtime**: Required for pod configurations (Podman/Docker)
 - **Shell Environment**: Bash shell required for alias and environment configurations
 
-## 📊 Maintenance
+## Maintenance
 
 ### Regular Tasks
 - **Update Environment Configs**: Keep environment-specific settings current
@@ -133,7 +133,7 @@ Use the Environment Configuration Controller (`core/ecc`) to select and configur
 - **Alias Problems**: Verify both `ali/sta` and `ali/dyn` are loading correctly
 - **Container Issues**: Validate `pod/` configurations and Containerfile syntax
 
-## 📈 Best Practices
+## Best Practices
 
 1. **Consistency**: Maintain consistent naming conventions across all configuration files
 2. **Documentation**: Document configuration changes and their impact

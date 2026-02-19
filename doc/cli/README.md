@@ -8,7 +8,7 @@ Documentation for command-line interface, system initialization, and user intera
 
 This documentation specializes in the `bin/ini` initialization process, verbosity controls, logging configuration, and runtime interaction with core modules (`err`, `lo1`, `tme`, `ver`). It covers everything needed to understand and control the system's startup behavior and operational settings.
 
-## 🎯 Target Audience
+## Target Audience
 
 Command-line users who need to:
 - Initialize and configure the system via `bin/ini`
@@ -17,7 +17,7 @@ Command-line users who need to:
 - Control system behavior through environment variables and shell functions
 - Troubleshoot initialization and module loading issues
 
-## 📚 Documentation Index
+## Documentation Index
 
 ### Getting Started
 - **[Initialization Guide](initiation.md)** - Complete guide to system initialization, configuration, and runtime controls
@@ -64,7 +64,7 @@ tme_start_timer "COMPONENT"
 tme_end_timer "COMPONENT" "success"
 ```
 
-## 🔧 User Configuration
+## User Configuration
 
 ### Verbosity Control
 ```bash
@@ -95,7 +95,7 @@ export ENVIRONMENT="dev"  # or "test", "prod"
 export NODE="your-hostname"
 ```
 
-## 💡 Common Operations
+## Common Operations
 
 ### System Health Checks
 ```bash
@@ -128,7 +128,7 @@ cd src/set/pve && ./pve
 cd src/set/pve && ./pve a  # Execute specific task
 ```
 
-## 🎛️ User Controls
+## User Controls
 
 ### Output Management
 - **Terminal Verbosity**: Control what appears on your terminal
@@ -148,7 +148,7 @@ cd src/set/pve && ./pve a  # Execute specific task
 - **Cross-Shell Support**: Compatible with bash and zsh shells
 - **Persistent Configuration**: Settings maintained across sessions
 
-## 🚀 Getting Help
+## Getting Help
 
 ### Documentation Navigation
 - **Architecture Overview**: See `../dev/architecture.md` for system design
@@ -165,7 +165,7 @@ cd src/set/pve && ./pve a  # Execute specific task
 - **Test Framework**: Comprehensive validation scripts in `tst/` directory
 - **Example Configurations**: Reference configurations in `cfg/env/`
 
-## 📋 Quick Reference
+## Quick Reference
 
 ### Essential Commands
 ```bash
@@ -188,7 +188,7 @@ source ~/.bashrc              # Reload environment
 - **Component Testing**: `./tst/test_complete_refactor.sh` for system refactoring validation
 - **Performance Testing**: TME timing framework for performance analysis
 
-## 📖 Related Documentation
+## Related Docs
 
 - **Testing Framework**: See `../dev/testing.md` for comprehensive testing infrastructure and procedures
 - **Developers**: See `../dev/` for integration and technical details

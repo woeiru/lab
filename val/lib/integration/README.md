@@ -6,7 +6,7 @@
 
 This directory contains a comprehensive test suite designed for mass function renaming operations across the `/lib` directory structure. The suite provides validation, safety mechanisms, and automation tools to ensure reliable large-scale refactoring.
 
-## 📁 File Overview
+## File Overview
 
 ### Core Testing Modules
 
@@ -34,7 +34,7 @@ This directory contains a comprehensive test suite designed for mass function re
 
 **`demo_enhanced_features.sh`** - Interactive demonstration script that showcases all enhanced features with timed examples, creates sample outputs, and validates the complete functionality of the enhanced testing capabilities.
 
-## 🎯 Purpose
+## Purpose
 
 This suite enables safe, validated, and automated mass function renaming across the entire library system while maintaining code integrity and providing comprehensive audit trails for enterprise development workflows.
 

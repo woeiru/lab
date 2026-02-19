@@ -10,7 +10,7 @@
 
 This directory serves as the central documentation hub for the Lab Environment Management System. It provides structured, audience-specific documentation designed for maintainability, discoverability, and practical value across all system components.
 
-## 📊 Documentation Index
+## Documentation Index
 
 *Auto-updated documentation index with real-time metadata*
 

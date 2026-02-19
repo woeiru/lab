@@ -1,160 +1,44 @@
-# 🧪 Lab Validation & Testing System
+# Lab Validation & Testing System
 
 ## Navigation
 - [Repository Root](../README.md)
 - [Documentation Hub](../doc/README.md)
 
-**Purpose**: Comprehensive quality assurance, system health verification, and automated testing for the shell-based infrastructure management system.
+## Purpose
+`val/` contains the test framework and runners used to verify bootstrap behavior, library operations, and integration workflows.
 
-## 🚀 Quick Start
-
+## Quick Start
 ```bash
-# Run all tests
+# Full suite
 ./val/run_all_tests.sh
 
-# Run specific categories  
-./val/run_all_tests.sh core           # Core system tests
-./val/run_all_tests.sh lib            # Library function tests  
-./val/run_all_tests.sh integration    # End-to-end tests
-./val/run_all_tests.sh legacy         # Legacy validation scripts
-
-# Test options
-./val/run_all_tests.sh --list         # List available tests
-./val/run_all_tests.sh --quick        # Skip slow tests
-./val/run_all_tests.sh --help         # Show usage
+# Useful modes
+./val/run_all_tests.sh --list
+./val/run_all_tests.sh --quick
+./val/run_all_tests.sh core
+./val/run_all_tests.sh lib
+./val/run_all_tests.sh integration
 ```
 
-## 🏗️ Architecture
-
-```
-val/
-├── helpers/           # Test framework (test_framework.sh)
-├── core/             # Core system tests (ini, modules, config)
-├── lib/              # Library function tests (ops/, gen/)
-├── integration/      # End-to-end integration tests
-└── run_all_tests.sh  # Master test runner
-```
-
-**Test Categories:**
-- **Core (4 components)**: Initialization, error handling, logging, configuration
-- **Library (12 components)**: Operations (GPU, network, storage, etc.) + general utilities
-- **Integration**: Complete workflow and cross-component testing
-- **Legacy**: Existing validation scripts (being migrated)
-
-## 📊 Current Status
-
-**✅ Working (12/21 tests passing):**
-- cfg_test, err_test, lo1_test, ver_test, aux_test, env_test
-- net_test, ssh_test, sto_test, sys_test, usr_test
-
-**⚠️ Needs Fixing (8 tests):**
-- ini_test, tme_test (dependency issues)
-- inf_test, sec_test (function name updates needed)
-- gpu_test, pbs_test, srv_test (framework issues)
-- function_rename_test (path issues)
-
-**Coverage:**
-- Core System: 100% (4/4 components)
-- Library Functions: 95% (12/13 components)  
-- Integration: 80% (basic end-to-end)
-
-## 🔧 Framework Features
-
-- **Color-coded output**: ✓ green, ✗ red, ⚠ yellow
-- **Performance timing**: Built-in benchmarking and thresholds
-- **Test isolation**: Temporary environments, automatic cleanup
-- **Error handling**: Graceful failure management
-- **Auto-discovery**: Finds and categorizes tests automatically
-- **Standardized functions**: `run_test()`, `test_function_exists()`, etc.
-
-## 🎯 Development
-
-### Creating Tests
-
-```bash
-# 1. Use the framework
-source val/helpers/test_framework.sh
-
-# 2. Follow naming pattern
-# Core: val/core/<category>/<component>_test.sh
-# Library: val/lib/<category>/<component>_test.sh  
-# Integration: val/integration/<feature>_test.sh
-
-# 3. Use standard functions
-test_function_exists "my_function" "Description"
-test_file_exists "/path/to/file" "Description"
-run_test "Test name" command_to_test
-
-# 4. Include performance testing
-start_performance_test "operation"
-# ... perform operation ...
-end_performance_test "operation" 1000  # ms threshold
-```
-
-### Integration Points
-
-- **Development Workflow**: Quick health checks during development
-- **CI/CD Pipelines**: Automated testing on commits
-- **Pre-deployment**: System readiness verification
-- **Monitoring**: Performance validation and regression detection
-
-## 🚧 Migration Strategy
-
-### ✅ Phase 1: Framework Complete
-- Test framework with 20+ utility functions
-- Master test runner with category support
-- 15 comprehensive test scripts created
-- Documentation and standards established
-
-### 🔄 Phase 2: Test Migration (In Progress)
-- **Next**: Fix remaining 8 failing tests
-- **Priority**: Convert legacy scripts (`system`, `environment`, `docs`)
-- **Goal**: 100% test coverage of core components
-
-### 📈 Phase 3: Enhanced Testing (Planned)
-- CI/CD integration (GitHub Actions)
-- Test coverage reporting and metrics
-- Parallel execution and advanced features
-- Visual reporting and IDE integration
-
-## 📋 Known Issues
-
-**Framework Dependencies:**
-- Some libraries require specific environment setup
-- LAB_ROOT auto-detection (fixed)
-- GPU tests need hardware availability
-
-**Test Coverage Gaps:**
-- PVE operations (environment requirements)
-- Container management
-- External API integrations
-
-**Performance:**
-- Full test suite: ~2-3 minutes
-- Quick mode: ~30 seconds
-- Individual tests: <5 seconds each
-
-## 🔗 Key Files
-
-- **Framework**: `val/helpers/test_framework.sh`
-- **Master Runner**: `val/run_all_tests.sh`
-- **Library Runner**: `val/lib/run_all_tests.sh`
-- **Example Test**: `val/core/config/cfg_test.sh`
-
----
-
-**Status**: Framework operational, 57% tests passing, migration in progress  
-**Next Review**: Fix remaining 8 failing tests  
-**Last Updated**: June 11, 2025
+## Structure
+- `val/helpers/`: shared test framework utilities.
+- `val/core/`: bootstrap/config/core module tests.
+- `val/lib/`: domain library tests.
+- `val/integration/`: end-to-end workflow tests.
+- `val/run_all_tests.sh`: top-level test runner.
 
 ## Common Tasks
-- Start with the quick-start or workflow sections in this file.
-- From repo root, run `./go doctor` and `./go validate` after changes.
+- Run `--quick` during local iteration and full suite before merge.
+- Add new tests next to the relevant layer (`core`, `lib`, or `integration`).
+- Use shared framework helpers for consistent assertions/reporting.
 
 ## Troubleshooting
-- Confirm commands are run from the expected directory (usually repo root).
-- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
+- If tests fail due to environment assumptions, verify repo-root execution and expected config.
+- If hardware-dependent tests fail (for example GPU), mark/handle them by environment.
+- Check `.log/` and test runner output for failing script paths and prerequisites.
 
 ## Related Docs
-- [Repository Root](../README.md)
+- [Validation System Deep Dive (full reference)](../doc/dev/validation-system-deep-dive.md)
+- [Library Integration Tests](./lib/integration/README.md)
+- [Developer Docs](../doc/dev/README.md)
 - [Documentation Hub](../doc/README.md)

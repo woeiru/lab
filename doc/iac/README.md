@@ -6,7 +6,7 @@
 
 Documentation for infrastructure teams and DevOps engineers managing deployment automation.
 
-## 🎯 Target Audience
+## Target Audience
 
 Infrastructure teams and DevOps engineers who need to:
 - Implement standardized deployments using infrastructure utilities
@@ -14,7 +14,7 @@ Infrastructure teams and DevOps engineers who need to:
 - Extend deployment scripts with established automation patterns
 - Orchestrate container and VM infrastructure at scale
 
-## 📚 Documentation Index
+## Documentation Index
 
 ### Infrastructure Management
 - **[Infrastructure Guide](infrastructure.md)** - Comprehensive IaC deployment patterns, automation scripts, and infrastructure management
@@ -39,7 +39,7 @@ Infrastructure teams and DevOps engineers who need to:
 - **Service Orchestration**: Standardized service deployment automation
 - **Infrastructure Provisioning**: Automated container and VM provisioning
 
-## 🚀 Deployment Workflows
+## Deployment Workflows
 
 ### Container Infrastructure
 ```bash
@@ -72,7 +72,7 @@ gpu_ptd-w 1  # Detach GPU for passthrough
 gpu_pta-w 1  # Attach GPU back to host
 ```
 
-## 🌍 Environment Management
+## Environment Management
 
 ### Configuration Hierarchy
 ```bash
@@ -103,7 +103,7 @@ export NODE="prod-node1"
 - **Storage backend flexibility** (Btrfs, ZFS, LVM)
 - **Service replication** across cluster nodes
 
-## 🔧 Infrastructure Utilities
+## Infrastructure Utilities
 
 ### Core Infrastructure Functions
 | Module | Purpose | Infrastructure Focus |
@@ -121,7 +121,7 @@ export NODE="prod-node1"
 | **t1, t2** | Test Infrastructure | Test environment provisioning |
 | **h1** | Hypervisor Setup | Development hypervisor configuration |
 
-## 📊 Infrastructure Metrics
+## Infrastructure Metrics
 
 ### Deployment Scale
 - **355+ lines** of infrastructure utilities
@@ -135,7 +135,7 @@ export NODE="prod-node1"
 - **GPU resource allocation** for compute infrastructure
 - **Network and storage provisioning** automation
 
-## 🛡️ Infrastructure Security
+## Infrastructure Security
 
 ### Secure Infrastructure Patterns
 - **Zero hardcoded credentials** in infrastructure code
@@ -149,7 +149,7 @@ export NODE="prod-node1"
 - **Change tracking** through git and deployment logs
 - **Security validation** in deployment pipelines
 
-## 🔄 Continuous Deployment
+## Continuous Deployment
 
 ### Infrastructure Pipeline
 1. **Configuration Validation**: Built-in validation before deployment
@@ -164,7 +164,7 @@ export NODE="prod-node1"
 - **Automated backup** and disaster recovery procedures
 - **Capacity planning** with resource utilization tracking
 
-## 📖 Related Documentation
+## Related Docs
 
 - **Developers**: See `../dev/` for library integration and architecture
 - **System Administrators**: See `../adm/` for operational procedures  
