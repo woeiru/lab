@@ -1,114 +1,33 @@
-# 👨‍💻 Developer Documentation
+# Developer Documentation
 
 ## Navigation
 - [Repository Root](../../README.md)
 - [Documentation Hub](../README.md)
 
-Documentation for developers integrating with the Lab Environment Management System.
+## Purpose
+`doc/dev/` is the developer-facing reference area for architecture deep dives, function/variable references, validation internals, and documentation tooling.
 
-## Target Audience
-
-Software developers who need to:
-- Integrate with the system's library functions
-- Understand the system architecture and design patterns
-- Implement testing and debugging workflows
-- Work with the logging and verbosity control systems
-
-## Documentation Index
-
-### System Architecture & Design
-- **[System Architecture](architecture.md)** - Complete system design overview, modular architecture, and design patterns
-- **[API Reference](functions.md)** - Quick reference for library functions and integration patterns
-- **[Logging System](logging.md)** - Comprehensive logging architecture, debug systems, and log management
-- **[Verbosity Controls](verbosity.md)** - Output control mechanisms and terminal verbosity management
-
-### Testing & Validation
-- **[Testing Framework](testing.md)** - Comprehensive testing infrastructure, validation procedures, and testing standards
-
-### Integration Guidelines
-
-#### Library Integration
-- **Stateless Functions**: Import pure functions from `lib/ops/` with explicit parameters
-- **DIC Pattern**: Use unified operations interface from `src/dic/` for all infrastructure integration
-- **Function Separation**: Understand the distinction between pure and wrapper functions
-
-#### Environment Awareness
-- **Hierarchical Configuration**: Leverage the base → environment → node configuration cascade
-- **Context Loading**: Use automatic environment context loading for development workflows
-
-#### Testing Framework
-- **Comprehensive Testing Infrastructure**: 499+ lines of validation logic across multiple test scripts
-- **Test Categories**: System validation, component testing, integration testing, performance testing
-- **Testing Standards**: Pure function testing, wrapper function validation, environment testing
-- **Debug Workflows**: Comprehensive debug logging and error handling systems
-- **Validation Scripts**: Quick validation (`validate_system`) and comprehensive testing (`test_environment`)
-
-## Development Workflows
-
-### Library Function Development
-```bash
-# Pure function pattern (lib/ops/)
-function_name() {
-    local param1="$1"
-    local param2="$2"
-    # Pure logic with explicit parameters
-}
-
-# DIC operations pattern (src/dic/)
-ops module operation param
-# Unified interface with dependency injection
-```
-
-### Debug and Testing
-```bash
-# Enable debug logging
-export MASTER_TERMINAL_VERBOSITY="on"
-export DEBUG_LOG_TERMINAL_VERBOSITY="on"
-
-# Run validation
-./tst/validate_system
-./tst/test_environment
-```
-
-### Performance Analysis
-```bash
-# Use timing framework
-tme_start_timer "OPERATION_NAME"
-# ... your code ...
-tme_end_timer "OPERATION_NAME" "success"
-tme_print_timing_report
-```
-
-## Testing Standards
-
-### Testing Infrastructure
-- **Comprehensive Validation**: 499+ lines of validation logic across all test scripts
-- **Component Isolation**: Individual module testing with pure function separation
-- **Integration Testing**: End-to-end system validation and workflow testing
-- **Performance Monitoring**: Built-in timing and performance analysis during testing
-
-### Testing Categories
-- **System Validation**: Quick health checks and comprehensive system testing
-- **Component Testing**: Module-specific validation (GPU, PVE, verbosity controls)
-- **Security Testing**: Password management, permissions, and credential validation
-- **Environment Testing**: Multi-environment test scenarios and configuration validation
-
-### Development Testing Workflow
-- **Pre-Development**: `./tst/validate_system` for rapid system health checks
-- **During Development**: Component-specific testing for targeted validation
-- **Post-Development**: `./tst/test_environment` for comprehensive validation
-- **Performance Analysis**: TME timing framework for performance impact assessment
-
-## Related Docs
-
-- **System Administration**: See `../adm/` for operational procedures
-- **Infrastructure Teams**: See `../iac/` for deployment patterns
-- **End Users**: See `../user/` for user-facing documentation
+## Child Docs
+- [doc/dev/functions.md](./functions.md)
+- [doc/dev/variables.md](./variables.md)
+- [doc/dev/logging.md](./logging.md)
+- [doc/dev/readme-style-guide.md](./readme-style-guide.md)
+- [doc/dev/generated-doc-injections.md](./generated-doc-injections.md)
+- [doc/dev/dic-deep-dive.md](./dic-deep-dive.md)
+- [doc/dev/lib-ops-architecture-deep-dive.md](./lib-ops-architecture-deep-dive.md)
+- [doc/dev/bin-bootstrap-deep-dive.md](./bin-bootstrap-deep-dive.md)
+- [doc/dev/validation-system-deep-dive.md](./validation-system-deep-dive.md)
+- [doc/dev/documentation-system-deep-dive.md](./documentation-system-deep-dive.md)
 
 ## Common Tasks
-- Start with the quick-start or workflow sections in this file.
-- From repo root, run `./go doctor` and `./go validate` after changes.
+- Start with `functions.md` and `variables.md` for integration-level reference.
+- Use deep-dive docs only when debugging subsystem internals.
+- Use `generated-doc-injections.md` as the single generated-output sink.
 
 ## Troubleshooting
-- Confirm commands are run from the expected directory (usually repo root).
-- Check generated logs under `.log/` and rerun `./go doctor` for diagnostics.
+- If generated sections are stale, run `./utl/doc/run_all_doc.sh`.
+- If references drift from implementation, verify `src/`, `lib/`, and `cfg/` READMEs first.
+
+## Related Docs
+- [Source Docs](../arc/src-architecture-deep-dive.md)
+- [Documentation Hub](../README.md)
