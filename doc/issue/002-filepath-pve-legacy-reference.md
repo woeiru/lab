@@ -5,6 +5,12 @@
 **Severity:** Medium  
 **Component:** DIC System / Environment Variables  
 
+## Resolution Update (2025-06-21)
+
+**Root Cause Found:** The `lib/gen/aux` library overwrites the global `DIR_FUN` variable when sourced. Since `lib/ops/pve` calculated `DIR_FUN` *before* sourcing `aux`, but used it *after* to set `FILEPATH_pve`, the variable `FILEPATH_pve` ended up pointing to `lib/gen` (the location of `aux`) instead of `lib/ops`.
+
+**Fix Applied:** `lib/ops/pve` now re-calculates `DIR_FUN` immediately after sourcing `lib/gen/aux` to ensure it points to the correct location.
+
 ## Problem Description
 
 The `pve_fun` command was failing with the error:
@@ -16,12 +22,9 @@ This occurred despite the `pve` file having been moved from `lib/gen/pve` to `li
 
 ## Root Cause Analysis
 
-1. **Legacy Path Reference**: The `FILEPATH_pve` environment variable was persistently set to the old path `/home/es/lab/lib/gen/pve`
-2. **Function Dependency**: The `pve_fun()` function relies on `${FILEPATH_pve}` as a fallback when no explicit path is provided:
-   ```bash
-   local script_path="${1:-$FILEPATH_pve}"
-   ```
-3. **Persistent Configuration**: Some initialization system or cached configuration was setting `FILEPATH_pve` to the obsolete path, causing the function to fail even though the file structure was correctly updated
+1. **Variable Pollution**: `lib/gen/aux` sets `DIR_FUN` to its own directory when sourced.
+2. **Sourcing Order**: `lib/ops/pve` sourced `aux` and then used the polluted `DIR_FUN`.
+3. **Incorrect Path**: `FILEPATH_pve` was constructed using the wrong directory.
 
 ## Investigation Steps
 
@@ -38,6 +41,9 @@ This occurred despite the `pve` file having been moved from `lib/gen/pve` to `li
 ```bash
 export FILEPATH_pve="/home/es/lab/lib/ops/pve"
 ```
+
+**Permanent Fix:**
+Updated `lib/ops/pve` to handle variable pollution from sourced libraries.
 
 **Verification:**
 - `pve_fun` command now works correctly

@@ -1,5 +1,17 @@
 # Issue 003: DIC Auto-Injection Flag (-j) Execution Failure
 
+## Status
+**RESOLVED (INVALID/CONFIGURATION)** - 2025-06-21
+
+## Resolution Summary
+Investigation revealed that the DIC system works correctly. The reported failure was due to either:
+1. **Missing Environment Variables**: The user did not have the required global variables (e.g., `VM_ID`) exported in their environment.
+2. **Function Signature Mismatch**: The function being called did not use standard `local var="$1"` parameter assignment, preventing the introspector from detecting parameters.
+
+Testing with a compliant function and correct environment variables confirmed the `-j` flag works as expected.
+
+---
+
 ## Issue Summary
 
 The Dependency Injection Container (DIC) system's `-j` flag for automatic variable injection fails to execute functions, instead falling back to showing usage information. The underlying variable resolution and injection mechanisms work correctly when called directly, but the DIC wrapper fails to properly execute functions with auto-injected parameters.
