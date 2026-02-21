@@ -83,9 +83,9 @@ Expected: `nvidia-smi` shows the GPU table, `dmesg` shows no `error -1`.
 
 ---
 
-## Current State (as of 2026-02-21 ~16:10 CET) — Still Broken
+## Current State (as of 2026-02-21 ~18:45 CET) — Root Cause Identified
 
-All the right packages appear to be installed, but the driver still fails to probe on every boot. Debugging session results:
+All the right packages are installed, but the loaded driver branch is too old for this GPU. Latest debugging results:
 
 ### DKMS status
 ```
@@ -110,6 +110,7 @@ The open module is built and registered. No closed-source `nvidia-kernel-dkms` p
 ### dmesg — repeated probe failure on every modprobe attempt
 ```
 [    8.299192] NVRM: The NVIDIA GPU 0000:3c:00.0 (PCI ID: 10de:2d04)
+               NVRM: installed in this system is not supported by the
                NVRM: NVIDIA 550.163.01 driver release.
 [    8.299233] nvidia 0000:3c:00.0: probe with driver nvidia failed with error -1
 [    8.299260] NVRM: The NVIDIA probe routine failed for 1 device(s).
@@ -117,10 +118,19 @@ The open module is built and registered. No closed-source `nvidia-kernel-dkms` p
 ```
 This repeats ~5 times (modprobe retried by udev/systemd).
 
-### Key observation: modprobe.d/nvidia.conf — module alias chain
-The `/etc/modprobe.d/nvidia.conf` install rules alias `nvidia` → `nvidia-current` (not `nvidia-current-open`).  
-The file `/etc/modprobe.d/nvidia-open.conf` contains `NVreg_OpenRmEnableUnsupportedGpus=1` ✓  
-The file `/etc/modprobe.d/nvidia-options.conf` also has `options nvidia NVreg_OpenRmEnableUnsupportedGpus=1` ✓
+### Validated observations
+- `/etc/modprobe.d/nvidia.conf` maps `nvidia` -> `nvidia-current`, and `nvidia-current` is not present.
+- Direct module load bypassing that alias still fails:
+  ```bash
+  sudo /sbin/modprobe -v nvidia-current-open NVreg_OpenRmEnableUnsupportedGpus=1
+  # -> could not insert 'nvidia_current_open': No such device
+  ```
+- `dmesg` after direct load confirms the real blocker is support matrix, not aliasing.
+- `update-alternatives --display nvidia-kernel` reports no alternatives configured.
+- Firmware tree exists (`/lib/firmware/nvidia/550.163.01/...`), so this is not a missing-GSP-blob case.
+- Repositories currently enabled on this host only provide 550.163.01:
+  - `trixie` / `trixie-updates` / `trixie-security`
+  - no backports/experimental/unstable source configured
 
 ### sddm status
 ```
@@ -130,43 +140,25 @@ sddm is running but KDE Plasma session fails to start because nvidia module neve
 
 ---
 
-## Next Steps to Investigate
+## Next Steps (Corrected)
 
-> [!IMPORTANT]
-> The current hypothesis: Debian's modprobe alias chain (`nvidia` → `nvidia-current`) may be
-> pointing at the **closed-source** module file, not the open one, even though `nvidia-kernel-dkms`
-> was purged. The `.ko.xz` files exist with the name `nvidia-current-open`, not `nvidia-current`.
+1. **Install a newer NVIDIA branch (570+)** from a repo/source that includes Blackwell support.
+   550.163.01 is definitively rejected by the kernel module for PCI ID `10de:2d04`.
 
-1. **Check what `modinfo nvidia-current` resolves to** — does it point to the open or closed `.ko`?
+2. **Keep open kernel module path**:
+   - continue using `nvidia-open-kernel-dkms`
+   - ensure closed `nvidia-kernel-dkms` remains purged
+
+3. **(Optional cleanup) fix local modprobe install aliases** so `nvidia` maps to `nvidia-current-open`.
+   This avoids a broken auto-load path, but it is secondary to the branch-version support issue.
+
+4. **After upgrading branch**, re-run:
    ```bash
-   sudo modinfo nvidia-current 2>&1 | head -5
-   sudo modinfo nvidia-current-open 2>&1 | head -5
+   sudo /sbin/modprobe -v nvidia-current-open
+   sudo dmesg | grep -Ei 'nvidia|NVRM' | tail -40
+   nvidia-smi
    ```
-
-2. **Try loading the open module directly by full name:**
-   ```bash
-   sudo modprobe nvidia-current-open
-   dmesg | grep -i nvidia | tail -20
-   ```
-
-3. **Check update-alternatives for nvidia:**
-   ```bash
-   sudo update-alternatives --display nvidia-kernel
-   ```
-
-4. **Check if firmware (GSP) is missing** — error -1 can also mean the GSP firmware blob isn't found:
-   ```bash
-   ls /lib/firmware/nvidia/ 2>/dev/null
-   dmesg | grep -i "gsp\|firmware" | grep -i nvidia
-   ```
-
-5. **Consider upgrading to driver 570.x** — NVIDIA 550.x has limited Blackwell support.
-   The RTX 5060 Ti (GB206) may need 570+ for reliable open-module probe.
-   Check if `nvidia-driver` 570 is available in Trixie backports:
-   ```bash
-   apt-cache policy nvidia-driver
-   apt-cache madison nvidia-open-kernel-dkms
-   ```
+   Success criterion: no "not supported by the NVIDIA 550.163.01 driver release" style message.
 
 ---
 
