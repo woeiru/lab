@@ -83,8 +83,105 @@ Expected: `nvidia-smi` shows the GPU table, `dmesg` shows no `error -1`.
 
 ---
 
+## Current State (as of 2026-02-21 ~16:10 CET) — Still Broken
+
+All the right packages appear to be installed, but the driver still fails to probe on every boot. Debugging session results:
+
+### DKMS status
+```
+nvidia-current-open/550.163.01, 6.12.73+deb13-amd64, x86_64: installed
+```
+The open module is built and registered. No closed-source `nvidia-kernel-dkms` present.
+
+### lsmod
+```
+(empty — no nvidia module loaded at all)
+```
+
+### Kernel .ko files present
+```
+/lib/modules/6.12.73+deb13-amd64/updates/dkms/nvidia-current-open.ko.xz
+/lib/modules/6.12.73+deb13-amd64/updates/dkms/nvidia-current-open-drm.ko.xz
+/lib/modules/6.12.73+deb13-amd64/updates/dkms/nvidia-current-open-modeset.ko.xz
+/lib/modules/6.12.73+deb13-amd64/updates/dkms/nvidia-current-open-uvm.ko.xz
+/lib/modules/6.12.73+deb13-amd64/updates/dkms/nvidia-current-open-peermem.ko.xz
+```
+
+### dmesg — repeated probe failure on every modprobe attempt
+```
+[    8.299192] NVRM: The NVIDIA GPU 0000:3c:00.0 (PCI ID: 10de:2d04)
+               NVRM: NVIDIA 550.163.01 driver release.
+[    8.299233] nvidia 0000:3c:00.0: probe with driver nvidia failed with error -1
+[    8.299260] NVRM: The NVIDIA probe routine failed for 1 device(s).
+[    8.299262] NVRM: None of the NVIDIA devices were initialized.
+```
+This repeats ~5 times (modprobe retried by udev/systemd).
+
+### Key observation: modprobe.d/nvidia.conf — module alias chain
+The `/etc/modprobe.d/nvidia.conf` install rules alias `nvidia` → `nvidia-current` (not `nvidia-current-open`).  
+The file `/etc/modprobe.d/nvidia-open.conf` contains `NVreg_OpenRmEnableUnsupportedGpus=1` ✓  
+The file `/etc/modprobe.d/nvidia-options.conf` also has `options nvidia NVreg_OpenRmEnableUnsupportedGpus=1` ✓
+
+### sddm status
+```
+Active: active (running) since Sat 2026-02-21 15:11:01 CET
+```
+sddm is running but KDE Plasma session fails to start because nvidia module never initialises.
+
+---
+
+## Next Steps to Investigate
+
+> [!IMPORTANT]
+> The current hypothesis: Debian's modprobe alias chain (`nvidia` → `nvidia-current`) may be
+> pointing at the **closed-source** module file, not the open one, even though `nvidia-kernel-dkms`
+> was purged. The `.ko.xz` files exist with the name `nvidia-current-open`, not `nvidia-current`.
+
+1. **Check what `modinfo nvidia-current` resolves to** — does it point to the open or closed `.ko`?
+   ```bash
+   sudo modinfo nvidia-current 2>&1 | head -5
+   sudo modinfo nvidia-current-open 2>&1 | head -5
+   ```
+
+2. **Try loading the open module directly by full name:**
+   ```bash
+   sudo modprobe nvidia-current-open
+   dmesg | grep -i nvidia | tail -20
+   ```
+
+3. **Check update-alternatives for nvidia:**
+   ```bash
+   sudo update-alternatives --display nvidia-kernel
+   ```
+
+4. **Check if firmware (GSP) is missing** — error -1 can also mean the GSP firmware blob isn't found:
+   ```bash
+   ls /lib/firmware/nvidia/ 2>/dev/null
+   dmesg | grep -i "gsp\|firmware" | grep -i nvidia
+   ```
+
+5. **Consider upgrading to driver 570.x** — NVIDIA 550.x has limited Blackwell support.
+   The RTX 5060 Ti (GB206) may need 570+ for reliable open-module probe.
+   Check if `nvidia-driver` 570 is available in Trixie backports:
+   ```bash
+   apt-cache policy nvidia-driver
+   apt-cache madison nvidia-open-kernel-dkms
+   ```
+
+---
+
 ## SSH & sudo Notes (for this machine)
 
 - SSH alias: `a0`
-- User: `es`
-- Password for `sudo -i`: see your password manager (do not store credentials in docs)
+- User: `es`  
+- SSH login: **password-based** (no key auth set up yet) — password: `REDACTED_PASSWORD`
+- sudo password: `REDACTED_PASSWORD`
+- SSH ControlMaster trick (avoids re-entering password for subsequent commands):
+  ```bash
+  ssh -tt -o ControlMaster=yes -o ControlPath=/tmp/ssh_a0_ctl -o ControlPersist=600 a0 'echo ready'
+  # then use: ssh -o ControlPath=/tmp/ssh_a0_ctl a0 '...'
+  ```
+- sudo without tty (via ControlMaster):
+  ```bash
+  ssh -o ControlPath=/tmp/ssh_a0_ctl a0 'echo "REDACTED_PASSWORD" | sudo -S -p "" bash -c "..."'
+  ```
