@@ -65,3 +65,25 @@ opencode run "Hello" --model=google/antigravity-gemini-3-flash --variant=low
 - Current credential status was:
   - `opencode auth list` -> `0 credentials`
 - The plugin README warns this is unofficial and can carry Google account risk; use at your own discretion.
+
+## Fix Applied: "Invalid project resource name"
+
+If you see an error like:
+
+- `Invalid project resource name projects/<your-email>`
+
+the stored `projectId` is invalid (email instead of GCP project id).
+
+Fix:
+
+1. Edit `~/.local/share/opencode/auth.json`
+2. Ensure `google.refresh` does not include an email as project segment
+3. Remove `google.projectId` if it is an email
+4. Edit `~/.config/opencode/antigravity-accounts.json`
+5. Remove account-level `projectId` when it is set to an email
+
+After applying the fix, rerun:
+
+```bash
+opencode run "reply with one word" --model=google/antigravity-claude-opus-4-6-thinking --variant=low
+```
