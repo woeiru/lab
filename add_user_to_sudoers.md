@@ -32,3 +32,43 @@ Group assignments are only evaluated at login. To start using `sudo`, you must a
   ```
 
 Now you should be able to execute commands with `sudo`!
+
+## How to Set Up an SSH Server
+
+If you did not select "SSH server" during the Debian installation process, you will need to install and configure it manually to allow remote access to your machine.
+
+### 1. Update the package list
+Before installing new software, it's always a good practice to update your local package index.
+
+```bash
+sudo apt update
+```
+
+### 2. Install the OpenSSH server
+Install the `openssh-server` package from the Debian repositories. 
+
+```bash
+sudo apt install openssh-server
+```
+
+### 3. Verify the SSH service is running
+In Debian, the SSH service should start automatically after installation. You can verify its status with:
+
+```bash
+sudo systemctl status ssh
+```
+*(Press `q` to exit the status output if it takes up the full screen)*
+
+If the service is not running or not enabled to start at boot, you can start and enable it manually:
+
+```bash
+sudo systemctl enable --now ssh
+```
+
+### 4. Connect to your machine
+You can now connect to your Debian machine from another computer on the same network using the `ssh` command:
+
+```bash
+ssh your_username@your_machine_ip
+```
+*(You can find your machine's IP address by running `ip a`)*
