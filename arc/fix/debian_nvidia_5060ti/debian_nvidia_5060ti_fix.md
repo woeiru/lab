@@ -242,15 +242,16 @@ Next required step is a newer branch (`570+`), likely via NVIDIA upstream instal
 ## SSH & sudo Notes (for this machine)
 
 - SSH alias: `a0`
-- User: `es`  
-- SSH login: **password-based** (no key auth set up yet) — password: `REDACTED_PASSWORD`
-- sudo password: `REDACTED_PASSWORD`
-- SSH ControlMaster trick (avoids re-entering password for subsequent commands):
+- User: `es`
+- SSH login: **key-based** — use `ssh-copy-id a0` to install your public key; never store passwords in files or git
+- SSH ControlMaster trick (avoids repeated handshakes for scripted commands):
   ```bash
-  ssh -tt -o ControlMaster=yes -o ControlPath=/tmp/ssh_a0_ctl -o ControlPersist=600 a0 'echo ready'
-  # then use: ssh -o ControlPath=/tmp/ssh_a0_ctl a0 '...'
+  ssh -o ControlMaster=auto -o ControlPath=/tmp/ssh_a0_ctl -o ControlPersist=600 a0 'echo ready'
+  # subsequent commands reuse the socket:
+  ssh -o ControlPath=/tmp/ssh_a0_ctl a0 '...'
   ```
-- sudo without tty (via ControlMaster):
+- Non-interactive sudo via ControlMaster:
   ```bash
-  ssh -o ControlPath=/tmp/ssh_a0_ctl a0 'echo "REDACTED_PASSWORD" | sudo -S -p "" bash -c "..."'
+  # With NOPASSWD sudo configured on a0 (preferred):
+  ssh -o ControlPath=/tmp/ssh_a0_ctl a0 'sudo bash -c "..."'
   ```
