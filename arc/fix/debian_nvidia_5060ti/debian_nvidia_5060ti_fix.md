@@ -87,4 +87,4 @@ Expected: `nvidia-smi` shows the GPU table, `dmesg` shows no `error -1`.
 
 - SSH alias: `a0`
 - User: `es`
-- Password for `sudo -i`: use the second attempt with `[REDACTED]` (trailing comma+period)
+- Password for `sudo -i`: see your password manager (do not store credentials in docs)
