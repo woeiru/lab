@@ -23,7 +23,13 @@ Here are the step-by-step instructions to apply the fix:
    ```
    *Note: This will automatically blacklist the `nouveau` driver and rebuild the Initramfs.*
 
-4. **Reboot the system**:
+4. **Install the Open NVIDIA Kernel Module** (Required for newer GPUs like 5060 Ti if the standard driver fails with 'error -1'):
+   ```bash
+   sudo apt-get install -y nvidia-open-kernel-dkms
+   echo "options nvidia NVreg_OpenRmEnableUnsupportedGpus=1" | sudo tee /etc/modprobe.d/nvidia-open.conf
+   ```
+
+5. **Reboot the system**:
    ```bash
    sudo reboot
    ```
