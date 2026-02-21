@@ -83,19 +83,20 @@ Expected: `nvidia-smi` shows the GPU table, `dmesg` shows no `error -1`.
 
 ---
 
-## Current State (as of 2026-02-21 ~18:45 CET) — Root Cause Identified
+## Current State (as of 2026-02-21 ~19:25 CET) — Debian Packages Still Too Old
 
-All the right packages are installed, but the loaded driver branch is too old for this GPU. Latest debugging results:
+All the right packages are installed, but the available Debian branches on this host are still too old for this GPU.
+Both tested branches (`550.163.01` and `555.58.02`) reject PCI ID `10de:2d04`.
 
 ### DKMS status
 ```
-nvidia-current-open/550.163.01, 6.12.73+deb13-amd64, x86_64: installed
+nvidia-current-open/555.58.02, 6.12.73+deb13-amd64, x86_64: installed
 ```
 The open module is built and registered. No closed-source `nvidia-kernel-dkms` present.
 
 ### lsmod
 ```
-(empty — no nvidia module loaded at all)
+nouveau loaded; no nvidia module loaded
 ```
 
 ### Kernel .ko files present
@@ -111,7 +112,7 @@ The open module is built and registered. No closed-source `nvidia-kernel-dkms` p
 ```
 [    8.299192] NVRM: The NVIDIA GPU 0000:3c:00.0 (PCI ID: 10de:2d04)
                NVRM: installed in this system is not supported by the
-               NVRM: NVIDIA 550.163.01 driver release.
+               NVRM: NVIDIA 555.58.02 driver release.
 [    8.299233] nvidia 0000:3c:00.0: probe with driver nvidia failed with error -1
 [    8.299260] NVRM: The NVIDIA probe routine failed for 1 device(s).
 [    8.299262] NVRM: None of the NVIDIA devices were initialized.
@@ -127,10 +128,11 @@ This repeats ~5 times (modprobe retried by udev/systemd).
   ```
 - `dmesg` after direct load confirms the real blocker is support matrix, not aliasing.
 - `update-alternatives --display nvidia-kernel` reports no alternatives configured.
-- Firmware tree exists (`/lib/firmware/nvidia/550.163.01/...`), so this is not a missing-GSP-blob case.
-- Repositories currently enabled on this host only provide 550.163.01:
-  - `trixie` / `trixie-updates` / `trixie-security`
-  - no backports/experimental/unstable source configured
+- Firmware tree exists (`/lib/firmware/nvidia/555.58.02/...`), so this is not a missing-GSP-blob case.
+- Current installed versions on host:
+  - `nvidia-driver`: `555.58.02-2`
+  - `nvidia-open-kernel-dkms`: `555.58.02-2`
+  - `firmware-nvidia-gsp`: `555.58.02-2`
 
 ### sddm status
 ```
@@ -142,8 +144,8 @@ sddm is running but KDE Plasma session fails to start because nvidia module neve
 
 ## Next Steps (Corrected)
 
-1. **Install a newer NVIDIA branch (570+)** from a repo/source that includes Blackwell support.
-   550.163.01 is definitively rejected by the kernel module for PCI ID `10de:2d04`.
+1. **Install a newer NVIDIA branch (570+)** from a source not currently in Debian repos configured on this host.
+   `555.58.02` is still rejected for PCI ID `10de:2d04`.
 
 2. **Keep open kernel module path**:
    - continue using `nvidia-open-kernel-dkms`
@@ -158,7 +160,82 @@ sddm is running but KDE Plasma session fails to start because nvidia module neve
    sudo dmesg | grep -Ei 'nvidia|NVRM' | tail -40
    nvidia-smi
    ```
-   Success criterion: no "not supported by the NVIDIA 550.163.01 driver release" style message.
+   Success criterion: no "not supported by the NVIDIA ... driver release" message.
+
+---
+
+## Execution Log (2026-02-21, performed)
+
+### Goal
+Upgrade only the NVIDIA stack using Debian package management (pinned), avoiding full-system sid/experimental upgrades.
+
+### 1) Added temporary extra APT sources
+Created `/etc/apt/sources.list.d/nvidia-next.list` on `a0` with:
+```bash
+deb http://deb.debian.org/debian sid main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian experimental main contrib non-free non-free-firmware
+```
+
+### 2) Added pinning so only NVIDIA packages can come from experimental
+Created `/etc/apt/preferences.d/99-nvidia-experimental.pref`:
+```bash
+Package: *
+Pin: release a=experimental
+Pin-Priority: 1
+
+Package: *nvidia*
+Pin: release a=experimental
+Pin-Priority: 990
+```
+
+### 3) Validated availability
+`apt-cache madison` showed:
+- `sid`: `550.163.01-4`
+- `experimental`: `555.58.02-2`
+
+No `570+` package available from currently queried Debian repos.
+
+### 4) Ran upgrade
+Executed:
+```bash
+sudo DEBIAN_FRONTEND=noninteractive apt-get -y install nvidia-driver nvidia-open-kernel-dkms firmware-nvidia-gsp
+```
+
+During the first attempt, package install was interrupted and left `nvidia-legacy-check` half-installed (`iHR`), causing dependency breakage.
+Recovery steps:
+```bash
+sudo dpkg --configure -a
+sudo DEBIAN_FRONTEND=noninteractive apt-get -y --reinstall install nvidia-legacy-check
+sudo dpkg --configure -a
+```
+
+DKMS then built and installed:
+```text
+nvidia-current-open/555.58.02, 6.12.73+deb13-amd64, x86_64: installed
+```
+
+### 5) Verification after upgrade
+Direct probe still fails:
+```bash
+sudo /sbin/modprobe -v nvidia-current-open NVreg_OpenRmEnableUnsupportedGpus=1
+# modprobe: ERROR: could not insert 'nvidia_current_open': No such device
+```
+
+Kernel log still reports unsupported device on 555:
+```text
+NVRM: The NVIDIA GPU 0000:3c:00.0 (PCI ID: 10de:2d04)
+NVRM: installed in this system is not supported by the
+NVRM: NVIDIA 555.58.02 driver release.
+```
+
+`nvidia-smi`:
+```text
+NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver.
+```
+
+### Conclusion
+Pinned Debian package path was executed successfully and upgraded the full NVIDIA stack to `555.58.02-2`, but this branch still does not support this RTX 5060 Ti PCI ID on this system.
+Next required step is a newer branch (`570+`), likely via NVIDIA upstream installer or a newer packaging source.
 
 ---
 
