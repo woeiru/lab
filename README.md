@@ -1,267 +1,235 @@
-# Lab Environment Management System
+# lab
 
-A sophisticated, production-ready infrastructure automation and environment management platform built for enterprise-scale deployment and development operations.
+Bash-based infrastructure automation platform for managing Proxmox VE clusters, containers, GPU passthrough, and multi-environment deployments. Pure Bash (4+), no external build system.
 
-## 🎯 System Overview
+## Quick Start
 
-This is a comprehensive environment management framework designed for complex infrastructure automation, featuring hierarchical configuration management, modular deployment patterns, and enterprise-grade security controls. The system has evolved into a mature platform supporting Proxmox VE clusters, container orchestration, GPU passthrough management, and multi-environment deployment scenarios.
-
-### ✨ Key Capabilities
-
-- **🏗️ Infrastructure as Code**: Standardized container/VM deployment with 19+ configurable parameters
-- **🔧 Modular Architecture**: Pure function libraries with wrapper pattern for enhanced testability  
-- **🌍 Environment-Aware**: Hierarchical configuration loading (base → environment → node)
-- **🔐 Security-First**: Zero hardcoded passwords with secure credential management
-- **📊 Performance Monitoring**: Comprehensive timing and performance analysis tools
-- **🧪 Testing Framework**: 375+ lines of validation logic for system reliability
-- **📚 Enterprise Documentation**: Complete technical guides and operational runbooks
-
-## 🚀 Quick Start
-
-The Lab Environment Management System provides a streamlined command-line interface through the `./go` command for optimal user experience.
-
-### Initial Setup
 ```bash
-# First-time system initialization
+# initialize shell integration (one-time setup)
 ./go init
 
-# Verify system status
+# enable / disable integration
+./go on
+./go off
+
+# check status
 ./go status
 
-# Run comprehensive validation
+# run tests
 ./go validate
 ```
 
-### Available Commands
+After running `./go on` and restarting your shell, all core modules and library functions are loaded automatically into every session.
 
-| Command | Purpose | When to Use |
-|---------|---------|-------------|
-| `./go status` | Check initialization status | Verify system readiness |
-| `./go validate` | Run comprehensive test suite | System verification and troubleshooting |
-| `./go help` | Display detailed usage help | When you need guidance |
+## Requirements
 
-### Daily Usage
-```bash
-# After initialization, core modules are automatically available:
-# - err: Advanced error handling and stack traces
-# - lo1: Module-specific debug logging  
-# - tme: Performance timing and monitoring
-# - Environment hierarchy management
+- Bash 4+ or Zsh 5+
+- Linux (developed on Proxmox VE / Debian)
+- Standard UNIX utilities, systemd
 
-# System functions are sourced automatically in new shell sessions
-# Use deployment scripts and infrastructure commands directly
+## Repository Structure
+
+```
+lab/
+├── go              Main CLI entry point
+├── bin/
+│   ├── ini         System initialization controller
+│   └── orc         Component orchestrator (sequential module loader)
+├── cfg/
+│   ├── core/       Runtime constants, module dependencies, environment config
+│   ├── ali/        Shell aliases (static and dynamic)
+│   ├── env/        Environment definitions (site/env/node hierarchy)
+│   ├── log/        Logging pipeline configs (Fluentd, Filebeat)
+│   └── pod/        Container definitions
+├── lib/
+│   ├── core/       Foundational modules (col, err, lo1, tme, ver)
+│   ├── gen/        General utilities (ana, aux, env, inf, sec)
+│   └── ops/        Operational modules (dev, gpu, net, pbs, pve, srv, ssh, sto, sys, usr)
+├── src/
+│   ├── dic/        Dependency injection container
+│   └── set/        Section-based deployment scripts
+├── val/
+│   ├── helpers/    Test framework
+│   ├── core/       Core module tests
+│   ├── lib/        Library tests
+│   ├── integration/ Workflow tests
+│   └── src/        DIC tests
+├── doc/            Technical documentation (admin, CLI, dev, IaC, issues)
+├── utl/            Utilities (doc generators, stats, alias tools)
+└── arc/            Archive (fix guides, how-tos, network docs, AI strategy)
 ```
 
-### Architecture Benefits
+## Architecture
 
-The new entry point structure provides:
-- **Clear User Journey**: Setup → Verification → Daily Usage
-- **Professional CLI Pattern**: Follows industry standard conventions
-- **Separation of Concerns**: User interface vs. system configuration
-- **Built-in Validation**: Integrated test runner with comprehensive coverage
+### Initialization Chain
 
+```
+./go init  -->  bin/ini  -->  bin/orc
+                  │              │
+                  │              ├── cfg/ali      (aliases)
+                  │              ├── lib/ops      (operational modules)
+                  │              ├── lib/gen      (general utilities)
+                  │              ├── cfg/env      (environment config)
+                  │              └── src/         (DIC + deployment)
+                  │
+                  ├── cfg/core/ric   (runtime constants)
+                  ├── cfg/core/rdc   (runtime dependencies)
+                  ├── cfg/core/mdc   (module dependencies)
+                  └── lib/core/      (col, err, lo1, tme, ver)
+```
 
-## 🏛️ Architecture Overview
+`bin/ini` loads core configuration and modules first, then hands off to `bin/orc` which sources the remaining components in order. Each component is optional and timed.
 
-This infrastructure management platform follows a modular, hierarchical design with clear separation of concerns across seven primary system domains. The architecture emphasizes testability, environment awareness, and enterprise-grade security patterns.
+### Core Modules (`lib/core/`)
 
-> 💡 **Navigation Tip**: For detailed exploration of each system component, see the [📚 Documentation](#-documentation) section below with comprehensive guides and directory-specific documentation.
+| Module | Purpose |
+|--------|---------|
+| `col`  | Terminal color management with semantic palette and depth-based Viridis scale |
+| `err`  | Error handling with codes, stack traces, error tracking, and ERR trap |
+| `lo1`  | Logging with depth-based indentation, call stack analysis, and caching |
+| `tme`  | Performance timing with nested timer hierarchy, tree reports, and sort modes |
+| `ver`  | Verification of paths, variables, modules, and functions with dependency checks |
 
-### Core Design Patterns
+### General Utilities (`lib/gen/`)
 
-#### 🎯 Function Separation Pattern
+| Module | Purpose |
+|--------|---------|
+| `ana`  | Code analysis: list functions, documentation, config variable usage (table + JSON) |
+| `aux`  | Swiss-army helper: validation, checks, safe execution, structured logging, user input, tracing |
+| `env`  | Environment switching: `env_switch`, `env_site_switch`, `env_status`, `env_validate` |
+| `inf`  | Infrastructure config: container/VM definition with 19+ params, bulk creation, IP sequencing |
+| `sec`  | Security: password generation (`/dev/urandom`), secure storage (chmod 600), no hardcoded secrets |
+
+### Operational Modules (`lib/ops/`)
+
+Ten domain-specific modules following strict naming and standards defined in `.spec` (958 lines) and `.guide` (303 lines):
+
+| Module | Domain |
+|--------|--------|
+| `pve`  | Proxmox VE management |
+| `gpu`  | GPU passthrough (detach/attach/status) |
+| `sys`  | System operations (packages, users, hosts) |
+| `net`  | Network configuration and routing |
+| `sto`  | Storage management (Btrfs, ZFS, LVM) |
+| `ssh`  | SSH configuration and key management |
+| `pbs`  | Proxmox Backup Server |
+| `srv`  | Service management |
+| `dev`  | Development utilities |
+| `usr`  | User account management |
+
+All ops functions are stateless and parameterized. They follow the `module_name` convention (e.g., `gpu_ptd`, `pve_cdo`) and support `--help`, structured logging via `aux_info/warn/err/dbg`, and consistent return codes (`0` success, `1` usage error, `2` runtime failure, `127` missing command).
+
+### Dependency Injection Container (`src/dic/`)
+
+The DIC bridges stateless library functions with environment context. Instead of passing infrastructure parameters manually, the DIC resolves them automatically.
+
 ```bash
-# Pure Functions (lib/ops/) - Testable, parameterized
-pve-vmc() {
-    local vm_id="$1"
-    local cluster_nodes="$2" 
-    # Pure logic with explicit parameters
+# direct library call (explicit parameters)
+gpu_ptd "0000:01:00.0" "vfio-pci"
+
+# DIC call (parameters resolved from environment)
+ops gpu ptd
+```
+
+Three execution modes:
+- **Hybrid** (default): user-supplied args supplemented by DIC resolution
+- **Injection** (`-j`): full parameter resolution from environment
+- **Explicit** (`-x`): function handles its own parameter sourcing
+
+Resolution order: User Args > Hostname-specific vars > Global env vars > Function defaults.
+
+### Environment Hierarchy
+
+Configuration cascades through three layers:
+
+```
+cfg/env/site1          Base site configuration
+    |
+cfg/env/site1-dev      Environment override (dev/staging/prod)
+    |
+cfg/env/site1-w2       Node-specific settings (per hostname)
+```
+
+Switch environments at runtime with `env_switch`, `env_site_switch`, or `env_node_switch`.
+
+### Deployment Scripts (`src/set/`)
+
+Section-based scripts for orchestrating multi-step deployments:
+
+```bash
+# h1 = hypervisor setup script
+# each letter is a section (a, b, c, ...)
+src/set/h1    # interactive menu
+```
+
+Sections group related `ops` DIC calls into sequential operations (e.g., configure repos, install packages, setup networking, generate keys).
+
+## Testing
+
+```bash
+# run everything
+./val/run_all_tests.sh
+
+# run by category
+./val/run_all_tests.sh core
+./val/run_all_tests.sh lib
+./val/run_all_tests.sh integration
+./val/run_all_tests.sh src
+
+# list available tests
+./val/run_all_tests.sh --list
+
+# quick mode (skip slow tests)
+./val/run_all_tests.sh --quick
+
+# run a single test directly
+./val/core/config/cfg_test.sh
+./val/lib/ops/sys_test.sh
+
+# library-specific runner with grouping
+./val/lib/run_all_tests.sh --core
+./val/lib/run_all_tests.sh --ops --gen
+```
+
+The test framework (`val/helpers/test_framework.sh`) provides `run_test`, `test_function_exists`, `test_file_exists`, `test_var_set`, `test_with_timeout`, `run_test_group`, BDD-style helpers, and color-coded output.
+
+## Function Conventions
+
+Functions are self-documenting. Three comment lines above a function definition are extractable as usage help via `aux_use`. A comment block inside the function body is extractable as technical docs via `aux_tec`.
+
+```bash
+# Create a container on the target node
+# Usage: pve_cdo <vmid> <hostname> <ip>
+# Returns: 0 on success, 2 on failure
+pve_cdo() {
+    # Technical: Uses pct create with template from CT_TEMPLATE
+    # Validates VMID range 100-999 before execution
+    # Requires: pct, pvesh
+    ...
 }
-
-# DIC Operations (src/dic/) - Unified infrastructure interface  
-pve-vmc-w() {
-    local cluster_nodes="${CLUSTER_NODES[*]}"
-    pve-vmc "$vm_id" "$cluster_nodes"
-}
 ```
 
-#### 🌐 Environment Hierarchy
-```bash
-Base Configuration (cfg/env/site1)
-    ↓
-Environment Override (cfg/env/site1-dev)  
-    ↓
-Node-Specific Settings (runtime)
-```
+Naming: `module_name` for public functions, `_module_name` for internal helpers. All use `snake_case` and `local` for variables.
 
+## Documentation
 
-## 🛠️ System Components
+Detailed docs live in `doc/` organized by audience:
 
-### Infrastructure Management
-- **Container/VM Standardization**: 355+ lines of infrastructure utilities
-- **Bulk Creation**: Colon-separated definition strings for rapid deployment
-- **IP Management**: Automatic sequence generation and network planning
-- **Configuration Validation**: Built-in validation and summary reporting
+| Directory | Contents |
+|-----------|----------|
+| `doc/adm/` | Configuration and security administration |
+| `doc/cli/` | Initialization flow and verbosity controls |
+| `doc/dev/` | Function standards, logging, variables |
+| `doc/iac/` | Deployment procedures and environment management |
+| `doc/issue/` | Tracked issues and known bugs |
 
-### Security Framework  
-- **Password Management**: 120+ lines of secure credential handling
-- **Zero Hardcoded Secrets**: All credentials managed through `lib/gen/sec`
-- **Proper Permissions**: Automatic 600 permissions for sensitive files
-- **Fallback Mechanisms**: Graceful handling of missing credentials
+Additional references:
+- `lib/ops/.spec` -- mandatory technical standards for ops modules
+- `lib/ops/.guide` -- quality best practices and implementation checklist
+- `arc/fix/` -- hardware-specific fix guides (AMDGPU, NVIDIA, GPU passthrough)
+- `arc/how/` -- setup how-tos (sudoers, btrfs/snapper, git auth)
 
-### Deployment System
-```bash
-# Interactive deployment
-cd src/set/pve && ./pve
-
-# Direct execution  
-cd src/set/pve && ./pve a  # Execute specific task
-
-# Environment context automatically loaded:
-# SITE=site1, ENVIRONMENT=dev, NODE=current_hostname
-```
-
-### Operations Libraries
-
-| Module | Purpose | Functions |
-|--------|---------|-----------|
-| **pve** | Proxmox VE Management | 15 functions (9 parameterized) |
-| **gpu** | GPU Passthrough | 9 functions with `-w` wrappers |
-| **sys** | System Operations | Package, user, host management |
-| **net** | Network Management | Configuration and routing |
-| **sto** | Storage Management | Filesystem and storage pools |
-
-
-
-## 🔧 Advanced Features
-
-### Configuration Management
-```bash
-# Hierarchical environment loading
-export SITE="site1"
-export ENVIRONMENT="dev"  
-export NODE="workstation-1"
-
-# Automatic configuration cascade:
-# cfg/env/site1 → cfg/env/site1-dev → node-specific overrides
-```
-
-### Performance Monitoring
-```bash
-# Built-in timing system
-tme_start_timer "DEPLOYMENT_TASK"
-# ... perform operations ...
-tme_end_timer "DEPLOYMENT_TASK" "success"
-tme_print_timing_report
-
-# Granular output control
-tme_set_output debug off     # Disable debug messages
-tme_set_output report on     # Enable timing reports
-tme_show_output_settings     # Display current configuration
-```
-
-### Infrastructure Utilities
-```bash
-# Standardized container creation
-source lib/gen/inf
-define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112"
-validate_config && show_config_summary
-```
-
-## 🎓 Usage Examples
-
-### Container Deployment
-```bash
-# Set global defaults
-set_container_defaults memory=4096 storage="local-lvm"
-
-# Bulk container creation
-define_containers "101:web:192.168.1.101:102:db:192.168.1.102"
-
-# Deploy with environment awareness
-cd src/set/pve && ./pve q  # Create containers
-```
-
-### GPU Passthrough Management
-```bash
-# Environment-aware GPU management
-gpu_pts-w    # Check GPU status (wrapper function)
-gpu_ptd-w 1  # Detach GPU for passthrough
-gpu_pta-w 1  # Attach GPU back to host
-```
-
-### Proxmox Cluster Setup
-```bash
-cd src/set/pve
-./pve a  # Configure repositories
-./pve b  # Install packages  
-./pve c  # Setup /etc/hosts
-./pve d  # Generate SSH keys
-```
-
-
-## 📋 System Requirements
-
-- **Operating System**: Linux (tested on Proxmox VE)
-- **Shell**: Bash 4+ or Zsh 5+
-- **Dependencies**: Standard UNIX utilities, systemd
-- **Network**: Multi-node cluster support with QDevice integration
-- **Storage**: Btrfs, ZFS, and LVM support
-
-## 🔍 Configuration Examples
-
-### Environment Configuration (cfg/env/site1-dev)
-```bash
-# Development environment overrides
-export CLUSTER_NODES=("dev-node1" "dev-node2")
-export VM_DEFAULT_MEMORY=2048
-export CT_DEFAULT_CORES=2
-```
-
-### Container Definition
-```bash
-# Traditional approach (deprecated)
-CT_101_ID=101
-CT_101_HOSTNAME="webserver"
-CT_101_IP="192.168.1.101"
-# ... 16 more variables per container
-
-# Modern approach (current)
-define_container 101 "webserver" "192.168.1.101"
-```
-
-## 🧪 Testing & Validation
-
-```bash
-# Quick system validation
-./val/validate_system
-
-# Comprehensive testing
-./tst/test_environment
-
-# Component-specific testing  
-cd test && ./test_complete_refactor.sh
-```
-
-
-## 🤝 Integration Points
-
-### For Developers
-- **Library Integration**: Import stateless functions with explicit parameters
-- **Environment Awareness**: Use hierarchical configuration for context
-- **Testing Framework**: Leverage existing validation infrastructure
-
-### For System Administrators
-- **Monitoring**: Implement logging and performance tracking
-- **Security**: Follow established credential management patterns
-
-### For Infrastructure Teams  
-- **Standardized Deployments**: Use infrastructure utilities for consistency
-- **Environment Management**: Implement environment-specific overrides
-- **Automation**: Extend deployment scripts with established patterns
-
-
-## 📊 System Metrics
+## Project Stats
 
 <!-- AUTO-GENERATED SECTION: System Metrics -->
 *Auto-updated system metrics with real-time analysis*
@@ -286,8 +254,4 @@ cd test && ./test_complete_refactor.sh
 | **TOTAL          ** | **  102** | **     29** | **     1556** |
 <!-- END AUTO-GENERATED SECTION -->
 
-> 💡 **Live Metrics**: These statistics are generated in real-time using `./utl/doc/generators/stats`. Run it anytime to get current codebase metrics in formatted, markdown, or raw output.
-
-
----
-*Last updated: 2026-02-15*
+Regenerate with `./utl/doc/generators/stats`.
