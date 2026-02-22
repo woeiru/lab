@@ -13,7 +13,7 @@ Primary entrypoints are `./go`, `bin/ini`, and scripts under `val/`.
 ### Build / bootstrap
 - There is no traditional compile/build pipeline (no `Makefile`, `package.json`, `go.mod`, `pyproject.toml`, or `Cargo.toml`).
 - Setup shell integration (interactive):
-  - `./go init`
+  - `./go init` (also accepts `./go setup`)
 - Enable or disable integration after init:
   - `./go on`
   - `./go off`
@@ -43,6 +43,7 @@ Primary entrypoints are `./go`, `bin/ini`, and scripts under `val/`.
 - Helpful options:
   - `./val/run_all_tests.sh --list`
   - `./val/run_all_tests.sh --quick`
+  - `./val/run_all_tests.sh --verbose`
   - `./val/run_all_tests.sh --help`
 
 ### Running a single test (important)
@@ -63,6 +64,8 @@ Primary entrypoints are `./go`, `bin/ini`, and scripts under `val/`.
   - `./val/lib/run_all_tests.sh`
   - `./val/lib/run_all_tests.sh --core`
   - `./val/lib/run_all_tests.sh --ops --gen`
+  - `./val/lib/run_all_tests.sh --integration`
+  - `./val/lib/run_all_tests.sh --help`
 
 ## 2) Code Style and Implementation Guidelines
 
@@ -90,9 +93,13 @@ These rules come from repository docs and actual code patterns, especially:
 
 ### Imports / sourcing conventions
 - Source dependencies near the top of scripts.
-- Use robust relative sourcing pattern:
-  - `source "$(dirname "${BASH_SOURCE[0]}")/../path/to/file"`
-- For operational logging and helper integration in ops modules, source `lib/gen/aux` as needed.
+- Use robust relative sourcing based on `BASH_SOURCE[0]`:
+  - Test scripts use the one-liner form:
+    - `source "$(dirname "${BASH_SOURCE[0]}")/../path/to/file"`
+  - Ops modules typically use a two-step form:
+    - `DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"`
+    - `source "${DIR_FUN}/../gen/aux"`
+- For operational logging and helper integration in ops modules, source `lib/gen/aux` as needed (some modules source it explicitly; others rely on it being pre-loaded via the initialization chain).
 
 ### Function naming
 - In `lib/ops`, public functions should follow module prefix convention:
