@@ -1,6 +1,6 @@
 # lab
 
-Bash-based infrastructure automation platform for managing Proxmox VE clusters, containers, GPU passthrough, and multi-environment deployments. Pure Bash (4+), no external build system.
+Infrastructure automation framework that implements dependency injection, structured logging, and a full test harness entirely in Bash -- no external tooling, no build system, no dependencies beyond coreutils. Built around Proxmox VE clusters, containers, GPU passthrough, and multi-environment deployments.
 
 ## Quick Start
 
