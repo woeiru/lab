@@ -124,6 +124,7 @@ test_ops_libraries() {
     local ops_tests=(
         "ops/pbs_test.sh:PBS Operations:Operations"
         "ops/srv_test.sh:Service Operations:Operations"
+        "ops/dev_test.sh:Development Operations:Operations"
         "ops/pve_test.sh:Proxmox VE Operations:Operations"
         "ops/gpu_test.sh:GPU Management:Operations"
         "ops/sys_test.sh:System Administration:Operations"

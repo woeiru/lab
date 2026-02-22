@@ -1,0 +1,268 @@
+#!/bin/bash
+
+# Define directory and file variables
+DIR_FUN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+FILE_FUN=$(basename "$BASH_SOURCE")
+BASE_FUN="${FILE_FUN%.*}"
+FILEPATH_FUN="${DIR_FUN}/${FILE_FUN}"
+CONFIG_FUN="${SITE_CONFIG_FILE}"
+
+# Dynamically create variables based on the base name
+eval "FILEPATH_${BASE_FUN}=\$FILEPATH_FUN"
+eval "FILE_${BASE_FUN}=\$FILE_FUN"
+eval "BASE_${BASE_FUN}=\$BASE_FUN"
+eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
+
+_dev_get_opencode_db_path() {
+    local db_path
+    db_path=$(opencode db path 2>/dev/null) || return 1
+
+    if ! aux_val "$db_path" "file_exists"; then
+        return 1
+    fi
+
+    echo "$db_path"
+}
+
+# Shows a complete OpenCode session overview across all scopes
+# opencode sessions overview
+# -x (execute)
+dev_osv() {
+    # Technical Description:
+    #   Reads the OpenCode SQLite database and prints all known sessions across projects
+    #   Includes a short session suffix column to support quick session targeting workflows
+    #   Joins session and project metadata to show scope/worktree context for each entry
+    #   Sorts by last update time so the most recent sessions appear first
+    # Dependencies:
+    #   - opencode CLI for resolving the active database path
+    #   - python3 with sqlite3 module for read-only query execution
+    #   - column command (optional) for aligned table formatting
+    # Arguments:
+    #   $1: -x - explicit execution flag required for consistency
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "opencode"; then
+        aux_err "opencode command not found"
+        return 127
+    fi
+
+    if ! aux_chk "command" "python3"; then
+        aux_err "python3 command not found"
+        return 127
+    fi
+
+    local db_path
+    db_path=$(_dev_get_opencode_db_path)
+    if [ $? -ne 0 ]; then
+        aux_err "Could not resolve OpenCode database path"
+        return 2
+    fi
+
+    aux_info "Collecting OpenCode sessions overview" "component=dev,operation=opencode_session_overview,db_path=$db_path"
+
+    local output
+    output=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+query = """
+SELECT
+  substr(s.id, length(s.id) - 2, 3) AS suffix,
+  s.id,
+  COALESCE(p.worktree, '(missing_project)') AS project_root,
+  s.directory,
+  s.title,
+  datetime(s.time_updated / 1000, 'unixepoch', 'localtime') AS updated_local
+FROM session s
+LEFT JOIN project p ON p.id = s.project_id
+ORDER BY s.time_updated DESC;
+"""
+
+cur.execute(query)
+rows = cur.fetchall()
+print("suffix\tid\tproject_root\tdirectory\ttitle\tupdated_local")
+for row in rows:
+    normalized = []
+    for value in row:
+        if value is None:
+            normalized.append("")
+        else:
+            text = str(value).replace("\t", " ").replace("\n", " ")
+            normalized.append(text)
+    print("\t".join(normalized))
+PY
+)
+    if [ $? -ne 0 ]; then
+        aux_err "Failed to read OpenCode sessions from database"
+        return 2
+    fi
+
+    if aux_chk "command" "column"; then
+        echo "$output" | column -t -s $'\t'
+    else
+        echo "$output"
+    fi
+
+    return 0
+}
+
+# Reassigns a single OpenCode session to a target scope using an ID suffix
+# opencode session move scope
+# <scope_path> <session_id_suffix>
+dev_omi() {
+    # Technical Description:
+    #   Locates a session by matching the trailing ID suffix provided by the caller
+    #   Resolves the target project scope from the OpenCode project table using worktree path
+    #   Updates session project_id and directory to move the session into the target scope
+    #   Rejects ambiguous suffixes and missing scope mappings to avoid accidental reassignment
+    # Dependencies:
+    #   - opencode CLI for database path resolution
+    #   - python3 with sqlite3 module for transactional updates
+    #   - Existing OpenCode project record for the target scope path
+    # Arguments:
+    #   $1: scope_path - target worktree path already known to OpenCode
+    #   $2: session_id_suffix - last 3+ alphanumeric characters of the session ID
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Scope path cannot be empty"
+        aux_use
+        return 1
+    fi
+
+    if ! aux_val "$1" "dir_exists"; then
+        aux_err "Scope path does not exist" "component=dev,operation=opencode_move_session,scope_path=$1"
+        return 1
+    fi
+
+    if ! aux_val "$2" "alphanum"; then
+        aux_err "Session suffix must be alphanumeric" "component=dev,operation=opencode_move_session,suffix=$2"
+        aux_use
+        return 1
+    fi
+
+    if ! aux_val "$2" "min_length" "3"; then
+        aux_err "Session suffix must be at least 3 characters"
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "opencode"; then
+        aux_err "opencode command not found"
+        return 127
+    fi
+
+    if ! aux_chk "command" "python3"; then
+        aux_err "python3 command not found"
+        return 127
+    fi
+
+    local scope_path="$1"
+    local suffix="$2"
+    local db_path
+    db_path=$(_dev_get_opencode_db_path)
+    if [ $? -ne 0 ]; then
+        aux_err "Could not resolve OpenCode database path"
+        return 2
+    fi
+
+    aux_warn "Close active OpenCode clients before moving sessions" "component=dev,operation=opencode_move_session"
+
+    local py_output
+    py_output=$(python3 - "$db_path" "$suffix" "$scope_path" <<'PY'
+import sqlite3
+import sys
+
+db_path, suffix, scope_path = sys.argv[1], sys.argv[2], sys.argv[3]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute(
+    "SELECT id, directory, title FROM session WHERE id LIKE ? ORDER BY time_updated DESC",
+    ("%" + suffix,),
+)
+matches = cur.fetchall()
+
+if len(matches) == 0:
+    print("NO_MATCH")
+    sys.exit(11)
+
+if len(matches) > 1:
+    print("AMBIGUOUS")
+    for session_id, directory, title in matches:
+        title = (title or "").replace("\t", " ").replace("\n", " ")
+        directory = (directory or "").replace("\t", " ").replace("\n", " ")
+        print(f"CANDIDATE\t{session_id}\t{directory}\t{title}")
+    sys.exit(12)
+
+target_session_id = matches[0][0]
+
+cur.execute("SELECT id FROM project WHERE worktree = ? LIMIT 1", (scope_path,))
+project_row = cur.fetchone()
+if project_row is None:
+    print("MISSING_SCOPE")
+    sys.exit(13)
+
+target_project_id = project_row[0]
+cur.execute(
+    "UPDATE session SET project_id = ?, directory = ? WHERE id = ?",
+    (target_project_id, scope_path, target_session_id),
+)
+conn.commit()
+
+print(f"MOVED\t{target_session_id}\t{target_project_id}\t{scope_path}")
+sys.exit(0)
+PY
+)
+    local py_status=$?
+
+    case "$py_status" in
+        0)
+            local moved_session_id
+            moved_session_id=$(echo "$py_output" | awk -F'\t' '/^MOVED\t/ {print $2}')
+            aux_info "Session moved successfully" "component=dev,operation=opencode_move_session,session_id=$moved_session_id,scope_path=$scope_path"
+            echo "$py_output"
+            return 0
+            ;;
+        11)
+            aux_err "No session found for suffix" "component=dev,operation=opencode_move_session,suffix=$suffix"
+            return 1
+            ;;
+        12)
+            aux_err "Session suffix is ambiguous; use a longer suffix"
+            echo "$py_output" | awk -F'\t' '/^CANDIDATE\t/ {printf "candidate id=%s directory=%s title=%s\n", $2, $3, $4}'
+            return 1
+            ;;
+        13)
+            aux_err "Target scope is not registered in OpenCode" "component=dev,operation=opencode_move_session,scope_path=$scope_path"
+            aux_info "Open OpenCode once in that path first to register the project" "scope_path=$scope_path"
+            return 1
+            ;;
+        *)
+            aux_err "Failed to move session due to database error" "component=dev,operation=opencode_move_session,python_exit=$py_status"
+            return 2
+            ;;
+    esac
+}

@@ -1,0 +1,247 @@
+#!/bin/bash
+# Development Operations Library Tests
+# Tests for lib/ops/dev OpenCode session management helpers
+
+# Test configuration
+TEST_NAME="Development Operations Library"
+TEST_CATEGORY="lib"
+
+# Load test framework
+source "$(dirname "${BASH_SOURCE[0]}")/../../../val/helpers/test_framework.sh"
+
+# Lightweight aux function stubs for isolated module testing
+aux_tec() { :; }
+aux_use() { :; }
+aux_info() { :; }
+aux_warn() { :; }
+aux_err() { :; }
+aux_dbg() { :; }
+
+if [[ -f "${LAB_ROOT}/lib/gen/aux" ]]; then
+    source "${LAB_ROOT}/lib/gen/aux"
+fi
+
+# Load the library being tested
+source "${LAB_ROOT}/lib/ops/dev"
+
+_create_mock_opencode() {
+    local test_env="$1"
+    local db_path="$2"
+
+    mkdir -p "$test_env/bin"
+    cat > "$test_env/bin/opencode" << EOF
+#!/bin/bash
+if [[ "\$1" == "db" && "\$2" == "path" ]]; then
+    echo "$db_path"
+    exit 0
+fi
+exit 1
+EOF
+    chmod +x "$test_env/bin/opencode"
+}
+
+_create_test_db() {
+    local db_path="$1"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("CREATE TABLE project (id TEXT PRIMARY KEY, worktree TEXT)")
+cur.execute("""
+CREATE TABLE session (
+    id TEXT PRIMARY KEY,
+    project_id TEXT,
+    directory TEXT,
+    title TEXT,
+    time_updated INTEGER
+)
+""")
+
+conn.commit()
+PY
+}
+
+# Test: Development functions exist
+test_dev_functions_exist() {
+    declare -f dev_osv >/dev/null 2>&1 || return 1
+    declare -f dev_omi >/dev/null 2>&1 || return 1
+    return 0
+}
+
+# Test: Session overview lists rows from OpenCode DB
+test_dev_overview_output() {
+    local test_env
+    test_env=$(create_test_env "dev_overview")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_1111111111111111111111xyz", "project_lab", "/home/es/lab", "Sample Session", 1771759739789),
+)
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"suffix"* ]] || return 1
+    [[ "$output" == *"xyz"* ]] || return 1
+    [[ "$output" == *"Sample Session"* ]] || return 1
+    return 0
+}
+
+# Test: Session move updates project scope using ID suffix
+test_dev_move_session_by_suffix() {
+    local test_env
+    test_env=$(create_test_env "dev_move")
+    local db_path="$test_env/opencode.db"
+    local target_scope="$test_env/labscope"
+
+    mkdir -p "$target_scope"
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" "$target_scope" <<'PY'
+import sqlite3
+import sys
+
+db_path, target_scope = sys.argv[1], sys.argv[2]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("global", "/"))
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", target_scope))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_aaaaaaaaaaaaaaaaaaaaaabc", "global", "/home/es", "To Move", 1771759963324),
+)
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    dev_omi "$target_scope" "abc" >/dev/null 2>&1
+    local move_status=$?
+
+    PATH="$old_path"
+
+    [[ $move_status -eq 0 ]] || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    local check
+    check=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+cur.execute("SELECT project_id, directory FROM session WHERE id = ?", ("ses_aaaaaaaaaaaaaaaaaaaaaabc",))
+row = cur.fetchone()
+print(f"{row[0]}|{row[1]}")
+PY
+)
+
+    cleanup_test_env "$test_env"
+    [[ "$check" == "project_lab|$target_scope" ]]
+}
+
+# Test: Ambiguous suffix is rejected
+test_dev_move_suffix_ambiguity() {
+    local test_env
+    test_env=$(create_test_env "dev_ambiguity")
+    local db_path="$test_env/opencode.db"
+    local target_scope="$test_env/labscope"
+
+    mkdir -p "$target_scope"
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" "$target_scope" <<'PY'
+import sqlite3
+import sys
+
+db_path, target_scope = sys.argv[1], sys.argv[2]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", target_scope))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_xxxxxxxxxxxxxxxxxxxxxxyyz", "project_lab", "/home/es", "A", 1771759963324),
+)
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_yyyyyyyyyyyyyyyyyyyyyyyz", "project_lab", "/home/es", "B", 1771759963325),
+)
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    dev_omi "$target_scope" "yyz" >/dev/null 2>&1
+    local status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]]
+}
+
+# Main test execution
+main() {
+    test_header "$TEST_NAME"
+
+    run_test test_dev_functions_exist
+    run_test test_dev_overview_output
+    run_test test_dev_move_session_by_suffix
+    run_test test_dev_move_suffix_ambiguity
+
+    test_footer
+}
+
+# Run tests if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
