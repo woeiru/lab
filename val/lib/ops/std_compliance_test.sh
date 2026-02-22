@@ -536,7 +536,7 @@ for module_file in lib/ops/*; do
     [[ "$_bn" == .* || "$_bn" == *.md ]] && continue
     
     if source "$module_file" 2>/dev/null; then
-        ((compatibility_score++))
+        compatibility_score=$((compatibility_score + 1))
     fi
 done
 
@@ -576,13 +576,13 @@ for module_file in lib/ops/*; do
         func_name=$(echo "$func_line" | cut -d'(' -f1)
         [[ ! "$func_name" =~ ^${module_name}_ ]] && continue
         
-        ((tested_functions++))
+        tested_functions=$((tested_functions + 1))
         
         # Test help functionality (should not crash)
         if timeout 5 $func_name --help >/dev/null 2>&1; then
-            ((safe_functions++))
+            safe_functions=$((safe_functions + 1))
         elif timeout 5 $func_name -h >/dev/null 2>&1; then
-            ((safe_functions++))
+            safe_functions=$((safe_functions + 1))
         fi
         
         # Limit testing to avoid long execution
