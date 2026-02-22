@@ -52,9 +52,10 @@ validation_compliant=0
 # Test each lib/ops module
 for module_file in lib/ops/*; do
     [[ ! -f "$module_file" ]] && continue
-    [[ "$(basename "$module_file")" == ".std" ]] && continue
+    _bn="$(basename "$module_file")"
+    [[ "$_bn" == .* || "$_bn" == *.md ]] && continue
     
-    module_name=$(basename "$module_file")
+    module_name="$_bn"
     source "$module_file" 2>/dev/null
     
     # Extract function names from module
@@ -114,9 +115,10 @@ total_functions=0
 # Test each lib/ops module
 for module_file in lib/ops/*; do
     [[ ! -f "$module_file" ]] && continue
-    [[ "$(basename "$module_file")" == ".std" ]] && continue
+    _bn="$(basename "$module_file")"
+    [[ "$_bn" == .* || "$_bn" == *.md ]] && continue
     
-    module_name=$(basename "$module_file")
+    module_name="$_bn"
     
     # Check for aux_use and aux_tec usage
     while IFS= read -r func_line; do
@@ -168,7 +170,8 @@ total_functions=0
 # Test each lib/ops module
 for module_file in lib/ops/*; do
     [[ ! -f "$module_file" ]] && continue
-    [[ "$(basename "$module_file")" == ".std" ]] && continue
+    _bn="$(basename "$module_file")"
+    [[ "$_bn" == .* || "$_bn" == *.md ]] && continue
     
     # Check for proper error handling patterns
     while IFS= read -r func_line; do
@@ -225,7 +228,8 @@ total_functions=0
 # Test each lib/ops module
 for module_file in lib/ops/*; do
     [[ ! -f "$module_file" ]] && continue
-    [[ "$(basename "$module_file")" == ".std" ]] && continue
+    _bn="$(basename "$module_file")"
+    [[ "$_bn" == .* || "$_bn" == *.md ]] && continue
     
     # Check for proper documentation format
     while IFS= read -r func_line; do
@@ -296,9 +300,10 @@ total_functions=0
 # Test each lib/ops module
 for module_file in lib/ops/*; do
     [[ ! -f "$module_file" ]] && continue
-    [[ "$(basename "$module_file")" == ".std" ]] && continue
+    _bn="$(basename "$module_file")"
+    [[ "$_bn" == .* || "$_bn" == *.md ]] && continue
     
-    module_name=$(basename "$module_file")
+    module_name="$_bn"
     
     # Check for aux function usage
     while IFS= read -r func_line; do
@@ -387,10 +392,13 @@ usage_count=0
 # Count usage across all lib/ops modules
 for module_file in lib/ops/*; do
     [[ ! -f "\$module_file" ]] && continue
-    [[ "\$(basename "\$module_file")" == ".std" ]] && continue
+    _bn="\$(basename "\$module_file")"
+    [[ "\$_bn" == .* || "\$_bn" == *.md ]] && continue
     
     # Count occurrences of the aux pattern
-    count=\$(grep -c "$aux_pattern" "\$module_file" 2>/dev/null || echo 0)
+    count=\$(grep -c "$aux_pattern" "\$module_file" 2>/dev/null || true)
+    count=\${count:-0}
+    [[ "\$count" =~ ^[0-9]+$ ]] || count=0
     usage_count=\$((usage_count + count))
 done
 
@@ -656,7 +664,7 @@ main() {
     test_header "STD COMPLIANCE TESTS"
     
     # Prerequisites
-    test_file_exists "$LIB_OPS_DIR" "lib/ops directory exists"
+    test_dir_exists "$LIB_OPS_DIR" "lib/ops directory exists"
     test_file_exists "$AUX_LIB" "aux library exists"
     
     echo ""
