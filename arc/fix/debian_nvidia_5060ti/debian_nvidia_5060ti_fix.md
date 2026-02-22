@@ -164,6 +164,83 @@ sddm is running but KDE Plasma session fails to start because nvidia module neve
 
 ---
 
+## Resolution: NVIDIA 580.126.09 Upstream Installer
+
+**Confirmed:** NVIDIA `580.126.09` (current upstream latest) explicitly lists `GeForce RTX 5060 Ti` (PCI ID `2D04`) in its supported chips.
+Source: `https://download.nvidia.com/XFree86/Linux-x86_64/latest.txt` → `580.126.09`
+
+### Pre-flight (from workstation or via SSH to `a0`)
+
+```bash
+# 1. Purge ALL Debian-packaged NVIDIA drivers to avoid conflicts
+sudo apt-get purge -y 'nvidia-*' 'libnvidia-*' 'xserver-xorg-video-nvidia'
+sudo apt-get autoremove -y
+
+# 2. Remove the experimental/sid APT sources we added previously (no longer needed)
+sudo rm -f /etc/apt/sources.list.d/nvidia-next.list
+sudo rm -f /etc/apt/preferences.d/99-nvidia-experimental.pref
+sudo apt-get update
+
+# 3. Install build dependencies for the .run installer
+sudo apt-get install -y linux-headers-$(uname -r) build-essential pkg-config libglvnd-dev
+```
+
+### Download and install
+
+```bash
+# 4. Download the upstream driver
+cd /tmp
+wget https://us.download.nvidia.com/XFree86/Linux-x86_64/580.126.09/NVIDIA-Linux-x86_64-580.126.09.run
+
+# 5. Stop the display manager so X/Wayland releases the GPU
+sudo systemctl stop sddm
+
+# 6. Unload nouveau if still loaded
+sudo modprobe -r nouveau
+
+# 7. Run the installer
+#    -M open  : build the open-source kernel module (required for Blackwell)
+#    --dkms   : register with DKMS for automatic rebuild on kernel updates
+#    --silent : non-interactive (remove for interactive prompts)
+sudo bash NVIDIA-Linux-x86_64-580.126.09.run -M open --dkms --silent
+```
+
+> [!NOTE]
+> If Secure Boot is enabled, the installer will prompt for module signing keys.
+> Either enroll a MOK beforehand or pass `--module-signing-secret-key` / `--module-signing-public-key`.
+> Alternatively, if Secure Boot is not required, disable it in UEFI firmware.
+
+### Post-install verification
+
+```bash
+# 8. Verify the module loads
+sudo modprobe nvidia
+dmesg | grep -Ei 'nvidia|NVRM' | tail -20
+
+# 9. Check nvidia-smi
+nvidia-smi
+
+# 10. Restart the display manager
+sudo systemctl start sddm
+```
+
+**Success criteria:**
+- `dmesg` shows no "not supported" messages
+- `nvidia-smi` shows the RTX 5060 Ti with driver `580.126.09`
+- `sddm` starts and KDE Plasma session loads
+
+### Rollback (if needed)
+
+```bash
+# The upstream installer includes its own uninstaller:
+sudo nvidia-uninstall
+# Then reinstall Debian-packaged nouveau:
+sudo apt-get install -y xserver-xorg-video-nouveau
+sudo systemctl start sddm
+```
+
+---
+
 ## Execution Log (2026-02-21, performed)
 
 ### Goal
@@ -236,6 +313,77 @@ NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver.
 ### Conclusion
 Pinned Debian package path was executed successfully and upgraded the full NVIDIA stack to `555.58.02-2`, but this branch still does not support this RTX 5060 Ti PCI ID on this system.
 Next required step is a newer branch (`570+`), likely via NVIDIA upstream installer or a newer packaging source.
+
+---
+
+## Execution Log (2026-02-22, performed) — RESOLVED
+
+### Goal
+Install NVIDIA upstream driver `580.126.09` via `.run` installer, replacing the Debian-packaged `555.58.02` that rejected PCI ID `10de:2d04`.
+
+### 1) Configured NOPASSWD sudo for remote scripting
+```bash
+su -c 'echo "es ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/es && chmod 440 /etc/sudoers.d/es'
+```
+
+### 2) Purged all Debian-packaged NVIDIA drivers
+```bash
+sudo apt-get purge -y 'nvidia-*' 'libnvidia-*' 'xserver-xorg-video-nvidia'
+sudo apt-get autoremove -y
+```
+
+### 3) Removed stale experimental/sid APT sources
+```bash
+sudo rm -f /etc/apt/sources.list.d/nvidia-next.list
+sudo rm -f /etc/apt/preferences.d/99-nvidia-experimental.pref
+sudo apt-get update
+```
+
+### 4) Installed build dependencies
+```bash
+sudo apt-get install -y linux-headers-$(uname -r) build-essential pkg-config libglvnd-dev dkms
+```
+
+### 5) Downloaded upstream driver
+```bash
+wget -q https://us.download.nvidia.com/XFree86/Linux-x86_64/580.126.09/NVIDIA-Linux-x86_64-580.126.09.run
+# 379MB downloaded to /tmp/
+```
+
+### 6) Stopped display manager and ran installer
+```bash
+sudo systemctl stop sddm
+sudo modprobe -r nouveau
+sudo bash /tmp/NVIDIA-Linux-x86_64-580.126.09.run -M open --dkms --silent
+```
+- Installer completed successfully.
+- Warning about 32-bit compat libs not installed (harmless — no `lib32` destination configured).
+- Note: initial attempt with `--open-kernel-module` flag failed; correct flag is `-M open` (or `--kernel-module-type=open`).
+
+### 7) Verification — all pass
+```
+$ sudo modprobe nvidia   # OK — no errors
+
+$ nvidia-smi
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.09             Driver Version: 580.126.09     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+|   0  NVIDIA GeForce RTX 5060 Ti     Off |   00000000:3C:00.0 Off |                  N/A |
+| 39%   30C    P0             20W /  180W |       0MiB /  16311MiB |      2%      Default |
++-----------------------------------------+------------------------+----------------------+
+
+$ sudo dmesg | grep NVRM
+NVRM: loading NVIDIA UNIX Open Kernel Module for x86_64  580.126.09  Release Build
+
+$ systemctl is-active sddm
+active
+```
+
+### Conclusion
+**FIXED.** The RTX 5060 Ti (`10de:2d04`, GB206 Blackwell) is fully operational with NVIDIA `580.126.09` open kernel module on Debian 13 Trixie (kernel `6.12.73+deb13-amd64`). KDE Plasma / sddm starts correctly.
+
+The root cause was that no Debian-packaged NVIDIA driver branch (up to `555.58.02`) included this PCI ID in its support matrix. The upstream `580.126.09` `.run` installer was required.
 
 ---
 
