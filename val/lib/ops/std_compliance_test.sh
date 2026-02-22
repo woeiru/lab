@@ -91,7 +91,7 @@ EOF
     run_test "Parameter validation compliance" "$test_env/test_validation.sh"
     
     # Extract stats
-    local stats_output=$(cat "$test_env/test_validation.sh" | tail -1)
+    local stats_output=$(bash "$test_env/test_validation.sh" 2>&1 | grep "VALIDATION_STATS")
     if [[ "$stats_output" =~ VALIDATION_STATS:([0-9]+):([0-9]+) ]]; then
         VALIDATION_COMPLIANT=${BASH_REMATCH[1]}
         TOTAL_FUNCTIONS=${BASH_REMATCH[2]}
@@ -532,7 +532,8 @@ compatibility_score=0
 # Test that modules can still be sourced
 for module_file in lib/ops/*; do
     [[ ! -f "$module_file" ]] && continue
-    [[ "$(basename "$module_file")" == ".std" ]] && continue
+    _bn="$(basename "$module_file")"
+    [[ "$_bn" == .* || "$_bn" == *.md ]] && continue
     
     if source "$module_file" 2>/dev/null; then
         ((compatibility_score++))
@@ -563,9 +564,10 @@ tested_functions=0
 
 for module_file in lib/ops/*; do
     [[ ! -f "$module_file" ]] && continue
-    [[ "$(basename "$module_file")" == ".std" ]] && continue
+    _bn="$(basename "$module_file")"
+    [[ "$_bn" == .* || "$_bn" == *.md ]] && continue
     
-    module_name=$(basename "$module_file")
+    module_name="$_bn"
     source "$module_file" 2>/dev/null
     
     # Test functions that should have help
