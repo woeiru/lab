@@ -1,6 +1,6 @@
 # lab
 
-Infrastructure automation framework that implements dependency injection, structured logging, and a full test harness entirely in Bash -- no external tooling, no build system, no dependencies beyond coreutils. Built around Proxmox VE clusters, containers, GPU passthrough, and multi-environment deployments.
+Infrastructure automation framework built entirely in Bash -- no external tooling, no build system, no dependencies beyond coreutils. Features a dependency injection container (DIC) for automatic parameter resolution, structured logging, and a full test harness. Ships with 20 composable library modules across core, general, and ops layers -- all stateless, parameterized, and wired together through the DIC at runtime.
 
 ## Quick Start
 
