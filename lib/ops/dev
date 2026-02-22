@@ -266,3 +266,384 @@ PY
             ;;
     esac
 }
+
+_dev_get_antigravity_accounts_path() {
+    local accounts_path="${HOME}/.config/opencode/antigravity-accounts.json"
+
+    if [[ ! -f "$accounts_path" ]]; then
+        return 1
+    fi
+
+    echo "$accounts_path"
+}
+
+_dev_olb_render() {
+    local accounts_path="$1"
+    local db_path="$2"
+
+    python3 - "$accounts_path" "$db_path" <<'PY'
+import json
+import sys
+import os
+from datetime import datetime, timezone
+
+accounts_path = sys.argv[1]
+db_path = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else None
+
+with open(accounts_path, "r") as f:
+    data = json.load(f)
+
+accounts = data.get("accounts", [])
+active_index = data.get("activeIndex", 0)
+active_by_family = data.get("activeIndexByFamily", {})
+
+BOLD = "\033[1m"
+DIM = "\033[2m"
+RESET = "\033[0m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+RED = "\033[31m"
+CYAN = "\033[36m"
+MAGENTA = "\033[35m"
+
+def bar(fraction, width=10):
+    filled = int(fraction * width)
+    empty = width - filled
+    if fraction >= 0.7:
+        color = GREEN
+    elif fraction >= 0.3:
+        color = YELLOW
+    else:
+        color = RED
+    return f"{color}{'█' * filled}{'░' * empty}{RESET}"
+
+def fmt_ts(epoch_ms):
+    if not epoch_ms:
+        return "n/a"
+    return datetime.fromtimestamp(epoch_ms / 1000).strftime("%Y-%m-%d %H:%M:%S")
+
+def fmt_reset(iso_str):
+    if not iso_str:
+        return "n/a"
+    try:
+        reset_dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        total_sec = int((reset_dt - now).total_seconds())
+        if total_sec <= 0:
+            return f"{iso_str[:19]} {RED}(expired){RESET}"
+        hours, remainder = divmod(total_sec, 3600)
+        minutes = remainder // 60
+        return f"{iso_str[:19]} {DIM}(in {hours}h{minutes:02d}m){RESET}"
+    except Exception:
+        return iso_str[:19]
+
+def fmt_tokens(n):
+    if n is None or n == 0:
+        return "0"
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}K"
+    return str(int(n))
+
+now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+print(f"\n{BOLD}ANTIGRAVITY ACCOUNT LOAD BALANCING{RESET}  {DIM}{now_str}{RESET}")
+print("=" * 68)
+
+if not accounts:
+    print(f"\n  {YELLOW}No accounts configured in antigravity-accounts.json{RESET}\n")
+    sys.exit(0)
+
+for i, acct in enumerate(accounts):
+    email = acct.get("email", "(unknown)")
+    enabled = acct.get("enabled", False)
+    last_used = acct.get("lastUsed")
+    quota = acct.get("cachedQuota", {})
+
+    is_default_active = (i == active_index)
+    active_families = [fam for fam, idx in active_by_family.items() if idx == i]
+
+    status_tag = f"{GREEN}ENABLED{RESET}" if enabled else f"{RED}DISABLED{RESET}"
+    active_tag = f"  {MAGENTA}< DEFAULT ACTIVE{RESET}" if is_default_active else ""
+
+    print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]{active_tag}")
+    print(f"  Last Used:  {fmt_ts(last_used)}")
+
+    if active_families:
+        print(f"  Active for: {CYAN}{', '.join(sorted(active_families))}{RESET}")
+
+    if quota:
+        print(f"  {'-' * 64}")
+        print(f"  {BOLD}{'Family':<16} {'Remaining':<22} {'Reset':<28} {'Mdl':>3}{RESET}")
+        print(f"  {'-' * 64}")
+        for family, info in sorted(quota.items()):
+            remaining = info.get("remainingFraction", 0)
+            reset_time = info.get("resetTime", "")
+            model_count = info.get("modelCount", 0)
+            pct = f"{int(remaining * 100):>3}%"
+            print(f"  {family:<16} {bar(remaining)} {pct}   {fmt_reset(reset_time):<28} {model_count:>3}")
+        print(f"  {'-' * 64}")
+    else:
+        print(f"  {DIM}(no quota data cached){RESET}")
+
+print(f"\n{BOLD}ROUTING{RESET}")
+print("-" * 68)
+if active_index < len(accounts):
+    default_email = accounts[active_index]["email"]
+else:
+    default_email = "(none)"
+print(f"  Default:        {CYAN}{default_email}{RESET}  (account {active_index + 1})")
+for family, idx in sorted(active_by_family.items()):
+    fam_email = accounts[idx]["email"] if idx < len(accounts) else "(none)"
+    print(f"  {family + ':':<16} {CYAN}{fam_email}{RESET}  (account {idx + 1})")
+
+if db_path and os.path.isfile(db_path):
+    import sqlite3
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        cur = conn.cursor()
+        cur.execute('''
+            SELECT
+                json_extract(data, "$.modelID") as model,
+                COUNT(*) as cnt,
+                SUM(COALESCE(json_extract(data, "$.tokens.input"), 0)) as total_input,
+                SUM(COALESCE(json_extract(data, "$.tokens.output"), 0)) as total_output,
+                SUM(COALESCE(json_extract(data, "$.tokens.cache.read"), 0)) as cache_read
+            FROM message
+            WHERE json_extract(data, "$.role") = 'assistant'
+              AND json_extract(data, "$.providerID") = 'google'
+              AND json_extract(data, "$.modelID") IS NOT NULL
+            GROUP BY model
+            ORDER BY cnt DESC
+        ''')
+        rows = cur.fetchall()
+        conn.close()
+        if rows:
+            print(f"\n{BOLD}MODEL USAGE{RESET}  {DIM}(all accounts, google provider){RESET}")
+            print("-" * 68)
+            print(f"  {BOLD}{'Model':<42} {'Msgs':>5} {'Input':>8} {'Output':>8}{RESET}")
+            print(f"  {'-' * 64}")
+            for model, cnt, inp, out, cache in rows:
+                print(f"  {(model or '?'):<42} {cnt:>5} {fmt_tokens(inp):>8} {fmt_tokens(out):>8}")
+            print(f"  {'-' * 64}")
+    except Exception as e:
+        print(f"\n  {YELLOW}Could not read usage data: {e}{RESET}")
+
+print()
+PY
+}
+
+# Shows Antigravity account load balancing dashboard with quota and usage
+# opencode load balance
+# -x (execute) | --watch <seconds>
+dev_olb() {
+    # Technical Description:
+    #   Reads the antigravity-accounts.json to display per-account quota status
+    #   Shows remaining capacity fraction, reset times, and routing per model family
+    #   Queries the OpenCode SQLite database for aggregate model usage statistics
+    #   Supports --watch mode for periodic dashboard refresh at a given interval
+    # Dependencies:
+    #   - python3 with json and sqlite3 modules for data processing
+    #   - opencode CLI for database path resolution
+    #   - antigravity-accounts.json from the antigravity auth plugin
+    # Arguments:
+    #   $1: -x for one-shot execution, or --watch for periodic polling mode
+    #   $2: refresh interval in seconds (required when using --watch)
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    local watch_mode=0
+    local watch_interval=0
+
+    if [ "$1" = "--watch" ]; then
+        if [ $# -ne 2 ]; then
+            aux_err "Watch mode requires an interval in seconds" "component=dev,operation=opencode_load_balance"
+            aux_use
+            return 1
+        fi
+        if ! [[ "$2" =~ ^[0-9]+$ ]] || [ "$2" -lt 1 ]; then
+            aux_err "Watch interval must be a positive integer" "component=dev,operation=opencode_load_balance,value=$2"
+            return 1
+        fi
+        watch_mode=1
+        watch_interval="$2"
+    elif [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "python3"; then
+        aux_err "python3 command not found" "component=dev,operation=opencode_load_balance"
+        return 127
+    fi
+
+    local accounts_path
+    accounts_path=$(_dev_get_antigravity_accounts_path)
+    if [ $? -ne 0 ]; then
+        aux_err "Antigravity accounts file not found" "component=dev,operation=opencode_load_balance,expected_path=${HOME}/.config/opencode/antigravity-accounts.json"
+        return 2
+    fi
+
+    local db_path=""
+    if aux_chk "command" "opencode"; then
+        db_path=$(_dev_get_opencode_db_path 2>/dev/null) || true
+        if [ -n "$db_path" ]; then
+            aux_dbg "Using OpenCode database for usage stats" "component=dev,operation=opencode_load_balance,db_path=$db_path"
+        else
+            aux_warn "Could not resolve OpenCode database; usage stats unavailable" "component=dev,operation=opencode_load_balance"
+        fi
+    fi
+
+    if [ "$watch_mode" -eq 1 ]; then
+        aux_info "Starting load balance watch (interval: ${watch_interval}s, Ctrl+C to stop)" "component=dev,operation=opencode_load_balance"
+        trap 'return 0' INT
+        while true; do
+            clear
+            _dev_olb_render "$accounts_path" "$db_path"
+            sleep "$watch_interval"
+        done
+    else
+        aux_info "Rendering load balance dashboard" "component=dev,operation=opencode_load_balance"
+        _dev_olb_render "$accounts_path" "$db_path"
+    fi
+
+    return 0
+}
+
+# Switches the active Antigravity account for a model family
+# opencode account switch
+# <family> <account_number>
+dev_oas() {
+    # Technical Description:
+    #   Modifies the activeIndexByFamily mapping in antigravity-accounts.json
+    #   Routes a specific model family to a chosen account for load distribution
+    #   Validates the account number against available accounts and family name
+    #   Creates a timestamped backup of the accounts file before any modification
+    # Dependencies:
+    #   - python3 with json module for safe JSON read-modify-write
+    #   - antigravity-accounts.json from the antigravity auth plugin
+    # Arguments:
+    #   $1: family - model family name (e.g. claude, gemini, gemini-pro, gemini-flash)
+    #   $2: account_number - 1-based account number to activate for the family
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -ne 2 ]; then
+        aux_use
+        return 1
+    fi
+
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Family name cannot be empty" "component=dev,operation=opencode_account_switch"
+        aux_use
+        return 1
+    fi
+
+    if ! [[ "$2" =~ ^[0-9]+$ ]] || [ "$2" -lt 1 ]; then
+        aux_err "Account number must be a positive integer (1-based)" "component=dev,operation=opencode_account_switch,value=$2"
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "python3"; then
+        aux_err "python3 command not found" "component=dev,operation=opencode_account_switch"
+        return 127
+    fi
+
+    local accounts_path
+    accounts_path=$(_dev_get_antigravity_accounts_path)
+    if [ $? -ne 0 ]; then
+        aux_err "Antigravity accounts file not found" "component=dev,operation=opencode_account_switch,expected_path=${HOME}/.config/opencode/antigravity-accounts.json"
+        return 2
+    fi
+
+    local family="$1"
+    local account_num="$2"
+
+    aux_info "Switching account for family" "component=dev,operation=opencode_account_switch,family=$family,account=$account_num"
+
+    local py_output
+    py_output=$(python3 - "$accounts_path" "$family" "$account_num" <<'PY'
+import json
+import sys
+import shutil
+from datetime import datetime
+
+accounts_path = sys.argv[1]
+family = sys.argv[2]
+account_num = int(sys.argv[3])
+
+with open(accounts_path, "r") as f:
+    data = json.load(f)
+
+accounts = data.get("accounts", [])
+account_index = account_num - 1
+
+if account_index < 0 or account_index >= len(accounts):
+    print(f"INVALID_ACCOUNT|{account_num}|{len(accounts)}")
+    sys.exit(11)
+
+known_families = set()
+for acct in accounts:
+    for fam in acct.get("cachedQuota", {}):
+        known_families.add(fam)
+for fam in data.get("activeIndexByFamily", {}):
+    known_families.add(fam)
+
+if family not in known_families:
+    print(f"UNKNOWN_FAMILY|{family}|{','.join(sorted(known_families))}")
+    sys.exit(12)
+
+backup_path = accounts_path + ".backup." + datetime.now().strftime("%Y%m%d_%H%M%S")
+shutil.copy2(accounts_path, backup_path)
+
+if "activeIndexByFamily" not in data:
+    data["activeIndexByFamily"] = {}
+data["activeIndexByFamily"][family] = account_index
+
+with open(accounts_path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+
+email = accounts[account_index].get("email", "(unknown)")
+print(f"OK|{family}|{email}|{account_num}|{backup_path}")
+sys.exit(0)
+PY
+)
+    local py_status=$?
+
+    case "$py_status" in
+        0)
+            local switched_family switched_email backup_file
+            switched_family=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $2}')
+            switched_email=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $3}')
+            backup_file=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $5}')
+            aux_info "Account switched successfully" "component=dev,operation=opencode_account_switch,family=$switched_family,email=$switched_email"
+            echo "Family '$switched_family' now routes to: $switched_email (account $account_num)"
+            echo "Backup: $backup_file"
+            return 0
+            ;;
+        11)
+            local total
+            total=$(echo "$py_output" | awk -F'|' '/^INVALID_ACCOUNT/ {print $3}')
+            aux_err "Account number $account_num is out of range (1-$total)" "component=dev,operation=opencode_account_switch"
+            return 1
+            ;;
+        12)
+            local known
+            known=$(echo "$py_output" | awk -F'|' '/^UNKNOWN_FAMILY/ {print $3}')
+            aux_err "Unknown family '$family'; known families: $known" "component=dev,operation=opencode_account_switch"
+            return 1
+            ;;
+        *)
+            aux_err "Failed to switch account" "component=dev,operation=opencode_account_switch,python_exit=$py_status"
+            return 2
+            ;;
+    esac
+}

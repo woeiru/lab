@@ -70,6 +70,8 @@ PY
 test_dev_functions_exist() {
     declare -f dev_osv >/dev/null 2>&1 || return 1
     declare -f dev_omi >/dev/null 2>&1 || return 1
+    declare -f dev_olb >/dev/null 2>&1 || return 1
+    declare -f dev_oas >/dev/null 2>&1 || return 1
     return 0
 }
 
@@ -229,6 +231,309 @@ PY
     [[ $status -eq 1 ]]
 }
 
+_create_mock_accounts_json() {
+    local accounts_path="$1"
+
+    cat > "$accounts_path" <<'JSON'
+{
+  "version": 4,
+  "accounts": [
+    {
+      "email": "alice@example.com",
+      "addedAt": 1771698399512,
+      "lastUsed": 1771778285222,
+      "enabled": true,
+      "rateLimitResetTimes": {},
+      "cachedQuota": {
+        "gemini-pro": {
+          "remainingFraction": 1,
+          "resetTime": "2099-12-31T23:59:59Z",
+          "modelCount": 5
+        },
+        "claude": {
+          "remainingFraction": 0.4,
+          "resetTime": "2099-12-31T23:59:59Z",
+          "modelCount": 2
+        }
+      },
+      "cachedQuotaUpdatedAt": 1771778286288
+    },
+    {
+      "email": "bob@example.com",
+      "addedAt": 1771758176986,
+      "lastUsed": 1771778313369,
+      "enabled": true,
+      "rateLimitResetTimes": {},
+      "cachedQuota": {
+        "gemini-pro": {
+          "remainingFraction": 0.8,
+          "resetTime": "2099-12-31T23:59:59Z",
+          "modelCount": 5
+        },
+        "claude": {
+          "remainingFraction": 1,
+          "resetTime": "2099-12-31T23:59:59Z",
+          "modelCount": 2
+        }
+      },
+      "cachedQuotaUpdatedAt": 1771778293299
+    }
+  ],
+  "activeIndex": 0,
+  "activeIndexByFamily": {
+    "claude": 0,
+    "gemini": 0
+  }
+}
+JSON
+}
+
+_create_test_db_with_messages() {
+    local db_path="$1"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+import json
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("CREATE TABLE IF NOT EXISTS project (id TEXT PRIMARY KEY, worktree TEXT)")
+cur.execute("""
+CREATE TABLE IF NOT EXISTS session (
+    id TEXT PRIMARY KEY,
+    project_id TEXT,
+    directory TEXT,
+    title TEXT,
+    time_updated INTEGER
+)
+""")
+cur.execute("""
+CREATE TABLE IF NOT EXISTS message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+
+for i in range(3):
+    msg_data = json.dumps({
+        "role": "assistant",
+        "modelID": "antigravity-claude-opus-4-6-thinking",
+        "providerID": "google",
+        "tokens": {"input": 1000, "output": 200, "cache": {"read": 500, "write": 0}}
+    })
+    cur.execute(
+        "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+        (f"msg_test_{i}", "ses_test", 1771778282110 + i, 1771778282110 + i, msg_data)
+    )
+
+conn.commit()
+PY
+}
+
+# Test: dev_olb rejects missing -x flag
+test_dev_olb_requires_flag() {
+    dev_olb >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_olb renders dashboard with mock accounts JSON
+test_dev_olb_renders_dashboard() {
+    local test_env
+    test_env=$(create_test_env "dev_olb_render")
+    local accounts_path="$test_env/config/opencode/antigravity-accounts.json"
+    local db_path="$test_env/opencode.db"
+
+    mkdir -p "$test_env/config/opencode"
+    _create_mock_accounts_json "$accounts_path"
+    _create_test_db_with_messages "$db_path"
+    _create_mock_opencode "$test_env" "$db_path"
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    # Override the config path by pointing HOME to test_env
+    # The accounts file is at $HOME/.config/opencode/antigravity-accounts.json
+    mkdir -p "$test_env/.config/opencode"
+    cp "$accounts_path" "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local output
+    output=$(dev_olb -x 2>/dev/null)
+    local status=$?
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"alice@example.com"* ]] || return 1
+    [[ "$output" == *"bob@example.com"* ]] || return 1
+    [[ "$output" == *"ROUTING"* ]] || return 1
+    [[ "$output" == *"claude"* ]] || return 1
+    return 0
+}
+
+# Test: dev_olb includes model usage from database
+test_dev_olb_shows_model_usage() {
+    local test_env
+    test_env=$(create_test_env "dev_olb_usage")
+    local db_path="$test_env/opencode.db"
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+    _create_test_db_with_messages "$db_path"
+    _create_mock_opencode "$test_env" "$db_path"
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_olb -x 2>/dev/null)
+    local status=$?
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"MODEL USAGE"* ]] || return 1
+    [[ "$output" == *"antigravity-claude-opus-4-6-thinking"* ]] || return 1
+    return 0
+}
+
+# Test: dev_olb --watch rejects missing interval
+test_dev_olb_watch_requires_interval() {
+    dev_olb --watch >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_olb --watch rejects non-numeric interval
+test_dev_olb_watch_rejects_bad_interval() {
+    dev_olb --watch abc >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_oas rejects wrong parameter count
+test_dev_oas_requires_params() {
+    dev_oas >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_oas rejects non-numeric account
+test_dev_oas_rejects_bad_account() {
+    dev_oas "claude" "abc" >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_oas switches account for a family
+test_dev_oas_switches_family() {
+    local test_env
+    test_env=$(create_test_env "dev_oas_switch")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_oas "claude" "2" 2>/dev/null)
+    local status=$?
+
+    # Verify the JSON was updated
+    local new_index=""
+    if [[ $status -eq 0 ]]; then
+        new_index=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/antigravity-accounts.json') as f:
+    data = json.load(f)
+print(data.get('activeIndexByFamily', {}).get('claude', -1))
+")
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"bob@example.com"* ]] || return 1
+    [[ "$new_index" == "1" ]] || return 1
+    return 0
+}
+
+# Test: dev_oas rejects out-of-range account number
+test_dev_oas_rejects_out_of_range() {
+    local test_env
+    test_env=$(create_test_env "dev_oas_range")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oas "claude" "5" >/dev/null 2>&1
+    local status=$?
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]]
+}
+
+# Test: dev_oas rejects unknown family
+test_dev_oas_rejects_unknown_family() {
+    local test_env
+    test_env=$(create_test_env "dev_oas_unknown")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oas "nonexistent" "1" >/dev/null 2>&1
+    local status=$?
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]]
+}
+
+# Test: dev_oas creates a backup before modifying
+test_dev_oas_creates_backup() {
+    local test_env
+    test_env=$(create_test_env "dev_oas_backup")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oas "claude" "2" >/dev/null 2>&1
+    local status=$?
+
+    local backup_count
+    backup_count=$(ls "$test_env/.config/opencode"/antigravity-accounts.json.backup.* 2>/dev/null | wc -l)
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ $backup_count -ge 1 ]] || return 1
+    return 0
+}
+
 # Main test execution
 main() {
     test_header "$TEST_NAME"
@@ -237,6 +542,17 @@ main() {
     run_test test_dev_overview_output
     run_test test_dev_move_session_by_suffix
     run_test test_dev_move_suffix_ambiguity
+    run_test test_dev_olb_requires_flag
+    run_test test_dev_olb_renders_dashboard
+    run_test test_dev_olb_shows_model_usage
+    run_test test_dev_olb_watch_requires_interval
+    run_test test_dev_olb_watch_rejects_bad_interval
+    run_test test_dev_oas_requires_params
+    run_test test_dev_oas_rejects_bad_account
+    run_test test_dev_oas_switches_family
+    run_test test_dev_oas_rejects_out_of_range
+    run_test test_dev_oas_rejects_unknown_family
+    run_test test_dev_oas_creates_backup
 
     test_footer
 }
