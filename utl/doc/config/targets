@@ -103,7 +103,7 @@ LOW_PRIORITY=(
 declare -A GENERATOR_OUTPUT_FILES
 GENERATOR_OUTPUT_FILES[func]="doc/dev/functions.md"     # Function metadata tables
 GENERATOR_OUTPUT_FILES[hub]="doc/README.md"             # Documentation index/hub
-GENERATOR_OUTPUT_FILES[stats]="README.md"               # System metrics (root README)
+# GENERATOR_OUTPUT_FILES[stats]="README.md"               # System metrics (root README)
 GENERATOR_OUTPUT_FILES[var]="doc/dev/variables.md"      # Variable usage documentation
 GENERATOR_OUTPUT_FILES[ai_docs]=""                      # AI generator creates files in target directories
 
@@ -115,7 +115,7 @@ GENERATOR_OUTPUT_FILES[ai_docs]=""                      # AI generator creates f
 declare -A GENERATOR_SECTIONS
 GENERATOR_SECTIONS[func]="Function Metadata Table"      # Updates function tables in doc/dev/functions.md
 GENERATOR_SECTIONS[hub]="Documentation Structure"       # Updates doc index in doc/README.md
-GENERATOR_SECTIONS[stats]="System Metrics"              # Updates metrics table in README.md
+# GENERATOR_SECTIONS[stats]="System Metrics"              # Updates metrics table in README.md
 GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable tables in doc/dev/variables.md
 
 #######################################################################
