@@ -579,9 +579,9 @@ for module_file in lib/ops/*; do
         tested_functions=$((tested_functions + 1))
         
         # Test help functionality (should not crash)
-        if timeout 5 $func_name --help >/dev/null 2>&1; then
+        if $func_name --help >/dev/null 2>&1; then
             safe_functions=$((safe_functions + 1))
-        elif timeout 5 $func_name -h >/dev/null 2>&1; then
+        elif $func_name -h >/dev/null 2>&1; then
             safe_functions=$((safe_functions + 1))
         fi
         
