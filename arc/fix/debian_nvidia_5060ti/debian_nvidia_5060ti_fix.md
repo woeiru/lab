@@ -213,14 +213,23 @@ sudo bash NVIDIA-Linux-x86_64-580.126.09.run -M open --dkms --silent
 ### Post-install verification
 
 ```bash
-# 8. Verify the module loads
+# 8. Enable DRM modesetting (CRITICAL for KDE Plasma Wayland)
+# The upstream installer does NOT do this automatically, unlike Debian packages.
+# Without this, SDDM will show a login loop because the Wayland session crashes immediately.
+echo "options nvidia_drm modeset=1" | sudo tee /etc/modprobe.d/nvidia-drm-modeset.conf
+sudo update-initramfs -u
+
+# 9. Verify the module loads
 sudo modprobe nvidia
 dmesg | grep -Ei 'nvidia|NVRM' | tail -20
 
-# 9. Check nvidia-smi
+# 10. Check nvidia-smi
 nvidia-smi
 
-# 10. Restart the display manager
+# 11. Cleanup temporary sudo rules (if you used the NOPASSWD hack in Step 1)
+sudo rm -f /etc/sudoers.d/es
+
+# 12. Restart the display manager
 sudo systemctl start sddm
 ```
 
@@ -378,6 +387,22 @@ NVRM: loading NVIDIA UNIX Open Kernel Module for x86_64  580.126.09  Release Bui
 
 $ systemctl is-active sddm
 active
+```
+
+### 8) Missing step identified post-execution (Wayland Crash / Login Loop)
+After applying the above steps, the KDE Plasma Wayland session failed to start (presenting as a login loop in SDDM). This was because the `.run` installer does not enable `nvidia_drm.modeset=1` automatically, causing `kwin_wayland` to crash as it cannot find a DRM device. Additionally, the temporary `NOPASSWD` sudo rule was left behind, which broke normal `sudo` and `su` authentication dialogs in Plasma.
+
+This was resolved by applying the following:
+```bash
+# Fix Wayland session crash
+echo "options nvidia_drm modeset=1" | sudo tee /etc/modprobe.d/nvidia-drm-modeset.conf
+sudo update-initramfs -u
+
+# Cleanup passwordless sudo hack
+sudo rm -f /etc/sudoers.d/es
+
+# Reboot
+sudo reboot
 ```
 
 ### Conclusion
