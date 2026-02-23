@@ -479,6 +479,8 @@ RED = "\033[31m"
 CYAN = "\033[36m"
 MAGENTA = "\033[35m"
 
+HIDDEN_FAMILIES = {"gemini-flash"}  # comment out entries to show them again
+
 QUOTA_TABLE_WIDTH = 64
 QUOTA_COL_WIDTHS = (14, 15, 29, 3)
 MODEL_TABLE_WIDTH = 64
@@ -653,6 +655,8 @@ for i, acct in enumerate(accounts):
         print(f"  {'-' * QUOTA_TABLE_WIDTH}")
         now_utc = datetime.now(timezone.utc)
         for family, info in sorted(quota.items()):
+            if family in HIDDEN_FAMILIES:
+                continue
             remaining = to_fraction(info.get("remainingFraction", 0))
 
             reset_time = info.get("resetTime", "")
