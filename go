@@ -27,6 +27,8 @@ readonly LAB_ROOT="$SCRIPT_DIR"
 readonly DEFAULT_CONFIG_FILES=(".zshrc" ".bashrc")
 readonly INJECT_MARKER_START="# === BEGIN MANAGED BLOCK: Shell Configuration [source: lab] ==="
 readonly INJECT_MARKER_END="# === END MANAGED BLOCK: Shell Configuration ==="
+readonly HELPER_MARKER_START="# === BEGIN MANAGED BLOCK: Lab Helper Functions [source: lab] ==="
+readonly HELPER_MARKER_END="# === END MANAGED BLOCK: Lab Helper Functions ==="
 readonly FILEPATH="bin/ini"
 readonly TMP_DIR="$SCRIPT_DIR/.tmp"
 readonly SETTINGS_FILE="$TMP_DIR/go_settings"
@@ -302,16 +304,21 @@ setup_shell_integration() {
     set_config_file || return 1
     printf "✓ Shell config file set\n\n"
     
-    printf "Step 5: Saving settings...\n"
+    printf "Step 5: Saving settings...\\n"
     save_settings || return 1
-    printf "✓ Settings saved\n\n"
-    
-    printf "Initialization completed successfully!\n\n"
-    printf "Next steps:\n"
-    printf "1. Run './go on' to enable shell integration\n"
-    printf "2. Run './go off' to disable shell integration\n"
-    printf "3. Verify with: ./go status\n"
-    printf "4. Run tests with: ./go validate\n\n"
+    printf "✓ Settings saved\\n\\n"
+
+    printf "Step 6: Injecting helper functions (lab-on / lab-off)...\\n"
+    inject_helper_functions || return 1
+    printf "✓ Helper functions injected\\n\\n"
+
+    printf "Initialization completed successfully!\\n\\n"
+    printf "Next steps:\\n"
+    printf "1. Restart your shell (or run: source %s)\\n" "${CONFIG_FILE}"
+    printf "2. Run './go on' to enable auto-load in all new shells\\n"
+    printf "3. Or just type 'lab-on' in any shell for current-session-only activation\\n"
+    printf "4. Verify with: ./go status\\n"
+    printf "5. Run tests with: ./go validate\\n\\n"
 }
 
 show_usage() {
@@ -324,26 +331,34 @@ A sophisticated infrastructure automation and environment management platform.
 
 COMMANDS:
     init            Initialize and configure shell integration settings
-    on              Enable shell integration (activate saved settings)
-    off             Disable shell integration (remove from shell config)
+    on              Enable shell integration in all new shells (modifies bashrc)
+    off             Disable shell integration in new shells (bashrc only; current shell unaffected)
     status          Check system initialization status
     validate        Run system validation tests
+    purge           Remove lab-on/lab-off helper functions from bashrc
     help            Show detailed help and documentation
-    
+
+CURRENT-SHELL ACTIVATION (no bashrc modification):
+    After running './go init', two helper functions are permanently added to
+    your bashrc. These survive './go off' and let you activate only in the
+    current shell:
+
+        lab-on      Source bin/ini into the running shell (current session only)
+        lab-off     Prints a reminder (env cannot be fully unloaded without a new shell)
+
 EXAMPLES:
-    ./go init                    # First-time setup (configure settings)
-    ./go on                      # Enable shell integration
-    ./go off                     # Disable shell integration
+    ./go init                    # First-time setup (configure settings + inject helpers)
+    ./go on                      # Enable auto-load in all new shells
+    ./go off                     # Disable auto-load (helper functions stay intact)
+    lab-on                       # Activate in current shell only (no bashrc change)
     ./go status                  # Check if system is ready
-    ./go validate               # Run validation tests
+    ./go validate                # Run validation tests
+    ./go purge                   # Remove lab-on/lab-off helper functions from bashrc
 
 WORKFLOW:
-    1. Run './go init' to configure settings (only needed once)
-    2. Use './go on' to enable shell integration
-    3. Use './go off' to disable shell integration
-    4. Repeat steps 2-3 as needed
-
-For detailed documentation, see: README.md
+    1. Run './go init' once to configure settings and inject helpers
+    2. Use './go on'  / './go off' to toggle auto-load for new shells
+    3. Use 'lab-on' any time you want the lab active in just the current shell
 
 Settings are saved in .tmp/go_settings after running 'init'.
 EOF
@@ -478,6 +493,112 @@ remove_content() {
     fi
 }
 
+# Inject permanent lab-on / lab-off helper functions into config file.
+# This block uses a separate marker and is NOT removed by ./go off.
+inject_helper_functions() {
+    local cfg="${CONFIG_FILE}"
+    printf "Injecting lab-on / lab-off helper functions into '%s'...\\n" "$cfg"
+
+    if [[ -z "$cfg" || ! -f "$cfg" ]]; then
+        printf "Error: Invalid config file: %s\\n" "${cfg}"
+        return 1
+    fi
+
+    local ini_path="${LAB_ROOT}/${FILEPATH}"
+
+    # Build the helper block content
+    local helper_block
+    helper_block="${HELPER_MARKER_START}
+lab-on()  { source \"${ini_path}\"; }
+lab-off() { printf 'lab-off: environment loaded in this shell cannot be fully unloaded.\\nStart a new shell without running lab-on to get a clean session.\\n'; }
+${HELPER_MARKER_END}"
+
+    local temp_file
+    temp_file=$(mktemp)
+
+    # Strip any existing helper block (idempotent)
+    awk -v sm="$HELPER_MARKER_START" -v em="$HELPER_MARKER_END" '
+        BEGIN { in_block = 0 }
+        $0 == sm { in_block = 1; next }
+        $0 == em { in_block = 0; next }
+        !in_block { print }
+    ' "$cfg" > "$temp_file"
+
+    # Ensure trailing newline before appending
+    if [[ -s "$temp_file" ]] && [[ $(tail -c1 "$temp_file" | wc -l) -eq 0 ]]; then
+        echo "" >> "$temp_file"
+    fi
+
+    printf "%s\\n" "$helper_block" >> "$temp_file"
+
+    if diff -q "$cfg" "$temp_file" > /dev/null; then
+        printf "Helper functions already present in '%s'. No changes made.\\n" "$cfg"
+        rm "$temp_file"
+        return 0
+    fi
+
+    local backup_file="${cfg}.bak_$(date +%Y%m%d_%H%M%S)"
+    cp "$cfg" "$backup_file" || {
+        printf "Error: Failed to create backup '%s'. Aborting.\\n" "$backup_file"
+        rm "$temp_file"
+        return 1
+    }
+
+    mv "$temp_file" "$cfg" || {
+        printf "Error: Failed to update '%s'.\\n" "$cfg"
+        cp "$backup_file" "$cfg"
+        rm -f "$temp_file"
+        return 1
+    }
+
+    printf "Helper functions injected. Backup created at '%s'.\\n" "$backup_file"
+    return 0
+}
+
+# Remove permanent helper functions block from config file (used by ./go purge)
+remove_helper_functions() {
+    local cfg="${CONFIG_FILE}"
+    printf "Removing lab helper functions from '%s'...\\n" "$cfg"
+
+    if [[ -z "$cfg" || ! -f "$cfg" ]]; then
+        printf "Error: Invalid config file: %s\\n" "${cfg}"
+        return 1
+    fi
+
+    local temp_file
+    temp_file=$(mktemp)
+
+    awk -v sm="$HELPER_MARKER_START" -v em="$HELPER_MARKER_END" '
+        BEGIN { in_block = 0 }
+        $0 == sm { in_block = 1; next }
+        $0 == em { in_block = 0; next }
+        !in_block { print }
+    ' "$cfg" > "$temp_file"
+
+    if diff -q "$cfg" "$temp_file" > /dev/null; then
+        printf "No helper functions block found in '%s'.\\n" "$cfg"
+        rm "$temp_file"
+        return 0
+    fi
+
+    local backup_file="${cfg}.bak_$(date +%Y%m%d_%H%M%S)"
+    cp "$cfg" "$backup_file" || {
+        printf "Error: Failed to create backup '%s'. Aborting.\\n" "$backup_file"
+        rm "$temp_file"
+        return 1
+    }
+
+    mv "$temp_file" "$cfg" || {
+        printf "Error: Failed to update '%s'.\\n" "$cfg"
+        cp "$backup_file" "$cfg"
+        rm -f "$temp_file"
+        return 1
+    }
+
+    printf "Helper functions removed. Backup created at '%s'.\\n" "$backup_file"
+    return 0
+}
+
 # Handle the "on" command - enable shell integration
 handle_on_command() {
     printf "╔════════════════════════════════════════════════════════════════╗\n"
@@ -541,6 +662,15 @@ main() {
             ;;
         off)
             handle_off_command
+            ;;
+        purge)
+            printf "╔════════════════════════════════════════════════════════════════╗\\n"
+            printf "║              Removing Lab Helper Functions                     ║\\n"
+            printf "╚════════════════════════════════════════════════════════════════╝\\n\\n"
+            load_settings || exit 1
+            remove_content || true        # also strip auto-load block if present
+            remove_helper_functions || exit 1
+            printf "\\n✓ All lab blocks removed from %s\\n\\n" "$CONFIG_FILE"
             ;;
         help|--help|-h)
             show_usage

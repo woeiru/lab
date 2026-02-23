@@ -210,5 +210,3 @@ pve_cdo() {
 ```
 
 Naming: `module_name` for public functions, `_module_name` for internal helpers. All use `snake_case` and `local` for variables.
-
-## Documentation
