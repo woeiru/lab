@@ -438,6 +438,7 @@ MODEL_TABLE_WIDTH = 64
 MODEL_COL_WIDTHS = (34, 6, 5, 7, 8)
 ROUTING_TABLE_WIDTH = 64
 ROUTING_COL_WIDTHS = (15, 48)
+DASHBOARD_WIDTH = 64
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 def visible_len(text):
@@ -559,7 +560,7 @@ def fmt_tokens(n):
 
 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 print(f"\n{BOLD}ACCOUNT LOAD BALANCING{RESET}  {DIM}{now_str}{RESET}")
-print("=" * 68)
+print("=" * DASHBOARD_WIDTH)
 
 if not accounts:
     print(f"\n  {YELLOW}No accounts configured in antigravity-accounts.json{RESET}\n")
@@ -669,7 +670,7 @@ for i, acct in enumerate(accounts):
             print(f"  {DIM}(no quota data cached yet){RESET}")
 
 print(f"\n{BOLD}ROUTING{RESET}")
-print("-" * ROUTING_TABLE_WIDTH)
+print(f"  {'-' * ROUTING_TABLE_WIDTH}")
 if active_index < len(accounts):
     default_email = accounts[active_index]["email"]
 else:
@@ -706,7 +707,7 @@ if db_path and os.path.isfile(db_path):
         conn.close()
         if rows:
             print(f"\n{BOLD}MODEL USAGE{RESET}  {DIM}(all accounts, all providers){RESET}")
-            print("-" * MODEL_TABLE_WIDTH)
+            print(f"  {'-' * MODEL_TABLE_WIDTH}")
             header = model_row("Model", "Prov", "Msgs", "Input", "Output")
             print(f"  {BOLD}{header}{RESET}")
             print(f"  {'-' * MODEL_TABLE_WIDTH}")
