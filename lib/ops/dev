@@ -107,9 +107,9 @@ C_ID      = fg(101, 101, 101)          # Color7Faint   — dim gray
 C_PROJECT = fg(84,  84,  255)          # Color4Intense — bright blue
 C_DIR     = fg(84,  84,  255)          # Color4Intense — bright blue (same family)
 C_TITLE   = fg(178, 178, 178)          # Color7        — normal gray
-C_DATE    = fg(255, 255, 84)           # Color3Intense — bright yellow
-C_MODEL   = fg(255, 84,  255)          # Color5Intense — bright magenta
-C_TOKENS  = fg(84,  255, 84)           # Color2Intense — bright green
+C_DATE    = fg(220, 220, 110)          # Softer yellow
+C_MODEL   = fg(220, 120, 220)          # Softer magenta
+C_TOKENS  = fg(120, 220, 120)          # Softer green
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
