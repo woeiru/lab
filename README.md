@@ -57,9 +57,8 @@ lab/
 │   ├── lib/        Library tests
 │   ├── integration/ Workflow tests
 │   └── src/        DIC tests
-├── doc/            Technical documentation (admin, CLI, dev, IaC, issues)
-├── utl/            Utilities (doc generators, stats, alias tools)
-└── arc/            Archive (fix guides, how-tos, network docs, AI strategy)
+├── doc/            Technical documentation (admin, CLI, dev, IaC, fixes, how-tos, network, plans, issues)
+└── utl/            Utilities (doc generators, stats, alias tools)
 ```
 
 ## Architecture

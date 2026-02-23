@@ -3,14 +3,6 @@
 # Version: 3.0.0 (Rewritten)
 
 # --- README File Aliases ---
-alias c.arc.md='cat "$LAB_DIR/arc/README.md"'
-alias v.arc.md='vim "$LAB_DIR/arc/README.md"'
-alias c.arc.too.acpi.md='cat "$LAB_DIR/arc/too/acpi/readme.md"'
-alias v.arc.too.acpi.md='vim "$LAB_DIR/arc/too/acpi/readme.md"'
-alias c.arc.too.acpi.md='cat "$LAB_DIR/arc/too/acpi/README.md"'
-alias v.arc.too.acpi.md='vim "$LAB_DIR/arc/too/acpi/README.md"'
-alias c.arc.too.replace.md='cat "$LAB_DIR/arc/too/replace/readme.md"'
-alias v.arc.too.replace.md='vim "$LAB_DIR/arc/too/replace/readme.md"'
 alias c.bin.md='cat "$LAB_DIR/bin/README.md"'
 alias v.bin.md='vim "$LAB_DIR/bin/README.md"'
 alias c.cfg.pod.qdev.md='cat "$LAB_DIR/cfg/pod/qdev/README.md"'
@@ -43,7 +35,6 @@ alias c.val.md='cat "$LAB_DIR/val/README.md"'
 alias v.val.md='vim "$LAB_DIR/val/README.md"'
 
 # --- Directory Navigation Aliases ---
-alias d-arc='cd "$LAB_DIR/arc"'
 alias d-bin='cd "$LAB_DIR/bin"'
 alias d-cfg='cd "$LAB_DIR/cfg"'
 alias d-doc='cd "$LAB_DIR/doc"'

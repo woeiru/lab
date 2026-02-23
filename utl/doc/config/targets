@@ -20,8 +20,6 @@ TARGET_DIRECTORIES=(
     "cfg/core"     # Core configuration files and templates
     "cfg/pod"      # Container/pod configuration files
     "utl/doc"      # Documentation utilities and generators
-    "arc/ans"      # Ansible automation scripts and playbooks
-    "arc/too"      # Tool configurations and utilities
     "val/core"     # Core validation and testing scripts
     "val/lib"      # Library validation and test suites
 )
@@ -82,8 +80,6 @@ MEDIUM_PRIORITY=(
 # - Rationale: Supporting components, rarely change, limited user impact
 LOW_PRIORITY=(
     "cfg/pod"      # Container configs - set-and-forget configuration
-    "arc/ans"      # Ansible scripts - automation, infrequent changes
-    "arc/too"      # Tool configs - utility scripts, stable
     "val/core"     # Validation scripts - testing infrastructure
     "val/lib"      # Test suites - validation code, stable
 )
