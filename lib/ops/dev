@@ -282,6 +282,7 @@ _dev_oqu_render() {
 
     python3 - "$accounts_path" <<'PY'
 import json
+import re
 import sys
 from datetime import datetime, timezone
 
@@ -318,17 +319,18 @@ def bar(fraction, width=10):
 def fmt_reset(iso_str):
     if not iso_str:
         return "n/a"
+    base = iso_str[:16].replace("T", " ")
     try:
         reset_dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
         now = datetime.now(timezone.utc)
         total_sec = int((reset_dt - now).total_seconds())
         if total_sec <= 0:
-            return f"{iso_str[:19]} {RED}(expired){RESET}"
+            return f"{base} {RED}(exp){RESET}"
         hours, remainder = divmod(total_sec, 3600)
         minutes = remainder // 60
-        return f"{iso_str[:19]} {DIM}(in {hours}h{minutes:02d}m){RESET}"
+        return f"{base} {DIM}({hours}h{minutes:02d}m){RESET}"
     except Exception:
-        return iso_str[:19]
+        return base
 
 def to_fraction(value):
     try:
@@ -408,6 +410,7 @@ _dev_olb_render() {
 import json
 import sys
 import os
+import re
 from datetime import datetime, timezone
 
 accounts_path = sys.argv[1]
@@ -428,6 +431,58 @@ YELLOW = "\033[33m"
 RED = "\033[31m"
 CYAN = "\033[36m"
 MAGENTA = "\033[35m"
+
+QUOTA_TABLE_WIDTH = 64
+QUOTA_COL_WIDTHS = (14, 15, 29, 3)
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+def visible_len(text):
+    return len(ANSI_RE.sub("", text))
+
+def ansi_trim(text, width):
+    if width <= 0:
+        return ""
+
+    out = []
+    visible = 0
+    i = 0
+    while i < len(text) and visible < width:
+        if text[i] == "\x1b":
+            match = ANSI_RE.match(text, i)
+            if match:
+                out.append(match.group(0))
+                i = match.end()
+                continue
+        out.append(text[i])
+        visible += 1
+        i += 1
+
+    rendered = "".join(out)
+    if "\x1b[" in rendered and not rendered.endswith(RESET):
+        rendered += RESET
+    return rendered
+
+def ansi_ljust(text, width):
+    trimmed = ansi_trim(text, width)
+    pad = width - visible_len(trimmed)
+    if pad > 0:
+        return trimmed + (" " * pad)
+    return trimmed
+
+def ansi_rjust(text, width):
+    trimmed = ansi_trim(text, width)
+    pad = width - visible_len(trimmed)
+    if pad > 0:
+        return (" " * pad) + trimmed
+    return trimmed
+
+def quota_row(family, remaining_cell, reset_cell, mdl):
+    family_cell = ansi_ljust(str(family), QUOTA_COL_WIDTHS[0])
+    rem_cell = ansi_ljust(remaining_cell, QUOTA_COL_WIDTHS[1])
+    reset_col = ansi_ljust(reset_cell, QUOTA_COL_WIDTHS[2])
+    mdl_cell = ansi_rjust(str(mdl), QUOTA_COL_WIDTHS[3])
+    row = f"{family_cell} {rem_cell} {reset_col} {mdl_cell}"
+    return ansi_trim(row, QUOTA_TABLE_WIDTH)
 
 def bar(fraction, width=10):
     try:
@@ -453,17 +508,18 @@ def fmt_ts(epoch_ms):
 def fmt_reset(iso_str):
     if not iso_str:
         return "n/a"
+    base = iso_str[:16].replace("T", " ")
     try:
         reset_dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
         now = datetime.now(timezone.utc)
         total_sec = int((reset_dt - now).total_seconds())
         if total_sec <= 0:
-            return f"{iso_str[:19]} {RED}(expired){RESET}"
+            return f"{base} {RED}(exp){RESET}"
         hours, remainder = divmod(total_sec, 3600)
         minutes = remainder // 60
-        return f"{iso_str[:19]} {DIM}(in {hours}h{minutes:02d}m){RESET}"
+        return f"{base} {DIM}({hours}h{minutes:02d}m){RESET}"
     except Exception:
-        return iso_str[:19]
+        return base
 
 def to_fraction(value):
     try:
@@ -523,9 +579,10 @@ for i, acct in enumerate(accounts):
 
     if quota:
         print(f"  {BOLD}Antigravity Quota{RESET}")
-        print(f"  {'-' * 64}")
-        print(f"  {BOLD}{'Family':<16} {'Remaining':<22} {'Reset':<28} {'Mdl':>3}{RESET}")
-        print(f"  {'-' * 64}")
+        print(f"  {'-' * QUOTA_TABLE_WIDTH}")
+        header = quota_row("Family", "Remaining", "Reset", "Mdl")
+        print(f"  {BOLD}{header}{RESET}")
+        print(f"  {'-' * QUOTA_TABLE_WIDTH}")
         now_utc = datetime.now(timezone.utc)
         for family, info in sorted(quota.items()):
             remaining = to_fraction(info.get("remainingFraction", 0))
@@ -574,9 +631,16 @@ for i, acct in enumerate(accounts):
                 rl_flag += f" {YELLOW}(EFFECTIVE:0%){RESET}"
 
             pct = f"{int(remaining * 100):>3}%"
+            remaining_cell = f"{bar(remaining)} {pct}"
+            reset_cell = fmt_reset(reset_time)
+            if rl_flag:
+                if visible_len(reset_cell) + visible_len(rl_flag) <= QUOTA_COL_WIDTHS[2]:
+                    reset_cell = f"{reset_cell}{rl_flag}"
+                elif visible_len(reset_cell) + 2 <= QUOTA_COL_WIDTHS[2]:
+                    reset_cell = f"{reset_cell} {YELLOW}*{RESET}"
 
-            print(f"  {family:<16} {bar(remaining)} {pct}   {fmt_reset(reset_time):<28} {model_count:>3}{rl_flag}")
-        print(f"  {'-' * 64}")
+            print(f"  {quota_row(family, remaining_cell, reset_cell, model_count)}")
+        print(f"  {'-' * QUOTA_TABLE_WIDTH}")
     else:
         print(f"  {BOLD}Antigravity Quota{RESET}")
         if cached_at:
