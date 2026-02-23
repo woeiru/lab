@@ -428,3 +428,36 @@ The root cause was that no Debian-packaged NVIDIA driver branch (up to `555.58.0
   # With NOPASSWD sudo configured on a0 (preferred):
   ssh -o ControlPath=/tmp/ssh_a0_ctl a0 'sudo bash -c "..."'
   ```
+
+---
+
+## Known Issue: Wayland GPU Context Reset & Lockscreen Freeze
+
+Even with the `580.126.09` driver, running KDE Plasma Wayland on Blackwell GPUs can occasionally experience a graphics context reset (`kwin_scene_opengl: A graphics reset attributable to the current GL context occurred`). 
+
+### Symptoms
+When this happens, the Wayland EGL rendering context becomes poisoned. If the system tries to display the lockscreen shortly after, the `kscreenlocker_greet` process crashes immediately with `Could not create EGL surface (EGL error 0x3003)`. 
+
+This leaves the user stuck on a black screen or frozen lockscreen, completely unable to log back in.
+
+### Recovery Workaround (Without Rebooting)
+If you get locked out due to this crash, you can recover the active session via SSH without losing your work:
+
+1. SSH into the machine:
+   ```bash
+   ssh a0
+   ```
+2. Find your locked session ID:
+   ```bash
+   loginctl list-sessions
+   ```
+3. Force unlock the stuck session (replace `3` with your actual session ID):
+   ```bash
+   loginctl unlock-session 3
+   ```
+4. Restart the Plasma shell to recover the panels and desktop background:
+   ```bash
+   systemctl --user restart plasma-plasmashell.service
+   ```
+
+*Note: After recovering, some open Qt/Wayland applications might still have visual glitches due to the lost graphics context. It is recommended to save your work and restart the machine (or log out and back in) when convenient to get a fresh, stable graphics context.*
