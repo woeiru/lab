@@ -32,20 +32,23 @@ dev_osv() {
     #   Reads the OpenCode SQLite database and prints all known sessions across projects
     #   Includes a short session suffix column to support quick session targeting workflows
     #   Joins session and project metadata to show scope/worktree context for each entry
+    #   Joins aggregated token usage (model, input, output) from assistant messages per session
     #   Sorts by last update time so the most recent sessions appear first
+    #   In -t mode renders a compact bordered table with Konsole-palette truecolor columns
     # Dependencies:
     #   - opencode CLI for resolving the active database path
     #   - python3 with sqlite3 module for read-only query execution
-    #   - column command (optional) for aligned table formatting
+    #   - column command (optional, used in plain -x mode) for aligned table formatting
     # Arguments:
-    #   $1: -x - explicit execution flag required for consistency
+    #   $1: -x - plain TSV output (column-aligned when column(1) is available)
+    #       -t - compact bordered table with colors and trimmed columns
 
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
 
-    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+    if [ $# -ne 1 ] || { [ "$1" != "-x" ] && [ "$1" != "-t" ]; }; then
         aux_use
         return 1
     fi
@@ -67,16 +70,20 @@ dev_osv() {
         return 2
     fi
 
-    aux_info "Collecting OpenCode sessions overview" "component=dev,operation=opencode_session_overview,db_path=$db_path"
+    local mode="$1"
+    aux_info "Collecting OpenCode sessions overview" "component=dev,operation=opencode_session_overview,db_path=$db_path,mode=$mode"
 
     local output
-    output=$(python3 - "$db_path" <<'PY'
+    output=$(python3 - "$db_path" "$mode" <<'PY'
 import sqlite3
 import sys
+import re
 
 db_path = sys.argv[1]
-conn = sqlite3.connect(db_path)
-cur = conn.cursor()
+mode    = sys.argv[2]
+
+conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+cur  = conn.cursor()
 
 query = """
 SELECT
@@ -106,16 +113,142 @@ ORDER BY s.time_updated DESC;
 
 cur.execute(query)
 rows = cur.fetchall()
-print("suffix\tid\tproject_root\tdirectory\ttitle\tupdated_local\tmodel\tinput\toutput")
+conn.close()
+
+# ── plain TSV mode ────────────────────────────────────────────────────────────
+if mode != "-t":
+    print("suffix\tid\tproject_root\tdirectory\ttitle\tupdated_local\tmodel\tinput\toutput")
+    for row in rows:
+        normalized = []
+        for value in row:
+            if value is None:
+                normalized.append("")
+            else:
+                normalized.append(str(value).replace("\t", " ").replace("\n", " "))
+        print("\t".join(normalized))
+    sys.exit(0)
+
+# ── bordered table mode (-t) ──────────────────────────────────────────────────
+# Konsole default palette — truecolor RGB
+RESET   = "\033[0m"
+BOLD    = "\033[1m"
+DIM     = "\033[2m"
+
+def fg(r, g, b):
+    return f"\033[38;2;{r};{g};{b}m"
+
+C_BORDER  = fg(101, 101, 101)          # Color7Faint  — dim gray
+C_HEADER  = BOLD + fg(255, 255, 255)   # Color7Intense — white bold
+C_SUFFIX  = fg(84,  255, 255)          # Color6Intense — bright cyan
+C_ID      = fg(101, 101, 101)          # Color7Faint   — dim gray
+C_PROJECT = fg(84,  84,  255)          # Color4Intense — bright blue
+C_DIR     = fg(84,  84,  255)          # Color4Intense — bright blue (same family)
+C_TITLE   = fg(178, 178, 178)          # Color7        — normal gray
+C_DATE    = fg(255, 255, 84)           # Color3Intense — bright yellow
+C_MODEL   = fg(255, 84,  255)          # Color5Intense — bright magenta
+C_TOKENS  = fg(84,  255, 84)           # Color2Intense — bright green
+
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+def vlen(s):
+    return len(ANSI_RE.sub("", s))
+
+def clip(s, width):
+    """Trim a plain string to width, appending … if truncated."""
+    s = str(s).replace("\t", " ").replace("\n", " ")
+    if len(s) <= width:
+        return s
+    return s[:width - 1] + "…"
+
+def cell(text, width, color="", rjust=False):
+    """Return a colored, fixed-width cell (plain text in, padded out)."""
+    clipped = clip(text, width)
+    colored = color + clipped + (RESET if color else "")
+    pad = width - len(clipped)
+    if rjust:
+        return (" " * pad) + colored
+    return colored + (" " * pad)
+
+def fmt_tokens(n):
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return "0"
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}K"
+    return str(n)
+
+def fmt_id(full_id):
+    """Keep the last 8 chars of the session ID as a short reference."""
+    s = str(full_id) if full_id else ""
+    return s[-8:] if len(s) > 8 else s
+
+def fmt_date(s):
+    """Drop seconds from the datetime string to save space."""
+    s = str(s) if s else ""
+    return s[:16]  # "YYYY-MM-DD HH:MM"
+
+# Column widths (visible characters)
+W = {
+    "sfx":  3,
+    "id":   8,
+    "proj": 18,
+    "dir":  20,
+    "title":28,
+    "date": 16,
+    "model":22,
+    "in":    7,
+    "out":   7,
+}
+
+SEP   = f" {C_BORDER}│{RESET} "
+HSEP  = "─"
+
+def hline(left, mid, right):
+    parts = []
+    for key in W:
+        parts.append(HSEP * (W[key] + 2))
+    inner = (C_BORDER + mid + RESET).join(parts)
+    print(C_BORDER + left + inner + right + RESET)
+
+# Header
+hline("┌", "┬", "┐")
+
+headers = [
+    cell("SFX",     W["sfx"],   C_HEADER),
+    cell("ID",      W["id"],    C_HEADER),
+    cell("PROJECT",  W["proj"],  C_HEADER),
+    cell("DIR",     W["dir"],   C_HEADER),
+    cell("TITLE",   W["title"], C_HEADER),
+    cell("UPDATED", W["date"],  C_HEADER),
+    cell("MODEL",   W["model"], C_HEADER),
+    cell("IN",      W["in"],    C_HEADER, rjust=True),
+    cell("OUT",     W["out"],   C_HEADER, rjust=True),
+]
+print(f"{C_BORDER}│{RESET} " + SEP.join(headers) + f" {C_BORDER}│{RESET}")
+
+hline("├", "┼", "┤")
+
+# Rows
 for row in rows:
-    normalized = []
-    for value in row:
-        if value is None:
-            normalized.append("")
-        else:
-            text = str(value).replace("\t", " ").replace("\n", " ")
-            normalized.append(text)
-    print("\t".join(normalized))
+    suffix, full_id, proj, directory, title, updated, model, inp, out = row
+
+    cols = [
+        cell(suffix or "",        W["sfx"],   C_SUFFIX),
+        cell(fmt_id(full_id),     W["id"],    C_ID),
+        cell(proj or "",          W["proj"],  C_PROJECT),
+        cell(directory or "",     W["dir"],   C_DIR),
+        cell(title or "",         W["title"], C_TITLE),
+        cell(fmt_date(updated),   W["date"],  C_DATE),
+        cell(model or "",         W["model"], C_MODEL),
+        cell(fmt_tokens(inp),     W["in"],    C_TOKENS, rjust=True),
+        cell(fmt_tokens(out),     W["out"],   C_TOKENS, rjust=True),
+    ]
+    print(f"{C_BORDER}│{RESET} " + SEP.join(cols) + f" {C_BORDER}│{RESET}")
+
+hline("└", "┴", "┘")
 PY
 )
     if [ $? -ne 0 ]; then
@@ -123,7 +256,9 @@ PY
         return 2
     fi
 
-    if aux_chk "command" "column"; then
+    if [ "$mode" = "-t" ]; then
+        echo "$output"
+    elif aux_chk "command" "column"; then
         echo "$output" | column -t -s $'\t'
     else
         echo "$output"
