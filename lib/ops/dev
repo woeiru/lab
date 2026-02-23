@@ -434,6 +434,10 @@ MAGENTA = "\033[35m"
 
 QUOTA_TABLE_WIDTH = 64
 QUOTA_COL_WIDTHS = (14, 15, 29, 3)
+MODEL_TABLE_WIDTH = 64
+MODEL_COL_WIDTHS = (34, 6, 5, 7, 8)
+ROUTING_TABLE_WIDTH = 64
+ROUTING_COL_WIDTHS = (15, 48)
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 def visible_len(text):
@@ -457,8 +461,9 @@ def ansi_trim(text, width):
         visible += 1
         i += 1
 
+    truncated = i < len(text)
     rendered = "".join(out)
-    if "\x1b[" in rendered and not rendered.endswith(RESET):
+    if truncated and "\x1b[" in rendered and not rendered.endswith(RESET):
         rendered += RESET
     return rendered
 
@@ -483,6 +488,21 @@ def quota_row(family, remaining_cell, reset_cell, mdl):
     mdl_cell = ansi_rjust(str(mdl), QUOTA_COL_WIDTHS[3])
     row = f"{family_cell} {rem_cell} {reset_col} {mdl_cell}"
     return ansi_trim(row, QUOTA_TABLE_WIDTH)
+
+def model_row(model, provider, msgs, inp, out):
+    model_cell = ansi_ljust(str(model), MODEL_COL_WIDTHS[0])
+    provider_cell = ansi_ljust(str(provider), MODEL_COL_WIDTHS[1])
+    msgs_cell = ansi_rjust(str(msgs), MODEL_COL_WIDTHS[2])
+    input_cell = ansi_rjust(str(inp), MODEL_COL_WIDTHS[3])
+    output_cell = ansi_rjust(str(out), MODEL_COL_WIDTHS[4])
+    row = f"{model_cell} {provider_cell} {msgs_cell} {input_cell} {output_cell}"
+    return ansi_trim(row, MODEL_TABLE_WIDTH)
+
+def routing_row(label, value):
+    label_cell = ansi_ljust(str(label), ROUTING_COL_WIDTHS[0])
+    value_cell = ansi_ljust(str(value), ROUTING_COL_WIDTHS[1])
+    row = f"{label_cell} {value_cell}"
+    return ansi_trim(row, ROUTING_TABLE_WIDTH)
 
 def bar(fraction, width=10):
     try:
@@ -649,15 +669,18 @@ for i, acct in enumerate(accounts):
             print(f"  {DIM}(no quota data cached yet){RESET}")
 
 print(f"\n{BOLD}ROUTING{RESET}")
-print("-" * 68)
+print("-" * ROUTING_TABLE_WIDTH)
 if active_index < len(accounts):
     default_email = accounts[active_index]["email"]
 else:
     default_email = "(none)"
-print(f"  Default:        {CYAN}{default_email}{RESET}  (account {active_index + 1})")
+default_value = f"{CYAN}{default_email}{RESET}  (account {active_index + 1})"
+print(f"  {routing_row('Default:', default_value)}")
 for family, idx in sorted(active_by_family.items()):
     fam_email = accounts[idx]["email"] if idx < len(accounts) else "(none)"
-    print(f"  {family + ':':<16} {CYAN}{fam_email}{RESET}  (account {idx + 1})")
+    fam_label = f"{family}:"
+    fam_value = f"{CYAN}{fam_email}{RESET}  (account {idx + 1})"
+    print(f"  {routing_row(fam_label, fam_value)}")
 
 if db_path and os.path.isfile(db_path):
     import sqlite3
@@ -683,13 +706,14 @@ if db_path and os.path.isfile(db_path):
         conn.close()
         if rows:
             print(f"\n{BOLD}MODEL USAGE{RESET}  {DIM}(all accounts, all providers){RESET}")
-            print("-" * 68)
-            print(f"  {BOLD}{'Model':<36} {'Prov':>6} {'Msgs':>5} {'Input':>8} {'Output':>8}{RESET}")
-            print(f"  {'-' * 64}")
+            print("-" * MODEL_TABLE_WIDTH)
+            header = model_row("Model", "Prov", "Msgs", "Input", "Output")
+            print(f"  {BOLD}{header}{RESET}")
+            print(f"  {'-' * MODEL_TABLE_WIDTH}")
             for provider, model, cnt, inp, out, cache in rows:
                 prov_short = (provider or "?")[:6]
-                print(f"  {(model or '?'):<36} {prov_short:>6} {cnt:>5} {fmt_tokens(inp):>8} {fmt_tokens(out):>8}")
-            print(f"  {'-' * 64}")
+                print(f"  {model_row((model or '?'), prov_short, cnt, fmt_tokens(inp), fmt_tokens(out))}")
+            print(f"  {'-' * MODEL_TABLE_WIDTH}")
     except Exception as e:
         print(f"\n  {YELLOW}Could not read usage data: {e}{RESET}")
 
