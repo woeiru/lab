@@ -2,9 +2,9 @@
 
 Comprehensive security practices and credential management for system administrators.
 
-## 🔐 Security Framework Overview
+## Security Framework Overview
 
-The Lab Environment Management System implements a **security-first** approach with zero hardcoded passwords and comprehensive credential management through the `lib/gen/sec` utility library.
+The system implements a security-first approach with zero hardcoded passwords and comprehensive credential management through the `lib/gen/sec` utility library.
 
 ### Core Security Principles
 
@@ -14,10 +14,9 @@ The Lab Environment Management System implements a **security-first** approach w
 4. **Environment Isolation**: Security contexts separated by environment (dev/test/prod)
 5. **Audit Trail**: All security operations logged for compliance
 
-## 🛡️ Credential Management
+## Credential Management
 
 ### Security Utilities (`lib/gen/sec`)
-- **120+ lines** of secure credential handling code
 - **Automatic permission management** for sensitive files
 - **Zero hardcoded passwords** across the entire system
 - **Fallback mechanisms** for missing credentials
@@ -41,7 +40,7 @@ cfg/env/site1-prod/node-specific/hostname.credentials
 4. **Regular credential rotation** procedures
 5. **Audit credential access** through logging
 
-## 🔑 SSH Key Management
+## SSH Key Management
 
 ### SSH Utilities (`lib/gen/ssh`)
 ```bash
@@ -49,8 +48,8 @@ cfg/env/site1-prod/node-specific/hostname.credentials
 # Handled through lib/gen/ssh with secure patterns
 
 # Example usage in deployment scripts
-cd src/set/pve
-./pve d  # Generate SSH keys securely
+cd src/set
+./h1 -x d_xall  # Generate and distribute SSH keys securely
 ```
 
 ### SSH Security Configuration
@@ -65,7 +64,7 @@ KEY_NAME="lab-cluster"
 # - Multi-node distribution
 ```
 
-## 🌐 Network Security
+## Network Security
 
 ### Network Isolation
 ```bash
@@ -84,7 +83,7 @@ QDEVICE_IP="192.168.1.12"  # Dedicated QDevice network
 - **Cluster communication** security
 - **External access controls**
 
-## 🔐 Access Control
+## Access Control
 
 ### User Management
 ```bash
@@ -107,23 +106,22 @@ QDEVICE_IP="192.168.1.12"  # Dedicated QDevice network
 - **Container permissions** through Proxmox VE RBAC
 - **Network permissions** through firewall rules
 
-## 📊 Security Monitoring
+## Security Monitoring
 
 ### Audit Logging
 ```bash
 # Security events logged to
-${LOG_DIR}/.log/err.log     # Error and security violations
-${LOG_DIR}/.log/lo1.log     # Module-specific security events
+${LOG_DIR}/err.log     # Error and security violations
+${LOG_DIR}/lo1.log     # Module-specific security events
 
 # Security-related environment variables
-ERROR_LOG="${LOG_DIR}/.log/err.log"
+ERROR_LOG="${LOG_DIR}/err.log"
 ```
 
 ### Security Validation
 ```bash
 # Regular security checks
-./tst/validate_system       # Includes security validation
-./tst/test_environment      # Environment security testing
+./val/run_all_tests.sh       # Includes security validation
 
 # Security-specific validation
 # - Credential file permissions
@@ -138,7 +136,7 @@ ERROR_LOG="${LOG_DIR}/.log/err.log"
 - **Security event correlation**
 - **Regular compliance validation**
 
-## 🚨 Incident Response
+## Incident Response
 
 ### Security Event Handling
 ```bash
@@ -156,7 +154,7 @@ handle_error "credentials" "Invalid credential access" "WARNING"
 3. **Network Isolation**: Emergency network segmentation
 4. **Audit Trail Preservation**: Secure log backup and analysis
 
-## 🔧 Security Configuration Examples
+## Security Configuration Examples
 
 ### Environment Security Setup
 ```bash
@@ -181,37 +179,28 @@ define_containers "111:pbs:192.168.178.111"
 # - Service account assignment
 ```
 
-### Backup Security
-```bash
-# Secure backup operations through PBS
-# - Encrypted backup streams
-# - Secure credential management
-# - Access control validation
-# - Audit trail maintenance
-```
-
-## 📋 Security Checklist
+## Security Checklist
 
 ### Daily Operations
-- [ ] Verify credential file permissions (600)
-- [ ] Check security event logs
-- [ ] Validate service account status
-- [ ] Review network access logs
+- Verify credential file permissions (600)
+- Check security event logs
+- Validate service account status
+- Review network access logs
 
 ### Weekly Operations
-- [ ] Security validation testing
-- [ ] Credential rotation review
-- [ ] Access control audit
-- [ ] Backup security verification
+- Security validation testing
+- Credential rotation review
+- Access control audit
+- Backup security verification
 
 ### Monthly Operations
-- [ ] Comprehensive security assessment
-- [ ] Credential rotation execution
-- [ ] Security policy review
-- [ ] Compliance reporting
+- Comprehensive security assessment
+- Credential rotation execution
+- Security policy review
+- Compliance reporting
 
-## 📖 Related Documentation
+## Related Documentation
 
-- **[Configuration Management](configuration.md)** - Secure configuration practices
-- **[Infrastructure Guide](../iac/infrastructure.md)** - Secure deployment patterns
-- **[Logging System](../dev/logging.md)** - Security event logging
+- **[Configuration Management](configuration.md)**
+- **[Deployment](../iac/deployment.md)**
+- **[Logging System](logging.md)**

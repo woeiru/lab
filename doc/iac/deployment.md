@@ -2,81 +2,6 @@
 
 This document provides comprehensive instructions for using the deployment scripts located in the `src/set/` directory. These scripts automate infrastructure setup and configuration tasks for various services and system components using a consistent, environment-aware framework.
 
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Core Framework](#core-framework-srcauxset)
-   - [Hostname-Based Script Organization](#hostname-based-script-organization)
-3. [Prerequisites](#prerequisites)
-4. [Quick Start Guide](#quick-start-guide)
-5. [Usage Patterns](#usage-patterns)
-6. [Available Deployment Scripts](#available-deployment-scripts)
-7. [Configuration Management](#configuration-management)
-8. [Workflow Examples](#workflow-examples)
-9. [Security Considerations](#security-considerations)
-10. [Troubleshooting](#troubleshooting)
-11. [Advanced Usage](#advanced-usage)
-12. [Related Documentation](#related-documentation)
-13. [Support and Maintenance](#support-and-maintenance)
-14. [Function Architecture Integration](#function-architecture-integration)
-
-### NFS File Server Setup
-
-```bash
-# Complete NFS server deployment
-./src/set/c1 -x a_xall
-./src/set/c1 -x b_xall
-
-# Or interactive mode for guided setup
-./src/set/c1 -i
-```
-
-## Security Considerations
-
-### Access Control
-
-- **Privilege Requirements**: Many deployment operations require root privileges
-- **SSH Key Management**: Scripts handle SSH key generation and distribution securely
-- **File Permissions**: Configuration files should have appropriate restrictive permissions
-
-### Best Practices
-
-1. **Environment Isolation**: Use different environments (`dev`, `test`, `prod`) to isolate deployments
-2. **Configuration Security**: Store sensitive data in environment-specific configuration files
-3. **Network Security**: Verify firewall settings before deploying network services
-4. **Backup Strategy**: Always backup existing configurations before running deployment scripts
-
-### Security-Related Variables
-
-```bash
-# SSH configuration
-SSH_USERS=("admin" "operator")
-KEY_NAME="lab-cluster"
-
-# Network isolation
-QDEVICE_IP="192.168.1.12"  # Dedicated QDevice network
-```
-
-### Audit Trail
-
-The framework provides comprehensive logging for security auditing:
-- Execution timestamps and user context
-- Configuration changes and their sources
-- Error tracking and resolution steps
-1. [Overview](#overview)
-2. [Core Framework](#core-framework-libaux src)
-3. [Prerequisites](#prerequisites)
-4. [Quick Start Guide](#quick-start-guide)
-5. [Usage Patterns](#usage-patterns)
-6. [Available Deployment Scripts](#available-deployment-scripts)
-7. [Configuration Management](#configuration-management)
-8. [Workflow Examples](#workflow-examples)
-9. [Security Considerations](#security-considerations)
-10. [Troubleshooting](#troubleshooting)
-11. [Advanced Usage](#advanced-usage)
-12. [Related Documentation](#related-documentation)
-13. [Support and Maintenance](#support-and-maintenance)
-
 ## Overview
 
 The IaC deployment system provides automated infrastructure provisioning through:
@@ -95,14 +20,14 @@ All scripts within `src/set/` leverage the Environment-Aware Deployment Framewor
 *   **Interactive Mode**: Menu-driven interface for selecting and executing specific deployment tasks
 *   **Direct Execution Mode**: Command-line execution of specific tasks for automation and scripting
 *   **Environment Context Management**: Automatic loading of base, environment, and node-specific configurations
-*   **Hierarchical Configuration Loading**: Supports base → environment → node configuration overrides
+*   **Hierarchical Configuration Loading**: Supports base -> environment -> node configuration overrides
 *   **Usage Information**: Dynamic help generation based on script functions and configuration
 
 ### Architecture
 
 Each deployment script defines a `MENU_OPTIONS` associative array mapping letter keys (e.g., `a`, `b`) to task functions (named `a_xall`, `b_xall`, etc.). The framework provides:
 
-- **Configuration hierarchy**: `cfg/env/site1` → `cfg/env/site1-dev` → `cfg/env/site1-w2` 
+- **Configuration hierarchy**: `cfg/env/site1` -> `cfg/env/site1-dev` -> `cfg/env/site1-w2` 
 - **Runtime constants integration** with automatic LAB_ROOT detection
 - **Infrastructure and security utility loading** from `lib/ops/` and `lib/gen/`
 - **Environment variable context** (`SITE`, `ENVIRONMENT`, `NODE`)
@@ -120,23 +45,19 @@ The `src/set/` directory uses a **hostname-based naming convention** where each 
 | **`t1`** | Test Node 1 | Development environment | Developer workstation setup |
 | **`t2`** | Test Node 2 | Utility operations | Testing and temporary operations |
 
-This design allows for:
-- **Host-specific customization**: Each script contains deployment logic tailored to its target system
-- **Clear infrastructure mapping**: Script names directly correspond to actual hostnames in the lab
-- **Simplified remote deployment**: Scripts can be executed directly on target systems or via remote SSH
-- **Environment-aware execution**: All scripts automatically adapt to development, testing, or production contexts
+This design allows for host-specific customization and simplified deployment execution.
 
 ## Prerequisites
 
 Before using the deployment scripts, ensure:
 
 1. **System Requirements**:
-   - Bash 4.0+ (for associative arrays and advanced features)
-   - Standard Linux utilities (`grep`, `sed`, `awk`, etc.)
+   - Bash 4.0+
+   - Standard Linux utilities
    - Appropriate privileges for target operations
 
 2. **Environment Setup**:
-   - Execute from the project root directory (`/home/es/lab/`)
+   - Execute from the project root directory
    - Source the initialization framework: `source bin/ini` (recommended)
    - Configure environment variables if using non-default settings
 
@@ -153,7 +74,7 @@ Before using the deployment scripts, ensure:
 # Navigate to lab directory
 cd /home/es/lab
 
-# Initialize the environment (recommended)
+# Initialize the environment
 source bin/ini
 
 # Verify available scripts
@@ -192,7 +113,7 @@ ENVIRONMENT=prod NODE=w2 ./src/set/h1 -x a_xall
 
 ## Usage Patterns
 
-All scripts from `src/set/` follow consistent invocation patterns. Ensure you are in the project root directory (`/home/es/lab/`) for proper operation.
+All scripts from `src/set/` follow consistent invocation patterns. Ensure you are in the project root directory.
 
 ### 1. Displaying Usage and Help
 
@@ -200,17 +121,6 @@ To see available tasks and options for any script:
 ```bash
 ./src/set/script_name
 ```
-
-**Example**:
-```bash
-./src/set/t1
-```
-
-This displays the framework's help information, including:
-- Available task sections and their descriptions
-- Execution mode options (`-i` interactive, `-x` direct)
-- Display format options (1-6 for different output styles)
-- Environment context information
 
 ### 2. Interactive Mode
 
@@ -226,14 +136,6 @@ For menu-driven task selection:
 ./src/set/c1 -i -s a         # Focus on section 'a' only
 ```
 
-**Display Options**:
-- `1`: Default display (default)
-- `2`: Expand variables in output
-- `3`: Show function descriptions
-- `4`: Expand variables and show descriptions
-- `5`: Show only function names and descriptions
-- `6`: Show only function descriptions
-
 ### 3. Direct Task Execution
 
 For automation and scripting:
@@ -248,27 +150,7 @@ For automation and scripting:
 ./src/set/c1 -x b_xall       # Configure NFS exports only
 ```
 
-### 4. Environment Context
-
-Scripts automatically load configuration based on environment variables:
-
-```bash
-# Default (site1)
-./src/set/h1 -x a_xall
-
-# Development environment 
-ENVIRONMENT=dev ./src/set/h1 -x a_xall
-
-# Node-specific configuration
-NODE=w2 ./src/set/h1 -x a_xall
-
-# Combined environment and node
-ENVIRONMENT=dev NODE=w2 ./src/set/h1 -x a_xall
-```
-
 ## Available Deployment Scripts
-
-The following scripts are available in `src/set/` for infrastructure deployment:
 
 ### 1. `src/set/t1` - Development Environment Setup
 **Purpose**: Configures development workstations and tools
@@ -277,30 +159,12 @@ The following scripts are available in `src/set/` for infrastructure deployment:
 *   **`a_xall`**: Installs common system packages and configures global Git user credentials
 *   **`b_xall`**: Configures global Git user credentials only
 
-**Use Cases**: Initial workstation setup, developer onboarding, Git configuration standardization
-
-**Example Usage**:
-```bash
-./src/set/t1 -x a_xall    # Full development setup
-./src/set/t1 -x b_xall    # Git configuration only
-```
-
 ### 2. `src/set/c1` - Network File System Setup
 **Purpose**: Deploys and configures NFS server infrastructure
 
 **Available Tasks**:
 *   **`a_xall`**: Installs NFS server packages, enables the NFS service, and creates NFS management user account
 *   **`b_xall`**: Configures NFS exports by setting up shared folders with specified access permissions
-
-**Use Cases**: Centralized file storage, shared development environments, backup destinations
-
-**Configuration Requirements**: NFS-related variables in site configuration (`NFS_PACKAGES_ALL`, `NFS_USERNAME_1`, etc.)
-
-**Example Usage**:
-```bash
-./src/set/c1 -x a_xall    # Install and enable NFS server
-./src/set/c1 -x b_xall    # Configure shares only
-```
 
 ### 3. `src/set/c3` - Proxmox Backup Server Setup  
 **Purpose**: Installs and configures Proxmox Backup Server
@@ -309,50 +173,30 @@ The following scripts are available in `src/set/` for infrastructure deployment:
 *   **`a_xall`**: Downloads and verifies Proxmox Backup Server GPG key, adds repository, and installs PBS packages
 *   **`b_xall`**: Configures PBS datastore with specified name and path for backup storage
 
-**Use Cases**: Enterprise backup infrastructure, Proxmox ecosystem integration, automated backup management
-
-**Configuration Requirements**: PBS-related variables (`PBS_PACKAGES_ALL`, datastore configuration)
-
 ### 4. `src/set/h1` - Proxmox Virtual Environment Setup
 **Purpose**: Comprehensive Proxmox VE cluster setup and management
 
 **Available Tasks**:
-*   **`a_xall`**: Disables enterprise repository, adds community repository, and removes subscription notice
+*   **`a_xall`**: Disables enterprise repository, adds community repository
 *   **`b_xall`**: Installs required system packages including corosync-qdevice for cluster management  
 *   **`c_xall`**: Sets up /etc/hosts entries for Proxmox nodes (x1, x2) and QDevice
 *   **`d_xall`**: Generates and distributes SSH keys for secure communication between nodes
-*   **`i_xall`**: Creates a RAID 1 Btrfs filesystem across two devices with specified mount point
-*   **`j_xall`**: Creates and configures multiple ZFS datasets with their respective mount points
-*   **`p_xall`**: Updates container template list, downloads specified template, and updates configuration
-*   **`q_xall`**: Creates multiple Proxmox containers using configuration parameters from site config
-*   **`r_xall`**: Configures bind mounts for all defined containers to link host and container directories
+*   **`i_xall`**: Creates a RAID 1 Btrfs filesystem across two devices
+*   **`j_xall`**: Creates and configures multiple ZFS datasets
+*   **`p_xall`**: Updates container template list, downloads specified template
+*   **`q_xall`**: Creates multiple Proxmox containers using configuration parameters
+*   **`r_xall`**: Configures bind mounts for all defined containers
 *   **`s_xall`**: Creates multiple virtual machines using specifications defined in site configuration
-
-**Use Cases**: Virtualization infrastructure, container platforms, high-availability clusters
-
-**Configuration Requirements**: Extensive PVE variables (node IPs, storage configuration, VM/CT definitions)
 
 ### 5. `src/set/c2` - Samba (SMB/CIFS) Server Setup
 **Purpose**: Deploys Windows-compatible file sharing services
 
 **Available Tasks**:
-*   **`a_xall`**: Installs Samba packages, enables the SMB service, and creates initial user account for Samba access
-*   **`b_xall`**: Sets up multiple Samba shares with different access permissions for regular and guest users
-
-**Use Cases**: Windows integration, mixed-environment file sharing, legacy system support
-
-**Configuration Requirements**: SMB-related variables (packages, user accounts, share definitions)
+*   **`a_xall`**: Installs Samba packages, enables the SMB service, creates initial user account
+*   **`b_xall`**: Sets up multiple Samba shares with different access permissions
 
 ### 6. `src/set/t2` - Temporary/Utility Operations
 **Purpose**: Provides utility functions for system operations and testing
-
-**Available Tasks**:
-*   **`a_xall`**: Uploads private SSH key from USB device to system for secure authentication
-*   **`b_xall`**: Uploads public SSH key from USB device and adds it to authorized keys
-*   **`c_xall`**: Mounts a predefined NFS share using global configuration variables
-*   **`d_xall`**: Executes remote commands via SSH using configured aliases
-
-**Use Cases**: Key management, temporary mounts, remote command execution, system testing
 
 ## Configuration Management
 
@@ -371,28 +215,6 @@ Control deployment behavior with these variables:
 - **`SITE`**: Base site identifier (default: `site1`)
 - **`ENVIRONMENT`**: Environment override (`dev`, `test`, `staging`, `prod`)
 - **`NODE`**: Node-specific override (`h1`, `w2`, `x1`, `x2`, etc.)
-- **`LAB_ROOT`**: Lab directory root (auto-detected)
-
-### Configuration Files
-
-Each script requires specific configuration variables. Common patterns:
-
-```bash
-# Package lists
-PACKAGES_DEV=("git" "vim" "curl" "wget")
-NFS_PACKAGES_ALL=("nfs-kernel-server" "nfs-common")
-
-# Service configuration  
-NFS_USERNAME_1="nfsuser"
-NFS_SHARED_FOLDER_1="/export/shared"
-
-# Network configuration
-NODE1_IP="192.168.1.10"
-NODE2_IP="192.168.1.11"
-QDEVICE_IP="192.168.1.12"
-```
-
-Refer to `cfg/env/site1` for complete configuration examples.
 
 ## Workflow Examples
 
@@ -420,22 +242,22 @@ Refer to `cfg/env/site1` for complete configuration examples.
 
 # Step 4: Set up SSH keys
 ./src/set/h1 -x d_xall
-
-# Step 5: Create storage (interactive selection)
-./src/set/h1 -i -s i    # Btrfs RAID 1
-./src/set/h1 -i -s j    # ZFS datasets
 ```
 
-### NFS File Server Setup
+## Security Considerations
 
-```bash
-# Complete NFS server deployment
-./src/set/c1 -x a_xall
-./src/set/c1 -x b_xall
+### Access Control
 
-# Or interactive mode for guided setup
-./src/set/c1 -i
-```
+- **Privilege Requirements**: Many deployment operations require root privileges
+- **SSH Key Management**: Scripts handle SSH key generation and distribution securely
+- **File Permissions**: Configuration files should have appropriate restrictive permissions
+
+### Best Practices
+
+1. **Environment Isolation**: Use different environments (`dev`, `test`, `prod`) to isolate deployments
+2. **Configuration Security**: Store sensitive data in environment-specific configuration files
+3. **Network Security**: Verify firewall settings before deploying network services
+4. **Backup Strategy**: Always backup existing configurations before running deployment scripts
 
 ## Troubleshooting
 
@@ -449,37 +271,11 @@ Refer to `cfg/env/site1` for complete configuration examples.
 2. **Permission Errors**
    - Many operations require root privileges
    - Use `sudo ./src/set/script_name` when necessary
-   - Verify file permissions on configuration directories
 
 3. **Function Not Found Errors**
    - Ensure `src/aux/set` is properly sourced
    - Check that required utility functions exist in `lib/ops/`
    - Verify runtime constants are loaded from `cfg/core/ric`
-
-4. **Network Configuration Issues**
-   - Verify IP addresses in configuration files
-   - Ensure DNS resolution works for hostnames
-   - Check firewall settings for required ports
-
-### Debug Mode
-
-Enable detailed logging:
-```bash
-set -x
-./src/set/script_name -x function_name
-set +x
-```
-
-### Validation
-
-Check configuration before deployment:
-```bash
-# View loaded configuration
-./src/set/script_name -i 2    # Expand variables
-
-# Test specific sections
-./src/set/script_name -i -s section_id
-```
 
 ## Advanced Usage
 
@@ -491,16 +287,6 @@ Execute multiple tasks in sequence:
 for task in a_xall b_xall c_xall d_xall; do
     ./src/set/h1 -x $task
 done
-```
-
-### Environment-Specific Deployments
-
-```bash
-# Development environment
-ENVIRONMENT=dev ./src/set/h1 -x a_xall
-
-# Production node w2
-ENVIRONMENT=prod NODE=w2 ./src/set/h1 -x a_xall
 ```
 
 ### Integration with Automation
@@ -525,76 +311,15 @@ export NODE="h1"
 
 ## Related Documentation
 
-- **System Architecture**: `doc/man/architecture.md` - Overall lab system design and component relationships
-- **Configuration Management**: `doc/man/configuration.md` - Detailed configuration file formats and options
-- **Initialization Process**: `doc/man/initiation.md` - Lab environment initialization and runtime control
-- **Logging System**: `doc/man/logging.md` - Comprehensive logging and monitoring capabilities
-- **Framework Flow**: `doc/flo/aux_src_menu_architecture.md` - Technical flow diagrams and decision trees
-
-### Component Documentation
-
-- **Core Libraries**: `lib/core/` - Error handling, logging, and timing modules
-- **Operations Libraries**: `lib/ops/` - System, storage, and service management functions
-- **Utility Libraries**: `lib/gen/` - Infrastructure, security, and environment utilities
-- **Configuration Files**: `cfg/` - Environment configurations and runtime constants
-
-## Support and Maintenance
-
-### Getting Help
-
-1. **Built-in Documentation**: Use `./src/set/script_name` to view detailed help for any script
-2. **Function Reference**: Examine source files in `lib/ops/` for available operations and their parameters
-3. **Configuration Examples**: Review `cfg/env/site1` for complete parameter formats and examples
-4. **Framework Source**: See `src/aux/set` source code for advanced features and customization options
-
-### Maintenance Tasks
-
-**Regular Updates**:
-- Review and update configuration files in `cfg/env/` as infrastructure changes
-- Test deployment scripts in development environment before production use
-- Monitor logs for errors or performance issues
-- Update package lists and service configurations as needed
-
-**Version Control**:
-- All configuration changes are tracked through the lab's version control system
-- Use environment-specific branches for testing configuration changes
-- Document infrastructure changes in the appropriate `doc/` files
-
-**Performance Monitoring**:
-- The framework includes built-in timing and performance monitoring
-- Use `tme_print_timing_report` after deployments to analyze performance
-- Monitor system resources during large-scale deployments
-
-### Contributing
-
-The deployment framework is actively maintained and welcomes contributions:
-
-1. **Bug Reports**: Document issues with specific error messages and reproduction steps
-2. **Feature Requests**: Propose new deployment scripts or framework enhancements
-3. **Configuration Updates**: Submit updates for new services or infrastructure components
-4. **Documentation**: Help improve and expand documentation for better usability
-
-The framework supports the lab's evolving infrastructure automation requirements and is designed for extensibility and maintainability.
+- **Configuration Management**: `doc/man/configuration.md`
+- **Initialization Process**: `doc/man/initiation.md`
+- **Logging System**: `doc/man/logging.md`
 
 ## Function Architecture Integration
 
 ### Pure Functions vs Management Wrappers
 
-The deployment scripts integrate with a sophisticated **function separation pattern** implemented in the operations modules:
-
-#### Architecture Overview
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Deployment      │ -> │  Wrapper (-w)    │ -> │  Pure Function  │
-│ Script (src/set)│    │  src/dic/ops     │    │  lib/ops/*      │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │
-                                v
-                       ┌──────────────────┐
-                       │  Global Config   │
-                       │  Environment     │
-                       └──────────────────┘
-```
+The deployment scripts integrate with a sophisticated function separation pattern implemented in the operations modules:
 
 #### Implementation in Deployment Context
 
@@ -603,43 +328,10 @@ The deployment scripts integrate with a sophisticated **function separation patt
 ##### Example: PVE Deployment Integration
 ```bash
 # In deployment script (src/set/h1)
-source "${SRC_DIC_DIR}/ops"  # Load DIC operations
+source src/dic/ops  # Load DIC operations
 
-# Call wrapper function (handles global variable extraction)
-pve-vpt-w 100 on  # Enable passthrough for VM 100
+# Call DIC operation (handles global variable extraction)
+ops pve vpt -j 100 on  # Enable passthrough for VM 100
 
-# The DIC operations (src/dic/ops) handle dependency injection and call pure functions
-# pve-vpt-w() {
-#     local hostname=$(hostname)
-#     local pci0_id="${!hostname}_NODE_PCI0"
-#     local pci1_id="${!hostname}_NODE_PCI1"
-#     # ...extract other globals
-#     pve-vpt "$vm_id" "$action" "$pci0_id" "$pci1_id" ...
-# }
+# The DIC operations handle dependency injection and call pure functions
 ```
-
-#### Benefits for Infrastructure Deployment
-
-1. **Environment Independence**: Pure functions work regardless of deployment context
-2. **Testing Capability**: Pure functions can be unit tested independently
-3. **Configuration Flexibility**: Wrappers adapt to different environment configurations
-4. **Maintainable Automation**: Clear separation between deployment logic and infrastructure operations
-
-#### Available Function Categories
-
-**Pure Functions** (9 parameterized from PVE module):
-- `pve-fun` - Function listing and documentation
-- `pve-var` - Variable analysis and configuration review
-- `pve-vmd` - VM shutdown hook management
-- `pve_vck` - VM cluster node location checking
-- `pve-vpt` - PCI passthrough toggle operations
-- `pve-ctc` - Container creation with full configuration
-- `pve-vmc` - Virtual machine creation and setup
-- `pve-vms` - VM start/shutdown with passthrough management
-- `pve-vmg` - VM migration and orchestration
-
-**Management Wrappers** (corresponding `-w` functions):
-- Handle global variable extraction from environment
-- Provide deployment-friendly interfaces
-- Integrate with configuration hierarchy
-- Support environment-aware operations

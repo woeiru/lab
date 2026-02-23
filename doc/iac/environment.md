@@ -2,9 +2,9 @@
 
 Comprehensive guide for managing multi-environment deployments and configuration hierarchies.
 
-## 🌍 Environment Architecture
+## Environment Architecture
 
-The Lab Environment Management System implements a sophisticated **hierarchical configuration system** that supports multiple environments with automatic configuration cascading.
+The system implements a sophisticated hierarchical configuration system that supports multiple environments with automatic configuration cascading.
 
 ### Environment Hierarchy
 ```
@@ -21,7 +21,7 @@ Node-Specific Settings (runtime)
 - **Production (`prod`)**: Production workloads
 - **Hypervisor (`h1`, `w2`)**: Individual hypervisor configurations
 
-## 🏗️ Environment Configuration
+## Environment Configuration
 
 ### Base Site Configuration (`cfg/env/site1`)
 ```bash
@@ -72,12 +72,9 @@ export CT_DEFAULT_CORES=4
 export SITE="site1"
 export ENVIRONMENT="dev"  
 export NODE="$(hostname)"
-
-# Node-specific overrides loaded at runtime
-# Based on hostname and environment context
 ```
 
-## 🚀 Environment Deployment Patterns
+## Environment Deployment Patterns
 
 ### Standardized Deployments
 
@@ -132,7 +129,7 @@ define_containers "301:web-prod:192.168.180.101:302:db-prod:192.168.180.102"
 - **Storage**: Redundant storage (RAID, ZFS)
 - **Network**: Dedicated production network with QDevice
 
-## 🔧 Environment Management Operations
+## Environment Management Operations
 
 ### Environment Switching
 ```bash
@@ -150,13 +147,10 @@ source ~/.bashrc  # Reload environment
 ### Environment Validation
 ```bash
 # Validate current environment configuration
-./tst/validate_system
-
-# Test environment-specific functionality
-./tst/test_environment
+./val/run_all_tests.sh
 
 # Environment-specific deployment testing
-cd src/set/pve && ./pve  # Interactive mode for environment testing
+cd src/set && ./h1 -i  # Interactive mode for environment testing
 ```
 
 ### Configuration Override Management
@@ -169,7 +163,7 @@ echo "Cluster Nodes: ${CLUSTER_NODES[*]}"
 echo "Default Memory: $VM_DEFAULT_MEMORY"
 ```
 
-## 🏭 Infrastructure Environment Patterns
+## Infrastructure Environment Patterns
 
 ### Development Infrastructure
 - **Purpose**: Rapid development and testing
@@ -192,30 +186,29 @@ echo "Default Memory: $VM_DEFAULT_MEMORY"
 - **Storage**: Redundant, backed-up storage
 - **Monitoring**: Full monitoring, alerting, and audit trails
 
-## 📊 Environment Automation
+## Environment Automation
 
 ### Automated Environment Provisioning
 ```bash
 # Environment-specific deployment scripts
-cd src/set/pve
+cd src/set
 
 # Development environment setup
-export ENVIRONMENT="dev" && ./pve a b c d
+export ENVIRONMENT="dev" && ./h1 -x a_xall
 
 # Testing environment setup  
-export ENVIRONMENT="test" && ./pve a b c d
+export ENVIRONMENT="test" && ./h1 -x a_xall
 
 # Production environment setup
-export ENVIRONMENT="prod" && ./pve a b c d
+export ENVIRONMENT="prod" && ./h1 -x a_xall
 ```
 
 ### Environment-Aware Service Management
 ```bash
 # Service deployment with environment context
-cd src/set/c1  # Container service 1
+cd src/set
 export ENVIRONMENT="dev" && ./c1
 
-cd src/set/c2  # Container service 2
 export ENVIRONMENT="prod" && ./c2
 ```
 
@@ -225,18 +218,18 @@ export ENVIRONMENT="prod" && ./c2
 for env in dev test prod; do
     export ENVIRONMENT="$env"
     source ~/.bashrc
-    cd src/set/pve && ./pve q  # Deploy containers
+    cd src/set && ./h1 -x q_xall  # Deploy containers
 done
 ```
 
-## 🔍 Environment Monitoring
+## Environment Monitoring
 
 ### Environment Health Checks
 ```bash
 # Environment-specific validation
-export ENVIRONMENT="dev" && ./tst/validate_system
-export ENVIRONMENT="test" && ./tst/validate_system  
-export ENVIRONMENT="prod" && ./tst/validate_system
+export ENVIRONMENT="dev" && ./val/run_all_tests.sh
+export ENVIRONMENT="test" && ./val/run_all_tests.sh
+export ENVIRONMENT="prod" && ./val/run_all_tests.sh
 ```
 
 ### Resource Utilization Monitoring
@@ -249,16 +242,16 @@ export ENVIRONMENT="prod" && ./tst/validate_system
 - **Environment Consistency**: Cross-environment configuration comparison
 - **Policy Enforcement**: Automated policy compliance checking
 
-## 📋 Environment Best Practices
+## Environment Best Practices
 
 ### Configuration Management
-1. **Hierarchical Configuration**: Use base → environment → node override pattern
+1. **Hierarchical Configuration**: Use base -> environment -> node override pattern
 2. **Environment Isolation**: Separate resources and networks by environment
 3. **Consistent Naming**: Use environment prefixes in resource names
 4. **Documentation**: Document environment-specific configurations
 
 ### Deployment Practices
-1. **Environment Promotion**: Deploy through dev → test → prod pipeline
+1. **Environment Promotion**: Deploy through dev -> test -> prod pipeline
 2. **Configuration Validation**: Validate configurations before deployment
 3. **Rollback Procedures**: Maintain rollback capabilities for each environment
 4. **Change Management**: Track configuration changes across environments
@@ -269,8 +262,8 @@ export ENVIRONMENT="prod" && ./tst/validate_system
 3. **Access Controls**: Role-based access per environment
 4. **Audit Trails**: Track access and changes per environment
 
-## 📖 Related Documentation
+## Related Documentation
 
-- **[Infrastructure Guide](infrastructure.md)** - Deployment automation patterns
-- **[Configuration Management](../adm/configuration.md)** - Detailed configuration options
-- **[Security Management](../adm/security.md)** - Environment security practices
+- **[Deployment](deployment.md)** - Deployment automation patterns
+- **[Configuration Management](../man/configuration.md)** - Detailed configuration options
+- **[Security Management](../man/security.md)** - Environment security practices

@@ -59,7 +59,7 @@ The lab environment uses the `192.168.178.0/24` network with the following alloc
 ## Infrastructure Utilities
 
 ### Location
-Infrastructure configuration utilities are located in `/home/es/lab/lib/gen/inf`
+Infrastructure configuration utilities are located in `lib/gen/inf`
 
 ### Key Functions
 
@@ -122,7 +122,7 @@ The infrastructure utilities provide the following defaults:
 
 ### Password Management
 
-Security utilities are located in `/home/es/lab/lib/gen/sec` and provide:
+Security utilities are located in `lib/gen/sec` and provide:
 
 #### Secure Password Generation
 ```bash
@@ -137,7 +137,7 @@ generate_service_passwords
 ```
 
 #### Password Storage
-- **Location**: `/etc/lab/passwords/`
+- **Location**: Default is `/etc/lab/passwords/` or `/tmp/lab_passwords` depending on system capabilities
 - **Permissions**: 700 (directory), 600 (files)
 - **Files**:
   - `ct_pbs.pwd` - PBS container root password
@@ -155,22 +155,14 @@ init_password_management [password_dir]
 load_stored_passwords [password_dir]
 ```
 
-### Security Best Practices
-
-1. **No Hardcoded Passwords**: All passwords are generated securely
-2. **Proper File Permissions**: Password files are readable only by root
-3. **Password Complexity**: Minimum 16 characters with special characters
-4. **Service Isolation**: Different passwords for each service
-5. **Secure Storage**: Passwords stored in protected directory structure
-
 ## Environment-Aware Configuration
 
 ### Environment Variables
 The system supports environment-specific configurations through:
 
-- **Base Site**: `/home/es/lab/cfg/env/site1`
-- **Environment Override**: `/home/es/lab/cfg/env/site1-dev`
-- **Node Override**: `/home/es/lab/cfg/env/site1-w2`
+- **Base Site**: `cfg/env/site1`
+- **Environment Override**: `cfg/env/site1-dev`
+- **Node Override**: `cfg/env/site1-w2`
 
 ### Loading Hierarchy
 1. Load base site configuration
@@ -178,20 +170,14 @@ The system supports environment-specific configurations through:
 3. Apply node-specific overrides
 4. Load runtime constants
 
-### Environment Context
-The deployment system displays:
-- **Site**: Current site identifier
-- **Environment**: Development/production environment
-- **Node**: Specific node configuration
-
 ## Storage Configuration
 
 ### ZFS Datasets
 - **Pool**: `rpool`
 - **Datasets**:
-  - `rpool/pbs` → `/sto/pbs`
-  - `rpool/nfs` → `/sto/nfs`
-  - `rpool/smb` → `/sto/smb`
+  - `rpool/pbs` -> `/sto/pbs`
+  - `rpool/nfs` -> `/sto/nfs`
+  - `rpool/smb` -> `/sto/smb`
 
 ### Btrfs Configuration
 - **Devices**: `/dev/nvme0n1`, `/dev/nvme2n1`
@@ -202,17 +188,17 @@ The deployment system displays:
   - `/sto/smb`
 
 ### Container Bind Mounts
-- **PBS**: Host `/sto/pbs` → Container `/home`
-- **NFS**: Host `/sto/nfs` → Container `/home`
-- **SMB**: Host `/sto/smb` → Container `/home`
+- **PBS**: Host `/sto/pbs` -> Container `/home`
+- **NFS**: Host `/sto/nfs` -> Container `/home`
+- **SMB**: Host `/sto/smb` -> Container `/home`
 
 ## Usage Examples
 
 ### Creating a New Container
 ```bash
 # Load utilities
-source /home/es/lab/lib/gen/inf
-source /home/es/lab/lib/gen/sec
+source lib/gen/inf
+source lib/gen/sec
 
 # Initialize security
 init_password_management
@@ -227,24 +213,15 @@ define_container 114 "web" "192.168.178.114" \
 define_containers "114:web:192.168.178.114:115:db:192.168.178.115"
 ```
 
-### Viewing Configuration
-```bash
-# Show current configuration summary
-show_config_summary
-
-# Validate configuration
-validate_config
-```
-
 ### Environment Switching
 ```bash
 # Switch to development environment
 export ENVIRONMENT="dev"
-source /home/es/lab/src/aux/set
+source src/aux/set
 
 # Switch to specific node
 export NODE="w2"
-source /home/es/lab/src/aux/set
+source src/aux/set
 ```
 
 ## Troubleshooting
@@ -266,41 +243,36 @@ echo "Site: $SITE, Environment: $ENVIRONMENT, Node: $NODE"
 
 # Test password generation
 generate_secure_password 20
-
-# Verify infrastructure utilities
-define_container --help
 ```
 
 ## Migration Guide
 
 ### From Legacy Configuration
-1. Replace hardcoded CT_1_*, CT_2_*, CT_3_* variables
+1. Replace hardcoded variables
 2. Use `define_containers` for bulk creation
 3. Implement secure password management
 4. Update deployment scripts to source utilities
 
 ### Configuration Updates
-1. Add `source /home/es/lab/lib/gen/inf` to configuration files
-2. Add `source /home/es/lab/lib/gen/sec` for security features
+1. Add `source lib/gen/inf` to configuration files
+2. Add `source lib/gen/sec` for security features
 3. Replace password variables with secure generation
-4. Use infrastructure utility functions for container/VM definitions
 
 ## Function Architecture Patterns
 
 ### Pure Function Design in Library Modules
 
-The infrastructure utilities follow a **pure function design pattern** where library functions in `lib/` directories accept explicit parameters rather than accessing global variables directly. This pattern provides:
+The infrastructure utilities follow a pure function design pattern where library functions in `lib/ops/` and `lib/gen/` directories accept explicit parameters rather than accessing global variables directly.
 
 #### Benefits
 - **Enhanced Testability**: Functions can be tested in isolation with known inputs
-- **Improved Reusability**: Functions work across different environments and contexts
 - **Explicit Dependencies**: All required data is passed as parameters, making dependencies clear
 - **Reduced Coupling**: Functions don't depend on specific global variable configurations
 
 #### Implementation Example
 ```bash
 # Pure function (lib/ops/pve) - parameterized approach
-pve-vpt() {
+pve_vpt() {
     local vm_id="$1"
     local action="$2"  
     local pci0_id="$3"
@@ -317,29 +289,5 @@ pve-vpt() {
 }
 
 # DIC operations (src/dic/ops) - handles dependency injection
-pve-vpt-w() {
-    source "${LIB_OPS_DIR}/pve"
-    
-    local hostname=$(hostname)
-    local vm_id="$1"
-    local action="$2"
-    
-    # Extract global variables and convert to explicit parameters
-    local pci0_id="${!hostname}_NODE_PCI0"
-    local pci1_id="${!hostname}_NODE_PCI1"
-    # ... extract other globals
-    
-    pve-vpt "$vm_id" "$action" "$pci0_id" "$pci1_id" "$core_count_on" "$core_count_off" "$usb_devices_str" "$pve_conf_path"
-}
+# Usage: ops pve vpt -j
 ```
-
-### Configuration-Library Separation
-
-This separation allows:
-
-1. **Environment Independence**: Pure functions work regardless of how configuration is loaded
-2. **Testing Flexibility**: Test pure functions with mock data, test wrappers with real config
-3. **Deployment Options**: Use wrappers in scripts, pure functions in automated testing
-4. **Maintenance Clarity**: Configuration logic separated from business logic
-
-This infrastructure configuration system provides a standardized, secure, and maintainable approach to managing lab environments with proper separation of concerns and environment-aware deployment capabilities.

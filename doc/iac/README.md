@@ -1,167 +1,45 @@
-# 🏗️ Infrastructure as Code Documentation
+# Infrastructure as Code
 
-Documentation for infrastructure teams and DevOps engineers managing deployment automation.
+Documentation for infrastructure deployment and environment management.
 
-## 🎯 Target Audience
+## Contents
 
-Infrastructure teams and DevOps engineers who need to:
-- Implement standardized deployments using infrastructure utilities
-- Manage environment-specific configurations and overrides  
-- Extend deployment scripts with established automation patterns
-- Orchestrate container and VM infrastructure at scale
+- [deployment.md](deployment.md) - Deployment scripts, container/VM provisioning, and Proxmox VE setup
+- [environment.md](environment.md) - Environment configuration hierarchy and multi-environment management
 
-## 📚 Documentation Index
+## Deployment Overview
 
-### Infrastructure Management
-- **[Infrastructure Guide](infrastructure.md)** - Comprehensive IaC deployment patterns, automation scripts, and infrastructure management
-- **[Environment Management](environment-management.md)** - Multi-environment deployment patterns, configuration hierarchies, and automation
+Deployment scripts live under `src/set/`. Each subdirectory is a deployment target:
 
-### Infrastructure Guidelines
+| Directory | Purpose |
+|-----------|---------|
+| `src/set/c1`, `c2`, `c3` | Container service deployments |
+| `src/set/h1` | Hypervisor setup |
+| `src/set/t1`, `t2` | Test environment provisioning |
 
-#### Standardized Deployments
-- **Infrastructure Utilities**: Use consistent deployment patterns for reliability
-- **Container/VM Standardization**: 355+ lines of infrastructure utilities
-- **Bulk Creation**: Colon-separated definition strings for rapid deployment
-- **Configuration Validation**: Built-in validation and summary reporting
+Infrastructure library modules are in `lib/ops/`:
 
-#### Environment Management
-- **Environment-Specific Overrides**: Implement cascading configuration management
-- **Multi-Environment Support**: dev, test, prod environment isolation
-- **Node-Specific Settings**: Runtime configuration customization
-- **Hierarchical Configuration**: base → environment → node cascade
+| Module | Purpose |
+|--------|---------|
+| `pve` | Proxmox VE cluster, VM, and container lifecycle |
+| `gpu` | GPU passthrough management (`gpu_pts`, `gpu_ptd`, `gpu_pta`) |
+| `sys` | System setup, package management, user provisioning |
+| `net` | Network configuration and connectivity |
+| `sto` | Storage pools and filesystem management |
 
-#### Automation Patterns
-- **Deployment Scripts**: Extend established patterns in `src/set/`
-- **Service Orchestration**: Standardized service deployment automation
-- **Infrastructure Provisioning**: Automated container and VM provisioning
+## Environment Configuration
 
-## 🚀 Deployment Workflows
+Configuration files are under `cfg/env/`. The loading order is:
 
-### Container Infrastructure
-```bash
-# Standardized container creation
-source lib/gen/inf
-define_containers "111:pbs:192.168.178.111:112:nfs:192.168.178.112"
-validate_config && show_config_summary
-
-# Set global defaults
-set_container_defaults memory=4096 storage="local-lvm"
-
-# Deploy with environment awareness
-cd src/set/pve && ./pve q  # Create containers
+```
+cfg/env/<site>          base site config
+cfg/env/<site>-<env>    environment override (dev, prod, etc.)
 ```
 
-### Proxmox VE Cluster Setup
+Runtime variables (`SITE`, `ENVIRONMENT`, `NODE`) select which config files load. See [environment.md](environment.md) for details.
+
+## Running Tests
+
 ```bash
-cd src/set/pve
-./pve a  # Configure repositories
-./pve b  # Install packages  
-./pve c  # Setup /etc/hosts
-./pve d  # Generate SSH keys
+./val/run_all_tests.sh
 ```
-
-### GPU Infrastructure Management
-```bash
-# GPU passthrough for infrastructure
-gpu_pts-w    # Check GPU status
-gpu_ptd-w 1  # Detach GPU for passthrough
-gpu_pta-w 1  # Attach GPU back to host
-```
-
-## 🌍 Environment Management
-
-### Configuration Hierarchy
-```bash
-# Environment configuration cascade
-Base Configuration (cfg/env/site1)
-    ↓
-Environment Override (cfg/env/site1-dev)  
-    ↓
-Node-Specific Settings (runtime)
-```
-
-### Multi-Environment Deployment
-```bash
-# Development environment
-export SITE="site1"
-export ENVIRONMENT="dev"
-export NODE="dev-node1"
-
-# Production environment  
-export SITE="site1"
-export ENVIRONMENT="prod"
-export NODE="prod-node1"
-```
-
-### Infrastructure Scaling
-- **Multi-node cluster support** with QDevice integration
-- **Automated IP management** and network planning
-- **Storage backend flexibility** (Btrfs, ZFS, LVM)
-- **Service replication** across cluster nodes
-
-## 🔧 Infrastructure Utilities
-
-### Core Infrastructure Functions
-| Module | Purpose | Infrastructure Focus |
-|--------|---------|---------------------|
-| **pve** | Proxmox VE Management | Cluster orchestration, VM/container lifecycle |
-| **gpu** | GPU Passthrough | Hardware resource allocation for compute workloads |
-| **sys** | System Operations | Package management, user provisioning, host setup |
-| **net** | Network Management | Network configuration, routing, connectivity |
-| **sto** | Storage Management | Storage pools, filesystems, backup integration |
-
-### Deployment Scripts
-| Script | Purpose | Infrastructure Scope |
-|--------|---------|---------------------|
-| **c1, c2, c3** | Container Services | Multi-tier container deployment |
-| **t1, t2** | Test Infrastructure | Test environment provisioning |
-| **h1** | Hypervisor Setup | Development hypervisor configuration |
-
-## 📊 Infrastructure Metrics
-
-### Deployment Scale
-- **355+ lines** of infrastructure utilities
-- **19+ configurable parameters** per deployment
-- **133 operational functions** in 19 library modules
-- **8 service-specific deployment modules**
-
-### Automation Coverage
-- **Container orchestration** with standardized parameters
-- **VM lifecycle management** with Proxmox VE integration
-- **GPU resource allocation** for compute infrastructure
-- **Network and storage provisioning** automation
-
-## 🛡️ Infrastructure Security
-
-### Secure Infrastructure Patterns
-- **Zero hardcoded credentials** in infrastructure code
-- **Environment-specific secret management**
-- **Automated permission management** for infrastructure files
-- **Network isolation** between environments
-
-### Compliance and Auditing
-- **Infrastructure as Code** principles for auditability
-- **Comprehensive logging** for infrastructure operations
-- **Change tracking** through git and deployment logs
-- **Security validation** in deployment pipelines
-
-## 🔄 Continuous Deployment
-
-### Infrastructure Pipeline
-1. **Configuration Validation**: Built-in validation before deployment
-2. **Environment Preparation**: Hierarchical configuration loading
-3. **Resource Provisioning**: Automated infrastructure creation
-4. **Service Deployment**: Standardized service orchestration
-5. **Health Validation**: Post-deployment testing and validation
-
-### Monitoring and Maintenance
-- **Performance monitoring** with built-in timing framework
-- **Health checks** via comprehensive test suites
-- **Automated backup** and disaster recovery procedures
-- **Capacity planning** with resource utilization tracking
-
-## 📖 Related Documentation
-
-- **Developers**: See `../dev/` for library integration and architecture
-- **System Administrators**: See `../adm/` for operational procedures  
-- **End Users**: See `../user/` for user-facing procedures

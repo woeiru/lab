@@ -4,7 +4,7 @@
 VM shutdown hooks fail to trigger when VM is started via `pve_vms` orchestrator, but work correctly when started with direct GPU passthrough commands.
 
 ## Affected Components
-- `pve_vms` function (lib/ops/pve:1314-1484)
+- `pve_vms` function (lib/ops/pve:1318-1488)
 - GPU passthrough hook system (pve_vmd)
 - VM shutdown monitoring system
 
@@ -46,7 +46,7 @@ The hook system requires:
 
 ## Technical Details
 
-### pve_vms GPU Management (lib/ops/pve:1417-1439)
+### pve_vms GPU Management (lib/ops/pve:1429-1449)
 ```bash
 # Conditional GPU detachment based on current status
 local gpu_status=$("$LAB_DIR/dic/ops" gpu pts 2>/dev/null | grep -o "ATTACHED\|DETACHED" | head -n1)
@@ -57,7 +57,7 @@ if [ "$gpu_status" = "ATTACHED" ]; then
 fi
 ```
 
-### Hook System (lib/ops/pve:957-1014)
+### Hook System (lib/ops/pve:954-1025)
 ```bash
 # Hook wrapper with environment setup
 cd /root/lab
