@@ -300,6 +300,52 @@ GREEN = "\033[32m"
 YELLOW = "\033[33m"
 RED = "\033[31m"
 
+OQU_DASHBOARD_WIDTH = 64
+OQU_TABLE_WIDTH = 64
+OQU_COL_WIDTHS = (22, 14, 26)
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+def visible_len(text):
+    return len(ANSI_RE.sub("", text))
+
+def ansi_trim(text, width):
+    if width <= 0:
+        return ""
+
+    out = []
+    visible = 0
+    i = 0
+    while i < len(text) and visible < width:
+        if text[i] == "\x1b":
+            match = ANSI_RE.match(text, i)
+            if match:
+                out.append(match.group(0))
+                i = match.end()
+                continue
+        out.append(text[i])
+        visible += 1
+        i += 1
+
+    truncated = i < len(text)
+    rendered = "".join(out)
+    if truncated and "\x1b[" in rendered and not rendered.endswith(RESET):
+        rendered += RESET
+    return rendered
+
+def ansi_ljust(text, width):
+    trimmed = ansi_trim(text, width)
+    pad = width - visible_len(trimmed)
+    if pad > 0:
+        return trimmed + (" " * pad)
+    return trimmed
+
+def oqu_row(model, remaining, reset):
+    model_cell = ansi_ljust(str(model), OQU_COL_WIDTHS[0])
+    remaining_cell = ansi_ljust(str(remaining), OQU_COL_WIDTHS[1])
+    reset_cell = ansi_ljust(str(reset), OQU_COL_WIDTHS[2])
+    row = f"{model_cell} {remaining_cell} {reset_cell}"
+    return ansi_trim(row, OQU_TABLE_WIDTH)
+
 def bar(fraction, width=10):
     try:
         fraction = float(fraction)
@@ -341,7 +387,7 @@ def to_fraction(value):
 
 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 print(f"\n{BOLD}GEMINI CLI QUOTA{RESET}  {DIM}{now_str}{RESET}")
-print("=" * 68)
+print("=" * OQU_DASHBOARD_WIDTH)
 
 if not accounts:
     print(f"\n  {YELLOW}No accounts configured in antigravity-accounts.json{RESET}\n")
@@ -380,16 +426,17 @@ for i, acct in enumerate(accounts):
         cli_models = [m for m in cli_models if isinstance(m, dict) and str(m.get("modelId", "")) in ALLOWED_CLI_MODELS]
 
     if cli_models:
-        print(f"  {'-' * 64}")
-        print(f"  {BOLD}{'Model':<29} {'Remaining':<22} {'Reset':<28}{RESET}")
-        print(f"  {'-' * 64}")
+        print(f"  {'-' * OQU_TABLE_WIDTH}")
+        print(f"  {BOLD}{oqu_row('Model', 'Remaining', 'Reset')}{RESET}")
+        print(f"  {'-' * OQU_TABLE_WIDTH}")
         for model in cli_models:
             model_id = str(model.get("modelId", "?"))
             remaining = to_fraction(model.get("remainingFraction", 0))
             reset_time = model.get("resetTime", "")
             pct = f"{int(remaining * 100):>3}%"
-            print(f"  {model_id[:29]:<29} {bar(remaining)} {pct}   {fmt_reset(reset_time):<28}")
-        print(f"  {'-' * 64}")
+            remaining_cell = f"{bar(remaining)} {pct}"
+            print(f"  {oqu_row(model_id, remaining_cell, fmt_reset(reset_time))}")
+        print(f"  {'-' * OQU_TABLE_WIDTH}")
     else:
         if cli_error:
             print(f"  {DIM}({cli_error}){RESET}")
