@@ -5,38 +5,36 @@
 Separate the display of quota information from the load balancing dashboard. Currently, `dev_olb` does too much by displaying Accounts, Antigravity Quota, Gemini CLI Quota, Routing, and Model Usage. 
 
 This plan outlines splitting `dev_olb` into two focused functions:
-- `dev_olb`: Exclusively for load balancing (Accounts, Routing, Model Usage).
-- `dev_oqu`: A new dashboard specifically for all quotas (Antigravity Quota, Gemini CLI Quota).
+- `dev_olb`: Load balancing dashboard (Accounts, Antigravity Quota, Routing, Model Usage).
+- `dev_oqu`: Gemini CLI quota dashboard (per-model remaining fractions and reset times).
 
 ## Architecture Changes
 
 ### 1. `dev_olb` (Load Balancing Dashboard)
-**Responsibility**: Show the current routing configuration and usage statistics to help the user understand how traffic is distributed.
+**Responsibility**: Show the current account status, quota capacity, routing configuration and usage statistics to help the user understand how traffic is distributed and which accounts have capacity.
 **Contents**:
 - Accounts List (status, last used, active status)
+- Antigravity Quota per account (remaining fraction bars, reset times, rate limits, override detection, cache age)
 - Routing Map (default account, family-specific routes)
 - Model Usage (sqlite database stats)
 **Changes**:
-- Remove the "Antigravity Quota" table.
-- Remove the newly integrated "Gemini CLI Quota" table.
-- Simplify `_dev_olb_render` to only process the remaining sections.
+- Remove the "Gemini CLI Quota" table (moved to `dev_oqu`).
 
-### 2. `dev_oqu` (Quota Dashboard)
-**Responsibility**: Show API quota and rate limit status across all providers and accounts.
+### 2. `dev_oqu` (Gemini CLI Quota Dashboard)
+**Responsibility**: Show Gemini CLI API quota status per model across all accounts.
 **Contents**:
-- Antigravity Quota (remaining fraction, reset times, rate limits)
 - Gemini CLI Quota (filtered list of models, remaining fraction, reset times)
 **Features**:
 - Must support `-x` (execute once) and `--watch <interval>` modes, matching `dev_olb`.
-- Uses `_dev_oqu_render` (a new python helper) to parse `antigravity-accounts.json` and render the quota tables.
-- Applies the existing `dev_olb` model filtering policy for Gemini CLI quotas (only show `gemini-3.1-*` and `gemini-3-*` models).
+- Uses `_dev_oqu_render` (a new python helper) to parse `antigravity-accounts.json` and render the CLI quota tables.
+- Applies model filtering policy (only show `gemini-3.1-*` and `gemini-3-*` models).
 
 ## Implementation Steps
 
 ### Phase 1: Create `dev_oqu`
 1. **Add `_dev_oqu_render` helper**:
-   - Copy the `Antigravity Quota` and `Gemini CLI Quota` rendering logic from `_dev_olb_render` into a new python script inside `_dev_oqu_render` in `lib/ops/dev`.
-   - Ensure the formatting utilities (`bar`, `fmt_ts`, `fmt_reset`, `to_fraction`) are duplicated or handled cleanly within the python string block.
+   - Extract the `Gemini CLI Quota` rendering logic from `_dev_olb_render` into a new python script inside `_dev_oqu_render` in `lib/ops/dev`.
+   - Include formatting utilities needed for CLI quota display (`bar`, `fmt_reset`, `to_fraction`).
 2. **Add `dev_oqu` main function**:
    - Mirror `dev_olb` for argument parsing (`-x`, `--watch`).
    - Call `_dev_oqu_render` with the accounts path.
@@ -45,10 +43,10 @@ This plan outlines splitting `dev_olb` into two focused functions:
 
 ### Phase 2: Refactor `dev_olb`
 1. **Clean up `_dev_olb_render`**:
-   - Remove the `Antigravity Quota` and `Gemini CLI Quota` sections.
-   - Retain Account summary, Routing summary, and Model Usage.
+   - Remove the `Gemini CLI Quota` section (now in `dev_oqu`).
+   - Retain Account summary, Antigravity Quota (bars, rate limits, overrides, cache age), Routing summary, and Model Usage.
 2. **Update docs**:
-   - Update `dev_olb` technical description to remove references to quota data.
+   - Update `dev_olb` technical description to reflect it owns Antigravity Quota display.
 
 ### Phase 3: Validation & Tests
 1. **Update `val/lib/ops/dev_test.sh`**:

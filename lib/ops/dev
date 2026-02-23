@@ -298,6 +298,134 @@ RESET = "\033[0m"
 GREEN = "\033[32m"
 YELLOW = "\033[33m"
 RED = "\033[31m"
+
+def bar(fraction, width=10):
+    try:
+        fraction = float(fraction)
+    except (TypeError, ValueError):
+        fraction = 0.0
+    fraction = max(0.0, min(1.0, fraction))
+    filled = int(fraction * width)
+    empty = width - filled
+    if fraction >= 0.7:
+        color = GREEN
+    elif fraction >= 0.3:
+        color = YELLOW
+    else:
+        color = RED
+    return f"{color}{'█' * filled}{'░' * empty}{RESET}"
+
+def fmt_reset(iso_str):
+    if not iso_str:
+        return "n/a"
+    try:
+        reset_dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        total_sec = int((reset_dt - now).total_seconds())
+        if total_sec <= 0:
+            return f"{iso_str[:19]} {RED}(expired){RESET}"
+        hours, remainder = divmod(total_sec, 3600)
+        minutes = remainder // 60
+        return f"{iso_str[:19]} {DIM}(in {hours}h{minutes:02d}m){RESET}"
+    except Exception:
+        return iso_str[:19]
+
+def to_fraction(value):
+    try:
+        fraction = float(value)
+    except (TypeError, ValueError):
+        fraction = 0.0
+    return max(0.0, min(1.0, fraction))
+
+now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+print(f"\n{BOLD}GEMINI CLI QUOTA{RESET}  {DIM}{now_str}{RESET}")
+print("=" * 68)
+
+if not accounts:
+    print(f"\n  {YELLOW}No accounts configured in antigravity-accounts.json{RESET}\n")
+    sys.exit(0)
+
+for i, acct in enumerate(accounts):
+    email = acct.get("email", "(unknown)")
+    enabled = acct.get("enabled", False)
+    cli_quota = acct.get("cachedGeminiCliQuota") or acct.get("geminiCliQuota") or {}
+    cached_at = acct.get("cachedQuotaUpdatedAt")
+
+    status_tag = f"{GREEN}ENABLED{RESET}" if enabled else f"{RED}DISABLED{RESET}"
+
+    print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]")
+
+    cli_models = []
+    cli_error = None
+    if isinstance(cli_quota, dict):
+        models_candidate = cli_quota.get("models", [])
+        if isinstance(models_candidate, list):
+            cli_models = models_candidate
+        cli_error = cli_quota.get("error")
+    elif isinstance(cli_quota, list):
+        cli_models = cli_quota
+
+    ALLOWED_CLI_MODELS = {
+        "gemini-3.1-pro-preview",
+        "gemini-3.1-pro-preview_vertex",
+        "gemini-3-pro-preview",
+        "gemini-3-pro-preview_vertex",
+        "gemini-3-flash-preview",
+        "gemini-3-flash-preview_vertex"
+    }
+
+    if cli_models:
+        cli_models = [m for m in cli_models if isinstance(m, dict) and str(m.get("modelId", "")) in ALLOWED_CLI_MODELS]
+
+    if cli_models:
+        print(f"  {'-' * 64}")
+        print(f"  {BOLD}{'Model':<29} {'Remaining':<22} {'Reset':<28}{RESET}")
+        print(f"  {'-' * 64}")
+        for model in cli_models:
+            model_id = str(model.get("modelId", "?"))
+            remaining = to_fraction(model.get("remainingFraction", 0))
+            reset_time = model.get("resetTime", "")
+            pct = f"{int(remaining * 100):>3}%"
+            print(f"  {model_id[:29]:<29} {bar(remaining)} {pct}   {fmt_reset(reset_time):<28}")
+        print(f"  {'-' * 64}")
+    else:
+        if cli_error:
+            print(f"  {DIM}({cli_error}){RESET}")
+        elif cached_at and not cli_models:
+            print(f"  {DIM}(no Gemini CLI quota returned in last check){RESET}")
+        else:
+            print(f"  {DIM}(no Gemini CLI quota cached yet){RESET}")
+
+print()
+PY
+}
+
+_dev_olb_render() {
+    local accounts_path="$1"
+    local db_path="$2"
+
+    python3 - "$accounts_path" "$db_path" <<'PY'
+import json
+import sys
+import os
+from datetime import datetime, timezone
+
+accounts_path = sys.argv[1]
+db_path = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else None
+
+with open(accounts_path, "r") as f:
+    data = json.load(f)
+
+accounts = data.get("accounts", [])
+active_index = data.get("activeIndex", 0)
+active_by_family = data.get("activeIndexByFamily", {})
+
+BOLD = "\033[1m"
+DIM = "\033[2m"
+RESET = "\033[0m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+RED = "\033[31m"
 CYAN = "\033[36m"
 MAGENTA = "\033[35m"
 
@@ -344,8 +472,17 @@ def to_fraction(value):
         fraction = 0.0
     return max(0.0, min(1.0, fraction))
 
+def fmt_tokens(n):
+    if n is None or n == 0:
+        return "0"
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}K"
+    return str(int(n))
+
 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-print(f"\n{BOLD}ACCOUNT QUOTAS{RESET}  {DIM}{now_str}{RESET}")
+print(f"\n{BOLD}ACCOUNT LOAD BALANCING{RESET}  {DIM}{now_str}{RESET}")
 print("=" * 68)
 
 if not accounts:
@@ -355,12 +492,20 @@ if not accounts:
 for i, acct in enumerate(accounts):
     email = acct.get("email", "(unknown)")
     enabled = acct.get("enabled", False)
+    last_used = acct.get("lastUsed")
     quota = acct.get("cachedQuota", {})
-    cli_quota = acct.get("cachedGeminiCliQuota") or acct.get("geminiCliQuota") or {}
+
+    is_default_active = (i == active_index)
+    active_families = [fam for fam, idx in active_by_family.items() if idx == i]
 
     status_tag = f"{GREEN}ENABLED{RESET}" if enabled else f"{RED}DISABLED{RESET}"
+    active_tag = f"  {MAGENTA}< DEFAULT ACTIVE{RESET}" if is_default_active else ""
 
-    print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]")
+    print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]{active_tag}")
+    print(f"  Last Used:  {fmt_ts(last_used)}")
+
+    if active_families:
+        print(f"  Active for: {CYAN}{', '.join(sorted(active_families))}{RESET}")
 
     cached_at = acct.get("cachedQuotaUpdatedAt")
     if cached_at:
@@ -439,120 +584,6 @@ for i, acct in enumerate(accounts):
         else:
             print(f"  {DIM}(no quota data cached yet){RESET}")
 
-    cli_models = []
-    cli_error = None
-    if isinstance(cli_quota, dict):
-        models_candidate = cli_quota.get("models", [])
-        if isinstance(models_candidate, list):
-            cli_models = models_candidate
-        cli_error = cli_quota.get("error")
-    elif isinstance(cli_quota, list):
-        cli_models = cli_quota
-
-    ALLOWED_CLI_MODELS = {
-        "gemini-3.1-pro-preview",
-        "gemini-3.1-pro-preview_vertex",
-        "gemini-3-pro-preview",
-        "gemini-3-pro-preview_vertex",
-        "gemini-3-flash-preview",
-        "gemini-3-flash-preview_vertex"
-    }
-
-    if cli_models:
-        cli_models = [m for m in cli_models if isinstance(m, dict) and str(m.get("modelId", "")) in ALLOWED_CLI_MODELS]
-
-    print(f"  {BOLD}Gemini CLI Quota{RESET}")
-    if cli_models:
-        print(f"  {'-' * 64}")
-        print(f"  {BOLD}{'Model':<29} {'Remaining':<22} {'Reset':<28}{RESET}")
-        print(f"  {'-' * 64}")
-        for model in cli_models:
-            model_id = str(model.get("modelId", "?"))
-            remaining = to_fraction(model.get("remainingFraction", 0))
-            reset_time = model.get("resetTime", "")
-            pct = f"{int(remaining * 100):>3}%"
-            print(f"  {model_id[:29]:<29} {bar(remaining)} {pct}   {fmt_reset(reset_time):<28}")
-        print(f"  {'-' * 64}")
-    else:
-        if cli_error:
-            print(f"  {DIM}({cli_error}){RESET}")
-        elif cached_at and not cli_models:
-            print(f"  {DIM}(no Gemini CLI quota returned in last check){RESET}")
-        else:
-            print(f"  {DIM}(no Gemini CLI quota cached yet){RESET}")
-
-print()
-PY
-}
-
-_dev_olb_render() {
-    local accounts_path="$1"
-    local db_path="$2"
-
-    python3 - "$accounts_path" "$db_path" <<'PY'
-import json
-import sys
-import os
-from datetime import datetime, timezone
-
-accounts_path = sys.argv[1]
-db_path = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else None
-
-with open(accounts_path, "r") as f:
-    data = json.load(f)
-
-accounts = data.get("accounts", [])
-active_index = data.get("activeIndex", 0)
-active_by_family = data.get("activeIndexByFamily", {})
-
-BOLD = "\033[1m"
-DIM = "\033[2m"
-RESET = "\033[0m"
-GREEN = "\033[32m"
-YELLOW = "\033[33m"
-RED = "\033[31m"
-CYAN = "\033[36m"
-MAGENTA = "\033[35m"
-
-def fmt_ts(epoch_ms):
-    if not epoch_ms:
-        return "n/a"
-    return datetime.fromtimestamp(epoch_ms / 1000).strftime("%Y-%m-%d %H:%M:%S")
-
-def fmt_tokens(n):
-    if n is None or n == 0:
-        return "0"
-    if n >= 1_000_000:
-        return f"{n / 1_000_000:.1f}M"
-    if n >= 1_000:
-        return f"{n / 1_000:.1f}K"
-    return str(int(n))
-
-now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-print(f"\n{BOLD}ACCOUNT LOAD BALANCING{RESET}  {DIM}{now_str}{RESET}")
-print("=" * 68)
-
-if not accounts:
-    print(f"\n  {YELLOW}No accounts configured in antigravity-accounts.json{RESET}\n")
-    sys.exit(0)
-
-for i, acct in enumerate(accounts):
-    email = acct.get("email", "(unknown)")
-    enabled = acct.get("enabled", False)
-    last_used = acct.get("lastUsed")
-
-    is_default_active = (i == active_index)
-    active_families = [fam for fam, idx in active_by_family.items() if idx == i]
-
-    status_tag = f"{GREEN}ENABLED{RESET}" if enabled else f"{RED}DISABLED{RESET}"
-    active_tag = f"  {MAGENTA}< DEFAULT ACTIVE{RESET}" if is_default_active else ""
-
-    print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]{active_tag}")
-    print(f"  Last Used:  {fmt_ts(last_used)}")
-
-    if active_families:
-        print(f"  Active for: {CYAN}{', '.join(sorted(active_families))}{RESET}")
-
 print(f"\n{BOLD}ROUTING{RESET}")
 print("-" * 68)
 if active_index < len(accounts):
@@ -602,13 +633,13 @@ print()
 PY
 }
 
-# Shows account quota dashboard with Antigravity and Gemini CLI quota data
+# Shows Gemini CLI quota dashboard with per-model remaining fractions and reset times
 # opencode quota
 # -x (execute) | --watch <seconds>
 dev_oqu() {
     # Technical Description:
-    #   Reads the antigravity-accounts.json to display per-account quota status
-    #   Shows Antigravity family quotas and Gemini CLI model quotas when cached
+    #   Reads the antigravity-accounts.json to display per-account Gemini CLI quota status
+    #   Shows filtered model list with remaining fractions and reset countdowns
     #   Supports --watch mode for periodic dashboard refresh at a given interval
     # Dependencies:
     #   - python3 with json modules for data processing
@@ -670,12 +701,13 @@ dev_oqu() {
     return 0
 }
 
-# Shows account load balancing dashboard
+# Shows account load balancing dashboard with quota, routing and usage
 # opencode load balance
 # -x (execute) | --watch <seconds>
 dev_olb() {
     # Technical Description:
-    #   Reads the antigravity-accounts.json to display routing information
+    #   Reads the antigravity-accounts.json to display per-account Antigravity Quota with
+    #   progress bars, rate limit status, override detection, and routing information
     #   Queries the OpenCode SQLite database for aggregate model usage statistics
     #   Supports --watch mode for periodic dashboard refresh at a given interval
     # Dependencies:
