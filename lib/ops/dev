@@ -472,14 +472,24 @@ for i, acct in enumerate(accounts):
     elif isinstance(cli_quota, list):
         cli_models = cli_quota
 
+    ALLOWED_CLI_MODELS = {
+        "gemini-3.1-pro-preview",
+        "gemini-3.1-pro-preview_vertex",
+        "gemini-3-pro-preview",
+        "gemini-3-pro-preview_vertex",
+        "gemini-3-flash-preview",
+        "gemini-3-flash-preview_vertex"
+    }
+
+    if cli_models:
+        cli_models = [m for m in cli_models if isinstance(m, dict) and str(m.get("modelId", "")) in ALLOWED_CLI_MODELS]
+
     print(f"  {BOLD}Gemini CLI Quota{RESET}")
     if cli_models:
         print(f"  {'-' * 64}")
         print(f"  {BOLD}{'Model':<29} {'Remaining':<22} {'Reset':<28}{RESET}")
         print(f"  {'-' * 64}")
         for model in cli_models:
-            if not isinstance(model, dict):
-                continue
             model_id = str(model.get("modelId", "?"))
             remaining = to_fraction(model.get("remainingFraction", 0))
             reset_time = model.get("resetTime", "")
