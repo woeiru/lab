@@ -457,7 +457,10 @@ for i, acct in enumerate(accounts):
         print(f"  {'-' * 64}")
     else:
         print(f"  {BOLD}Antigravity Quota{RESET}")
-        print(f"  {DIM}(no quota data cached){RESET}")
+        if cached_at:
+            print(f"  {DIM}(no quota data returned in last check){RESET}")
+        else:
+            print(f"  {DIM}(no quota data cached yet){RESET}")
 
     cli_models = []
     cli_error = None
@@ -486,8 +489,10 @@ for i, acct in enumerate(accounts):
     else:
         if cli_error:
             print(f"  {DIM}({cli_error}){RESET}")
+        elif cached_at and not cli_models:
+            print(f"  {DIM}(no Gemini CLI quota returned in last check){RESET}")
         else:
-            print(f"  {DIM}(no Gemini CLI quota cached){RESET}")
+            print(f"  {DIM}(no Gemini CLI quota cached yet){RESET}")
 
 print(f"\n{BOLD}ROUTING{RESET}")
 print("-" * 68)

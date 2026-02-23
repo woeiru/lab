@@ -71,6 +71,7 @@ Requirements:
 
 - Optional field for backward compatibility.
 - Preserve when loading and saving existing storage versions.
+- **Time Format:** Standardize on ISO 8601 strings (or Unix epoch milliseconds) for `resetTime` and the cache update timestamp to ensure safe parsing by `jq` in Bash later.
 
 ### 1.2 Extend in-memory account model
 
@@ -161,6 +162,13 @@ Differentiate:
 - Cache stale
 - API returned CLI quota error
 
+### 3.4 Bash Implementation Standards (lib/ops/dev)
+
+- **Naming Conventions:** Follow ops module prefixing. Public functions like `dev_render_cli_quota`, internal helpers like `_dev_calculate_cache_age`.
+- **JSON Parsing Safety:** Validate `~/.config/opencode/antigravity-accounts.json` exists and is readable before invoking `jq`.
+- **Error Handling & Return Codes:** Fail gracefully (fail-open) if cache is unreadable. Return `0` for empty state rendering, and `2` if a core dependency like `jq` is missing.
+- **Logging vs. UI:** Use `printf` with standard ANSI codes for the UI rendering (Green/Yellow/Red). For structural errors or missing dependencies, use standard structured logging (e.g., `aux_warn`, `aux_err` from `lib/gen/aux`).
+
 ---
 
 ## Phase 4: Testing
@@ -182,8 +190,10 @@ Suggested files:
 
 ## 4.2 Repo-level validation (this repo)
 
-1. `bash -n lib/ops/dev`
-2. Run relevant test scripts if dashboard tests exist.
+1. Check syntax: `bash -n lib/ops/dev`
+2. Run specific module tests (if available): `./val/lib/ops/dev_test.sh`
+3. Run ops category suite: `./val/lib/run_all_tests.sh --ops`
+4. Run full suite to ensure no broader regressions: `./val/run_all_tests.sh`
 
 ## 4.3 Manual integration test matrix
 
