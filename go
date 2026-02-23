@@ -308,7 +308,7 @@ setup_shell_integration() {
     save_settings || return 1
     printf "✓ Settings saved\\n\\n"
 
-    printf "Step 6: Injecting helper functions (lab-on / lab-off)...\\n"
+    printf "Step 6: Injecting helper functions (lab / lab-on / lab-off)...\\n"
     inject_helper_functions || return 1
     printf "✓ Helper functions injected\\n\\n"
 
@@ -316,7 +316,7 @@ setup_shell_integration() {
     printf "Next steps:\\n"
     printf "1. Restart your shell (or run: source %s)\\n" "${CONFIG_FILE}"
     printf "2. Run './go on' to enable auto-load in all new shells\\n"
-    printf "3. Or just type 'lab-on' in any shell for current-session-only activation\\n"
+    printf "3. Or just type 'lab' in any shell for current-session-only activation\\n"
     printf "4. Verify with: ./go status\\n"
     printf "5. Run tests with: ./go validate\\n\\n"
 }
@@ -335,30 +335,33 @@ COMMANDS:
     off             Disable shell integration in new shells (bashrc only; current shell unaffected)
     status          Check system initialization status
     validate        Run system validation tests
-    purge           Remove lab-on/lab-off helper functions from bashrc
+    purge           Remove lab/lab-on/lab-off helper functions from bashrc
     help            Show detailed help and documentation
 
 CURRENT-SHELL ACTIVATION (no bashrc modification):
-    After running './go init', two helper functions are permanently added to
+    After running './go init', three helper functions are permanently added to
     your bashrc. These survive './go off' and let you activate only in the
     current shell:
 
-        lab-on      Source bin/ini into the running shell (current session only)
-        lab-off     Prints a reminder (env cannot be fully unloaded without a new shell)
+        lab         Source bin/ini into the running shell (current session only)
+        lab-on      Enable auto-load in all new shells (modifies bashrc)
+        lab-off     Disable auto-load in all new shells (modifies bashrc)
 
 EXAMPLES:
     ./go init                    # First-time setup (configure settings + inject helpers)
     ./go on                      # Enable auto-load in all new shells
     ./go off                     # Disable auto-load (helper functions stay intact)
-    lab-on                       # Activate in current shell only (no bashrc change)
+    lab                          # Activate in current shell only (no bashrc change)
+    lab-on                       # Permanent on (same as ./go on)
+    lab-off                      # Permanent off (same as ./go off)
     ./go status                  # Check if system is ready
     ./go validate                # Run validation tests
-    ./go purge                   # Remove lab-on/lab-off helper functions from bashrc
+    ./go purge                   # Remove lab/lab-on/lab-off helper functions from bashrc
 
 WORKFLOW:
     1. Run './go init' once to configure settings and inject helpers
-    2. Use './go on'  / './go off' to toggle auto-load for new shells
-    3. Use 'lab-on' any time you want the lab active in just the current shell
+    2. Use 'lab-on' / 'lab-off' to toggle auto-load for new shells
+    3. Use 'lab' any time you want the lab active in just the current shell
 
 Settings are saved in .tmp/go_settings after running 'init'.
 EOF
@@ -493,11 +496,11 @@ remove_content() {
     fi
 }
 
-# Inject permanent lab-on / lab-off helper functions into config file.
+# Inject permanent lab / lab-on / lab-off helper functions into config file.
 # This block uses a separate marker and is NOT removed by ./go off.
 inject_helper_functions() {
     local cfg="${CONFIG_FILE}"
-    printf "Injecting lab-on / lab-off helper functions into '%s'...\\n" "$cfg"
+    printf "Injecting lab / lab-on / lab-off helper functions into '%s'...\\n" "$cfg"
 
     if [[ -z "$cfg" || ! -f "$cfg" ]]; then
         printf "Error: Invalid config file: %s\\n" "${cfg}"
@@ -509,8 +512,9 @@ inject_helper_functions() {
     # Build the helper block content
     local helper_block
     helper_block="${HELPER_MARKER_START}
-lab-on()  { source \"${ini_path}\"; }
-lab-off() { printf 'lab-off: environment loaded in this shell cannot be fully unloaded.\\nStart a new shell without running lab-on to get a clean session.\\n'; }
+lab()     { source \"${ini_path}\"; }
+lab-on()  { ./go on; }
+lab-off() { ./go off; }
 ${HELPER_MARKER_END}"
 
     local temp_file
