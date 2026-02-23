@@ -217,11 +217,11 @@ define_containers "114:web:192.168.178.114:115:db:192.168.178.115"
 ```bash
 # Switch to development environment
 export ENVIRONMENT="dev"
-source src/aux/set
+source src/set/.menu
 
 # Switch to specific node
 export NODE="w2"
-source src/aux/set
+source src/set/.menu
 ```
 
 ## Troubleshooting

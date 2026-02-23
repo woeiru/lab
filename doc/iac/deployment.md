@@ -11,9 +11,9 @@ The IaC deployment system provides automated infrastructure provisioning through
 - **Standardized utility integration** for consistent infrastructure management
 - **Comprehensive logging and error handling** for reliable operations
 
-## Core Framework: `src/aux/set`
+## Core Framework: `src/set/.menu`
 
-All scripts within `src/set/` leverage the Environment-Aware Deployment Framework located at `src/aux/set`. This framework provides:
+All scripts within `src/set/` leverage the Environment-Aware Deployment Framework located at `src/set/.menu`. This framework provides:
 
 ### Key Features
 
@@ -273,7 +273,7 @@ Control deployment behavior with these variables:
    - Use `sudo ./src/set/script_name` when necessary
 
 3. **Function Not Found Errors**
-   - Ensure `src/aux/set` is properly sourced
+   - Ensure `src/set/.menu` is properly sourced
    - Check that required utility functions exist in `lib/ops/`
    - Verify runtime constants are loaded from `cfg/core/ric`
 

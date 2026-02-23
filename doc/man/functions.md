@@ -13,7 +13,7 @@
 
 Generic pure functions available in the Lab Environment Management System.
 
-## 📚 Library Structure
+## Library Structure
 
 The `lib/` folder contains three categories of pure functions:
 
@@ -24,23 +24,25 @@ The `lib/` folder contains three categories of pure functions:
 - **ver**: Module version verification
 
 ### Operations Functions (`lib/ops/`)
-- **aux**: Auxiliary operations and utilities
+- **dev**: Development tooling and session management
 - **gpu**: GPU passthrough management
 - **net**: Network configuration and management
 - **pbs**: Proxmox Backup Server operations
 - **pve**: Proxmox VE cluster management
 - **srv**: System service operations
+- **ssh**: SSH key and connection management
 - **sto**: Storage and filesystem management
 - **sys**: System-level operations
 - **usr**: User account management
 
 ### General Utilities (`lib/gen/`)
+- **ana**: Analysis and documentation utilities
+- **aux**: Auxiliary operations, validation, and logging
 - **env**: Environment configuration utilities
 - **inf**: Infrastructure deployment utilities
 - **sec**: Security and credential management
-- **ssh**: SSH key and connection management
 
-## 🔍 Function Metadata Table
+## Function Metadata Table
 
 <!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->
 <!-- Command: aux_ffl ana_laf "" "" & aux_ffl ana_laf "" "" & aux_ffl ana_laf "" "" -->
@@ -53,10 +55,10 @@ The `lib/` folder contains three categories of pure functions:
 
 This table provides a comprehensive overview of all functions available across the lab environment libraries:
 
-### **📋 Function Library Overview**
+### **Function Library Overview**
 Functions are organized by library modules for systematic access and reference.
 
-### **📖 Function Metadata Table**
+### **Function Metadata Table**
 
 | Library | Module | Function | Description |
 |---------|--------|----------|-------------|
@@ -325,7 +327,7 @@ Functions are organized by library modules for systematic access and reference.
 
 <!-- END AUTO-GENERATED SECTION -->
 
-## 🎯 Pure Function Characteristics
+## Pure Function Characteristics
 
 ### Design Principles
 - **Stateless**: No global state dependencies
@@ -343,7 +345,7 @@ function_name "param1" "param2" "param3"
 # Fully deterministic behavior
 ```
 
-## 🔧 Integration
+## Integration
 
 To use pure functions in your scripts:
 
@@ -358,8 +360,8 @@ pve-vmc "101" "node1,node2,node3"
 handle_error "component" "message" "ERROR"
 ```
 
-## 📖 Related Documentation
+## Related Documentation
 
-- **[System Architecture](architecture.md)** - Complete system design
 - **[Logging System](logging.md)** - Debug and logging frameworks
 - **[Verbosity Controls](verbosity.md)** - Output control mechanisms
+- **[Variables Reference](variables.md)** - Environment variable usage patterns

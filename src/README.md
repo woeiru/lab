@@ -2,38 +2,33 @@
 
 The `src/` directory implements the operational execution layer of the infrastructure management system. It provides two complementary components for infrastructure lifecycle management:
 
-- **`dic/`**: Dependency Injection Container. Advanced parameter resolution and execution wrapper for runtime operations.
+- **`dic/`**: Dependency Injection Container. Parameter resolution and execution wrapper for runtime operations.
 - **`set/`**: Section-Based Deployment. Systematic initial setup and multi-node orchestration scripts.
 
 ## Architecture Overview
 
 ```text
-┌────────────────────────────────────────────────────────┐
-│                        src/                            │
-│                                                        │
-│  ┌─────────────────┐       ┌────────────────────────┐  │
-│  │   dic/          │       │      lib/ops/          │  │
-│  │   (Controller)  │───────▶   (Pure Functions)     │  │
-│  └─────────────────┘       └────────────────────────┘  │
-│           ▲                                            │
-│           │                                            │
-│  ┌─────────────────┐                                   │
-│  │   set/          │                                   │
-│  │   (Playbooks)   │                                   │
-│  └─────────────────┘                                   │
-└───────────┬────────────────────────────────────────────┘
-            │
-            ▼
-┌────────────────────────┐
-│  cfg/ (Configuration)  │
-└────────────────────────┘
+┌─────────────────────────────────────────┐
+│                  src/                   │
+│                                         │
+│  ┌──────────────┐   ┌──────────────┐    │
+│  │  dic/        │   │  set/        │    │
+│  │  (Controller)│   │  (Playbooks) │    │
+│  └──────┬───────┘   └──────────────┘    │
+└─────────┼───────────────────────────────┘
+          │
+          ▼
+┌──────────────────┐   ┌────────────────────────┐
+│  lib/ops/        │   │  cfg/ (Configuration)  │
+│  (Pure Functions)│   └────────────────────────┘
+└──────────────────┘
 ```
 
 ## Subdirectories
 
 ### [dic/ (Dependency Injection)](dic/README.md)
 
-The `src/dic/ops` wrapper provides intelligent parameter resolution for the pure functions in `lib/ops/`. It parses function signatures and automatically injects arguments from user input, hostname-specific variables, or the global configuration hierarchy.
+The `src/dic/ops` wrapper provides automated parameter resolution for the pure functions in `lib/ops/`. It parses function signatures and automatically injects arguments from user input, hostname-specific variables, or the global configuration hierarchy.
 
 **Key capabilities:**
 - Hybrid execution (mixing manual arguments with environment variables)

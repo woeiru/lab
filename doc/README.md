@@ -1,6 +1,6 @@
 # Documentation Hub
 
-This directory serves as the central documentation hub for the Lab Environment Management System. It provides structured, audience-specific documentation designed for maintainability, discoverability, and practical value across all system components.
+Central documentation hub for the Lab Environment Management System. Contents are organized by audience (administrator, CLI user, developer, infrastructure).
 
 <!-- AUTO-GENERATED SECTION: Documentation Structure -->
 ## Documentation Index

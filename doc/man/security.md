@@ -42,10 +42,10 @@ cfg/env/site1-prod/node-specific/hostname.credentials
 
 ## SSH Key Management
 
-### SSH Utilities (`lib/gen/ssh`)
+### SSH Utilities (`lib/ops/ssh`)
 ```bash
 # SSH key generation and distribution
-# Handled through lib/gen/ssh with secure patterns
+# Handled through lib/ops/ssh with secure patterns
 
 # Example usage in deployment scripts
 cd src/set

@@ -51,7 +51,16 @@ The hook system requires:
 # Conditional GPU detachment based on current status
 local gpu_status=$("$LAB_DIR/dic/ops" gpu pts 2>/dev/null | grep -o "ATTACHED\|DETACHED" | head -n1)
 if [ "$gpu_status" = "ATTACHED" ]; then
-    if ! "$LAB_DIR/dic/ops" gpu ptd -d lookup; then
+    # Fix: Add proper environment setup before GPU detachment to prevent state corruption
+    if (
+        cd "$LAB_DIR"
+        export LAB_DIR="$LAB_DIR"
+        source bin/ini >/dev/null 2>&1
+        ./go >/dev/null 2>&1
+        "$LAB_DIR/dic/ops" gpu ptd -d lookup
+    ); then
+        aux_info "GPU successfully detached for VM passthrough"
+    else
         aux_warn "GPU detach operation failed, VM may not have GPU access"
     fi
 fi
