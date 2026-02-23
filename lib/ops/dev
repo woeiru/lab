@@ -302,7 +302,7 @@ RED = "\033[31m"
 
 OQU_DASHBOARD_WIDTH = 64
 OQU_TABLE_WIDTH = 64
-OQU_COL_WIDTHS = (22, 14, 26)
+OQU_COL_WIDTHS = (22, 15, 25)
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 def visible_len(text):
@@ -374,7 +374,7 @@ def fmt_reset(iso_str):
             return f"{base} {RED}(exp){RESET}"
         hours, remainder = divmod(total_sec, 3600)
         minutes = remainder // 60
-        return f"{base} {DIM}({hours}h{minutes:02d}m){RESET}"
+        return f"{base} {DIM}({hours}h{minutes:02d}){RESET}"
     except Exception:
         return base
 
