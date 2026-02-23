@@ -24,7 +24,7 @@ After running `./go on` and restarting your shell, all core modules and library 
 ## Requirements
 
 - Bash 4+ or Zsh 5+
-- Linux (developed on Proxmox VE / Debian)
+- Linux (developed on Debian; some modules are Proxmox VE-specific)
 - Standard UNIX utilities, systemd
 
 ## Repository Structure
@@ -212,20 +212,3 @@ pve_cdo() {
 Naming: `module_name` for public functions, `_module_name` for internal helpers. All use `snake_case` and `local` for variables.
 
 ## Documentation
-
-Detailed docs live in `doc/` organized by audience:
-
-| Directory | Contents |
-|-----------|----------|
-| `doc/adm/` | Configuration and security administration |
-| `doc/cli/` | Initialization flow and verbosity controls |
-| `doc/dev/` | Function standards, logging, variables |
-| `doc/iac/` | Deployment procedures and environment management |
-| `doc/issue/` | Tracked issues and known bugs |
-
-Additional references:
-- `lib/ops/.spec` -- mandatory technical standards for ops modules
-- `lib/ops/.guide` -- quality best practices and implementation checklist
-- `arc/fix/` -- hardware-specific fix guides (AMDGPU, NVIDIA, GPU passthrough)
-- `arc/how/` -- setup how-tos (sudoers, btrfs/snapper, git auth)
-
