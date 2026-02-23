@@ -1,22 +1,28 @@
+# Shus Pod Configuration
+
 ## ROOTFUL SETUP
+
 ### Variables
 
-export CT_NAME=shus
-export CT_IMAGE=ishus
-export CT_DIR=/root/lab/con/
-export USER_NAME=es
-export USER_PASSWORD=lernt
-export SMB_USER_NAME=es
-export SMB_USER_PASSWORD=lernt
-export NODE_NAME=w
-export SUBFOLDER=dat
-export SHARENAME=dat
+```bash
+export CT_NAME="shus"
+export CT_IMAGE="ishus"
+export CT_DIR="/root/lab/con/"
+export USER_NAME="es"
+export USER_PASSWORD="<example-password>"
+export SMB_USER_NAME="es"
+export SMB_USER_PASSWORD="<example-password>"
+export NODE_NAME="w"
+export SUBFOLDER="dat"
+export SHARENAME="dat"
+```
 
 ### Container deployment
 
+```bash
 podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 
-mkdir /home/${USER_NAME}/${SUBFOLDER}
+mkdir -p /home/${USER_NAME}/${SUBFOLDER}
 
 podman run -d \
     --name ${CT_NAME} \
@@ -30,9 +36,11 @@ podman run -d \
     ${CT_IMAGE}
 
 podman start ${CT_NAME}
+```
 
 ### iptables setup
 
+```bash
 sudo iptables -L -v -n
 
 iptables -A INPUT -p tcp --dport 1139 -j ACCEPT
@@ -43,29 +51,33 @@ iptables -A INPUT -p tcp --dport 1445 -j ACCEPT
 reboot
 
 iptables-restore < /etc/sysconfig/iptables
-
+```
 
 ## ROOTLESS SETUP
+
 ### Variables
 
-export CT_NAME=shus
-export CT_IMAGE=ishus
-export CT_DIR=/home/es/lab/con/
-export USER_NAME=es
-export USER_PASSWORD=lernt
-export SMB_USER_NAME=es
-export SMB_USER_PASSWORD=lernt
-export NODE_NAME=w
-export SUBFOLDER=dat
-export SHARENAME=dat
+```bash
+export CT_NAME="shus"
+export CT_IMAGE="ishus"
+export CT_DIR="/home/es/lab/con/"
+export USER_NAME="es"
+export USER_PASSWORD="<example-password>"
+export SMB_USER_NAME="es"
+export SMB_USER_PASSWORD="<example-password>"
+export NODE_NAME="w"
+export SUBFOLDER="dat"
+export SHARENAME="dat"
+```
 
 ### Container deployment
 
+```bash
 sudo setenforce 0
 podman build -t ${CT_IMAGE} ${CT_DIR}${CT_NAME}
 sudo setenforce 1
 
-mkdir /home/es/dat
+mkdir -p /home/es/dat
 
 podman run -d \
     --name ${CT_NAME} \
@@ -79,9 +91,11 @@ podman run -d \
     ${CT_IMAGE}
 
 podman start ${CT_NAME}
+```
 
 ### iptables setup
 
+```bash
 sudo iptables -L -v -n
 
 sudo iptables -t nat -A PREROUTING -p tcp --dport 139 -j DNAT --to-destination 192.168.178.110:1139
@@ -98,19 +112,23 @@ su
 reboot
 
 iptables-restore < /etc/sysconfig/iptables
+```
 
 ### systemctl setup
 
+```bash
 podman generate systemd --new --files --name ${CT_NAME}
 mv container-${CT_NAME}.service /etc/systemd/system/
 systemctl daemon-reload
 tu run bash
-	systemctl enable container-${CT_NAME}.service
-	exit
+    systemctl enable container-${CT_NAME}.service
+    exit
 tuar
+```
 
 ### Testing
 
+```bash
 ls -Z <path>
 lsof -i -P -n
 ss -tuln
@@ -118,3 +136,4 @@ smbclient -L ${NODE_NAME} -U ${SMB_USER_NAME}
 smbclient //${NODE_NAME}/${SHARENAME} -U ${SMB_USER_NAME}
 pdbedit -L
 sudo tcpdump -i any port 139 or port 445
+```

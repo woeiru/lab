@@ -113,7 +113,9 @@ The Qdevice container will initially require SSH access for setup.
 This command stops the SSH daemon on the host machine to free up port 22, 
 allowing the container to use it for initial communication with the Proxmox VE nodes.
 -->
+```bash
 sudo systemctl stop sshd
+```
 
 ### Navigate to the Qdevice configuration directory
 <!--
@@ -121,7 +123,9 @@ It's important to be in the directory containing the Containerfile and other nec
 before running the podman build command. This ensures that Podman can find all the required files.
 The $LAB_DIR environment variable should be set to your lab's base directory.
 -->
+```bash
 cd $LAB_DIR/cfg/pod/qdev
+```
 
 ### Build container
 <!-- 
@@ -131,7 +135,9 @@ located in the current directory (.). This image will contain the necessary soft
 **Note:** The `sudo` prefix is required because mapping privileged ports (such as port 22 for SSH) to the container 
 requires elevated permissions. Without `sudo`, Podman cannot bind to ports below 1024, which are reserved for the root user.
 -->
+```bash
 sudo podman build . -t iq --format docker
+```
 
 ### Create corosync folder if it not exists and set permissions
 <!-- 
@@ -141,8 +147,10 @@ The user ID 701 and group ID 701 are often associated with the 'corosync' user/g
 which might be the user running corosync inside the container. 
 This directory will be volume-mounted into the container.
 -->
+```bash
 sudo mkdir /etc/corosync
 sudo chown 701:701 /etc/corosync
+```
 
 ### In case SELinux is blocking container folders  
 <!-- 
@@ -153,7 +161,9 @@ allowing container runtimes to access host files/directories.
 To check the current SELinux context of the directory, you can use: `ls -Zd /etc/corosync`
 # Alternative context sudo chcon -Rt svirt_sandbox_file_t /etc/corosync - may not work on all systems (e.g., openSUSE)
 -->
+```bash
 sudo chcon -Rt container_file_t /etc/corosync  
+```
 
 ### Run container
 <!-- 
@@ -167,7 +177,9 @@ This command starts the Qdevice container:
 - '-v /etc/corosync:/etc/corosync': Mounts the host's '/etc/corosync' directory into the container at the same path, allowing persistent storage for Corosync configuration.
 - 'localhost/iq': Specifies the locally built image to use for the container.
 -->
+```bash
 sudo podman run -d --name=qd --cap-drop=ALL --privileged -p 22:22 -p 5403:5403 -v /etc/corosync:/etc/corosync localhost/iq
+```
 
 ### Enable sshd as Su inside container
 <!-- 
@@ -178,21 +190,29 @@ These commands are executed inside the running 'qd' container:
 - 'service ssh start': Starts the SSH daemon inside the container. This is necessary for the Proxmox VE nodes to connect to the Qdevice for the initial setup.
 -->
 
+```bash
 sudo podman exec -ti qd bash  
+```
 
 ### Inside the container's shell, type the following:
 
+```bash
 su
+```
 <!-- The root password required after running `su` is set in the Containerfile (default: `password`). -->
 
+```bash
 service ssh start
+```
 <!--  If sshd fails to start due to /run/sshd permissions, run as root:
 # mkdir -p /run/sshd
 # chown root:root /run/sshd
 # chmod 0755 /run/sshd
  -->
 
+```bash
 exit
+```
 
 ## On Cluster Nodes 
 <!-- 
@@ -200,8 +220,10 @@ This command is run on each Proxmox VE node to configure them to use the Qdevice
 - '<IP QDEVICE HOST>': Replace this with the actual IP address of the host running the Qdevice container.
 - '-f': Forces the operation, potentially overwriting existing configurations.
 -->
+```bash
 QDEVICE_IP="<IP QDEVICE HOST>"
 pvecm qdevice setup "$QDEVICE_IP" -f 
+```
 
 ## On Qdevice Host
 
@@ -211,7 +233,9 @@ After the Proxmox VE nodes have successfully connected and configured the Qdevic
 this command commits the current state of the 'qd' container to a new image named 'iqdx'. 
 This new image now includes the cluster-specific Corosync configuration.
 -->
+```bash
 sudo podman commit qd iqdx
+```
 
 ### Run container this time without port forwarding the ssh port
 <!-- 
@@ -221,14 +245,18 @@ Crucially, port 22 (SSH) is no longer forwarded from the host.
 SSH was only needed for the initial setup by 'pvecm qdevice setup'. 
 The Qdevice now communicates primarily over port 5403 for Corosync.
 -->
+```bash
 sudo podman run -d --name=qdx --cap-drop=ALL --privileged -p 5403:5403 -v /etc/corosync:/etc/corosync iqdx
+```
 
 ### Re-enable sshd on the host
 <!-- 
 Now that the container no longer needs port 22 on the host, the host's SSH daemon can be restarted, 
 restoring normal SSH access to the Qdevice host machine.
 -->
+```bash
 sudo systemctl start sshd
+```
 
 ## On Node 1 - In case pvecm qdevice setup don't work  
 <!-- 
@@ -238,48 +266,60 @@ The variables 'NODE2_IP' and 'QDEVICE_IP' should be set to the correct IP addres
 The following commands assume you are operating as the root user on the Proxmox VE node.
 -->
 
+```bash
 NODE2_IP="<IP CLUSTER NODE 2>"  
+```
 
 ### On Node 1 - Step 1: Remove existing host keys  
 <!-- 
 These commands remove any existing SSH host keys for Node 2 and the Qdevice host from Node 1's 'known_hosts' file. 
 This is useful if the host keys have changed (e.g., due to OS reinstall or IP address reuse) and are causing SSH connection errors.
 -->
+```bash
 ssh-keygen -R "$QDEVICE_IP"
 ssh-keygen -R "$NODE2_IP"  
+```
 
 ### Step 2: Re-scan and add current host keys  
 <!-- 
 These commands scan Node 2 and the Qdevice host for their current SSH host keys and append them to Node 1's 'known_hosts' file. 
 This ensures Node 1 has the correct keys for future SSH connections.
 -->
+```bash
 ssh-keyscan -H "$QDEVICE_IP" >> ~/.ssh/known_hosts
 ssh-keyscan -H "$NODE2_IP" >> ~/.ssh/known_hosts  
+```
 
 ### Step 3: Verify SSH access  
 <!-- 
 These commands test SSH connectivity from Node 1 to Node 2 and the Qdevice host as the root user. 
 The 'exit' command closes each SSH session. This helps confirm that the host keys are correct and passwordless SSH (if set up) is working.
 -->
+```bash
 ssh root@"$NODE2_IP"  
 exit  
 ssh root@"$QDEVICE_IP"  
 exit  
+```
 
 ### Step 4: Copy SSH key
 <!-- 
 These commands copy Node 1's public SSH key to Node 2 and the Qdevice host for the root user. 
 This enables passwordless SSH authentication from Node 1 to these machines, which is often required or beneficial for cluster operations.
 -->
+```bash
 ssh-copy-id root@"$QDEVICE_IP"  
 ssh-copy-id root@"$NODE2_IP"  
+```
 
 ### Step 5: Retry Qdevice Setup on Node 1
 <!--
 After completing the above troubleshooting steps for Node 1, attempt the Qdevice setup command again on Node 1
 to verify if the issue is resolved. Ensure the 'QDEVICE_IP' variable is correctly set to your Qdevice's IP address.
 -->
+```bash
 pvecm qdevice setup "$QDEVICE_IP" -f
+```
 
 <!--
 - If this command succeeds on Node 1: Great! You will then need to ensure the same setup command is run on Node 2. If Node 2 also failed previously or you anticipate issues, proceed to the "On Node 2 - In case pvecm qdevice setup don't work" section for Node 2 before running the setup command there.
@@ -292,45 +332,57 @@ This section mirrors the troubleshooting steps for Node 1, but performed on Node
 The variables 'NODE1_IP' and 'QDEVICE_IP' should be set to the correct IP addresses.
 The following commands assume you are operating as the root user on the Proxmox VE node.
 -->
+```bash
 QDEVICE_IP="<IP QDEVICE HOST>" 
 NODE1_IP="<IP CLUSTER NODE 1>"   
+```
 
 ### Step 1: Remove existing host keys  
 <!-- 
 Removes existing SSH host keys for Node 1 and the Qdevice host from Node 2's 'known_hosts' file.
 -->
+```bash
 ssh-keygen -R "$QDEVICE_IP"  
 ssh-keygen -R "$NODE1_IP"  
+```
 
 ### Step 2: Re-scan and add current host keys   
 <!-- 
 Scans Node 1 and the Qdevice host for their current SSH host keys and appends them to Node 2's 'known_hosts' file.
 -->
+```bash
 ssh-keyscan -H "$QDEVICE_IP" >> ~/.ssh/known_hosts  
 ssh-keyscan -H "$NODE1_IP" >> ~/.ssh/known_hosts  
+```
 
 ### Step 3: Verify SSH access  
 <!-- 
 Tests SSH connectivity from Node 2 to Node 1 and the Qdevice host as the root user.
 -->
+```bash
 ssh root@"$QDEVICE_IP"  
 exit  
 ssh root@"$NODE1_IP"  
 exit  
+```
 
 ### Step 4: Copy SSH key  
 <!-- 
 Copies Node 2's public SSH key to Node 1 and the Qdevice host for the root user, enabling passwordless SSH.
 -->
+```bash
 ssh-copy-id root@"$QDEVICE_IP" 
 ssh-copy-id root@"$NODE1_IP"  
+```
 
 ### Step 5: Retry Qdevice Setup on Node 2
 <!--
 After completing the above troubleshooting steps for Node 2, attempt the Qdevice setup command again on Node 2
 to verify if the issue is resolved. Ensure the 'QDEVICE_IP' variable is correctly set to your Qdevice's IP address.
 -->
+```bash
 pvecm qdevice setup "$QDEVICE_IP" -f
+```
 <!--
 - If this command succeeds (or reports the Qdevice is already configured): The Qdevice setup should now be complete for the cluster.
 - If this command still fails : Review the output carefully. You may need to re-check the previous troubleshooting steps or investigate new error messages.
