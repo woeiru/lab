@@ -277,25 +277,20 @@ _dev_get_antigravity_accounts_path() {
     echo "$accounts_path"
 }
 
-_dev_olb_render() {
+_dev_oqu_render() {
     local accounts_path="$1"
-    local db_path="$2"
 
-    python3 - "$accounts_path" "$db_path" <<'PY'
+    python3 - "$accounts_path" <<'PY'
 import json
 import sys
-import os
 from datetime import datetime, timezone
 
 accounts_path = sys.argv[1]
-db_path = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else None
 
 with open(accounts_path, "r") as f:
     data = json.load(f)
 
 accounts = data.get("accounts", [])
-active_index = data.get("activeIndex", 0)
-active_by_family = data.get("activeIndexByFamily", {})
 
 BOLD = "\033[1m"
 DIM = "\033[2m"
@@ -342,15 +337,6 @@ def fmt_reset(iso_str):
     except Exception:
         return iso_str[:19]
 
-def fmt_tokens(n):
-    if n is None or n == 0:
-        return "0"
-    if n >= 1_000_000:
-        return f"{n / 1_000_000:.1f}M"
-    if n >= 1_000:
-        return f"{n / 1_000:.1f}K"
-    return str(int(n))
-
 def to_fraction(value):
     try:
         fraction = float(value)
@@ -359,7 +345,7 @@ def to_fraction(value):
     return max(0.0, min(1.0, fraction))
 
 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-print(f"\n{BOLD}ACCOUNT LOAD BALANCING + QUOTA{RESET}  {DIM}{now_str}{RESET}")
+print(f"\n{BOLD}ACCOUNT QUOTAS{RESET}  {DIM}{now_str}{RESET}")
 print("=" * 68)
 
 if not accounts:
@@ -369,18 +355,12 @@ if not accounts:
 for i, acct in enumerate(accounts):
     email = acct.get("email", "(unknown)")
     enabled = acct.get("enabled", False)
-    last_used = acct.get("lastUsed")
     quota = acct.get("cachedQuota", {})
     cli_quota = acct.get("cachedGeminiCliQuota") or acct.get("geminiCliQuota") or {}
 
-    is_default_active = (i == active_index)
-    active_families = [fam for fam, idx in active_by_family.items() if idx == i]
-
     status_tag = f"{GREEN}ENABLED{RESET}" if enabled else f"{RED}DISABLED{RESET}"
-    active_tag = f"  {MAGENTA}< DEFAULT ACTIVE{RESET}" if is_default_active else ""
 
-    print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]{active_tag}")
-    print(f"  Last Used:  {fmt_ts(last_used)}")
+    print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]")
 
     cached_at = acct.get("cachedQuotaUpdatedAt")
     if cached_at:
@@ -393,9 +373,6 @@ for i, acct in enumerate(accounts):
             age_str = f"{age_sec / 3600:.1f}h ago"
         age_color = GREEN if age_sec < 300 else (YELLOW if age_sec < 1800 else RED)
         print(f"  Cache Age:  {age_color}{age_str}{RESET}")
-
-    if active_families:
-        print(f"  Active for: {CYAN}{', '.join(sorted(active_families))}{RESET}")
 
     rate_limits = acct.get("rateLimitResetTimes", {})
 
@@ -504,6 +481,78 @@ for i, acct in enumerate(accounts):
         else:
             print(f"  {DIM}(no Gemini CLI quota cached yet){RESET}")
 
+print()
+PY
+}
+
+_dev_olb_render() {
+    local accounts_path="$1"
+    local db_path="$2"
+
+    python3 - "$accounts_path" "$db_path" <<'PY'
+import json
+import sys
+import os
+from datetime import datetime, timezone
+
+accounts_path = sys.argv[1]
+db_path = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else None
+
+with open(accounts_path, "r") as f:
+    data = json.load(f)
+
+accounts = data.get("accounts", [])
+active_index = data.get("activeIndex", 0)
+active_by_family = data.get("activeIndexByFamily", {})
+
+BOLD = "\033[1m"
+DIM = "\033[2m"
+RESET = "\033[0m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+RED = "\033[31m"
+CYAN = "\033[36m"
+MAGENTA = "\033[35m"
+
+def fmt_ts(epoch_ms):
+    if not epoch_ms:
+        return "n/a"
+    return datetime.fromtimestamp(epoch_ms / 1000).strftime("%Y-%m-%d %H:%M:%S")
+
+def fmt_tokens(n):
+    if n is None or n == 0:
+        return "0"
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}K"
+    return str(int(n))
+
+now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+print(f"\n{BOLD}ACCOUNT LOAD BALANCING{RESET}  {DIM}{now_str}{RESET}")
+print("=" * 68)
+
+if not accounts:
+    print(f"\n  {YELLOW}No accounts configured in antigravity-accounts.json{RESET}\n")
+    sys.exit(0)
+
+for i, acct in enumerate(accounts):
+    email = acct.get("email", "(unknown)")
+    enabled = acct.get("enabled", False)
+    last_used = acct.get("lastUsed")
+
+    is_default_active = (i == active_index)
+    active_families = [fam for fam, idx in active_by_family.items() if idx == i]
+
+    status_tag = f"{GREEN}ENABLED{RESET}" if enabled else f"{RED}DISABLED{RESET}"
+    active_tag = f"  {MAGENTA}< DEFAULT ACTIVE{RESET}" if is_default_active else ""
+
+    print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]{active_tag}")
+    print(f"  Last Used:  {fmt_ts(last_used)}")
+
+    if active_families:
+        print(f"  Active for: {CYAN}{', '.join(sorted(active_families))}{RESET}")
+
 print(f"\n{BOLD}ROUTING{RESET}")
 print("-" * 68)
 if active_index < len(accounts):
@@ -556,11 +605,80 @@ PY
 # Shows account load balancing dashboard with Antigravity and Gemini CLI quota data
 # opencode load balance
 # -x (execute) | --watch <seconds>
-dev_olb() {
+# Shows account quota dashboard
+# opencode quota
+# -x (execute) | --watch <seconds>
+dev_oqu() {
     # Technical Description:
     #   Reads the antigravity-accounts.json to display per-account quota status
     #   Shows Antigravity family quotas and Gemini CLI model quotas when cached
-    #   Shows remaining capacity fraction, reset times, and routing per model family
+    #   Supports --watch mode for periodic dashboard refresh at a given interval
+    # Dependencies:
+    #   - python3 with json modules for data processing
+    #   - antigravity-accounts.json from the antigravity auth plugin
+    # Arguments:
+    #   $1: -x for one-shot execution, or --watch for periodic polling mode
+    #   $2: refresh interval in seconds (required when using --watch)
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    local watch_mode=0
+    local watch_interval=0
+
+    if [ "$1" = "--watch" ]; then
+        if [ $# -ne 2 ]; then
+            aux_err "Watch mode requires an interval in seconds" "component=dev,operation=opencode_quota"
+            aux_use
+            return 1
+        fi
+        if ! [[ "$2" =~ ^[0-9]+$ ]] || [ "$2" -lt 1 ]; then
+            aux_err "Watch interval must be a positive integer" "component=dev,operation=opencode_quota,value=$2"
+            return 1
+        fi
+        watch_mode=1
+        watch_interval="$2"
+    elif [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "python3"; then
+        aux_err "python3 command not found" "component=dev,operation=opencode_quota"
+        return 127
+    fi
+
+    local accounts_path
+    accounts_path=$(_dev_get_antigravity_accounts_path)
+    if [ $? -ne 0 ]; then
+        aux_err "Antigravity accounts file not found" "component=dev,operation=opencode_quota,expected_path=${HOME}/.config/opencode/antigravity-accounts.json"
+        return 2
+    fi
+
+    if [ "$watch_mode" -eq 1 ]; then
+        aux_info "Starting quota watch (interval: ${watch_interval}s, Ctrl+C to stop)" "component=dev,operation=opencode_quota"
+        trap 'return 0' INT
+        while true; do
+            clear
+            _dev_oqu_render "$accounts_path"
+            sleep "$watch_interval"
+        done
+    else
+        aux_info "Rendering quota dashboard" "component=dev,operation=opencode_quota"
+        _dev_oqu_render "$accounts_path"
+    fi
+
+    return 0
+}
+
+# Shows account load balancing dashboard
+# opencode load balance
+# -x (execute) | --watch <seconds>
+dev_olb() {
+    # Technical Description:
+    #   Reads the antigravity-accounts.json to display routing information
     #   Queries the OpenCode SQLite database for aggregate model usage statistics
     #   Supports --watch mode for periodic dashboard refresh at a given interval
     # Dependencies:

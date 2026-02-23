@@ -71,6 +71,7 @@ test_dev_functions_exist() {
     declare -f dev_osv >/dev/null 2>&1 || return 1
     declare -f dev_omi >/dev/null 2>&1 || return 1
     declare -f dev_olb >/dev/null 2>&1 || return 1
+    declare -f dev_oqu >/dev/null 2>&1 || return 1
     declare -f dev_oas >/dev/null 2>&1 || return 1
     return 0
 }
@@ -547,6 +548,10 @@ main() {
     run_test test_dev_olb_shows_model_usage
     run_test test_dev_olb_watch_requires_interval
     run_test test_dev_olb_watch_rejects_bad_interval
+    run_test test_dev_oqu_requires_flag
+    run_test test_dev_oqu_renders_dashboard
+    run_test test_dev_oqu_watch_requires_interval
+    run_test test_dev_oqu_watch_rejects_bad_interval
     run_test test_dev_oas_requires_params
     run_test test_dev_oas_rejects_bad_account
     run_test test_dev_oas_switches_family

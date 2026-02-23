@@ -126,8 +126,10 @@ Functions are organized by library modules for systematic access and reference.
 | ops | dev | dev_omi | Reassigns a single OpenCode session to a target scope using an ID suffix |
 | ops | dev | _dev_get_antigravity_accounts_path |  |
 | ops | dev | _dev_olb_render |  |
+| ops | dev | _dev_oqu_render |  |
 | ops | dev | print |  |
-| ops | dev | dev_olb | Shows Antigravity account load balancing dashboard with quota and usage |
+| ops | dev | dev_olb | Shows account load balancing dashboard with routing and usage statistics |
+| ops | dev | dev_oqu | Shows account quota dashboard |
 | ops | dev | dev_oas | Switches the active Antigravity account for a model family |
 | ops | gpu | _gpu_validate_pci_id | Validate PCI ID format using regex pattern matching |
 | ops | gpu | _gpu_extract_vendor_device_id | Extract vendor and device IDs from lspci output for PCI device |
