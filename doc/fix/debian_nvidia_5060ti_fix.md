@@ -440,7 +440,22 @@ When this happens, the Wayland EGL rendering context becomes poisoned. If the sy
 
 This leaves the user stuck on a black screen or frozen lockscreen, completely unable to log back in.
 
-### Recovery Workaround (Without Rebooting)
+### Permanent Fix
+
+To prevent this from happening on sleep/wake cycles, you must enable NVIDIA's video memory preservation feature.
+
+1. Ensure the systemd suspend/resume services are enabled (the `.run` installer usually enables them automatically):
+   ```bash
+   sudo systemctl enable nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
+   ```
+2. Set the kernel module parameter:
+   ```bash
+   echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1" | sudo tee /etc/modprobe.d/nvidia-power-management.conf
+   sudo update-initramfs -u
+   ```
+3. Reboot.
+
+### Recovery Workaround (If you get stuck before applying the fix)
 If you get locked out due to this crash, you can recover the active session via SSH without losing your work:
 
 1. SSH into the machine:
