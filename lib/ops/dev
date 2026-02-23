@@ -85,15 +85,28 @@ SELECT
   COALESCE(p.worktree, '(missing_project)') AS project_root,
   s.directory,
   s.title,
-  datetime(s.time_updated / 1000, 'unixepoch', 'localtime') AS updated_local
+  datetime(s.time_updated / 1000, 'unixepoch', 'localtime') AS updated_local,
+  COALESCE(mu.model, '') AS model,
+  COALESCE(mu.total_input, 0) AS input_tokens,
+  COALESCE(mu.total_output, 0) AS output_tokens
 FROM session s
 LEFT JOIN project p ON p.id = s.project_id
+LEFT JOIN (
+  SELECT
+    session_id,
+    json_extract(data, '$.modelID') AS model,
+    SUM(COALESCE(json_extract(data, '$.tokens.input'), 0)) AS total_input,
+    SUM(COALESCE(json_extract(data, '$.tokens.output'), 0)) AS total_output
+  FROM message
+  WHERE json_extract(data, '$.role') = 'assistant'
+  GROUP BY session_id
+) mu ON mu.session_id = s.id
 ORDER BY s.time_updated DESC;
 """
 
 cur.execute(query)
 rows = cur.fetchall()
-print("suffix\tid\tproject_root\tdirectory\ttitle\tupdated_local")
+print("suffix\tid\tproject_root\tdirectory\ttitle\tupdated_local\tmodel\tinput\toutput")
 for row in rows:
     normalized = []
     for value in row:
