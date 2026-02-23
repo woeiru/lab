@@ -307,6 +307,11 @@ CYAN = "\033[36m"
 MAGENTA = "\033[35m"
 
 def bar(fraction, width=10):
+    try:
+        fraction = float(fraction)
+    except (TypeError, ValueError):
+        fraction = 0.0
+    fraction = max(0.0, min(1.0, fraction))
     filled = int(fraction * width)
     empty = width - filled
     if fraction >= 0.7:
@@ -392,16 +397,25 @@ for i, acct in enumerate(accounts):
         print(f"  {'-' * 64}")
         now_utc = datetime.now(timezone.utc)
         for family, info in sorted(quota.items()):
-            remaining = info.get("remainingFraction", 0)
+            remaining_raw = info.get("remainingFraction", 0)
+            try:
+                remaining = float(remaining_raw)
+            except (TypeError, ValueError):
+                remaining = 0.0
+            remaining = max(0.0, min(1.0, remaining))
+
             reset_time = info.get("resetTime", "")
             model_count = info.get("modelCount", 0)
 
             is_reset_passed = False
+            is_rl_active = False
+            override_reasons = []
             if reset_time:
                 try:
                     reset_dt = datetime.fromisoformat(reset_time.replace("Z", "+00:00"))
                     if (reset_dt - now_utc).total_seconds() <= 0:
                         is_reset_passed = True
+                        override_reasons.append("resetTime")
                 except Exception:
                     pass
 
@@ -412,16 +426,26 @@ for i, acct in enumerate(accounts):
                 rl_dt = datetime.fromtimestamp(rl_ts / 1000, tz=timezone.utc)
                 rl_diff = (rl_dt - now_utc).total_seconds()
                 if rl_diff > 0:
+                    is_rl_active = True
                     rl_h, rl_rem = divmod(int(rl_diff), 3600)
                     rl_m = rl_rem // 60
                     rl_flag = f" {RED}RL:{rl_h}h{rl_m:02d}m{RESET}"
                 else:
                     is_reset_passed = True
+                    override_reasons.append("rateLimit")
                     rl_flag = f" {GREEN}RL:ok{RESET}"
 
             if is_reset_passed and remaining < 1.0:
                 remaining = 1.0
-                rl_flag += f" {YELLOW}(OVERRIDE){RESET}"
+                if override_reasons:
+                    reason = "+".join(sorted(set(override_reasons)))
+                    rl_flag += f" {YELLOW}(OVERRIDE:{reason}){RESET}"
+                else:
+                    rl_flag += f" {YELLOW}(OVERRIDE){RESET}"
+
+            if is_rl_active and remaining > 0.0:
+                remaining = 0.0
+                rl_flag += f" {YELLOW}(EFFECTIVE:0%){RESET}"
 
             pct = f"{int(remaining * 100):>3}%"
 
