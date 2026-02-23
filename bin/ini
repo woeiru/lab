@@ -60,6 +60,11 @@
 #######################################################################
 # Constants and Configuration
 #######################################################################
+
+# Prevent readonly errors when re-sourced (e.g. calling lab twice)
+[[ -n "${_INI_LOADED:-}" ]] && return 0 2>/dev/null || :
+_INI_LOADED=1
+
 readonly LOG_PRIORITY_NORMAL=1
 readonly LOG_PRIORITY_DETAILED=2
 readonly TIMER_MAIN_OPERATIONS="MAIN_OPERATIONS"

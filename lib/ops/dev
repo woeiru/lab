@@ -528,46 +528,8 @@ def fmt_tokens(n):
         return f"{n / 1_000:.1f}K"
     return str(int(n))
 
-def bar(fraction, width=10):
-    try:
-        fraction = float(fraction)
-    except (TypeError, ValueError):
-        fraction = 0.0
-    fraction = max(0.0, min(1.0, fraction))
-    filled = int(fraction * width)
-    empty = width - filled
-    if fraction >= 0.7:
-        color = GREEN
-    elif fraction >= 0.3:
-        color = YELLOW
-    else:
-        color = RED
-    return f"{color}{'█' * filled}{'░' * empty}{RESET}"
-
-def fmt_reset(iso_str):
-    if not iso_str:
-        return "n/a"
-    try:
-        reset_dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
-        now = datetime.now(timezone.utc)
-        total_sec = int((reset_dt - now).total_seconds())
-        if total_sec <= 0:
-            return f"{iso_str[:19]} {RED}(expired){RESET}"
-        hours, remainder = divmod(total_sec, 3600)
-        minutes = remainder // 60
-        return f"{iso_str[:19]} {DIM}(in {hours}h{minutes:02d}m){RESET}"
-    except Exception:
-        return iso_str[:19]
-
-def to_fraction(value):
-    try:
-        fraction = float(value)
-    except (TypeError, ValueError):
-        fraction = 0.0
-    return max(0.0, min(1.0, fraction))
-
 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-print(f"\n{BOLD}ACCOUNT LOAD BALANCING + QUOTA{RESET}  {DIM}{now_str}{RESET}")
+print(f"\n{BOLD}ACCOUNT LOAD BALANCING{RESET}  {DIM}{now_str}{RESET}")
 print("=" * 68)
 
 if not accounts:
@@ -578,7 +540,6 @@ for i, acct in enumerate(accounts):
     email = acct.get("email", "(unknown)")
     enabled = acct.get("enabled", False)
     last_used = acct.get("lastUsed")
-    quota = acct.get("cachedQuota", {})
 
     is_default_active = (i == active_index)
     active_families = [fam for fam, idx in active_by_family.items() if idx == i]
@@ -589,83 +550,8 @@ for i, acct in enumerate(accounts):
     print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]{active_tag}")
     print(f"  Last Used:  {fmt_ts(last_used)}")
 
-    cached_at = acct.get("cachedQuotaUpdatedAt")
-    if cached_at:
-        age_sec = (datetime.now(timezone.utc) - datetime.fromtimestamp(cached_at / 1000, tz=timezone.utc)).total_seconds()
-        if age_sec < 60:
-            age_str = f"{int(age_sec)}s ago"
-        elif age_sec < 3600:
-            age_str = f"{int(age_sec / 60)}m ago"
-        else:
-            age_str = f"{age_sec / 3600:.1f}h ago"
-        age_color = GREEN if age_sec < 300 else (YELLOW if age_sec < 1800 else RED)
-        print(f"  Cache Age:  {age_color}{age_str}{RESET}")
-
     if active_families:
         print(f"  Active for: {CYAN}{', '.join(sorted(active_families))}{RESET}")
-
-    rate_limits = acct.get("rateLimitResetTimes", {})
-
-    if quota:
-        print(f"  {BOLD}Antigravity Quota{RESET}")
-        print(f"  {'-' * 64}")
-        print(f"  {BOLD}{'Family':<16} {'Remaining':<22} {'Reset':<28} {'Mdl':>3}{RESET}")
-        print(f"  {'-' * 64}")
-        now_utc = datetime.now(timezone.utc)
-        for family, info in sorted(quota.items()):
-            remaining = to_fraction(info.get("remainingFraction", 0))
-
-            reset_time = info.get("resetTime", "")
-            model_count = info.get("modelCount", 0)
-
-            is_reset_passed = False
-            is_rl_active = False
-            override_reasons = []
-            if reset_time:
-                try:
-                    reset_dt = datetime.fromisoformat(reset_time.replace("Z", "+00:00"))
-                    if (reset_dt - now_utc).total_seconds() <= 0:
-                        is_reset_passed = True
-                        override_reasons.append("resetTime")
-                except Exception:
-                    pass
-
-            rl_flag = ""
-            rl_ts = rate_limits.get(family)
-            if rl_ts:
-                rl_dt = datetime.fromtimestamp(rl_ts / 1000, tz=timezone.utc)
-                rl_diff = (rl_dt - now_utc).total_seconds()
-                if rl_diff > 0:
-                    is_rl_active = True
-                    rl_h, rl_rem = divmod(int(rl_diff), 3600)
-                    rl_m = rl_rem // 60
-                    rl_flag = f" {RED}RL:{rl_h}h{rl_m:02d}m{RESET}"
-                else:
-                    is_reset_passed = True
-                    override_reasons.append("rateLimit")
-                    rl_flag = f" {GREEN}RL:ok{RESET}"
-
-            if is_reset_passed and remaining < 1.0:
-                remaining = 1.0
-                if override_reasons:
-                    reason = "+".join(sorted(set(override_reasons)))
-                    rl_flag += f" {YELLOW}(OVERRIDE:{reason}){RESET}"
-                else:
-                    rl_flag += f" {YELLOW}(OVERRIDE){RESET}"
-
-            if is_rl_active and remaining > 0.0:
-                remaining = 0.0
-                rl_flag += f" {YELLOW}(EFFECTIVE:0%){RESET}"
-
-            pct = f"{int(remaining * 100):>3}%"
-            print(f"  {family:<16} {bar(remaining)} {pct}   {fmt_reset(reset_time):<28} {model_count:>3}{rl_flag}")
-        print(f"  {'-' * 64}")
-    else:
-        print(f"  {BOLD}Antigravity Quota{RESET}")
-        if cached_at:
-            print(f"  {DIM}(no quota data returned in last check){RESET}")
-        else:
-            print(f"  {DIM}(no quota data cached yet){RESET}")
 
 print(f"\n{BOLD}ROUTING{RESET}")
 print("-" * 68)
@@ -716,10 +602,7 @@ print()
 PY
 }
 
-# Shows account load balancing dashboard with Antigravity and Gemini CLI quota data
-# opencode load balance
-# -x (execute) | --watch <seconds>
-# Shows account quota dashboard
+# Shows account quota dashboard with Antigravity and Gemini CLI quota data
 # opencode quota
 # -x (execute) | --watch <seconds>
 dev_oqu() {
