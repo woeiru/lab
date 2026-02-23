@@ -14,11 +14,14 @@ Primary entrypoints are `./go`, `bin/ini`, and scripts under `val/`.
 - There is no traditional compile/build pipeline (no `Makefile`, `package.json`, `go.mod`, `pyproject.toml`, or `Cargo.toml`).
 - Setup shell integration (interactive):
   - `./go init` (also accepts `./go setup`)
-- Enable or disable integration after init:
-  - `./go on`
-  - `./go off`
+- After init, three shell functions are available in every shell:
+  - `lab`      — activate in current shell only (sources `bin/ini`, no bashrc change)
+  - `lab-on`   — enable auto-load in all new shells (same as `./go on`)
+  - `lab-off`  — disable auto-load in all new shells (same as `./go off`)
 - Check setup status:
   - `./go status`
+- Remove helper functions from bashrc:
+  - `./go purge`
 
 ### Lint / static checks
 - No dedicated centralized linter command is defined.

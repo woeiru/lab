@@ -187,9 +187,9 @@ For comprehensive information about TME nested controls, see the **[Verbosity Co
 
 ## 3. System Integration Features
 
-### Shell Integration (`entry.sh`)
+### Shell Integration (`./go`)
 
-The system provides shell integration capabilities through the `entry.sh` script:
+The system provides shell integration capabilities through the `./go` script:
 
 *   **Purpose**: Inject initialization code into user shell configuration files
 *   **Supported Shells**: Bash (4+), Zsh (5+)
@@ -197,9 +197,10 @@ The system provides shell integration capabilities through the `entry.sh` script
     - Non-destructive configuration updates
     - Backup capability
     - User-specific targeting
+    - Three persistent helper functions: `lab`, `lab-on`, `lab-off`
 *   **Usage**:
     ```bash
-    ./entry.sh [-y] [-u|--user USER] [-c|--config FILE]
+    ./go init [-y] [-u|--user USER] [-c|--config FILE]
     ```
 
 ### Component Orchestration

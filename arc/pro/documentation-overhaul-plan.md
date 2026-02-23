@@ -100,7 +100,7 @@ Tasks:
 Tasks (all four files):
 - Remove emoji headings
 - Replace all `./tst/` references with correct `./val/` paths
-- Replace `./entry.sh` with `./go init` / `./go on`
+- Replace `./entry.sh` with `./go init` / `lab-on` (or `./go on`)
 - Replace `./val/validate_system` with `./val/run_all_tests.sh`
 - Replace `./tst/test_environment` with `./val/run_all_tests.sh`
 - Replace `./utl/doc-stats` with `./utl/doc/generators/stats`

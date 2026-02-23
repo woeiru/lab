@@ -275,9 +275,10 @@ setup_shell_integration() {
     printf "╚════════════════════════════════════════════════════════════════╝\n\n"
     
     printf "This will configure shell integration settings and save them for later use.\n"
-    printf "Settings will be saved to enable 'on/off' switching:\n"
-    printf "• ./go on  - Enable shell integration\n"
-    printf "• ./go off - Disable shell integration\n\n"
+    printf "Settings will be saved to enable toggling:\n"
+    printf "• lab-on   - Enable shell integration (all new shells)\n"
+    printf "• lab-off  - Disable shell integration\n"
+    printf "• lab      - Activate in current shell only\n\n"
     
     # Check if this is the first run
     if [ ! -f "${HOME}/.lab_initialized" ]; then
@@ -315,7 +316,7 @@ setup_shell_integration() {
     printf "Initialization completed successfully!\\n\\n"
     printf "Next steps:\\n"
     printf "1. Restart your shell (or run: source %s)\\n" "${CONFIG_FILE}"
-    printf "2. Run './go on' to enable auto-load in all new shells\\n"
+    printf "2. Type 'lab-on' to enable auto-load in all new shells\\n"
     printf "3. Or just type 'lab' in any shell for current-session-only activation\\n"
     printf "4. Verify with: ./go status\\n"
     printf "5. Run tests with: ./go validate\\n\\n"
@@ -634,7 +635,7 @@ handle_off_command() {
     remove_content || return 1
     
     printf "\n✓ Shell integration disabled successfully!\n\n"
-    printf "To re-enable, run: ./go on\n\n"
+    printf "To re-enable, type: lab-on\\n\\n"
 }
 
 main() {

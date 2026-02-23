@@ -36,7 +36,7 @@ test_go_subcommands() {
     echo -e "${CYAN}--- ./go subcommands ---${NC}"
 
     local go_file="${LAB_ROOT}/go"
-    local subcommands=("init" "setup" "on" "off" "status" "validate" "test")
+    local subcommands=("init" "setup" "on" "off" "status" "validate" "test" "purge")
 
     for cmd in "${subcommands[@]}"; do
         ((FRAMEWORK_TESTS_RUN++))

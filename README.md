@@ -8,9 +8,12 @@ Infrastructure automation framework built entirely in Bash -- no external toolin
 # initialize shell integration (one-time setup)
 ./go init
 
-# enable / disable integration
-./go on
-./go off
+# enable / disable integration (after init, these work from any shell)
+lab-on
+lab-off
+
+# activate in current shell only (no bashrc change)
+lab
 
 # check status
 ./go status
@@ -19,7 +22,7 @@ Infrastructure automation framework built entirely in Bash -- no external toolin
 ./go validate
 ```
 
-After running `./go on` and restarting your shell, all core modules and library functions are loaded automatically into every session.
+After running `lab-on` (or `./go on`) and restarting your shell, all core modules and library functions are loaded automatically into every session. Type `lab` in any shell to activate for just that session without modifying bashrc.
 
 ## Requirements
 
