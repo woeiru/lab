@@ -369,19 +369,51 @@ for i, acct in enumerate(accounts):
     print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]{active_tag}")
     print(f"  Last Used:  {fmt_ts(last_used)}")
 
+    cached_at = acct.get("cachedQuotaUpdatedAt")
+    if cached_at:
+        age_sec = (datetime.now(timezone.utc) - datetime.fromtimestamp(cached_at / 1000, tz=timezone.utc)).total_seconds()
+        if age_sec < 60:
+            age_str = f"{int(age_sec)}s ago"
+        elif age_sec < 3600:
+            age_str = f"{int(age_sec / 60)}m ago"
+        else:
+            age_str = f"{age_sec / 3600:.1f}h ago"
+        age_color = GREEN if age_sec < 300 else (YELLOW if age_sec < 1800 else RED)
+        print(f"  Cache Age:  {age_color}{age_str}{RESET}")
+
     if active_families:
         print(f"  Active for: {CYAN}{', '.join(sorted(active_families))}{RESET}")
+
+    rate_limits = acct.get("rateLimitResetTimes", {})
 
     if quota:
         print(f"  {'-' * 64}")
         print(f"  {BOLD}{'Family':<16} {'Remaining':<22} {'Reset':<28} {'Mdl':>3}{RESET}")
         print(f"  {'-' * 64}")
+        now_utc = datetime.now(timezone.utc)
         for family, info in sorted(quota.items()):
             remaining = info.get("remainingFraction", 0)
             reset_time = info.get("resetTime", "")
             model_count = info.get("modelCount", 0)
             pct = f"{int(remaining * 100):>3}%"
-            print(f"  {family:<16} {bar(remaining)} {pct}   {fmt_reset(reset_time):<28} {model_count:>3}")
+
+            # Check rate-limit status for this family
+            rl_flag = ""
+            rl_ts = rate_limits.get(family)
+            if rl_ts:
+                rl_dt = datetime.fromtimestamp(rl_ts / 1000, tz=timezone.utc)
+                rl_diff = (rl_dt - now_utc).total_seconds()
+                if rl_diff > 0:
+                    rl_h, rl_rem = divmod(int(rl_diff), 3600)
+                    rl_m = rl_rem // 60
+                    rl_flag = f" {RED}RL:{rl_h}h{rl_m:02d}m{RESET}"
+                else:
+                    if remaining == 0:
+                        rl_flag = f" {YELLOW}STALE?{RESET}"
+                    else:
+                        rl_flag = f" {GREEN}RL:ok{RESET}"
+
+            print(f"  {family:<16} {bar(remaining)} {pct}   {fmt_reset(reset_time):<28} {model_count:>3}{rl_flag}")
         print(f"  {'-' * 64}")
     else:
         print(f"  {DIM}(no quota data cached){RESET}")
@@ -404,6 +436,7 @@ if db_path and os.path.isfile(db_path):
         cur = conn.cursor()
         cur.execute('''
             SELECT
+                json_extract(data, "$.providerID") as provider,
                 json_extract(data, "$.modelID") as model,
                 COUNT(*) as cnt,
                 SUM(COALESCE(json_extract(data, "$.tokens.input"), 0)) as total_input,
@@ -411,20 +444,21 @@ if db_path and os.path.isfile(db_path):
                 SUM(COALESCE(json_extract(data, "$.tokens.cache.read"), 0)) as cache_read
             FROM message
             WHERE json_extract(data, "$.role") = 'assistant'
-              AND json_extract(data, "$.providerID") = 'google'
+              AND json_extract(data, "$.providerID") IS NOT NULL
               AND json_extract(data, "$.modelID") IS NOT NULL
-            GROUP BY model
+            GROUP BY provider, model
             ORDER BY cnt DESC
         ''')
         rows = cur.fetchall()
         conn.close()
         if rows:
-            print(f"\n{BOLD}MODEL USAGE{RESET}  {DIM}(all accounts, google provider){RESET}")
+            print(f"\n{BOLD}MODEL USAGE{RESET}  {DIM}(all accounts, all providers){RESET}")
             print("-" * 68)
-            print(f"  {BOLD}{'Model':<42} {'Msgs':>5} {'Input':>8} {'Output':>8}{RESET}")
+            print(f"  {BOLD}{'Model':<36} {'Prov':>6} {'Msgs':>5} {'Input':>8} {'Output':>8}{RESET}")
             print(f"  {'-' * 64}")
-            for model, cnt, inp, out, cache in rows:
-                print(f"  {(model or '?'):<42} {cnt:>5} {fmt_tokens(inp):>8} {fmt_tokens(out):>8}")
+            for provider, model, cnt, inp, out, cache in rows:
+                prov_short = (provider or "?")[:6]
+                print(f"  {(model or '?'):<36} {prov_short:>6} {cnt:>5} {fmt_tokens(inp):>8} {fmt_tokens(out):>8}")
             print(f"  {'-' * 64}")
     except Exception as e:
         print(f"\n  {YELLOW}Could not read usage data: {e}{RESET}")
