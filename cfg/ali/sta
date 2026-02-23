@@ -167,4 +167,9 @@
     # DIC Operations Engine
     alias ops='$LAB_DIR/src/dic/ops'
 
+    # Development
+    # OpenCode session database and config paths:
+    #   ~/.local/share/opencode/opencode.db  — session history / recent list (SQLite)
+    #   ~/.config/opencode/opencode.json     — main configuration
+
     # History
