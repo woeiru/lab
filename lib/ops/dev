@@ -351,8 +351,15 @@ def fmt_tokens(n):
         return f"{n / 1_000:.1f}K"
     return str(int(n))
 
+def to_fraction(value):
+    try:
+        fraction = float(value)
+    except (TypeError, ValueError):
+        fraction = 0.0
+    return max(0.0, min(1.0, fraction))
+
 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-print(f"\n{BOLD}ANTIGRAVITY ACCOUNT LOAD BALANCING{RESET}  {DIM}{now_str}{RESET}")
+print(f"\n{BOLD}ACCOUNT LOAD BALANCING + QUOTA{RESET}  {DIM}{now_str}{RESET}")
 print("=" * 68)
 
 if not accounts:
@@ -364,6 +371,7 @@ for i, acct in enumerate(accounts):
     enabled = acct.get("enabled", False)
     last_used = acct.get("lastUsed")
     quota = acct.get("cachedQuota", {})
+    cli_quota = acct.get("cachedGeminiCliQuota") or acct.get("geminiCliQuota") or {}
 
     is_default_active = (i == active_index)
     active_families = [fam for fam, idx in active_by_family.items() if idx == i]
@@ -392,17 +400,13 @@ for i, acct in enumerate(accounts):
     rate_limits = acct.get("rateLimitResetTimes", {})
 
     if quota:
+        print(f"  {BOLD}Antigravity Quota{RESET}")
         print(f"  {'-' * 64}")
         print(f"  {BOLD}{'Family':<16} {'Remaining':<22} {'Reset':<28} {'Mdl':>3}{RESET}")
         print(f"  {'-' * 64}")
         now_utc = datetime.now(timezone.utc)
         for family, info in sorted(quota.items()):
-            remaining_raw = info.get("remainingFraction", 0)
-            try:
-                remaining = float(remaining_raw)
-            except (TypeError, ValueError):
-                remaining = 0.0
-            remaining = max(0.0, min(1.0, remaining))
+            remaining = to_fraction(info.get("remainingFraction", 0))
 
             reset_time = info.get("resetTime", "")
             model_count = info.get("modelCount", 0)
@@ -452,7 +456,38 @@ for i, acct in enumerate(accounts):
             print(f"  {family:<16} {bar(remaining)} {pct}   {fmt_reset(reset_time):<28} {model_count:>3}{rl_flag}")
         print(f"  {'-' * 64}")
     else:
+        print(f"  {BOLD}Antigravity Quota{RESET}")
         print(f"  {DIM}(no quota data cached){RESET}")
+
+    cli_models = []
+    cli_error = None
+    if isinstance(cli_quota, dict):
+        models_candidate = cli_quota.get("models", [])
+        if isinstance(models_candidate, list):
+            cli_models = models_candidate
+        cli_error = cli_quota.get("error")
+    elif isinstance(cli_quota, list):
+        cli_models = cli_quota
+
+    print(f"  {BOLD}Gemini CLI Quota{RESET}")
+    if cli_models:
+        print(f"  {'-' * 64}")
+        print(f"  {BOLD}{'Model':<29} {'Remaining':<22} {'Reset':<28}{RESET}")
+        print(f"  {'-' * 64}")
+        for model in cli_models:
+            if not isinstance(model, dict):
+                continue
+            model_id = str(model.get("modelId", "?"))
+            remaining = to_fraction(model.get("remainingFraction", 0))
+            reset_time = model.get("resetTime", "")
+            pct = f"{int(remaining * 100):>3}%"
+            print(f"  {model_id[:29]:<29} {bar(remaining)} {pct}   {fmt_reset(reset_time):<28}")
+        print(f"  {'-' * 64}")
+    else:
+        if cli_error:
+            print(f"  {DIM}({cli_error}){RESET}")
+        else:
+            print(f"  {DIM}(no Gemini CLI quota cached){RESET}")
 
 print(f"\n{BOLD}ROUTING{RESET}")
 print("-" * 68)
@@ -503,12 +538,13 @@ print()
 PY
 }
 
-# Shows Antigravity account load balancing dashboard with quota and usage
+# Shows account load balancing dashboard with Antigravity and Gemini CLI quota data
 # opencode load balance
 # -x (execute) | --watch <seconds>
 dev_olb() {
     # Technical Description:
     #   Reads the antigravity-accounts.json to display per-account quota status
+    #   Shows Antigravity family quotas and Gemini CLI model quotas when cached
     #   Shows remaining capacity fraction, reset times, and routing per model family
     #   Queries the OpenCode SQLite database for aggregate model usage statistics
     #   Supports --watch mode for periodic dashboard refresh at a given interval
