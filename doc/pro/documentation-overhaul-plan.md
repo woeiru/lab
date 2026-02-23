@@ -17,15 +17,17 @@ The following files contain auto-generated sections managed by `utl/doc/generato
 
 | Generator | Output File | Section Marker |
 |-----------|-------------|----------------|
-| `func` | `doc/dev/functions.md` | `<!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->` |
+| `func` | `doc/man/functions.md` | `<!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->` |
 | `hub` | `doc/README.md` | `<!-- AUTO-GENERATED SECTION: Documentation Structure -->` |
-| `var` | `doc/dev/variables.md` | `<!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->` |
+| `var` | `doc/man/variables.md` | `<!-- AUTO-GENERATED SECTION: DO NOT EDIT MANUALLY -->` |
 
 The `stats` generator target for `README.md` is commented out in `utl/doc/config/targets` (lines 106, 118) and has already been removed from the root README.
 
 ## Inventory: All Files in Scope
 
-### README Files (16 files, excluding root which is done)
+### README Files (13 files, excluding root which is done)
+
+Note: `doc/adm/`, `doc/cli/`, and `doc/dev/` subdirectories no longer exist -- their content files were consolidated into `doc/man/`. No README files exist for those former subdirectories.
 
 | # | File | Lines | Severity | Notes |
 |---|------|-------|----------|-------|
@@ -41,27 +43,31 @@ The `stats` generator target for `README.md` is commented out in `utl/doc/config
 | 10 | `val/lib/integration/README.md` | 35 | Medium | Emoji headings, inflated language ("enterprise development workflows") |
 | 11 | `utl/doc/README.md` | 476 | Critical | Massively inflated (476 lines), marketing language ("success stories", "60x faster"), emoji throughout, references nonexistent `.doc_config` |
 | 12 | `doc/README.md` | 71 | Medium | Contains auto-generated hub section (preserve markers), stale tool references (`utl/doc-hub`, `utl/doc-func`) |
-| 13 | `doc/cli/README.md` | 192 | High | References nonexistent paths (`./tst/`, `./entry.sh`, `./val/validate_system`, `./utl/doc-stats`), emoji headings, duplicated content |
-| 14 | `doc/dev/README.md` | 102 | High | References nonexistent paths (`./tst/validate_system`, `./tst/test_environment`), emoji headings, stale test counts |
-| 15 | `doc/iac/README.md` | 167 | High | References nonexistent paths, stale deployment commands (`cd src/set/pve && ./pve`), emoji headings, fabricated metrics |
-| 16 | `doc/adm/README.md` | 109 | High | References `./tst/validate_system`, `./tst/test_environment`, emoji headings |
+| 13 | `doc/iac/README.md` | 167 | High | References nonexistent paths, stale deployment commands (`cd src/set/pve && ./pve`), emoji headings, fabricated metrics |
 
-### doc/ Content Files (7 files)
+### doc/ Content Files (9 files)
+
+Note: `doc/adm/` and `doc/cli/` and `doc/dev/` no longer exist. All content files are now under `doc/man/`.
 
 | # | File | Lines | Severity | Notes |
 |---|------|-------|----------|-------|
-| 17 | `doc/adm/configuration.md` | 345 | Medium | Needs path and accuracy audit |
-| 18 | `doc/adm/security.md` | 217 | Medium | References `./tst/validate_system`, `./tst/test_environment` |
-| 19 | `doc/cli/initiation.md` | 388 | Medium | Needs path and accuracy audit |
-| 20 | `doc/cli/verbosity.md` | 571 | Medium | Needs path and accuracy audit |
-| 21 | `doc/dev/functions.md` | 331 | Low | Mostly auto-generated -- preserve markers, audit manual sections only |
-| 22 | `doc/dev/logging.md` | 554 | Medium | Needs accuracy audit |
-| 23 | `doc/dev/variables.md` | 246 | Low | Mostly auto-generated -- preserve markers, audit manual sections only |
-| 24 | `doc/iac/deployment.md` | 645 | Medium | Needs path and accuracy audit |
-| 25 | `doc/iac/environment.md` | 276 | Medium | References `./tst/validate_system` multiple times |
-| 26 | `doc/issue/001-gpu-hook-trigger-bug.md` | ? | Low | Issue tracker -- audit for accuracy only |
-| 27 | `doc/issue/002-filepath-pve-legacy-reference.md` | ? | Low | Issue tracker -- audit for accuracy only |
-| 28 | `doc/issue/003-dic-injection-flag-failure.md` | ? | Low | Issue tracker -- audit for accuracy only |
+| 14 | `doc/man/configuration.md` | 345 | Medium | Needs path and accuracy audit |
+| 15 | `doc/man/security.md` | 217 | Medium | References `./tst/validate_system`, `./tst/test_environment` |
+| 16 | `doc/man/initiation.md` | 388 | Medium | Needs path and accuracy audit |
+| 17 | `doc/man/verbosity.md` | 571 | Medium | Needs path and accuracy audit |
+| 18 | `doc/man/functions.md` | 331 | Low | Mostly auto-generated -- preserve markers, audit manual sections only |
+| 19 | `doc/man/logging.md` | 554 | Medium | Needs accuracy audit |
+| 20 | `doc/man/variables.md` | 246 | Low | Mostly auto-generated -- preserve markers, audit manual sections only |
+| 21 | `doc/iac/deployment.md` | 645 | Medium | Needs path and accuracy audit |
+| 22 | `doc/iac/environment.md` | 276 | Medium | References `./tst/validate_system` multiple times |
+
+### doc/fix/ Files (formerly doc/issue/)
+
+Note: The `doc/issue/` directory does not exist. Issue tracking has moved to `doc/fix/`. Only one of the three original issue files has a clear successor (`001-gpu-hook-trigger-bug.md` → `doc/fix/pve_gpu-hook-trigger-bug.md`). Issues 002 and 003 have no corresponding files in `doc/fix/`.
+
+| # | File | Lines | Severity | Notes |
+|---|------|-------|----------|-------|
+| 23 | `doc/fix/pve_gpu-hook-trigger-bug.md` | ? | Low | Successor to `001-gpu-hook-trigger-bug.md` -- audit for accuracy only |
 
 ## Common Problems Across All Files
 
@@ -71,7 +77,7 @@ The `stats` generator target for `README.md` is commented out in `utl/doc/config
 4. **Duplicated content**: `src/README.md` duplicates most of `src/dic/README.md`
 5. **Fabricated features**: `src/dic/README.md` documents `--doctor`, `--diagnose`, `OPS_TELEMETRY`, `OPS_PROFILE`, `OPS_MEMORY` which do not exist in the actual code
 6. **Stale metadata**: Hardcoded dates, test counts, function counts that will drift
-7. **Phantom directories**: References to `../user/`, `doc/dev/architecture.md`, `doc/dev/testing.md`, `doc/standards.md`, `doc/metaprompt.md` -- need to verify which exist
+7. **Phantom directories**: References to `../user/`, `doc/dev/architecture.md`, `doc/dev/testing.md`, `doc/standards.md`, `doc/metaprompt.md` -- none of these exist. Note also that `doc/adm/`, `doc/cli/`, `doc/dev/` no longer exist as directories; their content is in `doc/man/`.
 
 ## Implementation Plan
 
@@ -94,10 +100,12 @@ Tasks:
 
 ### Phase 2: doc/ subdirectory READMEs
 
-**Files**: `doc/adm/README.md`, `doc/cli/README.md`, `doc/dev/README.md`, `doc/iac/README.md`
+**Files**: `doc/iac/README.md`
 **Effort**: Medium
 
-Tasks (all four files):
+Note: `doc/adm/README.md`, `doc/cli/README.md`, and `doc/dev/README.md` no longer exist -- those subdirectories were removed. Only `doc/iac/README.md` remains as a subdirectory README under `doc/`.
+
+Tasks:
 - Remove emoji headings
 - Replace all `./tst/` references with correct `./val/` paths
 - Replace `./entry.sh` with `./go init` / `lab-on` (or `./go on`)
@@ -106,14 +114,13 @@ Tasks (all four files):
 - Replace `./utl/doc-stats` with `./utl/doc/generators/stats`
 - Remove references to nonexistent files (`doc/dev/architecture.md`, `doc/dev/testing.md`, `../user/`, `doc/standards.md`)
 - Remove marketing filler ("Target Audience" with emoji, inflated metrics)
-- Cut duplicated content (each README repeats what the others say)
-- Keep each file focused: brief description + index of contents in that directory
+- Keep file focused: brief description + index of contents in that directory
 
 ---
 
 ### Phase 3: doc/ content files
 
-**Files**: `doc/adm/configuration.md`, `doc/adm/security.md`, `doc/cli/initiation.md`, `doc/cli/verbosity.md`, `doc/dev/logging.md`, `doc/iac/deployment.md`, `doc/iac/environment.md`
+**Files**: `doc/man/configuration.md`, `doc/man/security.md`, `doc/man/initiation.md`, `doc/man/verbosity.md`, `doc/man/logging.md`, `doc/iac/deployment.md`, `doc/iac/environment.md`
 **Effort**: Medium-Large
 
 Tasks:
@@ -123,7 +130,7 @@ Tasks:
 - Remove filler and marketing language
 - Remove emoji
 - Verify function names and module references are current
-- Do NOT touch auto-generated sections in `doc/dev/functions.md` and `doc/dev/variables.md` (only audit the manual header/footer around the markers)
+- Do NOT touch auto-generated sections in `doc/man/functions.md` and `doc/man/variables.md` (only audit the manual header/footer around the markers)
 
 ---
 
@@ -238,15 +245,17 @@ These are operational runbooks with real commands. Minimal changes needed.
 
 ---
 
-### Phase 9: doc/issue/ files (audit only)
+### Phase 9: doc/fix/ files (audit only)
 
-**Files**: `doc/issue/001-gpu-hook-trigger-bug.md`, `doc/issue/002-filepath-pve-legacy-reference.md`, `doc/issue/003-dic-injection-flag-failure.md`
+**Files**: `doc/fix/pve_gpu-hook-trigger-bug.md`
 **Effort**: Small
 
+Note: `doc/issue/` does not exist. The original three issue files (`001-gpu-hook-trigger-bug.md`, `002-filepath-pve-legacy-reference.md`, `003-dic-injection-flag-failure.md`) have no direct successors except for `doc/fix/pve_gpu-hook-trigger-bug.md`. Confirm with the user whether issues 002 and 003 were intentionally dropped or need to be recreated under `doc/fix/`.
+
 Tasks:
-- Read each file and verify paths/function names are still accurate
+- Read `doc/fix/pve_gpu-hook-trigger-bug.md` and verify paths/function names are still accurate
 - Fix any stale references
-- No style rewrite needed -- these are issue trackers
+- No style rewrite needed -- this is a fix tracker
 
 ## Execution Notes
 
@@ -255,6 +264,7 @@ Tasks:
 - Phase 4 should run before Phase 5 (src/README.md references src/dic/README.md)
 - Phases 6-8 are independent of each other
 - Phase 9 is independent
+- Note: `doc/man/functions.md` and `doc/man/variables.md` contain auto-generated sections -- preserve markers during Phase 3
 
 Agent instructions for each phase should include:
 1. Read the target file(s) and all source code they reference
@@ -269,12 +279,12 @@ Agent instructions for each phase should include:
 | Phase | Files | Current Lines | Target Lines | Priority |
 |-------|-------|---------------|--------------|----------|
 | 1 | doc/README.md | 71 | ~40 | High |
-| 2 | doc/{adm,cli,dev,iac}/README.md | 570 | ~160 | High |
-| 3 | doc/ content files (7) | ~3000 | ~2000 | Medium |
+| 2 | doc/iac/README.md | 167 | ~50 | High |
+| 3 | doc/man/ content files (7) + doc/iac/ content (2) | ~3000 | ~2000 | Medium |
 | 4 | src/dic/README.md | 946 | ~200 | Critical |
 | 5 | src/README.md | 651 | ~100 | Critical |
 | 6 | bin/ cfg/ val/ READMEs | 461 | ~160 | High |
 | 7 | lib/ops/ utl/doc/ val/lib/integration/ READMEs | 729 | ~350 | Medium |
 | 8 | cfg/log/ cfg/pod/ READMEs | 640 | ~620 | Low |
-| 9 | doc/issue/ (audit) | ~? | ~same | Low |
-| **Total** | **28 files** | **~7000+** | **~3600** | |
+| 9 | doc/fix/ (audit) | ~? | ~same | Low |
+| **Total** | **23 files** | **~6700+** | **~3500** | |
