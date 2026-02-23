@@ -97,10 +97,16 @@ sys_gio() {
     #   --force          : Force sync - override conflicts with remote state
     #   --dry-run        : Preview operations without executing
     #   --ai-commit      : Generate AI-powered commit messages
+    #   -x               : Execution flag (required when using defaults)
     #   [commit_message] : Optional commit message or template pattern
 
-    local USAGE="Usage: sys_gio [--dir <path>] [--branch <name>] [--auto|--safe|--force|--dry-run] [--ai-commit] [commit_message]"
+    local USAGE="Usage: sys_gio [-x] [--dir <path>] [--branch <name>] [--auto|--safe|--force|--dry-run] [--ai-commit] [commit_message]"
     
+    if [ $# -eq 0 ]; then
+        aux_use
+        return 1
+    fi
+
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         echo "$USAGE"
         echo ""
@@ -128,7 +134,7 @@ sys_gio() {
         echo "  :auto           Smart commit type detection based on changes"
         echo ""
         echo "Examples:"
-        echo "  sys_gio                                    # Auto-detect repo, sync current branch"
+        echo "  sys_gio -x                                # Auto-detect repo, sync current branch"
         echo "  sys_gio --dir /path/to/repo               # Sync specific repository"
         echo "  sys_gio --branch develop                  # Sync specific branch"
         echo "  sys_gio --safe :fix                       # Safe mode with fix template"
@@ -147,6 +153,7 @@ sys_gio() {
     
     while [[ $# -gt 0 ]]; do
         case $1 in
+            -x) shift ;;
             --dir)
                 if [[ -z "$2" ]]; then
                     aux_err "Missing argument for --dir option"
