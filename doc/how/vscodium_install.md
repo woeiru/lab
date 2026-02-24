@@ -1,24 +1,33 @@
 # VSCodium Installation on Debian
 
-This document outlines the steps taken to install VSCodium (the community-driven, telemetry-free distribution of VS Code) on this Debian system.
+This document outlines the steps to install VSCodium (the community-driven, telemetry-free distribution of VS Code) on Debian using the official VSCodium repository.
 
 ## Steps Taken
 
-1.  **Add GPG Key**: Downloaded and added the official VSCodium GPG key to ensure package authenticity.
-    ```bash
-    wget -qO - https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg | gpg --dearmor | sudo dd of=/usr/share/keyrings/vscodium-archive-keyring.gpg
-    ```
+1. **Add GPG Key**: Download and add the official VSCodium GPG key to ensure package authenticity.
+   ```bash
+   curl -fsSL https://repo.vscodium.dev/vscodium.gpg \
+     | gpg --dearmor \
+     | sudo dd of=/usr/share/keyrings/vscodium.gpg
+   ```
 
-2.  **Add Repository**: Added the VSCodium APT repository to the system sources.
-    ```bash
-    echo 'deb [ arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/vscodium-archive-keyring.gpg ] https://download.vscodium.com/debs vscodium main' | sudo tee /etc/apt/sources.list.d/vscodium.list
-    ```
+2. **Add Repository**: Add the VSCodium APT repository to the system sources.
 
-3.  **Update and Install**: Updated the package lists and installed the `codium` package.
-    ```bash
-    sudo apt update
-    sudo apt install codium
-    ```
+   - Debian 13 / Ubuntu 24.04 or newer (DEB822 `.sources`):
+     ```bash
+     sudo curl --output-dir /etc/apt/sources.list.d -LO https://repo.vscodium.dev/vscodium.sources
+     ```
+
+   - Debian 12 / Ubuntu 23.10 or older (classic `.list`):
+     ```bash
+     sudo curl --output-dir /etc/apt/sources.list.d -LO https://repo.vscodium.dev/vscodium.list
+     ```
+
+3. **Update and Install**: Update package lists and install the `codium` package.
+   ```bash
+   sudo apt update
+   sudo apt install codium
+   ```
 
 ## Usage
 - Launch via terminal: `codium`
