@@ -25,7 +25,52 @@ The goal is to rely on **Standard Unix Protocols** (SSH) that are:
 ### 3. Git Credential Cache (HTTPS Alternative)
 **Best for**: Users who must use HTTPS but want to avoid manual pasting.
 *   **Concept**: Git keeps your token in memory for a temporary window.
-*   **Security Note**: ⚠️ **Less Secure.** While the `cache` mode stores credentials in RAM, they are still transmitted over HTTPS, and any misconfiguration (like using `store` mode) can leave tokens in plain text on the disk.
+*   **Security Note**: ⚠️ **Less Secure.** While `cache` stores credentials in RAM, they are still sent over HTTPS, and bad helper choices (for example `store`) can leave tokens on disk.
+*   **Important Clarification**: `cache` is only one HTTPS credential helper. Other common helpers include:
+    *   `manager` (Git Credential Manager)
+    *   `libsecret` (Linux secret store)
+    *   `osxkeychain` (macOS keychain)
+
+---
+
+## 🧭 Pick One Strategy (Decision Table)
+
+| Strategy | Best For | Security | Effort |
+|---|---|---|---|
+| SSH + Agent Forwarding | Labs, VMs, multi-host workflows | High | Medium (initial setup) |
+| HTTPS + Secure Helper (`manager`/`libsecret`/`osxkeychain`) | Desktop-only workflows | Medium-High | Low |
+| HTTPS + `cache` | Temporary sessions, quick tests | Medium | Low |
+
+Recommendation for this lab-style environment: **SSH + agent forwarding**.
+
+---
+
+## 🧩 Why IDE Push Works but CLI Fails
+
+Your IDE (VSCode/VSCodium) and terminal `git` may use different authentication paths:
+
+*   **IDE push/sync** often uses an IDE-managed GitHub OAuth/session token.
+*   **CLI git push** uses your shell's git credential helper or SSH keys.
+
+So it's normal for IDE push to succeed while `git push` in terminal fails with credential errors.
+
+---
+
+## 🔍 Quick Diagnostics
+
+Run these to inspect how your current shell is authenticating:
+
+```bash
+git remote -v
+git config --show-origin --get-all credential.helper
+gh auth status 2>/dev/null || true
+```
+
+Interpretation:
+
+*   `origin` starts with `https://...` + helper is `cache` => using recommendation #3.
+*   `origin` starts with `https://...` + helper is `manager`/`libsecret`/`osxkeychain` => HTTPS with secure credential storage.
+*   `origin` starts with `git@github.com:...` => SSH workflow (recommendations #1/#2).
 
 ---
 
@@ -99,6 +144,20 @@ Now your Git commands on any VM (via Forwarding) become:
 ```bash
 git clone lab-srv:/srv/git/lab.git
 ```
+
+---
+
+## 🔁 Migration Playbook: HTTPS to SSH (GitHub)
+
+If your repo currently uses HTTPS, migrate once:
+
+```bash
+git remote set-url origin git@github.com:<owner>/<repo>.git
+ssh -T git@github.com
+git push
+```
+
+After this, your CLI and automation will use SSH identity instead of PAT prompts.
 
 ---
 
