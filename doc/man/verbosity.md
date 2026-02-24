@@ -38,7 +38,7 @@ Output Type Controls (TME_*_TERMINAL_OUTPUT)
 ### Master Control
 
 **MASTER_TERMINAL_VERBOSITY**: Controls all terminal output across the entire system
-- **Default**: `"off"` (quiet mode)
+- **Default**: `"on"` (verbose mode)
 - **Values**: `"on"` | `"off"`
 - **Impact**: When `"off"`, all modules remain silent in the terminal
 
@@ -310,4 +310,4 @@ export TME_TERMINAL_VERBOSITY="off"         # Disable all TME output
 - **Master Override**: `MASTER_TERMINAL_VERBOSITY="off"` silences everything
 - **Runtime Changes**: Use `tme_set_output` functions after initialization
 - **Session Scope**: Controls affect only your current session
-- **Default Behavior**: System defaults to quiet mode (`MASTER_TERMINAL_VERBOSITY="off"`)
+- **Default Behavior**: System defaults to verbose mode (`MASTER_TERMINAL_VERBOSITY="on"`)

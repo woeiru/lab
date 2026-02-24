@@ -39,7 +39,7 @@ The lab system implements a multi-layered logging architecture with three distin
 
 The system uses hierarchical verbosity controls with a master switch pattern:
 
-- **`MASTER_TERMINAL_VERBOSITY`** (default: "off") - Global terminal output control
+- **`MASTER_TERMINAL_VERBOSITY`** (default: "on") - Global terminal output control
 - **Module-specific switches** - Individual controls that require master to be "on":
   - `INI_LOG_TERMINAL_VERBOSITY` - Initialization messages
   - `VER_LOG_TERMINAL_VERBOSITY` - Verification messages  
@@ -197,8 +197,8 @@ export NODE_ID="${HOSTNAME}"
 ### Core Infrastructure Logging Controls
 
 ```bash
-# Master control (default: "off")
-MASTER_TERMINAL_VERBOSITY="off"
+# Master control (default: "on")
+MASTER_TERMINAL_VERBOSITY="on"
 
 # Module-specific controls (require master "on")
 INI_LOG_TERMINAL_VERBOSITY="on"          # Initialization messages
