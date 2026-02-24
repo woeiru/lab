@@ -57,6 +57,11 @@ readonly TME_VIOLET=$(printf '\033[1;35m')
 readonly TME_WHITE=$(printf '\033[1;37m')
 readonly TME_NC=$(printf '\033[0m')
 
+# Print numbers using C locale to avoid locale decimal-separator issues.
+tme_printf_numeric() {
+    LC_NUMERIC=C printf "$@"
+}
+
 # Initialize timer system with log directory and configuration files
 # Timer Initialize - TIN
 # <log_dir>
@@ -217,7 +222,7 @@ tme_end_timer() {
     {
         printf "[END] %s\n" "$component"
         printf "Status: %s\n" "$status"
-        printf "Duration: %.3fs\n\n" "${TME_DURATIONS[$component]}"
+        tme_printf_numeric "Duration: %.3fs\n\n" "${TME_DURATIONS[$component]}"
     } >> "$TME_LOG_FILE"
 
     echo "$orig_log_state" > "$LOG_STATE_FILE"
@@ -280,7 +285,7 @@ print_timing_entry() {
     local component_display
     component_display=$(printf "%-25s" "$component")
 
-    printf "%s%s%s%s %6.3fs [%5.1f%%] [%s]%s\n" \
+    tme_printf_numeric "%s%s%s%s %6.3fs [%5.1f%%] [%s]%s\n" \
         "$base_indent" \
         "$color" \
         "$tree_prefix" \
@@ -301,7 +306,7 @@ sort_components_by_duration() {
 
     for comp_name in "${_components_ref[@]}"; do
         if [[ -n "${TME_DURATIONS[$comp_name]}" ]]; then
-            printf "%.9f %s\n" "${TME_DURATIONS[$comp_name]}" "$comp_name" >> "$temp_file"
+            tme_printf_numeric "%.9f %s\n" "${TME_DURATIONS[$comp_name]}" "$comp_name" >> "$temp_file"
         else
             printf "0 %s\n" "$comp_name" >> "$temp_file"
         fi
@@ -458,7 +463,7 @@ tme_print_timing_report() {
 
     printf "\n%s ━ RC Timing Report%s\n" "$TME_BLUE" "$TME_NC"
     printf "%s ━ Generated: %s%s\n" "$TME_BLUE" "$(date)" "$TME_NC"
-    printf "%s ━ Total execution time: %.3fs%s\n" "$TME_BLUE" "$total_duration" "$TME_NC"
+    tme_printf_numeric "%s ━ Total execution time: %.3fs%s\n" "$TME_BLUE" "$total_duration" "$TME_NC"
     printf "%s ━ Sort order: %s%s\n" "$TME_BLUE" "$sort_order" "$TME_NC"
     printf "\n"
 
@@ -515,7 +520,7 @@ tme_cleanup_timer() {
     {
         printf "====================\n"
         printf "Timer cleanup completed at %s\n" "$(date)"
-        printf "Total execution time: %.3fs\n\n" "$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)"
+        tme_printf_numeric "Total execution time: %.3fs\n\n" "$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)"
     } >> "$TME_LOG_FILE"
 
 
