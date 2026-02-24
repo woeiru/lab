@@ -1,22 +1,23 @@
 # OpenCode Antigravity Auth Plugin Setup
+Replace `<YOUR_USER>` with your local Linux username in absolute path examples.
 
 This documents the installation of:
 
-- OpenCode plugin repo: `/home/es/opencode-antigravity-auth`
-- OpenCode config: `/home/es/.config/opencode/opencode.json`
+- OpenCode plugin repo: `/home/<YOUR_USER>/opencode-antigravity-auth`
+- OpenCode config: `/home/<YOUR_USER>/.config/opencode/opencode.json`
 
 ## 1) Repository Installed
 
 Cloned:
 
 ```bash
-git clone https://github.com/NoeFabris/opencode-antigravity-auth.git /home/es/opencode-antigravity-auth
+git clone https://github.com/NoeFabris/opencode-antigravity-auth.git /home/<YOUR_USER>/opencode-antigravity-auth
 ```
 
 Dependencies installed and project build verified:
 
 ```bash
-cd /home/es/opencode-antigravity-auth
+cd /home/<YOUR_USER>/opencode-antigravity-auth
 npm ci
 npm run build
 ```
@@ -25,7 +26,7 @@ npm run build
 
 Created:
 
-- `/home/es/.config/opencode/opencode.json`
+- `/home/<YOUR_USER>/.config/opencode/opencode.json`
 
 Configured with:
 
@@ -36,6 +37,12 @@ Verification command:
 
 ```bash
 opencode models google
+```
+
+If `opencode` is not on `PATH` in the current shell, use:
+
+```bash
+/home/<YOUR_USER>/.opencode/bin/opencode models google
 ```
 
 Expected to include models like:
@@ -52,6 +59,8 @@ No Google credentials are currently configured yet. Complete login with:
 opencode auth login
 ```
 
+Important: this command is interactive. In the provider menu, explicitly select `Google`, then complete OAuth in the opened browser flow.
+
 Then run a test prompt:
 
 ```bash
@@ -62,9 +71,12 @@ opencode run "Hello" --model=google/antigravity-gemini-3-flash --variant=low
 
 - If OpenCode is not found in an existing shell session, run:
   - `source ~/.bashrc`
+- If `source ~/.bashrc` still does not expose `opencode` (for example in non-interactive shells), use:
+  - `/home/<YOUR_USER>/.opencode/bin/opencode`
 - Current credential status was:
   - `opencode auth list` -> `0 credentials`
 - The plugin README warns this is unofficial and can carry Google account risk; use at your own discretion.
+- If `~/.config/opencode` contains package files like `node_modules`, `package.json`, and no `opencode.json`, treat that as a misplaced plugin install and recreate `~/.config/opencode/opencode.json`.
 
 ## Fix Applied: "Invalid project resource name"
 
