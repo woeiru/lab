@@ -65,6 +65,9 @@
 [[ -n "${_INI_LOADED:-}" ]] && return 0 2>/dev/null || :
 _INI_LOADED=1
 
+# Capture wall-clock start time before anything else runs
+_INI_START_NS=$(date +%s%N)
+
 readonly LOG_PRIORITY_NORMAL=1
 readonly LOG_PRIORITY_DETAILED=2
 readonly TIMER_MAIN_OPERATIONS="MAIN_OPERATIONS"
@@ -726,4 +729,21 @@ if type tme_settme &>/dev/null; then
 fi
 if type tme_print_timing_report &>/dev/null; then
     tme_print_timing_report
+fi
+
+# --- Total initialization duration ---
+if [[ -n "${_INI_START_NS:-}" ]]; then
+    _INI_END_NS=$(date +%s%N)
+    _INI_ELAPSED_MS=$(( (_INI_END_NS - _INI_START_NS) / 1000000 ))
+    if [[ "$_INI_ELAPSED_MS" -ge 1000 ]]; then
+        _INI_ELAPSED_S=$(printf '%d.%03d' $((_INI_ELAPSED_MS / 1000)) $((_INI_ELAPSED_MS % 1000)))
+        _INI_ELAPSED_DISPLAY="${_INI_ELAPSED_S}s"
+    else
+        _INI_ELAPSED_DISPLAY="${_INI_ELAPSED_MS}ms"
+    fi
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        echo " ━ Initialization completed in ${_INI_ELAPSED_DISPLAY}" >&2
+        echo >&2
+    fi
+    unset _INI_START_NS _INI_END_NS _INI_ELAPSED_MS _INI_ELAPSED_S _INI_ELAPSED_DISPLAY
 fi
