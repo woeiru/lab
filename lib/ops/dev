@@ -103,7 +103,6 @@ def fg(r, g, b):
 C_BORDER  = fg(101, 101, 101)          # Color7Faint  — dim gray
 C_HEADER  = BOLD + fg(255, 255, 255)   # Color7Intense — white bold
 C_SUFFIX  = fg(84,  255, 255)          # Color6Intense — bright cyan
-C_ID      = fg(101, 101, 101)          # Color7Faint   — dim gray
 C_PROJECT = fg(84,  84,  255)          # Color4Intense — bright blue
 C_DIR     = fg(84,  84,  255)          # Color4Intense — bright blue (same family)
 C_TITLE   = fg(178, 178, 178)          # Color7        — normal gray
@@ -143,11 +142,6 @@ def fmt_tokens(n):
         return f"{n / 1_000:.1f}K"
     return str(n)
 
-def fmt_id(full_id):
-    """Keep the last 8 chars of the session ID as a short reference."""
-    s = str(full_id) if full_id else ""
-    return s[-8:] if len(s) > 8 else s
-
 def fmt_date(s):
     """Drop seconds from the datetime string to save space."""
     s = str(s) if s else ""
@@ -156,10 +150,9 @@ def fmt_date(s):
 # Column widths (visible characters)
 W = {
     "sfx":  3,
-    "id":   8,
     "proj": 18,
     "dir":  20,
-    "title":28,
+    "title":38,
     "date": 16,
     "model":22,
     "in":    7,
@@ -181,7 +174,6 @@ hline("┌", "┬", "┐")
 
 headers = [
     cell("SFX",     W["sfx"],   C_HEADER),
-    cell("ID",      W["id"],    C_HEADER),
     cell("PROJECT",  W["proj"],  C_HEADER),
     cell("DIR",     W["dir"],   C_HEADER),
     cell("TITLE",   W["title"], C_HEADER),
@@ -196,11 +188,10 @@ hline("├", "┼", "┤")
 
 # Rows
 for row in rows:
-    suffix, full_id, proj, directory, title, updated, model, inp, out = row
+    suffix, _full_id, proj, directory, title, updated, model, inp, out = row
 
     cols = [
         cell(suffix or "",        W["sfx"],   C_SUFFIX),
-        cell(fmt_id(full_id),     W["id"],    C_ID),
         cell(proj or "",          W["proj"],  C_PROJECT),
         cell(directory or "",     W["dir"],   C_DIR),
         cell(title or "",         W["title"], C_TITLE),
