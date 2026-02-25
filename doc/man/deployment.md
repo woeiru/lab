@@ -1,4 +1,4 @@
-# Deployment
+# Deployment Guide
 
 This document provides comprehensive instructions for using the deployment scripts located in the `src/set/` directory. These scripts automate infrastructure setup and configuration tasks for various services and system components using a consistent, environment-aware framework.
 
@@ -7,45 +7,9 @@ This document provides comprehensive instructions for using the deployment scrip
 The IaC deployment system provides automated infrastructure provisioning through:
 
 - **Environment-aware configuration loading** with hierarchical overrides
-- **Interactive and direct execution modes** for flexible deployment approaches  
+- **Interactive and direct execution modes** for flexible deployment approaches
 - **Standardized utility integration** for consistent infrastructure management
 - **Comprehensive logging and error handling** for reliable operations
-
-## Core Framework: `src/set/.menu`
-
-All scripts within `src/set/` leverage the Environment-Aware Deployment Framework located at `src/set/.menu`. This framework provides:
-
-### Key Features
-
-*   **Interactive Mode**: Menu-driven interface for selecting and executing specific deployment tasks
-*   **Direct Execution Mode**: Command-line execution of specific tasks for automation and scripting
-*   **Environment Context Management**: Automatic loading of base, environment, and node-specific configurations
-*   **Hierarchical Configuration Loading**: Supports base -> environment -> node configuration overrides
-*   **Usage Information**: Dynamic help generation based on script functions and configuration
-
-### Architecture
-
-Each deployment script defines a `MENU_OPTIONS` associative array mapping letter keys (e.g., `a`, `b`) to task functions (named `a_xall`, `b_xall`, etc.). The framework provides:
-
-- **Configuration hierarchy**: `cfg/env/site1` -> `cfg/env/site1-dev` -> `cfg/env/site1-w2` 
-- **Runtime constants integration** with automatic LAB_ROOT detection
-- **Infrastructure and security utility loading** from `lib/ops/` and `lib/gen/`
-- **Environment variable context** (`SITE`, `ENVIRONMENT`, `NODE`)
-
-### Hostname-Based Script Organization
-
-The `src/set/` directory uses a **hostname-based naming convention** where each script corresponds to a specific infrastructure node:
-
-| Script | Hostname | Purpose | Infrastructure Role |
-|--------|----------|---------|-------------------|
-| **`h1`** | Hypervisor 1 | Proxmox VE cluster setup | Primary virtualization host |
-| **`c1`** | Container 1 | NFS server deployment | Network file storage |
-| **`c2`** | Container 2 | Samba/SMB services | Windows-compatible file sharing |
-| **`c3`** | Container 3 | Proxmox Backup Server | Backup infrastructure |
-| **`t1`** | Test Node 1 | Development environment | Developer workstation setup |
-| **`t2`** | Test Node 2 | Utility operations | Testing and temporary operations |
-
-This design allows for host-specific customization and simplified deployment execution.
 
 ## Prerequisites
 
@@ -166,7 +130,7 @@ For automation and scripting:
 *   **`a_xall`**: Installs NFS server packages, enables the NFS service, and creates NFS management user account
 *   **`b_xall`**: Configures NFS exports by setting up shared folders with specified access permissions
 
-### 3. `src/set/c3` - Proxmox Backup Server Setup  
+### 3. `src/set/c3` - Proxmox Backup Server Setup
 **Purpose**: Installs and configures Proxmox Backup Server
 
 **Available Tasks**:
@@ -178,7 +142,7 @@ For automation and scripting:
 
 **Available Tasks**:
 *   **`a_xall`**: Disables enterprise repository, adds community repository
-*   **`b_xall`**: Installs required system packages including corosync-qdevice for cluster management  
+*   **`b_xall`**: Installs required system packages including corosync-qdevice for cluster management
 *   **`c_xall`**: Sets up /etc/hosts entries for Proxmox nodes (x1, x2) and QDevice
 *   **`d_xall`**: Generates and distributes SSH keys for secure communication between nodes
 *   **`i_xall`**: Creates a RAID 1 Btrfs filesystem across two devices
@@ -205,7 +169,7 @@ For automation and scripting:
 The framework uses a three-tier configuration hierarchy:
 
 1. **Base Configuration**: `cfg/env/site1` (default site)
-2. **Environment Override**: `cfg/env/site1-dev` (when `ENVIRONMENT=dev`)  
+2. **Environment Override**: `cfg/env/site1-dev` (when `ENVIRONMENT=dev`)
 3. **Node Override**: `cfg/env/site1-w2` (when `NODE=w2`)
 
 ### Environment Variables
@@ -234,7 +198,7 @@ Control deployment behavior with these variables:
 # Step 1: Repository and package setup
 ./src/set/h1 -x a_xall
 
-# Step 2: Install cluster packages  
+# Step 2: Install cluster packages
 ./src/set/h1 -x b_xall
 
 # Step 3: Configure networking
@@ -311,27 +275,8 @@ export NODE="h1"
 
 ## Related Documentation
 
-- **Configuration Management**: `doc/man/configuration.md`
-- **Initialization Process**: `doc/man/initiation.md`
-- **Logging System**: `doc/man/logging.md`
-
-## Function Architecture Integration
-
-### Pure Functions vs Management Wrappers
-
-The deployment scripts integrate with a sophisticated function separation pattern implemented in the operations modules:
-
-#### Implementation in Deployment Context
-
-**Deployment Scripts** (`src/set/`) call **DIC Operations** (`src/dic/ops`) which handle dependency injection and call **Pure Functions** (`lib/ops/`) with explicit parameters.
-
-##### Example: PVE Deployment Integration
-```bash
-# In deployment script (src/set/h1)
-source src/dic/ops  # Load DIC operations
-
-# Call DIC operation (handles global variable extraction)
-ops pve vpt -j 100 on  # Enable passthrough for VM 100
-
-# The DIC operations handle dependency injection and call pure functions
-```
+- **[Configuration Management](configuration.md)** - Infrastructure configuration options
+- **[Environment Management](environment.md)** - Multi-environment configuration and switching
+- **[Initialization Process](initiation.md)** - CLI initialization and environment setup
+- **[Logging System](logging.md)** - Logging and diagnostic information
+- **[Deployment Architecture](../arc/deployment.md)** - `.menu` framework design and DIC integration pattern

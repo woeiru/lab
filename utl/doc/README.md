@@ -8,7 +8,7 @@ The documentation system is organized into distinct processing engines:
 
 - `run_all_doc.sh`: The main orchestrator that resolves dependencies, parallelizes generation, and orchestrates the documentation update process.
 - `generators/`: Core static documentation generators.
-  - `func`: Extracts function metadata and builds the master functions list (`doc/man/functions.md`).
+  - `func`: Extracts function metadata and builds the master functions list (`doc/arc/functions.md`).
   - `hub`: Rebuilds the autonomous index in the root `doc/README.md`.
   - `var`: Identifies and documents configuration variable hierarchies in `doc/man/variables.md`.
   - `stats`: Analyzes the codebase to provide system metrics.

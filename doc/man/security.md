@@ -202,5 +202,5 @@ define_containers "111:pbs:192.168.178.111"
 ## Related Documentation
 
 - **[Configuration Management](configuration.md)**
-- **[Deployment](../iac/deployment.md)**
+- **[Deployment Guide](deployment.md)**
 - **[Logging System](logging.md)**

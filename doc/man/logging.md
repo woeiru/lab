@@ -1,54 +1,6 @@
-# Logging System Documentation
+# Logging System — Operational Reference
 
-This document provides a comprehensive analysis of the logging architecture throughout the entire lab project, explaining the relationship between different logging systems and how they work together.
-
-## Overview
-
-The lab system implements a multi-layered logging architecture with three distinct but integrated logging systems:
-
-1. **Enhanced Auxiliary Logging** (`lib/gen/aux`) - PRIMARY system for all `lib/ops` functions and structured logging
-2. **Core Module Logging** (`lib/core/lo1`, `lib/core/err`, `lib/core/tme`) - Legacy system for core infrastructure
-3. **Initialization Logging** (`bin/ini`, `lib/core/ver`) - Bootstrap and verification specific logging
-
-### Logging System Hierarchy
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ Enhanced Auxiliary Logging (lib/gen/aux) - PRIMARY SYSTEM      │
-│ ├─ All lib/ops functions use structured logging                 │
-│ ├─ Supports JSON, CSV, key-value, and human formats            │
-│ └─ Files: aux.log, aux.json, aux.csv                           │
-├─────────────────────────────────────────────────────────────────┤
-│ Component Orchestrator (bin/orc) - Uses lo1 Logging            │
-│ └─ File: lo1.log                                               │
-├─────────────────────────────────────────────────────────────────┤
-│ Core Infrastructure Logging (lib/core/*)                       │
-│ ├─ lo1.log - Advanced hierarchical logging with colors         │
-│ ├─ err.log - Centralized error handling                        │
-│ ├─ tme.log - Timing and performance data                       │
-│ └─ State files in .tmp/ for runtime configuration              │
-├─────────────────────────────────────────────────────────────────┤
-│ Initialization & Bootstrap (bin/ini, lib/core/ver)              │
-│ ├─ ini.log - Startup sequence and module loading               │
-│ ├─ ver.log - System verification and validation                │
-│ └─ init_flow.log - High-precision initialization timing        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Verbosity Control Hierarchy
-
-The system uses hierarchical verbosity controls with a master switch pattern:
-
-- **`MASTER_TERMINAL_VERBOSITY`** (default: "on") - Global terminal output control
-- **Module-specific switches** - Individual controls that require master to be "on":
-  - `INI_LOG_TERMINAL_VERBOSITY` - Initialization messages
-  - `VER_LOG_TERMINAL_VERBOSITY` - Verification messages  
-  - `LO1_LOG_TERMINAL_VERBOSITY` - Advanced logging output
-  - `ERR_TERMINAL_VERBOSITY` - Error messages
-  - `TME_TERMINAL_VERBOSITY` - Timing reports
-- **Enhanced auxiliary controls** - Independent system with own verbosity:
-  - `AUX_DEBUG_ENABLED` - Controls aux debug output
-  - Independent of other verbosity systems but respects `MASTER_TERMINAL_VERBOSITY`
+Reference for all log files, state files, environment variables, and usage patterns for the lab logging system. For the system's architectural design and layer hierarchy, see [Logging Architecture](../arc/logging.md).
 
 ## Log Files Generated
 
@@ -287,3 +239,10 @@ jq . "${LOG_DIR}/aux.json"                         # Structured operational data
 tail -f "${LOG_DIR}/lo1.log"                       # Orchestration and core systems
 tail -f "${LOG_DIR}/err.log"                       # Error analysis
 ```
+
+## Related Documentation
+
+- **[Logging Architecture](../arc/logging.md)** - System hierarchy diagram, layer design, and verbosity control model
+- **[Verbosity Controls](verbosity.md)** - User guide for managing terminal output
+- **[Initialization Guide](initiation.md)** - Environment variables and runtime controls
+- **[Functions Reference](../arc/functions.md)** - `aux_*` and `lo1_*` function inventory

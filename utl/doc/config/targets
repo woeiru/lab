@@ -97,7 +97,7 @@ LOW_PRIORITY=(
 # - Fallback: If not specified, generators use hardcoded defaults
 # - Validation: Generators check if target file exists before writing
 declare -A GENERATOR_OUTPUT_FILES
-GENERATOR_OUTPUT_FILES[func]="doc/man/functions.md"     # Function metadata tables
+GENERATOR_OUTPUT_FILES[func]="doc/arc/functions.md"     # Function metadata tables
 GENERATOR_OUTPUT_FILES[hub]="doc/README.md"             # Documentation index/hub
 # GENERATOR_OUTPUT_FILES[stats]="README.md"               # System metrics (root README)
 GENERATOR_OUTPUT_FILES[var]="doc/man/variables.md"      # Variable usage documentation

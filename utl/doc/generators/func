@@ -4,7 +4,7 @@
 #######################################################################
 # File: func
 # Description: Automatic function metadata table generator that populates 
-#              the function metadata table in doc/man/functions.md using 
+#              the function metadata table in doc/arc/functions.md using 
 #              aux_ffl and ana_laf to extract function information from lib/ directories
 #
 # Usage: ./func
@@ -42,7 +42,7 @@ if [[ -n "${GENERATOR_OUTPUT_FILES[func]:-}" ]]; then
     DOC_FILE="$LAB_DIR/${GENERATOR_OUTPUT_FILES[func]}"
 else
     # Fallback to default
-    DOC_FILE="$LAB_DIR/doc/man/functions.md"
+    DOC_FILE="$LAB_DIR/doc/arc/functions.md"
 fi
 
 # Function to count functions from a library directory

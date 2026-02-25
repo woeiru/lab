@@ -264,6 +264,7 @@ export ENVIRONMENT="prod" && ./val/run_all_tests.sh
 
 ## Related Documentation
 
-- **[Deployment](deployment.md)** - Deployment automation patterns
-- **[Configuration Management](../man/configuration.md)** - Detailed configuration options
-- **[Security Management](../man/security.md)** - Environment security practices
+- **[Deployment Guide](deployment.md)** - Deployment automation patterns
+- **[Configuration Management](configuration.md)** - Detailed configuration options
+- **[Security Management](security.md)** - Environment security practices
+- **[IaC Architecture Overview](../arc/iac-overview.md)** - Module inventory and layer relationships

@@ -258,36 +258,9 @@ generate_secure_password 20
 2. Add `source lib/gen/sec` for security features
 3. Replace password variables with secure generation
 
-## Function Architecture Patterns
+## Related Documentation
 
-### Pure Function Design in Library Modules
-
-The infrastructure utilities follow a pure function design pattern where library functions in `lib/ops/` and `lib/gen/` directories accept explicit parameters rather than accessing global variables directly.
-
-#### Benefits
-- **Enhanced Testability**: Functions can be tested in isolation with known inputs
-- **Explicit Dependencies**: All required data is passed as parameters, making dependencies clear
-- **Reduced Coupling**: Functions don't depend on specific global variable configurations
-
-#### Implementation Example
-```bash
-# Pure function (lib/ops/pve) - parameterized approach
-pve_vpt() {
-    local vm_id="$1"
-    local action="$2"  
-    local pci0_id="$3"
-    local pci1_id="$4"
-    local core_count_on="$5"
-    local core_count_off="$6"
-    local usb_devices_str="$7"
-    local pve_conf_path="$8"
-    
-    # Logic uses only explicit parameters
-    if [[ "$action" == "on" ]]; then
-        # Enable passthrough with provided parameters
-    fi
-}
-
-# DIC operations (src/dic/ops) - handles dependency injection
-# Usage: ops pve vpt -j
-```
+- **[Security Management](security.md)** - Security practices and credential management
+- **[Deployment Guide](deployment.md)** - Deployment script usage
+- **[Logging System](logging.md)** - Logging and diagnostic information
+- **[Infrastructure Design](../arc/infrastructure.md)** - Pure function architecture and DIC design principles

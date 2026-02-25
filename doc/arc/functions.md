@@ -364,6 +364,9 @@ handle_error "component" "message" "ERROR"
 
 ## Related Documentation
 
-- **[Logging System](logging.md)** - Debug and logging frameworks
-- **[Verbosity Controls](verbosity.md)** - Output control mechanisms
-- **[Variables Reference](variables.md)** - Environment variable usage patterns
+- **[Logging Architecture](logging.md)** - Logging system hierarchy and design
+- **[Infrastructure Design](infrastructure.md)** - Pure function and DIC design principles
+- **[Deployment Architecture](deployment.md)** - Deployment layer design
+- **[Logging System](../man/logging.md)** - Log files, state files, and usage patterns
+- **[Verbosity Controls](../man/verbosity.md)** - Output control mechanisms
+- **[Variables Reference](../man/variables.md)** - Environment variable usage patterns
