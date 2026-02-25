@@ -49,7 +49,28 @@ Expected to include models like:
 
 - `google/antigravity-gemini-3-flash`
 - `google/antigravity-gemini-3-pro`
+- `google/antigravity-claude-sonnet-4-6`
 - `google/antigravity-claude-opus-4-6-thinking`
+
+### If Sonnet is Missing but Opus Appears
+
+Cause: `opencode.json` has Opus model definitions but is missing the Sonnet entry under `provider.google.models`.
+
+Fix by adding this block under `provider.google.models` in `~/.config/opencode/opencode.json`:
+
+```json
+"antigravity-claude-sonnet-4-6": {
+  "name": "Claude Sonnet 4.6 (Antigravity)",
+  "limit": { "context": 200000, "output": 64000 },
+  "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] }
+}
+```
+
+Then verify with:
+
+```bash
+opencode models google
+```
 
 ## 3) Final Required Step (Interactive OAuth)
 
