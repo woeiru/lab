@@ -150,9 +150,9 @@ def fmt_date(s):
 # Column widths (visible characters)
 W = {
     "sfx":  3,
-    "proj": 18,
-    "dir":  20,
-    "title":38,
+    "proj": 12,
+    "dir":  14,
+    "title":58,
     "date": 16,
     "model":22,
     "in":    7,
