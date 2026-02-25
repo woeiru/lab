@@ -16,13 +16,13 @@ This index provides a comprehensive overview of all documentation in the system:
 ### Operational Documentation (`doc/man/`)
 **Purpose**: How to use, configure, and operate the Lab Environment Management System. Audience: system administrators, operators, CLI users.
 
-- **[Infrastructure Configuration Guide](man/configuration.md)** - IP allocation, naming conventions, container definitions, storage layout, and security configuration.
-- **[CLI Initialization and Configuration Guide](man/initiation.md)** - `bin/ini` initialization process, environment variables, runtime controls, verbosity settings, and core module interaction.
-- **[System Verbosity Controls — User Guide](man/verbosity.md)** - Managing system verbosity and terminal output controls, including the TME timing module.
-- **[Logging System — Operational Reference](man/logging.md)** - Log file locations, state files, environment variables, and log analysis workflows.
-- **[Security Management Guide](man/security.md)** - Security practices, credential management, SSH key management, and compliance checklists.
-- **[Environment Management Guide](man/environment.md)** - Multi-environment deployments, configuration hierarchies, switching, and validation.
-- **[Deployment Guide](man/deployment.md)** - How to use `src/set/` deployment scripts: usage patterns, available scripts, and workflow examples.
+- **[01 - Introduction and Core Concepts](man/01-introduction.md)** - Architecture philosophy, major components, and execution layer overview.
+- **[02 - Installation and Initialization](man/02-installation.md)** - Requirements, cloning, system initialization, and environment activation.
+- **[03 - Environment and Configuration](man/03-configuration.md)** - The configuration hierarchy, active context, hostname-specific variables, and declarative arrays.
+- **[04 - CLI Usage and the DIC](man/04-cli-usage.md)** - Direct Bash function execution vs the DIC CLI, DIC execution modes, and parameter injection.
+- **[05 - Deployments and Runbooks](man/05-deployments.md)** - Structure of section-based set scripts, interactive mode, and headless execution.
+- **[06 - Writing Modules](man/06-writing-modules.md)** - Module conventions, naming, parameters, validation, self-documenting comments, and tests.
+- **[07 - Security and Logging](man/07-security-and-logging.md)** - Handling secrets safely, guarding destructive operations, and the multi-tiered logging architecture.
 
 ### Architectural Documentation (`doc/arc/`)
 **Purpose**: How the system is designed, module structure, system context, and dependency flows. Audience: developers, architects.
