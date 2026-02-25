@@ -10,7 +10,7 @@ The documentation system is organized into distinct processing engines:
 - `generators/`: Core static documentation generators.
   - `func`: Extracts function metadata and builds the master functions list (`doc/arc/functions.md`).
   - `hub`: Rebuilds the autonomous index in the root `doc/README.md`.
-  - `var`: Identifies and documents configuration variable hierarchies in `doc/man/variables.md`.
+  - `var`: Identifies and documents configuration variable hierarchies in `doc/arc/variables.md`.
   - `stats`: Analyzes the codebase to provide system metrics.
 - `intelligence/`: Deep analysis modules for codebase metrics.
   - `perf`: Extracts performance characteristics.

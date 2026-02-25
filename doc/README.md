@@ -21,7 +21,6 @@ This index provides a comprehensive overview of all documentation in the system:
 - **[System Verbosity Controls — User Guide](man/verbosity.md)** - Managing system verbosity and terminal output controls, including the TME timing module.
 - **[Logging System — Operational Reference](man/logging.md)** - Log file locations, state files, environment variables, and log analysis workflows.
 - **[Security Management Guide](man/security.md)** - Security practices, credential management, SSH key management, and compliance checklists.
-- **[Variable Usage Documentation](man/variables.md)** - Environment variables and their usage patterns across the system.
 - **[Environment Management Guide](man/environment.md)** - Multi-environment deployments, configuration hierarchies, switching, and validation.
 - **[Deployment Guide](man/deployment.md)** - How to use `src/set/` deployment scripts: usage patterns, available scripts, and workflow examples.
 
@@ -29,6 +28,7 @@ This index provides a comprehensive overview of all documentation in the system:
 **Purpose**: How the system is designed, module structure, system context, and dependency flows. Audience: developers, architects.
 
 - **[Pure Functions Reference](arc/functions.md)** - Library structure overview, module inventory, and auto-generated function metadata table for all `lib/` modules.
+- **[Variable Usage Reference](arc/variables.md)** - Environment variables and their usage patterns across the system.
 - **[Logging Architecture](arc/logging.md)** - Multi-layer logging system hierarchy, verbosity control model, and design decisions.
 - **[Infrastructure Design](arc/infrastructure.md)** - Pure function design principles, DIC separation pattern, and library module responsibilities.
 - **[Deployment Architecture](arc/deployment.md)** - `src/set/.menu` framework design, hostname-based script convention, and DIC/pure-function integration.
@@ -58,7 +58,7 @@ Planning documents organised by lifecycle state.
 - **[`utl/doc/generators/hub`](../utl/doc/generators/hub)** - Updates this documentation index automatically using `ana_lad`
 - **[`lib/gen/aux` (ana_lad)](../lib/gen/aux)** - Documentation listing and analysis function
 - **[`utl/doc/generators/func`](../utl/doc/generators/func)** - Function metadata table generator (writes to `doc/arc/functions.md`)
-- **[`utl/doc/generators/var`](../utl/doc/generators/var)** - Variable usage documentation generator (writes to `doc/man/variables.md`)
+- **[`utl/doc/generators/var`](../utl/doc/generators/var)** - Variable usage documentation generator (writes to `doc/arc/variables.md`)
 - **[`utl/doc/generators/stats`](../utl/doc/generators/stats)** - Generate real-time codebase statistics
 
 ```bash
