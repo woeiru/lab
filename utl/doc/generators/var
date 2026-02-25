@@ -4,11 +4,11 @@
 #######################################################################
 # File: var
 # Description: Automatic variable usage documentation generator that populates 
-#              the variable usage table in doc/dev/variables.md using 
+#              the variable usage table in doc/man/variables.md using 
 #              aux_ffl and ana_acu to extract variable information from cfg/env, lib/ops, and src/set directories
 #
 # Usage: ./var
-#   (default)   Updates the variable usage table in doc/dev/variables.md
+#   (default)   Updates the variable usage table in doc/man/variables.md
 #######################################################################
 
 set -e
@@ -41,7 +41,7 @@ if [[ -n "${GENERATOR_OUTPUT_FILES[var]:-}" ]]; then
     DOC_FILE="$LAB_DIR/${GENERATOR_OUTPUT_FILES[var]}"
 else
     # Fallback to default
-    DOC_FILE="$LAB_DIR/doc/dev/variables.md"
+    DOC_FILE="$LAB_DIR/doc/man/variables.md"
 fi
 
 # Main function
