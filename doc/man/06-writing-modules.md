@@ -4,7 +4,7 @@ The framework is highly extensible. All operational logic resides in pure, state
 
 ## Module Conventions
 
-To ensure consistency and compatibility with the Dependency Injection Container (DIC), all modules must adhere to strict guidelines defined in `lib/.spec` and `lib/ops/.spec`.
+To ensure consistency and compatibility with the Dependency Injection Container (DIC), all modules must adhere to strict guidelines defined in `lib/.spec`, `lib/.standards`, and `lib/ops/.spec`.
 
 ### 1. Naming
 

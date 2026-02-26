@@ -377,12 +377,11 @@ source_lib_ops() {
     fi
 
     # Get sorted list of files, excluding documentation files
-    # Exclude files with extensions: .md, .txt, .guide, .spec, .readme, .doc
+    # Exclude files with extensions: .md, .txt, .spec, .readme, .doc
     # Also exclude files starting with . (hidden files) and README* files
     if ! find "$dir" -maxdepth 1 -type f \
         ! -name "*.md" \
         ! -name "*.txt" \
-        ! -name "*.guide" \
         ! -name "*.spec" \
         ! -name "*.readme" \
         ! -name "*.doc" \

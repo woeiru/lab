@@ -4,6 +4,7 @@
 #
 # This document merges strict technical specifications (MUST) with best 
 # practices (SHOULD) for writing robust Bash functions in this repository.
+# Companion: `lib/.standards` (extended implementation patterns and examples)
 
 ## 1. Function Naming Convention
 To ensure clarity and prevent naming collisions:
