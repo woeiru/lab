@@ -1,5 +1,5 @@
 # Dynamically generated aliases by cfg-ali-new
-# Generated on: $(date)
+# Generated on: Thu Feb 26 10:50:15 CET 2026
 # Version: 3.0.0 (Rewritten)
 
 # --- README File Aliases ---
@@ -19,14 +19,18 @@ alias c.doc.md='cat "$LAB_DIR/doc/README.md"'
 alias v.doc.md='vim "$LAB_DIR/doc/README.md"'
 alias c.doc.fix.acpi_reset.md='cat "$LAB_DIR/doc/fix/acpi_reset/readme.md"'
 alias v.doc.fix.acpi_reset.md='vim "$LAB_DIR/doc/fix/acpi_reset/readme.md"'
-alias c.doc.iac.md='cat "$LAB_DIR/doc/iac/README.md"'
-alias v.doc.iac.md='vim "$LAB_DIR/doc/iac/README.md"'
+alias c.doc.pro.experiments.md='cat "$LAB_DIR/doc/pro/experiments/README.md"'
+alias v.doc.pro.experiments.md='vim "$LAB_DIR/doc/pro/experiments/README.md"'
+alias c.lib.md='cat "$LAB_DIR/lib/README.md"'
+alias v.lib.md='vim "$LAB_DIR/lib/README.md"'
 alias c.lib.ops.md='cat "$LAB_DIR/lib/ops/README.md"'
 alias v.lib.ops.md='vim "$LAB_DIR/lib/ops/README.md"'
 alias c.src.md='cat "$LAB_DIR/src/README.md"'
 alias v.src.md='vim "$LAB_DIR/src/README.md"'
 alias c.src.dic.md='cat "$LAB_DIR/src/dic/README.md"'
 alias v.src.dic.md='vim "$LAB_DIR/src/dic/README.md"'
+alias c.utl.md='cat "$LAB_DIR/utl/README.md"'
+alias v.utl.md='vim "$LAB_DIR/utl/README.md"'
 alias c.utl.doc.md='cat "$LAB_DIR/utl/doc/README.md"'
 alias v.utl.doc.md='vim "$LAB_DIR/utl/doc/README.md"'
 alias c.val.md='cat "$LAB_DIR/val/README.md"'

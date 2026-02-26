@@ -101,7 +101,7 @@ fi
 OUTPUT_FILE="$CFG_ALI_DIR/dyn"
 mkdir -p "$CFG_ALI_DIR"
 
-cat > "$OUTPUT_FILE" << 'EOF'
+cat > "$OUTPUT_FILE" << EOF
 # Dynamically generated aliases by cfg-ali-new
 # Generated on: $(date)
 # Version: 3.0.0 (Rewritten)
