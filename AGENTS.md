@@ -126,9 +126,8 @@ After any code change, follow this sequence (stop at the appropriate level):
 ## 3) Code Style and Implementation Guidelines
 
 These rules come from repository docs and actual code patterns, especially:
-- `lib/.spec` -- core specification baseline across `lib/`
-- `lib/.standards` -- extended implementation standards and quality patterns
-- `lib/ops/.spec` -- mandatory technical standards
+- `lib/.spec` -- canonical merged baseline + quality standards across `lib/`
+- `lib/ops/.spec` -- mandatory ops and DIC-specific technical standards
 - `lib/ops/README.md`
 - `val/helpers/test_framework.sh`
 - `go`, `bin/orc`, and existing module files
@@ -279,8 +278,8 @@ These rules come from repository docs and actual code patterns, especially:
 
 ### Understand before modifying
 
-1. **Before editing any `lib/ops/` module**: read `lib/.spec` (core baseline),
-   `lib/.standards` (extended standards), and `lib/ops/.spec` (ops/DIC-specific
+1. **Before editing any `lib/ops/` module**: read `lib/.spec` (canonical global
+   baseline + quality standards) and `lib/ops/.spec` (ops/DIC-specific
    standards). These define how every function must be structured.
 2. **Before cross-module changes**: read `doc/arc/00-architecture-overview.md`
    for the system paradigm and execution flow.
@@ -294,9 +293,8 @@ These rules come from repository docs and actual code patterns, especially:
 
 | Document                           | When to consult                           |
 |------------------------------------|-------------------------------------------|
-| `lib/.spec`                        | Core `lib/` specification baseline         |
-| `lib/.standards`                   | Extended standards and quality patterns    |
-| `lib/ops/.spec`                    | Any `lib/ops/` function work              |
+| `lib/.spec`                        | Canonical merged standards for all `lib/` |
+| `lib/ops/.spec`                    | Ops and DIC-specific contracts             |
 | `doc/arc/00-architecture-overview.md` | System-wide understanding              |
 | `doc/arc/04-dependency-injection.md`  | DIC / config resolution work           |
 | `doc/arc/07-logging-and-error-handling.md` | Logging or error handling changes |

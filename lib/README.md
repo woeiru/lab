@@ -27,7 +27,9 @@ Stateless, atomic pure functions that execute real infrastructure changes (e.g.,
 
 ## Architectural Rules
 
-Modules in this directory must adhere to strict guidelines outlined in `lib/.spec`, `lib/.standards`, and `lib/ops/.spec`:
+Modules in this directory must adhere to strict guidelines outlined in `lib/.spec` and `lib/ops/.spec`:
+`lib/.spec` is the canonical merged baseline/quality standard for all `lib/` modules, while `lib/ops/.spec` defines additional ops and DIC-specific contracts.
+`lib/.standards` is retired and fully merged into `lib/.spec`.
 1. **Strict Naming Conventions**: Public functions must be prefixed with their module's three-letter abbreviation (e.g., `pve_cdo`, `gpu_ptd`).
 2. **Explicit Parameters**: Operations must execute purely based on explicit arguments to ensure DIC (Dependency Injection Container) compatibility.
 3. **Structured Logging**: Raw `echo` or `printf` commands are forbidden for operational messages. Functions must utilize the `aux_*` structured logging tools.

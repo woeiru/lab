@@ -2,7 +2,7 @@
 # Type: Infrastructure Specification & Guidelines
 # Scope: All operational functions in `lib/ops/`
 #
-# This specification EXTENDS `lib/.spec` and aligns with `lib/.standards`.
+# This specification EXTENDS `lib/.spec`.
 # It defines the strict contracts required by the Dependency Injection
 # Container (DIC) and best practices for managing real infrastructure state.
 
