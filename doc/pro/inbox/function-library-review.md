@@ -215,7 +215,7 @@ test_xyz_behavior() {
 
 ## Improvement Guidelines
 
-Once tests are in place for a module, improvements follow `lib/.spec` and `lib/ops/.spec`:
+Once tests are in place for a module, improvements follow `lib/.spec`, `lib/.standards`, and `lib/ops/.spec`:
 
 ### .spec compliance (mandatory, do first)
 

@@ -126,7 +126,8 @@ After any code change, follow this sequence (stop at the appropriate level):
 ## 3) Code Style and Implementation Guidelines
 
 These rules come from repository docs and actual code patterns, especially:
-- `lib/.spec` -- global standards and best practices across `lib/`
+- `lib/.spec` -- core specification baseline across `lib/`
+- `lib/.standards` -- extended implementation standards and quality patterns
 - `lib/ops/.spec` -- mandatory technical standards
 - `lib/ops/README.md`
 - `val/helpers/test_framework.sh`
@@ -278,9 +279,9 @@ These rules come from repository docs and actual code patterns, especially:
 
 ### Understand before modifying
 
-1. **Before editing any `lib/ops/` module**: read `lib/.spec` (global
-   standards) and `lib/ops/.spec` (ops/DIC-specific standards). These define how
-   every function must be structured.
+1. **Before editing any `lib/ops/` module**: read `lib/.spec` (core baseline),
+   `lib/.standards` (extended standards), and `lib/ops/.spec` (ops/DIC-specific
+   standards). These define how every function must be structured.
 2. **Before cross-module changes**: read `doc/arc/00-architecture-overview.md`
    for the system paradigm and execution flow.
 3. **Before writing a new module**: read `doc/man/06-writing-modules.md`.
@@ -293,7 +294,8 @@ These rules come from repository docs and actual code patterns, especially:
 
 | Document                           | When to consult                           |
 |------------------------------------|-------------------------------------------|
-| `lib/.spec`                        | Global `lib/` quality and style baseline  |
+| `lib/.spec`                        | Core `lib/` specification baseline         |
+| `lib/.standards`                   | Extended standards and quality patterns    |
 | `lib/ops/.spec`                    | Any `lib/ops/` function work              |
 | `doc/arc/00-architecture-overview.md` | System-wide understanding              |
 | `doc/arc/04-dependency-injection.md`  | DIC / config resolution work           |

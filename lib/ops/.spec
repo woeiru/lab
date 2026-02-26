@@ -2,9 +2,9 @@
 # Type: Infrastructure Specification & Guidelines
 # Scope: All operational functions in `lib/ops/`
 #
-# This specification EXTENDS `lib/.spec`. It defines the strict contracts 
-# required by the Dependency Injection Container (DIC) and best practices 
-# for managing real infrastructure state.
+# This specification EXTENDS `lib/.spec` and aligns with `lib/.standards`.
+# It defines the strict contracts required by the Dependency Injection
+# Container (DIC) and best practices for managing real infrastructure state.
 
 ## 1. The DIC Contract (Stateless & Pure)
 The Dependency Injection Container (`src/dic/`) dynamically parses `lib/ops/` functions to map and inject environment variables to arguments.
