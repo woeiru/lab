@@ -79,7 +79,9 @@ export LOG_FILE
 export TME_STATE_FILE TME_LEVELS_FILE TME_LOG_FILE
 
 # Environment configuration path
-declare -g CFG_ENV_DIR
+declare -g CFG_CORE_DIR CFG_ENV_DIR
+CFG_CORE_DIR="${LAB_DIR}/cfg/core"
+export CFG_CORE_DIR
 CFG_ENV_DIR="${LAB_DIR}/cfg/env"
 export CFG_ENV_DIR
 
