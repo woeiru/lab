@@ -46,16 +46,14 @@ fi
 # Available generators
 GENERATORS=(
     "functions:func:Function metadata table generator"
-    "variables:var:Variable usage documentation generator" 
+    "variables:var:Variable usage documentation generator"
     "stats:stats:System metrics generator"
-    "hub:hub:Documentation index generator"
     "ai_docs:ai_doc_generator:AI-powered README generation with 13-phase intelligence"
 )
 
-# Dependencies (hub depends on functions and variables)
+# Dependencies
 declare -A DEPENDENCIES
-DEPENDENCIES[hub]="functions variables"
-DEPENDENCIES[ai_docs]="functions variables hub stats"
+DEPENDENCIES[ai_docs]="functions variables stats"
 
 # Logging
 log_info() {
@@ -87,8 +85,7 @@ OPTIONS:
 TARGETS:
     functions       Generate function metadata table (func)
     variables       Generate variable usage documentation (var)
-    stats           Generate system metrics (stats) 
-    hub             Generate documentation index (hub)
+    stats           Generate system metrics (stats)
     ai_docs         Generate AI-powered README with comprehensive intelligence analysis
 
 CONFIGURATION:

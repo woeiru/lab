@@ -9,7 +9,7 @@
 #######################################################################
 
 # TARGET_DIRECTORIES: Main list of directories for documentation processing
-# - Used by: func, hub, var, stats generators
+# - Used by: func, var, stats generators
 # - Purpose: Defines which directories contain code/content to document
 # - Format: Relative paths from LAB_ROOT (e.g., "lib/core" = /home/es/lab/lib/core)
 TARGET_DIRECTORIES=(
@@ -98,10 +98,8 @@ LOW_PRIORITY=(
 # - Validation: Generators check if target file exists before writing
 declare -A GENERATOR_OUTPUT_FILES
 GENERATOR_OUTPUT_FILES[func]="doc/ref/functions.md"     # Function metadata tables
-GENERATOR_OUTPUT_FILES[hub]="doc/README.md"             # Documentation index/hub
 # GENERATOR_OUTPUT_FILES[stats]="README.md"               # System metrics (root README)
 GENERATOR_OUTPUT_FILES[var]="doc/ref/variables.md"      # Variable usage documentation
-GENERATOR_OUTPUT_FILES[ai_docs]=""                      # AI generator creates files in target directories
 
 # GENERATOR_SECTIONS: Section names for generators that update specific parts of files
 # - Purpose: Enables generators to update only their designated sections
@@ -110,7 +108,6 @@ GENERATOR_OUTPUT_FILES[ai_docs]=""                      # AI generator creates f
 # - Implementation: Generators look for <!-- AUTO-GENERATED SECTION: [name] -->
 declare -A GENERATOR_SECTIONS
 GENERATOR_SECTIONS[func]="Function Metadata Table"      # Updates function tables in doc/man/functions.md
-GENERATOR_SECTIONS[hub]="Documentation Structure"       # Updates doc index in doc/README.md
 # GENERATOR_SECTIONS[stats]="System Metrics"              # Updates metrics table in README.md
 GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable tables in doc/ref/variables.md
 

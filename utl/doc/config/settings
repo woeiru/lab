@@ -16,7 +16,7 @@ CUSTOM_TIMING_ESTIMATES=(
 # Custom generator dependencies - define dependencies for custom generators
 # Format: GENERATOR_NAME="dependency1 dependency2"
 CUSTOM_DEPENDENCIES=(
-    # "hub:functions variables"  # Example: hub depends on functions and variables
+    # "generator:dependency1 dependency2"  # Example: generator depends on other generators
 )
 
 # Logging preferences
@@ -35,7 +35,6 @@ NOTIFY_ON_ERROR=false       # Send notification on generator failures
 # Custom script discovery
 CUSTOM_SCRIPT_PATTERNS=(
     "func"            # Function metadata generator
-    "hub"             # Documentation index generator  
     "stats"           # System metrics generator
     "var"             # Variable documentation generator
     "generate-*"      # Alternative pattern for custom generators
