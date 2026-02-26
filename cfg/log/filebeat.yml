@@ -3,17 +3,16 @@
 
 filebeat.inputs:
 
-# Operational logs in JSON format
+# Consolidated structured events (operational + debug)
 - type: log
-  id: aux-operational-json
+  id: aux-json
   enabled: true
   paths:
-    - /home/es/lab/.log/aux_operational.jsonl
+    - /home/es/lab/.log/aux.json
   json.keys_under_root: true
   json.add_error_key: true
   json.message_key: message
   fields:
-    log_type: operational
     component: aux_enhanced_logging
     environment: ${ENVIRONMENT:production}
     cluster: ${CLUSTER_NAME:lab-cluster}
@@ -24,34 +23,14 @@ filebeat.inputs:
     - add_docker_metadata: ~
     - add_kubernetes_metadata: ~
 
-# Debug logs in JSON format  
+# Consolidated text fallback stream (human/kv)
 - type: log
-  id: aux-debug-json
+  id: aux-text
   enabled: true
   paths:
-    - /home/es/lab/.log/aux_debug.jsonl
-  json.keys_under_root: true
-  json.add_error_key: true
-  json.message_key: message
+    - /home/es/lab/.log/aux.log
   fields:
-    log_type: debug
-    component: aux_enhanced_logging
-    environment: ${ENVIRONMENT:production}
-    cluster: ${CLUSTER_NAME:lab-cluster}
-  fields_under_root: true
-
-# Operational logs in human-readable format (fallback)
-- type: log
-  id: aux-operational-human
-  enabled: true
-  paths:
-    - /home/es/lab/.log/aux_operational.log
-  exclude_lines: ['^\s*$', '^timestamp=.*']  # Skip empty lines and KV format
-  multiline.pattern: '^\['
-  multiline.negate: true
-  multiline.match: after
-  fields:
-    log_type: operational_human
+    log_type: text
     component: aux_enhanced_logging
     environment: ${ENVIRONMENT:production}
     cluster: ${CLUSTER_NAME:lab-cluster}
@@ -86,13 +65,13 @@ output.elasticsearch:
   indices:
     - index: "lab-operational-%{+yyyy.MM.dd}"
       when.equals:
-        log_type: "operational"
-    - index: "lab-debug-%{+yyyy.MM.dd}"
+        type: "operational"
+    - index: "lab-operational-%{+yyyy.MM.dd}"
       when.equals:
-        log_type: "debug"
-    - index: "lab-human-%{+yyyy.MM.dd}"
+        type: "debug"
+    - index: "lab-text-%{+yyyy.MM.dd}"
       when.equals:
-        log_type: "operational_human"
+        log_type: "text"
 
   # Index lifecycle policies
   ilm.enabled: true

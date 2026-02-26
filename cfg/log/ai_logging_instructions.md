@@ -142,7 +142,7 @@ Before implementing logging enhancements, set up the logging environment:
    export SERVICE_NAME="application-service"
    ```
 
-Log files will be automatically created in `${LOG_DIR}/.log/` directory with appropriate formats for centralized collection.
+Log files will be automatically created in `${LOG_DIR}` with consolidated outputs such as `aux.json`, `aux.csv`, and `aux.log` for centralized collection.
 ```
 
 ### Deployment Context Prompt
@@ -189,7 +189,7 @@ Focus on adding value through logging without disrupting existing behavior.
 ## Usage Notes
 
 - These instructions assume the enhanced auxiliary logging system is available at `lib/gen/aux`
-- Log files are automatically created in `${LOG_DIR}/.log/` directory
+- Log files are automatically created in `${LOG_DIR}`
 - Structured formats (JSON, CSV) are available for centralized log aggregation
 - The system includes cluster metadata and distributed tracing capabilities
 - Configuration examples are available in `cfg/log/` directory

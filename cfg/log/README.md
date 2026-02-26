@@ -12,15 +12,9 @@ Multiple output formats are supported:
 
 ## Log Files Generated
 
-### Operational Logs
-- `${LOG_DIR}/aux_operational.log` - Human-readable operational events
-- `${LOG_DIR}/aux_operational.jsonl` - JSON Lines format for structured ingestion
-- `${LOG_DIR}/aux_operational.csv` - CSV format with headers
-
-### Debug Logs  
-- `${LOG_DIR}/aux_debug.log` - Human-readable debug information
-- `${LOG_DIR}/aux_debug.jsonl` - JSON Lines format for debug data
-- `${LOG_DIR}/aux_debug.csv` - CSV format debug logs
+- `${LOG_DIR}/aux.json` - Structured JSON events (operational and debug)
+- `${LOG_DIR}/aux.csv` - CSV events with headers (operational and debug)
+- `${LOG_DIR}/aux.log` - Human-readable or key-value events (consolidated stream)
 
 ## Configuration Files
 
@@ -63,4 +57,4 @@ The auxiliary logging system is located in `lib/gen/aux` and provides:
 4. **Deploy log shipping:**
    - Copy `fluentd.conf` or `filebeat.yml` to your log shipper
    - Configure endpoints and credentials
-   - Monitor `${LOG_DIR}/aux_operational.jsonl` for structured logs
+   - Monitor `${LOG_DIR}/aux.json` for structured logs

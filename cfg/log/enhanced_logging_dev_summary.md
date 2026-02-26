@@ -69,10 +69,9 @@ Successfully transformed the auxiliary logging system from basic console output 
 │   ├── enhanced_logging_dev_summary.md   # Development summary
 │   └── enhanced_logging_next_steps.md    # Enhancement roadmap
 └── .log/
-    ├── aux_operational.log               # Human-readable ops logs
-    ├── aux_operational.jsonl             # JSON structured ops logs
-    ├── aux_operational.csv               # CSV structured ops logs
-    └── aux_debug.log                     # Debug output logs
+    ├── aux.log                           # Consolidated human/kv logs
+    ├── aux.json                          # Consolidated structured logs
+    └── aux.csv                           # Consolidated CSV logs
 ```
 
 ### Technical Architecture
@@ -80,7 +79,7 @@ Successfully transformed the auxiliary logging system from basic console output 
 #### **Multi-Format Output Engine**
 - Format selection via `AUX_LOG_FORMAT` environment variable
 - Automatic format routing to appropriate log files
-- JSON Lines (.jsonl) format for log ingestion pipelines
+- JSON format for structured ingestion pipelines
 - CSV with proper escaping for data analysis tools
 
 #### **Cluster-Aware Metadata**
