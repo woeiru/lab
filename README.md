@@ -204,7 +204,7 @@ The `doc/` directory contains the full documentation set, organized by audience:
 | [`doc/arc/`](doc/arc/) | Developers, architects | 8-part architecture reference: bootstrap through error handling |
 | [`doc/ref/`](doc/ref/) | Module authors | Auto-generated function and variable reference tables |
 | [`doc/fix/`](doc/fix/) | Hardware ops | Incident runbooks: GPU passthrough, ACPI reset, driver fixes |
-| [`doc/pro/`](doc/pro/) | Contributors | Project planning documents (active, completed, dismissed) |
+| [`doc/pro/`](doc/pro/) | Contributors | Project planning documents (inbox, active, completed, dismissed, experiments) |
 
 Start with [doc/man/01-introduction.md](doc/man/01-introduction.md) for an operational walkthrough, or [doc/arc/00-architecture-overview.md](doc/arc/00-architecture-overview.md) for the system design.
 

@@ -47,9 +47,11 @@ Hardware-specific incident resolutions and workarounds. Not audience-classified 
 ### Project Planning (`doc/pro/`)
 Planning documents organised by lifecycle state.
 
+- `pro/inbox/` — New ideas and proposals awaiting triage
 - `pro/active/` — Work in progress
 - `pro/completed/` — Completed plans
 - `pro/dismissed/` — Dismissed proposals
+- `pro/experiments/` — Exploratory work and validation notes
 
 ## Reference Documentation Tools
 
