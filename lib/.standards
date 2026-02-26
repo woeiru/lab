@@ -26,11 +26,11 @@ This guide establishes comprehensive quality standards for implementing high-qua
 - Use `aux_val` for all input validation
 - Implement help flag handling (`--help`/`-h`) 
 - Provide meaningful usage information via `aux_use`
-- Follow execution flag pattern (`-x`) for functions executed without parameters
+- For DIC-critical explicit execution behavior, follow `lib/ops/.spec`
 
 **Stateless Design**: Functions should be environment-independent
 - No hardcoded paths or values
-- All configuration via parameters or environment variables
+- All configuration via parameters or environment variables (DIC mapping rules are canonical in `lib/ops/.spec`)
 - Predictable behavior regardless of execution context
 
 ### 2. Error Handling and Resilience
@@ -333,7 +333,7 @@ This document defines the mandatory parameter validation standard for all functi
 
 **No function can run without proper parameter validation.** Every function must validate its parameters and provide clear usage information when called incorrectly.
 
-**Functions without parameters do not exist.** All functions must require at least one parameter. For functions that traditionally would take no parameters, use the `-x` (execute) flag pattern to ensure explicit intent and maintain consistency across the library.
+**DIC-critical execution contract:** The canonical rule for parameterless action functions and `-x` explicit execution lives in `lib/ops/.spec`.
 
 ### Return Code Standards
 
@@ -426,41 +426,7 @@ The technical details block must follow this structured format:
   - Variable parameter functions with explanation
   - For execution-only functions, document the `-x` flag requirement
 
-#### 4. Execution Flag Pattern for Action Functions
-
-Functions that perform actions and traditionally would take no parameters must use the `-x` (execute) flag pattern:
-
-```bash
-# Function description
-# shortname or mnemonic  
-# -x (execute)
-function_name() {
-    # Technical Description: [detailed explanation]
-    # Dependencies: [requirements list]
-    # Arguments:
-    #   $1: -x - explicit execution flag required for safety and consistency
-    
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
-    fi
-    
-    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
-        aux_use
-        return 1
-    fi
-    
-    # Function implementation...
-}
-```
-
-This pattern:
-- Forces explicit intent for all function executions
-- Maintains the "no function without parameters" principle
-- Provides safety for potentially destructive actions
-- Ensures consistency across all library functions
-
-#### 5. Special Cases
+#### 4. Special Cases
 
 - **Functions with optional parameters**: Document optional parameters as `[optional_param]`
 - **Functions with variable parameters**: Implement smart validation counting required vs optional arguments
@@ -514,39 +480,6 @@ usr_copy() {
 }
 ```
 
-#### Function with Execution Flag
-```bash
-# Lists all available functions
-# list functions
-# -x (execute)
-usr_list() {
-    # Technical Description:
-    #   Scans function files and extracts function names using pattern matching
-    #   Filters functions by prefix pattern to exclude internal helpers
-    #   Sorts results alphabetically for consistent output
-    #   Provides clean, formatted output suitable for user interaction
-    # Dependencies:
-    #   - 'grep' for pattern matching in source files
-    #   - 'sort' for alphabetical ordering
-    #   - Read access to function definition files
-    #   - Standard POSIX shell utilities
-    # Arguments:
-    #   $1: -x - explicit execution flag required for consistency
-    
-    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-        aux_tec
-        return 0
-    fi
-    
-    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
-        aux_use
-        return 1
-    fi
-    
-    # Implementation...
-}
-```
-
 #### Function with Optional Parameters
 ```bash
 # Shows function overview with optional filtering
@@ -593,14 +526,12 @@ To apply this standard to other libraries:
 1. Audit all functions for parameter validation
 2. Add `aux_use` calls for validation failures
 3. Update comment blocks for proper `aux_use` display
-4. **Convert functions without parameters to use `-x` flag pattern**
-5. **Restructure technical details with proper sections**:
+4. **Restructure technical details with proper sections**:
    - Technical Description (comprehensive function explanation)
    - Dependencies (all requirements and prerequisites)
    - Arguments (detailed parameter documentation)
-6. Test each function with incorrect parameters
-7. Verify help functionality with `--help` flag
-8. Ensure no function can execute without explicit parameters
+5. Test each function with incorrect parameters
+6. Verify help functionality with `--help` flag
 
 ### Enhanced Technical Documentation
 
@@ -618,8 +549,6 @@ Verify standard compliance by calling each function with incorrect parameters:
 - Functions should display usage information via `aux_use`
 - Functions should return non-zero exit codes
 - No function should execute its main logic with invalid parameters
-- All functions must require at least one parameter (no parameter-less functions)
-- Execution-only functions must validate the `-x` flag specifically
 - **Functions should output errors to stderr when appropriate**
 - **Return codes should follow the standard conventions**
 
@@ -1260,3 +1189,63 @@ function_name() {
 1. Review and optimize auxiliary function usage
 2. Implement tracing for distributed operations
 3. Add metrics collection where appropriate
+
+
+---
+
+# Global Library Standards and Best Practices
+# Type: Core Specification & Guidelines
+# Scope: All functions across the `lib/` directory (`core`, `gen`, `ops`)
+#
+# This document merges strict technical specifications (MUST) with best 
+# practices (SHOULD) for writing robust Bash functions in this repository.
+
+## 1. Function Naming Convention
+To ensure clarity and prevent naming collisions:
+- **Public Functions** MUST use a three-letter module prefix: `[module]_[name]` (e.g., `ana_laf`, `aux_val`).
+- **Internal Helpers** MUST be prefixed with an underscore and the module name: `_[module]_[name]` (e.g., `_ana_helper`).
+- **Case** MUST be `snake_case` for all function names and local variables.
+
+## 2. Documentation and Comment Blocks (Required by `ana`)
+The `lib/gen/ana` module dynamically parses files to generate documentation and JSON definitions. 
+Functions MUST include properly formatted comment blocks.
+
+### The `aux_use` Header (Exactly 3 lines above the function)
+```bash
+# 1. Full description of what the function does
+# 2. shortname or mnemonic
+# 3. <required_param> [optional_param] or -x
+function_name() {
+```
+
+### The `aux_tec` Block (Immediately inside the function)
+```bash
+    # Technical Description:
+    #   Step-by-step explanation of behavior.
+    # Dependencies:
+    #   - Required external commands (e.g., jq, curl)
+    # Arguments:
+    #   $1: param_name - Explanation of parameter.
+```
+
+## 3. Parameter Validation & Return Codes
+No function can run without proper parameter validation. 
+- **Help Flags:** Functions MUST handle `--help` or `-h` as the first check, calling `aux_tec` and returning `0`.
+- **Validation:** Functions MUST validate argument counts and types using `aux_val`. On failure, call `aux_use` and return `1`.
+- **Exit Codes:** MUST follow standard conventions:
+  - `0`: Success
+  - `1`: Parameter validation failure or user error
+  - `2`: System, execution, or dependency error
+  - `127`: Required command missing (checked via `aux_chk`)
+
+## 4. Auxiliary Integration (`aux_*`)
+To ensure cross-module consistency, functions SHOULD leverage the `lib/gen/aux` framework when it is available in the current load stage:
+- **`lib/gen` and `lib/ops`:** `aux_val` and `aux_chk` SHOULD be used for validation/dependency checks; `aux_ask` and `aux_cmd` SHOULD be used where helpful.
+- **`lib/core`:** MUST remain bootstrap-safe and MUST NOT require `aux_*` helpers unless they are explicitly sourced.
+
+## 5. Code Quality & Safety (Best Practices)
+- **Size Limits:** Functions SHOULD NOT exceed 150 lines. Break complex logic into `_helper` functions.
+- **Variable Scope:** Variables inside functions MUST be declared as `local`. Module-level constants/metadata are allowed at file scope when intentionally shared.
+- **Safe File Operations:** When modifying existing system files, functions SHOULD create backups first (e.g., `cp "$file" "$file.bak"`).
+- **Atomic Operations:** Functions SHOULD adhere to the single-responsibility principle. Do one thing and do it well.
+- **Graceful Degradation:** Provide clear, actionable error messages before returning `2`.
