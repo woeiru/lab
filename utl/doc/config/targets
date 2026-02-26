@@ -97,10 +97,10 @@ LOW_PRIORITY=(
 # - Fallback: If not specified, generators use hardcoded defaults
 # - Validation: Generators check if target file exists before writing
 declare -A GENERATOR_OUTPUT_FILES
-GENERATOR_OUTPUT_FILES[func]="doc/arc/functions.md"     # Function metadata tables
+GENERATOR_OUTPUT_FILES[func]="doc/ref/functions.md"     # Function metadata tables
 GENERATOR_OUTPUT_FILES[hub]="doc/README.md"             # Documentation index/hub
 # GENERATOR_OUTPUT_FILES[stats]="README.md"               # System metrics (root README)
-GENERATOR_OUTPUT_FILES[var]="doc/arc/variables.md"      # Variable usage documentation
+GENERATOR_OUTPUT_FILES[var]="doc/ref/variables.md"      # Variable usage documentation
 GENERATOR_OUTPUT_FILES[ai_docs]=""                      # AI generator creates files in target directories
 
 # GENERATOR_SECTIONS: Section names for generators that update specific parts of files
@@ -112,7 +112,7 @@ declare -A GENERATOR_SECTIONS
 GENERATOR_SECTIONS[func]="Function Metadata Table"      # Updates function tables in doc/man/functions.md
 GENERATOR_SECTIONS[hub]="Documentation Structure"       # Updates doc index in doc/README.md
 # GENERATOR_SECTIONS[stats]="System Metrics"              # Updates metrics table in README.md
-GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable tables in doc/arc/variables.md
+GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable tables in doc/ref/variables.md
 
 #######################################################################
 # CONFIGURATION EXAMPLES AND USAGE NOTES

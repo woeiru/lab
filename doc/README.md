@@ -1,6 +1,6 @@
 # Documentation Hub
 
-Central documentation hub for the Lab Environment Management System. Contents are organised by purpose: `man/` for operational guides (user/admin audience) and `arc/` for architectural references (developer/architect audience).
+Central documentation hub for the Lab Environment Management System. Contents are organised by purpose: `man/` for operational guides (user/admin audience), `arc/` for architectural references (developer/architect audience), and `ref/` for auto-generated reference documentation (variables and functions).
 
 <!-- AUTO-GENERATED SECTION: Documentation Structure -->
 ## Documentation Index
@@ -27,12 +27,16 @@ This index provides a comprehensive overview of all documentation in the system:
 ### Architectural Documentation (`doc/arc/`)
 **Purpose**: How the system is designed, module structure, system context, and dependency flows. Audience: developers, architects.
 
-- **[Pure Functions Reference](arc/functions.md)** - Library structure overview, module inventory, and auto-generated function metadata table for all `lib/` modules.
-- **[Variable Usage Reference](arc/variables.md)** - Environment variables and their usage patterns across the system.
 - **[Logging Architecture](arc/logging.md)** - Multi-layer logging system hierarchy, verbosity control model, and design decisions.
 - **[Infrastructure Design](arc/infrastructure.md)** - Pure function design principles, DIC separation pattern, and library module responsibilities.
 - **[Deployment Architecture](arc/deployment.md)** - `src/set/.menu` framework design, hostname-based script convention, and DIC/pure-function integration.
 - **[IaC Architecture Overview](arc/iac-overview.md)** - Module inventory, directory layout, and environment configuration loading order.
+
+### Reference Documentation (`doc/ref/`)
+**Purpose**: Auto-generated symbol reference for variables and functions across the system. Audience: developers, module authors.
+
+- **[Pure Functions Reference](ref/functions.md)** - Library structure overview, module inventory, and auto-generated function metadata table for all `lib/` modules.
+- **[Variable Usage Reference](ref/variables.md)** - Environment variables and their usage patterns across the system.
 <!-- END AUTO-GENERATED SECTION -->
 
 ## Supplementary Documentation
@@ -57,8 +61,8 @@ Planning documents organised by lifecycle state.
 
 - **[`utl/doc/generators/hub`](../utl/doc/generators/hub)** - Updates this documentation index automatically using `ana_lad`
 - **[`lib/gen/aux` (ana_lad)](../lib/gen/aux)** - Documentation listing and analysis function
-- **[`utl/doc/generators/func`](../utl/doc/generators/func)** - Function metadata table generator (writes to `doc/arc/functions.md`)
-- **[`utl/doc/generators/var`](../utl/doc/generators/var)** - Variable usage documentation generator (writes to `doc/arc/variables.md`)
+- **[`utl/doc/generators/func`](../utl/doc/generators/func)** - Function metadata table generator (writes to `doc/ref/functions.md`)
+- **[`utl/doc/generators/var`](../utl/doc/generators/var)** - Variable usage documentation generator (writes to `doc/ref/variables.md`)
 - **[`utl/doc/generators/stats`](../utl/doc/generators/stats)** - Generate real-time codebase statistics
 
 ```bash
@@ -71,7 +75,7 @@ lab-on && ana_lad doc
 # Generate documentation metadata as JSON
 lab-on && ana_lad -j doc
 
-# Update function metadata table (now writes to doc/arc/functions.md)
+# Update function metadata table (writes to doc/ref/functions.md)
 ./utl/doc/generators/func
 
 # Update variable usage documentation
