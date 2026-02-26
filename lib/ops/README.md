@@ -162,6 +162,6 @@ unset server01_NODE_PCI0  # Test auto-detection path
 ## Related Documentation
 
 - `.spec`: Technical standards and compliance requirements
-- `.guide`: Implementation best practices and quality standards  
+- `../.spec`: Global library standards and quality guidance
 - `src/dic/README.md`: DIC system architecture and usage
 - `val/lib/ops/`: Testing frameworks and validation suites

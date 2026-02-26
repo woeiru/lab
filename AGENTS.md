@@ -126,8 +126,8 @@ After any code change, follow this sequence (stop at the appropriate level):
 ## 3) Code Style and Implementation Guidelines
 
 These rules come from repository docs and actual code patterns, especially:
+- `lib/.spec` -- global standards and best practices across `lib/`
 - `lib/ops/.spec` -- mandatory technical standards
-- `lib/ops/.guide` -- quality principles and best practices
 - `lib/ops/README.md`
 - `val/helpers/test_framework.sh`
 - `go`, `bin/orc`, and existing module files
@@ -216,7 +216,7 @@ These rules come from repository docs and actual code patterns, especially:
 - Follow existing style: descriptive section headers and grouped helper
   functions.
 - Prefer short, cohesive functions; split complex logic into helpers.
-- Maximum ~150 lines per function (per `.guide`).
+- Maximum ~150 lines per function (per spec guidance).
 - Keep indentation and spacing consistent with surrounding file style.
 - Add comments for non-obvious logic, not for trivial statements.
 
@@ -230,7 +230,7 @@ These rules come from repository docs and actual code patterns, especially:
 - Respect secure file permissions for sensitive material.
 - Prefer safe temp-file patterns (`mktemp`) and cleanup traps where
   appropriate.
-- Create backups before modifying system files (see `.guide` safe file
+- Create backups before modifying system files (see spec safe file
   operations pattern).
 
 ### Testing expectations for changes
@@ -278,8 +278,8 @@ These rules come from repository docs and actual code patterns, especially:
 
 ### Understand before modifying
 
-1. **Before editing any `lib/ops/` module**: read `lib/ops/.spec` (mandatory
-   standards) and `lib/ops/.guide` (quality principles). These define how
+1. **Before editing any `lib/ops/` module**: read `lib/.spec` (global
+   standards) and `lib/ops/.spec` (ops/DIC-specific standards). These define how
    every function must be structured.
 2. **Before cross-module changes**: read `doc/arc/00-architecture-overview.md`
    for the system paradigm and execution flow.
@@ -293,8 +293,8 @@ These rules come from repository docs and actual code patterns, especially:
 
 | Document                           | When to consult                           |
 |------------------------------------|-------------------------------------------|
+| `lib/.spec`                        | Global `lib/` quality and style baseline  |
 | `lib/ops/.spec`                    | Any `lib/ops/` function work              |
-| `lib/ops/.guide`                   | Quality patterns and design principles    |
 | `doc/arc/00-architecture-overview.md` | System-wide understanding              |
 | `doc/arc/04-dependency-injection.md`  | DIC / config resolution work           |
 | `doc/arc/07-logging-and-error-handling.md` | Logging or error handling changes |

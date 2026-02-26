@@ -176,8 +176,8 @@ test_convention_files() {
 
     test_file_exists "${LAB_ROOT}/lib/ops/.spec" \
         "Ops spec file exists"
-    test_file_exists "${LAB_ROOT}/lib/ops/.guide" \
-        "Ops guide file exists"
+    test_file_exists "${LAB_ROOT}/lib/.spec" \
+        "Global lib spec file exists"
     test_file_exists "${LAB_ROOT}/lib/ops/README.md" \
         "Ops README exists"
     test_file_exists "${LAB_ROOT}/bin/orc" \

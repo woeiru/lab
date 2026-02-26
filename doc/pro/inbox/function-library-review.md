@@ -74,7 +74,7 @@ For each module, execute this sequence before moving to the next:
 1. Run std_compliance_test.sh          -- identify .spec gaps
 2. Write parameter validation tests    -- every function, bad inputs, return codes
 3. Write behavioral tests             -- known inputs, expected outputs, mocked deps
-4. Improve the module                 -- refactor toward .spec and .guide compliance
+4. Improve the module                 -- refactor toward merged .spec compliance
 5. Run tests, fix, iterate            -- until green
 6. Run category suite                 -- confirm no cross-module breakage
 ```
@@ -117,7 +117,7 @@ These modules underpin everything. Breakage here cascades everywhere.
 
 ### Phase 2 -- High-impact operations
 
-Per .guide priority: GPU, PVE, and STO have the highest operational impact.
+Per ops priority guidance: GPU, PVE, and STO have the highest operational impact.
 
 ```
 11. lib/ops/gpu    -- 7 public functions, already best-tested ops module
@@ -215,7 +215,7 @@ test_xyz_behavior() {
 
 ## Improvement Guidelines
 
-Once tests are in place for a module, improvements follow .spec and .guide:
+Once tests are in place for a module, improvements follow `lib/.spec` and `lib/ops/.spec`:
 
 ### .spec compliance (mandatory, do first)
 
@@ -228,7 +228,7 @@ Once tests are in place for a module, improvements follow .spec and .guide:
 - --help / -h handled first in every function.
 - No function without parameters (-x flag pattern for action functions).
 
-### .guide quality (aspirational, do after .spec compliance)
+### Quality guidance (aspirational, do after .spec compliance)
 
 - Single responsibility per function.
 - Maximum 150 lines per function, split into _helpers.

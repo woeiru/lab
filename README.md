@@ -164,7 +164,7 @@ Variables use hostname prefixes for multi-node clusters (e.g., `h1_NODE_PCI0`, `
 | `sys`  | System operations (packages, users, hosts) |
 | `usr`  | User account management |
 
-All ops functions follow strict standards defined in `lib/ops/.spec` and `lib/ops/.guide`: three-letter prefix naming (`gpu_ptd`, `pve_cdo`), mandatory parameter validation, self-documenting comment blocks, structured `aux_*` logging, and standardized return codes (`0` success, `1` usage error, `2` runtime failure, `127` missing command).
+All ops functions follow strict standards defined in `lib/.spec` and `lib/ops/.spec`: three-letter prefix naming (`gpu_ptd`, `pve_cdo`), mandatory parameter validation, self-documenting comment blocks, structured `aux_*` logging, and standardized return codes (`0` success, `1` usage error, `2` runtime failure, `127` missing command).
 
 ## Testing
 

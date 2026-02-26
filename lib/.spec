@@ -44,15 +44,13 @@ No function can run without proper parameter validation.
   - `127`: Required command missing (checked via `aux_chk`)
 
 ## 4. Auxiliary Integration (`aux_*`)
-To ensure cross-module consistency, functions SHOULD leverage the `lib/gen/aux` framework:
-- **`aux_val`**: MUST be used for input validation (e.g., `aux_val "$1" "not_empty"`).
-- **`aux_chk`**: MUST be used to verify dependencies (e.g., `aux_chk "command" "jq"`).
-- **`aux_ask`**: SHOULD be used for interactive user prompts.
-- **`aux_cmd`**: SHOULD be used for safe external command execution.
+To ensure cross-module consistency, functions SHOULD leverage the `lib/gen/aux` framework when it is available in the current load stage:
+- **`lib/gen` and `lib/ops`:** `aux_val` and `aux_chk` SHOULD be used for validation/dependency checks; `aux_ask` and `aux_cmd` SHOULD be used where helpful.
+- **`lib/core`:** MUST remain bootstrap-safe and MUST NOT require `aux_*` helpers unless they are explicitly sourced.
 
 ## 5. Code Quality & Safety (Best Practices)
 - **Size Limits:** Functions SHOULD NOT exceed 150 lines. Break complex logic into `_helper` functions.
-- **Variable Scope:** ALL variables MUST be declared as `local` to prevent global namespace pollution.
+- **Variable Scope:** Variables inside functions MUST be declared as `local`. Module-level constants/metadata are allowed at file scope when intentionally shared.
 - **Safe File Operations:** When modifying existing system files, functions SHOULD create backups first (e.g., `cp "$file" "$file.bak"`).
 - **Atomic Operations:** Functions SHOULD adhere to the single-responsibility principle. Do one thing and do it well.
 - **Graceful Degradation:** Provide clear, actionable error messages before returning `2`.

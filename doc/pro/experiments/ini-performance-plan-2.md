@@ -237,7 +237,7 @@ source_directory() {
         local name="${file##*/}"
         # Skip non-source files
         case "$name" in
-            *.md|*.txt|*.spec|*.guide|*.readme|*.doc|README*|.*) continue ;;
+            *.md|*.txt|*.spec|*.readme|*.doc|README*|.*) continue ;;
         esac
         ((total++))
         if source_helper "$file" "$name"; then
@@ -261,7 +261,7 @@ to `source_directory`:
 
 ```bash
 source_directory "$LIB_OPS_DIR" "operational" \
-    "*.md|*.txt|*.spec|*.guide|*.readme|*.doc|README*|.*"
+    "*.md|*.txt|*.spec|*.readme|*.doc|README*|.*"
 ```
 
 ---
@@ -340,7 +340,7 @@ A helper script to regenerate the manifest from actual module files:
 for module in lib/ops/* lib/gen/*; do
     [[ -f "$module" ]] || continue
     name="${module##*/}"
-    case "$name" in *.md|*.txt|*.spec|*.guide|.*) continue ;; esac
+    case "$name" in *.md|*.txt|*.spec|.*) continue ;; esac
     grep -oP '^\s*(?:function\s+)?(\w+)\s*\(\)' "$module" |
         sed "s/[[:space:]]*()//; s/function //; s/^/${name}:${module}/" |
         grep -v '^_'  # skip private functions

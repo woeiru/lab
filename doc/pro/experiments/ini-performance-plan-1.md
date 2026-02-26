@@ -219,7 +219,7 @@ for f in "$dir"/*; do
     [[ -f "$f" ]] || continue
     # apply exclusions for source_lib_ops
     case "${f##*/}" in
-        *.md|*.txt|*.guide|*.spec|*.readme|*.doc|README*|readme*|.*) continue ;;
+        *.md|*.txt|*.spec|*.readme|*.doc|README*|readme*|.*) continue ;;
     esac
     files+=("$f")
 done
