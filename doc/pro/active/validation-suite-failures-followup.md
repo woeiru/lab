@@ -14,23 +14,20 @@ Runs performed:
 `./val/run_all_tests.sh` summary:
 
 - Total: 34
-- Passed: 28
-- Failed: 6
+- Passed: 31
+- Failed: 3
 
 Failed tests:
 
 - `gpu_std_compliance_test`
 - `gpu_test`
 - `complete_workflow_test`
-- `dic_framework_test`
-- `dic_integration_test`
-- `dic_phase1_completion_test`
 
 `./go validate` summary:
 
 - Total: 34
-- Passed: 27
-- Failed: 7
+- Passed: 30
+- Failed: 4
 
 Failed tests:
 
@@ -38,9 +35,6 @@ Failed tests:
 - `gpu_std_compliance_test`
 - `gpu_test`
 - `complete_workflow_test`
-- `dic_framework_test`
-- `dic_integration_test`
-- `dic_phase1_completion_test`
 
 ## Notes from Output
 
@@ -70,9 +64,9 @@ Failed tests:
 
 ## Ownership / Next Session Checklist
 
-- [ ] Confirm failures are still present on fresh shell/session
-- [ ] Attach exact first-failure snippets for each test
+- [x] Confirm failures are still present on fresh shell/session
+- [x] Attach exact first-failure snippets for each test
 - [ ] Prioritize `sec_test` if intermittent
 - [ ] Address GPU compliance/function-wrapper gaps
-- [ ] Address DIC integration/phase1 workflow failures
+- [x] Address DIC integration/phase1 workflow failures
 - [ ] Re-validate full suite

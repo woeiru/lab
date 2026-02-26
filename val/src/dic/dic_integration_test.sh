@@ -32,6 +32,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 LAB_ROOT="${LAB_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 cd "$LAB_ROOT"
 source bin/ini
+set +e
 
 # Test utilities
 log_info() {
@@ -45,7 +46,7 @@ log_success() {
 
 log_error() {
     echo -e "${RED}[FAIL]${NC} $1"
-    ((TESTS_FAILED++))
+    TESTS_FAILED=$((TESTS_FAILED + 1))
 }
 
 log_warning() {
@@ -53,7 +54,7 @@ log_warning() {
 }
 
 test_start() {
-    ((TESTS_TOTAL++))
+    TESTS_TOTAL=$((TESTS_TOTAL + 1))
     echo -e "\n${BLUE}TEST $TESTS_TOTAL:${NC} $1"
 }
 
@@ -66,7 +67,8 @@ setup_test_environment() {
     log_info "Using hostname: $hostname"
     
     # Set up test variables for current hostname if not already configured
-    if [[ -z "${!hostname}_NODE_PCI0" ]]; then
+    local pci_var="${hostname}_NODE_PCI0"
+    if [[ -z "${!pci_var:-}" ]]; then
         log_warning "No PCI configuration found for hostname '$hostname', creating test values"
         
         # Export test variables dynamically
@@ -281,11 +283,11 @@ test_performance() {
     
     # First call (should cache)
     local start_time=$(date +%s%N)
-    OPS_DEBUG=1 src/dic/ops pve vck 100 2>/dev/null
+    OPS_DEBUG=1 src/dic/ops pve vck 100 2>/dev/null || true
     local first_time=$(date +%s%N)
     
     # Second call (should use cache)
-    OPS_DEBUG=1 src/dic/ops pve vck 100 2>/dev/null
+    OPS_DEBUG=1 src/dic/ops pve vck 100 2>/dev/null || true
     local second_time=$(date +%s%N)
     
     local first_duration=$(( (first_time - start_time) / 1000000 ))
@@ -311,7 +313,7 @@ test_legacy_replacement() {
         local operation=${func#*_}
         
         if src/dic/ops $module $operation >/dev/null 2>&1; then
-            ((equivalent_found++))
+            equivalent_found=$((equivalent_found + 1))
         fi
     done
     

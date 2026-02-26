@@ -59,19 +59,24 @@ run_dic_test_suite() {
         local failed_count=0
         local total_count=0
         
-        if echo "$test_output" | grep -q "TESTS_PASSED\|Tests passed\|✓"; then
-            passed_count=$(echo "$test_output" | grep -o "TESTS_PASSED=[0-9]*\|Tests passed: [0-9]*\|✓.*[0-9]*" | grep -o "[0-9]*" | tail -1)
+        # Strip ANSI escape codes (both literal esc and backslash-033 representations)
+        local plain_output
+        plain_output=$(echo "$test_output" | sed -r 's/\x1B\[[0-9;]*[mK]//g' | sed -r 's/\\033\[[0-9;]*[mK]//g')
+        
+        if echo "$plain_output" | grep -qi "TESTS_PASSED\|Tests passed\|Passed:\|✓"; then
+            passed_count=$(echo "$plain_output" | grep -io "TESTS_PASSED=[0-9]*\|Tests passed: [0-9]*\|Passed:[[:space:]]*[0-9]*\|Passed:[^0-9]*[0-9]*\|✓.*[0-9]*" | grep -o "[0-9]*" | tail -1)
             passed_count=${passed_count:-0}
         fi
         
-        if echo "$test_output" | grep -q "TESTS_FAILED\|Tests failed\|✗"; then
-            failed_count=$(echo "$test_output" | grep -o "TESTS_FAILED=[0-9]*\|Tests failed: [0-9]*\|✗.*[0-9]*" | grep -o "[0-9]*" | tail -1)
+        if echo "$plain_output" | grep -qi "TESTS_FAILED\|Tests failed\|Failed:\|✗"; then
+            failed_count=$(echo "$plain_output" | grep -io "TESTS_FAILED=[0-9]*\|Tests failed: [0-9]*\|Failed:[[:space:]]*[0-9]*\|Failed:[^0-9]*[0-9]*\|✗.*[0-9]*" | grep -o "[0-9]*" | tail -1)
             failed_count=${failed_count:-0}
         fi
         
         total_count=$((passed_count + failed_count))
         
         # Report results through framework
+        ((FRAMEWORK_TESTS_RUN++))
         if [[ $test_exit_code -eq 0 ]] && [[ $failed_count -eq 0 ]]; then
             test_success "$test_name completed successfully ($passed_count/$total_count passed)"
         else
@@ -87,6 +92,7 @@ run_dic_test_suite() {
     done
     
     # Final suite summary
+    ((FRAMEWORK_TESTS_RUN++))
     if [[ ${#failed_tests[@]} -eq 0 ]]; then
         test_success "All DIC tests passed"
     else
