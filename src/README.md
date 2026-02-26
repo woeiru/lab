@@ -1,9 +1,6 @@
-# Source Code Architecture (`src/`)
+# Source Execution Architecture (`src/`)
 
-The `src/` directory implements the operational execution layer of the infrastructure management system. It provides two complementary components for infrastructure lifecycle management:
-
-- **`dic/`**: Dependency Injection Container. Parameter resolution and execution wrapper for runtime operations.
-- **`set/`**: Section-Based Deployment. Systematic initial setup and multi-node orchestration scripts.
+**The Bridging Layer:** The `src/` directory bridges the gap between the stateless, pure functions in `lib/ops/` and the declarative environment state in `cfg/env/`. It executes operations and orchestrates multi-node deployments.
 
 ## Architecture Overview
 
@@ -26,43 +23,51 @@ The `src/` directory implements the operational execution layer of the infrastru
 
 ## Subdirectories
 
-### [dic/ (Dependency Injection)](dic/README.md)
-
-The `src/dic/ops` wrapper provides automated parameter resolution for the pure functions in `lib/ops/`. It parses function signatures and automatically injects arguments from user input, hostname-specific variables, or the global configuration hierarchy.
-
-**Key capabilities:**
-- Hybrid execution (mixing manual arguments with environment variables)
-- Auto-injection (`-j` flag) for zero-configuration automation
-- Array-to-string conversion and automatic hostname sanitization
-
-### set/ (Deployment Playbooks)
-
-The `src/set/` directory contains host-specific deployment scripts (e.g., `h1`, `c1`, `t1`) organized into execution sections. These scripts use the DIC layer to orchestrate infrastructure provisioning and apply host-specific configurations.
+### `dic/` (Dependency Injection Container)
+The DIC is an intelligent parameter resolution engine (`src/dic/ops`). It parses the required signatures of functions in `lib/ops/`, matches them with data available in `cfg/env/`, and automatically injects variables seamlessly.
 
 **Key capabilities:**
-- Section-based execution (e.g., `a_xall`, `b_xall`) for granular control
-- Interactive menu-driven deployment via the `.menu` framework
-- Consistent environment-aware execution when combined with DIC
+- **Hybrid Execution:** Mix manual arguments with environment variables seamlessly.
+- **Auto-Injection:** Use the `-j` flag for zero-configuration, fully automated parameter mapping.
+- **Dynamic Resolution:** Auto-resolves arrays to strings and intelligently routes variables based on the active target hostname.
+
+### `set/` (Deployment Playbooks)
+The `set/` directory contains host-specific deployment scripts (e.g., `h1`, `c1`) acting as infrastructure runbooks. These scripts group tasks logically into discrete blocks (e.g., `a_xall`, `b_xall`) and lean on the DIC to execute operations.
+
+**Key capabilities:**
+- **Section-Based Execution:** Provides granular control over exactly what tasks to run during a setup workflow.
+- **Interactive Prompts:** Uses the `.menu` framework for user-friendly execution flow (`-i` mode).
+- **Headless Mode:** Capable of running non-interactively for direct CI/CD pipeline integration (`-x` mode).
 
 ## Examples
 
-**DIC Operations:**
+**Executing via DIC:**
 ```bash
 # Source the DIC wrapper
 source src/dic/ops
 
-# Execute with partial arguments (DIC fills the rest)
+# Execute with partial arguments (DIC handles the rest)
 ops pve vpt 100 on
 
 # Execute with full environment injection
 ops pve vpt -j
 ```
 
-**Set Deployment:**
+**Executing a Set Deployment:**
 ```bash
 # Interactive menu-driven setup
 ./src/set/h1
 
-# Direct execution of a specific section
+# Direct, headless execution of a specific section
 ./src/set/h1 -x a_xall
 ```
+
+## Further Reading
+
+- **Manual:** [04 - CLI Usage](../doc/man/04-cli-usage.md)
+- **Manual:** [05 - Deployments](../doc/man/05-deployments.md)
+- **Architecture:** [04 - Dependency Injection](../doc/arc/04-dependency-injection.md)
+- **Reference:** [Functions Reference](../doc/ref/functions.md)
+
+---
+**Navigation**: Return to [Main Lab Documentation](../README.md)

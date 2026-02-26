@@ -1,49 +1,44 @@
 # Configuration Directory (`cfg/`)
 
-The `cfg/` directory serves as the central configuration management hub for the infrastructure system. It contains environment-specific settings, system aliases, and core parameters organized in a hierarchical structure.
+**The State Layer:** The `cfg/` directory serves as the central source of truth for the system's state. It contains environment-specific settings, system aliases, and core parameters organized in a cascading hierarchy. By isolating all environment-specific data here, the operational logic in `lib/ops/` remains completely stateless and portable.
 
 ## Directory Structure
 
 ```text
 cfg/
-├── ali/    # Alias Management
+├── ali/    # Alias Management (Static and Dynamic)
 ├── core/   # Core System Configuration Controllers
 ├── env/    # Environment-Specific Configurations
 ├── log/    # Logging System Configuration
 └── pod/    # Container/Pod Configuration
 ```
 
-## Subdirectories
-
-### `ali/` - Alias Management
-Manages system aliases for command-line efficiency.
-- **`dyn`**: Dynamically generated aliases (auto-updated by scripts).
-- **`sta`**: Static aliases for consistent command shortcuts.
-
-### `core/` - Core System Configuration Controllers
-Central control files that manage system-wide configuration parameters and initialization.
-- **`ecc`**: Environment Configuration Controller (primary environment selector).
-- **`mdc`**: Module Dependencies Management.
-- **`rdc`**: Runtime Dependencies Configuration.
-- **`ric`**: Runtime Initialization Constants.
-
-### `env/` - Environment-Specific Configurations
-Site and environment-specific configuration files that define parameters for different deployment targets (e.g., `site1`, `site1-dev`).
-
-### `log/` - Logging System Configuration
-Configuration files and documentation for the enhanced auxiliary logging system (Fluentd, Filebeat).
-
-### `pod/` - Container/Pod Configuration
-Configuration files for containerized applications and pod deployments (e.g., `qdev`, `shus`).
-
 ## Configuration Hierarchy
 
-Configurations cascade through the system in a specific order:
-1. **Core Controllers (`core/`)**: Load system-wide parameters and initialization constants.
-2. **Environment Selection (`env/`)**: Apply settings specific to the active environment defined in `ecc`.
-3. **Specialized Configs (`pod/`)**: Load component-specific configurations.
-4. **Aliases (`ali/`)**: Apply command shortcuts and conveniences.
+Configurations cascade through the system in a strict resolution order:
+1. **Core Controllers (`cfg/core/`)**: Load system-wide parameters and initialization constants (`ecc`, `mdc`, `rdc`, `ric`).
+2. **Environment Selection (`cfg/env/`)**: Apply settings specific to the active environment defined in the `ecc` (Environment Configuration Controller). This is where site-bases and environment overrides exist.
+3. **Specialized Configs (`cfg/pod/`)**: Load component-specific configurations (e.g., container or specialized pod deployments).
+4. **Aliases (`cfg/ali/`)**: Apply command shortcuts and conveniences.
+
+## Key Concepts
+
+### Hostname Prefixing
+Environment configuration relies heavily on hostname prefixing to map declarative state to individual nodes in a multi-node cluster. Variables typically look like `${hostname}_VARIABLE_NAME` (e.g., `h1_NODE_PCI0`, `w2_USB_DEVICES`). The execution layer (`src/dic/`) automatically resolves these during runtime based on the target execution host.
+
+### Declarative Data
+Complex configurations are often defined using Bash arrays. The framework automatically parses arrays into manageable parameter lists for operational tools.
+
+### Security Notice
+**Do not hardcode secrets here.** The `cfg/` directory is meant for non-sensitive declarative state. Use the secure utilities found in `lib/gen/sec` or a dedicated secrets manager to handle sensitive material like credentials and API keys.
+
+## Further Reading
+
+For detailed guides on how to properly set up environment configurations and structure variables, refer to the documentation:
+
+- **Manual:** [03 - Configuration](../doc/man/03-configuration.md)
+- **Architecture:** [05 - Deployment and Config](../doc/arc/05-deployment-and-config.md)
+- **Reference:** [Variables Usage Reference](../doc/ref/variables.md)
 
 ---
-
 **Navigation**: Return to [Main Lab Documentation](../README.md)
