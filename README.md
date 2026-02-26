@@ -1,188 +1,187 @@
 # lab
 
-Infrastructure automation framework built entirely in Bash -- no external tooling, no build system, no dependencies beyond coreutils. Features a dependency injection container (DIC) for automatic parameter resolution, structured logging, and a full test harness. Ships with 20 composable library modules across core, general, and ops layers -- all stateless, parameterized, and wired together through the DIC at runtime.
+Bash-native infrastructure automation framework. No external tooling, no build system, no dependencies beyond coreutils. Manages real infrastructure -- virtual machines, GPUs, networking, storage, and system services -- through pure, stateless functions wired together at runtime by a purpose-built Dependency Injection Container.
+
+Ships with 20 composable library modules across three tiers (core, general, ops), a hierarchical configuration system with hostname-aware parameter resolution, section-based deployment runbooks, and a full BDD-style test harness.
 
 ## Quick Start
 
 ```bash
-# initialize shell integration (one-time setup)
+# one-time setup -- injects helper functions into ~/.bashrc
 ./go init
 
-# enable / disable integration (after init, these work from any shell)
+# enable auto-load in every new shell
 lab-on
-lab-off
 
-# activate in current shell only (no bashrc change)
+# or activate in current shell only (no bashrc change)
 lab
 
-# check status
+# check framework status
 ./go status
 
-# run tests
+# run the test suite
 ./go validate
 ```
 
-After running `lab-on` (or `./go on`) and restarting your shell, all core modules and library functions are loaded automatically into every session. Type `lab` in any shell to activate for just that session without modifying bashrc.
+After `lab-on`, restart your shell. All modules and functions are loaded automatically. Use `lab-off` to disable, `./go purge` to remove shell integration entirely.
 
 ## Requirements
 
-- Bash 4+ or Zsh 5+
-- Linux (developed on Debian; some modules are Proxmox VE-specific)
+- Bash 4+ (or Zsh 5+)
+- Linux (developed on Debian; some modules target Proxmox VE)
 - Standard UNIX utilities, systemd
 
 ## Repository Structure
 
 ```
 lab/
-├── go              Main CLI entry point
+├── go                CLI entrypoint
 ├── bin/
-│   ├── ini         System initialization controller
-│   └── orc         Component orchestrator (sequential module loader)
+│   ├── ini           Initialization controller
+│   └── orc           Component orchestrator
 ├── cfg/
-│   ├── core/       Runtime constants, module dependencies, environment config
-│   ├── ali/        Shell aliases (static and dynamic)
-│   ├── env/        Environment definitions (site/env/node hierarchy)
-│   ├── log/        Logging pipeline configs (Fluentd, Filebeat)
-│   └── pod/        Container definitions
+│   ├── core/         Runtime constants and module dependencies
+│   ├── ali/          Shell aliases (static and dynamic)
+│   ├── env/          Environment definitions (site / env / node hierarchy)
+│   ├── log/          Logging pipeline configs (Fluentd, Filebeat)
+│   └── pod/          Container definitions
 ├── lib/
-│   ├── core/       Foundational modules (col, err, lo1, tme, ver)
-│   ├── gen/        General utilities (ana, aux, env, inf, sec)
-│   └── ops/        Operational modules (dev, gpu, net, pbs, pve, srv, ssh, sto, sys, usr)
+│   ├── core/         Foundational primitives (col, err, lo1, tme, ver)
+│   ├── gen/          General utilities (ana, aux, env, inf, sec)
+│   └── ops/          Operational modules (dev, gpu, net, pbs, pve, srv, ssh, sto, sys, usr)
 ├── src/
-│   ├── dic/        Dependency injection container
-│   └── set/        Section-based deployment scripts
-├── val/
-│   ├── helpers/    Test framework
-│   ├── core/       Core module tests
-│   ├── lib/        Library tests
-│   ├── integration/ Workflow tests
-│   └── src/        DIC tests
-├── doc/            Technical documentation (admin, CLI, dev, IaC, fixes, how-tos, network, plans, issues)
-└── utl/            Utilities (doc generators, stats, alias tools)
+│   ├── dic/          Dependency injection container
+│   └── set/          Section-based deployment runbooks
+├── val/              BDD-style test framework and test suites
+├── doc/              Architecture references, user guides, and auto-generated API docs
+└── utl/              Out-of-band tooling (doc generators, analysis)
 ```
 
-## Architecture
+Most files under `lib/` and `bin/` have **no file extension** -- they are sourced Bash scripts, not standalone executables.
+
+## How It Works
 
 ### Initialization Chain
 
 ```
-./go init  -->  bin/ini  -->  bin/orc
-                  │              │
-                  │              ├── cfg/ali      (aliases)
-                  │              ├── lib/ops      (operational modules)
-                  │              ├── lib/gen      (general utilities)
-                  │              ├── cfg/env      (environment config)
-                  │              └── src/         (DIC + deployment)
-                  │
-                  ├── cfg/core/ric   (runtime constants)
-                  ├── cfg/core/rdc   (runtime dependencies)
-                  ├── cfg/core/mdc   (module dependencies)
-                  └── lib/core/      (col, err, lo1, tme, ver)
+./go  -->  bin/ini  -->  bin/orc
+             |               |
+             |               ├── cfg/ali      (aliases)
+             |               ├── lib/ops      (operational modules)
+             |               ├── lib/gen      (general utilities)
+             |               ├── cfg/env      (environment config)
+             |               └── src/         (DIC + deployment)
+             |
+             ├── cfg/core/    (runtime constants + dependencies)
+             └── lib/core/    (col, err, lo1, tme, ver)
 ```
 
-`bin/ini` loads core configuration and modules first, then hands off to `bin/orc` which sources the remaining components in order. Each component is optional and timed.
+`bin/ini` loads core configuration and primitives first, then hands off to `bin/orc` which sources the remaining components in dependency order. Each component is optional and timed.
 
-### Core Modules (`lib/core/`)
+### Three-Layer Execution Model
+
+The system separates **what** to do, **how** to resolve parameters, and **where** state lives:
+
+```
+  src/set/*  (deployment runbooks)
+      |
+      v
+  src/dic/ops  (dependency injection)
+      |
+      v
+  lib/ops/*  (pure functions)  <----  cfg/env/*  (environment state)
+```
+
+1. **Pure Functions** (`lib/ops/`) -- stateless, parameterized operations. Accept explicit arguments, return standardized codes, log through `aux_*` helpers.
+2. **Dependency Injection** (`src/dic/`) -- analyzes function signatures, resolves parameters from the environment hierarchy, and injects them automatically.
+3. **Deployment Runbooks** (`src/set/`) -- hostname-mapped scripts that group DIC calls into sequential sections with interactive or headless execution.
+
+### The DIC in Practice
+
+```bash
+# direct call -- all parameters explicit
+gpu_ptd "0000:01:00.0" "vfio-pci"
+
+# DIC call -- parameters resolved from cfg/env/
+ops gpu ptd -j
+```
+
+Three execution modes:
+- **Hybrid** (default) -- user-supplied args supplemented by DIC resolution
+- **Injection** (`-j`) -- full parameter resolution from environment
+- **Explicit** (`-x`) -- function handles its own parameter sourcing
+
+Run any `ops` command without arguments to see a parameter preview showing what will be injected and what requires manual input.
+
+### Configuration Hierarchy
+
+Environment state cascades through three layers:
+
+```
+cfg/env/site1          Base site configuration
+    |
+cfg/env/site1-dev      Environment override (dev / staging / prod)
+    |
+cfg/env/site1-w2       Node-specific settings (per hostname)
+```
+
+Variables use hostname prefixes for multi-node clusters (e.g., `h1_NODE_PCI0`, `w2_USB_DEVICES`). The DIC resolves them automatically based on the target host.
+
+## Library Modules
+
+### Core Primitives (`lib/core/`)
 
 | Module | Purpose |
 |--------|---------|
 | `col`  | Terminal color management with semantic palette and depth-based Viridis scale |
-| `err`  | Error handling with codes, stack traces, error tracking, and ERR trap |
-| `lo1`  | Logging with depth-based indentation, call stack analysis, and caching |
-| `tme`  | Performance timing with nested timer hierarchy, tree reports, and sort modes |
-| `ver`  | Verification of paths, variables, modules, and functions with dependency checks |
+| `err`  | Error handling with codes, stack traces, and ERR trap |
+| `lo1`  | Logging with depth-based indentation and call stack analysis |
+| `tme`  | Performance timing with nested hierarchy, tree reports, and sort modes |
+| `ver`  | Verification of paths, variables, modules, and functions |
 
 ### General Utilities (`lib/gen/`)
 
 | Module | Purpose |
 |--------|---------|
-| `ana`  | Code analysis: list functions, documentation, config variable usage (table + JSON) |
-| `aux`  | Swiss-army helper: validation, checks, safe execution, structured logging, user input, tracing |
-| `env`  | Environment switching: `env_switch`, `env_site_switch`, `env_status`, `env_validate` |
-| `inf`  | Infrastructure config: container/VM definition with 19+ params, bulk creation, IP sequencing |
-| `sec`  | Security: password generation (`/dev/urandom`), secure storage (chmod 600), no hardcoded secrets |
+| `ana`  | Code analysis: function listing, documentation, config variable usage |
+| `aux`  | Validation, checks, safe execution, structured logging, tracing |
+| `env`  | Environment switching and status (`env_switch`, `env_status`) |
+| `inf`  | Infrastructure config: container/VM definitions, bulk creation, IP sequencing |
+| `sec`  | Password generation, secure storage, no hardcoded secrets |
 
 ### Operational Modules (`lib/ops/`)
 
-Ten domain-specific modules following strict naming and standards defined in `.spec` (958 lines) and `.guide` (303 lines):
-
 | Module | Domain |
 |--------|--------|
-| `pve`  | Proxmox VE management |
-| `gpu`  | GPU passthrough (detach/attach/status) |
-| `sys`  | System operations (packages, users, hosts) |
-| `net`  | Network configuration and routing |
-| `sto`  | Storage management (Btrfs, ZFS, LVM) |
-| `ssh`  | SSH configuration and key management |
-| `pbs`  | Proxmox Backup Server |
-| `srv`  | Service management |
 | `dev`  | Development utilities |
+| `gpu`  | GPU passthrough (detach / attach / status) |
+| `net`  | Network configuration and routing |
+| `pbs`  | Proxmox Backup Server |
+| `pve`  | Proxmox VE management |
+| `srv`  | Service management |
+| `ssh`  | SSH configuration and key management |
+| `sto`  | Storage management (Btrfs, ZFS, LVM) |
+| `sys`  | System operations (packages, users, hosts) |
 | `usr`  | User account management |
 
-All ops functions are stateless and parameterized. They follow the `module_name` convention (e.g., `gpu_ptd`, `pve_cdo`) and support `--help`, structured logging via `aux_info/warn/err/dbg`, and consistent return codes (`0` success, `1` usage error, `2` runtime failure, `127` missing command).
-
-### Dependency Injection Container (`src/dic/`)
-
-The DIC bridges stateless library functions with environment context. Instead of passing infrastructure parameters manually, the DIC resolves them automatically.
-
-```bash
-# direct library call (explicit parameters)
-gpu_ptd "0000:01:00.0" "vfio-pci"
-
-# DIC call (parameters resolved from environment)
-ops gpu ptd
-```
-
-Three execution modes:
-- **Hybrid** (default): user-supplied args supplemented by DIC resolution
-- **Injection** (`-j`): full parameter resolution from environment
-- **Explicit** (`-x`): function handles its own parameter sourcing
-
-Resolution order: User Args > Hostname-specific vars > Global env vars > Function defaults.
-
-### Environment Hierarchy
-
-Configuration cascades through three layers:
-
-```
-cfg/env/site1          Base site configuration
-    |
-cfg/env/site1-dev      Environment override (dev/staging/prod)
-    |
-cfg/env/site1-w2       Node-specific settings (per hostname)
-```
-
-Switch environments at runtime with `env_switch`, `env_site_switch`, or `env_node_switch`.
-
-### Deployment Scripts (`src/set/`)
-
-Section-based scripts for orchestrating multi-step deployments:
-
-```bash
-# h1 = hypervisor setup script
-# each letter is a section (a, b, c, ...)
-src/set/h1    # interactive menu
-```
-
-Sections group related `ops` DIC calls into sequential operations (e.g., configure repos, install packages, setup networking, generate keys).
+All ops functions follow strict standards defined in `lib/ops/.spec` and `lib/ops/.guide`: three-letter prefix naming (`gpu_ptd`, `pve_cdo`), mandatory parameter validation, self-documenting comment blocks, structured `aux_*` logging, and standardized return codes (`0` success, `1` usage error, `2` runtime failure, `127` missing command).
 
 ## Testing
 
 ```bash
-# run everything
+# full suite
 ./val/run_all_tests.sh
 
-# run by category
+# by category
 ./val/run_all_tests.sh core
 ./val/run_all_tests.sh lib
 ./val/run_all_tests.sh integration
 ./val/run_all_tests.sh src
 
-# list available tests
-./val/run_all_tests.sh --list
-
-# quick mode (skip slow tests)
-./val/run_all_tests.sh --quick
+# options
+./val/run_all_tests.sh --list       # list available tests
+./val/run_all_tests.sh --quick      # skip slow tests
+./val/run_all_tests.sh --verbose    # detailed output
 
 # run a single test directly
 ./val/core/config/cfg_test.sh
@@ -193,22 +192,20 @@ Sections group related `ops` DIC calls into sequential operations (e.g., configu
 ./val/lib/run_all_tests.sh --ops --gen
 ```
 
-The test framework (`val/helpers/test_framework.sh`) provides `run_test`, `test_function_exists`, `test_file_exists`, `test_var_set`, `test_with_timeout`, `run_test_group`, BDD-style helpers, and color-coded output.
+The test framework (`val/helpers/test_framework.sh`) provides `run_test`, `test_function_exists`, `test_file_exists`, `test_var_set`, `test_with_timeout`, BDD-style helpers, and color-coded output. Tests run in isolated temporary environments to prevent host contamination.
 
-## Function Conventions
+## Documentation
 
-Functions are self-documenting. Three comment lines above a function definition are extractable as usage help via `aux_use`. A comment block inside the function body is extractable as technical docs via `aux_tec`.
+The `doc/` directory contains the full documentation set, organized by audience:
 
-```bash
-# Create a container on the target node
-# Usage: pve_cdo <vmid> <hostname> <ip>
-# Returns: 0 on success, 2 on failure
-pve_cdo() {
-    # Technical: Uses pct create with template from CT_TEMPLATE
-    # Validates VMID range 100-999 before execution
-    # Requires: pct, pvesh
-    ...
-}
-```
+| Section | Audience | Contents |
+|---------|----------|----------|
+| [`doc/man/`](doc/man/) | Operators, admins | 7-part user guide: introduction through security and logging |
+| [`doc/arc/`](doc/arc/) | Developers, architects | 8-part architecture reference: bootstrap through error handling |
+| [`doc/ref/`](doc/ref/) | Module authors | Auto-generated function and variable reference tables |
+| [`doc/fix/`](doc/fix/) | Hardware ops | Incident runbooks: GPU passthrough, ACPI reset, driver fixes |
+| [`doc/pro/`](doc/pro/) | Contributors | Project planning documents (active, completed, dismissed) |
 
-Naming: `module_name` for public functions, `_module_name` for internal helpers. All use `snake_case` and `local` for variables.
+Start with [doc/man/01-introduction.md](doc/man/01-introduction.md) for an operational walkthrough, or [doc/arc/00-architecture-overview.md](doc/arc/00-architecture-overview.md) for the system design.
+
+Each subdirectory in the repository also has its own README with focused context and links into the relevant documentation.
