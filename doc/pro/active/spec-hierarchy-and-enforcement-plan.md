@@ -22,7 +22,7 @@ What is done:
 
 Where we are blocked or pending:
 
-- One active `GLB-008` finding remains:
+- `GLB-008` has one active match and is now tracked under a temporary waiver:
   - `lib/gen/inf:90` -> `declare -g CT_DEFAULT_PASSWORD="password"`
 - Strict-mode default behavior is not yet wired as module policy.
 
@@ -35,7 +35,7 @@ Latest known report baseline:
 
 Exactly what to do next (in order):
 
-1. Resolve or explicitly waive the `GLB-008` finding in `lib/gen/inf:90`.
+1. Keep `GLB-008` waiver active until replacement path lands (env/explicit password input).
 2. Decide and implement module strict/report default behavior using cutover gates.
 3. Re-run baseline commands and record new snapshot in this file.
 
@@ -213,13 +213,13 @@ Done:
 In progress:
 
 - Align `ops` report quality with `core`/`gen` by reducing false positives in module-scoped checks.
-- Triage `GLB-008` scanner findings and classify true positives vs accepted defaults.
+- Track approved temporary `GLB-008` waiver and prepare removal change.
 
 Next:
 
 1. Finish `ops` signal-quality pass and rerun report baseline.
 2. Wire strict-mode cutover criteria into module default runner behavior.
-3. Remediate or explicitly waive current `GLB-008` finding in `lib/gen/inf`.
+3. Implement replacement for hardcoded `CT_DEFAULT_PASSWORD` and remove waiver.
 
 ## Proposed target outline for `lib/.spec` (global-only)
 
@@ -364,3 +364,60 @@ Status: executed on 2026-02-28. Line ranges in this section reference the pre-re
 - `lib/.spec` reduced to a concise global baseline (target: ~120-220 lines).
 - `lib/ops/.spec` becomes the sole home for infrastructure-specific and DIC-heavy implementation policy.
 - process-oriented guidance lives in `doc/pro/*`; reference examples live in `doc/ref/*` or module docs.
+
+## Container password finding: what it actually is
+
+The current `GLB-008` alert is not about a detected leaked production credential. It is about a hardcoded default value in code:
+
+- `lib/gen/inf:90` sets `CT_DEFAULT_PASSWORD="password"`.
+
+Why the scanner flags it:
+
+- `GLB-008` policy forbids hardcoded secret-like assignments in `lib/*`.
+- The scanner intentionally treats variables containing names like `PASSWORD`, `TOKEN`, `SECRET`, `API_KEY` as sensitive by default.
+- A literal value such as `"password"` is interpreted as an insecure built-in credential pattern, even if intended as a bootstrap placeholder.
+
+Why this matters operationally:
+
+- If callers do not override this default, container creation paths can inherit a known weak credential.
+- The risk is configuration drift: one forgotten override can leave reachable infrastructure with predictable auth.
+
+What we are tackling in this phase:
+
+- We are converting standards from advisory text into enforceable policy.
+- This finding is the first concrete gate proving the enforcement model works.
+- The task is to either remediate the code path or add a temporary waiver with owner/date/removal criteria.
+
+## GLB-008 remediation decision and implementation plan
+
+Current decision: apply a temporary waiver now, then remediate in a scheduled follow-up.
+
+Target behavior (for waiver removal):
+
+1. Replace the literal default assignment in `lib/gen/inf` with a non-hardcoded source (for example environment-backed empty default).
+2. Ensure call sites fail safely when no password is provided (or require explicit override in environment config).
+3. Re-run `./val/core/glb_008_secret_scan_test.sh --report` and capture baseline update in this document.
+
+Approved temporary waiver entry:
+
+- Rule: `GLB-008`
+- Location: `lib/gen/inf:90`
+- Current match: `declare -g CT_DEFAULT_PASSWORD="password"`
+- Owner: `es`
+- Approved by: `user direction in active planning session`
+- Rationale: keep backward compatibility for current container-definition flows while strict enforcement is being rolled out in report mode.
+- Risk level: medium (known weak default, mitigated by environment-specific overrides where present).
+- Expiry date: `2026-03-31`
+- Removal criteria: replace literal default with env/explicit input path and validate no regression in container definition flows.
+- Tracking action: create remediation change in `lib/gen/inf` and rerun `./val/core/glb_008_secret_scan_test.sh --report`.
+
+Verification snapshot (post-waiver documentation):
+
+- Date: `2026-02-28`
+- Command: `./val/core/glb_008_secret_scan_test.sh --report`
+- Result: `Potential secret matches: 1` (waived match at `lib/gen/inf:90`).
+
+Definition of done for this item:
+
+- `GLB-008` report shows no unwaived match for `lib/gen/inf:90`.
+- This plan records chosen approach (fix or waiver) and verification output date.
