@@ -95,6 +95,47 @@ Deliverable:
 - Every MUST rule is either already checked in `val/` or has a planned check.
 - No contradictory rule pairs remain across global and module specs.
 
+## Strict-mode cutover criteria
+
+Cutover happens per module (not all-at-once) after two consecutive clean report runs.
+
+`core` cutover gate:
+
+- `./val/core/std_compliance_test.sh --report` shows `Rule failures: 0`.
+- Warning budget: `<= 10` warnings, with no new warning classes introduced.
+- A strict dry run (`./val/core/std_compliance_test.sh`) is green in CI/local validation.
+
+`gen` cutover gate:
+
+- `./val/lib/gen/std_compliance_test.sh --report` shows `Rule failures: 0`.
+- Warning budget: `<= 20` warnings, and all warnings are explicitly categorized as:
+  - compatibility entrypoints (`main`),
+  - non-prefixed internal aliases,
+  - advisory integration checks.
+- A strict dry run (`./val/lib/gen/std_compliance_test.sh`) is green in CI/local validation.
+
+`ops` cutover gate:
+
+- `./val/lib/ops/std_compliance_test.sh --report` completes successfully and trend is non-regressive over two runs.
+- Required floor before strict mode:
+  - parameter validation >= `15%`
+  - help-system coverage >= `35%`
+  - error handling >= `85%`
+  - documentation >= `95%`
+  - aux integration >= `65%`
+- A focused remediation list exists for the largest remaining gaps (validation/help).
+- Strict mode is enabled only after floors are met and sampled strict dry run does not block core workflows.
+
+Global cutover gate:
+
+- `GLB-008` scanner exists (or has approved temporary waiver with owner/date).
+- `val/core/log_contract_test.sh` remains green.
+- No regression in module report totals versus previous accepted baseline.
+
+Rollback rule:
+
+- If a cutover causes repeated false positives or blocks unrelated work, switch module back to `--report` default, log the root cause in this plan, and re-run tuning before retrying strict mode.
+
 ## Risks and mitigations
 
 - Risk: over-specification creates noisy failures.
@@ -124,12 +165,13 @@ Done:
 In progress:
 
 - Align `ops` report quality with `core`/`gen` by reducing false positives in module-scoped checks.
+- Triage `GLB-008` scanner findings and classify true positives vs accepted defaults.
 
 Next:
 
 1. Finish `ops` signal-quality pass and rerun report baseline.
-2. Define strict-mode cutover criteria per module (`core`, `gen`, `ops`).
-3. Add missing check for `GLB-008` (secret hardcoding scanner).
+2. Wire strict-mode cutover criteria into module default runner behavior.
+3. Remediate or explicitly waive current `GLB-008` finding in `lib/gen/inf`.
 
 ## Proposed target outline for `lib/.spec` (global-only)
 
