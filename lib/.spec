@@ -585,6 +585,16 @@ Verify standard compliance by calling each function with incorrect parameters:
 
 All functions in the `ops` library must implement structured logging to ensure consistent operational visibility, debugging capability, and audit trail generation. This standard defines how to replace traditional echo/printf statements with structured logging functions.
 
+### Integration Contract with `cfg/log`
+
+The structured logging standard is the producer-side policy. Runtime ingestion is configured in `cfg/log/README.md`, `cfg/log/filebeat.yml`, and `cfg/log/fluentd.conf`.
+
+- `lib/.spec` defines how modules must emit logs through `aux_*`.
+- `lib/gen/aux` is the emitter implementation and source of truth for emitted files/fields.
+- `cfg/log/*` must ingest and route the files actually emitted by `lib/gen/aux`.
+
+When changing logging behavior, update producer policy and ingestion configuration together.
+
 ### Core Principles
 
 **No Raw Output**: Functions must not use printf/echo for user-facing messages. All operational communication must go through structured logging functions.

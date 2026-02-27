@@ -35,6 +35,24 @@ The auxiliary logging system is located in `lib/gen/aux` and provides:
 - Logging functions for business, security, audit, and performance events
 - Distributed tracing support with correlation IDs
 
+## Logging Contract
+
+To avoid drift, treat logging as a three-layer contract:
+
+1. **Producer policy (`lib/.spec`)**
+   - Defines required usage of `aux_*` functions for operational output.
+   - Requires structured context data (`key=value` pairs).
+
+2. **Emitter implementation (`lib/gen/aux`)**
+   - Writes consolidated streams to `${LOG_DIR}/aux.json`, `${LOG_DIR}/aux.csv`, and `${LOG_DIR}/aux.log`.
+   - Emits structured event types used by shipper routing (for example, `operational` and `debug`).
+
+3. **Ingestion configuration (`cfg/log/*`)**
+   - `filebeat.yml` and `fluentd.conf` must ingest the consolidated files emitted by `lib/gen/aux`.
+   - Index routing must stay aligned with emitted event type and fallback text streams.
+
+If you change one layer, validate the other two in the same change.
+
 ## Quick Start
 
 1. **Source the logging system:**
