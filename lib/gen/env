@@ -358,6 +358,7 @@ main() {
             ;;
         help|--help|-h)
             env_usage
+            return 0
             ;;
         *)
             echo -e "${RED}Unknown command: $1${NC}"

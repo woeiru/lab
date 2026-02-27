@@ -44,6 +44,12 @@ is_public_function() {
     [[ "$func" == "${module}_"* ]]
 }
 
+extract_function_body() {
+    local file="$1"
+    local func="$2"
+    sed -n "/^${func}()/,/^}/p" "$file"
+}
+
 list_core_files() {
     local file
     for file in "${CORE_DIR}"/*; do
@@ -98,7 +104,7 @@ check_glb005_docs() {
         fi
 
         local body
-        body=$(sed -n "${line_no},$((line_no + 30))p" "$file")
+        body=$(extract_function_body "$file" "$func")
         if ! echo "$body" | grep -q 'aux_use\|aux_tec\|--help\|"-h"'; then
             continue
         fi
@@ -134,7 +140,7 @@ check_glb003_help_flags() {
         [[ -z "$line_no" ]] && continue
         local func body
         func="${func_decl%%(*}"
-        body=$(sed -n "${line_no},$((line_no + 25))p" "$file")
+        body=$(extract_function_body "$file" "$func")
 
         if echo "$body" | grep -q -- '--help' || echo "$body" | grep -q -- '"-h"'; then
             if echo "$body" | grep -q 'return 0'; then

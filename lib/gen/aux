@@ -72,6 +72,15 @@ aux_var() {
 # function usage information
 #
 aux_use() {
+    # Technical Description:
+    #   Resolves the calling function and script location, then extracts and
+    #   prints the 3-line usage metadata block that lives directly above the
+    #   function declaration.
+    # Dependencies:
+    #   - caller, awk, grep, sed, head, cut
+    #   - readable source file for calling function
+    # Arguments:
+    #   none
     local caller_line=$(caller 0)
     local caller_function=$(echo $caller_line | awk '{print $2}')
     local script_file="${BASH_SOURCE[1]}"
@@ -189,6 +198,14 @@ aux_use() {
 # function technical description
 #
 aux_tec() {
+    # Technical Description:
+    #   Resolves the calling function and prints the technical comment section
+    #   that follows the function declaration in the source file.
+    # Dependencies:
+    #   - caller, awk, grep, sed, head, cut, wc
+    #   - readable source file for calling function
+    # Arguments:
+    #   none
     local caller_line=$(caller 0)
     local caller_function=$(echo $caller_line | awk '{print $2}')
     local script_file="${BASH_SOURCE[1]}"
