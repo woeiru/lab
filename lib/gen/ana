@@ -1618,3 +1618,351 @@ ana_err() {
         echo ""
     fi
 }
+
+# Analyzes variable scope, identifying globals, constants, and potential leaks
+# scope integrity analysis
+# <file name> [-j]
+ana_scp() {
+    local json_mode=false
+    local file_name=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -j)
+                json_mode=true
+                shift
+                ;;
+            *)
+                file_name="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$file_name" || ! -r "$file_name" ]]; then
+        echo "Error: Cannot read file '${file_name:-}'"
+        return 1
+    fi
+
+    local col_width_type=14
+    local col_width_var=28
+    local col_width_line=6
+    local col_width_context=24
+
+    truncate_and_pad() {
+        local str="$1"
+        local width="$2"
+        if [ ${#str} -gt $width ]; then
+            echo "${str:0:$((width-2))}.."
+        else
+            printf "%-${width}s" "$str"
+        fi
+    }
+
+    print_separator() {
+        local total=$((col_width_type + col_width_var + col_width_line + col_width_context + 11))
+        printf "+%s+\n" "$(printf '%*s' $total '' | tr ' ' '-')"
+    }
+
+    print_row() {
+        printf "| %s | %s | %s | %s |\n" \
+            "$(truncate_and_pad "$1" $col_width_type)" \
+            "$(truncate_and_pad "$2" $col_width_var)" \
+            "$(truncate_and_pad "$3" $col_width_line)" \
+            "$(truncate_and_pad "$4" $col_width_context)"
+    }
+
+    local -a results_type=()
+    local -a results_var=()
+    local -a results_line=()
+    local -a results_context=()
+
+    local current_function="Global"
+    local line_number=0
+    local -A local_vars=()
+
+    # Core logic inside loop
+    while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
+        ((line_number++))
+        local line="${raw_line%%#*}"
+        if [[ -z "${line// /}" ]]; then
+            continue
+        fi
+
+        # Function start
+        if [[ $line =~ ^[[:space:]]*(function[[:space:]]+)?([a-zA-Z_][a-zA-Z0-9_-]*)[[:space:]]*\(\)[[:space:]]*\{? ]]; then
+            current_function="${BASH_REMATCH[2]}"
+            local_vars=()
+            continue
+        fi
+
+        # Function end
+        if [[ "$current_function" != "Global" && $line =~ ^[[:space:]]*\}[[:space:]]*$ ]]; then
+            current_function="Global"
+            local_vars=()
+            continue
+        fi
+
+        # Readonly (Global or Local)
+        if [[ $line =~ ^[[:space:]]*(readonly|declare[[:space:]]+-[a-zA-Z]*r[a-zA-Z]*)[[:space:]]+(.*)$ ]]; then
+            local rest="${BASH_REMATCH[2]}"
+            for word in $rest; do
+                if [[ $word =~ ^(-[a-zA-Z]+) ]]; then continue; fi
+                local var_name="${word%%=*}"
+                if [[ "$var_name" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+                    results_type+=("Readonly")
+                    results_var+=("$var_name")
+                    results_line+=("$line_number")
+                    results_context+=("$current_function")
+                fi
+            done
+            continue
+        fi
+
+        # Declare global / export
+        if [[ $line =~ ^[[:space:]]*(declare[[:space:]]+-[a-zA-Z]*g[a-zA-Z]*|export)[[:space:]]+(.*)$ ]]; then
+            local rest="${BASH_REMATCH[2]}"
+            # Must avoid destroying BASH_REMATCH before parsing rest
+            local is_func_export=false
+            if [[ "$raw_line" =~ export[[:space:]]+-f ]]; then
+                is_func_export=true
+            fi
+            if ! $is_func_export; then
+                for word in $rest; do
+                    if [[ $word =~ ^(-[a-zA-Z]+) ]]; then continue; fi
+                    local var_name="${word%%=*}"
+                    if [[ "$var_name" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+                        if [[ "$var_name" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+                            results_type+=("Env Constant")
+                        else
+                            results_type+=("Global Mutated")
+                        fi
+                        results_var+=("$var_name")
+                        results_line+=("$line_number")
+                        results_context+=("$current_function")
+                    fi
+                done
+            fi
+            continue
+        fi
+
+        # Local declare
+        if [[ "$current_function" != "Global" && $line =~ ^[[:space:]]*(local|declare)[[:space:]]+(.*)$ ]]; then
+            local rest="${BASH_REMATCH[2]}"
+            for word in $rest; do
+                if [[ $word =~ ^(-[a-zA-Z]+) ]]; then continue; fi
+                local var_name="${word%%=*}"
+                if [[ "$var_name" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+                    local_vars["$var_name"]=1
+                fi
+            done
+            continue
+        fi
+
+        # Assignments
+        if [[ $line =~ ^[[:space:]]*([a-zA-Z_][a-zA-Z0-9_]*)= ]]; then
+            local var_name="${BASH_REMATCH[1]}"
+            if [[ "$current_function" == "Global" ]]; then
+                if [[ "$var_name" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+                    results_type+=("Env Constant")
+                else
+                    results_type+=("Global Mutated")
+                fi
+                results_var+=("$var_name")
+                results_line+=("$line_number")
+                results_context+=("Global")
+            else
+                if [[ -z "${local_vars[$var_name]:-}" ]]; then
+                    results_type+=("Local Leak")
+                    results_var+=("$var_name")
+                    results_line+=("$line_number")
+                    results_context+=("$current_function")
+                fi
+            fi
+        fi
+
+    done < "$file_name"
+
+    if $json_mode; then
+        local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+        local tmp_dir="$lab_dir/.tmp/doc"
+        mkdir -p "$tmp_dir" 2>/dev/null
+
+        local relative_path="${file_name#$lab_dir/}"
+        local json_filename="${relative_path//\//_}_scp.json"
+        local json_file="$tmp_dir/$json_filename"
+        
+        echo "{" > "$json_file"
+        echo "  \"file\": \"$file_name\"," >> "$json_file"
+        echo "  \"scope_analysis\": [" >> "$json_file"
+        
+        for ((i=0; i<${#results_var[@]}; i++)); do
+            echo "    {" >> "$json_file"
+            echo "      \"type\": \"${results_type[$i]}\"," >> "$json_file"
+            echo "      \"variable\": \"${results_var[$i]}\"," >> "$json_file"
+            echo "      \"line\": ${results_line[$i]}," >> "$json_file"
+            echo "      \"context\": \"${results_context[$i]}\"" >> "$json_file"
+            
+            if (( i < ${#results_var[@]} - 1 )); then
+                echo "    }," >> "$json_file"
+            else
+                echo "    }" >> "$json_file"
+            fi
+        done
+        
+        echo "  ]" >> "$json_file"
+        echo "}" >> "$json_file"
+        echo "JSON output written to: $json_file"
+    else
+        print_separator
+        print_row "Type" "Variable" "Line" "Context"
+        print_separator
+        for ((i=0; i<${#results_var[@]}; i++)); do
+            print_row "${results_type[$i]}" "${results_var[$i]}" "${results_line[$i]}" "${results_context[$i]}"
+        done
+        print_separator
+    fi
+}
+
+# Retrieves external script imports and required host commands from a file
+# list module dependencies
+# <file path> [-j]
+_ana_dep_truncate() {
+    local str="$1"
+    local width="$2"
+    if [ ${#str} -gt $width ]; then
+        printf "%.*s..." "$((width-3))" "$str"
+    else
+        printf "%-${width}s" "$str"
+    fi
+}
+
+ana_dep() {
+    local target_file=""
+    local json_mode=false
+    local lab_dir="${LAB_DIR:-$(pwd)}"
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -j)
+                json_mode=true
+                shift
+                ;;
+            *)
+                target_file="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [ -z "$target_file" ]; then
+        aux_use
+        return 1
+    fi
+
+    if [ ! -f "$target_file" ]; then
+        aux_err "Target file does not exist: $target_file"
+        return 1
+    fi
+
+    local -a scripts=()
+    local -a commands=()
+
+    # Extract scripts
+    while IFS= read -r line; do
+        if [[ -n "$line" ]]; then
+            scripts+=("$line")
+        fi
+    done < <(grep -E '^\s*(source|\.) ' "$target_file" | sed -E 's/^\s*(source|\.)\s+//' | awk '{print $1}' | sed 's/"//g; s/'\''//g; s/;//g' | sort -u)
+
+    # Extract commands from aux_chk "command"
+    while IFS= read -r line; do
+        if [[ -n "$line" ]]; then
+            commands+=("$line")
+        fi
+    done < <(grep -oE 'aux_chk\s+"command"\s+"[^"]+"' "$target_file" | awk -F'"' '{print $4}' | sort -u)
+
+    # Extract commands from command -v
+    while IFS= read -r line; do
+        if [[ -n "$line" ]]; then
+            commands+=("$line")
+        fi
+    done < <(grep -oE 'command\s+-v\s+[a-zA-Z0-9_-]+' "$target_file" | awk '{print $3}' | sort -u)
+
+    # Dedup commands
+    local -a unique_commands=()
+    if [ ${#commands[@]} -gt 0 ]; then
+        while IFS= read -r line; do
+            if [[ -n "$line" ]]; then
+                unique_commands+=("$line")
+            fi
+        done < <(printf "%s\n" "${commands[@]}" | sort -u)
+    fi
+
+    if [[ "$json_mode" == true ]]; then
+        local tmp_dir="$lab_dir/.tmp/doc"
+        mkdir -p "$tmp_dir"
+        
+        local rel_target="${target_file#$lab_dir/}"
+        rel_target="${rel_target#/}"
+        local json_filename="${rel_target//\//_}.json"
+        local json_file="$tmp_dir/$json_filename"
+
+        local scripts_json="[]"
+        if [ ${#scripts[@]} -gt 0 ]; then
+            scripts_json=$(printf '"%s",' "${scripts[@]}" | sed 's/,$//')
+            scripts_json="[${scripts_json}]"
+        fi
+
+        local commands_json="[]"
+        if [ ${#unique_commands[@]} -gt 0 ]; then
+            commands_json=$(printf '"%s",' "${unique_commands[@]}" | sed 's/,$//')
+            commands_json="[${commands_json}]"
+        fi
+
+        cat << JSONEOF > "$json_file"
+{
+  "analysis_type": "dependencies",
+  "target_file": "$target_file",
+  "dependencies": {
+    "scripts": $scripts_json,
+    "commands": $commands_json
+  }
+}
+JSONEOF
+        echo "JSON output written to: $json_file"
+        echo ""
+    else
+        # Terminal table output
+        local col_width_type=15
+        local col_width_dep=50
+        local total_width=$((col_width_type + col_width_dep + 7))
+        local separator_line="+$(printf '%*s' "$total_width" '' | tr ' ' '-')+"
+
+        echo ""
+        echo "Dependencies for: $target_file"
+        echo "$separator_line"
+        printf "| %-${col_width_type}s | %-${col_width_dep}s |\n" "Type" "Dependency"
+        echo "$separator_line"
+
+        if [ ${#scripts[@]} -gt 0 ]; then
+            for s in "${scripts[@]}"; do
+                printf "| %-${col_width_type}s | %s |\n" "Script Import" "$(_ana_dep_truncate "$s" "$col_width_dep")"
+            done
+        fi
+
+        if [ ${#unique_commands[@]} -gt 0 ]; then
+            for c in "${unique_commands[@]}"; do
+                printf "| %-${col_width_type}s | %s |\n" "Host Command" "$(_ana_dep_truncate "$c" "$col_width_dep")"
+            done
+        fi
+
+        if [ ${#scripts[@]} -eq 0 ] && [ ${#unique_commands[@]} -eq 0 ]; then
+            printf "| %-${col_width_type}s | %s |\n" "None" "$(_ana_dep_truncate "No dependencies found" "$col_width_dep")"
+        fi
+
+        echo "$separator_line"
+        echo ""
+    fi
+}

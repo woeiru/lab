@@ -60,11 +60,20 @@ Currently missing from the `ana` data model:
 
 ## 4. Implementation Strategy
 
+**Parallel Execution Analysis & Notes**
+This plan **CAN** be executed in parallel to save time. The proposed functions (`ana_dep`, `ana_tst`, `ana_err`, `ana_scp`, `ana_rdp`) are logically independent—each analyzes a distinct aspect of the codebase (dependencies, tests, errors, scope, and reverse-dependencies) without relying on the others.
+
+To safely execute in parallel:
+* **Concurrent Development:** Assign each `ana_XYZ` function (and its internal `_ana_XYZ_...` helpers) to a separate track or agent.
+* **Conflict Mitigation:** Since all functions will be added to `lib/gen/ana`, coordinate append operations or use separate git branches to avoid merge conflicts.
+* **Independent Validation:** The test files (`val/lib/gen/ana_XYZ_test.sh`) are entirely separate, allowing parallel test execution without interference.
+* **Collapsed Phasing:** The phased rollout below can be ignored if resources permit parallel implementation; all phases can be tackled simultaneously.
+
 1. **Format Standards**: Like existing `ana_laf`, all new functions must support:
    * A terminal-friendly tabular view.
    * A `-j` (JSON) mode specifically to serve as the data retriever for `val/doc`.
 2. **Placement**: Add these to the end of `lib/gen/ana` using the standard `ana_XYZ` prefix. Keep internal logic in `_ana_XYZ_...` helpers.
-3. **Rollout Order**:
+3. **Rollout Order (Can be collapsed if parallelized)**:
    * Phase 1: `ana_dep` and `ana_tst` (highest immediate value for documentation scaffolding).
    * Phase 2: `ana_err` (critical for API contracts).
    * Phase 3: `ana_rdp` and `ana_scp` (advanced analysis/linting).
