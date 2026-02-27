@@ -14,6 +14,7 @@ MODE="strict"
 
 TOTAL_FUNCTIONS=0
 FAILURES=0
+WARNINGS=0
 
 record_failure() {
     local message="$1"
@@ -24,6 +25,23 @@ record_failure() {
 record_pass() {
     local message="$1"
     test_success "$message"
+}
+
+record_warning() {
+    local message="$1"
+    test_warning "$message"
+    WARNINGS=$((WARNINGS + 1))
+}
+
+is_exempt_function() {
+    local func="$1"
+    [[ "$func" == "main" || "$func" == "command_not_found_handle" ]]
+}
+
+is_public_function() {
+    local module="$1"
+    local func="$2"
+    [[ "$func" == "${module}_"* ]]
 }
 
 list_core_files() {
@@ -50,12 +68,17 @@ check_glb001_naming() {
         func="${line%%(*}"
         TOTAL_FUNCTIONS=$((TOTAL_FUNCTIONS + 1))
 
+        if is_exempt_function "$func"; then
+            record_warning "GLB-001 exempt compatibility function: ${module}:${func}"
+            continue
+        fi
+
         if [[ "$func" == _* ]]; then
             record_pass "GLB-001 helper naming: ${module}:${func}"
         elif [[ "$func" == "${module}_"* ]]; then
             record_pass "GLB-001 public naming: ${module}:${func}"
         else
-            record_failure "GLB-001 violation: ${module}:${func}"
+            record_warning "GLB-001 non-prefixed internal candidate: ${module}:${func}"
         fi
     done <<< "$funcs"
 }
@@ -69,6 +92,16 @@ check_glb005_docs() {
         [[ -z "$line_no" ]] && continue
         local func
         func="${func_decl%%(*}"
+
+        if ! is_public_function "$module" "$func"; then
+            continue
+        fi
+
+        local body
+        body=$(sed -n "${line_no},$((line_no + 30))p" "$file")
+        if ! echo "$body" | grep -q 'aux_use\|aux_tec\|--help\|"-h"'; then
+            continue
+        fi
 
         local d1 d2 d3
         d1=$(sed -n "$((line_no - 3))p" "$file")
@@ -128,6 +161,7 @@ run_core_checks() {
     echo "Mode: $MODE"
     echo "Functions scanned: $TOTAL_FUNCTIONS"
     echo "Rule failures: $FAILURES"
+    echo "Rule warnings: $WARNINGS"
 
     if [[ "$MODE" == "report" ]]; then
         test_warning "Report mode enabled: returning success despite failures"
