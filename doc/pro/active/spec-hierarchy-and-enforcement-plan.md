@@ -172,6 +172,32 @@ Keep in `lib/.spec` only if it applies to all `lib/*` modules without exception.
 
 These IDs are intended to be consumed by the upcoming rule-to-test matrix in `val/`.
 
+## Rule-to-test matrix (first implementation)
+
+Global rules:
+
+- `GLB-001` -> `val/core/std_compliance_test.sh` (naming checks), `val/lib/gen/std_compliance_test.sh` (naming checks), `val/lib/ops/std_compliance_test.sh` (module function naming patterns).
+- `GLB-003` -> `val/core/std_compliance_test.sh` (help return behavior scan), `val/lib/gen/std_compliance_test.sh` (help return behavior scan), `val/lib/ops/std_compliance_test.sh` (help-system checks).
+- `GLB-004` -> `val/lib/gen/std_compliance_test.sh` (invalid-usage path presence), `val/lib/ops/std_compliance_test.sh` (validation + usage behavior checks).
+- `GLB-005` -> `val/core/std_compliance_test.sh` and `val/lib/gen/std_compliance_test.sh` (3-line usage block + technical sections).
+- `GLB-007` -> `val/lib/ops/std_compliance_test.sh` (error/return code pattern checks).
+- `GLB-008` -> planned follow-up scanner for secret hardcoding patterns (not yet implemented).
+- `GLB-009` -> `val/lib/ops/std_compliance_test.sh` (error handling/explicit return path checks, partial coverage).
+- `GLB-010` -> this matrix section + active checklist mapping (process gate).
+
+Ops rules:
+
+- `OPS-004` / `OPS-005` / `OPS-006` -> `val/lib/ops/std_compliance_test.sh` (parameter/help validation behavior).
+- `OPS-007` / `OPS-008` / `OPS-010` -> `val/lib/ops/std_compliance_test.sh` (aux logging and logging pattern checks).
+- `OPS-012` / `OPS-013` / `OPS-014` / `OPS-015` -> `val/lib/ops/std_compliance_test.sh` (validation, dependency, and return-code checks).
+- `OPS-020` / `OPS-021` -> `val/lib/ops/std_compliance_test.sh` (documentation block checks).
+
+Module-specific rollout:
+
+- `lib/core`: report mode available via `./val/core/std_compliance_test.sh --report`.
+- `lib/gen`: report mode available via `./val/lib/gen/std_compliance_test.sh --report`.
+- `lib/ops`: report mode available via `./val/lib/ops/std_compliance_test.sh --report`.
+
 ## Exact extraction and cut list for current `lib/.spec`
 
 This is the first-pass surgical map for moving `lib/.spec` to global-only content.

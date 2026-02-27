@@ -15,6 +15,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../../helpers/test_framework.sh"
 readonly TEST_LAB_DIR="$LAB_ROOT"
 readonly LIB_OPS_DIR="$TEST_LAB_DIR/lib/ops"
 readonly AUX_LIB="$TEST_LAB_DIR/lib/gen/aux"
+MODE="strict"
 
 # Compliance metrics
 declare -g TOTAL_FUNCTIONS=0
@@ -663,6 +664,29 @@ generate_compliance_report() {
 
 # Main test suite execution
 main() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --report)
+                MODE="report"
+                shift
+                ;;
+            --help|-h)
+                cat <<'EOF'
+Usage: ./val/lib/ops/std_compliance_test.sh [--report]
+
+Options:
+  --report   Report-only mode (always exits 0)
+  -h, --help Show this help
+EOF
+                return 0
+                ;;
+            *)
+                echo "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
     test_header "STD COMPLIANCE TESTS"
     
     # Prerequisites
@@ -698,8 +722,15 @@ main() {
     
     # Generate report
     generate_compliance_report
-    
+
     test_footer
+
+    if [[ "$MODE" == "report" ]]; then
+        test_warning "Report mode enabled: returning success despite failures"
+        return 0
+    fi
+
+    [[ ${FRAMEWORK_TESTS_FAILED:-0} -eq 0 ]]
 }
 
 # Run if executed directly

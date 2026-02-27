@@ -3,7 +3,7 @@
 # Logging Contract Consistency Test
 #######################################################################
 # File: val/core/log_contract_test.sh
-# Description: Prevents drift between lib/.spec, lib/gen/aux, and cfg/log
+# Description: Prevents drift between specs, lib/gen/aux, and cfg/log
 #######################################################################
 
 # Test configuration
@@ -48,10 +48,15 @@ test_cfg_log_has_no_legacy_targets() {
         bash -c "! grep -R -qE 'aux_debug' '$cfg_log_dir'"
 }
 
-test_spec_references_cfg_log_contract() {
-    local spec_file="${LAB_ROOT}/lib/.spec"
-    run_test "lib/.spec references cfg/log contract" \
-        grep -qE 'cfg/log/README\.md' "$spec_file"
+test_spec_references_logging_contract() {
+    local global_spec="${LAB_ROOT}/lib/.spec"
+    local ops_spec="${LAB_ROOT}/lib/ops/.spec"
+
+    run_test "global spec exists" test -f "$global_spec"
+    run_test "ops spec exists" test -f "$ops_spec"
+
+    run_test "ops spec defines structured logging contract" \
+        grep -qE 'Structured logging contract|structured operational logs' "$ops_spec"
 }
 
 main() {
@@ -61,7 +66,7 @@ main() {
     run_test test_aux_emits_consolidated_targets
     run_test test_cfg_log_ingests_current_targets
     run_test test_cfg_log_has_no_legacy_targets
-    run_test test_spec_references_cfg_log_contract
+    run_test test_spec_references_logging_contract
 
     test_footer
 }
