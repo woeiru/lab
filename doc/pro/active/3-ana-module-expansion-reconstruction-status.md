@@ -32,8 +32,8 @@ These were the two likely gaps after 3.1-3.5 review documents were moved into `a
 | 3.1 | `ana_dep` | present | `2-ana-dep-strict-review.md` | `./val/lib/gen/ana_dep_test.sh`: pass (13/13) | resolved |
 | 3.2 | `ana_tst` | present | `2-ana-tst-strict-review.md` | `./val/lib/gen/ana_tst_test.sh`: pass (8/8) | resolved |
 | 3.3 | `ana_err` | present | `2-ana-err-strict-review.md` + `1-ana-implementation-review.md` | `./val/lib/gen/ana_err_test.sh`: pass (7/7), includes real-file JSON parse check | resolved |
-| 3.4 | `ana_scp` | present | `2-ana-scp-strict-review.md` | pass (11/11) | mostly done |
-| 3.5 | `ana_rdp` | present | `2-ana-rdp-strict-review.md` | pass (5/5) | mostly done |
+| 3.4 | `ana_scp` | present | `2-ana-scp-strict-review.md` | `./val/lib/gen/ana_scp_test.sh`: pass (11/11) | resolved |
+| 3.5 | `ana_rdp` | present | `2-ana-rdp-strict-review.md` | `./val/lib/gen/ana_rdp_test.sh`: pass (5/5) | resolved |
 
 ## Completed fixes
 
@@ -58,5 +58,6 @@ Implemented/verified in this pass:
 
 ## Remaining action order
 
-1. Promote `ana_scp` and `ana_rdp` from "mostly done" to strict revalidation state with fresh targeted tests.
-2. Run `./val/run_all_tests.sh lib` after any additional `lib/gen/ana` changes to keep module-level confidence high.
+1. `ana_scp`/`ana_rdp` strict revalidation is complete; keep rerunning their focused suites when `lib/gen/ana` changes.
+2. `./val/run_all_tests.sh lib` was run after this pass and reports unrelated failures outside ana scope (`col_test`, `dummy_col_test`, `sec_test`, `gpu_std_compliance_test`, `gpu_test`).
+3. If a clean `lib` category baseline is required for closure, triage those five non-ana failures in their owner modules.
