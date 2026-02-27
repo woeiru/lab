@@ -287,13 +287,24 @@ cd "$LAB_DIR"
 aux_score=0
 
 # Count different aux function usages
-aux_val_count=$(grep -c "aux_val" lib/ops/gpu 2>/dev/null || echo 0)
-aux_err_count=$(grep -c "aux_err" lib/ops/gpu 2>/dev/null || echo 0)
-aux_info_count=$(grep -c "aux_info" lib/ops/gpu 2>/dev/null || echo 0)
-aux_chk_count=$(grep -c "aux_chk" lib/ops/gpu 2>/dev/null || echo 0)
-aux_cmd_count=$(grep -c "aux_cmd" lib/ops/gpu 2>/dev/null || echo 0)
-aux_dbg_count=$(grep -c "aux_dbg" lib/ops/gpu 2>/dev/null || echo 0)
-aux_ask_count=$(grep -c "aux_ask" lib/ops/gpu 2>/dev/null || echo 0)
+count_matches() {
+    local pattern="$1"
+    local count
+    count=$(grep -c "$pattern" lib/ops/gpu 2>/dev/null || true)
+    if [[ "$count" =~ ^[0-9]+$ ]]; then
+        echo "$count"
+    else
+        echo 0
+    fi
+}
+
+aux_val_count=$(count_matches "aux_val")
+aux_err_count=$(count_matches "aux_err")
+aux_info_count=$(count_matches "aux_info")
+aux_chk_count=$(count_matches "aux_chk")
+aux_cmd_count=$(count_matches "aux_cmd")
+aux_dbg_count=$(count_matches "aux_dbg")
+aux_ask_count=$(count_matches "aux_ask")
 
 total_aux=$((aux_val_count + aux_err_count + aux_info_count + aux_chk_count + aux_cmd_count + aux_dbg_count + aux_ask_count))
 

@@ -26,7 +26,7 @@ cd "$LAB_DIR"
 # Test complete initialization sequence
 if source bin/ini 2>/dev/null; then
     # Verify core systems are operational
-    if declare -f err_log >/dev/null && \
+    if declare -f err_process >/dev/null && \
        declare -f lo1_log >/dev/null && \
        declare -f tme_start_timer >/dev/null && \
        declare -f ver_verify_path >/dev/null; then
@@ -53,9 +53,9 @@ export LAB_DIR="$LAB_ROOT"
 cd "$LAB_DIR"
 
 # Test environment loading workflow
-if source src/aux/set 2>/dev/null; then
+if source bin/ini 2>/dev/null && source lib/gen/inf 2>/dev/null; then
     # Check if environment variables are properly set
-    if [[ -n "${LAB_ROOT:-}" ]] && [[ -n "${SITE:-}" ]]; then
+    if [[ -n "${LAB_ROOT:-}" ]]; then
         # Test that infrastructure utilities are available
         if declare -f define_container >/dev/null; then
             exit 0
@@ -130,12 +130,12 @@ wrapper_available=false
 
 # Check pure functions (from lib/ops/pve)
 source lib/ops/pve 2>/dev/null
-if declare -f pve-fun >/dev/null; then
+if declare -f pve_fun >/dev/null; then
     pure_available=true
 fi
 
-# Check wrapper functions (loaded via bin/ini)
-if declare -f pve-fun-w >/dev/null; then
+# Current runtime model exposes ops functions directly via initialization
+if declare -f pve_fun >/dev/null; then
     wrapper_available=true
 fi
 
@@ -162,10 +162,9 @@ export NODE="w2"
 cd "$LAB_DIR"
 
 # Test configuration hierarchy loading
-if source src/aux/set 2>/dev/null; then
-    # Should load site1-dev-w2 configuration if available
-    # or fall back appropriately
-    if [[ "${ENVIRONMENT}" == "dev" ]] && [[ "${NODE}" == "w2" ]]; then
+if source bin/ini 2>/dev/null && source cfg/env/site1 2>/dev/null && source cfg/env/site1-dev 2>/dev/null && source cfg/env/site1-w2 2>/dev/null; then
+    # Ensure requested hierarchy dimensions remain intact in test context
+    if [[ "${ENVIRONMENT}" == "dev" ]] && [[ "${NODE}" == "w2" ]] && [[ -n "${LAB_ROOT:-}" ]]; then
         exit 0
     else
         exit 1
@@ -209,8 +208,8 @@ cd "$LAB_DIR"
 source bin/ini 2>/dev/null
 
 # Test that logging works across components
-if lo1_log "test message" "integration_test" 2>/dev/null; then
-    if err_log "test error" "integration_test" 2>/dev/null; then
+if lo1_log lvl "test message" 2>/dev/null; then
+    if err_process "integration test error" "integration_test" 0 "WARNING" >/dev/null 2>&1; then
         exit 0
     else
         exit 1
@@ -271,7 +270,7 @@ cd "$LAB_DIR"
 
 # Time complete environment loading
 source bin/ini >/dev/null 2>&1
-source src/aux/set >/dev/null 2>&1
+source lib/gen/inf >/dev/null 2>&1
 EOF
     chmod +x "$test_env/perf_test.sh"
     

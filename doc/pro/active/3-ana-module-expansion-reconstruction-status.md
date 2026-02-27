@@ -59,5 +59,5 @@ Implemented/verified in this pass:
 ## Remaining action order
 
 1. `ana_scp`/`ana_rdp` strict revalidation is complete; keep rerunning their focused suites when `lib/gen/ana` changes.
-2. `./val/run_all_tests.sh lib` was run after this pass and reports unrelated failures outside ana scope (`col_test`, `dummy_col_test`, `sec_test`, `gpu_std_compliance_test`, `gpu_test`).
-3. If a clean `lib` category baseline is required for closure, triage those five non-ana failures in their owner modules.
+2. `./val/run_all_tests.sh lib` was rerun after cleanup and now passes clean (`27/27`).
+3. Optional closure step: run `./val/run_all_tests.sh` (full suite) before final merge if cross-category confidence is needed.

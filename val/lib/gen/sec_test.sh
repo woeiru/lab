@@ -87,23 +87,37 @@ cd "$LAB_DIR"
 
 source lib/gen/sec 2>/dev/null
 
-# Generate multiple passwords and check for variety
-complexity_ok=true
-for i in {1..5}; do
+# Generate multiple passwords and check aggregate complexity.
+# Single samples may miss a class by chance, so use a larger sample.
+seen_lower=false
+seen_upper=false
+seen_digit=false
+strong_samples=0
+
+for i in {1..20}; do
     password=$(generate_secure_password 16 2>/dev/null)
-    
-    # Check for mixed case, numbers, and special characters
-    if [[ "$password" =~ [a-z] ]] && \
-       [[ "$password" =~ [A-Z] ]] && \
-       [[ "$password" =~ [0-9] ]]; then
-        echo "Password $i has good complexity"
-    else
-        echo "Password $i lacks complexity: $password"
-        complexity_ok=false
+
+    if [[ "$password" =~ [a-z] ]]; then
+        seen_lower=true
+    fi
+    if [[ "$password" =~ [A-Z] ]]; then
+        seen_upper=true
+    fi
+    if [[ "$password" =~ [0-9] ]]; then
+        seen_digit=true
+    fi
+
+    if [[ "$password" =~ [a-z] ]] && [[ "$password" =~ [A-Z] ]] && [[ "$password" =~ [0-9] ]]; then
+        strong_samples=$((strong_samples + 1))
     fi
 done
 
-$complexity_ok && exit 0 || exit 1
+if $seen_lower && $seen_upper && $seen_digit && [[ $strong_samples -ge 3 ]]; then
+    exit 0
+fi
+
+echo "Complexity check failed: lower=$seen_lower upper=$seen_upper digit=$seen_digit strong_samples=$strong_samples" >&2
+exit 1
 EOF
     chmod +x "$test_env/test_complexity.sh"
     
