@@ -25,6 +25,11 @@ declare -g HELP_COMPLIANT=0
 declare -g ERROR_HANDLING_COMPLIANT=0
 declare -g DOCUMENTATION_COMPLIANT=0
 declare -g AUX_INTEGRATION_COMPLIANT=0
+declare -g VALIDATION_TOTAL=0
+declare -g HELP_TOTAL=0
+declare -g ERROR_TOTAL=0
+declare -g DOC_TOTAL=0
+declare -g AUX_TOTAL=0
 
 # Function categories for integration requirements
 declare -A SYSTEM_OPS_MODULES=(["sys"]=1 ["srv"]=1 ["net"]=1 ["pve"]=1 ["gpu"]=1 ["sto"]=1 ["ssh"]=1 ["pbs"]=1)
@@ -95,7 +100,8 @@ EOF
     local stats_output=$(bash "$test_env/test_validation.sh" 2>&1 | grep "VALIDATION_STATS")
     if [[ "$stats_output" =~ VALIDATION_STATS:([0-9]+):([0-9]+) ]]; then
         VALIDATION_COMPLIANT=${BASH_REMATCH[1]}
-        TOTAL_FUNCTIONS=${BASH_REMATCH[2]}
+        VALIDATION_TOTAL=${BASH_REMATCH[2]}
+        TOTAL_FUNCTIONS=${VALIDATION_TOTAL}
     fi
     
     cleanup_test_env "$test_env"
@@ -151,6 +157,7 @@ EOF
     local output=$(bash "$test_env/test_help.sh" 2>&1 | grep "HELP_STATS")
     if [[ "$output" =~ HELP_STATS:([0-9]+):([0-9]+) ]]; then
         HELP_COMPLIANT=${BASH_REMATCH[1]}
+        HELP_TOTAL=${BASH_REMATCH[2]}
     fi
     
     cleanup_test_env "$test_env"
@@ -173,11 +180,13 @@ for module_file in lib/ops/*; do
     [[ ! -f "$module_file" ]] && continue
     _bn="$(basename "$module_file")"
     [[ "$_bn" == .* || "$_bn" == *.md ]] && continue
+    module_name="$_bn"
     
     # Check for proper error handling patterns
     while IFS= read -r func_line; do
         [[ -z "$func_line" ]] && continue
         func_name=$(echo "$func_line" | cut -d'(' -f1)
+        [[ ! "$func_name" =~ ^${module_name}_ ]] && continue
         
         ((total_functions++))
         
@@ -209,6 +218,7 @@ EOF
     local output=$(bash "$test_env/test_errors.sh" 2>&1 | grep "ERROR_STATS")
     if [[ "$output" =~ ERROR_STATS:([0-9]+):([0-9]+) ]]; then
         ERROR_HANDLING_COMPLIANT=${BASH_REMATCH[1]}
+        ERROR_TOTAL=${BASH_REMATCH[2]}
     fi
     
     cleanup_test_env "$test_env"
@@ -231,11 +241,13 @@ for module_file in lib/ops/*; do
     [[ ! -f "$module_file" ]] && continue
     _bn="$(basename "$module_file")"
     [[ "$_bn" == .* || "$_bn" == *.md ]] && continue
+    module_name="$_bn"
     
     # Check for proper documentation format
     while IFS= read -r func_line; do
         [[ -z "$func_line" ]] && continue
         func_name=$(echo "$func_line" | cut -d'(' -f1)
+        [[ ! "$func_name" =~ ^${module_name}_ ]] && continue
         
         ((total_functions++))
         
@@ -277,6 +289,7 @@ EOF
     local output=$(bash "$test_env/test_docs.sh" 2>&1 | grep "DOC_STATS")
     if [[ "$output" =~ DOC_STATS:([0-9]+):([0-9]+) ]]; then
         DOCUMENTATION_COMPLIANT=${BASH_REMATCH[1]}
+        DOC_TOTAL=${BASH_REMATCH[2]}
     fi
     
     cleanup_test_env "$test_env"
@@ -310,6 +323,7 @@ for module_file in lib/ops/*; do
     while IFS= read -r func_line; do
         [[ -z "$func_line" ]] && continue
         func_name=$(echo "$func_line" | cut -d'(' -f1)
+        [[ ! "$func_name" =~ ^${module_name}_ ]] && continue
         
         ((total_functions++))
         
@@ -346,6 +360,7 @@ EOF
     local output=$(bash "$test_env/test_aux_integration.sh" 2>&1 | grep "AUX_STATS")
     if [[ "$output" =~ AUX_STATS:([0-9]+):([0-9]+) ]]; then
         AUX_INTEGRATION_COMPLIANT=${BASH_REMATCH[1]}
+        AUX_TOTAL=${BASH_REMATCH[2]}
     fi
     
     cleanup_test_env "$test_env"
@@ -619,24 +634,22 @@ generate_compliance_report() {
     local doc_percent=0
     local aux_percent=0
     
-    if [[ $TOTAL_FUNCTIONS -gt 0 ]]; then
-        val_percent=$((VALIDATION_COMPLIANT * 100 / TOTAL_FUNCTIONS))
-        help_percent=$((HELP_COMPLIANT * 100 / TOTAL_FUNCTIONS))
-        error_percent=$((ERROR_HANDLING_COMPLIANT * 100 / TOTAL_FUNCTIONS))
-        doc_percent=$((DOCUMENTATION_COMPLIANT * 100 / TOTAL_FUNCTIONS))
-        aux_percent=$((AUX_INTEGRATION_COMPLIANT * 100 / TOTAL_FUNCTIONS))
-    fi
+    [[ ${VALIDATION_TOTAL:-0} -gt 0 ]] && val_percent=$((VALIDATION_COMPLIANT * 100 / VALIDATION_TOTAL))
+    [[ ${HELP_TOTAL:-0} -gt 0 ]] && help_percent=$((HELP_COMPLIANT * 100 / HELP_TOTAL))
+    [[ ${ERROR_TOTAL:-0} -gt 0 ]] && error_percent=$((ERROR_HANDLING_COMPLIANT * 100 / ERROR_TOTAL))
+    [[ ${DOC_TOTAL:-0} -gt 0 ]] && doc_percent=$((DOCUMENTATION_COMPLIANT * 100 / DOC_TOTAL))
+    [[ ${AUX_TOTAL:-0} -gt 0 ]] && aux_percent=$((AUX_INTEGRATION_COMPLIANT * 100 / AUX_TOTAL))
     
-    echo "║ Parameter Validation:    $VALIDATION_COMPLIANT/$TOTAL_FUNCTIONS ($val_percent%)"
-    echo "║ Help System:             $HELP_COMPLIANT/$TOTAL_FUNCTIONS ($help_percent%)"
-    echo "║ Error Handling:          $ERROR_HANDLING_COMPLIANT/$TOTAL_FUNCTIONS ($error_percent%)"
-    echo "║ Documentation:           $DOCUMENTATION_COMPLIANT/$TOTAL_FUNCTIONS ($doc_percent%)"
-    echo "║ Aux Integration:         $AUX_INTEGRATION_COMPLIANT/$TOTAL_FUNCTIONS ($aux_percent%)"
+    echo "║ Parameter Validation:    $VALIDATION_COMPLIANT/$VALIDATION_TOTAL ($val_percent%)"
+    echo "║ Help System:             $HELP_COMPLIANT/$HELP_TOTAL ($help_percent%)"
+    echo "║ Error Handling:          $ERROR_HANDLING_COMPLIANT/$ERROR_TOTAL ($error_percent%)"
+    echo "║ Documentation:           $DOCUMENTATION_COMPLIANT/$DOC_TOTAL ($doc_percent%)"
+    echo "║ Aux Integration:         $AUX_INTEGRATION_COMPLIANT/$AUX_TOTAL ($aux_percent%)"
     echo "╠══════════════════════════════════════════════════════════════════╣"
     
     # Overall compliance score
     local total_checks=$((VALIDATION_COMPLIANT + HELP_COMPLIANT + ERROR_HANDLING_COMPLIANT + DOCUMENTATION_COMPLIANT + AUX_INTEGRATION_COMPLIANT))
-    local max_checks=$((TOTAL_FUNCTIONS * 5))
+    local max_checks=$((VALIDATION_TOTAL + HELP_TOTAL + ERROR_TOTAL + DOC_TOTAL + AUX_TOTAL))
     local overall_percent=0
     [[ $max_checks -gt 0 ]] && overall_percent=$((total_checks * 100 / max_checks))
     

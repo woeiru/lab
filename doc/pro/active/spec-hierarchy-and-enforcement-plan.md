@@ -110,6 +110,27 @@ Deliverable:
 2. Add or update compliance tests for `GLB-*` and `OPS-*` rule coverage in report mode.
 3. Run module-level compliance checks and capture remediation gaps.
 
+## Status checkpoint (2026-02-28)
+
+Done:
+
+- `lib/.spec` was reduced to global-only baseline with enforceable `GLB-*` rules.
+- `lib/ops/.spec` now holds ops/DIC-specific `OPS-*` specialization rules.
+- Rule-to-test matrix was added and linked to `val/` checks.
+- Report-mode compliance entrypoints are available for `core`, `gen`, and `ops`.
+- Scanner signal quality was improved for `core` and `gen` (false-positive reduction).
+- First remediation pass completed in `lib/gen` (`ana`, `aux`, `env`) to clear current hard failures.
+
+In progress:
+
+- Align `ops` report quality with `core`/`gen` by reducing false positives in module-scoped checks.
+
+Next:
+
+1. Finish `ops` signal-quality pass and rerun report baseline.
+2. Define strict-mode cutover criteria per module (`core`, `gen`, `ops`).
+3. Add missing check for `GLB-008` (secret hardcoding scanner).
+
 ## Proposed target outline for `lib/.spec` (global-only)
 
 `lib/.spec` should be reduced to a short normative baseline that can be enforced across `lib/core`, `lib/gen`, and `lib/ops`.
