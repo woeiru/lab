@@ -83,9 +83,119 @@ test_ana_dep_missing_params() {
     fi
 }
 
+
+test_ana_dep_escaping() {
+    describe "ana_dep JSON escaping"
+    ((FRAMEWORK_TESTS_RUN++))
+    
+    local fixture_file=".tmp/test_fixture_esc\"_quote.sh"
+    mkdir -p .tmp
+    cat << 'FIXTURE' > "$fixture_file"
+#!/bin/bash
+source "lib/gen/\"quoted\"_file"
+aux_chk "command" "my\\cmd"
+FIXTURE
+
+    local output
+    output=$(ana_dep -j "$fixture_file" 2>&1)
+    local status=$?
+    
+    if [[ $status -eq 0 ]]; then
+        pass "Command executed successfully with -j on fixture"
+    else
+        fail "Command failed with -j on fixture"
+        return 1
+    fi
+    
+    ((FRAMEWORK_TESTS_RUN++))
+    local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
+    local rel_target="${fixture_file#$lab_dir/}"
+    rel_target="${rel_target#/}"
+    local json_filename="${rel_target//\//_}.json"
+    local json_file="$lab_dir/.tmp/doc/$json_filename"
+    
+    if [[ -f "$json_file" ]]; then
+        pass "JSON fixture file created successfully"
+    else
+        fail "JSON fixture file not created at $json_file"
+        return 1
+    fi
+    
+    ((FRAMEWORK_TESTS_RUN++))
+    local json_content=$(cat "$json_file")
+    if printf '%s\n' "$json_content" | grep -qF 'test_fixture_esc\"_quote.sh' && \
+       printf '%s\n' "$json_content" | grep -qF 'my\\\\cmd'; then
+        pass "JSON content is properly escaped"
+    else
+        fail "JSON content missing expected escaped strings"
+        echo "JSON content: $json_content"
+    fi
+}
+
+test_ana_dep_invalid_args() {
+    describe "ana_dep invalid arguments"
+    
+    ((FRAMEWORK_TESTS_RUN++))
+    local output
+    output=$(ana_dep --invalid-flag 2>&1)
+    if [[ $? -ne 0 ]] && echo "$output" | grep -q "Unknown option"; then
+        pass "Rejects unknown flags"
+    else
+        fail "Did not reject unknown flags properly"
+        echo "Output was: $output"
+    fi
+    
+    ((FRAMEWORK_TESTS_RUN++))
+    output=$(ana_dep "file1" "file2" 2>&1)
+    if [[ $? -ne 0 ]] && echo "$output" | grep -q "Too many positional arguments"; then
+        pass "Rejects multiple positional arguments"
+    else
+        fail "Did not reject multiple positional arguments properly"
+        echo "Output was: $output"
+    fi
+    
+    ((FRAMEWORK_TESTS_RUN++))
+    output=$(ana_dep "nonexistent_file_12345" 2>&1)
+    if [[ $? -ne 0 ]] && echo "$output" | grep -q "Target file does not exist"; then
+        pass "Rejects nonexistent files"
+    else
+        fail "Did not reject nonexistent files properly"
+    fi
+    
+    ((FRAMEWORK_TESTS_RUN++))
+    output=$(ana_dep --help 2>&1)
+    if [[ $? -eq 0 ]] && echo "$output" | grep -q -i "Usage"; then
+        pass "Supports --help flag"
+    else
+        fail "Did not support --help flag properly"
+        echo "Output was: $output"
+    fi
+}
+
+test_ana_dep_lab_dir_fallback() {
+    describe "ana_dep LAB_DIR fallback"
+    ((FRAMEWORK_TESTS_RUN++))
+    
+    local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
+    local output
+    # Unset LAB_DIR and run from /tmp
+    output=$(cd /tmp && unset LAB_DIR && source "$lab_dir/lib/gen/aux" && source "$lab_dir/lib/gen/ana" && ana_dep -j "$lab_dir/lib/ops/pve" 2>&1)
+    local status=$?
+    
+    if [[ $status -eq 0 ]] && [[ -f "$lab_dir/.tmp/doc/lib_ops_pve.json" ]]; then
+        pass "Fallback LAB_DIR resolves to repo root correctly"
+    else
+        fail "Fallback LAB_DIR resolution failed"
+        echo "Output: $output"
+    fi
+}
+
 # Run tests
 test_ana_dep_terminal_output
 test_ana_dep_json_output
 test_ana_dep_missing_params
+test_ana_dep_escaping
+test_ana_dep_invalid_args
+test_ana_dep_lab_dir_fallback
 
 test_footer

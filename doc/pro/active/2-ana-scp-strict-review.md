@@ -22,26 +22,25 @@ Assess the implementation quality of `ana_scp` (Variable Scope & Integrity Analy
 ## Validation Run
 - `bash -n lib/gen/ana` -> pass
 - `bash -n val/lib/gen/ana_scp_test.sh` -> pass
-- `./val/lib/gen/ana_scp_test.sh` -> pass (6/6)
+- `./val/lib/gen/ana_scp_test.sh` -> pass (11/11)
 
 ## Findings (ranked by severity)
 
-### High
+### Resolved (top 3)
 
-1) Missing required CLI contract (`--help/-h`, invalid-option handling, usage helpers)
-- Location: `lib/gen/ana` around argument parsing and input guard in `ana_scp`
-- Impact: Violates repository standards for user-facing functions; inconsistent behavior for operators and downstream scripts.
-- Recommended fix: Add explicit `-h|--help` handling (return `0`), unknown-option failure path (return `1`), and integrate `aux_use`/`aux_tec`/`aux_val` patterns used by this codebase.
+1) Missing required CLI contract (`--help/-h`, invalid-option handling, usage helpers) -> **resolved**
+- Implemented explicit `-h|--help` handling (`0`), invalid-option rejection (`1`), and strict argument-count validation.
+- Integrated usage/error flow through `aux_use` and input validation via `aux_val`.
+- Added tests for help and invalid-option behavior.
 
-2) Helper functions declared inside `ana_scp` leak globally and are too generic
-- Location: nested helper definitions `truncate_and_pad`, `print_separator`, `print_row`
-- Impact: Bash nested function definitions are global; names can collide with other module functions and alter behavior after first call.
-- Recommended fix: Move helpers out to namespaced private functions (`_ana_scp_*`) or inline formatting logic to avoid globally registered generic names.
+2) Helper functions declared inside `ana_scp` leak globally and are too generic -> **resolved**
+- Replaced nested generic helpers with namespaced file-scope helpers: `_ana_scp_truncate_and_pad`, `_ana_scp_print_separator`, `_ana_scp_print_row`.
+- Added regression test to verify generic helper names are not leaked.
 
-3) JSON output generation does not escape JSON-sensitive characters
-- Location: JSON writer block in `ana_scp -j`
-- Impact: Invalid JSON when values contain `"` or `\\` (or control chars), which can break documentation/API consumers.
-- Recommended fix: Add `_ana_scp_json_escape` and write fields with escaped content; use `printf` for controlled emission.
+3) JSON output generation does not escape JSON-sensitive characters -> **resolved**
+- Added `_ana_scp_json_escape` for `\\`, `"`, and control-character escaping (`\n`, `\r`, `\t`, `\f`, `\b`).
+- Switched JSON writes to `printf`-driven emission with escaped values.
+- Added targeted tests covering quote/backslash and control-character escaping.
 
 ### Medium
 
@@ -61,14 +60,13 @@ Assess the implementation quality of `ana_scp` (Variable Scope & Integrity Analy
 - Location: `val/lib/gen/ana_scp_test.sh`
 - Impact: Current suite passes despite important parser and output contract weaknesses.
 - Recommended fix: Add coverage for:
-  - `-h/--help` and invalid option behavior
   - `declare -g`, `export -f`, and multi-variable declarations
   - quoted/hash-containing assignments
   - nested/braced structures affecting scope state
-  - JSON escaping and parse-validity checks
+  - JSON parse-validity checks of generated files
 
-## Top 3 Fixes To Do First
+## Next 3 Fixes To Do
 
-1. Implement safe JSON escaping for `ana_scp -j` output.
-2. Replace nested generic helpers with namespaced `_ana_scp_*` helpers.
-3. Add standards-compliant argument handling (`--help/-h`, unknown options, proper usage/errors).
+1. Harden function-scope tracking to avoid premature function-end detection on standalone `}`.
+2. Replace naive comment stripping with quote-aware parsing logic.
+3. Expand fixture coverage for `declare -g`, `export -f`, multi-variable declarations, and hash-in-string assignments.

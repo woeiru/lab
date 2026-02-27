@@ -1619,6 +1619,58 @@ ana_err() {
     fi
 }
 
+# Internal helper to truncate and pad ana_scp columns
+_ana_scp_truncate_and_pad() {
+    local str="$1"
+    local width="$2"
+    if [ ${#str} -gt "$width" ]; then
+        printf "%s" "${str:0:$((width-2))}.."
+    else
+        printf "%-${width}s" "$str"
+    fi
+}
+
+# Internal helper to print ana_scp separator row
+_ana_scp_print_separator() {
+    local col_width_type="$1"
+    local col_width_var="$2"
+    local col_width_line="$3"
+    local col_width_context="$4"
+    local total=$((col_width_type + col_width_var + col_width_line + col_width_context + 11))
+    printf "+%s+\n" "$(printf '%*s' "$total" '' | tr ' ' '-')"
+}
+
+# Internal helper to print one ana_scp table row
+_ana_scp_print_row() {
+    local col_width_type="$1"
+    local col_width_var="$2"
+    local col_width_line="$3"
+    local col_width_context="$4"
+    local type_value="$5"
+    local var_value="$6"
+    local line_value="$7"
+    local context_value="$8"
+
+    printf "| %s | %s | %s | %s |\n" \
+        "$(_ana_scp_truncate_and_pad "$type_value" "$col_width_type")" \
+        "$(_ana_scp_truncate_and_pad "$var_value" "$col_width_var")" \
+        "$(_ana_scp_truncate_and_pad "$line_value" "$col_width_line")" \
+        "$(_ana_scp_truncate_and_pad "$context_value" "$col_width_context")"
+}
+
+# Internal helper to escape strings for JSON output
+_ana_scp_json_escape() {
+    local value="$1"
+    value="${value//\\/\\\\}"
+    value="${value//\"/\\\"}"
+    value="${value//$'\n'/\\n}"
+    value="${value//$'\r'/\\r}"
+    value="${value//$'\t'/\\t}"
+    value="${value//$'\f'/\\f}"
+    value="${value//$'\b'/\\b}"
+    printf "%s" "$value"
+}
+
 # Analyzes variable scope, identifying globals, constants, and potential leaks
 # scope integrity analysis
 # <file name> [-j]
@@ -1627,20 +1679,40 @@ ana_scp() {
     local file_name=""
 
     while [[ $# -gt 0 ]]; do
-        case $1 in
+        case "$1" in
             -j)
                 json_mode=true
                 shift
                 ;;
+            -h|--help)
+                aux_use
+                return 0
+                ;;
+            -*)
+                echo "Error: Invalid option '$1'"
+                aux_use
+                return 1
+                ;;
             *)
-                file_name="$1"
-                shift
+                if [[ -z "$file_name" ]]; then
+                    file_name="$1"
+                    shift
+                else
+                    echo "Error: Unexpected argument '$1'"
+                    aux_use
+                    return 1
+                fi
                 ;;
         esac
     done
 
-    if [[ -z "$file_name" || ! -r "$file_name" ]]; then
-        echo "Error: Cannot read file '${file_name:-}'"
+    if ! aux_val "$file_name" "not_empty"; then
+        aux_use
+        return 1
+    fi
+
+    if ! aux_val "$file_name" "file_exists" || [[ ! -r "$file_name" ]]; then
+        echo "Error: Cannot read file '$file_name'"
         return 1
     fi
 
@@ -1648,29 +1720,6 @@ ana_scp() {
     local col_width_var=28
     local col_width_line=6
     local col_width_context=24
-
-    truncate_and_pad() {
-        local str="$1"
-        local width="$2"
-        if [ ${#str} -gt $width ]; then
-            echo "${str:0:$((width-2))}.."
-        else
-            printf "%-${width}s" "$str"
-        fi
-    }
-
-    print_separator() {
-        local total=$((col_width_type + col_width_var + col_width_line + col_width_context + 11))
-        printf "+%s+\n" "$(printf '%*s' $total '' | tr ' ' '-')"
-    }
-
-    print_row() {
-        printf "| %s | %s | %s | %s |\n" \
-            "$(truncate_and_pad "$1" $col_width_type)" \
-            "$(truncate_and_pad "$2" $col_width_var)" \
-            "$(truncate_and_pad "$3" $col_width_line)" \
-            "$(truncate_and_pad "$4" $col_width_context)"
-    }
 
     local -a results_type=()
     local -a results_var=()
@@ -1792,35 +1841,43 @@ ana_scp() {
         local json_filename="${relative_path//\//_}_scp.json"
         local json_file="$tmp_dir/$json_filename"
         
-        echo "{" > "$json_file"
-        echo "  \"file\": \"$file_name\"," >> "$json_file"
-        echo "  \"scope_analysis\": [" >> "$json_file"
+        local escaped_file_name
+        escaped_file_name="$(_ana_scp_json_escape "$file_name")"
+
+        printf "{\n" > "$json_file"
+        printf "  \"file\": \"%s\",\n" "$escaped_file_name" >> "$json_file"
+        printf "  \"scope_analysis\": [\n" >> "$json_file"
         
         for ((i=0; i<${#results_var[@]}; i++)); do
-            echo "    {" >> "$json_file"
-            echo "      \"type\": \"${results_type[$i]}\"," >> "$json_file"
-            echo "      \"variable\": \"${results_var[$i]}\"," >> "$json_file"
-            echo "      \"line\": ${results_line[$i]}," >> "$json_file"
-            echo "      \"context\": \"${results_context[$i]}\"" >> "$json_file"
+            local escaped_type escaped_variable escaped_context
+            escaped_type="$(_ana_scp_json_escape "${results_type[$i]}")"
+            escaped_variable="$(_ana_scp_json_escape "${results_var[$i]}")"
+            escaped_context="$(_ana_scp_json_escape "${results_context[$i]}")"
+
+            printf "    {\n" >> "$json_file"
+            printf "      \"type\": \"%s\",\n" "$escaped_type" >> "$json_file"
+            printf "      \"variable\": \"%s\",\n" "$escaped_variable" >> "$json_file"
+            printf "      \"line\": %s,\n" "${results_line[$i]}" >> "$json_file"
+            printf "      \"context\": \"%s\"\n" "$escaped_context" >> "$json_file"
             
             if (( i < ${#results_var[@]} - 1 )); then
-                echo "    }," >> "$json_file"
+                printf "    },\n" >> "$json_file"
             else
-                echo "    }" >> "$json_file"
+                printf "    }\n" >> "$json_file"
             fi
         done
         
-        echo "  ]" >> "$json_file"
-        echo "}" >> "$json_file"
+        printf "  ]\n" >> "$json_file"
+        printf "}\n" >> "$json_file"
         echo "JSON output written to: $json_file"
     else
-        print_separator
-        print_row "Type" "Variable" "Line" "Context"
-        print_separator
+        _ana_scp_print_separator "$col_width_type" "$col_width_var" "$col_width_line" "$col_width_context"
+        _ana_scp_print_row "$col_width_type" "$col_width_var" "$col_width_line" "$col_width_context" "Type" "Variable" "Line" "Context"
+        _ana_scp_print_separator "$col_width_type" "$col_width_var" "$col_width_line" "$col_width_context"
         for ((i=0; i<${#results_var[@]}; i++)); do
-            print_row "${results_type[$i]}" "${results_var[$i]}" "${results_line[$i]}" "${results_context[$i]}"
+            _ana_scp_print_row "$col_width_type" "$col_width_var" "$col_width_line" "$col_width_context" "${results_type[$i]}" "${results_var[$i]}" "${results_line[$i]}" "${results_context[$i]}"
         done
-        print_separator
+        _ana_scp_print_separator "$col_width_type" "$col_width_var" "$col_width_line" "$col_width_context"
     fi
 }
 

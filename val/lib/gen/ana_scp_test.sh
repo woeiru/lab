@@ -72,11 +72,84 @@ test_ana_scp_missing_params() {
     output=$(ana_scp 2>&1)
     local status=$?
     
-    if [[ $status -ne 0 ]] && echo "$output" | grep -q -i "Error: Cannot read file"; then
+    if [[ $status -ne 0 ]] && echo "$output" | grep -q "Usage:"; then
         pass "Handles missing parameters correctly"
     else
         fail "Did not handle missing parameters correctly"
         echo "Status: $status, Output: $output"
+    fi
+}
+
+test_ana_scp_help_option() {
+    describe "ana_scp help option"
+    ((FRAMEWORK_TESTS_RUN++))
+
+    local output
+    output=$(ana_scp --help 2>&1)
+    local status=$?
+
+    if [[ $status -eq 0 ]] && echo "$output" | grep -q "Usage:" && echo "$output" | grep -q "ana_scp"; then
+        pass "Supports --help contract"
+    else
+        fail "Help option does not follow expected contract"
+        echo "Status: $status, Output: $output"
+    fi
+}
+
+test_ana_scp_invalid_option() {
+    describe "ana_scp invalid option"
+    ((FRAMEWORK_TESTS_RUN++))
+
+    local output
+    output=$(ana_scp --nope 2>&1)
+    local status=$?
+
+    if [[ $status -eq 1 ]] && echo "$output" | grep -q "Invalid option" && echo "$output" | grep -q "Usage:"; then
+        pass "Rejects unknown option with usage output"
+    else
+        fail "Unknown option handling is incorrect"
+        echo "Status: $status, Output: $output"
+    fi
+}
+
+test_ana_scp_json_escape_helper() {
+    describe "ana_scp JSON escaping"
+    ((FRAMEWORK_TESTS_RUN++))
+
+    local escaped_quotes
+    escaped_quotes=$(_ana_scp_json_escape 'a"b\c')
+
+    if [[ "$escaped_quotes" == 'a\"b\\c' ]]; then
+        pass "Escapes quotes and backslashes"
+    else
+        fail "Failed escaping quotes/backslashes"
+        echo "Escaped output: $escaped_quotes"
+    fi
+
+    ((FRAMEWORK_TESTS_RUN++))
+    local escaped_controls
+    escaped_controls=$(_ana_scp_json_escape $'x\ny\t')
+
+    if [[ "$escaped_controls" == 'x\ny\t' ]]; then
+        pass "Escapes newline and tab characters"
+    else
+        fail "Failed escaping control characters"
+        echo "Escaped output: $escaped_controls"
+    fi
+}
+
+test_ana_scp_no_generic_helper_leaks() {
+    describe "ana_scp helper namespace"
+    ((FRAMEWORK_TESTS_RUN++))
+
+    ana_scp "lib/core/col" >/dev/null 2>&1
+
+    if ! declare -F truncate_and_pad >/dev/null 2>&1 && \
+       ! declare -F print_separator >/dev/null 2>&1 && \
+       ! declare -F print_row >/dev/null 2>&1; then
+        pass "Does not leak generic helper functions"
+    else
+        fail "Generic helper function names leaked into global scope"
     fi
 }
 
@@ -109,6 +182,10 @@ TESTFILE
 test_ana_scp_terminal_output
 test_ana_scp_json_output
 test_ana_scp_missing_params
+test_ana_scp_help_option
+test_ana_scp_invalid_option
 test_ana_scp_local_leak
+test_ana_scp_json_escape_helper
+test_ana_scp_no_generic_helper_leaks
 
 test_footer
