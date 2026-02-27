@@ -79,6 +79,33 @@ test_ana_err_json_output() {
     fi
 }
 
+test_ana_err_json_parse_validity_real_file() {
+    describe "ana_err JSON parse validity (real file)"
+    ((FRAMEWORK_TESTS_RUN++))
+
+    local output
+    output=$(ana_err -j "lib/ops/pve" 2>&1)
+    local status=$?
+    if [[ $status -ne 0 ]]; then
+        fail "Command failed while generating real-file JSON"
+        echo "Output was: $output"
+        return 1
+    fi
+
+    local json_file=".tmp/doc/lib_ops_pve.err.json"
+    if ! command -v python3 >/dev/null 2>&1; then
+        pass "python3 unavailable, skipped parse validity check"
+        return 0
+    fi
+
+    if python3 -m json.tool "$json_file" >/dev/null 2>&1; then
+        pass "Real-file JSON is parseable"
+    else
+        fail "Real-file JSON is not parseable"
+        return 1
+    fi
+}
+
 test_ana_err_missing_params() {
     describe "ana_err missing parameters"
     ((FRAMEWORK_TESTS_RUN++))
@@ -105,6 +132,7 @@ test_ana_err_missing_params() {
 test_ana_err_terminal_output
 test_ana_err_terminal_output_func
 test_ana_err_json_output
+test_ana_err_json_parse_validity_real_file
 test_ana_err_missing_params
 
 test_footer

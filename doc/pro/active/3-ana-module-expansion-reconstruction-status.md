@@ -29,22 +29,34 @@ These were the two likely gaps after 3.1-3.5 review documents were moved into `a
 
 | Section | Function | Implementation | Review doc | Current test status | State |
 |---|---|---|---|---|---|
-| 3.1 | `ana_dep` | present | `2-ana-dep-strict-review.md` | `./val/lib/gen/ana_dep_test.sh`: 4 failing (9 passed / 13 total) | open |
-| 3.2 | `ana_tst` | present | `2-ana-tst-strict-review.md` | `./val/lib/gen/ana_tst_test.sh`: 3 failing (5 passed / 8 total) | open |
-| 3.3 | `ana_err` | present | `2-ana-err-strict-review.md` + `1-ana-implementation-review.md` | `./val/lib/gen/ana_err_test.sh`: pass (6/6); real-file JSON parse still fails | open |
+| 3.1 | `ana_dep` | present | `2-ana-dep-strict-review.md` | `./val/lib/gen/ana_dep_test.sh`: pass (13/13) | resolved |
+| 3.2 | `ana_tst` | present | `2-ana-tst-strict-review.md` | `./val/lib/gen/ana_tst_test.sh`: pass (8/8) | resolved |
+| 3.3 | `ana_err` | present | `2-ana-err-strict-review.md` + `1-ana-implementation-review.md` | `./val/lib/gen/ana_err_test.sh`: pass (7/7), includes real-file JSON parse check | resolved |
 | 3.4 | `ana_scp` | present | `2-ana-scp-strict-review.md` | pass (11/11) | mostly done |
 | 3.5 | `ana_rdp` | present | `2-ana-rdp-strict-review.md` | pass (5/5) | mostly done |
 
-## Confirmed unresolved item
+## Completed fixes
 
-`ana_err` JSON correctness in real files (not just fixture-level tests) remains unresolved, confirmed by direct parse validation, because:
+All previously open items called out for `ana_dep`, `ana_tst`, and `ana_err` have been addressed in code and revalidated.
 
-1. historical notes flagged JSON/delimiter fragility;
-2. current local test suite still does not enforce strict JSON parse validation against realistic `aux_*` message content;
-3. direct parse validation on generated output currently fails (`python3 -m json.tool /home/es/lab/.tmp/doc/lib_ops_pve.err.json`).
+Implemented/verified in this pass:
 
-## Next action order
+1. `ana_dep`
+   - Added strict CLI argument handling (`--help`, unknown option rejection, positional-argument count guard).
+   - Fixed JSON escaping for target path and dependency string values.
+   - Fixed `LAB_DIR` fallback to resolve repo root when invoked outside repository cwd.
 
-1. Fix `ana_err` JSON serialization and add strict parse-validity tests.
-2. Fix `ana_dep` argument parsing + JSON escaping regressions.
-3. Fix `ana_tst` no-match counter, path mapping collisions, and strict `-j` cleanliness.
+2. `ana_tst`
+   - Fixed zero-match counter handling (no arithmetic on empty values).
+   - Fixed mirrored target-to-test resolution to avoid basename-collision false matches.
+   - Enforced strict `-j` cleanliness (no table output in JSON mode).
+
+3. `ana_err`
+   - Replaced delimiter-packed records with structured parallel arrays.
+   - Added robust JSON escaping and improved function declaration matching.
+   - Added real-file JSON parse-validity test (`python3 -m json.tool`) to prevent regressions.
+
+## Remaining action order
+
+1. Promote `ana_scp` and `ana_rdp` from "mostly done" to strict revalidation state with fresh targeted tests.
+2. Run `./val/run_all_tests.sh lib` after any additional `lib/gen/ana` changes to keep module-level confidence high.

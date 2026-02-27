@@ -1315,13 +1315,38 @@ ana_tst() {
         return 1
     fi
 
-    local target_basename=$(basename "$target_file")
+    local target_basename
+    target_basename=$(basename "$target_file")
+    local target_rel="${target_file#$lab_dir/}"
+    target_rel="${target_rel#/}"
+
     local test_files=()
-    
-    # Use standard while read loop to collect files properly
-    while IFS= read -r -d '' t_file; do
-        test_files+=("$t_file")
-    done < <(find "$val_dir" -type f \( -name "${target_basename}_test.sh" -o -name "${target_basename}_*test.sh" \) -print0 2>/dev/null)
+    local -A seen_tests=()
+
+    _ana_tst_collect_test_file() {
+        local candidate="$1"
+        if [[ -f "$candidate" && -z "${seen_tests[$candidate]:-}" ]]; then
+            test_files+=("$candidate")
+            seen_tests["$candidate"]=1
+        fi
+    }
+
+    # Prefer mirrored val path to avoid basename collisions.
+    if [[ "$target_rel" == lib/* ]]; then
+        local mirrored_base="${target_rel#lib/}"
+        _ana_tst_collect_test_file "$val_dir/lib/${mirrored_base}_test.sh"
+
+        while IFS= read -r -d '' t_file; do
+            _ana_tst_collect_test_file "$t_file"
+        done < <(find "$val_dir/lib" -type f -name "${target_basename}_*test.sh" -path "*/$(dirname "$mirrored_base")/*" -print0 2>/dev/null)
+    fi
+
+    # Fallback by basename only if mirrored candidates are absent.
+    if [[ ${#test_files[@]} -eq 0 ]]; then
+        while IFS= read -r -d '' t_file; do
+            _ana_tst_collect_test_file "$t_file"
+        done < <(find "$val_dir" -type f \( -name "${target_basename}_test.sh" -o -name "${target_basename}_*test.sh" \) -print0 2>/dev/null)
+    fi
 
     local col_width_1=45 # Test File
     local col_width_2=12 # Test Count
@@ -1351,29 +1376,39 @@ ana_tst() {
             "$(_ana_tst_truncate_string "$4" "$col_width_4")"
     }
 
-    local target_display="${target_file#$lab_dir/}"
+    local target_display="$target_rel"
     target_display="${target_display#/}"
     
     # Prepare JSON array
     local json_test_entries=()
     
     if [[ ${#test_files[@]} -eq 0 ]]; then
-        _ana_tst_print_separator
-        _ana_tst_print_row "No test files found for '$target_basename'" "" "" ""
-        _ana_tst_print_separator
+        if ! $json_mode; then
+            _ana_tst_print_separator
+            _ana_tst_print_row "No test files found for '$target_basename'" "" "" ""
+            _ana_tst_print_separator
+        fi
     else
-        _ana_tst_print_separator
-        _ana_tst_print_row "Test File" "Count" "Type" "Status"
-        _ana_tst_print_separator
+        if ! $json_mode; then
+            _ana_tst_print_separator
+            _ana_tst_print_row "Test File" "Count" "Type" "Status"
+            _ana_tst_print_separator
+        fi
 
         for t_file in "${test_files[@]}"; do
             local t_display="${t_file#$lab_dir/}"
             t_display="${t_display#/}"
             
             # Count logic
-            local run_test_count=$(grep -c -E '^[[:space:]]*run_test[[:space:]]+' "$t_file" 2>/dev/null || echo "0")
-            local it_count=$(grep -c -E '^[[:space:]]*it[[:space:]]+"' "$t_file" 2>/dev/null || echo "0")
-            local func_count=$(grep -c -E '^[[:space:]]*(function[[:space:]]+)?test_[a-zA-Z0-9_]*[[:space:]]*\(\)' "$t_file" 2>/dev/null || echo "0")
+            local run_test_count
+            local it_count
+            local func_count
+            run_test_count=$(grep -c -E '^[[:space:]]*run_test[[:space:]]+' "$t_file" 2>/dev/null || true)
+            it_count=$(grep -c -E '^[[:space:]]*it[[:space:]]+"' "$t_file" 2>/dev/null || true)
+            func_count=$(grep -c -E '^[[:space:]]*(function[[:space:]]+)?test_[a-zA-Z0-9_]*[[:space:]]*\(\)' "$t_file" 2>/dev/null || true)
+            run_test_count=${run_test_count:-0}
+            it_count=${it_count:-0}
+            func_count=${func_count:-0}
             
             local test_count=0
             local test_type="Unknown"
@@ -1399,13 +1434,17 @@ ana_tst() {
                 fi
             fi
 
-            _ana_tst_print_row "$t_display" "$test_count" "$test_type" "$test_status"
+            if ! $json_mode; then
+                _ana_tst_print_row "$t_display" "$test_count" "$test_type" "$test_status"
+            fi
             
             if $json_mode; then
                 json_test_entries+=("    {\"file\":\"$t_display\",\"count\":$test_count,\"type\":\"$test_type\",\"status\":\"$test_status\"}")
             fi
         done
-        _ana_tst_print_separator
+        if ! $json_mode; then
+            _ana_tst_print_separator
+        fi
     fi
 
     # Output JSON if requested
@@ -1438,7 +1477,10 @@ ana_tst() {
         echo "$json_content" > "$json_file"
         echo "JSON output written to: $json_file"
     fi
-    echo ""
+
+    if ! $json_mode; then
+        echo ""
+    fi
 }
 
 # Analyzes error handling and exit codes in a file or specific function
@@ -1482,16 +1524,31 @@ ana_err() {
     local col_width_code=45
     local col_width_loc=6
 
+    _ana_err_json_escape() {
+        local value="$1"
+        value="${value//\\/\\\\}"
+        value="${value//\"/\\\"}"
+        value="${value//$'\n'/\\n}"
+        value="${value//$'\r'/\\r}"
+        value="${value//$'\t'/\\t}"
+        value="${value//$'\f'/\\f}"
+        value="${value//$'\b'/\\b}"
+        printf "%s" "$value"
+    }
+
     local current_func=""
     local line_number=0
-    local -a results=()
+    local -a result_funcs=()
+    local -a result_types=()
+    local -a result_msgs=()
+    local -a result_locs=()
 
     while IFS= read -r line || [[ -n "$line" ]]; do
         ((line_number++))
         
         # Check start of function
-        if [[ $line =~ ^([a-zA-Z_][a-zA-Z0-9_-]*)[[:space:]]*\(\)[[:space:]]*\{? ]]; then
-            current_func="${BASH_REMATCH[1]}"
+        if [[ $line =~ ^[[:space:]]*(function[[:space:]]+)?([a-zA-Z_][a-zA-Z0-9_-]*)[[:space:]]*\(\)[[:space:]]*\{?[[:space:]]*$ ]]; then
+            current_func="${BASH_REMATCH[2]}"
             continue
         fi
         
@@ -1529,8 +1586,10 @@ ana_err() {
             fi
             
             if [[ -n "$err_type" ]]; then
-                # Store it with | delimiter
-                results+=("${current_func}|${err_type}|${err_msg}|${line_number}")
+                result_funcs+=("$current_func")
+                result_types+=("$err_type")
+                result_msgs+=("$err_msg")
+                result_locs+=("$line_number")
             fi
         fi
     done < "$file_name"
@@ -1557,23 +1616,25 @@ ana_err() {
         echo "  \"errors\": [" >> "$json_file"
         
         local first_item=true
-        local item func type msg loc msg_json
-        for item in "${results[@]}"; do
-            IFS='|' read -r func type msg loc <<< "$item"
-            
+        local i
+        for ((i=0; i<${#result_funcs[@]}; i++)); do
             if [[ "$first_item" == false ]]; then
                 echo "    ," >> "$json_file"
             fi
             first_item=false
             
-            # Escape quotes and backslashes for json
-            msg_json=$(echo "$msg" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed "s/'/\\\\'/g")
+            local func_json
+            local type_json
+            local msg_json
+            func_json="$(_ana_err_json_escape "${result_funcs[$i]}")"
+            type_json="$(_ana_err_json_escape "${result_types[$i]}")"
+            msg_json="$(_ana_err_json_escape "${result_msgs[$i]}")"
             
             echo "    {" >> "$json_file"
-            echo "      \"function\": \"$func\"," >> "$json_file"
-            echo "      \"type\": \"$type\"," >> "$json_file"
+            echo "      \"function\": \"$func_json\"," >> "$json_file"
+            echo "      \"type\": \"$type_json\"," >> "$json_file"
             echo "      \"message\": \"$msg_json\"," >> "$json_file"
-            echo "      \"location\": $loc" >> "$json_file"
+            echo "      \"location\": ${result_locs[$i]}" >> "$json_file"
             echo "    }" >> "$json_file"
         done
         
@@ -1605,14 +1666,13 @@ ana_err() {
             "$(_ana_err_truncate "Line" $col_width_loc)"
         echo "$separator_line"
         
-        local item func type msg loc
-        for item in "${results[@]}"; do
-            IFS='|' read -r func type msg loc <<< "$item"
+        local i
+        for ((i=0; i<${#result_funcs[@]}; i++)); do
             printf "| %s | %s | %s | %s |\n" \
-                "$(_ana_err_truncate "$func" $col_width_func)" \
-                "$(_ana_err_truncate "$type" $col_width_type)" \
-                "$(_ana_err_truncate "$msg" $col_width_code)" \
-                "$(_ana_err_truncate "$loc" $col_width_loc)"
+                "$(_ana_err_truncate "${result_funcs[$i]}" $col_width_func)" \
+                "$(_ana_err_truncate "${result_types[$i]}" $col_width_type)" \
+                "$(_ana_err_truncate "${result_msgs[$i]}" $col_width_code)" \
+                "$(_ana_err_truncate "${result_locs[$i]}" $col_width_loc)"
         done
         echo "$separator_line"
         echo ""
@@ -1894,19 +1954,45 @@ _ana_dep_truncate() {
     fi
 }
 
+_ana_dep_json_escape() {
+    local value="$1"
+    value="${value//\\/\\\\}"
+    value="${value//\"/\\\"}"
+    value="${value//$'\n'/\\n}"
+    value="${value//$'\r'/\\r}"
+    value="${value//$'\t'/\\t}"
+    printf "%s" "$value"
+}
+
 ana_dep() {
     local target_file=""
     local json_mode=false
-    local lab_dir="${LAB_DIR:-$(pwd)}"
+    local positional_count=0
+    local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)}"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
+            -h|--help)
+                aux_use
+                return 0
+                ;;
             -j)
                 json_mode=true
                 shift
                 ;;
+            -*)
+                echo "Unknown option: $1"
+                aux_use
+                return 1
+                ;;
             *)
+                ((positional_count++))
+                if [[ $positional_count -gt 1 ]]; then
+                    echo "Too many positional arguments"
+                    aux_use
+                    return 1
+                fi
                 target_file="$1"
                 shift
                 ;;
@@ -1968,20 +2054,33 @@ ana_dep() {
 
         local scripts_json="[]"
         if [ ${#scripts[@]} -gt 0 ]; then
-            scripts_json=$(printf '"%s",' "${scripts[@]}" | sed 's/,$//')
+            local escaped_scripts=()
+            local script_item
+            for script_item in "${scripts[@]}"; do
+                escaped_scripts+=("$(_ana_dep_json_escape "$script_item")")
+            done
+            scripts_json=$(printf '"%s",' "${escaped_scripts[@]}" | sed 's/,$//')
             scripts_json="[${scripts_json}]"
         fi
 
         local commands_json="[]"
         if [ ${#unique_commands[@]} -gt 0 ]; then
-            commands_json=$(printf '"%s",' "${unique_commands[@]}" | sed 's/,$//')
+            local escaped_commands=()
+            local command_item
+            for command_item in "${unique_commands[@]}"; do
+                escaped_commands+=("$(_ana_dep_json_escape "$command_item")")
+            done
+            commands_json=$(printf '"%s",' "${escaped_commands[@]}" | sed 's/,$//')
             commands_json="[${commands_json}]"
         fi
+
+        local target_file_json
+        target_file_json="$(_ana_dep_json_escape "$target_file")"
 
         cat << JSONEOF > "$json_file"
 {
   "analysis_type": "dependencies",
-  "target_file": "$target_file",
+  "target_file": "$target_file_json",
   "dependencies": {
     "scripts": $scripts_json,
     "commands": $commands_json
