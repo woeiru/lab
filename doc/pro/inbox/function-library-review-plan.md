@@ -1,5 +1,11 @@
 # Function Library Review -- Active Strategy
 
+- Status: inbox
+- Owner: es
+- Started: n/a
+- Updated: 2026-02-27
+- Links: none
+
 Strategic plan for systematic review and improvement of all library functions
 across lib/core/, lib/gen/, and lib/ops/.
 

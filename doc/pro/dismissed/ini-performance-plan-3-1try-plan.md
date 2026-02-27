@@ -1,5 +1,15 @@
 # bin/ini Performance Optimization Plan
 
+- Status: dismissed
+- Owner: es
+- Started: n/a
+- Updated: 2026-02-27
+- Links: `doc/pro/experiments/ini-performance-plan-1.md`, `doc/pro/experiments/ini-performance-plan-2.md`, `doc/pro/experiments/ini-performance-plan-4.md`
+
+## Dismissal Reason
+
+Superseded by newer plan iterations and experiment tracks.
+
 Consolidated plan for optimizing the shell bootstrapper.
 Supersedes `ini-performance-plan-orginal.md` and `ini-performance-plan-with-compromise.md`.
 

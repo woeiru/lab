@@ -1,5 +1,11 @@
 # AI-Assisted Git History Cleanup Plan
 
+- Status: inbox
+- Owner: es
+- Started: n/a
+- Updated: 2026-02-27
+- Links: none
+
 ## Goal
 - Reduce approximately 3000 commits to a smaller set of semantically meaningful commits (target ~1000, flexible).
 - Preserve final repository state and keep full original history available.

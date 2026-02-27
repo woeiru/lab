@@ -1,5 +1,11 @@
 # Validation Suite Failures Follow-Up
 
+- Status: inbox
+- Owner: es
+- Started: n/a
+- Updated: 2026-02-27
+- Links: none
+
 ## Context
 
 This issue tracks non-blocking test and validation failures observed while verifying a small `dev_osv` table formatting change.

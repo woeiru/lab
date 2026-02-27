@@ -75,6 +75,11 @@ To avoid overload as a solo developer:
 - Keep at most 1-3 items in `active/`.
 - Finish or dismiss before starting many new ones.
 
+## Validation helpers
+
+- Checklist: `doc/pro/workflow-checklist.md`
+- Checker script: `bash doc/pro/check-workflow.sh`
+
 ---
 
 This workflow is already good. The main improvement is simple: treat `active/` as "currently open," and move all related docs to `completed/` only when the work is truly done.
