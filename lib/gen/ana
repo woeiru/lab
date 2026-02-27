@@ -2,14 +2,20 @@
 ###############################################################################
 # Analysis Utilities Library - lib/gen/ana
 ###############################################################################
-# Provides comprehensive analysis utilities for function introspection,
-# variable analysis, and documentation generation with multi-format output.
+# Provides analysis and traceability helpers for functions, variables,
+# documentation, reverse dependencies, and validation coverage.
 #
-# Dependencies: Bash 4.0+, standard UNIX utilities (awk, grep, sed, find, wc)
+# Dependencies:
+#   - Bash 4.0+
+#   - standard UNIX utilities: awk, grep, sed, find, sort, wc, stat
 #
 # Main Functions:
-#   ana_fun, ana_var - Overview summaries
-#   ana_laf, ana_acu, ana_lad - Detailed analysis functions
+#   ana_fun, ana_var - Overview entrypoints
+#   ana_laf - Function inventory and call distribution
+#   ana_lad - Documentation inventory and metadata extraction
+#   ana_acu - Config variable usage analysis across target paths
+#   ana_rdp - Reverse dependency map for exported functions
+#   ana_tst - Validation test traceability for target modules
 #
 # Usage: source lib/gen/ana
 ###############################################################################
