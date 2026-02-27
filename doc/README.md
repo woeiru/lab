@@ -48,6 +48,7 @@ Hardware-specific incident resolutions and workarounds. Not audience-classified 
 Planning documents organised by lifecycle state.
 
 - `pro/inbox/` — New ideas and proposals awaiting triage
+- `pro/queue/` — Prioritized items ready to be started
 - `pro/active/` — Work in progress
 - `pro/completed/` — Completed plans
 - `pro/dismissed/` — Dismissed proposals

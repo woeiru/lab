@@ -4,11 +4,12 @@ This folder is your lightweight project board.
 
 Use it to move work through clear states:
 
-`inbox` -> `active` -> `completed` (or `dismissed`)
+`inbox` -> `queue` -> `active` -> `completed` (or `dismissed`)
 
 ## Folder meanings
 
 - `inbox/`: ideas, plans, and tasks you might do later
+- `queue/`: prioritized items ready to start next
 - `active/`: work currently in progress
 - `completed/`: finished work with final outcome documented
 - `dismissed/`: ideas you decided not to do (with a short reason)
@@ -20,19 +21,22 @@ Use it to move work through clear states:
    - Add new ideas quickly.
    - Keep one file per idea/plan.
 
-2. Start work -> move to `active/`
-   - Move the file from `inbox/` to `active/` when you commit to doing it.
+2. Prioritize -> move to `queue/`
+   - Move files from `inbox/` to `queue/` once they are triaged and prioritized.
+
+3. Start work -> move to `active/`
+   - Move the file from `queue/` to `active/` when you commit to doing it.
    - If helpful, prefix with sequence number (`0-`, `1-`, `2-`) to show execution order.
 
-3. Execute and review in `active/`
+4. Execute and review in `active/`
    - Yes: review notes can stay in `active/` while work is still open.
    - Keep review files tied to the same topic slug (example: `ana-...-review.md`).
 
-4. Finish -> move to `completed/`
+5. Finish -> move to `completed/`
    - When implementation + review are accepted, move related files to `completed/`.
    - Add a short final section: what changed, what was verified, what remains.
 
-5. Reject -> move to `dismissed/`
+6. Reject -> move to `dismissed/`
    - If you decide not to continue, move the file to `dismissed/`.
    - Add one or two lines explaining why (obsolete, too risky, low value, duplicate, etc.).
 
