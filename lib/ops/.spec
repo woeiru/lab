@@ -3,8 +3,16 @@
 # Scope: All operational functions in `lib/ops/`
 #
 # This specification EXTENDS `lib/.spec`.
+# Scope is limited to functions under `lib/ops/`.
 # It defines the strict contracts required by the Dependency Injection
 # Container (DIC) and best practices for managing real infrastructure state.
+
+## 0. Hierarchical precedence
+For files in `lib/ops/`, precedence is:
+1. `lib/ops/.spec`
+2. `lib/.spec`
+
+If this file is silent on a topic, `lib/.spec` remains authoritative.
 
 ## 1. The DIC Contract (Stateless & Pure)
 The Dependency Injection Container (`src/dic/`) dynamically parses `lib/ops/` functions to map and inject environment variables to arguments.

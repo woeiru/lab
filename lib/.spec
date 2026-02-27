@@ -1,15 +1,36 @@
 # High-Quality Function Implementation Guide
-# Best Practices and Excellence Framework for lib/ops
+# Global Baseline and Hierarchical .spec Contract for lib/
 #
 # Purpose: Quality principles, advanced patterns, and excellence standards
 # Type: Excellence Framework - defines WHY and guides toward best practices
-# Scope: All operational functions in lib/ops modules  
-# Companion: lib/ops/.spec (ops/DIC-specific technical requirements)
+# Scope: Global baseline for all modules under lib/
+# Companion specs: lib/core/.spec, lib/gen/.spec, lib/ops/.spec
 #
 # Last Updated: 2025-06-14
 # Maintainer: Lab Environment Management System
 
-# Library: lib/ops - Operational Functions Quality Standards
+# Library: lib/ - Canonical merged baseline and quality standards
+
+## .spec hierarchy and precedence (authoritative)
+This repository uses a hierarchical specification model.
+
+Precedence order (highest to lowest):
+1. `lib/<module>/.spec` (module-specific rules)
+2. `lib/.spec` (global baseline for every function in `lib/`)
+
+Scope contract:
+- `lib/.spec` applies to all functions in `lib/core`, `lib/gen`, and `lib/ops`.
+- `lib/core/.spec` applies only to functions in `lib/core/`.
+- `lib/gen/.spec` applies only to functions in `lib/gen/`.
+- `lib/ops/.spec` applies only to functions in `lib/ops/`.
+
+Conflict rule:
+- Module `.spec` files may tighten or specialize requirements for their own module.
+- Module `.spec` files must not weaken global safety/quality requirements from `lib/.spec`.
+
+Enforcement policy:
+- Do not enforce module-specific compliance checks until a module has an explicit
+  module `.spec` file and the test expectations map to that file.
 
 ## Global Baseline (all `lib/` modules)
 This file is the canonical merged standard for `lib/core`, `lib/gen`, and `lib/ops`.

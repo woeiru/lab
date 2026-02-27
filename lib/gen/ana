@@ -2,22 +2,33 @@
 ###############################################################################
 # Analysis Utilities Library - lib/gen/ana
 ###############################################################################
-# Provides analysis and traceability helpers for functions, variables,
-# documentation, reverse dependencies, and validation coverage.
+# Purpose:
+#   Read-only analysis helpers for shell modules and docs. These functions
+#   inspect files and print tabular output and/or JSON for documentation and
+#   validation tooling.
 #
-# Dependencies:
-#   - Bash 4.0+
-#   - standard UNIX utilities: awk, grep, sed, find, sort, wc, stat
+# Runtime requirements:
+#   - Bash 4+
+#   - standard UNIX tools: awk, grep, sed, find, sort, wc, stat
+#   - loaded helper layer (aux_use/aux_val/aux_err) from initialization chain
 #
-# Main Functions:
-#   ana_fun, ana_var - Overview entrypoints
-#   ana_laf - Function inventory and call distribution
-#   ana_lad - Documentation inventory and metadata extraction
-#   ana_acu - Config variable usage analysis across target paths
-#   ana_rdp - Reverse dependency map for exported functions
-#   ana_tst - Validation test traceability for target modules
+# Public API:
+#   Core overview and inventory:
+#     ana_fun - overview entrypoint for function analysis (delegates to ana_laf)
+#     ana_var - overview entrypoint for variable usage (delegates to ana_acu)
+#     ana_laf - function inventory and call distribution
+#     ana_lad - markdown/documentation inventory and metadata extraction
+#     ana_acu - config variable usage analysis across target paths
 #
-# Usage: source lib/gen/ana
+#   Expansion set (ana-module-expansion project):
+#     ana_dep - module dependency extraction (sources + host commands)
+#     ana_tst - module-to-test traceability and test-count summary
+#     ana_err - return/exit/logged error pattern analytics
+#     ana_scp - variable scope integrity and mutation/leak analysis
+#     ana_rdp - reverse dependency map for exported functions
+#
+# Usage:
+#   source lib/gen/ana
 ###############################################################################
 
 # Define directory and file variables
@@ -1026,6 +1037,18 @@ EOF
 # reverse dependency call graph
 # <target file> [-j]
 ana_rdp() {
+    # Technical Description:
+    #   Builds a reverse dependency view for exported functions in a target file.
+    #   Scans standard call sites under lib/ops, src/set, and bin and aggregates
+    #   call counts per function and per dependent file for terminal reporting.
+    #   Supports JSON export for downstream documentation processing.
+    # Dependencies:
+    #   - grep, sort, realpath, date, mkdir
+    #   - LAB_DIR (optional) to resolve repository root for output paths
+    #   - Write access to .tmp/doc when -j is enabled
+    # Arguments:
+    #   $1: target_file - path to the file whose exported functions are analyzed
+    #   $2: [optional] -j to write JSON output in .tmp/doc
     local target_file=""
     local json_mode=false
 
@@ -1286,6 +1309,18 @@ JSON_EOF
 # test coverage traceability
 # <target file> [-j]
 ana_tst() {
+    # Technical Description:
+    #   Maps a target module to validation scripts in val/ and summarizes test
+    #   coverage indicators by counting run_test, BDD it blocks, or test_* funcs.
+    #   Prefers mirrored val/lib paths to avoid basename collisions and can emit
+    #   machine-readable JSON output for documentation tooling.
+    # Dependencies:
+    #   - grep, find, basename, dirname, date, mkdir
+    #   - LAB_DIR (optional) to resolve repository root and val directory
+    #   - Write access to .tmp/doc when -j is enabled
+    # Arguments:
+    #   $1: target_file - path to module file to resolve test traceability for
+    #   $2: [optional] -j to write JSON output in .tmp/doc
     local target_file=""
     local json_mode=false
 
@@ -1493,6 +1528,18 @@ ana_tst() {
 # analyze errors
 # <file name> [function name] [-j]
 ana_err() {
+    # Technical Description:
+    #   Parses function bodies to capture explicit return/exit codes and common
+    #   aux_err/aux_warn/aux_val logging points, optionally scoped to one
+    #   function name. Produces a tabular report or JSON suitable for API docs.
+    # Dependencies:
+    #   - sed, date, mkdir
+    #   - LAB_DIR (optional) to resolve repository root for JSON output
+    #   - aux_use helper for usage output when arguments are invalid
+    # Arguments:
+    #   $1: file_name - file to analyze for error and exit patterns
+    #   $2: [optional] target_func - function name to filter analysis scope
+    #   $3: [optional] -j to write JSON output in .tmp/doc
     local file_name=""
     local target_func=""
     local json_mode=false
@@ -1741,6 +1788,18 @@ _ana_scp_json_escape() {
 # scope integrity analysis
 # <file name> [-j]
 ana_scp() {
+    # Technical Description:
+    #   Performs scope integrity analysis for Bash assignments and declarations,
+    #   classifying readonly values, exported globals, environment constants,
+    #   and potential local leaks inside function scope.
+    #   Supports tabular terminal output and JSON export for documentation flows.
+    # Dependencies:
+    #   - aux_use, aux_val
+    #   - date, mkdir
+    #   - LAB_DIR (optional) to resolve repository root for JSON output
+    # Arguments:
+    #   $1: file_name - readable file path to inspect for scope behavior
+    #   $2: [optional] -j to write JSON output in .tmp/doc
     local json_mode=false
     local file_name=""
 
@@ -1971,6 +2030,18 @@ _ana_dep_json_escape() {
 }
 
 ana_dep() {
+    # Technical Description:
+    #   Extracts direct script sourcing statements and host command checks from
+    #   a target module to provide a dependency snapshot for terminal and JSON
+    #   consumers. Detects source/. imports, aux_chk command requirements, and
+    #   command -v probes, then normalizes and deduplicates results.
+    # Dependencies:
+    #   - grep, sed, awk, sort, date, mkdir
+    #   - aux_use, aux_err
+    #   - LAB_DIR (optional) to resolve repository root for JSON output
+    # Arguments:
+    #   $1: target_file - readable module file path to analyze
+    #   $2: [optional] -j to write JSON output in .tmp/doc
     local target_file=""
     local json_mode=false
     local positional_count=0
