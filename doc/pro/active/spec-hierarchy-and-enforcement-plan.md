@@ -6,6 +6,54 @@
 - Updated: 2026-02-28
 - Links: `lib/.spec`, `lib/core/.spec`, `lib/gen/.spec`, `lib/ops/.spec`, `doc/pro/active/spec-hierarchy-and-enforcement-plan.md`
 
+## Quick resume snapshot (read this first)
+
+Current phase:
+
+- Phase 4 of 6: report-mode stabilization + strict-mode cutover preparation.
+
+What is done:
+
+- Global/module hierarchy refactor completed (`lib/.spec` global-only, `lib/ops/.spec` specialized).
+- Rule-to-test matrix added and aligned with current `val/` coverage.
+- Report-mode compliance runners are available for `core`, `gen`, and `ops`.
+- `core` and `gen` scanner noise was reduced; `gen` hard failures were remediated to zero.
+- `GLB-008` secret scanner added: `val/core/glb_008_secret_scan_test.sh`.
+
+Where we are blocked or pending:
+
+- One active `GLB-008` finding remains:
+  - `lib/gen/inf:90` -> `declare -g CT_DEFAULT_PASSWORD="password"`
+- Strict-mode default behavior is not yet wired as module policy.
+
+Latest known report baseline:
+
+- `core`: `Rule failures: 0`, warnings-only.
+- `gen`: `Rule failures: 0`, warnings-only.
+- `ops`: report suite green; coverage remains improvement-focused (validation/help are lowest).
+- `GLB-008`: 1 potential match (above).
+
+Exactly what to do next (in order):
+
+1. Resolve or explicitly waive the `GLB-008` finding in `lib/gen/inf:90`.
+2. Decide and implement module strict/report default behavior using cutover gates.
+3. Re-run baseline commands and record new snapshot in this file.
+
+Resume command set:
+
+```bash
+./val/core/std_compliance_test.sh --report
+./val/lib/gen/std_compliance_test.sh --report
+./val/lib/ops/std_compliance_test.sh --report
+./val/core/glb_008_secret_scan_test.sh --report
+```
+
+Definition of ready-to-pause state:
+
+- Snapshot section updated with latest numbers and date.
+- Any open finding has either code fix or documented waiver (owner + removal date).
+- Next 1-3 concrete actions are listed before pausing.
+
 This plan turns the current hierarchy work into an enforcement-grade standards model.
 
 ## Goal
