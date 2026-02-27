@@ -106,9 +106,9 @@ Deliverable:
 
 ## Immediate next actions
 
-1. Create a proposed trimmed outline for `lib/.spec`.
-2. Mark and extract `ops`-only sections currently living in `lib/.spec`.
-3. Draft the rule-to-test matrix for `val/` implementation.
+1. Draft the rule-to-test matrix for `val/` implementation.
+2. Add or update compliance tests for `GLB-*` and `OPS-*` rule coverage in report mode.
+3. Run module-level compliance checks and capture remediation gaps.
 
 ## Proposed target outline for `lib/.spec` (global-only)
 
@@ -175,6 +175,8 @@ These IDs are intended to be consumed by the upcoming rule-to-test matrix in `va
 ## Exact extraction and cut list for current `lib/.spec`
 
 This is the first-pass surgical map for moving `lib/.spec` to global-only content.
+
+Status: executed on 2026-02-28. Line ranges in this section reference the pre-refactor snapshot and are retained for audit traceability.
 
 ### Keep in `lib/.spec` (with tightening)
 
