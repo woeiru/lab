@@ -18,7 +18,7 @@ Bring `doc/ref` generation in line with the ACU/LAF/RDP analysis views by:
 
 ### What exists today
 
-- `utl/doc/run_all_doc.sh` runs `functions`, `variables`, `stats`, `ai_docs`.
+- `utl/doc/run_all_doc.sh` runs `functions`, `variables`, `dependencies`, `stats`.
 - `utl/doc/generators/func` already calls `ana_laf -j` per file and writes `doc/ref/functions.md`.
 - `utl/doc/generators/var` does not build `doc/ref/variables.md`; it currently runs `ana_acu -o` and prints terminal output.
 - `doc/ref/functions.md` and `doc/ref/variables.md` both contain auto-generated sections, but metadata and command comments are stale/inconsistent.

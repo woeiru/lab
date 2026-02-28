@@ -49,12 +49,10 @@ GENERATORS=(
     "variables:var:Variable usage documentation generator"
     "dependencies:rdp:Reverse dependencies generator"
     "stats:stats:System metrics generator"
-    "ai_docs:ai_doc_generator:AI-powered README generation with 13-phase intelligence"
 )
 
 # Dependencies
 declare -A DEPENDENCIES
-DEPENDENCIES[ai_docs]="functions variables dependencies stats"
 
 # Logging
 log_info() {
@@ -88,7 +86,6 @@ TARGETS:
     variables       Generate variable usage documentation (var)
     dependencies    Generate reverse dependencies table (rdp)
     stats           Generate system metrics (stats)
-    ai_docs         Generate AI-powered README with comprehensive intelligence analysis
 
 CONFIGURATION:
     Project Root: $PROJECT_ROOT
@@ -96,9 +93,8 @@ CONFIGURATION:
     Config File: $CONFIG_FILE
 
 EXAMPLES:
-    $(basename "$0")                    # Run all generators (including AI documentation)
+    $(basename "$0")                    # Run all generators
     $(basename "$0") functions dependencies stats   # Run specific generators
-    $(basename "$0") ai_docs           # Run AI documentation generator only
     $(basename "$0") --dry-run          # Preview execution
 
 EOF
@@ -184,8 +180,6 @@ run_generator() {
             local search_paths=(
                 "$SCRIPT_DIR/$script_name"                    # Current directory (backward compatibility)
                 "$SCRIPT_DIR/generators/$script_name"         # Generators subfolder
-                "$SCRIPT_DIR/intelligence/$script_name"       # Intelligence subfolder
-                "$SCRIPT_DIR/ai/$script_name"                 # AI subfolder
             )
             
             for path in "${search_paths[@]}"; do

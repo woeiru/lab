@@ -72,7 +72,7 @@ HEADER_EOF
                         $file,
                         "`\(.function)`",
                         (.total_calls | tostring),
-                        ([.dependent_files[]? | select(.count > 0) | "\(.file): \(.count)"] | join(", "))
+                        ([.used_by[]? | select(.calls > 0) | "\(.file): \(.calls)"] | join(", "))
                     ] |
                     "| " + join(" | ") + " |"
                 ' "$json_file" 2>/dev/null

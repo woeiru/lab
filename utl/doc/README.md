@@ -1,6 +1,6 @@
 # Documentation Generation System
 
-The `utl/doc` system generates the auto-populated reference documentation under `doc/ref/`. It extracts metadata from source files, processes function definitions, and evaluates variable usage, rendering standardized Markdown output exclusively to `doc/ref/functions.md` and `doc/ref/variables.md`.
+The `utl/doc` system generates the auto-populated reference documentation under `doc/ref/`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, and `doc/ref/dependencies.md`.
 
 ## Output Files
 
@@ -8,6 +8,7 @@ The `utl/doc` system generates the auto-populated reference documentation under 
 |-----------|--------------------------|----------------------------------------------|
 | `func`    | `doc/ref/functions.md`   | Function metadata table for all `lib/` modules |
 | `var`     | `doc/ref/variables.md`   | Variable usage patterns across the system    |
+| `rdp`     | `doc/ref/dependencies.md`| Reverse dependency mappings and call counts  |
 
 ## System Layout
 
@@ -15,12 +16,8 @@ The `utl/doc` system generates the auto-populated reference documentation under 
 - `generators/`: Static documentation generators.
   - `func`: Extracts function metadata and writes the master functions table to `doc/ref/functions.md`.
   - `var`: Identifies and documents variable usage hierarchies in `doc/ref/variables.md`.
+  - `rdp`: Builds reverse dependency tables in `doc/ref/dependencies.md`.
   - `stats`: Analyzes the codebase to provide system metrics.
-- `intelligence/`: Deep analysis modules used as inputs to the AI generator.
-  - `perf`: Extracts performance characteristics.
-  - `deps`: Maps inter-module and script dependencies.
-  - `test`: Evaluates validation test coverage.
-  - `ux`: Analyzes interface design and usability indicators.
 - `config/`: Configuration files.
   - `settings`: Parallelization, pathing, and output location preferences.
   - `targets`: Source directory list and generator output file mappings.
@@ -31,6 +28,7 @@ The `utl/doc` system generates the auto-populated reference documentation under 
 
 ```bash
 ./utl/doc/run_all_doc.sh functions variables
+./utl/doc/run_all_doc.sh functions variables dependencies
 ```
 
 ### Regenerate individually
@@ -38,6 +36,7 @@ The `utl/doc` system generates the auto-populated reference documentation under 
 ```bash
 ./utl/doc/run_all_doc.sh functions   # updates doc/ref/functions.md
 ./utl/doc/run_all_doc.sh variables   # updates doc/ref/variables.md
+./utl/doc/run_all_doc.sh dependencies # updates doc/ref/dependencies.md
 ```
 
 ### Configuration and Environment

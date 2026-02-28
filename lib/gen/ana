@@ -1148,11 +1148,9 @@ EOF
                     folder_relative_path=$(basename "$target_folder_path")
                 fi
                 
-                local files_json=""
+                local files_json="{}"
                 if [ ${#files_with_occurrences_details_in_dir[@]} -gt 0 ]; then
-                    files_json=$(printf '{%s},' "${files_with_occurrences_details_in_dir[@]}" | sed 's/,$//')
-                else
-                    files_json="{}"
+                    files_json="{$(IFS=,; echo "${files_with_occurrences_details_in_dir[*]}")}"
                 fi
                 
                 folders_data+=("    {\"path\":\"$folder_relative_path\",\"total_occurrences\":$occurrences_in_current_dir_total,\"files\":$files_json}")
@@ -1166,16 +1164,26 @@ EOF
             first_var=false
             
             # Write variable JSON object
-            cat >> "$json_file" << EOF
-    {
-      "name": "$var_name",
-      "value": "$(echo "$var_value" | sed 's/"/\\"/g')",
-      "total_occurrences": $overall_total_occurrences_for_var,
-      "usage_by_folder": [
-$(printf '%s,\n' "${folders_data[@]}" | sed 's/,$//')
-      ]
-    }
-EOF
+            local escaped_var_value
+            escaped_var_value=$(echo "$var_value" | sed 's/"/\\"/g')
+
+            echo "    {" >> "$json_file"
+            echo "      \"name\": \"$var_name\"," >> "$json_file"
+            echo "      \"value\": \"$escaped_var_value\"," >> "$json_file"
+            echo "      \"total_occurrences\": $overall_total_occurrences_for_var," >> "$json_file"
+            echo "      \"usage_by_folder\": [" >> "$json_file"
+
+            local folder_idx
+            for folder_idx in "${!folders_data[@]}"; do
+                if [[ "$folder_idx" -lt $((${#folders_data[@]} - 1)) ]]; then
+                    echo "${folders_data[$folder_idx]}," >> "$json_file"
+                else
+                    echo "${folders_data[$folder_idx]}" >> "$json_file"
+                fi
+            done
+
+            echo "      ]" >> "$json_file"
+            echo "    }" >> "$json_file"
         done
         
         # Close JSON

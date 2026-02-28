@@ -39,19 +39,6 @@ EXCLUDE_PATTERNS=(
     "*/dist/*"          # Distribution/compiled output directories
 )
 
-# AI_DOC_TARGETS: Directories optimized for AI-powered README generation
-# - Used by: ai_doc_generator when no directory specified on command line
-# - Purpose: Defines high-value directories that benefit most from AI analysis
-# - Selection criteria: Complex code, user-facing components, frequently updated
-# - Format: Relative paths from LAB_ROOT, subset of TARGET_DIRECTORIES
-AI_DOC_TARGETS=(
-    "lib/ops"      # Operations library - complex infrastructure code
-    "lib/core"     # Core library - fundamental system functions
-    "src/dic"      # DIC system - main application logic
-    "cfg/pod"      # Container configs - deployment-critical
-    "utl/doc"      # Documentation system - meta-documentation
-)
-
 # PRIORITY LEVELS: Documentation update scheduling and resource allocation
 # - Purpose: Helps prioritize documentation efforts and CI/CD scheduling
 # - Usage: Can be used by scripts to determine update frequency
@@ -118,7 +105,7 @@ GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable table
 # Adding a new target directory:
 #   1. Add to TARGET_DIRECTORIES array: "new/directory"
 #   2. Add to appropriate priority level
-#   3. Optionally add to AI_DOC_TARGETS if complex
+#   3. Optionally add to priority arrays if needed
 #
 # Creating a new generator:
 #   1. Add output file: GENERATOR_OUTPUT_FILES[newgen]="path/to/output.md"
