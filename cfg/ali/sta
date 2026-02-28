@@ -46,6 +46,9 @@
     alias fun-gen='aux_ffl ana_laf "" "$LIB_GEN_DIR"'
     alias var-env='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR"'
     alias var-core='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_CORE_DIR" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR"'
+    alias rdp-std='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR" "${DIR_BIN:-$LAB_DIR/bin}"'
+    alias rdp-core='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$LIB_OPS_DIR"'
+    alias rdp-gen='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR" "${DIR_BIN:-$LAB_DIR/bin}"'
 
     # Function makros
     alias v111='ops gpu ptd -d lookup && qm start 111'

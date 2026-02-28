@@ -1066,22 +1066,25 @@ EOF
 
 # Discovers what scripts depend on the target exported functions
 # reverse dependency call graph
-# <target file> [-j]
+# [options] <target file> <callsite dir> [callsite dir ...]
 ana_rdp() {
     # Technical Description:
     #   Builds a reverse dependency view for exported functions in a target file.
-    #   Scans standard call sites under lib/ops, src/set, and bin and aggregates
-    #   call counts per function and per dependent file for terminal reporting.
+    #   Scans caller-provided call-site directories and aggregates call counts
+    #   per function and per dependent file for terminal reporting.
     #   Supports JSON export for downstream documentation processing.
     # Dependencies:
     #   - grep, sort, realpath, date, mkdir
     #   - LAB_DIR (optional) to resolve repository root for output paths
     #   - Write access to .tmp/doc when -j is enabled
     # Arguments:
+    #   [options] - currently supports -j
     #   $1: target_file - path to the file whose exported functions are analyzed
-    #   $2: [optional] -j to write JSON output in .tmp/doc
+    #   $2..$n: callsite directories to scan (required)
     local target_file=""
     local json_mode=false
+    local positional_args=()
+    local search_dirs=()
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -1090,20 +1093,47 @@ ana_rdp() {
                 json_mode=true
                 shift
                 ;;
+            -h|--help)
+                aux_use
+                return 0
+                ;;
+            -*)
+                echo "Unknown option: $1"
+                aux_use
+                return 1
+                ;;
             *)
-                if [[ -z "$target_file" ]]; then
-                    target_file="$1"
+                if [[ -n "$1" ]]; then
+                    positional_args+=("$1")
                 fi
                 shift
                 ;;
         esac
     done
 
-    if [[ -z "$target_file" || ! -f "$target_file" ]]; then
-        echo "Usage: ana_rdp <target file> [-j]"
+    if [[ ${#positional_args[@]} -lt 2 ]]; then
+        echo "Usage: ana_rdp [options] <target file> <callsite dir> [callsite dir ...]"
+        echo "Error: Missing required target file and/or callsite directories."
+        return 1
+    fi
+
+    target_file="${positional_args[0]}"
+
+    if [[ ! -f "$target_file" ]]; then
+        echo "Usage: ana_rdp [options] <target file> <callsite dir> [callsite dir ...]"
         echo "Error: Target file '$target_file' not found."
         return 1
     fi
+
+    local i
+    for ((i=1; i<${#positional_args[@]}; i++)); do
+        local callsite_dir="${positional_args[$i]}"
+        if [[ ! -d "$callsite_dir" ]]; then
+            echo "Error: Call-site directory '$callsite_dir' not found."
+            return 1
+        fi
+        search_dirs+=("$callsite_dir")
+    done
 
     local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)}"
     
@@ -1165,16 +1195,6 @@ ana_rdp() {
     if [[ ${#exported_funcs[@]} -eq 0 ]]; then
         echo "No exported functions found in '$target_file'."
         return 0
-    fi
-
-    # Directories to scan
-    local search_dirs=()
-    [[ -d "$lab_dir/lib/ops" ]] && search_dirs+=("$lab_dir/lib/ops")
-    [[ -d "$lab_dir/src/set" ]] && search_dirs+=("$lab_dir/src/set")
-    [[ -d "$lab_dir/bin" ]] && search_dirs+=("$lab_dir/bin")
-
-    if [[ ${#search_dirs[@]} -eq 0 ]]; then
-        echo "Warning: No standard source directories found to scan."
     fi
 
     declare -A file_func_calls
@@ -1331,6 +1351,69 @@ JSON_EOF
 }
 JSON_EOF
         echo "JSON output written to: $json_file"
+    fi
+}
+
+# Runs ana_rdp with the standard call-site profile
+# reverse dependency standard profile
+# <target file> [-j]
+ana_rdp_std() {
+    # Technical Description:
+    #   Convenience wrapper that runs ana_rdp for a single target file using
+    #   the standard call-site profile (lib/ops, src/set, bin). Keeps explicit
+    #   ana_rdp behavior while preserving an easy interactive entrypoint.
+    # Dependencies:
+    #   - ana_rdp
+    #   - LIB_OPS_DIR, SRC_SET_DIR, DIR_BIN, LAB_DIR (optional)
+    # Arguments:
+    #   $1: target_file - path to the file whose exported functions are analyzed
+    #   $2: [optional] -j to write JSON output in .tmp/doc
+    local target_file=""
+    local json_mode=false
+    local positional_count=0
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -j)
+                json_mode=true
+                shift
+                ;;
+            -h|--help)
+                aux_use
+                return 0
+                ;;
+            -*)
+                echo "Unknown option: $1"
+                aux_use
+                return 1
+                ;;
+            *)
+                ((positional_count++))
+                if [[ $positional_count -gt 1 ]]; then
+                    echo "Error: Too many positional arguments."
+                    aux_use
+                    return 1
+                fi
+                target_file="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$target_file" ]]; then
+        aux_use
+        return 1
+    fi
+
+    local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)}"
+    local lib_ops_dir="${LIB_OPS_DIR:-$lab_dir/lib/ops}"
+    local src_set_dir="${SRC_SET_DIR:-$lab_dir/src/set}"
+    local bin_dir="${DIR_BIN:-$lab_dir/bin}"
+
+    if $json_mode; then
+        ana_rdp -j "$target_file" "$lib_ops_dir" "$src_set_dir" "$bin_dir"
+    else
+        ana_rdp "$target_file" "$lib_ops_dir" "$src_set_dir" "$bin_dir"
     fi
 }
 

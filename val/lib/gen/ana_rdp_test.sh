@@ -12,7 +12,7 @@ test_ana_rdp_terminal_output() {
     ((FRAMEWORK_TESTS_RUN++))
     
     local output
-    output=$(ana_rdp "lib/core/tme" 2>&1)
+    output=$(ana_rdp "lib/core/tme" "lib/ops" "src/set" "bin" 2>&1)
     local status=$?
     
     if [[ $status -eq 0 ]] && echo "$output" | grep -q "Target Function" && echo "$output" | grep -q "Dependent File" && echo "$output" | grep -q "Occurrences" && echo "$output" | grep -q "tme_start_timer" && echo "$output" | grep -q "bin/ini"; then
@@ -31,7 +31,7 @@ test_ana_rdp_json_output() {
     rm -f .tmp/doc/lib_core_tme.json
     
     local output
-    output=$(ana_rdp -j "lib/core/tme" 2>&1)
+    output=$(ana_rdp -j "lib/core/tme" "lib/ops" "src/set" "bin" 2>&1)
     local status=$?
     
     if [[ $status -eq 0 ]]; then
@@ -68,13 +68,29 @@ test_ana_rdp_missing_params() {
     ((FRAMEWORK_TESTS_RUN++))
     
     local output
-    output=$(ana_rdp 2>&1)
+    output=$(ana_rdp "lib/core/tme" 2>&1)
     local status=$?
     
-    if [[ $status -ne 0 ]] && echo "$output" | grep -q "Usage"; then
-        pass "Handles missing parameters correctly"
+    if [[ $status -eq 1 ]] && echo "$output" | grep -q "callsite"; then
+        pass "Handles missing call-site parameters correctly"
     else
-        fail "Did not handle missing parameters correctly"
+        fail "Did not handle missing call-site parameters correctly"
+        echo "Status: $status, Output: $output"
+    fi
+}
+
+test_ana_rdp_std_wrapper() {
+    describe "ana_rdp_std wrapper"
+    ((FRAMEWORK_TESTS_RUN++))
+
+    local output
+    output=$(ana_rdp_std "lib/core/tme" 2>&1)
+    local status=$?
+
+    if [[ $status -eq 0 ]] && echo "$output" | grep -q "Target Function" && echo "$output" | grep -q "tme_start_timer" && echo "$output" | grep -q "bin/ini"; then
+        pass "ana_rdp_std runs with standard call-site profile"
+    else
+        fail "ana_rdp_std did not run with expected profile"
         echo "Status: $status, Output: $output"
     fi
 }
@@ -83,5 +99,6 @@ test_ana_rdp_missing_params() {
 test_ana_rdp_terminal_output
 test_ana_rdp_json_output
 test_ana_rdp_missing_params
+test_ana_rdp_std_wrapper
 
 test_footer
