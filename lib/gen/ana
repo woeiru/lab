@@ -60,7 +60,7 @@ ana_var() {
 
 # Lists all functions in a file, displaying their usage, shortname, and description. Supports truncation and line break options for better readability
 # list all functions
-# <file name> [-t] [-b]
+# <file name> [-t] [-b] [-j] [--json-dir <dir>]
 ana_laf() {
     # Technical Description:
     #   Scans a target script for function definitions and renders a tabular
@@ -76,6 +76,7 @@ ana_laf() {
     local break_mode=false
     local json_mode=false
     local file_name
+    local json_output_dir=""
     local lib_ops_dir="${LIB_OPS_DIR:-}"
     local src_set_dir="${SRC_SET_DIR:-}"
 
@@ -93,6 +94,14 @@ ana_laf() {
             -j)
                 json_mode=true
                 shift
+                ;;
+            --json-dir)
+                if [[ -z "${2:-}" ]]; then
+                    echo "Error: --json-dir requires a directory path."
+                    return 1
+                fi
+                json_output_dir="$2"
+                shift 2
                 ;;
             *)
                 file_name="$1"
@@ -306,9 +315,9 @@ ana_laf() {
     
     # JSON output mode
     if $json_mode; then
-        # Create centralized .tmp/doc directory if it doesn't exist
+        # Create JSON output directory
         local lab_dir="${LAB_DIR:-$(cd "$(dirname "$file_name")" && while [[ ! -f "entry.sh" && "$PWD" != "/" ]]; do cd ..; done && pwd)}"
-        local tmp_dir="$lab_dir/.tmp/doc"
+        local tmp_dir="${json_output_dir:-$lab_dir/.tmp/doc}"
         mkdir -p "$tmp_dir"
         
         # Generate JSON filename based on input file path structure
@@ -700,7 +709,7 @@ ana_lad() {
 
 # Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
-# [options: -o|-a|-j|-t|-b] <config file or directory> <target folder1> [target folder2 ...]
+# [options: -o|-a|-j|-t|-b|--json-dir <dir>] <config file or directory> <target folder1> [target folder2 ...]
 ana_acu() {
     # Technical Description:
     #   Reads configuration variables from a file or directory and analyzes
@@ -717,6 +726,7 @@ ana_acu() {
     local json_mode=false
     local truncate_mode=false
     local break_mode=false
+    local json_output_dir=""
     local conf_source=""
     local positional_args=()
 
@@ -734,6 +744,14 @@ ana_acu() {
             -j)
                 json_mode=true
                 shift
+                ;;
+            --json-dir)
+                if [[ -z "${2:-}" ]]; then
+                    echo "Error: --json-dir requires a directory path."
+                    return 1
+                fi
+                json_output_dir="$2"
+                shift 2
                 ;;
             -t)
                 truncate_mode=true
@@ -753,7 +771,7 @@ ana_acu() {
                 ;;
             -*)
                 echo "Invalid option: '$1'"
-                echo "Usage: ana_acu [options: -o|-a|-j|-t|-b] <config file or directory> <target folder1> [target folder2 ...]"
+                echo "Usage: ana_acu [options: -o|-a|-j|-t|-b|--json-dir <dir>] <config file or directory> <target folder1> [target folder2 ...]"
                 return 1
                 ;;
             *)
@@ -765,7 +783,7 @@ ana_acu() {
 
     if [[ ${#positional_args[@]} -lt 2 ]]; then
         echo "Error: Missing required config source and/or target folders."
-        echo "Usage: ana_acu [options: -o|-a|-j|-t|-b] <config file or directory> <target folder1> [target folder2 ...]"
+        echo "Usage: ana_acu [options: -o|-a|-j|-t|-b|--json-dir <dir>] <config file or directory> <target folder1> [target folder2 ...]"
         return 1
     fi
 
@@ -779,8 +797,8 @@ ana_acu() {
     # Adjusted width for individual target directory occurrence columns to show details
     local tab_width_per_dir_occ=40 # Increased width
 
-    local usage_message="Usage: ana_acu [options: -o|-a|-j|-t|-b] <config file or directory> <target folder1> [target folder2 ...]"
-    local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  -t: truncate table cells to fixed widths\n  -b: wrap table cells and print multiline rows"
+    local usage_message="Usage: ana_acu [options: -o|-a|-j|-t|-b|--json-dir <dir>] <config file or directory> <target folder1> [target folder2 ...]"
+    local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  --json-dir <dir>: write JSON output into a custom directory\n  -t: truncate table cells to fixed widths\n  -b: wrap table cells and print multiline rows"
 
     if [ ${#target_folders_input[@]} -eq 0 ]; then
         echo "Error: At least one target folder must be specified."
@@ -1093,7 +1111,7 @@ ana_acu() {
     if [[ "$json_mode" == true ]]; then
         # Create JSON output directory
         local lab_dir="${LAB_DIR:-$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")}"
-        local tmp_dir="$lab_dir/.tmp/doc"
+        local tmp_dir="${json_output_dir:-$lab_dir/.tmp/doc}"
         mkdir -p "$tmp_dir"
         
         # Generate JSON filename based on config source
@@ -1197,7 +1215,7 @@ EOF
 
 # Discovers what scripts depend on the target exported functions
 # reverse dependency call graph
-# [options] <target file> <callsite dir> [callsite dir ...]
+# [options: -j|--json-dir <dir>] <target file> <callsite dir> [callsite dir ...]
 ana_rdp() {
     # Technical Description:
     #   Builds a reverse dependency view for exported functions in a target file.
@@ -1214,6 +1232,7 @@ ana_rdp() {
     #   $2..$n: callsite directories to scan (required)
     local target_file=""
     local json_mode=false
+    local json_output_dir=""
     local positional_args=()
     local search_dirs=()
 
@@ -1223,6 +1242,14 @@ ana_rdp() {
             -j)
                 json_mode=true
                 shift
+                ;;
+            --json-dir)
+                if [[ -z "${2:-}" ]]; then
+                    echo "Error: --json-dir requires a directory path."
+                    return 1
+                fi
+                json_output_dir="$2"
+                shift 2
                 ;;
             -h|--help)
                 aux_use
@@ -1243,7 +1270,7 @@ ana_rdp() {
     done
 
     if [[ ${#positional_args[@]} -lt 2 ]]; then
-        echo "Usage: ana_rdp [options] <target file> <callsite dir> [callsite dir ...]"
+        echo "Usage: ana_rdp [options: -j|--json-dir <dir>] <target file> <callsite dir> [callsite dir ...]"
         echo "Error: Missing required target file and/or callsite directories."
         return 1
     fi
@@ -1251,7 +1278,7 @@ ana_rdp() {
     target_file="${positional_args[0]}"
 
     if [[ ! -f "$target_file" ]]; then
-        echo "Usage: ana_rdp [options] <target file> <callsite dir> [callsite dir ...]"
+        echo "Usage: ana_rdp [options: -j|--json-dir <dir>] <target file> <callsite dir> [callsite dir ...]"
         echo "Error: Target file '$target_file' not found."
         return 1
     fi
@@ -1410,7 +1437,7 @@ ana_rdp() {
 
     # JSON mode
     if $json_mode; then
-        local tmp_dir="$lab_dir/.tmp/doc"
+        local tmp_dir="${json_output_dir:-$lab_dir/.tmp/doc}"
         mkdir -p "$tmp_dir"
         
         local rel_target="${target_file#$lab_dir/}"
@@ -1501,6 +1528,7 @@ ana_rdp_std() {
     #   $2: [optional] -j to write JSON output in .tmp/doc
     local target_file=""
     local json_mode=false
+    local json_output_dir=""
     local positional_count=0
 
     while [[ $# -gt 0 ]]; do
@@ -1508,6 +1536,14 @@ ana_rdp_std() {
             -j)
                 json_mode=true
                 shift
+                ;;
+            --json-dir)
+                if [[ -z "${2:-}" ]]; then
+                    echo "Error: --json-dir requires a directory path."
+                    return 1
+                fi
+                json_output_dir="$2"
+                shift 2
                 ;;
             -h|--help)
                 aux_use
@@ -1542,7 +1578,11 @@ ana_rdp_std() {
     local bin_dir="${DIR_BIN:-$lab_dir/bin}"
 
     if $json_mode; then
-        ana_rdp -j "$target_file" "$lib_ops_dir" "$src_set_dir" "$bin_dir"
+        if [[ -n "$json_output_dir" ]]; then
+            ana_rdp -j --json-dir "$json_output_dir" "$target_file" "$lib_ops_dir" "$src_set_dir" "$bin_dir"
+        else
+            ana_rdp -j "$target_file" "$lib_ops_dir" "$src_set_dir" "$bin_dir"
+        fi
     else
         ana_rdp "$target_file" "$lib_ops_dir" "$src_set_dir" "$bin_dir"
     fi

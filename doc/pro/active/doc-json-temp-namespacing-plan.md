@@ -10,6 +10,25 @@
 Harden doc generation by namespacing analyzer JSON outputs so `ana_laf -j`,
 `ana_acu -j`, and `ana_rdp -j` do not collide in `.tmp/doc`.
 
+## Progress update (2026-02-28)
+
+- Implemented generator-level namespaced temp directories:
+  - `utl/doc/generators/func` -> `.tmp/doc/laf/`
+  - `utl/doc/generators/var` -> `.tmp/doc/acu/`
+  - `utl/doc/generators/rdp` -> `.tmp/doc/rdp/`
+- Added analyzer-level namespaced JSON routing via new `--json-dir` option in:
+  - `ana_laf`
+  - `ana_acu`
+  - `ana_rdp`
+- Updated generators to pass explicit namespace directories directly to analyzers
+  (no post-generation file moves/fallback path).
+- Validation completed for this pass:
+  - `bash -n utl/doc/generators/func`
+  - `bash -n utl/doc/generators/var`
+  - `bash -n utl/doc/generators/rdp`
+  - `./utl/doc/run_all_doc.sh --dry-run`
+  - `./utl/doc/run_all_doc.sh functions variables dependencies`
+
 ## Why this is needed
 
 - Current flow is correct (`ana_* -j` -> JSON -> `doc/ref/*.md`) but fragile if
@@ -33,7 +52,7 @@ Each generator reads only its own namespace.
 
 1. Define canonical namespace paths in one place (generator-local constants or
    shared helper).
-2. Keep backward-compatible fallback handling during transition.
+2. Keep default analyzer behavior unchanged when `--json-dir` is not provided.
 3. Ensure cleanup logic is namespace-aware and does not remove unrelated data.
 
 ### Phase 2 - generator wiring
@@ -45,15 +64,8 @@ Each generator reads only its own namespace.
 
 ### Phase 3 - analyzer output routing
 
-Preferred:
-
 1. Add optional output namespace/path flag in `ana_laf`, `ana_acu`, `ana_rdp`.
 2. Route JSON writes directly into analyzer-specific namespace directories.
-
-Fallback:
-
-1. Continue current analyzer output path.
-2. Move generated JSON into namespace directory immediately after each call.
 
 ### Phase 4 - orchestration and docs
 

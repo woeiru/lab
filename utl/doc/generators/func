@@ -23,7 +23,8 @@ if [[ -f "$TARGETS_FILE" ]]; then
 fi
 
 DOC_FILE="$LAB_DIR/${GENERATOR_OUTPUT_FILES[func]:-doc/ref/functions.md}"
-TMP_DIR="$LAB_DIR/.tmp/doc"
+TMP_BASE_DIR="$LAB_DIR/.tmp/doc"
+TMP_DIR="$TMP_BASE_DIR/laf"
 mkdir -p "$TMP_DIR"
 
 # Target directories according to ffl-laf_cycle
@@ -53,12 +54,11 @@ HEADER_EOF
             local lib_name=$(basename "$target_dir")
             
             while IFS= read -r -d '' file; do
-                ana_laf -j "$file" >/dev/null 2>&1 || true
+                ana_laf -j --json-dir "$TMP_DIR" "$file" >/dev/null 2>&1 || true
                 
                 local relative_path="${file#$LAB_DIR/}"
                 local json_filename="${relative_path//\//_}.json"
                 local json_file="$TMP_DIR/$json_filename"
-                
                 if [[ -f "$json_file" ]]; then
                     local module_name=$(basename "$file")
                     # jq parsing to markdown table

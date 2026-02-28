@@ -22,7 +22,8 @@ if [[ -f "$TARGETS_FILE" ]]; then
 fi
 
 DOC_FILE="$LAB_DIR/${GENERATOR_OUTPUT_FILES[rdp]:-doc/ref/dependencies.md}"
-TMP_DIR="$LAB_DIR/.tmp/doc"
+TMP_BASE_DIR="$LAB_DIR/.tmp/doc"
+TMP_DIR="$TMP_BASE_DIR/rdp"
 mkdir -p "$TMP_DIR"
 
 generate_rdp_table() {
@@ -58,13 +59,12 @@ HEADER_EOF
                 callsites=("$LAB_DIR/lib" "$LAB_DIR/src" "$LAB_DIR/utl")
             fi
             
-            ana_rdp -j "$file" "${callsites[@]}" >/dev/null 2>&1 || true
+            ana_rdp -j --json-dir "$TMP_DIR" "$file" "${callsites[@]}" >/dev/null 2>&1 || true
             
             local rel_target="${file#$LAB_DIR/}"
             rel_target="${rel_target#/}"
             local json_filename="${rel_target//\//_}.json"
             local json_file="$TMP_DIR/$json_filename"
-            
             if [[ -f "$json_file" ]]; then
                 jq -r --arg file "$rel_file" '
                     .dependencies[]? |
