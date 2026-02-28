@@ -42,19 +42,19 @@
 
     # Function chaining
 
-    # ACU analysis aliases: compare cfg/env and cfg/core against gen/ops/set/core/utl.
+    # ACU analysis aliases: run full cross-component consistency analysis.
     alias ffl-acu_env__all='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR" "$UTL_DIR"'
     alias ffl-acu_core__all='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_CORE_DIR" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR" "$UTL_DIR"'
     alias ffl-acu_cycle='ffl-acu_env__all && ffl-acu_core__all'
 
-    # LAF analysis aliases: function inventory with call distribution summary by library tier.
+    # LAF analysis aliases: generate function inventory and call-distribution summaries.
     alias ffl-laf_core='aux_ffl ana_laf "" "$LIB_CORE_DIR"'
     alias ffl-laf_ops='aux_ffl ana_laf "" "$LIB_OPS_DIR"'
     alias ffl-laf_gen='aux_ffl ana_laf "" "$LIB_GEN_DIR"'
     alias ffl-laf_utl='aux_ffl ana_laf "" "$UTL_DIR"'
     alias ffl-laf_cycle='ffl-laf_core && ffl-laf_ops && ffl-laf_gen && ffl-laf_utl'
 
-    # RDP analysis aliases: detect reverse dependencies from lib modules into bin/lib/src.
+    # RDP analysis aliases: detect reverse dependencies across project modules.
     alias ffl-rdp_core__bin='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$DIR_BIN"'
     alias ffl-rdp_core__lib='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$LIB_DIR"'
     alias ffl-rdp_core__utl='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$UTL_DIR"'
