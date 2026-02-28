@@ -6,7 +6,17 @@ failures=0
 
 is_markdown_doc() {
   local file="$1"
-  [[ "$file" == *.md ]] && [[ "$(basename "$file")" != "README.md" ]]
+  [[ "$file" == *.md ]] && [[ ! "$(basename "$file")" =~ ^([0-9]{8}-[0-9]{4}_)?README\.md$ ]]
+}
+
+check_timestamp_prefix() {
+  local file="$1"
+  local base
+  base="$(basename "$file")"
+  if [[ ! "$base" =~ ^[0-9]{8}-[0-9]{4}_.+ ]]; then
+    printf 'FAIL timestamp prefix: %s\n' "$file"
+    failures=$((failures + 1))
+  fi
 }
 
 check_header() {
@@ -29,7 +39,7 @@ check_inbox_names() {
   local file="$1"
   local base
   base="$(basename "$file")"
-  if [[ ! "$base" =~ ^[a-z0-9-]+-(plan|review|followup)\.md$ ]]; then
+  if [[ ! "$base" =~ ^[0-9]{8}-[0-9]{4}_[a-z0-9-]+-(plan|review|followup)\.md$ ]]; then
     printf 'FAIL inbox name: %s\n' "$file"
     failures=$((failures + 1))
   fi
@@ -39,7 +49,7 @@ check_dismissed_names() {
   local file="$1"
   local base
   base="$(basename "$file")"
-  if [[ ! "$base" =~ ^[a-z0-9-]+-plan\.md$ ]]; then
+  if [[ ! "$base" =~ ^[0-9]{8}-[0-9]{4}_[a-z0-9-]+-plan\.md$ ]]; then
     printf 'FAIL dismissed name: %s\n' "$file"
     failures=$((failures + 1))
   fi
@@ -52,6 +62,10 @@ check_dismissal_reason() {
     failures=$((failures + 1))
   fi
 }
+
+while IFS= read -r file; do
+  check_timestamp_prefix "$file"
+done < <(find "$ROOT" -type f | sort)
 
 while IFS= read -r file; do
   is_markdown_doc "$file" || continue

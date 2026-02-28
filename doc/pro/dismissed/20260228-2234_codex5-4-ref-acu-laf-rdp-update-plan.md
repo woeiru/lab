@@ -1,10 +1,14 @@
 # doc/ref ACU-LAF-RDP generation plan
 
-- Status: active
+- Status: dismissed
 - Owner: es
 - Started: 2026-02-28
 - Updated: 2026-02-28
-- Scope: `utl/doc`, `doc/ref`, `lib/gen/ana`
+- Links: none
+
+## Dismissal Reason
+
+Superseded by updated planning tracked in newer `doc/pro` workflow items.
 
 ## Goal
 
