@@ -131,3 +131,5 @@ GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable table
 #   - Ensure target directories exist
 #
 #######################################################################
+GENERATOR_OUTPUT_FILES[rdp]="doc/ref/dependencies.md"
+GENERATOR_SECTIONS[rdp]="Reverse Dependencies Table"

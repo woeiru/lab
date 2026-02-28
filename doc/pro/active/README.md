@@ -4,6 +4,7 @@ This directory stores only in-progress work.
 
 ## Current state
 
+- `ref-acu-laf-rdp-update-plan.md`
 - `waivers/`
 
 ## Pause checkpoint (2026-02-28)

@@ -47,13 +47,14 @@ fi
 GENERATORS=(
     "functions:func:Function metadata table generator"
     "variables:var:Variable usage documentation generator"
+    "dependencies:rdp:Reverse dependencies generator"
     "stats:stats:System metrics generator"
     "ai_docs:ai_doc_generator:AI-powered README generation with 13-phase intelligence"
 )
 
 # Dependencies
 declare -A DEPENDENCIES
-DEPENDENCIES[ai_docs]="functions variables stats"
+DEPENDENCIES[ai_docs]="functions variables dependencies stats"
 
 # Logging
 log_info() {
@@ -85,6 +86,7 @@ OPTIONS:
 TARGETS:
     functions       Generate function metadata table (func)
     variables       Generate variable usage documentation (var)
+    dependencies    Generate reverse dependencies table (rdp)
     stats           Generate system metrics (stats)
     ai_docs         Generate AI-powered README with comprehensive intelligence analysis
 
@@ -95,7 +97,7 @@ CONFIGURATION:
 
 EXAMPLES:
     $(basename "$0")                    # Run all generators (including AI documentation)
-    $(basename "$0") functions stats   # Run specific generators
+    $(basename "$0") functions dependencies stats   # Run specific generators
     $(basename "$0") ai_docs           # Run AI documentation generator only
     $(basename "$0") --dry-run          # Preview execution
 
