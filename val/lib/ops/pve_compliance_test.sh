@@ -142,8 +142,9 @@ test_dependency_checking() {
     # Save original PATH
     local original_path="$PATH"
     
-    # Set PATH to nonexistent directory to simulate missing commands
-    export PATH="/nonexistent"
+    # Restrict PATH to core bins so pveam is unavailable without breaking
+    # common utilities used by logging/error handlers (date, hostname, etc.)
+    export PATH="/usr/bin:/bin"
     
     # Test pve_clu dependency check (should fail with missing pveam)
     if pve_clu -x 2>/dev/null; then
