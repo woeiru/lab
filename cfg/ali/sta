@@ -42,27 +42,37 @@
 
     # Function chaining
 
-    alias ffl-laf_core='aux_ffl ana_laf "" "$LIB_CORE_DIR"'
-    alias ffl-laf_ops='aux_ffl ana_laf "" "$LIB_OPS_DIR"'
-    alias ffl-laf_gen='aux_ffl ana_laf "" "$LIB_GEN_DIR"'
-
+    # ACU analysis aliases: compare cfg/env and cfg/core against gen/ops/set/core/utl.
     alias ffl-acu_env__gen='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_GEN_DIR"'
     alias ffl-acu_env__ops='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_OPS_DIR"'
     alias ffl-acu_env__set='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$SRC_SET_DIR"'
+    alias ffl-acu_env__utl='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LAB_DIR/utl"'
     alias ffl-acu_core__core='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_CORE_DIR"'
     alias ffl-acu_core__gen='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_GEN_DIR"'
     alias ffl-acu_core__ops='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_OPS_DIR"'
     alias ffl-acu_core__set='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$SRC_SET_DIR"'
-    alias ffl-acu_cycle='ffl-acu_env__gen && ffl-acu_env__ops && ffl-acu_env__set && ffl-acu_core__core && ffl-acu_core__gen && ffl-acu_core__ops && ffl-acu_core__set'
+    alias ffl-acu_core__utl='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LAB_DIR/utl"'
+    alias ffl-acu_cycle='ffl-acu_env__gen && ffl-acu_env__ops && ffl-acu_env__set && ffl-acu_env__utl && ffl-acu_core__core && ffl-acu_core__gen && ffl-acu_core__ops && ffl-acu_core__set && ffl-acu_core__utl'
 
+    # LAF analysis aliases: function inventory with call distribution summary by library tier.
+    alias ffl-laf_core='aux_ffl ana_laf "" "$LIB_CORE_DIR"'
+    alias ffl-laf_ops='aux_ffl ana_laf "" "$LIB_OPS_DIR"'
+    alias ffl-laf_gen='aux_ffl ana_laf "" "$LIB_GEN_DIR"'
+    alias ffl-laf_utl='aux_ffl ana_laf "" "$LAB_DIR/utl"'
+    alias ffl-laf_cycle='ffl-laf_core && ffl-laf_ops && ffl-laf_gen && ffl-laf_utl'
+
+    # RDP analysis aliases: detect reverse dependencies from lib modules into bin/lib/src.
     alias ffl-rdp_core__bin='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "${DIR_BIN:-$LAB_DIR/bin}"'
     alias ffl-rdp_core__lib='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$LAB_DIR/lib"'
+    alias ffl-rdp_core__utl='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$LAB_DIR/utl"'
     alias ffl-rdp_gen__bin='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "${DIR_BIN:-$LAB_DIR/bin}"'
     alias ffl-rdp_gen__lib='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$LAB_DIR/lib"'
     alias ffl-rdp_gen__src='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$LAB_DIR/src"'
+    alias ffl-rdp_gen__utl='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$LAB_DIR/utl"'
     alias ffl-rdp_ops__lib='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$LAB_DIR/lib"'
     alias ffl-rdp_ops__src='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$LAB_DIR/src"'
-    alias ffl-rdp_cycle='ffl-rdp_core__bin && ffl-rdp_core__lib && ffl-rdp_gen__bin && ffl-rdp_gen__lib && ffl-rdp_gen__src && ffl-rdp_ops__lib && ffl-rdp_ops__src'
+    alias ffl-rdp_ops__utl='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$LAB_DIR/utl"'
+    alias ffl-rdp_cycle='ffl-rdp_core__bin && ffl-rdp_core__lib && ffl-rdp_core__utl && ffl-rdp_gen__bin && ffl-rdp_gen__lib && ffl-rdp_gen__src && ffl-rdp_gen__utl && ffl-rdp_ops__lib && ffl-rdp_ops__src && ffl-rdp_ops__utl'
 
     # Function makros
     alias v111='ops gpu ptd -d lookup && qm start 111'
