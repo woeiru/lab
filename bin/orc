@@ -220,7 +220,8 @@ source_directory() {
     fi
 
     # Get sorted list of files
-    if ! find "$dir" -maxdepth 1 -type f -name "$pattern" -print0 | sort -z > "$temp_file_list"; then
+    # Match shell glob behavior: skip dotfiles unless explicitly requested
+    if ! find "$dir" -maxdepth 1 -type f -name "$pattern" ! -name ".*" -print0 | sort -z > "$temp_file_list"; then
         lo1_log "lvl" " Error: Failed to list files in $dir"
         rm -f "$temp_file_list"
         tme_end_timer "dir_$description"

@@ -138,6 +138,37 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_source_directory_skips_hidden_files() {
+    local test_env=$(create_test_env "ini_hidden_files")
+
+    cat > "$test_env/test_hidden_files.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+temp_module_dir=$(mktemp -d)
+trap 'rm -rf "$temp_module_dir"' EXIT
+
+printf 'VISIBLE_WAS_SOURCED=1\n' > "$temp_module_dir/visible_module"
+printf 'HIDDEN_WAS_SOURCED=1\n' > "$temp_module_dir/.hidden_spec"
+
+if ! source_directory "$temp_module_dir" "*" "test modules" >/dev/null 2>&1; then
+    exit 1
+fi
+
+[[ "${VISIBLE_WAS_SOURCED:-}" == "1" ]] || exit 1
+[[ -z "${HIDDEN_WAS_SOURCED:-}" ]] || exit 1
+EOF
+    chmod +x "$test_env/test_hidden_files.sh"
+
+    run_test "Directory loader skips hidden files" "$test_env/test_hidden_files.sh"
+    cleanup_test_env "$test_env"
+}
+
 test_performance_init() {
     start_performance_test "ini sourcing performance"
     
@@ -166,6 +197,7 @@ main() {
         test_dependency_verification \
         test_environment_variables \
         test_logging_initialization \
+        test_source_directory_skips_hidden_files \
         test_performance_init
 }
 

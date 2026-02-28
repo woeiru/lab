@@ -44,3 +44,15 @@ Or regenerate one reference only:
   - `.tmp/doc/rdp/` for dependencies
 
 For full architecture and generator behavior, see `../../utl/doc/README.md`.
+
+## Required Parity With `cfg/ali/sta` Cycles
+
+The expected behavior is strict parity between cycle aliases in `cfg/ali/sta`
+and the generated markdown outputs in this folder.
+
+- `_ffl_laf_cycle` output must match `functions.md`
+- `_ffl_acu_cycle` output must match `variables.md`
+- `_ffl_rdp_cycle` output must match `dependencies.md`
+
+In practice, this means no missing rows and no extra rows in `doc/ref/*.md`
+relative to their corresponding cycle output.
