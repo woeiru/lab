@@ -1,4 +1,4 @@
-# DEP Pipeline Expansion (Active)
+# DEP Pipeline Expansion (Completed)
 
 ## Goal
 
@@ -33,7 +33,13 @@ Add a fourth reference pipeline at parity with LAF/ACU/RDP by integrating `ana_d
    - Updated pipeline parity docs in `doc/ref/README.md`.
    - Updated generator architecture docs in `utl/doc/README.md`.
 
-## Execution
+## Execution and Validation
 
-- No generator execution performed in this update.
-- Execution and regeneration intentionally left to the user.
+- Ran `./utl/doc/run_all_doc.sh module-dependencies` and verified successful generation.
+- Ran `./utl/doc/run_all_doc.sh --list` and confirmed `module-dependencies` appears in targets.
+- Validated DEP cycle execution through loaded function path via `_ffl_dep_cycle -j`.
+
+## Outcome
+
+- Fourth reference pipeline is now operational at parity scope with existing LAF/ACU/RDP doc pipelines.
+- Topic is closed and moved from active tracking to completed.
