@@ -22,6 +22,29 @@ The `utl/doc` system generates the auto-populated reference documentation under 
   - `settings`: Parallelization, pathing, and output location preferences.
   - `targets`: Source directory list and generator output file mappings.
 
+## Analyzer JSON Temp Namespacing
+
+Documentation generators run analyzers in JSON mode and stage intermediate
+artifacts under `.tmp/doc/` using analyzer-specific namespaces:
+
+- `func` -> `ana_laf -j --json-dir .tmp/doc/laf`
+- `var` -> `ana_acu -j --json-dir .tmp/doc/acu`
+- `rdp` -> `ana_rdp -j --json-dir .tmp/doc/rdp`
+
+This avoids JSON filename collisions between analyzers (for example,
+multiple analyzers emitting `lib_core_err.json`) and keeps each generator
+isolated to its own dataset.
+
+### Troubleshooting stale intermediate data
+
+If generated `doc/ref/*.md` output looks inconsistent with source changes,
+clear namespaced analyzer artifacts and rerun docs:
+
+```bash
+rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc/rdp
+./utl/doc/run_all_doc.sh functions variables dependencies
+```
+
 ## Usage
 
 ### Regenerate all `doc/ref/` files

@@ -10,6 +10,20 @@ source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/../../
 source $LAB_ROOT/lib/gen/aux
 source $LAB_ROOT/lib/ops/sto
 
+# Build a minimal PATH with core utilities required by aux logging.
+# This keeps command dependency tests deterministic without triggering
+# command-not-found handler recursion.
+create_minimal_test_path() {
+    local temp_path_dir
+    temp_path_dir="$(mktemp -d)"
+
+    ln -s "$(command -v date)" "$temp_path_dir/date"
+    ln -s "$(command -v hostname)" "$temp_path_dir/hostname"
+    ln -s "$(command -v cut)" "$temp_path_dir/cut"
+
+    echo "$temp_path_dir"
+}
+
 # Test parameter validation compliance
 test_sto_parameter_validation() {
     describe "Storage functions parameter validation"
@@ -83,9 +97,11 @@ test_sto_parameter_validation() {
 test_sto_dependency_checks() {
     describe "Storage functions dependency validation"
     
-    # Mock missing commands for testing
+    # Mock missing command dependencies while preserving logging primitives
     local original_path="$PATH"
-    export PATH="/nonexistent"
+    local test_path_dir
+    test_path_dir="$(create_minimal_test_path)"
+    export PATH="$test_path_dir"
     
     # Test sto_fea dependency checks
     it "should check for blkid command"
@@ -121,6 +137,7 @@ test_sto_dependency_checks() {
     
     # Restore PATH
     export PATH="$original_path"
+    rm -rf "$test_path_dir"
 }
 
 # Test help system compliance
@@ -190,7 +207,9 @@ test_sto_return_codes() {
     
     # Test missing command returns 127
     local original_path="$PATH"
-    export PATH="/nonexistent"
+    local test_path_dir
+    test_path_dir="$(create_minimal_test_path)"
+    export PATH="$test_path_dir"
     
     sto_fea -x 2>/dev/null
     local exit_code=$?
@@ -201,6 +220,7 @@ test_sto_return_codes() {
     fi
     
     export PATH="$original_path"
+    rm -rf "$test_path_dir"
     
     # Test help returns 0
     it "should return 0 for help display"
