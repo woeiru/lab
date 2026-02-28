@@ -1,0 +1,46 @@
+# Reference Docs
+
+This folder contains generated reference tables that mirror the terminal analyzers.
+
+## Files
+
+- `functions.md`: function inventory and metadata generated from `ana_laf`
+- `variables.md`: variable usage/cross-folder analysis generated from `ana_acu`
+- `dependencies.md`: reverse dependency mapping generated from `ana_rdp`
+
+## Source of Truth
+
+Reference output is expected to match the analyzer cycle aliases in `cfg/ali/sta`:
+
+- `ffl-laf_cycle` -> functions pipeline
+- `ffl-acu_cycle` -> variables pipeline
+- `ffl-rdp_cycle` -> dependencies pipeline
+
+## Regenerate
+
+Run from repository root:
+
+```bash
+./utl/doc/run_all_doc.sh
+```
+
+Or regenerate one reference only:
+
+```bash
+./utl/doc/run_all_doc.sh functions
+./utl/doc/run_all_doc.sh variables
+./utl/doc/run_all_doc.sh dependencies
+```
+
+## Pipeline Notes
+
+- Generators live under `utl/doc/generators/`.
+- Auto-generated table blocks are replaced between:
+  - `<!-- AUTO-GENERATED SECTION: ... -->`
+  - `<!-- END AUTO-GENERATED SECTION -->`
+- Intermediate JSON files are written to:
+  - `.tmp/doc/laf/` for functions
+  - `.tmp/doc/acu/` for variables
+  - `.tmp/doc/rdp/` for dependencies
+
+For full architecture and generator behavior, see `../../utl/doc/README.md`.
