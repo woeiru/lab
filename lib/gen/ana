@@ -1368,13 +1368,34 @@ ana_rdp() {
         printf "%s\n" "$row_string"
     }
 
+    _ana_rdp_json_escape() {
+        local str="$1"
+        str=${str//\\/\\\\}
+        str=${str//\"/\\\"}
+        str=${str//$'\n'/\\n}
+        str=${str//$'\r'/\\r}
+        str=${str//$'\t'/\\t}
+        str=${str//$'\f'/\\f}
+        str=${str//$'\b'/\\b}
+        printf '%s' "$str"
+    }
+
     # Identify exported functions
     local exported_funcs=()
+    declare -A seen_exported_funcs
     while IFS= read -r line; do
-        if [[ $line =~ ^([a-zA-Z][a-zA-Z0-9_-]*)\(\) ]]; then
-            local func_name="${BASH_REMATCH[1]}"
-            if [[ "$func_name" != _* && "$func_name" != ana_* ]]; then
+        local func_name=""
+
+        if [[ $line =~ ^[[:space:]]*([a-zA-Z][a-zA-Z0-9_-]*)[[:space:]]*\(\)[[:space:]]*\{ ]]; then
+            func_name="${BASH_REMATCH[1]}"
+        elif [[ $line =~ ^[[:space:]]*function[[:space:]]+([a-zA-Z][a-zA-Z0-9_-]*)[[:space:]]*(\(\))?[[:space:]]*\{ ]]; then
+            func_name="${BASH_REMATCH[1]}"
+        fi
+
+        if [[ -n "$func_name" && "$func_name" != _* && "$func_name" != ana_* ]]; then
+            if [[ -z "${seen_exported_funcs[$func_name]:-}" ]]; then
                 exported_funcs+=("$func_name")
+                seen_exported_funcs["$func_name"]=1
             fi
         fi
     done < "$target_file"
@@ -1445,13 +1466,13 @@ ana_rdp() {
             fi
             
             local first=true
-            for file in "${sorted_files[@]}"; do
-                local file_count="${file_func_calls[${func}::${file}]}"
+            for dep_file in "${sorted_files[@]}"; do
+                local file_count="${file_func_calls[${func}::${dep_file}]}"
                 if $first; then
-                    _ana_rdp_print_row "$func" "$file" "$file_count"
+                    _ana_rdp_print_row "$func" "$dep_file" "$file_count"
                     first=false
                 else
-                    _ana_rdp_print_row "" "$file" "$file_count"
+                    _ana_rdp_print_row "" "$dep_file" "$file_count"
                 fi
                 printed_any=true
             done
@@ -1471,6 +1492,8 @@ ana_rdp() {
         
         local rel_target="${target_file#$lab_dir/}"
         rel_target="${rel_target#/}"
+        local rel_target_json
+        rel_target_json="$(_ana_rdp_json_escape "$rel_target")"
         local json_filename="${rel_target//\//_}.json"
         local json_file="$tmp_dir/$json_filename"
         
@@ -1479,7 +1502,7 @@ ana_rdp() {
 {
   "analysis_type": "reverse_dependencies",
   "timestamp": "$(date -Iseconds)",
-  "target_file": "$rel_target",
+  "target_file": "$rel_target_json",
   "dependencies": [
 JSON_EOF
 
@@ -1491,10 +1514,12 @@ JSON_EOF
                     echo "    ," >> "$json_file"
                 fi
                 first_func=false
+                local func_json
+                func_json="$(_ana_rdp_json_escape "$func")"
                 
                 cat >> "$json_file" << JSON_EOF
     {
-      "function": "$func",
+      "function": "$func_json",
       "total_calls": $count,
       "used_by": [
 JSON_EOF
@@ -1512,8 +1537,10 @@ JSON_EOF
                 fi
                 
                 local first_file=true
-                for file in "${sorted_files[@]}"; do
-                    local file_count="${file_func_calls[${func}::${file}]}"
+                for dep_file in "${sorted_files[@]}"; do
+                    local file_count="${file_func_calls[${func}::${dep_file}]}"
+                    local file_json
+                    file_json="$(_ana_rdp_json_escape "$dep_file")"
                     
                     if ! $first_file; then
                         echo "        ," >> "$json_file"
@@ -1522,7 +1549,7 @@ JSON_EOF
                     
                     cat >> "$json_file" << JSON_EOF
         {
-          "file": "$file",
+          "file": "$file_json",
           "calls": $file_count
         }
 JSON_EOF

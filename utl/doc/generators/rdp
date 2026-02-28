@@ -48,6 +48,9 @@ HEADER_EOF
         if [[ ! -d "$dir" ]]; then continue; fi
         while IFS= read -r -d '' file; do
             local rel_file="${file#$LAB_DIR/}"
+            rel_file="${rel_file#/}"
+            local json_filename="${rel_file//\//_}.json"
+            local json_file="$TMP_DIR/$json_filename"
             
             # Determine callsite dirs based on the block
             local callsites=()
@@ -60,16 +63,13 @@ HEADER_EOF
             fi
             
             ana_rdp -j --json-dir "$TMP_DIR" "$file" "${callsites[@]}" >/dev/null 2>&1 || true
-            
-            local rel_target="${file#$LAB_DIR/}"
-            rel_target="${rel_target#/}"
-            local json_filename="${rel_target//\//_}.json"
-            local json_file="$TMP_DIR/$json_filename"
+
             if [[ -f "$json_file" ]]; then
-                jq -r --arg file "$rel_file" '
+                jq -r '
+                    .target_file as $target |
                     .dependencies[]? |
                     [
-                        $file,
+                        $target,
                         "`\(.function)`",
                         (.total_calls | tostring),
                         ([.used_by[]? | select(.calls > 0) | "\(.file): \(.calls)"] | join(", "))
@@ -77,7 +77,7 @@ HEADER_EOF
                     "| " + join(" | ") + " |"
                 ' "$json_file" 2>/dev/null
             fi
-        done < <(find "$dir" -type f ! -path '*/.*' ! -name '*.*' -print0)
+        done < <(find "$dir" -type f -print0)
     done
 }
 
