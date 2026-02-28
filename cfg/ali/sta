@@ -62,16 +62,16 @@
     alias ffl-laf_cycle='ffl-laf_core && ffl-laf_ops && ffl-laf_gen && ffl-laf_utl'
 
     # RDP analysis aliases: detect reverse dependencies from lib modules into bin/lib/src.
-    alias ffl-rdp_core__bin='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "${DIR_BIN:-$LAB_DIR/bin}"'
+    alias ffl-rdp_core__bin='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$DIR_BIN"'
     alias ffl-rdp_core__lib='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$LAB_DIR/lib"'
     alias ffl-rdp_core__utl='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$LAB_DIR/utl"'
-    alias ffl-rdp_gen__bin='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "${DIR_BIN:-$LAB_DIR/bin}"'
-    alias ffl-rdp_gen__lib='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$LAB_DIR/lib"'
-    alias ffl-rdp_gen__src='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$LAB_DIR/src"'
-    alias ffl-rdp_gen__utl='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$LAB_DIR/utl"'
-    alias ffl-rdp_ops__lib='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$LAB_DIR/lib"'
-    alias ffl-rdp_ops__src='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$LAB_DIR/src"'
-    alias ffl-rdp_ops__utl='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$LAB_DIR/utl"'
+    alias ffl-rdp_gen__bin='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$DIR_BIN"'
+    alias ffl-rdp_gen__lib='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$LIB_DIR"'
+    alias ffl-rdp_gen__src='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$SRC_DIR"'
+    alias ffl-rdp_gen__utl='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$UTL_DIR"'
+    alias ffl-rdp_ops__lib='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$LIB_DIR"'
+    alias ffl-rdp_ops__src='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$SRC_DIR"'
+    alias ffl-rdp_ops__utl='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$UTL_DIR"'
     alias ffl-rdp_cycle='ffl-rdp_core__bin && ffl-rdp_core__lib && ffl-rdp_core__utl && ffl-rdp_gen__bin && ffl-rdp_gen__lib && ffl-rdp_gen__src && ffl-rdp_gen__utl && ffl-rdp_ops__lib && ffl-rdp_ops__src && ffl-rdp_ops__utl'
 
     # Function makros
