@@ -108,6 +108,22 @@ declare -g LIB_CORE_DIR
 LIB_CORE_DIR="${LAB_DIR}/lib/core"
 export LIB_CORE_DIR
 
+# Top-level source directories
+declare -g BIN_DIR LIB_DIR SRC_DIR UTL_DIR
+BIN_DIR="${LAB_DIR}/bin"
+LIB_DIR="${LAB_DIR}/lib"
+SRC_DIR="${LAB_DIR}/src"
+UTL_DIR="${LAB_DIR}/utl"
+export BIN_DIR LIB_DIR SRC_DIR UTL_DIR
+
+# Backward-compatible directory aliases
+declare -g DIR_BIN DIR_LIB DIR_SRC DIR_UTL
+DIR_BIN="${BIN_DIR}"
+DIR_LIB="${LIB_DIR}"
+DIR_SRC="${SRC_DIR}"
+DIR_UTL="${UTL_DIR}"
+export DIR_BIN DIR_LIB DIR_SRC DIR_UTL
+
 # Deployment function library path
 declare -g LIB_OPS_DIR
 LIB_OPS_DIR="${LAB_DIR}/lib/ops"
