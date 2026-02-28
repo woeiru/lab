@@ -256,29 +256,30 @@ This table provides a comprehensive overview of variable usages.
 | `CT_3_PRIVILEGED` | `no` | 0 | lib: 0, src: 0, utl: 0 | cfg/env/site1-dev |
 <!-- END AUTO-GENERATED SECTION -->
 
-## Variable Analysis Tools
+## How to Use This Table
 
-- **[`utl/doc/generators/var`](../../utl/doc/generators/var)** - Updates this variable usage documentation automatically using `ana_acu`
-- **[`lib/gen/ana` (ana_acu)](../../lib/gen/ana)** - Variable usage analysis function with JSON output support
-- **[`utl/doc/generators/func`](../../utl/doc/generators/func)** - Function metadata table generator
-- **[`utl/doc/generators/hub`](../../utl/doc/generators/hub)** - Documentation index generator
+This page is generated from `ana_acu` (Analyze Config Usage) and maps config variables to real usage in project code.
+
+### Terminal Analyzer (ACU)
 
 ```bash
-# Update variable usage documentation
-./utl/doc/generators/var
+# direct analyzer usage
+ana_acu "" cfg/core lib src utl
+ana_acu -a cfg/env/site1 lib src utl
 
-# Analyze variable usage manually
-ana_acu "" cfg/env lib/ops src/set
-
-# Generate variable analysis as JSON
-ana_acu -j "" cfg/env lib/ops src/set
-
-# View specific variable usage patterns
-ana_acu -a cfg/env lib/ops src/set  # Alphabetical order
+# profile-style cycle from aliases (cfg/ali/sta)
+ffl-acu_cycle
 ```
 
-## Related Documentation
+### Second-Layer API Flow
 
-- **[Functions Reference](functions.md)** - Pure function documentation and metadata
-- **[Logging System](logging.md)** - Debug and logging frameworks
-- **[Configuration Guide](configuration.md)** - Configuration file formats and variable definitions
+- Layer 1 (core analyzer): `lib/gen/ana` -> `ana_acu`
+- Layer 2 (terminal API): wrappers in `cfg/ali/sta` (for example `_ffl_acu_core__all`, `_ffl_acu_env__all`, `ffl-acu_cycle`)
+- Traversal helper: `lib/gen/aux` -> `aux_ffl` (used to apply ACU across config trees)
+- Documentation layer: `utl/doc/generators/var` runs `ana_acu -j` and renders this table
+
+### JSON Fork for Docs
+
+For documentation, `ana_acu` writes intermediate JSON into `.tmp/doc/acu/`. The generator reads those files to build Markdown, while terminal table output remains independent. This split keeps CLI output ergonomic and the doc pipeline machine-readable and stable.
+
+See `utl/doc/README.md` for full orchestration, temp namespaces, and regeneration workflow: [`../../utl/doc/README.md`](../../utl/doc/README.md)

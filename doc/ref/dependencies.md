@@ -68,3 +68,30 @@ This table provides an overview of reverse dependencies across modules.
 | lib/ops/gpu | `gpu_pta` | 7 | lib/ops/pve: 7 |
 | lib/ops/gpu | `gpu_ptd` | 3 | lib/ops/README.md: 2, lib/README.md: 1 |
 <!-- END AUTO-GENERATED SECTION -->
+
+## How to Use This Table
+
+This page is generated from `ana_rdp` (reverse dependency analysis) and shows where exported functions are consumed.
+
+### Terminal Analyzer (RDP)
+
+```bash
+# direct analyzer usage
+ana_rdp lib/gen/aux lib src utl
+
+# cycle profile from aliases (cfg/ali/sta)
+ffl-rdp_cycle
+```
+
+### Second-Layer API Flow
+
+- Layer 1 (core analyzer): `lib/gen/ana` -> `ana_rdp`
+- Layer 2 (terminal API): alias profiles in `cfg/ali/sta` (for example `ffl-rdp_core__lib`, `ffl-rdp_gen__src`, `ffl-rdp_cycle`)
+- Utility integration: `lib/gen/aux` provides shared helper surface; RDP profile aliases call `ana_rdp` with predefined callsite scopes
+- Documentation layer: `utl/doc/generators/rdp` runs `ana_rdp -j` and renders this table
+
+### JSON Fork for Docs
+
+For doc generation, `ana_rdp` writes JSON intermediates into `.tmp/doc/rdp/`. The generator reads those files and emits the Markdown rows. Keeping this JSON branch separate from terminal output makes the docs reproducible and parser-safe while preserving CLI readability.
+
+See `utl/doc/README.md` for generator architecture and JSON namespacing: [`../../utl/doc/README.md`](../../utl/doc/README.md)
