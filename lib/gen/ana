@@ -700,7 +700,7 @@ ana_lad() {
 
 # Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files
 # analyze config usage
-# <sort mode: -o|-a|-j|""|> <config file or directory> <target folder1> [target folder2 ...]
+# [options: -o|-a|-j|-t|-b] <config file or directory> <target folder1> [target folder2 ...]
 ana_acu() {
     # Technical Description:
     #   Reads configuration variables from a file or directory and analyzes
@@ -710,21 +710,67 @@ ana_acu() {
     #   - grep, sed, awk, sort, find, wc, basename, dirname, mkdir, date
     #   - shell arrays and associative arrays (Bash 4+)
     # Arguments:
-    #   $1: sort_mode_arg - -o, -a, -j, or empty
-    #   $2: conf_source - config file or directory
-    #   $3..$n: target folders to analyze
-    local sort_mode_arg="$1"
-    local conf_source="$2"
+    #   [options]: -o, -a, -j, -t, -b
+    #   $1: conf_source - config file or directory
+    #   $2..$n: target folders to analyze
+    local sort_mode="-o"
     local json_mode=false
-    
-    # Check if JSON mode is requested
-    if [[ "$sort_mode_arg" == "-j" ]]; then
-        json_mode=true
-        sort_mode_arg="-o"  # Default to original order for JSON
+    local truncate_mode=false
+    local break_mode=false
+    local conf_source=""
+    local positional_args=()
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -o)
+                sort_mode="-o"
+                shift
+                ;;
+            -a)
+                sort_mode="-a"
+                shift
+                ;;
+            -j)
+                json_mode=true
+                shift
+                ;;
+            -t)
+                truncate_mode=true
+                shift
+                ;;
+            -b)
+                break_mode=true
+                shift
+                ;;
+            -h|--help)
+                aux_use
+                return 0
+                ;;
+            "")
+                # Compatibility with aux_ffl aliases that pass an empty flag
+                shift
+                ;;
+            -*)
+                echo "Invalid option: '$1'"
+                echo "Usage: ana_acu [options: -o|-a|-j|-t|-b] <config file or directory> <target folder1> [target folder2 ...]"
+                return 1
+                ;;
+            *)
+                positional_args+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    if [[ ${#positional_args[@]} -lt 2 ]]; then
+        echo "Error: Missing required config source and/or target folders."
+        echo "Usage: ana_acu [options: -o|-a|-j|-t|-b] <config file or directory> <target folder1> [target folder2 ...]"
+        return 1
     fi
-    
-    shift 2 # Remove sort_mode and conf_source from arguments
-    local target_folders_input=("$@") # Remaining arguments are the target folders
+
+    conf_source="${positional_args[0]}"
+    local target_folders_input=("${positional_args[@]:1}")
 
     # Customizable column widths
     local tab_width_var_names=24
@@ -733,8 +779,8 @@ ana_acu() {
     # Adjusted width for individual target directory occurrence columns to show details
     local tab_width_per_dir_occ=40 # Increased width
 
-    local usage_message="Usage: ana_acu <-o|-a|-j|\"\"> <config file or directory> <target folder1> [target folder2 ...]"
-    local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  \"\": defaults to -o (original order)"
+    local usage_message="Usage: ana_acu [options: -o|-a|-j|-t|-b] <config file or directory> <target folder1> [target folder2 ...]"
+    local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  -t: truncate table cells to fixed widths\n  -b: wrap table cells and print multiline rows"
 
     if [ ${#target_folders_input[@]} -eq 0 ]; then
         echo "Error: At least one target folder must be specified."
@@ -742,17 +788,9 @@ ana_acu() {
         return 1
     fi
 
-    local sort_mode
-    if [[ -z "$sort_mode_arg" ]]; then
-        sort_mode="-o" # Default to original order if sort_mode_arg is empty
-    else
-        sort_mode="$sort_mode_arg"
-    fi
-
     if [[ "$sort_mode" != "-o" && "$sort_mode" != "-a" ]]; then
-        echo "Invalid sort mode: '$sort_mode_arg'. Use -o, -a, -j, or an empty string (which defaults to -o)."
+        echo "Invalid sort mode: '$sort_mode'. Use -o or -a."
         echo -e "$usage_message\n$sort_mode_details"
-        # Consider calling aux_use if it's generic enough or pass specific usage.
         return 1
     fi
 
@@ -818,7 +856,7 @@ ana_acu() {
         done
     }
 
-    # --- Helper function to truncate strings (no changes needed) ---
+    # --- Helper function to truncate strings ---
     _ana_acu_truncate_string() {
         local str="$1"
         local max_length="$2"
@@ -832,8 +870,31 @@ ana_acu() {
             printf "%-${max_length}s" "$str" # Ensures left alignment and padding
         fi
     }
+
+    _ana_acu_wrap_text() {
+        local text="$1"
+        local width="$2"
+        echo "$text" | fold -s -w "$width"
+    }
+
+    _ana_acu_format_cell() {
+        local value="$1"
+        local width="$2"
+        local align="${3:-left}"
+        local formatted_value="$value"
+
+        if [[ "$truncate_mode" == true ]]; then
+            formatted_value=$(_ana_acu_truncate_string "$value" "$width")
+        fi
+
+        if [[ "$align" == "right" ]]; then
+            printf "%${width}s" "$formatted_value"
+        else
+            printf "%-${width}s" "$formatted_value"
+        fi
+    }
     
-    # --- Helper functions for table printing (MODIFIED) ---
+    # --- Helper functions for table printing ---
     _ana_acu_print_separator() {
         local line="+"
         local h_var_segment h_val_segment h_occ_segment h_dir_segment # Declared on one line
@@ -855,6 +916,27 @@ ana_acu() {
             h_dir_segment=$(printf '%*s' "$((${tab_width_per_dir_occ} + 1))" '' | tr ' ' '-')
             line+="${h_dir_segment}-+"
         done
+        printf "%s\n" "$line"
+    }
+
+    _ana_acu_print_separator_2() {
+        local line="+"
+        local h_var_segment h_val_segment h_occ_segment h_dir_segment
+
+        h_var_segment=$(printf '%*s' "$((${tab_width_var_names} + 1))" '' | tr ' ' ' ')
+        line+="${h_var_segment} +"
+
+        h_val_segment=$(printf '%*s' "$((${tab_width_var_values} + 1))" '' | tr ' ' ' ')
+        line+="${h_val_segment} +"
+
+        h_occ_segment=$(printf '%*s' "$((${tab_width_total_occ} + 1))" '' | tr ' ' ' ')
+        line+="${h_occ_segment} +"
+
+        for _ in "${target_folders_input[@]}"; do
+            h_dir_segment=$(printf '%*s' "$((${tab_width_per_dir_occ} + 1))" '' | tr ' ' ' ')
+            line+="${h_dir_segment} +"
+        done
+
         printf "%s\n" "$line"
     }
 
@@ -886,8 +968,7 @@ ana_acu() {
                 # Fallback: LAB_DIR not set, or path not under LAB_DIR
                 display_path_for_header=$(basename "$target_folder_path")
             fi
-            local dir_name_header=$(_ana_acu_truncate_string "$display_path_for_header" "$tab_width_per_dir_occ")
-            header_string+=$(printf "%-${tab_width_per_dir_occ}s | " "$dir_name_header")
+            header_string+=$(printf "%s | " "$(_ana_acu_format_cell "$display_path_for_header" "$tab_width_per_dir_occ")")
         done
         printf "%s\n" "$header_string"
         _ana_acu_print_separator
@@ -900,16 +981,55 @@ ana_acu() {
         shift 3
         local per_dir_detail_strings_in_row=("$@") # Array of "file:count,..." strings or "0"
 
-        local row_string="| "
-        row_string+=$(printf "%s | " "$(_ana_acu_truncate_string "$var_name_in_row" "$tab_width_var_names")")
-        row_string+=$(printf "%s | " "$(_ana_acu_truncate_string "$var_value_in_row" "$tab_width_var_values")")
-        row_string+=$(printf "%${tab_width_total_occ}s | " "$overall_total_occurrences_in_row")
-
-        for detail_str_for_dir in "${per_dir_detail_strings_in_row[@]}"; do
-            # Truncate and left-align the detail string for the directory column
-            row_string+=$(printf "%s | " "$(_ana_acu_truncate_string "$detail_str_for_dir" "$tab_width_per_dir_occ")")
+        local col_values=("$var_name_in_row" "$var_value_in_row" "$overall_total_occurrences_in_row" "${per_dir_detail_strings_in_row[@]}")
+        local col_widths=("$tab_width_var_names" "$tab_width_var_values" "$tab_width_total_occ")
+        local _
+        for _ in "${target_folders_input[@]}"; do
+            col_widths+=("$tab_width_per_dir_occ")
         done
-        printf "%s\n" "$row_string"
+
+        if [[ "$break_mode" == true ]]; then
+            local -A wrapped_cols=()
+            local max_lines=1
+            local idx
+
+            for idx in "${!col_values[@]}"; do
+                wrapped_cols["$idx"]=$(_ana_acu_wrap_text "${col_values[$idx]}" "${col_widths[$idx]}")
+                local line_count
+                line_count=$(printf "%s\n" "${wrapped_cols[$idx]}" | wc -l)
+                if [[ "$line_count" -gt "$max_lines" ]]; then
+                    max_lines="$line_count"
+                fi
+            done
+
+            local line_idx
+            for ((line_idx=1; line_idx<=max_lines; line_idx++)); do
+                local row_string="| "
+                for idx in "${!col_values[@]}"; do
+                    local cell_line
+                    cell_line=$(printf "%s\n" "${wrapped_cols[$idx]}" | sed -n "${line_idx}p")
+                    local width="${col_widths[$idx]}"
+
+                    if [[ "$idx" -eq 2 ]]; then
+                        row_string+=$(printf "%${width}s | " "$cell_line")
+                    else
+                        row_string+=$(printf "%-${width}s | " "$cell_line")
+                    fi
+                done
+                printf "%s\n" "$row_string"
+            done
+        else
+            local row_string="| "
+            row_string+=$(printf "%s | " "$(_ana_acu_format_cell "$var_name_in_row" "$tab_width_var_names")")
+            row_string+=$(printf "%s | " "$(_ana_acu_format_cell "$var_value_in_row" "$tab_width_var_values")")
+            row_string+=$(printf "%s | " "$(_ana_acu_format_cell "$overall_total_occurrences_in_row" "$tab_width_total_occ" "right")")
+
+            for detail_str_for_dir in "${per_dir_detail_strings_in_row[@]}"; do
+                row_string+=$(printf "%s | " "$(_ana_acu_format_cell "$detail_str_for_dir" "$tab_width_per_dir_occ")")
+            done
+
+            printf "%s\n" "$row_string"
+        fi
     }
 
     _ana_acu_print_footer() {
@@ -962,6 +1082,9 @@ ana_acu() {
         done
         
         _ana_acu_print_row "$var_name" "$var_value" "$overall_total_occurrences_for_var" "${per_dir_details_for_row[@]}"
+        if [[ "$break_mode" == true ]]; then
+            _ana_acu_print_separator_2
+        fi
     done
 
     _ana_acu_print_footer
