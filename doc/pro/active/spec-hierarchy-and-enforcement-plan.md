@@ -10,7 +10,7 @@
 
 Current phase:
 
-- Phase 4 of 6: report-mode stabilization + strict-mode cutover preparation.
+- Phase 5 of 6: strict-mode policy finalization + waiver burn-down.
 
 What is done:
 
@@ -19,25 +19,26 @@ What is done:
 - Report-mode compliance runners are available for `core`, `gen`, and `ops`.
 - `core` and `gen` scanner noise was reduced; `gen` hard failures were remediated to zero.
 - `GLB-008` secret scanner added: `val/core/glb_008_secret_scan_test.sh`.
+- Strict dry runs are green for `core`, `gen`, and `ops` compliance runners.
 
 Where we are blocked or pending:
 
 - `GLB-008` has one active match and is now tracked under a temporary waiver:
   - `lib/gen/inf:90` -> `declare -g CT_DEFAULT_PASSWORD="password"`
-- Strict-mode default behavior is not yet wired as module policy.
+- `ops` module is still below strict cutover floors for validation/help coverage.
 
 Latest known report baseline:
 
-- `core`: `Rule failures: 0`, warnings-only.
-- `gen`: `Rule failures: 0`, warnings-only.
-- `ops`: report suite green; coverage remains improvement-focused (validation/help are lowest).
+- `core`: `Rule failures: 0`, `Rule warnings: 9`.
+- `gen`: `Rule failures: 0`, `Rule warnings: 20`.
+- `ops`: report suite green; coverage currently `2%` validation, `24%` help, `86%` error, `99%` docs, `65%` aux.
 - `GLB-008`: 1 potential match (above).
 
 Exactly what to do next (in order):
 
 1. Keep `GLB-008` waiver active until replacement path lands (env/explicit password input).
-2. Decide and implement module strict/report default behavior using cutover gates.
-3. Re-run baseline commands and record new snapshot in this file.
+2. Implement `lib/gen/inf` password-default remediation and remove waiver `WVR-2026-001`.
+3. Raise `ops` validation/help coverage to meet strict cutover floors.
 
 Resume command set:
 
@@ -54,7 +55,7 @@ Definition of ready-to-pause state:
 - Any open finding has either code fix or documented waiver (owner + removal date).
 - Next 1-3 concrete actions are listed before pausing.
 
-Current pause readiness: met (`2026-02-28`) with active waiver `WVR-2026-001` recorded.
+Current pause readiness: met (`2026-02-28`) with active waiver `WVR-2026-001` recorded and refreshed baseline captured.
 
 This plan turns the current hierarchy work into an enforcement-grade standards model.
 
@@ -182,6 +183,15 @@ Global cutover gate:
 - `val/core/log_contract_test.sh` remains green.
 - No regression in module report totals versus previous accepted baseline.
 
+## Module default enforcement policy (decision)
+
+Decision date: `2026-02-28`
+
+- `core`: strict default is allowed now (current gate met: `0` failures, `9` warnings, strict dry run green).
+- `gen`: strict default is allowed now (current gate met: `0` failures, `20` warnings, strict dry run green).
+- `ops`: keep report-first workflow until floor metrics are met (`validation >= 15%`, `help >= 35%`, others already at/above floor).
+- Operational rule: direct strict runs remain available for all modules; policy gating in shared workflows should only flip to strict-by-default when cutover gates are satisfied.
+
 Rollback rule:
 
 - If a cutover causes repeated false positives or blocks unrelated work, switch module back to `--report` default, log the root cause in this plan, and re-run tuning before retrying strict mode.
@@ -197,11 +207,11 @@ Rollback rule:
 
 ## Immediate next actions
 
-1. Draft the rule-to-test matrix for `val/` implementation.
-2. Add or update compliance tests for `GLB-*` and `OPS-*` rule coverage in report mode.
-3. Run module-level compliance checks and capture remediation gaps.
+1. Remove hardcoded `CT_DEFAULT_PASSWORD` path in `lib/gen/inf` and close waiver `WVR-2026-001`.
+2. Improve `ops` parameter validation from `2%` to at least `15%`.
+3. Improve `ops` help-system coverage from `24%` to at least `35%`.
 
-## Status checkpoint (2026-02-28)
+## Status checkpoint (2026-02-28, refreshed)
 
 Done:
 
@@ -211,17 +221,23 @@ Done:
 - Report-mode compliance entrypoints are available for `core`, `gen`, and `ops`.
 - Scanner signal quality was improved for `core` and `gen` (false-positive reduction).
 - First remediation pass completed in `lib/gen` (`ana`, `aux`, `env`) to clear current hard failures.
+- Fresh baseline rerun completed (report + strict dry run):
+  - `./val/core/std_compliance_test.sh --report` -> `Rule failures: 0`, `Rule warnings: 9`
+  - `./val/lib/gen/std_compliance_test.sh --report` -> `Rule failures: 0`, `Rule warnings: 20`
+  - `./val/lib/ops/std_compliance_test.sh --report` -> `2%` validation, `24%` help, `86%` error, `99%` docs, `65%` aux
+  - `./val/core/glb_008_secret_scan_test.sh --report` -> `Potential secret matches: 1` (waived)
+  - Strict dry runs: `./val/core/std_compliance_test.sh`, `./val/lib/gen/std_compliance_test.sh`, and `./val/lib/ops/std_compliance_test.sh` all exit successfully.
 
 In progress:
 
-- Align `ops` report quality with `core`/`gen` by reducing false positives in module-scoped checks.
+- Raise `ops` validation/help coverage to strict-cutover floors.
 - Track approved temporary `GLB-008` waiver and prepare removal change.
 
 Next:
 
-1. Finish `ops` signal-quality pass and rerun report baseline.
-2. Wire strict-mode cutover criteria into module default runner behavior.
-3. Implement replacement for hardcoded `CT_DEFAULT_PASSWORD` and remove waiver.
+1. Implement replacement for hardcoded `CT_DEFAULT_PASSWORD` and remove waiver.
+2. Land focused `ops` remediation for validation/help coverage floors.
+3. Re-run two consecutive report baselines to confirm non-regression before strict-default expansion.
 
 ## Proposed target outline for `lib/.spec` (global-only)
 
@@ -283,7 +299,7 @@ Keep in `lib/.spec` only if it applies to all `lib/*` modules without exception.
 - `GLB-009`: destructive file changes use safe write pattern.
 - `GLB-010`: each MUST rule maps to a compliance check or documented waiver.
 
-These IDs are intended to be consumed by the upcoming rule-to-test matrix in `val/`.
+These IDs are consumed by the current rule-to-test matrix in `val/` and will be expanded incrementally.
 
 ## Rule-to-test matrix (first implementation)
 
@@ -294,7 +310,7 @@ Global rules:
 - `GLB-004` -> `val/lib/gen/std_compliance_test.sh` (invalid-usage path presence), `val/lib/ops/std_compliance_test.sh` (validation + usage behavior checks).
 - `GLB-005` -> `val/core/std_compliance_test.sh` and `val/lib/gen/std_compliance_test.sh` (3-line usage block + technical sections).
 - `GLB-007` -> `val/lib/ops/std_compliance_test.sh` (error/return code pattern checks).
-- `GLB-008` -> planned follow-up scanner for secret hardcoding patterns (not yet implemented).
+- `GLB-008` -> `val/core/glb_008_secret_scan_test.sh` (secret-like literal assignment scan, waiver-aware review process).
 - `GLB-009` -> `val/lib/ops/std_compliance_test.sh` (error handling/explicit return path checks, partial coverage).
 - `GLB-010` -> this matrix section + active checklist mapping (process gate).
 
