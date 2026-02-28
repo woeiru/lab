@@ -43,9 +43,25 @@
     # Function chaining
 
     # ACU analysis aliases: variable full cross-component consistency analysis.
-    alias ffl-acu_core__all='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_DIR" "$SRC_DIR" "$UTL_DIR"'
-    alias ffl-acu_env__all='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_DIR" "$SRC_DIR" "$UTL_DIR"'
-    alias ffl-acu_cycle='ffl-acu_core__all && ffl-acu_env__all'
+    # Wrapper functions are required because aliases cannot forward arguments reliably.
+    _ffl_acu_core__all() {
+        local acu_mode="${1:-}"
+        aux_ffl ana_acu "$acu_mode" "$CFG_CORE_DIR" "$LIB_DIR" "$SRC_DIR" "$UTL_DIR"
+    }
+
+    _ffl_acu_env__all() {
+        local acu_mode="${1:-}"
+        aux_ffl ana_acu "$acu_mode" "$CFG_ENV_DIR" "$LIB_DIR" "$SRC_DIR" "$UTL_DIR"
+    }
+
+    _ffl_acu_cycle() {
+        local acu_mode="${1:-}"
+        _ffl_acu_core__all "$acu_mode" && _ffl_acu_env__all "$acu_mode"
+    }
+
+    alias ffl-acu_core__all='_ffl_acu_core__all'
+    alias ffl-acu_env__all='_ffl_acu_env__all'
+    alias ffl-acu_cycle='_ffl_acu_cycle'
 
     # LAF analysis aliases: function inventory and call-distribution summaries.
     alias ffl-laf_core='aux_ffl ana_laf "" "$LIB_CORE_DIR"'
