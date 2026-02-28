@@ -794,8 +794,7 @@ ana_acu() {
     local tab_width_var_names=24
     local tab_width_var_values=30
     local tab_width_total_occ=10
-    # Adjusted width for individual target directory occurrence columns to show details
-    local tab_width_per_dir_occ=40 # Increased width
+    local tab_width_per_dir_occ=40
 
     local usage_message="Usage: ana_acu [options: -o|-a|-j|-t|-b|--json-dir <dir>] <config file or directory> <target folder1> [target folder2 ...]"
     local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  --json-dir <dir>: write JSON output into a custom directory\n  -t: truncate table cells to fixed widths\n  -b: wrap table cells and print multiline rows"
@@ -804,6 +803,43 @@ ana_acu() {
         echo "Error: At least one target folder must be specified."
         echo -e "$usage_message\n$sort_mode_details"
         return 1
+    fi
+
+    if [[ "$truncate_mode" == true || "$break_mode" == true ]]; then
+        local terminal_cols="${COLUMNS:-}"
+        if [[ -z "$terminal_cols" ]] && [[ -t 1 ]] && command -v tput >/dev/null 2>&1; then
+            terminal_cols=$(tput cols 2>/dev/null || true)
+        fi
+        if [[ ! "$terminal_cols" =~ ^[0-9]+$ ]] || [[ "$terminal_cols" -le 0 ]]; then
+            terminal_cols=120
+        fi
+
+        local min_var_width=16
+        local min_val_width=20
+        local min_dir_width=12
+        local target_count=${#target_folders_input[@]}
+        local table_width
+
+        while :; do
+            table_width=$((tab_width_var_names + tab_width_var_values + tab_width_total_occ + (target_count * tab_width_per_dir_occ) + (10 + (3 * target_count))))
+            if [[ "$table_width" -le "$terminal_cols" ]]; then
+                break
+            fi
+
+            if [[ "$tab_width_per_dir_occ" -gt "$min_dir_width" ]]; then
+                tab_width_per_dir_occ=$((tab_width_per_dir_occ - 1))
+                continue
+            fi
+            if [[ "$tab_width_var_values" -gt "$min_val_width" ]]; then
+                tab_width_var_values=$((tab_width_var_values - 1))
+                continue
+            fi
+            if [[ "$tab_width_var_names" -gt "$min_var_width" ]]; then
+                tab_width_var_names=$((tab_width_var_names - 1))
+                continue
+            fi
+            break
+        done
     fi
 
     if [[ "$sort_mode" != "-o" && "$sort_mode" != "-a" ]]; then
@@ -938,24 +974,7 @@ ana_acu() {
     }
 
     _ana_acu_print_separator_2() {
-        local line="+"
-        local h_var_segment h_val_segment h_occ_segment h_dir_segment
-
-        h_var_segment=$(printf '%*s' "$((${tab_width_var_names} + 1))" '' | tr ' ' ' ')
-        line+="${h_var_segment} +"
-
-        h_val_segment=$(printf '%*s' "$((${tab_width_var_values} + 1))" '' | tr ' ' ' ')
-        line+="${h_val_segment} +"
-
-        h_occ_segment=$(printf '%*s' "$((${tab_width_total_occ} + 1))" '' | tr ' ' ' ')
-        line+="${h_occ_segment} +"
-
-        for _ in "${target_folders_input[@]}"; do
-            h_dir_segment=$(printf '%*s' "$((${tab_width_per_dir_occ} + 1))" '' | tr ' ' ' ')
-            line+="${h_dir_segment} +"
-        done
-
-        printf "%s\n" "$line"
+        _ana_acu_print_separator
     }
 
     _ana_acu_print_header() {

@@ -360,12 +360,14 @@ aux_ffl() {
                 
                 if [[ "$file_extension" == "conf" ]]; then
                     # Count variables in .conf files
-                    variable_count=$(grep -cE '^[a-zA-Z0-9_]+=' "$file" 2>/dev/null || echo "0")
+                    variable_count=$(grep -cE '^[a-zA-Z0-9_]+=' "$file" 2>/dev/null || true)
+                    [[ -z "$variable_count" ]] && variable_count=0
                     count_type="Variables"
                     count_value=$variable_count
                 else
                     # Count functions in other files
-                    function_count=$(grep -cE '^[a-zA-Z0-9_-]+\(\)[[:space:]]*\{' "$file" 2>/dev/null || echo "0")
+                    function_count=$(grep -cE '^[a-zA-Z0-9_-]+\(\)[[:space:]]*\{' "$file" 2>/dev/null || true)
+                    [[ -z "$function_count" ]] && function_count=0
                     count_type="Functions"
                     count_value=$function_count
                 fi
