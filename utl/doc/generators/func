@@ -78,7 +78,7 @@ HEADER_EOF
                         "| " + join(" | ") + " |"
                     ' "$json_file" 2>/dev/null
                 fi
-            done < <(find "$full_path" -type f ! -path '*/.*' ! -name '*.*' -print0)
+            done < <(find "$full_path" -type f -print0)
         fi
     done
 }
