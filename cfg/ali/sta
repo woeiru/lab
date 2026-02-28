@@ -64,11 +64,37 @@
     alias ffl-acu_cycle='_ffl_acu_cycle'
 
     # LAF analysis aliases: function inventory and call-distribution summaries.
-    alias ffl-laf_core='aux_ffl ana_laf "" "$LIB_CORE_DIR"'
-    alias ffl-laf_ops='aux_ffl ana_laf "" "$LIB_OPS_DIR"'
-    alias ffl-laf_gen='aux_ffl ana_laf "" "$LIB_GEN_DIR"'
-    alias ffl-laf_utl='aux_ffl ana_laf "" "$UTL_DIR"'
-    alias ffl-laf_cycle='ffl-laf_core && ffl-laf_ops && ffl-laf_gen && ffl-laf_utl'
+    # Wrapper functions are required because aliases cannot forward arguments reliably.
+    _ffl_laf_core() {
+        local laf_mode="${1:-}"
+        aux_ffl ana_laf "$laf_mode" "$LIB_CORE_DIR"
+    }
+
+    _ffl_laf_ops() {
+        local laf_mode="${1:-}"
+        aux_ffl ana_laf "$laf_mode" "$LIB_OPS_DIR"
+    }
+
+    _ffl_laf_gen() {
+        local laf_mode="${1:-}"
+        aux_ffl ana_laf "$laf_mode" "$LIB_GEN_DIR"
+    }
+
+    _ffl_laf_utl() {
+        local laf_mode="${1:-}"
+        aux_ffl ana_laf "$laf_mode" "$UTL_DIR"
+    }
+
+    _ffl_laf_cycle() {
+        local laf_mode="${1:-}"
+        _ffl_laf_core "$laf_mode" && _ffl_laf_ops "$laf_mode" && _ffl_laf_gen "$laf_mode" && _ffl_laf_utl "$laf_mode"
+    }
+
+    alias ffl-laf_core='_ffl_laf_core'
+    alias ffl-laf_ops='_ffl_laf_ops'
+    alias ffl-laf_gen='_ffl_laf_gen'
+    alias ffl-laf_utl='_ffl_laf_utl'
+    alias ffl-laf_cycle='_ffl_laf_cycle'
 
     # RDP analysis aliases: function detect reverse dependencies across project modules.
     alias ffl-rdp_core__bin='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$DIR_BIN"'
