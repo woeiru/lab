@@ -41,11 +41,20 @@
     alias ee='exit'
 
     # Function chaining
+
     alias ffl-laf_core='aux_ffl ana_laf "" "$LIB_CORE_DIR"'
     alias ffl-laf_ops='aux_ffl ana_laf "" "$LIB_OPS_DIR"'
     alias ffl-laf_gen='aux_ffl ana_laf "" "$LIB_GEN_DIR"'
-    alias ffl-acu_env__gen_ops_set='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR"'
-    alias ffl-acu_core__core_gen_ops_set='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_CORE_DIR" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR"'
+
+    alias ffl-acu_env__gen='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_GEN_DIR"'
+    alias ffl-acu_env__ops='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_OPS_DIR"'
+    alias ffl-acu_env__set='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$SRC_SET_DIR"'
+    alias ffl-acu_core__core='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_CORE_DIR"'
+    alias ffl-acu_core__gen='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_GEN_DIR"'
+    alias ffl-acu_core__ops='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_OPS_DIR"'
+    alias ffl-acu_core__set='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$SRC_SET_DIR"'
+    alias ffl-acu_cycle='ffl-acu_env__gen && ffl-acu_env__ops && ffl-acu_env__set && ffl-acu_core__core && ffl-acu_core__gen && ffl-acu_core__ops && ffl-acu_core__set'
+
     alias ffl-rdp_core__bin='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "${DIR_BIN:-$LAB_DIR/bin}"'
     alias ffl-rdp_core__lib='aux_ffl ana_rdp "" "$LIB_CORE_DIR" "$LAB_DIR/lib"'
     alias ffl-rdp_gen__bin='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "${DIR_BIN:-$LAB_DIR/bin}"'
@@ -53,6 +62,7 @@
     alias ffl-rdp_gen__src='aux_ffl ana_rdp "" "$LIB_GEN_DIR" "$LAB_DIR/src"'
     alias ffl-rdp_ops__lib='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$LAB_DIR/lib"'
     alias ffl-rdp_ops__src='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$LAB_DIR/src"'
+    alias ffl-rdp_cycle='ffl-rdp_core__bin && ffl-rdp_core__lib && ffl-rdp_gen__bin && ffl-rdp_gen__lib && ffl-rdp_gen__src && ffl-rdp_ops__lib && ffl-rdp_ops__src'
 
     # Function makros
     alias v111='ops gpu ptd -d lookup && qm start 111'
