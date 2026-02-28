@@ -10,5 +10,5 @@ This folder contains triaged and prioritized work that is ready to start.
 
 ## Filename rule (required)
 
-- Every file in `doc/pro/queue/` must use `yyyymmdd-hhmm_filename`.
+- Every non-README file in `doc/pro/queue/` must use `yyyymmdd-hhmm_filename`.
 - The prefix is the file's last git touch timestamp.

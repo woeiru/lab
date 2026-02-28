@@ -13,6 +13,9 @@ check_timestamp_prefix() {
   local file="$1"
   local base
   base="$(basename "$file")"
+  if [[ "$base" == "README.md" ]]; then
+    return 0
+  fi
   if [[ ! "$base" =~ ^[0-9]{8}-[0-9]{4}_.+ ]]; then
     printf 'FAIL timestamp prefix: %s\n' "$file"
     failures=$((failures + 1))

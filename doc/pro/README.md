@@ -18,7 +18,7 @@ Use it to move work through clear states:
 
 ## Filename timestamp rule (required)
 
-Every file under `doc/pro/` must use this prefix format:
+Every non-README file under `doc/pro/` must use this prefix format:
 
 - `yyyymmdd-hhmm_filename`
 
@@ -33,7 +33,6 @@ When you update a file in this folder tree:
 Examples:
 
 - `20260228-0940_inbox-item-plan.md`
-- `20260228-1015_README.md`
 
 ## Recommended flow (best practice)
 

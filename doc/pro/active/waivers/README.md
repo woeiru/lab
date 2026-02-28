@@ -9,7 +9,7 @@ This folder contains temporary policy waivers for currently active work.
 
 ## Filename rule (required)
 
-- Every file in this folder must use `yyyymmdd-hhmm_filename`.
+- Every non-README file in this folder must use `yyyymmdd-hhmm_filename`.
 - Use the file's last git touch time for the prefix.
 
 ## Usage
