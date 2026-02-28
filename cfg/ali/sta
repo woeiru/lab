@@ -43,16 +43,9 @@
     # Function chaining
 
     # ACU analysis aliases: compare cfg/env and cfg/core against gen/ops/set/core/utl.
-    alias ffl-acu_env__gen='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_GEN_DIR"'
-    alias ffl-acu_env__ops='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_OPS_DIR"'
-    alias ffl-acu_env__set='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$SRC_SET_DIR"'
-    alias ffl-acu_env__utl='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LAB_DIR/utl"'
-    alias ffl-acu_core__core='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_CORE_DIR"'
-    alias ffl-acu_core__gen='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_GEN_DIR"'
-    alias ffl-acu_core__ops='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_OPS_DIR"'
-    alias ffl-acu_core__set='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$SRC_SET_DIR"'
-    alias ffl-acu_core__utl='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LAB_DIR/utl"'
-    alias ffl-acu_cycle='ffl-acu_env__gen && ffl-acu_env__ops && ffl-acu_env__set && ffl-acu_env__utl && ffl-acu_core__core && ffl-acu_core__gen && ffl-acu_core__ops && ffl-acu_core__set && ffl-acu_core__utl'
+    alias ffl-acu_env__all='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR" "$LAB_DIR/utl"'
+    alias ffl-acu_core__all='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_CORE_DIR" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR" "$LAB_DIR/utl"'
+    alias ffl-acu_cycle='ffl-acu_env__all && ffl-acu_core__all'
 
     # LAF analysis aliases: function inventory with call distribution summary by library tier.
     alias ffl-laf_core='aux_ffl ana_laf "" "$LIB_CORE_DIR"'
