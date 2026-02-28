@@ -2400,7 +2400,7 @@ _ana_dep_json_escape() {
 
 # Retrieves module sourcing and command dependency information with optional JSON output
 # analyze dependencies
-# <file path> [-j]
+# [options: -j|--json-dir <dir>] <file path>
 ana_dep() {
     # Technical Description:
     #   Extracts direct script sourcing statements and host command checks from
@@ -2412,10 +2412,11 @@ ana_dep() {
     #   - aux_use, aux_err
     #   - LAB_DIR (optional) to resolve repository root for JSON output
     # Arguments:
+    #   [options]: -j, --json-dir <dir>
     #   $1: target_file - readable module file path to analyze
-    #   $2: [optional] -j to write JSON output in .tmp/doc
     local target_file=""
     local json_mode=false
+    local json_output_dir=""
     local positional_count=0
     local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)}"
 
@@ -2430,10 +2431,22 @@ ana_dep() {
                 json_mode=true
                 shift
                 ;;
+            --json-dir)
+                if [[ -z "${2:-}" ]]; then
+                    echo "Error: --json-dir requires a directory path."
+                    return 1
+                fi
+                json_output_dir="$2"
+                shift 2
+                ;;
             -*)
                 echo "Unknown option: $1"
                 aux_use
                 return 1
+                ;;
+            "")
+                # Compatibility with aux_ffl aliases that pass an empty flag
+                shift
                 ;;
             *)
                 ((positional_count++))
@@ -2493,7 +2506,7 @@ ana_dep() {
     fi
 
     if [[ "$json_mode" == true ]]; then
-        local tmp_dir="$lab_dir/.tmp/doc"
+        local tmp_dir="${json_output_dir:-$lab_dir/.tmp/doc}"
         mkdir -p "$tmp_dir"
         
         local rel_target="${target_file#$lab_dir/}"

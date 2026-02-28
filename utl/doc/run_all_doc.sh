@@ -48,6 +48,7 @@ GENERATORS=(
     "functions:func:Function metadata table generator"
     "variables:var:Variable usage documentation generator"
     "dependencies:rdp:Reverse dependencies generator"
+    "module-dependencies:dep:Direct module dependency generator"
     "stats:stats:System metrics generator"
 )
 
@@ -85,6 +86,7 @@ TARGETS:
     functions       Generate function metadata table (func)
     variables       Generate variable usage documentation (var)
     dependencies    Generate reverse dependencies table (rdp)
+    module-dependencies Generate direct module dependencies table (dep)
     stats           Generate system metrics (stats)
 
 CONFIGURATION:

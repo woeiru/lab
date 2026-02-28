@@ -87,6 +87,7 @@ declare -A GENERATOR_OUTPUT_FILES
 GENERATOR_OUTPUT_FILES[func]="doc/ref/functions.md"     # Function metadata tables
 # GENERATOR_OUTPUT_FILES[stats]="README.md"               # System metrics (root README)
 GENERATOR_OUTPUT_FILES[var]="doc/ref/variables.md"      # Variable usage documentation
+GENERATOR_OUTPUT_FILES[dep]="doc/ref/module-dependencies.md"  # Direct module dependency documentation
 
 # GENERATOR_SECTIONS: Section names for generators that update specific parts of files
 # - Purpose: Enables generators to update only their designated sections
@@ -97,6 +98,7 @@ declare -A GENERATOR_SECTIONS
 GENERATOR_SECTIONS[func]="Function Metadata Table"      # Updates function tables in doc/man/functions.md
 # GENERATOR_SECTIONS[stats]="System Metrics"              # Updates metrics table in README.md
 GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable tables in doc/ref/variables.md
+GENERATOR_SECTIONS[dep]="Module Dependency Table"       # Updates dependency tables in doc/ref/module-dependencies.md
 
 #######################################################################
 # CONFIGURATION EXAMPLES AND USAGE NOTES

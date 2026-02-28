@@ -109,6 +109,61 @@
     alias ffl-rdp_ops__utl='aux_ffl ana_rdp "" "$LIB_OPS_DIR" "$UTL_DIR"'
     alias ffl-rdp_cycle='ffl-rdp_core__bin && ffl-rdp_core__lib && ffl-rdp_core__utl && ffl-rdp_gen__bin && ffl-rdp_gen__lib && ffl-rdp_gen__src && ffl-rdp_gen__utl && ffl-rdp_ops__lib && ffl-rdp_ops__src && ffl-rdp_ops__utl'
 
+    # DEP analysis aliases: direct module dependencies (imports + host commands).
+    # Wrapper functions are required because aliases cannot forward arguments reliably.
+    _ffl_dep_go() {
+        local dep_mode="${1:-}"
+        if [[ -n "$dep_mode" ]]; then
+            ana_dep "$dep_mode" "$LAB_DIR/go"
+        else
+            ana_dep "$LAB_DIR/go"
+        fi
+    }
+
+    _ffl_dep_bin() {
+        local dep_mode="${1:-}"
+        aux_ffl ana_dep "$dep_mode" "$DIR_BIN"
+    }
+
+    _ffl_dep_core() {
+        local dep_mode="${1:-}"
+        aux_ffl ana_dep "$dep_mode" "$LIB_CORE_DIR"
+    }
+
+    _ffl_dep_gen() {
+        local dep_mode="${1:-}"
+        aux_ffl ana_dep "$dep_mode" "$LIB_GEN_DIR"
+    }
+
+    _ffl_dep_ops() {
+        local dep_mode="${1:-}"
+        aux_ffl ana_dep "$dep_mode" "$LIB_OPS_DIR"
+    }
+
+    _ffl_dep_src() {
+        local dep_mode="${1:-}"
+        aux_ffl ana_dep "$dep_mode" "$SRC_DIR"
+    }
+
+    _ffl_dep_utl() {
+        local dep_mode="${1:-}"
+        aux_ffl ana_dep "$dep_mode" "$UTL_DIR"
+    }
+
+    _ffl_dep_cycle() {
+        local dep_mode="${1:-}"
+        _ffl_dep_go "$dep_mode" && _ffl_dep_bin "$dep_mode" && _ffl_dep_core "$dep_mode" && _ffl_dep_gen "$dep_mode" && _ffl_dep_ops "$dep_mode" && _ffl_dep_src "$dep_mode" && _ffl_dep_utl "$dep_mode"
+    }
+
+    alias ffl-dep_go='_ffl_dep_go'
+    alias ffl-dep_bin='_ffl_dep_bin'
+    alias ffl-dep_core='_ffl_dep_core'
+    alias ffl-dep_gen='_ffl_dep_gen'
+    alias ffl-dep_ops='_ffl_dep_ops'
+    alias ffl-dep_src='_ffl_dep_src'
+    alias ffl-dep_utl='_ffl_dep_utl'
+    alias ffl-dep_cycle='_ffl_dep_cycle'
+
     # Function makros
     alias v111='ops gpu ptd -d lookup && qm start 111'
 
