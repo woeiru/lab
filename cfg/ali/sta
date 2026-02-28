@@ -43,9 +43,9 @@
     # Function chaining
 
     # ACU analysis aliases: run full cross-component consistency analysis.
-    alias ffl-acu_env__all='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR" "$UTL_DIR"'
-    alias ffl-acu_core__all='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_CORE_DIR" "$LIB_GEN_DIR" "$LIB_OPS_DIR" "$SRC_SET_DIR" "$UTL_DIR"'
-    alias ffl-acu_cycle='ffl-acu_env__all && ffl-acu_core__all'
+    alias ffl-acu_core__all='aux_ffl ana_acu "" "$CFG_CORE_DIR" "$LIB_DIR" "$SRC_DIR" "$UTL_DIR"'
+    alias ffl-acu_env__all='aux_ffl ana_acu "" "$CFG_ENV_DIR" "$LIB_DIR" "$SRC_DIR" "$UTL_DIR"'
+    alias ffl-acu_cycle='ffl-acu_core__all && ffl-acu_env__all'
 
     # LAF analysis aliases: generate function inventory and call-distribution summaries.
     alias ffl-laf_core='aux_ffl ana_laf "" "$LIB_CORE_DIR"'
