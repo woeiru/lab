@@ -1128,6 +1128,16 @@ ana_acu() {
     
     # Generate JSON output if requested
     if [[ "$json_mode" == true ]]; then
+        _ana_acu_json_escape() {
+            local raw="$1"
+            raw=${raw//\\/\\\\}
+            raw=${raw//\"/\\\"}
+            raw=${raw//$'\n'/\\n}
+            raw=${raw//$'\r'/\\r}
+            raw=${raw//$'\t'/\\t}
+            printf '%s' "$raw"
+        }
+
         # Create JSON output directory
         local lab_dir="${LAB_DIR:-$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")}"
         local tmp_dir="${json_output_dir:-$lab_dir/.tmp/doc}"
@@ -1202,7 +1212,7 @@ EOF
             
             # Write variable JSON object
             local escaped_var_value
-            escaped_var_value=$(echo "$var_value" | sed 's/"/\\"/g')
+            escaped_var_value=$(_ana_acu_json_escape "$var_value")
 
             echo "    {" >> "$json_file"
             echo "      \"name\": \"$var_name\"," >> "$json_file"

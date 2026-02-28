@@ -60,15 +60,14 @@ HEADER_EOF
             if [[ -f "$json_file" ]]; then
                 # parse via jq
                 jq -r --arg conf "$rel_conf" '
-                    .variables[]? | 
-                    select(.total_occurrences > 0) |
+                    .variables[]? |
                     [
-                        "`\(.name)`", 
+                        "`\(.name)`",
                         "`\(.value | gsub("`";"\\`") | gsub("\\|"; "\\|"))`",
                         (.total_occurrences | tostring),
-                        ([.usage_by_folder[]? | select(.total_occurrences > 0) | "\(.path): \(.total_occurrences)"] | join(", ")),
+                        ([.usage_by_folder[]? | "\(.path): \(.total_occurrences)"] | join(", ")),
                         $conf
-                    ] | 
+                    ] |
                     "| " + join(" | ") + " |"
                 ' "$json_file" 2>/dev/null
             fi
