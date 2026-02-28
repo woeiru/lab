@@ -116,6 +116,11 @@ SRC_DIR="${LAB_DIR}/src"
 UTL_DIR="${LAB_DIR}/utl"
 export BIN_DIR LIB_DIR SRC_DIR UTL_DIR
 
+# Source subdirectories
+declare -g SRC_DIC_DIR
+SRC_DIC_DIR="${SRC_DIR}/dic"
+export SRC_DIC_DIR
+
 # Backward-compatible directory aliases
 declare -g DIR_BIN DIR_LIB DIR_SRC DIR_UTL
 DIR_BIN="${BIN_DIR}"
@@ -148,6 +153,11 @@ export SRC_AUX_DIR
 declare -g SRC_SET_DIR
 SRC_SET_DIR="${LAB_DIR}/src/set"
 export SRC_SET_DIR
+
+# Source entrypoints
+declare -g SRC_DIC_OPS
+SRC_DIC_OPS="${SRC_DIC_DIR}/ops"
+export SRC_DIC_OPS
 
 # Runtime configuration
 declare -g CACHE_CLEANUP_INTERVAL
