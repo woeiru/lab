@@ -50,6 +50,7 @@ Planning documents organised by lifecycle state.
 - `pro/inbox/` — New ideas and proposals awaiting triage
 - `pro/queue/` — Prioritized items ready to be started
 - `pro/active/` — Work in progress
+- `pro/active/waivers/` — Temporary policy waivers for active work (owner + expiry + removal criteria)
 - `pro/completed/` — Completed plans
 - `pro/dismissed/` — Dismissed proposals
 - `pro/experiments/` — Exploratory work and validation notes

@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-02-27
 - Updated: 2026-02-28
-- Links: `lib/.spec`, `lib/core/.spec`, `lib/gen/.spec`, `lib/ops/.spec`, `doc/pro/active/spec-hierarchy-and-enforcement-plan.md`
+- Links: `lib/.spec`, `lib/core/.spec`, `lib/gen/.spec`, `lib/ops/.spec`, `doc/pro/active/spec-hierarchy-and-enforcement-plan.md`, `doc/pro/active/waivers/waiver-register.md`
 
 ## Quick resume snapshot (read this first)
 
@@ -53,6 +53,8 @@ Definition of ready-to-pause state:
 - Snapshot section updated with latest numbers and date.
 - Any open finding has either code fix or documented waiver (owner + removal date).
 - Next 1-3 concrete actions are listed before pausing.
+
+Current pause readiness: met (`2026-02-28`) with active waiver `WVR-2026-001` recorded.
 
 This plan turns the current hierarchy work into an enforcement-grade standards model.
 

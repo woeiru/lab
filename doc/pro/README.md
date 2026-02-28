@@ -11,6 +11,7 @@ Use it to move work through clear states:
 - `inbox/`: ideas, plans, and tasks you might do later
 - `queue/`: prioritized items ready to start next
 - `active/`: work currently in progress
+  - `active/waivers/`: temporary policy waivers tied to active items
 - `completed/`: finished work with final outcome documented
 - `dismissed/`: ideas you decided not to do (with a short reason)
 - `experiments/`: alternative approaches/prototypes
