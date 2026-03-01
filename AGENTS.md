@@ -42,6 +42,12 @@ The loading order is: `./go` -> `bin/ini` -> `bin/orc` -> `lib/core/*` ->
 later ones. Before assuming a function or variable is available, trace where
 in this chain the current file sits.
 
+**Note**: by default, `lib/ops/*` and `lib/gen/*` are **lazy-loaded** (stub
+functions registered at boot from `cfg/core/lzy`; real module sourced on first
+call). The chain above describes logical availability order, not eager
+sourcing. Set `LAB_OPS_LAZY_LOAD=0` / `LAB_GEN_LAZY_LOAD=0` before sourcing
+`bin/ini` to force eager loading.
+
 ---
 
 ## 2) Build, Lint, and Test Commands

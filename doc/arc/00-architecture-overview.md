@@ -21,8 +21,8 @@ This repository is a Bash-native infrastructure automation system with two prima
 
 1. User runs `./go init` once to persist helper functions and save `.tmp/go_settings` (`setup_shell_integration`, `save_settings`, `inject_helper_functions`).
 2. User enables startup loading with `./go on` (`handle_on_command` -> `inject_content`), which writes `. <lab_root>/bin/ini` into the selected shell RC file.
-3. New shell sources `bin/ini`; `main_ini` runs and loads `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`, `lib/core/ver`, then core modules `col`, `err`, `lo1`, `tme`.
-4. `bin/ini` sources `bin/orc`, runs `init_runtime_system`, and calls `setup_components` to attempt loading `cfg/core/ecc`, `cfg/ali/*`, `lib/ops/*`, `lib/gen/*`, `cfg/env` (site required, env/node optional), and `source_src_aux` from `SRC_AUX_DIR` (optional).
+3. New shell sources `bin/ini`; `main_ini` runs and loads `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`, `lib/core/ver`, then core modules `col`, `err`, `lo1`, `tme`. Boot-phase toggles (`LOG_DEBUG_ENABLED=0`, `LAB_BOOTSTRAP_MODE=1`, `PERFORMANCE_MODE=1`) are active during this phase to reduce overhead.
+4. `bin/ini` sources `bin/orc`, runs `init_runtime_system`, and calls `setup_components` to load `cfg/core/ecc`, `cfg/ali/*`, `cfg/env` (site required, env/node optional), and `source_src_aux` from `SRC_AUX_DIR` (optional). For `lib/ops/*` and `lib/gen/*`, by default lazy-load stub functions are registered from a static map (`cfg/core/lzy`) instead of eagerly sourcing all module files; the real module is loaded on first call. This is controlled by `LAB_OPS_LAZY_LOAD` / `LAB_GEN_LAZY_LOAD` (default `1`) and `LAB_OPS_LAZY_MODULES` / `LAB_GEN_LAZY_MODULES` (default `all`).
 5. A deployment script (for example `src/set/h1`) sources `src/set/.menu` and `src/dic/ops`, then routes `-i` or `-x` through `setup_main`.
 6. Selected `*_xall` sections invoke `ops module function ...`; DIC resolves/injects arguments (`ops_main` -> `ops_execute` -> `ops_inject_and_execute`) and calls target `module_function` symbols from sourced files in `lib/ops/*`.
 
@@ -52,12 +52,27 @@ sequenceDiagram
     I->>I: source cfg/core/{ric,rdc,mdc}
     I->>I: load_modules(col,err,lo1,tme)
     I->>O: source bin/orc
-    I->>O: setup_components()
-    O->>O: execute_component(source_cfg_ecc)
-    O->>O: execute_component(source_lib_ops)
-    O->>O: execute_component(source_lib_gen)
-    O->>O: execute_component(source_cfg_env)
-    O-->>I: RC_SOURCED=1 (success path)
+     I->>O: setup_components()
+     O->>O: execute_component(source_cfg_ecc)
+     O->>O: execute_component(source_lib_ops)
+
+     alt lazy-load enabled (default)
+         O->>O: register stub functions from cfg/core/lzy
+         Note over O: stubs load real module on first call
+     else lazy-load disabled
+         O->>L: source each lib/ops/* file eagerly
+     end
+
+     O->>O: execute_component(source_lib_gen)
+
+     alt lazy-load enabled (default)
+         O->>O: register stub functions for lib/gen/*
+     else lazy-load disabled
+         O->>L: source each lib/gen/* file eagerly
+     end
+
+     O->>O: execute_component(source_cfg_env)
+     O-->>I: RC_SOURCED=1 (success path)
 
     U->>S: ./src/set/h1 -x a
     S->>M: source .menu
@@ -82,7 +97,11 @@ flowchart LR
     B -->|Shell activation| C[go init/on]
     C --> D[source bin/ini]
     D --> E[source bin/orc components]
-    E --> F[Interactive shell with loaded functions]
+    E --> E1{lazy-load?}
+    E1 -->|yes default| E2[register stubs for ops/gen]
+    E1 -->|no| E3[eagerly source ops/gen]
+    E2 --> F[Interactive shell with loaded functions]
+    E3 --> F
 
     B -->|Deployment run| G[src/set script]
     G --> H[src/set/.menu routing]
@@ -96,6 +115,8 @@ flowchart LR
 - `go` writes managed blocks into user shell config (`.bashrc` or `.zshrc`), creates backups on mutation, and stores runtime settings in `.tmp/go_settings`.
 - First successful `./go init` creates `${HOME}/.lab_initialized`; `status` and `validate` behavior depends on this marker.
 - `bin/ini` exports/updates runtime globals from `cfg/core/ric` (`LAB_DIR`, `LIB_OPS_DIR`, `SITE_CONFIG_FILE`, log/temp paths, verbosity toggles).
+- `bin/ini` sets transient bootstrap-phase toggles (`LOG_DEBUG_ENABLED=0`, `LAB_BOOTSTRAP_MODE=1`, `PERFORMANCE_MODE=1`) that are restored/cleared after boot completes.
+- `bin/ini` exports lazy-load control variables (`LAB_OPS_LAZY_LOAD`, `LAB_GEN_LAZY_LOAD`, `LAB_OPS_LAZY_MODULES`, `LAB_GEN_LAZY_MODULES`) that persist and can be inspected at runtime.
 - `bin/ini` exports `main_ini` and can set `RC_SOURCED=1`; this leaks bootstrap state into the interactive shell by design.
 - `bin/orc` installs `trap cleanup EXIT INT TERM` when sourced; this changes trap behavior of the caller shell/session.
 - `src/set/.menu` eagerly sources all files in `cfg/env`, all files in `lib/ops`, and sibling files in `src/set/` (except itself).

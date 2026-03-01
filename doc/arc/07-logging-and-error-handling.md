@@ -17,11 +17,12 @@ Logging and error handling are split across core bootstrap modules and runtime u
 ### Actual call/load order
 
 1. `cfg/core/ric` defines core paths and verbosity switches (`MASTER_TERMINAL_VERBOSITY`, `LO1_LOG_TERMINAL_VERBOSITY`, `ERR_TERMINAL_VERBOSITY`, `TME_TERMINAL_VERBOSITY`, and nested TME toggles).
-2. `bin/ini` initializes log files (`INI_LOG_FILE`, `ERROR_LOG`) in `init_logging_system`.
-3. `bin/ini` loads `lib/core/err`, `lib/core/lo1`, and `lib/core/tme` via `load_modules`.
-4. `tme_init_timer` initializes timing state and `tme.log`; `bin/ini` wraps major phases with timer calls.
-5. `bin/orc` uses `lo1_log` for component progress and `execute_component` routes failures to `err_handler`.
-6. After `lib/gen/aux` is sourced, runtime callers (for example `src/dic/ops` and `lib/ops/*` functions) can emit structured logs via `aux_log`/`aux_dbg` and wrappers (`aux_info`, `aux_warn`, `aux_err`, `aux_audit`, `aux_business`).
+2. `bin/ini` forces `LOG_DEBUG_ENABLED=0` at the start of bootstrap (saving the original value) and exports `LAB_BOOTSTRAP_MODE=1`. This suppresses `lo1_log` stack-trace dumps and `ver_log` non-error writes during boot, significantly reducing file I/O on the hot path. Both are restored/cleared after orchestrator sourcing completes or on failure.
+3. `bin/ini` initializes log files (`INI_LOG_FILE`, `ERROR_LOG`) in `init_logging_system`.
+4. `bin/ini` loads `lib/core/err`, `lib/core/lo1`, and `lib/core/tme` via `load_modules`.
+5. `tme_init_timer` initializes timing state and `tme.log`; `bin/ini` wraps major phases with timer calls. `tme` uses integer nanosecond arithmetic (`$(date +%s%N)` captured once, then `$(( ))` bash arithmetic) instead of `echo ... | bc` pipe forks for duration calculation.
+6. `bin/orc` uses `lo1_log` for component progress and `execute_component` routes failures to `err_handler`.
+7. After `lib/gen/aux` is sourced (either eagerly or on first lazy-load call), runtime callers (for example `src/dic/ops` and `lib/ops/*` functions) can emit structured logs via `aux_log`/`aux_dbg` and wrappers (`aux_info`, `aux_warn`, `aux_err`, `aux_audit`, `aux_business`).
 
 ### End-to-end sequence
 
@@ -69,8 +70,9 @@ flowchart LR
 ## 3. State and Side Effects
 
 - `err` initializes global associative arrays (`ERROR_CODES`, `ERROR_*`) and writes to `ERROR_LOG`.
-- `lo1` initializes/uses logger state files (`LOG_STATE_FILE`, depth cache in `TMP_DIR`) and appends to `LOG_FILE`.
-- `tme` initializes timer state maps/files and writes detailed entries to `TME_LOG_FILE`.
+- `lo1` initializes/uses logger state files (`LOG_STATE_FILE`, depth cache in `TMP_DIR`) and appends to `LOG_FILE`. During bootstrap, `LOG_DEBUG_ENABLED=0` suppresses stack-trace dumps; timestamps use `printf '%(%T)T' -1` (Bash builtin) instead of `$(date ...)` forks. Direct file reads/writes replace `cat` usage on hot paths.
+- `tme` initializes timer state maps/files and writes detailed entries to `TME_LOG_FILE`. Duration calculation uses integer nanosecond arithmetic (`$(( ))`) instead of `echo ... | bc` pipe forks. `LOG_STATE_FILE` toggling (previously `cat`/`echo` per timer event) has been removed from timing start/end/cleanup paths.
+- `ver_log` short-circuits non-error log writes during `LAB_BOOTSTRAP_MODE=1`, skipping timestamp generation and file I/O. Uses cached `VER_LOG_DIR_READY` flag and parameter expansion instead of `dirname` subprocess calls.
 - `aux_log`/`aux_dbg` choose output format by `AUX_LOG_FORMAT` and write to `LOG_DIR/aux.log|aux.json|aux.csv` when writable.
 - `err_enable_trap` and orchestrator wrappers can install/trigger trap-based error handling behavior.
 
@@ -89,6 +91,7 @@ flowchart LR
 - Verbosity is hierarchical in practice: `MASTER_TERMINAL_VERBOSITY` gates module-level terminal outputs.
 - `aux` logging format changes (`human/json/csv/kv`) affect both terminal output and downstream log consumers/parsers.
 - Return-code semantics are defined in specs (`lib/.spec`, `lib/ops/.spec`), but enforcement is distributed per function/module.
+- Boot-phase log suppression (`LOG_DEBUG_ENABLED=0`, `ver_log` gating via `LAB_BOOTSTRAP_MODE`) means boot diagnostics in `lo1.log` and `ver.log` are reduced compared to runtime. If boot debugging is needed, set `LOG_DEBUG_ENABLED=1` or `VER_BOOTSTRAP_LOGGING=1` before sourcing `bin/ini`.
 
 ## Maintenance Note
 

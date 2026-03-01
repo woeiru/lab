@@ -17,14 +17,15 @@
 
 1. `bin/ini` calls `setup_components` in `bin/orc`.
 2. `setup_components` runs `source_lib_ops` (currently optional component in the orchestrator table).
-3. `source_lib_ops` scans `LIB_OPS_DIR` with `find ... | sort -z`, excluding docs (`*.md`, `*.txt`, `*.spec`, `README*`, hidden files), then sources each file via `source_helper`.
+3. When `LAB_OPS_LAZY_LOAD=1` (the default), `source_lib_ops` iterates `LIB_OPS_DIR` via shell glob (excluding docs and hidden files) and registers lightweight stub functions for each module from `cfg/core/lzy` (a static function map). If no map entry exists, a fallback regex scanner discovers function definitions from the module file. Stubs forward to `_orc_lazy_dispatch`, which sources the real module on first call. When `LAB_OPS_LAZY_LOAD=0`, `source_lib_ops` eagerly sources each file via `source_helper` as before.
 4. A caller triggers an operation, most commonly via DIC command shape `ops <module> <function> ...` from `src/set/*` sections.
-5. `src/dic/ops` runs `ops_execute`:
+5. If the module was lazy-loaded, the first call to any function in that module triggers `_orc_lazy_dispatch`, which sources the full module file (replacing all stubs with real definitions) and then executes the requested function.
+6. `src/dic/ops` runs `ops_execute`:
    - validates module path (`LIB_OPS_DIR/<module>`),
    - sources that module file,
    - validates function existence (`<module>_<function>`),
    - executes directly (utility `*_fun|*_var`) or through injection (`ops_inject_and_execute`).
-6. The target `module_function` in sourced `lib/ops/*` files performs checks and side effects (system/service/config changes) and returns status.
+7. The target `module_function` in sourced `lib/ops/*` files performs checks and side effects (system/service/config changes) and returns status.
 
 ### End-to-end sequence
 
@@ -40,8 +41,16 @@ sequenceDiagram
 
     I->>O: setup_components()
     O->>O: execute_component(source_lib_ops)
-    O->>L: source_lib_ops() -> source_helper(file)
-    O-->>I: ops libraries available in shell
+
+    alt lazy ops enabled (default)
+        O->>O: _orc_lazy_load_function_map() [source cfg/core/lzy once]
+        O->>O: _orc_lazy_register_module_stubs() per module
+        O->>O: _orc_lazy_define_stub() per function
+        O-->>I: stub functions registered in shell
+    else lazy ops disabled
+        O->>L: source_lib_ops() -> source_helper(file) per module
+        O-->>I: ops libraries available in shell
+    end
 
     S->>D: ops module function -j
     D->>D: ops_execute(module,function,args)
@@ -66,17 +75,20 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[bin/orc sources lib/ops] --> B[ops functions available]
-    B --> C[src/set task section]
-    C --> D[src/dic/ops dispatch]
-    D --> E[lib/ops module_function]
-    E --> F[Infrastructure state change]
+    A{lazy-load enabled?} -->|yes default| B[bin/orc registers stubs from cfg/core/lzy]
+    A -->|no| C[bin/orc sources lib/ops eagerly]
+    B --> D[ops stub functions available]
+    C --> D
+    D --> E[src/set task section]
+    E --> F[src/dic/ops dispatch]
+    F --> G[lib/ops module_function]
+    G --> H[Infrastructure state change]
 ```
 
 ## 3. State and Side Effects
 
-- `lib/ops/*` files are sourced into the active shell/session, so all function names become globally callable after load.
-- `source_lib_ops` uses source-time execution per file; source-time side effects in modules run immediately when loaded.
+- When lazy-loaded (default), `lib/ops/*` module files are not parsed at boot time. Lightweight stub functions are defined in the shell; the real module is sourced on first call via `_orc_lazy_dispatch`. `ORC_LAZY_MODULE_LOADED` (associative array) tracks which modules have been loaded so far.
+- Once a module is sourced (either eagerly or via lazy dispatch), all function names become globally callable. Source-time side effects in modules run at that point.
 - Operational functions are the layer most likely to mutate real systems (packages, services, network config, VM/CT state, storage).
 - DIC path re-sources module files on execution (`ops_execute`), so idempotent source blocks are important.
 
@@ -92,9 +104,10 @@ flowchart LR
 
 - Most ops modules are extensionless files; tooling that assumes `*.sh` will miss this layer.
 - DIC dispatch requires stable module/function naming (`module` file + `module_function` symbol).
-- `bin/orc` currently sources `lib/ops` before `lib/gen`; source-time hard dependencies on gen helpers can be brittle unless explicitly sourced.
+- `bin/orc` sources `lib/ops` before `lib/gen` in orchestrator order. When lazy loading is active (default), neither is eagerly sourced at boot; both are stub-loaded. When lazy loading is disabled, source-time hard dependencies on gen helpers can be brittle unless explicitly sourced.
 - `lib/ops/.spec` requires structured logging via `aux_*`, explicit validation/check patterns, and `-x` execution flag for action-only functions.
 - Deployment manifests are coupled to DIC command semantics (`ops module function -j`) rather than direct function signatures.
+- `cfg/core/lzy` contains the static function map used for lazy stub registration. When adding or removing public functions from an ops module, update the corresponding `ORC_LAZY_OPS_FUNCTIONS` entry in `cfg/core/lzy`.
 
 ## Maintenance Note
 
