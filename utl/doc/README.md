@@ -1,6 +1,6 @@
 # Documentation Generation System
 
-The `utl/doc` system generates auto-populated reference documentation under `doc/ref/` and an optional repository metrics report at `STATS.md`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/dependencies.md`, `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`, `doc/ref/scope-integrity.md`, and `doc/ref/error-handling.md`. The stats generator also writes machine-readable output to `doc/ref/stats.json` with timestamped snapshots under `doc/ref/stats-history/`.
+The `utl/doc` system generates auto-populated reference documentation under `doc/ref/` and an optional repository metrics report at `STATS.md`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/dependencies.md`, `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`, `doc/ref/scope-integrity.md`, and `doc/ref/error-handling.md`. The stats generator also writes machine-readable output to `doc/ref/stats/actual.md` with timestamped snapshots under `doc/ref/stats/`.
 
 ## Output Files
 
@@ -13,7 +13,7 @@ The `utl/doc` system generates auto-populated reference documentation under `doc
 | `tst`     | `doc/ref/test-coverage.md`| Module-to-test traceability with counters and status |
 | `scp`     | `doc/ref/scope-integrity.md`| Variable scope integrity findings (readonly/global/local leak) |
 | `err`     | `doc/ref/error-handling.md`| Error handling patterns (return/exit/aux_err/aux_warn/aux_val) |
-| `stats`   | `STATS.md`, `doc/ref/stats.json`, `doc/ref/stats-history/*.json` | Repository-level health and trend metrics |
+| `stats`   | `STATS.md`, `doc/ref/stats/actual.md`, `doc/ref/stats/*.json` | Repository-level health and trend metrics |
 
 ## System Layout
 
@@ -26,7 +26,7 @@ The `utl/doc` system generates auto-populated reference documentation under `doc
   - `tst`: Builds test traceability coverage tables in `doc/ref/test-coverage.md`.
   - `scp`: Builds scope integrity tables in `doc/ref/scope-integrity.md`.
   - `err`: Builds error handling tables in `doc/ref/error-handling.md`.
-  - `stats`: Generates repository metrics in `STATS.md` and `doc/ref/stats.json`, then stores a timestamped snapshot in `doc/ref/stats-history/`.
+  - `stats`: Generates repository metrics in `STATS.md` and `doc/ref/stats/actual.md`, then stores a timestamped snapshot in `doc/ref/stats/`.
 - `config/`: Configuration files.
   - `settings`: Parallelization, pathing, and output location preferences.
   - `targets`: Source directory list and generator output file mappings.
@@ -70,7 +70,7 @@ rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc
 ### Generate repository metrics
 
 ```bash
-./utl/doc/run_all_doc.sh stats            # updates STATS.md + doc/ref/stats.json
+./utl/doc/run_all_doc.sh stats            # updates STATS.md + doc/ref/stats/actual.md
 ./utl/doc/generators/stats --update       # writes markdown + machine snapshot outputs
 ./utl/doc/generators/stats --markdown     # prints markdown to stdout
 ./utl/doc/generators/stats --json         # prints machine-readable JSON to stdout

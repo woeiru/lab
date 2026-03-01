@@ -69,23 +69,23 @@ test_update_outputs() {
         "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --update >/dev/null"
 
     test_file_exists "$LAB_ROOT/STATS.md" "STATS.md is generated"
-    test_file_exists "$LAB_ROOT/doc/ref/stats.json" "doc/ref/stats.json is generated"
-    test_dir_exists "$LAB_ROOT/doc/ref/stats-history" "stats history directory exists"
+    test_file_exists "$LAB_ROOT/doc/ref/stats/actual.md" "doc/ref/stats/actual.md is generated"
+    test_dir_exists "$LAB_ROOT/doc/ref/stats" "stats directory exists"
 
-    run_test "stats.json has quality gate block" grep -q '"quality_gates"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has churn block" grep -q '"churn"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has hotspots block" grep -q '"hotspots_90d"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has complexity block" grep -q '"complexity"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has risk_signals block" grep -q '"risk_signals"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has test_health block" grep -q '"test_health"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has flaky_candidates block" grep -q '"flaky_candidates"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has flaky policy block" grep -q '"flaky_policy"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has suite_budgets block" grep -q '"suite_budgets"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has over-budget summary" grep -q '"over_budget_total"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has budget profile" grep -q '"budget_profile"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has test_health quality gate" grep -q '"test_health"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has top_longest block" grep -q '"top_longest"' "$LAB_ROOT/doc/ref/stats.json"
-    run_test "stats.json has risk deltas block" grep -q '"delta_vs_previous"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats machine snapshot has quality gate block" grep -q '"quality_gates"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has churn block" grep -q '"churn"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has hotspots block" grep -q '"hotspots_90d"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has complexity block" grep -q '"complexity"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has risk_signals block" grep -q '"risk_signals"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has test_health block" grep -q '"test_health"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has flaky_candidates block" grep -q '"flaky_candidates"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has flaky policy block" grep -q '"flaky_policy"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has suite_budgets block" grep -q '"suite_budgets"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has over-budget summary" grep -q '"over_budget_total"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has budget profile" grep -q '"budget_profile"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has test_health quality gate" grep -q '"test_health"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has top_longest block" grep -q '"top_longest"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "stats machine snapshot has risk deltas block" grep -q '"delta_vs_previous"' "$LAB_ROOT/doc/ref/stats/actual.md"
     run_test "STATS.md has churn section" grep -q '^## Change Velocity and Churn' "$LAB_ROOT/STATS.md"
     run_test "STATS.md has complexity and risk section" grep -q '^## Complexity and Risk Signals' "$LAB_ROOT/STATS.md"
     run_test "STATS.md has test health section" grep -q '^## Test Health' "$LAB_ROOT/STATS.md"
@@ -97,15 +97,15 @@ test_history_snapshot_created() {
     echo -e "${CYAN}--- Snapshot history ---${NC}"
 
     local snapshot_count
-    snapshot_count="$(find "$LAB_ROOT/doc/ref/stats-history" -type f -name '*.json' 2>/dev/null | wc -l | tr -d ' ')"
+    snapshot_count="$(find "$LAB_ROOT/doc/ref/stats" -type f -name '*.json' 2>/dev/null | wc -l | tr -d ' ')"
     snapshot_count="${snapshot_count:-0}"
 
     ((FRAMEWORK_TESTS_RUN++))
-    test_log "Checking: stats-history has at least one snapshot"
+    test_log "Checking: stats directory has at least one snapshot"
     if [[ "$snapshot_count" -ge 1 ]]; then
-        test_success "stats-history contains snapshots"
+        test_success "stats directory contains snapshots"
     else
-        test_failure "stats-history is empty"
+        test_failure "stats directory has no snapshots"
     fi
 }
 

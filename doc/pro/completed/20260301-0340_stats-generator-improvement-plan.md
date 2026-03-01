@@ -9,7 +9,7 @@
 
 - Provide repository health signals that are operationally useful and trendable.
 - Keep output deterministic and lightweight for routine regeneration.
-- Separate human summary (`STATS.md`) from machine-readable metrics (`doc/ref/stats.json`).
+- Separate human summary (`STATS.md`) from machine-readable metrics (`doc/ref/stats/actual.md`).
 
 ## current status (2026-03-01)
 
@@ -18,8 +18,8 @@
 - phases 1 through 4 are implemented in `utl/doc/generators/stats`.
 - outputs are now:
   - human report: `STATS.md`
-  - machine snapshot: `doc/ref/stats.json`
-  - persistent history: `doc/ref/stats-history/<timestamp>.json`
+  - machine snapshot: `doc/ref/stats/actual.md`
+  - persistent history: `doc/ref/stats/<timestamp>.json`
 - delivered capabilities now include:
   - phase 1: repository shape, growth deltas, hygiene checks, and quality-gate synthesis
   - phase 2: velocity/churn windows, hotspots, and trend summary from history snapshots
@@ -95,11 +95,11 @@
   - quality gates status (`ok`, `warn`, `fail`)
 - keep to compact tables and short bullet highlights.
 
-### machine output: `doc/ref/stats.json`
+### machine output: `doc/ref/stats/actual.md`
 
 - stable schema for CI/automation consumption.
 - include timestamp, git ref, and metric version.
-- store previous snapshots in `doc/ref/stats-history/<timestamp>.json`.
+- store previous snapshots in `doc/ref/stats/<timestamp>.json`.
 
 ## thresholds and budgets
 
@@ -115,7 +115,7 @@
 
 - Repo shape + growth deltas.
 - Syntax/hygiene checks (`bash -n`, executable bit checks).
-- Baseline `STATS.md` + `doc/ref/stats.json` generation.
+- Baseline `STATS.md` + `doc/ref/stats/actual.md` generation.
 
 ### phase 2
 
@@ -142,7 +142,7 @@
 ## success criteria
 
 - `STATS.md` provides clear health insight in under 1 minute of reading.
-- `doc/ref/stats.json` is stable enough for CI automation and trend dashboards.
+- `doc/ref/stats/actual.md` is stable enough for CI automation and trend dashboards.
 - Regressions are visible early without duplicating existing ref generator outputs.
 
 ## continuation (phase 3 kickoff)
@@ -170,7 +170,7 @@
    - count occurrences of risky constructs: `eval`, backticks, and broad `chmod 777` patterns.
    - add high-signal secret pattern checks (token/password/private key) excluding `doc/`.
 3. delta and trend integration
-   - compare new risk counts against previous `doc/ref/stats.json` snapshot.
+   - compare new risk counts against previous `doc/ref/stats/actual.md` snapshot.
    - expose `new_findings` and `resolved_findings` counts for phase 3 signals.
    - append phase 3 fields into history snapshots without breaking older reads.
 4. report rendering updates
@@ -257,7 +257,7 @@
 
 ### flaky-test heuristic design (captured for next implementation)
 
-- add optional `test_health` block to `doc/ref/stats.json` with:
+- add optional `test_health` block to `doc/ref/stats/actual.md` with:
   - `last_run`: status, duration_seconds, timestamp
   - `history_trend`: p50/p90 duration for recent snapshots
   - `flaky_candidates`: suites with status oscillation or duration variance spikes
@@ -409,7 +409,7 @@
   - explicit entries from `--flaky-suite-budget` and `STATS_FLAKY_SUITE_BUDGETS` still take precedence
 - extended outputs under test-health policy:
   - `STATS.md` now shows a `Budget profile` row in the `## Test Health` section
-  - `doc/ref/stats.json` now includes `test_health.flaky_policy.budget_profile`
+  - `doc/ref/stats/actual.md` now includes `test_health.flaky_policy.budget_profile`
 - expanded focused validation coverage in `val/core/stats_generator_test.sh` for:
   - new CLI help option
   - invalid profile handling

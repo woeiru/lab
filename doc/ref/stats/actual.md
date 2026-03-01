@@ -1,28 +1,28 @@
 {
-  "metric_version": "3.1.0",
-  "generated_at": "2026-03-01T02:39:10Z",
+  "metric_version": "3.5.0",
+  "generated_at": "2026-03-01T03:29:38Z",
   "git": {
     "branch": "master",
-    "commit": "245d764b",
+    "commit": "52513265",
     "dirty": true
   },
   "repo_shape": {
-    "total_files": 602,
+    "total_files": 599,
     "total_dirs": 68,
-    "total_size_kb": 12004,
+    "total_size_kb": 12596,
     "delta": {
       "files": 1,
       "dirs": 0,
       "size_kb": 8,
       "files_percent": "0.17",
       "dirs_percent": "0.00",
-      "size_percent": "0.07"
+      "size_percent": "0.06"
     }
   },
   "velocity": {
-    "commits_7d": 170,
-    "commits_30d": 204,
-    "commits_90d": 204
+    "commits_7d": 179,
+    "commits_30d": 213,
+    "commits_90d": 213
   },
   "churn": {
     "by_path": [
@@ -64,30 +64,30 @@
       },
       {
         "path": "val",
-        "adds_7d": 2837,
+        "adds_7d": 2877,
         "dels_7d": 333,
-        "adds_30d": 3025,
+        "adds_30d": 3065,
         "dels_30d": 474,
-        "adds_90d": 3025,
+        "adds_90d": 3065,
         "dels_90d": 474
       },
       {
         "path": "utl",
-        "adds_7d": 1915,
-        "dels_7d": 1430,
-        "adds_30d": 2038,
-        "dels_30d": 1465,
-        "adds_90d": 2038,
-        "dels_90d": 1465
+        "adds_7d": 2954,
+        "dels_7d": 1464,
+        "adds_30d": 3077,
+        "dels_30d": 1499,
+        "adds_90d": 3077,
+        "dels_90d": 1499
       },
       {
         "path": "doc",
-        "adds_7d": 14630,
-        "dels_7d": 11997,
-        "adds_30d": 14682,
-        "dels_30d": 12021,
-        "adds_90d": 14682,
-        "dels_90d": 12021
+        "adds_7d": 19386,
+        "dels_7d": 12370,
+        "adds_30d": 19438,
+        "dels_30d": 12394,
+        "adds_90d": 19438,
+        "dels_90d": 12394
       }
     ],
     "hotspots_90d": [
@@ -104,6 +104,11 @@
       {
         "file": "doc/ref/error-handling.md",
         "churn": 2372,
+        "authors": 1
+      },
+      {
+        "file": "utl/doc/generators/stats",
+        "churn": 2153,
         "authors": 1
       },
       {
@@ -124,11 +129,6 @@
       {
         "file": "doc/ref/scope-integrity.md",
         "churn": 1138,
-        "authors": 1
-      },
-      {
-        "file": "utl/doc/generators/stats",
-        "churn": 1080,
         "authors": 1
       },
       {
@@ -161,8 +161,8 @@
       "max_lines": 549
     },
     "threshold_counts": {
-      "gt_80": 68,
-      "gt_120": 36,
+      "gt_80": 69,
+      "gt_120": 37,
       "gt_150": 24
     },
     "top_longest": [
@@ -234,12 +234,49 @@
     "new_findings": 0,
     "resolved_findings": 7770
   },
+  "test_health": {
+    "last_run": {
+      "suite": "none",
+      "status": "unknown",
+      "duration_seconds": 0,
+      "timestamp": "none"
+    },
+    "history_trend": {
+      "points": 0,
+      "p50_duration_seconds": 0,
+      "p90_duration_seconds": 0
+    },
+    "flaky_summary": {
+      "total_candidates": 0,
+      "status_oscillation": 0,
+      "duration_variance": 0,
+      "over_budget_total": 0,
+      "over_budget_oscillation": 0,
+      "over_budget_variance": 0
+    },
+    "flaky_policy": {
+      "min_samples": 4,
+      "min_delta_seconds": 4,
+      "min_ratio_percent": 250,
+      "fail_oscillation_count": 1,
+      "fail_total_candidates": 2,
+      "warn_variance_count": 1,
+      "suite_budgets_configured": 0,
+      "budget_profile": "none"
+    },
+    "suite_budgets": [
+      { "suite": "none", "status_oscillation_budget": 0, "duration_variance_budget": 0 }
+    ],
+    "flaky_candidates": [
+      { "suite": "none", "reason": "none", "samples": 0, "min_seconds": 0, "max_seconds": 0 }
+    ]
+  },
   "trend": {
-    "points": 6,
-    "oldest": "2026-03-01T02:17:23Z",
-    "latest": "2026-03-01T02:39:09Z",
-    "files_delta_10": -6,
-    "size_kb_delta_10": -80
+    "points": 3,
+    "oldest": "2026-03-01T03:23:19Z",
+    "latest": "2026-03-01T03:29:18Z",
+    "files_delta_10": -16,
+    "size_kb_delta_10": 208
   },
   "quality_gates": {
     "overall": "fail",
@@ -247,10 +284,11 @@
     "executable_bits": "ok",
     "growth": "ok",
     "complexity": "fail",
-    "risk_signals": "ok"
+    "risk_signals": "ok",
+    "test_health": "ok"
   },
   "history": {
-    "previous_snapshot": "2026-03-01T02:39:09Z",
-    "history_snapshot": "doc/ref/stats-history/20260301T023910Z.json"
+    "previous_snapshot": "2026-03-01T03:29:18Z",
+    "history_snapshot": "doc/ref/stats/20260301T032938Z.json"
   }
 }

@@ -85,7 +85,7 @@ Or regenerate selected references:
 # Update variable usage documentation (writes to doc/ref/variables.md)
 ./utl/doc/generators/var
 
-# Update repository metrics (writes STATS.md + doc/ref/stats.json)
+# Update repository metrics (writes STATS.md + doc/ref/stats/actual.md)
 ./utl/doc/generators/stats --update
 ```
 
@@ -98,8 +98,8 @@ full test pipeline by default.
 ### Outputs
 
 - Human summary: `STATS.md`
-- Machine snapshot: `doc/ref/stats.json`
-- Snapshot history: `doc/ref/stats-history/<timestamp>.json`
+- Machine snapshot: `doc/ref/stats/actual.md`
+- Snapshot history: `doc/ref/stats/<timestamp>.json`
 
 ### Flaky-related options
 
