@@ -9,6 +9,7 @@ This folder contains generated reference tables that mirror the terminal analyze
 - `dependencies.md`: reverse dependency mapping generated from `ana_rdp`
 - `module-dependencies.md`: direct module dependency mapping generated from `ana_dep`
 - `test-coverage.md`: test traceability mapping generated from `ana_tst`
+- `scope-integrity.md`: variable scope integrity mapping generated from `ana_scp`
 
 ## Source of Truth
 
@@ -19,6 +20,7 @@ Reference output is expected to match the analyzer cycle aliases in `cfg/ali/sta
 - `ffl-rdp_cycle` -> dependencies pipeline
 - `ffl-dep_cycle` -> module dependency pipeline
 - `ffl-tst_cycle` -> test coverage pipeline
+- `ffl-scp_cycle` -> scope integrity pipeline
 
 ## Regenerate
 
@@ -36,6 +38,7 @@ Or regenerate one reference only:
 ./utl/doc/run_all_doc.sh dependencies
 ./utl/doc/run_all_doc.sh module-dependencies
 ./utl/doc/run_all_doc.sh test-coverage
+./utl/doc/run_all_doc.sh scope-integrity
 ```
 
 ## Pipeline Notes
@@ -50,6 +53,7 @@ Or regenerate one reference only:
 - `.tmp/doc/rdp/` for dependencies
 - `.tmp/doc/dep/` for module dependencies
 - `.tmp/doc/tst/` for test coverage
+- `.tmp/doc/scp/` for scope integrity
 
 For full architecture and generator behavior, see `../../utl/doc/README.md`.
 
@@ -63,6 +67,7 @@ and the generated markdown outputs in this folder.
 - `_ffl_rdp_cycle` output must match `dependencies.md`
 - `_ffl_dep_cycle` output must match `module-dependencies.md`
 - `_ffl_tst_cycle` output must match `test-coverage.md`
+- `_ffl_scp_cycle` output must match `scope-integrity.md`
 
 In practice, this means no missing rows and no extra rows in `doc/ref/*.md`
 relative to their corresponding cycle output.

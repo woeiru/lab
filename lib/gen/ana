@@ -2184,7 +2184,7 @@ _ana_scp_json_escape() {
 
 # Analyzes variable scope, identifying globals, constants, and potential leaks
 # scope integrity analysis
-# <file name> [-j]
+# [options: -j|--json-dir <dir>] <file name>
 ana_scp() {
     # Technical Description:
     #   Performs scope integrity analysis for Bash assignments and declarations,
@@ -2196,10 +2196,12 @@ ana_scp() {
     #   - date, mkdir
     #   - LAB_DIR (optional) to resolve repository root for JSON output
     # Arguments:
+    #   [options]: -j, --json-dir <dir>
     #   $1: file_name - readable file path to inspect for scope behavior
-    #   $2: [optional] -j to write JSON output in .tmp/doc
     local json_mode=false
+    local json_output_dir=""
     local file_name=""
+    local positional_count=0
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -2207,9 +2209,21 @@ ana_scp() {
                 json_mode=true
                 shift
                 ;;
+            --json-dir)
+                if [[ -z "${2:-}" ]]; then
+                    echo "Error: --json-dir requires a directory path."
+                    return 1
+                fi
+                json_output_dir="$2"
+                shift 2
+                ;;
             -h|--help)
                 aux_use
                 return 0
+                ;;
+            "")
+                # Compatibility with aux_ffl aliases that pass an empty flag
+                shift
                 ;;
             -*)
                 echo "Error: Invalid option '$1'"
@@ -2217,6 +2231,12 @@ ana_scp() {
                 return 1
                 ;;
             *)
+                ((positional_count++))
+                if [[ $positional_count -gt 1 ]]; then
+                    echo "Error: Unexpected argument '$1'"
+                    aux_use
+                    return 1
+                fi
                 if [[ -z "$file_name" ]]; then
                     file_name="$1"
                     shift
@@ -2357,7 +2377,7 @@ ana_scp() {
 
     if $json_mode; then
         local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
-        local tmp_dir="$lab_dir/.tmp/doc"
+        local tmp_dir="${json_output_dir:-$lab_dir/.tmp/doc}"
         mkdir -p "$tmp_dir" 2>/dev/null
 
         local relative_path="${file_name#$lab_dir/}"

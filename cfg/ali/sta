@@ -164,6 +164,61 @@
     alias ffl-dep_utl='_ffl_dep_utl'
     alias ffl-dep_cycle='_ffl_dep_cycle'
 
+    # SCP analysis aliases: variable scope integrity and leak summaries.
+    # Wrapper functions are required because aliases cannot forward arguments reliably.
+    _ffl_scp_go() {
+        local scp_mode="${1:-}"
+        if [[ -n "$scp_mode" ]]; then
+            ana_scp "$scp_mode" "$LAB_DIR/go"
+        else
+            ana_scp "$LAB_DIR/go"
+        fi
+    }
+
+    _ffl_scp_bin() {
+        local scp_mode="${1:-}"
+        aux_ffl ana_scp "$scp_mode" "$DIR_BIN"
+    }
+
+    _ffl_scp_core() {
+        local scp_mode="${1:-}"
+        aux_ffl ana_scp "$scp_mode" "$LIB_CORE_DIR"
+    }
+
+    _ffl_scp_gen() {
+        local scp_mode="${1:-}"
+        aux_ffl ana_scp "$scp_mode" "$LIB_GEN_DIR"
+    }
+
+    _ffl_scp_ops() {
+        local scp_mode="${1:-}"
+        aux_ffl ana_scp "$scp_mode" "$LIB_OPS_DIR"
+    }
+
+    _ffl_scp_src() {
+        local scp_mode="${1:-}"
+        aux_ffl ana_scp "$scp_mode" "$SRC_DIR"
+    }
+
+    _ffl_scp_utl() {
+        local scp_mode="${1:-}"
+        aux_ffl ana_scp "$scp_mode" "$UTL_DIR"
+    }
+
+    _ffl_scp_cycle() {
+        local scp_mode="${1:-}"
+        _ffl_scp_go "$scp_mode" && _ffl_scp_bin "$scp_mode" && _ffl_scp_core "$scp_mode" && _ffl_scp_gen "$scp_mode" && _ffl_scp_ops "$scp_mode" && _ffl_scp_src "$scp_mode" && _ffl_scp_utl "$scp_mode"
+    }
+
+    alias ffl-scp_go='_ffl_scp_go'
+    alias ffl-scp_bin='_ffl_scp_bin'
+    alias ffl-scp_core='_ffl_scp_core'
+    alias ffl-scp_gen='_ffl_scp_gen'
+    alias ffl-scp_ops='_ffl_scp_ops'
+    alias ffl-scp_src='_ffl_scp_src'
+    alias ffl-scp_utl='_ffl_scp_utl'
+    alias ffl-scp_cycle='_ffl_scp_cycle'
+
     # TST analysis aliases: test traceability and coverage summaries.
     # Wrapper functions are required because aliases cannot forward arguments reliably.
     _ffl_tst_go() {

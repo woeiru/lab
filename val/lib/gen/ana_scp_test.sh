@@ -64,6 +64,43 @@ test_ana_scp_json_output() {
     fi
 }
 
+test_ana_scp_json_dir_option() {
+    describe "ana_scp --json-dir option"
+    ((FRAMEWORK_TESTS_RUN++))
+
+    local custom_dir=".tmp/doc/scp_test"
+    local expected_json="$custom_dir/lib_core_col_scp.json"
+
+    rm -rf "$custom_dir"
+
+    local output
+    output=$(ana_scp -j --json-dir "$custom_dir" "lib/core/col" 2>&1)
+    local status=$?
+
+    if [[ $status -eq 0 ]] && [[ -f "$expected_json" ]]; then
+        pass "Writes JSON output to custom directory"
+    else
+        fail "Failed to write JSON output to custom directory"
+        echo "Status: $status, Output: $output"
+    fi
+}
+
+test_ana_scp_empty_flag_compatibility() {
+    describe "ana_scp empty flag compatibility"
+    ((FRAMEWORK_TESTS_RUN++))
+
+    local output
+    output=$(ana_scp "" "lib/core/col" 2>&1)
+    local status=$?
+
+    if [[ $status -eq 0 ]] && echo "$output" | grep -q "COL_RESET"; then
+        pass "Accepts empty flag argument from aux_ffl wrappers"
+    else
+        fail "Does not accept empty flag argument compatibility"
+        echo "Status: $status, Output: $output"
+    fi
+}
+
 test_ana_scp_missing_params() {
     describe "ana_scp missing parameters"
     ((FRAMEWORK_TESTS_RUN++))
@@ -181,6 +218,8 @@ TESTFILE
 # Run tests
 test_ana_scp_terminal_output
 test_ana_scp_json_output
+test_ana_scp_json_dir_option
+test_ana_scp_empty_flag_compatibility
 test_ana_scp_missing_params
 test_ana_scp_help_option
 test_ana_scp_invalid_option

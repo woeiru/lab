@@ -50,6 +50,7 @@ GENERATORS=(
     "dependencies:rdp:Reverse dependencies generator"
     "module-dependencies:dep:Direct module dependency generator"
     "test-coverage:tst:Test traceability coverage generator"
+    "scope-integrity:scp:Variable scope integrity generator"
     "stats:stats:System metrics generator"
 )
 
@@ -89,6 +90,7 @@ TARGETS:
     dependencies    Generate reverse dependencies table (rdp)
     module-dependencies Generate direct module dependencies table (dep)
     test-coverage   Generate test traceability coverage table (tst)
+    scope-integrity Generate variable scope integrity table (scp)
     stats           Generate system metrics (stats)
 
 CONFIGURATION:
