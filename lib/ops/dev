@@ -941,6 +941,103 @@ dev_oae() {
     return 0
 }
 
+# Emits request-time attribution and runs opencode
+# opencode run attributed
+# <provider_id> <account_key> [account_label] -- [opencode_run_args...]
+dev_orr() {
+    # Technical Description:
+    #   Emits an account_selected attribution event immediately before executing opencode run
+    #   Provides a practical request-time integration path when upstream runtime hooks are unavailable
+    #   Accepts optional account label and passes remaining arguments directly to opencode run
+    # Dependencies:
+    #   - opencode CLI available on PATH
+    #   - Local attribution event persistence via _dev_record_account_event
+    # Arguments:
+    #   <provider_id>          provider family/id for attribution event
+    #   <account_key>          stable account key (email or opaque id)
+    #   [account_label]        optional display label
+    #   --                     separator before opencode run arguments
+    #   [opencode_run_args...] arguments forwarded to opencode run
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -lt 4 ]; then
+        aux_use
+        return 1
+    fi
+
+    local provider_id="$1"
+    local account_key="$2"
+    local account_label="$2"
+    shift 2
+
+    if [ "$1" != "--" ]; then
+        account_label="$1"
+        shift
+    fi
+
+    if [ "$1" != "--" ]; then
+        aux_err "Missing '--' separator before opencode run arguments" "component=dev,operation=opencode_run_attributed"
+        aux_use
+        return 1
+    fi
+    shift
+
+    if [ $# -lt 1 ]; then
+        aux_err "At least one opencode run argument is required" "component=dev,operation=opencode_run_attributed"
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "opencode"; then
+        aux_err "opencode command not found"
+        return 127
+    fi
+
+    _dev_record_account_event "$provider_id" "$account_key" "$account_label" "account_selected" "opencode_runtime"
+    aux_info "Starting attributed opencode run" "component=dev,operation=opencode_run_attributed,provider_id=$provider_id"
+    opencode run "$@"
+    return $?
+}
+
+# Emits token refresh attribution event
+# opencode token refresh event
+# <provider_id> <account_key> [account_label] [source]
+dev_otr() {
+    # Technical Description:
+    #   Emits a token_refreshed attribution event for provider/account identity refresh transitions
+    #   Supports optional account label and source tag while enforcing validated event semantics
+    # Dependencies:
+    #   - Local attribution event persistence via _dev_record_account_event
+    # Arguments:
+    #   <provider_id>          provider family/id
+    #   <account_key>          stable account key (email or opaque id)
+    #   [account_label]        optional display label (defaults to account_key)
+    #   [source]               optional source tag (defaults to connector_event)
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -lt 2 ] || [ $# -gt 4 ]; then
+        aux_use
+        return 1
+    fi
+
+    local provider_id="$1"
+    local account_key="$2"
+    local account_label="${3:-$account_key}"
+    local source="${4:-connector_event}"
+
+    _dev_record_account_event "$provider_id" "$account_key" "$account_label" "token_refreshed" "$source"
+    aux_info "Token refresh attribution event emitted" "component=dev,operation=opencode_token_refresh_event,provider_id=$provider_id,source=$source"
+    return 0
+}
+
 _dev_oqu_render() {
     local accounts_path="$1"
 

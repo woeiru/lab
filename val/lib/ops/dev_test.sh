@@ -71,6 +71,8 @@ test_dev_functions_exist() {
     declare -f dev_osv >/dev/null 2>&1 || return 1
     declare -f dev_omi >/dev/null 2>&1 || return 1
     declare -f dev_oae >/dev/null 2>&1 || return 1
+    declare -f dev_orr >/dev/null 2>&1 || return 1
+    declare -f dev_otr >/dev/null 2>&1 || return 1
     declare -f dev_olb >/dev/null 2>&1 || return 1
     declare -f dev_oqu >/dev/null 2>&1 || return 1
     declare -f dev_oas >/dev/null 2>&1 || return 1
@@ -1342,6 +1344,137 @@ PY
     return 0
 }
 
+# Test: dev_orr emits account_selected and forwards args to opencode run
+test_dev_orr_emits_event_and_runs_opencode() {
+    local test_env
+    test_env=$(create_test_env "dev_orr_run")
+    local db_path="$test_env/opencode.db"
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    cat > "$test_env/bin/opencode" << EOF
+#!/bin/bash
+if [[ "\$1" == "db" && "\$2" == "path" ]]; then
+    echo "$db_path"
+    exit 0
+fi
+if [[ "\$1" == "run" ]]; then
+    shift
+    printf "%s\n" "\$*" > "$test_env/run_args.log"
+    exit 0
+fi
+exit 1
+EOF
+    chmod +x "$test_env/bin/opencode"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    dev_orr "openai" "run@example.com" -- "hello attributed run" >/dev/null 2>&1
+    local status=$?
+
+    local event_row=""
+    local run_args=""
+    if [[ $status -eq 0 ]]; then
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, account_label, event_type, source
+    FROM opencode_account_event
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join((x or "") for x in row) if row else "")
+PY
+)
+        run_args=$(python3 - "$test_env/run_args.log" <<'PY'
+import sys
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    print(f.read().strip())
+PY
+)
+    fi
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_row" == "openai|run@example.com|run@example.com|account_selected|opencode_runtime" ]] || return 1
+    [[ "$run_args" == "hello attributed run" ]] || return 1
+    return 0
+}
+
+# Test: dev_otr emits token_refreshed with optional source
+test_dev_otr_emits_token_refresh_event() {
+    local test_env
+    test_env=$(create_test_env "dev_otr_emit")
+    local db_path="$test_env/opencode.db"
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    dev_otr "antigravity" "rotated@example.com" "rotated@example.com" "connector_event" >/dev/null 2>&1
+    local status=$?
+
+    local event_row=""
+    if [[ $status -eq 0 ]]; then
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, account_label, event_type, source
+    FROM opencode_account_event
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join((x or "") for x in row) if row else "")
+PY
+)
+    fi
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_row" == "antigravity|rotated@example.com|rotated@example.com|token_refreshed|connector_event" ]] || return 1
+    return 0
+}
+
 # Test: dev_oas records account attribution event when OpenCode DB is available
 test_dev_oas_records_account_event() {
     local test_env
@@ -1432,6 +1565,8 @@ main() {
     run_test test_dev_oas_creates_backup
     run_test test_dev_oae_runtime_hook_mode
     run_test test_dev_oae_token_refreshed_event
+    run_test test_dev_orr_emits_event_and_runs_opencode
+    run_test test_dev_otr_emits_token_refresh_event
     run_test test_dev_oas_records_account_event
 
     test_footer

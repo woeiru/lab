@@ -30,33 +30,37 @@ Execution started now to implement strict, event-based session attribution in `d
 - Added validated event-type support (`account_selected`, `token_refreshed`, `auth_switched`) plus optional `trace_id` persistence in `_dev_record_account_event`.
 - Extended tests for deterministic repeated-event timeline resolution (latest-before-first-prompt) and runtime/token-refresh event emission paths.
 - Added mixed event replay coverage for `account_selected` + `token_refreshed` across providers/sessions with deterministic latest-before-first-prompt assertions.
+- Added `dev_orr` request-time wrapper in `lib/ops/dev` to emit `account_selected` and immediately execute `opencode run` as a practical integration path when upstream hooks are unavailable.
+- Added `dev_otr` helper in `lib/ops/dev` to emit `token_refreshed` identity events with provider-safe metadata.
+- Expanded tests for `dev_orr` and `dev_otr` event persistence and command-forwarding behavior.
 - Regenerated reference docs via `./utl/doc/run_all_doc.sh` so `doc/ref/functions.md` and related maps include `dev_oae` and updated metrics.
+- Committed replay coverage + plan update in `a5e1725a`.
 - Committed resume-session attribution updates in `866ac019`.
 - Committed implementation in three commits: `2d5679f6`, `ffc451d9`, `2e12e5a2`.
 
 ### In-flight
 
-- Current uncommitted follow-up change is test-only replay coverage in `val/lib/ops/dev_test.sh` from post-commit continuation.
-- Remaining in-flight integration is wiring `dev_oae -x` into real OpenCode runtime request/auth hook points outside this repo.
+- Current uncommitted follow-up changes are `dev_orr`/`dev_otr` runtime integration helpers, matching tests, and regenerated `doc/ref/*` files.
+- Remaining in-flight integration is optional upstream OpenCode native hook wiring; this repo now provides a local wrapper-based runtime path.
 
 ### Blockers
 
 - No hard blocker in this repo code path.
-- Remaining uncertainty: definitive upstream OpenCode hook points for automatic request-time selection and token-refresh emission are still external to this repo, but `dev_oae` now defines the local ingestion contract.
+- Remaining uncertainty: definitive upstream OpenCode native hook points for automatic request-time selection and token-refresh emission are still external to this repo; current mitigation is wrapper-based runtime emission (`dev_orr`, `dev_otr`).
 
 ### Next steps
 
-1. Wire `dev_oae -x` into the actual OpenCode runtime request path so each request-time account choice emits `event_type=account_selected` automatically.
-2. Wire `dev_oae -x` into the actual credential refresh path so identity changes emit `event_type=token_refreshed` with `OPENCODE_ATTR_TRACE_ID` when available.
-3. Keep this active plan current through upstream hook wiring acceptance and final merge/commit steps.
+1. Add operator-facing usage notes showing recommended wrapper flows (`dev_orr`, `dev_otr`, `dev_oae -x`) and event-source semantics for strict vs best-effort attribution.
+2. Validate wrapper behavior in real local OpenCode usage (non-test environment) and capture one auditable before/after `dev_osv -x` example.
+3. Keep this active plan current through final acceptance and merge/commit steps.
 
 ### Context
 
 - Branch: `master`.
 - Relevant modified modules now include `lib/ops/dev`, `val/lib/ops/dev_test.sh`, and regenerated `doc/ref/` references.
-- Latest local test result: `./val/lib/ops/dev_test.sh` passed `28/28`.
-- Resume-session code/doc batch committed at `866ac019`; branch is now ahead with that commit.
-- Reference docs regenerated successfully via `./utl/doc/run_all_doc.sh`.
+- Latest local test result: `./val/lib/ops/dev_test.sh` passed `30/30`.
+- Resume-session code/doc batches committed at `866ac019` and `a5e1725a`.
+- Reference docs regenerated successfully via `./utl/doc/run_all_doc.sh` after wrapper additions.
 - Branch currently includes additional doc/pro commits after the prior checkpoint; attribution state remains consistent.
 - No temporary files or ad-hoc local fixtures are required to resume; tests create/clean their own temp environments.
 
@@ -64,8 +68,8 @@ Execution started now to implement strict, event-based session attribution in `d
 
 Remaining execution scope only:
 
-1. Complete upstream runtime wiring so `dev_oae` receives automatic request-time and token-refresh events.
-2. Add one integration-style replay test covering mixed event types across providers.
+1. Document and validate wrapper-based runtime integration (`dev_orr` and `dev_otr`) in operator workflows.
+2. Optionally replace wrapper path with native upstream hooks if/when OpenCode exposes stable hook points.
 3. Keep generated refs synchronized after each structural change.
 4. Preserve strict mode as default in `dev_osv`; keep low-confidence signaling only behind `--best-effort`.
 
