@@ -8,7 +8,7 @@
 #   - doc/ref/stats.json (machine metrics)
 #   - doc/ref/stats-history/<timestamp>.json (snapshot history)
 #
-# Usage: ./stats [--update|--stdout|--markdown|--json|--text|--raw] [--ci-gate] [--ci-gate-flaky] [--sample-tests] [--sample-runs=N]
+# Usage: ./stats [--update|--stdout|--markdown|--json|--text|--raw] [--ci-gate] [--ci-gate-flaky] [--sample-tests] [--sample-runs=N] [--flaky-suite-budget=SUITE:OSC:VAR]
 #######################################################################
 
 set -euo pipefail
@@ -35,7 +35,7 @@ fi
 
 readonly STATS_JSON_FILE="$LAB_DIR/doc/ref/stats.json"
 readonly STATS_HISTORY_DIR="$LAB_DIR/doc/ref/stats-history"
-readonly METRIC_VERSION="3.3.0"
+readonly METRIC_VERSION="3.4.0"
 readonly TREND_HISTORY_LIMIT=10
 readonly TEST_HEALTH_TREND_LIMIT=20
 readonly FLAKY_MIN_SAMPLES=4
@@ -66,6 +66,9 @@ declare -a FLAKY_CANDIDATE_REASONS=()
 declare -a FLAKY_CANDIDATE_COUNTS=()
 declare -a FLAKY_CANDIDATE_MIN_SECONDS=()
 declare -a FLAKY_CANDIDATE_MAX_SECONDS=()
+declare -a FLAKY_BUDGET_SUITES=()
+declare -A FLAKY_SUITE_OSC_BUDGET=()
+declare -A FLAKY_SUITE_VAR_BUDGET=()
 
 TOTAL_FILES=0
 TOTAL_DIRS=0
@@ -106,6 +109,9 @@ TEST_TREND_P90_SECONDS=0
 FLAKY_TOTAL_CANDIDATES=0
 FLAKY_STATUS_OSCILLATION_COUNT=0
 FLAKY_DURATION_VARIANCE_COUNT=0
+FLAKY_TOTAL_OVER_BUDGET=0
+FLAKY_STATUS_OSCILLATION_OVER_BUDGET=0
+FLAKY_DURATION_VARIANCE_OVER_BUDGET=0
 
 FUNCTION_COUNT=0
 FUNC_P50_LINES=0
@@ -223,6 +229,69 @@ parse_positive_int() {
     fi
 }
 
+parse_non_negative_int() {
+    local value="$1"
+    if [[ "$value" =~ ^[0-9]+$ ]]; then
+        printf '%s' "$value"
+    else
+        printf '0'
+    fi
+}
+
+register_flaky_suite_budget() {
+    local suite="$1"
+    local oscillation_budget="$2"
+    local variance_budget="$3"
+
+    [[ -z "$suite" ]] && return 1
+
+    oscillation_budget="$(parse_non_negative_int "$oscillation_budget")"
+    variance_budget="$(parse_non_negative_int "$variance_budget")"
+
+    if [[ -z "${FLAKY_SUITE_OSC_BUDGET[$suite]+x}" ]]; then
+        FLAKY_BUDGET_SUITES+=("$suite")
+    fi
+
+    FLAKY_SUITE_OSC_BUDGET["$suite"]="$oscillation_budget"
+    FLAKY_SUITE_VAR_BUDGET["$suite"]="$variance_budget"
+    return 0
+}
+
+parse_flaky_suite_budget_entry() {
+    local entry="$1"
+    local suite=""
+    local oscillation_budget=""
+    local variance_budget=""
+    local extra=""
+
+    IFS=':' read -r suite oscillation_budget variance_budget extra <<< "$entry"
+    if [[ -z "$suite" || -z "$oscillation_budget" || -z "$variance_budget" || -n "$extra" ]]; then
+        return 1
+    fi
+    if [[ ! "$oscillation_budget" =~ ^[0-9]+$ || ! "$variance_budget" =~ ^[0-9]+$ ]]; then
+        return 1
+    fi
+
+    register_flaky_suite_budget "$suite" "$oscillation_budget" "$variance_budget"
+}
+
+load_flaky_suite_budgets_from_env() {
+    local budgets_csv="${STATS_FLAKY_SUITE_BUDGETS:-}"
+    [[ -z "$budgets_csv" ]] && return 0
+
+    local old_ifs="$IFS"
+    local entry=""
+    IFS=','
+    for entry in $budgets_csv; do
+        if ! parse_flaky_suite_budget_entry "$entry"; then
+            echo "Invalid STATS_FLAKY_SUITE_BUDGETS entry: $entry" >&2
+            IFS="$old_ifs"
+            return 1
+        fi
+    done
+    IFS="$old_ifs"
+}
+
 append_test_record() {
     local records_file="$1"
     local timestamp="$2"
@@ -327,6 +396,9 @@ collect_test_health_metrics() {
     FLAKY_TOTAL_CANDIDATES=0
     FLAKY_STATUS_OSCILLATION_COUNT=0
     FLAKY_DURATION_VARIANCE_COUNT=0
+    FLAKY_TOTAL_OVER_BUDGET=0
+    FLAKY_STATUS_OSCILLATION_OVER_BUDGET=0
+    FLAKY_DURATION_VARIANCE_OVER_BUDGET=0
     FLAKY_CANDIDATE_SUITES=()
     FLAKY_CANDIDATE_REASONS=()
     FLAKY_CANDIDATE_COUNTS=()
@@ -424,6 +496,9 @@ collect_test_health_metrics() {
     local count=""
     local min_dur=""
     local max_dur=""
+    local over_budget="false"
+    local oscillation_budget=0
+    local variance_budget=0
     while IFS=$'\t' read -r suite reason count min_dur max_dur; do
         [[ -z "$suite" ]] && continue
         FLAKY_CANDIDATE_SUITES+=("$suite")
@@ -432,11 +507,27 @@ collect_test_health_metrics() {
         FLAKY_CANDIDATE_MIN_SECONDS+=("$(safe_number "$min_dur")")
         FLAKY_CANDIDATE_MAX_SECONDS+=("$(safe_number "$max_dur")")
         FLAKY_TOTAL_CANDIDATES=$((FLAKY_TOTAL_CANDIDATES + 1))
+
+        oscillation_budget="$(safe_number "${FLAKY_SUITE_OSC_BUDGET[$suite]:-0}")"
+        variance_budget="$(safe_number "${FLAKY_SUITE_VAR_BUDGET[$suite]:-0}")"
+        over_budget="false"
+
         if [[ "$reason" == *"status_oscillation"* ]]; then
             FLAKY_STATUS_OSCILLATION_COUNT=$((FLAKY_STATUS_OSCILLATION_COUNT + 1))
+            if [[ "$oscillation_budget" -lt 1 ]]; then
+                FLAKY_STATUS_OSCILLATION_OVER_BUDGET=$((FLAKY_STATUS_OSCILLATION_OVER_BUDGET + 1))
+                over_budget="true"
+            fi
         fi
         if [[ "$reason" == *"duration_variance"* ]]; then
             FLAKY_DURATION_VARIANCE_COUNT=$((FLAKY_DURATION_VARIANCE_COUNT + 1))
+            if [[ "$variance_budget" -lt 1 ]]; then
+                FLAKY_DURATION_VARIANCE_OVER_BUDGET=$((FLAKY_DURATION_VARIANCE_OVER_BUDGET + 1))
+                over_budget="true"
+            fi
+        fi
+        if [[ "$over_budget" == "true" ]]; then
+            FLAKY_TOTAL_OVER_BUDGET=$((FLAKY_TOTAL_OVER_BUDGET + 1))
         fi
     done < "$candidates_tmp"
 
@@ -1023,9 +1114,9 @@ evaluate_quality_gates() {
     elif [[ "$RISK_DELTA_EVAL" -gt 0 || "$RISK_DELTA_BACKTICKS" -gt 0 || "$RISK_DELTA_CHMOD_777" -gt 0 ]]; then
         GATE_RISK_SIGNALS="warn"
     fi
-    if [[ "$FLAKY_STATUS_OSCILLATION_COUNT" -ge "$FLAKY_FAIL_OSCILLATION_COUNT" || "$FLAKY_TOTAL_CANDIDATES" -ge "$FLAKY_FAIL_TOTAL_CANDIDATES" ]]; then
+    if [[ "$FLAKY_STATUS_OSCILLATION_OVER_BUDGET" -ge "$FLAKY_FAIL_OSCILLATION_COUNT" || "$FLAKY_TOTAL_OVER_BUDGET" -ge "$FLAKY_FAIL_TOTAL_CANDIDATES" ]]; then
         GATE_TEST_HEALTH="fail"
-    elif [[ "$FLAKY_DURATION_VARIANCE_COUNT" -ge "$FLAKY_WARN_VARIANCE_COUNT" ]]; then
+    elif [[ "$FLAKY_DURATION_VARIANCE_OVER_BUDGET" -ge "$FLAKY_WARN_VARIANCE_COUNT" ]]; then
         GATE_TEST_HEALTH="warn"
     fi
 
@@ -1179,6 +1270,9 @@ render_markdown() {
     printf '| Flaky candidates (total) | %s |\n' "$FLAKY_TOTAL_CANDIDATES"
     printf '| Status oscillation candidates | %s |\n' "$FLAKY_STATUS_OSCILLATION_COUNT"
     printf '| Duration variance candidates | %s |\n' "$FLAKY_DURATION_VARIANCE_COUNT"
+    printf '| Flaky candidates over budget | %s |\n' "$FLAKY_TOTAL_OVER_BUDGET"
+    printf '| Oscillation over budget | %s |\n' "$FLAKY_STATUS_OSCILLATION_OVER_BUDGET"
+    printf '| Variance over budget | %s |\n' "$FLAKY_DURATION_VARIANCE_OVER_BUDGET"
 
     echo
     echo "| Flaky Candidate Suite | Reason | Samples | Min (s) | Max (s) |"
@@ -1189,6 +1283,17 @@ render_markdown() {
     done
     if [[ "${#FLAKY_CANDIDATE_SUITES[@]}" -eq 0 ]]; then
         echo '| `none` | `none` | 0 | 0 | 0 |'
+    fi
+
+    echo
+    echo "| Flaky Budget Suite | Oscillation Budget | Variance Budget |"
+    echo "| --- | ---: | ---: |"
+    for i in "${!FLAKY_BUDGET_SUITES[@]}"; do
+        local budget_suite="${FLAKY_BUDGET_SUITES[$i]}"
+        printf '| `%s` | %s | %s |\n' "$budget_suite" "${FLAKY_SUITE_OSC_BUDGET[$budget_suite]:-0}" "${FLAKY_SUITE_VAR_BUDGET[$budget_suite]:-0}"
+    done
+    if [[ "${#FLAKY_BUDGET_SUITES[@]}" -eq 0 ]]; then
+        echo '| `none` | 0 | 0 |'
     fi
 
     echo
@@ -1222,9 +1327,9 @@ render_markdown() {
         echo "- Risk-pattern deltas are stable or improving against previous snapshot."
     fi
     if [[ "$GATE_TEST_HEALTH" == "fail" ]]; then
-        printf -- '- Flaky-test severity fail: candidates=%s (oscillation=%s, variance=%s).\n' "$FLAKY_TOTAL_CANDIDATES" "$FLAKY_STATUS_OSCILLATION_COUNT" "$FLAKY_DURATION_VARIANCE_COUNT"
+        printf -- '- Flaky-test severity fail (over budget): candidates=%s (oscillation=%s, variance=%s).\n' "$FLAKY_TOTAL_OVER_BUDGET" "$FLAKY_STATUS_OSCILLATION_OVER_BUDGET" "$FLAKY_DURATION_VARIANCE_OVER_BUDGET"
     elif [[ "$GATE_TEST_HEALTH" == "warn" ]]; then
-        printf -- '- Flaky-test variance warning: variance candidates=%s with tuned threshold policy.\n' "$FLAKY_DURATION_VARIANCE_COUNT"
+        printf -- '- Flaky-test variance warning (over budget): variance candidates=%s with tuned threshold policy.\n' "$FLAKY_DURATION_VARIANCE_OVER_BUDGET"
     else
         echo "- Test-health drift is within tuned flaky thresholds."
     fi
@@ -1239,7 +1344,7 @@ render_markdown() {
     printf '| Growth drift budget | `%s` | file delta=%+d (%s%%) |\n' "$GATE_GROWTH" "$DELTA_FILES" "$DELTA_FILES_PCT"
     printf '| Complexity outlier budget | `%s` | gt_150=%s, p90=%s lines |\n' "$GATE_COMPLEXITY" "$FUNC_GT_150" "$FUNC_P90_LINES"
     printf '| Risk signal drift | `%s` | eval=%+d, backticks=%+d, chmod777=%+d, secret=%+d |\n' "$GATE_RISK_SIGNALS" "$RISK_DELTA_EVAL" "$RISK_DELTA_BACKTICKS" "$RISK_DELTA_CHMOD_777" "$RISK_DELTA_SECRET_PATTERNS"
-    printf '| Test health drift | `%s` | candidates=%s, oscillation=%s, variance=%s |\n' "$GATE_TEST_HEALTH" "$FLAKY_TOTAL_CANDIDATES" "$FLAKY_STATUS_OSCILLATION_COUNT" "$FLAKY_DURATION_VARIANCE_COUNT"
+    printf '| Test health drift | `%s` | over_budget=%s, oscillation_over=%s, variance_over=%s |\n' "$GATE_TEST_HEALTH" "$FLAKY_TOTAL_OVER_BUDGET" "$FLAKY_STATUS_OSCILLATION_OVER_BUDGET" "$FLAKY_DURATION_VARIANCE_OVER_BUDGET"
     printf '| Overall | `%s` | synthesized from gate statuses |\n' "$GATE_OVERALL"
 }
 
@@ -1382,7 +1487,10 @@ render_json() {
   echo "    \"flaky_summary\": {"
   printf '      "total_candidates": %s,\n' "$FLAKY_TOTAL_CANDIDATES"
   printf '      "status_oscillation": %s,\n' "$FLAKY_STATUS_OSCILLATION_COUNT"
-  printf '      "duration_variance": %s\n' "$FLAKY_DURATION_VARIANCE_COUNT"
+  printf '      "duration_variance": %s,\n' "$FLAKY_DURATION_VARIANCE_COUNT"
+  printf '      "over_budget_total": %s,\n' "$FLAKY_TOTAL_OVER_BUDGET"
+  printf '      "over_budget_oscillation": %s,\n' "$FLAKY_STATUS_OSCILLATION_OVER_BUDGET"
+  printf '      "over_budget_variance": %s\n' "$FLAKY_DURATION_VARIANCE_OVER_BUDGET"
   echo "    },"
   echo "    \"flaky_policy\": {"
   printf '      "min_samples": %s,\n' "$FLAKY_MIN_SAMPLES"
@@ -1390,8 +1498,27 @@ render_json() {
   printf '      "min_ratio_percent": %s,\n' "$FLAKY_MIN_RATIO_PERCENT"
   printf '      "fail_oscillation_count": %s,\n' "$FLAKY_FAIL_OSCILLATION_COUNT"
   printf '      "fail_total_candidates": %s,\n' "$FLAKY_FAIL_TOTAL_CANDIDATES"
-  printf '      "warn_variance_count": %s\n' "$FLAKY_WARN_VARIANCE_COUNT"
+  printf '      "warn_variance_count": %s,\n' "$FLAKY_WARN_VARIANCE_COUNT"
+  printf '      "suite_budgets_configured": %s\n' "${#FLAKY_BUDGET_SUITES[@]}"
   echo "    },"
+  echo "    \"suite_budgets\": ["
+  if [[ "${#FLAKY_BUDGET_SUITES[@]}" -eq 0 ]]; then
+      echo "      { \"suite\": \"none\", \"status_oscillation_budget\": 0, \"duration_variance_budget\": 0 }"
+  else
+      for idx in "${!FLAKY_BUDGET_SUITES[@]}"; do
+          local budget_suite="${FLAKY_BUDGET_SUITES[$idx]}"
+          echo "      {"
+          printf '        "suite": "%s",\n' "$(json_escape "$budget_suite")"
+          printf '        "status_oscillation_budget": %s,\n' "${FLAKY_SUITE_OSC_BUDGET[$budget_suite]:-0}"
+          printf '        "duration_variance_budget": %s\n' "${FLAKY_SUITE_VAR_BUDGET[$budget_suite]:-0}"
+          if [[ "$idx" -lt "$((${#FLAKY_BUDGET_SUITES[@]} - 1))" ]]; then
+              echo "      },"
+          else
+              echo "      }"
+          fi
+      done
+  fi
+  echo "    ],"
   echo "    \"flaky_candidates\": ["
   if [[ "${#FLAKY_CANDIDATE_SUITES[@]}" -eq 0 ]]; then
       echo "      { \"suite\": \"none\", \"reason\": \"none\", \"samples\": 0, \"min_seconds\": 0, \"max_seconds\": 0 }"
@@ -1446,7 +1573,7 @@ render_text() {
     printf 'complexity: p90=%s max=%s gt150=%s\n' "$FUNC_P90_LINES" "$FUNC_MAX_LINES" "$FUNC_GT_150"
     printf 'risk: eval=%s backticks=%s chmod777=%s secret=%s\n' "$RISK_COUNT_EVAL" "$RISK_COUNT_BACKTICKS" "$RISK_COUNT_CHMOD_777" "$RISK_COUNT_SECRET_PATTERNS"
     printf 'test_health: last=%s status=%s duration=%ss p90=%ss\n' "$TEST_LAST_RUN_SUITE" "$TEST_LAST_RUN_STATUS" "$TEST_LAST_RUN_DURATION_SECONDS" "$TEST_TREND_P90_SECONDS"
-    printf 'flaky: total=%s oscillation=%s variance=%s gate=%s\n' "$FLAKY_TOTAL_CANDIDATES" "$FLAKY_STATUS_OSCILLATION_COUNT" "$FLAKY_DURATION_VARIANCE_COUNT" "$GATE_TEST_HEALTH"
+    printf 'flaky: total=%s over_budget=%s oscillation_over=%s variance_over=%s gate=%s\n' "$FLAKY_TOTAL_CANDIDATES" "$FLAKY_TOTAL_OVER_BUDGET" "$FLAKY_STATUS_OSCILLATION_OVER_BUDGET" "$FLAKY_DURATION_VARIANCE_OVER_BUDGET" "$GATE_TEST_HEALTH"
     printf 'quality_gate: %s\n' "$GATE_OVERALL"
 }
 
@@ -1490,6 +1617,9 @@ Options:
   --ci-gate-flaky  Include flaky-test severity in hard gate
   --sample-tests      Run opt-in flaky sampling suites
   --sample-runs=N     Number of runs per sampled suite (default: 3)
+  --flaky-suite-budget=SUITE:OSC:VAR
+                  Per-suite flaky budget allowances (repeatable)
+                  OSC and VAR are non-negative integers
   -h, --help   Show help
 EOF
 }
@@ -1497,6 +1627,8 @@ EOF
 main() {
     local action="update"
     local format="markdown"
+
+    load_flaky_suite_budgets_from_env || return 1
 
     for arg in "$@"; do
         case "$arg" in
@@ -1513,6 +1645,12 @@ main() {
                 TEST_HEALTH_SAMPLE_RUNS="$(parse_positive_int "${arg#*=}")"
                 if [[ "$TEST_HEALTH_SAMPLE_RUNS" -eq 0 ]]; then
                     echo "Invalid sample run count: ${arg#*=}" >&2
+                    return 1
+                fi
+                ;;
+            --flaky-suite-budget=*)
+                if ! parse_flaky_suite_budget_entry "${arg#*=}"; then
+                    echo "Invalid flaky suite budget: ${arg#*=}" >&2
                     return 1
                 fi
                 ;;

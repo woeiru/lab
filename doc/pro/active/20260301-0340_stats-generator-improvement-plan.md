@@ -354,3 +354,40 @@
   - `LAB_DIR='/home/es/lab' ./utl/doc/generators/stats --update --ci-gate-flaky` -> `pass`
 - follow-up items still open:
   - optional per-suite flaky budgets configurable via CLI/env (future)
+
+## phase 4 execution (per-suite flaky budgets via cli/env) (2026-03-01)
+
+### delivered now
+
+- implemented per-suite flaky budget controls in `utl/doc/generators/stats`:
+  - new CLI option: `--flaky-suite-budget=SUITE:OSC:VAR` (repeatable)
+  - new env option: `STATS_FLAKY_SUITE_BUDGETS` (comma-separated entries using same `SUITE:OSC:VAR` format)
+  - budgets are applied to flaky gate synthesis using over-budget counters (instead of raw candidate totals)
+- extended machine output schema (`metric_version 3.4.0`) under `test_health`:
+  - `flaky_summary` now includes over-budget counters
+  - `flaky_policy` now includes `suite_budgets_configured`
+  - new `suite_budgets` array emitted with configured per-suite budgets
+- updated human output (`STATS.md`) test-health and gate signal lines to show over-budget totals.
+- expanded `val/core/stats_generator_test.sh` coverage for:
+  - new CLI help option
+  - invalid per-suite budget argument handling
+  - new JSON keys (`suite_budgets`, `over_budget_total`)
+
+### verification (budget pass)
+
+- `bash -n utl/doc/generators/stats`
+- `bash -n val/core/stats_generator_test.sh`
+- `./val/core/stats_generator_test.sh`
+- `LAB_DIR='/home/es/lab' STATS_FLAKY_SUITE_BUDGETS='val/core/agents_md_test.sh:1:1' ./utl/doc/generators/stats --json --sample-tests --sample-runs=1`
+
+### completion checkpoint (phase 4 budgets)
+
+- implementation status: `complete`
+- metric version after change: `3.4.0`
+- commands run:
+  - `bash -n utl/doc/generators/stats` -> `pass`
+  - `bash -n val/core/stats_generator_test.sh` -> `pass`
+  - `./val/core/stats_generator_test.sh` -> `pass` (32/32)
+  - `LAB_DIR='/home/es/lab' STATS_FLAKY_SUITE_BUDGETS='val/core/agents_md_test.sh:1:1' ./utl/doc/generators/stats --json --sample-tests --sample-runs=1` -> `pass`
+- follow-up items still open:
+  - optional per-suite default budget presets by profile (future)

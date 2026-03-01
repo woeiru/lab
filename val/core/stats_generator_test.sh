@@ -41,6 +41,12 @@ test_stdout_formats() {
 
     run_test "Help includes ci-gate-flaky option" bash -c \
         "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --help | grep -q -- '--ci-gate-flaky'"
+
+    run_test "Help includes flaky-suite-budget option" bash -c \
+        "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --help | grep -q -- '--flaky-suite-budget'"
+
+    run_test "Invalid flaky-suite-budget fails" bash -c \
+        "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --json --flaky-suite-budget=invalid >/dev/null 2>&1; test \$? -ne 0"
 }
 
 test_update_outputs() {
@@ -62,6 +68,8 @@ test_update_outputs() {
     run_test "stats.json has test_health block" grep -q '"test_health"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has flaky_candidates block" grep -q '"flaky_candidates"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has flaky policy block" grep -q '"flaky_policy"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has suite_budgets block" grep -q '"suite_budgets"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has over-budget summary" grep -q '"over_budget_total"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has test_health quality gate" grep -q '"test_health"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has top_longest block" grep -q '"top_longest"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has risk deltas block" grep -q '"delta_vs_previous"' "$LAB_ROOT/doc/ref/stats.json"
