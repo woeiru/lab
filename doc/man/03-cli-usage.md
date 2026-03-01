@@ -125,9 +125,9 @@ lab
 - Run preview mode (`ops <module> <function>`) to inspect what DIC sees.
 - Retry with `OPS_DEBUG=1` for detailed resolution logs.
 
-## 8. OpenCode Attribution Workflow
+## 8. Dev Session Attribution Overview
 
-The `dev` module supports auditable OpenCode session attribution with strict defaults.
+The `dev` module supports auditable session attribution with strict defaults.
 
 ### View sessions with attribution confidence
 
@@ -164,6 +164,9 @@ ops dev otr openai user@example.com user@example.com connector_event
 - `dev_orr` emits `event_type=account_selected` immediately before `opencode run`.
 - `dev_orr --dry-run` emits the same attribution event without executing `opencode run`.
 - `dev_otr` emits `event_type=token_refreshed` for identity refresh transitions.
+
+For full procedure, validation matrix, and troubleshooting, see:
+- [07 - Dev Session Attribution Workflow](07-dev-session-attribution-workflow.md)
 
 ## 9. Related Docs
 

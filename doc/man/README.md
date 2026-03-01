@@ -22,6 +22,7 @@ system is structured the way it is.
 - `04-deployments.md`: set scripts under `src/set/`, interactive vs direct execution
 - `05-writing-modules.md`: module authoring rules, validation patterns, and tests
 - `06-security-and-logging.md`: secrets handling, destructive-safety rules, logging model
+- `07-dev-session-attribution-workflow.md`: `dev` module session attribution flow, confidence interpretation, and recovery
 
 ## Quality standard (required)
 
