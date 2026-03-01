@@ -355,6 +355,218 @@ PY
     [[ "$parsed" == "OK" ]]
 }
 
+# Test: Provider mismatch does not cross-attribute users
+test_dev_overview_provider_mismatch_no_cross_attribution() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_provider_mismatch")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_dddddddddddddddddddddd44d", "project_lab", "/home/es/lab", "Session D", 1771759749789),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_d_user", "ses_dddddddddddddddddddddd44d", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_d_assistant", "ses_dddddddddddddddddddddd44d", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771759000000, "antigravity", "alice@example.com", "alice@example.com", "opencode_event"),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session D', {}).get('user') == '(unknown)' and
+    rows.get('Session D', {}).get('conf') == 'none'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: Best-effort mode can use legacy control_account timeline
+test_dev_overview_best_effort_legacy_control_account() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_best_effort_legacy")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE control_account (
+    email TEXT,
+    active INTEGER,
+    time_updated INTEGER
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_eeeeeeeeeeeeeeeeeeeeee55e", "project_lab", "/home/es/lab", "Session E", 1771759749789),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_e_user", "ses_eeeeeeeeeeeeeeeeeeeeee55e", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_e_assistant", "ses_eeeeeeeeeeeeeeeeeeeeee55e", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO control_account (email, active, time_updated) VALUES (?, ?, ?)",
+    ("legacy@example.com", 1, 1771759000000),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local strict_output best_output
+    strict_output=$(dev_osv -x)
+    local strict_status=$?
+    best_output=$(dev_osv -x --best-effort)
+    local best_status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $strict_status -eq 0 ]] || return 1
+    [[ $best_status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$strict_output" "$best_output" <<'PY'
+import csv
+import io
+import sys
+
+strict_txt = sys.argv[1]
+best_txt = sys.argv[2]
+
+def row_map(text):
+    reader = csv.DictReader(io.StringIO(text), delimiter='\t')
+    return {row.get('title', ''): row for row in reader}
+
+strict_rows = row_map(strict_txt)
+best_rows = row_map(best_txt)
+
+ok = (
+    strict_rows.get('Session E', {}).get('user') == '(unknown)' and
+    strict_rows.get('Session E', {}).get('conf') == 'none' and
+    best_rows.get('Session E', {}).get('user') == 'legacy@example.com' and
+    best_rows.get('Session E', {}).get('src') == 'control_account' and
+    best_rows.get('Session E', {}).get('conf') == 'low'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
 # Test: Session move updates project scope using ID suffix
 test_dev_move_session_by_suffix() {
     local test_env
@@ -835,6 +1047,8 @@ main() {
     run_test test_dev_overview_output
     run_test test_dev_overview_user_attribution
     run_test test_dev_overview_best_effort_flag
+    run_test test_dev_overview_provider_mismatch_no_cross_attribution
+    run_test test_dev_overview_best_effort_legacy_control_account
     run_test test_dev_move_session_by_suffix
     run_test test_dev_move_suffix_ambiguity
     run_test test_dev_olb_requires_flag
