@@ -4,7 +4,7 @@ The framework utilizes a hierarchical, cascading configuration system located in
 
 There are no hardcoded hostnames or IPs in the scripts themselves; everything is defined in the configuration environment.
 
-## The Configuration Hierarchy
+## Configuration Hierarchy
 
 The framework uses one active-context controller plus three cascading config layers:
 

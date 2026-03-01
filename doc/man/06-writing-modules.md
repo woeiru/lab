@@ -24,10 +24,10 @@ All user-facing functions must validate their parameters.
 ### 3. Return Codes and Error Semantics
 
 Follow standard return codes strictly:
--   `0`: Success.
--   `1`: Parameter or usage error.
--   `2`: System, dependency, or runtime failure.
--   `127`: Required command missing (e.g., `pct` or `zfs` is not installed).
+- `0`: Success.
+- `1`: Parameter or usage error.
+- `2`: System, dependency, or runtime failure.
+- `127`: Required command missing (e.g., `pct` or `zfs` is not installed).
 
 Prefer explicit `return` values over implicit status codes in multi-step functions.
 

@@ -10,20 +10,15 @@ The framework operates on a few key principles:
 - **No Compilation:** There is no `Makefile`, `package.json`, or compilation step. System activation occurs via sourcing helper functions directly into your active shell environment (`bin/ini` and `bin/orc`).
 - **Explicit Runtime Dependencies:** Required host commands vary by module. Use `doc/ref/module-dependencies.md` as the canonical command requirement map before running operations on a target host.
 
-## The Major Components
+## Major Components
 
 Understanding the directory structure is critical to using the framework:
 
 - **`go` (CLI Entrypoint):** The main utility used for system installation, validation (`./go validate`), and status checks.
 - **`bin/` (Initialization):** Contains `ini` (Initialization Controller) and `orc` (Component Orchestrator) which load modules sequentially into the shell.
-- **`lib/` (Libraries):**
-  - `core/`: Low-level foundational tools (colors, error handling, strict logging).
-  - `gen/`: General utilities (validation, password generation, analysis).
-  - `ops/`: The actual infrastructure modules you interact with (e.g., `pve`, `net`, `sys`, `gpu`).
+- **`lib/` (Libraries):** `core/` for foundational tools (colors, errors, logging), `gen/` for shared utilities (validation, security, analysis), and `ops/` for operational modules (e.g., `pve`, `net`, `sys`, `gpu`).
 - **`cfg/` (Configuration):** Holds environment definitions. `cfg/core/ecc` defines the active context, and `cfg/env/` holds the declarative state for your infrastructure nodes.
-- **`src/` (Execution Layer):**
-  - `dic/`: The Dependency Injection Container.
-  - `set/`: Multi-step deployment orchestration scripts (runbooks).
+- **`src/` (Execution Layer):** `dic/` contains the dependency injection CLI and `set/` contains deployment orchestration scripts (runbooks).
 - **`val/` (Validation):** The comprehensive test suite verifying the framework's integrity.
 
 ## How It Comes Together

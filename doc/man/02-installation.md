@@ -1,11 +1,11 @@
 # 02 - Installation and Initialization
 
-The lab infrastructure automation framework is a Bash-native environment. Setup is shell-hook based, with no compile/build step. Runtime operations rely on standard Linux utilities plus module-specific host commands, with Bash 4.0+.
+The lab infrastructure automation framework is a Bash-native environment. Setup is shell-hook based, with no compile/build step. Runtime operations rely on standard Linux utilities plus module-specific host commands, with Bash 4+.
 
 ## Requirements
 
 - **Operating System:** Linux (developed and tested primarily on Debian). Some modules (like `pve`, `pbs`, `gpu`) are specific to Proxmox VE environments.
-- **Shell:** Bash 4.0+ (or Zsh 5+).
+- **Shell:** Bash 4+ (or Zsh 5+).
 - **Core Tools:** standard UNIX utilities (e.g., `coreutils`, `findutils`, `grep`, `systemd`).
 
 ## Step 1: Clone the Repository
@@ -70,7 +70,7 @@ This will output the current state of the initialization chain, verify that all 
 
 If you ever wish to remove the helper functions from your shell profile entirely, you can run `./go purge`.
 
-## Running the Test Suite (Optional)
+## Validation
 
 You can validate the entire framework and ensure no local environment issues exist by running the primary test runner:
 

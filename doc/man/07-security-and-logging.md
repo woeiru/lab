@@ -23,7 +23,7 @@ Operational modules in `lib/ops/` that modify state or execute potentially destr
 - Always validate dependencies before execution.
 - Use structured error reporting helpers (`aux_err`, `err_process`) to surface issues clearly.
 
-## The Logging System
+## Logging System
 
 The framework relies on a multi-tiered logging architecture, primarily driven by `lib/gen/aux` and `lib/core/lo1`.
 

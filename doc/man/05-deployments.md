@@ -2,7 +2,7 @@
 
 Deployments are orchestrated using section-based scripts ("set scripts") located in `src/set/`. These are the primary runbooks used to provision nodes, configure hypervisors, and install software across the lab environment.
 
-## The Structure of Set Scripts
+## Set Script Structure
 
 Set scripts group logical infrastructure tasks into discrete, sequential sections.
 
@@ -42,7 +42,7 @@ For automated pipelines or rapid daily usage, bypass the menu entirely using the
 
 This will instantly execute section `a_xall` without any prompts.
 
-## Building Your Own Deployment
+## Authoring Set Scripts
 
 To create a custom deployment script for a new server or environment:
 

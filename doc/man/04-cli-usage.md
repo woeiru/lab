@@ -2,7 +2,7 @@
 
 The framework's CLI is fundamentally different from typical Bash scripts. Instead of writing custom shell scripts with `getopts` blocks and explicit argument handling, the system relies on a Dependency Injection Container (DIC) located at `src/dic/ops` (available via the `ops` command).
 
-## The Dual Interface
+## Dual Interface
 
 The framework provides two primary ways to interact with its modules (`lib/ops/`):
 
@@ -54,7 +54,7 @@ Resolution order is strict:
 
 Some functions in `lib/ops/` are designed as action-style execution paths and require explicit execute flags (often `-x` in the function contract itself). When you append `-x` to the DIC call, it acts as a strict pass-through, bypassing standard injection logic.
 
-## Understanding What Will Happen
+## Usage Preview
 
 If you are unsure what the DIC will inject, run the command without arguments (or with `--help`).
 
@@ -64,7 +64,7 @@ ops pve vpt
 
 The DIC acts as a dry-run helper and prints an intelligent **Usage Preview**. It displays exactly which parameters will be auto-injected from the configuration (e.g., `<pci0_id:01:00.0>`) and which ones require manual CLI input.
 
-## The Output
+## Output and Return Codes
 
 All commands executed via the DIC or directly are fully integrated into the framework's logging infrastructure (`lib/core/lo1` and `lib/gen/aux`).
 
