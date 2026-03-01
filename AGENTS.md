@@ -301,7 +301,22 @@ These rules come from repository docs and actual code patterns, especially:
 | `doc/man/06-writing-modules.md`    | Creating new modules                      |
 | `doc/ref/functions.md`             | Function reference lookup                 |
 | `doc/ref/variables.md`             | Variable/constant reference               |
+| `doc/ref/module-dependencies.md`   | Direct imports + host command checks      |
+| `doc/ref/test-coverage.md`         | Test traceability mapping                 |
+| `doc/ref/error-handling.md`        | Return/exit/log handling map              |
 | `val/README.md`                    | Test structure and framework usage        |
+
+### Generated reference docs contract (`doc/ref/`)
+
+- Canonical generated reference context lives in `doc/ref/`.
+- `doc/pro/` is planning workflow state, not executable/reference source data.
+- Treat `doc/ref/*.md` as high-signal navigation context for symbol lookup,
+  dependency tracing, and test/error mapping before deep file reads.
+- If a generated reference conflicts with code, treat source code as the source
+  of truth and regenerate references.
+- Regenerate reference docs after structural changes (new/renamed functions,
+  signature changes, dependency changes, variable map changes):
+  - `./utl/doc/run_all_doc.sh`
 
 ---
 
@@ -383,3 +398,5 @@ Mistakes agents frequently make in this repo:
    parameter validation, and return codes are mandatory, not optional.
 7. **Editing `AGENTS.md` without running its test** -- always verify with
    `./val/core/agents_md_test.sh` after changes.
+8. **Using `doc/pro/ref` as canonical reference path** -- canonical generated
+   reference docs are under `doc/ref/`; `doc/pro/` is for planning documents.

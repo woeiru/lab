@@ -92,3 +92,11 @@ This file does not define:
 - project workflow state management (`doc/pro/*`),
 - validation rollout schedules,
 - non-ops module standards.
+
+## 9. Generated reference sync for ops changes
+
+- OPS-022: Changes to `lib/ops/*` that modify function signatures, dependency
+  imports, host command requirements, return/error behavior, or test mappings
+  MUST be followed by regenerating `doc/ref/` artifacts.
+- OPS-023: Generated reference docs are maintained in `doc/ref/`; `doc/pro/`
+  content MUST NOT be used as canonical ops reference data.

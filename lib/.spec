@@ -83,6 +83,16 @@ Conflict contract:
   - an implemented compliance check in `val/`, or
   - a documented temporary waiver with owner and removal date.
 
+### GLB-014 Generated reference parity
+- Structural changes that alter exported functions, signatures, dependencies,
+  variable maps, or test traceability MUST update generated references under
+  `doc/ref/`.
+- `doc/ref/` is the canonical generated reference namespace.
+- `doc/pro/` is planning workflow state and MUST NOT be treated as canonical
+  executable/reference documentation.
+- If generated references and source code differ, source code remains the
+  authoritative source and references MUST be regenerated.
+
 ## 4. Global recommendations
 
 - Functions SHOULD stay cohesive and reasonably small.
