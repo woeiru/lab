@@ -23,7 +23,7 @@ lab
 ./go validate
 ```
 
-After `lab-on`, restart your shell. All modules and functions are loaded automatically. Use `lab-off` to disable, `./go purge` to remove shell integration entirely.
+After `lab-on`, restart your shell. All modules and functions are loaded automatically. `lab-on` and `lab-off` can be run from any directory after `./go init`. Use `lab-off` to disable, `./go purge` to remove shell integration entirely.
 
 ## Requirements
 

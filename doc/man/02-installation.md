@@ -46,7 +46,7 @@ If you want the framework available in every new shell session you open automati
 lab-on
 ```
 
-You can disable this later with `lab-off`. This requires restarting your shell or sourcing your `~/.bashrc` again.
+You can disable this later with `lab-off`. After `./go init`, both `lab-on` and `lab-off` work from any directory. This requires restarting your shell or sourcing your `~/.bashrc` again.
 
 ### Option B: On-Demand (Current Shell Only)
 
