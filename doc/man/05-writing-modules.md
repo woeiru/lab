@@ -1,57 +1,81 @@
-# 06 - Writing Modules
+# 05 - Writing Modules
 
-The framework is highly extensible. Operational logic resides in parameter-driven Bash functions located in `lib/ops/`. This directory contains domain-specific modules (e.g., `pve`, `gpu`, `sys`, `net`, `sto`, `ssh`, `pbs`, `srv`, `dev`, `usr`).
+This guide covers how to add or modify operational modules in `lib/ops/` while
+keeping compatibility with DIC, tests, and repository standards.
 
-## Module Conventions
+## 1. Where Module Code Lives
 
-To ensure consistency and compatibility with the Dependency Injection Container (DIC), all modules must adhere to strict guidelines defined in `lib/.spec` and `lib/ops/.spec`.
-`lib/.spec` is the canonical merged standards document for all `lib/` modules; `lib/ops/.spec` remains the DIC-specific contract for operational functions.
-There is no separate `lib/.standards` file anymore; it was merged into `lib/.spec`.
+- Operational modules: `lib/ops/*` (extensionless Bash files).
+- General utilities: `lib/gen/*`.
+- Core primitives: `lib/core/*`.
+- Tests for ops modules: `val/lib/ops/*_test.sh`.
 
-### 1. Naming
+Important: most source files in `lib/` and `bin/` have no `.sh` extension.
 
-- **Public Functions:** Must use the `module_name` convention (e.g., `gpu_ptd`, `pve_cdo`).
-- **Internal Helpers:** Should be prefixed with a leading underscore (e.g., `_gpu_helper`).
-- **Variables:** Use `snake_case` consistently for all functions and local variables. Global constants should be `UPPERCASE`.
+## 2. Required Standards
 
-### 2. Parameters and Validation
+Read these first before editing module contracts:
+- `lib/.spec` (canonical standards for all `lib/` modules)
+- `lib/ops/.spec` (ops/DIC-specific requirements)
 
-All user-facing functions must validate their parameters.
-- **Help Flag:** The `--help` or `-h` flag should immediately return success (`0`) and print technical usage documentation.
-- **Invalid Parameters:** If an argument is missing or invalid, show the usage and return `1`.
-- **Action Functions:** Do not create user-facing functions with zero parameters. Use an explicit execute flag pattern (typically `-x`) for action-style flows.
+Key enforced contracts:
+- user-facing functions validate input,
+- help flags (`-h`/`--help`) return `0`,
+- usage errors return `1`, runtime/system failures return `2`, missing commands return `127`,
+- action-style functions use explicit execute flags (typically `-x`) instead of zero-argument execution.
 
-### 3. Return Codes and Error Semantics
+## 3. Function Design Rules
 
-Follow standard return codes strictly:
-- `0`: Success.
-- `1`: Parameter or usage error.
-- `2`: System, dependency, or runtime failure.
-- `127`: Required command missing (e.g., `pct` or `zfs` is not installed).
+### Naming
 
-Prefer explicit `return` values over implicit status codes in multi-step functions.
+- Public function format: `<module>_<action>` (for example `gpu_ptd`, `pve_cdo`).
+- Internal helpers: `_<module>_<helper>`.
+- Use `snake_case` for locals; reserve uppercase for constants/global env values.
 
-### 4. Self-Documenting Comments
+### Parameters and validation
 
-Functions should be self-documenting using the established comment blocks. The DIC and help systems consume these comments dynamically.
+- Parse `-h`/`--help` first.
+- Validate user-facing inputs with `aux_val` and related checks.
+- Check external command dependencies early with `aux_chk`.
+- Return explicit codes for each failure class.
 
-- **Usage (`aux_use`):** The three comment lines directly above a function definition are extractable as usage help.
-- **Technical Docs (`aux_tec`):** A comment block inside the function body is extractable as technical documentation.
+### Logging and errors
+
+- In `lib/ops/*`, use structured logging helpers (`aux_info`, `aux_warn`, `aux_err`, `aux_dbg`, `aux_audit`, `aux_business`).
+- Avoid raw `echo` for operational status/error output.
+- Include context metadata when useful (for example `component=gpu,operation=passthrough`).
+
+## 4. Self-Documentation Pattern (`aux_use` / `aux_tec`)
+
+Keep function help extractable by maintaining comment blocks:
+- three comment lines above the function for usage (`aux_use`),
+- technical block inside function body for detailed docs (`aux_tec`).
+
+Example skeleton:
 
 ```bash
-# Example user-facing function with explicit validation and return codes
-# Usage: net_fas <service>
-# Returns: 0 on success, 1 on invalid usage, 2 on runtime failure, 127 on missing dependency
+# does something useful
+# short operation label
+# Usage: net_fas [-x] <service>
 net_fas() {
-    local service="${1:-}"
+    # Technical Description:
+    #   Explain behavior, dependencies, and side effects.
 
-    if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        aux_use
+    if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        aux_tec
         return 0
     fi
 
+    local execute_flag="${1:-}"
+    local service="${2:-}"
+
+    if [[ "$execute_flag" != "-x" ]]; then
+        aux_use
+        return 1
+    fi
+
     if ! aux_val "$service" "not_empty"; then
-        aux_err "Service name cannot be empty"
+        aux_err "service is required"
         return 1
     fi
 
@@ -60,21 +84,40 @@ net_fas() {
         return 127
     fi
 
-    # operation logic...
+    aux_info "running firewall action" "component=net,operation=fas,service=$service"
+    # operation logic
     return 0
 }
 ```
 
-### 5. Dependency Checks
+## 5. Testing Requirements
 
-Before executing any commands, verify that the required binaries are available using standard Bash tools or the `lib/gen/aux` helpers. Fail fast if a dependency is missing (`return 127`).
+Every new module/function needs tests.
 
-### 6. Writing Tests
+Recommended test workflow:
 
-Every new function or module requires corresponding tests. The validation framework is located in `val/`.
+```bash
+bash -n lib/ops/<module>
+./val/lib/ops/<module>_test.sh
+./val/run_all_tests.sh lib
+```
 
-- **Module Tests:** Place tests for `lib/ops/mymodule` in `val/lib/ops/mymodule_test.sh`.
-- **Test Framework:** Use provided helpers (`run_test`, `test_function_exists`, `test_file_exists`, `test_var_set`) from `val/helpers/test_framework.sh`.
-- **Running Tests:** Execute a specific test script directly (for example `./val/lib/ops/mymodule_test.sh`) or run the full suite (`./val/run_all_tests.sh`).
+Run full suite for cross-module changes:
 
-Continue to [07 - Security and Logging](06-security-and-logging.md) to understand how to handle sensitive data and monitor framework activity.
+```bash
+./val/run_all_tests.sh
+```
+
+## 6. Common Pitfalls
+
+- Searching only for `*.sh` and missing extensionless module files.
+- Returning implicit status from multi-step functions.
+- Missing `-x` action gating on destructive flows.
+- Using plain `echo` instead of `aux_*` logging in ops modules.
+- Adding module functions without corresponding tests.
+
+## 7. Related Docs
+
+- Next: [06 - Security and Logging](06-security-and-logging.md)
+- Architecture context: [doc/arc/03-operational-modules.md](../arc/03-operational-modules.md)
+- Reference maps: [doc/ref/functions.md](../ref/functions.md)

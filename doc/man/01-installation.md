@@ -1,85 +1,131 @@
-# 02 - Installation and Initialization
+# 01 - Installation and Initialization
 
-The lab infrastructure automation framework is a Bash-native environment. Setup is shell-hook based, with no compile/build step. Runtime operations rely on standard Linux utilities plus module-specific host commands, with Bash 4+.
+This guide is for operators setting up the lab framework on a workstation or host.
+The system is Bash-native (no compile/build step) and is activated by shell integration.
 
-## Requirements
+## 1. Prerequisites and Safety
 
-- **Operating System:** Linux (developed and tested primarily on Debian). Some modules (like `pve`, `pbs`, `gpu`) are specific to Proxmox VE environments.
-- **Shell:** Bash 4+ (or Zsh 5+).
-- **Core Tools:** standard UNIX utilities (e.g., `coreutils`, `findutils`, `grep`, `systemd`).
+- **Platform:** Linux (Debian/Proxmox-oriented workflows are the main target).
+- **Shell:** Bash 4+ (Zsh 5+ also supported by `./go init`).
+- **Tools:** standard Unix utilities (`coreutils`, `findutils`, `grep`, `systemd`, `awk`, `sed`).
+- **Repository root:** run commands from your clone root (for example `/home/es/lab`).
 
-## Step 1: Clone the Repository
+Side effects to expect:
+- `./go init` modifies your shell startup file and creates backup files.
+- `./go on` and `./go off` toggle an auto-load block in that startup file.
+- `./go purge` removes both helper functions and auto-load integration.
 
-Clone the project to your local machine or target hypervisor.
+## 2. Install the Repository
 
 ```bash
 git clone https://github.com/woeiru/lab.git
 cd lab
 ```
 
-All interactions must occur from the repository root `/home/es/lab` (or wherever you cloned it).
-
-## Step 2: System Initialization
-
-The primary entrypoint for the system is the `./go` script. Your first step is to initialize shell integration. This is a one-time setup step.
+## 3. Initialize Shell Integration (One-Time)
 
 ```bash
 ./go init
 ```
 
-Note: `./go setup` is an alias for this command.
+`./go setup` is an alias for `./go init`.
 
-**What this does:**
-- It performs a compatibility check on your shell.
-- It prepares the internal configuration directories.
-- It injects three permanent helper functions directly into your `~/.bashrc` (or equivalent shell profile): `lab-on`, `lab-off`, and `lab`.
+During initialization, `go`:
+1. checks shell compatibility,
+2. stores integration settings in `.tmp/go_settings`,
+3. injects persistent helper functions into your shell profile: `lab`, `lab-on`, `lab-off`.
 
-## Step 3: Activating the Environment
-
-After initialization, the framework's functions and commands are not yet available. You must activate the environment in your shell session. You have three choices on how to do this:
-
-### Option A: Auto-load (Persistent)
-
-If you want the framework available in every new shell session you open automatically, run:
+Non-interactive setup is available:
 
 ```bash
-lab-on
+./go init -y
 ```
 
-You can disable this later with `lab-off`. After `./go init`, both `lab-on` and `lab-off` work from any directory. This requires restarting your shell or sourcing your `~/.bashrc` again.
+## 4. Activate the Environment
 
-### Option B: On-Demand (Current Shell Only)
+After `init`, reload your shell profile once (or open a new shell):
 
-If you prefer to keep your shell environment clean and only load the framework when you need it, simply run:
+```bash
+source ~/.bashrc
+```
+
+Then choose one activation pattern:
+
+### Current shell only (recommended default)
 
 ```bash
 lab
 ```
 
-This command directly sources the initialization controller (`bin/ini`) and orchestrator (`bin/orc`) into your current shell session without modifying your bash configuration for future sessions.
+This sources `bin/ini` into the current shell and does not enable auto-load for future shells.
 
-## Step 4: Verification
+### Auto-load for every new shell
 
-To verify that the framework is loaded and healthy, use the status check command:
+```bash
+lab-on
+```
+
+To disable auto-load later:
+
+```bash
+lab-off
+```
+
+## 5. Validate Setup
+
+Basic status:
 
 ```bash
 ./go status
 ```
 
-This will output the current state of the initialization chain, verify that all core components and operational modules are sourced, and confirm the active environment configuration.
-
-If you ever wish to remove the helper functions from your shell profile entirely, you can run `./go purge`.
-
-## Validation
-
-You can validate the entire framework and ensure no local environment issues exist by running the primary test runner:
+Validation:
 
 ```bash
 ./go validate
 ```
 
-Alternatively, run `./val/run_all_tests.sh` directly.
+In CI/clean contexts, prefer direct validation scripts:
 
-Note: `./go validate` checks initialization state first. In clean or CI-like contexts where shell integration is not initialized, prefer direct validation scripts (for example, `./val/run_all_tests.sh` or a targeted `./val/..._test.sh`).
+```bash
+./val/run_all_tests.sh --quick
+```
 
-Continue to [03 - Environment and Configuration](02-configuration.md) to learn how to define your infrastructure.
+## 6. Troubleshooting and Recovery
+
+### `lab: command not found`
+
+Your shell profile was not reloaded yet.
+
+```bash
+source ~/.bashrc
+```
+
+### `Please run './go init' first`
+
+Initialization marker/settings are missing.
+
+```bash
+./go init
+```
+
+### `LIB_OPS_DIR not set. Please run 'source bin/ini' first.`
+
+The runtime environment is not loaded in the current shell.
+
+```bash
+lab
+```
+
+### Reset shell integration cleanly
+
+```bash
+./go purge
+./go init
+source ~/.bashrc
+```
+
+## 7. Related Docs
+
+- Next: [02 - Environment and Configuration](02-configuration.md)
+- Architecture context: [doc/arc/01-bootstrap-and-orchestration.md](../arc/01-bootstrap-and-orchestration.md)

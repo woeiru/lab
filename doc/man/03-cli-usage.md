@@ -1,74 +1,132 @@
-# 04 - CLI Usage and the DIC
+# 03 - CLI Usage and the DIC
 
-The framework's CLI is fundamentally different from typical Bash scripts. Instead of writing custom shell scripts with `getopts` blocks and explicit argument handling, the system relies on a Dependency Injection Container (DIC) located at `src/dic/ops` (available via the `ops` command).
+This guide covers the operator CLI flow for `lib/ops/*` functions.
+The primary interface is the DIC command: `ops` (`src/dic/ops`).
 
-## Dual Interface
+## 1. Prerequisites and Safety
 
-The framework provides two primary ways to interact with its modules (`lib/ops/`):
-
-1. **Direct Bash Functions (Direct Mode):** You call the raw function directly in your shell (e.g., `gpu_ptd`).
-2. **The DIC CLI (`ops` command):** You use the DIC to resolve parameters automatically based on the current configuration environment.
-
-### Direct Execution
-
-Operational functions in `lib/ops/` expose parameter-driven Bash interfaces. They expect arguments to be passed exactly as their signature defines.
+Load the runtime first in your current shell:
 
 ```bash
-# Explicit call style (current signature)
-# Usage: gpu_ptd [-d driver] [gpu_id] [hostname] [config_file] [pci0_id] [pci1_id]
-gpu_ptd -d lookup "01:00.0" "h1" "/path/to/config" "0000:01:00.0" "0000:01:00.1"
+lab
 ```
 
-This is tedious for daily operations, and you must manually retrieve the values from your configuration.
+If you skip this, `ops` usually fails with missing runtime variables (for example `LIB_OPS_DIR`).
 
-### DIC (`ops`) Execution
+Safety note:
+- `ops --list`, `ops <module> --list`, and `ops <module> <function> --help` are read-only discovery.
+- Many `ops` executions are state-changing infrastructure actions. Validate context before execution.
 
-The `ops` command is the primary interface to these functions. It analyzes the target function signature, scans `cfg/env/` for matching variables (including hostname-prefixed keys), and injects resolved values into the function call.
+## 2. Quick Discovery Commands
 
 ```bash
-# Using the DIC to execute gpu_ptd
-ops gpu ptd -j
+ops --list
+ops pve --list
+ops pve vpt --help
 ```
 
-## DIC Execution Modes
+Use these first when exploring available modules/functions.
 
-The DIC operates in three distinct modes:
+## 3. Direct Function Calls vs `ops`
 
-### 1. Hybrid Mode (Default)
+Two interfaces exist:
 
-If you run `ops gpu ptd` without mode flags, the DIC accepts explicit arguments and supplements missing values when they can be resolved safely.
+1. **Direct call** in shell (e.g., `gpu_ptd ...`): full argument handling is on you.
+2. **DIC call** (e.g., `ops gpu ptd ...`): resolves and injects missing values from environment/config conventions.
 
-### 2. Injection Mode (`-j`)
+For day-to-day operations and deployment scripts, prefer `ops`.
 
-This is the most powerful and commonly used mode. When you append `-j`, the DIC performs full parameter resolution from the environment.
+## 4. DIC Execution Modes
 
-Resolution order is strict:
-1. **User Arguments:** Explicit CLI arguments always win.
-2. **Hostname Resolution:** The DIC then checks hostname-prefixed variables (e.g., `h1_NODE_PCI0`).
-3. **Global Resolution:** It falls back to global variables (e.g., `NODE_PCI0`).
-4. **Function Defaults:** Finally it uses defaults defined in the target function when available.
-
-- **Array Auto-Conversion:** If a configuration value is a Bash array, the DIC auto-converts it to a caller-compatible format.
-
-### 3. Explicit Mode (`-x`)
-
-Some functions in `lib/ops/` are designed as action-style execution paths and require explicit execute flags (often `-x` in the function contract itself). When you append `-x` to the DIC call, it acts as a strict pass-through, bypassing standard injection logic.
-
-## Usage Preview
-
-If you are unsure what the DIC will inject, run the command without arguments (or with `--help`).
+### Preview mode (no arguments)
 
 ```bash
-ops pve vpt
+ops gpu ptd
 ```
 
-The DIC acts as a dry-run helper and prints an intelligent **Usage Preview**. It displays exactly which parameters will be auto-injected from the configuration (e.g., `<pci0_id:01:00.0>`) and which ones require manual CLI input.
+Shows a usage preview with parameter placeholders:
+- `<param:value>` means auto-injection value is available.
+- `<param>` means manual input is still required.
 
-## Output and Return Codes
+### Hybrid mode (default when args are provided)
 
-All commands executed via the DIC or directly are fully integrated into the framework's logging infrastructure (`lib/core/lo1` and `lib/gen/aux`).
+```bash
+ops pve vpt 100 on
+```
 
-- Return codes are standardized: `0` (Success), `1` (Usage error), `2` (Runtime failure), `127` (Command missing).
-- Detailed traces are written to the logs. If `OPS_DEBUG=1` is set, you will see verbose resolution tracing from the DIC.
+Provided arguments fill early parameters, and DIC resolves remaining parameters.
 
-Continue to [05 - Deployments and Runbooks](04-deployments.md) to understand how to string these commands together into multi-step orchestrations.
+### Injection mode (`-j`)
+
+```bash
+ops pve vpt -j
+```
+
+Executes with full environment-driven injection (common in `src/set/*` runbooks).
+
+### Explicit pass-through flag (`-x`)
+
+```bash
+ops gpu pts -x
+```
+
+`-x` is passed to the target function for contracts that require explicit execute flags.
+
+## 5. Resolution Behavior (Practical View)
+
+In normal operation, resolution follows this pattern:
+1. user-supplied CLI arguments,
+2. hostname-scoped variables (for example `<hostname>_NODE_PCI0`),
+3. broader globals (for example `VM_ID`),
+4. function defaults (when defined).
+
+Array-like values are converted into callable argument forms when needed.
+
+## 6. Debugging and Validation
+
+Enable DIC debug tracing:
+
+```bash
+OPS_DEBUG=1 ops pve vpt -j
+```
+
+Optional behavior controls:
+
+```bash
+OPS_VALIDATE=strict OPS_CACHE=1 OPS_METHOD=auto ops pve vpt -j
+```
+
+## 7. Return Codes and Troubleshooting
+
+Standard return code contract used by the framework:
+- `0` success
+- `1` usage/validation error
+- `2` runtime/dependency failure
+- `127` required command missing
+
+Common issues:
+
+### `Environment not initialized. Please run 'source bin/ini' first.`
+
+Run:
+
+```bash
+lab
+```
+
+### `Module '<name>' not found`
+
+- Verify module exists under `lib/ops/`.
+- Use `ops --list` to confirm available module names.
+
+### Injection not resolving expected values
+
+- Check `cfg/env/*` variable names and hostname prefixes.
+- Run preview mode (`ops <module> <function>`) to inspect what DIC sees.
+- Retry with `OPS_DEBUG=1` for detailed resolution logs.
+
+## 8. Related Docs
+
+- Next: [04 - Deployments and Runbooks](04-deployments.md)
+- DIC internals: [src/dic/README.md](../../src/dic/README.md)
+- Architecture context: [doc/arc/04-dependency-injection.md](../arc/04-dependency-injection.md)

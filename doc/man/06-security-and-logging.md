@@ -1,74 +1,133 @@
-# 07 - Security and Logging
+# 06 - Security and Logging
 
-The framework provides built-in mechanisms for securely handling sensitive data and generating detailed, structured logs of all operational activity.
+This guide explains how to handle secrets safely and how to produce auditable logs
+across runtime, ops modules, and deployment flows.
 
-## Security Practices
+## 1. Security Baselines
 
-The framework prioritizes secure file permissions, safe temporary file patterns, and the avoidance of hardcoded secrets.
+- Never hardcode secrets in `cfg/env/*`, `lib/ops/*`, or `src/set/*`.
+- Assume runbooks and ops actions can affect real infrastructure.
+- Validate dependencies and parameters before executing state changes.
+- Use explicit execution gates (for example `-x`) for high-impact actions.
 
-### 1. Handling Secrets
+## 2. Secret Management (`lib/gen/sec`)
 
-**Never hardcode secrets** in configuration files (`cfg/env/`), modules (`lib/ops/`), or deployment scripts (`src/set/`).
+Use `lib/gen/sec` helpers instead of custom ad-hoc password logic.
 
-The `lib/gen/sec` module provides utilities for generating and securely storing passwords and sensitive material.
+Common functions:
+- `sec_generate_secure_password [length] [exclude_special]`
+- `sec_store_secure_password <var_name> [length] [exclude_special]`
+- `sec_init_password_management [password_dir]`
+- `sec_load_stored_passwords [password_dir]`
 
-- **Password Generation:** Use `sec_generate_secure_password` (or compatibility alias `generate_secure_password`) to create secure passwords (e.g., from `/dev/urandom`).
-- **Secure Storage:** Store secrets in files with `chmod 600` permissions. The framework enforces secure file permissions for sensitive material automatically.
-- **Safe Execution:** Prefer safe temp-file patterns (`mktemp`) and cleanup traps when handling sensitive data during module execution.
+Compatibility aliases also exist (`generate_secure_password`, `store_secure_password`, etc.).
 
-### 2. Guarding Destructive Operations
+Example:
 
-Operational modules in `lib/ops/` that modify state or execute potentially destructive commands (e.g., deleting a ZFS dataset or removing a container) must be auditable and guarded by explicit user confirmation or strict parameter validation.
+```bash
+sec_init_password_management
+DB_PASSWORD="$(sec_generate_secure_password 24)"
+```
 
-- Always validate dependencies before execution.
-- Use structured error reporting helpers (`aux_err`, `err_process`) to surface issues clearly.
+Storage expectations:
+- password directories should be `700`,
+- individual password files should be `600`,
+- avoid printing secrets to terminal logs.
 
-## Logging System
+## 3. Safe Handling Patterns in Modules
 
-The framework relies on a multi-tiered logging architecture, primarily driven by `lib/gen/aux` and `lib/core/lo1`.
+For sensitive or destructive code paths:
+- use `mktemp` for temporary files,
+- clean up with traps,
+- validate required commands with `aux_chk`,
+- fail fast with explicit return codes,
+- log intent and outcome via `aux_*` helpers.
 
-### 1. Operational Logging (`aux_*`)
+## 4. Logging Layers
 
-All modules in `lib/ops/` must use the structured logging functions provided by `lib/gen/aux` instead of raw `echo` or `printf`.
+### Operational logging (`lib/gen/aux`)
 
-- `aux_info "Starting process..."`
-- `aux_warn "Disk space low"`
-- `aux_err "Process failed"`
-- `aux_dbg "Variable value: $x"`
-- `aux_audit "User $USER modified config"`
-- `aux_business "Order processed"`
+Primary helpers for `lib/ops/*`:
+- `aux_info`
+- `aux_warn`
+- `aux_err`
+- `aux_dbg`
+- `aux_audit`
+- `aux_business`
 
-These helpers ensure consistent formatting and allow the framework to route logs to multiple destinations based on the `AUX_LOG_FORMAT` environment variable.
+Use context metadata where relevant:
 
-### 2. Log Destinations and Formats
-
-The `AUX_LOG_FORMAT` variable determines how logs are written to disk. The default is `human`, which writes standard text output to `aux.log`.
-
-Other formats include:
-
-- **`json`**: Structured JSON with cluster metadata (writes to `aux.json`). Ideal for ingestion into Fluentd or Filebeat.
-- **`csv`**: Comma-separated values with headers (writes to `aux.csv`). Useful for data analysis tools.
-- **`kv`**: Key-value pairs (writes to `aux.log`).
-- **`human`**: Default terminal format (writes to `aux.log`).
-
-Include context as key-value pairs in the context argument when logging complex operations:
 ```bash
 aux_info "passthrough started" "component=gpu,operation=passthrough,status=started"
 ```
 
-### 3. Core Infrastructure Logging (`lo1.log`)
+### Core runtime logging (`lib/core/lo1`)
 
-The `lib/core/lo1` module handles advanced, hierarchical logging for the core infrastructure (e.g., the orchestrator `bin/orc` and the initialization controller `bin/ini`).
+`lo1` is used heavily during initialization/orchestration (`bin/ini`, `bin/orc`).
 
-- It features call-stack depth caching and timing integration.
-- The format is typically `HH:MM:SS.NN └─ message`.
-- You can toggle this logging on or off using `lo1_setlog on|off`.
+- Main file: `${LOG_DIR}/lo1.log`
+- Toggle terminal/file behavior with `lo1_setlog on|off`.
 
-### 4. Error Logging (`err.log`)
+### Error logging (`lib/core/err`)
 
-A centralized error and warning repository managed by `lib/core/err`.
+`err` centralizes structured error processing and reporting.
 
-- The format is `[SEVERITY] YYYY-MM-DD HH:MM:SS - [component] message`.
-- It captures stack traces and handles `ERR` traps globally.
+- Main file: `${LOG_DIR}/err.log`
+- Key helpers include `err_process`, `err_handler`, `err_print_report`.
 
-By understanding the security tools and logging architecture, you can build auditable, robust infrastructure modules. This concludes the user walkthrough.
+## 5. AUX Log Formats and Destinations
+
+`AUX_LOG_FORMAT` controls structured output behavior for aux logging:
+
+- `human` (default) -> `${LOG_DIR}/aux.log`
+- `json` -> `${LOG_DIR}/aux.json`
+- `csv` -> `${LOG_DIR}/aux.csv`
+- `kv` / `keyvalue` -> `${LOG_DIR}/aux.log`
+
+Example:
+
+```bash
+AUX_LOG_FORMAT=json ops pve vpt -j
+```
+
+## 6. Validate Security/Logging Changes
+
+For module-level edits:
+
+```bash
+bash -n lib/gen/sec
+bash -n lib/gen/aux
+bash -n lib/core/lo1
+bash -n lib/core/err
+```
+
+Then run relevant tests:
+
+```bash
+./val/run_all_tests.sh lib
+./val/run_all_tests.sh integration
+```
+
+## 7. Troubleshooting
+
+### Logs not written to files
+
+- Confirm `LOG_DIR` is set and writable.
+- Confirm runtime was initialized (`lab`).
+- Check format selection (`AUX_LOG_FORMAT`).
+
+### Excessive debug output
+
+- Set `OPS_DEBUG=0` unless actively debugging.
+- Tune verbosity environment variables in `cfg/core/ric` as needed.
+
+### Password files created in unexpected directory
+
+- Check `sec_get_password_directory` behavior on current host permissions.
+- Pass explicit directory to `sec_init_password_management <dir>` when deterministic location is required.
+
+## 8. Related Docs
+
+- Manual start: [01 - Installation and Initialization](01-installation.md)
+- Module authoring: [05 - Writing Modules](05-writing-modules.md)
+- Architecture context: [doc/arc/07-logging-and-error-handling.md](../arc/07-logging-and-error-handling.md)
