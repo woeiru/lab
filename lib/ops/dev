@@ -732,6 +732,95 @@ _dev_get_antigravity_accounts_path() {
     echo "$accounts_path"
 }
 
+_dev_provider_from_family() {
+    local family="${1:-}"
+
+    case "${family,,}" in
+        openai*)
+            echo "openai"
+            ;;
+        *)
+            echo "antigravity"
+            ;;
+    esac
+}
+
+_dev_record_account_event() {
+    local provider_id="$1"
+    local account_key="$2"
+    local account_label="$3"
+    local event_type="${4:-account_selected}"
+    local source="${5:-manual_switch}"
+
+    if ! aux_val "$provider_id" "not_empty" || ! aux_val "$account_key" "not_empty"; then
+        aux_warn "Skipping account event persistence due to empty provider/account" "component=dev,operation=opencode_account_event"
+        return 0
+    fi
+
+    if ! aux_chk "command" "opencode"; then
+        aux_dbg "Skipping account event persistence because opencode command is unavailable" "component=dev,operation=opencode_account_event"
+        return 0
+    fi
+
+    local db_path
+    db_path=$(_dev_get_opencode_db_path 2>/dev/null) || {
+        aux_warn "Skipping account event persistence because OpenCode database path is unavailable" "component=dev,operation=opencode_account_event"
+        return 0
+    }
+
+    python3 - "$db_path" "$provider_id" "$account_key" "$account_label" "$event_type" "$source" <<'PY'
+import sqlite3
+import sys
+import time
+
+db_path = sys.argv[1]
+provider_id = sys.argv[2]
+account_key = sys.argv[3]
+account_label = sys.argv[4]
+event_type = sys.argv[5]
+source = sys.argv[6]
+
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute(
+    """
+    CREATE TABLE IF NOT EXISTS opencode_account_event (
+        time_ms INTEGER NOT NULL,
+        provider_id TEXT NOT NULL,
+        account_key TEXT NOT NULL,
+        account_label TEXT,
+        event_type TEXT NOT NULL,
+        source TEXT NOT NULL,
+        trace_id TEXT
+    )
+    """
+)
+
+cur.execute(
+    """
+    INSERT INTO opencode_account_event (
+        time_ms, provider_id, account_key, account_label, event_type, source, trace_id
+    )
+    VALUES (?, ?, ?, ?, ?, ?, NULL)
+    """,
+    (int(time.time() * 1000), provider_id, account_key, account_label, event_type, source),
+)
+
+conn.commit()
+conn.close()
+PY
+    local py_status=$?
+
+    if [ "$py_status" -ne 0 ]; then
+        aux_warn "Failed to persist account attribution event" "component=dev,operation=opencode_account_event,db_path=$db_path,python_exit=$py_status"
+        return 0
+    fi
+
+    aux_dbg "Persisted account attribution event" "component=dev,operation=opencode_account_event,provider_id=$provider_id,account_key=$account_key,event_type=$event_type,source=$source"
+    return 0
+}
+
 _dev_oqu_render() {
     local accounts_path="$1"
 
@@ -1388,6 +1477,7 @@ dev_oas() {
     # Dependencies:
     #   - python3 with json module for safe JSON read-modify-write
     #   - antigravity-accounts.json from the antigravity auth plugin
+    #   - opencode CLI (optional) to persist account attribution events
     # Arguments:
     #   $1: family - model family name (e.g. claude, gemini, gemini-pro, gemini-flash)
     #   $2: account_number - 1-based account number to activate for the family
@@ -1483,10 +1573,12 @@ PY
 
     case "$py_status" in
         0)
-            local switched_family switched_email backup_file
+            local switched_family switched_email backup_file provider_id
             switched_family=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $2}')
             switched_email=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $3}')
             backup_file=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $5}')
+            provider_id=$(_dev_provider_from_family "$switched_family")
+            _dev_record_account_event "$provider_id" "$switched_email" "$switched_email" "account_selected" "manual_switch"
             aux_info "Account switched successfully" "component=dev,operation=opencode_account_switch,family=$switched_family,email=$switched_email"
             echo "Family '$switched_family' now routes to: $switched_email (account $account_num)"
             echo "Backup: $backup_file"

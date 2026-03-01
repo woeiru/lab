@@ -768,6 +768,65 @@ test_dev_oas_creates_backup() {
     return 0
 }
 
+# Test: dev_oas records account attribution event when OpenCode DB is available
+test_dev_oas_records_account_event() {
+    local test_env
+    test_env=$(create_test_env "dev_oas_account_event")
+    local db_path="$test_env/opencode.db"
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    dev_oas "claude" "2" >/dev/null 2>&1
+    local status=$?
+
+    local event_row=""
+    if [[ $status -eq 0 ]]; then
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, account_label, event_type, source
+    FROM opencode_account_event
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join(row) if row else "")
+PY
+)
+    fi
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_row" == "antigravity|bob@example.com|bob@example.com|account_selected|manual_switch" ]] || return 1
+    return 0
+}
+
 # Main test execution
 main() {
     test_header "$TEST_NAME"
@@ -793,6 +852,7 @@ main() {
     run_test test_dev_oas_rejects_out_of_range
     run_test test_dev_oas_rejects_unknown_family
     run_test test_dev_oas_creates_backup
+    run_test test_dev_oas_records_account_event
 
     test_footer
 }
