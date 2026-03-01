@@ -34,13 +34,13 @@
 # Verification Log - VLG
 # <message> <source> <level>
 ver_log() {
-    local timestamp
-    local file_timestamp
-    printf -v timestamp '%(%H:%M:%S)T' -1
-    printf -v file_timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
     local level="${3:-1}" # Default verbosity level if not provided by caller
+
+    if [[ "${LAB_BOOTSTRAP_MODE:-0}" == "1" && "${VER_BOOTSTRAP_LOGGING:-0}" != "1" ]]; then
+        [[ "$message" == *"ERROR"* ]] || return 0
+    fi
 
     if [[ "${PERFORMANCE_MODE:-0}" == "1" && "${VER_PERFORMANCE_LOGGING:-0}" != "1" ]]; then
         [[ "$message" == *"ERROR"* ]] || return 0
@@ -48,15 +48,26 @@ ver_log() {
 
     # Default log file if not set
     local VER_LOG_FILE="${VER_LOG_FILE:-${BASE_DIR:-.}/.log/ver.log}"
+    local ver_log_dir="${VER_LOG_FILE%/*}"
+    local file_timestamp
+
+    [[ -z "$ver_log_dir" || "$ver_log_dir" == "$VER_LOG_FILE" ]] && ver_log_dir="."
     
     # Create the directory if it doesn't exist (for file logging)
-    mkdir -p "$(dirname "$VER_LOG_FILE")" 2>/dev/null
+    if [[ "${VER_LOG_DIR_READY:-}" != "$ver_log_dir" ]]; then
+        mkdir -p "$ver_log_dir" 2>/dev/null
+        VER_LOG_DIR_READY="$ver_log_dir"
+    fi
+
+    printf -v file_timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
     
     # Format for file logging remains unchanged or can be adjusted if needed
     echo "[VER] $file_timestamp - [$source] $message" >> "$VER_LOG_FILE"
 
     # Conditionally output to stderr based on both master and specific debug verbosity
     if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${VER_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        local timestamp
+        printf -v timestamp '%(%H:%M:%S)T' -1
         echo -e "    \033[38;5;208m└─ $message [$timestamp]\033[0m" >&2
     fi
 }

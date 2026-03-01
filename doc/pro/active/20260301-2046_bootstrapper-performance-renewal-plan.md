@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-01
-- Updated: 2026-03-01 (resume pass; additional Phase 1 optimizations applied)
+- Updated: 2026-03-01 (checkpoint verification + Phase 2 item 7 pass)
 - Links: bin/ini, bin/orc, lib/core/col, lib/core/err, lib/core/lo1, lib/core/tme, lib/core/ver, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, doc/arc/01-bootstrap-and-orchestration.md
 
 ## Goal
@@ -63,14 +63,12 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
 
 ## Execution Plan (remaining)
 
-1. Decide closure scope for this active item now that the Phase 1 latency target
-   is effectively met in local measurements (median ~`0.624s`).
-2. If closing this item: run final quick validation snapshot and prepare commit
-   summary from current working tree changes (`bin/ini`, `bin/orc`, `lib/core/lo1`,
-   `lib/core/tme`, `lib/core/ver`).
-3. If continuing into Phase 2: start item 7 (`ver_log` consolidation) and then
-   evaluate whether any remaining `ver_verify_module` boot checks can be deferred
-   behind explicit health checks without contract regressions.
+1. Begin Phase 3 by preparing a minimal lazy-load strategy for `lib/ops/`
+   (stub wrappers + first-load source path) that preserves current contracts.
+2. Prototype the lazy-load path for a small subset of ops functions first, then
+   validate parity (arguments, return codes, output) against eager-load behavior.
+3. Measure bootstrap again and decide whether to expand lazy-loading to all
+   `lib/ops/` modules in this item or split into a follow-on active plan.
 
 ## Progress Checkpoint
 
@@ -141,13 +139,49 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
     `./val/core/modules/tme_test.sh`,
     `./val/core/modules/ver_test.sh`,
     `./val/core/modules/lo1_test.sh`: pass.
+- Checkpoint verification on this continuation pass:
+  - Re-read `## In-flight`/`## Next steps` referenced files:
+    `bin/ini`, `bin/orc`, `lib/core/lo1`, `lib/core/tme`, `lib/core/ver`, and
+    blocker reference `lib/gen/inf:90`.
+  - Verified state drift: checkpoint said tracked optimization files were local
+    and uncommitted, but branch was clean before this pass.
+  - Re-ran `./val/run_all_tests.sh --quick`; blocker remains unchanged and
+    unrelated (`glb_008_secret_scan_test` on `lib/gen/inf:90`).
+- Phase 2 item 7 work performed in this pass:
+  - `lib/core/ver` `ver_log` now short-circuits non-error logs during
+    `LAB_BOOTSTRAP_MODE=1` unless `VER_BOOTSTRAP_LOGGING=1`.
+  - Moved log suppression checks ahead of timestamp/file work to reduce hot-path
+    overhead.
+  - Removed `dirname` subprocess from `ver_log` via parameter expansion and
+    added cached log-dir creation (`VER_LOG_DIR_READY`).
+  - Deferred terminal timestamp generation to terminal-output path only.
+- Validation/timing from this pass:
+  - `bash -n lib/core/ver`: pass.
+  - `./val/core/modules/ver_test.sh`: pass.
+  - `./val/core/initialization/ini_test.sh`: pass (includes performance check,
+    observed `650ms`).
+  - 3-run timing sample (`time bash -lc 'MASTER_TERMINAL_VERBOSITY=off; source /home/es/lab/bin/ini'`):
+    `0.644s`, `0.611s`, `0.635s` (median `0.635s`).
+- Additional Phase 2 micro-optimization completed:
+  - `bin/orc`: removed remaining `basename` subprocess calls in hot loops and
+    `source_helper` fallback path via parameter expansion (`${file##*/}`).
+- Validation/timing after additional optimization:
+  - `bash -n bin/orc lib/core/ver`: pass.
+  - `./val/core/initialization/orc_test.sh`: pass.
+  - `./val/core/modules/ver_test.sh`: pass.
+  - `./val/core/initialization/ini_test.sh`: pass (performance check observed
+    `604ms`).
+  - 3-run timing sample: `0.597s`, `0.587s`, `0.585s` (median `0.587s`).
+  - Result: Phase 2 target (<`600ms`) achieved in this pass.
 
 ### In-flight
 
-- Current working-tree edits are local and uncommitted in:
-  `bin/ini`, `bin/orc`, `lib/core/lo1`, `lib/core/tme`, `lib/core/ver`.
-- Phase 1 objective (<`800ms` median) is now achieved in local timing samples
-  (current median `0.624s`).
+- Current active code edits in this pass: `lib/core/ver`, `bin/orc`.
+- Running quick validation produced generated working-tree deltas outside this
+  plan scope: `STATS.md`, `doc/ref/stats/actual.md`, and
+  `doc/ref/stats/20260301T210850Z.json`.
+- Phase 1 and Phase 2 objectives are achieved in continuation samples
+  (latest median `0.587s`).
 
 ### Blockers
 
@@ -155,29 +189,30 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
 - Validation blocker for a fully green quick suite remains unrelated:
   `glb_008_secret_scan_test` failure due to detected default password string at
   `lib/gen/inf:90`.
-- Remaining decision blocker is administrative scope only: close this item as
-  Phase 1 complete vs continue with optional Phase 2 work.
+- No current code blocker for proceeding into Phase 3 planning/prototyping.
 
 ### Next steps
 
-1. Confirm closure criteria for this item as performance-target-complete
-   (target is now met).
-2. If closing: run one final `./val/run_all_tests.sh --quick` snapshot and keep
-   `glb_008_secret_scan_test` noted as unrelated.
-3. If continuing: start Phase 2 item 7 (`ver_log` consolidation) before any
-   broader structural lazy-load work.
-4. Prepare commit with scoped message once closure path is chosen.
+1. Isolate this plan's intended deltas from quick-suite generated stats artifacts
+   before preparing a commit.
+2. Draft/implement first Phase 3 lazy-load prototype for `lib/ops/`.
+3. Re-run focused validations and timing after prototype integration.
+4. Decide whether to continue Phase 3 expansion in this item or split follow-on.
 
 ### Context
 
 - Branch: `master`.
-- Modified files currently in working tree: `bin/ini`, `bin/orc`,
-  `lib/core/lo1`, `lib/core/tme`, `lib/core/ver`.
+- Modified files currently in working tree: `bin/orc`, `lib/core/ver`, plus generated
+  stats outputs from quick-suite execution (`STATS.md`,
+  `doc/ref/stats/actual.md`, `doc/ref/stats/20260301T210850Z.json`).
 - No persistent temp artifacts from this session are required for continuation.
 - Timing command used for all measurements:
   `time bash -lc 'MASTER_TERMINAL_VERBOSITY=off; source /home/es/lab/bin/ini' 2>&1`.
 - Key finding: combined Phase 1 resume optimizations reduced median bootstrap
   time to `0.624s`, exceeding the <`800ms` target.
+- New finding (continuation): after `ver_log` consolidation plus `bin/orc`
+  basename fork removal, current 3-run sample median is `0.587s`; this meets
+  both Phase 1 (<`800ms`) and Phase 2 (<`600ms`) targets.
 
 ## Verification Plan
 
@@ -195,6 +230,8 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
   local measurements.
 - Validation commands pass for changed scope (syntax + tests).
 - Follow-on recommendation for Phase 2 documented with measured deltas.
+- Phase 2 target (<600ms median) reached in continuation pass; next work is
+  Phase 3 lazy-load structural optimization.
 
 ## Scope
 

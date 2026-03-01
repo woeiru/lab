@@ -117,7 +117,7 @@ validate_required_globals() {
 # Helper function to safely source files with improved error handling and logging
 source_helper() {
     local file="$1"
-    local description="${2:-$(basename "$file")}"
+    local description="${2:-${file##*/}}" 
     
     # Input validation
     if [[ -z "$file" ]]; then
@@ -228,7 +228,7 @@ source_directory() {
 
     for file in "$dir"/$pattern; do
         [[ -f "$file" ]] || continue
-        file_name="$(basename "$file")"
+        file_name="${file##*/}"
         [[ "$file_name" == .* ]] && continue
 
         ((total_count++))
@@ -381,7 +381,7 @@ source_lib_ops() {
     for file in "$dir"/*; do
         [[ -f "$file" ]] || continue
 
-        file_name="$(basename "$file")"
+        file_name="${file##*/}"
         file_name_lower="${file_name,,}"
 
         case "$file_name_lower" in
