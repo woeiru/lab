@@ -41,7 +41,27 @@ Then:
 - Return: moved file path, reason, and top 2 deferred items
 ```
 
-## 3) Start execution queue -> active
+## 3) Direct move inbox -> queue (known item)
+
+```text
+Move this specific workflow item from inbox to queue:
+<INBOX_FILE_PATH>
+
+Requirements:
+- Move exactly this file to doc/pro/queue
+- Keep filename prefix unchanged
+- Update `- Updated:` in the header
+- Add a short `## Triage Decision` note (why now)
+- Do not modify any other workflow items
+- Run: bash doc/pro/check-workflow.sh
+
+Return:
+- New file path
+- What changed (max 3 bullets)
+- Validation result
+```
+
+## 4) Start execution queue -> active
 
 ```text
 Take this queued item and start execution:
@@ -58,7 +78,7 @@ Requirements:
 - Return: active path + next 3 execution steps
 ```
 
-## 4) Close active -> completed
+## 5) Close active -> completed
 
 ```text
 Finalize this active item into completed state:
@@ -78,7 +98,7 @@ Requirements:
 - Return: completed folder path + verification evidence summary
 ```
 
-## 5) Close active/queue/inbox -> dismissed
+## 6) Close active/queue/inbox -> dismissed
 
 ```text
 Move this workflow item to dismissed with clear rationale:
@@ -95,7 +115,7 @@ Requirements:
 - Return: dismissed file path + rationale
 ```
 
-## 6) Weekly maintenance sweep
+## 7) Weekly maintenance sweep
 
 ```text
 Perform a weekly doc/pro hygiene pass.
@@ -114,7 +134,7 @@ Return format:
 - Any structural fixes applied
 ```
 
-## 7) Combined "do it all" orchestrator prompt
+## 8) Combined "do it all" orchestrator prompt
 
 ```text
 You are my workflow operator for doc/pro.

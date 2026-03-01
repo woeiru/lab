@@ -122,25 +122,37 @@ Use this header at the top of each work file:
 - Updated: YYYY-MM-DD
 - Links: related files/PRs/tests
 ```
-
-## WIP limit (recommended)
-
-To avoid overload as a solo developer:
-
-- Keep at most 1-3 items in `active/`.
-- Finish or dismiss before starting many new ones.
-
 ## Validation helpers
 
 - Checklist: `doc/pro/workflow-checklist.md`
 - Checker script: `bash doc/pro/check-workflow.sh`
 
-## Room for improvement
+## Checker behavior
 
-1. Add a stale-item automation rule (for example, flag any `active/` item with no update in 7 days).
-2. Require each completed topic to include a short `result` section with verification evidence.
-3. Add lightweight cycle-time metrics (`inbox` -> `completed`) for process tuning.
+`bash doc/pro/check-workflow.sh` currently enforces:
+
+- Timestamp prefix format for workflow docs: `yyyymmdd-hhmm_filename`
+- Required header fields in checked folders: `Status`, `Owner`, `Started`, `Updated`, `Links`
+- Inbox naming pattern (`-plan`, `-review`, `-followup`)
+- Dismissed naming pattern (`-plan`) and required `## Dismissal Reason`
+- Completed structure: `completed/<topic>/<file>.md`
+
+It does not currently enforce:
+
+- Stale-item age checks for `active/`
+- Verification depth/quality in completed outcomes
+- Queue prioritization quality
+
+Common fixes when it fails:
+
+- `FAIL timestamp prefix`: rename file to `yyyymmdd-hhmm_filename`
+- `FAIL header`: add missing header fields near the top of the document
+- `FAIL completed structure`: move file to `completed/<topic>/`
+- `FAIL dismissal reason`: add `## Dismissal Reason` section in dismissed item
+
+Recommended habit: run the checker before and after any workflow move.
 
 ---
 
-This workflow is already strong. The next gains come from tightening acceptance criteria and aligning documentation conventions with automated checks.
+Keep this README focused on workflow rules and checker behavior.
+Track actionable improvements as work items under `doc/pro/inbox/`.
