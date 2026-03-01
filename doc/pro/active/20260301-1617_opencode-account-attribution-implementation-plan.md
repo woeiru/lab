@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-01
-- Updated: 2026-03-01 (resume execution)
+- Updated: 2026-03-01 (post-commit continuation)
 - Links: lib/ops/dev, val/lib/ops/dev_test.sh, doc/pro/inbox/README.md
 
 ## Goal
@@ -36,13 +36,13 @@ Execution started now to implement strict, event-based session attribution in `d
 - Expanded tests for `dev_orr` and `dev_otr` event persistence and command-forwarding behavior.
 - Added operator-facing usage notes in `doc/man/03-cli-usage.md` for strict vs best-effort attribution and event-source semantics (`dev_osv`, `dev_oae`, `dev_orr`, `dev_otr`).
 - Regenerated reference docs via `./utl/doc/run_all_doc.sh` so `doc/ref/functions.md` and related maps include `dev_oae` and updated metrics.
-- Committed replay coverage + plan update in `a5e1725a`.
-- Committed resume-session attribution updates in `866ac019`.
-- Committed implementation in three commits: `2d5679f6`, `ffc451d9`, `2e12e5a2`.
+- Committed attribution implementation and follow-ups in: `ffc451d9`, `2e12e5a2`, `866ac019`, `a5e1725a`, `a1150082`, `e8f65518`, `6a465da5`.
+- Revalidated core attribution suite with `./val/lib/ops/dev_test.sh` at `31/31` passing.
+- Revalidated workflow policy with `bash doc/pro/check-workflow.sh` (pass).
 
 ### In-flight
 
-- Current uncommitted follow-up changes are `dev_orr`/`dev_otr` runtime integration helpers, matching tests, and regenerated `doc/ref/*` files.
+- No uncommitted attribution implementation work is currently pending in the tree.
 - Remaining in-flight integration is optional upstream OpenCode native hook wiring; this repo now provides a local wrapper-based runtime path.
 
 ### Blockers
@@ -58,12 +58,12 @@ Execution started now to implement strict, event-based session attribution in `d
 ### Context
 
 - Branch: `master`.
-- Relevant modified modules now include `lib/ops/dev`, `val/lib/ops/dev_test.sh`, and regenerated `doc/ref/` references.
-- Latest local test result: `./val/lib/ops/dev_test.sh` passed `30/30`.
-- Resume-session code/doc batches committed at `866ac019` and `a5e1725a`.
+- Relevant modified modules now include `lib/ops/dev`, `val/lib/ops/dev_test.sh`, operator docs, and regenerated `doc/ref/` references.
+- Latest local test result: `./val/lib/ops/dev_test.sh` passed `31/31`.
+- Resume-session and wrapper code/doc batches are committed through `e8f65518` and `6a465da5`.
 - Reference docs regenerated successfully via `./utl/doc/run_all_doc.sh` after wrapper additions.
-- Operator docs now include attribution workflow guidance under `doc/man/03-cli-usage.md`.
-- Branch currently includes additional doc/pro commits after the prior checkpoint; attribution state remains consistent.
+- Operator docs include attribution workflow guidance under `doc/man/03-cli-usage.md`.
+- Branch is currently clean with local history ahead of origin; active plan remains the source of truth for remaining validation.
 - No temporary files or ad-hoc local fixtures are required to resume; tests create/clean their own temp environments.
 
 ## Execution Plan
