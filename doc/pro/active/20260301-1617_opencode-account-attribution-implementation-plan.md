@@ -33,6 +33,7 @@ Execution started now to implement strict, event-based session attribution in `d
 - Added `dev_orr` request-time wrapper in `lib/ops/dev` to emit `account_selected` and immediately execute `opencode run` as a practical integration path when upstream hooks are unavailable.
 - Added `dev_otr` helper in `lib/ops/dev` to emit `token_refreshed` identity events with provider-safe metadata.
 - Expanded tests for `dev_orr` and `dev_otr` event persistence and command-forwarding behavior.
+- Added operator-facing usage notes in `doc/man/03-cli-usage.md` for strict vs best-effort attribution and event-source semantics (`dev_osv`, `dev_oae`, `dev_orr`, `dev_otr`).
 - Regenerated reference docs via `./utl/doc/run_all_doc.sh` so `doc/ref/functions.md` and related maps include `dev_oae` and updated metrics.
 - Committed replay coverage + plan update in `a5e1725a`.
 - Committed resume-session attribution updates in `866ac019`.
@@ -50,9 +51,8 @@ Execution started now to implement strict, event-based session attribution in `d
 
 ### Next steps
 
-1. Add operator-facing usage notes showing recommended wrapper flows (`dev_orr`, `dev_otr`, `dev_oae -x`) and event-source semantics for strict vs best-effort attribution.
-2. Validate wrapper behavior in real local OpenCode usage (non-test environment) and capture one auditable before/after `dev_osv -x` example.
-3. Keep this active plan current through final acceptance and merge/commit steps.
+1. Validate wrapper behavior in real local OpenCode usage (non-test environment) and capture one auditable before/after `dev_osv -x` example.
+2. Keep this active plan current through final acceptance and merge/commit steps.
 
 ### Context
 
@@ -61,6 +61,7 @@ Execution started now to implement strict, event-based session attribution in `d
 - Latest local test result: `./val/lib/ops/dev_test.sh` passed `30/30`.
 - Resume-session code/doc batches committed at `866ac019` and `a5e1725a`.
 - Reference docs regenerated successfully via `./utl/doc/run_all_doc.sh` after wrapper additions.
+- Operator docs now include attribution workflow guidance under `doc/man/03-cli-usage.md`.
 - Branch currently includes additional doc/pro commits after the prior checkpoint; attribution state remains consistent.
 - No temporary files or ad-hoc local fixtures are required to resume; tests create/clean their own temp environments.
 

@@ -125,7 +125,45 @@ lab
 - Run preview mode (`ops <module> <function>`) to inspect what DIC sees.
 - Retry with `OPS_DEBUG=1` for detailed resolution logs.
 
-## 8. Related Docs
+## 8. OpenCode Attribution Workflow
+
+The `dev` module supports auditable OpenCode session attribution with strict defaults.
+
+### View sessions with attribution confidence
+
+```bash
+ops dev osv -x
+ops dev osv -x --best-effort
+```
+
+- Strict default (`ops dev osv -x`) only shows event-backed `CONF=high` identities.
+- Best-effort mode (`--best-effort`) can surface `CONF=low` fallbacks and keeps provenance in `SRC`.
+
+### Emit runtime attribution events directly
+
+```bash
+ops dev oae -x
+ops dev oae openai user@example.com account_selected opencode_runtime user@example.com
+```
+
+For `-x` mode, set:
+- `OPENCODE_ATTR_PROVIDER_ID`
+- `OPENCODE_ATTR_ACCOUNT_KEY`
+- optional `OPENCODE_ATTR_ACCOUNT_LABEL`, `OPENCODE_ATTR_EVENT_TYPE`, `OPENCODE_ATTR_SOURCE`, `OPENCODE_ATTR_TRACE_ID`
+
+### Wrapper-based request/refresh integration
+
+Use wrapper helpers when upstream OpenCode runtime hooks are unavailable:
+
+```bash
+ops dev orr openai user@example.com -- "summarize changes"
+ops dev otr openai user@example.com user@example.com connector_event
+```
+
+- `dev_orr` emits `event_type=account_selected` immediately before `opencode run`.
+- `dev_otr` emits `event_type=token_refreshed` for identity refresh transitions.
+
+## 9. Related Docs
 
 - Next: [04 - Deployments and Runbooks](04-deployments.md)
 - DIC internals: [src/dic/README.md](../../src/dic/README.md)
