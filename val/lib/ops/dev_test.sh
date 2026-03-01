@@ -459,6 +459,108 @@ PY
     [[ "$parsed" == "OK" ]]
 }
 
+# Test: Google provider sessions map to antigravity attribution events
+test_dev_overview_google_provider_maps_to_antigravity() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_google_provider")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_iiiiiiiiiiiiiiiiiiiiii99i", "project_lab", "/home/es/lab", "Session I", 1771764500000),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_i_user", "ses_iiiiiiiiiiiiiiiiiiiiii99i", 1771764000000, 1771764000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_i_assistant", "ses_iiiiiiiiiiiiiiiiiiiiii99i", 1771764001000, 1771764001000, '{"role":"assistant","providerID":"google","modelID":"antigravity-claude-opus-4-6-thinking"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771763500000, "antigravity", "mapped@example.com", "mapped@example.com", "shell_wrapper"),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session I', {}).get('user') == 'mapped@example.com' and
+    rows.get('Session I', {}).get('src') == 'shell_wrapper' and
+    rows.get('Session I', {}).get('conf') == 'high'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
 # Test: Latest event before first prompt wins for repeated provider events
 test_dev_overview_latest_event_before_prompt() {
     local test_env
@@ -1344,6 +1446,309 @@ PY
     return 0
 }
 
+# Test: _dev_auto_attribute emits shell_wrapper events for active families
+test_dev_auto_attribute_emits_for_active_families() {
+    local test_env
+    test_env=$(create_test_env "dev_auto_attribute_emit")
+    local db_path="$test_env/opencode.db"
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "accounts": [
+    {"email": "alice@example.com", "enabled": true},
+    {"email": "bob@example.com", "enabled": true}
+  ],
+  "activeIndexByFamily": {
+    "claude": 0,
+    "gemini": 1
+  }
+}
+JSON
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    _dev_auto_attribute >/dev/null 2>&1
+    local status=$?
+
+    local event_rows=""
+    if [[ $status -eq 0 ]]; then
+        event_rows=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, event_type, source
+    FROM opencode_account_event
+    ORDER BY account_key ASC
+    """
+)
+rows = cur.fetchall()
+conn.close()
+print("\n".join("|".join(x or "" for x in row) for row in rows))
+PY
+)
+    fi
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    local expected=$'antigravity|alice@example.com|account_selected|shell_wrapper\nantigravity|bob@example.com|account_selected|shell_wrapper'
+    [[ "$event_rows" == "$expected" ]] || return 1
+    return 0
+}
+
+# Test: _dev_auto_attribute is silent when accounts file is missing
+test_dev_auto_attribute_silent_on_missing_accounts_file() {
+    local test_env
+    test_env=$(create_test_env "dev_auto_attribute_missing")
+    local db_path="$test_env/opencode.db"
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(_dev_auto_attribute 2>&1)
+    local status=$?
+
+    local event_count
+    event_count=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='opencode_account_event'")
+exists = cur.fetchone()[0]
+if exists:
+    cur.execute("SELECT COUNT(*) FROM opencode_account_event")
+    print(cur.fetchone()[0])
+else:
+    print(0)
+conn.close()
+PY
+)
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ -z "$output" ]] || return 1
+    [[ "$event_count" == "0" ]] || return 1
+    return 0
+}
+
+# Test: _dev_auto_attribute emits nothing when no active families are configured
+test_dev_auto_attribute_silent_on_empty_active_families() {
+    local test_env
+    test_env=$(create_test_env "dev_auto_attribute_empty")
+    local db_path="$test_env/opencode.db"
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "accounts": [
+    {"email": "alice@example.com", "enabled": true}
+  ],
+  "activeIndexByFamily": {}
+}
+JSON
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    _dev_auto_attribute >/dev/null 2>&1
+    local status=$?
+
+    local event_count
+    event_count=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='opencode_account_event'")
+exists = cur.fetchone()[0]
+if exists:
+    cur.execute("SELECT COUNT(*) FROM opencode_account_event")
+    print(cur.fetchone()[0])
+else:
+    print(0)
+conn.close()
+PY
+)
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_count" == "0" ]] || return 1
+    return 0
+}
+
+# Test: opencode shell wrapper invokes _dev_auto_attribute before command execution
+test_opencode_wrapper_calls_auto_attribute() {
+    local test_env
+    test_env=$(create_test_env "opencode_wrapper_auto_attr")
+    local db_path="$test_env/opencode.db"
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "accounts": [
+    {"email": "alice@example.com", "enabled": true},
+    {"email": "bob@example.com", "enabled": true}
+  ],
+  "activeIndexByFamily": {
+    "claude": 0,
+    "gemini": 1
+  }
+}
+JSON
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    source "${LAB_ROOT}/cfg/ali/sta"
+    opencode db path >/dev/null 2>&1
+    local status=$?
+
+    local event_count
+    event_count=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute("SELECT COUNT(*) FROM opencode_account_event WHERE source='shell_wrapper' AND event_type='account_selected'")
+count = cur.fetchone()[0]
+conn.close()
+print(count)
+PY
+)
+
+    unset -f opencode
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_count" == "2" ]] || return 1
+    return 0
+}
+
+# Test: opencode wrapper lazy-dispatches auto-attribute when helper is not loaded
+test_opencode_wrapper_lazy_dispatches_auto_attribute() {
+    local test_env
+    test_env=$(create_test_env "opencode_wrapper_lazy_dispatch")
+    local db_path="$test_env/opencode.db"
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    cat > "$test_env/dev" <<'EOF'
+#!/bin/bash
+_dev_auto_attribute() { :; }
+EOF
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+    source "${LAB_ROOT}/cfg/ali/sta"
+
+    local old_lib_ops_dir="${LIB_OPS_DIR:-}"
+    LIB_OPS_DIR="$test_env"
+
+    local dispatch_log="$test_env/dispatch.log"
+    _orc_lazy_dispatch() {
+        printf "%s|%s\n" "$1" "$2" > "$dispatch_log"
+        return 0
+    }
+
+    unset -f _dev_auto_attribute
+
+    opencode db path >/dev/null 2>&1
+    local status=$?
+
+    local dispatched=""
+    if [[ -f "$dispatch_log" ]]; then
+        dispatched=$(python3 - "$dispatch_log" <<'PY'
+import sys
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    print(f.read().strip())
+PY
+)
+    fi
+
+    unset -f _orc_lazy_dispatch
+    unset -f opencode
+    LIB_OPS_DIR="$old_lib_ops_dir"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$dispatched" == "$test_env/dev|_dev_auto_attribute" ]] || return 1
+    return 0
+}
+
 # Test: dev_orr emits account_selected and forwards args to opencode run
 test_dev_orr_emits_event_and_runs_opencode() {
     local test_env
@@ -1493,6 +1898,79 @@ PY
     return 0
 }
 
+# Test: dev_orr bypasses shell wrapper to avoid duplicate run-time emission
+test_dev_orr_no_double_emission() {
+    local test_env
+    test_env=$(create_test_env "dev_orr_no_double")
+    local db_path="$test_env/opencode.db"
+
+    cat > "$test_env/bin/opencode" << EOF
+#!/bin/bash
+if [[ "\$1" == "db" && "\$2" == "path" ]]; then
+    echo "$db_path"
+    exit 0
+fi
+if [[ "\$1" == "run" ]]; then
+    printf "%s\n" "\$*" > "$test_env/run_args.log"
+    exit 0
+fi
+exit 1
+EOF
+    chmod +x "$test_env/bin/opencode"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    opencode() {
+        if [[ "$1" == "run" ]]; then
+            touch "$test_env/wrapper_called.flag"
+        fi
+        command opencode "$@"
+    }
+
+    dev_orr "openai" "nodouble@example.com" -- "no wrapper recursion" >/dev/null 2>&1
+    local status=$?
+
+    local wrapper_called="0"
+    local event_count="0"
+    if [[ -f "$test_env/wrapper_called.flag" ]]; then
+        wrapper_called="1"
+    fi
+
+    if [[ $status -eq 0 ]]; then
+        event_count=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute("SELECT COUNT(*) FROM opencode_account_event")
+count = cur.fetchone()[0]
+conn.close()
+print(count)
+PY
+)
+    fi
+
+    unset -f opencode
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$wrapper_called" == "0" ]] || return 1
+    [[ "$event_count" == "1" ]] || return 1
+    return 0
+}
+
 # Test: dev_otr emits token_refreshed with optional source
 test_dev_otr_emits_token_refresh_event() {
     local test_env
@@ -1615,6 +2093,7 @@ main() {
     run_test test_dev_overview_user_attribution
     run_test test_dev_overview_best_effort_flag
     run_test test_dev_overview_provider_mismatch_no_cross_attribution
+    run_test test_dev_overview_google_provider_maps_to_antigravity
     run_test test_dev_overview_latest_event_before_prompt
     run_test test_dev_overview_mixed_event_replay_deterministic
     run_test test_dev_overview_best_effort_legacy_control_account
@@ -1637,8 +2116,14 @@ main() {
     run_test test_dev_oas_creates_backup
     run_test test_dev_oae_runtime_hook_mode
     run_test test_dev_oae_token_refreshed_event
+    run_test test_dev_auto_attribute_emits_for_active_families
+    run_test test_dev_auto_attribute_silent_on_missing_accounts_file
+    run_test test_dev_auto_attribute_silent_on_empty_active_families
+    run_test test_opencode_wrapper_calls_auto_attribute
+    run_test test_opencode_wrapper_lazy_dispatches_auto_attribute
     run_test test_dev_orr_emits_event_and_runs_opencode
     run_test test_dev_orr_dry_run_emits_without_run
+    run_test test_dev_orr_no_double_emission
     run_test test_dev_otr_emits_token_refresh_event
     run_test test_dev_oas_records_account_event
 

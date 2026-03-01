@@ -1,11 +1,14 @@
 # 07 - Dev Session Attribution Workflow
 
-OpenCode records sessions in a local SQLite database but does not automatically
-track which user or provider account initiated each session. Without an
-attribution event emitted before the first prompt, sessions display
-`USER=(unknown)`. This workflow solves that: it uses the `dev` module to emit
-identity events so that every future session is tied to a known
-provider/account pair.
+OpenCode records sessions in a local SQLite database. With `lab` loaded, this
+repo now installs an `opencode()` shell wrapper that emits attribution events
+automatically before launching OpenCode, so normal `opencode` usage is
+attributed by default.
+
+Without `lab` loaded (or in non-wrapper environments), sessions still show
+`USER=(unknown)` unless an attribution event is emitted before the first
+prompt. This workflow covers both the automatic path and manual recovery
+commands in the `dev` module.
 
 Historical sessions without a pre-first-prompt event generally remain
 `(unknown)` -- the goal is to wire attribution correctly for sessions going
@@ -16,23 +19,27 @@ best-effort reporting, and troubleshoot common issues.
 
 ## Command Decision Flow
 
-The four attribution commands serve different situations. Use this diagram to
-determine which command applies:
+Attribution is automatic in the common `lab` path. Use this diagram to decide
+when manual commands are still needed:
 
 ```mermaid
 flowchart TD
     A["Want to check current\nsession attribution?"] -->|yes| OSV["ops dev osv\n(read-only overview)"]
     A -->|no| B
 
-    B["About to run an\nopencode request?"] -->|yes| ORR["ops dev orr\n(stamp identity + run request)\nuse --dry-run to test safely"]
+    B["lab loaded and using\nregular opencode/oc?"] -->|yes| AUTO["Automatic wrapper path\nemits account_selected\nsource: shell_wrapper"]
     B -->|no| C
 
-    C["Token refresh or\ncredential rotation\njust happened?"] -->|yes| OTR["ops dev otr\n(emit token_refreshed event)\nsource: connector_event"]
+    C["About to run an\nopencode request manually?"] -->|yes| ORR["ops dev orr\n(stamp identity + run request)\nuse --dry-run to test safely"]
     C -->|no| D
 
-    D["Need to stamp identity\nwithout running a request?\n(manual or hook-driven)"] -->|yes| OAE["ops dev oae\n(emit attribution event)\nuse -x for env-var hook mode"]
+    D["Token refresh or\ncredential rotation\njust happened?"] -->|yes| OTR["ops dev otr\n(emit token_refreshed event)\nsource: connector_event"]
+    D -->|no| E
+
+    E["Need to stamp identity\nwithout running a request?\n(manual or hook-driven)"] -->|yes| OAE["ops dev oae\n(emit attribution event)\nuse -x for env-var hook mode"]
 
     OSV --> V["Validate with\nops dev osv -x"]
+    AUTO --> V
     ORR --> V
     OTR --> V
     OAE --> V
@@ -48,6 +55,7 @@ flowchart TD
 | Command | When to use | Side effects |
 |---------|-------------|--------------|
 | `osv` | Check which sessions are attributed | Read-only |
+| `opencode` / `oc` (with `lab`) | Default path; wrapper emits pre-session event automatically | Writes `account_selected` event (`source=shell_wrapper`) then launches OpenCode |
 | `orr` | About to send a request to OpenCode | Writes event + runs `opencode run` |
 | `otr` | Provider token was just refreshed or rotated | Writes `token_refreshed` event |
 | `oae` | Stamp identity without running a request (manual or hook) | Writes attribution event |
@@ -69,6 +77,7 @@ opencode --help
 
 Safety boundaries:
 - `ops dev osv ...` is read-only reporting.
+- `opencode`/`oc` with `lab` loaded now writes automatic pre-session attribution events (`source=shell_wrapper`).
 - `ops dev oae ...` and `ops dev otr ...` write local attribution events in the local OpenCode DB.
 - `ops dev orr ...` writes an attribution event and then executes `opencode run`.
 - `ops dev orr ... --dry-run -- ...` is the safest way to validate event wiring without running a real `opencode run` request.
@@ -88,7 +97,15 @@ Expected baseline for older sessions is often:
 
 This is expected when no pre-first-prompt attribution event exists.
 
-### Step 2: Emit request-time event safely
+### Step 2: Use automatic path (default) or emit request-time event manually
+
+Default with `lab` loaded:
+
+```bash
+opencode
+```
+
+Fallback/manual path:
 
 ```bash
 ops dev orr openai user@example.com --dry-run -- "healthcheck"
@@ -148,6 +165,7 @@ sqlite3 "$HOME/.local/share/opencode/opencode.db" "SELECT datetime(time_ms/1000,
 ### `USER` still `(unknown)` in strict mode
 
 Likely causes:
+- shell wrapper not active (`lab` not loaded in current shell)
 - no event exists before first prompt for that session
 - event provider does not match session provider family
 - event was emitted after the session already started

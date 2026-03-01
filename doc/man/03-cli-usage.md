@@ -183,6 +183,10 @@ lab
 
 The `dev` module supports auditable session attribution with strict defaults.
 
+When `lab` is loaded, `cfg/ali/sta` defines an `opencode()` shell wrapper that
+automatically emits `account_selected` events before launching OpenCode.
+Those automatic rows appear with `SRC=shell_wrapper` in `ops dev osv`.
+
 ### View sessions with attribution confidence
 
 ```bash
@@ -192,6 +196,12 @@ ops dev osv -x --best-effort
 
 - Strict default (`ops dev osv -x`) only shows event-backed `CONF=high` identities.
 - Best-effort mode (`--best-effort`) can surface `CONF=low` fallbacks and keeps provenance in `SRC`.
+
+Common `SRC` values:
+- `shell_wrapper`: automatic event emitted by the `opencode()` shell wrapper
+- `opencode_runtime`: runtime/manual event emitted by `dev_oae`/`dev_orr`
+- `connector_event`: connector token refresh event emitted by `dev_otr`
+- `manual_switch`: account switch event emitted by `dev_oas`
 
 ### Emit runtime attribution events directly
 
@@ -207,7 +217,15 @@ For `-x` mode, set:
 
 ### Wrapper-based request/refresh integration
 
-Use wrapper helpers when upstream OpenCode runtime hooks are unavailable:
+Automatic default (with `lab` loaded):
+
+```bash
+opencode
+oc
+```
+
+Manual helpers remain available when wrapper context is unavailable or explicit
+provider/account overrides are needed:
 
 ```bash
 ops dev orr openai user@example.com -- "summarize changes"

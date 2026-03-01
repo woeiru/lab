@@ -3,14 +3,14 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-01
-- Updated: 2026-03-01 (reopened for Phase 8 - automatic attribution wiring)
+- Updated: 2026-03-02 (Phase 8 validated in live shell; lazy-load + provider normalization fixes applied)
 - Links: lib/ops/dev, val/lib/ops/dev_test.sh, cfg/ali/sta, doc/man/07-dev-session-attribution-workflow.md
 
 ## Current Status (Exact)
 
-- Overall state: reopened. Phases 0-7 completed. Phase 8 (automatic attribution wiring) is new required work.
-- Code state: phases 0-7 committed and clean. Phase 8 is design-only, no code changes yet.
-- Test state: `./val/lib/ops/dev_test.sh` passing (`31/31`).
+- Overall state: Phase 8 implementation and validation complete in working tree (not committed).
+- Code state: automatic wrapper attribution is wired, lazy-load compatible, and provider normalization handles Google-backed Antigravity sessions.
+- Test state: `./val/lib/ops/dev_test.sh` passing (`38/38`) after additional regression coverage.
 - Problem observed: all sessions spawned via normal `opencode` invocation show `USER=(unknown)` because no attribution event is emitted automatically. Only sessions launched via explicit `ops dev orr` get attributed -- and nobody uses that path in practice.
 - Root cause: the implementation built the storage, reporting, and manual emit primitives but never wired automatic emission into the actual opencode launch path.
 
@@ -18,11 +18,55 @@
 
 - Phase 0-6: done (storage, reporting, manual emitters, tests).
 - Phase 7: done (backfill policy decided -- historical sessions stay unknown).
-- Phase 8: new -- automatic attribution wiring. Design complete, execution pending.
+- Phase 8: complete -- automatic attribution wiring implemented and validated in test harness and live shell.
+
+## Progress Checkpoint
+
+## Done
+
+- Added `_dev_auto_attribute` in `lib/ops/dev` to emit `account_selected` events for active account families using source `shell_wrapper`.
+- Added `opencode()` wrapper in `cfg/ali/sta` to emit attribution automatically before `command opencode "$@"`.
+- Updated `dev_orr` to use `command opencode run "$@"` to avoid wrapper recursion/double emission.
+- Added five Phase 8 tests in `val/lib/ops/dev_test.sh` for auto-attribution behavior and recursion safety.
+- Added lazy-load compatibility fix in `cfg/ali/sta` so wrapper dispatches `_dev_auto_attribute` through `_orc_lazy_dispatch` when the `dev` module is not yet loaded.
+- Updated `_dev_get_opencode_db_path` to use `command opencode db path` to avoid wrapper recursion.
+- Added provider normalization fix (`google* -> antigravity`) so Antigravity sessions using Google provider IDs resolve against shell-wrapper attribution events.
+- Added regression tests for wrapper lazy-dispatch and Google-provider attribution mapping.
+- Updated docs: `doc/man/07-dev-session-attribution-workflow.md` and `doc/man/03-cli-usage.md` for automatic path and `shell_wrapper` source semantics.
+- Regenerated references with `./utl/doc/run_all_doc.sh`.
+- Ran live shell validation: launched `opencode run` with `lab` loaded and verified `dev osv -x` shows `SRC=shell_wrapper`, `CONF=high` on new Antigravity sessions.
+
+## Context
+
+- `_dev_is_supported_account_event_type` validates event types only; no source allowlist exists, so `shell_wrapper` required no validator change.
+- Auto-attribution is implemented to fail-open (`return 0` on all missing dependency/data paths) so `opencode` launch remains non-blocking.
+- Post-implementation blocker discovered and resolved:
+  - Wrapper could load before `dev` module helper existed due lazy-load stubs.
+  - Real OpenCode Antigravity sessions report `providerID=google`; without normalization they could not match `antigravity` events.
+
+### Verification Snapshot
+
+- Syntax checks passed: `bash -n lib/ops/dev`, `bash -n cfg/ali/sta`, `bash -n val/lib/ops/dev_test.sh`.
+- Test suite passed: `./val/lib/ops/dev_test.sh` (`38/38`).
+- Live validation passed:
+  - `opencode run "phase 8 validation after lazy-load fix"` (with `lab` loaded)
+  - `"$SRC_DIC_OPS" dev osv -x -l 8` shows new rows with `SRC=shell_wrapper` and `CONF=high`.
+
+### In-flight
+
+- Workflow board closeout only (no remaining implementation tasks).
+
+## Execution Plan
+
+1. Prepare completion handoff (or move to `completed/` when requested).
+
+### Blockers
+
+- No code/test blocker currently identified.
 
 ## What Remains
 
-Phase 8: automatic attribution wiring via shell function wrapper and internal helper.
+Phase 8 is complete and validated; no technical work remains in this plan.
 
 ## Why This Was Reopened
 
@@ -244,20 +288,21 @@ Add to `val/lib/ops/dev_test.sh`:
 
 ### 8.8 - Execution Checklist
 
-1. [ ] Add `_dev_auto_attribute` helper to `lib/ops/dev` (after line ~924).
-2. [ ] Add `opencode()` wrapper function to `cfg/ali/sta` (after line 456).
-3. [ ] Verify `dev_orr` line 1069 uses `command opencode` to avoid recursion.
-4. [ ] Add `shell_wrapper` to `_dev_is_supported_account_event_type` if
+1. [x] Add `_dev_auto_attribute` helper to `lib/ops/dev` (after line ~924).
+2. [x] Add `opencode()` wrapper function to `cfg/ali/sta` (after line 456).
+3. [x] Verify `dev_orr` line 1069 uses `command opencode` to avoid recursion.
+4. [x] Add `shell_wrapper` to `_dev_is_supported_account_event_type` if
        source validation exists (verify current validation scope).
-5. [ ] Write tests per 8.6.
-6. [ ] Run `bash -n lib/ops/dev` and `bash -n cfg/ali/sta`.
-7. [ ] Run `./val/lib/ops/dev_test.sh` -- all tests pass.
-8. [ ] Manually validate: `lab && opencode`, then `ops dev osv -x -l 5`
+       - Result: no source-validation gate exists; no code change required.
+5. [x] Write tests per 8.6.
+6. [x] Run `bash -n lib/ops/dev` and `bash -n cfg/ali/sta`.
+7. [x] Run `./val/lib/ops/dev_test.sh` -- all tests pass.
+8. [x] Manually validate: `lab && opencode`, then `ops dev osv -x -l 5`
        shows `CONF=high` with `SRC=shell_wrapper` for the new session.
-9. [ ] Update `doc/man/07-dev-session-attribution-workflow.md`.
-10. [ ] Update `doc/man/03-cli-usage.md`.
-11. [ ] Regenerate refs: `./utl/doc/run_all_doc.sh`.
-12. [ ] Run `bash doc/pro/check-workflow.sh`.
+9. [x] Update `doc/man/07-dev-session-attribution-workflow.md`.
+10. [x] Update `doc/man/03-cli-usage.md`.
+11. [x] Regenerate refs: `./utl/doc/run_all_doc.sh`.
+12. [x] Run `bash doc/pro/check-workflow.sh`.
 
 ### 8.9 - Effort Estimate
 

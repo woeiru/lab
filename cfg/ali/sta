@@ -454,3 +454,15 @@
 
     alias osv='dev_osv -l 45 --watch 40 -t'
     alias olb='dev_olb --watch 40'
+
+    # Automatic session attribution wrapper
+    # Emits account_selected events before launching opencode so sessions
+    # are attributed with CONF=high in dev_osv strict mode
+    opencode() {
+        if declare -f _dev_auto_attribute >/dev/null 2>&1; then
+            _dev_auto_attribute
+        elif declare -f _orc_lazy_dispatch >/dev/null 2>&1 && [ -n "${LIB_OPS_DIR:-}" ] && [ -f "${LIB_OPS_DIR}/dev" ]; then
+            _orc_lazy_dispatch "${LIB_OPS_DIR}/dev" "_dev_auto_attribute" >/dev/null 2>&1 || true
+        fi
+        command opencode "$@"
+    }
