@@ -1,44 +1,101 @@
-# 03 - Operational Modules (`lib/ops`)
+# 03 - Operational Modules (`lib/ops`) (Current State)
 
-The `lib/ops/` directory is the core operational heart of the framework. It houses the libraries responsible for enacting all infrastructure changes (e.g., configuring networks, managing virtual machines, handling packages). 
+`lib/ops/*` is the infrastructure action layer. These modules expose callable Bash functions (for example `pve_*`, `gpu_*`, `net_*`, `sys_*`) that are sourced into the runtime shell and then executed either directly or through DIC dispatch (`src/dic/ops`). The boundary is: `lib/ops` performs operations; configuration lookup and argument injection happen outside this layer.
 
-The architectural design of these modules follows a **Parameter-Driven Operational Interface** model, ensuring high predictability, testability, and safety.
+## 1. Responsibilities and Boundaries
 
-## Interface Paradigm
+| Area | Primary files | Responsibility boundary |
+| --- | --- | --- |
+| Operational function modules | `lib/ops/*` (extensionless) | Implements concrete infrastructure actions (VM, GPU, network, storage, users, services). |
+| Loader path | `bin/orc` (`source_lib_ops`) | Sources ops modules in sorted order, excluding docs/hidden files. |
+| Invocation path | `src/dic/ops` (`ops_execute`) | Resolves `module/function` and calls `module_function` in sourced ops file. |
+| Contract baseline | `lib/.spec`, `lib/ops/.spec` | Defines naming, validation, logging, return code expectations. |
 
-Every function inside `lib/ops/` is designed to expose a parameter-driven Bash interface. In this context, this means:
-*   **Explicit Contracts First:** Functions are intended to avoid hidden dependencies and take required data through parameters. Some modules still mutate runtime globals for coordination, but caller-facing contracts remain parameter-driven.
-*   **Explicit Parameterization:** All required data (e.g., IPs, hostnames, passwords) must be passed directly as arguments.
-*   **Single Responsibility:** Each function performs one logical, atomic operation (e.g., `net_hos` to manage `/etc/hosts` entries, `pve_vmc` to create a VM).
+## 2. Runtime/Load Sequence
 
-This decoupling ensures that `lib/ops/` functions can be safely executed in isolation, tested independently via the `val/` framework, and reused across completely different deployment topologies.
+### Actual call/load order
 
-## Naming Conventions
+1. `bin/ini` calls `setup_components` in `bin/orc`.
+2. `setup_components` runs `source_lib_ops` (currently optional component in the orchestrator table).
+3. `source_lib_ops` scans `LIB_OPS_DIR` with `find ... | sort -z`, excluding docs (`*.md`, `*.txt`, `*.spec`, `README*`, hidden files), then sources each file via `source_helper`.
+4. A caller triggers an operation, most commonly via DIC command shape `ops <module> <function> ...` from `src/set/*` sections.
+5. `src/dic/ops` runs `ops_execute`:
+   - validates module path (`LIB_OPS_DIR/<module>`),
+   - sources that module file,
+   - validates function existence (`<module>_<function>`),
+   - executes directly (utility `*_fun|*_var`) or through injection (`ops_inject_and_execute`).
+6. The target function in `lib/ops/<module>` performs checks and side effects (system/service/config changes) and returns status.
 
-The modules follow a strict prefix-based naming convention:
-*   **Public Functions:** `[module]_[action]` or `[module]_[target]_[action]`. Examples: `pve_cdo` (Proxmox CD-ROM operation), `gpu_ptd` (GPU passthrough configuration), `net_hos` (host-entry management).
-*   **Internal Helpers:** Functions meant only for internal module use are prefixed with an underscore, e.g., `_pve_helper`.
-*   **Case:** `snake_case` is used consistently for all functions and local variables.
+### End-to-end sequence
 
-## Safety and Idempotency
+```mermaid
+sequenceDiagram
+    autonumber
+    participant I as bin/ini
+    participant O as bin/orc
+    participant L as lib/ops/*
+    participant S as src/set/* section
+    participant D as src/dic/ops
+    participant F as module_function
 
-Infrastructure operations are inherently risky. To mitigate this, `lib/ops/` enforces strict safety paradigms:
-1.  **Fail-Fast Error Handling:** Functions validate their inputs immediately using `lib/gen/aux_val`. If a parameter is missing or malformed, the function exits with `return 1` before performing any operations.
-2.  **Dependency Verification:** Functions use `aux_chk` to confirm that required binaries (e.g., `ip`, `zfs`, `qm`) are available and that the executing user has sufficient privileges. If dependencies are unmet, the function returns `127`.
-3.  **Atomic Modifications:** When editing system files, functions create atomic backups before applying changes, ensuring a rollback path exists if the operation is interrupted.
-4.  **Idempotency:** Functions are designed to be run multiple times safely. If the desired state (e.g., a network bridge exists) is already achieved, the function succeeds without making redundant changes.
+    I->>O: setup_components()
+    O->>O: execute_component(source_lib_ops)
+    O->>L: source_lib_ops() -> source_helper(file)
+    O-->>I: ops libraries available in shell
 
-## Dual-Mode Execution Integration
+    S->>D: ops module function -j
+    D->>D: ops_execute(module,function,args)
+    D->>D: ops_validate_operation()
+    D->>L: source LIB_OPS_DIR/module
+    D->>D: declare -f module_function?
 
-Because `lib/ops/` functions require explicit arguments, they can be cumbersome to call manually for complex deployments. To solve this, the framework supports a **Dual-Mode Execution** model:
+    alt utility function (*_fun|*_var)
+        D->>F: module_function user_args
+    else injected execution
+        D->>D: ops_inject_and_execute()
+        D->>D: ops_get_function_signature()
+        D->>D: ops_resolve_single_variable() per param
+        D->>F: module_function final_args
+    end
 
-1.  **Standalone / Manual Mode:** The user (or a test script) provides all arguments explicitly:
-    ```bash
-    pve_vpt "100" "on" "0000:01:00.0" "0000:01:00.1" "8" "4" "usb-a usb-b" "/etc/pve/qemu-server"
-    ```
-2.  **Dependency Injection Container (DIC) Mode:** Deployment scripts call the DIC wrapper (`src/dic/ops`), which automatically inspects the environment configuration (`cfg/env/`) and injects the required arguments into the target operational function.
-    ```bash
-    ops pve vpt -j
-    ```
+    F-->>D: return code
+    D-->>S: return code
+```
 
-This division ensures that `lib/ops/` remains agnostic to *where* it is running, while `src/dic/` and `src/set/` handle the *context* of the deployment.
+### Conceptual flow (quick view)
+
+```mermaid
+flowchart LR
+    A[bin/orc sources lib/ops] --> B[ops functions available]
+    B --> C[src/set task section]
+    C --> D[src/dic/ops dispatch]
+    D --> E[lib/ops module_function]
+    E --> F[Infrastructure state change]
+```
+
+## 3. State and Side Effects
+
+- `lib/ops/*` files are sourced into the active shell/session, so all function names become globally callable after load.
+- `source_lib_ops` uses source-time execution per file; source-time side effects in modules run immediately when loaded.
+- Operational functions are the layer most likely to mutate real systems (packages, services, network config, VM/CT state, storage).
+- DIC path re-sources module files on execution (`ops_execute`), so idempotent source blocks are important.
+
+## 4. Failure and Fallback Behavior
+
+- In bootstrap, ops loading is wrapper-managed by `execute_component`; current orchestrator marks the component optional.
+- In DIC execution, missing `LIB_OPS_DIR`, missing module file, or missing target function returns `1` from `ops_execute`.
+- If signature analysis fails in `ops_inject_and_execute`, DIC falls back to passing user args directly.
+- Unresolved injected parameters become empty values unless the target function validates and rejects them.
+- Function-level return semantics are module-defined, but project specs target: `0` success, `1` usage/validation, `2` runtime failure, `127` missing dependency.
+
+## 5. Constraints and Refactor Notes
+
+- Most ops modules are extensionless files; tooling that assumes `*.sh` will miss this layer.
+- DIC dispatch requires stable module/function naming (`module` file + `module_function` symbol).
+- `bin/orc` currently sources `lib/ops` before `lib/gen`; source-time hard dependencies on gen helpers can be brittle unless explicitly sourced.
+- `lib/ops/.spec` requires structured logging via `aux_*`, explicit validation/check patterns, and `-x` execution flag for action-only functions.
+- Deployment manifests are coupled to DIC command semantics (`ops module function -j`) rather than direct function signatures.
+
+## Maintenance Note
+
+Update this document in the same PR when any of these change: `source_lib_ops` filtering/loading behavior, `ops_execute` dispatch rules, module naming contracts, or ops return-code/validation/logging expectations enforced by specs.

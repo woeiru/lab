@@ -1,46 +1,96 @@
-# 05 - Deployment and Configuration Layer
+# 05 - Deployment and Configuration Architecture (Current State)
 
-The deployment layer manages the orchestration of infrastructure changes. It is where parameter-driven operational functions (`lib/ops`) and the Dependency Injection Container (`src/dic`) converge with environment-specific variables (`cfg/env`) to execute tasks.
+The deployment layer combines host-scoped task manifests (`src/set/*`), a shared execution framework (`src/set/.menu`), and environment/runtime configuration (`cfg/core/*`, `cfg/env/*`). Its boundary is orchestration and context selection; real infrastructure mutation still happens in `lib/ops/*` through DIC calls.
 
-This layer is governed by the `src/set/.menu` framework and utilizes **hostname-based script conventions**.
+## 1. Responsibilities and Boundaries
 
-## The `.menu` Framework (`src/set/.menu`)
+| Area | Primary files | Responsibility boundary |
+| --- | --- | --- |
+| Runtime config baseline | `cfg/core/ric`, `cfg/core/ecc` | Defines site/env/node identity and path variables (`SITE_CONFIG_FILE`, `ENV_OVERRIDE_FILE`, `NODE_OVERRIDE_FILE`, `LIB_OPS_DIR`, etc.). |
+| Environment inventory | `cfg/env/*` | Provides values/arrays consumed by DIC and ops functions. |
+| Deployment framework | `src/set/.menu` | CLI routing (`-i`, `-x`), interactive display/execution, and broad source-time loading. |
+| Host manifests | `src/set/h1`, `src/set/c1`, `src/set/c2`, `src/set/c3`, `src/set/t1`, `src/set/t2` | Defines `MENU_OPTIONS` and section functions (`*_xall`) that call `ops ...` actions. |
 
-The `.menu` script is the core execution engine for deployment manifests. It serves two distinct purposes:
-1. **Environment Loader:** Dynamically resolves and sources infrastructure modules (`lib/ops/`) and hierarchical configurations (`cfg/env/`).
-2. **Execution Router:** Provides a standardized CLI interface for all deployment scripts within `src/set/`.
+## 2. Runtime/Load Sequence
 
-### Interactive and Direct Execution Modes
-The framework parses the calling deployment script for specific functions ending in `_xall` (e.g., `a_xall`, `b_xall`) and offers two execution modes:
-*   **Interactive (`-i`):** A menu-driven terminal interface. It displays available tasks, allows users to inspect the underlying Bash code (expanding variables), and selectively execute tasks.
-*   **Direct Execution (`-x <section>`):** Command-line automation allowing headless execution of a specific section (e.g., `./h1 -x a`).
+### Actual call/load order
 
-## Hostname-Based Deployment Scripts
+1. A manifest script (for example `src/set/h1`) sets `DIR_SH`/`FILE_SH`, then sources `src/set/.menu`.
+2. During `.menu` source-time initialization, it eagerly attempts to source:
+   - all files under `cfg/env/*`,
+   - all files under `lib/ops/*`,
+   - all sibling files in `src/set/` except `.menu` itself.
+3. Manifest then sources `src/dic/ops` and declares `MENU_OPTIONS` mapping (`section id -> *_xall function`).
+4. Manifest entry routes arguments to `.menu` via `setup_main "$@"`.
+5. `setup_main` parses:
+   - `-i` interactive mode (`setup_interactive_mode`),
+   - `-x <section>` direct mode (`setup_executing_mode`).
+6. Selected section function runs one or more DIC calls (`ops module function -j`), which then execute ops functions.
 
-Deployment scripts located in `src/set/` are named after the specific node they configure (e.g., `h1`, `c1`, `t1`). 
+### End-to-end sequence
 
-| Script | Hostname | Infrastructure Role |
-| :--- | :--- | :--- |
-| `h1` | Hypervisor 1 | Proxmox VE cluster setup |
-| `c1` | Container 1 | NFS Server Deployment |
-| `c2` | Container 2 | Samba/SMB Services |
-| `c3` | Container 3 | Proxmox Backup Server |
-| `t1` | Test Node 1 | Developer Workstation |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant M as src/set/h1
+    participant F as src/set/.menu
+    participant C as cfg/env/*
+    participant L as lib/ops/*
+    participant D as src/dic/ops
+    participant O as lib/ops function
 
-These manifests rarely contain raw Bash commands. Instead, they structure tasks within `MENU_OPTIONS` and rely entirely on `src/dic/ops` to execute abstracted operations (e.g., `ops nfs set -j`).
+    U->>M: ./src/set/h1 -x a
+    M->>F: source .menu
+    F->>C: source all cfg/env files (best effort)
+    F->>L: source all lib/ops files (best effort)
+    F->>F: source sibling src/set files (except .menu)
+    M->>D: source ../dic/ops
+    M->>F: setup_main("-x","a")
+    F->>F: setup_executing_mode("a")
+    F->>M: execute a_xall()
+    M->>D: ops pve dsr -j
+    D->>O: pve_dsr(...)
+    O-->>D: return
+    D-->>M: return
+```
 
-At the end of each script, they delegate execution back to the `.menu` framework by calling `setup_main "$@"`.
+### Conceptual flow (quick view)
 
-## Configuration Hierarchy (`cfg/env/`)
+```mermaid
+flowchart LR
+    A[src/set manifest] --> B[source .menu]
+    B --> C[load env + ops + local set files]
+    C --> D[setup_main routing]
+    D --> E[section *_xall]
+    E --> F[ops module function -j]
+    F --> G[lib/ops execution]
+```
 
-Configurations are defined as pure Bash scripts containing variables and associative arrays. This makes them instantly sourceable by `.menu`.
+## 3. State and Side Effects
 
-The framework relies on a **Hierarchical Configuration Loading** pattern:
-1.  **Base Site:** (e.g., `site1`)
-2.  **Environment Override:** (e.g., `site1-dev`)
-3.  **Node Override:** (e.g., `site1-w2`)
+- `.menu` emits extensive terminal UI output and warnings during sourcing and command routing.
+- `.menu` source-time loading imports many symbols into the current shell and can execute source-time code from many files.
+- `.menu` defines global formatting/state variables (`BOLD`, `RESET`, `base_indent`) and many helper functions.
+- `setup_executing_mode` exits non-zero on invalid section (`exit 1`), while other paths primarily return status codes.
+- `cfg/core/ric` establishes environment identity and path contracts used by both orchestrator and DIC.
 
-These configuration files act as the "state" or "inventory" of the environment, defining:
-*   **Topologies:** Dictionaries of IP addresses for hypervisors (`HY_IPS`) and containers (`CT_IPS`).
-*   **Infrastructure as Code (IaC):** Declarative parameter blocks for provisioning (e.g., `define_containers`, `set_vm_defaults`), specifying CPU, RAM, and OS templates.
-*   **Runtime Variables:** Hostname-prefixed variables (e.g., `h1_CORE_COUNT_ON`) that the Dependency Injection Container will map to operational functions at runtime.
+## 4. Failure and Fallback Behavior
+
+- `.menu` continues on many source failures with warning output (for cfg/env, lib/ops, local files), rather than hard-stop.
+- `setup_main` returns `1` for invalid mode/argument combinations.
+- `setup_executing_mode` runs selected section if present; invalid sections terminate with `exit 1`.
+- In orchestrator-driven config loading (`bin/orc` -> `source_cfg_env`), base site config is required; env and node overrides are optional.
+- `setup_source` contains an environment-aware base/env/node loading path with legacy fallback, but manifests primarily rely on `.menu` source-time loading plus DIC.
+
+## 5. Constraints and Refactor Notes
+
+- Section discovery/display conventions rely on `*_xall` naming and `MENU_OPTIONS` IDs; changing either breaks routing UX.
+- `ops` command usage in manifests is a coupling point (alias/script availability must exist in the shell context).
+- Broad source-time loading in `.menu` can cause duplicate definitions and ordering-sensitive behavior across manifests.
+- `cfg/env` files are executable Bash (not static data), so config changes can alter runtime behavior beyond variable values.
+- Because deployment scripts call DIC contracts rather than raw ops functions, DIC interface changes have immediate deployment impact.
+
+## Maintenance Note
+
+Update this document in the same PR when `.menu` routing/source behavior, manifest section conventions, or config precedence contracts (`site -> env -> node`) change.

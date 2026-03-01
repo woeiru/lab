@@ -1,56 +1,94 @@
-# 06 - Testing and Validation
+# 06 - Testing and Validation Architecture (Current State)
 
-The `val/` directory contains a standardized quality assurance and automated testing framework built natively in Bash. It validates both core system health and operational library compliance, ensuring high reliability across the infrastructure automation stack.
+`val/` is the repository's Bash-native verification layer. It provides a reusable framework (`val/helpers/test_framework.sh`), a top-level category runner (`val/run_all_tests.sh`), focused library runner (`val/lib/run_all_tests.sh`), and many executable `*_test.sh` scripts across `core`, `lib`, `integration`, and `src` scopes.
 
-## Directory Structure
+## 1. Responsibilities and Boundaries
 
-The validation suite mirrors the repository's logical architecture:
-*   `val/core/`: Tests for foundational bootstrapping, module loading (`bin/ini`, `bin/orc`), and core configs.
-*   `val/lib/`: Tests for specific operational libraries (`lib/ops/`) and general utilities (`lib/gen/`).
-*   `val/src/`: Tests for the Dependency Injection Container (`src/dic`).
-*   `val/integration/`: End-to-end integration workflows validating cross-component interactions.
-*   `val/helpers/`: Houses the foundational BDD testing framework (`test_framework.sh`).
+| Area | Primary files | Responsibility boundary |
+| --- | --- | --- |
+| Test framework | `val/helpers/test_framework.sh` | Common counters, assertions, reporting, perf helpers, temp test env helpers. |
+| Master runner | `val/run_all_tests.sh` | Discovers and runs tests by category (`core`, `lib`, `integration`, `src`, `dic`, `legacy`). |
+| Library suite runner | `val/lib/run_all_tests.sh` | Curated grouped suites for core/ops/gen/lib-integration tests. |
+| Test suites | `val/**/_test.sh` | Module- and scenario-level behavior validation. |
 
-## Testing Framework (`test_framework.sh`)
+## 2. Runtime/Load Sequence
 
-The system avoids external testing dependencies (like `BATS`) by providing a bespoke, zero-dependency BDD-style testing framework.
+### Actual call/load order
 
-Key features include:
-1.  **BDD-Style Assertions:** Provides structured, color-coded execution logs and assertion helpers such as `run_test`, `describe`, `it`, `pass`, and `test_file_exists`.
-2.  **Test Isolation:** Automatically generates secure temporary environments (`/tmp/val_test_*`) for destructive file-system operations, ensuring tests do not corrupt the host. Test environments are rigorously cleaned up using trap handlers.
-3.  **Performance Profiling:** Built-in benchmarking utilities (`start_performance_test`, `end_performance_test`) assert that critical core modules initialize within defined millisecond thresholds.
+1. A runner script sources `val/helpers/test_framework.sh`.
+2. The framework auto-runs `framework_init` when sourced:
+   - resolves/exports `LAB_ROOT` if missing,
+   - defines color/status helpers and counters,
+   - installs a mock `ver_verify_module` when absent (for direct core-module tests).
+3. `val/run_all_tests.sh` parses CLI options (`--help`, `--list`, `--quick`, `--verbose`, category).
+4. It discovers tests with category-specific `find` calls and executes each script:
+   - executable `*_test.sh` via direct run,
+   - legacy entries via dedicated `run_legacy_script`.
+5. It emits final suite summary and exits non-zero when failures exist.
 
-## Master Test Runner (`run_all_tests.sh`)
+### End-to-end sequence
 
-The `val/run_all_tests.sh` script acts as the central orchestrator for the suite. It dynamically discovers and executes tests based on the `*_test.sh` file pattern.
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User/CI
+    participant R as val/run_all_tests.sh
+    participant F as val/helpers/test_framework.sh
+    participant T as discovered *_test.sh
 
-*   **Granular Execution:** Allows running subsets of tests by category (e.g., `./val/run_all_tests.sh core`, `./val/run_all_tests.sh lib`).
-*   **Speed Profiling:** The `--quick` flag allows developers to skip slow integration tests during rapid iteration.
-*   **Matrix Discovery:** The `--list` flag prints the discovered testing matrix without executing tests.
+    U->>R: ./val/run_all_tests.sh [category/options]
+    R->>F: source test_framework.sh
+    F->>F: framework_init() (auto)
+    R->>R: parse args + discover_tests()
 
-### Running a Single Test
+    loop each discovered test
+        alt quick mode excludes slow names
+            R->>R: test_skip(...)
+        else executable test script
+            R->>T: run script directly
+            T-->>R: pass/fail exit code
+        else legacy script
+            R->>R: run_legacy_script()
+        end
+    end
 
-While `run_all_tests.sh` is the primary CI entrypoint, developers are encouraged to run individual test scripts directly during development to accelerate feedback loops:
-```bash
-# Preferred method: execute directly
-./val/core/config/cfg_test.sh
-
-# If script permissions are not set:
-bash val/lib/ops/sys_test.sh
+    R->>R: print suite summary
+    R-->>U: final exit status
 ```
 
-## Linting and Syntax Validation
+### Conceptual flow (quick view)
 
-The system does not mandate a dedicated third-party linter (like `shellcheck`) in the core pipeline, but it enforces Bash syntax checks during validation runs:
-```bash
-find . -type f \( -name '*.sh' -o -name 'go' \) -print0 | xargs -0 -r bash -n
-```
-Because this repository uses many extensionless Bash modules (especially under `bin/` and `lib/`), extension-aware checks should be augmented with an extensionless pass over script directories:
-
-```bash
-find bin lib/core lib/gen lib/ops src/dic/lib src/dic/ops src/set utl/doc/generators \
-  -type f ! -name '*.md' -print0 | xargs -0 -r bash -n
-bash -n go
+```mermaid
+flowchart LR
+    A[Runner invoked] --> B[Framework initialized]
+    B --> C[Discover category tests]
+    C --> D[Execute scripts]
+    D --> E[Aggregate pass/fail/skip]
+    E --> F[Exit with suite status]
 ```
 
-Additionally, `val/lib/ops/std_compliance_test.sh` acts as a specialized linter for operational modules, enforcing naming conventions, parameter validation, and documentation standards.
+## 3. State and Side Effects
+
+- Framework initialization mutates process globals (`LAB_ROOT`, counters, color constants) and exports helper functions.
+- Framework can inject `ver_verify_module` mock into the shell process if not already defined.
+- `val/run_all_tests.sh` changes working directory to `$TEST_LAB_DIR` (`$LAB_ROOT`) before execution.
+- Temp test environments are created under `/tmp/val_test_*` by helper functions and deleted by cleanup helpers when called.
+
+## 4. Failure and Fallback Behavior
+
+- Unknown category/option causes usage output and exit `1` in the master runner.
+- If no tests are discovered for a category, runner reports failure and exits non-zero.
+- Non-executable test files are treated as warnings/fail path in `run_single_test`.
+- `--quick` mode skips test names matching `(integration|complete)`.
+- `test_framework.sh` handles missing initial `LAB_ROOT` by discovering root from repository structure and fallback path traversal.
+
+## 5. Constraints and Refactor Notes
+
+- Master discovery is filename-based (`*_test.sh`), so extensionless scripts are not auto-discovered.
+- DIC tests are included via dedicated patterns (`val/src/dic/dic_*_test.sh`) to avoid duplication in `src` category.
+- Many tests assume direct script executability; changing permissions impacts runner behavior.
+- Assertions and summary counters are shared global state in a single shell process; tests should avoid clobbering framework globals.
+
+## Maintenance Note
+
+Update this document in the same PR when runner categories/discovery logic, framework initialization behavior, or test naming/execution contracts change.
