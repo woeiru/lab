@@ -20,6 +20,7 @@ Core rules (prepend to any template below):
 
 ```text
 <IDEA>
+
 Create a new workflow item in doc/pro/inbox for this idea.
 
 Requirements:
@@ -50,6 +51,7 @@ Then:
 
 ```text
 <INBOX_FILE_PATH>
+
 Move this specific workflow item from inbox to queue.
 
 Requirements:
@@ -70,6 +72,7 @@ Return:
 
 ```text
 <QUEUE_FILE_PATH>
+
 Take this queued item and start execution.
 
 Requirements:
@@ -87,6 +90,7 @@ Requirements:
 
 ```text
 <ACTIVE_FILE_PATH>
+
 Finalize this active item into completed state.
 
 Requirements:
@@ -107,6 +111,7 @@ Requirements:
 
 ```text
 <FILE_PATH>
+
 Move this workflow item to dismissed with clear rationale.
 
 Requirements:
@@ -172,6 +177,7 @@ Return:
 
 ```text
 <INBOX_FILE_PATH>
+
 Fast-track this inbox item directly into active execution.
 
 Requirements:
@@ -194,6 +200,7 @@ Use only when the item is clearly highest priority and ready to execute now.
 
 ```text
 <FILE_PATH>
+
 Move this item to experiments for prototyping.
 
 The source file may be in queue/ or active/.
@@ -215,6 +222,7 @@ Requirements:
 
 ```text
 <EXPERIMENT_FILE_PATH>
+
 Resolve this experiment based on its outcome.
 
 Requirements:
@@ -237,6 +245,7 @@ The LLM captures everything the next context needs to continue.
 
 ```text
 <ACTIVE_FILE_PATH>
+
 Checkpoint progress on this active item before I close this context.
 
 Requirements:
@@ -265,6 +274,7 @@ The LLM reads the plan, orients itself, and continues execution.
 
 ```text
 <ACTIVE_FILE_PATH>
+
 Resume work on this active item in a fresh context.
 
 Requirements:
