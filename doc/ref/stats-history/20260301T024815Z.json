@@ -1,15 +1,15 @@
 {
   "metric_version": "3.3.0",
-  "generated_at": "2026-03-01T02:48:17Z",
+  "generated_at": "2026-03-01T02:48:15Z",
   "git": {
     "branch": "master",
     "commit": "2f606c55",
     "dirty": true
   },
   "repo_shape": {
-    "total_files": 607,
+    "total_files": 606,
     "total_dirs": 68,
-    "total_size_kb": 12068,
+    "total_size_kb": 12060,
     "delta": {
       "files": 1,
       "dirs": 0,
@@ -265,10 +265,10 @@
   },
   "trend": {
     "points": 10,
-    "oldest": "2026-03-01T02:17:26Z",
-    "latest": "2026-03-01T02:48:15Z",
-    "files_delta_10": -3,
-    "size_kb_delta_10": -28
+    "oldest": "2026-03-01T02:17:23Z",
+    "latest": "2026-03-01T02:47:50Z",
+    "files_delta_10": -2,
+    "size_kb_delta_10": -24
   },
   "quality_gates": {
     "overall": "fail",
@@ -280,7 +280,7 @@
     "test_health": "ok"
   },
   "history": {
-    "previous_snapshot": "2026-03-01T02:48:15Z",
-    "history_snapshot": "doc/ref/stats-history/20260301T024817Z.json"
+    "previous_snapshot": "2026-03-01T02:47:50Z",
+    "history_snapshot": "doc/ref/stats-history/20260301T024815Z.json"
   }
 }

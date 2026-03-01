@@ -285,3 +285,78 @@
   - `LAB_DIR='/home/es/lab' ./utl/doc/generators/stats --update --ci-gate` -> `pass`
 - follow-up items still open:
   - flaky-test heuristic implementation (design captured)
+
+## phase 4 execution (flaky-test heuristic implementation) (2026-03-01)
+
+### delivered now
+
+- implemented `test_health` metrics collection in `utl/doc/generators/stats`:
+  - `last_run`: suite, status, duration_seconds, timestamp
+  - `history_trend`: points, p50_duration_seconds, p90_duration_seconds
+  - `flaky_candidates`: status oscillation and duration variance heuristics
+- wired optional active flaky sampling:
+  - `--sample-tests` enables opt-in suite sampling
+  - `--sample-runs=N` controls repetitions per suite (default `3`)
+  - default sampled suite is `val/core/agents_md_test.sh` (overridable via `STATS_TEST_SAMPLE_SUITES`)
+- updated `STATS.md` rendering with a new `## Test Health` section.
+- extended validation assertions in `val/core/stats_generator_test.sh` for the new JSON/markdown blocks and CLI help option.
+
+### verification (implementation pass)
+
+- `bash -n utl/doc/generators/stats`
+- `bash -n val/core/stats_generator_test.sh`
+- `./val/core/stats_generator_test.sh`
+- `LAB_DIR='/home/es/lab' ./utl/doc/generators/stats --json --sample-tests --sample-runs=1`
+
+### completion checkpoint (phase 4 implementation)
+
+- implementation status: `complete`
+- metric version after change: `3.2.0`
+- commands run:
+  - `bash -n utl/doc/generators/stats` -> `pass`
+  - `bash -n val/core/stats_generator_test.sh` -> `pass`
+  - `./val/core/stats_generator_test.sh` -> `pass` (25/25)
+  - `LAB_DIR='/home/es/lab' ./utl/doc/generators/stats --json --sample-tests --sample-runs=1` -> `pass`
+- follow-up items still open:
+  - optional CI hard gate extension for flaky-test severity thresholds (future)
+
+## phase 4 execution (flaky tuning + ci hard gate extension) (2026-03-01)
+
+### delivered now
+
+- tuned flaky-candidate thresholds to reduce noise and improve signal quality:
+  - minimum samples increased to `4`
+  - duration variance now requires both `>=4s` spread and `>=2.5x` max/min ratio
+  - deterministic policy constants added for future budget tuning
+- extended quality-gate synthesis with a new `test_health` gate:
+  - `fail`: status oscillation candidates meet threshold or total flaky candidates exceed fail budget
+  - `warn`: duration-variance candidates exceed warning threshold
+  - `ok`: no threshold breach
+- implemented optional CI hard gate enforcement for flaky severity:
+  - new CLI option `--ci-gate-flaky` (implies `--ci-gate`)
+  - hard-fail now includes `test_health=fail` when this option is used
+- enriched machine output schema (`metric_version 3.3.0`) under `test_health`:
+  - `flaky_summary`
+  - `flaky_policy`
+  - existing `flaky_candidates` retained
+- updated human output with flaky-candidate summary and test-health gate line.
+- expanded `val/core/stats_generator_test.sh` assertions for the new CLI option and schema keys.
+
+### verification (tuning pass)
+
+- `bash -n utl/doc/generators/stats`
+- `bash -n val/core/stats_generator_test.sh`
+- `./val/core/stats_generator_test.sh`
+- `LAB_DIR='/home/es/lab' ./utl/doc/generators/stats --update --ci-gate-flaky`
+
+### completion checkpoint (phase 4 tuning + ci gate)
+
+- implementation status: `complete`
+- metric version after change: `3.3.0`
+- commands run:
+  - `bash -n utl/doc/generators/stats` -> `pass`
+  - `bash -n val/core/stats_generator_test.sh` -> `pass`
+  - `./val/core/stats_generator_test.sh` -> `pass` (28/28)
+  - `LAB_DIR='/home/es/lab' ./utl/doc/generators/stats --update --ci-gate-flaky` -> `pass`
+- follow-up items still open:
+  - optional per-suite flaky budgets configurable via CLI/env (future)

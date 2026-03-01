@@ -35,6 +35,12 @@ test_stdout_formats() {
 
     run_test "Help includes ci gate option" bash -c \
         "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --help | grep -q -- '--ci-gate'"
+
+    run_test "Help includes sample-tests option" bash -c \
+        "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --help | grep -q -- '--sample-tests'"
+
+    run_test "Help includes ci-gate-flaky option" bash -c \
+        "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --help | grep -q -- '--ci-gate-flaky'"
 }
 
 test_update_outputs() {
@@ -53,10 +59,15 @@ test_update_outputs() {
     run_test "stats.json has hotspots block" grep -q '"hotspots_90d"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has complexity block" grep -q '"complexity"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has risk_signals block" grep -q '"risk_signals"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has test_health block" grep -q '"test_health"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has flaky_candidates block" grep -q '"flaky_candidates"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has flaky policy block" grep -q '"flaky_policy"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has test_health quality gate" grep -q '"test_health"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has top_longest block" grep -q '"top_longest"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has risk deltas block" grep -q '"delta_vs_previous"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "STATS.md has churn section" grep -q '^## Change Velocity and Churn' "$LAB_ROOT/STATS.md"
     run_test "STATS.md has complexity and risk section" grep -q '^## Complexity and Risk Signals' "$LAB_ROOT/STATS.md"
+    run_test "STATS.md has test health section" grep -q '^## Test Health' "$LAB_ROOT/STATS.md"
     run_test "STATS.md has quality gates section" grep -q '^## Quality Gates Status' "$LAB_ROOT/STATS.md"
 }
 

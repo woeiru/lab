@@ -1,22 +1,22 @@
 {
-  "metric_version": "3.3.0",
-  "generated_at": "2026-03-01T02:48:17Z",
+  "metric_version": "3.2.0",
+  "generated_at": "2026-03-01T02:44:42Z",
   "git": {
     "branch": "master",
     "commit": "2f606c55",
     "dirty": true
   },
   "repo_shape": {
-    "total_files": 607,
+    "total_files": 603,
     "total_dirs": 68,
-    "total_size_kb": 12068,
+    "total_size_kb": 12024,
     "delta": {
       "files": 1,
       "dirs": 0,
-      "size_kb": 8,
+      "size_kb": 20,
       "files_percent": "0.17",
       "dirs_percent": "0.00",
-      "size_percent": "0.07"
+      "size_percent": "0.17"
     }
   },
   "velocity": {
@@ -162,7 +162,7 @@
     },
     "threshold_counts": {
       "gt_80": 69,
-      "gt_120": 37,
+      "gt_120": 36,
       "gt_150": 24
     },
     "top_longest": [
@@ -246,29 +246,16 @@
       "p50_duration_seconds": 0,
       "p90_duration_seconds": 0
     },
-    "flaky_summary": {
-      "total_candidates": 0,
-      "status_oscillation": 0,
-      "duration_variance": 0
-    },
-    "flaky_policy": {
-      "min_samples": 4,
-      "min_delta_seconds": 4,
-      "min_ratio_percent": 250,
-      "fail_oscillation_count": 1,
-      "fail_total_candidates": 2,
-      "warn_variance_count": 1
-    },
     "flaky_candidates": [
       { "suite": "none", "reason": "none", "samples": 0, "min_seconds": 0, "max_seconds": 0 }
     ]
   },
   "trend": {
-    "points": 10,
-    "oldest": "2026-03-01T02:17:26Z",
-    "latest": "2026-03-01T02:48:15Z",
-    "files_delta_10": -3,
-    "size_kb_delta_10": -28
+    "points": 7,
+    "oldest": "2026-03-01T02:17:23Z",
+    "latest": "2026-03-01T02:39:10Z",
+    "files_delta_10": -5,
+    "size_kb_delta_10": -72
   },
   "quality_gates": {
     "overall": "fail",
@@ -276,11 +263,10 @@
     "executable_bits": "ok",
     "growth": "ok",
     "complexity": "fail",
-    "risk_signals": "ok",
-    "test_health": "ok"
+    "risk_signals": "ok"
   },
   "history": {
-    "previous_snapshot": "2026-03-01T02:48:15Z",
-    "history_snapshot": "doc/ref/stats-history/20260301T024817Z.json"
+    "previous_snapshot": "2026-03-01T02:39:10Z",
+    "history_snapshot": "doc/ref/stats-history/20260301T024442Z.json"
   }
 }

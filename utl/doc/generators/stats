@@ -8,7 +8,7 @@
 #   - doc/ref/stats.json (machine metrics)
 #   - doc/ref/stats-history/<timestamp>.json (snapshot history)
 #
-# Usage: ./stats [--update|--stdout|--markdown|--json|--text|--raw] [--ci-gate]
+# Usage: ./stats [--update|--stdout|--markdown|--json|--text|--raw] [--ci-gate] [--ci-gate-flaky] [--sample-tests] [--sample-runs=N]
 #######################################################################
 
 set -euo pipefail
@@ -35,8 +35,15 @@ fi
 
 readonly STATS_JSON_FILE="$LAB_DIR/doc/ref/stats.json"
 readonly STATS_HISTORY_DIR="$LAB_DIR/doc/ref/stats-history"
-readonly METRIC_VERSION="3.1.0"
+readonly METRIC_VERSION="3.3.0"
 readonly TREND_HISTORY_LIMIT=10
+readonly TEST_HEALTH_TREND_LIMIT=20
+readonly FLAKY_MIN_SAMPLES=4
+readonly FLAKY_MIN_DELTA_SECONDS=4
+readonly FLAKY_MIN_RATIO_PERCENT=250
+readonly FLAKY_FAIL_OSCILLATION_COUNT=1
+readonly FLAKY_FAIL_TOTAL_CANDIDATES=2
+readonly FLAKY_WARN_VARIANCE_COUNT=1
 readonly -a TOP_LEVEL_PATHS=("bin" "cfg" "lib" "src" "val" "utl" "doc")
 
 declare -A PATH_FILES=()
@@ -54,6 +61,11 @@ declare -a CODE_FILES=()
 declare -a LONGEST_FUNCTION_NAMES=()
 declare -a LONGEST_FUNCTION_FILES=()
 declare -a LONGEST_FUNCTION_LINES=()
+declare -a FLAKY_CANDIDATE_SUITES=()
+declare -a FLAKY_CANDIDATE_REASONS=()
+declare -a FLAKY_CANDIDATE_COUNTS=()
+declare -a FLAKY_CANDIDATE_MIN_SECONDS=()
+declare -a FLAKY_CANDIDATE_MAX_SECONDS=()
 
 TOTAL_FILES=0
 TOTAL_DIRS=0
@@ -84,6 +96,17 @@ TREND_LATEST_TIMESTAMP="none"
 TREND_FILES_DELTA_10=0
 TREND_SIZE_DELTA_10=0
 
+TEST_LAST_RUN_STATUS="unknown"
+TEST_LAST_RUN_DURATION_SECONDS=0
+TEST_LAST_RUN_TIMESTAMP="none"
+TEST_LAST_RUN_SUITE="none"
+TEST_HISTORY_POINTS=0
+TEST_TREND_P50_SECONDS=0
+TEST_TREND_P90_SECONDS=0
+FLAKY_TOTAL_CANDIDATES=0
+FLAKY_STATUS_OSCILLATION_COUNT=0
+FLAKY_DURATION_VARIANCE_COUNT=0
+
 FUNCTION_COUNT=0
 FUNC_P50_LINES=0
 FUNC_P90_LINES=0
@@ -112,6 +135,7 @@ GATE_EXECUTABLES="ok"
 GATE_GROWTH="ok"
 GATE_COMPLEXITY="ok"
 GATE_RISK_SIGNALS="ok"
+GATE_TEST_HEALTH="ok"
 GATE_OVERALL="ok"
 
 TIMESTAMP_UTC=""
@@ -121,6 +145,9 @@ GIT_COMMIT="unknown"
 GIT_DIRTY="false"
 PREV_SNAPSHOT_TIMESTAMP="none"
 CI_GATE_ENABLED="false"
+TEST_HEALTH_SAMPLE_ENABLED="false"
+TEST_HEALTH_SAMPLE_RUNS=3
+CI_GATE_FLAKY_ENABLED="false"
 
 update_delta_counters() {
     local value="$1"
@@ -185,6 +212,235 @@ json_str_from_file() {
             }
         }
     ' "$file" 2>/dev/null
+}
+
+parse_positive_int() {
+    local value="$1"
+    if [[ "$value" =~ ^[0-9]+$ ]] && [[ "$value" -gt 0 ]]; then
+        printf '%s' "$value"
+    else
+        printf '0'
+    fi
+}
+
+append_test_record() {
+    local records_file="$1"
+    local timestamp="$2"
+    local suite="$3"
+    local status="$4"
+    local duration="$5"
+
+    if [[ -z "$timestamp" || "$timestamp" == "none" ]]; then
+        return
+    fi
+    if [[ -z "$suite" ]]; then
+        suite="unknown"
+    fi
+    if [[ "$status" != "pass" && "$status" != "fail" ]]; then
+        return
+    fi
+
+    duration="$(parse_positive_int "$duration")"
+    if [[ "$duration" -eq 0 ]]; then
+        return
+    fi
+
+    printf '%s\t%s\t%s\t%s\n' "$timestamp" "$suite" "$status" "$duration" >> "$records_file"
+}
+
+collect_test_health_from_stats_history() {
+    local records_file="$1"
+    if [[ ! -d "$STATS_HISTORY_DIR" ]]; then
+        return
+    fi
+
+    local hist_file=""
+    local status=""
+    local duration=""
+    local timestamp=""
+    local suite=""
+    while IFS= read -r hist_file; do
+        status="$(json_str_from_file "$hist_file" "status")"
+        duration="$(safe_number "$(json_num_from_file "$hist_file" "duration_seconds")")"
+        timestamp="$(json_str_from_file "$hist_file" "timestamp")"
+        suite="$(json_str_from_file "$hist_file" "suite")"
+
+        if [[ -z "$timestamp" ]]; then
+            timestamp="$(json_str_from_file "$hist_file" "generated_at")"
+        fi
+        if [[ -z "$suite" ]]; then
+            suite="snapshot"
+        fi
+        append_test_record "$records_file" "$timestamp" "$suite" "$status" "$duration"
+    done < <(find "$STATS_HISTORY_DIR" -maxdepth 1 -type f -name '*.json' 2>/dev/null | sort)
+}
+
+sample_test_health_records() {
+    local records_file="$1"
+    if [[ "$TEST_HEALTH_SAMPLE_ENABLED" != "true" ]]; then
+        return
+    fi
+
+    local suites_csv="${STATS_TEST_SAMPLE_SUITES:-val/core/agents_md_test.sh}"
+    local IFS=','
+    local suites=($suites_csv)
+    local suite=""
+    local run_index=0
+    local start_secs=0
+    local end_secs=0
+    local duration=0
+    local run_status=""
+    local run_timestamp=""
+
+    for suite in "${suites[@]}"; do
+        suite="${suite#./}"
+        if [[ ! -f "$LAB_DIR/$suite" ]]; then
+            continue
+        fi
+
+        for ((run_index=1; run_index<=TEST_HEALTH_SAMPLE_RUNS; run_index++)); do
+            start_secs="$(date +%s)"
+            if bash "$LAB_DIR/$suite" >/dev/null 2>&1; then
+                run_status="pass"
+            else
+                run_status="fail"
+            fi
+            end_secs="$(date +%s)"
+            duration=$((end_secs - start_secs))
+            if [[ "$duration" -lt 1 ]]; then
+                duration=1
+            fi
+            run_timestamp="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            append_test_record "$records_file" "$run_timestamp" "$suite" "$run_status" "$duration"
+        done
+    done
+}
+
+collect_test_health_metrics() {
+    TEST_LAST_RUN_STATUS="unknown"
+    TEST_LAST_RUN_DURATION_SECONDS=0
+    TEST_LAST_RUN_TIMESTAMP="none"
+    TEST_LAST_RUN_SUITE="none"
+    TEST_HISTORY_POINTS=0
+    TEST_TREND_P50_SECONDS=0
+    TEST_TREND_P90_SECONDS=0
+    FLAKY_TOTAL_CANDIDATES=0
+    FLAKY_STATUS_OSCILLATION_COUNT=0
+    FLAKY_DURATION_VARIANCE_COUNT=0
+    FLAKY_CANDIDATE_SUITES=()
+    FLAKY_CANDIDATE_REASONS=()
+    FLAKY_CANDIDATE_COUNTS=()
+    FLAKY_CANDIDATE_MIN_SECONDS=()
+    FLAKY_CANDIDATE_MAX_SECONDS=()
+
+    local records_tmp
+    local sorted_tmp
+    local trend_tmp
+    local candidates_tmp
+    records_tmp="$(mktemp)"
+    sorted_tmp="$(mktemp)"
+    trend_tmp="$(mktemp)"
+    candidates_tmp="$(mktemp)"
+
+    collect_test_health_from_stats_history "$records_tmp"
+    sample_test_health_records "$records_tmp"
+
+    if [[ ! -s "$records_tmp" ]]; then
+        rm -f "$records_tmp" "$sorted_tmp" "$trend_tmp" "$candidates_tmp"
+        return
+    fi
+
+    sort -u -t $'\t' -k1,1 -k2,2 -k3,3 -k4,4n "$records_tmp" > "$sorted_tmp"
+
+    local last_line
+    last_line="$(tail -n 1 "$sorted_tmp")"
+    if [[ -n "$last_line" ]]; then
+        TEST_LAST_RUN_TIMESTAMP="$(awk -F '\t' '{print $1}' <<< "$last_line")"
+        TEST_LAST_RUN_SUITE="$(awk -F '\t' '{print $2}' <<< "$last_line")"
+        TEST_LAST_RUN_STATUS="$(awk -F '\t' '{print $3}' <<< "$last_line")"
+        TEST_LAST_RUN_DURATION_SECONDS="$(safe_number "$(awk -F '\t' '{print $4}' <<< "$last_line")")"
+    fi
+
+    TEST_HISTORY_POINTS="$(wc -l < "$sorted_tmp" | tr -d ' ')"
+    TEST_HISTORY_POINTS="$(safe_number "$TEST_HISTORY_POINTS")"
+
+    if [[ "$TEST_HISTORY_POINTS" -gt "$TEST_HEALTH_TREND_LIMIT" ]]; then
+        local start_line=$((TEST_HISTORY_POINTS - TEST_HEALTH_TREND_LIMIT + 1))
+        awk -F '\t' -v start="$start_line" 'NR>=start { print $0 }' "$sorted_tmp" > "$trend_tmp"
+    else
+        cp "$sorted_tmp" "$trend_tmp"
+    fi
+
+    local trend_count
+    trend_count="$(wc -l < "$trend_tmp" | tr -d ' ')"
+    trend_count="$(safe_number "$trend_count")"
+    if [[ "$trend_count" -gt 0 ]]; then
+        local durations_tmp
+        durations_tmp="$(mktemp)"
+        awk -F '\t' '{print $4}' "$trend_tmp" | sort -n > "$durations_tmp"
+        local p50_rank=$(( (50 * trend_count + 99) / 100 ))
+        local p90_rank=$(( (90 * trend_count + 99) / 100 ))
+        [[ "$p50_rank" -lt 1 ]] && p50_rank=1
+        [[ "$p90_rank" -lt 1 ]] && p90_rank=1
+        TEST_TREND_P50_SECONDS="$(safe_number "$(awk -v target="$p50_rank" 'NR==target { print $1; exit }' "$durations_tmp")")"
+        TEST_TREND_P90_SECONDS="$(safe_number "$(awk -v target="$p90_rank" 'NR==target { print $1; exit }' "$durations_tmp")")"
+        rm -f "$durations_tmp"
+    fi
+
+    awk -F '\t' -v min_samples="$FLAKY_MIN_SAMPLES" -v min_delta="$FLAKY_MIN_DELTA_SECONDS" -v min_ratio="$FLAKY_MIN_RATIO_PERCENT" '
+        {
+            suite=$2
+            status=$3
+            duration=$4 + 0
+            count[suite]++
+            if (!(suite in min_dur) || duration < min_dur[suite]) min_dur[suite]=duration
+            if (!(suite in max_dur) || duration > max_dur[suite]) max_dur[suite]=duration
+            if (status == "pass") seen_pass[suite]=1
+            if (status == "fail") seen_fail[suite]=1
+        }
+        END {
+            for (suite in count) {
+                reason=""
+                if (seen_pass[suite] && seen_fail[suite]) {
+                    reason="status_oscillation"
+                }
+                if (count[suite] >= min_samples && (max_dur[suite] - min_dur[suite]) >= min_delta && ((max_dur[suite] * 100) >= (min_dur[suite] * min_ratio))) {
+                    if (reason == "") {
+                        reason="duration_variance"
+                    } else {
+                        reason=reason "+duration_variance"
+                    }
+                }
+                if (reason != "") {
+                    printf "%s\t%s\t%d\t%d\t%d\n", suite, reason, count[suite], min_dur[suite], max_dur[suite]
+                }
+            }
+        }
+    ' "$sorted_tmp" | sort -t $'\t' -k1,1 > "$candidates_tmp"
+
+    local row=""
+    local suite=""
+    local reason=""
+    local count=""
+    local min_dur=""
+    local max_dur=""
+    while IFS=$'\t' read -r suite reason count min_dur max_dur; do
+        [[ -z "$suite" ]] && continue
+        FLAKY_CANDIDATE_SUITES+=("$suite")
+        FLAKY_CANDIDATE_REASONS+=("$reason")
+        FLAKY_CANDIDATE_COUNTS+=("$(safe_number "$count")")
+        FLAKY_CANDIDATE_MIN_SECONDS+=("$(safe_number "$min_dur")")
+        FLAKY_CANDIDATE_MAX_SECONDS+=("$(safe_number "$max_dur")")
+        FLAKY_TOTAL_CANDIDATES=$((FLAKY_TOTAL_CANDIDATES + 1))
+        if [[ "$reason" == *"status_oscillation"* ]]; then
+            FLAKY_STATUS_OSCILLATION_COUNT=$((FLAKY_STATUS_OSCILLATION_COUNT + 1))
+        fi
+        if [[ "$reason" == *"duration_variance"* ]]; then
+            FLAKY_DURATION_VARIANCE_COUNT=$((FLAKY_DURATION_VARIANCE_COUNT + 1))
+        fi
+    done < "$candidates_tmp"
+
+    rm -f "$records_tmp" "$sorted_tmp" "$trend_tmp" "$candidates_tmp"
 }
 
 path_index() {
@@ -746,6 +1002,7 @@ evaluate_quality_gates() {
     GATE_GROWTH="ok"
     GATE_COMPLEXITY="ok"
     GATE_RISK_SIGNALS="ok"
+    GATE_TEST_HEALTH="ok"
 
     if [[ "$SYNTAX_FAILED" -gt 0 ]]; then
         GATE_SYNTAX="fail"
@@ -766,10 +1023,15 @@ evaluate_quality_gates() {
     elif [[ "$RISK_DELTA_EVAL" -gt 0 || "$RISK_DELTA_BACKTICKS" -gt 0 || "$RISK_DELTA_CHMOD_777" -gt 0 ]]; then
         GATE_RISK_SIGNALS="warn"
     fi
+    if [[ "$FLAKY_STATUS_OSCILLATION_COUNT" -ge "$FLAKY_FAIL_OSCILLATION_COUNT" || "$FLAKY_TOTAL_CANDIDATES" -ge "$FLAKY_FAIL_TOTAL_CANDIDATES" ]]; then
+        GATE_TEST_HEALTH="fail"
+    elif [[ "$FLAKY_DURATION_VARIANCE_COUNT" -ge "$FLAKY_WARN_VARIANCE_COUNT" ]]; then
+        GATE_TEST_HEALTH="warn"
+    fi
 
-    if [[ "$GATE_SYNTAX" == "fail" || "$GATE_COMPLEXITY" == "fail" || "$GATE_RISK_SIGNALS" == "fail" ]]; then
+    if [[ "$GATE_SYNTAX" == "fail" || "$GATE_COMPLEXITY" == "fail" || "$GATE_RISK_SIGNALS" == "fail" || "$GATE_TEST_HEALTH" == "fail" ]]; then
         GATE_OVERALL="fail"
-    elif [[ "$GATE_EXECUTABLES" == "warn" || "$GATE_GROWTH" == "warn" || "$GATE_COMPLEXITY" == "warn" || "$GATE_RISK_SIGNALS" == "warn" ]]; then
+    elif [[ "$GATE_EXECUTABLES" == "warn" || "$GATE_GROWTH" == "warn" || "$GATE_COMPLEXITY" == "warn" || "$GATE_RISK_SIGNALS" == "warn" || "$GATE_TEST_HEALTH" == "warn" ]]; then
         GATE_OVERALL="warn"
     else
         GATE_OVERALL="ok"
@@ -785,6 +1047,7 @@ collect_metrics() {
     collect_hygiene_metrics
     collect_phase_two_metrics
     collect_phase_three_metrics
+    collect_test_health_metrics
     evaluate_quality_gates
 }
 
@@ -799,6 +1062,9 @@ enforce_ci_gate() {
     fi
     if [[ "$GATE_RISK_SIGNALS" == "fail" ]]; then
         failures+=("new secret-pattern findings detected")
+    fi
+    if [[ "$CI_GATE_FLAKY_ENABLED" == "true" && "$GATE_TEST_HEALTH" == "fail" ]]; then
+        failures+=("flaky-test severity exceeded policy")
     fi
 
     if [[ "${#failures[@]}" -eq 0 ]]; then
@@ -899,6 +1165,33 @@ render_markdown() {
     printf '| Resolved findings (aggregate) | %s | - |\n' "$RISK_RESOLVED_FINDINGS"
 
     echo
+    echo "## Test Health"
+    echo
+    echo "| Test Health Metric | Value |"
+    echo "| --- | --- |"
+    printf '| Last run suite | `%s` |\n' "$TEST_LAST_RUN_SUITE"
+    printf '| Last run status | `%s` |\n' "$TEST_LAST_RUN_STATUS"
+    printf '| Last run duration (s) | %s |\n' "$TEST_LAST_RUN_DURATION_SECONDS"
+    printf '| Last run timestamp (UTC) | `%s` |\n' "$TEST_LAST_RUN_TIMESTAMP"
+    printf '| Trend points analyzed | %s |\n' "$TEST_HISTORY_POINTS"
+    printf '| Runtime p50 (s) | %s |\n' "$TEST_TREND_P50_SECONDS"
+    printf '| Runtime p90 (s) | %s |\n' "$TEST_TREND_P90_SECONDS"
+    printf '| Flaky candidates (total) | %s |\n' "$FLAKY_TOTAL_CANDIDATES"
+    printf '| Status oscillation candidates | %s |\n' "$FLAKY_STATUS_OSCILLATION_COUNT"
+    printf '| Duration variance candidates | %s |\n' "$FLAKY_DURATION_VARIANCE_COUNT"
+
+    echo
+    echo "| Flaky Candidate Suite | Reason | Samples | Min (s) | Max (s) |"
+    echo "| --- | --- | ---: | ---: | ---: |"
+    local i=0
+    for i in "${!FLAKY_CANDIDATE_SUITES[@]}"; do
+        printf '| `%s` | `%s` | %s | %s | %s |\n' "${FLAKY_CANDIDATE_SUITES[$i]}" "${FLAKY_CANDIDATE_REASONS[$i]}" "${FLAKY_CANDIDATE_COUNTS[$i]}" "${FLAKY_CANDIDATE_MIN_SECONDS[$i]}" "${FLAKY_CANDIDATE_MAX_SECONDS[$i]}"
+    done
+    if [[ "${#FLAKY_CANDIDATE_SUITES[@]}" -eq 0 ]]; then
+        echo '| `none` | `none` | 0 | 0 | 0 |'
+    fi
+
+    echo
     echo "## Top Risks"
     echo
     if [[ "$SYNTAX_FAILED" -gt 0 ]]; then
@@ -928,6 +1221,13 @@ render_markdown() {
     else
         echo "- Risk-pattern deltas are stable or improving against previous snapshot."
     fi
+    if [[ "$GATE_TEST_HEALTH" == "fail" ]]; then
+        printf -- '- Flaky-test severity fail: candidates=%s (oscillation=%s, variance=%s).\n' "$FLAKY_TOTAL_CANDIDATES" "$FLAKY_STATUS_OSCILLATION_COUNT" "$FLAKY_DURATION_VARIANCE_COUNT"
+    elif [[ "$GATE_TEST_HEALTH" == "warn" ]]; then
+        printf -- '- Flaky-test variance warning: variance candidates=%s with tuned threshold policy.\n' "$FLAKY_DURATION_VARIANCE_COUNT"
+    else
+        echo "- Test-health drift is within tuned flaky thresholds."
+    fi
 
     echo
     echo "## Quality Gates Status"
@@ -939,6 +1239,7 @@ render_markdown() {
     printf '| Growth drift budget | `%s` | file delta=%+d (%s%%) |\n' "$GATE_GROWTH" "$DELTA_FILES" "$DELTA_FILES_PCT"
     printf '| Complexity outlier budget | `%s` | gt_150=%s, p90=%s lines |\n' "$GATE_COMPLEXITY" "$FUNC_GT_150" "$FUNC_P90_LINES"
     printf '| Risk signal drift | `%s` | eval=%+d, backticks=%+d, chmod777=%+d, secret=%+d |\n' "$GATE_RISK_SIGNALS" "$RISK_DELTA_EVAL" "$RISK_DELTA_BACKTICKS" "$RISK_DELTA_CHMOD_777" "$RISK_DELTA_SECRET_PATTERNS"
+    printf '| Test health drift | `%s` | candidates=%s, oscillation=%s, variance=%s |\n' "$GATE_TEST_HEALTH" "$FLAKY_TOTAL_CANDIDATES" "$FLAKY_STATUS_OSCILLATION_COUNT" "$FLAKY_DURATION_VARIANCE_COUNT"
     printf '| Overall | `%s` | synthesized from gate statuses |\n' "$GATE_OVERALL"
 }
 
@@ -1066,6 +1367,51 @@ render_json() {
   printf '    "new_findings": %s,\n' "$RISK_NEW_FINDINGS"
   printf '    "resolved_findings": %s\n' "$RISK_RESOLVED_FINDINGS"
   echo "  },"
+  echo "  \"test_health\": {"
+  echo "    \"last_run\": {"
+  printf '      "suite": "%s",\n' "$(json_escape "$TEST_LAST_RUN_SUITE")"
+  printf '      "status": "%s",\n' "$(json_escape "$TEST_LAST_RUN_STATUS")"
+  printf '      "duration_seconds": %s,\n' "$TEST_LAST_RUN_DURATION_SECONDS"
+  printf '      "timestamp": "%s"\n' "$(json_escape "$TEST_LAST_RUN_TIMESTAMP")"
+  echo "    },"
+  echo "    \"history_trend\": {"
+  printf '      "points": %s,\n' "$TEST_HISTORY_POINTS"
+  printf '      "p50_duration_seconds": %s,\n' "$TEST_TREND_P50_SECONDS"
+  printf '      "p90_duration_seconds": %s\n' "$TEST_TREND_P90_SECONDS"
+  echo "    },"
+  echo "    \"flaky_summary\": {"
+  printf '      "total_candidates": %s,\n' "$FLAKY_TOTAL_CANDIDATES"
+  printf '      "status_oscillation": %s,\n' "$FLAKY_STATUS_OSCILLATION_COUNT"
+  printf '      "duration_variance": %s\n' "$FLAKY_DURATION_VARIANCE_COUNT"
+  echo "    },"
+  echo "    \"flaky_policy\": {"
+  printf '      "min_samples": %s,\n' "$FLAKY_MIN_SAMPLES"
+  printf '      "min_delta_seconds": %s,\n' "$FLAKY_MIN_DELTA_SECONDS"
+  printf '      "min_ratio_percent": %s,\n' "$FLAKY_MIN_RATIO_PERCENT"
+  printf '      "fail_oscillation_count": %s,\n' "$FLAKY_FAIL_OSCILLATION_COUNT"
+  printf '      "fail_total_candidates": %s,\n' "$FLAKY_FAIL_TOTAL_CANDIDATES"
+  printf '      "warn_variance_count": %s\n' "$FLAKY_WARN_VARIANCE_COUNT"
+  echo "    },"
+  echo "    \"flaky_candidates\": ["
+  if [[ "${#FLAKY_CANDIDATE_SUITES[@]}" -eq 0 ]]; then
+      echo "      { \"suite\": \"none\", \"reason\": \"none\", \"samples\": 0, \"min_seconds\": 0, \"max_seconds\": 0 }"
+  else
+      for idx in "${!FLAKY_CANDIDATE_SUITES[@]}"; do
+          echo "      {"
+          printf '        "suite": "%s",\n' "$(json_escape "${FLAKY_CANDIDATE_SUITES[$idx]}")"
+          printf '        "reason": "%s",\n' "$(json_escape "${FLAKY_CANDIDATE_REASONS[$idx]}")"
+          printf '        "samples": %s,\n' "${FLAKY_CANDIDATE_COUNTS[$idx]}"
+          printf '        "min_seconds": %s,\n' "${FLAKY_CANDIDATE_MIN_SECONDS[$idx]}"
+          printf '        "max_seconds": %s\n' "${FLAKY_CANDIDATE_MAX_SECONDS[$idx]}"
+          if [[ "$idx" -lt "$((${#FLAKY_CANDIDATE_SUITES[@]} - 1))" ]]; then
+              echo "      },"
+          else
+              echo "      }"
+          fi
+      done
+  fi
+  echo "    ]"
+  echo "  },"
   echo "  \"trend\": {"
     printf '    "points": %s,\n' "$TREND_POINTS"
     printf '    "oldest": "%s",\n' "$(json_escape "$TREND_OLDEST_TIMESTAMP")"
@@ -1079,7 +1425,8 @@ render_json() {
   printf '    "executable_bits": "%s",\n' "$GATE_EXECUTABLES"
   printf '    "growth": "%s",\n' "$GATE_GROWTH"
   printf '    "complexity": "%s",\n' "$GATE_COMPLEXITY"
-  printf '    "risk_signals": "%s"\n' "$GATE_RISK_SIGNALS"
+  printf '    "risk_signals": "%s",\n' "$GATE_RISK_SIGNALS"
+  printf '    "test_health": "%s"\n' "$GATE_TEST_HEALTH"
   echo "  },"
     echo "  \"history\": {"
     printf '    "previous_snapshot": "%s",\n' "$(json_escape "$PREV_SNAPSHOT_TIMESTAMP")"
@@ -1098,6 +1445,8 @@ render_text() {
     printf 'velocity: 7d=%s 30d=%s 90d=%s\n' "$COMMITS_7D" "$COMMITS_30D" "$COMMITS_90D"
     printf 'complexity: p90=%s max=%s gt150=%s\n' "$FUNC_P90_LINES" "$FUNC_MAX_LINES" "$FUNC_GT_150"
     printf 'risk: eval=%s backticks=%s chmod777=%s secret=%s\n' "$RISK_COUNT_EVAL" "$RISK_COUNT_BACKTICKS" "$RISK_COUNT_CHMOD_777" "$RISK_COUNT_SECRET_PATTERNS"
+    printf 'test_health: last=%s status=%s duration=%ss p90=%ss\n' "$TEST_LAST_RUN_SUITE" "$TEST_LAST_RUN_STATUS" "$TEST_LAST_RUN_DURATION_SECONDS" "$TEST_TREND_P90_SECONDS"
+    printf 'flaky: total=%s oscillation=%s variance=%s gate=%s\n' "$FLAKY_TOTAL_CANDIDATES" "$FLAKY_STATUS_OSCILLATION_COUNT" "$FLAKY_DURATION_VARIANCE_COUNT" "$GATE_TEST_HEALTH"
     printf 'quality_gate: %s\n' "$GATE_OVERALL"
 }
 
@@ -1138,6 +1487,9 @@ Options:
   --text       Print text summary to stdout
   --raw        Print total file count only
   --ci-gate    Exit non-zero when hard gate criteria fail
+  --ci-gate-flaky  Include flaky-test severity in hard gate
+  --sample-tests      Run opt-in flaky sampling suites
+  --sample-runs=N     Number of runs per sampled suite (default: 3)
   -h, --help   Show help
 EOF
 }
@@ -1155,6 +1507,15 @@ main() {
             --text) action="stdout"; format="text" ;;
             --raw) action="stdout"; format="raw" ;;
             --ci-gate) CI_GATE_ENABLED="true" ;;
+            --ci-gate-flaky) CI_GATE_ENABLED="true"; CI_GATE_FLAKY_ENABLED="true" ;;
+            --sample-tests) TEST_HEALTH_SAMPLE_ENABLED="true" ;;
+            --sample-runs=*)
+                TEST_HEALTH_SAMPLE_RUNS="$(parse_positive_int "${arg#*=}")"
+                if [[ "$TEST_HEALTH_SAMPLE_RUNS" -eq 0 ]]; then
+                    echo "Invalid sample run count: ${arg#*=}" >&2
+                    return 1
+                fi
+                ;;
             -h|--help) show_help; return 0 ;;
             *) echo "Unknown option: $arg" >&2; return 1 ;;
         esac
