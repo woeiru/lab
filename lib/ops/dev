@@ -121,6 +121,31 @@ def normalize_provider(provider_id):
         return "antigravity"
     return provider
 
+def compact_account_label(label):
+    """Make long placeholder/test account labels easier to scan in USER column."""
+    value = str(label or "").strip()
+    if not value:
+        return "unknown"
+
+    lowered = value.lower()
+    if lowered in {"(unknown)", "unknown", "none", "null"}:
+        return "unknown"
+
+    if "@" in value:
+        local, domain = value.split("@", 1)
+        if domain.lower() == "example.com" and local:
+            return local
+
+    return value
+
+def normalize_source(source):
+    src = (source or "").strip().lower()
+    if src == "opencode_runtime":
+        return "runtime"
+    if src == "shell_wrapper":
+        return "wrapper"
+    return src
+
 def load_attribution_events(cursor):
     """Load account attribution timeline from opencode_account_event table."""
     events_by_provider = {}
@@ -173,7 +198,7 @@ def load_attribution_events(cursor):
                     "time_ms": event_time,
                     "account_key": str(row[2] or "").strip(),
                     "account_label": str(row[3] or "").strip(),
-                    "source": str(row[4] or "opencode_event").strip(),
+                    "source": normalize_source(str(row[4] or "opencode_event")),
                 }
             )
     except Exception:
@@ -222,7 +247,7 @@ def load_control_account_events(cursor):
     return events
 
 def resolve_session_user(first_prompt_ms, provider_id, attribution_events, legacy_events, allow_best_effort=False):
-    unknown = ("(unknown)", "none", "none")
+    unknown = ("unk", "none", "none")
     provider = normalize_provider(provider_id)
     if not provider:
         return unknown
@@ -232,24 +257,28 @@ def resolve_session_user(first_prompt_ms, provider_id, attribution_events, legac
         before = [evt for evt in provider_events if evt["time_ms"] <= first_prompt_ms]
         if before:
             pick = before[-1]
-            return (pick["account_label"] or pick["account_key"] or "(unknown)", pick["source"], "high")
+            label = pick["account_label"] or pick["account_key"] or "unk"
+            return (compact_account_label(label), pick["source"], "high")
 
         if allow_best_effort:
             after = [evt for evt in provider_events if evt["time_ms"] > first_prompt_ms]
             if after:
                 pick = after[0]
-                return (pick["account_label"] or pick["account_key"] or "(unknown)", pick["source"], "low")
+                label = pick["account_label"] or pick["account_key"] or "unk"
+                return (compact_account_label(label), pick["source"], "low")
 
     if allow_best_effort and first_prompt_ms is not None and legacy_events:
         before = [evt for evt in legacy_events if evt["time_ms"] <= first_prompt_ms]
         if before:
             pick = before[-1]
-            return (pick["account_label"] or "(unknown)", pick["source"], "low")
+            label = pick["account_label"] or "unk"
+            return (compact_account_label(label), pick["source"], "low")
 
         after = [evt for evt in legacy_events if evt["time_ms"] > first_prompt_ms]
         if after:
             pick = after[0]
-            return (pick["account_label"] or "(unknown)", pick["source"], "low")
+            label = pick["account_label"] or "unk"
+            return (compact_account_label(label), pick["source"], "low")
 
     return unknown
 
@@ -425,13 +454,13 @@ def fmt_date(s):
 # Column widths (visible characters)
 W = {
     "sfx":  3,
-    "proj": 12,
-    "dir":  12,
-    "title":38,
+    "proj": 11,
+    "dir":  11,
+    "title":50,
     "date": 12,
     "first":12,
-    "user": 16,
-    "src":  12,
+    "user": 13,
+    "src":  7,
     "conf": 4,
     "model":11,
     "in":    7,
@@ -975,7 +1004,7 @@ PY
         [ -z "$family" ] || [ -z "$email" ] && continue
         provider_id=$(_dev_provider_from_family "$family")
         _dev_record_account_event "$provider_id" "$email" "$email" \
-            "account_selected" "shell_wrapper" 2>/dev/null
+            "account_selected" "wrapper" 2>/dev/null
     done <<< "$py_output"
 
     return 0
@@ -997,7 +1026,7 @@ dev_oae() {
     #   <provider_id>         provider family or id (e.g. antigravity, openai)
     #   <account_key>         stable account key (email or opaque id)
     #   [event_type]          account_selected|token_refreshed|auth_switched (default: account_selected)
-    #   [source]              event source tag (default: opencode_runtime)
+    #   [source]              event source tag (default: runtime)
     #   [account_label]       optional human-readable label shown in reports
 
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
@@ -1009,7 +1038,7 @@ dev_oae() {
     local account_key=""
     local account_label=""
     local event_type="account_selected"
-    local source="opencode_runtime"
+    local source="runtime"
     local trace_id="${OPENCODE_ATTR_TRACE_ID:-}"
 
     if [ "$1" = "-x" ]; then
@@ -1022,7 +1051,7 @@ dev_oae() {
         account_key="${OPENCODE_ATTR_ACCOUNT_KEY:-}"
         account_label="${OPENCODE_ATTR_ACCOUNT_LABEL:-$account_key}"
         event_type="${OPENCODE_ATTR_EVENT_TYPE:-account_selected}"
-        source="${OPENCODE_ATTR_SOURCE:-opencode_runtime}"
+        source="${OPENCODE_ATTR_SOURCE:-runtime}"
     else
         if [ $# -lt 2 ] || [ $# -gt 5 ]; then
             aux_use
@@ -1032,7 +1061,7 @@ dev_oae() {
         provider_id="$1"
         account_key="$2"
         event_type="${3:-account_selected}"
-        source="${4:-opencode_runtime}"
+        source="${4:-runtime}"
         account_label="${5:-$account_key}"
     fi
 
@@ -1116,7 +1145,7 @@ dev_orr() {
         return 127
     fi
 
-    _dev_record_account_event "$provider_id" "$account_key" "$account_label" "account_selected" "opencode_runtime"
+    _dev_record_account_event "$provider_id" "$account_key" "$account_label" "account_selected" "runtime"
 
     if [ "$dry_run" -eq 1 ]; then
         aux_info "Dry-run mode: attribution event emitted without opencode run" "component=dev,operation=opencode_run_attributed,provider_id=$provider_id"
