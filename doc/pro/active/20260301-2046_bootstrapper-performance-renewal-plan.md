@@ -1,9 +1,9 @@
 # Bootstrapper Performance Renewal
 
-- Status: inbox
+- Status: active
 - Owner: es
-- Started: n/a
-- Updated: 2026-03-01
+- Started: 2026-03-01
+- Updated: 2026-03-01 (promoted to active via triage)
 - Links: bin/ini, bin/orc, lib/core/col, lib/core/err, lib/core/lo1, lib/core/tme, lib/core/ver, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, doc/arc/01-bootstrap-and-orchestration.md
 
 ## Goal
@@ -53,6 +53,39 @@ bin/ini
 ```
 
 Total parsed: ~24,209 lines across 31 files in a single blocking sequence.
+
+## Triage Decision
+
+This item is moved directly from inbox to active because it is execution-ready,
+has quantified bottlenecks, and targets startup latency that impacts every
+interactive shell launch. Queue was skipped to start immediate implementation on
+the highest-impact, lowest-risk Phase 1 fork-elimination work.
+
+## Execution Plan (today)
+
+1. Apply Phase 1 changes (items 1-5): remove `date`, `bc`, subshell `printf`,
+   temp-file stderr capture, and default boot debug stack dumping.
+2. Measure bootstrap before/after with repeated timed runs of `source bin/ini`
+   using a stable environment (`MASTER_TERMINAL_VERBOSITY=off`).
+3. Run focused validation (`bash -n` on edited files and nearest tests), then
+   run broader validation if changes span multiple core modules.
+
+## Verification Plan
+
+- Syntax-check each edited script with `bash -n <file>`.
+- Run nearest targeted tests for touched modules (at minimum core and bootstrap
+  path tests; expand to category/full suite if scope widens).
+- Capture before/after bootstrap timing samples and confirm median latency
+  reduction trend toward Phase 1 target (<800ms).
+- Confirm no regressions in boot logging, error handling, and shell load path.
+
+## Exit Criteria
+
+- Phase 1 items 1-5 implemented and merged in working branch.
+- Bootstrap latency reduced from ~1.7s baseline to <800ms median in repeated
+  local measurements.
+- Validation commands pass for changed scope (syntax + tests).
+- Follow-on recommendation for Phase 2 documented with measured deltas.
 
 ## Scope
 
@@ -136,9 +169,5 @@ Zero-fork replacements for the highest-cost patterns. No structural changes.
 
 ## Next Step
 
-1. Implement Phase 1 (items 1-5) on a feature branch.
-2. Measure before/after with `time source bin/ini` (MASTER_TERMINAL_VERBOSITY=off
-   for clean measurement).
-3. Run `./val/run_all_tests.sh` to verify no regressions.
-4. If Phase 1 achieves <800ms, move this item to `active/` and proceed to
-   Phase 2.
+1. Start Phase 1 implementation immediately and log timing baselines before the
+   first commit.
