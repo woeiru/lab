@@ -12,7 +12,7 @@ Use this quick checklist before ending a `doc/pro` update session.
 - Dismissed docs include `## Dismissal Reason`.
 - `active/` contains only in-progress items.
 - `active/waivers/*_waiver-register.md` entries include owner, expiry date, and removal criteria.
-- Completed topics live under `completed/<topic>/`.
+- Completed topics live under `completed/yyyymmdd-hhmm_<topic>/` (folder timestamp = completion date).
 
 Run the checker:
 

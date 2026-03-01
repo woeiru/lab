@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-02-28
 - Updated: 2026-02-28
-- Links: lib/gen/ana, cfg/ali/sta, val/lib/gen/ana_rdp_test.sh, doc/pro/completed/ana-module-expansion/plan.md
+- Links: lib/gen/ana, cfg/ali/sta, val/lib/gen/ana_rdp_test.sh, doc/pro/completed/20260227-0310_ana-module-expansion/20260227-0310_plan.md
 
 ## Goal
 

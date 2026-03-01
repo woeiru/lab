@@ -61,13 +61,21 @@ check_completed_structure() {
   rel="${file#"$ROOT/completed/"}"
 
   if [[ "$rel" != */* ]]; then
-    printf 'FAIL completed structure: %s (expected completed/<topic>/<file>.md)\n' "$file"
+    printf 'FAIL completed structure: %s (expected completed/<yyyymmdd-hhmm_topic>/<file>.md)\n' "$file"
     failures=$((failures + 1))
     return
   fi
 
   if [[ "$rel" == */*/* ]]; then
     printf 'FAIL completed structure: %s (too deep; expected one topic folder)\n' "$file"
+    failures=$((failures + 1))
+    return
+  fi
+
+  local folder
+  folder="${rel%%/*}"
+  if [[ ! "$folder" =~ ^[0-9]{8}-[0-9]{4}_.+ ]]; then
+    printf 'FAIL completed folder timestamp: %s (expected yyyymmdd-hhmm_<topic>)\n' "$file"
     failures=$((failures + 1))
   fi
 }

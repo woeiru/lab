@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-02-27
 - Updated: 2026-02-28
-- Links: `lib/.spec`, `lib/core/.spec`, `lib/gen/.spec`, `lib/ops/.spec`, `doc/pro/completed/spec-hierarchy-and-enforcement-plan.md`, `doc/pro/active/waivers/waiver-register.md`
+- Links: `lib/.spec`, `lib/core/.spec`, `lib/gen/.spec`, `lib/ops/.spec`, `doc/pro/completed/20260228-1435_spec-hierarchy-and-enforcement-plan/20260228-1435_spec-hierarchy-and-enforcement-plan.md`, `doc/pro/active/waivers/waiver-register.md`
 
 ## Quick resume snapshot (read this first)
 

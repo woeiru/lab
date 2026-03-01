@@ -218,7 +218,7 @@ code locations.
 - Aligned manual coverage with `doc/man/README.md` standards, including the
   linear-procedure exemption for `doc/man/01-installation.md`.
 - Closed this workflow item and moved it from `doc/pro/active/` to
-  `doc/pro/completed/man-decision-flow-diagrams-plan/` with the original
+  `doc/pro/completed/20260301-2006_man-decision-flow-diagrams-plan/` with the original
   filename prefix preserved.
 
 ## What Was Verified

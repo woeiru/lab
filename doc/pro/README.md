@@ -109,10 +109,23 @@ If something is in `active/`, it is not done yet.
 
 ## Keep `completed/` organized
 
-Use one subfolder per finished topic.
+Use one subfolder per finished topic, **prefixed with the completion timestamp**:
 
-- Example: `completed/ana-module-expansion/20260227-0310_plan.md`, `20260227-0310_result.md`
-- This keeps all plan/review/result artifacts together and matches checklist expectations.
+- Format: `completed/yyyymmdd-hhmm_<topic>/<files>.md`
+- The **folder timestamp** is the completion date (when the topic moved to `completed/`).
+- The **file timestamps** inside are creation dates (when the artifact was first written).
+- This gives two independent timelines: `ls completed/` shows when work finished;
+  `ls completed/<topic>/` shows how it evolved.
+
+Example:
+
+```
+completed/20260301-1500_ana-module-expansion/
+    20260227-0310_plan.md          # created early
+    20260227-0310_result.md        # created early
+```
+
+`ls completed/` sorts chronologically by completion date without needing an index.
 
 ## Minimal document template
 
@@ -152,7 +165,8 @@ Common fixes when it fails:
 
 - `FAIL timestamp prefix`: rename file to `yyyymmdd-hhmm_filename`
 - `FAIL header`: add missing header fields near the top of the document
-- `FAIL completed structure`: move file to `completed/<topic>/`
+- `FAIL completed structure`: move file to `completed/<yyyymmdd-hhmm_topic>/`
+- `FAIL completed folder timestamp`: rename folder to `yyyymmdd-hhmm_<topic>`
 - `FAIL dismissal reason`: add `## Dismissal Reason` section in dismissed item
 
 Recommended habit: run the checker before and after any workflow move.

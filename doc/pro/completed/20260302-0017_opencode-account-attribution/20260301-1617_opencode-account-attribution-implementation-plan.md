@@ -36,7 +36,7 @@
 - Regenerated references with `./utl/doc/run_all_doc.sh`.
 - Ran live shell validation: launched `opencode run` with `lab` loaded and verified `dev osv -x` shows `SRC=shell_wrapper`, `CONF=high` on new Antigravity sessions.
 - Revalidated checkpoint in fresh context: verified key code paths in `lib/ops/dev` and `cfg/ali/sta`, reran syntax checks, reran `./val/lib/ops/dev_test.sh` (`38/38`), and reran `bash doc/pro/check-workflow.sh` (pass).
-- Archived this plan to `doc/pro/completed/opencode-account-attribution/` after closeout confirmation.
+- Archived this plan to `doc/pro/completed/20260302-0017_opencode-account-attribution/` after closeout confirmation.
 
 ## Context
 
@@ -63,7 +63,7 @@
 ## Execution Plan
 
 1. Completed: prepare completion handoff artifacts and status briefing.
-2. Completed: move this plan to `doc/pro/completed/opencode-account-attribution/`.
+2. Completed: move this plan to `doc/pro/completed/20260302-0017_opencode-account-attribution/`.
 
 ### Blockers
 
