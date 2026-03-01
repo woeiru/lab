@@ -61,14 +61,88 @@ has quantified bottlenecks, and targets startup latency that impacts every
 interactive shell launch. Queue was skipped to start immediate implementation on
 the highest-impact, lowest-risk Phase 1 fork-elimination work.
 
-## Execution Plan (today)
+## Execution Plan (remaining)
 
-1. Apply Phase 1 changes (items 1-5): remove `date`, `bc`, subshell `printf`,
-   temp-file stderr capture, and default boot debug stack dumping.
-2. Measure bootstrap before/after with repeated timed runs of `source bin/ini`
-   using a stable environment (`MASTER_TERMINAL_VERBOSITY=off`).
-3. Run focused validation (`bash -n` on edited files and nearest tests), then
-   run broader validation if changes span multiple core modules.
+1. Decide whether to complete Phase 1 target (<800ms) in this item by adding
+   additional low-risk fork/file-I/O reductions in the boot path (`bin/ini`,
+   `bin/orc`, `lib/core/ver`, `lib/core/lo1`, `lib/core/err`, `lib/core/tme`).
+2. If Phase 1 remains open, run another before/after timing set with the same
+   command (`MASTER_TERMINAL_VERBOSITY=off; source /home/es/lab/bin/ini`) and
+   record median deltas in this plan.
+3. If moving to Phase 2, implement and validate item 6 (`ver_verify_module`
+   boot-path deferral) and item 7 (`ver_log` consolidation) with focused tests
+   before broader suite runs.
+
+## Progress Checkpoint
+
+### Done
+
+- Completed Phase 1 items 1-5 implementation in this session.
+- Files changed: `bin/ini`, `bin/orc`, `lib/core/col`, `lib/core/tme`,
+  `lib/core/ver`.
+- Decision: replaced display/logging `date` forks with builtin time formatting
+  (`printf '%(... )T'`) and used helper wrappers for consistency.
+- Decision: replaced `bc` timing arithmetic with integer nanosecond math in
+  `lib/core/tme`, preserving `X.YYYs` output formatting.
+- Decision: replaced ANSI `$(printf ...)` subshell assignments with `$'...'`
+  literals in color constants.
+- Decision: replaced temp-file stderr capture in `bin/orc` `source_helper` with
+  FD-based capture using `coproc`, avoiding per-source `mktemp`/`rm`.
+- Decision: forced `LOG_DEBUG_ENABLED=0` at boot start in `bin/ini` and restored
+  configured/default value after `bin/orc` sourcing path (success/failure).
+- Timing baseline captured (3 runs): `1.614s`, `1.614s`, `1.614s` (median
+  `1.614s`).
+- Post-edit timing captured (3 runs): `1.100s`, `1.105s`, `1.115s` (median
+  `1.105s`, improvement `-0.509s`, ~31.5%).
+- Tests run this session:
+  - `bash -n` on all edited files: pass.
+  - Targeted tests: `./val/core/config/cfg_test.sh`,
+    `./val/core/initialization/ini_test.sh`,
+    `./val/core/initialization/orc_test.sh`,
+    `./val/core/modules/tme_test.sh`, `./val/core/modules/ver_test.sh`,
+    `./val/lib/core/col_test.sh`: pass.
+  - `./val/run_all_tests.sh --quick`: single failing test
+    `glb_008_secret_scan_test` (pre-existing/unrelated secret-scan finding in
+    `lib/gen/inf`), remainder passed.
+
+### In-flight
+
+- All code changes are local and uncommitted (intentionally left unstaged).
+- Active item target (<800ms median) is not yet achieved; current median is
+  `1.105s`.
+
+### Blockers
+
+- No functional/code blockers for Phase 1 items 1-5.
+- Validation blocker for a fully green quick suite: unrelated
+  `glb_008_secret_scan_test` failure due to detected default password string at
+  `lib/gen/inf:90`.
+- Scope decision pending: whether to close this item as "Phase 1 items
+  implemented" vs continue until the <800ms target is met.
+
+### Next steps
+
+1. Confirm closure criteria for this item (implementation-complete vs
+   performance-target-complete) in this plan.
+2. If continuing for target, profile remaining startup hotspots and apply next
+   low-risk optimizations in `bin/ini`, `bin/orc`, and `lib/core/lo1`.
+3. Run focused verification after each optimization batch:
+   `bash -n` on edited files plus `./val/core/initialization/ini_test.sh` and
+   `./val/core/modules/tme_test.sh`.
+4. Re-run timing command 3x and append median deltas in this document.
+5. If Phase 2 starts, implement item 6 in `lib/core/ver` and boot call sites in
+   `bin/ini`/`bin/orc`, then implement item 7 logging consolidation.
+
+### Context
+
+- Branch: `master`.
+- Modified files currently in working tree: `bin/ini`, `bin/orc`,
+  `lib/core/col`, `lib/core/tme`, `lib/core/ver`.
+- No persistent temp artifacts from this session are required for continuation.
+- Timing command used for all measurements:
+  `time bash -lc 'MASTER_TERMINAL_VERBOSITY=off; source /home/es/lab/bin/ini' 2>&1`.
+- Key finding: Phase 1 edits materially reduced bootstrap time but did not yet
+  reach the plan's <800ms target.
 
 ## Verification Plan
 

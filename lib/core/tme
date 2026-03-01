@@ -37,6 +37,7 @@ ver_verify_module "tme" || exit 1
 declare -gA TME_START_TIMES     # Stores component start times
 declare -gA TME_END_TIMES       # Stores component end times
 declare -gA TME_DURATIONS       # Stores calculated durations
+declare -gA TME_DURATIONS_NS    # Stores calculated durations in nanoseconds
 declare -gA TME_STATUS          # Stores completion status
 declare -gA TME_PARENTS         # Stores parent-child relationships
 declare -gA TME_CHILDREN        # Stores child components for each parent
@@ -45,21 +46,72 @@ declare -g TME_CURRENT_PARENT   # Tracks current parent for nested timing
 declare -ga TME_COMPONENT_ORDER # Stores components in chronological order
 declare -g TME_SORT_ORDER_FILE_PATH # Path to the sort order configuration file
 
-# Color definitions - using printf to ensure proper escape sequences
-readonly TME_RED=$(printf '\033[0;31m')
-readonly TME_ORANGE=$(printf '\033[0;33m')
-readonly TME_YELLOW=$(printf '\033[1;33m')
-readonly TME_GREEN=$(printf '\033[0;32m')
-readonly TME_CYAN=$(printf '\033[0;36m')
-readonly TME_BLUE=$(printf '\033[0;34m')
-readonly TME_INDIGO=$(printf '\033[0;35m')
-readonly TME_VIOLET=$(printf '\033[1;35m')
-readonly TME_WHITE=$(printf '\033[1;37m')
-readonly TME_NC=$(printf '\033[0m')
+# Color definitions
+readonly TME_RED=$'\033[0;31m'
+readonly TME_ORANGE=$'\033[0;33m'
+readonly TME_YELLOW=$'\033[1;33m'
+readonly TME_GREEN=$'\033[0;32m'
+readonly TME_CYAN=$'\033[0;36m'
+readonly TME_BLUE=$'\033[0;34m'
+readonly TME_INDIGO=$'\033[0;35m'
+readonly TME_VIOLET=$'\033[1;35m'
+readonly TME_WHITE=$'\033[1;37m'
+readonly TME_NC=$'\033[0m'
 
 # Print numbers using C locale to avoid locale decimal-separator issues.
 tme_printf_numeric() {
     LC_NUMERIC=C printf "$@"
+}
+
+tme_now_ns() {
+    local out_var="$1"
+    local epoch
+    local seconds
+    local micros="000000"
+
+    if [[ -n "${EPOCHREALTIME:-}" ]]; then
+        epoch="${EPOCHREALTIME/,/.}"
+        seconds="${epoch%%.*}"
+        micros="${epoch#*.}"
+        micros="${micros//[^0-9]/}"
+        micros="${micros:0:6}"
+        while ((${#micros} < 6)); do
+            micros+="0"
+        done
+    else
+        printf -v seconds '%(%s)T' -1
+    fi
+
+    printf -v "$out_var" '%s%s000' "$seconds" "$micros"
+}
+
+tme_format_duration_seconds() {
+    local out_var="$1"
+    local duration_ns="$2"
+    local duration_seconds
+    local duration_millis
+
+    if ((duration_ns < 0)); then
+        duration_ns=0
+    fi
+
+    duration_seconds=$((duration_ns / 1000000000))
+    duration_millis=$(((duration_ns % 1000000000) / 1000000))
+    printf -v "$out_var" '%d.%03d' "$duration_seconds" "$duration_millis"
+}
+
+tme_format_time_hms() {
+    local out_var="$1"
+    printf -v "$out_var" '%(%H:%M:%S)T' -1
+}
+
+tme_format_datetime_from_ns() {
+    local out_var="$1"
+    local timestamp_ns="$2"
+    local timestamp_seconds
+
+    timestamp_seconds=$((timestamp_ns / 1000000000))
+    printf -v "$out_var" '%(%Y-%m-%d %H:%M:%S)T' "$timestamp_seconds"
 }
 
 # Initialize timer system with log directory and configuration files
@@ -129,12 +181,13 @@ tme_init_timer() {
         fi
     fi
 
-    TME_STARTUP_BEGIN=$(date +%s.%N)
+    tme_now_ns TME_STARTUP_BEGIN
     TME_CURRENT_PARENT=""
 
     TME_START_TIMES=()
     TME_END_TIMES=()
     TME_DURATIONS=()
+    TME_DURATIONS_NS=()
     TME_STATUS=()
     TME_PARENTS=()
     TME_CHILDREN=()
@@ -142,10 +195,15 @@ tme_init_timer() {
 
     [[ ! -d "$log_dir" ]] && mkdir -p "$log_dir"
 
+    local generated_at
+    local startup_time
+    printf -v generated_at '%(%Y-%m-%d %H:%M:%S)T' -1
+    tme_format_datetime_from_ns startup_time "$TME_STARTUP_BEGIN"
+
     {
-        printf "%sRC Timing Log - %s%s\n" "$TME_BLUE" "$(date)" "$TME_NC"
+        printf "%sRC Timing Log - %s%s\n" "$TME_BLUE" "$generated_at" "$TME_NC"
         printf "====================\n"
-        printf "Startup time: %s%s%s\n\n" "$TME_CYAN" "$(date -d @${TME_STARTUP_BEGIN})" "$TME_NC"
+        printf "Startup time: %s%s%s\n\n" "$TME_CYAN" "$startup_time" "$TME_NC"
     } >> "$TME_LOG_FILE"
 }
 
@@ -155,7 +213,9 @@ tme_init_timer() {
 tme_start_timer() {
     local component="$1"
     local parent="${2:-$TME_CURRENT_PARENT}"
-    local timestamp=$(date +%s.%N)
+    local timestamp
+    local started_at
+    tme_now_ns timestamp
 
     TME_START_TIMES[$component]=$timestamp
     TME_STATUS[$component]="running"
@@ -179,7 +239,8 @@ tme_start_timer() {
     {
         printf "[START] %s\n" "$component"
         [[ -n "$parent" ]] && printf "Parent: %s\n" "$parent"
-        printf "Time: %s\n\n" "$(date -d @${timestamp})"
+        tme_format_datetime_from_ns started_at "$timestamp"
+        printf "Time: %s\n\n" "$started_at"
     } >> "$TME_LOG_FILE"
 
     echo "$orig_log_state" > "$LOG_STATE_FILE"
@@ -200,16 +261,26 @@ tme_stop_timer() {
 tme_end_timer() {
     local component="$1"
     local status="${2:-success}"
-    local timestamp=$(date +%s.%N)
+    local timestamp
+    local duration_ns=0
+    local duration_seconds="0.000"
+    tme_now_ns timestamp
 
     TME_END_TIMES[$component]=$timestamp
 
     local start_time="${TME_START_TIMES[$component]}"
     if [[ -n "$start_time" ]]; then
-        TME_DURATIONS[$component]=$(echo "$timestamp - $start_time" | bc)
+        duration_ns=$((timestamp - start_time))
+        if ((duration_ns < 0)); then
+            duration_ns=0
+        fi
+        tme_format_duration_seconds duration_seconds "$duration_ns"
+        TME_DURATIONS[$component]="$duration_seconds"
+        TME_DURATIONS_NS[$component]="$duration_ns"
         TME_STATUS[$component]=$status
     else
-        TME_DURATIONS[$component]=0
+        TME_DURATIONS[$component]="0.000"
+        TME_DURATIONS_NS[$component]=0
         TME_STATUS[$component]="error_no_start"
     fi
 
@@ -222,7 +293,7 @@ tme_end_timer() {
     {
         printf "[END] %s\n" "$component"
         printf "Status: %s\n" "$status"
-        tme_printf_numeric "Duration: %.3fs\n\n" "${TME_DURATIONS[$component]}"
+        printf "Duration: %ss\n\n" "${TME_DURATIONS[$component]}"
     } >> "$TME_LOG_FILE"
 
     echo "$orig_log_state" > "$LOG_STATE_FILE"
@@ -254,10 +325,19 @@ print_timing_entry() {
     local total_time="$4"
     local depth="$5"
     local status="${TME_STATUS[$component]}"
+    local duration_display
+    local percentage_display="0.0"
 
-    local percentage=0
-    if (( $(echo "$total_time > 0" | bc -l) )); then
-        percentage=$(echo "scale=2; ($duration / $total_time) * 100" | bc)
+    tme_format_duration_seconds duration_display "$duration"
+
+    if ((total_time > 0)); then
+        local percentage_tenths
+        local percentage_whole
+        local percentage_decimal
+        percentage_tenths=$((duration * 1000 / total_time))
+        percentage_whole=$((percentage_tenths / 10))
+        percentage_decimal=$((percentage_tenths % 10))
+        printf -v percentage_display '%d.%01d' "$percentage_whole" "$percentage_decimal"
     fi
 
     local color
@@ -285,13 +365,13 @@ print_timing_entry() {
     local component_display
     component_display=$(printf "%-25s" "$component")
 
-    tme_printf_numeric "%s%s%s%s %6.3fs [%5.1f%%] [%s]%s\n" \
+    tme_printf_numeric "%s%s%s%s %6ss [%5s%%] [%s]%s\n" \
         "$base_indent" \
         "$color" \
         "$tree_prefix" \
         "$component_display" \
-        "$duration" \
-        "$percentage" \
+        "$duration_display" \
+        "$percentage_display" \
         "$status_icon" \
         "$TME_NC"
 }
@@ -305,10 +385,10 @@ sort_components_by_duration() {
     temp_file=$(mktemp)
 
     for comp_name in "${_components_ref[@]}"; do
-        if [[ -n "${TME_DURATIONS[$comp_name]}" ]]; then
-            tme_printf_numeric "%.9f %s\n" "${TME_DURATIONS[$comp_name]}" "$comp_name" >> "$temp_file"
+        if [[ -n "${TME_DURATIONS_NS[$comp_name]:-}" ]]; then
+            printf "%019d %s\n" "${TME_DURATIONS_NS[$comp_name]}" "$comp_name" >> "$temp_file"
         else
-            printf "0 %s\n" "$comp_name" >> "$temp_file"
+            printf "%019d %s\n" 0 "$comp_name" >> "$temp_file"
         fi
     done
 
@@ -337,7 +417,7 @@ print_tree_recursive() {
     if [[ ! -v "TME_DURATIONS[$component]" ]]; then
         return
     fi
-    print_timing_entry "$component" "$current_indent" "${TME_DURATIONS[$component]}" "$total_time" "$depth"
+    print_timing_entry "$component" "$current_indent" "${TME_DURATIONS_NS[$component]:-0}" "$total_time" "$depth"
 
     local max_depth
     local max_depth_from_file=""
@@ -456,14 +536,24 @@ tme_print_timing_report() {
         return 0 # Report is explicitly disabled
     fi
 
+    local now_ns
+    local total_duration_ns
     local total_duration
-    total_duration=$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)
+    local generated_at
+
+    tme_now_ns now_ns
+    total_duration_ns=$((now_ns - TME_STARTUP_BEGIN))
+    if ((total_duration_ns < 0)); then
+        total_duration_ns=0
+    fi
+    tme_format_duration_seconds total_duration "$total_duration_ns"
+    printf -v generated_at '%(%Y-%m-%d %H:%M:%S)T' -1
     local sort_order
     sort_order=$(cat "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null || echo "chron")
 
     printf "\n%s ━ RC Timing Report%s\n" "$TME_BLUE" "$TME_NC"
-    printf "%s ━ Generated: %s%s\n" "$TME_BLUE" "$(date)" "$TME_NC"
-    tme_printf_numeric "%s ━ Total execution time: %.3fs%s\n" "$TME_BLUE" "$total_duration" "$TME_NC"
+    printf "%s ━ Generated: %s%s\n" "$TME_BLUE" "$generated_at" "$TME_NC"
+    printf "%s ━ Total execution time: %ss%s\n" "$TME_BLUE" "$total_duration" "$TME_NC"
     printf "%s ━ Sort order: %s%s\n" "$TME_BLUE" "$sort_order" "$TME_NC"
     printf "\n"
 
@@ -480,7 +570,7 @@ tme_print_timing_report() {
     fi    
 
     for component in "${components_to_print[@]}"; do
-        print_tree_recursive "$component" "  " "$total_duration" "$sort_order"
+        print_tree_recursive "$component" "  " "$total_duration_ns" "$sort_order"
     done
 
     printf "\n%s ━ Timing log file: %s%s\n" "$TME_BLUE" "$TME_LOG_FILE" "$TME_NC"
@@ -508,8 +598,21 @@ tme_end_nested_timing() {
 # 
 tme_cleanup_timer() {
     local orig_log_state
+    local cleanup_completed_at
+    local now_ns
+    local total_duration_ns
+    local total_duration
+
     orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
     echo "false" > "$LOG_STATE_FILE"
+
+    tme_now_ns now_ns
+    total_duration_ns=$((now_ns - TME_STARTUP_BEGIN))
+    if ((total_duration_ns < 0)); then
+        total_duration_ns=0
+    fi
+    tme_format_duration_seconds total_duration "$total_duration_ns"
+    printf -v cleanup_completed_at '%(%Y-%m-%d %H:%M:%S)T' -1
 
     for component in "${!TME_STATUS[@]}"; do
         if [[ "${TME_STATUS[$component]}" == "running" ]]; then
@@ -519,8 +622,8 @@ tme_cleanup_timer() {
 
     {
         printf "====================\n"
-        printf "Timer cleanup completed at %s\n" "$(date)"
-        tme_printf_numeric "Total execution time: %.3fs\n\n" "$(echo "$(date +%s.%N) - $TME_STARTUP_BEGIN" | bc)"
+        printf "Timer cleanup completed at %s\n" "$cleanup_completed_at"
+        printf "Total execution time: %ss\n\n" "$total_duration"
     } >> "$TME_LOG_FILE"
 
 

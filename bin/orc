@@ -19,8 +19,6 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Cleanup function for trap
 cleanup() {
     local exit_code=$?
-    # Clean up any temporary files if they exist
-    [[ -n "${TEMP_ERROR_FILE:-}" ]] && rm -f "$TEMP_ERROR_FILE"
     exit $exit_code
 }
 
@@ -145,31 +143,41 @@ source_helper() {
         return 1
     fi
 
-    # Create secure temporary file
-    local temp_error
-    if ! temp_error=$(mktemp); then
-        lo1_log "lvl" " Error: Failed to create temporary file for error capture"
-        err_handler "$LINENO" "${ERROR_CODES[PERMISSION_DENIED]}" "false"
-        tme_end_timer "source_$description"
-        return 1
-    fi
-    
-    # Store for cleanup
-    TEMP_ERROR_FILE="$temp_error"
+    local error_output=""
+    local line
+    local source_status
+    local err_read_fd
+    local err_write_fd
 
-    # Source the file and capture any errors
-    if source "$file" 2>"$temp_error"; then
+    coproc ORC_SOURCE_ERROR_CAPTURE { cat; }
+    err_read_fd="${ORC_SOURCE_ERROR_CAPTURE[0]}"
+    err_write_fd="${ORC_SOURCE_ERROR_CAPTURE[1]}"
+
+    # Source the file and capture stderr without temporary files
+    if source "$file" 2>&"$err_write_fd"; then
+        source_status=0
+    else
+        source_status=$?
+    fi
+
+    eval "exec ${err_write_fd}>&-"
+    while IFS= read -r -u "$err_read_fd" line; do
+        error_output+="${line}"$'\n'
+    done
+    eval "exec ${err_read_fd}>&-"
+    wait "$ORC_SOURCE_ERROR_CAPTURE_PID" 2>/dev/null || true
+
+    error_output="${error_output%$'\n'}"
+
+    if [[ "$source_status" -eq 0 ]]; then
         lo1_log "lvl" "Successfully sourced: $description"
         tme_end_timer "source_$description" "success"
-        rm -f "$temp_error"
-        unset TEMP_ERROR_FILE
         return 0
     else
-        local error_output
-        error_output=$(cat "$temp_error" 2>/dev/null || echo "Failed to read error output")
+        if [[ -z "$error_output" ]]; then
+            error_output="Failed to read error output"
+        fi
         lo1_log "lvl" "Error sourcing $description: $error_output"
-        rm -f "$temp_error"
-        unset TEMP_ERROR_FILE
         err_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
         tme_end_timer "source_$description" "error"
         return 1

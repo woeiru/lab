@@ -34,7 +34,10 @@
 # Verification Log - VLG
 # <message> <source> <level>
 ver_log() {
-    local timestamp=$(date '+%H:%M:%S')
+    local timestamp
+    local file_timestamp
+    printf -v timestamp '%(%H:%M:%S)T' -1
+    printf -v file_timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
     local level="${3:-1}" # Default verbosity level if not provided by caller
@@ -46,7 +49,7 @@ ver_log() {
     mkdir -p "$(dirname "$VER_LOG_FILE")" 2>/dev/null
     
     # Format for file logging remains unchanged or can be adjusted if needed
-    echo "[VER] $(date '+%Y-%m-%d %H:%M:%S') - [$source] $message" >> "$VER_LOG_FILE"
+    echo "[VER] $file_timestamp - [$source] $message" >> "$VER_LOG_FILE"
 
     # Conditionally output to stderr based on both master and specific debug verbosity
     if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${VER_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then

@@ -66,7 +66,53 @@
 _INI_LOADED=1
 
 # Capture wall-clock start time before anything else runs
-_INI_START_NS=$(date +%s%N)
+ini_now_ns() {
+    local out_var="$1"
+    local epoch
+    local seconds
+    local micros="000000"
+
+    if [[ -n "${EPOCHREALTIME:-}" ]]; then
+        epoch="${EPOCHREALTIME/,/.}"
+        seconds="${epoch%%.*}"
+        micros="${epoch#*.}"
+        micros="${micros//[^0-9]/}"
+        micros="${micros:0:6}"
+        while ((${#micros} < 6)); do
+            micros+="0"
+        done
+    else
+        printf -v seconds '%(%s)T' -1
+    fi
+
+    printf -v "$out_var" '%s%s000' "$seconds" "$micros"
+}
+
+ini_format_time() {
+    local out_var="$1"
+    local format="$2"
+    printf -v "$out_var" "%(${format})T" -1
+}
+
+restore_boot_log_debug_state() {
+    if [[ "${_INI_LOG_DEBUG_WAS_SET:-0}" -eq 1 ]]; then
+        export LOG_DEBUG_ENABLED="${_INI_LOG_DEBUG_ORIG_VALUE:-1}"
+    else
+        export LOG_DEBUG_ENABLED=1
+    fi
+    unset _INI_LOG_DEBUG_WAS_SET _INI_LOG_DEBUG_ORIG_VALUE
+}
+
+ini_now_ns _INI_START_NS
+
+# Suppress verbose debug stack traces during bootstrap sourcing chain
+declare -g _INI_LOG_DEBUG_WAS_SET=0
+declare -g _INI_LOG_DEBUG_ORIG_VALUE="1"
+if [[ -v LOG_DEBUG_ENABLED ]]; then
+    _INI_LOG_DEBUG_WAS_SET=1
+    _INI_LOG_DEBUG_ORIG_VALUE="$LOG_DEBUG_ENABLED"
+fi
+export LOG_DEBUG_ENABLED=0
 
 readonly LOG_PRIORITY_NORMAL=1
 readonly LOG_PRIORITY_DETAILED=2
@@ -154,7 +200,8 @@ source_with_timer() {
 # Initialization logging function to use before we load the full system
 # Now with optimized I/O for performance-critical sections
 ini_log() {
-    local timestamp=$(date '+%H:%M:%S')
+    local timestamp
+    ini_format_time timestamp '%H:%M:%S'
     local message="$1"
     local source="${2:-${FUNCNAME[1]:-main}}"
     local priority="${3:-$LOG_PRIORITY_NORMAL}"
@@ -304,15 +351,19 @@ source_component_orchestrator() {
     local comp_orchestrator_path="${BASE_DIR}/bin/orc"
     
     if ! check_file_cached "$comp_orchestrator_path"; then
+        restore_boot_log_debug_state
         ini_log "ERROR: Component orchestrator script not found at $comp_orchestrator_path"
         ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "1"
         return 1
     fi
     
     if ! source_with_timer "$comp_orchestrator_path" "$TIMER_SOURCE_COMP" "$TIMER_MAIN_OPERATIONS" "Failed to source component orchestrator"; then
+        restore_boot_log_debug_state
         ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "1"
         return 1
     fi
+
+    restore_boot_log_debug_state
     
     ini_log "Component orchestrator sourced successfully"
     return 0
@@ -470,7 +521,9 @@ load_modules() {
     
     # Log completion with flow tracking
     ensure_dir_cached "${BASE_DIR}/.log"
-    echo "INIT_SCRIPT_FLOW: Finished module loading loop in init - $(date '+%T.%N')" >> "${BASE_DIR}/.log/init_flow.log"
+    local flow_timestamp
+    ini_format_time flow_timestamp '%T'
+    echo "INIT_SCRIPT_FLOW: Finished module loading loop in init - ${flow_timestamp}" >> "${BASE_DIR}/.log/init_flow.log"
 
     ini_log "Loaded $module_loaded modules using optimized batch processing"
     return $((module_loaded > 0 ? 0 : 1))
@@ -733,7 +786,7 @@ fi
 
 # --- Total initialization duration ---
 if [[ -n "${_INI_START_NS:-}" ]]; then
-    _INI_END_NS=$(date +%s%N)
+    ini_now_ns _INI_END_NS
     _INI_ELAPSED_MS=$(( (_INI_END_NS - _INI_START_NS) / 1000000 ))
     if [[ "$_INI_ELAPSED_MS" -ge 1000 ]]; then
         _INI_ELAPSED_S=$(printf '%d.%03d' $((_INI_ELAPSED_MS / 1000)) $((_INI_ELAPSED_MS % 1000)))
