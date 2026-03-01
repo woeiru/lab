@@ -6,6 +6,20 @@
 - Updated: 2026-03-01 (post-commit continuation)
 - Links: lib/ops/dev, val/lib/ops/dev_test.sh, doc/pro/inbox/README.md
 
+## Current Status (Exact)
+
+- Overall state: implementation complete for repo scope; now in validation/acceptance tracking.
+- Code state: committed and clean for attribution changes (`lib/ops/dev`, `val/lib/ops/dev_test.sh`, docs, refs).
+- Test state: `./val/lib/ops/dev_test.sh` passing (`31/31`); `bash doc/pro/check-workflow.sh` passing.
+- Runtime validation: wrapper path validated locally (`dev_orr --dry-run` -> `dev_osv -x` evidence captured).
+- Remaining required work: keep plan updated through final acceptance.
+- Optional follow-up: replace wrapper path with native upstream OpenCode hooks when stable hook points exist.
+
+### Phase Position
+
+- Phase 0-6: done in this repo.
+- Phase 7: partial/ongoing by policy (acceptance tracking done; optional hook replacement not required for current deliverable).
+
 ## Goal
 
 Implement a real, auditable way to attribute each OpenCode session to the actual account in use at first prompt time, with provider-aware support for Antigravity and OpenAI.

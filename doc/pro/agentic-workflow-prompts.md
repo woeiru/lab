@@ -4,12 +4,17 @@ Use these templates to ask an LLM agent to maintain `doc/pro` workflow state con
 
 ## Core rules to include in prompts
 
+```text
+Core rules (prepend to any template below):
 - Work only inside `doc/pro/` unless explicitly told otherwise.
 - Keep filename timestamp prefixes stable after creation.
 - Update `- Updated:` on content changes.
-- Move items by folder state (`inbox` -> `queue` -> `active` -> `completed` or `dismissed`).
-- Keep completed items under `completed/<topic>/`.
-- Run `bash doc/pro/check-workflow.sh` before finishing.
+- Move items by folder state (inbox -> queue -> active -> completed or dismissed).
+- Keep completed items under completed/<topic>/.
+- Set the Status header field to match the destination folder.
+- Do not modify any workflow items other than the ones specified.
+- Run: bash doc/pro/check-workflow.sh before finishing.
+```
 
 ## 1) Capture a new idea in inbox
 
