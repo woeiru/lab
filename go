@@ -509,13 +509,14 @@ inject_helper_functions() {
     fi
 
     local ini_path="${LAB_ROOT}/${FILEPATH}"
+    local go_path="${LAB_ROOT}/go"
 
     # Build the helper block content
     local helper_block
     helper_block="${HELPER_MARKER_START}
 lab()     { source \"${ini_path}\"; }
-lab-on()  { ./go on; }
-lab-off() { ./go off; }
+lab-on()  { "${go_path}" on; }
+lab-off() { "${go_path}" off; }
 ${HELPER_MARKER_END}"
 
     local temp_file
