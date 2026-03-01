@@ -1,14 +1,22 @@
 # OpenCode Account Attribution Implementation Plan
 
-- Status: inbox
+- Status: active
 - Owner: es
-- Started: n/a
-- Updated: 2026-03-01
+- Started: 2026-03-01
+- Updated: 2026-03-01 (active)
 - Links: lib/ops/dev, val/lib/ops/dev_test.sh, doc/pro/inbox/README.md
 
 ## Goal
 
 Implement a real, auditable way to attribute each OpenCode session to the actual account in use at first prompt time, with provider-aware support for Antigravity and OpenAI.
+
+## Triage Decision
+
+Move to queue now because account attribution correctness is blocking trustworthy reporting and should be prioritized before more `dev_osv` output changes.
+
+## Execution Start
+
+Execution started now to implement strict, event-based session attribution in `dev_osv` and validate with `val/lib/ops/dev_test.sh`.
 
 ## Current Problem (Observed)
 

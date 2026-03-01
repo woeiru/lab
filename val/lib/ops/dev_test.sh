@@ -122,7 +122,7 @@ PY
     return 0
 }
 
-# Test: Session overview attributes user by first prompt timestamp
+# Test: Session overview attributes user from provider-scoped events
 test_dev_overview_user_attribution() {
     local test_env
     test_env=$(create_test_env "dev_overview_user")
@@ -150,11 +150,13 @@ CREATE TABLE message (
     data TEXT
 )
 """)
-cur.execute("""
-CREATE TABLE control_account (
-    email TEXT,
-    active INTEGER,
-    time_updated INTEGER
+    cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
 )
 """)
 
@@ -175,16 +177,24 @@ cur.execute(
 )
 cur.execute(
     "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_a_assistant", "ses_aaaaaaaaaaaaaaaaaaaaaa11a", 1771759001000, 1771759001000, '{"role":"assistant","providerID":"antigravity","modelID":"ag-model"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
     ("msg_b_user", "ses_bbbbbbbbbbbbbbbbbbbbbb22b", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_b_assistant", "ses_bbbbbbbbbbbbbbbbbbbbbb22b", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
 )
 
 cur.execute(
-    "INSERT INTO control_account (email, active, time_updated) VALUES (?, ?, ?)",
-    ("alice@example.com", 0, 1771758000000),
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771758000000, "antigravity", "alice@example.com", "alice@example.com", "opencode_event"),
 )
 cur.execute(
-    "INSERT INTO control_account (email, active, time_updated) VALUES (?, ?, ?)",
-    ("bob@example.com", 1, 1771759500000),
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771759500000, "openai", "bob@example.com", "bob@example.com", "opencode_event"),
 )
 
 conn.commit()
@@ -222,7 +232,121 @@ rows = {row.get('title', ''): row for row in reader}
 ok = (
     rows.get('Session A', {}).get('user') == 'alice@example.com' and
     rows.get('Session B', {}).get('user') == 'bob@example.com' and
+    rows.get('Session A', {}).get('src') == 'opencode_event' and
+    rows.get('Session B', {}).get('conf') == 'high' and
     'first_prompt_local' in (reader.fieldnames or [])
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: Strict mode hides low-confidence fallback unless --best-effort is set
+test_dev_overview_best_effort_flag() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_best_effort")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_cccccccccccccccccccccc33c", "project_lab", "/home/es/lab", "Session C", 1771759749789),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_c_user", "ses_cccccccccccccccccccccc33c", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_c_assistant", "ses_cccccccccccccccccccccc33c", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771761000000, "openai", "charlie@example.com", "charlie@example.com", "opencode_event"),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local strict_output best_output
+    strict_output=$(dev_osv -x)
+    local strict_status=$?
+    best_output=$(dev_osv -x --best-effort)
+    local best_status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $strict_status -eq 0 ]] || return 1
+    [[ $best_status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$strict_output" "$best_output" <<'PY'
+import csv
+import io
+import sys
+
+strict_txt = sys.argv[1]
+best_txt = sys.argv[2]
+
+def row_map(text):
+    reader = csv.DictReader(io.StringIO(text), delimiter='\t')
+    return {row.get('title', ''): row for row in reader}
+
+strict_rows = row_map(strict_txt)
+best_rows = row_map(best_txt)
+
+ok = (
+    strict_rows.get('Session C', {}).get('user') == '(unknown)' and
+    strict_rows.get('Session C', {}).get('conf') == 'none' and
+    best_rows.get('Session C', {}).get('user') == 'charlie@example.com' and
+    best_rows.get('Session C', {}).get('conf') == 'low'
 )
 print('OK' if ok else 'FAIL')
 PY
@@ -651,6 +775,7 @@ main() {
     run_test test_dev_functions_exist
     run_test test_dev_overview_output
     run_test test_dev_overview_user_attribution
+    run_test test_dev_overview_best_effort_flag
     run_test test_dev_move_session_by_suffix
     run_test test_dev_move_suffix_ambiguity
     run_test test_dev_olb_requires_flag
