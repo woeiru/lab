@@ -34,6 +34,11 @@ ver_verify_module "lo1" || exit 1
 readonly LO1_CACHE_CLEANUP_INTERVAL=${LO1_CACHE_CLEANUP_INTERVAL:-300}  # 5 minutes
 readonly LO1_TIMESTAMP_FORMAT=${LO1_TIMESTAMP_FORMAT:-'%H:%M:%S.%2N'}
 
+lo1_now_s() {
+    local out_var="$1"
+    printf -v "$out_var" '%(%s)T' -1
+}
+
 # Enable debug logging by default
 export LOG_DEBUG_ENABLED=1
 declare -gA ROOT_FUNCTIONS=([main_rc]=1)
@@ -81,12 +86,19 @@ declare -i LAST_CACHE_CLEANUP=0
 # Get Cached Log State - GCL
 # 
 lo1_get_cached_log_state() {
-    local current_time=$(date +%s)
+    local current_time
+    lo1_now_s current_time
     if [[ -z "$LOG_STATE_CACHED" ]] || ((current_time - LOG_STATE_LAST_CHECK >= LOG_STATE_CACHE_TTL)); then
-        LOG_STATE_CACHED=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "on")
+        if [[ -r "$LOG_STATE_FILE" ]]; then
+            if ! read -r LOG_STATE_CACHED < "$LOG_STATE_FILE"; then
+                LOG_STATE_CACHED="on"
+            fi
+        else
+            LOG_STATE_CACHED="on"
+        fi
         LOG_STATE_LAST_CHECK=$current_time
     fi
-    echo "$LOG_STATE_CACHED"
+    printf '%s\n' "$LOG_STATE_CACHED"
 }
 
 # Display detailed stack trace for debugging function calls
@@ -107,7 +119,8 @@ lo1_dump_stack_trace() {
 # Cleanup Cache - CCH
 # 
 cleanup_cache() {
-    local current_time=$(date +%s)
+    local current_time
+    lo1_now_s current_time
     if ((current_time - LAST_CACHE_CLEANUP >= LO1_CACHE_CLEANUP_INTERVAL)); then
         lo1_debug_log "Performing cache cleanup" "cache"
         LOG_DEPTH_CACHE=()
@@ -289,17 +302,17 @@ lo1_log() {
 lo1_setlog() {
     case "$1" in
         "off")
-            echo "off" > "$LOG_STATE_FILE"
+            printf 'off\n' > "$LOG_STATE_FILE"
             LOG_STATE_CACHED="off"  # Update cache immediately
-            LOG_STATE_LAST_CHECK=$(date +%s)
+            lo1_now_s LOG_STATE_LAST_CHECK
             if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
                 printf "%s      └─ Logging disabled%s\n" "$LOG_NC"
             fi
             ;;
         "on")
-            echo "on" > "$LOG_STATE_FILE"
+            printf 'on\n' > "$LOG_STATE_FILE"
             LOG_STATE_CACHED="on"  # Update cache immediately
-            LOG_STATE_LAST_CHECK=$(date +%s)
+            lo1_now_s LOG_STATE_LAST_CHECK
             if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
                 printf "%s      └─ Logging enabled%s\n" "$LOG_NC"
             fi

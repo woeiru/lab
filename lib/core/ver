@@ -42,6 +42,10 @@ ver_log() {
     local source="${2:-${FUNCNAME[1]:-main}}"
     local level="${3:-1}" # Default verbosity level if not provided by caller
 
+    if [[ "${PERFORMANCE_MODE:-0}" == "1" && "${VER_PERFORMANCE_LOGGING:-0}" != "1" ]]; then
+        [[ "$message" == *"ERROR"* ]] || return 0
+    fi
+
     # Default log file if not set
     local VER_LOG_FILE="${VER_LOG_FILE:-${BASE_DIR:-.}/.log/ver.log}"
     
@@ -206,6 +210,12 @@ ver_verify_module() {
     if [[ -z "$module" ]]; then
         ver_log "ERROR: Empty module name provided" "ver_verify_module"
         return 1
+    fi
+
+    # During bootstrap the module has just been sourced by trusted call sites.
+    # Skip deep verification to reduce shell startup latency.
+    if [[ "${LAB_BOOTSTRAP_MODE:-0}" == "1" ]]; then
+        return 0
     fi
 
     ver_log "Verifying module: $module" "ver_verify_module"

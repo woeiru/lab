@@ -232,18 +232,12 @@ tme_start_timer() {
 
     TME_CURRENT_PARENT="$component"
 
-    local orig_log_state
-    orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-    echo "false" > "$LOG_STATE_FILE"
-
     {
         printf "[START] %s\n" "$component"
         [[ -n "$parent" ]] && printf "Parent: %s\n" "$parent"
         tme_format_datetime_from_ns started_at "$timestamp"
         printf "Time: %s\n\n" "$started_at"
     } >> "$TME_LOG_FILE"
-
-    echo "$orig_log_state" > "$LOG_STATE_FILE"
 }
 
 # Stop timing for component using end_timer for compatibility
@@ -286,17 +280,11 @@ tme_end_timer() {
 
     TME_CURRENT_PARENT="${TME_PARENTS[$component]}"
 
-    local orig_log_state
-    orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-    echo "false" > "$LOG_STATE_FILE"
-
     {
         printf "[END] %s\n" "$component"
         printf "Status: %s\n" "$status"
         printf "Duration: %ss\n\n" "${TME_DURATIONS[$component]}"
     } >> "$TME_LOG_FILE"
-
-    echo "$orig_log_state" > "$LOG_STATE_FILE"
 }
 
 # Calculate depth of component in timing tree hierarchy
@@ -597,14 +585,10 @@ tme_end_nested_timing() {
 # Timer Cleanup - TCL
 # 
 tme_cleanup_timer() {
-    local orig_log_state
     local cleanup_completed_at
     local now_ns
     local total_duration_ns
     local total_duration
-
-    orig_log_state=$(cat "$LOG_STATE_FILE" 2>/dev/null || echo "true")
-    echo "false" > "$LOG_STATE_FILE"
 
     tme_now_ns now_ns
     total_duration_ns=$((now_ns - TME_STARTUP_BEGIN))

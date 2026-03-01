@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-01
-- Updated: 2026-03-01 (promoted to active via triage)
+- Updated: 2026-03-01 (resume pass; additional Phase 1 optimizations applied)
 - Links: bin/ini, bin/orc, lib/core/col, lib/core/err, lib/core/lo1, lib/core/tme, lib/core/ver, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, doc/arc/01-bootstrap-and-orchestration.md
 
 ## Goal
@@ -63,15 +63,14 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
 
 ## Execution Plan (remaining)
 
-1. Decide whether to complete Phase 1 target (<800ms) in this item by adding
-   additional low-risk fork/file-I/O reductions in the boot path (`bin/ini`,
-   `bin/orc`, `lib/core/ver`, `lib/core/lo1`, `lib/core/err`, `lib/core/tme`).
-2. If Phase 1 remains open, run another before/after timing set with the same
-   command (`MASTER_TERMINAL_VERBOSITY=off; source /home/es/lab/bin/ini`) and
-   record median deltas in this plan.
-3. If moving to Phase 2, implement and validate item 6 (`ver_verify_module`
-   boot-path deferral) and item 7 (`ver_log` consolidation) with focused tests
-   before broader suite runs.
+1. Decide closure scope for this active item now that the Phase 1 latency target
+   is effectively met in local measurements (median ~`0.624s`).
+2. If closing this item: run final quick validation snapshot and prepare commit
+   summary from current working tree changes (`bin/ini`, `bin/orc`, `lib/core/lo1`,
+   `lib/core/tme`, `lib/core/ver`).
+3. If continuing into Phase 2: start item 7 (`ver_log` consolidation) and then
+   evaluate whether any remaining `ver_verify_module` boot checks can be deferred
+   behind explicit health checks without contract regressions.
 
 ## Progress Checkpoint
 
@@ -101,48 +100,84 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
     `./val/core/initialization/orc_test.sh`,
     `./val/core/modules/tme_test.sh`, `./val/core/modules/ver_test.sh`,
     `./val/lib/core/col_test.sh`: pass.
-  - `./val/run_all_tests.sh --quick`: single failing test
-    `glb_008_secret_scan_test` (pre-existing/unrelated secret-scan finding in
-    `lib/gen/inf`), remainder passed.
+- `./val/run_all_tests.sh --quick`: single failing test
+  `glb_008_secret_scan_test` (pre-existing/unrelated secret-scan finding in
+  `lib/gen/inf`), remainder passed.
+- Resume verification completed:
+  - Verified checkpoint file references and current module contents for
+    `bin/ini`, `bin/orc`, `lib/core/lo1`, `lib/core/tme`, `lib/core/ver`,
+    `lib/core/col`.
+  - Confirmed previous checkpoint state was stale on one point: in-flight note
+    said "local and uncommitted", but those changes are already committed in
+    `98ffa772`.
+  - Reconfirmed unrelated quick-suite blocker persists:
+    `glb_008_secret_scan_test` flags `lib/gen/inf:90`.
+- Additional optimizations applied during resume:
+  - `bin/orc`: replaced `source_directory` and `source_lib_ops` file discovery
+    from `find|sort|mktemp` pipelines to shell-glob iteration (fork reduction).
+  - `lib/core/lo1`: removed `date`/`cat` usage from hot paths via builtin time
+    helper and direct file reads/writes.
+  - `bin/ini`: kept `LOG_DEBUG_ENABLED=0` through more of bootstrap and restored
+    at `main_ini` exits.
+  - `bin/ini` + `lib/core/ver`: added `LAB_BOOTSTRAP_MODE=1` gating so
+    `ver_verify_module` skips deep checks during immediate bootstrap sourcing.
+  - `lib/core/ver`: gated non-error `ver_log` writes during `PERFORMANCE_MODE=1`.
+  - `lib/core/tme`: removed `LOG_STATE_FILE` toggling (`cat`/`echo` per timer
+    event) in timing start/end/cleanup paths.
+- Additional timing measurements (same command):
+  - Resume pre-optimization spot check (3 runs): `1.159s`, `1.124s`, `1.084s`
+    (median `1.124s`).
+  - After `bin/orc` + `lo1` optimizations (3 runs): `0.940s`, `0.965s`, `0.931s`
+    (median `0.940s`).
+  - After debug-state + bootstrap verification deferral (3 runs):
+    `0.892s`, `0.914s`, `0.915s` (median `0.914s`).
+  - After `ver_log` performance gate and `tme` log-state I/O removal (3 runs):
+    `0.615s`, `0.625s`, `0.624s` (median `0.624s`).
+- Additional tests run this resume pass:
+  - `bash -n` on changed files after each optimization batch: pass.
+  - Targeted suites (multiple rounds):
+    `./val/core/initialization/ini_test.sh`,
+    `./val/core/initialization/orc_test.sh`,
+    `./val/core/modules/tme_test.sh`,
+    `./val/core/modules/ver_test.sh`,
+    `./val/core/modules/lo1_test.sh`: pass.
 
 ### In-flight
 
-- All code changes are local and uncommitted (intentionally left unstaged).
-- Active item target (<800ms median) is not yet achieved; current median is
-  `1.105s`.
+- Current working-tree edits are local and uncommitted in:
+  `bin/ini`, `bin/orc`, `lib/core/lo1`, `lib/core/tme`, `lib/core/ver`.
+- Phase 1 objective (<`800ms` median) is now achieved in local timing samples
+  (current median `0.624s`).
 
 ### Blockers
 
-- No functional/code blockers for Phase 1 items 1-5.
-- Validation blocker for a fully green quick suite: unrelated
+- No functional/code blockers for the active optimization path.
+- Validation blocker for a fully green quick suite remains unrelated:
   `glb_008_secret_scan_test` failure due to detected default password string at
   `lib/gen/inf:90`.
-- Scope decision pending: whether to close this item as "Phase 1 items
-  implemented" vs continue until the <800ms target is met.
+- Remaining decision blocker is administrative scope only: close this item as
+  Phase 1 complete vs continue with optional Phase 2 work.
 
 ### Next steps
 
-1. Confirm closure criteria for this item (implementation-complete vs
-   performance-target-complete) in this plan.
-2. If continuing for target, profile remaining startup hotspots and apply next
-   low-risk optimizations in `bin/ini`, `bin/orc`, and `lib/core/lo1`.
-3. Run focused verification after each optimization batch:
-   `bash -n` on edited files plus `./val/core/initialization/ini_test.sh` and
-   `./val/core/modules/tme_test.sh`.
-4. Re-run timing command 3x and append median deltas in this document.
-5. If Phase 2 starts, implement item 6 in `lib/core/ver` and boot call sites in
-   `bin/ini`/`bin/orc`, then implement item 7 logging consolidation.
+1. Confirm closure criteria for this item as performance-target-complete
+   (target is now met).
+2. If closing: run one final `./val/run_all_tests.sh --quick` snapshot and keep
+   `glb_008_secret_scan_test` noted as unrelated.
+3. If continuing: start Phase 2 item 7 (`ver_log` consolidation) before any
+   broader structural lazy-load work.
+4. Prepare commit with scoped message once closure path is chosen.
 
 ### Context
 
 - Branch: `master`.
 - Modified files currently in working tree: `bin/ini`, `bin/orc`,
-  `lib/core/col`, `lib/core/tme`, `lib/core/ver`.
+  `lib/core/lo1`, `lib/core/tme`, `lib/core/ver`.
 - No persistent temp artifacts from this session are required for continuation.
 - Timing command used for all measurements:
   `time bash -lc 'MASTER_TERMINAL_VERBOSITY=off; source /home/es/lab/bin/ini' 2>&1`.
-- Key finding: Phase 1 edits materially reduced bootstrap time but did not yet
-  reach the plan's <800ms target.
+- Key finding: combined Phase 1 resume optimizations reduced median bootstrap
+  time to `0.624s`, exceeding the <`800ms` target.
 
 ## Verification Plan
 
@@ -243,5 +278,5 @@ Zero-fork replacements for the highest-cost patterns. No structural changes.
 
 ## Next Step
 
-1. Start Phase 1 implementation immediately and log timing baselines before the
-   first commit.
+1. Choose closure path: finalize Phase 1 completion in this item now, or open
+   a follow-on for optional Phase 2 verification/logging refinements.

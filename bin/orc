@@ -216,35 +216,28 @@ source_directory() {
         return 1
     fi
 
-    # Process files directly without building array for better performance
+    # Process files with shell globbing to avoid external find/sort/mktemp forks
     local success_count=0
     local total_count=0
-    local temp_file_list
-    
-    if ! temp_file_list=$(mktemp); then
-        lo1_log "lvl" " Error: Failed to create temporary file for file listing"
-        tme_end_timer "dir_$description"
-        return 1
-    fi
+    local file
+    local file_name
+    local nullglob_was_set=0
 
-    # Get sorted list of files
-    # Match shell glob behavior: skip dotfiles unless explicitly requested
-    if ! find "$dir" -maxdepth 1 -type f -name "$pattern" ! -name ".*" -print0 | sort -z > "$temp_file_list"; then
-        lo1_log "lvl" " Error: Failed to list files in $dir"
-        rm -f "$temp_file_list"
-        tme_end_timer "dir_$description"
-        return 1
-    fi
+    shopt -q nullglob && nullglob_was_set=1
+    shopt -s nullglob
 
-    # Process each file
-    while IFS= read -r -d '' file; do
+    for file in "$dir"/$pattern; do
+        [[ -f "$file" ]] || continue
+        file_name="$(basename "$file")"
+        [[ "$file_name" == .* ]] && continue
+
         ((total_count++))
-        if source_helper "$file" "$(basename "$file")"; then
+        if source_helper "$file" "$file_name"; then
             ((success_count++))
         fi
-    done < "$temp_file_list"
+    done
 
-    rm -f "$temp_file_list"
+    ((nullglob_was_set == 0)) && shopt -u nullglob
 
     if ((total_count == 0)); then
         lo1_log "lvl" " Warning: No matching files found in $dir for pattern '$pattern'"
@@ -374,45 +367,36 @@ source_lib_ops() {
     tme_start_timer "dir_$description"
     lo1_log "lvl" "Sourcing $description: $dir"
 
-    # Process files directly without building array for better performance
+    # Process files with shell globbing to avoid external find/sort/mktemp forks
     local success_count=0
     local total_count=0
-    local temp_file_list
-    
-    if ! temp_file_list=$(mktemp); then
-        lo1_log "lvl" " Error: Failed to create temporary file for file listing"
-        tme_end_timer "dir_$description"
-        return 1
-    fi
+    local file
+    local file_name
+    local file_name_lower
+    local nullglob_was_set=0
 
-    # Get sorted list of files, excluding documentation files
-    # Exclude files with extensions: .md, .txt, .spec, .readme, .doc
-    # Also exclude files starting with . (hidden files) and README* files
-    if ! find "$dir" -maxdepth 1 -type f \
-        ! -name "*.md" \
-        ! -name "*.txt" \
-        ! -name "*.spec" \
-        ! -name "*.readme" \
-        ! -name "*.doc" \
-        ! -name ".*" \
-        ! -name "README*" \
-        ! -name "readme*" \
-        -print0 | sort -z > "$temp_file_list"; then
-        lo1_log "lvl" " Error: Failed to list files in $dir"
-        rm -f "$temp_file_list"
-        tme_end_timer "dir_$description"
-        return 1
-    fi
+    shopt -q nullglob && nullglob_was_set=1
+    shopt -s nullglob
 
-    # Process each file
-    while IFS= read -r -d '' file; do
+    for file in "$dir"/*; do
+        [[ -f "$file" ]] || continue
+
+        file_name="$(basename "$file")"
+        file_name_lower="${file_name,,}"
+
+        case "$file_name_lower" in
+            .*|readme*|*.md|*.txt|*.spec|*.readme|*.doc)
+                continue
+                ;;
+        esac
+
         ((total_count++))
-        if source_helper "$file" "$(basename "$file")"; then
+        if source_helper "$file" "$file_name"; then
             ((success_count++))
         fi
-    done < "$temp_file_list"
+    done
 
-    rm -f "$temp_file_list"
+    ((nullglob_was_set == 0)) && shopt -u nullglob
 
     if ((total_count == 0)); then
         lo1_log "lvl" " Warning: No matching files found in $dir (after excluding documentation files)"

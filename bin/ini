@@ -113,6 +113,7 @@ if [[ -v LOG_DEBUG_ENABLED ]]; then
     _INI_LOG_DEBUG_ORIG_VALUE="$LOG_DEBUG_ENABLED"
 fi
 export LOG_DEBUG_ENABLED=0
+export LAB_BOOTSTRAP_MODE=1
 
 readonly LOG_PRIORITY_NORMAL=1
 readonly LOG_PRIORITY_DETAILED=2
@@ -262,6 +263,8 @@ main_ini() {
 
     # Initialize logging system
     if ! init_logging_system; then
+        restore_boot_log_debug_state
+        unset LAB_BOOTSTRAP_MODE
         echo "Critical Error: Failed to initialize logging system" >&2
         return 1
     fi
@@ -270,15 +273,21 @@ main_ini() {
 
     # Verify that verification module is loaded
     if ! verify_core_modules_loaded; then
+        restore_boot_log_debug_state
+        unset LAB_BOOTSTRAP_MODE
         echo "ERROR: Core verification modules not properly loaded" >&2
         return 1
     fi
 
     # Part 1: Module dependency initialization
     if ! init_module_system; then
+        restore_boot_log_debug_state
+        unset LAB_BOOTSTRAP_MODE
         ini_log "Critical error: Module system initialization failed. Exiting." "main_ini"
         return 1
     fi
+
+    unset LAB_BOOTSTRAP_MODE
 
     # Initialize timer system and start main operations timer
     if ! init_timer_system; then
@@ -289,11 +298,15 @@ main_ini() {
 
     # Part 2: Source component orchestrator
     if ! source_component_orchestrator "$main_op_timer_started"; then
+        restore_boot_log_debug_state
+        unset LAB_BOOTSTRAP_MODE
         return 1
     fi
 
     # Part 3: Runtime dependency initialization
     if ! init_runtime_system_with_timing "$main_op_timer_started"; then
+        restore_boot_log_debug_state
+        unset LAB_BOOTSTRAP_MODE
         return 1
     fi
 
@@ -302,9 +315,13 @@ main_ini() {
 
     # Part 4: Setup additional components
     if ! setup_components_with_finalization "$main_op_timer_started"; then
+        restore_boot_log_debug_state
+        unset LAB_BOOTSTRAP_MODE
         return 1
     fi
 
+    restore_boot_log_debug_state
+    unset LAB_BOOTSTRAP_MODE
     ini_log "Main initialization completed successfully"
     return 0
 }
@@ -363,8 +380,6 @@ source_component_orchestrator() {
         return 1
     fi
 
-    restore_boot_log_debug_state
-    
     ini_log "Component orchestrator sourced successfully"
     return 0
 }
