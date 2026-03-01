@@ -1,6 +1,8 @@
 # Documentation Hub
 
-Central documentation hub for the Lab Environment Management System. Contents are organised by purpose: `man/` for operational guides (user/admin audience), `arc/` for architectural references (developer/architect audience), and `ref/` for auto-generated reference documentation (variables and functions).
+Central documentation hub for the Lab Environment Management System.
+
+Contents are organised by purpose: `man/` for operational guides (user/admin audience), `arc/` for architectural references (developer/architect audience), and `ref/` for auto-generated reference documentation (variables and functions).
 
 ## Documentation Index
 
@@ -13,6 +15,7 @@ Central documentation hub for the Lab Environment Management System. Contents ar
 - **[04 - Deployments and Runbooks](man/04-deployments.md)** - Structure of section-based set scripts, interactive mode, and headless execution.
 - **[05 - Writing Modules](man/05-writing-modules.md)** - Module conventions, naming, parameters, validation, self-documenting comments, and tests.
 - **[06 - Security and Logging](man/06-security-and-logging.md)** - Handling secrets safely, guarding destructive operations, and the multi-tiered logging architecture.
+- **[07 - Dev Session Attribution Workflow](man/07-dev-session-attribution-workflow.md)** - Emitting identity attribution events for OpenCode sessions, strict vs best-effort reporting, and troubleshooting.
 
 ### Architectural Documentation (`doc/arc/`)
 **Purpose**: How the system is designed, module structure, system context, and dependency flows. Audience: developers, architects.
@@ -46,15 +49,6 @@ Central documentation hub for the Lab Environment Management System. Contents ar
 
 ## Supplementary Documentation
 
-### Hardware Fix Runbooks (`doc/fix/`)
-Hardware-specific incident resolutions and workarounds. Not audience-classified — preserved as-is.
-
-- `fix/acpi_reset/` — ACPI wake/reset scripts and systemd services
-- `fix/pve_gpu_passthrough/` — GPU passthrough debug plans and step-by-step resolution notes
-- `fix/debian_amd_6600_crash.md` — AMD 6600 crash fix
-- `fix/debian_nvidia_5060ti_fix.md` — Nvidia 5060 Ti fix
-- `fix/pve_gpu-hook-trigger-bug.md` — PVE GPU hook trigger bug
-
 ### Project Planning (`doc/pro/`)
 Planning documents organised by lifecycle state.
 
@@ -65,6 +59,9 @@ Planning documents organised by lifecycle state.
 - `pro/completed/` — Completed plans
 - `pro/dismissed/` — Dismissed proposals
 - `pro/experiments/` — Exploratory work and validation notes
+- `pro/workflow-checklist.md` — Step-by-step workflow checklist
+- `pro/agentic-workflow-prompts.md` — Prompt templates for agentic workflows
+- `pro/check-workflow.sh` — Workflow validation script
 
 ## Reference Documentation Tools
 
