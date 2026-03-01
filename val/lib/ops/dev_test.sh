@@ -122,6 +122,115 @@ PY
     return 0
 }
 
+# Test: Session overview attributes user by first prompt timestamp
+test_dev_overview_user_attribution() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_user")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE control_account (
+    email TEXT,
+    active INTEGER,
+    time_updated INTEGER
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_aaaaaaaaaaaaaaaaaaaaaa11a", "project_lab", "/home/es/lab", "Session A", 1771759739789),
+)
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_bbbbbbbbbbbbbbbbbbbbbb22b", "project_lab", "/home/es/lab", "Session B", 1771759749789),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_a_user", "ses_aaaaaaaaaaaaaaaaaaaaaa11a", 1771759000000, 1771759000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_b_user", "ses_bbbbbbbbbbbbbbbbbbbbbb22b", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+
+cur.execute(
+    "INSERT INTO control_account (email, active, time_updated) VALUES (?, ?, ?)",
+    ("alice@example.com", 0, 1771758000000),
+)
+cur.execute(
+    "INSERT INTO control_account (email, active, time_updated) VALUES (?, ?, ?)",
+    ("bob@example.com", 1, 1771759500000),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session A', {}).get('user') == 'alice@example.com' and
+    rows.get('Session B', {}).get('user') == 'bob@example.com' and
+    'first_prompt_local' in (reader.fieldnames or [])
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
 # Test: Session move updates project scope using ID suffix
 test_dev_move_session_by_suffix() {
     local test_env
@@ -541,6 +650,7 @@ main() {
 
     run_test test_dev_functions_exist
     run_test test_dev_overview_output
+    run_test test_dev_overview_user_attribution
     run_test test_dev_move_session_by_suffix
     run_test test_dev_move_suffix_ambiguity
     run_test test_dev_olb_requires_flag

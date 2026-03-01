@@ -45,42 +45,164 @@ limit   = int(sys.argv[3]) if len(sys.argv) > 3 else 0
 conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
 cur  = conn.cursor()
 
+def table_exists(cursor, table_name):
+    try:
+        cursor.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+            (table_name,),
+        )
+        return cursor.fetchone() is not None
+    except Exception:
+        return False
+
+def load_control_account_events(cursor):
+    """Load account timeline entries from control_account, oldest -> newest."""
+    events = []
+    if not table_exists(cursor, "control_account"):
+        return events
+
+    try:
+        cursor.execute("PRAGMA table_info(control_account)")
+        cols = {str(row[1]) for row in cursor.fetchall() if len(row) > 1}
+        if not {"email", "time_updated"}.issubset(cols):
+            return events
+
+        select_cols = "email, time_updated"
+        if "active" in cols:
+            select_cols += ", active"
+
+        cursor.execute(
+            f"""
+            SELECT {select_cols}
+            FROM control_account
+            WHERE email IS NOT NULL AND TRIM(email) <> ''
+            ORDER BY time_updated ASC
+            """
+        )
+
+        for row in cursor.fetchall():
+            email = str(row[0]) if row[0] else ""
+            if not email:
+                continue
+            try:
+                ts_ms = int(row[1]) if row[1] is not None else None
+            except (TypeError, ValueError):
+                ts_ms = None
+            active = row[2] if len(row) > 2 else None
+            events.append((ts_ms, email, active))
+    except Exception:
+        return []
+
+    return events
+
+def resolve_session_user(first_prompt_ms, control_events):
+    """
+    Best-effort attribution:
+    - prefer last known control_account entry at/before first prompt timestamp
+    - fallback to earliest entry after first prompt when no prior entry exists
+    - if no timeline exists, report unknown (do not guess from current active account)
+    """
+    if first_prompt_ms is not None and control_events:
+        before = [evt for evt in control_events if evt[0] is not None and evt[0] <= first_prompt_ms]
+        if before:
+            return before[-1][1], before[-1][0]
+        after = [evt for evt in control_events if evt[0] is not None and evt[0] > first_prompt_ms]
+        if after:
+            return after[0][1], after[0][0]
+
+    if control_events:
+        last_event = control_events[-1]
+        return last_event[1], last_event[0]
+
+    return "(unknown)", None
+
+control_account_events = load_control_account_events(cur)
+
 limit_clause = f"LIMIT {limit}" if limit > 0 else ""
 
-query = f"""
-SELECT
-  substr(s.id, length(s.id) - 2, 3) AS suffix,
-  s.id,
-  COALESCE(p.worktree, '(missing_project)') AS project_root,
-  s.directory,
-  s.title,
-  datetime(s.time_updated / 1000, 'unixepoch', 'localtime') AS updated_local,
-  COALESCE(mu.model, '') AS model,
-  COALESCE(mu.total_input, 0) AS input_tokens,
-  COALESCE(mu.total_output, 0) AS output_tokens
-FROM session s
-LEFT JOIN project p ON p.id = s.project_id
-LEFT JOIN (
-  SELECT
-    session_id,
-    json_extract(data, '$.modelID') AS model,
-    SUM(COALESCE(json_extract(data, '$.tokens.input'), 0)) AS total_input,
-    SUM(COALESCE(json_extract(data, '$.tokens.output'), 0)) AS total_output
-  FROM message
-  WHERE json_extract(data, '$.role') = 'assistant'
-  GROUP BY session_id
-) mu ON mu.session_id = s.id
-ORDER BY s.time_updated DESC
-{limit_clause};
-"""
+has_message_table = table_exists(cur, "message")
 
-cur.execute(query)
-rows = cur.fetchall()
+if has_message_table:
+    query = f"""
+    SELECT
+      substr(s.id, length(s.id) - 2, 3) AS suffix,
+      s.id,
+      COALESCE(p.worktree, '(missing_project)') AS project_root,
+      s.directory,
+      s.title,
+      datetime(s.time_updated / 1000, 'unixepoch', 'localtime') AS updated_local,
+      datetime(fm.first_user_ms / 1000, 'unixepoch', 'localtime') AS first_prompt_local,
+      fm.first_user_ms,
+      COALESCE(mu.model, '') AS model,
+      COALESCE(mu.total_input, 0) AS input_tokens,
+      COALESCE(mu.total_output, 0) AS output_tokens
+    FROM session s
+    LEFT JOIN project p ON p.id = s.project_id
+    LEFT JOIN (
+      SELECT
+        session_id,
+        MAX(CASE WHEN json_extract(data, '$.role') = 'assistant' THEN json_extract(data, '$.modelID') END) AS model,
+        SUM(CASE WHEN json_extract(data, '$.role') = 'assistant' THEN COALESCE(json_extract(data, '$.tokens.input'), 0) ELSE 0 END) AS total_input,
+        SUM(CASE WHEN json_extract(data, '$.role') = 'assistant' THEN COALESCE(json_extract(data, '$.tokens.output'), 0) ELSE 0 END) AS total_output
+      FROM message
+      GROUP BY session_id
+    ) mu ON mu.session_id = s.id
+    LEFT JOIN (
+      SELECT
+        session_id,
+        MIN(CASE WHEN json_extract(data, '$.role') = 'user' THEN time_created END) AS first_user_ms
+      FROM message
+      GROUP BY session_id
+    ) fm ON fm.session_id = s.id
+    ORDER BY s.time_updated DESC
+    {limit_clause};
+    """
+    cur.execute(query)
+else:
+    query = f"""
+    SELECT
+      substr(s.id, length(s.id) - 2, 3) AS suffix,
+      s.id,
+      COALESCE(p.worktree, '(missing_project)') AS project_root,
+      s.directory,
+      s.title,
+      datetime(s.time_updated / 1000, 'unixepoch', 'localtime') AS updated_local,
+      '' AS first_prompt_local,
+      NULL AS first_user_ms,
+      '' AS model,
+      0 AS input_tokens,
+      0 AS output_tokens
+    FROM session s
+    LEFT JOIN project p ON p.id = s.project_id
+    ORDER BY s.time_updated DESC
+    {limit_clause};
+    """
+    cur.execute(query)
+
+rows_raw = cur.fetchall()
+
+rows = []
+for row in rows_raw:
+    suffix, sid, project_root, directory, title, updated_local, first_prompt_local, first_user_ms, model, inp, out = row
+    user_email, _user_ts = resolve_session_user(first_user_ms, control_account_events)
+    rows.append((
+        suffix,
+        sid,
+        project_root,
+        directory,
+        title,
+        updated_local,
+        first_prompt_local or "",
+        user_email,
+        model,
+        inp,
+        out,
+    ))
 conn.close()
 
 # ── plain TSV mode ────────────────────────────────────────────────────────────
 if mode != "-t":
-    print("suffix\tid\tproject_root\tdirectory\ttitle\tupdated_local\tmodel\tinput\toutput")
+    print("suffix\tid\tproject_root\tdirectory\ttitle\tupdated_local\tfirst_prompt_local\tuser\tmodel\tinput\toutput")
     for row in rows:
         normalized = []
         for value in row:
@@ -115,16 +237,20 @@ ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 def vlen(s):
     return len(ANSI_RE.sub("", s))
 
-def clip(s, width):
-    """Trim a plain string to width, appending … if truncated."""
+def clip(s, width, keep_end=False):
+    """Trim a plain string to width; optionally keep end with leading ellipsis."""
     s = str(s).replace("\t", " ").replace("\n", " ")
     if len(s) <= width:
         return s
+    if width <= 1:
+        return "…"[:width]
+    if keep_end:
+        return "…" + s[-(width - 1):]
     return s[:width - 1] + "…"
 
-def cell(text, width, color="", rjust=False):
+def cell(text, width, color="", rjust=False, keep_end=False):
     """Return a colored, fixed-width cell (plain text in, padded out)."""
-    clipped = clip(text, width)
+    clipped = clip(text, width, keep_end=keep_end)
     colored = color + clipped + (RESET if color else "")
     pad = width - len(clipped)
     if rjust:
@@ -151,10 +277,12 @@ def fmt_date(s):
 W = {
     "sfx":  3,
     "proj": 12,
-    "dir":  14,
-    "title":58,
+    "dir":  12,
+    "title":45,
     "date": 16,
-    "model":22,
+    "first":16,
+    "user": 13,
+    "model":11,
     "in":    7,
     "out":   7,
 }
@@ -178,7 +306,9 @@ headers = [
     cell("DIR",     W["dir"],   C_HEADER),
     cell("TITLE",   W["title"], C_HEADER),
     cell("UPDATED", W["date"],  C_HEADER),
-    cell("MODEL",   W["model"], C_HEADER),
+    cell("FIRST",   W["first"], C_HEADER),
+    cell("USER",    W["user"],  C_HEADER),
+    cell("MODEL",   W["model"], C_HEADER, rjust=True),
     cell("IN",      W["in"],    C_HEADER, rjust=True),
     cell("OUT",     W["out"],   C_HEADER, rjust=True),
 ]
@@ -188,7 +318,7 @@ hline("├", "┼", "┤")
 
 # Rows
 for row in rows:
-    suffix, _full_id, proj, directory, title, updated, model, inp, out = row
+    suffix, _full_id, proj, directory, title, updated, first_prompt, user, model, inp, out = row
 
     cols = [
         cell(suffix or "",        W["sfx"],   C_SUFFIX),
@@ -196,7 +326,9 @@ for row in rows:
         cell(directory or "",     W["dir"],   C_DIR),
         cell(title or "",         W["title"], C_TITLE),
         cell(fmt_date(updated),   W["date"],  C_DATE),
-        cell(model or "",         W["model"], C_MODEL),
+        cell(fmt_date(first_prompt), W["first"], C_DATE),
+        cell(user or "",          W["user"],  C_TITLE),
+        cell(model or "",         W["model"], C_MODEL, rjust=True, keep_end=True),
         cell(fmt_tokens(inp),     W["in"],    C_TOKENS, rjust=True),
         cell(fmt_tokens(out),     W["out"],   C_TOKENS, rjust=True),
     ]
