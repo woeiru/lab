@@ -108,6 +108,12 @@ Move this queued item into active execution.
 - Enforce WIP limit before moving (see core rules)
 - Set Status: active
 - Add sections: Execution Plan (today), Verification Plan, Exit Criteria
+- Execution Plan rules for multi-phase work:
+  - Each phase must have one unambiguous completion criterion (a measurable
+    target or a concrete deliverable, not both)
+  - List phases as sequential steps, not conditional branches
+    (write "Phase 1, then Phase 2" -- never "if closing... if continuing...")
+  - Exit Criteria applies to the full item, not individual phases
 - If a waiver is needed, add/update doc/pro/active/waivers/*_waiver-register.md
 - Report: active path + next 3 execution steps
 ```
@@ -125,6 +131,12 @@ Use only when the item is clearly highest priority and ready to execute now.
 - Set Status: active
 - Add ## Triage Decision section (why this item, why skip queue)
 - Add sections: Execution Plan (today), Verification Plan, Exit Criteria
+- Execution Plan rules for multi-phase work:
+  - Each phase must have one unambiguous completion criterion (a measurable
+    target or a concrete deliverable, not both)
+  - List phases as sequential steps, not conditional branches
+    (write "Phase 1, then Phase 2" -- never "if closing... if continuing...")
+  - Exit Criteria applies to the full item, not individual phases
 - If a waiver is needed, add/update doc/pro/active/waivers/*_waiver-register.md
 - Report: active path + triage rationale + next 3 execution steps
 ```
@@ -250,10 +262,17 @@ Checkpoint progress on this active item before I close this context.
   - Done: what was completed this session (files changed, decisions made)
   - In-flight: anything partially done or uncommitted
   - Blockers: problems encountered, unresolved questions
-  - Next steps: ordered list of what to do next (be specific, include paths)
+  - Next steps: ordered list of what to do next (be specific, include paths).
+    Write steps as unconditional actions, not decision forks.
+    Wrong: "If closing... If continuing..."
+    Right: "1. Do X. 2. Do Y. 3. Do Z."
+    If a genuine decision is needed, put it as a single step:
+    "Decide X (options: A or B)" -- then continue with the next concrete step.
   - Context: non-obvious state the next session needs (branch name,
     temp files, test status, relevant findings)
 - Update the Execution Plan to reflect remaining work only
+- If a phase's completion criterion is met, mark it COMPLETE in the plan
+  and ensure the next phase appears as the first item in Next steps
 - If tests were run, record pass/fail summary under Done
 - Do not move the file to another folder
 - Report: updated file path + 5-bullet handoff summary
@@ -280,6 +299,10 @@ Resume work on this active item in a fresh context.
   - Where we left off (or best understanding if no checkpoint)
   - What I will do now (first 3 steps)
   - Any state that looks stale or conflicting
+- Phase boundaries: if the checkpoint shows a phase is complete and the
+  Execution Plan defines a next phase, proceed to it immediately.
+  Do not treat phase transitions as decision points unless the plan
+  explicitly marks the next phase as optional or conditional.
 - Then proceed with execution immediately.
   Say "waiting for confirmation" only if I explicitly asked you to pause.
 - As you work, keep the active plan updated:
