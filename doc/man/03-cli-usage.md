@@ -237,6 +237,17 @@ ops dev otr openai user@example.com user@example.com connector_event
 - `dev_orr --dry-run` emits the same attribution event without executing `opencode run`.
 - `dev_otr` emits `event_type=token_refreshed` for identity refresh transitions.
 
+### Account switching
+
+```bash
+ops dev oas claude 2
+ops dev oas gemini 1
+```
+
+- `dev_oas` modifies `antigravity-accounts.json` to route a model family to the
+  selected account (1-based), creates a backup, and emits an `account_selected`
+  event with `source=manual_switch`.
+
 For full procedure, validation matrix, and troubleshooting, see:
 - [07 - Dev Session Attribution Workflow](07-dev-session-attribution-workflow.md)
 

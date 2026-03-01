@@ -37,12 +37,16 @@ flowchart TD
     D -->|no| E
 
     E["Need to stamp identity\nwithout running a request?\n(manual or hook-driven)"] -->|yes| OAE["ops dev oae\n(emit attribution event)\nuse -x for env-var hook mode"]
+    E -->|no| F
+
+    F["Switching active account\nfor a model family?"] -->|yes| OAS["ops dev oas\n(switch account + emit event)\nsource: manual_switch"]
 
     OSV --> V["Validate with\nops dev osv -x"]
     AUTO --> V
     ORR --> V
     OTR --> V
     OAE --> V
+    OAS --> V
 
     V --> STRICT{"CONF level?"}
     STRICT -->|high| OK["Event before first prompt\nidentity confirmed"]
@@ -59,6 +63,7 @@ flowchart TD
 | `orr` | About to send a request to OpenCode | Writes event + runs `opencode run` |
 | `otr` | Provider token was just refreshed or rotated | Writes `token_refreshed` event |
 | `oae` | Stamp identity without running a request (manual or hook) | Writes attribution event |
+| `oas` | Switch active account for a model family | Modifies `antigravity-accounts.json`, writes `account_selected` event (`source=manual_switch`) |
 
 ## 1. Prerequisites and Safety
 
@@ -136,6 +141,18 @@ For provider refresh transitions:
 ops dev otr openai user@example.com user@example.com connector_event
 ```
 
+### Optional: Switch active account for a model family
+
+```bash
+ops dev oas claude 2
+ops dev oas gemini 1
+```
+
+This modifies `antigravity-accounts.json` to route the given family to the
+selected account (1-based), creates a timestamped backup, and emits an
+`account_selected` event with `source=manual_switch`. Subsequent sessions
+using that family will be attributed to the new account.
+
 ### Optional: Emit events from runtime hook environment
 
 ```bash
@@ -153,6 +170,15 @@ Use this confidence model:
 - `CONF=high`: matching provider event exists at or before session first prompt time.
 - `CONF=low`: only post-first-prompt event match exists (best-effort mode only).
 - `CONF=none`: no qualifying event for that provider/session.
+
+### Provider normalization
+
+Session provider IDs are normalized before matching against attribution events.
+Antigravity sessions may report `providerID=google` (or other Google-prefixed
+values); these are normalized to `antigravity` so they match events emitted by
+the shell wrapper and `dev_oas`. Similarly, OpenAI-prefixed IDs normalize to
+`openai`. This happens automatically in both the event emitter
+(`_dev_normalize_provider_id`) and the session resolver (`_dev_osv_render`).
 
 Quick DB validation:
 
@@ -175,6 +201,26 @@ Safe recovery:
 2. emit event with matching provider using `ops dev orr ... --dry-run -- ...` or `ops dev oae ...`
 3. validate new sessions moving forward (historical rows may remain unknown)
 
+### Wrapper active but no events emitted (lazy-load)
+
+The `dev` module is lazy-loaded by default. The `opencode()` wrapper in
+`cfg/ali/sta` handles this with a fallback path through `_orc_lazy_dispatch`.
+If lazy dispatch is not available (e.g. a minimal `lab` load or a custom
+sourcing chain), `_dev_auto_attribute` may silently not fire.
+
+To verify:
+
+```bash
+declare -f _dev_auto_attribute   # should show function body
+declare -f _orc_lazy_dispatch    # fallback dispatcher
+```
+
+If neither is available, force-load the dev module:
+
+```bash
+source "${LIB_OPS_DIR}/dev"
+```
+
 ### Event emit command succeeds but no rows appear
 
 Likely causes:
@@ -194,7 +240,7 @@ Then rerun the sqlite query in section 3.
 
 ## 5. Related Docs
 
-- Previous: [03 - CLI Usage and the DIC](03-cli-usage.md)
-- Next: [04 - Deployments and Runbooks](04-deployments.md)
+- Previous: [06 - Security and Logging](06-security-and-logging.md)
+- CLI overview: [03 - CLI Usage and the DIC](03-cli-usage.md) (section 8)
 - Architecture context: [doc/arc/04-dependency-injection.md](../arc/04-dependency-injection.md)
 - Logging and errors: [doc/arc/07-logging-and-error-handling.md](../arc/07-logging-and-error-handling.md)
