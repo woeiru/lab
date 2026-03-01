@@ -1,24 +1,45 @@
 # OpenCode Account Attribution Implementation Plan
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-01
-- Updated: 2026-03-01 (post-commit continuation)
+- Updated: 2026-03-01 (completed)
 - Links: lib/ops/dev, val/lib/ops/dev_test.sh, doc/pro/inbox/README.md
 
 ## Current Status (Exact)
 
-- Overall state: implementation complete for repo scope; now in validation/acceptance tracking.
+- Overall state: implementation complete for repo scope and finalized to completed state.
 - Code state: committed and clean for attribution changes (`lib/ops/dev`, `val/lib/ops/dev_test.sh`, docs, refs).
 - Test state: `./val/lib/ops/dev_test.sh` passing (`31/31`); `bash doc/pro/check-workflow.sh` passing.
 - Runtime validation: wrapper path validated locally (`dev_orr --dry-run` -> `dev_osv -x` evidence captured).
-- Remaining required work: keep plan updated through final acceptance.
+- Remaining required work: none for current repo scope deliverable.
 - Optional follow-up: replace wrapper path with native upstream OpenCode hooks when stable hook points exist.
 
 ### Phase Position
 
 - Phase 0-6: done in this repo.
-- Phase 7: partial/ongoing by policy (acceptance tracking done; optional hook replacement not required for current deliverable).
+- Phase 7: closed for current scope; optional upstream-native hook replacement is deferred follow-up.
+
+## What Changed
+
+- Implemented provider-aware session attribution in `lib/ops/dev` with strict-default `dev_osv` resolution using `opencode_account_event`.
+- Added runtime event emitters/wrappers (`dev_oae`, `dev_orr`, `dev_otr`) including `dev_orr --dry-run` for safe wiring checks.
+- Expanded attribution coverage in `val/lib/ops/dev_test.sh` to include strict/best-effort behavior, provider safety, event timeline ordering, and wrapper paths.
+- Updated operator documentation (`doc/man/03-cli-usage.md`) and added a dedicated workflow manual (`doc/man/07-dev-session-attribution-workflow.md`).
+- Regenerated/kept references synchronized and updated this plan through completion.
+
+## What Was Verified
+
+- `./val/lib/ops/dev_test.sh` -> pass (`31/31`).
+- `bash doc/pro/check-workflow.sh` -> pass.
+- `bash -lc 'export PATH="/home/es/.opencode/bin:$PATH"; source "/home/es/lab/bin/ini" >/dev/null 2>&1; dev_orr openai audit-session@example.com audit-session@example.com --dry-run -- status'` -> pass (event emitted without `opencode run`).
+- `bash -lc 'export PATH="/home/es/.opencode/bin:$PATH"; source "/home/es/lab/bin/ini" >/dev/null 2>&1; dev_osv -x -l 8 --best-effort'` -> pass (post-event `SRC=opencode_runtime`, `CONF=low` for matching provider sessions).
+- `bash -lc 'export PATH="/home/es/.opencode/bin:$PATH"; source "/home/es/lab/bin/ini" >/dev/null 2>&1; dev_osv -x -l 3'` -> pass (strict default remained `(unknown)`/`CONF=none` when no pre-first-prompt event existed).
+
+## What Remains
+
+- No required work remains for this plan's accepted scope.
+- Optional future work: replace wrapper-based emission with native upstream runtime hooks if stable hook points become available.
 
 ## Goal
 
