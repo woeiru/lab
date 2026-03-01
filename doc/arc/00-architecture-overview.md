@@ -13,7 +13,7 @@ This repository is a Bash-native infrastructure automation system with two prima
 | Dependency injection engine | `src/dic/ops`, `src/dic/lib/*` | Resolves operation arguments and dispatches module functions (`module_function`). |
 | Deployment manifests | `src/set/*`, `src/set/.menu` | Defines task sections (`*_xall`) and calls DIC through `ops ...` commands. |
 | Operations libraries | `lib/ops/*` | Implements infrastructure actions invoked by DIC or sourced runtime environment. |
-| Verification suite | `val/run_all_tests.sh`, `val/**/*.sh` | Validates behavior by category (`core`, `lib`, `integration`, `src`, `dic`, `legacy`). |
+| Verification suite | `val/run_all_tests.sh`, `val/lib/run_all_tests.sh`, `val/**/*_test.sh`, plus legacy scripts under `val/` | Validates behavior by category (`core`, `lib`, `integration`, `src`, `dic`, `legacy`). |
 
 ## 2. Runtime/Load Sequence
 
@@ -22,9 +22,9 @@ This repository is a Bash-native infrastructure automation system with two prima
 1. User runs `./go init` once to persist helper functions and save `.tmp/go_settings` (`setup_shell_integration`, `save_settings`, `inject_helper_functions`).
 2. User enables startup loading with `./go on` (`handle_on_command` -> `inject_content`), which writes `. <lab_root>/bin/ini` into the selected shell RC file.
 3. New shell sources `bin/ini`; `main_ini` runs and loads `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`, `lib/core/ver`, then core modules `col`, `err`, `lo1`, `tme`.
-4. `bin/ini` sources `bin/orc`, runs `init_runtime_system`, and calls `setup_components` to load `cfg/core/ecc`, `cfg/ali/*`, `lib/ops/*`, `lib/gen/*`, `cfg/env` (site required, env/node optional), and `src/aux/*`.
+4. `bin/ini` sources `bin/orc`, runs `init_runtime_system`, and calls `setup_components` to attempt loading `cfg/core/ecc`, `cfg/ali/*`, `lib/ops/*`, `lib/gen/*`, `cfg/env` (site required, env/node optional), and `source_src_aux` from `SRC_AUX_DIR` (optional).
 5. A deployment script (for example `src/set/h1`) sources `src/set/.menu` and `src/dic/ops`, then routes `-i` or `-x` through `setup_main`.
-6. Selected `*_xall` sections invoke `ops module function ...`; DIC resolves/injects arguments (`ops_main` -> `ops_execute` -> `ops_inject_and_execute`) and calls target `lib/ops/<module>` functions.
+6. Selected `*_xall` sections invoke `ops module function ...`; DIC resolves/injects arguments (`ops_main` -> `ops_execute` -> `ops_inject_and_execute`) and calls target `module_function` symbols from sourced files in `lib/ops/*`.
 
 ### End-to-end sequence
 
@@ -107,6 +107,7 @@ flowchart LR
 - If `bin/ini` cannot complete `main_ini`, it executes `setup_minimal_environment` and exits non-zero.
 - In `bin/orc`, component execution is wrapper-managed via `execute_component`; current component list marks all components as optional (`COMPONENT_OPTIONAL`).
 - `source_cfg_env` treats base site file as required and env/node overrides as optional.
+- `source_src_aux` returns non-zero when `SRC_AUX_DIR` is missing or unreadable, but current orchestrator settings treat this as optional and continue.
 - `src/set/.menu` is permissive for many sourcing failures (logs warnings, often continues), while argument routing (`setup_main`) returns `1` on invalid mode/args.
 - DIC (`src/dic/ops`) validates module/function existence and returns `1` on missing modules/functions/required context.
 

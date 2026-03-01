@@ -24,7 +24,7 @@
    - sources that module file,
    - validates function existence (`<module>_<function>`),
    - executes directly (utility `*_fun|*_var`) or through injection (`ops_inject_and_execute`).
-6. The target function in `lib/ops/<module>` performs checks and side effects (system/service/config changes) and returns status.
+6. The target `module_function` in sourced `lib/ops/*` files performs checks and side effects (system/service/config changes) and returns status.
 
 ### End-to-end sequence
 

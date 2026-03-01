@@ -16,7 +16,7 @@
 ### Actual call/load order
 
 1. `src/dic/ops` initializes defaults (`OPS_DEBUG`, `OPS_VALIDATE`, `OPS_CACHE`, `OPS_METHOD`).
-2. It sources DIC helper libs: `lib/injector`, `lib/introspector`, `lib/resolver`.
+2. It sources DIC helper libs: `src/dic/lib/injector`, `src/dic/lib/introspector`, `src/dic/lib/resolver`.
 3. It attempts to source utility libraries `lib/gen/ana` and `lib/gen/aux` (`ops_source_utility_libraries`).
 4. It attempts to source base environment file `cfg/env/site1` (`ops_source_environment_config`).
 5. It initializes caches (`FUNCTION_SIGNATURE_CACHE`, `VARIABLE_RESOLUTION_CACHE`).

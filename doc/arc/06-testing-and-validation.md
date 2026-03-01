@@ -9,7 +9,7 @@
 | Test framework | `val/helpers/test_framework.sh` | Common counters, assertions, reporting, perf helpers, temp test env helpers. |
 | Master runner | `val/run_all_tests.sh` | Discovers and runs tests by category (`core`, `lib`, `integration`, `src`, `dic`, `legacy`). |
 | Library suite runner | `val/lib/run_all_tests.sh` | Curated grouped suites for core/ops/gen/lib-integration tests. |
-| Test suites | `val/**/_test.sh` | Module- and scenario-level behavior validation. |
+| Test suites | `val/**/*_test.sh` and legacy scripts in `val/` | Module- and scenario-level behavior validation. |
 
 ## 2. Runtime/Load Sequence
 
@@ -71,7 +71,7 @@ flowchart LR
 
 - Framework initialization mutates process globals (`LAB_ROOT`, counters, color constants) and exports helper functions.
 - Framework can inject `ver_verify_module` mock into the shell process if not already defined.
-- `val/run_all_tests.sh` changes working directory to `$TEST_LAB_DIR` (`$LAB_ROOT`) before execution.
+- `val/run_all_tests.sh` changes working directory to `$TEST_LAB_DIR` (`$LAB_ROOT`) only in the legacy-script execution path (`run_legacy_script`).
 - Temp test environments are created under `/tmp/val_test_*` by helper functions and deleted by cleanup helpers when called.
 
 ## 4. Failure and Fallback Behavior

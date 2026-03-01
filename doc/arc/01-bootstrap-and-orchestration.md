@@ -101,7 +101,7 @@ flowchart LR
     D --> E[source bin/ini]
     E --> F[load core cfg + core libs]
     F --> G[source bin/orc]
-    G --> H[load cfg/ali + lib/ops + lib/gen + cfg/env + src/aux]
+    G --> H[load cfg/ali + lib/ops + lib/gen + cfg/env + optional source_src_aux]
     H --> I[RC_SOURCED=1]
     E --> J[failure path]
     J --> K[minimal PATH + PS1]
@@ -167,7 +167,7 @@ Note: in the current `components` array, every component is configured as option
 3. `source_lib_ops` (`lib/ops/*`, filtered to skip doc/hidden files)
 4. `source_lib_gen` (`lib/gen/*`, then optional password-init hook)
 5. `source_cfg_env` (site required; env/node overrides optional)
-6. `source_src_aux` (`src/aux/*`)
+6. `source_src_aux` (`SRC_AUX_DIR`, default `${LAB_DIR}/src/aux`, optional)
 
 On success, `RC_SOURCED=1` is exported.
 

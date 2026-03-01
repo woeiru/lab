@@ -21,7 +21,7 @@ Logging and error handling are split across core bootstrap modules and runtime u
 3. `bin/ini` loads `lib/core/err`, `lib/core/lo1`, and `lib/core/tme` via `load_modules`.
 4. `tme_init_timer` initializes timing state and `tme.log`; `bin/ini` wraps major phases with timer calls.
 5. `bin/orc` uses `lo1_log` for component progress and `execute_component` routes failures to `err_handler`.
-6. After `lib/gen/aux` is sourced, runtime operations and DIC can emit structured logs via `aux_log`/`aux_dbg` and wrappers (`aux_info`, `aux_warn`, `aux_err`, `aux_audit`, `aux_business`).
+6. After `lib/gen/aux` is sourced, runtime callers (for example `src/dic/ops` and `lib/ops/*` functions) can emit structured logs via `aux_log`/`aux_dbg` and wrappers (`aux_info`, `aux_warn`, `aux_err`, `aux_audit`, `aux_business`).
 
 ### End-to-end sequence
 
@@ -33,6 +33,7 @@ sequenceDiagram
     participant L as lib/core/lo1
     participant T as lib/core/tme
     participant O as bin/orc
+    participant R as Runtime caller (DIC/ops)
     participant A as lib/gen/aux
 
     I->>I: init_logging_system()
@@ -50,7 +51,7 @@ sequenceDiagram
         O->>E: err_print_report()
     end
 
-    O->>A: aux_info/aux_warn/aux_err/aux_dbg (runtime paths)
+    R->>A: aux_info/aux_warn/aux_err/aux_dbg (runtime paths)
     A-->>A: write aux.log/aux.json/aux.csv by format
 ```
 
