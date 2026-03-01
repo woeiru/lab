@@ -368,15 +368,13 @@ respect these safety boundaries.
 
 ## 7) Cursor and Copilot Rules
 
-Checked for repository-level agent rule files:
-- `.cursorrules`
-- `.cursor/rules/`
-- `.github/copilot-instructions.md`
+This repository currently uses `AGENTS.md` as the canonical local agent guide.
 
-Result: none found in this repository at time of writing.
+No additional repository-level rule files were found at time of writing.
 
-If these files are added later, treat them as higher-priority guidance and
-merge them into this document.
+If tool-specific rule files are added later (for example Cursor, Copilot, or
+OpenCode-specific paths), treat them as higher-priority guidance and merge
+them into this document.
 
 ---
 

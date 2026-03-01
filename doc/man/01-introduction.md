@@ -1,13 +1,14 @@
 # 01 - Introduction and Core Concepts
 
-Welcome to the lab infrastructure automation framework. This system provides a robust, stateless, parameterized environment for infrastructure as code, entirely written in Bash. It avoids external binaries, build pipelines, or heavy dependencies, relying instead on standard POSIX utilities and modern Bash 4+ features.
+Welcome to the lab infrastructure automation framework. This system provides a robust, parameter-driven environment for infrastructure as code, entirely written in Bash. It has no compile/build pipeline, and relies on standard POSIX utilities plus module-specific host commands, with Bash 4+ features.
 
 ## Architecture Philosophy
 
 The framework operates on a few key principles:
-- **Stateless Modules:** All actions are implemented as pure, parameterized Bash functions located under `lib/ops/`. They do not rely on global side effects for execution.
+- **Parameter-Driven Modules:** Actions are implemented as explicit, parameterized Bash functions under `lib/ops/`. Caller-facing contracts are argument-driven, while some modules still use runtime globals for coordination and caching.
 - **Dependency Injection Container (DIC):** Rather than typing out long lists of arguments to shell functions, the DIC (`src/dic/ops`) intelligently reads the environment configuration (`cfg/env/`) and injects the necessary parameters based on the current context (site, environment, and hostname).
 - **No Compilation:** There is no `Makefile`, `package.json`, or compilation step. System activation occurs via sourcing helper functions directly into your active shell environment (`bin/ini` and `bin/orc`).
+- **Explicit Runtime Dependencies:** Required host commands vary by module. Use `doc/ref/module-dependencies.md` as the canonical command requirement map before running operations on a target host.
 
 ## The Major Components
 
@@ -33,6 +34,6 @@ In a traditional setup, you might run a script that pulls variables from a file.
 2. The DIC reads the function signature from `lib/ops/gpu`.
 3. The DIC checks the current active environment in `cfg/env/`.
 4. It resolves the exact parameters needed for the node you are targeting.
-5. It executes the stateless function with full tracing and logging applied.
+5. It executes the resolved function call with full tracing and logging applied.
 
 Continue to [02 - Installation and Initialization](02-installation.md) to set up your environment.

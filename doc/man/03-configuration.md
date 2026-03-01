@@ -6,11 +6,14 @@ There are no hardcoded hostnames or IPs in the scripts themselves; everything is
 
 ## The Configuration Hierarchy
 
-The framework uses three cascading layers of state:
+The framework uses one active-context controller plus three cascading config layers:
 
 1. **`cfg/core/ecc` (Environment Configuration Controller):** The global toggle that sets the active context (Site, Environment, and Node).
 2. **`cfg/env/<site_name>` (Base Site Configuration):** The foundational configuration for a specific physical location or cluster.
 3. **`cfg/env/<site_name>-<env>` (Environment Override):** Environment-specific overrides (e.g., `dev`, `staging`, `prod`).
+4. **`cfg/env/<site_name>-<node>` (Node Override):** Node-specific overrides for host-level differences.
+
+Effective precedence for loaded values is: base site -> environment override -> node override.
 
 ## 1. Setting the Active Context
 
@@ -20,6 +23,8 @@ The essential variables are:
 - `SITE_NAME`: The identifier for your infrastructure (e.g., `site1`).
 - `ENVIRONMENT_NAME`: The tier (e.g., `dev`, `prod`).
 - `NODE_NAME`: The specific machine name. This is automatically detected via the `hostname` command, but can be overridden.
+
+At runtime, these resolve to the effective config files referenced by the framework (`SITE_CONFIG_FILE`, `ENV_OVERRIDE_FILE`, and `NODE_OVERRIDE_FILE`).
 
 You can switch environments interactively at runtime using the `env_switch`, `env_site_switch`, or `env_node_switch` functions (provided by the `lib/gen/env` module). Alternatively, you can run `env_status` to see your current context.
 

@@ -1,6 +1,6 @@
 # 02 - Installation and Initialization
 
-The lab infrastructure automation framework is a pure-Bash environment. Setting it up involves initializing a few shell hooks. No external packages, compilers, or build tools are required beyond standard Linux utilities and Bash 4.0+.
+The lab infrastructure automation framework is a Bash-native environment. Setup is shell-hook based, with no compile/build step. Runtime operations rely on standard Linux utilities plus module-specific host commands, with Bash 4.0+.
 
 ## Requirements
 
@@ -13,7 +13,7 @@ The lab infrastructure automation framework is a pure-Bash environment. Setting 
 Clone the project to your local machine or target hypervisor.
 
 ```bash
-git clone https://github.com/your-org/lab.git
+git clone https://github.com/woeiru/lab.git
 cd lab
 ```
 
@@ -27,7 +27,7 @@ The primary entrypoint for the system is the `./go` script. Your first step is t
 ./go init
 ```
 
-*Note: `./go setup` is an alias for this command.*
+Note: `./go setup` is an alias for this command.
 
 **What this does:**
 - It performs a compatibility check on your shell.
@@ -46,7 +46,7 @@ If you want the framework available in every new shell session you open automati
 lab-on
 ```
 
-*(You can disable this later with `lab-off`.)* Note that this requires restarting your shell or sourcing your `~/.bashrc` again.
+You can disable this later with `lab-off`. This requires restarting your shell or sourcing your `~/.bashrc` again.
 
 ### Option B: On-Demand (Current Shell Only)
 
@@ -78,6 +78,8 @@ You can validate the entire framework and ensure no local environment issues exi
 ./go validate
 ```
 
-*Alternatively, run `./val/run_all_tests.sh` directly.*
+Alternatively, run `./val/run_all_tests.sh` directly.
+
+Note: `./go validate` checks initialization state first. In clean or CI-like contexts where shell integration is not initialized, prefer direct validation scripts (for example, `./val/run_all_tests.sh` or a targeted `./val/..._test.sh`).
 
 Continue to [03 - Environment and Configuration](03-configuration.md) to learn how to define your infrastructure.
