@@ -745,15 +745,54 @@ _dev_provider_from_family() {
     esac
 }
 
+_dev_normalize_provider_id() {
+    local provider_id="${1:-}"
+    local normalized="${provider_id,,}"
+
+    if [[ "$normalized" == openai* ]]; then
+        echo "openai"
+        return 0
+    fi
+
+    if [[ "$normalized" == antigravity* ]]; then
+        echo "antigravity"
+        return 0
+    fi
+
+    echo "$normalized"
+    return 0
+}
+
+_dev_is_supported_account_event_type() {
+    local event_type="${1:-}"
+
+    case "$event_type" in
+        account_selected|token_refreshed|auth_switched)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 _dev_record_account_event() {
     local provider_id="$1"
     local account_key="$2"
     local account_label="$3"
     local event_type="${4:-account_selected}"
     local source="${5:-manual_switch}"
+    local trace_id="${6:-}"
+
+    provider_id=$(_dev_normalize_provider_id "$provider_id")
 
     if ! aux_val "$provider_id" "not_empty" || ! aux_val "$account_key" "not_empty"; then
         aux_warn "Skipping account event persistence due to empty provider/account" "component=dev,operation=opencode_account_event"
+        return 0
+    fi
+
+    if ! _dev_is_supported_account_event_type "$event_type"; then
+        aux_warn "Skipping account event persistence due to unsupported event type" "component=dev,operation=opencode_account_event,event_type=$event_type"
         return 0
     fi
 
@@ -768,7 +807,7 @@ _dev_record_account_event() {
         return 0
     }
 
-    python3 - "$db_path" "$provider_id" "$account_key" "$account_label" "$event_type" "$source" <<'PY'
+    python3 - "$db_path" "$provider_id" "$account_key" "$account_label" "$event_type" "$source" "$trace_id" <<'PY'
 import sqlite3
 import sys
 import time
@@ -779,6 +818,7 @@ account_key = sys.argv[3]
 account_label = sys.argv[4]
 event_type = sys.argv[5]
 source = sys.argv[6]
+trace_id = sys.argv[7] if len(sys.argv) > 7 else ""
 
 conn = sqlite3.connect(db_path)
 cur = conn.cursor()
@@ -802,9 +842,17 @@ cur.execute(
     INSERT INTO opencode_account_event (
         time_ms, provider_id, account_key, account_label, event_type, source, trace_id
     )
-    VALUES (?, ?, ?, ?, ?, ?, NULL)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     """,
-    (int(time.time() * 1000), provider_id, account_key, account_label, event_type, source),
+    (
+        int(time.time() * 1000),
+        provider_id,
+        account_key,
+        account_label,
+        event_type,
+        source,
+        trace_id if trace_id else None,
+    ),
 )
 
 conn.commit()
@@ -818,6 +866,78 @@ PY
     fi
 
     aux_dbg "Persisted account attribution event" "component=dev,operation=opencode_account_event,provider_id=$provider_id,account_key=$account_key,event_type=$event_type,source=$source"
+    return 0
+}
+
+# Emits an OpenCode account attribution event for runtime hooks
+# opencode account event emit
+# -x (execute) | <provider_id> <account_key> [event_type] [source] [account_label]
+dev_oae() {
+    # Technical Description:
+    #   Persists attribution events used by session reporting and audit workflows
+    #   Supports explicit arguments and -x runtime-hook mode via OPENCODE_ATTR_* env vars
+    #   Normalizes provider families and validates allowed event types before persistence
+    # Dependencies:
+    #   - opencode CLI for database path resolution
+    #   - python3 with sqlite3 module for append-only writes
+    # Arguments:
+    #   -x                    emit from runtime environment variables
+    #   <provider_id>         provider family or id (e.g. antigravity, openai)
+    #   <account_key>         stable account key (email or opaque id)
+    #   [event_type]          account_selected|token_refreshed|auth_switched (default: account_selected)
+    #   [source]              event source tag (default: opencode_runtime)
+    #   [account_label]       optional human-readable label shown in reports
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    local provider_id=""
+    local account_key=""
+    local account_label=""
+    local event_type="account_selected"
+    local source="opencode_runtime"
+    local trace_id="${OPENCODE_ATTR_TRACE_ID:-}"
+
+    if [ "$1" = "-x" ]; then
+        if [ $# -ne 1 ]; then
+            aux_use
+            return 1
+        fi
+
+        provider_id="${OPENCODE_ATTR_PROVIDER_ID:-}"
+        account_key="${OPENCODE_ATTR_ACCOUNT_KEY:-}"
+        account_label="${OPENCODE_ATTR_ACCOUNT_LABEL:-$account_key}"
+        event_type="${OPENCODE_ATTR_EVENT_TYPE:-account_selected}"
+        source="${OPENCODE_ATTR_SOURCE:-opencode_runtime}"
+    else
+        if [ $# -lt 2 ] || [ $# -gt 5 ]; then
+            aux_use
+            return 1
+        fi
+
+        provider_id="$1"
+        account_key="$2"
+        event_type="${3:-account_selected}"
+        source="${4:-opencode_runtime}"
+        account_label="${5:-$account_key}"
+    fi
+
+    provider_id=$(_dev_normalize_provider_id "$provider_id")
+    if ! aux_val "$provider_id" "not_empty" || ! aux_val "$account_key" "not_empty"; then
+        aux_err "Provider and account key are required" "component=dev,operation=opencode_account_event_emit"
+        aux_use
+        return 1
+    fi
+
+    if ! _dev_is_supported_account_event_type "$event_type"; then
+        aux_err "Unsupported event type '$event_type' (expected: account_selected, token_refreshed, auth_switched)" "component=dev,operation=opencode_account_event_emit"
+        return 1
+    fi
+
+    _dev_record_account_event "$provider_id" "$account_key" "$account_label" "$event_type" "$source" "$trace_id"
+    aux_info "Account attribution event emitted" "component=dev,operation=opencode_account_event_emit,provider_id=$provider_id,event_type=$event_type,source=$source"
     return 0
 }
 

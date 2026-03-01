@@ -70,6 +70,7 @@ PY
 test_dev_functions_exist() {
     declare -f dev_osv >/dev/null 2>&1 || return 1
     declare -f dev_omi >/dev/null 2>&1 || return 1
+    declare -f dev_oae >/dev/null 2>&1 || return 1
     declare -f dev_olb >/dev/null 2>&1 || return 1
     declare -f dev_oqu >/dev/null 2>&1 || return 1
     declare -f dev_oas >/dev/null 2>&1 || return 1
@@ -448,6 +449,116 @@ rows = {row.get('title', ''): row for row in reader}
 ok = (
     rows.get('Session D', {}).get('user') == '(unknown)' and
     rows.get('Session D', {}).get('conf') == 'none'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: Latest event before first prompt wins for repeated provider events
+test_dev_overview_latest_event_before_prompt() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_latest_event")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_ffffffffffffffffffffff66f", "project_lab", "/home/es/lab", "Session F", 1771761000000),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_f_user", "ses_ffffffffffffffffffffff66f", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_f_assistant", "ses_ffffffffffffffffffffff66f", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771758000000, "openai", "alice@example.com", "alice@example.com", "opencode_event"),
+)
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771759500000, "openai", "bob@example.com", "bob@example.com", "opencode_event"),
+)
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771760500000, "openai", "carol@example.com", "carol@example.com", "opencode_event"),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session F', {}).get('user') == 'bob@example.com' and
+    rows.get('Session F', {}).get('src') == 'opencode_event' and
+    rows.get('Session F', {}).get('conf') == 'high'
 )
 print('OK' if ok else 'FAIL')
 PY
@@ -980,6 +1091,120 @@ test_dev_oas_creates_backup() {
     return 0
 }
 
+# Test: dev_oae supports runtime hook mode via OPENCODE_ATTR_* env vars
+test_dev_oae_runtime_hook_mode() {
+    local test_env
+    test_env=$(create_test_env "dev_oae_runtime")
+    local db_path="$test_env/opencode.db"
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    OPENCODE_ATTR_PROVIDER_ID="openai"
+    OPENCODE_ATTR_ACCOUNT_KEY="runtime@example.com"
+    OPENCODE_ATTR_ACCOUNT_LABEL="runtime@example.com"
+    OPENCODE_ATTR_EVENT_TYPE="account_selected"
+    OPENCODE_ATTR_SOURCE="opencode_runtime"
+    OPENCODE_ATTR_TRACE_ID="trace-runtime-1"
+    dev_oae -x >/dev/null 2>&1
+    local status=$?
+
+    local event_row=""
+    if [[ $status -eq 0 ]]; then
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, account_label, event_type, source, trace_id
+    FROM opencode_account_event
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join((x or "") for x in row) if row else "")
+PY
+)
+    fi
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_row" == "openai|runtime@example.com|runtime@example.com|account_selected|opencode_runtime|trace-runtime-1" ]] || return 1
+    return 0
+}
+
+# Test: dev_oae supports token_refreshed event persistence
+test_dev_oae_token_refreshed_event() {
+    local test_env
+    test_env=$(create_test_env "dev_oae_token_refresh")
+    local db_path="$test_env/opencode.db"
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    dev_oae "antigravity" "refresh@example.com" "token_refreshed" "connector_event" "refresh@example.com" >/dev/null 2>&1
+    local status=$?
+
+    local event_row=""
+    if [[ $status -eq 0 ]]; then
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, account_label, event_type, source
+    FROM opencode_account_event
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join((x or "") for x in row) if row else "")
+PY
+)
+    fi
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_row" == "antigravity|refresh@example.com|refresh@example.com|token_refreshed|connector_event" ]] || return 1
+    return 0
+}
+
 # Test: dev_oas records account attribution event when OpenCode DB is available
 test_dev_oas_records_account_event() {
     local test_env
@@ -1048,6 +1273,7 @@ main() {
     run_test test_dev_overview_user_attribution
     run_test test_dev_overview_best_effort_flag
     run_test test_dev_overview_provider_mismatch_no_cross_attribution
+    run_test test_dev_overview_latest_event_before_prompt
     run_test test_dev_overview_best_effort_legacy_control_account
     run_test test_dev_move_session_by_suffix
     run_test test_dev_move_suffix_ambiguity
@@ -1066,6 +1292,8 @@ main() {
     run_test test_dev_oas_rejects_out_of_range
     run_test test_dev_oas_rejects_unknown_family
     run_test test_dev_oas_creates_backup
+    run_test test_dev_oae_runtime_hook_mode
+    run_test test_dev_oae_token_refreshed_event
     run_test test_dev_oas_records_account_event
 
     test_footer
