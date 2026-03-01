@@ -567,6 +567,143 @@ PY
     [[ "$parsed" == "OK" ]]
 }
 
+# Test: Mixed account_selected/token_refreshed timeline remains deterministic across providers
+test_dev_overview_mixed_event_replay_deterministic() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_mixed_event_replay")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    event_type TEXT,
+    source TEXT,
+    trace_id TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_gggggggggggggggggggggg77g", "project_lab", "/home/es/lab", "Session G", 1771762000000),
+)
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_hhhhhhhhhhhhhhhhhhhhhh88h", "project_lab", "/home/es/lab", "Session H", 1771763000000),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_g_user", "ses_gggggggggggggggggggggg77g", 1771761000000, 1771761000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_g_assistant", "ses_gggggggggggggggggggggg77g", 1771761001000, 1771761001000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_h_user", "ses_hhhhhhhhhhhhhhhhhhhhhh88h", 1771762500000, 1771762500000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_h_assistant", "ses_hhhhhhhhhhhhhhhhhhhhhh88h", 1771762501000, 1771762501000, '{"role":"assistant","providerID":"antigravity","modelID":"ag-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, event_type, source, trace_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    (1771760000000, "openai", "oa-old@example.com", "oa-old@example.com", "account_selected", "opencode_runtime", "trace-oa-1"),
+)
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, event_type, source, trace_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    (1771760500000, "openai", "oa-refresh@example.com", "oa-refresh@example.com", "token_refreshed", "connector_event", "trace-oa-2"),
+)
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, event_type, source, trace_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    (1771761500000, "openai", "oa-post@example.com", "oa-post@example.com", "account_selected", "opencode_runtime", "trace-oa-3"),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, event_type, source, trace_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    (1771761800000, "antigravity", "ag-old@example.com", "ag-old@example.com", "account_selected", "manual_switch", "trace-ag-1"),
+)
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, event_type, source, trace_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    (1771762400000, "antigravity", "ag-refresh@example.com", "ag-refresh@example.com", "token_refreshed", "connector_event", "trace-ag-2"),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session G', {}).get('user') == 'oa-refresh@example.com' and
+    rows.get('Session G', {}).get('src') == 'connector_event' and
+    rows.get('Session G', {}).get('conf') == 'high' and
+    rows.get('Session H', {}).get('user') == 'ag-refresh@example.com' and
+    rows.get('Session H', {}).get('src') == 'connector_event' and
+    rows.get('Session H', {}).get('conf') == 'high'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
 # Test: Best-effort mode can use legacy control_account timeline
 test_dev_overview_best_effort_legacy_control_account() {
     local test_env
@@ -1274,6 +1411,7 @@ main() {
     run_test test_dev_overview_best_effort_flag
     run_test test_dev_overview_provider_mismatch_no_cross_attribution
     run_test test_dev_overview_latest_event_before_prompt
+    run_test test_dev_overview_mixed_event_replay_deterministic
     run_test test_dev_overview_best_effort_legacy_control_account
     run_test test_dev_move_session_by_suffix
     run_test test_dev_move_suffix_ambiguity

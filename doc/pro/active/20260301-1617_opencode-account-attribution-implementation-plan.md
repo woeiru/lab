@@ -29,12 +29,14 @@ Execution started now to implement strict, event-based session attribution in `d
 - Added `dev_oae` runtime-hook emitter in `lib/ops/dev` for non-manual attribution event writes via `-x` + `OPENCODE_ATTR_*` env vars or explicit args.
 - Added validated event-type support (`account_selected`, `token_refreshed`, `auth_switched`) plus optional `trace_id` persistence in `_dev_record_account_event`.
 - Extended tests for deterministic repeated-event timeline resolution (latest-before-first-prompt) and runtime/token-refresh event emission paths.
+- Added mixed event replay coverage for `account_selected` + `token_refreshed` across providers/sessions with deterministic latest-before-first-prompt assertions.
 - Regenerated reference docs via `./utl/doc/run_all_doc.sh` so `doc/ref/functions.md` and related maps include `dev_oae` and updated metrics.
+- Committed resume-session attribution updates in `866ac019`.
 - Committed implementation in three commits: `2d5679f6`, `ffc451d9`, `2e12e5a2`.
 
 ### In-flight
 
-- Attribution follow-up changes from this resume session are currently uncommitted (`lib/ops/dev`, `val/lib/ops/dev_test.sh`, regenerated `doc/ref/*`).
+- Current uncommitted follow-up change is test-only replay coverage in `val/lib/ops/dev_test.sh` from post-commit continuation.
 - Remaining in-flight integration is wiring `dev_oae -x` into real OpenCode runtime request/auth hook points outside this repo.
 
 ### Blockers
@@ -46,14 +48,14 @@ Execution started now to implement strict, event-based session attribution in `d
 
 1. Wire `dev_oae -x` into the actual OpenCode runtime request path so each request-time account choice emits `event_type=account_selected` automatically.
 2. Wire `dev_oae -x` into the actual credential refresh path so identity changes emit `event_type=token_refreshed` with `OPENCODE_ATTR_TRACE_ID` when available.
-3. Add one integration-style test fixture that replays mixed `account_selected` + `token_refreshed` events and asserts deterministic attribution across multiple sessions/providers.
-4. Keep this active plan current through upstream hook wiring acceptance and final merge/commit steps.
+3. Keep this active plan current through upstream hook wiring acceptance and final merge/commit steps.
 
 ### Context
 
 - Branch: `master`.
 - Relevant modified modules now include `lib/ops/dev`, `val/lib/ops/dev_test.sh`, and regenerated `doc/ref/` references.
-- Resume-session test result: `./val/lib/ops/dev_test.sh` passed `27/27`.
+- Latest local test result: `./val/lib/ops/dev_test.sh` passed `28/28`.
+- Resume-session code/doc batch committed at `866ac019`; branch is now ahead with that commit.
 - Reference docs regenerated successfully via `./utl/doc/run_all_doc.sh`.
 - Branch currently includes additional doc/pro commits after the prior checkpoint; attribution state remains consistent.
 - No temporary files or ad-hoc local fixtures are required to resume; tests create/clean their own temp environments.
