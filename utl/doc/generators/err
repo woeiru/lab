@@ -116,6 +116,34 @@ This page tracks analyzer-derived error and exit handling patterns across projec
 
 <!-- AUTO-GENERATED SECTION: Error Handling Table -->
 <!-- END AUTO-GENERATED SECTION -->
+
+## How to Use This Table
+
+This page is generated from `ana_err` (error handling analysis) and highlights return paths, explicit exits, and structured `aux_*` log emissions.
+
+### Terminal Analyzer (ERR)
+
+```bash
+# direct analyzer usage
+ana_err lib/gen/ana
+ana_err -j --json-dir .tmp/doc/err lib/gen/ana
+
+# cycle profile from aliases (cfg/ali/sta)
+ffl-err_cycle
+```
+
+### Second-Layer API Flow
+
+- Layer 1 (core analyzer): `lib/gen/ana` -> `ana_err`
+- Layer 2 (terminal API): wrappers in `cfg/ali/sta` (for example `_ffl_err_core`, `_ffl_err_ops`, `_ffl_err_cycle`)
+- Traversal helper: `lib/gen/aux` -> `aux_ffl` (used to apply ERR over folder scopes)
+- Documentation layer: `utl/doc/generators/err` runs `ana_err -j --json-dir .tmp/doc/err` and renders this table
+
+### JSON Fork for Docs
+
+For documentation, `ana_err` writes intermediate JSON into `.tmp/doc/err/`. The generator reads those files to build Markdown while terminal output remains independent. This keeps CLI behavior stable and doc generation reproducible.
+
+See `utl/doc/README.md` for orchestration and generator namespace details: [`../../utl/doc/README.md`](../../utl/doc/README.md)
 EOF
     fi
 
