@@ -3,6 +3,56 @@
 This guide explains how runtime context and infrastructure values are defined in `cfg/`.
 The DIC (`ops`) and deployment scripts consume these values at execution time.
 
+## Command Decision Flow
+
+Use these decision maps to choose the right configuration layering and context
+switch method.
+
+### Configuration layer composition
+
+```mermaid
+flowchart TD
+    A["Preparing config for a site"] --> B{"Need environment-specific values?"}
+    B -->|no| S["Use base site layer\ncfg/env/<site>"]
+    B -->|yes| C{"Need host-specific overrides?"}
+
+    C -->|no| E["Use site + environment layers\ncfg/env/<site> + cfg/env/<site>-<env>"]
+    C -->|yes| N["Use site + environment + node layers\n... + cfg/env/<site>-<node>"]
+
+    S --> P["Effective precedence:\nbase site"]
+    E --> P2["Effective precedence:\nbase -> environment"]
+    N --> P3["Effective precedence:\nbase -> environment -> node"]
+```
+
+| Method/layer | When to use | Scope of effect |
+|--------------|-------------|-----------------|
+| Base site file (`cfg/env/<site>`) | Single environment or shared defaults only | Applies to all contexts for the site |
+| Site + environment override (`cfg/env/<site>-<env>`) | Distinct values per environment (dev/stage/prod) | Overrides base values for one environment |
+| Site + environment + node override (`cfg/env/<site>-<node>`) | Host-specific tuning is required | Overrides base/environment for one node |
+
+### Context switching method
+
+```mermaid
+flowchart TD
+    A["Need to change active context"] --> B{"What is changing?"}
+    B -->|site| S["env_site_switch <site>"]
+    B -->|environment| E["env_switch <env>"]
+    B -->|node| N["env_node_switch <node>"]
+    B -->|multiple or manual review| M["Edit cfg/core/ecc directly"]
+
+    S --> R["Reload runtime: lab"]
+    E --> R
+    N --> R
+    M --> R
+```
+
+| Method/layer | When to use | Scope of effect |
+|--------------|-------------|-----------------|
+| `env_site_switch <site>` | Switching site baseline quickly | Updates `SITE_NAME` in `cfg/core/ecc` |
+| `env_switch <env>` | Moving between env tiers | Updates `ENVIRONMENT_NAME` in `cfg/core/ecc` |
+| `env_node_switch <node>` | Targeting a different host context | Updates `NODE_NAME` in `cfg/core/ecc` |
+| Manual edit (`cfg/core/ecc`) | Coordinated multi-field changes or explicit review | Full control over active context fields |
+
 ## 1. Configuration Model and Precedence
 
 The active runtime context is a combination of one controller file and layered env files:

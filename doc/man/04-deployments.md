@@ -3,6 +3,47 @@
 This guide explains how deployment runbooks in `src/set/` are structured and executed.
 These scripts orchestrate multi-step infrastructure actions by calling `ops` functions.
 
+## Command Decision Flow
+
+Use these decision maps to choose execution mode and validation scope before
+running a runbook.
+
+### Runbook execution mode
+
+```mermaid
+flowchart TD
+    A["Need to run a deployment runbook?"] --> B{"Running one known section?"}
+    B -->|yes| X["Direct mode\n./src/set/<host> -x <section>"]
+    B -->|no| I["Interactive mode\n./src/set/<host> -i"]
+
+    X --> XS["Immediate single-section execution"]
+    I --> IS["Menu-guided selection across sections"]
+```
+
+| Mode/scope | When to use | Side effects |
+|------------|-------------|--------------|
+| Direct mode (`-x <section>`) | Known bounded task or automation path | Executes selected section immediately; state-changing |
+| Interactive mode (`-i`) | Exploring options or running multiple sections manually | Executes selected sections from menu; state-changing |
+
+### Validation scope after changes
+
+```mermaid
+flowchart TD
+    A["After editing runbook-related files"] --> B{"Single file only?"}
+    B -->|yes| N["Syntax check\nbash -n <file>"]
+    N --> T["Run nearest single test\n./val/<path>/<test>.sh"]
+    B -->|no| C{"All changes in one module?"}
+
+    C -->|yes| S["Category tests\n./val/run_all_tests.sh src"]
+    C -->|no| F["Full suite\n./val/run_all_tests.sh"]
+```
+
+| Mode/scope | When to use | Side effects |
+|------------|-------------|--------------|
+| `bash -n <file>` + nearest test | Single-file edit | Read-only syntax check, then targeted test run |
+| `./val/run_all_tests.sh src` | Multiple files in one module (e.g., runbook + helper) | Runs `src` test category |
+| `./val/run_all_tests.sh` | Cross-module or structural change | Runs complete suite; highest confidence and runtime |
+
 ## 1. Prerequisites and Safety
 
 - Load runtime first in the current shell (`lab`) before using runbooks.

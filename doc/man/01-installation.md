@@ -3,6 +3,15 @@
 This guide is for operators setting up the lab framework on a workstation or host.
 The system is Bash-native (no compile/build step) and is activated by shell integration.
 
+## Command Summary
+
+| Command | When to use | Persistence / side effects |
+|---------|-------------|----------------------------|
+| `./go init` | First-time setup of helper functions and shell integration | Modifies shell startup file and creates backups |
+| `lab` | Use runtime only in current shell session | Non-persistent activation for current shell |
+| `lab-on` | Default to auto-load in all new shells | Persistent auto-load enabled in startup file |
+| `lab-off` | Disable previously enabled auto-load | Persistent auto-load block is disabled |
+
 ## 1. Prerequisites and Safety
 
 - **Platform:** Linux (Debian/Proxmox-oriented workflows are the main target).

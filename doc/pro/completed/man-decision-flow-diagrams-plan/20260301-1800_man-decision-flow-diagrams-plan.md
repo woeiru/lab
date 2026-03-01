@@ -1,9 +1,9 @@
 # Man Decision Flow Diagrams Plan
 
-- Status: inbox
+- Status: completed
 - Owner: es
-- Started: n/a
-- Updated: 2026-03-01
+- Started: 2026-03-01
+- Updated: 2026-03-01 (completed)
 - Links: doc/man/README.md (Decision flow diagrams standard), doc/man/07-dev-session-attribution-workflow.md (reference implementation)
 
 ## Goal
@@ -14,6 +14,14 @@ standard added to `doc/man/README.md`.
 
 `05-writing-modules.md` is excluded: it is prescriptive with a single
 mandatory pattern and no branching operator decisions.
+
+## Triage Decision
+
+This item is promoted directly to active because it is already fully scoped,
+ordered by impact, and implementation-ready with concrete target files,
+placement rules, and done criteria. Queue is skipped to reduce operator
+guidance drift and unblock immediate documentation quality updates in the
+highest-confusion manual sections (`03-cli-usage.md` and `04-deployments.md`).
 
 ## Implementation items
 
@@ -132,7 +140,24 @@ Place after the intro paragraph, before Section 1.
 | 4 | 01-installation.md | Simpler decision, but first doc operators see |
 | 5 | 06-security-and-logging.md | Moderate benefit, more reference than procedural |
 
-## Done criteria
+## Execution Plan (today)
+
+1. Update `doc/man/03-cli-usage.md` with decision diagrams A/B and a compact
+   summary table; add cross-reference (not duplication) for attribution flow.
+2. Update `doc/man/04-deployments.md` with execution-mode and validation-scope
+   decision diagrams plus summary table.
+3. Update `doc/man/02-configuration.md` with composition/context-switch diagrams
+   and summary table, then checkpoint consistency against style standard.
+
+## Verification Plan
+
+- Run workflow integrity check: `bash doc/pro/check-workflow.sh`.
+- Validate each edited manual file for diagram placement (after intro,
+  before section 1/prerequisites) and summary table completeness.
+- Run markdown lint/readability spot checks for heading continuity and link
+  correctness across all touched manual pages.
+
+## Exit Criteria
 
 - Each target doc contains a mermaid flowchart and summary table per the
   `doc/man/README.md` standard.
@@ -140,3 +165,68 @@ Place after the intro paragraph, before Section 1.
 - Existing content and section numbering remain intact.
 - Traceability checklist from `doc/man/README.md` passes for each changed file.
 - No duplication of the `07` attribution flow in `03` -- use cross-reference.
+
+## Review Fixes (2026-03-01)
+
+Post-implementation review identified four issues. All fixed in-place.
+
+### Fix 1 (high): 04-deployments.md validation scope diagram
+
+**Problem:** The "no" branch from "Cross-module or structural change?" landed
+on "Integration checks", but there is no real-world scenario that is
+not-single-file, not-module-scoped, and not-cross-module. The branch was
+unreachable and the four-node chain was overcomplicated.
+
+**Fix:** Simplified to three terminal nodes: single file → syntax check +
+nearest test, multiple files in one module → category tests, otherwise → full
+suite. Removed the dead "integration" branch. Updated summary table to match.
+
+### Fix 2 (high): 03-cli-usage.md DIC mode diagram
+
+**Problem:** Preview mode (`P`) had an arrow into the `-x` execute-flag
+decision node, implying operators should add `-x` to a read-only preview.
+Preview is read-only and never takes `-x`.
+
+**Fix:** Disconnected preview from the `-x` decision. Preview now terminates
+at its own node ("Read-only preview output / no execution"). Hybrid and
+injection modes still flow into the `-x` check.
+
+### Fix 3 (medium): 01-installation.md diagram removed
+
+**Problem:** `doc/man/README.md` line 67 explicitly exempts "linear
+single-path procedures (e.g., installation, setup)" from decision flow
+diagrams. The activation flowchart in `01` was accurate but contradicted the
+project's own standard.
+
+**Fix:** Removed the mermaid diagram. Kept the summary table (renamed heading
+to "Command Summary") so operators still get the quick-reference lookup.
+
+### Fix 4 (low): 06-security-and-logging.md logging layer diagram
+
+**Problem:** The catch-all terminal node read "Select primary layer by
+ownership and avoid duplicate messages" -- a principle, not a concrete action.
+Every terminal node should map to a specific thing the operator does.
+
+**Fix:** Replaced with "Use aux_* in lib/gen/* utilities / use lo1 elsewhere
+in bootstrap chain", giving a concrete layer assignment for the remaining
+code locations.
+
+## What Changed
+
+- Finalized the decision-flow diagram rollout plan and captured all accepted
+  post-review corrections across manual docs.
+- Aligned manual coverage with `doc/man/README.md` standards, including the
+  linear-procedure exemption for `doc/man/01-installation.md`.
+- Closed this workflow item and moved it from `doc/pro/active/` to
+  `doc/pro/completed/man-decision-flow-diagrams-plan/` with the original
+  filename prefix preserved.
+
+## What Was Verified
+
+- `bash doc/pro/check-workflow.sh` -> pass.
+
+## What Remains
+
+- No required follow-up remains for this plan in the current scope.
+- Optional future work: add or revise diagrams only when new manual sections
+  introduce meaningful branching operator decisions.

@@ -3,6 +3,52 @@
 This guide explains how to handle secrets safely and how to produce auditable logs
 across runtime, ops modules, and deployment flows.
 
+## Command Decision Flow
+
+Use these decision maps to select the correct logging layer and output format
+before wiring new logs.
+
+### Logging layer selection
+
+```mermaid
+flowchart TD
+    A["Need to add logging"] --> B{"Code is in lib/ops/*?"}
+    B -->|yes| AUX["Use aux_* helpers\naux_info/aux_warn/aux_err/..."]
+    B -->|no| C{"Code is bootstrap/runtime flow?"}
+
+    C -->|yes| LO1["Use lo1 runtime logger"]
+    C -->|no| D{"Handling errors/failures/reporting?"}
+    D -->|yes| ERR["Use err helpers\nerr_process/err_handler/..."]
+    D -->|no| MIX["Use aux_* in lib/gen/* utilities\nuse lo1 elsewhere in bootstrap chain"]
+```
+
+| Layer/format | When to use | Output destination |
+|--------------|-------------|--------------------|
+| `aux_*` | Operational messages inside `lib/ops/*` and operator-facing actions | `AUX_LOG_FORMAT` target (for example `${LOG_DIR}/aux.log`, `.json`, `.csv`) |
+| `lo1` | Core runtime/bootstrap/orchestration flow (`bin/ini`, `bin/orc`) | `${LOG_DIR}/lo1.log` |
+| `err` | Structured error handling, failure processing, and reports | `${LOG_DIR}/err.log` |
+
+### AUX log format selection
+
+```mermaid
+flowchart TD
+    A["Set AUX_LOG_FORMAT"] --> B{"Primary consumer is human terminal/log review?"}
+    B -->|yes| H["human (default)"]
+    B -->|no| C{"Need machine-parseable structure?"}
+
+    C -->|yes| J["json"]
+    C -->|no| D{"Need spreadsheet/tabular export?"}
+    D -->|yes| CSV["csv"]
+    D -->|no| KV["kv / keyvalue"]
+```
+
+| Layer/format | When to use | Output destination |
+|--------------|-------------|--------------------|
+| `human` | Default operator-readable logs in terminal and file views | `${LOG_DIR}/aux.log` |
+| `json` | Machine parsing, tooling ingestion, structured pipelines | `${LOG_DIR}/aux.json` |
+| `csv` | Tabular exports and spreadsheet workflows | `${LOG_DIR}/aux.csv` |
+| `kv` / `keyvalue` | Lightweight structured key-value text logs | `${LOG_DIR}/aux.log` |
+
 ## 1. Security Baselines
 
 - Never hardcode secrets in `cfg/env/*`, `lib/ops/*`, or `src/set/*`.

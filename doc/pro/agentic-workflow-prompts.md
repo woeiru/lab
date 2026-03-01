@@ -16,7 +16,7 @@ Core rules (prepend to any template below):
 - Run: bash doc/pro/check-workflow.sh before finishing.
 ```
 
-## 1) Capture a new idea in inbox
+## 💡 1) Capture a new idea in inbox
 
 ```text
 <IDEA>
@@ -33,7 +33,7 @@ Requirements:
 - Return: created file path + 3-bullet summary
 ```
 
-## 2) Triage inbox -> queue
+## 📥 2) Triage inbox -> queue
 
 ```text
 Review all files in doc/pro/inbox and pick the highest-value next item.
@@ -47,7 +47,7 @@ Then:
 - Return: moved file path, reason, and top 2 deferred items
 ```
 
-## 3) Direct move inbox -> queue (known item)
+## 📦 3) Direct move inbox -> queue (known item)
 
 ```text
 <INBOX_FILE_PATH>
@@ -68,7 +68,7 @@ Return:
 - Validation result
 ```
 
-## 4) Start execution queue -> active
+## 🚀 4) Start execution queue -> active
 
 ```text
 <QUEUE_FILE_PATH>
@@ -86,7 +86,7 @@ Requirements:
 - Return: active path + next 3 execution steps
 ```
 
-## 5) Close active -> completed
+## ✅ 5) Close active -> completed
 
 ```text
 <ACTIVE_FILE_PATH>
@@ -107,7 +107,7 @@ Requirements:
 - Return: completed folder path + verification evidence summary
 ```
 
-## 6) Close active/queue/inbox -> dismissed
+## 🗑️ 6) Close active/queue/inbox -> dismissed
 
 ```text
 <FILE_PATH>
@@ -125,7 +125,7 @@ Requirements:
 - Return: dismissed file path + rationale
 ```
 
-## 7) Weekly maintenance sweep
+## 🧹 7) Weekly maintenance sweep
 
 ```text
 Perform a weekly doc/pro hygiene pass.
@@ -144,7 +144,7 @@ Return format:
 - Any structural fixes applied
 ```
 
-## 8) Combined "do it all" orchestrator prompt
+## 🎛️ 8) Combined "do it all" orchestrator prompt
 
 ```text
 You are my workflow operator for doc/pro.
@@ -173,7 +173,7 @@ Return:
 - Suggested next action for me
 ```
 
-## 9) Fast-track inbox -> active (triage + start in one step)
+## ⚡ 9) Fast-track inbox -> active (triage + start in one step)
 
 ```text
 <INBOX_FILE_PATH>
@@ -196,7 +196,7 @@ Requirements:
 Use only when the item is clearly highest priority and ready to execute now.
 ```
 
-## 10) Move to experiments (spike/prototype)
+## 🧪 10) Move to experiments (spike/prototype)
 
 ```text
 <FILE_PATH>
@@ -218,7 +218,7 @@ Requirements:
 - Return: experiments path + goal summary + time box
 ```
 
-## 11) Resolve experiment -> queue or dismissed
+## 🔬 11) Resolve experiment -> queue or dismissed
 
 ```text
 <EXPERIMENT_FILE_PATH>
@@ -238,7 +238,7 @@ Requirements:
 - Return: destination path + outcome summary + what was learned
 ```
 
-## 12) Checkpoint active item (save progress for context handoff)
+## 💾 12) Checkpoint active item (save progress for context handoff)
 
 Use before closing a context window or switching to a different task.
 The LLM captures everything the next context needs to continue.
@@ -267,7 +267,7 @@ Requirements:
 - Return: updated file path + 5-bullet handoff summary
 ```
 
-## 13) Resume active item (pick up in new context)
+## 🔄 13) Resume active item (pick up in new context)
 
 Use at the start of a new context window to continue work on an active item.
 The LLM reads the plan, orients itself, and continues execution.

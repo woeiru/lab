@@ -3,6 +3,60 @@
 This guide covers the operator CLI flow for `lib/ops/*` functions.
 The primary interface is the DIC command: `ops` (`src/dic/ops`).
 
+## Command Decision Flow
+
+Use these decision maps to select the right invocation pattern before running
+state-changing commands.
+
+### Direct call vs DIC call
+
+```mermaid
+flowchart TD
+    A["Need to run an ops function?"] --> B{"Ad-hoc debugging with full manual args?"}
+    B -->|yes| C["Direct call\n<module>_<function> ..."]
+    B -->|no| D["DIC call\nops <module> <function> ..."]
+
+    C --> E["You provide all required arguments"]
+    D --> F["DIC resolves missing values from config/env"]
+```
+
+| Command/mode | When to use | Side effects |
+|--------------|-------------|--------------|
+| Direct shell call (`gpu_ptd ...`) | Debugging or function-level testing when you want full manual control | Depends on target function; often state-changing |
+| DIC call (`ops gpu ptd ...`) | Day-to-day operation and runbooks where injection reduces argument errors | Depends on target function; often state-changing |
+
+### DIC execution mode selection
+
+```mermaid
+flowchart TD
+    A["Using ops <module> <function>"] --> B{"Know the required arguments?"}
+    B -->|no| P["Preview mode\nops <module> <function>"]
+    B -->|yes| C{"Want full env-driven injection?"}
+
+    C -->|yes| J["Injection mode\nops <module> <function> -j"]
+    C -->|no| H["Hybrid mode\nops <module> <function> <arg1> ..."]
+
+    J --> X{"Target function requires execute flag?"}
+    H --> X
+    X -->|yes| PX["Pass-through execute flag\n... -x"]
+    X -->|no| R["Run selected mode"]
+
+    P --> RO["Read-only preview output\nno execution"]
+```
+
+| Command/mode | When to use | Side effects |
+|--------------|-------------|--------------|
+| Preview (`ops <module> <function>`) | Inspect what DIC can inject before execution | Read-only preview |
+| Hybrid (`ops <module> <function> <args...>`) | Provide known leading args and let DIC fill the rest | Executes target function; commonly state-changing |
+| Injection (`ops <module> <function> -j`) | Full environment/config-driven execution (common in runbooks) | Executes target function; commonly state-changing |
+| Pass-through (`... -x`) | Required when target function contract needs explicit execute flag | Enables execution path in target function |
+
+### Dev session attribution decision flow
+
+For attribution command selection (`osv`, `oae`, `orr`, `otr`), use the full
+decision flow in [07 - Dev Session Attribution Workflow](07-dev-session-attribution-workflow.md)
+instead of duplicating it here.
+
 ## 1. Prerequisites and Safety
 
 Load the runtime first in your current shell:
