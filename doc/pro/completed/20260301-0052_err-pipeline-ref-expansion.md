@@ -1,8 +1,9 @@
-# ERR Pipeline Expansion (Active Plan)
+# ERR Pipeline Expansion (Completed Plan)
 
-- Status: active
+- Status: completed
 - Owner: es
 - Created: 2026-03-01
+- Completed: 2026-03-01
 - Scope: `cfg/ali/sta`, `lib/gen/ana`, `utl/doc/generators`, `utl/doc/run_all_doc.sh`, `utl/doc/config/targets`, `doc/ref`
 
 ## Goal
@@ -139,7 +140,8 @@ Add a seventh reference pipeline at parity with LAF/ACU/RDP/DEP/TST/SCP by integ
 3. Remove `ffl-err_*` aliases/wrappers from `cfg/ali/sta`.
 4. Revert `ana_err` compatibility changes only if they were introduced solely for this pipeline.
 
-## Handoff note
+## Completion note
 
-Execution is intentionally out of scope for this document update. This file is
-the full implementation plan and validation contract for manual execution.
+Execution completed successfully. All planned deliverables were implemented,
+validation checks passed, and the `error-handling` generator target is wired at
+parity with existing documentation pipelines.

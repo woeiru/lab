@@ -1,6 +1,6 @@
 # Documentation Generation System
 
-The `utl/doc` system generates the auto-populated reference documentation under `doc/ref/`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/dependencies.md`, `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`, and `doc/ref/scope-integrity.md`.
+The `utl/doc` system generates the auto-populated reference documentation under `doc/ref/`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/dependencies.md`, `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`, `doc/ref/scope-integrity.md`, and `doc/ref/error-handling.md`.
 
 ## Output Files
 
@@ -12,6 +12,7 @@ The `utl/doc` system generates the auto-populated reference documentation under 
 | `dep`     | `doc/ref/module-dependencies.md`| Direct module dependencies (imports + commands) |
 | `tst`     | `doc/ref/test-coverage.md`| Module-to-test traceability with counters and status |
 | `scp`     | `doc/ref/scope-integrity.md`| Variable scope integrity findings (readonly/global/local leak) |
+| `err`     | `doc/ref/error-handling.md`| Error handling patterns (return/exit/aux_err/aux_warn/aux_val) |
 
 ## System Layout
 
@@ -23,6 +24,7 @@ The `utl/doc` system generates the auto-populated reference documentation under 
   - `dep`: Builds direct dependency tables in `doc/ref/module-dependencies.md`.
   - `tst`: Builds test traceability coverage tables in `doc/ref/test-coverage.md`.
   - `scp`: Builds scope integrity tables in `doc/ref/scope-integrity.md`.
+  - `err`: Builds error handling tables in `doc/ref/error-handling.md`.
   - `stats`: Analyzes the codebase to provide system metrics.
 - `config/`: Configuration files.
   - `settings`: Parallelization, pathing, and output location preferences.
@@ -39,6 +41,7 @@ artifacts under `.tmp/doc/` using analyzer-specific namespaces:
 - `dep` -> `ana_dep -j --json-dir .tmp/doc/dep`
 - `tst` -> `ana_tst -j --json-dir .tmp/doc/tst`
 - `scp` -> `ana_scp -j --json-dir .tmp/doc/scp`
+- `err` -> `ana_err -j --json-dir .tmp/doc/err`
 
 This avoids JSON filename collisions between analyzers (for example,
 multiple analyzers emitting `lib_core_err.json`) and keeps each generator
@@ -50,8 +53,8 @@ If generated `doc/ref/*.md` output looks inconsistent with source changes,
 clear namespaced analyzer artifacts and rerun docs:
 
 ```bash
-rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc/rdp /home/es/lab/.tmp/doc/dep /home/es/lab/.tmp/doc/tst /home/es/lab/.tmp/doc/scp
-./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies test-coverage scope-integrity
+rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc/rdp /home/es/lab/.tmp/doc/dep /home/es/lab/.tmp/doc/tst /home/es/lab/.tmp/doc/scp /home/es/lab/.tmp/doc/err
+./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies test-coverage scope-integrity error-handling
 ```
 
 ## Usage
@@ -60,7 +63,7 @@ rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc
 
 ```bash
 ./utl/doc/run_all_doc.sh functions variables
-./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies test-coverage scope-integrity
+./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies test-coverage scope-integrity error-handling
 ```
 
 ### Regenerate individually
@@ -72,6 +75,7 @@ rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc
 ./utl/doc/run_all_doc.sh module-dependencies # updates doc/ref/module-dependencies.md
 ./utl/doc/run_all_doc.sh test-coverage # updates doc/ref/test-coverage.md
 ./utl/doc/run_all_doc.sh scope-integrity # updates doc/ref/scope-integrity.md
+./utl/doc/run_all_doc.sh error-handling # updates doc/ref/error-handling.md
 ```
 
 ### Configuration and Environment

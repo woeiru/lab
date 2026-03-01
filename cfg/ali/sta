@@ -164,6 +164,61 @@
     alias ffl-dep_utl='_ffl_dep_utl'
     alias ffl-dep_cycle='_ffl_dep_cycle'
 
+    # ERR analysis aliases: return/exit/logging error handling summaries.
+    # Wrapper functions are required because aliases cannot forward arguments reliably.
+    _ffl_err_go() {
+        local err_mode="${1:-}"
+        if [[ -n "$err_mode" ]]; then
+            ana_err "$err_mode" "$LAB_DIR/go"
+        else
+            ana_err "$LAB_DIR/go"
+        fi
+    }
+
+    _ffl_err_bin() {
+        local err_mode="${1:-}"
+        aux_ffl ana_err "$err_mode" "$DIR_BIN"
+    }
+
+    _ffl_err_core() {
+        local err_mode="${1:-}"
+        aux_ffl ana_err "$err_mode" "$LIB_CORE_DIR"
+    }
+
+    _ffl_err_gen() {
+        local err_mode="${1:-}"
+        aux_ffl ana_err "$err_mode" "$LIB_GEN_DIR"
+    }
+
+    _ffl_err_ops() {
+        local err_mode="${1:-}"
+        aux_ffl ana_err "$err_mode" "$LIB_OPS_DIR"
+    }
+
+    _ffl_err_src() {
+        local err_mode="${1:-}"
+        aux_ffl ana_err "$err_mode" "$SRC_DIR"
+    }
+
+    _ffl_err_utl() {
+        local err_mode="${1:-}"
+        aux_ffl ana_err "$err_mode" "$UTL_DIR"
+    }
+
+    _ffl_err_cycle() {
+        local err_mode="${1:-}"
+        _ffl_err_go "$err_mode" && _ffl_err_bin "$err_mode" && _ffl_err_core "$err_mode" && _ffl_err_gen "$err_mode" && _ffl_err_ops "$err_mode" && _ffl_err_src "$err_mode" && _ffl_err_utl "$err_mode"
+    }
+
+    alias ffl-err_go='_ffl_err_go'
+    alias ffl-err_bin='_ffl_err_bin'
+    alias ffl-err_core='_ffl_err_core'
+    alias ffl-err_gen='_ffl_err_gen'
+    alias ffl-err_ops='_ffl_err_ops'
+    alias ffl-err_src='_ffl_err_src'
+    alias ffl-err_utl='_ffl_err_utl'
+    alias ffl-err_cycle='_ffl_err_cycle'
+
     # SCP analysis aliases: variable scope integrity and leak summaries.
     # Wrapper functions are required because aliases cannot forward arguments reliably.
     _ffl_scp_go() {

@@ -1924,7 +1924,7 @@ ana_tst() {
 
 # Analyzes error handling and exit codes in a file or specific function
 # analyze errors
-# <file name> [function name] [-j]
+# [options: -j|--json-dir <dir>] <file name> [function name]
 ana_err() {
     # Technical Description:
     #   Parses function bodies to capture explicit return/exit codes and common
@@ -1935,25 +1935,53 @@ ana_err() {
     #   - LAB_DIR (optional) to resolve repository root for JSON output
     #   - aux_use helper for usage output when arguments are invalid
     # Arguments:
+    #   [options]: -j, --json-dir <dir>
     #   $1: file_name - file to analyze for error and exit patterns
     #   $2: [optional] target_func - function name to filter analysis scope
-    #   $3: [optional] -j to write JSON output in .tmp/doc
     local file_name=""
     local target_func=""
     local json_mode=false
+    local json_output_dir=""
+    local positional_count=0
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            -h|--help)
+                echo "Usage: ana_err [options: -j|--json-dir <dir>] <file name> [function name]"
+                return 0
+                ;;
             -j)
                 json_mode=true
                 shift
                 ;;
+            --json-dir)
+                if [[ -z "${2:-}" ]]; then
+                    echo "Error: --json-dir requires a directory path."
+                    return 1
+                fi
+                json_output_dir="$2"
+                shift 2
+                ;;
+            "")
+                # Compatibility with aux_ffl aliases that pass an empty flag
+                shift
+                ;;
+            -*)
+                echo "Unknown option: $1"
+                echo "Usage: ana_err [options: -j|--json-dir <dir>] <file name> [function name]"
+                return 1
+                ;;
             *)
-                if [ -z "$file_name" ]; then
+                ((positional_count++))
+                if [[ $positional_count -eq 1 ]]; then
                     file_name="$1"
-                elif [ -z "$target_func" ]; then
+                elif [[ $positional_count -eq 2 ]]; then
                     target_func="$1"
+                else
+                    echo "Too many positional arguments"
+                    echo "Usage: ana_err [options: -j|--json-dir <dir>] <file name> [function name]"
+                    return 1
                 fi
                 shift
                 ;;
@@ -1961,7 +1989,7 @@ ana_err() {
     done
 
     if [ -z "$file_name" ]; then
-        aux_use
+        echo "Usage: ana_err [options: -j|--json-dir <dir>] <file name> [function name]"
         return 1
     fi
 
@@ -2047,7 +2075,7 @@ ana_err() {
 
     if $json_mode; then
         local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
-        local tmp_dir="$lab_dir/.tmp/doc"
+        local tmp_dir="${json_output_dir:-$lab_dir/.tmp/doc}"
         mkdir -p "$tmp_dir"
         
         local relative_path="${file_name#$lab_dir/}"

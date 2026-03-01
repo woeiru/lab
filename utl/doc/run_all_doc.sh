@@ -51,6 +51,7 @@ GENERATORS=(
     "module-dependencies:dep:Direct module dependency generator"
     "test-coverage:tst:Test traceability coverage generator"
     "scope-integrity:scp:Variable scope integrity generator"
+    "error-handling:err:Error handling and exit-path generator"
     "stats:stats:System metrics generator"
 )
 
@@ -91,6 +92,7 @@ TARGETS:
     module-dependencies Generate direct module dependencies table (dep)
     test-coverage   Generate test traceability coverage table (tst)
     scope-integrity Generate variable scope integrity table (scp)
+    error-handling  Generate error handling table (err)
     stats           Generate system metrics (stats)
 
 CONFIGURATION:
