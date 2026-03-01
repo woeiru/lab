@@ -157,10 +157,12 @@ Use wrapper helpers when upstream OpenCode runtime hooks are unavailable:
 
 ```bash
 ops dev orr openai user@example.com -- "summarize changes"
+ops dev orr openai user@example.com --dry-run -- "summarize changes"
 ops dev otr openai user@example.com user@example.com connector_event
 ```
 
 - `dev_orr` emits `event_type=account_selected` immediately before `opencode run`.
+- `dev_orr --dry-run` emits the same attribution event without executing `opencode run`.
 - `dev_otr` emits `event_type=token_refreshed` for identity refresh transitions.
 
 ## 9. Related Docs

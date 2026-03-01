@@ -1421,6 +1421,78 @@ PY
     return 0
 }
 
+# Test: dev_orr dry-run emits event without invoking opencode run
+test_dev_orr_dry_run_emits_without_run() {
+    local test_env
+    test_env=$(create_test_env "dev_orr_dry_run")
+    local db_path="$test_env/opencode.db"
+
+    cat > "$test_env/bin/opencode" << EOF
+#!/bin/bash
+if [[ "\$1" == "db" && "\$2" == "path" ]]; then
+    echo "$db_path"
+    exit 0
+fi
+if [[ "\$1" == "run" ]]; then
+    touch "$test_env/run_invoked.flag"
+    exit 0
+fi
+exit 1
+EOF
+    chmod +x "$test_env/bin/opencode"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    dev_orr "openai" "dryrun@example.com" --dry-run -- "should not execute" >/dev/null 2>&1
+    local status=$?
+
+    local event_row=""
+    local run_invoked="0"
+    if [[ $status -eq 0 ]]; then
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, account_label, event_type, source
+    FROM opencode_account_event
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join((x or "") for x in row) if row else "")
+PY
+)
+
+        if [[ -f "$test_env/run_invoked.flag" ]]; then
+            run_invoked="1"
+        fi
+    fi
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_row" == "openai|dryrun@example.com|dryrun@example.com|account_selected|opencode_runtime" ]] || return 1
+    [[ "$run_invoked" == "0" ]] || return 1
+    return 0
+}
+
 # Test: dev_otr emits token_refreshed with optional source
 test_dev_otr_emits_token_refresh_event() {
     local test_env
@@ -1566,6 +1638,7 @@ main() {
     run_test test_dev_oae_runtime_hook_mode
     run_test test_dev_oae_token_refreshed_event
     run_test test_dev_orr_emits_event_and_runs_opencode
+    run_test test_dev_orr_dry_run_emits_without_run
     run_test test_dev_otr_emits_token_refresh_event
     run_test test_dev_oas_records_account_event
 

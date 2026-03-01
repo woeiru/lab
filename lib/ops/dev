@@ -943,7 +943,7 @@ dev_oae() {
 
 # Emits request-time attribution and runs opencode
 # opencode run attributed
-# <provider_id> <account_key> [account_label] -- [opencode_run_args...]
+# <provider_id> <account_key> [account_label] [--dry-run] -- [opencode_run_args...]
 dev_orr() {
     # Technical Description:
     #   Emits an account_selected attribution event immediately before executing opencode run
@@ -956,6 +956,7 @@ dev_orr() {
     #   <provider_id>          provider family/id for attribution event
     #   <account_key>          stable account key (email or opaque id)
     #   [account_label]        optional display label
+    #   [--dry-run]            emit attribution event without executing opencode run
     #   --                     separator before opencode run arguments
     #   [opencode_run_args...] arguments forwarded to opencode run
 
@@ -972,10 +973,16 @@ dev_orr() {
     local provider_id="$1"
     local account_key="$2"
     local account_label="$2"
+    local dry_run=0
     shift 2
 
     if [ "$1" != "--" ]; then
         account_label="$1"
+        shift
+    fi
+
+    if [ "$1" = "--dry-run" ]; then
+        dry_run=1
         shift
     fi
 
@@ -998,6 +1005,12 @@ dev_orr() {
     fi
 
     _dev_record_account_event "$provider_id" "$account_key" "$account_label" "account_selected" "opencode_runtime"
+
+    if [ "$dry_run" -eq 1 ]; then
+        aux_info "Dry-run mode: attribution event emitted without opencode run" "component=dev,operation=opencode_run_attributed,provider_id=$provider_id"
+        return 0
+    fi
+
     aux_info "Starting attributed opencode run" "component=dev,operation=opencode_run_attributed,provider_id=$provider_id"
     opencode run "$@"
     return $?

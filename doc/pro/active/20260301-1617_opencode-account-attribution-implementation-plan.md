@@ -31,6 +31,7 @@ Execution started now to implement strict, event-based session attribution in `d
 - Extended tests for deterministic repeated-event timeline resolution (latest-before-first-prompt) and runtime/token-refresh event emission paths.
 - Added mixed event replay coverage for `account_selected` + `token_refreshed` across providers/sessions with deterministic latest-before-first-prompt assertions.
 - Added `dev_orr` request-time wrapper in `lib/ops/dev` to emit `account_selected` and immediately execute `opencode run` as a practical integration path when upstream hooks are unavailable.
+- Added `dev_orr --dry-run` mode to validate request-time event wiring without executing `opencode run`.
 - Added `dev_otr` helper in `lib/ops/dev` to emit `token_refreshed` identity events with provider-safe metadata.
 - Expanded tests for `dev_orr` and `dev_otr` event persistence and command-forwarding behavior.
 - Added operator-facing usage notes in `doc/man/03-cli-usage.md` for strict vs best-effort attribution and event-source semantics (`dev_osv`, `dev_oae`, `dev_orr`, `dev_otr`).
@@ -51,7 +52,7 @@ Execution started now to implement strict, event-based session attribution in `d
 
 ### Next steps
 
-1. Validate wrapper behavior in real local OpenCode usage (non-test environment) and capture one auditable before/after `dev_osv -x` example.
+1. Validate wrapper behavior in real local OpenCode usage (prefer `dev_orr --dry-run` first) and capture one auditable before/after `dev_osv -x` example.
 2. Keep this active plan current through final acceptance and merge/commit steps.
 
 ### Context
