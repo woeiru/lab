@@ -1,69 +1,133 @@
-# 00 - Architecture Overview
+# 00 - Architecture Overview (Current State)
 
-This document provides a high-level overview of the Lab Environment Management System's architecture.
+This repository is a Bash-native infrastructure automation system with two primary runtime paths: (1) interactive shell bootstrap via `go` -> `bin/ini` -> `bin/orc`, and (2) deployment script execution via `src/set/*` -> `src/dic/ops` -> `lib/ops/*`. This overview maps those boundaries and call flows; module-level internals are covered in `01` through `07`.
 
-## System Paradigm
-The repository implements a **Bash-native, modular infrastructure automation framework**. Unlike traditional compiled binaries (Go, Rust) or standalone Python/Ansible applications, this system functions by injecting modular library functions directly into the user's interactive shell. 
+## 1. Responsibilities and Boundaries
 
-It is designed around several core principles:
-1. **No Compilation Step:** Pure Bash execution ensuring maximum portability across Unix systems.
-2. **Modular Boundaries:** Strict separation between initialization, core primitives, general utilities, operational functions, and configuration.
-3. **Parameter-Driven Operational Interfaces:** Operational modules are designed around explicit parameterization and predictable call contracts. In practice, some modules still maintain runtime state for coordination/caching, so this remains a target contract rather than an absolute guarantee.
-4. **Dependency Injection:** A purpose-built Dependency Injection Container (DIC) maps environment configurations to operational function arguments.
-5. **Idempotency & Safety:** All destructive actions require explicit confirmation, use atomic file operations, and perform extensive pre-flight checks.
-
-## Directory Architecture
-
-The repository is structured into distinct functional domains:
-
-| Directory | Purpose | Key Responsibilities |
+| Area | Primary files | Responsibility boundary |
 | --- | --- | --- |
-| `bin/` | Orchestration | Bootstrapping (`ini`), component loading (`orc`), and shell integration. |
-| `cfg/` | Configuration | Hierarchical environment definitions and core constants. |
-| `lib/core/` | Primitives | Foundational tools: error handling (`err`), logging (`lo1`), timing (`tme`), verification (`ver`). |
-| `lib/gen/` | Utilities | Cross-cutting concerns: security (`sec`), auxiliary helpers (`aux`), infrastructure definitions (`inf`). |
-| `lib/ops/` | Operations | Bash operational functions for system operations (e.g., networking, virtualization, package management). |
-| `src/dic/` | Dependency Injection | Resolving hierarchical variables and adapting `cfg` to `lib/ops`. |
-| `src/set/` | Deployment | Executable task manifests mapped to hostnames, orchestrated by `.menu`. |
-| `val/` | Validation & Testing | BDD-style testing framework for unit, integration, and performance tests. |
-| `doc/` | Documentation | Architecture, developer guides, and operations manuals. |
+| Shell integration entrypoint | `go` | Manages shell RC managed blocks, stores init settings, and dispatches `init/on/off/purge/status/validate`. |
+| Bootstrap controller | `bin/ini` | Sources core constants/modules, initializes runtime, loads orchestrator, and finalizes `RC_SOURCED`. |
+| Component orchestrator | `bin/orc` | Executes component loading sequence (`cfg`, `lib`, `src`) with wrapper checks and timers. |
+| Runtime constants/config | `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`, `cfg/env/*` | Defines global paths, runtime variables, and site/env/node layered configuration files. |
+| Dependency injection engine | `src/dic/ops`, `src/dic/lib/*` | Resolves operation arguments and dispatches module functions (`module_function`). |
+| Deployment manifests | `src/set/*`, `src/set/.menu` | Defines task sections (`*_xall`) and calls DIC through `ops ...` commands. |
+| Operations libraries | `lib/ops/*` | Implements infrastructure actions invoked by DIC or sourced runtime environment. |
+| Verification suite | `val/run_all_tests.sh`, `val/**/*.sh` | Validates behavior by category (`core`, `lib`, `integration`, `src`, `dic`, `legacy`). |
 
-## High-Level Execution Flow
+## 2. Runtime/Load Sequence
+
+### Actual call/load order
+
+1. User runs `./go init` once to persist helper functions and save `.tmp/go_settings` (`setup_shell_integration`, `save_settings`, `inject_helper_functions`).
+2. User enables startup loading with `./go on` (`handle_on_command` -> `inject_content`), which writes `. <lab_root>/bin/ini` into the selected shell RC file.
+3. New shell sources `bin/ini`; `main_ini` runs and loads `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`, `lib/core/ver`, then core modules `col`, `err`, `lo1`, `tme`.
+4. `bin/ini` sources `bin/orc`, runs `init_runtime_system`, and calls `setup_components` to load `cfg/core/ecc`, `cfg/ali/*`, `lib/ops/*`, `lib/gen/*`, `cfg/env` (site required, env/node optional), and `src/aux/*`.
+5. A deployment script (for example `src/set/h1`) sources `src/set/.menu` and `src/dic/ops`, then routes `-i` or `-x` through `setup_main`.
+6. Selected `*_xall` sections invoke `ops module function ...`; DIC resolves/injects arguments (`ops_main` -> `ops_execute` -> `ops_inject_and_execute`) and calls target `lib/ops/<module>` functions.
+
+### End-to-end sequence
 
 ```mermaid
-graph TD
-    A[User / CI] --> B{Entrypoint}
-    B --> |Interactive| C["./go init"]
-    B --> |Automated| D["src/set/h1 (Manifest)"]
-    C --> E["Shell Injection (.bashrc)"]
-    E --> F["bin/ini & bin/orc"]
-    F --> G["Load lib/core & lib/gen"]
-    D --> H["src/set/.menu (Router)"]
-    H --> I["Load cfg/env (Config)"]
-    H --> J["src/dic (Injection)"]
-    J --> K["lib/ops (Execution)"]
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant G as go
+    participant RC as Shell RC
+    participant I as bin/ini
+    participant O as bin/orc
+    participant S as src/set/h1
+    participant M as src/set/.menu
+    participant D as src/dic/ops
+    participant L as lib/ops/*
+
+    U->>G: ./go init
+    G->>G: setup_shell_integration()
+    G->>G: save_settings() + inject_helper_functions()
+    U->>G: ./go on
+    G->>RC: inject_content(". <lab_root>/bin/ini")
+    U->>RC: start new shell
+    RC->>I: source bin/ini
+    I->>I: main_ini()
+    I->>I: source cfg/core/{ric,rdc,mdc}
+    I->>I: load_modules(col,err,lo1,tme)
+    I->>O: source bin/orc
+    I->>O: setup_components()
+    O->>O: execute_component(source_cfg_ecc)
+    O->>O: execute_component(source_lib_ops)
+    O->>O: execute_component(source_lib_gen)
+    O->>O: execute_component(source_cfg_env)
+    O-->>I: RC_SOURCED=1 (success path)
+
+    U->>S: ./src/set/h1 -x a
+    S->>M: source .menu
+    S->>D: source ../dic/ops
+    S->>S: setup_main("-x", "a")
+    S->>D: ops pve dsr -j
+    D->>D: ops_main() -> ops_execute()
+    D->>D: ops_inject_and_execute()
+    D->>L: pve_dsr(...)
+
+    alt bootstrap failure
+        I->>I: setup_minimal_environment()
+        I-->>U: minimal PATH + PS1 fallback
+    end
 ```
 
-## Three-Layer Deployment Architecture
+### Conceptual flow (quick view)
 
-When executing infrastructure changes, the system relies on a three-layer pattern:
+```mermaid
+flowchart LR
+    A[User command] --> B{Execution path}
+    B -->|Shell activation| C[go init/on]
+    C --> D[source bin/ini]
+    D --> E[source bin/orc components]
+    E --> F[Interactive shell with loaded functions]
 
-1. **Deployment Manifests (`src/set/*`)**: Hostname-specific scripts grouping tasks into menus.
-2. **Dependency Injection Container (`src/dic/ops`)**: Translates global environment states into function-specific arguments.
-3. **Operational Functions (`lib/ops/*`)**: Executes the specific logic with idempotency and safety guarantees.
+    B -->|Deployment run| G[src/set script]
+    G --> H[src/set/.menu routing]
+    H --> I[src/dic/ops injection]
+    I --> J[lib/ops module function]
+    J --> K[Infrastructure operation]
+```
 
-This separation ensures that operational logic remains highly testable and decoupled from the environment it runs in.
+## 3. State and Side Effects
 
-## Reference Documentation Layer (`doc/ref`)
+- `go` writes managed blocks into user shell config (`.bashrc` or `.zshrc`), creates backups on mutation, and stores runtime settings in `.tmp/go_settings`.
+- First successful `./go init` creates `${HOME}/.lab_initialized`; `status` and `validate` behavior depends on this marker.
+- `bin/ini` exports/updates runtime globals from `cfg/core/ric` (`LAB_DIR`, `LIB_OPS_DIR`, `SITE_CONFIG_FILE`, log/temp paths, verbosity toggles).
+- `bin/ini` exports `main_ini` and can set `RC_SOURCED=1`; this leaks bootstrap state into the interactive shell by design.
+- `bin/orc` installs `trap cleanup EXIT INT TERM` when sourced; this changes trap behavior of the caller shell/session.
+- `src/set/.menu` eagerly sources all files in `cfg/env`, all files in `lib/ops`, and sibling files in `src/set/` (except itself).
+- `src/dic/ops` sources `src/dic/lib/{injector,introspector,resolver}` and attempts to source `cfg/env/site1` during load.
 
-The architecture now includes a generated reference layer under `doc/ref/` that mirrors analyzer output from `lib/gen/ana` and related doc generators.
+## 4. Failure and Fallback Behavior
 
-- `functions.md`: function inventory and metadata
-- `variables.md`: config-variable usage and cross-folder occurrence mapping
-- `dependencies.md`: reverse dependency graph (who calls what)
-- `module-dependencies.md`: direct imports and host-command requirements
-- `test-coverage.md`: test traceability map
-- `scope-integrity.md`: readonly/global-mutation/local-leak findings
-- `error-handling.md`: return/exit/error-log behavior map
+- `go on/off/purge` require `.tmp/go_settings`; if missing, commands fail and instruct to run `./go init`.
+- If `bin/ini` cannot complete `main_ini`, it executes `setup_minimal_environment` and exits non-zero.
+- In `bin/orc`, component execution is wrapper-managed via `execute_component`; current component list marks all components as optional (`COMPONENT_OPTIONAL`).
+- `source_cfg_env` treats base site file as required and env/node overrides as optional.
+- `src/set/.menu` is permissive for many sourcing failures (logs warnings, often continues), while argument routing (`setup_main`) returns `1` on invalid mode/args.
+- DIC (`src/dic/ops`) validates module/function existence and returns `1` on missing modules/functions/required context.
 
-These documents provide a machine-derived architectural view that should be used to validate assumptions in `doc/arc/`. If narrative docs and generated references disagree, source code remains authoritative.
+## 5. Constraints and Refactor Notes
+
+- Most runtime code under `bin/` and `lib/` is extensionless; tooling or refactors that assume `*.sh` will miss core behavior.
+- Bootstrap and orchestrator rely on global variable contracts established by `cfg/core/ric`; order changes can silently break downstream sourcing.
+- Deployment scripts in `src/set/*` are tightly coupled to DIC command semantics (`ops module function -j`), not direct function calls.
+- `src/set/.menu` and `bin/orc` both perform broad sourcing, so duplicate-loading and side-effect ordering are key regression risks.
+- Sourcing `bin/orc` into an existing shell modifies shell trap and error semantics; treat as a behavioral boundary, not a pure library import.
+
+## 6. Arc Document Map
+
+- `doc/arc/01-bootstrap-and-orchestration.md`: `go`, `bin/ini`, `bin/orc` bootstrap internals.
+- `doc/arc/02-core-and-gen.md`: `lib/core/*` and `lib/gen/*` primitives/utilities.
+- `doc/arc/03-operational-modules.md`: `lib/ops/*` contracts and module boundaries.
+- `doc/arc/04-dependency-injection.md`: DIC flow in `src/dic/*` and mapping rules.
+- `doc/arc/05-deployment-and-config.md`: `cfg/*` hierarchy and `src/set/*` execution context.
+- `doc/arc/06-testing-and-validation.md`: `val/*` suite architecture.
+- `doc/arc/07-logging-and-error-handling.md`: `err`, `lo1`, `tme`, and aux logging/error contracts.
+
+## Maintenance Note
+
+Update this file in the same PR when any of these change: primary entrypoints (`go`, `bin/ini`, `bin/orc`, `src/set/.menu`, `src/dic/ops`), cross-layer load order, top-level directory responsibilities, or shell/runtime side-effect contracts.
