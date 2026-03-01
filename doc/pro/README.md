@@ -18,11 +18,16 @@ Use it to move work through clear states:
 
 ## Filename timestamp rule (required)
 
-Every non-README file under `doc/pro/` must use this prefix format:
+Workflow item markdown files in these folders must use this prefix format:
+
+- `inbox/`, `queue/`, `active/`, `completed/`, `dismissed/`, `experiments/`
 
 - `yyyymmdd-hhmm_filename`
 
 Where `yyyymmdd-hhmm` is the last touch time from git history for that file.
+
+Root meta/support files directly under `doc/pro/` (for example checklist and
+checker helpers) do not require timestamp prefixes.
 
 When you update a file in this folder tree:
 
@@ -100,8 +105,8 @@ To avoid overload as a solo developer:
 
 ## Validation helpers
 
-- Checklist: `doc/pro/*_workflow-checklist.md`
-- Checker script: `bash doc/pro/*_check-workflow.sh`
+- Checklist: `doc/pro/workflow-checklist.md`
+- Checker script: `bash doc/pro/check-workflow.sh`
 
 ---
 

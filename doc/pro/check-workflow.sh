@@ -9,13 +9,30 @@ is_markdown_doc() {
   [[ "$file" == *.md ]] && [[ ! "$(basename "$file")" =~ ^([0-9]{8}-[0-9]{4}_)?README\.md$ ]]
 }
 
+is_work_item_doc() {
+  local file="$1"
+  [[ "$file" == *.md ]] || return 1
+  [[ "$(basename "$file")" == "README.md" ]] && return 1
+
+  case "$file" in
+    "$ROOT"/inbox/* | \
+      "$ROOT"/queue/* | \
+      "$ROOT"/active/* | \
+      "$ROOT"/completed/* | \
+      "$ROOT"/dismissed/* | \
+      "$ROOT"/experiments/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 check_timestamp_prefix() {
   local file="$1"
   local base
   base="$(basename "$file")"
-  if [[ "$base" == "README.md" ]]; then
-    return 0
-  fi
   if [[ ! "$base" =~ ^[0-9]{8}-[0-9]{4}_.+ ]]; then
     printf 'FAIL timestamp prefix: %s\n' "$file"
     failures=$((failures + 1))
@@ -67,6 +84,7 @@ check_dismissal_reason() {
 }
 
 while IFS= read -r file; do
+  is_work_item_doc "$file" || continue
   check_timestamp_prefix "$file"
 done < <(find "$ROOT" -type f | sort)
 

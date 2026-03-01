@@ -3,7 +3,9 @@
 Use this quick checklist before ending a doc/pro update session.
 
 - File names follow folder naming rules (`inbox`, `dismissed`).
-- Every file under `doc/pro/` uses `yyyymmdd-hhmm_filename`.
+- Workflow item markdown files in `inbox/`, `queue/`, `active/`, `completed/`,
+  `dismissed/`, and `experiments/` use `yyyymmdd-hhmm_filename`.
+- Root meta/support files under `doc/pro/` do not need timestamp prefixes.
 - Every workflow doc has header fields: `Status`, `Owner`, `Started`, `Updated`, `Links`.
 - Dismissed docs include `## Dismissal Reason`.
 - `active/` contains only in-progress items.
@@ -13,5 +15,5 @@ Use this quick checklist before ending a doc/pro update session.
 Run the checker:
 
 ```bash
-bash doc/pro/*_check-workflow.sh
+bash doc/pro/check-workflow.sh
 ```
