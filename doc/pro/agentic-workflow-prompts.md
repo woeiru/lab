@@ -14,8 +14,8 @@ Use these templates to ask an LLM agent to maintain `doc/pro` workflow state con
 ## 1) Capture a new idea in inbox
 
 ```text
-Create a new workflow item in doc/pro/inbox for this idea:
 <IDEA>
+Create a new workflow item in doc/pro/inbox for this idea.
 
 Requirements:
 - Filename format: yyyymmdd-hhmm_<topic>-plan.md
@@ -44,8 +44,8 @@ Then:
 ## 3) Direct move inbox -> queue (known item)
 
 ```text
-Move this specific workflow item from inbox to queue:
 <INBOX_FILE_PATH>
+Move this specific workflow item from inbox to queue.
 
 Requirements:
 - Move exactly this file to doc/pro/queue
@@ -64,8 +64,8 @@ Return:
 ## 4) Start execution queue -> active
 
 ```text
-Take this queued item and start execution:
 <QUEUE_FILE_PATH>
+Take this queued item and start execution.
 
 Requirements:
 - Move it to doc/pro/active
@@ -81,8 +81,8 @@ Requirements:
 ## 5) Close active -> completed
 
 ```text
-Finalize this active item into completed state:
 <ACTIVE_FILE_PATH>
+Finalize this active item into completed state.
 
 Requirements:
 - Move file into doc/pro/completed/<topic>/
@@ -101,8 +101,8 @@ Requirements:
 ## 6) Close active/queue/inbox -> dismissed
 
 ```text
-Move this workflow item to dismissed with clear rationale:
 <FILE_PATH>
+Move this workflow item to dismissed with clear rationale.
 
 Requirements:
 - Move to doc/pro/dismissed
@@ -166,8 +166,8 @@ Return:
 ## 9) Fast-track inbox -> active (triage + start in one step)
 
 ```text
-Fast-track this inbox item directly into active execution:
 <INBOX_FILE_PATH>
+Fast-track this inbox item directly into active execution.
 
 Requirements:
 - Move file to doc/pro/active (single-step promotion, skip queue)
@@ -188,8 +188,8 @@ Use only when the item is clearly highest priority and ready to execute now.
 ## 10) Move to experiments (spike/prototype)
 
 ```text
-Move this item to experiments for prototyping:
 <FILE_PATH>
+Move this item to experiments for prototyping.
 
 The source file may be in queue/ or active/.
 
@@ -209,8 +209,8 @@ Requirements:
 ## 11) Resolve experiment -> queue or dismissed
 
 ```text
-Resolve this experiment based on its outcome:
 <EXPERIMENT_FILE_PATH>
+Resolve this experiment based on its outcome.
 
 Requirements:
 - Evaluate the experiment against its Success Criteria
@@ -231,8 +231,8 @@ Use before closing a context window or switching to a different task.
 The LLM captures everything the next context needs to continue.
 
 ```text
-Checkpoint progress on this active item before I close this context:
 <ACTIVE_FILE_PATH>
+Checkpoint progress on this active item before I close this context.
 
 Requirements:
 - Read the active plan and update it with current progress
@@ -259,8 +259,8 @@ Use at the start of a new context window to continue work on an active item.
 The LLM reads the plan, orients itself, and continues execution.
 
 ```text
-Resume work on this active item in a fresh context:
 <ACTIVE_FILE_PATH>
+Resume work on this active item in a fresh context.
 
 Requirements:
 - Read the full active plan, especially Progress Checkpoint and Execution Plan
