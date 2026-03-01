@@ -13,48 +13,44 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
-# Shows a summary of specific functions in the script, displaying their usage, shortname, and description
+# Displays an overview of module functions with analyzer formatting
 # overview functions
-# [function_name_filter]
+# [ana_laf_flags]
 sys_fun() {
     # Technical Description:
-    #   Analyzes function definitions within script files and displays comprehensive overview
-    #   Supports optional filtering by function name patterns for targeted analysis
-    #   Extracts function metadata including usage patterns, shortnames, and descriptions
-    #   Processes function documentation and presents it in a structured format
+    #   Shows the system module function inventory using ana_laf.
+    #   Forwards optional ana_laf output flags for formatting/export.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - ana_laf function for function analysis and formatting
-    #   - aux_tec function for technical details display
-    #   - FILEPATH_gen variable for target file path
-    #   - Read permissions on source files
+    #   - ana_laf function
+    #   - Read access to system operations module file
     # Arguments:
-    #   $1: [function_name_filter] - optional pattern to filter functions by name
+    #   $@: optional ana_laf flags (-t, -b, -j, --json-dir <dir>)
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    # Optional parameters - no validation needed
-    aux_dbg "Listing functions with filter: ${1:-none}"
-    # Pass all arguments to processing function
+    if [ $# -gt 0 ] && [ -z "$1" ]; then
+        aux_use
+        return 1
+    fi
+
     ana_laf "$FILEPATH_sys" "$@"
 }
 
-# Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
+# Displays an overview of module variables from configuration
 # overview variables
 # -x (execute)
 sys_var() {
     # Technical Description:
-    #   Scans configuration files and extracts variable definitions using auxiliary functions
-    #   Displays variable usage patterns across different files and contexts
-    #   Analyzes configuration structure and provides comprehensive overview of variable usage
-    #   Operates on default configuration files within the project directory structure
+    #   Shows the system module variable overview using ana_acu in overview mode.
+    #   Uses module-local config and analysis path for consistent behavior.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - ana_acu function for configuration analysis
-    #   - CONFIG_gen variable for configuration file path
-    #   - DIR_FUN variable for directory navigation
-    #   - Read permissions on configuration files
+    #   - ana_acu function
+    #   - Read access to configuration files and ops library path
     # Arguments:
     #   $1: -x - explicit execution flag required for safety and consistency
     
@@ -67,9 +63,6 @@ sys_var() {
         aux_use
         return 1
     fi
-    
-    # Debug logging for development insights
-    aux_dbg "Analyzing configuration variables in $CONFIG_sys"
     
     ana_acu -o "$CONFIG_sys" "$DIR_FUN/.."
 }

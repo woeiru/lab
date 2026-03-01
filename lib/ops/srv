@@ -13,27 +13,29 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
-# Displays an overview of specific NFS-related functions in the script, showing their usage, shortname, and description
+# Displays an overview of module functions with analyzer formatting
 # overview functions
-# [function_name_filter]
+# [ana_laf_flags]
 srv_fun() {
     # Technical Description:
-    #   Extracts and displays function information from the srv module file
-    #   Uses ana_laf utility to parse function definitions and comments
-    #   Provides formatted output showing function names, descriptions, and usage
-    #   Supports optional filtering by function name pattern
+    #   Shows the service module function inventory using ana_laf.
+    #   Forwards optional ana_laf output flags for formatting/export.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - ana_laf function for parsing and formatting
+    #   - ana_laf function
     #   - Read access to srv module file
-    #   - Standard POSIX shell utilities
     # Arguments:
-    #   $1: [function_name_filter] - optional pattern to filter functions (default: show all)
+    #   $@: optional ana_laf flags (-t, -b, -j, --json-dir <dir>)
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
-    
+    if [ $# -gt 0 ] && [ -z "$1" ]; then
+        aux_use
+        return 1
+    fi
+
     ana_laf "$FILEPATH_srv" "$@"
 }
 # Displays an overview of NFS-specific variables defined in the configuration file, showing their names, values, and usage across different files
@@ -726,4 +728,3 @@ srv_smb_mon() {
 
     aux_info "SMB monitoring completed" "option=$option"
 }
-

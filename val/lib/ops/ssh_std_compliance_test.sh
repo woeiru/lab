@@ -57,13 +57,13 @@ test_help_system() {
     fi
 }
 
-# Test 3: Parameter validation on ssh_var
+# Test 3: Execution flag validation on ssh_var
 test_parameter_validation() {
     local output
     
-    # Test with empty parameters (should fail)
-    output=$(ssh_var "" "" 2>&1)
-    if [[ $? -ne 0 ]] && [[ "$output" =~ "cannot be empty" ]]; then
+    # Test with invalid execution flag (should fail)
+    output=$(ssh_var "invalid" 2>&1)
+    if [[ $? -ne 0 ]] && [[ "$output" =~ "Usage:" ]]; then
         return 0
     else
         return 1
@@ -105,9 +105,9 @@ test_dependency_validation() {
 test_error_logging() {
     local output
     
-    # Test with invalid file path
-    output=$(ssh_var "/nonexistent/file" "/nonexistent/dir" 2>&1)
-    if [[ $? -ne 0 ]] && [[ "$output" =~ "not found" ]]; then
+    # Test with missing execution flag
+    output=$(ssh_var 2>&1)
+    if [[ $? -ne 0 ]] && [[ "$output" =~ "Usage:" ]]; then
         return 0
     else
         return 1

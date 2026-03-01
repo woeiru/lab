@@ -69,85 +69,56 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
-# Displays an overview of specific Proxmox Virtual Environment (PVE) related functions in the script, showing their usage, shortname, and description
+# Displays an overview of module functions with analyzer formatting
 # overview functions
-# <script_path>
+# [ana_laf_flags]
 pve_fun() {
     # Technical Description:
-    #   Invokes the 'ana_laf' (list available functions) utility.
-    #   Accepts script path as explicit parameter for analysis.
-    #   All remaining arguments are forwarded to 'ana_laf'.
-    #   Primarily used for introspection of script capabilities.
+    #   Shows the PVE module function inventory using ana_laf.
+    #   Forwards optional ana_laf output flags for formatting/export.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - 'ana_laf' function.
+    #   - ana_laf function
     # Arguments:
-    #   $1: script_path - path to the script file to analyze
+    #   $@: optional ana_laf flags (-t, -b, -j, --json-dir <dir>)
 
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
 
-    # Use the provided script_path parameter or fall back to FILEPATH_pve
-    local script_path="${1:-$FILEPATH_pve}"
-    shift # Remove script_path from arguments so remaining args can be forwarded
-    
-    ana_laf "$script_path" "$@"
+    if [ $# -gt 0 ] && [ -z "$1" ]; then
+        aux_use
+        return 1
+    fi
+
+    ana_laf "$FILEPATH_pve" "$@"
 }
 
-# Displays an overview of PVE-specific variables defined in the configuration file, showing their names, values, and usage across different files
+# Displays an overview of module variables from configuration
 # overview variables
-# <config_file> <analysis_dir>
+# -x (execute)
 pve_var() {
     # Technical Description:
-    #   Utilizes 'ana_acu' (analyze configuration usage) with the '-o' (overview) flag.
-    #   First argument specifies the configuration file to scan.
-    #   Second argument is passed as the scope for usage analysis.
-    #   Helps in understanding how PVE-related variables from the site config are used across the project.
+    #   Shows the PVE module variable overview using ana_acu in overview mode.
+    #   Uses module-local config and analysis path for consistent behavior.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - 'ana_acu' function.
+    #   - ana_acu function
     # Arguments:
-    #   $1: config_file - path to the configuration file to analyze
-    #   $2: analysis_dir - directory scope for usage analysis
+    #   $1: -x - explicit execution flag required for consistency
 
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    if [ $# -ne 2 ]; then
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
     fi
 
-    local config_file="$1"
-    local analysis_dir="$2"
-    
-    if ! aux_val "$config_file" "not_empty"; then
-        aux_err "Configuration file path cannot be empty"
-        aux_use
-        return 1
-    fi
-    
-    if ! aux_chk "file_exists" "$config_file"; then
-        aux_err "Configuration file not found: $config_file"
-        aux_use
-        return 1
-    fi
-    
-    if ! aux_val "$analysis_dir" "not_empty"; then
-        aux_err "Analysis directory path cannot be empty"
-        aux_use
-        return 1
-    fi
-    
-    if ! aux_chk "dir_exists" "$analysis_dir"; then
-        aux_err "Analysis directory not found: $analysis_dir"
-        aux_use
-        return 1
-    fi
-
-    ana_acu -o "$config_file" "$analysis_dir"
+    ana_acu -o "$CONFIG_pve" "$DIR_FUN/.."
 }
 
 # Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources 

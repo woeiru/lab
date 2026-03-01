@@ -825,60 +825,44 @@ _gpu_cleanup_continuation_script() {
 # MAIN FUNCTIONS (Refactored)
 # ============================================================================
 
-# Shows function overview with optional filtering
+# Displays an overview of module functions with analyzer formatting
 # overview functions
-# [function_name_filter]
+# [ana_laf_flags]
 gpu_fun() {
     # Technical Description:
-    #   Displays formatted list of all functions in the GPU module with detailed documentation.
-    #   Uses ana_laf utility to parse function definitions and extract comprehensive documentation
-    #   including function names, descriptions, mnemonics, and parameter requirements.
-    #   Provides optional filtering by function name pattern for focused analysis.
-    #   Shows both helper functions (prefixed with _gpu_) and main user-facing functions.
+    #   Shows the GPU module function inventory using ana_laf.
+    #   Forwards optional ana_laf output flags for formatting/export.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - ana_laf function from auxiliary library for function analysis
-    #   - Read access to GPU module file for parsing function definitions
-    #   - grep for pattern matching if filtering is used
+    #   - ana_laf function
+    #   - Read access to GPU module file
     # Arguments:
-    #   $1: function_name_filter (optional) - pattern to filter function names
-    #   --help/-h: Display technical usage information
+    #   $@: optional ana_laf flags (-t, -b, -j, --json-dir <dir>)
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    # Optional parameter validation
-    if [ $# -gt 1 ]; then
-        aux_err "Too many parameters provided"
+    if [ $# -gt 0 ] && [ -z "$1" ]; then
         aux_use
         return 1
     fi
-    
-    if [ $# -eq 1 ] && [ -z "$1" ]; then
-        aux_err "Filter parameter cannot be empty"
-        aux_use
-        return 1
-    fi
-    
-    aux_dbg "Starting function analysis" "filter=${1:-none}"
+
     ana_laf "$FILEPATH_gpu" "$@"
 }
 
-# Shows configuration variables overview
+# Displays an overview of module variables from configuration
 # overview variables
 # -x (execute)
 gpu_var() {
     # Technical Description:
-    #   Displays comprehensive overview of configuration variables specific to GPU module
-    #   Uses ana_acu utility to scan and format variable definitions from configuration files
-    #   Shows variable names, current values, and usage context within GPU management
-    #   Provides organized view of GPU-related environment and configuration settings
-    #   including hostname-specific PCI device mappings and driver preferences.
+    #   Shows the GPU module variable overview using ana_acu in overview mode.
+    #   Uses module-local config and analysis path for consistent behavior.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - ana_acu function from auxiliary library for configuration analysis
-    #   - Read access to configuration files for variable extraction
-    #   - CONFIG_gpu environment variable must be set for proper operation
+    #   - ana_acu function
+    #   - Read access to configuration files and ops library path
     # Arguments:
     #   $1: -x - explicit execution flag required for consistency with module pattern
     
@@ -893,12 +877,6 @@ gpu_var() {
         return 1
     fi
     
-    if ! aux_chk "variable" "CONFIG_gpu"; then
-        aux_err "CONFIG_gpu environment variable not set"
-        return 2
-    fi
-    
-    aux_dbg "Analyzing GPU configuration variables" "config_file=${CONFIG_gpu}"
     ana_acu -o "$CONFIG_gpu" "$DIR_FUN/.."
 }
 

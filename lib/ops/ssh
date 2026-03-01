@@ -17,101 +17,58 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 # Source auxiliary functions library for .std compliance
 source "${DIR_FUN}/../gen/aux"
 
-# Displays an overview of SSH-related functions in the script, showing their usage, shortname, and description
+# Displays an overview of module functions with analyzer formatting
 # overview functions
-# <script_path>
+# [ana_laf_flags]
 ssh_fun() {
     # Technical Description:
-    #   Invokes the 'ana_laf' (list available functions) utility.
-    #   Accepts script path as explicit parameter for analysis.
-    #   All remaining arguments are forwarded to 'ana_laf'.
-    #   Primarily used for introspection of script capabilities.
+    #   Shows the SSH module function inventory using ana_laf.
+    #   Forwards optional ana_laf output flags for formatting/export.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - 'ana_laf' function from aux module
-    #   - LIB_GEN_DIR environment variable
-    #   - Read access to script files
+    #   - ana_laf function
+    #   - Read access to SSH operations module file
     # Arguments:
-    #   $1: script_path - path to the script file to analyze
-    #   $@: additional arguments forwarded to ana_laf
-    # Returns:
-    #   Exit status of ana_laf command
-    # Examples:
-    #   ssh_fun "/path/to/script"
+    #   $@: optional ana_laf flags (-t, -b, -j, --json-dir <dir>)
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    # Parameter validation using aux_val (optional parameters allowed)
-    if [ $# -gt 0 ]; then
-        if ! aux_val "$FILEPATH_ssh" "file_exists"; then
-            aux_err "SSH script file not found: $FILEPATH_ssh"
-            aux_use
-            return 1
-        fi
+    if [ $# -gt 0 ] && [ -z "$1" ]; then
+        aux_use
+        return 1
     fi
-    
+
     ana_laf "$FILEPATH_ssh" "$@"
 }
 
-# Displays an overview of SSH-specific variables defined in the configuration file, showing their names, values, and usage
-# overview variables  
-# <config_file> <lib_parent_dir>
+# Displays an overview of module variables from configuration
+# overview variables
+# -x (execute)
 ssh_var() {
     # Technical Description:
-    #   Invokes the 'aux-lav' (list available variables) utility.
-    #   Accepts config file path and library parent directory as explicit parameters.
-    #   Searches for SSH-related variables and displays their definitions.
+    #   Shows the SSH module variable overview using ana_acu in overview mode.
+    #   Uses module-local config and analysis path for consistent behavior.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - 'aux-lav' function from aux module
-    #   - LIB_GEN_DIR environment variable
-    #   - Read access to configuration files
+    #   - ana_acu function
+    #   - Read access to configuration files and ops library path
     # Arguments:
-    #   $1: config_file - path to configuration file to analyze
-    #   $2: lib_parent_dir - parent directory of libraries for context
-    # Returns:
-    #   Exit status of aux-lav command
-    # Examples:
-    #   ssh_var "/path/to/config" "/path/to/lib/.."
+    #   $1: -x - explicit execution flag required for consistency
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    if [ $# -ne 2 ]; then
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
         aux_use
         return 1
     fi
-    
-    # Parameter validation using aux_val
-    if ! aux_val "$1" "not_empty"; then
-        aux_err "Config file path cannot be empty"
-        aux_use
-        return 1
-    fi
-    
-    if ! aux_val "$2" "not_empty"; then
-        aux_err "Library parent directory cannot be empty"
-        aux_use
-        return 1
-    fi
-    
-    if ! aux_val "$1" "file_exists"; then
-        aux_err "Config file not found: $1"
-        return 2
-    fi
-    
-    if ! aux_val "$2" "dir_exists"; then
-        aux_err "Library parent directory not found: $2"
-        return 2
-    fi
-    
-    local config_file="$1"
-    local lib_parent_dir="$2"
-    source "${LIB_GEN_DIR}/aux"
-    aux-lav "$config_file" "$lib_parent_dir" "ssh"
+
+    ana_acu -o "$CONFIG_ssh" "$DIR_FUN/.."
 }
 
 # Adds SSH keys to the SSH agent for authentication, supporting multiple key types and paths

@@ -13,50 +13,43 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
-# Displays an overview of specific functions in the script, showing their usage, shortname, and description
+# Displays an overview of module functions with analyzer formatting
 # overview functions
-# [function_name_filter]
+# [ana_laf_flags]
 sto_fun() {
     # Technical Description:
-    #   Displays comprehensive overview of available storage functions with optional filtering
-    #   Processes all arguments and forwards them to the analysis function
-    #   Supports pattern-based filtering for function name matching
-    #   Provides formatted output with usage information and descriptions
+    #   Shows the storage module function inventory using ana_laf.
+    #   Forwards optional ana_laf output flags for formatting/export.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - 'ana_laf' function for list and filter operations
-    #   - Access to function definition files
-    #   - Pattern matching utilities for filtering
+    #   - ana_laf function
+    #   - Read access to storage operations module file
     # Arguments:
-    #   $1: function_name_filter (optional) - pattern to filter function names
-    #   Additional arguments are passed through to ana_laf
+    #   $@: optional ana_laf flags (-t, -b, -j, --json-dir <dir>)
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
     
-    # Optional parameter - validate if provided
-    if [ $# -gt 0 ] && ! aux_val "$1" "not_empty"; then
-        aux_err "Function filter cannot be empty"
+    if [ $# -gt 0 ] && [ -z "$1" ]; then
         aux_use
         return 1
     fi
-    
+
     ana_laf "$FILEPATH_sto" "$@"
 }
-# Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files
+# Displays an overview of module variables from configuration
 # overview variables
 # -x (execute)
 sto_var() {
     # Technical Description:
-    #   Scans configuration files for variable definitions and displays usage statistics
-    #   Analyzes variable usage patterns across the codebase
-    #   Provides insights into configuration management and variable dependencies
-    #   Generates formatted output showing variable names, values, and file usage counts
+    #   Shows the storage module variable overview using ana_acu in overview mode.
+    #   Uses module-local config and analysis path for consistent behavior.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - 'ana_acu' function for variable analysis and configuration processing
-    #   - Read access to configuration files and source directories
-    #   - Pattern matching utilities for variable identification
+    #   - ana_acu function
+    #   - Read access to configuration files and ops library path
     # Arguments:
     #   $1: -x - explicit execution flag required for consistency
     
@@ -66,12 +59,6 @@ sto_var() {
     fi
     
     if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
-        aux_use
-        return 1
-    fi
-    
-    if ! aux_val "$1" "not_empty"; then
-        aux_err "Execution flag cannot be empty"
         aux_use
         return 1
     fi

@@ -13,64 +13,43 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
-# Displays an overview of specific functions in the script, showing their usage, shortname, and description
+# Displays an overview of module functions with analyzer formatting
 # overview functions
-# [function_name_filter]
+# [ana_laf_flags]
 net_fun() {
     # Technical Description:
-    #   Scans the network operations module and extracts function documentation
-    #   Provides formatted overview of available functions with descriptions
-    #   Supports optional filtering by function name pattern
-    #   Uses ana_laf utility for consistent function listing across modules
+    #   Shows the network module function inventory using ana_laf.
+    #   Forwards optional ana_laf output flags for formatting/export.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - ana_laf function from auxiliary module
-    #   - aux_chk, aux_info, aux_err functions
+    #   - ana_laf function
     #   - Read access to network operations module file
-    #   - Standard POSIX shell utilities for text processing
     # Arguments:
-    #   $1: function_name_filter - optional pattern to filter function names (default: show all)
+    #   $@: optional ana_laf flags (-t, -b, -j, --json-dir <dir>)
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
-    
-    # Dependency checks (REQUIRED for functions using other modules)
-    if ! aux_chk "function" "ana_laf"; then
-        aux_err "ana_laf function not found - required for function listing"
-        return 127
-    fi
-    
-    if ! aux_chk "file_exists" "$FILEPATH_net"; then
-        aux_err "Network operations module file not found: $FILEPATH_net"
-        return 2
-    fi
-    
-    # Optional parameter validation (no strict requirement)
-    if [ $# -gt 0 ] && ! aux_val "$1" "not_empty"; then
-        aux_err "Function name filter cannot be empty if provided"
+
+    if [ $# -gt 0 ] && [ -z "$1" ]; then
+        aux_use
         return 1
     fi
-    
-    # Operational logging
-    aux_info "Displaying network operations functions" "filter=${1:-none}"
-    
+
     ana_laf "$FILEPATH_net" "$@"
 }
-# Displays an overview of specific variables in network configuration
-# Network Variables - NEV
+# Displays an overview of module variables from configuration
+# overview variables
 # -x (execute)
 net_var() {
     # Technical Description:
-    #   Extracts and displays network-related configuration variables
-    #   Scans configuration files and parent directories for variable definitions
-    #   Uses ana_acu utility with output formatting for variable display
-    #   Provides comprehensive view of network configuration state
+    #   Shows the network module variable overview using ana_acu in overview mode.
+    #   Uses module-local config and analysis path for consistent behavior.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - ana_acu function from auxiliary module
-    #   - aux_chk, aux_info, aux_err functions
-    #   - Read access to configuration files and parent directories
-    #   - Network configuration file defined in CONFIG_net variable
+    #   - ana_acu function
+    #   - Read access to configuration files and ops library path
     # Arguments:
     #   $1: -x - explicit execution flag required for consistency
     
@@ -83,20 +62,6 @@ net_var() {
         aux_use
         return 1
     fi
-    
-    # Dependency checks (REQUIRED for functions using other modules)
-    if ! aux_chk "function" "ana_acu"; then
-        aux_err "ana_acu function not found - required for configuration analysis"
-        return 127
-    fi
-    
-    if ! aux_chk "dir_exists" "$DIR_FUN/.."; then
-        aux_err "Parent directory not accessible for configuration scanning"
-        return 2
-    fi
-    
-    # Operational logging
-    aux_info "Displaying network configuration variables"
     
     ana_acu -o "$CONFIG_net" "$DIR_FUN/.."
 }

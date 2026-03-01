@@ -13,28 +13,29 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
-# Shows a summary of selected functions in the script, displaying their usage, shortname, and description
+# Displays an overview of module functions with analyzer formatting
 # overview functions
-# [function_name_filter]
+# [ana_laf_flags]
 usr_fun() {
     # Technical Description:
-    #   Extracts and displays function documentation from the current script file
-    #   Parses function comment blocks to show usage, shortname, and description
-    #   Supports optional filtering by function name pattern for targeted display
-    #   Uses ana_laf utility to format and present function information consistently
+    #   Shows the user module function inventory using ana_laf.
+    #   Forwards optional ana_laf output flags for formatting/export.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - ana_laf function for listing and formatting function documentation
-    #   - FILEPATH_usr variable must be properly initialized
-    #   - grep and awk utilities for text processing
-    #   - Read access to the function definition file
+    #   - ana_laf function
+    #   - Read access to user operations module file
     # Arguments:
-    #   $1: function_name_filter (optional) - pattern to filter displayed functions
+    #   $@: optional ana_laf flags (-t, -b, -j, --json-dir <dir>)
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
-    
+    if [ $# -gt 0 ] && [ -z "$1" ]; then
+        aux_use
+        return 1
+    fi
+
     ana_laf "$FILEPATH_usr" "$@"
 }
 # Displays an overview of specific variables defined in the configuration file, showing their names, values, and usage across different files

@@ -13,6 +13,60 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
+# Displays an overview of module functions with analyzer formatting
+# overview functions
+# [ana_laf_flags]
+dev_fun() {
+    # Technical Description:
+    #   Shows the development module function inventory using ana_laf.
+    #   Forwards optional ana_laf output flags for formatting/export.
+    #   Keeps wrapper behavior consistent with other ops modules.
+    # Dependencies:
+    #   - ana_laf function
+    #   - Read access to development operations module file
+    # Arguments:
+    #   $@: optional ana_laf flags (-t, -b, -j, --json-dir <dir>)
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -gt 0 ] && [ -z "$1" ]; then
+        aux_use
+        return 1
+    fi
+
+    ana_laf "$FILEPATH_dev" "$@"
+}
+
+# Displays an overview of module variables from configuration
+# overview variables
+# -x (execute)
+dev_var() {
+    # Technical Description:
+    #   Shows the development module variable overview using ana_acu in overview mode.
+    #   Uses module-local config and analysis path for consistent behavior.
+    #   Keeps wrapper behavior consistent with other ops modules.
+    # Dependencies:
+    #   - ana_acu function
+    #   - Read access to configuration files and ops library path
+    # Arguments:
+    #   $1: -x - explicit execution flag required for consistency
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+
+    ana_acu -o "$CONFIG_dev" "$DIR_FUN/.."
+}
+
 _dev_get_opencode_db_path() {
     local db_path
     db_path=$(opencode db path 2>/dev/null) || return 1
@@ -316,7 +370,7 @@ def fg(r, g, b):
     return f"\033[38;2;{r};{g};{b}m"
 
 C_BORDER  = fg(101, 101, 101)          # Color7Faint  — dim gray
-C_HEADER  = BOLD + fg(255, 255, 255)   # Color7Intense — white bold
+C_HEADER  = BOLD + fg(96,  96,  96)    # Neutral gray header for dark/light backgrounds
 C_SUFFIX  = fg(84,  255, 255)          # Color6Intense — bright cyan
 C_PROJECT = fg(84,  84,  255)          # Color4Intense — bright blue
 C_DIR     = fg(84,  84,  255)          # Color4Intense — bright blue (same family)
@@ -372,8 +426,8 @@ W = {
     "proj": 12,
     "dir":  12,
     "title":38,
-    "date": 16,
-    "first":16,
+    "date": 12,
+    "first":12,
     "user": 16,
     "src":  12,
     "conf": 4,
@@ -422,8 +476,8 @@ for row in rows:
         cell(proj or "",          W["proj"],  C_PROJECT),
         cell(directory or "",     W["dir"],   C_DIR),
         cell(title or "",         W["title"], C_TITLE),
-        cell(fmt_date(updated),   W["date"],  C_DATE),
-        cell(fmt_date(first_prompt), W["first"], C_DATE),
+        cell(fmt_date(updated),   W["date"],  C_DATE, keep_end=True),
+        cell(fmt_date(first_prompt), W["first"], C_DATE, keep_end=True),
         cell(user or "",          W["user"],  C_TITLE),
         cell(src or "",           W["src"],   C_TITLE),
         cell(conf or "",          W["conf"],  C_TITLE),

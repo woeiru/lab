@@ -13,27 +13,29 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
-# Shows function overview with optional filtering
+# Displays an overview of module functions with analyzer formatting
 # overview functions
-# [function_name_filter]
+# [ana_laf_flags]
 pbs_fun() {
     # Technical Description:
-    #   Displays formatted list of all functions in the PBS module
-    #   Uses ana_laf utility to parse function definitions and extract documentation
-    #   Provides optional filtering by function name pattern
-    #   Shows function descriptions, mnemonics, and parameter requirements
+    #   Shows the PBS module function inventory using ana_laf.
+    #   Forwards optional ana_laf output flags for formatting/export.
+    #   Keeps wrapper behavior consistent with other ops modules.
     # Dependencies:
-    #   - ana_laf function from auxiliary library
+    #   - ana_laf function
     #   - Read access to PBS module file
-    #   - grep for pattern matching if filtering is used
     # Arguments:
-    #   $1: function_name_filter (optional) - pattern to filter function names
+    #   $@: optional ana_laf flags (-t, -b, -j, --json-dir <dir>)
     
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
         return 0
     fi
-    
+    if [ $# -gt 0 ] && [ -z "$1" ]; then
+        aux_use
+        return 1
+    fi
+
     ana_laf "$FILEPATH_pbs" "$@"
 }
 # Shows configuration variables overview
