@@ -1,9 +1,9 @@
 # Bootstrapper Performance Renewal
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-01
-- Updated: 2026-03-01 (Phase 3 completion)
+- Updated: 2026-03-01 (phase closed)
 - Links: bin/ini, bin/orc, lib/core/col, lib/core/err, lib/core/lo1, lib/core/tme, lib/core/ver, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, cfg/core/lzy, doc/arc/01-bootstrap-and-orchestration.md
 
 ## Goal
@@ -63,9 +63,9 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
 
 ## Execution Plan (remaining)
 
-1. No remaining mandatory implementation work for Phases 1-3 in this item.
-2. Optional follow-on: pursue sub-`400ms` target with deeper runtime
-   restructuring beyond lazy-load scope.
+1. Closure artifacts finalized for completed Phases 1-3.
+2. Optional sub-`400ms` follow-on explicitly deferred by owner request (no
+   further experiments in this item).
 
 ## Progress Checkpoint
 
@@ -216,11 +216,24 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
   - Result: Phase 3 completed with additional bootstrap reduction
     (`0.587s` -> `0.495s`, ~15.7% faster), though still above aspirational
     `<400ms` target.
+- Fresh-context resume verification in this pass:
+  - `git status --short --branch` is clean (`master...origin/master`), so
+    prior `In-flight` note about active working-tree edits was stale.
+  - Re-read `bin/ini`, `bin/orc`, `cfg/core/lzy`, and
+    `val/core/initialization/orc_test.sh`; lazy-load wiring and defaults match
+    completed Phase 3 design.
+  - Re-validated referenced files: `bash -n bin/ini bin/orc cfg/core/lzy
+    val/core/initialization/orc_test.sh`: pass.
+  - Re-ran checkpoint tests:
+    - `./val/core/initialization/orc_test.sh`: pass.
+    - `./val/core/initialization/ini_test.sh`: pass (performance check observed
+      `525ms`).
+    - `./val/core/glb_008_secret_scan_test.sh`: still fails on unrelated
+      finding `lib/gen/inf:90` (`CT_DEFAULT_PASSWORD="password"`).
 
 ### In-flight
 
-- Current active code edits in this pass: `bin/ini`, `bin/orc`, `cfg/core/lzy`,
-  `val/core/initialization/orc_test.sh`.
+- None. Phase work is complete and closed.
 - Phase 1, Phase 2, and Phase 3 implementation objectives are achieved for this
   active item scope.
 
@@ -234,15 +247,13 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
 
 ### Next steps
 
-1. Prepare closure artifacts (summary + commit when requested).
-2. If required, open a follow-on active plan focused on remaining gap to
-   `<400ms`.
+1. Completed: closure artifacts prepared and item updated to closed state.
+2. Deferred by owner: no follow-on active plan for `<400ms` optimization.
 
 ### Context
 
 - Branch: `master`.
-- Modified files currently in working tree: `bin/ini`, `bin/orc`,
-  `cfg/core/lzy`, `val/core/initialization/orc_test.sh`.
+- Modified files currently in working tree: none.
 - No persistent temp artifacts from this session are required for continuation.
 - Timing command used for all measurements:
   `time bash -lc 'MASTER_TERMINAL_VERBOSITY=off; source /home/es/lab/bin/ini' 2>&1`.
@@ -256,6 +267,11 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
   init behavior.
 - New finding (Phase 3 completion): static lazy function maps avoid per-boot
   discovery scans and reduce median bootstrap time to `0.495s`.
+- New finding (fresh-context resume): completed-phase state remains valid;
+  targeted init/orchestrator tests still pass and `ini` performance check
+  observed `525ms`.
+- Closure decision: owner accepted current performance and requested no
+  additional experiments.
 
 ## Verification Plan
 
@@ -360,5 +376,4 @@ Zero-fork replacements for the highest-cost patterns. No structural changes.
 
 ## Next Step
 
-1. Choose closure path: finalize Phase 1 completion in this item now, or open
-   a follow-on for optional Phase 2 verification/logging refinements.
+1. Closed: no further action required for this item.
