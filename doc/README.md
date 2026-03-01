@@ -84,4 +84,49 @@ Or regenerate selected references:
 
 # Update variable usage documentation (writes to doc/ref/variables.md)
 ./utl/doc/generators/var
+
+# Update repository metrics (writes STATS.md + doc/ref/stats.json)
+./utl/doc/generators/stats --update
 ```
+
+## Stats Generator and Flaky-Test Signals
+
+The stats generator includes a `test_health` section with optional flaky-test
+heuristics designed to surface unstable validation suites without running the
+full test pipeline by default.
+
+### Outputs
+
+- Human summary: `STATS.md`
+- Machine snapshot: `doc/ref/stats.json`
+- Snapshot history: `doc/ref/stats-history/<timestamp>.json`
+
+### Flaky-related options
+
+```bash
+# Include flaky severity in hard CI gate
+./utl/doc/generators/stats --update --ci-gate-flaky
+
+# Opt-in flaky sampling (N repeated runs per sampled suite)
+./utl/doc/generators/stats --json --sample-tests --sample-runs=3
+
+# Configure per-suite budget (repeatable): SUITE:OSCILLATION:VARIANCE
+./utl/doc/generators/stats --json \
+  --flaky-suite-budget=val/core/agents_md_test.sh:1:1
+
+# Apply default budget profile (none|strict|balanced|relaxed)
+./utl/doc/generators/stats --json --flaky-budget-profile=balanced
+```
+
+### Environment variables
+
+- `STATS_FLAKY_SUITE_BUDGETS` - comma-separated `SUITE:OSC:VAR` entries.
+- `STATS_FLAKY_BUDGET_PROFILE` - one of `none`, `strict`, `balanced`, `relaxed`.
+
+### Budget precedence
+
+1. Explicit per-suite entries (`--flaky-suite-budget` and `STATS_FLAKY_SUITE_BUDGETS`).
+2. Profile defaults (`--flaky-budget-profile` and `STATS_FLAKY_BUDGET_PROFILE`).
+
+This means profile presets provide baseline defaults, while explicit per-suite
+entries override those defaults for targeted suites.
