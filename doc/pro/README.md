@@ -6,6 +6,24 @@ Use it to move work through clear states:
 
 `inbox` -> `queue` -> `active` -> `completed` (or `dismissed`)
 
+## Workflow diagram
+
+```mermaid
+flowchart LR
+  I["inbox/"] -->|triage| Q["queue/"]
+  Q -->|start| A["active/"]
+  A -->|accepted outcome| C["completed/"]
+  A -->|stop or reject| D["dismissed/"]
+
+  Q -. prototype/spike .-> E["experiments/"]
+  A -. prototype/spike .-> E
+  E -->|promising| Q
+  E -->|not worth pursuing| D
+
+  A -->|temporary policy exception| W["active/waivers/"]
+  W --> A
+```
+
 ## Folder meanings
 
 - `inbox/`: ideas, plans, and tasks you might do later
@@ -73,14 +91,10 @@ If something is in `active/`, it is not done yet.
 
 ## Keep `completed/` organized
 
-Use one of these simple options:
+Use one subfolder per finished topic.
 
-- Option A (flat): keep current style and use strong filenames
-  - Example: `ana-module-expansion-final.md`
-- Option B (recommended): one subfolder per finished item
-  - Example: `completed/ana-module-expansion/plan.md`, `review.md`, `result.md`
-
-Option B is easier when one topic has multiple documents.
+- Example: `completed/ana-module-expansion/20260227-0310_plan.md`, `20260227-0310_result.md`
+- This keeps all plan/review/result artifacts together and matches checklist expectations.
 
 ## Minimal document template
 
@@ -108,6 +122,13 @@ To avoid overload as a solo developer:
 - Checklist: `doc/pro/workflow-checklist.md`
 - Checker script: `bash doc/pro/check-workflow.sh`
 
+## Room for improvement
+
+1. Define explicit entry/exit criteria per state in one small table (for faster triage).
+2. Enforce `completed/<topic>/` structure in `check-workflow.sh` so docs and automation stay aligned.
+3. Add a stale-item rule (for example, review any `active/` item with no update in 7 days).
+4. Require each completed topic to include a short `result` section with verification evidence.
+
 ---
 
-This workflow is already good. The main improvement is simple: treat `active/` as "currently open," and move all related docs to `completed/` only when the work is truly done.
+This workflow is already strong. The next gains come from tightening acceptance criteria and aligning documentation conventions with automated checks.
