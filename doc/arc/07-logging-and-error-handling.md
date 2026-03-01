@@ -40,11 +40,13 @@ Error management in `lib/ops/` strongly emphasizes failing fast and graceful deg
 
 ### Standardized Return Codes
 
-The framework strictly adheres to predefined exit codes to communicate the nature of a failure:
+The framework targets a standardized return-code contract to communicate the nature of failures:
 *   `0`: **Success** - The operation completed as expected.
 *   `1`: **Parameter / Usage Error** - A function received invalid arguments or was called incorrectly. Checked via `aux_val`.
 *   `2`: **System / Execution Error** - An underlying command failed (e.g., network timeout, permission denied).
 *   `127`: **Missing Dependency** - A required binary (e.g., `zfs`, `ip`) was not found on the system. Checked via `aux_chk`.
+
+Most operational paths follow this convention. Existing modules may still include exceptions (for example, some git-oriented flows use additional non-zero codes such as `3` for conflict-style outcomes), so callers should treat non-zero as failure unless a function explicitly documents extra semantic codes.
 
 ### Pre-Flight and Validation Checks
 

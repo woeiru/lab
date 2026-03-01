@@ -45,4 +45,12 @@ The system does not mandate a dedicated third-party linter (like `shellcheck`) i
 ```bash
 find . -type f \( -name '*.sh' -o -name 'go' \) -print0 | xargs -0 -r bash -n
 ```
+Because this repository uses many extensionless Bash modules (especially under `bin/` and `lib/`), extension-aware checks should be augmented with an extensionless pass over script directories:
+
+```bash
+find bin lib/core lib/gen lib/ops src/dic/lib src/dic/ops src/set utl/doc/generators \
+  -type f ! -name '*.md' -print0 | xargs -0 -r bash -n
+bash -n go
+```
+
 Additionally, `val/lib/ops/std_compliance_test.sh` acts as a specialized linter for operational modules, enforcing naming conventions, parameter validation, and documentation standards.

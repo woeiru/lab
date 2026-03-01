@@ -1,6 +1,6 @@
 # 05 - Deployment and Configuration Layer
 
-The deployment layer manages the orchestration of infrastructure changes. It is where pure functions (`lib/ops`) and the Dependency Injection Container (`src/dic`) converge with environment-specific variables (`cfg/env`) to execute tasks.
+The deployment layer manages the orchestration of infrastructure changes. It is where parameter-driven operational functions (`lib/ops`) and the Dependency Injection Container (`src/dic`) converge with environment-specific variables (`cfg/env`) to execute tasks.
 
 This layer is governed by the `src/set/.menu` framework and utilizes **hostname-based script conventions**.
 
@@ -43,4 +43,4 @@ The framework relies on a **Hierarchical Configuration Loading** pattern:
 These configuration files act as the "state" or "inventory" of the environment, defining:
 *   **Topologies:** Dictionaries of IP addresses for hypervisors (`HY_IPS`) and containers (`CT_IPS`).
 *   **Infrastructure as Code (IaC):** Declarative parameter blocks for provisioning (e.g., `define_containers`, `set_vm_defaults`), specifying CPU, RAM, and OS templates.
-*   **Runtime Variables:** Hostname-prefixed variables (e.g., `h1_CORE_COUNT_ON`) that the Dependency Injection Container will map to pure functions at runtime.
+*   **Runtime Variables:** Hostname-prefixed variables (e.g., `h1_CORE_COUNT_ON`) that the Dependency Injection Container will map to operational functions at runtime.

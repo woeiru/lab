@@ -8,8 +8,8 @@ The repository implements a **Bash-native, modular infrastructure automation fra
 It is designed around several core principles:
 1. **No Compilation Step:** Pure Bash execution ensuring maximum portability across Unix systems.
 2. **Modular Boundaries:** Strict separation between initialization, core primitives, general utilities, operational functions, and configuration.
-3. **Pure Function Design:** Operational modules are completely stateless and rely on explicit parameterization.
-4. **Dependency Injection:** A purpose-built Dependency Injection Container (DIC) maps environment configurations to pure function arguments.
+3. **Parameter-Driven Operational Interfaces:** Operational modules are designed around explicit parameterization and predictable call contracts. In practice, some modules still maintain runtime state for coordination/caching, so this remains a target contract rather than an absolute guarantee.
+4. **Dependency Injection:** A purpose-built Dependency Injection Container (DIC) maps environment configurations to operational function arguments.
 5. **Idempotency & Safety:** All destructive actions require explicit confirmation, use atomic file operations, and perform extensive pre-flight checks.
 
 ## Directory Architecture
@@ -22,7 +22,7 @@ The repository is structured into distinct functional domains:
 | `cfg/` | Configuration | Hierarchical environment definitions and core constants. |
 | `lib/core/` | Primitives | Foundational tools: error handling (`err`), logging (`lo1`), timing (`tme`), verification (`ver`). |
 | `lib/gen/` | Utilities | Cross-cutting concerns: security (`sec`), auxiliary helpers (`aux`), infrastructure definitions (`inf`). |
-| `lib/ops/` | Operations | Pure Bash functions for system operations (e.g., networking, virtualization, package management). |
+| `lib/ops/` | Operations | Bash operational functions for system operations (e.g., networking, virtualization, package management). |
 | `src/dic/` | Dependency Injection | Resolving hierarchical variables and adapting `cfg` to `lib/ops`. |
 | `src/set/` | Deployment | Executable task manifests mapped to hostnames, orchestrated by `.menu`. |
 | `val/` | Validation & Testing | BDD-style testing framework for unit, integration, and performance tests. |
@@ -50,6 +50,20 @@ When executing infrastructure changes, the system relies on a three-layer patter
 
 1. **Deployment Manifests (`src/set/*`)**: Hostname-specific scripts grouping tasks into menus.
 2. **Dependency Injection Container (`src/dic/ops`)**: Translates global environment states into function-specific arguments.
-3. **Pure Functions (`lib/ops/*`)**: Executes the specific logic with idempotency and safety guarantees.
+3. **Operational Functions (`lib/ops/*`)**: Executes the specific logic with idempotency and safety guarantees.
 
 This separation ensures that operational logic remains highly testable and decoupled from the environment it runs in.
+
+## Reference Documentation Layer (`doc/ref`)
+
+The architecture now includes a generated reference layer under `doc/ref/` that mirrors analyzer output from `lib/gen/ana` and related doc generators.
+
+- `functions.md`: function inventory and metadata
+- `variables.md`: config-variable usage and cross-folder occurrence mapping
+- `dependencies.md`: reverse dependency graph (who calls what)
+- `module-dependencies.md`: direct imports and host-command requirements
+- `test-coverage.md`: test traceability map
+- `scope-integrity.md`: readonly/global-mutation/local-leak findings
+- `error-handling.md`: return/exit/error-log behavior map
+
+These documents provide a machine-derived architectural view that should be used to validate assumptions in `doc/arc/`. If narrative docs and generated references disagree, source code remains authoritative.

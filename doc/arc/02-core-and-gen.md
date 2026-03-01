@@ -34,5 +34,5 @@ Provides context-switching helpers to detect and manage differences between `dev
 ### 4. `inf` (Infrastructure Definitions)
 Standardized templating tools for creating VM and Container definitions. It prevents code duplication by offering generic structures for assigning IP addresses, VLANs, disk pools, and CPU core counts.
 
-### 5. `ana` (Analytics)
-Telemetry functions used primarily for performance profiling and auditing execution times across complex deployment orchestrations.
+### 5. `ana` (Analysis & Documentation Support)
+The `ana` module provides static analysis and metadata extraction utilities used for code introspection and documentation generation. Key analyzers include function inventory (`ana_laf`), variable usage (`ana_acu`), reverse dependencies (`ana_rdp`), direct dependencies (`ana_dep`), test traceability (`ana_tst`), scope integrity (`ana_scp`), and error-handling analysis (`ana_err`).
