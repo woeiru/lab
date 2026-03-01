@@ -1,6 +1,6 @@
 # Documentation Generation System
 
-The `utl/doc` system generates the auto-populated reference documentation under `doc/ref/`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/dependencies.md`, `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`, `doc/ref/scope-integrity.md`, and `doc/ref/error-handling.md`.
+The `utl/doc` system generates auto-populated reference documentation under `doc/ref/` and an optional repository metrics report at `STATS.md`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/dependencies.md`, `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`, `doc/ref/scope-integrity.md`, and `doc/ref/error-handling.md`.
 
 ## Output Files
 
@@ -13,6 +13,7 @@ The `utl/doc` system generates the auto-populated reference documentation under 
 | `tst`     | `doc/ref/test-coverage.md`| Module-to-test traceability with counters and status |
 | `scp`     | `doc/ref/scope-integrity.md`| Variable scope integrity findings (readonly/global/local leak) |
 | `err`     | `doc/ref/error-handling.md`| Error handling patterns (return/exit/aux_err/aux_warn/aux_val) |
+| `stats`   | `STATS.md`                | Repository-level file/dir/size metrics report |
 
 ## System Layout
 
@@ -25,7 +26,7 @@ The `utl/doc` system generates the auto-populated reference documentation under 
   - `tst`: Builds test traceability coverage tables in `doc/ref/test-coverage.md`.
   - `scp`: Builds scope integrity tables in `doc/ref/scope-integrity.md`.
   - `err`: Builds error handling tables in `doc/ref/error-handling.md`.
-  - `stats`: Analyzes the codebase to provide system metrics.
+  - `stats`: Generates repository metrics in `STATS.md`.
 - `config/`: Configuration files.
   - `settings`: Parallelization, pathing, and output location preferences.
   - `targets`: Source directory list and generator output file mappings.
@@ -59,11 +60,19 @@ rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc
 
 ## Usage
 
-### Regenerate all `doc/ref/` files
+### Regenerate default reference docs
 
 ```bash
 ./utl/doc/run_all_doc.sh functions variables
 ./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies test-coverage scope-integrity error-handling
+```
+
+### Generate repository metrics
+
+```bash
+./utl/doc/run_all_doc.sh stats            # updates STATS.md
+./utl/doc/generators/stats --update       # updates STATS.md directly
+./utl/doc/generators/stats --markdown     # prints markdown to stdout
 ```
 
 ### Regenerate individually

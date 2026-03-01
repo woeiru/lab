@@ -85,7 +85,7 @@ LOW_PRIORITY=(
 # - Validation: Generators check if target file exists before writing
 declare -A GENERATOR_OUTPUT_FILES
 GENERATOR_OUTPUT_FILES[func]="doc/ref/functions.md"     # Function metadata tables
-# GENERATOR_OUTPUT_FILES[stats]="README.md"               # System metrics (root README)
+GENERATOR_OUTPUT_FILES[stats]="STATS.md"                # Repository system metrics report
 GENERATOR_OUTPUT_FILES[var]="doc/ref/variables.md"      # Variable usage documentation
 GENERATOR_OUTPUT_FILES[dep]="doc/ref/module-dependencies.md"  # Direct module dependency documentation
 GENERATOR_OUTPUT_FILES[tst]="doc/ref/test-coverage.md"  # Test traceability coverage documentation
@@ -99,7 +99,6 @@ GENERATOR_OUTPUT_FILES[err]="doc/ref/error-handling.md" # Error handling documen
 # - Implementation: Generators look for <!-- AUTO-GENERATED SECTION: [name] -->
 declare -A GENERATOR_SECTIONS
 GENERATOR_SECTIONS[func]="Function Metadata Table"      # Updates function tables in doc/man/functions.md
-# GENERATOR_SECTIONS[stats]="System Metrics"              # Updates metrics table in README.md
 GENERATOR_SECTIONS[var]="Variable Usage Table"          # Updates variable tables in doc/ref/variables.md
 GENERATOR_SECTIONS[dep]="Module Dependency Table"       # Updates dependency tables in doc/ref/module-dependencies.md
 GENERATOR_SECTIONS[tst]="Test Coverage Table"           # Updates test coverage tables in doc/ref/test-coverage.md

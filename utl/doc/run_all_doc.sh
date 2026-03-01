@@ -55,6 +55,17 @@ GENERATORS=(
     "stats:stats:System metrics generator"
 )
 
+# Default generator set for bare execution (reference docs only)
+DEFAULT_GENERATORS=(
+    "functions"
+    "variables"
+    "dependencies"
+    "module-dependencies"
+    "test-coverage"
+    "scope-integrity"
+    "error-handling"
+)
+
 # Dependencies
 declare -A DEPENDENCIES
 
@@ -93,7 +104,7 @@ TARGETS:
     test-coverage   Generate test traceability coverage table (tst)
     scope-integrity Generate variable scope integrity table (scp)
     error-handling  Generate error handling table (err)
-    stats           Generate system metrics (stats)
+    stats           Generate repository metrics report (stats)
 
 CONFIGURATION:
     Project Root: $PROJECT_ROOT
@@ -101,8 +112,9 @@ CONFIGURATION:
     Config File: $CONFIG_FILE
 
 EXAMPLES:
-    $(basename "$0")                    # Run all generators
-    $(basename "$0") functions dependencies stats   # Run specific generators
+    $(basename "$0")                    # Run default reference generators
+    $(basename "$0") functions dependencies stats   # Run selected generators
+    $(basename "$0") stats              # Update STATS.md only
     $(basename "$0") --dry-run          # Preview execution
 
 EOF
@@ -137,10 +149,10 @@ get_execution_order() {
     local result=()
     local processed=()
     
-    # If no targets, use all generators
+    # If no targets, use default reference generators
     if [[ ${#targets[@]} -eq 0 ]]; then
-        for gen in "${GENERATORS[@]}"; do
-            targets+=($(echo "$gen" | cut -d: -f1))
+        for gen in "${DEFAULT_GENERATORS[@]}"; do
+            targets+=("$gen")
         done
     fi
     
