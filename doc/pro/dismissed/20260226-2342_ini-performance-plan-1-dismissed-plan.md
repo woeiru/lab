@@ -1,5 +1,12 @@
 # bin/ini Performance Optimization Plan
 
+Status: dismissed
+
+## Dismissal Reason
+- Superseded by newer planning iterations that consolidate this work into a single execution track.
+- Large overlap with other ini performance plans would duplicate effort and increase merge risk.
+- Several estimates and sequencing assumptions should be re-baselined before adoption.
+
 Performance analysis and implementation plan for the shell bootstrapper.
 All findings are verified against actual code. Organized into independent
 workstreams that can be executed in parallel.

@@ -1,5 +1,12 @@
 # bin/ini Performance Plan — With Compromise
 
+Status: dismissed
+
+## Dismissal Reason
+- Superseded by later planning artifacts with clearer scope boundaries and decision criteria.
+- Proposes high-risk compromises (verification and caching shortcuts) without current validation evidence.
+- Overlaps heavily with adjacent plans, making parallel tracking noisy and harder to govern.
+
 Performance optimization plan that preserves all visual/terminal output
 but accepts behavioral compromises: reduced internal verification depth,
 lazy module loading, less file I/O during init, and structural shortcuts

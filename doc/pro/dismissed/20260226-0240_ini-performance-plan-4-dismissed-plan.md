@@ -1,9 +1,14 @@
 ---
 # Bootstrapper Rewrite Plan — bin/ini
-Status: active
+Status: dismissed
 Scope: bin/ini, bin/orc, lib/core/tme (timer I/O), val/ coverage
 Preserves: terminal boot output, timing report, fallback environment
 ---
+## Dismissal Reason
+- Superseded by later planning artifacts and consolidated direction for `bin/ini` performance work.
+- Scope is highly overlapping with sibling plans, which would create duplicate tracking and execution churn.
+- Contains aggressive assumptions that need fresh measurement before implementation decisions.
+
 ## 0. Philosophy: Boot Output Is Not Redundant
 The startup output and the test suite serve fundamentally different roles.
 Tests (val/) verify correctness in isolation — they run offline, against
