@@ -11,6 +11,7 @@ Use it to move work through clear states:
 ```mermaid
 flowchart LR
   I["inbox/"] -->|triage| Q["queue/"]
+  I -->|fast-track| A["active/"]
   Q -->|start| A["active/"]
   A -->|accepted outcome| C["completed/"]
   A -->|stop or reject| D["dismissed/"]
@@ -71,6 +72,10 @@ Examples:
 3. Start work -> move to `active/`
    - Move the file from `queue/` to `active/` when you commit to doing it.
    - If helpful, prefix with sequence number (`0-`, `1-`, `2-`) to show execution order.
+   - **Fast-track**: if an inbox item is clearly highest priority and ready to
+     execute now, it may skip `queue/` and move directly to `active/`. Document
+     the triage reasoning in a `## Triage Decision` section. This is the
+     exception, not the default path.
 
 4. Execute and review in `active/`
    - Yes: review notes can stay in `active/` while work is still open.
@@ -101,6 +106,12 @@ If something is in `active/`, it is not done yet.
 
 - Review notes in `active/` are normal while work is ongoing.
 - Once the result is acceptable, move both the plan and review notes to `completed/`.
+
+## WIP limit
+
+Keep `active/` to a maximum of 3 items at a time. If 3 items are already
+active, finish or dismiss one before starting new work. This limit applies
+to both normal queue->active promotion and fast-track inbox->active moves.
 
 ## Keep `completed/` organized
 

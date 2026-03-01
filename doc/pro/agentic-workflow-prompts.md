@@ -147,7 +147,7 @@ Objective:
 Do this in order:
 1) Validate current state with bash doc/pro/check-workflow.sh
 2) Triage inbox and move one item to queue if needed
-3) Move one queued item to active if active WIP < 3
+3) Move one queued item to active if active WIP is reasonable (see README for limits)
 4) If any active item already meets exit criteria, move it to completed/<topic>/
 5) Update Updated headers on touched docs
 6) Re-run bash doc/pro/check-workflow.sh
@@ -161,6 +161,124 @@ Return:
 - Exact files moved/edited
 - Why each move was made
 - Suggested next action for me
+```
+
+## 9) Fast-track inbox -> active (triage + start in one step)
+
+```text
+Fast-track this inbox item directly into active execution:
+<INBOX_FILE_PATH>
+
+Requirements:
+- Move file to doc/pro/active (single-step promotion, skip queue)
+- Keep filename prefix unchanged
+- Set Status: active
+- Update Updated date
+- Add section: ## Triage Decision (why this item, why skip queue)
+- Add sections: Execution Plan (today), Verification Plan, Exit Criteria
+- If 3+ items are already in active, stop and report instead of moving
+- If a waiver is needed, add/update doc/pro/active/waivers/*_waiver-register.md
+- Do not modify any other workflow items
+- Run: bash doc/pro/check-workflow.sh
+- Return: active path + triage rationale + next 3 execution steps
+
+Use only when the item is clearly highest priority and ready to execute now.
+```
+
+## 10) Move to experiments (spike/prototype)
+
+```text
+Move this item to experiments for prototyping:
+<FILE_PATH>
+
+The source file may be in queue/ or active/.
+
+Requirements:
+- Move file to doc/pro/experiments
+- Keep filename prefix unchanged
+- Set Status: experiment
+- Update Updated date
+- Add section: ## Experiment Goal (what question this spike answers)
+- Add section: ## Success Criteria (how to judge if the prototype is promising)
+- Add section: ## Time Box (maximum effort before deciding)
+- Do not modify any other workflow items
+- Run: bash doc/pro/check-workflow.sh
+- Return: experiments path + goal summary + time box
+```
+
+## 11) Resolve experiment -> queue or dismissed
+
+```text
+Resolve this experiment based on its outcome:
+<EXPERIMENT_FILE_PATH>
+
+Requirements:
+- Evaluate the experiment against its Success Criteria
+- If promising: move to doc/pro/queue, set Status: queue
+- If not worth pursuing: move to doc/pro/dismissed, set Status: dismissed,
+  add ## Dismissal Reason section
+- Keep filename prefix unchanged
+- Update Updated date
+- Add section: ## Experiment Outcome (what was learned, evidence)
+- Do not modify any other workflow items
+- Run: bash doc/pro/check-workflow.sh
+- Return: destination path + outcome summary + what was learned
+```
+
+## 12) Checkpoint active item (save progress for context handoff)
+
+Use before closing a context window or switching to a different task.
+The LLM captures everything the next context needs to continue.
+
+```text
+Checkpoint progress on this active item before I close this context:
+<ACTIVE_FILE_PATH>
+
+Requirements:
+- Read the active plan and update it with current progress
+- Update Updated date
+- Add or replace section: ## Progress Checkpoint
+  Include these subsections:
+  - Done: what was completed this session (files changed, decisions made)
+  - In-flight: anything partially done or uncommitted
+  - Blockers: problems encountered, unresolved questions
+  - Next steps: ordered list of what to do next (be specific, include file paths)
+  - Context: any non-obvious state the next session needs (branch name,
+    temp files, test status, relevant findings)
+- Update the Execution Plan to reflect remaining work only
+- If tests were run, record pass/fail summary
+- Do not move the file to another folder
+- Do not modify any other workflow items
+- Run: bash doc/pro/check-workflow.sh
+- Return: updated file path + 5-bullet handoff summary
+```
+
+## 13) Resume active item (pick up in new context)
+
+Use at the start of a new context window to continue work on an active item.
+The LLM reads the plan, orients itself, and continues execution.
+
+```text
+Resume work on this active item in a fresh context:
+<ACTIVE_FILE_PATH>
+
+Requirements:
+- Read the full active plan, especially Progress Checkpoint and Execution Plan
+- Read files referenced in the Next Steps and In-flight sections
+- Verify any in-flight state described in the checkpoint still holds
+  (check git status, file contents, test results)
+- If the checkpoint mentions blockers, address those first
+- Present a short status briefing before doing any work:
+  - Where we left off
+  - What I will do now (first 3 steps)
+  - Any checkpoint state that looks stale or conflicting
+- Wait for my confirmation before executing, unless I say "just go"
+- As you work, update the active plan:
+  - Move completed Next Steps into Done
+  - Add new findings to Context
+  - Keep Execution Plan current
+- Run: bash doc/pro/check-workflow.sh when done
+- Return: what was accomplished + updated next steps
 ```
 
 ## Optional add-on line for stricter runs
