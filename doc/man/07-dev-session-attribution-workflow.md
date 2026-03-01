@@ -1,8 +1,56 @@
 # 07 - Dev Session Attribution Workflow
 
-This guide is for operators using the `dev` module session attribution flow.
-It explains why `USER` can show `(unknown)`, how to emit attribution events safely,
-and how to validate strict vs best-effort reporting.
+OpenCode records sessions in a local SQLite database but does not automatically
+track which user or provider account initiated each session. Without an
+attribution event emitted before the first prompt, sessions display
+`USER=(unknown)`. This workflow solves that: it uses the `dev` module to emit
+identity events so that every future session is tied to a known
+provider/account pair.
+
+Historical sessions without a pre-first-prompt event generally remain
+`(unknown)` -- the goal is to wire attribution correctly for sessions going
+forward.
+
+This guide covers how to emit attribution events safely, validate strict vs
+best-effort reporting, and troubleshoot common issues.
+
+## Command Decision Flow
+
+The four attribution commands serve different situations. Use this diagram to
+determine which command applies:
+
+```mermaid
+flowchart TD
+    A["Want to check current\nsession attribution?"] -->|yes| OSV["ops dev osv\n(read-only overview)"]
+    A -->|no| B
+
+    B["About to run an\nopencode request?"] -->|yes| ORR["ops dev orr\n(stamp identity + run request)\nuse --dry-run to test safely"]
+    B -->|no| C
+
+    C["Token refresh or\ncredential rotation\njust happened?"] -->|yes| OTR["ops dev otr\n(emit token_refreshed event)\nsource: connector_event"]
+    C -->|no| D
+
+    D["Need to stamp identity\nwithout running a request?\n(manual or hook-driven)"] -->|yes| OAE["ops dev oae\n(emit attribution event)\nuse -x for env-var hook mode"]
+
+    OSV --> V["Validate with\nops dev osv -x"]
+    ORR --> V
+    OTR --> V
+    OAE --> V
+
+    V --> STRICT{"CONF level?"}
+    STRICT -->|high| OK["Event before first prompt\nidentity confirmed"]
+    STRICT -->|low| BE["Event after first prompt\nvisible in --best-effort only"]
+    STRICT -->|none| UNKNOWN["USER=(unknown)\nno matching event"]
+```
+
+### Summary
+
+| Command | When to use | Side effects |
+|---------|-------------|--------------|
+| `osv` | Check which sessions are attributed | Read-only |
+| `orr` | About to send a request to OpenCode | Writes event + runs `opencode run` |
+| `otr` | Provider token was just refreshed or rotated | Writes `token_refreshed` event |
+| `oae` | Stamp identity without running a request (manual or hook) | Writes attribution event |
 
 ## 1. Prerequisites and Safety
 

@@ -50,6 +50,27 @@ Each manual doc should include the following sections (or equivalent):
 6. **Related references**
    - Link to the next manual step and relevant architecture docs when helpful.
 
+## Decision flow diagrams (when applicable)
+
+When a manual doc presents multiple commands, modes, or execution paths that
+the operator must choose between, include:
+
+1. **A mermaid flowchart** that walks the reader through the decision points
+   and maps each situation to the correct command.
+2. **A summary table** immediately below the diagram with columns for command,
+   when to use it, and side effects.
+
+Place these after the introductory paragraph and before the prerequisites
+section so the reader understands the command landscape before hitting any
+procedure steps.
+
+This is not required for linear single-path procedures (e.g., installation,
+setup) -- only for docs where the reader's first question is "which command
+do I use?"
+
+Reference example: `07-dev-session-attribution-workflow.md` (Command Decision
+Flow section).
+
 ## Writing style conventions
 
 - Prefer current-state facts over aspirational language.
