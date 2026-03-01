@@ -8,7 +8,7 @@
 #   - doc/ref/stats.json (machine metrics)
 #   - doc/ref/stats-history/<timestamp>.json (snapshot history)
 #
-# Usage: ./stats [--update|--stdout|--markdown|--json|--text|--raw]
+# Usage: ./stats [--update|--stdout|--markdown|--json|--text|--raw] [--ci-gate]
 #######################################################################
 
 set -euo pipefail
@@ -35,7 +35,7 @@ fi
 
 readonly STATS_JSON_FILE="$LAB_DIR/doc/ref/stats.json"
 readonly STATS_HISTORY_DIR="$LAB_DIR/doc/ref/stats-history"
-readonly METRIC_VERSION="2.0.0"
+readonly METRIC_VERSION="3.1.0"
 readonly TREND_HISTORY_LIMIT=10
 readonly -a TOP_LEVEL_PATHS=("bin" "cfg" "lib" "src" "val" "utl" "doc")
 
@@ -50,6 +50,10 @@ declare -a EXEC_MISSING_FILES=()
 declare -a HOTSPOT_FILES=()
 declare -a HOTSPOT_CHURN=()
 declare -a HOTSPOT_AUTHORS=()
+declare -a CODE_FILES=()
+declare -a LONGEST_FUNCTION_NAMES=()
+declare -a LONGEST_FUNCTION_FILES=()
+declare -a LONGEST_FUNCTION_LINES=()
 
 TOTAL_FILES=0
 TOTAL_DIRS=0
@@ -80,9 +84,34 @@ TREND_LATEST_TIMESTAMP="none"
 TREND_FILES_DELTA_10=0
 TREND_SIZE_DELTA_10=0
 
+FUNCTION_COUNT=0
+FUNC_P50_LINES=0
+FUNC_P90_LINES=0
+FUNC_MAX_LINES=0
+FUNC_GT_80=0
+FUNC_GT_120=0
+FUNC_GT_150=0
+
+RISK_COUNT_EVAL=0
+RISK_COUNT_BACKTICKS=0
+RISK_COUNT_CHMOD_777=0
+RISK_COUNT_SECRET_PATTERNS=0
+PREV_RISK_COUNT_EVAL=0
+PREV_RISK_COUNT_BACKTICKS=0
+PREV_RISK_COUNT_CHMOD_777=0
+PREV_RISK_COUNT_SECRET_PATTERNS=0
+RISK_DELTA_EVAL=0
+RISK_DELTA_BACKTICKS=0
+RISK_DELTA_CHMOD_777=0
+RISK_DELTA_SECRET_PATTERNS=0
+RISK_NEW_FINDINGS=0
+RISK_RESOLVED_FINDINGS=0
+
 GATE_SYNTAX="ok"
 GATE_EXECUTABLES="ok"
 GATE_GROWTH="ok"
+GATE_COMPLEXITY="ok"
+GATE_RISK_SIGNALS="ok"
 GATE_OVERALL="ok"
 
 TIMESTAMP_UTC=""
@@ -91,6 +120,16 @@ GIT_BRANCH="unknown"
 GIT_COMMIT="unknown"
 GIT_DIRTY="false"
 PREV_SNAPSHOT_TIMESTAMP="none"
+CI_GATE_ENABLED="false"
+
+update_delta_counters() {
+    local value="$1"
+    if [[ "$value" -gt 0 ]]; then
+        RISK_NEW_FINDINGS=$((RISK_NEW_FINDINGS + value))
+    elif [[ "$value" -lt 0 ]]; then
+        RISK_RESOLVED_FINDINGS=$((RISK_RESOLVED_FINDINGS + (-value)))
+    fi
+}
 
 safe_number() {
     local value="$1"
@@ -188,6 +227,10 @@ load_previous_snapshot() {
     PREV_TOTAL_FILES="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "total_files")")"
     PREV_TOTAL_DIRS="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "total_dirs")")"
     PREV_TOTAL_SIZE_KB="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "total_size_kb")")"
+    PREV_RISK_COUNT_EVAL="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "eval")")"
+    PREV_RISK_COUNT_BACKTICKS="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "backticks")")"
+    PREV_RISK_COUNT_CHMOD_777="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "chmod_777")")"
+    PREV_RISK_COUNT_SECRET_PATTERNS="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "secret_patterns")")"
 
     local prev_time
     prev_time="$(json_str_from_file "$STATS_JSON_FILE" "generated_at")"
@@ -430,10 +473,279 @@ collect_phase_two_metrics() {
     collect_trend_summary
 }
 
+collect_code_file_list() {
+    CODE_FILES=()
+
+    if [[ -f "$LAB_DIR/go" ]]; then
+        CODE_FILES+=("$LAB_DIR/go")
+    fi
+
+    local file=""
+    while IFS= read -r file; do
+        CODE_FILES+=("$file")
+    done < <(find "$LAB_DIR/bin" "$LAB_DIR/lib" "$LAB_DIR/src" "$LAB_DIR/utl" "$LAB_DIR/val" \
+        -type f \( ! -name '*.*' -o -name '*.sh' \) 2>/dev/null | sort)
+}
+
+collect_complexity_metrics() {
+    FUNCTION_COUNT=0
+    FUNC_P50_LINES=0
+    FUNC_P90_LINES=0
+    FUNC_MAX_LINES=0
+    FUNC_GT_80=0
+    FUNC_GT_120=0
+    FUNC_GT_150=0
+    LONGEST_FUNCTION_NAMES=()
+    LONGEST_FUNCTION_FILES=()
+    LONGEST_FUNCTION_LINES=()
+
+    local raw_tmp
+    local sorted_tmp
+    local top_tmp
+    raw_tmp="$(mktemp)"
+    sorted_tmp="$(mktemp)"
+    top_tmp="$(mktemp)"
+
+    local file=""
+    local rel_path=""
+    for file in "${CODE_FILES[@]}"; do
+        rel_path="${file#$LAB_DIR/}"
+        awk -v rel="$rel_path" '
+            function brace_delta(s,   tmp, opens, closes) {
+                tmp=s
+                opens=gsub(/\{/, "{", tmp)
+                tmp=s
+                closes=gsub(/\}/, "}", tmp)
+                return opens-closes
+            }
+            BEGIN {
+                in_fn=0
+                depth=0
+                fn_len=0
+                fn_name=""
+            }
+            {
+                line=$0
+                if (!in_fn) {
+                    if (line ~ /^[[:space:]]*function[[:space:]]+[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*(\(\))?[[:space:]]*\{/) {
+                        fn_name=line
+                        sub(/^[[:space:]]*function[[:space:]]+/, "", fn_name)
+                        sub(/[[:space:]]*\(\)[[:space:]]*\{.*/, "", fn_name)
+                        sub(/[[:space:]]*\{.*/, "", fn_name)
+                        in_fn=1
+                        fn_len=1
+                        depth=brace_delta(line)
+                        if (depth <= 0) {
+                            printf "%d\t%s\t%s\n", fn_len, fn_name, rel
+                            in_fn=0
+                            depth=0
+                            fn_len=0
+                            fn_name=""
+                        }
+                        next
+                    }
+
+                    if (line ~ /^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(\)[[:space:]]*\{/) {
+                        fn_name=line
+                        sub(/^[[:space:]]*/, "", fn_name)
+                        sub(/[[:space:]]*\(\)[[:space:]]*\{.*/, "", fn_name)
+                        in_fn=1
+                        fn_len=1
+                        depth=brace_delta(line)
+                        if (depth <= 0) {
+                            printf "%d\t%s\t%s\n", fn_len, fn_name, rel
+                            in_fn=0
+                            depth=0
+                            fn_len=0
+                            fn_name=""
+                        }
+                    }
+                } else {
+                    fn_len++
+                    depth+=brace_delta(line)
+                    if (depth <= 0) {
+                        printf "%d\t%s\t%s\n", fn_len, fn_name, rel
+                        in_fn=0
+                        depth=0
+                        fn_len=0
+                        fn_name=""
+                    }
+                }
+            }
+        ' "$file" >> "$raw_tmp"
+    done
+
+    if [[ ! -s "$raw_tmp" ]]; then
+        rm -f "$raw_tmp" "$sorted_tmp" "$top_tmp"
+        return
+    fi
+
+    sort -t $'\t' -k1,1n -k3,3 -k2,2 "$raw_tmp" > "$sorted_tmp"
+
+    FUNCTION_COUNT="$(wc -l < "$sorted_tmp" | tr -d ' ')"
+    FUNCTION_COUNT="$(safe_number "$FUNCTION_COUNT")"
+
+    if [[ "$FUNCTION_COUNT" -gt 0 ]]; then
+        local p50_rank=$(( (50 * FUNCTION_COUNT + 99) / 100 ))
+        local p90_rank=$(( (90 * FUNCTION_COUNT + 99) / 100 ))
+        [[ "$p50_rank" -lt 1 ]] && p50_rank=1
+        [[ "$p90_rank" -lt 1 ]] && p90_rank=1
+
+        FUNC_P50_LINES="$(awk -v target="$p50_rank" 'NR==target { print $1; exit }' "$sorted_tmp")"
+        FUNC_P90_LINES="$(awk -v target="$p90_rank" 'NR==target { print $1; exit }' "$sorted_tmp")"
+        FUNC_MAX_LINES="$(awk 'END { print $1 }' "$sorted_tmp")"
+        FUNC_GT_80="$(awk '$1>80 { c++ } END { print c+0 }' "$sorted_tmp")"
+        FUNC_GT_120="$(awk '$1>120 { c++ } END { print c+0 }' "$sorted_tmp")"
+        FUNC_GT_150="$(awk '$1>150 { c++ } END { print c+0 }' "$sorted_tmp")"
+    fi
+
+    FUNC_P50_LINES="$(safe_number "$FUNC_P50_LINES")"
+    FUNC_P90_LINES="$(safe_number "$FUNC_P90_LINES")"
+    FUNC_MAX_LINES="$(safe_number "$FUNC_MAX_LINES")"
+    FUNC_GT_80="$(safe_number "$FUNC_GT_80")"
+    FUNC_GT_120="$(safe_number "$FUNC_GT_120")"
+    FUNC_GT_150="$(safe_number "$FUNC_GT_150")"
+
+    sort -t $'\t' -k1,1nr -k3,3 -k2,2 "$raw_tmp" | sed -n '1,10p' > "$top_tmp"
+    local lines=""
+    local fn=""
+    while IFS=$'\t' read -r lines fn rel_path; do
+        [[ -z "${fn:-}" ]] && continue
+        LONGEST_FUNCTION_LINES+=("$(safe_number "$lines")")
+        LONGEST_FUNCTION_NAMES+=("$fn")
+        LONGEST_FUNCTION_FILES+=("$rel_path")
+    done < "$top_tmp"
+
+    rm -f "$raw_tmp" "$sorted_tmp" "$top_tmp"
+}
+
+collect_risk_signals() {
+    RISK_COUNT_EVAL=0
+    RISK_COUNT_BACKTICKS=0
+    RISK_COUNT_CHMOD_777=0
+    RISK_COUNT_SECRET_PATTERNS=0
+    RISK_DELTA_EVAL=0
+    RISK_DELTA_BACKTICKS=0
+    RISK_DELTA_CHMOD_777=0
+    RISK_DELTA_SECRET_PATTERNS=0
+    RISK_NEW_FINDINGS=0
+    RISK_RESOLVED_FINDINGS=0
+
+    local file=""
+    local eval_count
+    local backtick_count
+    local chmod_count
+    local secret_count
+    local result
+
+    for file in "${CODE_FILES[@]}"; do
+        result="$(awk '
+            BEGIN {
+                eval_count=0
+                backtick_count=0
+                chmod_count=0
+                secret_count=0
+            }
+            {
+                line=$0
+                code=line
+                sub(/[[:space:]]+#.*/, "", code)
+
+                temp=code
+                while (match(temp, /(^|[^[:alnum:]_])eval[[:space:]]+/)) {
+                    eval_count++
+                    temp=substr(temp, RSTART+RLENGTH)
+                }
+
+                temp=code
+                backtick_count+=gsub(/`[^`]+`/, "&", temp)
+
+                if (code ~ /(^|[[:space:];|&])chmod[[:space:]]+[^#]*[[:space:]]0?777([[:space:]]|$)/) {
+                    chmod_count++
+                }
+
+                lower=tolower(code)
+                if (
+                    code ~ /BEGIN[[:space:]]+([A-Z]+[[:space:]]+)?PRIVATE[[:space:]]+KEY/ ||
+                    code ~ /AKIA[0-9A-Z]{16}/
+                ) {
+                    secret_count++
+                    next
+                }
+
+                eq=index(code, "=")
+                if (eq > 0) {
+                    lhs=tolower(substr(code, 1, eq - 1))
+                    rhs=substr(code, eq + 1)
+                    gsub(/^[[:space:]]+|[[:space:]]+$/, "", lhs)
+                    gsub(/^[[:space:]]+|[[:space:]]+$/, "", rhs)
+
+                    if (lhs ~ /(password|passwd|token|secret|api[_-]?key)/) {
+                        if (rhs ~ /^\$/ || rhs ~ /\$\{/ || rhs ~ /^\$\(/ || rhs ~ /^`/) {
+                            next
+                        }
+
+                        value=rhs
+                        sub(/[[:space:]].*$/, "", value)
+                        if (value ~ /^".*"$/) {
+                            sub(/^"/, "", value)
+                            sub(/"$/, "", value)
+                        }
+
+                        lower_value=tolower(value)
+                        if (length(value) < 12) {
+                            next
+                        }
+                        if (lower_value ~ /(changeme|change_me|example|dummy|sample|test|placeholder|your_|xxxxx|null|none)/) {
+                            next
+                        }
+                        if (value ~ /^(<[^>]*>|\*+)$/) {
+                            next
+                        }
+
+                        secret_count++
+                    }
+                }
+            }
+            END {
+                printf "%d\t%d\t%d\t%d\n", eval_count, backtick_count, chmod_count, secret_count
+            }
+        ' "$file" 2>/dev/null || true)"
+
+        eval_count="$(safe_number "$(awk -F '\t' '{print $1}' <<< "$result")")"
+        backtick_count="$(safe_number "$(awk -F '\t' '{print $2}' <<< "$result")")"
+        chmod_count="$(safe_number "$(awk -F '\t' '{print $3}' <<< "$result")")"
+        secret_count="$(safe_number "$(awk -F '\t' '{print $4}' <<< "$result")")"
+
+        RISK_COUNT_EVAL=$((RISK_COUNT_EVAL + eval_count))
+        RISK_COUNT_BACKTICKS=$((RISK_COUNT_BACKTICKS + backtick_count))
+        RISK_COUNT_CHMOD_777=$((RISK_COUNT_CHMOD_777 + chmod_count))
+        RISK_COUNT_SECRET_PATTERNS=$((RISK_COUNT_SECRET_PATTERNS + secret_count))
+    done
+
+    RISK_DELTA_EVAL=$((RISK_COUNT_EVAL - PREV_RISK_COUNT_EVAL))
+    RISK_DELTA_BACKTICKS=$((RISK_COUNT_BACKTICKS - PREV_RISK_COUNT_BACKTICKS))
+    RISK_DELTA_CHMOD_777=$((RISK_COUNT_CHMOD_777 - PREV_RISK_COUNT_CHMOD_777))
+    RISK_DELTA_SECRET_PATTERNS=$((RISK_COUNT_SECRET_PATTERNS - PREV_RISK_COUNT_SECRET_PATTERNS))
+
+    update_delta_counters "$RISK_DELTA_EVAL"
+    update_delta_counters "$RISK_DELTA_BACKTICKS"
+    update_delta_counters "$RISK_DELTA_CHMOD_777"
+    update_delta_counters "$RISK_DELTA_SECRET_PATTERNS"
+}
+
+collect_phase_three_metrics() {
+    collect_code_file_list
+    collect_complexity_metrics
+    collect_risk_signals
+}
+
 evaluate_quality_gates() {
     GATE_SYNTAX="ok"
     GATE_EXECUTABLES="ok"
     GATE_GROWTH="ok"
+    GATE_COMPLEXITY="ok"
+    GATE_RISK_SIGNALS="ok"
 
     if [[ "$SYNTAX_FAILED" -gt 0 ]]; then
         GATE_SYNTAX="fail"
@@ -444,10 +756,20 @@ evaluate_quality_gates() {
     if [[ "$DELTA_FILES_PCT" != "n/a" ]] && awk -v p="$DELTA_FILES_PCT" 'BEGIN { exit !(p > 8.0 || p < -8.0) }'; then
         GATE_GROWTH="warn"
     fi
+    if [[ "$FUNC_GT_150" -gt 3 ]]; then
+        GATE_COMPLEXITY="fail"
+    elif [[ "$FUNC_GT_150" -gt 0 ]]; then
+        GATE_COMPLEXITY="warn"
+    fi
+    if [[ "$RISK_DELTA_SECRET_PATTERNS" -gt 0 ]]; then
+        GATE_RISK_SIGNALS="fail"
+    elif [[ "$RISK_DELTA_EVAL" -gt 0 || "$RISK_DELTA_BACKTICKS" -gt 0 || "$RISK_DELTA_CHMOD_777" -gt 0 ]]; then
+        GATE_RISK_SIGNALS="warn"
+    fi
 
-    if [[ "$GATE_SYNTAX" == "fail" ]]; then
+    if [[ "$GATE_SYNTAX" == "fail" || "$GATE_COMPLEXITY" == "fail" || "$GATE_RISK_SIGNALS" == "fail" ]]; then
         GATE_OVERALL="fail"
-    elif [[ "$GATE_EXECUTABLES" == "warn" || "$GATE_GROWTH" == "warn" ]]; then
+    elif [[ "$GATE_EXECUTABLES" == "warn" || "$GATE_GROWTH" == "warn" || "$GATE_COMPLEXITY" == "warn" || "$GATE_RISK_SIGNALS" == "warn" ]]; then
         GATE_OVERALL="warn"
     else
         GATE_OVERALL="ok"
@@ -462,7 +784,29 @@ collect_metrics() {
     collect_repo_shape
     collect_hygiene_metrics
     collect_phase_two_metrics
+    collect_phase_three_metrics
     evaluate_quality_gates
+}
+
+enforce_ci_gate() {
+    if [[ "$CI_GATE_ENABLED" != "true" ]]; then
+        return 0
+    fi
+
+    local -a failures=()
+    if [[ "$GATE_SYNTAX" == "fail" ]]; then
+        failures+=("syntax checks failing")
+    fi
+    if [[ "$GATE_RISK_SIGNALS" == "fail" ]]; then
+        failures+=("new secret-pattern findings detected")
+    fi
+
+    if [[ "${#failures[@]}" -eq 0 ]]; then
+        return 0
+    fi
+
+    echo "CI gate failed: ${failures[*]}" >&2
+    return 2
 }
 
 render_markdown() {
@@ -521,6 +865,40 @@ render_markdown() {
     fi
 
     echo
+    echo "## Complexity and Risk Signals"
+    echo
+    echo "| Complexity Metric | Value |"
+    echo "| --- | ---: |"
+    printf '| Functions detected | %s |\n' "$FUNCTION_COUNT"
+    printf '| Function length p50 (lines) | %s |\n' "$FUNC_P50_LINES"
+    printf '| Function length p90 (lines) | %s |\n' "$FUNC_P90_LINES"
+    printf '| Function length max (lines) | %s |\n' "$FUNC_MAX_LINES"
+    printf '| Functions >80 lines | %s |\n' "$FUNC_GT_80"
+    printf '| Functions >120 lines | %s |\n' "$FUNC_GT_120"
+    printf '| Functions >150 lines | %s |\n' "$FUNC_GT_150"
+
+    echo
+    echo "| Longest Function | File | Lines |"
+    echo "| --- | --- | ---: |"
+    local i=0
+    for i in "${!LONGEST_FUNCTION_NAMES[@]}"; do
+        printf '| `%s` | `%s` | %s |\n' "${LONGEST_FUNCTION_NAMES[$i]}" "${LONGEST_FUNCTION_FILES[$i]}" "${LONGEST_FUNCTION_LINES[$i]}"
+    done
+    if [[ "${#LONGEST_FUNCTION_NAMES[@]}" -eq 0 ]]; then
+        echo "| `none` | `none` | 0 |"
+    fi
+
+    echo
+    echo "| Risk Signal | Current | Delta vs Previous |"
+    echo "| --- | ---: | ---: |"
+    printf '| `eval` usage | %s | %+d |\n' "$RISK_COUNT_EVAL" "$RISK_DELTA_EVAL"
+    printf '| Backtick substitutions | %s | %+d |\n' "$RISK_COUNT_BACKTICKS" "$RISK_DELTA_BACKTICKS"
+    printf '| `chmod 777` patterns | %s | %+d |\n' "$RISK_COUNT_CHMOD_777" "$RISK_DELTA_CHMOD_777"
+    printf '| Secret-pattern hits | %s | %+d |\n' "$RISK_COUNT_SECRET_PATTERNS" "$RISK_DELTA_SECRET_PATTERNS"
+    printf '| New findings (aggregate) | %s | - |\n' "$RISK_NEW_FINDINGS"
+    printf '| Resolved findings (aggregate) | %s | - |\n' "$RISK_RESOLVED_FINDINGS"
+
+    echo
     echo "## Top Risks"
     echo
     if [[ "$SYNTAX_FAILED" -gt 0 ]]; then
@@ -538,6 +916,18 @@ render_markdown() {
     else
         echo "- Repository growth is within configured drift budget."
     fi
+    if [[ "$FUNC_GT_150" -gt 0 ]]; then
+        printf -- '- Long-function outliers detected: %s functions exceed 150 lines.\n' "$FUNC_GT_150"
+    else
+        echo "- No long-function outliers above 150 lines."
+    fi
+    if [[ "$RISK_DELTA_SECRET_PATTERNS" -gt 0 ]]; then
+        printf -- '- New secret-pattern findings detected: %+d (immediate triage recommended).\n' "$RISK_DELTA_SECRET_PATTERNS"
+    elif [[ "$GATE_RISK_SIGNALS" == "warn" ]]; then
+        printf -- '- Risk-pattern drift warning: eval/backticks/chmod deltas are %+d/%+d/%+d.\n' "$RISK_DELTA_EVAL" "$RISK_DELTA_BACKTICKS" "$RISK_DELTA_CHMOD_777"
+    else
+        echo "- Risk-pattern deltas are stable or improving against previous snapshot."
+    fi
 
     echo
     echo "## Quality Gates Status"
@@ -547,6 +937,8 @@ render_markdown() {
     printf '| Syntax checks (`bash -n`) | `%s` | checked=%s, passed=%s, failed=%s |\n' "$GATE_SYNTAX" "$SYNTAX_CHECKED" "$SYNTAX_PASSED" "$SYNTAX_FAILED"
     printf '| Executable bit hygiene | `%s` | checked=%s, anomalies=%s |\n' "$GATE_EXECUTABLES" "$EXEC_EXPECTED" "$EXEC_ANOMALIES"
     printf '| Growth drift budget | `%s` | file delta=%+d (%s%%) |\n' "$GATE_GROWTH" "$DELTA_FILES" "$DELTA_FILES_PCT"
+    printf '| Complexity outlier budget | `%s` | gt_150=%s, p90=%s lines |\n' "$GATE_COMPLEXITY" "$FUNC_GT_150" "$FUNC_P90_LINES"
+    printf '| Risk signal drift | `%s` | eval=%+d, backticks=%+d, chmod777=%+d, secret=%+d |\n' "$GATE_RISK_SIGNALS" "$RISK_DELTA_EVAL" "$RISK_DELTA_BACKTICKS" "$RISK_DELTA_CHMOD_777" "$RISK_DELTA_SECRET_PATTERNS"
     printf '| Overall | `%s` | synthesized from gate statuses |\n' "$GATE_OVERALL"
 }
 
@@ -618,7 +1010,7 @@ render_json() {
     fi
     echo "    ]"
     echo "  },"
-    echo "  \"hygiene\": {"
+  echo "  \"hygiene\": {"
     echo "    \"syntax\": {"
     printf '      "checked": %s,\n' "$SYNTAX_CHECKED"
     printf '      "passed": %s,\n' "$SYNTAX_PASSED"
@@ -627,9 +1019,54 @@ render_json() {
     echo "    \"executable_bits\": {"
     printf '      "checked": %s,\n' "$EXEC_EXPECTED"
     printf '      "anomalies": %s\n' "$EXEC_ANOMALIES"
-    echo "    }"
-    echo "  },"
-    echo "  \"trend\": {"
+  echo "    }"
+  echo "  },"
+  echo "  \"complexity\": {"
+  echo "    \"function_length\": {"
+  printf '      "p50_lines": %s,\n' "$FUNC_P50_LINES"
+  printf '      "p90_lines": %s,\n' "$FUNC_P90_LINES"
+  printf '      "max_lines": %s\n' "$FUNC_MAX_LINES"
+  echo "    },"
+  echo "    \"threshold_counts\": {"
+  printf '      "gt_80": %s,\n' "$FUNC_GT_80"
+  printf '      "gt_120": %s,\n' "$FUNC_GT_120"
+  printf '      "gt_150": %s\n' "$FUNC_GT_150"
+  echo "    },"
+  echo "    \"top_longest\": ["
+  if [[ "${#LONGEST_FUNCTION_NAMES[@]}" -eq 0 ]]; then
+      echo "      { \"function\": \"none\", \"file\": \"none\", \"lines\": 0 }"
+  else
+      for idx in "${!LONGEST_FUNCTION_NAMES[@]}"; do
+          echo "      {"
+          printf '        "function": "%s",\n' "$(json_escape "${LONGEST_FUNCTION_NAMES[$idx]}")"
+          printf '        "file": "%s",\n' "$(json_escape "${LONGEST_FUNCTION_FILES[$idx]}")"
+          printf '        "lines": %s\n' "${LONGEST_FUNCTION_LINES[$idx]}"
+          if [[ "$idx" -lt "$((${#LONGEST_FUNCTION_NAMES[@]} - 1))" ]]; then
+              echo "      },"
+          else
+              echo "      }"
+          fi
+      done
+  fi
+  echo "    ]"
+  echo "  },"
+  echo "  \"risk_signals\": {"
+  echo "    \"counts\": {"
+  printf '      "eval": %s,\n' "$RISK_COUNT_EVAL"
+  printf '      "backticks": %s,\n' "$RISK_COUNT_BACKTICKS"
+  printf '      "chmod_777": %s,\n' "$RISK_COUNT_CHMOD_777"
+  printf '      "secret_patterns": %s\n' "$RISK_COUNT_SECRET_PATTERNS"
+  echo "    },"
+  echo "    \"delta_vs_previous\": {"
+  printf '      "eval": %s,\n' "$RISK_DELTA_EVAL"
+  printf '      "backticks": %s,\n' "$RISK_DELTA_BACKTICKS"
+  printf '      "chmod_777": %s,\n' "$RISK_DELTA_CHMOD_777"
+  printf '      "secret_patterns": %s\n' "$RISK_DELTA_SECRET_PATTERNS"
+  echo "    },"
+  printf '    "new_findings": %s,\n' "$RISK_NEW_FINDINGS"
+  printf '    "resolved_findings": %s\n' "$RISK_RESOLVED_FINDINGS"
+  echo "  },"
+  echo "  \"trend\": {"
     printf '    "points": %s,\n' "$TREND_POINTS"
     printf '    "oldest": "%s",\n' "$(json_escape "$TREND_OLDEST_TIMESTAMP")"
     printf '    "latest": "%s",\n' "$(json_escape "$TREND_LATEST_TIMESTAMP")"
@@ -637,11 +1074,13 @@ render_json() {
     printf '    "size_kb_delta_10": %s\n' "$TREND_SIZE_DELTA_10"
     echo "  },"
     echo "  \"quality_gates\": {"
-    printf '    "overall": "%s",\n' "$GATE_OVERALL"
-    printf '    "syntax": "%s",\n' "$GATE_SYNTAX"
-    printf '    "executable_bits": "%s",\n' "$GATE_EXECUTABLES"
-    printf '    "growth": "%s"\n' "$GATE_GROWTH"
-    echo "  },"
+  printf '    "overall": "%s",\n' "$GATE_OVERALL"
+  printf '    "syntax": "%s",\n' "$GATE_SYNTAX"
+  printf '    "executable_bits": "%s",\n' "$GATE_EXECUTABLES"
+  printf '    "growth": "%s",\n' "$GATE_GROWTH"
+  printf '    "complexity": "%s",\n' "$GATE_COMPLEXITY"
+  printf '    "risk_signals": "%s"\n' "$GATE_RISK_SIGNALS"
+  echo "  },"
     echo "  \"history\": {"
     printf '    "previous_snapshot": "%s",\n' "$(json_escape "$PREV_SNAPSHOT_TIMESTAMP")"
     printf '    "history_snapshot": "%s"\n' "$history_snapshot_path"
@@ -657,6 +1096,8 @@ render_text() {
     printf 'totals: files=%s dirs=%s size_kb=%s\n' "$TOTAL_FILES" "$TOTAL_DIRS" "$TOTAL_SIZE_KB"
     printf 'delta: files=%+d dirs=%+d size_kb=%+d\n' "$DELTA_FILES" "$DELTA_DIRS" "$DELTA_SIZE_KB"
     printf 'velocity: 7d=%s 30d=%s 90d=%s\n' "$COMMITS_7D" "$COMMITS_30D" "$COMMITS_90D"
+    printf 'complexity: p90=%s max=%s gt150=%s\n' "$FUNC_P90_LINES" "$FUNC_MAX_LINES" "$FUNC_GT_150"
+    printf 'risk: eval=%s backticks=%s chmod777=%s secret=%s\n' "$RISK_COUNT_EVAL" "$RISK_COUNT_BACKTICKS" "$RISK_COUNT_CHMOD_777" "$RISK_COUNT_SECRET_PATTERNS"
     printf 'quality_gate: %s\n' "$GATE_OVERALL"
 }
 
@@ -696,6 +1137,7 @@ Options:
   --json       Print JSON metrics to stdout
   --text       Print text summary to stdout
   --raw        Print total file count only
+  --ci-gate    Exit non-zero when hard gate criteria fail
   -h, --help   Show help
 EOF
 }
@@ -712,6 +1154,7 @@ main() {
             --json) action="stdout"; format="json" ;;
             --text) action="stdout"; format="text" ;;
             --raw) action="stdout"; format="raw" ;;
+            --ci-gate) CI_GATE_ENABLED="true" ;;
             -h|--help) show_help; return 0 ;;
             *) echo "Unknown option: $arg" >&2; return 1 ;;
         esac
@@ -721,7 +1164,8 @@ main() {
 
     if [[ "$action" == "update" ]]; then
         update_output_files
-        return 0
+        enforce_ci_gate
+        return $?
     fi
 
     case "$format" in
@@ -731,6 +1175,9 @@ main() {
         raw) render_raw ;;
         *) echo "Unsupported format: $format" >&2; return 1 ;;
     esac
+
+    enforce_ci_gate
+    return $?
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

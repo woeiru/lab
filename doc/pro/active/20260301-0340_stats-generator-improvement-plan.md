@@ -1,0 +1,287 @@
+# stats generator improvement plan
+
+## context
+
+- `utl/doc/generators/stats` is now a standalone metrics reporter writing to `STATS.md`.
+- It should complement the reference pipelines (`func`, `var`, `rdp`, `dep`, `tst`, `scp`, `err`) without duplicating their outputs.
+
+## goals
+
+- Provide repository health signals that are operationally useful and trendable.
+- Keep output deterministic and lightweight for routine regeneration.
+- Separate human summary (`STATS.md`) from machine-readable metrics (`doc/ref/stats.json`).
+
+## current status (2026-03-01)
+
+- phases 1 and 2 are implemented in `utl/doc/generators/stats`.
+- outputs are now:
+  - human report: `STATS.md`
+  - machine snapshot: `doc/ref/stats.json`
+  - persistent history: `doc/ref/stats-history/<timestamp>.json`
+- phase 1 delivered:
+  - repository shape totals and top-level footprint (`bin`, `cfg`, `lib`, `src`, `val`, `utl`, `doc`)
+  - deltas vs previous snapshot (absolute and percent)
+  - hygiene checks (`bash -n` and executable-bit anomalies)
+  - quality gates synthesis (`ok`/`warn`/`fail`)
+- phase 2 delivered:
+  - commit velocity windows (7/30/90 days)
+  - churn by path for the same windows
+  - top churn hotspots (90d) with author counts
+  - trend summary from history snapshots (up to last 10 points)
+- validation status:
+  - `bash -n utl/doc/generators/stats` passing
+  - `bash -n val/core/stats_generator_test.sh` passing
+  - `./val/core/stats_generator_test.sh` passing (15/15)
+- phase 3 and phase 4 are intentionally not started yet.
+
+## non-overlap contract
+
+- Do not repeat full tables already generated in `doc/ref/*.md`.
+- Focus on dimensions currently underrepresented:
+  - growth and change velocity
+  - complexity/risk distribution
+  - quality/hygiene and regression signals
+  - time-series trend and budget tracking
+
+## metric set (recommended)
+
+### 1) repository shape and growth
+
+- Total files, directories, and total size (KB/MB).
+- Per-top-level-path footprint (`bin`, `cfg`, `lib`, `src`, `val`, `utl`, `doc`).
+- Delta vs previous snapshot (absolute and percent).
+
+### 2) change velocity and churn
+
+- Commits in last 7/30/90 days.
+- File churn by path (adds/deletes) for same windows.
+- Top 10 churn hotspots with owner/author counts.
+
+### 3) complexity and maintainability risk
+
+- Function length distribution (p50/p90/max lines).
+- Long-function count over thresholds (e.g., 80/120/150 lines).
+- Nesting/outlier approximations where feasible in bash scripts.
+
+### 4) test health (beyond mapping)
+
+- Last test run status summary and total duration (if available).
+- Test runtime trend from snapshots.
+- Flaky candidate list (same suite re-run variance, optional).
+
+### 5) hygiene and compliance signals
+
+- `bash -n` pass/fail counts on targeted scripts.
+- Optional shellcheck finding counts (if shellcheck installed).
+- Executable bit anomalies for scripts expected to be executable.
+
+### 6) security-adjacent static signals
+
+- Potential secret-pattern hits (high-signal regex set, excluding docs).
+- Risky shell usage counts (`eval`, unsafe unquoted expansions heuristics).
+- New risky findings since last snapshot.
+
+### 7) duplication indicators
+
+- Duplicate function names across modules.
+- Near-duplicate block count heuristic for long copied segments.
+
+## output design
+
+### human output: `STATS.md`
+
+- concise summary with sections:
+  - overview
+  - trend highlights
+  - top risks
+  - quality gates status (`ok`, `warn`, `fail`)
+- keep to compact tables and short bullet highlights.
+
+### machine output: `doc/ref/stats.json`
+
+- stable schema for CI/automation consumption.
+- include timestamp, git ref, and metric version.
+- store previous snapshots in `doc/ref/stats-history/<timestamp>.json`.
+
+## thresholds and budgets
+
+- Define per-metric budgets and status levels:
+  - `ok`: within expected bounds
+  - `warn`: drift detected, attention needed
+  - `fail`: regression threshold exceeded
+- Start with soft warnings, then enable hard CI gating for severe regressions only.
+
+## rollout plan
+
+### phase 1 (quick wins)
+
+- Repo shape + growth deltas.
+- Syntax/hygiene checks (`bash -n`, executable bit checks).
+- Baseline `STATS.md` + `doc/ref/stats.json` generation.
+
+### phase 2
+
+- Git velocity/churn windows and hotspots.
+- Trend history snapshots and diff summaries.
+
+### phase 3
+
+- Complexity distribution and outlier reporting.
+- Security-adjacent static signals and delta detection.
+
+### phase 4
+
+- Optional flaky-test heuristics.
+- CI budget enforcement with explicit fail criteria.
+
+## implementation notes
+
+- Keep `stats` explicit and opt-in in orchestrator (`./utl/doc/run_all_doc.sh stats`).
+- Prefer deterministic ordering to reduce diff noise.
+- Ensure fallbacks when optional tools are missing (e.g., shellcheck).
+- Keep runtime bounded; heavy analyses should be cacheable or optional flags.
+
+## success criteria
+
+- `STATS.md` provides clear health insight in under 1 minute of reading.
+- `doc/ref/stats.json` is stable enough for CI automation and trend dashboards.
+- Regressions are visible early without duplicating existing ref generator outputs.
+
+## continuation (phase 3 kickoff)
+
+### scope for next implementation pass
+
+- implement complexity distribution and outlier detection in `utl/doc/generators/stats`.
+- implement security-adjacent static signals with deterministic, low-noise heuristics.
+- keep runtime bounded so `./utl/doc/run_all_doc.sh stats` remains practical for routine local use.
+
+### explicit non-goals for this pass
+
+- no flaky-test rerun heuristic yet (reserved for phase 4).
+- no hard CI failure policy changes yet; only emit quality-gate signals.
+- no overlap with generated reference content already covered by `func`, `dep`, `tst`, or `err` outputs.
+
+### phase 3 work breakdown
+
+1. complexity metrics collection
+   - collect function-length distribution (p50, p90, max).
+   - count threshold breaches for `>80`, `>120`, and `>150` lines.
+   - emit top 10 longest functions with module path for triage.
+2. risk-pattern scanning
+   - scan extensionless bash modules plus `.sh` scripts in `val/` and `utl/`.
+   - count occurrences of risky constructs: `eval`, backticks, and broad `chmod 777` patterns.
+   - add high-signal secret pattern checks (token/password/private key) excluding `doc/`.
+3. delta and trend integration
+   - compare new risk counts against previous `doc/ref/stats.json` snapshot.
+   - expose `new_findings` and `resolved_findings` counts for phase 3 signals.
+   - append phase 3 fields into history snapshots without breaking older reads.
+4. report rendering updates
+   - add concise phase 3 blocks to `STATS.md` under `Top Risks` and `Quality Gates Status`.
+   - add stable JSON keys under new top-level sections: `complexity` and `risk_signals`.
+   - keep deterministic ordering for all arrays/tables.
+
+### proposed json schema extension (metric_version 3.0.0)
+
+- `complexity`:
+  - `function_length`: `p50_lines`, `p90_lines`, `max_lines`
+  - `threshold_counts`: `gt_80`, `gt_120`, `gt_150`
+  - `top_longest`: array of `{ function, file, lines }`
+- `risk_signals`:
+  - `counts`: `eval`, `backticks`, `chmod_777`, `secret_patterns`
+  - `delta_vs_previous`: same keys with signed integer deltas
+  - `new_findings`: integer
+  - `resolved_findings`: integer
+
+### quality gate extension (phase 3)
+
+- add `complexity` gate:
+  - `ok`: `gt_150 == 0`
+  - `warn`: `gt_150 in [1, 3]`
+  - `fail`: `gt_150 > 3`
+- add `risk_signals` gate:
+  - `ok`: no new secret-pattern findings and `eval` delta <= 0
+  - `warn`: non-secret risky deltas increase
+  - `fail`: any new secret-pattern finding
+- keep existing synthesis model, but include new gates in overall status.
+
+### test and verification plan
+
+1. syntax checks
+   - `bash -n utl/doc/generators/stats`
+   - `bash -n val/core/stats_generator_test.sh`
+2. focused tests
+   - extend `val/core/stats_generator_test.sh` to assert phase 3 markdown/json sections.
+   - run `./val/core/stats_generator_test.sh`.
+3. category confidence
+   - run `./val/run_all_tests.sh core` if test updates span core helpers.
+
+### execution order
+
+1. add collectors (complexity + risk signals) with isolated helpers.
+2. integrate serialization and markdown sections.
+3. update tests for schema + rendering.
+4. run validation sequence and capture results in this plan.
+
+### completion checkpoint template
+
+- implementation status: `not started | in progress | complete`
+- metric version after change: `<value>`
+- commands run:
+  - `<command>` -> `pass|fail`
+- follow-up items for phase 4:
+  - flaky-test heuristic design
+  - optional CI hard gate wiring
+
+### completion checkpoint (2026-03-01)
+
+- implementation status: `complete`
+- metric version after change: `3.0.0`
+- commands run:
+  - `bash -n utl/doc/generators/stats` -> `pass`
+  - `bash -n val/core/stats_generator_test.sh` -> `pass`
+  - `./val/core/stats_generator_test.sh` -> `pass` (20/20)
+- follow-up items for phase 4:
+  - flaky-test heuristic design
+  - optional CI hard gate wiring
+
+## phase 4 follow-up execution (2026-03-01)
+
+### delivered now
+
+- tightened secret-pattern heuristic to reduce false positives:
+  - high-signal direct matches retained (`PRIVATE KEY`, `AKIA...`)
+  - sensitive-assignment detection now skips env/indirect references (`$VAR`, `${...}`, `$(...)`, backticks)
+  - placeholder-like values are filtered (`example`, `dummy`, `changeme`, etc.)
+- optional CI hard gate wiring implemented via `--ci-gate`:
+  - hard-fail criteria: syntax gate fail, or risk-signals gate fail
+  - command exits `2` when hard criteria fail
+  - outputs are still generated before gate enforcement in `--update` mode
+
+### flaky-test heuristic design (captured for next implementation)
+
+- add optional `test_health` block to `doc/ref/stats.json` with:
+  - `last_run`: status, duration_seconds, timestamp
+  - `history_trend`: p50/p90 duration for recent snapshots
+  - `flaky_candidates`: suites with status oscillation or duration variance spikes
+- acquisition strategy:
+  - consume persisted validation logs when available
+  - do not run full validation by default inside `stats`
+  - expose opt-in mode for active flaky sampling
+
+### verification (follow-up pass)
+
+- `bash -n utl/doc/generators/stats`
+- `bash -n val/core/stats_generator_test.sh`
+- `./val/core/stats_generator_test.sh`
+
+### completion checkpoint (phase 4 follow-up)
+
+- implementation status: `complete`
+- metric version after change: `3.1.0`
+- commands run:
+  - `bash -n utl/doc/generators/stats` -> `pass`
+  - `bash -n val/core/stats_generator_test.sh` -> `pass`
+  - `./val/core/stats_generator_test.sh` -> `pass` (21/21)
+  - `LAB_DIR='/home/es/lab' ./utl/doc/generators/stats --update --ci-gate` -> `pass`
+- follow-up items still open:
+  - flaky-test heuristic implementation (design captured)

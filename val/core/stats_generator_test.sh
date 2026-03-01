@@ -32,6 +32,9 @@ test_stdout_formats() {
 
     run_test "JSON stdout includes metric version" bash -c \
         "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --json | grep -q '\"metric_version\"'"
+
+    run_test "Help includes ci gate option" bash -c \
+        "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --help | grep -q -- '--ci-gate'"
 }
 
 test_update_outputs() {
@@ -48,7 +51,12 @@ test_update_outputs() {
     run_test "stats.json has quality gate block" grep -q '"quality_gates"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has churn block" grep -q '"churn"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has hotspots block" grep -q '"hotspots_90d"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has complexity block" grep -q '"complexity"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has risk_signals block" grep -q '"risk_signals"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has top_longest block" grep -q '"top_longest"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has risk deltas block" grep -q '"delta_vs_previous"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "STATS.md has churn section" grep -q '^## Change Velocity and Churn' "$LAB_ROOT/STATS.md"
+    run_test "STATS.md has complexity and risk section" grep -q '^## Complexity and Risk Signals' "$LAB_ROOT/STATS.md"
     run_test "STATS.md has quality gates section" grep -q '^## Quality Gates Status' "$LAB_ROOT/STATS.md"
 }
 
