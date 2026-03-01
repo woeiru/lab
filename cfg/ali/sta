@@ -451,10 +451,6 @@
     alias ops='$SRC_DIC_OPS'
 
     # Development
-    # OpenCode session database and config paths:
-    #   ~/.local/share/opencode/opencode.db  — session history / recent list (SQLite)
-    #   ~/.config/opencode/opencode.json     — main configuration
+
     alias osv='dev_osv -l 45 --watch 40 -t'
     alias olb='dev_olb --watch 40'
-
-    # History
