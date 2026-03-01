@@ -1,6 +1,6 @@
 # Documentation Generation System
 
-The `utl/doc` system generates the auto-populated reference documentation under `doc/ref/`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/dependencies.md`, and `doc/ref/module-dependencies.md`.
+The `utl/doc` system generates the auto-populated reference documentation under `doc/ref/`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/dependencies.md`, `doc/ref/module-dependencies.md`, and `doc/ref/test-coverage.md`.
 
 ## Output Files
 
@@ -10,6 +10,7 @@ The `utl/doc` system generates the auto-populated reference documentation under 
 | `var`     | `doc/ref/variables.md`   | Variable usage patterns across the system    |
 | `rdp`     | `doc/ref/dependencies.md`| Reverse dependency mappings and call counts  |
 | `dep`     | `doc/ref/module-dependencies.md`| Direct module dependencies (imports + commands) |
+| `tst`     | `doc/ref/test-coverage.md`| Module-to-test traceability with counters and status |
 
 ## System Layout
 
@@ -19,6 +20,7 @@ The `utl/doc` system generates the auto-populated reference documentation under 
   - `var`: Identifies and documents variable usage hierarchies in `doc/ref/variables.md`.
   - `rdp`: Builds reverse dependency tables in `doc/ref/dependencies.md`.
   - `dep`: Builds direct dependency tables in `doc/ref/module-dependencies.md`.
+  - `tst`: Builds test traceability coverage tables in `doc/ref/test-coverage.md`.
   - `stats`: Analyzes the codebase to provide system metrics.
 - `config/`: Configuration files.
   - `settings`: Parallelization, pathing, and output location preferences.
@@ -33,6 +35,7 @@ artifacts under `.tmp/doc/` using analyzer-specific namespaces:
 - `var` -> `ana_acu -j --json-dir .tmp/doc/acu`
 - `rdp` -> `ana_rdp -j --json-dir .tmp/doc/rdp`
 - `dep` -> `ana_dep -j --json-dir .tmp/doc/dep`
+- `tst` -> `ana_tst -j --json-dir .tmp/doc/tst`
 
 This avoids JSON filename collisions between analyzers (for example,
 multiple analyzers emitting `lib_core_err.json`) and keeps each generator
@@ -44,8 +47,8 @@ If generated `doc/ref/*.md` output looks inconsistent with source changes,
 clear namespaced analyzer artifacts and rerun docs:
 
 ```bash
-rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc/rdp /home/es/lab/.tmp/doc/dep
-./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies
+rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc/rdp /home/es/lab/.tmp/doc/dep /home/es/lab/.tmp/doc/tst
+./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies test-coverage
 ```
 
 ## Usage
@@ -54,7 +57,7 @@ rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc
 
 ```bash
 ./utl/doc/run_all_doc.sh functions variables
-./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies
+./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies test-coverage
 ```
 
 ### Regenerate individually
@@ -64,6 +67,7 @@ rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc
 ./utl/doc/run_all_doc.sh variables   # updates doc/ref/variables.md
 ./utl/doc/run_all_doc.sh dependencies # updates doc/ref/dependencies.md
 ./utl/doc/run_all_doc.sh module-dependencies # updates doc/ref/module-dependencies.md
+./utl/doc/run_all_doc.sh test-coverage # updates doc/ref/test-coverage.md
 ```
 
 ### Configuration and Environment

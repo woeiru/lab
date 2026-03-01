@@ -49,6 +49,7 @@ GENERATORS=(
     "variables:var:Variable usage documentation generator"
     "dependencies:rdp:Reverse dependencies generator"
     "module-dependencies:dep:Direct module dependency generator"
+    "test-coverage:tst:Test traceability coverage generator"
     "stats:stats:System metrics generator"
 )
 
@@ -87,6 +88,7 @@ TARGETS:
     variables       Generate variable usage documentation (var)
     dependencies    Generate reverse dependencies table (rdp)
     module-dependencies Generate direct module dependencies table (dep)
+    test-coverage   Generate test traceability coverage table (tst)
     stats           Generate system metrics (stats)
 
 CONFIGURATION:

@@ -164,6 +164,61 @@
     alias ffl-dep_utl='_ffl_dep_utl'
     alias ffl-dep_cycle='_ffl_dep_cycle'
 
+    # TST analysis aliases: test traceability and coverage summaries.
+    # Wrapper functions are required because aliases cannot forward arguments reliably.
+    _ffl_tst_go() {
+        local tst_mode="${1:-}"
+        if [[ -n "$tst_mode" ]]; then
+            ana_tst "$tst_mode" "$LAB_DIR/go"
+        else
+            ana_tst "$LAB_DIR/go"
+        fi
+    }
+
+    _ffl_tst_bin() {
+        local tst_mode="${1:-}"
+        aux_ffl ana_tst "$tst_mode" "$DIR_BIN"
+    }
+
+    _ffl_tst_core() {
+        local tst_mode="${1:-}"
+        aux_ffl ana_tst "$tst_mode" "$LIB_CORE_DIR"
+    }
+
+    _ffl_tst_gen() {
+        local tst_mode="${1:-}"
+        aux_ffl ana_tst "$tst_mode" "$LIB_GEN_DIR"
+    }
+
+    _ffl_tst_ops() {
+        local tst_mode="${1:-}"
+        aux_ffl ana_tst "$tst_mode" "$LIB_OPS_DIR"
+    }
+
+    _ffl_tst_src() {
+        local tst_mode="${1:-}"
+        aux_ffl ana_tst "$tst_mode" "$SRC_DIR"
+    }
+
+    _ffl_tst_utl() {
+        local tst_mode="${1:-}"
+        aux_ffl ana_tst "$tst_mode" "$UTL_DIR"
+    }
+
+    _ffl_tst_cycle() {
+        local tst_mode="${1:-}"
+        _ffl_tst_go "$tst_mode" && _ffl_tst_bin "$tst_mode" && _ffl_tst_core "$tst_mode" && _ffl_tst_gen "$tst_mode" && _ffl_tst_ops "$tst_mode" && _ffl_tst_src "$tst_mode" && _ffl_tst_utl "$tst_mode"
+    }
+
+    alias ffl-tst_go='_ffl_tst_go'
+    alias ffl-tst_bin='_ffl_tst_bin'
+    alias ffl-tst_core='_ffl_tst_core'
+    alias ffl-tst_gen='_ffl_tst_gen'
+    alias ffl-tst_ops='_ffl_tst_ops'
+    alias ffl-tst_src='_ffl_tst_src'
+    alias ffl-tst_utl='_ffl_tst_utl'
+    alias ffl-tst_cycle='_ffl_tst_cycle'
+
     # Function makros
     alias v111='ops gpu ptd -d lookup && qm start 111'
 

@@ -1676,7 +1676,7 @@ ana_rdp_std() {
 
 # Maps library modules to their validation test suites, counting assertions/tests
 # test coverage traceability
-# <target file> [-j]
+# [options: -j|--json-dir <dir>] <target file>
 ana_tst() {
     # Technical Description:
     #   Maps a target module to validation scripts in val/ and summarizes test
@@ -1688,19 +1688,49 @@ ana_tst() {
     #   - LAB_DIR (optional) to resolve repository root and val directory
     #   - Write access to .tmp/doc when -j is enabled
     # Arguments:
+    #   [options]: -j, --json-dir <dir>
     #   $1: target_file - path to module file to resolve test traceability for
-    #   $2: [optional] -j to write JSON output in .tmp/doc
     local target_file=""
     local json_mode=false
+    local json_output_dir=""
+    local positional_count=0
+    local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)}"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
+            -h|--help)
+                echo "Usage: ana_tst [options: -j|--json-dir <dir>] <target file>"
+                return 0
+                ;;
             -j)
                 json_mode=true
                 shift
                 ;;
+            --json-dir)
+                if [[ -z "${2:-}" ]]; then
+                    echo "Error: --json-dir requires a directory path."
+                    return 1
+                fi
+                json_output_dir="$2"
+                shift 2
+                ;;
+            -*)
+                echo "Unknown option: $1"
+                echo "Usage: ana_tst [options: -j|--json-dir <dir>] <target file>"
+                return 1
+                ;;
+            "")
+                # Compatibility with aux_ffl aliases that pass an empty flag
+                shift
+                ;;
             *)
+                ((positional_count++))
+                if [[ $positional_count -gt 1 ]]; then
+                    echo "Too many positional arguments"
+                    echo "Usage: ana_tst [options: -j|--json-dir <dir>] <target file>"
+                    return 1
+                fi
                 target_file="$1"
                 shift
                 ;;
@@ -1708,7 +1738,7 @@ ana_tst() {
     done
 
     if [[ -z "$target_file" ]]; then
-        echo "Usage: ana_tst <target file> [-j]"
+        echo "Usage: ana_tst [options: -j|--json-dir <dir>] <target file>"
         return 1
     fi
 
@@ -1717,7 +1747,6 @@ ana_tst() {
         return 1
     fi
 
-    local lab_dir="${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
     local val_dir="${lab_dir}/val"
     
     if [[ ! -d "$val_dir" ]]; then
@@ -1859,7 +1888,7 @@ ana_tst() {
 
     # Output JSON if requested
     if $json_mode; then
-        local tmp_dir="$lab_dir/.tmp/doc"
+        local tmp_dir="${json_output_dir:-$lab_dir/.tmp/doc}"
         mkdir -p "$tmp_dir"
         
         local json_filename="${target_display//\//_}.json"

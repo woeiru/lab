@@ -6,7 +6,26 @@ source "$(dirname "${BASH_SOURCE[0]}")/../../../val/helpers/test_framework.sh"
 source "${LAB_ROOT}/lib/gen/ana"
 
 test_ana_tst_usage() {
-    ana_tst 2>&1 | grep -q "Usage: ana_tst <target file>"
+    ana_tst 2>&1 | grep -q "Usage: ana_tst \[options: -j|--json-dir <dir>\] <target file>"
+    return $?
+}
+
+test_ana_tst_json_custom_dir() {
+    local custom_dir="${LAB_ROOT}/.tmp/doc/tst-test"
+    local output tmp_file
+    output=$(ana_tst -j --json-dir "$custom_dir" "${LAB_ROOT}/lib/ops/srv")
+    echo "$output" | grep -q "JSON output written" || return 1
+    tmp_file="$custom_dir/lib_ops_srv.json"
+    [ -f "$tmp_file" ] || return 1
+    rm -f "$tmp_file"
+    rmdir "$custom_dir" 2>/dev/null || true
+    return 0
+}
+
+test_ana_tst_empty_flag_compat() {
+    local output
+    output=$(ana_tst "" "${LAB_ROOT}/lib/ops/srv")
+    echo "$output" | grep -q "srv_test.sh"
     return $?
 }
 
@@ -121,6 +140,8 @@ main() {
     run_test "Usage without arguments" test_ana_tst_usage
     run_test "Table view for srv" test_ana_tst_table
     run_test "JSON view for srv" test_ana_tst_json
+    run_test "JSON custom output directory" test_ana_tst_json_custom_dir
+    run_test "Empty flag compatibility" test_ana_tst_empty_flag_compat
     run_test "No-match counters bug" test_ana_tst_no_match_counters
     run_test "Ambiguous basename collisions" test_ana_tst_basename_collisions
     run_test "JSON escaping" test_ana_tst_json_escaping
