@@ -1,18 +1,18 @@
 # OpenCode Account Attribution Implementation Plan
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-01
-- Updated: 2026-03-02 (Phase 8 validated in live shell; lazy-load + provider normalization fixes applied)
+- Updated: 2026-03-02 (moved to completed after fresh-context revalidation)
 - Links: lib/ops/dev, val/lib/ops/dev_test.sh, cfg/ali/sta, doc/man/07-dev-session-attribution-workflow.md
 
 ## Current Status (Exact)
 
-- Overall state: Phase 8 implementation and validation complete in working tree (not committed).
+- Overall state: Phase 8 implementation is complete, revalidated in fresh context, and formally closed out.
 - Code state: automatic wrapper attribution is wired, lazy-load compatible, and provider normalization handles Google-backed Antigravity sessions.
-- Test state: `./val/lib/ops/dev_test.sh` passing (`38/38`) after additional regression coverage.
-- Problem observed: all sessions spawned via normal `opencode` invocation show `USER=(unknown)` because no attribution event is emitted automatically. Only sessions launched via explicit `ops dev orr` get attributed -- and nobody uses that path in practice.
-- Root cause: the implementation built the storage, reporting, and manual emit primitives but never wired automatic emission into the actual opencode launch path.
+- Test state: `./val/lib/ops/dev_test.sh` passing (`38/38`) with syntax checks and workflow check also passing.
+- Historical problem (resolved): sessions launched via normal `opencode` showed `USER=(unknown)` until automatic wrapper emission was wired in Phase 8.
+- Historical root cause (resolved): storage/reporting/manual primitives existed, but automatic emission was missing from the default opencode launch path.
 
 ### Phase Position
 
@@ -35,6 +35,8 @@
 - Updated docs: `doc/man/07-dev-session-attribution-workflow.md` and `doc/man/03-cli-usage.md` for automatic path and `shell_wrapper` source semantics.
 - Regenerated references with `./utl/doc/run_all_doc.sh`.
 - Ran live shell validation: launched `opencode run` with `lab` loaded and verified `dev osv -x` shows `SRC=shell_wrapper`, `CONF=high` on new Antigravity sessions.
+- Revalidated checkpoint in fresh context: verified key code paths in `lib/ops/dev` and `cfg/ali/sta`, reran syntax checks, reran `./val/lib/ops/dev_test.sh` (`38/38`), and reran `bash doc/pro/check-workflow.sh` (pass).
+- Archived this plan to `doc/pro/completed/opencode-account-attribution/` after closeout confirmation.
 
 ## Context
 
@@ -43,22 +45,25 @@
 - Post-implementation blocker discovered and resolved:
   - Wrapper could load before `dev` module helper existed due lazy-load stubs.
   - Real OpenCode Antigravity sessions report `providerID=google`; without normalization they could not match `antigravity` events.
+- Current git state includes unrelated documentation edits outside this plan; no conflicting code changes detected for this plan's implementation files.
 
 ### Verification Snapshot
 
 - Syntax checks passed: `bash -n lib/ops/dev`, `bash -n cfg/ali/sta`, `bash -n val/lib/ops/dev_test.sh`.
 - Test suite passed: `./val/lib/ops/dev_test.sh` (`38/38`).
+- Workflow validation passed: `bash doc/pro/check-workflow.sh`.
 - Live validation passed:
   - `opencode run "phase 8 validation after lazy-load fix"` (with `lab` loaded)
   - `"$SRC_DIC_OPS" dev osv -x -l 8` shows new rows with `SRC=shell_wrapper` and `CONF=high`.
 
 ### In-flight
 
-- Workflow board closeout only (no remaining implementation tasks).
+- None.
 
 ## Execution Plan
 
-1. Prepare completion handoff (or move to `completed/` when requested).
+1. Completed: prepare completion handoff artifacts and status briefing.
+2. Completed: move this plan to `doc/pro/completed/opencode-account-attribution/`.
 
 ### Blockers
 
