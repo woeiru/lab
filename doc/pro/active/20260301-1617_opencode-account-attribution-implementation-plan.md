@@ -55,6 +55,7 @@ Execution started now to implement strict, event-based session attribution in `d
 - Revalidated workflow policy with `bash doc/pro/check-workflow.sh` (pass).
 - Validated wrapper behavior in local OpenCode usage with `dev_orr --dry-run` and captured auditable before/after `dev_osv -x` evidence in best-effort mode (`CONF=low` post-event, provider-safe).
 - Verified strict default behavior still holds after event emission (`dev_osv -x` remains `(unknown)`/`CONF=none` when no pre-first-prompt event exists).
+- Rechecked upstream CLI surfaces (`opencode --help`, `run --help`, `debug --help`, `auth --help`, `serve --help`) and found no stable native runtime hook/event flag for request-time attribution emission.
 
 ### In-flight
 
@@ -65,11 +66,12 @@ Execution started now to implement strict, event-based session attribution in `d
 
 - No hard blocker in this repo code path.
 - Remaining uncertainty: definitive upstream OpenCode native hook points for automatic request-time selection and token-refresh emission are still external to this repo; current mitigation is wrapper-based runtime emission (`dev_orr`, `dev_otr`).
+- Latest verification still confirms hook uncertainty at CLI surface level; native integration remains an external upstream task.
 
 ### Next steps
 
 1. Keep this active plan current through final acceptance and merge/commit steps.
-2. Optionally evaluate upstream native OpenCode hook points later to replace wrapper-driven runtime emission.
+2. Treat upstream native hook replacement as deferred follow-up until OpenCode exposes stable runtime hook points.
 
 ### Context
 
@@ -83,6 +85,7 @@ Execution started now to implement strict, event-based session attribution in `d
 - No temporary files or ad-hoc local fixtures are required to resume; tests create/clean their own temp environments.
 - Local validation sample (2026-03-01): before `dev_orr --dry-run`, `dev_osv -x -l 5 --best-effort` showed `(unknown)`; after dry-run emit for `openai/audit-session@example.com`, matching OpenAI-backed sessions showed `user=audit-session@example.com`, `src=opencode_runtime`, `conf=low`.
 - Strict sample (same run): `dev_osv -x -l 3` continued to show `(unknown)`, `src=none`, `conf=none`, confirming strict mode did not fabricate high confidence.
+- Upstream feasibility check (same date): current `opencode` command surfaces do not document a first-class event hook for automatic attribution writes, reinforcing wrapper-based runtime emission as the practical path.
 
 ## Execution Plan
 
