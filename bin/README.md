@@ -46,8 +46,7 @@ You can control initialization behavior through several environment variables, p
 To understand how the bootstrapping architecture fits into the broader system, or how to integrate it into your environment, please consult the documentation:
 
 - **Architecture:** [01 - Bootstrap and Orchestration](../doc/arc/01-bootstrap-and-orchestration.md)
-- **Manual:** [01 - Introduction](../doc/man/01-introduction.md)
-- **Manual:** [02 - Installation & Setup](../doc/man/02-installation.md)
+- **Manual:** [01 - Installation & Setup](../doc/man/01-installation.md)
 - **Architecture:** [00 - Architecture Overview](../doc/arc/00-architecture-overview.md)
 
 ---

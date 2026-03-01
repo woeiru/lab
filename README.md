@@ -206,7 +206,7 @@ The `doc/` directory contains the full documentation set, organized by audience:
 | [`doc/fix/`](doc/fix/) | Hardware ops | Incident runbooks: GPU passthrough, ACPI reset, driver fixes |
 | [`doc/pro/`](doc/pro/) | Contributors | Project planning documents (inbox, active, completed, dismissed, experiments) |
 
-Start with [doc/man/01-introduction.md](doc/man/01-introduction.md) for an operational walkthrough, or [doc/arc/00-architecture-overview.md](doc/arc/00-architecture-overview.md) for the system design.
+Start with [doc/man/01-installation.md](doc/man/01-installation.md) for an operational walkthrough, or [doc/arc/00-architecture-overview.md](doc/arc/00-architecture-overview.md) for the system design.
 
 Reference contract:
 - `doc/ref/` is the canonical generated reference layer for fast codebase navigation and retrieval.

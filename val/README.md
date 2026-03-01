@@ -62,7 +62,7 @@ This wrapper checks initialization states and forwards the run to the appropriat
 ## Further Reading
 
 - **Architecture:** [06 - Testing and Validation](../doc/arc/06-testing-and-validation.md)
-- **Manual:** [06 - Writing Modules](../doc/man/06-writing-modules.md) (covers testing new modules)
+- **Manual:** [05 - Writing Modules](../doc/man/05-writing-modules.md) (covers testing new modules)
 
 ---
 **Navigation**: Return to [Main Lab Documentation](../README.md)

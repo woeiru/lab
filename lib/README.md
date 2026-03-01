@@ -40,8 +40,8 @@ Modules in this directory must adhere to strict guidelines outlined in `lib/.spe
 
 Before developing new modules or modifying existing ones, consult the relevant developer manuals:
 
-- **Manual:** [06 - Writing Modules](../doc/man/06-writing-modules.md)
-- **Manual:** [07 - Security and Logging](../doc/man/07-security-and-logging.md)
+- **Manual:** [05 - Writing Modules](../doc/man/05-writing-modules.md)
+- **Manual:** [06 - Security and Logging](../doc/man/06-security-and-logging.md)
 - **Architecture:** [02 - Core and Gen](../doc/arc/02-core-and-gen.md)
 - **Architecture:** [03 - Operational Modules](../doc/arc/03-operational-modules.md)
 - **Reference:** [Functions Reference](../doc/ref/functions.md)

@@ -283,7 +283,7 @@ These rules come from repository docs and actual code patterns, especially:
    standards). These define how every function must be structured.
 2. **Before cross-module changes**: read `doc/arc/00-architecture-overview.md`
    for the system paradigm and execution flow.
-3. **Before writing a new module**: read `doc/man/06-writing-modules.md`.
+3. **Before writing a new module**: read `doc/man/05-writing-modules.md`.
 4. **Before modifying sourcing or bootstrap**: understand the chain
    `./go` -> `bin/ini` -> `bin/orc` -> `lib/core/` -> `lib/gen/` -> `lib/ops/`.
 5. **Before editing tests**: read `val/helpers/test_framework.sh` for available
@@ -298,7 +298,7 @@ These rules come from repository docs and actual code patterns, especially:
 | `doc/arc/00-architecture-overview.md` | System-wide understanding              |
 | `doc/arc/04-dependency-injection.md`  | DIC / config resolution work           |
 | `doc/arc/07-logging-and-error-handling.md` | Logging or error handling changes |
-| `doc/man/06-writing-modules.md`    | Creating new modules                      |
+| `doc/man/05-writing-modules.md`    | Creating new modules                      |
 | `doc/ref/functions.md`             | Function reference lookup                 |
 | `doc/ref/variables.md`             | Variable/constant reference               |
 | `doc/ref/module-dependencies.md`   | Direct imports + host command checks      |

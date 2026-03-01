@@ -82,4 +82,4 @@ Alternatively, run `./val/run_all_tests.sh` directly.
 
 Note: `./go validate` checks initialization state first. In clean or CI-like contexts where shell integration is not initialized, prefer direct validation scripts (for example, `./val/run_all_tests.sh` or a targeted `./val/..._test.sh`).
 
-Continue to [03 - Environment and Configuration](03-configuration.md) to learn how to define your infrastructure.
+Continue to [03 - Environment and Configuration](02-configuration.md) to learn how to define your infrastructure.

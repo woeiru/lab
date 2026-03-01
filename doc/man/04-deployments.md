@@ -59,4 +59,4 @@ When editing deployment scripts or orchestration flow, validate in increasing sc
 - Run the nearest relevant test script directly when available.
 - Run category/full validation for broader changes (`./val/run_all_tests.sh <category>` or `./val/run_all_tests.sh`).
 
-Continue to [06 - Writing Modules](06-writing-modules.md) to understand how to extend the framework's capabilities with new `lib/ops/` functions.
+Continue to [06 - Writing Modules](05-writing-modules.md) to understand how to extend the framework's capabilities with new `lib/ops/` functions.

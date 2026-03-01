@@ -71,4 +71,4 @@ All commands executed via the DIC or directly are fully integrated into the fram
 - Return codes are standardized: `0` (Success), `1` (Usage error), `2` (Runtime failure), `127` (Command missing).
 - Detailed traces are written to the logs. If `OPS_DEBUG=1` is set, you will see verbose resolution tracing from the DIC.
 
-Continue to [05 - Deployments and Runbooks](05-deployments.md) to understand how to string these commands together into multi-step orchestrations.
+Continue to [05 - Deployments and Runbooks](04-deployments.md) to understand how to string these commands together into multi-step orchestrations.

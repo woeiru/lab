@@ -7,13 +7,12 @@ Central documentation hub for the Lab Environment Management System. Contents ar
 ### Operational Documentation (`doc/man/`)
 **Purpose**: How to use, configure, and operate the Lab Environment Management System. Audience: system administrators, operators, CLI users.
 
-- **[01 - Introduction and Core Concepts](man/01-introduction.md)** - Architecture philosophy, major components, and execution layer overview.
-- **[02 - Installation and Initialization](man/02-installation.md)** - Requirements, cloning, system initialization, and environment activation.
-- **[03 - Environment and Configuration](man/03-configuration.md)** - The configuration hierarchy, active context, hostname-specific variables, and declarative arrays.
-- **[04 - CLI Usage and the DIC](man/04-cli-usage.md)** - Direct Bash function execution vs the DIC CLI, DIC execution modes, and parameter injection.
-- **[05 - Deployments and Runbooks](man/05-deployments.md)** - Structure of section-based set scripts, interactive mode, and headless execution.
-- **[06 - Writing Modules](man/06-writing-modules.md)** - Module conventions, naming, parameters, validation, self-documenting comments, and tests.
-- **[07 - Security and Logging](man/07-security-and-logging.md)** - Handling secrets safely, guarding destructive operations, and the multi-tiered logging architecture.
+- **[01 - Installation and Initialization](man/01-installation.md)** - Requirements, cloning, system initialization, and environment activation.
+- **[02 - Environment and Configuration](man/02-configuration.md)** - The configuration hierarchy, active context, hostname-specific variables, and declarative arrays.
+- **[03 - CLI Usage and the DIC](man/03-cli-usage.md)** - Direct Bash function execution vs the DIC CLI, DIC execution modes, and parameter injection.
+- **[04 - Deployments and Runbooks](man/04-deployments.md)** - Structure of section-based set scripts, interactive mode, and headless execution.
+- **[05 - Writing Modules](man/05-writing-modules.md)** - Module conventions, naming, parameters, validation, self-documenting comments, and tests.
+- **[06 - Security and Logging](man/06-security-and-logging.md)** - Handling secrets safely, guarding destructive operations, and the multi-tiered logging architecture.
 
 ### Architectural Documentation (`doc/arc/`)
 **Purpose**: How the system is designed, module structure, system context, and dependency flows. Audience: developers, architects.

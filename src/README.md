@@ -64,8 +64,8 @@ ops pve vpt -j
 
 ## Further Reading
 
-- **Manual:** [04 - CLI Usage](../doc/man/04-cli-usage.md)
-- **Manual:** [05 - Deployments](../doc/man/05-deployments.md)
+- **Manual:** [03 - CLI Usage](../doc/man/03-cli-usage.md)
+- **Manual:** [04 - Deployments](../doc/man/04-deployments.md)
 - **Architecture:** [04 - Dependency Injection](../doc/arc/04-dependency-injection.md)
 - **Reference:** [Functions Reference](../doc/ref/functions.md)
 

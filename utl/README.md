@@ -42,7 +42,7 @@ To understand the architecture and how these utilities analyze code dependencies
 
 - **Reference:** [Functions Reference](../doc/ref/functions.md)
 - **Reference:** [Variables Reference](../doc/ref/variables.md)
-- **Manual:** [06 - Writing Modules](../doc/man/06-writing-modules.md) (covers adding `aux_use`/`aux_tec` comments)
+- **Manual:** [05 - Writing Modules](../doc/man/05-writing-modules.md) (covers adding `aux_use`/`aux_tec` comments)
 
 ---
 **Navigation**: Return to [Main Lab Documentation](../README.md)

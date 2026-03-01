@@ -77,4 +77,4 @@ Every new function or module requires corresponding tests. The validation framew
 - **Test Framework:** Use provided helpers (`run_test`, `test_function_exists`, `test_file_exists`, `test_var_set`) from `val/helpers/test_framework.sh`.
 - **Running Tests:** Execute a specific test script directly (for example `./val/lib/ops/mymodule_test.sh`) or run the full suite (`./val/run_all_tests.sh`).
 
-Continue to [07 - Security and Logging](07-security-and-logging.md) to understand how to handle sensitive data and monitor framework activity.
+Continue to [07 - Security and Logging](06-security-and-logging.md) to understand how to handle sensitive data and monitor framework activity.

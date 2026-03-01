@@ -36,7 +36,7 @@ Complex configurations are often defined using Bash arrays. The framework automa
 
 For detailed guides on how to properly set up environment configurations and structure variables, refer to the documentation:
 
-- **Manual:** [03 - Configuration](../doc/man/03-configuration.md)
+- **Manual:** [02 - Configuration](../doc/man/02-configuration.md)
 - **Architecture:** [05 - Deployment and Config](../doc/arc/05-deployment-and-config.md)
 - **Reference:** [Variables Usage Reference](../doc/ref/variables.md)
 

@@ -77,4 +77,4 @@ To provision a completely new infrastructure environment:
 3. Update `cfg/core/ecc` to point `SITE_NAME` to `site2`.
 4. Re-source the framework (e.g., by running `lab`) to load the new configuration.
 
-Continue to [04 - CLI Usage and the DIC](04-cli-usage.md) to see how the framework executes commands using this configuration.
+Continue to [04 - CLI Usage and the DIC](03-cli-usage.md) to see how the framework executes commands using this configuration.
