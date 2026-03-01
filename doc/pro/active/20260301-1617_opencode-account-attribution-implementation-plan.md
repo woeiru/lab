@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-01
-- Updated: 2026-03-01 (active)
+- Updated: 2026-03-01 (checkpoint)
 - Links: lib/ops/dev, val/lib/ops/dev_test.sh, doc/pro/inbox/README.md
 
 ## Goal
@@ -17,6 +17,51 @@ Move to queue now because account attribution correctness is blocking trustworth
 ## Execution Start
 
 Execution started now to implement strict, event-based session attribution in `dev_osv` and validate with `val/lib/ops/dev_test.sh`.
+
+## Progress Checkpoint
+
+### Done
+
+- Implemented strict provider-aware attribution in `lib/ops/dev` for `dev_osv` using `opencode_account_event`, with strict default and `--best-effort` fallback mode.
+- Added provenance output contract in `dev_osv` (`USER`, `SRC`, `CONF`) and kept strict behavior as default.
+- Added runtime event persistence for explicit account switches in `dev_oas` via `_dev_record_account_event` and provider normalization helper.
+- Expanded tests in `val/lib/ops/dev_test.sh` to cover strict/high attribution, best-effort/low fallback, provider mismatch no-cross-attribution, legacy `control_account` fallback, and event persistence.
+- Committed implementation in three commits: `2d5679f6`, `ffc451d9`, `2e12e5a2`.
+
+### In-flight
+
+- No attribution-related code changes are currently uncommitted.
+- This active plan is being updated as a final handoff checkpoint in this session.
+
+### Blockers
+
+- No hard blocker in this repo code path.
+- Remaining uncertainty: definitive runtime hook points for automatic request-time account selection/token-refresh events in upstream OpenCode runtime are not yet mapped in this plan.
+
+### Next steps
+
+1. Add non-manual event emission for request-time account selection in `lib/ops/dev` (or the resolved upstream integration path) with `event_type=account_selected`.
+2. Add event emission for credential/token refresh identity changes with `event_type=token_refreshed` and provider-safe metadata in `lib/ops/dev`.
+3. Extend validation coverage in `val/lib/ops/dev_test.sh` for repeated switch timelines (multiple events per provider) and deterministic latest-before-first-prompt selection.
+4. Add operator-facing usage notes for strict vs best-effort attribution and event-source semantics in `doc/ref/functions.md` (via generator input where appropriate).
+5. Re-run `./val/lib/ops/dev_test.sh` and `./utl/doc/run_all_doc.sh`, then keep this active file current until acceptance.
+
+### Context
+
+- Branch: `master`.
+- Relevant modified modules: `lib/ops/dev`, `val/lib/ops/dev_test.sh`, and generated reference docs under `doc/ref/`.
+- Last session test result: `./val/lib/ops/dev_test.sh` passed `24/24`.
+- Workflow validation already passes when checked (`bash doc/pro/check-workflow.sh`).
+- No temporary files or ad-hoc local fixtures are required to resume; tests create/clean their own temp environments.
+
+## Execution Plan
+
+Remaining execution scope only:
+
+1. Instrument additional runtime attribution events beyond manual switch (request-time selection and token refresh paths).
+2. Add/verify deterministic multi-event timeline behavior and provider isolation in tests.
+3. Complete docs/contract polishing for operators and keep generated refs synchronized.
+4. Keep strict mode as default in `dev_osv`; preserve explicit low-confidence signaling only behind `--best-effort`.
 
 ## Current Problem (Observed)
 
