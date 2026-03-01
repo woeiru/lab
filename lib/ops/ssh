@@ -1540,3 +1540,217 @@ ssh_loi() {
         return 2
     fi
 }
+
+# Configures VSCodium/GitHub SSH profile and updates origin remote URL for a Git repository
+# configure vscodium github ssh
+# <vsc_repo_dir> <vsc_git_remote_url> <vsc_identity_file> [vsc_host]
+ssh_vsc() {
+    # Technical Description:
+    #   Configures a dedicated SSH host block for GitHub workflows used by VSCodium/Git operations.
+    #   Ensures ~/.ssh/config exists with secure permissions and replaces an existing host block safely.
+    #   Updates the repository origin remote to the provided SSH URL.
+    #   Uses a temporary file and backup strategy for safe config updates.
+    # Dependencies:
+    #   - git command for remote URL updates
+    #   - awk command for SSH config block replacement
+    #   - mktemp command for safe temporary file handling
+    #   - mv command for atomic file replacement
+    #   - cp command for backup creation
+    #   - chmod command for permission hardening
+    #   - mkdir command for directory creation
+    #   - aux_val for parameter validation
+    #   - aux_chk for dependency checks
+    #   - aux_info, aux_warn, aux_err for structured logging
+    # Arguments:
+    #   $1: vsc_repo_dir - path to local Git repository directory
+    #   $2: vsc_git_remote_url - SSH remote URL (e.g., git@github.com:owner/repo.git)
+    #   $3: vsc_identity_file - SSH private key path for this host
+    #   $4: vsc_host - SSH host entry to configure (optional, default: github.com)
+    # Returns:
+    #   0 on success
+    #   1 on invalid parameters/usage
+    #   2 on runtime/configuration failure
+    #   127 when required commands are unavailable
+    # Examples:
+    #   ssh_vsc "/home/es/lab" "git@github.com:woeiru/lab.git" "$HOME/.ssh/id_ed25519_github"
+    #   ssh_vsc "/home/es/lab" "git@github.com:woeiru/lab.git" "$HOME/.ssh/id_ed25519_github" "github.com"
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -lt 3 ] || [ $# -gt 4 ]; then
+        aux_use
+        return 1
+    fi
+
+    if ! aux_val "$1" "not_empty"; then
+        aux_err "Repository directory cannot be empty"
+        aux_use
+        return 1
+    fi
+
+    if ! aux_val "$2" "not_empty"; then
+        aux_err "Git remote URL cannot be empty"
+        aux_use
+        return 1
+    fi
+
+    if ! aux_val "$3" "not_empty"; then
+        aux_err "SSH identity file cannot be empty"
+        aux_use
+        return 1
+    fi
+
+    if [ -n "$4" ] && ! aux_val "$4" "not_empty"; then
+        aux_err "SSH host cannot be empty"
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "git"; then
+        aux_err "git command not found - required for remote updates"
+        return 127
+    fi
+
+    if ! aux_chk "command" "awk"; then
+        aux_err "awk command not found - required for SSH config updates"
+        return 127
+    fi
+
+    if ! aux_chk "command" "mktemp"; then
+        aux_err "mktemp command not found - required for safe file updates"
+        return 127
+    fi
+
+    if ! aux_chk "command" "mv"; then
+        aux_err "mv command not found - required for config replacement"
+        return 127
+    fi
+
+    if ! aux_chk "command" "cp"; then
+        aux_err "cp command not found - required for backup creation"
+        return 127
+    fi
+
+    if ! aux_chk "command" "chmod"; then
+        aux_err "chmod command not found - required for permission hardening"
+        return 127
+    fi
+
+    if ! aux_chk "command" "mkdir"; then
+        aux_err "mkdir command not found - required for SSH directory creation"
+        return 127
+    fi
+
+    local vsc_repo_dir="$1"
+    local vsc_git_remote_url="$2"
+    local vsc_identity_file="$3"
+    local vsc_host="${4:-github.com}"
+    local ssh_dir="$HOME/.ssh"
+    local ssh_config_file="$ssh_dir/config"
+    local temp_config_file=""
+    local backup_file=""
+
+    aux_info "Starting VSCodium SSH/Git integration" "component=ssh,operation=vsc_setup,repo_dir=$vsc_repo_dir,host=$vsc_host"
+
+    if ! aux_val "$vsc_repo_dir" "dir_exists"; then
+        aux_err "Repository directory not found" "component=ssh,operation=vsc_setup,repo_dir=$vsc_repo_dir"
+        return 2
+    fi
+
+    if ! aux_val "$vsc_identity_file" "file_exists"; then
+        aux_err "SSH identity file not found" "component=ssh,operation=vsc_setup,identity_file=$vsc_identity_file"
+        return 2
+    fi
+
+    if ! git -C "$vsc_repo_dir" rev-parse --git-dir >/dev/null 2>&1; then
+        aux_err "Directory is not a Git repository" "component=ssh,operation=vsc_setup,repo_dir=$vsc_repo_dir"
+        return 2
+    fi
+
+    if ! aux_val "$ssh_dir" "dir_exists"; then
+        aux_info "Creating SSH directory" "component=ssh,operation=vsc_setup,ssh_dir=$ssh_dir"
+        if ! aux_cmd "mkdir" "-p" "$ssh_dir"; then
+            aux_err "Failed to create SSH directory" "component=ssh,operation=vsc_setup,ssh_dir=$ssh_dir"
+            return 2
+        fi
+    fi
+
+    if ! aux_cmd "chmod" "700" "$ssh_dir"; then
+        aux_warn "Failed to enforce SSH directory permissions" "component=ssh,operation=vsc_setup,ssh_dir=$ssh_dir"
+    fi
+
+    temp_config_file=$(mktemp) || {
+        aux_err "Failed to create temporary file" "component=ssh,operation=vsc_setup"
+        return 2
+    }
+
+    if [ -f "$ssh_config_file" ]; then
+        backup_file="${ssh_config_file}.bak.$(date +%Y%m%d%H%M%S)"
+        if ! aux_cmd "cp" "$ssh_config_file" "$backup_file"; then
+            aux_warn "Failed to create SSH config backup" "component=ssh,operation=vsc_setup,config_file=$ssh_config_file"
+        else
+            aux_info "SSH config backup created" "component=ssh,operation=vsc_setup,backup_file=$backup_file"
+        fi
+
+        if ! awk -v host="$vsc_host" '
+            BEGIN { skip = 0 }
+            {
+                if ($0 ~ "^[[:space:]]*Host[[:space:]]+" host "([[:space:]]|$)") {
+                    skip = 1
+                    next
+                }
+
+                if (skip && $0 ~ "^[[:space:]]*Host[[:space:]]+") {
+                    skip = 0
+                }
+
+                if (!skip) {
+                    print
+                }
+            }
+        ' "$ssh_config_file" > "$temp_config_file"; then
+            rm -f "$temp_config_file"
+            aux_err "Failed to prepare SSH config update" "component=ssh,operation=vsc_setup,config_file=$ssh_config_file"
+            return 2
+        fi
+    fi
+
+    {
+        if [ -s "$temp_config_file" ]; then
+            printf "\n"
+        fi
+        printf "Host %s\n" "$vsc_host"
+        printf "  HostName github.com\n"
+        printf "  User git\n"
+        printf "  IdentityFile %s\n" "$vsc_identity_file"
+        printf "  IdentitiesOnly yes\n"
+    } >> "$temp_config_file"
+
+    if ! aux_cmd "mv" "$temp_config_file" "$ssh_config_file"; then
+        rm -f "$temp_config_file"
+        aux_err "Failed to write SSH config" "component=ssh,operation=vsc_setup,config_file=$ssh_config_file"
+        return 2
+    fi
+
+    if ! aux_cmd "chmod" "600" "$ssh_config_file"; then
+        aux_warn "Failed to enforce SSH config permissions" "component=ssh,operation=vsc_setup,config_file=$ssh_config_file"
+    fi
+
+    if git -C "$vsc_repo_dir" remote get-url origin >/dev/null 2>&1; then
+        if ! git -C "$vsc_repo_dir" remote set-url origin "$vsc_git_remote_url"; then
+            aux_err "Failed to update Git remote origin" "component=ssh,operation=vsc_setup,repo_dir=$vsc_repo_dir,remote=$vsc_git_remote_url"
+            return 2
+        fi
+    else
+        if ! git -C "$vsc_repo_dir" remote add origin "$vsc_git_remote_url"; then
+            aux_err "Failed to add Git remote origin" "component=ssh,operation=vsc_setup,repo_dir=$vsc_repo_dir,remote=$vsc_git_remote_url"
+            return 2
+        fi
+    fi
+
+    aux_info "VSCodium SSH/Git integration completed" "component=ssh,operation=vsc_setup,status=success,repo_dir=$vsc_repo_dir,host=$vsc_host"
+    return 0
+}
