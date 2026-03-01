@@ -55,6 +55,23 @@ check_header() {
   fi
 }
 
+check_completed_structure() {
+  local file="$1"
+  local rel
+  rel="${file#"$ROOT/completed/"}"
+
+  if [[ "$rel" != */* ]]; then
+    printf 'FAIL completed structure: %s (expected completed/<topic>/<file>.md)\n' "$file"
+    failures=$((failures + 1))
+    return
+  fi
+
+  if [[ "$rel" == */*/* ]]; then
+    printf 'FAIL completed structure: %s (too deep; expected one topic folder)\n' "$file"
+    failures=$((failures + 1))
+  fi
+}
+
 check_inbox_names() {
   local file="$1"
   local base
@@ -93,6 +110,11 @@ while IFS= read -r file; do
   check_inbox_names "$file"
   check_header "$file"
 done < <(find "$ROOT/inbox" -type f | sort)
+
+while IFS= read -r file; do
+  is_markdown_doc "$file" || continue
+  check_completed_structure "$file"
+done < <(find "$ROOT/completed" -type f | sort)
 
 while IFS= read -r file; do
   is_markdown_doc "$file" || continue

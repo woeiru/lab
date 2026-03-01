@@ -1,6 +1,6 @@
 # Arc Docs Quality Upgrade Prompt
 
-- Status: queue
+- Status: completed
 - Owner: es
 - Started: n/a
 - Updated: 2026-03-01

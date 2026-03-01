@@ -42,16 +42,18 @@ Workflow item markdown files in these folders must use this prefix format:
 
 - `yyyymmdd-hhmm_filename`
 
-Where `yyyymmdd-hhmm` is the last touch time from git history for that file.
+Where `yyyymmdd-hhmm` is the file creation time for that work item.
+
+Keep this prefix stable after creation to avoid noisy rename churn.
 
 Root meta/support files directly under `doc/pro/` (for example checklist and
 checker helpers) do not require timestamp prefixes.
 
 When you update a file in this folder tree:
 
-1. Get the latest touch time from git for that file.
-2. Rename the file so the prefix matches that time.
-3. Keep the original filename after the underscore.
+1. Keep the existing filename prefix unchanged.
+2. Update the `- Updated:` field in the document header.
+3. Rename only if the topic slug or folder state changes.
 
 Examples:
 
@@ -82,7 +84,18 @@ Examples:
    - If you decide not to continue, move the file to `dismissed/`.
    - Add one or two lines explaining why (obsolete, too risky, low value, duplicate, etc.).
 
-## Important rule for your question
+## State entry/exit criteria
+
+| State | Enter when | Exit when |
+|---|---|---|
+| `inbox/` | idea captured, not yet prioritized | triaged and priority decided |
+| `queue/` | ready to execute, waiting for capacity | work starts (`active/`) or cancelled (`dismissed/`) |
+| `active/` | owner is actively executing now | accepted outcome (`completed/`) or stopped (`dismissed/`) |
+| `experiments/` | spike/prototype is needed before commitment | promote to `queue/` or close in `dismissed/` |
+| `completed/` | implementation/review accepted with evidence | no further state transition; follow-up becomes a new item |
+| `dismissed/` | item explicitly not pursued | no further state transition; revisit as a new item |
+
+## Important rule
 
 If something is in `active/`, it is not done yet.
 
@@ -124,10 +137,9 @@ To avoid overload as a solo developer:
 
 ## Room for improvement
 
-1. Define explicit entry/exit criteria per state in one small table (for faster triage).
-2. Enforce `completed/<topic>/` structure in `check-workflow.sh` so docs and automation stay aligned.
-3. Add a stale-item rule (for example, review any `active/` item with no update in 7 days).
-4. Require each completed topic to include a short `result` section with verification evidence.
+1. Add a stale-item automation rule (for example, flag any `active/` item with no update in 7 days).
+2. Require each completed topic to include a short `result` section with verification evidence.
+3. Add lightweight cycle-time metrics (`inbox` -> `completed`) for process tuning.
 
 ---
 
