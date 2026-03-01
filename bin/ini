@@ -313,6 +313,13 @@ main_ini() {
     # Disable performance mode before component setup
     export PERFORMANCE_MODE=0
 
+    # Phase 3 prototype: lazy-load selected ops modules during bootstrap.
+    : "${LAB_OPS_LAZY_LOAD:=1}"
+    : "${LAB_OPS_LAZY_MODULES:=all}"
+    : "${LAB_GEN_LAZY_LOAD:=1}"
+    : "${LAB_GEN_LAZY_MODULES:=all}"
+    export LAB_OPS_LAZY_LOAD LAB_OPS_LAZY_MODULES LAB_GEN_LAZY_LOAD LAB_GEN_LAZY_MODULES
+
     # Part 4: Setup additional components
     if ! setup_components_with_finalization "$main_op_timer_started"; then
         restore_boot_log_debug_state

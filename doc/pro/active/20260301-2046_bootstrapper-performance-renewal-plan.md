@@ -3,8 +3,8 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-01
-- Updated: 2026-03-01 (checkpoint verification + Phase 2 item 7 pass)
-- Links: bin/ini, bin/orc, lib/core/col, lib/core/err, lib/core/lo1, lib/core/tme, lib/core/ver, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, doc/arc/01-bootstrap-and-orchestration.md
+- Updated: 2026-03-01 (Phase 3 completion)
+- Links: bin/ini, bin/orc, lib/core/col, lib/core/err, lib/core/lo1, lib/core/tme, lib/core/ver, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, cfg/core/lzy, doc/arc/01-bootstrap-and-orchestration.md
 
 ## Goal
 
@@ -63,12 +63,9 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
 
 ## Execution Plan (remaining)
 
-1. Begin Phase 3 by preparing a minimal lazy-load strategy for `lib/ops/`
-   (stub wrappers + first-load source path) that preserves current contracts.
-2. Prototype the lazy-load path for a small subset of ops functions first, then
-   validate parity (arguments, return codes, output) against eager-load behavior.
-3. Measure bootstrap again and decide whether to expand lazy-loading to all
-   `lib/ops/` modules in this item or split into a follow-on active plan.
+1. No remaining mandatory implementation work for Phases 1-3 in this item.
+2. Optional follow-on: pursue sub-`400ms` target with deeper runtime
+   restructuring beyond lazy-load scope.
 
 ## Progress Checkpoint
 
@@ -173,15 +170,59 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
     `604ms`).
   - 3-run timing sample: `0.597s`, `0.587s`, `0.585s` (median `0.587s`).
   - Result: Phase 2 target (<`600ms`) achieved in this pass.
+- Fresh-context checkpoint verification completed:
+  - `git status --short --branch` showed clean branch before this pass; prior
+    checkpoint `In-flight` state was stale.
+  - Re-read `bin/orc`, `lib/core/ver`, and blocker reference `lib/gen/inf:90`.
+  - Verified quick-suite blocker still reproduces via
+    `./val/core/glb_008_secret_scan_test.sh` at `lib/gen/inf:90`.
+- Phase 3 prototype implemented in this pass:
+  - `bin/orc`: added lazy ops dispatch path (`_orc_lazy_dispatch`) with
+    per-module load tracking (`ORC_LAZY_OPS_MODULE_LOADED`).
+  - `bin/orc`: added prototype stub registration for `ssh` module functions and
+    selective lazy module filtering via `LAB_OPS_LAZY_LOAD` /
+    `LAB_OPS_LAZY_MODULES`.
+  - `bin/ini`: set Phase 3 prototype defaults before component setup
+    (`LAB_OPS_LAZY_LOAD=1`, `LAB_OPS_LAZY_MODULES=ssh`).
+  - `val/core/initialization/orc_test.sh`: added test proving lazy stub
+    replacement and first-call module load behavior.
+- Validation/timing for this pass:
+  - `bash -n bin/orc bin/ini val/core/initialization/orc_test.sh`: pass.
+  - `./val/core/initialization/orc_test.sh`: pass.
+  - `./val/core/initialization/ini_test.sh`: pass (performance check observed
+    `619ms`).
+  - 3-run timing sample: `0.585s`, `0.591s`, `0.649s` (median `0.591s`).
+  - Result: Phase 3 prototype integrated while holding Phase 2 performance band.
+- Phase 3 completion work performed in this pass:
+  - `bin/orc`: generalized lazy-loading to ops/gen module sets via
+    `LAB_OPS_LAZY_*` and `LAB_GEN_LAZY_*` controls.
+  - `bin/orc`: switched lazy stub registration from per-boot source scanning to
+    static function maps loaded from `cfg/core/lzy`.
+  - `cfg/core/lzy`: added module-to-function lazy map for all current ops/gen
+    modules.
+  - `bin/ini`: defaulted lazy mode to full module sets (`all`) for both ops and
+    gen.
+  - `val/core/initialization/orc_test.sh`: extended lazy-load assertions to
+    cover both ops and gen first-call load behavior.
+- Validation/timing for Phase 3 completion:
+  - `bash -n bin/orc bin/ini cfg/core/lzy val/core/initialization/orc_test.sh`:
+    pass.
+  - `./val/core/initialization/orc_test.sh`: pass.
+  - `./val/core/initialization/ini_test.sh`: pass (performance check observed
+    `526ms`).
+  - `./val/lib/ops/ssh_test.sh`: pass.
+  - `./val/lib/gen/inf_test.sh`: pass.
+  - 3-run timing sample: `0.495s`, `0.489s`, `0.499s` (median `0.495s`).
+  - Result: Phase 3 completed with additional bootstrap reduction
+    (`0.587s` -> `0.495s`, ~15.7% faster), though still above aspirational
+    `<400ms` target.
 
 ### In-flight
 
-- Current active code edits in this pass: `lib/core/ver`, `bin/orc`.
-- Running quick validation produced generated working-tree deltas outside this
-  plan scope: `STATS.md`, `doc/ref/stats/actual.md`, and
-  `doc/ref/stats/20260301T210850Z.json`.
-- Phase 1 and Phase 2 objectives are achieved in continuation samples
-  (latest median `0.587s`).
+- Current active code edits in this pass: `bin/ini`, `bin/orc`, `cfg/core/lzy`,
+  `val/core/initialization/orc_test.sh`.
+- Phase 1, Phase 2, and Phase 3 implementation objectives are achieved for this
+  active item scope.
 
 ### Blockers
 
@@ -189,22 +230,19 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
 - Validation blocker for a fully green quick suite remains unrelated:
   `glb_008_secret_scan_test` failure due to detected default password string at
   `lib/gen/inf:90`.
-- No current code blocker for proceeding into Phase 3 planning/prototyping.
+- No current code blocker for closing this phase.
 
 ### Next steps
 
-1. Isolate this plan's intended deltas from quick-suite generated stats artifacts
-   before preparing a commit.
-2. Draft/implement first Phase 3 lazy-load prototype for `lib/ops/`.
-3. Re-run focused validations and timing after prototype integration.
-4. Decide whether to continue Phase 3 expansion in this item or split follow-on.
+1. Prepare closure artifacts (summary + commit when requested).
+2. If required, open a follow-on active plan focused on remaining gap to
+   `<400ms`.
 
 ### Context
 
 - Branch: `master`.
-- Modified files currently in working tree: `bin/orc`, `lib/core/ver`, plus generated
-  stats outputs from quick-suite execution (`STATS.md`,
-  `doc/ref/stats/actual.md`, `doc/ref/stats/20260301T210850Z.json`).
+- Modified files currently in working tree: `bin/ini`, `bin/orc`,
+  `cfg/core/lzy`, `val/core/initialization/orc_test.sh`.
 - No persistent temp artifacts from this session are required for continuation.
 - Timing command used for all measurements:
   `time bash -lc 'MASTER_TERMINAL_VERBOSITY=off; source /home/es/lab/bin/ini' 2>&1`.
@@ -213,6 +251,11 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
 - New finding (continuation): after `ver_log` consolidation plus `bin/orc`
   basename fork removal, current 3-run sample median is `0.587s`; this meets
   both Phase 1 (<`800ms`) and Phase 2 (<`600ms`) targets.
+- New finding (fresh-context Phase 3 prototype): selective lazy-loading for
+  `lib/ops/ssh` keeps bootstrap at `0.591s` median while preserving tested
+  init behavior.
+- New finding (Phase 3 completion): static lazy function maps avoid per-boot
+  discovery scans and reduce median bootstrap time to `0.495s`.
 
 ## Verification Plan
 
@@ -232,6 +275,8 @@ the highest-impact, lowest-risk Phase 1 fork-elimination work.
 - Follow-on recommendation for Phase 2 documented with measured deltas.
 - Phase 2 target (<600ms median) reached in continuation pass; next work is
   Phase 3 lazy-load structural optimization.
+- Phase 3 lazy-load structural optimization completed and validated for ops/gen
+  module loading behavior.
 
 ## Scope
 

@@ -52,10 +52,82 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_source_lib_ops_lazy_stub_loads_on_first_call() {
+    local test_env
+    test_env=$(create_test_env "orc_lazy_ops")
+
+    cat > "$test_env/test_orc_lazy_ops.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+export MASTER_TERMINAL_VERBOSITY=off
+export LAB_OPS_LAZY_LOAD=1
+export LAB_OPS_LAZY_MODULES="ssh"
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+stub_def="$(declare -f ssh_fun 2>/dev/null)"
+[[ "$stub_def" == *"_orc_lazy_dispatch"* ]] || exit 1
+
+if ! ssh_fun --help >/dev/null 2>&1; then
+    exit 1
+fi
+
+real_def="$(declare -f ssh_fun 2>/dev/null)"
+[[ "$real_def" == *"_orc_lazy_dispatch"* ]] && exit 1
+
+module_path="$LAB_DIR/lib/ops/ssh"
+[[ "${ORC_LAZY_MODULE_LOADED[$module_path]:-0}" == "1" ]] || exit 1
+EOF
+    chmod +x "$test_env/test_orc_lazy_ops.sh"
+
+    run_test "Orchestrator lazy-loads selected ops module on first use" "$test_env/test_orc_lazy_ops.sh"
+    cleanup_test_env "$test_env"
+}
+
+test_source_lib_gen_lazy_stub_loads_on_first_call() {
+    local test_env
+    test_env=$(create_test_env "orc_lazy_gen")
+
+    cat > "$test_env/test_orc_lazy_gen.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+export MASTER_TERMINAL_VERBOSITY=off
+export LAB_GEN_LAZY_LOAD=1
+export LAB_GEN_LAZY_MODULES="ana"
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+stub_def="$(declare -f ana_laf 2>/dev/null)"
+[[ "$stub_def" == *"_orc_lazy_dispatch"* ]] || exit 1
+
+ana_laf >/dev/null 2>&1 || true
+
+real_def="$(declare -f ana_laf 2>/dev/null)"
+[[ "$real_def" == *"_orc_lazy_dispatch"* ]] && exit 1
+
+module_path="$LAB_DIR/lib/gen/ana"
+[[ "${ORC_LAZY_MODULE_LOADED[$module_path]:-0}" == "1" ]] || exit 1
+EOF
+    chmod +x "$test_env/test_orc_lazy_gen.sh"
+
+    run_test "Orchestrator lazy-loads selected gen module on first use" "$test_env/test_orc_lazy_gen.sh"
+    cleanup_test_env "$test_env"
+}
+
 main() {
     run_test_suite "COMPONENT ORCHESTRATOR TESTS" \
         test_orc_script_exists \
-        test_source_directory_skips_hidden_files
+        test_source_directory_skips_hidden_files \
+        test_source_lib_ops_lazy_stub_loads_on_first_call \
+        test_source_lib_gen_lazy_stub_loads_on_first_call
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

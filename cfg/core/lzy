@@ -1,0 +1,19 @@
+#!/bin/bash
+# Lazy-load function map for bin/orc module stubs.
+
+ORC_LAZY_OPS_FUNCTIONS["dev"]="dev_fun,dev_var,dev_osv,dev_omi,dev_oae,dev_orr,dev_otr,dev_oqu,dev_olb,dev_oas"
+ORC_LAZY_OPS_FUNCTIONS["gpu"]="gpu_fun,gpu_var,gpu_nds,gpu_ptp,gpu_ptd,gpu_pta,gpu_pts"
+ORC_LAZY_OPS_FUNCTIONS["net"]="net_fun,net_var,net_uni,net_fsr,net_fas,net_hos"
+ORC_LAZY_OPS_FUNCTIONS["pbs"]="pbs_fun,pbs_var,pbs_dav,pbs_adr,pbs_rda,pbs_mon"
+ORC_LAZY_OPS_FUNCTIONS["pve"]="pve_fun,pve_var,pve_dsr,pve_rsn,pve_clu,pve_cdo,pve_cbm,pve_ctc,pve_cto,pve_vmd,pve_vmc,pve_vms,pve_vmg,pve_vpt,pve_vck"
+ORC_LAZY_OPS_FUNCTIONS["srv"]="srv_fun,srv_var,srv_nfs_set,srv_nfs_apl,srv_nfs_mon,srv_smb_set,srv_smb_apl,srv_smb_mon"
+ORC_LAZY_OPS_FUNCTIONS["ssh"]="ssh_fun,ssh_var,ssh_key,ssh_lst,ssh_rmv,ssh_gen,ssh_cpy,ssh_agt,ssh_sca,ssh_suk,ssh_spi,ssh_sks,ssh_sak,ssh_loi,ssh_vsc"
+ORC_LAZY_OPS_FUNCTIONS["sto"]="sto_fun,sto_var,sto_fea,sto_fec,sto_nfs,sto_bfs_tra,sto_bfs_ra1,sto_bfs_csf,sto_bfs_shc,sto_bfs_shd,sto_bfs_shl,sto_bfs_sfr,sto_bfs_hub,sto_bfs_snd,sto_zfs_cpo,sto_zfs_dim,sto_zfs_dbs"
+ORC_LAZY_OPS_FUNCTIONS["sys"]="sys_fun,sys_var,sys_gio,sys_gio_generate_commit_message,sys_dpa,sys_upa,sys_ipa,sys_gst,sys_sst,sys_ust,sys_sdc,sys_gre"
+ORC_LAZY_OPS_FUNCTIONS["usr"]="usr_fun,usr_var,usr_ckp,usr_vsf,usr_cff,usr_duc,usr_cif,usr_rsf,usr_rsd,usr_swt,usr_adr,usr_cap,usr_rif,usr_ans"
+
+ORC_LAZY_GEN_FUNCTIONS["ana"]="ana_fun,ana_var,ana_laf,ana_lad,ana_acu,ana_rdp,ana_rdp_std,ana_tst,ana_err,ana_scp,ana_dep"
+ORC_LAZY_GEN_FUNCTIONS["aux"]="aux_fun,aux_var,aux_use,aux_tec,aux_ffl,aux_arr,aux_val,aux_chk,aux_cmd,aux_ask,aux_get_log_color,aux_log,aux_dbg,aux_get_cluster_metadata,aux_format_json_log,aux_format_csv_log,aux_start_trace,aux_end_trace,aux_metric,aux_business,aux_security,aux_audit,aux_perf,aux_info,aux_warn,aux_err"
+ORC_LAZY_GEN_FUNCTIONS["env"]="update_ecc,env_switch,env_site_switch,env_node_switch,env_status,env_list,env_validate,env_usage"
+ORC_LAZY_GEN_FUNCTIONS["inf"]="inf_set_container_defaults,inf_generate_ip_sequence,inf_define_container,inf_define_containers,inf_set_vm_defaults,inf_define_vm,inf_define_vms,inf_validate_config,inf_show_config_summary,set_container_defaults,define_container,define_containers,set_vm_defaults,define_vm,define_vms,generate_ip_sequence,validate_config,show_config_summary"
+ORC_LAZY_GEN_FUNCTIONS["sec"]="sec_generate_secure_password,sec_store_secure_password,sec_generate_service_passwords,sec_create_password_file,sec_load_stored_passwords,sec_get_password_directory,sec_init_password_management,sec_init_password_management_auto,sec_get_password_file,sec_get_secure_password,generate_secure_password,store_secure_password,init_password_management,generate_service_passwords,load_stored_passwords,get_secure_password"

@@ -254,6 +254,124 @@ source_directory() {
     fi
 }
 
+declare -Ag ORC_LAZY_MODULE_LOADED
+declare -Ag ORC_LAZY_OPS_FUNCTIONS
+declare -Ag ORC_LAZY_GEN_FUNCTIONS
+declare -ag ORC_LAZY_DISCOVERED_FUNCS
+
+_orc_lazy_dispatch() {
+    local module_file="$1"
+    local func_name="$2"
+    shift 2
+
+    if [[ "${ORC_LAZY_MODULE_LOADED[$module_file]:-0}" != "1" ]]; then
+        if ! source_helper "$module_file" "${module_file##*/}"; then
+            lo1_log "lvl" " Error: Lazy-load failed for ${module_file##*/} while dispatching ${func_name}"
+            return 1
+        fi
+        ORC_LAZY_MODULE_LOADED["$module_file"]=1
+    fi
+
+    if ! type "$func_name" &>/dev/null; then
+        lo1_log "lvl" " Error: Lazy-loaded module ${module_file##*/} does not define ${func_name}"
+        return 127
+    fi
+
+    "$func_name" "$@"
+}
+
+_orc_lazy_load_function_map() {
+    local map_file="${LAB_DIR}/cfg/core/lzy"
+
+    if [[ "${ORC_LAZY_MAP_LOADED:-0}" == "1" ]]; then
+        return 0
+    fi
+
+    if [[ -r "$map_file" ]]; then
+        source "$map_file"
+    fi
+
+    ORC_LAZY_MAP_LOADED=1
+    return 0
+}
+
+_orc_lazy_define_stub() {
+    local func_name="$1"
+    local module_file="$2"
+
+    if type "$func_name" &>/dev/null; then
+        return 0
+    fi
+
+    [[ "$func_name" =~ ^[a-z][a-z0-9_]*$ ]] || return 1
+
+    eval "${func_name}() { _orc_lazy_dispatch \"${module_file}\" \"${func_name}\" \"\$@\"; }"
+    return 0
+}
+
+_orc_lazy_discover_module_functions() {
+    local module_name="$1"
+    local module_file="$2"
+    local line
+    local func_name
+
+    ORC_LAZY_DISCOVERED_FUNCS=()
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" =~ ^([a-z][a-z0-9_]*)[[:space:]]*\(\)[[:space:]]*\{ ]] || continue
+        func_name="${BASH_REMATCH[1]}"
+
+        ORC_LAZY_DISCOVERED_FUNCS+=("$func_name")
+    done < "$module_file"
+
+    return 0
+}
+
+_orc_lazy_register_module_stubs() {
+    local module_group="$1"
+    local module_name="$2"
+    local module_file="$3"
+    local func_csv=""
+
+    _orc_lazy_load_function_map
+
+    case "$module_group" in
+        ops)
+            func_csv="${ORC_LAZY_OPS_FUNCTIONS[$module_name]:-}"
+            ;;
+        gen)
+            func_csv="${ORC_LAZY_GEN_FUNCTIONS[$module_name]:-}"
+            ;;
+    esac
+
+    if [[ -n "$func_csv" ]]; then
+        IFS=',' read -r -a ORC_LAZY_DISCOVERED_FUNCS <<< "$func_csv"
+    else
+        _orc_lazy_discover_module_functions "$module_name" "$module_file"
+    fi
+
+    if ((${#ORC_LAZY_DISCOVERED_FUNCS[@]} == 0)); then
+        return 1
+    fi
+
+    local func_name
+    for func_name in "${ORC_LAZY_DISCOVERED_FUNCS[@]}"; do
+        _orc_lazy_define_stub "$func_name" "$module_file" || return 1
+    done
+
+    lo1_log "lvl" "Registered lazy-load stubs for ${module_name} (${#ORC_LAZY_DISCOVERED_FUNCS[@]} functions)"
+    return 0
+}
+
+_orc_lazy_module_selected() {
+    local module_name="$1"
+    local selected_csv="$2"
+
+    [[ "$selected_csv" == "all" || "$selected_csv" == "*" ]] && return 0
+
+    [[ ",${selected_csv}," == *",${module_name},"* ]]
+}
+
 # Component execution with status tracking
 execute_component() {
     local func="$1"
@@ -373,7 +491,18 @@ source_lib_ops() {
     local file
     local file_name
     local file_name_lower
+    local module_name
     local nullglob_was_set=0
+    local lazy_enabled=0
+    local lazy_modules_csv="all"
+
+    if [[ "${LAB_OPS_LAZY_LOAD:-0}" == "1" ]]; then
+        lazy_enabled=1
+        lazy_modules_csv="${LAB_OPS_LAZY_MODULES:-all}"
+        lazy_modules_csv="${lazy_modules_csv,,}"
+        lazy_modules_csv="${lazy_modules_csv//[[:space:]]/}"
+        lo1_log "lvl" "Lazy ops loading enabled for modules: ${lazy_modules_csv}"
+    fi
 
     shopt -q nullglob && nullglob_was_set=1
     shopt -s nullglob
@@ -383,6 +512,7 @@ source_lib_ops() {
 
         file_name="${file##*/}"
         file_name_lower="${file_name,,}"
+        module_name="${file_name_lower%%.*}"
 
         case "$file_name_lower" in
             .*|readme*|*.md|*.txt|*.spec|*.readme|*.doc)
@@ -391,6 +521,15 @@ source_lib_ops() {
         esac
 
         ((total_count++))
+
+        if ((lazy_enabled == 1)) && _orc_lazy_module_selected "$module_name" "$lazy_modules_csv"; then
+            if _orc_lazy_register_module_stubs "ops" "$module_name" "$file"; then
+                ((success_count++))
+                continue
+            fi
+            lo1_log "lvl" " Warning: Lazy stub registration unavailable for ${module_name}; falling back to eager source"
+        fi
+
         if source_helper "$file" "$file_name"; then
             ((success_count++))
         fi
@@ -465,20 +604,86 @@ init_password_management_if_needed() {
 source_lib_gen() {
     local dir_to_source="${LIB_GEN_DIR}"
     local description="general utility function files"
-    local pattern="*"
+    local success_count=0
+    local total_count=0
+    local file
+    local file_name
+    local file_name_lower
+    local module_name
+    local nullglob_was_set=0
+    local lazy_enabled=0
+    local lazy_modules_csv="all"
+
+    if [[ "${LAB_GEN_LAZY_LOAD:-0}" == "1" ]]; then
+        lazy_enabled=1
+        lazy_modules_csv="${LAB_GEN_LAZY_MODULES:-all}"
+        lazy_modules_csv="${lazy_modules_csv,,}"
+        lazy_modules_csv="${lazy_modules_csv//[[:space:]]/}"
+        lo1_log "lvl" "Lazy gen loading enabled for modules: ${lazy_modules_csv}"
+    fi
 
     lo1_log "lvl" "Sourcing ${description} from ${dir_to_source}"
-    if source_directory "${dir_to_source}" "${pattern}" "${description}"; then
-        lo1_log "lvl" "Successfully sourced ${description}."
-        
-        # Post-loading initialization for specialized utilities
-        init_password_management_if_needed
-        
-        return 0
-    else
+
+    if [[ ! -d "$dir_to_source" ]]; then
+        lo1_log "lvl" " Warning: Directory $dir_to_source not found. Skipping."
+        return 1
+    fi
+
+    if [[ ! -r "$dir_to_source" ]]; then
+        lo1_log "lvl" " Error: Directory $dir_to_source is not readable"
+        return 1
+    fi
+
+    shopt -q nullglob && nullglob_was_set=1
+    shopt -s nullglob
+
+    for file in "$dir_to_source"/*; do
+        [[ -f "$file" ]] || continue
+
+        file_name="${file##*/}"
+        file_name_lower="${file_name,,}"
+        module_name="${file_name_lower%%.*}"
+
+        case "$file_name_lower" in
+            .*|readme*|*.md|*.txt|*.spec|*.readme|*.doc)
+                continue
+                ;;
+        esac
+
+        ((total_count++))
+
+        if ((lazy_enabled == 1)) && _orc_lazy_module_selected "$module_name" "$lazy_modules_csv"; then
+            if _orc_lazy_register_module_stubs "gen" "$module_name" "$file"; then
+                ((success_count++))
+                continue
+            fi
+            lo1_log "lvl" " Warning: Lazy stub registration unavailable for ${module_name}; falling back to eager source"
+        fi
+
+        if source_helper "$file" "$file_name"; then
+            ((success_count++))
+        fi
+    done
+
+    ((nullglob_was_set == 0)) && shopt -u nullglob
+
+    if ((total_count == 0)); then
+        lo1_log "lvl" " Warning: No matching files found in $dir_to_source"
+        return 1
+    elif ((success_count == 0)); then
         lo1_log "lvl" "Failed to source ${description} from ${dir_to_source}."
         return 1
     fi
+
+    lo1_log "lvl" "Successfully prepared $success_count/$total_count ${description}."
+
+    if ((lazy_enabled == 0)); then
+        init_password_management_if_needed
+    else
+        lo1_log "lvl" "Deferred password management initialization due to lazy gen loading"
+    fi
+
+    return 0
 }
 
 # Source the environment controller configuration
