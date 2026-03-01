@@ -39,6 +39,8 @@ Execution started now to implement strict, event-based session attribution in `d
 - Committed attribution implementation and follow-ups in: `ffc451d9`, `2e12e5a2`, `866ac019`, `a5e1725a`, `a1150082`, `e8f65518`, `6a465da5`.
 - Revalidated core attribution suite with `./val/lib/ops/dev_test.sh` at `31/31` passing.
 - Revalidated workflow policy with `bash doc/pro/check-workflow.sh` (pass).
+- Validated wrapper behavior in local OpenCode usage with `dev_orr --dry-run` and captured auditable before/after `dev_osv -x` evidence in best-effort mode (`CONF=low` post-event, provider-safe).
+- Verified strict default behavior still holds after event emission (`dev_osv -x` remains `(unknown)`/`CONF=none` when no pre-first-prompt event exists).
 
 ### In-flight
 
@@ -52,8 +54,8 @@ Execution started now to implement strict, event-based session attribution in `d
 
 ### Next steps
 
-1. Validate wrapper behavior in real local OpenCode usage (prefer `dev_orr --dry-run` first) and capture one auditable before/after `dev_osv -x` example.
-2. Keep this active plan current through final acceptance and merge/commit steps.
+1. Keep this active plan current through final acceptance and merge/commit steps.
+2. Optionally evaluate upstream native OpenCode hook points later to replace wrapper-driven runtime emission.
 
 ### Context
 
@@ -65,6 +67,8 @@ Execution started now to implement strict, event-based session attribution in `d
 - Operator docs include attribution workflow guidance under `doc/man/03-cli-usage.md`.
 - Branch is currently clean with local history ahead of origin; active plan remains the source of truth for remaining validation.
 - No temporary files or ad-hoc local fixtures are required to resume; tests create/clean their own temp environments.
+- Local validation sample (2026-03-01): before `dev_orr --dry-run`, `dev_osv -x -l 5 --best-effort` showed `(unknown)`; after dry-run emit for `openai/audit-session@example.com`, matching OpenAI-backed sessions showed `user=audit-session@example.com`, `src=opencode_runtime`, `conf=low`.
+- Strict sample (same run): `dev_osv -x -l 3` continued to show `(unknown)`, `src=none`, `conf=none`, confirming strict mode did not fabricate high confidence.
 
 ## Execution Plan
 
