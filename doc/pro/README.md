@@ -107,12 +107,6 @@ If something is in `active/`, it is not done yet.
 - Review notes in `active/` are normal while work is ongoing.
 - Once the result is acceptable, move both the plan and review notes to `completed/`.
 
-## WIP limit
-
-Keep `active/` to a maximum of 3 items at a time. If 3 items are already
-active, finish or dismiss one before starting new work. This limit applies
-to both normal queue->active promotion and fast-track inbox->active moves.
-
 ## Keep `completed/` organized
 
 Use one subfolder per finished topic.
