@@ -22,10 +22,6 @@ Prepend this block to any template below.
 ```text
 You are operating the doc/pro workflow board.
 
-Scope:
-- Work only inside doc/pro/ unless explicitly told otherwise.
-- Do not modify any workflow items other than the ones specified.
-
 File rules:
 - Keep filename timestamp prefixes (yyyymmdd-hhmm_) stable after creation.
 - Update the "- Updated:" header field on every content change.
@@ -38,12 +34,6 @@ Folder-specific naming:
 - inbox/: filename must end with -plan.md, -review.md, or -followup.md
 - dismissed/: filename must end with -plan.md; must include ## Dismissal Reason
 - completed/: files must be in completed/<topic>/<file>.md (one subfolder deep)
-
-WIP limit:
-- Maximum 3 items in active/ at a time.
-- Before moving anything into active/, count existing active items (exclude
-  waivers/ subdirectory and README.md). If 3 or more items exist, stop and
-  report the current active items instead of moving.
 
 Validation:
 - Run: bash doc/pro/check-workflow.sh before finishing.
@@ -62,7 +52,7 @@ Return format (apply to every template):
 
 ## Templates
 
-### 1) Capture idea in inbox
+### 1) 💡 Capture idea in inbox
 
 ```text
 <IDEA>
@@ -75,7 +65,7 @@ Create a new workflow item in doc/pro/inbox for this idea.
 - Do not move any existing files
 ```
 
-### 2) Triage inbox -> queue
+### 2) 📥 Triage inbox -> queue
 
 ```text
 Review all files in doc/pro/inbox and pick the highest-value next item.
@@ -86,7 +76,7 @@ Review all files in doc/pro/inbox and pick the highest-value next item.
 - Report: moved file path, reason, and top 2 deferred items with rationale
 ```
 
-### 3) Direct move inbox -> queue (known item)
+### 3) 📌 Direct move inbox -> queue (known item)
 
 ```text
 <INBOX_FILE_PATH>
@@ -98,14 +88,13 @@ Move this specific workflow item from inbox/ to queue/.
 - Report: new file path, what changed (max 3 bullets)
 ```
 
-### 4) Start execution: queue -> active
+### 4) 🚀 Start execution: queue -> active
 
 ```text
 <QUEUE_FILE_PATH>
 
 Move this queued item into active execution.
 
-- Enforce WIP limit before moving (see core rules)
 - Set Status: active
 - Add sections: Execution Plan (today), Verification Plan, Exit Criteria
 - Execution Plan rules for multi-phase work:
@@ -118,7 +107,7 @@ Move this queued item into active execution.
 - Report: active path + next 3 execution steps
 ```
 
-### 5) Fast-track: inbox -> active
+### 5) ⚡ Fast-track: inbox -> active
 
 ```text
 <INBOX_FILE_PATH>
@@ -127,7 +116,6 @@ Fast-track this inbox item directly into active execution, skipping queue.
 
 Use only when the item is clearly highest priority and ready to execute now.
 
-- Enforce WIP limit before moving (see core rules)
 - Set Status: active
 - Add ## Triage Decision section (why this item, why skip queue)
 - Add sections: Execution Plan (today), Verification Plan, Exit Criteria
@@ -141,7 +129,7 @@ Use only when the item is clearly highest priority and ready to execute now.
 - Report: active path + triage rationale + next 3 execution steps
 ```
 
-### 6) Close: active -> completed
+### 6) ✅ Close: active -> completed
 
 ```text
 <ACTIVE_FILE_PATH>
@@ -159,7 +147,7 @@ Finalize this active item into completed state.
 - Report: completed folder path + verification evidence summary
 ```
 
-### 7) Dismiss: any -> dismissed
+### 7) 🗑️ Dismiss: any -> dismissed
 
 ```text
 <FILE_PATH>
@@ -176,7 +164,7 @@ The source file may be in inbox/, queue/, active/, or experiments/.
 - Report: dismissed file path + rationale
 ```
 
-### 8) Move to experiments (spike/prototype)
+### 8) 🧪 Move to experiments (spike/prototype)
 
 ```text
 <FILE_PATH>
@@ -194,7 +182,7 @@ The source file may be in inbox/, queue/, or active/.
 - Report: experiments path + goal summary + time box
 ```
 
-### 9) Resolve experiment -> queue or dismissed
+### 9) 🧭 Resolve experiment -> queue or dismissed
 
 ```text
 <EXPERIMENT_FILE_PATH>
@@ -212,14 +200,13 @@ Resolve this experiment based on its outcome.
 - Report: destination path + outcome summary + what was learned
 ```
 
-### 10) Reopen: completed -> active
+### 10) 🔄 Reopen: completed -> active
 
 ```text
 <COMPLETED_FILE_PATH>
 
 Reopen this completed item for additional work.
 
-- Enforce WIP limit before moving (see core rules)
 - Move file from completed/<topic>/ to doc/pro/active/
 - Set Status: active
 - Preserve all existing content (plan, reviews, completion evidence)
@@ -230,7 +217,7 @@ Reopen this completed item for additional work.
 - Report: active path + reopening rationale + next 3 steps
 ```
 
-### 11) Split active item
+### 11) ✂️ Split active item
 
 ```text
 <ACTIVE_FILE_PATH>
@@ -248,7 +235,7 @@ Split this active item into multiple smaller items.
 - Report: original path + new inbox paths + scope division summary
 ```
 
-### 12) Checkpoint active item (context handoff)
+### 12) 🧾 Checkpoint active item (context handoff)
 
 Use before closing a context window or switching tasks.
 
@@ -278,7 +265,7 @@ Checkpoint progress on this active item before I close this context.
 - Report: updated file path + 5-bullet handoff summary
 ```
 
-### 13) Resume active item (new context)
+### 13) ▶️ Resume active item (new context)
 
 Use at the start of a new context window to continue work.
 
@@ -311,7 +298,7 @@ Resume work on this active item in a fresh context.
   - Keep Execution Plan current
 ```
 
-### 14) Board status review
+### 14) 📊 Board status review
 
 Reports current state without making changes.
 
@@ -322,13 +309,12 @@ Review the current state of the doc/pro board without modifying anything.
 - For each active item: one-line summary, last Updated date, flag if stale
   (Updated older than 7 days)
 - For each inbox item: one-line summary
-- Check if WIP limit is respected
 - Run: bash doc/pro/check-workflow.sh and report result
 - Do not move or edit any files
 - Suggest actions I should take, in priority order (max 5)
 ```
 
-### 15) Weekly maintenance sweep
+### 15) 🧹 Weekly maintenance sweep
 
 ```text
 Perform a weekly doc/pro maintenance pass.
