@@ -13,26 +13,20 @@
 
 ## current status (2026-03-01)
 
-- phases 1 and 2 are implemented in `utl/doc/generators/stats`.
+- phases 1 through 4 are implemented in `utl/doc/generators/stats`.
 - outputs are now:
   - human report: `STATS.md`
   - machine snapshot: `doc/ref/stats.json`
   - persistent history: `doc/ref/stats-history/<timestamp>.json`
-- phase 1 delivered:
-  - repository shape totals and top-level footprint (`bin`, `cfg`, `lib`, `src`, `val`, `utl`, `doc`)
-  - deltas vs previous snapshot (absolute and percent)
-  - hygiene checks (`bash -n` and executable-bit anomalies)
-  - quality gates synthesis (`ok`/`warn`/`fail`)
-- phase 2 delivered:
-  - commit velocity windows (7/30/90 days)
-  - churn by path for the same windows
-  - top churn hotspots (90d) with author counts
-  - trend summary from history snapshots (up to last 10 points)
-- validation status:
-  - `bash -n utl/doc/generators/stats` passing
-  - `bash -n val/core/stats_generator_test.sh` passing
-  - `./val/core/stats_generator_test.sh` passing (15/15)
-- phase 3 and phase 4 are intentionally not started yet.
+- delivered capabilities now include:
+  - phase 1: repository shape, growth deltas, hygiene checks, and quality-gate synthesis
+  - phase 2: velocity/churn windows, hotspots, and trend summary from history snapshots
+  - phase 3: complexity distribution/outliers and security-adjacent risk signals with deltas
+  - phase 4: test-health/flaky heuristics and optional CI hard-gate extensions (`--ci-gate`, `--ci-gate-flaky`)
+- latest completion checkpoint:
+  - metric version: `3.3.0`
+  - focused suite: `./val/core/stats_generator_test.sh` passing (`28/28`)
+  - gate verification: `LAB_DIR='/home/es/lab' ./utl/doc/generators/stats --update --ci-gate-flaky` passing
 
 ## non-overlap contract
 
