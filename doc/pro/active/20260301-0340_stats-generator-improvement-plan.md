@@ -13,8 +13,8 @@
 
 ## current status (2026-03-01)
 
-- current position: **phase 4 is complete**, including follow-up tuning and per-suite flaky budget controls.
-- latest implemented metric version: `3.4.0`.
+- current position: **phase 4 is complete**, including follow-up tuning, per-suite flaky budget controls, and profile-based default presets.
+- latest implemented metric version: `3.5.0`.
 - phases 1 through 4 are implemented in `utl/doc/generators/stats`.
 - outputs are now:
   - human report: `STATS.md`
@@ -24,13 +24,13 @@
   - phase 1: repository shape, growth deltas, hygiene checks, and quality-gate synthesis
   - phase 2: velocity/churn windows, hotspots, and trend summary from history snapshots
   - phase 3: complexity distribution/outliers and security-adjacent risk signals with deltas
-  - phase 4: test-health/flaky heuristics, optional CI hard-gate extensions (`--ci-gate`, `--ci-gate-flaky`), and per-suite budgets (`--flaky-suite-budget`, `STATS_FLAKY_SUITE_BUDGETS`)
+  - phase 4: test-health/flaky heuristics, optional CI hard-gate extensions (`--ci-gate`, `--ci-gate-flaky`), per-suite budgets (`--flaky-suite-budget`, `STATS_FLAKY_SUITE_BUDGETS`), and profile presets (`--flaky-budget-profile`, `STATS_FLAKY_BUDGET_PROFILE`)
 - latest completion checkpoint:
-  - metric version: `3.4.0`
-  - focused suite: `./val/core/stats_generator_test.sh` passing (`32/32`)
-  - budget verification: `LAB_DIR='/home/es/lab' STATS_FLAKY_SUITE_BUDGETS='val/core/agents_md_test.sh:1:1' ./utl/doc/generators/stats --json --sample-tests --sample-runs=1` passing
+  - metric version: `3.5.0`
+  - focused suite: `./val/core/stats_generator_test.sh` passing (`37/37`)
+  - profile verification: `LAB_DIR='/home/es/lab' STATS_FLAKY_BUDGET_PROFILE='balanced' ./utl/doc/generators/stats --json --sample-tests --sample-runs=1` passing
 - next open item:
-  - optional per-suite default budget presets by profile (future)
+  - optional expansion of profile catalog and profile-specific threshold packs (future)
 
 ## non-overlap contract
 
@@ -395,3 +395,42 @@
   - `LAB_DIR='/home/es/lab' STATS_FLAKY_SUITE_BUDGETS='val/core/agents_md_test.sh:1:1' ./utl/doc/generators/stats --json --sample-tests --sample-runs=1` -> `pass`
 - follow-up items still open:
   - optional per-suite default budget presets by profile (future)
+
+## phase 4 execution (profile-based default suite budgets) (2026-03-01)
+
+### delivered now
+
+- implemented default per-suite flaky budget presets by profile in `utl/doc/generators/stats`:
+  - new CLI option: `--flaky-budget-profile=PROFILE`
+  - new env option: `STATS_FLAKY_BUDGET_PROFILE`
+  - supported profiles: `none`, `strict`, `balanced`, `relaxed`
+- profile application is default-oriented and deterministic:
+  - profile budgets are applied as defaults only (do not overwrite explicit per-suite budget entries)
+  - explicit entries from `--flaky-suite-budget` and `STATS_FLAKY_SUITE_BUDGETS` still take precedence
+- extended outputs under test-health policy:
+  - `STATS.md` now shows a `Budget profile` row in the `## Test Health` section
+  - `doc/ref/stats.json` now includes `test_health.flaky_policy.budget_profile`
+- expanded focused validation coverage in `val/core/stats_generator_test.sh` for:
+  - new CLI help option
+  - invalid profile handling
+  - env-driven profile application
+  - explicit per-suite override behavior over profile defaults
+
+### verification (profile preset pass)
+
+- `bash -n utl/doc/generators/stats`
+- `bash -n val/core/stats_generator_test.sh`
+- `./val/core/stats_generator_test.sh`
+- `LAB_DIR='/home/es/lab' STATS_FLAKY_BUDGET_PROFILE='balanced' ./utl/doc/generators/stats --json --sample-tests --sample-runs=1`
+
+### completion checkpoint (phase 4 profile presets)
+
+- implementation status: `complete`
+- metric version after change: `3.5.0`
+- commands run:
+  - `bash -n utl/doc/generators/stats` -> `pass`
+  - `bash -n val/core/stats_generator_test.sh` -> `pass`
+  - `./val/core/stats_generator_test.sh` -> `pass` (37/37)
+  - `LAB_DIR='/home/es/lab' STATS_FLAKY_BUDGET_PROFILE='balanced' ./utl/doc/generators/stats --json --sample-tests --sample-runs=1` -> `pass`
+- follow-up items still open:
+  - optional expansion of profile catalog and profile-specific threshold packs

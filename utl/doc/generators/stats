@@ -8,7 +8,7 @@
 #   - doc/ref/stats.json (machine metrics)
 #   - doc/ref/stats-history/<timestamp>.json (snapshot history)
 #
-# Usage: ./stats [--update|--stdout|--markdown|--json|--text|--raw] [--ci-gate] [--ci-gate-flaky] [--sample-tests] [--sample-runs=N] [--flaky-suite-budget=SUITE:OSC:VAR]
+# Usage: ./stats [--update|--stdout|--markdown|--json|--text|--raw] [--ci-gate] [--ci-gate-flaky] [--sample-tests] [--sample-runs=N] [--flaky-suite-budget=SUITE:OSC:VAR] [--flaky-budget-profile=PROFILE]
 #######################################################################
 
 set -euo pipefail
@@ -35,7 +35,7 @@ fi
 
 readonly STATS_JSON_FILE="$LAB_DIR/doc/ref/stats.json"
 readonly STATS_HISTORY_DIR="$LAB_DIR/doc/ref/stats-history"
-readonly METRIC_VERSION="3.4.0"
+readonly METRIC_VERSION="3.5.0"
 readonly TREND_HISTORY_LIMIT=10
 readonly TEST_HEALTH_TREND_LIMIT=20
 readonly FLAKY_MIN_SAMPLES=4
@@ -154,6 +154,7 @@ CI_GATE_ENABLED="false"
 TEST_HEALTH_SAMPLE_ENABLED="false"
 TEST_HEALTH_SAMPLE_RUNS=3
 CI_GATE_FLAKY_ENABLED="false"
+FLAKY_BUDGET_PROFILE="none"
 
 update_delta_counters() {
     local value="$1"
@@ -257,6 +258,42 @@ register_flaky_suite_budget() {
     return 0
 }
 
+register_flaky_suite_budget_default() {
+    local suite="$1"
+    local oscillation_budget="$2"
+    local variance_budget="$3"
+
+    [[ -z "$suite" ]] && return 1
+    if [[ -n "${FLAKY_SUITE_OSC_BUDGET[$suite]+x}" ]]; then
+        return 0
+    fi
+
+    register_flaky_suite_budget "$suite" "$oscillation_budget" "$variance_budget"
+}
+
+apply_flaky_budget_profile() {
+    local profile="$1"
+
+    case "$profile" in
+        none|strict)
+            ;;
+        balanced)
+            register_flaky_suite_budget_default "val/core/agents_md_test.sh" 1 1
+            register_flaky_suite_budget_default "val/core/stats_generator_test.sh" 1 1
+            ;;
+        relaxed)
+            register_flaky_suite_budget_default "val/core/agents_md_test.sh" 2 2
+            register_flaky_suite_budget_default "val/core/stats_generator_test.sh" 2 2
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    FLAKY_BUDGET_PROFILE="$profile"
+    return 0
+}
+
 parse_flaky_suite_budget_entry() {
     local entry="$1"
     local suite=""
@@ -290,6 +327,16 @@ load_flaky_suite_budgets_from_env() {
         fi
     done
     IFS="$old_ifs"
+}
+
+load_flaky_budget_profile_from_env() {
+    local profile="${STATS_FLAKY_BUDGET_PROFILE:-}"
+    [[ -z "$profile" ]] && return 0
+
+    if ! apply_flaky_budget_profile "$profile"; then
+        echo "Invalid STATS_FLAKY_BUDGET_PROFILE: $profile" >&2
+        return 1
+    fi
 }
 
 append_test_record() {
@@ -1273,6 +1320,7 @@ render_markdown() {
     printf '| Flaky candidates over budget | %s |\n' "$FLAKY_TOTAL_OVER_BUDGET"
     printf '| Oscillation over budget | %s |\n' "$FLAKY_STATUS_OSCILLATION_OVER_BUDGET"
     printf '| Variance over budget | %s |\n' "$FLAKY_DURATION_VARIANCE_OVER_BUDGET"
+    printf '| Budget profile | `%s` |\n' "$FLAKY_BUDGET_PROFILE"
 
     echo
     echo "| Flaky Candidate Suite | Reason | Samples | Min (s) | Max (s) |"
@@ -1499,7 +1547,8 @@ render_json() {
   printf '      "fail_oscillation_count": %s,\n' "$FLAKY_FAIL_OSCILLATION_COUNT"
   printf '      "fail_total_candidates": %s,\n' "$FLAKY_FAIL_TOTAL_CANDIDATES"
   printf '      "warn_variance_count": %s,\n' "$FLAKY_WARN_VARIANCE_COUNT"
-  printf '      "suite_budgets_configured": %s\n' "${#FLAKY_BUDGET_SUITES[@]}"
+  printf '      "suite_budgets_configured": %s,\n' "${#FLAKY_BUDGET_SUITES[@]}"
+  printf '      "budget_profile": "%s"\n' "$(json_escape "$FLAKY_BUDGET_PROFILE")"
   echo "    },"
   echo "    \"suite_budgets\": ["
   if [[ "${#FLAKY_BUDGET_SUITES[@]}" -eq 0 ]]; then
@@ -1617,9 +1666,12 @@ Options:
   --ci-gate-flaky  Include flaky-test severity in hard gate
   --sample-tests      Run opt-in flaky sampling suites
   --sample-runs=N     Number of runs per sampled suite (default: 3)
+  --flaky-budget-profile=PROFILE
+                  Apply default per-suite flaky budgets by profile
+                  Profiles: none, strict, balanced, relaxed
   --flaky-suite-budget=SUITE:OSC:VAR
-                  Per-suite flaky budget allowances (repeatable)
-                  OSC and VAR are non-negative integers
+                   Per-suite flaky budget allowances (repeatable)
+                   OSC and VAR are non-negative integers
   -h, --help   Show help
 EOF
 }
@@ -1628,6 +1680,7 @@ main() {
     local action="update"
     local format="markdown"
 
+    load_flaky_budget_profile_from_env || return 1
     load_flaky_suite_budgets_from_env || return 1
 
     for arg in "$@"; do
@@ -1645,6 +1698,12 @@ main() {
                 TEST_HEALTH_SAMPLE_RUNS="$(parse_positive_int "${arg#*=}")"
                 if [[ "$TEST_HEALTH_SAMPLE_RUNS" -eq 0 ]]; then
                     echo "Invalid sample run count: ${arg#*=}" >&2
+                    return 1
+                fi
+                ;;
+            --flaky-budget-profile=*)
+                if ! apply_flaky_budget_profile "${arg#*=}"; then
+                    echo "Invalid flaky budget profile: ${arg#*=}" >&2
                     return 1
                 fi
                 ;;

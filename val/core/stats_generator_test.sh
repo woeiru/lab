@@ -45,8 +45,20 @@ test_stdout_formats() {
     run_test "Help includes flaky-suite-budget option" bash -c \
         "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --help | grep -q -- '--flaky-suite-budget'"
 
+    run_test "Help includes flaky-budget-profile option" bash -c \
+        "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --help | grep -q -- '--flaky-budget-profile'"
+
     run_test "Invalid flaky-suite-budget fails" bash -c \
         "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --json --flaky-suite-budget=invalid >/dev/null 2>&1; test \$? -ne 0"
+
+    run_test "Invalid flaky-budget-profile fails" bash -c \
+        "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --json --flaky-budget-profile=invalid >/dev/null 2>&1; test \$? -ne 0"
+
+    run_test "Flaky budget profile from env applies" bash -c \
+        "LAB_DIR='$LAB_ROOT' STATS_FLAKY_BUDGET_PROFILE=balanced '$STATS_GENERATOR' --json | grep -q '\"budget_profile\": \"balanced\"'"
+
+    run_test "Flaky budget profile defaults can be overridden" bash -c \
+        "LAB_DIR='$LAB_ROOT' '$STATS_GENERATOR' --json --flaky-budget-profile=balanced --flaky-suite-budget=val/core/agents_md_test.sh:3:4 | grep -q '\"status_oscillation_budget\": 3'"
 }
 
 test_update_outputs() {
@@ -70,6 +82,7 @@ test_update_outputs() {
     run_test "stats.json has flaky policy block" grep -q '"flaky_policy"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has suite_budgets block" grep -q '"suite_budgets"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has over-budget summary" grep -q '"over_budget_total"' "$LAB_ROOT/doc/ref/stats.json"
+    run_test "stats.json has budget profile" grep -q '"budget_profile"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has test_health quality gate" grep -q '"test_health"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has top_longest block" grep -q '"top_longest"' "$LAB_ROOT/doc/ref/stats.json"
     run_test "stats.json has risk deltas block" grep -q '"delta_vs_previous"' "$LAB_ROOT/doc/ref/stats.json"
