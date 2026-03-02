@@ -1,8 +1,8 @@
 # Bootstrap Architectural Restructure
 
-- Status: queue
+- Status: active
 - Owner: es
-- Started: n/a
+- Started: 2026-03-03
 - Updated: 2026-03-03
 - Links: bin/ini, bin/orc, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, cfg/core/lzy, lib/core/ver, src/set/.menu, src/dic/ops, doc/arc/00-architecture-overview.md, doc/arc/01-bootstrap-and-orchestration.md, doc/pro/completed/20260301-2328_bootstrapper-performance-renewal
 
@@ -142,7 +142,7 @@ In scope:
 3. Separate interactive and deployment boot concerns.
 4. Remove `mdc` from the boot chain.
 5. Remove the `execute_component` wrapper.
-6. Optionally prototype a compiled bootstrap snapshot.
+6. Prototype a compiled bootstrap snapshot.
 
 Out of scope:
 
@@ -152,213 +152,67 @@ Out of scope:
 4. Further fork/subprocess elimination (completed in performance renewal).
 5. Changes to `./go` entrypoint shell integration lifecycle.
 
-## Implementation Approach
+## Execution Plan (today)
 
-### Phase 1 -- Remove Boot-Time Dead Code
+### Phase 1 -- Design baseline and decision record
 
-Remove subsystems that execute during boot but produce no used output.
+Document the final bootstrap architecture before implementation, including:
 
-**1a. Remove `mdc` from the boot chain.**
+- unified module loader interface and ownership (`lab_source_module` + state map)
+- exact interactive vs deployment load boundaries
+- removal plan for registration/verification ceremony and dead boot-time consumers
+- invariants for idempotent sourcing and source-time side effects
 
-- Remove `source "${BASE_DIR}/cfg/core/mdc"` from `bin/ini`.
-- Remove `init_module_requirements` call from `bin/ini:452`.
-- Move `mdc` sourcing into `./go validate` and relevant `val/` test scripts
-  that exercise `ver_verify_module`.
-- Keep `mdc` file unchanged; only its load point moves.
+Completion criterion: a committed design section in this file that records interfaces, constraints, alternatives considered, and chosen approach.
 
-**1b. Remove verification/registration ceremony from boot.**
+### Phase 2 -- Remove dead boot-time ceremony
 
-- Remove `init_registered_functions()` call from `bin/ini:597`.
-- Remove helper functions: `cache_module_verification`,
-  `process_function_registration`, `register_single_function`,
-  `verify_function_dependencies`, `register_function` (~150 lines).
-- Remove timer instrumentation for `CACHE_MODULE_VERIFICATION` and
-  `BATCH_FUNCTION_REGISTRATION` from `init_runtime_system`.
-- Preserve `cfg/core/rdc` as-is for potential offline validation use; just
-  stop sourcing it at boot time if no other boot consumer remains.
-- Audit whether `rdc` has any boot consumer beyond the removed registration
-  code. If none, remove `source "${BASE_DIR}/cfg/core/rdc"` from `bin/ini`.
+Implement the removals that do not depend on new architecture wiring:
 
-**1c. Remove `execute_component` wrapper.**
+- remove `mdc` from boot path and keep it only in validation/test contexts
+- remove registration/verification ceremony from `bin/ini`
+- remove `execute_component` wrapper and call components directly
 
-- Replace `execute_component "$func" "$name" "$required"` calls in
-  `setup_components` with direct function calls.
-- Keep per-component timer instrumentation if desired, but inline it
-  (two lines: `tme_start_timer` before, `tme_end_timer` after).
-- Remove `execute_component` function, `COMPONENT_REQUIRED`/
-  `COMPONENT_OPTIONAL` constants, and exported success variables.
-- Simplify `setup_components` from component-definition-array parsing to
-  a plain sequential call list.
+Completion criterion: interactive bootstrap no longer executes dead ceremony paths, verified by targeted initialization tests.
 
-Done when:
+### Phase 3 -- Implement unified sourcing registry
 
-- `bin/ini` no longer sources `mdc` or `rdc` (if audit confirms no boot
-  consumer).
-- No verification/registration ceremony runs at boot.
-- `setup_components` calls component functions directly.
-- Boot timing is equal or faster than current baseline (~495ms median).
-- All existing tests pass (`./val/run_all_tests.sh --quick`).
+Implement and adopt one canonical module loader across `bin/orc`, `src/dic/ops`, and `src/set/.menu`.
 
-### Phase 2 -- Unified Module Sourcing Registry
+Completion criterion: all three paths source modules only through `lab_source_module` with shared loaded-state tracking.
 
-Create a single source-of-truth for module loaded state, shared by
-`bin/orc`, `src/set/.menu`, and `src/dic/ops`.
+### Phase 4 -- Separate interactive and deployment bootstrap paths
 
-**2a. Define the registry.**
+Refactor `bin/ini` into a lean shared foundation plus explicit interactive/deployment path behavior.
 
-- Introduce a single associative array `_LAB_MODULE_LOADED` (or extend
-  existing `ORC_LAZY_MODULE_LOADED`) as the authoritative loaded-state
-  tracker.
-- Define a single `lab_source_module` function that:
-  1. Checks `_LAB_MODULE_LOADED[$module]`.
-  2. If already loaded, returns 0 immediately.
-  3. Otherwise sources the module file and marks it loaded.
-  4. Handles error reporting on source failure.
-- Place this function in `lib/core/` or `bin/orc` so it is available early.
+Completion criterion: interactive bootstrap is linear and deployment execution works without redundant eager re-sourcing.
 
-**2b. Adopt the registry in `bin/orc`.**
+### Phase 5 -- Compiled bootstrap snapshot prototype
 
-- Replace `source_helper` calls in `source_lib_ops`/`source_lib_gen` eager
-  paths with `lab_source_module`.
-- Update `_orc_lazy_dispatch` to use `_LAB_MODULE_LOADED` (likely already
-  close via `ORC_LAZY_MODULE_LOADED`; unify naming).
+Prototype a cacheable compiled bootstrap payload and wire staleness detection.
 
-**2c. Adopt the registry in `src/dic/ops`.**
-
-- Replace the direct `source "$lib_path"` in `ops_execute` with
-  `lab_source_module`.
-- This eliminates redundant re-sourcing when DIC executes a module that
-  was already loaded via the interactive boot path or a previous DIC call.
-
-**2d. Adopt the registry in `src/set/.menu`.**
-
-- Replace the broad source-time loading loops for `lib/ops/*` and
-  `cfg/env/*` with `lab_source_module` calls.
-- This eliminates the double-source pattern where `.menu` eagerly loads
-  everything and then DIC loads the same module again.
-
-Done when:
-
-- A single function (`lab_source_module`) is the only way modules are
-  sourced across all three paths.
-- `_LAB_MODULE_LOADED` is the single loaded-state tracker.
-- Duplicate sourcing is eliminated (verifiable via debug logging or
-  source-count instrumentation).
-- Deployment scripts still function correctly end-to-end.
-- Existing tests pass.
-
-### Phase 3 -- Separate Interactive and Deployment Boot Paths
-
-Restructure `bin/ini` so interactive shells and deployment scripts do not
-share unnecessary boot ceremony.
-
-**3a. Extract shared foundation.**
-
-- Factor out the minimal shared setup that both paths need into a lean
-  foundation layer (working name: `bin/ini_core` or a section within
-  `bin/ini`):
-  - Source `cfg/core/ric` (path constants).
-  - Define `lab_source_module` registry (from Phase 2).
-  - Source `lib/core/ver` (minimal verification).
-  - Source `lib/core/col`, `lib/core/err`, `lib/core/lo1`, `lib/core/tme`
-    (core primitives).
-  - Export `LAB_DIR`, `BASE_DIR`, core paths.
-
-**3b. Slim the interactive boot path.**
-
-- `bin/ini` (the path sourced from `.bashrc`) uses the shared foundation
-  plus:
-  - `cfg/core/ecc` (env controller).
-  - `cfg/ali/*` (aliases).
-  - `cfg/core/lzy` lazy stub registration for ops/gen.
-  - `cfg/env/site*` (site config).
-- Remove timer instrumentation, `init_runtime_system`, and component
-  orchestration ceremony from the interactive path.
-- Target: the interactive path is a short, linear sequence with no
-  wrapper abstractions.
-
-**3c. Clarify the deployment boot path.**
-
-- Deployment scripts (`src/set/*`) that source `src/set/.menu` and
-  `src/dic/ops` use the shared foundation (already available if the
-  interactive shell was bootstrapped, or explicitly sourced if running
-  standalone).
-- `.menu` no longer needs to eagerly source everything because
-  `lab_source_module` (Phase 2) handles on-demand loading with
-  deduplication.
-
-**3d. Remove transient boot-phase toggles.**
-
-- With the interactive path simplified, the need for `PERFORMANCE_MODE`,
-  `LAB_BOOTSTRAP_MODE`, and boot-time `LOG_DEBUG_ENABLED` suppression
-  should be re-evaluated.
-- If the interactive path no longer runs verification or heavy logging
-  during boot, these toggles become unnecessary.
-- Remove each toggle only after confirming no remaining boot-path consumer.
-
-Done when:
-
-- Interactive boot path is a linear sequence without orchestration wrappers.
-- Deployment scripts work standalone or on top of an existing interactive
-  session without redundant loading.
-- Boot-phase toggles are removed or reduced to the minimum necessary.
-- Boot timing for interactive path is equal or faster than Phase 1 baseline.
-- All existing tests pass.
-
-### Phase 4 -- Compiled Bootstrap Snapshot (Optional)
-
-Prototype a build step that pre-compiles the interactive boot state into a
-single cached file.
-
-**4a. Design the compilation step.**
-
-- `./go compile` (or `./go cache`) concatenates the interactive boot
-  payload (ric + core modules + lazy stubs + aliases) into a single file
-  (e.g., `.cache/boot`).
-- Include a staleness check: compare mtime of cached file against source
-  files; regenerate if stale.
-- Include a version/hash guard in the cached file header.
-
-**4b. Use the cached file in the interactive boot path.**
-
-- `bin/ini` checks for `.cache/boot`; if fresh, sources it and returns.
-- If stale or missing, falls back to the normal interactive boot path and
-  optionally regenerates the cache on success.
-
-**4c. Integrate with `./go` lifecycle.**
-
-- `./go init` and `./go on` trigger cache generation.
-- `./go off` and `./go purge` remove the cache.
-- `./go status` reports cache state.
-
-Done when:
-
-- `./go compile` produces a working cached boot file.
-- Interactive boot from cache is measurably faster than Phase 3 baseline.
-- Stale cache is detected and regenerated transparently.
-- All existing tests pass.
+Completion criterion: `./go compile` generates a valid cache that `bin/ini` can source when fresh.
 
 ## Dependency Order
 
 ```
-Phase 1 (remove dead code)
+Phase 1 (design baseline)
     |
     v
-Phase 2 (unified registry)
+Phase 2 (dead code removal)
     |
     v
-Phase 3 (path separation)
+Phase 3 (unified registry)
     |
     v
-Phase 4 (compiled snapshot, optional)
+Phase 4 (path separation)
+    |
+    v
+Phase 5 (compiled snapshot prototype)
 ```
 
-Each phase is independently valuable and can be shipped as a separate
-change set. Phase 1 is prerequisite for Phase 3 (removing ceremony first
-makes the path separation cleaner). Phase 2 can technically proceed in
-parallel with Phase 1 but is listed after because the unified registry
-design benefits from knowing what boot-time code remains after Phase 1
-cleanup.
+Phases execute in order. Each phase can be delivered as its own change set
+after its completion criterion is met.
 
 ## Risks
 
@@ -413,7 +267,7 @@ cleanup.
    - Source `bin/ini`, then run a DIC command (`ops <module> <function> --help`)
      to confirm module loading works through the unified registry.
 
-## Acceptance Criteria
+## Exit Criteria
 
 1. Boot chain no longer sources `mdc` or `rdc` (or sources `rdc` only if a
    boot consumer is confirmed).
@@ -431,12 +285,13 @@ cleanup.
 
 | Phase | Estimate |
 |-------|----------|
-| Phase 1 (dead code removal) | 2-3 hours |
-| Phase 2 (unified registry) | 3-5 hours |
-| Phase 3 (path separation) | 4-6 hours |
-| Phase 4 (compiled snapshot) | 3-5 hours |
+| Phase 1 (design baseline) | 1-2 hours |
+| Phase 2 (dead code removal) | 2-3 hours |
+| Phase 3 (unified registry) | 3-5 hours |
+| Phase 4 (path separation) | 4-6 hours |
+| Phase 5 (compiled snapshot) | 3-5 hours |
 
-Total: ~12-19 hours across 4 phases, with Phase 4 optional.
+Total: ~13-21 hours across 5 phases.
 
 ## Relationship to Performance Renewal
 

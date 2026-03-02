@@ -1,10 +1,16 @@
 # Homelab MCP Server -- utl/inv Module Design
 
-- Status: queue
+- Status: dismissed
 - Owner: es
 - Started: n/a
-- Updated: 2026-03-02
+- Updated: 2026-03-03
 - Links: utl/README.md, cfg/env/site1, doc/arc/00-architecture-overview.md
+
+## Dismissal Reason
+
+- This plan is a large, multi-phase initiative with no near-term execution commitment.
+- Current priorities favor smaller, incremental automation improvements over launching a new TypeScript MCP module.
+- The concept can be revived later from this preserved draft when capacity and timing align.
 
 ## Triage Decision
 
