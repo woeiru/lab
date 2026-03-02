@@ -7,7 +7,7 @@ Executable prompt templates for LLM agents operating the `doc/pro` workflow boar
 Point your agent at the task file and provide context:
 
 ```
-Read and execute doc/pro/task/inbox-capture.md
+Read and execute doc/pro/task/inbox-capture
 
 I want to add GPU thermal monitoring to the sys module
 ```
@@ -19,25 +19,25 @@ Append `Strict mode.` to halt on ambiguity instead of inferring.
 | Pattern              | Meaning                          | Examples                          |
 |----------------------|----------------------------------|-----------------------------------|
 | `UPPERCASE.md`       | Shared config, not a task        | `RULES.md`                        |
-| `folder-action.md`   | Workflow task; prefix = destination folder | `active-start.md`, `queue-triage.md` |
-| `singleword.md`      | Cross-cutting operation, no target folder  | `status.md`, `maintenance.md`    |
+| `folder-action`      | Workflow task; prefix = destination folder | `active-start`, `queue-triage` |
+| `singleword`         | Cross-cutting operation, no target folder  | `status`, `maintenance`        |
 
 ## Tasks
 
 | File                        | Action                                      |
 |-----------------------------|---------------------------------------------|
-| `inbox-capture.md`          | New idea into inbox                          |
-| `queue-triage.md`           | Pick highest-value inbox item, move to queue |
-| `queue-move.md`             | Move a specific inbox item to queue          |
-| `active-start.md`           | Start execution: queue to active             |
-| `active-split.md`           | Split active item into smaller pieces        |
-| `active-checkpoint.md`      | Checkpoint progress before closing context   |
-| `active-resume.md`          | Resume active item in a new context          |
-| `active-reopen.md`          | Reopen a completed item into active          |
-| `completed-close.md`        | Finalize active item into completed          |
-| `dismissed-close.md`        | Dismiss any item with rationale              |
-| `experiments-move.md`       | Move item to experiments for prototyping     |
-| `experiments-resolve.md`    | Resolve experiment to queue or dismissed     |
-| `status.md`                 | Review board state (read-only)               |
-| `maintenance.md`            | Weekly maintenance sweep                     |
+| `inbox-capture`             | New idea into inbox                          |
+| `queue-triage`              | Pick highest-value inbox item, move to queue |
+| `queue-move`                | Move a specific inbox item to queue          |
+| `active-start`              | Start execution: queue to active             |
+| `active-split`              | Split active item into smaller pieces        |
+| `active-checkpoint`         | Checkpoint progress before closing context   |
+| `active-resume`             | Resume active item in a new context          |
+| `active-reopen`             | Reopen a completed item into active          |
+| `completed-close`           | Finalize active item into completed          |
+| `dismissed-close`           | Dismiss any item with rationale              |
+| `experiments-move`          | Move item to experiments for prototyping     |
+| `experiments-resolve`       | Resolve experiment to queue or dismissed     |
+| `status`                    | Review board state (read-only)               |
+| `maintenance`               | Weekly maintenance sweep                     |
 | `RULES.md`                  | Shared rules (referenced by all tasks)       |
