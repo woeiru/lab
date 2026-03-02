@@ -19,7 +19,7 @@ Append `Strict mode.` to halt on ambiguity instead of inferring.
 | Pattern              | Meaning                          | Examples                          |
 |----------------------|----------------------------------|-----------------------------------|
 | `UPPERCASE.md`       | Shared config, not a task        | `RULES.md`                        |
-| `folder-action`      | Workflow task; prefix = destination folder | `active-start`, `queue-triage` |
+| `folder-action`      | Workflow task; prefix = destination folder | `active-move`, `queue-triage`  |
 | `singleword`         | Cross-cutting operation, no target folder  | `status`, `maintenance`        |
 
 ## Tasks
@@ -29,7 +29,8 @@ Append `Strict mode.` to halt on ambiguity instead of inferring.
 | `inbox-capture`             | New idea into inbox                          |
 | `queue-triage`              | Pick highest-value inbox item, move to queue |
 | `queue-move`                | Move a specific inbox item to queue          |
-| `active-start`              | Start execution: queue to active             |
+| `active-move`               | Move queue item to active, add plan          |
+| `active-start`              | Begin executing an active item               |
 | `active-split`              | Split active item into smaller pieces        |
 | `active-checkpoint`         | Checkpoint progress before closing context   |
 | `active-resume`             | Resume active item in a new context          |
