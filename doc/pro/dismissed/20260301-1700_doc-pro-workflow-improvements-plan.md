@@ -1,10 +1,16 @@
 # Doc/Pro Workflow Improvements Plan
 
-- Status: inbox
+- Status: dismissed
 - Owner: es
 - Started: n/a
 - Updated: 2026-03-01
 - Links: doc/pro/README.md, doc/pro/check-workflow.sh
+
+## Dismissal Reason
+
+- Current workflow scale is small and stable, so added automation is not needed now.
+- Proposed checks add maintenance overhead without enough immediate benefit.
+- Revisit if backlog size or active-item churn increases.
 
 ## Goal
 
