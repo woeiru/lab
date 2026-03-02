@@ -149,7 +149,17 @@ Use this header at the top of each work file:
 ```
 ## Validation helpers
 
-- Checklist: `doc/pro/workflow-checklist.md`
+- Checklist (quick pre-commit review):
+  - File names follow folder naming rules (`inbox`, `dismissed`).
+  - Workflow item files use `yyyymmdd-hhmm_filename` prefix.
+  - Filename timestamp prefix is creation time and stays stable after creation.
+  - On content edits, update the `Updated` header field instead of renaming.
+  - Root meta/support files under `doc/pro/` do not need timestamp prefixes.
+  - Every workflow doc has header fields: `Status`, `Owner`, `Started`, `Updated`, `Links`.
+  - Dismissed docs include `## Dismissal Reason`.
+  - `active/` contains only in-progress items.
+  - `active/waivers/*_waiver-register.md` entries include owner, expiry date, and removal criteria.
+  - Completed topics live under `completed/yyyymmdd-hhmm_<topic>/` (folder timestamp = completion date).
 - Checker script: `bash doc/pro/check-workflow.sh`
 
 ## Checker behavior

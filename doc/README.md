@@ -59,7 +59,6 @@ Planning documents organised by lifecycle state.
 - `pro/completed/` — Completed plans
 - `pro/dismissed/` — Dismissed proposals
 - `pro/experiments/` — Exploratory work and validation notes
-- `pro/workflow-checklist.md` — Step-by-step workflow checklist
 - `pro/agentic-workflow-prompts.md` — Prompt templates for agentic workflows
 - `pro/check-workflow.sh` — Workflow validation script
 
