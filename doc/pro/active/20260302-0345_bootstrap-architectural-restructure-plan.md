@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03
+- Updated: 2026-03-03 (checkpoint refreshed; phase 3 in progress)
 - Links: bin/ini, bin/orc, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, cfg/core/lzy, lib/core/ver, src/set/.menu, src/dic/ops, doc/arc/00-architecture-overview.md, doc/arc/01-bootstrap-and-orchestration.md, doc/pro/completed/20260301-2328_bootstrapper-performance-renewal
 
 ## Triage Decision
@@ -152,28 +152,38 @@ Out of scope:
 4. Further fork/subprocess elimination (completed in performance renewal).
 5. Changes to `./go` entrypoint shell integration lifecycle.
 
-## Execution Plan (today)
+## Session Findings (2026-03-03)
 
-### Phase 1 -- Design baseline and decision record
+1. The canonical module loader must be owned by shared bootstrap foundations,
+   not by an execution-specific path (`bin/orc`, DIC, or deployment menu), so
+   all three callers can share one loaded-state registry.
+2. Idempotent sourcing is a hard invariant: module source-time side effects
+   must run exactly once per process, and all additional calls must short-circuit
+   as cache hits.
+3. The registration/verification ceremony in `bin/ini` can be removed without
+   replacing it in bootstrap; module/function integrity checks should move to
+   explicit validation/test contexts.
+4. Interactive and deployment bootstrap need an explicit split after a small
+   shared foundation, replacing behavior switches (`PERFORMANCE_MODE`,
+   `LAB_BOOTSTRAP_MODE`) with explicit control flow.
+5. `bin/ini` no longer needs a runtime-registration phase for bootstrap;
+   removing the runtime ceremony path is safe when core module loading remains
+   unchanged.
+6. `cfg/core/mdc` can be removed from bootstrap sourcing without impacting
+   initialization tests.
+7. `setup_components` can call component functions directly while preserving
+   timing and error reporting behavior, making `execute_component` unnecessary.
+8. A shared `lab_source_module` entrypoint can be adopted incrementally in
+   `bin/orc`, `src/dic/ops`, and `src/set/.menu` while preserving compatibility
+   fallbacks for direct script execution contexts.
 
-Document the final bootstrap architecture before implementation, including:
+## Execution Plan (current)
 
-- unified module loader interface and ownership (`lab_source_module` + state map)
-- exact interactive vs deployment load boundaries
-- removal plan for registration/verification ceremony and dead boot-time consumers
-- invariants for idempotent sourcing and source-time side effects
-
-Completion criterion: a committed design section in this file that records interfaces, constraints, alternatives considered, and chosen approach.
-
-### Phase 2 -- Remove dead boot-time ceremony
-
-Implement the removals that do not depend on new architecture wiring:
-
-- remove `mdc` from boot path and keep it only in validation/test contexts
-- remove registration/verification ceremony from `bin/ini`
-- remove `execute_component` wrapper and call components directly
-
-Completion criterion: interactive bootstrap no longer executes dead ceremony paths, verified by targeted initialization tests.
+- [COMPLETE] Phase 1 -- Design baseline and decision record
+- [COMPLETE] Phase 2 -- Remove dead boot-time ceremony
+- [IN PROGRESS] Phase 3 -- Implement unified sourcing registry
+- [PENDING] Phase 4 -- Separate interactive and deployment bootstrap paths
+- [PENDING] Phase 5 -- Compiled bootstrap snapshot prototype
 
 ### Phase 3 -- Implement unified sourcing registry
 
@@ -181,17 +191,188 @@ Implement and adopt one canonical module loader across `bin/orc`, `src/dic/ops`,
 
 Completion criterion: all three paths source modules only through `lab_source_module` with shared loaded-state tracking.
 
+Status: in progress.
+
+Remaining work:
+
+1. Move `lab_source_module` ownership to shared bootstrap foundation scope so
+   DIC/menu paths do not depend on `bin/orc` implementation details.
+2. Remove fallback direct-sourcing in DIC/menu module paths once shared loader
+   availability is guaranteed.
+3. Prove no duplicate module sourcing across interactive bootstrap, DIC
+   execution, and deployment menu paths.
+
 ### Phase 4 -- Separate interactive and deployment bootstrap paths
 
 Refactor `bin/ini` into a lean shared foundation plus explicit interactive/deployment path behavior.
 
 Completion criterion: interactive bootstrap is linear and deployment execution works without redundant eager re-sourcing.
 
+Status: pending.
+
 ### Phase 5 -- Compiled bootstrap snapshot prototype
 
 Prototype a cacheable compiled bootstrap payload and wire staleness detection.
 
 Completion criterion: `./go compile` generates a valid cache that `bin/ini` can source when fresh.
+
+Status: pending and optional.
+
+## Progress Checkpoint
+
+### Done
+
+1. Completed Phase 1 design deliverable in this file and completed Phase 2
+   dead-ceremony removals.
+2. Implemented partial Phase 3 registry wiring:
+   - `bin/orc`: added `lab_source_module`, shared state map, lazy-dispatch
+     integration, and direct component-call execution path.
+   - `src/dic/ops`: added `ops_source_module` and routed module loads through
+     `lab_source_module` when available.
+   - `src/set/.menu`: added `_menu_source_module` and routed menu-time sourcing
+     through `lab_source_module` when available.
+3. Updated active plan tracking and renamed experiments rules file to satisfy
+   workflow naming checks (`doc/pro/experiments/20260303-0000_experiments-rules.md`).
+4. Tests/syntax run this session:
+   - Pass: `bash -n bin/ini bin/orc src/dic/ops src/set/.menu`
+   - Pass: `./val/core/initialization/ini_test.sh`
+   - Pass: `./val/core/initialization/orc_test.sh`
+   - Pass: `./val/core/modules/ver_test.sh`
+   - Pass: `./val/src/dic_framework_test.sh`
+   - Fail: `./val/src/dic/dic_simple_test.sh` (direct invocation lacked
+     expected `LAB_ROOT` context; error at `source bin/ini`).
+
+### In-flight
+
+1. Phase 3 completion criterion is not yet met because DIC/menu wrappers still
+   allow direct-source fallback when shared loader is unavailable.
+2. Working tree is uncommitted with edits in `bin/ini`, `bin/orc`,
+   `src/dic/ops`, `src/set/.menu`, this active plan file, and the experiments
+   rules rename.
+
+### Blockers
+
+1. No hard implementation blocker.
+2. Validation noise: standalone `./val/src/dic/dic_simple_test.sh` fails in the
+   current shell context due missing `LAB_ROOT` setup assumptions.
+
+### Next steps
+
+1. Complete Phase 3 by moving `lab_source_module` and
+   `LAB_MODULE_SOURCE_STATE` into shared bootstrap scope loaded before
+   orchestrator-specific logic (`bin/ini` + shared core module path).
+2. Update `src/dic/ops` to remove direct-source fallback for ops/gen/env module
+   loading and rely on the shared loader contract.
+3. Update `src/set/.menu` to remove direct-source fallback for env/ops/local
+   module loading and rely on the shared loader contract.
+4. Add/adjust tests to assert deduplicated module sourcing across
+   `bin/orc`, `src/dic/ops`, and `src/set/.menu` paths.
+5. Run validation for Phase 3 closure: `bash -n` on edited files,
+   `./val/core/initialization/ini_test.sh`,
+   `./val/core/initialization/orc_test.sh`, and
+   `./val/src/dic_framework_test.sh`.
+
+### Context
+
+1. Branch: `master` (`master...origin/master`).
+2. Workflow checker currently passes: `bash doc/pro/check-workflow.sh`.
+3. Uncommitted changes currently present:
+   - `bin/ini`
+   - `bin/orc`
+   - `src/dic/ops`
+   - `src/set/.menu`
+   - `doc/pro/active/20260302-0345_bootstrap-architectural-restructure-plan.md`
+   - `doc/pro/experiments/RULES.md` (deleted)
+   - `doc/pro/experiments/20260303-0000_experiments-rules.md` (new)
+4. No persistent temp artifacts are required for continuation.
+
+## Phase 1 Design Decision Record
+
+Date: 2026-03-03
+Design classification: required
+
+### Constraints and invariants
+
+1. `lab_source_module` is the only canonical module source entrypoint used by
+   `bin/orc`, `src/dic/ops`, and `src/set/.menu`.
+2. Loaded-state is process-local and centralized in one registry map
+   (`LAB_MODULE_SOURCE_STATE`) keyed by logical module id.
+3. Sourcing is idempotent: if a module is already loaded, `lab_source_module`
+   returns success without re-sourcing.
+4. Source-time side effects (for example core maps and constants) run once per
+   process and are not relied on for re-execution behavior.
+5. Bootstrap validation checks move out of hot-path initialization and into
+   explicit validation/test flows.
+
+### Unified loader interface
+
+`lab_source_module <module_id> <module_path> [context]`
+
+- `module_id`: stable logical id (`core:err`, `ops:gpu`, `gen:aux`, etc.).
+- `module_path`: absolute path to source.
+- `context`: optional caller label (`ini`, `orc`, `dic`, `menu`) for logging.
+- Returns:
+  - `0` module already loaded or sourced successfully.
+  - `1` invalid parameters.
+  - `2` source/runtime failure.
+  - `127` missing/unreadable module path.
+- Side effects:
+  - updates `LAB_MODULE_SOURCE_STATE["$module_id"]=1` on success.
+  - emits structured logs once per miss/hit event.
+
+The registry implementation is shared bootstrap foundation code loaded before
+any of the three callers. Callers no longer invoke raw `source` for module
+files.
+
+### Interactive vs deployment boundaries
+
+Shared foundation (always loaded):
+
+1. Path constants from `cfg/core/ric`.
+2. Core modules required for logging/error/timing.
+3. Unified loader registry and helper functions.
+4. Environment resolution primitives (without alias/prompt setup).
+
+Interactive path only:
+
+1. Alias loading (`cfg/ali/*`).
+2. Shell UX concerns (prompt/interactive convenience).
+3. Optional lazy stub registration for ops/gen modules.
+
+Deployment path only:
+
+1. `src/set/.menu` section execution helpers.
+2. DIC invocation path (`src/dic/ops`) and on-demand module loading.
+3. Environment overlay application needed for deployment scripts.
+
+### Dead-ceremony removal design
+
+1. Remove `init_registered_functions`, `cache_module_verification`,
+   `process_function_registration`, and related boot-time calls from `bin/ini`.
+2. Remove boot-time `mdc` sourcing and `init_module_requirements` execution.
+3. Keep `cfg/core/rdc` and `cfg/core/mdc` available only for validation/test
+   tooling until all non-boot consumers are removed.
+4. Replace `execute_component` wrapper usage with direct ordered component calls
+   in `setup_components`.
+
+### Alternatives considered
+
+1. Keep loader state in `bin/orc` only and have DIC/menu source `bin/orc`.
+   Rejected: couples non-orchestrator paths to orchestrator implementation and
+   keeps ambiguous ownership.
+2. Keep per-path source maps and add synchronization glue.
+   Rejected: preserves duplication and creates race/ordering complexity.
+3. Create a shared bootstrap foundation loader used by all paths.
+   Chosen: single ownership, explicit contract, and direct support for exit
+   criteria requiring one canonical loader.
+
+### Chosen approach
+
+Implement a shared foundation loader contract centered on
+`lab_source_module`, adopt it first in `bin/orc`, then migrate
+`src/dic/ops` and `src/set/.menu` to the same interface, and remove direct
+module `source` calls from those paths. Phase 2 removals proceed before
+registry adoption where independent, then Phase 3 wiring unifies all callers.
 
 ## Dependency Order
 

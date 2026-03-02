@@ -65,6 +65,28 @@ ops_debug() {
     fi
 }
 
+ops_source_module() {
+    local module_id="$1"
+    local module_path="$2"
+    local context="${3:-dic}"
+
+    if [[ -z "$module_id" || -z "$module_path" ]]; then
+        ops_debug "Invalid ops_source_module arguments"
+        return 1
+    fi
+
+    if type lab_source_module &>/dev/null; then
+        lab_source_module "$module_id" "$module_path" "${module_path##*/}" "$context"
+        return $?
+    fi
+
+    if [[ ! -f "$module_path" ]]; then
+        return 127
+    fi
+
+    source "$module_path"
+}
+
 # Source required utility libraries for analysis functions
 ops_source_utility_libraries() {
     # Ensure required directories are set
@@ -75,14 +97,14 @@ ops_source_utility_libraries() {
     
     # Source analysis utilities if needed
     if [[ -f "${lib_gen_dir}/ana" ]]; then
-        source "${lib_gen_dir}/ana" 2>/dev/null || {
+        ops_source_module "gen:ana" "${lib_gen_dir}/ana" "dic_boot" 2>/dev/null || {
             ops_debug "Warning: Could not source analysis library"
         }
     fi
     
     # Source auxiliary utilities if needed  
     if [[ -f "${lib_gen_dir}/aux" ]]; then
-        source "${lib_gen_dir}/aux" 2>/dev/null || {
+        ops_source_module "gen:aux" "${lib_gen_dir}/aux" "dic_boot" 2>/dev/null || {
             ops_debug "Warning: Could not source auxiliary library"
         }
     fi
@@ -103,7 +125,7 @@ ops_source_environment_config() {
     
     if [[ -f "$env_config" ]]; then
         ops_debug "Sourcing environment config: $env_config"
-        source "$env_config" 2>/dev/null || {
+        ops_source_module "env:site1" "$env_config" "dic_env" 2>/dev/null || {
             ops_debug "Warning: Could not source environment config"
         }
     else
@@ -212,7 +234,10 @@ ops_execute() {
         return 1
     fi
     
-    source "$lib_path"
+    if ! ops_source_module "ops:${module}" "$lib_path" "dic_execute"; then
+        aux_err "Failed to source module '$module'" "component=dic,operation=execute,step=source_library,module=$module,lib_path=$lib_path"
+        return 1
+    fi
     
     # Check if function exists
     if ! declare -f "$full_function" >/dev/null 2>&1; then
@@ -583,7 +608,10 @@ ops_show_function_help() {
         return 1
     fi
     
-    source "$lib_path"
+    if ! ops_source_module "ops:${module}" "$lib_path" "dic_help"; then
+        aux_err "Failed to source module '$module'" "component=dic,operation=show_function_help,module=$module,lib_path=$lib_path"
+        return 1
+    fi
     
     # Check if function exists
     if ! declare -f "$full_function" >/dev/null 2>&1; then
@@ -608,7 +636,10 @@ ops_show_injection_preview() {
         return 1
     fi
     
-    source "$lib_path"
+    if ! ops_source_module "ops:${module}" "$lib_path" "dic_preview"; then
+        aux_err "Failed to source module '$module'" "component=dic,operation=show_injection_preview,module=$module,lib_path=$lib_path"
+        return 1
+    fi
     
     # Check if function exists
     if ! declare -f "$full_function" >/dev/null 2>&1; then

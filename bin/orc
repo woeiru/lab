@@ -11,8 +11,6 @@ fi
 # Component Orchestrator
 #######################################################################
 # Constants
-readonly COMPONENT_REQUIRED=1
-readonly COMPONENT_OPTIONAL=0
 readonly SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -29,13 +27,12 @@ trap cleanup EXIT INT TERM
 #   Provides functions to manage and execute a sequence of shell
 #   script components during system or application initialization.
 #   It handles sourcing environment/function files, executing setup
-#   routines, and managing individual components with dependency
-#   awareness (required vs. optional) and status tracking.
+#   routines, and managing individual components with ordered
+#   execution and status tracking.
 #
 # Helper Functions:
 #   - source_helper: Safely sources individual files.
 #   - source_directory: Sources all files in a given directory.
-#   - execute_component: Executes a single named component with status tracking.
 #
 # Component Functions (perform specific initialization tasks):
 #
@@ -50,7 +47,7 @@ trap cleanup EXIT INT TERM
 #     - source_lib_gen: Sources general utility function files.
 #
 # Main Orchestration Function:
-#   - setup_components: Orchestrates the execution of all defined
+#   - setup_components: Orchestrates direct execution of all defined
 #     components in the proper order with error handling.
 #
 # Usage:
@@ -184,6 +181,39 @@ source_helper() {
     fi
 }
 
+lab_source_module() {
+    local module_id="$1"
+    local module_path="$2"
+    local module_desc="${3:-${module_path##*/}}"
+    local context="${4:-orc}"
+
+    if [[ -z "$module_id" || -z "$module_path" ]]; then
+        lo1_log "lvl" " Error: Invalid lab_source_module arguments (module_id/module_path required)"
+        return 1
+    fi
+
+    declare -gA LAB_MODULE_SOURCE_STATE
+
+    if [[ "${LAB_MODULE_SOURCE_STATE[$module_id]:-0}" == "1" ]]; then
+        lo1_log "lvl" "Module already loaded (context=${context}, module_id=${module_id})"
+        return 0
+    fi
+
+    if [[ ! -f "$module_path" || ! -r "$module_path" ]]; then
+        lo1_log "lvl" " Error: Module file not accessible (context=${context}, module_id=${module_id}, path=${module_path})"
+        return 127
+    fi
+
+    if ! source_helper "$module_path" "$module_desc"; then
+        lo1_log "lvl" " Error: Module source failed (context=${context}, module_id=${module_id}, path=${module_path})"
+        return 2
+    fi
+
+    LAB_MODULE_SOURCE_STATE["$module_id"]=1
+    lo1_log "lvl" "Module loaded (context=${context}, module_id=${module_id})"
+    return 0
+}
+
 # Function to source all files in a directory with consistent sorting and error handling
 source_directory() {
     local dir="$1"
@@ -258,14 +288,16 @@ declare -Ag ORC_LAZY_MODULE_LOADED
 declare -Ag ORC_LAZY_OPS_FUNCTIONS
 declare -Ag ORC_LAZY_GEN_FUNCTIONS
 declare -ag ORC_LAZY_DISCOVERED_FUNCS
+declare -Ag LAB_MODULE_SOURCE_STATE
 
 _orc_lazy_dispatch() {
     local module_file="$1"
     local func_name="$2"
-    shift 2
+    local module_id="$3"
+    shift 3
 
     if [[ "${ORC_LAZY_MODULE_LOADED[$module_file]:-0}" != "1" ]]; then
-        if ! source_helper "$module_file" "${module_file##*/}"; then
+        if ! lab_source_module "$module_id" "$module_file" "${module_file##*/}" "orc_lazy"; then
             lo1_log "lvl" " Error: Lazy-load failed for ${module_file##*/} while dispatching ${func_name}"
             return 1
         fi
@@ -298,6 +330,7 @@ _orc_lazy_load_function_map() {
 _orc_lazy_define_stub() {
     local func_name="$1"
     local module_file="$2"
+    local module_id="$3"
 
     if type "$func_name" &>/dev/null; then
         return 0
@@ -305,7 +338,7 @@ _orc_lazy_define_stub() {
 
     [[ "$func_name" =~ ^[a-z][a-z0-9_]*$ ]] || return 1
 
-    eval "${func_name}() { _orc_lazy_dispatch \"${module_file}\" \"${func_name}\" \"\$@\"; }"
+    eval "${func_name}() { _orc_lazy_dispatch \"${module_file}\" \"${func_name}\" \"${module_id}\" \"\$@\"; }"
     return 0
 }
 
@@ -331,6 +364,7 @@ _orc_lazy_register_module_stubs() {
     local module_group="$1"
     local module_name="$2"
     local module_file="$3"
+    local module_id="${module_group}:${module_name}"
     local func_csv=""
 
     _orc_lazy_load_function_map
@@ -356,7 +390,7 @@ _orc_lazy_register_module_stubs() {
 
     local func_name
     for func_name in "${ORC_LAZY_DISCOVERED_FUNCS[@]}"; do
-        _orc_lazy_define_stub "$func_name" "$module_file" || return 1
+        _orc_lazy_define_stub "$func_name" "$module_file" "$module_id" || return 1
     done
 
     lo1_log "lvl" "Registered lazy-load stubs for ${module_name} (${#ORC_LAZY_DISCOVERED_FUNCS[@]} functions)"
@@ -370,55 +404,6 @@ _orc_lazy_module_selected() {
     [[ "$selected_csv" == "all" || "$selected_csv" == "*" ]] && return 0
 
     [[ ",${selected_csv}," == *",${module_name},"* ]]
-}
-
-# Component execution with status tracking
-execute_component() {
-    local func="$1"
-    local component="$2"
-    local required="${3:-$COMPONENT_REQUIRED}"  # Default to required
-    local success_var="${component}_SUCCESS"
-    
-    # Input validation
-    if [[ -z "$func" ]]; then
-        lo1_log "lvl" " Error: No function specified for execute_component"
-        return 1
-    fi
-    
-    if [[ -z "$component" ]]; then
-        lo1_log "lvl" " Error: No component name specified for execute_component"
-        return 1
-    fi
-
-    tme_start_timer "$component"
-    lo1_log "lvl" " Executing component: $component ..."
-
-    if ! type "$func" &>/dev/null; then
-        lo1_log "lvl" " Error: Function $func not found for component $component"
-        local continue_on_error="$([[ $required -eq $COMPONENT_OPTIONAL ]] && echo true || echo false)"
-        err_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "$continue_on_error"
-        tme_end_timer "$component"
-        return 1
-    elif "$func"; then
-        export "$success_var=1"
-        lo1_log "lvl" " Component $component completed successfully"
-        tme_end_timer "$component"
-        return 0
-    else
-        unset "$success_var"
-        local msg="Component $component failed"
-        if ((required == COMPONENT_REQUIRED)); then
-            lo1_log "lvl" " Error: $msg"
-            err_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "false"
-            tme_end_timer "$component"
-            return 1
-        else
-            lo1_log "lvl" " Warning: $msg (optional component)"
-            err_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
-            tme_end_timer "$component"
-            return 0
-        fi
-    fi
 }
 
 #######################################################################
@@ -530,7 +515,7 @@ source_lib_ops() {
             lo1_log "lvl" " Warning: Lazy stub registration unavailable for ${module_name}; falling back to eager source"
         fi
 
-        if source_helper "$file" "$file_name"; then
+        if lab_source_module "ops:${module_name}" "$file" "$file_name" "orc_ops"; then
             ((success_count++))
         fi
     done
@@ -660,7 +645,7 @@ source_lib_gen() {
             lo1_log "lvl" " Warning: Lazy stub registration unavailable for ${module_name}; falling back to eager source"
         fi
 
-        if source_helper "$file" "$file_name"; then
+        if lab_source_module "gen:${module_name}" "$file" "$file_name" "orc_gen"; then
             ((success_count++))
         fi
     done
@@ -815,49 +800,54 @@ setup_components() {
         lo1_log "lvl" "Warning: err_print_report function not found"
     fi
 
-    # Component definitions: function:name:required_flag
+    # Component definitions: function:name
     local components=(
-        "source_cfg_ecc:CFG_ECC:$COMPONENT_OPTIONAL"
-        "source_cfg_ali:CFG_ALI:$COMPONENT_OPTIONAL"
-        "source_lib_ops:LIB_OPS:$COMPONENT_OPTIONAL"
-        "source_lib_gen:LIB_UTL:$COMPONENT_OPTIONAL"
-        "source_cfg_env:CFG_ENV:$COMPONENT_OPTIONAL"
-        "source_src_aux:SRC_AUX:$COMPONENT_OPTIONAL"
+        "source_cfg_ecc:CFG_ECC"
+        "source_cfg_ali:CFG_ALI"
+        "source_lib_ops:LIB_OPS"
+        "source_lib_gen:LIB_UTL"
+        "source_cfg_env:CFG_ENV"
+        "source_src_aux:SRC_AUX"
     )
 
     lo1_log "lvl" "Executing component functions..."
 
-    local failed_required=0
     local successful_components=0
     local total_components=${#components[@]}
+    local func
+    local name
     
     for component_def in "${components[@]}"; do
-        IFS=':' read -r func name required <<< "$component_def"
-        
-        if execute_component "$func" "$name" "$required"; then
+        IFS=':' read -r func name <<< "$component_def"
+
+        tme_start_timer "$name"
+        lo1_log "lvl" " Executing component: $name ..."
+
+        if ! type "$func" &>/dev/null; then
+            lo1_log "lvl" " Warning: Function $func not found for component $name"
+            err_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "true"
+            tme_end_timer "$name"
+            continue
+        fi
+
+        if "$func"; then
             ((successful_components++))
-        elif ((required == COMPONENT_REQUIRED)); then
-            failed_required=1
-            lo1_log "lvl" " Required component $name ($func) failed. Halting further component setup."
-            break
+            lo1_log "lvl" " Component $name completed successfully"
+            tme_end_timer "$name"
+        else
+            lo1_log "lvl" " Warning: Component $name failed"
+            err_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
+            tme_end_timer "$name"
         fi
     done
 
     lo1_log "lvl" "Component execution summary: $successful_components/$total_components components loaded successfully"
 
-    if ((failed_required)); then
-        unset RC_SOURCED
-        lo1_log "lvl" " RC initialization failed: required component(s) failed"
-        lo1_log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
-        [[ "$has_error_report" == "true" ]] && err_print_report
-        return 1
-    else
-        export RC_SOURCED=1
-        lo1_log "lvl" " RC initialization completed successfully"
-        lo1_log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
-        [[ "$has_error_report" == "true" ]] && err_print_report
-        return 0
-    fi
+    export RC_SOURCED=1
+    lo1_log "lvl" " RC initialization completed successfully"
+    lo1_log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
+    [[ "$has_error_report" == "true" ]] && err_print_report
+    return 0
 }
 
 # Ensure this script can be sourced without executing setup_components automatically

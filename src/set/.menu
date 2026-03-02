@@ -67,6 +67,23 @@ BOLD='\033[1m'
 RESET='\033[0m'
 base_indent="          " # Define base_indent for global use
 
+_menu_source_module() {
+    local module_id="$1"
+    local module_path="$2"
+    local context="${3:-menu}"
+
+    if [[ -z "$module_id" || -z "$module_path" ]]; then
+        return 1
+    fi
+
+    if type lab_source_module >/dev/null 2>&1; then
+        lab_source_module "$module_id" "$module_path" "${module_path##*/}" "$context"
+        return $?
+    fi
+
+    source "$module_path"
+}
+
 # Dynamically source all environment configuration files
 
 # Determine the absolute path to the directory containing this script.
@@ -89,7 +106,7 @@ if [[ -d "$_CFG_ENV_DIR_TEMP" ]]; then
             _any_cfg_file_processed_temp=true
             printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$_env_file_temp")" >&2
             # shellcheck source=/dev/null
-            source "$_env_file_temp" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source %s\n" "$base_indent" "$(basename "$_env_file_temp")" >&2
+            _menu_source_module "env:$(basename "$_env_file_temp")" "$_env_file_temp" "menu_env" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source %s\n" "$base_indent" "$(basename "$_env_file_temp")" >&2
         fi
     done
     if ! $_any_cfg_file_processed_temp; then
@@ -123,7 +140,7 @@ if [[ -d "$_LIB_OPS_DIR_TEMP" ]]; then
             _any_lib_file_processed_temp=true
             printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$_lib_file_temp")" >&2
             # shellcheck source=/dev/null
-            source "$_lib_file_temp" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source library file %s\n" "$base_indent" "$(basename "$_lib_file_temp")" >&2
+            _menu_source_module "ops:$(basename "$_lib_file_temp")" "$_lib_file_temp" "menu_ops" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source library file %s\n" "$base_indent" "$(basename "$_lib_file_temp")" >&2
         fi
     done
     if ! $_any_lib_file_processed_temp; then
@@ -156,7 +173,7 @@ if [[ -d "$_AUX_SRC_SELF_DIR_TEMP" ]]; then
             _any_self_file_processed_temp=true
             printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$_self_dir_file_temp")" >&2
             # shellcheck source=/dev/null
-            source "$_self_dir_file_temp" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source file %s\n" "$base_indent" "$(basename "$_self_dir_file_temp")" >&2
+            _menu_source_module "set:$(basename "$_self_dir_file_temp")" "$_self_dir_file_temp" "menu_local" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source file %s\n" "$base_indent" "$(basename "$_self_dir_file_temp")" >&2
         fi
     done
     if ! $_any_self_file_processed_temp; then
@@ -197,7 +214,7 @@ setup_source() {
         # Use environment-aware configuration loading
         if [[ -f "$lab_root/cfg/core/ric" ]]; then
             printf "%s┃ Loading runtime constants...\n" "$base_indent"
-            source "$lab_root/cfg/core/ric"
+            _menu_source_module "core:ric" "$lab_root/cfg/core/ric" "menu_setup"
             
             printf "%s┃ Environment: Site=${SITE_NAME}, Env=${ENVIRONMENT_NAME}, Node=${NODE_NAME}\n" "$base_indent"
             
@@ -207,7 +224,7 @@ setup_source() {
             # 1. Base site configuration
             if [[ -f "${SITE_CONFIG_FILE}" ]]; then
                 printf "%s┃ ├─ Base config: %s\n" "$base_indent" "$(basename "${SITE_CONFIG_FILE}")"
-                source "${SITE_CONFIG_FILE}" || printf "%s┃ │  └─ ${BOLD}ERROR:${RESET} Failed to source base config\n" "$base_indent"
+                _menu_source_module "env:$(basename "${SITE_CONFIG_FILE}")" "${SITE_CONFIG_FILE}" "menu_setup" || printf "%s┃ │  └─ ${BOLD}ERROR:${RESET} Failed to source base config\n" "$base_indent"
             else
                 printf "%s┃ ├─ ${BOLD}WARNING:${RESET} Base config not found: %s\n" "$base_indent" "${SITE_CONFIG_FILE}"
             fi
@@ -215,7 +232,7 @@ setup_source() {
             # 2. Environment override
             if [[ -f "${ENV_OVERRIDE_FILE}" ]]; then
                 printf "%s┃ ├─ Environment override: %s\n" "$base_indent" "$(basename "${ENV_OVERRIDE_FILE}")"
-                source "${ENV_OVERRIDE_FILE}" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source environment override\n" "$base_indent"
+                _menu_source_module "env:$(basename "${ENV_OVERRIDE_FILE}")" "${ENV_OVERRIDE_FILE}" "menu_setup" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source environment override\n" "$base_indent"
             else
                 printf "%s┃ ├─ No environment override: %s\n" "$base_indent" "$(basename "${ENV_OVERRIDE_FILE}")"
             fi
@@ -223,7 +240,7 @@ setup_source() {
             # 3. Node override
             if [[ -f "${NODE_OVERRIDE_FILE}" ]]; then
                 printf "%s┃ ├─ Node override: %s\n" "$base_indent" "$(basename "${NODE_OVERRIDE_FILE}")"
-                source "${NODE_OVERRIDE_FILE}" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source node override\n" "$base_indent"
+                _menu_source_module "env:$(basename "${NODE_OVERRIDE_FILE}")" "${NODE_OVERRIDE_FILE}" "menu_setup" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source node override\n" "$base_indent"
             else
                 printf "%s┃ ├─ No node override: %s\n" "$base_indent" "$(basename "${NODE_OVERRIDE_FILE}")"
             fi
@@ -236,7 +253,7 @@ setup_source() {
                 for conf_file in "$env_dir"/*; do
                     if [[ -f "$conf_file" ]]; then
                         printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$conf_file")"
-                        source "$conf_file" || printf "%s┃ │  └─ Failed to source %s\n" "$base_indent" "$(basename "$conf_file")"
+                        _menu_source_module "env:$(basename "$conf_file")" "$conf_file" "menu_legacy" || printf "%s┃ │  └─ Failed to source %s\n" "$base_indent" "$(basename "$conf_file")"
                     fi
                 done
             fi
