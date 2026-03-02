@@ -1,0 +1,16 @@
+Read and apply doc/pro/task/RULES.md first.
+
+Review all files in doc/pro/inbox and pick the highest-value next item.
+
+- Move exactly one item from inbox/ to queue/
+- Set Status: queue
+- Add ## Triage Decision section with:
+  - Why this item was selected now (priority rationale)
+  - Design classification -- answer both questions:
+    1. Are there meaningful alternatives for how to solve this?
+    2. Will other code or users depend on the shape of the output?
+    If either answer is yes: "Design: required"
+    If both answers are no: "Design: not needed"
+  - One-sentence justification for the classification
+- Report: moved file path, design classification, reason, and top 2 deferred
+  items with rationale

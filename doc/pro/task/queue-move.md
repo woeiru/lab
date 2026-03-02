@@ -1,0 +1,16 @@
+Read and apply doc/pro/task/RULES.md first.
+
+<INBOX_FILE_PATH>
+
+Move this specific workflow item from inbox/ to queue/.
+
+- Set Status: queue
+- Add ## Triage Decision section with:
+  - Why now (priority rationale)
+  - Design classification -- answer both questions:
+    1. Are there meaningful alternatives for how to solve this?
+    2. Will other code or users depend on the shape of the output?
+    If either answer is yes: "Design: required"
+    If both answers are no: "Design: not needed"
+  - One-sentence justification for the classification
+- Report: new file path, design classification, what changed (max 3 bullets)

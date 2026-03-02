@@ -1,0 +1,29 @@
+Read and apply doc/pro/task/RULES.md first.
+
+<QUEUE_FILE_PATH>
+
+Move this queued item into active execution.
+
+- Read the ## Triage Decision section. It must contain a Design classification.
+  If "Design: required" or "Design: not needed" is missing, stop and run
+  triage (triage-queue or move-to-queue) first.
+- Set Status: active
+- Add sections: Execution Plan (today), Verification Plan, Exit Criteria
+
+Design-aware Execution Plan:
+- If "Design: required":
+  - Phase 1 must be the design phase. Its completion criterion is a concrete
+    deliverable: documented interfaces, constraints, trade-offs, and the
+    chosen approach. No implementation work begins until Phase 1 is complete.
+  - Subsequent phases cover implementation, verified against the design.
+- If "Design: not needed":
+  - Write the Execution Plan directly with implementation phases.
+
+General Execution Plan rules for multi-phase work:
+  - Each phase must have one unambiguous completion criterion (a measurable
+    target or a concrete deliverable, not both)
+  - List phases as sequential steps, not conditional branches
+    (write "Phase 1, then Phase 2" -- never "if closing... if continuing...")
+  - Exit Criteria applies to the full item, not individual phases
+- If a waiver is needed, add/update doc/pro/active/waivers/*_waiver-register.md
+- Report: active path + design classification + next 3 execution steps

@@ -1,25 +1,28 @@
-# Agentic Workflow Prompt Templates
+# doc/pro/task
 
-Prompt templates for LLM agents operating the `doc/pro` workflow board.
+Executable prompt templates for LLM agents operating the `doc/pro` workflow board.
 
-## How to use
+## Usage
 
-Point your LLM agent at the task file for the operation you need:
+Point your agent at the task file and provide context:
 
 ```
-Read and execute doc/pro/task/<task-name>.md
+Read and execute doc/pro/task/inbox-capture.md
+
+I want to add GPU thermal monitoring to the sys module
 ```
 
-Replace `<PLACEHOLDERS>` in the task file with actual values.
 Append `Strict mode.` to halt on ambiguity instead of inferring.
 
-All tasks reference `doc/pro/task/RULES.md` for shared rules
-(naming, validation, return format). Edit rules there once, every task
-picks them up.
+## Naming conventions
 
----
+| Pattern              | Meaning                          | Examples                          |
+|----------------------|----------------------------------|-----------------------------------|
+| `UPPERCASE.md`       | Shared config, not a task        | `RULES.md`                        |
+| `folder-action.md`   | Workflow task; prefix = destination folder | `active-start.md`, `queue-triage.md` |
+| `singleword.md`      | Cross-cutting operation, no target folder  | `status.md`, `maintenance.md`    |
 
-## Task index
+## Tasks
 
 | File                        | Action                                      |
 |-----------------------------|---------------------------------------------|
