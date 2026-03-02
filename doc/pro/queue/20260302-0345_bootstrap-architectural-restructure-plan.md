@@ -1,10 +1,19 @@
 # Bootstrap Architectural Restructure
 
-- Status: inbox
+- Status: queue
 - Owner: es
 - Started: n/a
-- Updated: 2026-03-02
+- Updated: 2026-03-03
 - Links: bin/ini, bin/orc, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, cfg/core/lzy, lib/core/ver, src/set/.menu, src/dic/ops, doc/arc/00-architecture-overview.md, doc/arc/01-bootstrap-and-orchestration.md, doc/pro/completed/20260301-2328_bootstrapper-performance-renewal
+
+## Triage Decision
+
+- Why now: This is the architectural follow-on to a just-completed performance renewal, and deferring it keeps redundant boot paths and dead boot-time code in the critical initialization path.
+- Design classification:
+  1. Are there meaningful alternatives for how to solve this? Yes.
+  2. Will other code or users depend on the shape of the output? Yes.
+  Design: required
+- Justification: The work changes bootstrap structure and shared loading contracts across interactive, DIC, and deployment paths, so design choices materially affect downstream behavior.
 
 ## Goal
 
