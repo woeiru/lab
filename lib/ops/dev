@@ -392,7 +392,7 @@ if mode != "-t":
     sys.exit(0)
 
 # ── bordered table mode (-t) ──────────────────────────────────────────────────
-# Konsole default palette — truecolor RGB
+# Balanced truecolor palette (designed for dark and light terminals)
 RESET   = "\033[0m"
 BOLD    = "\033[1m"
 DIM     = "\033[2m"
@@ -400,15 +400,15 @@ DIM     = "\033[2m"
 def fg(r, g, b):
     return f"\033[38;2;{r};{g};{b}m"
 
-C_BORDER  = fg(101, 101, 101)          # Color7Faint  — dim gray
-C_HEADER  = BOLD + fg(96,  96,  96)    # Neutral gray header for dark/light backgrounds
-C_SUFFIX  = fg(84,  255, 255)          # Color6Intense — bright cyan
-C_PROJECT = fg(84,  84,  255)          # Color4Intense — bright blue
-C_DIR     = fg(84,  84,  255)          # Color4Intense — bright blue (same family)
-C_TITLE   = fg(178, 178, 178)          # Color7        — normal gray
-C_DATE    = fg(220, 220, 110)          # Softer yellow
-C_MODEL   = fg(220, 120, 220)          # Softer magenta
-C_TOKENS  = fg(120, 220, 120)          # Softer green
+C_BORDER  = fg(118, 118, 118)          # Neutral border, medium contrast
+C_HEADER  = BOLD + fg(108, 108, 108)   # Header neutral for mixed backgrounds
+C_SUFFIX  = fg(30,  156, 164)          # Muted teal (saturated, less bright)
+C_PROJECT = fg(52,  112, 206)          # Muted cobalt (saturated, less bright)
+C_DIR     = fg(69,  98,  176)          # Slightly darker blue for separation
+C_TITLE   = fg(132, 132, 132)          # Body neutral text
+C_DATE    = fg(186, 132, 44)           # Muted amber
+C_MODEL   = fg(166, 88,  142)          # Muted berry
+C_TOKENS  = fg(52,  146, 94)           # Muted green
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -1388,11 +1388,18 @@ active_by_family = data.get("activeIndexByFamily", {})
 BOLD = "\033[1m"
 DIM = "\033[2m"
 RESET = "\033[0m"
-GREEN = "\033[32m"
-YELLOW = "\033[33m"
-RED = "\033[31m"
-CYAN = "\033[36m"
-MAGENTA = "\033[35m"
+
+def fg(r, g, b):
+    return f"\033[38;2;{r};{g};{b}m"
+
+GREEN = fg(52, 146, 94)      # muted green
+YELLOW = fg(186, 132, 44)    # muted amber
+RED = fg(176, 76, 76)        # muted red
+CYAN = fg(30, 156, 164)      # muted teal
+MAGENTA = fg(166, 88, 142)   # muted berry
+BLUE = fg(69, 98, 176)       # match osv DIR blue
+LAVENDER = fg(134, 120, 196) # account name accent
+TITLE = BOLD + BLUE
 
 HIDDEN_FAMILIES = {"gemini-flash"}  # comment out entries to show them again
 
@@ -1523,7 +1530,7 @@ def fmt_tokens(n):
     return str(int(n))
 
 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-print(f"\n{BOLD}ACCOUNT LOAD BALANCING{RESET}  {DIM}{now_str}{RESET}")
+print(f"\n{TITLE}ACCOUNT LOAD BALANCING{RESET}  {DIM}{now_str}{RESET}")
 print("=" * DASHBOARD_WIDTH)
 
 if not accounts:
@@ -1542,7 +1549,7 @@ for i, acct in enumerate(accounts):
     status_tag = f"{GREEN}ENABLED{RESET}" if enabled else f"{RED}DISABLED{RESET}"
     active_tag = f"  {MAGENTA}< DEFAULT ACTIVE{RESET}" if is_default_active else ""
 
-    print(f"\n{BOLD}Account {i + 1}: {email}{RESET}  [{status_tag}]{active_tag}")
+    print(f"\n{TITLE}Account {i + 1}:{RESET} {LAVENDER}{email}{RESET}  [{status_tag}]{active_tag}")
     print(f"  Last Used:  {fmt_ts(last_used)}")
 
     if active_families:
@@ -1563,10 +1570,10 @@ for i, acct in enumerate(accounts):
     rate_limits = acct.get("rateLimitResetTimes", {})
 
     if quota:
-        print(f"  {BOLD}Antigravity Quota{RESET}")
+        print(f"  {TITLE}Antigravity Quota{RESET}")
         print(f"  {'-' * QUOTA_TABLE_WIDTH}")
         header = quota_row("Family", "Remaining", "Reset", "Mdl")
-        print(f"  {BOLD}{header}{RESET}")
+        print(f"  {TITLE}{header}{RESET}")
         print(f"  {'-' * QUOTA_TABLE_WIDTH}")
         now_utc = datetime.now(timezone.utc)
         for family, info in sorted(quota.items()):
@@ -1629,13 +1636,13 @@ for i, acct in enumerate(accounts):
             print(f"  {quota_row(family, remaining_cell, reset_cell, model_count)}")
         print(f"  {'-' * QUOTA_TABLE_WIDTH}")
     else:
-        print(f"  {BOLD}Antigravity Quota{RESET}")
+        print(f"  {TITLE}Antigravity Quota{RESET}")
         if cached_at:
             print(f"  {DIM}(no quota data returned in last check){RESET}")
         else:
             print(f"  {DIM}(no quota data cached yet){RESET}")
 
-print(f"\n{BOLD}ROUTING{RESET}")
+print(f"\n{TITLE}ROUTING{RESET}")
 print(f"  {'-' * ROUTING_TABLE_WIDTH}")
 if active_index < len(accounts):
     default_email = accounts[active_index]["email"]
@@ -1672,10 +1679,10 @@ if db_path and os.path.isfile(db_path):
         rows = cur.fetchall()
         conn.close()
         if rows:
-            print(f"\n{BOLD}MODEL USAGE{RESET}  {DIM}(all accounts, all providers){RESET}")
+            print(f"\n{TITLE}MODEL USAGE{RESET}  {DIM}(all accounts, all providers){RESET}")
             print(f"  {'-' * MODEL_TABLE_WIDTH}")
             header = model_row("Model", "Prov", "Msgs", "Input", "Output")
-            print(f"  {BOLD}{header}{RESET}")
+            print(f"  {TITLE}{header}{RESET}")
             print(f"  {'-' * MODEL_TABLE_WIDTH}")
             for provider, model, cnt, inp, out, cache in rows:
                 prov_short = (provider or "?")[:6]
