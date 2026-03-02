@@ -1,6 +1,12 @@
 ---
 # Bootstrapper Rewrite Plan — bin/ini
-Status: dismissed
+
+- Status: dismissed
+- Owner: es
+- Started: 2026-02-26
+- Updated: 2026-03-02
+- Links: n/a
+
 Scope: bin/ini, bin/orc, lib/core/tme (timer I/O), val/ coverage
 Preserves: terminal boot output, timing report, fallback environment
 ---

@@ -13,6 +13,7 @@ is_work_item_doc() {
   local file="$1"
   [[ "$file" == *.md ]] || return 1
   [[ "$(basename "$file")" == "README.md" ]] && return 1
+  [[ "$(basename "$file")" == "AGENTS.md" ]] && return 1
 
   case "$file" in
     "$ROOT"/inbox/* | \

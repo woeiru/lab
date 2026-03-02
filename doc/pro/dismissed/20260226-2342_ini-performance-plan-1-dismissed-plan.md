@@ -1,6 +1,10 @@
 # bin/ini Performance Optimization Plan
 
-Status: dismissed
+- Status: dismissed
+- Owner: es
+- Started: 2026-02-26
+- Updated: 2026-03-02
+- Links: n/a
 
 ## Dismissal Reason
 - Superseded by newer planning iterations that consolidate this work into a single execution track.

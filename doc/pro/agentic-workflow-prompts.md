@@ -72,8 +72,16 @@ Review all files in doc/pro/inbox and pick the highest-value next item.
 
 - Move exactly one item from inbox/ to queue/
 - Set Status: queue
-- Add ## Triage Decision section explaining why it was selected now
-- Report: moved file path, reason, and top 2 deferred items with rationale
+- Add ## Triage Decision section with:
+  - Why this item was selected now (priority rationale)
+  - Design classification -- answer both questions:
+    1. Are there meaningful alternatives for how to solve this?
+    2. Will other code or users depend on the shape of the output?
+    If either answer is yes: "Design: required"
+    If both answers are no: "Design: not needed"
+  - One-sentence justification for the classification
+- Report: moved file path, design classification, reason, and top 2 deferred
+  items with rationale
 ```
 
 ### 3) 📌 Direct move inbox -> queue (known item)
@@ -84,8 +92,15 @@ Review all files in doc/pro/inbox and pick the highest-value next item.
 Move this specific workflow item from inbox/ to queue/.
 
 - Set Status: queue
-- Add ## Triage Decision section (why now)
-- Report: new file path, what changed (max 3 bullets)
+- Add ## Triage Decision section with:
+  - Why now (priority rationale)
+  - Design classification -- answer both questions:
+    1. Are there meaningful alternatives for how to solve this?
+    2. Will other code or users depend on the shape of the output?
+    If either answer is yes: "Design: required"
+    If both answers are no: "Design: not needed"
+  - One-sentence justification for the classification
+- Report: new file path, design classification, what changed (max 3 bullets)
 ```
 
 ### 4) 🚀 Start execution: queue -> active
@@ -95,41 +110,32 @@ Move this specific workflow item from inbox/ to queue/.
 
 Move this queued item into active execution.
 
+- Read the ## Triage Decision section. It must contain a Design classification.
+  If "Design: required" or "Design: not needed" is missing, stop and run
+  triage (template 2 or 3) first.
 - Set Status: active
 - Add sections: Execution Plan (today), Verification Plan, Exit Criteria
-- Execution Plan rules for multi-phase work:
+
+Design-aware Execution Plan:
+- If "Design: required":
+  - Phase 1 must be the design phase. Its completion criterion is a concrete
+    deliverable: documented interfaces, constraints, trade-offs, and the
+    chosen approach. No implementation work begins until Phase 1 is complete.
+  - Subsequent phases cover implementation, verified against the design.
+- If "Design: not needed":
+  - Write the Execution Plan directly with implementation phases.
+
+General Execution Plan rules for multi-phase work:
   - Each phase must have one unambiguous completion criterion (a measurable
     target or a concrete deliverable, not both)
   - List phases as sequential steps, not conditional branches
     (write "Phase 1, then Phase 2" -- never "if closing... if continuing...")
   - Exit Criteria applies to the full item, not individual phases
 - If a waiver is needed, add/update doc/pro/active/waivers/*_waiver-register.md
-- Report: active path + next 3 execution steps
+- Report: active path + design classification + next 3 execution steps
 ```
 
-### 5) ⚡ Fast-track: inbox -> active
-
-```text
-<INBOX_FILE_PATH>
-
-Fast-track this inbox item directly into active execution, skipping queue.
-
-Use only when the item is clearly highest priority and ready to execute now.
-
-- Set Status: active
-- Add ## Triage Decision section (why this item, why skip queue)
-- Add sections: Execution Plan (today), Verification Plan, Exit Criteria
-- Execution Plan rules for multi-phase work:
-  - Each phase must have one unambiguous completion criterion (a measurable
-    target or a concrete deliverable, not both)
-  - List phases as sequential steps, not conditional branches
-    (write "Phase 1, then Phase 2" -- never "if closing... if continuing...")
-  - Exit Criteria applies to the full item, not individual phases
-- If a waiver is needed, add/update doc/pro/active/waivers/*_waiver-register.md
-- Report: active path + triage rationale + next 3 execution steps
-```
-
-### 6) ✅ Close: active -> completed
+### 5) ✅ Close: active -> completed
 
 ```text
 <ACTIVE_FILE_PATH>
@@ -147,7 +153,7 @@ Finalize this active item into completed state.
 - Report: completed folder path + verification evidence summary
 ```
 
-### 7) 🗑️ Dismiss: any -> dismissed
+### 6) 🗑️ Dismiss: any -> dismissed
 
 ```text
 <FILE_PATH>
@@ -164,7 +170,7 @@ The source file may be in inbox/, queue/, active/, or experiments/.
 - Report: dismissed file path + rationale
 ```
 
-### 8) 🧪 Move to experiments (spike/prototype)
+### 7) 🧪 Move to experiments (spike/prototype)
 
 ```text
 <FILE_PATH>
@@ -182,7 +188,7 @@ The source file may be in inbox/, queue/, or active/.
 - Report: experiments path + goal summary + time box
 ```
 
-### 9) 🧭 Resolve experiment -> queue or dismissed
+### 8) 🧭 Resolve experiment -> queue or dismissed
 
 ```text
 <EXPERIMENT_FILE_PATH>
@@ -200,7 +206,7 @@ Resolve this experiment based on its outcome.
 - Report: destination path + outcome summary + what was learned
 ```
 
-### 10) 🔄 Reopen: completed -> active
+### 9) 🔄 Reopen: completed -> active
 
 ```text
 <COMPLETED_FILE_PATH>
@@ -217,7 +223,7 @@ Reopen this completed item for additional work.
 - Report: active path + reopening rationale + next 3 steps
 ```
 
-### 11) ✂️ Split active item
+### 10) ✂️ Split active item
 
 ```text
 <ACTIVE_FILE_PATH>
@@ -235,7 +241,7 @@ Split this active item into multiple smaller items.
 - Report: original path + new inbox paths + scope division summary
 ```
 
-### 12) 🧾 Checkpoint active item (context handoff)
+### 11) 🧾 Checkpoint active item (context handoff)
 
 Use before closing a context window or switching tasks.
 
@@ -265,7 +271,7 @@ Checkpoint progress on this active item before I close this context.
 - Report: updated file path + 5-bullet handoff summary
 ```
 
-### 13) ▶️ Resume active item (new context)
+### 12) ▶️ Resume active item (new context)
 
 Use at the start of a new context window to continue work.
 
@@ -298,7 +304,7 @@ Resume work on this active item in a fresh context.
   - Keep Execution Plan current
 ```
 
-### 14) 📊 Board status review
+### 13) 📊 Board status review
 
 Reports current state without making changes.
 
@@ -314,7 +320,7 @@ Review the current state of the doc/pro board without modifying anything.
 - Suggest actions I should take, in priority order (max 5)
 ```
 
-### 15) 🧹 Weekly maintenance sweep
+### 14) 🧹 Weekly maintenance sweep
 
 ```text
 Perform a weekly doc/pro maintenance pass.

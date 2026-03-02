@@ -1,6 +1,10 @@
 # bin/ini Performance Plan — With Compromise
 
-Status: dismissed
+- Status: dismissed
+- Owner: es
+- Started: 2026-02-26
+- Updated: 2026-03-02
+- Links: n/a
 
 ## Dismissal Reason
 - Superseded by later planning artifacts with clearer scope boundaries and decision criteria.

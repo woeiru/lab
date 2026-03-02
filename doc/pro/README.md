@@ -11,12 +11,12 @@ Use it to move work through clear states:
 ```mermaid
 flowchart LR
   I["inbox/"] -->|triage| Q["queue/"]
-  I -->|fast-track| A["active/"]
   Q -->|start| A["active/"]
   A -->|accepted outcome| C["completed/"]
   A -->|stop or reject| D["dismissed/"]
 
-  Q -. prototype/spike .-> E["experiments/"]
+  I -. prototype/spike .-> E["experiments/"]
+  Q -. prototype/spike .-> E
   A -. prototype/spike .-> E
   E -->|promising| Q
   E -->|not worth pursuing| D
@@ -68,14 +68,21 @@ Examples:
 
 2. Prioritize -> move to `queue/`
    - Move files from `inbox/` to `queue/` once they are triaged and prioritized.
+   - During triage, classify design need (see `agentic-workflow-prompts.md`
+     templates 2-3). Answer two questions:
+     1. Are there meaningful alternatives for how to solve this?
+     2. Will other code or users depend on the shape of the output?
+   - If either is yes: mark `Design: required` in the `## Triage Decision`.
+   - If both are no: mark `Design: not needed`.
+   - This classification determines how the Execution Plan is structured when
+     the item moves to `active/`.
 
 3. Start work -> move to `active/`
    - Move the file from `queue/` to `active/` when you commit to doing it.
    - If helpful, prefix with sequence number (`0-`, `1-`, `2-`) to show execution order.
-   - **Fast-track**: if an inbox item is clearly highest priority and ready to
-     execute now, it may skip `queue/` and move directly to `active/`. Document
-     the triage reasoning in a `## Triage Decision` section. This is the
-     exception, not the default path.
+   - Every item must pass through `queue/` — there is no fast-track path.
+     Triage is where the design question gets answered; skipping it means
+     starting work without knowing what kind of work it is.
 
 4. Execute and review in `active/`
    - Yes: review notes can stay in `active/` while work is still open.
@@ -134,7 +141,7 @@ Use this header at the top of each work file:
 ```md
 # <Title>
 
-- Status: inbox | active | completed | dismissed
+- Status: inbox | queue | active | experiment | completed | dismissed
 - Owner: <name>
 - Started: YYYY-MM-DD
 - Updated: YYYY-MM-DD
