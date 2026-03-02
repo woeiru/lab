@@ -4,15 +4,34 @@ Executable prompt templates for LLM agents operating the `doc/pro` workflow boar
 
 ## Usage
 
-Point your agent at the task file and provide context:
+Give the task filepath first (short instruction), then the project filepath
+(large context). This order matters -- the LLM uses the short instruction as
+a lens to selectively attend to the larger document that follows, producing
+better task adherence than the reverse.
 
 ```
-Read and execute doc/pro/task/inbox-capture
+doc/pro/task/active-start
+doc/pro/active/20260301-1400_gpu-thermal-monitoring-plan.md
+```
 
-I want to add GPU thermal monitoring to the sys module
+For tasks that take free-form input instead of a file (like inbox-capture),
+put the idea after the task path:
+
+```
+doc/pro/task/inbox-capture
+Add GPU thermal monitoring to the sys module
 ```
 
 Append `Strict mode.` to halt on ambiguity instead of inferring.
+
+### Prompt ordering principle
+
+**Short task first, big file second.** When composing a prompt with both a
+task instruction and a large project document, always place the concise
+instruction before the larger body of content. The model processes tokens
+sequentially and uses early tokens to prime attention over later ones. Giving
+the task first lets the model know what to extract before it encounters the
+bulk material, rather than forcing it to re-weight retroactively.
 
 ## Naming conventions
 

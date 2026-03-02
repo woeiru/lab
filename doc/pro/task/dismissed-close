@@ -1,6 +1,6 @@
 Read and apply doc/pro/task/RULES.md first.
 
-<FILE_PATH>
+The item filepath is given in the user prompt. Read it first.
 
 Move this workflow item to dismissed with clear rationale.
 

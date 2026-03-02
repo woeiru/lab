@@ -1,6 +1,6 @@
 Read and apply doc/pro/task/RULES.md first.
 
-<EXPERIMENT_FILE_PATH>
+The experiment item filepath is given in the user prompt. Read it first.
 
 Resolve this experiment based on its outcome.
 

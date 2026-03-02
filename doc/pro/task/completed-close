@@ -1,6 +1,6 @@
 Read and apply doc/pro/task/RULES.md first.
 
-<ACTIVE_FILE_PATH>
+The active item filepath is given in the user prompt. Read it first.
 
 Finalize this active item into completed state.
 

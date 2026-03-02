@@ -1,6 +1,6 @@
 Read and apply doc/pro/task/RULES.md first.
 
-<QUEUE_FILE_PATH>
+The queue item filepath is given in the user prompt. Read it first.
 
 Move this queued item to active/ and prepare it for execution.
 

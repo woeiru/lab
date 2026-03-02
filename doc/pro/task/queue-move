@@ -1,6 +1,6 @@
 Read and apply doc/pro/task/RULES.md first.
 
-<INBOX_FILE_PATH>
+The inbox item filepath is given in the user prompt. Read it first.
 
 Move this specific workflow item from inbox/ to queue/.
 
