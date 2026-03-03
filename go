@@ -15,6 +15,7 @@
 #   ./go init          Setup/configure shell integration
 #   ./go status        Check system status  
 #   ./go validate      Run system validation
+#   ./go compile       Build compiled bootstrap cache
 #   ./go help          Show detailed help
 #######################################################################
 
@@ -32,6 +33,10 @@ readonly HELPER_MARKER_END="# === END MANAGED BLOCK: Lab Helper Functions ==="
 readonly FILEPATH="bin/ini"
 readonly TMP_DIR="$SCRIPT_DIR/.tmp"
 readonly SETTINGS_FILE="$TMP_DIR/go_settings"
+readonly BOOTSTRAP_CACHE_DIR="$TMP_DIR/bootstrap"
+readonly BOOTSTRAP_CACHE_FILE="$BOOTSTRAP_CACHE_DIR/ini_core.cache"
+readonly BOOTSTRAP_CACHE_META="$BOOTSTRAP_CACHE_DIR/ini_core.meta"
+readonly BOOTSTRAP_CACHE_VERSION="1"
 
 # Runtime variables for shell injection
 declare -g YES_FLAG=false
@@ -336,6 +341,7 @@ COMMANDS:
     off             Disable shell integration in new shells (bashrc only; current shell unaffected)
     status          Check system initialization status
     validate        Run system validation tests
+    compile         Build compiled bootstrap cache for faster init
     purge           Remove lab/lab-on/lab-off helper functions from bashrc
     help            Show detailed help and documentation
 
@@ -357,6 +363,7 @@ EXAMPLES:
     lab-off                      # Permanent off (same as ./go off)
     ./go status                  # Check if system is ready
     ./go validate                # Run validation tests
+    ./go compile                 # Build compiled bootstrap cache
     ./go purge                   # Remove lab/lab-on/lab-off helper functions from bashrc
 
 WORKFLOW:
@@ -366,6 +373,153 @@ WORKFLOW:
 
 Settings are saved in .tmp/go_settings after running 'init'.
 EOF
+}
+
+bootstrap_cache_sources() {
+    printf '%s\n' \
+        "$LAB_ROOT/lib/core/col" \
+        "$LAB_ROOT/lib/core/err" \
+        "$LAB_ROOT/lib/core/lo1" \
+        "$LAB_ROOT/lib/core/tme" \
+        "$LAB_ROOT/lib/core/lab"
+}
+
+file_signature() {
+    local file_path="$1"
+    local mtime
+    local size
+
+    [[ -f "$file_path" ]] || return 1
+
+    mtime=$(stat -c '%Y' "$file_path" 2>/dev/null) || return 1
+    size=$(stat -c '%s' "$file_path" 2>/dev/null) || return 1
+    printf '%s:%s\n' "$mtime" "$size"
+}
+
+append_module_to_cache() {
+    local module_path="$1"
+    local output_file="$2"
+    local line
+    local first_line=1
+
+    printf '\n# --- MODULE: %s ---\n' "${module_path#${LAB_ROOT}/}" >> "$output_file"
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$first_line" -eq 1 && "$line" == '#!/bin/bash' ]]; then
+            first_line=0
+            continue
+        fi
+
+        printf '%s\n' "$line" >> "$output_file"
+        first_line=0
+    done < "$module_path"
+}
+
+handle_compile_command() {
+    local generated_at
+    local cache_temp
+    local meta_temp
+    local cache_signature
+    local source_signature
+    local module
+    local -a modules
+
+    generated_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    mkdir -p "$BOOTSTRAP_CACHE_DIR" || {
+        printf "Error: Failed to create bootstrap cache directory: %s\n" "$BOOTSTRAP_CACHE_DIR" >&2
+        return 1
+    }
+
+    mapfile -t modules < <(bootstrap_cache_sources)
+
+    if [[ "${#modules[@]}" -eq 0 ]]; then
+        printf "Error: No modules configured for bootstrap cache generation\n" >&2
+        return 1
+    fi
+
+    for module in "${modules[@]}"; do
+        if [[ ! -r "$module" ]]; then
+            printf "Error: Required module not readable: %s\n" "$module" >&2
+            return 1
+        fi
+    done
+
+    cache_temp=$(mktemp "$BOOTSTRAP_CACHE_DIR/ini_core.cache.tmp.XXXXXX") || {
+        printf "Error: Failed to create temporary cache file\n" >&2
+        return 1
+    }
+
+    meta_temp=$(mktemp "$BOOTSTRAP_CACHE_DIR/ini_core.meta.tmp.XXXXXX") || {
+        printf "Error: Failed to create temporary metadata file\n" >&2
+        rm -f "$cache_temp"
+        return 1
+    }
+
+    {
+        printf '#!/bin/bash\n'
+        printf '# generated_by=./go compile\n'
+        printf '# generated_at=%s\n' "$generated_at"
+        printf '# cache_version=%s\n' "$BOOTSTRAP_CACHE_VERSION"
+        printf '[[ -n "${_LAB_BOOTSTRAP_CORE_CACHE_LOADED:-}" ]] && return 0\n'
+        printf '_LAB_BOOTSTRAP_CORE_CACHE_LOADED=1\n'
+    } > "$cache_temp"
+
+    for module in "${modules[@]}"; do
+        append_module_to_cache "$module" "$cache_temp"
+    done
+
+    chmod 600 "$cache_temp" || {
+        printf "Error: Failed to set cache permissions\n" >&2
+        rm -f "$cache_temp" "$meta_temp"
+        return 1
+    }
+
+    mv "$cache_temp" "$BOOTSTRAP_CACHE_FILE" || {
+        printf "Error: Failed to write bootstrap cache file: %s\n" "$BOOTSTRAP_CACHE_FILE" >&2
+        rm -f "$cache_temp" "$meta_temp"
+        return 1
+    }
+
+    cache_signature=$(file_signature "$BOOTSTRAP_CACHE_FILE") || {
+        printf "Error: Failed to compute bootstrap cache signature\n" >&2
+        rm -f "$meta_temp"
+        return 1
+    }
+
+    {
+        printf 'version=%s\n' "$BOOTSTRAP_CACHE_VERSION"
+        printf 'generated_at=%s\n' "$generated_at"
+        printf 'cache|%s|%s\n' "$BOOTSTRAP_CACHE_FILE" "$cache_signature"
+        for module in "${modules[@]}"; do
+            source_signature=$(file_signature "$module") || {
+                printf "Error: Failed to compute module signature for %s\n" "$module" >&2
+                return 1
+            }
+            printf 'source|%s|%s\n' "$module" "$source_signature"
+        done
+    } > "$meta_temp" || {
+        printf "Error: Failed to write bootstrap cache metadata\n" >&2
+        rm -f "$meta_temp"
+        return 1
+    }
+
+    chmod 600 "$meta_temp" || {
+        printf "Error: Failed to set metadata permissions\n" >&2
+        rm -f "$meta_temp"
+        return 1
+    }
+
+    mv "$meta_temp" "$BOOTSTRAP_CACHE_META" || {
+        printf "Error: Failed to write bootstrap cache metadata file: %s\n" "$BOOTSTRAP_CACHE_META" >&2
+        rm -f "$meta_temp"
+        return 1
+    }
+
+    printf "Compiled bootstrap cache generated successfully\n"
+    printf "Cache file: %s\n" "$BOOTSTRAP_CACHE_FILE"
+    printf "Metadata file: %s\n" "$BOOTSTRAP_CACHE_META"
+    return 0
 }
 
 check_init_status() {
@@ -662,6 +816,9 @@ main() {
                 echo "Please run './go init' first"
                 exit 1
             fi
+            ;;
+        compile)
+            handle_compile_command
             ;;
         on)
             handle_on_command

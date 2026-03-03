@@ -198,6 +198,91 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_compiled_bootstrap_cache_used_when_fresh() {
+    local test_env=$(create_test_env "ini_compiled_cache_fresh")
+
+    cat > "$test_env/test_compiled_cache_fresh.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+export MASTER_TERMINAL_VERBOSITY=off
+export LAB_BOOTSTRAP_CACHE_ENABLED=1
+
+if ! ./go compile >/dev/null 2>&1; then
+    exit 1
+fi
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+[[ "${INI_COMPILED_BOOTSTRAP_CACHE_USED:-0}" -eq 1 ]] || exit 1
+EOF
+    chmod +x "$test_env/test_compiled_cache_fresh.sh"
+
+    run_test "Compiled bootstrap cache is used when fresh" "$test_env/test_compiled_cache_fresh.sh"
+    cleanup_test_env "$test_env"
+}
+
+test_compiled_bootstrap_cache_stale_falls_back() {
+    local test_env=$(create_test_env "ini_compiled_cache_stale")
+
+    cat > "$test_env/test_compiled_cache_stale.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+export MASTER_TERMINAL_VERBOSITY=off
+export LAB_BOOTSTRAP_CACHE_ENABLED=1
+
+if ! ./go compile >/dev/null 2>&1; then
+    exit 1
+fi
+
+cache_dir=$(mktemp -d)
+trap 'rm -rf "$cache_dir"' EXIT
+
+cache_file="$cache_dir/ini_core.cache"
+cache_meta="$cache_dir/ini_core.meta"
+
+cp .tmp/bootstrap/ini_core.cache "$cache_file" || exit 1
+cp .tmp/bootstrap/ini_core.meta "$cache_meta" || exit 1
+
+stale_meta="$cache_meta.stale"
+stale_written=0
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == source\|* ]] && [[ "$stale_written" -eq 0 ]]; then
+        source_path="${line#source|}"
+        source_path="${source_path%%|*}"
+        printf 'source|%s|0:0\n' "$source_path" >> "$stale_meta"
+        stale_written=1
+    else
+        printf '%s\n' "$line" >> "$stale_meta"
+    fi
+done < "$cache_meta"
+
+mv "$stale_meta" "$cache_meta" || exit 1
+
+export LAB_BOOTSTRAP_CACHE_FILE="$cache_file"
+export LAB_BOOTSTRAP_CACHE_META="$cache_meta"
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+[[ "${INI_COMPILED_BOOTSTRAP_CACHE_USED:-0}" -eq 0 ]] || exit 1
+declare -f err_process >/dev/null 2>&1 || exit 1
+declare -f lo1_log >/dev/null 2>&1 || exit 1
+declare -f tme_start_timer >/dev/null 2>&1 || exit 1
+EOF
+    chmod +x "$test_env/test_compiled_cache_stale.sh"
+
+    run_test "Stale compiled bootstrap cache falls back to source modules" "$test_env/test_compiled_cache_stale.sh"
+    cleanup_test_env "$test_env"
+}
+
 test_performance_init() {
     start_performance_test "ini sourcing performance"
     
@@ -228,6 +313,8 @@ main() {
         test_logging_initialization \
         test_source_directory_skips_hidden_files \
         test_deployment_profile_skips_alias_bootstrap \
+        test_compiled_bootstrap_cache_used_when_fresh \
+        test_compiled_bootstrap_cache_stale_falls_back \
         test_performance_init
 }
 

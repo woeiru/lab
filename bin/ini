@@ -113,6 +113,8 @@ if [[ -v LOG_DEBUG_ENABLED ]]; then
 fi
 export LOG_DEBUG_ENABLED=0
 export LAB_BOOTSTRAP_MODE=1
+: "${LAB_BOOTSTRAP_CACHE_ENABLED:=1}"
+export LAB_BOOTSTRAP_CACHE_ENABLED
 
 readonly LOG_PRIORITY_NORMAL=1
 readonly LOG_PRIORITY_DETAILED=2
@@ -130,6 +132,12 @@ fi
 # Set the base directory path
 readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 readonly BASE_DIR="$( cd "$DIR/.." &> /dev/null && pwd )"
+readonly INI_BOOTSTRAP_CACHE_VERSION="1"
+readonly INI_BOOTSTRAP_CACHE_DIR="${LAB_BOOTSTRAP_CACHE_DIR:-${BASE_DIR}/.tmp/bootstrap}"
+readonly INI_BOOTSTRAP_CACHE_FILE="${LAB_BOOTSTRAP_CACHE_FILE:-${INI_BOOTSTRAP_CACHE_DIR}/ini_core.cache}"
+readonly INI_BOOTSTRAP_CACHE_META="${LAB_BOOTSTRAP_CACHE_META:-${INI_BOOTSTRAP_CACHE_DIR}/ini_core.meta}"
+
+declare -g INI_COMPILED_BOOTSTRAP_CACHE_USED=0
 
 # Cache for file existence checks and directory creation
 declare -A file_existence_cache
@@ -173,6 +181,93 @@ ensure_dir_cached() {
     fi
     dir_creation_cache[$dir]="created"
     return 0
+}
+
+ini_file_signature() {
+    local file_path="$1"
+    local mtime
+    local size
+
+    [[ -f "$file_path" ]] || return 1
+
+    mtime=$(stat -c '%Y' "$file_path" 2>/dev/null) || return 1
+    size=$(stat -c '%s' "$file_path" 2>/dev/null) || return 1
+
+    printf '%s:%s\n' "$mtime" "$size"
+}
+
+ini_compiled_cache_is_fresh() {
+    local line
+    local version=""
+    local entry_type
+    local entry_payload
+    local entry_path
+    local expected_signature
+    local current_signature
+    local cache_entries=0
+    local source_entries=0
+
+    [[ -r "$INI_BOOTSTRAP_CACHE_FILE" && -r "$INI_BOOTSTRAP_CACHE_META" ]] || return 1
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" ]] && continue
+
+        case "$line" in
+            version=*)
+                version="${line#version=}"
+                ;;
+            cache\|*|source\|*)
+                entry_type="${line%%|*}"
+                entry_payload="${line#*|}"
+                entry_path="${entry_payload%%|*}"
+                expected_signature="${entry_payload#*|}"
+
+                current_signature=$(ini_file_signature "$entry_path") || return 1
+                [[ "$current_signature" == "$expected_signature" ]] || return 1
+
+                if [[ "$entry_type" == "cache" ]]; then
+                    ((cache_entries++))
+                else
+                    ((source_entries++))
+                fi
+                ;;
+            *)
+                ;;
+        esac
+    done < "$INI_BOOTSTRAP_CACHE_META"
+
+    [[ "$version" == "$INI_BOOTSTRAP_CACHE_VERSION" ]] || return 1
+    [[ "$cache_entries" -eq 1 ]] || return 1
+    [[ "$source_entries" -gt 0 ]] || return 1
+    return 0
+}
+
+load_modules_from_compiled_cache() {
+    INI_COMPILED_BOOTSTRAP_CACHE_USED=0
+
+    if [[ "${LAB_BOOTSTRAP_CACHE_ENABLED:-1}" != "1" ]]; then
+        ini_log "Compiled bootstrap cache disabled via LAB_BOOTSTRAP_CACHE_ENABLED"
+        return 1
+    fi
+
+    if ! ini_compiled_cache_is_fresh; then
+        ini_log "Compiled bootstrap cache unavailable or stale; using module source files" "load_modules" "$LOG_PRIORITY_DETAILED"
+        return 1
+    fi
+
+    if ! source "$INI_BOOTSTRAP_CACHE_FILE"; then
+        ini_log "WARNING: Failed to source compiled bootstrap cache (${INI_BOOTSTRAP_CACHE_FILE})"
+        return 1
+    fi
+
+    if type err_process &>/dev/null && type lo1_log &>/dev/null && type tme_start_timer &>/dev/null && type lab_source_module &>/dev/null; then
+        INI_COMPILED_BOOTSTRAP_CACHE_USED=1
+        ini_log "Loaded core modules from compiled bootstrap cache"
+        return 0
+    fi
+
+    ini_log "WARNING: Compiled bootstrap cache missing expected core symbols; using module source files"
+    return 1
 }
 
 # Centralized sourcing with timer and error handling
@@ -524,6 +619,10 @@ init_dirs() {
 # Load modules using ver's validation functions
 load_modules() {
     ini_log "Starting optimized module loading"
+
+    if load_modules_from_compiled_cache; then
+        return 0
+    fi
 
     local module_loaded=0
     local -a modules=(

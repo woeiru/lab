@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03 (session checkpoint captured; commit pending)
+- Updated: 2026-03-03 (phase 5 prototype implemented; validation refreshed)
 - Links: bin/ini, bin/orc, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, cfg/core/lzy, lib/core/ver, src/set/.menu, src/dic/ops, doc/arc/00-architecture-overview.md, doc/arc/01-bootstrap-and-orchestration.md, doc/pro/completed/20260301-2328_bootstrapper-performance-renewal
 
 ## Triage Decision
@@ -179,7 +179,7 @@ Out of scope:
 
 ## Execution Plan (current)
 
-- [PENDING] Phase 5 -- Compiled bootstrap snapshot prototype
+- [DONE] Phase 5 -- Compiled bootstrap snapshot prototype
 
 ### Phase 5 -- Compiled bootstrap snapshot prototype
 
@@ -187,7 +187,7 @@ Prototype a cacheable compiled bootstrap payload and wire staleness detection.
 
 Completion criterion: `./go compile` generates a valid cache that `bin/ini` can source when fresh.
 
-Status: pending and optional.
+Status: complete (optional phase delivered).
 
 ## Progress Checkpoint
 
@@ -214,16 +214,32 @@ Status: pending and optional.
    - `doc/arc/03-operational-modules.md`
    - `doc/arc/07-logging-and-error-handling.md`
 5. Validation results (this session):
-   - Pass: `bash -n bin/ini bin/orc val/core/initialization/ini_test.sh val/core/initialization/orc_test.sh`
+    - Pass: `bash -n bin/ini bin/orc val/core/initialization/ini_test.sh val/core/initialization/orc_test.sh`
+    - Pass: `./val/core/initialization/ini_test.sh`
+    - Pass: `./val/core/initialization/orc_test.sh`
+    - Pass: `./val/src/dic_framework_test.sh`
+    - Pass: `bash doc/pro/check-workflow.sh`
+6. Implemented compiled bootstrap cache prototype (Phase 5).
+   - `./go compile` now generates:
+     - `.tmp/bootstrap/ini_core.cache` (single sourceable payload with core module bodies)
+     - `.tmp/bootstrap/ini_core.meta` (versioned staleness signatures for cache and source files)
+   - `bin/ini` now attempts compiled cache load for core modules when cache is fresh,
+     and falls back to direct module sourcing on stale/missing/invalid cache.
+7. Added regression coverage for cache behavior.
+   - `val/core/initialization/ini_test.sh`:
+     - fresh cache path is consumed (`INI_COMPILED_BOOTSTRAP_CACHE_USED=1`)
+     - stale cache metadata forces fallback (`INI_COMPILED_BOOTSTRAP_CACHE_USED=0`)
+8. Validation results (phase 5 additions):
+   - Pass: `bash -n go bin/ini val/core/initialization/ini_test.sh`
    - Pass: `./val/core/initialization/ini_test.sh`
    - Pass: `./val/core/initialization/orc_test.sh`
    - Pass: `./val/src/dic_framework_test.sh`
-   - Pass: `bash doc/pro/check-workflow.sh`
+   - Pass: `./go compile`
 
 ### In-flight
 
-1. No partial Phase 4 implementation remains.
-2. Phase 5 is not started; compiled snapshot prototype files are not created yet.
+1. No partial phase implementation remains.
+2. No active blocker or incomplete coding task in this phase.
 
 ### Blockers
 
@@ -231,31 +247,23 @@ Status: pending and optional.
 
 ### Next steps
 
-1. Define Phase 5 compiled bootstrap cache format, output path, and staleness
-   metadata contract.
-2. Implement `./go compile` cache generation flow and metadata write path.
-3. Integrate cache consumption in `bin/ini` with explicit stale/missing
-   fallback to current source-based bootstrap.
-4. Add/extend tests for fresh and stale cache behavior and run validation
-   (`bash -n`, `./val/core/initialization/ini_test.sh`,
-   `./val/core/initialization/orc_test.sh`, `./val/src/dic_framework_test.sh`).
+1. Optionally run broader suites (`./val/run_all_tests.sh core` or full suite)
+   before merge/commit.
+2. Prepare a commit that includes phase 5 implementation and plan checkpoint.
 
 ### Context
 
 1. Branch: `master` (`master...origin/master`).
-2. Workflow checker passes at checkpoint time: `bash doc/pro/check-workflow.sh`.
-3. Working tree is prepared for commit in this context with changes in:
+2. Resume-state check found prior checkpoint context stale: working tree was clean
+   at resume start (no pending phase 4 commit remained).
+3. Current working tree changes for phase 5:
+    - `go`
     - `bin/ini`
-    - `bin/orc`
-    - `doc/arc/00-architecture-overview.md`
-    - `doc/arc/01-bootstrap-and-orchestration.md`
-    - `doc/arc/02-core-and-gen.md`
-    - `doc/arc/03-operational-modules.md`
-    - `doc/arc/07-logging-and-error-handling.md`
     - `val/core/initialization/ini_test.sh`
-    - `val/core/initialization/orc_test.sh`
     - `doc/pro/active/20260302-0345_bootstrap-architectural-restructure-plan.md`
-4. No persistent temp artifacts are required for continuation.
+4. Current cache artifacts are generated under `.tmp/bootstrap/` by `./go compile`
+   and are not tracked in git.
+5. Workflow checker pass after this update: `bash doc/pro/check-workflow.sh`.
 
 ## Phase 1 Design Decision Record
 
