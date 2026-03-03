@@ -1,10 +1,15 @@
 # Bootstrapper Modern Output Plan
 
-- Status: inbox
+- Status: dismissed
 - Owner: es
 - Started: 2026-03-03
 - Updated: 2026-03-03
 - Links: bin/ini, bin/orc, lib/core/lo1, lib/core/tme, lib/core/err
+
+## Dismissal Reason
+
+- Scope overlaps with existing bootstrap output redesign planning items.
+- Kept only one canonical planning thread to avoid duplicate execution paths.
 
 ## Goal
 
