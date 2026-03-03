@@ -1548,6 +1548,66 @@ print('{}|{}|{}|{}|{}'.format(
     return 0
 }
 
+# Test: dev_oar writes removed account into denylist for persistent blocking
+test_dev_oar_persists_removed_account_in_denylist() {
+    local test_env
+    test_env=$(create_test_env "dev_oar_denylist")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oar "1" >/dev/null 2>&1
+    local status=$?
+
+    local denylist_entries=""
+    local state=""
+    if [[ $status -eq 0 ]]; then
+        denylist_entries=$(python3 - "$test_env/.config/opencode/antigravity-account-denylist.txt" <<'PY'
+import sys
+
+entries = []
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    for line in f:
+        value = line.split('#', 1)[0].strip().lower()
+        if value:
+            entries.append(value)
+
+print("\n".join(entries))
+PY
+)
+
+        # Simulate provider sync adding the account back, then re-apply denylist
+        _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+        _dev_apply_account_denylist >/dev/null 2>&1
+
+        state=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+accounts = data.get('accounts', [])
+print('{}|{}'.format(
+    accounts[0].get('enabled', True),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+))
+PY
+)
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$denylist_entries" == "alice@example.com" ]] || return 1
+    [[ "$state" == "False|1" ]] || return 1
+    return 0
+}
+
 # Test: dev_oar rejects removing the last enabled account
 test_dev_oar_rejects_last_enabled() {
     local test_env
@@ -2479,6 +2539,7 @@ main() {
     run_test test_dev_oas_creates_backup
     run_test test_dev_oar_requires_params
     run_test test_dev_oar_removes_and_reroutes
+    run_test test_dev_oar_persists_removed_account_in_denylist
     run_test test_dev_oar_rejects_last_enabled
     run_test test_dev_oad_requires_params
     run_test test_dev_oad_disables_and_reroutes

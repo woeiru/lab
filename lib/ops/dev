@@ -827,6 +827,94 @@ _dev_get_antigravity_denylist_path() {
     echo "$denylist_path"
 }
 
+_dev_add_antigravity_denylist_entry() {
+    local account_email="$1"
+
+    if ! aux_val "$account_email" "not_empty"; then
+        aux_warn "Skipping denylist update due to empty account email" "component=dev,operation=opencode_account_denylist"
+        return 1
+    fi
+
+    if ! aux_chk "command" "python3" 2>/dev/null; then
+        aux_warn "Skipping denylist update because python3 is unavailable" "component=dev,operation=opencode_account_denylist"
+        return 1
+    fi
+
+    local denylist_path="${LAB_DEV_ANTIGRAVITY_DENYLIST_FILE:-${HOME}/.config/opencode/antigravity-account-denylist.txt}"
+    local denylist_dir
+    denylist_dir=$(dirname "$denylist_path")
+
+    if ! mkdir -p "$denylist_dir"; then
+        aux_warn "Failed to create denylist directory" "component=dev,operation=opencode_account_denylist,path=$denylist_dir"
+        return 1
+    fi
+
+    local py_output
+    py_output=$(python3 - "$denylist_path" "$account_email" <<'PY'
+import os
+import sys
+
+denylist_path = sys.argv[1]
+account_email = sys.argv[2].strip().lower()
+
+if not account_email:
+    print("INVALID")
+    sys.exit(11)
+
+lines = []
+existing = set()
+
+if os.path.isfile(denylist_path):
+    with open(denylist_path, "r", encoding="utf-8") as f:
+        lines = [line.rstrip("\n") for line in f]
+
+    for line in lines:
+        candidate = line.split("#", 1)[0].strip().lower()
+        if candidate:
+            existing.add(candidate)
+
+if account_email in existing:
+    print(f"EXISTS|{denylist_path}|{account_email}")
+    sys.exit(0)
+
+if not lines:
+    lines = ["# one blocked account per line"]
+
+lines.append(account_email)
+
+with open(denylist_path, "w", encoding="utf-8") as f:
+    f.write("\n".join(lines).rstrip("\n") + "\n")
+
+print(f"ADDED|{denylist_path}|{account_email}")
+sys.exit(0)
+PY
+)
+    local py_status=$?
+
+    if [ "$py_status" -ne 0 ]; then
+        aux_warn "Failed to update antigravity denylist" "component=dev,operation=opencode_account_denylist,python_exit=$py_status"
+        return 1
+    fi
+
+    local action
+    action=$(echo "$py_output" | awk -F'|' '/^(ADDED|EXISTS)\|/ {print $1; exit}')
+    denylist_path=$(echo "$py_output" | awk -F'|' '/^(ADDED|EXISTS)\|/ {print $2; exit}')
+    local normalized_email
+    normalized_email=$(echo "$py_output" | awk -F'|' '/^(ADDED|EXISTS)\|/ {print $3; exit}')
+
+    if [ "$action" = "ADDED" ]; then
+        aux_info "Added account to antigravity denylist" "component=dev,operation=opencode_account_denylist,email=$normalized_email,path=$denylist_path"
+    elif [ "$action" = "EXISTS" ]; then
+        aux_dbg "Account already present in antigravity denylist" "component=dev,operation=opencode_account_denylist,email=$normalized_email,path=$denylist_path"
+    else
+        aux_warn "Unexpected denylist update result" "component=dev,operation=opencode_account_denylist,output=$py_output"
+        return 1
+    fi
+
+    echo "$denylist_path"
+    return 0
+}
+
 _dev_apply_account_denylist() {
     local accounts_path
     accounts_path=$(_dev_get_antigravity_accounts_path) || return 0
@@ -2278,11 +2366,13 @@ PY
 
     case "$py_status" in
         0)
-            local removed_email backup_file rerouted_targets fallback_email
+            local removed_email backup_file rerouted_targets fallback_email denylist_path
             removed_email=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $2}')
             backup_file=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $4}')
             rerouted_targets=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $5}')
             fallback_email=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $6}')
+
+            denylist_path=$(_dev_add_antigravity_denylist_entry "$removed_email") || denylist_path=""
 
             if [ -n "$fallback_email" ] && [ "$fallback_email" != "$removed_email" ]; then
                 _dev_record_account_event "antigravity" "$fallback_email" "$fallback_email" "auth_switched" "manual_switch"
@@ -2294,6 +2384,9 @@ PY
                 echo "Re-routed targets: $rerouted_targets"
             fi
             echo "Fallback account: $fallback_email"
+            if [ -n "$denylist_path" ]; then
+                echo "Denylist: $denylist_path"
+            fi
             echo "Backup: $backup_file"
             return 0
             ;;
