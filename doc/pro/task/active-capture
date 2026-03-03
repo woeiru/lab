@@ -1,0 +1,38 @@
+Read and apply doc/pro/task/RULES.md first.
+
+The user prompt describes work already in progress that was not previously
+tracked in doc/pro/. Gather the details from the prompt and conversation.
+
+Retroactively capture emergent work into active/.
+
+This task is for work that started as a quick fix outside the workflow and
+grew beyond a single-session scope. It creates a tracked active item with
+a checkpoint baked in, so the work can be continued, split, or closed
+through normal workflow operations.
+
+- Create a new file in doc/pro/active/:
+  - Filename: yyyymmdd-hhmm_<topic>-plan.md (current time)
+  - Add the standard header: Status (active), Owner, Started, Updated, Links
+- Add ## Retroactive Capture section with:
+  - Origin: what the fix originally targeted (one sentence)
+  - Escalation reason: why it grew (deeper bug, unexpected dependency, etc.)
+  - Design: required | not needed (answer the two triage questions inline:
+    1. Are there meaningful alternatives for how to solve this?
+    2. Will other code or users depend on the shape of the output?)
+  - Work so far: brief summary of what has already been done
+- Add ## Progress Checkpoint section (same format as active-checkpoint):
+  - Done: what was completed before capture
+  - In-flight: partially done or uncommitted work
+  - Blockers: problems encountered, unresolved questions
+  - Next steps: ordered list of what to do next (unconditional actions,
+    not decision forks)
+  - Context: non-obvious state (branch name, temp files, test status)
+- Add ## Execution Plan for remaining work only:
+  - If "Design: required": Phase 1 must be design-only
+  - If "Design: not needed": implementation phases directly
+  - Each phase has one unambiguous completion criterion
+- Add ## Exit Criteria: conditions for the full item to be considered done
+- If the work is large enough to warrant splitting, note this but do not
+  split during capture. Use active-split as a follow-up step.
+- Report: created file path + origin summary + design classification +
+  next 3 steps from the execution plan

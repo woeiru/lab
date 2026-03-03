@@ -15,6 +15,8 @@ flowchart LR
   A -->|accepted outcome| C["completed/"]
   A -->|stop or reject| D["dismissed/"]
 
+  U["untracked fix"] -.->|emergent capture| A
+
   I -. prototype/spike .-> E["experiments/"]
   Q -. prototype/spike .-> E
   A -. prototype/spike .-> E
@@ -80,9 +82,16 @@ Examples:
 3. Start work -> move to `active/`
    - Move the file from `queue/` to `active/` when you commit to doing it.
    - If helpful, prefix with sequence number (`0-`, `1-`, `2-`) to show execution order.
-   - Every item must pass through `queue/` — there is no fast-track path.
-     Triage is where the design question gets answered; skipping it means
-     starting work without knowing what kind of work it is.
+   - **Planned work** must pass through `queue/` first. Triage is where the
+     design question gets answered; skipping it means starting work without
+     knowing what kind of work it is.
+   - **Emergent work** (a quick fix that grew beyond a single-session scope)
+     may enter `active/` directly via retroactive capture (`active-capture`
+     task). The capture document must include escalation rationale, the two
+     triage design questions answered inline, and a progress checkpoint.
+     This is not a shortcut for skipping triage — it is recognition that
+     triage happened implicitly when you decided the work was worth
+     continuing.
 
 4. Execute and review in `active/`
    - Yes: review notes can stay in `active/` while work is still open.

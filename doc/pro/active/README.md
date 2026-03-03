@@ -21,7 +21,12 @@ This directory stores only in-progress work.
 
 ## How to use this folder
 
-1. Move a file from `doc/pro/queue/` to this directory when work starts.
-   If needed, a direct move from `doc/pro/inbox/` is also acceptable.
-2. Keep implementation notes and reviews here while the item is open.
-3. Move the full topic set to `doc/pro/completed/<topic>/` once accepted.
+1. **Planned work**: move a file from `doc/pro/queue/` to this directory when
+   work starts (normal path via `active-move` task).
+2. **Emergent work**: if a quick fix grew beyond a single-session scope and was
+   never tracked, capture it directly here via the `active-capture` task.
+   The capture document includes inline triage (design classification) and
+   a progress checkpoint so downstream tasks (resume, split, close) work
+   normally.
+3. Keep implementation notes and reviews here while the item is open.
+4. Move the full topic set to `doc/pro/completed/<topic>/` once accepted.
