@@ -1,6 +1,6 @@
 # Bootstrap Visual Output Redesign
 
-- Status: inbox
+- Status: queue
 - Owner: es
 - Started: 2026-03-03
 - Updated: 2026-03-03
@@ -92,6 +92,22 @@ Or on failure:
  lab  interactive
  ✓ core  ✓ ops  ✗ gen  sec: permission denied
 ```
+
+## Triage Decision
+
+- **Why now**: Bootstrap output is the first user-visible impression on every
+  shell session. The current display has accumulated three competing color
+  palettes and five independent verbosity switches, producing cluttered,
+  inconsistent output. Cleaning this up improves daily ergonomics for every
+  user.
+- **Design: required**
+  1. Meaningful alternatives exist: single summary line vs inline progress
+     dots vs checkmark grid; unified verbosity variable vs layered overrides;
+     multiple valid compact layout options.
+  2. Other code depends on output shape: tests under `val/core/` and
+     `val/lib/` assert on specific output patterns and will need updating.
+- Justification: both the format design and the downstream test/code
+  dependencies require deliberate design decisions before implementation.
 
 ## Risks
 
