@@ -1,9 +1,9 @@
 # Bootstrap Architectural Restructure
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03 (phase 5 prototype implemented; validation refreshed)
+- Updated: 2026-03-03 (moved to completed with closure evidence)
 - Links: bin/ini, bin/orc, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, cfg/core/lzy, lib/core/ver, src/set/.menu, src/dic/ops, doc/arc/00-architecture-overview.md, doc/arc/01-bootstrap-and-orchestration.md, doc/pro/completed/20260301-2328_bootstrapper-performance-renewal
 
 ## Triage Decision
@@ -462,3 +462,33 @@ should not exist, unifying paths that diverged unnecessarily, and separating
 concerns that were conflated. The two efforts are complementary --
 performance renewal made the existing architecture fast; this plan makes it
 simple.
+
+## What changed
+
+1. Bootstrap architecture restructuring was completed through phases 1-5,
+   including dead-ceremony removal, unified loader adoption, explicit
+   interactive/deployment profile separation, and a compiled bootstrap cache
+   prototype.
+2. Core bootstrap/config behavior changed in `go`, `bin/ini`, `bin/orc`,
+   `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`, and `cfg/core/lzy` to
+   support the new loading model and compiled-cache flow.
+3. Deployment/DIC integration and menu flow behavior were updated in
+   `src/set/.menu` and `src/dic/ops` to align with canonical module sourcing.
+4. Documentation was refreshed in architecture and references (`doc/arc/*`) to
+   reflect the new bootstrap structure and contracts.
+5. Regression coverage was extended in initialization and DIC tests,
+   especially for deployment-profile routing and compiled-cache
+   fresh/stale fallback behavior.
+
+## What was verified
+
+1. Pass: `bash -n go bin/ini bin/orc val/core/initialization/ini_test.sh val/core/initialization/orc_test.sh`
+2. Pass: `./val/core/initialization/ini_test.sh`
+3. Pass: `./val/core/initialization/orc_test.sh`
+4. Pass: `./val/src/dic_framework_test.sh`
+5. Pass: `./go compile`
+6. Pass: `bash doc/pro/check-workflow.sh`
+
+## What remains
+
+1. No required follow-up items remain for this plan scope.
