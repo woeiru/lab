@@ -198,6 +198,87 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_default_bootstrap_mode_is_compact() {
+    local test_env
+    test_env=$(create_test_env "ini_default_compact")
+
+    cat > "$test_env/test_default_compact.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+unset LAB_BOOTSTRAP_OUTPUT
+unset LAB_BOOTSTRAP_VERBOSITY
+export MASTER_TERMINAL_VERBOSITY=off
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+[[ "${LAB_BOOTSTRAP_OUTPUT:-}" == "compact" ]] || exit 1
+[[ "${LAB_BOOTSTRAP_VERBOSITY:-}" == "compact" ]] || exit 1
+EOF
+    chmod +x "$test_env/test_default_compact.sh"
+
+    run_test "Default bootstrap mode resolves to compact" "$test_env/test_default_compact.sh"
+    cleanup_test_env "$test_env"
+}
+
+test_bootstrap_verbosity_verbose_forces_legacy() {
+    local test_env
+    test_env=$(create_test_env "ini_verbosity_verbose")
+
+    cat > "$test_env/test_verbosity_verbose.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+unset LAB_BOOTSTRAP_OUTPUT
+export LAB_BOOTSTRAP_VERBOSITY=verbose
+export MASTER_TERMINAL_VERBOSITY=off
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+[[ "${LAB_BOOTSTRAP_OUTPUT:-}" == "legacy" ]] || exit 1
+[[ "${LAB_BOOTSTRAP_VERBOSITY:-}" == "verbose" ]] || exit 1
+EOF
+    chmod +x "$test_env/test_verbosity_verbose.sh"
+
+    run_test "Bootstrap verbosity=verbose forces legacy output" "$test_env/test_verbosity_verbose.sh"
+    cleanup_test_env "$test_env"
+}
+
+test_bootstrap_verbosity_silent_disables_terminal_streams() {
+    local test_env
+    test_env=$(create_test_env "ini_verbosity_silent")
+
+    cat > "$test_env/test_verbosity_silent.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+unset LAB_BOOTSTRAP_OUTPUT
+export LAB_BOOTSTRAP_VERBOSITY=silent
+export MASTER_TERMINAL_VERBOSITY=on
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+[[ "${LAB_BOOTSTRAP_OUTPUT:-}" == "compact" ]] || exit 1
+[[ "${INI_LOG_TERMINAL_VERBOSITY:-}" == "off" ]] || exit 1
+[[ "${LO1_LOG_TERMINAL_VERBOSITY:-}" == "off" ]] || exit 1
+[[ "${ERR_TERMINAL_VERBOSITY:-}" == "off" ]] || exit 1
+[[ "${TME_TERMINAL_VERBOSITY:-}" == "off" ]] || exit 1
+EOF
+    chmod +x "$test_env/test_verbosity_silent.sh"
+
+    run_test "Bootstrap verbosity=silent disables terminal streams" "$test_env/test_verbosity_silent.sh"
+    cleanup_test_env "$test_env"
+}
+
 test_compiled_bootstrap_cache_used_when_fresh() {
     local test_env=$(create_test_env "ini_compiled_cache_fresh")
 
@@ -313,6 +394,9 @@ main() {
         test_logging_initialization \
         test_source_directory_skips_hidden_files \
         test_deployment_profile_skips_alias_bootstrap \
+        test_default_bootstrap_mode_is_compact \
+        test_bootstrap_verbosity_verbose_forces_legacy \
+        test_bootstrap_verbosity_silent_disables_terminal_streams \
         test_compiled_bootstrap_cache_used_when_fresh \
         test_compiled_bootstrap_cache_stale_falls_back \
         test_performance_init

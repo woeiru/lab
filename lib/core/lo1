@@ -262,8 +262,13 @@ lo1_get_color() {
 lo1_log() {
     [[ "$1" != "lvl" ]] && { echo "Error: Invalid log command" >&2; return 1; }
     local message="$2"
+    local suppress_bootstrap_terminal=0
     local log_enabled
     log_enabled=$(lo1_get_cached_log_state)
+
+    if [[ "${LAB_BOOTSTRAP_MODE:-0}" == "1" && "${LAB_BOOTSTRAP_OUTPUT:-legacy}" == "compact" ]]; then
+        suppress_bootstrap_terminal=1
+    fi
 
     local depth
     depth=$(lo1_calculate_final_depth)
@@ -285,7 +290,7 @@ lo1_log() {
 
     # 2. Conditionally log to terminal
     #    Respects lo1's own state (setlog on/off), global verbosity, and lo1-specific verbosity
-    if [[ "$log_enabled" == "on" && "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+    if [[ "$suppress_bootstrap_terminal" -eq 0 && "$log_enabled" == "on" && "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
         if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
             printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" # Output to stdout
         else
@@ -300,12 +305,17 @@ lo1_log() {
 # Set Log State - SLG
 # <state>
 lo1_setlog() {
+    local suppress_bootstrap_terminal=0
+    if [[ "${LAB_BOOTSTRAP_MODE:-0}" == "1" && "${LAB_BOOTSTRAP_OUTPUT:-legacy}" == "compact" ]]; then
+        suppress_bootstrap_terminal=1
+    fi
+
     case "$1" in
         "off")
             printf 'off\n' > "$LOG_STATE_FILE"
             LOG_STATE_CACHED="off"  # Update cache immediately
             lo1_now_s LOG_STATE_LAST_CHECK
-            if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+            if [[ "$suppress_bootstrap_terminal" -eq 0 && "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
                 printf "%s      └─ Logging disabled%s\n" "$LOG_NC"
             fi
             ;;
@@ -313,7 +323,7 @@ lo1_setlog() {
             printf 'on\n' > "$LOG_STATE_FILE"
             LOG_STATE_CACHED="on"  # Update cache immediately
             lo1_now_s LOG_STATE_LAST_CHECK
-            if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+            if [[ "$suppress_bootstrap_terminal" -eq 0 && "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
                 printf "%s      └─ Logging enabled%s\n" "$LOG_NC"
             fi
             ;;

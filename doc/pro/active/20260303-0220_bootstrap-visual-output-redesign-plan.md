@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03 (phase 1 design deliverable completed)
+- Updated: 2026-03-03 (checkpoint: phase 5 pending external blocker resolution)
 - Links: bin/ini, bin/orc, lib/core/tme, lib/core/lo1, lib/core/err, lib/core/col
 
 ## Goal
@@ -327,13 +327,74 @@ Trade-offs and rejected options:
 
 ## Execution Plan (current)
 
-- [DONE] Phase 1: Design (deliverable captured in this document)
-- [NEXT] Phase 2: Implement compact output in `bin/ini` behind
-  `LAB_BOOTSTRAP_OUTPUT=compact`
-- [PENDING] Phase 3: Migrate compact terminal paths in `lib/core/tme` and
-  `lib/core/err` to semantic `col` tokens
-- [PENDING] Phase 4: Suppress `lo1_log` terminal tree during compact bootstrap
-- [PENDING] Phase 5: Update tests and flip compact mode to default
+- [COMPLETE] Phase 1: Design
+- [COMPLETE] Phase 2: Compact output implementation in `bin/ini`
+- [COMPLETE] Phase 3: Compact `tme`/`err` terminal rendering with semantic colors
+- [COMPLETE] Phase 4: Compact bootstrap `lo1_log` terminal suppression
+- [IN_PROGRESS] Phase 5: Final verification and closure with compact default
+
+## Progress Checkpoint
+
+### Done
+
+1. Implemented compact bootstrap rendering in `bin/ini` with compact default,
+   legacy verbose fallback, and silent mode stream suppression.
+2. Implemented compact report rendering in `lib/core/tme` and `lib/core/err`
+   using semantic color tokens from `lib/core/col`; removed compact-path use of
+   private TME rainbow colors.
+3. Implemented bootstrap-only `lo1` terminal suppression in `lib/core/lo1` when
+   `LAB_BOOTSTRAP_MODE=1` and effective output mode is compact.
+4. Added initialization regression coverage in
+   `val/core/initialization/ini_test.sh` for compact default, verbose fallback,
+   and silent stream behavior.
+5. Tests run this session:
+   - Pass: `bash -n bin/ini lib/core/tme lib/core/err lib/core/lo1 val/core/initialization/ini_test.sh`
+   - Pass: `./val/core/initialization/ini_test.sh`
+   - Pass: `./val/core/modules/tme_test.sh`
+   - Pass: `./val/core/modules/err_test.sh`
+   - Pass: `./val/core/modules/lo1_test.sh`
+   - Pass: `./val/run_all_tests.sh lib`
+   - Fail (pre-existing): `./val/run_all_tests.sh core` and full
+     `./val/run_all_tests.sh` due to `glb_008_secret_scan_test` at
+     `lib/gen/inf:90`.
+
+### In-flight
+
+1. Phase 5 closure is not yet complete because full-suite pass criterion is
+   blocked by the existing GLB-008 secret-scan baseline failure unrelated to
+   this redesign.
+2. Active plan remains in `doc/pro/active/` pending blocker resolution and final
+   move to completed.
+
+### Blockers
+
+1. `glb_008_secret_scan_test` fails in baseline/full-suite runs due to detected
+   default password literal in `lib/gen/inf:90`; this is outside the files
+   changed for bootstrap visual redesign.
+
+### Next steps
+
+1. Resolve or formally waive `glb_008_secret_scan_test` baseline failure for
+   `lib/gen/inf:90` so full-suite validation can pass.
+2. Re-run `./val/run_all_tests.sh` and record pass/fail evidence in this plan.
+3. If full suite passes or blocker waiver is approved, mark Phase 5 complete and
+   update this item's status for completion handoff.
+4. Move the plan and related topic artifacts to
+   `doc/pro/completed/<topic>/` using the workflow close task.
+
+### Context
+
+1. Branch: `master`.
+2. Modified files in working tree for this topic:
+   - `bin/ini`
+   - `lib/core/tme`
+   - `lib/core/err`
+   - `lib/core/lo1`
+   - `val/core/initialization/ini_test.sh`
+   - `doc/pro/active/20260303-0220_bootstrap-visual-output-redesign-plan.md`
+3. Full suite currently fails only on `glb_008_secret_scan_test` (known,
+   unrelated baseline issue), while targeted bootstrap redesign tests pass.
+4. Workflow checker status at checkpoint: `bash doc/pro/check-workflow.sh` pass.
 
 ### Phase 2: Implement compact output in `bin/ini`
 
@@ -344,6 +405,43 @@ File logging remains unchanged.
 Completion criterion: `bin/ini` produces the designed compact output when the
 feature flag is set, and existing output is unchanged when the flag is unset.
 
+Status: complete.
+
+Phase 2 implementation notes:
+
+1. Added compact/legacy output mode routing in `bin/ini` with
+   `LAB_BOOTSTRAP_OUTPUT=compact|legacy`, legacy fallback on invalid values,
+   and file-only warning logging for invalid values.
+2. Reworked `ini_log` terminal behavior to dual-path rendering:
+   - legacy path keeps current `└─ message [HH:MM:SS]` format
+   - compact path renders single-section header/progress/success/failure output.
+3. Replaced startup separator and final completion line behavior to be
+   mode-aware:
+   - separator + legacy completion line only in `legacy`
+   - compact summary line in `compact`.
+4. Added compact progress helpers in `bin/ini` (header printing, spinner
+   cycling, truncation, line finalization, success/failure summaries) while
+   preserving file logging unchanged.
+
+Phase 2 verification evidence:
+
+- Pass: `bash -n bin/ini`
+- Pass: `./val/core/config/cfg_test.sh`
+- Pass: `./val/core/initialization/ini_test.sh`
+- Manual spot-check (compact):
+  `MASTER_TERMINAL_VERBOSITY=on INI_LOG_TERMINAL_VERBOSITY=on LO1_LOG_TERMINAL_VERBOSITY=off ERR_TERMINAL_VERBOSITY=off TME_TERMINAL_VERBOSITY=off LAB_BOOTSTRAP_OUTPUT=compact source bin/ini`
+- Manual spot-check (legacy unchanged):
+  `MASTER_TERMINAL_VERBOSITY=on INI_LOG_TERMINAL_VERBOSITY=on LO1_LOG_TERMINAL_VERBOSITY=off ERR_TERMINAL_VERBOSITY=off TME_TERMINAL_VERBOSITY=off LAB_BOOTSTRAP_OUTPUT=legacy source bin/ini`
+
+### Phase 2 findings (2026-03-03)
+
+1. Compact mode can be introduced in `bin/ini` without changing initialization
+   logic by treating rendering as a terminal-only concern and leaving file logs
+   on the existing path.
+2. Legacy output compatibility is easiest to preserve with explicit dual-path
+   rendering at the call site (`ini_log`) rather than attempting post-process
+   translation of legacy lines.
+
 ### Phase 3: Migrate `tme_print_timing_report` and `err_print_report`
 
 Update `lib/core/tme` and `lib/core/err` terminal display functions to use
@@ -353,6 +451,44 @@ design. Remove TME's private rainbow palette.
 Completion criterion: timing and error reports render in the new compact
 format using only `lib/core/col` tokens when the feature flag is set.
 
+Status: complete.
+
+Phase 3 implementation notes:
+
+1. Added compact-mode rendering paths in `lib/core/tme` and `lib/core/err`
+   gated by `LAB_BOOTSTRAP_OUTPUT=compact`.
+2. `tme_print_timing_report` now emits compact summary lines (total time,
+   component counts, slowest component metadata) in compact mode, and keeps
+   legacy report tree in legacy mode.
+3. `err_print_report` now emits compact summary lines (error/warning counts +
+   log path) in compact mode, and keeps full detailed report in legacy mode.
+4. Legacy timing tree color selection now prefers `lib/core/col` depth/semantic
+   tokens when available, with fallback compatibility retained for direct module
+   sourcing contexts.
+5. `bin/ini` compact-mode finalization now suppresses `tme_settme` status noise
+   while still forcing report state on.
+
+Phase 3 verification evidence:
+
+- Pass: `bash -n bin/ini lib/core/tme lib/core/err`
+- Pass: `./val/core/modules/tme_test.sh`
+- Pass: `./val/core/modules/err_test.sh`
+- Pass: `./val/core/initialization/ini_test.sh`
+- Informational: `./val/lib/run_all_tests.sh --core` does not currently execute
+  these suites (runner points to non-existent `val/lib/core/*_test.sh` paths);
+  direct module tests above were used as effective coverage.
+- Manual compact-mode check:
+  `MASTER_TERMINAL_VERBOSITY=on INI_LOG_TERMINAL_VERBOSITY=on LO1_LOG_TERMINAL_VERBOSITY=off ERR_TERMINAL_VERBOSITY=on TME_TERMINAL_VERBOSITY=on TME_REPORT_TERMINAL_OUTPUT=on LAB_BOOTSTRAP_OUTPUT=compact source bin/ini`
+
+### Phase 3 findings (2026-03-03)
+
+1. Compact summary rendering in `tme` required ERR-trap-safe arithmetic
+   increments (`+= 1`) because post-increment (`var++`) can return status `1`
+   on first increment and trigger bootstrap error traps.
+2. Timing component keys may include spaces, so associative-array access in
+   compact rendering must use quoted keys (`arr["$key"]`) to avoid trap-driven
+   failures during report generation.
+
 ### Phase 4: Suppress `lo1_log` during bootstrap
 
 Gate `lo1_log` terminal output on `LAB_BOOTSTRAP_MODE` so per-module tree
@@ -361,6 +497,38 @@ lines are suppressed in compact mode. File logging unchanged.
 Completion criterion: bootstrap in compact mode produces no `lo1_log` tree
 output on the terminal; verbose mode still shows it.
 
+Status: complete.
+
+Phase 4 implementation notes:
+
+1. `lib/core/lo1` terminal emission paths (`lo1_log`, `lo1_setlog`) now
+   suppress bootstrap terminal tree output when both
+   `LAB_BOOTSTRAP_MODE=1` and `LAB_BOOTSTRAP_OUTPUT=compact`.
+2. `bin/ini` now keeps `LAB_BOOTSTRAP_MODE=1` active through component setup so
+   lo1 bootstrap suppression applies to orchestrator-driven module logs.
+3. File logging behavior in `lo1.log` remains unchanged.
+
+Phase 4 verification evidence:
+
+- Pass: `bash -n bin/ini lib/core/lo1`
+- Manual compact-mode check (lo1 enabled):
+  `MASTER_TERMINAL_VERBOSITY=on INI_LOG_TERMINAL_VERBOSITY=on LO1_LOG_TERMINAL_VERBOSITY=on ERR_TERMINAL_VERBOSITY=off TME_TERMINAL_VERBOSITY=off LAB_BOOTSTRAP_OUTPUT=compact source bin/ini`
+  (no lo1 tree lines on terminal)
+- Manual verbose-mode check:
+  `MASTER_TERMINAL_VERBOSITY=on INI_LOG_TERMINAL_VERBOSITY=on LO1_LOG_TERMINAL_VERBOSITY=on ERR_TERMINAL_VERBOSITY=off TME_TERMINAL_VERBOSITY=off LAB_BOOTSTRAP_OUTPUT=legacy source bin/ini`
+  (lo1 tree lines present)
+- Category suites:
+  - `./val/run_all_tests.sh lib` -> pass
+  - `./val/run_all_tests.sh core` -> fail due pre-existing
+    `glb_008_secret_scan_test` (unrelated to this change set)
+
+### Phase 4 findings (2026-03-03)
+
+1. Bootstrap-tree suppression in `lo1` depends on `LAB_BOOTSTRAP_MODE` lifecycle;
+   clearing the flag too early in `bin/ini` prevents suppression from affecting
+   orchestrator component logs.
+
+
 ### Phase 5: Update tests and remove feature flag
 
 Update all affected test assertions identified in Phase 1. Make compact mode
@@ -368,6 +536,44 @@ the default. Preserve a verbose fallback via `LAB_BOOTSTRAP_VERBOSITY=verbose`.
 
 Completion criterion: `./val/run_all_tests.sh` passes with compact mode as
 the default.
+
+Status: in progress (implementation complete, verification blocked by existing
+unrelated test failure).
+
+Phase 5 implementation notes:
+
+1. Compact mode is now the default bootstrap presentation path in `bin/ini`
+   (legacy retained as compatibility behavior for explicit verbose mode).
+2. Added `LAB_BOOTSTRAP_VERBOSITY=compact|verbose|silent` handling in `bin/ini`
+   and wired mode-specific terminal stream overrides.
+3. `verbose` mode now forces legacy output; `silent` disables bootstrap terminal
+   streams; `compact` keeps compact output as default.
+4. `bin/ini` now exports effective bootstrap mode variables so downstream
+   modules (`lo1`, `tme`, `err`) evaluate a consistent compact/legacy context.
+5. Extended `val/core/initialization/ini_test.sh` with new coverage for:
+   - default compact mode
+   - verbose fallback to legacy
+   - silent-mode terminal suppression.
+
+Phase 5 verification evidence:
+
+- Pass: `bash -n bin/ini val/core/initialization/ini_test.sh`
+- Pass: `./val/core/initialization/ini_test.sh`
+- Pass: `./val/core/modules/tme_test.sh`
+- Pass: `./val/core/modules/err_test.sh`
+- Pass: `./val/core/modules/lo1_test.sh`
+- Pass: `./val/run_all_tests.sh lib`
+- Full-suite result: `./val/run_all_tests.sh` -> fail (single failing test:
+  `glb_008_secret_scan_test`, pre-existing; secret-scan hit at
+  `lib/gen/inf:90`)
+
+### Phase 5 findings (2026-03-03)
+
+1. End-to-end bootstrap verbosity control can be layered in `bin/ini` without
+   changing module APIs by exporting effective bootstrap mode variables and
+   applying stream overrides before initialization logging begins.
+2. Full-suite completion is currently gated by an unrelated baseline failure in
+   `glb_008_secret_scan_test`, not by bootstrap output redesign changes.
 
 ## Verification Plan
 

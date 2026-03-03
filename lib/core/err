@@ -49,6 +49,35 @@ declare -gA ERROR_EXIT_CODES
 declare -gA ERROR_SEVERITIES
 declare -ga ERROR_ORDER
 
+err_is_compact_output() {
+    [[ "${LAB_BOOTSTRAP_OUTPUT:-legacy}" == "compact" ]]
+}
+
+err_is_warning_entry() {
+    local error_id="$1"
+    local severity="${ERROR_SEVERITIES[$error_id]:-ERROR}"
+    local error_code="${ERROR_EXIT_CODES[$error_id]:-${ERROR_CODES[GENERAL_ERROR]}}"
+
+    case "$severity" in
+        WARNING|INFO|true)
+            return 0
+            ;;
+        *)
+            ;;
+    esac
+
+    if [[ "$error_code" =~ ^[0-9]+$ ]] && [[ "$error_code" -eq "${ERROR_CODES[OPTIONAL_WARNING]}" ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+err_col_value() {
+    local color_name="$1"
+    printf '%s' "${!color_name:-}"
+}
+
 # Process error messages and log them appropriately
 # Error Processing - ERP
 # <message> <component> <exit_code> <severity>
@@ -212,23 +241,54 @@ err_print_report() {
     local total_warnings=0
     declare -A error_types
     declare -A warnings_by_type
+    local error_code
 
     # Count and categorize issues
     for error_id in "${ERROR_ORDER[@]}"; do
-        local error_code="${ERROR_EXIT_CODES[$error_id]}"
-        local is_optional="${ERROR_SEVERITIES[$error_id]}"
+        error_code="${ERROR_EXIT_CODES[$error_id]:-${ERROR_CODES[GENERAL_ERROR]}}"
 
-        if [[ "$is_optional" == "true" ]]; then
-            ((total_warnings++))
-            ((warnings_by_type[$error_code]++))
+        if err_is_warning_entry "$error_id"; then
+            ((total_warnings += 1))
+            ((warnings_by_type[$error_code] += 1))
         else
-            ((total_errors++))
-            ((error_types[$error_code]++))
+            ((total_errors += 1))
+            ((error_types[$error_code] += 1))
         fi
     done
 
     # Print report header
     if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${ERR_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        if err_is_compact_output; then
+            local col_success
+            local col_error
+            local col_warn
+            local col_meta
+            local col_reset
+            local summary_symbol
+
+            col_success=$(err_col_value COL_SUCCESS)
+            col_error=$(err_col_value COL_ERROR)
+            col_warn=$(err_col_value COL_WARN)
+            col_meta=$(err_col_value COL_METADATA)
+            col_reset=$(err_col_value COL_RESET)
+
+            if ((total_errors > 0)); then
+                summary_symbol="${col_error}✗${col_reset}"
+            elif ((total_warnings > 0)); then
+                summary_symbol="${col_warn}!${col_reset}"
+            else
+                summary_symbol="${col_success}✓${col_reset}"
+            fi
+
+            printf "\n%s errors %d · warnings %d\n" "$summary_symbol" "$total_errors" "$total_warnings" >&2
+            if ((total_errors + total_warnings == 0)); then
+                printf "%sclean startup%s\n" "$col_meta" "$col_reset" >&2
+            fi
+            printf "%serror log:%s %s\n\n" "$col_meta" "$col_reset" "$ERROR_LOG" >&2
+
+            return $((total_errors > 0 ? 1 : 0))
+        fi
+
         {
             printf "\n"
             printf " ━ RC Error Report\n"
@@ -254,7 +314,7 @@ err_print_report() {
 
                 printf " ━ Error details:\n"
                 for error_id in "${ERROR_ORDER[@]}"; do
-                    if [[ "${ERROR_SEVERITIES[$error_id]}" != "true" ]]; then
+                    if ! err_is_warning_entry "$error_id"; then
                         printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
                         printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
                     fi
@@ -280,7 +340,7 @@ err_print_report() {
 
                 printf " ━ Warning details:\n"
                 for error_id in "${ERROR_ORDER[@]}"; do
-                    if [[ "${ERROR_SEVERITIES[$error_id]}" == "true" ]]; then
+                    if err_is_warning_entry "$error_id"; then
                         printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
                         printf "      Time: %s\n" "$(date -d "@${ERROR_TIMESTAMPS[$error_id]%.*}")"
                     fi

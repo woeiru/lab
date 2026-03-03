@@ -114,6 +114,126 @@ tme_format_datetime_from_ns() {
     printf -v "$out_var" '%(%Y-%m-%d %H:%M:%S)T' "$timestamp_seconds"
 }
 
+tme_is_compact_output() {
+    [[ "${LAB_BOOTSTRAP_OUTPUT:-legacy}" == "compact" ]]
+}
+
+tme_col_value() {
+    local color_name="$1"
+    printf '%s' "${!color_name:-}"
+}
+
+tme_print_timing_report_compact() {
+    local total_duration_ns="$1"
+    local total_duration="$2"
+    local generated_at="$3"
+    local sort_order="$4"
+    local component
+    local status
+    local duration_ns
+    local slowest_component=""
+    local slowest_duration_ns=0
+    local slowest_duration_display="0.000"
+    local slowest_percent_display="0.0"
+    local slowest_percent_tenths=0
+    local slowest_percent_whole=0
+    local slowest_percent_decimal=0
+    local total_components=0
+    local success_components=0
+    local error_components=0
+    local running_components=0
+    local summary_symbol="✓"
+
+    local col_success
+    local col_error
+    local col_warn
+    local col_meta
+    local col_info
+    local col_reset
+
+    col_success=$(tme_col_value COL_SUCCESS)
+    col_error=$(tme_col_value COL_ERROR)
+    col_warn=$(tme_col_value COL_WARN)
+    col_meta=$(tme_col_value COL_METADATA)
+    col_info=$(tme_col_value COL_INFO)
+    col_reset=$(tme_col_value COL_RESET)
+
+    for component in "${TME_COMPONENT_ORDER[@]}"; do
+        [[ -n "${TME_DURATIONS_NS["$component"]+set}" ]] || continue
+        ((total_components += 1))
+        duration_ns="${TME_DURATIONS_NS["$component"]:-0}"
+
+        if ((duration_ns > slowest_duration_ns)); then
+            slowest_duration_ns="$duration_ns"
+            slowest_component="$component"
+        fi
+
+        status="${TME_STATUS["$component"]:-unknown}"
+        case "$status" in
+            success)
+                ((success_components += 1))
+                ;;
+            running)
+                ((running_components += 1))
+                ;;
+            error*|failed|interrupted)
+                ((error_components += 1))
+                ;;
+            *)
+                ;;
+        esac
+    done
+
+    if ((error_components > 0)); then
+        summary_symbol="✗"
+    elif ((running_components > 0)); then
+        summary_symbol="!"
+    fi
+
+    if [[ -n "$slowest_component" ]]; then
+        tme_format_duration_seconds slowest_duration_display "$slowest_duration_ns"
+        if ((total_duration_ns > 0)); then
+            slowest_percent_tenths=$((slowest_duration_ns * 1000 / total_duration_ns))
+            slowest_percent_whole=$((slowest_percent_tenths / 10))
+            slowest_percent_decimal=$((slowest_percent_tenths % 10))
+            printf -v slowest_percent_display '%d.%01d' "$slowest_percent_whole" "$slowest_percent_decimal"
+        fi
+    fi
+
+    printf "\n%s%s%s timing · %ss · components %d · ok %d · err %d\n" \
+        "${col_success}" \
+        "$summary_symbol" \
+        "${col_reset}" \
+        "$total_duration" \
+        "$total_components" \
+        "$success_components" \
+        "$error_components"
+
+    if ((running_components > 0)); then
+        printf "%swarning:%s %d component(s) still marked running\n" \
+            "${col_warn}" \
+            "${col_reset}" \
+            "$running_components"
+    fi
+
+    if [[ -n "$slowest_component" ]]; then
+        printf "%sslowest:%s %s%s%s · %ss (%s%%)\n" \
+            "${col_meta}" \
+            "${col_reset}" \
+            "${col_info}" \
+            "$slowest_component" \
+            "${col_reset}" \
+            "$slowest_duration_display" \
+            "$slowest_percent_display"
+    fi
+
+    printf "%smeta:%s generated %s · sort %s\n\n" \
+        "${col_meta}" \
+        "${col_reset}" \
+        "$generated_at" \
+        "$sort_order"
+}
+
 # Initialize timer system with log directory and configuration files
 # Timer Initialize - TIN
 # <log_dir>
@@ -329,17 +449,13 @@ print_timing_entry() {
     fi
 
     local color
-    case $depth in
-        0) color=$TME_RED ;;
-        1) color=$TME_ORANGE ;;
-        2) color=$TME_YELLOW ;;
-        3) color=$TME_GREEN ;;
-        4) color=$TME_CYAN ;;
-        5) color=$TME_BLUE ;;
-        6) color=$TME_INDIGO ;;
-        7) color=$TME_VIOLET ;;
-        *) color=$TME_WHITE ;;
-    esac
+    if [[ -n "${COL_LOADED:-}" ]] && type col_get_depth_color &>/dev/null; then
+        color=$(col_get_depth_color "$depth")
+    elif [[ -n "${COL_INFO:-}" ]]; then
+        color="$COL_INFO"
+    else
+        color=$TME_WHITE
+    fi
 
     local status_icon
     case "$status" in
@@ -539,10 +655,18 @@ tme_print_timing_report() {
     local sort_order
     sort_order=$(cat "$TME_SORT_ORDER_FILE_PATH" 2>/dev/null || echo "chron")
 
-    printf "\n%s ━ RC Timing Report%s\n" "$TME_BLUE" "$TME_NC"
-    printf "%s ━ Generated: %s%s\n" "$TME_BLUE" "$generated_at" "$TME_NC"
-    printf "%s ━ Total execution time: %ss%s\n" "$TME_BLUE" "$total_duration" "$TME_NC"
-    printf "%s ━ Sort order: %s%s\n" "$TME_BLUE" "$sort_order" "$TME_NC"
+    if tme_is_compact_output; then
+        tme_print_timing_report_compact "$total_duration_ns" "$total_duration" "$generated_at" "$sort_order"
+        return 0
+    fi
+
+    local report_color="${COL_METADATA:-$TME_BLUE}"
+    local reset_color="${COL_RESET:-$TME_NC}"
+
+    printf "\n%s ━ RC Timing Report%s\n" "$report_color" "$reset_color"
+    printf "%s ━ Generated: %s%s\n" "$report_color" "$generated_at" "$reset_color"
+    printf "%s ━ Total execution time: %ss%s\n" "$report_color" "$total_duration" "$reset_color"
+    printf "%s ━ Sort order: %s%s\n" "$report_color" "$sort_order" "$reset_color"
     printf "\n"
 
     local components_to_print=()
@@ -561,7 +685,7 @@ tme_print_timing_report() {
         print_tree_recursive "$component" "  " "$total_duration_ns" "$sort_order"
     done
 
-    printf "\n%s ━ Timing log file: %s%s\n" "$TME_BLUE" "$TME_LOG_FILE" "$TME_NC"
+    printf "\n%s ━ Timing log file: %s%s\n" "$report_color" "$TME_LOG_FILE" "$reset_color"
     printf "\n"
 }
 

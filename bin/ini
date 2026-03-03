@@ -123,9 +123,73 @@ readonly TIMER_SOURCE_COMP="SOURCE_COMP_ORCHESTRATOR"
 readonly TIMER_FINALIZE="FINALIZE_MAIN_INIT"
 readonly INI_BOOTSTRAP_PROFILE_INTERACTIVE="interactive"
 readonly INI_BOOTSTRAP_PROFILE_DEPLOYMENT="deployment"
+readonly INI_BOOTSTRAP_OUTPUT_LEGACY="legacy"
+readonly INI_BOOTSTRAP_OUTPUT_COMPACT="compact"
+readonly INI_BOOTSTRAP_VERBOSITY_COMPACT="compact"
+readonly INI_BOOTSTRAP_VERBOSITY_VERBOSE="verbose"
+readonly INI_BOOTSTRAP_VERBOSITY_SILENT="silent"
+
+declare -g INI_BOOTSTRAP_OUTPUT_MODE="$INI_BOOTSTRAP_OUTPUT_COMPACT"
+declare -g INI_BOOTSTRAP_VERBOSITY_MODE="$INI_BOOTSTRAP_VERBOSITY_COMPACT"
+declare -g INI_BOOTSTRAP_OUTPUT_REQUESTED_RAW="${LAB_BOOTSTRAP_OUTPUT:-}"
+declare -g INI_BOOTSTRAP_VERBOSITY_REQUESTED_RAW="${LAB_BOOTSTRAP_VERBOSITY:-}"
+declare -g INI_BOOTSTRAP_OUTPUT_INVALID_VALUE=0
+declare -g INI_BOOTSTRAP_VERBOSITY_INVALID_VALUE=0
+declare -ga INI_COMPACT_SPINNER_FRAMES=("|" "/" "-" "\\")
+declare -g INI_COMPACT_SPINNER_INDEX=0
+declare -g INI_COMPACT_HEADER_PRINTED=0
+declare -g INI_COMPACT_PROGRESS_ACTIVE=0
+declare -g INI_COMPACT_LAST_RENDER_LENGTH=0
+declare -g INI_COMPACT_PROFILE_LABEL="${LAB_BOOTSTRAP_PROFILE:-$INI_BOOTSTRAP_PROFILE_INTERACTIVE}"
+
+_INI_OUTPUT_REQUESTED="${LAB_BOOTSTRAP_OUTPUT:-$INI_BOOTSTRAP_OUTPUT_COMPACT}"
+_INI_OUTPUT_REQUESTED="${_INI_OUTPUT_REQUESTED,,}"
+case "$_INI_OUTPUT_REQUESTED" in
+    "$INI_BOOTSTRAP_OUTPUT_COMPACT"|"$INI_BOOTSTRAP_OUTPUT_LEGACY")
+        INI_BOOTSTRAP_OUTPUT_MODE="$_INI_OUTPUT_REQUESTED"
+        ;;
+    *)
+        INI_BOOTSTRAP_OUTPUT_MODE="$INI_BOOTSTRAP_OUTPUT_COMPACT"
+        INI_BOOTSTRAP_OUTPUT_INVALID_VALUE=1
+        ;;
+esac
+
+_INI_VERBOSITY_REQUESTED="${LAB_BOOTSTRAP_VERBOSITY:-}"
+_INI_VERBOSITY_REQUESTED="${_INI_VERBOSITY_REQUESTED,,}"
+if [[ -z "$_INI_VERBOSITY_REQUESTED" ]]; then
+    if [[ "$INI_BOOTSTRAP_OUTPUT_MODE" == "$INI_BOOTSTRAP_OUTPUT_LEGACY" ]]; then
+        INI_BOOTSTRAP_VERBOSITY_MODE="$INI_BOOTSTRAP_VERBOSITY_VERBOSE"
+    else
+        INI_BOOTSTRAP_VERBOSITY_MODE="$INI_BOOTSTRAP_VERBOSITY_COMPACT"
+    fi
+else
+    case "$_INI_VERBOSITY_REQUESTED" in
+        "$INI_BOOTSTRAP_VERBOSITY_COMPACT"|"$INI_BOOTSTRAP_VERBOSITY_VERBOSE"|"$INI_BOOTSTRAP_VERBOSITY_SILENT")
+            INI_BOOTSTRAP_VERBOSITY_MODE="$_INI_VERBOSITY_REQUESTED"
+            ;;
+        *)
+            INI_BOOTSTRAP_VERBOSITY_MODE="$INI_BOOTSTRAP_VERBOSITY_COMPACT"
+            INI_BOOTSTRAP_VERBOSITY_INVALID_VALUE=1
+            ;;
+    esac
+fi
+
+case "$INI_BOOTSTRAP_VERBOSITY_MODE" in
+    "$INI_BOOTSTRAP_VERBOSITY_VERBOSE")
+        INI_BOOTSTRAP_OUTPUT_MODE="$INI_BOOTSTRAP_OUTPUT_LEGACY"
+        ;;
+    "$INI_BOOTSTRAP_VERBOSITY_COMPACT"|"$INI_BOOTSTRAP_VERBOSITY_SILENT")
+        INI_BOOTSTRAP_OUTPUT_MODE="$INI_BOOTSTRAP_OUTPUT_COMPACT"
+        ;;
+esac
+
+export LAB_BOOTSTRAP_OUTPUT="$INI_BOOTSTRAP_OUTPUT_MODE"
+export LAB_BOOTSTRAP_VERBOSITY="$INI_BOOTSTRAP_VERBOSITY_MODE"
+unset _INI_OUTPUT_REQUESTED
+unset _INI_VERBOSITY_REQUESTED
 
 # Output a startup message, respecting verbosity settings
-if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" && "$INI_BOOTSTRAP_OUTPUT_MODE" == "$INI_BOOTSTRAP_OUTPUT_LEGACY" ]]; then
     echo " ─────────────── " >&2
 fi
 
@@ -181,6 +245,134 @@ ensure_dir_cached() {
     fi
     dir_creation_cache[$dir]="created"
     return 0
+}
+
+apply_bootstrap_verbosity_overrides() {
+    case "${INI_BOOTSTRAP_VERBOSITY_MODE:-$INI_BOOTSTRAP_VERBOSITY_COMPACT}" in
+        "$INI_BOOTSTRAP_VERBOSITY_SILENT")
+            export INI_LOG_TERMINAL_VERBOSITY="off"
+            export LO1_LOG_TERMINAL_VERBOSITY="off"
+            export ERR_TERMINAL_VERBOSITY="off"
+            export TME_TERMINAL_VERBOSITY="off"
+            export TME_REPORT_TERMINAL_OUTPUT="off"
+            ;;
+        "$INI_BOOTSTRAP_VERBOSITY_VERBOSE")
+            export INI_LOG_TERMINAL_VERBOSITY="on"
+            export LO1_LOG_TERMINAL_VERBOSITY="on"
+            export ERR_TERMINAL_VERBOSITY="on"
+            export TME_TERMINAL_VERBOSITY="on"
+            export TME_REPORT_TERMINAL_OUTPUT="on"
+            ;;
+        *)
+            export INI_LOG_TERMINAL_VERBOSITY="on"
+            export LO1_LOG_TERMINAL_VERBOSITY="on"
+            export ERR_TERMINAL_VERBOSITY="on"
+            export TME_TERMINAL_VERBOSITY="on"
+            export TME_REPORT_TERMINAL_OUTPUT="on"
+            ;;
+    esac
+}
+
+ini_terminal_output_enabled() {
+    [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]
+}
+
+ini_is_compact_output() {
+    [[ "${INI_BOOTSTRAP_OUTPUT_MODE:-$INI_BOOTSTRAP_OUTPUT_LEGACY}" == "$INI_BOOTSTRAP_OUTPUT_COMPACT" ]]
+}
+
+ini_compact_truncate() {
+    local out_var="$1"
+    local text="$2"
+    local max_width="$3"
+
+    if ((max_width <= 0)); then
+        printf -v "$out_var" ''
+        return 0
+    fi
+
+    if ((${#text} <= max_width)); then
+        printf -v "$out_var" '%s' "$text"
+        return 0
+    fi
+
+    if ((max_width <= 3)); then
+        printf -v "$out_var" '%.*s' "$max_width" "$text"
+        return 0
+    fi
+
+    printf -v "$out_var" '%s...' "${text:0:$((max_width - 3))}"
+}
+
+ini_compact_print_header() {
+    ini_is_compact_output || return 0
+    ini_terminal_output_enabled || return 0
+    [[ "$INI_COMPACT_HEADER_PRINTED" -eq 1 ]] && return 0
+
+    printf 'lab · %s · bootstrap\n' "${INI_COMPACT_PROFILE_LABEL:-$INI_BOOTSTRAP_PROFILE_INTERACTIVE}" >&2
+    INI_COMPACT_HEADER_PRINTED=1
+}
+
+ini_compact_next_spinner() {
+    local out_var="$1"
+    local frame_count="${#INI_COMPACT_SPINNER_FRAMES[@]}"
+    local frame="${INI_COMPACT_SPINNER_FRAMES[$INI_COMPACT_SPINNER_INDEX]}"
+
+    printf -v "$out_var" '%s' "$frame"
+    INI_COMPACT_SPINNER_INDEX=$(((INI_COMPACT_SPINNER_INDEX + 1) % frame_count))
+}
+
+ini_compact_render_progress() {
+    local message="$1"
+    local spinner
+    local compact_message
+    local line
+    local line_length
+    local pad_width
+    local pad
+
+    ini_compact_print_header
+    [[ -t 2 ]] || return 0
+
+    ini_compact_next_spinner spinner
+    ini_compact_truncate compact_message "$message" 72
+    line="$spinner $compact_message"
+    line_length=${#line}
+
+    if ((INI_COMPACT_LAST_RENDER_LENGTH > line_length)); then
+        pad_width=$((INI_COMPACT_LAST_RENDER_LENGTH - line_length))
+        printf -v pad '%*s' "$pad_width" ''
+        line+="$pad"
+    fi
+
+    printf '\r%s' "$line" >&2
+    INI_COMPACT_LAST_RENDER_LENGTH=$line_length
+    INI_COMPACT_PROGRESS_ACTIVE=1
+}
+
+ini_compact_finish_progress_line() {
+    if [[ "$INI_COMPACT_PROGRESS_ACTIVE" -eq 1 ]]; then
+        printf '\n' >&2
+    fi
+    INI_COMPACT_PROGRESS_ACTIVE=0
+    INI_COMPACT_LAST_RENDER_LENGTH=0
+}
+
+ini_compact_print_success_summary() {
+    local elapsed_display="$1"
+
+    ini_compact_print_header
+    ini_compact_finish_progress_line
+    printf '✓ initialization complete · %s · clean\n' "$elapsed_display" >&2
+}
+
+ini_compact_print_failure_summary() {
+    local status_code="$1"
+
+    ini_compact_print_header
+    ini_compact_finish_progress_line
+    printf '✗ initialization failed · status %s\n' "$status_code" >&2
+    printf '  logs: %s %s %s\n' "$INI_LOG_FILE" "$ERROR_LOG" "${BASE_DIR}/.log/tme.log" >&2
 }
 
 ini_file_signature() {
@@ -313,8 +505,12 @@ ini_log() {
     echo "[INI] $timestamp - [$source] $message" >> "$INI_LOG_FILE"
     
     # Conditionally output to stderr based on both system and specific ini log verbosity
-    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
-        echo "└─ $message [$timestamp]" >&2
+    if ini_terminal_output_enabled; then
+        if ini_is_compact_output; then
+            ini_compact_render_progress "$message"
+        else
+            echo "└─ $message [$timestamp]" >&2
+        fi
     fi
 }
 
@@ -372,19 +568,36 @@ main_ini() {
 
     # Performance optimization: Enable performance mode for critical sections
     export PERFORMANCE_MODE=1
+    apply_bootstrap_verbosity_overrides
 
     # Initialize logging system
     if ! init_logging_system; then
+        ini_compact_finish_progress_line
         restore_boot_log_debug_state
         unset LAB_BOOTSTRAP_MODE
         echo "Critical Error: Failed to initialize logging system" >&2
         return 1
     fi
 
+    if [[ "${INI_BOOTSTRAP_OUTPUT_INVALID_VALUE:-0}" -eq 1 ]]; then
+        local invalid_output_value="${INI_BOOTSTRAP_OUTPUT_REQUESTED_RAW:-unset}"
+        local invalid_timestamp
+        ini_format_time invalid_timestamp '%H:%M:%S'
+        echo "[INI] $invalid_timestamp - [bootstrap_output] WARNING: Invalid LAB_BOOTSTRAP_OUTPUT='$invalid_output_value'; using compact output" >> "$INI_LOG_FILE"
+    fi
+
+    if [[ "${INI_BOOTSTRAP_VERBOSITY_INVALID_VALUE:-0}" -eq 1 ]]; then
+        local invalid_verbosity_value="${INI_BOOTSTRAP_VERBOSITY_REQUESTED_RAW:-unset}"
+        local invalid_verbosity_timestamp
+        ini_format_time invalid_verbosity_timestamp '%H:%M:%S'
+        echo "[INI] $invalid_verbosity_timestamp - [bootstrap_verbosity] WARNING: Invalid LAB_BOOTSTRAP_VERBOSITY='$invalid_verbosity_value'; using compact" >> "$INI_LOG_FILE"
+    fi
+
     ini_log "Starting main initialization with performance optimizations"
 
     # Verify that verification module is loaded
     if ! verify_core_modules_loaded; then
+        ini_compact_finish_progress_line
         restore_boot_log_debug_state
         unset LAB_BOOTSTRAP_MODE
         echo "ERROR: Core verification modules not properly loaded" >&2
@@ -398,8 +611,6 @@ main_ini() {
         ini_log "Critical error: Module system initialization failed. Exiting." "main_ini"
         return 1
     fi
-
-    unset LAB_BOOTSTRAP_MODE
 
     # Initialize timer system and start main operations timer
     if ! init_timer_system; then
@@ -432,6 +643,7 @@ main_ini() {
         return 1
     fi
 
+    INI_COMPACT_PROFILE_LABEL="$bootstrap_profile"
     ini_log "Bootstrap profile selected: ${bootstrap_profile}"
 
     # Part 3: Setup profile-specific components
@@ -700,7 +912,11 @@ main_ini
 RC_STATUS=$?
 
 if [ $RC_STATUS -ne 0 ]; then
-    echo "Initialization failed with status $RC_STATUS. Check logs for details" >&2
+    if ini_is_compact_output && ini_terminal_output_enabled; then
+        ini_compact_print_failure_summary "$RC_STATUS"
+    else
+        echo "Initialization failed with status $RC_STATUS. Check logs for details" >&2
+    fi
     setup_minimal_environment
     exit 1
 fi
@@ -712,7 +928,11 @@ export -f main_ini_deployment
 
 # --- Force timer output and print timing report at the end ---
 if type tme_settme &>/dev/null; then
-    tme_settme report on
+    if ini_is_compact_output; then
+        TME_STATUS_TERMINAL_OUTPUT=off tme_settme report on
+    else
+        tme_settme report on
+    fi
 fi
 if type tme_print_timing_report &>/dev/null; then
     tme_print_timing_report
@@ -728,9 +948,13 @@ if [[ -n "${_INI_START_NS:-}" ]]; then
     else
         _INI_ELAPSED_DISPLAY="${_INI_ELAPSED_MS}ms"
     fi
-    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
-        echo " ━ Initialization completed in ${_INI_ELAPSED_DISPLAY}" >&2
-        echo >&2
+    if ini_terminal_output_enabled; then
+        if ini_is_compact_output; then
+            ini_compact_print_success_summary "${_INI_ELAPSED_DISPLAY}"
+        else
+            echo " ━ Initialization completed in ${_INI_ELAPSED_DISPLAY}" >&2
+            echo >&2
+        fi
     fi
     unset _INI_START_NS _INI_END_NS _INI_ELAPSED_MS _INI_ELAPSED_S _INI_ELAPSED_DISPLAY
 fi
