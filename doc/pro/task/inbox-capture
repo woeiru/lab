@@ -1,10 +1,16 @@
 Read and apply doc/pro/task/RULES.md first.
 
-The idea is described in the user prompt.
+This is a CAPTURE-ONLY task. Do not implement, code, or execute the idea.
+Your sole deliverable is one new markdown file in doc/pro/inbox/.
 
-Create a new workflow item in doc/pro/inbox for this idea.
+The user prompt describes an idea. Extract it into a structured plan document.
+Do not modify, create, or touch any files outside doc/pro/.
 
-- Filename: yyyymmdd-hhmm_<topic>-plan.md (use current time)
+File requirements:
+- Path: doc/pro/inbox/yyyymmdd-hhmm_<topic>-plan.md (use current time)
 - Set Status: inbox
 - Add sections: Goal, Context, Scope, Risks, Next Step
 - Do not move any existing files
+
+Stop condition: after creating the file and running the workflow checker,
+report results and stop. Do not proceed to implementation.
