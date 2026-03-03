@@ -15,8 +15,8 @@
 
 ### Actual call/load order
 
-1. `bin/ini` calls `setup_components` in `bin/orc`.
-2. `setup_components` runs `source_lib_ops` (currently optional component in the orchestrator table).
+1. `bin/ini` calls profile-specific setup in `bin/orc`.
+2. In interactive profile, `setup_components` runs `source_lib_ops`.
 3. When `LAB_OPS_LAZY_LOAD=1` (the default), `source_lib_ops` iterates `LIB_OPS_DIR` via shell glob (excluding docs and hidden files) and registers lightweight stub functions for each module from `cfg/core/lzy` (a static function map). If no map entry exists, a fallback regex scanner discovers function definitions from the module file. Stubs forward to `_orc_lazy_dispatch`, which sources the real module on first call. When `LAB_OPS_LAZY_LOAD=0`, `source_lib_ops` eagerly sources each file via `source_helper` as before.
 4. A caller triggers an operation, most commonly via DIC command shape `ops <module> <function> ...` from `src/set/*` sections.
 5. If the module was lazy-loaded, the first call to any function in that module triggers `_orc_lazy_dispatch`, which sources the full module file (replacing all stubs with real definitions) and then executes the requested function.
@@ -39,8 +39,8 @@ sequenceDiagram
     participant D as src/dic/ops
     participant F as module_function
 
-    I->>O: setup_components()
-    O->>O: execute_component(source_lib_ops)
+    I->>O: setup_components() [interactive profile]
+    O->>O: source_lib_ops()
 
     alt lazy ops enabled (default)
         O->>O: _orc_lazy_load_function_map() [source cfg/core/lzy once]
@@ -94,7 +94,7 @@ flowchart LR
 
 ## 4. Failure and Fallback Behavior
 
-- In bootstrap, ops loading is wrapper-managed by `execute_component`; current orchestrator marks the component optional.
+- In bootstrap interactive profile, ops loading runs inside the shared component-set loop; per-component failures are logged and execution continues.
 - In DIC execution, missing `LIB_OPS_DIR`, missing module file, or missing target function returns `1` from `ops_execute`.
 - If signature analysis fails in `ops_inject_and_execute`, DIC falls back to passing user args directly.
 - Unresolved injected parameters become empty values unless the target function validates and rejects them.

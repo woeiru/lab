@@ -14,10 +14,10 @@ This area covers the runtime foundation loaded before or alongside operations: `
 
 ### Actual call/load order
 
-1. `bin/ini` sources `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`, then `lib/core/ver`.
-2. `main_ini` -> `init_module_system` -> `load_modules` sources core modules in fixed order: `lib/core/col` -> `lib/core/err` -> `lib/core/lo1` -> `lib/core/tme`.
-3. `main_ini` sources `bin/orc` and calls `setup_components`.
-4. `setup_components` executes `source_lib_gen` (after `source_lib_ops` in current orchestrator order).
+1. `bin/ini` sources `cfg/core/ric`, `cfg/core/rdc`, then `lib/core/ver`.
+2. `main_ini` -> `init_module_system` -> `load_modules` sources core modules in fixed order: `lib/core/col` -> `lib/core/err` -> `lib/core/lo1` -> `lib/core/tme` -> `lib/core/lab`.
+3. `main_ini` sources `bin/orc`, resolves bootstrap profile, and calls profile-specific setup (`setup_components` for interactive, `setup_deployment_components` for deployment).
+4. In interactive profile, `setup_components` executes `source_lib_gen` (after `source_lib_ops` in orchestrator order).
 5. When `LAB_GEN_LAZY_LOAD=1` (the default), `source_lib_gen` registers lightweight stub functions for each gen module from `cfg/core/lzy` (or via fallback file scanning) instead of eagerly sourcing them. Stubs forward to `_orc_lazy_dispatch`, which sources the real module on first call. When lazy loading is disabled, `source_directory "$LIB_GEN_DIR" "*"` sources non-hidden files in glob order (currently `ana`, `aux`, `env`, `inf`, `sec`).
 6. `source_lib_gen` runs `init_password_management_if_needed` only when lazy loading is disabled; when lazy gen loading is active, password management initialization is deferred until first use.
 
@@ -39,7 +39,8 @@ sequenceDiagram
     I->>C: source lo1
     I->>C: source tme
     I->>O: source bin/orc
-    I->>O: setup_components()
+    I->>I: resolve_bootstrap_profile()
+    I->>O: setup_components() [interactive profile]
 
     alt lazy gen loading enabled (default)
         O->>O: source_lib_gen()
@@ -57,7 +58,7 @@ sequenceDiagram
     end
 
     alt gen loading fails
-        O->>O: execute_component marks optional failure
+        O->>O: component-set loop records failure and continues
         O-->>I: continue component sequence
     end
 ```
@@ -91,7 +92,7 @@ flowchart LR
 
 - Core module sourcing in `bin/ini` is fail-sensitive during bootstrap; a critical failure can end in `setup_minimal_environment`.
 - `load_modules` returns success if at least one module loads (`module_loaded > 0`), so partial core load is possible and must be considered.
-- `source_lib_gen` failure is non-fatal in current orchestrator flow because all components are currently marked optional in `bin/orc`.
+- `source_lib_gen` failure is non-fatal in current orchestrator flow because component-set execution continues on per-component failures.
 - `aux_cmd` returns `127` for missing commands and preserves command exit codes for runtime failures.
 - `env_validate` reports missing base config as error but treats env/node override files as optional.
 - `sec_get_password_directory` falls back across multiple locations and eventually to `$HOME/.lab_passwords`.

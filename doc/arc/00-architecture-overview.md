@@ -7,9 +7,9 @@ This repository is a Bash-native infrastructure automation system with two prima
 | Area | Primary files | Responsibility boundary |
 | --- | --- | --- |
 | Shell integration entrypoint | `go` | Manages shell RC managed blocks, stores init settings, and dispatches `init/on/off/purge/status/validate`. |
-| Bootstrap controller | `bin/ini` | Sources core constants/modules, initializes runtime, loads orchestrator, and finalizes `RC_SOURCED`. |
-| Component orchestrator | `bin/orc` | Executes component loading sequence (`cfg`, `lib`, `src`) with wrapper checks and timers. |
-| Runtime constants/config | `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`, `cfg/env/*` | Defines global paths, runtime variables, and site/env/node layered configuration files. |
+| Bootstrap controller | `bin/ini` | Sources core constants/modules, initializes shared foundation, selects bootstrap profile (`interactive` or `deployment`), and finalizes `RC_SOURCED`. |
+| Component orchestrator | `bin/orc` | Executes profile-specific component loading (`setup_components` or `setup_deployment_components`) with timers and centralized error routing. |
+| Runtime constants/config | `cfg/core/ric`, `cfg/core/rdc`, `cfg/env/*` | Defines global paths, runtime variables, and site/env/node layered configuration files. |
 | Dependency injection engine | `src/dic/ops`, `src/dic/lib/*` | Resolves operation arguments and dispatches module functions (`module_function`). |
 | Deployment manifests | `src/set/*`, `src/set/.menu` | Defines task sections (`*_xall`) and calls DIC through `ops ...` commands. |
 | Operations libraries | `lib/ops/*` | Implements infrastructure actions invoked by DIC or sourced runtime environment. |
@@ -21,8 +21,8 @@ This repository is a Bash-native infrastructure automation system with two prima
 
 1. User runs `./go init` once to persist helper functions and save `.tmp/go_settings` (`setup_shell_integration`, `save_settings`, `inject_helper_functions`).
 2. User enables startup loading with `./go on` (`handle_on_command` -> `inject_content`), which writes `. <lab_root>/bin/ini` into the selected shell RC file.
-3. New shell sources `bin/ini`; `main_ini` runs and loads `cfg/core/ric`, `cfg/core/rdc`, `cfg/core/mdc`, `lib/core/ver`, then core modules `col`, `err`, `lo1`, `tme`. Boot-phase toggles (`LOG_DEBUG_ENABLED=0`, `LAB_BOOTSTRAP_MODE=1`, `PERFORMANCE_MODE=1`) are active during this phase to reduce overhead.
-4. `bin/ini` sources `bin/orc`, runs `init_runtime_system`, and calls `setup_components` to load `cfg/core/ecc`, `cfg/ali/*`, `cfg/env` (site required, env/node optional), and `source_src_aux` from `SRC_AUX_DIR` (optional). For `lib/ops/*` and `lib/gen/*`, by default lazy-load stub functions are registered from a static map (`cfg/core/lzy`) instead of eagerly sourcing all module files; the real module is loaded on first call. This is controlled by `LAB_OPS_LAZY_LOAD` / `LAB_GEN_LAZY_LOAD` (default `1`) and `LAB_OPS_LAZY_MODULES` / `LAB_GEN_LAZY_MODULES` (default `all`).
+3. New shell sources `bin/ini`; `main_ini` runs and loads `cfg/core/ric`, `cfg/core/rdc`, `lib/core/ver`, then core modules `col`, `err`, `lo1`, `tme`, `lab`. Boot-phase toggles (`LOG_DEBUG_ENABLED=0`, `LAB_BOOTSTRAP_MODE=1`, `PERFORMANCE_MODE=1`) are active during this phase to reduce overhead.
+4. `bin/ini` sources `bin/orc`, resolves bootstrap profile (`LAB_BOOTSTRAP_PROFILE`, default `interactive`), and routes component setup to `setup_components` (interactive) or `setup_deployment_components` (deployment). Interactive profile loads aliases plus lazy/eager `lib/ops/*` and `lib/gen/*`; deployment profile loads only `cfg/core/ecc`, `cfg/env` (site required, env/node optional), and `source_src_aux`.
 5. A deployment script (for example `src/set/h1`) sources `src/set/.menu` and `src/dic/ops`, then routes `-i` or `-x` through `setup_main`.
 6. Selected `*_xall` sections invoke `ops module function ...`; DIC resolves/injects arguments (`ops_main` -> `ops_execute` -> `ops_inject_and_execute`) and calls target `module_function` symbols from sourced files in `lib/ops/*`.
 
@@ -49,29 +49,20 @@ sequenceDiagram
     U->>RC: start new shell
     RC->>I: source bin/ini
     I->>I: main_ini()
-    I->>I: source cfg/core/{ric,rdc,mdc}
-    I->>I: load_modules(col,err,lo1,tme)
+    I->>I: source cfg/core/{ric,rdc}
+    I->>I: load_modules(col,err,lo1,tme,lab)
     I->>O: source bin/orc
-     I->>O: setup_components()
-     O->>O: execute_component(source_cfg_ecc)
-     O->>O: execute_component(source_lib_ops)
-
-     alt lazy-load enabled (default)
-         O->>O: register stub functions from cfg/core/lzy
-         Note over O: stubs load real module on first call
-     else lazy-load disabled
-         O->>L: source each lib/ops/* file eagerly
+     I->>I: resolve_bootstrap_profile()
+     alt interactive profile (default)
+         I->>O: setup_components()
+         O->>O: source_cfg_ecc, source_cfg_ali
+         O->>O: source_lib_ops + source_lib_gen (lazy stubs or eager source)
+         O->>O: source_cfg_env + source_src_aux
+     else deployment profile
+         I->>O: setup_deployment_components()
+         O->>O: source_cfg_ecc + source_cfg_env + source_src_aux
      end
 
-     O->>O: execute_component(source_lib_gen)
-
-     alt lazy-load enabled (default)
-         O->>O: register stub functions for lib/gen/*
-     else lazy-load disabled
-         O->>L: source each lib/gen/* file eagerly
-     end
-
-     O->>O: execute_component(source_cfg_env)
      O-->>I: RC_SOURCED=1 (success path)
 
     U->>S: ./src/set/h1 -x a
@@ -117,16 +108,16 @@ flowchart LR
 - `bin/ini` exports/updates runtime globals from `cfg/core/ric` (`LAB_DIR`, `LIB_OPS_DIR`, `SITE_CONFIG_FILE`, log/temp paths, verbosity toggles).
 - `bin/ini` sets transient bootstrap-phase toggles (`LOG_DEBUG_ENABLED=0`, `LAB_BOOTSTRAP_MODE=1`, `PERFORMANCE_MODE=1`) that are restored/cleared after boot completes.
 - `bin/ini` exports lazy-load control variables (`LAB_OPS_LAZY_LOAD`, `LAB_GEN_LAZY_LOAD`, `LAB_OPS_LAZY_MODULES`, `LAB_GEN_LAZY_MODULES`) that persist and can be inspected at runtime.
-- `bin/ini` exports `main_ini` and can set `RC_SOURCED=1`; this leaks bootstrap state into the interactive shell by design.
+- `bin/ini` exports `main_ini`, `main_ini_interactive`, and `main_ini_deployment`; bootstrap state (`RC_SOURCED`) remains visible in the caller shell by design.
 - `bin/orc` installs `trap cleanup EXIT INT TERM` when sourced; this changes trap behavior of the caller shell/session.
-- `src/set/.menu` eagerly sources all files in `cfg/env`, all files in `lib/ops`, and sibling files in `src/set/` (except itself).
+- `src/set/.menu` defaults to eager auto-sourcing for `cfg/env`, `lib/ops`, and sibling `src/set/*` files, but this can be disabled with `LAB_MENU_AUTO_SOURCE=0` for validation/non-side-effect contexts.
 - `src/dic/ops` sources `src/dic/lib/{injector,introspector,resolver}` and attempts to source `cfg/env/site1` during load.
 
 ## 4. Failure and Fallback Behavior
 
 - `go on/off/purge` require `.tmp/go_settings`; if missing, commands fail and instruct to run `./go init`.
 - If `bin/ini` cannot complete `main_ini`, it executes `setup_minimal_environment` and exits non-zero.
-- In `bin/orc`, component execution is wrapper-managed via `execute_component`; current component list marks all components as optional (`COMPONENT_OPTIONAL`).
+- In `bin/orc`, component setup is profile-driven (`interactive` or `deployment`) and executed by a shared component-set loop.
 - `source_cfg_env` treats base site file as required and env/node overrides as optional.
 - `source_src_aux` returns non-zero when `SRC_AUX_DIR` is missing or unreadable, but current orchestrator settings treat this as optional and continue.
 - `src/set/.menu` is permissive for many sourcing failures (logs warnings, often continues), while argument routing (`setup_main`) returns `1` on invalid mode/args.

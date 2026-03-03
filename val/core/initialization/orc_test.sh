@@ -171,13 +171,47 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_deployment_profile_uses_deployment_components() {
+    local test_env
+    test_env=$(create_test_env "orc_deployment_profile")
+
+    cat > "$test_env/test_orc_deployment_profile.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+export MASTER_TERMINAL_VERBOSITY=off
+export LAB_BOOTSTRAP_PROFILE=deployment
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+declare -f setup_deployment_components >/dev/null 2>&1 || exit 1
+
+# Deployment profile should avoid interactive-only bootstrap artifacts.
+if declare -f _ffl_laf_core >/dev/null 2>&1; then
+    exit 1
+fi
+
+if declare -f ssh_fun >/dev/null 2>&1; then
+    exit 1
+fi
+EOF
+    chmod +x "$test_env/test_orc_deployment_profile.sh"
+
+    run_test "Deployment profile routes through deployment component set" "$test_env/test_orc_deployment_profile.sh"
+    cleanup_test_env "$test_env"
+}
+
 main() {
     run_test_suite "COMPONENT ORCHESTRATOR TESTS" \
         test_orc_script_exists \
         test_source_directory_skips_hidden_files \
         test_source_lib_ops_lazy_stub_loads_on_first_call \
         test_source_lib_gen_lazy_stub_loads_on_first_call \
-        test_shared_loader_deduplicates_cross_path_sourcing
+        test_shared_loader_deduplicates_cross_path_sourcing \
+        test_deployment_profile_uses_deployment_components
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

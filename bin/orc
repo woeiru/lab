@@ -78,11 +78,15 @@ trap cleanup EXIT INT TERM
 
 # Validate required global variables
 validate_required_globals() {
+    local profile="${1:-interactive}"
     local required_vars=(
         "BASE_DIR" "LAB_DIR" "LIB_OPS_DIR" "SRC_AUX_DIR"
-        "LIB_GEN_DIR" "CFG_ALI_DIR"
-        "SITE_CONFIG_FILE" "ENV_OVERRIDE_FILE" "NODE_OVERRIDE_FILE"
+        "LIB_GEN_DIR" "SITE_CONFIG_FILE" "ENV_OVERRIDE_FILE" "NODE_OVERRIDE_FILE"
     )
+
+    if [[ "$profile" == "interactive" ]]; then
+        required_vars+=("CFG_ALI_DIR")
+    fi
     
     # Optional variables that may not be set initially
     local optional_vars=(
@@ -782,49 +786,24 @@ source_cfg_ali() {
     return $?
 }
 
-setup_components() {
-    lo1_log "lvl" "Validating and executing component configuration..."
-    lo1_log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
-    
-    # Validate required globals first
-    if ! validate_required_globals; then
-        lo1_log "lvl" "Error: Required global variables validation failed"
-        return 1
-    fi
-    
-    # Cache function existence checks (done once at start)
-    local has_timing_report=false
+_orc_execute_component_set() {
+    local profile="$1"
+    shift
+    local components=("$@")
+    local successful_components=0
+    local total_components=${#components[@]}
     local has_error_report=false
-    
-    if type tme_print_timing_report &>/dev/null; then
-        has_timing_report=true
-    else
-        lo1_log "lvl" "Warning: tme_print_timing_report function not found"
-    fi
-    
+    local func
+    local name
+
     if type err_print_report &>/dev/null; then
         has_error_report=true
     else
         lo1_log "lvl" "Warning: err_print_report function not found"
     fi
 
-    # Component definitions: function:name
-    local components=(
-        "source_cfg_ecc:CFG_ECC"
-        "source_cfg_ali:CFG_ALI"
-        "source_lib_ops:LIB_OPS"
-        "source_lib_gen:LIB_UTL"
-        "source_cfg_env:CFG_ENV"
-        "source_src_aux:SRC_AUX"
-    )
+    lo1_log "lvl" "Executing ${profile} component functions..."
 
-    lo1_log "lvl" "Executing component functions..."
-
-    local successful_components=0
-    local total_components=${#components[@]}
-    local func
-    local name
-    
     for component_def in "${components[@]}"; do
         IFS=':' read -r func name <<< "$component_def"
 
@@ -849,13 +828,54 @@ setup_components() {
         fi
     done
 
-    lo1_log "lvl" "Component execution summary: $successful_components/$total_components components loaded successfully"
+    lo1_log "lvl" "${profile} component summary: $successful_components/$total_components components loaded successfully"
 
     export RC_SOURCED=1
     lo1_log "lvl" " RC initialization completed successfully"
     lo1_log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
     [[ "$has_error_report" == "true" ]] && err_print_report
     return 0
+}
+
+setup_components() {
+    lo1_log "lvl" "Validating and executing component configuration..."
+    lo1_log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
+
+    if ! validate_required_globals "interactive"; then
+        lo1_log "lvl" "Error: Required global variables validation failed"
+        return 1
+    fi
+
+    local components=(
+        "source_cfg_ecc:CFG_ECC"
+        "source_cfg_ali:CFG_ALI"
+        "source_lib_ops:LIB_OPS"
+        "source_lib_gen:LIB_UTL"
+        "source_cfg_env:CFG_ENV"
+        "source_src_aux:SRC_AUX"
+    )
+
+    _orc_execute_component_set "interactive" "${components[@]}"
+    return $?
+}
+
+setup_deployment_components() {
+    lo1_log "lvl" "Validating and executing deployment component configuration..."
+    lo1_log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
+
+    if ! validate_required_globals "deployment"; then
+        lo1_log "lvl" "Error: Required global variables validation failed for deployment profile"
+        return 1
+    fi
+
+    local components=(
+        "source_cfg_ecc:CFG_ECC"
+        "source_cfg_env:CFG_ENV"
+        "source_src_aux:SRC_AUX"
+    )
+
+    _orc_execute_component_set "deployment" "${components[@]}"
+    return $?
 }
 
 # Ensure this script can be sourced without executing setup_components automatically

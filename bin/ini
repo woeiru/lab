@@ -119,6 +119,8 @@ readonly LOG_PRIORITY_DETAILED=2
 readonly TIMER_MAIN_OPERATIONS="MAIN_OPERATIONS"
 readonly TIMER_SOURCE_COMP="SOURCE_COMP_ORCHESTRATOR"
 readonly TIMER_FINALIZE="FINALIZE_MAIN_INIT"
+readonly INI_BOOTSTRAP_PROFILE_INTERACTIVE="interactive"
+readonly INI_BOOTSTRAP_PROFILE_DEPLOYMENT="deployment"
 
 # Output a startup message, respecting verbosity settings
 if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
@@ -248,8 +250,30 @@ source "${BASE_DIR}/lib/core/ver" || {
 # Dependencies:
 #   - ver (lib/core/ver) for all verification functions
 ###############################################
+resolve_bootstrap_profile() {
+    local requested_profile="${1:-${LAB_BOOTSTRAP_PROFILE:-$INI_BOOTSTRAP_PROFILE_INTERACTIVE}}"
+    requested_profile="${requested_profile#--}"
+    requested_profile="${requested_profile,,}"
+
+    case "$requested_profile" in
+        interactive|shell)
+            printf '%s\n' "$INI_BOOTSTRAP_PROFILE_INTERACTIVE"
+            return 0
+            ;;
+        deployment|deploy)
+            printf '%s\n' "$INI_BOOTSTRAP_PROFILE_DEPLOYMENT"
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 main_ini() {
+    local requested_profile="${1:-}"
     local main_op_timer_started=0
+    local bootstrap_profile
 
     # Performance optimization: Enable performance mode for critical sections
     export PERFORMANCE_MODE=1
@@ -306,8 +330,17 @@ main_ini() {
     : "${LAB_GEN_LAZY_MODULES:=all}"
     export LAB_OPS_LAZY_LOAD LAB_OPS_LAZY_MODULES LAB_GEN_LAZY_LOAD LAB_GEN_LAZY_MODULES
 
-    # Part 3: Setup additional components
-    if ! setup_components_with_finalization "$main_op_timer_started"; then
+    if ! bootstrap_profile="$(resolve_bootstrap_profile "$requested_profile")"; then
+        restore_boot_log_debug_state
+        unset LAB_BOOTSTRAP_MODE
+        ini_log "ERROR: Unsupported bootstrap profile '${requested_profile:-${LAB_BOOTSTRAP_PROFILE:-unset}}'"
+        return 1
+    fi
+
+    ini_log "Bootstrap profile selected: ${bootstrap_profile}"
+
+    # Part 3: Setup profile-specific components
+    if ! setup_components_with_finalization "$main_op_timer_started" "$bootstrap_profile"; then
         restore_boot_log_debug_state
         unset LAB_BOOTSTRAP_MODE
         return 1
@@ -380,10 +413,32 @@ source_component_orchestrator() {
 # Setup components with finalization
 setup_components_with_finalization() {
     local main_op_timer_started="$1"
-    
-    ini_log "Setting RC_SOURCED=0 before calling setup_components"
-    if ! setup_components; then
-        ini_log "ERROR: Component setup failed via orchestrator."
+    local bootstrap_profile="${2:-$INI_BOOTSTRAP_PROFILE_INTERACTIVE}"
+    local component_setup_function="setup_components"
+
+    case "$bootstrap_profile" in
+        "$INI_BOOTSTRAP_PROFILE_INTERACTIVE")
+            component_setup_function="setup_components"
+            ;;
+        "$INI_BOOTSTRAP_PROFILE_DEPLOYMENT")
+            component_setup_function="setup_deployment_components"
+            ;;
+        *)
+            ini_log "ERROR: Invalid bootstrap profile '$bootstrap_profile'"
+            ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "1"
+            return 1
+            ;;
+    esac
+
+    ini_log "Setting RC_SOURCED=0 before calling ${component_setup_function} (${bootstrap_profile})"
+    if ! type "$component_setup_function" &>/dev/null; then
+        ini_log "ERROR: Expected component setup function '$component_setup_function' is unavailable"
+        ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "1"
+        return 1
+    fi
+
+    if ! "$component_setup_function"; then
+        ini_log "ERROR: Component setup failed via orchestrator profile '${bootstrap_profile}'."
         ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "1"
         return 1
     fi
@@ -400,6 +455,14 @@ setup_components_with_finalization() {
     type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_FINALIZE" "success"
     ((main_op_timer_started)) && type tme_end_timer &>/dev/null && tme_end_timer "$TIMER_MAIN_OPERATIONS" "0"
     return 0
+}
+
+main_ini_interactive() {
+    main_ini "$INI_BOOTSTRAP_PROFILE_INTERACTIVE"
+}
+
+main_ini_deployment() {
+    main_ini "$INI_BOOTSTRAP_PROFILE_DEPLOYMENT"
 }
 
 ###########################################
@@ -545,6 +608,8 @@ fi
 
 # Export only the main initialization function
 export -f main_ini
+export -f main_ini_interactive
+export -f main_ini_deployment
 
 # --- Force timer output and print timing report at the end ---
 if type tme_settme &>/dev/null; then

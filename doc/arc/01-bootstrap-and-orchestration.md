@@ -56,49 +56,50 @@ sequenceDiagram
     I->>I: guard: [[ -n _INI_LOADED ]] && return 0
     I->>C: source cfg/core/ric
     I->>C: source cfg/core/rdc
-    I->>C: source cfg/core/mdc
     I->>L: source lib/core/ver
     I->>I: main_ini()
     I->>I: init_logging_system()
     I->>I: verify_core_modules_loaded()
     I->>I: init_module_system()
-    I->>L: load_modules(): col -> err -> lo1 -> tme
+    I->>L: load_modules(): col -> err -> lo1 -> tme -> lab
     I->>I: init_timer_system()
     I->>I: source_component_orchestrator()
     I->>O: source bin/orc
-    I->>I: init_runtime_system_with_timing()
-    I->>I: init_runtime_system()
-    I->>I: process_runtime_config()
-    I->>I: init_registered_functions()
-    I->>I: cache_module_verification()
-    I->>I: process_function_registration()
-    I->>I: register_single_function()
+    I->>I: resolve_bootstrap_profile()
     I->>I: setup_components_with_finalization()
-    I->>O: setup_components()
-    O->>O: execute_component(source_cfg_ecc)
-    O->>O: execute_component(source_cfg_ali)
-     O->>O: execute_component(source_lib_ops)
+     alt interactive profile (default)
+         I->>O: setup_components()
+         O->>O: source_cfg_ecc()
+         O->>O: source_cfg_ali()
+         O->>O: source_lib_ops()
 
-     alt lazy ops enabled (default)
-         O->>O: _orc_lazy_load_function_map() [source cfg/core/lzy once]
-         O->>O: _orc_lazy_register_module_stubs() per module
-         O->>O: _orc_lazy_define_stub() per function
-         Note over O: stub functions forward to _orc_lazy_dispatch
-     else lazy ops disabled
-         O->>L: source each lib/ops/* file eagerly
+         alt lazy ops enabled (default)
+             O->>O: _orc_lazy_load_function_map() [source cfg/core/lzy once]
+             O->>O: _orc_lazy_register_module_stubs() per module
+             O->>O: _orc_lazy_define_stub() per function
+             Note over O: stub functions forward to _orc_lazy_dispatch
+         else lazy ops disabled
+             O->>L: source each lib/ops/* file eagerly
+         end
+
+         O->>O: source_lib_gen()
+
+         alt lazy gen enabled (default)
+             O->>O: _orc_lazy_register_module_stubs() per gen module
+         else lazy gen disabled
+             O->>L: source each lib/gen/* file eagerly
+         end
+
+         O->>O: source_cfg_env()
+         O->>O: source_src_aux()
+         O-->>I: return from setup_components()
+     else deployment profile
+         I->>O: setup_deployment_components()
+         O->>O: source_cfg_ecc()
+         O->>O: source_cfg_env()
+         O->>O: source_src_aux()
+         O-->>I: return from setup_deployment_components()
      end
-
-     O->>O: execute_component(source_lib_gen)
-
-     alt lazy gen enabled (default)
-         O->>O: _orc_lazy_register_module_stubs() per gen module
-     else lazy gen disabled
-         O->>L: source each lib/gen/* file eagerly
-     end
-
-     O->>O: execute_component(source_cfg_env)
-     O->>O: execute_component(source_src_aux)
-     O-->>I: return from setup_components()
      I->>I: finalize RC_SOURCED (set 1 if missing)
      I->>I: restore LOG_DEBUG_ENABLED to pre-boot value
      I->>I: unset LAB_BOOTSTRAP_MODE
@@ -121,14 +122,17 @@ flowchart LR
     D --> E[source bin/ini]
     E --> F[load core cfg + core libs]
     F --> G[source bin/orc]
-    G --> H[load cfg/ali + cfg/env + optional source_src_aux]
-    H --> I{lazy-load enabled?}
-    I -->|yes default| J[register stubs for lib/ops + lib/gen from cfg/core/lzy]
-    I -->|no| K[eagerly source lib/ops + lib/gen]
-    J --> L[RC_SOURCED=1]
-    K --> L
-    E --> M[failure path]
-    M --> N[minimal PATH + PS1]
+    G --> H{bootstrap profile}
+    H -->|interactive default| I[setup_components]
+    I --> J{lazy-load enabled?}
+    J -->|yes default| K[register stubs for lib/ops + lib/gen from cfg/core/lzy]
+    J -->|no| L[eagerly source lib/ops + lib/gen]
+    K --> R[RC_SOURCED=1]
+    L --> R
+    H -->|deployment| N[setup_deployment_components]
+    N --> R
+    E --> X[failure path]
+    X --> Y[minimal PATH + PS1]
 ```
 
 ### Maintenance rule
@@ -140,14 +144,13 @@ If bootstrap call order, function names, or component order change in `go`, `bin
 2. Sources core config files:
    - `cfg/core/ric`
    - `cfg/core/rdc`
-   - `cfg/core/mdc`
 3. Sources verification module: `lib/core/ver`.
 4. Runs `main_ini`, which performs:
    - `init_module_system` (essential checks, directory validation, core module loading)
    - timer system initialization (`tme_init_timer`, `tme_start_timer` when available)
    - `source_component_orchestrator` (sources `bin/orc`)
-   - `init_runtime_system_with_timing` (runtime config processing + registered function loading)
-   - `setup_components_with_finalization` (calls orchestrator `setup_components`, finalizes `RC_SOURCED`)
+   - `resolve_bootstrap_profile` (`LAB_BOOTSTRAP_PROFILE`, default `interactive`)
+   - `setup_components_with_finalization` (calls orchestrator `setup_components` or `setup_deployment_components`, finalizes `RC_SOURCED`)
 
 ### Core module loading in `init_module_system`
 Modules are loaded in this fixed order:
@@ -155,6 +158,7 @@ Modules are loaded in this fixed order:
 2. `lib/core/err`
 3. `lib/core/lo1`
 4. `lib/core/tme`
+5. `lib/core/lab`
 
 ### Failure behavior
 If initialization fails, `bin/ini` runs `setup_minimal_environment`:
@@ -171,29 +175,34 @@ If initialization fails, `bin/ini` runs `setup_minimal_environment`:
 
 ## 3. Component Orchestrator (`bin/orc`)
 
-`bin/orc` defines `setup_components` and component source helpers. It is sourced by `bin/ini` and does not auto-execute component setup on load.
+`bin/orc` defines `setup_components`, `setup_deployment_components`, and component source helpers. It is sourced by `bin/ini` and does not auto-execute component setup on load.
 
 ### Shell behavior and trap handling
 - In non-interactive contexts it enables `set -eo pipefail`; in interactive contexts it keeps `pipefail` only.
 - It installs `trap cleanup EXIT INT TERM`.
 - `cleanup` removes `TEMP_ERROR_FILE` if present.
 
-### Execution wrapper
-`execute_component` provides:
+### Component-set execution
+`_orc_execute_component_set` provides the shared execution loop for profile
+component sets. It handles:
 - function existence checks
 - timer start/end wrapping
 - error routing (`err_handler`)
-- required vs optional behavior
+- profile-scoped execution reporting
 
-Note: in the current `components` array, every component is configured as optional (`COMPONENT_OPTIONAL`).
-
-### Component execution order in `setup_components`
+### Component execution order by profile
+Interactive (`setup_components`):
 1. `source_cfg_ecc` (`cfg/core/ecc`)
 2. `source_cfg_ali` (`cfg/ali/*`)
 3. `source_lib_ops` (`lib/ops/*`, filtered to skip doc/hidden files; lazy-loaded by default)
 4. `source_lib_gen` (`lib/gen/*`, then optional password-init hook; lazy-loaded by default)
 5. `source_cfg_env` (site required; env/node overrides optional)
 6. `source_src_aux` (`SRC_AUX_DIR`, default `${LAB_DIR}/src/aux`, optional)
+
+Deployment (`setup_deployment_components`):
+1. `source_cfg_ecc` (`cfg/core/ecc`)
+2. `source_cfg_env` (site required; env/node overrides optional)
+3. `source_src_aux` (`SRC_AUX_DIR`, default `${LAB_DIR}/src/aux`, optional)
 
 On success, `RC_SOURCED=1` is exported.
 
@@ -230,7 +239,7 @@ lab-off() { "<lab_root>/go" off; }
 
 ## 5. State and Side Effects Relevant to Refactoring
 
-- `main_ini` is exported with `export -f main_ini`, and many bootstrap symbols remain in the interactive shell after sourcing.
+- `bin/ini` exports `main_ini`, `main_ini_interactive`, and `main_ini_deployment`; many bootstrap symbols remain in the shell after sourcing.
 - Orchestrator and bootstrap flows are tightly coupled to globals seeded by `cfg/core/ric`.
 - `bin/orc` changes shell error behavior depending on interactivity, which can affect callers that source it inside larger scripts.
 - `TEMP_ERROR_FILE` is a transient global variable used for cleanup, not a stable exported runtime contract.

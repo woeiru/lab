@@ -21,7 +21,7 @@ Logging and error handling are split across core bootstrap modules and runtime u
 3. `bin/ini` initializes log files (`INI_LOG_FILE`, `ERROR_LOG`) in `init_logging_system`.
 4. `bin/ini` loads `lib/core/err`, `lib/core/lo1`, and `lib/core/tme` via `load_modules`.
 5. `tme_init_timer` initializes timing state and `tme.log`; `bin/ini` wraps major phases with timer calls. `tme` uses integer nanosecond arithmetic (`$(date +%s%N)` captured once, then `$(( ))` bash arithmetic) instead of `echo ... | bc` pipe forks for duration calculation.
-6. `bin/orc` uses `lo1_log` for component progress and `execute_component` routes failures to `err_handler`.
+6. `bin/orc` uses `lo1_log` for component progress and the shared component-set executor routes failures to `err_handler`.
 7. After `lib/gen/aux` is sourced (either eagerly or on first lazy-load call), runtime callers (for example `src/dic/ops` and `lib/ops/*` functions) can emit structured logs via `aux_log`/`aux_dbg` and wrappers (`aux_info`, `aux_warn`, `aux_err`, `aux_audit`, `aux_business`).
 
 ### End-to-end sequence

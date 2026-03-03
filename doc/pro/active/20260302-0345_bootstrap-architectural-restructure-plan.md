@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03 (checkpoint refreshed for handoff; commit prepared)
+- Updated: 2026-03-03 (session checkpoint captured; commit pending)
 - Links: bin/ini, bin/orc, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, cfg/core/lzy, lib/core/ver, src/set/.menu, src/dic/ops, doc/arc/00-architecture-overview.md, doc/arc/01-bootstrap-and-orchestration.md, doc/pro/completed/20260301-2328_bootstrapper-performance-renewal
 
 ## Triage Decision
@@ -179,16 +179,7 @@ Out of scope:
 
 ## Execution Plan (current)
 
-- [IN PROGRESS] Phase 4 -- Separate interactive and deployment bootstrap paths
 - [PENDING] Phase 5 -- Compiled bootstrap snapshot prototype
-
-### Phase 4 -- Separate interactive and deployment bootstrap paths
-
-Refactor `bin/ini` into a lean shared foundation plus explicit interactive/deployment path behavior.
-
-Completion criterion: interactive bootstrap is linear and deployment execution works without redundant eager re-sourcing.
-
-Status: in progress.
 
 ### Phase 5 -- Compiled bootstrap snapshot prototype
 
@@ -202,38 +193,37 @@ Status: pending and optional.
 
 ### Done
 
-1. Completed Phase 1 design deliverable in this file and completed Phase 2
-   dead-ceremony removals.
-2. Completed Phase 3 unified registry delivery:
-   - Added shared loader module `lib/core/lab` with canonical
-     `lab_source_module` + `LAB_MODULE_SOURCE_STATE` ownership.
-   - `bin/ini`: now sources `lib/core/lab` in core load sequence.
-   - `bin/orc`: now consumes shared loader via `orc_ensure_shared_module_loader`
-     instead of owning a local implementation.
-   - `src/dic/ops`: removed fallback direct sourcing and now requires shared
-     loader through `ops_ensure_shared_module_loader`.
-   - `src/set/.menu`: removed fallback direct sourcing and now requires shared
-     loader through `_menu_ensure_shared_module_loader`.
-3. Added `LAB_MENU_AUTO_SOURCE` guard in `src/set/.menu` to allow non-side-
-   effect loading of menu helpers for validation contexts.
-4. Added cross-path deduplication test coverage:
-   - Pass: `./val/core/initialization/orc_test.sh`
-5. Updated active plan tracking and renamed experiments rules file to satisfy
-   workflow naming checks (`doc/pro/experiments/20260303-0000_experiments-rules.md`).
-6. Tests/syntax run this session:
-   - Pass: `bash -n bin/ini bin/orc src/dic/ops src/set/.menu`
-   - Pass: `bash -n lib/core/lab val/core/initialization/orc_test.sh`
+1. Completed Phase 4 path split with explicit bootstrap profiles.
+   - `bin/ini`: added `resolve_bootstrap_profile`, profile-aware
+     `setup_components_with_finalization`, and exported
+     `main_ini_interactive` / `main_ini_deployment`.
+   - `bin/orc`: added shared `_orc_execute_component_set` and
+     `setup_deployment_components`, with `setup_components` retained for
+     interactive loading.
+2. Added deployment-profile regression coverage.
+   - `val/core/initialization/ini_test.sh`: deployment profile skips alias bootstrap.
+   - `val/core/initialization/orc_test.sh`: deployment profile routes through
+     deployment component set and avoids interactive-only symbols.
+3. Verified deployment-facing consumers still deduplicate shared loader usage
+   when booted with `LAB_BOOTSTRAP_PROFILE=deployment` and then sourcing
+   `src/dic/ops` + `src/set/.menu`.
+4. Updated architecture docs for the new profile-based flow:
+   - `doc/arc/00-architecture-overview.md`
+   - `doc/arc/01-bootstrap-and-orchestration.md`
+   - `doc/arc/02-core-and-gen.md`
+   - `doc/arc/03-operational-modules.md`
+   - `doc/arc/07-logging-and-error-handling.md`
+5. Validation results (this session):
+   - Pass: `bash -n bin/ini bin/orc val/core/initialization/ini_test.sh val/core/initialization/orc_test.sh`
    - Pass: `./val/core/initialization/ini_test.sh`
    - Pass: `./val/core/initialization/orc_test.sh`
-   - Pass: `./val/core/modules/ver_test.sh`
    - Pass: `./val/src/dic_framework_test.sh`
-   - Pass: `./val/src/dic/dic_simple_test.sh` (via `./val/src/dic_framework_test.sh`)
+   - Pass: `bash doc/pro/check-workflow.sh`
 
 ### In-flight
 
-1. Phase 4 has started: next changes will split shared foundation bootstrap
-   concerns from interactive-only behavior in `bin/ini`/`bin/orc`.
-2. Working tree is uncommitted with Phase 3 closure edits plus this plan update.
+1. No partial Phase 4 implementation remains.
+2. Phase 5 is not started; compiled snapshot prototype files are not created yet.
 
 ### Blockers
 
@@ -241,29 +231,30 @@ Status: pending and optional.
 
 ### Next steps
 
-1. Start Phase 4 refactor by extracting a small shared-foundation bootstrap
-   section in `bin/ini` (core paths, core module load, shared loader readiness).
-2. Define explicit interactive vs deployment bootstrap entrypoints and route
-   existing `main_ini` flow through them without behavior regressions.
-3. Verify deployment-facing consumers (`src/set/.menu`, `src/dic/ops`) still
-   run without redundant eager re-sourcing after the split.
-4. Run Phase 4 validation slice: `bash -n` on touched files,
-   `./val/core/initialization/ini_test.sh`,
-   `./val/core/initialization/orc_test.sh`, and
-   `./val/src/dic_framework_test.sh`.
+1. Define Phase 5 compiled bootstrap cache format, output path, and staleness
+   metadata contract.
+2. Implement `./go compile` cache generation flow and metadata write path.
+3. Integrate cache consumption in `bin/ini` with explicit stale/missing
+   fallback to current source-based bootstrap.
+4. Add/extend tests for fresh and stale cache behavior and run validation
+   (`bash -n`, `./val/core/initialization/ini_test.sh`,
+   `./val/core/initialization/orc_test.sh`, `./val/src/dic_framework_test.sh`).
 
 ### Context
 
 1. Branch: `master` (`master...origin/master`).
-2. Workflow checker currently passes: `bash doc/pro/check-workflow.sh`.
-3. Uncommitted changes currently present:
-   - `bin/ini`
-   - `bin/orc`
-   - `lib/core/lab`
-   - `src/dic/ops`
-   - `src/set/.menu`
-   - `val/core/initialization/orc_test.sh`
-   - `doc/pro/active/20260302-0345_bootstrap-architectural-restructure-plan.md`
+2. Workflow checker passes at checkpoint time: `bash doc/pro/check-workflow.sh`.
+3. Working tree is prepared for commit in this context with changes in:
+    - `bin/ini`
+    - `bin/orc`
+    - `doc/arc/00-architecture-overview.md`
+    - `doc/arc/01-bootstrap-and-orchestration.md`
+    - `doc/arc/02-core-and-gen.md`
+    - `doc/arc/03-operational-modules.md`
+    - `doc/arc/07-logging-and-error-handling.md`
+    - `val/core/initialization/ini_test.sh`
+    - `val/core/initialization/orc_test.sh`
+    - `doc/pro/active/20260302-0345_bootstrap-architectural-restructure-plan.md`
 4. No persistent temp artifacts are required for continuation.
 
 ## Phase 1 Design Decision Record

@@ -169,6 +169,35 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_deployment_profile_skips_alias_bootstrap() {
+    local test_env=$(create_test_env "ini_deployment_profile")
+
+    cat > "$test_env/test_deployment_profile.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+export MASTER_TERMINAL_VERBOSITY=off
+export LAB_BOOTSTRAP_PROFILE=deployment
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+# Deployment profile should skip alias sourcing.
+if declare -f _ffl_laf_core >/dev/null 2>&1; then
+    exit 1
+fi
+
+declare -f setup_deployment_components >/dev/null 2>&1 || exit 1
+[[ "${RC_SOURCED:-0}" -eq 1 ]] || exit 1
+EOF
+    chmod +x "$test_env/test_deployment_profile.sh"
+
+    run_test "Deployment profile skips interactive alias bootstrap" "$test_env/test_deployment_profile.sh"
+    cleanup_test_env "$test_env"
+}
+
 test_performance_init() {
     start_performance_test "ini sourcing performance"
     
@@ -198,6 +227,7 @@ main() {
         test_environment_variables \
         test_logging_initialization \
         test_source_directory_skips_hidden_files \
+        test_deployment_profile_skips_alias_bootstrap \
         test_performance_init
 }
 
