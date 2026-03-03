@@ -1584,20 +1584,18 @@ for i, acct in enumerate(accounts):
             reset_time = info.get("resetTime", "")
             model_count = info.get("modelCount", 0)
 
-            is_reset_passed = False
             is_rl_active = False
-            override_reasons = []
+            rl_flag = ""
             if reset_time:
                 try:
                     reset_dt = datetime.fromisoformat(reset_time.replace("Z", "+00:00"))
-                    if (reset_dt - now_utc).total_seconds() <= 0:
-                        is_reset_passed = True
-                        override_reasons.append("resetTime")
+                    reset_passed = (reset_dt - now_utc).total_seconds() <= 0
+                    if reset_passed:
+                        rl_flag = f" {YELLOW}RESET:due{RESET}"
                 except Exception:
                     pass
 
             # Check rate-limit status for this family
-            rl_flag = ""
             rl_ts = rate_limits.get(family)
             if rl_ts:
                 rl_dt = datetime.fromtimestamp(rl_ts / 1000, tz=timezone.utc)
@@ -1608,17 +1606,7 @@ for i, acct in enumerate(accounts):
                     rl_m = rl_rem // 60
                     rl_flag = f" {RED}RL:{rl_h}h{rl_m:02d}m{RESET}"
                 else:
-                    is_reset_passed = True
-                    override_reasons.append("rateLimit")
                     rl_flag = f" {GREEN}RL:ok{RESET}"
-
-            if is_reset_passed and remaining < 1.0:
-                remaining = 1.0
-                if override_reasons:
-                    reason = "+".join(sorted(set(override_reasons)))
-                    rl_flag += f" {YELLOW}(OVERRIDE:{reason}){RESET}"
-                else:
-                    rl_flag += f" {YELLOW}(OVERRIDE){RESET}"
 
             if is_rl_active and remaining > 0.0:
                 remaining = 0.0
