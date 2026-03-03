@@ -23,27 +23,32 @@
 ## Progress Checkpoint
 
 - Done:
-  - Added canonical reconcile contract and implemented `_dev_reconcile_antigravity_accounts` as the single prune/remap path.
-  - Added explicit reconcile command `dev_oac -x` with deterministic before/after output (`status`, `before/after`, `removed`, `fallback`, `backup`).
-  - Rewired reconcile invocation across wrapper/dashboard/account-management paths (`_dev_auto_attribute`, `dev_oqu`, `dev_olb`, `dev_oas`, `dev_oar`, `dev_oad`).
-  - Added regression coverage for repeated external repopulation cycles via `test_dev_oac_reconciles_repopulation_cycles`.
-  - Validation run complete: `bash -n lib/ops/dev`, `bash -n val/lib/ops/dev_test.sh`, and `./val/lib/ops/dev_test.sh` (51/51 pass).
-  - Manual live verification run completed (3 cycles) with `dev_oac -x` + `dev_olb -x` on real local config.
-  - Live config reconciled at least once by pruning denylisted emails from `/home/es/.config/opencode/antigravity-accounts.json`.
+  - Implemented canonical reconcile path in `lib/ops/dev` (`_dev_reconcile_antigravity_accounts`) and exposed manual trigger `dev_oac -x`.
+  - Unified reconcile call sites across wrapper/dashboard/account-management paths (`_dev_auto_attribute`, `dev_oqu`, `dev_olb`, `dev_oas`, `dev_oar`, `dev_oad`).
+  - Added regression coverage in `val/lib/ops/dev_test.sh` (`test_dev_oac_requires_execute_flag`, `test_dev_oac_reconciles_repopulation_cycles`) and registered both in main suite.
+  - Ran validation successfully: `bash -n lib/ops/dev`, `bash -n val/lib/ops/dev_test.sh`, `./val/lib/ops/dev_test.sh` (`51/51` pass).
+  - Performed live manual verification (`dev_oac -x` + `dev_olb -x`) across 3 cycles with stable post-reconcile state and no denylisted accounts remaining.
+  - Committed the implementation on `master` as `6a36f493` (`feat(dev): unify antigravity reconcile path and add dev_oac`).
+  - Verified upstream context: issue `NoeFabris/opencode-antigravity-auth#336` is closed and release `v1.5.0` notes include the account-deletion persistence fix.
 - In-flight:
-  - Working tree now contains current reconcile implementation changes in `lib/ops/dev` and `val/lib/ops/dev_test.sh`.
-  - Runtime durability with externally triggered sync timing still needs observation in normal workflow windows.
+  - No in-repo code changes are in flight; working tree is clean after commit.
+  - External-sync timing observation is still pending (need at least one naturally occurring provider repopulation event captured with before/after evidence).
 - Blockers:
   - External Antigravity account sync writes are outside this repo and can rewrite `antigravity-accounts.json` at arbitrary times.
   - No always-on in-repo enforcement hook currently guarantees immediate post-sync pruning when no dev wrapper commands are executed.
 - Next steps:
-  1. Observe at least one naturally occurring external sync event, then run `dev_oac -x` and capture before/after evidence in this plan.
-  2. Optionally add a lightweight scheduled/user-hook invocation path if immediate post-sync prune is required without manual commands.
+  1. Capture one naturally occurring external sync/repopulation event by recording pre-reconcile state from `/home/es/.config/opencode/antigravity-accounts.json`.
+  2. Run `dev_oac -x` immediately after that event and append exact before/after counters, removed emails, and backup path in this plan.
+  3. Run `dev_olb -x` and record routing/account marker evidence to confirm stable indices after the same event.
+  4. Decide automation path for immediate post-sync pruning (options: user cron wrapper or shell hook invocation).
+  5. Implement the selected automation path in `lib/ops/dev` and add/adjust tests in `val/lib/ops/dev_test.sh` if automation is chosen.
 - Context:
   - Branch: `master`.
-  - Repo changes pending: `lib/ops/dev`, `val/lib/ops/dev_test.sh`, this active plan.
+  - Last commit: `6a36f493`.
+  - Repo changes pending: this active plan only.
   - External state touched during debugging: `/home/es/.config/opencode/antigravity-accounts.json` and backup files.
   - Latest test status: 51/51 pass in `./val/lib/ops/dev_test.sh`.
+  - Local OpenCode plugin baseline in this environment: `@opencode-ai/plugin` `1.2.16` in `/home/es/.config/opencode/package.json`.
   - Manual verification evidence (2026-03-04):
     - Cycle 1: `before_count=7` -> `status=UPDATED` -> `after_count=5`, removed `mbwagner123@gmail.com,agent.mbw@gmail.com`, fallback `maxbwagner@outlook.com`, denylisted present after reconcile: `0`.
     - Cycle 2: `before_count=5` -> `status=NO_CHANGE` -> `after_count=5`, denylisted present: `0`.
@@ -62,29 +67,17 @@
 
 ## Execution Plan
 
-### Phase 1 - Design Reconcile Contract
+### Phase 4 - External Sync Evidence Capture
 
-Define the canonical reconcile behavior (inputs, pruning rules, index remap invariants, log/output contract, and failure semantics) as the single source for all call sites.
+Capture one naturally occurring provider sync/repopulation cycle and verify reconcile behavior on real local state.
 
-Completion criterion: A written reconcile contract is added to this active doc and every touched function/test references the same invariants.
+Completion criterion: this doc includes pre-sync and post-reconcile evidence (`dev_oac -x` + `dev_olb -x`) from at least one external sync event.
 
-Status: completed.
+### Phase 5 - Post-Sync Enforcement Strategy
 
-### Phase 2 - Implement Unified Reconcile Path
+Choose and optionally implement a lightweight automation path so reconcile can run immediately after sync without manual intervention.
 
-Refactor enforcement call sites to use one shared reconcile routine and remove any remaining duplicate/partial denylist behavior.
-
-Completion criterion: All account-management paths call the same reconcile routine and no stale disable-only path remains.
-
-Status: completed.
-
-### Phase 3 - Hardening and Regression Expansion
-
-Add repeated-repopulation tests and verify routing/index stability across multiple cycles.
-
-Completion criterion: New cycle/regression tests pass locally with no flaky failures.
-
-Status: completed for in-repo regression coverage; live external-sync timing validation remains in Next steps.
+Completion criterion: decision is documented; if implementation is selected, code/tests are updated and validated.
 
 ## Exit Criteria
 

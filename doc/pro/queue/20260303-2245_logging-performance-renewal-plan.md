@@ -3,7 +3,7 @@
 - Status: queue
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03
+- Updated: 2026-03-04
 - Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/gen/aux, lib/core/ver, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md
 
 ## Goal
@@ -24,15 +24,6 @@ This project targets measurable reduction in per-call logging cost without
 changing any public API signatures, log file formats, or verbosity semantics.
 Architecture and visual changes are explicitly deferred to the subsequent
 projects.
-
-## Triage Decision
-
-- Why now: This is the first dependency in the three-part logging renewal sequence, so triaging now unblocks the downstream architecture and visual work while profiling context is still current.
-- Design classification:
-  1. Are there meaningful alternatives for how to solve this? Yes.
-  2. Will other code or users depend on the shape of the output? Yes.
-  Design: required.
-- Justification: The implementation strategy affects core logging internals used across modules and must preserve stable external logging behavior.
 
 ## Context
 

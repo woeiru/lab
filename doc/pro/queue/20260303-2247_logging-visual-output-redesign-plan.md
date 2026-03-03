@@ -3,7 +3,7 @@
 - Status: queue
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03
+- Updated: 2026-03-04
 - Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/col, lib/gen/aux, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md, doc/pro/queue/20260303-2246_logging-architectural-restructure-plan.md, doc/pro/completed/20260303-0220_bootstrap-visual-output-redesign-plan/20260303-0220_bootstrap-visual-output-redesign-plan.md
 
 ## Goal
@@ -22,15 +22,6 @@ extends the same visual language to all runtime logging output: `lo1`
 hierarchical logs, `aux` operational messages, `ver` diagnostics, and
 the unified log level indicators introduced by the architectural
 restructure.
-
-## Triage Decision
-
-- Why now: This is the final phase that standardizes runtime logging presentation after performance and architecture work, so queuing now keeps the full renewal program aligned.
-- Design classification:
-  1. Are there meaningful alternatives for how to solve this? Yes.
-  2. Will other code or users depend on the shape of the output? Yes.
-  Design: required.
-- Justification: Visual output structure and level signaling are user-facing contracts, and redesign choices affect readability and downstream tooling expectations.
 
 ## Context
 

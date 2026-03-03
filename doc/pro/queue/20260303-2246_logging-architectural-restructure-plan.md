@@ -3,7 +3,7 @@
 - Status: queue
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03
+- Updated: 2026-03-04
 - Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/ver, lib/gen/aux, lib/core/col, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md
 
 ## Goal
@@ -22,15 +22,6 @@ The same approach applies to logging: five subsystems with five independent
 format functions, five verbosity gates, five file writers, and three
 timestamp formats can be reduced to a shared core writer with
 context-specific front-ends.
-
-## Triage Decision
-
-- Why now: This restructure is the coordinating middle phase of the logging renewal roadmap and should be queued early so dependent implementation work can converge on one shared design.
-- Design classification:
-  1. Are there meaningful alternatives for how to solve this? Yes.
-  2. Will other code or users depend on the shape of the output? Yes.
-  Design: required.
-- Justification: Consolidating multiple logging systems into a shared architecture changes cross-module contracts and output semantics that other components rely on.
 
 ## Context
 
