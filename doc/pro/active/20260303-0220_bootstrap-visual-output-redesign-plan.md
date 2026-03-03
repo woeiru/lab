@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03
+- Updated: 2026-03-03 (phase 1 design deliverable completed)
 - Links: bin/ini, bin/orc, lib/core/tme, lib/core/lo1, lib/core/err, lib/core/col
 
 ## Goal
@@ -153,6 +153,187 @@ that specifies:
 Completion criterion: the design document is reviewed and captures all six
 items above with enough precision to implement without further design
 decisions.
+
+Status: complete (design deliverable captured below).
+
+### Phase 1 Deliverable (2026-03-03): Compact Bootstrap Output Spec
+
+#### 1) Output format specification (exact terminal layout)
+
+Scope: terminal output only (stderr), bootstrap context only
+(`LAB_BOOTSTRAP_MODE=1`), compact mode only
+(`LAB_BOOTSTRAP_OUTPUT=compact`). File logging remains unchanged.
+
+Success case (compact mode):
+
+```
+lab · <profile> · bootstrap
+<spinner> <component statuses on one mutable line>
+✓ <ok>/<total> components · <elapsed> · clean
+```
+
+Failure case (compact mode):
+
+```
+lab · <profile> · bootstrap
+✗ <failed_component> · <failure_message>
+  logs: <ini_log_path> <err_log_path> <tme_log_path>
+```
+
+Character and alignment rules:
+
+1. Header line is single-line chrome with ` · ` separators. No trailing spaces.
+2. Progress is single-pass and inline:
+   - TTY: one mutable line using carriage return (`\r`) and spinner frames
+     `|`, `/`, `-`, `\\`.
+   - Non-TTY: no spinner animation; emit one finalized progress/status line.
+3. Component token format is fixed-width: `<symbol><name>` where symbol is:
+   - pending `·`
+   - success `✓`
+   - failed `✗`
+4. Status token ordering follows actual bootstrap execution order from
+   `setup_components` component list.
+5. Width cap is 80 columns:
+   - truncate only rightmost fields first (metadata, then message tail)
+   - truncation marker is ASCII `...`
+   - never wrap.
+6. Failure message normalization:
+   - collapse internal newlines/tabs to spaces
+   - trim leading/trailing whitespace
+   - truncate to remaining width after component label and separators.
+7. Compact success summary uses exactly one final status line; detailed trees are
+   suppressed in compact mode.
+8. Verbose mode (`LAB_BOOTSTRAP_VERBOSITY=verbose`) preserves detailed
+   multi-line bootstrap output behavior (per-module lines).
+
+#### 2) Color mapping (unified on `lib/core/col` semantics)
+
+Color policy in compact mode:
+
+- Header chrome/separators/spinner: `COL_DIM` and `COL_METADATA`
+- Success symbols (`✓`) and success totals: `COL_SUCCESS`
+- Warning markers/counts: `COL_WARN`
+- Failure symbols (`✗`) and failure summary: `COL_ERROR`
+- Timing and secondary metadata (`<elapsed>`, profile metadata, log paths):
+  `COL_METADATA`
+- Emphasis labels (component names in compact status line): `COL_INFO`
+- Reset token everywhere: `COL_RESET`
+
+Legacy-to-new mapping decisions:
+
+1. `bin/ini` startup separator (`────────`) is removed in compact mode.
+2. `ini_log` per-step `└─ message [time]` terminal lines are replaced by
+   compact header/progress/summary lines.
+3. `lo1_log` depth/viridis tree terminal lines are suppressed during compact
+   bootstrap (file logging unchanged).
+4. `tme_print_timing_report` compact terminal output uses semantic colors only;
+   remove `TME_*` private ANSI palette usage from terminal-render path.
+5. `err_print_report` compact terminal output uses semantic colors only;
+   keep detailed category output for verbose mode.
+
+#### 3) Verbosity model (new variable + compatibility)
+
+New controller variable:
+
+- `LAB_BOOTSTRAP_VERBOSITY=compact|verbose|silent`
+
+Effective mode precedence (bootstrap terminal output):
+
+1. `MASTER_TERMINAL_VERBOSITY=off` -> force `silent`
+2. Else if `LAB_BOOTSTRAP_VERBOSITY` is set and valid -> use it
+3. Else compatibility mapping from legacy toggles:
+   - all of `INI_LOG_TERMINAL_VERBOSITY`, `LO1_LOG_TERMINAL_VERBOSITY`,
+     `TME_TERMINAL_VERBOSITY`, `ERR_TERMINAL_VERBOSITY` are `on` -> `verbose`
+   - all four are `off` -> `silent`
+   - mixed state -> `compact`
+
+Compatibility policy:
+
+- Existing variables remain accepted and exported.
+- During compact bootstrap output, legacy toggles are interpreted via the
+  mapping above rather than independently shaping each line family.
+- Outside bootstrap mode, existing module verbosity behavior remains unchanged.
+
+#### 4) Feature flag contract
+
+Gating variable:
+
+- `LAB_BOOTSTRAP_OUTPUT=legacy|compact`
+
+Behavior:
+
+1. Phase 2-4 implementation default: `legacy` (opt-in compact for rollout).
+2. Phase 5 default flips to `compact`.
+3. Invalid value falls back to `legacy` and records a warning in `ini.log`
+   (no extra terminal noise in compact/silent paths).
+4. `LAB_BOOTSTRAP_OUTPUT` controls format selection; verbosity remains governed
+   by effective bootstrap verbosity mode above.
+
+#### 5) Test impact inventory (current repo scan)
+
+Output-shape-dependent assertions found:
+
+1. `val/core/modules/tme_test.sh:199`-`val/core/modules/tme_test.sh:201`
+   - Current assertion checks `tme_print_timing_report` output contains
+     `REPORT_TEST`.
+   - Dependency type: content-dependent (not strict formatting).
+   - Planned change: keep `REPORT_TEST` visible in verbose report output; if
+     compact mode alters report detail, update assertion to validate semantic
+     report data instead of line shape.
+
+Behavior-only, non-format assertions touching logging/timing entrypoints:
+
+1. `val/core/initialization/ini_test.sh:124`-`val/core/initialization/ini_test.sh:130`
+   (`lo1_log` call success only)
+2. `val/integration/complete_workflow_test.sh:211`-`val/integration/complete_workflow_test.sh:213`
+   (`lo1_log` + `err_process` success path only)
+
+No strict assertions were found for:
+
+- exact `ini_log` line shape
+- `lo1_log` tree glyph formatting
+- `err_print_report` header text shape
+- initialization completion line formatting.
+
+#### 6) Constraints, trade-offs, rejected alternatives
+
+Constraints:
+
+1. No behavior change to bootstrap logic, only terminal presentation.
+2. File logging in `.log/*` must remain unchanged.
+3. 80-column cap, no wrapped output blocks.
+4. No new dependency/tool introduction.
+
+Trade-offs and rejected options:
+
+1. Rejected: single final line only (no progress). Too little live feedback.
+2. Rejected: keep five independent terminal switches in compact mode. Too
+   fragmented for a coherent UX.
+3. Rejected: preserve TME rainbow/depth palettes. Conflicts with unified
+   semantic color policy.
+4. Rejected: globally changing `lo1_log` behavior outside bootstrap. Out of
+   scope and risks non-bootstrap regressions.
+
+### Phase 1 findings (2026-03-03)
+
+1. Current bootstrap output has three distinct visual systems active at once
+   (`ini_log`, `lo1_log`, `tme`/`err` reports), which makes compact mode design
+   easiest if all terminal rendering is routed through one bootstrap display
+   contract.
+2. Existing tests are weakly coupled to formatting; most risk is limited to
+   `tme_print_timing_report` content assertions rather than strict snapshots.
+3. A compatibility mapping layer is sufficient to preserve old verbosity env
+   variables while still introducing one effective bootstrap verbosity control.
+
+## Execution Plan (current)
+
+- [DONE] Phase 1: Design (deliverable captured in this document)
+- [NEXT] Phase 2: Implement compact output in `bin/ini` behind
+  `LAB_BOOTSTRAP_OUTPUT=compact`
+- [PENDING] Phase 3: Migrate compact terminal paths in `lib/core/tme` and
+  `lib/core/err` to semantic `col` tokens
+- [PENDING] Phase 4: Suppress `lo1_log` terminal tree during compact bootstrap
+- [PENDING] Phase 5: Update tests and flip compact mode to default
 
 ### Phase 2: Implement compact output in `bin/ini`
 
