@@ -2402,6 +2402,7 @@ PY
             fallback_email=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $6}')
 
             denylist_path=$(_dev_add_antigravity_denylist_entry "$removed_email") || denylist_path=""
+            _dev_apply_account_denylist >/dev/null 2>&1
 
             if [ -n "$fallback_email" ] && [ "$fallback_email" != "$removed_email" ]; then
                 _dev_record_account_event "antigravity" "$fallback_email" "$fallback_email" "auth_switched" "manual_switch"

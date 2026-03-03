@@ -1262,7 +1262,7 @@ PY
     cleanup_test_env "$test_env"
 
     [[ $status -eq 0 ]] || return 1
-    [[ "$state" == "False|1|1" ]] || return 1
+    [[ "$state" == "True|0|0" ]] || return 1
     return 0
 }
 
@@ -1427,7 +1427,7 @@ print(data.get('activeIndexByFamily', {}).get('claude', -1))
     return 0
 }
 
-# Test: dev_oas enforces denylist-disabled targets
+# Test: dev_oas rejects denylisted targets after automatic prune
 test_dev_oas_rejects_denylisted_account() {
     local test_env
     test_env=$(create_test_env "dev_oas_denylisted")
@@ -1455,7 +1455,7 @@ with open(sys.argv[1], 'r', encoding='utf-8') as f:
 
 accounts = data.get('accounts', [])
 print('{}|{}'.format(
-    accounts[1].get('enabled', True),
+    len(accounts),
     data.get('activeIndexByFamily', {}).get('claude', -1),
 ))
 PY
@@ -1465,7 +1465,7 @@ PY
     cleanup_test_env "$test_env"
 
     [[ $status -eq 1 ]] || return 1
-    [[ "$state" == "False|0" ]] || return 1
+    [[ "$state" == "1|0" ]] || return 1
     return 0
 }
 
@@ -1702,7 +1702,7 @@ PY
 
     [[ $status -eq 0 ]] || return 1
     [[ "$denylist_entries" == "alice@example.com" ]] || return 1
-    [[ "$state" == "False|1" ]] || return 1
+    [[ "$state" == "True|0" ]] || return 1
     return 0
 }
 
@@ -2147,7 +2147,7 @@ PY
     cleanup_test_env "$test_env"
 
     [[ $status -eq 0 ]] || return 1
-    [[ "$state" == "False|1" ]] || return 1
+    [[ "$state" == "True|0" ]] || return 1
     [[ "$event_row" == "antigravity|bob@example.com|account_selected|shell_wrapper" ]] || return 1
     [[ $backup_count -ge 1 ]] || return 1
     return 0
