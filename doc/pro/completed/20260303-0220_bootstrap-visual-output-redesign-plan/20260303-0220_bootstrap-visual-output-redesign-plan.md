@@ -1,10 +1,10 @@
 # Bootstrap Visual Output Redesign
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03 (checkpoint: phase 5 pending external blocker resolution)
-- Links: bin/ini, bin/orc, lib/core/tme, lib/core/lo1, lib/core/err, lib/core/col
+- Updated: 2026-03-03 (phase 5 complete; blocker resolved; moved to completed)
+- Links: bin/ini, bin/orc, lib/core/tme, lib/core/lo1, lib/core/err, lib/core/col, lib/gen/inf, val/core/glb_008_secret_scan_test.sh
 
 ## Goal
 
@@ -331,7 +331,7 @@ Trade-offs and rejected options:
 - [COMPLETE] Phase 2: Compact output implementation in `bin/ini`
 - [COMPLETE] Phase 3: Compact `tme`/`err` terminal rendering with semantic colors
 - [COMPLETE] Phase 4: Compact bootstrap `lo1_log` terminal suppression
-- [IN_PROGRESS] Phase 5: Final verification and closure with compact default
+- [COMPLETE] Phase 5: Final verification and closure with compact default
 
 ## Progress Checkpoint
 
@@ -348,53 +348,44 @@ Trade-offs and rejected options:
    `val/core/initialization/ini_test.sh` for compact default, verbose fallback,
    and silent stream behavior.
 5. Tests run this session:
-   - Pass: `bash -n bin/ini lib/core/tme lib/core/err lib/core/lo1 val/core/initialization/ini_test.sh`
-   - Pass: `./val/core/initialization/ini_test.sh`
-   - Pass: `./val/core/modules/tme_test.sh`
-   - Pass: `./val/core/modules/err_test.sh`
-   - Pass: `./val/core/modules/lo1_test.sh`
-   - Pass: `./val/run_all_tests.sh lib`
-   - Fail (pre-existing): `./val/run_all_tests.sh core` and full
-     `./val/run_all_tests.sh` due to `glb_008_secret_scan_test` at
-     `lib/gen/inf:90`.
+    - Pass: `bash -n bin/ini lib/core/tme lib/core/err lib/core/lo1 val/core/initialization/ini_test.sh`
+    - Pass: `./val/core/initialization/ini_test.sh`
+    - Pass: `./val/core/modules/tme_test.sh`
+    - Pass: `./val/core/modules/err_test.sh`
+    - Pass: `./val/core/modules/lo1_test.sh`
+    - Pass: `./val/run_all_tests.sh lib`
+    - Pass: `bash -n lib/gen/inf`
+    - Pass: `./val/core/glb_008_secret_scan_test.sh`
+    - Pass: `./val/run_all_tests.sh` (47/47 passed)
+6. Resolved GLB-008 blocker by replacing hardcoded default
+   `CT_DEFAULT_PASSWORD="password"` in `lib/gen/inf` with env-backed
+   `CT_DEFAULT_PASSWORD="${LAB_CT_DEFAULT_PASSWORD:-}"`.
 
 ### In-flight
 
-1. Phase 5 closure is not yet complete because full-suite pass criterion is
-   blocked by the existing GLB-008 secret-scan baseline failure unrelated to
-   this redesign.
-2. Active plan remains in `doc/pro/active/` pending blocker resolution and final
-   move to completed.
+1. None. Phase 5 closure is complete.
 
 ### Blockers
 
-1. `glb_008_secret_scan_test` fails in baseline/full-suite runs due to detected
-   default password literal in `lib/gen/inf:90`; this is outside the files
-   changed for bootstrap visual redesign.
+1. None. Previous GLB-008 blocker at `lib/gen/inf:90` is resolved.
 
 ### Next steps
 
-1. Resolve or formally waive `glb_008_secret_scan_test` baseline failure for
-   `lib/gen/inf:90` so full-suite validation can pass.
-2. Re-run `./val/run_all_tests.sh` and record pass/fail evidence in this plan.
-3. If full suite passes or blocker waiver is approved, mark Phase 5 complete and
-   update this item's status for completion handoff.
-4. Move the plan and related topic artifacts to
-   `doc/pro/completed/<topic>/` using the workflow close task.
+1. Completed: resolved `glb_008_secret_scan_test` failure by removing hardcoded
+   password literal from `lib/gen/inf`.
+2. Completed: re-ran `./val/run_all_tests.sh` with zero failures.
+3. Completed: marked Phase 5 complete and prepared completion handoff.
+4. Completed: moved this plan into `doc/pro/completed/<topic>/`.
 
 ### Context
 
 1. Branch: `master`.
-2. Modified files in working tree for this topic:
-   - `bin/ini`
-   - `lib/core/tme`
-   - `lib/core/err`
-   - `lib/core/lo1`
-   - `val/core/initialization/ini_test.sh`
-   - `doc/pro/active/20260303-0220_bootstrap-visual-output-redesign-plan.md`
-3. Full suite currently fails only on `glb_008_secret_scan_test` (known,
-   unrelated baseline issue), while targeted bootstrap redesign tests pass.
-4. Workflow checker status at checkpoint: `bash doc/pro/check-workflow.sh` pass.
+2. Closure updates in this session:
+   - `lib/gen/inf`
+   - `doc/pro/completed/20260303-0220_bootstrap-visual-output-redesign-plan/20260303-0220_bootstrap-visual-output-redesign-plan.md`
+   - `doc/pro/active/waivers/20260228-0105_waiver-register.md`
+3. Full suite status: `./val/run_all_tests.sh` pass (47 passed, 0 failed).
+4. Workflow checker status: `bash doc/pro/check-workflow.sh` pass.
 
 ### Phase 2: Implement compact output in `bin/ini`
 
@@ -537,8 +528,7 @@ the default. Preserve a verbose fallback via `LAB_BOOTSTRAP_VERBOSITY=verbose`.
 Completion criterion: `./val/run_all_tests.sh` passes with compact mode as
 the default.
 
-Status: in progress (implementation complete, verification blocked by existing
-unrelated test failure).
+Status: complete.
 
 Phase 5 implementation notes:
 
@@ -563,17 +553,17 @@ Phase 5 verification evidence:
 - Pass: `./val/core/modules/err_test.sh`
 - Pass: `./val/core/modules/lo1_test.sh`
 - Pass: `./val/run_all_tests.sh lib`
-- Full-suite result: `./val/run_all_tests.sh` -> fail (single failing test:
-  `glb_008_secret_scan_test`, pre-existing; secret-scan hit at
-  `lib/gen/inf:90`)
+- Pass: `bash -n lib/gen/inf`
+- Pass: `./val/core/glb_008_secret_scan_test.sh`
+- Full-suite result: `./val/run_all_tests.sh` -> pass (47 passed, 0 failed)
 
 ### Phase 5 findings (2026-03-03)
 
 1. End-to-end bootstrap verbosity control can be layered in `bin/ini` without
    changing module APIs by exporting effective bootstrap mode variables and
    applying stream overrides before initialization logging begins.
-2. Full-suite completion is currently gated by an unrelated baseline failure in
-   `glb_008_secret_scan_test`, not by bootstrap output redesign changes.
+2. Closing this topic required resolving GLB-008 in `lib/gen/inf`; after that
+   change, strict secret scan and full-suite validation both passed.
 
 ## Verification Plan
 
@@ -597,3 +587,24 @@ Phase 5 verification evidence:
   terminal detail level with at least `compact`, `verbose`, and `silent` modes.
 - File-based logging is completely unchanged.
 - `./val/run_all_tests.sh` passes with zero failures.
+
+## What changed
+
+1. Completed all planned phases for bootstrap visual output redesign and
+   finalized compact mode as default with verbose/silent compatibility.
+2. Resolved closure blocker by replacing hardcoded
+   `CT_DEFAULT_PASSWORD="password"` with env-backed
+   `CT_DEFAULT_PASSWORD="${LAB_CT_DEFAULT_PASSWORD:-}"` in `lib/gen/inf`.
+3. Updated waiver register entry `WVR-2026-001` to `resolved` after strict
+   secret-scan passed with zero matches.
+4. Updated this plan with final verification evidence and completion status.
+
+## What was verified
+
+1. `bash -n lib/gen/inf` -> pass.
+2. `./val/core/glb_008_secret_scan_test.sh` -> pass (`Potential secret matches: 0`).
+3. `./val/run_all_tests.sh` -> pass (`Total Tests: 47`, `Failed: 0`, `Passed: 47`).
+
+## What remains
+
+1. No mandatory follow-up items for this topic.
