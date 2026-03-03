@@ -181,36 +181,33 @@ source_helper() {
     fi
 }
 
-lab_source_module() {
-    local module_id="$1"
-    local module_path="$2"
-    local module_desc="${3:-${module_path##*/}}"
-    local context="${4:-orc}"
-
-    if [[ -z "$module_id" || -z "$module_path" ]]; then
-        lo1_log "lvl" " Error: Invalid lab_source_module arguments (module_id/module_path required)"
-        return 1
-    fi
-
-    declare -gA LAB_MODULE_SOURCE_STATE
-
-    if [[ "${LAB_MODULE_SOURCE_STATE[$module_id]:-0}" == "1" ]]; then
-        lo1_log "lvl" "Module already loaded (context=${context}, module_id=${module_id})"
+orc_ensure_shared_module_loader() {
+    if type lab_source_module &>/dev/null; then
         return 0
     fi
 
-    if [[ ! -f "$module_path" || ! -r "$module_path" ]]; then
-        lo1_log "lvl" " Error: Module file not accessible (context=${context}, module_id=${module_id}, path=${module_path})"
+    local lab_root="${LAB_DIR:-${BASE_DIR:-$(cd "${SCRIPT_DIR}/.." &>/dev/null && pwd)}}"
+    local loader_file="${lab_root}/lib/core/lab"
+
+    if [[ ! -r "$loader_file" ]]; then
+        if type lo1_log &>/dev/null; then
+            lo1_log "lvl" " Error: Shared module loader not found at ${loader_file}"
+        else
+            echo "Error: Shared module loader not found at ${loader_file}" >&2
+        fi
         return 127
     fi
 
-    if ! source_helper "$module_path" "$module_desc"; then
-        lo1_log "lvl" " Error: Module source failed (context=${context}, module_id=${module_id}, path=${module_path})"
+    if ! source "$loader_file"; then
+        if type lo1_log &>/dev/null; then
+            lo1_log "lvl" " Error: Failed to source shared module loader: ${loader_file}"
+        else
+            echo "Error: Failed to source shared module loader: ${loader_file}" >&2
+        fi
         return 2
     fi
 
-    LAB_MODULE_SOURCE_STATE["$module_id"]=1
-    lo1_log "lvl" "Module loaded (context=${context}, module_id=${module_id})"
+    type lab_source_module &>/dev/null || return 2
     return 0
 }
 
@@ -288,13 +285,16 @@ declare -Ag ORC_LAZY_MODULE_LOADED
 declare -Ag ORC_LAZY_OPS_FUNCTIONS
 declare -Ag ORC_LAZY_GEN_FUNCTIONS
 declare -ag ORC_LAZY_DISCOVERED_FUNCS
-declare -Ag LAB_MODULE_SOURCE_STATE
-
 _orc_lazy_dispatch() {
     local module_file="$1"
     local func_name="$2"
     local module_id="$3"
     shift 3
+
+    if ! orc_ensure_shared_module_loader; then
+        lo1_log "lvl" " Error: Shared module loader unavailable for lazy dispatch"
+        return 1
+    fi
 
     if [[ "${ORC_LAZY_MODULE_LOADED[$module_file]:-0}" != "1" ]]; then
         if ! lab_source_module "$module_id" "$module_file" "${module_file##*/}" "orc_lazy"; then
@@ -444,6 +444,10 @@ _orc_lazy_module_selected() {
 # Contains: gpu, net, pbs, pve, srv, sto, sys, usr
 # Purpose: Domain-specific operational functions for system and service management
 source_lib_ops() {
+    if ! orc_ensure_shared_module_loader; then
+        return 1
+    fi
+
     # Validate LIB_OPS_DIR is set
     if [[ -z "${LIB_OPS_DIR:-}" ]]; then
         lo1_log "lvl" "Error: LIB_OPS_DIR not set, cannot source operational function files"
@@ -587,6 +591,10 @@ init_password_management_if_needed() {
 # Contains: env, inf, sec, ssh
 # Purpose: High-level specialized tools for infrastructure and security management
 source_lib_gen() {
+    if ! orc_ensure_shared_module_loader; then
+        return 1
+    fi
+
     local dir_to_source="${LIB_GEN_DIR}"
     local description="general utility function files"
     local success_count=0

@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03 (checkpoint refreshed; phase 3 in progress)
+- Updated: 2026-03-03 (checkpoint refreshed for handoff; commit prepared)
 - Links: bin/ini, bin/orc, cfg/core/ric, cfg/core/rdc, cfg/core/mdc, cfg/core/lzy, lib/core/ver, src/set/.menu, src/dic/ops, doc/arc/00-architecture-overview.md, doc/arc/01-bootstrap-and-orchestration.md, doc/pro/completed/20260301-2328_bootstrapper-performance-renewal
 
 ## Triage Decision
@@ -179,28 +179,8 @@ Out of scope:
 
 ## Execution Plan (current)
 
-- [COMPLETE] Phase 1 -- Design baseline and decision record
-- [COMPLETE] Phase 2 -- Remove dead boot-time ceremony
-- [IN PROGRESS] Phase 3 -- Implement unified sourcing registry
-- [PENDING] Phase 4 -- Separate interactive and deployment bootstrap paths
+- [IN PROGRESS] Phase 4 -- Separate interactive and deployment bootstrap paths
 - [PENDING] Phase 5 -- Compiled bootstrap snapshot prototype
-
-### Phase 3 -- Implement unified sourcing registry
-
-Implement and adopt one canonical module loader across `bin/orc`, `src/dic/ops`, and `src/set/.menu`.
-
-Completion criterion: all three paths source modules only through `lab_source_module` with shared loaded-state tracking.
-
-Status: in progress.
-
-Remaining work:
-
-1. Move `lab_source_module` ownership to shared bootstrap foundation scope so
-   DIC/menu paths do not depend on `bin/orc` implementation details.
-2. Remove fallback direct-sourcing in DIC/menu module paths once shared loader
-   availability is guaranteed.
-3. Prove no duplicate module sourcing across interactive bootstrap, DIC
-   execution, and deployment menu paths.
 
 ### Phase 4 -- Separate interactive and deployment bootstrap paths
 
@@ -208,7 +188,7 @@ Refactor `bin/ini` into a lean shared foundation plus explicit interactive/deplo
 
 Completion criterion: interactive bootstrap is linear and deployment execution works without redundant eager re-sourcing.
 
-Status: pending.
+Status: in progress.
 
 ### Phase 5 -- Compiled bootstrap snapshot prototype
 
@@ -224,50 +204,50 @@ Status: pending and optional.
 
 1. Completed Phase 1 design deliverable in this file and completed Phase 2
    dead-ceremony removals.
-2. Implemented partial Phase 3 registry wiring:
-   - `bin/orc`: added `lab_source_module`, shared state map, lazy-dispatch
-     integration, and direct component-call execution path.
-   - `src/dic/ops`: added `ops_source_module` and routed module loads through
-     `lab_source_module` when available.
-   - `src/set/.menu`: added `_menu_source_module` and routed menu-time sourcing
-     through `lab_source_module` when available.
-3. Updated active plan tracking and renamed experiments rules file to satisfy
+2. Completed Phase 3 unified registry delivery:
+   - Added shared loader module `lib/core/lab` with canonical
+     `lab_source_module` + `LAB_MODULE_SOURCE_STATE` ownership.
+   - `bin/ini`: now sources `lib/core/lab` in core load sequence.
+   - `bin/orc`: now consumes shared loader via `orc_ensure_shared_module_loader`
+     instead of owning a local implementation.
+   - `src/dic/ops`: removed fallback direct sourcing and now requires shared
+     loader through `ops_ensure_shared_module_loader`.
+   - `src/set/.menu`: removed fallback direct sourcing and now requires shared
+     loader through `_menu_ensure_shared_module_loader`.
+3. Added `LAB_MENU_AUTO_SOURCE` guard in `src/set/.menu` to allow non-side-
+   effect loading of menu helpers for validation contexts.
+4. Added cross-path deduplication test coverage:
+   - Pass: `./val/core/initialization/orc_test.sh`
+5. Updated active plan tracking and renamed experiments rules file to satisfy
    workflow naming checks (`doc/pro/experiments/20260303-0000_experiments-rules.md`).
-4. Tests/syntax run this session:
+6. Tests/syntax run this session:
    - Pass: `bash -n bin/ini bin/orc src/dic/ops src/set/.menu`
+   - Pass: `bash -n lib/core/lab val/core/initialization/orc_test.sh`
    - Pass: `./val/core/initialization/ini_test.sh`
    - Pass: `./val/core/initialization/orc_test.sh`
    - Pass: `./val/core/modules/ver_test.sh`
    - Pass: `./val/src/dic_framework_test.sh`
-   - Fail: `./val/src/dic/dic_simple_test.sh` (direct invocation lacked
-     expected `LAB_ROOT` context; error at `source bin/ini`).
+   - Pass: `./val/src/dic/dic_simple_test.sh` (via `./val/src/dic_framework_test.sh`)
 
 ### In-flight
 
-1. Phase 3 completion criterion is not yet met because DIC/menu wrappers still
-   allow direct-source fallback when shared loader is unavailable.
-2. Working tree is uncommitted with edits in `bin/ini`, `bin/orc`,
-   `src/dic/ops`, `src/set/.menu`, this active plan file, and the experiments
-   rules rename.
+1. Phase 4 has started: next changes will split shared foundation bootstrap
+   concerns from interactive-only behavior in `bin/ini`/`bin/orc`.
+2. Working tree is uncommitted with Phase 3 closure edits plus this plan update.
 
 ### Blockers
 
 1. No hard implementation blocker.
-2. Validation noise: standalone `./val/src/dic/dic_simple_test.sh` fails in the
-   current shell context due missing `LAB_ROOT` setup assumptions.
 
 ### Next steps
 
-1. Complete Phase 3 by moving `lab_source_module` and
-   `LAB_MODULE_SOURCE_STATE` into shared bootstrap scope loaded before
-   orchestrator-specific logic (`bin/ini` + shared core module path).
-2. Update `src/dic/ops` to remove direct-source fallback for ops/gen/env module
-   loading and rely on the shared loader contract.
-3. Update `src/set/.menu` to remove direct-source fallback for env/ops/local
-   module loading and rely on the shared loader contract.
-4. Add/adjust tests to assert deduplicated module sourcing across
-   `bin/orc`, `src/dic/ops`, and `src/set/.menu` paths.
-5. Run validation for Phase 3 closure: `bash -n` on edited files,
+1. Start Phase 4 refactor by extracting a small shared-foundation bootstrap
+   section in `bin/ini` (core paths, core module load, shared loader readiness).
+2. Define explicit interactive vs deployment bootstrap entrypoints and route
+   existing `main_ini` flow through them without behavior regressions.
+3. Verify deployment-facing consumers (`src/set/.menu`, `src/dic/ops`) still
+   run without redundant eager re-sourcing after the split.
+4. Run Phase 4 validation slice: `bash -n` on touched files,
    `./val/core/initialization/ini_test.sh`,
    `./val/core/initialization/orc_test.sh`, and
    `./val/src/dic_framework_test.sh`.
@@ -279,11 +259,11 @@ Status: pending and optional.
 3. Uncommitted changes currently present:
    - `bin/ini`
    - `bin/orc`
+   - `lib/core/lab`
    - `src/dic/ops`
    - `src/set/.menu`
+   - `val/core/initialization/orc_test.sh`
    - `doc/pro/active/20260302-0345_bootstrap-architectural-restructure-plan.md`
-   - `doc/pro/experiments/RULES.md` (deleted)
-   - `doc/pro/experiments/20260303-0000_experiments-rules.md` (new)
 4. No persistent temp artifacts are required for continuation.
 
 ## Phase 1 Design Decision Record

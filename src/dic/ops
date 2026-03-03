@@ -65,6 +65,32 @@ ops_debug() {
     fi
 }
 
+ops_ensure_shared_module_loader() {
+    if type lab_source_module &>/dev/null; then
+        return 0
+    fi
+
+    local lab_root="${LAB_ROOT:-${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}}"
+    local loader_file="${lab_root}/lib/core/lab"
+
+    if [[ ! -r "$loader_file" ]]; then
+        ops_debug "Shared module loader missing: $loader_file"
+        return 127
+    fi
+
+    if ! source "$loader_file"; then
+        ops_debug "Failed to source shared module loader: $loader_file"
+        return 2
+    fi
+
+    if ! type lab_source_module &>/dev/null; then
+        ops_debug "Shared module loader sourced but lab_source_module is unavailable"
+        return 2
+    fi
+
+    return 0
+}
+
 ops_source_module() {
     local module_id="$1"
     local module_path="$2"
@@ -75,16 +101,12 @@ ops_source_module() {
         return 1
     fi
 
-    if type lab_source_module &>/dev/null; then
-        lab_source_module "$module_id" "$module_path" "${module_path##*/}" "$context"
+    if ! ops_ensure_shared_module_loader; then
         return $?
     fi
 
-    if [[ ! -f "$module_path" ]]; then
-        return 127
-    fi
-
-    source "$module_path"
+    lab_source_module "$module_id" "$module_path" "$context"
+    return $?
 }
 
 # Source required utility libraries for analysis functions

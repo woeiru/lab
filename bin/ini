@@ -12,6 +12,7 @@
 #     * Verification Module (ver): Validates system state and dependencies
 #     * Runtime Constants (ric): System-wide configuration constants
 #     * Runtime Dependencies (rdc): Runtime environment requirements
+#     * Shared Loader Registry (lab): Canonical module source tracking
 #     * Component Orchestrator (orc): Manages setup of additional system components
 #
 # Initialization Flow:
@@ -41,6 +42,7 @@
 #   - err (Error handling functions)
 #   - lo1 (Logging functions)
 #   - tme (Timing functions)
+#   - lab (Shared module sourcing registry)
 #   - ver (Verification functions)
 #   Required scripts in bin/:
 #   - orc (Component orchestrator)
@@ -466,6 +468,7 @@ load_modules() {
         "${BASE_DIR}/lib/core/err"
         "${BASE_DIR}/lib/core/lo1"
         "${BASE_DIR}/lib/core/tme"
+        "${BASE_DIR}/lib/core/lab"
     )
 
     declare -A loaded_modules

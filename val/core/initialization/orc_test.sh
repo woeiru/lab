@@ -122,12 +122,62 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_shared_loader_deduplicates_cross_path_sourcing() {
+    local test_env
+    test_env=$(create_test_env "orc_shared_loader")
+
+    cat > "$test_env/test_orc_shared_loader.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+export MASTER_TERMINAL_VERBOSITY=off
+export LAB_OPS_LAZY_LOAD=0
+export LAB_GEN_LAZY_LOAD=0
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+if ! type lab_source_module >/dev/null 2>&1; then
+    exit 1
+fi
+
+tmp_module=$(mktemp)
+trap 'rm -f "$tmp_module"' EXIT
+printf 'LAB_TEST_SOURCE_COUNTER=$((LAB_TEST_SOURCE_COUNTER + 1))\n' > "$tmp_module"
+
+LAB_TEST_SOURCE_COUNTER=0
+
+lab_source_module "test:registry" "$tmp_module" "test_seed" >/dev/null 2>&1 || exit 1
+
+if ! source src/dic/ops >/dev/null 2>&1; then
+    exit 1
+fi
+ops_source_module "test:registry" "$tmp_module" "dic_test" >/dev/null 2>&1 || exit 1
+
+export LAB_MENU_AUTO_SOURCE=0
+if ! source src/set/.menu >/dev/null 2>&1; then
+    exit 1
+fi
+_menu_source_module "test:registry" "$tmp_module" "menu_test" >/dev/null 2>&1 || exit 1
+
+[[ "${LAB_TEST_SOURCE_COUNTER}" -eq 1 ]] || exit 1
+[[ "${LAB_MODULE_SOURCE_STATE[test:registry]:-0}" == "1" ]] || exit 1
+EOF
+    chmod +x "$test_env/test_orc_shared_loader.sh"
+
+    run_test "Shared loader deduplicates sourcing across orc/dic/menu" "$test_env/test_orc_shared_loader.sh"
+    cleanup_test_env "$test_env"
+}
+
 main() {
     run_test_suite "COMPONENT ORCHESTRATOR TESTS" \
         test_orc_script_exists \
         test_source_directory_skips_hidden_files \
         test_source_lib_ops_lazy_stub_loads_on_first_call \
-        test_source_lib_gen_lazy_stub_loads_on_first_call
+        test_source_lib_gen_lazy_stub_loads_on_first_call \
+        test_shared_loader_deduplicates_cross_path_sourcing
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
