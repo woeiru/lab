@@ -927,7 +927,7 @@ _dev_apply_account_denylist() {
     fi
 
     local py_output
-    py_output=$(python3 - "$accounts_path" "$denylist_path" <<'PY'
+py_output=$(python3 - "$accounts_path" "$denylist_path" <<'PY'
 import json
 import shutil
 import sys
@@ -959,8 +959,8 @@ accounts = data.get("accounts", [])
 if not isinstance(accounts, list) or not accounts:
     sys.exit(0)
 
-disabled_indices = []
-disabled_emails = []
+removed_indices = []
+removed_emails = []
 
 for idx, account in enumerate(accounts):
     if not isinstance(account, dict):
@@ -973,48 +973,69 @@ for idx, account in enumerate(accounts):
     if email.lower() not in denied:
         continue
 
-    if account.get("enabled", True) is False:
-        continue
+    removed_indices.append(idx)
+    removed_emails.append(email)
 
-    account["enabled"] = False
-    disabled_indices.append(idx)
-    disabled_emails.append(email)
-
-if not disabled_indices:
+if not removed_indices:
     print("NO_CHANGE")
     sys.exit(0)
 
+removed_set = set(removed_indices)
+remaining_accounts = [
+    account for idx, account in enumerate(accounts)
+    if idx not in removed_set
+]
+
+if not remaining_accounts:
+    print(f"NO_ENABLED_FALLBACK|{','.join(removed_emails)}")
+    sys.exit(11)
+
 enabled_indices = [
-    idx for idx, account in enumerate(accounts)
+    idx for idx, account in enumerate(remaining_accounts)
     if isinstance(account, dict) and account.get("enabled", True) is not False
 ]
 
 if not enabled_indices:
-    print(f"NO_ENABLED_FALLBACK|{','.join(disabled_emails)}")
+    print(f"NO_ENABLED_FALLBACK|{','.join(removed_emails)}")
     sys.exit(11)
 
 backup_path = accounts_path + ".backup." + datetime.now().strftime("%Y%m%d_%H%M%S")
 shutil.copy2(accounts_path, backup_path)
 
 fallback_index = enabled_indices[0]
-fallback_email = str(accounts[fallback_index].get("email", "(unknown)"))
-disabled_set = set(disabled_indices)
+fallback_email = str(remaining_accounts[fallback_index].get("email", "(unknown)"))
 rerouted = []
+index_map = {}
 
-if data.get("activeIndex") in disabled_set:
-    data["activeIndex"] = fallback_index
-    rerouted.append("default")
+next_index = 0
+for old_index in range(len(accounts)):
+    if old_index in removed_set:
+        continue
+    index_map[old_index] = next_index
+    next_index += 1
+
+active_index = data.get("activeIndex")
+if isinstance(active_index, int):
+    if active_index in index_map:
+        data["activeIndex"] = index_map[active_index]
+    else:
+        data["activeIndex"] = fallback_index
+        rerouted.append("default")
 
 active_by_family = data.get("activeIndexByFamily")
 if not isinstance(active_by_family, dict):
     active_by_family = {}
 
 for family, idx in list(active_by_family.items()):
-    if idx in disabled_set:
+    if not isinstance(idx, int):
+        continue
+    if idx in index_map:
+        active_by_family[family] = index_map[idx]
+    else:
         active_by_family[family] = fallback_index
         rerouted.append(str(family))
 
-data["accounts"] = accounts
+data["accounts"] = remaining_accounts
 data["activeIndexByFamily"] = active_by_family
 
 with open(accounts_path, "w", encoding="utf-8") as f:
@@ -1022,7 +1043,7 @@ with open(accounts_path, "w", encoding="utf-8") as f:
     f.write("\n")
 
 print(
-    f"UPDATED|{','.join(disabled_emails)}|{backup_path}|"
+    f"UPDATED|{','.join(removed_emails)}|{backup_path}|"
     f"{fallback_email}|{','.join(rerouted)}"
 )
 sys.exit(0)
@@ -1033,13 +1054,13 @@ PY
     case "$py_status" in
         0)
             if [[ "$py_output" == UPDATED\|* ]]; then
-                local disabled_emails backup_file fallback_email rerouted_targets
-                disabled_emails=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $2}')
+                local removed_emails backup_file fallback_email rerouted_targets
+                removed_emails=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $2}')
                 backup_file=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $3}')
                 fallback_email=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $4}')
                 rerouted_targets=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $5}')
 
-                aux_info "Applied antigravity account denylist" "component=dev,operation=opencode_account_denylist,disabled=$disabled_emails,fallback_email=$fallback_email"
+                aux_info "Applied antigravity account denylist" "component=dev,operation=opencode_account_denylist,removed=$removed_emails,fallback_email=$fallback_email"
                 if [ -n "$rerouted_targets" ]; then
                     aux_info "Re-routed active mappings after denylist update" "component=dev,operation=opencode_account_denylist,targets=$rerouted_targets"
                 fi
@@ -1050,7 +1071,7 @@ PY
         11)
             local blocked_emails
             blocked_emails=$(echo "$py_output" | awk -F'|' '/^NO_ENABLED_FALLBACK\|/ {print $2}')
-            aux_warn "Denylist would disable all accounts; skipping automatic disable" "component=dev,operation=opencode_account_denylist,blocked=$blocked_emails"
+            aux_warn "Denylist would remove all enabled accounts; skipping automatic prune" "component=dev,operation=opencode_account_denylist,blocked=$blocked_emails"
             return 0
             ;;
         *)
