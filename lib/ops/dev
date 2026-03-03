@@ -817,6 +817,161 @@ _dev_get_antigravity_accounts_path() {
     echo "$accounts_path"
 }
 
+_dev_get_antigravity_denylist_path() {
+    local denylist_path="${LAB_DEV_ANTIGRAVITY_DENYLIST_FILE:-${HOME}/.config/opencode/antigravity-account-denylist.txt}"
+
+    if [[ ! -f "$denylist_path" ]]; then
+        return 1
+    fi
+
+    echo "$denylist_path"
+}
+
+_dev_apply_account_denylist() {
+    local accounts_path
+    accounts_path=$(_dev_get_antigravity_accounts_path) || return 0
+
+    local denylist_path
+    denylist_path=$(_dev_get_antigravity_denylist_path) || return 0
+
+    if ! aux_chk "command" "python3" 2>/dev/null; then
+        return 0
+    fi
+
+    local py_output
+    py_output=$(python3 - "$accounts_path" "$denylist_path" <<'PY'
+import json
+import shutil
+import sys
+from datetime import datetime
+
+accounts_path = sys.argv[1]
+denylist_path = sys.argv[2]
+
+try:
+    with open(denylist_path, "r", encoding="utf-8") as f:
+        denied = {
+            line.split("#", 1)[0].strip().lower()
+            for line in f
+            if line.split("#", 1)[0].strip()
+        }
+except Exception:
+    sys.exit(0)
+
+if not denied:
+    sys.exit(0)
+
+try:
+    with open(accounts_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+except Exception:
+    sys.exit(0)
+
+accounts = data.get("accounts", [])
+if not isinstance(accounts, list) or not accounts:
+    sys.exit(0)
+
+disabled_indices = []
+disabled_emails = []
+
+for idx, account in enumerate(accounts):
+    if not isinstance(account, dict):
+        continue
+
+    email = str(account.get("email", "")).strip()
+    if not email:
+        continue
+
+    if email.lower() not in denied:
+        continue
+
+    if account.get("enabled", True) is False:
+        continue
+
+    account["enabled"] = False
+    disabled_indices.append(idx)
+    disabled_emails.append(email)
+
+if not disabled_indices:
+    print("NO_CHANGE")
+    sys.exit(0)
+
+enabled_indices = [
+    idx for idx, account in enumerate(accounts)
+    if isinstance(account, dict) and account.get("enabled", True) is not False
+]
+
+if not enabled_indices:
+    print(f"NO_ENABLED_FALLBACK|{','.join(disabled_emails)}")
+    sys.exit(11)
+
+backup_path = accounts_path + ".backup." + datetime.now().strftime("%Y%m%d_%H%M%S")
+shutil.copy2(accounts_path, backup_path)
+
+fallback_index = enabled_indices[0]
+fallback_email = str(accounts[fallback_index].get("email", "(unknown)"))
+disabled_set = set(disabled_indices)
+rerouted = []
+
+if data.get("activeIndex") in disabled_set:
+    data["activeIndex"] = fallback_index
+    rerouted.append("default")
+
+active_by_family = data.get("activeIndexByFamily")
+if not isinstance(active_by_family, dict):
+    active_by_family = {}
+
+for family, idx in list(active_by_family.items()):
+    if idx in disabled_set:
+        active_by_family[family] = fallback_index
+        rerouted.append(str(family))
+
+data["accounts"] = accounts
+data["activeIndexByFamily"] = active_by_family
+
+with open(accounts_path, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+
+print(
+    f"UPDATED|{','.join(disabled_emails)}|{backup_path}|"
+    f"{fallback_email}|{','.join(rerouted)}"
+)
+sys.exit(0)
+PY
+    )
+    local py_status=$?
+
+    case "$py_status" in
+        0)
+            if [[ "$py_output" == UPDATED\|* ]]; then
+                local disabled_emails backup_file fallback_email rerouted_targets
+                disabled_emails=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $2}')
+                backup_file=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $3}')
+                fallback_email=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $4}')
+                rerouted_targets=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $5}')
+
+                aux_info "Applied antigravity account denylist" "component=dev,operation=opencode_account_denylist,disabled=$disabled_emails,fallback_email=$fallback_email"
+                if [ -n "$rerouted_targets" ]; then
+                    aux_info "Re-routed active mappings after denylist update" "component=dev,operation=opencode_account_denylist,targets=$rerouted_targets"
+                fi
+                aux_dbg "Denylist backup created" "component=dev,operation=opencode_account_denylist,backup=$backup_file"
+            fi
+            return 0
+            ;;
+        11)
+            local blocked_emails
+            blocked_emails=$(echo "$py_output" | awk -F'|' '/^NO_ENABLED_FALLBACK\|/ {print $2}')
+            aux_warn "Denylist would disable all accounts; skipping automatic disable" "component=dev,operation=opencode_account_denylist,blocked=$blocked_emails"
+            return 0
+            ;;
+        *)
+            aux_warn "Failed to apply antigravity account denylist" "component=dev,operation=opencode_account_denylist,python_exit=$py_status"
+            return 0
+            ;;
+    esac
+}
+
 _dev_provider_from_family() {
     local family="${1:-}"
 
@@ -960,6 +1115,8 @@ PY
 }
 
 _dev_auto_attribute() {
+    _dev_apply_account_denylist >/dev/null 2>&1
+
     local accounts_path
     accounts_path=$(_dev_get_antigravity_accounts_path) || return 0
 
@@ -981,6 +1138,9 @@ except Exception:
 accounts = data.get("accounts", [])
 active_by_family = data.get("activeIndexByFamily", {})
 
+if not isinstance(active_by_family, dict):
+    active_by_family = {}
+
 for family, idx in active_by_family.items():
     if not isinstance(idx, int):
         continue
@@ -989,6 +1149,9 @@ for family, idx in active_by_family.items():
 
     account = accounts[idx]
     if not isinstance(account, dict):
+        continue
+
+    if account.get("enabled", True) is False:
         continue
 
     email = account.get("email", "")
@@ -1919,6 +2082,12 @@ if family not in known_families:
     print(f"UNKNOWN_FAMILY|{family}|{','.join(sorted(known_families))}")
     sys.exit(12)
 
+target_account = accounts[account_index]
+target_email = target_account.get("email", "(unknown)")
+if target_account.get("enabled", True) is False:
+    print(f"ACCOUNT_DISABLED|{family}|{target_email}|{account_num}")
+    sys.exit(13)
+
 backup_path = accounts_path + ".backup." + datetime.now().strftime("%Y%m%d_%H%M%S")
 shutil.copy2(accounts_path, backup_path)
 
@@ -1962,8 +2131,192 @@ PY
             aux_err "Unknown family '$family'; known families: $known" "component=dev,operation=opencode_account_switch"
             return 1
             ;;
+        13)
+            local disabled_email
+            disabled_email=$(echo "$py_output" | awk -F'|' '/^ACCOUNT_DISABLED/ {print $3}')
+            aux_err "Account '$disabled_email' is disabled and cannot be selected" "component=dev,operation=opencode_account_switch,family=$family,account=$account_num"
+            return 1
+            ;;
         *)
             aux_err "Failed to switch account" "component=dev,operation=opencode_account_switch,python_exit=$py_status"
+            return 2
+            ;;
+    esac
+}
+
+# Removes an Antigravity account and reroutes active families
+# opencode account remove
+# <account_number>
+dev_oar() {
+    # Technical Description:
+    #   Removes a selected account from antigravity-accounts.json
+    #   Prevents removing the last enabled account to keep routing available
+    #   Re-routes activeIndex and activeIndexByFamily away from the removed account
+    #   Creates a timestamped backup of the accounts file before modification
+    # Dependencies:
+    #   - python3 with json module for safe JSON read-modify-write
+    #   - antigravity-accounts.json from the antigravity auth plugin
+    #   - opencode CLI (optional) to persist account attribution events
+    # Arguments:
+    #   $1: account_number - 1-based account number to remove
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -ne 1 ]; then
+        aux_use
+        return 1
+    fi
+
+    if ! [[ "$1" =~ ^[0-9]+$ ]] || [ "$1" -lt 1 ]; then
+        aux_err "Account number must be a positive integer (1-based)" "component=dev,operation=opencode_account_remove,value=$1"
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "python3"; then
+        aux_err "python3 command not found" "component=dev,operation=opencode_account_remove"
+        return 127
+    fi
+
+    local accounts_path
+    accounts_path=$(_dev_get_antigravity_accounts_path)
+    if [ $? -ne 0 ]; then
+        aux_err "Antigravity accounts file not found" "component=dev,operation=opencode_account_remove,expected_path=${HOME}/.config/opencode/antigravity-accounts.json"
+        return 2
+    fi
+
+    local account_num="$1"
+
+    aux_info "Removing account" "component=dev,operation=opencode_account_remove,account=$account_num"
+
+    local py_output
+    py_output=$(python3 - "$accounts_path" "$account_num" <<'PY'
+import json
+import sys
+import shutil
+from datetime import datetime
+
+accounts_path = sys.argv[1]
+account_num = int(sys.argv[2])
+account_index = account_num - 1
+
+with open(accounts_path, "r") as f:
+    data = json.load(f)
+
+accounts = data.get("accounts", [])
+if account_index < 0 or account_index >= len(accounts):
+    print(f"INVALID_ACCOUNT|{account_num}|{len(accounts)}")
+    sys.exit(11)
+
+account = accounts[account_index]
+email = account.get("email", "(unknown)")
+
+if len(accounts) <= 1:
+    print(f"LAST_ACCOUNT|{email}|{account_num}")
+    sys.exit(13)
+
+enabled_indices = [
+    idx for idx, acc in enumerate(accounts)
+    if idx != account_index and acc.get("enabled", True) is not False
+]
+
+if not enabled_indices:
+    print(f"LAST_ENABLED|{email}|{account_num}")
+    sys.exit(12)
+
+backup_path = accounts_path + ".backup." + datetime.now().strftime("%Y%m%d_%H%M%S")
+shutil.copy2(accounts_path, backup_path)
+
+fallback_index_original = enabled_indices[0]
+removed = accounts.pop(account_index)
+removed_email = removed.get("email", "(unknown)")
+
+if fallback_index_original > account_index:
+    fallback_index = fallback_index_original - 1
+else:
+    fallback_index = fallback_index_original
+
+fallback_email = accounts[fallback_index].get("email", "(unknown)")
+rerouted = []
+
+active_index = data.get("activeIndex")
+if isinstance(active_index, int):
+    if active_index == account_index:
+        data["activeIndex"] = fallback_index
+        rerouted.append("default")
+    elif active_index > account_index:
+        data["activeIndex"] = active_index - 1
+
+active_by_family = data.get("activeIndexByFamily")
+if not isinstance(active_by_family, dict):
+    active_by_family = {}
+
+for family, idx in list(active_by_family.items()):
+    if not isinstance(idx, int):
+        continue
+    if idx == account_index:
+        active_by_family[family] = fallback_index
+        rerouted.append(str(family))
+    elif idx > account_index:
+        active_by_family[family] = idx - 1
+
+data["accounts"] = accounts
+data["activeIndexByFamily"] = active_by_family
+
+with open(accounts_path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+
+print(f"OK|{removed_email}|{account_num}|{backup_path}|{','.join(rerouted)}|{fallback_email}")
+sys.exit(0)
+PY
+    )
+    local py_status=$?
+
+    case "$py_status" in
+        0)
+            local removed_email backup_file rerouted_targets fallback_email
+            removed_email=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $2}')
+            backup_file=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $4}')
+            rerouted_targets=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $5}')
+            fallback_email=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $6}')
+
+            if [ -n "$fallback_email" ] && [ "$fallback_email" != "$removed_email" ]; then
+                _dev_record_account_event "antigravity" "$fallback_email" "$fallback_email" "auth_switched" "manual_switch"
+            fi
+
+            aux_info "Account removed successfully" "component=dev,operation=opencode_account_remove,email=$removed_email"
+            echo "Removed account $account_num: $removed_email"
+            if [ -n "$rerouted_targets" ]; then
+                echo "Re-routed targets: $rerouted_targets"
+            fi
+            echo "Fallback account: $fallback_email"
+            echo "Backup: $backup_file"
+            return 0
+            ;;
+        11)
+            local total
+            total=$(echo "$py_output" | awk -F'|' '/^INVALID_ACCOUNT/ {print $3}')
+            aux_err "Account number $account_num is out of range (1-$total)" "component=dev,operation=opencode_account_remove"
+            return 1
+            ;;
+        12)
+            local blocked_email
+            blocked_email=$(echo "$py_output" | awk -F'|' '/^LAST_ENABLED/ {print $2}')
+            aux_err "Cannot remove account '$blocked_email' because it is the last enabled account" "component=dev,operation=opencode_account_remove"
+            return 1
+            ;;
+        13)
+            local last_email
+            last_email=$(echo "$py_output" | awk -F'|' '/^LAST_ACCOUNT/ {print $2}')
+            aux_err "Cannot remove account '$last_email' because it is the last account" "component=dev,operation=opencode_account_remove"
+            return 1
+            ;;
+        *)
+            aux_err "Failed to remove account" "component=dev,operation=opencode_account_remove,python_exit=$py_status"
             return 2
             ;;
     esac

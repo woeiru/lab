@@ -1,7 +1,7 @@
 #!/bin/bash
 # Lazy-load function map for bin/orc module stubs.
 
-ORC_LAZY_OPS_FUNCTIONS["dev"]="dev_fun,dev_var,dev_osv,dev_omi,dev_oae,dev_orr,dev_otr,dev_oqu,dev_olb,dev_oas,dev_oad"
+ORC_LAZY_OPS_FUNCTIONS["dev"]="dev_fun,dev_var,dev_osv,dev_omi,dev_oae,dev_orr,dev_otr,dev_oqu,dev_olb,dev_oas,dev_oar,dev_oad"
 ORC_LAZY_OPS_FUNCTIONS["gpu"]="gpu_fun,gpu_var,gpu_nds,gpu_ptp,gpu_ptd,gpu_pta,gpu_pts"
 ORC_LAZY_OPS_FUNCTIONS["net"]="net_fun,net_var,net_uni,net_fsr,net_fas,net_hos"
 ORC_LAZY_OPS_FUNCTIONS["pbs"]="pbs_fun,pbs_var,pbs_dav,pbs_adr,pbs_rda,pbs_mon"

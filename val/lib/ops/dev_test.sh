@@ -77,6 +77,7 @@ test_dev_functions_exist() {
     declare -f dev_olb >/dev/null 2>&1 || return 1
     declare -f dev_oqu >/dev/null 2>&1 || return 1
     declare -f dev_oas >/dev/null 2>&1 || return 1
+    declare -f dev_oar >/dev/null 2>&1 || return 1
     return 0
 }
 
@@ -1308,6 +1309,68 @@ test_dev_oas_rejects_unknown_family() {
     [[ $status -eq 1 ]]
 }
 
+# Test: dev_oas rejects disabled target account
+test_dev_oas_rejects_disabled_account() {
+    local test_env
+    test_env=$(create_test_env "dev_oas_disabled")
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "version": 4,
+  "accounts": [
+    {
+      "email": "alice@example.com",
+      "enabled": true,
+      "cachedQuota": {
+        "claude": {
+          "remainingFraction": 0.5,
+          "resetTime": "2099-12-31T23:59:59Z",
+          "modelCount": 1
+        }
+      }
+    },
+    {
+      "email": "bob@example.com",
+      "enabled": false,
+      "cachedQuota": {
+        "claude": {
+          "remainingFraction": 0.8,
+          "resetTime": "2099-12-31T23:59:59Z",
+          "modelCount": 1
+        }
+      }
+    }
+  ],
+  "activeIndex": 0,
+  "activeIndexByFamily": {
+    "claude": 0
+  }
+}
+JSON
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oas "claude" "2" >/dev/null 2>&1
+    local status=$?
+
+    local current_index
+    current_index=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/antigravity-accounts.json') as f:
+    data = json.load(f)
+print(data.get('activeIndexByFamily', {}).get('claude', -1))
+")
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]] || return 1
+    [[ "$current_index" == "0" ]] || return 1
+    return 0
+}
+
 # Test: dev_oas creates a backup before modifying
 test_dev_oas_creates_backup() {
     local test_env
@@ -1415,6 +1478,107 @@ JSON
     export HOME="$test_env"
 
     dev_oad "1" >/dev/null 2>&1
+    local status=$?
+
+    local first_enabled
+    first_enabled=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/antigravity-accounts.json') as f:
+    data = json.load(f)
+print(data['accounts'][0].get('enabled', False))
+")
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]] || return 1
+    [[ "$first_enabled" == "True" ]] || return 1
+    return 0
+}
+
+# Test: dev_oar rejects wrong parameter count
+test_dev_oar_requires_params() {
+    dev_oar >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_oar removes account and reroutes active mappings
+test_dev_oar_removes_and_reroutes() {
+    local test_env
+    test_env=$(create_test_env "dev_oar_remove")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_oar "1" 2>/dev/null)
+    local status=$?
+
+    local state=""
+    if [[ $status -eq 0 ]]; then
+        state=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/antigravity-accounts.json') as f:
+    data = json.load(f)
+accounts = data.get('accounts', [])
+print('{}|{}|{}|{}|{}'.format(
+    len(accounts),
+    accounts[0].get('email', ''),
+    data.get('activeIndex', -1),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+    data.get('activeIndexByFamily', {}).get('gemini', -1),
+))
+")
+    fi
+
+    local backup_count
+    backup_count=$(ls "$test_env/.config/opencode"/antigravity-accounts.json.backup.* 2>/dev/null | wc -l)
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"alice@example.com"* ]] || return 1
+    [[ "$output" == *"bob@example.com"* ]] || return 1
+    [[ "$state" == "1|bob@example.com|0|0|0" ]] || return 1
+    [[ $backup_count -ge 1 ]] || return 1
+    return 0
+}
+
+# Test: dev_oar rejects removing the last enabled account
+test_dev_oar_rejects_last_enabled() {
+    local test_env
+    test_env=$(create_test_env "dev_oar_last_enabled")
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "version": 4,
+  "accounts": [
+    {
+      "email": "solo@example.com",
+      "enabled": true
+    },
+    {
+      "email": "disabled@example.com",
+      "enabled": false
+    }
+  ],
+  "activeIndex": 0,
+  "activeIndexByFamily": {
+    "claude": 0,
+    "gemini": 0
+  }
+}
+JSON
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oar "1" >/dev/null 2>&1
     local status=$?
 
     local first_enabled
@@ -1731,6 +1895,103 @@ PY
 
     [[ $status -eq 0 ]] || return 1
     [[ "$event_count" == "0" ]] || return 1
+    return 0
+}
+
+# Test: _dev_auto_attribute applies denylist and reroutes to enabled fallback
+test_dev_auto_attribute_applies_denylist() {
+    local test_env
+    test_env=$(create_test_env "dev_auto_attribute_denylist")
+    local db_path="$test_env/opencode.db"
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "accounts": [
+    {"email": "alice@example.com", "enabled": true},
+    {"email": "bob@example.com", "enabled": true}
+  ],
+  "activeIndex": 0,
+  "activeIndexByFamily": {
+    "claude": 0
+  }
+}
+JSON
+
+    cat > "$test_env/.config/opencode/antigravity-account-denylist.txt" <<'EOF'
+# one blocked account per line
+alice@example.com
+EOF
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    _dev_auto_attribute >/dev/null 2>&1
+    local status=$?
+
+    local state=""
+    local event_row=""
+    if [[ $status -eq 0 ]]; then
+        state=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+accounts = data.get('accounts', [])
+print('{}|{}'.format(
+    accounts[0].get('enabled', True),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+))
+PY
+)
+
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, event_type, source
+    FROM opencode_account_event
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join((x or "") for x in row) if row else "")
+PY
+)
+    fi
+
+    local backup_count
+    backup_count=$(ls "$test_env/.config/opencode"/antigravity-accounts.json.backup.* 2>/dev/null | wc -l)
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$state" == "False|1" ]] || return 1
+    [[ "$event_row" == "antigravity|bob@example.com|account_selected|shell_wrapper" ]] || return 1
+    [[ $backup_count -ge 1 ]] || return 1
     return 0
 }
 
@@ -2214,7 +2475,11 @@ main() {
     run_test test_dev_oas_switches_family
     run_test test_dev_oas_rejects_out_of_range
     run_test test_dev_oas_rejects_unknown_family
+    run_test test_dev_oas_rejects_disabled_account
     run_test test_dev_oas_creates_backup
+    run_test test_dev_oar_requires_params
+    run_test test_dev_oar_removes_and_reroutes
+    run_test test_dev_oar_rejects_last_enabled
     run_test test_dev_oad_requires_params
     run_test test_dev_oad_disables_and_reroutes
     run_test test_dev_oad_rejects_last_enabled
@@ -2223,6 +2488,7 @@ main() {
     run_test test_dev_auto_attribute_emits_for_active_families
     run_test test_dev_auto_attribute_silent_on_missing_accounts_file
     run_test test_dev_auto_attribute_silent_on_empty_active_families
+    run_test test_dev_auto_attribute_applies_denylist
     run_test test_opencode_wrapper_calls_auto_attribute
     run_test test_opencode_wrapper_lazy_dispatches_auto_attribute
     run_test test_dev_orr_emits_event_and_runs_opencode
