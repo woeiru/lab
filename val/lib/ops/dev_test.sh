@@ -1210,6 +1210,62 @@ test_dev_olb_shows_model_usage() {
     return 0
 }
 
+# Test: dev_olb applies denylist before rendering dashboard
+test_dev_olb_applies_denylist_before_render() {
+    local test_env
+    test_env=$(create_test_env "dev_olb_denylist")
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "accounts": [
+    {"email": "alice@example.com", "enabled": true},
+    {"email": "bob@example.com", "enabled": true}
+  ],
+  "activeIndex": 0,
+  "activeIndexByFamily": {
+    "claude": 0
+  }
+}
+JSON
+
+    cat > "$test_env/.config/opencode/antigravity-account-denylist.txt" <<'EOF'
+alice@example.com
+EOF
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_olb -x >/dev/null 2>&1
+    local status=$?
+
+    local state=""
+    if [[ $status -eq 0 ]]; then
+        state=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+accounts = data.get('accounts', [])
+print('{}|{}|{}'.format(
+    accounts[0].get('enabled', True),
+    data.get('activeIndex', -1),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+))
+PY
+)
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$state" == "False|1|1" ]] || return 1
+    return 0
+}
+
 # Test: dev_olb --watch rejects missing interval
 test_dev_olb_watch_requires_interval() {
     dev_olb --watch >/dev/null 2>&1
@@ -1368,6 +1424,48 @@ print(data.get('activeIndexByFamily', {}).get('claude', -1))
 
     [[ $status -eq 1 ]] || return 1
     [[ "$current_index" == "0" ]] || return 1
+    return 0
+}
+
+# Test: dev_oas enforces denylist-disabled targets
+test_dev_oas_rejects_denylisted_account() {
+    local test_env
+    test_env=$(create_test_env "dev_oas_denylisted")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    cat > "$test_env/.config/opencode/antigravity-account-denylist.txt" <<'EOF'
+bob@example.com
+EOF
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oas "claude" "2" >/dev/null 2>&1
+    local status=$?
+
+    local state
+    state=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+accounts = data.get('accounts', [])
+print('{}|{}'.format(
+    accounts[1].get('enabled', True),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+))
+PY
+)
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]] || return 1
+    [[ "$state" == "False|0" ]] || return 1
     return 0
 }
 
@@ -2524,6 +2622,7 @@ main() {
     run_test test_dev_olb_requires_flag
     run_test test_dev_olb_renders_dashboard
     run_test test_dev_olb_shows_model_usage
+    run_test test_dev_olb_applies_denylist_before_render
     run_test test_dev_olb_watch_requires_interval
     run_test test_dev_olb_watch_rejects_bad_interval
     run_test test_dev_oqu_requires_flag
@@ -2536,6 +2635,7 @@ main() {
     run_test test_dev_oas_rejects_out_of_range
     run_test test_dev_oas_rejects_unknown_family
     run_test test_dev_oas_rejects_disabled_account
+    run_test test_dev_oas_rejects_denylisted_account
     run_test test_dev_oas_creates_backup
     run_test test_dev_oar_requires_params
     run_test test_dev_oar_removes_and_reroutes

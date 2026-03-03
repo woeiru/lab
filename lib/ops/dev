@@ -1986,10 +1986,13 @@ dev_oqu() {
         return 2
     fi
 
+    _dev_apply_account_denylist >/dev/null 2>&1
+
     if [ "$watch_mode" -eq 1 ]; then
         aux_info "Starting quota watch (interval: ${watch_interval}s, Ctrl+C to stop)" "component=dev,operation=opencode_quota"
         trap 'return 0' INT
         while true; do
+            _dev_apply_account_denylist >/dev/null 2>&1
             clear
             _dev_oqu_render "$accounts_path"
             sleep "$watch_interval"
@@ -2056,6 +2059,8 @@ dev_olb() {
         return 2
     fi
 
+    _dev_apply_account_denylist >/dev/null 2>&1
+
     local db_path=""
     if aux_chk "command" "opencode"; then
         db_path=$(_dev_get_opencode_db_path 2>/dev/null) || true
@@ -2070,6 +2075,7 @@ dev_olb() {
         aux_info "Starting load balance watch (interval: ${watch_interval}s, Ctrl+C to stop)" "component=dev,operation=opencode_load_balance"
         trap 'return 0' INT
         while true; do
+            _dev_apply_account_denylist >/dev/null 2>&1
             clear
             _dev_olb_render "$accounts_path" "$db_path"
             sleep "$watch_interval"
@@ -2132,6 +2138,8 @@ dev_oas() {
         aux_err "Antigravity accounts file not found" "component=dev,operation=opencode_account_switch,expected_path=${HOME}/.config/opencode/antigravity-accounts.json"
         return 2
     fi
+
+    _dev_apply_account_denylist >/dev/null 2>&1
 
     local family="$1"
     local account_num="$2"
