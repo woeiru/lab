@@ -70,6 +70,7 @@ PY
 test_dev_functions_exist() {
     declare -f dev_osv >/dev/null 2>&1 || return 1
     declare -f dev_omi >/dev/null 2>&1 || return 1
+    declare -f dev_oac >/dev/null 2>&1 || return 1
     declare -f dev_oad >/dev/null 2>&1 || return 1
     declare -f dev_oae >/dev/null 2>&1 || return 1
     declare -f dev_orr >/dev/null 2>&1 || return 1
@@ -1282,6 +1283,75 @@ test_dev_olb_watch_rejects_bad_interval() {
 test_dev_oas_requires_params() {
     dev_oas >/dev/null 2>&1
     [[ $? -eq 1 ]]
+}
+
+# Test: dev_oac requires explicit -x execution flag
+test_dev_oac_requires_execute_flag() {
+    dev_oac >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_oac remains stable across repeated external repopulation cycles
+test_dev_oac_reconciles_repopulation_cycles() {
+    local test_env
+    test_env=$(create_test_env "dev_oac_repopulation")
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-account-denylist.txt" <<'EOF'
+# one blocked account per line
+alice@example.com
+EOF
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local status=0
+    local cycle=0
+    local output=""
+    local state=""
+    for cycle in 1 2 3; do
+        _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+        output=$(dev_oac -x 2>/dev/null)
+        status=$?
+        [[ $status -eq 0 ]] || break
+
+        state=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+accounts = data.get('accounts', [])
+print('{}|{}|{}|{}'.format(
+    len(accounts),
+    accounts[0].get('email', '') if accounts else '',
+    data.get('activeIndex', -1),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+))
+PY
+)
+
+        [[ "$output" == *"status=UPDATED"* ]] || {
+            status=1
+            break
+        }
+        [[ "$state" == "1|bob@example.com|0|0" ]] || {
+            status=1
+            break
+        }
+    done
+
+    local backup_count
+    backup_count=$(ls "$test_env/.config/opencode"/antigravity-accounts.json.backup.* 2>/dev/null | wc -l)
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ $backup_count -ge 3 ]] || return 1
+    return 0
 }
 
 # Test: dev_oas rejects non-numeric account
@@ -2629,6 +2699,8 @@ main() {
     run_test test_dev_oqu_renders_dashboard
     run_test test_dev_oqu_watch_requires_interval
     run_test test_dev_oqu_watch_rejects_bad_interval
+    run_test test_dev_oac_requires_execute_flag
+    run_test test_dev_oac_reconciles_repopulation_cycles
     run_test test_dev_oas_requires_params
     run_test test_dev_oas_rejects_bad_account
     run_test test_dev_oas_switches_family

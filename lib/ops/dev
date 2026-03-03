@@ -915,19 +915,52 @@ PY
     return 0
 }
 
-_dev_apply_account_denylist() {
+_dev_count_csv() {
+    local csv_values="${1:-}"
+
+    if [ -z "$csv_values" ]; then
+        echo "0"
+        return 0
+    fi
+
+    local old_ifs="$IFS"
+    IFS=','
+    read -r -a _dev_csv_items <<< "$csv_values"
+    IFS="$old_ifs"
+
+    echo "${#_dev_csv_items[@]}"
+    return 0
+}
+
+_dev_reconcile_antigravity_accounts() {
+    local caller="${1:-unknown}"
+    local output_mode="${2:-silent}"
+
     local accounts_path
-    accounts_path=$(_dev_get_antigravity_accounts_path) || return 0
+    accounts_path=$(_dev_get_antigravity_accounts_path) || {
+        if [ "$output_mode" = "report" ]; then
+            echo "RESULT|NO_ACCOUNTS_FILE|0|0|||"
+        fi
+        return 0
+    }
 
     local denylist_path
-    denylist_path=$(_dev_get_antigravity_denylist_path) || return 0
+    denylist_path=$(_dev_get_antigravity_denylist_path) || {
+        if [ "$output_mode" = "report" ]; then
+            echo "RESULT|NO_DENYLIST_FILE|0|0|||"
+        fi
+        return 0
+    }
 
     if ! aux_chk "command" "python3" 2>/dev/null; then
+        if [ "$output_mode" = "report" ]; then
+            echo "RESULT|PYTHON_MISSING|0|0|||"
+        fi
         return 0
     fi
 
     local py_output
-py_output=$(python3 - "$accounts_path" "$denylist_path" <<'PY'
+    py_output=$(python3 - "$accounts_path" "$denylist_path" <<'PY'
 import json
 import shutil
 import sys
@@ -947,6 +980,14 @@ except Exception:
     sys.exit(0)
 
 if not denied:
+    try:
+        with open(accounts_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        accounts = data.get("accounts", [])
+        before_count = len(accounts) if isinstance(accounts, list) else 0
+    except Exception:
+        before_count = 0
+    print(f"NO_DENYLIST_ENTRIES|{before_count}|{before_count}||||")
     sys.exit(0)
 
 try:
@@ -957,8 +998,10 @@ except Exception:
 
 accounts = data.get("accounts", [])
 if not isinstance(accounts, list) or not accounts:
+    print("NO_CHANGE|0|0||||")
     sys.exit(0)
 
+before_count = len(accounts)
 removed_indices = []
 removed_emails = []
 
@@ -977,7 +1020,7 @@ for idx, account in enumerate(accounts):
     removed_emails.append(email)
 
 if not removed_indices:
-    print("NO_CHANGE")
+    print(f"NO_CHANGE|{before_count}|{before_count}||||")
     sys.exit(0)
 
 removed_set = set(removed_indices)
@@ -986,8 +1029,9 @@ remaining_accounts = [
     if idx not in removed_set
 ]
 
+after_count = len(remaining_accounts)
 if not remaining_accounts:
-    print(f"NO_ENABLED_FALLBACK|{','.join(removed_emails)}")
+    print(f"NO_ENABLED_FALLBACK|{before_count}|{after_count}|{','.join(removed_emails)}|||")
     sys.exit(11)
 
 enabled_indices = [
@@ -996,7 +1040,7 @@ enabled_indices = [
 ]
 
 if not enabled_indices:
-    print(f"NO_ENABLED_FALLBACK|{','.join(removed_emails)}")
+    print(f"NO_ENABLED_FALLBACK|{before_count}|{after_count}|{','.join(removed_emails)}|||")
     sys.exit(11)
 
 backup_path = accounts_path + ".backup." + datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1043,7 +1087,7 @@ with open(accounts_path, "w", encoding="utf-8") as f:
     f.write("\n")
 
 print(
-    f"UPDATED|{','.join(removed_emails)}|{backup_path}|"
+    f"UPDATED|{before_count}|{after_count}|{','.join(removed_emails)}|{backup_path}|"
     f"{fallback_email}|{','.join(rerouted)}"
 )
 sys.exit(0)
@@ -1053,32 +1097,56 @@ PY
 
     case "$py_status" in
         0)
-            if [[ "$py_output" == UPDATED\|* ]]; then
-                local removed_emails backup_file fallback_email rerouted_targets
-                removed_emails=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $2}')
-                backup_file=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $3}')
-                fallback_email=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $4}')
-                rerouted_targets=$(echo "$py_output" | awk -F'|' '/^UPDATED\|/ {print $5}')
+            local status_tag before_count after_count removed_emails backup_file fallback_email rerouted_targets
+            status_tag=$(echo "$py_output" | awk -F'|' '/^(UPDATED|NO_CHANGE|NO_DENYLIST_ENTRIES)\|/ {print $1; exit}')
+            before_count=$(echo "$py_output" | awk -F'|' '/^(UPDATED|NO_CHANGE|NO_DENYLIST_ENTRIES)\|/ {print $2; exit}')
+            after_count=$(echo "$py_output" | awk -F'|' '/^(UPDATED|NO_CHANGE|NO_DENYLIST_ENTRIES)\|/ {print $3; exit}')
+            removed_emails=$(echo "$py_output" | awk -F'|' '/^(UPDATED|NO_CHANGE|NO_DENYLIST_ENTRIES)\|/ {print $4; exit}')
+            backup_file=$(echo "$py_output" | awk -F'|' '/^(UPDATED|NO_CHANGE|NO_DENYLIST_ENTRIES)\|/ {print $5; exit}')
+            fallback_email=$(echo "$py_output" | awk -F'|' '/^(UPDATED|NO_CHANGE|NO_DENYLIST_ENTRIES)\|/ {print $6; exit}')
+            rerouted_targets=$(echo "$py_output" | awk -F'|' '/^(UPDATED|NO_CHANGE|NO_DENYLIST_ENTRIES)\|/ {print $7; exit}')
 
-                aux_info "Applied antigravity account denylist" "component=dev,operation=opencode_account_denylist,removed=$removed_emails,fallback_email=$fallback_email"
+            if [ "$status_tag" = "UPDATED" ]; then
+                aux_info "Reconciled antigravity accounts against denylist" "component=dev,operation=opencode_account_reconcile,caller=$caller,before=$before_count,after=$after_count,removed=$removed_emails,fallback_email=$fallback_email"
                 if [ -n "$rerouted_targets" ]; then
-                    aux_info "Re-routed active mappings after denylist update" "component=dev,operation=opencode_account_denylist,targets=$rerouted_targets"
+                    aux_info "Re-routed active mappings during reconcile" "component=dev,operation=opencode_account_reconcile,caller=$caller,targets=$rerouted_targets"
                 fi
-                aux_dbg "Denylist backup created" "component=dev,operation=opencode_account_denylist,backup=$backup_file"
+                aux_dbg "Reconcile backup created" "component=dev,operation=opencode_account_reconcile,caller=$caller,backup=$backup_file"
+            elif [ "$status_tag" = "NO_DENYLIST_ENTRIES" ]; then
+                aux_dbg "Reconcile skipped because denylist has no active entries" "component=dev,operation=opencode_account_reconcile,caller=$caller"
+            else
+                aux_dbg "Reconcile found no denylisted accounts to remove" "component=dev,operation=opencode_account_reconcile,caller=$caller,before=$before_count"
+            fi
+
+            if [ "$output_mode" = "report" ]; then
+                echo "RESULT|$status_tag|$before_count|$after_count|$removed_emails|$fallback_email|$rerouted_targets|$backup_file"
             fi
             return 0
             ;;
         11)
-            local blocked_emails
-            blocked_emails=$(echo "$py_output" | awk -F'|' '/^NO_ENABLED_FALLBACK\|/ {print $2}')
-            aux_warn "Denylist would remove all enabled accounts; skipping automatic prune" "component=dev,operation=opencode_account_denylist,blocked=$blocked_emails"
+            local blocked_before blocked_after blocked_emails
+            blocked_before=$(echo "$py_output" | awk -F'|' '/^NO_ENABLED_FALLBACK\|/ {print $2; exit}')
+            blocked_after=$(echo "$py_output" | awk -F'|' '/^NO_ENABLED_FALLBACK\|/ {print $3; exit}')
+            blocked_emails=$(echo "$py_output" | awk -F'|' '/^NO_ENABLED_FALLBACK\|/ {print $4; exit}')
+            aux_warn "Reconcile would remove all enabled accounts; skipping prune" "component=dev,operation=opencode_account_reconcile,caller=$caller,before=$blocked_before,after=$blocked_after,blocked=$blocked_emails"
+            if [ "$output_mode" = "report" ]; then
+                echo "RESULT|NO_ENABLED_FALLBACK|$blocked_before|$blocked_after|$blocked_emails|||"
+            fi
             return 0
             ;;
         *)
-            aux_warn "Failed to apply antigravity account denylist" "component=dev,operation=opencode_account_denylist,python_exit=$py_status"
+            aux_warn "Failed to reconcile antigravity accounts against denylist" "component=dev,operation=opencode_account_reconcile,caller=$caller,python_exit=$py_status"
+            if [ "$output_mode" = "report" ]; then
+                echo "RESULT|ERROR|0|0||||"
+            fi
             return 0
             ;;
     esac
+}
+
+_dev_apply_account_denylist() {
+    _dev_reconcile_antigravity_accounts "legacy_apply_account_denylist" "silent"
+    return 0
 }
 
 _dev_provider_from_family() {
@@ -1224,7 +1292,7 @@ PY
 }
 
 _dev_auto_attribute() {
-    _dev_apply_account_denylist >/dev/null 2>&1
+    _dev_reconcile_antigravity_accounts "shell_wrapper" "silent" >/dev/null 2>&1
 
     local accounts_path
     accounts_path=$(_dev_get_antigravity_accounts_path) || return 0
@@ -2007,13 +2075,13 @@ dev_oqu() {
         return 2
     fi
 
-    _dev_apply_account_denylist >/dev/null 2>&1
+    _dev_reconcile_antigravity_accounts "opencode_quota" "silent" >/dev/null 2>&1
 
     if [ "$watch_mode" -eq 1 ]; then
         aux_info "Starting quota watch (interval: ${watch_interval}s, Ctrl+C to stop)" "component=dev,operation=opencode_quota"
         trap 'return 0' INT
         while true; do
-            _dev_apply_account_denylist >/dev/null 2>&1
+            _dev_reconcile_antigravity_accounts "opencode_quota_watch" "silent" >/dev/null 2>&1
             clear
             _dev_oqu_render "$accounts_path"
             sleep "$watch_interval"
@@ -2080,7 +2148,7 @@ dev_olb() {
         return 2
     fi
 
-    _dev_apply_account_denylist >/dev/null 2>&1
+    _dev_reconcile_antigravity_accounts "opencode_load_balance" "silent" >/dev/null 2>&1
 
     local db_path=""
     if aux_chk "command" "opencode"; then
@@ -2096,7 +2164,7 @@ dev_olb() {
         aux_info "Starting load balance watch (interval: ${watch_interval}s, Ctrl+C to stop)" "component=dev,operation=opencode_load_balance"
         trap 'return 0' INT
         while true; do
-            _dev_apply_account_denylist >/dev/null 2>&1
+            _dev_reconcile_antigravity_accounts "opencode_load_balance_watch" "silent" >/dev/null 2>&1
             clear
             _dev_olb_render "$accounts_path" "$db_path"
             sleep "$watch_interval"
@@ -2104,6 +2172,69 @@ dev_olb() {
     else
         aux_info "Rendering load balance dashboard" "component=dev,operation=opencode_load_balance"
         _dev_olb_render "$accounts_path" "$db_path"
+    fi
+
+    return 0
+}
+
+# Reconciles antigravity accounts with persistent denylist entries
+# opencode account reconcile
+# -x (execute)
+dev_oac() {
+    # Technical Description:
+    #   Applies denylist reconciliation to antigravity-accounts.json on demand.
+    #   Prunes denylisted accounts and preserves valid activeIndex/activeIndexByFamily mappings.
+    #   Prints deterministic before/after reconciliation summary for manual verification.
+    # Dependencies:
+    #   - python3 with json module for safe JSON read-modify-write
+    #   - antigravity-accounts.json from the antigravity auth plugin
+    #   - antigravity-account-denylist.txt denylist file (optional)
+    # Arguments:
+    #   $1: -x - explicit execution flag required for reconcile run
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -ne 1 ] || [ "$1" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "python3"; then
+        aux_err "python3 command not found" "component=dev,operation=opencode_account_reconcile"
+        return 127
+    fi
+
+    local summary_line
+    summary_line=$(_dev_reconcile_antigravity_accounts "opencode_account_reconcile" "report")
+
+    local status_tag before_count after_count removed_emails fallback_email rerouted_targets backup_file
+    status_tag=$(echo "$summary_line" | awk -F'|' '/^RESULT\|/ {print $2; exit}')
+    before_count=$(echo "$summary_line" | awk -F'|' '/^RESULT\|/ {print $3; exit}')
+    after_count=$(echo "$summary_line" | awk -F'|' '/^RESULT\|/ {print $4; exit}')
+    removed_emails=$(echo "$summary_line" | awk -F'|' '/^RESULT\|/ {print $5; exit}')
+    fallback_email=$(echo "$summary_line" | awk -F'|' '/^RESULT\|/ {print $6; exit}')
+    rerouted_targets=$(echo "$summary_line" | awk -F'|' '/^RESULT\|/ {print $7; exit}')
+    backup_file=$(echo "$summary_line" | awk -F'|' '/^RESULT\|/ {print $8; exit}')
+
+    local removed_count
+    removed_count=$(_dev_count_csv "$removed_emails")
+
+    echo "status=$status_tag"
+    echo "before=$before_count after=$after_count removed=$removed_count"
+    if [ -n "$removed_emails" ]; then
+        echo "removed_emails=$removed_emails"
+    fi
+    if [ -n "$fallback_email" ]; then
+        echo "fallback_email=$fallback_email"
+    fi
+    if [ -n "$rerouted_targets" ]; then
+        echo "rerouted_targets=$rerouted_targets"
+    fi
+    if [ -n "$backup_file" ]; then
+        echo "backup=$backup_file"
     fi
 
     return 0
@@ -2160,7 +2291,7 @@ dev_oas() {
         return 2
     fi
 
-    _dev_apply_account_denylist >/dev/null 2>&1
+    _dev_reconcile_antigravity_accounts "opencode_account_switch" "silent" >/dev/null 2>&1
 
     local family="$1"
     local account_num="$2"
@@ -2307,6 +2438,8 @@ dev_oar() {
 
     local account_num="$1"
 
+    _dev_reconcile_antigravity_accounts "opencode_account_remove" "silent" >/dev/null 2>&1
+
     aux_info "Removing account" "component=dev,operation=opencode_account_remove,account=$account_num"
 
     local py_output
@@ -2402,7 +2535,7 @@ PY
             fallback_email=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $6}')
 
             denylist_path=$(_dev_add_antigravity_denylist_entry "$removed_email") || denylist_path=""
-            _dev_apply_account_denylist >/dev/null 2>&1
+            _dev_reconcile_antigravity_accounts "opencode_account_remove_post" "silent" >/dev/null 2>&1
 
             if [ -n "$fallback_email" ] && [ "$fallback_email" != "$removed_email" ]; then
                 _dev_record_account_event "antigravity" "$fallback_email" "$fallback_email" "auth_switched" "manual_switch"
@@ -2490,6 +2623,8 @@ dev_oad() {
     fi
 
     local account_num="$1"
+
+    _dev_reconcile_antigravity_accounts "opencode_account_disable" "silent" >/dev/null 2>&1
 
     aux_info "Disabling account" "component=dev,operation=opencode_account_disable,account=$account_num"
 
