@@ -1,6 +1,6 @@
 # Documentation Generation System
 
-The `utl/doc` system generates auto-populated reference documentation under `doc/ref/` and an optional repository metrics report at `STATS.md`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/dependencies.md`, `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`, `doc/ref/scope-integrity.md`, and `doc/ref/error-handling.md`. The stats generator also writes machine-readable output to `doc/ref/stats/actual.md` with timestamped snapshots under `doc/ref/stats/`.
+The `utl/doc` system generates auto-populated reference documentation under `doc/ref/` and an optional repository metrics report at `STATS.md`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/reverse-dependecies.md`, `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`, `doc/ref/scope-integrity.md`, and `doc/ref/error-handling.md`. The stats generator also writes machine-readable output to `doc/ref/stats/actual.md` with timestamped snapshots under `doc/ref/stats/`.
 
 ## Output Files
 
@@ -8,7 +8,7 @@ The `utl/doc` system generates auto-populated reference documentation under `doc
 |-----------|--------------------------|----------------------------------------------|
 | `func`    | `doc/ref/functions.md`   | Function metadata table for all `lib/` modules |
 | `var`     | `doc/ref/variables.md`   | Variable usage patterns across the system    |
-| `rdp`     | `doc/ref/dependencies.md`| Reverse dependency mappings and call counts  |
+| `rdp`     | `doc/ref/reverse-dependecies.md`| Reverse dependency mappings and call counts  |
 | `dep`     | `doc/ref/module-dependencies.md`| Direct module dependencies (imports + commands) |
 | `tst`     | `doc/ref/test-coverage.md`| Module-to-test traceability with counters and status |
 | `scp`     | `doc/ref/scope-integrity.md`| Variable scope integrity findings (readonly/global/local leak) |
@@ -21,7 +21,7 @@ The `utl/doc` system generates auto-populated reference documentation under `doc
 - `generators/`: Static documentation generators.
   - `func`: Extracts function metadata and writes the master functions table to `doc/ref/functions.md`.
   - `var`: Identifies and documents variable usage hierarchies in `doc/ref/variables.md`.
-  - `rdp`: Builds reverse dependency tables in `doc/ref/dependencies.md`.
+  - `rdp`: Builds reverse dependency tables in `doc/ref/reverse-dependecies.md`.
   - `dep`: Builds direct dependency tables in `doc/ref/module-dependencies.md`.
   - `tst`: Builds test traceability coverage tables in `doc/ref/test-coverage.md`.
   - `scp`: Builds scope integrity tables in `doc/ref/scope-integrity.md`.
@@ -81,7 +81,7 @@ rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc
 ```bash
 ./utl/doc/run_all_doc.sh functions   # updates doc/ref/functions.md
 ./utl/doc/run_all_doc.sh variables   # updates doc/ref/variables.md
-./utl/doc/run_all_doc.sh dependencies # updates doc/ref/dependencies.md
+./utl/doc/run_all_doc.sh dependencies # updates doc/ref/reverse-dependecies.md
 ./utl/doc/run_all_doc.sh module-dependencies # updates doc/ref/module-dependencies.md
 ./utl/doc/run_all_doc.sh test-coverage # updates doc/ref/test-coverage.md
 ./utl/doc/run_all_doc.sh scope-integrity # updates doc/ref/scope-integrity.md

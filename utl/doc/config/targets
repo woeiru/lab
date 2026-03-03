@@ -125,5 +125,5 @@ GENERATOR_SECTIONS[err]="Error Handling Table"          # Updates error-handling
 #   - Ensure target directories exist
 #
 #######################################################################
-GENERATOR_OUTPUT_FILES[rdp]="doc/ref/dependencies.md"
+GENERATOR_OUTPUT_FILES[rdp]="doc/ref/reverse-dependecies.md"
 GENERATOR_SECTIONS[rdp]="Reverse Dependencies Table"

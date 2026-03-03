@@ -4,7 +4,7 @@
 - Owner: es
 - Started: n/a
 - Updated: 2026-03-01
-- Links: doc/ref/README.md, doc/ref/functions.md, doc/ref/variables.md, doc/ref/dependencies.md, doc/ref/module-dependencies.md, cfg/ali/sta, utl/doc/run_all_doc.sh
+- Links: doc/ref/README.md, doc/ref/functions.md, doc/ref/variables.md, doc/ref/reverse-dependecies.md, doc/ref/module-dependencies.md, cfg/ali/sta, utl/doc/run_all_doc.sh
 
 ## Goal
 
@@ -12,7 +12,7 @@ Add a lightweight validation test that checks parity between terminal cycle outp
 
 - `ffl-laf_cycle` <-> `doc/ref/functions.md`
 - `ffl-acu_cycle` <-> `doc/ref/variables.md`
-- `ffl-rdp_cycle` <-> `doc/ref/dependencies.md`
+- `ffl-rdp_cycle` <-> `doc/ref/reverse-dependecies.md`
 - `ffl-dep_cycle` <-> `doc/ref/module-dependencies.md`
 
 ## Why

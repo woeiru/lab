@@ -26,13 +26,13 @@ The current implementations either drop valuable metadata or don't generate the 
 
 ### 3. Create `utl/doc/generators/rdp` (RDP Analysis)
 - **Current State:** No dedicated generator exists for reverse dependency tracking in documentation.
-- **Target File:** `doc/ref/dependencies.md`
+- **Target File:** `doc/ref/reverse-dependecies.md`
 - **Scope:** Target dependencies across `LIB_CORE_DIR`, `LIB_GEN_DIR`, and `LIB_OPS_DIR` checked against modules in `DIR_BIN`, `LIB_DIR`, `SRC_DIR`, and `UTL_DIR`.
 - **Action:**
   - Create the new script `utl/doc/generators/rdp`.
   - Run `ana_rdp -j` for the specified scopes.
   - Parse the `.tmp/doc/*.json` outputs to extract cross-module reverse dependencies.
-  - Write or update `doc/ref/dependencies.md` with a structured list/table of function dependency calls.
+  - Write or update `doc/ref/reverse-dependecies.md` with a structured list/table of function dependency calls.
   - Register the new generator and its target file in `utl/doc/config/targets` (and update `utl/doc/run_all_doc.sh` if necessary).
 
 ## Implementation Details

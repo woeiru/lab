@@ -21,7 +21,7 @@ if [[ -f "$TARGETS_FILE" ]]; then
     source "$TARGETS_FILE"
 fi
 
-DOC_FILE="$LAB_DIR/${GENERATOR_OUTPUT_FILES[rdp]:-doc/ref/dependencies.md}"
+DOC_FILE="$LAB_DIR/${GENERATOR_OUTPUT_FILES[rdp]:-doc/ref/reverse-dependecies.md}"
 TMP_BASE_DIR="$LAB_DIR/.tmp/doc"
 TMP_DIR="$TMP_BASE_DIR/rdp"
 mkdir -p "$TMP_DIR"

@@ -35,7 +35,7 @@ Contents are organised by purpose: `man/` for operational guides (user/admin aud
 - **[Pure Functions Reference](ref/functions.md)** - Library structure overview, module inventory, and auto-generated function metadata table for all `lib/` modules.
 - **[Variable Usage Reference](ref/variables.md)** - Environment variables and their usage patterns across the system.
 - **[Module Dependencies](ref/module-dependencies.md)** - Per-module script imports and required host commands.
-- **[Reverse Dependencies](ref/dependencies.md)** - Reverse call/import relationships across the codebase.
+- **[Reverse Dependencies](ref/reverse-dependecies.md)** - Reverse call/import relationships across the codebase.
 - **[Test Coverage Map](ref/test-coverage.md)** - Function-to-test traceability table.
 - **[Scope Integrity](ref/scope-integrity.md)** - Variable scope and leakage analysis map.
 - **[Error Handling Map](ref/error-handling.md)** - Return/exit/error logging behavior map.

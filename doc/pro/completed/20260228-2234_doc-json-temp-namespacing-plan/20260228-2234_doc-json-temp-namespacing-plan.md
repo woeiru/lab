@@ -84,7 +84,7 @@ Each generator reads only its own namespace.
 7. Verify outputs updated correctly:
    - `doc/ref/functions.md`
    - `doc/ref/variables.md`
-   - `doc/ref/dependencies.md`
+   - `doc/ref/reverse-dependecies.md`
 
 ## Done criteria
 

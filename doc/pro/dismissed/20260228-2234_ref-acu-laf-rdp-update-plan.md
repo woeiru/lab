@@ -40,7 +40,7 @@ Bring `doc/ref` generation in line with the ACU/LAF/RDP analysis views by:
 
 - `doc/ref/functions.md` (LAF view)
 - `doc/ref/variables.md` (ACU view)
-- `doc/ref/reverse-dependencies.md` (RDP view)
+- `doc/ref/reverse-dependecies.md` (RDP view)
 
 ### Source-of-truth scope file
 
@@ -66,7 +66,7 @@ This mirrors the `ffl-*_cycle` intent while keeping generation deterministic and
 
 1. Add `utl/doc/config/analysis_scopes` with arrays for ACU/LAF/RDP scan inputs.
 2. Extend `utl/doc/config/targets`:
-   - `GENERATOR_OUTPUT_FILES[rdp]="doc/ref/reverse-dependencies.md"`
+   - `GENERATOR_OUTPUT_FILES[rdp]="doc/ref/reverse-dependecies.md"`
    - optional section marker mapping for `rdp`.
 3. Update `utl/doc/run_all_doc.sh` generator registry to include `rdp` target.
 
@@ -89,7 +89,7 @@ This mirrors the `ffl-*_cycle` intent while keeping generation deterministic and
 
 1. Add `utl/doc/generators/rdp`.
 2. Execute `ana_rdp -j` for every configured target/callsite profile pair.
-3. Build `doc/ref/reverse-dependencies.md` with:
+3. Build `doc/ref/reverse-dependecies.md` with:
    - aggregate per module family
    - per-target function dependency tables
    - top dependents summary
@@ -137,7 +137,7 @@ Minimum validation after implementation:
 6. verify all three files updated:
    - `doc/ref/functions.md`
    - `doc/ref/variables.md`
-   - `doc/ref/reverse-dependencies.md`
+   - `doc/ref/reverse-dependecies.md`
 
 ## Done criteria
 
