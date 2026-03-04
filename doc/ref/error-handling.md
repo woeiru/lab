@@ -571,22 +571,6 @@ This table tracks analyzer-detected return/exit paths and aux error logging call
 | `lib/ops/dev` | `dev_oac` | return | 2337 | `1` |
 | `lib/ops/dev` | `dev_oac` | return | 2342 | `127` |
 | `lib/ops/dev` | `dev_oac` | return | 2375 | `0` |
-| `lib/ops/dev` | `dev_oad` | aux_err | 2743 | `Account number must be a positive integer (1-based)" "component=dev,operation=opencode_account_disable,value=$1` |
-| `lib/ops/dev` | `dev_oad` | aux_err | 2749 | `python3 command not found" "component=dev,operation=opencode_account_disable` |
-| `lib/ops/dev` | `dev_oad` | aux_err | 2756 | `Antigravity accounts file not found" "component=dev,operation=opencode_account_disable,expected_path=${HOME}/.config/opencode/antigravity-accounts.json` |
-| `lib/ops/dev` | `dev_oad` | aux_err | 2859 | `Account number $account_num is out of range (1-$total)" "component=dev,operation=opencode_account_disable` |
-| `lib/ops/dev` | `dev_oad` | aux_err | 2865 | `Cannot disable account '$blocked_email' because it is the last enabled account" "component=dev,operation=opencode_account_disable` |
-| `lib/ops/dev` | `dev_oad` | aux_err | 2876 | `Failed to disable account" "component=dev,operation=opencode_account_disable,python_exit=$py_status` |
-| `lib/ops/dev` | `dev_oad` | return | 2734 | `0` |
-| `lib/ops/dev` | `dev_oad` | return | 2739 | `1` |
-| `lib/ops/dev` | `dev_oad` | return | 2745 | `1` |
-| `lib/ops/dev` | `dev_oad` | return | 2750 | `127` |
-| `lib/ops/dev` | `dev_oad` | return | 2757 | `2` |
-| `lib/ops/dev` | `dev_oad` | return | 2854 | `0` |
-| `lib/ops/dev` | `dev_oad` | return | 2860 | `1` |
-| `lib/ops/dev` | `dev_oad` | return | 2866 | `1` |
-| `lib/ops/dev` | `dev_oad` | return | 2873 | `0` |
-| `lib/ops/dev` | `dev_oad` | return | 2877 | `2` |
 | `lib/ops/dev` | `dev_oae` | aux_err | 1545 | `Provider and account key are required" "component=dev,operation=opencode_account_event_emit` |
 | `lib/ops/dev` | `dev_oae` | aux_err | 1551 | `Unsupported event type '$event_type' (expected: account_selected, token_refreshed, auth_switched)" "component=dev,operation=opencode_account_event_emit` |
 | `lib/ops/dev` | `dev_oae` | aux_val | 1544 | `$provider_id" "not_empty` |
@@ -596,23 +580,6 @@ This table tracks analyzer-detected return/exit paths and aux error logging call
 | `lib/ops/dev` | `dev_oae` | return | 1547 | `1` |
 | `lib/ops/dev` | `dev_oae` | return | 1552 | `1` |
 | `lib/ops/dev` | `dev_oae` | return | 1557 | `0` |
-| `lib/ops/dev` | `dev_oar` | aux_err | 2557 | `Account number must be a positive integer (1-based)" "component=dev,operation=opencode_account_remove,value=$1` |
-| `lib/ops/dev` | `dev_oar` | aux_err | 2563 | `python3 command not found" "component=dev,operation=opencode_account_remove` |
-| `lib/ops/dev` | `dev_oar` | aux_err | 2570 | `Antigravity accounts file not found" "component=dev,operation=opencode_account_remove,expected_path=${HOME}/.config/opencode/antigravity-accounts.json` |
-| `lib/ops/dev` | `dev_oar` | aux_err | 2694 | `Account number $account_num is out of range (1-$total)" "component=dev,operation=opencode_account_remove` |
-| `lib/ops/dev` | `dev_oar` | aux_err | 2700 | `Cannot remove account '$blocked_email' because it is the last enabled account" "component=dev,operation=opencode_account_remove` |
-| `lib/ops/dev` | `dev_oar` | aux_err | 2706 | `Cannot remove account '$last_email' because it is the last account" "component=dev,operation=opencode_account_remove` |
-| `lib/ops/dev` | `dev_oar` | aux_err | 2710 | `Failed to remove account" "component=dev,operation=opencode_account_remove,python_exit=$py_status` |
-| `lib/ops/dev` | `dev_oar` | return | 2548 | `0` |
-| `lib/ops/dev` | `dev_oar` | return | 2553 | `1` |
-| `lib/ops/dev` | `dev_oar` | return | 2559 | `1` |
-| `lib/ops/dev` | `dev_oar` | return | 2564 | `127` |
-| `lib/ops/dev` | `dev_oar` | return | 2571 | `2` |
-| `lib/ops/dev` | `dev_oar` | return | 2689 | `0` |
-| `lib/ops/dev` | `dev_oar` | return | 2695 | `1` |
-| `lib/ops/dev` | `dev_oar` | return | 2701 | `1` |
-| `lib/ops/dev` | `dev_oar` | return | 2707 | `1` |
-| `lib/ops/dev` | `dev_oar` | return | 2711 | `2` |
 | `lib/ops/dev` | `dev_oas` | aux_err | 2406 | `Family name cannot be empty" "component=dev,operation=opencode_account_switch` |
 | `lib/ops/dev` | `dev_oas` | aux_err | 2412 | `Account number must be a positive integer (1-based)" "component=dev,operation=opencode_account_switch,value=$2` |
 | `lib/ops/dev` | `dev_oas` | aux_err | 2418 | `python3 command not found" "component=dev,operation=opencode_account_switch` |

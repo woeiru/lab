@@ -242,8 +242,6 @@ Functions are organized by library modules for systematic access and reference.
 | ops | dev | `dev_olb` | -x (execute) | --watch <seconds> | opencode load balance | Shows account load balancing dashboard with quota, routing and usage | 79 | 2235 | 0 |
 | ops | dev | `dev_oac` | -x (execute) | opencode account reconcile | Reconciles antigravity accounts with persistent denylist entries | 59 | 2318 | 0 |
 | ops | dev | `dev_oas` | <family> <account_number> | opencode account switch | Switches the active Antigravity account for a model family | 148 | 2381 | 0 |
-| ops | dev | `dev_oar` | <account_number> | opencode account remove | Removes an Antigravity account and reroutes active families | 182 | 2533 | 0 |
-| ops | dev | `dev_oad` | <account_number> | opencode account disable | Disables an Antigravity account and reroutes active families | 162 | 2719 | 0 |
 | ops | pve | `pve_fun` | [ana_laf_flags] | overview functions | Displays an overview of module functions with analyzer formatting | 22 | 75 | 0 |
 | ops | pve | `pve_var` | -x (execute) | overview variables | Displays an overview of module variables from configuration | 22 | 101 | 0 |
 | ops | pve | `pve_dsr` | -x (execute) | disable repository | Disables specified Proxmox repository files by commenting out 'deb' lines, typically used to manage repository sources  | 46 | 127 | 0 |
