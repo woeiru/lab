@@ -1,6 +1,6 @@
 # OpenAI Account Visibility in OSV Plan
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-04
 - Updated: 2026-03-04 02:39
