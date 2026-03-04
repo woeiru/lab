@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04 02:30
+- Updated: 2026-03-04 02:34
 - Links: doc/pro/task/RULES.md, doc/pro/task/active-move, doc/pro/README.md, doc/pro/check-workflow.sh, doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md, doc/pro/queue/20260303-2246_logging-architectural-restructure-plan.md, doc/pro/queue/20260303-2247_logging-visual-output-redesign-plan.md
 
 ## Problem Statement
@@ -58,7 +58,44 @@ mode behavior all depend on.
 3. Add checker enforcement for the canonical format.
 4. Normalize existing queue/active docs to the chosen format.
 
+## Progress Checkpoint
+
+### Done
+
+1. Moved this item into `doc/pro/active/` with `Status: active` and canonical `## Triage Decision` answers captured.
+2. Added `## Execution Plan`, `## Verification Plan`, and `## Exit Criteria` sections to make the work execution-ready.
+3. Confirmed current wording mismatch scope by identifying queue items still using `**Design required:** Yes/No` phrasing.
+4. Ran workflow validation: `bash doc/pro/check-workflow.sh` passed after move/update.
+5. Committed activation changes on `master` as `98f5013e` (`docs(pro): move strict-mode classification issue to active`).
+
+### In-flight
+
+1. Phase 1 design decision is outlined but not yet written as a finalized canonical schema and migration policy.
+2. Checker enforcement logic in `doc/pro/check-workflow.sh` is not yet implemented.
+
+### Blockers
+
+1. No hard blocker; the remaining dependency is selecting and documenting a single migration policy (rewrite-on-touch vs one-time normalization).
+
+### Next steps
+
+1. Complete Phase 1 by documenting the canonical classification schema and migration policy directly in this file (`doc/pro/active/20260304-0214_strict-mode-design-classification-mismatch-issue.md`).
+2. Update workflow instructions to the canonical wording in `doc/pro/task/active-move`, `doc/pro/task/queue-move`, `doc/pro/task/queue-triage`, and `doc/pro/README.md`.
+3. Implement classification-token validation in `doc/pro/check-workflow.sh` with actionable failure messages for missing/malformed tokens.
+4. Normalize existing queue items to canonical `Design: required` or `Design: not needed` wording in `doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md`, `doc/pro/queue/20260303-2246_logging-architectural-restructure-plan.md`, and `doc/pro/queue/20260303-2247_logging-visual-output-redesign-plan.md`.
+5. Run `bash -n doc/pro/check-workflow.sh` and `bash doc/pro/check-workflow.sh`, then record validation results in this file.
+
+### Context
+
+1. Branch: `master`.
+2. Working tree: clean at checkpoint start; this file is the only intended edit for this checkpoint update.
+3. Latest workflow commits: `98f5013e` (move strict-mode item to active), `f38e5cac` (close OpenAI visibility plan).
+4. Current active board focus: this issue is now the only active non-waiver workflow item.
+5. Validation baseline before next implementation step: workflow checker currently passes.
+
 ## Execution Plan
+
+All phases below are remaining work.
 
 ### Phase 1 - Canonical Classification Design
 
