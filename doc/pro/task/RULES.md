@@ -13,6 +13,15 @@ Folder-specific naming:
 - dismissed/: filename must end with -plan.md; must include ## Dismissal Reason
 - completed/: files must be in completed/<topic>/<file>.md (one subfolder deep)
 
+Reference pointers:
+- Primary operating guide: AGENTS.md.
+- Workflow semantics and checker behavior: doc/pro/README.md.
+- Canonical architecture context: doc/arc/.
+- Canonical generated references: doc/ref/.
+- If touching lib modules, consult lib/.spec and lib/ops/.spec.
+- doc/pro/ is workflow/planning state, not executable source of truth.
+- If docs conflict on behavior, follow source code.
+
 Validation:
 - Run: bash doc/pro/check-workflow.sh before finishing.
 - If the checker fails, fix every reported issue before returning.
