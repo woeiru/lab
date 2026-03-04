@@ -193,6 +193,10 @@ deterministic:
 2. `OPENCODE_ATTR_*` runtime vars when `OPENCODE_ATTR_PROVIDER_ID` normalizes to `openai`
 3. `LAB_DEV_OPENAI_AUTH_FILE` (default `~/.local/share/opencode/auth.json`)
 
+Synthetic runtime labels (for example `audit-session@example.com` and other
+`@example.*` placeholders) are ignored so wrapper attribution can fall back to
+real local auth-state identity.
+
 Only non-secret identity fields are persisted in attribution events.
 
 ### View sessions with attribution confidence

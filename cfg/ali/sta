@@ -462,7 +462,7 @@
         if declare -f _dev_auto_attribute >/dev/null 2>&1; then
             _dev_auto_attribute
         elif declare -f _orc_lazy_dispatch >/dev/null 2>&1 && [ -n "${LIB_OPS_DIR:-}" ] && [ -f "${LIB_OPS_DIR}/dev" ]; then
-            _orc_lazy_dispatch "${LIB_OPS_DIR}/dev" "_dev_auto_attribute" >/dev/null 2>&1 || true
+            _orc_lazy_dispatch "${LIB_OPS_DIR}/dev" "_dev_auto_attribute" "ops:dev" >/dev/null 2>&1 || true
         fi
         command opencode "$@"
     }

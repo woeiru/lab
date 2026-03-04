@@ -138,11 +138,44 @@ def compact_account_label(label):
 
     return value
 
+def is_synthetic_openai_identity(value):
+    text = str(value or "").strip().lower()
+    if not text:
+        return True
+
+    if text in {"unknown", "(unknown)", "none", "null", "n/a", "na"}:
+        return True
+
+    if text.startswith("audit-session") or text.startswith("audit_session"):
+        return True
+
+    if "@" in text:
+        _, domain = text.rsplit("@", 1)
+        if domain in {"example.com", "example.org", "example.net"}:
+            return True
+
+    return False
+
 def normalize_source(source):
     src = (source or "").strip().lower()
     if src == "opencode_runtime":
         return "runtime"
     return src
+
+def pick_preferred_event(candidates, provider):
+    if not candidates:
+        return None
+
+    if provider != "openai":
+        return candidates[-1]
+
+    for event in reversed(candidates):
+        label = event.get("account_label") or event.get("account_key") or ""
+        key = event.get("account_key") or label
+        if not is_synthetic_openai_identity(label) and not is_synthetic_openai_identity(key):
+            return event
+
+    return candidates[-1]
 
 def load_attribution_events(cursor):
     """Load account attribution timeline from opencode_account_event table."""
@@ -254,14 +287,18 @@ def resolve_session_user(first_prompt_ms, provider_id, attribution_events, legac
     if first_prompt_ms is not None and provider_events:
         before = [evt for evt in provider_events if evt["time_ms"] <= first_prompt_ms]
         if before:
-            pick = before[-1]
+            pick = pick_preferred_event(before, provider)
+            if pick is None:
+                return unknown
             label = pick["account_label"] or pick["account_key"] or "unk"
             return (compact_account_label(label), pick["source"], "high")
 
         if allow_best_effort:
             after = [evt for evt in provider_events if evt["time_ms"] > first_prompt_ms]
             if after:
-                pick = after[0]
+                pick = pick_preferred_event(after, provider)
+                if pick is None:
+                    return unknown
                 label = pick["account_label"] or pick["account_key"] or "unk"
                 return (compact_account_label(label), pick["source"], "low")
 
@@ -825,6 +862,31 @@ _dev_get_openai_auth_state_path() {
     echo "$auth_path"
 }
 
+_dev_is_synthetic_openai_identity_value() {
+    local raw_value="${1:-}"
+    local normalized="${raw_value,,}"
+
+    normalized="${normalized//$'\n'/ }"
+    normalized="${normalized//$'\r'/ }"
+    normalized="${normalized#"${normalized%%[![:space:]]*}"}"
+    normalized="${normalized%"${normalized##*[![:space:]]}"}"
+
+    case "$normalized" in
+        ""|"unknown"|"(unknown)"|"none"|"null"|"n/a"|"na")
+            return 0
+            ;;
+        audit-session|audit_session|audit-session@*|audit_session@*)
+            return 0
+            ;;
+        *@example.com|*@example.org|*@example.net)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 _dev_get_openai_account_identity() {
     local account_key_override="${LAB_DEV_OPENAI_ACCOUNT_KEY_OVERRIDE:-}"
     local account_label_override="${LAB_DEV_OPENAI_ACCOUNT_LABEL_OVERRIDE:-}"
@@ -847,8 +909,10 @@ _dev_get_openai_account_identity() {
     local runtime_label="${OPENCODE_ATTR_ACCOUNT_LABEL:-$runtime_key}"
 
     if [ "$runtime_provider" = "openai" ] && aux_val "$runtime_key" "not_empty" && aux_val "$runtime_label" "not_empty"; then
-        echo "$runtime_key|$runtime_label|runtime_env"
-        return 0
+        if ! _dev_is_synthetic_openai_identity_value "$runtime_key" && ! _dev_is_synthetic_openai_identity_value "$runtime_label"; then
+            echo "$runtime_key|$runtime_label|runtime_env"
+            return 0
+        fi
     fi
 
     if ! aux_chk "command" "python3" 2>/dev/null; then

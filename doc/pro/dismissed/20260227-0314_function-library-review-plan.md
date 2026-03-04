@@ -1,13 +1,18 @@
 # Function Library Review -- Active Strategy
 
-- Status: inbox
+- Status: dismissed
 - Owner: es
 - Started: n/a
-- Updated: 2026-02-27
+- Updated: 2026-03-04
 - Links: none
 
 Strategic plan for systematic review and improvement of all library functions
 across lib/core/, lib/gen/, and lib/ops/.
+
+## Dismissal Reason
+
+- Plan is stale relative to current priorities and workflow state.
+- Scope is too broad and no longer actionable as a single planning item.
 
 ## Guiding Principle
 

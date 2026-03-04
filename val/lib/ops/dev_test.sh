@@ -2009,6 +2009,70 @@ test_dev_openai_identity_resolver_from_auth_state() {
     return 0
 }
 
+# Test: _dev_get_openai_account_identity ignores synthetic runtime labels
+test_dev_openai_identity_resolver_ignores_synthetic_runtime_env() {
+    local test_env
+    test_env=$(create_test_env "dev_openai_identity_runtime_synthetic")
+
+    _create_openai_auth_json \
+        "$test_env/.local/share/opencode/auth.json" \
+        "acct-openai-auth-fallback" \
+        "openai-fallback@example.net"
+
+    local old_home="$HOME"
+    local old_provider=""
+    local old_key=""
+    local old_label=""
+    local had_provider=0
+    local had_key=0
+    local had_label=0
+
+    if [[ ${OPENCODE_ATTR_PROVIDER_ID+x} ]]; then
+        had_provider=1
+        old_provider="$OPENCODE_ATTR_PROVIDER_ID"
+    fi
+    if [[ ${OPENCODE_ATTR_ACCOUNT_KEY+x} ]]; then
+        had_key=1
+        old_key="$OPENCODE_ATTR_ACCOUNT_KEY"
+    fi
+    if [[ ${OPENCODE_ATTR_ACCOUNT_LABEL+x} ]]; then
+        had_label=1
+        old_label="$OPENCODE_ATTR_ACCOUNT_LABEL"
+    fi
+
+    export HOME="$test_env"
+    OPENCODE_ATTR_PROVIDER_ID="openai"
+    OPENCODE_ATTR_ACCOUNT_KEY="audit-session@example.com"
+    OPENCODE_ATTR_ACCOUNT_LABEL="audit-session@example.com"
+
+    local identity
+    identity=$(_dev_get_openai_account_identity)
+    local status=$?
+
+    if [[ $had_provider -eq 1 ]]; then
+        OPENCODE_ATTR_PROVIDER_ID="$old_provider"
+    else
+        unset OPENCODE_ATTR_PROVIDER_ID
+    fi
+    if [[ $had_key -eq 1 ]]; then
+        OPENCODE_ATTR_ACCOUNT_KEY="$old_key"
+    else
+        unset OPENCODE_ATTR_ACCOUNT_KEY
+    fi
+    if [[ $had_label -eq 1 ]]; then
+        OPENCODE_ATTR_ACCOUNT_LABEL="$old_label"
+    else
+        unset OPENCODE_ATTR_ACCOUNT_LABEL
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$identity" == "acct-openai-auth-fallback|openai-fallback@example.net|auth_state" ]] || return 1
+    return 0
+}
+
 # Test: _dev_auto_attribute is silent when OpenAI identity is unavailable
 test_dev_auto_attribute_silent_on_missing_openai_identity() {
     local test_env
@@ -2126,6 +2190,108 @@ PY
     return 0
 }
 
+# Test: _dev_auto_attribute prefers auth-state OpenAI identity over synthetic runtime label
+test_dev_auto_attribute_ignores_synthetic_openai_runtime_identity() {
+    local test_env
+    test_env=$(create_test_env "dev_auto_attribute_openai_runtime_synthetic")
+    local db_path="$test_env/opencode.db"
+
+    _create_openai_auth_json \
+        "$test_env/.local/share/opencode/auth.json" \
+        "acct-openai-auth" \
+        "openai-auth@example.net"
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    local old_provider=""
+    local old_key=""
+    local old_label=""
+    local had_provider=0
+    local had_key=0
+    local had_label=0
+
+    if [[ ${OPENCODE_ATTR_PROVIDER_ID+x} ]]; then
+        had_provider=1
+        old_provider="$OPENCODE_ATTR_PROVIDER_ID"
+    fi
+    if [[ ${OPENCODE_ATTR_ACCOUNT_KEY+x} ]]; then
+        had_key=1
+        old_key="$OPENCODE_ATTR_ACCOUNT_KEY"
+    fi
+    if [[ ${OPENCODE_ATTR_ACCOUNT_LABEL+x} ]]; then
+        had_label=1
+        old_label="$OPENCODE_ATTR_ACCOUNT_LABEL"
+    fi
+
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+    OPENCODE_ATTR_PROVIDER_ID="openai"
+    OPENCODE_ATTR_ACCOUNT_KEY="audit-session@example.com"
+    OPENCODE_ATTR_ACCOUNT_LABEL="audit-session@example.com"
+
+    _dev_auto_attribute >/dev/null 2>&1
+    local status=$?
+
+    local event_row=""
+    if [[ $status -eq 0 ]]; then
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, account_label, event_type, source
+    FROM opencode_account_event
+    WHERE provider_id = 'openai'
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join((x or "") for x in row) if row else "")
+PY
+)
+    fi
+
+    if [[ $had_provider -eq 1 ]]; then
+        OPENCODE_ATTR_PROVIDER_ID="$old_provider"
+    else
+        unset OPENCODE_ATTR_PROVIDER_ID
+    fi
+    if [[ $had_key -eq 1 ]]; then
+        OPENCODE_ATTR_ACCOUNT_KEY="$old_key"
+    else
+        unset OPENCODE_ATTR_ACCOUNT_KEY
+    fi
+    if [[ $had_label -eq 1 ]]; then
+        OPENCODE_ATTR_ACCOUNT_LABEL="$old_label"
+    else
+        unset OPENCODE_ATTR_ACCOUNT_LABEL
+    fi
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_row" == "openai|acct-openai-auth|openai-auth@example.net|account_selected|shell_wrapper" ]] || return 1
+    return 0
+}
+
 # Test: dev_osv strict mode resolves OpenAI wrapper event with high confidence
 test_dev_overview_openai_wrapper_event_strict_high_confidence() {
     local test_env
@@ -2233,6 +2399,105 @@ ok = (
     rows.get('OpenAI Strict', {}).get('user') == 'strict-openai@example.net' and
     rows.get('OpenAI Strict', {}).get('src') == 'shell_wrapper' and
     rows.get('OpenAI Strict', {}).get('conf') == 'high'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: dev_osv prefers non-synthetic OpenAI identity over later placeholder event
+test_dev_overview_openai_prefers_non_synthetic_identity() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_openai_prefer_non_synthetic")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_openaiprefernon000001", "project_lab", "/home/es/lab", "OpenAI Prefer Non Synthetic", 1771760002000),
+)
+
+first_user_ms = 1771760000000
+assistant_ms = 1771760001000
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_openai_prefer_user", "ses_openaiprefernon000001", first_user_ms, first_user_ms, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_openai_prefer_assistant", "ses_openaiprefernon000001", assistant_ms, assistant_ms, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771759998000, "openai", "acct-openai-real", "real-openai@example.net", "shell_wrapper"),
+)
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771759999000, "openai", "audit-session@example.com", "audit-session@example.com", "opencode_runtime"),
+)
+
+conn.commit()
+conn.close()
+PY
+
+    local output
+    output=$(_dev_osv_render "$db_path" "-x" "0" "0")
+    local status=$?
+
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('OpenAI Prefer Non Synthetic', {}).get('user') == 'real-openai@example.net' and
+    rows.get('OpenAI Prefer Non Synthetic', {}).get('src') == 'shell_wrapper' and
+    rows.get('OpenAI Prefer Non Synthetic', {}).get('conf') == 'high'
 )
 print('OK' if ok else 'FAIL')
 PY
@@ -2682,7 +2947,10 @@ EOF
 
     local dispatch_log="$test_env/dispatch.log"
     _orc_lazy_dispatch() {
-        printf "%s|%s\n" "$1" "$2" > "$dispatch_log"
+        if [[ $# -lt 3 ]]; then
+            return 1
+        fi
+        printf "%s|%s|%s\n" "$1" "$2" "$3" > "$dispatch_log"
         return 0
     }
 
@@ -2708,7 +2976,7 @@ PY
     cleanup_test_env "$test_env"
 
     [[ $status -eq 0 ]] || return 1
-    [[ "$dispatched" == "$test_env/dev|_dev_auto_attribute" ]] || return 1
+    [[ "$dispatched" == "$test_env/dev|_dev_auto_attribute|ops:dev" ]] || return 1
     return 0
 }
 
@@ -3092,9 +3360,12 @@ main() {
     run_test test_dev_oae_runtime_hook_mode
     run_test test_dev_oae_token_refreshed_event
     run_test test_dev_openai_identity_resolver_from_auth_state
+    run_test test_dev_openai_identity_resolver_ignores_synthetic_runtime_env
     run_test test_dev_auto_attribute_silent_on_missing_openai_identity
     run_test test_dev_auto_attribute_emits_openai_shell_wrapper_event
+    run_test test_dev_auto_attribute_ignores_synthetic_openai_runtime_identity
     run_test test_dev_overview_openai_wrapper_event_strict_high_confidence
+    run_test test_dev_overview_openai_prefers_non_synthetic_identity
     run_test test_dev_overview_table_mode_user_visibility_openai
     run_test test_dev_auto_attribute_emits_for_active_families
     run_test test_dev_auto_attribute_silent_on_missing_accounts_file

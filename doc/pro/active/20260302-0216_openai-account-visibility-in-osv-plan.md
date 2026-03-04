@@ -1,10 +1,22 @@
 # OpenAI Account Visibility in OSV Plan
 
-- Status: completed
+- Status: active
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04 02:28
+- Updated: 2026-03-04 02:39
 - Links: lib/ops/dev, cfg/ali/sta, val/lib/ops/dev_test.sh, doc/man/07-dev-session-attribution-workflow.md, doc/man/03-cli-usage.md
+
+## Reopened
+
+- Reopened on 2026-03-04 after live verification showed new OpenAI sessions still rendering `USER=audit-session` instead of the specific connected account username.
+- Additional work needed:
+  1. Trace the active attribution path used by current OpenAI sessions and identify where placeholder labels are being injected or winning precedence.
+  2. Update identity resolution and/or event emission so `account_selected` stores an account-specific username/label for OpenAI sessions instead of `audit-session` defaults.
+  3. Extend tests and docs to cover persistent placeholder regressions and account-specific visibility across repeated OpenAI sessions.
+- New exit criteria for this round:
+  1. Fresh OpenAI sessions show `USER=<specific-account-username>` (not `audit-session*`) in `ops dev osv -x -l 10` with expected `SRC` and `CONF` semantics.
+  2. `ops dev osv -t` keeps the same session user value visibly account-specific in normal operator table output.
+  3. Regression tests fail if placeholder `audit-session` is shown when a resolvable OpenAI identity exists.
 
 ## Triage Decision
 

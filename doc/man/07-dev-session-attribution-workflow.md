@@ -211,6 +211,8 @@ Safe recovery:
 
 The wrapper uses local state first and does not call OpenAI APIs at launch.
 If local auth state is stale or intentionally overridden, labels can differ.
+Synthetic runtime placeholders (for example `audit-session@example.com`) are
+ignored by the wrapper resolver so they do not override real local identity.
 
 Force a temporary local override for wrapper-attributed sessions:
 
