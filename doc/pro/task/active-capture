@@ -16,9 +16,11 @@ through normal workflow operations.
 - Add ## Retroactive Capture section with:
   - Origin: what the fix originally targeted (one sentence)
   - Escalation reason: why it grew (deeper bug, unexpected dependency, etc.)
-  - Design: required | not needed (answer the two triage questions inline:
+  - Design classification -- answer both questions inline:
     1. Are there meaningful alternatives for how to solve this?
-    2. Will other code or users depend on the shape of the output?)
+    2. Will other code or users depend on the shape of the output?
+    If either answer is yes: "Design: required"
+    If both answers are no: "Design: not needed"
   - Work so far: brief summary of what has already been done
 - Add ## Progress Checkpoint section (same format as active-checkpoint):
   - Done: what was completed before capture

@@ -3,7 +3,7 @@
 - Status: queue
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-04
+- Updated: 2026-03-04 02:37
 - Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/col, lib/gen/aux, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md, doc/pro/queue/20260303-2246_logging-architectural-restructure-plan.md, doc/pro/completed/20260303-0220_bootstrap-visual-output-redesign-plan/20260303-0220_bootstrap-visual-output-redesign-plan.md
 
 ## Goal
@@ -104,9 +104,15 @@ provides the infrastructure to implement visual modes cleanly. Without
 project 2's `LAB_LOG_LEVEL`, there is no coherent control point for
 rendering decisions.
 
-**Design required:** Yes. Phase 1 is design-only: a complete visual
-specification covering layout, color mapping, level indicators, density
-modes, and rejected alternatives. No code until the spec is approved.
+**Are there meaningful alternatives for how to solve this?** Yes.
+
+**Will other code or users depend on the shape of the output?** Yes.
+
+**Design: required**
+
+**Justification:** The visual specification becomes a user-facing rendering
+contract across logging subsystems, so option selection and output shape are
+design-critical.
 
 ## Scope
 

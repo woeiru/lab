@@ -1,9 +1,9 @@
 # Strict Mode Design Classification Mismatch Issue
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04 02:34
+- Updated: 2026-03-04 02:47
 - Links: doc/pro/task/RULES.md, doc/pro/task/active-move, doc/pro/README.md, doc/pro/check-workflow.sh, doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md, doc/pro/queue/20260303-2246_logging-architectural-restructure-plan.md, doc/pro/queue/20260303-2247_logging-visual-output-redesign-plan.md
 
 ## Problem Statement
@@ -58,44 +58,96 @@ mode behavior all depend on.
 3. Add checker enforcement for the canonical format.
 4. Normalize existing queue/active docs to the chosen format.
 
+## Phase 1 Deliverable - Canonical Classification Contract
+
+Chosen approach:
+
+1. Canonical triage classification is exactly one token line inside
+   `## Triage Decision`:
+   - `Design: required`
+   - `Design: not needed`
+2. The same `## Triage Decision` section must also include:
+   - Why-now priority rationale
+   - Answers to both design questions
+   - One-sentence classification justification
+3. Accepted formatting: plain text or emphasized markdown wrappers around the
+   canonical token (for example `**Design: required**`), but token text itself
+   must remain exact.
+
+Constraints:
+
+1. Strict mode must remain inference-free: missing canonical tokens are hard
+   blockers.
+2. Non-strict workflow should surface the same mismatches via checker failures
+   before move-time task execution.
+3. Existing timestamp prefixes and workflow state semantics must remain
+   unchanged.
+
+Alternatives considered:
+
+1. Accept legacy synonyms (`Design required: Yes/No`) in strict mode/checker.
+2. Canonicalize to exact tokens and fail legacy wording with clear remediation.
+
+Trade-off and decision:
+
+1. Chosen: canonical exact tokens with checker enforcement and actionable
+   failure messages.
+2. Trade-off: stricter validation now requires minor doc normalization, but it
+   removes ambiguity and restores deterministic strict-mode behavior.
+
+Migration policy:
+
+1. Immediate one-time normalization for current queue/active items to remove
+   active blockers.
+2. Rewrite-on-touch for future docs, with checker enforcement preventing legacy
+   wording from re-entering queue/active states.
+
 ## Progress Checkpoint
 
 ### Done
 
-1. Moved this item into `doc/pro/active/` with `Status: active` and canonical `## Triage Decision` answers captured.
-2. Added `## Execution Plan`, `## Verification Plan`, and `## Exit Criteria` sections to make the work execution-ready.
-3. Confirmed current wording mismatch scope by identifying queue items still using `**Design required:** Yes/No` phrasing.
-4. Ran workflow validation: `bash doc/pro/check-workflow.sh` passed after move/update.
-5. Committed activation changes on `master` as `98f5013e` (`docs(pro): move strict-mode classification issue to active`).
+1. Completed Phase 1 design deliverable in this item with canonical token,
+   placement, constraints, alternatives, trade-off decision, and migration
+   policy.
+2. Completed Phase 2 alignment by updating workflow guidance in
+   `doc/pro/task/active-capture` and `doc/pro/README.md` to canonical
+   `Design: required` / `Design: not needed` wording.
+3. Completed Phase 3 checker enforcement in `doc/pro/check-workflow.sh` for
+   queue/active triage section presence, canonical token validation, and legacy
+   token rejection with actionable messages.
+4. Completed Phase 4 normalization for current queue items:
+   - `doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md`
+   - `doc/pro/queue/20260303-2246_logging-architectural-restructure-plan.md`
+   - `doc/pro/queue/20260303-2247_logging-visual-output-redesign-plan.md`
+5. Completed Phase 5 validation (`bash -n doc/pro/check-workflow.sh`,
+   `bash doc/pro/check-workflow.sh`) and strict-mode precondition dry-run via
+   token/section spot checks on queue and active items.
 
 ### In-flight
 
-1. Phase 1 design decision is outlined but not yet written as a finalized canonical schema and migration policy.
-2. Checker enforcement logic in `doc/pro/check-workflow.sh` is not yet implemented.
+1. No in-flight tasks remain in this execution cycle.
 
 ### Blockers
 
-1. No hard blocker; the remaining dependency is selecting and documenting a single migration policy (rewrite-on-touch vs one-time normalization).
+1. No blockers.
 
 ### Next steps
 
-1. Complete Phase 1 by documenting the canonical classification schema and migration policy directly in this file (`doc/pro/active/20260304-0214_strict-mode-design-classification-mismatch-issue.md`).
-2. Update workflow instructions to the canonical wording in `doc/pro/task/active-move`, `doc/pro/task/queue-move`, `doc/pro/task/queue-triage`, and `doc/pro/README.md`.
-3. Implement classification-token validation in `doc/pro/check-workflow.sh` with actionable failure messages for missing/malformed tokens.
-4. Normalize existing queue items to canonical `Design: required` or `Design: not needed` wording in `doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md`, `doc/pro/queue/20260303-2246_logging-architectural-restructure-plan.md`, and `doc/pro/queue/20260303-2247_logging-visual-output-redesign-plan.md`.
-5. Run `bash -n doc/pro/check-workflow.sh` and `bash doc/pro/check-workflow.sh`, then record validation results in this file.
+1. Run `doc/pro/task/completed-close` for this item to move it to
+   `doc/pro/completed/` with final closure summary.
+2. Keep using canonical triage tokens for any new queue/active item to prevent
+   regressions.
 
 ### Context
 
 1. Branch: `master`.
-2. Working tree: clean at checkpoint start; this file is the only intended edit for this checkpoint update.
-3. Latest workflow commits: `98f5013e` (move strict-mode item to active), `f38e5cac` (close OpenAI visibility plan).
-4. Current active board focus: this issue is now the only active non-waiver workflow item.
-5. Validation baseline before next implementation step: workflow checker currently passes.
+2. Working tree now includes workflow-doc and checker updates for this item.
+3. Checker enforcement now covers queue/active `## Triage Decision` integrity
+   and canonical design token format.
+4. Queue backlog no longer contains legacy `Design required: Yes/No` phrasing.
+5. Current active board focus remains this item pending closure move.
 
 ## Execution Plan
-
-All phases below are remaining work.
 
 ### Phase 1 - Canonical Classification Design
 
@@ -107,6 +159,8 @@ Completion criterion:
 
 - A documented design decision exists in this item specifying canonical tokens, placement rules, migration policy, and checker behavior.
 
+Status: completed (2026-03-04 02:39).
+
 ### Phase 2 - Workflow Template and Rule Alignment
 
 1. Update task templates and workflow documentation so all triage instructions require the same canonical classification tokens.
@@ -115,6 +169,8 @@ Completion criterion:
 Completion criterion:
 
 - Workflow task docs and guidance use one consistent canonical classification format with no contradictory examples.
+
+Status: completed (2026-03-04 02:39).
 
 ### Phase 3 - Checker Enforcement
 
@@ -125,6 +181,8 @@ Completion criterion:
 
 - Checker reliably fails malformed or missing triage classification tokens and reports precise remediation guidance.
 
+Status: completed (2026-03-04 02:39).
+
 ### Phase 4 - Existing Item Normalization
 
 1. Normalize existing queue/active workflow items that still use non-canonical design phrasing.
@@ -134,6 +192,8 @@ Completion criterion:
 
 - All current queue/active items pass canonical triage classification checks without manual exceptions.
 
+Status: completed (2026-03-04 02:39).
+
 ### Phase 5 - Validation
 
 1. Run workflow checker and targeted validations after doc/script updates.
@@ -142,6 +202,17 @@ Completion criterion:
 Completion criterion:
 
 - Validation evidence demonstrates canonical triage format is enforced and strict-mode move workflow proceeds predictably.
+
+Status: completed (2026-03-04 02:39).
+
+## Verification Evidence
+
+1. `bash -n doc/pro/check-workflow.sh` -> pass.
+2. `bash doc/pro/check-workflow.sh` -> pass.
+3. Canonical token spot-checks (`Design: required`/`Design: not needed`) pass
+   for all current queue and active items.
+4. `## Triage Decision` spot-checks show exactly one triage section per current
+   queue and active item.
 
 ## Verification Plan
 
@@ -156,3 +227,30 @@ Completion criterion:
 2. Workflow checker enforces canonical format for relevant workflow states.
 3. Existing queue/active items are normalized or explicitly migrated per policy.
 4. Strict-mode queue-to-active flow no longer fails because of wording drift.
+
+## What Changed
+
+1. Defined and documented the canonical triage classification contract in this
+   workflow item, including exact tokens (`Design: required` /
+   `Design: not needed`), placement rules, constraints, alternatives, trade-off
+   decision, and migration policy.
+2. Updated workflow guidance to canonical wording in `doc/pro/task/active-capture`
+   and `doc/pro/README.md`.
+3. Implemented checker enforcement in `doc/pro/check-workflow.sh` for queue/active
+   triage section integrity and canonical token validation, with actionable
+   failure messages for missing/duplicate/malformed/legacy forms.
+4. Normalized queue triage sections in:
+   - `doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md`
+   - `doc/pro/queue/20260303-2246_logging-architectural-restructure-plan.md`
+   - `doc/pro/queue/20260303-2247_logging-visual-output-redesign-plan.md`
+
+## What Was Verified
+
+1. `bash -n doc/pro/check-workflow.sh` -> pass.
+2. `bash doc/pro/check-workflow.sh` -> pass.
+3. Spot-check validation confirms current queue/active items contain exactly one
+   `## Triage Decision` section and canonical design token usage.
+
+## What Remains
+
+1. No follow-up work remains for this item.

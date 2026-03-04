@@ -76,6 +76,9 @@ Examples:
      2. Will other code or users depend on the shape of the output?
    - If either is yes: mark `Design: required` in the `## Triage Decision`.
    - If both are no: mark `Design: not needed`.
+   - Use exactly one canonical token line: `Design: required` or
+     `Design: not needed`.
+   - Do not use legacy wording such as `Design required: Yes/No`.
    - This classification determines how the Execution Plan is structured when
      the item moves to `active/`.
 
@@ -178,6 +181,10 @@ Use this header at the top of each work file:
 - Timestamp prefix format for workflow docs: `yyyymmdd-hhmm_filename`
 - Required header fields in workflow-header docs across workflow folders: `Status`, `Owner`, `Started`, `Updated`, `Links`
 - Status must match destination folder (`inbox`, `queue`, `active`, `experiment`, `completed`, `dismissed`)
+- Queue/active docs contain exactly one `## Triage Decision` section
+- Queue/active docs include exactly one canonical design token in triage:
+  `Design: required` or `Design: not needed`
+- Queue/active docs do not use legacy triage token form: `Design required: Yes/No`
 - Inbox naming pattern (`-plan`, `-issue`, `-review`, `-followup`)
 - Dismissed naming pattern (`-plan`) and required `## Dismissal Reason`
 - Completed structure: `completed/<topic>/<file>.md`
@@ -195,6 +202,9 @@ Common fixes when it fails:
 - `FAIL completed structure`: move file to `completed/<yyyymmdd-hhmm_topic>/`
 - `FAIL completed folder timestamp`: rename folder to `yyyymmdd-hhmm_<topic>`
 - `FAIL dismissal reason`: add `## Dismissal Reason` section in dismissed item
+- `FAIL triage decision missing`/`duplicate`: add one `## Triage Decision` section
+- `FAIL triage design token`/`legacy token`: use exactly one canonical token,
+  `Design: required` or `Design: not needed`
 
 Recommended habit: run the checker before and after any workflow move.
 

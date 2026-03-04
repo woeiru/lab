@@ -3,7 +3,7 @@
 - Status: queue
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-04
+- Updated: 2026-03-04 02:37
 - Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/ver, lib/gen/aux, lib/core/col, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md
 
 ## Goal
@@ -123,9 +123,15 @@ independent subsystems with no shared interface -- means every future
 logging change requires touching five files. Consolidation pays compound
 dividends for all subsequent maintenance and feature work.
 
-**Design required:** Yes. A Design Decision Record is needed for the
-unified log writer interface and the verbosity model simplification. Phase 1
-is design-only (no code changes).
+**Are there meaningful alternatives for how to solve this?** Yes.
+
+**Will other code or users depend on the shape of the output?** Yes.
+
+**Design: required**
+
+**Justification:** The shared-writer and verbosity-model decisions define
+cross-module contracts that future logging behavior and maintainers will depend
+on.
 
 ## Scope
 

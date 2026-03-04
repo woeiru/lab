@@ -3,7 +3,7 @@
 - Status: queue
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-04
+- Updated: 2026-03-04 02:37
 - Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/gen/aux, lib/core/ver, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md
 
 ## Goal
@@ -84,8 +84,14 @@ through one or more logging functions. The per-call overhead compounds across
 the entire session. The bootstrapper renewal already proved these optimization
 patterns work; applying them to logging is low-risk, high-return.
 
-**Design required:** No. This is tactical optimization (same APIs, same
-behavior, fewer forks). No new interfaces or architectural decisions needed.
+**Are there meaningful alternatives for how to solve this?** No.
+
+**Will other code or users depend on the shape of the output?** No.
+
+**Design: not needed**
+
+**Justification:** This is tactical optimization that preserves existing APIs,
+output formats, and behavior contracts while reducing runtime overhead.
 
 ## Scope
 

@@ -129,6 +129,88 @@ should_enforce_header_and_status() {
   esac
 }
 
+should_enforce_triage_design() {
+  local file="$1"
+
+  case "$file" in
+    "$ROOT"/active/waivers/*)
+      return 1
+      ;;
+    "$ROOT"/queue/* | "$ROOT"/active/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+check_triage_design_classification() {
+  local file="$1"
+  local line
+  local in_triage=0
+  local triage_sections=0
+  local required_count=0
+  local not_needed_count=0
+  local legacy_count=0
+
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^##[[:space:]]+Triage[[:space:]]+Decision[[:space:]]*$ ]]; then
+      triage_sections=$((triage_sections + 1))
+      in_triage=1
+      continue
+    fi
+
+    if [[ "$line" =~ ^##[[:space:]] ]]; then
+      in_triage=0
+    fi
+
+    if ((in_triage == 0)); then
+      continue
+    fi
+
+    if [[ "$line" == *"Design: required"* ]]; then
+      required_count=$((required_count + 1))
+    fi
+
+    if [[ "$line" == *"Design: not needed"* ]]; then
+      not_needed_count=$((not_needed_count + 1))
+    fi
+
+    if [[ "$line" == *"Design required:"* ]]; then
+      legacy_count=$((legacy_count + 1))
+    fi
+  done < "$file"
+
+  if ((triage_sections == 0)); then
+    printf 'FAIL triage decision missing: %s (add ## Triage Decision with canonical design token)\n' "$file"
+    failures=$((failures + 1))
+    return
+  fi
+
+  if ((triage_sections > 1)); then
+    printf 'FAIL triage decision duplicate: %s (leave exactly one ## Triage Decision section)\n' "$file"
+    failures=$((failures + 1))
+    return
+  fi
+
+  local token_count
+  token_count=$((required_count + not_needed_count))
+
+  if ((token_count == 0)); then
+    printf 'FAIL triage design token: %s (expected exactly one: "Design: required" or "Design: not needed")\n' "$file"
+    failures=$((failures + 1))
+  elif ((token_count > 1)); then
+    printf 'FAIL triage design token: %s (found multiple canonical design tokens in ## Triage Decision)\n' "$file"
+    failures=$((failures + 1))
+  fi
+
+  if ((legacy_count > 0)); then
+    printf 'FAIL triage design legacy token: %s (replace "Design required: Yes/No" with canonical "Design: required" or "Design: not needed")\n' "$file"
+    failures=$((failures + 1))
+  fi
+}
+
 check_status_matches_folder() {
   local file="$1"
   local expected
@@ -221,6 +303,12 @@ while IFS= read -r file; do
   should_enforce_header_and_status "$file" || continue
   check_header "$file"
   check_status_matches_folder "$file"
+done < <(find "$ROOT" -type f | sort)
+
+while IFS= read -r file; do
+  is_work_item_doc "$file" || continue
+  should_enforce_triage_design "$file" || continue
+  check_triage_design_classification "$file"
 done < <(find "$ROOT" -type f | sort)
 
 while IFS= read -r file; do
