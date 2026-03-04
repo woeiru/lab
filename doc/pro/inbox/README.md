@@ -1,13 +1,20 @@
 # Inbox
 
-This folder stores ideas and plans not started yet.
+This folder stores ideas, issues, and plans not started yet.
 
 ## Naming standard
 
 - Prefix every filename with `yyyymmdd-hhmm_`.
 - After the prefix, use lowercase kebab-case.
-- End with one of: `-plan.md`, `-review.md`, `-followup.md`.
+- End with one of: `-plan.md`, `-issue.md`, `-review.md`, `-followup.md`.
 - Keep names short and topic-focused.
+
+## Suffix meanings
+
+- `-issue.md`: problem statement, impact, and evidence; solution not yet committed.
+- `-plan.md`: proposed or selected approach for implementation.
+- `-review.md`: assessment of existing implementation/work.
+- `-followup.md`: next-step item derived from prior work.
 
 ## Current items
 

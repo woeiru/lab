@@ -16,7 +16,7 @@ This folder tracks alternative implementation plans and their outcomes.
 ## Filename rule (required)
 
 - Every non-README file in `doc/pro/experiments/` must use `yyyymmdd-hhmm_filename`.
-- The prefix is the file's last git touch timestamp.
+- The prefix is the file creation timestamp; keep it stable after creation.
 
 ## Suggested branch naming
 

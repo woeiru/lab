@@ -10,8 +10,8 @@ This directory stores only in-progress work.
 ## Filename rule (required)
 
 - Every non-README file in `doc/pro/active/` must use `yyyymmdd-hhmm_filename`.
-- The prefix is the file's last git touch timestamp.
-- Rename the file when it is updated so the prefix stays current.
+- The prefix is the file creation timestamp; keep it stable after creation.
+- Do not rename on content updates; update the `- Updated:` header field instead.
 
 ## Pause checkpoint (2026-02-28)
 

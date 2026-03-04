@@ -1,7 +1,10 @@
 # Doc JSON Temp Namespacing Plan
 
-- Status: active
+- Status: completed
 - Owner: es
+- Started: 2026-02-28
+- Updated: 2026-03-04
+- Links: utl/doc/generators/func, utl/doc/generators/var, utl/doc/generators/rdp, utl/doc/run_all_doc.sh
 - Created: 2026-02-28
 - Scope: `utl/doc`, `utl/doc/generators`, `lib/gen/ana`, `.tmp/doc`
 

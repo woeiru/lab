@@ -15,12 +15,14 @@ doc/pro/active/20260301-1400_gpu-thermal-monitoring-plan.md
 ```
 
 For tasks that take free-form input instead of a file (like inbox-capture),
-put the idea after the task path:
+put the idea/problem statement after the task path:
 
 ```
 doc/pro/task/inbox-capture
 Add GPU thermal monitoring to the sys module
 ```
+
+Use `Strict mode.` when you want capture-only behavior with no extra analysis.
 
 Append `Strict mode.` to halt on ambiguity instead of inferring.
 

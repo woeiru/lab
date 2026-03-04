@@ -3,8 +3,8 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04
-- Links: lib/ops/dev, val/lib/ops/dev_test.sh, /home/es/.config/opencode/antigravity-accounts.json, /home/es/.config/opencode/antigravity-account-denylist.txt
+- Updated: 2026-03-04 01:16
+- Links: lib/ops/dev, cfg/core/lzy, val/lib/ops/dev_test.sh, val/core/initialization/orc_test.sh, /home/es/.config/opencode/antigravity-accounts.json, /home/es/.config/opencode/antigravity-account-denylist.txt
 
 ## Retroactive Capture
 
@@ -31,24 +31,30 @@
   - Committed the implementation on `master` as `6a36f493` (`feat(dev): unify antigravity reconcile path and add dev_oac`).
   - Verified upstream context: issue `NoeFabris/opencode-antigravity-auth#336` is closed and release `v1.5.0` notes include the account-deletion persistence fix.
   - Corrected local version audit: installed auth plugin is `opencode-antigravity-auth` `1.6.0` (cache/runtime), while `opencode --version`/`@opencode-ai/plugin` reports the core OpenCode package line (`1.2.16`).
+  - Resumed checkpoint verification: `git status` clean on `master`, reconcile/test symbols still present in `lib/ops/dev` and `val/lib/ops/dev_test.sh`, and `./val/lib/ops/dev_test.sh` re-ran green (`51/51`).
+  - Captured a naturally occurring external repopulation pre-reconcile state from `/home/es/.config/opencode/antigravity-accounts.json` (denylisted entries reappeared as disabled accounts).
+  - Captured live shell evidence for the same cycle: `dev_oac -x` returned `command not found` before `dev` module lazy-load, while `dev_olb -x` triggered lazy module sourcing and rendered a stable 5-account dashboard with expected routing markers.
+  - Verified post-`dev_olb -x` local file state: `/home/es/.config/opencode/antigravity-accounts.json` now has `accounts_total=5` and `denylisted_present=0`.
+  - Implemented lazy-load map fix so `dev_oac` is registered as a `dev` lazy stub (`cfg/core/lzy`) and added a regression test (`test_source_lib_ops_dev_reconcile_stub_is_lazy_loadable`) in `val/core/initialization/orc_test.sh`.
+  - Validated lazy-load fix: `bash -n cfg/core/lzy`, `bash -n val/core/initialization/orc_test.sh`, and `./val/core/initialization/orc_test.sh` (`7/7` pass).
 - In-flight:
-  - No in-repo code changes are in flight; working tree is clean after commit.
-  - External-sync timing observation is still pending (need at least one naturally occurring provider repopulation event captured with before/after evidence).
+  - In-repo changes are pending for lazy-load registration/test updates (`cfg/core/lzy`, `val/core/initialization/orc_test.sh`, this plan file).
+  - External-sync evidence is partially complete for this cycle (pre-sync capture + post-`dev_olb` reconcile evidence captured; explicit `dev_oac -x` output contract still missing due initial lazy-stub gap now fixed).
 - Blockers:
   - External Antigravity account sync writes are outside this repo and can rewrite `antigravity-accounts.json` at arbitrary times.
   - No always-on in-repo enforcement hook currently guarantees immediate post-sync pruning when no dev wrapper commands are executed.
+  - Capturing explicit `dev_oac -x` evidence for a naturally repopulated state now depends on the next external repopulation event timing.
 - Next steps:
-  1. Capture one naturally occurring external sync/repopulation event by recording pre-reconcile state from `/home/es/.config/opencode/antigravity-accounts.json`.
-  2. Run `dev_oac -x` immediately after that event and append exact before/after counters, removed emails, and backup path in this plan.
-  3. Run `dev_olb -x` and record routing/account marker evidence to confirm stable indices after the same event.
-  4. Decide automation path for immediate post-sync pruning (options: user cron wrapper or shell hook invocation).
-  5. Implement the selected automation path in `lib/ops/dev` and add/adjust tests in `val/lib/ops/dev_test.sh` if automation is chosen.
+  1. Reload shell bootstrap (`lab`) and verify `dev_oac -x` now resolves via lazy stub; record deterministic output lines for current local state.
+  2. On the next naturally occurring repopulation event, capture paired evidence in sequence (`dev_oac -x` then `dev_olb -x`) and append before/after counters + routing markers.
+  3. Decide automation path for immediate post-sync pruning (options: user cron wrapper or shell hook invocation).
+  4. Implement the selected automation path in `lib/ops/dev` and add/adjust tests in `val/lib/ops/dev_test.sh` if automation is chosen.
 - Context:
   - Branch: `master`.
   - Last commit: `6a36f493`.
   - Repo changes pending: this active plan only.
   - External state touched during debugging: `/home/es/.config/opencode/antigravity-accounts.json` and backup files.
-  - Latest test status: 51/51 pass in `./val/lib/ops/dev_test.sh`.
+  - Latest test status: `./val/lib/ops/dev_test.sh` `51/51` pass; `./val/core/initialization/orc_test.sh` `7/7` pass.
   - Runtime plugin version confirmed: `opencode-antigravity-auth` `1.6.0` in `/home/es/.cache/opencode/node_modules/opencode-antigravity-auth/package.json`.
   - Versioning nuance: `opencode --version` and `@opencode-ai/plugin` (`1.2.16`) describe OpenCode core package versions, not the external antigravity auth plugin release stream.
   - Manual verification evidence (2026-03-04):
@@ -56,6 +62,14 @@
     - Cycle 2: `before_count=5` -> `status=NO_CHANGE` -> `after_count=5`, denylisted present: `0`.
     - Cycle 3: `before_count=5` -> `status=NO_CHANGE` -> `after_count=5`, denylisted present: `0`.
     - `dev_olb -x` executed each cycle; final marker check: `status=0`, routing/account markers present.
+  - External repopulation capture (2026-03-04 01:09 local):
+    - `accounts_total=7`, `denylist_entries=2`, `denylisted_present=2`, `denylisted_enabled=0`.
+    - Reappeared denylisted emails in file: `mbwagner123@gmail.com` (index `5`, disabled) and `agent.mbw@gmail.com` (index `6`, disabled).
+    - Current markers before reconcile: `activeIndex=1`, `activeIndexByFamily={"claude":1,"gemini":4}`.
+  - Live command evidence from user shell (2026-03-04 01:13 local):
+    - `dev_oac -x` failed before module load: `bash: dev_oac: command not found` and command-not-found warning logged.
+    - `dev_olb -x` lazy-loaded `dev`/`aux` modules, rendered 5 enabled accounts, and reported routing markers `default=account 2`, `claude=account 2`, `gemini=account 5`.
+    - Post-`dev_olb -x` file check: `accounts_total=5`, `denylisted_present=0`, `activeIndex=1`, `activeIndexByFamily={"claude":1,"gemini":4}`.
 
 ## Reconcile Contract
 

@@ -40,18 +40,115 @@ check_timestamp_prefix() {
   fi
 }
 
+get_header_field_value() {
+  local file="$1"
+  local field="$2"
+  local line
+  local line_count=0
+
+  while IFS= read -r line; do
+    line_count=$((line_count + 1))
+
+    if [[ "$line" =~ ^##[[:space:]] ]]; then
+      break
+    fi
+
+    if [[ "$line" =~ ^-[[:space:]]${field}:[[:space:]]*(.*)$ ]]; then
+      printf '%s\n' "${BASH_REMATCH[1]}"
+      return 0
+    fi
+
+    if ((line_count >= 40)); then
+      break
+    fi
+  done < "$file"
+
+  return 1
+}
+
 check_header() {
   local file="$1"
   local missing=()
+  local field
 
-  grep -q "^- Status:" "$file" || missing+=("Status")
-  grep -q "^- Owner:" "$file" || missing+=("Owner")
-  grep -q "^- Started:" "$file" || missing+=("Started")
-  grep -q "^- Updated:" "$file" || missing+=("Updated")
-  grep -q "^- Links:" "$file" || missing+=("Links")
+  for field in Status Owner Started Updated Links; do
+    get_header_field_value "$file" "$field" >/dev/null || missing+=("$field")
+  done
 
   if ((${#missing[@]} > 0)); then
     printf 'FAIL header: %s (missing: %s)\n' "$file" "${missing[*]}"
+    failures=$((failures + 1))
+  fi
+}
+
+expected_status_for_file() {
+  local file="$1"
+
+  case "$file" in
+    "$ROOT"/inbox/*)
+      printf 'inbox\n'
+      ;;
+    "$ROOT"/queue/*)
+      printf 'queue\n'
+      ;;
+    "$ROOT"/active/*)
+      printf 'active\n'
+      ;;
+    "$ROOT"/completed/*)
+      printf 'completed\n'
+      ;;
+    "$ROOT"/dismissed/*)
+      printf 'dismissed\n'
+      ;;
+    "$ROOT"/experiments/*)
+      printf 'experiment\n'
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+should_enforce_header_and_status() {
+  local file="$1"
+
+  case "$file" in
+    "$ROOT"/active/waivers/*)
+      return 1
+      ;;
+    "$ROOT"/inbox/* | "$ROOT"/queue/* | "$ROOT"/active/* | "$ROOT"/dismissed/*)
+      return 0
+      ;;
+    "$ROOT"/completed/* | "$ROOT"/experiments/*)
+      get_header_field_value "$file" "Status" >/dev/null
+      return $?
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+check_status_matches_folder() {
+  local file="$1"
+  local expected
+  local actual
+
+  expected="$(expected_status_for_file "$file" || true)"
+  if [[ -z "$expected" ]]; then
+    return 0
+  fi
+
+  actual="$(get_header_field_value "$file" "Status" || true)"
+
+  if [[ -z "$actual" ]]; then
+    printf 'FAIL status missing: %s\n' "$file"
+    failures=$((failures + 1))
+    return 0
+  fi
+
+  if [[ "$actual" != "$expected" ]]; then
+    printf 'FAIL status mismatch: %s (expected: %s, found: %s)\n' "$file" "$expected" "$actual"
     failures=$((failures + 1))
   fi
 }
@@ -85,7 +182,7 @@ check_inbox_names() {
   local file="$1"
   local base
   base="$(basename "$file")"
-  if [[ ! "$base" =~ ^[0-9]{8}-[0-9]{4}_[a-z0-9-]+-(plan|review|followup)\.md$ ]]; then
+  if [[ ! "$base" =~ ^[0-9]{8}-[0-9]{4}_[a-z0-9-]+-(plan|issue|review|followup)\.md$ ]]; then
     printf 'FAIL inbox name: %s\n' "$file"
     failures=$((failures + 1))
   fi
@@ -117,8 +214,14 @@ done < <(find "$ROOT" -type f | sort)
 while IFS= read -r file; do
   is_markdown_doc "$file" || continue
   check_inbox_names "$file"
-  check_header "$file"
 done < <(find "$ROOT/inbox" -type f | sort)
+
+while IFS= read -r file; do
+  is_work_item_doc "$file" || continue
+  should_enforce_header_and_status "$file" || continue
+  check_header "$file"
+  check_status_matches_folder "$file"
+done < <(find "$ROOT" -type f | sort)
 
 while IFS= read -r file; do
   is_markdown_doc "$file" || continue
@@ -128,7 +231,6 @@ done < <(find "$ROOT/completed" -type f | sort)
 while IFS= read -r file; do
   is_markdown_doc "$file" || continue
   check_dismissed_names "$file"
-  check_header "$file"
   check_dismissal_reason "$file"
 done < <(find "$ROOT/dismissed" -type f | sort)
 

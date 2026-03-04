@@ -29,7 +29,7 @@ flowchart LR
 
 ## Folder meanings
 
-- `inbox/`: ideas, plans, and tasks you might do later
+- `inbox/`: ideas, issues, plans, and tasks you might do later
 - `queue/`: prioritized items ready to start next
 - `active/`: work currently in progress
   - `active/waivers/`: temporary policy waivers tied to active items
@@ -66,7 +66,7 @@ Examples:
 
 1. Capture in `inbox/`
    - Add new ideas quickly.
-   - Keep one file per idea/plan.
+   - Keep one file per idea/issue/plan.
 
 2. Prioritize -> move to `queue/`
    - Move files from `inbox/` to `queue/` once they are triaged and prioritized.
@@ -176,8 +176,9 @@ Use this header at the top of each work file:
 `bash doc/pro/check-workflow.sh` currently enforces:
 
 - Timestamp prefix format for workflow docs: `yyyymmdd-hhmm_filename`
-- Required header fields in checked folders: `Status`, `Owner`, `Started`, `Updated`, `Links`
-- Inbox naming pattern (`-plan`, `-review`, `-followup`)
+- Required header fields in workflow-header docs across workflow folders: `Status`, `Owner`, `Started`, `Updated`, `Links`
+- Status must match destination folder (`inbox`, `queue`, `active`, `experiment`, `completed`, `dismissed`)
+- Inbox naming pattern (`-plan`, `-issue`, `-review`, `-followup`)
 - Dismissed naming pattern (`-plan`) and required `## Dismissal Reason`
 - Completed structure: `completed/<topic>/<file>.md`
 

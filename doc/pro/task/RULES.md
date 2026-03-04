@@ -9,7 +9,7 @@ File rules:
   Status, Owner, Started, Updated, Links.
 
 Folder-specific naming:
-- inbox/: filename must end with -plan.md, -review.md, or -followup.md
+- inbox/: filename must end with -plan.md, -issue.md, -review.md, or -followup.md
 - dismissed/: filename must end with -plan.md; must include ## Dismissal Reason
 - completed/: files must be in completed/<topic>/<file>.md (one subfolder deep)
 

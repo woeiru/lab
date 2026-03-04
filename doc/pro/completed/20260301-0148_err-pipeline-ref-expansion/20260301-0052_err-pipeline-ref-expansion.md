@@ -2,6 +2,9 @@
 
 - Status: completed
 - Owner: es
+- Started: 2026-03-01
+- Updated: 2026-03-04
+- Links: cfg/ali/sta, lib/gen/ana, utl/doc/generators/err, utl/doc/run_all_doc.sh, doc/ref/error-handling.md
 - Created: 2026-03-01
 - Completed: 2026-03-01
 - Scope: `cfg/ali/sta`, `lib/gen/ana`, `utl/doc/generators`, `utl/doc/run_all_doc.sh`, `utl/doc/config/targets`, `doc/ref`

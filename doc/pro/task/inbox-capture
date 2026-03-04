@@ -3,11 +3,13 @@ Read and apply doc/pro/task/RULES.md first.
 This is a CAPTURE-ONLY task. Do not implement, code, or execute the idea.
 Your sole deliverable is one new markdown file in doc/pro/inbox/.
 
-The user prompt describes an idea. Extract it into a structured plan document.
+The user prompt describes an idea. Extract it into a structured inbox document.
 Do not modify, create, or touch any files outside doc/pro/.
 
 File requirements:
-- Path: doc/pro/inbox/yyyymmdd-hhmm_<topic>-plan.md (use current time)
+- Path: doc/pro/inbox/yyyymmdd-hhmm_<topic>-(issue|plan).md (use current time)
+  - Use `-issue.md` when the prompt is primarily a problem report.
+  - Use `-plan.md` when the prompt includes or requests a concrete approach.
 - Set Status: inbox
 - Add sections: Goal, Context, Scope, Risks, Next Step
 - Do not move any existing files

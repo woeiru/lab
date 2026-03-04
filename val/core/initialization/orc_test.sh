@@ -88,6 +88,42 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_source_lib_ops_dev_reconcile_stub_is_lazy_loadable() {
+    local test_env
+    test_env=$(create_test_env "orc_lazy_dev_reconcile")
+
+    cat > "$test_env/test_orc_lazy_dev_reconcile.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+export MASTER_TERMINAL_VERBOSITY=off
+export LAB_OPS_LAZY_LOAD=1
+export LAB_OPS_LAZY_MODULES="dev"
+
+if ! source bin/ini >/dev/null 2>&1; then
+    exit 1
+fi
+
+stub_def="$(declare -f dev_oac 2>/dev/null)"
+[[ "$stub_def" == *"_orc_lazy_dispatch"* ]] || exit 1
+
+if ! dev_oac --help >/dev/null 2>&1; then
+    exit 1
+fi
+
+real_def="$(declare -f dev_oac 2>/dev/null)"
+[[ "$real_def" == *"_orc_lazy_dispatch"* ]] && exit 1
+
+module_path="$LAB_DIR/lib/ops/dev"
+[[ "${ORC_LAZY_MODULE_LOADED[$module_path]:-0}" == "1" ]] || exit 1
+EOF
+    chmod +x "$test_env/test_orc_lazy_dev_reconcile.sh"
+
+    run_test "Orchestrator lazy-loads dev_oac reconcile trigger" "$test_env/test_orc_lazy_dev_reconcile.sh"
+    cleanup_test_env "$test_env"
+}
+
 test_source_lib_gen_lazy_stub_loads_on_first_call() {
     local test_env
     test_env=$(create_test_env "orc_lazy_gen")
@@ -209,6 +245,7 @@ main() {
         test_orc_script_exists \
         test_source_directory_skips_hidden_files \
         test_source_lib_ops_lazy_stub_loads_on_first_call \
+        test_source_lib_ops_dev_reconcile_stub_is_lazy_loadable \
         test_source_lib_gen_lazy_stub_loads_on_first_call \
         test_shared_loader_deduplicates_cross_path_sourcing \
         test_deployment_profile_uses_deployment_components
