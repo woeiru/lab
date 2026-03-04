@@ -3,7 +3,7 @@
 - Status: completed
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03 (phase 5 complete; blocker resolved; moved to completed)
+- Updated: 2026-03-05 (legacy completed path token corrected)
 - Links: bin/ini, bin/orc, lib/core/tme, lib/core/lo1, lib/core/err, lib/core/col, lib/gen/inf, val/core/glb_008_secret_scan_test.sh
 
 ## Goal
@@ -375,7 +375,7 @@ Trade-offs and rejected options:
    password literal from `lib/gen/inf`.
 2. Completed: re-ran `./val/run_all_tests.sh` with zero failures.
 3. Completed: marked Phase 5 complete and prepared completion handoff.
-4. Completed: moved this plan into `doc/pro/completed/<topic>/`.
+4. Completed: moved this plan into `doc/pro/completed/20260303-0220_bootstrap-visual-output-redesign-plan/`.
 
 ### Context
 

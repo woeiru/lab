@@ -28,7 +28,9 @@ Validation:
 - Run: bash doc/pro/check-workflow.sh before finishing.
 - If the checker fails, fix every reported issue before returning.
   Common fixes: rename for timestamp prefix, add missing header fields,
-  move completed files into topic subfolder, add ## Dismissal Reason.
+  move completed files into topic subfolder, replace legacy completed/<topic>/ placeholders,
+  rename completed topic folder timestamp to match latest Updated close time,
+  add ## Dismissal Reason.
 - Report the checker output (pass or itemized failures) in your response.
 
 Return format (apply to every template):

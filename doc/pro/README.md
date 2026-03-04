@@ -135,7 +135,7 @@ Use one subfolder per finished topic, **prefixed with the completion timestamp**
 - The **file timestamps** inside are creation dates (when the artifact was first written).
 - The folder timestamp must be the same as or later than every file timestamp in that folder.
 - This gives two independent timelines: `ls completed/` shows when work finished;
-  `ls completed/<topic>/` shows how it evolved.
+  `ls completed/yyyymmdd-hhmm_<topic>/` shows how it evolved.
 
 Example:
 
@@ -192,6 +192,8 @@ Use this header at the top of each work file:
 - Completed topic folders: direct children of `completed/` must match `yyyymmdd-hhmm_<topic>`
 - Completed topic folders are non-empty (must contain at least one markdown artifact)
 - Completed chronology: folder completion timestamp is not older than file creation timestamp prefixes
+- Completed freshness: folder completion timestamp is not older than each completed file `Updated` header value
+- Legacy completed placeholder paths are not allowed (`completed/<topic>/`)
 
 It does not currently enforce:
 
@@ -208,6 +210,8 @@ Common fixes when it fails:
 - `FAIL completed topic folder`: rename topic folder to `yyyymmdd-hhmm_<topic>`
 - `FAIL completed topic folder empty`: remove empty folder or move related completed docs into it
 - `FAIL completed folder chronology`: rename completed folder timestamp to the actual close time (must be >= file timestamps)
+- `FAIL completed folder stale timestamp`: rename completed folder timestamp to the latest completed-file `Updated` value
+- `FAIL legacy completed placeholder`: replace `completed/<topic>/` with `completed/yyyymmdd-hhmm_<topic>/`
 - `FAIL dismissal reason`: add `## Dismissal Reason` section in dismissed item
 - `FAIL triage decision missing`/`duplicate`: add one `## Triage Decision` section
 - `FAIL triage design token`/`legacy token`: use exactly one canonical token,

@@ -66,6 +66,28 @@ get_header_field_value() {
   return 1
 }
 
+get_updated_key() {
+  local file="$1"
+  local updated
+
+  updated="$(get_header_field_value "$file" "Updated" || true)"
+  if [[ -z "$updated" ]]; then
+    return 1
+  fi
+
+  if [[ "$updated" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})[[:space:]]+([0-9]{2}):([0-9]{2}) ]]; then
+    printf '%s%s%s%s%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "${BASH_REMATCH[5]}"
+    return 0
+  fi
+
+  if [[ "$updated" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2}) ]]; then
+    printf '%s%s%s0000\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
+    return 0
+  fi
+
+  return 1
+}
+
 check_header() {
   local file="$1"
   local missing=()
@@ -244,6 +266,7 @@ check_completed_structure() {
   local file_ts
   local folder_key
   local file_key
+  local updated_key
   rel="${file#"$ROOT/completed/"}"
 
   if [[ "$rel" != */* ]]; then
@@ -278,6 +301,12 @@ check_completed_structure() {
 
   if [[ "$file_key" > "$folder_key" ]]; then
     printf 'FAIL completed folder chronology: %s (file timestamp %s is newer than folder completion timestamp %s)\n' "$file" "$file_ts" "$folder_ts"
+    failures=$((failures + 1))
+  fi
+
+  updated_key="$(get_updated_key "$file" || true)"
+  if [[ -n "$updated_key" ]] && [[ "$updated_key" > "$folder_key" ]]; then
+    printf 'FAIL completed folder stale timestamp: %s (Updated header is newer than folder timestamp %s)\n' "$file" "$folder_ts"
     failures=$((failures + 1))
   fi
 }
@@ -335,6 +364,14 @@ check_dismissal_reason() {
   fi
 }
 
+check_legacy_completed_placeholder() {
+  local file="$1"
+  if grep -qE 'doc/pro/completed/<topic>/|completed/<topic>/' "$file"; then
+    printf 'FAIL legacy completed placeholder: %s (replace completed/<topic>/ with completed/yyyymmdd-hhmm_<topic>/)\n' "$file"
+    failures=$((failures + 1))
+  fi
+}
+
 while IFS= read -r file; do
   is_work_item_doc "$file" || continue
   check_timestamp_prefix "$file"
@@ -372,6 +409,11 @@ while IFS= read -r file; do
   check_dismissed_names "$file"
   check_dismissal_reason "$file"
 done < <(find "$ROOT/dismissed" -type f | sort)
+
+while IFS= read -r file; do
+  is_work_item_doc "$file" || continue
+  check_legacy_completed_placeholder "$file"
+done < <(find "$ROOT" -type f | sort)
 
 if ((failures > 0)); then
   printf '\nWorkflow check failed with %d issue(s).\n' "$failures"
