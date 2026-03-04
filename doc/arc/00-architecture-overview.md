@@ -140,6 +140,7 @@ flowchart LR
 - `doc/arc/05-deployment-and-config.md`: `cfg/*` hierarchy and `src/set/*` execution context.
 - `doc/arc/06-testing-and-validation.md`: `val/*` suite architecture.
 - `doc/arc/07-logging-and-error-handling.md`: `err`, `lo1`, `tme`, and aux logging/error contracts.
+- `doc/arc/08-workflow-architecture.md`: agent workflow coordination system (`doc/pro`), state machine, gate design, session handoff.
 
 ## Maintenance Note
 
