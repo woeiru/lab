@@ -1,9 +1,9 @@
 # Lazy Map Sync Requirement Gap
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04 01:52
+- Updated: 2026-03-04 01:55
 - Links: cfg/core/lzy, bin/orc, lib/.spec, lib/ops/.spec, lib/gen/.spec, AGENTS.md, doc/arc/03-operational-modules.md, doc/arc/02-core-and-gen.md, doc/man/05-writing-modules.md, val/core/initialization/orc_test.sh, doc/pro/active/20260304-0028_antigravity-account-reload-persistence-plan.md
 
 ## Goal
@@ -175,3 +175,31 @@ Selected enforcement approach:
 - Validation coverage detects lazy-map drift and is wired into routine checks.
 - This item contains command evidence showing workflow and targeted validation
   checks passed.
+
+## What Changed
+
+1. Added explicit lazy-map synchronization requirements across canonical standards:
+   - `lib/.spec` (global rule `GLB-015`)
+   - `lib/ops/.spec` (`OPS-024` through `OPS-026`)
+   - `lib/gen/.spec` (`GEN-001` through `GEN-003`)
+2. Aligned workflow-facing docs so lazy-map maintenance is explicit in contributor and agent flows:
+   - `AGENTS.md`
+   - `doc/man/05-writing-modules.md`
+   - `doc/arc/03-operational-modules.md`
+   - `doc/arc/02-core-and-gen.md`
+3. Added parity enforcement in `val/core/initialization/orc_test.sh`:
+   - validates `cfg/core/lzy` map entries match discovered public function surfaces
+   - includes an intentional drift probe (`dev_oac` removed in-test) to verify mismatch detection behavior
+4. Updated this workflow item with design matrix, phase status tracking, findings, and command evidence.
+
+## What Was Verified
+
+1. `bash -n val/core/initialization/orc_test.sh` -> pass.
+2. `./val/core/initialization/orc_test.sh` -> pass (`8/8`).
+3. `./val/core/agents_md_test.sh` -> pass (`59/59`).
+4. `bash doc/pro/check-workflow.sh` -> pass.
+
+## What Remains
+
+- No immediate technical follow-up remains for this gap.
+- Any future lazy-map compliance regression should be captured as a new `doc/pro/inbox/*-issue.md` item with failing test evidence.
