@@ -158,6 +158,101 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_lazy_map_matches_module_function_surfaces() {
+    local test_env
+    test_env=$(create_test_env "orc_lazy_map_parity")
+
+    cat > "$test_env/test_orc_lazy_map_parity.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR" || exit 1
+
+declare -Ag ORC_LAZY_OPS_FUNCTIONS
+declare -Ag ORC_LAZY_GEN_FUNCTIONS
+
+if ! source cfg/core/lzy >/dev/null 2>&1; then
+    exit 1
+fi
+
+check_module_map_parity() {
+    local module_group="$1"
+    local module_name="$2"
+    local module_file="$3"
+    local map_csv=""
+    local -a mapped_funcs=()
+    local -A mapped_lookup=()
+    local -A discovered_lookup=()
+    local line
+    local func_name
+
+    case "$module_group" in
+        ops)
+            map_csv="${ORC_LAZY_OPS_FUNCTIONS[$module_name]:-}"
+            ;;
+        gen)
+            map_csv="${ORC_LAZY_GEN_FUNCTIONS[$module_name]:-}"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    [[ -n "$map_csv" ]] || return 1
+    IFS=',' read -r -a mapped_funcs <<< "$map_csv"
+
+    for func_name in "${mapped_funcs[@]}"; do
+        func_name="${func_name//[[:space:]]/}"
+        [[ -n "$func_name" ]] || continue
+        mapped_lookup["$func_name"]=1
+    done
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" =~ ^([a-z][a-z0-9_]*)[[:space:]]*\(\)[[:space:]]*\{ ]] || continue
+        func_name="${BASH_REMATCH[1]}"
+        [[ "$func_name" == "main" ]] && continue
+        discovered_lookup["$func_name"]=1
+    done < "$module_file"
+
+    for func_name in "${!discovered_lookup[@]}"; do
+        [[ "${mapped_lookup[$func_name]:-0}" == "1" ]] || return 1
+    done
+
+    for func_name in "${!mapped_lookup[@]}"; do
+        [[ "${discovered_lookup[$func_name]:-0}" == "1" ]] || return 1
+    done
+
+    return 0
+}
+
+for module_file in "$LAB_DIR"/lib/ops/*; do
+    [[ -f "$module_file" ]] || continue
+    module_name="${module_file##*/}"
+    [[ "$module_name" == .* || "$module_name" == "README.md" || "$module_name" == ".spec" ]] && continue
+
+    check_module_map_parity "ops" "$module_name" "$module_file" || exit 1
+done
+
+for module_file in "$LAB_DIR"/lib/gen/*; do
+    [[ -f "$module_file" ]] || continue
+    module_name="${module_file##*/}"
+    [[ "$module_name" == .* || "$module_name" == "README.md" || "$module_name" == ".spec" ]] && continue
+
+    check_module_map_parity "gen" "$module_name" "$module_file" || exit 1
+done
+
+ORC_LAZY_OPS_FUNCTIONS["dev"]="${ORC_LAZY_OPS_FUNCTIONS["dev"]/dev_oac,/}"
+if check_module_map_parity "ops" "dev" "$LAB_DIR/lib/ops/dev"; then
+    exit 1
+fi
+
+exit 0
+EOF
+    chmod +x "$test_env/test_orc_lazy_map_parity.sh"
+
+    run_test "Lazy map parity matches baseline and catches drift" "$test_env/test_orc_lazy_map_parity.sh"
+    cleanup_test_env "$test_env"
+}
+
 test_shared_loader_deduplicates_cross_path_sourcing() {
     local test_env
     test_env=$(create_test_env "orc_shared_loader")
@@ -247,6 +342,7 @@ main() {
         test_source_lib_ops_lazy_stub_loads_on_first_call \
         test_source_lib_ops_dev_reconcile_stub_is_lazy_loadable \
         test_source_lib_gen_lazy_stub_loads_on_first_call \
+        test_lazy_map_matches_module_function_surfaces \
         test_shared_loader_deduplicates_cross_path_sourcing \
         test_deployment_profile_uses_deployment_components
 }

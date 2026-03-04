@@ -17,3 +17,14 @@
 ## 3. Conflict handling
 - If this file defines a stricter rule than `lib/.spec`, follow this file for `lib/gen/`.
 - If this file is silent on a topic, `lib/.spec` remains authoritative.
+
+## 4. Lazy-map synchronization for gen modules
+
+- GEN-001: Adding, removing, or renaming a public function in `lib/gen/<module>`
+  MUST include an update to `ORC_LAZY_GEN_FUNCTIONS["<module>"]` in
+  `cfg/core/lzy` in the same change.
+- GEN-002: Fallback function discovery in `bin/orc` is a runtime safety net and
+  MUST NOT replace map maintenance for known gen modules.
+- GEN-003: Gen lazy-map/function parity MUST be enforced by automated checks in
+  `val/`, or explicitly tracked under a temporary waiver with owner and
+  removal date.

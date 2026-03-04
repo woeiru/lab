@@ -93,6 +93,15 @@ Conflict contract:
 - If generated references and source code differ, source code remains the
   authoritative source and references MUST be regenerated.
 
+### GLB-015 Lazy function-map parity for lazy-loaded modules
+- When a public function is added, removed, or renamed in `lib/ops/*` or
+  `lib/gen/*`, the corresponding map entry in `cfg/core/lzy`
+  (`ORC_LAZY_OPS_FUNCTIONS` or `ORC_LAZY_GEN_FUNCTIONS`) MUST be updated in
+  the same change.
+- Lazy map and module-function parity MUST be validated by an automated check
+  under `val/`, or tracked under a temporary waiver with owner and removal
+  date.
+
 ## 4. Global recommendations
 
 - Functions SHOULD stay cohesive and reasonably small.

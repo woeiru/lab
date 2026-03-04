@@ -100,3 +100,14 @@ This file does not define:
   MUST be followed by regenerating `doc/ref/` artifacts.
 - OPS-023: Generated reference docs are maintained in `doc/ref/`; `doc/pro/`
   content MUST NOT be used as canonical ops reference data.
+
+## 10. Lazy-map synchronization for ops modules
+
+- OPS-024: Adding, removing, or renaming a public function in `lib/ops/<module>`
+  MUST include an update to `ORC_LAZY_OPS_FUNCTIONS["<module>"]` in
+  `cfg/core/lzy` in the same change.
+- OPS-025: Fallback function discovery in `bin/orc` is a runtime safety net and
+  MUST NOT replace map maintenance for known ops modules.
+- OPS-026: Ops lazy-map/function parity MUST be enforced by automated checks in
+  `val/`, or explicitly tracked under a temporary waiver with owner and
+  removal date.

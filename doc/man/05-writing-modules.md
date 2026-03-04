@@ -22,7 +22,8 @@ Key enforced contracts:
 - user-facing functions validate input,
 - help flags (`-h`/`--help`) return `0`,
 - usage errors return `1`, runtime/system failures return `2`, missing commands return `127`,
-- action-style functions use explicit execute flags (typically `-x`) instead of zero-argument execution.
+- action-style functions use explicit execute flags (typically `-x`) instead of zero-argument execution,
+- for lazy-loaded `lib/ops/*` and `lib/gen/*`, public function changes also update `cfg/core/lzy` (`ORC_LAZY_OPS_FUNCTIONS` or `ORC_LAZY_GEN_FUNCTIONS`) in the same patch.
 
 ## 3. Function Design Rules
 
@@ -99,6 +100,7 @@ Recommended test workflow:
 ```bash
 bash -n lib/ops/<module>
 ./val/lib/ops/<module>_test.sh
+./val/core/initialization/orc_test.sh
 ./val/run_all_tests.sh lib
 ```
 
@@ -115,6 +117,7 @@ Run full suite for cross-module changes:
 - Missing `-x` action gating on destructive flows.
 - Using plain `echo` instead of `aux_*` logging in ops modules.
 - Adding module functions without corresponding tests.
+- Adding/removing public functions without updating `cfg/core/lzy` lazy maps.
 
 ## 7. Related Docs
 

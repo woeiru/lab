@@ -108,6 +108,7 @@ flowchart LR
 - `lib/ops/.spec` requires structured logging via `aux_*`, explicit validation/check patterns, and `-x` execution flag for action-only functions.
 - Deployment manifests are coupled to DIC command semantics (`ops module function -j`) rather than direct function signatures.
 - `cfg/core/lzy` contains the static function map used for lazy stub registration. When adding or removing public functions from an ops module, update the corresponding `ORC_LAZY_OPS_FUNCTIONS` entry in `cfg/core/lzy`.
+- Fallback function discovery in `bin/orc` is a runtime safety net; it does not replace maintaining `cfg/core/lzy` as the canonical lazy map for known modules.
 
 ## Maintenance Note
 

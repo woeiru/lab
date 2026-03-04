@@ -252,6 +252,9 @@ These rules come from repository docs and actual code patterns, especially:
   when applicable.
 - Keep `aux_use` comment blocks (3 lines above function name) and `aux_tec`
   technical detail blocks accurate.
+- For public function surface changes in lazy-loaded `lib/ops/*` or `lib/gen/*`,
+  update the corresponding lazy map entry in `cfg/core/lzy`
+  (`ORC_LAZY_OPS_FUNCTIONS` / `ORC_LAZY_GEN_FUNCTIONS`) in the same patch.
 
 ---
 
@@ -404,3 +407,6 @@ Mistakes agents frequently make in this repo:
    `./val/core/agents_md_test.sh` after changes.
 8. **Using `doc/pro/ref` as canonical reference path** -- canonical generated
    reference docs are under `doc/ref/`; `doc/pro/` is for planning documents.
+9. **Forgetting lazy-map sync after function changes** -- when adding/removing/
+   renaming public functions in `lib/ops/*` or `lib/gen/*`, update `cfg/core/lzy`
+   so lazy stubs exist before first module load.

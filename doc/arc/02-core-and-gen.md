@@ -104,6 +104,7 @@ flowchart LR
 - When lazy gen loading is active (default), `lib/gen` modules are stub-loaded and only sourced on first call. Ops modules must not rely on gen helpers being available at source time unless explicitly sourced or loaded earlier in the chain.
 - Some utility modules are stateful (for example `env` editing `cfg/core/ecc`, `inf` exporting large variable sets), so they are not pure read-only helpers.
 - DIC runtime (`src/dic/ops`) additionally sources `lib/gen/ana` and `lib/gen/aux`; duplication of sourcing paths is expected and should stay idempotent. When lazy-loaded, the first DIC call to a gen function triggers the real module load transparently.
+- `cfg/core/lzy` contains the static function map used for gen lazy-stub registration. When adding/removing public functions from a gen module, update the corresponding `ORC_LAZY_GEN_FUNCTIONS` entry in `cfg/core/lzy`.
 
 ## Maintenance Note
 

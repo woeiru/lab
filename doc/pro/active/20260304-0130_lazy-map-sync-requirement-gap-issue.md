@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04 01:36
+- Updated: 2026-03-04 01:52
 - Links: cfg/core/lzy, bin/orc, lib/.spec, lib/ops/.spec, lib/gen/.spec, AGENTS.md, doc/arc/03-operational-modules.md, doc/arc/02-core-and-gen.md, doc/man/05-writing-modules.md, val/core/initialization/orc_test.sh, doc/pro/active/20260304-0028_antigravity-account-reload-persistence-plan.md
 
 ## Goal
@@ -36,6 +36,19 @@ Current instruction coverage appears inconsistent:
    step in the module authoring workflow.
 5. Existing orchestrator tests validate lazy loading behavior for selected
    symbols but do not enforce full map-to-module parity.
+
+Findings from execution (2026-03-04):
+
+- Canonical standards gap confirmed: `lib/.spec`, `lib/ops/.spec`, and
+  `lib/gen/.spec` did not explicitly require same-patch updates to
+  `cfg/core/lzy` for public function surface changes.
+- Documentation gap confirmed: `doc/arc/03-operational-modules.md` carried an
+  ops-only note; `doc/arc/02-core-and-gen.md`, `doc/man/05-writing-modules.md`,
+  and AGENTS checklist guidance were missing equivalent explicit maintenance
+  language.
+- Validation gap confirmed: `val/core/initialization/orc_test.sh` covered
+  selected lazy-load behavior but had no parity assertion across all lazy-loaded
+  ops/gen modules.
 
 ## Scope
 
@@ -89,6 +102,8 @@ each canonical doc (`lib/.spec`, `lib/ops/.spec`, `lib/gen/.spec`, AGENTS,
 module-writing docs) to required lazy-map sync language and the selected
 parity-check enforcement approach.
 
+Status: completed (2026-03-04 01:51).
+
 ### Phase 2 - Documentation Alignment
 
 Apply the Phase 1 policy to repository docs and standards so contributor and
@@ -96,6 +111,8 @@ agent workflows express one consistent lazy-map maintenance requirement.
 
 Completion criterion: all targeted docs are updated with consistent,
 non-conflicting lazy-map sync guidance.
+
+Status: completed (2026-03-04 01:51).
 
 ### Phase 3 - Drift Detection Validation
 
@@ -105,6 +122,8 @@ functions in lazy-loaded modules is detected before merge.
 Completion criterion: at least one automated test fails on intentional lazy-map
 drift and passes on the baseline repository state.
 
+Status: completed (2026-03-04 01:50).
+
 ### Phase 4 - Verification and Handoff
 
 Run workflow and targeted validation checks for the patch set and capture
@@ -112,6 +131,34 @@ evidence in this item.
 
 Completion criterion: this item records the exact commands and pass/fail
 results for workflow checks and targeted tests.
+
+Status: completed (2026-03-04 01:52).
+
+## Phase 1 Deliverable - Canonical Policy Matrix
+
+| Canonical location | Required lazy-map sync policy | Enforcement and intent |
+| --- | --- | --- |
+| `lib/.spec` | Add global MUST rule: for public function add/remove/rename in `lib/ops/*` or `lib/gen/*`, update `cfg/core/lzy` map entry in same patch. | Defines project-wide baseline and ties rule to enforceability/waiver model. |
+| `lib/ops/.spec` | Add ops-specific MUST rules: maintain `ORC_LAZY_OPS_FUNCTIONS["<module>"]`; fallback discovery is not a substitute. | Makes ops contract explicit where most public infra functions are added. |
+| `lib/gen/.spec` | Add gen-specific MUST rules: maintain `ORC_LAZY_GEN_FUNCTIONS["<module>"]`; fallback discovery is not a substitute. | Aligns gen contract with current default lazy-loading behavior. |
+| `AGENTS.md` | Add checklist bullet under documentation expectations for lazy-map sync on public function surface changes in ops/gen. | Makes agent execution deterministic and review-safe in day-to-day edits. |
+| `doc/man/05-writing-modules.md` | Add module-authoring workflow step: update `cfg/core/lzy` for public function changes and run `./val/core/initialization/orc_test.sh`. | Makes contributor workflow explicit at authoring time. |
+| `doc/arc/02-core-and-gen.md` + `doc/arc/03-operational-modules.md` | Keep architecture maintenance notes explicit for gen/ops lazy-map ownership and fallback semantics. | Preserves architecture-level context and avoids relying on implicit behavior. |
+| `val/core/initialization/orc_test.sh` | Add parity test to compare `cfg/core/lzy` map entries vs discovered non-private module functions (excluding `main`). | Converts policy into pre-merge enforcement; catches missing/stale map entries. |
+
+Selected enforcement approach:
+
+1. Keep `cfg/core/lzy` as the canonical lazy stub map for known ops/gen modules.
+2. Treat `bin/orc` fallback function discovery as runtime safety net only.
+3. Enforce map/function parity with `val/core/initialization/orc_test.sh`.
+4. Allow temporary exceptions only through explicit waiver documentation with owner/removal date (per spec language).
+
+## Verification Evidence
+
+1. `bash -n val/core/initialization/orc_test.sh` -> pass.
+2. `./val/core/initialization/orc_test.sh` -> pass (`8/8`), including drift probe where intentional `dev_oac` map removal is detected as mismatch.
+3. `./val/core/agents_md_test.sh` -> pass (`59/59`).
+4. `bash doc/pro/check-workflow.sh` -> pass.
 
 ## Verification Plan
 
