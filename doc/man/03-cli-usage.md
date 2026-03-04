@@ -187,6 +187,14 @@ When `lab` is loaded, `cfg/ali/sta` defines an `opencode()` shell wrapper that
 automatically emits `account_selected` events before launching OpenCode.
 Those automatic rows appear with `SRC=shell_wrapper` in `ops dev osv`.
 
+For OpenAI provider sessions, wrapper identity resolution is local/offline and
+deterministic:
+1. `LAB_DEV_OPENAI_ACCOUNT_KEY_OVERRIDE` / `LAB_DEV_OPENAI_ACCOUNT_LABEL_OVERRIDE`
+2. `OPENCODE_ATTR_*` runtime vars when `OPENCODE_ATTR_PROVIDER_ID` normalizes to `openai`
+3. `LAB_DEV_OPENAI_AUTH_FILE` (default `~/.local/share/opencode/auth.json`)
+
+Only non-secret identity fields are persisted in attribution events.
+
 ### View sessions with attribution confidence
 
 ```bash

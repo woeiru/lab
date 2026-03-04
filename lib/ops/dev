@@ -142,8 +142,6 @@ def normalize_source(source):
     src = (source or "").strip().lower()
     if src == "opencode_runtime":
         return "runtime"
-    if src == "shell_wrapper":
-        return "wrapper"
     return src
 
 def load_attribution_events(cursor):
@@ -459,7 +457,7 @@ W = {
     "title":48,
     "date": 12,
     "first":12,
-    "user": 13,
+    "user": 24,
     "src":  7,
     "conf": 4,
     "model":11,
@@ -815,6 +813,132 @@ _dev_get_antigravity_accounts_path() {
     fi
 
     echo "$accounts_path"
+}
+
+_dev_get_openai_auth_state_path() {
+    local auth_path="${LAB_DEV_OPENAI_AUTH_FILE:-${HOME}/.local/share/opencode/auth.json}"
+
+    if [[ ! -f "$auth_path" ]]; then
+        return 1
+    fi
+
+    echo "$auth_path"
+}
+
+_dev_get_openai_account_identity() {
+    local account_key_override="${LAB_DEV_OPENAI_ACCOUNT_KEY_OVERRIDE:-}"
+    local account_label_override="${LAB_DEV_OPENAI_ACCOUNT_LABEL_OVERRIDE:-}"
+
+    if [ -n "$account_key_override" ] || [ -n "$account_label_override" ]; then
+        [ -z "$account_key_override" ] && account_key_override="$account_label_override"
+        [ -z "$account_label_override" ] && account_label_override="$account_key_override"
+
+        if aux_val "$account_key_override" "not_empty" && aux_val "$account_label_override" "not_empty"; then
+            echo "$account_key_override|$account_label_override|env_override"
+            return 0
+        fi
+
+        return 1
+    fi
+
+    local runtime_provider="${OPENCODE_ATTR_PROVIDER_ID:-}"
+    runtime_provider=$(_dev_normalize_provider_id "$runtime_provider")
+    local runtime_key="${OPENCODE_ATTR_ACCOUNT_KEY:-}"
+    local runtime_label="${OPENCODE_ATTR_ACCOUNT_LABEL:-$runtime_key}"
+
+    if [ "$runtime_provider" = "openai" ] && aux_val "$runtime_key" "not_empty" && aux_val "$runtime_label" "not_empty"; then
+        echo "$runtime_key|$runtime_label|runtime_env"
+        return 0
+    fi
+
+    if ! aux_chk "command" "python3" 2>/dev/null; then
+        return 1
+    fi
+
+    local auth_path
+    auth_path=$(_dev_get_openai_auth_state_path) || return 1
+
+    local py_output
+    py_output=$(python3 - "$auth_path" <<'PY'
+import base64
+import json
+import sys
+
+auth_path = sys.argv[1]
+
+def normalize(value):
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    return text.replace("|", " ").replace("\n", " ").strip()
+
+def pick_first(*candidates):
+    for candidate in candidates:
+        value = normalize(candidate)
+        if value:
+            return value
+    return ""
+
+def decode_jwt_payload(token):
+    if not isinstance(token, str):
+        return {}
+    parts = token.split(".")
+    if len(parts) < 2:
+        return {}
+    payload = parts[1]
+    payload += "=" * (-len(payload) % 4)
+    try:
+        decoded = base64.urlsafe_b64decode(payload.encode("utf-8")).decode("utf-8")
+        return json.loads(decoded)
+    except Exception:
+        return {}
+
+try:
+    with open(auth_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+except Exception:
+    sys.exit(1)
+
+openai = data.get("openai")
+if not isinstance(openai, dict):
+    sys.exit(1)
+
+payload = decode_jwt_payload(openai.get("access", ""))
+auth_claim = payload.get("https://api.openai.com/auth", {})
+profile_claim = payload.get("https://api.openai.com/profile", {})
+
+if not isinstance(auth_claim, dict):
+    auth_claim = {}
+if not isinstance(profile_claim, dict):
+    profile_claim = {}
+
+email = pick_first(profile_claim.get("email"), payload.get("email"))
+account_key = pick_first(
+    openai.get("accountId"),
+    auth_claim.get("chatgpt_account_id"),
+    auth_claim.get("user_id"),
+    auth_claim.get("chatgpt_user_id"),
+    email,
+)
+account_label = pick_first(
+    email,
+    auth_claim.get("chatgpt_user_id"),
+    account_key,
+)
+
+if not account_key or not account_label:
+    sys.exit(1)
+
+print(f"{account_key}|{account_label}|auth_state")
+PY
+    ) || return 1
+
+    if ! aux_val "$py_output" "not_empty"; then
+        return 1
+    fi
+
+    echo "$py_output"
+    return 0
 }
 
 _dev_get_antigravity_denylist_path() {
@@ -1294,12 +1418,23 @@ PY
 _dev_auto_attribute() {
     _dev_reconcile_antigravity_accounts "shell_wrapper" "silent" >/dev/null 2>&1
 
-    local accounts_path
-    accounts_path=$(_dev_get_antigravity_accounts_path) || return 0
-
     if ! aux_chk "command" "python3" 2>/dev/null; then
         return 0
     fi
+
+    local openai_identity
+    openai_identity=$(_dev_get_openai_account_identity 2>/dev/null) || openai_identity=""
+    if [ -n "$openai_identity" ]; then
+        local openai_key openai_label openai_identity_source
+        IFS='|' read -r openai_key openai_label openai_identity_source <<< "$openai_identity"
+        if aux_val "$openai_key" "not_empty" && aux_val "$openai_label" "not_empty"; then
+            _dev_record_account_event "openai" "$openai_key" "$openai_label" \
+                "account_selected" "shell_wrapper" 2>/dev/null
+        fi
+    fi
+
+    local accounts_path
+    accounts_path=$(_dev_get_antigravity_accounts_path) || return 0
 
     local py_output
     py_output=$(python3 - "$accounts_path" <<'PY'
@@ -1344,7 +1479,7 @@ PY
         [ -z "$family" ] || [ -z "$email" ] && continue
         provider_id=$(_dev_provider_from_family "$family")
         _dev_record_account_event "$provider_id" "$email" "$email" \
-            "account_selected" "wrapper" 2>/dev/null
+            "account_selected" "shell_wrapper" 2>/dev/null
     done <<< "$py_output"
 
     return 0

@@ -66,6 +66,51 @@ conn.commit()
 PY
 }
 
+_create_openai_auth_json() {
+    local auth_path="$1"
+    local account_id="$2"
+    local email="$3"
+
+    mkdir -p "$(dirname "$auth_path")"
+    python3 - "$auth_path" "$account_id" "$email" <<'PY'
+import base64
+import json
+import sys
+
+auth_path = sys.argv[1]
+account_id = sys.argv[2]
+email = sys.argv[3]
+
+header = {"alg": "none", "typ": "JWT"}
+payload = {
+    "https://api.openai.com/auth": {
+        "chatgpt_account_id": account_id,
+        "user_id": "user-test-123",
+    },
+    "https://api.openai.com/profile": {
+        "email": email,
+    },
+}
+
+def b64url(obj):
+    raw = json.dumps(obj, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+token = f"{b64url(header)}.{b64url(payload)}.sig"
+
+data = {
+    "openai": {
+        "type": "oauth",
+        "access": token,
+        "accountId": account_id,
+    }
+}
+
+with open(auth_path, "w", encoding="utf-8") as f:
+    json.dump(data, f)
+PY
+}
+
 # Test: Development functions exist
 test_dev_functions_exist() {
     declare -f dev_osv >/dev/null 2>&1 || return 1
@@ -1939,6 +1984,334 @@ PY
     return 0
 }
 
+# Test: _dev_get_openai_account_identity resolves account from auth state
+test_dev_openai_identity_resolver_from_auth_state() {
+    local test_env
+    test_env=$(create_test_env "dev_openai_identity_auth_state")
+
+    _create_openai_auth_json \
+        "$test_env/.local/share/opencode/auth.json" \
+        "acct-1234567890" \
+        "openai-operator@example.net"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local identity
+    identity=$(_dev_get_openai_account_identity)
+    local status=$?
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$identity" == "acct-1234567890|openai-operator@example.net|auth_state" ]] || return 1
+    return 0
+}
+
+# Test: _dev_auto_attribute is silent when OpenAI identity is unavailable
+test_dev_auto_attribute_silent_on_missing_openai_identity() {
+    local test_env
+    test_env=$(create_test_env "dev_auto_attribute_openai_missing")
+    local db_path="$test_env/opencode.db"
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(_dev_auto_attribute 2>&1)
+    local status=$?
+
+    local event_count
+    event_count=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='opencode_account_event'")
+exists = cur.fetchone()[0]
+if exists:
+    cur.execute("SELECT COUNT(*) FROM opencode_account_event")
+    print(cur.fetchone()[0])
+else:
+    print(0)
+conn.close()
+PY
+)
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ -z "$output" ]] || return 1
+    [[ "$event_count" == "0" ]] || return 1
+    return 0
+}
+
+# Test: _dev_auto_attribute emits OpenAI shell_wrapper event from resolver output
+test_dev_auto_attribute_emits_openai_shell_wrapper_event() {
+    local test_env
+    test_env=$(create_test_env "dev_auto_attribute_openai_emit")
+    local db_path="$test_env/opencode.db"
+
+    _create_openai_auth_json \
+        "$test_env/.local/share/opencode/auth.json" \
+        "acct-openai-1" \
+        "openai-real@example.net"
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    _dev_auto_attribute >/dev/null 2>&1
+    local status=$?
+
+    local event_row=""
+    if [[ $status -eq 0 ]]; then
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, account_label, event_type, source
+    FROM opencode_account_event
+    WHERE provider_id = 'openai'
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join((x or "") for x in row) if row else "")
+PY
+)
+    fi
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_row" == "openai|acct-openai-1|openai-real@example.net|account_selected|shell_wrapper" ]] || return 1
+    return 0
+}
+
+# Test: dev_osv strict mode resolves OpenAI wrapper event with high confidence
+test_dev_overview_openai_wrapper_event_strict_high_confidence() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_openai_wrapper_strict")
+    local db_path="$test_env/opencode.db"
+
+    _create_openai_auth_json \
+        "$test_env/.local/share/opencode/auth.json" \
+        "acct-openai-2" \
+        "strict-openai@example.net"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    _dev_auto_attribute >/dev/null 2>&1
+    local attr_status=$?
+
+    if [[ $attr_status -ne 0 ]]; then
+        export HOME="$old_home"
+        PATH="$old_path"
+        cleanup_test_env "$test_env"
+        return 1
+    fi
+
+    local event_time
+    event_time=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute("SELECT time_ms FROM opencode_account_event WHERE provider_id='openai' ORDER BY time_ms DESC LIMIT 1")
+row = cur.fetchone()
+conn.close()
+print(row[0] if row else "")
+PY
+)
+
+    python3 - "$db_path" "$event_time" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+event_time = int(sys.argv[2])
+first_user_ms = event_time + 1000
+assistant_ms = first_user_ms + 100
+updated_ms = assistant_ms + 100
+
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_openaiwrapperstrict000001", "project_lab", "/home/es/lab", "OpenAI Strict", updated_ms),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_openai_user", "ses_openaiwrapperstrict000001", first_user_ms, first_user_ms, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_openai_assistant", "ses_openaiwrapperstrict000001", assistant_ms, assistant_ms, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+conn.commit()
+conn.close()
+PY
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('OpenAI Strict', {}).get('user') == 'strict-openai@example.net' and
+    rows.get('OpenAI Strict', {}).get('src') == 'shell_wrapper' and
+    rows.get('OpenAI Strict', {}).get('conf') == 'high'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: dev_osv table mode keeps real-domain USER labels visible
+test_dev_overview_table_mode_user_visibility_openai() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_table_user_visibility")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_tablevisibilityopenai00001", "project_lab", "/home/es/lab", "OpenAI Table", 1771760002000),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_table_user", "ses_tablevisibilityopenai00001", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_table_assistant", "ses_tablevisibilityopenai00001", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771759999000, "openai", "acct-table-openai", "real-user@openai.dev", "shell_wrapper"),
+)
+
+conn.commit()
+conn.close()
+PY
+
+    local table_output
+    table_output=$(_dev_osv_render "$db_path" "-t" "0" "0")
+    local status=$?
+
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$table_output" == *"real-user@openai.dev"* ]] || return 1
+    return 0
+}
+
 # Test: _dev_auto_attribute emits shell_wrapper events for active families
 test_dev_auto_attribute_emits_for_active_families() {
     local test_env
@@ -2718,6 +3091,11 @@ main() {
     run_test test_dev_oad_rejects_last_enabled
     run_test test_dev_oae_runtime_hook_mode
     run_test test_dev_oae_token_refreshed_event
+    run_test test_dev_openai_identity_resolver_from_auth_state
+    run_test test_dev_auto_attribute_silent_on_missing_openai_identity
+    run_test test_dev_auto_attribute_emits_openai_shell_wrapper_event
+    run_test test_dev_overview_openai_wrapper_event_strict_high_confidence
+    run_test test_dev_overview_table_mode_user_visibility_openai
     run_test test_dev_auto_attribute_emits_for_active_families
     run_test test_dev_auto_attribute_silent_on_missing_accounts_file
     run_test test_dev_auto_attribute_silent_on_empty_active_families

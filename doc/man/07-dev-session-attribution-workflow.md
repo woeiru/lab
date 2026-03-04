@@ -5,6 +5,11 @@ repo now installs an `opencode()` shell wrapper that emits attribution events
 automatically before launching OpenCode, so normal `opencode` usage is
 attributed by default.
 
+For OpenAI sessions, the wrapper resolves identity locally (no network) from:
+1) explicit `LAB_DEV_OPENAI_ACCOUNT_*_OVERRIDE` env vars,
+2) runtime `OPENCODE_ATTR_*` env vars (when provider is OpenAI),
+3) `~/.local/share/opencode/auth.json` (or `LAB_DEV_OPENAI_AUTH_FILE`).
+
 Without `lab` loaded (or in non-wrapper environments), sessions still show
 `USER=(unknown)` unless an attribution event is emitted before the first
 prompt. This workflow covers both the automatic path and manual recovery
@@ -83,6 +88,7 @@ opencode --help
 Safety boundaries:
 - `ops dev osv ...` is read-only reporting.
 - `opencode`/`oc` with `lab` loaded now writes automatic pre-session attribution events (`source=shell_wrapper`).
+- OpenAI wrapper attribution persists only non-secret identity fields (account key/label); tokens are never persisted.
 - `ops dev oae ...` and `ops dev otr ...` write local attribution events in the local OpenCode DB.
 - `ops dev orr ...` writes an attribution event and then executes `opencode run`.
 - `ops dev orr ... --dry-run -- ...` is the safest way to validate event wiring without running a real `opencode run` request.
@@ -200,6 +206,26 @@ Safe recovery:
 1. confirm session provider in `ops dev osv -x --best-effort`
 2. emit event with matching provider using `ops dev orr ... --dry-run -- ...` or `ops dev oae ...`
 3. validate new sessions moving forward (historical rows may remain unknown)
+
+### OpenAI identity resolved to unexpected account label
+
+The wrapper uses local state first and does not call OpenAI APIs at launch.
+If local auth state is stale or intentionally overridden, labels can differ.
+
+Force a temporary local override for wrapper-attributed sessions:
+
+```bash
+export LAB_DEV_OPENAI_ACCOUNT_KEY_OVERRIDE="acct-your-openai-account-id"
+export LAB_DEV_OPENAI_ACCOUNT_LABEL_OVERRIDE="you@example.com"
+opencode
+```
+
+Reset overrides after validation:
+
+```bash
+unset LAB_DEV_OPENAI_ACCOUNT_KEY_OVERRIDE
+unset LAB_DEV_OPENAI_ACCOUNT_LABEL_OVERRIDE
+```
 
 ### Wrapper active but no events emitted (lazy-load)
 

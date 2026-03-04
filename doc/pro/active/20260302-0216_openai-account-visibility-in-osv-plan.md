@@ -3,7 +3,7 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04 01:53
+- Updated: 2026-03-04 02:08
 - Links: lib/ops/dev, cfg/ali/sta, val/lib/ops/dev_test.sh, doc/man/07-dev-session-attribution-workflow.md, doc/man/03-cli-usage.md
 
 ## Triage Decision
@@ -62,6 +62,35 @@ Completion criterion:
 
 - This item contains a concrete design note that specifies interfaces, constraints, trade-offs, resolver order, and chosen approach.
 
+### Phase 1 Design Note (Completed)
+
+Chosen resolver contract and order:
+
+1. Interface: internal helper `_dev_get_openai_account_identity` returns one line payload `account_key|account_label|identity_source` and exits `0` only when all required fields are non-empty.
+2. Resolver order (highest precedence first):
+   1. explicit operator override env (`LAB_DEV_OPENAI_ACCOUNT_KEY_OVERRIDE` / `LAB_DEV_OPENAI_ACCOUNT_LABEL_OVERRIDE`)
+   2. runtime hook env (`OPENCODE_ATTR_PROVIDER_ID=openai`, `OPENCODE_ATTR_ACCOUNT_KEY`, optional `OPENCODE_ATTR_ACCOUNT_LABEL`)
+   3. local OpenCode auth state (`LAB_DEV_OPENAI_AUTH_FILE` fallback `~/.local/share/opencode/auth.json`), extracting stable account key (`accountId` preferred) and human-readable label (profile email preferred)
+
+Constraints and invariants:
+
+1. Read-only resolver: no file writes, no network calls, no shell mutation.
+2. Fail closed in helper: if identity data is incomplete/invalid, return non-zero and emit no payload.
+3. Fail open in wrapper path: `_dev_auto_attribute` must still return success (`0`) so `opencode` launch never blocks.
+4. Event source semantics: wrapper-emitted OpenAI attribution keeps `source=shell_wrapper` for stable `dev_osv` reporting contracts.
+
+Trade-offs:
+
+1. Parsing auth-state JWT payload is local/offline and gives reliable account labels, but claims can change format upstream.
+2. Using explicit override first improves operator recovery/debugging for broken local state, but can intentionally mask file-derived identity.
+3. Persisting account key + label (for example account id + email) improves auditability while avoiding persistence of tokens/secrets.
+
+Chosen approach record:
+
+1. Implement helper-based resolver in `lib/ops/dev` and call it once per wrapper launch in `_dev_auto_attribute`.
+2. Emit at most one OpenAI `account_selected` event per launch when resolver succeeds.
+3. Keep strict `dev_osv -x` semantics unchanged except ensuring OpenAI sessions resolve to `CONF=high` when the wrapper event is emitted before first prompt.
+
 ### Phase 2 - OpenAI Resolver Helper Implementation
 
 1. Add an internal helper in `lib/ops/dev` (for example `_dev_get_openai_account_identity`) to read the chosen source(s) and validate non-empty account key/label.
@@ -115,6 +144,29 @@ Completion criterion:
 Completion criterion:
 
 - Operator-facing docs describe the final OpenAI identity flow into `ops dev osv` with examples aligned to implementation behavior.
+
+## Progress Checkpoint
+
+### Done
+
+1. Completed Phase 1 design contract and recorded resolver/interface/trade-off decisions in this plan.
+2. Implemented `_dev_get_openai_auth_state_path` and `_dev_get_openai_account_identity` in `lib/ops/dev` with fail-closed helper semantics.
+3. Integrated OpenAI identity emission into `_dev_auto_attribute` with `source=shell_wrapper` and kept wrapper launch fail-open behavior.
+4. Improved `_dev_osv_render` table-mode `USER` visibility by widening the column while preserving full TSV output.
+5. Added OpenAI-focused tests in `val/lib/ops/dev_test.sh` for resolver success/missing behavior, wrapper emission, strict confidence, and table visibility.
+6. Updated operator docs in `doc/man/07-dev-session-attribution-workflow.md` and `doc/man/03-cli-usage.md` including override env behavior.
+
+### Validation status
+
+1. `bash -n lib/ops/dev` passed.
+2. `bash -n cfg/ali/sta` passed.
+3. `bash -n val/lib/ops/dev_test.sh` passed.
+4. `./val/lib/ops/dev_test.sh` passed (`56/56`).
+5. `bash doc/pro/check-workflow.sh` passed.
+
+### Current phase
+
+Phase 6 implementation and workflow validation are complete; optional manual live-shell validation remains.
 
 ## Safety and Privacy Rules
 
