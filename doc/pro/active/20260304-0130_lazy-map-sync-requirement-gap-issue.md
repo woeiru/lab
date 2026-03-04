@@ -1,9 +1,9 @@
 # Lazy Map Sync Requirement Gap
 
-- Status: queue
+- Status: active
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04
+- Updated: 2026-03-04 01:36
 - Links: cfg/core/lzy, bin/orc, lib/.spec, lib/ops/.spec, lib/gen/.spec, AGENTS.md, doc/arc/03-operational-modules.md, doc/arc/02-core-and-gen.md, doc/man/05-writing-modules.md, val/core/initialization/orc_test.sh, doc/pro/active/20260304-0028_antigravity-account-reload-persistence-plan.md
 
 ## Goal
@@ -76,11 +76,55 @@ Out of scope for this inbox capture:
 - Justification: selecting canonical rule locations and enforcement approach
   affects contributor workflow, review gates, and lazy-load behavior guarantees.
 
-## Next Step
+## Execution Plan
 
-Triaged owner should move this item to `queue/` and define a small, explicit
-documentation + validation patch set that:
+### Phase 1 - Canonical Policy Design
 
-1. makes lazy-map sync a canonical requirement,
-2. wires that requirement into AGENTS + module-writing workflow docs, and
-3. adds a parity check test to prevent recurrence.
+Decide and document the canonical requirement locations and enforcement shape
+for lazy-map synchronization when public functions are added, removed, or
+renamed in `lib/ops/*` and `lib/gen/*`.
+
+Completion criterion: this item includes a concrete policy matrix that maps
+each canonical doc (`lib/.spec`, `lib/ops/.spec`, `lib/gen/.spec`, AGENTS,
+module-writing docs) to required lazy-map sync language and the selected
+parity-check enforcement approach.
+
+### Phase 2 - Documentation Alignment
+
+Apply the Phase 1 policy to repository docs and standards so contributor and
+agent workflows express one consistent lazy-map maintenance requirement.
+
+Completion criterion: all targeted docs are updated with consistent,
+non-conflicting lazy-map sync guidance.
+
+### Phase 3 - Drift Detection Validation
+
+Add or strengthen validation so map drift between `cfg/core/lzy` and public
+functions in lazy-loaded modules is detected before merge.
+
+Completion criterion: at least one automated test fails on intentional lazy-map
+drift and passes on the baseline repository state.
+
+### Phase 4 - Verification and Handoff
+
+Run workflow and targeted validation checks for the patch set and capture
+evidence in this item.
+
+Completion criterion: this item records the exact commands and pass/fail
+results for workflow checks and targeted tests.
+
+## Verification Plan
+
+1. Run `bash doc/pro/check-workflow.sh` after each workflow doc move/edit.
+2. Run `./val/core/agents_md_test.sh` if AGENTS guidance is updated.
+3. Run `./val/core/initialization/orc_test.sh` for lazy-load map behavior.
+4. Run the nearest validation test that enforces map/module parity once added.
+
+## Exit Criteria
+
+- Canonical standards define lazy-map sync as an explicit requirement for
+  public function surface changes.
+- AGENTS and module authoring documentation include the same maintenance step.
+- Validation coverage detects lazy-map drift and is wired into routine checks.
+- This item contains command evidence showing workflow and targeted validation
+  checks passed.
