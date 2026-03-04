@@ -1,10 +1,16 @@
 # Logging System Renewal
 
-- Status: inbox
+- Status: dismissed
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-03
+- Updated: 2026-03-04
 - Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/col, lib/gen/aux, lib/core/ver, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/completed/20260302-0345_bootstrap-architectural-restructure-plan/20260302-0345_bootstrap-architectural-restructure-plan.md, doc/pro/completed/20260303-0220_bootstrap-visual-output-redesign-plan/20260303-0220_bootstrap-visual-output-redesign-plan.md
+
+## Dismissal Reason
+
+- Scope is too broad for one execution stream and would mix independent refactors.
+- Existing completed bootstrap plans already resolved the highest-impact output issues.
+- Defer consolidation until a narrower, test-first logging proposal is created.
 
 ## Goal
 
