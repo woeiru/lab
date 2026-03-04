@@ -35,7 +35,7 @@ fi
 
 readonly STATS_JSON_FILE="$LAB_DIR/doc/ref/stats/actual.md"
 readonly STATS_HISTORY_DIR="$LAB_DIR/doc/ref/stats"
-readonly METRIC_VERSION="3.5.0"
+readonly METRIC_VERSION="3.6.0"
 readonly TREND_HISTORY_LIMIT=10
 readonly TEST_HEALTH_TREND_LIMIT=20
 readonly FLAKY_MIN_SAMPLES=4
@@ -73,12 +73,16 @@ declare -A FLAKY_SUITE_VAR_BUDGET=()
 TOTAL_FILES=0
 TOTAL_DIRS=0
 TOTAL_SIZE_KB=0
+TOTAL_LINES=0
+PREV_TOTAL_LINES=0
 PREV_TOTAL_FILES=0
 PREV_TOTAL_DIRS=0
 PREV_TOTAL_SIZE_KB=0
+DELTA_LINES=0
 DELTA_FILES=0
 DELTA_DIRS=0
 DELTA_SIZE_KB=0
+DELTA_LINES_PCT="n/a"
 DELTA_FILES_PCT="n/a"
 DELTA_DIRS_PCT="n/a"
 DELTA_SIZE_PCT="n/a"
@@ -618,6 +622,7 @@ load_previous_snapshot() {
         return
     fi
 
+    PREV_TOTAL_LINES="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "total_lines")")"
     PREV_TOTAL_FILES="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "total_files")")"
     PREV_TOTAL_DIRS="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "total_dirs")")"
     PREV_TOTAL_SIZE_KB="$(safe_number "$(json_num_from_file "$STATS_JSON_FILE" "total_size_kb")")"
@@ -631,6 +636,18 @@ load_previous_snapshot() {
     if [[ -n "$prev_time" ]]; then
         PREV_SNAPSHOT_TIMESTAMP="$prev_time"
     fi
+}
+
+count_repo_lines() {
+    local total_lines
+    if git -C "$LAB_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        total_lines="$(git -C "$LAB_DIR" ls-files -z 2>/dev/null | xargs -0 -r wc -l 2>/dev/null | awk 'END { print $1 + 0 }')"
+    else
+        total_lines="$(find "$LAB_DIR" -path "$LAB_DIR/.git" -prune -o -type f -print0 2>/dev/null | xargs -0 -r wc -l 2>/dev/null | awk 'END { print $1 + 0 }')"
+    fi
+
+    total_lines="$(safe_number "$total_lines")"
+    printf '%s' "$total_lines"
 }
 
 collect_repo_shape() {
@@ -668,6 +685,7 @@ collect_repo_shape() {
     TOTAL_FILES="$(find "$LAB_DIR" -path "$LAB_DIR/.git" -prune -o -type f -print 2>/dev/null | wc -l | tr -d ' ')"
     TOTAL_DIRS="$(find "$LAB_DIR" -path "$LAB_DIR/.git" -prune -o -type d -print 2>/dev/null | wc -l | tr -d ' ')"
     TOTAL_SIZE_KB="$(du -sk --exclude='.git' "$LAB_DIR" 2>/dev/null | awk '{print $1}')"
+    TOTAL_LINES="$(count_repo_lines)"
 
     TOTAL_FILES="$(safe_number "$TOTAL_FILES")"
     TOTAL_DIRS="$(safe_number "$TOTAL_DIRS")"
@@ -677,10 +695,12 @@ collect_repo_shape() {
         TOTAL_DIRS=$((TOTAL_DIRS - 1))
     fi
 
+    DELTA_LINES=$((TOTAL_LINES - PREV_TOTAL_LINES))
     DELTA_FILES=$((TOTAL_FILES - PREV_TOTAL_FILES))
     DELTA_DIRS=$((TOTAL_DIRS - PREV_TOTAL_DIRS))
     DELTA_SIZE_KB=$((TOTAL_SIZE_KB - PREV_TOTAL_SIZE_KB))
 
+    DELTA_LINES_PCT="$(percent_change "$PREV_TOTAL_LINES" "$TOTAL_LINES")"
     DELTA_FILES_PCT="$(percent_change "$PREV_TOTAL_FILES" "$TOTAL_FILES")"
     DELTA_DIRS_PCT="$(percent_change "$PREV_TOTAL_DIRS" "$TOTAL_DIRS")"
     DELTA_SIZE_PCT="$(percent_change "$PREV_TOTAL_SIZE_KB" "$TOTAL_SIZE_KB")"
@@ -1231,6 +1251,7 @@ render_markdown() {
     echo
     echo "| Metric | Value | Delta vs Previous |"
     echo "| --- | ---: | ---: |"
+    printf '| Total line count | %s | %+d (%s%%) |\n' "$TOTAL_LINES" "$DELTA_LINES" "$DELTA_LINES_PCT"
     printf '| Total files | %s | %+d (%s%%) |\n' "$TOTAL_FILES" "$DELTA_FILES" "$DELTA_FILES_PCT"
     printf '| Total directories | %s | %+d (%s%%) |\n' "$TOTAL_DIRS" "$DELTA_DIRS" "$DELTA_DIRS_PCT"
     printf '| Repository size (KB) | %s | %+d (%s%%) |\n' "$TOTAL_SIZE_KB" "$DELTA_SIZE_KB" "$DELTA_SIZE_PCT"
@@ -1412,13 +1433,16 @@ render_json() {
     printf '    "dirty": %s\n' "$GIT_DIRTY"
     echo "  },"
     echo "  \"repo_shape\": {"
+    printf '    "total_lines": %s,\n' "$TOTAL_LINES"
     printf '    "total_files": %s,\n' "$TOTAL_FILES"
     printf '    "total_dirs": %s,\n' "$TOTAL_DIRS"
     printf '    "total_size_kb": %s,\n' "$TOTAL_SIZE_KB"
     echo "    \"delta\": {"
+    printf '      "lines": %s,\n' "$DELTA_LINES"
     printf '      "files": %s,\n' "$DELTA_FILES"
     printf '      "dirs": %s,\n' "$DELTA_DIRS"
     printf '      "size_kb": %s,\n' "$DELTA_SIZE_KB"
+    printf '      "lines_percent": "%s",\n' "$DELTA_LINES_PCT"
     printf '      "files_percent": "%s",\n' "$DELTA_FILES_PCT"
     printf '      "dirs_percent": "%s",\n' "$DELTA_DIRS_PCT"
     printf '      "size_percent": "%s"\n' "$DELTA_SIZE_PCT"
@@ -1620,8 +1644,8 @@ render_text() {
     echo "=================="
     printf 'generated_at_utc: %s\n' "$TIMESTAMP_UTC"
     printf 'git_ref: %s@%s dirty=%s\n' "$GIT_BRANCH" "$GIT_COMMIT" "$GIT_DIRTY"
-    printf 'totals: files=%s dirs=%s size_kb=%s\n' "$TOTAL_FILES" "$TOTAL_DIRS" "$TOTAL_SIZE_KB"
-    printf 'delta: files=%+d dirs=%+d size_kb=%+d\n' "$DELTA_FILES" "$DELTA_DIRS" "$DELTA_SIZE_KB"
+    printf 'totals: lines=%s files=%s dirs=%s size_kb=%s\n' "$TOTAL_LINES" "$TOTAL_FILES" "$TOTAL_DIRS" "$TOTAL_SIZE_KB"
+    printf 'delta: lines=%+d files=%+d dirs=%+d size_kb=%+d\n' "$DELTA_LINES" "$DELTA_FILES" "$DELTA_DIRS" "$DELTA_SIZE_KB"
     printf 'velocity: 7d=%s 30d=%s 90d=%s\n' "$COMMITS_7D" "$COMMITS_30D" "$COMMITS_90D"
     printf 'complexity: p90=%s max=%s gt150=%s\n' "$FUNC_P90_LINES" "$FUNC_MAX_LINES" "$FUNC_GT_150"
     printf 'risk: eval=%s backticks=%s chmod777=%s secret=%s\n' "$RISK_COUNT_EVAL" "$RISK_COUNT_BACKTICKS" "$RISK_COUNT_CHMOD_777" "$RISK_COUNT_SECRET_PATTERNS"

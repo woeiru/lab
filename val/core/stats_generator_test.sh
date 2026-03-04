@@ -86,6 +86,7 @@ test_update_outputs() {
     run_test "stats machine snapshot has test_health quality gate" grep -q '"test_health"' "$LAB_ROOT/doc/ref/stats/actual.md"
     run_test "stats machine snapshot has top_longest block" grep -q '"top_longest"' "$LAB_ROOT/doc/ref/stats/actual.md"
     run_test "stats machine snapshot has risk deltas block" grep -q '"delta_vs_previous"' "$LAB_ROOT/doc/ref/stats/actual.md"
+    run_test "STATS.md has total line count metric" grep -q '^| Total line count |' "$LAB_ROOT/STATS.md"
     run_test "STATS.md has churn section" grep -q '^## Change Velocity and Churn' "$LAB_ROOT/STATS.md"
     run_test "STATS.md has complexity and risk section" grep -q '^## Complexity and Risk Signals' "$LAB_ROOT/STATS.md"
     run_test "STATS.md has test health section" grep -q '^## Test Health' "$LAB_ROOT/STATS.md"
