@@ -1,29 +1,29 @@
 {
   "metric_version": "3.6.0",
-  "generated_at": "2026-03-04T22:53:48Z",
+  "generated_at": "2026-03-04T22:39:47Z",
   "git": {
     "branch": "master",
     "commit": "35551b7c",
     "dirty": true
   },
   "repo_shape": {
-    "total_lines": 79307,
-    "total_files": 660,
+    "total_lines": 79180,
+    "total_files": 658,
     "total_dirs": 91,
-    "total_size_kb": 6988,
+    "total_size_kb": 6808,
     "delta": {
-      "lines": 1,
-      "files": 1,
-      "dirs": 0,
-      "size_kb": 172,
-      "lines_percent": "0.00",
-      "files_percent": "0.15",
-      "dirs_percent": "0.00",
-      "size_percent": "2.52"
+      "lines": -117,
+      "files": 4,
+      "dirs": 1,
+      "size_kb": 168,
+      "lines_percent": "-0.15",
+      "files_percent": "0.61",
+      "dirs_percent": "1.11",
+      "size_percent": "2.53"
     }
   },
   "velocity": {
-    "commits_7d": 234,
+    "commits_7d": 236,
     "commits_30d": 341,
     "commits_90d": 341
   },
@@ -86,7 +86,7 @@
       {
         "path": "doc",
         "adds_7d": 35434,
-        "dels_7d": 20581,
+        "dels_7d": 21227,
         "adds_30d": 39189,
         "dels_30d": 24412,
         "adds_90d": 39189,
@@ -276,10 +276,10 @@
   },
   "trend": {
     "points": 10,
-    "oldest": "2026-03-01T21:08:50Z",
-    "latest": "2026-03-04T22:48:58Z",
-    "files_delta_10": 52,
-    "size_kb_delta_10": -7412
+    "oldest": "2026-03-01T03:29:18Z",
+    "latest": "2026-03-04T01:52:18Z",
+    "files_delta_10": 56,
+    "size_kb_delta_10": -5948
   },
   "quality_gates": {
     "overall": "fail",
@@ -291,7 +291,7 @@
     "test_health": "ok"
   },
   "history": {
-    "previous_snapshot": "2026-03-04T22:48:58Z",
-    "history_snapshot": "doc/ref/stats/20260304T225348Z.json"
+    "previous_snapshot": "2026-03-04T01:52:18Z",
+    "history_snapshot": "doc/ref/stats/20260304T223947Z.json"
   }
 }
