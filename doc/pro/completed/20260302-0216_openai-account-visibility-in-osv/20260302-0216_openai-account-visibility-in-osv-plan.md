@@ -1,9 +1,9 @@
 # OpenAI Account Visibility in OSV Plan
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04 02:08
+- Updated: 2026-03-04 02:28
 - Links: lib/ops/dev, cfg/ali/sta, val/lib/ops/dev_test.sh, doc/man/07-dev-session-attribution-workflow.md, doc/man/03-cli-usage.md
 
 ## Triage Decision
@@ -203,3 +203,24 @@ Phase 6 implementation and workflow validation are complete; optional manual liv
 3. Tests + docs + validation: 1-2 hours
 
 Total: ~3-5 hours depending on where OpenAI active-account state is sourced.
+
+## What changed
+
+1. Implemented OpenAI identity resolution in `lib/ops/dev` so wrapper launches can resolve stable account key/label data from local sources without network calls.
+2. Integrated resolver output into `_dev_auto_attribute` so OpenAI sessions emit pre-session `account_selected` events with explicit source semantics.
+3. Improved `ops dev osv -t` rendering ergonomics so `USER` remains operator-identifiable while preserving unchanged full-fidelity TSV behavior in strict mode.
+4. Added focused regression coverage in `val/lib/ops/dev_test.sh` for resolver behavior, wrapper emission, strict confidence resolution, and table visibility.
+5. Updated operator-facing documentation in `doc/man/07-dev-session-attribution-workflow.md` and `doc/man/03-cli-usage.md` to reflect shipped behavior and override guidance.
+
+## What was verified
+
+1. `bash -n lib/ops/dev` passed.
+2. `bash -n cfg/ali/sta` passed.
+3. `bash -n val/lib/ops/dev_test.sh` passed.
+4. `./val/lib/ops/dev_test.sh` passed (`56/56`).
+5. `bash doc/pro/check-workflow.sh` passed.
+
+## What remains
+
+1. No required follow-up items remain for repository implementation scope.
+2. Optional operator live-shell verification can be run ad hoc to capture additional runtime evidence, but it is not a blocker for closure.
