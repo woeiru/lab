@@ -54,6 +54,10 @@ eval "FILE_${BASE_FUN}=\$FILE_FUN"
 eval "BASE_${BASE_FUN}=\$BASE_FUN"
 eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 
+# Cached context for hot-path logging calls
+declare -g _AUX_CACHED_HOSTNAME=""
+declare -g _AUX_CACHED_METADATA=""
+
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
@@ -643,24 +647,26 @@ aux_ask() {
 # <log_level>
 aux_get_log_color() {
     local log_level="$1"
-    
-    # Use centralized color system if available
-    if [[ -n "${COL_LOADED:-}" ]] && type col_get_semantic &>/dev/null; then
-        col_get_semantic "${log_level,,}"
-        return
-    fi
-    
+    local out_var="${2:-}"
+    local color=""
+
     # Fallback to local color definitions
     case "${log_level,,}" in  # Convert to lowercase for comparison
-        "business")     echo -n "$AUX_LOG_BUSINESS" ;;
-        "security")     echo -n "$AUX_LOG_SECURITY" ;;
-        "audit")        echo -n "$AUX_LOG_AUDIT" ;;
-        "performance")  echo -n "$AUX_LOG_PERFORMANCE" ;;
-        "info")         echo -n "$AUX_LOG_INFO" ;;
-        "warn")         echo -n "$AUX_LOG_WARN" ;;
-        "error")        echo -n "$AUX_LOG_ERROR" ;;
-        *)              echo -n "$AUX_LOG_INFO" ;;  # Default to info color
+        "business")     color="$AUX_LOG_BUSINESS" ;;
+        "security")     color="$AUX_LOG_SECURITY" ;;
+        "audit")        color="$AUX_LOG_AUDIT" ;;
+        "performance")  color="$AUX_LOG_PERFORMANCE" ;;
+        "info")         color="$AUX_LOG_INFO" ;;
+        "warn")         color="$AUX_LOG_WARN" ;;
+        "error")        color="$AUX_LOG_ERROR" ;;
+        *)               color="$AUX_LOG_INFO" ;;  # Default to info color
     esac
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$color"
+    else
+        printf '%s' "$color"
+    fi
 }
 
 # General purpose logging function for operational messages with explicit log levels and cluster support
@@ -704,17 +710,16 @@ aux_log() {
     # Generate structured metadata
     local timestamp
     printf -v timestamp '%(%Y-%m-%dT%H:%M:%S)T' -1
-    local timestamp_epoch=$(date +%s)
-    
+
     # Cluster and service context
     local cluster_metadata
-    cluster_metadata=$(aux_get_cluster_metadata)
+    aux_get_cluster_metadata cluster_metadata
     
     # Choose output format based on AUX_LOG_FORMAT
     case "${AUX_LOG_FORMAT:-human}" in
         "json")
             local json_log
-            json_log=$(aux_format_json_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" "operational")
+            aux_format_json_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" "operational" json_log
             echo "$json_log" >&2
             
             # File output
@@ -724,7 +729,7 @@ aux_log() {
             ;;
         "csv")
             local csv_log
-            csv_log=$(aux_format_csv_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data")
+            aux_format_csv_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" csv_log
             echo "$csv_log" >&2
             
             # File output with header if new file
@@ -749,7 +754,7 @@ aux_log() {
         "human"|*)
             # Enhanced human-readable format with colors (independent of main logging system)
             local log_color
-            log_color=$(aux_get_log_color "$log_level")
+            aux_get_log_color "$log_level" log_color
             local formatted_message="${AUX_LOG_GREY}[${AUX_LOG_NC}$timestamp${AUX_LOG_GREY}]${AUX_LOG_NC} ${log_color}[${log_level,,}]${AUX_LOG_NC} $message"
             [[ -n "$context_data" ]] && formatted_message="$formatted_message ${AUX_LOG_GREY}[$context_data]${AUX_LOG_NC}"
             echo "$formatted_message" >&2
@@ -811,23 +816,30 @@ aux_dbg() {
     # Check if we should output debug messages
     # Independent auxiliary logging system (no dependency on main logging)
     local should_output=false
+    local has_file_targets=false
     
     # Use environment variables for auxiliary debug output control
     if [[ "${AUX_DEBUG_ENABLED:-1}" == "1" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
         should_output=true
     fi
-    
+
+    if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
+        has_file_targets=true
+    fi
+
+    if [[ "$should_output" != "true" && "$has_file_targets" != "true" ]]; then
+        return 0
+    fi
+
     # Capture additional context for structured logging
-    local script_file="${BASH_SOURCE[1]:-unknown}"
-    local line_number="${BASH_LINENO[0]:-0}"
     local cluster_metadata
-    cluster_metadata=$(aux_get_cluster_metadata)
+    aux_get_cluster_metadata cluster_metadata
     
     # Choose output format based on AUX_LOG_FORMAT
     case "${AUX_LOG_FORMAT:-human}" in
         "json")
             local json_log
-            json_log=$(aux_format_json_log "$timestamp" "${level,,}" "$message" "$caller_function" "$cluster_metadata" "" "debug")
+            aux_format_json_log "$timestamp" "${level,,}" "$message" "$caller_function" "$cluster_metadata" "" "debug" json_log
             
             # Output to appropriate channels
             if [[ "$should_output" == "true" ]]; then
@@ -841,7 +853,7 @@ aux_dbg() {
             ;;
         "csv")
             local csv_log
-            csv_log=$(aux_format_csv_log "$timestamp" "${level,,}" "$message" "$caller_function" "$cluster_metadata" "")
+            aux_format_csv_log "$timestamp" "${level,,}" "$message" "$caller_function" "$cluster_metadata" "" csv_log
             
             # Output to appropriate channels
             if [[ "$should_output" == "true" ]]; then
@@ -873,7 +885,7 @@ aux_dbg() {
         "human"|*)
             # Format the debug message with function context and colors
             local log_color
-            log_color=$(aux_get_log_color "$level")
+            aux_get_log_color "$level" log_color
             local formatted_message="${log_color}[${level,,}]${AUX_LOG_NC} $timestamp - ${AUX_LOG_GREY}[${AUX_LOG_NC}$caller_function${AUX_LOG_GREY}]${AUX_LOG_NC} $message"
             
             # Output to appropriate channels (with colors)
@@ -894,12 +906,54 @@ aux_dbg() {
 # cluster metadata
 #
 aux_get_cluster_metadata() {
+    local out_var="${1:-}"
+
+    if [[ -n "${_AUX_CACHED_METADATA:-}" ]]; then
+        if [[ -n "$out_var" ]]; then
+            printf -v "$out_var" '%s' "$_AUX_CACHED_METADATA"
+        else
+            printf '%s\n' "$_AUX_CACHED_METADATA"
+        fi
+        return 0
+    fi
+
     # Collect cluster and service context information
     local metadata=""
-    
+    local node_id
+
     # Node identification
-    local node_id="${NODE_ID:-${HOSTNAME:-$(hostname 2>/dev/null || echo 'unknown')}}"
-    local cluster_id="${CLUSTER_ID:-${CLUSTER_NAME:-$(echo ${node_id} | cut -d'-' -f1-2 2>/dev/null || echo 'default')}}"
+    if [[ -n "${NODE_ID:-}" ]]; then
+        node_id="$NODE_ID"
+    else
+        if [[ -z "${_AUX_CACHED_HOSTNAME:-}" ]]; then
+            if [[ -n "${HOSTNAME:-}" ]]; then
+                _AUX_CACHED_HOSTNAME="$HOSTNAME"
+            elif command -v hostname >/dev/null 2>&1; then
+                _AUX_CACHED_HOSTNAME="$(hostname 2>/dev/null || printf 'unknown')"
+            else
+                _AUX_CACHED_HOSTNAME="unknown"
+            fi
+        fi
+        node_id="${_AUX_CACHED_HOSTNAME:-unknown}"
+    fi
+
+    local cluster_fallback="default"
+    if [[ -n "$node_id" ]]; then
+        if [[ "$node_id" == *-* ]]; then
+            local first_segment="${node_id%%-*}"
+            local remaining_segments="${node_id#*-}"
+            if [[ "$remaining_segments" == *-* ]]; then
+                local second_segment="${remaining_segments%%-*}"
+                cluster_fallback="${first_segment}-${second_segment}"
+            else
+                cluster_fallback="${first_segment}-${remaining_segments}"
+            fi
+        else
+            cluster_fallback="$node_id"
+        fi
+    fi
+
+    local cluster_id="${CLUSTER_ID:-${CLUSTER_NAME:-$cluster_fallback}}"
     
     # Service context
     local service_name="${SERVICE_NAME:-${0##*/}}"
@@ -911,8 +965,52 @@ aux_get_cluster_metadata() {
     [[ -n "${pod_name}" && "${pod_name}" != "unknown" ]] && metadata="$metadata pod=$pod_name"
     [[ -n "${namespace}" && "${namespace}" != "default" ]] && metadata="$metadata namespace=$namespace"
     [[ -n "${APP_VERSION:-}" ]] && metadata="$metadata version=$APP_VERSION"
-    
-    echo "$metadata"
+
+    _AUX_CACHED_METADATA="$metadata"
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$metadata"
+    else
+        printf '%s\n' "$metadata"
+    fi
+}
+
+_aux_extract_metadata_value() {
+    local metadata="$1"
+    local key="$2"
+    local out_var="$3"
+    local token
+    local value=""
+
+    for token in $metadata; do
+        if [[ "$token" == "$key="* ]]; then
+            value="${token#*=}"
+            break
+        fi
+    done
+
+    printf -v "$out_var" '%s' "$value"
+}
+
+_aux_escape_json_string() {
+    local raw_value="$1"
+    local out_var="$2"
+    local escaped="$raw_value"
+
+    escaped="${escaped//\\/\\\\}"
+    escaped="${escaped//\"/\\\"}"
+    escaped="${escaped//$'\n'/\\n}"
+
+    printf -v "$out_var" '%s' "$escaped"
+}
+
+_aux_escape_csv_string() {
+    local raw_value="$1"
+    local out_var="$2"
+    local escaped="$raw_value"
+
+    escaped="${escaped//\"/\"\"}"
+    printf -v "$out_var" '%s' "$escaped"
 }
 
 # JSON log formatter for structured logging
@@ -926,23 +1024,29 @@ aux_format_json_log() {
     local cluster_metadata="$5"
     local context_data="$6"
     local log_type="${7:-debug}"
-    
+    local out_var="${8:-}"
+    local message_json
+    local function_json
+
     # Escape JSON strings
-    message=$(printf '%s' "$message" | sed 's/"/\\"/g')
-    function_name=$(printf '%s' "$function_name" | sed 's/"/\\"/g')
+    _aux_escape_json_string "$message" message_json
+    _aux_escape_json_string "$function_name" function_json
     
     # Build base JSON
-    local json="{\"timestamp\":\"$timestamp\",\"level\":\"$level\",\"message\":\"$message\",\"type\":\"$log_type\""
+    local json="{\"timestamp\":\"$timestamp\",\"level\":\"$level\",\"message\":\"$message_json\",\"type\":\"$log_type\""
     
     # Add function if provided
-    [[ -n "$function_name" ]] && json="${json},\"function\":\"$function_name\""
+    [[ -n "$function_name" ]] && json="${json},\"function\":\"$function_json\""
     
     # Add cluster metadata
     if [[ -n "$cluster_metadata" ]]; then
         # Parse key=value pairs from cluster_metadata
-        local node_id=$(echo "$cluster_metadata" | grep -o 'node_id=[^[:space:]]*' | cut -d'=' -f2)
-        local cluster_id=$(echo "$cluster_metadata" | grep -o 'cluster_id=[^[:space:]]*' | cut -d'=' -f2)
-        local service=$(echo "$cluster_metadata" | grep -o 'service=[^[:space:]]*' | cut -d'=' -f2)
+        local node_id
+        local cluster_id
+        local service
+        _aux_extract_metadata_value "$cluster_metadata" "node_id" node_id
+        _aux_extract_metadata_value "$cluster_metadata" "cluster_id" cluster_id
+        _aux_extract_metadata_value "$cluster_metadata" "service" service
         
         [[ -n "$node_id" ]] && json="${json},\"node_id\":\"$node_id\""
         [[ -n "$cluster_id" ]] && json="${json},\"cluster_id\":\"$cluster_id\""
@@ -952,8 +1056,9 @@ aux_format_json_log() {
     # Add context data if provided
     if [[ -n "$context_data" ]]; then
         # Simple approach: add context as a string field
-        context_data=$(printf '%s' "$context_data" | sed 's/"/\\"/g')
-        json="${json},\"context\":\"$context_data\""
+        local context_json
+        _aux_escape_json_string "$context_data" context_json
+        json="${json},\"context\":\"$context_json\""
     fi
     
     # Add process information
@@ -962,7 +1067,12 @@ aux_format_json_log() {
     [[ -n "${REQUEST_ID:-}" ]] && json="${json},\"request_id\":\"$REQUEST_ID\""
     
     json="${json}}"
-    echo "$json"
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$json"
+    else
+        printf '%s\n' "$json"
+    fi
 }
 
 # CSV log formatter for structured logging
@@ -975,21 +1085,36 @@ aux_format_csv_log() {
     local function_name="$4"
     local cluster_metadata="$5"
     local context_data="$6"
-    
+    local out_var="${7:-}"
+    local message_csv
+    local function_csv
+    local context_csv
+
     # Escape CSV values (quote and escape internal quotes)
-    message=$(printf '%s' "$message" | sed 's/"/""/g')
-    function_name=$(printf '%s' "$function_name" | sed 's/"/""/g')
-    context_data=$(printf '%s' "$context_data" | sed 's/"/""/g')
-    
+    _aux_escape_csv_string "$message" message_csv
+    _aux_escape_csv_string "$function_name" function_csv
+    _aux_escape_csv_string "$context_data" context_csv
+
     # Extract cluster info
-    local node_id=$(echo "$cluster_metadata" | grep -o 'node_id=[^[:space:]]*' | cut -d'=' -f2)
-    local cluster_id=$(echo "$cluster_metadata" | grep -o 'cluster_id=[^[:space:]]*' | cut -d'=' -f2)
-    local service=$(echo "$cluster_metadata" | grep -o 'service=[^[:space:]]*' | cut -d'=' -f2)
-    
+    local node_id
+    local cluster_id
+    local service
+    _aux_extract_metadata_value "$cluster_metadata" "node_id" node_id
+    _aux_extract_metadata_value "$cluster_metadata" "cluster_id" cluster_id
+    _aux_extract_metadata_value "$cluster_metadata" "service" service
+
+    local csv_line
+
     # Build CSV line: timestamp,level,message,function,node_id,cluster_id,service,context
-    printf '"%s","%s","%s","%s","%s","%s","%s","%s"' \
-           "$timestamp" "$level" "$message" "$function_name" \
-           "${node_id:-}" "${cluster_id:-}" "${service:-}" "$context_data"
+    printf -v csv_line '"%s","%s","%s","%s","%s","%s","%s","%s"' \
+        "$timestamp" "$level" "$message_csv" "$function_csv" \
+        "${node_id:-}" "${cluster_id:-}" "${service:-}" "$context_csv"
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$csv_line"
+    else
+        printf '%s' "$csv_line"
+    fi
 }
 
 # Tracing utilities for correlation across distributed systems

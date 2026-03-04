@@ -44,9 +44,7 @@ export LOG_DEBUG_ENABLED=1
 declare -gA ROOT_FUNCTIONS=([main_rc]=1)
 
 # Cached log state for performance
-declare -g LOG_STATE_CACHED=""
-declare -g LOG_STATE_LAST_CHECK=0
-readonly LOG_STATE_CACHE_TTL=5  # Cache for 5 seconds
+declare -gi _LO1_LOG_ENABLED=1
 
 # Enhanced debug logging - moved to top
 # Debug Log One - DLO
@@ -86,19 +84,18 @@ declare -i LAST_CACHE_CLEANUP=0
 # Get Cached Log State - GCL
 # 
 lo1_get_cached_log_state() {
-    local current_time
-    lo1_now_s current_time
-    if [[ -z "$LOG_STATE_CACHED" ]] || ((current_time - LOG_STATE_LAST_CHECK >= LOG_STATE_CACHE_TTL)); then
-        if [[ -r "$LOG_STATE_FILE" ]]; then
-            if ! read -r LOG_STATE_CACHED < "$LOG_STATE_FILE"; then
-                LOG_STATE_CACHED="on"
-            fi
-        else
-            LOG_STATE_CACHED="on"
-        fi
-        LOG_STATE_LAST_CHECK=$current_time
+    local out_var="${1:-}"
+    local state="off"
+
+    if [[ "${_LO1_LOG_ENABLED:-1}" == "1" ]]; then
+        state="on"
     fi
-    printf '%s\n' "$LOG_STATE_CACHED"
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$state"
+    else
+        printf '%s\n' "$state"
+    fi
 }
 
 # Display detailed stack trace for debugging function calls
@@ -152,7 +149,6 @@ ensure_state_directories() {
 # Initialize State Files - ISF
 # 
 init_state_files() {
-    [[ ! -f "$LOG_STATE_FILE" ]] && echo "on" > "$LOG_STATE_FILE"  # Changed "true" to "on"
     [[ ! -f "$LOG_DEPTH_CACHE_FILE" ]] && touch "$LOG_DEPTH_CACHE_FILE"
 }
 
@@ -171,13 +167,19 @@ is_root_function() {
 # Get Base Depth - GBD
 # 
 lo1_get_base_depth() {
+    local out_var="${1:-}"
     local current_func="${FUNCNAME[1]:-main}"
 
     # Performance: Check cache first
     if [[ -n "${LOG_DEPTH_CACHE[$current_func]:-}" ]]; then
-        lo1_debug_log "Cache hit for $current_func: ${LOG_DEPTH_CACHE[$current_func]}" "depth"
-        echo "${LOG_DEPTH_CACHE[$current_func]}"
-        return
+        local cached_depth="${LOG_DEPTH_CACHE[$current_func]}"
+        lo1_debug_log "Cache hit for $current_func: ${cached_depth}" "depth"
+        if [[ -n "$out_var" ]]; then
+            printf -v "$out_var" '%s' "$cached_depth"
+        else
+            printf '%s\n' "$cached_depth"
+        fi
+        return 0
     fi
 
     cleanup_cache
@@ -212,22 +214,41 @@ lo1_get_base_depth() {
     LOG_DEPTH_CACHE[$current_func]=$depth
     lo1_debug_log "Cached depth for $current_func: $depth (stack: $stack_trace)" "depth"
 
-    echo "$depth"
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$depth"
+    else
+        printf '%s\n' "$depth"
+    fi
 }
 
 # Calculate final depth for logging
 # Calculate Final Depth - CFD
 # 
+_lo1_calculate_final_depth() {
+    local out_var="${1:-_LO1_DEPTH}"
+    lo1_get_base_depth "$out_var"
+}
+
 lo1_calculate_final_depth() {
-    lo1_get_base_depth
+    local depth
+    _lo1_calculate_final_depth depth
+    printf '%s\n' "$depth"
 }
 
 # Get indentation string based on depth
 # Get Indent - GIN
 # <depth>
 lo1_get_indent() {
+    local indent
+    _lo1_get_indent "$1" indent
+    printf '%s' "$indent"
+}
+
+_lo1_get_indent() {
     local depth="$1"
+    local out_var="${2:-_LO1_INDENT}"
     local indent=""
+    local i
 
     case $depth in
         0) indent="    " ;;
@@ -240,42 +261,62 @@ lo1_get_indent() {
             ;;
     esac
 
-    echo -n "$indent└─"
+    printf -v "$out_var" '%s' "${indent}└─"
 }
 
 # Get color based on depth level
 # Get Color - GCO
 # <depth>
 lo1_get_color() {
+    local color
+    _lo1_get_color "$1" color
+    printf '%s' "$color"
+}
+
+_lo1_get_color() {
     local depth="$1"
+    local out_var="${2:-_LO1_COLOR}"
+    local color
+
     if ((depth >= 0 && depth < ${#LOG_COLORS[@]})); then
-        echo -n "${LOG_COLORS[$depth]}"
+        color="${LOG_COLORS[$depth]}"
     else
         # For any depth >= 10, use the last color (index 9)
-        echo -n "${LOG_COLORS[9]}"
+        color="${LOG_COLORS[9]}"
     fi
+
+    printf -v "$out_var" '%s' "$color"
 }
 
 # Main logging function
 # Main Log Function - LOG
-# <lvl> <message>
+# <message>
 lo1_log() {
-    [[ "$1" != "lvl" ]] && { echo "Error: Invalid log command" >&2; return 1; }
-    local message="$2"
+    [[ -z "${1:-}" ]] && { echo "Usage: lo1_log <message>" >&2; return 1; }
+
+    local message="$1"
+    if [[ "$1" == "lvl" ]]; then
+        message="$2"
+        [[ -z "$message" ]] && { echo "Usage: lo1_log <message>" >&2; return 1; }
+        [[ "${LOG_DEBUG_ENABLED}" == "1" ]] && lo1_debug_log "Deprecated lo1_log \"lvl\" signature detected" "log"
+    fi
+
     local suppress_bootstrap_terminal=0
     local log_enabled
-    log_enabled=$(lo1_get_cached_log_state)
+    lo1_get_cached_log_state log_enabled
 
     if [[ "${LAB_BOOTSTRAP_MODE:-0}" == "1" && "${LAB_BOOTSTRAP_OUTPUT:-legacy}" == "compact" ]]; then
         suppress_bootstrap_terminal=1
     fi
 
+    [[ "$log_enabled" != "on" ]] && return 0
+
     local depth
-    depth=$(lo1_calculate_final_depth)
+    _lo1_calculate_final_depth depth
     local indent
-    indent=$(lo1_get_indent "$depth")
+    _lo1_get_indent "$depth" indent
     local color
-    color=$(lo1_get_color "$depth")
+    _lo1_get_color "$depth" color
     local timestamp
     printf -v timestamp '%(%H:%M:%S)T' -1
 
@@ -312,17 +353,13 @@ lo1_setlog() {
 
     case "$1" in
         "off")
-            printf 'off\n' > "$LOG_STATE_FILE"
-            LOG_STATE_CACHED="off"  # Update cache immediately
-            lo1_now_s LOG_STATE_LAST_CHECK
+            _LO1_LOG_ENABLED=0
             if [[ "$suppress_bootstrap_terminal" -eq 0 && "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
                 printf "%s      └─ Logging disabled%s\n" "$LOG_NC"
             fi
             ;;
         "on")
-            printf 'on\n' > "$LOG_STATE_FILE"
-            LOG_STATE_CACHED="on"  # Update cache immediately
-            lo1_now_s LOG_STATE_LAST_CHECK
+            _LO1_LOG_ENABLED=1
             if [[ "$suppress_bootstrap_terminal" -eq 0 && "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
                 printf "%s      └─ Logging enabled%s\n" "$LOG_NC"
             fi
@@ -352,33 +389,12 @@ lo1_init_logger() {
         echo "Warning: LOG_FILE variable not set in lib/util/lo1 init_logger. Cannot clear lo1.log." >&2
     fi
 
-    init_state_files     # Ensure state files like $LOG_STATE_FILE exist (might be empty)
+    init_state_files     # Ensure depth-cache state files exist
 
     lo1_debug_log "Initializing logger..." "init_logger"
 
-    # Default to 'on' if state file is missing, empty, or has invalid content
-    # Assumes LOG_STATE_FILE is defined in the environment (e.g., from ric)
-    if [[ -z "$LOG_STATE_FILE" ]]; then
-        lo1_debug_log "LOG_STATE_FILE variable is not set. Cannot manage logger state persistence. Logging will be 'on' by default for this session." "init_logger"
-        lo1_setlog "on" # Attempt to set log on, but state won't be saved if LOG_STATE_FILE is unknown
-    elif [[ ! -f "$LOG_STATE_FILE" || ! -s "$LOG_STATE_FILE" ]]; then
-        lo1_debug_log "Log state file '$LOG_STATE_FILE' is missing or empty. Defaulting to 'on'." "init_logger"
-        lo1_setlog "on" # This should also write 'on' to LOG_STATE_FILE
-    else
-        local current_state
-        current_state=$(<"$LOG_STATE_FILE")
-        if [[ "$current_state" == "on" ]]; then # Changed from "true"
-            lo1_setlog "on"
-            lo1_debug_log "Logger state loaded as 'on' from $LOG_STATE_FILE." "init_logger"
-        elif [[ "$current_state" == "off" ]]; then # Changed from "false"
-            lo1_setlog "off"
-            lo1_debug_log "Logger state loaded as 'off' from $LOG_STATE_FILE." "init_logger"
-        else
-            # If the file has "true", "false", or something else, it defaults to "on"
-            lo1_debug_log "Invalid content in $LOG_STATE_FILE: '$current_state'. Defaulting to 'on'." "init_logger"
-            lo1_setlog "on"
-        fi
-    fi
+    _LO1_LOG_ENABLED=1
+    lo1_debug_log "Logger state initialized in-memory as 'on'." "init_logger"
     lo1_debug_log "Logger initialization completed." "init_logger"
 }
 
@@ -411,11 +427,11 @@ lo1_log_message() {
     
     # Get indent and color based on call stack depth
     local depth
-    depth=$(lo1_calculate_final_depth) # Calculate depth
+    _lo1_calculate_final_depth depth
     local indent
-    indent=$(lo1_get_indent "$depth") # Use depth for indent
+    _lo1_get_indent "$depth" indent
     local color
-    color=$(lo1_get_color "$level") # Use level for color
+    _lo1_get_color "$level" color
     local reset="$LOG_NC"
     
     # Format the message
@@ -426,7 +442,7 @@ lo1_log_message() {
     
     # Output to console if enabled
     local log_enabled
-    log_enabled=$(lo1_get_cached_log_state)
+    lo1_get_cached_log_state log_enabled
     if [[ "$log_enabled" == "on" ]]; then
         printf "%s\n" "$formatted_message"
     fi
@@ -456,6 +472,7 @@ lo1_tme_log_with_timer() {
 # Export optimized functions and variables
 export LOG_FILE LOG_STATE_FILE TMP_DIR
 export -f lo1_log lo1_setlog lo1_init_logger lo1_cleanup_logger lo1_get_cached_log_state
+export -f _lo1_calculate_final_depth _lo1_get_indent _lo1_get_color
 export -f is_root_function lo1_get_base_depth lo1_calculate_final_depth
 export -f lo1_get_indent lo1_get_color lo1_debug_log lo1_dump_stack_trace
 export -f lo1_log_message lo1_tme_log_with_timer

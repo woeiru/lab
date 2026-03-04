@@ -46,17 +46,7 @@ declare -g TME_CURRENT_PARENT   # Tracks current parent for nested timing
 declare -ga TME_COMPONENT_ORDER # Stores components in chronological order
 declare -g TME_SORT_ORDER_FILE_PATH # Path to the sort order configuration file
 
-# Color definitions
-readonly TME_RED=$'\033[0;31m'
-readonly TME_ORANGE=$'\033[0;33m'
-readonly TME_YELLOW=$'\033[1;33m'
-readonly TME_GREEN=$'\033[0;32m'
-readonly TME_CYAN=$'\033[0;36m'
-readonly TME_BLUE=$'\033[0;34m'
-readonly TME_INDIGO=$'\033[0;35m'
-readonly TME_VIOLET=$'\033[1;35m'
-readonly TME_WHITE=$'\033[1;37m'
-readonly TME_NC=$'\033[0m'
+# Color values are sourced from lib/core/col when available.
 
 # Print numbers using C locale to avoid locale decimal-separator issues.
 tme_printf_numeric() {
@@ -317,13 +307,16 @@ tme_init_timer() {
 
     local generated_at
     local startup_time
+    local heading_color="${COL_METADATA:-}"
+    local startup_color="${COL_INFO:-}"
+    local reset_color="${COL_RESET:-}"
     printf -v generated_at '%(%Y-%m-%d %H:%M:%S)T' -1
     tme_format_datetime_from_ns startup_time "$TME_STARTUP_BEGIN"
 
     {
-        printf "%sRC Timing Log - %s%s\n" "$TME_BLUE" "$generated_at" "$TME_NC"
+        printf "%sRC Timing Log - %s%s\n" "$heading_color" "$generated_at" "$reset_color"
         printf "====================\n"
-        printf "Startup time: %s%s%s\n\n" "$TME_CYAN" "$startup_time" "$TME_NC"
+        printf "Startup time: %s%s%s\n\n" "$startup_color" "$startup_time" "$reset_color"
     } >> "$TME_LOG_FILE"
 }
 
@@ -449,12 +442,13 @@ print_timing_entry() {
     fi
 
     local color
+    local reset_color="${COL_RESET:-}"
     if [[ -n "${COL_LOADED:-}" ]] && type col_get_depth_color &>/dev/null; then
         color=$(col_get_depth_color "$depth")
     elif [[ -n "${COL_INFO:-}" ]]; then
         color="$COL_INFO"
     else
-        color=$TME_WHITE
+        color=""
     fi
 
     local status_icon
@@ -477,7 +471,7 @@ print_timing_entry() {
         "$duration_display" \
         "$percentage_display" \
         "$status_icon" \
-        "$TME_NC"
+        "$reset_color"
 }
 
 # Sort array of component names by their durations in descending order
@@ -660,8 +654,8 @@ tme_print_timing_report() {
         return 0
     fi
 
-    local report_color="${COL_METADATA:-$TME_BLUE}"
-    local reset_color="${COL_RESET:-$TME_NC}"
+    local report_color="${COL_METADATA:-}"
+    local reset_color="${COL_RESET:-}"
 
     printf "\n%s ━ RC Timing Report%s\n" "$report_color" "$reset_color"
     printf "%s ━ Generated: %s%s\n" "$report_color" "$generated_at" "$reset_color"

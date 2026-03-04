@@ -123,7 +123,7 @@ cd "$LAB_DIR"
 
 if source bin/ini 2>/dev/null; then
     # Test if logging functions work
-    if lo1_log "lvl" "test" 2>/dev/null; then
+    if lo1_log "test" 2>/dev/null; then
         exit 0
     else
         exit 1

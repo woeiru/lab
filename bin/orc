@@ -103,7 +103,7 @@ validate_required_globals() {
     # Check optional variables and warn if missing
     for var in "${optional_vars[@]}"; do
         if [[ -z "${!var:-}" ]]; then
-            lo1_log "lvl" "Warning: Optional variable $var not set (may be loaded later)"
+            lo1_log "Warning: Optional variable $var not set (may be loaded later)"
         fi
     done
     
@@ -122,7 +122,7 @@ source_helper() {
     
     # Input validation
     if [[ -z "$file" ]]; then
-        lo1_log "lvl" " Error: No file specified for source_helper"
+        lo1_log " Error: No file specified for source_helper"
         return 1
     fi
 
@@ -130,7 +130,7 @@ source_helper() {
 
     # Verify the file exists
     if [[ ! -f "$file" ]]; then
-        lo1_log "lvl" " Warning: File $description ($file) not found."
+        lo1_log " Warning: File $description ($file) not found."
         err_process "File not found: $file" "source_helper" "${ERROR_CODES[FILE_NOT_FOUND]}" "WARNING"
         tme_end_timer "source_$description"
         return 1
@@ -138,7 +138,7 @@ source_helper() {
 
     # Verify the file is readable
     if [[ ! -r "$file" ]]; then
-        lo1_log "lvl" " Warning: File $description ($file) is not readable."
+        lo1_log " Warning: File $description ($file) is not readable."
         err_process "File not readable: $file" "source_helper" "${ERROR_CODES[PERMISSION_DENIED]}" "WARNING"
         tme_end_timer "source_$description"
         return 1
@@ -171,14 +171,14 @@ source_helper() {
     error_output="${error_output%$'\n'}"
 
     if [[ "$source_status" -eq 0 ]]; then
-        lo1_log "lvl" "Successfully sourced: $description"
+        lo1_log "Successfully sourced: $description"
         tme_end_timer "source_$description" "success"
         return 0
     else
         if [[ -z "$error_output" ]]; then
             error_output="Failed to read error output"
         fi
-        lo1_log "lvl" "Error sourcing $description: $error_output"
+        lo1_log "Error sourcing $description: $error_output"
         err_handler "$LINENO" "${ERROR_CODES[SOURCE_ERROR]}" "false"
         tme_end_timer "source_$description" "error"
         return 1
@@ -195,7 +195,7 @@ orc_ensure_shared_module_loader() {
 
     if [[ ! -r "$loader_file" ]]; then
         if type lo1_log &>/dev/null; then
-            lo1_log "lvl" " Error: Shared module loader not found at ${loader_file}"
+            lo1_log " Error: Shared module loader not found at ${loader_file}"
         else
             echo "Error: Shared module loader not found at ${loader_file}" >&2
         fi
@@ -204,7 +204,7 @@ orc_ensure_shared_module_loader() {
 
     if ! source "$loader_file"; then
         if type lo1_log &>/dev/null; then
-            lo1_log "lvl" " Error: Failed to source shared module loader: ${loader_file}"
+            lo1_log " Error: Failed to source shared module loader: ${loader_file}"
         else
             echo "Error: Failed to source shared module loader: ${loader_file}" >&2
         fi
@@ -223,7 +223,7 @@ source_directory() {
     
     # Input validation
     if [[ -z "$dir" ]]; then
-        lo1_log "lvl" " Error: No directory specified for source_directory"
+        lo1_log " Error: No directory specified for source_directory"
         return 1
     fi
     
@@ -232,17 +232,17 @@ source_directory() {
     fi
 
     tme_start_timer "dir_$description"
-    lo1_log "lvl" "Sourcing $description: $dir"
+    lo1_log "Sourcing $description: $dir"
 
     if [[ ! -d "$dir" ]]; then
-        lo1_log "lvl" " Warning: Directory $dir not found. Skipping."
+        lo1_log " Warning: Directory $dir not found. Skipping."
         tme_end_timer "dir_$description"
         return 1
     fi
 
     # Check if directory is readable
     if [[ ! -r "$dir" ]]; then
-        lo1_log "lvl" " Error: Directory $dir is not readable"
+        lo1_log " Error: Directory $dir is not readable"
         tme_end_timer "dir_$description"
         return 1
     fi
@@ -271,15 +271,15 @@ source_directory() {
     ((nullglob_was_set == 0)) && shopt -u nullglob
 
     if ((total_count == 0)); then
-        lo1_log "lvl" " Warning: No matching files found in $dir for pattern '$pattern'"
+        lo1_log " Warning: No matching files found in $dir for pattern '$pattern'"
         tme_end_timer "dir_$description"
         return 1
     elif ((success_count == 0)); then
-        lo1_log "lvl" " Warning: No files were successfully sourced from $dir (0/$total_count)"
+        lo1_log " Warning: No files were successfully sourced from $dir (0/$total_count)"
         tme_end_timer "dir_$description"
         return 1
     else
-        lo1_log "lvl" "Successfully sourced $success_count/$total_count files from $dir"
+        lo1_log "Successfully sourced $success_count/$total_count files from $dir"
         tme_end_timer "dir_$description"
         return 0
     fi
@@ -296,20 +296,20 @@ _orc_lazy_dispatch() {
     shift 3
 
     if ! orc_ensure_shared_module_loader; then
-        lo1_log "lvl" " Error: Shared module loader unavailable for lazy dispatch"
+        lo1_log " Error: Shared module loader unavailable for lazy dispatch"
         return 1
     fi
 
     if [[ "${ORC_LAZY_MODULE_LOADED[$module_file]:-0}" != "1" ]]; then
         if ! lab_source_module "$module_id" "$module_file" "${module_file##*/}" "orc_lazy"; then
-            lo1_log "lvl" " Error: Lazy-load failed for ${module_file##*/} while dispatching ${func_name}"
+            lo1_log " Error: Lazy-load failed for ${module_file##*/} while dispatching ${func_name}"
             return 1
         fi
         ORC_LAZY_MODULE_LOADED["$module_file"]=1
     fi
 
     if ! type "$func_name" &>/dev/null; then
-        lo1_log "lvl" " Error: Lazy-loaded module ${module_file##*/} does not define ${func_name}"
+        lo1_log " Error: Lazy-loaded module ${module_file##*/} does not define ${func_name}"
         return 127
     fi
 
@@ -397,7 +397,7 @@ _orc_lazy_register_module_stubs() {
         _orc_lazy_define_stub "$func_name" "$module_file" "$module_id" || return 1
     done
 
-    lo1_log "lvl" "Registered lazy-load stubs for ${module_name} (${#ORC_LAZY_DISCOVERED_FUNCS[@]} functions)"
+    lo1_log "Registered lazy-load stubs for ${module_name} (${#ORC_LAZY_DISCOVERED_FUNCS[@]} functions)"
     return 0
 }
 
@@ -454,7 +454,7 @@ source_lib_ops() {
 
     # Validate LIB_OPS_DIR is set
     if [[ -z "${LIB_OPS_DIR:-}" ]]; then
-        lo1_log "lvl" "Error: LIB_OPS_DIR not set, cannot source operational function files"
+        lo1_log "Error: LIB_OPS_DIR not set, cannot source operational function files"
         return 1
     fi
     
@@ -465,18 +465,18 @@ source_lib_ops() {
     
     # Input validation
     if [[ ! -d "$dir" ]]; then
-        lo1_log "lvl" " Warning: Directory $dir not found. Skipping."
+        lo1_log " Warning: Directory $dir not found. Skipping."
         return 1
     fi
 
     # Check if directory is readable
     if [[ ! -r "$dir" ]]; then
-        lo1_log "lvl" " Error: Directory $dir is not readable"
+        lo1_log " Error: Directory $dir is not readable"
         return 1
     fi
 
     tme_start_timer "dir_$description"
-    lo1_log "lvl" "Sourcing $description: $dir"
+    lo1_log "Sourcing $description: $dir"
 
     # Process files with shell globbing to avoid external find/sort/mktemp forks
     local success_count=0
@@ -494,7 +494,7 @@ source_lib_ops() {
         lazy_modules_csv="${LAB_OPS_LAZY_MODULES:-all}"
         lazy_modules_csv="${lazy_modules_csv,,}"
         lazy_modules_csv="${lazy_modules_csv//[[:space:]]/}"
-        lo1_log "lvl" "Lazy ops loading enabled for modules: ${lazy_modules_csv}"
+        lo1_log "Lazy ops loading enabled for modules: ${lazy_modules_csv}"
     fi
 
     shopt -q nullglob && nullglob_was_set=1
@@ -520,7 +520,7 @@ source_lib_ops() {
                 ((success_count++))
                 continue
             fi
-            lo1_log "lvl" " Warning: Lazy stub registration unavailable for ${module_name}; falling back to eager source"
+            lo1_log " Warning: Lazy stub registration unavailable for ${module_name}; falling back to eager source"
         fi
 
         if lab_source_module "ops:${module_name}" "$file" "$file_name" "orc_ops"; then
@@ -531,15 +531,15 @@ source_lib_ops() {
     ((nullglob_was_set == 0)) && shopt -u nullglob
 
     if ((total_count == 0)); then
-        lo1_log "lvl" " Warning: No matching files found in $dir (after excluding documentation files)"
+        lo1_log " Warning: No matching files found in $dir (after excluding documentation files)"
         tme_end_timer "dir_$description"
         return 1
     elif ((success_count == 0)); then
-        lo1_log "lvl" " Warning: No files were successfully sourced from $dir (0/$total_count)"
+        lo1_log " Warning: No files were successfully sourced from $dir (0/$total_count)"
         tme_end_timer "dir_$description"
         return 1
     else
-        lo1_log "lvl" "Successfully sourced $success_count/$total_count operational function files from $dir"
+        lo1_log "Successfully sourced $success_count/$total_count operational function files from $dir"
         tme_end_timer "dir_$description"
         return 0
     fi
@@ -551,7 +551,7 @@ source_lib_ops() {
 source_src_aux() {
     # Validate SRC_AUX_DIR is set
     if [[ -z "${SRC_AUX_DIR:-}" ]]; then
-        lo1_log "lvl" "Error: SRC_AUX_DIR not set, cannot source auxiliary framework files"
+        lo1_log "Error: SRC_AUX_DIR not set, cannot source auxiliary framework files"
         return 1
     fi
 
@@ -562,7 +562,7 @@ source_src_aux() {
 # Initialize password management if needed and available
 init_password_management_if_needed() {
     if ! type init_password_management_auto &>/dev/null; then
-        lo1_log "lvl" "Note: Password management functions not available (sec utilities may not be loaded)"
+        lo1_log "Note: Password management functions not available (sec utilities may not be loaded)"
         return 0
     fi
     
@@ -576,17 +576,17 @@ init_password_management_if_needed() {
     
     for dir in "${password_dirs[@]}"; do
         if [[ -f "${dir}/ct_pbs.pwd" ]]; then
-            lo1_log "lvl" "Password management already initialized in ${dir}"
+            lo1_log "Password management already initialized in ${dir}"
             return 0
         fi
     done
     
-    lo1_log "lvl" "Initializing secure password management system..."
+    lo1_log "Initializing secure password management system..."
     if init_password_management_auto; then
-        lo1_log "lvl" "Password management system initialized successfully"
+        lo1_log "Password management system initialized successfully"
         return 0
     else
-        lo1_log "lvl" "Warning: Failed to initialize password management system"
+        lo1_log "Warning: Failed to initialize password management system"
         return 1
     fi
 }
@@ -616,18 +616,18 @@ source_lib_gen() {
         lazy_modules_csv="${LAB_GEN_LAZY_MODULES:-all}"
         lazy_modules_csv="${lazy_modules_csv,,}"
         lazy_modules_csv="${lazy_modules_csv//[[:space:]]/}"
-        lo1_log "lvl" "Lazy gen loading enabled for modules: ${lazy_modules_csv}"
+        lo1_log "Lazy gen loading enabled for modules: ${lazy_modules_csv}"
     fi
 
-    lo1_log "lvl" "Sourcing ${description} from ${dir_to_source}"
+    lo1_log "Sourcing ${description} from ${dir_to_source}"
 
     if [[ ! -d "$dir_to_source" ]]; then
-        lo1_log "lvl" " Warning: Directory $dir_to_source not found. Skipping."
+        lo1_log " Warning: Directory $dir_to_source not found. Skipping."
         return 1
     fi
 
     if [[ ! -r "$dir_to_source" ]]; then
-        lo1_log "lvl" " Error: Directory $dir_to_source is not readable"
+        lo1_log " Error: Directory $dir_to_source is not readable"
         return 1
     fi
 
@@ -654,7 +654,7 @@ source_lib_gen() {
                 ((success_count++))
                 continue
             fi
-            lo1_log "lvl" " Warning: Lazy stub registration unavailable for ${module_name}; falling back to eager source"
+            lo1_log " Warning: Lazy stub registration unavailable for ${module_name}; falling back to eager source"
         fi
 
         if lab_source_module "gen:${module_name}" "$file" "$file_name" "orc_gen"; then
@@ -665,19 +665,19 @@ source_lib_gen() {
     ((nullglob_was_set == 0)) && shopt -u nullglob
 
     if ((total_count == 0)); then
-        lo1_log "lvl" " Warning: No matching files found in $dir_to_source"
+        lo1_log " Warning: No matching files found in $dir_to_source"
         return 1
     elif ((success_count == 0)); then
-        lo1_log "lvl" "Failed to source ${description} from ${dir_to_source}."
+        lo1_log "Failed to source ${description} from ${dir_to_source}."
         return 1
     fi
 
-    lo1_log "lvl" "Successfully prepared $success_count/$total_count ${description}."
+    lo1_log "Successfully prepared $success_count/$total_count ${description}."
 
     if ((lazy_enabled == 0)); then
         init_password_management_if_needed
     else
-        lo1_log "lvl" "Deferred password management initialization due to lazy gen loading"
+        lo1_log "Deferred password management initialization due to lazy gen loading"
     fi
 
     return 0
@@ -687,28 +687,28 @@ source_lib_gen() {
 source_cfg_ecc() {
     # Validate LAB_DIR is set
     if [[ -z "${LAB_DIR:-}" ]]; then
-        lo1_log "lvl" "Error: LAB_DIR not set, cannot locate environment controller"
+        lo1_log "Error: LAB_DIR not set, cannot locate environment controller"
         return 1
     fi
     
     local ecc_file="${LAB_DIR}/cfg/core/ecc"
     
     tme_start_timer "cfg_ecc"
-    lo1_log "lvl" "Loading environment controller from: ${ecc_file}"
+    lo1_log "Loading environment controller from: ${ecc_file}"
     
     if [[ -f "${ecc_file}" ]]; then
         if source_helper "${ecc_file}" "environment controller"; then
-            lo1_log "lvl" "Successfully loaded environment controller"
-            lo1_log "lvl" "Active configuration: Site=${SITE_NAME:-unset}, Env=${ENVIRONMENT_NAME:-unset}, Node=${NODE_NAME:-unset}"
+            lo1_log "Successfully loaded environment controller"
+            lo1_log "Active configuration: Site=${SITE_NAME:-unset}, Env=${ENVIRONMENT_NAME:-unset}, Node=${NODE_NAME:-unset}"
             tme_end_timer "cfg_ecc"
             return 0
         else
-            lo1_log "lvl" "Failed to load environment controller"
+            lo1_log "Failed to load environment controller"
             tme_end_timer "cfg_ecc"
             return 1
         fi
     else
-        lo1_log "lvl" "Warning: Environment controller file not found: ${ecc_file}"
+        lo1_log "Warning: Environment controller file not found: ${ecc_file}"
         tme_end_timer "cfg_ecc"
         return 1
     fi
@@ -722,26 +722,26 @@ source_cfg_env() {
     local required_vars=("SITE_CONFIG_FILE" "ENV_OVERRIDE_FILE" "NODE_OVERRIDE_FILE" "SITE_NAME" "ENVIRONMENT_NAME" "NODE_NAME")
     for var in "${required_vars[@]}"; do
         if [[ -z "${!var:-}" ]]; then
-            lo1_log "lvl" "Error: Required variable $var not set for environment configuration"
+            lo1_log "Error: Required variable $var not set for environment configuration"
             return 1
         fi
     done
     
     tme_start_timer "cfg_env"
-    lo1_log "lvl" "Loading environment configuration..."
-    lo1_log "lvl" "Site: ${SITE_NAME}, Environment: ${ENVIRONMENT_NAME}, Node: ${NODE_NAME}"
+    lo1_log "Loading environment configuration..."
+    lo1_log "Site: ${SITE_NAME}, Environment: ${ENVIRONMENT_NAME}, Node: ${NODE_NAME}"
     
     # Load base site configuration (required)
     if [[ -f "${SITE_CONFIG_FILE}" ]]; then
         if source_helper "${SITE_CONFIG_FILE}" "base site config (${SITE_NAME})"; then
-            lo1_log "lvl" "Successfully loaded base site configuration"
+            lo1_log "Successfully loaded base site configuration"
         else
-            lo1_log "lvl" "Error: Failed to load base site configuration"
+            lo1_log "Error: Failed to load base site configuration"
             tme_end_timer "cfg_env"
             return 1
         fi
     else
-        lo1_log "lvl" "Error: Base site config file not found: ${SITE_CONFIG_FILE}"
+        lo1_log "Error: Base site config file not found: ${SITE_CONFIG_FILE}"
         tme_end_timer "cfg_env"
         return 1
     fi
@@ -749,25 +749,25 @@ source_cfg_env() {
     # Load environment-specific overrides (optional)
     if [[ -f "${ENV_OVERRIDE_FILE}" ]]; then
         if source_helper "${ENV_OVERRIDE_FILE}" "environment overrides (${ENVIRONMENT_NAME})"; then
-            lo1_log "lvl" "Successfully loaded environment overrides"
+            lo1_log "Successfully loaded environment overrides"
         else
-            lo1_log "lvl" "Warning: Failed to load environment overrides"
+            lo1_log "Warning: Failed to load environment overrides"
             # Don't fail for optional overrides
         fi
     else
-        lo1_log "lvl" "No environment override file found: ${ENV_OVERRIDE_FILE}"
+        lo1_log "No environment override file found: ${ENV_OVERRIDE_FILE}"
     fi
     
     # Load node-specific overrides (optional)
     if [[ -f "${NODE_OVERRIDE_FILE}" ]]; then
         if source_helper "${NODE_OVERRIDE_FILE}" "node overrides (${NODE_NAME})"; then
-            lo1_log "lvl" "Successfully loaded node overrides"
+            lo1_log "Successfully loaded node overrides"
         else
-            lo1_log "lvl" "Warning: Failed to load node overrides"
+            lo1_log "Warning: Failed to load node overrides"
             # Don't fail for optional overrides
         fi
     else
-        lo1_log "lvl" "No node override file found: ${NODE_OVERRIDE_FILE}"
+        lo1_log "No node override file found: ${NODE_OVERRIDE_FILE}"
     fi
     
     tme_end_timer "cfg_env"
@@ -778,7 +778,7 @@ source_cfg_env() {
 source_cfg_ali() {
     # Validate CFG_ALI_DIR is set
     if [[ -z "${CFG_ALI_DIR:-}" ]]; then
-        lo1_log "lvl" "Error: CFG_ALI_DIR not set, cannot source alias configuration files"
+        lo1_log "Error: CFG_ALI_DIR not set, cannot source alias configuration files"
         return 1
     fi
     
@@ -799,19 +799,19 @@ _orc_execute_component_set() {
     if type err_print_report &>/dev/null; then
         has_error_report=true
     else
-        lo1_log "lvl" "Warning: err_print_report function not found"
+        lo1_log "Warning: err_print_report function not found"
     fi
 
-    lo1_log "lvl" "Executing ${profile} component functions..."
+    lo1_log "Executing ${profile} component functions..."
 
     for component_def in "${components[@]}"; do
         IFS=':' read -r func name <<< "$component_def"
 
         tme_start_timer "$name"
-        lo1_log "lvl" " Executing component: $name ..."
+        lo1_log " Executing component: $name ..."
 
         if ! type "$func" &>/dev/null; then
-            lo1_log "lvl" " Warning: Function $func not found for component $name"
+            lo1_log " Warning: Function $func not found for component $name"
             err_handler "$LINENO" "${ERROR_CODES[FUNCTION_NOT_FOUND]}" "true"
             tme_end_timer "$name"
             continue
@@ -819,30 +819,30 @@ _orc_execute_component_set() {
 
         if "$func"; then
             ((successful_components++))
-            lo1_log "lvl" " Component $name completed successfully"
+            lo1_log " Component $name completed successfully"
             tme_end_timer "$name"
         else
-            lo1_log "lvl" " Warning: Component $name failed"
+            lo1_log " Warning: Component $name failed"
             err_handler "$LINENO" "${ERROR_CODES[EXECUTION_FAILED]}" "true"
             tme_end_timer "$name"
         fi
     done
 
-    lo1_log "lvl" "${profile} component summary: $successful_components/$total_components components loaded successfully"
+    lo1_log "${profile} component summary: $successful_components/$total_components components loaded successfully"
 
     export RC_SOURCED=1
-    lo1_log "lvl" " RC initialization completed successfully"
-    lo1_log "lvl" " RC_SOURCED is now: ${RC_SOURCED:-unset}"
+    lo1_log " RC initialization completed successfully"
+    lo1_log " RC_SOURCED is now: ${RC_SOURCED:-unset}"
     [[ "$has_error_report" == "true" ]] && err_print_report
     return 0
 }
 
 setup_components() {
-    lo1_log "lvl" "Validating and executing component configuration..."
-    lo1_log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
+    lo1_log "Validating and executing component configuration..."
+    lo1_log "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
 
     if ! validate_required_globals "interactive"; then
-        lo1_log "lvl" "Error: Required global variables validation failed"
+        lo1_log "Error: Required global variables validation failed"
         return 1
     fi
 
@@ -860,11 +860,11 @@ setup_components() {
 }
 
 setup_deployment_components() {
-    lo1_log "lvl" "Validating and executing deployment component configuration..."
-    lo1_log "lvl" "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
+    lo1_log "Validating and executing deployment component configuration..."
+    lo1_log "Initial RC_SOURCED value: ${RC_SOURCED:-unset}"
 
     if ! validate_required_globals "deployment"; then
-        lo1_log "lvl" "Error: Required global variables validation failed for deployment profile"
+        lo1_log "Error: Required global variables validation failed for deployment profile"
         return 1
     fi
 

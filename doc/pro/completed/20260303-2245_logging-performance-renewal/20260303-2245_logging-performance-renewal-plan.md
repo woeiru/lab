@@ -1,9 +1,9 @@
 # Logging Performance Renewal
 
-- Status: queue
+- Status: completed
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-04 02:37
+- Updated: 2026-03-04 23:54
 - Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/gen/aux, lib/core/ver, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md
 
 ## Goal
@@ -76,6 +76,56 @@ performance-renewal`) demonstrated these techniques:
 
 All of these apply directly to the logging system.
 
+### Progress Findings (2026-03-04)
+
+1. Implemented internal variable-output helpers in `lib/core/lo1`:
+   `_lo1_calculate_final_depth`, `_lo1_get_indent`, `_lo1_get_color`.
+2. Updated `lo1_get_base_depth` to support optional output-variable mode,
+   preserving stdout behavior for compatibility when no output variable is
+   provided.
+3. Rewired `lo1_log` and `lo1_log_message` to use the internal helper path,
+   removing depth/indent/color command substitutions from those call sites.
+4. Validation run: `bash -n lib/core/lo1` and `bash val/core/modules/lo1_test.sh`
+   both passed; test run emitted environment warnings for unset logging paths
+   but no assertion failures.
+5. Replaced `lo1_get_cached_log_state` disk-backed cache with in-memory
+   `_LO1_LOG_ENABLED` and updated `lo1_setlog` to toggle in-memory state.
+6. Added a fast `lo1_log` early return when logging is disabled, before depth,
+   indent, and color computation.
+7. Validation run: `./val/run_all_tests.sh core` passed.
+8. Phase 1 completion target reached: `lo1_log` now runs without `$(...)`
+   command substitutions in its hot path.
+9. Implemented aux-side caching and no-subshell call paths:
+   `aux_get_cluster_metadata` now caches hostname/metadata for session reuse,
+   and `aux_log`/`aux_dbg` now consume metadata and formatter outputs via
+   output variables instead of command substitution.
+10. Replaced `aux_log` epoch subprocess usage (`date +%s`) with Bash builtin
+    timestamp generation and added `aux_dbg` early-return when terminal output
+    is disabled and no file target is writable.
+11. Reworked structured formatters (`aux_format_json_log`,
+    `aux_format_csv_log`) to use shell-native escaping/parsing helpers,
+    removing grep/cut/sed subprocess chains from log formatting paths.
+12. Validation run: `bash -n lib/gen/aux`, `bash val/lib/gen/aux_test.sh`,
+    and `./val/run_all_tests.sh lib` all passed.
+13. Removed `lo1_log "lvl"` usage across runtime and tests (`bin/orc`,
+    `lib/core/lab`, and `val/core/initialization/ini_test.sh`) and updated
+    `lo1_log` to accept `lo1_log "message"` directly with a compatibility
+    shim for legacy calls.
+14. Removed duplicate TME color constants (`TME_RED`, `TME_ORANGE`,
+    `TME_YELLOW`, `TME_GREEN`, `TME_CYAN`, `TME_BLUE`, `TME_INDIGO`,
+    `TME_VIOLET`, `TME_WHITE`, `TME_NC`) and switched report/output fallback
+    coloring to centralized `COL_*` values.
+15. Regression fix: exported internal `lo1` helper functions used by exported
+    `lo1_log` in subprocess contexts (`_lo1_calculate_final_depth`,
+    `_lo1_get_indent`, `_lo1_get_color`) to eliminate command-not-found
+    errors observed in DIC integration logs.
+16. Validation run: `bash -n lib/core/lo1 lib/core/tme bin/orc bin/ini`,
+    `./val/run_all_tests.sh`, and `./val/run_all_tests.sh src` all passed.
+17. Benchmark evidence (3-run samples, compact bootstrap source of `bin/ini`):
+    baseline detached `HEAD` worktree `0,502 / 0,503 / 0,499` s (median 0,502),
+    current working tree `0,227 / 0,230 / 0,224` s (median 0,227),
+    improvement ~54.8%.
+
 ## Triage Decision
 
 **Why now:** The logging subsystems are the highest-frequency callsite in the
@@ -132,58 +182,58 @@ output formats, and behavior contracts while reducing runtime overhead.
 
 ### Phase 1 -- lo1 subshell elimination (target: zero `$(...)` forks in lo1_log)
 
-1. Rewrite `lo1_calculate_final_depth` to set a variable via `printf -v`
+1. [done 2026-03-04] Rewrite `lo1_calculate_final_depth` to set a variable via `printf -v`
    instead of echoing. Create `_lo1_calculate_final_depth` that sets
    `_LO1_DEPTH`.
-2. Rewrite `lo1_get_indent` to set `_LO1_INDENT` via `printf -v` instead
+2. [done 2026-03-04] Rewrite `lo1_get_indent` to set `_LO1_INDENT` via `printf -v` instead
    of echoing.
-3. Rewrite `lo1_get_color` to set `_LO1_COLOR` via direct array lookup
+3. [done 2026-03-04] Rewrite `lo1_get_color` to set `_LO1_COLOR` via direct array lookup
    into `COL_DEPTH` instead of subshell.
-4. Replace state file I/O in `lo1_get_cached_log_state` with in-memory
+4. [done 2026-03-04] Replace state file I/O in `lo1_get_cached_log_state` with in-memory
    variable `_LO1_LOG_ENABLED`. Update `lo1_setlog` to set the variable
    directly. Remove `LOG_STATE_FILE` reads from hot path.
-5. Rewrite `lo1_log` to use the new variable-setting functions and
+5. [done 2026-03-04] Rewrite `lo1_log` to use the new variable-setting functions and
    eliminate all `$(...)` command substitutions.
-6. Add early-return guard: if `_LO1_LOG_ENABLED != 1` AND terminal
+6. [done 2026-03-04] Add early-return guard: if `_LO1_LOG_ENABLED != 1` AND terminal
    verbosity is off, return immediately before any computation.
-7. Verify: `bash -n lib/core/lo1`, run `val/core/modules/lo1_test.sh`
+7. [done 2026-03-04] Verify: `bash -n lib/core/lo1`, run `val/core/modules/lo1_test.sh`
    (note: tests are currently broken -- verify syntax only, test fix is
    in scope item 9 of the architectural restructure).
-8. Verify: `./val/run_all_tests.sh core` passes.
+8. [done 2026-03-04] Verify: `./val/run_all_tests.sh core` passes.
 
 ### Phase 2 -- aux overhead reduction (target: zero subprocesses per aux_log call)
 
-1. Replace `$(hostname)` in `aux_get_cluster_metadata` with a cached
+1. [done 2026-03-04] Replace `$(hostname)` in `aux_get_cluster_metadata` with a cached
    variable `_AUX_CACHED_HOSTNAME`, set once on first call via
    `printf -v _AUX_CACHED_HOSTNAME '%s' "$(hostname)"` (one fork total,
    not per call).
-2. Cache full `aux_get_cluster_metadata` output in `_AUX_CACHED_METADATA`
+2. [done 2026-03-04] Cache full `aux_get_cluster_metadata` output in `_AUX_CACHED_METADATA`
    with session-lifetime TTL (metadata does not change within a session).
-3. Replace `$(date -Iseconds)` and `$(date +'%Y-%m-%d %H:%M:%S')` in
+3. [done 2026-03-04] Replace `$(date -Iseconds)` and `$(date +'%Y-%m-%d %H:%M:%S')` in
    `aux_log` with `printf -v _ts '%(%Y-%m-%dT%H:%M:%S)T' -1` Bash builtin.
-4. Replace `$(date +%s)` epoch calls with `printf -v _epoch '%(%s)T' -1`.
-5. Add early-return guard in `aux_dbg` when `MASTER_TERMINAL_VERBOSITY=off`
+4. [done 2026-03-04] Replace `$(date +%s)` epoch calls with `printf -v _epoch '%(%s)T' -1`.
+5. [done 2026-03-04] Add early-return guard in `aux_dbg` when `MASTER_TERMINAL_VERBOSITY=off`
    AND no log file targets are configured.
-6. Verify: `bash -n lib/gen/aux`, run `val/lib/gen/aux_test.sh`.
-7. Verify: `./val/run_all_tests.sh lib` passes.
+6. [done 2026-03-04] Verify: `bash -n lib/gen/aux`, run `val/lib/gen/aux_test.sh`.
+7. [done 2026-03-04] Verify: `./val/run_all_tests.sh lib` passes.
 
 ### Phase 3 -- lo1 API cleanup and tme dedup (target: clean calling convention, single color source)
 
-1. Remove the `"lvl"` first-argument requirement from `lo1_log`. Change
+1. [done 2026-03-04] Remove the `"lvl"` first-argument requirement from `lo1_log`. Change
    signature from `lo1_log "lvl" "message"` to `lo1_log "message"`.
-2. Grep all call sites: `bin/orc`, `bin/ini`, `lib/core/*`, test files.
+2. [done 2026-03-04] Grep all call sites: `bin/orc`, `bin/ini`, `lib/core/*`, test files.
    Update every `lo1_log "lvl" "..."` to `lo1_log "..."`.
-3. Add backward-compatible shim: if first arg is `"lvl"`, shift and
+3. [done 2026-03-04] Add backward-compatible shim: if first arg is `"lvl"`, shift and
    continue (emit deprecation warning to debug log). Remove shim in
    a subsequent release.
-4. Remove duplicate color constants from `lib/core/tme`
+4. [done 2026-03-04] Remove duplicate color constants from `lib/core/tme`
    (`TME_RED`, `TME_ORANGE`, `TME_GREEN`, `TME_YELLOW`, `TME_BLUE`,
    `TME_CYAN`, `TME_RESET`). Replace usages with `col_get_semantic`.
-5. Add early-return guard in `lo1_debug_log` before function body
+5. [done 2026-03-04] Add early-return guard in `lo1_debug_log` before function body
    when `LOG_DEBUG_ENABLED=0`.
-6. Verify: `bash -n lib/core/lo1 lib/core/tme bin/orc bin/ini`.
-7. Verify: `./val/run_all_tests.sh` full suite passes.
-8. Benchmark: 3-run median timing of `lab` activation before and after
+6. [done 2026-03-04] Verify: `bash -n lib/core/lo1 lib/core/tme bin/orc bin/ini`.
+7. [done 2026-03-04] Verify: `./val/run_all_tests.sh` full suite passes.
+8. [done 2026-03-04] Benchmark: 3-run median timing of `lab` activation before and after
    all three phases. Record in progress checkpoint.
 
 ## Verification Plan
@@ -240,3 +290,39 @@ Triage this plan: verify the overhead estimates with actual profiling
 execution. Recommended to execute before the architectural restructure
 as it establishes the optimized primitives that the restructure will
 build upon.
+
+## What Changed
+
+1. Reworked `lo1` hot-path logging internals to avoid command substitutions,
+   switched log state checks to in-memory state, and simplified call style to
+   `lo1_log "message"` while preserving a compatibility shim for legacy
+   `"lvl"` callers.
+2. Updated runtime callers to new `lo1_log` signature in `bin/orc` and
+   `lib/core/lab`, and aligned initialization test invocation in
+   `val/core/initialization/ini_test.sh`.
+3. Optimized `aux` logging paths with metadata/hostname caching, built-in
+   timestamp generation, no-subshell formatter paths, and an early-return
+   guard in `aux_dbg` when no terminal/file outputs are active.
+4. Removed duplicate hardcoded TME color constants and switched timing output
+   fallback usage to centralized `COL_*` color values.
+
+## What Was Verified
+
+1. `bash -n lib/core/lo1`
+2. `bash -n lib/core/tme`
+3. `bash -n lib/gen/aux`
+4. `bash -n bin/orc bin/ini lib/core/lab val/core/initialization/ini_test.sh`
+5. `bash val/core/modules/lo1_test.sh`
+6. `bash val/lib/gen/aux_test.sh`
+7. `./val/run_all_tests.sh lib`
+8. `./val/run_all_tests.sh`
+9. `./val/run_all_tests.sh src`
+10. `./val/run_all_tests.sh core`
+11. Benchmark comparison (3 runs each): detached `HEAD` baseline
+    `0,502 / 0,503 / 0,499` s vs working tree `0,227 / 0,230 / 0,224` s.
+
+## What Remains
+
+No mandatory follow-up items for this renewal. Compatibility shim removal for
+`lo1_log "lvl"` can be handled in a later cleanup release when downstream
+callers no longer rely on it.

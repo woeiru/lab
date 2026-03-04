@@ -31,7 +31,7 @@ lab_source_module() {
 
     if [[ -z "$module_id" || -z "$module_path" ]]; then
         if type lo1_log &>/dev/null; then
-            lo1_log "lvl" "Error: Invalid lab_source_module arguments (module_id/module_path required)"
+            lo1_log "Error: Invalid lab_source_module arguments (module_id/module_path required)"
         fi
         return 1
     fi
@@ -40,14 +40,14 @@ lab_source_module() {
 
     if [[ "${LAB_MODULE_SOURCE_STATE[$module_id]:-0}" == "1" ]]; then
         if type lo1_log &>/dev/null; then
-            lo1_log "lvl" "Module already loaded (context=${context}, module_id=${module_id})"
+            lo1_log "Module already loaded (context=${context}, module_id=${module_id})"
         fi
         return 0
     fi
 
     if [[ ! -f "$module_path" || ! -r "$module_path" ]]; then
         if type lo1_log &>/dev/null; then
-            lo1_log "lvl" "Error: Module file not accessible (context=${context}, module_id=${module_id}, path=${module_path})"
+            lo1_log "Error: Module file not accessible (context=${context}, module_id=${module_id}, path=${module_path})"
         fi
         return 127
     fi
@@ -55,7 +55,7 @@ lab_source_module() {
     if type source_helper &>/dev/null; then
         if ! source_helper "$module_path" "$module_desc"; then
             if type lo1_log &>/dev/null; then
-                lo1_log "lvl" "Error: Module source failed (context=${context}, module_id=${module_id}, path=${module_path})"
+                lo1_log "Error: Module source failed (context=${context}, module_id=${module_id}, path=${module_path})"
             fi
             return 2
         fi
@@ -67,7 +67,7 @@ lab_source_module() {
 
     LAB_MODULE_SOURCE_STATE["$module_id"]=1
     if type lo1_log &>/dev/null; then
-        lo1_log "lvl" "Module loaded (context=${context}, module_id=${module_id})"
+        lo1_log "Module loaded (context=${context}, module_id=${module_id})"
     fi
     return 0
 }
