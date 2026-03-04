@@ -193,6 +193,7 @@ Use this header at the top of each work file:
 - Completed topic folders are non-empty (must contain at least one markdown artifact)
 - Completed chronology: folder completion timestamp is not older than file creation timestamp prefixes
 - Completed freshness: folder completion timestamp is not older than each completed file `Updated` header value
+- Completed git freshness: folder completion timestamp is not older than each completed file's last content-update commit time
 - Legacy completed placeholder paths are not allowed (`completed/<topic>/`)
 
 It does not currently enforce:
@@ -211,6 +212,7 @@ Common fixes when it fails:
 - `FAIL completed topic folder empty`: remove empty folder or move related completed docs into it
 - `FAIL completed folder chronology`: rename completed folder timestamp to the actual close time (must be >= file timestamps)
 - `FAIL completed folder stale timestamp`: rename completed folder timestamp to the latest completed-file `Updated` value
+- `FAIL completed folder git timestamp`: rename completed folder timestamp to the latest content-update commit time
 - `FAIL legacy completed placeholder`: replace `completed/<topic>/` with `completed/yyyymmdd-hhmm_<topic>/`
 - `FAIL dismissal reason`: add `## Dismissal Reason` section in dismissed item
 - `FAIL triage decision missing`/`duplicate`: add one `## Triage Decision` section

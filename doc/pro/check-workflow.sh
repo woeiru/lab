@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+REPO_ROOT="$(cd "$ROOT/../.." >/dev/null 2>&1 && pwd)"
 failures=0
 
 is_markdown_doc() {
@@ -82,6 +83,22 @@ get_updated_key() {
 
   if [[ "$updated" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2}) ]]; then
     printf '%s%s%s0000\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
+    return 0
+  fi
+
+  return 1
+}
+
+get_git_last_update_key() {
+  local file="$1"
+  local rel
+  local key
+
+  rel="${file#"$REPO_ROOT/"}"
+  key="$(git -C "$REPO_ROOT" log --follow --diff-filter=AM -1 --format=%cd --date=format:%Y%m%d%H%M -- "$rel" 2>/dev/null || true)"
+
+  if [[ "$key" =~ ^[0-9]{12}$ ]]; then
+    printf '%s\n' "$key"
     return 0
   fi
 
@@ -267,6 +284,7 @@ check_completed_structure() {
   local folder_key
   local file_key
   local updated_key
+  local git_key
   rel="${file#"$ROOT/completed/"}"
 
   if [[ "$rel" != */* ]]; then
@@ -307,6 +325,12 @@ check_completed_structure() {
   updated_key="$(get_updated_key "$file" || true)"
   if [[ -n "$updated_key" ]] && [[ "$updated_key" > "$folder_key" ]]; then
     printf 'FAIL completed folder stale timestamp: %s (Updated header is newer than folder timestamp %s)\n' "$file" "$folder_ts"
+    failures=$((failures + 1))
+  fi
+
+  git_key="$(get_git_last_update_key "$file" || true)"
+  if [[ -n "$git_key" ]] && [[ "$git_key" > "$folder_key" ]]; then
+    printf 'FAIL completed folder git timestamp: %s (last content update commit is newer than folder timestamp %s)\n' "$file" "$folder_ts"
     failures=$((failures + 1))
   fi
 }
