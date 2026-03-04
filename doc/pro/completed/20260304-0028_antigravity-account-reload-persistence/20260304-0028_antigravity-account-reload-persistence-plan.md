@@ -1,9 +1,9 @@
 # Antigravity Account Reload Persistence
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04 01:16
+- Updated: 2026-03-04 02:24
 - Links: lib/ops/dev, cfg/core/lzy, val/lib/ops/dev_test.sh, val/core/initialization/orc_test.sh, /home/es/.config/opencode/antigravity-accounts.json, /home/es/.config/opencode/antigravity-account-denylist.txt
 
 ## Retroactive Capture
@@ -38,17 +38,11 @@
   - Implemented lazy-load map fix so `dev_oac` is registered as a `dev` lazy stub (`cfg/core/lzy`) and added a regression test (`test_source_lib_ops_dev_reconcile_stub_is_lazy_loadable`) in `val/core/initialization/orc_test.sh`.
   - Validated lazy-load fix: `bash -n cfg/core/lzy`, `bash -n val/core/initialization/orc_test.sh`, and `./val/core/initialization/orc_test.sh` (`7/7` pass).
 - In-flight:
-  - In-repo changes are pending for lazy-load registration/test updates (`cfg/core/lzy`, `val/core/initialization/orc_test.sh`, this plan file).
-  - External-sync evidence is partially complete for this cycle (pre-sync capture + post-`dev_olb` reconcile evidence captured; explicit `dev_oac -x` output contract still missing due initial lazy-stub gap now fixed).
+  - None.
 - Blockers:
-  - External Antigravity account sync writes are outside this repo and can rewrite `antigravity-accounts.json` at arbitrary times.
-  - No always-on in-repo enforcement hook currently guarantees immediate post-sync pruning when no dev wrapper commands are executed.
-  - Capturing explicit `dev_oac -x` evidence for a naturally repopulated state now depends on the next external repopulation event timing.
+  - None.
 - Next steps:
-  1. Reload shell bootstrap (`lab`) and verify `dev_oac -x` now resolves via lazy stub; record deterministic output lines for current local state.
-  2. On the next naturally occurring repopulation event, capture paired evidence in sequence (`dev_oac -x` then `dev_olb -x`) and append before/after counters + routing markers.
-  3. Decide automation path for immediate post-sync pruning (options: user cron wrapper or shell hook invocation).
-  4. Implement the selected automation path in `lib/ops/dev` and add/adjust tests in `val/lib/ops/dev_test.sh` if automation is chosen.
+  1. None.
 - Context:
   - Branch: `master`.
   - Last commit: `6a36f493`.
@@ -101,3 +95,22 @@ Completion criterion: decision is documented; if implementation is selected, cod
 - Repeated external repopulation + reconcile cycles keep routing indices valid and deterministic.
 - Account-management commands produce consistent user-facing output and backups without index oscillation (`6` swapping behavior eliminated).
 - `./val/lib/ops/dev_test.sh` passes with the new regression coverage included.
+
+## What changed
+
+- Added a canonical reconcile flow for Antigravity accounts in `lib/ops/dev`, including explicit trigger `dev_oac -x` and unified reconcile call sites for account-management workflows.
+- Implemented durable denylist pruning semantics (remove denylisted accounts, remap active/family indices safely, preserve survivors, and create backups only on mutation).
+- Registered `dev_oac` in the lazy-load map in `cfg/core/lzy` so the command resolves correctly before eager module load.
+- Added and updated regression coverage in `val/lib/ops/dev_test.sh` and `val/core/initialization/orc_test.sh` for reconcile behavior and lazy-stub availability.
+- Captured local runtime evidence across repeated repopulation/reconcile cycles to confirm stable routing markers and denylist persistence behavior.
+
+## What was verified
+
+- Syntax checks passed: `bash -n lib/ops/dev`, `bash -n val/lib/ops/dev_test.sh`, `bash -n cfg/core/lzy`, `bash -n val/core/initialization/orc_test.sh`.
+- Targeted tests passed: `./val/lib/ops/dev_test.sh` (`51/51` pass) and `./val/core/initialization/orc_test.sh` (`7/7` pass).
+- Manual runtime validation passed across three reconcile cycles (`dev_oac -x` + `dev_olb -x`), including a repopulated pre-reconcile state and stable post-reconcile `accounts_total=5` with `denylisted_present=0`.
+- Repository state check recorded clean `master` context after implementation commit `6a36f493` with expected reconcile symbols present.
+
+## What remains
+
+- No follow-up items required from this task.
