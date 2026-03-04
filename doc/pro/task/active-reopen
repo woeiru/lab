@@ -4,7 +4,7 @@ The completed item filepath is given in the user prompt. Read it first.
 
 Reopen this completed item for additional work.
 
-- Move file from completed/<topic>/ to doc/pro/active/
+- Move file from `completed/yyyymmdd-hhmm_<topic>/` to `doc/pro/active/`
 - Set Status: active
 - Preserve all existing content (plan, reviews, completion evidence)
 - Add ## Reopened section explaining:

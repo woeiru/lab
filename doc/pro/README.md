@@ -133,6 +133,7 @@ Use one subfolder per finished topic, **prefixed with the completion timestamp**
 - Format: `completed/yyyymmdd-hhmm_<topic>/<files>.md`
 - The **folder timestamp** is the completion date (when the topic moved to `completed/`).
 - The **file timestamps** inside are creation dates (when the artifact was first written).
+- The folder timestamp must be the same as or later than every file timestamp in that folder.
 - This gives two independent timelines: `ls completed/` shows when work finished;
   `ls completed/<topic>/` shows how it evolved.
 
@@ -187,7 +188,10 @@ Use this header at the top of each work file:
 - Queue/active docs do not use legacy triage token form: `Design required: Yes/No`
 - Inbox naming pattern (`-plan`, `-issue`, `-review`, `-followup`)
 - Dismissed naming pattern (`-plan`) and required `## Dismissal Reason`
-- Completed structure: `completed/<topic>/<file>.md`
+- Completed structure: `completed/yyyymmdd-hhmm_<topic>/<file>.md`
+- Completed topic folders: direct children of `completed/` must match `yyyymmdd-hhmm_<topic>`
+- Completed topic folders are non-empty (must contain at least one markdown artifact)
+- Completed chronology: folder completion timestamp is not older than file creation timestamp prefixes
 
 It does not currently enforce:
 
@@ -201,6 +205,9 @@ Common fixes when it fails:
 - `FAIL header`: add missing header fields near the top of the document
 - `FAIL completed structure`: move file to `completed/<yyyymmdd-hhmm_topic>/`
 - `FAIL completed folder timestamp`: rename folder to `yyyymmdd-hhmm_<topic>`
+- `FAIL completed topic folder`: rename topic folder to `yyyymmdd-hhmm_<topic>`
+- `FAIL completed topic folder empty`: remove empty folder or move related completed docs into it
+- `FAIL completed folder chronology`: rename completed folder timestamp to the actual close time (must be >= file timestamps)
 - `FAIL dismissal reason`: add `## Dismissal Reason` section in dismissed item
 - `FAIL triage decision missing`/`duplicate`: add one `## Triage Decision` section
 - `FAIL triage design token`/`legacy token`: use exactly one canonical token,

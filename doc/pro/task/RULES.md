@@ -11,7 +11,9 @@ File rules:
 Folder-specific naming:
 - inbox/: filename must end with -plan.md, -issue.md, -review.md, or -followup.md
 - dismissed/: filename must end with -plan.md; must include ## Dismissal Reason
-- completed/: files must be in completed/<topic>/<file>.md (one subfolder deep)
+- completed/: files must be in completed/yyyymmdd-hhmm_<topic>/<file>.md (one subfolder deep)
+- completed/: folder timestamp is the close time and must be >= every file timestamp prefix inside that folder
+- completed/: topic folders must not be empty
 
 Reference pointers:
 - Primary operating guide: AGENTS.md.

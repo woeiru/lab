@@ -8,7 +8,9 @@ Do this in order:
 2. List active items; flag stale ones (Updated older than 7 days)
 3. For each stale item, recommend: keep active, complete, or dismiss
 4. Review queue ordering; suggest top 3 execution candidates
-5. Verify completed items are in completed/<topic>/
+5. Verify completed items are in `completed/yyyymmdd-hhmm_<topic>/` and
+   that folder timestamp is >= each file timestamp prefix in that folder;
+   also flag empty topic folders
 6. Re-run bash doc/pro/check-workflow.sh
 
 Constraints:

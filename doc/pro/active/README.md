@@ -29,4 +29,4 @@ This directory stores only in-progress work.
    a progress checkpoint so downstream tasks (resume, split, close) work
    normally.
 3. Keep implementation notes and reviews here while the item is open.
-4. Move the full topic set to `doc/pro/completed/<topic>/` once accepted.
+4. Move the full topic set to `doc/pro/completed/yyyymmdd-hhmm_<topic>/` once accepted.

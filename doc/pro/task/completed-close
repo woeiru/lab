@@ -4,7 +4,9 @@ The active item filepath is given in the user prompt. Read it first.
 
 Finalize this active item into completed state.
 
-- Move file to doc/pro/completed/<topic>/
+- Move file to `doc/pro/completed/yyyymmdd-hhmm_<topic>/` using the current close time
+- Keep each file's existing filename timestamp prefix unchanged
+- Ensure folder completion timestamp is >= every file timestamp prefix in that folder
 - Set Status: completed
 - Add final sections:
   - What changed (files, configs, behavior)

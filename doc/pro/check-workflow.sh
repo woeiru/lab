@@ -238,6 +238,12 @@ check_status_matches_folder() {
 check_completed_structure() {
   local file="$1"
   local rel
+  local base
+  local folder
+  local folder_ts
+  local file_ts
+  local folder_key
+  local file_key
   rel="${file#"$ROOT/completed/"}"
 
   if [[ "$rel" != */* ]]; then
@@ -252,10 +258,51 @@ check_completed_structure() {
     return
   fi
 
-  local folder
   folder="${rel%%/*}"
-  if [[ ! "$folder" =~ ^[0-9]{8}-[0-9]{4}_.+ ]]; then
+  if [[ ! "$folder" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]; then
     printf 'FAIL completed folder timestamp: %s (expected yyyymmdd-hhmm_<topic>)\n' "$file"
+    failures=$((failures + 1))
+    return
+  fi
+
+  folder_ts="${BASH_REMATCH[1]}"
+  base="$(basename "$file")"
+
+  if [[ ! "$base" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]; then
+    return
+  fi
+
+  file_ts="${BASH_REMATCH[1]}"
+  folder_key="${folder_ts//-/}"
+  file_key="${file_ts//-/}"
+
+  if [[ "$file_key" > "$folder_key" ]]; then
+    printf 'FAIL completed folder chronology: %s (file timestamp %s is newer than folder completion timestamp %s)\n' "$file" "$file_ts" "$folder_ts"
+    failures=$((failures + 1))
+  fi
+}
+
+check_completed_topic_folder() {
+  local dir="$1"
+  local folder
+  local md_files=()
+  local had_nullglob=0
+
+  folder="$(basename "$dir")"
+  if [[ ! "$folder" =~ ^[0-9]{8}-[0-9]{4}_.+ ]]; then
+    printf 'FAIL completed topic folder: %s (expected yyyymmdd-hhmm_<topic>)\n' "$dir"
+    failures=$((failures + 1))
+  fi
+
+  shopt -q nullglob && had_nullglob=1
+  shopt -s nullglob
+  md_files=("$dir"/*.md)
+  if ((had_nullglob == 0)); then
+    shopt -u nullglob
+  fi
+
+  if ((${#md_files[@]} == 0)); then
+    printf 'FAIL completed topic folder empty: %s (expected at least one markdown artifact)\n' "$dir"
     failures=$((failures + 1))
   fi
 }
@@ -315,6 +362,10 @@ while IFS= read -r file; do
   is_markdown_doc "$file" || continue
   check_completed_structure "$file"
 done < <(find "$ROOT/completed" -type f | sort)
+
+while IFS= read -r dir; do
+  check_completed_topic_folder "$dir"
+done < <(find "$ROOT/completed" -mindepth 1 -maxdepth 1 -type d | sort)
 
 while IFS= read -r file; do
   is_markdown_doc "$file" || continue
