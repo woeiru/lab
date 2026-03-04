@@ -30,6 +30,7 @@
   - Performed live manual verification (`dev_oac -x` + `dev_olb -x`) across 3 cycles with stable post-reconcile state and no denylisted accounts remaining.
   - Committed the implementation on `master` as `6a36f493` (`feat(dev): unify antigravity reconcile path and add dev_oac`).
   - Verified upstream context: issue `NoeFabris/opencode-antigravity-auth#336` is closed and release `v1.5.0` notes include the account-deletion persistence fix.
+  - Corrected local version audit: installed auth plugin is `opencode-antigravity-auth` `1.6.0` (cache/runtime), while `opencode --version`/`@opencode-ai/plugin` reports the core OpenCode package line (`1.2.16`).
 - In-flight:
   - No in-repo code changes are in flight; working tree is clean after commit.
   - External-sync timing observation is still pending (need at least one naturally occurring provider repopulation event captured with before/after evidence).
@@ -48,7 +49,8 @@
   - Repo changes pending: this active plan only.
   - External state touched during debugging: `/home/es/.config/opencode/antigravity-accounts.json` and backup files.
   - Latest test status: 51/51 pass in `./val/lib/ops/dev_test.sh`.
-  - Local OpenCode plugin baseline in this environment: `@opencode-ai/plugin` `1.2.16` in `/home/es/.config/opencode/package.json`.
+  - Runtime plugin version confirmed: `opencode-antigravity-auth` `1.6.0` in `/home/es/.cache/opencode/node_modules/opencode-antigravity-auth/package.json`.
+  - Versioning nuance: `opencode --version` and `@opencode-ai/plugin` (`1.2.16`) describe OpenCode core package versions, not the external antigravity auth plugin release stream.
   - Manual verification evidence (2026-03-04):
     - Cycle 1: `before_count=7` -> `status=UPDATED` -> `after_count=5`, removed `mbwagner123@gmail.com,agent.mbw@gmail.com`, fallback `maxbwagner@outlook.com`, denylisted present after reconcile: `0`.
     - Cycle 2: `before_count=5` -> `status=NO_CHANGE` -> `after_count=5`, denylisted present: `0`.
