@@ -1,10 +1,10 @@
 # Logging Visual Output Redesign
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-05 02:12
-- Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/col, lib/gen/aux, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md, doc/pro/queue/20260303-2246_logging-architectural-restructure-plan.md, doc/pro/completed/20260303-0220_bootstrap-visual-output-redesign-plan/20260303-0220_bootstrap-visual-output-redesign-plan.md
+- Updated: 2026-03-05 02:35
+- Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/col, lib/gen/aux, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/inbox/20260305-0235_dic-debug-verbosity-coupling-followup-plan.md, doc/pro/completed/20260304-2356_logging-performance-renewal/20260303-2245_logging-performance-renewal-plan.md, doc/pro/completed/20260305-0235_logging-architectural-restructure/20260303-2246_logging-architectural-restructure-plan.md, doc/pro/completed/20260305-0000_bootstrap-visual-output-redesign-plan/20260303-0220_bootstrap-visual-output-redesign-plan.md
 
 ## Goal
 
@@ -14,7 +14,7 @@ logging renewal project: the performance renewal made logging fast, the
 architectural restructure made it simple, this project makes it beautiful.
 
 The bootstrap visual output redesign
-(`doc/pro/completed/20260303-0220_bootstrap-visual-output-redesign-plan`)
+(`doc/pro/completed/20260305-0000_bootstrap-visual-output-redesign-plan/20260303-0220_bootstrap-visual-output-redesign-plan.md`)
 proved that compact, semantic-colored output dramatically improves the
 user experience. That project only covered bootstrap-time output
 (`bin/ini` compact mode, `tme` report, `err` report). This project
@@ -164,14 +164,15 @@ design-critical.
 
 ## Execution Plan
 
-### [IN PROGRESS 2026-03-05] Phase 4 -- Closeout and archive (target: completed-close with documented known-failure scope)
+### [COMPLETED 2026-03-05] Phase 4 -- Closeout and archive (target: completed-close with documented known-failure scope)
 
-1. Record closure note that the remaining full-suite failures are known,
-   unrelated DIC failures (`dic_framework_test`, `dic_integration_test`,
-   `dic_phase1_completion_test`) tracked outside this visual-output item.
-2. Verify workflow metadata one final time: `bash doc/pro/check-workflow.sh`.
-3. Execute `doc/pro/task/completed-close` for this active item, preserving
-   links to DIC follow-up tracking in the completion notes.
+1. [done 2026-03-05] Recorded closure note that DIC failures are tracked
+   outside this visual-output item in
+   `doc/pro/inbox/20260305-0235_dic-debug-verbosity-coupling-followup-plan.md`.
+2. [done 2026-03-05] Verified workflow metadata:
+   `bash doc/pro/check-workflow.sh`.
+3. [done 2026-03-05] Executed closeout move for this item to
+   `doc/pro/completed/20260305-0235_logging-visual-output-redesign/`.
 
 ## Phase 1 Design Deliverable
 
@@ -298,21 +299,17 @@ human-readable rendering through it:
 
 ### In-flight
 
-1. Active-checkpoint updated; commit is pending.
-2. Item remains in `doc/pro/active/` until `completed-close` is executed.
+1. None.
 
 ### Blockers
 
-1. No hard blockers in visual-output scope.
-2. Full-suite-green criterion remains blocked by known unrelated DIC tests.
+1. No blockers in visual-output scope.
 
 ### Next steps
 
-1. Add explicit known-failure note and DIC follow-up link in this file:
-   `doc/pro/active/20260303-2247_logging-visual-output-redesign-plan.md`.
-2. Run `bash doc/pro/check-workflow.sh`.
-3. Run `doc/pro/task/completed-close` on
-   `doc/pro/active/20260303-2247_logging-visual-output-redesign-plan.md`.
+1. Triage
+   `doc/pro/inbox/20260305-0235_dic-debug-verbosity-coupling-followup-plan.md`
+   for DIC test hardening and assertion updates.
 
 ### Context
 
@@ -320,8 +317,9 @@ human-readable rendering through it:
    by `lo1`, `ver`, and `aux` human-mode rendering.
 2. Report framing for `tme` and `err` is standardized and exercised by module
    tests.
-3. Full-suite failures remain limited to known DIC tests; no new failures were
-   introduced in core/lib/integration coverage relevant to this plan.
+3. DIC failures are tied to debug-output visibility at default verbosity and
+   clear when `LAB_LOG_LEVEL_AUX=debug`; this is tracked as a separate follow-up
+   and not a visual-output regression.
 4. Full-suite and doc-generation runs update `STATS.md` and
    `doc/ref/stats/*` as normal side effects.
 
@@ -391,5 +389,26 @@ human-readable rendering through it:
 
 ## Next Step
 
-Close this item via `doc/pro/task/completed-close` with a documented note that
-the remaining DIC failures are known out-of-scope follow-up work.
+Closed and archived; continue with the DIC follow-up captured in
+`doc/pro/inbox/20260305-0235_dic-debug-verbosity-coupling-followup-plan.md`.
+
+## What Changed
+
+1. Finalized closure metadata for the visual redesign item and corrected stale
+   links to completed logging-project artifacts.
+2. Added explicit DIC follow-up linkage and documented the verbosity-coupled
+   debug-assertion behavior observed in DIC tests.
+3. Marked the closeout phase complete and prepared the item for archive move.
+
+## What Was Verified
+
+1. `./val/run_all_tests.sh dic` reproduces default-verbosity DIC failures.
+2. `LAB_LOG_LEVEL_AUX=debug ./val/run_all_tests.sh dic` passes DIC tests,
+   confirming test sensitivity to debug-output gating.
+3. `bash doc/pro/check-workflow.sh` passes for updated workflow metadata.
+
+## What Remains
+
+1. Triage and execute
+   `doc/pro/inbox/20260305-0235_dic-debug-verbosity-coupling-followup-plan.md`
+   to make DIC validation independent of debug-verbosity defaults.

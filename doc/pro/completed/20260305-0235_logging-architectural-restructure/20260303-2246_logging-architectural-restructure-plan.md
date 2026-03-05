@@ -1,10 +1,10 @@
 # Logging Architectural Restructure
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-05 01:07
-- Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/ver, lib/gen/aux, lib/core/col, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/completed/20260303-2245_logging-performance-renewal/20260303-2245_logging-performance-renewal-plan.md
+- Updated: 2026-03-05 02:35
+- Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/ver, lib/gen/aux, lib/core/col, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/inbox/20260305-0235_dic-debug-verbosity-coupling-followup-plan.md, doc/pro/completed/20260304-2356_logging-performance-renewal/20260303-2245_logging-performance-renewal-plan.md, doc/pro/completed/20260303-0139_bootstrap-architectural-restructure-plan/20260302-0345_bootstrap-architectural-restructure-plan.md
 
 ## Goal
 
@@ -15,7 +15,7 @@ file logging hygiene. This is the second of three logging renewal projects:
 the performance renewal made logging fast; this project makes it simple.
 
 The bootstrapper architectural restructure
-(`doc/pro/completed/20260302-0345_bootstrap-architectural-restructure-plan`)
+(`doc/pro/completed/20260303-0139_bootstrap-architectural-restructure-plan/20260302-0345_bootstrap-architectural-restructure-plan.md`)
 proved that removing dead ceremony, unifying entry points, and separating
 concerns yields a dramatically simpler system without losing capability.
 The same approach applies to logging: five subsystems with five independent
@@ -194,14 +194,15 @@ on.
 
 ## Execution Plan
 
-### [IN PROGRESS 2026-03-05] Phase 6 -- Closeout (target: finalize and archive item)
+### [COMPLETED 2026-03-05] Phase 6 -- Closeout (target: finalize and archive item)
 
-1. [in_progress] Capture final checkpoint and handoff state in this active item.
-2. [pending] Create/confirm follow-up tracking for unrelated DIC failures
-   (`dic_framework_test`, `dic_integration_test`, `dic_phase1_completion_test`).
-3. [pending] Move this item from `doc/pro/active/` to a timestamped
-   `doc/pro/completed/<timestamp>_logging-architectural-restructure/` folder.
-4. [pending] Re-run workflow validation after move:
+1. [done 2026-03-05] Captured final checkpoint and handoff state.
+2. [done 2026-03-05] Captured DIC follow-up tracking in
+   `doc/pro/inbox/20260305-0235_dic-debug-verbosity-coupling-followup-plan.md`
+   with reproduction showing verbosity-gated debug assertions.
+3. [done 2026-03-05] Moved this item from `doc/pro/active/` to
+   `doc/pro/completed/20260305-0235_logging-architectural-restructure/`.
+4. [done 2026-03-05] Re-ran workflow validation:
    `bash doc/pro/check-workflow.sh`.
 
 ## Phase 1 Design Decision Record
@@ -401,8 +402,7 @@ subsystem overrides.
 
 ### In-flight
 
-1. Final active-checkpoint update completed; commit is pending.
-2. Item remains in `doc/pro/active/` until closeout move is executed.
+1. None.
 
 ### Blockers
 
@@ -410,10 +410,9 @@ subsystem overrides.
 
 ### Next steps
 
-1. Record the known DIC failures as separate follow-up tracking under `doc/pro/queue/`.
-2. Move `doc/pro/active/20260303-2246_logging-architectural-restructure-plan.md`
-   to a timestamped folder under `doc/pro/completed/`.
-3. Run `bash doc/pro/check-workflow.sh` and resolve any reported issues.
+1. Triage
+   `doc/pro/inbox/20260305-0235_dic-debug-verbosity-coupling-followup-plan.md`
+   for DIC test hardening work.
 
 ### Context
 
@@ -424,9 +423,9 @@ subsystem overrides.
 3. Running `./val/run_all_tests.sh core` regenerates stats artifacts
    (`STATS.md` and `doc/ref/stats/*`) as a side effect; these are unrelated to
    logging implementation scope.
-4. Full `./val/run_all_tests.sh` currently reports non-logging DIC failures:
-   `dic_framework_test`, `dic_integration_test`, and
-   `dic_phase1_completion_test`.
+4. DIC failures are reproducible at default verbosity and clear when
+   `LAB_LOG_LEVEL_AUX=debug`, indicating test/debug-output coupling rather than
+   a logging-architecture regression.
 5. `bash doc/pro/check-workflow.sh` passes for current workflow metadata.
 6. Current branch contains this logging work plus generated reference-doc updates;
    `STATS.md` and `doc/ref/stats/*` are test side effects and not required for task semantics.
@@ -492,5 +491,27 @@ subsystem overrides.
 
 ## Next Step
 
-Finalize closure decision: either mark this item complete with documented
-unrelated DIC failures, or continue by triaging DIC failures as separate work.
+Closed and archived; continue with the DIC follow-up captured in
+`doc/pro/inbox/20260305-0235_dic-debug-verbosity-coupling-followup-plan.md`.
+
+## What Changed
+
+1. Finalized closure metadata for this logging architecture item and corrected
+   stale completed-path links.
+2. Documented DIC follow-up as a separate inbox work item and linked it here.
+3. Captured the observed DIC root cause as verbosity-gated debug assertion
+   coupling, not a regression in logging architectural behavior.
+
+## What Was Verified
+
+1. `./val/run_all_tests.sh dic` (default settings) reproduces DIC test failures.
+2. `LAB_LOG_LEVEL_AUX=debug ./val/run_all_tests.sh dic` passes DIC category
+   tests, confirming verbosity sensitivity in test expectations.
+3. `bash doc/pro/check-workflow.sh` passes after workflow updates and closeout
+   move.
+
+## What Remains
+
+1. Triage and execute
+   `doc/pro/inbox/20260305-0235_dic-debug-verbosity-coupling-followup-plan.md`
+   to decouple DIC tests from debug terminal output defaults.
