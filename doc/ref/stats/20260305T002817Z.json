@@ -1,29 +1,29 @@
 {
   "metric_version": "3.6.0",
-  "generated_at": "2026-03-05T01:07:54Z",
+  "generated_at": "2026-03-05T00:28:17Z",
   "git": {
     "branch": "master",
     "commit": "2c35b5fa",
     "dirty": true
   },
   "repo_shape": {
-    "total_lines": 81406,
-    "total_files": 676,
+    "total_lines": 81346,
+    "total_files": 675,
     "total_dirs": 91,
-    "total_size_kb": 7408,
+    "total_size_kb": 7384,
     "delta": {
-      "lines": 60,
+      "lines": 117,
       "files": 1,
       "dirs": 0,
       "size_kb": 24,
-      "lines_percent": "0.07",
+      "lines_percent": "0.14",
       "files_percent": "0.15",
       "dirs_percent": "0.00",
       "size_percent": "0.33"
     }
   },
   "velocity": {
-    "commits_7d": 229,
+    "commits_7d": 232,
     "commits_30d": 348,
     "commits_90d": 348
   },
@@ -31,8 +31,8 @@
     "by_path": [
       {
         "path": "bin",
-        "adds_7d": 1055,
-        "dels_7d": 617,
+        "adds_7d": 1078,
+        "dels_7d": 634,
         "adds_30d": 1131,
         "dels_30d": 784,
         "adds_90d": 1131,
@@ -40,8 +40,8 @@
       },
       {
         "path": "cfg",
-        "adds_7d": 510,
-        "dels_7d": 145,
+        "adds_7d": 531,
+        "dels_7d": 171,
         "adds_30d": 714,
         "dels_30d": 382,
         "adds_90d": 714,
@@ -49,7 +49,7 @@
       },
       {
         "path": "lib",
-        "adds_7d": 8369,
+        "adds_7d": 8417,
         "dels_7d": 5381,
         "adds_30d": 10171,
         "dels_30d": 5869,
@@ -58,8 +58,8 @@
       },
       {
         "path": "src",
-        "adds_7d": 217,
-        "dels_7d": 120,
+        "adds_7d": 243,
+        "dels_7d": 141,
         "adds_30d": 370,
         "dels_30d": 1666,
         "adds_90d": 370,
@@ -67,8 +67,8 @@
       },
       {
         "path": "val",
-        "adds_7d": 5444,
-        "dels_7d": 707,
+        "adds_7d": 5471,
+        "dels_7d": 719,
         "adds_30d": 6589,
         "dels_30d": 1042,
         "adds_90d": 6589,
@@ -76,8 +76,8 @@
       },
       {
         "path": "utl",
-        "adds_7d": 2850,
-        "dels_7d": 783,
+        "adds_7d": 2928,
+        "dels_7d": 924,
         "adds_30d": 3127,
         "dels_30d": 1521,
         "adds_90d": 3127,
@@ -85,8 +85,8 @@
       },
       {
         "path": "doc",
-        "adds_7d": 36831,
-        "dels_7d": 18153,
+        "adds_7d": 36834,
+        "dels_7d": 18179,
         "adds_30d": 41928,
         "dels_30d": 25835,
         "adds_90d": 41928,
@@ -276,10 +276,10 @@
   },
   "trend": {
     "points": 10,
-    "oldest": "2026-03-04T22:53:48Z",
-    "latest": "2026-03-05T00:28:17Z",
+    "oldest": "2026-03-04T22:48:58Z",
+    "latest": "2026-03-05T00:24:16Z",
     "files_delta_10": 15,
-    "size_kb_delta_10": 396
+    "size_kb_delta_10": 544
   },
   "quality_gates": {
     "overall": "fail",
@@ -291,7 +291,7 @@
     "test_health": "ok"
   },
   "history": {
-    "previous_snapshot": "2026-03-05T00:28:17Z",
-    "history_snapshot": "doc/ref/stats/20260305T010754Z.json"
+    "previous_snapshot": "2026-03-05T00:24:16Z",
+    "history_snapshot": "doc/ref/stats/20260305T002817Z.json"
   }
 }

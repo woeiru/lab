@@ -162,6 +162,14 @@ def normalize_source(source):
         return "runtime"
     return src
 
+def event_type_priority(event_type):
+    normalized = (event_type or "").strip().lower()
+    if normalized == "account_selected":
+        return 2
+    if normalized in {"token_refreshed", "auth_switched"}:
+        return 1
+    return 0
+
 def pick_preferred_event(candidates, provider):
     if not candidates:
         return None
@@ -177,11 +185,28 @@ def pick_preferred_event(candidates, provider):
 
     return candidates[-1]
 
+def pick_session_bound_event(candidates, provider):
+    if not candidates:
+        return None
+
+    supported = [event for event in candidates if event_type_priority(event.get("event_type")) > 0]
+    if supported:
+        candidates = supported
+
+    account_selected = [
+        event for event in candidates
+        if (event.get("event_type") or "").strip().lower() == "account_selected"
+    ]
+
+    pool = account_selected if account_selected else candidates
+    return pick_preferred_event(pool, provider)
+
 def load_attribution_events(cursor):
     """Load account attribution timeline from opencode_account_event table."""
     events_by_provider = {}
+    events_by_session = {}
     if not table_exists(cursor, "opencode_account_event"):
-        return events_by_provider
+        return {"by_provider": events_by_provider, "by_session": events_by_session}
 
     try:
         cursor.execute("PRAGMA table_info(opencode_account_event)")
@@ -198,6 +223,14 @@ def load_attribution_events(cursor):
         if "source" in cols:
             source_expr = "COALESCE(NULLIF(TRIM(source), ''), 'opencode_event')"
 
+        event_type_expr = "'account_selected'"
+        if "event_type" in cols:
+            event_type_expr = "COALESCE(NULLIF(TRIM(event_type), ''), 'account_selected')"
+
+        session_id_expr = "''"
+        if "session_id" in cols:
+            session_id_expr = "COALESCE(NULLIF(TRIM(session_id), ''), '')"
+
         cursor.execute(
             f"""
             SELECT
@@ -205,7 +238,9 @@ def load_attribution_events(cursor):
                 provider_id,
                 account_key,
                 {account_label_expr} AS account_label,
-                {source_expr} AS source
+                {source_expr} AS source,
+                {event_type_expr} AS event_type,
+                {session_id_expr} AS session_id
             FROM opencode_account_event
             WHERE account_key IS NOT NULL
               AND TRIM(account_key) <> ''
@@ -224,18 +259,23 @@ def load_attribution_events(cursor):
             if event_time is None or not provider:
                 continue
 
-            events_by_provider.setdefault(provider, []).append(
-                {
-                    "time_ms": event_time,
-                    "account_key": str(row[2] or "").strip(),
-                    "account_label": str(row[3] or "").strip(),
-                    "source": normalize_source(str(row[4] or "opencode_event")),
-                }
-            )
-    except Exception:
-        return {}
+            event = {
+                "time_ms": event_time,
+                "provider_id": provider,
+                "account_key": str(row[2] or "").strip(),
+                "account_label": str(row[3] or "").strip(),
+                "source": normalize_source(str(row[4] or "opencode_event")),
+                "event_type": str(row[5] or "account_selected").strip().lower(),
+                "session_id": str(row[6] or "").strip(),
+            }
 
-    return events_by_provider
+            events_by_provider.setdefault(provider, []).append(event)
+            if event["session_id"]:
+                events_by_session.setdefault(event["session_id"], []).append(event)
+    except Exception:
+        return {"by_provider": {}, "by_session": {}}
+
+    return {"by_provider": events_by_provider, "by_session": events_by_session}
 
 def load_control_account_events(cursor):
     """Legacy best-effort fallback timeline from control_account."""
@@ -277,13 +317,37 @@ def load_control_account_events(cursor):
 
     return events
 
-def resolve_session_user(first_prompt_ms, provider_id, attribution_events, legacy_events, allow_best_effort=False):
+def resolve_session_user(session_id, first_prompt_ms, provider_id, attribution_events, legacy_events, allow_best_effort=False):
     unknown = ("unk", "none", "none")
     provider = normalize_provider(provider_id)
     if not provider:
         return unknown
 
-    provider_events = attribution_events.get(provider, [])
+    provider_events = attribution_events.get("by_provider", {}).get(provider, [])
+    session_events = attribution_events.get("by_session", {}).get(session_id, []) if session_id else []
+
+    if first_prompt_ms is not None and session_events:
+        before = [
+            evt for evt in session_events
+            if evt.get("provider_id") == provider and evt["time_ms"] <= first_prompt_ms
+        ]
+        if before:
+            pick = pick_session_bound_event(before, provider)
+            if pick is not None:
+                label = pick["account_label"] or pick["account_key"] or "unk"
+                return (compact_account_label(label), pick["source"], "high")
+
+        if allow_best_effort:
+            after = [
+                evt for evt in session_events
+                if evt.get("provider_id") == provider and evt["time_ms"] > first_prompt_ms
+            ]
+            if after:
+                pick = pick_session_bound_event(after, provider)
+                if pick is not None:
+                    label = pick["account_label"] or pick["account_key"] or "unk"
+                    return (compact_account_label(label), pick["source"], "low")
+
     if first_prompt_ms is not None and provider_events:
         before = [evt for evt in provider_events if evt["time_ms"] <= first_prompt_ms]
         if before:
@@ -390,6 +454,7 @@ rows = []
 for row in rows_raw:
     suffix, sid, project_root, directory, title, updated_local, first_prompt_local, first_user_ms, provider, model, inp, out = row
     user_email, source, confidence = resolve_session_user(
+        sid,
         first_user_ms,
         provider,
         attribution_events,
@@ -1393,6 +1458,7 @@ _dev_record_account_event() {
     local event_type="${4:-account_selected}"
     local source="${5:-manual_switch}"
     local trace_id="${6:-}"
+    local session_id="${7:-}"
 
     provider_id=$(_dev_normalize_provider_id "$provider_id")
 
@@ -1417,7 +1483,7 @@ _dev_record_account_event() {
         return 0
     }
 
-    python3 - "$db_path" "$provider_id" "$account_key" "$account_label" "$event_type" "$source" "$trace_id" <<'PY'
+    python3 - "$db_path" "$provider_id" "$account_key" "$account_label" "$event_type" "$source" "$trace_id" "$session_id" <<'PY'
 import sqlite3
 import sys
 import time
@@ -1429,6 +1495,7 @@ account_label = sys.argv[4]
 event_type = sys.argv[5]
 source = sys.argv[6]
 trace_id = sys.argv[7] if len(sys.argv) > 7 else ""
+session_id = sys.argv[8] if len(sys.argv) > 8 else ""
 
 conn = sqlite3.connect(db_path)
 cur = conn.cursor()
@@ -1442,17 +1509,25 @@ cur.execute(
         account_label TEXT,
         event_type TEXT NOT NULL,
         source TEXT NOT NULL,
-        trace_id TEXT
+        trace_id TEXT,
+        session_id TEXT
     )
     """
 )
 
+cur.execute("PRAGMA table_info(opencode_account_event)")
+columns = {row[1] for row in cur.fetchall() if len(row) > 1}
+if "trace_id" not in columns:
+    cur.execute("ALTER TABLE opencode_account_event ADD COLUMN trace_id TEXT")
+if "session_id" not in columns:
+    cur.execute("ALTER TABLE opencode_account_event ADD COLUMN session_id TEXT")
+
 cur.execute(
     """
     INSERT INTO opencode_account_event (
-        time_ms, provider_id, account_key, account_label, event_type, source, trace_id
+        time_ms, provider_id, account_key, account_label, event_type, source, trace_id, session_id
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """,
     (
         int(time.time() * 1000),
@@ -1462,6 +1537,7 @@ cur.execute(
         event_type,
         source,
         trace_id if trace_id else None,
+        session_id if session_id else None,
     ),
 )
 
@@ -1475,7 +1551,7 @@ PY
         return 0
     fi
 
-    aux_dbg "Persisted account attribution event" "component=dev,operation=opencode_account_event,provider_id=$provider_id,account_key=$account_key,event_type=$event_type,source=$source"
+    aux_dbg "Persisted account attribution event" "component=dev,operation=opencode_account_event,provider_id=$provider_id,account_key=$account_key,event_type=$event_type,source=$source,session_id=${session_id:-none}"
     return 0
 }
 
@@ -1486,6 +1562,9 @@ _dev_auto_attribute() {
         return 0
     fi
 
+    local runtime_trace_id="${OPENCODE_ATTR_TRACE_ID:-}"
+    local runtime_session_id="${OPENCODE_ATTR_SESSION_ID:-}"
+
     local openai_identity
     openai_identity=$(_dev_get_openai_account_identity 2>/dev/null) || openai_identity=""
     if [ -n "$openai_identity" ]; then
@@ -1493,7 +1572,7 @@ _dev_auto_attribute() {
         IFS='|' read -r openai_key openai_label openai_identity_source <<< "$openai_identity"
         if aux_val "$openai_key" "not_empty" && aux_val "$openai_label" "not_empty"; then
             _dev_record_account_event "openai" "$openai_key" "$openai_label" \
-                "account_selected" "shell_wrapper" 2>/dev/null
+                "account_selected" "shell_wrapper" "$runtime_trace_id" "$runtime_session_id" 2>/dev/null
         fi
     fi
 
@@ -1543,7 +1622,7 @@ PY
         [ -z "$family" ] || [ -z "$email" ] && continue
         provider_id=$(_dev_provider_from_family "$family")
         _dev_record_account_event "$provider_id" "$email" "$email" \
-            "account_selected" "shell_wrapper" 2>/dev/null
+            "account_selected" "shell_wrapper" "$runtime_trace_id" "$runtime_session_id" 2>/dev/null
     done <<< "$py_output"
 
     return 0
@@ -1551,7 +1630,7 @@ PY
 
 # Emits an OpenCode account attribution event for runtime hooks
 # opencode account event emit
-# -x (execute) | <provider_id> <account_key> [event_type] [source] [account_label]
+# -x (execute) | <provider_id> <account_key> [event_type] [source] [account_label] [session_id]
 dev_oae() {
     # Technical Description:
     #   Persists attribution events used by session reporting and audit workflows
@@ -1567,6 +1646,7 @@ dev_oae() {
     #   [event_type]          account_selected|token_refreshed|auth_switched (default: account_selected)
     #   [source]              event source tag (default: runtime)
     #   [account_label]       optional human-readable label shown in reports
+    #   [session_id]          optional OpenCode session id for deterministic binding
 
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         aux_tec
@@ -1579,6 +1659,7 @@ dev_oae() {
     local event_type="account_selected"
     local source="runtime"
     local trace_id="${OPENCODE_ATTR_TRACE_ID:-}"
+    local session_id="${OPENCODE_ATTR_SESSION_ID:-}"
 
     if [ "$1" = "-x" ]; then
         if [ $# -ne 1 ]; then
@@ -1591,8 +1672,9 @@ dev_oae() {
         account_label="${OPENCODE_ATTR_ACCOUNT_LABEL:-$account_key}"
         event_type="${OPENCODE_ATTR_EVENT_TYPE:-account_selected}"
         source="${OPENCODE_ATTR_SOURCE:-runtime}"
+        session_id="${OPENCODE_ATTR_SESSION_ID:-}"
     else
-        if [ $# -lt 2 ] || [ $# -gt 5 ]; then
+        if [ $# -lt 2 ] || [ $# -gt 6 ]; then
             aux_use
             return 1
         fi
@@ -1602,6 +1684,7 @@ dev_oae() {
         event_type="${3:-account_selected}"
         source="${4:-runtime}"
         account_label="${5:-$account_key}"
+        session_id="${6:-}"
     fi
 
     provider_id=$(_dev_normalize_provider_id "$provider_id")
@@ -1616,8 +1699,8 @@ dev_oae() {
         return 1
     fi
 
-    _dev_record_account_event "$provider_id" "$account_key" "$account_label" "$event_type" "$source" "$trace_id"
-    aux_info "Account attribution event emitted" "component=dev,operation=opencode_account_event_emit,provider_id=$provider_id,event_type=$event_type,source=$source"
+    _dev_record_account_event "$provider_id" "$account_key" "$account_label" "$event_type" "$source" "$trace_id" "$session_id"
+    aux_info "Account attribution event emitted" "component=dev,operation=opencode_account_event_emit,provider_id=$provider_id,event_type=$event_type,source=$source,session_id=${session_id:-none}"
     return 0
 }
 

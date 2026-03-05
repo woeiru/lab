@@ -225,7 +225,7 @@ ops dev oae openai user@example.com account_selected opencode_runtime user@examp
 For `-x` mode, set:
 - `OPENCODE_ATTR_PROVIDER_ID`
 - `OPENCODE_ATTR_ACCOUNT_KEY`
-- optional `OPENCODE_ATTR_ACCOUNT_LABEL`, `OPENCODE_ATTR_EVENT_TYPE`, `OPENCODE_ATTR_SOURCE`, `OPENCODE_ATTR_TRACE_ID`
+- optional `OPENCODE_ATTR_ACCOUNT_LABEL`, `OPENCODE_ATTR_EVENT_TYPE`, `OPENCODE_ATTR_SOURCE`, `OPENCODE_ATTR_TRACE_ID`, `OPENCODE_ATTR_SESSION_ID`
 
 ### Wrapper-based request/refresh integration
 

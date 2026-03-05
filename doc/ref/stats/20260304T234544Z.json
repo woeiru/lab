@@ -1,65 +1,65 @@
 {
   "metric_version": "3.6.0",
-  "generated_at": "2026-03-05T01:07:54Z",
+  "generated_at": "2026-03-04T23:45:44Z",
   "git": {
     "branch": "master",
-    "commit": "2c35b5fa",
+    "commit": "c338c7c8",
     "dirty": true
   },
   "repo_shape": {
-    "total_lines": 81406,
-    "total_files": 676,
+    "total_lines": 76389,
+    "total_files": 665,
     "total_dirs": 91,
-    "total_size_kb": 7408,
+    "total_size_kb": 7080,
     "delta": {
-      "lines": 60,
+      "lines": -26,
       "files": 1,
       "dirs": 0,
-      "size_kb": 24,
-      "lines_percent": "0.07",
+      "size_kb": 8,
+      "lines_percent": "-0.03",
       "files_percent": "0.15",
       "dirs_percent": "0.00",
-      "size_percent": "0.33"
+      "size_percent": "0.11"
     }
   },
   "velocity": {
-    "commits_7d": 229,
-    "commits_30d": 348,
-    "commits_90d": 348
+    "commits_7d": 234,
+    "commits_30d": 346,
+    "commits_90d": 346
   },
   "churn": {
     "by_path": [
       {
         "path": "bin",
-        "adds_7d": 1055,
-        "dels_7d": 617,
-        "adds_30d": 1131,
-        "dels_30d": 784,
-        "adds_90d": 1131,
-        "dels_90d": 784
+        "adds_7d": 1061,
+        "dels_7d": 623,
+        "adds_30d": 1114,
+        "dels_30d": 773,
+        "adds_90d": 1114,
+        "dels_90d": 773
       },
       {
         "path": "cfg",
-        "adds_7d": 510,
-        "dels_7d": 145,
-        "adds_30d": 714,
+        "adds_7d": 500,
+        "dels_7d": 171,
+        "adds_30d": 683,
         "dels_30d": 382,
-        "adds_90d": 714,
+        "adds_90d": 683,
         "dels_90d": 382
       },
       {
         "path": "lib",
-        "adds_7d": 8369,
-        "dels_7d": 5381,
-        "adds_30d": 10171,
-        "dels_30d": 5869,
-        "adds_90d": 10171,
-        "dels_90d": 5869
+        "adds_7d": 7965,
+        "dels_7d": 5315,
+        "adds_30d": 9719,
+        "dels_30d": 5803,
+        "adds_90d": 9719,
+        "dels_90d": 5803
       },
       {
         "path": "src",
-        "adds_7d": 217,
-        "dels_7d": 120,
+        "adds_7d": 243,
+        "dels_7d": 141,
         "adds_30d": 370,
         "dels_30d": 1666,
         "adds_90d": 370,
@@ -67,17 +67,17 @@
       },
       {
         "path": "val",
-        "adds_7d": 5444,
-        "dels_7d": 707,
-        "adds_30d": 6589,
-        "dels_30d": 1042,
-        "adds_90d": 6589,
-        "dels_90d": 1042
+        "adds_7d": 5310,
+        "dels_7d": 473,
+        "adds_30d": 6428,
+        "dels_30d": 796,
+        "adds_90d": 6428,
+        "dels_90d": 796
       },
       {
         "path": "utl",
-        "adds_7d": 2850,
-        "dels_7d": 783,
+        "adds_7d": 2937,
+        "dels_7d": 933,
         "adds_30d": 3127,
         "dels_30d": 1521,
         "adds_90d": 3127,
@@ -85,18 +85,18 @@
       },
       {
         "path": "doc",
-        "adds_7d": 36831,
-        "dels_7d": 18153,
-        "adds_30d": 41928,
-        "dels_30d": 25835,
-        "adds_90d": 41928,
-        "dels_90d": 25835
+        "adds_7d": 36219,
+        "dels_7d": 18981,
+        "adds_30d": 40404,
+        "dels_30d": 24512,
+        "adds_90d": 40404,
+        "dels_90d": 24512
       }
     ],
     "hotspots_90d": [
       {
         "file": "doc/ref/error-handling.md",
-        "churn": 10069,
+        "churn": 9014,
         "authors": 1
       },
       {
@@ -110,11 +110,6 @@
         "authors": 1
       },
       {
-        "file": "doc/ref/scope-integrity.md",
-        "churn": 3336,
-        "authors": 1
-      },
-      {
         "file": "lib/.spec",
         "churn": 2675,
         "authors": 1
@@ -122,6 +117,11 @@
       {
         "file": "lib/.standards",
         "churn": 2662,
+        "authors": 1
+      },
+      {
+        "file": "doc/ref/scope-integrity.md",
+        "churn": 2304,
         "authors": 1
       },
       {
@@ -136,7 +136,7 @@
       },
       {
         "file": "doc/ref/functions.md",
-        "churn": 1783,
+        "churn": 1442,
         "authors": 1
       },
       {
@@ -160,11 +160,11 @@
   "complexity": {
     "function_length": {
       "p50_lines": 23,
-      "p90_lines": 72,
+      "p90_lines": 71,
       "max_lines": 549
     },
     "threshold_counts": {
-      "gt_80": 88,
+      "gt_80": 87,
       "gt_120": 41,
       "gt_150": 26
     },
@@ -276,10 +276,10 @@
   },
   "trend": {
     "points": 10,
-    "oldest": "2026-03-04T22:53:48Z",
-    "latest": "2026-03-05T00:28:17Z",
-    "files_delta_10": 15,
-    "size_kb_delta_10": 396
+    "oldest": "2026-03-01T23:56:40Z",
+    "latest": "2026-03-04T23:45:01Z",
+    "files_delta_10": 52,
+    "size_kb_delta_10": -7424
   },
   "quality_gates": {
     "overall": "fail",
@@ -291,7 +291,7 @@
     "test_health": "ok"
   },
   "history": {
-    "previous_snapshot": "2026-03-05T00:28:17Z",
-    "history_snapshot": "doc/ref/stats/20260305T010754Z.json"
+    "previous_snapshot": "2026-03-04T23:45:01Z",
+    "history_snapshot": "doc/ref/stats/20260304T234544Z.json"
   }
 }

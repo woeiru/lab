@@ -292,6 +292,128 @@ PY
     [[ "$parsed" == "OK" ]]
 }
 
+# Test: Session-bound attribution takes precedence over provider-wide fallback
+test_dev_overview_session_bound_event_precedence() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_session_bound")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    event_type TEXT,
+    source TEXT,
+    session_id TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_sessionbound0000000001", "project_lab", "/home/es/lab", "Session Bound", 1771760100000),
+)
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_providerwide0000000002", "project_lab", "/home/es/lab", "Session Provider Wide", 1771760200000),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_sb_user", "ses_sessionbound0000000001", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_sb_assistant", "ses_sessionbound0000000001", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_pw_user", "ses_providerwide0000000002", 1771760005000, 1771760005000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_pw_assistant", "ses_providerwide0000000002", 1771760006000, 1771760006000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, event_type, source, session_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    (1771759999000, "openai", "puhachka@proton.me", "puhachka@proton.me", "account_selected", "opencode_runtime", "ses_sessionbound0000000001"),
+)
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, event_type, source, session_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    (1771759999500, "openai", "ometesu@proton.me", "ometesu@proton.me", "account_selected", "opencode_runtime", NULL),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session Bound', {}).get('user') == 'puhachka@proton.me' and
+    rows.get('Session Bound', {}).get('src') == 'runtime' and
+    rows.get('Session Bound', {}).get('conf') == 'high' and
+    rows.get('Session Provider Wide', {}).get('user') == 'ometesu@proton.me' and
+    rows.get('Session Provider Wide', {}).get('conf') == 'high'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
 # Test: Strict mode hides low-confidence fallback unless --best-effort is set
 test_dev_overview_best_effort_flag() {
     local test_env
@@ -1633,6 +1755,7 @@ PY
     OPENCODE_ATTR_EVENT_TYPE="account_selected"
     OPENCODE_ATTR_SOURCE="opencode_runtime"
     OPENCODE_ATTR_TRACE_ID="trace-runtime-1"
+    OPENCODE_ATTR_SESSION_ID="ses_runtimebound00000000001"
     dev_oae -x >/dev/null 2>&1
     local status=$?
 
@@ -1646,7 +1769,7 @@ conn = sqlite3.connect(sys.argv[1])
 cur = conn.cursor()
 cur.execute(
     """
-    SELECT provider_id, account_key, account_label, event_type, source, trace_id
+    SELECT provider_id, account_key, account_label, event_type, source, trace_id, session_id
     FROM opencode_account_event
     ORDER BY time_ms DESC
     LIMIT 1
@@ -1660,10 +1783,12 @@ PY
     fi
 
     PATH="$old_path"
+    unset OPENCODE_ATTR_PROVIDER_ID OPENCODE_ATTR_ACCOUNT_KEY OPENCODE_ATTR_ACCOUNT_LABEL
+    unset OPENCODE_ATTR_EVENT_TYPE OPENCODE_ATTR_SOURCE OPENCODE_ATTR_TRACE_ID OPENCODE_ATTR_SESSION_ID
     cleanup_test_env "$test_env"
 
     [[ $status -eq 0 ]] || return 1
-    [[ "$event_row" == "openai|runtime@example.com|runtime@example.com|account_selected|opencode_runtime|trace-runtime-1" ]] || return 1
+    [[ "$event_row" == "openai|runtime@example.com|runtime@example.com|account_selected|opencode_runtime|trace-runtime-1|ses_runtimebound00000000001" ]] || return 1
     return 0
 }
 
@@ -1924,6 +2049,94 @@ PY
 
     [[ $status -eq 0 ]] || return 1
     [[ "$event_row" == "openai|acct-openai-1|openai-real@example.net|account_selected|shell_wrapper" ]] || return 1
+    return 0
+}
+
+# Test: _dev_auto_attribute forwards runtime session binding metadata when available
+test_dev_auto_attribute_passes_runtime_session_id() {
+    local test_env
+    test_env=$(create_test_env "dev_auto_attribute_session_id")
+    local db_path="$test_env/opencode.db"
+
+    _create_openai_auth_json \
+        "$test_env/.local/share/opencode/auth.json" \
+        "acct-openai-bound" \
+        "openai-bound@example.net"
+
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    local old_session_id="${OPENCODE_ATTR_SESSION_ID:-}"
+    local old_trace_id="${OPENCODE_ATTR_TRACE_ID:-}"
+    local had_session_id=0
+    local had_trace_id=0
+
+    if [[ ${OPENCODE_ATTR_SESSION_ID+x} ]]; then
+        had_session_id=1
+    fi
+    if [[ ${OPENCODE_ATTR_TRACE_ID+x} ]]; then
+        had_trace_id=1
+    fi
+
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+    OPENCODE_ATTR_SESSION_ID="ses_bound_openai_0001"
+    OPENCODE_ATTR_TRACE_ID="trace-bound-openai-0001"
+
+    _dev_auto_attribute >/dev/null 2>&1
+    local status=$?
+
+    local event_row=""
+    if [[ $status -eq 0 ]]; then
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, account_label, event_type, source, trace_id, session_id
+    FROM opencode_account_event
+    WHERE provider_id = 'openai'
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join((x or "") for x in row) if row else "")
+PY
+)
+    fi
+
+    if [[ $had_session_id -eq 1 ]]; then
+        OPENCODE_ATTR_SESSION_ID="$old_session_id"
+    else
+        unset OPENCODE_ATTR_SESSION_ID
+    fi
+    if [[ $had_trace_id -eq 1 ]]; then
+        OPENCODE_ATTR_TRACE_ID="$old_trace_id"
+    else
+        unset OPENCODE_ATTR_TRACE_ID
+    fi
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_row" == "openai|acct-openai-bound|openai-bound@example.net|account_selected|shell_wrapper|trace-bound-openai-0001|ses_bound_openai_0001" ]] || return 1
     return 0
 }
 
@@ -3059,6 +3272,7 @@ main() {
     run_test test_dev_functions_exist
     run_test test_dev_overview_output
     run_test test_dev_overview_user_attribution
+    run_test test_dev_overview_session_bound_event_precedence
     run_test test_dev_overview_best_effort_flag
     run_test test_dev_overview_provider_mismatch_no_cross_attribution
     run_test test_dev_overview_google_provider_maps_to_antigravity
@@ -3093,6 +3307,7 @@ main() {
     run_test test_dev_openai_identity_resolver_ignores_synthetic_runtime_env
     run_test test_dev_auto_attribute_silent_on_missing_openai_identity
     run_test test_dev_auto_attribute_emits_openai_shell_wrapper_event
+    run_test test_dev_auto_attribute_passes_runtime_session_id
     run_test test_dev_auto_attribute_ignores_synthetic_openai_runtime_identity
     run_test test_dev_overview_openai_wrapper_event_strict_high_confidence
     run_test test_dev_overview_openai_prefers_non_synthetic_identity

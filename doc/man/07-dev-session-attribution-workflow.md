@@ -167,8 +167,13 @@ export OPENCODE_ATTR_ACCOUNT_KEY="user@example.com"
 export OPENCODE_ATTR_ACCOUNT_LABEL="user@example.com"
 export OPENCODE_ATTR_EVENT_TYPE="account_selected"
 export OPENCODE_ATTR_SOURCE="opencode_runtime"
+export OPENCODE_ATTR_SESSION_ID="ses_example123"
 ops dev oae -x
 ```
+
+`OPENCODE_ATTR_SESSION_ID` is optional but recommended when available so
+`dev_osv` can prefer deterministic session-bound attribution over
+provider-wide timeline fallback.
 
 ## 3. Expected Outcomes and Validation
 
