@@ -116,12 +116,14 @@ test_dev_functions_exist() {
     declare -f dev_osv >/dev/null 2>&1 || return 1
     declare -f dev_omi >/dev/null 2>&1 || return 1
     declare -f dev_oac >/dev/null 2>&1 || return 1
+    declare -f dev_oad >/dev/null 2>&1 || return 1
     declare -f dev_oae >/dev/null 2>&1 || return 1
     declare -f dev_orr >/dev/null 2>&1 || return 1
     declare -f dev_otr >/dev/null 2>&1 || return 1
     declare -f dev_olb >/dev/null 2>&1 || return 1
     declare -f dev_oqu >/dev/null 2>&1 || return 1
     declare -f dev_oas >/dev/null 2>&1 || return 1
+    declare -f dev_oar >/dev/null 2>&1 || return 1
     return 0
 }
 
@@ -2531,6 +2533,267 @@ test_dev_oas_creates_backup() {
     return 0
 }
 
+# Test: dev_oad rejects wrong parameter count
+test_dev_oad_requires_params() {
+    dev_oad >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_oad disables account and reroutes active mappings
+test_dev_oad_disables_and_reroutes() {
+    local test_env
+    test_env=$(create_test_env "dev_oad_disable")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_oad "1" 2>/dev/null)
+    local status=$?
+
+    local state=""
+    if [[ $status -eq 0 ]]; then
+        state=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/antigravity-accounts.json') as f:
+    data = json.load(f)
+accounts = data.get('accounts', [])
+print('{}|{}|{}|{}'.format(
+    accounts[0].get('enabled', True),
+    data.get('activeIndex', -1),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+    data.get('activeIndexByFamily', {}).get('gemini', -1),
+))
+")
+    fi
+
+    local backup_count
+    backup_count=$(ls "$test_env/.config/opencode"/antigravity-accounts.json.backup.* 2>/dev/null | wc -l)
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"alice@example.com"* ]] || return 1
+    [[ "$output" == *"bob@example.com"* ]] || return 1
+    [[ "$state" == "False|1|1|1" ]] || return 1
+    [[ $backup_count -ge 1 ]] || return 1
+    return 0
+}
+
+# Test: dev_oad rejects disabling the last enabled account
+test_dev_oad_rejects_last_enabled() {
+    local test_env
+    test_env=$(create_test_env "dev_oad_last_enabled")
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "version": 4,
+  "accounts": [
+    {
+      "email": "solo@example.com",
+      "enabled": true
+    },
+    {
+      "email": "disabled@example.com",
+      "enabled": false
+    }
+  ],
+  "activeIndex": 0,
+  "activeIndexByFamily": {
+    "claude": 0,
+    "gemini": 0
+  }
+}
+JSON
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oad "1" >/dev/null 2>&1
+    local status=$?
+
+    local first_enabled
+    first_enabled=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/antigravity-accounts.json') as f:
+    data = json.load(f)
+print(data['accounts'][0].get('enabled', False))
+")
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]] || return 1
+    [[ "$first_enabled" == "True" ]] || return 1
+    return 0
+}
+
+# Test: dev_oar rejects wrong parameter count
+test_dev_oar_requires_params() {
+    dev_oar >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_oar removes account and reroutes active mappings
+test_dev_oar_removes_and_reroutes() {
+    local test_env
+    test_env=$(create_test_env "dev_oar_remove")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_oar "1" 2>/dev/null)
+    local status=$?
+
+    local state=""
+    if [[ $status -eq 0 ]]; then
+        state=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/antigravity-accounts.json') as f:
+    data = json.load(f)
+accounts = data.get('accounts', [])
+print('{}|{}|{}|{}|{}'.format(
+    len(accounts),
+    accounts[0].get('email', ''),
+    data.get('activeIndex', -1),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+    data.get('activeIndexByFamily', {}).get('gemini', -1),
+))
+")
+    fi
+
+    local backup_count
+    backup_count=$(ls "$test_env/.config/opencode"/antigravity-accounts.json.backup.* 2>/dev/null | wc -l)
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"alice@example.com"* ]] || return 1
+    [[ "$output" == *"bob@example.com"* ]] || return 1
+    [[ "$state" == "1|bob@example.com|0|0|0" ]] || return 1
+    [[ $backup_count -ge 1 ]] || return 1
+    return 0
+}
+
+# Test: dev_oar writes removed account into denylist for persistent blocking
+test_dev_oar_persists_removed_account_in_denylist() {
+    local test_env
+    test_env=$(create_test_env "dev_oar_denylist")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oar "1" >/dev/null 2>&1
+    local status=$?
+
+    local denylist_entries=""
+    local state=""
+    if [[ $status -eq 0 ]]; then
+        denylist_entries=$(python3 - "$test_env/.config/opencode/antigravity-account-denylist.txt" <<'PY'
+import sys
+
+entries = []
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    for line in f:
+        value = line.split('#', 1)[0].strip().lower()
+        if value:
+            entries.append(value)
+
+print("\n".join(entries))
+PY
+)
+
+        # Simulate provider sync adding the account back, then re-apply denylist
+        _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+        _dev_apply_account_denylist >/dev/null 2>&1
+
+        state=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+accounts = data.get('accounts', [])
+print('{}|{}'.format(
+    accounts[0].get('enabled', True),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+))
+PY
+)
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$denylist_entries" == "alice@example.com" ]] || return 1
+    [[ "$state" == "True|0" ]] || return 1
+    return 0
+}
+
+# Test: dev_oar rejects removing the last enabled account
+test_dev_oar_rejects_last_enabled() {
+    local test_env
+    test_env=$(create_test_env "dev_oar_last_enabled")
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "version": 4,
+  "accounts": [
+    {
+      "email": "solo@example.com",
+      "enabled": true
+    },
+    {
+      "email": "disabled@example.com",
+      "enabled": false
+    }
+  ],
+  "activeIndex": 0,
+  "activeIndexByFamily": {
+    "claude": 0,
+    "gemini": 0
+  }
+}
+JSON
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oar "1" >/dev/null 2>&1
+    local status=$?
+
+    local first_enabled
+    first_enabled=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/antigravity-accounts.json') as f:
+    data = json.load(f)
+print(data['accounts'][0].get('enabled', False))
+")
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]] || return 1
+    [[ "$first_enabled" == "True" ]] || return 1
+    return 0
+}
+
 # Test: dev_oae supports runtime hook mode via OPENCODE_ATTR_* env vars
 test_dev_oae_runtime_hook_mode() {
     local test_env
@@ -4110,6 +4373,13 @@ main() {
     run_test test_dev_oas_rejects_disabled_account
     run_test test_dev_oas_rejects_denylisted_account
     run_test test_dev_oas_creates_backup
+    run_test test_dev_oar_requires_params
+    run_test test_dev_oar_removes_and_reroutes
+    run_test test_dev_oar_persists_removed_account_in_denylist
+    run_test test_dev_oar_rejects_last_enabled
+    run_test test_dev_oad_requires_params
+    run_test test_dev_oad_disables_and_reroutes
+    run_test test_dev_oad_rejects_last_enabled
     run_test test_dev_oae_runtime_hook_mode
     run_test test_dev_oae_token_refreshed_event
     run_test test_dev_openai_identity_resolver_from_auth_state
