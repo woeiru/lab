@@ -66,6 +66,42 @@ fi
 BOLD='\033[1m'
 RESET='\033[0m'
 base_indent="          " # Define base_indent for global use
+MENU_RUNTIME_SETUP_DONE="${MENU_RUNTIME_SETUP_DONE:-0}"
+
+_menu_log() {
+    local level="${1:-info}"
+    local message="$2"
+    local context="${3:-component=menu,operation=runtime}"
+    local normalized_level="${level,,}"
+
+    case "$normalized_level" in
+        warning)
+            normalized_level="warn"
+            ;;
+        err|critical|fatal)
+            normalized_level="error"
+            ;;
+        trace)
+            normalized_level="debug"
+            ;;
+    esac
+
+    if type aux_log >/dev/null 2>&1; then
+        aux_log "$normalized_level" "$message" "$context"
+        return $?
+    fi
+
+    if type _log_format_terminal >/dev/null 2>&1; then
+        local rendered_message
+        if _log_format_terminal "aux" "$normalized_level" "$message" "set/.menu" "0" rendered_message; then
+            printf '%s [%s]\n' "$rendered_message" "$context" >&2
+            return 0
+        fi
+    fi
+
+    printf '[menu][%s] %s [%s]\n' "$normalized_level" "$message" "$context" >&2
+    return 0
+}
 
 _menu_ensure_shared_module_loader() {
     if type lab_source_module >/dev/null 2>&1; then
@@ -109,109 +145,15 @@ _menu_source_module() {
     return $?
 }
 
-if [[ "${LAB_MENU_AUTO_SOURCE:-1}" == "1" ]]; then
-    # Dynamically source all environment configuration files
+clean_exit() {
+    local exit_code="${1:-0}"
 
-    # Determine the absolute path to the directory containing this script.
-    # BASH_SOURCE[0] is the path to the current script.
-    _AUX_SRC_SCRIPT_DIR_TEMP="$(dirname "${BASH_SOURCE[0]}")"
-
-    # Construct the path to the cfg/env directory: two levels up from this script's dir, then into cfg/env.
-    # Use realpath to resolve to an absolute, canonical path.
-    _CFG_ENV_DIR_TEMP="$(realpath "${_AUX_SRC_SCRIPT_DIR_TEMP}/../../cfg/env")"
-
-    printf "\n" >&2
-    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent" >&2
-    printf "%s┃ ${BOLD}Environment Configuration Sourcing${RESET}\n" "$base_indent" >&2
-    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent" >&2
-    if [[ -d "$_CFG_ENV_DIR_TEMP" ]]; then
-        printf "%s┃ Source Directory: %s\n" "$base_indent" "$_CFG_ENV_DIR_TEMP" >&2
-        _any_cfg_file_processed_temp=false
-        for _env_file_temp in "$_CFG_ENV_DIR_TEMP"/*; do
-            if [[ -f "$_env_file_temp" ]] && [[ -r "$_env_file_temp" ]]; then
-                _any_cfg_file_processed_temp=true
-                printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$_env_file_temp")" >&2
-                # shellcheck source=/dev/null
-                _menu_source_module "env:$(basename "$_env_file_temp")" "$_env_file_temp" "menu_env" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source %s\n" "$base_indent" "$(basename "$_env_file_temp")" >&2
-            fi
-        done
-        if ! $_any_cfg_file_processed_temp; then
-            printf "%s┃ No sourceable files found in this directory.\n" "$base_indent" >&2
-        fi
-    else
-        printf "%s┃ ${BOLD}WARNING:${RESET} Directory not found: %s\n" "$base_indent" "$_CFG_ENV_DIR_TEMP" >&2
+    if type err_clean_exit >/dev/null 2>&1; then
+        err_clean_exit "$exit_code"
     fi
-    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent" >&2
-    # Clean up temporary variables
-    unset _AUX_SRC_SCRIPT_DIR_TEMP _CFG_ENV_DIR_TEMP _env_file_temp _any_cfg_file_processed_temp
 
-    # Dynamically source all function library files from lib/ops/
-
-    # Determine the absolute path to the directory containing this script again (or reuse if scope allows and it's clean).
-    # For clarity and safety, especially if this script could be sourced in complex ways, re-determining is safer.
-    _AUX_SRC_SCRIPT_DIR_TEMP2="$(dirname "${BASH_SOURCE[0]}")"
-
-    # Construct the path to the lib/ops directory: two levels up, then into lib/ops.
-    _LIB_OPS_DIR_TEMP="$(realpath "${_AUX_SRC_SCRIPT_DIR_TEMP2}/../../lib/ops")"
-
-    printf "\n" >&2
-    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent" >&2
-    printf "%s┃ ${BOLD}Function Library Sourcing${RESET}\n" "$base_indent" >&2
-    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent" >&2
-    if [[ -d "$_LIB_OPS_DIR_TEMP" ]]; then
-        printf "%s┃ Source Directory: %s\n" "$base_indent" "$_LIB_OPS_DIR_TEMP" >&2
-        _any_lib_file_processed_temp=false
-        for _lib_file_temp in "$_LIB_OPS_DIR_TEMP"/*; do
-            if [[ -f "$_lib_file_temp" ]] && [[ -r "$_lib_file_temp" ]]; then
-                _any_lib_file_processed_temp=true
-                printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$_lib_file_temp")" >&2
-                # shellcheck source=/dev/null
-                _menu_source_module "ops:$(basename "$_lib_file_temp")" "$_lib_file_temp" "menu_ops" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source library file %s\n" "$base_indent" "$(basename "$_lib_file_temp")" >&2
-            fi
-        done
-        if ! $_any_lib_file_processed_temp; then
-            printf "%s┃ No sourceable files found in this directory.\n" "$base_indent" >&2
-        fi
-    else
-        printf "%s┃ ${BOLD}WARNING:${RESET} Directory not found: %s\n" "$base_indent" "$_LIB_OPS_DIR_TEMP" >&2
-    fi
-    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent" >&2
-    # Clean up temporary variables for this block
-    unset _AUX_SRC_SCRIPT_DIR_TEMP2 _LIB_OPS_DIR_TEMP _lib_file_temp _any_lib_file_processed_temp
-
-    # Dynamically source all other files from the same directory as this script.
-
-    # Determine the absolute path to the directory containing this script.
-    _AUX_SRC_SELF_DIR_TEMP="$(dirname "${BASH_SOURCE[0]}")"
-    # Get the basename of the current script to exclude it from sourcing.
-    _AUX_SRC_SELF_BASENAME_TEMP="$(basename "${BASH_SOURCE[0]}")"
-
-    printf "\n" >&2
-    printf "%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n" "$base_indent" >&2
-    printf "%s┃ ${BOLD}Local Auxiliary Script Sourcing${RESET}\n" "$base_indent" >&2
-    printf "%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" "$base_indent" >&2
-    if [[ -d "$_AUX_SRC_SELF_DIR_TEMP" ]]; then
-        printf "%s┃ Source Directory: %s\n" "$base_indent" "$_AUX_SRC_SELF_DIR_TEMP" >&2
-        _any_self_file_processed_temp=false
-        for _self_dir_file_temp in "$_AUX_SRC_SELF_DIR_TEMP"/*; do
-            # Check if it's a regular file, readable, and not the script itself
-            if [[ -f "$_self_dir_file_temp" ]] && [[ -r "$_self_dir_file_temp" ]] && [[ "$(basename "$_self_dir_file_temp")" != "$_AUX_SRC_SELF_BASENAME_TEMP" ]]; then
-                _any_self_file_processed_temp=true
-                printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$_self_dir_file_temp")" >&2
-                # shellcheck source=/dev/null
-                _menu_source_module "set:$(basename "$_self_dir_file_temp")" "$_self_dir_file_temp" "menu_local" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source file %s\n" "$base_indent" "$(basename "$_self_dir_file_temp")" >&2
-            fi
-        done
-        if ! $_any_self_file_processed_temp; then
-            printf "%s┃ No other sourceable files found in this directory.\n" "$base_indent" >&2
-        fi
-    else
-        printf "%s┃ ${BOLD}WARNING:${RESET} Script's own directory not found: %s\n" "$base_indent" "$_AUX_SRC_SELF_DIR_TEMP" >&2
-    fi
-    printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent" >&2
-    # Clean up temporary variables for this block
-    unset _AUX_SRC_SELF_DIR_TEMP _AUX_SRC_SELF_BASENAME_TEMP _self_dir_file_temp _any_self_file_processed_temp
-fi
+    exit "$exit_code"
+}
 
 setup_source() {
     local dir="$1"
@@ -234,6 +176,7 @@ setup_source() {
         done
         
         if [[ ! -d "$lab_root/cfg/core" ]]; then
+            _menu_log "warn" "Lab root not found; using fallback sourcing root" "component=menu,operation=setup_source,status=fallback_root"
             printf "%s┃ ${BOLD}WARNING:${RESET} Lab root not found, falling back to basic sourcing\n" "$base_indent"
             lab_root="$(dirname "$(dirname "$dir")")"
         fi
@@ -251,15 +194,22 @@ setup_source() {
             # 1. Base site configuration
             if [[ -f "${SITE_CONFIG_FILE}" ]]; then
                 printf "%s┃ ├─ Base config: %s\n" "$base_indent" "$(basename "${SITE_CONFIG_FILE}")"
-                _menu_source_module "env:$(basename "${SITE_CONFIG_FILE}")" "${SITE_CONFIG_FILE}" "menu_setup" || printf "%s┃ │  └─ ${BOLD}ERROR:${RESET} Failed to source base config\n" "$base_indent"
+                if ! _menu_source_module "env:$(basename "${SITE_CONFIG_FILE}")" "${SITE_CONFIG_FILE}" "menu_setup"; then
+                    _menu_log "error" "Failed to source base configuration" "component=menu,operation=setup_source,step=base_config,status=failed"
+                    printf "%s┃ │  └─ ${BOLD}ERROR:${RESET} Failed to source base config\n" "$base_indent"
+                fi
             else
+                _menu_log "warn" "Base configuration file not found" "component=menu,operation=setup_source,step=base_config,status=missing"
                 printf "%s┃ ├─ ${BOLD}WARNING:${RESET} Base config not found: %s\n" "$base_indent" "${SITE_CONFIG_FILE}"
             fi
             
             # 2. Environment override
             if [[ -f "${ENV_OVERRIDE_FILE}" ]]; then
                 printf "%s┃ ├─ Environment override: %s\n" "$base_indent" "$(basename "${ENV_OVERRIDE_FILE}")"
-                _menu_source_module "env:$(basename "${ENV_OVERRIDE_FILE}")" "${ENV_OVERRIDE_FILE}" "menu_setup" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source environment override\n" "$base_indent"
+                if ! _menu_source_module "env:$(basename "${ENV_OVERRIDE_FILE}")" "${ENV_OVERRIDE_FILE}" "menu_setup"; then
+                    _menu_log "warn" "Failed to source environment override" "component=menu,operation=setup_source,step=environment_override,status=failed"
+                    printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source environment override\n" "$base_indent"
+                fi
             else
                 printf "%s┃ ├─ No environment override: %s\n" "$base_indent" "$(basename "${ENV_OVERRIDE_FILE}")"
             fi
@@ -267,11 +217,15 @@ setup_source() {
             # 3. Node override
             if [[ -f "${NODE_OVERRIDE_FILE}" ]]; then
                 printf "%s┃ ├─ Node override: %s\n" "$base_indent" "$(basename "${NODE_OVERRIDE_FILE}")"
-                _menu_source_module "env:$(basename "${NODE_OVERRIDE_FILE}")" "${NODE_OVERRIDE_FILE}" "menu_setup" || printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source node override\n" "$base_indent"
+                if ! _menu_source_module "env:$(basename "${NODE_OVERRIDE_FILE}")" "${NODE_OVERRIDE_FILE}" "menu_setup"; then
+                    _menu_log "warn" "Failed to source node override" "component=menu,operation=setup_source,step=node_override,status=failed"
+                    printf "%s┃ │  └─ ${BOLD}WARNING:${RESET} Failed to source node override\n" "$base_indent"
+                fi
             else
                 printf "%s┃ ├─ No node override: %s\n" "$base_indent" "$(basename "${NODE_OVERRIDE_FILE}")"
             fi
         else
+            _menu_log "warn" "Runtime constants not found; using legacy environment sourcing" "component=menu,operation=setup_source,step=runtime_constants,status=missing"
             printf "%s┃ ${BOLD}WARNING:${RESET} Runtime constants not found, using legacy sourcing\n" "$base_indent"
             # Fallback to old behavior
             local env_dir="$lab_root/cfg/env"
@@ -280,7 +234,10 @@ setup_source() {
                 for conf_file in "$env_dir"/*; do
                     if [[ -f "$conf_file" ]]; then
                         printf "%s┃ ├─ Loading: %s\n" "$base_indent" "$(basename "$conf_file")"
-                        _menu_source_module "env:$(basename "$conf_file")" "$conf_file" "menu_legacy" || printf "%s┃ │  └─ Failed to source %s\n" "$base_indent" "$(basename "$conf_file")"
+                        if ! _menu_source_module "env:$(basename "$conf_file")" "$conf_file" "menu_legacy"; then
+                            _menu_log "warn" "Failed to source legacy environment file" "component=menu,operation=setup_source,step=legacy_env,status=failed,file=$(basename "$conf_file")"
+                            printf "%s┃ │  └─ Failed to source %s\n" "$base_indent" "$(basename "$conf_file")"
+                        fi
                     fi
                 done
             fi
@@ -295,6 +252,42 @@ setup_source() {
     printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
     printf "\n"
 }
+
+menu_runtime_setup() {
+    local menu_dir
+    local menu_file
+    local setup_context="${1:-setup_main}"
+    local setup_rc=0
+
+    if [[ "${MENU_RUNTIME_SETUP_DONE:-0}" == "1" ]]; then
+        return 0
+    fi
+
+    menu_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    menu_file="$(basename "${BASH_SOURCE[0]}")"
+
+    if [[ "${LAB_MENU_AUTO_SOURCE:-1}" != "1" ]]; then
+        _menu_log "info" "Menu runtime setup is disabled by LAB_MENU_AUTO_SOURCE" "component=menu,operation=runtime_setup,status=skipped,context=$setup_context"
+        MENU_RUNTIME_SETUP_DONE=1
+        return 0
+    fi
+
+    setup_source "$menu_dir" "$menu_file" "${menu_file%.*}"
+    setup_rc=$?
+
+    if [[ "$setup_rc" -ne 0 ]]; then
+        _menu_log "warn" "Menu runtime setup completed with warnings" "component=menu,operation=runtime_setup,status=degraded,context=$setup_context,code=$setup_rc"
+    else
+        _menu_log "debug" "Menu runtime setup completed" "component=menu,operation=runtime_setup,status=ok,context=$setup_context"
+    fi
+
+    MENU_RUNTIME_SETUP_DONE=1
+    return 0
+}
+
+if [[ "${LAB_MENU_AUTO_SOURCE_ON_SOURCE:-0}" == "1" ]]; then
+    menu_runtime_setup "source"
+fi
 
 print_usage1() {
     # Commented out local base_indent as it's now global
@@ -377,8 +370,11 @@ setup_main() {
     local script_name
     script_name=$(basename "$0") # For usage messages
 
+    menu_runtime_setup "setup_main"
+
     if [ "$#" -eq 0 ]; then
-        echo "Error: No arguments provided. Use '$script_name -i' or '$script_name -x <section>'."
+        _menu_log "error" "No arguments provided" "component=menu,operation=argument_validation,mode=none"
+        printf "Error: No arguments provided. Use '%s -i' or '%s -x <section>'.\n" "$script_name" "$script_name" >&2
         print_usage
         return 1
     fi
@@ -406,7 +402,8 @@ setup_main() {
                     shift # Consumed display_choice
                 else
                     # Argument is present, not -s, and not a valid display choice
-                    echo "Error: Invalid argument '$1' for -i mode. Expected display choice (1-6) or -s."
+                    _menu_log "error" "Invalid interactive mode argument" "component=menu,operation=argument_validation,mode=-i,arg=$1"
+                    printf "Error: Invalid argument '%s' for -i mode. Expected display choice (1-6) or -s.\n" "$1" >&2
                     print_usage
                     return 1
                 fi
@@ -419,14 +416,16 @@ setup_main() {
                     section_arg="$1"
                     shift # Consumed section_arg
                 else
-                    echo "Error: The -s option requires a section name argument."
+                    _menu_log "error" "Missing section argument for -s" "component=menu,operation=argument_validation,mode=-i"
+                    printf 'Error: The -s option requires a section name argument.\n' >&2
                     print_usage
                     return 1
                 fi
             fi
 
             if [[ -n "$1" ]]; then # Any remaining arguments are unexpected
-                echo "Error: Too many arguments for -i mode after processing options."
+                _menu_log "error" "Too many arguments for interactive mode" "component=menu,operation=argument_validation,mode=-i"
+                printf 'Error: Too many arguments for -i mode after processing options.\n' >&2
                 print_usage
                 return 1
             fi
@@ -446,7 +445,8 @@ setup_main() {
         -x)
             # Execution mode parsing
             if [[ -z "$1" || "$1" == -* ]]; then # Argument must exist and not be an option
-                echo "Error: Execution mode (-x) requires a section name."
+                _menu_log "error" "Execution mode missing section" "component=menu,operation=argument_validation,mode=-x"
+                printf 'Error: Execution mode (-x) requires a section name.\n' >&2
                 print_usage
                 return 1
             fi
@@ -454,7 +454,8 @@ setup_main() {
             shift # Consumed section_name
 
             if [[ -n "$1" ]]; then # Any remaining arguments are unexpected
-                echo "Error: Too many arguments for -x mode."
+                _menu_log "error" "Too many arguments for execution mode" "component=menu,operation=argument_validation,mode=-x"
+                printf 'Error: Too many arguments for -x mode.\n' >&2
                 print_usage
                 return 1
             fi
@@ -472,7 +473,8 @@ setup_main() {
             setup_executing_mode "$exec_section_arg"
             ;;
         *)
-            echo "Error: Invalid mode '$mode'. Use -i for interactive or -x for executing."
+            _menu_log "error" "Invalid mode requested" "component=menu,operation=argument_validation,mode=$mode"
+            printf "Error: Invalid mode '%s'. Use -i for interactive or -x for executing.\n" "$mode" >&2
             print_usage
             return 1
             ;;
@@ -510,7 +512,7 @@ setup_interactive_mode() {
                 display_choice=""
                 continue
             else
-                echo "Invalid choice. Using default display (1)."
+                printf 'Invalid choice. Using default display (1).\n'
                 display_choice=1
             fi
         fi
@@ -535,8 +537,8 @@ setup_interactive_mode() {
     if declare -F setup_display_menu > /dev/null; then
         setup_display_menu "$dir_to_use" "$file_to_use" "$display_choice" "${section_arg:--all}"
     else
-        printf "      WARNING: setup_display_menu function not found. Skipping display of sections.\n"
-        printf "      Make sure this script is properly sourced in your environment.\n"
+        _menu_log "warn" "setup_display_menu function not found" "component=menu,operation=interactive_display,status=missing_function"
+        printf "      setup_display_menu function not found. Skipping section display.\n"
     fi
 
     # Execution part
@@ -561,6 +563,7 @@ setup_interactive_mode() {
             ${MENU_OPTIONS[$section_arg]}
             printf "%s┃ Execution of section '%s' completed.\n" "$base_indent" "$section_arg"
         else
+            _menu_log "error" "Section not found for interactive execution" "component=menu,operation=interactive_execute,status=invalid_section,section=$section_arg"
             printf "%s┃ Error: Section '%s' not found or not executable.\n" "$base_indent" "$section_arg"
         fi
         printf "%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n" "$base_indent"
@@ -593,8 +596,8 @@ prompt_for_section() {
 
     # Make sure MENU_OPTIONS is defined
     if ! declare -p MENU_OPTIONS &>/dev/null; then
-        printf "      WARNING: MENU_OPTIONS associative array is not defined.\n"
-        printf "      Creating a placeholder array. Please ensure the calling script defines MENU_OPTIONS properly.\n"
+        _menu_log "warn" "MENU_OPTIONS is undefined; creating empty fallback" "component=menu,operation=menu_options,status=missing"
+        printf "      MENU_OPTIONS is not defined. Creating placeholder array.\n"
         # Create an empty associative array as fallback
         declare -A MENU_OPTIONS
     fi
@@ -602,7 +605,8 @@ prompt_for_section() {
     # Make sure we're displaying the menu options correctly
     # The MENU_OPTIONS associative array should be set properly in the calling script
     if [[ -z "${!MENU_OPTIONS[*]}" ]]; then
-        printf "      WARNING: No executable sections found in MENU_OPTIONS\n"
+        _menu_log "warn" "No executable sections found in MENU_OPTIONS" "component=menu,operation=menu_options,status=empty"
+        printf "      No executable sections found in MENU_OPTIONS\n"
     fi
 
     # Sort the menu options alphabetically
@@ -634,7 +638,7 @@ prompt_for_section() {
 }
 
 select_and_execute_sections() {
-    printf "    Entering select_and_execute_sections\n"
+    _menu_log "debug" "Entering section selection loop" "component=menu,operation=select_sections"
     # Commented out local base_indent as it's now global
 
     # Sort the menu options alphabetically
@@ -662,22 +666,24 @@ select_and_execute_sections() {
             printf "      Executing section: %s\n" "$section"
             setup_executing_mode "$section"
         else
-            echo "Invalid section: $section. Skipping."
+            _menu_log "warn" "Skipping invalid section" "component=menu,operation=select_sections,status=invalid_section,section=$section"
+            printf "      Invalid section: %s. Skipping.\n" "$section"
         fi
     done
 }
 
 setup_executing_mode() {
-    echo "DEBUG: Enter setup_executing_mode - PACKAGES_ALL: ${PACKAGES_ALL[@]}"
     local section="$1"
+    _menu_log "debug" "Executing setup section" "component=menu,operation=execute_mode,section=$section"
     printf "    Setup executing mode for section: %s\n" "$section"
 
     if [[ -n "${MENU_OPTIONS[$section]}" ]]; then
         printf "      Executing section: %s\n" "$section"
         ${MENU_OPTIONS[$section]}
     else
-        echo "Invalid section: $section"
-        exit 1
+        _menu_log "error" "Invalid section for execution mode" "component=menu,operation=execute_mode,status=invalid_section,section=$section"
+        printf "Invalid section: %s\n" "$section" >&2
+        return 1
     fi
 }
 

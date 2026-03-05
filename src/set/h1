@@ -27,12 +27,20 @@ DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
 
-# Source menu file which provides logging and other core functionality
-echo "[DEBUG] Sourcing: $(realpath "$DIR_SH/.menu")"
-source "$(realpath "$DIR_SH/.menu")"
+# Source menu framework
+MENU_FILE="$(realpath "$DIR_SH/.menu")"
+if ! source "$MENU_FILE"; then
+    printf 'Failed to source menu framework: %s\n' "$MENU_FILE" >&2
+    exit 2
+fi
 
 # Source DIC operations for intelligent parameter resolution
-source "$DIR_SH/../dic/ops"
+if ! source "$DIR_SH/../dic/ops"; then
+    printf 'Failed to source DIC operations: %s\n' "$DIR_SH/../dic/ops" >&2
+    exit 2
+fi
+
+menu_runtime_setup "${BASE_SH}_bootstrap" || exit 2
 
 # Declare MENU_OPTIONS
 declare -A MENU_OPTIONS

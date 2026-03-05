@@ -11,6 +11,7 @@ Logging and error handling are split across core bootstrap modules and runtime u
 | Error capture/reporting | `lib/core/err` | Error codes/maps, error records, trap handler, error report output. |
 | Timing/performance logs | `lib/core/tme` | Start/end timers, duration accounting, timing report (`tme.log`). |
 | Operational structured logs | `lib/gen/aux` | Multi-format operational/debug logging (`aux.log`, `aux.json`, `aux.csv`). |
+| Runbook menu/setup logs | `src/set/.menu`, `src/set/*` | Explicit runbook setup (`menu_runtime_setup`), interactive UI output, and structured diagnostic logging for setup/dispatch paths. |
 | Global verbosity controls | `cfg/core/ric` | Unified `LAB_LOG_LEVEL` + `LAB_LOG_FORMAT` and optional subsystem overrides with legacy compatibility toggles. |
 
 ## 2. Runtime/Load Sequence
@@ -24,6 +25,7 @@ Logging and error handling are split across core bootstrap modules and runtime u
 5. `tme_init_timer` initializes timing state and `tme.log`; `bin/ini` wraps major phases with timer calls. `tme` uses integer nanosecond arithmetic (`$(date +%s%N)` captured once, then `$(( ))` bash arithmetic) instead of `echo ... | bc` pipe forks for duration calculation.
 6. `bin/orc` uses `lo1_log` for component progress and the shared component-set executor routes failures to `err_handler`.
 7. After `lib/gen/aux` is sourced (either eagerly or on first lazy-load call), runtime callers (for example `src/dic/ops` and `lib/ops/*` functions) can emit structured logs via `aux_log`/`aux_dbg` and wrappers (`aux_info`, `aux_warn`, `aux_err`, `aux_audit`, `aux_business`).
+8. `src/set` runbooks source `.menu` + `src/dic/ops`, then call `menu_runtime_setup` explicitly before dispatching `setup_main`; source-time setup is opt-in via `LAB_MENU_AUTO_SOURCE_ON_SOURCE=1`.
 
 ### End-to-end sequence
 
@@ -92,6 +94,7 @@ flowchart LR
 - Verbosity is unified through `LAB_LOG_LEVEL` (`silent < error < normal < verbose < debug`) with optional subsystem overrides.
 - Runtime visual density is controlled by `LAB_LOG_FORMAT` (`compact` default, `verbose` fallback).
 - `aux` logging format changes (`human/json/csv/kv`) affect both terminal output and downstream log consumers/parsers.
+- `src/set/.menu` intentionally keeps formatted interactive UI output, but setup/diagnostic messages should route through structured logging paths.
 - Return-code semantics are defined in specs (`lib/.spec`, `lib/ops/.spec`), but enforcement is distributed per function/module.
 - Boot-phase log suppression (`LOG_DEBUG_ENABLED=0`, `ver_log` gating via `LAB_BOOTSTRAP_MODE`) means boot diagnostics in `lo1.log` and `ver.log` are reduced compared to runtime. If boot debugging is needed, set `LOG_DEBUG_ENABLED=1` or `VER_BOOTSTRAP_LOGGING=1` before sourcing `bin/ini`.
 
