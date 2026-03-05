@@ -89,6 +89,9 @@ _dev_osv_render() {
 
     local output
     output=$(python3 - "$db_path" "$mode" "$limit" "$best_effort" <<'PY'
+import os
+import json
+import base64
 import sqlite3
 import sys
 import re
@@ -100,6 +103,179 @@ best_effort = (sys.argv[4] == "1") if len(sys.argv) > 4 else False
 
 conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
 cur  = conn.cursor()
+
+def parse_provider_event_max_age_ms():
+    default_max_age_ms = 3600000
+    raw_value = str(os.environ.get("LAB_DEV_ATTR_PROVIDER_MAX_AGE_MS", "") or "").strip()
+    if not raw_value:
+        return default_max_age_ms
+
+    try:
+        parsed = int(raw_value)
+    except (TypeError, ValueError):
+        return default_max_age_ms
+
+    if parsed < 0:
+        return default_max_age_ms
+
+    return parsed
+
+PROVIDER_EVENT_MAX_AGE_MS = parse_provider_event_max_age_ms()
+
+def provider_event_within_window(provider, event_time_ms, first_prompt_ms):
+    if provider != "openai":
+        return True
+
+    if event_time_ms is None or first_prompt_ms is None:
+        return False
+
+    if PROVIDER_EVENT_MAX_AGE_MS == 0:
+        return True
+
+    try:
+        age_ms = abs(int(first_prompt_ms) - int(event_time_ms))
+    except (TypeError, ValueError):
+        return False
+
+    return age_ms <= PROVIDER_EVENT_MAX_AGE_MS
+
+def parse_openai_auth_max_age_ms():
+    default_max_age_ms = 21600000
+    raw_value = str(os.environ.get("LAB_DEV_ATTR_OPENAI_AUTH_MAX_AGE_MS", "") or "").strip()
+    if not raw_value:
+        return default_max_age_ms
+
+    try:
+        parsed = int(raw_value)
+    except (TypeError, ValueError):
+        return default_max_age_ms
+
+    if parsed < 0:
+        return default_max_age_ms
+
+    return parsed
+
+OPENAI_AUTH_MAX_AGE_MS = parse_openai_auth_max_age_ms()
+
+def openai_auth_within_window(auth_time_ms, first_prompt_ms):
+    if auth_time_ms is None or first_prompt_ms is None:
+        return False
+
+    if OPENAI_AUTH_MAX_AGE_MS == 0:
+        return True
+
+    try:
+        age_ms = abs(int(first_prompt_ms) - int(auth_time_ms))
+    except (TypeError, ValueError):
+        return False
+
+    return age_ms <= OPENAI_AUTH_MAX_AGE_MS
+
+def decode_jwt_payload(token):
+    if not isinstance(token, str):
+        return {}
+    parts = token.split(".")
+    if len(parts) < 2:
+        return {}
+
+    payload = parts[1]
+    payload += "=" * (-len(payload) % 4)
+    try:
+        decoded = base64.urlsafe_b64decode(payload.encode("utf-8")).decode("utf-8")
+        data = json.loads(decoded)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+def pick_first_value(*values):
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+def load_openai_auth_identity():
+    auth_path = os.environ.get("LAB_DEV_OPENAI_AUTH_FILE")
+    if not auth_path:
+        auth_path = os.path.join(os.path.expanduser("~"), ".local", "share", "opencode", "auth.json")
+
+    if not os.path.isfile(auth_path):
+        return None
+
+    try:
+        auth_mtime_ms = int(os.path.getmtime(auth_path) * 1000)
+    except Exception:
+        auth_mtime_ms = None
+
+    try:
+        with open(auth_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return None
+
+    if not isinstance(data, dict):
+        return None
+
+    openai = data.get("openai")
+    if not isinstance(openai, dict):
+        return None
+
+    payload = decode_jwt_payload(openai.get("access", ""))
+    auth_claim = payload.get("https://api.openai.com/auth", {}) if isinstance(payload, dict) else {}
+    profile_claim = payload.get("https://api.openai.com/profile", {}) if isinstance(payload, dict) else {}
+    if not isinstance(auth_claim, dict):
+        auth_claim = {}
+    if not isinstance(profile_claim, dict):
+        profile_claim = {}
+
+    email = pick_first_value(profile_claim.get("email"), payload.get("email"))
+    account_key = pick_first_value(
+        openai.get("accountId"),
+        auth_claim.get("chatgpt_account_id"),
+        auth_claim.get("user_id"),
+        auth_claim.get("chatgpt_user_id"),
+        email,
+    )
+    account_label = pick_first_value(
+        email,
+        auth_claim.get("chatgpt_user_id"),
+        account_key,
+    )
+
+    if not account_key or not account_label or auth_mtime_ms is None:
+        return None
+
+    if is_synthetic_openai_identity(account_key) and is_synthetic_openai_identity(account_label):
+        return None
+
+    return {
+        "time_ms": auth_mtime_ms,
+        "account_key": account_key,
+        "account_label": account_label,
+        "source": "auth_state",
+    }
+
+def resolve_openai_auth_user(first_prompt_ms, allow_best_effort=False):
+    if first_prompt_ms is None:
+        return None
+
+    openai_auth_identity = load_openai_auth_identity()
+    if not openai_auth_identity:
+        return None
+
+    auth_time_ms = openai_auth_identity.get("time_ms")
+    account_label = openai_auth_identity.get("account_label") or openai_auth_identity.get("account_key") or ""
+    if not account_label:
+        return None
+
+    if openai_auth_within_window(auth_time_ms, first_prompt_ms):
+        if auth_time_ms <= first_prompt_ms:
+            conf = "high"
+        else:
+            conf = "low" if allow_best_effort else "high"
+        return (compact_account_label(account_label), openai_auth_identity.get("source", "auth_state"), conf)
+
+    return None
 
 def table_exists(cursor, table_name):
     try:
@@ -349,7 +525,10 @@ def resolve_session_user(session_id, first_prompt_ms, provider_id, attribution_e
                     return (compact_account_label(label), pick["source"], "low")
 
     if first_prompt_ms is not None and provider_events:
-        before = [evt for evt in provider_events if evt["time_ms"] <= first_prompt_ms]
+        before = [
+            evt for evt in provider_events
+            if evt["time_ms"] <= first_prompt_ms and provider_event_within_window(provider, evt["time_ms"], first_prompt_ms)
+        ]
         if before:
             pick = pick_preferred_event(before, provider)
             if pick is None:
@@ -358,7 +537,10 @@ def resolve_session_user(session_id, first_prompt_ms, provider_id, attribution_e
             return (compact_account_label(label), pick["source"], "high")
 
         if allow_best_effort:
-            after = [evt for evt in provider_events if evt["time_ms"] > first_prompt_ms]
+            after = [
+                evt for evt in provider_events
+                if evt["time_ms"] > first_prompt_ms and provider_event_within_window(provider, evt["time_ms"], first_prompt_ms)
+            ]
             if after:
                 pick = pick_preferred_event(after, provider)
                 if pick is None:
@@ -367,17 +549,28 @@ def resolve_session_user(session_id, first_prompt_ms, provider_id, attribution_e
                 return (compact_account_label(label), pick["source"], "low")
 
     if allow_best_effort and first_prompt_ms is not None and legacy_events:
-        before = [evt for evt in legacy_events if evt["time_ms"] <= first_prompt_ms]
+        before = [
+            evt for evt in legacy_events
+            if evt["time_ms"] <= first_prompt_ms and provider_event_within_window(provider, evt["time_ms"], first_prompt_ms)
+        ]
         if before:
             pick = before[-1]
             label = pick["account_label"] or "unk"
             return (compact_account_label(label), pick["source"], "low")
 
-        after = [evt for evt in legacy_events if evt["time_ms"] > first_prompt_ms]
+        after = [
+            evt for evt in legacy_events
+            if evt["time_ms"] > first_prompt_ms and provider_event_within_window(provider, evt["time_ms"], first_prompt_ms)
+        ]
         if after:
             pick = after[0]
             label = pick["account_label"] or "unk"
             return (compact_account_label(label), pick["source"], "low")
+
+    if provider == "openai":
+        auth_pick = resolve_openai_auth_user(first_prompt_ms, allow_best_effort=allow_best_effort)
+        if auth_pick is not None:
+            return auth_pick
 
     return unknown
 

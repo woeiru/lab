@@ -627,6 +627,681 @@ PY
     [[ "$parsed" == "OK" ]]
 }
 
+# Test: Stale provider-wide events are ignored by default freshness window
+test_dev_overview_stale_provider_event_filtered() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_stale_provider_event")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_staleprovider000000001", "project_lab", "/home/es/lab", "Session Stale Provider", 1771760002000),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_stale_user", "ses_staleprovider000000001", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_stale_assistant", "ses_staleprovider000000001", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771752800000, "openai", "stale-openai@example.com", "stale-openai@example.com", "opencode_event"),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+user_value = rows.get('Session Stale Provider', {}).get('user')
+
+ok = (
+    user_value in {'unk', 'unknown', '(unknown)'} and
+    rows.get('Session Stale Provider', {}).get('src') == 'none' and
+    rows.get('Session Stale Provider', {}).get('conf') == 'none'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: Provider-wide freshness window can be disabled via env override
+test_dev_overview_stale_provider_event_window_override() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_stale_provider_override")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_staleoverride000000001", "project_lab", "/home/es/lab", "Session Stale Override", 1771760002000),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_override_user", "ses_staleoverride000000001", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_override_assistant", "ses_staleoverride000000001", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771752800000, "openai", "override-openai@example.com", "override-openai@example.com", "opencode_event"),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    local old_max_age="${LAB_DEV_ATTR_PROVIDER_MAX_AGE_MS:-}"
+    local had_max_age=0
+    if [[ ${LAB_DEV_ATTR_PROVIDER_MAX_AGE_MS+x} ]]; then
+        had_max_age=1
+    fi
+
+    PATH="$test_env/bin:$PATH"
+    LAB_DEV_ATTR_PROVIDER_MAX_AGE_MS="0"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    if [[ $had_max_age -eq 1 ]]; then
+        LAB_DEV_ATTR_PROVIDER_MAX_AGE_MS="$old_max_age"
+    else
+        unset LAB_DEV_ATTR_PROVIDER_MAX_AGE_MS
+    fi
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session Stale Override', {}).get('user') == 'override-openai@example.com' and
+    rows.get('Session Stale Override', {}).get('src') == 'opencode_event' and
+    rows.get('Session Stale Override', {}).get('conf') == 'high'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: Antigravity provider events do not use OpenAI stale-event window
+test_dev_overview_antigravity_stale_provider_event_unfiltered() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_antigravity_stale_provider")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_antistale000000000001", "project_lab", "/home/es/lab", "Session Antigravity Stale", 1771760002000),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_antistale_user", "ses_antistale000000000001", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_antistale_assistant", "ses_antistale000000000001", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"google","modelID":"ag-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771752800000, "antigravity", "ag-stale@example.com", "ag-stale@example.com", "shell_wrapper"),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_path="$PATH"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session Antigravity Stale', {}).get('user') == 'ag-stale' and
+    rows.get('Session Antigravity Stale', {}).get('src') == 'shell_wrapper' and
+    rows.get('Session Antigravity Stale', {}).get('conf') == 'high'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: OpenAI auth-state fallback resolves strict user when provider events are stale
+test_dev_overview_openai_auth_state_fallback_strict() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_openai_auth_fallback")
+    local db_path="$test_env/opencode.db"
+    local auth_path="$test_env/.local/share/opencode/auth.json"
+
+    _create_openai_auth_json \
+        "$auth_path" \
+        "acct-openai-auth-fallback" \
+        "auth-fallback@example.net"
+
+    local auth_mtime_ms
+    auth_mtime_ms=$(python3 - "$auth_path" <<'PY'
+import os
+import sys
+
+print(int(os.path.getmtime(sys.argv[1]) * 1000))
+PY
+)
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" "$auth_mtime_ms" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+auth_mtime_ms = int(sys.argv[2])
+
+first_user_ms = auth_mtime_ms + 120000
+assistant_ms = first_user_ms + 1000
+updated_ms = assistant_ms + 500
+stale_event_ms = first_user_ms - (3 * 60 * 60 * 1000)
+
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_authfallback0000000001", "project_lab", "/home/es/lab", "Session Auth Fallback", updated_ms),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_auth_fallback_user", "ses_authfallback0000000001", first_user_ms, first_user_ms, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_auth_fallback_assistant", "ses_authfallback0000000001", assistant_ms, assistant_ms, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (stale_event_ms, "openai", "stale-openai@example.net", "stale-openai@example.net", "opencode_event"),
+)
+
+conn.commit()
+conn.close()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session Auth Fallback', {}).get('user') == 'auth-fallback@example.net' and
+    rows.get('Session Auth Fallback', {}).get('src') == 'auth_state' and
+    rows.get('Session Auth Fallback', {}).get('conf') == 'high'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: OpenAI auth-state fallback still resolves strict user after post-prompt auth refresh
+test_dev_overview_openai_auth_state_fallback_post_prompt_refresh() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_openai_auth_post_prompt_refresh")
+    local db_path="$test_env/opencode.db"
+    local auth_path="$test_env/.local/share/opencode/auth.json"
+
+    _create_openai_auth_json \
+        "$auth_path" \
+        "acct-openai-auth-refresh" \
+        "auth-refresh@example.net"
+
+    local auth_mtime_ms
+    auth_mtime_ms=$(python3 - "$auth_path" <<'PY'
+import os
+import sys
+
+print(int(os.path.getmtime(sys.argv[1]) * 1000))
+PY
+)
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" "$auth_mtime_ms" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+auth_mtime_ms = int(sys.argv[2])
+
+first_user_ms = auth_mtime_ms - 120000
+assistant_ms = first_user_ms + 1000
+updated_ms = assistant_ms + 500
+
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_authpostrefresh0000001", "project_lab", "/home/es/lab", "Session Auth Post Refresh", updated_ms),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_auth_post_user", "ses_authpostrefresh0000001", first_user_ms, first_user_ms, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_auth_post_assistant", "ses_authpostrefresh0000001", assistant_ms, assistant_ms, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+conn.commit()
+conn.close()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session Auth Post Refresh', {}).get('user') == 'auth-refresh@example.net' and
+    rows.get('Session Auth Post Refresh', {}).get('src') == 'auth_state' and
+    rows.get('Session Auth Post Refresh', {}).get('conf') == 'high'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: OpenAI auth-state fallback respects max-age window guard
+test_dev_overview_openai_auth_state_fallback_window_guard() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_openai_auth_window_guard")
+    local db_path="$test_env/opencode.db"
+    local auth_path="$test_env/.local/share/opencode/auth.json"
+
+    _create_openai_auth_json \
+        "$auth_path" \
+        "acct-openai-auth-window" \
+        "auth-window@example.net"
+
+    local auth_mtime_ms
+    auth_mtime_ms=$(python3 - "$auth_path" <<'PY'
+import os
+import sys
+
+print(int(os.path.getmtime(sys.argv[1]) * 1000))
+PY
+)
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" "$auth_mtime_ms" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+auth_mtime_ms = int(sys.argv[2])
+
+first_user_ms = auth_mtime_ms + (9 * 60 * 60 * 1000)
+assistant_ms = first_user_ms + 1000
+updated_ms = assistant_ms + 500
+
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_authwindowguard0000001", "project_lab", "/home/es/lab", "Session Auth Window Guard", updated_ms),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_auth_window_user", "ses_authwindowguard0000001", first_user_ms, first_user_ms, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_auth_window_assistant", "ses_authwindowguard0000001", assistant_ms, assistant_ms, '{"role":"assistant","providerID":"openai","modelID":"oa-model"}'),
+)
+
+conn.commit()
+conn.close()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+user_value = rows.get('Session Auth Window Guard', {}).get('user')
+
+ok = (
+    user_value in {'unk', 'unknown', '(unknown)'} and
+    rows.get('Session Auth Window Guard', {}).get('src') == 'none' and
+    rows.get('Session Auth Window Guard', {}).get('conf') == 'none'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
 # Test: Google provider sessions map to antigravity attribution events
 test_dev_overview_google_provider_maps_to_antigravity() {
     local test_env
@@ -3275,6 +3950,12 @@ main() {
     run_test test_dev_overview_session_bound_event_precedence
     run_test test_dev_overview_best_effort_flag
     run_test test_dev_overview_provider_mismatch_no_cross_attribution
+    run_test test_dev_overview_stale_provider_event_filtered
+    run_test test_dev_overview_stale_provider_event_window_override
+    run_test test_dev_overview_antigravity_stale_provider_event_unfiltered
+    run_test test_dev_overview_openai_auth_state_fallback_strict
+    run_test test_dev_overview_openai_auth_state_fallback_post_prompt_refresh
+    run_test test_dev_overview_openai_auth_state_fallback_window_guard
     run_test test_dev_overview_google_provider_maps_to_antigravity
     run_test test_dev_overview_latest_event_before_prompt
     run_test test_dev_overview_mixed_event_replay_deterministic

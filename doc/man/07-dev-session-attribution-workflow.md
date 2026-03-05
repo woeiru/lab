@@ -178,9 +178,18 @@ provider-wide timeline fallback.
 ## 3. Expected Outcomes and Validation
 
 Use this confidence model:
-- `CONF=high`: matching provider event exists at or before session first prompt time.
+- `CONF=high`: matching provider event exists at or before session first prompt time and passes freshness gating for provider-wide fallback.
 - `CONF=low`: only post-first-prompt event match exists (best-effort mode only).
 - `CONF=none`: no qualifying event for that provider/session.
+
+Provider-wide fallback freshness window:
+- By default, OpenAI provider-wide/legacy timeline events older than 60 minutes from first prompt are ignored to reduce stale cross-session bleed.
+- Antigravity provider timeline fallback remains unchanged by this guard.
+- Override with `LAB_DEV_ATTR_PROVIDER_MAX_AGE_MS` (milliseconds). Set `0` to disable the freshness gate.
+
+OpenAI auth-state fallback window:
+- When no eligible event path resolves an OpenAI session, resolver can use local auth-state identity (`SRC=auth_state`) if auth-state file timing is near first prompt (before or shortly after prompt).
+- Default window is 6 hours; override with `LAB_DEV_ATTR_OPENAI_AUTH_MAX_AGE_MS` (milliseconds). Set `0` to disable the freshness gate.
 
 ### Provider normalization
 
@@ -206,6 +215,8 @@ Likely causes:
 - no event exists before first prompt for that session
 - event provider does not match session provider family
 - event was emitted after the session already started
+- available provider-wide event is older than freshness window and was intentionally ignored
+- local auth-state timestamp is outside OpenAI auth fallback window
 
 Safe recovery:
 1. confirm session provider in `ops dev osv -x --best-effort`

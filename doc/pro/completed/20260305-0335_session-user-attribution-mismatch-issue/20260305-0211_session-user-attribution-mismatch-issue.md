@@ -3,8 +3,8 @@
 - Status: completed
 - Owner: es
 - Started: n/a
-- Updated: 2026-03-05 02:52
-- Links: doc/pro/task/inbox-capture, lib/ops/dev, cfg/ali/sta, val/lib/ops/dev_test.sh, doc/man/07-dev-session-attribution-workflow.md
+- Updated: 2026-03-05 03:35
+- Links: doc/pro/task/inbox-capture, lib/ops/dev, cfg/ali/sta, val/lib/ops/dev_test.sh, doc/man/03-cli-usage.md, doc/man/07-dev-session-attribution-workflow.md, doc/pro/inbox/20260305-0238_live-dual-account-session-id-attribution-verification-followup.md
 
 ## Goal
 
@@ -24,6 +24,19 @@ Capture a user attribution defect where conversation records display the wrong a
 3. Wrapper `opencode()` in `cfg/ali/sta` runs `_dev_auto_attribute` before launching `command opencode`; `_dev_auto_attribute` now forwards optional `OPENCODE_ATTR_SESSION_ID`/`OPENCODE_ATTR_TRACE_ID` when provided by runtime context.
 4. Strict attribution currently treats `account_selected` and `token_refreshed` as equivalent candidates when selecting the latest pre-prompt event.
 5. Phase 2 implementation now supports optional `session_id` persistence in `opencode_account_event` and resolver-side session-bound precedence before provider-wide fallback.
+
+## Reopened
+
+- Reopened on 2026-03-05 after new live session listings still showed `USER=ometesu@proton.me` while current local OpenAI auth identity resolved to `puhachka@proton.me`.
+- Why revisit now: current strict resolver can still select stale provider-wide events when recent sessions have no fresh/session-bound attribution rows, producing high-confidence but incorrect attribution.
+- Additional work required in this round:
+  1. Reproduce and capture the stale-provider bleed condition directly from live local DB evidence.
+  2. Implement guardrails so strict attribution does not reuse stale provider-wide events indefinitely across newer sessions.
+  3. Add regression coverage and docs for the guardrail behavior and any tunable fallback window.
+- New exit criteria for this round:
+  1. New sessions no longer inherit stale provider-wide account attribution outside the configured freshness window.
+  2. Existing deterministic session-bound precedence behavior remains intact and tested.
+  3. Targeted validation (`val/lib/ops/dev_test.sh`) passes with new stale-event regression coverage.
 
 ## Scope
 
@@ -167,7 +180,34 @@ Track remaining live runtime evidence in `doc/pro/inbox/20260305-0238_live-dual-
 - Live DB evidence captured (`/home/es/.local/share/opencode/opencode.db`): baseline attribution for `Quick check-in: TEST message` remained `ometesu@proton.me` with current provider-wide events.
 - Controlled replay on in-memory clone of live DB: `SIM_OLD ometesu@proton.me|shell_wrapper|high` vs `SIM_NEW puhachka@proton.me|runtime|high` when session-bound event is present.
 
+## Reopened Round Outcome (2026-03-05)
+
+### What Changed in this round
+
+- Added provider-wide attribution freshness gating in `resolve_session_user` (`lib/ops/dev`) so stale timeline events are no longer reused indefinitely for newer sessions.
+- Introduced `LAB_DEV_ATTR_PROVIDER_MAX_AGE_MS` tuning (default `3600000` ms / 60 minutes, `0` disables) for provider-wide and legacy fallback windows.
+- Added OpenAI auth-state fallback path (`SRC=auth_state`) when provider/session timeline matching is unavailable but local auth-state timing is close to first prompt.
+- Added `LAB_DEV_ATTR_OPENAI_AUTH_MAX_AGE_MS` tuning (default `21600000` ms / 6 hours, `0` disables) for the OpenAI auth-state fallback window.
+- Scoped stale-event freshness gating to OpenAI only so Antigravity timeline attribution remains unchanged.
+- Updated OpenAI auth-state fallback semantics to tolerate near post-prompt auth refresh timing (within fallback window) so strict mode does not regress to unknown after token refresh.
+- Added regressions in `val/lib/ops/dev_test.sh` for stale-provider filtering/override, provider scoping, and OpenAI auth-state fallback behavior (`test_dev_overview_stale_provider_event_filtered`, `test_dev_overview_stale_provider_event_window_override`, `test_dev_overview_antigravity_stale_provider_event_unfiltered`, `test_dev_overview_openai_auth_state_fallback_strict`, `test_dev_overview_openai_auth_state_fallback_post_prompt_refresh`, `test_dev_overview_openai_auth_state_fallback_window_guard`).
+- Updated operator docs in `doc/man/03-cli-usage.md` and `doc/man/07-dev-session-attribution-workflow.md` to document OpenAI-only freshness gating plus auth-state fallback behavior.
+
+### What Was Verified in this round
+
+- `bash -n lib/ops/dev` -> pass
+- `bash -n val/lib/ops/dev_test.sh` -> pass
+- `./val/lib/ops/dev_test.sh` -> pass (`60/60`)
+- `bash doc/pro/check-workflow.sh` -> pass
+- Live evidence snapshot (`/home/es/.local/share/opencode/opencode.db`): current auth identity resolves to `puhachka@proton.me`; latest OpenAI provider event remains stale (`ometesu@proton.me`, `2026-03-04 23:56:33`); OpenAI rows now resolve to `puhachka@proton.me|auth_state|high`; and Antigravity rows resolve again via `shell_wrapper|high` (e.g. `brunomaxwagner@gmail.com`).
+
+### Exit Criteria Check (reopened round)
+
+1. New sessions no longer inherit stale provider-wide account attribution outside the configured freshness window. [met]
+2. Existing deterministic session-bound precedence behavior remains intact and tested. [met]
+3. Targeted validation (`val/lib/ops/dev_test.sh`) passes with stale-event regression coverage. [met]
+
 ## What Remains
 
-- Follow-up required: capture real dual-account runtime evidence where emitted events include non-empty `session_id`, then attach strict/best-effort `dev_osv` output from the live environment.
-- Follow-up item created: `doc/pro/inbox/20260305-0238_live-dual-account-session-id-attribution-verification-followup.md`.
+- Follow-up required (separate item): capture real dual-account runtime evidence where emitted events include non-empty `session_id`, then attach strict/best-effort `dev_osv` output from the live environment.
+- Follow-up item remains tracked in `doc/pro/inbox/20260305-0238_live-dual-account-session-id-attribution-verification-followup.md`.
