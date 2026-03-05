@@ -297,6 +297,81 @@ def normalize_provider(provider_id):
         return "antigravity"
     return provider
 
+def normalize_identity(value):
+    return str(value or "").strip().lower()
+
+def is_example_domain_identity(value):
+    identity = normalize_identity(value)
+    if "@" not in identity:
+        return False
+    _, domain = identity.rsplit("@", 1)
+    return domain in {"example.com", "example.org", "example.net"}
+
+def antigravity_accounts_path():
+    override_path = str(os.environ.get("LAB_DEV_ANTIGRAVITY_ACCOUNTS_FILE", "") or "").strip()
+    if override_path:
+        return override_path
+    return os.path.join(os.path.expanduser("~"), ".config", "opencode", "antigravity-accounts.json")
+
+def load_antigravity_known_accounts():
+    accounts_path = antigravity_accounts_path()
+    if not os.path.isfile(accounts_path):
+        return set()
+
+    try:
+        with open(accounts_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return set()
+
+    if not isinstance(data, dict):
+        return set()
+
+    accounts = data.get("accounts", [])
+    if not isinstance(accounts, list):
+        return set()
+
+    known = set()
+    for account in accounts:
+        if not isinstance(account, dict):
+            continue
+        email = normalize_identity(account.get("email"))
+        if email:
+            known.add(email)
+    return known
+
+def antigravity_event_matches_known_accounts(event, known_accounts):
+    if not known_accounts:
+        return True
+
+    label = normalize_identity(event.get("account_label"))
+    key = normalize_identity(event.get("account_key"))
+
+    has_real_identity = False
+    for candidate in (label, key):
+        if not candidate:
+            continue
+        if is_example_domain_identity(candidate):
+            continue
+        has_real_identity = True
+        if candidate in known_accounts:
+            return True
+
+    if not has_real_identity:
+        return True
+
+    return False
+
+def antigravity_legacy_event_matches_known_accounts(event, known_accounts):
+    if not known_accounts:
+        return True
+
+    label = normalize_identity(event.get("account_label"))
+    if not label or is_example_domain_identity(label):
+        return True
+
+    return label in known_accounts
+
 def compact_account_label(label):
     """Make long placeholder/test account labels easier to scan in USER column."""
     value = str(label or "").strip()
@@ -493,14 +568,36 @@ def load_control_account_events(cursor):
 
     return events
 
-def resolve_session_user(session_id, first_prompt_ms, provider_id, attribution_events, legacy_events, allow_best_effort=False):
+def resolve_session_user(
+    session_id,
+    first_prompt_ms,
+    provider_id,
+    attribution_events,
+    legacy_events,
+    antigravity_known_accounts=None,
+    allow_best_effort=False,
+):
     unknown = ("unk", "none", "none")
     provider = normalize_provider(provider_id)
     if not provider:
         return unknown
 
+    if antigravity_known_accounts is None:
+        antigravity_known_accounts = set()
+
     provider_events = attribution_events.get("by_provider", {}).get(provider, [])
     session_events = attribution_events.get("by_session", {}).get(session_id, []) if session_id else []
+    scoped_legacy_events = legacy_events
+
+    if provider == "antigravity" and antigravity_known_accounts:
+        provider_events = [
+            evt for evt in provider_events
+            if antigravity_event_matches_known_accounts(evt, antigravity_known_accounts)
+        ]
+        scoped_legacy_events = [
+            evt for evt in legacy_events
+            if antigravity_legacy_event_matches_known_accounts(evt, antigravity_known_accounts)
+        ]
 
     if first_prompt_ms is not None and session_events:
         before = [
@@ -548,9 +645,9 @@ def resolve_session_user(session_id, first_prompt_ms, provider_id, attribution_e
                 label = pick["account_label"] or pick["account_key"] or "unk"
                 return (compact_account_label(label), pick["source"], "low")
 
-    if allow_best_effort and first_prompt_ms is not None and legacy_events:
+    if allow_best_effort and first_prompt_ms is not None and scoped_legacy_events:
         before = [
-            evt for evt in legacy_events
+            evt for evt in scoped_legacy_events
             if evt["time_ms"] <= first_prompt_ms and provider_event_within_window(provider, evt["time_ms"], first_prompt_ms)
         ]
         if before:
@@ -559,7 +656,7 @@ def resolve_session_user(session_id, first_prompt_ms, provider_id, attribution_e
             return (compact_account_label(label), pick["source"], "low")
 
         after = [
-            evt for evt in legacy_events
+            evt for evt in scoped_legacy_events
             if evt["time_ms"] > first_prompt_ms and provider_event_within_window(provider, evt["time_ms"], first_prompt_ms)
         ]
         if after:
@@ -576,6 +673,7 @@ def resolve_session_user(session_id, first_prompt_ms, provider_id, attribution_e
 
 attribution_events = load_attribution_events(cur)
 control_account_events = load_control_account_events(cur)
+antigravity_known_accounts = load_antigravity_known_accounts()
 
 limit_clause = f"LIMIT {limit}" if limit > 0 else ""
 
@@ -652,6 +750,7 @@ for row in rows_raw:
         provider,
         attribution_events,
         control_account_events,
+        antigravity_known_accounts=antigravity_known_accounts,
         allow_best_effort=best_effort,
     )
     rows.append((

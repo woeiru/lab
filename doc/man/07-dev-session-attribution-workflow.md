@@ -184,8 +184,12 @@ Use this confidence model:
 
 Provider-wide fallback freshness window:
 - By default, OpenAI provider-wide/legacy timeline events older than 60 minutes from first prompt are ignored to reduce stale cross-session bleed.
-- Antigravity provider timeline fallback remains unchanged by this guard.
+- Antigravity fallback now applies an account-inventory guard for real-domain identities: provider-wide/legacy candidates not present in `antigravity-accounts.json` are skipped.
 - Override with `LAB_DEV_ATTR_PROVIDER_MAX_AGE_MS` (milliseconds). Set `0` to disable the freshness gate.
+
+Antigravity inventory source:
+- Default file: `$HOME/.config/opencode/antigravity-accounts.json`.
+- Optional override for diagnostics/tests: `LAB_DEV_ANTIGRAVITY_ACCOUNTS_FILE=/path/to/antigravity-accounts.json`.
 
 OpenAI auth-state fallback window:
 - When no eligible event path resolves an OpenAI session, resolver can use local auth-state identity (`SRC=auth_state`) if auth-state file timing is near first prompt (before or shortly after prompt).
@@ -216,6 +220,7 @@ Likely causes:
 - event provider does not match session provider family
 - event was emitted after the session already started
 - available provider-wide event is older than freshness window and was intentionally ignored
+- Antigravity candidate account is not present in current account inventory file
 - local auth-state timestamp is outside OpenAI auth fallback window
 
 Safe recovery:

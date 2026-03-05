@@ -947,6 +947,133 @@ PY
     [[ "$parsed" == "OK" ]]
 }
 
+# Test: Antigravity provider ignores real-domain events not present in account inventory
+test_dev_overview_antigravity_unlisted_account_filtered() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_antigravity_inventory_guard")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "version": 4,
+  "accounts": [
+    {
+      "email": "listed-operator@gmail.com",
+      "enabled": true
+    }
+  ],
+  "activeIndex": 0,
+  "activeIndexByFamily": {
+    "claude": 0,
+    "gemini": 0
+  }
+}
+JSON
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE message (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    time_created INTEGER,
+    time_updated INTEGER,
+    data TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE opencode_account_event (
+    time_ms INTEGER,
+    provider_id TEXT,
+    account_key TEXT,
+    account_label TEXT,
+    source TEXT
+)
+""")
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_antiguard000000000001", "project_lab", "/home/es/lab", "Session Antigravity Inventory Guard", 1771760002000),
+)
+
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_antiguard_user", "ses_antiguard000000000001", 1771760000000, 1771760000000, '{"role":"user"}'),
+)
+cur.execute(
+    "INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES (?, ?, ?, ?, ?)",
+    ("msg_antiguard_assistant", "ses_antiguard000000000001", 1771760001000, 1771760001000, '{"role":"assistant","providerID":"google","modelID":"antigravity-claude-sonnet-4-6"}'),
+)
+
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771759900000, "antigravity", "listed-operator@gmail.com", "listed-operator@gmail.com", "shell_wrapper"),
+)
+cur.execute(
+    "INSERT INTO opencode_account_event (time_ms, provider_id, account_key, account_label, source) VALUES (?, ?, ?, ?, ?)",
+    (1771759999000, "antigravity", "unlisted-operator@gmail.com", "unlisted-operator@gmail.com", "shell_wrapper"),
+)
+
+conn.commit()
+PY
+
+    _create_mock_opencode "$test_env" "$db_path"
+    cat > "$test_env/bin/column" <<'EOF'
+#!/bin/bash
+cat
+EOF
+    chmod +x "$test_env/bin/column"
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    local output
+    output=$(dev_osv -x)
+    local status=$?
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = {row.get('title', ''): row for row in reader}
+
+ok = (
+    rows.get('Session Antigravity Inventory Guard', {}).get('user') == 'listed-operator@gmail.com' and
+    rows.get('Session Antigravity Inventory Guard', {}).get('src') == 'shell_wrapper' and
+    rows.get('Session Antigravity Inventory Guard', {}).get('conf') == 'high'
+)
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
 # Test: OpenAI auth-state fallback resolves strict user when provider events are stale
 test_dev_overview_openai_auth_state_fallback_strict() {
     local test_env
@@ -3953,6 +4080,7 @@ main() {
     run_test test_dev_overview_stale_provider_event_filtered
     run_test test_dev_overview_stale_provider_event_window_override
     run_test test_dev_overview_antigravity_stale_provider_event_unfiltered
+    run_test test_dev_overview_antigravity_unlisted_account_filtered
     run_test test_dev_overview_openai_auth_state_fallback_strict
     run_test test_dev_overview_openai_auth_state_fallback_post_prompt_refresh
     run_test test_dev_overview_openai_auth_state_fallback_window_guard
