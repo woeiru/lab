@@ -195,18 +195,33 @@ tme_start_timer "REPORT_TEST" 2>/dev/null
 sleep 0.1
 tme_end_timer "REPORT_TEST" "success" 2>/dev/null
 
-# Test that timing report can be generated
-if report_output=$(tme_print_timing_report 2>/dev/null); then
-    if echo "$report_output" | grep -q "REPORT_TEST"; then
-        exit 0
-    else
-        echo "Pattern REPORT_TEST not found in output: $report_output" >&2
-        exit 1
-    fi
-else
-    echo "tme_print_timing_report failed" >&2
+# Test verbose report header style
+export LAB_LOG_FORMAT=verbose
+if ! verbose_output=$(tme_print_timing_report 2>/dev/null); then
+    echo "tme_print_timing_report failed in verbose mode" >&2
     exit 1
 fi
+echo "$verbose_output" | grep -q "REPORT_TEST" || {
+    echo "Pattern REPORT_TEST not found in verbose output: $verbose_output" >&2
+    exit 1
+}
+echo "$verbose_output" | grep -q "RC timing report" || {
+    echo "Verbose report header missing: $verbose_output" >&2
+    exit 1
+}
+
+# Test compact report mode
+export LAB_LOG_FORMAT=compact
+if ! compact_output=$(tme_print_timing_report 2>/dev/null); then
+    echo "tme_print_timing_report failed in compact mode" >&2
+    exit 1
+fi
+echo "$compact_output" | grep -q "REPORT_TEST" || {
+    echo "Pattern REPORT_TEST not found in compact output: $compact_output" >&2
+    exit 1
+}
+
+exit 0
 EOF
     chmod +x "$test_env/test_report.sh"
     

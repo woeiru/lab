@@ -79,11 +79,17 @@ ver_log() {
         return 0
     fi
 
-    {
-        local timestamp
-        printf -v timestamp '%(%H:%M:%S)T' -1
-        echo -e "    \033[38;5;208m└─ $message [$timestamp]\033[0m" >&2
-    }
+    if type _log_format_terminal &>/dev/null; then
+        local terminal_message
+        _log_format_terminal "ver" "$terminal_level" "$message" "$source" "0" terminal_message || return 2
+        printf '%s\n' "$terminal_message" >&2
+    else
+        {
+            local timestamp
+            printf -v timestamp '%(%H:%M:%S)T' -1
+            echo -e "    \033[38;5;208m└─ $message [$timestamp]\033[0m" >&2
+        }
+    fi
 }
 
 ###########################################

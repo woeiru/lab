@@ -105,7 +105,8 @@ tme_format_datetime_from_ns() {
 }
 
 tme_is_compact_output() {
-    [[ "${LAB_BOOTSTRAP_OUTPUT:-legacy}" == "compact" ]]
+    local format="${LAB_LOG_FORMAT:-${LAB_BOOTSTRAP_OUTPUT:-legacy}}"
+    [[ "${format,,}" == "compact" ]]
 }
 
 tme_col_value() {
@@ -654,14 +655,23 @@ tme_print_timing_report() {
         return 0
     fi
 
-    local report_color="${COL_METADATA:-}"
-    local reset_color="${COL_RESET:-}"
+    local report_header="== RC timing report =="
+    local components_header="-- components --"
+    local meta_header="-- meta --"
+    local report_footer="== end RC timing report =="
 
-    printf "\n%s ━ RC Timing Report%s\n" "$report_color" "$reset_color"
-    printf "%s ━ Generated: %s%s\n" "$report_color" "$generated_at" "$reset_color"
-    printf "%s ━ Total execution time: %ss%s\n" "$report_color" "$total_duration" "$reset_color"
-    printf "%s ━ Sort order: %s%s\n" "$report_color" "$sort_order" "$reset_color"
-    printf "\n"
+    if type _log_report_header &>/dev/null; then
+        _log_report_header "tme" "RC timing report" "" report_header
+        _log_report_header "tme" "RC timing report" "components" components_header
+        _log_report_header "tme" "RC timing report" "meta" meta_header
+        _log_report_header "tme" "end RC timing report" "" report_footer
+    fi
+
+    printf "\n%s\n" "$report_header"
+    printf "generated: %s\n" "$generated_at"
+    printf "total execution time: %ss\n" "$total_duration"
+    printf "sort order: %s\n" "$sort_order"
+    printf "\n%s\n" "$components_header"
 
     local components_to_print=()
     # Populate components_to_print based on top-level items (no parent)
@@ -679,8 +689,9 @@ tme_print_timing_report() {
         print_tree_recursive "$component" "  " "$total_duration_ns" "$sort_order"
     done
 
-    printf "\n%s ━ Timing log file: %s%s\n" "$report_color" "$TME_LOG_FILE" "$reset_color"
-    printf "\n"
+    printf "\n%s\n" "$meta_header"
+    printf "timing log file: %s\n" "$TME_LOG_FILE"
+    printf "%s\n\n" "$report_footer"
 }
 
 # Start nested timing for a component with automatic parent tracking

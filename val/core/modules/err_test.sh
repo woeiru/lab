@@ -68,6 +68,25 @@ test_command_not_found_uses_canonical_parameter_order() {
     grep -q "command not found" "$stderr_file"
 }
 
+test_err_print_report_header_styles() {
+    : > "$ERROR_LOG"
+
+    err_process "compact report warning" "err_test" 100 "WARNING" >/dev/null 2>&1 || true
+    err_process "verbose report error" "err_test" 7 "ERROR" >/dev/null 2>&1 || true
+
+    export LAB_LOG_FORMAT=compact
+    local compact_output
+    compact_output=$(err_print_report 2>&1 || true)
+    [[ "$compact_output" == *"RC error report"* ]] || return 1
+
+    export LAB_LOG_FORMAT=verbose
+    local verbose_output
+    verbose_output=$(err_print_report 2>&1 || true)
+    [[ "$verbose_output" == *"RC error report"* ]] || return 1
+    [[ "$verbose_output" == *"meta"* ]] || return 1
+    [[ "$verbose_output" == *"error log file"* ]]
+}
+
 main() {
     test_header "$TEST_NAME"
 
@@ -79,6 +98,7 @@ main() {
     run_test test_err_process_uses_stderr_for_warning
     run_test test_err_process_returns_exit_code
     run_test test_command_not_found_uses_canonical_parameter_order
+    run_test test_err_print_report_header_styles
 
     cleanup_err_test_env
     test_footer

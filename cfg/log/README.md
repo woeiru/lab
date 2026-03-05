@@ -26,6 +26,22 @@ Terminal emission is controlled by the unified log-level model:
 
 `aux_log` and `aux_dbg` both respect this model through shared core gating.
 
+## Runtime Terminal Format
+
+Runtime terminal rendering uses the shared core formatter in `lib/core/log` and is
+controlled by:
+
+- `LAB_LOG_FORMAT` (default `compact`): `compact` or `verbose`
+
+Visual contract for human terminal output:
+
+- Compact: `<glyph> <message>` (debug adds `[component]`)
+- Verbose: `[HH:MM:SS] <glyph> <message>`
+- Level glyphs: `·` (debug), `›` (info), `✓` (success), `!` (warn), `✗` (error/critical)
+
+This applies to `aux` human output and aligns with shared runtime rendering used by
+core logging modules.
+
 ## Rotation and File Hygiene
 
 - `aux.log` writes use the shared core writer (`lib/core/log::_log_write`), which strips ANSI and applies unified timestamps.

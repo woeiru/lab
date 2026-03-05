@@ -102,7 +102,7 @@ col_get_semantic() {
         "critical"|"security") echo -n "$COL_CRITICAL" ;;
         "notification"|"notify") echo -n "$COL_NOTIFICATION" ;;
         "parameter"|"param") echo -n "$COL_PARAMETER" ;;
-        "metadata"|"meta") echo -n "$COL_METADATA" ;;
+        "metadata"|"meta"|"dim") echo -n "$COL_METADATA" ;;
         "business")     echo -n "$COL_BUSINESS" ;;
         "audit")        echo -n "$COL_AUDIT" ;;
         "performance"|"perf") echo -n "$COL_PERFORMANCE" ;;

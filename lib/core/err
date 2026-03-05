@@ -50,7 +50,8 @@ declare -gA ERROR_SEVERITIES
 declare -ga ERROR_ORDER
 
 err_is_compact_output() {
-    [[ "${LAB_BOOTSTRAP_OUTPUT:-legacy}" == "compact" ]]
+    local format="${LAB_LOG_FORMAT:-${LAB_BOOTSTRAP_OUTPUT:-legacy}}"
+    [[ "${format,,}" == "compact" ]]
 }
 
 err_is_warning_entry() {
@@ -277,6 +278,23 @@ err_print_report() {
     declare -A error_types
     declare -A warnings_by_type
     local error_code
+    local report_header="== RC error report =="
+    local report_footer="== end RC error report =="
+    local errors_header="-- errors by type --"
+    local error_details_header="-- error details --"
+    local warnings_header="-- warnings by type --"
+    local warning_details_header="-- warning details --"
+    local meta_header="-- meta --"
+
+    if type _log_report_header &>/dev/null; then
+        _log_report_header "err" "RC error report" "" report_header
+        _log_report_header "err" "end RC error report" "" report_footer
+        _log_report_header "err" "RC error report" "errors by type" errors_header
+        _log_report_header "err" "RC error report" "error details" error_details_header
+        _log_report_header "err" "RC error report" "warnings by type" warnings_header
+        _log_report_header "err" "RC error report" "warning details" warning_details_header
+        _log_report_header "err" "RC error report" "meta" meta_header
+    fi
 
     # Count and categorize issues
     for error_id in "${ERROR_ORDER[@]}"; do
@@ -315,25 +333,27 @@ err_print_report() {
                 summary_symbol="${col_success}✓${col_reset}"
             fi
 
-            printf "\n%s errors %d · warnings %d\n" "$summary_symbol" "$total_errors" "$total_warnings" >&2
+            printf "\n%s\n" "$report_header" >&2
+            printf "%s errors %d · warnings %d\n" "$summary_symbol" "$total_errors" "$total_warnings" >&2
             if ((total_errors + total_warnings == 0)); then
                 printf "%sclean startup%s\n" "$col_meta" "$col_reset" >&2
             fi
             printf "%serror log:%s %s\n\n" "$col_meta" "$col_reset" "$ERROR_LOG" >&2
+            printf "%s\n\n" "$report_footer" >&2
 
             return $((total_errors > 0 ? 1 : 0))
         fi
 
         {
             printf "\n"
-            printf " ━ RC Error Report\n"
-            printf " ━ Generated: %s\n" "$(date)"
-            printf " ━ Total issues: %d (Errors: %d, Warnings: %d)\n" "$((total_errors + total_warnings))" "$total_errors" "$total_warnings"
+            printf "%s\n" "$report_header"
+            printf "generated: %s\n" "$(date)"
+            printf "total issues: %d (errors: %d, warnings: %d)\n" "$((total_errors + total_warnings))" "$total_errors" "$total_warnings"
             printf "\n"
 
             # Print errors first if any exist
             if ((total_errors > 0)); then
-                printf " ━ Errors by type:\n"
+                printf "%s\n" "$errors_header"
                 for code in "${!error_types[@]}"; do
                     local count=${error_types[$code]}
                     local desc
@@ -347,7 +367,7 @@ err_print_report() {
                 done
                 printf "\n"
 
-                printf " ━ Error details:\n"
+                printf "%s\n" "$error_details_header"
                 for error_id in "${ERROR_ORDER[@]}"; do
                     if ! err_is_warning_entry "$error_id"; then
                         printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
@@ -359,7 +379,7 @@ err_print_report() {
 
             # Print warnings if any exist
             if ((total_warnings > 0)); then
-                printf " ━ Warnings by type:\n"
+                printf "%s\n" "$warnings_header"
                 for code in "${!warnings_by_type[@]}"; do
                     local count=${warnings_by_type[$code]}
                     local desc
@@ -373,7 +393,7 @@ err_print_report() {
                 done
                 printf "\n"
 
-                printf " ━ Warning details:\n"
+                printf "%s\n" "$warning_details_header"
                 for error_id in "${ERROR_ORDER[@]}"; do
                     if err_is_warning_entry "$error_id"; then
                         printf "   └─ [%s] %s\n" "${ERROR_COMPONENTS[$error_id]}" "${ERROR_MESSAGES[$error_id]}"
@@ -384,11 +404,12 @@ err_print_report() {
             fi
 
             if ((total_errors + total_warnings == 0)); then
-                printf " ━ No issues detected during startup\n"
+                printf "no issues detected during startup\n"
             fi
 
-            printf " ━ Error log file: %s\n" "$ERROR_LOG"
-            printf "\n"
+            printf "%s\n" "$meta_header"
+            printf "error log file: %s\n" "$ERROR_LOG"
+            printf "%s\n\n" "$report_footer"
         } >&2
     fi
 

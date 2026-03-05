@@ -70,6 +70,31 @@ test_lo1_log_message_file_has_no_ansi_codes() {
     ! grep -q $'\033\[' "$LOG_FILE"
 }
 
+test_lo1_terminal_compact_format() {
+    lo1_setlog on >/dev/null 2>&1
+    export LAB_LOG_FORMAT=compact
+
+    local terminal_output
+    terminal_output=$(lo1_log "compact output check" 2>&1)
+
+    [[ "$terminal_output" == *"›"* ]] || return 1
+    [[ "$terminal_output" == *"compact output check"* ]] || return 1
+    [[ "$terminal_output" != *"└─"* ]]
+}
+
+test_lo1_terminal_verbose_format() {
+    lo1_setlog on >/dev/null 2>&1
+    export LAB_LOG_FORMAT=verbose
+
+    local terminal_output
+    terminal_output=$(lo1_log "verbose output check" 2>&1)
+
+    [[ "$terminal_output" == *"›"* ]] || return 1
+    [[ "$terminal_output" == *"└─"* ]] || return 1
+    [[ "$terminal_output" == *"verbose output check"* ]] || return 1
+    [[ "$terminal_output" =~ [0-9]{2}:[0-9]{2}:[0-9]{2} ]]
+}
+
 test_compat_wrappers_exist() {
     command -v log >/dev/null 2>&1 || return 1
     command -v setlog >/dev/null 2>&1 || return 1
@@ -87,6 +112,8 @@ main() {
     run_test test_lo1_setlog_off_suppresses_writes
     run_test test_lo1_legacy_lvl_signature_still_works
     run_test test_lo1_log_message_file_has_no_ansi_codes
+    run_test test_lo1_terminal_compact_format
+    run_test test_lo1_terminal_verbose_format
     run_test test_compat_wrappers_exist
 
     cleanup_lo1_test_env

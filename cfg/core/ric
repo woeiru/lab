@@ -184,6 +184,11 @@ export MASTER_TERMINAL_VERBOSITY
 declare -g LAB_LOG_LEVEL="${LAB_LOG_LEVEL:-normal}"
 export LAB_LOG_LEVEL
 
+# Unified terminal layout mode for runtime logs and reports.
+# Supported values: compact, verbose
+declare -g LAB_LOG_FORMAT="${LAB_LOG_FORMAT:-compact}"
+export LAB_LOG_FORMAT
+
 # Optional subsystem-level overrides for LAB_LOG_LEVEL.
 # Leave empty to inherit from LAB_LOG_LEVEL.
 declare -g LAB_LOG_LEVEL_INI="${LAB_LOG_LEVEL_INI:-}"

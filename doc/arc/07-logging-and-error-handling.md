@@ -1,23 +1,23 @@
 # 07 - Logging and Error Handling Architecture
 
-Logging and error handling are split across core bootstrap modules and runtime utilities, but now share a common file-write layer. `lib/core/log` provides shared logging primitives (`_log_write`, `_log_level_permits`, ANSI stripping, rotation checks). `lib/core/lo1` handles hierarchical bootstrap/runtime output, `lib/core/err` captures and reports error records, `lib/core/tme` tracks timing/performance events, and `lib/gen/aux` provides structured operational logs (`info/warn/error/audit/business/debug`) used by DIC and ops modules.
+Logging and error handling are split across core bootstrap modules and runtime utilities, but now share common file-write and terminal-rendering layers. `lib/core/log` provides shared logging primitives (`_log_write`, `_log_level_permits`, `_log_format_terminal`, `_log_report_header`, ANSI stripping, rotation checks). `lib/core/lo1` handles hierarchical bootstrap/runtime output, `lib/core/err` captures and reports error records, `lib/core/tme` tracks timing/performance events, and `lib/gen/aux` provides structured operational logs (`info/warn/error/audit/business/debug`) used by DIC and ops modules.
 
 ## 1. Responsibilities and Boundaries
 
 | Area | Primary files | Responsibility boundary |
 | --- | --- | --- |
-| Shared writer and verbosity model | `lib/core/log` | Shared file writer, ANSI stripping, level gating, rotation checks. |
+| Shared writer and verbosity model | `lib/core/log` | Shared file writer, ANSI stripping, level gating, compact/verbose terminal formatting, report header framing. |
 | Bootstrap/orchestrator logs | `lib/core/lo1`, `bin/ini`, `bin/orc` | Initialization and component-loading trace logs (`lo1.log`, `ini.log`). |
 | Error capture/reporting | `lib/core/err` | Error codes/maps, error records, trap handler, error report output. |
 | Timing/performance logs | `lib/core/tme` | Start/end timers, duration accounting, timing report (`tme.log`). |
 | Operational structured logs | `lib/gen/aux` | Multi-format operational/debug logging (`aux.log`, `aux.json`, `aux.csv`). |
-| Global verbosity controls | `cfg/core/ric` | Unified `LAB_LOG_LEVEL` + optional subsystem overrides and legacy compatibility toggles. |
+| Global verbosity controls | `cfg/core/ric` | Unified `LAB_LOG_LEVEL` + `LAB_LOG_FORMAT` and optional subsystem overrides with legacy compatibility toggles. |
 
 ## 2. Runtime/Load Sequence
 
 ### Actual call/load order
 
-1. `cfg/core/ric` defines core paths and unified verbosity controls (`LAB_LOG_LEVEL`, optional `LAB_LOG_LEVEL_<SUBSYSTEM>` overrides, and legacy compatibility toggles).
+1. `cfg/core/ric` defines core paths and unified runtime logging controls (`LAB_LOG_LEVEL`, `LAB_LOG_FORMAT`, optional `LAB_LOG_LEVEL_<SUBSYSTEM>` overrides, and legacy compatibility toggles).
 2. `bin/ini` forces `LOG_DEBUG_ENABLED=0` at the start of bootstrap (saving the original value) and exports `LAB_BOOTSTRAP_MODE=1`. This suppresses `lo1_log` stack-trace dumps and `ver_log` non-error writes during boot, significantly reducing file I/O on the hot path. Both are restored/cleared after orchestrator sourcing completes or on failure.
 3. `bin/ini` initializes log files (`INI_LOG_FILE`, `ERROR_LOG`) in `init_logging_system`.
 4. `bin/ini` loads `lib/core/log`, `lib/core/err`, `lib/core/lo1`, and `lib/core/tme` via `load_modules`.
@@ -90,6 +90,7 @@ flowchart LR
 - Core modules are tightly coupled to path and verbosity globals from `cfg/core/ric`; changing names/defaults impacts all logging/error behavior.
 - `bin/orc` component wrappers assume `err_handler`, `lo1_log`, and `tme_*` are available; load-order drift can break diagnostics.
 - Verbosity is unified through `LAB_LOG_LEVEL` (`silent < error < normal < verbose < debug`) with optional subsystem overrides.
+- Runtime visual density is controlled by `LAB_LOG_FORMAT` (`compact` default, `verbose` fallback).
 - `aux` logging format changes (`human/json/csv/kv`) affect both terminal output and downstream log consumers/parsers.
 - Return-code semantics are defined in specs (`lib/.spec`, `lib/ops/.spec`), but enforcement is distributed per function/module.
 - Boot-phase log suppression (`LOG_DEBUG_ENABLED=0`, `ver_log` gating via `LAB_BOOTSTRAP_MODE`) means boot diagnostics in `lo1.log` and `ver.log` are reduced compared to runtime. If boot debugging is needed, set `LOG_DEBUG_ENABLED=1` or `VER_BOOTSTRAP_LOGGING=1` before sourcing `bin/ini`.
@@ -97,3 +98,31 @@ flowchart LR
 ## Maintenance Note
 
 Update this document in the same PR when verbosity contracts in `cfg/core/ric`, logging/error APIs in `lib/core/{err,lo1,tme}`, or structured logging behavior in `lib/gen/aux` changes.
+
+## 6. Runtime Visual Contract
+
+The runtime terminal contract is shared across `lo1`, `ver`, and `aux` human mode through `lib/core/log::_log_format_terminal`.
+
+### Level glyph and semantic mapping
+
+| Level | Glyph | Semantic color |
+| --- | --- | --- |
+| `debug` | `·` | `dim` |
+| `info` | `›` | `info` |
+| `success` | `✓` | `success` |
+| `warn` | `!` | `warn` |
+| `error` | `✗` | `error` |
+| `critical` | `✗` | `critical` |
+
+### Line templates
+
+- `LAB_LOG_FORMAT=compact`: `<glyph> <message>` (debug adds `[component]`)
+- `LAB_LOG_FORMAT=verbose`: `[HH:MM:SS] <glyph> <message>` (lo1 adds depth prefix)
+
+### Report framing
+
+`err_print_report` and `tme_print_timing_report` use the shared framing contract:
+
+- Header: `== <TITLE> ==`
+- Section: `-- <SECTION> --`
+- Footer: `== end <TITLE> ==`

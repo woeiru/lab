@@ -1,9 +1,9 @@
 # Logging Visual Output Redesign
 
-- Status: queue
+- Status: active
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-04 02:37
+- Updated: 2026-03-05 02:12
 - Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/col, lib/gen/aux, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md, doc/pro/queue/20260303-2246_logging-architectural-restructure-plan.md, doc/pro/completed/20260303-0220_bootstrap-visual-output-redesign-plan/20260303-0220_bootstrap-visual-output-redesign-plan.md
 
 ## Goal
@@ -164,100 +164,166 @@ design-critical.
 
 ## Execution Plan
 
-### Phase 1 -- Visual specification (no code) (target: approved spec)
+### [IN PROGRESS 2026-03-05] Phase 4 -- Closeout and archive (target: completed-close with documented known-failure scope)
 
-1. **Level indicator glyph table.** Define the canonical glyph and color
-   for each log level:
+1. Record closure note that the remaining full-suite failures are known,
+   unrelated DIC failures (`dic_framework_test`, `dic_integration_test`,
+   `dic_phase1_completion_test`) tracked outside this visual-output item.
+2. Verify workflow metadata one final time: `bash doc/pro/check-workflow.sh`.
+3. Execute `doc/pro/task/completed-close` for this active item, preserving
+   links to DIC follow-up tracking in the completion notes.
 
-   | Level | Glyph | Color (semantic) | Example |
-   |-------|-------|------------------|---------|
-   | debug | `·` | `dim`/grey | `· Loading module ops/gpu` |
-   | info | `›` | `info`/blue | `› Component initialized` |
-   | success | `✓` | `success`/green | `✓ All modules loaded` |
-   | warn | `!` | `warn`/yellow | `! Deprecated function called` |
-   | error | `✗` | `error`/red | `✗ Module failed to load` |
-   | critical | `✗` | `critical`/bright red | `✗ Fatal: cannot continue` |
+## Phase 1 Design Deliverable
 
-2. **Line format template.** Define the standard log line layout for
-   compact and verbose modes:
-   - Compact: `<glyph> <message>`
-   - Verbose: `[HH:MM:SS] <glyph> <indented_message>`
-   - Debug: `[HH:MM:SS] <glyph> [component] <indented_message>`
+Date: 2026-03-05
+Design classification: required
 
-3. **Report section header style.** Define the shared header/divider
-   format for timing reports and error reports.
+### Visual contract
 
-4. **Color application rules.** Define where color is applied:
-   - Glyph: always colored by level
-   - Message: colored by level for warn/error/critical only
-   - Timestamp: dim/grey always
-   - Component: dim/grey always
-   - Tree characters (verbose mode): Viridis depth color
+#### Level indicator contract
 
-5. **`col_get_semantic` extension.** Document any new semantic names
-   needed (`dim`, `business`, `security`, `audit`, `perf`).
+| Level | Glyph | Semantic color | Notes |
+|-------|-------|----------------|-------|
+| debug | `·` | `dim` | low-importance trace events |
+| info | `›` | `info` | default operational events |
+| success | `✓` | `success` | completion/positive transitions |
+| warn | `!` | `warn` | recoverable risk or drift |
+| error | `✗` | `error` | failed operation |
+| critical | `✗` | `critical` | fatal/stop-the-line failure |
 
-6. **Rejected alternatives.** Document what was considered and why it
-   was rejected (e.g., emoji indicators, full-line coloring, progress
-   bars).
+#### Line layout contract
 
-### Phase 2 -- Core rendering implementation (target: unified glyphs and colors)
+1. Compact normal levels (`info`, `success`, `warn`, `error`, `critical`):
+   `<glyph> <message>`
+2. Compact debug:
+   `<glyph> [<component>] <message>`
+3. Verbose normal levels:
+   `[HH:MM:SS] <glyph> <indented_message>`
+4. Verbose debug:
+   `[HH:MM:SS] <glyph> [<component>] <indented_message>`
 
-1. Extend `col_get_semantic` in `lib/core/col` with any new semantic
-   types from the spec (e.g., `dim`).
+#### Report header contract (`tme` and `err`)
 
-2. Create `_log_format_terminal` function (in `lib/core/lo1` or
-   shared location) that applies the line format template:
-   - Input: level, message, optional component, optional depth
-   - Output: formatted terminal line with glyph, color, layout
-   - Respects `LAB_LOG_FORMAT` (compact vs verbose)
+Shared section framing (ASCII-safe):
+- Header line: `== <TITLE> ==`
+- Section line: `-- <SECTION> --`
+- Footer line: `== end <TITLE> ==`
 
-3. Wire `lo1_log` terminal rendering through `_log_format_terminal`.
-   Compact mode: flat output with glyph + message. Verbose mode:
-   tree-indented output (current behavior).
+The title and section labels use semantic color only on terminal output.
+File output remains plain text and unchanged.
 
-4. Wire `aux_log` human-format terminal rendering through
-   `_log_format_terminal`. Remove `aux_get_log_color` as a
-   standalone function (keep as thin wrapper if needed for
-   backward compatibility).
+### Interfaces
 
-5. Wire `ver_log` terminal rendering through `_log_format_terminal`.
+1. `_log_format_terminal <subsystem> <level> <message> [component] [depth]`
+   - Produces one terminal-ready line that respects `LAB_LOG_FORMAT`.
+   - Returns `0` on success, `1` on parameter error, `2` on render/runtime error.
+2. `_log_level_glyph <level> <out_var>`
+   - Resolves canonical glyph for the provided level.
+3. `_log_level_semantic <level> <out_var>`
+   - Resolves semantic color name for glyph/message coloring.
+4. `_log_report_header <report_type> <title> <section>`
+   - Emits standardized report framing for `tme` and `err` renderers.
 
-6. Verify: visual comparison screenshots of compact vs verbose
-   modes. `bash -n` all changed files.
+Chosen location: `lib/core/log` so `lo1`, `aux`, and `ver` can share one
+bootstrap-safe formatter alongside `_log_write` and `_log_level_permits`.
 
-### Phase 3 -- Report styling and format control (target: consistent reports)
+### Constraints
 
-1. Standardize `tme_print_timing_report` header and section
-   formatting to use the shared report style from the spec.
+1. Must remain bootstrap-safe: no dependency on `lib/gen/aux` helpers.
+2. Must preserve `LAB_LOG_FORMAT=verbose` as legacy-compatible fallback.
+3. Must not alter file log schema, field order, or color-stripping behavior.
+4. Must route all color selection through `col_get_semantic`.
+5. Must keep terminal routing consistent with current stderr-first policy.
 
-2. Standardize `err_print_report` header and section formatting.
+### Trade-offs
 
-3. Add `LAB_LOG_FORMAT` variable to `cfg/core/ric` (default: `verbose`
-   initially for safety; flipped to `compact` in Phase 4).
+1. Reusing `✗` for both `error` and `critical` optimizes recognizability;
+   severity differentiation is carried by semantic color (`error` vs `critical`).
+2. Compact mode removes tree glyphs for density; verbose mode retains tree
+   indentation for debugging depth analysis.
+3. ASCII report framing maximizes terminal portability but is less decorative
+   than box-drawing styles.
+4. Coloring only glyphs (and warn/error messages) reduces visual noise while
+   keeping high-severity events prominent.
 
-4. Wire compact/verbose mode selection through all rendering paths.
+### Chosen approach
 
-5. Verify: `./val/run_all_tests.sh core` and visual comparison of
-   reports in both modes.
+Implement a shared terminal formatter in `lib/core/log` and route all runtime
+human-readable rendering through it:
 
-### Phase 4 -- Default flip, documentation and closure (target: compact default, green suite)
+1. `lo1_log` uses compact or verbose template based on `LAB_LOG_FORMAT`.
+2. `aux_log` human mode replaces `aux_get_log_color` lookups with
+   `col_get_semantic` via shared formatter helpers.
+3. `ver_log` adopts the same glyph/color/layout contract as other subsystems.
+4. `tme_print_timing_report` and `err_print_report` use one report header style.
+5. `LAB_LOG_FORMAT` defaults to `verbose` during transition, then flips to
+   `compact` in Phase 4 after validation.
 
-1. Flip `LAB_LOG_FORMAT` default from `verbose` to `compact`.
+### `col_get_semantic` extension decision
 
-2. Ensure `LAB_LOG_FORMAT=verbose` preserves full legacy rendering
-   as a fallback.
+1. Add `dim` alias that maps to existing metadata/dim-style rendering.
+2. Keep existing semantic names for `business`, `security`, `audit`, and `perf`
+   unchanged (already supported in `lib/core/col`).
+3. Do not remove or remap any existing semantic tokens.
 
-3. Update `doc/arc/07-logging-and-error-handling.md` with visual
-   specification reference.
+### Rejected alternatives
 
-4. Update `cfg/log/README.md` with visual format documentation.
+1. Emoji level indicators (`:warning:`, `:x:`): rejected for width variance,
+   inconsistent font support, and noisy visual style.
+2. Full-line severity coloring for all levels: rejected due to eye fatigue and
+   poor scanability in dense logs.
+3. Keep subsystem-specific formatting rules: rejected because drift and
+   inconsistency would continue.
+4. Introduce progress bars/spinners in runtime logs: rejected as scope creep
+   outside report/log-line redesign.
 
-5. Regenerate reference docs: `./utl/doc/run_all_doc.sh`.
+## Progress Checkpoint
 
-6. Run full test suite: `./val/run_all_tests.sh`.
+### Done
 
-7. Run workflow checker: `bash doc/pro/check-workflow.sh`.
+1. Updated runtime default to compact in `cfg/core/ric` (`LAB_LOG_FORMAT=compact`).
+2. Updated visual/runtime architecture docs in
+   `doc/arc/07-logging-and-error-handling.md` and
+   `cfg/log/README.md`.
+3. Regenerated reference docs via `./utl/doc/run_all_doc.sh`
+   (`doc/ref/functions.md`, `doc/ref/variables.md`,
+   `doc/ref/module-dependencies.md`, `doc/ref/error-handling.md`,
+   `doc/ref/test-coverage.md`, `doc/ref/scope-integrity.md`,
+   `doc/ref/reverse-dependecies.md`).
+4. Ran full validation `./val/run_all_tests.sh`:
+   44 passed, 3 failed (`dic_framework_test`, `dic_integration_test`,
+   `dic_phase1_completion_test`).
+5. Ran workflow metadata check successfully:
+   `bash doc/pro/check-workflow.sh`.
+
+### In-flight
+
+1. Active-checkpoint updated; commit is pending.
+2. Item remains in `doc/pro/active/` until `completed-close` is executed.
+
+### Blockers
+
+1. No hard blockers in visual-output scope.
+2. Full-suite-green criterion remains blocked by known unrelated DIC tests.
+
+### Next steps
+
+1. Add explicit known-failure note and DIC follow-up link in this file:
+   `doc/pro/active/20260303-2247_logging-visual-output-redesign-plan.md`.
+2. Run `bash doc/pro/check-workflow.sh`.
+3. Run `doc/pro/task/completed-close` on
+   `doc/pro/active/20260303-2247_logging-visual-output-redesign-plan.md`.
+
+### Context
+
+1. Runtime rendering is now centralized in `lib/core/log` helpers and consumed
+   by `lo1`, `ver`, and `aux` human-mode rendering.
+2. Report framing for `tme` and `err` is standardized and exercised by module
+   tests.
+3. Full-suite failures remain limited to known DIC tests; no new failures were
+   introduced in core/lib/integration coverage relevant to this plan.
+4. Full-suite and doc-generation runs update `STATS.md` and
+   `doc/ref/stats/*` as normal side effects.
 
 ## Verification Plan
 
@@ -325,8 +391,5 @@ design-critical.
 
 ## Next Step
 
-Depends on: `20260303-2246_logging-architectural-restructure-plan`.
-Execute the architectural restructure first to establish the unified
-log writer and verbosity model. Phase 1 (visual specification) can
-begin in parallel with the later phases of the architectural
-restructure, since it is design-only and does not modify code.
+Close this item via `doc/pro/task/completed-close` with a documented note that
+the remaining DIC failures are known out-of-scope follow-up work.

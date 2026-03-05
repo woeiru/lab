@@ -79,7 +79,7 @@ source lib/gen/aux 2>/dev/null
 if declare -f aux_log >/dev/null; then
     # Test basic logging
     log_output=$(aux_log "INFO" "Test message" 2>&1)
-    if [[ "$log_output" =~ "INFO" ]] && [[ "$log_output" =~ "Test message" ]]; then
+    if [[ "$log_output" =~ "Test message" ]]; then
         exit 0
     fi
 fi
@@ -385,13 +385,21 @@ source lib/gen/aux 2>/dev/null || exit 1
 
 export MASTER_TERMINAL_VERBOSITY=on
 export LAB_LOG_LEVEL=silent
+export LAB_LOG_FORMAT=compact
 
 silent_output=$(aux_log "INFO" "silent terminal check" 2>&1)
 [[ -z "$silent_output" ]] || exit 1
 grep -q "silent terminal check" "$LOG_DIR/aux.log" || exit 1
 
 export LAB_LOG_LEVEL=debug
+compact_output=$(aux_log "INFO" "compact terminal check" 2>&1)
+[[ "$compact_output" == *"›"* ]] || exit 1
+[[ "$compact_output" == *"compact terminal check"* ]] || exit 1
+[[ ! "$compact_output" =~ [0-9]{2}:[0-9]{2}:[0-9]{2} ]] || exit 1
+
+export LAB_LOG_FORMAT=verbose
 debug_output=$(aux_log "INFO" "debug terminal check" 2>&1)
+[[ "$debug_output" =~ [0-9]{2}:[0-9]{2}:[0-9]{2} ]] || exit 1
 [[ "$debug_output" == *"debug terminal check"* ]] || exit 1
 
 rm -rf "$LOG_DIR"

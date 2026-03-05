@@ -123,6 +123,320 @@ _log_level_permits() {
     ((effective_rank >= required_rank))
 }
 
+_log_level_semantic() {
+    local level="${1:-info}"
+    local out_var="${2:-}"
+    local resolved_semantic="info"
+
+    case "${level,,}" in
+        debug|trace)
+            resolved_semantic="dim"
+            ;;
+        success|ok|done)
+            resolved_semantic="success"
+            ;;
+        warn|warning)
+            resolved_semantic="warn"
+            ;;
+        error|err|fail|failed)
+            resolved_semantic="error"
+            ;;
+        critical|fatal|panic|security)
+            resolved_semantic="critical"
+            ;;
+        business)
+            resolved_semantic="business"
+            ;;
+        audit)
+            resolved_semantic="audit"
+            ;;
+        performance|perf|metric)
+            resolved_semantic="perf"
+            ;;
+        info|notice|normal|verbose|progress)
+            resolved_semantic="info"
+            ;;
+        *)
+            resolved_semantic="info"
+            ;;
+    esac
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$resolved_semantic"
+    else
+        printf '%s\n' "$resolved_semantic"
+    fi
+}
+
+_log_level_glyph() {
+    local level="${1:-info}"
+    local out_var="${2:-}"
+    local resolved_glyph="›"
+
+    case "${level,,}" in
+        debug|trace)
+            resolved_glyph="·"
+            ;;
+        success|ok|done)
+            resolved_glyph="✓"
+            ;;
+        warn|warning)
+            resolved_glyph="!"
+            ;;
+        error|err|fail|failed|critical|fatal|panic|security)
+            resolved_glyph="✗"
+            ;;
+        *)
+            resolved_glyph="›"
+            ;;
+    esac
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$resolved_glyph"
+    else
+        printf '%s\n' "$resolved_glyph"
+    fi
+}
+
+_log_color_for_semantic() {
+    local semantic="${1:-info}"
+    local out_var="${2:-}"
+    local color=""
+
+    if type col_get_semantic >/dev/null 2>&1; then
+        color="$(col_get_semantic "$semantic")"
+    else
+        case "${semantic,,}" in
+            dim|metadata)
+                color="${COL_METADATA:-${AUX_LOG_GREY:-${COL_DIM:-}}}"
+                ;;
+            info)
+                color="${COL_INFO:-${AUX_LOG_INFO:-}}"
+                ;;
+            success)
+                color="${COL_SUCCESS:-}"
+                ;;
+            warn)
+                color="${COL_WARN:-${AUX_LOG_WARN:-}}"
+                ;;
+            error)
+                color="${COL_ERROR:-${AUX_LOG_ERROR:-}}"
+                ;;
+            critical|security)
+                color="${COL_CRITICAL:-${AUX_LOG_SECURITY:-}}"
+                ;;
+            business)
+                color="${COL_BUSINESS:-${AUX_LOG_BUSINESS:-}}"
+                ;;
+            audit)
+                color="${COL_AUDIT:-${AUX_LOG_AUDIT:-}}"
+                ;;
+            perf|performance)
+                color="${COL_PERFORMANCE:-${AUX_LOG_PERFORMANCE:-}}"
+                ;;
+            *)
+                color=""
+                ;;
+        esac
+    fi
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$color"
+    else
+        printf '%s\n' "$color"
+    fi
+}
+
+_log_depth_prefix() {
+    local depth="${1:-0}"
+    local out_var="${2:-}"
+    local indent=""
+    local i
+
+    [[ "$depth" =~ ^[0-9]+$ ]] || depth=0
+
+    case "$depth" in
+        0)
+            indent="    "
+            ;;
+        1)
+            indent="      "
+            ;;
+        *)
+            indent="      "
+            for ((i=2; i<=depth; i++)); do
+                indent="  $indent"
+            done
+            ;;
+    esac
+
+    indent="${indent}└─"
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$indent"
+    else
+        printf '%s\n' "$indent"
+    fi
+}
+
+_log_report_header() {
+    local report_type="$1"
+    local title="$2"
+    local section="${3:-}"
+    local out_var="${4:-}"
+    local semantic="metadata"
+    local color=""
+    local reset="${COL_RESET:-${AUX_LOG_NC:-}}"
+    local rendered
+
+    if [[ -z "$report_type" || -z "$title" ]]; then
+        return 1
+    fi
+
+    case "${report_type,,}" in
+        err|error)
+            semantic="error"
+            ;;
+        tme|timing)
+            semantic="info"
+            ;;
+        *)
+            semantic="metadata"
+            ;;
+    esac
+
+    if [[ -n "$section" ]]; then
+        rendered="-- ${section} --"
+    else
+        rendered="== ${title} =="
+    fi
+
+    _log_color_for_semantic "$semantic" color
+    if [[ -n "$color" && -n "$reset" ]]; then
+        rendered="${color}${rendered}${reset}"
+    fi
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$rendered"
+    else
+        printf '%s\n' "$rendered"
+    fi
+}
+
+_log_format_terminal() {
+    local subsystem="$1"
+    local level="$2"
+    local message="$3"
+    local component="${4:-}"
+    local depth="${5:-0}"
+    local out_var="${6:-}"
+    local format="${LAB_LOG_FORMAT:-verbose}"
+    local semantic
+    local glyph
+    local normalized_level
+    local glyph_color=""
+    local message_color=""
+    local timestamp_color=""
+    local component_color=""
+    local depth_color=""
+    local reset=""
+    local timestamp=""
+    local timestamp_segment=""
+    local glyph_segment=""
+    local component_segment=""
+    local depth_segment=""
+    local message_segment=""
+    local depth_prefix=""
+    local rendered=""
+
+    if [[ -z "$subsystem" || -z "$level" || -z "$message" ]]; then
+        return 1
+    fi
+
+    format="${format,,}"
+    case "$format" in
+        compact|verbose)
+            ;;
+        *)
+            format="verbose"
+            ;;
+    esac
+
+    _log_level_semantic "$level" semantic
+    _log_level_glyph "$level" glyph
+    normalized_level="$(_log_normalize_level "$level")"
+
+    if type col_get_semantic >/dev/null 2>&1 || [[ -n "${COL_RESET:-}" || -n "${AUX_LOG_NC:-}" ]]; then
+        _log_color_for_semantic "$semantic" glyph_color
+        _log_color_for_semantic "dim" timestamp_color
+        _log_color_for_semantic "dim" component_color
+        reset="${COL_RESET:-${AUX_LOG_NC:-}}"
+    fi
+
+    if [[ "$semantic" == "warn" || "$semantic" == "error" || "$semantic" == "critical" ]]; then
+        _log_color_for_semantic "$semantic" message_color
+    fi
+
+    if [[ -n "$message_color" && -n "$reset" ]]; then
+        message_segment="${message_color}${message}${reset}"
+    else
+        message_segment="$message"
+    fi
+
+    if [[ -n "$glyph_color" && -n "$reset" ]]; then
+        glyph_segment="${glyph_color}${glyph}${reset}"
+    else
+        glyph_segment="$glyph"
+    fi
+
+    if [[ "$normalized_level" == "debug" && -n "$component" ]]; then
+        if [[ -n "$component_color" && -n "$reset" ]]; then
+            component_segment="${component_color}[${component}]${reset}"
+        else
+            component_segment="[${component}]"
+        fi
+    fi
+
+    if [[ "$format" == "compact" ]]; then
+        rendered="$glyph_segment"
+        [[ -n "$component_segment" ]] && rendered+=" $component_segment"
+        rendered+=" $message_segment"
+    else
+        printf -v timestamp '%(%H:%M:%S)T' -1
+        if [[ -n "$timestamp_color" && -n "$reset" ]]; then
+            timestamp_segment="${timestamp_color}[${timestamp}]${reset}"
+        else
+            timestamp_segment="[${timestamp}]"
+        fi
+
+        if [[ "${subsystem,,}" == "lo1" ]]; then
+            _log_depth_prefix "$depth" depth_prefix
+            if type col_get_depth_color >/dev/null 2>&1; then
+                depth_color="$(col_get_depth_color "$depth")"
+            fi
+
+            if [[ -n "$depth_color" && -n "$reset" ]]; then
+                depth_segment="${depth_color}${depth_prefix}${reset}"
+            else
+                depth_segment="$depth_prefix"
+            fi
+        fi
+
+        rendered="$timestamp_segment $glyph_segment"
+        [[ -n "$component_segment" ]] && rendered+=" $component_segment"
+        [[ -n "$depth_segment" ]] && rendered+=" $depth_segment"
+        rendered+=" $message_segment"
+    fi
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$rendered"
+    else
+        printf '%s\n' "$rendered"
+    fi
+
+    return 0
+}
+
 _log_strip_ansi() {
     local input="${1:-}"
     local out_var="${2:-}"
@@ -221,6 +535,12 @@ export -f _log_normalize_level
 export -f _log_level_rank
 export -f _log_effective_level
 export -f _log_level_permits
+export -f _log_level_semantic
+export -f _log_level_glyph
+export -f _log_color_for_semantic
+export -f _log_depth_prefix
+export -f _log_report_header
+export -f _log_format_terminal
 export -f _log_strip_ansi
 export -f _log_rotate_if_needed
 export -f _log_write

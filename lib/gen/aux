@@ -648,19 +648,38 @@ aux_ask() {
 aux_get_log_color() {
     local log_level="$1"
     local out_var="${2:-}"
+    local semantic="info"
     local color=""
 
-    # Fallback to local color definitions
-    case "${log_level,,}" in  # Convert to lowercase for comparison
-        "business")     color="$AUX_LOG_BUSINESS" ;;
-        "security")     color="$AUX_LOG_SECURITY" ;;
-        "audit")        color="$AUX_LOG_AUDIT" ;;
-        "performance")  color="$AUX_LOG_PERFORMANCE" ;;
-        "info")         color="$AUX_LOG_INFO" ;;
-        "warn")         color="$AUX_LOG_WARN" ;;
-        "error")        color="$AUX_LOG_ERROR" ;;
-        *)               color="$AUX_LOG_INFO" ;;  # Default to info color
-    esac
+    if type _log_level_semantic &>/dev/null; then
+        _log_level_semantic "$log_level" semantic
+    else
+        case "${log_level,,}" in
+            "business") semantic="business" ;;
+            "security") semantic="critical" ;;
+            "audit") semantic="audit" ;;
+            "performance"|"perf") semantic="perf" ;;
+            "warn"|"warning") semantic="warn" ;;
+            "error"|"critical"|"fatal") semantic="error" ;;
+            "debug"|"trace") semantic="dim" ;;
+            *) semantic="info" ;;
+        esac
+    fi
+
+    if type col_get_semantic &>/dev/null; then
+        color="$(col_get_semantic "$semantic")"
+    else
+        case "$semantic" in
+            "business") color="${AUX_LOG_BUSINESS:-}" ;;
+            "critical") color="${AUX_LOG_SECURITY:-${AUX_LOG_ERROR:-}}" ;;
+            "audit") color="${AUX_LOG_AUDIT:-}" ;;
+            "perf") color="${AUX_LOG_PERFORMANCE:-}" ;;
+            "warn") color="${AUX_LOG_WARN:-}" ;;
+            "error") color="${AUX_LOG_ERROR:-}" ;;
+            "dim") color="${AUX_LOG_GREY:-}" ;;
+            *) color="${AUX_LOG_INFO:-}" ;;
+        esac
+    fi
 
     if [[ -n "$out_var" ]]; then
         printf -v "$out_var" '%s' "$color"
@@ -783,11 +802,25 @@ aux_log() {
             fi
             ;;
         "human"|*)
-            # Enhanced human-readable format with colors (independent of main logging system)
-            local log_color
-            aux_get_log_color "$log_level" log_color
-            local formatted_message="${AUX_LOG_GREY}[${AUX_LOG_NC}$timestamp${AUX_LOG_GREY}]${AUX_LOG_NC} ${log_color}[${log_level,,}]${AUX_LOG_NC} $message"
-            [[ -n "$context_data" ]] && formatted_message="$formatted_message ${AUX_LOG_GREY}[$context_data]${AUX_LOG_NC}"
+            local formatted_message
+            if type _log_format_terminal &>/dev/null; then
+                _log_format_terminal "aux" "${log_level,,}" "$message" "" "0" formatted_message || return 2
+                if [[ -n "$context_data" ]]; then
+                    local context_color
+                    local context_reset="${AUX_LOG_NC:-${COL_RESET:-}}"
+                    aux_get_log_color "debug" context_color
+                    if [[ -n "$context_color" && -n "$context_reset" ]]; then
+                        formatted_message="$formatted_message ${context_color}[$context_data]${context_reset}"
+                    else
+                        formatted_message="$formatted_message [$context_data]"
+                    fi
+                fi
+            else
+                local log_color
+                aux_get_log_color "$log_level" log_color
+                formatted_message="${AUX_LOG_GREY}[${AUX_LOG_NC}$timestamp${AUX_LOG_GREY}]${AUX_LOG_NC} ${log_color}[${log_level,,}]${AUX_LOG_NC} $message"
+                [[ -n "$context_data" ]] && formatted_message="$formatted_message ${AUX_LOG_GREY}[$context_data]${AUX_LOG_NC}"
+            fi
             if [[ "$should_output" == "true" ]]; then
                 echo "$formatted_message" >&2
             fi
@@ -948,10 +981,14 @@ aux_dbg() {
             fi
             ;;
         "human"|*)
-            # Format the debug message with function context and colors
-            local log_color
-            aux_get_log_color "$level" log_color
-            local formatted_message="${log_color}[${level,,}]${AUX_LOG_NC} $timestamp - ${AUX_LOG_GREY}[${AUX_LOG_NC}$caller_function${AUX_LOG_GREY}]${AUX_LOG_NC} $message"
+            local formatted_message
+            if type _log_format_terminal &>/dev/null; then
+                _log_format_terminal "aux" "${level,,}" "$message" "$caller_function" "0" formatted_message || return 2
+            else
+                local log_color
+                aux_get_log_color "$level" log_color
+                formatted_message="${log_color}[${level,,}]${AUX_LOG_NC} $timestamp - ${AUX_LOG_GREY}[${AUX_LOG_NC}$caller_function${AUX_LOG_GREY}]${AUX_LOG_NC} $message"
+            fi
             
             # Output to appropriate channels (with colors)
             if [[ "$should_output" == "true" ]]; then

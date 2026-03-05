@@ -350,7 +350,11 @@ lo1_log() {
     fi
 
     if [[ "$terminal_enabled" -eq 1 ]]; then
-        if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
+        if type _log_format_terminal &>/dev/null; then
+            local terminal_message
+            _log_format_terminal "lo1" "normal" "$message" "$caller_source" "$depth" terminal_message || return 2
+            printf "%s\n" "$terminal_message" >&2
+        elif [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
             printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" >&2
         else
             printf "%s%s %s %s%s\n" "$indent" "$color" "$timestamp" "$message" "$LOG_NC" >&2
@@ -448,12 +452,6 @@ lo1_log_message() {
     _lo1_calculate_final_depth depth
     local indent
     _lo1_get_indent "$depth" indent
-    local color
-    _lo1_get_color "$level" color
-    local reset="$LOG_NC"
-    
-    # Format the message
-    local formatted_message="${color}${indent}[$component] $message${reset}"
     local clean_message
     local required_level="normal"
 
@@ -469,10 +467,10 @@ lo1_log_message() {
 
     # Log to file
     if type _log_write &>/dev/null; then
-        _log_strip_ansi "$formatted_message" clean_message
+        _log_strip_ansi "[$component] $message" clean_message
         _log_write "LO1" "$required_level" "[$component] $clean_message" "$LOG_FILE" "${FUNCNAME[1]:-main}" || return 2
     else
-        printf "[LOG] %s - %s\n" "$timestamp" "$formatted_message" >> "$LOG_FILE"
+        printf "[LOG] %s - [%s] %s\n" "$timestamp" "$component" "$message" >> "$LOG_FILE"
     fi
 
     # Output to console if enabled (stderr only)
@@ -485,7 +483,13 @@ lo1_log_message() {
             return 0
         fi
 
-        printf "%s\n" "$formatted_message" >&2
+        if type _log_format_terminal &>/dev/null; then
+            local terminal_message
+            _log_format_terminal "lo1" "$required_level" "$message" "$component" "$depth" terminal_message || return 2
+            printf "%s\n" "$terminal_message" >&2
+        else
+            printf "%s%s[%s] %s%s\n" "$indent" "$LOG_NC" "$component" "$message" "$LOG_NC" >&2
+        fi
     fi
     
     return 0
