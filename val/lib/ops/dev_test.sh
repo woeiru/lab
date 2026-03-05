@@ -721,9 +721,9 @@ rows = {row.get('title', ''): row for row in reader}
 user_value = rows.get('Session Stale Provider', {}).get('user')
 
 ok = (
-    user_value in {'unk', 'unknown', '(unknown)'} and
-    rows.get('Session Stale Provider', {}).get('src') == 'none' and
-    rows.get('Session Stale Provider', {}).get('conf') == 'none'
+    user_value == 'stale-openai' and
+    rows.get('Session Stale Provider', {}).get('src') == 'provider_stale' and
+    rows.get('Session Stale Provider', {}).get('conf') == 'low'
 )
 print('OK' if ok else 'FAIL')
 PY
@@ -1420,9 +1420,9 @@ rows = {row.get('title', ''): row for row in reader}
 user_value = rows.get('Session Auth Window Guard', {}).get('user')
 
 ok = (
-    user_value in {'unk', 'unknown', '(unknown)'} and
-    rows.get('Session Auth Window Guard', {}).get('src') == 'none' and
-    rows.get('Session Auth Window Guard', {}).get('conf') == 'none'
+    user_value == 'auth-window@example.net' and
+    rows.get('Session Auth Window Guard', {}).get('src') == 'auth_state_stale' and
+    rows.get('Session Auth Window Guard', {}).get('conf') == 'low'
 )
 print('OK' if ok else 'FAIL')
 PY

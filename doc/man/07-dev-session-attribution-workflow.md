@@ -179,7 +179,7 @@ provider-wide timeline fallback.
 
 Use this confidence model:
 - `CONF=high`: matching provider event exists at or before session first prompt time and passes freshness gating for provider-wide fallback.
-- `CONF=low`: only post-first-prompt event match exists (best-effort mode only).
+- `CONF=low`: post-first-prompt match (best-effort mode) or explicit stale OpenAI fallback (`SRC=auth_state_stale` or `SRC=provider_stale`) when no in-window OpenAI identity is available.
 - `CONF=none`: no qualifying event for that provider/session.
 
 Provider-wide fallback freshness window:
@@ -194,6 +194,9 @@ Antigravity inventory source:
 OpenAI auth-state fallback window:
 - When no eligible event path resolves an OpenAI session, resolver can use local auth-state identity (`SRC=auth_state`) if auth-state file timing is near first prompt (before or shortly after prompt).
 - Default window is 6 hours; override with `LAB_DEV_ATTR_OPENAI_AUTH_MAX_AGE_MS` (milliseconds). Set `0` to disable the freshness gate.
+- If in-window OpenAI identity resolution still fails, resolver attempts explicit stale non-synthetic OpenAI fallbacks with low confidence before unresolved output:
+  - `SRC=auth_state_stale` from local auth-state identity outside freshness window
+  - `SRC=provider_stale` from stale provider timeline identity
 
 ### Provider normalization
 
@@ -222,6 +225,7 @@ Likely causes:
 - available provider-wide event is older than freshness window and was intentionally ignored
 - Antigravity candidate account is not present in current account inventory file
 - local auth-state timestamp is outside OpenAI auth fallback window
+- no non-synthetic stale OpenAI identity is available for stale fallback paths
 
 Safe recovery:
 1. confirm session provider in `ops dev osv -x --best-effort`

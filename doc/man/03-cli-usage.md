@@ -206,16 +206,19 @@ ops dev osv -x
 ops dev osv -x --best-effort
 ```
 
-- Strict default (`ops dev osv -x`) only shows event-backed `CONF=high` identities.
-- Best-effort mode (`--best-effort`) can surface `CONF=low` fallbacks and keeps provenance in `SRC`.
+- Strict default (`ops dev osv -x`) prefers event-backed `CONF=high` identities and can emit explicit stale OpenAI fallback identities at `CONF=low` when no in-window candidate exists.
+- Best-effort mode (`--best-effort`) can surface additional `CONF=low` fallbacks and keeps provenance in `SRC`.
 - OpenAI provider-wide fallback events are freshness-gated (default 60 minutes from first prompt) to prevent stale cross-session attribution bleed. Antigravity provider timeline behavior is unchanged. Tune OpenAI gating with `LAB_DEV_ATTR_PROVIDER_MAX_AGE_MS` (`0` disables the gate).
 - OpenAI sessions can fall back to local auth-state identity (`SRC=auth_state`) when event matching is unavailable but auth-state timing is near first prompt (default 6 hours, before or shortly after prompt to tolerate token refresh). Tune with `LAB_DEV_ATTR_OPENAI_AUTH_MAX_AGE_MS` (`0` disables the gate).
+- If OpenAI freshness windows exclude all in-window candidates but a non-synthetic stale identity exists, resolver reports `CONF=low` with explicit stale provenance (`SRC=auth_state_stale` or `SRC=provider_stale`) before unresolved `unk`.
 
 Common `SRC` values:
 - `shell_wrapper`: automatic event emitted by the `opencode()` shell wrapper
 - `opencode_runtime`: runtime/manual event emitted by `dev_oae`/`dev_orr`
 - `connector_event`: connector token refresh event emitted by `dev_otr`
 - `manual_switch`: account switch event emitted by `dev_oas`
+- `auth_state_stale`: stale OpenAI local auth-state fallback used as low-confidence identity
+- `provider_stale`: stale OpenAI provider timeline fallback used as low-confidence identity
 
 ### Emit runtime attribution events directly
 

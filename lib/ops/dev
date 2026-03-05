@@ -277,6 +277,47 @@ def resolve_openai_auth_user(first_prompt_ms, allow_best_effort=False):
 
     return None
 
+def resolve_openai_auth_user_stale():
+    openai_auth_identity = load_openai_auth_identity()
+    if not openai_auth_identity:
+        return None
+
+    account_label = openai_auth_identity.get("account_label") or openai_auth_identity.get("account_key") or ""
+    if not account_label:
+        return None
+
+    if is_synthetic_openai_identity(account_label):
+        return None
+
+    return (compact_account_label(account_label), "auth_state_stale", "low")
+
+def resolve_openai_provider_stale_user(provider_events, first_prompt_ms):
+    if not provider_events:
+        return None
+
+    non_synthetic = []
+    for event in provider_events:
+        label = event.get("account_label") or event.get("account_key") or ""
+        key = event.get("account_key") or label
+        if is_synthetic_openai_identity(label) and is_synthetic_openai_identity(key):
+            continue
+        non_synthetic.append(event)
+
+    if not non_synthetic:
+        return None
+
+    if first_prompt_ms is not None:
+        before = [evt for evt in non_synthetic if evt.get("time_ms") is not None and evt["time_ms"] <= first_prompt_ms]
+        pick = before[-1] if before else non_synthetic[-1]
+    else:
+        pick = non_synthetic[-1]
+
+    label = pick.get("account_label") or pick.get("account_key") or ""
+    if not label:
+        return None
+
+    return (compact_account_label(label), "provider_stale", "low")
+
 def table_exists(cursor, table_name):
     try:
         cursor.execute(
@@ -668,6 +709,14 @@ def resolve_session_user(
         auth_pick = resolve_openai_auth_user(first_prompt_ms, allow_best_effort=allow_best_effort)
         if auth_pick is not None:
             return auth_pick
+
+        stale_auth_pick = resolve_openai_auth_user_stale()
+        if stale_auth_pick is not None:
+            return stale_auth_pick
+
+        stale_provider_pick = resolve_openai_provider_stale_user(provider_events, first_prompt_ms)
+        if stale_provider_pick is not None:
+            return stale_provider_pick
 
     return unknown
 
