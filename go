@@ -378,6 +378,7 @@ EOF
 bootstrap_cache_sources() {
     printf '%s\n' \
         "$LAB_ROOT/lib/core/col" \
+        "$LAB_ROOT/lib/core/log" \
         "$LAB_ROOT/lib/core/err" \
         "$LAB_ROOT/lib/core/lo1" \
         "$LAB_ROOT/lib/core/tme" \

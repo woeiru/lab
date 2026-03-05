@@ -86,13 +86,28 @@ err_process() {
     local component="${2:-${FUNCNAME[1]:-main}}"
     local exit_code="${3:-${ERROR_CODES[GENERAL_ERROR]}}"
     local severity="${4:-ERROR}"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    local log_message
+    local error_id
+    local severity_level="normal"
+    local terminal_enabled=0
+
+    [[ -z "$message" ]] && return 1
+    [[ "$exit_code" =~ ^[0-9]+$ ]] || exit_code="${ERROR_CODES[GENERAL_ERROR]}"
+
+    printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
     
     # Log the error with component information and timestamp
-    local log_message="[$severity] $timestamp - [$component] $message"
+    log_message="[$severity] $timestamp - [$component] $message"
     
     # Store error information
-    local error_id="$component-$(date +%s%N)"
+    if [[ -n "${EPOCHREALTIME:-}" ]]; then
+        error_id="$component-${EPOCHREALTIME//[^0-9]/}"
+    else
+        local epoch_seconds
+        printf -v epoch_seconds '%(%s)T' -1
+        error_id="$component-${epoch_seconds}000000"
+    fi
     ERROR_COMPONENTS[$error_id]="$component"
     ERROR_MESSAGES[$error_id]="$message"
     ERROR_TIMESTAMPS[$error_id]="$timestamp"
@@ -101,15 +116,35 @@ err_process() {
     ERROR_ORDER+=("$error_id")
     
     # Log to the error log file
-    printf "%s\n" "$log_message" >> "${ERROR_LOG}"
-    
-    # Output to console based on severity and verbosity settings
-    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${ERR_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
-        if [[ "$severity" == "ERROR" || "$severity" == "CRITICAL" ]]; then
-            printf "%s\n" "$log_message" >&2
-        elif [[ "$severity" == "WARNING" ]]; then
-            printf "%s\n" "$log_message" >&1
+    if type _log_write &>/dev/null; then
+        _log_write "ERR" "${severity,,}" "[$component] $message" "${ERROR_LOG}" "${FUNCNAME[1]:-main}" || return 2
+    else
+        printf "%s\n" "$log_message" >> "${ERROR_LOG}" || return 2
+    fi
+
+    case "${severity^^}" in
+        ERROR|CRITICAL|FATAL)
+            severity_level="error"
+            ;;
+        DEBUG)
+            severity_level="debug"
+            ;;
+        INFO|WARNING|WARN)
+            severity_level="normal"
+            ;;
+    esac
+
+    # Output to console based on severity and verbosity settings (stderr only)
+    if type _log_level_permits &>/dev/null; then
+        if _log_level_permits "$severity_level" "err"; then
+            terminal_enabled=1
         fi
+    elif [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${ERR_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        terminal_enabled=1
+    fi
+
+    if [[ "$terminal_enabled" -eq 1 ]]; then
+        printf "%s\n" "$log_message" >&2
     fi
     
     return $exit_code
@@ -463,7 +498,7 @@ command_not_found_handle() {
     
     # Log the command not found event if logging is available
     if type err_process &>/dev/null; then
-        err_process "command_not_found" "Command not found: $command" "$exit_code" "WARNING"
+        err_process "Command not found: $command" "command_not_found" "$exit_code" "WARNING"
     fi
     
     # Return the standard exit code for command not found, but don't exit the shell

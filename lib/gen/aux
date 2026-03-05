@@ -700,11 +700,20 @@ aux_log() {
     local log_level="$1"
     local message="$2"
     local context_data="${3:-}"
+    local should_output=false
     
     # Validate parameters
     if [[ -z "$log_level" || -z "$message" ]]; then
         echo "Error: aux_log requires both log_level and message parameters" >&2
         return 1
+    fi
+
+    if type _log_level_permits &>/dev/null; then
+        if _log_level_permits "${log_level,,}" "aux"; then
+            should_output=true
+        fi
+    elif [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+        should_output=true
     fi
     
     # Generate structured metadata
@@ -720,35 +729,57 @@ aux_log() {
         "json")
             local json_log
             aux_format_json_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" "operational" json_log
-            echo "$json_log" >&2
+            if [[ "$should_output" == "true" ]]; then
+                echo "$json_log" >&2
+            fi
             
             # File output
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                echo "$json_log" >> "${LOG_DIR}/aux.json"
+                local aux_json_file="${LOG_DIR}/aux.json"
+                if type _log_rotate_if_needed &>/dev/null; then
+                    _log_rotate_if_needed "$aux_json_file" || return 2
+                fi
+                echo "$json_log" >> "$aux_json_file"
             fi
             ;;
         "csv")
             local csv_log
             aux_format_csv_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" csv_log
-            echo "$csv_log" >&2
+            if [[ "$should_output" == "true" ]]; then
+                echo "$csv_log" >&2
+            fi
             
             # File output with header if new file
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                if [[ ! -f "${LOG_DIR}/aux.csv" ]]; then
-                    echo "timestamp,level,message,function,node_id,cluster_id,service,context" >> "${LOG_DIR}/aux.csv"
+                local aux_csv_file="${LOG_DIR}/aux.csv"
+                if type _log_rotate_if_needed &>/dev/null; then
+                    _log_rotate_if_needed "$aux_csv_file" || return 2
                 fi
-                echo "$csv_log" >> "${LOG_DIR}/aux.csv"
+                if [[ ! -s "$aux_csv_file" ]]; then
+                    echo "timestamp,level,message,function,node_id,cluster_id,service,context" >> "$aux_csv_file"
+                fi
+                echo "$csv_log" >> "$aux_csv_file"
             fi
             ;;
         "kv"|"keyvalue")
             local kv_log="timestamp=$timestamp level=${log_level,,} message=\"$message\" type=operational"
             [[ -n "$cluster_metadata" ]] && kv_log="$kv_log $cluster_metadata"
             [[ -n "$context_data" ]] && kv_log="$kv_log $context_data"
-            echo "$kv_log" >&2
+            if [[ "$should_output" == "true" ]]; then
+                echo "$kv_log" >&2
+            fi
             
             # File output
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                echo "$kv_log" >> "${LOG_DIR}/aux.log"
+                local aux_log_file="${LOG_DIR}/aux.log"
+                if type _log_write &>/dev/null; then
+                    _log_write "AUX" "${log_level,,}" "$kv_log" "$aux_log_file" "${FUNCNAME[1]:-main}" || return 2
+                else
+                    if type _log_rotate_if_needed &>/dev/null; then
+                        _log_rotate_if_needed "$aux_log_file" || return 2
+                    fi
+                    echo "$kv_log" >> "$aux_log_file"
+                fi
             fi
             ;;
         "human"|*)
@@ -757,13 +788,25 @@ aux_log() {
             aux_get_log_color "$log_level" log_color
             local formatted_message="${AUX_LOG_GREY}[${AUX_LOG_NC}$timestamp${AUX_LOG_GREY}]${AUX_LOG_NC} ${log_color}[${log_level,,}]${AUX_LOG_NC} $message"
             [[ -n "$context_data" ]] && formatted_message="$formatted_message ${AUX_LOG_GREY}[$context_data]${AUX_LOG_NC}"
-            echo "$formatted_message" >&2
+            if [[ "$should_output" == "true" ]]; then
+                echo "$formatted_message" >&2
+            fi
             
             # Also log to file if LOG_DIR is available (without colors for file)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                local file_message="[$timestamp] [${log_level,,}] $message"
+                local aux_log_file="${LOG_DIR}/aux.log"
+                local file_message="[${log_level,,}] $message"
                 [[ -n "$context_data" ]] && file_message="$file_message [$context_data]"
-                echo "$file_message" >> "${LOG_DIR}/aux.log"
+                if type _log_write &>/dev/null; then
+                    _log_write "AUX" "${log_level,,}" "$file_message" "$aux_log_file" "${FUNCNAME[1]:-main}" || return 2
+                else
+                    local fallback_message="[$timestamp] [${log_level,,}] $message"
+                    [[ -n "$context_data" ]] && fallback_message="$fallback_message [$context_data]"
+                    if type _log_rotate_if_needed &>/dev/null; then
+                        _log_rotate_if_needed "$aux_log_file" || return 2
+                    fi
+                    echo "$fallback_message" >> "$aux_log_file"
+                fi
             fi
             ;;
     esac
@@ -819,8 +862,14 @@ aux_dbg() {
     local has_file_targets=false
     
     # Use environment variables for auxiliary debug output control
-    if [[ "${AUX_DEBUG_ENABLED:-1}" == "1" && "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
-        should_output=true
+    if [[ "${AUX_DEBUG_ENABLED:-1}" == "1" ]]; then
+        if type _log_level_permits &>/dev/null; then
+            if _log_level_permits "debug" "aux"; then
+                should_output=true
+            fi
+        elif [[ "${MASTER_TERMINAL_VERBOSITY:-off}" == "on" ]]; then
+            should_output=true
+        fi
     fi
 
     if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
@@ -848,7 +897,11 @@ aux_dbg() {
             
             # File logging (consolidated to aux.json)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                echo "$json_log" >> "${LOG_DIR}/aux.json"
+                local aux_json_file="${LOG_DIR}/aux.json"
+                if type _log_rotate_if_needed &>/dev/null; then
+                    _log_rotate_if_needed "$aux_json_file" || return 2
+                fi
+                echo "$json_log" >> "$aux_json_file"
             fi
             ;;
         "csv")
@@ -862,10 +915,14 @@ aux_dbg() {
             
             # File logging with header (consolidated to aux.csv)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                if [[ ! -f "${LOG_DIR}/aux.csv" ]]; then
-                    echo "timestamp,level,message,function,node_id,cluster_id,service,context" >> "${LOG_DIR}/aux.csv"
+                local aux_csv_file="${LOG_DIR}/aux.csv"
+                if type _log_rotate_if_needed &>/dev/null; then
+                    _log_rotate_if_needed "$aux_csv_file" || return 2
                 fi
-                echo "$csv_log" >> "${LOG_DIR}/aux.csv"
+                if [[ ! -s "$aux_csv_file" ]]; then
+                    echo "timestamp,level,message,function,node_id,cluster_id,service,context" >> "$aux_csv_file"
+                fi
+                echo "$csv_log" >> "$aux_csv_file"
             fi
             ;;
         "kv"|"keyvalue")
@@ -879,7 +936,15 @@ aux_dbg() {
             
             # File logging (consolidated to aux.log)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                echo "$kv_log" >> "${LOG_DIR}/aux.log"
+                local aux_log_file="${LOG_DIR}/aux.log"
+                if type _log_write &>/dev/null; then
+                    _log_write "AUX" "${level,,}" "$kv_log" "$aux_log_file" "$caller_function" || return 2
+                else
+                    if type _log_rotate_if_needed &>/dev/null; then
+                        _log_rotate_if_needed "$aux_log_file" || return 2
+                    fi
+                    echo "$kv_log" >> "$aux_log_file"
+                fi
             fi
             ;;
         "human"|*)
@@ -895,8 +960,17 @@ aux_dbg() {
             
             # Always log to file (consolidated to aux.log, without colors)
             if [[ -n "${LOG_DIR:-}" && -w "${LOG_DIR:-}" ]]; then
-                local file_message="[${level,,}] $timestamp - [$caller_function] $message"
-                echo "$file_message" >> "${LOG_DIR}/aux.log"
+                local aux_log_file="${LOG_DIR}/aux.log"
+                local file_message="[$caller_function] $message"
+                if type _log_write &>/dev/null; then
+                    _log_write "AUX" "${level,,}" "$file_message" "$aux_log_file" "$caller_function" || return 2
+                else
+                    local fallback_message="[${level,,}] $timestamp - [$caller_function] $message"
+                    if type _log_rotate_if_needed &>/dev/null; then
+                        _log_rotate_if_needed "$aux_log_file" || return 2
+                    fi
+                    echo "$fallback_message" >> "$aux_log_file"
+                fi
             fi
             ;;
     esac

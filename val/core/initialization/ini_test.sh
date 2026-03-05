@@ -45,7 +45,7 @@ cd "$LAB_DIR"
 # Test sourcing ini (should load core modules)
 if source bin/ini 2>/dev/null; then
     # Check if core modules are loaded
-    if declare -f err_process >/dev/null && declare -f lo1_log >/dev/null && declare -f tme_start_timer >/dev/null; then
+    if declare -f _log_write >/dev/null && declare -f err_process >/dev/null && declare -f lo1_log >/dev/null && declare -f tme_start_timer >/dev/null; then
         exit 0
     else
         exit 1
@@ -357,6 +357,7 @@ fi
 declare -f err_process >/dev/null 2>&1 || exit 1
 declare -f lo1_log >/dev/null 2>&1 || exit 1
 declare -f tme_start_timer >/dev/null 2>&1 || exit 1
+declare -f _log_write >/dev/null 2>&1 || exit 1
 EOF
     chmod +x "$test_env/test_compiled_cache_stale.sh"
 

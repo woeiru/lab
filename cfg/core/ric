@@ -179,6 +179,22 @@ export CONS_LOADED
 declare -g MASTER_TERMINAL_VERBOSITY="${MASTER_TERMINAL_VERBOSITY:-on}"
 export MASTER_TERMINAL_VERBOSITY
 
+# Unified terminal verbosity model (default runtime level).
+# Supported levels: silent, error, normal, verbose, debug
+declare -g LAB_LOG_LEVEL="${LAB_LOG_LEVEL:-normal}"
+export LAB_LOG_LEVEL
+
+# Optional subsystem-level overrides for LAB_LOG_LEVEL.
+# Leave empty to inherit from LAB_LOG_LEVEL.
+declare -g LAB_LOG_LEVEL_INI="${LAB_LOG_LEVEL_INI:-}"
+declare -g LAB_LOG_LEVEL_VER="${LAB_LOG_LEVEL_VER:-}"
+declare -g LAB_LOG_LEVEL_LO1="${LAB_LOG_LEVEL_LO1:-}"
+declare -g LAB_LOG_LEVEL_ERR="${LAB_LOG_LEVEL_ERR:-}"
+declare -g LAB_LOG_LEVEL_AUX="${LAB_LOG_LEVEL_AUX:-}"
+declare -g LAB_LOG_LEVEL_TME="${LAB_LOG_LEVEL_TME:-}"
+export LAB_LOG_LEVEL_INI LAB_LOG_LEVEL_VER LAB_LOG_LEVEL_LO1
+export LAB_LOG_LEVEL_ERR LAB_LOG_LEVEL_AUX LAB_LOG_LEVEL_TME
+
 # Controls terminal verbosity for early init and verification debug_log
 # Set to "on" for verbose output, "off" for quiet terminal.
 # Requires MASTER_TERMINAL_VERBOSITY to also be "on".

@@ -1,0 +1,226 @@
+#!/bin/bash
+# Shared logging primitives for core/bootstrap modules.
+
+declare -gA _LOG_ROTATE_COUNTER
+
+_log_normalize_level() {
+    local raw_level="${1:-normal}"
+    raw_level="${raw_level,,}"
+
+    case "$raw_level" in
+        off|silent|none|0)
+            printf '%s\n' "silent"
+            ;;
+        error|err|fatal|critical|1)
+            printf '%s\n' "error"
+            ;;
+        warn|warning|info|notice|normal|2)
+            printf '%s\n' "normal"
+            ;;
+        verbose|detail|detailed|progress|3)
+            printf '%s\n' "verbose"
+            ;;
+        debug|trace|4)
+            printf '%s\n' "debug"
+            ;;
+        *)
+            printf '%s\n' "normal"
+            ;;
+    esac
+}
+
+_log_level_rank() {
+    local normalized
+    normalized="$(_log_normalize_level "$1")"
+
+    case "$normalized" in
+        silent) printf '%s\n' 0 ;;
+        error) printf '%s\n' 1 ;;
+        normal) printf '%s\n' 2 ;;
+        verbose) printf '%s\n' 3 ;;
+        debug) printf '%s\n' 4 ;;
+        *) printf '%s\n' 2 ;;
+    esac
+}
+
+_log_effective_level() {
+    local subsystem="${1:-}"
+    local level="${LAB_LOG_LEVEL:-normal}"
+    local override_var=""
+    local legacy_toggle_var=""
+
+    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" != "on" ]]; then
+        printf '%s\n' "silent"
+        return 0
+    fi
+
+    if [[ "${LAB_BOOTSTRAP_MODE:-0}" == "1" ]]; then
+        case "${LAB_BOOTSTRAP_VERBOSITY:-compact}" in
+            silent)
+                printf '%s\n' "silent"
+                return 0
+                ;;
+            verbose)
+                printf '%s\n' "verbose"
+                return 0
+                ;;
+            compact|*)
+                printf '%s\n' "normal"
+                return 0
+                ;;
+        esac
+    fi
+
+    case "${subsystem,,}" in
+        ini)
+            override_var="LAB_LOG_LEVEL_INI"
+            legacy_toggle_var="INI_LOG_TERMINAL_VERBOSITY"
+            ;;
+        ver)
+            override_var="LAB_LOG_LEVEL_VER"
+            legacy_toggle_var="VER_LOG_TERMINAL_VERBOSITY"
+            ;;
+        lo1)
+            override_var="LAB_LOG_LEVEL_LO1"
+            legacy_toggle_var="LO1_LOG_TERMINAL_VERBOSITY"
+            ;;
+        err)
+            override_var="LAB_LOG_LEVEL_ERR"
+            legacy_toggle_var="ERR_TERMINAL_VERBOSITY"
+            ;;
+        tme)
+            override_var="LAB_LOG_LEVEL_TME"
+            legacy_toggle_var="TME_TERMINAL_VERBOSITY"
+            ;;
+        aux)
+            override_var="LAB_LOG_LEVEL_AUX"
+            ;;
+    esac
+
+    if [[ -n "$legacy_toggle_var" && "${!legacy_toggle_var:-on}" != "on" ]]; then
+        printf '%s\n' "silent"
+        return 0
+    fi
+
+    if [[ -n "$override_var" && -n "${!override_var:-}" ]]; then
+        level="${!override_var}"
+    fi
+
+    _log_normalize_level "$level"
+}
+
+_log_level_permits() {
+    local required_level="${1:-normal}"
+    local subsystem="${2:-}"
+    local required_rank
+    local effective_level
+    local effective_rank
+
+    required_rank="$(_log_level_rank "$required_level")"
+    effective_level="$(_log_effective_level "$subsystem")"
+    effective_rank="$(_log_level_rank "$effective_level")"
+
+    ((effective_rank >= required_rank))
+}
+
+_log_strip_ansi() {
+    local input="${1:-}"
+    local out_var="${2:-}"
+    local clean="$input"
+    local ansi_regex=$'\033\\[[0-9;]*[[:alpha:]]'
+
+    while [[ "$clean" =~ $ansi_regex ]]; do
+        clean="${clean/${BASH_REMATCH[0]}/}"
+    done
+
+    if [[ -n "$out_var" ]]; then
+        printf -v "$out_var" '%s' "$clean"
+    else
+        printf '%s\n' "$clean"
+    fi
+}
+
+_log_rotate_if_needed() {
+    local target_file="$1"
+    local max_size="${LAB_LOG_MAX_SIZE:-10485760}"
+    local check_every="${LAB_LOG_ROTATE_CHECK_EVERY:-100}"
+    local counter
+    local file_size
+    local rotate_decl
+
+    [[ -z "$target_file" ]] && return 1
+    [[ -f "$target_file" ]] || return 0
+    [[ "$max_size" =~ ^[0-9]+$ ]] || max_size=10485760
+    [[ "$check_every" =~ ^[0-9]+$ ]] || check_every=100
+    ((check_every > 0)) || check_every=100
+
+    rotate_decl="$(declare -p _LOG_ROTATE_COUNTER 2>/dev/null || true)"
+    if [[ "$rotate_decl" != declare\ -A* ]]; then
+        unset _LOG_ROTATE_COUNTER
+        declare -gA _LOG_ROTATE_COUNTER
+    fi
+
+    counter="${_LOG_ROTATE_COUNTER[$target_file]:-0}"
+    ((counter++))
+    _LOG_ROTATE_COUNTER[$target_file]="$counter"
+
+    if ((counter % check_every != 0)); then
+        return 0
+    fi
+
+    if ! command -v stat >/dev/null 2>&1; then
+        return 0
+    fi
+
+    file_size="$(stat -c '%s' "$target_file" 2>/dev/null)" || return 2
+    [[ "$file_size" =~ ^[0-9]+$ ]] || return 2
+
+    if ((file_size < max_size)); then
+        return 0
+    fi
+
+    rm -f "${target_file}.1" 2>/dev/null
+    mv "$target_file" "${target_file}.1" 2>/dev/null || return 2
+    : > "$target_file" || return 2
+
+    return 0
+}
+
+_log_write() {
+    local component="$1"
+    local level="$2"
+    local message="$3"
+    local target_file="$4"
+    local source="${5:-${FUNCNAME[1]:-main}}"
+    local target_dir
+    local timestamp
+    local clean_message
+    local normalized_level
+
+    if [[ -z "$component" || -z "$level" || -z "$message" || -z "$target_file" ]]; then
+        return 1
+    fi
+
+    target_dir="${target_file%/*}"
+    [[ "$target_dir" == "$target_file" ]] && target_dir="."
+
+    if [[ ! -d "$target_dir" ]]; then
+        mkdir -p "$target_dir" 2>/dev/null || return 2
+    fi
+
+    _log_strip_ansi "$message" clean_message
+    normalized_level="$(_log_normalize_level "$level")"
+    printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
+
+    _log_rotate_if_needed "$target_file" || return 2
+    printf '[%s] %s - [%s] [%s] %s\n' "${component^^}" "$timestamp" "$source" "$normalized_level" "$clean_message" >> "$target_file" || return 2
+    return 0
+}
+
+export -f _log_normalize_level
+export -f _log_level_rank
+export -f _log_effective_level
+export -f _log_level_permits
+export -f _log_strip_ansi
+export -f _log_rotate_if_needed
+export -f _log_write

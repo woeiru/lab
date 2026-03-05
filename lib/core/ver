@@ -49,7 +49,7 @@ ver_log() {
     # Default log file if not set
     local VER_LOG_FILE="${VER_LOG_FILE:-${BASE_DIR:-.}/.log/ver.log}"
     local ver_log_dir="${VER_LOG_FILE%/*}"
-    local file_timestamp
+    local terminal_level="normal"
 
     [[ -z "$ver_log_dir" || "$ver_log_dir" == "$VER_LOG_FILE" ]] && ver_log_dir="."
     
@@ -59,17 +59,31 @@ ver_log() {
         VER_LOG_DIR_READY="$ver_log_dir"
     fi
 
-    printf -v file_timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
-    
-    # Format for file logging remains unchanged or can be adjusted if needed
-    echo "[VER] $file_timestamp - [$source] $message" >> "$VER_LOG_FILE"
+    if [[ "$message" == *"ERROR"* || "$message" == *"CRITICAL"* || "$message" == *"FATAL"* ]]; then
+        terminal_level="error"
+    elif [[ "$message" == *"DEBUG"* ]]; then
+        terminal_level="debug"
+    fi
 
-    # Conditionally output to stderr based on both master and specific debug verbosity
-    if [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${VER_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+    if type _log_write &>/dev/null; then
+        _log_write "VER" "$terminal_level" "$message" "$VER_LOG_FILE" "$source" || return 2
+    else
+        local file_timestamp
+        printf -v file_timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
+        echo "[VER] $file_timestamp - [$source] $message" >> "$VER_LOG_FILE"
+    fi
+
+    if type _log_level_permits &>/dev/null; then
+        _log_level_permits "$terminal_level" "ver" || return 0
+    elif [[ "${MASTER_TERMINAL_VERBOSITY:-on}" != "on" || "${VER_LOG_TERMINAL_VERBOSITY:-on}" != "on" ]]; then
+        return 0
+    fi
+
+    {
         local timestamp
         printf -v timestamp '%(%H:%M:%S)T' -1
         echo -e "    \033[38;5;208m└─ $message [$timestamp]\033[0m" >&2
-    fi
+    }
 }
 
 ###########################################

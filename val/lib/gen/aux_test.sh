@@ -369,6 +369,40 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_aux_log_respects_unified_verbosity() {
+    local test_env=$(create_test_env "aux_log_level")
+
+    cat > "$test_env/test_aux_log_level.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR"
+
+export LOG_DIR="/tmp/aux_log_level_$$"
+mkdir -p "$LOG_DIR"
+
+source lib/core/log 2>/dev/null || exit 1
+source lib/gen/aux 2>/dev/null || exit 1
+
+export MASTER_TERMINAL_VERBOSITY=on
+export LAB_LOG_LEVEL=silent
+
+silent_output=$(aux_log "INFO" "silent terminal check" 2>&1)
+[[ -z "$silent_output" ]] || exit 1
+grep -q "silent terminal check" "$LOG_DIR/aux.log" || exit 1
+
+export LAB_LOG_LEVEL=debug
+debug_output=$(aux_log "INFO" "debug terminal check" 2>&1)
+[[ "$debug_output" == *"debug terminal check"* ]] || exit 1
+
+rm -rf "$LOG_DIR"
+exit 0
+EOF
+    chmod +x "$test_env/test_aux_log_level.sh"
+
+    run_test "Aux log respects LAB_LOG_LEVEL" "$test_env/test_aux_log_level.sh"
+    cleanup_test_env "$test_env"
+}
+
 # Main execution
 main() {
     run_test_suite "AUXILIARY FUNCTIONS TESTS" \
@@ -382,7 +416,8 @@ main() {
         test_auxiliary_utilities \
         test_configuration_integration \
         test_auxiliary_performance \
-        test_error_handling
+        test_error_handling \
+        test_aux_log_respects_unified_verbosity
 }
 
 # Run if executed directly

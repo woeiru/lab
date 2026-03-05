@@ -1,10 +1,10 @@
 # Logging Architectural Restructure
 
-- Status: queue
+- Status: active
 - Owner: es
 - Started: 2026-03-03
-- Updated: 2026-03-04 02:37
-- Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/ver, lib/gen/aux, lib/core/col, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/queue/20260303-2245_logging-performance-renewal-plan.md
+- Updated: 2026-03-05 01:07
+- Links: lib/core/lo1, lib/core/err, lib/core/tme, lib/core/ver, lib/gen/aux, lib/core/col, bin/ini, cfg/core/ric, doc/arc/07-logging-and-error-handling.md, doc/pro/inbox/20260303-0336_logging-system-renewal-plan.md, doc/pro/completed/20260303-2245_logging-performance-renewal/20260303-2245_logging-performance-renewal-plan.md
 
 ## Goal
 
@@ -194,126 +194,242 @@ on.
 
 ## Execution Plan
 
-### Phase 1 -- Design (no code changes) (target: approved DDR)
+### [IN PROGRESS 2026-03-05] Phase 6 -- Closeout (target: finalize and archive item)
 
-1. Produce a Design Decision Record (DDR) for the shared log writer:
-   - Interface specification: `_log_write <level> <message> <file> [component]`
-   - Constraints: must work at bootstrap time (before `aux` is loaded),
-     must handle ANSI stripping, must use Bash builtins for timestamp
-   - Alternatives considered: (a) single function, (b) two functions
-     (bootstrap writer + runtime writer), (c) keep five separate writers
-   - Chosen approach with rationale
+1. [in_progress] Capture final checkpoint and handoff state in this active item.
+2. [pending] Create/confirm follow-up tracking for unrelated DIC failures
+   (`dic_framework_test`, `dic_integration_test`, `dic_phase1_completion_test`).
+3. [pending] Move this item from `doc/pro/active/` to a timestamped
+   `doc/pro/completed/<timestamp>_logging-architectural-restructure/` folder.
+4. [pending] Re-run workflow validation after move:
+   `bash doc/pro/check-workflow.sh`.
 
-2. Produce a DDR for the unified verbosity model:
-   - Level specification: `silent < error < normal < verbose < debug`
-   - Mapping table from legacy variables to new levels
-   - Backward compatibility strategy (legacy vars as aliases)
-   - Interaction with `LAB_BOOTSTRAP_VERBOSITY`
+## Phase 1 Design Decision Record
 
-3. Document the test impact inventory: which existing tests exercise
-   logging behavior and what needs to change.
+Date: 2026-03-05
+Design classification: required
 
-4. Document the call-site inventory: all locations that call each of the
-   five logging functions, grouped by subsystem.
+### DDR-1 Shared log writer
 
-### Phase 2 -- Shared writer and test fixes (target: single writer, green tests)
+#### Constraints and invariants
 
-1. Implement `_log_write` as an internal function in `lib/core/lo1`
-   (or a new `lib/core/log` if cleaner). It must:
-   - Accept level, message, target file, optional component
-   - Format timestamp via `printf '%(%Y-%m-%d %H:%M:%S)T' -1`
-   - Strip ANSI codes for file output (using `${var//\033\[*([0-9;])m/}`)
-   - Append to target file with consistent format
-   - Route terminal output to stderr only
-   - Check verbosity level before terminal emission
+1. The shared writer must be usable during bootstrap before `lib/gen/aux` is
+   loaded, so it cannot depend on `aux_*` functions.
+2. File writes must remove ANSI escape sequences before append.
+3. File timestamps must standardize on `YYYY-MM-DD HH:MM:SS`.
+4. Terminal emission must be gated separately from file writes so subsystems can
+   keep context-specific formatting while sharing one file-writer path.
+5. Rotation checks must be low overhead (amortized check cadence, not per write).
 
-2. Rewrite `lo1_test.sh` to test actual `lo1` API:
-   - `lo1_log` with correct calling convention
-   - `lo1_setlog on/off` state management
-   - `lo1_init_logger` / `lo1_cleanup_logger` lifecycle
-   - `lo1_log_message` with component/level
-   - Verify file output does not contain ANSI codes
+#### Interface contract
 
-3. Fix `err_process` parameter swap in `command_not_found_handle`
-   (`lib/core/err:397-410`).
+`_log_write <component> <level> <message> <target_file> [source]`
 
-4. Remove unreliable aliases from `lo1`. Replace with thin function
-   wrappers if needed.
+Return codes:
+- `0`: write succeeded
+- `1`: parameter/usage error
+- `2`: write/rotation runtime failure
 
-5. Verify: `bash -n` all changed files. Run `val/core/modules/lo1_test.sh`,
-   `val/core/modules/err_test.sh`. Run `./val/run_all_tests.sh core`.
+Companion helpers:
+- `_log_strip_ansi <input> <out_var>`
+- `_log_rotate_if_needed <target_file>`
+- `_log_level_permits <required_level> [subsystem]` (terminal gating)
 
-### Phase 3 -- Verbosity unification (target: single LAB_LOG_LEVEL controls all output)
+#### Alternatives considered
 
-1. Define `LAB_LOG_LEVEL` in `cfg/core/ric` with default `normal`.
+1. Keep five subsystem-local writers and normalize behavior by convention.
+   Rejected: repeated drift and repeated fixes across modules.
+2. Two independent writers (`ini` bootstrap writer + runtime writer).
+   Rejected: duplicates lifecycle logic and keeps bootstrap/runtime divergence.
+3. One shared core writer in a new bootstrap-safe module.
+   Chosen: one implementation for timestamp/ANSI/rotation semantics.
 
-2. Create verbosity check function `_log_level_permits <required_level>`
-   that compares against `LAB_LOG_LEVEL`:
-   - `silent`: nothing to terminal
-   - `error`: only errors
-   - `normal`: errors + warnings + info
-   - `verbose`: all of above + verbose/progress messages
-   - `debug`: everything including debug traces
+#### Chosen approach
 
-3. Wire `lo1_log` terminal output through `_log_level_permits`.
+Create `lib/core/log` as a bootstrap-safe module and route file writes from
+`ini_log`, `ver_log`, `lo1_log`, `err_process`, and `aux_log` through
+`_log_write`. Keep terminal formatting in subsystem front-ends but route all
+terminal eligibility through `_log_level_permits`.
 
-4. Wire `aux_log` terminal output through `_log_level_permits`. Fix the
-   master verbosity bypass.
+### DDR-2 Unified verbosity model
 
-5. Wire `lo1_log_message` terminal output through `_log_level_permits`.
+#### Level model
 
-6. Wire `ver_log` terminal output through `_log_level_permits`.
+`silent < error < normal < verbose < debug`
 
-7. Wire `ini_log` terminal output through `_log_level_permits` (respecting
-   `LAB_BOOTSTRAP_VERBOSITY` interaction: bootstrap verbosity takes
-   precedence during boot, `LAB_LOG_LEVEL` takes over post-boot).
+Terminal eligibility baseline:
+- `silent`: no terminal output
+- `error`: errors only
+- `normal`: errors + warnings + info
+- `verbose`: normal + progress/detail messages
+- `debug`: all output including debug traces
 
-8. Add backward compatibility mappings in `cfg/core/ric`:
-   - `MASTER_TERMINAL_VERBOSITY=off` → `LAB_LOG_LEVEL=silent`
-   - Individual `*_TERMINAL_VERBOSITY` vars map to per-subsystem overrides
-   - Document the mapping table
+#### Compatibility and precedence
 
-9. Verify: `./val/run_all_tests.sh` full suite.
+Primary control:
+- `LAB_LOG_LEVEL` (default `normal`) in `cfg/core/ric`
 
-### Phase 4 -- File hygiene and rotation (target: clean logs, bounded growth)
+Optional subsystem override controls:
+- `LAB_LOG_LEVEL_INI`, `LAB_LOG_LEVEL_VER`, `LAB_LOG_LEVEL_LO1`,
+  `LAB_LOG_LEVEL_ERR`, `LAB_LOG_LEVEL_AUX`
 
-1. Route all subsystems through `_log_write` for file output:
-   - `lo1_log` → `_log_write` for `lo1.log`
-   - `err_process` → `_log_write` for `err.log`
-   - `ver_log` → `_log_write` for `ver.log`
-   - `ini_log` → `_log_write` for `ini.log`
-   - `aux_log` → `_log_write` for `aux.log` (human format)
+Legacy compatibility mapping:
+1. `MASTER_TERMINAL_VERBOSITY=off` -> effective level `silent` globally.
+2. `*_TERMINAL_VERBOSITY=off` -> subsystem effective level `silent`.
+3. Existing `AUX_DEBUG_ENABLED=0` and `LOG_DEBUG_ENABLED=0` suppress debug-only
+   events but do not reduce baseline file logging.
 
-2. Standardize all file timestamps to `YYYY-MM-DD HH:MM:SS`.
+Precedence order (highest to lowest):
+1. `LAB_BOOTSTRAP_VERBOSITY` while `LAB_BOOTSTRAP_MODE=1`
+2. Explicit `LAB_LOG_LEVEL_<SUBSYSTEM>`
+3. Legacy subsystem toggle mapping (`*_TERMINAL_VERBOSITY`)
+4. Global `LAB_LOG_LEVEL`
+5. Legacy global toggle mapping (`MASTER_TERMINAL_VERBOSITY`)
 
-3. Fix terminal routing: all terminal log output goes to stderr.
-   Remove stdout routing from `lo1_log` and `err_process`.
+#### Bootstrap interaction decision
 
-4. Add size-based rotation in `_log_write`: when file exceeds
-   `LAB_LOG_MAX_SIZE` (default 10MB), move to `.1` and truncate.
-   Only keep one rotation (`.1`). Lightweight check: stat file size
-   every N writes (not every write).
+During bootstrap (`LAB_BOOTSTRAP_MODE=1`), existing bootstrap UX controls remain
+authoritative:
+- `LAB_BOOTSTRAP_VERBOSITY=silent` -> effective terminal `silent`
+- `LAB_BOOTSTRAP_VERBOSITY=compact` -> effective terminal `normal`
+- `LAB_BOOTSTRAP_VERBOSITY=verbose` -> effective terminal `verbose`
 
-5. Verify: file output contains no ANSI codes (`grep -P '\033\[' .log/*.log`
-   returns empty). Timestamps are consistent across all log files.
+After bootstrap mode clears, control reverts to `LAB_LOG_LEVEL` and optional
+subsystem overrides.
 
-6. Verify: `./val/run_all_tests.sh` full suite.
-7. Verify: `./val/core/log_contract_test.sh` passes.
+#### Alternatives considered
 
-### Phase 5 -- Documentation and closure (target: updated docs, green suite)
+1. Preserve current independent toggles and only document interactions.
+   Rejected: complexity remains and behavior still hard to predict.
+2. Global-only level with no subsystem overrides.
+   Rejected: removes operator control used by bootstrap and diagnostics flows.
+3. Global level plus optional subsystem overrides with legacy mapping.
+   Chosen: predictable defaults with compatibility and targeted control.
 
-1. Update `doc/arc/07-logging-and-error-handling.md` to reflect:
-   - New two-layer architecture (shared writer + context front-ends)
-   - Unified verbosity model (`LAB_LOG_LEVEL`)
-   - File logging hygiene guarantees
-   - Rotation behavior
+## Phase 1 Inventories
 
-2. Regenerate reference docs: `./utl/doc/run_all_doc.sh`.
+### Call-site inventory (code paths only)
 
-3. Update `cfg/log/README.md` with new verbosity model documentation.
+1. `ini_log` (definition: `bin/ini:490`)
+   - `bin/ini` (~41 internal calls)
+   - `cfg/core/mdc` (2 guarded calls: `34`, `66`)
+2. `ver_log` (definition: `lib/core/ver:36`)
+   - `lib/core/ver` (~37 internal calls)
+3. `lo1_log` (definition: `lib/core/lo1:294`)
+   - `bin/orc` (~77 calls)
+   - `lib/core/lab` (5 calls)
+   - `val/core/initialization/ini_test.sh` (1 direct call)
+   - `val/integration/complete_workflow_test.sh` (1 direct call; legacy
+     `lo1_log lvl` signature)
+4. `err_process` (definition: `lib/core/err:84`)
+   - `bin/orc` (2 calls)
+   - `lib/core/err` (5 internal calls)
+   - `val/core/modules/err_test.sh` (3 direct calls)
+   - `val/integration/complete_workflow_test.sh` (1 direct call)
+5. `aux_log` (definition: `lib/gen/aux:675`)
+   - `lib/gen/aux` wrapper calls (7)
+   - `lib/ops/sto` (4 direct calls)
+   - `val/lib/gen/aux_test.sh` (3 direct calls)
 
-4. Run full test suite: `./val/run_all_tests.sh`.
-5. Run workflow checker: `bash doc/pro/check-workflow.sh`.
+### Wrapper and facade inventory
+
+1. `aux_business`, `aux_security`, `aux_audit`, `aux_perf`, `aux_info`,
+   `aux_warn`, `aux_err` -> `aux_log` (`lib/gen/aux:1190-1228`).
+2. `err_lo1_handle` -> `err_process` (`lib/core/err:121-128`).
+3. Alias facade `log` -> `lo1_log` (`lib/core/lo1:482`) and related `lo1`
+   aliases scheduled for removal/replacement in Phase 2.
+
+### Test impact inventory
+
+1. `val/core/modules/lo1_test.sh` is stale against current `lo1` API and must
+   be rewritten to test `lo1_log`, `lo1_setlog`, lifecycle, and ANSI hygiene.
+2. `val/core/modules/err_test.sh` currently calls `err_process` with misordered
+   parameters; update tests with canonical signature
+   `<message> <component> <exit_code> <severity>`.
+3. `val/lib/gen/aux_test.sh` directly validates `aux_log` output and will need
+   updates when terminal gating is unified via `LAB_LOG_LEVEL`.
+4. `val/core/initialization/ini_test.sh` validates bootstrap verbosity and is a
+   key regression suite for `LAB_BOOTSTRAP_VERBOSITY` interaction behavior.
+5. `val/integration/complete_workflow_test.sh` currently exercises legacy
+   `lo1_log lvl` call form; update when compatibility alias behavior changes.
+
+## Progress Checkpoint
+
+### Done
+
+1. Completed Phase 1 design deliverables (shared-writer DDR + unified
+   verbosity DDR).
+2. Completed call-site inventory for all five target logging functions.
+3. Completed test impact inventory for core, gen, and integration tests.
+4. Implemented new shared log primitives in `lib/core/log`:
+   `_log_write`, `_log_strip_ansi`, `_log_rotate_if_needed`,
+   `_log_level_permits`.
+5. Integrated `lo1` and `err` file writes through `_log_write` and fixed
+   stderr-only terminal routing in `err_process`.
+6. Fixed `command_not_found_handle` to call `err_process` with canonical
+   parameter order.
+7. Replaced `lo1` compatibility aliases with thin wrapper functions for
+   non-interactive contexts.
+8. Rewrote `val/core/modules/lo1_test.sh` and `val/core/modules/err_test.sh`
+   to validate current APIs and behaviors.
+9. Verification completed: `bash -n` on edited scripts,
+   `bash val/core/modules/lo1_test.sh`, `bash val/core/modules/err_test.sh`,
+   `bash val/core/initialization/ini_test.sh`, and `./val/run_all_tests.sh core`.
+10. Added `LAB_LOG_LEVEL` plus subsystem override variables in `cfg/core/ric`.
+11. Wired `_log_level_permits` into `ini_log`, `ver_log`, and `aux_log`
+    terminal emission paths (including `aux_dbg` debug gate).
+12. Added `val/lib/gen/aux_test.sh` coverage for unified `LAB_LOG_LEVEL`.
+13. Verification completed after Phase 3 wiring:
+    `bash val/lib/gen/aux_test.sh`, `bash val/core/initialization/ini_test.sh`,
+    `bash val/core/modules/ver_test.sh`, and `./val/run_all_tests.sh core`.
+14. Routed `ver_log` and `ini_log` file writes through `_log_write` (with
+    bootstrap-safe fallback paths when shared writer is unavailable).
+15. Routed `aux_log`/`aux_dbg` `aux.log` writes through `_log_write`, and
+    applied `_log_rotate_if_needed` to `aux.json`/`aux.csv` append paths.
+16. Hardened exported shared log functions for subshell contexts by exporting
+    `_log_normalize_level`, `_log_level_rank`, `_log_effective_level`, and by
+    auto-initializing `_LOG_ROTATE_COUNTER` when needed.
+17. Verified generated `.log` samples are ANSI-clean and timestamp-consistent
+    (`ansi_present=False`, `timestamps_consistent=True`).
+18. Full-suite validation now reports only the established DIC failures:
+    `dic_framework_test`, `dic_integration_test`, `dic_phase1_completion_test`.
+19. Updated `doc/arc/07-logging-and-error-handling.md` for shared writer,
+    unified verbosity, and rotation behavior.
+20. Updated `cfg/log/README.md` with `LAB_LOG_LEVEL` model and rotation notes.
+21. Regenerated reference docs via `./utl/doc/run_all_doc.sh`.
+22. Workflow metadata validation now passes (`bash doc/pro/check-workflow.sh`).
+
+### In-flight
+
+1. Final active-checkpoint update completed; commit is pending.
+2. Item remains in `doc/pro/active/` until closeout move is executed.
+
+### Blockers
+
+1. No hard blockers.
+
+### Next steps
+
+1. Record the known DIC failures as separate follow-up tracking under `doc/pro/queue/`.
+2. Move `doc/pro/active/20260303-2246_logging-architectural-restructure-plan.md`
+   to a timestamped folder under `doc/pro/completed/`.
+3. Run `bash doc/pro/check-workflow.sh` and resolve any reported issues.
+
+### Context
+
+1. `aux_log` terminal output now respects unified `_log_level_permits`
+   gating; no remaining master-bypass gap in current implementation.
+2. Legacy `lo1_log lvl` call form remains supported for compatibility and is
+   still exercised in integration coverage.
+3. Running `./val/run_all_tests.sh core` regenerates stats artifacts
+   (`STATS.md` and `doc/ref/stats/*`) as a side effect; these are unrelated to
+   logging implementation scope.
+4. Full `./val/run_all_tests.sh` currently reports non-logging DIC failures:
+   `dic_framework_test`, `dic_integration_test`, and
+   `dic_phase1_completion_test`.
+5. `bash doc/pro/check-workflow.sh` passes for current workflow metadata.
+6. Current branch contains this logging work plus generated reference-doc updates;
+   `STATS.md` and `doc/ref/stats/*` are test side effects and not required for task semantics.
 
 ## Verification Plan
 
@@ -376,7 +492,5 @@ on.
 
 ## Next Step
 
-Depends on: `20260303-2245_logging-performance-renewal-plan`. Execute
-the performance renewal first to establish optimized primitives, then
-triage this plan for design and implementation. Phase 1 (design) can
-begin as soon as the performance renewal is complete.
+Finalize closure decision: either mark this item complete with documented
+unrelated DIC failures, or continue by triaging DIC failures as separate work.

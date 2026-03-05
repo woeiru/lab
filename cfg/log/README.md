@@ -16,6 +16,21 @@ Multiple output formats are supported:
 - `${LOG_DIR}/aux.csv` - CSV events with headers (operational and debug)
 - `${LOG_DIR}/aux.log` - Human-readable or key-value events (consolidated stream)
 
+## Terminal Verbosity Model
+
+Terminal emission is controlled by the unified log-level model:
+
+- `LAB_LOG_LEVEL` (default `normal`): `silent`, `error`, `normal`, `verbose`, `debug`
+- Optional subsystem override: `LAB_LOG_LEVEL_AUX`
+- Legacy compatibility toggle: `MASTER_TERMINAL_VERBOSITY=off` forces silent terminal output
+
+`aux_log` and `aux_dbg` both respect this model through shared core gating.
+
+## Rotation and File Hygiene
+
+- `aux.log` writes use the shared core writer (`lib/core/log::_log_write`), which strips ANSI and applies unified timestamps.
+- `aux.json` and `aux.csv` preserve structured contract format and field order, with size-based rotation checks applied before append.
+
 ## Configuration Files
 
 Configurations for log shipping and aggregation platforms:

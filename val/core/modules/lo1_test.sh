@@ -1,209 +1,98 @@
 #!/bin/bash
-# Logging Library Tests
-# Tests for lib/core/lo1 logging functions
+# Logging Library Tests (lo1)
 
-# Test configuration
 TEST_NAME="Logging Library"
 TEST_CATEGORY="core"
 
-# Load test framework
 source "$(dirname "${BASH_SOURCE[0]}")/../../../val/helpers/test_framework.sh"
 
-# Load the library being tested
-source "${LAB_ROOT}/lib/core/lo1"
+TEST_LO1_DIR=""
 
-# Test: Logging functions exist
+setup_lo1_test_env() {
+    TEST_LO1_DIR="$(create_test_env "lo1_module")"
+    export LOG_DIR="$TEST_LO1_DIR"
+    export TMP_DIR="$TEST_LO1_DIR"
+    export LOG_FILE="$TEST_LO1_DIR/lo1.log"
+    export LOG_STATE_FILE="$TEST_LO1_DIR/log.state"
+    export MASTER_TERMINAL_VERBOSITY=on
+    export LO1_LOG_TERMINAL_VERBOSITY=on
+    export LAB_LOG_LEVEL=normal
+
+    source "${LAB_ROOT}/lib/core/log"
+    source "${LAB_ROOT}/lib/core/lo1"
+}
+
+cleanup_lo1_test_env() {
+    [[ -n "$TEST_LO1_DIR" ]] && cleanup_test_env "$TEST_LO1_DIR"
+}
+
 test_logging_functions_exist() {
-    local functions=("log" "log_info" "log_warn" "log_error" "log_debug")
-    local missing=()
-    
+    local functions=("lo1_log" "lo1_setlog" "lo1_init_logger" "lo1_cleanup_logger" "lo1_log_message")
+    local func
+
     for func in "${functions[@]}"; do
-        if ! command -v "$func" &> /dev/null; then
-            missing+=("$func")
-        fi
+        command -v "$func" >/dev/null 2>&1 || return 1
     done
-    
-    if [[ ${#missing[@]} -eq 0 ]]; then
-        echo "✓ All logging functions exist"
-        return 0
-    else
-        echo "✗ Missing logging functions: ${missing[*]}"
-        return 1
-    fi
+
+    return 0
 }
 
-# Test: Log file creation and writing
-test_log_file_operations() {
-    local test_log="/tmp/test_log_$$"
-    local test_message="Test log message $(date)"
-    
-    # Test basic logging
-    log "$test_message" "$test_log" 2>/dev/null || true
-    
-    if [[ -f "$test_log" ]] && grep -q "$test_message" "$test_log" 2>/dev/null; then
-        echo "✓ Log file creation and writing works"
-        rm -f "$test_log"
-        return 0
-    else
-        echo "✗ Log file creation or writing failed"
-        rm -f "$test_log"
-        return 1
-    fi
+test_lo1_log_writes_message() {
+    : > "$LOG_FILE"
+    lo1_setlog on >/dev/null 2>&1
+    lo1_log "lo1 primary write test" >/dev/null 2>&1
+    grep -q "lo1 primary write test" "$LOG_FILE"
 }
 
-# Test: Log level filtering
-test_log_level_filtering() {
-    local test_log="/tmp/test_log_level_$$"
-    
-    # Test different log levels
-    log_info "Info message" "$test_log" 2>/dev/null || true
-    log_warn "Warning message" "$test_log" 2>/dev/null || true
-    log_error "Error message" "$test_log" 2>/dev/null || true
-    log_debug "Debug message" "$test_log" 2>/dev/null || true
-    
-    if [[ -f "$test_log" ]]; then
-        local line_count
-        line_count=$(wc -l < "$test_log" 2>/dev/null || echo "0")
-        
-        if [[ $line_count -gt 0 ]]; then
-            echo "✓ Log level filtering produces output"
-            rm -f "$test_log"
-            return 0
-        fi
-    fi
-    
-    echo "✗ Log level filtering failed to produce output"
-    rm -f "$test_log"
-    return 1
+test_lo1_setlog_off_suppresses_writes() {
+    : > "$LOG_FILE"
+    lo1_setlog off >/dev/null 2>&1
+    lo1_log "this should not be written" >/dev/null 2>&1
+    ! grep -q "this should not be written" "$LOG_FILE"
 }
 
-# Test: Log rotation functionality
-test_log_rotation() {
-    local test_log="/tmp/test_log_rotation_$$"
-    
-    # Create a log file with some content
-    for i in {1..10}; do
-        log "Test message $i" "$test_log" 2>/dev/null || true
-    done
-    
-    # Check if log file exists and has content
-    if [[ -f "$test_log" ]] && [[ -s "$test_log" ]]; then
-        echo "✓ Log rotation test setup successful"
-        rm -f "$test_log"*
-        return 0
-    else
-        echo "✗ Log rotation test setup failed"
-        rm -f "$test_log"*
-        return 1
-    fi
+test_lo1_legacy_lvl_signature_still_works() {
+    : > "$LOG_FILE"
+    lo1_setlog on >/dev/null 2>&1
+    lo1_log "lvl" "legacy signature message" >/dev/null 2>&1
+    grep -q "legacy signature message" "$LOG_FILE"
 }
 
-# Test: Timestamp formatting
-test_timestamp_formatting() {
-    local test_log="/tmp/test_timestamp_$$"
-    local test_message="Timestamp test"
-    
-    log "$test_message" "$test_log" 2>/dev/null || true
-    
-    if [[ -f "$test_log" ]]; then
-        # Check if log contains timestamp-like patterns
-        if grep -E '\[[0-9]{4}-[0-9]{2}-[0-9]{2}.*\]' "$test_log" &>/dev/null || \
-           grep -E '[0-9]{4}-[0-9]{2}-[0-9]{2}' "$test_log" &>/dev/null; then
-            echo "✓ Timestamp formatting appears to work"
-            rm -f "$test_log"
-            return 0
-        fi
-        
-        # If no timestamp found, check if message was logged at all
-        if grep -q "$test_message" "$test_log" 2>/dev/null; then
-            echo "✓ Logging works (timestamp format may vary)"
-            rm -f "$test_log"
-            return 0
-        fi
-    fi
-    
-    echo "✗ Timestamp formatting test failed"
-    rm -f "$test_log"
-    return 1
+test_lo1_log_message_file_has_no_ansi_codes() {
+    : > "$LOG_FILE"
+    lo1_setlog on >/dev/null 2>&1
+
+    local raw_message
+    raw_message=$'ansi test \033[31mred\033[0m payload'
+    lo1_log_message "$raw_message" 2 "lo1_test" >/dev/null 2>&1
+
+    grep -q "ansi test" "$LOG_FILE" || return 1
+    ! grep -q $'\033\[' "$LOG_FILE"
 }
 
-# Test: Log cleanup functionality
-test_log_cleanup() {
-    local test_log="/tmp/test_cleanup_$$"
-    
-    # Create log file
-    log "Test cleanup message" "$test_log" 2>/dev/null || true
-    
-    if [[ -f "$test_log" ]]; then
-        # Test if cleanup function exists and works
-        if command -v "cleanup_logs" &> /dev/null; then
-            cleanup_logs "$test_log" 2>/dev/null || true
-            echo "✓ Log cleanup function exists"
-        else
-            echo "✓ Log cleanup function not implemented (optional)"
-        fi
-        rm -f "$test_log"
-        return 0
-    else
-        echo "✗ Log cleanup test setup failed"
-        return 1
-    fi
+test_compat_wrappers_exist() {
+    command -v log >/dev/null 2>&1 || return 1
+    command -v setlog >/dev/null 2>&1 || return 1
+    command -v init_logger >/dev/null 2>&1 || return 1
+    command -v cleanup_logger >/dev/null 2>&1 || return 1
 }
 
-# Test: Concurrent logging safety
-test_concurrent_logging() {
-    local test_log="/tmp/test_concurrent_$$"
-    local pids=()
-    
-    # Start multiple background logging processes
-    for i in {1..5}; do
-        (
-            for j in {1..3}; do
-                log "Process $i message $j" "$test_log" 2>/dev/null || true
-                sleep 0.1
-            done
-        ) &
-        pids+=($!)
-    done
-    
-    # Wait for all processes to complete
-    for pid in "${pids[@]}"; do
-        wait "$pid" 2>/dev/null || true
-    done
-    
-    if [[ -f "$test_log" ]]; then
-        local line_count
-        line_count=$(wc -l < "$test_log" 2>/dev/null || echo "0")
-        
-        if [[ $line_count -ge 10 ]]; then
-            echo "✓ Concurrent logging appears to work"
-        else
-            echo "✓ Concurrent logging test completed (may have limitations)"
-        fi
-        rm -f "$test_log"
-        return 0
-    else
-        echo "✗ Concurrent logging test failed"
-        return 1
-    fi
-}
-
-# Main test execution
 main() {
     test_header "$TEST_NAME"
-    
+
+    setup_lo1_test_env
+
     run_test test_logging_functions_exist
-    run_test test_log_file_operations
-    run_test test_log_level_filtering
-    run_test test_log_rotation
-    run_test test_timestamp_formatting
-    run_test test_log_cleanup
-    run_test test_concurrent_logging
-    
+    run_test test_lo1_log_writes_message
+    run_test test_lo1_setlog_off_suppresses_writes
+    run_test test_lo1_legacy_lvl_signature_still_works
+    run_test test_lo1_log_message_file_has_no_ansi_codes
+    run_test test_compat_wrappers_exist
+
+    cleanup_lo1_test_env
     test_footer
 }
 
-# Run tests if script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
 fi

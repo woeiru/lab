@@ -39,6 +39,7 @@
 #   - rdc (Runtime dependency constants)
 #   Required modules in lib/core/:
 #   - col (Centralized color management)
+#   - log (Shared logging primitives)
 #   - err (Error handling functions)
 #   - lo1 (Logging functions)
 #   - tme (Timing functions)
@@ -274,7 +275,11 @@ apply_bootstrap_verbosity_overrides() {
 }
 
 ini_terminal_output_enabled() {
-    [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]
+    if type _log_level_permits &>/dev/null; then
+        _log_level_permits "normal" "ini"
+    else
+        [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${INI_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]
+    fi
 }
 
 ini_is_compact_output() {
@@ -452,7 +457,7 @@ load_modules_from_compiled_cache() {
         return 1
     fi
 
-    if type err_process &>/dev/null && type lo1_log &>/dev/null && type tme_start_timer &>/dev/null && type lab_source_module &>/dev/null; then
+    if type _log_write &>/dev/null && type err_process &>/dev/null && type lo1_log &>/dev/null && type tme_start_timer &>/dev/null && type lab_source_module &>/dev/null; then
         INI_COMPILED_BOOTSTRAP_CACHE_USED=1
         ini_log "Loaded core modules from compiled bootstrap cache"
         return 0
@@ -500,9 +505,13 @@ ini_log() {
         return 0
     fi
     
-    # Always log to file (but batch for performance)
-    ensure_dir_cached "$(dirname "$INI_LOG_FILE")"
-    echo "[INI] $timestamp - [$source] $message" >> "$INI_LOG_FILE"
+    # Always log to file
+    if type _log_write &>/dev/null; then
+        _log_write "INI" "normal" "$message" "$INI_LOG_FILE" "$source" || return 2
+    else
+        ensure_dir_cached "$(dirname "$INI_LOG_FILE")"
+        echo "[INI] $timestamp - [$source] $message" >> "$INI_LOG_FILE"
+    fi
     
     # Conditionally output to stderr based on both system and specific ini log verbosity
     if ini_terminal_output_enabled; then
@@ -581,16 +590,12 @@ main_ini() {
 
     if [[ "${INI_BOOTSTRAP_OUTPUT_INVALID_VALUE:-0}" -eq 1 ]]; then
         local invalid_output_value="${INI_BOOTSTRAP_OUTPUT_REQUESTED_RAW:-unset}"
-        local invalid_timestamp
-        ini_format_time invalid_timestamp '%H:%M:%S'
-        echo "[INI] $invalid_timestamp - [bootstrap_output] WARNING: Invalid LAB_BOOTSTRAP_OUTPUT='$invalid_output_value'; using compact output" >> "$INI_LOG_FILE"
+        ini_log "WARNING: Invalid LAB_BOOTSTRAP_OUTPUT='$invalid_output_value'; using compact output" "bootstrap_output"
     fi
 
     if [[ "${INI_BOOTSTRAP_VERBOSITY_INVALID_VALUE:-0}" -eq 1 ]]; then
         local invalid_verbosity_value="${INI_BOOTSTRAP_VERBOSITY_REQUESTED_RAW:-unset}"
-        local invalid_verbosity_timestamp
-        ini_format_time invalid_verbosity_timestamp '%H:%M:%S'
-        echo "[INI] $invalid_verbosity_timestamp - [bootstrap_verbosity] WARNING: Invalid LAB_BOOTSTRAP_VERBOSITY='$invalid_verbosity_value'; using compact" >> "$INI_LOG_FILE"
+        ini_log "WARNING: Invalid LAB_BOOTSTRAP_VERBOSITY='$invalid_verbosity_value'; using compact" "bootstrap_verbosity"
     fi
 
     ini_log "Starting main initialization with performance optimizations"
@@ -839,6 +844,7 @@ load_modules() {
     local module_loaded=0
     local -a modules=(
         "${BASE_DIR}/lib/core/col"
+        "${BASE_DIR}/lib/core/log"
         "${BASE_DIR}/lib/core/err"
         "${BASE_DIR}/lib/core/lo1"
         "${BASE_DIR}/lib/core/tme"

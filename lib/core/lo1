@@ -319,23 +319,41 @@ lo1_log() {
     _lo1_get_color "$depth" color
     local timestamp
     printf -v timestamp '%(%H:%M:%S)T' -1
+    local caller_source="${FUNCNAME[1]:-main}"
+    local file_message
+    local terminal_enabled=0
 
     # 1. Log to file if lo1 logging is enabled
     if [[ "$log_enabled" == "on" ]]; then
         if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
-            printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" >> "$LOG_FILE"
+            file_message=" ━ $message"
+        else
+            file_message="$indent $timestamp $message"
+        fi
+
+        if type _log_write &>/dev/null; then
+            _log_write "LO1" "normal" "$file_message" "$LOG_FILE" "$caller_source" || return 2
         else
             printf "%s%s %s %s%s\n" "$indent" "$color" "$timestamp" "$message" "$LOG_NC" >> "$LOG_FILE"
         fi
     fi
 
-    # 2. Conditionally log to terminal
-    #    Respects lo1's own state (setlog on/off), global verbosity, and lo1-specific verbosity
-    if [[ "$suppress_bootstrap_terminal" -eq 0 && "$log_enabled" == "on" && "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+    # 2. Conditionally log to terminal (stderr only)
+    if [[ "$suppress_bootstrap_terminal" -eq 0 && "$log_enabled" == "on" ]]; then
+        if type _log_level_permits &>/dev/null; then
+            if _log_level_permits "normal" "lo1"; then
+                terminal_enabled=1
+            fi
+        elif [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
+            terminal_enabled=1
+        fi
+    fi
+
+    if [[ "$terminal_enabled" -eq 1 ]]; then
         if [[ "$message" == *"Report"* || "$message" == *"initialization"* ]]; then
-            printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" # Output to stdout
+            printf " %s━ %s%s\n" "$color" "$message" "$LOG_NC" >&2
         else
-            printf "%s%s %s %s%s\n" "$indent" "$color" "$timestamp" "$message" "$LOG_NC" >&2 # Output to stderr
+            printf "%s%s %s %s%s\n" "$indent" "$color" "$timestamp" "$message" "$LOG_NC" >&2
         fi
     fi
 
@@ -354,14 +372,14 @@ lo1_setlog() {
     case "$1" in
         "off")
             _LO1_LOG_ENABLED=0
-            if [[ "$suppress_bootstrap_terminal" -eq 0 && "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
-                printf "%s      └─ Logging disabled%s\n" "$LOG_NC"
+            if [[ "$suppress_bootstrap_terminal" -eq 0 ]] && { ( type _log_level_permits &>/dev/null && _log_level_permits "normal" "lo1" ) || [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; }; then
+                printf "%s      └─ Logging disabled%s\n" "$LOG_NC" "$LOG_NC" >&2
             fi
             ;;
         "on")
             _LO1_LOG_ENABLED=1
-            if [[ "$suppress_bootstrap_terminal" -eq 0 && "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; then
-                printf "%s      └─ Logging enabled%s\n" "$LOG_NC"
+            if [[ "$suppress_bootstrap_terminal" -eq 0 ]] && { ( type _log_level_permits &>/dev/null && _log_level_permits "normal" "lo1" ) || [[ "${MASTER_TERMINAL_VERBOSITY:-on}" == "on" && "${LO1_LOG_TERMINAL_VERBOSITY:-on}" == "on" ]]; }; then
+                printf "%s      └─ Logging enabled%s\n" "$LOG_NC" "$LOG_NC" >&2
             fi
             ;;
         *)
@@ -436,15 +454,38 @@ lo1_log_message() {
     
     # Format the message
     local formatted_message="${color}${indent}[$component] $message${reset}"
-    
+    local clean_message
+    local required_level="normal"
+
+    if [[ "$message" == *"ERROR"* || "$message" == *"Error"* || "$message" == *"CRITICAL"* ]]; then
+        required_level="error"
+    elif [[ "$level" =~ ^[0-9]+$ ]]; then
+        if ((level >= 4)); then
+            required_level="debug"
+        elif ((level >= 3)); then
+            required_level="verbose"
+        fi
+    fi
+
     # Log to file
-    printf "[LOG] %s - %s\n" "$timestamp" "$formatted_message" >> "$LOG_FILE"
-    
-    # Output to console if enabled
+    if type _log_write &>/dev/null; then
+        _log_strip_ansi "$formatted_message" clean_message
+        _log_write "LO1" "$required_level" "[$component] $clean_message" "$LOG_FILE" "${FUNCNAME[1]:-main}" || return 2
+    else
+        printf "[LOG] %s - %s\n" "$timestamp" "$formatted_message" >> "$LOG_FILE"
+    fi
+
+    # Output to console if enabled (stderr only)
     local log_enabled
     lo1_get_cached_log_state log_enabled
     if [[ "$log_enabled" == "on" ]]; then
-        printf "%s\n" "$formatted_message"
+        if type _log_level_permits &>/dev/null; then
+            _log_level_permits "$required_level" "lo1" || return 0
+        elif [[ "${MASTER_TERMINAL_VERBOSITY:-on}" != "on" || "${LO1_LOG_TERMINAL_VERBOSITY:-on}" != "on" ]]; then
+            return 0
+        fi
+
+        printf "%s\n" "$formatted_message" >&2
     fi
     
     return 0
@@ -478,17 +519,13 @@ export -f lo1_get_indent lo1_get_color lo1_debug_log lo1_dump_stack_trace
 export -f lo1_log_message lo1_tme_log_with_timer
 export -A ROOT_FUNCTIONS LOG_COLORS
 
-# Backward compatibility aliases for commonly used public functions
-alias log='lo1_log'
-alias setlog='lo1_setlog'
-alias init_logger='lo1_init_logger'
-alias cleanup_logger='lo1_cleanup_logger'
-alias get_cached_log_state='lo1_get_cached_log_state'
-alias get_base_depth='lo1_get_base_depth'
-alias calculate_final_depth='lo1_calculate_final_depth'
-alias get_indent='lo1_get_indent'
-alias get_color='lo1_get_color'
-alias dump_stack_trace='lo1_dump_stack_trace'
+# Backward compatibility wrappers for shell/function contexts
+log() { lo1_log "$@"; }
+setlog() { lo1_setlog "$@"; }
+init_logger() { lo1_init_logger "$@"; }
+cleanup_logger() { lo1_cleanup_logger "$@"; }
+
+export -f log setlog init_logger cleanup_logger
 
 # Initialize on source
 lo1_init_logger
