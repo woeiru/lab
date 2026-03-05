@@ -1,9 +1,9 @@
 # Live Dual-Account Session-ID Attribution Verification Follow-up
 
-- Status: inbox
+- Status: queue
 - Owner: es
 - Started: n/a
-- Updated: 2026-03-05 03:35
+- Updated: 2026-03-05 23:04
 - Links: doc/pro/completed/20260305-0335_session-user-attribution-mismatch-issue/20260305-0211_session-user-attribution-mismatch-issue.md
 
 ## Goal
@@ -29,6 +29,15 @@ Out of scope:
 1. Additional resolver/DB schema changes.
 2. Historical backfill beyond the controlled evidence window.
 
+## Triage Decision
+
+- Why now: Runtime confirmation is still missing, so the earlier attribution fix cannot be closed with high confidence until real dual-account evidence is captured.
+- Design classification:
+  1. Are there meaningful alternatives for how to solve this? No.
+  2. Will other code or users depend on the shape of the output? No.
+  Design: not needed
+- Justification: The work is a constrained verification procedure with fixed artifacts, so design variation is minimal and non-contractual.
+
 ## Next Step
 
-Run controlled dual-account sign-ins, emit session-bound runtime events, and archive resulting `dev_osv` evidence for closure.
+Move this item to `doc/pro/active/` and run the controlled dual-account sign-ins, emit session-bound runtime events, and archive resulting `dev_osv` evidence for closure.
