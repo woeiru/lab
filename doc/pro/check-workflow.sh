@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 REPO_ROOT="$(cd "$ROOT/../.." >/dev/null 2>&1 && pwd)"
 failures=0
+declare -A COMPLETED_FOLDER_ENTRY_CACHE=()
 
 is_markdown_doc() {
   local file="$1"
@@ -67,38 +68,89 @@ get_header_field_value() {
   return 1
 }
 
-get_updated_key() {
+get_git_first_completed_entry_key() {
   local file="$1"
-  local updated
+  local rel
+  local completed_rel
+  local line
+  local commit_key=""
+  local first_key=""
+  local status=""
+  local old_path=""
+  local new_path=""
+  local path=""
 
-  updated="$(get_header_field_value "$file" "Updated" || true)"
-  if [[ -z "$updated" ]]; then
-    return 1
-  fi
+  rel="${file#"$REPO_ROOT/"}"
+  completed_rel="${ROOT#"$REPO_ROOT/"}/completed"
 
-  if [[ "$updated" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})[[:space:]]+([0-9]{2}):([0-9]{2}) ]]; then
-    printf '%s%s%s%s%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "${BASH_REMATCH[5]}"
-    return 0
-  fi
+  while IFS= read -r line; do
+    if [[ "$line" == COMMIT$'\t'* ]]; then
+      commit_key="${line#COMMIT$'\t'}"
+      continue
+    fi
 
-  if [[ "$updated" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2}) ]]; then
-    printf '%s%s%s0000\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
+    [[ -n "$commit_key" ]] || continue
+
+    IFS=$'\t' read -r status old_path new_path <<< "$line"
+
+    case "$status" in
+      A)
+        path="$old_path"
+        if [[ "$path" == "$completed_rel/"* ]]; then
+          if [[ -z "$first_key" || "$commit_key" < "$first_key" ]]; then
+            first_key="$commit_key"
+          fi
+        fi
+        ;;
+      R* | C*)
+        if [[ "$new_path" == "$completed_rel/"* ]] && [[ "$old_path" != "$completed_rel/"* ]]; then
+          if [[ -z "$first_key" || "$commit_key" < "$first_key" ]]; then
+            first_key="$commit_key"
+          fi
+        fi
+        ;;
+    esac
+  done < <(git -C "$REPO_ROOT" log --follow --full-history --name-status --date=format:%Y%m%d%H%M --format=$'COMMIT\t%cd' -- "$rel" 2>/dev/null || true)
+
+  if [[ "$first_key" =~ ^[0-9]{12}$ ]]; then
+    printf '%s\n' "$first_key"
     return 0
   fi
 
   return 1
 }
 
-get_git_last_update_key() {
-  local file="$1"
-  local rel
+get_completed_folder_entry_key() {
+  local dir="$1"
+  local cached
   local key
+  local min_key=""
+  local md_file
+  local had_nullglob=0
 
-  rel="${file#"$REPO_ROOT/"}"
-  key="$(git -C "$REPO_ROOT" log --follow --diff-filter=AM -1 --format=%cd --date=format:%Y%m%d%H%M -- "$rel" 2>/dev/null || true)"
+  cached="${COMPLETED_FOLDER_ENTRY_CACHE[$dir]:-}"
+  if [[ -n "$cached" ]]; then
+    printf '%s\n' "$cached"
+    return 0
+  fi
 
-  if [[ "$key" =~ ^[0-9]{12}$ ]]; then
-    printf '%s\n' "$key"
+  shopt -q nullglob && had_nullglob=1
+  shopt -s nullglob
+
+  for md_file in "$dir"/*.md; do
+    key="$(get_git_first_completed_entry_key "$md_file" || true)"
+    if [[ -n "$key" ]] && [[ -z "$min_key" || "$key" < "$min_key" ]]; then
+      min_key="$key"
+    fi
+  done
+
+  if ((had_nullglob == 0)); then
+    shopt -u nullglob
+  fi
+
+  if [[ "$min_key" =~ ^[0-9]{12}$ ]]; then
+    COMPLETED_FOLDER_ENTRY_CACHE[$dir]="$min_key"
+    printf '%s\n' "$min_key"
     return 0
   fi
 
@@ -277,14 +329,11 @@ check_status_matches_folder() {
 check_completed_structure() {
   local file="$1"
   local rel
-  local base
   local folder
   local folder_ts
-  local file_ts
+  local topic_dir
   local folder_key
-  local file_key
-  local updated_key
-  local git_key
+  local completed_entry_key
   rel="${file#"$ROOT/completed/"}"
 
   if [[ "$rel" != */* ]]; then
@@ -307,30 +356,12 @@ check_completed_structure() {
   fi
 
   folder_ts="${BASH_REMATCH[1]}"
-  base="$(basename "$file")"
-
-  if [[ ! "$base" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]; then
-    return
-  fi
-
-  file_ts="${BASH_REMATCH[1]}"
+  topic_dir="$ROOT/completed/$folder"
   folder_key="${folder_ts//-/}"
-  file_key="${file_ts//-/}"
 
-  if [[ "$file_key" > "$folder_key" ]]; then
-    printf 'FAIL completed folder chronology: %s (file timestamp %s is newer than folder completion timestamp %s)\n' "$file" "$file_ts" "$folder_ts"
-    failures=$((failures + 1))
-  fi
-
-  updated_key="$(get_updated_key "$file" || true)"
-  if [[ -n "$updated_key" ]] && [[ "$updated_key" > "$folder_key" ]]; then
-    printf 'FAIL completed folder stale timestamp: %s (Updated header is newer than folder timestamp %s)\n' "$file" "$folder_ts"
-    failures=$((failures + 1))
-  fi
-
-  git_key="$(get_git_last_update_key "$file" || true)"
-  if [[ -n "$git_key" ]] && [[ "$git_key" > "$folder_key" ]]; then
-    printf 'FAIL completed folder git timestamp: %s (last content update commit is newer than folder timestamp %s)\n' "$file" "$folder_ts"
+  completed_entry_key="$(get_completed_folder_entry_key "$topic_dir" || true)"
+  if [[ -n "$completed_entry_key" ]] && [[ "$completed_entry_key" != "$folder_key" ]]; then
+    printf 'FAIL completed folder move timestamp: %s (folder timestamp %s does not match topic first completed-entry commit %s)\n' "$file" "$folder_ts" "${completed_entry_key:0:8}-${completed_entry_key:8:4}"
     failures=$((failures + 1))
   fi
 }
