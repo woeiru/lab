@@ -31,6 +31,13 @@ Append `Strict mode.` to halt on ambiguity instead of inferring.
 For large initiatives, use one program plan plus multiple child workstream
 plans in separate contexts.
 
+- This mode is explicit and manual. Nothing in `doc/pro/` auto-fanouts or
+  auto-splits by size.
+- Trigger point: after an item is in `active/` and shaped as a
+  `*-program-plan.md` parent.
+- `inbox/` and `queue/` stay single-item planning states; they do not create
+  child workstreams automatically.
+
 - Program coordinator context: runs orchestration tasks and owns parent state.
 - Worker contexts: run child plans and only modify assigned touch-sets.
 - Use this task sequence:

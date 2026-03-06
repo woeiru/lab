@@ -24,6 +24,7 @@ system is structured the way it is.
 - `06-security-and-logging.md`: secrets handling, destructive-safety rules, logging model
 - `07-dev-session-attribution-workflow.md`: `dev` module session attribution flow, confidence interpretation, and recovery
 - `08-planning-workspace.md`: local planning workspace flow (`utl/pla`) for snapshotting, target modeling, and plan artifacts
+- `09-doc-pro-workflow-board.md`: manual `doc/pro` workflow operation, including parallel orchestration task flow
 
 ## Quality standard (required)
 
@@ -113,6 +114,7 @@ Minimum expected pairings:
 - `lib/.spec`, `lib/ops/.spec`, `lib/ops/*` authoring contract changes -> update `05-writing-modules.md`
 - `lib/gen/sec`, `lib/gen/aux`, `lib/core/lo1`, `lib/core/err` behavior changes -> update `06-security-and-logging.md`
 - `utl/pla/*` command/workflow contract changes -> update `08-planning-workspace.md`
+- `doc/pro/README.md`, `doc/pro/task/*`, or `doc/pro/check-workflow.sh` workflow contract changes -> update `09-doc-pro-workflow-board.md`
 
 ## Recommended update workflow
 

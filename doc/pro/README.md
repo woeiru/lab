@@ -6,6 +6,37 @@ Use it to move work through clear states:
 
 `inbox` -> `queue` -> `active` -> `completed` (or `dismissed`)
 
+Related references:
+
+- Operator manual: `doc/man/09-doc-pro-workflow-board.md`
+- Architecture rationale: `doc/arc/08-workflow-architecture.md`
+
+## Operator quickstart
+
+Daily single-item flow (manual):
+
+```text
+doc/pro/task/inbox-capture
+<one-line idea>
+doc/pro/task/queue-triage
+doc/pro/task/active-move
+doc/pro/queue/<item>.md
+doc/pro/task/active-start
+doc/pro/active/<item>.md
+bash doc/pro/check-workflow.sh
+doc/pro/task/completed-close
+doc/pro/active/<item>.md
+```
+
+Parallel trigger (large initiatives only, from active parent):
+
+```text
+doc/pro/task/active-fanout
+doc/pro/active/<topic>-program-plan.md
+doc/pro/task/active-assign
+doc/pro/active/<topic>-program-plan.md
+```
+
 ## Workflow diagram
 
 ```mermaid
@@ -129,6 +160,21 @@ too broad for a single context window.
 - Work spans multiple independent modules or teams.
 - Safe execution benefits from concurrent workstreams.
 - Integration order and dependency gates matter.
+
+### Manual trigger points (important)
+
+- Parallel orchestration is manual-by-invocation, not automatic. The board does
+  not auto-split based on task size.
+- Start with normal flow: `inbox/` -> `queue/` -> `active/`.
+- Trigger parallel fan-out only after the parent is an active
+  `*-program-plan.md` item.
+- Use `doc/pro/task/active-fanout` to create child workstream plans,
+  `active-assign` to bind ownership/worktrees, `active-sync` to roll up state,
+  and `active-converge` to close a wave.
+- `doc/pro/check-workflow.sh` validates structure and orchestration metadata;
+  it never creates, splits, or moves work items.
+- `active-split` is separate from orchestration fan-out: it decomposes one
+  active item into new `inbox/` items that must re-enter triage.
 
 ### Core model
 

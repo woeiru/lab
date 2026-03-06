@@ -169,6 +169,7 @@ rm -f ./utl/pla/data/ply.db ./utl/pla/export/inventory-summary.md
 ## 5. Related Docs
 
 - Previous: [07 - Dev Session Attribution Workflow](07-dev-session-attribution-workflow.md)
+- Next: [09 - doc/pro Workflow Board](09-doc-pro-workflow-board.md)
 - Architecture context: [09 - Planning Subsystem Architecture](../arc/09-planning-subsystem.md)
 - Local module reference: [utl/pla/README.md](../../utl/pla/README.md)
 - Utility overview: [utl/README.md](../../utl/README.md)

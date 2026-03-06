@@ -144,6 +144,7 @@ The prompt ordering principle reinforces this: task template first (short instru
 - Folder location is canonical status. Moving a file between folders changes its workflow state. There is no separate status field that must be kept in sync -- the `- Status:` header in the file is a convenience mirror, enforced by the checker.
 - Timestamp prefixes (`yyyymmdd-hhmm_`) are creation-time anchors. They never change after file creation, even when the file moves between folders. This preserves chronological traceability.
 - `check-workflow.sh` is a read-only validator. It inspects naming, headers, and folder structure but does not modify files. It exits with a count of failures.
+- Parallel orchestration transitions are explicit operations (`active-fanout`, `active-assign`, `active-sync`, `active-converge`) and run only when invoked by an operator/agent. There is no automatic fan-out based on file size or complexity.
 - The `maintenance` task is the only cross-cutting operation that can fix structural issues autonomously, but it must not move files between workflow states without user approval.
 - Completed items create a subfolder in `completed/` with a *completion* timestamp prefix on the folder and *creation* timestamp prefixes on files inside. This gives two independent timelines: `ls completed/` shows when work finished; `ls completed/<topic>/` shows how it evolved.
 
@@ -159,7 +160,7 @@ The prompt ordering principle reinforces this: task template first (short instru
 
 - The system is filesystem-native. Any change to folder names or structure is a state machine change. Renaming `queue/` would break every task template that references it.
 - Task templates are plain text files with no extension. They are not executable scripts -- they are consumed by LLM agents as prompt input. Tooling that indexes only `*.md` or `*.sh` files will miss them.
-- The `doc/pro/active/README.md` contains a note (line 25) that "a direct move from `doc/pro/inbox/` is also acceptable," which contradicts the main README's rule that all planned work must pass through queue. The main README's rule (`doc/pro/README.md` lines 85-87) is the authoritative source and distinguishes planned work (must triage) from emergent work (may enter active directly with inline triage justification).
+- Planned work follows `inbox/` -> `queue/` -> `active/`. Emergent work may enter `active/` directly via `active-capture`, but it must include inline triage and rationale so downstream transitions remain valid.
 - Waivers in `active/waivers/` are tied to active items. When the related work leaves active, waiver records must be archived. The waiver register template requires owner, expiry date, and removal criteria per entry.
 - The `queue-triage` task moves exactly one item per invocation. There is no batch triage operation. `queue-move` allows targeting a specific item but still processes one file per call. Batching multiple `queue-move` calls in a single session is operationally valid.
 - `active-split` sends new pieces to `inbox/`, not to `queue/` or `active/`. This forces each piece through the full triage gate, preventing scope creep through decomposition.
