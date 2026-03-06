@@ -9,6 +9,33 @@ TEST_CATEGORY="lib"
 # Load test framework
 source "$(dirname "${BASH_SOURCE[0]}")/../../../val/helpers/test_framework.sh"
 
+# Lightweight aux stubs for isolated usr module testing
+aux_tec() { :; }
+aux_use() { :; }
+aux_info() { :; }
+aux_warn() { :; }
+aux_err() { :; }
+aux_dbg() { :; }
+aux_chk() {
+    local check_type="${1:-}"
+    local target="${2:-}"
+
+    case "$check_type" in
+        command)
+            command -v "$target" >/dev/null 2>&1
+            ;;
+        file)
+            [[ -f "$target" ]]
+            ;;
+        directory|dir)
+            [[ -d "$target" ]]
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # Load the library being tested
 source "${LAB_ROOT}/lib/ops/usr"
 
@@ -232,6 +259,65 @@ test_process_ownership() {
     fi
 }
 
+# Test: Dynamic alias generation via usr_ali
+test_usr_ali_generates_dynamic_aliases() {
+    local test_env
+    test_env="$(mktemp -d /tmp/usr_ali_test_XXXXXX)" || return 1
+
+    mkdir -p "$test_env/cfg/ali" "$test_env/cfg/env" "$test_env/lib/ops" "$test_env/src/set" "$test_env/docs"
+    printf "# root readme\n" > "$test_env/README.md"
+    printf "# docs readme\n" > "$test_env/docs/readme.md"
+    printf "SITE=demo\n" > "$test_env/cfg/env/site1"
+    printf "# ops file\n" > "$test_env/lib/ops/demo-op"
+    printf "#!/bin/bash\n" > "$test_env/src/set/deploy"
+    chmod +x "$test_env/src/set/deploy"
+
+    export LAB_DIR="$test_env"
+    export CFG_ALI_DIR="$test_env/cfg/ali"
+    export CFG_ENV_DIR="$test_env/cfg/env"
+    export LIB_OPS_DIR="$test_env/lib/ops"
+    export SRC_SET_DIR="$test_env/src/set"
+
+    if ! usr_ali -x >/dev/null 2>&1; then
+        rm -rf "$test_env"
+        return 1
+    fi
+
+    local dyn_file="$test_env/cfg/ali/dyn"
+    if [[ ! -f "$dyn_file" ]]; then
+        rm -rf "$test_env"
+        return 1
+    fi
+
+    if ! grep -q "alias c.root.md=" "$dyn_file"; then
+        rm -rf "$test_env"
+        return 1
+    fi
+
+    if ! grep -q "alias c.docs.md=" "$dyn_file"; then
+        rm -rf "$test_env"
+        return 1
+    fi
+
+    if ! grep -q "alias c.env.site1=" "$dyn_file"; then
+        rm -rf "$test_env"
+        return 1
+    fi
+
+    if ! grep -q "alias c.ops.demo-op=" "$dyn_file"; then
+        rm -rf "$test_env"
+        return 1
+    fi
+
+    if ! grep -q "alias b.set.deploy=" "$dyn_file"; then
+        rm -rf "$test_env"
+        return 1
+    fi
+
+    rm -rf "$test_env"
+    return 0
+}
+
 # Main test execution
 main() {
     test_header "$TEST_NAME"
@@ -246,6 +332,7 @@ main() {
     run_test test_permission_checking
     run_test test_sudo_privileges
     run_test test_process_ownership
+    run_test test_usr_ali_generates_dynamic_aliases
     
     test_footer
 }

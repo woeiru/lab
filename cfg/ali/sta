@@ -1,7 +1,7 @@
 #!/bin/bash
 
     # Alias generation
-    alias ali='$UTL_DIR/cfg-ali'
+    alias ali='$SRC_DIC_OPS usr ali -x'
     alias ap='ansible-playbook'
 
     # Bash

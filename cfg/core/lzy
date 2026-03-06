@@ -10,7 +10,7 @@ ORC_LAZY_OPS_FUNCTIONS["srv"]="srv_fun,srv_var,srv_nfs_set,srv_nfs_apl,srv_nfs_m
 ORC_LAZY_OPS_FUNCTIONS["ssh"]="ssh_fun,ssh_var,ssh_key,ssh_lst,ssh_rmv,ssh_gen,ssh_cpy,ssh_agt,ssh_sca,ssh_suk,ssh_spi,ssh_sks,ssh_sak,ssh_loi,ssh_vsc"
 ORC_LAZY_OPS_FUNCTIONS["sto"]="sto_fun,sto_var,sto_fea,sto_fec,sto_nfs,sto_bfs_tra,sto_bfs_ra1,sto_bfs_csf,sto_bfs_shc,sto_bfs_shd,sto_bfs_shl,sto_bfs_sfr,sto_bfs_hub,sto_bfs_snd,sto_zfs_cpo,sto_zfs_dim,sto_zfs_dbs"
 ORC_LAZY_OPS_FUNCTIONS["sys"]="sys_fun,sys_var,sys_gio,sys_gio_generate_commit_message,sys_dpa,sys_upa,sys_ipa,sys_gst,sys_sst,sys_ust,sys_sdc,sys_gre"
-ORC_LAZY_OPS_FUNCTIONS["usr"]="usr_fun,usr_var,usr_ckp,usr_vsf,usr_cff,usr_duc,usr_cif,usr_rsf,usr_rsd,usr_swt,usr_adr,usr_cap,usr_rif,usr_ans"
+ORC_LAZY_OPS_FUNCTIONS["usr"]="usr_fun,usr_var,usr_ckp,usr_vsf,usr_cff,usr_duc,usr_cif,usr_rsf,usr_rsd,usr_swt,usr_adr,usr_cap,usr_rif,usr_ans,usr_ali"
 
 ORC_LAZY_GEN_FUNCTIONS["ana"]="ana_fun,ana_var,ana_laf,ana_lad,ana_acu,ana_rdp,ana_rdp_std,ana_tst,ana_err,ana_scp,ana_dep"
 ORC_LAZY_GEN_FUNCTIONS["aux"]="aux_fun,aux_var,aux_use,aux_tec,aux_ffl,aux_arr,aux_val,aux_chk,aux_cmd,aux_ask,aux_get_log_color,aux_log,aux_dbg,aux_get_cluster_metadata,aux_format_json_log,aux_format_csv_log,aux_start_trace,aux_end_trace,aux_metric,aux_business,aux_security,aux_audit,aux_perf,aux_info,aux_warn,aux_err"

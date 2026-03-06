@@ -1295,3 +1295,250 @@ usr_ans() {
         aux_warn "Failed to return to original directory" "original_dir=$current_dir"
     fi
 }
+
+_usr_ali_append_readme_aliases() {
+    local output_file="$1"
+    local readme_file
+    local relative_path
+    local dir_path
+    local alias_name
+    local alias_count=0
+
+    echo "# --- README File Aliases ---" >> "$output_file"
+
+    while IFS= read -r readme_file; do
+        [[ -f "$readme_file" ]] || continue
+
+        relative_path="${readme_file#"$LAB_DIR"/}"
+        if [[ "$relative_path" == "$readme_file" ]]; then
+            continue
+        fi
+
+        dir_path="${relative_path%/*}"
+        if [[ "$dir_path" == "$relative_path" ]]; then
+            alias_name="root.md"
+        else
+            alias_name="${dir_path//\//.}.md"
+        fi
+
+        alias_name="${alias_name#.}"
+
+        printf "alias c.%s='cat \"\$LAB_DIR/%s\"'\n" "$alias_name" "$relative_path" >> "$output_file"
+        printf "alias v.%s='vim \"\$LAB_DIR/%s\"'\n" "$alias_name" "$relative_path" >> "$output_file"
+        alias_count=$((alias_count + 2))
+    done < <(find "$LAB_DIR" -type f \( -name "README.md" -o -name "readme.md" \) 2>/dev/null | sort)
+
+    echo "" >> "$output_file"
+    printf "%s\n" "$alias_count"
+}
+
+_usr_ali_append_directory_aliases() {
+    local output_file="$1"
+    local dir
+    local base_name
+    local alias_count=0
+
+    echo "# --- Directory Navigation Aliases ---" >> "$output_file"
+
+    for dir in "$LAB_DIR"/*; do
+        [[ -d "$dir" ]] || continue
+        base_name="${dir##*/}"
+        printf "alias d-%s='cd \"\$LAB_DIR/%s\"'\n" "$base_name" "$base_name" >> "$output_file"
+        alias_count=$((alias_count + 1))
+    done
+
+    echo "" >> "$output_file"
+    printf "%s\n" "$alias_count"
+}
+
+_usr_ali_append_env_aliases() {
+    local output_file="$1"
+    local env_file
+    local relative_path
+    local base_name
+    local alias_count=0
+
+    if [[ ! -d "$CFG_ENV_DIR" ]]; then
+        printf "0\n"
+        return 0
+    fi
+
+    echo "# --- Environment File Aliases ---" >> "$output_file"
+
+    for env_file in "$CFG_ENV_DIR"/*; do
+        [[ -f "$env_file" ]] || continue
+
+        base_name="${env_file##*/}"
+        relative_path="${env_file#"$LAB_DIR"/}"
+        printf "alias c.env.%s='cat \"\$LAB_DIR/%s\"'\n" "$base_name" "$relative_path" >> "$output_file"
+        printf "alias v.env.%s='vim \"\$LAB_DIR/%s\"'\n" "$base_name" "$relative_path" >> "$output_file"
+        alias_count=$((alias_count + 2))
+    done
+
+    echo "" >> "$output_file"
+    printf "%s\n" "$alias_count"
+}
+
+_usr_ali_append_ops_aliases() {
+    local output_file="$1"
+    local ops_file
+    local relative_path
+    local base_name
+    local alias_count=0
+
+    if [[ ! -d "$LIB_OPS_DIR" ]]; then
+        printf "0\n"
+        return 0
+    fi
+
+    echo "# --- Library Operation Aliases ---" >> "$output_file"
+
+    for ops_file in "$LIB_OPS_DIR"/*; do
+        [[ -f "$ops_file" ]] || continue
+
+        base_name="${ops_file##*/}"
+        relative_path="${ops_file#"$LAB_DIR"/}"
+        printf "alias c.ops.%s='cat \"\$LAB_DIR/%s\"'\n" "$base_name" "$relative_path" >> "$output_file"
+        printf "alias v.ops.%s='vim \"\$LAB_DIR/%s\"'\n" "$base_name" "$relative_path" >> "$output_file"
+        alias_count=$((alias_count + 2))
+    done
+
+    echo "" >> "$output_file"
+    printf "%s\n" "$alias_count"
+}
+
+_usr_ali_append_set_aliases() {
+    local output_file="$1"
+    local set_file
+    local relative_path
+    local base_name
+    local alias_count=0
+
+    if [[ ! -d "$SRC_SET_DIR" ]]; then
+        printf "0\n"
+        return 0
+    fi
+
+    echo "# --- Source Set Script Aliases ---" >> "$output_file"
+
+    for set_file in "$SRC_SET_DIR"/*; do
+        [[ -f "$set_file" ]] || continue
+
+        base_name="${set_file##*/}"
+        relative_path="${set_file#"$LAB_DIR"/}"
+        printf "alias c.set.%s='cat \"\$LAB_DIR/%s\"'\n" "$base_name" "$relative_path" >> "$output_file"
+        printf "alias v.set.%s='vim \"\$LAB_DIR/%s\"'\n" "$base_name" "$relative_path" >> "$output_file"
+        alias_count=$((alias_count + 2))
+
+        if [[ -x "$set_file" ]]; then
+            printf "alias b.set.%s='bash \"\$LAB_DIR/%s\"'\n" "$base_name" "$relative_path" >> "$output_file"
+            alias_count=$((alias_count + 1))
+        fi
+    done
+
+    echo "" >> "$output_file"
+    printf "%s\n" "$alias_count"
+}
+
+# Generates dynamic shell aliases into cfg/ali/dyn via lib/ops/usr
+# generate dynamic aliases
+# -x (execute)
+usr_ali() {
+    # Technical Description:
+    #   Generates dynamic alias definitions for README files, directories,
+    #   environment configs, ops modules, and set scripts.
+    #   Writes deterministic output to cfg/ali/dyn for shell sourcing.
+    #   Resolves runtime directory variables through cfg/core/ric when needed.
+    # Dependencies:
+    #   - aux_chk, aux_info, aux_err, aux_use, aux_tec
+    #   - find, sort, date, mkdir commands
+    #   - cfg/core/ric for runtime path constants when env is incomplete
+    # Arguments:
+    #   $1: -x - explicit execution flag required for write side effects
+
+    local execute_flag="${1:-}"
+    if [ "$execute_flag" = "--help" ] || [ "$execute_flag" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -ne 1 ] || [ "$execute_flag" != "-x" ]; then
+        aux_use
+        return 1
+    fi
+
+    local required_command
+    for required_command in find sort date mkdir; do
+        if ! aux_chk "command" "$required_command"; then
+            aux_err "$required_command command not found"
+            return 127
+        fi
+    done
+
+    if [[ -z "${LAB_DIR:-}" ]]; then
+        LAB_DIR="$(cd "$DIR_FUN/../.." >/dev/null 2>&1 && pwd)"
+        export LAB_DIR
+    fi
+
+    local ric_file="${LAB_DIR}/cfg/core/ric"
+    if [[ -z "${CFG_ALI_DIR:-}" || -z "${CFG_ENV_DIR:-}" || -z "${LIB_OPS_DIR:-}" || -z "${SRC_SET_DIR:-}" ]]; then
+        if [[ ! -r "$ric_file" ]]; then
+            aux_err "Runtime constants file not found" "component=usr,operation=alias_generate,path=$ric_file"
+            return 2
+        fi
+
+        if ! source "$ric_file"; then
+            aux_err "Failed to source runtime constants" "component=usr,operation=alias_generate,path=$ric_file"
+            return 2
+        fi
+    fi
+
+    local missing_vars=()
+    [[ -n "${LAB_DIR:-}" ]] || missing_vars+=("LAB_DIR")
+    [[ -n "${CFG_ALI_DIR:-}" ]] || missing_vars+=("CFG_ALI_DIR")
+    [[ -n "${CFG_ENV_DIR:-}" ]] || missing_vars+=("CFG_ENV_DIR")
+    [[ -n "${LIB_OPS_DIR:-}" ]] || missing_vars+=("LIB_OPS_DIR")
+    [[ -n "${SRC_SET_DIR:-}" ]] || missing_vars+=("SRC_SET_DIR")
+
+    if ((${#missing_vars[@]} > 0)); then
+        aux_err "Missing required runtime variables" "component=usr,operation=alias_generate,vars=${missing_vars[*]}"
+        return 2
+    fi
+
+    if ! mkdir -p "$CFG_ALI_DIR"; then
+        aux_err "Failed to create alias directory" "component=usr,operation=alias_generate,path=$CFG_ALI_DIR"
+        return 2
+    fi
+
+    local output_file="${CFG_ALI_DIR}/dyn"
+    if ! cat > "$output_file" << EOF
+# Dynamically generated aliases by usr_ali
+# Generated on: $(date)
+# Version: 4.0.0 (ops/usr migration)
+
+EOF
+    then
+        aux_err "Failed to initialize dynamic alias file" "component=usr,operation=alias_generate,path=$output_file"
+        return 2
+    fi
+
+    aux_info "Starting dynamic alias generation" "component=usr,operation=alias_generate,output_file=$output_file"
+
+    local readme_alias_count
+    local directory_alias_count
+    local env_alias_count
+    local ops_alias_count
+    local set_alias_count
+
+    readme_alias_count="$(_usr_ali_append_readme_aliases "$output_file")"
+    directory_alias_count="$(_usr_ali_append_directory_aliases "$output_file")"
+    env_alias_count="$(_usr_ali_append_env_aliases "$output_file")"
+    ops_alias_count="$(_usr_ali_append_ops_aliases "$output_file")"
+    set_alias_count="$(_usr_ali_append_set_aliases "$output_file")"
+
+    local total_alias_count=0
+    total_alias_count=$((readme_alias_count + directory_alias_count + env_alias_count + ops_alias_count + set_alias_count))
+
+    aux_info "Dynamic alias generation completed" "component=usr,operation=alias_generate,output_file=$output_file,total_aliases=$total_alias_count,readme_aliases=$readme_alias_count,directory_aliases=$directory_alias_count,env_aliases=$env_alias_count,ops_aliases=$ops_alias_count,set_aliases=$set_alias_count"
+    return 0
+}
