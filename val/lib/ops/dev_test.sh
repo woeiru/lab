@@ -125,6 +125,7 @@ test_dev_functions_exist() {
     declare -f dev_oqu >/dev/null 2>&1 || return 1
     declare -f dev_oas >/dev/null 2>&1 || return 1
     declare -f dev_oar >/dev/null 2>&1 || return 1
+    declare -f dev_ois >/dev/null 2>&1 || return 1
     return 0
 }
 
@@ -4615,6 +4616,306 @@ PY
     return 0
 }
 
+# Test: dev_ois rejects no arguments
+test_dev_ois_requires_params() {
+    dev_ois >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_ois rejects non-numeric account for switch mode
+test_dev_ois_rejects_bad_account() {
+    dev_ois "abc" >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_ois -s saves current openai credentials
+test_dev_ois_save_credentials() {
+    local test_env
+    test_env=$(create_test_env "dev_ois_save")
+
+    mkdir -p "$test_env/.local/share/opencode"
+    _create_openai_auth_json "$test_env/.local/share/opencode/auth.json" "acct-save-test" "save-user@example.com"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_ois -s 2>/dev/null)
+    local status=$?
+
+    local account_count=""
+    if [[ $status -eq 0 ]] && [[ -f "$test_env/.config/opencode/openai-accounts.json" ]]; then
+        account_count=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/openai-accounts.json') as f:
+    data = json.load(f)
+print(len(data.get('accounts', [])))
+")
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"save-user@example.com"* ]] || return 1
+    [[ "$account_count" == "1" ]] || return 1
+    return 0
+}
+
+# Test: dev_ois -s updates existing account with same accountId
+test_dev_ois_save_updates_duplicate() {
+    local test_env
+    test_env=$(create_test_env "dev_ois_save_dup")
+
+    mkdir -p "$test_env/.local/share/opencode"
+    mkdir -p "$test_env/.config/opencode"
+    _create_openai_auth_json "$test_env/.local/share/opencode/auth.json" "acct-dup-test" "dup-user@example.com"
+
+    # Pre-seed sidecar with same accountId
+    python3 - "$test_env/.config/opencode/openai-accounts.json" <<'PY'
+import json
+import sys
+
+data = {
+    "accounts": [
+        {"label": "old-label", "accountId": "acct-dup-test", "credentials": {"type": "oauth"}, "savedAt": 1000}
+    ],
+    "activeIndex": 0
+}
+
+with open(sys.argv[1], "w") as f:
+    json.dump(data, f)
+PY
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_ois -s 2>/dev/null)
+    local status=$?
+
+    local account_count=""
+    if [[ $status -eq 0 ]]; then
+        account_count=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/openai-accounts.json') as f:
+    data = json.load(f)
+print(len(data.get('accounts', [])))
+")
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"Updated"* ]] || return 1
+    [[ "$account_count" == "1" ]] || return 1
+    return 0
+}
+
+# Test: dev_ois -l lists saved accounts
+test_dev_ois_list_accounts() {
+    local test_env
+    test_env=$(create_test_env "dev_ois_list")
+
+    mkdir -p "$test_env/.config/opencode"
+
+    python3 - "$test_env/.config/opencode/openai-accounts.json" <<'PY'
+import json
+import sys
+
+data = {
+    "accounts": [
+        {"label": "alice@test.com", "accountId": "acct-1", "credentials": {"type": "oauth"}, "savedAt": 1000},
+        {"label": "bob@test.com", "accountId": "acct-2", "credentials": {"type": "oauth"}, "savedAt": 2000}
+    ],
+    "activeIndex": 0
+}
+
+with open(sys.argv[1], "w") as f:
+    json.dump(data, f)
+PY
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_ois -l 2>/dev/null)
+    local status=$?
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"alice@test.com"* ]] || return 1
+    [[ "$output" == *"bob@test.com"* ]] || return 1
+    return 0
+}
+
+# Test: dev_ois -l handles no saved accounts
+test_dev_ois_list_empty() {
+    local test_env
+    test_env=$(create_test_env "dev_ois_list_empty")
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_ois -l 2>/dev/null)
+    local status=$?
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"No saved"* ]] || return 1
+    return 0
+}
+
+# Test: dev_ois switches to a saved account
+test_dev_ois_switches_account() {
+    local test_env
+    test_env=$(create_test_env "dev_ois_switch")
+
+    mkdir -p "$test_env/.local/share/opencode"
+    mkdir -p "$test_env/.config/opencode"
+
+    # Create initial auth.json with account 1
+    _create_openai_auth_json "$test_env/.local/share/opencode/auth.json" "acct-current" "current@example.com"
+
+    # Create sidecar with two accounts; activeIndex=0
+    python3 - "$test_env/.config/opencode/openai-accounts.json" <<'PY'
+import json
+import sys
+
+data = {
+    "accounts": [
+        {"label": "current@example.com", "accountId": "acct-current", "credentials": {"type": "oauth", "access": "tok-1", "accountId": "acct-current"}, "savedAt": 1000},
+        {"label": "target@example.com", "accountId": "acct-target", "credentials": {"type": "oauth", "access": "tok-2", "accountId": "acct-target"}, "savedAt": 2000}
+    ],
+    "activeIndex": 0
+}
+
+with open(sys.argv[1], "w") as f:
+    json.dump(data, f)
+PY
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_ois "2" 2>/dev/null)
+    local status=$?
+
+    local new_account_id=""
+    local new_active_index=""
+    if [[ $status -eq 0 ]]; then
+        new_account_id=$(python3 -c "
+import json
+with open('$test_env/.local/share/opencode/auth.json') as f:
+    data = json.load(f)
+print(data.get('openai', {}).get('accountId', ''))
+")
+        new_active_index=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/openai-accounts.json') as f:
+    data = json.load(f)
+print(data.get('activeIndex', -1))
+")
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"target@example.com"* ]] || return 1
+    [[ "$new_account_id" == "acct-target" ]] || return 1
+    [[ "$new_active_index" == "1" ]] || return 1
+    return 0
+}
+
+# Test: dev_ois switch rejects out-of-range account
+test_dev_ois_rejects_out_of_range() {
+    local test_env
+    test_env=$(create_test_env "dev_ois_oor")
+
+    mkdir -p "$test_env/.local/share/opencode"
+    mkdir -p "$test_env/.config/opencode"
+    _create_openai_auth_json "$test_env/.local/share/opencode/auth.json" "acct-oor" "oor@example.com"
+
+    python3 - "$test_env/.config/opencode/openai-accounts.json" <<'PY'
+import json
+import sys
+
+data = {
+    "accounts": [
+        {"label": "only@example.com", "accountId": "acct-only", "credentials": {"type": "oauth"}, "savedAt": 1000}
+    ],
+    "activeIndex": 0
+}
+
+with open(sys.argv[1], "w") as f:
+    json.dump(data, f)
+PY
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_ois "5" 2>/dev/null)
+    local status=$?
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]] || return 1
+    return 0
+}
+
+# Test: dev_ois switch creates backup of auth.json
+test_dev_ois_creates_backup() {
+    local test_env
+    test_env=$(create_test_env "dev_ois_backup")
+
+    mkdir -p "$test_env/.local/share/opencode"
+    mkdir -p "$test_env/.config/opencode"
+    _create_openai_auth_json "$test_env/.local/share/opencode/auth.json" "acct-bk" "backup@example.com"
+
+    python3 - "$test_env/.config/opencode/openai-accounts.json" <<'PY'
+import json
+import sys
+
+data = {
+    "accounts": [
+        {"label": "a@example.com", "accountId": "acct-a", "credentials": {"type": "oauth", "access": "tok-a", "accountId": "acct-a"}, "savedAt": 1000},
+        {"label": "b@example.com", "accountId": "acct-b", "credentials": {"type": "oauth", "access": "tok-b", "accountId": "acct-b"}, "savedAt": 2000}
+    ],
+    "activeIndex": 0
+}
+
+with open(sys.argv[1], "w") as f:
+    json.dump(data, f)
+PY
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_ois "2" >/dev/null 2>&1
+    local status=$?
+
+    local backup_count=0
+    if [[ $status -eq 0 ]]; then
+        backup_count=$(ls "$test_env/.local/share/opencode/auth.json.backup."* 2>/dev/null | wc -l)
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ $backup_count -ge 1 ]] || return 1
+    return 0
+}
+
 # Main test execution
 main() {
     test_header "$TEST_NAME"
@@ -4695,6 +4996,15 @@ main() {
     run_test test_dev_otr_emits_token_refresh_event
     run_test test_dev_oaa_records_account_event
     run_test test_dev_oas_records_account_event
+    run_test test_dev_ois_requires_params
+    run_test test_dev_ois_rejects_bad_account
+    run_test test_dev_ois_save_credentials
+    run_test test_dev_ois_save_updates_duplicate
+    run_test test_dev_ois_list_accounts
+    run_test test_dev_ois_list_empty
+    run_test test_dev_ois_switches_account
+    run_test test_dev_ois_rejects_out_of_range
+    run_test test_dev_ois_creates_backup
 
     test_footer
 }

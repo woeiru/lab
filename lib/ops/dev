@@ -3477,10 +3477,433 @@ PY
             current_email=$(echo "$py_output" | awk -F'|' '/^ALREADY_DISABLED/ {print $2}')
             aux_info "Account is already disabled" "component=dev,operation=opencode_account_disable,email=$current_email"
             echo "Account $account_num is already disabled: $current_email"
-            return 0
+             return 0
             ;;
         *)
             aux_err "Failed to disable account" "component=dev,operation=opencode_account_disable,python_exit=$py_status"
+            return 2
+            ;;
+    esac
+}
+
+_dev_get_openai_accounts_path() {
+    local accounts_path="${LAB_DEV_OPENAI_ACCOUNTS_FILE:-${HOME}/.config/opencode/openai-accounts.json}"
+
+    echo "$accounts_path"
+}
+
+# Manages OpenAI account credentials for multi-account switching
+# opencode openai switch
+# -s [label] | -l | <account_number>
+dev_ois() {
+    # Technical Description:
+    #   Saves, lists, and switches OpenAI account credentials via an external sidecar file
+    #   Save mode snapshots the current auth.json openai credentials into openai-accounts.json
+    #   List mode shows all saved accounts with index numbers and active marker
+    #   Switch mode replaces the openai key in auth.json with the target snapshot credentials
+    #   Creates a timestamped backup of auth.json before any modification
+    #   Records an account_selected attribution event on successful switch
+    # Dependencies:
+    #   - python3 with json and base64 modules for credential manipulation
+    #   - auth.json from OpenCode upstream for current credential state
+    #   - opencode CLI (optional) for attribution event persistence
+    # Arguments:
+    #   -s [label]          save current openai credentials (auto-detects identity from JWT)
+    #   -l                  list saved OpenAI accounts
+    #   <account_number>    switch to saved account N (1-based)
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "python3"; then
+        aux_err "python3 command not found" "component=dev,operation=opencode_openai_switch"
+        return 127
+    fi
+
+    local mode="$1"
+
+    case "$mode" in
+        -s)
+            _dev_ois_save "${2:-}"
+            return $?
+            ;;
+        -l)
+            if [ $# -ne 1 ]; then
+                aux_use
+                return 1
+            fi
+            _dev_ois_list
+            return $?
+            ;;
+        *)
+            if [ $# -ne 1 ]; then
+                aux_use
+                return 1
+            fi
+            if ! [[ "$1" =~ ^[0-9]+$ ]] || [ "$1" -lt 1 ]; then
+                aux_err "Account number must be a positive integer (1-based)" "component=dev,operation=opencode_openai_switch,value=$1"
+                aux_use
+                return 1
+            fi
+            _dev_ois_switch "$1"
+            return $?
+            ;;
+    esac
+}
+
+_dev_ois_save() {
+    local label_override="${1:-}"
+
+    local auth_path
+    auth_path=$(_dev_get_openai_auth_state_path)
+    if [ $? -ne 0 ]; then
+        aux_err "OpenAI auth state file not found" "component=dev,operation=opencode_openai_save"
+        return 2
+    fi
+
+    local accounts_path
+    accounts_path=$(_dev_get_openai_accounts_path)
+    local accounts_dir
+    accounts_dir=$(dirname "$accounts_path")
+
+    if ! mkdir -p "$accounts_dir"; then
+        aux_err "Failed to create accounts directory" "component=dev,operation=opencode_openai_save,path=$accounts_dir"
+        return 2
+    fi
+
+    aux_info "Saving current OpenAI credentials" "component=dev,operation=opencode_openai_save"
+
+    local py_output
+    py_output=$(python3 - "$auth_path" "$accounts_path" "$label_override" <<'PY'
+import base64
+import json
+import os
+import sys
+import time
+
+auth_path = sys.argv[1]
+accounts_path = sys.argv[2]
+label_override = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else ""
+
+try:
+    with open(auth_path, "r", encoding="utf-8") as f:
+        auth_data = json.load(f)
+except Exception as e:
+    print(f"AUTH_READ_ERROR|{e}")
+    sys.exit(11)
+
+openai_creds = auth_data.get("openai")
+if not isinstance(openai_creds, dict):
+    print("NO_OPENAI_CREDS")
+    sys.exit(12)
+
+account_id = openai_creds.get("accountId", "")
+
+def decode_jwt_payload(token):
+    if not isinstance(token, str):
+        return {}
+    parts = token.split(".")
+    if len(parts) < 2:
+        return {}
+    payload = parts[1]
+    payload += "=" * (-len(payload) % 4)
+    try:
+        decoded = base64.urlsafe_b64decode(payload.encode("utf-8")).decode("utf-8")
+        data = json.loads(decoded)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+payload = decode_jwt_payload(openai_creds.get("access", ""))
+auth_claim = payload.get("https://api.openai.com/auth", {})
+profile_claim = payload.get("https://api.openai.com/profile", {})
+if not isinstance(auth_claim, dict):
+    auth_claim = {}
+if not isinstance(profile_claim, dict):
+    profile_claim = {}
+
+email = ""
+for candidate in [profile_claim.get("email"), payload.get("email")]:
+    text = str(candidate or "").strip()
+    if text:
+        email = text
+        break
+
+label = label_override if label_override else (email or account_id or "(unknown)")
+
+accounts_data = {"accounts": [], "activeIndex": 0}
+if os.path.isfile(accounts_path):
+    try:
+        with open(accounts_path, "r", encoding="utf-8") as f:
+            accounts_data = json.load(f)
+        if not isinstance(accounts_data, dict):
+            accounts_data = {"accounts": [], "activeIndex": 0}
+    except Exception:
+        accounts_data = {"accounts": [], "activeIndex": 0}
+
+accounts = accounts_data.get("accounts", [])
+if not isinstance(accounts, list):
+    accounts = []
+
+# Check for duplicate by accountId
+duplicate_index = None
+for idx, existing in enumerate(accounts):
+    if not isinstance(existing, dict):
+        continue
+    if existing.get("accountId") == account_id and account_id:
+        duplicate_index = idx
+        break
+
+new_entry = {
+    "label": label,
+    "accountId": account_id,
+    "credentials": dict(openai_creds),
+    "savedAt": int(time.time() * 1000),
+}
+
+if duplicate_index is not None:
+    accounts[duplicate_index] = new_entry
+    result_index = duplicate_index
+    action = "UPDATED"
+else:
+    accounts.append(new_entry)
+    result_index = len(accounts) - 1
+    action = "SAVED"
+
+accounts_data["accounts"] = accounts
+
+with open(accounts_path, "w", encoding="utf-8") as f:
+    json.dump(accounts_data, f, indent=2)
+    f.write("\n")
+
+print(f"{action}|{result_index + 1}|{label}|{account_id}")
+sys.exit(0)
+PY
+)
+    local py_status=$?
+
+    case "$py_status" in
+        0)
+            local action account_num saved_label
+            action=$(echo "$py_output" | awk -F'|' '/^(SAVED|UPDATED)\|/ {print $1; exit}')
+            account_num=$(echo "$py_output" | awk -F'|' '/^(SAVED|UPDATED)\|/ {print $2; exit}')
+            saved_label=$(echo "$py_output" | awk -F'|' '/^(SAVED|UPDATED)\|/ {print $3; exit}')
+            if [ "$action" = "UPDATED" ]; then
+                aux_info "Updated existing OpenAI account snapshot" "component=dev,operation=opencode_openai_save,account=$account_num,label=$saved_label"
+                echo "Updated account $account_num: $saved_label"
+            else
+                aux_info "Saved new OpenAI account snapshot" "component=dev,operation=opencode_openai_save,account=$account_num,label=$saved_label"
+                echo "Saved account $account_num: $saved_label"
+            fi
+            return 0
+            ;;
+        11)
+            aux_err "Failed to read auth.json" "component=dev,operation=opencode_openai_save"
+            return 2
+            ;;
+        12)
+            aux_err "No OpenAI credentials found in auth.json" "component=dev,operation=opencode_openai_save"
+            return 2
+            ;;
+        *)
+            aux_err "Failed to save OpenAI credentials" "component=dev,operation=opencode_openai_save,python_exit=$py_status"
+            return 2
+            ;;
+    esac
+}
+
+_dev_ois_list() {
+    local accounts_path
+    accounts_path=$(_dev_get_openai_accounts_path)
+
+    if [[ ! -f "$accounts_path" ]]; then
+        aux_info "No saved OpenAI accounts found" "component=dev,operation=opencode_openai_list"
+        echo "No saved OpenAI accounts. Use 'dev_ois -s' to save the current account."
+        return 0
+    fi
+
+    local py_output
+    py_output=$(python3 - "$accounts_path" <<'PY'
+import json
+import sys
+from datetime import datetime
+
+accounts_path = sys.argv[1]
+
+try:
+    with open(accounts_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+except Exception as e:
+    print(f"READ_ERROR|{e}")
+    sys.exit(11)
+
+accounts = data.get("accounts", [])
+active_index = data.get("activeIndex", 0)
+
+if not accounts:
+    print("EMPTY")
+    sys.exit(0)
+
+for idx, account in enumerate(accounts):
+    if not isinstance(account, dict):
+        continue
+    label = account.get("label", "(unknown)")
+    account_id = account.get("accountId", "")
+    saved_at = account.get("savedAt")
+    saved_str = ""
+    if saved_at:
+        try:
+            saved_str = datetime.fromtimestamp(saved_at / 1000).strftime("%Y-%m-%d %H:%M")
+        except Exception:
+            saved_str = ""
+    active_marker = " *" if idx == active_index else ""
+    print(f"ACCOUNT|{idx + 1}|{label}|{account_id}|{saved_str}{active_marker}")
+
+sys.exit(0)
+PY
+)
+    local py_status=$?
+
+    if [ "$py_status" -eq 11 ]; then
+        aux_err "Failed to read OpenAI accounts file" "component=dev,operation=opencode_openai_list"
+        return 2
+    fi
+
+    if [ "$py_output" = "EMPTY" ]; then
+        echo "No saved OpenAI accounts. Use 'dev_ois -s' to save the current account."
+        return 0
+    fi
+
+    echo "Saved OpenAI accounts (* = active):"
+    echo "$py_output" | awk -F'|' '/^ACCOUNT\|/ {printf "  %s) %s  [%s]  %s\n", $2, $3, $4, $5}'
+    return 0
+}
+
+_dev_ois_switch() {
+    local account_num="$1"
+
+    local auth_path
+    auth_path=$(_dev_get_openai_auth_state_path)
+    if [ $? -ne 0 ]; then
+        aux_err "OpenAI auth state file not found" "component=dev,operation=opencode_openai_switch"
+        return 2
+    fi
+
+    local accounts_path
+    accounts_path=$(_dev_get_openai_accounts_path)
+
+    if [[ ! -f "$accounts_path" ]]; then
+        aux_err "No saved OpenAI accounts found. Use 'dev_ois -s' first" "component=dev,operation=opencode_openai_switch"
+        return 2
+    fi
+
+    aux_warn "Close active OpenCode clients before switching OpenAI accounts" "component=dev,operation=opencode_openai_switch"
+    aux_info "Switching OpenAI account" "component=dev,operation=opencode_openai_switch,account=$account_num"
+
+    local py_output
+    py_output=$(python3 - "$auth_path" "$accounts_path" "$account_num" <<'PY'
+import json
+import shutil
+import sys
+from datetime import datetime
+
+auth_path = sys.argv[1]
+accounts_path = sys.argv[2]
+account_num = int(sys.argv[3])
+account_index = account_num - 1
+
+try:
+    with open(accounts_path, "r", encoding="utf-8") as f:
+        accounts_data = json.load(f)
+except Exception as e:
+    print(f"ACCOUNTS_READ_ERROR|{e}")
+    sys.exit(11)
+
+accounts = accounts_data.get("accounts", [])
+if account_index < 0 or account_index >= len(accounts):
+    print(f"INVALID_ACCOUNT|{account_num}|{len(accounts)}")
+    sys.exit(12)
+
+target = accounts[account_index]
+if not isinstance(target, dict):
+    print(f"INVALID_ENTRY|{account_num}")
+    sys.exit(13)
+
+credentials = target.get("credentials")
+if not isinstance(credentials, dict):
+    print(f"NO_CREDENTIALS|{account_num}")
+    sys.exit(14)
+
+target_label = target.get("label", "(unknown)")
+target_account_id = target.get("accountId", "")
+
+try:
+    with open(auth_path, "r", encoding="utf-8") as f:
+        auth_data = json.load(f)
+except Exception as e:
+    print(f"AUTH_READ_ERROR|{e}")
+    sys.exit(15)
+
+# Save current credentials before overwriting (snapshot for undo)
+current_openai = auth_data.get("openai")
+if isinstance(current_openai, dict):
+    # Update the account we are switching FROM in the sidecar
+    current_active = accounts_data.get("activeIndex", 0)
+    if 0 <= current_active < len(accounts) and current_active != account_index:
+        accounts[current_active]["credentials"] = dict(current_openai)
+
+backup_path = auth_path + ".backup." + datetime.now().strftime("%Y%m%d_%H%M%S")
+shutil.copy2(auth_path, backup_path)
+
+auth_data["openai"] = dict(credentials)
+
+with open(auth_path, "w", encoding="utf-8") as f:
+    json.dump(auth_data, f, indent=2)
+    f.write("\n")
+
+accounts_data["activeIndex"] = account_index
+
+with open(accounts_path, "w", encoding="utf-8") as f:
+    json.dump(accounts_data, f, indent=2)
+    f.write("\n")
+
+print(f"OK|{target_label}|{account_num}|{backup_path}|{target_account_id}")
+sys.exit(0)
+PY
+)
+    local py_status=$?
+
+    case "$py_status" in
+        0)
+            local switched_label backup_file target_account_id
+            switched_label=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $2}')
+            backup_file=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $4}')
+            target_account_id=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $5}')
+            _dev_record_account_event "openai" "$target_account_id" "$switched_label" "account_selected" "manual_switch"
+            aux_info "OpenAI account switched successfully" "component=dev,operation=opencode_openai_switch,label=$switched_label"
+            echo "Active OpenAI account now: $switched_label (account $account_num)"
+            echo "Backup: $backup_file"
+            return 0
+            ;;
+        12)
+            local total
+            total=$(echo "$py_output" | awk -F'|' '/^INVALID_ACCOUNT/ {print $3}')
+            aux_err "Account number $account_num is out of range (1-$total)" "component=dev,operation=opencode_openai_switch"
+            return 1
+            ;;
+        11|13|14|15)
+            aux_err "Failed to switch OpenAI account" "component=dev,operation=opencode_openai_switch,python_exit=$py_status"
+            return 2
+            ;;
+        *)
+            aux_err "Failed to switch OpenAI account" "component=dev,operation=opencode_openai_switch,python_exit=$py_status"
             return 2
             ;;
     esac
