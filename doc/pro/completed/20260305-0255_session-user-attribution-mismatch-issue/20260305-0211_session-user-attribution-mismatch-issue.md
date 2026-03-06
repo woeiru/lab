@@ -3,7 +3,7 @@
 - Status: completed
 - Owner: es
 - Started: n/a
-- Updated: 2026-03-05 03:35
+- Updated: 2026-03-06 01:23
 - Links: doc/pro/task/inbox-capture, lib/ops/dev, cfg/ali/sta, val/lib/ops/dev_test.sh, doc/man/03-cli-usage.md, doc/man/07-dev-session-attribution-workflow.md, doc/pro/inbox/20260305-0238_live-dual-account-session-id-attribution-verification-followup.md
 
 ## Goal
@@ -209,5 +209,15 @@ Track remaining live runtime evidence in `doc/pro/inbox/20260305-0238_live-dual-
 
 ## What Remains
 
-- Follow-up required (separate item): capture real dual-account runtime evidence where emitted events include non-empty `session_id`, then attach strict/best-effort `dev_osv` output from the live environment.
-- Follow-up item remains tracked in `doc/pro/inbox/20260305-0238_live-dual-account-session-id-attribution-verification-followup.md`.
+- No required follow-up items remain for this completed item.
+- If live behavior becomes unsatisfactory, reopen from this completed item with a new active follow-up.
+
+## Live Dual-Account Verification Addendum (2026-03-06)
+
+1. Captured live dual-account runtime emits with non-empty `session_id` values for OpenAI attribution events:
+   - `ses_33fbd4fbbffe9U194jVSmfu9NR` -> `puhachka@proton.me`
+   - `ses_33fb3739bffe4Sf6CVZLH8NYmW` -> `ometes@proton.me`
+2. Direct DB verification confirms persisted `opencode_account_event` rows for both target session IDs with expected account keys and `source=opencode_runtime`.
+3. In `ops dev osv -x --best-effort`, target rows reflect session-specific runtime attribution (`9NR -> puhachka@proton.me`, `YmW -> ometes@proton.me`).
+4. In `ops dev osv -x` strict mode, the same capture window still showed stale fallback identity for these sessions.
+5. Separate live-verification follow-up document was intentionally removed after capturing these artifacts; this addendum is now the canonical record.
