@@ -6,7 +6,7 @@
 
 ```text
 utl/
-├── ply/    # Homelab planning playground (SQLite + exports)
+├── pla/    # Homelab planning playground (SQLite + exports)
 ├── cfg/    # Internal Configuration Helpers
 ├── doc/    # Auto-Documentation Generators
 └── sec/    # Internal Security Helpers
@@ -14,14 +14,14 @@ utl/
 
 ## Core Tools
 
-### `ply/` (Homelab Playground)
+### `pla/` (Homelab Playground)
 
 Local-first planning workspace for inventory, scenario modeling, desired-state
 selection, and implementation-plan artifact generation.
 
 **Key Components:**
 
-- `ply`: CLI entrypoint (`init-db`, `import-present`, `create-state`, `upsert-entity`, `set-state-entity`, `plan-implementation`, `export-md`)
+- `cli`: CLI entrypoint (`init-db`, `import-present`, `create-state`, `upsert-entity`, `set-state-entity`, `plan-implementation`, `export-md`)
 - `sql/001_init_schema.sql`: core SQLite schema
 - `sql/010_seed_reference.sql`: entity/relation type seed data
 - `export/`: markdown snapshots for readable repository diffs
@@ -56,6 +56,8 @@ To understand the architecture and how these utilities analyze code dependencies
 - **Reference:** [Functions Reference](../doc/ref/functions.md)
 - **Reference:** [Variables Reference](../doc/ref/variables.md)
 - **Manual:** [05 - Writing Modules](../doc/man/05-writing-modules.md) (covers adding `aux_use`/`aux_tec` comments)
+- **Manual:** [08 - Planning Workspace](../doc/man/08-planning-workspace.md) (`utl/pla` operator workflow)
+- **Architecture:** [09 - Planning Subsystem Architecture](../doc/arc/09-planning-subsystem.md) (`utl/pla` boundaries and flow)
 
 ---
 **Navigation**: Return to [Main Lab Documentation](../README.md)

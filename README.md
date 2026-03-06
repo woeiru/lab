@@ -200,8 +200,8 @@ The `doc/` directory contains the full documentation set, organized by audience:
 
 | Section | Audience | Contents |
 |---------|----------|----------|
-| [`doc/man/`](doc/man/) | Operators, admins | 7-part user guide: introduction through security and logging |
-| [`doc/arc/`](doc/arc/) | Developers, architects | 8-part architecture reference: bootstrap through error handling |
+| [`doc/man/`](doc/man/) | Operators, admins | Operator manuals for installation, configuration, CLI, runbooks, module authoring, security, attribution, and planning workspace usage |
+| [`doc/arc/`](doc/arc/) | Developers, architects | Architecture references for bootstrap, DI, deployment/config, validation, logging/error handling, workflow, and planning subsystem design |
 | [`doc/ref/`](doc/ref/) | Module authors, agents | Auto-generated compressed reference maps (functions, variables, dependencies, tests, error handling) |
 | [`doc/fix/`](doc/fix/) | Hardware ops | Incident runbooks: GPU passthrough, ACPI reset, driver fixes |
 | [`doc/pro/`](doc/pro/) | Contributors | Project planning documents (inbox, active, completed, dismissed, experiments) |

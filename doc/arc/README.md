@@ -25,6 +25,7 @@ The model reference is `doc/arc/01-bootstrap-and-orchestration.md`, which now in
 - `06-testing-and-validation.md`: test architecture and strategy
 - `07-logging-and-error-handling.md`: log/error model and contracts
 - `08-workflow-architecture.md`: agent workflow coordination system (`doc/pro`)
+- `09-planning-subsystem.md`: local planning subsystem (`utl/pla`) architecture and data flow
 
 ## Quality standard (required)
 
@@ -95,6 +96,7 @@ Minimum expected pairings:
 - `val/*` structure/runner contract changes -> update `06-testing-and-validation.md`
 - logging/error contract changes in `lib/core/err`, `lib/core/lo1`, `lib/core/tme`, `lib/gen/aux` -> update `07-logging-and-error-handling.md`
 - `doc/pro/` workflow structure, task templates, or checker changes -> update `08-workflow-architecture.md`
+- `utl/pla/*` command/schema/export contract changes -> update `09-planning-subsystem.md`
 
 ## Recommended update workflow
 

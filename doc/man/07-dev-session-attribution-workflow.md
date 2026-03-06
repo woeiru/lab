@@ -352,6 +352,7 @@ Then rerun the sqlite query in section 3.
 ## 5. Related Docs
 
 - Previous: [06 - Security and Logging](06-security-and-logging.md)
+- Next: [08 - Planning Workspace](08-planning-workspace.md)
 - CLI overview: [03 - CLI Usage and the DIC](03-cli-usage.md) (section 8)
 - Architecture context: [doc/arc/04-dependency-injection.md](../arc/04-dependency-injection.md)
 - Logging and errors: [doc/arc/07-logging-and-error-handling.md](../arc/07-logging-and-error-handling.md)

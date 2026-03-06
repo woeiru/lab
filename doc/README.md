@@ -16,6 +16,7 @@ Contents are organised by purpose: `man/` for operational guides (user/admin aud
 - **[05 - Writing Modules](man/05-writing-modules.md)** - Module conventions, naming, parameters, validation, self-documenting comments, and tests.
 - **[06 - Security and Logging](man/06-security-and-logging.md)** - Handling secrets safely, guarding destructive operations, and the multi-tiered logging architecture.
 - **[07 - Dev Session Attribution Workflow](man/07-dev-session-attribution-workflow.md)** - Emitting identity attribution events for OpenCode sessions, strict vs best-effort reporting, and troubleshooting.
+- **[08 - Planning Workspace](man/08-planning-workspace.md)** - Local planning workflow with `utl/pla` for state modeling, delta planning, and markdown exports.
 
 ### Architectural Documentation (`doc/arc/`)
 **Purpose**: How the system is designed, module structure, system context, and dependency flows. Audience: developers, architects.
@@ -28,6 +29,8 @@ Contents are organised by purpose: `man/` for operational guides (user/admin aud
 - **[05 - Deployment and Configuration Layer](arc/05-deployment-and-config.md)** - `.menu` framework, hostname-based deployment scripts, and configuration hierarchy.
 - **[06 - Testing and Validation](arc/06-testing-and-validation.md)** - BDD test framework, master test runner, and syntax/compliance linting.
 - **[07 - Logging and Error Handling](arc/07-logging-and-error-handling.md)** - Two-phase logging architecture, hierarchical verbosity, and standardized return codes.
+- **[08 - Workflow Architecture](arc/08-workflow-architecture.md)** - Agent workflow coordination architecture for `doc/pro` state transitions.
+- **[09 - Planning Subsystem Architecture](arc/09-planning-subsystem.md)** - `utl/pla` command flow, SQLite model boundaries, and planning artifact lifecycle.
 
 ### Reference Documentation (`doc/ref/`)
 **Purpose**: Auto-generated compressed reference context for symbol lookup, dependency tracing, and codebase navigation. Audience: developers, module authors, automation agents.
