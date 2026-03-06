@@ -37,10 +37,10 @@ implementation plans from present state to desired state.
     can be exposed via MCP later without reworking storage.
 11. Human-readable exports are required companions to committed SQLite changes
     to keep review and archive workflows understandable.
-12. Folder naming decision applied: implementation root is `utl/ply/` (not
+12. Folder naming decision applied: implementation root is `utl/pla/` (not
     `utl/playground/`) across docs, schema paths, and CLI defaults.
-13. Baseline scaffold delivered: `utl/ply/ply`, `utl/ply/sql/*`,
-    `utl/ply/data/`, `utl/ply/export/`, and `utl/ply/ops/`.
+13. Baseline scaffold delivered: `utl/pla/cli`, `utl/pla/sql/*`,
+    `utl/pla/data/`, `utl/pla/export/`, and `utl/pla/ops/`.
 14. CLI now supports `init-db`, `import-present`, and `export-md` using
     Python's built-in SQLite driver for portability.
 15. Validation evidence captured: syntax check passed, DB initialized,
@@ -141,9 +141,9 @@ Design classification: required
 
 1. Chosen architecture:
    - SQLite-backed typed graph model (entities + relations + state overlays).
-   - Repository-local database under `utl/ply/data/` with schema SQL in
-     `utl/ply/sql/`.
-   - Operation layer in `utl/ply/ops/` so agent interactions call
+   - Repository-local database under `utl/pla/data/` with schema SQL in
+     `utl/pla/sql/`.
+   - Operation layer in `utl/pla/ops/` so agent interactions call
      validated actions instead of mutating DB tables or `cfg/env/` directly.
 2. Source-of-truth split (v1):
    - Inventory, prototype scenarios, desired states, and implementation plans:
@@ -193,7 +193,7 @@ Design classification: required
      plan steps; never from ad-hoc freeform updates.
 6. Human-readable export contract:
    - For each selected state and plan, write Markdown snapshots under
-     `utl/ply/export/` (inventory graph, state summary, plan steps).
+     `utl/pla/export/` (inventory graph, state summary, plan steps).
    - Keep exports deterministic so git diffs remain reviewable alongside DB
      updates.
 7. Alternatives considered and trade-offs:
@@ -211,11 +211,11 @@ Design classification: required
 
 ### Done
 
-1. Added baseline module scaffold in `utl/ply/` with README, operation folder,
+1. Added baseline module scaffold in `utl/pla/` with README, operation folder,
    data/export folders, and SQL assets.
 2. Added core schema and seed scripts:
-   `utl/ply/sql/001_init_schema.sql` and `utl/ply/sql/010_seed_reference.sql`.
-3. Added executable CLI entrypoint `utl/ply/ply` with `init-db`,
+   `utl/pla/sql/001_init_schema.sql` and `utl/pla/sql/010_seed_reference.sql`.
+3. Added executable CLI entrypoint `utl/pla/cli` with `init-db`,
    `import-present`, `create-state`, `upsert-entity`, `set-state-entity`,
    `plan-implementation`, and `export-md` commands.
 4. Imported `cfg/env/` into a first present snapshot/state and generated
@@ -225,51 +225,51 @@ Design classification: required
 
 ### Validation status
 
-1. `bash -n /home/es/lab/utl/ply/ply` -> pass
-2. `/home/es/lab/utl/ply/ply init-db /home/es/lab/utl/ply/data/ply.db` -> pass
-3. `/home/es/lab/utl/ply/ply import-present /home/es/lab/utl/ply/data/ply.db /home/es/lab/cfg/env` -> pass
-4. `/home/es/lab/utl/ply/ply create-state /home/es/lab/utl/ply/data/ply.db desired desired-site1 present-20260306-013604 candidate` -> pass
-5. `/home/es/lab/utl/ply/ply upsert-entity /home/es/lab/utl/ply/data/ply.db service svc-traefik "Traefik"` -> pass
-6. `/home/es/lab/utl/ply/ply set-state-entity /home/es/lab/utl/ply/data/ply.db desired-site1 svc-traefik included` -> pass
-7. `/home/es/lab/utl/ply/ply plan-implementation /home/es/lab/utl/ply/data/ply.db present-20260306-013604 desired-site1` -> pass
-8. `/home/es/lab/utl/ply/ply export-md /home/es/lab/utl/ply/data/ply.db /home/es/lab/utl/ply/export/inventory-summary.md` -> pass
+1. `bash -n /home/es/lab/utl/pla/cli` -> pass
+2. `/home/es/lab/utl/pla/cli init-db /home/es/lab/utl/pla/data/ply.db` -> pass
+3. `/home/es/lab/utl/pla/cli import-present /home/es/lab/utl/pla/data/ply.db /home/es/lab/cfg/env` -> pass
+4. `/home/es/lab/utl/pla/cli create-state /home/es/lab/utl/pla/data/ply.db desired desired-site1 present-20260306-013604 candidate` -> pass
+5. `/home/es/lab/utl/pla/cli upsert-entity /home/es/lab/utl/pla/data/ply.db service svc-traefik "Traefik"` -> pass
+6. `/home/es/lab/utl/pla/cli set-state-entity /home/es/lab/utl/pla/data/ply.db desired-site1 svc-traefik included` -> pass
+7. `/home/es/lab/utl/pla/cli plan-implementation /home/es/lab/utl/pla/data/ply.db present-20260306-013604 desired-site1` -> pass
+8. `/home/es/lab/utl/pla/cli export-md /home/es/lab/utl/pla/data/ply.db /home/es/lab/utl/pla/export/inventory-summary.md` -> pass
 9. `bash doc/pro/check-workflow.sh` -> pass
 
 ## Handoff Notes
 
-1. Core scaffold and CLI are in `utl/ply/` with schema, seed data, runtime DB,
+1. Core scaffold and CLI are in `utl/pla/` with schema, seed data, runtime DB,
    and markdown export baseline.
-2. Main operator entrypoint is `utl/ply/ply`; commands implemented:
+2. Main operator entrypoint is `utl/pla/cli`; commands implemented:
    `init-db`, `import-present`, `create-state`, `upsert-entity`,
    `set-state-entity`, `plan-implementation`, `export-md`.
 3. Verified sample artifacts:
-   - DB: `utl/ply/data/ply.db`
-   - Export: `utl/ply/export/inventory-summary.md`
+   - DB: `utl/pla/data/ply.db`
+   - Export: `utl/pla/export/inventory-summary.md`
 4. Recommended completed archive target:
    `doc/pro/completed/20260306-0143_homelab-entity-playground-plan/`
 
 ## What changed
 
-1. Added a new homelab playground module at `utl/ply/` with schema, seed,
+1. Added a new homelab playground module at `utl/pla/` with schema, seed,
    operation placeholders, runtime data path, and export path.
-2. Implemented `utl/ply/ply` commands for database bootstrap, present-state
+2. Implemented `utl/pla/cli` commands for database bootstrap, present-state
    import from `cfg/env/`, state/entity modeling, plan generation, and markdown
    export.
 3. Created baseline runtime artifacts for review:
-   `utl/ply/data/ply.db` and `utl/ply/export/inventory-summary.md`.
-4. Updated utility documentation in `utl/README.md` and `utl/ply/README.md` to
+   `utl/pla/data/ply.db` and `utl/pla/export/inventory-summary.md`.
+4. Updated utility documentation in `utl/README.md` and `utl/pla/README.md` to
    document the new command surface and workflow.
 
 ## What was verified
 
-1. `bash -n /home/es/lab/utl/ply/ply` -> pass
-2. `/home/es/lab/utl/ply/ply init-db /home/es/lab/utl/ply/data/ply.db` -> pass
-3. `/home/es/lab/utl/ply/ply import-present /home/es/lab/utl/ply/data/ply.db /home/es/lab/cfg/env` -> pass
-4. `/home/es/lab/utl/ply/ply create-state /home/es/lab/utl/ply/data/ply.db desired desired-site1 present-20260306-013604 candidate` -> pass
-5. `/home/es/lab/utl/ply/ply upsert-entity /home/es/lab/utl/ply/data/ply.db service svc-traefik "Traefik"` -> pass
-6. `/home/es/lab/utl/ply/ply set-state-entity /home/es/lab/utl/ply/data/ply.db desired-site1 svc-traefik included` -> pass
-7. `/home/es/lab/utl/ply/ply plan-implementation /home/es/lab/utl/ply/data/ply.db present-20260306-013604 desired-site1` -> pass
-8. `/home/es/lab/utl/ply/ply export-md /home/es/lab/utl/ply/data/ply.db /home/es/lab/utl/ply/export/inventory-summary.md` -> pass
+1. `bash -n /home/es/lab/utl/pla/cli` -> pass
+2. `/home/es/lab/utl/pla/cli init-db /home/es/lab/utl/pla/data/ply.db` -> pass
+3. `/home/es/lab/utl/pla/cli import-present /home/es/lab/utl/pla/data/ply.db /home/es/lab/cfg/env` -> pass
+4. `/home/es/lab/utl/pla/cli create-state /home/es/lab/utl/pla/data/ply.db desired desired-site1 present-20260306-013604 candidate` -> pass
+5. `/home/es/lab/utl/pla/cli upsert-entity /home/es/lab/utl/pla/data/ply.db service svc-traefik "Traefik"` -> pass
+6. `/home/es/lab/utl/pla/cli set-state-entity /home/es/lab/utl/pla/data/ply.db desired-site1 svc-traefik included` -> pass
+7. `/home/es/lab/utl/pla/cli plan-implementation /home/es/lab/utl/pla/data/ply.db present-20260306-013604 desired-site1` -> pass
+8. `/home/es/lab/utl/pla/cli export-md /home/es/lab/utl/pla/data/ply.db /home/es/lab/utl/pla/export/inventory-summary.md` -> pass
 9. `bash doc/pro/check-workflow.sh` -> pass
 
 ## What remains
@@ -289,4 +289,4 @@ Design classification: required
 
 ## Next Step
 
-Closed into completed archive: `doc/pro/completed/20260306-0150_homelab-entity-playground-plan/`.
+Closed into completed archive: `doc/pro/completed/20260306-0151_homelab-entity-playground-plan/`.
