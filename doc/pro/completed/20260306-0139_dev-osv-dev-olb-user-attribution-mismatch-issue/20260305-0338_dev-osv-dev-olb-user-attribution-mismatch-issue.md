@@ -1,9 +1,9 @@
 # dev_osv vs dev_olb User Attribution Mismatch
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-05
-- Updated: 2026-03-05 03:56
+- Updated: 2026-03-06 01:40
 - Links: doc/pro/task/inbox-capture, lib/ops/dev, val/lib/ops/dev_test.sh
 
 ## Goal
@@ -117,6 +117,20 @@ Design classification: required
 2. Design decision record exists and implemented behavior matches the selected approach.
 3. Targeted tests and workflow checks pass with recorded evidence.
 
-## Next Step
+## What changed
 
-Run `bash doc/pro/check-workflow.sh`; if clean, move this active item to completed with attached live before/after snapshot evidence.
+1. Added Antigravity account inventory loading and real-domain identity guards in `lib/ops/dev` so provider-wide and legacy fallback events are filtered when account identity is not in current inventory.
+2. Preserved session-bound event precedence; filtering is scoped to non-session-bound fallback paths.
+3. Added regression `test_dev_overview_antigravity_unlisted_account_filtered` in `val/lib/ops/dev_test.sh` to lock this behavior.
+4. Closed this workflow item by moving it from `doc/pro/active/` to `doc/pro/completed/20260306-0139_dev-osv-dev-olb-user-attribution-mismatch-issue/`.
+
+## What was verified
+
+1. `bash -n lib/ops/dev` -> pass
+2. `bash -n val/lib/ops/dev_test.sh` -> pass
+3. `./val/lib/ops/dev_test.sh` -> pass (`61/61`)
+4. `bash doc/pro/check-workflow.sh` -> pass (`Workflow check passed.`)
+
+## What remains
+
+1. None.
