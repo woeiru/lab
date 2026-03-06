@@ -1,0 +1,23 @@
+Read and apply doc/pro/task/RULES.md first.
+
+The active program item filepath is given in the user prompt. Read it first.
+
+Synchronize child workstream state into the parent program plan.
+
+- Discover child plans by matching `Program:` in `## Orchestration Metadata`
+  to the provided parent path
+- For each child, read:
+  - current phase/progress from `## Execution Plan`
+  - latest blockers from `## Progress Checkpoint` (if present)
+  - pending dependencies from `Depends-On`
+- Update parent `## Workstreams` status fields with:
+  - state (`not-started`, `in-progress`, `blocked`, `ready-for-merge`, `done`)
+  - blocker summary
+  - next owner action
+- Add/replace parent `## Sync Snapshot` with:
+  - timestamp
+  - completed items this sync
+  - blocked items and reason
+  - ready-to-converge candidates
+- Do not move files between workflow states
+- Report: parent path + sync timestamp + blocker table

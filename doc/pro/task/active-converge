@@ -1,0 +1,21 @@
+Read and apply doc/pro/task/RULES.md first.
+
+The active program item filepath is given in the user prompt. Read it first.
+
+Converge the current workstream wave and decide next-wave release.
+
+- Read parent `## Workstreams`, `## Integration Cadence`, and latest
+  `## Sync Snapshot`
+- Identify workstreams marked ready for convergence and validate each child's
+  `Merge-Gate` evidence in its plan
+- Record convergence outcome in parent `## Convergence Log`:
+  - wave id / timestamp
+  - converged workstreams
+  - integration checks run (or required)
+  - unresolved conflicts or blockers
+- For blocked dependencies, set explicit release conditions in parent
+  `## Workstreams` notes
+- If a follow-up item is required, create a new inbox `-followup.md` item and
+  link it from parent
+- Do not close the parent unless prompt explicitly requests closure
+- Report: converged workstreams + blockers + next wave release decision

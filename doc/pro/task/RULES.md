@@ -8,6 +8,19 @@ File rules:
 - Every workflow doc must have these header fields:
   Status, Owner, Started, Updated, Links.
 
+Parallel orchestration rules (for large initiatives):
+- A parent program item uses suffix `-program-plan.md`.
+- Program items should include sections:
+  `## Program Scope`, `## Global Invariants`, `## Workstreams`,
+  `## Integration Cadence`.
+- Child workstream items must include `## Orchestration Metadata` with keys:
+  `Program`, `Workstream-ID`, `Depends-On`, `Touch-Set`, `Merge-Gate`,
+  `Branch`, `Worktree`.
+- `Merge-Gate` allowed values: `minimal`, `module`, `integration`.
+- `Depends-On` references `Workstream-ID` values from sibling children under
+  the same `Program`.
+- Keep dependency declarations acyclic.
+
 Folder-specific naming:
 - inbox/: filename must end with -plan.md, -issue.md, -review.md, or -followup.md
 - dismissed/: filename must end with -plan.md; must include ## Dismissal Reason

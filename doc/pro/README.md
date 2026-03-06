@@ -119,6 +119,61 @@ Examples:
 | `completed/` | implementation/review accepted with evidence | no further state transition; follow-up becomes a new item |
 | `dismissed/` | item explicitly not pursued | no further state transition; revisit as a new item |
 
+## Parallel orchestration for large initiatives
+
+Use this mode for large refactors or multi-surface projects where one plan is
+too broad for a single context window.
+
+### When to use
+
+- Work spans multiple independent modules or teams.
+- Safe execution benefits from concurrent workstreams.
+- Integration order and dependency gates matter.
+
+### Core model
+
+- **Program plan (parent):** one control-plane item, typically named
+  `yyyymmdd-hhmm_<topic>-program-plan.md`.
+- **Workstream plans (children):** multiple focused `-plan` items that each map
+  to one worker context.
+- **Execution pattern:** one coordinator context manages the program plan;
+  worker contexts execute child plans in parallel.
+
+### Parent requirements
+
+Program plans should include these sections:
+
+- `## Program Scope`
+- `## Global Invariants`
+- `## Workstreams`
+- `## Integration Cadence`
+
+`## Workstreams` is the source of truth for dependency order, wave assignment,
+and current per-workstream status.
+
+### Child requirements
+
+Each child plan should include `## Orchestration Metadata` with these keys:
+
+- `Program: <path to parent program plan>`
+- `Workstream-ID: WS-<nn>`
+- `Depends-On: none | WS-..,WS-..`
+- `Touch-Set: <path prefixes or globs>`
+- `Merge-Gate: minimal | module | integration`
+- `Branch: <git branch name>`
+- `Worktree: <absolute path | none>`
+
+### Operating cadence (waves)
+
+1. Coordinator fans out child plans and assigns owners/contexts.
+2. Workers execute and checkpoint child plans.
+3. Coordinator syncs checkpoints into the parent workstream table.
+4. Coordinator converges wave outputs, runs integration checks, and opens the
+   next wave.
+
+Prefer this mode only when it clearly reduces risk or cycle time. For small
+changes, keep using the standard single-plan flow.
+
 ## Important rule
 
 If something is in `active/`, it is not done yet.

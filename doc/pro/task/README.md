@@ -26,6 +26,20 @@ Use `Strict mode.` when you want capture-only behavior with no extra analysis.
 
 Append `Strict mode.` to halt on ambiguity instead of inferring.
 
+## Parallel orchestration mode
+
+For large initiatives, use one program plan plus multiple child workstream
+plans in separate contexts.
+
+- Program coordinator context: runs orchestration tasks and owns parent state.
+- Worker contexts: run child plans and only modify assigned touch-sets.
+- Use this task sequence:
+  1. `active-fanout` (create/refresh child plans from parent)
+  2. `active-assign` (bind child plans to owners/contexts/branches/worktrees)
+  3. workers execute with `active-start` / `active-checkpoint` / `active-resume`
+  4. `active-sync` (roll up child status into parent)
+  5. `active-converge` (integration wave review + release next wave)
+
 ### Prompt ordering principle
 
 **Short task first, big file second.** When composing a prompt with both a
@@ -52,6 +66,10 @@ bulk material, rather than forcing it to re-weight retroactively.
 | `queue-move`                | Move a specific inbox item to queue          |
 | `active-move`               | Move queue item to active, add plan          |
 | `active-start`              | Begin executing an active item               |
+| `active-fanout`             | Split active program into child workstreams  |
+| `active-assign`             | Assign workstreams to contexts/worktrees     |
+| `active-sync`               | Sync child checkpoints into program plan     |
+| `active-converge`           | Converge a wave and release next wave        |
 | `active-split`              | Split active item into smaller pieces        |
 | `active-checkpoint`         | Checkpoint progress before closing context   |
 | `active-resume`             | Resume active item in a new context          |
