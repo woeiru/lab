@@ -116,6 +116,7 @@ test_dev_functions_exist() {
     declare -f dev_osv >/dev/null 2>&1 || return 1
     declare -f dev_omi >/dev/null 2>&1 || return 1
     declare -f dev_oac >/dev/null 2>&1 || return 1
+    declare -f dev_oaa >/dev/null 2>&1 || return 1
     declare -f dev_oad >/dev/null 2>&1 || return 1
     declare -f dev_oae >/dev/null 2>&1 || return 1
     declare -f dev_orr >/dev/null 2>&1 || return 1
@@ -2323,6 +2324,231 @@ PY
     return 0
 }
 
+# Test: dev_oaa rejects wrong parameter count
+test_dev_oaa_requires_params() {
+    dev_oaa >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_oaa rejects non-numeric account
+test_dev_oaa_rejects_bad_account() {
+    dev_oaa "abc" >/dev/null 2>&1
+    [[ $? -eq 1 ]]
+}
+
+# Test: dev_oaa sets global default active account
+test_dev_oaa_sets_default_active_account() {
+    local test_env
+    test_env=$(create_test_env "dev_oaa_set_default")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_oaa "2" 2>/dev/null)
+    local status=$?
+
+    local state=""
+    if [[ $status -eq 0 ]]; then
+        state=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+print('{}|{}|{}'.format(
+    data.get('activeIndex', -1),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+    data.get('activeIndexByFamily', {}).get('gemini', -1),
+))
+PY
+)
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"bob@example.com"* ]] || return 1
+    [[ "$state" == "1|0|0" ]] || return 1
+    return 0
+}
+
+# Test: dev_oaa rejects out-of-range account number
+test_dev_oaa_rejects_out_of_range() {
+    local test_env
+    test_env=$(create_test_env "dev_oaa_range")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oaa "5" >/dev/null 2>&1
+    local status=$?
+
+    local current_index
+    current_index=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+print(data.get('activeIndex', -1))
+PY
+)
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]] || return 1
+    [[ "$current_index" == "0" ]] || return 1
+    return 0
+}
+
+# Test: dev_oaa rejects disabled target account
+test_dev_oaa_rejects_disabled_account() {
+    local test_env
+    test_env=$(create_test_env "dev_oaa_disabled")
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "version": 4,
+  "accounts": [
+    {
+      "email": "alice@example.com",
+      "enabled": true
+    },
+    {
+      "email": "bob@example.com",
+      "enabled": false
+    }
+  ],
+  "activeIndex": 0,
+  "activeIndexByFamily": {
+    "claude": 0,
+    "gemini": 0
+  }
+}
+JSON
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oaa "2" >/dev/null 2>&1
+    local status=$?
+
+    local current_index
+    current_index=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+print(data.get('activeIndex', -1))
+PY
+)
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 1 ]] || return 1
+    [[ "$current_index" == "0" ]] || return 1
+    return 0
+}
+
+# Test: dev_oaa preserves activeIndexByFamily mappings
+test_dev_oaa_preserves_family_mappings() {
+    local test_env
+    test_env=$(create_test_env "dev_oaa_preserve_family")
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "version": 4,
+  "accounts": [
+    {
+      "email": "alice@example.com",
+      "enabled": true
+    },
+    {
+      "email": "bob@example.com",
+      "enabled": true
+    }
+  ],
+  "activeIndex": 0,
+  "activeIndexByFamily": {
+    "claude": 1,
+    "gemini": 0
+  }
+}
+JSON
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oaa "2" >/dev/null 2>&1
+    local status=$?
+
+    local state=""
+    if [[ $status -eq 0 ]]; then
+        state=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+print('{}|{}|{}'.format(
+    data.get('activeIndex', -1),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+    data.get('activeIndexByFamily', {}).get('gemini', -1),
+))
+PY
+)
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$state" == "1|1|0" ]] || return 1
+    return 0
+}
+
+# Test: dev_oaa creates a backup before modifying
+test_dev_oaa_creates_backup() {
+    local test_env
+    test_env=$(create_test_env "dev_oaa_backup")
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    dev_oaa "2" >/dev/null 2>&1
+    local status=$?
+
+    local backup_count
+    backup_count=$(ls "$test_env/.config/opencode"/antigravity-accounts.json.backup.* 2>/dev/null | wc -l)
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ $backup_count -ge 1 ]] || return 1
+    return 0
+}
+
 # Test: dev_oas rejects non-numeric account
 test_dev_oas_rejects_bad_account() {
     dev_oas "claude" "abc" >/dev/null 2>&1
@@ -4271,6 +4497,65 @@ PY
     return 0
 }
 
+# Test: dev_oaa records account attribution event when OpenCode DB is available
+test_dev_oaa_records_account_event() {
+    local test_env
+    test_env=$(create_test_env "dev_oaa_account_event")
+    local db_path="$test_env/opencode.db"
+
+    mkdir -p "$test_env/.config/opencode"
+    _create_mock_accounts_json "$test_env/.config/opencode/antigravity-accounts.json"
+    _create_mock_opencode "$test_env" "$db_path"
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+conn.commit()
+conn.close()
+PY
+
+    local old_home="$HOME"
+    local old_path="$PATH"
+    export HOME="$test_env"
+    PATH="$test_env/bin:$PATH"
+
+    dev_oaa "2" >/dev/null 2>&1
+    local status=$?
+
+    local event_row=""
+    if [[ $status -eq 0 ]]; then
+        event_row=$(python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+cur = conn.cursor()
+cur.execute(
+    """
+    SELECT provider_id, account_key, account_label, event_type, source
+    FROM opencode_account_event
+    ORDER BY time_ms DESC
+    LIMIT 1
+    """
+)
+row = cur.fetchone()
+conn.close()
+print("|".join(row) if row else "")
+PY
+)
+    fi
+
+    export HOME="$old_home"
+    PATH="$old_path"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$event_row" == "antigravity|bob@example.com|bob@example.com|account_selected|manual_switch" ]] || return 1
+    return 0
+}
+
 # Test: dev_oas records account attribution event when OpenCode DB is available
 test_dev_oas_records_account_event() {
     local test_env
@@ -4365,6 +4650,13 @@ main() {
     run_test test_dev_oqu_watch_rejects_bad_interval
     run_test test_dev_oac_requires_execute_flag
     run_test test_dev_oac_reconciles_repopulation_cycles
+    run_test test_dev_oaa_requires_params
+    run_test test_dev_oaa_rejects_bad_account
+    run_test test_dev_oaa_sets_default_active_account
+    run_test test_dev_oaa_rejects_out_of_range
+    run_test test_dev_oaa_rejects_disabled_account
+    run_test test_dev_oaa_preserves_family_mappings
+    run_test test_dev_oaa_creates_backup
     run_test test_dev_oas_requires_params
     run_test test_dev_oas_rejects_bad_account
     run_test test_dev_oas_switches_family
@@ -4401,6 +4693,7 @@ main() {
     run_test test_dev_orr_dry_run_emits_without_run
     run_test test_dev_orr_no_double_emission
     run_test test_dev_otr_emits_token_refresh_event
+    run_test test_dev_oaa_records_account_event
     run_test test_dev_oas_records_account_event
 
     test_footer

@@ -259,11 +259,15 @@ ops dev otr openai user@example.com user@example.com connector_event
 ```bash
 ops dev oas claude 2
 ops dev oas gemini 1
+ops dev oaa 2
 ```
 
 - `dev_oas` modifies `antigravity-accounts.json` to route a model family to the
   selected account (1-based), creates a backup, and emits an `account_selected`
   event with `source=manual_switch`.
+- `dev_oaa` sets the global default `activeIndex` (1-based input), preserves
+  existing `activeIndexByFamily` mappings, creates a backup, and emits an
+  `account_selected` event with `source=manual_switch`.
 
 For full procedure, validation matrix, and troubleshooting, see:
 - [07 - Dev Session Attribution Workflow](07-dev-session-attribution-workflow.md)

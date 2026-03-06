@@ -69,6 +69,7 @@ flowchart TD
 | `otr` | Provider token was just refreshed or rotated | Writes `token_refreshed` event |
 | `oae` | Stamp identity without running a request (manual or hook) | Writes attribution event |
 | `oas` | Switch active account for a model family | Modifies `antigravity-accounts.json`, writes `account_selected` event (`source=manual_switch`) |
+| `oaa` | Set global default active account | Modifies `activeIndex` in `antigravity-accounts.json`, writes `account_selected` event (`source=manual_switch`) |
 
 ## 1. Prerequisites and Safety
 
@@ -158,6 +159,17 @@ This modifies `antigravity-accounts.json` to route the given family to the
 selected account (1-based), creates a timestamped backup, and emits an
 `account_selected` event with `source=manual_switch`. Subsequent sessions
 using that family will be attributed to the new account.
+
+### Optional: Set global default active account
+
+```bash
+ops dev oaa 2
+```
+
+This updates the global `activeIndex` in `antigravity-accounts.json` using
+1-based account selection, creates a timestamped backup, and emits an
+`account_selected` event with `source=manual_switch`. Existing
+`activeIndexByFamily` mappings are preserved.
 
 ### Optional: Emit events from runtime hook environment
 

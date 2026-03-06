@@ -2863,6 +2863,125 @@ dev_oac() {
     return 0
 }
 
+# Sets the global default active Antigravity account
+# opencode account activate-default
+# <account_number>
+dev_oaa() {
+    # Technical Description:
+    #   Sets the global default active account index in antigravity-accounts.json
+    #   Validates the selected account index and rejects disabled targets
+    #   Creates a timestamped backup before writing any account state changes
+    # Dependencies:
+    #   - python3 with json module for safe JSON read-modify-write
+    #   - antigravity-accounts.json from the antigravity auth plugin
+    #   - opencode CLI (optional) to persist account attribution events
+    # Arguments:
+    #   $1: account_number - 1-based account number to set as global default
+
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        aux_tec
+        return 0
+    fi
+
+    if [ $# -ne 1 ]; then
+        aux_use
+        return 1
+    fi
+
+    if ! [[ "$1" =~ ^[0-9]+$ ]] || [ "$1" -lt 1 ]; then
+        aux_err "Account number must be a positive integer (1-based)" "component=dev,operation=opencode_account_activate_default,value=$1"
+        aux_use
+        return 1
+    fi
+
+    if ! aux_chk "command" "python3"; then
+        aux_err "python3 command not found" "component=dev,operation=opencode_account_activate_default"
+        return 127
+    fi
+
+    local accounts_path
+    accounts_path=$(_dev_get_antigravity_accounts_path)
+    if [ $? -ne 0 ]; then
+        aux_err "Antigravity accounts file not found" "component=dev,operation=opencode_account_activate_default,expected_path=${HOME}/.config/opencode/antigravity-accounts.json"
+        return 2
+    fi
+
+    local account_num="$1"
+
+    _dev_reconcile_antigravity_accounts "opencode_account_activate_default" "silent" >/dev/null 2>&1
+
+    aux_info "Setting default active account" "component=dev,operation=opencode_account_activate_default,account=$account_num"
+
+    local py_output
+    py_output=$(python3 - "$accounts_path" "$account_num" <<'PY'
+import json
+import sys
+import shutil
+from datetime import datetime
+
+accounts_path = sys.argv[1]
+account_num = int(sys.argv[2])
+account_index = account_num - 1
+
+with open(accounts_path, "r") as f:
+    data = json.load(f)
+
+accounts = data.get("accounts", [])
+if account_index < 0 or account_index >= len(accounts):
+    print(f"INVALID_ACCOUNT|{account_num}|{len(accounts)}")
+    sys.exit(11)
+
+target_account = accounts[account_index]
+target_email = target_account.get("email", "(unknown)")
+if target_account.get("enabled", True) is False:
+    print(f"ACCOUNT_DISABLED|{target_email}|{account_num}")
+    sys.exit(13)
+
+backup_path = accounts_path + ".backup." + datetime.now().strftime("%Y%m%d_%H%M%S")
+shutil.copy2(accounts_path, backup_path)
+
+data["activeIndex"] = account_index
+
+with open(accounts_path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+
+print(f"OK|{target_email}|{account_num}|{backup_path}")
+sys.exit(0)
+PY
+)
+    local py_status=$?
+
+    case "$py_status" in
+        0)
+            local switched_email backup_file
+            switched_email=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $2}')
+            backup_file=$(echo "$py_output" | awk -F'|' '/^OK\|/ {print $4}')
+            _dev_record_account_event "antigravity" "$switched_email" "$switched_email" "account_selected" "manual_switch"
+            aux_info "Default active account set successfully" "component=dev,operation=opencode_account_activate_default,email=$switched_email"
+            echo "Default active account now routes to: $switched_email (account $account_num)"
+            echo "Backup: $backup_file"
+            return 0
+            ;;
+        11)
+            local total
+            total=$(echo "$py_output" | awk -F'|' '/^INVALID_ACCOUNT/ {print $3}')
+            aux_err "Account number $account_num is out of range (1-$total)" "component=dev,operation=opencode_account_activate_default"
+            return 1
+            ;;
+        13)
+            local disabled_email
+            disabled_email=$(echo "$py_output" | awk -F'|' '/^ACCOUNT_DISABLED/ {print $2}')
+            aux_err "Account '$disabled_email' is disabled and cannot be selected" "component=dev,operation=opencode_account_activate_default,account=$account_num"
+            return 1
+            ;;
+        *)
+            aux_err "Failed to set default active account" "component=dev,operation=opencode_account_activate_default,python_exit=$py_status"
+            return 2
+            ;;
+    esac
+}
+
 # Switches the active Antigravity account for a model family
 # opencode account switch
 # <family> <account_number>
