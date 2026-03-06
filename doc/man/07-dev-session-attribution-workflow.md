@@ -45,6 +45,9 @@ flowchart TD
     E -->|no| F
 
     F["Switching active account\nfor a model family?"] -->|yes| OAS["ops dev oas\n(switch account + emit event)\nsource: manual_switch"]
+    F -->|no| G
+
+    G["Switching native OpenAI\nOAuth credentials?"] -->|yes| OIS["ops dev ois\n-s to save, -l to list\n<N> to switch + emit event"]
 
     OSV --> V["Validate with\nops dev osv -x"]
     AUTO --> V
@@ -52,6 +55,7 @@ flowchart TD
     OTR --> V
     OAE --> V
     OAS --> V
+    OIS --> V
 
     V --> STRICT{"CONF level?"}
     STRICT -->|high| OK["Event before first prompt\nidentity confirmed"]
@@ -70,6 +74,7 @@ flowchart TD
 | `oae` | Stamp identity without running a request (manual or hook) | Writes attribution event |
 | `oas` | Switch active account for a model family | Modifies `antigravity-accounts.json`, writes `account_selected` event (`source=manual_switch`) |
 | `oaa` | Set global default active account | Modifies `activeIndex` in `antigravity-accounts.json`, writes `account_selected` event (`source=manual_switch`) |
+| `ois` | Save / list / switch native OpenAI OAuth credentials | Reads/writes `openai-accounts.json` sidecar, replaces `openai` key in `auth.json`, writes `account_selected` event (`source=manual_switch`) |
 
 ## 1. Prerequisites and Safety
 
@@ -93,6 +98,7 @@ Safety boundaries:
 - `ops dev oae ...` and `ops dev otr ...` write local attribution events in the local OpenCode DB.
 - `ops dev orr ...` writes an attribution event and then executes `opencode run`.
 - `ops dev orr ... --dry-run -- ...` is the safest way to validate event wiring without running a real `opencode run` request.
+- `ops dev ois -s/-l` is read-safe (save snapshots credentials; list is read-only). `ops dev ois <N>` modifies `auth.json` -- always creates a timestamped backup first.
 
 ## 2. Procedure
 
@@ -170,6 +176,46 @@ This updates the global `activeIndex` in `antigravity-accounts.json` using
 1-based account selection, creates a timestamped backup, and emits an
 `account_selected` event with `source=manual_switch`. Existing
 `activeIndexByFamily` mappings are preserved.
+
+### Optional: Switch active OpenAI account (native OAuth credentials)
+
+`dev_ois` manages OpenAI native OAuth credentials stored in an external sidecar
+(`~/.config/opencode/openai-accounts.json`) that this codebase fully owns.
+Switching replaces the `openai` key in `~/.local/share/opencode/auth.json` with
+the target snapshot's credentials. Override path with `LAB_DEV_OPENAI_ACCOUNTS_FILE`.
+
+Save the current OpenAI credentials from `auth.json` into the sidecar:
+
+```bash
+ops dev ois -s                       # auto-detect label from JWT email claim
+ops dev ois -s work@example.com      # override label
+```
+
+List all saved OpenAI accounts with index numbers (active account marked with `*`):
+
+```bash
+ops dev ois -l
+```
+
+Switch to a saved OpenAI account by 1-based index:
+
+```bash
+ops dev ois 1
+ops dev ois 2
+```
+
+The switch mode:
+- Creates a timestamped backup of `auth.json` before modifying it.
+- Replaces the `openai` key in `auth.json` with the target snapshot.
+- Updates `activeIndex` in the sidecar file.
+- Records an `account_selected` attribution event via `_dev_record_account_event`.
+
+After switching, `_dev_get_openai_account_identity` and the shell wrapper will
+reflect the newly active account on the next `opencode` invocation.
+
+**Note**: OpenAI OAuth tokens are time-bound. If a saved credential set has
+expired, re-authenticate through OpenCode and save the refreshed credentials
+with `ops dev ois -s` again.
 
 ### Optional: Emit events from runtime hook environment
 
