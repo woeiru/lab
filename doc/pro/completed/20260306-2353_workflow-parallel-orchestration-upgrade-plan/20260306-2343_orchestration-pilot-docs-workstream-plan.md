@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-06
 - Updated: 2026-03-06 23:47:00
-- Links: doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md, doc/pro/README.md, doc/pro/task/README.md
+- Links: doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md, doc/pro/README.md, doc/pro/task/README.md
 
 ## Goal
 
@@ -28,7 +28,7 @@ pilot workstream.
 
 ## Orchestration Metadata
 
-- Program: doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md
+- Program: doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md
 - Workstream-ID: WS-01
 - Depends-On: none
 - Touch-Set: doc/pro/README.md,doc/pro/task/README.md

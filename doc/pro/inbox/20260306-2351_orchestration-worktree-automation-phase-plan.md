@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-06
 - Updated: 2026-03-06
-- Links: doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2331_workflow-parallel-orchestration-upgrade-plan.md, doc/pro/task/active-assign, doc/pro/task/active-sync, doc/pro/task/active-converge
+- Links: doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2331_workflow-parallel-orchestration-upgrade-plan.md, doc/pro/task/active-assign, doc/pro/task/active-sync, doc/pro/task/active-converge
 
 ## Goal
 

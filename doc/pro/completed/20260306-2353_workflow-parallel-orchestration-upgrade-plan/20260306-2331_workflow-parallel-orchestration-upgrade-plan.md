@@ -194,9 +194,9 @@ board updated to the new required fields.
    - `bash -n doc/pro/check-workflow.sh` -> pass
    - `bash doc/pro/check-workflow.sh` -> pass.
 6. Created pilot artifacts:
-   - `doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md`
-   - `doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-docs-workstream-plan.md`
-   - `doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-checker-workstream-plan.md`
+   - `doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md`
+   - `doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-docs-workstream-plan.md`
+   - `doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-checker-workstream-plan.md`
 7. Pilot wave results:
    - dependency chain (`WS-02` depends on `WS-01`) validated
    - merge-gate diversity (`module` and `integration`) validated
@@ -256,7 +256,7 @@ the workflow upgrade is closure-ready.
 ## Next Step
 
 Closed into completed archive:
-`doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/`.
+`doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/`.
 
 ## What changed
 

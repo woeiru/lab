@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-06
 - Updated: 2026-03-06 23:47:00
-- Links: doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2331_workflow-parallel-orchestration-upgrade-plan.md, doc/pro/task/active-fanout, doc/pro/task/active-assign, doc/pro/task/active-sync, doc/pro/task/active-converge
+- Links: doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2331_workflow-parallel-orchestration-upgrade-plan.md, doc/pro/task/active-fanout, doc/pro/task/active-assign, doc/pro/task/active-sync, doc/pro/task/active-converge
 
 ## Goal
 
@@ -45,8 +45,8 @@ parent program plan plus multiple child workstream plans.
 
 | Workstream-ID | Child Plan | Depends-On | Touch-Set | Merge-Gate | Owner | Status | Notes |
 |---|---|---|---|---|---|---|---|
-| WS-01 | doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-docs-workstream-plan.md | none | doc/pro/README.md, doc/pro/task/README.md | module | es | done | Parent/child docs guidance drafted and validated. |
-| WS-02 | doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-checker-workstream-plan.md | WS-01 | doc/pro/task/RULES.md, doc/pro/check-workflow.sh | integration | es | done | Checker policy alignment validated after docs contract froze. |
+| WS-01 | doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-docs-workstream-plan.md | none | doc/pro/README.md, doc/pro/task/README.md | module | es | done | Parent/child docs guidance drafted and validated. |
+| WS-02 | doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-checker-workstream-plan.md | WS-01 | doc/pro/task/RULES.md, doc/pro/check-workflow.sh | integration | es | done | Checker policy alignment validated after docs contract froze. |
 
 ## Integration Cadence
 

@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-06
 - Updated: 2026-03-06 23:47:00
-- Links: doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md, doc/pro/task/RULES.md, doc/pro/check-workflow.sh
+- Links: doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md, doc/pro/task/RULES.md, doc/pro/check-workflow.sh
 
 ## Goal
 
@@ -30,7 +30,7 @@ pilot wave.
 
 ## Orchestration Metadata
 
-- Program: doc/pro/completed/20260306-2347_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md
+- Program: doc/pro/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md
 - Workstream-ID: WS-02
 - Depends-On: WS-01
 - Touch-Set: doc/pro/task/RULES.md,doc/pro/check-workflow.sh
