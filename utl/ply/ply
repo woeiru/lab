@@ -1,0 +1,605 @@
+#!/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SQL_DIR="$SCRIPT_DIR/sql"
+DEFAULT_DB="$SCRIPT_DIR/data/ply.db"
+DEFAULT_EXPORT="$SCRIPT_DIR/export/inventory-summary.md"
+DEFAULT_ENV_ROOT="$SCRIPT_DIR/../../cfg/env"
+
+show_help() {
+    cat << 'EOF'
+Homelab Playground CLI
+
+USAGE:
+    ./utl/ply/ply <command> [args]
+
+COMMANDS:
+    init-db [db_path]                         Initialize schema and seed reference data
+    import-present [db_path] [env_root] [name] Import cfg/env snapshot as present state
+    create-state [db_path] <kind> <name> [baseline_name] [status]
+                                              Create prototype/desired/inventory state
+    upsert-entity [db_path] <type> <key> <label>
+                                              Create or update entity in catalog
+    set-state-entity [db_path] <state_name> <entity_key> [presence]
+                                              Add or update entity participation in state
+    plan-implementation [db_path] <present_name> <desired_name> [summary]
+                                              Generate ordered implementation steps
+    export-md [db_path] [output_path]         Export markdown summary of current DB
+    --help                            Show this help message
+
+EXAMPLES:
+    ./utl/ply/ply init-db
+    ./utl/ply/ply import-present
+    ./utl/ply/ply import-present ./utl/ply/data/ply.db ./cfg/env present-site1
+    ./utl/ply/ply create-state ./utl/ply/data/ply.db prototype proto-a present-site1
+    ./utl/ply/ply upsert-entity ./utl/ply/data/ply.db service svc-traefik "Traefik"
+    ./utl/ply/ply set-state-entity ./utl/ply/data/ply.db proto-a svc-traefik included
+    ./utl/ply/ply plan-implementation ./utl/ply/data/ply.db present-site1 desired-site1
+    ./utl/ply/ply export-md
+EOF
+}
+
+require_cmd() {
+    local cmd="$1"
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "missing required command: $cmd" >&2
+        exit 127
+    fi
+}
+
+ensure_db_baseline() {
+    local db_path="$1"
+
+    python3 - "$db_path" "$SQL_DIR/001_init_schema.sql" "$SQL_DIR/010_seed_reference.sql" << 'PY'
+import pathlib
+import sqlite3
+import sys
+
+db_path = pathlib.Path(sys.argv[1])
+sql_paths = [pathlib.Path(p) for p in sys.argv[2:]]
+
+db_path.parent.mkdir(parents=True, exist_ok=True)
+
+conn = sqlite3.connect(db_path)
+try:
+    for sql_path in sql_paths:
+        conn.executescript(sql_path.read_text(encoding="utf-8"))
+    conn.commit()
+finally:
+    conn.close()
+PY
+}
+
+run_init_db() {
+    local db_path="${1:-$DEFAULT_DB}"
+
+    require_cmd python3
+
+    ensure_db_baseline "$db_path"
+
+    echo "initialized playground database: $db_path"
+}
+
+run_import_present() {
+    local db_path="${1:-$DEFAULT_DB}"
+    local env_root="${2:-$DEFAULT_ENV_ROOT}"
+    local state_name="${3:-}"
+
+    require_cmd python3
+    ensure_db_baseline "$db_path"
+
+    python3 - "$db_path" "$env_root" "$state_name" << 'PY'
+import hashlib
+import json
+import pathlib
+import sqlite3
+import sys
+import time
+
+db_path = pathlib.Path(sys.argv[1])
+env_root = pathlib.Path(sys.argv[2]).resolve()
+state_name = sys.argv[3].strip()
+
+if not env_root.is_dir():
+    raise SystemExit(f"env root not found: {env_root}")
+
+if not state_name:
+    state_name = f"present-{time.strftime('%Y%m%d-%H%M%S')}"
+
+files = []
+for entry in sorted(env_root.rglob("*")):
+    if entry.is_file():
+        rel = str(entry.relative_to(env_root))
+        payload = entry.read_bytes()
+        file_hash = hashlib.sha256(payload).hexdigest()
+        files.append({
+            "path": rel,
+            "sha256": file_hash,
+            "size": len(payload),
+        })
+
+digest_input = "\n".join([f"{item['path']}:{item['sha256']}" for item in files])
+digest = hashlib.sha256(digest_input.encode("utf-8")).hexdigest()
+
+raw_json = json.dumps(
+    {
+        "env_root": str(env_root),
+        "files": files,
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+
+conn = sqlite3.connect(db_path)
+try:
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT OR IGNORE INTO plg_cfg_snapshot (env_root, digest, raw_json) VALUES (?, ?, ?)",
+        (str(env_root), digest, raw_json),
+    )
+    cur.execute("SELECT snapshot_id FROM plg_cfg_snapshot WHERE digest = ?", (digest,))
+    row = cur.fetchone()
+    if row is None:
+        raise SystemExit("failed to resolve snapshot id after insert")
+    snapshot_id = row[0]
+
+    notes = f"imported snapshot_id={snapshot_id} digest={digest[:12]} env_root={env_root}"
+    cur.execute(
+        "INSERT INTO plg_state (kind, name, status, notes) VALUES ('present', ?, 'selected', ?)",
+        (state_name, notes),
+    )
+    state_id = cur.lastrowid
+    conn.commit()
+
+    print(f"imported present state: {state_name}")
+    print(f"snapshot_id={snapshot_id} state_id={state_id} files={len(files)} digest={digest}")
+except sqlite3.IntegrityError as exc:
+    conn.rollback()
+    raise SystemExit(f"unable to import present state: {exc}")
+finally:
+    conn.close()
+PY
+}
+
+run_create_state() {
+    local db_path="${1:-$DEFAULT_DB}"
+    local kind="${2:-}"
+    local name="${3:-}"
+    local baseline_name="${4:-}"
+    local status="${5:-draft}"
+
+    if [[ -z "$kind" || -z "$name" ]]; then
+        echo "usage: ./utl/ply/ply create-state [db_path] <kind> <name> [baseline_name] [status]" >&2
+        exit 1
+    fi
+
+    require_cmd python3
+    ensure_db_baseline "$db_path"
+
+    python3 - "$db_path" "$kind" "$name" "$baseline_name" "$status" << 'PY'
+import pathlib
+import sqlite3
+import sys
+
+db_path = pathlib.Path(sys.argv[1])
+kind = sys.argv[2].strip()
+name = sys.argv[3].strip()
+baseline_name = sys.argv[4].strip()
+status = sys.argv[5].strip() or "draft"
+
+allowed_kinds = {"inventory", "present", "prototype", "desired"}
+allowed_status = {"draft", "candidate", "selected", "archived"}
+
+if kind not in allowed_kinds:
+    raise SystemExit(f"invalid state kind: {kind}")
+if status not in allowed_status:
+    raise SystemExit(f"invalid state status: {status}")
+
+conn = sqlite3.connect(db_path)
+try:
+    cur = conn.cursor()
+    baseline_state_id = None
+    if baseline_name:
+        row = cur.execute(
+            "SELECT state_id FROM plg_state WHERE name = ? ORDER BY state_id DESC LIMIT 1",
+            (baseline_name,),
+        ).fetchone()
+        if row is None:
+            raise SystemExit(f"baseline state not found: {baseline_name}")
+        baseline_state_id = row[0]
+
+    notes = "created via ply create-state"
+    if baseline_name:
+        notes = f"{notes} baseline={baseline_name}"
+
+    cur.execute(
+        "INSERT INTO plg_state (kind, name, baseline_state_id, status, notes) VALUES (?, ?, ?, ?, ?)",
+        (kind, name, baseline_state_id, status, notes),
+    )
+    conn.commit()
+    print(f"created state: {name}")
+except sqlite3.IntegrityError as exc:
+    conn.rollback()
+    raise SystemExit(f"unable to create state: {exc}")
+finally:
+    conn.close()
+PY
+}
+
+run_upsert_entity() {
+    local db_path="${1:-$DEFAULT_DB}"
+    local type_key="${2:-}"
+    local entity_key="${3:-}"
+    local label="${4:-}"
+
+    if [[ -z "$type_key" || -z "$entity_key" || -z "$label" ]]; then
+        echo "usage: ./utl/ply/ply upsert-entity [db_path] <type> <key> <label>" >&2
+        exit 1
+    fi
+
+    require_cmd python3
+    ensure_db_baseline "$db_path"
+
+    python3 - "$db_path" "$type_key" "$entity_key" "$label" << 'PY'
+import pathlib
+import sqlite3
+import sys
+
+db_path = pathlib.Path(sys.argv[1])
+type_key = sys.argv[2].strip()
+entity_key = sys.argv[3].strip()
+label = sys.argv[4].strip()
+
+conn = sqlite3.connect(db_path)
+try:
+    cur = conn.cursor()
+    type_row = cur.execute(
+        "SELECT type_id FROM plg_entity_type WHERE key = ?",
+        (type_key,),
+    ).fetchone()
+    if type_row is None:
+        raise SystemExit(f"entity type not found: {type_key}")
+    type_id = type_row[0]
+
+    existing = cur.execute(
+        "SELECT entity_id FROM plg_entity WHERE key = ?",
+        (entity_key,),
+    ).fetchone()
+
+    if existing is None:
+        cur.execute(
+            "INSERT INTO plg_entity (type_id, key, label, lifecycle) VALUES (?, ?, ?, 'active')",
+            (type_id, entity_key, label),
+        )
+        entity_id = cur.lastrowid
+        op = "created"
+    else:
+        entity_id = existing[0]
+        cur.execute(
+            "UPDATE plg_entity SET type_id = ?, label = ?, updated_at = datetime('now') WHERE entity_id = ?",
+            (type_id, label, entity_id),
+        )
+        op = "updated"
+
+    conn.commit()
+    print(f"{op} entity: {entity_key} (id={entity_id})")
+finally:
+    conn.close()
+PY
+}
+
+run_set_state_entity() {
+    local db_path="${1:-$DEFAULT_DB}"
+    local state_name="${2:-}"
+    local entity_key="${3:-}"
+    local presence="${4:-included}"
+
+    if [[ -z "$state_name" || -z "$entity_key" ]]; then
+        echo "usage: ./utl/ply/ply set-state-entity [db_path] <state_name> <entity_key> [presence]" >&2
+        exit 1
+    fi
+
+    require_cmd python3
+    ensure_db_baseline "$db_path"
+
+    python3 - "$db_path" "$state_name" "$entity_key" "$presence" << 'PY'
+import pathlib
+import sqlite3
+import sys
+
+db_path = pathlib.Path(sys.argv[1])
+state_name = sys.argv[2].strip()
+entity_key = sys.argv[3].strip()
+presence = sys.argv[4].strip() or "included"
+
+allowed_presence = {"included", "excluded", "modified"}
+if presence not in allowed_presence:
+    raise SystemExit(f"invalid presence value: {presence}")
+
+conn = sqlite3.connect(db_path)
+try:
+    cur = conn.cursor()
+    state_row = cur.execute(
+        "SELECT state_id FROM plg_state WHERE name = ? ORDER BY state_id DESC LIMIT 1",
+        (state_name,),
+    ).fetchone()
+    if state_row is None:
+        raise SystemExit(f"state not found: {state_name}")
+    state_id = state_row[0]
+
+    entity_row = cur.execute(
+        "SELECT entity_id FROM plg_entity WHERE key = ?",
+        (entity_key,),
+    ).fetchone()
+    if entity_row is None:
+        raise SystemExit(f"entity not found: {entity_key}")
+    entity_id = entity_row[0]
+
+    cur.execute(
+        "INSERT INTO plg_state_entity (state_id, entity_id, presence, override_json) VALUES (?, ?, ?, '{}') "
+        "ON CONFLICT(state_id, entity_id) DO UPDATE SET "
+        "presence = excluded.presence, updated_at = datetime('now')",
+        (state_id, entity_id, presence),
+    )
+    conn.commit()
+    print(f"set state entity: state={state_name} entity={entity_key} presence={presence}")
+finally:
+    conn.close()
+PY
+}
+
+run_plan_implementation() {
+    local db_path="${1:-$DEFAULT_DB}"
+    local present_name="${2:-}"
+    local desired_name="${3:-}"
+    local summary="${4:-}"
+
+    if [[ -z "$present_name" || -z "$desired_name" ]]; then
+        echo "usage: ./utl/ply/ply plan-implementation [db_path] <present_name> <desired_name> [summary]" >&2
+        exit 1
+    fi
+
+    require_cmd python3
+    ensure_db_baseline "$db_path"
+
+    python3 - "$db_path" "$present_name" "$desired_name" "$summary" << 'PY'
+import pathlib
+import sqlite3
+import sys
+
+db_path = pathlib.Path(sys.argv[1])
+present_name = sys.argv[2].strip()
+desired_name = sys.argv[3].strip()
+summary = sys.argv[4].strip()
+
+conn = sqlite3.connect(db_path)
+conn.row_factory = sqlite3.Row
+try:
+    cur = conn.cursor()
+
+    present_row = cur.execute(
+        "SELECT state_id, kind FROM plg_state WHERE name = ? ORDER BY state_id DESC LIMIT 1",
+        (present_name,),
+    ).fetchone()
+    if present_row is None:
+        raise SystemExit(f"present state not found: {present_name}")
+
+    desired_row = cur.execute(
+        "SELECT state_id, kind FROM plg_state WHERE name = ? ORDER BY state_id DESC LIMIT 1",
+        (desired_name,),
+    ).fetchone()
+    if desired_row is None:
+        raise SystemExit(f"desired state not found: {desired_name}")
+
+    if present_row["kind"] not in {"present", "prototype", "desired", "inventory"}:
+        raise SystemExit(f"unsupported present state kind: {present_row['kind']}")
+    if desired_row["kind"] not in {"desired", "prototype"}:
+        raise SystemExit(f"desired state kind should be desired/prototype, got: {desired_row['kind']}")
+
+    present_entities = {
+        row["entity_id"]: row["key"]
+        for row in cur.execute(
+            "SELECT e.entity_id, e.key FROM plg_state_entity se "
+            "JOIN plg_entity e ON e.entity_id = se.entity_id "
+            "WHERE se.state_id = ? AND se.presence <> 'excluded'",
+            (present_row["state_id"],),
+        ).fetchall()
+    }
+    desired_entities = {
+        row["entity_id"]: row["key"]
+        for row in cur.execute(
+            "SELECT e.entity_id, e.key FROM plg_state_entity se "
+            "JOIN plg_entity e ON e.entity_id = se.entity_id "
+            "WHERE se.state_id = ? AND se.presence <> 'excluded'",
+            (desired_row["state_id"],),
+        ).fetchall()
+    }
+
+    added_ids = sorted(set(desired_entities.keys()) - set(present_entities.keys()))
+    removed_ids = sorted(set(present_entities.keys()) - set(desired_entities.keys()))
+
+    if not summary:
+        summary = (
+            f"entity delta: +{len(added_ids)} -{len(removed_ids)} "
+            f"from {present_name} to {desired_name}"
+        )
+
+    cur.execute(
+        "INSERT INTO plg_impl_plan (present_state_id, desired_state_id, status, summary) VALUES (?, ?, 'draft', ?)",
+        (present_row["state_id"], desired_row["state_id"], summary),
+    )
+    plan_id = cur.lastrowid
+
+    steps = []
+    for entity_id in added_ids:
+        steps.append(("add-entity", desired_entities[entity_id], "entity appears in desired state", "low"))
+    for entity_id in removed_ids:
+        steps.append(("remove-entity", present_entities[entity_id], "entity removed from desired state", "medium"))
+
+    if not steps:
+        steps.append(("noop", "state-delta", "no entity delta detected", "low"))
+
+    for idx, (action, target_ref, expected_result, risk_level) in enumerate(steps, start=1):
+        cur.execute(
+            "INSERT INTO plg_impl_step (plan_id, ordinal, action, target_ref, expected_result, risk_level) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (plan_id, idx, action, target_ref, expected_result, risk_level),
+        )
+
+    conn.commit()
+    print(f"generated plan: plan_id={plan_id} steps={len(steps)}")
+except sqlite3.IntegrityError as exc:
+    conn.rollback()
+    raise SystemExit(f"unable to generate implementation plan: {exc}")
+finally:
+    conn.close()
+PY
+}
+
+run_export_md() {
+    local db_path="${1:-$DEFAULT_DB}"
+    local output_path="${2:-$DEFAULT_EXPORT}"
+
+    require_cmd python3
+    ensure_db_baseline "$db_path"
+
+    mkdir -p "$(dirname "$output_path")"
+
+    python3 - "$db_path" "$output_path" << 'PY'
+import datetime
+import pathlib
+import sqlite3
+import sys
+
+db_path = pathlib.Path(sys.argv[1])
+output_path = pathlib.Path(sys.argv[2])
+
+conn = sqlite3.connect(db_path)
+conn.row_factory = sqlite3.Row
+try:
+    cur = conn.cursor()
+    entity_counts = cur.execute(
+        "SELECT et.key AS key, COUNT(e.entity_id) AS count "
+        "FROM plg_entity_type et "
+        "LEFT JOIN plg_entity e ON e.type_id = et.type_id "
+        "GROUP BY et.key ORDER BY et.key"
+    ).fetchall()
+    state_counts = cur.execute(
+        "SELECT kind, COUNT(state_id) AS count FROM plg_state GROUP BY kind ORDER BY kind"
+    ).fetchall()
+    plan_counts = cur.execute(
+        "SELECT status, COUNT(plan_id) AS count FROM plg_impl_plan GROUP BY status ORDER BY status"
+    ).fetchall()
+    snapshot_count = cur.execute("SELECT COUNT(snapshot_id) AS count FROM plg_cfg_snapshot").fetchone()["count"]
+    recent_states = cur.execute(
+        "SELECT state_id, kind, name, status, created_at "
+        "FROM plg_state ORDER BY state_id DESC LIMIT 10"
+    ).fetchall()
+    recent_plans = cur.execute(
+        "SELECT p.plan_id, p.status, p.generated_at, "
+        "ps.name AS present_name, ds.name AS desired_name, "
+        "COUNT(s.step_id) AS step_count "
+        "FROM plg_impl_plan p "
+        "LEFT JOIN plg_state ps ON ps.state_id = p.present_state_id "
+        "LEFT JOIN plg_state ds ON ds.state_id = p.desired_state_id "
+        "LEFT JOIN plg_impl_step s ON s.plan_id = p.plan_id "
+        "GROUP BY p.plan_id, p.status, p.generated_at, ps.name, ds.name "
+        "ORDER BY p.plan_id DESC LIMIT 10"
+    ).fetchall()
+finally:
+    conn.close()
+
+lines = []
+lines.append("# Homelab Playground Snapshot")
+lines.append("")
+lines.append(f"- Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+lines.append(f"- Database: {db_path}")
+lines.append(f"- Config snapshots: {snapshot_count}")
+lines.append("")
+lines.append("## Entity Counts by Type")
+lines.append("")
+lines.append("| Type | Count |")
+lines.append("| --- | ---: |")
+for row in entity_counts:
+    lines.append(f"| {row['key']} | {row['count']} |")
+lines.append("")
+lines.append("## State Counts by Kind")
+lines.append("")
+lines.append("| Kind | Count |")
+lines.append("| --- | ---: |")
+for row in state_counts:
+    lines.append(f"| {row['kind']} | {row['count']} |")
+lines.append("")
+lines.append("## Implementation Plan Counts by Status")
+lines.append("")
+lines.append("| Status | Count |")
+lines.append("| --- | ---: |")
+for row in plan_counts:
+    lines.append(f"| {row['status']} | {row['count']} |")
+lines.append("")
+lines.append("## Recent States")
+lines.append("")
+lines.append("| State ID | Kind | Name | Status | Created |")
+lines.append("| ---: | --- | --- | --- | --- |")
+for row in recent_states:
+    lines.append(
+        f"| {row['state_id']} | {row['kind']} | {row['name']} | {row['status']} | {row['created_at']} |"
+    )
+lines.append("")
+lines.append("## Recent Plans")
+lines.append("")
+lines.append("| Plan ID | Present | Desired | Status | Steps | Generated |")
+lines.append("| ---: | --- | --- | --- | ---: | --- |")
+for row in recent_plans:
+    lines.append(
+        f"| {row['plan_id']} | {row['present_name']} | {row['desired_name']} | {row['status']} | {row['step_count']} | {row['generated_at']} |"
+    )
+output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+PY
+
+    echo "wrote markdown snapshot: $output_path"
+}
+
+main() {
+    local cmd="${1:-}"
+
+    case "$cmd" in
+        init-db)
+            run_init_db "${2:-}"
+            ;;
+        import-present)
+            run_import_present "${2:-}" "${3:-}" "${4:-}"
+            ;;
+        create-state)
+            run_create_state "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}"
+            ;;
+        upsert-entity)
+            run_upsert_entity "${2:-}" "${3:-}" "${4:-}" "${5:-}"
+            ;;
+        set-state-entity)
+            run_set_state_entity "${2:-}" "${3:-}" "${4:-}" "${5:-}"
+            ;;
+        plan-implementation)
+            run_plan_implementation "${2:-}" "${3:-}" "${4:-}" "${5:-}"
+            ;;
+        export-md)
+            run_export_md "${2:-}" "${3:-}"
+            ;;
+        --help|-h|help)
+            show_help
+            ;;
+        "")
+            show_help
+            exit 1
+            ;;
+        *)
+            echo "unknown command: $cmd" >&2
+            show_help >&2
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

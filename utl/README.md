@@ -6,12 +6,25 @@
 
 ```text
 utl/
+├── ply/    # Homelab planning playground (SQLite + exports)
 ├── cfg/    # Internal Configuration Helpers
 ├── doc/    # Auto-Documentation Generators
 └── sec/    # Internal Security Helpers
 ```
 
 ## Core Tools
+
+### `ply/` (Homelab Playground)
+
+Local-first planning workspace for inventory, scenario modeling, desired-state
+selection, and implementation-plan artifact generation.
+
+**Key Components:**
+
+- `ply`: CLI entrypoint (`init-db`, `import-present`, `create-state`, `upsert-entity`, `set-state-entity`, `plan-implementation`, `export-md`)
+- `sql/001_init_schema.sql`: core SQLite schema
+- `sql/010_seed_reference.sql`: entity/relation type seed data
+- `export/`: markdown snapshots for readable repository diffs
 
 ### `doc/` (Documentation Generators)
 The framework heavily relies on self-documenting code. The generators in `utl/doc/` parse function usage (`aux_use`), technical comments (`aux_tec`), and variable assignments across the repository to statically generate the Markdown reference documentation.
