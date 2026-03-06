@@ -1,4 +1,4 @@
-# Operations Layer (`utl/ply/ops`)
+# Operations Layer (`utl/pla/ops`)
 
 This folder is reserved for operation modules that expose validated actions to
 agents and scripts (instead of direct table/file mutations).

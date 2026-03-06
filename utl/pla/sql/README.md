@@ -1,4 +1,4 @@
-# SQL Assets (`utl/ply/sql`)
+# SQL Assets (`utl/pla/sql`)
 
 - `001_init_schema.sql`: core SQLite schema for entities, relations, states,
   config snapshots/bindings, and implementation plans.

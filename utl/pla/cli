@@ -13,7 +13,7 @@ show_help() {
 Homelab Playground CLI
 
 USAGE:
-    ./utl/ply/ply <command> [args]
+    ./utl/pla/cli <command> [args]
 
 COMMANDS:
     init-db [db_path]                         Initialize schema and seed reference data
@@ -30,14 +30,14 @@ COMMANDS:
     --help                            Show this help message
 
 EXAMPLES:
-    ./utl/ply/ply init-db
-    ./utl/ply/ply import-present
-    ./utl/ply/ply import-present ./utl/ply/data/ply.db ./cfg/env present-site1
-    ./utl/ply/ply create-state ./utl/ply/data/ply.db prototype proto-a present-site1
-    ./utl/ply/ply upsert-entity ./utl/ply/data/ply.db service svc-traefik "Traefik"
-    ./utl/ply/ply set-state-entity ./utl/ply/data/ply.db proto-a svc-traefik included
-    ./utl/ply/ply plan-implementation ./utl/ply/data/ply.db present-site1 desired-site1
-    ./utl/ply/ply export-md
+    ./utl/pla/cli init-db
+    ./utl/pla/cli import-present
+    ./utl/pla/cli import-present ./utl/pla/data/ply.db ./cfg/env present-site1
+    ./utl/pla/cli create-state ./utl/pla/data/ply.db prototype proto-a present-site1
+    ./utl/pla/cli upsert-entity ./utl/pla/data/ply.db service svc-traefik "Traefik"
+    ./utl/pla/cli set-state-entity ./utl/pla/data/ply.db proto-a svc-traefik included
+    ./utl/pla/cli plan-implementation ./utl/pla/data/ply.db present-site1 desired-site1
+    ./utl/pla/cli export-md
 EOF
 }
 
@@ -171,7 +171,7 @@ run_create_state() {
     local status="${5:-draft}"
 
     if [[ -z "$kind" || -z "$name" ]]; then
-        echo "usage: ./utl/ply/ply create-state [db_path] <kind> <name> [baseline_name] [status]" >&2
+        echo "usage: ./utl/pla/cli create-state [db_path] <kind> <name> [baseline_name] [status]" >&2
         exit 1
     fi
 
@@ -235,7 +235,7 @@ run_upsert_entity() {
     local label="${4:-}"
 
     if [[ -z "$type_key" || -z "$entity_key" || -z "$label" ]]; then
-        echo "usage: ./utl/ply/ply upsert-entity [db_path] <type> <key> <label>" >&2
+        echo "usage: ./utl/pla/cli upsert-entity [db_path] <type> <key> <label>" >&2
         exit 1
     fi
 
@@ -297,7 +297,7 @@ run_set_state_entity() {
     local presence="${4:-included}"
 
     if [[ -z "$state_name" || -z "$entity_key" ]]; then
-        echo "usage: ./utl/ply/ply set-state-entity [db_path] <state_name> <entity_key> [presence]" >&2
+        echo "usage: ./utl/pla/cli set-state-entity [db_path] <state_name> <entity_key> [presence]" >&2
         exit 1
     fi
 
@@ -357,7 +357,7 @@ run_plan_implementation() {
     local summary="${4:-}"
 
     if [[ -z "$present_name" || -z "$desired_name" ]]; then
-        echo "usage: ./utl/ply/ply plan-implementation [db_path] <present_name> <desired_name> [summary]" >&2
+        echo "usage: ./utl/pla/cli plan-implementation [db_path] <present_name> <desired_name> [summary]" >&2
         exit 1
     fi
 

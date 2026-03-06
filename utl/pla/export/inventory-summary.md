@@ -1,7 +1,7 @@
 # Homelab Playground Snapshot
 
 - Generated: 2026-03-06 01:41:24
-- Database: /home/es/lab/utl/ply/data/ply.db
+- Database: /home/es/lab/utl/pla/data/ply.db
 - Config snapshots: 1
 
 ## Entity Counts by Type
