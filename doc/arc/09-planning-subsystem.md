@@ -9,7 +9,7 @@
 | Planning CLI entrypoint | `utl/pla/cli` | Validates command selection/arguments, ensures database baseline, dispatches command handlers. |
 | Schema and seed assets | `utl/pla/sql/001_init_schema.sql`, `utl/pla/sql/010_seed_reference.sql` | Defines normalized entity/relation/state/plan tables and idempotent reference types. |
 | Runtime planning data | `utl/pla/data/ply.db` | Stores local planning state, snapshots, and generated implementation plans. |
-| Human-readable outputs | `utl/pla/export/inventory-summary.md` | Stores export snapshots for git-readable review artifacts. |
+| Human-readable outputs | `utl/pla/export/summary-default.md` (+ legacy mirror `inventory-summary.md`) | Stores export snapshots for git-readable review artifacts. |
 | Input source snapshot | `cfg/env/*` (read by `import-present`) | Provides source files for digest/file inventory capture; no write path back into `cfg/env/`. |
 | Future operation surface | `utl/pla/ops/README.md` | Reserved operation module boundary; currently documents planned commands, not executable modules. |
 
@@ -87,7 +87,7 @@ flowchart LR
 - `import-present` recursively reads all files under the provided env root and stores a digest + raw file inventory JSON in `plg_cfg_snapshot`.
 - `create-state`, `upsert-entity`, and `set-state-entity` mutate planning model records only; no runtime infrastructure side effects occur.
 - `plan-implementation` creates draft plan rows in `plg_impl_plan` and ordered step rows in `plg_impl_step`.
-- `export-md` writes a markdown summary file, typically `utl/pla/export/inventory-summary.md`, for diff-friendly review.
+- `export-md` writes a markdown summary file, typically `utl/pla/export/summary-default.md`, for diff-friendly review (and mirrors the default export to `utl/pla/export/inventory-summary.md` during migration).
 - CLI output is plain text status lines; no shell function injection, trap mutation, or RC-file edits occur.
 
 ## 4. Failure and Fallback Behavior

@@ -5,7 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SQL_DIR="$SCRIPT_DIR/sql"
 DEFAULT_DB="$SCRIPT_DIR/data/ply.db"
-DEFAULT_EXPORT="$SCRIPT_DIR/export/inventory-summary.md"
+DEFAULT_EXPORT="$SCRIPT_DIR/export/summary-default.md"
+LEGACY_DEFAULT_EXPORT="$SCRIPT_DIR/export/inventory-summary.md"
 DEFAULT_ENV_ROOT="$SCRIPT_DIR/../../cfg/env"
 
 show_help() {
@@ -41,6 +42,7 @@ EXAMPLES:
     ./utl/pla/cli plan-implementation ./utl/pla/data/ply.db present-site1 desired-site1
     ./utl/pla/cli apply-mapping ./utl/pla/data/ply.db ./utl/pla/map/runs/20260307-0057_present-showcase1/approved-mapping.json --dry-run
     ./utl/pla/cli export-md
+    ./utl/pla/cli export-md ./utl/pla/data/ply.db ./utl/pla/export/summary-showcase1.md
 EOF
 }
 
@@ -930,6 +932,11 @@ output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 PY
 
     echo "wrote markdown snapshot: $output_path"
+
+    if [[ "$output_path" == "$DEFAULT_EXPORT" && "$LEGACY_DEFAULT_EXPORT" != "$DEFAULT_EXPORT" ]]; then
+        cp "$output_path" "$LEGACY_DEFAULT_EXPORT"
+        echo "wrote legacy compatibility snapshot: $LEGACY_DEFAULT_EXPORT"
+    fi
 }
 
 main() {

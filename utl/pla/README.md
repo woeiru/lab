@@ -37,6 +37,8 @@ Write a markdown summary from the database:
 ./utl/pla/cli export-md
 ```
 
+Default summary output is `./utl/pla/export/summary-default.md`.
+
 Create desired/prototype states and generate implementation plans:
 
 ```bash
@@ -70,6 +72,7 @@ Optional positional arguments:
 - `map/` stores artifact-first mapping workflow assets; it does not run infra ops.
 - `apply-mapping` only mutates SQLite planning tables (no direct infra actions).
 - Use markdown exports for readable diffs alongside SQLite updates.
+- Legacy compatibility: default `export-md` also mirrors output to `./utl/pla/export/inventory-summary.md` during the naming migration window.
 - The CLI uses Python's standard `sqlite3` module, so no external SQLite binary
   is required.
 

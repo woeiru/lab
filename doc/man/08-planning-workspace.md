@@ -45,7 +45,7 @@ Set reusable paths for examples:
 ```bash
 DB=./utl/pla/data/ply.db
 ENV_ROOT=./cfg/env
-REPORT=./utl/pla/export/inventory-summary.md
+REPORT=./utl/pla/export/summary-default.md
 ```
 
 ## 2. Procedure
@@ -98,7 +98,7 @@ Validate that database and report artifacts exist:
 
 ```bash
 test -s ./utl/pla/data/ply.db
-test -s ./utl/pla/export/inventory-summary.md
+test -s ./utl/pla/export/summary-default.md
 ```
 
 Validate core planning records:
@@ -162,9 +162,11 @@ Create missing records first (`create-state`, `upsert-entity`), then run `set-st
 If you need a clean local workspace, remove only planning artifacts and reinitialize:
 
 ```bash
-rm -f ./utl/pla/data/ply.db ./utl/pla/export/inventory-summary.md
+rm -f ./utl/pla/data/ply.db ./utl/pla/export/summary-default.md ./utl/pla/export/inventory-summary.md
 ./utl/pla/cli init-db
 ```
+
+Transition note: default `export-md` now writes `summary-default.md` and mirrors the same content to legacy `inventory-summary.md` for compatibility.
 
 ## 5. Related Docs
 
