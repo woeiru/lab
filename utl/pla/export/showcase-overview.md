@@ -1,7 +1,7 @@
 # Homelab Playground Snapshot
 
-- Generated: 2026-03-06 23:44:55
-- Database: utl/pla/data/ply.db
+- Generated: 2026-03-06 23:55:50
+- Database: utl/pla/data/ply-showcase.db
 - Config snapshots: 1
 
 ## Entity Counts by Type
@@ -13,7 +13,7 @@
 | host | 0 |
 | hypervisor_os | 0 |
 | pool | 0 |
-| service | 1 |
+| service | 0 |
 | switch | 0 |
 | vm | 0 |
 
@@ -21,27 +21,20 @@
 
 | Kind | Count |
 | --- | ---: |
-| desired | 2 |
-| present | 2 |
+| present | 1 |
 
 ## Implementation Plan Counts by Status
 
 | Status | Count |
 | --- | ---: |
-| draft | 2 |
 
 ## Recent States
 
 | State ID | Kind | Name | Status | Created |
 | ---: | --- | --- | --- | --- |
-| 4 | desired | desired-site1-demo | candidate | 2026-03-06 22:44:40 |
-| 3 | present | present-site1 | selected | 2026-03-06 22:44:26 |
-| 2 | desired | desired-site1 | candidate | 2026-03-06 00:40:53 |
-| 1 | present | present-20260306-013604 | selected | 2026-03-06 00:36:04 |
+| 1 | present | present-showcase1 | selected | 2026-03-06 22:49:44 |
 
 ## Recent Plans
 
 | Plan ID | Present | Desired | Status | Steps | Generated |
 | ---: | --- | --- | --- | ---: | --- |
-| 2 | present-site1 | desired-site1-demo | draft | 1 | 2026-03-06 22:44:53 |
-| 1 | present-20260306-013604 | desired-site1 | draft | 1 | 2026-03-06 00:40:53 |

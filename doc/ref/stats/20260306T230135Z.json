@@ -1,25 +1,25 @@
 {
   "metric_version": "3.6.0",
-  "generated_at": "2026-03-06T23:07:12Z",
+  "generated_at": "2026-03-06T23:01:35Z",
   "git": {
     "branch": "master",
     "commit": "e5f4554d",
     "dirty": true
   },
   "repo_shape": {
-    "total_lines": 93620,
-    "total_files": 820,
+    "total_lines": 93617,
+    "total_files": 815,
     "total_dirs": 109,
-    "total_size_kb": 9632,
+    "total_size_kb": 9608,
     "delta": {
-      "lines": 3,
-      "files": 5,
-      "dirs": 0,
-      "size_kb": 24,
-      "lines_percent": "0.00",
-      "files_percent": "0.61",
-      "dirs_percent": "0.00",
-      "size_percent": "0.25"
+      "lines": 1166,
+      "files": 21,
+      "dirs": 1,
+      "size_kb": 348,
+      "lines_percent": "1.26",
+      "files_percent": "2.64",
+      "dirs_percent": "0.93",
+      "size_percent": "3.76"
     }
   },
   "velocity": {
@@ -276,10 +276,10 @@
   },
   "trend": {
     "points": 10,
-    "oldest": "2026-03-04T23:45:01Z",
-    "latest": "2026-03-06T23:01:35Z",
-    "files_delta_10": 151,
-    "size_kb_delta_10": 2536
+    "oldest": "2026-03-04T23:41:48Z",
+    "latest": "2026-03-06T02:43:55Z",
+    "files_delta_10": 131,
+    "size_kb_delta_10": 2208
   },
   "quality_gates": {
     "overall": "fail",
@@ -291,7 +291,7 @@
     "test_health": "ok"
   },
   "history": {
-    "previous_snapshot": "2026-03-06T23:01:35Z",
-    "history_snapshot": "doc/ref/stats/20260306T230712Z.json"
+    "previous_snapshot": "2026-03-06T02:43:55Z",
+    "history_snapshot": "doc/ref/stats/20260306T230135Z.json"
   }
 }
