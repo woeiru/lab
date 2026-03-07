@@ -48,6 +48,11 @@ Folder-specific naming:
   - legacy bundle close: `yyyymmdd-hhmm-bundle-<module-slug>`
 - completed/: legacy bundle folders keep one stable folder per module-slug (no duplicate `*-bundle-<module-slug>`)
 - completed/: completed topic/container folders must not be empty
+- completed/: bundle registry file is `completed/.bundle-registry.tsv`
+- completed/: for v2 containers, keep one registry row per day+module key:
+  `day-module-key<TAB>folder-name<TAB>created-at<TAB>source-item-path`
+- completed/: if a registry key maps to a different folder than on-disk
+  container resolution, report conflict and do not auto-rewrite mismatched rows
 
 Follow-up routing policy:
 - Default route for follow-up items from close/converge actions is inbox/.

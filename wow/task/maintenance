@@ -12,6 +12,11 @@ Do this in order:
    - Keep leaf folder names immutable (move only; never rename)
    - Reuse existing container for the same day+module if present
    - Create/update one markdown summary artifact in each touched container
+   - Reconcile bundle registry (`wow/completed/.bundle-registry.tsv`) for
+     each touched day+module key using:
+     `day-module-key<TAB>folder-name<TAB>created-at<TAB>source-item-path`
+     (keep existing matching entries; append missing entries; report
+     conflicts, do not auto-rewrite conflicting rows)
 3. List active items; flag stale ones (Updated older than 7 days)
 4. For each stale item, recommend: keep active, complete, or dismiss
 5. Review queue ordering; suggest top 3 execution candidates
@@ -20,6 +25,8 @@ Do this in order:
    - nested leaves under containers keep day/module alignment
    - legacy folders remain accepted but are reported for optional migration
    - no empty completed folders
+   - bundle registry row for each touched day+module key resolves to exactly
+     one container folder path
 7. Re-run bash wow/check-workflow.sh
 
 Constraints:
@@ -31,6 +38,7 @@ Constraints:
 Report:
 - Checker results (before and after)
 - Completed compaction actions (created/reused containers, moved leaves, summaries)
+- Bundle registry actions (reused/appended rows, conflicts)
 - Legacy completed folders skipped for manual mapping (if any)
 - Active summary with staleness flags
 - Recommendation per stale item

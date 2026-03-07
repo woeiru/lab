@@ -298,6 +298,16 @@ Use v2 immutable leaves and day/module containers:
   creation timestamp prefixes in that leaf.
 - Maintenance containers are unique per day+module key (`yyyymmdd-<module>`),
   include one markdown summary artifact, and keep leaf names immutable.
+- Bundle registry file: `completed/.bundle-registry.tsv` with one row per
+  day+module key:
+  `day-module-key<TAB>folder-name<TAB>created-at<TAB>source-item-path`.
+  On conflict (same key, different folder), report and resolve manually.
+
+Registry backfill example (maintenance adds missing row, no folder rename):
+
+```text
+ana-20260307	20260307-ana_daily-rollup	20260307-2105	wow/active/20260307-2048_ops-hotspot-wave-2-release-followup.md
+```
 
 Example:
 
