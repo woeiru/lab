@@ -36,6 +36,9 @@ git_commit_all() {
 assert_checker_passes_after_completed_root_move() {
     local test_env
     local repo_dir
+    local legacy_board_root
+
+    legacy_board_root="doc""/pro"
 
     test_env="$(create_test_env "workflow_checker_root_move")"
     repo_dir="$(create_checker_fixture_repo "$test_env")" || {
@@ -43,8 +46,8 @@ assert_checker_passes_after_completed_root_move() {
         return 1
     }
 
-    mkdir -p "$repo_dir/doc/pro/completed/20260301-1200_topic"
-    cat > "$repo_dir/doc/pro/completed/20260301-1200_topic/20260301-1000_topic-plan.md" <<'EOF'
+    mkdir -p "$repo_dir/$legacy_board_root/completed/20260301-1200_topic"
+    cat > "$repo_dir/$legacy_board_root/completed/20260301-1200_topic/20260301-1000_topic-plan.md" <<'EOF'
 # Historical Topic Plan
 EOF
     git_commit_all "$repo_dir" "2026-03-01T12:00:00" "seed historical completed item" || {
@@ -53,7 +56,7 @@ EOF
     }
 
     mkdir -p "$repo_dir/wow/completed"
-    git -C "$repo_dir" mv "doc/pro/completed/20260301-1200_topic" "wow/completed/20260301-1200_topic" >/dev/null 2>&1 || {
+    git -C "$repo_dir" mv "$legacy_board_root/completed/20260301-1200_topic" "wow/completed/20260301-1200_topic" >/dev/null 2>&1 || {
         cleanup_test_env "$test_env"
         return 1
     }

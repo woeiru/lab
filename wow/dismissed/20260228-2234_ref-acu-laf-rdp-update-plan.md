@@ -3,12 +3,12 @@
 - Status: dismissed
 - Owner: es
 - Started: 2026-02-28
-- Updated: 2026-02-28
+- Updated: 2026-03-07 16:02
 - Links: none
 
 ## Dismissal Reason
 
-Superseded by updated planning tracked in newer `doc/pro` workflow items.
+Superseded by updated planning tracked in newer `wow/` workflow items.
 
 ## Goal
 

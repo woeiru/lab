@@ -3,7 +3,7 @@
 - Status: completed
 - Owner: es
 - Started: 2026-02-27
-- Updated: 2026-02-28
+- Updated: 2026-03-07 16:02
 - Links: `lib/.spec`, `lib/core/.spec`, `lib/gen/.spec`, `lib/ops/.spec`, `wow/completed/20260228-1435_spec-hierarchy-and-enforcement-plan/20260228-1435_spec-hierarchy-and-enforcement-plan.md`, `wow/active/waivers/waiver-register.md`
 
 ## Quick resume snapshot (read this first)
@@ -353,7 +353,7 @@ Status: executed on 2026-02-28. Line ranges in this section reference the pre-re
 - `lib/.spec:837` to `lib/.spec:1251`
   - Auxiliary integration framework, decision matrix, environment profiles, migration strategy.
 
-### Move from `lib/.spec` to project docs (`doc/pro` or `doc/ref`)
+### Move from `lib/.spec` to project docs (`wow/` or `doc/ref`)
 
 - `lib/.spec:214` to `lib/.spec:238`
   - Implementation checklist (process guidance; not normative baseline spec).

@@ -3,12 +3,12 @@
 - Status: completed
 - Owner: es
 - Started: 2026-03-06
-- Updated: 2026-03-06 23:52:07
+- Updated: 2026-03-07 16:02
 - Links: wow/README.md, wow/task/inbox-capture, wow/task/active-split, wow/check-workflow.sh
 
 ## Goal
 
-Upgrade the `doc/pro` workflow system so very large refactors can be decomposed
+Upgrade the `wow/` workflow system so very large refactors can be decomposed
 into coordinated child plans executed in parallel across separate LLM contexts,
 with reliable orchestration and integration control.
 
@@ -136,7 +136,7 @@ Design classification: required
    - Wave progression: fan-out -> active execution -> checkpoint sync ->
      converge -> next wave release.
 8. Constraints and non-negotiables:
-   - Preserve existing `doc/pro` status semantics and timestamp naming rules.
+   - Preserve existing `wow/` status semantics and timestamp naming rules.
    - Do not require automation scripts for Phase 1 adoption.
    - Keep orchestration state human-readable and checker-enforced.
 9. Alternatives considered and trade-offs:
@@ -245,7 +245,7 @@ the workflow upgrade is closure-ready.
 
 ## Exit Criteria
 
-1. `doc/pro` documentation defines a clear, operator-usable parent/child
+1. `wow/` documentation defines a clear, operator-usable parent/child
    orchestration model for large parallel efforts.
 2. Required orchestration metadata fields are documented and enforced by
    `wow/check-workflow.sh`.

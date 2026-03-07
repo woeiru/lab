@@ -3,7 +3,7 @@
 - Status: completed
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 09:48
+- Updated: 2026-03-07 16:06
 - Links: wow/check-workflow.sh, val/core/workflow_checker_test.sh, wow/README.md, wow/task/active-start, wow/completed/
 
 ## Goal
@@ -58,7 +58,7 @@ regression coverage.
 
 1. `wow/check-workflow.sh` must validate completed-topic timestamps deterministically from repository filesystem state.
 2. Validation must apply consistently to both historical topics and newly closed topics.
-3. Validation must not depend on repository-root path history (`doc/pro` -> `wow`) because path moves should not rewrite semantic close-time intent.
+3. Validation must not depend on repository-root path history (legacy nested board path -> `wow`) because path moves should not rewrite semantic close-time intent.
 4. Required invariant: completed folder timestamp must be greater than or equal to every completed file timestamp prefix in that topic.
 
 ### Alternatives considered

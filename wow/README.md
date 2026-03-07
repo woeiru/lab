@@ -1,4 +1,4 @@
-# Project Workflow (`doc/pro`)
+# Project Workflow (`wow/`)
 
 This folder is your lightweight project board.
 
@@ -8,7 +8,7 @@ Use it to move work through clear states:
 
 Related references:
 
-- Operator manual: `doc/man/09-doc-pro-workflow-board.md`
+- Operator manual: `doc/man/09-wow-workflow-board.md`
 - Architecture rationale: `doc/arc/08-workflow-architecture.md`
 
 ## Operator quickstart

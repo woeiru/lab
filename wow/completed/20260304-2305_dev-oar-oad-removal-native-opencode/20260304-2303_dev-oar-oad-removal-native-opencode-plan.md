@@ -3,7 +3,7 @@
 - Status: completed
 - Owner: es
 - Started: 2026-03-04
-- Updated: 2026-03-04 23:04
+- Updated: 2026-03-07 16:02
 - Links: lib/ops/dev, cfg/core/lzy, val/lib/ops/dev_test.sh, doc/ref/functions.md, doc/ref/error-handling.md, val/core/initialization/orc_test.sh
 
 ## Retroactive Capture
@@ -73,7 +73,7 @@ Completion criterion: repository contains one commit documenting the removal and
 - Removed `dev_oar` and `dev_oad` lazy stubs from `cfg/core/lzy`.
 - Removed related function-existence checks and dedicated test cases from `val/lib/ops/dev_test.sh`.
 - Removed reference entries for both commands from `doc/ref/functions.md` and `doc/ref/error-handling.md`.
-- Captured and closed this work item through `doc/pro` workflow state.
+- Captured and closed this work item through `wow/` workflow state.
 
 ## What was verified
 

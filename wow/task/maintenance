@@ -1,6 +1,6 @@
 Read and apply wow/task/RULES.md first.
 
-Perform a weekly doc/pro maintenance pass.
+Perform a weekly wow maintenance pass.
 
 Do this in order:
 1. Run bash wow/check-workflow.sh; fix structural/naming issues only

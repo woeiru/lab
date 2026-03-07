@@ -116,4 +116,4 @@ To avoid scope bleed, this file MUST NOT contain:
 - environment profile playbooks,
 - long examples that duplicate module specs.
 
-Those details belong in module specs and `doc/pro` planning documents.
+Those details belong in module specs and `wow/` planning documents.

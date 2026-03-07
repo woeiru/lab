@@ -1,6 +1,6 @@
 # wow/task
 
-Executable prompt templates for LLM agents operating the `doc/pro` workflow board.
+Executable prompt templates for LLM agents operating the `wow/` workflow board.
 
 ## Usage
 

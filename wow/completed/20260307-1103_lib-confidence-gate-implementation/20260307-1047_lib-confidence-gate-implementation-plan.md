@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-07
 - Updated: 2026-03-07 11:03
-- Links: wow/task/completed-close, wow/completed/20260307-1047_lib-architecture-review/20260307-0921_lib-architecture-review-result.md, doc/ref/test-coverage.md, doc/ref/stats/actual.md, val/run_all_tests.sh, val/lib/confidence_gate.sh, val/core/confidence_gate_test.sh, AGENTS.md, wow/README.md, doc/man/09-doc-pro-workflow-board.md, wow/queue/20260307-1047_gen-aux-helper-contract-stabilization-plan.md, wow/inbox/20260307-1047_ops-hotspot-decomposition-wave-plan.md, wow/inbox/20260307-1047_ops-bootstrap-boundary-decoupling-plan.md
+- Links: wow/task/completed-close, wow/completed/20260307-1047_lib-architecture-review/20260307-0921_lib-architecture-review-result.md, doc/ref/test-coverage.md, doc/ref/stats/actual.md, val/run_all_tests.sh, val/lib/confidence_gate.sh, val/core/confidence_gate_test.sh, AGENTS.md, wow/README.md, doc/man/09-wow-workflow-board.md, wow/queue/20260307-1047_gen-aux-helper-contract-stabilization-plan.md, wow/inbox/20260307-1047_ops-hotspot-decomposition-wave-plan.md, wow/inbox/20260307-1047_ops-bootstrap-boundary-decoupling-plan.md
 
 ## Goal
 
@@ -83,7 +83,7 @@ close this item once adoption guidance is captured.
    argument validation and risk matrix behavior.
 3. Documented confidence-gate usage and risk levels in `AGENTS.md`.
 4. Added operator workflow guidance in `wow/README.md` and
-   `doc/man/09-doc-pro-workflow-board.md`.
+   `doc/man/09-wow-workflow-board.md`.
 5. Ran verification: `bash -n val/lib/confidence_gate.sh val/core/confidence_gate_test.sh`,
    `bash val/core/confidence_gate_test.sh`, `bash val/core/agents_md_test.sh`,
    and `bash wow/check-workflow.sh` (all passed).
@@ -133,7 +133,7 @@ close this item once adoption guidance is captured.
 
 1. Added confidence-gate runner `val/lib/confidence_gate.sh` with risk-class matrix (`low|medium|high`), dry-run preview mode, and deterministic pass/fail execution flow.
 2. Added regression coverage in `val/core/confidence_gate_test.sh` for argument validation and risk-class command selection behavior.
-3. Updated guidance in `AGENTS.md`, `wow/README.md`, and `doc/man/09-doc-pro-workflow-board.md` so contributors and operators can apply the gate consistently.
+3. Updated guidance in `AGENTS.md`, `wow/README.md`, and `doc/man/09-wow-workflow-board.md` so contributors and operators can apply the gate consistently.
 
 ## What was verified
 

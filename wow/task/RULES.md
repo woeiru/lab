@@ -1,4 +1,4 @@
-You are operating the doc/pro workflow board.
+You are operating the wow/ workflow board.
 
 File rules:
 - Keep filename timestamp prefixes (yyyymmdd-hhmm_) stable after creation.

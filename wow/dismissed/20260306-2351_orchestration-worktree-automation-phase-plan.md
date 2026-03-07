@@ -3,7 +3,7 @@
 - Status: dismissed
 - Owner: es
 - Started: 2026-03-06
-- Updated: 2026-03-07
+- Updated: 2026-03-07 16:02
 - Links: wow/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2331_workflow-parallel-orchestration-upgrade-plan.md, wow/task/active-assign, wow/task/active-sync, wow/task/active-converge, wow/active/20260307-0906_declarative-reconciliation-architecture-plan.md
 
 ## Dismissal Reason
@@ -23,7 +23,7 @@ rollups) without changing the process contract.
 2. Large initiatives can now run safely with parent/child plans, but repeated
    operational steps are still manual.
 3. The next phase should automate toil while preserving human-readable control
-   and existing `doc/pro` semantics.
+   and existing `wow/` semantics.
 
 ## Scope
 
