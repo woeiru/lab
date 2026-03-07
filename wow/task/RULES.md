@@ -8,6 +8,18 @@ File rules:
 - Every workflow doc must have these header fields:
   Status, Owner, Started, Updated, Links.
 
+Artifact contract rules (active-artifacts task):
+- `active-artifacts` reads optional `## Artifact Contract` from the parent
+  active plan.
+- Default contract when missing:
+  - `Profile: general`
+  - `Artifacts: evidence,result`
+- Supported artifact names: `evidence`, `result`, `decision-log`, `checklist`.
+- Unsupported artifact names are skipped and reported.
+- Artifact docs created in `wow/active/` are workflow docs; include required
+  header fields and exactly one `## Triage Decision` section with one
+  canonical design token (`Design: required` or `Design: not needed`).
+
 Parallel orchestration rules (for large initiatives):
 - A parent program item uses suffix `-program-plan.md`.
 - Program items should include sections:

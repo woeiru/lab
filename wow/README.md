@@ -128,8 +128,13 @@ Examples:
      continuing.
 
 4. Execute and review in `active/`
-   - Yes: review notes can stay in `active/` while work is still open.
-   - Keep review files tied to the same topic slug (example: `ana-...-review.md`).
+    - Yes: review notes can stay in `active/` while work is still open.
+    - Keep review files tied to the same topic slug (example: `ana-...-review.md`).
+    - For structured supporting outputs, run `wow/task/active-artifacts` on the
+      active plan.
+    - Artifact generation is contract-driven via optional `## Artifact Contract`
+      in the plan; default contract is `Profile: general` and
+      `Artifacts: evidence,result`.
 
 5. Finish -> move to `completed/`
    - When implementation + review are accepted, move related files to `completed/`.
@@ -154,6 +159,28 @@ Examples:
 | `experiments/` | spike/prototype is needed before commitment | promote to `queue/` or close in `dismissed/` |
 | `completed/` | implementation/review accepted with evidence | no further state transition; follow-up becomes a new inbox item by default, with direct queue allowed for mandatory priority-locked follow-ups |
 | `dismissed/` | item explicitly not pursued | no further state transition; revisit as a new item |
+
+## Artifact Contract (active items)
+
+Use this optional section in an active plan when you want reusable,
+deterministic artifact generation.
+
+```md
+## Artifact Contract
+
+- Profile: general
+- Artifacts: evidence,result
+```
+
+- `wow/task/active-artifacts` reads this section and creates/updates the
+  requested artifacts in `wow/active/`.
+- Supported artifact names: `evidence`, `result`, `decision-log`, `checklist`.
+- If the section is missing, defaults are applied:
+  - `Profile: general`
+  - `Artifacts: evidence,result`
+- Unsupported artifact names are skipped and reported.
+- Artifact files in `wow/active/` are workflow docs and must satisfy normal
+  checker constraints (required header fields and canonical triage token).
 
 ## Parallel orchestration for large initiatives
 
@@ -266,6 +293,16 @@ Use this header at the top of each work file:
 - Updated: YYYY-MM-DD
 - Links: related files/PRs/tests
 ```
+
+Optional active artifact contract block:
+
+```md
+## Artifact Contract
+
+- Profile: general
+- Artifacts: evidence,result
+```
+
 ## Validation helpers
 
 - Checklist (quick pre-commit review):

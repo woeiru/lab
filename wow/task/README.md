@@ -26,6 +26,26 @@ Use `Strict mode.` when you want capture-only behavior with no extra analysis.
 
 Append `Strict mode.` to halt on ambiguity instead of inferring.
 
+## Active artifact quickstart
+
+Use this when an active item needs explicit evidence/result artifacts.
+
+```text
+wow/task/active-artifacts
+wow/active/<item>-plan.md
+```
+
+Optional in-plan contract (recommended for deterministic behavior):
+
+```md
+## Artifact Contract
+
+- Profile: general
+- Artifacts: evidence,result
+```
+
+If the contract is missing, `active-artifacts` applies the same defaults.
+
 ## Parallel orchestration mode
 
 For large initiatives, use one program plan plus multiple child workstream
