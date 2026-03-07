@@ -50,6 +50,7 @@ flowchart TD
 | `queue-triage` / `queue-move` | Move one inbox item to queue and classify design need | Moves one file to `wow/queue/`, updates triage section |
 | `active-move` | Commit one queued item to execution | Moves file to `wow/active/`, adds execution/verification/exit sections |
 | `active-start` | Begin execution for one active item | Updates active file progress sections |
+| `active-artifacts` | Create/update supporting artifacts for one active item | Creates or updates artifact docs in `wow/active/` based on the plan contract |
 | `active-checkpoint` / `active-resume` | Hand off work across context windows | Updates checkpoint and resumes execution state |
 | `active-fanout` | Split one active program parent into child workstreams | Creates child plans in `wow/active/`, updates parent workstream table |
 | `active-assign` | Bind child workstreams to owners/branches/worktrees | Updates parent + child orchestration metadata |
@@ -127,6 +128,13 @@ Then start execution:
 
 ```text
 wow/task/active-start
+wow/active/20260307-1000_account-rotation-healthcheck-plan.md
+```
+
+Optional: materialize review/support artifacts defined by the active plan:
+
+```text
+wow/task/active-artifacts
 wow/active/20260307-1000_account-rotation-healthcheck-plan.md
 ```
 

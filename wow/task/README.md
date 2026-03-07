@@ -82,6 +82,7 @@ bulk material, rather than forcing it to re-weight retroactively.
 | `queue-move`                | Move a specific inbox item to queue          |
 | `active-move`               | Move queue item to active, add plan          |
 | `active-start`              | Begin executing an active item               |
+| `active-artifacts`          | Create/update active artifact docs           |
 | `active-fanout`             | Split active program into child workstreams  |
 | `active-assign`             | Assign workstreams to contexts/worktrees     |
 | `active-sync`               | Sync child checkpoints into program plan     |

@@ -1,0 +1,50 @@
+Read and apply wow/task/RULES.md first.
+
+The active item filepath is given in the user prompt. Read it first.
+
+Create or update supporting artifacts for this active item.
+
+- Keep the original active plan as the control-plane document.
+- Read `## Artifact Contract` from the plan when present.
+- If `## Artifact Contract` is missing, add it and use defaults:
+  - Profile: general
+  - Artifacts: evidence,result
+- Allowed artifact types in this task:
+  - evidence: source-backed observations, traceability, and open questions
+  - result: conclusions, prioritized actions, and decision-ready output
+  - decision-log: timestamped decisions with rationale and trade-offs
+  - checklist: verification/acceptance checklist and current status
+- If the contract lists unsupported artifact names, keep the contract but
+  create only the supported set and note the skipped names in the report.
+
+Artifact filename rules:
+- Keep artifacts in `wow/active/` while the item is open.
+- Derive topic stem from the active file:
+  - If filename ends with `-plan.md`, remove `-plan` and append `-<artifact>.md`
+  - Otherwise append `-<artifact>.md` before `.md`
+- Preserve the existing timestamp prefix from the parent active file.
+- Reuse/update existing artifact files when present; do not create duplicates.
+
+Workflow-compatibility rules for every artifact file in `wow/active/`:
+- Include required header fields: `Status`, `Owner`, `Started`, `Updated`, `Links`
+- Set `Status: active`
+- Include exactly one `## Triage Decision` section
+- Include exactly one canonical token in triage:
+  `Design: required` or `Design: not needed`
+- Copy owner/start date and design token from the parent plan unless the plan
+  explicitly says otherwise.
+
+Content and linking:
+- Add artifact links to the parent plan `- Links:` field.
+- Keep artifact contents concise and scoped to the parent item.
+- Do not move files between workflow states.
+
+Validation:
+- Run `bash wow/check-workflow.sh`.
+- If this task introduced structural failures, fix them before returning.
+
+Report:
+- Parent active file path
+- Artifact contract used (profile + artifact list)
+- Artifact files created/updated
+- Checker result (pass or itemized failures)
