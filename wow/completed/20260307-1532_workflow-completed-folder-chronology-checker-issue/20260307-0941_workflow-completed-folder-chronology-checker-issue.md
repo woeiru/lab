@@ -1,9 +1,9 @@
 # Workflow Completed Folder Chronology Checker Issue
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 11:20
+- Updated: 2026-03-07 15:32
 - Links: wow/check-workflow.sh, val/core/workflow_checker_test.sh, wow/README.md, wow/completed/20260307-0948_workflow-checker-completed-timestamp-regression-issue/20260307-0914_workflow-checker-completed-timestamp-regression-issue.md
 
 ## Goal
@@ -124,3 +124,19 @@ Keep chronology policy as the single canonical rule and apply targeted folder no
 
 Run `wow/task/completed-close` for this item with the no-change implementation
 decision and recorded validation evidence.
+
+## What changed
+
+1. Finalized this workflow item with a no-change implementation decision because chronology policy and checker behavior are already aligned.
+2. Kept canonical chronology invariant intact: completed folder timestamp must remain greater than or equal to every file timestamp prefix in its topic folder.
+3. Transitioned the item lifecycle state from `active` to `completed` and prepared it for archival under `wow/completed/`.
+
+## What was verified
+
+1. `bash wow/check-workflow.sh` -> pass (no workflow structure or chronology violations).
+2. Existing audit evidence in this item remains valid: completed-folder scan showed `49` topics with `0` chronology violations.
+
+## What remains
+
+1. No mandatory follow-up work remains.
+2. Optional monitoring only: continue normal use of `bash wow/check-workflow.sh` during future workflow edits.

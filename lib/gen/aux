@@ -58,6 +58,26 @@ eval "CONFIG_${BASE_FUN}=\$CONFIG_FUN"
 declare -g _AUX_CACHED_HOSTNAME=""
 declare -g _AUX_CACHED_METADATA=""
 
+# Contract stabilization tiers for aux helper exports.
+# Tier A: hard-stable interfaces.
+declare -agr AUX_CONTRACT_TIER_A=(
+    "aux_use" "aux_tec"
+    "aux_val" "aux_chk" "aux_cmd"
+    "aux_log" "aux_dbg" "aux_info" "aux_warn" "aux_err" "aux_business" "aux_audit" "aux_perf"
+    "aux_arr" "aux_ask" "aux_ffl"
+)
+
+# Tier B: compatibility-only public interfaces.
+declare -agr AUX_CONTRACT_TIER_B=(
+    "aux_fun" "aux_var" "aux_security" "aux_start_trace" "aux_end_trace" "aux_metric"
+)
+
+# Internal boundary (non-contract helpers, exported only for compatibility).
+declare -agr AUX_CONTRACT_INTERNAL=(
+    "aux_get_log_color" "aux_get_cluster_metadata" "aux_format_json_log" "aux_format_csv_log"
+    "_aux_extract_metadata_value" "_aux_escape_json_string" "_aux_escape_csv_string"
+)
+
 # Shows a summary of selected functions in the script, displaying their usage, shortname, and description
 # overview functions
 #
@@ -643,9 +663,9 @@ aux_ask() {
     echo "$user_input"
 }
 
-# Get color for log level using centralized color management
+# Internal: resolve color for log level using centralized color management
 # <log_level>
-aux_get_log_color() {
+_aux_get_log_color() {
     local log_level="$1"
     local out_var="${2:-}"
     local semantic="info"
@@ -686,6 +706,13 @@ aux_get_log_color() {
     else
         printf '%s' "$color"
     fi
+}
+
+# Compatibility wrapper for legacy callers.
+# get color for log level
+# <log_level>
+aux_get_log_color() {
+    _aux_get_log_color "$@"
 }
 
 # General purpose logging function for operational messages with explicit log levels and cluster support
@@ -741,13 +768,13 @@ aux_log() {
 
     # Cluster and service context
     local cluster_metadata
-    aux_get_cluster_metadata cluster_metadata
+    _aux_get_cluster_metadata cluster_metadata
     
     # Choose output format based on AUX_LOG_FORMAT
     case "${AUX_LOG_FORMAT:-human}" in
         "json")
             local json_log
-            aux_format_json_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" "operational" json_log
+            _aux_format_json_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" "operational" json_log
             if [[ "$should_output" == "true" ]]; then
                 echo "$json_log" >&2
             fi
@@ -763,7 +790,7 @@ aux_log() {
             ;;
         "csv")
             local csv_log
-            aux_format_csv_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" csv_log
+            _aux_format_csv_log "$timestamp" "${log_level,,}" "$message" "" "$cluster_metadata" "$context_data" csv_log
             if [[ "$should_output" == "true" ]]; then
                 echo "$csv_log" >&2
             fi
@@ -808,7 +835,7 @@ aux_log() {
                 if [[ -n "$context_data" ]]; then
                     local context_color
                     local context_reset="${AUX_LOG_NC:-${COL_RESET:-}}"
-                    aux_get_log_color "debug" context_color
+                    _aux_get_log_color "debug" context_color
                     if [[ -n "$context_color" && -n "$context_reset" ]]; then
                         formatted_message="$formatted_message ${context_color}[$context_data]${context_reset}"
                     else
@@ -817,7 +844,7 @@ aux_log() {
                 fi
             else
                 local log_color
-                aux_get_log_color "$log_level" log_color
+                _aux_get_log_color "$log_level" log_color
                 formatted_message="${AUX_LOG_GREY}[${AUX_LOG_NC}$timestamp${AUX_LOG_GREY}]${AUX_LOG_NC} ${log_color}[${log_level,,}]${AUX_LOG_NC} $message"
                 [[ -n "$context_data" ]] && formatted_message="$formatted_message ${AUX_LOG_GREY}[$context_data]${AUX_LOG_NC}"
             fi
@@ -915,13 +942,13 @@ aux_dbg() {
 
     # Capture additional context for structured logging
     local cluster_metadata
-    aux_get_cluster_metadata cluster_metadata
+    _aux_get_cluster_metadata cluster_metadata
     
     # Choose output format based on AUX_LOG_FORMAT
     case "${AUX_LOG_FORMAT:-human}" in
         "json")
             local json_log
-            aux_format_json_log "$timestamp" "${level,,}" "$message" "$caller_function" "$cluster_metadata" "" "debug" json_log
+            _aux_format_json_log "$timestamp" "${level,,}" "$message" "$caller_function" "$cluster_metadata" "" "debug" json_log
             
             # Output to appropriate channels
             if [[ "$should_output" == "true" ]]; then
@@ -939,7 +966,7 @@ aux_dbg() {
             ;;
         "csv")
             local csv_log
-            aux_format_csv_log "$timestamp" "${level,,}" "$message" "$caller_function" "$cluster_metadata" "" csv_log
+            _aux_format_csv_log "$timestamp" "${level,,}" "$message" "$caller_function" "$cluster_metadata" "" csv_log
             
             # Output to appropriate channels
             if [[ "$should_output" == "true" ]]; then
@@ -986,7 +1013,7 @@ aux_dbg() {
                 _log_format_terminal "aux" "${level,,}" "$message" "$caller_function" "0" formatted_message || return 2
             else
                 local log_color
-                aux_get_log_color "$level" log_color
+                _aux_get_log_color "$level" log_color
                 formatted_message="${log_color}[${level,,}]${AUX_LOG_NC} $timestamp - ${AUX_LOG_GREY}[${AUX_LOG_NC}$caller_function${AUX_LOG_GREY}]${AUX_LOG_NC} $message"
             fi
             
@@ -1013,10 +1040,10 @@ aux_dbg() {
     esac
 }
 
-# Cluster metadata collection for distributed logging
+# Internal: cluster metadata collection for distributed logging
 # cluster metadata
 #
-aux_get_cluster_metadata() {
+_aux_get_cluster_metadata() {
     local out_var="${1:-}"
 
     if [[ -n "${_AUX_CACHED_METADATA:-}" ]]; then
@@ -1086,6 +1113,13 @@ aux_get_cluster_metadata() {
     fi
 }
 
+# Compatibility wrapper for legacy callers.
+# cluster metadata
+#
+aux_get_cluster_metadata() {
+    _aux_get_cluster_metadata "$@"
+}
+
 _aux_extract_metadata_value() {
     local metadata="$1"
     local key="$2"
@@ -1124,10 +1158,10 @@ _aux_escape_csv_string() {
     printf -v "$out_var" '%s' "$escaped"
 }
 
-# JSON log formatter for structured logging
+# Internal: JSON log formatter for structured logging
 # json log formatter
 # <timestamp> <level> <message> <function> <cluster_metadata> <context_data> <log_type>
-aux_format_json_log() {
+_aux_format_json_log() {
     local timestamp="$1"
     local level="$2" 
     local message="$3"
@@ -1186,10 +1220,17 @@ aux_format_json_log() {
     fi
 }
 
-# CSV log formatter for structured logging
+# Compatibility wrapper for legacy callers.
+# json log formatter
+# <timestamp> <level> <message> <function> <cluster_metadata> <context_data> <log_type>
+aux_format_json_log() {
+    _aux_format_json_log "$@"
+}
+
+# Internal: CSV log formatter for structured logging
 # csv log formatter  
 # <timestamp> <level> <message> <function> <cluster_metadata> <context_data>
-aux_format_csv_log() {
+_aux_format_csv_log() {
     local timestamp="$1"
     local level="$2"
     local message="$3" 
@@ -1226,6 +1267,13 @@ aux_format_csv_log() {
     else
         printf '%s' "$csv_line"
     fi
+}
+
+# Compatibility wrapper for legacy callers.
+# csv log formatter
+# <timestamp> <level> <message> <function> <cluster_metadata> <context_data>
+aux_format_csv_log() {
+    _aux_format_csv_log "$@"
 }
 
 # Tracing utilities for correlation across distributed systems

@@ -1,9 +1,9 @@
 # Dev OIS OpenAI Switch State Drift Plan
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 15:26
+- Updated: 2026-03-07 15:31
 - Links: lib/ops/dev, val/lib/ops/dev_test.sh, doc/man/07-dev-session-attribution-workflow.md
 
 ## Retroactive Capture
@@ -64,7 +64,7 @@
    Completion criterion: A deterministic repair/validation procedure is documented for live account sidecars with drift.
 2. Phase 2 - Apply and verify live sidecar remediation. [COMPLETE 2026-03-07 15:26]
    Completion criterion: Every saved OpenAI account entry has aligned `accountId` and `credentials.accountId`, and `dev_ois` switches produce expected `auth.json` identity.
-3. Phase 3 - Close workflow item with evidence. [IN PROGRESS]
+3. Phase 3 - Close workflow item with evidence. [COMPLETE 2026-03-07 15:31]
    Completion criterion: Validation outputs are captured and the item is moved to `wow/completed/...` with links to changed code/tests.
 
 ## Exit Criteria
@@ -72,4 +72,22 @@
 1. `_dev_ois_switch` no longer overwrites unrelated account snapshots when `activeIndex` is stale.
 2. Regression coverage exists and passes in `val/lib/ops/dev_test.sh`.
 3. Live sidecar drift remediation steps are executed and verified.
-4. Workflow checker passes with the active item tracked in `wow/active/`.
+4. Workflow checker passes with the item tracked in `wow/completed/`.
+
+## What changed
+
+- Moved this workflow plan from `wow/active/` to `wow/completed/20260307-1531_dev-ois-openai-switch-state-drift/` and set status to completed.
+- Preserved the original file timestamp prefix (`20260307-1503_`) while closing into a completion folder timestamped at `20260307-1531`.
+- Captured completion metadata by finalizing Phase 3 and updating closeout criteria to completed-folder tracking.
+
+## What was verified
+
+- `bash -n lib/ops/dev` passed.
+- `bash -n val/lib/ops/dev_test.sh` passed.
+- `./val/lib/ops/dev_test.sh` passed.
+- Live switch verification passed: `dev_ois 2` then `dev_ois 1` kept sidecar entries aligned (`accountId == credentials.accountId`) and ended `auth.json` on `b2b284d8-f750-4d1d-b832-30fdc45aa64c`.
+
+## What remains
+
+- No mandatory follow-up items remain.
+- Default routing policy applies: if new follow-up work appears, create a new item in `wow/inbox/`.
