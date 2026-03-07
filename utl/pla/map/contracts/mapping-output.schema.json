@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LLM Mapping Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "output_kind",
+    "contract_version",
+    "generated_at",
+    "target_state",
+    "snapshot_id",
+    "proposed_entities",
+    "proposed_state_bindings",
+    "unmapped_findings"
+  ],
+  "properties": {
+    "output_kind": {
+      "type": "string",
+      "enum": ["proposal", "approved"]
+    },
+    "contract_version": {
+      "type": "string",
+      "pattern": "^v[0-9]+$"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "target_state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "snapshot_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "proposed_entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entity_type",
+          "entity_key",
+          "label",
+          "confidence",
+          "rationale",
+          "evidence"
+        ],
+        "properties": {
+          "entity_type": {
+            "type": "string",
+            "enum": [
+              "host",
+              "switch",
+              "hardware",
+              "hypervisor_os",
+              "vm",
+              "ct",
+              "pool",
+              "service"
+            ]
+          },
+          "entity_key": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["source_path", "binding_key"],
+              "properties": {
+                "source_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "binding_key": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_excerpt": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "proposed_state_bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["state_name", "entity_key", "presence"],
+        "properties": {
+          "state_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "entity_key": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "presence": {
+            "type": "string",
+            "enum": ["included", "excluded", "modified"]
+          }
+        }
+      }
+    },
+    "unmapped_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_path", "finding", "reason"],
+        "properties": {
+          "source_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "finding": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "suggested_type": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

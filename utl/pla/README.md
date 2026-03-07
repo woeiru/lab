@@ -12,6 +12,7 @@ utl/pla/
 ├── cli          # CLI entrypoint for DB/bootstrap/planning tasks
 ├── data/        # Local SQLite database files and runtime artifacts
 ├── export/      # Human-readable markdown snapshots for git review
+├── map/         # LLM mapping contracts, prompts, rules, and run artifacts
 ├── ops/         # Operation contracts and future command modules
 └── sql/         # Schema and seed SQL
 ```
@@ -58,6 +59,7 @@ Optional positional arguments:
 
 - `cfg/env/` remains the live configuration surface.
 - The playground DB stores planning data and generated plan artifacts.
+- `map/` stores artifact-first mapping workflow assets; it does not run infra ops.
 - Use markdown exports for readable diffs alongside SQLite updates.
 - The CLI uses Python's standard `sqlite3` module, so no external SQLite binary
   is required.

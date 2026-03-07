@@ -1,0 +1,33 @@
+version: v1
+description: Initial mapping rules for cfg/env snapshots.
+
+rules:
+  - id: hy-ips-to-host
+    enabled: true
+    source_file: cfg/env/site1
+    extractor: assoc_array
+    array_name: HY_IPS
+    entity_type: host
+    key_template: "{alias}"
+    label_template: "Host {alias}"
+    default_presence: included
+    confidence: high
+
+  - id: ct-ips-to-ct
+    enabled: true
+    source_file: cfg/env/site1
+    extractor: assoc_array
+    array_name: CT_IPS
+    entity_type: ct
+    key_template: "{alias}"
+    label_template: "Container {alias}"
+    default_presence: included
+    confidence: high
+
+  - id: cl-ips-review-needed
+    enabled: true
+    source_file: cfg/env/site1
+    extractor: assoc_array
+    array_name: CL_IPS
+    action: report_unmapped
+    reason: Client endpoint semantics are ambiguous in v1; require explicit type decision.
