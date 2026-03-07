@@ -28,9 +28,18 @@ wow/task/completed-close
 wow/active/<item>.md
 ```
 
+Optional bundle-close path when related items should share one completed folder:
+
+```text
+wow/task/completed-close-bundle
+wow/active/<item>.md mode=auto module=<module-name>
+```
+
 Parallel trigger (large initiatives only, from active parent):
 
 ```text
+wow/task/active-promote
+wow/active/<topic>-plan.md
 wow/task/active-fanout
 wow/active/<topic>-program-plan.md
 wow/task/active-assign
@@ -126,6 +135,10 @@ Examples:
      This is not a shortcut for skipping triage — it is recognition that
      triage happened implicitly when you decided the work was worth
      continuing.
+   - Add `## Documentation Impact` with exactly one token:
+     `Docs: required`, `Docs: none`, or `Docs: deferred`.
+   - If `Docs: required`, list initial docs targets and keep updates in the
+     same workflow item.
 
 4. Execute and review in `active/`
     - Yes: review notes can stay in `active/` while work is still open.
@@ -137,11 +150,19 @@ Examples:
       `Artifacts: evidence,result`.
 
 5. Finish -> move to `completed/`
-    - When implementation + review are accepted, move related files to `completed/`.
-    - Add a short final section: what changed, what was verified, what remains.
-    - For architecture-sensitive `lib/` changes, run `./val/lib/confidence_gate.sh`
-      with the appropriate `--risk` level before close.
-    - Follow-up routing: default to new `inbox/` items.
+   - When implementation + review are accepted, move related files to `completed/`.
+   - Add a short final section: what changed, what was verified, what remains.
+   - In `## What was verified`, include exactly one docs outcome token:
+     `Docs: updated`, `Docs: none`, or `Docs: deferred`.
+   - `Docs: deferred` is allowed only with blocker reason + linked follow-up
+     item path (default route: `inbox/`; direct `queue/` only for mandatory,
+     scope-clear, priority-locked follow-up).
+   - For architecture-sensitive `lib/` changes, run `./val/lib/confidence_gate.sh`
+     with the appropriate `--risk` level before close.
+   - If structural/public surfaces changed (new/renamed functions, signature
+     changes, dependency changes, variable map changes), regenerate references
+     with `./utl/ref/run_all_doc.sh` and capture the result.
+   - Follow-up routing: default to new `inbox/` items.
    - Exception: create follow-ups directly in `queue/` only when mandatory,
      scope is clear, and priority is already locked.
    - For direct queue routing, add in `## What remains`:
@@ -200,9 +221,10 @@ too broad for a single context window.
 - Parallel orchestration is manual-by-invocation, not automatic. The board does
   not auto-split based on task size.
 - Start with normal flow: `inbox/` -> `queue/` -> `active/`.
-- Trigger parallel fan-out only after the parent is an active
-  `*-program-plan.md` item.
-- Use `wow/task/active-fanout` to create child workstream plans,
+- If the active parent is still a normal `-plan.md`, run
+  `wow/task/active-promote` first to convert it to a
+  `*-program-plan.md` parent and scaffold orchestration sections.
+- Then use `wow/task/active-fanout` to create child workstream plans,
   `active-assign` to bind ownership/worktrees, `active-sync` to roll up state,
   and `active-converge` to close a wave.
 - `wow/check-workflow.sh` validates structure and orchestration metadata;
@@ -265,12 +287,15 @@ If something is in `active/`, it is not done yet.
 
 Use one subfolder per finished topic, **prefixed with the completion timestamp**:
 
-- Format: `completed/yyyymmdd-hhmm_<topic>/<files>.md`
+- Standard format: `completed/yyyymmdd-hhmm_<topic>/<files>.md`
+- Bundle format: `completed/yyyymmdd-hhmm-bundle-<module-slug>/<files>.md`
 - The **folder timestamp** is the close time for the completed topic.
 - The **file timestamps** inside are creation dates (when the artifact was first written).
 - The folder timestamp must be the same as or later than every file timestamp in that folder.
-- This gives two independent timelines: `ls completed/` shows when work finished;
-  `ls completed/yyyymmdd-hhmm_<topic>/` shows how it evolved.
+- For bundle folders, keep one stable folder per module slug; reuse the existing
+  `*-bundle-<module-slug>` folder instead of creating a second one.
+- This gives two independent timelines: `ls completed/` shows when work
+  finished; `ls completed/<topic-folder>/` shows how it evolved.
 
 Example:
 
@@ -317,7 +342,8 @@ Optional active artifact contract block:
   - Dismissed docs include `## Dismissal Reason`.
   - `active/` contains only in-progress items.
   - `active/waivers/*_waiver-register.md` entries include owner, expiry date, and removal criteria.
-  - Completed topics live under `completed/yyyymmdd-hhmm_<topic>/` (folder timestamp = completion date).
+  - Completed topics live under either `completed/yyyymmdd-hhmm_<topic>/` or
+    `completed/yyyymmdd-hhmm-bundle-<module-slug>/`.
 - Checker script: `bash wow/check-workflow.sh`
 
 ## Checker behavior
@@ -333,10 +359,13 @@ Optional active artifact contract block:
 - Queue/active docs do not use legacy triage token form: `Design required: Yes/No`
 - Inbox naming pattern (`-plan`, `-issue`, `-review`, `-followup`)
 - Dismissed naming pattern (`-plan`) and required `## Dismissal Reason`
-- Completed structure: `completed/yyyymmdd-hhmm_<topic>/<file>.md`
-- Completed topic folders: direct children of `completed/` must match `yyyymmdd-hhmm_<topic>`
+- Completed structure: `completed/<topic-folder>/<file>.md` where `<topic-folder>`
+  is either `yyyymmdd-hhmm_<topic>` or `yyyymmdd-hhmm-bundle-<module-slug>`
+- Completed topic folders: direct children of `completed/` must match one of
+  the two valid topic-folder patterns above
 - Completed topic folders are non-empty (must contain at least one markdown artifact)
 - Completed chronology: folder completion timestamp is not older than file creation timestamp prefixes
+- Bundle stability: only one folder per `module-slug` may match `*-bundle-<module-slug>`
 - Legacy completed placeholder paths are not allowed (`completed/<topic>/`)
 
 It does not currently enforce:
@@ -344,16 +373,23 @@ It does not currently enforce:
 - Stale-item age checks for `active/`
 - Verification depth/quality in completed outcomes
 - Queue prioritization quality
+- Documentation impact/outcome token presence (`Docs: ...`) is task-contract
+  policy today, not checker-enforced yet
 
 Common fixes when it fails:
 
 - `FAIL timestamp prefix`: rename file to `yyyymmdd-hhmm_filename`
 - `FAIL header`: add missing header fields near the top of the document
-- `FAIL completed structure`: move file to `completed/<yyyymmdd-hhmm_topic>/`
-- `FAIL completed folder timestamp`: rename folder to `yyyymmdd-hhmm_<topic>`
-- `FAIL completed topic folder`: rename topic folder to `yyyymmdd-hhmm_<topic>`
+- `FAIL completed structure`: move file to `completed/<topic-folder>/` using
+  `yyyymmdd-hhmm_<topic>` or `yyyymmdd-hhmm-bundle-<module-slug>`
+- `FAIL completed folder timestamp`: rename folder to a valid topic-folder name
+  with `yyyymmdd-hhmm` close timestamp prefix
+- `FAIL completed topic folder`: rename topic folder to one valid pattern:
+  `yyyymmdd-hhmm_<topic>` or `yyyymmdd-hhmm-bundle-<module-slug>`
 - `FAIL completed topic folder empty`: remove empty folder or move related completed docs into it
 - `FAIL completed folder chronology`: rename completed folder timestamp to a value that is not older than any completed file prefix
+- `FAIL completed bundle duplicate`: move files into the existing bundle folder
+  for that module slug and keep one stable `*-bundle-<module-slug>` folder
 - `FAIL legacy completed placeholder`: replace `completed/<topic>/` with `completed/yyyymmdd-hhmm_<topic>/`
 - `FAIL dismissal reason`: add `## Dismissal Reason` section in dismissed item
 - `FAIL triage decision missing`/`duplicate`: add one `## Triage Decision` section

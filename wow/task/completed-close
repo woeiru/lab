@@ -4,6 +4,8 @@ The active item filepath is given in the user prompt. Read it first.
 
 Finalize this active item into completed state.
 
+- This is the standard close path (bundle mode `off`).
+- For grouped close destinations, use `wow/task/completed-close-bundle`.
 - Move file to `wow/completed/yyyymmdd-hhmm_<topic>/` using the current close time
 - Keep each file's existing filename timestamp prefix unchanged
 - Ensure folder completion timestamp is >= every file timestamp prefix in that folder
@@ -17,6 +19,18 @@ Finalize this active item into completed state.
       scope is clear, and priority is already locked
     - For direct queue routing, include in What remains:
       `Routing: queue (mandatory follow-up)` plus a one-line rationale
+- Documentation closeout is mandatory:
+  - In `What changed`, list documentation files updated (or state none).
+  - In `What was verified`, include exactly one docs outcome token:
+    - `Docs: updated` (with doc paths), or
+    - `Docs: none` (one-line rationale), or
+    - `Docs: deferred` (blocked reason + linked follow-up path)
+  - `Docs: deferred` requires creating a follow-up item using the routing
+    policy above (default inbox; queue only for mandatory, scope-clear,
+    priority-locked follow-up).
+  - If structural/public surfaces changed (new/renamed functions, signature
+    changes, dependency changes, variable map changes), run
+    `./utl/ref/run_all_doc.sh` and capture the result under `What was verified`.
 - If related review/result docs exist in active/, move them to the same
   topic folder
 - Report: completed folder path + verification evidence summary

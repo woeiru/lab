@@ -1,0 +1,80 @@
+Read and apply wow/task/RULES.md first.
+
+The active item filepath is given in the user prompt. Read it first.
+
+Finalize this active item into completed state using bundle-aware close routing.
+
+- Supported bundle modes: `auto`, `manual`, `off`
+  - If mode is `off`, run `wow/task/completed-close` and stop.
+- Keep each file's existing filename timestamp prefix unchanged.
+- Set `Status: completed`.
+
+Bundle key resolution:
+
+1. Resolve explicit override first (manual behavior):
+   - `close_bundle=<value>` in user prompt, or
+   - `Bundle-ID: <value>` in `## Bundle Close Metadata`.
+2. If no override and mode is `auto`, resolve module key from:
+   - `Module: <value>` in `## Bundle Close Metadata`, or
+   - `module=<value>` in user prompt.
+3. If mode is `auto` and no deterministic key is available, stop and report the
+   missing field(s) needed to continue.
+
+Normalization for bundle/module values:
+
+- Lowercase
+- Replace spaces/underscores with `-`
+- Remove non `[a-z0-9-]` characters
+- Collapse repeated `-`
+- Trim leading/trailing `-`
+
+Bundle folder resolution:
+
+1. Compute `bundle-slug` from the resolved key.
+2. If an existing folder under `wow/completed/` matches
+   `*-bundle-<bundle-slug>`, reuse that folder exactly.
+3. Otherwise create a new folder named
+   `<current-close-timestamp>-bundle-<bundle-slug>`.
+4. Never rename an existing bundle folder after creation.
+5. Ensure folder completion timestamp is >= every file timestamp prefix moved
+   into that folder.
+
+Bundle registry contract (`wow/completed/.bundle-registry.tsv`):
+
+- Ensure the file exists (create if missing).
+- Keep one entry per `bundle-slug`:
+  `bundle-slug<TAB>folder-name<TAB>created-at<TAB>source-item-path`
+- On close:
+  - If slug exists and folder matches, keep existing entry.
+  - If slug exists and folder differs, stop and report registry conflict.
+  - If slug does not exist, append new entry.
+
+Add final sections to the completed item:
+
+- What changed (files, configs, behavior)
+- What was verified (tests/checks run, with commands and results)
+- What remains (follow-up items, if any) with routing policy:
+  - Default: capture each follow-up as a new inbox item
+  - Exception: create directly in queue only when follow-up is mandatory,
+    scope is clear, and priority is already locked
+  - For direct queue routing, include in What remains:
+    `Routing: queue (mandatory follow-up)` plus a one-line rationale
+
+Documentation closeout is mandatory:
+
+- In `What changed`, list documentation files updated (or state none).
+- In `What was verified`, include exactly one docs outcome token:
+  - `Docs: updated` (with doc paths), or
+  - `Docs: none` (one-line rationale), or
+  - `Docs: deferred` (blocked reason + linked follow-up path)
+- `Docs: deferred` requires creating a follow-up item using the routing policy
+  above (default inbox; queue only for mandatory, scope-clear,
+  priority-locked follow-up).
+- If structural/public surfaces changed (new/renamed functions, signature
+  changes, dependency changes, variable map changes), run
+  `./utl/ref/run_all_doc.sh` and capture the result under `What was verified`.
+
+- If related review/result docs exist in active/, move them to the same bundle
+  folder.
+- Report: completed folder path + bundle slug + created/reused decision +
+  verification evidence summary.

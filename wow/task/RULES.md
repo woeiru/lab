@@ -36,8 +36,12 @@ Parallel orchestration rules (for large initiatives):
 Folder-specific naming:
 - inbox/: filename must end with -plan.md, -issue.md, -review.md, or -followup.md
 - dismissed/: filename must end with -plan.md; must include ## Dismissal Reason
-- completed/: files must be in completed/yyyymmdd-hhmm_<topic>/<file>.md (one subfolder deep)
+- completed/: files must be in completed/<topic-folder>/<file>.md (one subfolder deep)
+- completed/: valid topic-folder formats are:
+  - standard close: yyyymmdd-hhmm_<topic>
+  - bundle close: yyyymmdd-hhmm-bundle-<module-slug>
 - completed/: folder timestamp is the close time and must be >= every file timestamp prefix inside that folder
+- completed/: bundle folders must keep one stable folder per module-slug (do not create multiple `*-bundle-<module-slug>` folders)
 - completed/: topic folders must not be empty
 
 Follow-up routing policy:
@@ -48,6 +52,17 @@ Follow-up routing policy:
   3) priority is already locked.
 - When direct queue routing is used, add this line in the parent closeout
   section plus a one-line reason: `Routing: queue (mandatory follow-up)`.
+
+Documentation gate policy:
+- Active plan items should include `## Documentation Impact` with exactly one token:
+  `Docs: required`, `Docs: none`, or `Docs: deferred`.
+- Completed closeout must include exactly one docs outcome token in
+  `## What was verified`: `Docs: updated`, `Docs: none`, or `Docs: deferred`.
+- `Docs: deferred` is allowed only with a blocker reason and a linked follow-up
+  item path.
+- For structural/public surface changes (new/renamed functions, signature
+  changes, dependency changes, variable map changes), regenerate reference docs
+  with `./utl/ref/run_all_doc.sh` and record the result.
 
 Reference pointers:
 - Primary operating guide: AGENTS.md.

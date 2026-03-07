@@ -12,6 +12,7 @@ declare -A ORCH_CHILD_FILE_BY_NODE=()
 declare -A ORCH_CHILD_DEPS_BY_NODE=()
 declare -A ORCH_NODE_STATE=()
 declare -A ORCH_CYCLE_REPORTED=()
+declare -A COMPLETED_BUNDLE_FOLDER_BY_SLUG=()
 
 is_markdown_doc() {
   local file="$1"
@@ -116,6 +117,33 @@ expected_status_for_file() {
       return 1
       ;;
   esac
+}
+
+completed_folder_timestamp() {
+  local folder="$1"
+
+  if [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
+  if [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})-bundle-([a-z0-9]+(-[a-z0-9]+)*)$ ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
+  return 1
+}
+
+completed_bundle_slug() {
+  local folder="$1"
+
+  if [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})-bundle-([a-z0-9]+(-[a-z0-9]+)*)$ ]]; then
+    printf '%s\n' "${BASH_REMATCH[2]}"
+    return 0
+  fi
+
+  return 1
 }
 
 should_enforce_header_and_status() {
@@ -268,13 +296,13 @@ check_completed_structure() {
   fi
 
   folder="${rel%%/*}"
-  if [[ ! "$folder" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]; then
-    printf 'FAIL completed folder timestamp: %s (expected yyyymmdd-hhmm_<topic>)\n' "$file"
+  folder_ts="$(completed_folder_timestamp "$folder" || true)"
+  if [[ -z "$folder_ts" ]]; then
+    printf 'FAIL completed folder timestamp: %s (expected yyyymmdd-hhmm_<topic> or yyyymmdd-hhmm-bundle-<module-slug>)\n' "$file"
     failures=$((failures + 1))
     return
   fi
 
-  folder_ts="${BASH_REMATCH[1]}"
   base="$(basename "$file")"
 
   if [[ ! "$base" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]; then
@@ -294,13 +322,26 @@ check_completed_structure() {
 check_completed_topic_folder() {
   local dir="$1"
   local folder
+  local bundle_slug=""
+  local existing_dir=""
   local md_files=()
   local had_nullglob=0
 
   folder="$(basename "$dir")"
-  if [[ ! "$folder" =~ ^[0-9]{8}-[0-9]{4}_.+ ]]; then
-    printf 'FAIL completed topic folder: %s (expected yyyymmdd-hhmm_<topic>)\n' "$dir"
+  if ! completed_folder_timestamp "$folder" >/dev/null; then
+    printf 'FAIL completed topic folder: %s (expected yyyymmdd-hhmm_<topic> or yyyymmdd-hhmm-bundle-<module-slug>)\n' "$dir"
     failures=$((failures + 1))
+  fi
+
+  bundle_slug="$(completed_bundle_slug "$folder" || true)"
+  if [[ -n "$bundle_slug" ]]; then
+    existing_dir="${COMPLETED_BUNDLE_FOLDER_BY_SLUG[$bundle_slug]:-}"
+    if [[ -n "$existing_dir" ]] && [[ "$existing_dir" != "$dir" ]]; then
+      printf 'FAIL completed bundle duplicate: %s and %s (reuse a single stable folder for module slug: %s)\n' "$dir" "$existing_dir" "$bundle_slug"
+      failures=$((failures + 1))
+    else
+      COMPLETED_BUNDLE_FOLDER_BY_SLUG[$bundle_slug]="$dir"
+    fi
   fi
 
   shopt -q nullglob && had_nullglob=1
