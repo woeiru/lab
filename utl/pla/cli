@@ -26,6 +26,8 @@ COMMANDS:
                                               Add or update entity participation in state
     plan-implementation [db_path] <present_name> <desired_name> [summary]
                                               Generate ordered implementation steps
+    apply-mapping [db_path] <approved_mapping_json> [--dry-run|--apply]
+                                              Validate and materialize approved mapping
     export-md [db_path] [output_path]         Export markdown summary of current DB
     --help                            Show this help message
 
@@ -37,6 +39,7 @@ EXAMPLES:
     ./utl/pla/cli upsert-entity ./utl/pla/data/ply.db service svc-traefik "Traefik"
     ./utl/pla/cli set-state-entity ./utl/pla/data/ply.db proto-a svc-traefik included
     ./utl/pla/cli plan-implementation ./utl/pla/data/ply.db present-site1 desired-site1
+    ./utl/pla/cli apply-mapping ./utl/pla/data/ply.db ./utl/pla/map/runs/20260307-0057_present-showcase1/approved-mapping.json --dry-run
     ./utl/pla/cli export-md
 EOF
 }
@@ -458,6 +461,373 @@ finally:
 PY
 }
 
+run_apply_mapping() {
+    local db_path="${1:-$DEFAULT_DB}"
+    local mapping_path="${2:-}"
+    local mode="${3:---dry-run}"
+
+    if [[ -z "$mapping_path" ]]; then
+        echo "usage: ./utl/pla/cli apply-mapping [db_path] <approved_mapping_json> [--dry-run|--apply]" >&2
+        exit 1
+    fi
+
+    if [[ "$mode" != "--dry-run" && "$mode" != "--apply" ]]; then
+        echo "invalid mode: $mode (expected --dry-run or --apply)" >&2
+        exit 1
+    fi
+
+    require_cmd python3
+    ensure_db_baseline "$db_path"
+
+    python3 - "$db_path" "$mapping_path" "$mode" << 'PY'
+import json
+import os
+import pathlib
+import sqlite3
+import sys
+
+db_path = pathlib.Path(sys.argv[1])
+mapping_path = pathlib.Path(sys.argv[2])
+mode = sys.argv[3]
+
+if not mapping_path.is_file():
+    raise SystemExit(f"mapping file not found: {mapping_path}")
+
+is_apply = mode == "--apply"
+dry_run = mode == "--dry-run"
+if not is_apply and not dry_run:
+    raise SystemExit(f"invalid mode: {mode}")
+
+allowed_types = {
+    "host",
+    "switch",
+    "hardware",
+    "hypervisor_os",
+    "vm",
+    "ct",
+    "pool",
+    "service",
+}
+allowed_presence = {"included", "excluded", "modified"}
+confidence_map = {"high": 1.0, "medium": 0.66, "low": 0.33}
+
+
+def fail(msg: str, rc: int = 1) -> None:
+    raise SystemExit(f"apply-mapping validation error: {msg}")
+
+
+def expect_keys(obj, required, label):
+    missing = [key for key in required if key not in obj]
+    if missing:
+        fail(f"{label} missing required keys: {', '.join(missing)}")
+
+
+try:
+    payload = json.loads(mapping_path.read_text(encoding="utf-8"))
+except json.JSONDecodeError as exc:
+    raise SystemExit(f"unable to parse mapping JSON: {exc}")
+
+if not isinstance(payload, dict):
+    fail("mapping JSON root must be an object")
+
+expect_keys(
+    payload,
+    [
+        "output_kind",
+        "contract_version",
+        "generated_at",
+        "target_state",
+        "snapshot_id",
+        "proposed_entities",
+        "proposed_state_bindings",
+        "unmapped_findings",
+    ],
+    "payload",
+)
+
+if payload["output_kind"] != "approved":
+    fail("output_kind must be 'approved'")
+
+contract_version = str(payload["contract_version"])
+if contract_version != "v1":
+    fail(f"unsupported contract_version: {contract_version}")
+
+target_state = str(payload["target_state"]).strip()
+if not target_state:
+    fail("target_state must be a non-empty string")
+
+snapshot_id = payload["snapshot_id"]
+if not isinstance(snapshot_id, int) or snapshot_id < 1:
+    fail("snapshot_id must be an integer >= 1")
+
+proposed_entities = payload["proposed_entities"]
+if not isinstance(proposed_entities, list) or not proposed_entities:
+    fail("proposed_entities must be a non-empty array")
+
+proposed_state_bindings = payload["proposed_state_bindings"]
+if not isinstance(proposed_state_bindings, list) or not proposed_state_bindings:
+    fail("proposed_state_bindings must be a non-empty array")
+
+entity_map = {}
+for idx, entity in enumerate(proposed_entities, start=1):
+    if not isinstance(entity, dict):
+        fail(f"proposed_entities[{idx}] must be an object")
+    expect_keys(entity, ["entity_type", "entity_key", "label", "confidence", "rationale", "evidence"], f"proposed_entities[{idx}]")
+
+    entity_type = str(entity["entity_type"]).strip()
+    entity_key = str(entity["entity_key"]).strip()
+    label = str(entity["label"]).strip()
+    confidence = str(entity["confidence"]).strip()
+    rationale = str(entity["rationale"]).strip()
+    evidence = entity["evidence"]
+
+    if entity_type not in allowed_types:
+        fail(f"proposed_entities[{idx}] invalid entity_type: {entity_type}")
+    if not entity_key:
+        fail(f"proposed_entities[{idx}] empty entity_key")
+    if not label:
+        fail(f"proposed_entities[{idx}] empty label")
+    if confidence != "high":
+        fail(f"proposed_entities[{idx}] confidence must be 'high' for apply, got: {confidence}")
+    if not rationale:
+        fail(f"proposed_entities[{idx}] empty rationale")
+    if not isinstance(evidence, list) or not evidence:
+        fail(f"proposed_entities[{idx}] evidence must be a non-empty array")
+
+    normalized_evidence = []
+    for ev_idx, ev in enumerate(evidence, start=1):
+        if not isinstance(ev, dict):
+            fail(f"proposed_entities[{idx}].evidence[{ev_idx}] must be an object")
+        expect_keys(ev, ["source_path", "binding_key"], f"proposed_entities[{idx}].evidence[{ev_idx}]")
+        source_path = str(ev["source_path"]).strip()
+        binding_key = str(ev["binding_key"]).strip()
+        if not source_path or not binding_key:
+            fail(f"proposed_entities[{idx}].evidence[{ev_idx}] requires non-empty source_path and binding_key")
+        normalized_evidence.append({"source_path": source_path, "binding_key": binding_key})
+
+    if entity_key in entity_map:
+        existing = entity_map[entity_key]
+        if existing["entity_type"] != entity_type or existing["label"] != label:
+            fail(f"duplicate entity_key with conflicting shape: {entity_key}")
+        continue
+
+    entity_map[entity_key] = {
+        "entity_type": entity_type,
+        "label": label,
+        "confidence": confidence,
+        "rationale": rationale,
+        "evidence": normalized_evidence,
+    }
+
+bindings_seen = set()
+normalized_bindings = []
+for idx, binding in enumerate(proposed_state_bindings, start=1):
+    if not isinstance(binding, dict):
+        fail(f"proposed_state_bindings[{idx}] must be an object")
+    expect_keys(binding, ["state_name", "entity_key", "presence"], f"proposed_state_bindings[{idx}]")
+
+    state_name = str(binding["state_name"]).strip()
+    entity_key = str(binding["entity_key"]).strip()
+    presence = str(binding["presence"]).strip()
+
+    if state_name != target_state:
+        fail(f"proposed_state_bindings[{idx}] state_name must match target_state '{target_state}'")
+    if entity_key not in entity_map:
+        fail(f"proposed_state_bindings[{idx}] references unknown entity_key: {entity_key}")
+    if presence not in allowed_presence:
+        fail(f"proposed_state_bindings[{idx}] invalid presence: {presence}")
+
+    binding_key = (state_name, entity_key)
+    if binding_key in bindings_seen:
+        fail(f"duplicate state/entity binding in payload: state={state_name} entity={entity_key}")
+    bindings_seen.add(binding_key)
+    normalized_bindings.append({"state_name": state_name, "entity_key": entity_key, "presence": presence})
+
+conn = sqlite3.connect(db_path)
+conn.row_factory = sqlite3.Row
+
+report = {
+    "mode": "apply" if is_apply else "dry-run",
+    "mapping": str(mapping_path),
+    "target_state": target_state,
+    "snapshot_id": snapshot_id,
+    "state": {"created": 0, "reused": 0},
+    "entities": {"created": 0, "reused": 0, "updated": 0},
+    "state_bindings": {"created": 0, "updated": 0, "unchanged": 0},
+    "cfg_bindings": {"created": 0, "updated": 0, "unchanged": 0},
+}
+
+try:
+    cur = conn.cursor()
+
+    snapshot_row = cur.execute(
+        "SELECT snapshot_id FROM plg_cfg_snapshot WHERE snapshot_id = ?",
+        (snapshot_id,),
+    ).fetchone()
+    if snapshot_row is None:
+        fail(f"snapshot_id not found in db: {snapshot_id}")
+
+    state_row = cur.execute(
+        "SELECT state_id, kind FROM plg_state WHERE name = ? ORDER BY state_id DESC LIMIT 1",
+        (target_state,),
+    ).fetchone()
+
+    if state_row is None:
+        if is_apply:
+            cur.execute(
+                "INSERT INTO plg_state (kind, name, status, notes) VALUES ('present', ?, 'selected', ?)",
+                (target_state, f"created via apply-mapping from {mapping_path.name}"),
+            )
+            state_id = cur.lastrowid
+        else:
+            state_id = -1
+        report["state"]["created"] += 1
+    else:
+        if state_row["kind"] != "present":
+            fail(f"state collision: {target_state} exists with kind={state_row['kind']} (expected present)")
+        state_id = state_row["state_id"]
+        report["state"]["reused"] += 1
+
+    type_rows = cur.execute("SELECT type_id, key FROM plg_entity_type").fetchall()
+    type_id_by_key = {row["key"]: row["type_id"] for row in type_rows}
+
+    entity_id_by_key = {}
+    for entity_key, entity in entity_map.items():
+        type_key = entity["entity_type"]
+        if type_key not in type_id_by_key:
+            fail(f"entity type not found in db seed data: {type_key}")
+
+        existing = cur.execute(
+            "SELECT e.entity_id, e.type_id, e.label FROM plg_entity e WHERE e.key = ?",
+            (entity_key,),
+        ).fetchone()
+
+        if existing is None:
+            if is_apply:
+                cur.execute(
+                    "INSERT INTO plg_entity (type_id, key, label, lifecycle) VALUES (?, ?, ?, 'active')",
+                    (type_id_by_key[type_key], entity_key, entity["label"]),
+                )
+                entity_id = cur.lastrowid
+            else:
+                entity_id = None
+            report["entities"]["created"] += 1
+        else:
+            existing_type_id = existing["type_id"]
+            expected_type_id = type_id_by_key[type_key]
+            if existing_type_id != expected_type_id:
+                fail(
+                    "entity collision for key "
+                    f"{entity_key}: existing type_id={existing_type_id} expected type_id={expected_type_id}"
+                )
+            if existing["label"] != entity["label"]:
+                fail(
+                    "entity collision for key "
+                    f"{entity_key}: existing label '{existing['label']}' expected '{entity['label']}'"
+                )
+            entity_id = existing["entity_id"]
+            report["entities"]["reused"] += 1
+
+        entity_id_by_key[entity_key] = entity_id
+
+    failpoint = str(os.environ.get("PLY_APPLY_FAILPOINT", "")).strip()
+    if is_apply and failpoint == "after_entities":
+        raise RuntimeError("simulated failpoint after_entities")
+
+    for binding in normalized_bindings:
+        entity_key = binding["entity_key"]
+        presence = binding["presence"]
+        entity_id = entity_id_by_key.get(entity_key)
+
+        if entity_id is None and not is_apply:
+            report["state_bindings"]["created"] += 1
+            continue
+
+        existing_binding = cur.execute(
+            "SELECT presence FROM plg_state_entity WHERE state_id = ? AND entity_id = ?",
+            (state_id, entity_id),
+        ).fetchone()
+
+        if existing_binding is None:
+            report["state_bindings"]["created"] += 1
+            if is_apply:
+                cur.execute(
+                    "INSERT INTO plg_state_entity (state_id, entity_id, presence, override_json) VALUES (?, ?, ?, '{}')",
+                    (state_id, entity_id, presence),
+                )
+            continue
+
+        if existing_binding["presence"] == presence:
+            report["state_bindings"]["unchanged"] += 1
+        else:
+            report["state_bindings"]["updated"] += 1
+            if is_apply:
+                cur.execute(
+                    "UPDATE plg_state_entity SET presence = ?, updated_at = datetime('now') WHERE state_id = ? AND entity_id = ?",
+                    (presence, state_id, entity_id),
+                )
+
+    if is_apply and failpoint == "after_state_bindings":
+        raise RuntimeError("simulated failpoint after_state_bindings")
+
+    cfg_binding_seen = set()
+    for entity_key, entity in entity_map.items():
+        entity_id = entity_id_by_key.get(entity_key)
+        if entity_id is None and not is_apply:
+            report["cfg_bindings"]["created"] += len(entity["evidence"])
+            continue
+
+        for evidence in entity["evidence"]:
+            source_path = evidence["source_path"]
+            binding_key = evidence["binding_key"]
+            tuple_key = (snapshot_id, state_id, entity_id, source_path, binding_key)
+            if tuple_key in cfg_binding_seen:
+                continue
+            cfg_binding_seen.add(tuple_key)
+
+            existing_cfg = cur.execute(
+                "SELECT confidence FROM plg_cfg_binding "
+                "WHERE snapshot_id = ? AND state_id = ? AND entity_id = ? AND source_path = ? AND binding_key = ?",
+                tuple_key,
+            ).fetchone()
+
+            confidence = confidence_map[entity["confidence"]]
+            if existing_cfg is None:
+                report["cfg_bindings"]["created"] += 1
+                if is_apply:
+                    cur.execute(
+                        "INSERT INTO plg_cfg_binding (snapshot_id, state_id, entity_id, source_path, binding_key, confidence) "
+                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        (snapshot_id, state_id, entity_id, source_path, binding_key, confidence),
+                    )
+            elif abs(float(existing_cfg["confidence"]) - confidence) > 1e-9:
+                report["cfg_bindings"]["updated"] += 1
+                if is_apply:
+                    cur.execute(
+                        "UPDATE plg_cfg_binding SET confidence = ? "
+                        "WHERE snapshot_id = ? AND state_id = ? AND entity_id = ? AND source_path = ? AND binding_key = ?",
+                        (confidence, snapshot_id, state_id, entity_id, source_path, binding_key),
+                    )
+            else:
+                report["cfg_bindings"]["unchanged"] += 1
+
+    if is_apply:
+        conn.commit()
+    else:
+        conn.rollback()
+
+    print(json.dumps(report, indent=2, sort_keys=True))
+except sqlite3.IntegrityError as exc:
+    conn.rollback()
+    raise SystemExit(f"apply-mapping database error: {exc}")
+except RuntimeError as exc:
+    conn.rollback()
+    raise SystemExit(f"apply-mapping runtime error: {exc}")
+finally:
+    conn.close()
+PY
+}
+
 run_export_md() {
     local db_path="${1:-$DEFAULT_DB}"
     local output_path="${2:-$DEFAULT_EXPORT}"
@@ -583,6 +953,9 @@ main() {
             ;;
         plan-implementation)
             run_plan_implementation "${2:-}" "${3:-}" "${4:-}" "${5:-}"
+            ;;
+        apply-mapping)
+            run_apply_mapping "${2:-}" "${3:-}" "${4:-}"
             ;;
         export-md)
             run_export_md "${2:-}" "${3:-}"

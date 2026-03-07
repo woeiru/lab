@@ -3,8 +3,8 @@
 - Status: completed
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 01:05
-- Links: doc/man/08-planning-workspace.md, doc/arc/09-planning-subsystem.md, utl/pla/README.md, utl/pla/map/README.md, utl/pla/map/runs/20260307-0057_present-showcase1/approved-mapping.json, doc/pro/queue/20260307-0104_mapping-apply-phase-tooling-plan.md, doc/pro/queue/20260307-0105_export-summary-naming-migration-plan.md, doc/pro/queue/20260307-0106_mapping-rules-v2-client-endpoints-plan.md
+- Updated: 2026-03-07 01:29:28
+- Links: doc/man/08-planning-workspace.md, doc/arc/09-planning-subsystem.md, utl/pla/README.md, utl/pla/map/README.md, utl/pla/map/runs/20260307-0057_present-showcase1/approved-mapping.json, doc/pro/completed/20260307-0128_mapping-apply-phase-tooling/20260307-0104_mapping-apply-phase-tooling-plan.md, doc/pro/active/20260307-0105_export-summary-naming-migration-plan.md, doc/pro/queue/20260307-0106_mapping-rules-v2-client-endpoints-plan.md
 
 ## Goal
 
@@ -344,8 +344,8 @@ Define how `cfg/env` patterns are translated into planning entities so mappings 
 
 ## What remains
 
-1. Execute `doc/pro/queue/20260307-0104_mapping-apply-phase-tooling-plan.md`.
-2. Execute `doc/pro/queue/20260307-0105_export-summary-naming-migration-plan.md`.
+1. Completed `doc/pro/completed/20260307-0128_mapping-apply-phase-tooling/20260307-0104_mapping-apply-phase-tooling-plan.md`.
+2. Execute `doc/pro/active/20260307-0105_export-summary-naming-migration-plan.md`.
 3. Execute `doc/pro/queue/20260307-0106_mapping-rules-v2-client-endpoints-plan.md`.
 
 ## Session Update Log

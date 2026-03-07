@@ -10,6 +10,7 @@ Current CLI-backed v1 operations:
 - `upsert-entity`
 - `set-state-entity`
 - `plan-implementation`
+- `apply-mapping`
 
 Planned next operations:
 

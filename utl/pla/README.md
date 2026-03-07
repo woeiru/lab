@@ -46,12 +46,20 @@ Create desired/prototype states and generate implementation plans:
 ./utl/pla/cli plan-implementation ./utl/pla/data/ply.db present-20260306-013604 desired-site1
 ```
 
+Apply approved mapping artifacts into planning DB records:
+
+```bash
+./utl/pla/cli apply-mapping ./utl/pla/data/ply.db ./utl/pla/map/runs/20260307-0057_present-showcase1/approved-mapping.json --dry-run
+./utl/pla/cli apply-mapping ./utl/pla/data/ply.db ./utl/pla/map/runs/20260307-0057_present-showcase1/approved-mapping.json --apply
+```
+
 Optional positional arguments:
 
 ```bash
 ./utl/pla/cli init-db /path/to/ply.db
 ./utl/pla/cli import-present /path/to/ply.db /path/to/cfg/env present-site1
 ./utl/pla/cli create-state /path/to/ply.db prototype proto-a present-site1 candidate
+./utl/pla/cli apply-mapping /path/to/ply.db /path/to/approved-mapping.json --dry-run
 ./utl/pla/cli export-md /path/to/ply.db /path/to/report.md
 ```
 
@@ -60,6 +68,7 @@ Optional positional arguments:
 - `cfg/env/` remains the live configuration surface.
 - The playground DB stores planning data and generated plan artifacts.
 - `map/` stores artifact-first mapping workflow assets; it does not run infra ops.
+- `apply-mapping` only mutates SQLite planning tables (no direct infra actions).
 - Use markdown exports for readable diffs alongside SQLite updates.
 - The CLI uses Python's standard `sqlite3` module, so no external SQLite binary
   is required.
