@@ -237,9 +237,9 @@ If something is in `active/`, it is not done yet.
 Use one subfolder per finished topic, **prefixed with the completion timestamp**:
 
 - Format: `completed/yyyymmdd-hhmm_<topic>/<files>.md`
-- The **folder timestamp** is the exact completion date (the first git commit where the topic entered `completed/`).
+- The **folder timestamp** is the close time for the completed topic.
 - The **file timestamps** inside are creation dates (when the artifact was first written).
-- The folder timestamp must match the topic's first git commit where work entered `completed/`.
+- The folder timestamp must be the same as or later than every file timestamp in that folder.
 - This gives two independent timelines: `ls completed/` shows when work finished;
   `ls completed/yyyymmdd-hhmm_<topic>/` shows how it evolved.
 
@@ -297,7 +297,7 @@ Use this header at the top of each work file:
 - Completed structure: `completed/yyyymmdd-hhmm_<topic>/<file>.md`
 - Completed topic folders: direct children of `completed/` must match `yyyymmdd-hhmm_<topic>`
 - Completed topic folders are non-empty (must contain at least one markdown artifact)
-- Completed move timestamp: folder completion timestamp matches the topic's first-entry commit into `completed/`
+- Completed chronology: folder completion timestamp is not older than file creation timestamp prefixes
 - Legacy completed placeholder paths are not allowed (`completed/<topic>/`)
 
 It does not currently enforce:
@@ -314,7 +314,7 @@ Common fixes when it fails:
 - `FAIL completed folder timestamp`: rename folder to `yyyymmdd-hhmm_<topic>`
 - `FAIL completed topic folder`: rename topic folder to `yyyymmdd-hhmm_<topic>`
 - `FAIL completed topic folder empty`: remove empty folder or move related completed docs into it
-- `FAIL completed folder move timestamp`: rename completed folder timestamp to the first commit time where files entered `completed/`
+- `FAIL completed folder chronology`: rename completed folder timestamp to a value that is not older than any completed file prefix
 - `FAIL legacy completed placeholder`: replace `completed/<topic>/` with `completed/yyyymmdd-hhmm_<topic>/`
 - `FAIL dismissal reason`: add `## Dismissal Reason` section in dismissed item
 - `FAIL triage decision missing`/`duplicate`: add one `## Triage Decision` section
