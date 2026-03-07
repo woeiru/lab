@@ -1,0 +1,152 @@
+#!/bin/bash
+
+set -euo pipefail
+
+dic_run_usage() {
+    cat <<'EOF'
+Usage: src/dic/run <target> [shim-options] [set-args...]
+
+Bridges DIC/runtime invocation through reconciliation and run dispatch.
+Any non-shim args are forwarded to `src/run/dispatch`.
+
+Shim options:
+  --dcl-root <path>    Override declarative root (default: <repo>/cfg/dcl)
+  --env-root <path>    Override environment root (default: <repo>/cfg/env)
+  --artifact <path>    Keep/write compile artifact at explicit path
+  --keep-artifact      Do not delete temporary artifact
+  --help               Show this help
+
+Examples:
+  src/dic/run h1
+  src/dic/run h1 -i
+  src/dic/run h1 --artifact .tmp/rec/h1.plan -x a
+  src/dic/run t2 --enforce-deps --completed-target h1 --completed-target c1
+EOF
+}
+
+dic_run_lab_root() {
+    if [[ -n "${LAB_ROOT:-}" ]]; then
+        printf '%s\n' "$LAB_ROOT"
+        return 0
+    fi
+
+    local dir_sh
+    dir_sh="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    printf '%s\n' "$( cd "${dir_sh}/../.." >/dev/null 2>&1 && pwd )"
+}
+
+dic_run_main() {
+    local target="${1:-}"
+    if [[ -z "$target" || "$target" == "--help" || "$target" == "-h" ]]; then
+        dic_run_usage
+        return 0
+    fi
+
+    shift
+
+    local lab_root
+    lab_root="$(dic_run_lab_root)"
+
+    local dcl_root="${lab_root}/cfg/dcl"
+    local env_root="${lab_root}/cfg/env"
+    local artifact_path=""
+    local keep_artifact=0
+    local -a run_args=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --dcl-root)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/dic/run: missing value for --dcl-root\n' >&2
+                    return 1
+                fi
+                dcl_root="$2"
+                shift 2
+                ;;
+            --env-root)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/dic/run: missing value for --env-root\n' >&2
+                    return 1
+                fi
+                env_root="$2"
+                shift 2
+                ;;
+            --artifact)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/dic/run: missing value for --artifact\n' >&2
+                    return 1
+                fi
+                artifact_path="$2"
+                shift 2
+                ;;
+            --keep-artifact)
+                keep_artifact=1
+                shift
+                ;;
+            --help|-h)
+                dic_run_usage
+                return 0
+                ;;
+            --)
+                shift
+                while [[ $# -gt 0 ]]; do
+                    run_args+=("$1")
+                    shift
+                done
+                ;;
+            *)
+                run_args+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    local rec_ops="${lab_root}/src/rec/ops"
+    local run_dispatch="${lab_root}/src/run/dispatch"
+
+    if [[ ! -x "$rec_ops" ]]; then
+        printf 'src/dic/run: reconcile entrypoint not executable: %s\n' "$rec_ops" >&2
+        return 2
+    fi
+
+    if [[ ! -x "$run_dispatch" ]]; then
+        printf 'src/dic/run: run dispatcher not executable: %s\n' "$run_dispatch" >&2
+        return 2
+    fi
+
+    local artifact_is_temp=0
+    if [[ -z "$artifact_path" ]]; then
+        artifact_path="$(mktemp "/tmp/lab-rec-plan-${target}.XXXXXX")"
+        artifact_is_temp=1
+    fi
+
+    local run_rc=0
+
+    if ! "$rec_ops" compile --dcl-root "$dcl_root" --env-root "$env_root" --output "$artifact_path" >/dev/null; then
+        printf 'src/dic/run: reconcile compile failed\n' >&2
+        if [[ "$artifact_is_temp" -eq 1 && "$keep_artifact" -eq 0 && -f "$artifact_path" ]]; then
+            rm -f "$artifact_path"
+        fi
+        return 2
+    fi
+
+    if "$run_dispatch" "$target" --plan "$artifact_path" "${run_args[@]}"; then
+        run_rc=0
+    else
+        run_rc=$?
+        if [[ "$artifact_is_temp" -eq 1 && "$keep_artifact" -eq 0 && -f "$artifact_path" ]]; then
+            rm -f "$artifact_path"
+        fi
+        return "$run_rc"
+    fi
+
+    if [[ "$keep_artifact" -eq 1 ]]; then
+        printf 'src/dic/run: artifact retained at %s\n' "$artifact_path"
+    elif [[ "$artifact_is_temp" -eq 1 && -f "$artifact_path" ]]; then
+        rm -f "$artifact_path"
+    fi
+
+    return 0
+}
+
+dic_run_main "$@"

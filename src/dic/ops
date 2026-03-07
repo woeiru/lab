@@ -39,6 +39,13 @@
 #   OPS_VALIDATE=strict  # Validation level (strict|warn|silent)
 #   OPS_CACHE=1          # Enable caching (default: 1)
 #   OPS_METHOD=auto      # Injection method (auto|convention|config|custom)
+#   OPS_EXECUTION_MODE=reconcile  # Enable reconcile preflight before execution
+#   OPS_REC_TARGET=h1             # Override reconcile target for preflight
+#
+# RUNTIME FLAGS (command-level overrides):
+#   --reconcile         # Enable reconcile preflight for this command
+#   --direct            # Force direct mode for this command
+#   --rec-target <id>   # Override reconcile target for this command
 #
 # ============================================================================
 
@@ -52,6 +59,10 @@ OPS_DEBUG=${OPS_DEBUG:-0}
 OPS_VALIDATE=${OPS_VALIDATE:-warn}
 OPS_CACHE=${OPS_CACHE:-1}
 OPS_METHOD=${OPS_METHOD:-auto}
+OPS_EXECUTION_MODE=${OPS_EXECUTION_MODE:-direct}
+
+OPS_REC_PREFLIGHT_DONE=${OPS_REC_PREFLIGHT_DONE:-0}
+OPS_REC_PREFLIGHT_KEY=${OPS_REC_PREFLIGHT_KEY:-}
 
 # Debug output function - moved here to be available early
 ops_debug() {
@@ -158,9 +169,175 @@ ops_source_environment_config() {
 # Source environment configuration
 ops_source_environment_config
 
+ops_reconcile_mode_enabled() {
+    case "${OPS_EXECUTION_MODE:-direct}" in
+        reconcile)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+ops_get_reconcile_target() {
+    if [[ -n "${OPS_REC_TARGET:-}" ]]; then
+        printf '%s\n' "$OPS_REC_TARGET"
+        return 0
+    fi
+
+    if [[ -n "${LAB_REC_TARGET:-}" ]]; then
+        printf '%s\n' "$LAB_REC_TARGET"
+        return 0
+    fi
+
+    ops_get_short_hostname
+    return 0
+}
+
+ops_plan_declared_targets() {
+    local artifact="$1"
+    local -a targets=()
+    local line
+
+    while IFS= read -r line; do
+        case "$line" in
+            target_[0-9]=*)
+                targets+=("${line#*=}")
+                ;;
+        esac
+    done <<< "$artifact"
+
+    if [[ "${#targets[@]}" -eq 0 ]]; then
+        printf '%s\n' ""
+        return 0
+    fi
+
+    local joined="${targets[0]}"
+    local i
+    for ((i = 1; i < ${#targets[@]}; i++)); do
+        joined+="|${targets[$i]}"
+    done
+
+    printf '%s\n' "$joined"
+    return 0
+}
+
+ops_parse_runtime_flags() {
+    OPS_PARSED_ARGS=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --reconcile)
+                OPS_EXECUTION_MODE="reconcile"
+                shift
+                ;;
+            --direct)
+                OPS_EXECUTION_MODE="direct"
+                shift
+                ;;
+            --rec-target)
+                if [[ $# -lt 2 ]]; then
+                    aux_err "Missing target after --rec-target" "component=dic,operation=parse_runtime_flags,step=rec_target_validation,status=failed"
+                    return 1
+                fi
+                OPS_REC_TARGET="$2"
+                shift 2
+                ;;
+            --)
+                shift
+                while [[ $# -gt 0 ]]; do
+                    OPS_PARSED_ARGS+=("$1")
+                    shift
+                done
+                break
+                ;;
+            *)
+                while [[ $# -gt 0 ]]; do
+                    OPS_PARSED_ARGS+=("$1")
+                    shift
+                done
+                break
+                ;;
+        esac
+    done
+
+    return 0
+}
+
+ops_reconcile_preflight() {
+    local lab_root
+    lab_root="${LAB_ROOT:-${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}}"
+
+    local dcl_root="${OPS_DCL_ROOT:-${lab_root}/cfg/dcl}"
+    local env_root="${OPS_ENV_ROOT:-${lab_root}/cfg/env}"
+    local rec_target
+    rec_target="$(ops_get_reconcile_target)"
+
+    local cache_key="${dcl_root}|${env_root}|${rec_target}"
+    if [[ "${OPS_REC_PREFLIGHT_DONE:-0}" == "1" && "${OPS_REC_PREFLIGHT_KEY:-}" == "$cache_key" ]]; then
+        return 0
+    fi
+
+    local rec_entrypoint="${lab_root}/src/rec/ops"
+    if [[ ! -x "$rec_entrypoint" ]]; then
+        aux_err "Reconcile entrypoint is not executable: $rec_entrypoint" "component=dic,operation=reconcile_preflight,step=entrypoint_check,status=failed,path=$rec_entrypoint"
+        return 127
+    fi
+
+    local artifact
+    local compile_stderr_file
+    compile_stderr_file="$(mktemp "/tmp/lab-ops-rec-preflight.XXXXXX")"
+    if ! artifact="$($rec_entrypoint compile --dcl-root "$dcl_root" --env-root "$env_root" 2>"$compile_stderr_file")"; then
+        local compile_stderr=""
+        if [[ -s "$compile_stderr_file" ]]; then
+            compile_stderr="$(<"$compile_stderr_file")"
+        fi
+        rm -f "$compile_stderr_file"
+
+        aux_err "Reconcile preflight compile failed" "component=dic,operation=reconcile_preflight,step=compile,status=failed,dcl_root=$dcl_root,env_root=$env_root,target=$rec_target"
+        if [[ -n "$compile_stderr" ]]; then
+            ops_debug "Reconcile preflight compile stderr: $compile_stderr"
+        fi
+        return 2
+    fi
+    rm -f "$compile_stderr_file"
+
+    local declared_targets
+    declared_targets="$(ops_plan_declared_targets "$artifact")"
+    if [[ -z "$declared_targets" ]]; then
+        declared_targets="none"
+    fi
+
+    local has_target=0
+    local line
+    while IFS= read -r line; do
+        case "$line" in
+            target_[0-9]=*)
+                if [[ "${line#*=}" == "$rec_target" ]]; then
+                    has_target=1
+                    break
+                fi
+                ;;
+        esac
+    done <<< "$artifact"
+
+    if [[ "$has_target" -ne 1 ]]; then
+        aux_err "Reconcile preflight target not declared in plan" "component=dic,operation=reconcile_preflight,step=target_check,status=failed,target=$rec_target,declared_targets=$declared_targets,dcl_root=$dcl_root"
+        return 1
+    fi
+
+    ops_debug "Reconcile preflight passed for target=$rec_target declared_targets=$declared_targets"
+
+    OPS_REC_PREFLIGHT_DONE=1
+    OPS_REC_PREFLIGHT_KEY="$cache_key"
+    return 0
+}
+
 # Cache for function signatures and variable resolutions
 declare -A FUNCTION_SIGNATURE_CACHE
 declare -A VARIABLE_RESOLUTION_CACHE
+declare -a OPS_PARSED_ARGS
 
 # ============================================================================
 # CORE FUNCTIONS
@@ -168,9 +345,20 @@ declare -A VARIABLE_RESOLUTION_CACHE
 
 # Main operations dispatcher
 ops_main() {
-    local module="$1"
-    local function="$2"
-    shift 2
+    if ! ops_parse_runtime_flags "$@"; then
+        ops_show_usage
+        return 1
+    fi
+
+    set -- "${OPS_PARSED_ARGS[@]}"
+
+    local module="${1:-}"
+    local function="${2:-}"
+    if [[ $# -ge 2 ]]; then
+        shift 2
+    else
+        shift $#
+    fi
     
     # Handle special commands
     case "$module" in
@@ -184,7 +372,7 @@ ops_main() {
             ;;
         --debug)
             OPS_DEBUG=1
-            ops_main "$@"
+            ops_main "$function" "$@"
             return $?
             ;;
         "")
@@ -243,6 +431,12 @@ ops_execute() {
     local full_function="${module}_${function}"
     
     ops_debug "Executing: $full_function with args: $*"
+
+    if ops_reconcile_mode_enabled; then
+        if ! ops_reconcile_preflight; then
+            return $?
+        fi
+    fi
     
     # Validate module and function exist
     if ! ops_validate_operation "$module" "$function"; then
@@ -535,13 +729,18 @@ ops_show_help() {
 Dependency Injection Container (DIC) - Generic Operations Engine
 
 USAGE:
-    ops MODULE FUNCTION [ARGS...]       Execute operation directly
-    ops MODULE FUNCTION -j              Execute with dependency injection  
-    ops MODULE FUNCTION -x              Execute with explicit flag (if required by function)
-    ops --list                          List all available modules
-    ops MODULE --list                   List functions in specific module
-    ops MODULE FUNCTION --help          Show function help
-    ops --debug MODULE FUNCTION ARGS    Execute with debug output
+    ops [runtime-flags] MODULE FUNCTION [ARGS...]  Execute operation directly
+    ops [runtime-flags] MODULE FUNCTION -j         Execute with dependency injection
+    ops [runtime-flags] MODULE FUNCTION -x         Execute with explicit flag (if required by function)
+    ops --list                                     List all available modules
+    ops MODULE --list                              List functions in specific module
+    ops MODULE FUNCTION --help                     Show function help
+    ops --debug MODULE FUNCTION ARGS               Execute with debug output
+
+RUNTIME FLAGS:
+    --reconcile                     Enable reconcile preflight for this command
+    --direct                        Force direct mode for this command
+    --rec-target <target>           Override reconcile target identity for preflight
 
 EXAMPLES:
     ops pve vpt 100 on                  Enable passthrough for VM 100
@@ -551,12 +750,17 @@ EXAMPLES:
     ops sys sca usr all                 System scan all users
     ops pve --list                      List all PVE functions
     ops pve vpt --help                  Show help for pve_vpt function
+    ops --reconcile pve vpt -j          Run with reconcile preflight enabled
+    ops --reconcile --rec-target h1 pve vpt -j
+                                         Run reconcile preflight with explicit target
 
 ENVIRONMENT VARIABLES:
     OPS_DEBUG=1                         Enable debug output
     OPS_VALIDATE=strict                 Validation level (strict|warn|silent)
     OPS_CACHE=1                         Enable caching (default)
     OPS_METHOD=auto                     Injection method (auto|convention|config)
+    OPS_EXECUTION_MODE=reconcile        Enable reconcile preflight before execution
+    OPS_REC_TARGET=<target>             Override reconcile target identity
 
 DEPENDENCY INJECTION:
     The DIC automatically injects global variables into pure library functions

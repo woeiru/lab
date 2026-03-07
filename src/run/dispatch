@@ -1,0 +1,598 @@
+#!/bin/bash
+
+set -euo pipefail
+
+run_usage() {
+    cat <<'EOF'
+Usage: src/run/dispatch <target> [--plan <artifact>] [dispatch-flags] [set-args...]
+
+Targets map to legacy runbooks in src/set/ during migration.
+
+Dispatch flags:
+  --enforcement-stage <stage>     Set default enforcement stage (compat|guarded|strict)
+  --enforce-deps                 Enforce target dependency completion checks
+  --enforce-order                Enforce target/dependency order checks
+  --enforce-policy-gates         Enforce target policy gate approvals
+  --completed-target <target>    Mark target as already completed (repeatable)
+  --allow-gate <gate>            Approve a policy gate token (repeatable)
+
+Examples:
+  src/run/dispatch h1 -x a_xall
+  src/run/dispatch c1 -i
+  src/run/dispatch h1 --plan .tmp/rec/site1.plan -x a_xall
+  src/run/dispatch h1 --plan .tmp/rec/site1.plan --enforcement-stage strict --allow-gate gate_network --allow-gate gate_storage
+  src/run/dispatch t2 --plan .tmp/rec/site1.plan --enforce-deps --completed-target h1 --completed-target c1
+
+Environment defaults:
+  LAB_RUN_ENFORCEMENT_STAGE=compat|guarded|strict
+  LAB_RUN_COMPLETED_TARGETS="h1 c1"
+  LAB_RUN_ALLOWED_POLICY_GATES="gate_network gate_storage"
+EOF
+}
+
+RUN_ENFORCE_DEPS=0
+RUN_ENFORCE_ORDER=0
+RUN_ENFORCE_POLICY_GATES=0
+declare -a RUN_COMPLETED_TARGETS=()
+declare -a RUN_ALLOWED_POLICY_GATES=()
+
+run_apply_enforcement_stage() {
+    local stage_name="$1"
+
+    case "$stage_name" in
+        ""|compat)
+            ;;
+        guarded)
+            RUN_ENFORCE_DEPS=1
+            RUN_ENFORCE_ORDER=1
+            ;;
+        strict)
+            RUN_ENFORCE_DEPS=1
+            RUN_ENFORCE_ORDER=1
+            RUN_ENFORCE_POLICY_GATES=1
+            ;;
+        *)
+            printf 'src/run/dispatch: invalid enforcement stage "%s" (expected compat|guarded|strict)\n' "$stage_name" >&2
+            return 1
+            ;;
+    esac
+
+    return 0
+}
+
+run_plan_global_field() {
+    local plan_path="$1"
+    local field_name="$2"
+    local lookup_prefix="${field_name}="
+    local line
+
+    if [[ ! -f "$plan_path" ]]; then
+        return 1
+    fi
+
+    while IFS= read -r line; do
+        if [[ "$line" == "${lookup_prefix}"* ]]; then
+            printf '%s\n' "${line#*=}"
+            return 0
+        fi
+    done < "$plan_path"
+
+    return 1
+}
+
+run_resolve_enforcement_stage() {
+    local cli_stage="$1"
+    local env_stage="$2"
+    local plan_path="$3"
+    local target="$4"
+
+    if [[ -n "$cli_stage" ]]; then
+        printf '%s\n' "$cli_stage"
+        return 0
+    fi
+
+    if [[ -n "$env_stage" ]]; then
+        printf '%s\n' "$env_stage"
+        return 0
+    fi
+
+    if [[ -n "$plan_path" && -f "$plan_path" ]]; then
+        local target_stage
+        target_stage="$(run_plan_target_field "$plan_path" "$target" "enforcement_stage" 2>/dev/null || true)"
+        if [[ -n "$target_stage" ]]; then
+            printf '%s\n' "$target_stage"
+            return 0
+        fi
+
+        local default_stage
+        default_stage="$(run_plan_global_field "$plan_path" "enforcement_stage_default" 2>/dev/null || true)"
+        if [[ -n "$default_stage" ]]; then
+            printf '%s\n' "$default_stage"
+            return 0
+        fi
+    fi
+
+    printf '%s\n' "compat"
+    return 0
+}
+
+run_plan_has_format() {
+    local plan_path="$1"
+    local line
+
+    while IFS= read -r line; do
+        if [[ "$line" == "format=rec-plan-v0" ]]; then
+            return 0
+        fi
+    done < "$plan_path"
+
+    return 1
+}
+
+run_plan_has_target() {
+    local plan_path="$1"
+    local target="$2"
+    local line
+
+    while IFS= read -r line; do
+        case "$line" in
+            target_[0-9]=*)
+                if [[ "${line#*=}" == "$target" ]]; then
+                    return 0
+                fi
+                ;;
+        esac
+    done < "$plan_path"
+
+    return 1
+}
+
+run_plan_target_index() {
+    local plan_path="$1"
+    local target="$2"
+    local line
+
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^target_([0-9]+)=(.*)$ ]]; then
+            if [[ "${BASH_REMATCH[2]}" == "$target" ]]; then
+                printf '%s\n' "${BASH_REMATCH[1]}"
+                return 0
+            fi
+        fi
+    done < "$plan_path"
+
+    return 1
+}
+
+run_plan_target_sections() {
+    local plan_path="$1"
+    local target="$2"
+    local target_index
+
+    if ! target_index="$(run_plan_target_index "$plan_path" "$target")"; then
+        return 1
+    fi
+
+    local lookup_prefix="target_${target_index}_sections="
+    local line
+    while IFS= read -r line; do
+        if [[ "$line" == "${lookup_prefix}"* ]]; then
+            printf '%s\n' "${line#*=}"
+            return 0
+        fi
+    done < "$plan_path"
+
+    return 1
+}
+
+run_plan_target_field() {
+    local plan_path="$1"
+    local target="$2"
+    local field_name="$3"
+    local target_index
+
+    if ! target_index="$(run_plan_target_index "$plan_path" "$target")"; then
+        return 1
+    fi
+
+    local lookup_prefix="target_${target_index}_${field_name}="
+    local line
+    while IFS= read -r line; do
+        if [[ "$line" == "${lookup_prefix}"* ]]; then
+            printf '%s\n' "${line#*=}"
+            return 0
+        fi
+    done < "$plan_path"
+
+    return 1
+}
+
+run_parse_word_list() {
+    local raw_value="$1"
+    local -n out_ref=$2
+    local -a tokens=()
+    local token
+
+    read -r -a tokens <<< "$raw_value"
+    for token in "${tokens[@]}"; do
+        if [[ -n "$token" ]]; then
+            out_ref+=("$token")
+        fi
+    done
+
+    return 0
+}
+
+run_list_contains() {
+    local needle="$1"
+    shift
+
+    local value
+    for value in "$@"; do
+        if [[ "$value" == "$needle" ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+run_validate_dependencies() {
+    local plan_path="$1"
+    local target="$2"
+
+    local depends_on_value
+    if ! depends_on_value="$(run_plan_target_field "$plan_path" "$target" "depends_on")"; then
+        printf 'src/run/dispatch: missing dependency metadata for target "%s" in plan %s\n' "$target" "$plan_path" >&2
+        return 1
+    fi
+
+    if [[ -z "$depends_on_value" ]]; then
+        return 0
+    fi
+
+    if [[ "${#RUN_COMPLETED_TARGETS[@]}" -eq 0 ]]; then
+        printf 'src/run/dispatch: dependency checks require completion context (use --completed-target or LAB_RUN_COMPLETED_TARGETS)\n' >&2
+        return 1
+    fi
+
+    local -a dependency_targets=()
+    run_parse_word_list "$depends_on_value" dependency_targets
+
+    local dependency_target
+    for dependency_target in "${dependency_targets[@]}"; do
+        if ! run_plan_has_target "$plan_path" "$dependency_target"; then
+            printf 'src/run/dispatch: dependency "%s" for target "%s" is not declared in plan %s\n' "$dependency_target" "$target" "$plan_path" >&2
+            return 1
+        fi
+
+        if ! run_list_contains "$dependency_target" "${RUN_COMPLETED_TARGETS[@]}"; then
+            printf 'src/run/dispatch: unmet dependency "%s" for target "%s"\n' "$dependency_target" "$target" >&2
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+run_validate_order() {
+    local plan_path="$1"
+    local target="$2"
+
+    local target_order
+    if ! target_order="$(run_plan_target_field "$plan_path" "$target" "order")"; then
+        printf 'src/run/dispatch: missing order metadata for target "%s" in plan %s\n' "$target" "$plan_path" >&2
+        return 1
+    fi
+
+    if [[ ! "$target_order" =~ ^[0-9]+$ || "$target_order" -lt 1 ]]; then
+        printf 'src/run/dispatch: invalid order "%s" for target "%s" in plan %s\n' "$target_order" "$target" "$plan_path" >&2
+        return 1
+    fi
+
+    local depends_on_value
+    if ! depends_on_value="$(run_plan_target_field "$plan_path" "$target" "depends_on")"; then
+        printf 'src/run/dispatch: missing dependency metadata for target "%s" in plan %s\n' "$target" "$plan_path" >&2
+        return 1
+    fi
+
+    local -a dependency_targets=()
+    run_parse_word_list "$depends_on_value" dependency_targets
+
+    local dependency_target
+    local dependency_order
+    for dependency_target in "${dependency_targets[@]}"; do
+        if ! dependency_order="$(run_plan_target_field "$plan_path" "$dependency_target" "order")"; then
+            printf 'src/run/dispatch: missing order metadata for dependency "%s" in plan %s\n' "$dependency_target" "$plan_path" >&2
+            return 1
+        fi
+
+        if [[ ! "$dependency_order" =~ ^[0-9]+$ || "$dependency_order" -lt 1 ]]; then
+            printf 'src/run/dispatch: invalid order "%s" for dependency "%s" in plan %s\n' "$dependency_order" "$dependency_target" "$plan_path" >&2
+            return 1
+        fi
+
+        if [[ "$dependency_order" -ge "$target_order" ]]; then
+            printf 'src/run/dispatch: dependency order violation: dependency "%s" (%s) must be lower than target "%s" (%s)\n' "$dependency_target" "$dependency_order" "$target" "$target_order" >&2
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+run_validate_policy_gates() {
+    local plan_path="$1"
+    local target="$2"
+
+    local policy_gates_value
+    if ! policy_gates_value="$(run_plan_target_field "$plan_path" "$target" "policy_gates")"; then
+        printf 'src/run/dispatch: missing policy gate metadata for target "%s" in plan %s\n' "$target" "$plan_path" >&2
+        return 1
+    fi
+
+    if [[ -z "$policy_gates_value" ]]; then
+        return 0
+    fi
+
+    if [[ "${#RUN_ALLOWED_POLICY_GATES[@]}" -eq 0 ]]; then
+        printf 'src/run/dispatch: policy gate checks require approved gates (use --allow-gate or LAB_RUN_ALLOWED_POLICY_GATES)\n' >&2
+        return 1
+    fi
+
+    local -a required_gates=()
+    run_parse_word_list "$policy_gates_value" required_gates
+
+    local required_gate
+    for required_gate in "${required_gates[@]}"; do
+        if ! run_list_contains "$required_gate" "${RUN_ALLOWED_POLICY_GATES[@]}"; then
+            printf 'src/run/dispatch: required policy gate "%s" for target "%s" is not approved\n' "$required_gate" "$target" >&2
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+run_validate_execution_contract() {
+    local plan_path="$1"
+    local target="$2"
+
+    if [[ "$RUN_ENFORCE_DEPS" -eq 1 ]]; then
+        if ! run_validate_dependencies "$plan_path" "$target"; then
+            return 1
+        fi
+    fi
+
+    if [[ "$RUN_ENFORCE_ORDER" -eq 1 ]]; then
+        if ! run_validate_order "$plan_path" "$target"; then
+            return 1
+        fi
+    fi
+
+    if [[ "$RUN_ENFORCE_POLICY_GATES" -eq 1 ]]; then
+        if ! run_validate_policy_gates "$plan_path" "$target"; then
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+run_requested_section() {
+    local arg
+    local next_arg=""
+
+    while [[ $# -gt 0 ]]; do
+        arg="$1"
+        shift
+
+        if [[ "$arg" == "-x" ]]; then
+            if [[ $# -eq 0 ]]; then
+                return 1
+            fi
+            next_arg="$1"
+            printf '%s\n' "$next_arg"
+            return 0
+        fi
+    done
+
+    return 0
+}
+
+run_normalize_section() {
+    local requested_section="$1"
+
+    if [[ -z "$requested_section" ]]; then
+        printf '%s\n' ""
+        return 0
+    fi
+
+    if [[ "$requested_section" == *_xall ]]; then
+        printf '%s\n' "$requested_section"
+        return 0
+    fi
+
+    printf '%s_xall\n' "$requested_section"
+}
+
+run_plan_allows_section() {
+    local plan_path="$1"
+    local target="$2"
+    local requested_section="$3"
+    local normalized_section
+    normalized_section="$(run_normalize_section "$requested_section")"
+
+    if [[ -z "$normalized_section" ]]; then
+        return 0
+    fi
+
+    local sections_value
+    if ! sections_value="$(run_plan_target_sections "$plan_path" "$target")"; then
+        printf 'src/run/dispatch: missing section metadata for target "%s" in plan %s\n' "$target" "$plan_path" >&2
+        return 1
+    fi
+
+    local token
+    for token in $sections_value; do
+        if [[ "$token" == "$normalized_section" ]]; then
+            return 0
+        fi
+    done
+
+    printf 'src/run/dispatch: section "%s" is not allowed for target "%s" by plan %s\n' "$requested_section" "$target" "$plan_path" >&2
+    return 1
+}
+
+run_validate_plan() {
+    local plan_path="$1"
+    local target="$2"
+    local requested_section="${3:-}"
+
+    if [[ ! -f "$plan_path" ]]; then
+        printf 'src/run/dispatch: plan not found: %s\n' "$plan_path" >&2
+        return 1
+    fi
+
+    if ! run_plan_has_format "$plan_path"; then
+        printf 'src/run/dispatch: invalid plan format in %s\n' "$plan_path" >&2
+        return 1
+    fi
+
+    if ! run_plan_has_target "$plan_path" "$target"; then
+        printf 'src/run/dispatch: target "%s" not present in plan %s\n' "$target" "$plan_path" >&2
+        return 1
+    fi
+
+    if ! run_plan_allows_section "$plan_path" "$target" "$requested_section"; then
+        return 1
+    fi
+
+    if ! run_validate_execution_contract "$plan_path" "$target"; then
+        return 1
+    fi
+
+    return 0
+}
+
+run_main() {
+    local target="${1:-}"
+
+    if [[ -z "$target" || "$target" == "--help" || "$target" == "-h" ]]; then
+        run_usage
+        return 0
+    fi
+
+    shift
+
+    RUN_ENFORCE_DEPS=0
+    RUN_ENFORCE_ORDER=0
+    RUN_ENFORCE_POLICY_GATES=0
+    RUN_COMPLETED_TARGETS=()
+    RUN_ALLOWED_POLICY_GATES=()
+    local cli_enforcement_stage=""
+    local env_enforcement_stage="${LAB_RUN_ENFORCEMENT_STAGE:-}"
+    local enforcement_stage=""
+
+    if [[ -n "${LAB_RUN_COMPLETED_TARGETS:-}" ]]; then
+        run_parse_word_list "$LAB_RUN_COMPLETED_TARGETS" RUN_COMPLETED_TARGETS
+    fi
+
+    if [[ -n "${LAB_RUN_ALLOWED_POLICY_GATES:-}" ]]; then
+        run_parse_word_list "$LAB_RUN_ALLOWED_POLICY_GATES" RUN_ALLOWED_POLICY_GATES
+    fi
+
+    local plan_path=""
+    local -a passthrough_args=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --plan)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/run/dispatch: missing value for --plan\n' >&2
+                    return 1
+                fi
+                plan_path="$2"
+                shift 2
+                ;;
+            --enforcement-stage)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/run/dispatch: missing value for --enforcement-stage\n' >&2
+                    return 1
+                fi
+                cli_enforcement_stage="$2"
+                shift 2
+                ;;
+            --enforce-deps)
+                RUN_ENFORCE_DEPS=1
+                shift
+                ;;
+            --enforce-order)
+                RUN_ENFORCE_ORDER=1
+                shift
+                ;;
+            --enforce-policy-gates)
+                RUN_ENFORCE_POLICY_GATES=1
+                shift
+                ;;
+            --completed-target)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/run/dispatch: missing value for --completed-target\n' >&2
+                    return 1
+                fi
+                RUN_COMPLETED_TARGETS+=("$2")
+                shift 2
+                ;;
+            --allow-gate)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/run/dispatch: missing value for --allow-gate\n' >&2
+                    return 1
+                fi
+                RUN_ALLOWED_POLICY_GATES+=("$2")
+                shift 2
+                ;;
+            *)
+                passthrough_args+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    enforcement_stage="$(run_resolve_enforcement_stage "$cli_enforcement_stage" "$env_enforcement_stage" "$plan_path" "$target")"
+
+    if ! run_apply_enforcement_stage "$enforcement_stage"; then
+        return 1
+    fi
+
+    local dir_sh
+    dir_sh="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+    local legacy_entrypoint="${dir_sh}/../set/${target}"
+    if [[ ! -f "$legacy_entrypoint" ]]; then
+        printf 'src/run/dispatch: unknown target "%s"\n' "$target" >&2
+        return 1
+    fi
+
+    local requested_section=""
+    if ! requested_section="$(run_requested_section "${passthrough_args[@]}")"; then
+        printf 'src/run/dispatch: missing section name after -x\n' >&2
+        return 1
+    fi
+
+    if [[ -z "$plan_path" ]]; then
+        if [[ "$RUN_ENFORCE_DEPS" -eq 1 || "$RUN_ENFORCE_ORDER" -eq 1 || "$RUN_ENFORCE_POLICY_GATES" -eq 1 ]]; then
+            printf 'src/run/dispatch: enforcement flags require --plan <artifact>\n' >&2
+            return 1
+        fi
+    fi
+
+    if [[ -n "$plan_path" ]]; then
+        if ! run_validate_plan "$plan_path" "$target" "$requested_section"; then
+            return 1
+        fi
+    fi
+
+    export LAB_RUN_DISPATCH_BYPASS=1
+    exec "$legacy_entrypoint" "${passthrough_args[@]}"
+}
+
+run_main "$@"

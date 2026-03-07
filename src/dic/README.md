@@ -85,6 +85,38 @@ ops pve vpt -j
 
 This is the primary mode used in CI/CD integration and deployment scripts (`src/set/`).
 
+## Migration shim (`src/dic/run`)
+
+During the declarative migration, `src/dic/run` provides a compatibility bridge
+that compiles a reconciliation artifact via `src/rec/ops compile` and forwards
+execution to `src/run/dispatch --plan <artifact>`.
+
+```bash
+# compile + dispatch through migration bridge
+src/dic/run h1
+
+# pass through normal runbook args
+src/dic/run h1 -i
+src/dic/run h1 -x a
+
+# pass through strict dispatch enforcement flags
+src/dic/run t2 --enforce-deps --completed-target h1 --completed-target c1
+
+# pass through stage-based strict defaults
+src/dic/run h1 --enforcement-stage strict --allow-gate gate_network --allow-gate gate_storage
+```
+
+If `--enforcement-stage` is not supplied, dispatch can still derive stage from
+`LAB_RUN_ENFORCEMENT_STAGE` or plan metadata emitted by `src/rec/ops compile`.
+In the current `cfg/dcl/site1` rollout, `t1` and `t2` resolve to `guarded`
+from plan metadata unless overridden.
+
+This shim is transitional. It keeps current entrypoint ergonomics while
+introducing plan-aware execution boundaries.
+
+Legacy runbooks can opt into this bridge by setting
+`LAB_USE_DIC_RUN_BRIDGE=1` before invoking `src/set/*`.
+
 ### Mode 3: Explicit Execution (`-x`)
 
 Passes `-x` through to the target function for functions that require explicit validation flags according to their specification.
@@ -93,6 +125,25 @@ Passes `-x` through to the target function for functions that require explicit v
 # Passes -x directly to the function
 ops gpu pts -x
 ```
+
+## Runtime Reconcile Flags
+
+`ops` now supports command-scoped runtime overrides so reconcile checks can be
+enabled per command without mutating the shell environment.
+
+```bash
+# Enable reconcile preflight for a single command
+ops --reconcile pve vpt -j
+
+# Force direct mode for a single command
+ops --direct pve vpt -j
+
+# Pin reconcile preflight to an explicit target identity
+ops --reconcile --rec-target h1 pve vpt -j
+```
+
+These flags map to the same runtime behavior as `OPS_EXECUTION_MODE` and
+`OPS_REC_TARGET`, but only for the current command invocation.
 
 ## Parameter Preview System
 
@@ -129,3 +180,10 @@ Control caching and validation behavior with environment variables:
 - `OPS_CACHE=1`: Enable caching (default)
 - `OPS_VALIDATE=strict`: Validation level (`strict`, `warn`, `silent`)
 - `OPS_METHOD=auto`: Injection method (`auto`, `convention`, `config`)
+- `OPS_EXECUTION_MODE=reconcile`: run reconcile preflight before operation execution
+- `OPS_REC_TARGET=<target>`: override reconcile target identity for preflight
+
+Runtime flags equivalent:
+- `--reconcile`: command-scoped reconcile preflight enable
+- `--direct`: command-scoped direct-mode override
+- `--rec-target <target>`: command-scoped reconcile target override

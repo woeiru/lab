@@ -150,6 +150,23 @@ Optional behavior controls:
 OPS_VALIDATE=strict OPS_CACHE=1 OPS_METHOD=auto ops pve vpt -j
 ```
 
+Optional reconcile preflight mode:
+
+```bash
+# Command-scoped preflight toggle
+ops --reconcile pve vpt -j
+ops --reconcile --rec-target h1 pve vpt -j
+
+# Environment-scoped preflight toggle
+OPS_EXECUTION_MODE=reconcile ops pve vpt -j
+OPS_EXECUTION_MODE=reconcile OPS_REC_TARGET=h1 ops pve vpt -j
+```
+
+In reconcile mode, `src/dic/ops` runs a plan preflight via `src/rec/ops`
+before operation execution. It validates that the selected target exists in the
+compiled declarative plan. Use `--direct` to force direct mode for one command
+without changing exported environment variables.
+
 ## 7. Return Codes and Troubleshooting
 
 Standard return code contract used by the framework:

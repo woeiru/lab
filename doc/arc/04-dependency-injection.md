@@ -7,6 +7,7 @@
 | Area | Primary files | Responsibility boundary |
 | --- | --- | --- |
 | DIC entrypoint/dispatcher | `src/dic/ops` | Parses CLI shape, validates module/function, chooses direct vs injected execution. |
+| Migration bridge | `src/dic/run` | Compiles reconcile artifacts and dispatches plan-aware execution via `src/run/dispatch` (opt-in path). |
 | Signature/introspection helpers | `src/dic/lib/introspector`, `src/dic/lib/injector`, `src/dic/lib/resolver` | Provide analysis and resolver utilities sourced by the entrypoint. |
 | Mapping/config data | `src/dic/config/*.conf` | Supplemental conventions/mappings for injection behavior. |
 | Execution target | `lib/ops/*` | Receives final argument array; performs real operation. |
@@ -15,17 +16,18 @@
 
 ### Actual call/load order
 
-1. `src/dic/ops` initializes defaults (`OPS_DEBUG`, `OPS_VALIDATE`, `OPS_CACHE`, `OPS_METHOD`).
+1. `src/dic/ops` initializes defaults (`OPS_DEBUG`, `OPS_VALIDATE`, `OPS_CACHE`, `OPS_METHOD`, `OPS_EXECUTION_MODE`).
 2. It sources DIC helper libs: `src/dic/lib/injector`, `src/dic/lib/introspector`, `src/dic/lib/resolver`.
 3. It attempts to source utility libraries `lib/gen/ana` and `lib/gen/aux` (`ops_source_utility_libraries`).
 4. It attempts to source base environment file `cfg/env/site1` (`ops_source_environment_config`).
 5. It initializes caches (`FUNCTION_SIGNATURE_CACHE`, `VARIABLE_RESOLUTION_CACHE`).
-6. `ops_main` dispatches command modes:
+6. `ops_main` first parses command-scoped runtime flags (`--reconcile`, `--direct`, `--rec-target`) and then dispatches command modes:
    - `--help`, `--list`, `--debug`, module/function help/list,
    - no-arg call to function shows injection preview,
    - `-j` and default execution both route to `ops_execute`.
-7. `ops_execute` validates module existence, sources `LIB_OPS_DIR/<module>`, verifies `<module>_<function>`, then executes direct or injected path.
-8. Injected path (`ops_inject_and_execute`) obtains function signature and resolves each missing parameter via `ops_resolve_single_variable`.
+7. If execution mode resolves to `reconcile` (from env or runtime flags), `ops_execute` runs a reconcile preflight (`src/rec/ops compile`) and validates target membership before operation execution.
+8. `ops_execute` validates module existence, sources `LIB_OPS_DIR/<module>`, verifies `<module>_<function>`, then executes direct or injected path.
+9. Injected path (`ops_inject_and_execute`) obtains function signature and resolves each missing parameter via `ops_resolve_single_variable`.
 
 ### End-to-end sequence
 
@@ -44,6 +46,10 @@ sequenceDiagram
     D->>D: ops_source_utility_libraries()
     D->>E: ops_source_environment_config() (best effort)
     D->>D: ops_main()
+    opt OPS_EXECUTION_MODE=reconcile
+        D->>D: ops_reconcile_preflight()
+        D->>D: src/rec/ops compile (target preflight)
+    end
     D->>D: ops_execute(module,function,args)
     D->>O: source LIB_OPS_DIR/module
     D->>D: declare -f module_function?
@@ -95,6 +101,7 @@ flowchart LR
 - `src/dic/ops` does not define a shell function named `ops`; call sites rely on invoking this script/alias as the `ops` command symbol.
 - DIC execution depends on runtime globals like `LIB_OPS_DIR` set by bootstrap (`cfg/core/ric` / `bin/ini`).
 - Resolution logic in `ops_resolve_single_variable` is convention-heavy (hardcoded parameter-name cases plus uppercase fallback); renaming parameters can silently change injection behavior.
+- Reconcile preflight (`OPS_EXECUTION_MODE=reconcile`) is currently optional and target-based; full reconcile-first execution is not yet the default runtime path.
 - DIC helper libs/config files exist, but the hot execution path is still anchored in `src/dic/ops` dispatcher/resolver logic.
 
 ## Maintenance Note

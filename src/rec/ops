@@ -1,0 +1,702 @@
+#!/bin/bash
+
+set -euo pipefail
+
+rec_usage() {
+    cat <<'EOF'
+Usage: src/rec/ops <command> [args...]
+
+Commands:
+  compile   Compile declarative intent into a run artifact (scaffolding)
+  validate  Validate declarative intent schema and inputs (scaffolding)
+  --help    Show this help
+
+compile options:
+  --dcl-root <path>   Override declarative root (default: <repo>/cfg/dcl)
+  --env-root <path>   Override environment root (default: <repo>/cfg/env)
+  --output <path>     Write artifact to file (default: stdout)
+
+validate options:
+  --dcl-root <path>   Override declarative root (default: <repo>/cfg/dcl)
+EOF
+}
+
+rec_lab_root() {
+    if [[ -n "${LAB_ROOT:-}" ]]; then
+        printf '%s\n' "$LAB_ROOT"
+        return 0
+    fi
+
+    local dir_sh
+    dir_sh="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    printf '%s\n' "$( cd "${dir_sh}/../.." >/dev/null 2>&1 && pwd )"
+}
+
+rec_collect_dcl_files() {
+    local dcl_root="$1"
+    local file_path
+
+    for file_path in "$dcl_root"/*; do
+        if [[ ! -f "$file_path" ]]; then
+            continue
+        fi
+
+        case "$(basename "$file_path")" in
+            README.md|*.md)
+                continue
+                ;;
+        esac
+
+        if [[ ! -r "$file_path" ]]; then
+            continue
+        fi
+
+        printf '%s\n' "$file_path"
+    done
+}
+
+rec_load_dcl_model() {
+    local dcl_root="$1"
+
+    unset DCL_SITE_NAME DCL_PROFILE DCL_TARGETS DCL_TARGET_SECTIONS DCL_TARGET_MODES DCL_TARGET_PRECONDITIONS DCL_TARGET_ORDER DCL_TARGET_DEPENDS_ON DCL_TARGET_POLICY_GATES DCL_ENFORCEMENT_STAGE_DEFAULT DCL_TARGET_ENFORCEMENT_STAGE || true
+
+    local file_path
+    while IFS= read -r file_path; do
+        # shellcheck source=/dev/null
+        source "$file_path"
+    done < <(rec_collect_dcl_files "$dcl_root")
+}
+
+rec_validate_section_tokens() {
+    local target_name="$1"
+    local sections_value="$2"
+    local -a section_tokens=()
+    local section_token
+
+    read -r -a section_tokens <<< "$sections_value"
+    if [[ "${#section_tokens[@]}" -eq 0 ]]; then
+        printf 'src/rec/ops: target "%s" has no section tokens\n' "$target_name" >&2
+        return 2
+    fi
+
+    for section_token in "${section_tokens[@]}"; do
+        if [[ ! "$section_token" =~ ^[a-zA-Z0-9_:-]+$ ]]; then
+            printf 'src/rec/ops: invalid section token "%s" for target "%s"\n' "$section_token" "$target_name" >&2
+            return 2
+        fi
+    done
+
+    return 0
+}
+
+rec_target_exists() {
+    local target_name="$1"
+    local declared_target
+
+    for declared_target in "${DCL_TARGETS[@]}"; do
+        if [[ "$declared_target" == "$target_name" ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+rec_validate_dependency_tokens() {
+    local target_name="$1"
+    local depends_on_value="$2"
+    local -a dependency_tokens=()
+    local dependency
+
+    read -r -a dependency_tokens <<< "$depends_on_value"
+    for dependency in "${dependency_tokens[@]}"; do
+        if [[ -z "$dependency" ]]; then
+            continue
+        fi
+
+        if [[ ! "$dependency" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            printf 'src/rec/ops: invalid dependency token "%s" for target "%s"\n' "$dependency" "$target_name" >&2
+            return 2
+        fi
+
+        if [[ "$dependency" == "$target_name" ]]; then
+            printf 'src/rec/ops: target "%s" cannot depend on itself\n' "$target_name" >&2
+            return 2
+        fi
+
+        if ! rec_target_exists "$dependency"; then
+            printf 'src/rec/ops: target "%s" depends on undeclared target "%s"\n' "$target_name" "$dependency" >&2
+            return 2
+        fi
+    done
+
+    return 0
+}
+
+rec_validate_policy_gate_tokens() {
+    local target_name="$1"
+    local policy_gates_value="$2"
+    local -a policy_tokens=()
+    local policy_gate
+
+    read -r -a policy_tokens <<< "$policy_gates_value"
+    for policy_gate in "${policy_tokens[@]}"; do
+        if [[ -z "$policy_gate" ]]; then
+            continue
+        fi
+
+        if [[ ! "$policy_gate" =~ ^[a-zA-Z0-9._:-]+$ ]]; then
+            printf 'src/rec/ops: invalid policy gate "%s" for target "%s"\n' "$policy_gate" "$target_name" >&2
+            return 2
+        fi
+    done
+
+    return 0
+}
+
+rec_validate_enforcement_stage() {
+    local stage_value="$1"
+
+    case "$stage_value" in
+        compat|guarded|strict)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+rec_visit_dependency_target() {
+    local target_name="$1"
+    local dependency_chain="$2"
+    local visit_state="${REC_DEP_VISIT_STATE[$target_name]:-0}"
+
+    case "$visit_state" in
+        2)
+            return 0
+            ;;
+        1)
+            printf 'src/rec/ops: dependency cycle detected: %s -> %s\n' "$dependency_chain" "$target_name" >&2
+            return 2
+            ;;
+    esac
+
+    REC_DEP_VISIT_STATE["$target_name"]=1
+
+    local dependencies_value="${DCL_TARGET_DEPENDS_ON[$target_name]:-}"
+    local -a dependency_tokens=()
+    local dependency
+    read -r -a dependency_tokens <<< "$dependencies_value"
+    for dependency in "${dependency_tokens[@]}"; do
+        if [[ -z "$dependency" ]]; then
+            continue
+        fi
+
+        if ! rec_visit_dependency_target "$dependency" "$dependency_chain -> $target_name"; then
+            return 2
+        fi
+    done
+
+    REC_DEP_VISIT_STATE["$target_name"]=2
+    return 0
+}
+
+rec_validate_dependency_graph() {
+    local -A REC_DEP_VISIT_STATE=()
+    local target_name
+
+    for target_name in "${DCL_TARGETS[@]}"; do
+        if ! rec_visit_dependency_target "$target_name" "root"; then
+            return 2
+        fi
+    done
+
+    return 0
+}
+
+rec_validate_loaded_model() {
+    if [[ -z "${DCL_SITE_NAME:-}" ]]; then
+        printf 'src/rec/ops: missing required DCL_SITE_NAME\n' >&2
+        return 2
+    fi
+
+    if [[ -z "${DCL_PROFILE:-}" ]]; then
+        printf 'src/rec/ops: missing required DCL_PROFILE\n' >&2
+        return 2
+    fi
+
+    if ! declare -p DCL_TARGETS >/dev/null 2>&1; then
+        printf 'src/rec/ops: missing required DCL_TARGETS array\n' >&2
+        return 2
+    fi
+
+    if [[ "$(declare -p DCL_TARGETS 2>/dev/null)" != declare\ -a* ]]; then
+        printf 'src/rec/ops: DCL_TARGETS must be an indexed array\n' >&2
+        return 2
+    fi
+
+    if [[ "${#DCL_TARGETS[@]}" -eq 0 ]]; then
+        printf 'src/rec/ops: DCL_TARGETS must contain at least one target\n' >&2
+        return 2
+    fi
+
+    if ! declare -p DCL_TARGET_SECTIONS >/dev/null 2>&1; then
+        printf 'src/rec/ops: missing required DCL_TARGET_SECTIONS map\n' >&2
+        return 2
+    fi
+
+    if [[ "$(declare -p DCL_TARGET_SECTIONS 2>/dev/null)" != declare\ -A* ]]; then
+        printf 'src/rec/ops: DCL_TARGET_SECTIONS must be an associative array\n' >&2
+        return 2
+    fi
+
+    local has_modes_map=0
+    if declare -p DCL_TARGET_MODES >/dev/null 2>&1; then
+        if [[ "$(declare -p DCL_TARGET_MODES 2>/dev/null)" != declare\ -A* ]]; then
+            printf 'src/rec/ops: DCL_TARGET_MODES must be an associative array\n' >&2
+            return 2
+        fi
+        has_modes_map=1
+    fi
+
+    local has_preconditions_map=0
+    if declare -p DCL_TARGET_PRECONDITIONS >/dev/null 2>&1; then
+        if [[ "$(declare -p DCL_TARGET_PRECONDITIONS 2>/dev/null)" != declare\ -A* ]]; then
+            printf 'src/rec/ops: DCL_TARGET_PRECONDITIONS must be an associative array\n' >&2
+            return 2
+        fi
+        has_preconditions_map=1
+    fi
+
+    local has_order_map=0
+    if declare -p DCL_TARGET_ORDER >/dev/null 2>&1; then
+        if [[ "$(declare -p DCL_TARGET_ORDER 2>/dev/null)" != declare\ -A* ]]; then
+            printf 'src/rec/ops: DCL_TARGET_ORDER must be an associative array\n' >&2
+            return 2
+        fi
+        has_order_map=1
+    fi
+
+    local has_depends_on_map=0
+    if declare -p DCL_TARGET_DEPENDS_ON >/dev/null 2>&1; then
+        if [[ "$(declare -p DCL_TARGET_DEPENDS_ON 2>/dev/null)" != declare\ -A* ]]; then
+            printf 'src/rec/ops: DCL_TARGET_DEPENDS_ON must be an associative array\n' >&2
+            return 2
+        fi
+        has_depends_on_map=1
+    fi
+
+    local has_policy_gates_map=0
+    if declare -p DCL_TARGET_POLICY_GATES >/dev/null 2>&1; then
+        if [[ "$(declare -p DCL_TARGET_POLICY_GATES 2>/dev/null)" != declare\ -A* ]]; then
+            printf 'src/rec/ops: DCL_TARGET_POLICY_GATES must be an associative array\n' >&2
+            return 2
+        fi
+        has_policy_gates_map=1
+    fi
+
+    local enforcement_stage_default="compat"
+    if [[ -n "${DCL_ENFORCEMENT_STAGE_DEFAULT:-}" ]]; then
+        enforcement_stage_default="${DCL_ENFORCEMENT_STAGE_DEFAULT}"
+    fi
+
+    if ! rec_validate_enforcement_stage "$enforcement_stage_default"; then
+        printf 'src/rec/ops: invalid DCL_ENFORCEMENT_STAGE_DEFAULT "%s"\n' "$enforcement_stage_default" >&2
+        return 2
+    fi
+
+    local has_target_enforcement_stage_map=0
+    if declare -p DCL_TARGET_ENFORCEMENT_STAGE >/dev/null 2>&1; then
+        if [[ "$(declare -p DCL_TARGET_ENFORCEMENT_STAGE 2>/dev/null)" != declare\ -A* ]]; then
+            printf 'src/rec/ops: DCL_TARGET_ENFORCEMENT_STAGE must be an associative array\n' >&2
+            return 2
+        fi
+        has_target_enforcement_stage_map=1
+    fi
+
+    local target_name
+    local sections_value
+    local mode_value
+    local preconditions_value
+    local order_value
+    local depends_on_value
+    local policy_gates_value
+    local target_enforcement_stage
+    local -A order_to_target=()
+    for target_name in "${DCL_TARGETS[@]}"; do
+        if [[ -z "$target_name" ]]; then
+            printf 'src/rec/ops: empty target name found in DCL_TARGETS\n' >&2
+            return 2
+        fi
+
+        if [[ ! "$target_name" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            printf 'src/rec/ops: invalid target name "%s"\n' "$target_name" >&2
+            return 2
+        fi
+
+        sections_value="${DCL_TARGET_SECTIONS[$target_name]:-}"
+        if [[ -z "$sections_value" ]]; then
+            printf 'src/rec/ops: missing section mapping for target "%s"\n' "$target_name" >&2
+            return 2
+        fi
+
+        if ! rec_validate_section_tokens "$target_name" "$sections_value"; then
+            return 2
+        fi
+
+        mode_value="both"
+        if [[ "$has_modes_map" -eq 1 ]]; then
+            mode_value="${DCL_TARGET_MODES[$target_name]:-}"
+            if [[ -z "$mode_value" ]]; then
+                printf 'src/rec/ops: missing mode mapping for target "%s"\n' "$target_name" >&2
+                return 2
+            fi
+        fi
+
+        case "$mode_value" in
+            interactive|headless|both)
+                ;;
+            *)
+                printf 'src/rec/ops: invalid execution mode "%s" for target "%s"\n' "$mode_value" "$target_name" >&2
+                return 2
+                ;;
+        esac
+
+        if [[ "$has_preconditions_map" -eq 1 ]]; then
+            # Presence in the map is optional per target in v0.
+            preconditions_value="${DCL_TARGET_PRECONDITIONS[$target_name]:-}"
+            : "$preconditions_value"
+        fi
+
+        if [[ "$has_order_map" -eq 1 ]]; then
+            order_value="${DCL_TARGET_ORDER[$target_name]:-}"
+            if [[ -z "$order_value" ]]; then
+                printf 'src/rec/ops: missing order mapping for target "%s"\n' "$target_name" >&2
+                return 2
+            fi
+
+            if [[ ! "$order_value" =~ ^[0-9]+$ || "$order_value" -lt 1 ]]; then
+                printf 'src/rec/ops: invalid order value "%s" for target "%s"\n' "$order_value" "$target_name" >&2
+                return 2
+            fi
+
+            if [[ -n "${order_to_target[$order_value]:-}" ]]; then
+                printf 'src/rec/ops: duplicate order "%s" for targets "%s" and "%s"\n' "$order_value" "${order_to_target[$order_value]}" "$target_name" >&2
+                return 2
+            fi
+
+            order_to_target[$order_value]="$target_name"
+        fi
+
+        if [[ "$has_depends_on_map" -eq 1 ]]; then
+            depends_on_value="${DCL_TARGET_DEPENDS_ON[$target_name]:-}"
+            if [[ -n "$depends_on_value" ]]; then
+                if ! rec_validate_dependency_tokens "$target_name" "$depends_on_value"; then
+                    return 2
+                fi
+            fi
+        fi
+
+        if [[ "$has_policy_gates_map" -eq 1 ]]; then
+            policy_gates_value="${DCL_TARGET_POLICY_GATES[$target_name]:-}"
+            if [[ -n "$policy_gates_value" ]]; then
+                if ! rec_validate_policy_gate_tokens "$target_name" "$policy_gates_value"; then
+                    return 2
+                fi
+            fi
+        fi
+
+        if [[ "$has_target_enforcement_stage_map" -eq 1 ]]; then
+            target_enforcement_stage="${DCL_TARGET_ENFORCEMENT_STAGE[$target_name]:-}"
+            if [[ -n "$target_enforcement_stage" ]]; then
+                if ! rec_validate_enforcement_stage "$target_enforcement_stage"; then
+                    printf 'src/rec/ops: invalid target enforcement stage "%s" for target "%s"\n' "$target_enforcement_stage" "$target_name" >&2
+                    return 2
+                fi
+            fi
+        fi
+    done
+
+    if [[ "$has_depends_on_map" -eq 1 ]]; then
+        if ! rec_validate_dependency_graph; then
+            return 2
+        fi
+    fi
+
+    return 0
+}
+
+rec_validate_dcl() {
+    local dcl_root="$1"
+    local found=0
+    local file_path
+
+    if [[ ! -d "$dcl_root" ]]; then
+        printf 'src/rec/ops: dcl root not found: %s\n' "$dcl_root" >&2
+        return 1
+    fi
+
+    while IFS= read -r file_path; do
+        found=1
+        if ! bash -n "$file_path"; then
+            printf 'src/rec/ops: dcl syntax check failed: %s\n' "$file_path" >&2
+            return 2
+        fi
+    done < <(rec_collect_dcl_files "$dcl_root")
+
+    if [[ "$found" -eq 0 ]]; then
+        printf 'src/rec/ops: no declarative files found under %s\n' "$dcl_root" >&2
+        return 1
+    fi
+
+    rec_load_dcl_model "$dcl_root"
+    if ! rec_validate_loaded_model; then
+        return 2
+    fi
+
+    return 0
+}
+
+rec_command_validate() {
+    local lab_root
+    lab_root="$(rec_lab_root)"
+
+    local dcl_root="${lab_root}/cfg/dcl"
+    local arg
+
+    while [[ $# -gt 0 ]]; do
+        arg="$1"
+        case "$arg" in
+            --dcl-root)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/rec/ops: missing value for --dcl-root\n' >&2
+                    return 1
+                fi
+                dcl_root="$2"
+                shift 2
+                ;;
+            --help|-h)
+                rec_usage
+                return 0
+                ;;
+            *)
+                printf 'src/rec/ops: unknown validate option "%s"\n' "$arg" >&2
+                return 1
+                ;;
+        esac
+    done
+
+    rec_validate_dcl "$dcl_root"
+}
+
+rec_command_compile() {
+    local lab_root
+    lab_root="$(rec_lab_root)"
+
+    local dcl_root="${lab_root}/cfg/dcl"
+    local env_root="${lab_root}/cfg/env"
+    local output_path=""
+    local arg
+
+    while [[ $# -gt 0 ]]; do
+        arg="$1"
+        case "$arg" in
+            --dcl-root)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/rec/ops: missing value for --dcl-root\n' >&2
+                    return 1
+                fi
+                dcl_root="$2"
+                shift 2
+                ;;
+            --env-root)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/rec/ops: missing value for --env-root\n' >&2
+                    return 1
+                fi
+                env_root="$2"
+                shift 2
+                ;;
+            --output)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/rec/ops: missing value for --output\n' >&2
+                    return 1
+                fi
+                output_path="$2"
+                shift 2
+                ;;
+            --help|-h)
+                rec_usage
+                return 0
+                ;;
+            *)
+                printf 'src/rec/ops: unknown compile option "%s"\n' "$arg" >&2
+                return 1
+                ;;
+        esac
+    done
+
+    if ! rec_validate_dcl "$dcl_root"; then
+        return $?
+    fi
+
+    local generated_at
+    generated_at="$(date '+%Y-%m-%dT%H:%M:%S%z')"
+
+    local -a dcl_files=()
+    local file_path
+    while IFS= read -r file_path; do
+        dcl_files+=("$file_path")
+    done < <(rec_collect_dcl_files "$dcl_root")
+
+    local -a dcl_targets=()
+    if declare -p DCL_TARGETS >/dev/null 2>&1; then
+        dcl_targets=("${DCL_TARGETS[@]}")
+    fi
+
+    local site_name="${DCL_SITE_NAME:-unknown}"
+    local profile_name="${DCL_PROFILE:-unknown}"
+
+    local artifact=""
+    artifact+="format=rec-plan-v0"$'\n'
+    artifact+="generated_at=${generated_at}"$'\n'
+    artifact+="dcl_root=${dcl_root}"$'\n'
+    artifact+="env_root=${env_root}"$'\n'
+    artifact+="dcl_site=${site_name}"$'\n'
+    artifact+="dcl_profile=${profile_name}"$'\n'
+    artifact+="dcl_file_count=${#dcl_files[@]}"$'\n'
+    artifact+="target_count=${#dcl_targets[@]}"$'\n'
+
+    local i=1
+    for file_path in "${dcl_files[@]}"; do
+        artifact+="dcl_file_${i}=${file_path}"$'\n'
+        i=$((i + 1))
+    done
+
+    i=1
+    local target_name
+    local target_sections
+    local target_mode
+    local target_preconditions
+    local target_order
+    local target_depends_on
+    local target_policy_gates
+    local target_enforcement_stage
+    local has_modes_map=0
+    local has_preconditions_map=0
+    local has_order_map=0
+    local has_depends_on_map=0
+    local has_policy_gates_map=0
+    local has_target_enforcement_stage_map=0
+    if declare -p DCL_TARGET_MODES >/dev/null 2>&1; then
+        has_modes_map=1
+    fi
+    if declare -p DCL_TARGET_PRECONDITIONS >/dev/null 2>&1; then
+        has_preconditions_map=1
+    fi
+    if declare -p DCL_TARGET_ORDER >/dev/null 2>&1; then
+        has_order_map=1
+    fi
+    if declare -p DCL_TARGET_DEPENDS_ON >/dev/null 2>&1; then
+        has_depends_on_map=1
+    fi
+    if declare -p DCL_TARGET_POLICY_GATES >/dev/null 2>&1; then
+        has_policy_gates_map=1
+    fi
+    if declare -p DCL_TARGET_ENFORCEMENT_STAGE >/dev/null 2>&1; then
+        has_target_enforcement_stage_map=1
+    fi
+
+    local enforcement_stage_default="compat"
+    if [[ -n "${DCL_ENFORCEMENT_STAGE_DEFAULT:-}" ]]; then
+        enforcement_stage_default="${DCL_ENFORCEMENT_STAGE_DEFAULT}"
+    fi
+
+    artifact+="enforcement_stage_default=${enforcement_stage_default}"$'\n'
+
+    for target_name in "${dcl_targets[@]}"; do
+        artifact+="target_${i}=${target_name}"$'\n'
+
+        target_sections=""
+        if declare -p DCL_TARGET_SECTIONS >/dev/null 2>&1; then
+            target_sections="${DCL_TARGET_SECTIONS[$target_name]:-}"
+        fi
+
+        target_mode="both"
+        if [[ "$has_modes_map" -eq 1 ]]; then
+            target_mode="${DCL_TARGET_MODES[$target_name]:-both}"
+        fi
+
+        target_preconditions=""
+        if [[ "$has_preconditions_map" -eq 1 ]]; then
+            target_preconditions="${DCL_TARGET_PRECONDITIONS[$target_name]:-}"
+        fi
+
+        target_order=""
+        if [[ "$has_order_map" -eq 1 ]]; then
+            target_order="${DCL_TARGET_ORDER[$target_name]:-}"
+        fi
+
+        target_depends_on=""
+        if [[ "$has_depends_on_map" -eq 1 ]]; then
+            target_depends_on="${DCL_TARGET_DEPENDS_ON[$target_name]:-}"
+        fi
+
+        target_policy_gates=""
+        if [[ "$has_policy_gates_map" -eq 1 ]]; then
+            target_policy_gates="${DCL_TARGET_POLICY_GATES[$target_name]:-}"
+        fi
+
+        target_enforcement_stage=""
+        if [[ "$has_target_enforcement_stage_map" -eq 1 ]]; then
+            target_enforcement_stage="${DCL_TARGET_ENFORCEMENT_STAGE[$target_name]:-}"
+        fi
+
+        artifact+="target_${i}_sections=${target_sections}"$'\n'
+        artifact+="target_${i}_mode=${target_mode}"$'\n'
+        artifact+="target_${i}_preconditions=${target_preconditions}"$'\n'
+        artifact+="target_${i}_order=${target_order}"$'\n'
+        artifact+="target_${i}_depends_on=${target_depends_on}"$'\n'
+        artifact+="target_${i}_policy_gates=${target_policy_gates}"$'\n'
+        artifact+="target_${i}_enforcement_stage=${target_enforcement_stage}"$'\n'
+        i=$((i + 1))
+    done
+
+    if [[ -n "$output_path" ]]; then
+        mkdir -p "$(dirname "$output_path")"
+        printf '%s' "$artifact" > "$output_path"
+        printf 'src/rec/ops: wrote compile artifact to %s\n' "$output_path"
+        return 0
+    fi
+
+    printf '%s' "$artifact"
+    return 0
+}
+
+rec_main() {
+    local command="${1:-}"
+    shift || true
+
+    case "$command" in
+        --help|-h|"")
+            rec_usage
+            return 0
+            ;;
+        validate)
+            rec_command_validate "$@"
+            return $?
+            ;;
+        compile)
+            rec_command_compile "$@"
+            return $?
+            ;;
+        *)
+            printf 'src/rec/ops: unknown command "%s"\n' "$command" >&2
+            rec_usage >&2
+            return 1
+            ;;
+    esac
+}
+
+rec_main "$@"

@@ -11,6 +11,22 @@ declare -g -a PACKAGES_ALL
 DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_SH="$(basename "${BASH_SOURCE[0]}")"
 BASE_SH="${FILE_SH%.*}"
+export LAB_REC_TARGET="${BASE_SH}"
+
+# Temporary compatibility delegation to src/run during migration
+if [[ "${LAB_RUN_DISPATCH_BYPASS:-0}" != "1" ]]; then
+    if [[ "${LAB_USE_DIC_RUN_BRIDGE:-0}" == "1" ]]; then
+        DIC_RUN_FILE="${DIR_SH}/../dic/run"
+        if [[ -x "$DIC_RUN_FILE" ]]; then
+            exec "$DIC_RUN_FILE" "$BASE_SH" "$@"
+        fi
+    fi
+
+    RUN_DISPATCH_FILE="${DIR_SH}/../run/dispatch"
+    if [[ -x "$RUN_DISPATCH_FILE" ]]; then
+        exec "$RUN_DISPATCH_FILE" "$BASE_SH" "$@"
+    fi
+fi
 
 # Source menu framework
 MENU_FILE="$(realpath "$DIR_SH/.menu")"

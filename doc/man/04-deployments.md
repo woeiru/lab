@@ -62,11 +62,12 @@ env_status
 Each runbook (for example `src/set/h1`) usually follows this pattern:
 
 1. define script-local path helpers (`DIR_SH`, `FILE_SH`),
-2. source `src/set/.menu`,
-3. source `src/dic/ops`,
-4. declare `MENU_OPTIONS` (`section_id -> section_function`),
-5. implement section functions (typically `*_xall`) that call `ops ... -j`,
-6. delegate argument handling to `setup_main "$@"`.
+2. export `LAB_REC_TARGET` from runbook identity,
+3. source `src/set/.menu`,
+4. source `src/dic/ops`,
+5. declare `MENU_OPTIONS` (`section_id -> section_function`),
+6. implement section functions (typically `*_xall`) that call `ops ... -j`,
+7. delegate argument handling to `setup_main "$@"`.
 
 Example section style:
 
@@ -96,14 +97,71 @@ Interactive mode uses `src/set/.menu` for guided section selection and display o
 
 Direct mode executes one section immediately (for example `a_xall`) and is the common automation path.
 
-## 4. Operational Workflow (Recommended)
+## 4. Migration Bridge (Optional)
+
+Runbooks currently delegate through `src/run/dispatch` during migration.
+
+- Default path keeps legacy ergonomics with compatibility wrappers.
+- Optional bridge path (`LAB_USE_DIC_RUN_BRIDGE=1`) routes through
+  `src/dic/run` to compile reconciliation artifacts before dispatch.
+
+Examples:
+
+```bash
+# Legacy-compatible path (default)
+./src/set/h1 -x a
+
+# Opt-in reconcile bridge for trial runs
+LAB_USE_DIC_RUN_BRIDGE=1 ./src/set/h1 -x a
+
+# Direct dispatch with strict dependency checks
+src/run/dispatch t2 --plan .tmp/rec/site1.plan --enforce-deps \
+  --completed-target h1 --completed-target c1 --completed-target c2 \
+  --completed-target c3 --completed-target t1
+
+# Direct dispatch with strict policy gate checks
+src/run/dispatch h1 --plan .tmp/rec/site1.plan --enforce-policy-gates \
+  --allow-gate gate_network --allow-gate gate_storage
+
+# Stage-based strict defaults
+src/run/dispatch h1 --plan .tmp/rec/site1.plan --enforcement-stage strict \
+  --allow-gate gate_network --allow-gate gate_storage
+```
+
+When using strict enforcement flags, `--plan` is required. Environment
+equivalents are available for automation wrappers:
+
+- `LAB_RUN_ENFORCEMENT_STAGE=compat|guarded|strict`
+- `LAB_RUN_COMPLETED_TARGETS="h1 c1 c2"`
+- `LAB_RUN_ALLOWED_POLICY_GATES="gate_network gate_storage"`
+
+Enforcement stage precedence at runtime:
+
+1. `--enforcement-stage` (explicit CLI override)
+2. `LAB_RUN_ENFORCEMENT_STAGE`
+3. plan target override (`target_*_enforcement_stage`)
+4. plan default (`enforcement_stage_default`)
+5. fallback `compat`
+
+Current rollout guardrails in `cfg/dcl/site1`:
+
+- `h1`, `c1`, `c2`, `c3`: `compat` (legacy behavior preserved)
+- `t1`, `t2`: `guarded` (dependency + order checks required)
+
+Recommended rollout sequence:
+
+1. Move non-critical targets from `compat` to `guarded`.
+2. Stabilize dependency completion reporting in automation wrappers.
+3. Move selected targets to `strict` only after policy gate approvals are automated.
+
+## 5. Operational Workflow (Recommended)
 
 1. Validate context and config (`env_status`, `bash -n` on edited files).
 2. Start with one bounded section (`-x <section>`) before wider runs.
 3. Use DIC preview/help for unfamiliar calls (`ops <module> <function>`, `--help`).
 4. Move to interactive mode when selecting multiple sections manually.
 
-## 5. Authoring a New Runbook
+## 6. Authoring a New Runbook
 
 Create a new file in `src/set/` and follow existing runbooks (`h1`, `c1`, `t1`) as reference.
 
@@ -131,7 +189,7 @@ else
 fi
 ```
 
-## 6. Validate Runbook Changes
+## 7. Validate Runbook Changes
 
 Syntax-check changed runbooks:
 
@@ -152,7 +210,7 @@ Run full suite for broad refactors:
 ./val/run_all_tests.sh
 ```
 
-## 7. Troubleshooting and Recovery
+## 8. Troubleshooting and Recovery
 
 ### `Invalid section` or section not found
 
@@ -170,7 +228,7 @@ Run full suite for broad refactors:
 - Confirm hostname-prefixed values in `cfg/env/*` match `hostname -s`.
 - Confirm active node context in `cfg/core/ecc` and `env_status` output.
 
-## 8. Related Docs
+## 9. Related Docs
 
 - Next: [05 - Writing Modules](05-writing-modules.md)
 - DIC usage details: [03 - CLI Usage and the DIC](03-cli-usage.md)

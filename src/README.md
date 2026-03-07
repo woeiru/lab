@@ -1,6 +1,6 @@
 # Source Execution Architecture (`src/`)
 
-**The Bridging Layer:** The `src/` directory bridges the gap between the stateless, pure functions in `lib/ops/` and the declarative environment state in `cfg/env/`. It executes operations and orchestrates multi-node deployments.
+**The Runtime Bridge:** The `src/` directory bridges declarative intent and runtime execution. During migration, it includes legacy DIC/runbook surfaces plus the new reconciliation and run boundaries.
 
 ## Architecture Overview
 
@@ -10,8 +10,13 @@
 │                                         │
 │  ┌──────────────┐   ┌──────────────┐    │
 │  │  dic/        │   │  set/        │    │
-│  │  (Controller)│   │  (Playbooks) │    │
-│  └──────┬───────┘   └──────────────┘    │
+│  │  (legacy DI) │   │  (legacy RB) │    │
+│  └──────┬───────┘   └──────┬───────┘    │
+│         │                  │            │
+│  ┌──────▼───────┐   ┌──────▼───────┐    │
+│  │  rec/        │   │  run/        │    │
+│  │  (reconcile) │   │  (runbooks)  │    │
+│  └──────────────┘   └──────────────┘    │
 └─────────┼───────────────────────────────┘
           │
           ▼
@@ -39,6 +44,17 @@ The `set/` directory contains host-specific deployment scripts (e.g., `h1`, `c1`
 - **Interactive Prompts:** Uses the `.menu` framework for user-friendly execution flow (`-i` mode).
 - **Headless Mode:** Capable of running non-interactively for direct CI/CD pipeline integration (`-x` mode).
 
+### `rec/` (Reconciliation)
+`rec/` is the new compile/reconcile boundary. It validates declarative input from
+`cfg/dcl/` and prepares deterministic artifacts for execution.
+
+### `run/` (Runbook Execution)
+`run/` is the new execution boundary for applying reconciled plans. During migration,
+`src/set/*` entrypoints are retained and delegated through `src/run/dispatch`.
+When `--plan` is supplied, dispatch can enforce dependency/order/policy metadata
+using strict runtime flags or stage defaults (`--enforcement-stage`) resolved
+from CLI/env/plan metadata.
+
 ## Examples
 
 **Executing via DIC:**
@@ -51,6 +67,12 @@ ops pve vpt 100 on
 
 # Execute with full environment injection
 ops pve vpt -j
+
+# Execute one command with reconcile preflight enabled
+ops --reconcile pve vpt -j
+
+# Migration bridge: compile + dispatch through rec/run
+src/dic/run h1 -i
 ```
 
 **Executing a Set Deployment:**

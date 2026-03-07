@@ -1,0 +1,99 @@
+#!/bin/bash
+
+# Declarative intent scaffold for site1.
+# This file is intentionally minimal during migration bootstrap.
+
+DCL_SITE_NAME="site1"
+DCL_PROFILE="base"
+
+# Optional default enforcement stage for run dispatch consumers.
+DCL_ENFORCEMENT_STAGE_DEFAULT="compat"
+
+# Planned execution targets for initial reconciliation tests.
+declare -a -g DCL_TARGETS
+DCL_TARGETS=(
+    "h1"
+    "c1"
+    "c2"
+    "c3"
+    "t1"
+    "t2"
+)
+
+# Target-to-section mapping in declarative form (space-delimited section IDs).
+declare -A -g DCL_TARGET_SECTIONS
+DCL_TARGET_SECTIONS=(
+    ["h1"]="a_xall b_xall c_xall d_xall i_xall j_xall p_xall q_xall r_xall s_xall"
+    ["c1"]="a_xall b_xall"
+    ["c2"]="a_xall b_xall"
+    ["c3"]="a_xall b_xall"
+    ["t1"]="a_xall b_xall"
+    ["t2"]="a_xall b_xall c_xall d_xall"
+)
+
+# Optional execution-mode metadata for migration preflight.
+# Allowed values: interactive, headless, both.
+declare -A -g DCL_TARGET_MODES
+DCL_TARGET_MODES=(
+    ["h1"]="both"
+    ["c1"]="both"
+    ["c2"]="both"
+    ["c3"]="both"
+    ["t1"]="both"
+    ["t2"]="both"
+)
+
+# Optional precondition metadata (free-form, comma-delimited in v0).
+declare -A -g DCL_TARGET_PRECONDITIONS
+DCL_TARGET_PRECONDITIONS=(
+    ["h1"]="network-online,storage-ready"
+    ["c1"]="network-online"
+    ["c2"]="network-online"
+    ["c3"]="network-online"
+    ["t1"]="network-online"
+    ["t2"]="network-online"
+)
+
+# Optional stable ordering metadata for orchestration planning.
+declare -A -g DCL_TARGET_ORDER
+DCL_TARGET_ORDER=(
+    ["h1"]="10"
+    ["c1"]="20"
+    ["c2"]="30"
+    ["c3"]="40"
+    ["t1"]="50"
+    ["t2"]="60"
+)
+
+# Optional dependency graph metadata (space-delimited target IDs).
+declare -A -g DCL_TARGET_DEPENDS_ON
+DCL_TARGET_DEPENDS_ON=(
+    ["h1"]=""
+    ["c1"]="h1"
+    ["c2"]="h1"
+    ["c3"]="h1"
+    ["t1"]="h1"
+    ["t2"]="h1 c1 c2 c3 t1"
+)
+
+# Optional policy gate metadata (space-delimited gate tokens).
+declare -A -g DCL_TARGET_POLICY_GATES
+DCL_TARGET_POLICY_GATES=(
+    ["h1"]="gate_network gate_storage"
+    ["c1"]="gate_network"
+    ["c2"]="gate_network"
+    ["c3"]="gate_network"
+    ["t1"]="gate_network"
+    ["t2"]="gate_network gate_access"
+)
+
+# Optional per-target enforcement stage overrides.
+declare -A -g DCL_TARGET_ENFORCEMENT_STAGE
+DCL_TARGET_ENFORCEMENT_STAGE=(
+    ["h1"]="compat"
+    ["c1"]="compat"
+    ["c2"]="compat"
+    ["c3"]="compat"
+    ["t1"]="guarded"
+    ["t2"]="guarded"
+)
