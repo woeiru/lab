@@ -1,9 +1,9 @@
 # Gen Aux Helper Contract Stabilization Plan
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 11:19
+- Updated: 2026-03-07 15:40
 - Links: wow/completed/20260307-1047_lib-architecture-review/20260307-0921_lib-architecture-review-result.md, doc/ref/reverse-dependecies.md, doc/ref/scope-integrity.md, lib/gen/aux
 
 ## Goal
@@ -114,10 +114,10 @@ preserving current operational behavior.
    Completion criterion: A documented design artifact defines stable helper
    interfaces, constraints, trade-offs, and the chosen stabilization approach.
    Met by: `## Phase 1 Design Deliverable` in this plan.
-2. Phase 2 - Apply the approved contract design in code. [in progress]
+2. Phase 2 - Apply the approved contract design in code. [done 2026-03-07 15:38]
    Completion criterion: A single implementation patch set updates
    `lib/gen/aux` and any required compatibility handling for impacted callers.
-3. Phase 3 - Validate contract conformance and regression safety. [pending]
+3. Phase 3 - Validate contract conformance and regression safety. [done 2026-03-07 15:39]
    Completion criterion: Every command listed in Verification Plan completes
    successfully with no failures.
 
@@ -129,19 +129,25 @@ preserving current operational behavior.
    internal helper boundary, and compatibility policy.
 2. Captured fan-in findings from generated references to prioritize hard-stable
    APIs by risk.
+3. Implemented Phase 2 boundary hardening in `lib/gen/aux` by routing logging
+   internals through `_aux_*` helpers and keeping `aux_get_*`/`aux_format_*`
+   names as compatibility wrappers for lazy-map parity.
+4. Added Phase 3 contract checks in `val/lib/gen/aux_test.sh` to lock Tier A
+   return-code semantics and internal-helper compatibility wrappers.
+5. Validation run complete so far: `bash -n lib/gen/aux val/lib/gen/aux_test.sh`
+   passed; `./val/lib/gen/aux_test.sh` passed (14/14).
+6. Workflow validation passed: `bash wow/check-workflow.sh`.
 
 ### In-flight
 
-1. Phase 2 implementation prep is active: convert contract decisions into
-   concrete `lib/gen/aux` boundary changes while preserving caller behavior.
+1. No remaining implementation work; plan is ready for closeout routing.
 
 ### Next steps
 
-1. Draft the exact Phase 2 patch scope for `lib/gen/aux` and required shim
-   behavior.
-2. Update/add tests that lock Tier A contract behavior and Tier B
-   compatibility semantics.
-3. Execute Verification Plan commands once implementation changes land.
+1. Run closeout flow for this active plan (`wow/task/completed-close`) when
+   ready.
+2. If follow-up refactors are desired, open a new inbox/queue item scoped to
+   Tier B retirement or export-surface reduction.
 
 ## Verification Plan
 
@@ -154,3 +160,34 @@ preserving current operational behavior.
 1. Stable and internal-only `gen/aux` helpers are clearly classified and documented.
 2. Compatibility guidance exists for any helper contract changes with cross-module impact.
 3. Required validation commands and `bash wow/check-workflow.sh` pass.
+
+## What changed
+
+1. Updated `lib/gen/aux` with explicit contract tier declarations
+   (`AUX_CONTRACT_TIER_A`, `AUX_CONTRACT_TIER_B`, `AUX_CONTRACT_INTERNAL`) to
+   document and freeze the helper boundary.
+2. Routed internal `aux_log`/`aux_dbg` formatter and metadata calls through
+   `_aux_*` helpers while preserving compatibility wrappers on
+   `aux_get_log_color`, `aux_get_cluster_metadata`, `aux_format_json_log`, and
+   `aux_format_csv_log`.
+3. Extended `val/lib/gen/aux_test.sh` with contract-focused coverage for Tier A
+   canonical return codes and wrapper parity against internal helper behavior.
+4. Recorded implementation and validation evidence in this plan and advanced
+   all execution phases to done.
+
+## What was verified
+
+1. Syntax checks passed:
+   - `bash -n lib/gen/aux`
+   - `bash -n val/lib/gen/aux_test.sh`
+2. Targeted helper regression suite passed:
+   - `./val/lib/gen/aux_test.sh` (14/14 tests passed)
+3. Workflow consistency checks passed:
+   - `bash wow/check-workflow.sh`
+
+## What remains
+
+1. No mandatory follow-up is required for contract stabilization completion.
+2. Optional future cleanup: if export-surface reduction or Tier B retirement is
+   desired, capture it as a new `wow/inbox/*-plan.md` item per default routing
+   policy.
