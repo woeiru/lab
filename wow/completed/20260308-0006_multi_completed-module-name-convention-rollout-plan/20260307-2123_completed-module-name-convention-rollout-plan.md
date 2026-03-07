@@ -15,7 +15,7 @@
 - Dry-run inventory shows 59 top-level completed folders: 2 v2 leaf folders, 56 legacy standard close folders, and 1 legacy bundle folder.
 - Deterministic mapping checks for the 56 legacy standard folders found 0 duplicate rename targets and 0 conflicts with existing folder names.
 - Applied the approved rename map and renamed all 56 targeted legacy-standard folders to v2-style `<timestamp>_<module>_<task-slug>` names.
-- Post-rename reconciliation fixed two stale orchestration `Program` path references under `wow/completed/20260306-workflow_bundle/20260306-2353_workflow_parallel-orchestration-upgrade-plan/`.
+- Post-rename reconciliation fixed two stale orchestration `Program` path references under `wow/completed/20260306-workflow_parallel-orchestration-upgrade-plan/20260306-2353_workflow_parallel-orchestration-upgrade-plan/`.
 
 ## Scope
 - Inventory every folder in `wow/completed/` and classify each as v2-compliant, legacy-compatible, or requiring rename.
@@ -163,8 +163,8 @@ Docs: none
 ## Reconciliation Report
 1. Rename execution: 56 folder renames applied.
 2. Path reconciliation: 2 stale links updated in:
-   - `wow/completed/20260306-workflow_bundle/20260306-2353_workflow_parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-checker-workstream-plan.md`
-   - `wow/completed/20260306-workflow_bundle/20260306-2353_workflow_parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-docs-workstream-plan.md`
+   - `wow/completed/20260306-workflow_parallel-orchestration-upgrade-plan/20260306-2353_workflow_parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-checker-workstream-plan.md`
+   - `wow/completed/20260306-workflow_parallel-orchestration-upgrade-plan/20260306-2353_workflow_parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-docs-workstream-plan.md`
 3. Workflow validation:
    - First run after rename: failed with 2 missing Program-path targets.
    - Final run after reconciliation: `bash wow/check-workflow.sh` passed.

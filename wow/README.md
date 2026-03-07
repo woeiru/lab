@@ -298,6 +298,12 @@ Use v2 immutable leaves and day/module containers:
   creation timestamp prefixes in that leaf.
 - Maintenance containers are unique per day+module key (`yyyymmdd-<module>`),
   include one markdown summary artifact, and keep leaf names immutable.
+- Essence derivation for new containers is deterministic across maintenance and
+  bundle-close flows: explicit `essence`/`summary` override, then summary
+  title, then task-title fallback, then `daily-rollup` only when semantic
+  sources are empty.
+- New container writes must not use `_bundle` as essence; existing `_bundle`
+  folders remain accepted as legacy compatibility paths.
 - Bundle registry file: `completed/.bundle-registry.tsv` with one row per
   day+module key:
   `day-module-key<TAB>folder-name<TAB>created-at<TAB>source-item-path`.

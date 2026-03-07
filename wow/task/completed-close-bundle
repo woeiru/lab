@@ -18,9 +18,14 @@ Container key resolution:
    - `Module: <value>` in `## Bundle Close Metadata`
    - fallback `multi`
 2. Resolve bundle essence slug from (in order):
-   - `essence=<value>` in user prompt
-   - `Essence: <value>` in `## Bundle Close Metadata`
-   - fallback `daily-rollup`
+   - Explicit close summary override:
+     - `essence=<value>` in user prompt, or
+     - `Essence: <value>` in `## Bundle Close Metadata`
+   - Close summary title:
+     - `summary=<value>` in user prompt, or
+     - `Summary: <value>` in `## Bundle Close Metadata`
+   - Active item title (`# ...`) as task-title fallback
+   - Stable fallback token `daily-rollup` only when all semantic sources are empty
 3. Optional manual day override:
    - `bundle_day=<yyyymmdd>` in user prompt, or
    - `Day: <yyyymmdd>` in `## Bundle Close Metadata`
@@ -31,11 +36,22 @@ Container key resolution:
 
 Normalization for module/essence values:
 
-- Lowercase
-- Replace spaces/underscores with `-`
+- Lowercase ASCII
+- Convert whitespace/underscores to `-`
 - Remove non `[a-z0-9-]` characters
 - Collapse repeated `-`
 - Trim leading/trailing `-`
+- Enforce max length 48 with deterministic truncation
+- If resulting essence is empty, use `daily-rollup`
+
+Deterministic collision handling:
+
+- If a newly-created `<yyyymmdd>-<module>_<essence-slug>` collides for the same
+  day+module with a different derived semantic source, append a stable suffix
+  `-x<8hex>` based on the canonical source text hash.
+- Never write new containers with `_bundle` as essence; treat existing
+  `_bundle` containers as legacy-compatible reads and report them as migration
+  candidates.
 
 Container folder resolution:
 

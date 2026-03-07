@@ -6,12 +6,26 @@ Do this in order:
 1. Run bash wow/check-workflow.sh; fix structural/naming issues only
    (checker failures are safe to fix autonomously)
 2. Run completed compaction for v2 leaves:
-   - Source leaves: `completed/yyyymmdd-hhmm_<module>_<task-slug>/`
-   - Group by day+module into containers:
-     `completed/yyyymmdd-<module>_<essence-slug>/`
-   - Keep leaf folder names immutable (move only; never rename)
-   - Reuse existing container for the same day+module if present
-   - Create/update one markdown summary artifact in each touched container
+    - Source leaves: `completed/yyyymmdd-hhmm_<module>_<task-slug>/`
+    - Group by day+module into containers:
+      `completed/yyyymmdd-<module>_<essence-slug>/`
+    - Derive `<essence-slug>` using canonical policy (same as
+      `wow/task/completed-close-bundle`):
+      1) explicit summary override (`essence=` / `Essence:`),
+      2) summary title (`summary=` / `Summary:`) when provided,
+      3) latest leaf plan title fallback,
+      4) stable fallback `daily-rollup` only when semantic sources are empty
+    - Normalize essence deterministically: lowercase ASCII, non-alnum-to-dash,
+      collapse dashes, trim edges, max length 48, deterministic truncation
+    - Do not create new `_bundle`-essence containers; existing `_bundle`
+      containers may be reused for compatibility and reported as migration
+      candidates
+    - If a new container name collides on the same day+module with a different
+      semantic source, append deterministic `-x<8hex>` suffix from canonical
+      source hash
+    - Keep leaf folder names immutable (move only; never rename)
+    - Reuse existing container for the same day+module if present
+    - Create/update one markdown summary artifact in each touched container
    - Reconcile bundle registry (`wow/completed/.bundle-registry.tsv`) for
      each touched day+module key using:
      `day-module-key<TAB>folder-name<TAB>created-at<TAB>source-item-path`

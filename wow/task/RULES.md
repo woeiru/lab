@@ -42,6 +42,8 @@ Folder-specific naming:
   `completed/yyyymmdd-<module>_<essence-slug>/yyyymmdd-hhmm_<module>_<task-slug>/file.md`
 - completed/: leaf folder close timestamp (`yyyymmdd-hhmm`) must be >= any file timestamp prefix inside that leaf
 - completed/: maintenance containers must be unique per day+module key (`yyyymmdd-<module>`)
+- completed/: new container writes must not use `_bundle` as `<essence-slug>`;
+  `_bundle` is legacy-compatible read-only naming
 - completed/: bundle containers must include at least one markdown summary artifact and at least one leaf folder
 - completed/: legacy compatibility (accepted, do not rewrite automatically):
   - legacy standard close: `yyyymmdd-hhmm_<topic>`
