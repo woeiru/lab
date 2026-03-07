@@ -426,6 +426,281 @@ ana_laf() {
     echo ""
 }
 
+# Parses ana_lad flags and path arguments
+_ana_lad_parse_args() {
+    local -n truncate_mode_ref="$1"
+    local -n break_mode_ref="$2"
+    local -n json_mode_ref="$3"
+    local -n doc_path_ref="$4"
+    shift 4
+
+    truncate_mode_ref=false
+    break_mode_ref=false
+    json_mode_ref=false
+    doc_path_ref=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -t)
+                truncate_mode_ref=true
+                ;;
+            -b)
+                break_mode_ref=true
+                ;;
+            -j)
+                json_mode_ref=true
+                ;;
+            *)
+                doc_path_ref="$1"
+                ;;
+        esac
+        shift
+    done
+}
+
+# Resolves the effective documentation path for ana_lad
+_ana_lad_resolve_doc_path() {
+    local doc_path="$1"
+    local lab_dir="$2"
+
+    if [[ -n "$doc_path" ]]; then
+        printf "%s" "$doc_path"
+        return 0
+    fi
+
+    if [[ -n "$lab_dir" ]]; then
+        printf "%s" "$lab_dir/doc"
+        return 0
+    fi
+
+    echo "Error: No documentation path provided and LAB_DIR not set"
+    aux_use
+    return 1
+}
+
+# Truncates and pads one ana_lad cell
+_ana_lad_truncate_and_pad() {
+    local str="$1"
+    local width="$2"
+    if [[ ${#str} -gt "$width" ]]; then
+        printf "%s" "${str:0:$((width-2))}.."
+    else
+        printf "%-${width}s" "$str"
+    fi
+}
+
+# Wraps ana_lad cell content for multiline mode
+_ana_lad_wrap_text() {
+    local text="$1"
+    local width="$2"
+    echo "$text" | fold -s -w "$width"
+}
+
+# Prints ana_lad separator line
+_ana_lad_print_separator() {
+    local total_width="$1"
+    local fill_char="${2:--}"
+    printf "+%s+\n" "$(printf '%*s' "$total_width" '' | tr ' ' "$fill_char")"
+}
+
+# Prints one ana_lad row in normal/truncate/wrap modes
+_ana_lad_print_row() {
+    local truncate_mode="$1"
+    local break_mode="$2"
+    local col_width_1="$3"
+    local col_width_2="$4"
+    local col_width_3="$5"
+    local col_width_4="$6"
+    local col_width_5="$7"
+    local col_width_6="$8"
+    local col_width_7="$9"
+    shift 9
+
+    local value_1="$1"
+    local value_2="$2"
+    local value_3="$3"
+    local value_4="$4"
+    local value_5="$5"
+    local value_6="$6"
+    local value_7="$7"
+
+    if [[ "$break_mode" == true ]]; then
+        local col1 col2 col3 col4 col5 col6 col7
+        col1=$(_ana_lad_wrap_text "$value_1" "$col_width_1")
+        col2=$(_ana_lad_wrap_text "$value_2" "$col_width_2")
+        col3=$(_ana_lad_wrap_text "$value_3" "$col_width_3")
+        col4=$(_ana_lad_wrap_text "$value_4" "$col_width_4")
+        col5=$(_ana_lad_wrap_text "$value_5" "$col_width_5")
+        col6=$(_ana_lad_wrap_text "$value_6" "$col_width_6")
+        col7=$(_ana_lad_wrap_text "$value_7" "$col_width_7")
+
+        local IFS=$'\n'
+        local lines1=($col1)
+        local lines2=($col2)
+        local lines3=($col3)
+        local lines4=($col4)
+        local lines5=($col5)
+        local lines6=($col6)
+        local lines7=($col7)
+
+        local max_lines=${#lines1[@]}
+        local arr_name
+        for arr_name in lines2 lines3 lines4 lines5 lines6 lines7; do
+            local -n arr_ref="$arr_name"
+            if [[ ${#arr_ref[@]} -gt "$max_lines" ]]; then
+                max_lines=${#arr_ref[@]}
+            fi
+        done
+
+        local i
+        for ((i=0; i<max_lines; i++)); do
+            printf "| %-${col_width_1}s | %-${col_width_2}s | %-${col_width_3}s | %-${col_width_4}s | %-${col_width_5}s | %-${col_width_6}s | %-${col_width_7}s |\n" \
+                "${lines1[$i]:-}" \
+                "${lines2[$i]:-}" \
+                "${lines3[$i]:-}" \
+                "${lines4[$i]:-}" \
+                "${lines5[$i]:-}" \
+                "${lines6[$i]:-}" \
+                "${lines7[$i]:-}"
+        done
+        return
+    fi
+
+    if [[ "$truncate_mode" == true ]]; then
+        printf "| %s | %s | %s | %s | %s | %s | %s |\n" \
+            "$(_ana_lad_truncate_and_pad "$value_1" "$col_width_1")" \
+            "$(_ana_lad_truncate_and_pad "$value_2" "$col_width_2")" \
+            "$(_ana_lad_truncate_and_pad "$value_3" "$col_width_3")" \
+            "$(_ana_lad_truncate_and_pad "$value_4" "$col_width_4")" \
+            "$(_ana_lad_truncate_and_pad "$value_5" "$col_width_5")" \
+            "$(_ana_lad_truncate_and_pad "$value_6" "$col_width_6")" \
+            "$(_ana_lad_truncate_and_pad "$value_7" "$col_width_7")"
+        return
+    fi
+
+    printf "| %s | %s | %s | %s | %s | %s | %s |\n" \
+        "$value_1" "$value_2" "$value_3" "$value_4" "$value_5" "$value_6" "$value_7"
+}
+
+# Extracts markdown title for ana_lad
+_ana_lad_extract_title() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        local title
+        title=$(grep -m1 '^# ' "$file" 2>/dev/null | sed 's/^# //' | sed 's/[🎯👨‍💻🛠️🏗️📱🔍🔧🛠️📋🌐📊]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [[ -n "$title" ]]; then
+            printf "%s" "$title"
+            return
+        fi
+    fi
+    basename "$file" .md
+}
+
+# Extracts markdown summary line for ana_lad
+_ana_lad_extract_description() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        local description
+        description=$(awk '/^# /{flag=1; next} flag && /^[A-Za-z*]/ && !/^##/{print; exit}' "$file" 2>/dev/null | sed 's/^\*//; s/\*$//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [[ -n "$description" ]]; then
+            printf "%s" "$description"
+            return
+        fi
+    fi
+    printf "%s" "No description available"
+}
+
+# Returns lines, words, modified metadata for one doc file
+_ana_lad_get_file_stats() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        local lines words modified
+        lines=$(wc -l < "$file" 2>/dev/null || echo "0")
+        words=$(wc -w < "$file" 2>/dev/null || echo "0")
+        modified=$(stat -c %y "$file" 2>/dev/null | cut -d' ' -f1 || echo "unknown")
+        printf "%s:%s:%s" "$lines" "$words" "$modified"
+        return
+    fi
+    printf "%s" "0:0:unknown"
+}
+
+# Classifies one markdown file by documentation area
+_ana_lad_get_doc_type() {
+    local file="$1"
+    local lab_dir="$2"
+    local relative_path="${file#$lab_dir/}"
+
+    if [[ "$file" =~ README\.md$ ]]; then
+        if [[ "$relative_path" == "doc/README.md" ]]; then
+            printf "%s" "Hub"
+        else
+            printf "%s" "Index"
+        fi
+    elif [[ "$relative_path" =~ ^doc/dev/ ]]; then
+        printf "%s" "Developer"
+    elif [[ "$relative_path" =~ ^doc/adm/ ]]; then
+        printf "%s" "Admin"
+    elif [[ "$relative_path" =~ ^doc/iac/ ]]; then
+        printf "%s" "IaC"
+    elif [[ "$relative_path" =~ ^doc/cli/ ]]; then
+        printf "%s" "CLI"
+    elif [[ "$relative_path" =~ ^doc/ ]]; then
+        printf "%s" "Core"
+    else
+        printf "%s" "Other"
+    fi
+}
+
+# Appends one document row object into ana_lad JSON payload list
+_ana_lad_append_json_doc() {
+    local -n json_docs_ref="$1"
+    local doc_type="$2"
+    local relative_path="$3"
+    local title="$4"
+    local description="$5"
+    local lines="$6"
+    local words="$7"
+    local modified="$8"
+
+    local escaped_description
+    escaped_description=$(echo "$description" | sed 's/"/\\"/g')
+    json_docs_ref+=("{\"type\":\"$doc_type\",\"path\":\"$relative_path\",\"title\":\"$title\",\"description\":\"$escaped_description\",\"lines\":$lines,\"words\":$words,\"modified\":\"$modified\"}")
+}
+
+# Writes ana_lad JSON output payload to disk
+_ana_lad_write_json() {
+    local lab_dir="$1"
+    local doc_path="$2"
+    local -n json_docs_ref="$3"
+
+    local tmp_dir="$lab_dir/.tmp/doc"
+    mkdir -p "$tmp_dir"
+
+    local relative_path="${doc_path#$lab_dir/}"
+    local json_filename="${relative_path//\//_}.json"
+    local json_file="$tmp_dir/$json_filename"
+
+    [[ -f "$json_file" ]] && rm -f "$json_file"
+
+    echo "{" > "$json_file"
+    echo "  \"source\": \"$doc_path\"," >> "$json_file"
+    echo "  \"generated\": \"$(date -Iseconds)\"," >> "$json_file"
+    echo "  \"total_documents\": ${#json_docs_ref[@]}," >> "$json_file"
+    echo "  \"documents\": [" >> "$json_file"
+
+    local i
+    for i in "${!json_docs_ref[@]}"; do
+        echo "    ${json_docs_ref[$i]}" >> "$json_file"
+        if [[ "$i" -lt $((${#json_docs_ref[@]} - 1)) ]]; then
+            echo "    ," >> "$json_file"
+        fi
+    done
+
+    echo "  ]" >> "$json_file"
+    echo "}" >> "$json_file"
+    echo "JSON output written to: $json_file"
+}
+
 # Lists all documentation in a file or directory, displaying metadata like title, description, and statistics. Supports truncation, line break, and JSON output options
 # list all documentation
 # <file/directory name> [-t] [-b] [-j]
@@ -443,296 +718,237 @@ ana_lad() {
     local truncate_mode=false
     local break_mode=false
     local json_mode=false
-    local doc_path
+    local doc_path=""
     local lab_dir="${LAB_DIR:-}"
 
-    # Parse arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            -t)
-                truncate_mode=true
-                shift
-                ;;
-            -b)
-                break_mode=true
-                shift
-                ;;
-            -j)
-                json_mode=true
-                shift
-                ;;
-            *)
-                doc_path="$1"
-                shift
-                ;;
-        esac
-    done
+    _ana_lad_parse_args truncate_mode break_mode json_mode doc_path "$@"
+    doc_path=$(_ana_lad_resolve_doc_path "$doc_path" "$lab_dir") || return 1
 
-    # Default to doc directory if no path provided
-    if [ -z "$doc_path" ]; then
-        if [[ -n "$lab_dir" ]]; then
-            doc_path="$lab_dir/doc"
-        else
-            echo "Error: No documentation path provided and LAB_DIR not set"
-            aux_use
-            return 1
-        fi
-    fi
+    local col_width_1=12
+    local col_width_2=20
+    local col_width_3=25
+    local col_width_4=40
+    local col_width_5=6
+    local col_width_6=6
+    local col_width_7=8
+    local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + 20))
 
-    # Column width parameters for documentation table
-    local col_width_1=12  # Type
-    local col_width_2=20  # Path
-    local col_width_3=25  # Title
-    local col_width_4=40  # Description
-    local col_width_5=6   # Lines
-    local col_width_6=6   # Words
-    local col_width_7=8   # Modified
-
-    # Function to truncate and pad strings
-    truncate_and_pad() {
-        local str="$1"
-        local width="$2"
-        if [ ${#str} -gt $width ]; then
-            echo "${str:0:$((width-2))}.."
-        else
-            printf "%-${width}s" "$str"
-        fi
-    }
-
-    # Function to wrap text
-    wrap_text() {
-        local text="$1"
-        local width="$2"
-        echo "$text" | fold -s -w "$width"
-    }
-
-    # Function to print a row
-    print_row() {
-        if $break_mode; then
-            local col1=$(wrap_text "$1" $col_width_1)
-            local col2=$(wrap_text "$2" $col_width_2)
-            local col3=$(wrap_text "$3" $col_width_3)
-            local col4=$(wrap_text "$4" $col_width_4)
-            local col5=$(wrap_text "$5" $col_width_5)
-            local col6=$(wrap_text "$6" $col_width_6)
-            local col7=$(wrap_text "$7" $col_width_7)
-            
-            local IFS=$'\n'
-            local lines1=($col1)
-            local lines2=($col2)
-            local lines3=($col3)
-            local lines4=($col4)
-            local lines5=($col5)
-            local lines6=($col6)
-            local lines7=($col7)
-            
-            local max_lines=${#lines1[@]}
-            for arr in lines2 lines3 lines4 lines5 lines6 lines7; do
-                local -n arr_ref=$arr
-                if [[ ${#arr_ref[@]} -gt $max_lines ]]; then
-                    max_lines=${#arr_ref[@]}
-                fi
-            done
-            
-            for i in $(seq 0 $((max_lines-1))); do
-                printf "| %-${col_width_1}s | %-${col_width_2}s | %-${col_width_3}s | %-${col_width_4}s | %-${col_width_5}s | %-${col_width_6}s | %-${col_width_7}s |\n" \
-                    "${lines1[$i]:-}" \
-                    "${lines2[$i]:-}" \
-                    "${lines3[$i]:-}" \
-                    "${lines4[$i]:-}" \
-                    "${lines5[$i]:-}" \
-                    "${lines6[$i]:-}" \
-                    "${lines7[$i]:-}"
-            done
-        elif $truncate_mode; then
-            printf "| %s | %s | %s | %s | %s | %s | %s |\n" \
-                "$(truncate_and_pad "$1" $col_width_1)" \
-                "$(truncate_and_pad "$2" $col_width_2)" \
-                "$(truncate_and_pad "$3" $col_width_3)" \
-                "$(truncate_and_pad "$4" $col_width_4)" \
-                "$(truncate_and_pad "$5" $col_width_5)" \
-                "$(truncate_and_pad "$6" $col_width_6)" \
-                "$(truncate_and_pad "$7" $col_width_7)"
-        else
-            printf "| %s | %s | %s | %s | %s | %s | %s |\n" \
-                "$1" "$2" "$3" "$4" "$5" "$6" "$7"
-        fi
-    }
-
-    # Function to print separator
-    print_separator() {
-        local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + 20))
-        printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' '-')"
-    }
-
-    print_separator_2() {
-        local total_width=$((col_width_1 + col_width_2 + col_width_3 + col_width_4 + col_width_5 + col_width_6 + col_width_7 + 20))
-        printf "+%s+\n" "$(printf '%*s' $total_width '' | tr ' ' ' ')"
-    }
-
-    # Function to extract title from markdown file
-    extract_title() {
-        local file="$1"
-        if [[ -f "$file" ]]; then
-            local title=$(grep -m1 '^# ' "$file" 2>/dev/null | sed 's/^# //' | sed 's/[🎯👨‍💻🛠️🏗️📱🔍🔧🛠️📋🌐📊]*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-            if [[ -n "$title" ]]; then
-                echo "$title"
-            else
-                basename "$file" .md
-            fi
-        else
-            basename "$file" .md
-        fi
-    }
-
-    # Function to extract description from markdown file
-    extract_description() {
-        local file="$1"
-        if [[ -f "$file" ]]; then
-            # Look for first paragraph after title that doesn't start with ##
-            local desc=$(awk '/^# /{flag=1; next} flag && /^[A-Za-z*]/ && !/^##/{print; exit}' "$file" 2>/dev/null | sed 's/^\*//; s/\*$//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-            if [[ -n "$desc" ]]; then
-                echo "$desc"
-            else
-                echo "No description available"
-            fi
-        else
-            echo "No description available"
-        fi
-    }
-
-    # Function to get file statistics
-    get_file_stats() {
-        local file="$1"
-        if [[ -f "$file" ]]; then
-            local lines=$(wc -l < "$file" 2>/dev/null || echo "0")
-            local words=$(wc -w < "$file" 2>/dev/null || echo "0")
-            local modified=$(stat -c %y "$file" 2>/dev/null | cut -d' ' -f1 || echo "unknown")
-            echo "$lines:$words:$modified"
-        else
-            echo "0:0:unknown"
-        fi
-    }
-
-    # Function to determine document type
-    get_doc_type() {
-        local file="$1"
-        local relative_path="${file#$lab_dir/}"
-        
-        if [[ "$file" =~ README\.md$ ]]; then
-            if [[ "$relative_path" == "doc/README.md" ]]; then
-                echo "Hub"
-            else
-                echo "Index"
-            fi
-        elif [[ "$relative_path" =~ ^doc/dev/ ]]; then
-            echo "Developer"
-        elif [[ "$relative_path" =~ ^doc/adm/ ]]; then
-            echo "Admin"
-        elif [[ "$relative_path" =~ ^doc/iac/ ]]; then
-            echo "IaC"
-        elif [[ "$relative_path" =~ ^doc/cli/ ]]; then
-            echo "CLI"
-        elif [[ "$relative_path" =~ ^doc/ ]]; then
-            echo "Core"
-        else
-            echo "Other"
-        fi
-    }
-
-    # JSON output preparation
     local json_docs=()
-    
-    # Print table header
-    print_separator
-    print_row "Type" "Path" "Title" "Description" "Lines" "Words" "Modified"
-    print_separator
 
-    # Process documentation files
+    _ana_lad_print_separator "$total_width" "-"
+    _ana_lad_print_row "$truncate_mode" "$break_mode" "$col_width_1" "$col_width_2" "$col_width_3" "$col_width_4" "$col_width_5" "$col_width_6" "$col_width_7" \
+        "Type" "Path" "Title" "Description" "Lines" "Words" "Modified"
+    _ana_lad_print_separator "$total_width" "-"
+
     if [[ -d "$doc_path" ]]; then
-        # Find all markdown files in the documentation directory
+        local file
         while IFS= read -r -d '' file; do
             local relative_path="${file#$lab_dir/}"
-            local doc_type=$(get_doc_type "$file")
-            local title=$(extract_title "$file")
-            local description=$(extract_description "$file")
-            local stats=$(get_file_stats "$file")
-            local lines=$(echo "$stats" | cut -d: -f1)
-            local words=$(echo "$stats" | cut -d: -f2)
-            local modified=$(echo "$stats" | cut -d: -f3)
-            
-            # Print table row
-            print_row "$doc_type" "$relative_path" "$title" "$description" "$lines" "$words" "$modified"
-            if $break_mode; then
-                print_separator_2
+            local doc_type
+            local title
+            local description
+            local stats
+            local lines
+            local words
+            local modified
+
+            doc_type=$(_ana_lad_get_doc_type "$file" "$lab_dir")
+            title=$(_ana_lad_extract_title "$file")
+            description=$(_ana_lad_extract_description "$file")
+            stats=$(_ana_lad_get_file_stats "$file")
+            lines=$(echo "$stats" | cut -d: -f1)
+            words=$(echo "$stats" | cut -d: -f2)
+            modified=$(echo "$stats" | cut -d: -f3)
+
+            _ana_lad_print_row "$truncate_mode" "$break_mode" "$col_width_1" "$col_width_2" "$col_width_3" "$col_width_4" "$col_width_5" "$col_width_6" "$col_width_7" \
+                "$doc_type" "$relative_path" "$title" "$description" "$lines" "$words" "$modified"
+            if [[ "$break_mode" == true ]]; then
+                _ana_lad_print_separator "$total_width" " "
             fi
-            
-            # Store for JSON output
-            if $json_mode; then
-                json_docs+=("{\"type\":\"$doc_type\",\"path\":\"$relative_path\",\"title\":\"$title\",\"description\":\"$(echo "$description" | sed 's/"/\\"/g')\",\"lines\":$lines,\"words\":$words,\"modified\":\"$modified\"}")
+
+            if [[ "$json_mode" == true ]]; then
+                _ana_lad_append_json_doc json_docs "$doc_type" "$relative_path" "$title" "$description" "$lines" "$words" "$modified"
             fi
-            
         done < <(find "$doc_path" -name "*.md" -type f -print0 | sort -z)
     elif [[ -f "$doc_path" && "$doc_path" =~ \.md$ ]]; then
-        # Process single file
         local relative_path="${doc_path#$lab_dir/}"
-        local doc_type=$(get_doc_type "$doc_path")
-        local title=$(extract_title "$doc_path")
-        local description=$(extract_description "$doc_path")
-        local stats=$(get_file_stats "$doc_path")
-        local lines=$(echo "$stats" | cut -d: -f1)
-        local words=$(echo "$stats" | cut -d: -f2)
-        local modified=$(echo "$stats" | cut -d: -f3)
-        
-        print_row "$doc_type" "$relative_path" "$title" "$description" "$lines" "$words" "$modified"
-        
-        if $json_mode; then
-            json_docs+=("{\"type\":\"$doc_type\",\"path\":\"$relative_path\",\"title\":\"$title\",\"description\":\"$(echo "$description" | sed 's/"/\\"/g')\",\"lines\":$lines,\"words\":$words,\"modified\":\"$modified\"}")
+        local doc_type
+        local title
+        local description
+        local stats
+        local lines
+        local words
+        local modified
+
+        doc_type=$(_ana_lad_get_doc_type "$doc_path" "$lab_dir")
+        title=$(_ana_lad_extract_title "$doc_path")
+        description=$(_ana_lad_extract_description "$doc_path")
+        stats=$(_ana_lad_get_file_stats "$doc_path")
+        lines=$(echo "$stats" | cut -d: -f1)
+        words=$(echo "$stats" | cut -d: -f2)
+        modified=$(echo "$stats" | cut -d: -f3)
+
+        _ana_lad_print_row "$truncate_mode" "$break_mode" "$col_width_1" "$col_width_2" "$col_width_3" "$col_width_4" "$col_width_5" "$col_width_6" "$col_width_7" \
+            "$doc_type" "$relative_path" "$title" "$description" "$lines" "$words" "$modified"
+
+        if [[ "$json_mode" == true ]]; then
+            _ana_lad_append_json_doc json_docs "$doc_type" "$relative_path" "$title" "$description" "$lines" "$words" "$modified"
         fi
     else
         echo "Error: '$doc_path' is not a valid markdown file or directory"
         return 1
     fi
 
-    if ! $break_mode; then
-        print_separator
+    if [[ "$break_mode" != true ]]; then
+        _ana_lad_print_separator "$total_width" "-"
     fi
-    
-    # JSON output mode
-    if $json_mode; then
-        # Create centralized .tmp/doc directory if it doesn't exist
-        local tmp_dir="$lab_dir/.tmp/doc"
-        mkdir -p "$tmp_dir"
-        
-        # Generate JSON filename based on input path
-        local relative_path="${doc_path#$lab_dir/}"
-        local json_filename="${relative_path//\//_}.json"
-        local json_file="$tmp_dir/$json_filename"
-        
-        # Remove existing JSON file if it exists (flush)
-        [[ -f "$json_file" ]] && rm -f "$json_file"
-        
-        # Write JSON output
-        echo "{" > "$json_file"
-        echo "  \"source\": \"$doc_path\"," >> "$json_file"
-        echo "  \"generated\": \"$(date -Iseconds)\"," >> "$json_file"
-        echo "  \"total_documents\": ${#json_docs[@]}," >> "$json_file"
-        echo "  \"documents\": [" >> "$json_file"
-        
-        for i in "${!json_docs[@]}"; do
-            echo "    ${json_docs[$i]}" >> "$json_file"
-            if [[ $i -lt $((${#json_docs[@]} - 1)) ]]; then
-                echo "    ," >> "$json_file"
-            fi
-        done
-        
-        echo "  ]" >> "$json_file"
-        echo "}" >> "$json_file"
-        
-        echo "JSON output written to: $json_file"
+
+    if [[ "$json_mode" == true ]]; then
+        _ana_lad_write_json "$lab_dir" "$doc_path" json_docs
     fi
-    
+
     echo ""
+}
+
+# Parses ana_acu options and positional arguments
+_ana_acu_parse_args() {
+    local -n sort_mode_ref="$1"
+    local -n json_mode_ref="$2"
+    local -n truncate_mode_ref="$3"
+    local -n break_mode_ref="$4"
+    local -n json_output_dir_ref="$5"
+    local -n positional_args_ref="$6"
+    local usage_message="$7"
+    shift 7
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -o)
+                sort_mode_ref="-o"
+                shift
+                ;;
+            -a)
+                sort_mode_ref="-a"
+                shift
+                ;;
+            -j)
+                json_mode_ref=true
+                shift
+                ;;
+            --json-dir)
+                if [[ -z "${2:-}" ]]; then
+                    echo "Error: --json-dir requires a directory path."
+                    return 1
+                fi
+                json_output_dir_ref="$2"
+                shift 2
+                ;;
+            -t)
+                truncate_mode_ref=true
+                shift
+                ;;
+            -b)
+                break_mode_ref=true
+                shift
+                ;;
+            -h|--help)
+                aux_use
+                return 2
+                ;;
+            "")
+                shift
+                ;;
+            -*)
+                echo "Invalid option: '$1'"
+                echo "$usage_message"
+                return 1
+                ;;
+            *)
+                positional_args_ref+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    return 0
+}
+
+# Converts a target folder path to display form used by ana_acu outputs
+_ana_acu_display_folder_path() {
+    local target_folder_path="$1"
+    local lab_dir="$2"
+
+    if [[ -n "$lab_dir" && "$target_folder_path" == "$lab_dir"* ]]; then
+        local display_path="${target_folder_path#$lab_dir}"
+        display_path="${display_path#/}"
+        [[ -z "$display_path" ]] && display_path="."
+        printf "%s" "$display_path"
+        return
+    fi
+
+    basename "$target_folder_path"
+}
+
+# Collects ana_acu usage details for one variable across target folders
+_ana_acu_collect_usage_for_var() {
+    local var_name="$1"
+    local -n target_folders_ref="$2"
+    local lab_dir="$3"
+    local -n per_dir_details_ref="$4"
+    local -n folders_data_ref="$5"
+    local -n total_occurrences_ref="$6"
+
+    per_dir_details_ref=()
+    folders_data_ref=()
+    total_occurrences_ref=0
+
+    local target_folder_path
+    for target_folder_path in "${target_folders_ref[@]}"; do
+        local occurrences_in_current_dir_total=0
+        local files_with_occurrences_details_in_dir=()
+        local files_with_occurrences_details_in_dir_json=()
+
+        local target_file_in_dir
+        while IFS= read -r -d '' target_file_in_dir; do
+            if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
+                local occurrences_in_file
+                occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
+                if [[ "$occurrences_in_file" -gt 0 ]]; then
+                    occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
+                    files_with_occurrences_details_in_dir+=("$(basename "$target_file_in_dir"):$occurrences_in_file")
+                    files_with_occurrences_details_in_dir_json+=("\"$(basename "$target_file_in_dir")\":$occurrences_in_file")
+                fi
+            fi
+        done < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print0 2>/dev/null)
+
+        local dir_details_display_str="0"
+        if [[ ${#files_with_occurrences_details_in_dir[@]} -gt 0 ]]; then
+            dir_details_display_str=$(IFS=,; echo "${files_with_occurrences_details_in_dir[*]}")
+        fi
+        per_dir_details_ref+=("$dir_details_display_str")
+
+        local folder_relative_path
+        folder_relative_path=$(_ana_acu_display_folder_path "$target_folder_path" "$lab_dir")
+
+        local files_json="{}"
+        if [[ ${#files_with_occurrences_details_in_dir_json[@]} -gt 0 ]]; then
+            files_json="{$(IFS=,; echo "${files_with_occurrences_details_in_dir_json[*]}")}"
+        fi
+
+        folders_data_ref+=("    {\"path\":\"$folder_relative_path\",\"total_occurrences\":$occurrences_in_current_dir_total,\"files\":$files_json}")
+        total_occurrences_ref=$((total_occurrences_ref + occurrences_in_current_dir_total))
+    done
+}
+
+# Escapes strings for ana_acu JSON output
+_ana_acu_json_escape() {
+    local raw="$1"
+    raw=${raw//\\/\\\\}
+    raw=${raw//\"/\\\"}
+    raw=${raw//$'\n'/\\n}
+    raw=${raw//$'\r'/\\r}
+    raw=${raw//$'\t'/\\t}
+    printf '%s' "$raw"
 }
 
 # Analyzes the usage of variables from a config file across target folders, displaying variable names, values, and occurrence counts in various files
@@ -757,61 +973,21 @@ ana_acu() {
     local json_output_dir=""
     local conf_source=""
     local positional_args=()
+    local usage_message="Usage: ana_acu [options: -o|-a|-j|-t|-b|--json-dir <dir>] <config file or directory> <target folder1> [target folder2 ...]"
+    local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  --json-dir <dir>: write JSON output into a custom directory\n  -t: truncate table cells to fixed widths\n  -b: wrap table cells and print multiline rows"
 
-    # Parse arguments
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -o)
-                sort_mode="-o"
-                shift
-                ;;
-            -a)
-                sort_mode="-a"
-                shift
-                ;;
-            -j)
-                json_mode=true
-                shift
-                ;;
-            --json-dir)
-                if [[ -z "${2:-}" ]]; then
-                    echo "Error: --json-dir requires a directory path."
-                    return 1
-                fi
-                json_output_dir="$2"
-                shift 2
-                ;;
-            -t)
-                truncate_mode=true
-                shift
-                ;;
-            -b)
-                break_mode=true
-                shift
-                ;;
-            -h|--help)
-                aux_use
-                return 0
-                ;;
-            "")
-                # Compatibility with aux_ffl aliases that pass an empty flag
-                shift
-                ;;
-            -*)
-                echo "Invalid option: '$1'"
-                echo "Usage: ana_acu [options: -o|-a|-j|-t|-b|--json-dir <dir>] <config file or directory> <target folder1> [target folder2 ...]"
-                return 1
-                ;;
-            *)
-                positional_args+=("$1")
-                shift
-                ;;
-        esac
-    done
+    _ana_acu_parse_args sort_mode json_mode truncate_mode break_mode json_output_dir positional_args "$usage_message" "$@"
+    local parse_status=$?
+    if [[ "$parse_status" -eq 2 ]]; then
+        return 0
+    fi
+    if [[ "$parse_status" -ne 0 ]]; then
+        return "$parse_status"
+    fi
 
     if [[ ${#positional_args[@]} -lt 2 ]]; then
         echo "Error: Missing required config source and/or target folders."
-        echo "Usage: ana_acu [options: -o|-a|-j|-t|-b|--json-dir <dir>] <config file or directory> <target folder1> [target folder2 ...]"
+        echo "$usage_message"
         return 1
     fi
 
@@ -823,9 +999,6 @@ ana_acu() {
     local tab_width_var_values=30
     local tab_width_total_occ=10
     local tab_width_per_dir_occ=40
-
-    local usage_message="Usage: ana_acu [options: -o|-a|-j|-t|-b|--json-dir <dir>] <config file or directory> <target folder1> [target folder2 ...]"
-    local sort_mode_details="  -o: original order from config file\n  -a: alphanumeric order of variable names\n  -j: JSON output mode (enables JSON generation)\n  --json-dir <dir>: write JSON output into a custom directory\n  -t: truncate table cells to fixed widths\n  -b: wrap table cells and print multiline rows"
 
     if [ ${#target_folders_input[@]} -eq 0 ]; then
         echo "Error: At least one target folder must be specified."
@@ -1013,26 +1186,7 @@ ana_acu() {
         header_string+=$(printf "%-${tab_width_total_occ}s | " "Total Occ.")
         for target_folder_path in "${target_folders_input[@]}"; do
             local display_path_for_header
-            if [[ -n "$LAB_DIR" && "$target_folder_path" == "$LAB_DIR"* ]]; then
-                # Path is under LAB_DIR (or is LAB_DIR itself)
-                # Remove $LAB_DIR prefix.
-                # e.g., LAB_DIR="/home/es/lab", target="/home/es/lab/foo" -> display_path_for_header becomes "/foo"
-                # e.g., LAB_DIR="/home/es/lab/", target="/home/es/lab/foo" -> display_path_for_header becomes "foo"
-                display_path_for_header="${target_folder_path#$LAB_DIR}"
-                
-                # Remove leading slash if present (e.g. if LAB_DIR had no trailing slash)
-                # "/foo" -> "foo"; "foo" -> "foo"; "" -> ""
-                display_path_for_header="${display_path_for_header#/}"
-
-                if [[ -z "$display_path_for_header" ]]; then
-                    # This case occurs if target_folder_path was $LAB_DIR or $LAB_DIR/
-                    # (after stripping prefix and leading slash, it's empty)
-                    display_path_for_header="."
-                fi
-            else
-                # Fallback: LAB_DIR not set, or path not under LAB_DIR
-                display_path_for_header=$(basename "$target_folder_path")
-            fi
+            display_path_for_header=$(_ana_acu_display_folder_path "$target_folder_path" "${LAB_DIR:-}")
             header_string+=$(printf "%s | " "$(_ana_acu_format_cell "$display_path_for_header" "$tab_width_per_dir_occ")")
         done
         printf "%s\n" "$header_string"
@@ -1117,38 +1271,27 @@ ana_acu() {
 
     _ana_acu_print_header
 
+    declare -A var_total_occurrence_map
+    declare -A var_folders_data_map
+    local data_separator=$'\x1f'
+
     for var_name in "${vars_to_iterate[@]}"; do
         local var_value="${config_vars[$var_name]}"
         local overall_total_occurrences_for_var=0
-        local per_dir_details_for_row=() # Stores "file:count,..." or "0" for each target dir
+        local per_dir_details_for_row=()
+        local folders_data=()
 
-        for target_folder_path in "${target_folders_input[@]}"; do
-            local occurrences_in_current_dir_total=0
-            local files_with_occurrences_details_in_dir=() # Collects "basename:count" for this dir
-            
-            # Use find with timeout protection and simpler approach
-            while IFS= read -r -d '' target_file_in_dir; do
-                if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
-                    local occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
-                    if [[ "$occurrences_in_file" -gt 0 ]]; then
-                        occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
-                        files_with_occurrences_details_in_dir+=("$(basename "$target_file_in_dir"):$occurrences_in_file")
-                    fi
-                fi
-            done < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print0 2>/dev/null)
-
-            local dir_details_display_str="0" # Default to "0"
-            if [ ${#files_with_occurrences_details_in_dir[@]} -gt 0 ]; then
-                dir_details_display_str=$(IFS=,; echo "${files_with_occurrences_details_in_dir[*]}")
-            fi
-            per_dir_details_for_row+=("$dir_details_display_str")
-            
-            overall_total_occurrences_for_var=$((overall_total_occurrences_for_var + occurrences_in_current_dir_total))
-        done
+        _ana_acu_collect_usage_for_var "$var_name" target_folders_input "${LAB_DIR:-}" per_dir_details_for_row folders_data overall_total_occurrences_for_var
         
         _ana_acu_print_row "$var_name" "$var_value" "$overall_total_occurrences_for_var" "${per_dir_details_for_row[@]}"
         if [[ "$break_mode" == true ]]; then
             _ana_acu_print_separator_2
+        fi
+
+        if [[ "$json_mode" == true ]]; then
+            var_total_occurrence_map["$var_name"]="$overall_total_occurrences_for_var"
+            local IFS="$data_separator"
+            var_folders_data_map["$var_name"]="${folders_data[*]}"
         fi
     done
 
@@ -1156,16 +1299,6 @@ ana_acu() {
     
     # Generate JSON output if requested
     if [[ "$json_mode" == true ]]; then
-        _ana_acu_json_escape() {
-            local raw="$1"
-            raw=${raw//\\/\\\\}
-            raw=${raw//\"/\\\"}
-            raw=${raw//$'\n'/\\n}
-            raw=${raw//$'\r'/\\r}
-            raw=${raw//$'\t'/\\t}
-            printf '%s' "$raw"
-        }
-
         # Create JSON output directory
         local lab_dir="${LAB_DIR:-$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")}"
         local tmp_dir="${json_output_dir:-$lab_dir/.tmp/doc}"
@@ -1195,42 +1328,13 @@ EOF
         local first_var=true
         for var_name in "${vars_to_iterate[@]}"; do
             local var_value="${config_vars[$var_name]}"
-            local overall_total_occurrences_for_var=0
+            local overall_total_occurrences_for_var="${var_total_occurrence_map[$var_name]:-0}"
             local folders_data=()
-            
-            for target_folder_path in "${target_folders_input[@]}"; do
-                local occurrences_in_current_dir_total=0
-                local files_with_occurrences_details_in_dir=()
-                
-                # Use find with timeout protection and simpler approach for JSON
-                while IFS= read -r -d '' target_file_in_dir; do
-                    if [[ -f "$target_file_in_dir" && -r "$target_file_in_dir" ]]; then
-                        local occurrences_in_file=$(grep -E -o "\\b${var_name}\\b" "$target_file_in_dir" 2>/dev/null | wc -l)
-                        if [[ "$occurrences_in_file" -gt 0 ]]; then
-                            occurrences_in_current_dir_total=$((occurrences_in_current_dir_total + occurrences_in_file))
-                            files_with_occurrences_details_in_dir+=("\"$(basename "$target_file_in_dir")\":$occurrences_in_file")
-                        fi
-                    fi
-                done < <(find "$target_folder_path" \( -name ".git" -o -name ".svn" -o -name "node_modules" -o -name "vendor" \) -prune -o -type f -print0 2>/dev/null)
-                
-                # Create folder data
-                local folder_relative_path
-                if [[ -n "$LAB_DIR" && "$target_folder_path" == "$LAB_DIR"* ]]; then
-                    folder_relative_path="${target_folder_path#$LAB_DIR}"
-                    folder_relative_path="${folder_relative_path#/}"
-                    [[ -z "$folder_relative_path" ]] && folder_relative_path="."
-                else
-                    folder_relative_path=$(basename "$target_folder_path")
-                fi
-                
-                local files_json="{}"
-                if [ ${#files_with_occurrences_details_in_dir[@]} -gt 0 ]; then
-                    files_json="{$(IFS=,; echo "${files_with_occurrences_details_in_dir[*]}")}"
-                fi
-                
-                folders_data+=("    {\"path\":\"$folder_relative_path\",\"total_occurrences\":$occurrences_in_current_dir_total,\"files\":$files_json}")
-                overall_total_occurrences_for_var=$((overall_total_occurrences_for_var + occurrences_in_current_dir_total))
-            done
+
+            if [[ -n "${var_folders_data_map[$var_name]:-}" ]]; then
+                local IFS="$data_separator"
+                read -r -a folders_data <<< "${var_folders_data_map[$var_name]}"
+            fi
             
             # Add comma if not first variable
             if [[ "$first_var" == false ]]; then
