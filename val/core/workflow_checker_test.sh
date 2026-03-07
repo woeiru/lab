@@ -108,6 +108,66 @@ EOF
     return 0
 }
 
+assert_checker_passes_with_v2_container_layout() {
+    local test_env
+    local repo_dir
+
+    test_env="$(create_test_env "workflow_checker_v2_container_pass")"
+    repo_dir="$(create_checker_fixture_repo "$test_env")" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    mkdir -p "$repo_dir/wow/completed/20260307-ana_daily-rollup/20260307-1958_ana_folder-module-unification"
+    cat > "$repo_dir/wow/completed/20260307-ana_daily-rollup/20260307-2000_summary.md" <<'EOF'
+# Ana Daily Rollup Summary
+EOF
+    cat > "$repo_dir/wow/completed/20260307-ana_daily-rollup/20260307-1958_ana_folder-module-unification/20260307-1900_plan.md" <<'EOF'
+# Folder Module Unification
+EOF
+
+    if ! bash "$repo_dir/wow/check-workflow.sh" >/dev/null 2>&1; then
+        cleanup_test_env "$test_env"
+        return 1
+    fi
+
+    cleanup_test_env "$test_env"
+    return 0
+}
+
+assert_checker_rejects_v2_container_module_mismatch() {
+    local test_env
+    local repo_dir
+    local output=""
+
+    test_env="$(create_test_env "workflow_checker_v2_container_module_mismatch")"
+    repo_dir="$(create_checker_fixture_repo "$test_env")" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    mkdir -p "$repo_dir/wow/completed/20260307-ana_daily-rollup/20260307-1958_gpu_folder-module-unification"
+    cat > "$repo_dir/wow/completed/20260307-ana_daily-rollup/20260307-2000_summary.md" <<'EOF'
+# Ana Daily Rollup Summary
+EOF
+    cat > "$repo_dir/wow/completed/20260307-ana_daily-rollup/20260307-1958_gpu_folder-module-unification/20260307-1900_plan.md" <<'EOF'
+# Folder Module Unification
+EOF
+
+    if output="$(bash "$repo_dir/wow/check-workflow.sh" 2>&1)"; then
+        cleanup_test_env "$test_env"
+        return 1
+    fi
+
+    if [[ "$output" != *"FAIL completed container module mismatch"* ]]; then
+        cleanup_test_env "$test_env"
+        return 1
+    fi
+
+    cleanup_test_env "$test_env"
+    return 0
+}
+
 test_completed_root_move_regression() {
     run_test "Checker passes after completed-tree root move" \
         assert_checker_passes_after_completed_root_move
@@ -118,10 +178,22 @@ test_completed_folder_chronology_guard() {
         assert_checker_fails_when_file_is_newer_than_folder
 }
 
+test_v2_container_layout_passes() {
+    run_test "Checker accepts valid v2 container layout" \
+        assert_checker_passes_with_v2_container_layout
+}
+
+test_v2_container_module_mismatch_fails() {
+    run_test "Checker rejects v2 container module mismatch" \
+        assert_checker_rejects_v2_container_module_mismatch
+}
+
 test_header "Workflow Checker Regression"
 
 run_test_group "Completed Timestamp Rules" \
     test_completed_root_move_regression \
-    test_completed_folder_chronology_guard
+    test_completed_folder_chronology_guard \
+    test_v2_container_layout_passes \
+    test_v2_container_module_mismatch_fails
 
 test_footer

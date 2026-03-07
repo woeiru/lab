@@ -5,21 +5,33 @@ Perform a weekly wow maintenance pass.
 Do this in order:
 1. Run bash wow/check-workflow.sh; fix structural/naming issues only
    (checker failures are safe to fix autonomously)
-2. List active items; flag stale ones (Updated older than 7 days)
-3. For each stale item, recommend: keep active, complete, or dismiss
-4. Review queue ordering; suggest top 3 execution candidates
-5. Verify completed items are in `completed/yyyymmdd-hhmm_<topic>/` and
-   that folder timestamp is >= each file timestamp prefix in that folder;
-   also flag empty topic folders
-6. Re-run bash wow/check-workflow.sh
+2. Run completed compaction for v2 leaves:
+   - Source leaves: `completed/yyyymmdd-hhmm_<module>_<task-slug>/`
+   - Group by day+module into containers:
+     `completed/yyyymmdd-<module>_<essence-slug>/`
+   - Keep leaf folder names immutable (move only; never rename)
+   - Reuse existing container for the same day+module if present
+   - Create/update one markdown summary artifact in each touched container
+3. List active items; flag stale ones (Updated older than 7 days)
+4. For each stale item, recommend: keep active, complete, or dismiss
+5. Review queue ordering; suggest top 3 execution candidates
+6. Verify completed layout invariants:
+   - v2 leaves and v2 containers follow naming contract
+   - nested leaves under containers keep day/module alignment
+   - legacy folders remain accepted but are reported for optional migration
+   - no empty completed folders
+7. Re-run bash wow/check-workflow.sh
 
 Constraints:
 - Fix only structural issues (checker failures) autonomously
 - Do not move files between workflow states without my approval
+- Moving completed leaves into completed containers is allowed (same state).
 - Present state-transition recommendations as a list for me to approve
 
 Report:
 - Checker results (before and after)
+- Completed compaction actions (created/reused containers, moved leaves, summaries)
+- Legacy completed folders skipped for manual mapping (if any)
 - Active summary with staleness flags
 - Recommendation per stale item
 - Queue priority ranking

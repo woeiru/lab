@@ -57,7 +57,7 @@ flowchart TD
 | `active-assign` | Bind child workstreams to owners/branches/worktrees | Updates parent + child orchestration metadata |
 | `active-sync` | Roll up child status into parent | Updates parent workstream states and sync snapshot |
 | `active-converge` | Converge a wave and decide next release gate | Updates parent convergence log; may create follow-up inbox item (or direct queue item when mandatory and priority-locked) |
-| `completed-close` / `dismissed-close` | Close active work as accepted or rejected | Moves files to `completed/` or `dismissed/`; completed close records docs outcome, and follow-ups default to inbox with direct queue allowed for mandatory priority-locked items |
+| `completed-close` / `dismissed-close` | Close active work as accepted or rejected | Moves files to `completed/` or `dismissed/`; standard close uses immutable v2 leaf naming (`yyyymmdd-hhmm_<module>_<task-slug>`), bundle close can group leaves into day/module containers, and follow-ups default to inbox with direct queue allowed for mandatory priority-locked items |
 | `status` | Read-only board overview | No file changes |
 | `maintenance` | Weekly structural hygiene pass | May fix checker-detected structure only (no state moves without approval) |
 
@@ -209,8 +209,9 @@ wow/active/20260307-1000_account-rotation-healthcheck-plan.md
 Program close follows the same close task once parent and children meet exit
 criteria.
 
-Expected result: completed artifacts live under
-`wow/completed/yyyymmdd-hhmm_<topic>/` with timestamp-correct structure.
+Expected result: completed artifacts live under immutable v2 leaves,
+`wow/completed/yyyymmdd-hhmm_<module>_<task-slug>/`, optionally grouped into
+`wow/completed/yyyymmdd-<module>_<essence-slug>/` containers.
 
 Documentation closeout on `completed-close`:
 

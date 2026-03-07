@@ -6,21 +6,30 @@ Finalize this active item into completed state using bundle-aware close routing.
 
 - Supported bundle modes: `auto`, `manual`, `off`
   - If mode is `off`, run `wow/task/completed-close` and stop.
+- Build the immutable close leaf first using the `completed-close` naming contract:
+  `wow/completed/<yyyymmdd-hhmm>_<module>_<task-slug>/`
 - Keep each file's existing filename timestamp prefix unchanged.
 - Set `Status: completed`.
 
-Bundle key resolution:
+Container key resolution:
 
-1. Resolve explicit override first (manual behavior):
-   - `close_bundle=<value>` in user prompt, or
-   - `Bundle-ID: <value>` in `## Bundle Close Metadata`.
-2. If no override and mode is `auto`, resolve module key from:
-   - `Module: <value>` in `## Bundle Close Metadata`, or
-   - `module=<value>` in user prompt.
-3. If mode is `auto` and no deterministic key is available, stop and report the
-   missing field(s) needed to continue.
+1. Resolve module key from (in order):
+   - `module=<value>` in user prompt
+   - `Module: <value>` in `## Bundle Close Metadata`
+   - fallback `multi`
+2. Resolve bundle essence slug from (in order):
+   - `essence=<value>` in user prompt
+   - `Essence: <value>` in `## Bundle Close Metadata`
+   - fallback `daily-rollup`
+3. Optional manual day override:
+   - `bundle_day=<yyyymmdd>` in user prompt, or
+   - `Day: <yyyymmdd>` in `## Bundle Close Metadata`
+4. If mode is `manual`, allow explicit full container override via:
+   - `close_bundle=<yyyymmdd-module_essence>` in user prompt, or
+   - `Bundle-ID: <yyyymmdd-module_essence>` in `## Bundle Close Metadata`
+5. If mode is `auto`, derive day from the close timestamp date (`yyyymmdd`).
 
-Normalization for bundle/module values:
+Normalization for module/essence values:
 
 - Lowercase
 - Replace spaces/underscores with `-`
@@ -28,26 +37,25 @@ Normalization for bundle/module values:
 - Collapse repeated `-`
 - Trim leading/trailing `-`
 
-Bundle folder resolution:
+Container folder resolution:
 
-1. Compute `bundle-slug` from the resolved key.
-2. If an existing folder under `wow/completed/` matches
-   `*-bundle-<bundle-slug>`, reuse that folder exactly.
-3. Otherwise create a new folder named
-   `<current-close-timestamp>-bundle-<bundle-slug>`.
-4. Never rename an existing bundle folder after creation.
-5. For a newly created bundle folder, use the current close timestamp.
-   For reused bundle folders, keep the existing folder name unchanged.
+1. Compute `day-module-key` as `<yyyymmdd>-<module>`.
+2. If a container exists under `wow/completed/` with prefix
+   `<yyyymmdd>-<module>_`, reuse it exactly.
+3. Otherwise create:
+   `<yyyymmdd>-<module>_<essence-slug>`.
+4. Never rename an existing container after creation.
+5. Move the immutable close leaf into the container without renaming the leaf.
 
-Bundle registry contract (`wow/completed/.bundle-registry.tsv`):
+Container registry contract (`wow/completed/.bundle-registry.tsv`):
 
 - Ensure the file exists (create if missing).
-- Keep one entry per `bundle-slug`:
-  `bundle-slug<TAB>folder-name<TAB>created-at<TAB>source-item-path`
+- Keep one entry per day-module key:
+  `day-module-key<TAB>folder-name<TAB>created-at<TAB>source-item-path`
 - On close:
-  - If slug exists and folder matches, keep existing entry.
-  - If slug exists and folder differs, stop and report registry conflict.
-  - If slug does not exist, append new entry.
+  - If key exists and folder matches, keep existing entry.
+  - If key exists and folder differs, stop and report registry conflict.
+  - If key does not exist, append new entry.
 
 Add final sections to the completed item:
 
@@ -74,7 +82,8 @@ Documentation closeout is mandatory:
   changes, dependency changes, variable map changes), run
   `./utl/ref/run_all_doc.sh` and capture the result under `What was verified`.
 
-- If related review/result docs exist in active/, move them to the same bundle
-  folder.
-- Report: completed folder path + bundle slug + created/reused decision +
+- If related review/result docs exist in active/, move them to the same leaf
+  folder inside the resolved container.
+- Report: completed leaf path + container path + day-module key +
+  created/reused decision +
   verification evidence summary.

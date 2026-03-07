@@ -36,13 +36,18 @@ Parallel orchestration rules (for large initiatives):
 Folder-specific naming:
 - inbox/: filename must end with -plan.md, -issue.md, -review.md, or -followup.md
 - dismissed/: filename must end with -plan.md; must include ## Dismissal Reason
-- completed/: files must be in completed/<topic-folder>/<file>.md (one subfolder deep)
-- completed/: valid topic-folder formats are:
-  - standard close: yyyymmdd-hhmm_<topic>
-  - bundle close: yyyymmdd-hhmm-bundle-<module-slug>
-- completed/: folder timestamp is the close time and must be >= every file timestamp prefix inside that folder
-- completed/: bundle folders must keep one stable folder per module-slug (do not create multiple `*-bundle-<module-slug>` folders)
-- completed/: topic folders must not be empty
+- completed/: primary close leaf (v2): `completed/yyyymmdd-hhmm_<module>_<task-slug>/`
+- completed/: maintenance container (v2): `completed/yyyymmdd-<module>_<essence-slug>/`
+- completed/: bundle containers may hold immutable close leaves one level deeper:
+  `completed/yyyymmdd-<module>_<essence-slug>/yyyymmdd-hhmm_<module>_<task-slug>/file.md`
+- completed/: leaf folder close timestamp (`yyyymmdd-hhmm`) must be >= any file timestamp prefix inside that leaf
+- completed/: maintenance containers must be unique per day+module key (`yyyymmdd-<module>`)
+- completed/: bundle containers must include at least one markdown summary artifact and at least one leaf folder
+- completed/: legacy compatibility (accepted, do not rewrite automatically):
+  - legacy standard close: `yyyymmdd-hhmm_<topic>`
+  - legacy bundle close: `yyyymmdd-hhmm-bundle-<module-slug>`
+- completed/: legacy bundle folders keep one stable folder per module-slug (no duplicate `*-bundle-<module-slug>`)
+- completed/: completed topic/container folders must not be empty
 
 Follow-up routing policy:
 - Default route for follow-up items from close/converge actions is inbox/.
@@ -77,7 +82,7 @@ Validation:
 - Run: bash wow/check-workflow.sh before finishing.
 - If the checker fails, fix every reported issue before returning.
   Common fixes: rename for timestamp prefix, add missing header fields,
-  move completed files into topic subfolder, replace legacy completed/<topic>/ placeholders,
+  move completed files into valid v2/legacy completed subfolders, replace legacy completed/<topic>/ placeholders,
   rename completed topic folder timestamp to match latest Updated close time or latest content-update commit time,
   add ## Dismissal Reason.
 - Report the checker output (pass or itemized failures) in your response.

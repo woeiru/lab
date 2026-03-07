@@ -32,7 +32,7 @@ Optional bundle-close path when related items should share one completed folder:
 
 ```text
 wow/task/completed-close-bundle
-wow/active/<item>.md mode=auto module=<module-name>
+wow/active/<item>.md mode=auto module=<module-name> essence=<summary-slug>
 ```
 
 Parallel trigger (large initiatives only, from active parent):
@@ -285,27 +285,31 @@ If something is in `active/`, it is not done yet.
 
 ## Keep `completed/` organized
 
-Use one subfolder per finished topic, **prefixed with the completion timestamp**:
+Use v2 immutable leaves and day/module containers:
 
-- Standard format: `completed/yyyymmdd-hhmm_<topic>/<files>.md`
-- Bundle format: `completed/yyyymmdd-hhmm-bundle-<module-slug>/<files>.md`
-- The **folder timestamp** is the close time for the completed topic.
-- The **file timestamps** inside are creation dates (when the artifact was first written).
-- The folder timestamp must be the same as or later than every file timestamp in that folder.
-- For bundle folders, keep one stable folder per module slug; reuse the existing
-  `*-bundle-<module-slug>` folder instead of creating a second one.
-- This gives two independent timelines: `ls completed/` shows when work
-  finished; `ls completed/<topic-folder>/` shows how it evolved.
+- Standard close leaf (v2): `completed/yyyymmdd-hhmm_<module>_<task-slug>/<files>.md`
+- Maintenance container (v2): `completed/yyyymmdd-<module>_<essence-slug>/`
+- Nested leaf layout (v2):
+  `completed/yyyymmdd-<module>_<essence-slug>/yyyymmdd-hhmm_<module>_<task-slug>/<files>.md`
+- Legacy compatibility remains accepted for historical folders:
+  - `completed/yyyymmdd-hhmm_<topic>/<files>.md`
+  - `completed/yyyymmdd-hhmm-bundle-<module-slug>/<files>.md`
+- Leaf folder timestamp (`yyyymmdd-hhmm`) is the close time and must be >= file
+  creation timestamp prefixes in that leaf.
+- Maintenance containers are unique per day+module key (`yyyymmdd-<module>`),
+  include one markdown summary artifact, and keep leaf names immutable.
 
 Example:
 
 ```
-completed/20260301-1500_ana-module-expansion/
-    20260227-0310_plan.md          # created early
-    20260227-0310_result.md        # created early
+completed/20260301-ana_daily-rollup/
+    20260301-1500_ana_module-expansion/
+        20260227-0310_plan.md          # created early
+        20260227-0310_result.md        # created early
+    20260301-1605_summary.md
 ```
 
-`ls completed/` sorts chronologically by completion date without needing an index.
+`ls completed/` stays scan-friendly by close day/module, while leaf folders preserve exact close timestamps.
 
 ## Minimal document template
 
@@ -342,8 +346,10 @@ Optional active artifact contract block:
   - Dismissed docs include `## Dismissal Reason`.
   - `active/` contains only in-progress items.
   - `active/waivers/*_waiver-register.md` entries include owner, expiry date, and removal criteria.
-  - Completed topics live under either `completed/yyyymmdd-hhmm_<topic>/` or
-    `completed/yyyymmdd-hhmm-bundle-<module-slug>/`.
+  - New completed leaves use `completed/yyyymmdd-hhmm_<module>_<task-slug>/`.
+  - Day/module containers use `completed/yyyymmdd-<module>_<essence-slug>/`
+    and may contain immutable leaf folders one level deeper.
+  - Legacy completed folders remain accepted for historical records.
 - Checker script: `bash wow/check-workflow.sh`
 
 ## Checker behavior
@@ -364,13 +370,21 @@ Optional active artifact contract block:
   `Docs: updated`, `Docs: none`, or `Docs: deferred`
 - Inbox naming pattern (`-plan`, `-issue`, `-review`, `-followup`)
 - Dismissed naming pattern (`-plan`) and required `## Dismissal Reason`
-- Completed structure: `completed/<topic-folder>/<file>.md` where `<topic-folder>`
-  is either `yyyymmdd-hhmm_<topic>` or `yyyymmdd-hhmm-bundle-<module-slug>`
-- Completed topic folders: direct children of `completed/` must match one of
-  the two valid topic-folder patterns above
-- Completed topic folders are non-empty (must contain at least one markdown artifact)
-- Completed chronology (non-bundle folders): folder completion timestamp is not older than file creation timestamp prefixes
-- Bundle stability: only one folder per `module-slug` may match `*-bundle-<module-slug>`
+- Completed structure supports:
+  - `completed/<leaf-folder>/<file>.md`
+  - `completed/<container-folder>/<leaf-folder>/<file>.md`
+- Valid leaf folders:
+  - v2: `yyyymmdd-hhmm_<module>_<task-slug>`
+  - legacy: `yyyymmdd-hhmm_<topic>` and `yyyymmdd-hhmm-bundle-<module-slug>`
+- Valid container folders (v2): `yyyymmdd-<module>_<essence-slug>`
+- Completed chronology: leaf folder completion timestamp is not older than file
+  creation timestamp prefixes inside that leaf
+- Container alignment: nested leaf day must match container day; if nested leaf
+  is v2, its module must match container module
+- Container uniqueness: one v2 container per day+module key and one legacy
+  bundle folder per module slug
+- Completed topic/container folders are non-empty; v2 containers must include
+  at least one markdown summary artifact and at least one leaf folder
 - Legacy completed placeholder paths are not allowed (`completed/<topic>/`)
 
 It does not currently enforce:
@@ -384,16 +398,21 @@ Common fixes when it fails:
 - `FAIL timestamp prefix`: rename file to `yyyymmdd-hhmm_filename`
 - `FAIL header`: add missing header fields near the top of the document
 - `FAIL completed structure`: move file to `completed/<topic-folder>/` using
-  `yyyymmdd-hhmm_<topic>` or `yyyymmdd-hhmm-bundle-<module-slug>`
+  v2 leaf/container layout or a supported legacy pattern
 - `FAIL completed folder timestamp`: rename folder to a valid topic-folder name
-  with `yyyymmdd-hhmm` close timestamp prefix
+  (`yyyymmdd-hhmm_<module>_<task-slug>`, legacy `yyyymmdd-hhmm_<topic>`,
+  legacy `yyyymmdd-hhmm-bundle-<module-slug>`, or `yyyymmdd-<module>_<essence>`)
 - `FAIL completed topic folder`: rename topic folder to one valid pattern:
-  `yyyymmdd-hhmm_<topic>` or `yyyymmdd-hhmm-bundle-<module-slug>`
+  v2 leaf/container format or supported legacy format
 - `FAIL completed topic folder empty`: remove empty folder or move related completed docs into it
 - `FAIL completed folder chronology`: rename completed folder timestamp to a value that is not older than any completed file prefix
 - `FAIL completed bundle duplicate`: move files into the existing bundle folder
   for that module slug and keep one stable `*-bundle-<module-slug>` folder
-- `FAIL legacy completed placeholder`: replace `completed/<topic>/` with `completed/yyyymmdd-hhmm_<topic>/`
+- `FAIL completed container duplicate`: keep one container per day+module key and move leaves into it
+- `FAIL completed container day/module mismatch`: move nested leaves so day/module align with container
+- `FAIL completed container child`: keep only valid leaf folders under v2 containers
+- `FAIL legacy completed placeholder`: replace `completed/<topic>/` with
+  `completed/yyyymmdd-hhmm_<module>_<task-slug>/` (or an accepted legacy path)
 - `FAIL dismissal reason`: add `## Dismissal Reason` section in dismissed item
 - `FAIL documentation impact missing/token`: add one `## Documentation Impact`
   section with exactly one docs token (`required|none|deferred`)

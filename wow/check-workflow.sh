@@ -13,6 +13,7 @@ declare -A ORCH_CHILD_DEPS_BY_NODE=()
 declare -A ORCH_NODE_STATE=()
 declare -A ORCH_CYCLE_REPORTED=()
 declare -A COMPLETED_BUNDLE_FOLDER_BY_SLUG=()
+declare -A COMPLETED_CONTAINER_BY_DAY_MODULE=()
 
 is_markdown_doc() {
   local file="$1"
@@ -119,23 +120,12 @@ expected_status_for_file() {
   esac
 }
 
-completed_folder_timestamp() {
+is_completed_legacy_bundle_folder() {
   local folder="$1"
-
-  if [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]; then
-    printf '%s\n' "${BASH_REMATCH[1]}"
-    return 0
-  fi
-
-  if [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})-bundle-([a-z0-9]+(-[a-z0-9]+)*)$ ]]; then
-    printf '%s\n' "${BASH_REMATCH[1]}"
-    return 0
-  fi
-
-  return 1
+  [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})-bundle-([a-z0-9]+(-[a-z0-9]+)*)$ ]]
 }
 
-completed_bundle_slug() {
+completed_legacy_bundle_slug() {
   local folder="$1"
 
   if [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})-bundle-([a-z0-9]+(-[a-z0-9]+)*)$ ]]; then
@@ -144,6 +134,82 @@ completed_bundle_slug() {
   fi
 
   return 1
+}
+
+is_completed_v2_leaf_folder() {
+  local folder="$1"
+  [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})_([a-z0-9]+(-[a-z0-9]+)*)_([a-z0-9]+(-[a-z0-9]+)*)$ ]]
+}
+
+completed_v2_leaf_timestamp() {
+  local folder="$1"
+
+  if [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})_([a-z0-9]+(-[a-z0-9]+)*)_([a-z0-9]+(-[a-z0-9]+)*)$ ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
+  return 1
+}
+
+completed_v2_leaf_module() {
+  local folder="$1"
+
+  if [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})_([a-z0-9]+(-[a-z0-9]+)*)_([a-z0-9]+(-[a-z0-9]+)*)$ ]]; then
+    printf '%s\n' "${BASH_REMATCH[2]}"
+    return 0
+  fi
+
+  return 1
+}
+
+is_completed_standard_leaf_folder() {
+  local folder="$1"
+  [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]
+}
+
+completed_standard_leaf_timestamp() {
+  local folder="$1"
+
+  if [[ "$folder" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
+  return 1
+}
+
+is_completed_v2_container_folder() {
+  local folder="$1"
+  [[ "$folder" =~ ^([0-9]{8})-([a-z0-9]+(-[a-z0-9]+)*)_([a-z0-9]+(-[a-z0-9]+)*)$ ]] && [[ "${BASH_REMATCH[2]}" == *[a-z]* ]]
+}
+
+completed_v2_container_day() {
+  local folder="$1"
+
+  if [[ "$folder" =~ ^([0-9]{8})-([a-z0-9]+(-[a-z0-9]+)*)_([a-z0-9]+(-[a-z0-9]+)*)$ ]] && [[ "${BASH_REMATCH[2]}" == *[a-z]* ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
+  return 1
+}
+
+completed_v2_container_module() {
+  local folder="$1"
+
+  if [[ "$folder" =~ ^([0-9]{8})-([a-z0-9]+(-[a-z0-9]+)*)_([a-z0-9]+(-[a-z0-9]+)*)$ ]] && [[ "${BASH_REMATCH[2]}" == *[a-z]* ]]; then
+    printf '%s\n' "${BASH_REMATCH[2]}"
+    return 0
+  fi
+
+  return 1
+}
+
+completed_leaf_timestamp() {
+  local folder="$1"
+
+  completed_standard_leaf_timestamp "$folder"
 }
 
 should_enforce_header_and_status() {
@@ -350,37 +416,83 @@ check_completed_structure() {
   local file="$1"
   local rel
   local base
-  local folder
+  local level1
+  local level2=""
+  local remainder
   local folder_ts
   local file_ts
   local folder_key
   local file_key
+  local container_day
+  local container_module
+  local leaf_day
+  local leaf_module
   rel="${file#"$ROOT/completed/"}"
 
   if [[ "$rel" != */* ]]; then
-    printf 'FAIL completed structure: %s (expected completed/<yyyymmdd-hhmm_topic>/<file>.md)\n' "$file"
+    printf 'FAIL completed structure: %s (expected completed/<topic-folder>/<file>.md or completed/<yyyymmdd-module_essence>/<leaf-folder>/<file>.md)\n' "$file"
     failures=$((failures + 1))
     return
   fi
 
-  if [[ "$rel" == */*/* ]]; then
-    printf 'FAIL completed structure: %s (too deep; expected one topic folder)\n' "$file"
+  if [[ "$rel" == */*/*/* ]]; then
+    printf 'FAIL completed structure: %s (too deep; expected at most one container level above leaf folders)\n' "$file"
     failures=$((failures + 1))
     return
   fi
 
-  folder="${rel%%/*}"
-  folder_ts="$(completed_folder_timestamp "$folder" || true)"
-  if [[ -z "$folder_ts" ]]; then
-    printf 'FAIL completed folder timestamp: %s (expected yyyymmdd-hhmm_<topic> or yyyymmdd-hhmm-bundle-<module-slug>)\n' "$file"
-    failures=$((failures + 1))
-    return
+  level1="${rel%%/*}"
+  remainder="${rel#*/}"
+  if [[ "$remainder" == */* ]]; then
+    level2="${remainder%%/*}"
+    base="${remainder#*/}"
+  else
+    base="$remainder"
   fi
 
-  base="$(basename "$file")"
+  if [[ -n "$level2" ]]; then
+    if ! is_completed_v2_container_folder "$level1"; then
+      printf 'FAIL completed structure: %s (nested completed paths require container folder yyyymmdd-<module>_<essence>)\n' "$file"
+      failures=$((failures + 1))
+      return
+    fi
 
-  if completed_bundle_slug "$folder" >/dev/null; then
-    return
+    if ! is_completed_standard_leaf_folder "$level2" || is_completed_legacy_bundle_folder "$level2"; then
+      printf 'FAIL completed structure: %s (invalid nested leaf folder: expected yyyymmdd-hhmm_<module>_<task-slug> or legacy yyyymmdd-hhmm_<topic>)\n' "$file"
+      failures=$((failures + 1))
+      return
+    fi
+
+    container_day="$(completed_v2_container_day "$level1" || true)"
+    container_module="$(completed_v2_container_module "$level1" || true)"
+    folder_ts="$(completed_leaf_timestamp "$level2" || true)"
+    leaf_day="${folder_ts%%-*}"
+
+    if [[ -n "$container_day" ]] && [[ -n "$leaf_day" ]] && [[ "$container_day" != "$leaf_day" ]]; then
+      printf 'FAIL completed container day mismatch: %s (container day %s must match leaf day %s)\n' "$file" "$container_day" "$leaf_day"
+      failures=$((failures + 1))
+    fi
+
+    leaf_module="$(completed_v2_leaf_module "$level2" || true)"
+    if [[ -n "$leaf_module" ]] && [[ -n "$container_module" ]] && [[ "$leaf_module" != "$container_module" ]]; then
+      printf 'FAIL completed container module mismatch: %s (container module %s must match leaf module %s)\n' "$file" "$container_module" "$leaf_module"
+      failures=$((failures + 1))
+    fi
+  else
+    if is_completed_v2_container_folder "$level1"; then
+      return
+    fi
+
+    folder_ts="$(completed_leaf_timestamp "$level1" || true)"
+    if [[ -z "$folder_ts" ]] && ! is_completed_legacy_bundle_folder "$level1"; then
+      printf 'FAIL completed folder timestamp: %s (expected yyyymmdd-hhmm_<module>_<task-slug>, legacy yyyymmdd-hhmm_<topic>, yyyymmdd-hhmm-bundle-<module-slug>, or yyyymmdd-<module>_<essence>)\n' "$file"
+      failures=$((failures + 1))
+      return
+    fi
+
+    if is_completed_legacy_bundle_folder "$level1"; then
+      return
+    fi
   fi
 
   if [[ ! "$base" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]; then
@@ -403,15 +515,23 @@ check_completed_topic_folder() {
   local bundle_slug=""
   local existing_dir=""
   local md_files=()
+  local child_dirs=()
+  local child_dir
+  local child_base
+  local child_md_files=()
+  local valid_leaf_dirs=0
   local had_nullglob=0
+  local container_day=""
+  local container_module=""
+  local container_key=""
 
   folder="$(basename "$dir")"
-  if ! completed_folder_timestamp "$folder" >/dev/null; then
-    printf 'FAIL completed topic folder: %s (expected yyyymmdd-hhmm_<topic> or yyyymmdd-hhmm-bundle-<module-slug>)\n' "$dir"
+  if ! is_completed_standard_leaf_folder "$folder" && ! is_completed_legacy_bundle_folder "$folder" && ! is_completed_v2_container_folder "$folder"; then
+    printf 'FAIL completed topic folder: %s (expected yyyymmdd-hhmm_<module>_<task-slug>, legacy yyyymmdd-hhmm_<topic>, yyyymmdd-hhmm-bundle-<module-slug>, or yyyymmdd-<module>_<essence>)\n' "$dir"
     failures=$((failures + 1))
   fi
 
-  bundle_slug="$(completed_bundle_slug "$folder" || true)"
+  bundle_slug="$(completed_legacy_bundle_slug "$folder" || true)"
   if [[ -n "$bundle_slug" ]]; then
     existing_dir="${COMPLETED_BUNDLE_FOLDER_BY_SLUG[$bundle_slug]:-}"
     if [[ -n "$existing_dir" ]] && [[ "$existing_dir" != "$dir" ]]; then
@@ -422,14 +542,53 @@ check_completed_topic_folder() {
     fi
   fi
 
+  if is_completed_v2_container_folder "$folder"; then
+    container_day="$(completed_v2_container_day "$folder" || true)"
+    container_module="$(completed_v2_container_module "$folder" || true)"
+    container_key="${container_day}-${container_module}"
+    existing_dir="${COMPLETED_CONTAINER_BY_DAY_MODULE[$container_key]:-}"
+    if [[ -n "$existing_dir" ]] && [[ "$existing_dir" != "$dir" ]]; then
+      printf 'FAIL completed container duplicate: %s and %s (reuse one container per day+module: %s)\n' "$dir" "$existing_dir" "$container_key"
+      failures=$((failures + 1))
+    else
+      COMPLETED_CONTAINER_BY_DAY_MODULE[$container_key]="$dir"
+    fi
+  fi
+
   shopt -q nullglob && had_nullglob=1
   shopt -s nullglob
   md_files=("$dir"/*.md)
+  child_dirs=("$dir"/*/)
   if ((had_nullglob == 0)); then
     shopt -u nullglob
   fi
 
-  if ((${#md_files[@]} == 0)); then
+  if is_completed_v2_container_folder "$folder"; then
+    for child_dir in "${child_dirs[@]}"; do
+      child_base="$(basename "$child_dir")"
+      if is_completed_standard_leaf_folder "$child_base" && ! is_completed_legacy_bundle_folder "$child_base"; then
+        valid_leaf_dirs=$((valid_leaf_dirs + 1))
+        child_md_files=("$child_dir"*.md)
+        if ((${#child_md_files[@]} == 0)); then
+          printf 'FAIL completed topic folder empty: %s (nested leaf %s must include at least one markdown artifact)\n' "$dir" "$child_base"
+          failures=$((failures + 1))
+        fi
+      else
+        printf 'FAIL completed container child: %s (invalid child folder %s; expected leaf folder yyyymmdd-hhmm_<module>_<task-slug> or legacy yyyymmdd-hhmm_<topic>)\n' "$dir" "$child_base"
+        failures=$((failures + 1))
+      fi
+    done
+
+    if ((valid_leaf_dirs == 0)); then
+      printf 'FAIL completed topic folder empty: %s (bundle container must include at least one leaf folder)\n' "$dir"
+      failures=$((failures + 1))
+    fi
+
+    if ((${#md_files[@]} == 0)); then
+      printf 'FAIL completed topic folder empty: %s (bundle container must include at least one markdown summary artifact)\n' "$dir"
+      failures=$((failures + 1))
+    fi
+  elif ((${#md_files[@]} == 0)); then
     printf 'FAIL completed topic folder empty: %s (expected at least one markdown artifact)\n' "$dir"
     failures=$((failures + 1))
   fi
@@ -466,7 +625,7 @@ check_dismissal_reason() {
 check_legacy_completed_placeholder() {
   local file="$1"
   if grep -qE 'wow/completed/<topic>/|completed/<topic>/' "$file"; then
-    printf 'FAIL legacy completed placeholder: %s (replace completed/<topic>/ with completed/yyyymmdd-hhmm_<topic>/)\n' "$file"
+    printf 'FAIL legacy completed placeholder: %s (replace completed/<topic>/ with completed/yyyymmdd-hhmm_<module>_<task-slug>/ or a legacy-compatible completed path)\n' "$file"
     failures=$((failures + 1))
   fi
 }
