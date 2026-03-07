@@ -1,8 +1,8 @@
 # lab
 
-Bash-native infrastructure automation framework. No external tooling, no build system, no dependencies beyond coreutils. Manages real infrastructure -- virtual machines, GPUs, networking, storage, and system services -- through pure, stateless functions wired together at runtime by a purpose-built Dependency Injection Container.
+Bash-native infrastructure automation framework. No external tooling, no build system, no dependencies beyond coreutils. Manages real infrastructure -- virtual machines, GPUs, networking, storage, and system services -- through declarative reconciliation (`cfg/dcl` -> `src/rec` -> `src/run`) and compatibility runbook execution (`src/set` + DIC + `lib/ops`).
 
-Ships with 20 composable library modules across three tiers (core, general, ops), a hierarchical configuration system with hostname-aware parameter resolution, section-based deployment runbooks, and a full BDD-style test harness.
+Ships with 20 composable library modules across three tiers (core, general, ops), split desired/runtime configuration surfaces (`cfg/dcl`, `cfg/env`), plan-aware execution boundaries (`src/rec`, `src/run`), compatibility runbooks, and a full BDD-style test harness.
 
 ## Quick Start
 
@@ -42,6 +42,7 @@ lab/
 ├── cfg/
 │   ├── core/         Runtime constants and module dependencies
 │   ├── ali/          Shell aliases (static and dynamic)
+│   ├── dcl/          Declarative desired-state model (authoritative intent)
 │   ├── env/          Environment definitions (site / env / node hierarchy)
 │   ├── log/          Logging pipeline configs (Fluentd, Filebeat)
 │   └── pod/          Container definitions
@@ -51,6 +52,8 @@ lab/
 │   └── ops/          Operational modules (dev, gpu, net, pbs, pve, srv, ssh, sto, sys, usr)
 ├── src/
 │   ├── dic/          Dependency injection container
+│   ├── rec/          Declarative reconciliation/compile layer
+│   ├── run/          Plan-aware runbook dispatcher and enforcement
 │   └── set/          Section-based deployment runbooks
 ├── val/              BDD-style test framework and test suites
 ├── doc/              Architecture references, user guides, and auto-generated API docs
@@ -70,7 +73,7 @@ Most files under `lib/` and `bin/` have **no file extension** -- they are source
              |               ├── lib/ops      (operational modules)
              |               ├── lib/gen      (general utilities)
              |               ├── cfg/env      (environment config)
-             |               └── src/         (DIC + deployment)
+             |               └── src/         (DIC + rec/run + set compatibility)
              |
              ├── cfg/core/    (runtime constants + dependencies)
              └── lib/core/    (col, err, lo1, tme, ver)
@@ -78,23 +81,37 @@ Most files under `lib/` and `bin/` have **no file extension** -- they are source
 
 `bin/ini` loads core configuration and primitives first, then hands off to `bin/orc` which sources the remaining components in dependency order. Each component is optional and timed.
 
-### Three-Layer Execution Model
+### Execution Model
 
-The system separates **what** to do, **how** to resolve parameters, and **where** state lives:
+The system separates desired intent, runtime context, plan validation, and
+operation execution:
 
 ```
-  src/set/*  (deployment runbooks)
-      |
-      v
-  src/dic/ops  (dependency injection)
-      |
-      v
-  lib/ops/*  (pure functions)  <----  cfg/env/*  (environment state)
+cfg/dcl/*  (desired intent)
+    |
+    v
+src/rec/ops  (validate + compile)
+    |
+    v
+src/run/dispatch  (plan contract checks)
+    |
+    v
+src/set/*  (compat runbook entrypoints)
+    |
+    v
+src/dic/ops  (dependency injection)
+    |
+    v
+lib/ops/*  (infrastructure actions)
+
+cfg/env/* feeds runtime context into src/rec and src/dic
 ```
 
-1. **Pure Functions** (`lib/ops/`) -- stateless, parameterized operations. Accept explicit arguments, return standardized codes, log through `aux_*` helpers.
-2. **Dependency Injection** (`src/dic/`) -- analyzes function signatures, resolves parameters from the environment hierarchy, and injects them automatically.
-3. **Deployment Runbooks** (`src/set/`) -- hostname-mapped scripts that group DIC calls into sequential sections with interactive or headless execution.
+1. **Declarative Intent** (`cfg/dcl/`) -- authoritative desired-state model for target sections, rollout order/dependencies, and policy gates.
+2. **Reconciliation** (`src/rec/`) -- validates declarative contracts and emits deterministic plan artifacts.
+3. **Run Dispatch** (`src/run/`) -- enforces plan contracts (`compat|guarded|strict`) before runbook execution.
+4. **Compatibility Runbooks** (`src/set/`) -- host entrypoints retained during migration; default to dispatch-first delegation.
+5. **DIC + Ops** (`src/dic/`, `lib/ops/`) -- resolves parameters and executes state-changing operations.
 
 ### The DIC in Practice
 
@@ -115,17 +132,25 @@ Run any `ops` command without arguments to see a parameter preview showing what 
 
 ### Configuration Hierarchy
 
-Environment state cascades through three layers:
+Configuration is split by responsibility:
 
 ```
-cfg/env/site1          Base site configuration
+cfg/dcl/site1          Desired-state base
     |
-cfg/env/site1-dev      Environment override (dev / staging / prod)
+cfg/dcl/site1-dev      Desired-state environment overlay
     |
-cfg/env/site1-w2       Node-specific settings (per hostname)
+cfg/dcl/site1-h1       Desired-state node override
+
+cfg/env/site1          Runtime context base
+    |
+cfg/env/site1-dev      Runtime environment override
+    |
+cfg/env/site1-h1       Runtime node override
 ```
 
-Variables use hostname prefixes for multi-node clusters (e.g., `h1_NODE_PCI0`, `w2_USB_DEVICES`). The DIC resolves them automatically based on the target host.
+Use `cfg/dcl/*` to change intended behavior. Use `cfg/env/*` for runtime
+context/injection values (hostname-prefixed keys like `h1_NODE_PCI0`,
+`w2_USB_DEVICES`, etc.).
 
 ## Library Modules
 

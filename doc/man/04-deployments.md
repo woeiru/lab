@@ -1,7 +1,8 @@
 # 04 - Deployments and Runbooks
 
-This guide explains how deployment runbooks in `src/set/` are structured and executed.
-These scripts orchestrate multi-step infrastructure actions by calling `ops` functions.
+This guide explains how deployment runbooks are executed through the current
+compatibility stack: `src/set/*` entrypoints, `src/run/dispatch` validation,
+and section-level `ops` execution.
 
 ## Command Decision Flow
 
@@ -63,11 +64,12 @@ Each runbook (for example `src/set/h1`) usually follows this pattern:
 
 1. define script-local path helpers (`DIR_SH`, `FILE_SH`),
 2. export `LAB_REC_TARGET` from runbook identity,
-3. source `src/set/.menu`,
-4. source `src/dic/ops`,
-5. declare `MENU_OPTIONS` (`section_id -> section_function`),
-6. implement section functions (typically `*_xall`) that call `ops ... -j`,
-7. delegate argument handling to `setup_main "$@"`.
+3. delegate to `src/run/dispatch` by default (or to `src/dic/run` when `LAB_USE_DIC_RUN_BRIDGE=1`),
+4. after dispatch re-entry (`LAB_RUN_DISPATCH_BYPASS=1`), source `src/set/.menu` and `src/dic/ops`,
+5. call `menu_runtime_setup`,
+6. declare `MENU_OPTIONS` (`section_id -> section_function`),
+7. implement section functions (typically `*_xall`) that call `ops ... -j`,
+8. delegate argument handling to `setup_main "$@"`.
 
 Example section style:
 
@@ -97,21 +99,23 @@ Interactive mode uses `src/set/.menu` for guided section selection and display o
 
 Direct mode executes one section immediately (for example `a_xall`) and is the common automation path.
 
-## 4. Migration Bridge (Optional)
+## 4. Execution Boundary (Current Default)
 
-Runbooks currently delegate through `src/run/dispatch` during migration.
+Runbooks now use a dispatch-first execution boundary.
 
-- Default path keeps legacy ergonomics with compatibility wrappers.
-- Optional bridge path (`LAB_USE_DIC_RUN_BRIDGE=1`) routes through
-  `src/dic/run` to compile reconciliation artifacts before dispatch.
+- Default path: `src/set/<target>` delegates to `src/run/dispatch`.
+- Optional bridge path (`LAB_USE_DIC_RUN_BRIDGE=1`): `src/set/<target>` delegates
+  to `src/dic/run`, which compiles via `src/rec/ops` and forwards to dispatch.
+- Dispatch then re-enters legacy runbook execution with
+  `LAB_RUN_DISPATCH_BYPASS=1` and runs the requested section(s).
 
 Examples:
 
 ```bash
-# Legacy-compatible path (default)
+# Default path (dispatch-first)
 ./src/set/h1 -x a
 
-# Opt-in reconcile bridge for trial runs
+# Optional reconcile bridge
 LAB_USE_DIC_RUN_BRIDGE=1 ./src/set/h1 -x a
 
 # Direct dispatch with strict dependency checks
@@ -137,7 +141,7 @@ src/run/dispatch h1 --plan .tmp/rec/site1.plan --enforcement-stage strict \
   --allow-gate gate_network --allow-gate gate_storage
 ```
 
-When using strict enforcement flags, `--plan` is required. Environment
+When using enforcement flags or gate evidence, `--plan` is required. Environment
 equivalents are available for automation wrappers:
 
 - `LAB_RUN_ENFORCEMENT_STAGE=compat|guarded|strict`
@@ -199,9 +203,22 @@ Minimal pattern:
 #!/bin/bash
 DIR_SH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 FILE_SH="$(basename "${BASH_SOURCE[0]}")"
+BASE_SH="${FILE_SH%.*}"
+export LAB_REC_TARGET="${BASE_SH}"
+
+if [[ "${LAB_RUN_DISPATCH_BYPASS:-0}" != "1" ]]; then
+    if [[ "${LAB_USE_DIC_RUN_BRIDGE:-0}" == "1" && -x "${DIR_SH}/../dic/run" ]]; then
+        exec "${DIR_SH}/../dic/run" "$BASE_SH" "$@"
+    fi
+    if [[ -x "${DIR_SH}/../run/dispatch" ]]; then
+        exec "${DIR_SH}/../run/dispatch" "$BASE_SH" "$@"
+    fi
+fi
 
 source "${DIR_SH}/.menu"
 source "${DIR_SH}/../dic/ops"
+
+menu_runtime_setup "${BASE_SH}_bootstrap" || exit 2
 
 declare -A MENU_OPTIONS
 MENU_OPTIONS[a]="a_xall"
@@ -255,6 +272,12 @@ Run full suite for broad refactors:
 
 - Confirm hostname-prefixed values in `cfg/env/*` match `hostname -s`.
 - Confirm active node context in `cfg/core/ecc` and `env_status` output.
+
+### Dispatch rejects strict flags or evidence file
+
+- Confirm you passed `--plan <artifact>` when using `--enforce-*` or `--gate-evidence`.
+- Validate plan format/target first: `src/rec/ops compile --output .tmp/rec/site1.plan`.
+- Verify evidence contract keys: `format=gate-evidence-v0`, `target=<target>`, and non-empty approvals.
 
 ## 9. Related Docs
 

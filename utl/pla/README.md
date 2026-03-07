@@ -67,10 +67,13 @@ Optional positional arguments:
 
 ## Notes
 
-- `cfg/env/` remains the live configuration surface.
+- `cfg/dcl/` remains the authoritative desired-state surface for runtime execution.
+- `cfg/env/` remains runtime/context configuration.
 - The playground DB stores planning data and generated plan artifacts.
 - `map/` stores artifact-first mapping workflow assets; it does not run infra ops.
 - `apply-mapping` only mutates SQLite planning tables (no direct infra actions).
+- `utl/pla` artifacts are sandbox-only and are not consumed directly by
+  `src/run/dispatch`.
 - Use markdown exports for readable diffs alongside SQLite updates.
 - Legacy compatibility: default `export-md` also mirrors output to `./utl/pla/export/inventory-summary.md` during the naming migration window.
 - The CLI uses Python's standard `sqlite3` module, so no external SQLite binary

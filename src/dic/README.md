@@ -2,7 +2,10 @@
 
 The DIC is the intelligent parameter resolution and execution engine for operations. It adapts to different operational contexts while maintaining function purity and environmental consistency.
 
-It serves as the execution engine for the `src/set/` deployment framework. Set scripts orchestrate DIC operations to execute together as coordinated deployment sections, rather than calling pure functions directly.
+It serves as the section-level execution engine for compatibility runbooks in
+`src/set/` and for direct operator `ops` CLI calls. In current migration flow,
+`src/set/*` enters through `src/run/dispatch` first, then section functions use
+DIC to execute operations.
 
 ```bash
 # INCORRECT: Direct pure function calls in src/set/
@@ -83,7 +86,8 @@ Zero-configuration automation where all parameters are resolved from the environ
 ops pve vpt -j
 ```
 
-This is the primary mode used in CI/CD integration and deployment scripts (`src/set/`).
+This remains the section-level execution mode used by deployment scripts
+(`src/set/`) after dispatch handoff.
 
 ## Migration shim (`src/dic/run`)
 
@@ -126,7 +130,7 @@ introducing plan-aware execution boundaries.
 Gate evidence automation can also be provided through
 `LAB_RUN_GATE_EVIDENCE_FILE` when calling `src/dic/run`.
 
-Legacy runbooks can opt into this bridge by setting
+Legacy runbooks can opt into compile-time bridge behavior by setting
 `LAB_USE_DIC_RUN_BRIDGE=1` before invoking `src/set/*`.
 
 ### Mode 3: Explicit Execution (`-x`)

@@ -1,31 +1,35 @@
 # 05 - Deployment and Configuration Architecture (Current State)
 
-The deployment layer combines host-scoped task manifests (`src/set/*`), a shared execution framework (`src/set/.menu`), and environment/runtime configuration (`cfg/core/*`, `cfg/env/*`). Its boundary is orchestration and context selection; real infrastructure mutation still happens in `lib/ops/*` through DIC calls.
+The deployment boundary now spans four layers: declarative intent in `cfg/dcl/*`,
+runtime context in `cfg/env/*`, reconciliation in `src/rec/*`, and execution
+dispatch in `src/run/*`. Legacy runbook surfaces in `src/set/*` remain active
+as compatibility entrypoints.
 
 ## 1. Responsibilities and Boundaries
 
 | Area | Primary files | Responsibility boundary |
 | --- | --- | --- |
-| Runtime config baseline | `cfg/core/ric`, `cfg/core/ecc` | Defines site/env/node identity and path variables (`SITE_CONFIG_FILE`, `ENV_OVERRIDE_FILE`, `NODE_OVERRIDE_FILE`, `LIB_OPS_DIR`, etc.). |
-| Environment inventory | `cfg/env/*` | Provides values/arrays consumed by DIC and ops functions. |
-| Deployment framework | `src/set/.menu` | CLI routing (`-i`, `-x`), interactive display/execution, and broad source-time loading. |
-| Host manifests | `src/set/h1`, `src/set/c1`, `src/set/c2`, `src/set/c3`, `src/set/t1`, `src/set/t2` | Defines `MENU_OPTIONS` and section functions (`*_xall`) that call `ops ...` actions. |
+| Runtime config baseline | `cfg/core/ric`, `cfg/core/ecc` | Defines identity/path variables and site/env/node context selection. |
+| Declarative desired state | `cfg/dcl/*` | Authoritative desired intent model; no imperative execution logic. |
+| Environment context | `cfg/env/*` | Runtime/context values consumed by DIC and runbook helpers. |
+| Reconciliation compiler | `src/rec/ops` | Validates `cfg/dcl` schema and compiles `rec-plan-v0` artifacts. |
+| Plan-aware execution | `src/run/dispatch`, `src/run/gate-evidence` | Resolves enforcement stage, validates plan contracts, applies dependency/order/policy checks, then dispatches target runbook. |
+| Migration bridge | `src/dic/run` | Compatibility shim that compiles plan artifacts and forwards to `src/run/dispatch`. |
+| Legacy runbook surface | `src/set/*`, `src/set/.menu` | Host-scoped section manifests and menu/runtime setup retained during migration. |
+| DIC operation execution | `src/dic/ops` | Resolves operation parameters and executes `lib/ops/*` functions. |
 
 ## 2. Runtime/Load Sequence
 
 ### Actual call/load order
 
-1. A manifest script (for example `src/set/h1`) sets `DIR_SH`/`FILE_SH`, then sources `src/set/.menu`.
-2. During `.menu` source-time initialization, it eagerly attempts to source:
-   - all files under `cfg/env/*`,
-   - all files under `lib/ops/*`,
-   - all sibling files in `src/set/` except `.menu` itself.
-3. Manifest then sources `src/dic/ops` and declares `MENU_OPTIONS` mapping (`section id -> *_xall function`).
-4. Manifest entry routes arguments to `.menu` via `setup_main "$@"`.
-5. `setup_main` parses:
-   - `-i` interactive mode (`setup_interactive_mode`),
-   - `-x <section>` direct mode (`setup_executing_mode`).
-6. Selected section function runs one or more DIC calls (`ops module function -j`), which then execute ops functions.
+1. Operator starts from a legacy entrypoint (`./src/set/<target> -i|-x ...`) or the migration shim (`src/dic/run <target> ...`).
+2. `src/set/<target>` exports target identity and delegates to `src/run/dispatch` by default when available.
+3. If `LAB_USE_DIC_RUN_BRIDGE=1`, `src/set/<target>` delegates to `src/dic/run`, which runs `src/rec/ops compile` and forwards to `src/run/dispatch --plan <artifact>`.
+4. `src/run/dispatch` resolves enforcement stage from CLI/env/plan metadata, optionally loads gate evidence artifacts, and validates plan format/target/section contracts.
+5. When plan enforcement is enabled (`guarded`/`strict` or explicit flags), dispatch validates dependency, order, and policy-gate contracts before execution.
+6. Dispatch `exec`s `src/set/<target>` with `LAB_RUN_DISPATCH_BYPASS=1` so the runbook continues through legacy flow without recursive dispatch.
+7. Runbook sources `src/set/.menu` and `src/dic/ops`, then runs `menu_runtime_setup` and `setup_main`.
+8. Selected section (`*_xall`) executes `ops ... -j`; DIC resolves arguments and calls `lib/ops/*` actions.
 
 ### End-to-end sequence
 
@@ -33,64 +37,72 @@ The deployment layer combines host-scoped task manifests (`src/set/*`), a shared
 sequenceDiagram
     autonumber
     participant U as User
-    participant M as src/set/h1
-    participant F as src/set/.menu
-    participant C as cfg/env/*
-    participant L as lib/ops/*
+    participant S as src/set/h1
+    participant B as src/dic/run
+    participant C as src/rec/ops
+    participant R as src/run/dispatch
+    participant M as src/set/.menu
     participant D as src/dic/ops
     participant O as lib/ops function
 
-    U->>M: ./src/set/h1 -x a
-    M->>F: source .menu
-    F->>C: source all cfg/env files (best effort)
-    F->>L: source all lib/ops files (best effort)
-    F->>F: source sibling src/set files (except .menu)
-    M->>D: source ../dic/ops
-    M->>F: setup_main("-x","a")
-    F->>F: setup_executing_mode("a")
-    F->>M: execute a_xall()
-    M->>D: ops pve dsr -j
+    U->>S: ./src/set/h1 -x a
+    alt LAB_USE_DIC_RUN_BRIDGE=1
+        S->>B: exec src/dic/run h1 -x a
+        B->>C: src/rec/ops compile --output <artifact>
+        C-->>B: rec-plan-v0 artifact
+        B->>R: dispatch h1 --plan <artifact> -x a
+    else default path
+        S->>R: exec dispatch h1 -x a
+    end
+
+    R->>R: resolve stage + optional evidence + validate plan
+    R->>S: exec src/set/h1 (LAB_RUN_DISPATCH_BYPASS=1)
+    S->>M: source .menu
+    S->>D: source ../dic/ops
+    S->>S: setup_main("-x", "a")
+    S->>D: ops pve dsr -j
     D->>O: pve_dsr(...)
-    O-->>D: return
-    D-->>M: return
 ```
 
 ### Conceptual flow (quick view)
 
 ```mermaid
 flowchart LR
-    A[src/set manifest] --> B[source .menu]
-    B --> C[load env + ops + local set files]
-    C --> D[setup_main routing]
-    D --> E[section *_xall]
-    E --> F[ops module function -j]
-    F --> G[lib/ops execution]
+    A[cfg/dcl desired intent] --> B[src/rec compile]
+    C[cfg/env runtime context] --> B
+    B --> D[rec-plan artifact]
+    D --> E[src/run/dispatch validation]
+    E --> F[src/set compatibility runbook]
+    F --> G[src/dic/ops injection]
+    G --> H[lib/ops execution]
 ```
 
 ## 3. State and Side Effects
 
-- `.menu` emits extensive terminal UI output and warnings during sourcing and command routing.
-- `.menu` source-time loading imports many symbols into the current shell and can execute source-time code from many files.
-- `.menu` defines global formatting/state variables (`BOLD`, `RESET`, `base_indent`) and many helper functions.
-- `setup_executing_mode` exits non-zero on invalid section (`exit 1`), while other paths primarily return status codes.
-- `cfg/core/ric` establishes environment identity and path contracts used by both orchestrator and DIC.
+- `cfg/dcl/*` is the desired-state authority; `cfg/env/*` remains runtime context and host/environment overlays.
+- `src/rec/ops compile` emits deterministic plan metadata (`format=rec-plan-v0`, target sections, order/dependencies/policy-gates, enforcement stage fields).
+- `src/run/dispatch` can enforce dependency/order/policy contracts only when `--plan` is provided; strict enforcement can consume `--gate-evidence` or `LAB_RUN_GATE_EVIDENCE_FILE`.
+- Dispatch sets `LAB_RUN_DISPATCH_BYPASS=1` before re-executing legacy runbooks.
+- `src/set/.menu` runtime setup sources environment layering (base -> environment -> node) and marks setup completion via `MENU_RUNTIME_SETUP_DONE`.
+- `LAB_MENU_AUTO_SOURCE=0` disables menu runtime setup for that invocation path.
 
 ## 4. Failure and Fallback Behavior
 
-- `.menu` continues on many source failures with warning output (for cfg/env, lib/ops, local files), rather than hard-stop.
-- `setup_main` returns `1` for invalid mode/argument combinations.
-- `setup_executing_mode` runs selected section if present; invalid sections terminate with `exit 1`.
-- In orchestrator-driven config loading (`bin/orc` -> `source_cfg_env`), base site config is required; env and node overrides are optional.
-- `setup_source` contains an environment-aware base/env/node loading path with legacy fallback, but manifests primarily rely on `.menu` source-time loading plus DIC.
+- `src/set/<target>` falls back to direct legacy flow when `src/run/dispatch` is missing or not executable.
+- `src/dic/run` fails with non-zero when `src/rec/ops` compile fails or dispatcher is unavailable.
+- `src/rec/ops validate`/`compile` fail fast on invalid declarative contracts (missing required fields, invalid tokens, dependency cycles, strict-metadata gaps).
+- `src/run/dispatch` rejects enforcement flags and gate-evidence inputs when no `--plan` is supplied.
+- Invalid evidence artifacts (format mismatch, target mismatch, invalid gate tokens, empty approvals) fail before runbook execution.
+- `src/set/.menu` logs many setup warnings and continues where possible; hard argument errors still return non-zero.
 
 ## 5. Constraints and Refactor Notes
 
-- Section discovery/display conventions rely on `*_xall` naming and `MENU_OPTIONS` IDs; changing either breaks routing UX.
-- `ops` command usage in manifests is a coupling point (alias/script availability must exist in the shell context).
-- Broad source-time loading in `.menu` can cause duplicate definitions and ordering-sensitive behavior across manifests.
-- `cfg/env` files are executable Bash (not static data), so config changes can alter runtime behavior beyond variable values.
-- Because deployment scripts call DIC contracts rather than raw ops functions, DIC interface changes have immediate deployment impact.
+- Desired behavior changes should originate in `cfg/dcl/*`; `cfg/env/*` should not become a second desired-state authority.
+- `src/run/dispatch` currently relies on key-value plan artifacts from `src/rec/ops`; contract drift between producer/consumer is a regression hotspot.
+- `src/set/*` remains coupled to section naming (`*_xall`) and DIC call semantics (`ops module function -j`).
+- Migration is compatibility-first: `src/set/*` and `src/dic/ops` are still active, but execution defaults now route through `src/run/dispatch` when present.
+- `src/dic/ops` still sources `cfg/env/site1` as a compatibility behavior; declarative-first defaults are not fully complete yet.
 
 ## Maintenance Note
 
-Update this document in the same PR when `.menu` routing/source behavior, manifest section conventions, or config precedence contracts (`site -> env -> node`) change.
+Update this document in the same PR when delegation behavior in `src/set/*`, plan contracts in `src/rec/*` or `src/run/*`, or precedence boundaries across `cfg/dcl` and `cfg/env` change.

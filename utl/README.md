@@ -17,7 +17,10 @@ utl/
 ### `pla/` (Homelab Playground)
 
 Local-first planning workspace for inventory, scenario modeling, desired-state
-selection, and implementation-plan artifact generation.
+experiments, and implementation-plan artifact generation.
+
+`utl/pla` is sandbox tooling: it does not replace runtime authority in
+`cfg/dcl` or execution flow through `src/rec` and `src/run`.
 
 **Key Components:**
 

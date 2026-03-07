@@ -1,6 +1,11 @@
 # 04 - Dependency Injection Architecture (`src/dic`) (Current State)
 
-`src/dic/ops` is the runtime dispatch and argument-injection layer between deployment commands (`ops module function ...`) and operational functions in `lib/ops/*`. It does not own infrastructure actions; it validates targets, resolves arguments, and calls the final `module_function`.
+`src/dic/ops` is the runtime dispatch and argument-injection layer between
+`ops module function ...` calls and operational functions in `lib/ops/*`.
+In current migration flow, it is reached either directly from operator CLI
+usage or from `src/set/*` section functions after `src/run/dispatch` hands off
+to compatibility runbooks. It does not own infrastructure actions; it validates
+targets, resolves arguments, and calls the final `module_function`.
 
 ## 1. Responsibilities and Boundaries
 

@@ -21,10 +21,10 @@ The model reference is `doc/arc/01-bootstrap-and-orchestration.md`, which now in
 - `02-core-and-gen.md`: core primitives and general utilities
 - `03-operational-modules.md`: operations layer architecture
 - `04-dependency-injection.md`: DI contracts and flow
-- `05-deployment-and-config.md`: deployment/config hierarchy
+- `05-deployment-and-config.md`: `cfg/{dcl,env}` boundaries and `src/{rec,run,set}` execution flow
 - `06-testing-and-validation.md`: test architecture and strategy
 - `07-logging-and-error-handling.md`: log/error model and contracts
-- `08-workflow-architecture.md`: agent workflow coordination system (`doc/pro`)
+- `08-workflow-architecture.md`: agent workflow coordination system (`wow/`)
 - `09-planning-subsystem.md`: local planning subsystem (`utl/pla`) architecture and data flow
 
 ## Quality standard (required)
@@ -93,6 +93,7 @@ Minimum expected pairings:
 - `lib/core/*` or `lib/gen/*` contract changes -> update `02-core-and-gen.md`
 - `src/dic/*` contract changes -> update `04-dependency-injection.md`
 - `cfg/env/*` layering/precedence changes -> update `05-deployment-and-config.md`
+- `cfg/dcl/*`, `src/rec/*`, or `src/run/*` execution-contract changes -> update `05-deployment-and-config.md` (and `00-architecture-overview.md` when top-level flow shifts)
 - `val/*` structure/runner contract changes -> update `06-testing-and-validation.md`
 - logging/error contract changes in `lib/core/err`, `lib/core/lo1`, `lib/core/tme`, `lib/gen/aux` -> update `07-logging-and-error-handling.md`
 - `wow/` workflow structure, task templates, or checker changes -> update `08-workflow-architecture.md`

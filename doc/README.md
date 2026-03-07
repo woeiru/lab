@@ -10,26 +10,27 @@ Contents are organised by purpose: `man/` for operational guides (user/admin aud
 **Purpose**: How to use, configure, and operate the Lab Environment Management System. Audience: system administrators, operators, CLI users.
 
 - **[01 - Installation and Initialization](man/01-installation.md)** - Requirements, cloning, system initialization, and environment activation.
-- **[02 - Environment and Configuration](man/02-configuration.md)** - The configuration hierarchy, active context, hostname-specific variables, and declarative arrays.
+- **[02 - Environment and Configuration](man/02-configuration.md)** - Configuration boundaries (`cfg/dcl` desired intent vs `cfg/env` runtime context), active context, and precedence.
 - **[03 - CLI Usage and the DIC](man/03-cli-usage.md)** - Direct Bash function execution vs the DIC CLI, DIC execution modes, and parameter injection.
-- **[04 - Deployments and Runbooks](man/04-deployments.md)** - Structure of section-based set scripts, interactive mode, and headless execution.
+- **[04 - Deployments and Runbooks](man/04-deployments.md)** - Dispatch-first runbook execution, compatibility `src/set/*` entrypoints, and plan-aware controls.
 - **[05 - Writing Modules](man/05-writing-modules.md)** - Module conventions, naming, parameters, validation, self-documenting comments, and tests.
 - **[06 - Security and Logging](man/06-security-and-logging.md)** - Handling secrets safely, guarding destructive operations, and the multi-tiered logging architecture.
 - **[07 - Dev Session Attribution Workflow](man/07-dev-session-attribution-workflow.md)** - Emitting identity attribution events for OpenCode sessions, strict vs best-effort reporting, and troubleshooting.
 - **[08 - Planning Workspace](man/08-planning-workspace.md)** - Local planning workflow with `utl/pla` for state modeling, delta planning, and markdown exports.
+- **[09 - wow Workflow Board](man/09-wow-workflow-board.md)** - Manual workflow operation in `wow/` (inbox, active, completed, dismissed, experiments).
 
 ### Architectural Documentation (`doc/arc/`)
 **Purpose**: How the system is designed, module structure, system context, and dependency flows. Audience: developers, architects.
 
-- **[00 - Architecture Overview](arc/00-architecture-overview.md)** - System paradigm, directory layout, high-level execution flow, and three-layer deployment architecture.
+- **[00 - Architecture Overview](arc/00-architecture-overview.md)** - System paradigm, directory layout, and top-level execution flow across reconciliation and compatibility layers.
 - **[01 - Bootstrap and Orchestration](arc/01-bootstrap-and-orchestration.md)** - `./go` entrypoint, `bin/ini` initialization sequence, and `bin/orc` component orchestrator.
 - **[02 - Core Primitives and General Utilities](arc/02-core-and-gen.md)** - `lib/core` and `lib/gen` layers: logging, error handling, security, and cross-cutting utilities.
 - **[03 - Operational Modules](arc/03-operational-modules.md)** - Pure function paradigm, naming conventions, safety/idempotency patterns, and dual-mode execution.
 - **[04 - Dependency Injection Container](arc/04-dependency-injection.md)** - DIC architecture, hierarchical parameter resolution, injection strategies, and execution modes.
-- **[05 - Deployment and Configuration Layer](arc/05-deployment-and-config.md)** - `.menu` framework, hostname-based deployment scripts, and configuration hierarchy.
+- **[05 - Deployment and Configuration Layer](arc/05-deployment-and-config.md)** - `cfg/{dcl,env}` boundaries and `src/{rec,run,set}` deployment flow.
 - **[06 - Testing and Validation](arc/06-testing-and-validation.md)** - BDD test framework, master test runner, and syntax/compliance linting.
 - **[07 - Logging and Error Handling](arc/07-logging-and-error-handling.md)** - Two-phase logging architecture, hierarchical verbosity, and standardized return codes.
-- **[08 - Workflow Architecture](arc/08-workflow-architecture.md)** - Agent workflow coordination architecture for `doc/pro` state transitions.
+- **[08 - Workflow Architecture](arc/08-workflow-architecture.md)** - Agent workflow coordination architecture for `wow/` state transitions.
 - **[09 - Planning Subsystem Architecture](arc/09-planning-subsystem.md)** - `utl/pla` command flow, SQLite model boundaries, and planning artifact lifecycle.
 
 ### Reference Documentation (`doc/ref/`)
@@ -55,15 +56,13 @@ Contents are organised by purpose: `man/` for operational guides (user/admin aud
 ### Project Planning (`wow/`)
 Planning documents organised by lifecycle state.
 
-- `pro/inbox/` — New ideas and proposals awaiting triage
-- `pro/queue/` — Prioritized items ready to be started
-- `pro/active/` — Work in progress
-- `pro/active/waivers/` — Temporary policy waivers for active work (owner + expiry + removal criteria)
-- `pro/completed/` — Completed plans
-- `pro/dismissed/` — Dismissed proposals
-- `pro/experiments/` — Exploratory work and validation notes
-- `pro/agentic-workflow-prompts.md` — Prompt templates for agentic workflows
-- `pro/check-workflow.sh` — Workflow validation script
+- `wow/inbox/` — New ideas and proposals awaiting triage
+- `wow/active/` — Work in progress
+- `wow/completed/` — Completed plans
+- `wow/dismissed/` — Dismissed proposals
+- `wow/experiments/` — Exploratory work and validation notes
+- `wow/task/` — Workflow task standards and templates
+- `wow/check-workflow.sh` — Workflow validation script
 
 ## Reference Documentation Tools
 

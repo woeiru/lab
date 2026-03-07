@@ -1,29 +1,28 @@
 # Source Execution Architecture (`src/`)
 
-**The Runtime Bridge:** The `src/` directory bridges declarative intent and runtime execution. During migration, it includes legacy DIC/runbook surfaces plus the new reconciliation and run boundaries.
+**The Runtime Bridge:** The `src/` directory bridges declarative intent and runtime execution. During migration, `src/set/*` remains the operator-facing compatibility surface, but execution now routes through `src/run/dispatch` with plan-aware contracts from `src/rec/`.
 
 ## Architecture Overview
 
 ```text
-┌─────────────────────────────────────────┐
-│                  src/                   │
-│                                         │
-│  ┌──────────────┐   ┌──────────────┐    │
-│  │  dic/        │   │  set/        │    │
-│  │  (legacy DI) │   │  (legacy RB) │    │
-│  └──────┬───────┘   └──────┬───────┘    │
-│         │                  │            │
-│  ┌──────▼───────┐   ┌──────▼───────┐    │
-│  │  rec/        │   │  run/        │    │
-│  │  (reconcile) │   │  (runbooks)  │    │
-│  └──────────────┘   └──────────────┘    │
-└─────────┼───────────────────────────────┘
-          │
-          ▼
-┌──────────────────┐   ┌────────────────────────┐
-│  lib/ops/        │   │  cfg/ (Configuration)  │
-│  (Pure Functions)│   └────────────────────────┘
-└──────────────────┘
+cfg/dcl/* (desired intent)
+        |
+        v
+src/rec/* (reconcile + compile)
+        |
+        v
+src/run/* (dispatch + enforcement)
+        |
+        v
+src/set/* (compat runbook entrypoints)
+        |
+        v
+src/dic/ops (injection)
+        |
+        v
+lib/ops/* (infrastructure actions)
+
+cfg/env/* provides runtime context to src/rec and src/dic
 ```
 
 ## Subdirectories
@@ -37,7 +36,7 @@ The DIC is an intelligent parameter resolution engine (`src/dic/ops`). It parses
 - **Dynamic Resolution:** Auto-resolves arrays to strings and intelligently routes variables based on the active target hostname.
 
 ### `set/` (Deployment Playbooks)
-The `set/` directory contains host-specific deployment scripts (e.g., `h1`, `c1`) acting as infrastructure runbooks. These scripts group tasks logically into discrete blocks (e.g., `a_xall`, `b_xall`) and lean on the DIC to execute operations.
+The `set/` directory contains host-specific deployment scripts (e.g., `h1`, `c1`) acting as compatibility runbooks. These scripts keep section ergonomics (`a_xall`, `b_xall`) while defaulting to `src/run/dispatch` before section execution.
 
 **Key capabilities:**
 - **Section-Based Execution:** Provides granular control over exactly what tasks to run during a setup workflow.

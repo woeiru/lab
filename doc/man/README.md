@@ -17,14 +17,14 @@ system is structured the way it is.
 ## Canonical scope of this folder
 
 - `01-installation.md`: clone/setup, shell initialization, activation, validation
-- `02-configuration.md`: config hierarchy, active context, precedence, environment files
+- `02-configuration.md`: config hierarchy split (`cfg/dcl` desired intent vs `cfg/env` runtime context), active context, and precedence
 - `03-cli-usage.md`: direct function calls vs `ops` DIC execution modes
-- `04-deployments.md`: set scripts under `src/set/`, interactive vs direct execution
+- `04-deployments.md`: runbook execution via `src/set/*` compatibility entrypoints and `src/run/dispatch` plan-aware controls
 - `05-writing-modules.md`: module authoring rules, validation patterns, and tests
 - `06-security-and-logging.md`: secrets handling, destructive-safety rules, logging model
 - `07-dev-session-attribution-workflow.md`: `dev` module session attribution flow, confidence interpretation, and recovery
 - `08-planning-workspace.md`: local planning workspace flow (`utl/pla`) for snapshotting, target modeling, and plan artifacts
-- `09-doc-pro-workflow-board.md`: manual `doc/pro` workflow operation, including parallel orchestration task flow
+- `09-wow-workflow-board.md`: manual `wow/` workflow operation, including parallel orchestration task flow
 
 ## Quality standard (required)
 
@@ -108,13 +108,13 @@ behavior changes in code, update the corresponding `doc/man/*.md` in the same PR
 
 Minimum expected pairings:
 - `go`, `bin/ini`, `bin/orc` flow changes -> update `01-installation.md`
-- `cfg/core/ecc` or `cfg/env/*` precedence/context changes -> update `02-configuration.md`
+- `cfg/core/ecc`, `cfg/env/*`, or `cfg/dcl/*` precedence/boundary changes -> update `02-configuration.md`
 - `src/dic/*` or `ops` mode/usage contract changes -> update `03-cli-usage.md`
-- `src/set/*` workflow or flags changes -> update `04-deployments.md`
+- `src/set/*`, `src/run/*`, or `src/rec/*` deployment-flow/flag changes -> update `04-deployments.md`
 - `lib/.spec`, `lib/ops/.spec`, `lib/ops/*` authoring contract changes -> update `05-writing-modules.md`
 - `lib/gen/sec`, `lib/gen/aux`, `lib/core/lo1`, `lib/core/err` behavior changes -> update `06-security-and-logging.md`
 - `utl/pla/*` command/workflow contract changes -> update `08-planning-workspace.md`
-- `wow/README.md`, `wow/task/*`, or `wow/check-workflow.sh` workflow contract changes -> update `09-doc-pro-workflow-board.md`
+- `wow/README.md`, `wow/task/*`, or `wow/check-workflow.sh` workflow contract changes -> update `09-wow-workflow-board.md`
 
 ## Recommended update workflow
 

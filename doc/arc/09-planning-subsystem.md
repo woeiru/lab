@@ -1,6 +1,11 @@
 # 09 - Planning Subsystem Architecture (Current State)
 
-`utl/pla` is a local-first planning subsystem that models inventory/state/plan data in SQLite and exports markdown artifacts for review. It is intentionally out-of-band from runtime infrastructure execution: it reads configuration inputs (for snapshotting) but does not call `lib/ops/*` functions or apply changes to hosts.
+`utl/pla` is a local-first planning subsystem that models inventory/state/plan
+data in SQLite and exports markdown artifacts for review. It is intentionally
+out-of-band from runtime infrastructure execution: it reads configuration inputs
+(for snapshotting) but does not call `lib/ops/*` functions or apply changes to
+hosts. Runtime authority for desired intent remains `cfg/dcl/*` via
+`src/rec/*` -> `src/run/*`.
 
 ## 1. Responsibilities and Boundaries
 
@@ -11,6 +16,7 @@
 | Runtime planning data | `utl/pla/data/ply.db` | Stores local planning state, snapshots, and generated implementation plans. |
 | Human-readable outputs | `utl/pla/export/summary-default.md` (+ legacy mirror `inventory-summary.md`) | Stores export snapshots for git-readable review artifacts. |
 | Input source snapshot | `cfg/env/*` (read by `import-present`) | Provides source files for digest/file inventory capture; no write path back into `cfg/env/`. |
+| Runtime authority boundary | `cfg/dcl/*`, `src/rec/*`, `src/run/*` | Declares/enforces executable desired state outside the planning subsystem. |
 | Future operation surface | `utl/pla/ops/README.md` | Reserved operation module boundary; currently documents planned commands, not executable modules. |
 
 ## 2. Runtime/Load Sequence

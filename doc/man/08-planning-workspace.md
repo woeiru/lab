@@ -1,6 +1,13 @@
 # 08 - Planning Workspace
 
-This guide is for operators and contributors who need a local planning loop before making infrastructure changes. It explains how to use `utl/pla` to snapshot `cfg/env`, model target states, generate implementation deltas, and export reviewable planning artifacts.
+This guide is for operators and contributors who need a local planning sandbox
+before making infrastructure changes. It explains how to use `utl/pla` to
+snapshot `cfg/env`, model target states, generate implementation deltas, and
+export reviewable artifacts.
+
+`utl/pla` is non-authoritative for runtime execution. Desired-state authority
+for execution remains `cfg/dcl/*`, compiled by `src/rec/ops`, then enforced by
+`src/run/dispatch`.
 
 ## Command Decision Flow
 
@@ -39,6 +46,8 @@ flowchart TD
 - `utl/pla` is local-first: commands modify local planning artifacts only.
 - `import-present` reads `cfg/env/` content but does not modify `cfg/env/`.
 - This workflow does not call `lib/ops/*` infrastructure functions.
+- This workflow does not publish directly to runtime execution; update
+  `cfg/dcl/*` for authoritative desired-state changes.
 
 Set reusable paths for examples:
 
@@ -91,6 +100,21 @@ Expected result: a new draft plan with ordered steps is created in the database.
 ```
 
 Expected result: markdown snapshot is written and ready for git diff/review.
+
+### Step 6 (optional): validate runtime-intent handoff
+
+Use this when you want to confirm runtime execution contracts after planning
+review. This step validates the authoritative declarative model, not the SQLite
+planning workspace itself.
+
+```bash
+src/rec/ops validate
+src/rec/ops compile --output .tmp/rec/site1.plan
+test -s .tmp/rec/site1.plan
+```
+
+Expected result: authoritative declarative intent validates and produces a
+compile artifact for later dispatch workflows.
 
 ## 3. Expected Outcomes and Validation
 
@@ -157,6 +181,14 @@ PY
 
 Create missing records first (`create-state`, `upsert-entity`), then run `set-state-entity` or `plan-implementation` again.
 
+### Planning output does not affect dispatch/runtime
+
+`utl/pla` artifacts are sandbox-only. For runtime behavior changes:
+
+1. Update `cfg/dcl/*` desired-state declarations.
+2. Run `src/rec/ops validate` and `src/rec/ops compile`.
+3. Execute through `src/run/dispatch --plan ...` (or compatibility `src/set/*` entrypoints).
+
 ### Reset the local planning workspace
 
 If you need a clean local workspace, remove only planning artifacts and reinitialize:
@@ -171,7 +203,8 @@ Transition note: default `export-md` now writes `summary-default.md` and mirrors
 ## 5. Related Docs
 
 - Previous: [07 - Dev Session Attribution Workflow](07-dev-session-attribution-workflow.md)
-- Next: [09 - doc/pro Workflow Board](09-doc-pro-workflow-board.md)
+- Next: [09 - wow Workflow Board](09-wow-workflow-board.md)
 - Architecture context: [09 - Planning Subsystem Architecture](../arc/09-planning-subsystem.md)
+- Declarative runtime model: [cfg/dcl/README.md](../../cfg/dcl/README.md)
 - Local module reference: [utl/pla/README.md](../../utl/pla/README.md)
 - Utility overview: [utl/README.md](../../utl/README.md)

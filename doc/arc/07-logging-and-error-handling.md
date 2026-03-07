@@ -11,7 +11,7 @@ Logging and error handling are split across core bootstrap modules and runtime u
 | Error capture/reporting | `lib/core/err` | Error codes/maps, error records, trap handler, error report output. |
 | Timing/performance logs | `lib/core/tme` | Start/end timers, duration accounting, timing report (`tme.log`). |
 | Operational structured logs | `lib/gen/aux` | Multi-format operational/debug logging (`aux.log`, `aux.json`, `aux.csv`). |
-| Runbook menu/setup logs | `src/set/.menu`, `src/set/*` | Explicit runbook setup (`menu_runtime_setup`), interactive UI output, and structured diagnostic logging for setup/dispatch paths. |
+| Run dispatch and runbook logs | `src/run/dispatch`, `src/set/.menu`, `src/set/*` | Dispatch contract errors/warnings plus runbook setup (`menu_runtime_setup`), interactive UI output, and structured diagnostics for compatibility paths. |
 | Global verbosity controls | `cfg/core/ric` | Unified `LAB_LOG_LEVEL` + `LAB_LOG_FORMAT` and optional subsystem overrides with legacy compatibility toggles. |
 
 ## 2. Runtime/Load Sequence
@@ -25,7 +25,7 @@ Logging and error handling are split across core bootstrap modules and runtime u
 5. `tme_init_timer` initializes timing state and `tme.log`; `bin/ini` wraps major phases with timer calls. `tme` uses integer nanosecond arithmetic (`$(date +%s%N)` captured once, then `$(( ))` bash arithmetic) instead of `echo ... | bc` pipe forks for duration calculation.
 6. `bin/orc` uses `lo1_log` for component progress and the shared component-set executor routes failures to `err_handler`.
 7. After `lib/gen/aux` is sourced (either eagerly or on first lazy-load call), runtime callers (for example `src/dic/ops` and `lib/ops/*` functions) can emit structured logs via `aux_log`/`aux_dbg` and wrappers (`aux_info`, `aux_warn`, `aux_err`, `aux_audit`, `aux_business`).
-8. `src/set` runbooks source `.menu` + `src/dic/ops`, then call `menu_runtime_setup` explicitly before dispatching `setup_main`; source-time setup is opt-in via `LAB_MENU_AUTO_SOURCE_ON_SOURCE=1`.
+8. `src/set` entrypoints now pass through `src/run/dispatch` by default; dispatch emits contract-validation errors to stderr and re-enters runbooks with `LAB_RUN_DISPATCH_BYPASS=1`. Runbooks then source `.menu` + `src/dic/ops`, call `menu_runtime_setup`, and route execution via `setup_main`.
 
 ### End-to-end sequence
 

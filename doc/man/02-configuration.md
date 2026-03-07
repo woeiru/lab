@@ -1,14 +1,18 @@
 # 02 - Environment and Configuration
 
-This guide explains how runtime context and infrastructure values are defined in `cfg/`.
-The DIC (`ops`) and deployment scripts consume these values at execution time.
+This guide explains how configuration is split in `cfg/`:
+declarative desired intent in `cfg/dcl/*` and runtime context overlays in
+`cfg/env/*`.
+
+Runbook/DIC execution consumes `cfg/env/*` values at runtime, while
+reconciliation/plan compilation consumes `cfg/dcl/*` as the desired-state source.
 
 ## Command Decision Flow
 
 Use these decision maps to choose the right configuration layering and context
 switch method.
 
-### Configuration layer composition
+### Configuration layer composition (runtime context)
 
 ```mermaid
 flowchart TD
@@ -55,14 +59,15 @@ flowchart TD
 
 ## 1. Configuration Model and Precedence
 
-The active runtime context is a combination of one controller file and layered env files:
+Configuration is intentionally split by responsibility:
 
-1. `cfg/core/ecc` - selected `SITE_NAME`, `ENVIRONMENT_NAME`, `NODE_NAME`
-2. `cfg/env/<site>` - required base site configuration
-3. `cfg/env/<site>-<environment>` - optional environment override
-4. `cfg/env/<site>-<node>` - optional node override
+1. `cfg/dcl/<site>[...overlays]` - desired infrastructure intent (authoritative)
+2. `cfg/core/ecc` - selected `SITE_NAME`, `ENVIRONMENT_NAME`, `NODE_NAME`
+3. `cfg/env/<site>` - required base runtime context
+4. `cfg/env/<site>-<environment>` - optional runtime environment override
+5. `cfg/env/<site>-<node>` - optional runtime node override
 
-Effective precedence is:
+Execution-time precedence for runtime context remains:
 
 `base site -> environment override -> node override`
 
@@ -93,7 +98,7 @@ If `lib/gen/env` is loaded, these helpers are available:
 - `env_site_switch <site>` - update active site
 - `env_node_switch <node>` - update active node
 
-## 3. Define Infrastructure Values in `cfg/env/*`
+## 3. Define Runtime Context Values in `cfg/env/*`
 
 Environment files are executable Bash files (not static YAML/JSON), so keep them syntax-valid and deterministic.
 
@@ -115,7 +120,10 @@ w2_CORE_COUNT_ON=10
 The DIC resolves many values by naming convention, including hostname-prefixed values
 like `<hostname>_NODE_PCI0`, `<hostname>_USB_DEVICES`, and related keys.
 
-## 4. Create a New Site or Environment Layer
+Keep desired behavior (target sections, rollout order, policy gates, enforcement
+stages) in `cfg/dcl/*`, not in `cfg/env/*`.
+
+## 4. Create a New Runtime Context Layer
 
 ### New site baseline
 
@@ -175,6 +183,12 @@ env_validate
 - Confirm you reloaded the runtime in the current shell (`lab`).
 - Use `ops <module> <function>` (no args) to inspect injection preview.
 
+### Desired behavior not reflected in plan/dispatch
+
+- Update `cfg/dcl/*` (not only `cfg/env/*`) for desired-state changes.
+- Validate and compile: `src/rec/ops validate` then `src/rec/ops compile`.
+- Re-run through plan-aware dispatch when validating rollout behavior.
+
 ### Syntax errors in env files
 
 Run `bash -n cfg/env/<file>` and fix before running deployment flows.
@@ -183,4 +197,5 @@ Run `bash -n cfg/env/<file>` and fix before running deployment flows.
 
 - Next: [03 - CLI Usage and the DIC](03-cli-usage.md)
 - Deployment/runbooks: [04 - Deployments and Runbooks](04-deployments.md)
+- Declarative model: [cfg/dcl/README.md](../../cfg/dcl/README.md)
 - Architecture context: [doc/arc/05-deployment-and-config.md](../arc/05-deployment-and-config.md)
