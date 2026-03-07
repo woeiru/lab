@@ -1,9 +1,9 @@
 # Completed Folder Module Naming Convention Rollout Plan
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 23:14
+- Updated: 2026-03-08 00:06
 - Links: /home/es/lab/wow/completed/20260307-2048_multi_completed-folder-module-naming-unification-plan
 
 ## Goal
@@ -15,7 +15,7 @@
 - Dry-run inventory shows 59 top-level completed folders: 2 v2 leaf folders, 56 legacy standard close folders, and 1 legacy bundle folder.
 - Deterministic mapping checks for the 56 legacy standard folders found 0 duplicate rename targets and 0 conflicts with existing folder names.
 - Applied the approved rename map and renamed all 56 targeted legacy-standard folders to v2-style `<timestamp>_<module>_<task-slug>` names.
-- Post-rename reconciliation fixed two stale orchestration `Program` path references under `wow/completed/20260306-2353_workflow_parallel-orchestration-upgrade-plan/`.
+- Post-rename reconciliation fixed two stale orchestration `Program` path references under `wow/completed/20260306-workflow_bundle/20260306-2353_workflow_parallel-orchestration-upgrade-plan/`.
 
 ## Scope
 - Inventory every folder in `wow/completed/` and classify each as v2-compliant, legacy-compatible, or requiring rename.
@@ -163,8 +163,22 @@ Docs: none
 ## Reconciliation Report
 1. Rename execution: 56 folder renames applied.
 2. Path reconciliation: 2 stale links updated in:
-   - `wow/completed/20260306-2353_workflow_parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-checker-workstream-plan.md`
-   - `wow/completed/20260306-2353_workflow_parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-docs-workstream-plan.md`
+   - `wow/completed/20260306-workflow_bundle/20260306-2353_workflow_parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-checker-workstream-plan.md`
+   - `wow/completed/20260306-workflow_bundle/20260306-2353_workflow_parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-docs-workstream-plan.md`
 3. Workflow validation:
    - First run after rename: failed with 2 missing Program-path targets.
    - Final run after reconciliation: `bash wow/check-workflow.sh` passed.
+
+## What changed
+- Applied and completed the module-name convention rollout across `wow/completed/`, including the 56-folder legacy-standard to v2-style rename pass described in this item.
+- Reconciled two stale `Program` path references under the parallel orchestration pilot close leaf to match post-rename folder names.
+- Closed this workflow item from `active` to `completed` state with immutable close-leaf placement.
+- Documentation files updated: none.
+
+## What was verified
+- `bash wow/check-workflow.sh` -> pass.
+- Dry-run mapping preflight and post-apply reconciliation evidence captured in this item (`0` duplicate targets, `0` conflicts; stale references resolved).
+- Docs: none (workflow-state naming alignment only; no canonical doc content changed).
+
+## What remains
+- No mandatory follow-up items identified.
