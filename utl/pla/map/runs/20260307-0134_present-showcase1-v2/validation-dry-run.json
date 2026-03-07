@@ -1,0 +1,25 @@
+{
+  "cfg_bindings": {
+    "created": 9,
+    "unchanged": 0,
+    "updated": 0
+  },
+  "entities": {
+    "created": 9,
+    "reused": 0,
+    "updated": 0
+  },
+  "mapping": "utl/pla/map/runs/20260307-0134_present-showcase1-v2/approved-mapping.json",
+  "mode": "dry-run",
+  "snapshot_id": 1,
+  "state": {
+    "created": 0,
+    "reused": 1
+  },
+  "state_bindings": {
+    "created": 9,
+    "unchanged": 0,
+    "updated": 0
+  },
+  "target_state": "present-showcase1"
+}

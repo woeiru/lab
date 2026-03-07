@@ -43,4 +43,8 @@ Every run folder under `runs/` should contain:
 - `contracts/confidence-policy.md`
 - `contracts/key-naming-policy.md`
 - `prompts/extract-v1.md`
+- `prompts/extract-v2.md`
 - `prompts/review-v1.md`
+- `prompts/review-v2.md`
+- `rules/cfg-env-v1.yaml`
+- `rules/cfg-env-v2.yaml`

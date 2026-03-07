@@ -1,0 +1,177 @@
+{
+  "output_kind": "proposal",
+  "contract_version": "v1",
+  "generated_at": "2026-03-07 01:34",
+  "target_state": "present-showcase1",
+  "snapshot_id": 1,
+  "proposed_entities": [
+    {
+      "entity_type": "host",
+      "entity_key": "h1",
+      "label": "Host h1",
+      "confidence": "high",
+      "rationale": "Mapped from HY_IPS deterministic alias rule.",
+      "evidence": [
+        {
+          "source_path": "cfg/env/site1",
+          "binding_key": "HY_IPS[h1]"
+        }
+      ]
+    },
+    {
+      "entity_type": "host",
+      "entity_key": "w2",
+      "label": "Host w2",
+      "confidence": "high",
+      "rationale": "Mapped from HY_IPS deterministic alias rule.",
+      "evidence": [
+        {
+          "source_path": "cfg/env/site1",
+          "binding_key": "HY_IPS[w2]"
+        }
+      ]
+    },
+    {
+      "entity_type": "ct",
+      "entity_key": "pbs1",
+      "label": "Container pbs1",
+      "confidence": "high",
+      "rationale": "Mapped from CT_IPS deterministic alias rule.",
+      "evidence": [
+        {
+          "source_path": "cfg/env/site1",
+          "binding_key": "CT_IPS[pbs1]"
+        }
+      ]
+    },
+    {
+      "entity_type": "ct",
+      "entity_key": "nfs1",
+      "label": "Container nfs1",
+      "confidence": "high",
+      "rationale": "Mapped from CT_IPS deterministic alias rule.",
+      "evidence": [
+        {
+          "source_path": "cfg/env/site1",
+          "binding_key": "CT_IPS[nfs1]"
+        }
+      ]
+    },
+    {
+      "entity_type": "ct",
+      "entity_key": "smb1",
+      "label": "Container smb1",
+      "confidence": "high",
+      "rationale": "Mapped from CT_IPS deterministic alias rule.",
+      "evidence": [
+        {
+          "source_path": "cfg/env/site1",
+          "binding_key": "CT_IPS[smb1]"
+        }
+      ]
+    },
+    {
+      "entity_type": "ct",
+      "entity_key": "pbs2",
+      "label": "Container pbs2",
+      "confidence": "high",
+      "rationale": "Mapped from CT_IPS deterministic alias rule.",
+      "evidence": [
+        {
+          "source_path": "cfg/env/site1",
+          "binding_key": "CT_IPS[pbs2]"
+        }
+      ]
+    },
+    {
+      "entity_type": "ct",
+      "entity_key": "nfs2",
+      "label": "Container nfs2",
+      "confidence": "high",
+      "rationale": "Mapped from CT_IPS deterministic alias rule.",
+      "evidence": [
+        {
+          "source_path": "cfg/env/site1",
+          "binding_key": "CT_IPS[nfs2]"
+        }
+      ]
+    },
+    {
+      "entity_type": "ct",
+      "entity_key": "smb2",
+      "label": "Container smb2",
+      "confidence": "high",
+      "rationale": "Mapped from CT_IPS deterministic alias rule.",
+      "evidence": [
+        {
+          "source_path": "cfg/env/site1",
+          "binding_key": "CT_IPS[smb2]"
+        }
+      ]
+    },
+    {
+      "entity_type": "host",
+      "entity_key": "t1",
+      "label": "Client endpoint t1",
+      "confidence": "high",
+      "rationale": "Mapped from CL_IPS using v2 client-endpoint host policy.",
+      "evidence": [
+        {
+          "source_path": "cfg/env/site1",
+          "binding_key": "CL_IPS[t1]"
+        }
+      ]
+    }
+  ],
+  "proposed_state_bindings": [
+    {
+      "state_name": "present-showcase1",
+      "entity_key": "h1",
+      "presence": "included"
+    },
+    {
+      "state_name": "present-showcase1",
+      "entity_key": "w2",
+      "presence": "included"
+    },
+    {
+      "state_name": "present-showcase1",
+      "entity_key": "pbs1",
+      "presence": "included"
+    },
+    {
+      "state_name": "present-showcase1",
+      "entity_key": "nfs1",
+      "presence": "included"
+    },
+    {
+      "state_name": "present-showcase1",
+      "entity_key": "smb1",
+      "presence": "included"
+    },
+    {
+      "state_name": "present-showcase1",
+      "entity_key": "pbs2",
+      "presence": "included"
+    },
+    {
+      "state_name": "present-showcase1",
+      "entity_key": "nfs2",
+      "presence": "included"
+    },
+    {
+      "state_name": "present-showcase1",
+      "entity_key": "smb2",
+      "presence": "included"
+    },
+    {
+      "state_name": "present-showcase1",
+      "entity_key": "t1",
+      "presence": "included"
+    }
+  ],
+  "unmapped_findings": [],
+  "notes": [
+    "Proposal generated using cfg-env-v2 client-endpoint host policy."
+  ]
+}

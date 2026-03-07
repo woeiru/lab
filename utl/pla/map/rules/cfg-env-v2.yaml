@@ -1,0 +1,40 @@
+version: v2
+description: Mapping rules with explicit client-endpoint classification policy.
+
+rules:
+  - id: hy-ips-to-host
+    enabled: true
+    source_file: cfg/env/site1
+    extractor: assoc_array
+    array_name: HY_IPS
+    entity_type: host
+    key_template: "{alias}"
+    label_template: "Host {alias}"
+    default_presence: included
+    confidence: high
+
+  - id: ct-ips-to-ct
+    enabled: true
+    source_file: cfg/env/site1
+    extractor: assoc_array
+    array_name: CT_IPS
+    entity_type: ct
+    key_template: "{alias}"
+    label_template: "Container {alias}"
+    default_presence: included
+    confidence: high
+
+  - id: cl-ips-to-host-endpoint
+    enabled: true
+    source_file: cfg/env/site1
+    extractor: assoc_array
+    array_name: CL_IPS
+    entity_type: host
+    key_template: "{alias}"
+    label_template: "Client endpoint {alias}"
+    default_presence: included
+    confidence: high
+    classification_policy: client-endpoint-host
+    evidence_required:
+      - source_path
+      - binding_key

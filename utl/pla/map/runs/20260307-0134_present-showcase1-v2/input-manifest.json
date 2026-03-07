@@ -1,0 +1,42 @@
+{
+  "contract_version": "v1",
+  "run_id": "20260307-0134_present-showcase1-v2",
+  "db_path": "utl/pla/data/ply-showcase.db",
+  "target_state": "present-showcase1",
+  "snapshot_id": 1,
+  "snapshot_digest": "e8b2ef8fe7dcd8e3ce4c6b4883bac44e64ec6f873032a726fc294edb8ced3674",
+  "rule_set": "utl/pla/map/rules/cfg-env-v2.yaml",
+  "extract_prompt": "utl/pla/map/prompts/extract-v2.md",
+  "review_prompt": "utl/pla/map/prompts/review-v2.md",
+  "source_files": [
+    {
+      "path": "cfg/env/site1",
+      "sha256": "1960e85fed9508fecef5cd1fcdb3c5648de9d4fab6c4cf5928c78979234496f0",
+      "size": 15001
+    },
+    {
+      "path": "cfg/env/site1-dev",
+      "sha256": "fdf34bec7b1f5613d89582de3fe8260769d0fd7bdcdebbfe5dba8d85e7d5c204",
+      "size": 5320
+    },
+    {
+      "path": "cfg/env/site1-w2",
+      "sha256": "2a4d2a8ff68b1c3ceb66dc4cea5515fff8a7a9c55f729ba94130ec5ee73894d0",
+      "size": 6172
+    }
+  ],
+  "selected_mapping_sources": [
+    {
+      "path": "cfg/env/site1",
+      "reason": "Contains HY_IPS, CT_IPS, and CL_IPS arrays used by v2 rules"
+    },
+    {
+      "path": "cfg/env/site1-dev",
+      "reason": "Captured for context; no active v2 extraction rules"
+    },
+    {
+      "path": "cfg/env/site1-w2",
+      "reason": "Captured for context; no active v2 extraction rules"
+    }
+  ]
+}
