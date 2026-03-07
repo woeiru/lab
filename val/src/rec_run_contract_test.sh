@@ -7,6 +7,7 @@ LAB_ROOT="$(cd "${TEST_DIR}/../.." >/dev/null 2>&1 && pwd)"
 
 REC_OPS="${LAB_ROOT}/src/rec/ops"
 RUN_DISPATCH="${LAB_ROOT}/src/run/dispatch"
+RUN_GATE_EVIDENCE="${LAB_ROOT}/src/run/gate-evidence"
 REC_RUN_BRIDGE="${LAB_ROOT}/src/dic/run"
 SET_H1="${LAB_ROOT}/src/set/h1"
 
@@ -38,11 +39,13 @@ printf 'Running src/rec + src/run scaffolding contract test\n'
 
 expect_success "src/rec/ops is present" test -f "$REC_OPS"
 expect_success "src/run/dispatch is present" test -f "$RUN_DISPATCH"
+expect_success "src/run/gate-evidence is present" test -f "$RUN_GATE_EVIDENCE"
 expect_success "src/dic/run is present" test -f "$REC_RUN_BRIDGE"
 expect_success "src/set/h1 is present" test -f "$SET_H1"
 
 expect_success "src/rec/ops syntax is valid" bash -n "$REC_OPS"
 expect_success "src/run/dispatch syntax is valid" bash -n "$RUN_DISPATCH"
+expect_success "src/run/gate-evidence syntax is valid" bash -n "$RUN_GATE_EVIDENCE"
 expect_success "src/dic/run syntax is valid" bash -n "$REC_RUN_BRIDGE"
 
 rec_help_output="$("$REC_OPS" --help 2>&1 || true)"
@@ -128,6 +131,16 @@ if [[ "$run_help_output" != *"Usage: src/run/dispatch"* ]]; then
     fail "src/run/dispatch help output missing usage header"
 fi
 
+run_gate_help_output="$("$RUN_GATE_EVIDENCE" --help 2>&1 || true)"
+if [[ "$run_gate_help_output" != *"Usage: src/run/gate-evidence"* ]]; then
+    fail "src/run/gate-evidence help output missing usage header"
+fi
+
+produced_gate_evidence_h1_path="${tmpdir}/gate-evidence-produced-h1"
+expect_success "src/run/gate-evidence produces artifact for h1" "$RUN_GATE_EVIDENCE" h1 --plan "$artifact_path" --allow-gate gate_network --allow-gate gate_storage --output "$produced_gate_evidence_h1_path"
+expect_failure "src/run/gate-evidence rejects missing required plan gate" "$RUN_GATE_EVIDENCE" h1 --plan "$artifact_path" --allow-gate gate_network --output "${tmpdir}/gate-evidence-missing-gate"
+expect_success "src/run/gate-evidence uses env approved gates" env LAB_RUN_ALLOWED_POLICY_GATES="gate_network gate_storage" "$RUN_GATE_EVIDENCE" h1 --plan "$artifact_path" --output "${tmpdir}/gate-evidence-produced-env-h1"
+
 expect_failure "src/run/dispatch should fail on unknown target" "$RUN_DISPATCH" unknown-target
 expect_success "src/run/dispatch accepts valid plan artifact" "$RUN_DISPATCH" h1 --plan "$artifact_path"
 expect_failure "src/run/dispatch rejects plan without matching target" "$RUN_DISPATCH" unknown-target --plan "$artifact_path"
@@ -144,6 +157,7 @@ expect_success "src/run/dispatch enforce-policy-gates accepts env approved gates
 expect_failure "src/run/dispatch rejects invalid gate evidence format" "$RUN_DISPATCH" h1 --plan "$artifact_path" --enforcement-stage strict --gate-evidence "$invalid_gate_evidence_format_path"
 expect_failure "src/run/dispatch rejects gate evidence target mismatch" "$RUN_DISPATCH" h1 --plan "$artifact_path" --enforcement-stage strict --gate-evidence "$invalid_gate_evidence_target_path"
 expect_failure "src/run/dispatch rejects invalid gate evidence token" "$RUN_DISPATCH" h1 --plan "$artifact_path" --enforcement-stage strict --gate-evidence "$invalid_gate_evidence_token_path"
+expect_success "src/run/dispatch consumes producer gate evidence in strict stage" env LAB_RUN_ENFORCEMENT_STAGE=strict "$RUN_DISPATCH" h1 --plan "$artifact_path" --gate-evidence "$produced_gate_evidence_h1_path"
 expect_success "src/run/dispatch enforce-order accepts valid ordering" "$RUN_DISPATCH" t2 --plan "$artifact_path" --enforce-order --completed-target h1 --completed-target c1 --completed-target c2 --completed-target c3 --completed-target t1
 expect_failure "src/run/dispatch guarded stage fails without completed targets" env LAB_RUN_ENFORCEMENT_STAGE=guarded "$RUN_DISPATCH" t2 --plan "$artifact_path"
 expect_success "src/run/dispatch guarded stage uses env completed targets" env LAB_RUN_ENFORCEMENT_STAGE=guarded LAB_RUN_COMPLETED_TARGETS="h1 c1 c2 c3 t1" "$RUN_DISPATCH" t2 --plan "$artifact_path"

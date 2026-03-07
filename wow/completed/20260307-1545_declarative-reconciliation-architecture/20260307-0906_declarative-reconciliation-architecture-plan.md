@@ -1,9 +1,9 @@
 # Declarative Reconciliation Architecture Plan
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 14:51
+- Updated: 2026-03-07 15:45
 - Links: wow/task/active-capture, wow/task/RULES.md, wow/active/20260307-0941_workflow-completed-folder-chronology-checker-issue.md, doc/arc/00-architecture-overview.md, src/README.md, utl/README.md
 
 ## Retroactive Capture
@@ -92,14 +92,17 @@
 - Implemented non-interactive gate-evidence loading in `src/run/dispatch` via `--gate-evidence` and `LAB_RUN_GATE_EVIDENCE_FILE` with contract validation (`format=gate-evidence-v0`, target match, valid gate tokens, non-empty approvals).
 - Added gate-evidence passthrough handling in `src/dic/run` so bridge invocations can forward evidence artifacts to dispatch.
 - Expanded contract coverage in `val/src/rec_run_contract_test.sh` for gate-evidence success/failure paths and strict-promotion invariants.
+- Added `src/run/gate-evidence` producer entrypoint to generate `gate-evidence-v0` artifacts from explicit approvals (`--allow-gate`) or `LAB_RUN_ALLOWED_POLICY_GATES`, with optional `--plan` validation of required policy gates.
+- Extended `val/src/rec_run_contract_test.sh` with producer-path coverage (artifact generation, missing-gate rejection, and strict dispatch consumption of produced artifacts).
+- Documented producer usage and strict-run evidence flow in `src/run/README.md`, `src/dic/README.md`, and `doc/man/04-deployments.md`.
 - Updated rollout/docs references in `cfg/dcl/SCHEMA.md`, `cfg/dcl/README.md`, `src/run/README.md`, `src/dic/README.md`, and `doc/man/04-deployments.md`.
-- Validation summary this session: `bash -n src/run/dispatch src/dic/run src/rec/ops val/src/rec_run_contract_test.sh` passed; `bash val/src/rec_run_contract_test.sh` passed; `bash val/src/dic/dic_set_menu_contract_test.sh` passed; `bash wow/check-workflow.sh` passed.
+- Validation summary this session: `bash -n src/run/gate-evidence val/src/rec_run_contract_test.sh` passed; `bash val/src/rec_run_contract_test.sh` passed; `bash val/src/dic/dic_set_menu_contract_test.sh` passed; `bash wow/check-workflow.sh` passed.
 
 ### In-flight
 
 - Reconcile-first execution is still not default end-to-end; `src/dic/ops` remains direct-mode by default and `src/set/*` still allows non-plan dispatch paths.
 - `src/dic/ops` continues to source injected values from `cfg/env/site1`; declarative-first injection data flow is not yet primary.
-- Gate evidence consumption is implemented, but gate evidence production and attestation persistence are still manual/out-of-band.
+- Gate evidence consumption and producer generation are implemented, but attestation persistence/retention is still manual/out-of-band.
 - Rollout policy is still concentrated in `cfg/dcl/site1`; staged overlays for environment promotion are not yet implemented.
 - All work remains uncommitted in a dirty worktree with unrelated user changes.
 
@@ -111,21 +114,19 @@
 
 ### Next steps
 
-1. Define the `gate-evidence-v0` producer contract and implement a producer path for strict runs under `src/run/` (CI/orchestration-compatible output).
-2. Implement attestation persistence and retention conventions for gate approvals and document audit retrieval in `doc/man/04-deployments.md`.
-3. Extend `val/src/rec_run_contract_test.sh` with producer-path coverage (artifact generation + dispatch consumption).
-4. Move `src/dic/ops` toward declarative-first defaults and reduce direct `cfg/env/site1` sourcing behavior.
-5. Split rollout policy into staged overlays under `cfg/dcl/` and update `cfg/dcl/SCHEMA.md` + `cfg/dcl/README.md` with environment promotion examples.
-6. Re-run `bash val/src/rec_run_contract_test.sh`, `bash val/src/dic/dic_set_menu_contract_test.sh`, and `bash wow/check-workflow.sh`, then record outcomes in this plan.
+1. Implement attestation persistence and retention conventions for gate approvals and document audit retrieval in `doc/man/04-deployments.md`.
+2. Move `src/dic/ops` toward declarative-first defaults and reduce direct `cfg/env/site1` sourcing behavior.
+3. Split rollout policy into staged overlays under `cfg/dcl/` and update `cfg/dcl/SCHEMA.md` + `cfg/dcl/README.md` with environment promotion examples.
+4. Re-run `bash val/src/rec_run_contract_test.sh`, `bash val/src/dic/dic_set_menu_contract_test.sh`, and `bash wow/check-workflow.sh`, then record outcomes in this plan.
 
 ### Context
 
 - Branch: `master`.
 - Worktree is dirty with unrelated user changes; do not revert outside touched migration files.
-- Key files touched this session: `src/run/dispatch`, `src/dic/run`, `src/rec/ops`, `val/src/rec_run_contract_test.sh`, `cfg/dcl/SCHEMA.md`, `cfg/dcl/README.md`, `src/run/README.md`, `src/dic/README.md`, `doc/man/04-deployments.md`.
+- Key files touched this session: `src/run/gate-evidence`, `val/src/rec_run_contract_test.sh`, `src/run/README.md`, `src/dic/README.md`, `doc/man/04-deployments.md`.
 - Gate evidence contract currently accepted by dispatch: `format=gate-evidence-v0`, `target=<dispatch-target>`, approvals via `approved_gates="..."` or `approved_gate[_N]=...`.
 - Phase status: Phase 1 complete, Phase 2 complete, Phase 3 in progress, Phase 4 in progress.
-- Latest checks in this context: `bash -n src/run/dispatch src/dic/run src/rec/ops val/src/rec_run_contract_test.sh` passed; `bash val/src/rec_run_contract_test.sh` passed; `bash val/src/dic/dic_set_menu_contract_test.sh` passed; `bash wow/check-workflow.sh` passed.
+- Latest checks in this context: `bash -n src/run/gate-evidence val/src/rec_run_contract_test.sh` passed; `bash val/src/rec_run_contract_test.sh` passed; `bash val/src/dic/dic_set_menu_contract_test.sh` passed; `bash wow/check-workflow.sh` passed.
 - Workflow checker status: `bash wow/check-workflow.sh` passed.
 
 ## Execution Plan
@@ -140,3 +141,30 @@
 3. `src/run` executes plans without embedding desired-state definitions.
 4. `utl/pla` is explicitly sandbox/planning-only and non-authoritative for runtime execution.
 5. Legacy `src/dic`/`src/set` behavior is either migrated or covered by documented compatibility/deprecation guidance.
+
+## What changed
+
+1. Closed this architecture plan into completed state and moved it from `wow/active/` to `wow/completed/20260307-1545_declarative-reconciliation-architecture/` while keeping its original file timestamp prefix.
+2. Preserved the full design/implementation history and added explicit closeout sections for final changes, verification evidence, and remaining follow-ups.
+3. Captured each remaining follow-up as a new inbox item per default routing policy:
+   - `wow/inbox/20260307-1545_gate-evidence-attestation-retention-followup.md`
+   - `wow/inbox/20260307-1546_dic-ops-declarative-first-defaults-followup.md`
+   - `wow/inbox/20260307-1547_dcl-staged-rollout-overlays-followup.md`
+
+## What was verified
+
+1. Prior implementation/test evidence already recorded in this plan remained valid at closeout:
+   - `bash -n src/run/gate-evidence val/src/rec_run_contract_test.sh` (passed)
+   - `bash val/src/rec_run_contract_test.sh` (passed)
+   - `bash val/src/dic/dic_set_menu_contract_test.sh` (passed)
+2. Workflow integrity check for this closeout run:
+   - `bash wow/check-workflow.sh` (passed)
+
+## What remains
+
+1. Attestation persistence and retention conventions for strict-run gate approvals still need implementation and operator audit retrieval guidance.
+   Follow-up: `wow/inbox/20260307-1545_gate-evidence-attestation-retention-followup.md`
+2. `src/dic/ops` still needs declarative-first defaults with reduced direct `cfg/env/site1` sourcing behavior.
+   Follow-up: `wow/inbox/20260307-1546_dic-ops-declarative-first-defaults-followup.md`
+3. Rollout policy overlays under `cfg/dcl/` still need staged environment promotion support and accompanying schema/docs examples.
+   Follow-up: `wow/inbox/20260307-1547_dcl-staged-rollout-overlays-followup.md`

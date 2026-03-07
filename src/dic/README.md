@@ -107,6 +107,12 @@ src/dic/run h1 --enforcement-stage strict --allow-gate gate_network --allow-gate
 
 # pass through non-interactive gate evidence artifacts
 src/dic/run h1 --enforcement-stage strict --gate-evidence .tmp/rec/h1.gates
+
+# produce gate evidence in CI before bridge execution
+src/run/gate-evidence h1 --plan .tmp/rec/site1.plan \
+  --allow-gate gate_network --allow-gate gate_storage \
+  --output .tmp/rec/h1.gates
+src/dic/run h1 --enforcement-stage strict --gate-evidence .tmp/rec/h1.gates
 ```
 
 If `--enforcement-stage` is not supplied, dispatch can still derive stage from

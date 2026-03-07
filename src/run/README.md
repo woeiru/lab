@@ -32,6 +32,9 @@
   `LAB_RUN_COMPLETED_TARGETS`, `LAB_RUN_ALLOWED_POLICY_GATES`.
 - Policy gate approvals can be auto-loaded from evidence artifacts using
   `--gate-evidence <path>` or `LAB_RUN_GATE_EVIDENCE_FILE`.
+- `src/run/gate-evidence` can generate CI/orchestration-safe
+  `gate-evidence-v0` artifacts from explicit `--allow-gate` values or
+  `LAB_RUN_ALLOWED_POLICY_GATES`, with optional `--plan` policy-gate checks.
 - Gate evidence contract is key-value text with:
   - `format=gate-evidence-v0`
   - `target=<dispatch-target>`

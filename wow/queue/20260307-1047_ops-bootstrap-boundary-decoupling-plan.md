@@ -1,9 +1,9 @@
 # Ops Bootstrap Boundary Decoupling Plan
 
-- Status: inbox
+- Status: queue
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 10:47
+- Updated: 2026-03-07 15:46
 - Links: wow/completed/20260307-1047_lib-architecture-review/20260307-0921_lib-architecture-review-result.md, doc/ref/module-dependencies.md, doc/arc/00-architecture-overview.md, bin/ini, bin/orc
 
 ## Goal
@@ -36,3 +36,12 @@ surfaces by introducing clearer boundary adapters.
 
 Prepare a triage-ready queue candidate after mapping concrete violation targets
 and compatibility constraints.
+
+## Triage Decision
+
+- Why now: The architecture review already surfaced concrete bootstrap-boundary pressure, so queuing this now keeps refactor sequencing aligned before more ops/bootstrap changes stack up.
+- Design classification:
+  1. Are there meaningful alternatives for how to solve this? Yes.
+  2. Will other code or users depend on the shape of the output? Yes.
+  Design: required
+- Justification: This work defines boundary adapters and migration sequencing that affect module contracts, load behavior, and downstream documentation expectations.

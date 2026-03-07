@@ -127,6 +127,11 @@ src/run/dispatch h1 --plan .tmp/rec/site1.plan --enforce-policy-gates \
 src/run/dispatch h1 --plan .tmp/rec/site1.plan --enforcement-stage strict \
   --gate-evidence .tmp/rec/h1.gates
 
+# Produce gate evidence artifact for CI/orchestration before strict dispatch
+src/run/gate-evidence h1 --plan .tmp/rec/site1.plan \
+  --allow-gate gate_network --allow-gate gate_storage \
+  --output .tmp/rec/h1.gates
+
 # Stage-based strict defaults
 src/run/dispatch h1 --plan .tmp/rec/site1.plan --enforcement-stage strict \
   --allow-gate gate_network --allow-gate gate_storage
@@ -146,6 +151,12 @@ Gate evidence artifact contract (`--gate-evidence` / `LAB_RUN_GATE_EVIDENCE_FILE
 - `target=<dispatch-target>`
 - approved gates via `approved_gates="gate_a gate_b"` or repeatable
   `approved_gate=<gate>` keys
+
+Recommended producer path:
+
+- `src/run/gate-evidence <target> --plan <artifact> --allow-gate <gate>... --output <path>`
+- `src/run/gate-evidence` also accepts `LAB_RUN_ALLOWED_POLICY_GATES` when
+  gates are supplied by CI environment context.
 
 Enforcement stage precedence at runtime:
 
