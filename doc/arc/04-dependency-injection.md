@@ -109,6 +109,16 @@ flowchart LR
 - Reconcile preflight (`OPS_EXECUTION_MODE=reconcile`) is currently optional and target-based; full reconcile-first execution is not yet the default runtime path.
 - DIC helper libs/config files exist, but the hot execution path is still anchored in `src/dic/ops` dispatcher/resolver logic.
 
+## 6. WS-01 Render-Path Interface Notes (`lib/ops/dev`)
+
+- `dev_osv` now uses an explicit render-path seam in `lib/ops/dev`:
+  `_dev_osv_collect_rows_tsv` (data extraction), `_dev_osv_render_table_from_tsv`
+  (presentation), and `_dev_osv_render` (mode orchestration).
+- The row contract between extraction and rendering is TSV with header:
+  `suffix,id,project_root,directory,title,updated_local,first_prompt_local,user,src,conf,model,input,output`.
+- Downstream workstreams should treat that header as the stable boundary and
+  avoid coupling table rendering changes to attribution/query logic.
+
 ## Maintenance Note
 
 Update this document in the same PR when command dispatch behavior in `src/dic/ops`, parameter resolution precedence/mappings, or helper-lib wiring (`src/dic/lib/*`, `src/dic/config/*`) changes.

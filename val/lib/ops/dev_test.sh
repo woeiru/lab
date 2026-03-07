@@ -2256,6 +2256,86 @@ test_dev_oas_requires_params() {
     [[ $? -eq 1 ]]
 }
 
+# Test: device-flow context discovery fails when accounts file is missing
+test_dev_device_flow_context_requires_accounts_file() {
+    local test_env
+    test_env=$(create_test_env "dev_device_flow_context_missing")
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    _dev_prepare_device_flow_context "opencode_account_switch" "test_device_flow_context" >/dev/null 2>&1
+    local status=$?
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 2 ]]
+}
+
+# Test: device-flow context discovery returns reconciled accounts path
+test_dev_device_flow_context_reconciles_and_returns_path() {
+    local test_env
+    test_env=$(create_test_env "dev_device_flow_context_reconcile")
+
+    mkdir -p "$test_env/.config/opencode"
+    cat > "$test_env/.config/opencode/antigravity-accounts.json" <<'JSON'
+{
+  "accounts": [
+    {"email": "alice@example.com", "enabled": true},
+    {"email": "bob@example.com", "enabled": true}
+  ],
+  "activeIndex": 1,
+  "activeIndexByFamily": {
+    "claude": 1
+  }
+}
+JSON
+
+    cat > "$test_env/.config/opencode/antigravity-account-denylist.txt" <<'EOF'
+bob@example.com
+EOF
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local resolved_path
+    resolved_path=$(_dev_prepare_device_flow_context "opencode_account_switch" "test_device_flow_context")
+    local status=$?
+
+    local state=""
+    if [[ $status -eq 0 ]]; then
+        state=$(python3 - "$test_env/.config/opencode/antigravity-accounts.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+accounts = data.get('accounts', [])
+print('{}|{}|{}|{}'.format(
+    len(accounts),
+    accounts[0].get('email', '') if accounts else '',
+    data.get('activeIndex', -1),
+    data.get('activeIndexByFamily', {}).get('claude', -1),
+))
+PY
+)
+    fi
+
+    local backup_count
+    backup_count=$(ls "$test_env/.config/opencode"/antigravity-accounts.json.backup.* 2>/dev/null | wc -l)
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$resolved_path" == "$test_env/.config/opencode/antigravity-accounts.json" ]] || return 1
+    [[ "$state" == "1|alice@example.com|0|0" ]] || return 1
+    [[ $backup_count -ge 1 ]] || return 1
+    return 0
+}
+
 # Test: dev_oac requires explicit -x execution flag
 test_dev_oac_requires_execute_flag() {
     dev_oac >/dev/null 2>&1
@@ -3748,6 +3828,89 @@ PY
     [[ "$parsed" == "OK" ]]
 }
 
+# Test: _dev_osv_collect_rows_tsv exposes stable render-path row contract
+test_dev_overview_rows_tsv_contract() {
+    local test_env
+    test_env=$(create_test_env "dev_overview_rows_tsv_contract")
+    local db_path="$test_env/opencode.db"
+
+    _create_test_db "$db_path" || {
+        cleanup_test_env "$test_env"
+        return 1
+    }
+
+    python3 - "$db_path" <<'PY'
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+
+cur.execute("INSERT INTO project (id, worktree) VALUES (?, ?)", ("project_lab", "/home/es/lab"))
+cur.execute(
+    "INSERT INTO session (id, project_id, directory, title, time_updated) VALUES (?, ?, ?, ?, ?)",
+    ("ses_contract000000000000001", "project_lab", "/home/es/lab", "Boundary Session", 1771765000000),
+)
+
+conn.commit()
+conn.close()
+PY
+
+    local output
+    output=$(_dev_osv_collect_rows_tsv "$db_path" "0" "0")
+    local status=$?
+
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+
+    local parsed
+    parsed=$(python3 - "$output" <<'PY'
+import csv
+import io
+import sys
+
+txt = sys.argv[1]
+reader = csv.DictReader(io.StringIO(txt), delimiter='\t')
+rows = list(reader)
+fields = reader.fieldnames or []
+
+required = {
+    'suffix', 'id', 'project_root', 'directory', 'title',
+    'updated_local', 'first_prompt_local', 'user', 'src',
+    'conf', 'model', 'input', 'output'
+}
+
+ok = (
+    required.issubset(set(fields)) and
+    len(rows) == 1 and
+    rows[0].get('title') == 'Boundary Session'
+)
+
+print('OK' if ok else 'FAIL')
+PY
+)
+
+    [[ "$parsed" == "OK" ]]
+}
+
+# Test: _dev_osv_render_table_from_tsv renders bordered table from row contract
+test_dev_overview_table_renderer_from_tsv_contract() {
+    local tsv_payload
+    tsv_payload=$'suffix\tid\tproject_root\tdirectory\ttitle\tupdated_local\tfirst_prompt_local\tuser\tsrc\tconf\tmodel\tinput\toutput\nxyz\tses_contract\t/home/es/lab\t/home/es/lab\tBoundary Session\t2026-03-07 23:20:00\t2026-03-07 23:19:00\ttest-user@example.net\topencode_event\thigh\toa-model\t120\t80\n'
+
+    local table_output
+    table_output=$(_dev_osv_render_table_from_tsv "$tsv_payload")
+    local status=$?
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$table_output" == *"Boundary Session"* ]] || return 1
+    [[ "$table_output" == *"test-user@example.net"* ]] || return 1
+    [[ "$table_output" == *"┌"* ]] || return 1
+    return 0
+}
+
 # Test: dev_osv table mode keeps real-domain USER labels visible
 test_dev_overview_table_mode_user_visibility_openai() {
     local test_env
@@ -5018,6 +5181,8 @@ main() {
     run_test test_dev_oqu_renders_dashboard
     run_test test_dev_oqu_watch_requires_interval
     run_test test_dev_oqu_watch_rejects_bad_interval
+    run_test test_dev_device_flow_context_requires_accounts_file
+    run_test test_dev_device_flow_context_reconciles_and_returns_path
     run_test test_dev_oac_requires_execute_flag
     run_test test_dev_oac_reconciles_repopulation_cycles
     run_test test_dev_oaa_requires_params
@@ -5052,6 +5217,8 @@ main() {
     run_test test_dev_auto_attribute_ignores_synthetic_openai_runtime_identity
     run_test test_dev_overview_openai_wrapper_event_strict_high_confidence
     run_test test_dev_overview_openai_prefers_non_synthetic_identity
+    run_test test_dev_overview_rows_tsv_contract
+    run_test test_dev_overview_table_renderer_from_tsv_contract
     run_test test_dev_overview_table_mode_user_visibility_openai
     run_test test_dev_auto_attribute_emits_for_active_families
     run_test test_dev_auto_attribute_silent_on_missing_accounts_file
