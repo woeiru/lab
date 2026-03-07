@@ -5,7 +5,7 @@
 # documentation generation system. All paths are relative to LAB_ROOT.
 #
 # Usage: Modify these arrays to control documentation generation behavior
-# Location: utl/doc/config/targets
+# Location: utl/ref/config/targets
 #######################################################################
 
 # TARGET_DIRECTORIES: Main list of directories for documentation processing
@@ -19,7 +19,7 @@ TARGET_DIRECTORIES=(
     "src/dic"      # DIC (Data Integration Components) source code
     "cfg/core"     # Core configuration files and templates
     "cfg/pod"      # Container/pod configuration files
-    "utl/doc"      # Documentation utilities and generators
+    "utl/ref"      # Documentation utilities and generators
     "val/core"     # Core validation and testing scripts
     "val/lib"      # Library validation and test suites
 )
@@ -59,7 +59,7 @@ HIGH_PRIORITY=(
 MEDIUM_PRIORITY=(
     "lib/gen"      # General utilities - stable but occasionally enhanced
     "cfg/core"     # Core configs - important but change infrequently
-    "utl/doc"      # Documentation tools - stable infrastructure
+    "utl/ref"      # Documentation tools - stable infrastructure
 )
 
 # LOW_PRIORITY: Supplementary components with minimal update requirements

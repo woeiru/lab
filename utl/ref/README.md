@@ -1,6 +1,6 @@
 # Documentation Generation System
 
-The `utl/doc` system generates auto-populated reference documentation under `doc/ref/` and an optional repository metrics report at `STATS.md`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/reverse-dependecies.md`, `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`, `doc/ref/scope-integrity.md`, and `doc/ref/error-handling.md`. The stats generator also writes machine-readable output to `doc/ref/stats/actual.md` with timestamped snapshots under `doc/ref/stats/`.
+The `utl/ref` system generates auto-populated reference documentation under `doc/ref/` and an optional repository metrics report at `STATS.md`. It extracts analyzer metadata from source files and renders standardized Markdown output to `doc/ref/functions.md`, `doc/ref/variables.md`, `doc/ref/reverse-dependecies.md`, `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`, `doc/ref/scope-integrity.md`, and `doc/ref/error-handling.md`. The stats generator also writes machine-readable output to `doc/ref/stats/actual.md` with timestamped snapshots under `doc/ref/stats/`.
 
 ## Output Files
 
@@ -55,7 +55,7 @@ clear namespaced analyzer artifacts and rerun docs:
 
 ```bash
 rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc/rdp /home/es/lab/.tmp/doc/dep /home/es/lab/.tmp/doc/tst /home/es/lab/.tmp/doc/scp /home/es/lab/.tmp/doc/err
-./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies test-coverage scope-integrity error-handling
+./utl/ref/run_all_doc.sh functions variables dependencies module-dependencies test-coverage scope-integrity error-handling
 ```
 
 ## Usage
@@ -63,29 +63,29 @@ rm -rf /home/es/lab/.tmp/doc/laf /home/es/lab/.tmp/doc/acu /home/es/lab/.tmp/doc
 ### Regenerate default reference docs
 
 ```bash
-./utl/doc/run_all_doc.sh functions variables
-./utl/doc/run_all_doc.sh functions variables dependencies module-dependencies test-coverage scope-integrity error-handling
+./utl/ref/run_all_doc.sh functions variables
+./utl/ref/run_all_doc.sh functions variables dependencies module-dependencies test-coverage scope-integrity error-handling
 ```
 
 ### Generate repository metrics
 
 ```bash
-./utl/doc/run_all_doc.sh stats            # updates STATS.md + doc/ref/stats/actual.md
-./utl/doc/generators/stats --update       # writes markdown + machine snapshot outputs
-./utl/doc/generators/stats --markdown     # prints markdown to stdout
-./utl/doc/generators/stats --json         # prints machine-readable JSON to stdout
+./utl/ref/run_all_doc.sh stats            # updates STATS.md + doc/ref/stats/actual.md
+./utl/ref/generators/stats --update       # writes markdown + machine snapshot outputs
+./utl/ref/generators/stats --markdown     # prints markdown to stdout
+./utl/ref/generators/stats --json         # prints machine-readable JSON to stdout
 ```
 
 ### Regenerate individually
 
 ```bash
-./utl/doc/run_all_doc.sh functions   # updates doc/ref/functions.md
-./utl/doc/run_all_doc.sh variables   # updates doc/ref/variables.md
-./utl/doc/run_all_doc.sh dependencies # updates doc/ref/reverse-dependecies.md
-./utl/doc/run_all_doc.sh module-dependencies # updates doc/ref/module-dependencies.md
-./utl/doc/run_all_doc.sh test-coverage # updates doc/ref/test-coverage.md
-./utl/doc/run_all_doc.sh scope-integrity # updates doc/ref/scope-integrity.md
-./utl/doc/run_all_doc.sh error-handling # updates doc/ref/error-handling.md
+./utl/ref/run_all_doc.sh functions   # updates doc/ref/functions.md
+./utl/ref/run_all_doc.sh variables   # updates doc/ref/variables.md
+./utl/ref/run_all_doc.sh dependencies # updates doc/ref/reverse-dependecies.md
+./utl/ref/run_all_doc.sh module-dependencies # updates doc/ref/module-dependencies.md
+./utl/ref/run_all_doc.sh test-coverage # updates doc/ref/test-coverage.md
+./utl/ref/run_all_doc.sh scope-integrity # updates doc/ref/scope-integrity.md
+./utl/ref/run_all_doc.sh error-handling # updates doc/ref/error-handling.md
 ```
 
 ### Configuration and Environment

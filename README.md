@@ -212,7 +212,7 @@ Reference contract:
 - `doc/ref/` is the canonical generated reference layer for fast codebase navigation and retrieval.
 - `wow/` is planning state and is not a runtime/reference source.
 - When reference docs and code disagree, treat source code as authoritative and regenerate reference docs.
-- Regenerate with `./utl/doc/run_all_doc.sh` after structural changes.
-- Generate repository metrics with `./utl/doc/run_all_doc.sh stats` (writes `STATS.md`).
+- Regenerate with `./utl/ref/run_all_doc.sh` after structural changes.
+- Generate repository metrics with `./utl/ref/run_all_doc.sh stats` (writes `STATS.md`).
 
 Each subdirectory in the repository also has its own README with focused context and links into the relevant documentation.

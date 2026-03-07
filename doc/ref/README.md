@@ -29,24 +29,24 @@ Reference output is expected to match the analyzer cycle aliases in `cfg/ali/sta
 Run from repository root:
 
 ```bash
-./utl/doc/run_all_doc.sh
+./utl/ref/run_all_doc.sh
 ```
 
 Or regenerate one reference only:
 
 ```bash
-./utl/doc/run_all_doc.sh functions
-./utl/doc/run_all_doc.sh variables
-./utl/doc/run_all_doc.sh dependencies
-./utl/doc/run_all_doc.sh module-dependencies
-./utl/doc/run_all_doc.sh test-coverage
-./utl/doc/run_all_doc.sh scope-integrity
-./utl/doc/run_all_doc.sh error-handling
+./utl/ref/run_all_doc.sh functions
+./utl/ref/run_all_doc.sh variables
+./utl/ref/run_all_doc.sh dependencies
+./utl/ref/run_all_doc.sh module-dependencies
+./utl/ref/run_all_doc.sh test-coverage
+./utl/ref/run_all_doc.sh scope-integrity
+./utl/ref/run_all_doc.sh error-handling
 ```
 
 ## Pipeline Notes
 
-- Generators live under `utl/doc/generators/`.
+- Generators live under `utl/ref/generators/`.
 - Auto-generated table blocks are replaced between:
   - `<!-- AUTO-GENERATED SECTION: ... -->`
   - `<!-- END AUTO-GENERATED SECTION -->`
@@ -59,7 +59,7 @@ Or regenerate one reference only:
 - `.tmp/doc/scp/` for scope integrity
 - `.tmp/doc/err/` for error handling
 
-For full architecture and generator behavior, see `../../utl/doc/README.md`.
+For full architecture and generator behavior, see `../../utl/ref/README.md`.
 
 ## Required Parity With `cfg/ali/sta` Cycles
 

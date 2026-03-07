@@ -325,7 +325,7 @@ These rules come from repository docs and actual code patterns, especially:
   of truth and regenerate references.
 - Regenerate reference docs after structural changes (new/renamed functions,
   signature changes, dependency changes, variable map changes):
-  - `./utl/doc/run_all_doc.sh`
+  - `./utl/ref/run_all_doc.sh`
 
 ---
 

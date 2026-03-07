@@ -8,7 +8,7 @@
 utl/
 ├── pla/    # Homelab planning playground (SQLite + exports)
 ├── cfg/    # Internal Configuration Helpers
-├── doc/    # Auto-Documentation Generators
+├── ref/    # Auto-Documentation Generators
 └── sec/    # Internal Security Helpers
 ```
 
@@ -26,8 +26,8 @@ selection, and implementation-plan artifact generation.
 - `sql/010_seed_reference.sql`: entity/relation type seed data
 - `export/`: markdown snapshots for readable repository diffs
 
-### `doc/` (Documentation Generators)
-The framework heavily relies on self-documenting code. The generators in `utl/doc/` parse function usage (`aux_use`), technical comments (`aux_tec`), and variable assignments across the repository to statically generate the Markdown reference documentation.
+### `ref/` (Documentation Generators)
+The framework heavily relies on self-documenting code. The generators in `utl/ref/` parse function usage (`aux_use`), technical comments (`aux_tec`), and variable assignments across the repository to statically generate the Markdown reference documentation.
 
 **Key Components:**
 - `run_all_doc.sh`: The main orchestrator that resolves generator dependencies.
@@ -40,13 +40,13 @@ The framework heavily relies on self-documenting code. The generators in `utl/do
 
 **Generate all reference documentation:**
 ```bash
-./utl/doc/run_all_doc.sh functions variables
+./utl/ref/run_all_doc.sh functions variables
 ```
 
 **Generate individually:**
 ```bash
-./utl/doc/run_all_doc.sh functions   # Updates doc/ref/functions.md
-./utl/doc/run_all_doc.sh variables   # Updates doc/ref/variables.md
+./utl/ref/run_all_doc.sh functions   # Updates doc/ref/functions.md
+./utl/ref/run_all_doc.sh variables   # Updates doc/ref/variables.md
 ```
 
 ## Further Reading

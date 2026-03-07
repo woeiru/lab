@@ -10,7 +10,7 @@
 
 source "$(dirname "${BASH_SOURCE[0]}")/../../val/helpers/test_framework.sh"
 
-readonly STATS_GENERATOR="$LAB_ROOT/utl/doc/generators/stats"
+readonly STATS_GENERATOR="$LAB_ROOT/utl/ref/generators/stats"
 
 test_generator_exists() {
     echo
