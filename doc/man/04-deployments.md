@@ -123,6 +123,10 @@ src/run/dispatch t2 --plan .tmp/rec/site1.plan --enforce-deps \
 src/run/dispatch h1 --plan .tmp/rec/site1.plan --enforce-policy-gates \
   --allow-gate gate_network --allow-gate gate_storage
 
+# Strict dispatch with gate evidence artifact (non-interactive)
+src/run/dispatch h1 --plan .tmp/rec/site1.plan --enforcement-stage strict \
+  --gate-evidence .tmp/rec/h1.gates
+
 # Stage-based strict defaults
 src/run/dispatch h1 --plan .tmp/rec/site1.plan --enforcement-stage strict \
   --allow-gate gate_network --allow-gate gate_storage
@@ -134,6 +138,14 @@ equivalents are available for automation wrappers:
 - `LAB_RUN_ENFORCEMENT_STAGE=compat|guarded|strict`
 - `LAB_RUN_COMPLETED_TARGETS="h1 c1 c2"`
 - `LAB_RUN_ALLOWED_POLICY_GATES="gate_network gate_storage"`
+- `LAB_RUN_GATE_EVIDENCE_FILE=/path/to/gate-evidence`
+
+Gate evidence artifact contract (`--gate-evidence` / `LAB_RUN_GATE_EVIDENCE_FILE`):
+
+- `format=gate-evidence-v0`
+- `target=<dispatch-target>`
+- approved gates via `approved_gates="gate_a gate_b"` or repeatable
+  `approved_gate=<gate>` keys
 
 Enforcement stage precedence at runtime:
 
@@ -152,7 +164,12 @@ Recommended rollout sequence:
 
 1. Move non-critical targets from `compat` to `guarded`.
 2. Stabilize dependency completion reporting in automation wrappers.
-3. Move selected targets to `strict` only after policy gate approvals are automated.
+3. Move selected targets to `strict` only after this checklist is satisfied:
+   - target has deterministic `DCL_TARGET_ORDER` metadata,
+   - target has non-empty `DCL_TARGET_DEPENDS_ON` metadata,
+   - target has non-empty `DCL_TARGET_POLICY_GATES` metadata,
+   - automation can supply gate evidence via `--gate-evidence` or
+     `LAB_RUN_GATE_EVIDENCE_FILE`.
 
 ## 5. Operational Workflow (Recommended)
 

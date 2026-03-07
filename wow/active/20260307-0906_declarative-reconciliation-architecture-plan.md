@@ -3,8 +3,8 @@
 - Status: active
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 10:45
-- Links: wow/task/active-capture, wow/task/RULES.md, wow/inbox/20260307-0941_workflow-completed-folder-chronology-checker-issue.md, doc/arc/00-architecture-overview.md, src/README.md, utl/README.md
+- Updated: 2026-03-07 14:51
+- Links: wow/task/active-capture, wow/task/RULES.md, wow/active/20260307-0941_workflow-completed-folder-chronology-checker-issue.md, doc/arc/00-architecture-overview.md, src/README.md, utl/README.md
 
 ## Retroactive Capture
 
@@ -88,47 +88,50 @@
 
 ### Done
 
-- Finalized migration scaffolding and contracts across `cfg/dcl`, `src/rec`, `src/run`, and compatibility bridges in `src/set/*` + `src/dic/run`.
-- Implemented schema-aware reconciliation validation in `src/rec/ops` for sections, modes, preconditions, order, dependencies, policy gates, and enforcement-stage metadata.
-- Implemented plan-aware execution controls in `src/run/dispatch` including section gating, dependency/order/policy checks, and stage resolution (`CLI -> env -> plan target -> plan default -> compat`).
-- Fixed a runtime correctness issue in `src/dic/run` so dispatch failures now propagate non-zero exit codes correctly.
-- Set initial declarative rollout policy in `cfg/dcl/site1` (`h1/c1/c2/c3=compat`, `t1/t2=guarded`) and aligned docs in `cfg/dcl/README.md`, `src/run/README.md`, `src/dic/README.md`, `src/README.md`, and `doc/man/04-deployments.md`.
-- Expanded `val/src/rec_run_contract_test.sh` to cover compile artifact contracts, invalid schema cases, stage precedence, guarded defaults, and bridge pass-through behavior.
-- Validation summary this session: `bash val/src/rec_run_contract_test.sh` passed, `bash val/src/dic/dic_set_menu_contract_test.sh` passed, `bash wow/check-workflow.sh` passed.
+- Implemented strict promotion invariants in `src/rec/ops` so effective `strict` targets require `DCL_TARGET_ORDER`, non-empty `DCL_TARGET_DEPENDS_ON`, and non-empty `DCL_TARGET_POLICY_GATES` metadata.
+- Implemented non-interactive gate-evidence loading in `src/run/dispatch` via `--gate-evidence` and `LAB_RUN_GATE_EVIDENCE_FILE` with contract validation (`format=gate-evidence-v0`, target match, valid gate tokens, non-empty approvals).
+- Added gate-evidence passthrough handling in `src/dic/run` so bridge invocations can forward evidence artifacts to dispatch.
+- Expanded contract coverage in `val/src/rec_run_contract_test.sh` for gate-evidence success/failure paths and strict-promotion invariants.
+- Updated rollout/docs references in `cfg/dcl/SCHEMA.md`, `cfg/dcl/README.md`, `src/run/README.md`, `src/dic/README.md`, and `doc/man/04-deployments.md`.
+- Validation summary this session: `bash -n src/run/dispatch src/dic/run src/rec/ops val/src/rec_run_contract_test.sh` passed; `bash val/src/rec_run_contract_test.sh` passed; `bash val/src/dic/dic_set_menu_contract_test.sh` passed; `bash wow/check-workflow.sh` passed.
 
 ### In-flight
 
-- Reconcile-first execution is still opt-in; legacy-compatible invocation remains default across `src/set/*` and `src/dic/ops`.
-- `src/dic/ops` still resolves injected values from `cfg/env/site1`; declarative-first data flow is not yet the primary injection path.
-- Policy gate approvals are provided via runtime flags/env vars; automatic evidence capture and gate attestation are not implemented.
-- Rollout policy is currently defined only in `cfg/dcl/site1`; environment-specific promotion policy has not been split into staged overlays.
+- Reconcile-first execution is still not default end-to-end; `src/dic/ops` remains direct-mode by default and `src/set/*` still allows non-plan dispatch paths.
+- `src/dic/ops` continues to source injected values from `cfg/env/site1`; declarative-first injection data flow is not yet primary.
+- Gate evidence consumption is implemented, but gate evidence production and attestation persistence are still manual/out-of-band.
+- Rollout policy is still concentrated in `cfg/dcl/site1`; staged overlays for environment promotion are not yet implemented.
+- All work remains uncommitted in a dirty worktree with unrelated user changes.
 
 ### Blockers
 
-- No technical blockers for scaffolding continuation.
-- No active workflow checker blocker at this checkpoint; chronology policy follow-up remains tracked in `wow/inbox/20260307-0941_workflow-completed-folder-chronology-checker-issue.md`.
+- No technical blockers for continuation.
+- Open design dependency: choose canonical evidence producer + artifact retention location to complete strict-run automation and auditability.
+- Workflow chronology follow-up remains separate and active at `wow/active/20260307-0941_workflow-completed-folder-chronology-checker-issue.md`.
 
 ### Next steps
 
-1. Decide cutover criteria for switching reconcile-first flow from opt-in to default.
-2. Encode promotion criteria for `guarded -> strict` into `cfg/dcl/SCHEMA.md` and `src/rec/ops` validation (required policy gates, required dependency context).
-3. Implement automated gate-evidence loading for dispatch in `src/run/dispatch` (non-interactive source + validation contract) and pass-through in `src/dic/run`.
-4. Add/extend contract coverage in `val/src/rec_run_contract_test.sh` for automated gate-evidence success/failure paths and strict-stage promotion invariants.
-5. Update rollout guidance docs in `doc/man/04-deployments.md`, `src/run/README.md`, and `cfg/dcl/README.md` with strict promotion checklist and operational examples.
-6. Keep checker-regression remediation as a separate track via `wow/inbox/20260307-0941_workflow-completed-folder-chronology-checker-issue.md`.
+1. Define the `gate-evidence-v0` producer contract and implement a producer path for strict runs under `src/run/` (CI/orchestration-compatible output).
+2. Implement attestation persistence and retention conventions for gate approvals and document audit retrieval in `doc/man/04-deployments.md`.
+3. Extend `val/src/rec_run_contract_test.sh` with producer-path coverage (artifact generation + dispatch consumption).
+4. Move `src/dic/ops` toward declarative-first defaults and reduce direct `cfg/env/site1` sourcing behavior.
+5. Split rollout policy into staged overlays under `cfg/dcl/` and update `cfg/dcl/SCHEMA.md` + `cfg/dcl/README.md` with environment promotion examples.
+6. Re-run `bash val/src/rec_run_contract_test.sh`, `bash val/src/dic/dic_set_menu_contract_test.sh`, and `bash wow/check-workflow.sh`, then record outcomes in this plan.
 
 ### Context
 
 - Branch: `master`.
 - Worktree is dirty with unrelated user changes; do not revert outside touched migration files.
+- Key files touched this session: `src/run/dispatch`, `src/dic/run`, `src/rec/ops`, `val/src/rec_run_contract_test.sh`, `cfg/dcl/SCHEMA.md`, `cfg/dcl/README.md`, `src/run/README.md`, `src/dic/README.md`, `doc/man/04-deployments.md`.
+- Gate evidence contract currently accepted by dispatch: `format=gate-evidence-v0`, `target=<dispatch-target>`, approvals via `approved_gates="..."` or `approved_gate[_N]=...`.
 - Phase status: Phase 1 complete, Phase 2 complete, Phase 3 in progress, Phase 4 in progress.
-- Latest checks in this context: `bash val/src/rec_run_contract_test.sh` passed, `bash val/src/dic/dic_set_menu_contract_test.sh` passed, `bash wow/check-workflow.sh` passed.
+- Latest checks in this context: `bash -n src/run/dispatch src/dic/run src/rec/ops val/src/rec_run_contract_test.sh` passed; `bash val/src/rec_run_contract_test.sh` passed; `bash val/src/dic/dic_set_menu_contract_test.sh` passed; `bash wow/check-workflow.sh` passed.
 - Workflow checker status: `bash wow/check-workflow.sh` passed.
 
 ## Execution Plan
 
 1. Phase 3 (Migration) [in progress]: Make reconcile-first execution primary by default across `src/set/*`, `src/dic/run`, and `src/dic/ops`; completion criterion: legacy-compatible path is explicit opt-out and runtime behavior is plan-first by default.
-2. Phase 4 (Validation and docs) [in progress]: Finalize promotion policy (`guarded -> strict`), gate-evidence automation, and end-to-end contract coverage; completion criterion: strict rollout rules are codified in schema + runtime checks and documented for operators.
+2. Phase 4 (Validation and docs) [in progress]: Implement strict-run evidence production + attestation retention and staged rollout overlays; completion criterion: strict runs use an end-to-end automated evidence flow with documented operator audit guidance and test coverage.
 
 ## Exit Criteria
 

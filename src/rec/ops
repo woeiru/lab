@@ -167,6 +167,45 @@ rec_validate_enforcement_stage() {
     esac
 }
 
+rec_has_non_empty_tokens() {
+    local raw_value="$1"
+    local -a tokens=()
+
+    read -r -a tokens <<< "$raw_value"
+    if [[ "${#tokens[@]}" -eq 0 ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
+rec_validate_strict_promotion_requirements() {
+    local target_name="$1"
+    local has_order_map="$2"
+    local order_value="$3"
+    local has_depends_on_map="$4"
+    local depends_on_value="$5"
+    local has_policy_gates_map="$6"
+    local policy_gates_value="$7"
+
+    if [[ "$has_order_map" -ne 1 || -z "$order_value" ]]; then
+        printf 'src/rec/ops: strict target "%s" requires DCL_TARGET_ORDER metadata\n' "$target_name" >&2
+        return 2
+    fi
+
+    if [[ "$has_depends_on_map" -ne 1 ]] || ! rec_has_non_empty_tokens "$depends_on_value"; then
+        printf 'src/rec/ops: strict target "%s" requires non-empty DCL_TARGET_DEPENDS_ON metadata\n' "$target_name" >&2
+        return 2
+    fi
+
+    if [[ "$has_policy_gates_map" -ne 1 ]] || ! rec_has_non_empty_tokens "$policy_gates_value"; then
+        printf 'src/rec/ops: strict target "%s" requires non-empty DCL_TARGET_POLICY_GATES metadata\n' "$target_name" >&2
+        return 2
+    fi
+
+    return 0
+}
+
 rec_visit_dependency_target() {
     local target_name="$1"
     local dependency_chain="$2"
@@ -323,6 +362,7 @@ rec_validate_loaded_model() {
     local depends_on_value
     local policy_gates_value
     local target_enforcement_stage
+    local effective_enforcement_stage
     local -A order_to_target=()
     for target_name in "${DCL_TARGETS[@]}"; do
         if [[ -z "$target_name" ]]; then
@@ -387,6 +427,8 @@ rec_validate_loaded_model() {
             fi
 
             order_to_target[$order_value]="$target_name"
+        else
+            order_value=""
         fi
 
         if [[ "$has_depends_on_map" -eq 1 ]]; then
@@ -396,6 +438,8 @@ rec_validate_loaded_model() {
                     return 2
                 fi
             fi
+        else
+            depends_on_value=""
         fi
 
         if [[ "$has_policy_gates_map" -eq 1 ]]; then
@@ -405,8 +449,11 @@ rec_validate_loaded_model() {
                     return 2
                 fi
             fi
+        else
+            policy_gates_value=""
         fi
 
+        target_enforcement_stage=""
         if [[ "$has_target_enforcement_stage_map" -eq 1 ]]; then
             target_enforcement_stage="${DCL_TARGET_ENFORCEMENT_STAGE[$target_name]:-}"
             if [[ -n "$target_enforcement_stage" ]]; then
@@ -414,6 +461,17 @@ rec_validate_loaded_model() {
                     printf 'src/rec/ops: invalid target enforcement stage "%s" for target "%s"\n' "$target_enforcement_stage" "$target_name" >&2
                     return 2
                 fi
+            fi
+        fi
+
+        effective_enforcement_stage="$enforcement_stage_default"
+        if [[ -n "$target_enforcement_stage" ]]; then
+            effective_enforcement_stage="$target_enforcement_stage"
+        fi
+
+        if [[ "$effective_enforcement_stage" == "strict" ]]; then
+            if ! rec_validate_strict_promotion_requirements "$target_name" "$has_order_map" "$order_value" "$has_depends_on_map" "$depends_on_value" "$has_policy_gates_map" "$policy_gates_value"; then
+                return 2
             fi
         fi
     done

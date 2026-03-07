@@ -30,6 +30,18 @@
   `--completed-target <target>` and `--allow-gate <gate>`.
 - Environment equivalents are supported for automation contexts:
   `LAB_RUN_COMPLETED_TARGETS`, `LAB_RUN_ALLOWED_POLICY_GATES`.
+- Policy gate approvals can be auto-loaded from evidence artifacts using
+  `--gate-evidence <path>` or `LAB_RUN_GATE_EVIDENCE_FILE`.
+- Gate evidence contract is key-value text with:
+  - `format=gate-evidence-v0`
+  - `target=<dispatch-target>`
+  - approved gates via `approved_gates="g1 g2"` or repeatable
+    `approved_gate=<gate>` keys.
+- Invalid gate evidence (missing keys, target mismatch, bad gate tokens) fails
+  before runbook execution.
+- Strict stage keeps dependency/order checks active; targets with declared
+  dependencies still require completion context (`--completed-target` or
+  `LAB_RUN_COMPLETED_TARGETS`).
 - Legacy runbooks can opt into the reconcile bridge by setting
   `LAB_USE_DIC_RUN_BRIDGE=1`.
 - Legacy `src/set/*` still remains the active execution surface during

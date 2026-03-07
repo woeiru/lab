@@ -15,6 +15,7 @@ Dispatch flags:
   --enforce-policy-gates         Enforce target policy gate approvals
   --completed-target <target>    Mark target as already completed (repeatable)
   --allow-gate <gate>            Approve a policy gate token (repeatable)
+  --gate-evidence <path>         Load approved gates from evidence artifact
 
 Examples:
   src/run/dispatch h1 -x a_xall
@@ -27,6 +28,7 @@ Environment defaults:
   LAB_RUN_ENFORCEMENT_STAGE=compat|guarded|strict
   LAB_RUN_COMPLETED_TARGETS="h1 c1"
   LAB_RUN_ALLOWED_POLICY_GATES="gate_network gate_storage"
+  LAB_RUN_GATE_EVIDENCE_FILE=/path/to/gate-evidence
 EOF
 }
 
@@ -35,6 +37,7 @@ RUN_ENFORCE_ORDER=0
 RUN_ENFORCE_POLICY_GATES=0
 declare -a RUN_COMPLETED_TARGETS=()
 declare -a RUN_ALLOWED_POLICY_GATES=()
+declare -a RUN_GATE_EVIDENCE_FILES=()
 
 run_apply_enforcement_stage() {
     local stage_name="$1"
@@ -235,6 +238,140 @@ run_list_contains() {
     done
 
     return 1
+}
+
+run_add_unique_token() {
+    local -n list_ref=$1
+    local token="$2"
+
+    if run_list_contains "$token" "${list_ref[@]}"; then
+        return 0
+    fi
+
+    list_ref+=("$token")
+    return 0
+}
+
+run_validate_gate_token() {
+    local gate_token="$1"
+
+    if [[ "$gate_token" =~ ^[a-zA-Z0-9._:-]+$ ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+run_load_gate_evidence_file() {
+    local evidence_path="$1"
+    local target="$2"
+
+    if [[ ! -f "$evidence_path" ]]; then
+        printf 'src/run/dispatch: gate evidence file not found: %s\n' "$evidence_path" >&2
+        return 1
+    fi
+
+    if [[ ! -r "$evidence_path" ]]; then
+        printf 'src/run/dispatch: gate evidence file is not readable: %s\n' "$evidence_path" >&2
+        return 1
+    fi
+
+    local evidence_format=""
+    local evidence_target=""
+    local -a evidence_gates=()
+    local line
+    local key
+    local value
+    local -a parsed_tokens=()
+    local gate_token
+
+    while IFS= read -r line; do
+        if [[ -z "$line" || "$line" == \#* ]]; then
+            continue
+        fi
+
+        if [[ "$line" != *=* ]]; then
+            printf 'src/run/dispatch: invalid gate evidence line (expected key=value): %s\n' "$line" >&2
+            return 1
+        fi
+
+        key="${line%%=*}"
+        value="${line#*=}"
+
+        case "$key" in
+            format)
+                evidence_format="$value"
+                ;;
+            target)
+                evidence_target="$value"
+                ;;
+            approved_gates)
+                parsed_tokens=()
+                run_parse_word_list "$value" parsed_tokens
+                for gate_token in "${parsed_tokens[@]}"; do
+                    if ! run_validate_gate_token "$gate_token"; then
+                        printf 'src/run/dispatch: invalid gate token "%s" in evidence %s\n' "$gate_token" "$evidence_path" >&2
+                        return 1
+                    fi
+                    run_add_unique_token evidence_gates "$gate_token"
+                done
+                ;;
+            approved_gate|approved_gate_*)
+                if [[ -z "$value" ]]; then
+                    printf 'src/run/dispatch: gate evidence key "%s" has empty value in %s\n' "$key" "$evidence_path" >&2
+                    return 1
+                fi
+                if ! run_validate_gate_token "$value"; then
+                    printf 'src/run/dispatch: invalid gate token "%s" in evidence %s\n' "$value" "$evidence_path" >&2
+                    return 1
+                fi
+                run_add_unique_token evidence_gates "$value"
+                ;;
+            *)
+                printf 'src/run/dispatch: unsupported gate evidence key "%s" in %s\n' "$key" "$evidence_path" >&2
+                return 1
+                ;;
+        esac
+    done < "$evidence_path"
+
+    if [[ "$evidence_format" != "gate-evidence-v0" ]]; then
+        printf 'src/run/dispatch: gate evidence format mismatch in %s (expected gate-evidence-v0)\n' "$evidence_path" >&2
+        return 1
+    fi
+
+    if [[ -z "$evidence_target" ]]; then
+        printf 'src/run/dispatch: gate evidence missing target in %s\n' "$evidence_path" >&2
+        return 1
+    fi
+
+    if [[ "$evidence_target" != "$target" ]]; then
+        printf 'src/run/dispatch: gate evidence target mismatch in %s (expected %s, got %s)\n' "$evidence_path" "$target" "$evidence_target" >&2
+        return 1
+    fi
+
+    if [[ "${#evidence_gates[@]}" -eq 0 ]]; then
+        printf 'src/run/dispatch: gate evidence has no approved gates in %s\n' "$evidence_path" >&2
+        return 1
+    fi
+
+    for gate_token in "${evidence_gates[@]}"; do
+        run_add_unique_token RUN_ALLOWED_POLICY_GATES "$gate_token"
+    done
+
+    return 0
+}
+
+run_load_gate_evidence() {
+    local target="$1"
+    local evidence_path
+
+    for evidence_path in "${RUN_GATE_EVIDENCE_FILES[@]}"; do
+        if ! run_load_gate_evidence_file "$evidence_path" "$target"; then
+            return 1
+        fi
+    done
+
+    return 0
 }
 
 run_validate_dependencies() {
@@ -490,7 +627,9 @@ run_main() {
     RUN_ENFORCE_POLICY_GATES=0
     RUN_COMPLETED_TARGETS=()
     RUN_ALLOWED_POLICY_GATES=()
+    RUN_GATE_EVIDENCE_FILES=()
     local cli_enforcement_stage=""
+    local has_cli_gate_evidence=0
     local env_enforcement_stage="${LAB_RUN_ENFORCEMENT_STAGE:-}"
     local enforcement_stage=""
 
@@ -550,6 +689,15 @@ run_main() {
                 RUN_ALLOWED_POLICY_GATES+=("$2")
                 shift 2
                 ;;
+            --gate-evidence)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/run/dispatch: missing value for --gate-evidence\n' >&2
+                    return 1
+                fi
+                has_cli_gate_evidence=1
+                RUN_GATE_EVIDENCE_FILES+=("$2")
+                shift 2
+                ;;
             *)
                 passthrough_args+=("$1")
                 shift
@@ -579,6 +727,11 @@ run_main() {
     fi
 
     if [[ -z "$plan_path" ]]; then
+        if [[ "$has_cli_gate_evidence" -eq 1 ]]; then
+            printf 'src/run/dispatch: --gate-evidence requires --plan <artifact>\n' >&2
+            return 1
+        fi
+
         if [[ "$RUN_ENFORCE_DEPS" -eq 1 || "$RUN_ENFORCE_ORDER" -eq 1 || "$RUN_ENFORCE_POLICY_GATES" -eq 1 ]]; then
             printf 'src/run/dispatch: enforcement flags require --plan <artifact>\n' >&2
             return 1
@@ -586,6 +739,16 @@ run_main() {
     fi
 
     if [[ -n "$plan_path" ]]; then
+        if [[ -n "${LAB_RUN_GATE_EVIDENCE_FILE:-}" ]]; then
+            RUN_GATE_EVIDENCE_FILES+=("$LAB_RUN_GATE_EVIDENCE_FILE")
+        fi
+
+        if [[ "${#RUN_GATE_EVIDENCE_FILES[@]}" -gt 0 ]]; then
+            if ! run_load_gate_evidence "$target"; then
+                return 1
+            fi
+        fi
+
         if ! run_validate_plan "$plan_path" "$target" "$requested_section"; then
             return 1
         fi

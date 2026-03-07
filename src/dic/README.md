@@ -104,6 +104,9 @@ src/dic/run t2 --enforce-deps --completed-target h1 --completed-target c1
 
 # pass through stage-based strict defaults
 src/dic/run h1 --enforcement-stage strict --allow-gate gate_network --allow-gate gate_storage
+
+# pass through non-interactive gate evidence artifacts
+src/dic/run h1 --enforcement-stage strict --gate-evidence .tmp/rec/h1.gates
 ```
 
 If `--enforcement-stage` is not supplied, dispatch can still derive stage from
@@ -113,6 +116,9 @@ from plan metadata unless overridden.
 
 This shim is transitional. It keeps current entrypoint ergonomics while
 introducing plan-aware execution boundaries.
+
+Gate evidence automation can also be provided through
+`LAB_RUN_GATE_EVIDENCE_FILE` when calling `src/dic/run`.
 
 Legacy runbooks can opt into this bridge by setting
 `LAB_USE_DIC_RUN_BRIDGE=1` before invoking `src/set/*`.

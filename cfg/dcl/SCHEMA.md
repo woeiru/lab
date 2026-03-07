@@ -25,6 +25,12 @@ migration scaffolding.
 - `DCL_TARGET_ENFORCEMENT_STAGE` (optional associative array): map target ->
   target-specific enforcement stage override (`compat|guarded|strict`).
 
+Strict promotion (`guarded -> strict`) is controlled by existing target metadata:
+
+- dependency context via `DCL_TARGET_DEPENDS_ON`,
+- policy approvals via `DCL_TARGET_POLICY_GATES`,
+- deterministic ordering via `DCL_TARGET_ORDER`.
+
 ## Validation rules (current)
 
 1. At least one declarative file must exist in `cfg/dcl/` (excluding
@@ -46,6 +52,13 @@ migration scaffolding.
     `compat`, `guarded`, or `strict`.
 11. If `DCL_TARGET_ENFORCEMENT_STAGE` is present, every provided target value
     must be one of `compat`, `guarded`, or `strict`.
+12. Effective stage resolves as target override first, else default stage.
+13. Targets with effective stage `strict` must provide non-empty
+    `DCL_TARGET_DEPENDS_ON[target]` metadata.
+14. Targets with effective stage `strict` must provide non-empty
+    `DCL_TARGET_POLICY_GATES[target]` metadata.
+15. Targets with effective stage `strict` must provide valid
+    `DCL_TARGET_ORDER[target]` metadata.
 
 ## Notes
 

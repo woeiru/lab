@@ -88,6 +88,41 @@ if [[ "$artifact_content" != *"_enforcement_stage="* ]]; then
     fail "compile artifact missing target enforcement stage metadata"
 fi
 
+gate_evidence_h1_path="${tmpdir}/gate-evidence-h1"
+cat > "$gate_evidence_h1_path" <<'EOF'
+format=gate-evidence-v0
+target=h1
+approved_gates=gate_network gate_storage
+EOF
+
+gate_evidence_t2_path="${tmpdir}/gate-evidence-t2"
+cat > "$gate_evidence_t2_path" <<'EOF'
+format=gate-evidence-v0
+target=t2
+approved_gate_1=gate_network
+approved_gate_2=gate_access
+EOF
+
+invalid_gate_evidence_format_path="${tmpdir}/gate-evidence-invalid-format"
+cat > "$invalid_gate_evidence_format_path" <<'EOF'
+target=h1
+approved_gates=gate_network gate_storage
+EOF
+
+invalid_gate_evidence_target_path="${tmpdir}/gate-evidence-invalid-target"
+cat > "$invalid_gate_evidence_target_path" <<'EOF'
+format=gate-evidence-v0
+target=t2
+approved_gates=gate_network gate_storage
+EOF
+
+invalid_gate_evidence_token_path="${tmpdir}/gate-evidence-invalid-token"
+cat > "$invalid_gate_evidence_token_path" <<'EOF'
+format=gate-evidence-v0
+target=h1
+approved_gates=gate_network gate@invalid
+EOF
+
 run_help_output="$("$RUN_DISPATCH" --help 2>&1 || true)"
 if [[ "$run_help_output" != *"Usage: src/run/dispatch"* ]]; then
     fail "src/run/dispatch help output missing usage header"
@@ -99,17 +134,25 @@ expect_failure "src/run/dispatch rejects plan without matching target" "$RUN_DIS
 expect_failure "src/run/dispatch rejects section not allowed by plan" "$RUN_DISPATCH" h1 --plan "$artifact_path" -x invalid-section
 expect_failure "src/run/dispatch rejects missing section value after -x" "$RUN_DISPATCH" h1 --plan "$artifact_path" -x
 expect_failure "src/run/dispatch rejects enforcement flags without plan" "$RUN_DISPATCH" h1 --enforce-deps
+expect_failure "src/run/dispatch rejects gate evidence without plan" "$RUN_DISPATCH" h1 --gate-evidence "$gate_evidence_h1_path"
 expect_failure "src/run/dispatch rejects invalid enforcement stage" "$RUN_DISPATCH" h1 --plan "$artifact_path" --enforcement-stage invalid
 expect_failure "src/run/dispatch enforce-deps fails without completion context" "$RUN_DISPATCH" t2 --plan "$artifact_path" --enforce-deps
 expect_success "src/run/dispatch enforce-deps accepts completed dependency set" "$RUN_DISPATCH" t2 --plan "$artifact_path" --enforce-deps --completed-target h1 --completed-target c1 --completed-target c2 --completed-target c3 --completed-target t1
 expect_failure "src/run/dispatch enforce-policy-gates fails without approvals" "$RUN_DISPATCH" h1 --plan "$artifact_path" --enforce-policy-gates
 expect_success "src/run/dispatch enforce-policy-gates accepts approved gates" "$RUN_DISPATCH" h1 --plan "$artifact_path" --enforce-policy-gates --allow-gate gate_network --allow-gate gate_storage
 expect_success "src/run/dispatch enforce-policy-gates accepts env approved gates" env LAB_RUN_ALLOWED_POLICY_GATES="gate_network gate_storage" "$RUN_DISPATCH" h1 --plan "$artifact_path" --enforce-policy-gates
+expect_failure "src/run/dispatch rejects invalid gate evidence format" "$RUN_DISPATCH" h1 --plan "$artifact_path" --enforcement-stage strict --gate-evidence "$invalid_gate_evidence_format_path"
+expect_failure "src/run/dispatch rejects gate evidence target mismatch" "$RUN_DISPATCH" h1 --plan "$artifact_path" --enforcement-stage strict --gate-evidence "$invalid_gate_evidence_target_path"
+expect_failure "src/run/dispatch rejects invalid gate evidence token" "$RUN_DISPATCH" h1 --plan "$artifact_path" --enforcement-stage strict --gate-evidence "$invalid_gate_evidence_token_path"
 expect_success "src/run/dispatch enforce-order accepts valid ordering" "$RUN_DISPATCH" t2 --plan "$artifact_path" --enforce-order --completed-target h1 --completed-target c1 --completed-target c2 --completed-target c3 --completed-target t1
 expect_failure "src/run/dispatch guarded stage fails without completed targets" env LAB_RUN_ENFORCEMENT_STAGE=guarded "$RUN_DISPATCH" t2 --plan "$artifact_path"
 expect_success "src/run/dispatch guarded stage uses env completed targets" env LAB_RUN_ENFORCEMENT_STAGE=guarded LAB_RUN_COMPLETED_TARGETS="h1 c1 c2 c3 t1" "$RUN_DISPATCH" t2 --plan "$artifact_path"
 expect_failure "src/run/dispatch strict stage fails without approved gates" env LAB_RUN_ENFORCEMENT_STAGE=strict LAB_RUN_COMPLETED_TARGETS="h1 c1 c2 c3 t1" "$RUN_DISPATCH" h1 --plan "$artifact_path"
 expect_success "src/run/dispatch strict stage passes with approved gates" env LAB_RUN_ENFORCEMENT_STAGE=strict LAB_RUN_COMPLETED_TARGETS="h1 c1 c2 c3 t1" LAB_RUN_ALLOWED_POLICY_GATES="gate_network gate_storage" "$RUN_DISPATCH" h1 --plan "$artifact_path"
+expect_success "src/run/dispatch strict stage passes with gate evidence" env LAB_RUN_ENFORCEMENT_STAGE=strict "$RUN_DISPATCH" h1 --plan "$artifact_path" --gate-evidence "$gate_evidence_h1_path"
+expect_success "src/run/dispatch strict stage loads env gate evidence" env LAB_RUN_ENFORCEMENT_STAGE=strict LAB_RUN_GATE_EVIDENCE_FILE="$gate_evidence_h1_path" "$RUN_DISPATCH" h1 --plan "$artifact_path"
+expect_failure "src/run/dispatch strict stage on t2 requires dependency context" env LAB_RUN_ENFORCEMENT_STAGE=strict "$RUN_DISPATCH" t2 --plan "$artifact_path" --gate-evidence "$gate_evidence_t2_path"
+expect_success "src/run/dispatch strict stage on t2 passes with evidence and dependency context" env LAB_RUN_ENFORCEMENT_STAGE=strict LAB_RUN_COMPLETED_TARGETS="h1 c1 c2 c3 t1" "$RUN_DISPATCH" t2 --plan "$artifact_path" --gate-evidence "$gate_evidence_t2_path"
 expect_failure "src/run/dispatch uses plan guarded stage for t2 by default" "$RUN_DISPATCH" t2 --plan "$artifact_path"
 expect_success "src/run/dispatch plan guarded stage passes with env completion context" env LAB_RUN_COMPLETED_TARGETS="h1 c1 c2 c3 t1" "$RUN_DISPATCH" t2 --plan "$artifact_path"
 
@@ -237,6 +280,121 @@ declare -A -g DCL_TARGET_ENFORCEMENT_STAGE=(
 EOF
 expect_failure "src/rec/ops validate rejects invalid target enforcement stage" "$REC_OPS" validate --dcl-root "$invalid_dcl_target_stage"
 
+invalid_dcl_strict_missing_gates="${tmpdir}/dcl-strict-missing-gates"
+mkdir -p "$invalid_dcl_strict_missing_gates"
+cat > "${invalid_dcl_strict_missing_gates}/site" <<'EOF'
+#!/bin/bash
+DCL_SITE_NAME="test"
+DCL_PROFILE="base"
+declare -a -g DCL_TARGETS=("h1" "t2")
+declare -A -g DCL_TARGET_SECTIONS=(
+    ["h1"]="a_xall"
+    ["t2"]="a_xall"
+)
+declare -A -g DCL_TARGET_ORDER=(
+    ["h1"]="10"
+    ["t2"]="20"
+)
+declare -A -g DCL_TARGET_DEPENDS_ON=(
+    ["h1"]=""
+    ["t2"]="h1"
+)
+declare -A -g DCL_TARGET_POLICY_GATES=(
+    ["h1"]="gate_network"
+)
+declare -A -g DCL_TARGET_ENFORCEMENT_STAGE=(
+    ["h1"]="compat"
+    ["t2"]="strict"
+)
+EOF
+expect_failure "src/rec/ops validate rejects strict target without policy gates" "$REC_OPS" validate --dcl-root "$invalid_dcl_strict_missing_gates"
+
+invalid_dcl_strict_missing_depends="${tmpdir}/dcl-strict-missing-depends"
+mkdir -p "$invalid_dcl_strict_missing_depends"
+cat > "${invalid_dcl_strict_missing_depends}/site" <<'EOF'
+#!/bin/bash
+DCL_SITE_NAME="test"
+DCL_PROFILE="base"
+declare -a -g DCL_TARGETS=("h1" "t2")
+declare -A -g DCL_TARGET_SECTIONS=(
+    ["h1"]="a_xall"
+    ["t2"]="a_xall"
+)
+declare -A -g DCL_TARGET_ORDER=(
+    ["h1"]="10"
+    ["t2"]="20"
+)
+declare -A -g DCL_TARGET_DEPENDS_ON=(
+    ["h1"]=""
+    ["t2"]=""
+)
+declare -A -g DCL_TARGET_POLICY_GATES=(
+    ["h1"]="gate_network"
+    ["t2"]="gate_network gate_access"
+)
+declare -A -g DCL_TARGET_ENFORCEMENT_STAGE=(
+    ["h1"]="compat"
+    ["t2"]="strict"
+)
+EOF
+expect_failure "src/rec/ops validate rejects strict target without dependency context" "$REC_OPS" validate --dcl-root "$invalid_dcl_strict_missing_depends"
+
+invalid_dcl_strict_missing_order="${tmpdir}/dcl-strict-missing-order"
+mkdir -p "$invalid_dcl_strict_missing_order"
+cat > "${invalid_dcl_strict_missing_order}/site" <<'EOF'
+#!/bin/bash
+DCL_SITE_NAME="test"
+DCL_PROFILE="base"
+declare -a -g DCL_TARGETS=("h1" "t2")
+declare -A -g DCL_TARGET_SECTIONS=(
+    ["h1"]="a_xall"
+    ["t2"]="a_xall"
+)
+declare -A -g DCL_TARGET_DEPENDS_ON=(
+    ["h1"]=""
+    ["t2"]="h1"
+)
+declare -A -g DCL_TARGET_POLICY_GATES=(
+    ["h1"]="gate_network"
+    ["t2"]="gate_network gate_access"
+)
+declare -A -g DCL_TARGET_ENFORCEMENT_STAGE=(
+    ["h1"]="compat"
+    ["t2"]="strict"
+)
+EOF
+expect_failure "src/rec/ops validate rejects strict target without order metadata" "$REC_OPS" validate --dcl-root "$invalid_dcl_strict_missing_order"
+
+valid_dcl_strict_target="${tmpdir}/dcl-strict-valid"
+mkdir -p "$valid_dcl_strict_target"
+cat > "${valid_dcl_strict_target}/site" <<'EOF'
+#!/bin/bash
+DCL_SITE_NAME="test"
+DCL_PROFILE="base"
+declare -a -g DCL_TARGETS=("h1" "t2")
+declare -A -g DCL_TARGET_SECTIONS=(
+    ["h1"]="a_xall"
+    ["t2"]="a_xall"
+)
+declare -A -g DCL_TARGET_ORDER=(
+    ["h1"]="10"
+    ["t2"]="20"
+)
+declare -A -g DCL_TARGET_DEPENDS_ON=(
+    ["h1"]=""
+    ["t2"]="h1"
+)
+declare -A -g DCL_TARGET_POLICY_GATES=(
+    ["h1"]="gate_network"
+    ["t2"]="gate_network gate_access"
+)
+declare -A -g DCL_TARGET_ENFORCEMENT_STAGE=(
+    ["h1"]="compat"
+    ["t2"]="strict"
+)
+EOF
+expect_success "src/rec/ops validate accepts strict target with promotion metadata" "$REC_OPS" validate --dcl-root "$valid_dcl_strict_target"
+
 expect_success "ops reconcile preflight succeeds for declared target" env LAB_ROOT="$LAB_ROOT" OPS_EXECUTION_MODE=reconcile LAB_REC_TARGET=h1 bash -c 'source "$1"; ops_reconcile_preflight' _ "$LAB_ROOT/src/dic/ops"
 expect_failure "ops reconcile preflight rejects undeclared target" env LAB_ROOT="$LAB_ROOT" OPS_EXECUTION_MODE=reconcile LAB_REC_TARGET=unknown-target bash -c 'source "$1"; ops_reconcile_preflight' _ "$LAB_ROOT/src/dic/ops"
 expect_success "ops runtime flag enables reconcile mode" env LAB_ROOT="$LAB_ROOT" bash -c 'source "$1"; OPS_EXECUTION_MODE=direct; ops_main --reconcile --help >/dev/null 2>&1 && [[ "$OPS_EXECUTION_MODE" == "reconcile" ]]' _ "$LAB_ROOT/src/dic/ops"
@@ -245,10 +403,14 @@ expect_success "ops runtime flag sets reconcile target" env LAB_ROOT="$LAB_ROOT"
 expect_failure "ops runtime flag rejects missing reconcile target" env LAB_ROOT="$LAB_ROOT" bash -c 'source "$1"; ops_main --rec-target --help >/dev/null 2>&1' _ "$LAB_ROOT/src/dic/ops"
 
 expect_success "src/dic/run bridge remains callable" "$REC_RUN_BRIDGE" h1
+expect_failure "src/dic/run rejects missing gate evidence value" "$REC_RUN_BRIDGE" h1 --gate-evidence
 expect_failure "src/dic/run applies plan guarded stage for t2" "$REC_RUN_BRIDGE" t2
 expect_success "src/dic/run plan guarded stage passes with env completion context" env LAB_RUN_COMPLETED_TARGETS="h1 c1 c2 c3 t1" "$REC_RUN_BRIDGE" t2
 expect_failure "src/dic/run forwards strict dependency enforcement failures" env -u LAB_RUN_COMPLETED_TARGETS "$REC_RUN_BRIDGE" t2 --enforce-deps
 expect_success "src/dic/run forwards strict dependency enforcement inputs" "$REC_RUN_BRIDGE" t2 --enforce-deps --completed-target h1 --completed-target c1 --completed-target c2 --completed-target c3 --completed-target t1
+expect_success "src/dic/run forwards strict gate evidence for h1" "$REC_RUN_BRIDGE" h1 --enforcement-stage strict --gate-evidence "$gate_evidence_h1_path"
+expect_failure "src/dic/run strict gate evidence for t2 still requires dependency context" "$REC_RUN_BRIDGE" t2 --enforcement-stage strict --gate-evidence "$gate_evidence_t2_path"
+expect_success "src/dic/run forwards strict gate evidence with dependency context" "$REC_RUN_BRIDGE" t2 --enforcement-stage strict --gate-evidence "$gate_evidence_t2_path" --completed-target h1 --completed-target c1 --completed-target c2 --completed-target c3 --completed-target t1
 expect_success "src/set/h1 supports opt-in dic bridge" env LAB_USE_DIC_RUN_BRIDGE=1 "$SET_H1"
 expect_success "legacy src/set/h1 entrypoint remains callable" "$SET_H1"
 

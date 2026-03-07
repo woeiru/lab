@@ -14,6 +14,8 @@ Shim options:
   --env-root <path>    Override environment root (default: <repo>/cfg/env)
   --artifact <path>    Keep/write compile artifact at explicit path
   --keep-artifact      Do not delete temporary artifact
+  --gate-evidence <path>
+                        Forward gate evidence artifact to dispatch
   --help               Show this help
 
 Examples:
@@ -21,6 +23,7 @@ Examples:
   src/dic/run h1 -i
   src/dic/run h1 --artifact .tmp/rec/h1.plan -x a
   src/dic/run t2 --enforce-deps --completed-target h1 --completed-target c1
+  src/dic/run h1 --enforcement-stage strict --gate-evidence .tmp/rec/h1.gates
 EOF
 }
 
@@ -82,6 +85,14 @@ dic_run_main() {
             --keep-artifact)
                 keep_artifact=1
                 shift
+                ;;
+            --gate-evidence)
+                if [[ $# -lt 2 ]]; then
+                    printf 'src/dic/run: missing value for --gate-evidence\n' >&2
+                    return 1
+                fi
+                run_args+=("$1" "$2")
+                shift 2
                 ;;
             --help|-h)
                 dic_run_usage
