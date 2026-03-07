@@ -79,7 +79,7 @@ stateDiagram-v2
 4. `active-start` begins execution. Agent reads the plan and proceeds immediately.
 5. If the session must end before completion: `active-checkpoint` writes `## Progress Checkpoint`. File stays in `active/`.
 6. New session: `active-resume` reads the checkpoint and continues where the previous session stopped.
-7. `completed-close` moves the file to `completed/<topic>/` with final summary. Follow-ups become new inbox items.
+7. `completed-close` moves the file to `completed/yyyymmdd-hhmm_<topic>/` with final summary. Follow-ups route to inbox by default; they may route directly to queue only when mandatory, clearly scoped, and priority-locked, with explicit routing rationale in the closeout note.
 
 ### Conceptual flow (quick view)
 
@@ -161,6 +161,10 @@ The prompt ordering principle reinforces this: task template first (short instru
 - The system is filesystem-native. Any change to folder names or structure is a state machine change. Renaming `queue/` would break every task template that references it.
 - Task templates are plain text files with no extension. They are not executable scripts -- they are consumed by LLM agents as prompt input. Tooling that indexes only `*.md` or `*.sh` files will miss them.
 - Planned work follows `inbox/` -> `queue/` -> `active/`. Emergent work may enter `active/` directly via `active-capture`, but it must include inline triage and rationale so downstream transitions remain valid.
+- Follow-up items from close/converge actions default to `inbox/`. Direct
+  `queue/` routing is an explicit exception for mandatory, clearly scoped,
+  priority-locked items and must be annotated in the parent closeout/convergence
+  section.
 - Waivers in `active/waivers/` are tied to active items. When the related work leaves active, waiver records must be archived. The waiver register template requires owner, expiry date, and removal criteria per entry.
 - The `queue-triage` task moves exactly one item per invocation. There is no batch triage operation. `queue-move` allows targeting a specific item but still processes one file per call. Batching multiple `queue-move` calls in a single session is operationally valid.
 - `active-split` sends new pieces to `inbox/`, not to `queue/` or `active/`. This forces each piece through the full triage gate, preventing scope creep through decomposition.

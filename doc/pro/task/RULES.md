@@ -28,6 +28,15 @@ Folder-specific naming:
 - completed/: folder timestamp is the close time and must be >= every file timestamp prefix inside that folder
 - completed/: topic folders must not be empty
 
+Follow-up routing policy:
+- Default route for follow-up items from close/converge actions is inbox/.
+- Direct queue routing is allowed only when all are true:
+  1) follow-up is mandatory,
+  2) scope is clear enough to execute,
+  3) priority is already locked.
+- When direct queue routing is used, add this line in the parent closeout
+  section plus a one-line reason: `Routing: queue (mandatory follow-up)`.
+
 Reference pointers:
 - Primary operating guide: AGENTS.md.
 - Workflow semantics and checker behavior: doc/pro/README.md.

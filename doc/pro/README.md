@@ -134,6 +134,11 @@ Examples:
 5. Finish -> move to `completed/`
    - When implementation + review are accepted, move related files to `completed/`.
    - Add a short final section: what changed, what was verified, what remains.
+   - Follow-up routing: default to new `inbox/` items.
+   - Exception: create follow-ups directly in `queue/` only when mandatory,
+     scope is clear, and priority is already locked.
+   - For direct queue routing, add in `## What remains`:
+     `Routing: queue (mandatory follow-up)` and a one-line rationale.
 
 6. Reject -> move to `dismissed/`
    - If you decide not to continue, move the file to `dismissed/`.
@@ -147,7 +152,7 @@ Examples:
 | `queue/` | ready to execute, waiting for capacity | work starts (`active/`) or cancelled (`dismissed/`) |
 | `active/` | owner is actively executing now | accepted outcome (`completed/`) or stopped (`dismissed/`) |
 | `experiments/` | spike/prototype is needed before commitment | promote to `queue/` or close in `dismissed/` |
-| `completed/` | implementation/review accepted with evidence | no further state transition; follow-up becomes a new item |
+| `completed/` | implementation/review accepted with evidence | no further state transition; follow-up becomes a new inbox item by default, with direct queue allowed for mandatory priority-locked follow-ups |
 | `dismissed/` | item explicitly not pursued | no further state transition; revisit as a new item |
 
 ## Parallel orchestration for large initiatives

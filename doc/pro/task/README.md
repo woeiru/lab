@@ -56,6 +56,15 @@ sequentially and uses early tokens to prime attention over later ones. Giving
 the task first lets the model know what to extract before it encounters the
 bulk material, rather than forcing it to re-weight retroactively.
 
+## Follow-up routing policy
+
+- Default route for follow-up items from close/converge tasks is `inbox/`.
+- Direct `queue/` routing is allowed only when the follow-up is mandatory,
+  scope is already clear, and priority is already locked.
+- When routing directly to `queue/`, record
+  `Routing: queue (mandatory follow-up)` and a one-line rationale in the
+  parent closeout/convergence section.
+
 ## Naming conventions
 
 | Pattern              | Meaning                          | Examples                          |

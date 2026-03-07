@@ -54,8 +54,8 @@ flowchart TD
 | `active-fanout` | Split one active program parent into child workstreams | Creates child plans in `doc/pro/active/`, updates parent workstream table |
 | `active-assign` | Bind child workstreams to owners/branches/worktrees | Updates parent + child orchestration metadata |
 | `active-sync` | Roll up child status into parent | Updates parent workstream states and sync snapshot |
-| `active-converge` | Converge a wave and decide next release gate | Updates parent convergence log; may create follow-up inbox item |
-| `completed-close` / `dismissed-close` | Close active work as accepted or rejected | Moves files to `completed/` or `dismissed/` |
+| `active-converge` | Converge a wave and decide next release gate | Updates parent convergence log; may create follow-up inbox item (or direct queue item when mandatory and priority-locked) |
+| `completed-close` / `dismissed-close` | Close active work as accepted or rejected | Moves files to `completed/` or `dismissed/`; follow-ups default to inbox, with direct queue allowed for mandatory priority-locked items |
 | `status` | Read-only board overview | No file changes |
 | `maintenance` | Weekly structural hygiene pass | May fix checker-detected structure only (no state moves without approval) |
 
@@ -194,6 +194,14 @@ criteria.
 
 Expected result: completed artifacts live under
 `doc/pro/completed/yyyymmdd-hhmm_<topic>/` with timestamp-correct structure.
+
+Follow-up routing on close:
+
+- Default: create follow-up items in `doc/pro/inbox/`.
+- Direct `doc/pro/queue/` creation is allowed only when the follow-up is
+  mandatory, scope is already clear, and priority is already locked.
+- For direct queue routing, record in `## What remains`:
+  `Routing: queue (mandatory follow-up)` with a one-line rationale.
 
 ## 3. Expected Outcomes and Validation
 

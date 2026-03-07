@@ -15,7 +15,11 @@ Converge the current workstream wave and decide next-wave release.
   - unresolved conflicts or blockers
 - For blocked dependencies, set explicit release conditions in parent
   `## Workstreams` notes
-- If a follow-up item is required, create a new inbox `-followup.md` item and
-  link it from parent
+- If a follow-up item is required, route it by policy and link it from parent:
+  - Default: create a new inbox `-followup.md` item
+  - Exception: create directly in queue only when follow-up is mandatory for
+    next-wave progress, scope is clear, and priority is already locked
+  - For direct queue routing, record `Routing: queue (mandatory follow-up)`
+    with a one-line rationale in parent `## Convergence Log`
 - Do not close the parent unless prompt explicitly requests closure
 - Report: converged workstreams + blockers + next wave release decision
