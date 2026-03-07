@@ -89,7 +89,7 @@ Recommended helper usage in `lib/ops`:
 ## 8. Non-goals of this file
 
 This file does not define:
-- project workflow state management (`doc/pro/*`),
+- project workflow state management (`wow/*`),
 - validation rollout schedules,
 - non-ops module standards.
 
@@ -98,7 +98,7 @@ This file does not define:
 - OPS-022: Changes to `lib/ops/*` that modify function signatures, dependency
   imports, host command requirements, return/error behavior, or test mappings
   MUST be followed by regenerating `doc/ref/` artifacts.
-- OPS-023: Generated reference docs are maintained in `doc/ref/`; `doc/pro/`
+- OPS-023: Generated reference docs are maintained in `doc/ref/`; `wow/`
   content MUST NOT be used as canonical ops reference data.
 
 ## 10. Lazy-map synchronization for ops modules

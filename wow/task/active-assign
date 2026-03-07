@@ -1,0 +1,20 @@
+Read and apply wow/task/RULES.md first.
+
+The active program item filepath is given in the user prompt. Read it first.
+
+Assign active child workstreams to execution contexts.
+
+- Read parent `## Workstreams` and resolve all child plans that reference this
+  parent via `Program:` in `## Orchestration Metadata`
+- For each child plan, set/update:
+  - `- Owner:` in header
+  - `Branch:` and `Worktree:` in `## Orchestration Metadata`
+- Keep `Workstream-ID`, `Depends-On`, `Touch-Set`, and `Merge-Gate` unchanged
+  unless the prompt explicitly asks to rebalance scope
+- Update parent `## Workstreams` assignment fields to match child metadata
+- Add a short `## Assignment Snapshot` section in parent with:
+  - timestamp
+  - assigned/unassigned workstreams
+  - immediate blockers
+- Do not move files between workflow states
+- Report: files updated + assignment matrix + unassigned gaps

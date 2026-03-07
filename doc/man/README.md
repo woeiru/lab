@@ -114,7 +114,7 @@ Minimum expected pairings:
 - `lib/.spec`, `lib/ops/.spec`, `lib/ops/*` authoring contract changes -> update `05-writing-modules.md`
 - `lib/gen/sec`, `lib/gen/aux`, `lib/core/lo1`, `lib/core/err` behavior changes -> update `06-security-and-logging.md`
 - `utl/pla/*` command/workflow contract changes -> update `08-planning-workspace.md`
-- `doc/pro/README.md`, `doc/pro/task/*`, or `doc/pro/check-workflow.sh` workflow contract changes -> update `09-doc-pro-workflow-board.md`
+- `wow/README.md`, `wow/task/*`, or `wow/check-workflow.sh` workflow contract changes -> update `09-doc-pro-workflow-board.md`
 
 ## Recommended update workflow
 

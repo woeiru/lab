@@ -1,0 +1,25 @@
+Read and apply wow/task/RULES.md first.
+
+The active item filepath is given in the user prompt. Read it first.
+
+Checkpoint progress on this active item before I close this context.
+
+- Update the active plan with current progress
+- Add or replace ## Progress Checkpoint with these subsections:
+  - Done: what was completed this session (files changed, decisions made)
+  - In-flight: anything partially done or uncommitted
+  - Blockers: problems encountered, unresolved questions
+  - Next steps: ordered list of what to do next (be specific, include paths).
+    Write steps as unconditional actions, not decision forks.
+    Wrong: "If closing... If continuing..."
+    Right: "1. Do X. 2. Do Y. 3. Do Z."
+    If a genuine decision is needed, put it as a single step:
+    "Decide X (options: A or B)" -- then continue with the next concrete step.
+  - Context: non-obvious state the next session needs (branch name,
+    temp files, test status, relevant findings)
+- Update the Execution Plan to reflect remaining work only
+- If a phase's completion criterion is met, mark it COMPLETE in the plan
+  and ensure the next phase appears as the first item in Next steps
+- If tests were run, record pass/fail summary under Done
+- Do not move the file to another folder
+- Report: updated file path + 5-bullet handoff summary

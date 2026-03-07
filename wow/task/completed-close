@@ -1,0 +1,22 @@
+Read and apply wow/task/RULES.md first.
+
+The active item filepath is given in the user prompt. Read it first.
+
+Finalize this active item into completed state.
+
+- Move file to `wow/completed/yyyymmdd-hhmm_<topic>/` using the current close time
+- Keep each file's existing filename timestamp prefix unchanged
+- Ensure folder completion timestamp is >= every file timestamp prefix in that folder
+- Set Status: completed
+- Add final sections:
+  - What changed (files, configs, behavior)
+  - What was verified (tests/checks run, with commands and results)
+  - What remains (follow-up items, if any) with routing policy:
+    - Default: capture each follow-up as a new inbox item
+    - Exception: create directly in queue only when follow-up is mandatory,
+      scope is clear, and priority is already locked
+    - For direct queue routing, include in What remains:
+      `Routing: queue (mandatory follow-up)` plus a one-line rationale
+- If related review/result docs exist in active/, move them to the same
+  topic folder
+- Report: completed folder path + verification evidence summary

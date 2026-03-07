@@ -318,7 +318,7 @@ These rules come from repository docs and actual code patterns, especially:
 ### Generated reference docs contract (`doc/ref/`)
 
 - Canonical generated reference context lives in `doc/ref/`.
-- `doc/pro/` is planning workflow state, not executable/reference source data.
+- `wow/` is planning workflow state, not executable/reference source data.
 - Treat `doc/ref/*.md` as high-signal navigation context for symbol lookup,
   dependency tracing, and test/error mapping before deep file reads.
 - If a generated reference conflicts with code, treat source code as the source
@@ -405,8 +405,8 @@ Mistakes agents frequently make in this repo:
    parameter validation, and return codes are mandatory, not optional.
 7. **Editing `AGENTS.md` without running its test** -- always verify with
    `./val/core/agents_md_test.sh` after changes.
-8. **Using `doc/pro/ref` as canonical reference path** -- canonical generated
-   reference docs are under `doc/ref/`; `doc/pro/` is for planning documents.
+8. **Using `wow/ref` as canonical reference path** -- canonical generated
+   reference docs are under `doc/ref/`; `wow/` is for planning documents.
 9. **Forgetting lazy-map sync after function changes** -- when adding/removing/
    renaming public functions in `lib/ops/*` or `lib/gen/*`, update `cfg/core/lzy`
    so lazy stubs exist before first module load.

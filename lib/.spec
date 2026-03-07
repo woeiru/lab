@@ -88,7 +88,7 @@ Conflict contract:
   variable maps, or test traceability MUST update generated references under
   `doc/ref/`.
 - `doc/ref/` is the canonical generated reference namespace.
-- `doc/pro/` is planning workflow state and MUST NOT be treated as canonical
+- `wow/` is planning workflow state and MUST NOT be treated as canonical
   executable/reference documentation.
 - If generated references and source code differ, source code remains the
   authoritative source and references MUST be regenerated.

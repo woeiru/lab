@@ -204,13 +204,13 @@ The `doc/` directory contains the full documentation set, organized by audience:
 | [`doc/arc/`](doc/arc/) | Developers, architects | Architecture references for bootstrap, DI, deployment/config, validation, logging/error handling, workflow, and planning subsystem design |
 | [`doc/ref/`](doc/ref/) | Module authors, agents | Auto-generated compressed reference maps (functions, variables, dependencies, tests, error handling) |
 | [`doc/fix/`](doc/fix/) | Hardware ops | Incident runbooks: GPU passthrough, ACPI reset, driver fixes |
-| [`doc/pro/`](doc/pro/) | Contributors | Project planning documents (inbox, active, completed, dismissed, experiments) |
+| [`wow/`](wow/) | Contributors | Project planning documents (inbox, active, completed, dismissed, experiments) |
 
 Start with [doc/man/01-installation.md](doc/man/01-installation.md) for an operational walkthrough, or [doc/arc/00-architecture-overview.md](doc/arc/00-architecture-overview.md) for the system design.
 
 Reference contract:
 - `doc/ref/` is the canonical generated reference layer for fast codebase navigation and retrieval.
-- `doc/pro/` is planning state and is not a runtime/reference source.
+- `wow/` is planning state and is not a runtime/reference source.
 - When reference docs and code disagree, treat source code as authoritative and regenerate reference docs.
 - Regenerate with `./utl/doc/run_all_doc.sh` after structural changes.
 - Generate repository metrics with `./utl/doc/run_all_doc.sh stats` (writes `STATS.md`).

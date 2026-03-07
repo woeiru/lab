@@ -46,13 +46,13 @@ Contents are organised by purpose: `man/` for operational guides (user/admin aud
 ## Reference Contract
 
 - Canonical generated reference context is `doc/ref/`.
-- `doc/pro/` is planning workflow content and is not a canonical reference source.
+- `wow/` is planning workflow content and is not a canonical reference source.
 - If generated reference docs diverge from code, source code is the source of truth.
 - After structural changes (function signatures, dependencies, variable maps, test mappings), regenerate `doc/ref/`.
 
 ## Supplementary Documentation
 
-### Project Planning (`doc/pro/`)
+### Project Planning (`wow/`)
 Planning documents organised by lifecycle state.
 
 - `pro/inbox/` — New ideas and proposals awaiting triage

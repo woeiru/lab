@@ -1,0 +1,26 @@
+Read and apply wow/task/RULES.md first.
+
+The active item filepath is given in the user prompt. Read it first.
+
+Begin executing this active item.
+
+- Read the full item, especially ## Execution Plan and ## Exit Criteria.
+- Confirm the item has Status: active and a populated Execution Plan.
+  If either is missing, stop and run active-move first.
+- Present a short execution briefing:
+  - Goal summary (one sentence)
+  - What I will do now (first 3 steps from Phase 1)
+  - Design classification (from ## Triage Decision)
+- Then proceed with execution immediately.
+  Say "waiting for confirmation" only if I explicitly asked you to pause.
+- Design-aware phasing: if "Design: required", complete the design phase
+  deliverable fully before beginning any implementation phase.
+- Phase boundaries: when a phase completion criterion is met, proceed to
+  the next phase immediately. Do not treat phase transitions as decision
+  points unless the plan explicitly marks the next phase as optional or
+  conditional.
+- As you work, keep the active plan updated:
+  - Mark completed steps as done
+  - Add findings to Context
+  - Keep Execution Plan current
+- Report: what was accomplished, current phase, next steps

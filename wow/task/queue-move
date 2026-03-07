@@ -1,0 +1,20 @@
+Read and apply wow/task/RULES.md first.
+
+The inbox item filepath is given in the user prompt. Read it first.
+
+Move this specific workflow item from inbox/ to queue/.
+
+- Set Status: queue
+- Ensure exactly one ## Triage Decision section:
+  - If one already exists, update it in place.
+  - If one is missing, add it.
+  - Do not leave duplicate ## Triage Decision sections.
+  - Include:
+    - Why now (priority rationale)
+    - Design classification -- answer both questions:
+      1. Are there meaningful alternatives for how to solve this?
+      2. Will other code or users depend on the shape of the output?
+      If either answer is yes: "Design: required"
+      If both answers are no: "Design: not needed"
+    - One-sentence justification for the classification
+- Report: new file path, design classification, what changed (max 3 bullets)

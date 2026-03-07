@@ -1,17 +1,17 @@
 # 08 - Workflow Architecture (`doc/pro`)
 
-`doc/pro/` is an agent workflow coordination system that uses the filesystem as a state machine to manage work items across stateless LLM context windows. It solves a specific architectural problem: how to plan, execute, and hand off multi-session infrastructure work when each session starts with no memory of the previous one. The folder structure (`inbox/` -> `queue/` -> `active/` -> `completed/`) is the shared state; task templates in `doc/pro/task/` are executable prompts that enforce transition rules; and the work item files themselves carry all accumulated context between sessions.
+`wow/` is an agent workflow coordination system that uses the filesystem as a state machine to manage work items across stateless LLM context windows. It solves a specific architectural problem: how to plan, execute, and hand off multi-session infrastructure work when each session starts with no memory of the previous one. The folder structure (`inbox/` -> `queue/` -> `active/` -> `completed/`) is the shared state; task templates in `wow/task/` are executable prompts that enforce transition rules; and the work item files themselves carry all accumulated context between sessions.
 
 ## 1. Responsibilities and Boundaries
 
 | Area | Primary files | Responsibility boundary |
 | --- | --- | --- |
-| State machine definition | `doc/pro/README.md` | Folder semantics, transition rules, naming conventions, validation checklist. |
-| Transition enforcement | `doc/pro/task/*` | Executable prompt templates; each template governs one state transition or operation. |
-| Shared rules | `doc/pro/task/RULES.md` | Header fields, filename conventions, status values, validation step -- referenced by all templates. |
-| Structural validation | `doc/pro/check-workflow.sh` | Enforces naming, headers, folder structure; run before and after transitions. |
-| Work item state | `doc/pro/{inbox,queue,active,completed,dismissed,experiments}/*.md` | The files themselves; their folder location is their status, their content is accumulated context. |
-| Policy exceptions | `doc/pro/active/waivers/` | Temporary waivers tied to active items; includes register and lifecycle rules. |
+| State machine definition | `wow/README.md` | Folder semantics, transition rules, naming conventions, validation checklist. |
+| Transition enforcement | `wow/task/*` | Executable prompt templates; each template governs one state transition or operation. |
+| Shared rules | `wow/task/RULES.md` | Header fields, filename conventions, status values, validation step -- referenced by all templates. |
+| Structural validation | `wow/check-workflow.sh` | Enforces naming, headers, folder structure; run before and after transitions. |
+| Work item state | `wow/{inbox,queue,active,completed,dismissed,experiments}/*.md` | The files themselves; their folder location is their status, their content is accumulated context. |
+| Policy exceptions | `wow/active/waivers/` | Temporary waivers tied to active items; includes register and lifecycle rules. |
 
 ### What this system is not
 
@@ -31,7 +31,7 @@ Each LLM context window is stateless. When a session ends, everything the agent 
 
 ### How the filesystem solves it
 
-The folder a file sits in *is* its status. No database, no external tracker, no metadata that can drift from reality. `ls doc/pro/active/` is the source of truth for what is in progress. This is inspectable by any agent, any tool, any human, at any time, with no API or state reconstruction.
+The folder a file sits in *is* its status. No database, no external tracker, no metadata that can drift from reality. `ls wow/active/` is the source of truth for what is in progress. This is inspectable by any agent, any tool, any human, at any time, with no API or state reconstruction.
 
 The file content accumulates structured context across sessions:
 
@@ -135,7 +135,7 @@ Two constraints on this format are deliberate:
 
 ### Task templates as structural constraints
 
-The files in `doc/pro/task/` are not prompts in the conventional sense. They are transition contracts: each one specifies preconditions (what must exist in the file), actions (what to do), and postconditions (what to produce). The agent executing a task template is bound by its constraints but free in its implementation.
+The files in `wow/task/` are not prompts in the conventional sense. They are transition contracts: each one specifies preconditions (what must exist in the file), actions (what to do), and postconditions (what to produce). The agent executing a task template is bound by its constraints but free in its implementation.
 
 The prompt ordering principle reinforces this: task template first (short instruction), then the work item file (large context). The agent uses the instruction as a lens to selectively attend to the document that follows. This is more effective than the reverse order because the model processes tokens sequentially and uses early tokens to prime attention over later ones.
 
@@ -172,4 +172,4 @@ The prompt ordering principle reinforces this: task template first (short instru
 
 ## Maintenance Note
 
-Update this document when workflow folder semantics, task template contracts, gate requirements, or the checker's enforcement scope change. The operational rules live in `doc/pro/README.md` and `doc/pro/task/RULES.md`; this document explains the architectural rationale behind those rules.
+Update this document when workflow folder semantics, task template contracts, gate requirements, or the checker's enforcement scope change. The operational rules live in `wow/README.md` and `wow/task/RULES.md`; this document explains the architectural rationale behind those rules.

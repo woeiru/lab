@@ -16,8 +16,8 @@ In scope:
 
 Primary inputs reviewed:
 
-- `doc/pro/active/20260305-2259_openai-user-unk-placeholder-regression-issue.md`
-- `doc/pro/completed/20260304-0229_openai-account-visibility-in-osv/20260302-0216_openai-account-visibility-in-osv-plan.md`
+- `wow/active/20260305-2259_openai-user-unk-placeholder-regression-issue.md`
+- `wow/completed/20260304-0229_openai-account-visibility-in-osv/20260302-0216_openai-account-visibility-in-osv-plan.md`
 - `lib/ops/dev` (OpenAI resolver + fallback flow)
 - `val/lib/ops/dev_test.sh`
 - `doc/man/07-dev-session-attribution-workflow.md`
@@ -142,7 +142,7 @@ Selection rules for stale fallback:
 2. `bash -n val/lib/ops/dev_test.sh`
 3. Run targeted tests for stale/openai attribution behavior in
    `./val/lib/ops/dev_test.sh`
-4. `bash doc/pro/check-workflow.sh`
+4. `bash wow/check-workflow.sh`
 
 ## 10. Decision Summary
 

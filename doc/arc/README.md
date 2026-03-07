@@ -95,7 +95,7 @@ Minimum expected pairings:
 - `cfg/env/*` layering/precedence changes -> update `05-deployment-and-config.md`
 - `val/*` structure/runner contract changes -> update `06-testing-and-validation.md`
 - logging/error contract changes in `lib/core/err`, `lib/core/lo1`, `lib/core/tme`, `lib/gen/aux` -> update `07-logging-and-error-handling.md`
-- `doc/pro/` workflow structure, task templates, or checker changes -> update `08-workflow-architecture.md`
+- `wow/` workflow structure, task templates, or checker changes -> update `08-workflow-architecture.md`
 - `utl/pla/*` command/schema/export contract changes -> update `09-planning-subsystem.md`
 
 ## Recommended update workflow

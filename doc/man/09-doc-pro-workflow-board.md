@@ -1,11 +1,11 @@
 # 09 - doc/pro Workflow Board
 
-This guide is for operators and contributors who use `doc/pro/` to plan and
+This guide is for operators and contributors who use `wow/` to plan and
 execute multi-session work. It explains the manual, filesystem-native workflow
 for moving items across states, running parallel orchestration for large
 initiatives, and validating board integrity.
 
-`doc/pro/` is manual-by-invocation. Items do not auto-triage, auto-split, or
+`wow/` is manual-by-invocation. Items do not auto-triage, auto-split, or
 auto-fanout. State changes happen only when you run the matching workflow task.
 
 ## Command Decision Flow
@@ -46,12 +46,12 @@ flowchart TD
 
 | Task | When to use | Side effects |
 |------|-------------|--------------|
-| `inbox-capture` | Capture a new idea, issue, or follow-up | Creates one file in `doc/pro/inbox/` |
-| `queue-triage` / `queue-move` | Move one inbox item to queue and classify design need | Moves one file to `doc/pro/queue/`, updates triage section |
-| `active-move` | Commit one queued item to execution | Moves file to `doc/pro/active/`, adds execution/verification/exit sections |
+| `inbox-capture` | Capture a new idea, issue, or follow-up | Creates one file in `wow/inbox/` |
+| `queue-triage` / `queue-move` | Move one inbox item to queue and classify design need | Moves one file to `wow/queue/`, updates triage section |
+| `active-move` | Commit one queued item to execution | Moves file to `wow/active/`, adds execution/verification/exit sections |
 | `active-start` | Begin execution for one active item | Updates active file progress sections |
 | `active-checkpoint` / `active-resume` | Hand off work across context windows | Updates checkpoint and resumes execution state |
-| `active-fanout` | Split one active program parent into child workstreams | Creates child plans in `doc/pro/active/`, updates parent workstream table |
+| `active-fanout` | Split one active program parent into child workstreams | Creates child plans in `wow/active/`, updates parent workstream table |
 | `active-assign` | Bind child workstreams to owners/branches/worktrees | Updates parent + child orchestration metadata |
 | `active-sync` | Roll up child status into parent | Updates parent workstream states and sync snapshot |
 | `active-converge` | Converge a wave and decide next release gate | Updates parent convergence log; may create follow-up inbox item (or direct queue item when mandatory and priority-locked) |
@@ -62,15 +62,15 @@ flowchart TD
 ## 1. Prerequisites and Safety
 
 - Work from repository root (for example `/home/es/lab`).
-- Use `doc/pro/task/*` templates as the first prompt input, followed by the
+- Use `wow/task/*` templates as the first prompt input, followed by the
   target file path (or free-form capture text where required).
-- Run structural validation with `bash doc/pro/check-workflow.sh` before and
+- Run structural validation with `bash wow/check-workflow.sh` before and
   after workflow transitions.
 - Safety boundaries:
-  - `doc/pro/check-workflow.sh` is read-only validation.
+  - `wow/check-workflow.sh` is read-only validation.
   - Workflow task execution edits workflow docs and can move files across
     workflow states.
-  - `doc/pro/` operations do not execute `lib/ops/*` infrastructure actions.
+  - `wow/` operations do not execute `lib/ops/*` infrastructure actions.
   - Parallel orchestration is explicit and manual. There is no background
     process that auto-creates workstreams.
 
@@ -79,13 +79,13 @@ flowchart TD
 ### Step 1: Validate board baseline
 
 ```bash
-bash doc/pro/check-workflow.sh
+bash wow/check-workflow.sh
 ```
 
 Optional read-only status review:
 
 ```text
-doc/pro/task/status
+wow/task/status
 ```
 
 Expected result: checker passes, or reports concrete structural failures you can
@@ -96,21 +96,21 @@ fix before continuing.
 Create a new item:
 
 ```text
-doc/pro/task/inbox-capture
+wow/task/inbox-capture
 Add account rotation health checks for dev session attribution
 ```
 
 Prioritize one item into queue:
 
 ```text
-doc/pro/task/queue-triage
+wow/task/queue-triage
 ```
 
 Or move a specific inbox file:
 
 ```text
-doc/pro/task/queue-move
-doc/pro/inbox/20260307-1000_account-rotation-healthcheck-plan.md
+wow/task/queue-move
+wow/inbox/20260307-1000_account-rotation-healthcheck-plan.md
 ```
 
 Expected result: exactly one queued file with `## Triage Decision` and canonical
@@ -119,15 +119,15 @@ design token (`Design: required` or `Design: not needed`).
 ### Step 3: Start active execution (`queue` -> `active`)
 
 ```text
-doc/pro/task/active-move
-doc/pro/queue/20260307-1000_account-rotation-healthcheck-plan.md
+wow/task/active-move
+wow/queue/20260307-1000_account-rotation-healthcheck-plan.md
 ```
 
 Then start execution:
 
 ```text
-doc/pro/task/active-start
-doc/pro/active/20260307-1000_account-rotation-healthcheck-plan.md
+wow/task/active-start
+wow/active/20260307-1000_account-rotation-healthcheck-plan.md
 ```
 
 Expected result: active item has `## Execution Plan`, `## Verification Plan`,
@@ -137,44 +137,44 @@ and `## Exit Criteria`; execution begins immediately.
 
 Use this only for large initiatives. Preconditions:
 
-1. Parent item is already in `doc/pro/active/`.
+1. Parent item is already in `wow/active/`.
 2. Parent filename ends with `-program-plan.md`.
 3. Parent includes `## Workstreams` and required program sections.
 
 Fan out child workstreams:
 
 ```text
-doc/pro/task/active-fanout
-doc/pro/active/20260307-1015_identity-migration-program-plan.md
+wow/task/active-fanout
+wow/active/20260307-1015_identity-migration-program-plan.md
 ```
 
 Assign owners/branches/worktrees:
 
 ```text
-doc/pro/task/active-assign
-doc/pro/active/20260307-1015_identity-migration-program-plan.md
+wow/task/active-assign
+wow/active/20260307-1015_identity-migration-program-plan.md
 ```
 
 Expected result: one parent program file plus child workstream files in
-`doc/pro/active/`, with complete `## Orchestration Metadata` per child.
+`wow/active/`, with complete `## Orchestration Metadata` per child.
 
 ### Step 5: Run worker cycles and parent convergence
 
 Workers execute child plans with normal active tasks:
 
 ```text
-doc/pro/task/active-start
-doc/pro/active/20260307-1020_identity-migration-ws-01-plan.md
+wow/task/active-start
+wow/active/20260307-1020_identity-migration-ws-01-plan.md
 ```
 
 Coordinator synchronizes and converges waves:
 
 ```text
-doc/pro/task/active-sync
-doc/pro/active/20260307-1015_identity-migration-program-plan.md
+wow/task/active-sync
+wow/active/20260307-1015_identity-migration-program-plan.md
 
-doc/pro/task/active-converge
-doc/pro/active/20260307-1015_identity-migration-program-plan.md
+wow/task/active-converge
+wow/active/20260307-1015_identity-migration-program-plan.md
 ```
 
 Expected result: parent `## Workstreams`, `## Sync Snapshot`, and
@@ -185,20 +185,20 @@ Expected result: parent `## Workstreams`, `## Sync Snapshot`, and
 Single-plan close:
 
 ```text
-doc/pro/task/completed-close
-doc/pro/active/20260307-1000_account-rotation-healthcheck-plan.md
+wow/task/completed-close
+wow/active/20260307-1000_account-rotation-healthcheck-plan.md
 ```
 
 Program close follows the same close task once parent and children meet exit
 criteria.
 
 Expected result: completed artifacts live under
-`doc/pro/completed/yyyymmdd-hhmm_<topic>/` with timestamp-correct structure.
+`wow/completed/yyyymmdd-hhmm_<topic>/` with timestamp-correct structure.
 
 Follow-up routing on close:
 
-- Default: create follow-up items in `doc/pro/inbox/`.
-- Direct `doc/pro/queue/` creation is allowed only when the follow-up is
+- Default: create follow-up items in `wow/inbox/`.
+- Direct `wow/queue/` creation is allowed only when the follow-up is
   mandatory, scope is already clear, and priority is already locked.
 - For direct queue routing, record in `## What remains`:
   `Routing: queue (mandatory follow-up)` with a one-line rationale.
@@ -208,7 +208,7 @@ Follow-up routing on close:
 After any transition set:
 
 ```bash
-bash doc/pro/check-workflow.sh
+bash wow/check-workflow.sh
 ```
 
 Success indicators:
@@ -249,7 +249,7 @@ Open the reported child file and correct missing/invalid keys in
 - Ensure `Depends-On` references existing sibling `Workstream-ID` values under
   the same `Program`.
 - Remove self-dependencies and cycles.
-- Rerun `bash doc/pro/check-workflow.sh`.
+- Rerun `bash wow/check-workflow.sh`.
 
 ### Session handoff needs pause/resume
 
@@ -259,7 +259,7 @@ context so blockers and next actions stay explicit.
 ## 5. Related Docs
 
 - Previous: [08 - Planning Workspace](08-planning-workspace.md)
-- Workflow rules: [doc/pro/README.md](../pro/README.md)
-- Task contracts: [doc/pro/task/README.md](../pro/task/README.md)
-- Shared task rules: [doc/pro/task/RULES.md](../pro/task/RULES.md)
+- Workflow rules: [wow/README.md](../../wow/README.md)
+- Task contracts: [wow/task/README.md](../../wow/task/README.md)
+- Shared task rules: [wow/task/RULES.md](../../wow/task/RULES.md)
 - Architecture rationale: [08 - Workflow Architecture](../arc/08-workflow-architecture.md)
