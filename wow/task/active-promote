@@ -8,8 +8,11 @@ Promote this active item into a program parent for parallel orchestration.
   - File is in `wow/active/`
   - Status is `active`
 - Keep timestamp prefix stable (`yyyymmdd-hhmm_...`)
-- If filename ends with `-plan.md`, rename to `-program-plan.md`
-- If filename already ends with `-program-plan.md`, keep the current path
+- Normalize parent filename to `*-program-plan.md`:
+  - If filename already ends with `-program-plan.md`, keep the current path.
+  - If filename ends with `-plan.md`, `-issue.md`, `-review.md`, or
+    `-followup.md`, replace that terminal suffix with `-program-plan.md`.
+  - Otherwise, keep the slug and append `-program-plan.md`.
 - Ensure parent includes required program sections:
   - `## Program Scope`
   - `## Global Invariants`
