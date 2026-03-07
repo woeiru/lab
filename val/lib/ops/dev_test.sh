@@ -4834,6 +4834,75 @@ print(data.get('activeIndex', -1))
     return 0
 }
 
+# Test: dev_ois switch avoids stale activeIndex credential clobber
+test_dev_ois_switch_preserves_snapshot_with_stale_active_index() {
+    local test_env
+    test_env=$(create_test_env "dev_ois_stale_active")
+
+    mkdir -p "$test_env/.local/share/opencode"
+    mkdir -p "$test_env/.config/opencode"
+
+    # Current auth points to account 2, while sidecar activeIndex is stale at 0.
+    _create_openai_auth_json "$test_env/.local/share/opencode/auth.json" "acct-two" "two@example.com"
+
+    python3 - "$test_env/.config/opencode/openai-accounts.json" <<'PY'
+import json
+import sys
+
+data = {
+    "accounts": [
+        {"label": "one@example.com", "accountId": "acct-one", "credentials": {"type": "oauth", "access": "tok-one", "accountId": "acct-one"}, "savedAt": 1000},
+        {"label": "two@example.com", "accountId": "acct-two", "credentials": {"type": "oauth", "access": "tok-two", "accountId": "acct-two"}, "savedAt": 2000}
+    ],
+    "activeIndex": 0
+}
+
+with open(sys.argv[1], "w") as f:
+    json.dump(data, f)
+PY
+
+    local old_home="$HOME"
+    export HOME="$test_env"
+
+    local output
+    output=$(dev_ois "2" 2>/dev/null)
+    local status=$?
+
+    local first_cred_account_id=""
+    local first_top_account_id=""
+    local new_active_index=""
+    if [[ $status -eq 0 ]]; then
+        first_cred_account_id=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/openai-accounts.json') as f:
+    data = json.load(f)
+print(data.get('accounts', [{}])[0].get('credentials', {}).get('accountId', ''))
+")
+        first_top_account_id=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/openai-accounts.json') as f:
+    data = json.load(f)
+print(data.get('accounts', [{}])[0].get('accountId', ''))
+")
+        new_active_index=$(python3 -c "
+import json
+with open('$test_env/.config/opencode/openai-accounts.json') as f:
+    data = json.load(f)
+print(data.get('activeIndex', -1))
+")
+    fi
+
+    export HOME="$old_home"
+    cleanup_test_env "$test_env"
+
+    [[ $status -eq 0 ]] || return 1
+    [[ "$output" == *"two@example.com"* ]] || return 1
+    [[ "$first_cred_account_id" == "acct-one" ]] || return 1
+    [[ "$first_top_account_id" == "acct-one" ]] || return 1
+    [[ "$new_active_index" == "1" ]] || return 1
+    return 0
+}
+
 # Test: dev_ois switch rejects out-of-range account
 test_dev_ois_rejects_out_of_range() {
     local test_env
@@ -5003,6 +5072,7 @@ main() {
     run_test test_dev_ois_list_accounts
     run_test test_dev_ois_list_empty
     run_test test_dev_ois_switches_account
+    run_test test_dev_ois_switch_preserves_snapshot_with_stale_active_index
     run_test test_dev_ois_rejects_out_of_range
     run_test test_dev_ois_creates_backup
 

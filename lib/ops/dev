@@ -3842,7 +3842,31 @@ if not isinstance(credentials, dict):
     sys.exit(14)
 
 target_label = target.get("label", "(unknown)")
-target_account_id = target.get("accountId", "")
+
+def normalize_account_id(value):
+    return str(value or "").strip()
+
+def account_entry_ids(entry):
+    if not isinstance(entry, dict):
+        return set()
+
+    ids = set()
+
+    top_account_id = normalize_account_id(entry.get("accountId"))
+    if top_account_id:
+        ids.add(top_account_id)
+
+    entry_credentials = entry.get("credentials")
+    if isinstance(entry_credentials, dict):
+        credential_account_id = normalize_account_id(entry_credentials.get("accountId"))
+        if credential_account_id:
+            ids.add(credential_account_id)
+
+    return ids
+
+target_account_id = normalize_account_id(credentials.get("accountId"))
+if not target_account_id:
+    target_account_id = normalize_account_id(target.get("accountId"))
 
 try:
     with open(auth_path, "r", encoding="utf-8") as f:
@@ -3854,15 +3878,50 @@ except Exception as e:
 # Save current credentials before overwriting (snapshot for undo)
 current_openai = auth_data.get("openai")
 if isinstance(current_openai, dict):
-    # Update the account we are switching FROM in the sidecar
-    current_active = accounts_data.get("activeIndex", 0)
-    if 0 <= current_active < len(accounts) and current_active != account_index:
-        accounts[current_active]["credentials"] = dict(current_openai)
+    current_account_id = normalize_account_id(current_openai.get("accountId"))
+    source_index = None
+
+    if current_account_id:
+        matched_indexes = [
+            idx
+            for idx, entry in enumerate(accounts)
+            if current_account_id in account_entry_ids(entry)
+        ]
+
+        if len(matched_indexes) == 1:
+            source_index = matched_indexes[0]
+        elif len(matched_indexes) > 1:
+            current_active = accounts_data.get("activeIndex")
+            if isinstance(current_active, int) and current_active in matched_indexes:
+                source_index = current_active
+            else:
+                non_target_matches = [idx for idx in matched_indexes if idx != account_index]
+                if len(non_target_matches) == 1:
+                    source_index = non_target_matches[0]
+
+    if source_index is None:
+        current_active = accounts_data.get("activeIndex")
+        if isinstance(current_active, int) and 0 <= current_active < len(accounts):
+            active_ids = account_entry_ids(accounts[current_active])
+            if not current_account_id or current_account_id in active_ids:
+                source_index = current_active
+
+    if source_index is not None and source_index != account_index:
+        accounts[source_index]["credentials"] = dict(current_openai)
+        if current_account_id:
+            accounts[source_index]["accountId"] = current_account_id
 
 backup_path = auth_path + ".backup." + datetime.now().strftime("%Y%m%d_%H%M%S")
 shutil.copy2(auth_path, backup_path)
 
-auth_data["openai"] = dict(credentials)
+target_credentials = dict(credentials)
+if target_account_id and not normalize_account_id(target_credentials.get("accountId")):
+    target_credentials["accountId"] = target_account_id
+
+auth_data["openai"] = target_credentials
+
+if target_account_id:
+    target["accountId"] = target_account_id
 
 with open(auth_path, "w", encoding="utf-8") as f:
     json.dump(auth_data, f, indent=2)
