@@ -357,6 +357,11 @@ Optional active artifact contract block:
 - Queue/active docs include exactly one canonical design token in triage:
   `Design: required` or `Design: not needed`
 - Queue/active docs do not use legacy triage token form: `Design required: Yes/No`
+- Active plan docs include exactly one `## Documentation Impact` section with
+  exactly one docs token: `Docs: required`, `Docs: none`, or `Docs: deferred`
+- Completed plan docs that include `## Documentation Impact` must include
+  exactly one docs outcome token in `## What was verified`:
+  `Docs: updated`, `Docs: none`, or `Docs: deferred`
 - Inbox naming pattern (`-plan`, `-issue`, `-review`, `-followup`)
 - Dismissed naming pattern (`-plan`) and required `## Dismissal Reason`
 - Completed structure: `completed/<topic-folder>/<file>.md` where `<topic-folder>`
@@ -373,8 +378,6 @@ It does not currently enforce:
 - Stale-item age checks for `active/`
 - Verification depth/quality in completed outcomes
 - Queue prioritization quality
-- Documentation impact/outcome token presence (`Docs: ...`) is task-contract
-  policy today, not checker-enforced yet
 
 Common fixes when it fails:
 
@@ -392,6 +395,10 @@ Common fixes when it fails:
   for that module slug and keep one stable `*-bundle-<module-slug>` folder
 - `FAIL legacy completed placeholder`: replace `completed/<topic>/` with `completed/yyyymmdd-hhmm_<topic>/`
 - `FAIL dismissal reason`: add `## Dismissal Reason` section in dismissed item
+- `FAIL documentation impact missing/token`: add one `## Documentation Impact`
+  section with exactly one docs token (`required|none|deferred`)
+- `FAIL docs outcome token`: add exactly one docs outcome token
+  (`updated|none|deferred`) in `## What was verified`
 - `FAIL triage decision missing`/`duplicate`: add one `## Triage Decision` section
 - `FAIL triage design token`/`legacy token`: use exactly one canonical token,
   `Design: required` or `Design: not needed`

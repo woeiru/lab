@@ -1,4 +1,4 @@
-# 08 - Workflow Architecture (`doc/pro`)
+# 08 - Workflow Architecture (`wow/`)
 
 `wow/` is an agent workflow coordination system that uses the filesystem as a state machine to manage work items across stateless LLM context windows. It solves a specific architectural problem: how to plan, execute, and hand off multi-session infrastructure work when each session starts with no memory of the previous one. The folder structure (`inbox/` -> `queue/` -> `active/` -> `completed/`) is the shared state; task templates in `wow/task/` are executable prompts that enforce transition rules; and the work item files themselves carry all accumulated context between sessions.
 
@@ -40,6 +40,7 @@ The file content accumulates structured context across sessions:
 | Goal, Context, Scope | `inbox-capture` | `queue-triage`, `queue-move` | Initial problem framing. |
 | `## Triage Decision` | `queue-triage` or `queue-move` | `active-move` | Design classification that determines execution plan shape. |
 | `## Execution Plan` | `active-move` | `active-start`, `active-resume` | Phased implementation steps with completion criteria. |
+| `## Program Scope` / `## Global Invariants` / `## Workstreams` / `## Integration Cadence` | `active-promote` | `active-fanout`, `active-assign`, `active-sync`, `active-converge` | Reshapes an active plan into a program parent for parallel execution. |
 | `## Progress Checkpoint` | `active-checkpoint` | `active-resume` | Session handoff: done, in-flight, blockers, next steps, context. |
 | `## Split` / `## Split From` | `active-split` | Any subsequent task | Traceability when work is decomposed. |
 
@@ -76,10 +77,12 @@ stateDiagram-v2
 1. `inbox-capture` creates a file in `inbox/` with Goal, Context, Scope, Risks, Next Step.
 2. `queue-triage` or `queue-move` moves the file to `queue/`, adding `## Triage Decision` with design classification.
 3. `active-move` moves the file to `active/`, adding `## Execution Plan` with phased steps. Plan structure depends on design classification from step 2.
-4. `active-start` begins execution. Agent reads the plan and proceeds immediately.
-5. If the session must end before completion: `active-checkpoint` writes `## Progress Checkpoint`. File stays in `active/`.
-6. New session: `active-resume` reads the checkpoint and continues where the previous session stopped.
-7. `completed-close` moves the file to `completed/yyyymmdd-hhmm_<topic>/` with final summary. Follow-ups route to inbox by default; they may route directly to queue only when mandatory, clearly scoped, and priority-locked, with explicit routing rationale in the closeout note.
+4. For large parallel initiatives, `active-promote` reshapes the active item into a `*-program-plan.md` parent with required program sections.
+5. In parallel mode, `active-fanout` creates child workstream plans and `active-assign` binds owner/worktree metadata.
+6. `active-start` begins execution (single-plan flow or child workstream flow). Agent reads the plan and proceeds immediately.
+7. If the session must end before completion: `active-checkpoint` writes `## Progress Checkpoint`. File stays in `active/`.
+8. New session: `active-resume` reads the checkpoint and continues where the previous session stopped.
+9. `completed-close` moves the file to `completed/yyyymmdd-hhmm_<topic>/` with final summary. Follow-ups route to inbox by default; they may route directly to queue only when mandatory, clearly scoped, and priority-locked, with explicit routing rationale in the closeout note.
 
 ### Conceptual flow (quick view)
 
@@ -144,7 +147,7 @@ The prompt ordering principle reinforces this: task template first (short instru
 - Folder location is canonical status. Moving a file between folders changes its workflow state. There is no separate status field that must be kept in sync -- the `- Status:` header in the file is a convenience mirror, enforced by the checker.
 - Timestamp prefixes (`yyyymmdd-hhmm_`) are creation-time anchors. They never change after file creation, even when the file moves between folders. This preserves chronological traceability.
 - `check-workflow.sh` is a read-only validator. It inspects naming, headers, and folder structure but does not modify files. It exits with a count of failures.
-- Parallel orchestration transitions are explicit operations (`active-fanout`, `active-assign`, `active-sync`, `active-converge`) and run only when invoked by an operator/agent. There is no automatic fan-out based on file size or complexity.
+- Parallel orchestration transitions are explicit operations (`active-promote`, `active-fanout`, `active-assign`, `active-sync`, `active-converge`) and run only when invoked by an operator/agent. There is no automatic fan-out based on file size or complexity.
 - The `maintenance` task is the only cross-cutting operation that can fix structural issues autonomously, but it must not move files between workflow states without user approval.
 - Completed items create a subfolder in `completed/` with a *completion* timestamp prefix on the folder and *creation* timestamp prefixes on files inside. This gives two independent timelines: `ls completed/` shows when work finished; `ls completed/<topic>/` shows how it evolved.
 

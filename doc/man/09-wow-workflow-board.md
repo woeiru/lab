@@ -27,8 +27,8 @@ flowchart TD
 
     D -->|no| AS["active-start"]
     D -->|yes| PF{"Parent is active and -program-plan.md?"}
-    PF -->|no| FIX["reshape parent plan in active/"]
-    FIX --> PF
+    PF -->|no| AP["active-promote"]
+    AP --> PF
     PF -->|yes| AF["active-fanout"]
 
     AF --> AA["active-assign"]
@@ -48,15 +48,16 @@ flowchart TD
 |------|-------------|--------------|
 | `inbox-capture` | Capture a new idea, issue, or follow-up | Creates one file in `wow/inbox/` |
 | `queue-triage` / `queue-move` | Move one inbox item to queue and classify design need | Moves one file to `wow/queue/`, updates triage section |
-| `active-move` | Commit one queued item to execution | Moves file to `wow/active/`, adds execution/verification/exit sections |
+| `active-move` | Commit one queued item to execution | Moves file to `wow/active/`, adds documentation impact + execution/verification/exit sections |
 | `active-start` | Begin execution for one active item | Updates active file progress sections |
 | `active-artifacts` | Create/update supporting artifacts for one active item | Creates or updates artifact docs in `wow/active/` based on the plan contract |
+| `active-promote` | Promote one active plan to a program parent | Renames to `-program-plan` when needed and scaffolds required program sections |
 | `active-checkpoint` / `active-resume` | Hand off work across context windows | Updates checkpoint and resumes execution state |
 | `active-fanout` | Split one active program parent into child workstreams | Creates child plans in `wow/active/`, updates parent workstream table |
 | `active-assign` | Bind child workstreams to owners/branches/worktrees | Updates parent + child orchestration metadata |
 | `active-sync` | Roll up child status into parent | Updates parent workstream states and sync snapshot |
 | `active-converge` | Converge a wave and decide next release gate | Updates parent convergence log; may create follow-up inbox item (or direct queue item when mandatory and priority-locked) |
-| `completed-close` / `dismissed-close` | Close active work as accepted or rejected | Moves files to `completed/` or `dismissed/`; follow-ups default to inbox, with direct queue allowed for mandatory priority-locked items |
+| `completed-close` / `dismissed-close` | Close active work as accepted or rejected | Moves files to `completed/` or `dismissed/`; completed close records docs outcome, and follow-ups default to inbox with direct queue allowed for mandatory priority-locked items |
 | `status` | Read-only board overview | No file changes |
 | `maintenance` | Weekly structural hygiene pass | May fix checker-detected structure only (no state moves without approval) |
 
@@ -138,16 +139,24 @@ wow/task/active-artifacts
 wow/active/20260307-1000_account-rotation-healthcheck-plan.md
 ```
 
-Expected result: active item has `## Execution Plan`, `## Verification Plan`,
-and `## Exit Criteria`; execution begins immediately.
+Expected result: active item has `## Documentation Impact`,
+`## Execution Plan`, `## Verification Plan`, and `## Exit Criteria`; execution
+begins immediately.
 
 ### Step 4: Trigger parallel mode manually when needed (`active` only)
 
 Use this only for large initiatives. Preconditions:
 
 1. Parent item is already in `wow/active/`.
-2. Parent filename ends with `-program-plan.md`.
-3. Parent includes `## Workstreams` and required program sections.
+2. Parent is shaped as a program parent (`-program-plan.md` + required sections).
+3. If still a normal `-plan.md`, run `active-promote` first.
+
+Promote a normal active plan to a program parent:
+
+```text
+wow/task/active-promote
+wow/active/20260307-1015_identity-migration-plan.md
+```
 
 Fan out child workstreams:
 
@@ -203,6 +212,15 @@ criteria.
 Expected result: completed artifacts live under
 `wow/completed/yyyymmdd-hhmm_<topic>/` with timestamp-correct structure.
 
+Documentation closeout on `completed-close`:
+
+- Record exactly one docs outcome token in `## What was verified`:
+  `Docs: updated`, `Docs: none`, or `Docs: deferred`.
+- `Docs: deferred` requires a blocker reason plus linked follow-up path.
+- If structural/public surfaces changed (new/renamed functions, signature
+  changes, dependency changes, variable map changes), run
+  `./utl/ref/run_all_doc.sh` and capture its result.
+
 Follow-up routing on close:
 
 - Default: create follow-up items in `wow/inbox/`.
@@ -225,6 +243,9 @@ Success indicators:
 - Folder location matches each file `- Status:` header.
 - Queue/active docs have exactly one `## Triage Decision` section with canonical
   design token.
+- Active-plan entry tasks include `## Documentation Impact` with one docs token.
+- Completed plan docs that include `## Documentation Impact` include exactly
+  one docs outcome token in `## What was verified`.
 - Program docs include required sections (`Program Scope`, `Global Invariants`,
   `Workstreams`, `Integration Cadence`).
 - Child docs with `## Orchestration Metadata` include all required keys and
@@ -243,15 +264,15 @@ required verification commands.
 
 ### "Big item did not split automatically"
 
-This is expected. Run `active-fanout` explicitly from an active
-`*-program-plan.md` parent.
+This is expected. Run `active-promote` first when needed, then run
+`active-fanout` explicitly from an active `*-program-plan.md` parent.
 
 ### `active-fanout` cannot proceed
 
 Fix parent preconditions first:
 
 - move item to `active/` if still in `queue/`
-- ensure filename ends with `-program-plan.md`
+- run `active-promote` if filename still ends with `-plan.md`
 - ensure parent has `## Workstreams`
 
 Then rerun `active-fanout`.

@@ -4,6 +4,11 @@ The active item filepath is given in the user prompt. Read it first.
 
 Split this active item into multiple smaller items.
 
+- This task decomposes work into new `inbox/` items, not parallel `active/`
+  child workstreams
+- If the intent is parallel execution in `active/`, use `active-promote` then
+  `active-fanout` instead
+
 - Keep the original file in active/ with narrowed scope
 - Create new inbox/ items for each split-off piece:
   - Filename: yyyymmdd-hhmm_<topic>-plan.md (current time, new prefix)

@@ -8,6 +8,8 @@ Split this active program into child workstream plans for parallel execution.
   - Status must be active
   - Filename should end with -program-plan.md
   - Parent contains `## Workstreams`
+- If parent shape is invalid, stop and run `active-promote` first.
+  Do not create child plans from a non-program parent.
 - Create one child plan in `wow/active/` per workstream defined by parent
 - Keep each child focused and non-overlapping by `Touch-Set`
 - Child filename: `yyyymmdd-hhmm_<topic>-<workstream>-plan.md` (new timestamp)
@@ -15,9 +17,14 @@ Split this active program into child workstream plans for parallel execution.
   - standard workflow header (Status: active)
   - `## Goal`, `## Context`, `## Scope`
   - exactly one `## Triage Decision` with canonical design token
+  - `## Documentation Impact` with exactly one token:
+    `Docs: required`, `Docs: none`, or `Docs: deferred`
   - `## Orchestration Metadata` keys: Program, Workstream-ID, Depends-On,
     Touch-Set, Merge-Gate, Branch, Worktree
   - `## Execution Plan`, `## Verification Plan`, `## Exit Criteria`
+  - docs-aware verification in `## Verification Plan`:
+    include one documentation verification step, and include
+    `./utl/ref/run_all_doc.sh` when structural/public surfaces change
 - Update parent `## Workstreams` with child file paths and initial status
 - Do not move parent to another folder
 - Report: parent path + created child paths + dependency summary
