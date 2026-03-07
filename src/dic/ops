@@ -120,11 +120,66 @@ ops_source_module() {
     return $?
 }
 
+ops_runtime_get_lab_root() {
+    if type ops_runtime_lab_root &>/dev/null; then
+        ops_runtime_lab_root
+        return 0
+    fi
+
+    printf '%s\n' "${LAB_ROOT:-${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}}"
+    return 0
+}
+
+ops_runtime_get_lib_ops_dir() {
+    if type ops_runtime_lib_ops_dir &>/dev/null; then
+        ops_runtime_lib_ops_dir
+        return 0
+    fi
+
+    if [[ -n "${LIB_OPS_DIR:-}" ]]; then
+        printf '%s\n' "$LIB_OPS_DIR"
+        return 0
+    fi
+
+    local lab_root
+    lab_root="$(ops_runtime_get_lab_root)"
+    printf '%s/lib/ops\n' "$lab_root"
+    return 0
+}
+
+ops_runtime_get_lib_gen_dir() {
+    if type ops_runtime_lib_gen_dir &>/dev/null; then
+        ops_runtime_lib_gen_dir
+        return 0
+    fi
+
+    if [[ -n "${LIB_GEN_DIR:-}" ]]; then
+        printf '%s\n' "$LIB_GEN_DIR"
+        return 0
+    fi
+
+    local lab_root
+    lab_root="$(ops_runtime_get_lab_root)"
+    printf '%s/lib/gen\n' "$lab_root"
+    return 0
+}
+
+ops_runtime_get_env_candidates() {
+    if type ops_runtime_env_candidates &>/dev/null; then
+        ops_runtime_env_candidates
+        return 0
+    fi
+
+    local lab_root
+    lab_root="$(ops_runtime_get_lab_root)"
+    printf '%s/cfg/env/site1\n' "$lab_root"
+    return 0
+}
+
 # Source required utility libraries for analysis functions
 ops_source_utility_libraries() {
-    # Ensure required directories are set
-    local lab_dir="${LAB_DIR:-/home/es/lab}"
-    local lib_gen_dir="${LIB_GEN_DIR:-${lab_dir}/lib/gen}"
+    local lib_gen_dir
+    lib_gen_dir="$(ops_runtime_get_lib_gen_dir)"
     
     ops_debug "Sourcing utility libraries from: $lib_gen_dir"
     
@@ -144,6 +199,7 @@ ops_source_utility_libraries() {
 }
 
 # Source DIC libraries
+source "${DIC_LIB_DIR}/runtime"
 source "${DIC_LIB_DIR}/injector"
 source "${DIC_LIB_DIR}/introspector"
 source "${DIC_LIB_DIR}/resolver"
@@ -153,16 +209,30 @@ ops_source_utility_libraries
 
 # Source environment configuration if available
 ops_source_environment_config() {
-    local lab_dir="${LAB_ROOT:-${LAB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}}"
-    local env_config="${lab_dir}/cfg/env/site1"
-    
-    if [[ -f "$env_config" ]]; then
+    local env_config
+    local sourced_count=0
+
+    while IFS= read -r env_config; do
+        if [[ -z "$env_config" ]]; then
+            continue
+        fi
+
+        if [[ ! -f "$env_config" ]]; then
+            ops_debug "Environment config not found: $env_config"
+            continue
+        fi
+
         ops_debug "Sourcing environment config: $env_config"
-        ops_source_module "env:site1" "$env_config" "dic_env" 2>/dev/null || {
-            ops_debug "Warning: Could not source environment config"
-        }
-    else
-        ops_debug "Environment config not found: $env_config"
+        if ! ops_source_module "env:$(basename "$env_config")" "$env_config" "dic_env" 2>/dev/null; then
+            ops_debug "Warning: Could not source environment config: $env_config"
+            continue
+        fi
+
+        ((sourced_count++))
+    done < <(ops_runtime_get_env_candidates)
+
+    if [[ "$sourced_count" -eq 0 ]]; then
+        ops_debug "No environment configuration files sourced through runtime adapter"
     fi
 }
 
@@ -427,6 +497,9 @@ ops_execute() {
     local module="$1"
     local function="$2"
     shift 2
+
+    local lib_ops_dir
+    lib_ops_dir="$(ops_runtime_get_lib_ops_dir)"
     
     local full_function="${module}_${function}"
     
@@ -444,7 +517,7 @@ ops_execute() {
     fi
     
     # Source the library module
-    local lib_path="${LIB_OPS_DIR}/${module}"
+    local lib_path="${lib_ops_dir}/${module}"
     if [[ ! -f "$lib_path" ]]; then
         aux_err "Library module not found: $lib_path" "component=dic,operation=execute,step=source_library,module=$module,lib_path=$lib_path"
         return 1
@@ -556,16 +629,19 @@ ops_inject_and_execute() {
 ops_validate_operation() {
     local module="$1"
     local function="$2"
+    local lib_ops_dir
+
+    lib_ops_dir="$(ops_runtime_get_lib_ops_dir)"
     
-    # Check if LIB_OPS_DIR is set
-    if [[ -z "$LIB_OPS_DIR" ]]; then
-        aux_err "LIB_OPS_DIR not set. Please run 'source bin/ini' first." "component=dic,operation=validate,step=environment_check,missing_var=LIB_OPS_DIR"
+    # Check if the resolved operations directory is available
+    if [[ -z "$lib_ops_dir" || ! -d "$lib_ops_dir" ]]; then
+        aux_err "Operations module directory is unavailable. Set LIB_OPS_DIR or initialize runtime bootstrap." "component=dic,operation=validate,step=environment_check,missing_dir=$lib_ops_dir"
         return 1
     fi
     
     # Check if module exists
-    if [[ ! -f "${LIB_OPS_DIR}/${module}" ]]; then
-        aux_err "Module '$module' not found in ${LIB_OPS_DIR}/" "component=dic,operation=validate,step=module_check,module=$module,lib_dir=$LIB_OPS_DIR"
+    if [[ ! -f "${lib_ops_dir}/${module}" ]]; then
+        aux_err "Module '$module' not found in ${lib_ops_dir}/" "component=dic,operation=validate,step=module_check,module=$module,lib_dir=$lib_ops_dir"
         echo "Available modules:"
         ops_list_modules
         return 1
@@ -691,7 +767,7 @@ ops_resolve_single_variable() {
             resolved_value="${PVE_CONF_PATH_QEMU:-}"
             ;;
         lib_ops_dir)
-            resolved_value="${LIB_OPS_DIR:-}"
+            resolved_value="$(ops_runtime_get_lib_ops_dir)"
             ;;
         driver_mode|gpu_driver_preference)
             # Handle GPU driver preference for -d flag
@@ -785,23 +861,28 @@ ops_show_usage() {
 
 # List available modules
 ops_list_modules() {
+    local lib_ops_dir
+    lib_ops_dir="$(ops_runtime_get_lib_ops_dir)"
+
     echo "Available modules:"
-    if [[ -d "$LIB_OPS_DIR" ]]; then
-        for module in "$LIB_OPS_DIR"/*; do
+    if [[ -d "$lib_ops_dir" ]]; then
+        for module in "$lib_ops_dir"/*; do
             if [[ -f "$module" ]]; then
                 local module_name=$(basename "$module")
                 echo "  $module_name"
             fi
         done
     else
-        aux_err "LIB_OPS_DIR not found. Please run 'source bin/ini' first." "component=dic,operation=list_modules,missing_dir=$LIB_OPS_DIR"
+        aux_err "Operations module directory not found." "component=dic,operation=list_modules,missing_dir=$lib_ops_dir"
     fi
 }
 
 # List functions in a module
 ops_list_functions() {
     local module="$1"
-    local lib_path="${LIB_OPS_DIR}/${module}"
+    local lib_ops_dir
+    lib_ops_dir="$(ops_runtime_get_lib_ops_dir)"
+    local lib_path="${lib_ops_dir}/${module}"
     
     if [[ ! -f "$lib_path" ]]; then
         aux_err "Module '$module' not found" "component=dic,operation=list_functions,module=$module,lib_path=$lib_path"
@@ -826,9 +907,11 @@ ops_show_function_help() {
     local module="$1"
     local function="$2"
     local full_function="${module}_${function}"
+    local lib_ops_dir
+    lib_ops_dir="$(ops_runtime_get_lib_ops_dir)"
     
     # Validate and source the library module
-    local lib_path="${LIB_OPS_DIR}/${module}"
+    local lib_path="${lib_ops_dir}/${module}"
     if [[ ! -f "$lib_path" ]]; then
         aux_err "Library module not found: $lib_path" "component=dic,operation=show_function_help,module=$module,lib_path=$lib_path"
         return 1
@@ -854,9 +937,11 @@ ops_show_injection_preview() {
     local module="$1"
     local function="$2"
     local full_function="${module}_${function}"
+    local lib_ops_dir
+    lib_ops_dir="$(ops_runtime_get_lib_ops_dir)"
     
     # Validate and source the library module
-    local lib_path="${LIB_OPS_DIR}/${module}"
+    local lib_path="${lib_ops_dir}/${module}"
     if [[ ! -f "$lib_path" ]]; then
         aux_err "Library module not found: $lib_path" "component=dic,operation=show_injection_preview,module=$module,lib_path=$lib_path"
         return 1
@@ -1057,9 +1142,11 @@ ops_get_global_variable_name() {
 
 # If script is executed directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    # Check if running in correct environment
-    if [[ -z "$LIB_OPS_DIR" ]]; then
-        aux_err "Environment not initialized. Please run 'source bin/ini' first." "component=dic,operation=main_entry,step=environment_check,missing_var=LIB_OPS_DIR"
+    runtime_lib_ops_dir="$(ops_runtime_get_lib_ops_dir)"
+
+    # Check if runtime adapter resolved a usable operations directory
+    if [[ ! -d "$runtime_lib_ops_dir" ]]; then
+        aux_err "Environment not initialized. Operations module directory unavailable." "component=dic,operation=main_entry,step=environment_check,lib_dir=$runtime_lib_ops_dir"
         exit 1
     fi
     

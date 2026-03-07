@@ -1,0 +1,113 @@
+#!/bin/bash
+
+# Runtime boundary adapter for DIC path and environment resolution.
+
+ops_runtime_lab_root() {
+    if [[ -n "${LAB_ROOT:-}" ]]; then
+        printf '%s\n' "$LAB_ROOT"
+        return 0
+    fi
+
+    if [[ -n "${LAB_DIR:-}" ]]; then
+        printf '%s\n' "$LAB_DIR"
+        return 0
+    fi
+
+    local dic_dir
+    if [[ -n "${DIC_DIR:-}" ]]; then
+        dic_dir="$DIC_DIR"
+    else
+        dic_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." >/dev/null 2>&1 && pwd )"
+    fi
+
+    printf '%s\n' "$( cd "${dic_dir}/../.." >/dev/null 2>&1 && pwd )"
+}
+
+ops_runtime_lib_ops_dir() {
+    if [[ -n "${LIB_OPS_DIR:-}" ]]; then
+        printf '%s\n' "$LIB_OPS_DIR"
+        return 0
+    fi
+
+    local lab_root
+    lab_root="$(ops_runtime_lab_root)"
+    printf '%s/lib/ops\n' "$lab_root"
+}
+
+ops_runtime_lib_gen_dir() {
+    if [[ -n "${LIB_GEN_DIR:-}" ]]; then
+        printf '%s\n' "$LIB_GEN_DIR"
+        return 0
+    fi
+
+    local lab_root
+    lab_root="$(ops_runtime_lab_root)"
+    printf '%s/lib/gen\n' "$lab_root"
+}
+
+ops_runtime_env_candidates() {
+    local lab_root
+    local site_name
+    local environment_name
+    local node_name
+    local include_overrides
+    local disable_fallback
+
+    lab_root="$(ops_runtime_lab_root)"
+    site_name="${SITE_NAME:-site1}"
+    environment_name="${ENVIRONMENT_NAME:-}"
+    node_name="${NODE_NAME:-$(hostname)}"
+    node_name="${node_name%%.*}"
+
+    include_overrides="${DIC_SOURCE_ENV_OVERRIDES:-1}"
+    disable_fallback="${DIC_DISABLE_ENV_FALLBACK:-0}"
+
+    local -a candidates=()
+    local -A seen=()
+    local candidate
+
+    if [[ -n "${DIC_ENV_CONFIG:-}" ]]; then
+        candidates+=("${DIC_ENV_CONFIG}")
+    fi
+
+    if [[ -n "${SITE_CONFIG_FILE:-}" ]]; then
+        candidates+=("${SITE_CONFIG_FILE}")
+    fi
+
+    if [[ "$include_overrides" == "1" ]]; then
+        if [[ -n "${ENV_OVERRIDE_FILE:-}" ]]; then
+            candidates+=("${ENV_OVERRIDE_FILE}")
+        fi
+        if [[ -n "${NODE_OVERRIDE_FILE:-}" ]]; then
+            candidates+=("${NODE_OVERRIDE_FILE}")
+        fi
+    fi
+
+    if [[ "$disable_fallback" != "1" ]]; then
+        candidates+=("${lab_root}/cfg/env/${site_name}")
+
+        if [[ "$include_overrides" == "1" ]]; then
+            if [[ -n "$environment_name" ]]; then
+                candidates+=("${lab_root}/cfg/env/${site_name}-${environment_name}")
+            fi
+            if [[ -n "$node_name" ]]; then
+                candidates+=("${lab_root}/cfg/env/${site_name}-${node_name}")
+            fi
+        fi
+    fi
+
+    for candidate in "${candidates[@]}"; do
+        if [[ -z "$candidate" ]]; then
+            continue
+        fi
+
+        if [[ -n "${seen[$candidate]:-}" ]]; then
+            continue
+        fi
+
+        seen["$candidate"]=1
+        printf '%s\n' "$candidate"
+    done
+
+    return 0
+}

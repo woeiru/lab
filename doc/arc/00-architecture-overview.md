@@ -133,7 +133,7 @@ flowchart LR
 - `LAB_USE_DIC_RUN_BRIDGE=1` changes entry behavior to compile via `src/rec/ops` before dispatching through `src/run/dispatch`.
 - `src/run/dispatch` can import gate evidence from `--gate-evidence` and/or `LAB_RUN_GATE_EVIDENCE_FILE`, and can enforce dependency/order/policy contracts only when a plan artifact is present.
 - `src/set/.menu` performs runtime setup (`menu_runtime_setup`) and sources environment/ops layers unless disabled via `LAB_MENU_AUTO_SOURCE=0`.
-- `src/dic/ops` sources `src/dic/lib/{injector,introspector,resolver}` and attempts to source `cfg/env/site1` during load.
+- `src/dic/ops` sources `src/dic/lib/{runtime,injector,introspector,resolver}` and attempts to source runtime-selected env files (`SITE_CONFIG_FILE`/overrides with site fallback) during load.
 
 ## 4. Failure and Fallback Behavior
 

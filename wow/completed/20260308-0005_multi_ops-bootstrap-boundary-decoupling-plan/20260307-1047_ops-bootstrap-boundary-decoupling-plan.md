@@ -1,9 +1,9 @@
 # Ops Bootstrap Boundary Decoupling Plan
 
-- Status: active
+- Status: completed
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 20:22
+- Updated: 2026-03-08 00:05
 - Links: wow/completed/20260307-1047_lib-architecture-review/20260307-0921_lib-architecture-review-result.md, doc/ref/module-dependencies.md, doc/arc/00-architecture-overview.md, bin/ini, bin/orc
 
 ## Goal
@@ -70,10 +70,10 @@ artifact before any implementation changes.
 1. [done] Phase 1 - Boundary decoupling design baseline.
    Completion criterion: A design artifact is added to this item documenting
    interfaces, constraints, trade-offs, and the chosen migration approach.
-2. [in progress] Phase 2 - Adapter and boundary implementation.
+2. [done] Phase 2 - Adapter and boundary implementation.
    Completion criterion: Target bootstrap/ops boundary adapters are implemented
    with no public contract drift across touched entrypoints.
-3. [pending] Phase 3 - Validation and convergence evidence.
+3. [done] Phase 3 - Validation and convergence evidence.
    Completion criterion: Required syntax/tests/docs verification outputs are
    recorded in this item and all declared checks pass.
 
@@ -153,3 +153,66 @@ artifact before any implementation changes.
    `doc/arc/04-dependency-injection.md`, `doc/ref/module-dependencies.md`).
 3. Next implementation action is to extract and wire adapter-backed DIC runtime
    resolution while preserving existing command behavior.
+4. Implemented runtime boundary adapter file `src/dic/lib/runtime` and wired
+   `src/dic/ops` to consume adapter-backed lab root, ops/gen path, and
+   environment config candidate resolution.
+5. Replaced direct `LIB_OPS_DIR` and `cfg/env/site1` assumptions in DIC
+   execution paths with runtime adapter lookups plus compatibility fallback
+   behavior.
+6. Updated architecture docs to describe the runtime adapter boundary:
+   `doc/arc/00-architecture-overview.md`,
+   `doc/arc/04-dependency-injection.md`.
+7. Regenerated reference documentation after structural boundary changes via
+   `./utl/ref/run_all_doc.sh`.
+8. Completed workflow-plan validation gate with `bash wow/check-workflow.sh`
+   after evidence updates.
+9. Validated standalone DIC runtime fallback behavior without bootstrap
+   exports: `env -i HOME="$HOME" PATH="$PATH" bash -lc '"/home/es/lab/src/dic/ops" --list'`
+   returned exit code `0` and listed ops modules.
+
+## Verification Evidence
+
+1. Syntax checks:
+   - `bash -n src/dic/ops` -> pass
+   - `bash -n src/dic/lib/runtime` -> pass
+2. Nearest DIC regression suites:
+   - `bash val/src/dic/dic_phase1_completion_test.sh` -> pass (8/8)
+   - `bash val/src/dic/dic_basic_test.sh` -> pass (9/9)
+3. Structural/reference doc regeneration:
+   - `./utl/ref/run_all_doc.sh` -> pass (7/7 generators)
+4. Workflow checker:
+   - `bash wow/check-workflow.sh` -> pass
+5. Standalone fallback sanity check:
+   - `env -i HOME="$HOME" PATH="$PATH" bash -lc '"/home/es/lab/src/dic/ops" --list'` -> pass (exit `0`)
+
+## What changed
+
+1. Added runtime boundary adapter `src/dic/lib/runtime` for lab root, ops/gen
+   directory, and environment candidate resolution.
+2. Rewired `src/dic/ops` to consume adapter-mediated runtime paths and env
+   sourcing, replacing fixed `cfg/env/site1` and direct bootstrap assumptions.
+3. Updated architecture docs for the new DIC runtime boundary behavior:
+   `doc/arc/00-architecture-overview.md`,
+   `doc/arc/04-dependency-injection.md`.
+4. Regenerated canonical reference documentation after structural dependency
+   updates in DIC runtime surfaces.
+
+## What was verified
+
+1. `bash -n src/dic/ops` -> pass
+2. `bash -n src/dic/lib/runtime` -> pass
+3. `bash val/src/dic/dic_phase1_completion_test.sh` -> pass (8/8)
+4. `bash val/src/dic/dic_basic_test.sh` -> pass (9/9)
+5. `./utl/ref/run_all_doc.sh` -> pass (7/7 generators)
+6. `env -i HOME="$HOME" PATH="$PATH" bash -lc '"/home/es/lab/src/dic/ops" --list'`
+   -> pass (exit `0`)
+7. `bash wow/check-workflow.sh` -> pass
+8. Docs: updated (`doc/arc/00-architecture-overview.md`,
+   `doc/arc/04-dependency-injection.md`, `doc/ref/functions.md`,
+   `doc/ref/module-dependencies.md`, `doc/ref/test-coverage.md`,
+   `doc/ref/error-handling.md`, `doc/ref/reverse-dependecies.md`,
+   `doc/ref/scope-integrity.md`, `doc/ref/variables.md`)
+
+## What remains
+
+1. No mandatory follow-up items identified for this closeout.
