@@ -16,6 +16,10 @@ Container key resolution:
 1. Resolve module key from (in order):
    - `module=<value>` in user prompt
    - `Module: <value>` in `## Bundle Close Metadata`
+   - infer from active item filename stem (after removing timestamp prefix and
+     workflow suffixes like `-plan`/`-issue`/`-review`/`-followup`): use the
+     leading token before first `_` or `-`
+   - infer from active item title (`# ...`): use the first token
    - fallback `multi`
 2. Resolve bundle essence slug from (in order):
    - Explicit close summary override:

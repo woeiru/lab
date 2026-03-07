@@ -9,7 +9,11 @@ Finalize this active item into completed state.
 - Resolve module key for the close leaf in this order:
   1. `module=<value>` in user prompt
   2. `Module: <value>` in optional `## Close Metadata`
-  3. fallback `multi` (cross-cutting work)
+  3. Infer from active item filename stem (after removing timestamp prefix and
+     workflow suffixes like `-plan`/`-issue`/`-review`/`-followup`): use the
+     leading token before first `_` or `-`
+  4. Infer from active item title (`# ...`): use the first token
+  5. fallback `multi` (cross-cutting work)
 - Normalize module key: lowercase, replace spaces/underscores with `-`, remove non `[a-z0-9-]`, collapse repeated `-`, trim edge `-`.
 - Move file to immutable leaf folder:
   `wow/completed/<current-close-timestamp>_<module>_<task-slug>/`
