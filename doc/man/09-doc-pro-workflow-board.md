@@ -230,6 +230,15 @@ Success indicators:
 - Child docs with `## Orchestration Metadata` include all required keys and
   valid dependency tokens.
 
+For architecture-sensitive `lib/` changes, run the confidence gate before close:
+
+```bash
+./val/lib/confidence_gate.sh --risk medium lib/ops/pve lib/gen/aux
+```
+
+Use `--risk low|medium|high` per change impact, and `--dry-run` to preview the
+required verification commands.
+
 ## 4. Troubleshooting and Recovery
 
 ### "Big item did not split automatically"

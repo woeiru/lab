@@ -137,9 +137,11 @@ Examples:
       `Artifacts: evidence,result`.
 
 5. Finish -> move to `completed/`
-   - When implementation + review are accepted, move related files to `completed/`.
-   - Add a short final section: what changed, what was verified, what remains.
-   - Follow-up routing: default to new `inbox/` items.
+    - When implementation + review are accepted, move related files to `completed/`.
+    - Add a short final section: what changed, what was verified, what remains.
+    - For architecture-sensitive `lib/` changes, run `./val/lib/confidence_gate.sh`
+      with the appropriate `--risk` level before close.
+    - Follow-up routing: default to new `inbox/` items.
    - Exception: create follow-ups directly in `queue/` only when mandatory,
      scope is clear, and priority is already locked.
    - For direct queue routing, add in `## What remains`:

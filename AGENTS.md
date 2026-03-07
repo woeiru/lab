@@ -127,6 +127,20 @@ After any code change, follow this sequence (stop at the appropriate level):
 4. **Full suite** -- for cross-module or structural changes:
    `./val/run_all_tests.sh`
 
+### Confidence gate for architecture-sensitive `lib/` changes
+
+Use the confidence-gate runner to apply consistent go/no-go validation levels:
+
+- Runner: `./val/lib/confidence_gate.sh`
+- Required input: `--risk <low|medium|high>` plus changed file paths
+- Dry-run preview: add `--dry-run`
+
+Risk levels:
+
+1. `low` -- syntax checks + nearest module tests (or quick lib suite fallback)
+2. `medium` -- `low` + full `lib` category suite
+3. `high` -- `medium` + full repository test suite
+
 ---
 
 ## 3) Code Style and Implementation Guidelines
