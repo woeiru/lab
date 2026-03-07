@@ -92,6 +92,61 @@ check_header() {
   fi
 }
 
+is_reserved_workflow_module_key() {
+  local module="$1"
+
+  case "$module" in
+    inbox | queue | active | completed | dismissed | experiment | experiments)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_valid_module_key() {
+  local module="$1"
+
+  [[ "$module" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || return 1
+  [[ "$module" == *[a-z]* ]] || return 1
+  is_reserved_workflow_module_key "$module" && return 1
+  return 0
+}
+
+should_enforce_module_header() {
+  local file="$1"
+
+  case "$file" in
+    "$ROOT"/active/waivers/*)
+      return 1
+      ;;
+    "$ROOT"/queue/* | "$ROOT"/active/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+check_module_header() {
+  local file="$1"
+  local module
+
+  module="$(get_header_field_value "$file" "Module" || true)"
+  if [[ -z "$module" ]]; then
+    printf 'FAIL module header: %s (missing: Module)\n' "$file"
+    failures=$((failures + 1))
+    return
+  fi
+
+  if ! is_valid_module_key "$module"; then
+    printf 'FAIL module header: %s (invalid Module: %s; expected lowercase kebab-case, at least one letter, not workflow-state token)\n' "$file" "$module"
+    failures=$((failures + 1))
+  fi
+}
+
 expected_status_for_file() {
   local file="$1"
 
@@ -967,6 +1022,12 @@ while IFS= read -r file; do
   should_enforce_header_and_status "$file" || continue
   check_header "$file"
   check_status_matches_folder "$file"
+done < <(find "$ROOT" -type f | sort)
+
+while IFS= read -r file; do
+  is_work_item_doc "$file" || continue
+  should_enforce_module_header "$file" || continue
+  check_module_header "$file"
 done < <(find "$ROOT" -type f | sort)
 
 while IFS= read -r file; do

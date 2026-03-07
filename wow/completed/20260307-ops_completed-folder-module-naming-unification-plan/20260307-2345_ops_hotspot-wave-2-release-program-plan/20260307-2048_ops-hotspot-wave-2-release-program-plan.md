@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-07
 - Updated: 2026-03-07 23:45
-- Links: wow/active/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md, wow/completed/20260307-1047_lib-architecture-review/20260307-0921_lib-architecture-review-result.md, wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-ws-01-plan/20260307-2305_ops-hotspot-wave-2-release-ws-01-plan.md, wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-ws-02-plan/20260307-2305_ops-hotspot-wave-2-release-ws-02-plan.md, wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-ws-03-plan/20260307-2305_ops-hotspot-wave-2-release-ws-03-plan.md, lib/ops/dev, val/lib/ops/dev_test.sh, wow/active/20260307-1548_ops-hotspot-decomposition-wave-design.md
+- Links: wow/active/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md, wow/completed/20260307-1047_lib-architecture-review/20260307-0921_lib-architecture-review-result.md, wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-ws-01-plan/20260307-2305_ops-hotspot-wave-2-release-ws-01-plan.md, wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-ws-02-plan/20260307-2305_ops-hotspot-wave-2-release-ws-02-plan.md, wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-ws-03-plan/20260307-2305_ops-hotspot-wave-2-release-ws-03-plan.md, lib/ops/dev, val/lib/ops/dev_test.sh, wow/active/20260307-1548_ops-hotspot-decomposition-wave-design.md
 
 ## Goal
 
@@ -50,9 +50,9 @@ convergence, with first priority on `lib/ops/dev` complexity hotspots.
 
 | Workstream-ID | Scope | Depends-On | Touch-Set | Merge-Gate | Child-Plan | Owner | Branch | Worktree | State | Blocker Summary | Next Owner Action |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| WS-01 | Render-path boundary extraction in `lib/ops/dev` | none | lib/ops/dev::_dev_osv_render; val/lib/ops/dev_test.sh::render-cases; doc/arc/04-dependency-injection.md | module | wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-ws-01-plan/20260307-2305_ops-hotspot-wave-2-release-ws-01-plan.md | es | ws/ops-hotspot-wave2-ws-01-render | /home/es/lab | done | none | Closed and archived with module-gate evidence recorded. |
-| WS-02 | Device-flow boundary extraction in `lib/ops/dev` | WS-01 | lib/ops/dev::device-discovery-flow; val/lib/ops/dev_test.sh::discovery-cases; doc/ref/module-dependencies.md | module | wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-ws-02-plan/20260307-2305_ops-hotspot-wave-2-release-ws-02-plan.md | es | ws/ops-hotspot-wave2-ws-02-device | /home/es/lab | done | none | Closed and archived with module-gate evidence recorded. |
-| WS-03 | Integration/release decision and gate evidence | WS-01,WS-02 | wow/active/20260307-2048_ops-hotspot-wave-2-release-program-plan.md::release-decision; val/run_all_tests.sh::lib-category; doc/ref/functions.md; doc/ref/test-coverage.md | integration | wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-ws-03-plan/20260307-2305_ops-hotspot-wave-2-release-ws-03-plan.md | es | ws/ops-hotspot-wave2-ws-03-integration | /home/es/lab | done | none | Closed and archived with integration-gate release evidence recorded. |
+| WS-01 | Render-path boundary extraction in `lib/ops/dev` | none | lib/ops/dev::_dev_osv_render; val/lib/ops/dev_test.sh::render-cases; doc/arc/04-dependency-injection.md | module | wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-ws-01-plan/20260307-2305_ops-hotspot-wave-2-release-ws-01-plan.md | es | ws/ops-hotspot-wave2-ws-01-render | /home/es/lab | done | none | Closed and archived with module-gate evidence recorded. |
+| WS-02 | Device-flow boundary extraction in `lib/ops/dev` | WS-01 | lib/ops/dev::device-discovery-flow; val/lib/ops/dev_test.sh::discovery-cases; doc/ref/module-dependencies.md | module | wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-ws-02-plan/20260307-2305_ops-hotspot-wave-2-release-ws-02-plan.md | es | ws/ops-hotspot-wave2-ws-02-device | /home/es/lab | done | none | Closed and archived with module-gate evidence recorded. |
+| WS-03 | Integration/release decision and gate evidence | WS-01,WS-02 | wow/active/20260307-2048_ops-hotspot-wave-2-release-program-plan.md::release-decision; val/run_all_tests.sh::lib-category; doc/ref/functions.md; doc/ref/test-coverage.md | integration | wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-ws-03-plan/20260307-2305_ops-hotspot-wave-2-release-ws-03-plan.md | es | ws/ops-hotspot-wave2-ws-03-integration | /home/es/lab | done | none | Closed and archived with integration-gate release evidence recorded. |
 
 ## Assignment Snapshot
 
@@ -216,7 +216,7 @@ Docs: required
 ## What changed
 
 1. Closed this parent program plan from `wow/active/` to
-   `wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-program-plan/`.
+   `wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-program-plan/`.
 2. Updated the parent workstream table to reference immutable completed paths
    for WS-01, WS-02, and WS-03 child plans.
 3. Preserved Wave 2 convergence and release decision records (`release now`) in

@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-07
 - Updated: 2026-03-07 23:45
-- Links: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md, val/run_all_tests.sh, doc/ref/functions.md, doc/ref/test-coverage.md
+- Links: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md, val/run_all_tests.sh, doc/ref/functions.md, doc/ref/test-coverage.md
 
 ## Goal
 
@@ -46,7 +46,7 @@ Docs: required
 
 ## Orchestration Metadata
 
-- Program: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md
+- Program: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md
 - Workstream-ID: WS-03
 - Depends-On: WS-01,WS-02
 - Touch-Set: wow/active/20260307-2048_ops-hotspot-wave-2-release-program-plan.md::release-decision; val/run_all_tests.sh::lib-category; doc/ref/functions.md; doc/ref/test-coverage.md
@@ -145,7 +145,7 @@ Docs: required
 ## What changed
 
 1. Closed this WS-03 item from `wow/active/` to
-   `wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-ws-03-plan/`.
+   `wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-ws-03-plan/`.
 2. Preserved finalized integration findings and release recommendation input
    (`release now`) for parent convergence evidence.
 3. Documentation files updated in this workstream:

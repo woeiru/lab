@@ -7,6 +7,14 @@ File rules:
 - Valid statuses: inbox, queue, active, experiment, completed, dismissed.
 - Every workflow doc must have these header fields:
   Status, Owner, Started, Updated, Links.
+- Queue/active work items must include header field:
+  `Module: <module-key>`.
+- Module key format: lowercase kebab-case (`[a-z0-9-]`), must include at least
+  one letter, and must not be workflow-state tokens:
+  `inbox`, `queue`, `active`, `completed`, `dismissed`, `experiment`,
+  `experiments`.
+- `multi` is valid only when intentionally set as explicit cross-cutting module
+  (never as implicit fallback).
 
 Artifact contract rules (active-artifacts task):
 - `active-artifacts` reads optional `## Artifact Contract` from the parent

@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-07
 - Updated: 2026-03-07 21:03
-- Links: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md, wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1548_ops-hotspot-decomposition-wave-design.md, val/lib/confidence_gate.sh
+- Links: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md, wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1548_ops-hotspot-decomposition-wave-design.md, val/lib/confidence_gate.sh
 
 ## Goal
 
@@ -45,10 +45,10 @@ hardening evidence for program convergence.
 
 ## Orchestration Metadata
 
-- Program: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md
+- Program: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md
 - Workstream-ID: WS-03
 - Depends-On: WS-01,WS-02
-- Touch-Set: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md,val/lib/confidence_gate.sh
+- Touch-Set: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md,val/lib/confidence_gate.sh
 - Merge-Gate: integration
 - Branch: ws/ops-hotspot-ws-03-verify
 - Worktree: /home/es/lab
@@ -91,7 +91,7 @@ hardening evidence for program convergence.
 ## What changed
 
 1. Closed this completed verification workstream plan from `wow/active/` to
-   `wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/`.
+   `wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/`.
 2. Preserved finalized integration evidence and rollback-hardening references
    used for parent convergence.
 3. Documentation files updated in this close step: none.

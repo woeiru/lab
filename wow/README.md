@@ -339,6 +339,7 @@ Use this header at the top of each work file:
 - Started: YYYY-MM-DD
 - Updated: YYYY-MM-DD
 - Links: related files/PRs/tests
+- Module: <module-key>  # required for queue/active docs
 ```
 
 Optional active artifact contract block:
@@ -359,6 +360,7 @@ Optional active artifact contract block:
   - On content edits, update the `Updated` header field instead of renaming.
   - Root meta/support files under `wow/` do not need timestamp prefixes.
   - Every workflow doc has header fields: `Status`, `Owner`, `Started`, `Updated`, `Links`.
+  - Queue/active docs include `Module` header with lowercase module key.
   - Dismissed docs include `## Dismissal Reason`.
   - `active/` contains only in-progress items.
   - `active/waivers/*_waiver-register.md` entries include owner, expiry date, and removal criteria.
@@ -374,6 +376,8 @@ Optional active artifact contract block:
 
 - Timestamp prefix format for workflow docs: `yyyymmdd-hhmm_filename`
 - Required header fields in workflow-header docs across workflow folders: `Status`, `Owner`, `Started`, `Updated`, `Links`
+- Queue/active docs require `Module` header with valid module key (lowercase
+  kebab-case, contains a letter, not a workflow-state token)
 - Status must match destination folder (`inbox`, `queue`, `active`, `experiment`, `completed`, `dismissed`)
 - Queue/active docs contain exactly one `## Triage Decision` section
 - Queue/active docs include exactly one canonical design token in triage:

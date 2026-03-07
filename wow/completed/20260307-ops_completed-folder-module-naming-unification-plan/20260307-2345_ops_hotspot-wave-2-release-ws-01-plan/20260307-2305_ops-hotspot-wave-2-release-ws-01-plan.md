@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-07
 - Updated: 2026-03-07 23:45
-- Links: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md, lib/ops/dev, val/lib/ops/dev_test.sh, doc/arc/04-dependency-injection.md
+- Links: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md, lib/ops/dev, val/lib/ops/dev_test.sh, doc/arc/04-dependency-injection.md
 
 ## Goal
 
@@ -45,7 +45,7 @@ Docs: required
 
 ## Orchestration Metadata
 
-- Program: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md
+- Program: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md
 - Workstream-ID: WS-01
 - Depends-On: none
 - Touch-Set: lib/ops/dev::_dev_osv_collect_rows_tsv,_dev_osv_render_table_from_tsv,_dev_osv_render; val/lib/ops/dev_test.sh::render-cases; doc/arc/04-dependency-injection.md
@@ -126,7 +126,7 @@ Docs: required
 ## What changed
 
 1. Closed this WS-01 item from `wow/active/` to
-   `wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-ws-01-plan/`.
+   `wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-ws-01-plan/`.
 2. Preserved finalized render-path decomposition outputs for
    `_dev_osv_collect_rows_tsv`, `_dev_osv_render_table_from_tsv`, and
    `_dev_osv_render` orchestration behavior.

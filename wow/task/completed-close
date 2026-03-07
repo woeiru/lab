@@ -9,11 +9,12 @@ Finalize this active item into completed state.
 - Resolve module key for the close leaf in this order:
   1. `module=<value>` in user prompt
   2. `Module: <value>` in optional `## Close Metadata`
-  3. Infer from active item filename stem (after removing timestamp prefix and
-     workflow suffixes like `-plan`/`-issue`/`-review`/`-followup`): use the
-     leading token before first `_` or `-`
-  4. Infer from active item title (`# ...`): use the first token
-  5. fallback `multi` (cross-cutting work)
+  3. If still missing: stop and report `missing module key`; do not infer from
+     filename/title and do not auto-fallback.
+- `multi` is allowed only when explicitly provided (`module=multi` or
+  `Module: multi`) for intentional cross-cutting closes.
+- Reject workflow-state tokens as module keys:
+  `inbox`, `queue`, `active`, `completed`, `dismissed`, `experiment`, `experiments`.
 - Normalize module key: lowercase, replace spaces/underscores with `-`, remove non `[a-z0-9-]`, collapse repeated `-`, trim edge `-`.
 - Move file to immutable leaf folder:
   `wow/completed/<current-close-timestamp>_<module>_<task-slug>/`

@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-07
 - Updated: 2026-03-07 21:03
-- Links: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md, doc/ref/stats/actual.md, doc/ref/functions.md, doc/ref/test-coverage.md, doc/ref/scope-integrity.md
+- Links: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md, doc/ref/stats/actual.md, doc/ref/functions.md, doc/ref/test-coverage.md, doc/ref/scope-integrity.md
 
 ## Goal
 
@@ -113,7 +113,7 @@ as the source of truth for wave boundaries and compatibility guards.
 ## What changed
 
 1. Closed this Wave 1 design baseline from `wow/active/` to
-   `wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/`.
+   `wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/`.
 2. Retained the finalized decomposition contracts, constraints, and wave
    sequencing used by converged workstreams.
 3. Documentation files updated in this close step: none.

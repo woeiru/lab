@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-07
 - Updated: 2026-03-07 21:03
-- Links: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md, wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1548_ops-hotspot-decomposition-wave-design.md, lib/gen/ana, val/lib/gen/ana_dep_test.sh, val/lib/gen/ana_err_test.sh, val/lib/gen/ana_rdp_test.sh, val/lib/gen/ana_scp_test.sh, val/lib/gen/ana_tst_test.sh
+- Links: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md, wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1548_ops-hotspot-decomposition-wave-design.md, lib/gen/ana, val/lib/gen/ana_dep_test.sh, val/lib/gen/ana_err_test.sh, val/lib/gen/ana_rdp_test.sh, val/lib/gen/ana_scp_test.sh, val/lib/gen/ana_tst_test.sh
 
 ## Goal
 
@@ -43,7 +43,7 @@ Execute Wave 1 Batch B decomposition for `lib/gen/ana` while preserving
 
 ## Orchestration Metadata
 
-- Program: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md
+- Program: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1047_ops-hotspot-decomposition-wave-program-plan.md
 - Workstream-ID: WS-02
 - Depends-On: none
 - Touch-Set: lib/gen/ana,val/lib/gen/ana_dep_test.sh,val/lib/gen/ana_err_test.sh,val/lib/gen/ana_rdp_test.sh,val/lib/gen/ana_scp_test.sh,val/lib/gen/ana_tst_test.sh
@@ -97,7 +97,7 @@ Execute Wave 1 Batch B decomposition for `lib/gen/ana` while preserving
 ## What changed
 
 1. Closed this completed analyzer workstream plan from `wow/active/` to
-   `wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/`.
+   `wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/`.
 2. Preserved finalized decomposition evidence for `ana_lad` and `ana_acu`
    helper extraction and output-contract stability.
 3. Documentation files updated during this workstream: `doc/ref/functions.md`,

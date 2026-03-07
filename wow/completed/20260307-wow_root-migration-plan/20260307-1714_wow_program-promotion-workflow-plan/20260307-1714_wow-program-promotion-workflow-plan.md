@@ -75,7 +75,7 @@ Initial doc targets:
 1. Phase 1 (Design lock) [complete]: define promotion as an explicit operation between active planning and fanout orchestration.
    Completion criterion: promotion workflow is represented by a dedicated task and referenced in fanout/split guidance.
 2. Phase 2 (Closeout) [complete]: capture emergent work and complete bundle-aware close routing.
-   Completion criterion: item is moved to a stable `*-bundle-wow` completed folder with verification evidence and docs outcome token.
+   Completion criterion: item is moved to a stable `20260307-wow_*` completed container with verification evidence and docs outcome token.
 
 ## What changed
 
@@ -83,7 +83,7 @@ Initial doc targets:
 2. Added `wow/task/active-promote` to formalize normal active plan -> program parent promotion.
 3. Updated `wow/task/active-fanout` and `wow/task/active-split` to route users to the correct split vs fanout path.
 4. Updated workflow docs in `wow/task/README.md`, `wow/README.md`, `doc/man/09-wow-workflow-board.md`, and `doc/arc/08-workflow-architecture.md` to include promotion sequencing.
-5. Closed this item into `wow/completed/20260307-1717-bundle-wow/` using bundle mode `auto` with module key `wow`.
+5. Closed this item into `wow/completed/20260307-wow_root-migration-plan/20260307-1714_wow_program-promotion-workflow-plan/` using bundle mode `auto` with module key `wow`.
 
 ## What was verified
 

@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-07
 - Updated: 2026-03-07 23:45
-- Links: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md, lib/ops/dev, val/lib/ops/dev_test.sh, doc/ref/module-dependencies.md
+- Links: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md, lib/ops/dev, val/lib/ops/dev_test.sh, doc/ref/module-dependencies.md
 
 ## Goal
 
@@ -42,7 +42,7 @@ Docs: required
 
 ## Orchestration Metadata
 
-- Program: wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md
+- Program: wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-program-plan/20260307-2048_ops-hotspot-wave-2-release-program-plan.md
 - Workstream-ID: WS-02
 - Depends-On: WS-01
 - Touch-Set: lib/ops/dev::device-discovery-flow; val/lib/ops/dev_test.sh::discovery-cases; doc/ref/module-dependencies.md
@@ -124,7 +124,7 @@ Docs: required
 ## What changed
 
 1. Closed this WS-02 item from `wow/active/` to
-   `wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2345_multi_ops-hotspot-wave-2-release-ws-02-plan/`.
+   `wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2345_ops_hotspot-wave-2-release-ws-02-plan/`.
 2. Preserved finalized device-flow decomposition outputs centered on
    `_dev_prepare_device_flow_context` and downstream orchestration reuse in
    `dev_oaa`, `dev_oas`, `dev_oar`, and `dev_oad`.

@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-07
 - Updated: 2026-03-07 21:03
-- Links: wow/completed/20260307-1047_lib-architecture-review/20260307-0921_lib-architecture-review-result.md, wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1548_ops-hotspot-decomposition-wave-design.md, wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1630_ops-hotspot-gpu-ws-01-plan.md, wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1630_ops-hotspot-ana-ws-02-plan.md, wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/20260307-1630_ops-hotspot-verification-ws-03-plan.md, wow/inbox/20260307-2048_ops-hotspot-wave-2-release-followup.md, lib/ops/gpu, val/lib/ops/gpu_test.sh, val/lib/ops/gpu_std_compliance_test.sh, doc/ref/functions.md, doc/ref/stats/actual.md, doc/ref/scope-integrity.md, doc/ref/test-coverage.md
+- Links: wow/completed/20260307-1047_lib-architecture-review/20260307-0921_lib-architecture-review-result.md, wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1548_ops-hotspot-decomposition-wave-design.md, wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1630_ops-hotspot-gpu-ws-01-plan.md, wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1630_ops-hotspot-ana-ws-02-plan.md, wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/20260307-1630_ops-hotspot-verification-ws-03-plan.md, wow/inbox/20260307-2048_ops-hotspot-wave-2-release-followup.md, lib/ops/gpu, val/lib/ops/gpu_test.sh, val/lib/ops/gpu_std_compliance_test.sh, doc/ref/functions.md, doc/ref/stats/actual.md, doc/ref/scope-integrity.md, doc/ref/test-coverage.md
 
 ## Goal
 
@@ -246,7 +246,7 @@ hotspot kickoff from inbox triage.
 ## What changed
 
 1. Closed the converged Wave 1 parent plan from `wow/active/` to
-   `wow/completed/20260307-multi_completed-folder-module-naming-unification-plan/20260307-2103_multi_ops-hotspot-decomposition-wave-program-plan/`.
+   `wow/completed/20260307-ops_completed-folder-module-naming-unification-plan/20260307-2103_ops_hotspot-decomposition-wave-program-plan/`.
 2. Preserved and finalized convergence state for `WS-01`, `WS-02`, and `WS-03`
    with no open blockers.
 3. Updated child/design links to their completed paths and retained the Wave 2

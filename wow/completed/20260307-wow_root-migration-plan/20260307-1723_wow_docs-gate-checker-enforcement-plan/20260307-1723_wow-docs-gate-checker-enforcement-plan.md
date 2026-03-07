@@ -88,7 +88,7 @@
 
 1. `bash -n wow/check-workflow.sh` -> pass.
 2. `bash wow/check-workflow.sh` -> pass after capture and before close.
-3. Bundle resolution check: reused existing folder `wow/completed/20260307-1717-bundle-wow/` for slug `wow`.
+3. Bundle resolution check: reused the day+module container `wow/completed/20260307-wow_root-migration-plan/` for key `20260307-wow`.
 4. Docs: updated (`wow/task/RULES.md`, `wow/task/README.md`, `wow/README.md`, `wow/active/README.md`, `doc/man/09-wow-workflow-board.md`, `wow/check-workflow.sh`, `wow/task/active-move`, `wow/task/active-capture`, `wow/task/active-start`, `wow/task/active-promote`, `wow/task/active-fanout`, `wow/task/active-reopen`, `wow/task/completed-close`).
 
 ## What remains

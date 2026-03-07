@@ -4,13 +4,13 @@
 - Owner: es
 - Started: 2026-03-07
 - Updated: 2026-03-08 00:06
-- Links: /home/es/lab/wow/completed/20260307-2048_multi_completed-folder-module-naming-unification-plan
+- Links: /home/es/lab/wow/completed/20260307-completed_close-bundle-auto-naming/20260307-2048_completed_folder-module-naming-unification-plan
 
 ## Goal
 - Apply the required module-name convention consistently to all folders under `wow/completed/` before running the new maintenance workflow.
 
 ## Context
-- A unification planning item was completed at `wow/completed/20260307-2048_multi_completed-folder-module-naming-unification-plan`.
+- A unification planning item was completed at `wow/completed/20260307-completed_close-bundle-auto-naming/20260307-2048_completed_folder-module-naming-unification-plan`.
 - The next operational step is to execute the maintenance workflow, but naming alignment should be completed first to avoid checker noise and routing inconsistencies.
 - Dry-run inventory shows 59 top-level completed folders: 2 v2 leaf folders, 56 legacy standard close folders, and 1 legacy bundle folder.
 - Deterministic mapping checks for the 56 legacy standard folders found 0 duplicate rename targets and 0 conflicts with existing folder names.
