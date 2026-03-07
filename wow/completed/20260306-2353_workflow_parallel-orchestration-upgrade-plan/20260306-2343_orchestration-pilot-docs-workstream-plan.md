@@ -4,7 +4,7 @@
 - Owner: es
 - Started: 2026-03-06
 - Updated: 2026-03-06 23:47:00
-- Links: wow/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md, wow/README.md, wow/task/README.md
+- Links: wow/completed/20260306-2353_workflow_parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md, wow/README.md, wow/task/README.md
 
 ## Goal
 
@@ -28,7 +28,7 @@ pilot workstream.
 
 ## Orchestration Metadata
 
-- Program: wow/completed/20260306-2353_workflow-parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md
+- Program: wow/completed/20260306-2353_workflow_parallel-orchestration-upgrade-plan/20260306-2343_orchestration-pilot-program-plan.md
 - Workstream-ID: WS-01
 - Depends-On: none
 - Touch-Set: wow/README.md,wow/task/README.md
