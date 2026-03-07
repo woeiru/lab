@@ -7,8 +7,16 @@ Reopen this completed item for additional work.
 - Move file from `completed/yyyymmdd-hhmm_<topic>/` to `wow/active/`
 - Set Status: active
 - Preserve all existing content (plan, reviews, completion evidence)
+- Add or update `## Documentation Impact` with exactly one token line:
+  - `Docs: required`, `Docs: none`, or `Docs: deferred`
+  - For `Docs: deferred`, include blocker reason + follow-up route
 - Add ## Reopened section explaining:
   - Why the completed work needs revisiting
   - What specific additional work is needed
   - New exit criteria for this round
+- Ensure remaining-work `## Verification Plan` includes one documentation
+  verification step.
+- If structural/public surfaces change (new/renamed functions, signature
+  changes, dependency changes, variable map changes), include
+  `./utl/ref/run_all_doc.sh` in verification evidence.
 - Report: active path + reopening rationale + next 3 steps

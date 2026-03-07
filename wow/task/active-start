@@ -7,6 +7,9 @@ Begin executing this active item.
 - Read the full item, especially ## Execution Plan and ## Exit Criteria.
 - Confirm the item has Status: active and a populated Execution Plan.
   If either is missing, stop and run active-move first.
+- Confirm the item has `## Documentation Impact` with exactly one token:
+  `Docs: required`, `Docs: none`, or `Docs: deferred`.
+  If missing, add it before execution based on current scope.
 - Present a short execution briefing:
   - Goal summary (one sentence)
   - What I will do now (first 3 steps from Phase 1)

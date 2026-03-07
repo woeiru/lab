@@ -248,6 +248,80 @@ check_triage_design_classification() {
   fi
 }
 
+should_enforce_documentation_impact() {
+  local file="$1"
+
+  case "$file" in
+    "$ROOT"/active/*-plan.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+check_documentation_impact_section() {
+  local file="$1"
+  local line
+  local in_section=0
+  local section_count=0
+  local required_count=0
+  local none_count=0
+  local deferred_count=0
+  local token_count=0
+
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^##[[:space:]]+Documentation[[:space:]]+Impact[[:space:]]*$ ]]; then
+      section_count=$((section_count + 1))
+      in_section=1
+      continue
+    fi
+
+    if [[ "$line" =~ ^##[[:space:]] ]]; then
+      in_section=0
+    fi
+
+    if ((in_section == 0)); then
+      continue
+    fi
+
+    if [[ "$line" == *"Docs: required"* ]]; then
+      required_count=$((required_count + 1))
+    fi
+
+    if [[ "$line" == *"Docs: none"* ]]; then
+      none_count=$((none_count + 1))
+    fi
+
+    if [[ "$line" == *"Docs: deferred"* ]]; then
+      deferred_count=$((deferred_count + 1))
+    fi
+  done < "$file"
+
+  if ((section_count == 0)); then
+    printf 'FAIL documentation impact missing: %s (add ## Documentation Impact with exactly one docs token)\n' "$file"
+    failures=$((failures + 1))
+    return
+  fi
+
+  if ((section_count > 1)); then
+    printf 'FAIL documentation impact duplicate: %s (leave exactly one ## Documentation Impact section)\n' "$file"
+    failures=$((failures + 1))
+    return
+  fi
+
+  token_count=$((required_count + none_count + deferred_count))
+
+  if ((token_count == 0)); then
+    printf 'FAIL documentation impact token: %s (expected exactly one: "Docs: required", "Docs: none", or "Docs: deferred")\n' "$file"
+    failures=$((failures + 1))
+  elif ((token_count > 1)); then
+    printf 'FAIL documentation impact token: %s (found multiple docs tokens in ## Documentation Impact)\n' "$file"
+    failures=$((failures + 1))
+  fi
+}
+
 check_status_matches_folder() {
   local file="$1"
   local expected
@@ -304,6 +378,10 @@ check_completed_structure() {
   fi
 
   base="$(basename "$file")"
+
+  if completed_bundle_slug "$folder" >/dev/null; then
+    return
+  fi
 
   if [[ ! "$base" =~ ^([0-9]{8}-[0-9]{4})_.+ ]]; then
     return
@@ -439,6 +517,81 @@ has_section_heading() {
   local file="$1"
   local section="$2"
   grep -q "^##[[:space:]]\+${section}[[:space:]]*$" "$file"
+}
+
+should_enforce_completed_docs_outcome() {
+  local file="$1"
+
+  case "$file" in
+    "$ROOT"/completed/*/*-plan.md)
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  has_section_heading "$file" "Documentation Impact"
+}
+
+check_completed_docs_outcome_token() {
+  local file="$1"
+  local line
+  local in_verified=0
+  local verified_sections=0
+  local updated_count=0
+  local none_count=0
+  local deferred_count=0
+  local token_count=0
+
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^##[[:space:]]+What[[:space:]]+was[[:space:]]+verified[[:space:]]*$ ]]; then
+      verified_sections=$((verified_sections + 1))
+      in_verified=1
+      continue
+    fi
+
+    if [[ "$line" =~ ^##[[:space:]] ]]; then
+      in_verified=0
+    fi
+
+    if ((in_verified == 0)); then
+      continue
+    fi
+
+    if [[ "$line" == *"Docs: updated"* ]]; then
+      updated_count=$((updated_count + 1))
+    fi
+
+    if [[ "$line" == *"Docs: none"* ]]; then
+      none_count=$((none_count + 1))
+    fi
+
+    if [[ "$line" == *"Docs: deferred"* ]]; then
+      deferred_count=$((deferred_count + 1))
+    fi
+  done < "$file"
+
+  if ((verified_sections == 0)); then
+    printf 'FAIL docs outcome section missing: %s (add ## What was verified with exactly one docs outcome token)\n' "$file"
+    failures=$((failures + 1))
+    return
+  fi
+
+  if ((verified_sections > 1)); then
+    printf 'FAIL docs outcome section duplicate: %s (leave exactly one ## What was verified section)\n' "$file"
+    failures=$((failures + 1))
+    return
+  fi
+
+  token_count=$((updated_count + none_count + deferred_count))
+
+  if ((token_count == 0)); then
+    printf 'FAIL docs outcome token: %s (expected exactly one: "Docs: updated", "Docs: none", or "Docs: deferred" in ## What was verified)\n' "$file"
+    failures=$((failures + 1))
+  elif ((token_count > 1)); then
+    printf 'FAIL docs outcome token: %s (found multiple docs outcome tokens in ## What was verified)\n' "$file"
+    failures=$((failures + 1))
+  fi
 }
 
 is_program_plan_doc() {
@@ -664,6 +817,12 @@ while IFS= read -r file; do
 done < <(find "$ROOT" -type f | sort)
 
 while IFS= read -r file; do
+  is_work_item_doc "$file" || continue
+  should_enforce_documentation_impact "$file" || continue
+  check_documentation_impact_section "$file"
+done < <(find "$ROOT" -type f | sort)
+
+while IFS= read -r file; do
   is_markdown_doc "$file" || continue
   check_completed_structure "$file"
 done < <(find "$ROOT/completed" -type f | sort)
@@ -687,6 +846,12 @@ while IFS= read -r file; do
   is_work_item_doc "$file" || continue
   check_program_plan_sections "$file"
   check_orchestration_metadata "$file"
+done < <(find "$ROOT" -type f | sort)
+
+while IFS= read -r file; do
+  is_work_item_doc "$file" || continue
+  should_enforce_completed_docs_outcome "$file" || continue
+  check_completed_docs_outcome_token "$file"
 done < <(find "$ROOT" -type f | sort)
 
 check_orchestration_relationships

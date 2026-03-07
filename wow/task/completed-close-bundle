@@ -36,8 +36,8 @@ Bundle folder resolution:
 3. Otherwise create a new folder named
    `<current-close-timestamp>-bundle-<bundle-slug>`.
 4. Never rename an existing bundle folder after creation.
-5. Ensure folder completion timestamp is >= every file timestamp prefix moved
-   into that folder.
+5. For a newly created bundle folder, use the current close timestamp.
+   For reused bundle folders, keep the existing folder name unchanged.
 
 Bundle registry contract (`wow/completed/.bundle-registry.tsv`):
 

@@ -369,7 +369,7 @@ Optional active artifact contract block:
 - Completed topic folders: direct children of `completed/` must match one of
   the two valid topic-folder patterns above
 - Completed topic folders are non-empty (must contain at least one markdown artifact)
-- Completed chronology: folder completion timestamp is not older than file creation timestamp prefixes
+- Completed chronology (non-bundle folders): folder completion timestamp is not older than file creation timestamp prefixes
 - Bundle stability: only one folder per `module-slug` may match `*-bundle-<module-slug>`
 - Legacy completed placeholder paths are not allowed (`completed/<topic>/`)
 

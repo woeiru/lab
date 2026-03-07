@@ -13,6 +13,11 @@ through normal workflow operations.
 - Create a new file in wow/active/:
   - Filename: yyyymmdd-hhmm_<topic>-plan.md (current time)
   - Add the standard header: Status (active), Owner, Started, Updated, Links
+- Add ## Documentation Impact with exactly one token line:
+  - `Docs: required` when behavior/interfaces/operator workflow changed
+  - `Docs: none` when no documentation-impacting behavior changed
+  - `Docs: deferred` only when blocked; include blocker reason + follow-up route
+- If `Docs: required`, list initial target doc paths to update in this item.
 - Add ## Retroactive Capture section with:
   - Origin: what the fix originally targeted (one sentence)
   - Escalation reason: why it grew (deeper bug, unexpected dependency, etc.)
@@ -33,6 +38,13 @@ through normal workflow operations.
   - If "Design: required": Phase 1 must be design-only
   - If "Design: not needed": implementation phases directly
   - Each phase has one unambiguous completion criterion
+- Add ## Verification Plan for remaining work only:
+  - Include one documentation verification step
+  - If structural/public surfaces change (new/renamed functions, signature
+    changes, dependency changes, variable map changes), include
+    `./utl/ref/run_all_doc.sh`
+  - If `Docs: deferred`, include follow-up creation as a required step before
+    closeout
 - Add ## Exit Criteria: conditions for the full item to be considered done
 - If the work is large enough to warrant splitting, note this but do not
   split during capture. Use active-split as a follow-up step.

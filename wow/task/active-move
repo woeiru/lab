@@ -9,7 +9,12 @@ Move this queued item to active/ and prepare it for execution.
   triage (queue-triage or queue-move) first.
 - Move file to wow/active/
 - Set Status: active
-- Add sections: Execution Plan, Verification Plan, Exit Criteria
+- Add sections: Documentation Impact, Execution Plan, Verification Plan, Exit Criteria
+- Add ## Documentation Impact with exactly one token line:
+  - `Docs: required` when behavior/interfaces/operator workflow changed
+  - `Docs: none` when no documentation-impacting behavior changed
+  - `Docs: deferred` only when blocked; include blocker reason + follow-up route
+- If `Docs: required`, list initial target doc paths to update in this item.
 
 Design-aware Execution Plan:
 - If "Design: required":
@@ -26,5 +31,13 @@ General Execution Plan rules for multi-phase work:
   - List phases as sequential steps, not conditional branches
     (write "Phase 1, then Phase 2" -- never "if closing... if continuing...")
   - Exit Criteria applies to the full item, not individual phases
+Documentation-aware verification rules:
+  - Verification Plan must include one documentation verification step.
+  - If `Docs: required`, verify docs are updated in the same workflow item.
+  - If structural/public surfaces change (new/renamed functions, signature
+    changes, dependency changes, variable map changes), include
+    `./utl/ref/run_all_doc.sh` in verification.
+  - If `Docs: deferred`, include follow-up creation as a required step before
+    closeout.
 - If a waiver is needed, add/update wow/active/waivers/*_waiver-register.md
 - Report: active path + design classification + next 3 execution steps
