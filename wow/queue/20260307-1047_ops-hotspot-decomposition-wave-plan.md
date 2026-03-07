@@ -1,9 +1,9 @@
 # Ops Hotspot Decomposition Wave Plan
 
-- Status: inbox
+- Status: queue
 - Owner: es
 - Started: 2026-03-07
-- Updated: 2026-03-07 10:47
+- Updated: 2026-03-07 11:19
 - Links: wow/completed/20260307-1047_lib-architecture-review/20260307-0921_lib-architecture-review-result.md, doc/ref/functions.md, doc/ref/stats/actual.md, doc/ref/scope-integrity.md
 
 ## Goal
@@ -33,7 +33,22 @@ smaller units while preserving public behavior.
 2. Behavior drift can occur without explicit compatibility and regression gates.
 3. Large patchsets can delay review and reduce delivery confidence.
 
+## Triage Decision
+
+- Why now: The architecture review already identified high-risk hotspots, so
+  triaging this decomposition wave now prevents additional unsafe growth in the
+  most complex ops/gen modules.
+- Design classification Q1 (meaningful alternatives): Yes -- batching,
+  sequencing, and rollback design choices materially affect implementation
+  safety and reviewability.
+- Design classification Q2 (output shape dependencies): Yes -- downstream
+  maintainers and test plans depend on stable decomposition boundaries and
+  documented compatibility gates.
+- Design: required
+- Justification: Both the decomposition strategy and its artifacts directly
+  influence how future implementation waves are executed and validated.
+
 ## Next Step
 
-Run queue triage to lock scope boundaries, dependency order, and design
-classification before promotion to execution.
+Promote to `wow/active/` and execute Wave 1 decomposition planning against the
+locked batch boundaries and compatibility gates.
