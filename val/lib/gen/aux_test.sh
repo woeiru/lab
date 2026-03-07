@@ -411,6 +411,96 @@ EOF
     cleanup_test_env "$test_env"
 }
 
+test_tier_a_contract_return_codes() {
+    local test_env
+    test_env=$(create_test_env "aux_tier_a_contract")
+
+    cat > "$test_env/test_tier_a_contract.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR"
+
+source lib/gen/aux 2>/dev/null || exit 1
+
+aux_val "x" "unknown_validation" >/dev/null 2>&1
+[[ $? -eq 2 ]] || exit 1
+
+aux_val "123" "numeric" >/dev/null 2>&1
+[[ $? -eq 0 ]] || exit 1
+
+aux_val "abc" "numeric" >/dev/null 2>&1
+[[ $? -eq 1 ]] || exit 1
+
+aux_chk "unknown_check" "target" >/dev/null 2>&1
+[[ $? -eq 2 ]] || exit 1
+
+aux_chk "command" "bash" >/dev/null 2>&1
+[[ $? -eq 0 ]] || exit 1
+
+aux_chk "command" "definitely_missing_aux_command" >/dev/null 2>&1
+[[ $? -eq 1 ]] || exit 1
+
+aux_cmd "definitely_missing_aux_command" >/dev/null 2>&1
+[[ $? -eq 127 ]] || exit 1
+
+aux_cmd "true" >/dev/null 2>&1
+[[ $? -eq 0 ]] || exit 1
+
+exit 0
+EOF
+    chmod +x "$test_env/test_tier_a_contract.sh"
+
+    run_test "Tier A return code contract" "$test_env/test_tier_a_contract.sh"
+    cleanup_test_env "$test_env"
+}
+
+test_internal_helper_compatibility_wrappers() {
+    local test_env
+    test_env=$(create_test_env "aux_internal_wrappers")
+
+    cat > "$test_env/test_internal_wrappers.sh" << 'EOF'
+#!/bin/bash
+export LAB_DIR="$LAB_ROOT"
+cd "$LAB_DIR"
+
+source lib/gen/aux 2>/dev/null || exit 1
+
+declare -f _aux_get_log_color >/dev/null || exit 1
+declare -f _aux_get_cluster_metadata >/dev/null || exit 1
+declare -f _aux_format_json_log >/dev/null || exit 1
+declare -f _aux_format_csv_log >/dev/null || exit 1
+
+declare -f aux_get_log_color >/dev/null || exit 1
+declare -f aux_get_cluster_metadata >/dev/null || exit 1
+declare -f aux_format_json_log >/dev/null || exit 1
+declare -f aux_format_csv_log >/dev/null || exit 1
+
+_aux_get_log_color "info" internal_color
+aux_get_log_color "info" public_color
+[[ "$internal_color" == "$public_color" ]] || exit 1
+
+unset _AUX_CACHED_METADATA _AUX_CACHED_HOSTNAME
+NODE_ID="contract-node" CLUSTER_ID="contract-cluster" SERVICE_NAME="contract-service" _aux_get_cluster_metadata internal_metadata
+unset _AUX_CACHED_METADATA _AUX_CACHED_HOSTNAME
+NODE_ID="contract-node" CLUSTER_ID="contract-cluster" SERVICE_NAME="contract-service" aux_get_cluster_metadata public_metadata
+[[ "$internal_metadata" == "$public_metadata" ]] || exit 1
+
+_aux_format_json_log "2026-03-07T11:30:00" "info" "hello" "caller_fn" "$public_metadata" "ctx=1" "debug" internal_json
+aux_format_json_log "2026-03-07T11:30:00" "info" "hello" "caller_fn" "$public_metadata" "ctx=1" "debug" public_json
+[[ "$internal_json" == "$public_json" ]] || exit 1
+
+_aux_format_csv_log "2026-03-07T11:30:00" "info" "hello" "caller_fn" "$public_metadata" "ctx=1" internal_csv
+aux_format_csv_log "2026-03-07T11:30:00" "info" "hello" "caller_fn" "$public_metadata" "ctx=1" public_csv
+[[ "$internal_csv" == "$public_csv" ]] || exit 1
+
+exit 0
+EOF
+    chmod +x "$test_env/test_internal_wrappers.sh"
+
+    run_test "Internal helper compatibility wrappers" "$test_env/test_internal_wrappers.sh"
+    cleanup_test_env "$test_env"
+}
+
 # Main execution
 main() {
     run_test_suite "AUXILIARY FUNCTIONS TESTS" \
@@ -425,7 +515,9 @@ main() {
         test_configuration_integration \
         test_auxiliary_performance \
         test_error_handling \
-        test_aux_log_respects_unified_verbosity
+        test_aux_log_respects_unified_verbosity \
+        test_tier_a_contract_return_codes \
+        test_internal_helper_compatibility_wrappers
 }
 
 # Run if executed directly
